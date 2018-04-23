@@ -13,8 +13,8 @@
 
 all: Role_OOC.dcp
 
-Role_OOC.dcp:
-	cd ./tcl/; vivado -mode batch -source create_project.tcl -notrace -log create_project.log
+Role_OOC.dcp: ./hdl/ ./xdc/ ./tcl/ 
+	cd ./tcl/; vivado -mode batch -source run.tcl -notrace -log run.log -tclargs -force
 
 
 clean: 

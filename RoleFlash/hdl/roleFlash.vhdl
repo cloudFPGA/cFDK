@@ -54,7 +54,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role is
+entity Role_Udp_Tcp_McDp is
   port (
     ---- Global Clock used by the entire ROLE --------------
     ------ This is the same clock as the SHELL -------------
@@ -166,12 +166,14 @@ entity Role is
 
   );
   
-end Role;
+end Role_Udp_Tcp_McDp;
 
 
 -- *****************************************************************************
 -- **  ARCHITECTURE  **  FLASH of ROLE 
 -- *****************************************************************************
+
+-- CAVE: MULTIPLE ARCHITECTURE IN THE SAME FILE ISN'T TESTED FOR PARTIAL RECONFIGURATION
 
 --architecture Flash of Role is
 
@@ -193,7 +195,7 @@ end Role;
 --**    signal assignments to avoid undefined content of the entity 'Role'.
 --*****************************************************************************
 
-architecture Void of Role is
+architecture Void of Role_Udp_Tcp_McDp is
 
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Udp Interface to AVOID UNDEFINED CONTENT

@@ -43,6 +43,7 @@ set dbgLvl_3         3
 #                                                                              #
 ################################################################################
 
+set force 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -59,6 +60,7 @@ if { $argc > 0 } {
     # Step-1: Processing of '$argv' using the 'cmdline' package
     set options {
         { h     "Display the help information." }
+        { force    "Continue, even if an old project will be deleted."}
     }
     set usage "\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -67,9 +69,13 @@ if { $argc > 0 } {
     # Process the arguments
     foreach { key value } [ array get kvList ] {
         my_dbg_trace "KEY = ${key} | VALUE = ${value}" ${dbgLvl_2}
-        if { ${key} eq "h" } {
+        if { ${key} eq "h"  && ${value} eq 1} {
             puts "${usage} \n";
             return ${::OK}
+        }
+        if { ${key} eq "force" && ${value} eq 1 } { 
+          set force 1
+          my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
         }
     }
 }
@@ -88,7 +94,7 @@ catch { cd ${rootDir} }
 
 # Check if the Xilinx Project Already Exists
 #-------------------------------------------------------------------------------
-if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 } {
+if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
     my_warn_puts "The project \'${xprName}.xpr\' already exists!"
     my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
     my_warn_puts "\t Are you sure (Y/N) ? "
@@ -291,7 +297,9 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 #launch_runs synth_1
 #wait_on_run synth_1
 
-synth_design -mode out_of_context
+synth_design -mode out_of_context 
+
+#-jobs 8
 
 my_puts "################################################################################"
 my_puts "##  DONE WITH SYNTHESIS RUN; WRITE FILES TO .dcp"
