@@ -29,17 +29,15 @@ all: $(XPR_PROJ)
 clean:
 	rm -f  ./*.log
 	rm -f  ./*.jou
-#OBSOLETE-20180414	rm -rf ../xpr
-	vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -clean
 
 
 $(XPR_PROJ): $(IP_SHELL)
-	rm -f create_project.log
+	rm -f run.log
 	rm -f vivado.jou
-	vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force 
+	vivado -mode batch -source run.tcl -notrace -log run.log -tclargs -force 
 
 
 full_src: 
-	vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -full_src -force
+	vivado -mode batch -source run.tcl -notrace -log run.log -tclargs -full_src -force
 
 
