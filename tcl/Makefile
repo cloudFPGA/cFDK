@@ -15,7 +15,7 @@
 # ******************************************************************************
 
 
-IP_SHELL = ../../../../IP/FMKU60/Shell/component.xml
+IP_SHELL = ../../../IP/Shell/component.xml
 
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 

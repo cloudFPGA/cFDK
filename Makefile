@@ -9,7 +9,7 @@
 # *
 # ******************************************************************************
 
-SHELL_DIR = ../../../SHELL/FMKU60/Shell
+SHELL_DIR = ../../SHELL/Shell
 
 .PHONY: all clean src_based ip_based
 

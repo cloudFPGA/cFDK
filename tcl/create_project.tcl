@@ -185,7 +185,7 @@ if { ${full_src} } {
     # Add *ALL* the HDL Source Files for the SHELL
     #-------------------------------------------------------------------------------
     #add_files    ${hdlDir}
-    add_files     ${rootDir}/../../../SHELL/FMKU60/Shell/hdl/
+    add_files     ${rootDir}/../../SHELL/Shell/hdl/
     my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
     
     # IP Cores SHELL
@@ -193,8 +193,8 @@ if { ${full_src} } {
     #  (Must do this because IPs are stored outside of the current project) 
     #-------------------------------------------------------------------------------
     #set_property      ip_repo_paths "${ipDir} ${hlsDir}" [ current_project ]
-    set ipDirShell ${rootDir}/../../../SHELL/FMKU60/Shell/ip/
-    set_property      ip_repo_paths "${ipDirShell} ${rootDir}/../../../SHELL/FMKU60/Shell/hls" [ current_project ]
+    set ipDirShell ${rootDir}/../../SHELL/Shell/ip/
+    set_property      ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
     update_ip_catalog
     my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
     
@@ -214,7 +214,7 @@ if { ${full_src} } {
     
     # Add Constraints Files SHELL
     #---------------------------------------------------------------------
-    #add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../../SHELL/FMKU60/Shell/xdc/*.xdc ]
+    #add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
     
     my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 } else {
@@ -227,7 +227,7 @@ if { ${full_src} } {
 
 # Add HDL Source Files for the ROLE
 #-----------------------------------
-add_files -norecurse ${rootDir}/../../../ROLE/FMKU60/RoleFlash_vhd/hdl/roleFlash.vhdl  
+add_files -norecurse ${rootDir}/../../ROLE/RoleFlash_vhd/hdl/roleFlash.vhdl  
 update_compile_order -fileset sources_1
 my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
