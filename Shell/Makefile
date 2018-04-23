@@ -20,16 +20,18 @@ hls_cores:
 	$(MAKE) -C ./hls/
 
 #directory as dependency: not the best solution but here the most practical one 
-./ip/: hls_cores 
+./ip: hls_cores 
+	touch ./ip 
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log
 
-./xpr/: ./ip
+./xpr: ./ip
+	touch ./xpr
 	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log
 
-shell_synth: ./xpr/ # NOT TESTED
+shell_synth: ./xpr # NOT TESTED
 	cd ./tcl/ ;  vivado -mode batch -source synth_ip_cores.tcl -notrace -log synth_ip_cores.log
 
-pkg_shell: ./xpr/ shell_synth # NOT TESTED
+pkg_shell: ./xpr shell_synth # NOT TESTED
 	#cd ./tcl/ ; vivado -mode batch -source package_project.tcl -notrace
 	$(error NOT YET IMPLEMENTED)
 

@@ -48,7 +48,7 @@ set ipXprDir     ${ipDir}/${ipXprName}
 set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
 
 #-- IPs Managed by the Shell-Role-Architecture (Sra) Project  
-set ipSraDir     ${rootDir}/../../../IP/${brdPartName}
+set ipSraDir     ${rootDir}/../../IP
 set ipSraXprName "managed_ip_project"
 set ipSraXprDir  ${ipSraDir}/${ipSraXprName}
 set ipSraXprFile [ file join ${ipSraXprDir} ${ipSraXprName}.xpr ]
