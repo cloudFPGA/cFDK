@@ -18,6 +18,6 @@ Role_OOC.dcp:
 
 
 clean: 
-	rm -rf ./xpr/ 
+	rm -rf ./xpr/ Role_OOC.dcp
 
 
