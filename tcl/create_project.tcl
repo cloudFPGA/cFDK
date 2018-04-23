@@ -231,6 +231,7 @@ add_files -norecurse ${rootDir}/../../ROLE/RoleFlash_vhd/hdl/roleFlash.vhdl
 update_compile_order -fileset sources_1
 my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
+
 # Update Compile Order
 #-------------------------------------------------------------------------------
 update_compile_order -fileset sources_1
@@ -248,11 +249,11 @@ add_files -fileset ${obj} ${xdcDir}
 set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
 #OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_timg.xdc ]
 #OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-
 #OBSOLETE-20180414 set_property used_in_implementation false [get_files Shell.xdc]
 my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
 
+#-------------------------------------------------------------------------------
 # Create 'synth_1' run (if not found)
 #-------------------------------------------------------------------------------
 set year [ lindex [ split [ version -short ] "." ] 0 ]  
@@ -263,11 +264,15 @@ if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
     set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
 }
 set obj [ get_runs synth_1 ]
-#OBSOLETE set_property "part" "xcku060-ffva1156-2-i" $obj
 
-# set the current synth run
+# Set the current synth run
 current_run -synthesis [ get_runs synth_1 ]
 
+# Specify the tcl.pre script to apply before the synthesis run
+set_property STEPS.SYNTH_DESIGN.TCL.PRE ../xdc/xdc_settings.tcl [ get_runs synth_1 ]
+
+
+#-------------------------------------------------------------------------------
 # Create 'impl_1' run (if not found)
 #-------------------------------------------------------------------------------
 set year [ lindex [ split [ version -short ] "." ] 0 ]  
@@ -277,20 +282,23 @@ if { [ string equal [ get_runs -quiet impl_1 ] "" ] } {
   set_property strategy "Vivado Implementation Defaults" [ get_runs impl_1 ]
     set_property flow "Vivado Implementation ${year}" [ get_runs impl_1 ]
 }
+
+# Set the current impl run
 set obj [ get_runs impl_1 ]
-#OBSOLET set_property "part" "xcku060-ffva1156-2-i" $obj
-set_property "steps.write_bitstream.args.readback_file" "0" ${obj}
-set_property "steps.write_bitstream.args.verbose"       "0" ${obj}
+
+
+# Specify the tcl.pre script to apply before the implementation run
+set_property STEPS.SYNTH_DESIGN.TCL.PRE ../xdc/xdc_settings.tcl [ get_runs synth_1 ]
 
 # Set the current impl run
 #-------------------------------------------------------------------------------
 current_run -implementation [ get_runs impl_1 ]
 
-
 my_puts "################################################################################"
 my_puts "##  DONE WITH PROJECT CREATION "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
 
 
 my_puts "################################################################################"
@@ -307,6 +315,7 @@ my_puts "#######################################################################
 my_puts "##  DONE WITH SYNTHESIS RUN "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
 
 
 my_puts "################################################################################"
@@ -326,12 +335,17 @@ my_puts "##  DONE WITH IMPLEMENATATION RUN "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
+
+
 my_puts "################################################################################"
 my_puts "##"
 my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
 my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+set_property "steps.write_bitstream.args.readback_file" "0" ${obj}
+set_property "steps.write_bitstream.args.verbose"       "0" ${obj}
 
 launch_runs impl_1 -to_step write_bitstream -jobs 8
 wait_on_run impl_1
