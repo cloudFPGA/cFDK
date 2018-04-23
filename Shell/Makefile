@@ -21,7 +21,6 @@ hls_cores:
 
 #directory as dependency: not the best solution but here the most practical one 
 ./ip: hls_cores 
-	touch ./ip 
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log
 
 ./xpr: ./ip
