@@ -1,0 +1,33 @@
+#-----------------------------------------------------------
+# Vivado v2017.4 (64-bit)
+# SW Build 2086221 on Fri Dec 15 20:54:30 MST 2017
+# IP Build 2085800 on Fri Dec 15 22:25:07 MST 2017
+# Start of session at: Fri Apr 20 09:04:54 2018
+# Process ID: 29367
+# Current directory: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash
+# Command line: vivado
+# Log file: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/vivado.log
+# Journal file: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/xpr/topFMKU60_Flash.xpr
+close_project
+open_checkpoint /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/xpr/topFlash_try0_1.dcp
+opt_design
+write_checkpoint ./xpr/topFlash_try0_2.dcp
+place_design
+write_checkpoint ./xpr/topFlash_try0_3.dcp
+route_design
+report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 10 -input_pins -routable_nets -name timing_1
+write_checkpoint ./xpr/topFlash_try0_4_complete.dcp
+write_checkpoint -cell ROLE_INST ./xpr/topFlash_try0_4_complete_ROLE.dcp
+update_design -cell ROLE_INST -black_box
+lock_design -level routing
+write_checkpoint -cell ROLE_INST ./xpr/topFlash_try0_4_complete_STATI.dcp
+open_checkpoint ./xpr/topFlash_try0_4_complete.dcp
+write_bitstream try0_4
+current_project project_topFlash_try0_1
+set_property UNAVAILABLE_DURING_CALIBRATION TRUE [get_ports piCLKT_Usr1Clk_p]
+write_bitstream try0_4
+write_checkpoint /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/xpr/topFlash_try0_1.dcp -force
+close_design

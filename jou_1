@@ -1,0 +1,54 @@
+#-----------------------------------------------------------
+# Vivado v2017.4 (64-bit)
+# SW Build 2086221 on Fri Dec 15 20:54:30 MST 2017
+# IP Build 2085800 on Fri Dec 15 22:25:07 MST 2017
+# Start of session at: Thu Apr 19 13:59:11 2018
+# Process ID: 21043
+# Current directory: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash
+# Command line: vivado
+# Log file: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/vivado.log
+# Journal file: /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project /home/ngl/gitrepo/cloudFPGA/SRA2/TOP/FMKU60/TopFlash/xpr/topFMKU60_Flash.xpr
+update_compile_order -fileset sources_1
+export_ip_user_files -of_objects  [get_files /home/ngl/gitrepo/cloudFPGA/SRA2/ROLE/FMKU60/RoleFlash/hdl/roleFlash.vhdl] -no_script -reset -force -quiet
+remove_files  /home/ngl/gitrepo/cloudFPGA/SRA2/ROLE/FMKU60/RoleFlash/hdl/roleFlash.vhdl
+pwd
+add_file ../../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp
+update_compile_order -fileset sources_1
+set_property SCOPED_TO_CELLS {ROLE} [get_files ./../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp]
+set_property SCOPED_TO_CELLS {ROLE} [get_files ./../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp ]
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+set_property SCOPED_TO_CELLS {ROLE_INST} [get_files ./../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp ]
+set_property SCOPED_TO_CELLS {ROLE_INST} [get_files ../../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp ]
+link_d
+link_design -mode default -reconfig_partitions {ROLE_INST} -part xcku060-ffva1156-2-i -top topFlash
+open_run
+reset_run synth_1
+link_design -mode default -reconfig_partitions {ROLE_INST} -part xcku060-ffva1156-2-i -top topFlash
+write_checkpoint ./xpr/topFlash_try0.dcp
+synth_design
+add_file ../../../ROLE/FMKU60/RoleFlash/xpr/RoleFlash_synth.dcp
+write_checkpoint ./xpr/topFlash_try0.dcp
+synth_design
+link_design -mode default -reconfig_partitions {ROLE_INST} -part xcku060-ffva1156-2-i -top topFlash
+write_checkpoint ./xpr/topFlash_try0.dcp
+refresh_design
+write_checkpoint -force ./xpr/topFlash_try0.dcp
+startgroup
+create_pblock pblock_ROLE_INST
+resize_pblock pblock_ROLE_INST -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
+add_cells_to_pblock pblock_ROLE_INST [get_cells [list ROLE_INST]] -clear_locs
+endgroup
+write_xdc ./xdc/pr.xdc
+opt_design
+set_property HD.RECONFIGURABLE 1 [get_cells ROLE_INST]
+write_checkpoint -force ./xpr/topFlash_try0_1.dcp
+set_property HD.RECONFIGURABLE 1 [get_cells ROLE_INST]
+create_drc_ruledeck ruledeck_1
+add_drc_checks -ruledeck ruledeck_1 [get_drc_checks {HDPRA-62 HDPRA-60 HDPRA-58 HDPRA-57 HDPRA-56 HDPRA-55 HDPRA-54 HDPRA-53 HDPRA-52 HDPRA-51 HDPRA-21 HDPR-43 HDPR-20 HDPR-41 HDPR-30 HDPR-87 HDPR-86 HDPR-85 HDPR-84 HDPR-83 HDPR-74 HDPR-73 HDPR-72 HDPR-71 HDPR-70 HDPR-69 HDPR-68 HDPR-67 HDPR-66 HDPR-65 HDPR-64 HDPR-63 HDPR-62 HDPR-61 HDPR-60 HDPR-59 HDPR-58 HDPR-57 HDPR-54 HDPR-50 HDPR-49 HDPR-48 HDPR-47 HDPR-46 HDPR-44 HDPR-42 HDPR-38 HDPR-37 HDPR-35 HDPR-34 HDPR-33 HDPR-32 HDPR-29 HDPR-28 HDPR-25 HDPR-23 HDPR-22 HDPR-18 HDPR-17 HDPR-16 HDPR-14 HDPR-13 HDPR-12 HDPR-11 HDPR-6 HDPR-5 HDPR-4 HDPR-3 HDPR-2 HDPR-1}]
+report_drc -name drc_1 -ruledecks {ruledeck_1}
+delete_drc_ruledeck ruledeck_1
+opt_design
