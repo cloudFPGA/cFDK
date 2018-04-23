@@ -813,7 +813,7 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE_INST : Role --(Void)
+  ROLE : Role_Udp_Tcp_McDp
     port map (
       -- Global Clock used by the entire ROLE --------------
       ---- This is the same 156.25MHz clock as the SHELL ---
