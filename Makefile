@@ -9,11 +9,16 @@
 # *
 # ******************************************************************************
 
-SHELL_DIR = ../../SHELL/Shell
+SHELL_DIR = ../../SHELL/Shell 
+ROLE_DIR = ../../ROLE
 
-.PHONY: all clean src_based ip_based
+.PHONY: all clean src_based ip_based RoleFlash
 
-all: src_based #OR ip_based, whatever is preferred as default
+all: src_based RoleFlash
+#OR ip_based, whatever is preferred as default
+
+RoleFlash: 
+	$(MAKE) -C $(ROLE_DIR)/$@
 
 src_based:
 	$(MAKE) -C $(SHELL_DIR) full_src
