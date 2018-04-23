@@ -42,9 +42,9 @@ set dbgLvl_3         3
 #                                                                              #
 ################################################################################
 
-# By default, do not clean the entire project directory 
-set gCleanXprDir 0
-set force 0
+# Globa variables
+set clean    0
+set force    0
 set full_src 0
 
 #-------------------------------------------------------------------------------
@@ -77,8 +77,8 @@ if { $argc > 0 } {
         #    return ${::OK}
         #}
         if { ${key} eq "clean" && ${value} eq 1 } {
-            set gCleanXprDir 1
-            my_dbg_trace "Setting gCleanXprDir to \'1\' " ${dbgLvl_1}
+            set clean 1
+            my_dbg_trace "Setting clean to \'1\' " ${dbgLvl_1}
         } 
         if { ${key} eq "force" && ${value} eq 1 } { 
           set force 1
@@ -105,7 +105,7 @@ catch { cd ${rootDir} }
 
 # If requested , clean the files of the previous run
 #-------------------------------------------------------------------------------
-if { ${gCleanXprDir} } {
+if { ${clean} } {
     # Start with a clean new project
     file delete -force ${xprDir}
     my_dbg_trace "Finished cleaning the project directory." ${dbgLvl_1}
