@@ -14,7 +14,7 @@
 #all: pkg_shell 
 all: full_src
 
-full_src: ./ip/
+full_src: ./ip
 
 hls_cores: 
 	$(MAKE) -C ./hls/
