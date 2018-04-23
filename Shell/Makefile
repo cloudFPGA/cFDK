@@ -24,7 +24,7 @@ hls_cores:
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log
 
 ./xpr: ./ip
-	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log
+	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force
 
 shell_synth: ./xpr # NOT TESTED
 	cd ./tcl/ ;  vivado -mode batch -source synth_ip_cores.tcl -notrace -log synth_ip_cores.log
