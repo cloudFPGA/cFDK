@@ -272,7 +272,7 @@ set_property -name "part" -value ${xilPartName} -objects ${obj}
 set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects ${obj}
 
 # set the current synth run
-current_run -synthesis [get_runs synth_1]
+#current_run -synthesis [get_runs synth_1]
 
 
 
@@ -281,57 +281,24 @@ my_puts "##  DONE WITH PROJECT CREATION "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
+my_puts "################################################################################"
+my_puts "##"
+my_puts "##  RUN SYNTHESIS: ${xprName}  in OOC"
+my_puts "##"
+my_puts "################################################################################"
+my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-if {0} {
-    my_puts "################################################################################"
-    my_puts "##"
-    my_puts "##  RUN SYNTHESIS: ${xprName}  "
-    my_puts "##"
-    my_puts "################################################################################"
-    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+#launch_runs synth_1
+#wait_on_run synth_1
 
-    launch_runs synth_1
-    wait_on_run synth_1
+synth_design -mode out_of_context
 
-    my_puts "################################################################################"
-    my_puts "##  DONE WITH SYNTHESIS RUN "
-    my_puts "################################################################################"
-    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+my_puts "################################################################################"
+my_puts "##  DONE WITH SYNTHESIS RUN; WRITE FILES TO .dcp"
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-
-    my_puts "################################################################################"
-    my_puts "##"
-    my_puts "##  RUN IMPLEMENTATION: ${xprName}  "
-    my_puts "##"
-    my_puts "################################################################################"
-    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-
-    set_property startegy HighEffort [ get_runs impl_1 ]
-    launch_runs impl_1
-    wait_on_run impl_1
-
-    my_puts "################################################################################"
-    my_puts "##  DONE WITH IMPLEMENATATION RUN "
-    my_puts "################################################################################"
-    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-
-    my_puts "################################################################################"
-    my_puts "##"
-    my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
-    my_puts "##"
-    my_puts "################################################################################"
-    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-
-    launch_runs impl_1 -to_step write_bitstream
-    wait_on_run impl_1
-
-    my_puts "################################################################################"
-    my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
-    my_puts "################################################################################"
-    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-}
-
-
+write_checkpoint -force ${topName}_OOC.dcp
 
 # Close project
 #-------------------------------------------------------------------------------
@@ -339,8 +306,8 @@ if {0} {
 
 # Launch Vivado' GUI
 #-------------------------------------------------------------------------------
-catch { cd ${xprDir} }
-start_gui
+#catch { cd ${xprDir} }
+#start_gui
 
 
 
