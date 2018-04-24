@@ -94,24 +94,24 @@ catch { cd ${rootDir} }
 
 # Check if the Xilinx Project Already Exists
 #-------------------------------------------------------------------------------
-if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
-    my_warn_puts "The project \'${xprName}.xpr\' already exists!"
-    my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
-    my_warn_puts "\t Are you sure (Y/N) ? "
-    flush stdout
-    set kbdIn [ gets stdin ]
-    scan ${kbdIn} "%s" keyPressed
-    if { [ string toupper ${keyPressed} ] ne "Y" } {
-        my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
-        my_puts "Bye.\n" 
-        exit 0
-    }
-}
-
-# Clean Previous Xilinx Project Directory
-#-------------------------------------------------------------------------------
-file delete -force ${xprDir}
-file mkdir ${xprDir}
+#if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
+#    my_warn_puts "The project \'${xprName}.xpr\' already exists!"
+#    my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
+#    my_warn_puts "\t Are you sure (Y/N) ? "
+#    flush stdout
+#    set kbdIn [ gets stdin ]
+#    scan ${kbdIn} "%s" keyPressed
+#    if { [ string toupper ${keyPressed} ] ne "Y" } {
+#        my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
+#        my_puts "Bye.\n" 
+#        exit 0
+#    }
+#}
+#
+## Clean Previous Xilinx Project Directory
+##-------------------------------------------------------------------------------
+#file delete -force ${xprDir}
+#file mkdir ${xprDir}
 
 # # Check if the Managed IP Project Already Exists
 # #-------------------------------------------------------------------------------
@@ -140,12 +140,14 @@ file mkdir ${xprDir}
 #===============================================================================
 # Create Xilinx Project
 #===============================================================================
-create_project ${xprName} ${xprDir} -part ${xilPartName}
+#create_project ${xprName} ${xprDir} -part ${xilPartName} 
+create_project -in_memory -part ${xilPartName} ${xprDir}/${xprName}.log
 my_dbg_trace "Done with create_project." ${dbgLvl_1}
 
 # Set Project Properties
 #-------------------------------------------------------------------------------
-set obj [ get_projects ${xprName} ]
+#set obj [ get_projects ${xprName} ]
+set obj [ current_project ]
 
 set_property -name "part"            -value ${xilPartName} -objects ${obj} -verbose
 set_property -name "target_language" -value "VHDL"         -objects ${obj} -verbose
@@ -157,7 +159,7 @@ set_property -name "part"                       -value "xcku060-ffva1156-2-i" -o
 set_property -name "simulator_language"         -value "Mixed"                -objects ${obj}
 set_property -name "sim.ip.auto_export_scripts" -value "1"                    -objects ${obj}
 
-set_property -name "ip_output_repo"             -value "${xprDir}/${xprName}/${xprName}.cache/ip" -objects ${obj}
+#set_property -name "ip_output_repo"             -value "${xprDir}/${xprName}/${xprName}.cache/ip" -objects ${obj}
 
 my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
