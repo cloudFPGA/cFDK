@@ -39,7 +39,7 @@
 library IEEE; 
 use     IEEE.std_logic_1164.all;
 use     IEEE.numeric_std.all;
-              
+
 library UNISIM; 
 use     UNISIM.vcomponents.all;
 
@@ -48,7 +48,7 @@ use     UNISIM.vcomponents.all;
 
 library XIL_DEFAULTLIB;
 use     XIL_DEFAULTLIB.topFlash_pkg.all;
-                 
+
 
 --******************************************************************************
 --**  ENTITY  **  FMKU60 FLASH
@@ -275,7 +275,7 @@ architecture structural of topFlash is
 
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
-  -- to declare the component in the pkg seems not to work for Verilog modules 
+  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
    component Shell_Udp_Tcp_McDp
      generic (
        gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
@@ -465,9 +465,12 @@ architecture structural of topFlash is
  
      );
    end component Shell_Udp_Tcp_McDp;
-  
+
+
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
-  component Role
+  -- not this time 
+  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
+  component Role_Udp_Tcp_McDp
       port (
         ---- Global Clock used by the entire ROLE --------------
         ------ This is the same clock as the SHELL -------------
@@ -577,7 +580,7 @@ architecture structural of topFlash is
         
         poVoid                              : out   std_ulogic          
       );
-    end component Role;
+    end component Role_Udp_Tcp_McDp;
 
 begin
   

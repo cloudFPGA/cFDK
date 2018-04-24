@@ -254,6 +254,12 @@ set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
 #OBSOLETE-20180414 set_property used_in_implementation false [get_files Shell.xdc]
 my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
+my_puts "################################################################################"
+my_puts "##  DONE WITH PROJECT CREATION "
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+
 #synth_design -mode default 
 #-jobs 8
 # top and part are already set
@@ -275,7 +281,7 @@ current_run -synthesis [ get_runs synth_1 ]
 
 my_puts "################################################################################"
 my_puts "##"
-my_puts "##  RUN SYNTHESIS: ${xprName}  "
+my_puts "##  RUN SYNTHESIS: ${xprName}  WITHOUT Role"
 my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
@@ -288,11 +294,18 @@ my_puts "##  DONE WITH SYNTHESIS RUN "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
+open_run synth_1 -name synth_1
+# otherwise write checkpoint will fail...
 
-write_checkpoint -force ${xprDir}/0_${topName}_static_without_role.dcp
+write_checkpoint -force ${xprDir}/0_${topName}_static_without_role.dcp 
+
+close_design
+close_project
 
 ###########################################################################
 # now combine Top-Shell and Role
+
+open_checkpoint ${xprDir}/0_${topName}_static_without_role.dcp
 
 # Add HDL Source Files for the ROLE
 #-----------------------------------
@@ -303,18 +316,19 @@ my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
 
 set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
-# Link the two dcps together
-link_design -mode default -reconfig_partitions {ROLE} 
-# -top and -part should be set already
 
 # Floorplan
 create_pblock pblock_ROLE
 resize_pblock pblock_ROLE -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
 add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
 #TODO not here, in xdc instead? 
-#write_xdc ./xdc/pr.xdc 
+#write_xdc ./xdc/pr.xdc --> No, xdc would be included to early
 
 set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
+
+# Link the two dcps together
+link_design -mode default -reconfig_partitions {ROLE} 
+# -top and -part should be set already
 
 write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
 
@@ -335,30 +349,24 @@ write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
 #current_run -synthesis [ get_runs synth_1 ]
 
 # Create 'impl_1' run (if not found)
-#-------------------------------------------------------------------------------
-set year [ lindex [ split [ version -short ] "." ] 0 ]  
-if { [ string equal [ get_runs -quiet impl_1 ] "" ] } {
-    create_run -name impl_1 -part ${xilPartName} -flow {Vivado Implementation ${year}} -strategy "Vivado Implementation Defaults" -constrset constrs_1 -parent_run synth_1
-} else {
-  set_property strategy "Vivado Implementation Defaults" [ get_runs impl_1 ]
-    set_property flow "Vivado Implementation ${year}" [ get_runs impl_1 ]
-}
-set obj [ get_runs impl_1 ]
-#OBSOLET set_property "part" "xcku060-ffva1156-2-i" $obj
-set_property "steps.write_bitstream.args.readback_file" "0" ${obj}
-set_property "steps.write_bitstream.args.verbose"       "0" ${obj}
+#------------------------------------------------------------------------------- 
 
-# Set the current impl run
-#-------------------------------------------------------------------------------
-current_run -implementation [ get_runs impl_1 ]
-
-
-my_puts "################################################################################"
-my_puts "##  DONE WITH PROJECT CREATION "
-my_puts "################################################################################"
-my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-
-
+# PR is here in out of project mode -> no 'runs' possible 
+#set year [ lindex [ split [ version -short ] "." ] 0 ]  
+#if { [ string equal [ get_runs -quiet impl_1 ] "" ] } {
+#    create_run -name impl_1 -part ${xilPartName} -flow {Vivado Implementation ${year}} -strategy "Vivado Implementation Defaults" -constrset constrs_1 -parent_run synth_1
+#} else {
+#  set_property strategy "Vivado Implementation Defaults" [ get_runs impl_1 ]
+#    set_property flow "Vivado Implementation ${year}" [ get_runs impl_1 ]
+#}
+#set obj [ get_runs impl_1 ]
+##OBSOLET set_property "part" "xcku060-ffva1156-2-i" $obj
+#set_property "steps.write_bitstream.args.readback_file" "0" ${obj}
+#set_property "steps.write_bitstream.args.verbose"       "0" ${obj}
+#
+## Set the current impl run
+##-------------------------------------------------------------------------------
+#current_run -implementation [ get_runs impl_1 ]
 ###PR: synth isn't necessary at this stage 
 #my_puts "################################################################################"
 #my_puts "##"
@@ -378,15 +386,20 @@ my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 my_puts "################################################################################"
 my_puts "##"
-my_puts "##  RUN IMPLEMENTATION: ${xprName}  "
+my_puts "##  RUN IMPLEMENTATION: ${xprName}  IN NON PROJECT MODE"
 my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 #TODO 
 #set_property strategy HighEffort [ get_runs impl_1 ]
-launch_runs impl_1 -jobs 8
-wait_on_run impl_1
+#launch_runs impl_1 -jobs 8
+#wait_on_run impl_1
+
+opt_design
+place_design
+route_design
+
 
 write_checkpoint -force ${xprDir}/2_${topName}_impl_complete.dcp
 write_checkpoint -force -cell ROLE ${xprDir}/2_${topName}_impl_${usedRole}.dcp
