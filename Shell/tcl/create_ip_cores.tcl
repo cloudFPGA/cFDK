@@ -154,8 +154,9 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 
     if { ! [ string match ${ipModName}  [ get_ips ${ipModName} ] ] } {
         # The returned list does not match expected value. IP was not created.
-         my_err_puts "## Failed to create IP \'${ipModName}\'."
-         return  ${::KO}
+        my_err_puts "## Failed to create IP \'${ipModName}\'."
+        my_puts ""
+        return  ${::KO}
     }
 
     # Note: A typical 'set_property' command looks like the following:
@@ -916,7 +917,8 @@ my_puts "##"
 my_puts "##  DONE WITH THE CREATION OF \[ ${nrGenIPs} \] IP CORE(S) FROM THE MANAGED IP REPOSITORY "
 my_puts "##"
 if { ${nrErrors} != 0 } {
-  my_puts "##                   Warning: Failed to generate ${nrErrors} IP core(s) ! "
+  my_puts "##"
+  my_err_puts "##                   Warning: Failed to generate ${nrErrors} IP core(s) ! "
   my_puts "##"
 }
 my_puts "################################################################################\n"
