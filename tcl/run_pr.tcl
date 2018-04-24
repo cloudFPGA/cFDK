@@ -327,8 +327,7 @@ add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
 set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
 
 # Link the two dcps together
-link_design -mode default -reconfig_partitions {ROLE} 
-# -top and -part should be set already
+link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 
 write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
 
