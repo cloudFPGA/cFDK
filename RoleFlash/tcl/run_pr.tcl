@@ -224,58 +224,58 @@ if { [ string equal [ get_filesets -quiet constrs_1 ] "" ] } {
 # Set 'constrs_1' fileset object and Add/Import constrs file and set constraint
 #  file properties
 #-------------------------------------------------------------------------------
-set obj [ get_filesets constrs_1 ]
-set dir "[ file normalize "${xdcDir}" ]" 
-my_dbg_trace "Set \'constrs_1\': dir   = ${dir}" ${dbgLvl_3}  
-set files [ add_files -fileset ${obj} ${dir} ]
-my_dbg_trace "Set \'constrs_1\': files = ${files}" ${dbgLvl_3}  
-set file_obj [ get_files -of_objects [ get_filesets constrs_1 ] [ list "$dir/*" ] ] 
-my_dbg_trace "Set \'constrs_1\': file_obj = ${file_obj}" ${dbgLvl_3}  
-set_property -name "file_type" -value "XDC" -objects ${file_obj}
+#set obj [ get_filesets constrs_1 ]
+#set dir "[ file normalize "${xdcDir}" ]" 
+#my_dbg_trace "Set \'constrs_1\': dir   = ${dir}" ${dbgLvl_3}  
+#set files [ add_files -fileset ${obj} ${dir} ]
+#my_dbg_trace "Set \'constrs_1\': files = ${files}" ${dbgLvl_3}  
+#set file_obj [ get_files -of_objects [ get_filesets constrs_1 ] [ list "$dir/*" ] ] 
+#my_dbg_trace "Set \'constrs_1\': file_obj = ${file_obj}" ${dbgLvl_3}  
+#set_property -name "file_type" -value "XDC" -objects ${file_obj}
 
 #[TODO]set_property used_in_synthesis false [get_files ${xdcDir}/${xprName}_timg.xdc]
 #[TODO] set_property used_in_synthesis false [get_files ${xdcDir}/${xprName}_pins.xdc]
-my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
+#my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
 
 
 # Create 'sim_1' fileset (if not found)
 #-------------------------------------------------------------------------------
-if {[string equal [get_filesets -quiet sim_1] ""]} {
-  create_fileset -simset sim_1
-}
-# Set 'sim_1' fileset object
-set obj [get_filesets sim_1]
-# [TODO] Empty (no sources present)
-# Set 'sim_1' fileset properties
-set obj [get_filesets sim_1]
-set_property -name "top" -value ${topName} -objects $obj
-
+#if {[string equal [get_filesets -quiet sim_1] ""]} {
+#  create_fileset -simset sim_1
+#}
+## Set 'sim_1' fileset object
+#set obj [get_filesets sim_1]
+## [TODO] Empty (no sources present)
+## Set 'sim_1' fileset properties
+#set obj [get_filesets sim_1]
+#set_property -name "top" -value ${topName} -objects $obj
+#
 
 # Create 'synth_1' run (if not found)
 #-------------------------------------------------------------------------------
-set year [ lindex [ split [ version -short ] "." ] 0 ]  
-if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
-    create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
-} else {
-  set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
-    set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
-}
-set obj [ get_runs synth_1 ]
-set_property set_report_strategy_name 1 ${obj}
-set_property report_strategy {Vivado Synthesis Default Reports} ${obj}
-set_property set_report_strategy_name 0 ${obj}
-# Create 'synth_1_synth_report_utilization_0' report (if not found)
-if { [ string equal [ get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
-  create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
-}
-set obj [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
-if { ${obj} != "" } {
-
-}
-set obj [get_runs synth_1]
-set_property -name "part" -value ${xilPartName} -objects ${obj}
-set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects ${obj}
+#set year [ lindex [ split [ version -short ] "." ] 0 ]  
+#if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
+#    create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
+#} else {
+#  set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
+#    set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
+#}
+#set obj [ get_runs synth_1 ]
+#set_property set_report_strategy_name 1 ${obj}
+#set_property report_strategy {Vivado Synthesis Default Reports} ${obj}
+#set_property set_report_strategy_name 0 ${obj}
+## Create 'synth_1_synth_report_utilization_0' report (if not found)
+#if { [ string equal [ get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
+#  create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
+#}
+#set obj [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
+#if { ${obj} != "" } {
+#
+#}
+#set obj [get_runs synth_1]
+#set_property -name "part" -value ${xilPartName} -objects ${obj}
+#set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects ${obj}
 
 # set the current synth run
 #current_run -synthesis [get_runs synth_1]
@@ -297,7 +297,7 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 #launch_runs synth_1
 #wait_on_run synth_1
 
-synth_design -mode out_of_context 
+synth_design -mode out_of_context -top $topName -part ${xilPartName}
 
 #-jobs 8
 

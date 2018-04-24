@@ -11,10 +11,10 @@
 
 .PHONY: all clean
 
-all: Role_OOC.dcp
+all: Role_Udp_Tcp_McDp_OOC.dcp
 
-Role_OOC.dcp: ./hdl/ ./xdc/ ./tcl/ 
-	cd ./tcl/; vivado -mode batch -source run.tcl -notrace -log run.log -tclargs -force
+Role_Udp_Tcp_McDp_OOC.dcp: ./hdl ./xdc ./tcl 
+	cd ./tcl/; vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -force
 
 
 clean: 
