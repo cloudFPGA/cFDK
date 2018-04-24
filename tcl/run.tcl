@@ -90,8 +90,8 @@ if { $argc > 0 } {
           set full_src 1
           my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
         }
-        if { ${key} eq "role" && ${value} ne 0 }
-        {
+        #TODO
+        if { ${key} eq "role" && ${value} ne 0 } {
           set usedRole ${value} 
           my_dbg_trace "Setting usedRole to ${value}" ${dbgLvl_2}
         }
