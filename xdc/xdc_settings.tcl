@@ -23,21 +23,37 @@
 # ******************************************************************************
 
 
+#=====================================================================
+# CONSTANTS FOR THE SHELL
+#=====================================================================
+set cShellClockFreq       156.25
+set cShellClockPeriod     [ expr 1000.0 / ${cShellClockFreq} ]
+
+
+#-------------------------------------------------------------------------------
+# CONSTANTS FOR THE DDR4 /Memory Channel 0 & 1 
+#-------------------------------------------------------------------------------
+set cMem0ClkFreq          300
+set cMem0ClkPeriod        [ expr 1000.0 / ${cMem0ClkFreq} ]
+set cMem1ClkFreq          300
+set cMem1ClkPeriod        [ expr 1000.0 / ${cMem1ClkFreq} ]
+
+
 #-------------------------------------------------------------------------------
 # CONSTANTS FOR THE PSOC / Internal Bus Clock (used here as a timing reference)
 #-------------------------------------------------------------------------------
-set cPsocBusClockFreq   24
-set cPsocBusClockPeriod [ expr 1000.0 / ${cPsocBusClockFreq} ]
+set cPsocBusClockFreq     24
+set cPsocBusClockPeriod   [ expr 1000.0 / ${cPsocBusClockFreq} ]
 
 
 #-------------------------------------------------------------------------------
 # CONSTANTS FOR THE PSOC / Emif - Reference clock for the EMIF interface
 #-------------------------------------------------------------------------------
 # Note: There is a minimum of 4 bus cycles between two EMIF acces
-set cPsocEmifClkPeriod   [ expr 4.0 * ${cPsocBusClockPeriod} ]
-set cPsocEmifClkRise     [ expr 1.5 * ${cPsocBusClockPeriod} ]
-set cPsocEmifClkFall     [ expr 2.0 * ${cPsocBusClockPeriod} ]
-set cPsocEmifClkWaveform "${cPsocEmifClkRise} ${cPsocEmifClkFall}"
+set cPsocEmifClkPeriod    [ expr 4.0 * ${cPsocBusClockPeriod} ]
+set cPsocEmifClkRise      [ expr 1.5 * ${cPsocBusClockPeriod} ]
+set cPsocEmifClkFall      [ expr 2.0 * ${cPsocBusClockPeriod} ]
+set cPsocEmifClkWaveform  "${cPsocEmifClkRise} ${cPsocEmifClkFall}"
 
 
 #-------------------------------------------------------------------------------
@@ -66,38 +82,38 @@ set cPsocEmifClkWaveform "${cPsocEmifClkRise} ${cPsocEmifClkFall}"
 #-------------------------------------------------------------------------------
 # CONSTANTS FOR THE PSoC / Emif - Address[7:0] - Write setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifAddrSetup [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
-set cPsocEmifAddrHold  [ expr 2.5 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifAddrSetup    [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifAddrHold     [ expr 2.5 * ${cPsocBusClockPeriod} / 2 ]
 
 #-------------------------------------------------------------------------------
 # PSOC / Emif - Chip select - Access setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifCsSetup   [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
-set cPsocEmifCsHold    [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifCsSetup      [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifCsHold       [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
 
 #-------------------------------------------------------------------------------
 # PSoC / Emif - Address Strobe - Access setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifAdsSetup  [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
-set cPsocEmifAdsHold   [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
+set cPsocEmifAdsSetup     [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
+set cPsocEmifAdsHold      [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
 
 #-------------------------------------------------------------------------------
 # PSOC / Emif - Write enable - Write setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifWeSetup   [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
-set cPsocEmifWeHold    [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
+set cPsocEmifWeSetup      [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
+set cPsocEmifWeHold       [ expr 1.0 * ${cPsocBusClockPeriod} / 2]
 
 #-------------------------------------------------------------------------------
 # PSoC / Emif - Output enable - Read setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifOeSetup   [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
-set cPsocEmifOeHold    [ expr 1.5 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifOeSetup      [ expr 1.0 * ${cPsocBusClockPeriod} / 2 ]
+set cPsocEmifOeHold       [ expr 1.5 * ${cPsocBusClockPeriod} / 2 ]
 
 #-------------------------------------------------------------------------------
 # PSoC / Emif - Data[7:0] - Write setup and hold times
 #-------------------------------------------------------------------------------
-set cPsocEmifDataWrSetup [ expr 1.0 * ${cPsocBusClockPeriod} - 10 ]
-set cPsocEmifDataWrHold  [ expr 2.5 * ${cPsocBusClockPeriod} /  2 ]
+set cPsocEmifDataWrSetup  [ expr 1.0 * ${cPsocBusClockPeriod} - 10 ]
+set cPsocEmifDataWrHold   [ expr 2.5 * ${cPsocBusClockPeriod} /  2 ]
 
 #-------------------------------------------------------------------------------
 # PSoC / Emif - Data[7:0] - Read setup and hold times

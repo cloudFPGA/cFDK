@@ -72,14 +72,16 @@ set_property PACKAGE_PIN V6 [get_ports piCLKT_10GeClk_p]
 # CLKT / Reference clock for the DRAM block 0
 set_property PACKAGE_PIN AJ24 [get_ports piCLKT_Mem0Clk_n]
 set_property PACKAGE_PIN AJ23 [get_ports piCLKT_Mem0Clk_p]
-set_property IOSTANDARD LVDS [get_ports piCLKT_Mem0Clk_n]
-set_property IOSTANDARD LVDS [get_ports piCLKT_Mem0Clk_p]
+# [INFO] The clock IOSTANDARDs are already constrained by the IP core.
+#  set_property IOSTANDARD LVDS [get_ports piCLKT_Mem0Clk_n]
+#  set_property IOSTANDARD LVDS [get_ports piCLKT_Mem0Clk_p]
 
 # CLKT / Reference clock for the DRAM block 1
 set_property PACKAGE_PIN D16 [get_ports piCLKT_Mem1Clk_n]
 set_property PACKAGE_PIN E16 [get_ports piCLKT_Mem1Clk_p]
-set_property IOSTANDARD LVDS [get_ports piCLKT_Mem1Clk_n]
-set_property IOSTANDARD LVDS [get_ports piCLKT_Mem1Clk_p]
+# [INFO] The clock IOSTANDARDs are already constrained by the IP core.
+#  set_property IOSTANDARD LVDS [get_ports piCLKT_Mem1Clk_n]
+#  set_property IOSTANDARD LVDS [get_ports piCLKT_Mem1Clk_p]
 
 # CLKT / User Clock 0
 set_property PACKAGE_PIN AK21 [get_ports piCLKT_Usr0Clk_n]

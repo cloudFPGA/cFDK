@@ -80,34 +80,34 @@ if { $argc > 0 } {
     foreach { key value } [ array get kvList ] {
         my_dbg_trace "KEY = ${key} | VALUE = ${value}" ${dbgLvl_2}
         if { ${key} eq "clean" && ${value} eq 1 } {
-            set clean 1
-            my_dbg_trace "Setting clean to \'1\' " ${dbgLvl_1}
-        } 
-        if { ${key} eq "create" && ${value} eq 1 } {
-            set create 1
-            set synth  0
-            set impl   0
-            my_dbg_trace "Disabling synthesis and implementation runs" ${dbgLvl_1}
-        } 
-        if { ${key} eq "force" && ${value} eq 1 } { 
-          set force 1
-          my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
-        }
-        if { ${key} eq "full_src" && ${value} eq 1 } { 
-          set full_src 1
-          my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
-        }
-        if { ${key} eq "synth" && ${value} eq 1 } {
-            set create 0
-            set synth  1
-            set impl   0
-            my_dbg_trace "Disabling creation and implementation runs" ${dbgLvl_1}
-        } 
-       if { ${key} eq "impl" && ${value} eq 1 } {
-            set create 0
-            set synth  0
-            set impl   1
-            my_dbg_trace "Disabling creation and synthesis runs" ${dbgLvl_1}
+            set clean    1
+            set force    1
+            set full_src 0
+            set create   1
+            set synth    1
+            set impl     1
+            my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\' and \'impl \'."
+        } else {
+            if { ${key} eq "create" && ${value} eq 1 } {
+                set create 1
+                my_info_puts "The argument \'create\' is set."
+            }
+            if { ${key} eq "force" && ${value} eq 1 } { 
+                set force 1
+                my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+            }
+            if { ${key} eq "full_src" && ${value} eq 1 } { 
+                set full_src 1
+                my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
+            }
+            if { ${key} eq "synth" && ${value} eq 1 } {
+                set synth  1
+                my_info_puts "The argument \'synth\' is set."
+            } 
+            if { ${key} eq "impl" && ${value} eq 1 } {
+                set impl   1
+                 my_info_puts "The argument \'impl\' is set."
+            }
         } 
     }
 }
@@ -279,17 +279,14 @@ if { ${create} } {
     set obj [ get_filesets constrs_1 ]
     add_files -fileset ${obj} ${xdcDir}
     set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-    #OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_timg.xdc ]
-    #OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-    #OBSOLETE-20180414 set_property used_in_implementation false [get_files Shell.xdc]
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
 
     #-------------------------------------------------------------------------------
     # Create 'synth_1' run (if not found)
-    #-------------------------------------------------------------------------------
-    
-    set year [ lindex [ split [ version -short ] "." ] 0 ]  
+    #------------------------------------------------------------------------------- 
+    set year [ lindex [ split [ version -short ] "." ] 0 ]
+
     if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
         create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
     } else {
@@ -301,7 +298,7 @@ if { ${create} } {
     set synth_obj [ get_runs synth_1 ]
 
     # Specify the tcl.pre script to apply before the synthesis run
-    set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${synth_ob}
+    set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${synth_obj}
 
     current_run -synthesis ${synth_obj}
 
@@ -310,6 +307,7 @@ if { ${create} } {
     # Create 'impl_1' run (if not found)
     #-------------------------------------------------------------------------------
     set year [ lindex [ split [ version -short ] "." ] 0 ]  
+
     if { [ string equal [ get_runs -quiet impl_1 ] "" ] } {
         create_run -name impl_1 -part ${xilPartName} -flow {Vivado Implementation ${year}} -strategy "Vivado Implementation Defaults" -constrset constrs_1 -parent_run synth_1
     } else {
@@ -321,7 +319,12 @@ if { ${create} } {
     set impl_obj [ get_runs impl_1 ]
 
     # Specify the tcl.pre script to apply before the implementation run
-    set_property STEPS.OPT_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.OPT_DESIGN.TCL.PRE                 ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.POWER_OPT_DESIGN.TCL.PRE           ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.PLACE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.PHYS_OPT_DESIGN.TCL.PRE            ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.ROUTE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.PRE ${xdcDir}/xdc_settings.tcl ${impl_obj}
 
     # Set the current impl run
     #-------------------------------------------------------------------------------
@@ -333,7 +336,6 @@ if { ${create} } {
     my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 }
-
 
 
 
