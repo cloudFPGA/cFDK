@@ -120,31 +120,36 @@ if { ${gCleanXprDir} } {
 
 # Create the Xilinx project
 #-------------------------------------------------------------------------------
-if { [ file exists ${xprDir} ] != 1 } {
-    file mkdir ${xprDir}
-} else {
-    # Check if the Xilinx Project Already Exists
-    if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
-        my_warn_puts "The project \'${xprName}.xpr\' already exists!"
-        my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
-        my_warn_puts "\t Are you sure (Y/N) ? "
-        flush stdout
-        set kbdIn [ gets stdin ]
-        scan ${kbdIn} "%s" keyPressed
-        if { [ string toupper ${keyPressed} ] ne "Y" } {
-            my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
-            my_puts "Bye.\n" 
-            exit 0
-        }
-    }  
-}
-create_project ${xprName} ${xprDir} -force
+#if { [ file exists ${xprDir} ] != 1 } {
+#    file mkdir ${xprDir}
+#} else {
+#    # Check if the Xilinx Project Already Exists
+#    if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
+#        my_warn_puts "The project \'${xprName}.xpr\' already exists!"
+#        my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
+#        my_warn_puts "\t Are you sure (Y/N) ? "
+#        flush stdout
+#        set kbdIn [ gets stdin ]
+#        scan ${kbdIn} "%s" keyPressed
+#        if { [ string toupper ${keyPressed} ] ne "Y" } {
+#            my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
+#            my_puts "Bye.\n" 
+#            exit 0
+#        }
+#    }  
+#}
+
+#create_project ${xprName} ${xprDir} -force
+create_project -in_memory -part ${xilPartName} ${xprDir}/${xprName}.log -force
 my_dbg_trace "Done with project creation." ${dbgLvl_1}
 
+#Turn on source management for mod ref
+set_property source_mgmt_mode All [current_project]
 
 # Set Project Properties
 #-------------------------------------------------------------------------------
-set          obj               [ get_projects ${xprName} ]
+#set          obj               [ get_projects ${xprName} ]
+set obj [ current_project ]
 
 set_property part              ${xilPartName}       ${obj}              -verbose
 set_property "target_language" "VHDL"               ${obj}              -verbose
@@ -266,18 +271,18 @@ my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 # Create 'synth_1' run (if not found)
 #-------------------------------------------------------------------------------
-set year [ lindex [ split [ version -short ] "." ] 0 ]  
-if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
-    create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
-} else {
-  set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
-    set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
-}
-set obj [ get_runs synth_1 ]
-#OBSOLETE set_property "part" "xcku060-ffva1156-2-i" $obj
-
-# set the current synth run
-current_run -synthesis [ get_runs synth_1 ]
+#set year [ lindex [ split [ version -short ] "." ] 0 ]  
+#if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
+#    create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
+#} else {
+#  set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
+#    set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
+#}
+#set obj [ get_runs synth_1 ]
+##OBSOLETE set_property "part" "xcku060-ffva1156-2-i" $obj
+#
+## set the current synth run
+#current_run -synthesis [ get_runs synth_1 ]
 
 my_puts "################################################################################"
 my_puts "##"
@@ -286,35 +291,41 @@ my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-launch_runs synth_1 -jobs 8
-wait_on_run synth_1
+#launch_runs synth_1 -jobs 8
+#wait_on_run synth_1 
+synth_design -mode default -top ${topName} -part ${xilPartName}
 
 my_puts "################################################################################"
 my_puts "##  DONE WITH SYNTHESIS RUN "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-open_run synth_1 -name synth_1
+#open_run synth_1 -name synth_1
 # otherwise write checkpoint will fail...
 
 write_checkpoint -force ${xprDir}/0_${topName}_static_without_role.dcp 
 
-close_design
-close_project
+#close_design
+#close_project
 
 ###########################################################################
 # now combine Top-Shell and Role
 
-open_checkpoint ${xprDir}/0_${topName}_static_without_role.dcp
+#open_checkpoint ${xprDir}/0_${topName}_static_without_role.dcp
 
 # Add HDL Source Files for the ROLE
 #-----------------------------------
 set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/Role_Udp_Tcp_McDp_OOC.dcp
-add_files -norecurse ${roleDcpFile}
+add_files ${roleDcpFile}
 update_compile_order -fileset sources_1
 my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
 
 set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
+
+set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
+
+# Link the two dcps together
+link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 
 
 # Floorplan
@@ -324,10 +335,6 @@ add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
 #TODO not here, in xdc instead? 
 #write_xdc ./xdc/pr.xdc --> No, xdc would be included to early
 
-set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
-
-# Link the two dcps together
-link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 
 write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
 

@@ -41,5 +41,5 @@ full_src:
 	vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -full_src -force
 
 full_src_pr:
-	vivado -mode batch -source run_pr.tcl -notrace -log -run_pr.tcl -tclargs -full_src -force
+	vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -full_src -force
 
