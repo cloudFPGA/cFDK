@@ -295,16 +295,17 @@ launch_runs synth_1 -jobs 8
 wait_on_run synth_1 
 #synth_design -mode default -top ${topName} -part ${xilPartName}
 
-my_puts "################################################################################"
-my_puts "##  DONE WITH SYNTHESIS RUN "
-my_puts "################################################################################"
-my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-
 open_run synth_1 
 #-name synth_1
 # otherwise write checkpoint will fail...
 
 write_checkpoint -force ${xprDir}/0_${topName}_static_without_role.dcp 
+
+
+my_puts "################################################################################"
+my_puts "##  DONE WITH SYNTHESIS RUN (ROLE as BLACK BOX); .dcp SAVED "
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 #close_design
 #close_project
@@ -341,6 +342,11 @@ set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
 set_property needs_refresh false [get_runs synth_1]
 
 write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
+
+my_puts "################################################################################"
+my_puts "## DONE WITH DESIGN LINKING; PBLOCK CREATED; .dcp SAVED" 
+my_puts "################################################################################"
+my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 
 # Create 'impl_1' run (if not found)
