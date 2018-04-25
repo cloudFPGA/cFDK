@@ -159,30 +159,30 @@ set_property top               ${topName}           [ current_fileset ] -verbose
 set_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
 
 set_property "default_lib"                "xil_defaultlib" ${obj}
-set_property "ip_cache_permissions"       "read write"     ${obj}
-set_property "sim.ip.auto_export_scripts" "1"              ${obj}
-set_property "simulator_language"         "Mixed"          ${obj}
-set_property "xsim.array_display_limit"   "64"             ${obj}
-set_property "xsim.trace_limit"           "65536"          ${obj}
-
-set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${obj}
+#set_property "ip_cache_permissions"       "read write"     ${obj}
+#set_property "sim.ip.auto_export_scripts" "1"              ${obj}
+#set_property "simulator_language"         "Mixed"          ${obj}
+#set_property "xsim.array_display_limit"   "64"             ${obj}
+#set_property "xsim.trace_limit"           "65536"          ${obj}
+#
+#set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${obj}
 
 my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
 
 # Create 'sources_1' fileset (if not found)
 #-------------------------------------------------------------------------------
-if { [ string equal [ get_filesets -quiet sources_1 ] "" ] } {
-  create_fileset -srcset sources_1
-}
+#if { [ string equal [ get_filesets -quiet sources_1 ] "" ] } {
+#  create_fileset -srcset sources_1
+#}
 
 # Set IP repository paths
 #-------------------------------------------------------------------------------
-set obj [ get_filesets sources_1 ]
-my_dbg_trace "Setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
-set_property "ip_repo_paths" "${ipDir}" ${obj}
-my_dbg_trace "Done with setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
-
+#set obj [ get_filesets sources_1 ]
+#my_dbg_trace "Setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
+#set_property "ip_repo_paths" "${ipDir}" ${obj}
+#my_dbg_trace "Done with setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
+#
 # Rebuild user ip_repo's index before adding any source files
 #-------------------------------------------------------------------------------
 update_ip_catalog -rebuild
@@ -222,7 +222,7 @@ if { ${full_src} } {
     }
     # Update Compile Order
     #-------------------------------------------------------------------------------
-    update_compile_order -fileset sources_1
+    #update_compile_order -fileset sources_1
     
     # Add Constraints Files SHELL
     #---------------------------------------------------------------------
@@ -240,24 +240,24 @@ if { ${full_src} } {
 ###PR running first synth
 # Update Compile Order
 #-------------------------------------------------------------------------------
-update_compile_order -fileset sources_1
-
-# Create 'constrs_1' fileset (if not found)
-#-------------------------------------------------------------------------------
-if { [ string equal [ get_filesets -quiet constrs_1 ] ""]} {
-  create_fileset -constrset constrs_1
-}
-
-# Add Constraints Files
-#-------------------------------------------------------------------------------
-set obj [ get_filesets constrs_1 ]
-add_files -fileset ${obj} ${xdcDir}
-set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-#OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_timg.xdc ]
-#OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-
-#OBSOLETE-20180414 set_property used_in_implementation false [get_files Shell.xdc]
-my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
+#update_compile_order -fileset sources_1
+#
+## Create 'constrs_1' fileset (if not found)
+##-------------------------------------------------------------------------------
+#if { [ string equal [ get_filesets -quiet constrs_1 ] ""]} {
+#  create_fileset -constrset constrs_1
+#}
+#
+## Add Constraints Files
+##-------------------------------------------------------------------------------
+#set obj [ get_filesets constrs_1 ]
+#add_files -fileset ${obj} ${xdcDir}
+#set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
+##OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_timg.xdc ]
+##OBSOLETE-20180414 set_property used_in_synthesis false [ get_files ${xdcDir}/${xprName}_pins.xdc ]
+#
+##OBSOLETE-20180414 set_property used_in_implementation false [get_files Shell.xdc]
+#my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
 my_puts "################################################################################"
 my_puts "##  DONE WITH PROJECT CREATION "
