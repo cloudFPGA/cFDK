@@ -406,8 +406,8 @@ if { ${impl} } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-    set_property "steps.write_bitstream.args.readback_file" "0" ${obj}
-    set_property "steps.write_bitstream.args.verbose"       "0" ${obj}
+    set_property "steps.write_bitstream.args.readback_file" "0" ${impl_obj}
+    set_property "steps.write_bitstream.args.verbose"       "0" ${impl_obj}
 
     launch_runs impl_1 -to_step write_bitstream -jobs 8
     wait_on_run impl_1
