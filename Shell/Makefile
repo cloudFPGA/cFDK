@@ -18,7 +18,7 @@ full_src: ./ip
 
 hls_cores: ./hls/last_build.stamp 
 
-./hls/last_build.stamp:
+./hls/last_build.stamp: ./hls
 	$(MAKE) -C ./hls/ 
 	touch ./hls/last_build.stamp
 
