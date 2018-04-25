@@ -1,0 +1,56 @@
+#-----------------------------------------------------------
+# Vivado v2017.4 (64-bit)
+# SW Build 2086221 on Fri Dec 15 20:54:30 MST 2017
+# IP Build 2085800 on Fri Dec 15 22:25:07 MST 2017
+# Start of session at: Wed Apr 25 09:48:48 2018
+# Process ID: 15525
+# Current directory: /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash
+# Command line: vivado
+# Log file: /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/vivado.log
+# Journal file: /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/xpr/topFMKU60_Flash.xpr
+update_compile_order -fileset sources_1
+reset_run synth_1
+launch_runs synth_1 -jobs 8
+wait_on_run synth_1
+set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/Role_Udp_Tcp_McDp_OOC.dcp
+cd ../tcl
+cd ./tcl/
+source ./xpr_settings.tcl
+set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/Role_Udp_Tcp_McDp_OOC.dcp
+set usedRole RoleFlash
+set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/Role_Udp_Tcp_McDp_OOC.dcp
+add_files ${roleDcpFile}
+update_compile_order -fileset sources_1
+set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
+set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
+open_run synth_1 -name synth_1
+set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
+link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName}
+link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName}
+create_pblock pblock_ROLE
+resize_pblock pblock_ROLE -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
+add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
+write_checkpoint -force ${xprDir}/1_${topName}_linked.dcp
+file mkdir /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/xpr/topFMKU60_Flash.srcs/constrs_1/new
+close [ open /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/xpr/topFMKU60_Flash.srcs/constrs_1/new/new.xdc w ]
+add_files -fileset constrs_1 /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/xpr/topFMKU60_Flash.srcs/constrs_1/new/new.xdc
+set_property target_constrs_file /home/ngl/gitrepo/cloudFPGA/SRA/FMKU60/TOP/TopFlash/xpr/topFMKU60_Flash.srcs/constrs_1/new/new.xdc [current_fileset -constrset]
+save_constraints -force
+launch_runs impl_1 -jobs 8
+wait_on_run impl_1
+set_property needs_refresh false [get_runs synth_1]
+open_run impl_1
+write_checkpoint -force ${xprDir}/2_${topName}_impl_complete.dcp
+write_checkpoint -force -cell ROLE ${xprDir}/2_${topName}_impl_${usedRole}.dcp
+update_design -cell ROLE -black_box
+lock_design -level routing
+write_checkpoint -force ${xprDir}/3_${topName}_STATIC.dcp
+close_project
+open_checkpoint ${xprDir}/2_${topName}_impl_complete.dcp
+write_bitstream ${xprDir}/4_${topName}.bit
+set_property UNAVAILABLE_DURING_CALIBRATION TRUE [get_ports piCLKT_Usr1Clk_p]
+write_bitstream ${xprDir}/4_${topName}.bit
+close_project
