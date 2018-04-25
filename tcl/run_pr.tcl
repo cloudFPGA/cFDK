@@ -295,8 +295,7 @@ launch_runs synth_1 -jobs 8
 wait_on_run synth_1 
 #synth_design -mode default -top ${topName} -part ${xilPartName}
 
-open_run synth_1 
-#-name synth_1
+open_run synth_1 -name synth_1
 # otherwise write checkpoint will fail...
 
 write_checkpoint -force ${xprDir}/0_${topName}_static_without_role.dcp 
@@ -307,7 +306,7 @@ my_puts "##  DONE WITH SYNTHESIS RUN (ROLE as BLACK BOX); .dcp SAVED "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-#close_design
+close_design
 #close_project
 
 ###########################################################################
@@ -325,6 +324,7 @@ my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
 set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
 
+open_run synth_1 -name synth_1
 # Link the two dcps together
 #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 ### CAVE: link_design is done by open_design in project mode!!
@@ -376,7 +376,12 @@ my_puts "#######################################################################
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 #TODO 
-#set_property strategy HighEffort [ get_runs impl_1 ]
+#set_property strategy HighEffort [ get_runs impl_1 ] 
+
+# TODO It looks like that the Implementation otherwise dosen't now the pblock etc.
+save_constraints -force -quiet
+set_property needs_refresh false [get_runs synth_1]
+
 launch_runs impl_1 -jobs 8
 wait_on_run impl_1
 
