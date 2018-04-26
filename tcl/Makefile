@@ -22,15 +22,14 @@ XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 BIT_FILE = ../xpr/topFMKU60_Flash.runs/impl_1/topFlash.bit
 
-.PHONY: all clean full_src
 
+.PHONY: all clean full_src full_src_pr
 all: $(XPR_PROJ)
 
 
 clean:
 	rm -f  ./*.log
 	rm -f  ./*.jou
-	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -clean
 
 
 $(XPR_PROJ): $(IP_SHELL)
@@ -42,4 +41,6 @@ $(XPR_PROJ): $(IP_SHELL)
 full_src: 
 	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -full_src -force
 
+full_src_pr:
+	vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -full_src -force -role
 

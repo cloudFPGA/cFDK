@@ -540,3 +540,4 @@ set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poTOP_Ddr4_Mc1_Odt]
 #OBSOLETE-20180413 set_property IOSTANDARD SSTL12_DCI [get_ports {poTOP_Ddr4_Mc1_Odt[*]}]
 #OBSOLETE-20180413 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poTOP_Ddr4_Mc1_Odt[*]}]
 
+
