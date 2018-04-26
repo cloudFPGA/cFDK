@@ -16,8 +16,8 @@ USED_ROLE =RoleFlash
 
 .PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
 
-all: pr
-#all: src_based
+#all: pr
+all: src_based
 #OR ip_based, whatever is preferred as default
 
 Role: $(USED_ROLE)
