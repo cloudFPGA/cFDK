@@ -259,7 +259,7 @@ if { ${create} } {
 
     # Add HDL Source Files for the ROLE
     #-----------------------------------
-    add_files -norecurse ${rootDir}/../../ROLE/RoleFlash_vhd/hdl/roleFlash.vhdl  
+    add_files -norecurse ${rootDir}/../../ROLE/RoleFlash/hdl/roleFlash.vhdl  
     update_compile_order -fileset sources_1
     my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
