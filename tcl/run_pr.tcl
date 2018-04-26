@@ -328,15 +328,15 @@ open_run synth_1 -name synth_1
 # Link the two dcps together
 #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 ### CAVE: link_design is done by open_design in project mode!!
+#
 
 # Floorplan
-create_pblock pblock_ROLE
-resize_pblock pblock_ROLE -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
-add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
-#TODO not here, in xdc instead? 
-#write_xdc ./xdc/pr.xdc --> No, xdc would be included to early
+#create_pblock pblock_ROLE
+#resize_pblock pblock_ROLE -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
+#add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
+# --> DONE by xdc instead
 
-set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
+#set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
 
 # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
 set_property needs_refresh false [get_runs synth_1]
@@ -379,7 +379,7 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 #set_property strategy HighEffort [ get_runs impl_1 ] 
 
 # TODO It looks like that the Implementation otherwise dosen't now the pblock etc.
-save_constraints -force -quiet
+#save_constraints -force -quiet
 set_property needs_refresh false [get_runs synth_1]
 
 launch_runs impl_1 -jobs 8

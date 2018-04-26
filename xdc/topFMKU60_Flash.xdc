@@ -90,3 +90,4 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 #OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
 
 
+

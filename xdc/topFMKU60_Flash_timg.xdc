@@ -78,19 +78,19 @@
 #===============================================================================
 
 # CLKT / Reference clock for GTH transceivers of the 10GE Interface
-create_clock -name piCLKT_10GeClk -period 6.400 [get_ports piCLKT_10GeClk_p]
+create_clock -period 6.400 -name piCLKT_10GeClk [get_ports piCLKT_10GeClk_p]
 
 # CLKT / Reference clock for the User clock #0
-create_clock -name piCLKT_Usr0Clk -period 4.000 -waveform {0.000 2.000} [get_ports piCLKT_Usr0Clk_p]
+create_clock -period 4.000 -name piCLKT_Usr0Clk -waveform {0.000 2.000} [get_ports piCLKT_Usr0Clk_p]
 
 # CLKT / Reference clock for the User clock #1
-create_clock -name piCLKT_Usr1Clk -period 4.000 -waveform {0.000 2.000} [get_ports piCLKT_Usr1Clk_p]
+create_clock -period 4.000 -name piCLKT_Usr1Clk -waveform {0.000 2.000} [get_ports piCLKT_Usr1Clk_p]
 
 # CLKT / Reference clock for the DRAM block 0
-create_clock -name piCLKT_Mem0Clk -period 3.333 -waveform {0.000 1.667} [get_ports piCLKT_Mem0Clk_p]
+create_clock -period 3.333 -name piCLKT_Mem0Clk -waveform {0.000 1.667} [get_ports piCLKT_Mem0Clk_p]
 
 # CLKT / Reference clock for the DRAM block 1
-create_clock -name piCLKT_Mem1Clk -period 3.333 -waveform {0.000 1.667} [get_ports piCLKT_Mem1Clk_p]
+create_clock -period 3.333 -name piCLKT_Mem1Clk -waveform {0.000 1.667} [get_ports piCLKT_Mem1Clk_p]
 
 
 #===============================================================================
@@ -101,14 +101,14 @@ create_clock -name piPSOC_Emif_Clk -period ${cPsocEmifClkPeriod} -waveform ${cPs
 
 #===============================================================================
 # Create a virtual clock to avoid "Critical Timing = NO_CLOCK".
-#   These are constraints added to render the device fully constrained. 
+#   These are constraints added to render the device fully constrained.
 #   In short, the characteristics of the clock driving every clockable cell must
 #   be known by the tool. In general this is done by creating a clock on a port,
 #   pin or net, upstream of the clock pin of the cell. This clock then propagates
-#   forward to all clock pins that are combinatorially reachable from that port, 
+#   forward to all clock pins that are combinatorially reachable from that port,
 #   pin or net.
 #===============================================================================
-create_clock -name topResetUsedAsClk -period 1000 [ get_pins sTOP_156_25Rst_reg/Q ]
+create_clock -period 1000.000 -name topResetUsedAsClk [get_pins sTOP_156_25Rst_reg/Q]
 
 
 #=====================================================================
@@ -121,35 +121,14 @@ set_clock_groups -asynchronous -group [ get_clocks piPSOC_Emif_Clk ] -group [ ge
 
 set_clock_groups -asynchronous -group [ get_clocks topResetUsedAsClk ] -group [ get_clocks piPSOC_Emif_Clk ]
 
-set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks topResetUsedAsClk]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks topResetUsedAsClk]
 
 
 
 #=====================================================================
 # Set Some Usefull TCL Variables
 #=====================================================================
-set myShellClk [ get_clocks sSHL_156_25Clk_1 ]
+set myShellClk [ get_clocks sSHL_156_25Clk_1 ]``
 set cShellClockFreq   156.25                                # In MHz
 set cShellClockPeriod [ expr 1000.0 / ${cShellClockFreq} ]  # In ns
 
@@ -165,7 +144,7 @@ set cShellClockPeriod [ expr 1000.0 / ${cShellClockFreq} ]  # In ns
 
 # PSOC / FPGA Configuration Interface / Reset
 #---------------------------------------------
-set_false_path -from [ get_pins sTOP_156_25Rst_reg/C ]
+set_false_path -from [get_pins sTOP_156_25Rst_reg/C]
 
 
 #---------------------------------------------------------------------
@@ -241,8 +220,8 @@ set_output_delay -clock piPSOC_Emif_Clk -min +${cPsocEmifDataRdHold}  [ get_port
 
 #OBSOLETE-20180418 set_property SLEW FAST [get_ports {poTOP_Ddr4_Mc0_Cs_n[*]}]
 #OBSOLETE-20180418 set_property DATA_RATE SDR [get_ports {poTOP_Ddr4_Mc0_Cs_n[*]}]
-set_property SLEW FAST [get_ports {poTOP_Ddr4_Mc0_Cs_n}]
-set_property DATA_RATE SDR [get_ports {poTOP_Ddr4_Mc0_Cs_n}]
+set_property SLEW FAST [get_ports poTOP_Ddr4_Mc0_Cs_n]
+set_property DATA_RATE SDR [get_ports poTOP_Ddr4_Mc0_Cs_n]
 
 #=====================================================================
 # Constraints related to the Synchronous Dynamic RAM (DDR4)
@@ -253,8 +232,8 @@ set_property DATA_RATE SDR [get_ports {poTOP_Ddr4_Mc0_Cs_n}]
 
 #OBSOLETE-20180418 set_property SLEW FAST [get_ports {poTOP_Ddr4_Mc1_Cs_n[*]}]
 #OBSOLETE-20180418 set_property DATA_RATE SDR [get_ports {poTOP_Ddr4_Mc1_Cs_n[*]}]
-set_property SLEW FAST [get_ports {poTOP_Ddr4_Mc1_Cs_n}]
-set_property DATA_RATE SDR [get_ports {poTOP_Ddr4_Mc1_Cs_n}]
+set_property SLEW FAST [get_ports poTOP_Ddr4_Mc1_Cs_n]
+set_property DATA_RATE SDR [get_ports poTOP_Ddr4_Mc1_Cs_n]
 
 
 
@@ -272,8 +251,10 @@ set_output_delay -clock ${myShellClk} -max [ expr ${cShellClockPeriod} / 2 ] [ g
 #=====================================================================
 # Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
+
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
 
-
+connect_debug_port dbg_hub/clk [get_nets clk]
