@@ -12,7 +12,7 @@
 SHELL_DIR = ../../SHELL/Shell 
 ROLE_DIR = ../../ROLE
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
 
 all: pr
 #all: src_based
@@ -22,12 +22,14 @@ Role: RoleFlash
 
 RoleFlash: 
 	$(MAKE) -C $(ROLE_DIR)/$@
-
-src_based:
+	
+ShellSrc:
 	$(MAKE) -C $(SHELL_DIR) full_src
+
+src_based: ShellSrc
 	$(MAKE) -C ./tcl/ full_src
 
-pr: Role
+pr: ShellSrc Role
 	$(MAKE) -C ./tcl/ full_src_pr
 
 ip_based: 
