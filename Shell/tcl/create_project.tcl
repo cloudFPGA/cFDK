@@ -42,13 +42,43 @@ set dbgLvl      1
 #                                                                              #
 ################################################################################
 
-if {0} {
-    my_dbg_trace "There are $argc arguments to this script" 3
-    my_dbg_trace "The name of this script is $argv0"        3
-    if { ${argc} > 0} {
-        my_dbg_trace "The other arguments are: $argv"       3
+set force 0
+
+#-------------------------------------------------------------------------------
+# Parsing of the Command Line
+#  Note: All the strings after the '-tclargs' option are considered as TCL
+#        arguments to this script and are passed on to TCL 'argc' and 'argv'.
+#-------------------------------------------------------------------------------
+if { $argc > 0 } {
+    my_dbg_trace "There are [ llength $argv ] TCL arguments to this script." ${dbgLvl_1}
+    set i 0
+    foreach arg $argv {
+        my_dbg_trace "  argv\[$i\] = $arg " ${dbgLvl_2}
+        set i [ expr { ${i} + 1 } ]
+    }
+    # Step-1: Processing of '$argv' using the 'cmdline' package
+    set options {
+        { h     "Display the help information." }
+        { force    "Continue, even if an old project will be deleted."}
+    }
+    set usage "\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
+    
+    array set kvList [ cmdline::getoptions argv ${options} ${usage} ]
+    
+    # Process the arguments
+    foreach { key value } [ array get kvList ] {
+        my_dbg_trace "KEY = ${key} | VALUE = ${value}" ${dbgLvl_2}
+        if { ${key} eq "h"  && ${value} eq 1} {
+            puts "${usage} \n";
+            return ${::OK}
+        }
+        if { ${key} eq "force" && ${value} eq 1 } { 
+          set force 1
+          my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+        }
     }
 }
+
 
 my_puts "################################################################################"
 my_puts "##"
@@ -63,7 +93,7 @@ catch { cd ${rootDir} }
 
 # Check if the Xilinx Project Already Exists
 #-------------------------------------------------------------------------------
-if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 } {
+if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
     my_warn_puts "The project \'${xprName}.xpr\' already exists!"
     my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
     my_warn_puts "\t Are you sure (Y/N) ? "
