@@ -3,7 +3,7 @@
 # *            All rights reserved -- Property of IBM
 # *-----------------------------------------------------------------------------
 # * Created : Mar 02 2018
-# * Authors : Francois Abel
+# * Authors : Francois Abel, Burkhard Ringlein
 # * 
 # * Description : A Tcl script that creates the TOP level project in so-called
 # *   "Project Mode" of the Vivado design flow.
@@ -65,7 +65,7 @@ if { $argc > 0 } {
         { clean    "Start with a clean new project directory." }
         { force    "Continue, even if an old project will be deleted."}
         { full_src "Import SHELL as source-code not as IP-core."} 
-        { role     "Set the name of the ROLE variant."}
+        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant."}
     }
     set usage "\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -90,10 +90,9 @@ if { $argc > 0 } {
           set full_src 1
           my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
         }
-        #TODO
-        if { ${key} eq "role" && ${value} ne 0 } {
-          set usedRole ${value} 
-          my_dbg_trace "Setting usedRole to ${value}" ${dbgLvl_2}
+        if { ${key} eq "role" && ${value} eq 1 } {
+          set usedRole $env(usedRole)
+          my_dbg_trace "Setting usedRole to $usedRole" ${dbgLvl_2}
         }
     }
 }
@@ -140,11 +139,7 @@ if { [ file exists ${xprDir} ] != 1 } {
 }
 
 create_project ${xprName} ${xprDir} -force
-#create_project -in_memory -part ${xilPartName} ${xprDir}/${xprName}.log -force
 my_dbg_trace "Done with project creation." ${dbgLvl_1}
-
-#Turn on source management for mod ref
-#set_property source_mgmt_mode All [current_project]
 
 # Set Project Properties
 #-------------------------------------------------------------------------------
@@ -265,10 +260,6 @@ my_puts "#######################################################################
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 
-#synth_design -mode default 
-#-jobs 8
-# top and part are already set
-
 # Create 'synth_1' run (if not found)
 #-------------------------------------------------------------------------------
 set year [ lindex [ split [ version -short ] "." ] 0 ]  
@@ -293,7 +284,6 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 launch_runs synth_1 -jobs 8
 wait_on_run synth_1 
-#synth_design -mode default -top ${topName} -part ${xilPartName}
 
 open_run synth_1 -name synth_1
 # otherwise write checkpoint will fail...
@@ -328,15 +318,15 @@ open_run synth_1 -name synth_1
 # Link the two dcps together
 #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
 ### CAVE: link_design is done by open_design in project mode!!
-#
+
 
 # Floorplan
 #create_pblock pblock_ROLE
 #resize_pblock pblock_ROLE -add {SLICE_X6Y10:SLICE_X59Y294 DSP48E2_X1Y4:DSP48E2_X10Y117 RAMB18_X1Y4:RAMB18_X7Y117 RAMB36_X1Y2:RAMB36_X7Y58}
 #add_cells_to_pblock pblock_ROLE [get_cells [list ROLE]] -clear_locs
+#set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
 # --> DONE by xdc instead
 
-#set_property HD.RECONFIGURABLE 1 [get_cells ROLE]
 
 # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
 set_property needs_refresh false [get_runs synth_1]
@@ -378,16 +368,12 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 #TODO 
 #set_property strategy HighEffort [ get_runs impl_1 ] 
 
-# TODO It looks like that the Implementation otherwise dosen't now the pblock etc.
-#save_constraints -force -quiet
+#OBSOLET-20180426 It looks like that the Implementation otherwise dosen't now the pblock etc.
+#OBSOLET save_constraints -force -quiet
 set_property needs_refresh false [get_runs synth_1]
 
 launch_runs impl_1 -jobs 8
 wait_on_run impl_1
-
-#opt_design
-#place_design
-#route_design
 
 open_run impl_1
 
@@ -423,8 +409,8 @@ close_project
 
 open_checkpoint ${xprDir}/2_${topName}_impl_complete.dcp 
 
-## TODO BUG? 
-#set_property UNAVAILABLE_DURING_CALIBRATION TRUE [get_ports piCLKT_Usr1Clk_p] 
+#######################
+# NOW, WE ARE IN NON-PROJECT-MODE!
 
 source ${tclDir}/fix_things.tcl
 
@@ -435,9 +421,6 @@ my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-#launch_runs impl_1 -to_step write_bitstream -jobs 8
-#wait_on_run impl_1
-
 write_bitstream -force ${xprDir}/4_${topName}.bit
 
 my_puts "################################################################################"
@@ -446,17 +429,9 @@ my_puts "#######################################################################
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 
-
 # Close project
 #-------------------------------------------------------------------------------
  close_project
-
-# OBSOLETE 20180418
-# Launch Vivado' GUI
-#-------------------------------------------------------------------------------
-#catch { cd ${xprDir} }
-#start_gui
-
 
 
 

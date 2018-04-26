@@ -9,8 +9,10 @@
 # *
 # ******************************************************************************
 
-SHELL_DIR = ../../SHELL/Shell 
-ROLE_DIR = ../../ROLE
+# NO HEADING OR TRAILING SPACES!!
+SHELL_DIR =../../SHELL/Shell
+ROLE_DIR =../../ROLE
+USED_ROLE =RoleFlash
 
 .PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
 
@@ -18,9 +20,9 @@ all: pr
 #all: src_based
 #OR ip_based, whatever is preferred as default
 
-Role: RoleFlash
+Role: $(USED_ROLE)
 
-RoleFlash: 
+RoleFlash:
 	$(MAKE) -C $(ROLE_DIR)/$@
 	
 ShellSrc:
@@ -30,7 +32,7 @@ src_based: ShellSrc
 	$(MAKE) -C ./tcl/ full_src
 
 pr: ShellSrc Role
-	$(MAKE) -C ./tcl/ full_src_pr
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ full_src_pr
 
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
