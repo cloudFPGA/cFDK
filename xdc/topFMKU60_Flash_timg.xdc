@@ -51,7 +51,7 @@
 # *       -  Generated clocks
 # *       -  Clock Groups
 # *       -  Bus Skew constraints
-# *       -  Input and output delay constraints
+# *       -  InpOBSOut and output delay constraints
 # *     [2] Timing Exceptions Section
 # *       -  False Paths
 # *       -  Max Delay / Min Delay
@@ -111,8 +111,14 @@ create_clock -name piPSOC_Emif_Clk -period ${cPsocEmifClkPeriod} -waveform ${cPs
 #   forward to all clock pins that are combinatorially reachable from that port, 
 #   pin or net.
 #===============================================================================
-#OBSOLETE-20180424 create_clock -name topResetUsedAsClk -period 1000 [ get_pins sTOP_156_25Rst_reg/Q ]
+create_clock -name topResetUsedAsClk -period 1000 [ get_pins TOP_META_RST/DOUT ]
 
+#===============================================================================
+# Create two virtual debug clocks to avoid "Critical Timing = NO_CLOCK".
+#   These are constraints added to render the device fully constrained. 
+#===============================================================================
+# create_clock -name dbg_hub0_clk -period 13.328 [ get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/U_XSDB_SLAVE/sl_iport_i[1] ]
+# create_clock -name dbg_hub1_clk -period 13.328 [ get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/u_ddr_cal/U_XSDB_SLAVE/sl_iport_i[1] ]
 
 #=====================================================================
 # Definition of the Clock Interactions and their Constraints
@@ -129,8 +135,8 @@ set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/
 set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0 ] ] -group [ get_clocks -of_objects [ get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O ] ]
 
 
-#OBSOLETE-20180424 set_clock_groups -asynchronous -group [ get_clocks topResetUsedAsClk ] -group [ get_clocks piPSOC_Emif_Clk ]
-#OBSOLETE-20180424 set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks topResetUsedAsClk]
+set_clock_groups -asynchronous -group [ get_clocks topResetUsedAsClk ] -group [ get_clocks piPSOC_Emif_Clk ]
+set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks topResetUsedAsClk]
 
 
 #=====================================================================
@@ -188,7 +194,7 @@ set_property DATA_RATE SDR  [ get_ports {poTOP_Ddr4_Mc1_Cs_n} ]
 set_input_delay -clock piCLKT_Usr0Clk -min 1.0 [ get_port piPSOC_Fcfg_Rst_n ]
 set_input_delay -clock piCLKT_Usr0Clk -max 2.0 [ get_port piPSOC_Fcfg_Rst_n ]
 
-set_false_path -from [ get_pins sTOP_156_25Rst_reg/C ]
+set_false_path -through [ get_pins TOP_META_RST/DOUT ]
 
 
 #---------------------------------------------------------------------
@@ -262,10 +268,10 @@ set_false_path -from [ get_pins SHELL/sLed_HeartBeat_reg_inv/C ] -to [ get_ports
 
 
 #=====================================================================
-# Constraints added by the Timing Constraint Wizard
+# DEBUG_HUB Constraints added by the Timing Constraint Wizard
 #=====================================================================
-set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
-set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
-set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-
+set_property C_CLK_INPUT_FREQ_HZ  300000000 [ get_debug_cores dbg_hub ]
+set_property C_ENABLE_CLK_DIVIDER true      [ get_debug_cores dbg_hub ]
+set_property C_USER_SCAN_CHAIN    1         [ get_debug_cores dbg_hub ]
+connect_debug_port dbg_hub/clk              [ get_nets clk ]
 

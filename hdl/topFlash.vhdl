@@ -171,8 +171,9 @@ architecture structural of topFlash is
   signal sTOP_250_00Clk                     : std_ulogic;
 
   -- Global Reset ----------------------------------------
+  signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-  signal sPSOC_Fcfg_MetaRst                 : std_ulogic;
+  --OBSOLETE-20180426 signal sPSOC_Fcfg_MetaRst : std_ulogic;
    
   -- Global Source Synchronous SHELL Clock ---------------
   signal sSHL_156_25Clk                     : std_ulogic;
@@ -604,16 +605,35 @@ begin
       IB => piCLKT_Usr1Clk_n
     );
 
+  --OBSOLETE-20180426 --===========================================================================
+  --OBSOLETE-20180426 --== PROC: SYS RESET (Active high)
+  --OBSOLETE-20180426 --===========================================================================  
+  --OBSOLETE-20180426 pSysReset : process (sTOP_156_25Clk)
+  --OBSOLETE-20180426 begin
+  --OBSOLETE-20180426   if rising_edge(sTOP_156_25Clk) then
+  --OBSOLETE-20180426     sPSOC_Fcfg_MetaRst <= not piPSOC_Fcfg_Rst_n;
+  --OBSOLETE-20180426     sTOP_156_25Rst     <= sPSOC_Fcfg_MetaRst;
+  --OBSOLETE-20180426   end if;
+  --OBSOLETE-20180426 end process pSysReset;
+  
   --===========================================================================
-  --== PROC: SYS RESET (Active high)
-  --===========================================================================  
-  pSysReset : process (sTOP_156_25Clk)
-  begin
-    if rising_edge(sTOP_156_25Clk) then
-      sPSOC_Fcfg_MetaRst <= not piPSOC_Fcfg_Rst_n;
-      sTOP_156_25Rst     <= sPSOC_Fcfg_MetaRst;
-    end if;
-  end process pSysReset;
+  --==  INST: METASTABILITY HARDENED BLOCK FOR THE SYSTEM RESET (Active high)
+  --==    [INFO] Note that we instantiate 2 or 3 library primitives rather than
+  --==      a VHDL process because it makes it easier to apply the "ASYNC_REG"
+  --==      property to those instances.
+  --=========================================================================== 
+  TOP_META_RST : HARD_SYNC
+   generic map (
+      INIT => '0',            -- Initial values, '0', '1'
+      IS_CLK_INVERTED => '0', -- Programmable inversion on CLK input
+      LATENCY => 2            -- 2-3
+   )
+   port map (
+      CLK  => sTOP_156_25Clk,
+      DIN  => piPSOC_Fcfg_Rst_n,
+      DOUT => sTOP_156_25Rst_n
+   );
+   sTOP_156_25Rst <= not sTOP_156_25Rst_n;
 
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
