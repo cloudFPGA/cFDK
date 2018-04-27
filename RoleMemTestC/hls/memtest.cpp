@@ -1,46 +1,24 @@
-// https://barrgroup.com/Embedded-Systems/How-To/Memory-Test-Suite-C
-//
 
-#include "echo_app.hpp"
+#include "memtest.h"
 #include <stdint.h>
 
-using namespace hls;
-typedef uint32_t datum;
+//using namespace hls;
+//typedef uint32_t datum;
+//typedef uint512_t axiWord;
 
 #define STARTCMD 0x4711
 #define RESULTCMD 0x0815
 
 
-/**********************************************************************
- *
- * Function:    memTestDevice()
- *
- * Description: Test the integrity of a physical memory device by
- *              performing an increment/decrement test over the
- *              entire region.  In the process every storage bit 
- *              in the device is tested as a zero and a one.  The
- *              base address and the size of the region are
- *              selected by the caller.
- *
- * Notes:       
- *
- * Returns:     NULL if the test succeeds.
- *
- *              A non-zero result is the first address at which an
- *              incorrect value was read back.  By examining the
- *              contents of memory, it may be possible to gather
- *              additional information about the problem.
- *
- **********************************************************************/ 
 
-
-datum * memTestDevice(volatile datum * baseAddress, unsigned long nBytes)
+ADDRTYPE memTestDevice(TYPE baseAddress, unsigned long nBytes, hls:stream<TYPE> &rxData, hls:stream<ADDRTYPE> &rxAddr,
+											hls:stream<TYPE> &txData, hls:stream<ADDRTYPE> &txAddr)
 {
     unsigned long offset;
-    unsigned long nWords = nBytes / sizeof(datum);
+    unsigned long nWords = nBytes / sizeof(TYPE);
 
-    datum pattern;
-    datum antipattern;
+    TYPE pattern;
+    TYPE antipattern;
 
 
     /*
@@ -48,7 +26,10 @@ datum * memTestDevice(volatile datum * baseAddress, unsigned long nBytes)
      */
     for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
     {
-        baseAddress[offset] = pattern;
+        //baseAddress[offset] = pattern;
+				txAddr.write((ADDRTYPE) (baseAddress + offset));
+				txData.write((TYPE) pattern);
+
     }
 
     /*
@@ -56,25 +37,43 @@ datum * memTestDevice(volatile datum * baseAddress, unsigned long nBytes)
      */
     for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
     {
-        if (baseAddress[offset] != pattern)
+        /*if (baseAddress[offset] != pattern)
         {
             return ((datum *) &baseAddress[offset]);
-        }
+        }*/
+				rxAddr.write((ADDRTYPE) (baseAddress + offset));
+				//TODO: Delay? 
+				TYPE res = rxData.read();
+
+				if(res != pattern)
+				{
+					return (ADDRTYPE) (baseAddress + offset);
+				}
 
         antipattern = ~pattern;
-        baseAddress[offset] = antipattern;
+        //baseAddress[offset] = antipattern;
+				txAddr.write((ADDRTYPE) (baseAddress + offset));
+				txData.write((TYPE) pattern);
     }
 
     /*
-     * Check each location for the inverted pattern and zero it.
+     * Check each location for the inverted pattern 
      */
     for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
     {
         antipattern = ~pattern;
-        if (baseAddress[offset] != antipattern)
+        /*if (baseAddress[offset] != antipattern)
         {
             return ((datum *) &baseAddress[offset]);
-        }
+        }*/
+				rxAddr.write((ADDRTYPE) (baseAddress + offset));
+				//TODO: Delay? 
+				TYPE res = rxData.read();
+
+				if(res != antipattern)
+				{
+					return (ADDRTYPE) (baseAddress + offset);
+				}
     }
 
     return 0;
@@ -83,45 +82,50 @@ datum * memTestDevice(volatile datum * baseAddress, unsigned long nBytes)
 
 
 
-void echo_app( stream<axiWord>& 			iRxData, 
-               stream<axiWord>& 			oTxData)
+void memtest_app(hls:stream<TYPE> &cmdRx, hls:stream<TYPE> &cmdTx, hls:stream<TYPE> &memRxData, hls:stream<TYPE> &memTxData,
+									hls:stream<ADDRTYPE> &memRxAddr, hls:stream<ADDRTYPE> &memTxAddr)
 {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS DATAFLOW //interval=1
 
-//#pragma HLS INTERFACE axis port=iRxData
-//#pragma HLS INTERFACE axis port=oTxData
+//#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_ip_rx_data"
+//#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle s_axis_ip_tx_data"
+#pragma HLS INTERFACE s_axilite port=cmdRx offset=slave bus_bundle=INPUT
+#pragma HLS INTERFACE s_axilite port=cmdTx offset=master bus_bundle=OUTPUT
+#pragma HLS INTERFACE m_axi port=memRxData offset=slave bus_bundle=INPUT
+#pragma HLS INTERFACE m_axi port=memTxData offset=master bus_bundle=OUTPUT
+#pragma HLS INTERFACE s_axilite port=memRxAddr offset=master bus_bundle=OUTPUT
+#pragma HLS INTERFACE s_axilite port=memTxAddr offset=master bus_bundle=OUTPUT
 
-#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_ip_rx_data"
-#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle s_axis_ip_tx_data"
+TYPE cur_addr = 0x0;
 
-datum cur_addr = 0x0;
-
-unsigned long step = 512;
+	unsigned long long step = sizeof(TYPE) * 512;
 
 
-	if(!iRxData.empty() && !oTxData.full()){
+	if(!cmdRx.empty() && !cmdTx.full()){
 	//oTxData.write(iRxData.read()); 
-		u_int16_t read = iRxData.read(); 
+		u_int16_t read = cmdRx.read(); 
 		
-		if(read == (u_int16_t) STARTCMD)
+		if(read == (uint32_t) STARTCMD)
 		{
-			datum* res = memTestDevice(&cur_addr,step); 
+			ADDRTYPE res = memTestDevice(&cur_addr,step, memRxData, memRxAddr, memTxData, memTxAddr);
+
 			if (res == 0) { 
 				// NO Errors 
-				oTxData.write((u_int16_t) 0);
+				cmdTx.write((TYPE) 0);
 			} else { 
-				oTxData.write((u_int16_t) 0xFF);
+				cmdTx.write((TYPE) res);
 			}
 		//} else if(read == (u_int16_t) RESULTCMD) 
 		//{
 		//
-		} else {
+		} /*else {
 			//IDLE 
-		}
+		}*/
 
 	}
+
 }
 
 
