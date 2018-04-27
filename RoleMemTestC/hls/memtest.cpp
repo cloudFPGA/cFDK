@@ -98,7 +98,7 @@ void memtest_app(hls::stream<TYPE> &cmdRx, hls::stream<TYPE> &cmdTx, hls::stream
 #pragma HLS INTERFACE axis port=memRxAddr bundle=memRxAddr_axis
 #pragma HLS INTERFACE axis port=memTxAddr bundle=memTxAddr_axis
 
-TYPE cur_addr = 0x0;
+ADDRTYPE cur_addr = 0x0;
 
 	unsigned long long step = sizeof(TYPE) * 512;
 
@@ -124,7 +124,9 @@ TYPE cur_addr = 0x0;
 			//IDLE 
 		}*/
 
-	}
+	} 
+
+	cur_addr += step;
 
 }
 

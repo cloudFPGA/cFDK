@@ -1,5 +1,8 @@
 ## from the automatic gernerated script.tcl
 
+#set currDir [pwd]
+#set ipTargetFolder ${currDir}/../ip
+
 open_project memtest_prj
 set_top memtest_app
 add_files memtest.cpp
