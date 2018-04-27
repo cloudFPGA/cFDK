@@ -11,8 +11,8 @@
 
 
 
-ADDRTYPE memTestDevice(TYPE baseAddress, unsigned long nBytes, hls:stream<TYPE> &rxData, hls:stream<ADDRTYPE> &rxAddr,
-											hls:stream<TYPE> &txData, hls:stream<ADDRTYPE> &txAddr)
+ADDRTYPE memTestDevice(TYPE baseAddress, unsigned long nBytes, hls::stream<TYPE> &rxData, hls::stream<ADDRTYPE> &rxAddr,
+											hls::stream<TYPE> &txData, hls::stream<ADDRTYPE> &txAddr)
 {
     unsigned long offset;
     unsigned long nWords = nBytes / sizeof(TYPE);
@@ -82,8 +82,8 @@ ADDRTYPE memTestDevice(TYPE baseAddress, unsigned long nBytes, hls:stream<TYPE> 
 
 
 
-void memtest_app(hls:stream<TYPE> &cmdRx, hls:stream<TYPE> &cmdTx, hls:stream<TYPE> &memRxData, hls:stream<TYPE> &memTxData,
-									hls:stream<ADDRTYPE> &memRxAddr, hls:stream<ADDRTYPE> &memTxAddr)
+void memtest_app(hls::stream<TYPE> &cmdRx, hls::stream<TYPE> &cmdTx, hls::stream<TYPE> &memRxData, hls::stream<TYPE> &memTxData,
+									hls::stream<ADDRTYPE> &memRxAddr, hls::stream<ADDRTYPE> &memTxAddr)
 {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -91,12 +91,12 @@ void memtest_app(hls:stream<TYPE> &cmdRx, hls:stream<TYPE> &cmdTx, hls:stream<TY
 
 //#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_ip_rx_data"
 //#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle s_axis_ip_tx_data"
-#pragma HLS INTERFACE s_axilite port=cmdRx offset=slave bus_bundle=INPUT
-#pragma HLS INTERFACE s_axilite port=cmdTx offset=master bus_bundle=OUTPUT
-#pragma HLS INTERFACE m_axi port=memRxData offset=slave bus_bundle=INPUT
-#pragma HLS INTERFACE m_axi port=memTxData offset=master bus_bundle=OUTPUT
-#pragma HLS INTERFACE s_axilite port=memRxAddr offset=master bus_bundle=OUTPUT
-#pragma HLS INTERFACE s_axilite port=memTxAddr offset=master bus_bundle=OUTPUT
+#pragma HLS INTERFACE axis port=cmdRx bundle=CmdRx_axis
+#pragma HLS INTERFACE axis port=cmdTx bundle=CmdTx_axis
+#pragma HLS INTERFACE axis port=memRxData bundle=memRxData_axis
+#pragma HLS INTERFACE axis port=memTxData bundle=memTxData_axis
+#pragma HLS INTERFACE axis port=memRxAddr bundle=memRxAddr_axis
+#pragma HLS INTERFACE axis port=memTxAddr bundle=memTxAddr_axis
 
 TYPE cur_addr = 0x0;
 
@@ -105,7 +105,7 @@ TYPE cur_addr = 0x0;
 
 	if(!cmdRx.empty() && !cmdTx.full()){
 	//oTxData.write(iRxData.read()); 
-		u_int16_t read = cmdRx.read(); 
+		TYPE read = cmdRx.read();
 		
 		if(read == (uint32_t) STARTCMD)
 		{
