@@ -269,6 +269,10 @@ architecture structural of topFlash is
   signal sROL_Shl_Mem_Up1_Axis_Write_tlast  : std_ulogic;
   signal sROL_Shl_Mem_Up1_Axis_Write_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Up1_Axis_Write_tready : std_ulogic;
+
+  ------ ROLE EMIF Registers ---------------
+  signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
+  signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -277,7 +281,7 @@ architecture structural of topFlash is
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-   component Shell_Udp_Tcp_McDp
+   component Shell_Udp_Tcp_McDp_4BEmif
      generic (
        gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
        gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
@@ -397,6 +401,12 @@ architecture structural of topFlash is
        poSHL_Rol_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
        poSHL_Rol_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
        poSHL_Rol_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
+  
+      ----------------------------------------------------
+      -- ROLE / Shl/ EMIF Registers 
+      ----------------------------------------------------
+      piROL_SHL_EMIF_2B_Reg               : in std_logic_vector( 15 downto 0);
+      poSHL_ROL_EMIF_2B_Reg               : in std_logic_vector( 15 downto 0);
        
        ------------------------------------------------------  
        -- ROLE / Shl / Mem / Up0 Interface
@@ -465,13 +475,13 @@ architecture structural of topFlash is
        poSHL_Rol_Mem_Up1_Axis_Write_tready : out   std_ulogic
  
      );
-   end component Shell_Udp_Tcp_McDp;
+   end component Shell_Udp_Tcp_McDp_4BEmif;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Role_Udp_Tcp_McDp
+  component Role_Udp_Tcp_McDp_4BEmif
       port (
         ---- Global Clock used by the entire ROLE --------------
         ------ This is the same clock as the SHELL -------------
@@ -512,6 +522,12 @@ architecture structural of topFlash is
         poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
         poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
         poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+
+        -------------------------------------------------------
+        -- ROLE EMIF Registers
+        -------------------------------------------------------
+        poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
+        piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
         
         ------------------------------------------------
         -- SHELL / Role / Mem / Up0 Interface
@@ -581,7 +597,7 @@ architecture structural of topFlash is
         
         poVoid                              : out   std_ulogic          
       );
-    end component Role_Udp_Tcp_McDp;
+    end component Role_Udp_Tcp_McDp_4BEmif;
 
 begin
   
@@ -643,7 +659,7 @@ begin
   --==   This version of the SHELL has the following user interfaces:
   --==    - one UDP, one TCP, and one MemoryChannel-DualPort interfaces. 
   --==========================================================================
-  SHELL : Shell_Udp_Tcp_McDp
+  SHELL : Shell_Udp_Tcp_McDp_4BEmif
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
@@ -764,6 +780,12 @@ begin
       poSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast ,
       poSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
       
+      ----------------------------------------------------
+      -- ROLE / Shl/ EMIF Registers 
+      ----------------------------------------------------
+      piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
+      poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
       ------------------------------------------------------  
       -- ROLE / Shl / Mem / Up0 Interface
       ------------------------------------------------------
@@ -836,7 +858,7 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE : Role_Udp_Tcp_McDp
+  ROLE : Role_Udp_Tcp_McDp_4BEmif
     port map (
       -- Global Clock used by the entire ROLE --------------
       ---- This is the same 156.25MHz clock as the SHELL ---
@@ -878,6 +900,12 @@ begin
       poROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
       poROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
       
+      -------------------------------------------------------
+      -- ROLE EMIF Registers
+      -------------------------------------------------------
+      poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
+      piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
       ----------------------------------------------
       -- SHELL / Role / Mem / Up0 Interface
       ----------------------------------------------
