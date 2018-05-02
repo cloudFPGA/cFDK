@@ -1,6 +1,8 @@
 
 #include "memtest.h"
-#include <stdint.h>
+//#include <stdint.h>
+
+typedef ap_uint<16> u_int16_t;
 
 //using namespace hls;
 //typedef uint32_t datum;
@@ -82,7 +84,7 @@ ADDRTYPE memTestDevice(TYPE baseAddress, unsigned long nBytes, hls::stream<TYPE>
 
 
 
-void memtest_app(hls::stream<TYPE> &cmdRx, hls::stream<TYPE> &cmdTx, hls::stream<TYPE> &memRxData, hls::stream<TYPE> &memTxData,
+void memtest_app(u_int16_t cmdRx, u_int16_t cmdTx, hls::stream<TYPE> &memRxData, hls::stream<TYPE> &memTxData,
 									hls::stream<ADDRTYPE> &memRxAddr, hls::stream<ADDRTYPE> &memTxAddr)
 {
 
@@ -91,8 +93,8 @@ void memtest_app(hls::stream<TYPE> &cmdRx, hls::stream<TYPE> &cmdTx, hls::stream
 
 //#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_ip_rx_data"
 //#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle s_axis_ip_tx_data"
-#pragma HLS INTERFACE axis port=cmdRx bundle=CmdRx_axis
-#pragma HLS INTERFACE axis port=cmdTx bundle=CmdTx_axis
+//#pragma HLS INTERFACE axis port=cmdRx bundle=CmdRx_axis
+//#pragma HLS INTERFACE axis port=cmdTx bundle=CmdTx_axis
 #pragma HLS INTERFACE axis port=memRxData bundle=memRxData_axis
 #pragma HLS INTERFACE axis port=memTxData bundle=memTxData_axis
 #pragma HLS INTERFACE axis port=memRxAddr bundle=memRxAddr_axis
@@ -102,29 +104,32 @@ ADDRTYPE cur_addr = 0x0;
 
 	unsigned long long step = sizeof(TYPE) * 512;
 
-
-	if(!cmdRx.empty() && !cmdTx.full()){
+// ALWAYS Start with Test
+	//if(!cmdRx.empty() && !cmdTx.full()){
 	//oTxData.write(iRxData.read()); 
-		TYPE read = cmdRx.read();
+	//	TYPE read = cmdRx.read();
 		
-		if(read == (uint32_t) STARTCMD)
-		{
-			ADDRTYPE res = memTestDevice(&cur_addr,step, memRxData, memRxAddr, memTxData, memTxAddr);
+	//	if(read == (uint32_t) STARTCMD)
+	//	{
+			
+	ADDRTYPE res = memTestDevice(&cur_addr,step, memRxData, memRxAddr, memTxData, memTxAddr);
 
-			if (res == 0) { 
-				// NO Errors 
-				cmdTx.write((TYPE) 0);
-			} else { 
-				cmdTx.write((TYPE) res);
-			}
+	if (res == 0) { 
+		// NO Errors 
+		//cmdTx.write((TYPE) 0); 
+		cmdTx = 0xCAFE; //this time, just to see if it is alive
+	} else { 
+		//cmdTx.write((TYPE) res);
+		cmdTx = (u_int16_t) res;
+	}
 		//} else if(read == (u_int16_t) RESULTCMD) 
 		//{
 		//
-		} /*else {
+	//	} /*else {
 			//IDLE 
-		}*/
+	//	}*/
 
-	} 
+	//} 
 
 	cur_addr += step;
 
