@@ -19,7 +19,7 @@
 set xprName      "roleFMKU60_Flash"
 set xilPartName  "xcku060-ffva1156-2-i"
 
-set topName      "Role_Udp_Tcp_McDp"
+set topName      "Role_Udp_Tcp_McDp_4BEmif"
 set topFile      "roleFlash.vhdl"
 
 

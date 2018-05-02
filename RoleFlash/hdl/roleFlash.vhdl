@@ -54,7 +54,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role_Udp_Tcp_McDp is
+entity Role_Udp_Tcp_McDp_4BEmif is
   port (
     ---- Global Clock used by the entire ROLE --------------
     ------ This is the same clock as the SHELL -------------
@@ -96,6 +96,12 @@ entity Role_Udp_Tcp_McDp is
     poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
     poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
     
+    -------------------------------------------------------
+    -- ROLE EMIF Registers
+    -------------------------------------------------------
+    poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
+    piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+
     ------------------------------------------------
     -- SHELL / Role / Mem / Up0 Interface
     ------------------------------------------------
@@ -166,7 +172,7 @@ entity Role_Udp_Tcp_McDp is
 
   );
   
-end Role_Udp_Tcp_McDp;
+end Role_Udp_Tcp_McDp_4BEmif;
 
 
 -- *****************************************************************************
@@ -195,7 +201,7 @@ end Role_Udp_Tcp_McDp;
 --**    signal assignments to avoid undefined content of the entity 'Role'.
 --*****************************************************************************
 
-architecture Void of Role_Udp_Tcp_McDp is
+architecture Void of Role_Udp_Tcp_McDp_4BEmif is
 
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Udp Interface to AVOID UNDEFINED CONTENT
@@ -260,9 +266,17 @@ architecture Void of Role_Udp_Tcp_McDp is
   signal sROL_Shl_Mem_Up0_Axis_Write_tlast  : std_ulogic;
   signal sROL_Shl_Mem_Up0_Axis_Write_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Up0_Axis_Write_tready : std_ulogic;
+  
+  ------ ROLE EMIF Registers ---------------
+  signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
+  signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
  
 begin
  
+
+  -- write constant to EMIF Register to test read out 
+  poROL_SHL_EMIF_2B_Reg <= x"BEEF";
+
   pUdpRead : process(piSHL_156_25Clk)
   begin
     if rising_edge(piSHL_156_25Clk) then
