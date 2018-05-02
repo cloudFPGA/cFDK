@@ -47,7 +47,7 @@
 // **  MODULE - SHELL FOR FMKU60
 // *****************************************************************************
 
-module Shell_Udp_Tcp_McDp # (
+module Shell_Udp_Tcp_McDp_4BEmif # (
   
   parameter gSecurityPriviledges = "super",  // "user" or "super"
   parameter gBitstreamUsage      = "flash",  // "user" or "flash"
@@ -169,7 +169,13 @@ module Shell_Udp_Tcp_McDp # (
   output [ 63:0]  poSHL_Rol_Nts0_Tcp_Axis_tdata,
   output [  7:0]  poSHL_Rol_Nts0_Tcp_Axis_tkeep,
   output          poSHL_Rol_Nts0_Tcp_Axis_tlast,
-  output          poSHL_Rol_Nts0_Tcp_Axis_tvalid,
+  output          poSHL_Rol_Nts0_Tcp_Axis_tvalid, 
+
+  //----------------------------------------------------
+  // ROLE / Shl/ EMIF Registers 
+  //----------------------------------------------------
+  input   [15:0]  piROL_SHL_EMIF_2B_Reg,
+  output  [15:0]  poSHL_ROL_EMIF_2B_Reg,
     
   //------------------------------------------------------  
   //-- ROLE / Shl / Mem / Up0 Interface
@@ -491,6 +497,10 @@ module Shell_Udp_Tcp_McDp # (
     //-- NTS0: Status inputs and Control outputs ------
     .poMMIO_Nts0_MacAddress         (sMMIO_Nts0_MacAddress),
     .poMMIO_Nts0_IpAddress          (sMMIO_Nts0_IpAddress),
+    
+    // ROLE EMIF Registers 
+    .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),
+    .piMMIO_ROLE_2B_Reg             (piROL_SHL_EMIF_2B_Reg),
  
     .poVoid                         ()
 

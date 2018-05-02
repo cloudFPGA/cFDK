@@ -92,6 +92,10 @@ module MmioClient_A8_D8 #(
   //-- NTS0 : Status inputs and Control Outputs --
   output  [47:0]  poMMIO_Nts0_MacAddress,
   output  [31:0]  poMMIO_Nts0_IpAddress,
+  
+  // ROLE EMIF Register 
+  output  [16:0]  poMMIO_ROLE_2B_Reg,
+  input   [16:0]  piMMIO_ROLE_2B_Reg,
 
   output          poVoid
 
@@ -129,7 +133,8 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam RES_REG_BASE   = 8'h40;  // Spare         Registers
+  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
+  localparam RES_REG_BASE   = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
   
   localparam CFG_VPD        = CFG_REG_BASE  +  0; // Virtual Product Data
@@ -165,6 +170,7 @@ module MmioClient_A8_D8 #(
   
   localparam DIAG_PAGE_SEL  = DIAG_REG_BASE + 15; // Extended Page Select Byte 
  
+  localparam ROLE_REG_WIDTH_HALF = 16;
 
   //============================================================================
   //  CONSTANT DEFINITIONS -- Default Reset Values of the Registers 
@@ -507,6 +513,12 @@ module MmioClient_A8_D8 #(
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+1]; // RW
   //---- PAGE_SEL ----------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*DIAG_PAGE_SEL+7:cEDW*DIAG_PAGE_SEL+0];  // RW
+  
+  // ROLE REGISTERS 
+  //assign poMMIO_ROLE_2B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF];
+  //assign sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF] =  sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
+  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
+  assign sStatusVec[cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
   
   
   //============================================================================

@@ -26,7 +26,7 @@ set brdPartName  "FMKU60"
 #  Tcp  stands fro one TCP interface
 #  McDp stands for one MemoryChannel with a DualPort interface
 #-------------------------------------------------------------- 
-set topName      "Shell_Udp_Tcp_McDp"
+set topName      "Shell_Udp_Tcp_McDp_4BEmif"
 set topFile      "Shell.v"
 
 
