@@ -47,6 +47,7 @@ set gCleanXprDir 0
 set force 0
 set full_src 0
 set usedRole "RoleFlash"
+set usedRoleType "Role_Udp_Tcp_McDp_4BEmif"
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -306,7 +307,7 @@ close_design
 
 # Add HDL Source Files for the ROLE
 #-----------------------------------
-set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/Role_Udp_Tcp_McDp_OOC.dcp
+set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
 add_files ${roleDcpFile}
 update_compile_order -fileset sources_1
 my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
