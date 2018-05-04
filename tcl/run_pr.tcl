@@ -47,6 +47,8 @@ set gCleanXprDir 0
 set force 0
 set full_src 0
 set usedRole "RoleFlash"
+#TODO
+set usedRole2 "RoleFlash_V2" 
 set usedRoleType "Role_Udp_Tcp_McDp_4BEmif"
 
 #-------------------------------------------------------------------------------
@@ -378,7 +380,8 @@ wait_on_run impl_1
 
 open_run impl_1
 
-write_checkpoint -force ${xprDir}/2_${topName}_impl_complete.dcp
+set toVerify1 ${xprDir}/2_${topName}_impl_complete_1.dcp
+write_checkpoint -force ${toVerify1}
 write_checkpoint -force -cell ROLE ${xprDir}/2_${topName}_impl_${usedRole}.dcp
 
 my_puts "################################################################################"
@@ -402,13 +405,60 @@ my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 close_project
 
+
+########################################################################33
 ## TODO other ROLE configs 
+
+#######################
+# NOW, WE ARE IN NON-PROJECT-MODE! (hopefully...) 
+
+create_project -in_memory -part ${xilPartName}
+add_files ${xprDir}/3_${topName}_STATIC.dcp
+my_dbg_trace "Started in-memory project; added locked static part." ${dbgLvl_1}
+
+set roleDcpFile_conf2 ${rootDir}/../../ROLE/${usedRole2}/${usedRoleType}_OOC.dcp
+add_files ${roleDcpFile_conf2}
+set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile_conf2} ]
+my_dbg_trace "Added dcp of ROLE ${roleDcpFile_conf2}." ${dbgLvl_1}
+
+link_design -mode default -reconfig_partitions {ROLE} -part ${xilPartName} -top ${topName} 
+
+opt_design
+place_design
+route_design
+
+my_dbg_trace "Implemented 2. Configuration" ${dbgLvl_1}
+
+set toVerify2 ${xprDir}/2_${topName}_impl_complete_2.dcp
+write_checkpoint -force ${toVerify2}
+write_checkpoint -force -cell ROLE ${xprDir}/2_${topName}_impl_${usedRole2}.dcp
+
+my_puts "################################################################################"
+my_puts "##  DONE WITH 2. IMPLEMENATATION RUN; .dcp SAVED "
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+close_project
 
 ########################################################################33
 #TODO pr_verify
-#########################################################################33
 
-open_checkpoint ${xprDir}/2_${topName}_impl_complete.dcp 
+my_dbg_trace "Starting pr_verify" ${dbgLvl_1}
+
+pr_verify ${toVerify1} ${toVerify2}
+
+my_puts "################################################################################"
+my_puts "##  DONE WITH pr_verify "
+my_puts "################################################################################"
+my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+close_project
+
+#########################################################################33
+# 1. Bitstream
+
+#open_checkpoint ${xprDir}/2_${topName}_impl_complete.dcp 
+open_checkpoint ${toVerify1}
 
 #######################
 # NOW, WE ARE IN NON-PROJECT-MODE!
@@ -417,15 +467,15 @@ source ${tclDir}/fix_things.tcl
 
 my_puts "################################################################################"
 my_puts "##"
-my_puts "##  RUN BITTSETREAM GENERATION: ${xprName} incl. PARTIAL BITSTREAMS "
+my_puts "##  RUN 1. BITTSETREAM GENERATION: ${xprName} incl. PARTIAL BITSTREAMS "
 my_puts "##"
 my_puts "################################################################################"
 my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-write_bitstream -force ${xprDir}/4_${topName}.bit
+write_bitstream -force ${xprDir}/4_${topName}_impl1.bit
 
 my_puts "################################################################################"
-my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
+my_puts "##  DONE WITH 1. BITSTREAM GENERATION RUN "
 my_puts "################################################################################"
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
@@ -435,4 +485,32 @@ my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
  close_project
 
 
+#########################################################################33
+# 2. Bitstream
+
+open_checkpoint ${toVerify2}
+
+#######################
+# NOW, WE ARE IN NON-PROJECT-MODE!
+
+source ${tclDir}/fix_things.tcl
+
+my_puts "################################################################################"
+my_puts "##"
+my_puts "##  RUN 2. BITTSETREAM GENERATION: ${xprName} incl. PARTIAL BITSTREAMS "
+my_puts "##"
+my_puts "################################################################################"
+my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+write_bitstream -force ${xprDir}/4_${topName}_impl2.bit
+
+my_puts "################################################################################"
+my_puts "##  DONE WITH 2. BITSTREAM GENERATION RUN "
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+
+# Close project
+#-------------------------------------------------------------------------------
+ close_project
 

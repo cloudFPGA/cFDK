@@ -13,6 +13,7 @@
 SHELL_DIR =../../SHELL/Shell
 ROLE_DIR =../../ROLE
 USED_ROLE =RoleFlash
+USED_ROLE_2 =RoleFlash_V2
 
 .PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
 
@@ -22,7 +23,12 @@ all: src_based
 
 Role: $(USED_ROLE)
 
+Role2: $(USED_ROLE_2)
+
 RoleFlash:
+	$(MAKE) -C $(ROLE_DIR)/$@
+
+RoleFlash_V2:
 	$(MAKE) -C $(ROLE_DIR)/$@
 	
 ShellSrc:
@@ -31,7 +37,7 @@ ShellSrc:
 src_based: ShellSrc
 	$(MAKE) -C ./tcl/ full_src
 
-pr: ShellSrc Role
+pr: ShellSrc Role Role2
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ full_src_pr
 
 ip_based: 
