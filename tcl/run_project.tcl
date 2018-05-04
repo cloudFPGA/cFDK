@@ -15,7 +15,8 @@
 # *
 # * Reference documents:
 # *  - UG939 / Lab3 / Scripting the Project Mode.
-# *  - UG835 / All  / Vivado Design Suite Tcl Guide. 
+# *  - UG835 / All  / Vivado Design Suite Tcl Guide.
+# *  - UG903 / Ch2  / Constraints Methodology.
 # ******************************************************************************
 
 package require cmdline
@@ -150,7 +151,7 @@ if { ${create} } {
             if { [ string toupper ${keyPressed} ] ne "Y" } {
                 my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
                 my_puts "Bye.\n" 
-                exit 0
+                exit ${OK}
             }
         }  
     }
@@ -160,23 +161,23 @@ if { ${create} } {
 
     # Set Project Properties
     #-------------------------------------------------------------------------------
-    set          obj               [ get_projects ${xprName} ]
+    set          xprObj            [ get_projects ${xprName} ]
 
-    set_property part              ${xilPartName}       ${obj}              -verbose
-    set_property "target_language" "VHDL"               ${obj}              -verbose
+    set_property part              ${xilPartName}       ${xprObj}           -verbose
+    set_property "target_language" "VHDL"               ${xprObj}           -verbose
 
 
     set_property top               ${topName}           [ current_fileset ] -verbose
     set_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
 
-    set_property "default_lib"                "xil_defaultlib" ${obj}
-    set_property "ip_cache_permissions"       "read write"     ${obj}
-    set_property "sim.ip.auto_export_scripts" "1"              ${obj}
-    set_property "simulator_language"         "Mixed"          ${obj}
-    set_property "xsim.array_display_limit"   "64"             ${obj}
-    set_property "xsim.trace_limit"           "65536"          ${obj}
+    set_property "default_lib"                "xil_defaultlib" ${xprObj}
+    set_property "ip_cache_permissions"       "read write"     ${xprObj}
+    set_property "sim.ip.auto_export_scripts" "1"              ${xprObj}
+    set_property "simulator_language"         "Mixed"          ${xprObj}
+    set_property "xsim.array_display_limit"   "64"             ${xprObj}
+    set_property "xsim.trace_limit"           "65536"          ${xprObj}
 
-    set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${obj}
+    set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${xprObj}
 
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
@@ -189,9 +190,9 @@ if { ${create} } {
 
     # Set IP repository paths
     #-------------------------------------------------------------------------------
-    set obj [ get_filesets sources_1 ]
+    set srcObj [ get_filesets sources_1 ]
     my_dbg_trace "Setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
-    set_property "ip_repo_paths" "${ipDir}" ${obj}
+    set_property "ip_repo_paths" "${ipDir}" ${srcObj}
     my_dbg_trace "Done with setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
 
     # Rebuild user ip_repo's index before adding any source files
@@ -200,15 +201,15 @@ if { ${create} } {
 
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
     #-------------------------------------------------------------------------------
-    set obj [ get_filesets sources_1 ]
-    add_files -fileset ${obj} ${hdlDir}
+    #OBSOLETE-20180503 set srcObj [ get_filesets sources_1 ]
+    #OBSOLETE-20180503 add_files -fileset ${srcObj`} ${hdlDir}
+    add_files -fileset ${srcObj} ${hdlDir}
     my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
 
     if { ${full_src} } {
 
         # Add *ALL* the HDL Source Files for the SHELL
         #-------------------------------------------------------------------------------
-        #add_files    ${hdlDir}
         add_files     ${rootDir}/../../SHELL/Shell/hdl/
         my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
         
@@ -216,13 +217,12 @@ if { ${create} } {
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #-------------------------------------------------------------------------------
-        #set_property      ip_repo_paths "${ipDir} ${hlsDir}" [ current_project ]
         set ipDirShell ${rootDir}/../../SHELL/Shell/ip/
-        set_property      ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
+        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
         update_ip_catalog
         my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
         
-        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) to the SHELL. 
+        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the SHELL. 
         #-------------------------------------------------------------------------------
         set ipList [ glob -nocomplain ${ipDirShell}/ip_user_files/ip/* ]
         if { $ipList ne "" } {
@@ -239,7 +239,7 @@ if { ${create} } {
         
         # Add Constraints Files SHELL
         #---------------------------------------------------------------------
-        #add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
+        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
         
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
@@ -251,7 +251,7 @@ if { ${create} } {
         my_warn_puts "THE USAGE OF THE SHELL AS A PACKAGED IP IS NOT YET SUPPORTED !!!"
         my_warn_puts "  The script will be aborted here..."
         my_puts ""
-        exit 1
+        exit ${KO}
         # [TODO] create_ip -name Shell -vendor ZRL -library cloudFPGA -version 1.0 -module_name SuperShell
         # [TODO] update_compile_order -fileset sources_1
         # [TODO] my_dbg_trace "Done with the creation and customization of the SHELL-IP (.i.e SuperShell)." ${dbgLvl_1}
@@ -270,17 +270,34 @@ if { ${create} } {
 
     # Create 'constrs_1' fileset (if not found)
     #-------------------------------------------------------------------------------
-    if { [ string equal [ get_filesets -quiet constrs_1 ] ""]} {
+    if { [ string equal [ get_filesets -quiet constrs_1 ] "" ] } {
         create_fileset -constrset constrs_1
     }
 
     # Add Constraints Files
+    #  INFO: By default, the order of the XDC files (or Tcl scripts) displayed in
+    #        the Vivado IDE defines the read sequence used by the tool when loading
+    #        an elaborated or synthesized design into memory (UG903-Ch2). Therefore,
+    #        ensure that the file "xdc_settings.tcl" is loaded first because it
+    #        defines some of the XDC constraints as variables.
+    #  INFO: UG903 recommends to organize the constraints in the following sequence:
+    #         Timing Assertions -> Timing Exceptions -> Physical Constraints
     #-------------------------------------------------------------------------------
-    set obj [ get_filesets constrs_1 ]
-    add_files -fileset ${obj} ${xdcDir}
-    set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
-    my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
+    set constrObj [ get_filesets constrs_1 ]
+    set orderedList "xdc_settings.tcl topFMKU60_Flash_timg.xdc topFMKU60_Flash_pins.xdc  topFMKU60_Flash.xdc"
+    #OBSOLETE-20180504 Temporary remove of: topFMKU60_Flash_pr.xdc
+    foreach file ${orderedList} {
+        if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
+            my_err_puts "Could not add file \'${file}\' to the fileset \'${constrObj}\' !!!"
+            my_err_puts "  The script will be aborted here..."
+            my_puts ""
+            exit ${KO}        
+        }
+    }
+    #OBSOLETE-20180503 add_files -fileset ${obj} [ glob ${xdcDir}/*.xdc ]
+    #OBSOLETE-20180503 set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
 
+    my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
     #-------------------------------------------------------------------------------
     # Create 'synth_1' run (if not found)
@@ -295,12 +312,12 @@ if { ${create} } {
     }
 
     # Set the current synth run
-    set synth_obj [ get_runs synth_1 ]
+    set syntObj [ get_runs synth_1 ]
 
     # Specify the tcl.pre script to apply before the synthesis run
-    set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${synth_obj}
+    set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${syntObj}
 
-    current_run -synthesis ${synth_obj}
+    current_run -synthesis ${syntObj}
 
 
     #-------------------------------------------------------------------------------
@@ -316,19 +333,20 @@ if { ${create} } {
     }
 
     # Set the current impl run
-    set impl_obj [ get_runs impl_1 ]
+    #-------------------------------------------------------------------------------
+    set implObj [ get_runs impl_1 ]
 
     # Specify the tcl.pre script to apply before the implementation run
-    set_property STEPS.OPT_DESIGN.TCL.PRE                 ${xdcDir}/xdc_settings.tcl ${impl_obj}
-    set_property STEPS.POWER_OPT_DESIGN.TCL.PRE           ${xdcDir}/xdc_settings.tcl ${impl_obj}
-    set_property STEPS.PLACE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${impl_obj}
-    set_property STEPS.PHYS_OPT_DESIGN.TCL.PRE            ${xdcDir}/xdc_settings.tcl ${impl_obj}
-    set_property STEPS.ROUTE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${impl_obj}
-    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.PRE ${xdcDir}/xdc_settings.tcl ${impl_obj}
+    #OBSOLETE-20180503 set_property STEPS.OPT_DESIGN.TCL.PRE                 ${xdcDir}/xdc_settings.tcl ${implObj}
+    #OBSOLETE-20180503 set_property STEPS.POWER_OPT_DESIGN.TCL.PRE           ${xdcDir}/xdc_settings.tcl ${implObj}
+    #OBSOLETE-20180503 set_property STEPS.PLACE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${implObj}
+    #OBSOLETE-20180503 set_property STEPS.PHYS_OPT_DESIGN.TCL.PRE            ${xdcDir}/xdc_settings.tcl ${implObj}
+    #OBSOLETE-20180503 set_property STEPS.ROUTE_DESIGN.TCL.PRE               ${xdcDir}/xdc_settings.tcl ${implObj}
+    #OBSOLETE-20180503 set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.PRE ${xdcDir}/xdc_settings.tcl ${implObj}
 
     # Set the current impl run
     #-------------------------------------------------------------------------------
-    current_run -implementation ${impl_obj}
+    current_run -implementation ${implObj}
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH PROJECT CREATION "
@@ -387,7 +405,13 @@ if { ${impl} } {
         open_project ${xprDir}/${xprName}.xpr
     }
     
-    # [TODO] set_property strategy HighEffort [ get_runs impl_1 ]
+    # Select a Strategy
+    #  Strategies are a defined set of Vivado implementation feature options that control
+    #  the implementation results. Vivado Design Suite includes a set of pre-defined 
+    #  strategies. You can list the Implementation Strategies using the list_property_value
+    #  command (e.g. join [list_property_value strategy [get_runs impl_1] ]).
+    #-------------------------------------------------------------------------------
+    set_property strategy Performance_Explore ${implObj}
 
     launch_runs impl_1 -jobs 8
     wait_on_run impl_1
@@ -406,8 +430,8 @@ if { ${impl} } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-    set_property "steps.write_bitstream.args.readback_file" "0" ${impl_obj}
-    set_property "steps.write_bitstream.args.verbose"       "0" ${impl_obj}
+    set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
+    set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 
     launch_runs impl_1 -to_step write_bitstream -jobs 8
     wait_on_run impl_1
