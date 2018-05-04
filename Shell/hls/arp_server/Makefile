@@ -1,8 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
+.PHONY: all
+all: arp_server_prj
 
-all: arp_server
-
-arp_server:
+arp_server_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:

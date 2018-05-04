@@ -1,9 +1,11 @@
+DEPS := $(shell find ./src/ -type f)
 
-all: tcp_core
+.PHONY: all
+all: toe_prj
 
-tcp_core:
+toe_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:
-	${RM} -rf tcp_prj
+	${RM} -rf toe_prj
 	${RM} vivado*.log

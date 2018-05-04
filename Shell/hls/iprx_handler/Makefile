@@ -1,8 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
+.PHONY: all
+all: iprx_handler_prj
 
-all: iprx_handler
-
-iprx_handler:
+iprx_handler_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:

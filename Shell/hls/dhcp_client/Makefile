@@ -1,8 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
+.PHONY: all
+all: dhcp_client_prj
 
-all: dhcp_client
-
-dhcp_client:
+dhcp_client_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:

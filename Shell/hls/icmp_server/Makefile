@@ -1,8 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
+.PHONY: all
+all: icmp_server_prj
 
-all: icmp_server
-
-icmp_server:
+icmp_server_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:

@@ -1,7 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
-all: udp
+.PHONY: all
+all: udp_prj
 
-udp:
+udp_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:

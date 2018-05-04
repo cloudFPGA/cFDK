@@ -1,7 +1,9 @@
+DEPS := $(shell find ./src/ -type f)
 
-all: udp_role_if
+.PHONY: all
+all: udp_role_if_prj
 
-udp_role_if:
+udp_role_if_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:
