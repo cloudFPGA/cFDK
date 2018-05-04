@@ -284,7 +284,8 @@ if { ${create} } {
     #         Timing Assertions -> Timing Exceptions -> Physical Constraints
     #-------------------------------------------------------------------------------
     set constrObj [ get_filesets constrs_1 ]
-    set orderedList "xdc_settings.tcl topFMKU60_Flash_pr.xdc topFMKU60_Flash_timg.xdc topFMKU60_Flash_pins.xdc  topFMKU60_Flash.xdc"
+    set orderedList "xdc_settings.tcl topFMKU60_Flash_timg.xdc topFMKU60_Flash_pins.xdc  topFMKU60_Flash.xdc"
+    #OBSOLETE-20180504 Temporary remove of: topFMKU60_Flash_pr.xdc
     foreach file ${orderedList} {
         if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
             my_err_puts "Could not add file \'${file}\' to the fileset \'${constrObj}\' !!!"
@@ -332,6 +333,7 @@ if { ${create} } {
     }
 
     # Set the current impl run
+    #-------------------------------------------------------------------------------
     set implObj [ get_runs impl_1 ]
 
     # Specify the tcl.pre script to apply before the implementation run
@@ -403,7 +405,13 @@ if { ${impl} } {
         open_project ${xprDir}/${xprName}.xpr
     }
     
-    # [TODO] set_property strategy HighEffort [ get_runs impl_1 ]
+    # Select a Strategy
+    #  Strategies are a defined set of Vivado implementation feature options that control
+    #  the implementation results. Vivado Design Suite includes a set of pre-defined 
+    #  strategies. You can list the Implementation Strategies using the list_property_value
+    #  command (e.g. join [list_property_value strategy [get_runs impl_1] ]).
+    #-------------------------------------------------------------------------------
+    set_property strategy Performance_Explore ${implObj}
 
     launch_runs impl_1 -jobs 8
     wait_on_run impl_1

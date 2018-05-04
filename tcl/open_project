@@ -25,4 +25,4 @@ XDC_SETTINGS="YouNameIt.tcl"
 # Start Vivado in GUI mode
 #  Synopsis: vivado $XPR_PROJECT -source $XDC_SETTINGS
 #-------------------------------------------------------------------------------
-vivado $XPR_PROJECT 
+vivado $XPR_PROJECT & 
