@@ -14,6 +14,9 @@ Write:   0x50 -- 0x5F
 ### Role Flash
 Static -> 0xBEEF 
 
+### Role Flash V2
+Static -> 0xCAFE
+
 ## Write Register (TO ROLE)
 
 

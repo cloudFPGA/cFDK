@@ -275,7 +275,7 @@ begin
  
 
   -- write constant to EMIF Register to test read out 
-  poROL_SHL_EMIF_2B_Reg <= x"BEEF";
+  poROL_SHL_EMIF_2B_Reg <= x"CAFE";
 
   pUdpRead : process(piSHL_156_25Clk)
   begin
