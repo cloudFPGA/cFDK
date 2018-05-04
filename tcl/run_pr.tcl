@@ -514,3 +514,39 @@ my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 #-------------------------------------------------------------------------------
  close_project
 
+
+#########################################################################33
+# Greybox Bitstreams
+
+open_checkpoint ${xprDir}/3_${topName}_STATIC.dcp
+
+update_design -cell ROLE -buffer_ports
+
+source ${tclDir}/fix_things.tcl
+
+my_puts "################################################################################"
+my_puts "##"
+my_puts "## RUN GREYBOX IMPLEMENTATION and BISTREAM GENERATION"
+my_puts "##"
+my_puts "################################################################################"
+my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+place_design
+route_design 
+
+write_checkpoint -force ${xprDir}/3_${topName}_static_with_grey_box.dcp
+
+write_bitstream -force ${xprDir}/4_${topName}_impl_grey_box.bit
+
+my_puts "################################################################################"
+my_puts "##  DONE WITH 3. BITSTREAM GENERATION RUN "
+my_puts "################################################################################"
+my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+
+# Close project
+#-------------------------------------------------------------------------------
+ close_project
+
+
+
