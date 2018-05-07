@@ -1,0 +1,742 @@
+# ******************************************************************************
+# *                            cloudFPGA
+# *            All rights reserved -- Property of IBM
+# *-----------------------------------------------------------------------------
+# * Created : Mar 02 2018
+# * Authors : Francois Abel, Burkhard Ringlein
+# * 
+# * Description : A Tcl script that creates the TOP level project in so-called
+# *   "Project Mode" of the Vivado design flow. The design is then further 
+# *   synthesized, placed and routed in batch mode.
+# * 
+# * Synopsis : vivado -mode batch -source <this_file> [-notrace]
+# *                               [-log     <log_file_name>]
+# *                               [-tclargs [script_arguments]]
+# *
+# * Reference documents:
+# *  - UG939 / Lab3 / Scripting the Project Mode.
+# *  - UG835 / All  / Vivado Design Suite Tcl Guide.
+# *  - UG903 / Ch2  / Constraints Methodology.
+# ******************************************************************************
+
+package require cmdline
+
+# Set the Global Settings used by the SHELL Project
+#-------------------------------------------------------------------------------
+source xpr_settings.tcl
+
+# Set the Local Settings used by this Script
+#-------------------------------------------------------------------------------
+set dbgLvl_1         1
+set dbgLvl_2         2
+set dbgLvl_3         3
+
+
+################################################################################
+#                                                                              #
+#                        *     *                                               #
+#                        **   **    **       *    *    *                       #
+#                        * * * *   *  *      *    **   *                       #
+#                        *  *  *  *    *     *    * *  *                       #
+#                        *     *  ******     *    *  * *                       #
+#                        *     *  *    *     *    *   **                       #
+#                        *     *  *    *     *    *    *                       #
+#                                                                              #
+################################################################################
+
+# Global variables
+set clean    0
+set force    0
+set full_src 0
+set create   0
+set synth    0
+set impl     0
+set bitGen 0
+set usedRole "RoleFlash"
+set usedRole2 "RoleFlash_V2" 
+set pr 0
+set pr_verify 0
+set pr_impl2  0
+set forceWithoutBB 0
+set pr_grey 0
+set link 0 
+
+#-------------------------------------------------------------------------------
+# Parsing of the Command Line
+#  Note: All the strings after the '-tclargs' option are considered as TCL
+#        arguments to this script and are passed on to TCL 'argc' and 'argv'.
+#-------------------------------------------------------------------------------
+if { $argc > 0 } {
+    my_dbg_trace "There are [ llength $argv ] TCL arguments to this script." ${dbgLvl_1}
+    set i 0
+    foreach arg $argv {
+        my_dbg_trace "  argv\[$i\] = $arg " ${dbgLvl_2}
+        set i [ expr { ${i} + 1 } ]
+    }
+    # Step-1: Processing of '$argv' using the 'cmdline' package
+    set options {
+        { clean    "Start with a clean new project directory WITHOUT reuse of results or partial reconfiguration." }
+        { create   "Only run the project creation step." }
+        { force    "Continue, even if an old project will be deleted."}
+        { full_src "Import SHELL as source-code not as IP-core."} 
+        { impl     "Only run the implemenation step."} 
+        { synth    "Only run the synthesis step."}
+        { bitgen   "Only run the bitfile generation step."}
+        { link     "Only run the link step (with or without pr)."}
+        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant."}
+        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant."}
+        { pr       "Activates PARTIAL RECONFIGURATION flow (in all steps)." }
+        { pr_impl2 "Activates PR-Flow implementation with ROLE2."}
+        { pr_verify "Run pr_verify." } 
+        { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
+        { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
+    }
+    set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
+    
+    array set kvList [ cmdline::getoptions argv ${options} ${usage} ]
+    
+    # Process the arguments
+    foreach { key value } [ array get kvList ] {
+        my_dbg_trace "KEY = ${key} | VALUE = ${value}" ${dbgLvl_2}
+        if { ${key} eq "clean" && ${value} eq 1 } {
+            set clean    1
+            set force    1
+            set full_src 0
+            set create   1
+            set synth    1
+            set impl     1
+            set bitGen   1
+            set pr 0
+            set link 1
+            set pr_grey 0
+            set pr_impl2 0
+            set pr_verify 0
+
+            my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
+        } else {
+            if { ${key} eq "create" && ${value} eq 1 } {
+                set create 1
+                my_info_puts "The argument \'create\' is set."
+            }
+            if { ${key} eq "force" && ${value} eq 1 } { 
+                set force 1
+                my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+            }
+            if { ${key} eq "full_src" && ${value} eq 1 } { 
+                set full_src 1
+                my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
+            }
+            if { ${key} eq "synth" && ${value} eq 1 } {
+                set synth  1
+                my_info_puts "The argument \'synth\' is set."
+            } 
+            if { ${key} eq "impl" && ${value} eq 1 } {
+                set impl   1
+                 my_info_puts "The argument \'impl\' is set."
+            }
+            if { ${key} eq "role" && ${value} eq 1 } {
+              set usedRole $env(usedRole)
+              my_info_puts "Setting usedRole to $usedRole" 
+            }
+            if { ${key} eq "role2" && ${value} eq 1 } {
+              set usedRole $env(usedRole2)
+              my_info_puts "Setting usedRole2 to $usedRole2" 
+            }
+            if { ${key} eq "pr" && ${value} eq 1 } {
+              set pr 1
+              my_info_puts "The argument \'pr\' is set."
+            }
+            if { ${key} eq "pr_impl2" && ${value} eq 1 } {
+              set pr_impl2 1
+              my_info_puts "The argument \'pr_impl2\' is set."
+            }
+            if { ${key} eq "pr_grey" && ${value} eq 1 } {
+              set pr_grey 1
+              my_info_puts "The argument \'pr_grey\' is set."
+            }
+            if { ${key} eq "pr_verify" && ${value} eq 1 } {
+              set pr_verify 1
+              my_info_puts "The argument \'pr_verify\' is set."
+            }
+            if { ${key} eq "link" && ${value} eq 1 } {
+              set link 1
+              my_info_puts "The argument \'bitgen\' is set."
+            }
+            if { ${key} eq "bitgen" && ${value} eq 1 } {
+              set bitGen 1
+              my_info_puts "The argument \'bitgen\' is set."
+            }
+            if { ${key} eq "forceWithoutBB" && ${value} eq 1 } {
+              set forceWithoutBB 1
+              my_info_puts "The argument \'forceWithoutBB\' is set."
+            }
+        } 
+    }
+}
+
+if {$pr || $link} {
+  set forceWithoutBB 0
+}
+
+if { ${create} } {
+
+    my_puts "################################################################################"
+    my_puts "##"
+    my_puts "##  CREATING PROJECT: ${xprName}  "
+    my_puts "##"
+    my_puts "################################################################################"
+    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+    # Always start from the root directory
+    #-------------------------------------------------------------------------------
+    catch { cd ${rootDir} }
+
+    # If requested , clean the files of the previous run
+    #-------------------------------------------------------------------------------
+    if { ${clean} } {
+        # Start with a clean new project
+        file delete -force ${xprDir}
+        my_dbg_trace "Finished cleaning the project directory." ${dbgLvl_1}
+    } 
+
+    # Create the Xilinx project
+    #-------------------------------------------------------------------------------
+    if { [ file exists ${xprDir} ] != 1 } {
+        file mkdir ${xprDir}
+    } else {
+        # Check if the Xilinx Project Already Exists
+        if { [ file exists ${xprDir}/${xprName}.xpr ] == 1 && ! ${force} } {
+            my_warn_puts "The project \'${xprName}.xpr\' already exists!"
+            my_warn_puts "You are about to delete the project directory: '${xprDir}\' "
+            my_warn_puts "\t Are you sure (Y/N) ? "
+            flush stdout
+            set kbdIn [ gets stdin ]
+            scan ${kbdIn} "%s" keyPressed
+            if { [ string toupper ${keyPressed} ] ne "Y" } {
+                my_puts "OK, go it. This script (\'${argv0}\') will be aborted now."
+                my_puts "Bye.\n" 
+                exit ${OK}
+            }
+        }  
+    }
+    create_project ${xprName} ${xprDir} -force
+    my_dbg_trace "Done with project creation." ${dbgLvl_1}
+
+
+    # Set Project Properties
+    #-------------------------------------------------------------------------------
+    set          xprObj            [ get_projects ${xprName} ]
+
+    set_property part              ${xilPartName}       ${xprObj}           -verbose
+    set_property "target_language" "VHDL"               ${xprObj}           -verbose
+
+
+    set_property top               ${topName}           [ current_fileset ] -verbose
+    set_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
+
+    set_property "default_lib"                "xil_defaultlib" ${xprObj}
+    set_property "ip_cache_permissions"       "read write"     ${xprObj}
+    set_property "sim.ip.auto_export_scripts" "1"              ${xprObj}
+    set_property "simulator_language"         "Mixed"          ${xprObj}
+    set_property "xsim.array_display_limit"   "64"             ${xprObj}
+    set_property "xsim.trace_limit"           "65536"          ${xprObj}
+
+    set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${xprObj}
+
+    my_dbg_trace "Done with set project properties." ${dbgLvl_1}
+
+
+    # Create 'sources_1' fileset (if not found)
+    #-------------------------------------------------------------------------------
+    if { [ string equal [ get_filesets -quiet sources_1 ] "" ] } {
+        create_fileset -srcset sources_1
+    }
+
+    # Set IP repository paths
+    #-------------------------------------------------------------------------------
+    set srcObj [ get_filesets sources_1 ]
+    my_dbg_trace "Setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
+    set_property "ip_repo_paths" "${ipDir}" ${srcObj}
+    my_dbg_trace "Done with setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
+
+    # Rebuild user ip_repo's index before adding any source files
+    #-------------------------------------------------------------------------------
+    update_ip_catalog -rebuild
+
+    # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
+    #-------------------------------------------------------------------------------
+    add_files -fileset ${srcObj} ${hdlDir}
+    my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
+
+    if { ${full_src} } {
+
+        # Add *ALL* the HDL Source Files for the SHELL
+        #-------------------------------------------------------------------------------
+        add_files     ${rootDir}/../../SHELL/Shell/hdl/
+        my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
+        
+        # IP Cores SHELL
+        # Specify the IP Repository Path to make IPs available through the IP Catalog
+        #  (Must do this because IPs are stored outside of the current project) 
+        #-------------------------------------------------------------------------------
+        set ipDirShell ${rootDir}/../../SHELL/Shell/ip/
+        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
+        update_ip_catalog
+        my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
+        
+        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the SHELL. 
+        #-------------------------------------------------------------------------------
+        set ipList [ glob -nocomplain ${ipDirShell}/ip_user_files/ip/* ]
+        if { $ipList ne "" } {
+            foreach ip $ipList {
+                set ipName [file tail ${ip} ]
+                add_files ${ipDirShell}/${ipName}/${ipName}.xci
+                my_dbg_trace "Done with add_files for SHELL: ${ipDir}/${ipName}/${ipName}.xci" 2
+            }
+        }
+   
+        # Update Compile Order
+        #-------------------------------------------------------------------------------
+        update_compile_order -fileset sources_1
+        
+        # Add Constraints Files SHELL
+        #---------------------------------------------------------------------
+        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
+        
+        my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
+
+    } else {
+
+        # Create and customize the SHELL module from the Shell IP
+        #-------------------------------------------------------------------------------
+        my_puts ""
+        my_warn_puts "THE USAGE OF THE SHELL AS A PACKAGED IP IS NOT YET SUPPORTED !!!"
+        my_warn_puts "  The script will be aborted here..."
+        my_puts ""
+        exit ${KO}
+        # [TODO] create_ip -name Shell -vendor ZRL -library cloudFPGA -version 1.0 -module_name SuperShell
+        # [TODO] update_compile_order -fileset sources_1
+        # [TODO] my_dbg_trace "Done with the creation and customization of the SHELL-IP (.i.e SuperShell)." ${dbgLvl_1}
+    }
+
+#TODO PR   
+if { $forceWithoutBB } {
+ # Add HDL Source Files for the ROLE
+    #-----------------------------------
+    add_files -norecurse ${rootDir}/../../ROLE/RoleFlash/hdl/roleFlash.vhdl  
+    update_compile_order -fileset sources_1
+    my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
+
+
+    # Update Compile Order
+    #-------------------------------------------------------------------------------
+    update_compile_order -fileset sources_1
+   }
+
+    # Create 'constrs_1' fileset (if not found)
+    #-------------------------------------------------------------------------------
+    if { [ string equal [ get_filesets -quiet constrs_1 ] "" ] } {
+        create_fileset -constrset constrs_1
+    }
+
+    # Add Constraints Files
+    #  INFO: By default, the order of the XDC files (or Tcl scripts) displayed in
+    #        the Vivado IDE defines the read sequence used by the tool when loading
+    #        an elaborated or synthesized design into memory (UG903-Ch2). Therefore,
+    #        ensure that the file "xdc_settings.tcl" is loaded first because it
+    #        defines some of the XDC constraints as variables.
+    #  INFO: UG903 recommends to organize the constraints in the following sequence:
+    #         Timing Assertions -> Timing Exceptions -> Physical Constraints
+    #-------------------------------------------------------------------------------
+    set constrObj [ get_filesets constrs_1 ]
+    set orderedList "xdc_settings.tcl topFMKU60_Flash_timg.xdc topFMKU60_Flash_pins.xdc  topFMKU60_Flash.xdc"
+    #OBSOLETE-20180504 Temporary remove of: topFMKU60_Flash_pr.xdc
+    foreach file ${orderedList} {
+        if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
+            my_err_puts "Could not add file \'${file}\' to the fileset \'${constrObj}\' !!!"
+            my_err_puts "  The script will be aborted here..."
+            my_puts ""
+            exit ${KO}        
+        }
+    }
+    #OBSOLETE-20180503 add_files -fileset ${obj} [ glob ${xdcDir}/*.xdc ]
+    #OBSOLETE-20180503 set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
+
+    my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
+
+    #-------------------------------------------------------------------------------
+    # Create 'synth_1' run (if not found)
+    #------------------------------------------------------------------------------- 
+    set year [ lindex [ split [ version -short ] "." ] 0 ]
+
+    if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
+        create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
+    } else {
+        set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
+        set_property flow "Vivado Synthesis ${year}" [ get_runs synth_1 ]
+    }
+
+    # Set the current synth run
+    set syntObj [ get_runs synth_1 ]
+
+    # Specify the tcl.pre script to apply before the synthesis run
+    set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${syntObj}
+
+    current_run -synthesis ${syntObj}
+
+
+    #-------------------------------------------------------------------------------
+    # Create 'impl_1' run (if not found)
+    #-------------------------------------------------------------------------------
+    set year [ lindex [ split [ version -short ] "." ] 0 ]  
+
+    if { [ string equal [ get_runs -quiet impl_1 ] "" ] } {
+        create_run -name impl_1 -part ${xilPartName} -flow {Vivado Implementation ${year}} -strategy "Vivado Implementation Defaults" -constrset constrs_1 -parent_run synth_1
+    } else {
+        set_property strategy "Vivado Implementation Defaults" [ get_runs impl_1 ]
+        set_property flow "Vivado Implementation ${year}" [ get_runs impl_1 ]
+    }
+
+    # Set the current impl run
+    #-------------------------------------------------------------------------------
+    set implObj [ get_runs impl_1 ]
+
+    # Set the current impl run
+    #-------------------------------------------------------------------------------
+    current_run -implementation ${implObj}
+
+    my_puts "################################################################################"
+    my_puts "##  DONE WITH PROJECT CREATION "
+    my_puts "################################################################################"
+    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+}
+
+
+
+
+
+
+if { ${synth} } {
+
+    my_puts "################################################################################"
+    my_puts "##" 
+    if { $forceWithoutBB } { 
+    my_puts "##  RUN SYNTHESIS: ${xprName}  " 
+  } else { 
+    my_puts "##  RUN SYNTHESIS: ${xprName}  WITHOUT ROLE"
+  }
+    my_puts "##"
+    my_puts "################################################################################"
+    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+    if { ! ${create} } {
+        open_project ${xprDir}/${xprName}.xpr
+        # Reset the previous run 'synth_1' before launching a new one
+        reset_run synth_1
+    }
+
+    launch_runs synth_1 -jobs 8
+    wait_on_run synth_1 
+
+    if { ! $forceWithoutBB } { 
+      open_run synth_1 -name synth_1
+      # otherwise write checkpoint will fail...
+      write_checkpoint -force ${dcpDir}/0_${topName}_static_without_role.dcp 
+      close_design
+    } else { 
+      my_dbg_trace "forceWithoutBB is active, so no dcp is saved at this stage." ${dbgLvl_1}
+      
+      #link must not be enabeld in this mode 
+      set link 0
+    }
+
+    my_puts "################################################################################"
+    if { $forceWithoutBB } { 
+    my_puts "##  DONE WITH SYNTHESIS RUN "
+    } else {
+    my_puts "##  DONE WITH SYNTHESIS RUN (ROLE as BLACK BOX); .dcp SAVED "
+    }
+    my_puts "################################################################################"
+    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n" 
+
+}
+
+
+if { ${link} } { 
+  
+
+  if { ! ${create} } {
+     open_project ${xprDir}/${xprName}.xpr
+  }
+  set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
+  add_files ${roleDcpFile}
+  update_compile_order -fileset sources_1
+  my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
+
+  set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
+
+  open_run synth_1 -name synth_1
+  # Link the two dcps together
+  #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
+  ### CAVE: link_design is done by open_design in project mode!!
+  # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
+  set_property needs_refresh false [get_runs synth_1]
+  
+
+  if { $pr } { 
+    set constrObj [ get_filesets constrs_1 ]
+    set prConstrFile "${xdcDir}/topFMKU60_Flash_pr.xdc"
+    if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
+        my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
+        my_err_puts "  The script will be aborted here..."
+        my_puts ""
+        exit ${KO}
+    }
+    my_puts "################################################################################"
+    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}"
+    my_puts "################################################################################"
+
+    write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
+  } else {
+    write_checkpoint -force ${dcpDir}/1_${topName}_linked.dcp
+  }
+
+  my_puts "################################################################################"
+  my_puts "## DONE WITH DESIGN LINKING; PBLOCK CREATED; .dcp SAVED" 
+  my_puts "################################################################################"
+  my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n" 
+
+
+}
+
+
+
+if { ${impl} } {
+
+    my_puts "################################################################################"
+    my_puts "##"
+    my_puts "##  RUN IMPLEMENTATION: ${xprName}  with ${usedRole}"
+    my_puts "##"
+    my_puts "################################################################################"
+    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+    if { ! ${create} } {
+        open_project ${xprDir}/${xprName}.xpr
+    }
+  
+    set_property needs_refresh false [get_runs synth_1]
+    
+    # Select a Strategy
+    #  Strategies are a defined set of Vivado implementation feature options that control
+    #  the implementation results. Vivado Design Suite includes a set of pre-defined 
+    #  strategies. You can list the Implementation Strategies using the list_property_value
+    #  command (e.g. join [list_property_value strategy [get_runs impl_1] ]).
+    #-------------------------------------------------------------------------------
+    set_property strategy Performance_Explore ${implObj}
+
+    launch_runs impl_1 -jobs 8
+    wait_on_run impl_1
+
+    
+    if { ! $forceWithoutBB } { 
+      open_run impl_1
+      if { $pr } { 
+      write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp
+      } else { 
+        write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp
+      }
+      write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole}.dcp
+      
+      my_puts "################################################################################"
+      my_puts "##  DONE WITH 1. IMPLEMENATATION RUN; .dcp SAVED "
+    } else { 
+      my_puts "################################################################################"
+      my_puts "##  DONE WITH IMPLEMENATATION RUN "
+      my_dbg_trace "forceWithoutBB is active, so no dcp is saved at this stage." ${dbgLvl_1}
+    }
+
+    my_puts "################################################################################"
+    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n" 
+
+    if { $pr } { 
+      # now, black box 
+      update_design -cell ROLE -black_box
+      
+      lock_design -level routing 
+      
+      write_checkpoint -force ${dcpDir}/3_${topName}_STATIC.dcp
+      
+      my_puts "################################################################################"
+      my_puts "## STATIC DESIGN LOCKED; .dcp SAVED" 
+      my_puts "################################################################################"
+      my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+      
+      close_project
+
+    }
+
+} 
+
+
+if { $pr_impl2 } { 
+  
+  catch {close_project}
+  create_project -in_memory -part ${xilPartName}
+  add_files ${dcpDir}/3_${topName}_STATIC.dcp
+  my_dbg_trace "Started in-memory project; added locked static part." ${dbgLvl_1}
+  
+  set roleDcpFile_conf2 ${rootDir}/../../ROLE/${usedRole2}/${usedRoleType}_OOC.dcp
+  add_files ${roleDcpFile_conf2}
+  set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile_conf2} ]
+  my_dbg_trace "Added dcp of ROLE ${roleDcpFile_conf2}." ${dbgLvl_1}
+  
+  link_design -mode default -reconfig_partitions {ROLE} -part ${xilPartName} -top ${topName} 
+  
+  my_dbg_trace "Linked 2. Configuration together" ${dbgLvl_1}
+  
+    my_puts "################################################################################"
+    my_puts "##"
+    my_puts "##  RUN 2. IMPLEMENTATION: ${xprName}  with ${usedRole2}"
+    my_puts "##"
+    my_puts "################################################################################"
+    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+  opt_design
+  place_design
+  route_design
+  
+  
+  write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete.dcp
+  write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
+  
+  my_puts "################################################################################"
+  my_puts "##  DONE WITH 2. IMPLEMENATATION RUN; .dcp SAVED "
+  my_puts "################################################################################"
+  my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  
+  close_project
+} 
+
+
+if { $pr_grey } { 
+
+  catch {close_project}
+  open_checkpoint ${dcpDir}/3_${topName}_STATIC.dcp
+  
+  update_design -cell ROLE -buffer_ports
+  
+  source ${tclDir}/fix_things.tcl
+  
+  my_puts "################################################################################"
+  my_puts "##"
+  my_puts "## RUN GREYBOX IMPLEMENTATION "
+  my_puts "##"
+  my_puts "################################################################################"
+  my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  
+  place_design
+  route_design 
+  
+  write_checkpoint -force ${dcpDir}/3_${topName}_impl_grey_box.dcp
+    
+  my_puts "################################################################################"
+  my_puts "##  DONE WITH GREYBOX IMPLEMENATATION RUN; .dcp SAVED "
+  my_puts "################################################################################"
+  my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  
+  close_project
+
+}
+
+
+if { $pr_verify } { 
+  catch {close_project}
+  my_dbg_trace "Starting pr_verify" ${dbgLvl_1}
+  
+  set toVerifyList [ glob -nocomplain ${dcpDir}/2_* ]
+  pr_verify ${toVerifyList}
+  
+  my_puts "################################################################################"
+  my_puts "##  DONE WITH pr_verify "
+  my_puts "################################################################################"
+  my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  
+  close_project
+
+}
+
+
+if { $bitGen } {
+
+    catch {close_project}
+
+    my_puts "################################################################################"
+    my_puts "##"
+    my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
+    my_puts "##  SETTING: PR: $pr PR_IMPL2: $pr_impl2 PR_GREY: $pr_grey  "
+    my_puts "##"
+    my_puts "################################################################################"
+    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+    
+    if { ${forceWithoutBB} } {
+      open_project ${xprDir}/${xprName}.xpr
+      set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
+      set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
+
+      launch_runs impl_1 -to_step write_bitstream -jobs 8
+      wait_on_run impl_1
+    } else {
+
+      set curImpl ${usedRole}
+      if { $pr } {
+        source ${tclDir}/fix_things.tcl 
+        #TODO
+        open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
+      } else {
+        open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
+      }
+        write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        close_project
+
+      if { $pr_impl2} { 
+        catch {close_project}
+        open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
+        set curImpl ${usedRole2}
+        write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        close_project
+      } 
+      if { $pr_grey } { 
+        catch {close_project}
+        open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
+        set curImpl "grey_box"
+        write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        close_project
+      } else { 
+        #default 
+      }
+
+
+
+    }
+    my_puts "################################################################################"
+    my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
+    my_puts "################################################################################"
+    my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+}
+
+
+# Close project
+#-------------------------------------------------------------------------------
+catch {close_project}
+
+# OBSOLETE 20180418
+# Launch Vivado' GUI
+#-------------------------------------------------------------------------------
+#catch { cd ${xprDir} }
+#start_gui
+
+
+
+
