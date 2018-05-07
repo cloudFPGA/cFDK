@@ -16,9 +16,9 @@
 # ******************************************************************************
 
 
-TOP_NAME = "TopFlash"
-ROLE_NAME_1 = "RoleFlash"
-ROLE_NAME_2 = "RoleFlash_V2"
+TOP_NAME = topFlash
+ROLE_NAME_1 = RoleFlash
+ROLE_NAME_2 = RoleFlash_V2
 ifndef usedRole
 	export usedRole=$(ROLE_NAME_1)
 else
@@ -30,7 +30,8 @@ else
 ROLE_NAME_2 = $(usedRole2)
 endif
 
-VIVADO_CMDs = ""
+VIVADO_CMDS =
+
 
 IP_SHELL = ../../../IP/Shell/component.xml
 
@@ -52,20 +53,29 @@ clean:
 ../dcps: 
 	mkdir -p ../dcps 
 
+#.PHONY: basecmd
+.vivado_basecmd.sh:
+	@echo "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
 
-full_src: ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
-	ifeq ($(VIVADO_CMDs), "") 
+
+full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
+	@echo $(VIVADO_CMDS)
+	ifeq ($(VIVADO_CMDS), ) 
 		@echo "It seems, that there is nothing to do for $^"
 	else 
-		vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDs)
+		vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDS)
 	endif 
 
-full_src_pr: ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit
-	ifeq ($(VIVADO_CMDs), "") 
-		@echo "It seems, that there is nothing to do for $^"
-	else 
-		vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDs)
-	endif 
+full_src_pr: .vivado_basecmd.sh ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit
+	#@echo $(VIVADO_CMDS)
+	#ifeq ($(VIVADO_CMDS), ) 
+	#	@echo "It seems, that there is nothing to do for $^"
+	#else 
+	#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDS)
+	#endif 
+	@cat .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
 
 pr_verify: 
 	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -pr_verify
@@ -73,44 +83,49 @@ pr_verify:
 
 #without pr 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role"
+	VIVADO_CMDS := $(VIVADO_CMDS) -bitgen -role
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp: ../dcps/1_$(TOP_NAME)_linked.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role"
+	VIVADO_CMDS := $(VIVADO_CMDS) -impl -role
 
 ../dcps/1_$(TOP_NAME)_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -link -role"
+	VIVADO_CMDS := $(VIVADO_CMDS) -link -role
 
 #both
 ../dcps/0_$(TOP_NAME)_static_without_role.dcp: | $(XPR_PROJ)
-	VIVADO_CMDs := "$(VIVADO_CMDs) -synth"
+	#VIVADO_CMDS := $(VIVADO_CMDS) -synth
+	@echo "-synth \\" >> .vivado_basecmd.sh
+
 
 $(XPR_PROJ): | ../dcps 
-	VIVADO_CMDs := "$(VIVADO_CMDs) -create"
+	VIVADO_CMDS := $(VIVADO_CMDS) -create
 
 #with pr:
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
-	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_verify"
+	#VIVADO_CMDS := $(VIVADO_CMDS) -bitgen -role -pr -pr_verify
+	@echo "-bitgen -role -pr -pr_verify \\" >> .vivado_basecmd.sh
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr"
+	#VIVADO_CMDS := $(VIVADO_CMDS) -impl -role -pr
+	@echo "-impl -role -pr \\" >> .vivado_basecmd.sh
 
 ../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -link -role -pr"
+	#VIVADO_CMDS := $(VIVADO_CMDS) -link -role -pr
+	@echo "-link -role -pr \\" >> .vivado_basecmd.sh
 
 ../dcps/3_$(TOP_NAME)_STATIC.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp 
-	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_verify -pr_impl2"
+	VIVADO_CMDS := $(VIVADO_CMDS) -bitgen -role -pr -pr_verify -pr_impl2
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr -pr_impl2"
+	VIVADO_CMDS := $(VIVADO_CMDS) -impl -role -pr -pr_impl2
 
 ../dcps/4_$(TOP_NAME)_impl_grey_box.bit: ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_grey"
+	VIVADO_CMDS := $(VIVADO_CMDS) -bitgen -role -pr -pr_grey
 
 ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
-	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr -pr_grey"
+	VIVADO_CMDS := $(VIVADO_CMDS) -impl -role -pr -pr_grey
 
 #20180507: Does not work this way, because therefore we need to define how $(IP_SHELL) can be build
 #$(XPR_PROJ): $(IP_SHELL)
