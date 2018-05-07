@@ -137,49 +137,67 @@ module MmioClient_A8_D8 #(
   localparam RES_REG_BASE   = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
   
-  localparam CFG_VPD        = CFG_REG_BASE  +  0; // Virtual Product Data
-  localparam CFG_VER        = CFG_REG_BASE  +  1;
-  localparam CFG_REV        = CFG_REG_BASE  +  2;
+  //-- CFG_REGS ---------------------------------------------------------------
+  // Virtual Product Data
+  localparam CFG_VPD_ID     = CFG_REG_BASE  +  0; // Emif Id
+  localparam CFG_VPD_VER    = CFG_REG_BASE  +  1; // Emif Version 
+  localparam CFG_VPD_REV    = CFG_REG_BASE  +  2; // Emif Revision
 
-  localparam PHY_STAT       = PHY_REG_BASE  +  0; // Status  of the physical interfaces 
-  localparam PHY_CTRL       = PHY_REG_BASE  +  1; // Control of the physical interfaces 
+  //-- PHY_REGS ---------------------------------------------------------------
+  // Status of the Physical Interfaces
+  localparam PHY_STAT       = PHY_REG_BASE  +  0;
+  // Control of the Physical Interfaces 
+  localparam PHY_CTRL       = PHY_REG_BASE  +  1; 
   
-  localparam LY2_CTRL       = LY2_REG_BASE  +  0; // Status of the layer-2 interfaces
+  //-- LY2_REGS ---------------------------------------------------------------
+  // Control of the Layer-2 Interfaces
+  localparam LY2_CTRL       = LY2_REG_BASE  +  0;
+  // Status of the Layer-2 Interfaces
   localparam LY2_STAT       = LY2_REG_BASE  +  1;
-  localparam LY2_MAC0       = LY2_REG_BASE  +  2; // MAC address register #0
+  // MAC Address Register
+  localparam LY2_MAC0       = LY2_REG_BASE  +  2; 
   localparam LY2_MAC1       = LY2_REG_BASE  +  3;
   localparam LY2_MAC2       = LY2_REG_BASE  +  4;
   localparam LY2_MAC3       = LY2_REG_BASE  +  5;
   localparam LY2_MAC4       = LY2_REG_BASE  +  6;
   localparam LY2_MAC5       = LY2_REG_BASE  +  7;
   
-  localparam LY3_CTRL0      = LY3_REG_BASE  +  0; // Status of the layer-3 interfaces
+  //-- LY3_REGS ---------------------------------------------------------------
+  // Control of the layer-3 Interfaces
+  localparam LY3_CTRL0      = LY3_REG_BASE  +  0; 
   localparam LY3_CTRL1      = LY3_REG_BASE  +  1;
+  // Status of the Layer-3 Interfaces
   localparam LY3_STAT0      = LY3_REG_BASE  +  2;
   localparam LY3_STAT1      = LY3_REG_BASE  +  3;
-  localparam LY3_IP0        = LY3_REG_BASE  +  4; // IP address register #0
+  // IP Address Register
+  localparam LY3_IP0        = LY3_REG_BASE  +  4;
   localparam LY3_IP1        = LY3_REG_BASE  +  5; 
   localparam LY3_IP2        = LY3_REG_BASE  +  6; 
   localparam LY3_IP3        = LY3_REG_BASE  +  7;
   
-  localparam DIAG_SCRATCH_0 = DIAG_REG_BASE +  0; // Scratch register 
+  //-- RES_REGS ---------------------------------------------------------------
+  
+  //-- DIAG_REGS --------------------------------------------------------------
+  // Scratch Registers 
+  localparam DIAG_SCRATCH_0 = DIAG_REG_BASE +  0;
   localparam DIAG_SCRATCH_1 = DIAG_REG_BASE +  1;
   localparam DIAG_SCRATCH_2 = DIAG_REG_BASE +  2;
   localparam DIAG_SCRATCH_3 = DIAG_REG_BASE +  3;
-  localparam DIAG_LOOPCTRL  = DIAG_REG_BASE +  4; // Control of the loopback interfaces
-  
-  localparam DIAG_PAGE_SEL  = DIAG_REG_BASE + 15; // Extended Page Select Byte 
+  // Control of the Loopback Interfaces
+  localparam DIAG_LOOPCTRL  = DIAG_REG_BASE +  4;
+  // Extended Page Select Byte 
+  localparam DIAG_PAGE_SEL  = DIAG_REG_BASE + 15; 
  
   localparam ROLE_REG_WIDTH_HALF = 16;
 
   //============================================================================
   //  CONSTANT DEFINITIONS -- Default Reset Values of the Registers 
   //============================================================================
-  //-- CFG_REGS --------------
+  //-- CFG_REGS ---------------
   localparam cDefReg00 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h3C :
                          ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF;      
-  localparam cDefReg01 = 8'h01;  // CFG_VER     : Version of the EMIF component.
-  localparam cDefReg02 = 8'h00;  // CFG_REV     : Revision of the EMIF component.
+  localparam cDefReg01 = 8'h01;  // CFG_VPD_VER     : Version of the EMIF component.
+  localparam cDefReg02 = 8'h00;  // CFG_VPD_REV     : Revision of the EMIF component.
   localparam cDefReg03 = 8'h00;    
   localparam cDefReg04 = 8'h00;   
   localparam cDefReg05 = 8'h00;     
@@ -193,8 +211,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg0D = 8'h00;
   localparam cDefReg0E = 8'h00;
   localparam cDefReg0F = 8'h00;
-  //-- PHY_REGS --------------
-  localparam cDefReg10 = 8'h00;  // PHY_STATUS 
+  //-- PHY_REGS ---------------
+  localparam cDefReg10 = 8'h00;  // PHY_STATUS
   localparam cDefReg11 = 8'h01;  // PHY_CONTROL
   localparam cDefReg12 = 8'h00;
   localparam cDefReg13 = 8'h00;
@@ -210,15 +228,15 @@ module MmioClient_A8_D8 #(
   localparam cDefReg1D = 8'h00;
   localparam cDefReg1E = 8'h00;
   localparam cDefReg1F = 8'h00;
-  //-- L2_REGS ---------------
-  localparam cDefReg20 = 8'h00;  // L2_CONTROL
-  localparam cDefReg21 = 8'h00;  // L2_STATUS
-  localparam cDefReg22 = 8'h00;  // MAC0_ADDR
-  localparam cDefReg23 = 8'h00;  // MAC1_ADDR
-  localparam cDefReg24 = 8'h00;  // MAC2_ADDR
-  localparam cDefReg25 = 8'h00;  // MAC3_ADDR
-  localparam cDefReg26 = 8'h00;  // MAC4_ADDR
-  localparam cDefReg27 = 8'h00;  // MAC5_ADDR
+  //-- LY2_REGS ---------------
+  localparam cDefReg20 = 8'h00;  // LY2_CONTROL
+  localparam cDefReg21 = 8'h00;  // LY2_STATUS
+  localparam cDefReg22 = 8'h00;  // LY2_MAC0
+  localparam cDefReg23 = 8'h00;  // LY2_MAC1
+  localparam cDefReg24 = 8'h00;  // LY2_MAC2
+  localparam cDefReg25 = 8'h00;  // LY2_MAC3
+  localparam cDefReg26 = 8'h00;  // LY2_MAC4
+  localparam cDefReg27 = 8'h00;  // LY2_MAC5
   localparam cDefReg28 = 8'h00;
   localparam cDefReg29 = 8'h00;
   localparam cDefReg2A = 8'h00;
@@ -227,15 +245,15 @@ module MmioClient_A8_D8 #(
   localparam cDefReg2D = 8'h00;
   localparam cDefReg2E = 8'h00;
   localparam cDefReg2F = 8'h00;
-  //-- L3_REGS ---------------
-  localparam cDefReg30 = 8'h00;  // L3_CONTROL_0
-  localparam cDefReg31 = 8'h00;  // L3_CONTROL_1
-  localparam cDefReg32 = 8'h00;  // L3_STATUS_0
-  localparam cDefReg33 = 8'h00;  // L3_STATUS_1
-  localparam cDefReg34 = 8'h00;  // IP0_ADDR
-  localparam cDefReg35 = 8'h00;  // IP1_ADDR  
-  localparam cDefReg36 = 8'h00;  // IP2_ADDR
-  localparam cDefReg37 = 8'h00;  // IP3_ADDR
+  //-- LY3_REGS ---------------
+  localparam cDefReg30 = 8'h00;  // LY3_CONTROL_0
+  localparam cDefReg31 = 8'h00;  // LY3_CONTROL_1
+  localparam cDefReg32 = 8'h00;  // LY3_STATUS_0
+  localparam cDefReg33 = 8'h00;  // LY3_STATUS_1
+  localparam cDefReg34 = 8'h00;  // LY3_IP0
+  localparam cDefReg35 = 8'h00;  // LY3_IP1  
+  localparam cDefReg36 = 8'h00;  // LY3_IP2
+  localparam cDefReg37 = 8'h00;  // LY3_IP3
   localparam cDefReg38 = 8'h00;  
   localparam cDefReg39 = 8'h00;
   localparam cDefReg3A = 8'h00;
@@ -244,7 +262,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg3D = 8'h00;
   localparam cDefReg3E = 8'h00;
   localparam cDefReg3F = 8'h00;  
-  //-- RES_REGS --------------
+  //-- RES_REGS ---------------
   localparam cDefReg40 = 8'h00;
   localparam cDefReg41 = 8'h00;
   localparam cDefReg42 = 8'h00;
@@ -261,6 +279,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg4D = 8'h00;
   localparam cDefReg4E = 8'h00;
   localparam cDefReg4F = 8'h00;
+  //-- RES_REGS ---------------
   localparam cDefReg50 = 8'h00;
   localparam cDefReg51 = 8'h00;     
   localparam cDefReg52 = 8'h00;
@@ -277,6 +296,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg5D = 8'h00;
   localparam cDefReg5E = 8'h00;
   localparam cDefReg5F = 8'h00;
+  //-- RES_REGS ---------------
   localparam cDefReg60 = 8'h00;
   localparam cDefReg61 = 8'h00;
   localparam cDefReg62 = 8'h00;
@@ -293,12 +313,12 @@ module MmioClient_A8_D8 #(
   localparam cDefReg6D = 8'h00;
   localparam cDefReg6E = 8'h00;
   localparam cDefReg6F = 8'h00;
-  //-- DIAG_REGS -------------
-  localparam cDefReg70 = 8'h00;  // SCRATCH_0 
-  localparam cDefReg71 = 8'h00;  // SCRATCH_1      
-  localparam cDefReg72 = 8'h00;  // SCRATCH_2 
-  localparam cDefReg73 = 8'h00;  // SCRATCH_3 
-  localparam cDefReg74 = 8'h00;  // LOOPCTRL
+  //-- DIAG_REGS --------------
+  localparam cDefReg70 = 8'h00;  // DIAG_SCRATCH0 
+  localparam cDefReg71 = 8'h00;  // DIAG_SCRATCH1      
+  localparam cDefReg72 = 8'h00;  // DIAG_SCRATCH2 
+  localparam cDefReg73 = 8'h00;  // DIAG_SCRATCH3 
+  localparam cDefReg74 = 8'h00;  // DIAG_LOOPCTRL
   localparam cDefReg75 = 8'h00;
   localparam cDefReg76 = 8'h00;
   localparam cDefReg77 = 8'h00;
@@ -309,7 +329,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg7C = 8'h00;
   localparam cDefReg7D = 8'h00;
   localparam cDefReg7E = 8'h00;
-  localparam cDefReg7F = 8'h00;  // EXT_PAGE_SEL
+  localparam cDefReg7F = 8'h00;  // DIAG_PAGESEL
 
 
   localparam cDefRegVal = {
@@ -362,11 +382,11 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------  
   //-- CONFIGURATION REGISTERS
   //--------------------------------------------------------
-  //---- CFG_VPD -----------------------
+  //---- CFG_VPD_ID --------------------
   //------ No inputs
-  //---- CFG_VER------------------------
+  //---- CFG_VPD_VER--------------------
   //------ No inputs
-  //---- CFG_REV -----------------------
+  //---- CFG_VPD_REV -------------------
   //------ No inputs
  
   //--------------------------------------------------------
@@ -394,17 +414,17 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
   //--------------------------------------------------------
-  //---- L2_CONTROL --------------------
+  //---- LY2_CONTROL -------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_L2_CTRL
+    begin: gen_LY2_CTRL
       assign sStatusVec[cEDW*LY2_CTRL+id]  = sEMIF_Ctrl[cEDW*LY2_CTRL+id]; // RW   
     end
   endgenerate
-  //---- L2_MAC0_ADDR ------------------
+  //---- LY2_MAC -----------------------
   generate
   for (id=0; id<48; id=id+1)
-    begin: gen_L2_MAC0_ADDR
+    begin: gen_LY2_MAC_ADDR
       assign sStatusVec[cEDW*LY2_MAC0+id]  = sEMIF_Ctrl[cEDW*LY2_MAC0+id]; // RW   
     end
   endgenerate
@@ -412,17 +432,17 @@ module MmioClient_A8_D8 #(
   //-------------------------------------------------------- 
   //-- LAYER-3 REGISTERS
   //--------------------------------------------------------
-  //---- L3_CONTROL --------------------
+  //---- LY3_CONTROL --------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_L3_CTRL
+    begin: gen_LY3_CTRL
       assign sStatusVec[cEDW*LY3_CTRL0+id]  = sEMIF_Ctrl[cEDW*LY3_CTRL0+id]; // RW   
     end
   endgenerate
-  //---- L3_IP0_ADDR -------------------
+  //---- LY3_IP -------------------------
   generate
   for (id=0; id<32; id=id+1)
-    begin: gen_L3_IP0_ADDR
+    begin: gen_LY3_IP_ADDR
       assign sStatusVec[cEDW*LY3_IP0+id]  = sEMIF_Ctrl[cEDW*LY3_IP0+id]; // RW   
     end
   endgenerate
@@ -435,24 +455,24 @@ module MmioClient_A8_D8 #(
   //-------------------------------------------------------- 
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
-  //---- SCRATCH -----------------------
+  //---- DIAG_SCRATCH ------------------
   generate
   for (id=0; id<32; id=id+1)
-    begin: gen_SCRATCH
+    begin: gen_DIAG_SCRATCH
       assign sStatusVec[cEDW*DIAG_SCRATCH_0+id]  = sEMIF_Ctrl[cEDW*DIAG_SCRATCH_0+id]; // RW   
     end
   endgenerate  
-  //---- LOOPCTRL ----------------------
+  //---- DIAG_LOOPCTRL -----------------
   generate
   for (id=0; id<cEDW; id=id+1)
-    begin: gen_LOOPCTRL
+    begin: gen_DIAG_LOOPCTRL
       assign sStatusVec[cEDW*DIAG_LOOPCTRL+id]  = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+id]; // RW   
     end
   endgenerate
-  //---- PAGE_SEL ----------------------
+  //---- DIAG_PAGESEL ------------------
   generate
   for (id=0; id<cEDW; id=id+1)
-    begin: gen_PAGE_SEL
+    begin: gen_DIAG_PAGESEL
       assign sStatusVec[cEDW*DIAG_PAGE_SEL+id]  = sEMIF_Ctrl[cEDW*DIAG_PAGE_SEL+id]; // RW
     end
   endgenerate
@@ -478,11 +498,11 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
   //--------------------------------------------------------
-  //---- L2_CONTROL --------------------  
+  //---- LY2_CONTROL --------------------  
   //------ No Outputs
-  //---- L2_STATUS ---------------------  
+  //---- LY2_STATUS ---------------------  
   //------ No Outputs
-  //-- MAC0_ADDR[0:5] ------------------
+  //---- LY2_MAC[0:5] -------------------
   assign poMMIO_Nts0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
   assign poMMIO_Nts0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
   assign poMMIO_Nts0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
@@ -493,11 +513,11 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
   //--------------------------------------------------------
-  //---- L3_CONTROL[0:1] ---------------  
+  //---- LY3_CONTROL[0:1] --------------  
   //------ No Outputs
-  //---- L3_STATUS[0:1] ----------------  
+  //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs
-  //-- IP0_ADDR[0:3] -------------------
+  //---- LY3_IP[0:3] -------------------
   assign poMMIO_Nts0_IpAddress[31:24] = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];  // RW
   assign poMMIO_Nts0_IpAddress[23:16] = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];  // RW
   assign poMMIO_Nts0_IpAddress[15: 8] = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];  // RW
@@ -506,12 +526,12 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
-  //---- SCRATCH[0:3] ------------------  
+  //---- DIAG_SCRATCH[0:3] -------------  
   //------ No Outputs
-  //---- LOOPCTRL ----------------------
+  //---- DIAG_LOOPCTRL -----------------
   assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+0]; // RW
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+1]; // RW
-  //---- PAGE_SEL ----------------------
+  //---- DIAG_PAGESEL ------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*DIAG_PAGE_SEL+7:cEDW*DIAG_PAGE_SEL+0];  // RW
   
   // ROLE REGISTERS 
