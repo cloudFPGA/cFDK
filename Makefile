@@ -17,8 +17,8 @@ USED_ROLE_2 =RoleFlash_V2
 
 .PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
 
-#all: pr
-all: src_based
+all: pr
+#all: src_based
 #OR ip_based, whatever is preferred as default
 
 Role: $(USED_ROLE)
@@ -38,7 +38,10 @@ src_based: ShellSrc
 	$(MAKE) -C ./tcl/ full_src
 
 pr: ShellSrc Role Role2
-	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ full_src_pr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr
+
+pr_full: ShellSrc Role Role2
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_full
 
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
