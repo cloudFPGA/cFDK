@@ -16,6 +16,22 @@
 # ******************************************************************************
 
 
+TOP_NAME = "TopFlash"
+ROLE_NAME_1 = "RoleFlash"
+ROLE_NAME_2 = "RoleFlash_V2"
+ifndef usedRole
+	export usedRole=$(ROLE_NAME_1)
+else
+ROLE_NAME_1 = $(usedRole)
+endif
+ifndef usedRole2
+	export usedRole2=$(ROLE_NAME_2)
+else
+ROLE_NAME_2 = $(usedRole2)
+endif
+
+VIVADO_CMDs = ""
+
 IP_SHELL = ../../../IP/Shell/component.xml
 
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
@@ -23,8 +39,9 @@ XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 BIT_FILE = ../xpr/topFMKU60_Flash.runs/impl_1/topFlash.bit
 
 
-.PHONY: all clean full_src full_src_pr
-all: $(XPR_PROJ)
+.PHONY: all clean full_src full_src_pr pr_verify
+#all: $(XPR_PROJ)
+all: full_src_pr
 
 
 clean:
@@ -32,15 +49,104 @@ clean:
 	rm -f  ./*.jou
 
 
-$(XPR_PROJ): $(IP_SHELL)
-	rm -f run_project.log
-	rm -f vivado.jou
-	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -force 
+../dcps: 
+	mkdir -p ../dcps 
 
 
-full_src: 
-	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -full_src -force
+full_src: ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
+	ifeq ($(VIVADO_CMDs), "") 
+		@echo "It seems, that there is nothing to do for $^"
+	else 
+		vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDs)
+	endif 
 
-full_src_pr:
-	vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -full_src -force -role
+full_src_pr: ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit
+	ifeq ($(VIVADO_CMDs), "") 
+		@echo "It seems, that there is nothing to do for $^"
+	else 
+		vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force $(VIVADO_CMDs)
+	endif 
+
+pr_verify: 
+	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -pr_verify
+
+
+#without pr 
+../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role"
+
+../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp: ../dcps/1_$(TOP_NAME)_linked.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role"
+
+../dcps/1_$(TOP_NAME)_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -link -role"
+
+#both
+../dcps/0_$(TOP_NAME)_static_without_role.dcp: | $(XPR_PROJ)
+	VIVADO_CMDs := "$(VIVADO_CMDs) -synth"
+
+$(XPR_PROJ): | ../dcps 
+	VIVADO_CMDs := "$(VIVADO_CMDs) -create"
+
+#with pr:
+../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
+	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_verify"
+
+../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr"
+
+../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -link -role -pr"
+
+../dcps/3_$(TOP_NAME)_STATIC.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
+
+../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp 
+	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_verify -pr_impl2"
+
+../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr -pr_impl2"
+
+../dcps/4_$(TOP_NAME)_impl_grey_box.bit: ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -bitgen -role -pr -pr_grey"
+
+../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
+	VIVADO_CMDs := "$(VIVADO_CMDs) -impl -role -pr -pr_grey"
+
+#20180507: Does not work this way, because therefore we need to define how $(IP_SHELL) can be build
+#$(XPR_PROJ): $(IP_SHELL)
+#	rm -f run_project.log
+#	rm -f vivado.jou
+#	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -force 
+
+
+#full_src: 
+#	vivado -mode batch -source run_project.tcl -notrace -log run_project.log -tclargs -full_src -force
+#full_src: ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
+#
+#full_src_pr: 
+#	vivado -mode batch -source run_pr.tcl -notrace -log run_pr.log -tclargs -full_src -force -role
+#
+#
+##without pr 
+#../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -bitgen -role
+#
+#../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp: ../dcps/1_topFlash_linked.dcp
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -impl -role
+#
+#../dcps/1_topFlash_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -link
+#
+##both
+#../dcps/0_topFlash_static_without_role.dcp: | $(XPR_PROJ)
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -synth
+#
+#$(XPR_PROJ): | ../dcps 
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -create
+#
+##with pr:
+#../dcps/4_topFlash_impl1_pblock_ROLE_partial.bit: ../dcps/2_topFlash_impl_RoleFlash_complete_pr.dcp 
+#	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -bitgen -role -pr 
+#
+
 

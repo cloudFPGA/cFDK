@@ -22,6 +22,7 @@ set xilPartName  "xcku060-ffva1156-2-i"
 set topName      "topFlash"
 set topFile      "topFlash.vhdl"
 
+set usedRoleType "Role_Udp_Tcp_McDp_4BEmif"
 
 #-------------------------------------------------------------------------------
 # TOP  Project Settings  
@@ -33,7 +34,8 @@ set hlsDir       ${rootDir}/hls
 set ipDir        ${rootDir}/../../IP/
 set tclDir       ${rootDir}/tcl
 set xdcDir       ${rootDir}/xdc
-set xprDir       ${rootDir}/xpr
+set xprDir       ${rootDir}/xpr 
+set dcpDir       ${rootDir}/dcps
 
 # Not used: set ipXprDir     ${ipDir}/managed_ip_project
 # Not used:set ipXprName    "managed_ip_project"
