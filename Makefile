@@ -15,7 +15,7 @@ ROLE_DIR =../../ROLE
 USED_ROLE =RoleFlash
 USED_ROLE_2 =RoleFlash_V2
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full
 
 all: pr
 #all: src_based
@@ -41,7 +41,7 @@ pr: ShellSrc Role Role2
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr
 
 pr_full: ShellSrc Role Role2
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_full
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
