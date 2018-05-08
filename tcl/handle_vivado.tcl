@@ -540,6 +540,9 @@ if { ${impl} } {
     #  strategies. You can list the Implementation Strategies using the list_property_value
     #  command (e.g. join [list_property_value strategy [get_runs impl_1] ]).
     #-------------------------------------------------------------------------------
+    set implObj [ get_runs impl_1 ]
+    
+    reset_run impl_1
     set_property strategy Performance_Explore ${implObj}
 
     launch_runs impl_1 -jobs 8
@@ -696,6 +699,7 @@ if { $bitGen } {
     
     if { ${forceWithoutBB} } {
       open_project ${xprDir}/${xprName}.xpr
+      set implObj [ get_runs impl_1 ]
       set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
       set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 

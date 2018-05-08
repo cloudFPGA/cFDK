@@ -34,11 +34,14 @@ RoleFlash_V2:
 ShellSrc:
 	$(MAKE) -C $(SHELL_DIR) full_src
 
-src_based: ShellSrc
-	$(MAKE) -C ./tcl/ full_src
+src_based: ShellSrc Role
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ full_src
 
-pr: ShellSrc Role Role2
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr
+pr: ShellSrc Role 
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ full_src_pr
+
+pr2: ShellSrc Role2
+	export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2
 
 pr_full: ShellSrc Role Role2
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
