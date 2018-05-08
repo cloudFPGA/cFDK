@@ -655,14 +655,20 @@ if { $pr_verify } {
   my_dbg_trace "Starting pr_verify" ${dbgLvl_1}
   
   set toVerifyList [ glob -nocomplain ${dcpDir}/2_* ]
-  pr_verify ${toVerifyList}
+  set ll [llength $toVerifyList]
+  if { $ll < 2 } { 
+    my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
+  } else {
+    #pr_verify ${toVerifyList}
+    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll]
   
-  my_puts "################################################################################"
-  my_puts "##  DONE WITH pr_verify "
+    my_puts "################################################################################"
+    my_puts "##  DONE WITH pr_verify "
+  }
   my_puts "################################################################################"
   my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
   
-  close_project
+  catch {close_project}
 
 }
 
@@ -690,12 +696,13 @@ if { $bitGen } {
 
       set curImpl ${usedRole}
       if { $pr } {
-        source ${tclDir}/fix_things.tcl 
         #TODO
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
       }
+        
+        source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         close_project
 
@@ -703,6 +710,8 @@ if { $bitGen } {
         catch {close_project}
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
+        
+        source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         close_project
       } 
@@ -710,6 +719,8 @@ if { $bitGen } {
         catch {close_project}
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"
+        
+        source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         close_project
       } else { 
