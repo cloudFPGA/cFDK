@@ -57,6 +57,7 @@ set usedRole2 "RoleFlash_V2"
 set pr 0
 set pr_verify 0
 set pr_impl2  0
+set pr_impl1  0
 set forceWithoutBB 0
 set pr_grey 0
 set link 0 
@@ -87,6 +88,7 @@ if { $argc > 0 } {
         { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant."}
         { pr       "Activates PARTIAL RECONFIGURATION flow (in all steps)." }
         { pr_impl2 "Activates PR-Flow implementation with ROLE2."}
+        { pr_impl1 "Activates PR-Flow implementation with ROLE. That differs from -pr only in BitGen Phase"}
         { pr_verify "Run pr_verify." } 
         { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
@@ -145,6 +147,11 @@ if { $argc > 0 } {
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
               my_info_puts "The argument \'pr\' is set."
+            }
+            if { ${key} eq "pr_impl1" && ${value} eq 1 } {
+              set pr_impl1 1
+              set pr 1
+              my_info_puts "The argument \'pr_impl1\' is set."
             }
             if { ${key} eq "pr_impl2" && ${value} eq 1 } {
               set pr_impl2 1
@@ -657,10 +664,12 @@ if { $pr_verify } {
   set toVerifyList [ glob -nocomplain ${dcpDir}/2_* ]
   set ll [llength $toVerifyList]
   if { $ll < 2 } { 
+    my_puts "################################################################################"
     my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
   } else {
     #pr_verify ${toVerifyList}
     pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll]
+    # yes, $ll is here 'out of bounce' but tcl dosen't care
   
     my_puts "################################################################################"
     my_puts "##  DONE WITH pr_verify "
@@ -696,15 +705,21 @@ if { $bitGen } {
 
       set curImpl ${usedRole}
       if { $pr } {
-        #TODO
-        open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
+        if { $pr_impl1 } { 
+          open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
+          
+          source ${tclDir}/fix_things.tcl 
+          write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+          close_project
+        } 
+        # else: do nothing: only impl2 or grey_box will be generated (to save time)
+        
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
-      }
-        
         source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         close_project
+      }
 
       if { $pr_impl2} { 
         catch {close_project}

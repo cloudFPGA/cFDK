@@ -94,7 +94,7 @@ $(XPR_PROJ): ../xdc ../hdl | ../dcps
 
 #with pr:
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
-	@echo "-bitgen -role -pr -pr_verify \\" >> .vivado_basecmd.sh
+	@echo "-bitgen -role -pr -pr_verify -pr_impl1 \\" >> .vivado_basecmd.sh
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
 	@echo "-impl -role -pr \\" >> .vivado_basecmd.sh
