@@ -2,7 +2,9 @@
 
 ## Overview
 
-This directory contains all the files for generating the default version of the  **SHELL** referred here as 'Shell'.  
+This directory contains all the files for generating the default version of the  **SHELL** referred here as 'Shell'. 
+
+The Makefiles for the SHELL are designed only to rerun, what must be necesarry, especially for the hls cores. 
 
 ## About: _~/FMKU60/Shell/directories_
 
@@ -15,4 +17,18 @@ This directory contains all the files for generating the default version of the 
         4. **tcl** contains scripts for creating the Vivado project, the Vivado-based IPs and the user defined IPs.
 
         5. **xdc** folder contains the physical and timing constraints files for synthesis, plaeement and routing of the SHELL.
- 
+
+
+## HOWTO: 
+
+Currently the SHELL is used by TOP with its complete sources, so the Makefile in TOP knows best, what to run. 
+
+But to run the synthesis of the SHELL manual, anyways: 
+```
+make full_src 
+```
+builds anything that is necesarry to import the SHELL in TOP. 
+
+
+
+
