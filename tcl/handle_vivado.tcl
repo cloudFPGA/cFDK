@@ -139,7 +139,7 @@ if { $argc > 0 } {
               my_info_puts "Setting usedRole to $usedRole" 
             }
             if { ${key} eq "role2" && ${value} eq 1 } {
-              set usedRole $env(usedRole2)
+              set usedRole2 $env(usedRole2)
               my_info_puts "Setting usedRole2 to $usedRole2" 
             }
             if { ${key} eq "pr" && ${value} eq 1 } {
