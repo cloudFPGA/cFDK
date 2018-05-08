@@ -30,16 +30,14 @@ else
 ROLE_NAME_2 = $(usedRole2)
 endif
 
+SHELL_DIR =../../../SHELL/Shell
+ROLE_DIR =../../../ROLE
 
-IP_SHELL = ../../../IP/Shell/component.xml
-
+#IP_SHELL = ../../../IP/Shell/component.xml
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
-
-BIT_FILE = ../xpr/topFMKU60_Flash.runs/impl_1/topFlash.bit
 
 
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd
-#all: $(XPR_PROJ)
 all: full_src_pr
 
 
@@ -86,24 +84,24 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp: ../dcps/1_$(TOP_NAME)_linked.dcp
 	@echo "-impl -role \\" >> .vivado_basecmd.sh
 
-../dcps/1_$(TOP_NAME)_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
+../dcps/1_$(TOP_NAME)_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp  $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@echo "-link -role \\" >> .vivado_basecmd.sh
 
 #both
 ../dcps/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl | $(XPR_PROJ)
 	@echo "-synth \\" >> .vivado_basecmd.sh
 
-$(XPR_PROJ): ../xdc ../hdl | ../dcps 
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip | ../dcps 
 	@echo "-create \\" >> .vivado_basecmd.sh
 
 #with pr:
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
 	@echo "-bitgen -role -pr -pr_verify -pr_impl1 \\" >> .vivado_basecmd.sh
 
-../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
+../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@echo "-impl -role -pr \\" >> .vivado_basecmd.sh
 
-../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp
+../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@echo "-link -role -pr \\" >> .vivado_basecmd.sh
 
 ../dcps/3_$(TOP_NAME)_STATIC.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
@@ -111,7 +109,7 @@ $(XPR_PROJ): ../xdc ../hdl | ../dcps
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp 
 	@echo "-bitgen -pr -pr_verify -pr_impl2 -role2 \\" >> .vivado_basecmd.sh
 
-../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
+../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@echo "-impl -pr -pr_impl2 -role2 \\" >> .vivado_basecmd.sh
 
 ../dcps/4_$(TOP_NAME)_impl_grey_box.bit: ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp
