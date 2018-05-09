@@ -62,7 +62,7 @@ entity PsocExtMemItf is
   );
   port (
     -- Clocks and Resets inputs ------------------
-    piRst_n       : in  std_logic;
+    piRst         : in  std_logic;
     piFab_Clk     : in  std_logic;
     -- CPU/DMA Bus Interface ---------------------
     piBus_Clk     : in  std_logic;
@@ -96,7 +96,7 @@ architecture Behavioral of  PsocExtMemItf is
   signal sBus_Addr    : std_logic_vector(gAddrWidth - 1 downto 0);
   signal sBus_Data    : std_logic_vector(gDataWidth - 1 downto 0);
 
-  signal sDataReg    : std_logic_vector(cDEPTH - 1 downto 0);
+  signal sDataReg    : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
   
   -- Fpga Fabric Interface
   signal sFab_Data    : std_logic_vector(cDEPTH - 1 downto 0);
@@ -106,9 +106,9 @@ begin  -- architecture rtl
   -----------------------------------------------------------------
   -- SREG: Source Synchronous Registering of the Input Bus Signals
   -----------------------------------------------------------------
-  pInpBusReg: process (piBus_Clk, piRst_n) is
+  pInpBusReg: process (piBus_Clk, piRst) is
   begin
-    if (piRst_n = '0') then
+    if (piRst = '1') then
       sBus_Cs_n  <= '1' after cTREG;
       sBus_We_n  <= '1' after cTREG;
       sBus_Data  <= (others => '0') after cTREG;
@@ -140,19 +140,14 @@ begin  -- architecture rtl
     variable vAddr : integer := 0;
   begin
     if rising_edge(piFab_Clk) then
-      if (piRst_n = '0') then
-        -- Initialize the registers with default values specified as generics
-        sDataReg <= gDefRegVal;
-      else
-        sBus_ClkRegReg <= sBus_ClkReg after cTREG;
-        -- On rising edge of the Bus clcok
-        if (sBus_ClkRegReg = '1' and sBus_ClkReg = '0') then 
-          if (sBus_Cs_n = '0' and sBus_We_n = '0') then
-            -- Write cycle accesss
-            vAddr := to_integer(unsigned(sBus_Addr));
-            vAddr := vAddr * gDataWidth;
-            sDataReg(vAddr + 7 downto vAddr) <= sBus_Data;
-          end if;
+      sBus_ClkRegReg <= sBus_ClkReg after cTREG;
+      -- On rising edge of the Bus clcok
+      if (sBus_ClkRegReg = '1' and sBus_ClkReg = '0') then 
+        if (sBus_Cs_n = '0' and sBus_We_n = '0') then
+          -- Write cycle accesss
+          vAddr := to_integer(unsigned(sBus_Addr));
+          vAddr := vAddr * gDataWidth;
+          sDataReg(vAddr + 7 downto vAddr) <= sBus_Data;
         end if;
       end if;
     end if;
@@ -172,7 +167,7 @@ begin  -- architecture rtl
   ----------------------------------------------------------
   -- REG: Register data signals from the fabric
   ---------------------------------------------------------- 
-  pFabInpReg: process (piFab_Clk, piRst_n) is
+  pFabInpReg: process (piFab_Clk) is
   begin
     if rising_edge(piFab_Clk) then
       sFab_Data <= piFab_Data after cTREG;
