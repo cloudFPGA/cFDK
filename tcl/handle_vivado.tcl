@@ -56,11 +56,11 @@ set usedRole "RoleFlash"
 set usedRole2 "RoleFlash_V2" 
 set pr 0
 set pr_verify 0
-set pr_impl2  0
-set pr_impl1  0
 set forceWithoutBB 0
 set pr_grey 0
-set link 0 
+set link 0
+set activeFlowPr_1 0
+set activeFlowPr_2 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -84,11 +84,9 @@ if { $argc > 0 } {
         { synth    "Only run the synthesis step."}
         { bitgen   "Only run the bitfile generation step."}
         { link     "Only run the link step (with or without pr)."}
-        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant."}
-        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant."}
+        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant. This also ACTIVATES all PR flow parts for Role 1."}
+        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant. This also ACTIVATES all PR flow parts for Role 2."}
         { pr       "Activates PARTIAL RECONFIGURATION flow (in all steps)." }
-        { pr_impl2 "Activates PR-Flow implementation with ROLE2."}
-        { pr_impl1 "Activates PR-Flow implementation with ROLE. That differs from -pr only in BitGen Phase"}
         { pr_verify "Run pr_verify." } 
         { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
@@ -111,7 +109,6 @@ if { $argc > 0 } {
             set pr 0
             set link 1
             set pr_grey 0
-            set pr_impl2 0
             set pr_verify 0
 
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
@@ -138,24 +135,17 @@ if { $argc > 0 } {
             }
             if { ${key} eq "role" && ${value} eq 1 } {
               set usedRole $env(usedRole)
+              set activeFlowPr_1 1
               my_info_puts "Setting usedRole to $usedRole" 
             }
             if { ${key} eq "role2" && ${value} eq 1 } {
               set usedRole2 $env(usedRole2)
+              set activeFlowPr_2 1
               my_info_puts "Setting usedRole2 to $usedRole2" 
             }
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
               my_info_puts "The argument \'pr\' is set."
-            }
-            if { ${key} eq "pr_impl1" && ${value} eq 1 } {
-              set pr_impl1 1
-              set pr 1
-              my_info_puts "The argument \'pr_impl1\' is set."
-            }
-            if { ${key} eq "pr_impl2" && ${value} eq 1 } {
-              set pr_impl2 1
-              my_info_puts "The argument \'pr_impl2\' is set."
             }
             if { ${key} eq "pr_grey" && ${value} eq 1 } {
               set pr_grey 1
@@ -519,7 +509,7 @@ if { ${link} } {
 
 
 
-if { ${impl} } {
+if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
 
     my_puts "################################################################################"
     my_puts "##"
@@ -589,7 +579,7 @@ if { ${impl} } {
 } 
 
 
-if { $pr_impl2 } { 
+if { $activeFlowPr_2 && $impl } { 
   
   catch {close_project}
   create_project -in_memory -part ${xilPartName}
@@ -617,7 +607,7 @@ if { $pr_impl2 } {
   route_design
   
   
-  write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete.dcp
+  write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp
   write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
   
   my_puts "################################################################################"
@@ -629,7 +619,7 @@ if { $pr_impl2 } {
 } 
 
 
-if { $pr_grey } { 
+if { $pr_grey && $impl } { 
 
   catch {close_project}
   open_checkpoint ${dcpDir}/3_${topName}_STATIC.dcp
@@ -692,7 +682,7 @@ if { $bitGen } {
     my_puts "################################################################################"
     my_puts "##"
     my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
-    my_puts "##  SETTING: PR: $pr PR_IMPL2: $pr_impl2 PR_GREY: $pr_grey  "
+    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey  "
     my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
@@ -709,7 +699,7 @@ if { $bitGen } {
 
       set curImpl ${usedRole}
       if { $pr } {
-        if { $pr_impl1 } { 
+        if { $activeFlowPr_1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
           source ${tclDir}/fix_things.tcl 
@@ -725,7 +715,7 @@ if { $bitGen } {
         close_project
       }
 
-      if { $pr_impl2} { 
+      if { $activeFlowPr_2 } { 
         catch {close_project}
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
@@ -742,11 +732,7 @@ if { $bitGen } {
         source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         close_project
-      } else { 
-        #default 
-      }
-
-
+      } 
 
     }
     my_puts "################################################################################"
