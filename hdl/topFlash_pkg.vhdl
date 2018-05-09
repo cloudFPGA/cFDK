@@ -42,9 +42,16 @@ package topFlash_pkg is
   constant cFMKU60_DDR4_ChannelSize     : integer := 8*1024*1024 ; -- Size of memory channel (in bytes)
 
   -----------------------------
-  -- FMKU60 / EMIF Constants --
+  -- FMKU60 / MMIO Constants --
   -----------------------------
-  constant cFMKU60_EMIF_DataWidth       : integer := 8 ;  -- 8 bits
+  constant cFMKU60_MMIO_AddrWidth       : integer := 8 ;  -- 8 bits
+  constant cFMKU60_MMIO_DataWidth       : integer := 8 ;  -- 8 bits
+  
+  ------------------------------------
+  -- FMKU60 / MMIO / EMIF Constants --
+  ------------------------------------
+  constant cFMKU60_EMIF_AddrWidth       : integer := (cFMKU60_MMIO_AddrWidth-1);  -- 7 bits
+  constant cFMKU60_EMIF_DataWidth       : integer :=  cFMKU60_MMIO_DataWidth;     -- 8 bits
 
   ------------------------------------
   -- FMKU60 / SHELL / NTS Constants --
@@ -57,11 +64,18 @@ package topFlash_pkg is
   constant cFMKU60_SHELL_MEM_DataWidth  : integer := 512;
 
   
-  --------------------
-  -- FMKU60 / Types --
-  --------------------
-
-
+  
+  ------------------------------------
+  -- FMKU60 / SHELL / MMIO SubTypes --
+  ------------------------------------
+  subtype stMmioAddr is std_ulogic_vector((cFMKU60_EMIF_AddrWidth-1) downto 0);
+  subtype stMmioData is std_ulogic_vector((cFMKU60_EMIF_DataWidth-1) downto 0);
+  
+  ------------------------------------------
+  -- FMKU60 / SHELL / MMIO /EMIF SubTypes --
+  ------------------------------------------
+  subtype stEmifAddr is std_ulogic_vector((cFMKU60_EMIF_AddrWidth-1) downto 0);
+  subtype stEmifData is std_ulogic_vector((cFMKU60_EMIF_DataWidth-1) downto 0);
 
 
   
