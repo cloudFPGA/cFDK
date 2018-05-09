@@ -453,29 +453,23 @@ module Shell_Udp_Tcp_McDp # (
 
     .gSecurityPriviledges (gSecurityPriviledges),
     .gBitstreamUsage      (gBitstreamUsage)
-    //OBSOLETE-20180323 .gAddrWidth           (gMmioAddrWidth),
-    //OBSOLETE-20180323 .gDataWidth           (gMmioDataWidth)
-        
+    
   ) MMIO (
    
     //-- Global Clock used by the entire SHELL --------
-    .piShlClk                         (sETH0_ShlClk),
+    .piShlClk                       (sETH0_ShlClk),
  
     //-- Global Reset used by the entire SHELL --------
-    .piShlRst                         (piTOP_156_25Rst),   
-    
-    //OBSOLETE-20180418 //-- TOP : Clocks and Resets inputs ---------------
-    //OBSOLETE-20180418 .piTOP_Reset                    (piTOP_156_25Rst),
-    //OBSOLETE-20180418 .piTOP_156_25Clk                (piTOP_156_25Clk),
- 
-    //-- PSOC : Emif Bus Interface --------------------
-    .piPSOC_Emif_Clk                (piPSOC_Shl_Emif_Clk),
-    .piPSOC_Emif_Cs_n               (piPSOC_Shl_Emif_Cs_n),
-    .piPSOC_Emif_We_n               (piPSOC_Shl_Emif_We_n),
-    .piPSOC_Emif_AdS_n              (piPSOC_Shl_Emif_AdS_n),
-    .piPSOC_Emif_Oe_n               (piPSOC_Shl_Emif_Oe_n),
-    .piPSOC_Emif_Addr               (piPSOC_Shl_Emif_Addr),
-    .pioPSOC_Emif_Data              (pioPSOC_Shl_Emif_Data),
+    .piShlRst                       (piTOP_156_25Rst),   
+     
+    //-- PSOC : Mmio Bus Interface --------------------
+    .piPSOC_Mmio_Clk                (piPSOC_Shl_Emif_Clk),
+    .piPSOC_Mmio_Cs_n               (piPSOC_Shl_Emif_Cs_n),
+    .piPSOC_Mmio_We_n               (piPSOC_Shl_Emif_We_n),
+    .piPSOC_Mmio_AdS_n              (piPSOC_Shl_Emif_AdS_n),
+    .piPSOC_Mmio_Oe_n               (piPSOC_Shl_Emif_Oe_n),
+    .piPSOC_Mmio_Addr               (piPSOC_Shl_Emif_Addr),
+    .pioPSOC_Mmio_Data              (pioPSOC_Shl_Emif_Data),
  
     //-- MEM : Status inputs and Control outputs ------
     .piMEM_Mmio_Mc0InitCalComplete  (sMEM_Mmio_Mc0InitCalComplete),
