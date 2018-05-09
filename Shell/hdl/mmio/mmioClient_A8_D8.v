@@ -35,11 +35,6 @@
 // *    gBitstreamUsage: Defines the usage of the bitstream to generate.
 // *      [ "user" (Default) | "flash" ]
 // *
-// OBSOLETE-20180323 // *    gAddrWidth: Specifies the number of registers of the reg-file as a 
-// OBSOLETE-20180323 // *      power of 2 (i.e., #regs = 2^gAddrWidth).
-// OBSOLETE-20180323 // *    gDataWidth: Specifies the width of a reg-file in bits.
-// OBSOLETE-20180323 // *
-// * 
 // * Comments: 
 // *
 // *****************************************************************************
@@ -62,21 +57,15 @@ module MmioClient_A8_D8 #(
  
   //-- Global Reset used by the entire SHELL -----
   input           piShlRst,
-
-  //OBSOLETE-20180418 //-- TOP : Clocks and Resets inputs ------------
-  //OBSOLETE-20180418 input           piTOP_Reset,
-  //OBSOLETE-20180418 input           piTOP_156_25Clk,
-  
+ 
   //-- PSOC : Emif Bus Interface -----------------
-  input           piPSOC_Emif_Clk,
-  input           piPSOC_Emif_Cs_n,
-  input           piPSOC_Emif_We_n,
-  input           piPSOC_Emif_AdS_n,
-  input           piPSOC_Emif_Oe_n,
-  // OBSOLETE-20180323 input [gAddrWidth-1: 0] piPSOC_Emif_Addr,
-  input   [ 7:0]  piPSOC_Emif_Addr,
-  // OBSOLETE-20180323 inout [gDataWidth-1: 0] pioPSOC_Emif_Data,
-  input   [ 7:0]  pioPSOC_Emif_Data,
+  input           piPSOC_Mmio_Clk,
+  input           piPSOC_Mmio_Cs_n,
+  input           piPSOC_Mmio_We_n,
+  input           piPSOC_Mmio_AdS_n,
+  input           piPSOC_Mmio_Oe_n,
+  input   [ 7:0]  piPSOC_Mmio_Addr,
+  input   [ 7:0]  pioPSOC_Mmio_Data,
 
   //-- MEM : Status inputs and Control outputs ---
   input           piMEM_Mmio_Mc0InitCalComplete,
@@ -122,7 +111,7 @@ module MmioClient_A8_D8 #(
   localparam cEAW      = 7;       // Emif Address Width
   localparam cEDW      = 8;       // Emif Data    Width
   
- //============================================================================
+  //============================================================================
   //  CONSTANT DEFINITIONS -- Base and Offsets Addresses of the Registers
   //============================================================================
   localparam CFG_REG_BASE   = 8'h00;  // Configuration Registers
@@ -174,10 +163,10 @@ module MmioClient_A8_D8 #(
   
   //-- DIAG_REGS --------------------------------------------------------------
   // Scratch Registers 
-  localparam DIAG_SCRATCH_0 = DIAG_REG_BASE +  0;
-  localparam DIAG_SCRATCH_1 = DIAG_REG_BASE +  1;
-  localparam DIAG_SCRATCH_2 = DIAG_REG_BASE +  2;
-  localparam DIAG_SCRATCH_3 = DIAG_REG_BASE +  3;
+  localparam DIAG_SCRATCH0 = DIAG_REG_BASE +  0;
+  localparam DIAG_SCRATCH1 = DIAG_REG_BASE +  1;
+  localparam DIAG_SCRATCH2 = DIAG_REG_BASE +  2;
+  localparam DIAG_SCRATCH3 = DIAG_REG_BASE +  3;
   // Control of the Loopback Interfaces
   localparam DIAG_LOOPCTRL  = DIAG_REG_BASE +  4;
   // Extended Page Select Byte 
@@ -192,7 +181,7 @@ module MmioClient_A8_D8 #(
                          ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF;      
   localparam cDefReg01 = 8'h01;  // CFG_VPD_VER     : Version of the EMIF component.
   localparam cDefReg02 = 8'h00;  // CFG_VPD_REV     : Revision of the EMIF component.
-  localparam cDefReg03 = 8'h00;    
+  localparam cDefReg03 = 8'h33;    
   localparam cDefReg04 = 8'h00;   
   localparam cDefReg05 = 8'h00;     
   localparam cDefReg06 = 8'h00;   
@@ -308,10 +297,10 @@ module MmioClient_A8_D8 #(
   localparam cDefReg6E = 8'h00;
   localparam cDefReg6F = 8'h00;
   //-- DIAG_REGS --------------
-  localparam cDefReg70 = 8'h00;  // DIAG_SCRATCH0 
-  localparam cDefReg71 = 8'h00;  // DIAG_SCRATCH1      
-  localparam cDefReg72 = 8'h00;  // DIAG_SCRATCH2 
-  localparam cDefReg73 = 8'h00;  // DIAG_SCRATCH3 
+  localparam cDefReg70 = 8'hDE;  // DIAG_SCRATCH0 
+  localparam cDefReg71 = 8'hAD;  // DIAG_SCRATCH1      
+  localparam cDefReg72 = 8'hBE;  // DIAG_SCRATCH2 
+  localparam cDefReg73 = 8'hEF;  // DIAG_SCRATCH3 
   localparam cDefReg74 = 8'h00;  // DIAG_LOOPCTRL
   localparam cDefReg75 = 8'h00;
   localparam cDefReg76 = 8'h00;
@@ -324,33 +313,33 @@ module MmioClient_A8_D8 #(
   localparam cDefReg7D = 8'h00;
   localparam cDefReg7E = 8'h00;
   localparam cDefReg7F = 8'h00;  // DIAG_PAGESEL
-
-
+                         
+ 
   localparam cDefRegVal = {
-    cDefReg00, cDefReg01,cDefReg02, cDefReg03, cDefReg04, cDefReg05, cDefReg06, cDefReg07,
-    cDefReg08, cDefReg09,cDefReg0A, cDefReg0B, cDefReg0C, cDefReg0D, cDefReg0E, cDefReg0F,
-    cDefReg10, cDefReg11,cDefReg12, cDefReg13, cDefReg14, cDefReg15, cDefReg06, cDefReg17,
-    cDefReg18, cDefReg19,cDefReg1A, cDefReg1B, cDefReg1C, cDefReg1D, cDefReg0E, cDefReg1F,
-    cDefReg20, cDefReg21,cDefReg22, cDefReg23, cDefReg24, cDefReg25, cDefReg26, cDefReg27,
-    cDefReg28, cDefReg29,cDefReg2A, cDefReg2B, cDefReg2C, cDefReg2D, cDefReg2E, cDefReg2F,
-    cDefReg30, cDefReg31,cDefReg32, cDefReg33, cDefReg34, cDefReg35, cDefReg36, cDefReg37,
-    cDefReg38, cDefReg39,cDefReg3A, cDefReg3B, cDefReg3C, cDefReg3D, cDefReg3E, cDefReg3F,
-    cDefReg40, cDefReg41,cDefReg42, cDefReg43, cDefReg44, cDefReg45, cDefReg46, cDefReg47,
-    cDefReg48, cDefReg49,cDefReg4A, cDefReg4B, cDefReg4C, cDefReg4D, cDefReg4E, cDefReg4F,
-    cDefReg50, cDefReg51,cDefReg52, cDefReg53, cDefReg54, cDefReg55, cDefReg56, cDefReg57,
-    cDefReg58, cDefReg59,cDefReg5A, cDefReg5B, cDefReg5C, cDefReg5D, cDefReg5E, cDefReg5F,
-    cDefReg60, cDefReg61,cDefReg62, cDefReg63, cDefReg64, cDefReg65, cDefReg66, cDefReg67,
-    cDefReg68, cDefReg69,cDefReg6A, cDefReg6B, cDefReg6C, cDefReg6D, cDefReg6E, cDefReg6F,
-    cDefReg70, cDefReg71,cDefReg72, cDefReg73, cDefReg74, cDefReg75, cDefReg76, cDefReg77,
-    cDefReg78, cDefReg79,cDefReg7A, cDefReg7B, cDefReg7C, cDefReg7D, cDefReg7E, cDefReg7F
-  };                           
+    cDefReg7F, cDefReg7E, cDefReg7D, cDefReg7C, cDefReg7B, cDefReg7A, cDefReg79, cDefReg78,
+    cDefReg77, cDefReg76, cDefReg75, cDefReg74, cDefReg73, cDefReg72, cDefReg71, cDefReg70,
+    cDefReg6F, cDefReg6E, cDefReg6D, cDefReg6C, cDefReg6B, cDefReg6A, cDefReg69, cDefReg68,
+    cDefReg67, cDefReg66, cDefReg65, cDefReg64, cDefReg63, cDefReg62, cDefReg61, cDefReg60,
+    cDefReg5F, cDefReg5E, cDefReg5D, cDefReg5C, cDefReg5B, cDefReg5A, cDefReg59, cDefReg58,
+    cDefReg57, cDefReg56, cDefReg55, cDefReg54, cDefReg53, cDefReg52, cDefReg51, cDefReg50,
+    cDefReg4F, cDefReg4E, cDefReg4D, cDefReg4C, cDefReg4B, cDefReg4A, cDefReg49, cDefReg48,
+    cDefReg47, cDefReg46, cDefReg45, cDefReg44, cDefReg43, cDefReg42, cDefReg41, cDefReg40,
+    cDefReg3F, cDefReg3E, cDefReg3D, cDefReg3C, cDefReg3B, cDefReg3A, cDefReg39, cDefReg38,
+    cDefReg37, cDefReg36, cDefReg35, cDefReg34, cDefReg33, cDefReg32, cDefReg31, cDefReg30,
+    cDefReg2F, cDefReg2E, cDefReg2D, cDefReg2C, cDefReg2B, cDefReg2A, cDefReg29, cDefReg28,
+    cDefReg27, cDefReg26, cDefReg25, cDefReg24, cDefReg23, cDefReg22, cDefReg21, cDefReg20,
+    cDefReg1F, cDefReg1E, cDefReg1D, cDefReg1C, cDefReg1B, cDefReg1A, cDefReg19, cDefReg18,
+    cDefReg17, cDefReg16, cDefReg15, cDefReg14, cDefReg13, cDefReg12, cDefReg11, cDefReg10,
+    cDefReg0F, cDefReg0E, cDefReg0D, cDefReg0C, cDefReg0B, cDefReg0A, cDefReg09, cDefReg08,
+    cDefReg07, cDefReg06, cDefReg05, cDefReg04, cDefReg03, cDefReg02, cDefReg01, cDefReg00
+  };    
  
 
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
-  wire [(2**cEAW*cEDW-1):0] sEMIF_Ctrl;    // EMIF output Control vector
-  wire [(2**cEAW*cEDW-1):0] sStatusVec;    // EMIF input  Status  vector
+  wire [(2**cEAW*cEDW-1):0] sEMIF_Ctrl;   // EMIF output Control vector
+  wire [(2**cEAW*cEDW-1):0] sStatusVec;   // EMIF input  Status  vector
   
   wire [cEDW-1:0]           sPSOC_Emif_Data;
   wire [cEDW-1:0]           sEMIF_Data;
@@ -358,10 +347,11 @@ module MmioClient_A8_D8 #(
   localparam cMmioPageSize = 128;
   localparam cLog2PageSize = log2(cMmioPageSize); 
    
-  wire [cLog2PageSize-1:0]  sMmioPageAddr; // One page is 128 bytes
-  wire [cEDW-1:0]           sPageSel;  // Extended page selector byte
-    
-  wire                      sCsEmif_n;     // Chip select EMIF
+  wire [cLog2PageSize-1:0]  sEmifAddr;    // Address for the EMIF block (128 bytes)
+  wire                      sEmifCs_n;    // Chip select EMIF
+  
+  wire [cEDW-1:0]           sPageSel;     // Extended page selector byte
+
   wire                      sTODO_1b0 =  1'b0;
 
   //============================================================================
@@ -370,18 +360,34 @@ module MmioClient_A8_D8 #(
   
   genvar id;
   
-  //-- PAGE ADDRESS BUS
-  assign sMmioPageAddr = piPSOC_Emif_Addr[cLog2PageSize-1:0];
+  //-- EMIF ADDRESS BUS
+  assign sEmifAddr = piPSOC_Mmio_Addr[cLog2PageSize-1:0];
   
   //--------------------------------------------------------  
   //-- CONFIGURATION REGISTERS
   //--------------------------------------------------------
   //---- CFG_VPD_ID --------------------
-  //------ No inputs
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_VPD_ID
+      assign sStatusVec[cEDW*CFG_VPD_ID+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_ID+id];  // RW   
+    end
+  endgenerate
   //---- CFG_VPD_VER--------------------
-  //------ No inputs
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_VPD_VER
+      assign sStatusVec[cEDW*CFG_VPD_VER+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_VER+id];  // RW   
+    end
+  endgenerate
   //---- CFG_VPD_REV -------------------
-  //------ No inputs
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_VPD_REV
+      assign sStatusVec[cEDW*CFG_VPD_REV+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_REV+id];  // RW   
+    end
+  endgenerate 
+ 
  
   //--------------------------------------------------------
   //-- PHYSICAL REGISTERS
@@ -396,14 +402,14 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                           // RO
   assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                           // RO
   //---- PHY_CONTROL -------------------
-  assign sStatusVec[cEDW*PHY_CTRL+0]  = sEMIF_Ctrl[cEDW*PHY_CTRL+0];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+1]  = sEMIF_Ctrl[cEDW*PHY_CTRL+1];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+2]  = sEMIF_Ctrl[cEDW*PHY_CTRL+2];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+3]  = sEMIF_Ctrl[cEDW*PHY_CTRL+3];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+4]  = sEMIF_Ctrl[cEDW*PHY_CTRL+4];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+5]  = sEMIF_Ctrl[cEDW*PHY_CTRL+5];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+6]  = sEMIF_Ctrl[cEDW*PHY_CTRL+6];     // RW
-  assign sStatusVec[cEDW*PHY_CTRL+7]  = sEMIF_Ctrl[cEDW*PHY_CTRL+7];     // RW
+  assign sStatusVec[cEDW*PHY_CTRL+0]  = sEMIF_Ctrl[cEDW*PHY_CTRL+0];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+1]  = sEMIF_Ctrl[cEDW*PHY_CTRL+1];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+2]  = sEMIF_Ctrl[cEDW*PHY_CTRL+2];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+3]  = sEMIF_Ctrl[cEDW*PHY_CTRL+3];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+4]  = sEMIF_Ctrl[cEDW*PHY_CTRL+4];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+5]  = sEMIF_Ctrl[cEDW*PHY_CTRL+5];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+6]  = sEMIF_Ctrl[cEDW*PHY_CTRL+6];    // RW
+  assign sStatusVec[cEDW*PHY_CTRL+7]  = sEMIF_Ctrl[cEDW*PHY_CTRL+7];    // RW
   
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
@@ -453,7 +459,7 @@ module MmioClient_A8_D8 #(
   generate
   for (id=0; id<32; id=id+1)
     begin: gen_DIAG_SCRATCH
-      assign sStatusVec[cEDW*DIAG_SCRATCH_0+id]  = sEMIF_Ctrl[cEDW*DIAG_SCRATCH_0+id]; // RW   
+      assign sStatusVec[cEDW*DIAG_SCRATCH0+id]  = sEMIF_Ctrl[cEDW*DIAG_SCRATCH0+id]; // RW   
     end
   endgenerate  
   //---- DIAG_LOOPCTRL -----------------
@@ -471,6 +477,7 @@ module MmioClient_A8_D8 #(
     end
   endgenerate
   
+  
   //============================================================================
   //  COMB: CONTINUOUS ASSIGNMENT OF OUTPUT PORTS  
   //============================================================================
@@ -479,13 +486,13 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //-- CONFIGURATION REGISTERS
   //--------------------------------------------------------
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   
   //--------------------------------------------------------  
   //-- PHYSICAL REGISTERS
   //--------------------------------------------------------  
   //---- PHY_STATUS --------------------
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- PHY_CONTROL -------------------
   assign poMMIO_Eth0_RxEqualizerMode = sEMIF_Ctrl[cEDW*PHY_CTRL+0];  // RW
   
@@ -493,9 +500,9 @@ module MmioClient_A8_D8 #(
   //-- LAYER-2 REGISTERS
   //--------------------------------------------------------
   //---- LY2_CONTROL --------------------  
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- LY2_STATUS ---------------------  
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
   assign poMMIO_Nts0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
   assign poMMIO_Nts0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
@@ -508,9 +515,9 @@ module MmioClient_A8_D8 #(
   //-- LAYER-3 REGISTERS
   //--------------------------------------------------------
   //---- LY3_CONTROL[0:1] --------------  
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- LY3_STATUS[0:1] ---------------  
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
   assign poMMIO_Nts0_IpAddress[31:24] = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];  // RW
   assign poMMIO_Nts0_IpAddress[23:16] = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];  // RW
@@ -521,7 +528,7 @@ module MmioClient_A8_D8 #(
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
   //---- DIAG_SCRATCH[0:3] -------------  
-  //------ No Outputs
+  //------ No Outputs to the Fabric
   //---- DIAG_LOOPCTRL -----------------
   assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+0]; // RW
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+1]; // RW
@@ -532,7 +539,7 @@ module MmioClient_A8_D8 #(
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
   //============================================================================
-  assign sCsEmif_n = !(!piPSOC_Emif_Cs_n & !piPSOC_Emif_Addr[7]);
+  assign sEmifCs_n = !(!piPSOC_Mmio_Cs_n & !piPSOC_Mmio_Addr[7]);
   
   //============================================================================
   //  INST: PSOC EXTERNAL MEMORY INTERFACE
@@ -547,13 +554,13 @@ module MmioClient_A8_D8 #(
   
     //-- TOP : Clocks and Resets inputs ----------
     .piFab_Clk    (piShlClk),
-    .piRst_n      (piShlRst),
+    .piRst        (piShlRst),
     
     //-- PSOC : CPU/DMA Bus Interface ------------
-    .piBus_Clk    (piPSOC_Emif_Clk),
-    .piBus_Cs_n   (sCsEmif_n),
-    .piBus_We_n   (piPSOC_Emif_We_n),
-    .piBus_Addr   (sMmioPageAddr),
+    .piBus_Clk    (piPSOC_Mmio_Clk),
+    .piBus_Cs_n   (sEmifCs_n),
+    .piBus_We_n   (piPSOC_Mmio_We_n),
+    .piBus_Addr   (sEmifAddr),
     .piBus_Data   (sPSOC_Emif_Data),
     .poBus_Data   (sEMIF_Data),
 
@@ -573,10 +580,10 @@ module MmioClient_A8_D8 #(
       for (iobIndex=0; iobIndex<cEDW; iobIndex=iobIndex+1) begin: genUserIOB
         //-- GENERATE AN IOBUF PRIMITIVE
         IOBUF DIO (
-          .IO (pioPSOC_Emif_Data[iobIndex]),
+          .IO (pioPSOC_Mmio_Data[iobIndex]),
           .I  (sEMIF_Data[iobIndex]),
           .O  (sPSOC_Emif_Data[iobIndex]),
-          .T  (piPSOC_Emif_Oe_n)
+          .T  (piPSOC_Mmio_Oe_n)
         );
       end
     end
@@ -603,8 +610,8 @@ module MmioClient_A8_D8 #(
       wire                    sPSOC_Emif_Oe_n;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
-      assign sDpramAddrA = {sPageSel, sMmioPageAddr};
-      assign sCsDpRamA   = !piPSOC_Emif_Cs_n &  piPSOC_Emif_Addr[7];    
+      assign sDpramAddrA = {sPageSel, sEmifAddr};
+      assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
   
       //========================================================================
       //  INST: TRUE DUAL PORT ASYMMETRIC RAM
@@ -621,9 +628,9 @@ module MmioClient_A8_D8 #(
       ) DPRAM (
         
         //-- Port A = PSOC Side ----------------------
-        .piClkA       (piPSOC_Emif_Clk),
+        .piClkA       (piPSOC_Mmio_Clk),
         .piEnA        (sCsDpRamA),
-        .piWenA       (!piPSOC_Emif_We_n),
+        .piWenA       (!piPSOC_Mmio_We_n),
         .piAddrA      (sDpramAddrA),
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
@@ -641,14 +648,14 @@ module MmioClient_A8_D8 #(
       //========================================================================
       //  COMB: CONTINUOUS OUTPUT MUX PORT ASSIGNMENTS
       //========================================================================
-      assign sMUXO_Data = ( piPSOC_Emif_Addr[7] == 0 ) ? sEMIF_Data : sDPRAM_PortA_Data;
+      assign sMUXO_Data = ( piPSOC_Mmio_Addr[7] == 0 ) ? sEMIF_Data : sDPRAM_PortA_Data;
 
       //========================================================================
       // INST: SPECIFIC IBUF
       //========================================================================
       IBUF IBUFOE (
         .O (sPSOC_Emif_Oe_n),
-        .I (piPSOC_Emif_Oe_n)      
+        .I (piPSOC_Mmio_Oe_n)      
       );
 
       //========================================================================
@@ -657,7 +664,7 @@ module MmioClient_A8_D8 #(
       for (iobIndex=0; iobIndex<cEDW; iobIndex=iobIndex+1) begin: genSuperIOB
         //-- GENERATE AN IOBUF PRIMITIVE
         IOBUF DIO (
-          .IO (pioPSOC_Emif_Data[iobIndex]),
+          .IO (pioPSOC_Mmio_Data[iobIndex]),
           .I  (sMUXO_Data[iobIndex]),
           .O  (sPSOC_Emif_Data[iobIndex]),
           .T  (sPSOC_Emif_Oe_n)
