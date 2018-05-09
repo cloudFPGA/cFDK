@@ -128,6 +128,9 @@ create_clock -name topResetUsedAsClk -period 1000 [ get_pins TOP_META_RST/DOUT ]
 set_clock_groups -asynchronous -group [ get_clocks piPSOC_Emif_Clk ] -group [ get_clocks piCLKT_Usr0Clk ]
 set_clock_groups -asynchronous -group [ get_clocks piPSOC_Emif_Clk ] -group [ get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O] ]
 
+# Asynchronous Clocks Between CLKT/10GE/Clk and PSOC/Emif/Clk
+set_clock_groups -asynchronous -group [ get_clocks piCLKT_10GeClk_p ] -group [ get_clocks piPSOC_Emif_Clk ]
+
 # Asynchronous Clocks Between SHELL/MEM/MC0/MCC/CLKOUT and the SHELL/CLK
 set_clock_groups -asynchronous -group [ get_clocks -of_objects [ get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0] ] -group [ get_clocks -of_objects [ get_pins SHELL/SuperCfg.ETH0/ETH0/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O ] ]
 
