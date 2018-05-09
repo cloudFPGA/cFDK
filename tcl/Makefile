@@ -57,30 +57,30 @@ basecmd:
 
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
 	@more +2 .vivado_basecmd.sh
+	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
-	@echo $(shell date) > end.date
 
 full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit | ../dcps
 	@more +2 .vivado_basecmd.sh
+	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
-	@echo $(shell date) > end.date
 
 pr_verify: 
 	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -pr_verify
 
 full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit | ../dcps
-	@more +2 .vivado_basecmd.sh
+	@more  +2 .vivado_basecmd.sh
+	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
-	@echo $(shell date) > end.date
 
 full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit | ../dcps
 	@more +2 .vivado_basecmd.sh
+	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
-	@echo $(shell date) > end.date
 
 #without pr 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp
