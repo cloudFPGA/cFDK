@@ -154,17 +154,30 @@ void appMuxPortPath(stream<ap_uint<16> >&  requestPortOpenOut, 		stream<bool >& 
 }
 			 
 void udp_mux (
-              stream<axiWord>			&rxDataIn, 		stream<metadata>&     	rxMetadataIn,
-              stream<axiWord> 			&rxDataOutDhcp, stream<metadata>&     	rxMetadataOutDhcp,
-              stream<axiWord> 			&rxDataOutApp, 	stream<metadata>&     	rxMetadataOutApp,
+              stream<axiWord>			&rxDataIn,
+			  stream<metadata>&     	rxMetadataIn,
+              stream<axiWord> 			&rxDataOutDhcp,
+			  stream<metadata>&     	rxMetadataOutDhcp,
+              stream<axiWord> 			&rxDataOutApp,
+			  stream<metadata>&     	rxMetadataOutApp,
 			   
-              stream<ap_uint<16> >&  requestPortOpenOut, 		stream<bool >& portOpenReplyIn,
-              stream<ap_uint<16> >&  requestPortOpenInDhcp, 	stream<bool >& portOpenReplyOutDhcp,
-              stream<ap_uint<16> >&  requestPortOpenInApp, 	stream<bool >& portOpenReplyOutApp,
+              stream<ap_uint<16> >&  	requestPortOpenOut,
+			  stream<bool >& 			portOpenReplyIn,
+              stream<ap_uint<16> >&  	requestPortOpenInDhcp,
+			  stream<bool >& 			portOpenReplyOutDhcp,
+              stream<ap_uint<16> >&  	requestPortOpenInApp,
+			  stream<bool >& 			portOpenReplyOutApp,
 			   
-              stream<axiWord> 		&txDataInDhcp, 	stream<metadata> 	&txMetadataInDhcp, 	stream<ap_uint<16> > 	&txLengthInDhcp,
-              stream<axiWord> 		&txDataInApp, 	stream<metadata> 	&txMetadataInApp, 	stream<ap_uint<16> > 	&txLengthInApp,
-              stream<axiWord> 		&txDataOut, 	stream<metadata> 	&txMetadataOut, 	stream<ap_uint<16> > 	&txLengthOut) {
+              stream<axiWord> 			&txDataInDhcp,
+			  stream<metadata> 			&txMetadataInDhcp,
+			  stream<ap_uint<16> > 		&txLengthInDhcp,
+              stream<axiWord> 			&txDataInApp,
+			  stream<metadata> 			&txMetadataInApp,
+			  stream<ap_uint<16> > 		&txLengthInApp,
+              stream<axiWord> 			&txDataOut,
+			  stream<metadata> 			&txMetadataOut,
+			  stream<ap_uint<16> > 		&txLengthOut)
+{
 
 	#pragma HLS INTERFACE ap_ctrl_none port=return
 	#pragma HLS DATAFLOW interval=1
