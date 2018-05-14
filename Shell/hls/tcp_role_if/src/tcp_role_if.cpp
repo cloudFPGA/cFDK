@@ -1,13 +1,43 @@
+/*****************************************************************************
+ * File:            tcp_role_if.cpp
+ * Creation Date:   May 14, 2018
+ * Description:     <Short description (1-2 lines)>
+ *
+ * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "tcp_role_if.hpp"
 
 using namespace hls;
 
 ///////////////////////////////////////////////////////////////////////
-session_id_cam::session_id_cam(){
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+session_id_cam::session_id_cam() {
 	for (uint8_t i=0;i<no_of_session_id_table_entries;++i) // Go through all the entries in the filter
       	this->filter_entries[i].valid = 0;  // And mark them as invali
 }
 
+
+/*****************************************************************************/
+/* session_id_cam::write
+ *
+ * \desc            Description of function.
+ *
+ * \param[in]		write_entry is ...
+ *
+ * \return          True if ...
+ *
+ *****************************************************************************/
 bool session_id_cam::write(session_id_table_entry write_entry)
 {
 //#pragma HLS PI Role_Udp_Tcp_McDp_4BEmifPELINE II=1
@@ -29,7 +59,18 @@ bool session_id_cam::write(session_id_table_entry write_entry)
    	return false;
 }
 
-ap_uint<16> session_id_cam::compare_buffer_id(ap_uint<4> q_buffer_id)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+ap_uint<16> session_id_cam::compare_buffer_id(
+		ap_uint<4> q_buffer_id)
 {
 //#pragma HLS PIPELINE II=1
 
@@ -42,9 +83,21 @@ ap_uint<16> session_id_cam::compare_buffer_id(ap_uint<4> q_buffer_id)
    	return -1;
 }
 
-void tai_session_id_table_server(stream<session_id_table_entry>& w_entry,
-							stream<ap_uint<4> > &q_buffer_id,
-							stream<ap_uint<16> > &r_session_id)
+
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_session_id_table_server(
+		stream<session_id_table_entry>& w_entry,
+		stream<ap_uint<4> > &			q_buffer_id,
+		stream<ap_uint<16> > &			r_session_id)
 {
 #pragma HLS INLINE region
 #pragma HLS PIPELINE II=1 //enable_flush
@@ -93,6 +146,16 @@ ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the num
 }
 */
 
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
 ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the number of 1s in an 8-bit value
 	ap_uint<4> counter = 0;
 
@@ -110,7 +173,20 @@ ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the num
 }
 
 
-void tai_open_connection(stream<ipTuple>& openConnection, stream<openStatus>& openConStatus, stream<ap_uint<16> >& closeConnection)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_open_connection(
+		stream<ipTuple>& 		openConnection,
+		stream<openStatus>& 	openConStatus,
+		stream<ap_uint<16> >& 	closeConnection)
 {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE OFF
@@ -130,7 +206,19 @@ void tai_open_connection(stream<ipTuple>& openConnection, stream<openStatus>& op
 	}
 }
 
-void tai_listen_port_status(stream<ap_uint<16> >& listenPort, stream<bool>& listenPortStatus)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_listen_port_status(
+		stream<ap_uint<16> >& 	listenPort,
+		stream<bool>& 			listenPortStatus)
 {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE OFF
@@ -148,7 +236,20 @@ void tai_listen_port_status(stream<ap_uint<16> >& listenPort, stream<bool>& list
 	}
 }
 
-void tai_listen_new_data(stream<appNotification>& notifications, stream<appReadRequest>& readRequest, stream<session_id_table_entry>& sess_entry)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_listen_new_data(
+		stream<appNotification>& 		notifications,
+		stream<appReadRequest>& 		readRequest,
+		stream<session_id_table_entry>& sess_entry)
 {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE OFF
@@ -188,7 +289,18 @@ void tai_listen_new_data(stream<appNotification>& notifications, stream<appReadR
 	}
 }
 
-void tai_check_tx_status(stream<ap_int<17> >& txStatus)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_check_tx_status(
+		stream<ap_int<17> >& txStatus)
 {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE OFF
@@ -199,8 +311,20 @@ void tai_check_tx_status(stream<ap_int<17> >& txStatus)
 	}
 }
 
-
-void tai_net_to_app(stream<ap_uint<16> >& rxMetaData, stream<axiWord>& rxData /*, stream<ap_uint<16> >& txMetaData,*/, stream<axiWord>& txData)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_net_to_app(
+		stream<ap_uint<16> >& 	rxMetaData,
+		stream<axiWord>& 		rxData       /*, stream<ap_uint<16> >& txMetaData,*/,
+		stream<axiWord>& 		txData)
 {
 #pragma HLS PIPELINE II=1
 
@@ -234,7 +358,20 @@ void tai_net_to_app(stream<ap_uint<16> >& rxMetaData, stream<axiWord>& rxData /*
 }
 
 
-void tai_app_to_buf(stream<axiWord>& vFPGA_tx_data, stream<ap_uint<4> >& q_buffer_id,  stream<axiWord>& buff_data)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_app_to_buf(
+		stream<axiWord>& 		vFPGA_tx_data,
+		stream<ap_uint<4> >& 	q_buffer_id,
+		stream<axiWord>& 		buff_data)
 {
 #pragma HLS PIPELINE II=1
 
@@ -265,7 +402,21 @@ void tai_app_to_buf(stream<axiWord>& vFPGA_tx_data, stream<ap_uint<4> >& q_buffe
 	}
 }
 
-void tai_app_to_net( stream<axiWord>& buff_data, stream<ap_uint<16> >& txMetaData, stream<axiWord>& oTxData, stream<ap_uint<16> >& r_session_id)
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc            Description of function.
+ *
+ * \param[in|out|stream] <NameOfTheParameter> with short description.
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void tai_app_to_net(
+		stream<axiWord>& 		buff_data,
+		stream<ap_uint<16> >& 	txMetaData,
+		stream<axiWord>& 		oTxData,
+		stream<ap_uint<16> >& 	r_session_id)
 {
 #pragma HLS PIPELINE II=1
 
@@ -298,25 +449,61 @@ void tai_app_to_net( stream<axiWord>& buff_data, stream<ap_uint<16> >& txMetaDat
 }
 
 
+/*****************************************************************************/
+/* tcp_role_if
+ *
+ * \desc            Description of function.
+ *
+ * \param[stream]	oListenPort is...
+ *
+ * \param[stream]	iListenPortStatus is ...
+ *
+ * \param[stream]	iNotifications ...
+ *
+ * \param[stream]	oReadRequest ..
+ *
+ * \param[stream]	iRxMetaData ...
+ *
+ * \param[stream]	iRxData
+ *
+ * \param[stream]	oOpenConnection
+ *
+ * \param[stream]	iOpenConStatus
+ *
+ * \param[stream]   oCloseConnection ...
+ *
+ * \param[stream]	oTxMetaData ...
+ *
+ * \param[stream]   oTxData ...
+ *
+ * \param[stream]	iTxStatus ...
+ *
+ * \param[stream] 	vFPGA_rx_data ...
+ *
+ * \param[stream]	vFPGA_tx_data is
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+
 /*session id is updated for only if a new connection is established. therefore, app does not have to
- * always return the same amount of segments received*/
+ * always return the same amount of segments received */
 
-void tcp_role_if (
-		        stream<ap_uint<16> >& 		oListenPort,
-				stream<bool>& 				iListenPortStatus,
-				stream<appNotification>& 	iNotifications,
-				stream<appReadRequest>& 	oReadRequest,
-				stream<ap_uint<16> >& 		iRxMetaData,
-				stream<axiWord>& 			iRxData,
-				stream<ipTuple>& 			oOpenConnection,
-				stream<openStatus>& 		iOpenConStatus,
-				stream<ap_uint<16> >& 		oCloseConnection,
-				stream<ap_uint<16> >& 		oTxMetaData,
-				stream<axiWord>& 			oTxData,
-				stream<ap_int<17> >& 		iTxStatus,
-
-				stream<axiWord>& 			vFPGA_rx_data,
-				stream<axiWord>& 			vFPGA_tx_data)
+void tcp_role_if(
+		stream<ap_uint<16> >& 		oListenPort,
+		stream<bool>& 				iListenPortStatus,
+		stream<appNotification>& 	iNotifications,
+		stream<appReadRequest>& 	oReadRequest,
+		stream<ap_uint<16> >& 		iRxMetaData,
+		stream<axiWord>& 			iRxData,
+		stream<ipTuple>& 			oOpenConnection,
+		stream<openStatus>& 		iOpenConStatus,
+		stream<ap_uint<16> >& 		oCloseConnection,
+		stream<ap_uint<16> >& 		oTxMetaData,
+		stream<axiWord>& 			oTxData,
+		stream<ap_int<17> >& 		iTxStatus,
+		stream<axiWord>& 			vFPGA_rx_data,
+		stream<axiWord>& 			vFPGA_tx_data)
 {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
