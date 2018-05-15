@@ -1,8 +1,16 @@
+/*****************************************************************************
+ * File:            <ThisFile>.cpp
+ * Creation Date:   May 14, 2018
+ * Description:     <Short description (1-2 lines)>
+ *
+ * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "tcp_app_interface.hpp"
 #include <iostream>
 
 using namespace hls;
-
 
 
 int main()
@@ -24,13 +32,13 @@ int main()
 	int count = 0;
 	while (count < 50)
 	{
-		tcp_app_interface(	listenPort, listenPortStatus,
-									notifications, readRequest,
-									rxMetaData, rxData,
-									openConnection, openConStatus,
-									closeConnection,
-									txMetaData, txData,
-									txStatus);
+		tcp_role_if(listenPort, listenPortStatus,
+					notifications, readRequest,
+					rxMetaData, rxData,
+					openConnection, openConStatus,
+					closeConnection,
+					txMetaData, txData,
+					txStatus);
 		if (!listenPort.empty())
 		{
 			listenPort.read();

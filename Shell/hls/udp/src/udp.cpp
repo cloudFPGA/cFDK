@@ -707,10 +707,17 @@ void txEngine(stream<axiWord> &outputPathInData, stream<metadata> &outputPathInM
 	addIpHeader(outputPathRead2addIpHeader_data, outputPathRead2addIpHeader_ipAddress, outputPathOutData, outputPathReadFunction2addIpHeader_length); // Adds the IP header on top of the UDP one.
 }  
 		  
-void udp(stream<axiWord> &inputPathInData, stream<axiWord> &inputpathOutData, stream<ap_uint<16> > &openPort, stream<bool> &confirmPortStatus,
-		stream<metadata> &inputPathOutputMetadata,	stream<ap_uint<16> > &portRelease, // Input Path Streams
-	    stream<axiWord> &outputPathInData, stream<axiWord> &outputPathOutData, stream<metadata> &outputPathInMetadata,
-	    stream<ap_uint<16> > &outputpathInLength, stream<axiWord> &inputPathPortUnreachable) {						// Output Path Streams
+void udp(stream<axiWord> &inputPathInData,
+		 stream<axiWord> &inputpathOutData,
+		 stream<ap_uint<16> > &openPort,
+		 stream<bool> &confirmPortStatus,
+		 stream<metadata> &inputPathOutputMetadata,
+		 stream<ap_uint<16> > &portRelease, // Input Path Streams
+	     stream<axiWord> &outputPathInData,
+		 stream<axiWord> &outputPathOutData,
+		 stream<metadata> &outputPathInMetadata,
+	     stream<ap_uint<16> > &outputpathInLength,
+		 stream<axiWord> &inputPathPortUnreachable) {						// Output Path Streams
 
 	#pragma HLS INTERFACE ap_ctrl_none port=return 			// The block-level interface protocol is removed.
 	#pragma HLS DATAFLOW interval=1

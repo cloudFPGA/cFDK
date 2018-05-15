@@ -57,7 +57,8 @@ create_clock -period 6.4 -name default
 
 # Run C Synthesis
 #-------------------------------------------------
-#csim_design -clean              [FIXME]
+#csim_design -clean          
+#    [FIXME]
 #csim_design -clean -setup       [FIXME]
 csynth_design
 #cosim_design -tool xsim -rtl verilog -trace_level all
