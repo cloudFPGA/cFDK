@@ -140,45 +140,6 @@ void txPath(stream<axiWord> 	   &lb_packetBuffer,
 		lbTxLengthOut.write(lb_lengthBuffer.read());
 }
 
-/*orig*/
-void udpLoopback(stream<axiWord>&       lbRxDataIn,
-                 stream<metadata>&     	lbRxMetadataIn,
-				 stream<ap_uint<16> >&  lbRequestPortOpenOut,
-				 stream<bool >&			lbPortOpenReplyIn,
-				 stream<axiWord> 		&lbTxDataOut,
-				 stream<metadata> 		&lbTxMetadataOut,
-				 stream<ap_uint<16> > 	&lbTxLengthOut) {
-	#pragma HLS INTERFACE ap_ctrl_none port=return
-	#pragma HLS DATAFLOW
-
-	/*#pragma HLS INTERFACE port=lbRxDataIn 			axis
-	#pragma HLS INTERFACE port=lbRxMetadataIn 		axis
-	#pragma HLS INTERFACE port=lbRequestPortOpenOut 	axis
-	#pragma HLS INTERFACE port=lbPortOpenReplyIn 	axis
-	#pragma HLS INTERFACE port=lbTxDataOut 			axis
-	#pragma HLS INTERFACE port=lbTxMetadataOut	 	axis
-	#pragma HLS INTERFACE port=lbTxLengthOut	 		axis*/
-	
-	#pragma HLS resource core=AXI4Stream variable=lbRxDataIn 				metadata="-bus_bundle lbRxDataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRxMetadataIn 			metadata="-bus_bundle lbRxMetadataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRequestPortOpenOut 	metadata="-bus_bundle lbRequestPortOpenOut"
-	#pragma HLS resource core=AXI4Stream variable=lbPortOpenReplyIn 	metadata="-bus_bundle lbPortOpenReplyIn"
-	#pragma HLS resource core=AXI4Stream variable=lbTxDataOut 			metadata="-bus_bundle lbTxDataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxMetadataOut 		metadata="-bus_bundle lbTxMetadataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxLengthOut 			metadata="-bus_bundle lbTxLengthOut"
-
-  	#pragma HLS DATA_PACK variable=lbRxMetadataIn
-  	#pragma HLS DATA_PACK variable=lbTxMetadataOut
-
-	static stream<axiWord> 		lb_packetBuffer("lb_packetBuffer");
-	static stream<ap_uint<16> > lb_lengthBuffer("lb_lengthBuffer");
-	static stream<metadata>		lb_metadataBuffer("lb_metadataBuffer");
-	#pragma HLS DATA_PACK variable 	= lb_packetBuffer
-	#pragma HLS STREAM variable 	= lb_packetBuffer	depth = 1024
-
-	rxPath(lbRxDataIn, lbRxMetadataIn, lbRequestPortOpenOut, lbPortOpenReplyIn, lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer);
-	txPath(lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
-}
 
 void buff_if(stream<axiWord>&   DataIn,
         	 stream<axiWord>&	DataOut)
@@ -190,6 +151,19 @@ void buff_if(stream<axiWord>&   DataIn,
 	}
 }
 
+
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc             Description of function.
+ *
+ * \param[streamIn]  lbRxDataIn is the data stream from UDP stack.
+ * \param[streamIn]  lbRxMetadataIn
+ *
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
 void udp_role_if (stream<axiWord>       &lbRxDataIn,
                   stream<metadata>      &lbRxMetadataIn,
                   stream<ap_uint<16> >  &lbRequestPortOpenOut,
@@ -242,4 +216,62 @@ void udp_role_if (stream<axiWord>       &lbRxDataIn,
 	buff_if(vFPGA_UDP_Tx_Data_in, rxPacketBuffer);
 	txPath(rxPacketBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
 }
+
+
+#if 0
+
+/*****************************************************************************/
+/* NameOfTheFunction
+ *
+ * \desc             UDP Loopback application. This is not being used anymore.
+ *                   This is replaced by the udp_role_if, which exposes the data
+ *                   path to the role.
+ *
+ * \param[streamIn] :
+ *
+ *
+ * \return          The returned value.
+ *
+ *****************************************************************************/
+void udpLoopback(stream<axiWord>&       lbRxDataIn,
+                 stream<metadata>&     	lbRxMetadataIn,
+				 stream<ap_uint<16> >&  lbRequestPortOpenOut,
+				 stream<bool >&			lbPortOpenReplyIn,
+				 stream<axiWord> 		&lbTxDataOut,
+				 stream<metadata> 		&lbTxMetadataOut,
+				 stream<ap_uint<16> > 	&lbTxLengthOut) {
+	#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS DATAFLOW
+
+	/*#pragma HLS INTERFACE port=lbRxDataIn 			axis
+	#pragma HLS INTERFACE port=lbRxMetadataIn 		axis
+	#pragma HLS INTERFACE port=lbRequestPortOpenOut 	axis
+	#pragma HLS INTERFACE port=lbPortOpenReplyIn 	axis
+	#pragma HLS INTERFACE port=lbTxDataOut 			axis
+	#pragma HLS INTERFACE port=lbTxMetadataOut	 	axis
+	#pragma HLS INTERFACE port=lbTxLengthOut	 		axis*/
+
+	#pragma HLS resource core=AXI4Stream variable=lbRxDataIn 				metadata="-bus_bundle lbRxDataIn"
+	#pragma HLS resource core=AXI4Stream variable=lbRxMetadataIn 			metadata="-bus_bundle lbRxMetadataIn"
+	#pragma HLS resource core=AXI4Stream variable=lbRequestPortOpenOut 	metadata="-bus_bundle lbRequestPortOpenOut"
+	#pragma HLS resource core=AXI4Stream variable=lbPortOpenReplyIn 	metadata="-bus_bundle lbPortOpenReplyIn"
+	#pragma HLS resource core=AXI4Stream variable=lbTxDataOut 			metadata="-bus_bundle lbTxDataOut"
+	#pragma HLS resource core=AXI4Stream variable=lbTxMetadataOut 		metadata="-bus_bundle lbTxMetadataOut"
+	#pragma HLS resource core=AXI4Stream variable=lbTxLengthOut 			metadata="-bus_bundle lbTxLengthOut"
+
+  	#pragma HLS DATA_PACK variable=lbRxMetadataIn
+  	#pragma HLS DATA_PACK variable=lbTxMetadataOut
+
+	static stream<axiWord> 		lb_packetBuffer("lb_packetBuffer");
+	static stream<ap_uint<16> > lb_lengthBuffer("lb_lengthBuffer");
+	static stream<metadata>		lb_metadataBuffer("lb_metadataBuffer");
+	#pragma HLS DATA_PACK variable 	= lb_packetBuffer
+	#pragma HLS STREAM variable 	= lb_packetBuffer	depth = 1024
+
+	rxPath(lbRxDataIn, lbRxMetadataIn, lbRequestPortOpenOut, lbPortOpenReplyIn, lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer);
+	txPath(lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
+}
+
+#endif
+
 
