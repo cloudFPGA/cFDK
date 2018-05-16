@@ -100,6 +100,9 @@ module TenGigEth_Core #(
    input                               rxn,
    //-- GT Configuration and Status Signals ------
    input                               transceiver_debug_gt_rxlpmen,
+   input        [ 3:  0]               transceiver_debug_gt_txdiffctrl,
+   input        [ 4:  0]               transceiver_debug_gt_txprecursor,
+   input        [ 4:  0]               transceiver_debug_gt_txpostcursor,
    //-- PCS/PMA Configuration and Status Signals -
    input       [535 : 0]               pcs_pma_configuration_vector,
    output      [447 : 0]               pcs_pma_status_vector,
@@ -262,7 +265,7 @@ module TenGigEth_Core #(
           .transceiver_debug_gt_rxresetdone      (),
           //--
           .transceiver_debug_gt_txbufstatus      (),
-          .transceiver_debug_gt_txdiffctrl       (4'b0),
+          .transceiver_debug_gt_txdiffctrl       (transceiver_debug_gt_txdiffctrl), // TxDriverSwing
           .transceiver_debug_gt_txelecidle       (1'b0),
           .transceiver_debug_gt_txoutclksel      (3'b101),
           .transceiver_debug_gt_txpcsreset       (1'b0),
@@ -270,9 +273,9 @@ module TenGigEth_Core #(
           .transceiver_debug_gt_txpdelecidlemode (1'b0),
           .transceiver_debug_gt_txpmareset       (1'b0),
           .transceiver_debug_gt_txpolarity       (1'b0),
-          .transceiver_debug_gt_txpostcursor     (5'b0),
+          .transceiver_debug_gt_txpostcursor     (transceiver_debug_gt_txpostcursor), // TxPostCursor
           .transceiver_debug_gt_txprbsforceerr   (1'b0),
-          .transceiver_debug_gt_txprecursor      (5'b0),
+          .transceiver_debug_gt_txprecursor      (transceiver_debug_gt_txprecursor),  // TxPrecursor
           .transceiver_debug_gt_txresetdone      (),
           //-- Others ----------------------------
           .sim_speedup_control                   (sim_speedup_control)

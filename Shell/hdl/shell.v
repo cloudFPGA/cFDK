@@ -438,8 +438,11 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
   wire          sMEM_Mmio_Mc1InitCalComplete;
   wire          sETH0_Mmio_CoreReady;
   wire          sETH0_Mmio_QpllLock; 
-  //------ [PHY_CONTROL] -------------------------
+  //------ [PHY_ETH0] ----------------------------
   wire          sMMIO_Eth0_RxEqualizerMode;
+  wire  [ 3:0]  sMMIO_Eth0_TxDriverSwing;
+  wire  [ 4:0]  sMMIO_Eth0_TxPreCursor;
+  wire  [ 4:0]  sMMIO_Eth0_TxPostCursor;
   //---- Layer-2 Registers Interface -------------
   wire  [47:0]  sMMIO_Nts0_MacAddress;
   //---- Layer-3 Registers Interface -------------
@@ -485,6 +488,9 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
     .piETH0_Mmio_CoreReady          (sETH0_Mmio_CoreReady),
     .piETH0_Mmio_QpllLock           (sETH0_Mmio_QpllLock),
     .poMMIO_Eth0_RxEqualizerMode    (sMMIO_Eth0_RxEqualizerMode),
+    .poMMIO_Eth0_TxDriverSwing      (sMMIO_Eth0_TxDriverSwing),
+    .poMMIO_Eth0_TxPreCursor        (sMMIO_Eth0_TxPreCursor),
+    .poMMIO_Eth0_TxPostCursor       (sMMIO_Eth0_TxPostCursor),
     .poMMIO_Eth0_PcsLoopbackEn      (sMMIO_Eth0_PcsLoopbackEn),
     .poMMIO_Eth0_MacLoopbackEn      (sMMIO_Eth0_MacLoopbackEn),
     
@@ -525,6 +531,9 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
            
         //-- MMIO : Control inputs and Status outputs
         .piMMIO_Eth0_RxEqualizerMode  (sMMIO_Eth0_RxEqualizerMode),
+        .piMMIO_Eth0_TxDriverSwing    (sMMIO_Eth0_TxDriverSwing),
+        .piMMIO_Eth0_TxPreCursor      (sMMIO_Eth0_TxPreCursor),
+        .piMMIO_Eth0_TxPostCursor     (sMMIO_Eth0_TxPostCursor),
         .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_Eth0_PcsLoopbackEn),
         .piMMIO_Eth0_MacLoopbackEn    (sMMIO_Eth0_MacLoopbackEn),
         .poETH0_Mmio_CoreReady        (sETH0_Mmio_CoreReady),

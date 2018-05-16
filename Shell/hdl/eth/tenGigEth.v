@@ -98,6 +98,9 @@ module TenGigEth (
 
   //-- MMIO : Ctrl inputs and Status outputs -----
   input             piMMIO_Eth0_RxEqualizerMode,
+  input  [ 3:0]     piMMIO_Eth0_TxDriverSwing,
+  input  [ 4:0]     piMMIO_Eth0_TxPreCursor,
+  input  [ 4:0]     piMMIO_Eth0_TxPostCursor,
   input             piMMIO_Eth0_PcsLoopbackEn,
   input             piMMIO_Eth0_MacLoopbackEn,
   output            poETH0_Mmio_CoreReady,
@@ -217,81 +220,84 @@ module TenGigEth (
   //============================================================================
   TenGigEth_Core # (
   
-    .gEthId                          (0),  // Instanciate Ethernet I/F #0 (.i.e ETH0)
-    .gAutoNeg                        (0),  // Use PCS/PMA in 10GBASE-R mode
-    .FIFO_SIZE                       (FIFO_SIZE)
+    .gEthId                           (0),  // Instanciate Ethernet I/F #0 (.i.e ETH0)
+    .gAutoNeg                         (0),  // Use PCS/PMA in 10GBASE-R mode
+    .FIFO_SIZE                        (FIFO_SIZE)
   
   ) CORE (
   
     //-- Clocks and Resets inputs ----------------
-    .refclk_n                        (piCLKT_Gt_RefClk_n),
-    .refclk_p                        (piCLKT_Gt_RefClk_p),
-    .dclk                            (sALCG_AxiClk),
-    .reset                           (piTOP_Reset),
+    .refclk_n                         (piCLKT_Gt_RefClk_n),
+    .refclk_p                         (piCLKT_Gt_RefClk_p),
+    .dclk                             (sALCG_AxiClk),
+    .reset                            (piTOP_Reset),
     
     //-- Clocks and Resets outputs ---------------
-    .resetdone_out                   (sCORE_ResetDone),
-    .coreclk_out                     (sCORE_Clk),
-    .rxrecclk_out                    (/* sCORE_GtRxClk */),
-    .qplllock_out                    (poETH0_Mmio_QpllLock),
+    .resetdone_out                    (sCORE_ResetDone),
+    .coreclk_out                      (sCORE_Clk),
+    .rxrecclk_out                     (/* sCORE_GtRxClk */),
+    .qplllock_out                     (poETH0_Mmio_QpllLock),
 
     //-- AXI4 Input Stream Interface -------------  
-    .tx_axis_mac_aresetn             (sReset_n),
-    .tx_axis_fifo_aresetn            (sReset_n),
-    .tx_axis_fifo_tdata              (piLY3_Axis_tdata),
-    .tx_axis_fifo_tkeep              (piLY3_Axis_tkeep),
-    .tx_axis_fifo_tvalid             (piLY3_Axis_tvalid),
-    .tx_axis_fifo_tlast              (piLY3_Axis_tlast),
-    .tx_axis_fifo_tready             (poLy3_Axis_tready),
+    .tx_axis_mac_aresetn              (sReset_n),
+    .tx_axis_fifo_aresetn             (sReset_n),
+    .tx_axis_fifo_tdata               (piLY3_Axis_tdata),
+    .tx_axis_fifo_tkeep               (piLY3_Axis_tkeep),
+    .tx_axis_fifo_tvalid              (piLY3_Axis_tvalid),
+    .tx_axis_fifo_tlast               (piLY3_Axis_tlast),
+    .tx_axis_fifo_tready              (poLy3_Axis_tready),
 
     //-- AXI4 Output Stream Interface ------------
-    .rx_axis_fifo_aresetn            (sReset_n),
-    .rx_axis_mac_aresetn             (sReset_n),
-    .rx_axis_fifo_tdata              (poLy3_Axis_tdata),
-    .rx_axis_fifo_tkeep              (poLy3_Axis_tkeep),
-    .rx_axis_fifo_tvalid             (poLy3_Axis_tvalid),
-    .rx_axis_fifo_tlast              (poLy3_Axis_tlast),
-    .rx_axis_fifo_tready             (piLY3_Axis_tready),
+    .rx_axis_fifo_aresetn             (sReset_n),
+    .rx_axis_mac_aresetn              (sReset_n),
+    .rx_axis_fifo_tdata               (poLy3_Axis_tdata),
+    .rx_axis_fifo_tkeep               (poLy3_Axis_tkeep),
+    .rx_axis_fifo_tvalid              (poLy3_Axis_tvalid),
+    .rx_axis_fifo_tlast               (poLy3_Axis_tlast),
+    .rx_axis_fifo_tready              (piLY3_Axis_tready),
     
     //-- ECON : Gigabit Transceivers -------------
-    .txp                             (poETH0_Econ_Gt_p),
-    .txn                             (poETH0_Econ_Gt_n),
-    .rxp                             (piECON_Eth0_Gt_p),
-    .rxn                             (piECON_Eth0_Gt_n),
+    .txp                              (poETH0_Econ_Gt_p),
+    .txn                              (poETH0_Econ_Gt_n),
+    .rxp                              (piECON_Eth0_Gt_p),
+    .rxn                              (piECON_Eth0_Gt_n),
     
     //---- GT Configuration and Status Signals
-    .transceiver_debug_gt_rxlpmen    (piMMIO_Eth0_RxEqualizerMode),  // 0:DFE or 1:LPM
+    .transceiver_debug_gt_rxlpmen     (piMMIO_Eth0_RxEqualizerMode),  // 0:DFE or 1:LPM
+    .transceiver_debug_gt_txdiffctrl  (piMMIO_Eth0_TxDriverSwing),    // c.f. UG576
+    .transceiver_debug_gt_txprecursor (piMMIO_Eth0_TxPreCursor),      // c.f. UG576
+    .transceiver_debug_gt_txpostcursor(piMMIO_Eth0_TxPostCursor),     // c.f. UG576
     
     //-- PCS/PMA Configuration and Status Signals 
-    .pcs_pma_configuration_vector    (sPcsPmaConfigurationVector),
-    .pcs_pma_status_vector           (sCORE_PcsPmaStatusVector),
+    .pcs_pma_configuration_vector     (sPcsPmaConfigurationVector),
+    .pcs_pma_status_vector            (sCORE_PcsPmaStatusVector),
 
     //---- PCS/PMA Miscellaneous Ports -------------- 
-    .pcspma_status                   (sCORE_MiscPcsPmaStatus),
+    .pcspma_status                    (sCORE_MiscPcsPmaStatus),
         
     //-- MAC Configuration and Status Signals ----
-    .mac_tx_configuration_vector     (sMacTxConfigurationVector),
-    .mac_rx_configuration_vector     (sMacRxConfigurationVector),
-    .mac_status_vector               (sCORE_MacStatusVector),
+    .mac_tx_configuration_vector      (sMacTxConfigurationVector),
+    .mac_rx_configuration_vector      (sMacRxConfigurationVector),
+    .mac_status_vector                (sCORE_MacStatusVector),
     
     //-- Pause Control Interface ------------------
-    .pause_val                       (16'b0),
-    .pause_req                       (1'b0),
+    .pause_val                        (16'b0),
+    .pause_req                        (1'b0),
     
     //-- Optical Module Interface -----------------
-    .signal_detect                   (1'b1),
-    .tx_fault                        (1'b0),
-    .tx_disable                      (/*NC*/),
+    .signal_detect                    (1'b1),
+    .tx_fault                         (1'b0),
+    .tx_disable                       (/*NC*/),
  
     //-- Statistics Vectors Outputs --------------
-    .tx_statistics_vector            (sCORE_TxStatVec),
-    .tx_statistics_valid             (sCORE_TxStatVal),
-    .rx_statistics_vector            (sCORE_RxStatVec),
-    .rx_statistics_valid             (sCORE_RxStatVal),
+    .tx_statistics_vector             (sCORE_TxStatVec),
+    .tx_statistics_valid              (sCORE_TxStatVal),
+    .rx_statistics_vector             (sCORE_RxStatVec),
+    .rx_statistics_valid              (sCORE_RxStatVal),
 
     //-- OTHER : Ctrl and Status Signals --------- 
-    .sim_speedup_control             (1'b0),
-    .tx_ifg_delay                    (8'd0)
+    .sim_speedup_control              (1'b0),
+    .tx_ifg_delay                     (8'd0)
    
   );
 

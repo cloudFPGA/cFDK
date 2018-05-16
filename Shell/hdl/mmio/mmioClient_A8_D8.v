@@ -75,6 +75,9 @@ module MmioClient_A8_D8 #(
   input           piETH0_Mmio_CoreReady,
   input           piETH0_Mmio_QpllLock,
   output          poMMIO_Eth0_RxEqualizerMode,
+  output  [ 3:0]  poMMIO_Eth0_TxDriverSwing,
+  output  [ 4:0]  poMMIO_Eth0_TxPreCursor,
+  output  [ 4:0]  poMMIO_Eth0_TxPostCursor,
   output          poMMIO_Eth0_PcsLoopbackEn,
   output          poMMIO_Eth0_MacLoopbackEn,
   
@@ -123,9 +126,11 @@ module MmioClient_A8_D8 #(
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
   localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
-  localparam RES_REG_BASE   = 8'h60;  // Spare         Registers
+  localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
+  localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
-  
+  localparam PAGE_REG_BASE  = 8'h7F;  // Page Select   Register
+    
   //-- CFG_REGS ---------------------------------------------------------------
   // Virtual Product Data
   localparam CFG_VPD_ID     = CFG_REG_BASE  +  0; // Emif Id
@@ -135,8 +140,8 @@ module MmioClient_A8_D8 #(
   //-- PHY_REGS ---------------------------------------------------------------
   // Status of the Physical Interfaces
   localparam PHY_STAT       = PHY_REG_BASE  +  0;
-  // Control of the Physical Interfaces 
-  localparam PHY_CTRL       = PHY_REG_BASE  +  1; 
+  // Configuration and Tuning of GTH0 
+  localparam PHY_ETH0       = PHY_REG_BASE  +  1; 
   
   //-- LY2_REGS ---------------------------------------------------------------
   // Control of the Layer-2 Interfaces
@@ -174,8 +179,10 @@ module MmioClient_A8_D8 #(
   localparam DIAG_SCRATCH3 = DIAG_REG_BASE +  3;
   // Control of the Loopback Interfaces
   localparam DIAG_LOOPCTRL  = DIAG_REG_BASE +  4;
-  // Extended Page Select Byte 
-  localparam DIAG_PAGE_SEL  = DIAG_REG_BASE + 15; 
+  
+  //-- PAGE_REG ----------------------------------------------------------------
+  // Extended Page Select Register 
+  localparam PAGE_SEL       = PAGE_REG_BASE; 
  
   localparam ROLE_REG_WIDTH_HALF = 16;
 
@@ -202,9 +209,9 @@ module MmioClient_A8_D8 #(
   localparam cDefReg0F = 8'h00;
   //-- PHY_REGS ---------------
   localparam cDefReg10 = 8'h00;  // PHY_STATUS
-  localparam cDefReg11 = 8'h01;  // PHY_CONTROL
-  localparam cDefReg12 = 8'h00;
-  localparam cDefReg13 = 8'h00;
+  localparam cDefReg11 = 8'h41;  // PHY_ETH0[0]
+  localparam cDefReg12 = 8'h05;  // PHY_ETH0[1]
+  localparam cDefReg13 = 8'h05;  // PHY_ETH0[2]
   localparam cDefReg14 = 8'h00;
   localparam cDefReg15 = 8'h00;
   localparam cDefReg16 = 8'h00;
@@ -407,16 +414,14 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*PHY_STAT+5]  = 1'b0;                           // RO
   assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                           // RO
   assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                           // RO
-  //---- PHY_CONTROL -------------------
-  assign sStatusVec[cEDW*PHY_CTRL+0]  = sEMIF_Ctrl[cEDW*PHY_CTRL+0];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+1]  = sEMIF_Ctrl[cEDW*PHY_CTRL+1];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+2]  = sEMIF_Ctrl[cEDW*PHY_CTRL+2];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+3]  = sEMIF_Ctrl[cEDW*PHY_CTRL+3];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+4]  = sEMIF_Ctrl[cEDW*PHY_CTRL+4];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+5]  = sEMIF_Ctrl[cEDW*PHY_CTRL+5];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+6]  = sEMIF_Ctrl[cEDW*PHY_CTRL+6];    // RW
-  assign sStatusVec[cEDW*PHY_CTRL+7]  = sEMIF_Ctrl[cEDW*PHY_CTRL+7];    // RW
-  
+  //---- PHY_ETH0 ----------------------
+  generate
+  for (id=0; id<3*8; id=id+1)
+    begin: gen_PHY_ETH0
+      assign sStatusVec[cEDW*PHY_ETH0+id]  = sEMIF_Ctrl[cEDW*PHY_ETH0+id];    // RW
+    end
+  endgenerate
+    
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
   //--------------------------------------------------------
@@ -475,11 +480,15 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_LOOPCTRL+id]  = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+id]; // RW   
     end
   endgenerate
-  //---- DIAG_PAGESEL ------------------
+  
+  //-------------------------------------------------------- 
+  //-- PAGE REGISTER
+  //--------------------------------------------------------
+  //---- PAGE_SEL ----------------------
   generate
   for (id=0; id<cEDW; id=id+1)
-    begin: gen_DIAG_PAGESEL
-      assign sStatusVec[cEDW*DIAG_PAGE_SEL+id]  = sEMIF_Ctrl[cEDW*DIAG_PAGE_SEL+id]; // RW
+    begin: gen_PAGE_SEL
+      assign sStatusVec[cEDW*PAGE_SEL+id]  = sEMIF_Ctrl[cEDW*PAGE_SEL+id]; // RW
     end
   endgenerate
   
@@ -499,8 +508,11 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------  
   //---- PHY_STATUS --------------------
   //------ No Outputs to the Fabric
-  //---- PHY_CONTROL -------------------
-  assign poMMIO_Eth0_RxEqualizerMode = sEMIF_Ctrl[cEDW*PHY_CTRL+0];  // RW
+  //---- PHY_ETH0 ----------------------
+  assign poMMIO_Eth0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_ETH0+0];                   // RW
+  assign poMMIO_Eth0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_ETH0+7 :cEDW*PHY_ETH0+4];  // RW
+  assign poMMIO_Eth0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_ETH0+12:cEDW*PHY_ETH0+8];  // RW
+  assign poMMIO_Eth0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_ETH0+20:cEDW*PHY_ETH0+16]; // RW
   
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
@@ -538,10 +550,14 @@ module MmioClient_A8_D8 #(
   //---- DIAG_LOOPCTRL -----------------
   assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+0]; // RW
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+1]; // RW
-  //---- DIAG_PAGESEL ------------------
-  assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*DIAG_PAGE_SEL+7:cEDW*DIAG_PAGE_SEL+0];  // RW
   
-  // ROLE REGISTERS 
+  //--------------------------------------------------------  
+  //-- PAGE REGISTER
+  //--------------------------------------------------------
+  //---- PAGE_SEL ----------------------
+  assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
+  
+  // ROLE REGISTERS [TODO - Move these fields into the DIAGNOSTIC section]
   //assign poMMIO_ROLE_2B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF];
   //assign sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF] =  sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
   assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
