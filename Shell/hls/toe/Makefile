@@ -1,4 +1,4 @@
-DEPS := $(shell find ./src/ -type f)
+DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
 .PHONY: all
 all: toe_prj

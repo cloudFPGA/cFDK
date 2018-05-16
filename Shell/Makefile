@@ -9,7 +9,7 @@
 # *
 # ******************************************************************************
 
-.PHONY: all hls_cores clean full_src shell_synth pkg_shell hls_cores
+.PHONY: all hls_cores clean full_src shell_synth pkg_shell hls
 
 #all: pkg_shell 
 all: full_src

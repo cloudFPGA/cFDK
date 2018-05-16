@@ -1,3 +1,12 @@
+/*****************************************************************************
+ * File:            tcp_role_if.hpp
+ * Creation Date:   May 14, 2018
+ * Description: 	Prototype and defines for the TCP role interface.
+ *
+ * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "../../toe/src/toe.hpp"
 
 #include <hls_stream.h>
