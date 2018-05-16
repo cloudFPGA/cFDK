@@ -978,12 +978,14 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
   //
   //============================================================================
   reg   sLed_HeartBeat;
-  wire  sETH0_Ready;
   
+  wire  sETH0_Ready = 1'b0;
   assign sETH0_Ready = sETH0_Mmio_CoreReady;
   
-  wire sMc0_Ready = 1'b1;   // [TODO] wire this signal
-  wire sMc1_Ready = 1'b1;   // [TODO] wire this signal
+  wire sMc0_Ready = 1'b0;
+  wire sMc1_Ready = 1'b0;
+  assign sMc0_Ready = sMEM_Mmio_Mc0InitCalComplete;
+  assign sMc1_Ready = sMEM_Mmio_Mc1InitCalComplete;
   
   always @(posedge sETH0_ShlClk)
     sLed_HeartBeat <= (!sBinCnt[29] && !sBinCnt[28])                                              ||  // Start bit
