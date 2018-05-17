@@ -423,6 +423,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #        [512]     : Memory Map Data Width
 #        [64]      : Stream Data Width
 #        [16]      : Maximum Burst Size
+#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #    S2MM Interface
 #      [ENABLE]
@@ -430,6 +431,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #        [512]     : Memory Map Data Width
 #        [64]      : Stream Data Width
 #        [16]      : Maximum Burst Size
+#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #
 #    [DISABLE]     : XCACHE xUSER
@@ -473,7 +475,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI DataMover [M512, S512, B16] 
+# VIVADO-IP : AXI DataMover [M512, S512, B64]
 #------------------------------------------------------------------------------
 #  Basic Options
 #    MM2S Interface
@@ -481,14 +483,16 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [512]     : Stream Data Width
-#        [16]      : Maximum Burst Size
+#        [64]      : Maximum Burst Size 
+#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #    S2MM Interface
 #      [ENABLE]
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [512]     : Stream Data Width
-#        [16]      : Maximum Burst Size
+#        [64]      : Maximum Burst Size
+#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #
 #    [DISABLE]     : XCACHE xUSER
@@ -510,19 +514,19 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #      [DISABLE]   : Indeterinate BTT Mode      
 #      [DISABLE]   : Store Forward
 #      [4]         : ID Width
-#      [0]         : ID Value         
+#      [0]         : ID Value
 #------------------------------------------------------------------------------
-set ipModName "AxiDataMover_M512_S512_B16"
+set ipModName "AxiDataMover_M512_S512_B64"
 set ipName    "axi_datamover"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "5.1"
 set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_m_axis_mm2s_tdata_width {512} \
-                      CONFIG.c_mm2s_burst_size {16} \
+                      CONFIG.c_mm2s_burst_size {64} \
                       CONFIG.c_m_axi_s2mm_data_width {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {512} \
-                      CONFIG.c_s2mm_burst_size {16} \
+                      CONFIG.c_s2mm_burst_size {64} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
 
