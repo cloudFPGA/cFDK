@@ -58,7 +58,7 @@ entity topFlash is
   generic (
     -- Synthesis parameters ----------------------
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
-    gSecurityPriviledges : string  := "super";   -- "user" or "super"
+    gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer := 8;
     gEmifDataWidth       : integer := 8
@@ -173,10 +173,10 @@ architecture structural of topFlash is
   -- Global Reset ----------------------------------------
   signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-  --OBSOLETE-20180426 signal sPSOC_Fcfg_MetaRst : std_ulogic;
-   
-  -- Global Source Synchronous SHELL Clock ---------------
+    
+  -- Global Source Synchronous SHELL Clock and Reset ----
   signal sSHL_156_25Clk                     : std_ulogic;
+  signal sSHL_156_25Rst                     : std_ulogic;
      
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
@@ -366,9 +366,10 @@ architecture structural of topFlash is
        poSHL_Econ_Eth0_10Ge0_p             : out   std_ulogic;
  
        ------------------------------------------------------
-       -- ROLE / Output Clock Interface
+       -- ROLE / Output Clock and Reset Interfaces
        ------------------------------------------------------
        poSHL_156_25Clk                     : out   std_ulogic;
+       poSHL_156_25Rst                     : out   std_ulogic;
        
        ------------------------------------------------------
        -- ROLE / Shl/ Nts0 / Udp Interface
@@ -744,9 +745,10 @@ begin
       poSHL_Econ_Eth0_10Ge0_p              => poTOP_Econ_10Ge0_p,
       
       ------------------------------------------------------
-      -- ROLE / Output Clock Interface
+      -- ROLE / Output Reset and Clock Interfaces
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
+      poSHL_156_25Rst                      => sSHL_156_25Rst,
       
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Udp Interface
