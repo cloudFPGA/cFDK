@@ -95,6 +95,7 @@ module TenGigEth (
 
   //-- Clocks and Resets outputs -----------------
   output            poETH0_CoreClk,
+  output            poETH0_CoreResetDone,
 
   //-- MMIO : Ctrl inputs and Status outputs -----
   input             piMMIO_Eth0_RxEqualizerMode,
@@ -105,7 +106,8 @@ module TenGigEth (
   input             piMMIO_Eth0_MacLoopbackEn,
   output            poETH0_Mmio_CoreReady,
   output            poETH0_Mmio_QpllLock,
-  output            poETH0_Mmio_ResetDone,    // [FIXME w/ wee]
+  
+  //OBSOLETE-20180517 output            poETH0_Mmio_ResetDone,
 
   //-- ECON : Gigabit Transceivers ---------------
   input             piECON_Eth0_Gt_n,
@@ -347,7 +349,7 @@ module TenGigEth (
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poETH0_Mmio_ResetDone = sCORE_ResetDone;
-
+  assign poETH0_CoreResetDone = sCORE_ResetDone;
+  //OBSOLETE-20180517 assign poETH0_Mmio_ResetDone = sCORE_ResetDone;
 
 endmodule

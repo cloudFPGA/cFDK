@@ -70,7 +70,7 @@ module TenGigEth_Loop_AddrSwap (
 
   //-- Clocks and Resets inputs ------------------
   input              piEthCoreClk,
-  input              piReset_a,
+  input              piEthCoreResetDone,
   
   // -- SWAP Enable ------------------------------
   input              piSwapEn,
@@ -141,7 +141,7 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   always @(posedge piEthCoreClk)
   begin : pFsm
-    if (piReset_a) begin
+    if (piEthCoreResetDone) begin
       sStateReg   <= IDLE;
       sRxSofReg_n <= 0;
     end
@@ -199,7 +199,7 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   always @(posedge piEthCoreClk)
   begin
-    if (piReset_a) begin
+    if (piEthCoreResetDone) begin
        sRx_AxisDataReg    <= 64'b0;
        sRx_AxisDataRegReg <= 32'b0;
        sRx_AxisKeepReg    <= 8'b0;
@@ -251,7 +251,7 @@ module TenGigEth_Loop_AddrSwap (
   //  PROC: OUTPUT DATA & CTRL REGISTER
   //============================================================================
   always @(posedge piEthCoreClk) begin
-    if (piReset_a) begin
+    if (piEthCoreResetDone) begin
       sTx_AxisDataReg  <= 64'b0;
       sTx_AxisKeepReg  <= 8'b0;
       sTx_AxisValidReg <= 1'b0;

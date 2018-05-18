@@ -42,10 +42,10 @@ module TenGigEth_Loop (
 
   //-- Clocks and Resets inputs ------------------
   input         piEthCoreClk,
-  input         piReset_a,  
+  input         piEthCoreResetDone,  
 
   // -- EMIF : Control Inputs and Status Ouputs --
-  input  piLoopbackEn,
+  input         piLoopbackEn,
    
   //-- Input AXI-Write Stream from L2 ------------
   input  [63:0] piLY2_Axis_tdata, 
@@ -148,25 +148,25 @@ module TenGigEth_Loop (
   TenGigEth_Loop_AddrSwap SWAP (
   
     //-- Clocks and Resets inputs ------------------
-    .piEthCoreClk     (piEthCoreClk),
-    .piReset_a        (piReset_a),
+    .piEthCoreClk       (piEthCoreClk),
+    .piEthCoreResetDone (piEthCoreResetDone),
     
     // -- SWAP Enable ------------------------------
-    .piSwapEn         (sMETA0_LoopbackEn),
+    .piSwapEn           (sMETA0_LoopbackEn),
     
     //-- SWAP Receive Interface --------------------
-    .pi_Axis_tdata    (sMUX_Axis_tdata),
-    .pi_Axis_tkeep    (sMUX_Axis_tkeep),
-    .pi_Axis_tlast    (sMUX_Axis_tlast),
-    .pi_Axis_tvalid   (sMUX_Axis_tvalid),
-    .po_Axis_tready   (sSWAP_Axis_tready),
+    .pi_Axis_tdata      (sMUX_Axis_tdata),
+    .pi_Axis_tkeep      (sMUX_Axis_tkeep),
+    .pi_Axis_tlast      (sMUX_Axis_tlast),
+    .pi_Axis_tvalid     (sMUX_Axis_tvalid),
+    .po_Axis_tready     (sSWAP_Axis_tready),
      
     //-- SWAP Transmit Interface -------------------
-    .pi_Axis_tready   (piLY2_Axis_tready),  
-    .po_Axis_tdata    (poLy2_Axis_tdata),
-    .po_Axis_tkeep    (poLy2_Axis_tkeep),
-    .po_Axis_tlast    (poLy2_Axis_tlast),
-    .po_Axis_tvalid   (poLy2_Axis_tvalid)
+    .pi_Axis_tready     (piLY2_Axis_tready),  
+    .po_Axis_tdata      (poLy2_Axis_tdata),
+    .po_Axis_tkeep      (poLy2_Axis_tkeep),
+    .po_Axis_tlast      (poLy2_Axis_tlast),
+    .po_Axis_tvalid     (poLy2_Axis_tvalid)
 
   );
   
