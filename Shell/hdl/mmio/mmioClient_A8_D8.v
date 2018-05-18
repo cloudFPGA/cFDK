@@ -178,7 +178,7 @@ module MmioClient_A8_D8 #(
   localparam DIAG_SCRATCH2 = DIAG_REG_BASE +  2;
   localparam DIAG_SCRATCH3 = DIAG_REG_BASE +  3;
   // Control of the Loopback Interfaces
-  localparam DIAG_LOOPCTRL  = DIAG_REG_BASE +  4;
+  localparam DIAG_CTRL     = DIAG_REG_BASE +  4;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
@@ -314,7 +314,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg71 = 8'hAD;  // DIAG_SCRATCH1      
   localparam cDefReg72 = 8'hBE;  // DIAG_SCRATCH2 
   localparam cDefReg73 = 8'hEF;  // DIAG_SCRATCH3 
-  localparam cDefReg74 = 8'h00;  // DIAG_LOOPCTRL
+  localparam cDefReg74 = 8'h00;  // DIAG_CTRL
   localparam cDefReg75 = 8'h00;
   localparam cDefReg76 = 8'h00;
   localparam cDefReg77 = 8'h00;
@@ -473,11 +473,11 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_SCRATCH0+id]  = sEMIF_Ctrl[cEDW*DIAG_SCRATCH0+id]; // RW   
     end
   endgenerate  
-  //---- DIAG_LOOPCTRL -----------------
+  //---- DIAG_CTRL ---------------------
   generate
   for (id=0; id<cEDW; id=id+1)
-    begin: gen_DIAG_LOOPCTRL
-      assign sStatusVec[cEDW*DIAG_LOOPCTRL+id]  = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+id]; // RW   
+    begin: gen_DIAG_CTRL
+      assign sStatusVec[cEDW*DIAG_CTRL+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL+id]; // RW   
     end
   endgenerate
   
@@ -547,9 +547,9 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //---- DIAG_SCRATCH[0:3] -------------  
   //------ No Outputs to the Fabric
-  //---- DIAG_LOOPCTRL -----------------
-  assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+0]; // RW
-  assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_LOOPCTRL+1]; // RW
+  //---- DIAG_CTRL -----------------
+  assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+0]; // RW
+  assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+1]; // RW
   
   //--------------------------------------------------------  
   //-- PAGE REGISTER
