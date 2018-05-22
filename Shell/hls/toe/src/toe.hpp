@@ -29,6 +29,7 @@ struct rtlSessionLookupRequest;
 #define OOO_N 4 	// number of OOO blocks accepted
 #define OOO_W 4288	// window {max(offset + length)} of sequence numbers beyond recvd accepted
 
+//usually tcp segment size is 1460. Here, we use 1456 to support tcp options
 static const ap_uint<16> MMS = 1456; //536;
 static const ap_uint<16> MY_MSS = 576;
 

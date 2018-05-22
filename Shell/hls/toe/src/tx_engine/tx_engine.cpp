@@ -569,8 +569,10 @@ void pseudoHeaderConstruction(stream<tx_engine_meta>&		tcpMetaDataFifoIn,
  *	@param[in]		txBufferReadData, incoming payload stream
  *	@param[out]		dataOut, outgoing data stream
  */
-void tcpPkgStitcher(stream<axiWord>&		txEng_tcpHeaderBufferIn, stream<axiWord>&		txBufferReadData,
-					stream<axiWord>&		txEng_tcpSegOut, stream<ap_uint<1> > &memAccessBreakdown2txPkgStitcher) {
+void tcpPkgStitcher(stream<axiWord>&		txEng_tcpHeaderBufferIn,
+					stream<axiWord>&		txBufferReadData,
+					stream<axiWord>&		txEng_tcpSegOut,
+					stream<ap_uint<1> > &memAccessBreakdown2txPkgStitcher) {
 #pragma HLS INLINE off
 #pragma HLS pipeline II=1
 

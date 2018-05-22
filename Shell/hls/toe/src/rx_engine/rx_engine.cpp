@@ -1104,9 +1104,11 @@ void rxEventMerger(stream<extendedEvent>& in1, stream<event>& in2, stream<extend
 	}
 }
 
-void rxEngMemWrite(	stream<axiWord>& 				rxMemWrDataIn, stream<mmCmd>&				rxMemWrCmdIn,
-					stream<mmCmd>&					rxMemWrCmdOut, stream<axiWord>&				rxMemWrDataOut,
-					stream<ap_uint<1> >&			doubleAccess) {
+void rxEngMemWrite(	stream<axiWord>& 	rxMemWrDataIn,
+					stream<mmCmd>&		rxMemWrCmdIn,
+					stream<mmCmd>&		rxMemWrCmdOut,
+					stream<axiWord>&	rxMemWrDataOut,
+					stream<ap_uint<1> >&	doubleAccess) {
 #pragma HLS pipeline II=1
 #pragma HLS INLINE off
 
