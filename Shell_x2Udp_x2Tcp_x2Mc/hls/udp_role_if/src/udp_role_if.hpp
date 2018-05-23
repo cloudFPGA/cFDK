@@ -9,6 +9,8 @@
 
 using namespace hls;
 
+#define UDP_NUM_SESSIONS 2
+
 const uint16_t 		REQUEST 		= 0x0100;
 const uint16_t 		REPLY 			= 0x0200;
 const ap_uint<32>	replyTimeOut 	= 65536;

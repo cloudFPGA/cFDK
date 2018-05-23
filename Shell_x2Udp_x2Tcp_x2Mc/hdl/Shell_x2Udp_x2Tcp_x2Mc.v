@@ -7,9 +7,9 @@
 // *
 // * Title : Shell for the FMKU2595 when equipped with a XCKU060.
 // *
-// * File    : shell.v
+// * File    : Shell_x2Udp_x2Tcp_x2Mc.v
 // *
-// * Created : Nov. 2017
+// * Created : May 2018
 // * Authors : Francois Abel <fab@zurich.ibm.com>
 // *
 // * Devices : xcku060-ffva1156-2-i
@@ -19,16 +19,10 @@
 // * Description : cloudFPGA uses a 'SHELL' to abstract the HW components of an
 // *    FPGA module and to expose a unified interface for the user to integrate 
 // *    its application, referred to as 'ROLE'. 
-// *    As the name indicates, this shell is specific to a FMKU2595 module
-// *    equipped with a Xilinx Ultascale XCKU060 device.
-// *    This shell implements the following IP cores and physical interfaces:
-// *      - one 10G Ethernet subsystem (ETH0) as described in PG157,
-// *      - two 8GB DDR4 Memory Channels (MC0, MC1) as described in PG150.
-// *      - one network, tansport and session (NTS0) core based on TCP/IP.  
-// *    The interfaces exposed to the user's ROLE are:
-// *      - one AXI4-Stream interface to a UDP interface, 
-// *      - one AXI4-Stream interface to a TCP interface,
-// *      - two AXI4 slave interfaces to a Memory Channels with dual ports.  
+// *    As the name indicates, this shell implemenents the following interfaces:
+// *      - two UDP interfaces (with the ROLE),
+// *      - two TCP interfaces (with the ROLE),
+// *      - two Memory Channels (one w/ the ROLE and one with the network stack).
 // * 
 // * Parameters:
 // *    gSecurityPriviledges: Sets the level of the security privileges.
@@ -47,7 +41,7 @@
 // **  MODULE - SHELL FOR FMKU60
 // *****************************************************************************
 
-module Shell_Udp_Tcp_McDp_4BEmif # (
+module Shell_x2Udp_x2Tcp_x2Mc # (
   
   parameter gSecurityPriviledges = "super",  // "user" or "super"
   parameter gBitstreamUsage      = "flash",  // "user" or "flash"

@@ -2,9 +2,7 @@
 
 ## Overview
 
-This directory contains all the files for generating the default version of the  **SHELL** referred here as 'Shell'. 
-
-The Makefiles for the SHELL are designed only to rerun, what must be necesarry, especially for the hls cores. 
+This directory contains all the files for generating the a version of the  **SHELL** with two TCP ports, two UDP ports and two Memory Channels. This shell is then referred to as 'Shell_x2Udp_x2Tcp_x2Mc'. 
 
 ## About: _~/FMKU60/Shell/directories_
 
@@ -18,16 +16,15 @@ The Makefiles for the SHELL are designed only to rerun, what must be necesarry, 
 
         5. **xdc** folder contains the physical and timing constraints files for synthesis, plaeement and routing of the SHELL.
 
-
 ## HOWTO: 
 
-Currently the SHELL is used by TOP with its complete sources, so the Makefile in TOP knows best, what to run. 
+Currently the SHELL is instantiated by a TOP with its complete sources, so the Makefile in TOP knows best, what to run. 
 
-But to run the synthesis of the SHELL manual, anyways: 
-```
-make full_src 
-```
-builds anything that is necesarry to import the SHELL in TOP. 
+Use the following commands in case you need to run a local standalone synthesis of the SHELL: 
+
+    * **make full_src**
+	Bilds anything that is necesarry to import the SHELL in TOP. 
+
 
 
 

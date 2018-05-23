@@ -172,8 +172,8 @@ void udp_role_if (stream<axiWord>       &lbRxDataIn,
                   stream<metadata> 		&lbTxMetadataOut,
                   stream<ap_uint<16> > 	&lbTxLengthOut,
                   
-                  stream<axiWord>       &vFPGA_UDP_Rx_Data_Out,
-                  stream<axiWord>       &vFPGA_UDP_Tx_Data_in )
+                  stream<axiWord>       vFPGA_UDP_Rx_Data_Out[UDP_NUM_SESSIONS],
+                  stream<axiWord>       vFPGA_UDP_Tx_Data_in[UDP_NUM_SESSIONS])
 {
 	#pragma HLS INTERFACE ap_ctrl_none port=return
 	#pragma HLS DATAFLOW
@@ -212,8 +212,8 @@ void udp_role_if (stream<axiWord>       &lbRxDataIn,
 	#pragma HLS STREAM variable 	= rxPacketBuffer	depth = 1024
 
 	rxPath(lbRxDataIn, lbRxMetadataIn, lbRequestPortOpenOut, lbPortOpenReplyIn, txPacketBuffer, lb_lengthBuffer, lb_metadataBuffer);
-	buff_if(txPacketBuffer, vFPGA_UDP_Rx_Data_Out);
-	buff_if(vFPGA_UDP_Tx_Data_in, rxPacketBuffer);
+	buff_if(txPacketBuffer, vFPGA_UDP_Rx_Data_Out[0]);
+	buff_if(vFPGA_UDP_Tx_Data_in[0], rxPacketBuffer);
 	txPath(rxPacketBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
 }
 

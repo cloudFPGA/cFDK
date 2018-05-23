@@ -14,8 +14,9 @@
 
 using namespace hls;
 
+#define NUM_TCP_SESSIONS 2
 
-#define no_of_session_id_table_entries 4
+#define no_of_session_id_table_entries NUM_TCP_SESSIONS
 
 struct session_id_table_entry {
 	ap_uint<16> session_id;

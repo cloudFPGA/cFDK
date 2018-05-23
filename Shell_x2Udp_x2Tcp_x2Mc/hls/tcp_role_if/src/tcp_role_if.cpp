@@ -502,8 +502,10 @@ void tcp_role_if(
 		stream<ap_uint<16> >& 		oTxMetaData,
 		stream<axiWord>& 			oTxData,
 		stream<ap_int<17> >& 		iTxStatus,
-		stream<axiWord>& 			vFPGA_rx_data,
-		stream<axiWord>& 			vFPGA_tx_data)
+		stream<axiWord> 			vFPGA_rx_data[NUM_TCP_SESSIONS],
+		stream<axiWord> 			vFPGA_tx_data[NUM_TCP_SESSIONS],
+		ap_uint<16>					listen_port1,
+		ap_uint<16>					listen_port2)
 {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -529,6 +531,8 @@ void tcp_role_if(
 #pragma HLS DATA_PACK variable=oOpenConnection
 #pragma HLS DATA_PACK variable=iOpenConStatus
 
+#pragma HLS INTERFACE ap_none register port=listen_port1
+#pragma HLS INTERFACE ap_none register port=listen_port2
 
 static stream<session_id_table_entry>  w_entry("w_entry");
 #pragma HLS STREAM variable=w_entry depth=1
@@ -549,9 +553,9 @@ static stream<axiWord>  buff_data("buff_data");
 
 	tai_session_id_table_server(w_entry, q_buffer_id, r_session_id);
 
-	tai_net_to_app(iRxMetaData, iRxData, vFPGA_rx_data);
+	tai_net_to_app(iRxMetaData, iRxData, vFPGA_rx_data[0]);
 
-	tai_app_to_buf(vFPGA_tx_data, q_buffer_id, buff_data);
+	tai_app_to_buf(vFPGA_tx_data[0], q_buffer_id, buff_data);
 	tai_app_to_net(buff_data, oTxMetaData, oTxData, r_session_id);
 
 }
