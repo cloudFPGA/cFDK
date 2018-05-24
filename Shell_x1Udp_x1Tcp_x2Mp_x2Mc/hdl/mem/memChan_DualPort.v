@@ -187,25 +187,10 @@ module MemoryChannel_DualPort #(
   localparam C_MCC_S_AXI_DATA_WIDTH  = 512;
   localparam cMCC_S_AXI_ID_WIDTH    = 4;
    
-  //OBSOLETE-20171212 localparam C0_C_S_AXI_ADDR_WIDTH  = 33;
-  //OBSOLETE-20171212 localparam C1_C_S_AXI_ADDR_WIDTH  = 33;
- 
-
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
-  
-  //OBSOLETE-20171213 wire         sTODO_1b0   =  1'b0;
-  //OBSOLETE-20171213 wire         sTODO_1b1   =  1'b1;
-  //OBSOLETE-20171213 wire  [ 1:0] sTODO_2b0   =  2'b0;
-  //OBSOLETE-20171213 wire  [ 2:0] sTODO_3b0   =  3'b0;
-  //OBSOLETE-20171213 wire  [ 3:0] sTODO_4b0   =  4'b0;
-  //OBSOLETE-20171213 wire  [ 7:0] sTODO_8b0   =  8'b0;
-  //OBSOLETE-20171213 wire  [31:0] sTODO_32b0  = 32'b0;
-  //OBSOLETE-20171213 wire  [32:0] sTODO_33b0  = 33'b0;
-  //OBSOLETE-20171213 wire  [63:0] sTODO_64b0  = 64'b0;
-  //OBSOLETE-20171213 wire [511:0] sTODO_512b0 = 512'b0;
-  
+    
   //-- SIGNAL DECLARATIONS : DATA MOVER #0 AND #1 ----------
   wire [0:0]   sDM0_Axi_WrAdd_Id,        sDM1_Axi_WrAdd_Id;
   wire [31:0]  sDM0_Axi_WrAdd_Addr,      sDM1_Axi_WrAdd_Addr;
@@ -213,11 +198,6 @@ module MemoryChannel_DualPort #(
   wire [2:0]   sDM0_Axi_WrAdd_Size,      sDM1_Axi_WrAdd_Size;
   wire [1:0]   sDM0_Axi_WrAdd_Burst,     sDM1_Axi_WrAdd_Burst;
   wire         sDM0_Axi_WrAdd_Valid,     sDM1_Axi_WrAdd_Valid;
-  
-  //OBSOLETE wire         S10_AXI_AWLOCK,          S11_AXI_AWLOCK;
-  //OBSOLETE wire [3:0]   S10_AXI_AWCACHE,         S11_AXI_AWCACHE;
-  //OBSOLETE wire [2:0]   S10_AXI_AWPROT,          S11_AXI_AWPROT;
-  //OBSOLETE wire [3:0]   S10_AXI_AWQOS,           S11_AXI_AWQOS;
   
   wire [511:0] sDM0_Axi_Write_Data,      sDM1_Axi_Write_Data;
   wire [63:0]  sDM0_Axi_Write_Strb,      sDM1_Axi_Write_Strb;
@@ -237,11 +217,6 @@ module MemoryChannel_DualPort #(
 
   wire [3:0]   sDM0_Axi_RdAdd_Id_x,      sDM1_Axi_RdAdd_Id_x;
   wire [3:0]   sDM0_Axi_WrAdd_Id_x,      sDM1_Axi_WrAdd_Id_x;  
-
-  //OBSOLETE-Nu wire         S10_AXI_ARLOCK,  S11_AXI_ARLOCK;
-  //OBSOLETE-Nu wire [3:0]   S10_AXI_ARCACHE, S11_AXI_ARCACHE;
-  //OBSOLETE-Nu wire [2:0]   S10_AXI_ARPROT,  S11_AXI_ARPROT;
-  //OBSOLETE-Nu wire [3:0]   S10_AXI_ARQOS,   S11_AXI_ARQOS;
   
   //-- SIGNAL DECLARATIONS : AXI INTERCONNECT --------------
   wire         sICT_S00_Axi_WrAdd_Ready, sICT_S01_Axi_WrAdd_Ready;
@@ -512,7 +487,7 @@ module MemoryChannel_DualPort #(
       //========================================================================
       //  INST: DATA MOVER #0 (slave data width = 512)
       //========================================================================
-      AxiDataMover_M512_S512_B16  DM0 (
+      AxiDataMover_M512_S512_B64  DM0 (
           
         //-- M_MM2S : Master Clocks and Resets inputs ----------
         .m_axi_mm2s_aclk            (piShlClk),
@@ -604,7 +579,7 @@ module MemoryChannel_DualPort #(
       //========================================================================
       //  INST: DATA MOVER #1 (slave data width = 512)
       //========================================================================
-      AxiDataMover_M512_S512_B16  DM1 (
+      AxiDataMover_M512_S512_B64  DM1 (
           
         //-- M_MM2S : Master Clocks and Resets inputs -------
         .m_axi_mm2s_aclk            (piShlClk),
