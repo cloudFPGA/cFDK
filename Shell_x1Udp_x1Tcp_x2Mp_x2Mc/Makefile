@@ -9,7 +9,7 @@
 # *
 # ******************************************************************************
 
-.PHONY: all hls_cores clean full_src shell_synth pkg_shell hls
+.PHONY: all hls_cores clean full_src shell_synth pkg_shell 
 
 #all: pkg_shell 
 all: full_src
@@ -21,9 +21,9 @@ hls_cores: hls
 hls: 
 	$(MAKE) -C ./hls/ 
 
-#directory as dependency: not the best solution but here the most practical one 
-ip: hls ./tcl/create_ip_cores.tcl
-	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log
+# directory as dependency: not the best solution but here the most practical one 
+ip: hls ./tcl/create_ip_cores.tcl 
+	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 
 xpr: ip
 	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force
