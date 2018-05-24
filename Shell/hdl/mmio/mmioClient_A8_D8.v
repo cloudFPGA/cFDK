@@ -80,6 +80,7 @@ module MmioClient_A8_D8 #(
   output  [ 4:0]  poMMIO_Eth0_TxPostCursor,
   output          poMMIO_Eth0_PcsLoopbackEn,
   output          poMMIO_Eth0_MacLoopbackEn,
+  output          poMMIO_Eth0_MacAddrSwapEn,
   
   //-- NTS0 : Status inputs and Control Outputs --
   output  [47:0]  poMMIO_Nts0_MacAddress,
@@ -325,7 +326,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg7C = 8'h00;
   localparam cDefReg7D = 8'h00;
   localparam cDefReg7E = 8'h00;
-  localparam cDefReg7F = 8'h00;  // DIAG_PAGESEL
+  //-- PAGE_REGS --------------
+  localparam cDefReg7F = 8'h00;  // PAGE_SEL
                          
  
   localparam cDefRegVal = {
@@ -550,6 +552,7 @@ module MmioClient_A8_D8 #(
   //---- DIAG_CTRL -----------------
   assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+0]; // RW
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+1]; // RW
+  assign poMMIO_Eth0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+2]; // RW
   
   //--------------------------------------------------------  
   //-- PAGE REGISTER

@@ -103,12 +103,9 @@ module TenGigEth (
   input  [ 4:0]     piMMIO_Eth0_TxPreCursor,
   input  [ 4:0]     piMMIO_Eth0_TxPostCursor,
   input             piMMIO_Eth0_PcsLoopbackEn,
-  input             piMMIO_Eth0_MacLoopbackEn,
   output            poETH0_Mmio_CoreReady,
   output            poETH0_Mmio_QpllLock,
   
-  //OBSOLETE-20180517 output            poETH0_Mmio_ResetDone,
-
   //-- ECON : Gigabit Transceivers ---------------
   input             piECON_Eth0_Gt_n,
   input             piECON_Eth0_Gt_p,
@@ -117,17 +114,17 @@ module TenGigEth (
    
   //-- LY3: Layer-3 Interface --------------------
   //---- Input AXI-Write Stream Interface ------
-  input     [63:0]  piLY3_Axis_tdata,
-  input     [7:0]   piLY3_Axis_tkeep,
-  input             piLY3_Axis_tvalid,
-  input             piLY3_Axis_tlast,
-  output            poLy3_Axis_tready,
+  input     [63:0]  piLY3_Eth0_Axis_tdata,
+  input     [7:0]   piLY3_Eth0_Axis_tkeep,
+  input             piLY3_Eth0_Axis_tlast,
+  input             piLY3_Eth0_Axis_tvalid,
+  output            poETH0_Ly3_Axis_tready,
   //---- Output AXI-Write Stream Interface ------
-  input             piLY3_Axis_tready,
-  output     [63:0] poLy3_Axis_tdata,
-  output     [7:0]  poLy3_Axis_tkeep,
-  output            poLy3_Axis_tvalid,
-  output            poLy3_Axis_tlast
+  input             piLY3_Eth0_Axis_tready,
+  output     [63:0] poETH0_Ly3_Axis_tdata,
+  output     [7:0]  poETH0_Ly3_Axis_tkeep,
+  output            poETH0_Ly3_Axis_tlast,
+  output            poETH0_Ly3_Axis_tvalid
   
   ); // End of PortList
    
@@ -243,20 +240,20 @@ module TenGigEth (
     //-- AXI4 Input Stream Interface -------------  
     .tx_axis_mac_aresetn              (sReset_n),
     .tx_axis_fifo_aresetn             (sReset_n),
-    .tx_axis_fifo_tdata               (piLY3_Axis_tdata),
-    .tx_axis_fifo_tkeep               (piLY3_Axis_tkeep),
-    .tx_axis_fifo_tvalid              (piLY3_Axis_tvalid),
-    .tx_axis_fifo_tlast               (piLY3_Axis_tlast),
-    .tx_axis_fifo_tready              (poLy3_Axis_tready),
+    .tx_axis_fifo_tdata               (piLY3_Eth0_Axis_tdata),
+    .tx_axis_fifo_tkeep               (piLY3_Eth0_Axis_tkeep),
+    .tx_axis_fifo_tvalid              (piLY3_Eth0_Axis_tvalid),
+    .tx_axis_fifo_tlast               (piLY3_Eth0_Axis_tlast),
+    .tx_axis_fifo_tready              (poETH0_Ly3_Axis_tready),
 
     //-- AXI4 Output Stream Interface ------------
     .rx_axis_fifo_aresetn             (sReset_n),
     .rx_axis_mac_aresetn              (sReset_n),
-    .rx_axis_fifo_tdata               (poLy3_Axis_tdata),
-    .rx_axis_fifo_tkeep               (poLy3_Axis_tkeep),
-    .rx_axis_fifo_tvalid              (poLy3_Axis_tvalid),
-    .rx_axis_fifo_tlast               (poLy3_Axis_tlast),
-    .rx_axis_fifo_tready              (piLY3_Axis_tready),
+    .rx_axis_fifo_tdata               (poETH0_Ly3_Axis_tdata),
+    .rx_axis_fifo_tkeep               (poETH0_Ly3_Axis_tkeep),
+    .rx_axis_fifo_tvalid              (poETH0_Ly3_Axis_tvalid),
+    .rx_axis_fifo_tlast               (poETH0_Ly3_Axis_tlast),
+    .rx_axis_fifo_tready              (piLY3_Eth0_Axis_tready),
     
     //-- ECON : Gigabit Transceivers -------------
     .txp                              (poETH0_Econ_Gt_p),

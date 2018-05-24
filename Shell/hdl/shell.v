@@ -453,6 +453,7 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
   //---- Diagnostic Registers Interface ----------
   wire          sMMIO_Eth0_PcsLoopbackEn;
   wire          sMMIO_Eth0_MacLoopbackEn;
+  wire          sMMIO_Eth0_MacAddrSwapEn;
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -495,6 +496,7 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
     .poMMIO_Eth0_TxPostCursor       (sMMIO_Eth0_TxPostCursor),
     .poMMIO_Eth0_PcsLoopbackEn      (sMMIO_Eth0_PcsLoopbackEn),
     .poMMIO_Eth0_MacLoopbackEn      (sMMIO_Eth0_MacLoopbackEn),
+    .poMMIO_Eth0_MacAddrSwapEn      (sMMIO_Eth0_MacAddrSwapEn),
     
     //-- NTS0: Status inputs and Control outputs ------
     .poMMIO_Nts0_MacAddress         (sMMIO_Nts0_MacAddress),
@@ -539,6 +541,7 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
         .piMMIO_Eth0_TxPostCursor     (sMMIO_Eth0_TxPostCursor),
         .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_Eth0_PcsLoopbackEn),
         .piMMIO_Eth0_MacLoopbackEn    (sMMIO_Eth0_MacLoopbackEn),
+        .piMMIO_MacAddrSwapEn         (sMMIO_Eth0_MacAddrSwapEn),
         .poETH0_Mmio_CoreReady        (sETH0_Mmio_CoreReady),
         .poETH0_Mmio_QpllLock         (sETH0_Mmio_QpllLock),
         
@@ -552,17 +555,17 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
 
         //-- NTS0: Network-Transport-Session ---------
         //---- Input AXI-Write Stream Interface ------
-        .piLY3_Axis_tdata             (sNTS0_Eth0_Axis_tdata),
-        .piLY3_Axis_tkeep             (sNTS0_Eth0_Axis_tkeep),
-        .piLY3_Axis_tvalid            (sNTS0_Eth0_Axis_tvalid),
-        .piLY3_Axis_tlast             (sNTS0_Eth0_Axis_tlast),
-        .poLy3_Axis_tready            (sETH0_Nts0_Axis_tready),
+        .piLY3_Eth0_Axis_tdata        (sNTS0_Eth0_Axis_tdata),
+        .piLY3_Eth0_Axis_tkeep        (sNTS0_Eth0_Axis_tkeep),
+        .piLY3_Eth0_Axis_tvalid       (sNTS0_Eth0_Axis_tvalid),
+        .piLY3_Eth0_Axis_tlast        (sNTS0_Eth0_Axis_tlast),
+        .poETH0_Ly3_Axis_tready       (sETH0_Nts0_Axis_tready),
         //---- Output AXI-Write Stream Interface -----
-        .piLY3_Axis_tready            (sNTS0_Eth0_Axis_tready),
-        .poLy3_Axis_tdata             (sETH0_Nts0_Axis_tdata),
-        .poLy3_Axis_tkeep             (sETH0_Nts0_Axis_tkeep),
-        .poLy3_Axis_tvalid            (sETH0_Nts0_Axis_tvalid),
-        .poLy3_Axis_tlast             (sETH0_Nts0_Axis_tlast)
+        .piLY3_Eth0_Axis_tready       (sNTS0_Eth0_Axis_tready),
+        .poETH0_Ly3_Axis_tdata        (sETH0_Nts0_Axis_tdata),
+        .poETH0_Ly3_Axis_tkeep        (sETH0_Nts0_Axis_tkeep),
+        .poETH0_Ly3_Axis_tvalid       (sETH0_Nts0_Axis_tvalid),
+        .poETH0_Ly3_Axis_tlast        (sETH0_Nts0_Axis_tlast)
 
       );  // End of UserCfg.ETH0
     
@@ -589,6 +592,7 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
         .piMMIO_Eth0_RxEqualizerMode  (sMMIO_Eth0_RxEqualizerMode),
         .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_Eth0_PcsLoopbackEn),
         .piMMIO_Eth0_MacLoopbackEn    (sMMIO_Eth0_MacLoopbackEn),
+        .piMMIO_Eth0_MacAddrSwapEn    (sMMIO_Eth0_MacAddrSwapEn),
         .poETH0_Mmio_CoreReady        (sETH0_Mmio_CoreReady),
         .poETH0_Mmio_QpllLock         (sETH0_Mmio_QpllLock),
         
@@ -600,18 +604,18 @@ module Shell_Udp_Tcp_McDp_4BEmif # (
         
         //-- NTS0: Network-Transport-Session ---------
         //---- Input AXI-Write Stream Interface ------
-        .piLY3_Axis_tdata             (sNTS0_Eth0_Axis_tdata),
-        .piLY3_Axis_tkeep             (sNTS0_Eth0_Axis_tkeep),
-        .piLY3_Axis_tvalid            (sNTS0_Eth0_Axis_tvalid),
-        .piLY3_Axis_tlast             (sNTS0_Eth0_Axis_tlast),
-        .poLy3_Axis_tready            (sETH0_Nts0_Axis_tready),
+        .piLY3_Eth0_Axis_tdata        (sNTS0_Eth0_Axis_tdata),
+        .piLY3_Eth0_Axis_tkeep        (sNTS0_Eth0_Axis_tkeep),
+        .piLY3_Eth0_Axis_tvalid       (sNTS0_Eth0_Axis_tvalid),
+        .piLY3_Eth0_Axis_tlast        (sNTS0_Eth0_Axis_tlast),
+        .poETH0_Ly3_Axis_tready       (sETH0_Nts0_Axis_tready),
         //---- Output AXI-Write Stream Interface -----
-        .piLY3_Axis_tready            (sNTS0_Eth0_Axis_tready),
-        .poLy3_Axis_tdata             (sETH0_Nts0_Axis_tdata),
-        .poLy3_Axis_tkeep             (sETH0_Nts0_Axis_tkeep),
-        .poLy3_Axis_tvalid            (sETH0_Nts0_Axis_tvalid),
-        .poLy3_Axis_tlast             (sETH0_Nts0_Axis_tlast)
-         
+        .piLY3_Eth0_Axis_tready       (sNTS0_Eth0_Axis_tready),
+        .poETH0_Ly3_Axis_tdata        (sETH0_Nts0_Axis_tdata),
+        .poETH0_Ly3_Axis_tkeep        (sETH0_Nts0_Axis_tkeep),
+        .poETH0_Ly3_Axis_tvalid       (sETH0_Nts0_Axis_tvalid),
+        .poETH0_Ly3_Axis_tlast        (sETH0_Nts0_Axis_tlast)
+       
        );  // End of SuperCfg.ETH0 
        
     end // if ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super"))

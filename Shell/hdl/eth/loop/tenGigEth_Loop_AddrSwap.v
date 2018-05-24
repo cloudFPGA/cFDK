@@ -7,8 +7,8 @@
 //------------------------------------------------------------------------------
 // Description: This is the address swapper block that swaps the source and 
 //              destination MAC addresses of every Ethernet frame that passes 
-//              through it when the loopback turn is enabled.
-//              When loopback turn is not enabled this module is transparent.
+//              through it when the 'MacAddrSwapEn' control signal is set.
+//              When 'MacAddrSwapEn' is not enabled this module is transparent.
 //------------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
@@ -63,7 +63,7 @@
 `timescale 1ps / 1ps
 
 // *****************************************************************************
-// **  MODULE - ETHERNET MAC ADDRESS SWAPPER
+// **  SWAP - ETHERNET MAC ADDRESS SWAPPER
 // *****************************************************************************
 
 module TenGigEth_Loop_AddrSwap (
@@ -72,23 +72,22 @@ module TenGigEth_Loop_AddrSwap (
   input              piEthCoreClk,
   input              piEthCoreResetDone,
   
-  // -- SWAP Enable ------------------------------
+  // -- MMIO: SWAP Enable ------------------------
   input              piSwapEn,
-  //OBSOLETE-20171127 input  enable_custom_preamble,
   
-  //-- SWAP Receive Interface --------------------
-  input       [63:0] pi_Axis_tdata,
-  input       [7:0]  pi_Axis_tkeep,
-  input              pi_Axis_tlast,
-  input              pi_Axis_tvalid,
-  output             po_Axis_tready,
+  //-- MUX : Input AXI-Write Stream Interface ----
+  input       [63:0] piMUX_Swap_Axis_tdata,
+  input       [7:0]  piMUX_Swap_Axis_tkeep,
+  input              piMUX_Swap_Axis_tlast,
+  input              piMUX_Swap_Axis_tvalid,
+  output             poSWAP_Mux_Axis_tready,
   
-  //-- SWAP Transmit Interface -------------------
-  input              pi_Axis_tready,
-  output      [63:0] po_Axis_tdata,
-  output      [7:0]  po_Axis_tkeep,
-  output             po_Axis_tlast,
-  output             po_Axis_tvalid
+  //-- LY2 : Output AXI-Write Stream Interface ---
+  input              piLY2_Swap_Axis_tready,
+  output      [63:0] poSWAP_Ly2_Axis_tdata,
+  output      [7:0]  poSWAP_Ly2_Axis_tkeep,
+  output             poSWAP_Ly2_Axis_tlast,
+  output             poSWAP_Ly2_Axis_tvalid
  
  );
  
@@ -121,8 +120,7 @@ module TenGigEth_Loop_AddrSwap (
   reg          sRxSofRegReg_n;
   
   reg          sRx_AxisLastReg;
-  //OBSOLETE-20171127 reg          rx_axis_tvalid_reg;
-
+ 
   wire         sAxisDataBeat;
 
   reg          sTx_AxisLastReg;
@@ -133,7 +131,7 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   //  COMB: CONTINUOUS INTERNAL ASSIGNMENTS
   //============================================================================
-  assign sAxisDataBeat = pi_Axis_tvalid & pi_Axis_tready;
+  assign sAxisDataBeat = piMUX_Swap_Axis_tvalid & piLY2_Swap_Axis_tready;
 
 
   //============================================================================
@@ -148,21 +146,21 @@ module TenGigEth_Loop_AddrSwap (
     else begin
       case (sStateReg)
         IDLE : begin
-          //OBSOLETE-20171127 if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & enable_custom_preamble & pi_Axis_tready) begin
+          //OBSOLETE-20171127 if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & enable_custom_preamble & piLY2_Swap_Axis_tready) begin
           //OBSOLETE-20171127   sStateReg <= PREAMBLE;
           //OBSOLETE-20171127 end
-          //OBSOLETE-20171127 else if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & !enable_custom_preamble & pi_Axis_tready) begin
+          //OBSOLETE-20171127 else if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & !enable_custom_preamble & piLY2_Swap_Axis_tready) begin
           //OBSOLETE-20171127   sRxSofReg_n <= 1;
           //OBSOLETE-20171127   sStateReg <= ADDR;
           //OBSOLETE-20171127 end
-          if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & pi_Axis_tready) begin
+          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
             sRxSofReg_n <= 1;
             sStateReg   <= ADDR;
           end
         end
         
         //OBSOLETE-20171127 PREAMBLE : begin
-        //OBSOLETE-20171127   if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & pi_Axis_tready) begin
+        //OBSOLETE-20171127   if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
         //OBSOLETE-20171127     sRxSofReg_n <= 1;
         //OBSOLETE-20171127   end
         //OBSOLETE-20171127   sStateReg <= ADDR;
@@ -170,20 +168,20 @@ module TenGigEth_Loop_AddrSwap (
         
         ADDR : begin
           sRxSofReg_n <= 0;
-          if (pi_Axis_tvalid & pi_Axis_tlast & pi_Axis_tready) begin
+          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tlast & piLY2_Swap_Axis_tready) begin
             sStateReg <= TLAST_SEEN;
           end
         end
         
         TLAST_SEEN : begin
-          //OBSOLETE-20171127 if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & enable_custom_preamble & pi_Axis_tready) begin
+          //OBSOLETE-20171127 if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & enable_custom_preamble & piLY2_Swap_Axis_tready) begin
           //OBSOLETE-20171127   sStateReg <= PREAMBLE;
           //OBSOLETE-20171127 end
-          //OBSOLETE-20171127 else if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & !enable_custom_preamble & pi_Axis_tready) begin
+          //OBSOLETE-20171127 else if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & !enable_custom_preamble & piLY2_Swap_Axis_tready) begin
           //OBSOLETE-20171127   sRxSofReg_n <= 1;
           //OBSOLETE-20171127   sStateReg <= ADDR;
           //OBSOLETE-20171127 end
-          if (pi_Axis_tvalid & pi_Axis_tkeep != 0 & pi_Axis_tready) begin
+          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
             sRxSofReg_n <= 1;
             sStateReg   <= ADDR;
           end
@@ -207,18 +205,16 @@ module TenGigEth_Loop_AddrSwap (
        sRx_AxisLastReg    <= 1'b0;
        
        data_stored_n             <= 1'b0;
-       //OBSOLETE-20171127 rx_axis_tvalid_reg        <= 1'b0;
     end
     else begin
-       //OBSOLETE-20171127 rx_axis_tvalid_reg <= piRx_AxiValid;
        sRx_AxisLastReg  <= 1'b0;
        if (sAxisDataBeat) begin
           data_stored_n     <= 1'b1;
-          sRx_AxisDataReg    <= pi_Axis_tdata;
+          sRx_AxisDataReg    <= piMUX_Swap_Axis_tdata;
           sRx_AxisDataRegReg <= sRx_AxisDataReg[47:16];
-          sRx_AxisKeepReg    <= pi_Axis_tkeep;
+          sRx_AxisKeepReg    <= piMUX_Swap_Axis_tkeep;
           sRxSofRegReg_n    <= sRxSofReg_n;
-          sRx_AxisLastReg    <= pi_Axis_tlast;
+          sRx_AxisLastReg    <= piMUX_Swap_Axis_tlast;
  
        end
        else if (!sAxisDataBeat && sRx_AxisLastReg) begin
@@ -233,11 +229,11 @@ module TenGigEth_Loop_AddrSwap (
   //  COMB: SWAP MAC ADDRESSES (Only when SofReg or SofRegReg)
   //============================================================================
   always @(sRxSofReg_n or sRxSofRegReg_n or
-           pi_Axis_tdata or sRx_AxisDataReg or sRx_AxisDataRegReg)
+           piMUX_Swap_Axis_tdata or sRx_AxisDataReg or sRx_AxisDataRegReg)
   begin
     if (sRxSofReg_n)
       sTx_AxisData <= {sRx_AxisDataReg[15:0],
-                     pi_Axis_tdata[31:0],
+                     piMUX_Swap_Axis_tdata[31:0],
                      sRx_AxisDataReg[63:48]};
     else if (sRxSofRegReg_n)
       sTx_AxisData <= {sRx_AxisDataReg[63:32],
@@ -259,7 +255,7 @@ module TenGigEth_Loop_AddrSwap (
       sTx_AxisLastReg  <= 1'b0;
     end
     else begin
-      if (pi_Axis_tready) begin
+      if (piLY2_Swap_Axis_tready) begin
         sTx_AxisDataReg  <= sTx_AxisData;
         sTx_AxisKeepReg  <= sRx_AxisKeepReg;
         sAxisDataBeatReg <= sAxisDataBeat;
@@ -273,10 +269,11 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign po_Axis_tvalid = (piSwapEn) ? sTx_AxisValidReg : pi_Axis_tvalid;
-  assign po_Axis_tdata  = (piSwapEn) ? sTx_AxisDataReg  : pi_Axis_tdata;
-  assign po_Axis_tkeep  = (piSwapEn) ? sTx_AxisKeepReg  : pi_Axis_tkeep;
-  assign po_Axis_tlast  = (piSwapEn) ? (sTx_AxisLastReg & pi_Axis_tready & sTx_AxisValidReg) : pi_Axis_tlast;
-  assign po_Axis_tready = pi_Axis_tready;
+  assign poSWAP_Ly2_Axis_tdata  = (piSwapEn) ? sTx_AxisDataReg  : piMUX_Swap_Axis_tdata;
+  assign poSWAP_Ly2_Axis_tkeep  = (piSwapEn) ? sTx_AxisKeepReg  : piMUX_Swap_Axis_tkeep;
+  assign poSWAP_Ly2_Axis_tlast  = (piSwapEn) ? (sTx_AxisLastReg & piLY2_Swap_Axis_tready & sTx_AxisValidReg) : piMUX_Swap_Axis_tlast;
+  assign poSWAP_Ly2_Axis_tvalid = (piSwapEn) ? sTx_AxisValidReg : piMUX_Swap_Axis_tvalid;
+  
+  assign poSWAP_Mux_Axis_tready = piLY2_Swap_Axis_tready;
 
 endmodule
