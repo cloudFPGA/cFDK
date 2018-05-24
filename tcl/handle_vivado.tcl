@@ -269,15 +269,15 @@ if { ${create} } {
 
         # Add *ALL* the HDL Source Files for the SHELL
         #-------------------------------------------------------------------------------
-        add_files     ${rootDir}/../../SHELL/Shell/hdl/
+        add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
         my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
         
         # IP Cores SHELL
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #-------------------------------------------------------------------------------
-        set ipDirShell ${rootDir}/../../SHELL/Shell/ip/
-        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
+        set ipDirShell ${rootDir}/../../SHELL/${usedShellType}/ip/
+        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         update_ip_catalog
         my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
         
@@ -298,7 +298,7 @@ if { ${create} } {
         
         # Add Constraints Files SHELL
         #---------------------------------------------------------------------
-        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
+        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/${usedShellType}/xdc/*.xdc ]
         
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
@@ -474,9 +474,9 @@ if { ${synth} } {
 if { ${link} } { 
   
 
-  if { ! ${create} } {
-     open_project ${xprDir}/${xprName}.xpr
-  }
+  #if { ! ${create} } {
+     catch {open_project ${xprDir}/${xprName}.xpr} 
+  #}
   set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
   add_files ${roleDcpFile}
   update_compile_order -fileset sources_1
@@ -529,9 +529,9 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-    if { ! ${create} } {
-        open_project ${xprDir}/${xprName}.xpr
-    }
+    #if { ! ${create} } {
+        catch {open_project ${xprDir}/${xprName}.xpr}
+    #}
   
     set_property needs_refresh false [get_runs synth_1]
     

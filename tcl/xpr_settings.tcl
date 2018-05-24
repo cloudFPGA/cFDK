@@ -22,7 +22,8 @@ set xilPartName  "xcku060-ffva1156-2-i"
 set topName      "topFlash"
 set topFile      "topFlash.vhdl"
 
-set usedRoleType "Role_Udp_Tcp_McDp_4BEmif"
+set usedRoleType  "Role_x1Udp_x1Tcp_x2Mp"
+set usedShellType "Shell_x1Udp_x1Tcp_x2Mp_x2Mc"
 
 #-------------------------------------------------------------------------------
 # TOP  Project Settings  

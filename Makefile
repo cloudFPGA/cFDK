@@ -10,7 +10,7 @@
 # ******************************************************************************
 
 # NO HEADING OR TRAILING SPACES!!
-SHELL_DIR =../../SHELL/Shell
+SHELL_DIR =../../SHELL/Shell_x1Udp_x1Tcp_x2Mp_x2Mc
 ROLE_DIR =../../ROLE
 USED_ROLE =RoleFlash
 USED_ROLE_2 =RoleFlash_V2
@@ -30,7 +30,7 @@ RoleFlash:
 
 RoleFlash_V2:
 	$(MAKE) -C $(ROLE_DIR)/$@
-	
+
 ShellSrc:
 	$(MAKE) -C $(SHELL_DIR) full_src
 
@@ -53,4 +53,6 @@ ip_based:
 clean: 
 	$(MAKE) -C ./tcl/ clean
 	rm -rf ./xpr/ 
+	#TODO discuss if delete dcps
+	rm -rf ./dcps/
 
