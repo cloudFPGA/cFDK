@@ -484,13 +484,12 @@ architecture structural of topFlash is
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
   component Role_x1Udp_x1Tcp_x2Mp
       port (
-        ---- Global Clock used by the entire ROLE --------------
-        ------ This is the same clock as the SHELL -------------
+      
+        ------------------------------------------------------
+        -- SHELL / Global Input Clock and Reset Interface
+        ------------------------------------------------------
         piSHL_156_25Clk                     : in    std_ulogic;
-    
-        ---- TOP : topFMKU60 Interface -------------------------
-        piTOP_Reset                         : in    std_ulogic;
-        piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+        piSHL_156_25Rst                     : in    std_ulogic;
         
         --------------------------------------------------------
         -- SHELL / Role / Nts0 / Udp Interface
@@ -596,6 +595,12 @@ architecture structural of topFlash is
         poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
         poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic; 
         
+        ------------------------------------------------
+        ---- TOP : Secondary Clock (Asynchronous)
+        ------------------------------------------------
+        --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
+        piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+      
         poVoid                              : out   std_ulogic          
       );
     end component Role_x1Udp_x1Tcp_x2Mp;
@@ -862,14 +867,13 @@ begin
   --==========================================================================
   ROLE : Role_x1Udp_x1Tcp_x2Mp
     port map (
-      -- Global Clock used by the entire ROLE --------------
-      ---- This is the same 156.25MHz clock as the SHELL ---
+    
+      ------------------------------------------------------
+      -- SHELL / Global Input Clock and Reset Interface
+      ------------------------------------------------------
       piSHL_156_25Clk                     => sSHL_156_25Clk,
-      
-      -- TOP : topFMKU60 Interface -------------------------
-      piTOP_Reset                         => sTOP_156_25Rst,
-      piTOP_250_00Clk                     => sTOP_250_00Clk,  -- Freerunning
-      
+      piSHL_156_25Rst                     => sSHL_156_25Rst,
+            
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
@@ -974,6 +978,12 @@ begin
       poROL_Shl_Mem_Mp1_Axis_Write_tlast  => sROL_Shl_Mem_Mp1_Axis_Write_tlast,
       poROL_Shl_Mem_Mp1_Axis_Write_tvalid => sROL_Shl_Mem_Mp1_Axis_Write_tvalid,
       
+      ------------------------------------------------
+      ---- TOP : Secondary Clock (Asynchronous)
+      ------------------------------------------------
+      --OBSOLETE-20180524 piTOP_Reset     => sTOP_156_25Rst,
+      piTOP_250_00Clk                     => sTOP_250_00Clk,  -- Freerunning
+   
       poVoid                              => open  
   
   );  -- End of Role instantiation
