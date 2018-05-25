@@ -218,7 +218,9 @@ void tai_open_connection(
  *****************************************************************************/
 void tai_listen_port_status(
 		stream<ap_uint<16> >& 	listenPort,
-		stream<bool>& 			listenPortStatus)
+		stream<bool>& 			listenPortStatus,
+		ap_uint<16>				listen_port1,
+		ap_uint<16>				listen_port2)
 {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE OFF
@@ -228,7 +230,8 @@ void tai_listen_port_status(
 
 	// Open/Listen on Port at startup
 	if (!listenDone && !waitPortStatus && !listenPort.full()) {
-		listenPort.write(80);
+		//listenPort.write(80);
+		listenPort.write(listen_port1);
 		waitPortStatus = true;
 	} else if (waitPortStatus && !listenPortStatus.empty()) { // Check if listening on Port was successful, otherwise try again
 		listenPortStatus.read(listenDone);
@@ -545,7 +548,8 @@ static stream<axiWord>  buff_data("buff_data");
 #pragma HLS STREAM variable=buff_data depth=1024
 
 	tai_open_connection(oOpenConnection, iOpenConStatus, oCloseConnection);
-	tai_listen_port_status(oListenPort, iListenPortStatus);
+	//tai_listen_port_status(oListenPort, iListenPortStatus);
+	tai_listen_port_status(oListenPort, iListenPortStatus, listen_port1, listen_port2);
 
 	tai_listen_new_data(iNotifications, oReadRequest, w_entry);
 
