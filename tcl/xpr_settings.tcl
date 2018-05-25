@@ -23,7 +23,13 @@ set topName      "topFlash"
 set topFile      "topFlash.vhdl"
 
 set usedRoleType  "Role_x1Udp_x1Tcp_x2Mp"
-set usedShellType "Shell_x1Udp_x1Tcp_x2Mp_x2Mc"
+set usedShellType "Shell_x1Udp_x1Tcp_x2Mp_x2Mc" 
+
+#TODO !!! 
+# usedRole = Dir name; usedRoleType = Entity name 
+# BUT: usedShellType = Entity and DIR name 
+# -> FIX 
+
 
 #-------------------------------------------------------------------------------
 # TOP  Project Settings  

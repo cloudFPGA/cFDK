@@ -316,19 +316,18 @@ if { ${create} } {
         # [TODO] my_dbg_trace "Done with the creation and customization of the SHELL-IP (.i.e SuperShell)." ${dbgLvl_1}
     }
 
-#TODO PR   
-if { $forceWithoutBB } {
- # Add HDL Source Files for the ROLE
-    #-----------------------------------
-    add_files -norecurse ${rootDir}/../../ROLE/RoleFlash/hdl/roleFlash.vhdl  
-    update_compile_order -fileset sources_1
-    my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
-
-
-    # Update Compile Order
-    #-------------------------------------------------------------------------------
-    update_compile_order -fileset sources_1
-   }
+    if { $forceWithoutBB } {
+     # Add HDL Source Files for the ROLE
+        #-----------------------------------
+        add_files  ${rootDir}/../../ROLE/${usedRole}/hdl/
+        update_compile_order -fileset sources_1
+        my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
+    
+    
+        # Update Compile Order
+        #-------------------------------------------------------------------------------
+        update_compile_order -fileset sources_1
+    }
 
     # Create 'constrs_1' fileset (if not found)
     #-------------------------------------------------------------------------------
@@ -502,7 +501,7 @@ if { ${link} } {
         exit ${KO}
     }
     my_puts "################################################################################"
-    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}"
+    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
 
     write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
@@ -511,7 +510,7 @@ if { ${link} } {
   }
 
   my_puts "################################################################################"
-  my_puts "## DONE WITH DESIGN LINKING; PBLOCK CREATED; .dcp SAVED" 
+  my_puts "## DONE WITH DESIGN LINKING; .dcp SAVED" 
   my_puts "################################################################################"
   my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n" 
 
@@ -688,7 +687,9 @@ if { $pr_verify } {
 
 if { $bitGen } {
 
+  if { ! $forceWithoutBB } {  
     catch {close_project}
+  }
 
     my_puts "################################################################################"
     my_puts "##"
@@ -699,7 +700,7 @@ if { $bitGen } {
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
     
     if { ${forceWithoutBB} } {
-      open_project ${xprDir}/${xprName}.xpr
+      catch {open_project ${xprDir}/${xprName}.xpr} 
       set implObj [ get_runs impl_1 ]
       set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
       set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}

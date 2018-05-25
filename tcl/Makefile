@@ -37,13 +37,14 @@ ROLE_DIR =../../../ROLE
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 
+CLEAN_TYPES = *.log *.jou *.str
+
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd
 all: full_src_pr
 
 
 clean:
-	rm -f  ./*.log
-	rm -f  ./*.jou
+	rm -rf $(CLEAN_TYPES)
 
 
 ../dcps: 
