@@ -24,13 +24,15 @@
 -- *    that is specified here as a 'ROLE'. Such a role is referred to as a
 -- *    "superuser" role because it cannot be instantiated by a non-priviledged
 -- *    cloudFPGA user. 
--- *   
 -- *
--- *    This Flash role implements the following interfaces with the shell:
--- *      - two AXI stream interfaces to the Network-Transport-Session (NTS0),
--- *      - two AXI stream interfaces to the DDR4 Memory Channel (MC1).
--- * 
--- * Parameters:
+-- *    As the name of the entity indicates, this ROLE implements the following
+-- *    interfaces with the SHELL:
+-- *      - one UDP port interface (based on the AXI4-Stream interface), 
+-- *      - one TCP port interface (based on the AXI4-Stream interface),
+-- *      - two Memory Port interfaces (based on the MM2S and S2MM AXI4-Stream
+-- *        interfaces described in PG022-AXI-DataMover).
+-- *
+-- * Parameters: None.
 -- *
 -- * Comments:
 -- *
@@ -56,14 +58,13 @@ use     UNISIM.vcomponents.all;
 
 entity Role_x1Udp_x1Tcp_x2Mp is
   port (
-    ---- Global Clock used by the entire ROLE --------------
-    ------ This is the same clock as the SHELL -------------
-    piSHL_156_25Clk                     : in    std_ulogic;
 
-    ---- TOP : topFMKU60 Interface -------------------------
-    piTOP_Reset                         : in    std_ulogic;
-    piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-    
+    ------------------------------------------------------
+    -- SHELL / Global Input Clock and Reset Interface
+    ------------------------------------------------------
+    piSHL_156_25Clk                     : in    std_ulogic;
+    piSHL_156_25Rst                     : in    std_ulogic;
+
     --------------------------------------------------------
     -- SHELL / Role / Nts0 / Udp Interface
     --------------------------------------------------------
@@ -168,6 +169,12 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
     poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic;
     
+    ------------------------------------------------
+    ---- TOP : Secondary Clock (Asynchronous)
+    ------------------------------------------------
+    --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
+    piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+    
     poVoid                              : out   std_ulogic
 
   );
@@ -179,46 +186,31 @@ end Role_x1Udp_x1Tcp_x2Mp;
 -- **  ARCHITECTURE  **  FLASH of ROLE 
 -- *****************************************************************************
 
--- CAVE: MULTIPLE ARCHITECTURE IN THE SAME FILE ISN'T TESTED FOR PARTIAL RECONFIGURATION
-
---architecture Flash of Role is
-
-----  -- [INFO] - Add your vhdl declarations here.
-----  signal sVoid : std_ulogic;
-  
---begin
-  
-----  -- [INFO] - Add your vhdl statements here.
-----  sVoid <= '0';
-  
---end architecture Flash;
-
-
---*****************************************************************************
---**  ARCHITECTURE  **  VOID of ROLE 
---**    This is a temporary architecture for testing the elaboration, synthesis
---**    and implementation flow in Vivado. The architecture implements basic
---**    signal assignments to avoid undefined content of the entity 'Role'.
---*****************************************************************************
-
-architecture Void of Role_x1Udp_x1Tcp_x2Mp is
+architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 
   --============================================================================
-  -- TEMPORARY PROC: ROLE / Nts0 / Udp Interface to AVOID UNDEFINED CONTENT
-  --============================================================================
-  ------ Input AXI-Write Stream Interface --------
+  --  SIGNAL DECLARATIONS
+  --============================================================================  
+
+  ------------------------------------------------------
+  -- ROLE / Nts0 / Udp Interfaces
+  ------------------------------------------------------
+  ------ Input AXI-Write Stream Interface         ------
   signal sROL_Shl_Nts0_Udp_Axis_tready      : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tlast       : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;
-  ------ Output AXI-Write Stream Interface -------
+  ------ Output AXI-Write Stream Interface        ------
   signal sROL_Shl_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
   signal sROL_Shl_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sROL_Shl_Nts0_Udp_Axis_tlast       : std_ulogic;
   signal sROL_Shl_Nts0_Udp_Axis_tvalid      : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tready      : std_ulogic;
-  
+
+
+
+
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Tcp Interface to AVOID UNDEFINED CONTENT
   --============================================================================
@@ -234,7 +226,7 @@ architecture Void of Role_x1Udp_x1Tcp_x2Mp is
   signal sROL_Shl_Nts0_Tcp_Axis_tlast       : std_ulogic;
   signal sROL_Shl_Nts0_Tcp_Axis_tvalid      : std_ulogic;
   signal sSHL_Rol_Nts0_Tcp_Axis_tready      : std_ulogic;
-
+  
   --============================================================================
   -- TEMPORARY PROC: ROLE / Mem / Mp0 Interface to AVOID UNDEFINED CONTENT
   --============================================================================
@@ -273,53 +265,57 @@ architecture Void of Role_x1Udp_x1Tcp_x2Mp is
  
 begin
  
-
-  -- write constant to EMIF Register to test read out 
-  poROL_SHL_EMIF_2B_Reg <= x"BEEF";
-
-  pUdpRead : process(piSHL_156_25Clk)
+  ------------------------------------------------------------------------------------------------
+  -- PROC: ECHO PASS-THROUGH UDP
+  --  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the UDP
+  --  connection. The echo is said to operate in "pass-through" mode because every received
+  --  packet is sent back without being stored by the role.
+  ------------------------------------------------------------------------------------------------
+  pEchoUdp : process(piSHL_156_25Clk)
   begin
     if rising_edge(piSHL_156_25Clk) then
-      sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
-      sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
-      sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
-      sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+      if (piSHL_156_25Rst = '1') then
+        poROL_Shl_Nts0_Udp_Axis_tdata   <= (others => '0');
+        poROL_Shl_Nts0_Udp_Axis_tkeep   <= (others => '0');
+        poROL_Shl_Nts0_Udp_Axis_tlast   <= '0';
+        poROL_Shl_Nts0_Udp_Axis_tvalid  <= '0';
+      elsif (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+        if (piSHL_Rol_Nts0_Udp_Axis_tvalid = '1') then
+          poROL_Shl_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+          poROL_Shl_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+          poROL_Shl_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+          poROL_Shl_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+        end if;
+      end if;
     end if;
-    poROL_Shl_Nts0_Udp_Axis_tready <= sSHL_Rol_Nts0_Udp_Axis_tready;
-  end process pUdpRead;
+  end process pEchoUdp;
+  
+  ------------------------------------------------------------------------------------------------
+  -- PROC: ECHO PASS-THROUGH TCP
+  --  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the TCP
+  --  connection. The echo is said to operate in "pass-through" mode because every received
+  --  packet is sent back without being stored by the role.
+  ------------------------------------------------------------------------------------------------
+  pEchoTcp : process(piSHL_156_25Clk)
+  begin
+    if rising_edge(piSHL_156_25Clk) then
+      if (piSHL_156_25Rst = '1') then
+        poROL_Shl_Nts0_Tcp_Axis_tdata   <= (others => '0');
+        poROL_Shl_Nts0_Tcp_Axis_tkeep   <= (others => '0');
+        poROL_Shl_Nts0_Tcp_Axis_tlast   <= '0';
+        poROL_Shl_Nts0_Tcp_Axis_tvalid  <= '0';
+      elsif (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+        if (piSHL_Rol_Nts0_Tcp_Axis_tvalid = '1') then
+          poROL_Shl_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
+          poROL_Shl_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
+          poROL_Shl_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+          poROL_Shl_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
+        end if;
+      end if;
+    end if;
+  end process pEchoTcp;
  
-  pUdpWrite : process(piSHL_156_25Clk)
-  begin
-    if rising_edge(piSHL_156_25Clk) then
-      sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
-    end if;
-    poROL_Shl_Nts0_Udp_Axis_tdata  <= sSHL_Rol_Nts0_Udp_Axis_tdata;
-    poROL_Shl_Nts0_Udp_Axis_tkeep  <= sSHL_Rol_Nts0_Udp_Axis_tkeep;
-    poROL_Shl_Nts0_Udp_Axis_tlast  <= sSHL_Rol_Nts0_Udp_Axis_tlast;
-    poROL_Shl_Nts0_Udp_Axis_tvalid <= sSHL_Rol_Nts0_Udp_Axis_tvalid;
-  end process pUdpWrite;
-
-  pTcpRead : process(piSHL_156_25Clk)
-  begin
-    if rising_edge(piSHL_156_25Clk) then
-      sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
-      sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;  
-      sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
-      sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
-    end if;
-    poROL_Shl_Nts0_Tcp_Axis_tready <= sSHL_Rol_Nts0_Tcp_Axis_tready;
-  end process pTcpRead;
-
-  pTcpWrite : process(piSHL_156_25Clk)
-  begin
-    if rising_edge(piSHL_156_25Clk) then
-      sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
-    end if;
-    poROL_Shl_Nts0_Tcp_Axis_tdata  <= sSHL_Rol_Nts0_Tcp_Axis_tdata;
-    poROL_Shl_Nts0_Tcp_Axis_tkeep  <= sSHL_Rol_Nts0_Tcp_Axis_tkeep;
-    poROL_Shl_Nts0_Tcp_Axis_tlast  <= sSHL_Rol_Nts0_Tcp_Axis_tlast;
-    poROL_Shl_Nts0_Tcp_Axis_tvalid <= sSHL_Rol_Nts0_Tcp_Axis_tvalid;
-  end process pTcpWrite;
+  
   
   pMp0RdCmd : process(piSHL_156_25Clk)
   begin
@@ -378,6 +374,12 @@ begin
     poROL_Shl_Mem_Mp0_Axis_Write_tlast  <= '0';
     poROL_Shl_Mem_Mp0_Axis_Write_tvalid <= '0';
   end process pMp0Write;
+
+
   
-end architecture Void;
+  -- write constant to EMIF Register to test read out 
+  poROL_SHL_EMIF_2B_Reg <= x"BEEF";
+
+  
+end architecture Flash;
   
