@@ -14,7 +14,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "RoleEchoStoreAndForward"
+set projectName    "role_echo_store_and_forward"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
@@ -32,7 +32,7 @@ set currDir      [pwd]
 set srcDir       ${currDir}/src
 set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../../ip
+# [FIXME] set repoDir      ${currDir}/../../ip
 
 # Open and Setup Project
 #-------------------------------------------------
