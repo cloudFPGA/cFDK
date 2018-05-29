@@ -5,6 +5,7 @@ all: udp_prj
 
 udp_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
+	@touch $@
 
 clean:
 	${RM} -rf udp_prj
