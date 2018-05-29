@@ -279,19 +279,25 @@ begin
         poROL_Shl_Nts0_Udp_Axis_tkeep   <= (others => '0');
         poROL_Shl_Nts0_Udp_Axis_tlast   <= '0';
         poROL_Shl_Nts0_Udp_Axis_tvalid  <= '0';
+        sROL_Shl_Nts0_Udp_Axis_tready   <= '0';
       else
         -- Always
-        poROL_Shl_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
+        sROL_Shl_Nts0_Udp_Axis_tready  <= piSHL_Rol_Nts0_Udp_Axis_tready;
         poROL_Shl_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid and
-                                          piROL_Shl_Nts0_Udp_Axis_tready;
+                                          sROL_Shl_Nts0_Udp_Axis_tready;
         -- Register the inputs
-        if (piSHL_Rol_Nts0_Udp_Axis_tvalid = '1') and (poROL_Shl_Nts0_Udp_Axis_tready = '1') then
+        if (piSHL_Rol_Nts0_Udp_Axis_tvalid = '1' and sROL_Shl_Nts0_Udp_Axis_tready = '1') then
           poROL_Shl_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
           poROL_Shl_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
           poROL_Shl_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
         end if;
-    end if;
+      end if;
+    end if;     
   end process pEchoUdp;
+      
+  -- Output Ports Assignment
+  poROL_Shl_Nts0_Udp_Axis_tready <= sROL_Shl_Nts0_Udp_Axis_tready;
+  
   
   ------------------------------------------------------------------------------------------------
   -- PROC: ECHO PASS-THROUGH TCP
@@ -307,13 +313,14 @@ begin
         poROL_Shl_Nts0_Tcp_Axis_tkeep   <= (others => '0');
         poROL_Shl_Nts0_Tcp_Axis_tlast   <= '0';
         poROL_Shl_Nts0_Tcp_Axis_tvalid  <= '0';
+        sROL_Shl_Nts0_Tcp_Axis_tready   <= '0';
       else
         -- Always
-        poROL_Shl_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
+        sROL_Shl_Nts0_Tcp_Axis_tready  <= piSHL_Rol_Nts0_Tcp_Axis_tready;
         poROL_Shl_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid and
-                                          piROL_Shl_Nts0_Tcp_Axis_tready;
+                                          sROL_Shl_Nts0_Tcp_Axis_tready;
         -- Register the inputs
-        if (piSHL_Rol_Nts0_Tcp_Axis_tvalid = '1') and (poROL_Shl_Nts0_Tcp_Axis_tready = '1') then
+        if (piSHL_Rol_Nts0_Tcp_Axis_tvalid = '1' and sROL_Shl_Nts0_Tcp_Axis_tready = '1') then
           poROL_Shl_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
           poROL_Shl_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
           poROL_Shl_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
@@ -322,6 +329,12 @@ begin
     end if;
   end process pEchoTcp;
  
+  -- Output Ports Assignment
+  poROL_Shl_Nts0_Tcp_Axis_tready <= sROL_Shl_Nts0_Tcp_Axis_tready;
+  
+  
+  
+  
   
   
   pMp0RdCmd : process(piSHL_156_25Clk)
