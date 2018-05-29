@@ -5,6 +5,7 @@ all: arp_server_prj
 
 arp_server_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
+	@touch $@
 
 clean:
 	${RM} -rf arp_server_prj
