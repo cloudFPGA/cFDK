@@ -524,12 +524,12 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  assign poMMIO_Nts0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
-  assign poMMIO_Nts0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
-  assign poMMIO_Nts0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
-  assign poMMIO_Nts0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
-  assign poMMIO_Nts0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
-  assign poMMIO_Nts0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
+  assign poMMIO_Nts0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
+  assign poMMIO_Nts0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
+  assign poMMIO_Nts0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
+  assign poMMIO_Nts0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
+  assign poMMIO_Nts0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
+  assign poMMIO_Nts0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
   
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
@@ -539,10 +539,10 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poMMIO_Nts0_IpAddress[31:24] = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];  // RW
-  assign poMMIO_Nts0_IpAddress[23:16] = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];  // RW
-  assign poMMIO_Nts0_IpAddress[15: 8] = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];  // RW
-  assign poMMIO_Nts0_IpAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];  // RW
+  assign poMMIO_Nts0_IpAddress[31:24] = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];  // RW
+  assign poMMIO_Nts0_IpAddress[23:16] = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];  // RW
+  assign poMMIO_Nts0_IpAddress[15: 8] = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];  // RW
+  assign poMMIO_Nts0_IpAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];  // RW
   
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS
