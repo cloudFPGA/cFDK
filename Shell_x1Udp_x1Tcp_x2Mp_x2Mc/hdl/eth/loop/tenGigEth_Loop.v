@@ -88,7 +88,7 @@ module TenGigEth_Loop (
   input         piLY3_Elp_Axis_tvalid,
   output        poELP_Ly3_Axis_tready,
         
-  // LY3 : Input AXI-Write Stream Interface -------
+  // LY3 : Output AXI-Write Stream Interface ------
   input         piLY3_Elp_Axis_tready,
   output [63:0] poELP_Ly3_Axis_tdata,
   output [ 7:0] poELP_Ly3_Axis_tkeep,
