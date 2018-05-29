@@ -66,7 +66,7 @@ module NetworkTransportSession_TcpIp (
   output         poNTS0_Eth0_Axis_tlast,
   output         poNTS0_Eth0_Axis_tvalid,
   input          piETH0_Nts0_Axis_tready,
-
+ 
   //------------------------------------------------------
   //-- MEM / Nts0 / TxP Interfaces
   //------------------------------------------------------
@@ -175,6 +175,18 @@ module NetworkTransportSession_TcpIp (
   
 ); // End of PortList
    
+
+//----------------------------------------------------------------------------
+//  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
+//----------------------------------------------------------------------------
+(* mark_debug = "true" *)  wire  [ 63:0]  piETH0_Nts0_Axis_tdata;
+(* mark_debug = "true" *)  wire  [ 7:0]   piETH0_Nts0_Axis_tkeep;
+(* mark_debug = "true" *)  wire           piETH0_Nts0_Axis_tlast;
+(* mark_debug = "true" *)  wire           piETH0_Nts0_Axis_tvalid;
+(* mark_debug = "true" *)  wire           poNTS0_Eth0_Axis_tready;
+
+(* mark_debug = "true" *)  wire  [ 47:0]  piMMIO_Nts0_MacAddress;
+(* mark_debug = "true" *)  wire  [ 31:0]  piMMIO_Nts0_IpAddress;
 
    
 // *****************************************************************************
@@ -379,7 +391,7 @@ module NetworkTransportSession_TcpIp (
   wire  [ 7:0]  sURIF_Rol_Axis_tkeep;
   wire          sURIF_Rol_Axis_tlast;
   wire          sURIF_Rol_Axis_tvalid;
-  wire          sROLE_Nts0_Udp_Axis_treadyReg;
+  wire          sROL_Urif_Axis_treadyReg;
   
   //------------------------------------------------------------------
   //-- TRIF = USER-ROLE-INTERFACE
@@ -415,7 +427,7 @@ module NetworkTransportSession_TcpIp (
   wire  [ 7:0]  sTRIF_Rol_Axis_tkeep;
   wire          sTRIF_Rol_Axis_tlast;
   wire          sTRIF_Rol_Axis_tvalid;
-  wire          sROLE_Nts0_Tcp_Axis_treadyReg;
+  wire          sROL_Trif_Axis_treadyReg;
 
   //------------------------------------------------------------------
   //-- TOE = TCP-OFFLOAD-ENGINE
@@ -630,7 +642,7 @@ module NetworkTransportSession_TcpIp (
     .regIpAddress_V           (piMMIO_Nts0_IpAddress)
 
   ); // End of IPRX
-    
+      
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
 //    .s_dataIn_TVALID(rx_data_TVALID),                  
@@ -1008,8 +1020,8 @@ module NetworkTransportSession_TcpIp (
     // Debug signals //
     ////////////////////
     .regIpAddress_V                     (piMMIO_Nts0_IpAddress),
-    .relSessionCount_V                  (relSessionCount),        // output wire [15 : 0] relSessionCount_V
-    .regSessionCount_V                  (regSessionCount)         // output wire [15 : 0] regSessionCount_V
+    .relSessionCount_V                  (),                       // [FIXME] was (relSessionCount)
+    .regSessionCount_V                  ()                        // [FIXME] was (relSessionCount)
 
   );  // End of TOE
   
@@ -1199,9 +1211,9 @@ module NetworkTransportSession_TcpIp (
     .upd_rsp_dout                 (sCAM_Toe_UpdRpl_Axis_tdata),
     .upd_rsp_valid                (sCAM_Toe_UpdRpl_Axis_tvalid),
 
-    .led0                         (sc_led0),
-    .led1                         (sc_led1),
-    .cam_ready                    (cam_ready),
+    .led0                         (),
+    .led1                         (),
+    .cam_ready                    (),
 
     .debug()
 
@@ -1395,7 +1407,7 @@ module NetworkTransportSession_TcpIp (
     //-- To ROLE Interfaces
     //------------------------------------------------------
     //-- THIS / Role / Tcp / Axis
-    .m_axis_vfpga_rx_data_TREADY    (sROL_Nts0_Tcp_Axis_treadyReg),
+    .m_axis_vfpga_rx_data_TREADY    (sROL_Trif_Axis_treadyReg),
     .m_axis_vfpga_rx_data_TDATA     (sTRIF_Rol_Axis_tdata),
     .m_axis_vfpga_rx_data_TKEEP     (sTRIF_Rol_Axis_tkeep),
     .m_axis_vfpga_rx_data_TLAST     (sTRIF_Rol_Axis_tlast),
@@ -1484,7 +1496,7 @@ module NetworkTransportSession_TcpIp (
     .s_axis_tdata   (sTRIF_Rol_Axis_tdata),
     .s_axis_tkeep   (sTRIF_Rol_Axis_tkeep),
     .s_axis_tlast   (sTRIF_Rol_Axis_tlast),
-    .s_axis_tready  (sROL_Nts0_Tcp_Axis_treadyReg),
+    .s_axis_tready  (sROL_Trif_Axis_treadyReg),
 
     //-- To NTS0 / Role / Tcp / Axis
     .m_axis_tready  (piROL_Nts0_Tcp_Axis_tready),
@@ -1945,7 +1957,7 @@ module NetworkTransportSession_TcpIp (
      .s_axis_tkeep  (sURIF_Rol_Axis_tkeep),
      .s_axis_tlast  (sURIF_Rol_Axis_tlast),
      .s_axis_tvalid (sURIF_Rol_Axis_tvalid),
-     .s_axis_tready (sROL_Nts0_Udp_Axis_treadyReg),     
+     .s_axis_tready (sROL_Urif_Axis_treadyReg),     
      //-- To NTS0 / Role / Udp / Axis
      .m_axis_tready (piROL_Nts0_Udp_Axis_tready),
      .m_axis_tdata  (poNTS0_Rol_Udp_Axis_tdata),
@@ -2074,7 +2086,7 @@ module NetworkTransportSession_TcpIp (
     //-- To ROLE Interfaces
     //------------------------------------------------------
     //-- THIS / Role / Udp / Axis Output Interface
-    .vFPGA_UDP_Rx_Data_Out_TREADY (sROL_Nts0_Udp_Axis_treadyReg),
+    .vFPGA_UDP_Rx_Data_Out_TREADY (sROL_Urif_Axis_treadyReg),
     .vFPGA_UDP_Rx_Data_Out_TDATA  (sURIF_Rol_Axis_tdata),
     .vFPGA_UDP_Rx_Data_Out_TKEEP  (sURIF_Rol_Axis_tkeep),
     .vFPGA_UDP_Rx_Data_Out_TLAST  (sURIF_Rol_Axis_tlast),
@@ -2146,7 +2158,7 @@ module NetworkTransportSession_TcpIp (
     .myMacAddress_V                 (piMMIO_Nts0_MacAddress),
 
     .inputIpAddress_V               (piMMIO_Nts0_IpAddress),
-    .dhcpIpAddressOut_V             (open), // [FIXME] (piMMIO_Nts0_IpAddress),
+    .dhcpIpAddressOut_V             (), // [FIXME] (piMMIO_Nts0_IpAddress),
     
     //------------------------------------------------------
     //-- From UDMX Interfaces
