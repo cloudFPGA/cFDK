@@ -30,20 +30,21 @@ else
 ROLE_NAME_2 = $(usedRole2)
 endif
 
-SHELL_DIR =../../../SHELL/Shell
+SHELL_DIR =../../../SHELL/Shell_x1Udp_x1Tcp_x2Mp_x2Mc
 ROLE_DIR =../../../ROLE
 
 #IP_SHELL = ../../../IP/Shell/component.xml
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 
+CLEAN_TYPES = *.log *.jou *.str
+
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd
 all: full_src_pr
 
 
 clean:
-	rm -f  ./*.log
-	rm -f  ./*.jou
+	rm -rf $(CLEAN_TYPES)
 
 
 ../dcps: 
@@ -51,19 +52,19 @@ clean:
 
 
 basecmd:
-	@echo "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
-	@echo $(shell date) > start.date
+	@echo -e "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
+	@echo -e $(shell date) > start.date
 
 
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
 	@more +2 .vivado_basecmd.sh
-	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
 full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit | ../dcps
 	@more +2 .vivado_basecmd.sh
-	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -72,13 +73,13 @@ pr_verify:
 
 full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit | ../dcps
 	@more  +2 .vivado_basecmd.sh
-	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
 full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit | ../dcps
 	@more +2 .vivado_basecmd.sh
-	@echo "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 

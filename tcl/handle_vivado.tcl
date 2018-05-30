@@ -269,15 +269,15 @@ if { ${create} } {
 
         # Add *ALL* the HDL Source Files for the SHELL
         #-------------------------------------------------------------------------------
-        add_files     ${rootDir}/../../SHELL/Shell/hdl/
+        add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
         my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
         
         # IP Cores SHELL
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #-------------------------------------------------------------------------------
-        set ipDirShell ${rootDir}/../../SHELL/Shell/ip/
-        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/Shell/hls" [ current_project ]
+        set ipDirShell ${rootDir}/../../SHELL/${usedShellType}/ip/
+        set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         update_ip_catalog
         my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
         
@@ -298,7 +298,7 @@ if { ${create} } {
         
         # Add Constraints Files SHELL
         #---------------------------------------------------------------------
-        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/Shell/xdc/*.xdc ]
+        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/${usedShellType}/xdc/*.xdc ]
         
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
@@ -316,19 +316,18 @@ if { ${create} } {
         # [TODO] my_dbg_trace "Done with the creation and customization of the SHELL-IP (.i.e SuperShell)." ${dbgLvl_1}
     }
 
-#TODO PR   
-if { $forceWithoutBB } {
- # Add HDL Source Files for the ROLE
-    #-----------------------------------
-    add_files -norecurse ${rootDir}/../../ROLE/RoleFlash/hdl/roleFlash.vhdl  
-    update_compile_order -fileset sources_1
-    my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
-
-
-    # Update Compile Order
-    #-------------------------------------------------------------------------------
-    update_compile_order -fileset sources_1
-   }
+    if { $forceWithoutBB } {
+     # Add HDL Source Files for the ROLE
+        #-----------------------------------
+        add_files  ${rootDir}/../../ROLE/${usedRole}/hdl/
+        update_compile_order -fileset sources_1
+        my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
+    
+    
+        # Update Compile Order
+        #-------------------------------------------------------------------------------
+        update_compile_order -fileset sources_1
+    }
 
     # Create 'constrs_1' fileset (if not found)
     #-------------------------------------------------------------------------------
@@ -474,9 +473,9 @@ if { ${synth} } {
 if { ${link} } { 
   
 
-  if { ! ${create} } {
-     open_project ${xprDir}/${xprName}.xpr
-  }
+  #if { ! ${create} } {
+     catch {open_project ${xprDir}/${xprName}.xpr} 
+  #}
   set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
   add_files ${roleDcpFile}
   update_compile_order -fileset sources_1
@@ -502,7 +501,7 @@ if { ${link} } {
         exit ${KO}
     }
     my_puts "################################################################################"
-    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}"
+    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
 
     write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
@@ -511,7 +510,7 @@ if { ${link} } {
   }
 
   my_puts "################################################################################"
-  my_puts "## DONE WITH DESIGN LINKING; PBLOCK CREATED; .dcp SAVED" 
+  my_puts "## DONE WITH DESIGN LINKING; .dcp SAVED" 
   my_puts "################################################################################"
   my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n" 
 
@@ -529,9 +528,9 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-    if { ! ${create} } {
-        open_project ${xprDir}/${xprName}.xpr
-    }
+    #if { ! ${create} } {
+        catch {open_project ${xprDir}/${xprName}.xpr}
+    #}
   
     set_property needs_refresh false [get_runs synth_1]
     
@@ -688,7 +687,9 @@ if { $pr_verify } {
 
 if { $bitGen } {
 
+  if { ! $forceWithoutBB } {  
     catch {close_project}
+  }
 
     my_puts "################################################################################"
     my_puts "##"
@@ -699,7 +700,7 @@ if { $bitGen } {
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
     
     if { ${forceWithoutBB} } {
-      open_project ${xprDir}/${xprName}.xpr
+      catch {open_project ${xprDir}/${xprName}.xpr} 
       set implObj [ get_runs impl_1 ]
       set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
       set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}

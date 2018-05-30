@@ -58,7 +58,7 @@ entity topFlash is
   generic (
     -- Synthesis parameters ----------------------
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
-    gSecurityPriviledges : string  := "super";   -- "user" or "super"
+    gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer := 8;
     gEmifDataWidth       : integer := 8
@@ -173,10 +173,10 @@ architecture structural of topFlash is
   -- Global Reset ----------------------------------------
   signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-  --OBSOLETE-20180426 signal sPSOC_Fcfg_MetaRst : std_ulogic;
-   
-  -- Global Source Synchronous SHELL Clock ---------------
+    
+  -- Global Source Synchronous SHELL Clock and Reset ----
   signal sSHL_156_25Clk                     : std_ulogic;
+  signal sSHL_156_25Rst                     : std_ulogic;
      
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
@@ -211,64 +211,64 @@ architecture structural of topFlash is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / MEM <--> ROLE 
   --------------------------------------------------------
-  -- User Port #0 ------------------------------
+  -- Memory Port #0 ------------------------------
   ------  Stream Read Command --------------
-  signal sROL_Shl_Mem_Up0_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
-  signal sROL_Shl_Mem_Up0_Axis_RdCmd_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_RdCmd_tready : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : std_ulogic;
   ------ Stream Read Status ----------------
-  signal sROL_Shl_Mem_Up0_Axis_RdSts_tready : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_RdSts_tdata  : std_ulogic_vector(  7 downto 0);
-  signal sSHL_Rol_Mem_Up0_Axis_RdSts_tvalid : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_RdSts_tready : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : std_ulogic;
   ------ Stream Data Output Channel --------
-  signal sROL_Shl_Mem_Up0_Axis_Read_tready  : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_Read_tdata   : std_ulogic_vector(511 downto 0);
-  signal sSHL_Rol_Mem_Up0_Axis_Read_tkeep   : std_ulogic_vector( 63 downto 0);
-  signal sSHL_Rol_Mem_Up0_Axis_Read_tlast   : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_Read_tvalid  : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_Read_tready  : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_Read_tdata   : std_ulogic_vector(511 downto 0);
+  signal sSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : std_ulogic_vector( 63 downto 0);
+  signal sSHL_Rol_Mem_Mp0_Axis_Read_tlast   : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : std_ulogic;
   ------ Stream Write Command --------------
-  signal sROL_Shl_Mem_Up0_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
-  signal sROL_Shl_Mem_Up0_Axis_WrCmd_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_WrCmd_tready : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : std_ulogic;
   ------ Stream Write Status ---------------
-  signal sROL_Shl_Mem_Up0_Axis_WrSts_tready : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_WrSts_tdata  : std_ulogic_vector(  7 downto 0);
-  signal sSHL_Rol_Mem_Up0_Axis_WrSts_tvalid : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_WrSts_tready : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : std_ulogic;
   ------ Stream Data Input Channel ---------
-  signal sROL_Shl_Mem_Up0_Axis_Write_tdata  : std_ulogic_vector(511 downto 0);
-  signal sROL_Shl_Mem_Up0_Axis_Write_tkeep  : std_ulogic_vector( 63 downto 0);
-  signal sROL_Shl_Mem_Up0_Axis_Write_tlast  : std_ulogic;
-  signal sROL_Shl_Mem_Up0_Axis_Write_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up0_Axis_Write_tready : std_ulogic;
-  -- User Port #1 ------------------------------------------
+  signal sROL_Shl_Mem_Mp0_Axis_Write_tdata  : std_ulogic_vector(511 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_Write_tkeep  : std_ulogic_vector( 63 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_Write_tlast  : std_ulogic;
+  signal sROL_Shl_Mem_Mp0_Axis_Write_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp0_Axis_Write_tready : std_ulogic;
+  -- Memory Port #1 ------------------------------------------
   ------ Stream Read Command ---------------
-  signal sROL_Shl_Mem_Up1_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
-  signal sROL_Shl_Mem_Up1_Axis_RdCmd_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_RdCmd_tready : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : std_ulogic;
   ------ Stream Read Status ----------------
-  signal sROL_Shl_Mem_Up1_Axis_RdSts_tready : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_RdSts_tdata  : std_ulogic_vector(  7 downto 0);
-  signal sSHL_Rol_Mem_Up1_Axis_RdSts_tvalid : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_RdSts_tready : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : std_ulogic;
   ------ Stream Data Output Channel --------
-  signal sROL_Shl_Mem_Up1_Axis_Read_tready  : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_Read_tdata   : std_ulogic_vector(511 downto 0);
-  signal sSHL_Rol_Mem_Up1_Axis_Read_tkeep   : std_ulogic_vector( 63 downto 0);
-  signal sSHL_Rol_Mem_Up1_Axis_Read_tlast   : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_Read_tvalid  : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_Read_tready  : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_Read_tdata   : std_ulogic_vector(511 downto 0);
+  signal sSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : std_ulogic_vector( 63 downto 0);
+  signal sSHL_Rol_Mem_Mp1_Axis_Read_tlast   : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : std_ulogic;
   ------ Stream Write Command --------------
-  signal sROL_Shl_Mem_Up1_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
-  signal sROL_Shl_Mem_Up1_Axis_WrCmd_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_WrCmd_tready : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : std_ulogic;
   ------ Stream Write Status ---------------
-  signal sROL_Shl_Mem_Up1_Axis_WrSts_tready : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_WrSts_tdata  : std_ulogic_vector(  7 downto 0);
-  signal sSHL_Rol_Mem_Up1_Axis_WrSts_tvalid : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_WrSts_tready : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : std_ulogic;
   ------ Stream Data Input Channel ---------
-  signal sROL_Shl_Mem_Up1_Axis_Write_tdata  : std_ulogic_vector(511 downto 0);
-  signal sROL_Shl_Mem_Up1_Axis_Write_tkeep  : std_ulogic_vector( 63 downto 0);
-  signal sROL_Shl_Mem_Up1_Axis_Write_tlast  : std_ulogic;
-  signal sROL_Shl_Mem_Up1_Axis_Write_tvalid : std_ulogic;
-  signal sSHL_Rol_Mem_Up1_Axis_Write_tready : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_Write_tdata  : std_ulogic_vector(511 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_Write_tkeep  : std_ulogic_vector( 63 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_Write_tlast  : std_ulogic;
+  signal sROL_Shl_Mem_Mp1_Axis_Write_tvalid : std_ulogic;
+  signal sSHL_Rol_Mem_Mp1_Axis_Write_tready : std_ulogic;
 
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
@@ -281,7 +281,7 @@ architecture structural of topFlash is
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-   component Shell_Udp_Tcp_McDp_4BEmif
+   component Shell_x1Udp_x1Tcp_x2Mp_x2Mc
      generic (
        gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
        gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
@@ -366,9 +366,10 @@ architecture structural of topFlash is
        poSHL_Econ_Eth0_10Ge0_p             : out   std_ulogic;
  
        ------------------------------------------------------
-       -- ROLE / Output Clock Interface
+       -- ROLE / Output Clock and Reset Interfaces
        ------------------------------------------------------
        poSHL_156_25Clk                     : out   std_ulogic;
+       poSHL_156_25Rst                     : out   std_ulogic;
        
        ------------------------------------------------------
        -- ROLE / Shl/ Nts0 / Udp Interface
@@ -409,87 +410,86 @@ architecture structural of topFlash is
       poSHL_ROL_EMIF_2B_Reg               : in std_logic_vector( 15 downto 0);
        
        ------------------------------------------------------  
-       -- ROLE / Shl / Mem / Up0 Interface
+       -- ROLE / Shl / Mem / Mp0 Interface
        ------------------------------------------------------
-       -- User Port #0 / S2MM-AXIS ------------------   
+       -- Memory Port #0 / S2MM-AXIS ------------------   
        ---- Stream Read Command -----------------
-       piROL_Shl_Mem_Up0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Up0_Axis_RdCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_RdCmd_tready : out   std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+       piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : out   std_ulogic;
        ---- Stream Read Status ------------------
-       piROL_Shl_Mem_Up0_Axis_RdSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Mem_Up0_Axis_RdSts_tvalid : out   std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_RdSts_tready : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+       poSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : out   std_ulogic;
        ---- Stream Data Output Channel ----------
-       piROL_Shl_Mem_Up0_Axis_Read_tready  : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
-       poSHL_Rol_Mem_Up0_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Mem_Up0_Axis_Read_tlast   : out   std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_Read_tvalid  : out   std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_Read_tready  : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
+       poSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
+       poSHL_Rol_Mem_Mp0_Axis_Read_tlast   : out   std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : out   std_ulogic;
        ---- Stream Write Command ----------------
-       piROL_Shl_Mem_Up0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Up0_Axis_WrCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_WrCmd_tready : out   std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+       piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : out   std_ulogic;
        ---- Stream Write Status -----------------
-       piROL_Shl_Mem_Up0_Axis_WrSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_WrSts_tvalid : out   std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+       piROL_Shl_Mem_Mp0_Axis_WrSts_tready : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : out   std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
        ---- Stream Data Input Channel -----------
-       piROL_Shl_Mem_Up0_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
-       piROL_Shl_Mem_Up0_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Mem_Up0_Axis_Write_tlast  : in    std_ulogic;
-       piROL_Shl_Mem_Up0_Axis_Write_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up0_Axis_Write_tready : out   std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
+       piROL_Shl_Mem_Mp0_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
+       piROL_Shl_Mem_Mp0_Axis_Write_tlast  : in    std_ulogic;
+       piROL_Shl_Mem_Mp0_Axis_Write_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp0_Axis_Write_tready : out   std_ulogic;
        
        ------------------------------------------------------
-       -- ROLE / Shl / Mem / Up1 Interface
+       -- ROLE / Shl / Mem / Mp1 Interface
        ------------------------------------------------------
-       -- User Port #1 / S2MM-AXIS ------------------
+       -- Memory Port #1 / S2MM-AXIS ------------------
        ---- Stream Read Command -----------------
-       piROL_Shl_Mem_Up1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Up1_Axis_RdCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_RdCmd_tready : out   std_ulogic;
+       piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+       piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : out   std_ulogic;
        ---- Stream Read Status ------------------
-       piROL_Shl_Mem_Up1_Axis_RdSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Mem_Up1_Axis_RdSts_tvalid : out   std_ulogic;
+       piROL_Shl_Mem_Mp1_Axis_RdSts_tready : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+       poSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : out   std_ulogic;
        ---- Stream Data Output Channel ----------
-       piROL_Shl_Mem_Up1_Axis_Read_tready  : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
-       poSHL_Rol_Mem_Up1_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Mem_Up1_Axis_Read_tlast   : out   std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_Read_tvalid  : out   std_ulogic;
+       piROL_Shl_Mem_Mp1_Axis_Read_tready  : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
+       poSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
+       poSHL_Rol_Mem_Mp1_Axis_Read_tlast   : out   std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : out   std_ulogic;
        ---- Stream Write Command ----------------
-       piROL_Shl_Mem_Up1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Up1_Axis_WrCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_WrCmd_tready : out   std_ulogic;
+       piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+       piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : out   std_ulogic;
        ---- Stream Write Status -----------------
-       piROL_Shl_Mem_Up1_Axis_WrSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_WrSts_tvalid : out   std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+       piROL_Shl_Mem_Mp1_Axis_WrSts_tready : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : out   std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
        ---- Stream Data Input Channel -----------
-       piROL_Shl_Mem_Up1_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
-       piROL_Shl_Mem_Up1_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Mem_Up1_Axis_Write_tlast  : in    std_ulogic;
-       piROL_Shl_Mem_Up1_Axis_Write_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Up1_Axis_Write_tready : out   std_ulogic
+       piROL_Shl_Mem_Mp1_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
+       piROL_Shl_Mem_Mp1_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
+       piROL_Shl_Mem_Mp1_Axis_Write_tlast  : in    std_ulogic;
+       piROL_Shl_Mem_Mp1_Axis_Write_tvalid : in    std_ulogic;
+       poSHL_Rol_Mem_Mp1_Axis_Write_tready : out   std_ulogic
  
      );
-   end component Shell_Udp_Tcp_McDp_4BEmif;
+   end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Role_Udp_Tcp_McDp_4BEmif
+  component Role_x1Udp_x1Tcp_x2Mp
       port (
-        ---- Global Clock used by the entire ROLE --------------
-        ------ This is the same clock as the SHELL -------------
+      
+        ------------------------------------------------------
+        -- SHELL / Global Input Clock and Reset Interface
+        ------------------------------------------------------
         piSHL_156_25Clk                     : in    std_ulogic;
-    
-        ---- TOP : topFMKU60 Interface -------------------------
-        piTOP_Reset                         : in    std_ulogic;
-        piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+        piSHL_156_25Rst                     : in    std_ulogic;
         
         --------------------------------------------------------
         -- SHELL / Role / Nts0 / Udp Interface
@@ -530,74 +530,80 @@ architecture structural of topFlash is
         piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
         
         ------------------------------------------------
-        -- SHELL / Role / Mem / Up0 Interface
+        -- SHELL / Role / Mem / Mp0 Interface
         ------------------------------------------------
-        ---- User Port #0 / S2MM-AXIS ------------------   
+        ---- Memory Port #0 / S2MM-AXIS ------------------   
         ------ Stream Read Command -----------------
-        piSHL_Rol_Mem_Up0_Axis_RdCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Up0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Up0_Axis_RdCmd_tvalid : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
+        poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+        poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
         ------ Stream Read Status ------------------
-        piSHL_Rol_Mem_Up0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Mem_Up0_Axis_RdSts_tvalid : in    std_ulogic;
-        poROL_Shl_Mem_Up0_Axis_RdSts_tready : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+        piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : in    std_ulogic;
+        poROL_Shl_Mem_Mp0_Axis_RdSts_tready : out   std_ulogic;
         ------ Stream Data Input Channel -----------
-        piSHL_Rol_Mem_Up0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-        piSHL_Rol_Mem_Up0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Mem_Up0_Axis_Read_tlast   : in    std_ulogic;
-        piSHL_Rol_Mem_Up0_Axis_Read_tvalid  : in    std_ulogic;
-        poROL_Shl_Mem_Up0_Axis_Read_tready  : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
+        piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
+        piSHL_Rol_Mem_Mp0_Axis_Read_tlast   : in    std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : in    std_ulogic;
+        poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
         ------ Stream Write Command ----------------
-        piSHL_Rol_Mem_Up0_Axis_WrCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Up0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Up0_Axis_WrCmd_tvalid : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
+        poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+        poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
         ------ Stream Write Status -----------------
-        piSHL_Rol_Mem_Up0_Axis_WrSts_tvalid : in    std_ulogic;
-        piSHL_Rol_Mem_Up0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Mem_Up0_Axis_WrSts_tready : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+        poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
         ------ Stream Data Output Channel ----------
-        piSHL_Rol_Mem_Up0_Axis_Write_tready : in    std_ulogic; 
-        poROL_Shl_Mem_Up0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-        poROL_Shl_Mem_Up0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Mem_Up0_Axis_Write_tlast  : out   std_ulogic;
-        poROL_Shl_Mem_Up0_Axis_Write_tvalid : out   std_ulogic;
+        piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
+        poROL_Shl_Mem_Mp0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
+        poROL_Shl_Mem_Mp0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
+        poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
+        poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
         
         ------------------------------------------------
-        -- SHELL / Role / Mem / Up1 Interface
+        -- SHELL / Role / Mem / Mp1 Interface
         ------------------------------------------------
-        ---- User Port #1 / S2MM-AXIS ------------------   
+        ---- Memory Port #1 / S2MM-AXIS ------------------   
         ------ Stream Read Command -----------------
-        piSHL_Rol_Mem_Up1_Axis_RdCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Up1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Up1_Axis_RdCmd_tvalid : out   std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
+        poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+        poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
         ------ Stream Read Status ------------------
-        piSHL_Rol_Mem_Up1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Mem_Up1_Axis_RdSts_tvalid : in    std_ulogic;
-        poROL_Shl_Mem_Up1_Axis_RdSts_tready : out   std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+        piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : in    std_ulogic;
+        poROL_Shl_Mem_Mp1_Axis_RdSts_tready : out   std_ulogic;
         ------ Stream Data Input Channel -----------
-        piSHL_Rol_Mem_Up1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-        piSHL_Rol_Mem_Up1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Mem_Up1_Axis_Read_tlast   : in    std_ulogic;
-        piSHL_Rol_Mem_Up1_Axis_Read_tvalid  : in    std_ulogic;
-        poROL_Shl_Mem_Up1_Axis_Read_tready  : out   std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
+        piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
+        piSHL_Rol_Mem_Mp1_Axis_Read_tlast   : in    std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : in    std_ulogic;
+        poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
         ------ Stream Write Command ----------------
-        piSHL_Rol_Mem_Up1_Axis_WrCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Up1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Up1_Axis_WrCmd_tvalid : out   std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
+        poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+        poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
         ------ Stream Write Status -----------------
-        piSHL_Rol_Mem_Up1_Axis_WrSts_tvalid : in    std_ulogic;
-        piSHL_Rol_Mem_Up1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Mem_Up1_Axis_WrSts_tready : out   std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
+        piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+        poROL_Shl_Mem_Mp1_Axis_WrSts_tready : out   std_ulogic;
         ------ Stream Data Output Channel ----------
-        piSHL_Rol_Mem_Up1_Axis_Write_tready : in    std_ulogic; 
-        poROL_Shl_Mem_Up1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-        poROL_Shl_Mem_Up1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Mem_Up1_Axis_Write_tlast  : out   std_ulogic;
-        poROL_Shl_Mem_Up1_Axis_Write_tvalid : out   std_ulogic; 
+        piSHL_Rol_Mem_Mp1_Axis_Write_tready : in    std_ulogic; 
+        poROL_Shl_Mem_Mp1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
+        poROL_Shl_Mem_Mp1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
+        poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
+        poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic; 
         
+        ------------------------------------------------
+        ---- TOP : Secondary Clock (Asynchronous)
+        ------------------------------------------------
+        --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
+        piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+      
         poVoid                              : out   std_ulogic          
       );
-    end component Role_Udp_Tcp_McDp_4BEmif;
+    end component Role_x1Udp_x1Tcp_x2Mp;
 
 begin
   
@@ -659,7 +665,7 @@ begin
   --==   This version of the SHELL has the following user interfaces:
   --==    - one UDP, one TCP, and one MemoryChannel-DualPort interfaces. 
   --==========================================================================
-  SHELL : Shell_Udp_Tcp_McDp_4BEmif
+  SHELL : Shell_x1Udp_x1Tcp_x2Mp_x2Mc
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
@@ -744,9 +750,10 @@ begin
       poSHL_Econ_Eth0_10Ge0_p              => poTOP_Econ_10Ge0_p,
       
       ------------------------------------------------------
-      -- ROLE / Output Clock Interface
+      -- ROLE / Output Reset and Clock Interfaces
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
+      poSHL_156_25Rst                      => sSHL_156_25Rst,
       
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Udp Interface
@@ -787,70 +794,70 @@ begin
       poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
 
       ------------------------------------------------------  
-      -- ROLE / Shl / Mem / Up0 Interface
+      -- ROLE / Shl / Mem / Mp0 Interface
       ------------------------------------------------------
-      -- User Port #0 / S2MM-AXIS ------------------   
+      -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
-      piROL_Shl_Mem_Up0_Axis_RdCmd_tdata  => sROL_Shl_Mem_Up0_Axis_RdCmd_tdata,
-      piROL_Shl_Mem_Up0_Axis_RdCmd_tvalid => sROL_Shl_Mem_Up0_Axis_RdCmd_tvalid,
-      poSHL_Rol_Mem_Up0_Axis_RdCmd_tready => sSHL_Rol_Mem_Up0_Axis_RdCmd_tready,
+      piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  => sROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
+      piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid => sROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
+      poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
       ---- Stream Read Status ------------------
-      piROL_Shl_Mem_Up0_Axis_RdSts_tready => sROL_Shl_Mem_Up0_Axis_RdSts_tready,
-      poSHL_Rol_Mem_Up0_Axis_RdSts_tdata  => sSHL_Rol_Mem_Up0_Axis_RdSts_tdata,
-      poSHL_Rol_Mem_Up0_Axis_RdSts_tvalid => sSHL_Rol_Mem_Up0_Axis_RdSts_tvalid,
+      piROL_Shl_Mem_Mp0_Axis_RdSts_tready => sROL_Shl_Mem_Mp0_Axis_RdSts_tready,
+      poSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  => sSHL_Rol_Mem_Mp0_Axis_RdSts_tdata,
+      poSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid => sSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid,
       ---- Stream Data Output Channel ----------
-      piROL_Shl_Mem_Up0_Axis_Read_tready  => sROL_Shl_Mem_Up0_Axis_Read_tready,
-      poSHL_Rol_Mem_Up0_Axis_Read_tdata   => sSHL_Rol_Mem_Up0_Axis_Read_tdata,
-      poSHL_Rol_Mem_Up0_Axis_Read_tkeep   => sSHL_Rol_Mem_Up0_Axis_Read_tkeep,
-      poSHL_Rol_Mem_Up0_Axis_Read_tlast   => sSHL_Rol_Mem_Up0_Axis_Read_tlast,
-      poSHL_Rol_Mem_Up0_Axis_Read_tvalid  => sSHL_Rol_Mem_Up0_Axis_Read_tvalid,
+      piROL_Shl_Mem_Mp0_Axis_Read_tready  => sROL_Shl_Mem_Mp0_Axis_Read_tready,
+      poSHL_Rol_Mem_Mp0_Axis_Read_tdata   => sSHL_Rol_Mem_Mp0_Axis_Read_tdata,
+      poSHL_Rol_Mem_Mp0_Axis_Read_tkeep   => sSHL_Rol_Mem_Mp0_Axis_Read_tkeep,
+      poSHL_Rol_Mem_Mp0_Axis_Read_tlast   => sSHL_Rol_Mem_Mp0_Axis_Read_tlast,
+      poSHL_Rol_Mem_Mp0_Axis_Read_tvalid  => sSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
       ---- Stream Write Command ----------------
-      piROL_Shl_Mem_Up0_Axis_WrCmd_tdata  => sROL_Shl_Mem_Up0_Axis_WrCmd_tdata,
-      piROL_Shl_Mem_Up0_Axis_WrCmd_tvalid => sROL_Shl_Mem_Up0_Axis_WrCmd_tvalid,
-      poSHL_Rol_Mem_Up0_Axis_WrCmd_tready => sSHL_Rol_Mem_Up0_Axis_WrCmd_tready,
+      piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  => sROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
+      piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid => sROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
+      poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready => sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
       ---- Stream Write Status -----------------
-      piROL_Shl_Mem_Up0_Axis_WrSts_tready => sROL_Shl_Mem_Up0_Axis_WrSts_tready,
-      poSHL_Rol_Mem_Up0_Axis_WrSts_tvalid => sSHL_Rol_Mem_Up0_Axis_WrSts_tvalid,
-      poSHL_Rol_Mem_Up0_Axis_WrSts_tdata  => sSHL_Rol_Mem_Up0_Axis_WrSts_tdata,
+      piROL_Shl_Mem_Mp0_Axis_WrSts_tready => sROL_Shl_Mem_Mp0_Axis_WrSts_tready,
+      poSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid => sSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid,
+      poSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  => sSHL_Rol_Mem_Mp0_Axis_WrSts_tdata,
       ---- Stream Data Input Channel -----------
-      piROL_Shl_Mem_Up0_Axis_Write_tdata  => sROL_Shl_Mem_Up0_Axis_Write_tdata,
-      piROL_Shl_Mem_Up0_Axis_Write_tkeep  => sROL_Shl_Mem_Up0_Axis_Write_tkeep,
-      piROL_Shl_Mem_Up0_Axis_Write_tlast  => sROL_Shl_Mem_Up0_Axis_Write_tlast,
-      piROL_Shl_Mem_Up0_Axis_Write_tvalid => sROL_Shl_Mem_Up0_Axis_Write_tvalid,
-      poSHL_Rol_Mem_Up0_Axis_Write_tready => sSHL_Rol_Mem_Up0_Axis_Write_tready, 
+      piROL_Shl_Mem_Mp0_Axis_Write_tdata  => sROL_Shl_Mem_Mp0_Axis_Write_tdata,
+      piROL_Shl_Mem_Mp0_Axis_Write_tkeep  => sROL_Shl_Mem_Mp0_Axis_Write_tkeep,
+      piROL_Shl_Mem_Mp0_Axis_Write_tlast  => sROL_Shl_Mem_Mp0_Axis_Write_tlast,
+      piROL_Shl_Mem_Mp0_Axis_Write_tvalid => sROL_Shl_Mem_Mp0_Axis_Write_tvalid,
+      poSHL_Rol_Mem_Mp0_Axis_Write_tready => sSHL_Rol_Mem_Mp0_Axis_Write_tready, 
       
       ------------------------------------------------------
-      -- ROLE / Shl / Mem / Up1 Interface
+      -- ROLE / Shl / Mem / Mp1 Interface
       ------------------------------------------------------
-      -- User Port #1 / S2MM-AXIS ------------------
+      -- Memory Port #1 / S2MM-AXIS ------------------
       ---- Stream Read Command -----------------
-      piROL_Shl_Mem_Up1_Axis_RdCmd_tdata  => sROL_Shl_Mem_Up1_Axis_RdCmd_tdata,
-      piROL_Shl_Mem_Up1_Axis_RdCmd_tvalid => sROL_Shl_Mem_Up1_Axis_RdCmd_tvalid,
-      poSHL_Rol_Mem_Up1_Axis_RdCmd_tready => sSHL_Rol_Mem_Up1_Axis_RdCmd_tready,
+      piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  => sROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
+      piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid => sROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid,
+      poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
       ---- Stream Read Status ------------------
-      piROL_Shl_Mem_Up1_Axis_RdSts_tready => sROL_Shl_Mem_Up1_Axis_RdSts_tready,
-      poSHL_Rol_Mem_Up1_Axis_RdSts_tdata  => sSHL_Rol_Mem_Up1_Axis_RdSts_tdata,
-      poSHL_Rol_Mem_Up1_Axis_RdSts_tvalid => sSHL_Rol_Mem_Up1_Axis_RdSts_tvalid,
+      piROL_Shl_Mem_Mp1_Axis_RdSts_tready => sROL_Shl_Mem_Mp1_Axis_RdSts_tready,
+      poSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  => sSHL_Rol_Mem_Mp1_Axis_RdSts_tdata,
+      poSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid => sSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid,
       ---- Stream Data Output Channel ----------
-      piROL_Shl_Mem_Up1_Axis_Read_tready  => sROL_Shl_Mem_Up1_Axis_Read_tready,
-      poSHL_Rol_Mem_Up1_Axis_Read_tdata   => sSHL_Rol_Mem_Up1_Axis_Read_tdata,
-      poSHL_Rol_Mem_Up1_Axis_Read_tkeep   => sSHL_Rol_Mem_Up1_Axis_Read_tkeep,
-      poSHL_Rol_Mem_Up1_Axis_Read_tlast   => sSHL_Rol_Mem_Up1_Axis_Read_tlast,
-      poSHL_Rol_Mem_Up1_Axis_Read_tvalid  => sSHL_Rol_Mem_Up1_Axis_Read_tvalid,
+      piROL_Shl_Mem_Mp1_Axis_Read_tready  => sROL_Shl_Mem_Mp1_Axis_Read_tready,
+      poSHL_Rol_Mem_Mp1_Axis_Read_tdata   => sSHL_Rol_Mem_Mp1_Axis_Read_tdata,
+      poSHL_Rol_Mem_Mp1_Axis_Read_tkeep   => sSHL_Rol_Mem_Mp1_Axis_Read_tkeep,
+      poSHL_Rol_Mem_Mp1_Axis_Read_tlast   => sSHL_Rol_Mem_Mp1_Axis_Read_tlast,
+      poSHL_Rol_Mem_Mp1_Axis_Read_tvalid  => sSHL_Rol_Mem_Mp1_Axis_Read_tvalid,
       ---- Stream Write Command ----------------
-      piROL_Shl_Mem_Up1_Axis_WrCmd_tdata  => sROL_Shl_Mem_Up1_Axis_WrCmd_tdata, 
-      piROL_Shl_Mem_Up1_Axis_WrCmd_tvalid => sROL_Shl_Mem_Up1_Axis_WrCmd_tvalid,
-      poSHL_Rol_Mem_Up1_Axis_WrCmd_tready => sSHL_Rol_Mem_Up1_Axis_WrCmd_tready,
+      piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  => sROL_Shl_Mem_Mp1_Axis_WrCmd_tdata, 
+      piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid => sROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid,
+      poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready => sSHL_Rol_Mem_Mp1_Axis_WrCmd_tready,
       ---- Stream Write Status -----------------
-      piROL_Shl_Mem_Up1_Axis_WrSts_tready => sROL_Shl_Mem_Up1_Axis_WrSts_tready,
-      poSHL_Rol_Mem_Up1_Axis_WrSts_tvalid => sSHL_Rol_Mem_Up1_Axis_WrSts_tvalid,
-      poSHL_Rol_Mem_Up1_Axis_WrSts_tdata  => sSHL_Rol_Mem_Up1_Axis_WrSts_tdata,
+      piROL_Shl_Mem_Mp1_Axis_WrSts_tready => sROL_Shl_Mem_Mp1_Axis_WrSts_tready,
+      poSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid => sSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid,
+      poSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  => sSHL_Rol_Mem_Mp1_Axis_WrSts_tdata,
       ---- Stream Data Input Channel -----------
-      piROL_Shl_Mem_Up1_Axis_Write_tdata  => sROL_Shl_Mem_Up1_Axis_Write_tdata,
-      piROL_Shl_Mem_Up1_Axis_Write_tkeep  => sROL_Shl_Mem_Up1_Axis_Write_tkeep,
-      piROL_Shl_Mem_Up1_Axis_Write_tlast  => sROL_Shl_Mem_Up1_Axis_Write_tlast,
-      piROL_Shl_Mem_Up1_Axis_Write_tvalid => sROL_Shl_Mem_Up1_Axis_Write_tvalid,
-      poSHL_Rol_Mem_Up1_Axis_Write_tready => sSHL_Rol_Mem_Up1_Axis_Write_tready
+      piROL_Shl_Mem_Mp1_Axis_Write_tdata  => sROL_Shl_Mem_Mp1_Axis_Write_tdata,
+      piROL_Shl_Mem_Mp1_Axis_Write_tkeep  => sROL_Shl_Mem_Mp1_Axis_Write_tkeep,
+      piROL_Shl_Mem_Mp1_Axis_Write_tlast  => sROL_Shl_Mem_Mp1_Axis_Write_tlast,
+      piROL_Shl_Mem_Mp1_Axis_Write_tvalid => sROL_Shl_Mem_Mp1_Axis_Write_tvalid,
+      poSHL_Rol_Mem_Mp1_Axis_Write_tready => sSHL_Rol_Mem_Mp1_Axis_Write_tready
            
   );  -- End of SuperShell instantiation
 
@@ -858,16 +865,15 @@ begin
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE : Role_Udp_Tcp_McDp_4BEmif
+  ROLE : Role_x1Udp_x1Tcp_x2Mp
     port map (
-      -- Global Clock used by the entire ROLE --------------
-      ---- This is the same 156.25MHz clock as the SHELL ---
+    
+      ------------------------------------------------------
+      -- SHELL / Global Input Clock and Reset Interface
+      ------------------------------------------------------
       piSHL_156_25Clk                     => sSHL_156_25Clk,
-      
-      -- TOP : topFMKU60 Interface -------------------------
-      piTOP_Reset                         => sTOP_156_25Rst,
-      piTOP_250_00Clk                     => sTOP_250_00Clk,  -- Freerunning
-      
+      piSHL_156_25Rst                     => sSHL_156_25Rst,
+            
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
@@ -907,71 +913,77 @@ begin
       piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
 
       ----------------------------------------------
-      -- SHELL / Role / Mem / Up0 Interface
+      -- SHELL / Role / Mem / Mp0 Interface
       ----------------------------------------------
-      -- User Port #0 / S2MM-AXIS ------------------   
+      -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
-      piSHL_Rol_Mem_Up0_Axis_RdCmd_tready => sSHL_Rol_Mem_Up0_Axis_RdCmd_tready,
-      poROL_Shl_Mem_Up0_Axis_RdCmd_tdata  => sROL_Shl_Mem_Up0_Axis_RdCmd_tdata,
-      poROL_Shl_Mem_Up0_Axis_RdCmd_tvalid => sROL_Shl_Mem_Up0_Axis_RdCmd_tvalid,
+      piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
+      poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  => sROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
+      poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid => sROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
       ---- Stream Read Status ------------------
-      piSHL_Rol_Mem_Up0_Axis_RdSts_tdata  => sSHL_Rol_Mem_Up0_Axis_RdSts_tdata,
-      piSHL_Rol_Mem_Up0_Axis_RdSts_tvalid => sSHL_Rol_Mem_Up0_Axis_RdSts_tvalid,
-      poROL_Shl_Mem_Up0_Axis_RdSts_tready => sROL_Shl_Mem_Up0_Axis_RdSts_tready,
+      piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  => sSHL_Rol_Mem_Mp0_Axis_RdSts_tdata,
+      piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid => sSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid,
+      poROL_Shl_Mem_Mp0_Axis_RdSts_tready => sROL_Shl_Mem_Mp0_Axis_RdSts_tready,
       ---- Stream Data Input Channel -----------
-      piSHL_Rol_Mem_Up0_Axis_Read_tdata   => sSHL_Rol_Mem_Up0_Axis_Read_tdata,
-      piSHL_Rol_Mem_Up0_Axis_Read_tkeep   => sSHL_Rol_Mem_Up0_Axis_Read_tkeep,
-      piSHL_Rol_Mem_Up0_Axis_Read_tlast   => sSHL_Rol_Mem_Up0_Axis_Read_tlast,
-      piSHL_Rol_Mem_Up0_Axis_Read_tvalid  => sSHL_Rol_Mem_Up0_Axis_Read_tvalid,
-      poROL_Shl_Mem_Up0_Axis_Read_tready  => sROL_Shl_Mem_Up0_Axis_Read_tready,
+      piSHL_Rol_Mem_Mp0_Axis_Read_tdata   => sSHL_Rol_Mem_Mp0_Axis_Read_tdata,
+      piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   => sSHL_Rol_Mem_Mp0_Axis_Read_tkeep,
+      piSHL_Rol_Mem_Mp0_Axis_Read_tlast   => sSHL_Rol_Mem_Mp0_Axis_Read_tlast,
+      piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  => sSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
+      poROL_Shl_Mem_Mp0_Axis_Read_tready  => sROL_Shl_Mem_Mp0_Axis_Read_tready,
       ---- Stream Write Command ----------------
-      piSHL_Rol_Mem_Up0_Axis_WrCmd_tready => sSHL_Rol_Mem_Up0_Axis_WrCmd_tready,
-      poROL_Shl_Mem_Up0_Axis_WrCmd_tdata  => sROL_Shl_Mem_Up0_Axis_WrCmd_tdata,
-      poROL_Shl_Mem_Up0_Axis_WrCmd_tvalid => sROL_Shl_Mem_Up0_Axis_WrCmd_tvalid,
+      piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready => sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
+      poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  => sROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
+      poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid => sROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
       ---- Stream Write Status -----------------
-      piSHL_Rol_Mem_Up0_Axis_WrSts_tvalid => sSHL_Rol_Mem_Up0_Axis_WrSts_tvalid,
-      piSHL_Rol_Mem_Up0_Axis_WrSts_tdata  => sSHL_Rol_Mem_Up0_Axis_WrSts_tdata,
-      poROL_Shl_Mem_Up0_Axis_WrSts_tready => sROL_Shl_Mem_Up0_Axis_WrSts_tready,
+      piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid => sSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid,
+      piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  => sSHL_Rol_Mem_Mp0_Axis_WrSts_tdata,
+      poROL_Shl_Mem_Mp0_Axis_WrSts_tready => sROL_Shl_Mem_Mp0_Axis_WrSts_tready,
       ---- Stream Data Output Channel ----------
-      piSHL_Rol_Mem_Up0_Axis_Write_tready => sSHL_Rol_Mem_Up0_Axis_Write_tready,
-      poROL_Shl_Mem_Up0_Axis_Write_tdata  => sROL_Shl_Mem_Up0_Axis_Write_tdata,
-      poROL_Shl_Mem_Up0_Axis_Write_tkeep  => sROL_Shl_Mem_Up0_Axis_Write_tkeep,
-      poROL_Shl_Mem_Up0_Axis_Write_tlast  => sROL_Shl_Mem_Up0_Axis_Write_tlast,
-      poROL_Shl_Mem_Up0_Axis_Write_tvalid => sROL_Shl_Mem_Up0_Axis_Write_tvalid,
+      piSHL_Rol_Mem_Mp0_Axis_Write_tready => sSHL_Rol_Mem_Mp0_Axis_Write_tready,
+      poROL_Shl_Mem_Mp0_Axis_Write_tdata  => sROL_Shl_Mem_Mp0_Axis_Write_tdata,
+      poROL_Shl_Mem_Mp0_Axis_Write_tkeep  => sROL_Shl_Mem_Mp0_Axis_Write_tkeep,
+      poROL_Shl_Mem_Mp0_Axis_Write_tlast  => sROL_Shl_Mem_Mp0_Axis_Write_tlast,
+      poROL_Shl_Mem_Mp0_Axis_Write_tvalid => sROL_Shl_Mem_Mp0_Axis_Write_tvalid,
       
       ----------------------------------------------
-      -- SHELL / Role / Mem / Up1 Interface
+      -- SHELL / Role / Mem / Mp1 Interface
       ----------------------------------------------
-      -- User Port #1 / S2MM-AXIS ------------------   
+      -- Memory Port #1 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
-      piSHL_Rol_Mem_Up1_Axis_RdCmd_tready => sSHL_Rol_Mem_Up1_Axis_RdCmd_tready,
-      poROL_Shl_Mem_Up1_Axis_RdCmd_tdata  => sROL_Shl_Mem_Up1_Axis_RdCmd_tdata,
-      poROL_Shl_Mem_Up1_Axis_RdCmd_tvalid => sROL_Shl_Mem_Up1_Axis_RdCmd_tvalid,
+      piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
+      poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  => sROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
+      poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid => sROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid,
       ---- Stream Read Status ------------------
-      piSHL_Rol_Mem_Up1_Axis_RdSts_tdata  => sSHL_Rol_Mem_Up1_Axis_RdSts_tdata,
-      piSHL_Rol_Mem_Up1_Axis_RdSts_tvalid => sSHL_Rol_Mem_Up1_Axis_RdSts_tvalid,
-      poROL_Shl_Mem_Up1_Axis_RdSts_tready => sROL_Shl_Mem_Up1_Axis_RdSts_tready,
+      piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  => sSHL_Rol_Mem_Mp1_Axis_RdSts_tdata,
+      piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid => sSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid,
+      poROL_Shl_Mem_Mp1_Axis_RdSts_tready => sROL_Shl_Mem_Mp1_Axis_RdSts_tready,
       ---- Stream Data Input Channel -----------
-      piSHL_Rol_Mem_Up1_Axis_Read_tdata   => sSHL_Rol_Mem_Up1_Axis_Read_tdata,
-      piSHL_Rol_Mem_Up1_Axis_Read_tkeep   => sSHL_Rol_Mem_Up1_Axis_Read_tkeep,
-      piSHL_Rol_Mem_Up1_Axis_Read_tlast   => sSHL_Rol_Mem_Up1_Axis_Read_tlast,
-      piSHL_Rol_Mem_Up1_Axis_Read_tvalid  => sSHL_Rol_Mem_Up1_Axis_Read_tvalid,
-      poROL_Shl_Mem_Up1_Axis_Read_tready  => sROL_Shl_Mem_Up1_Axis_Read_tready,
+      piSHL_Rol_Mem_Mp1_Axis_Read_tdata   => sSHL_Rol_Mem_Mp1_Axis_Read_tdata,
+      piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   => sSHL_Rol_Mem_Mp1_Axis_Read_tkeep,
+      piSHL_Rol_Mem_Mp1_Axis_Read_tlast   => sSHL_Rol_Mem_Mp1_Axis_Read_tlast,
+      piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  => sSHL_Rol_Mem_Mp1_Axis_Read_tvalid,
+      poROL_Shl_Mem_Mp1_Axis_Read_tready  => sROL_Shl_Mem_Mp1_Axis_Read_tready,
       ---- Stream Write Command ----------------
-      piSHL_Rol_Mem_Up1_Axis_WrCmd_tready => sSHL_Rol_Mem_Up1_Axis_WrCmd_tready,
-      poROL_Shl_Mem_Up1_Axis_WrCmd_tdata  => sROL_Shl_Mem_Up1_Axis_WrCmd_tdata,
-      poROL_Shl_Mem_Up1_Axis_WrCmd_tvalid => sROL_Shl_Mem_Up1_Axis_WrCmd_tvalid,
+      piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready => sSHL_Rol_Mem_Mp1_Axis_WrCmd_tready,
+      poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  => sROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
+      poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid => sROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid,
       ---- Stream Write Status -----------------
-      piSHL_Rol_Mem_Up1_Axis_WrSts_tvalid => sSHL_Rol_Mem_Up1_Axis_WrSts_tvalid,
-      piSHL_Rol_Mem_Up1_Axis_WrSts_tdata  => sSHL_Rol_Mem_Up1_Axis_WrSts_tdata,
-      poROL_Shl_Mem_Up1_Axis_WrSts_tready => sROL_Shl_Mem_Up1_Axis_WrSts_tready,
+      piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid => sSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid,
+      piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  => sSHL_Rol_Mem_Mp1_Axis_WrSts_tdata,
+      poROL_Shl_Mem_Mp1_Axis_WrSts_tready => sROL_Shl_Mem_Mp1_Axis_WrSts_tready,
       ---- Stream Data Output Channel ----------
-      piSHL_Rol_Mem_Up1_Axis_Write_tready => sSHL_Rol_Mem_Up1_Axis_Write_tready,
-      poROL_Shl_Mem_Up1_Axis_Write_tdata  => sROL_Shl_Mem_Up1_Axis_Write_tdata,
-      poROL_Shl_Mem_Up1_Axis_Write_tkeep  => sROL_Shl_Mem_Up1_Axis_Write_tkeep,
-      poROL_Shl_Mem_Up1_Axis_Write_tlast  => sROL_Shl_Mem_Up1_Axis_Write_tlast,
-      poROL_Shl_Mem_Up1_Axis_Write_tvalid => sROL_Shl_Mem_Up1_Axis_Write_tvalid,
+      piSHL_Rol_Mem_Mp1_Axis_Write_tready => sSHL_Rol_Mem_Mp1_Axis_Write_tready,
+      poROL_Shl_Mem_Mp1_Axis_Write_tdata  => sROL_Shl_Mem_Mp1_Axis_Write_tdata,
+      poROL_Shl_Mem_Mp1_Axis_Write_tkeep  => sROL_Shl_Mem_Mp1_Axis_Write_tkeep,
+      poROL_Shl_Mem_Mp1_Axis_Write_tlast  => sROL_Shl_Mem_Mp1_Axis_Write_tlast,
+      poROL_Shl_Mem_Mp1_Axis_Write_tvalid => sROL_Shl_Mem_Mp1_Axis_Write_tvalid,
       
+      ------------------------------------------------
+      ---- TOP : Secondary Clock (Asynchronous)
+      ------------------------------------------------
+      --OBSOLETE-20180524 piTOP_Reset     => sTOP_156_25Rst,
+      piTOP_250_00Clk                     => sTOP_250_00Clk,  -- Freerunning
+   
       poVoid                              => open  
   
   );  -- End of Role instantiation

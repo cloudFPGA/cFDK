@@ -10,12 +10,15 @@
 # ******************************************************************************
 
 # NO HEADING OR TRAILING SPACES!!
-SHELL_DIR =../../SHELL/Shell
+SHELL_DIR =../../SHELL/Shell_x1Udp_x1Tcp_x2Mp_x2Mc
 ROLE_DIR =../../ROLE
 USED_ROLE =RoleFlash
 USED_ROLE_2 =RoleFlash_V2
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full
+CLEAN_TYPES = *.log *.jou *.str *.time
+
+
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic
 
 all: pr
 #all: src_based
@@ -25,32 +28,46 @@ Role: $(USED_ROLE)
 
 Role2: $(USED_ROLE_2)
 
+
+xpr: 
+	mkdir -p ./xpr/ 
+
 RoleFlash:
 	$(MAKE) -C $(ROLE_DIR)/$@
 
 RoleFlash_V2:
 	$(MAKE) -C $(ROLE_DIR)/$@
-	
+
 ShellSrc:
 	$(MAKE) -C $(SHELL_DIR) full_src
 
-src_based: ShellSrc Role
+src_based: ensureNotMonolithic ShellSrc Role | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src
 
-pr: ShellSrc Role 
+pr: ensureNotMonolithic ShellSrc Role  | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr
 
-pr2: ShellSrc Role2
+pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2
 
-pr_full: ShellSrc Role Role2
+pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
 
+monolithic: ShellSrc | xpr 
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
+
+ensureNotMonolithic: | xpr 
+	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
+
 
 clean: 
-	$(MAKE) -C ./tcl/ clean
-	rm -rf ./xpr/ 
+	$(MAKE) -C ./tcl/ clean 
+	rm -rf $(CLEAN_TYPES)
+	rm -rf ./xpr/ ./hd_visual/
+	#TODO discuss if delete dcps
+	rm -rf ./dcps/
 
