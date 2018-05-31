@@ -44,12 +44,10 @@ module NetworkTransportSession_TcpIp (
   input          piShlClk,
   
   //-- Global Reset used by the entire SHELL -------------
-  //--   (This is typically 'piTOP_156_25Rst')  
+  //--   (This is typically 'sETH0_ShlRst')  
   input          piShlRst,
- 
-  //-- Clocks and Resets outputs -----------------
   
-  //-- MMIO : Control inputs and Status outputs 
+  //-- MMIO : Control inputs and Status outputs ----------
    
   //------------------------------------------------------
   //-- ETHERNET / Nts0 / AXI-Write Stream Interfaces
@@ -176,18 +174,6 @@ module NetworkTransportSession_TcpIp (
 ); // End of PortList
    
 
-//----------------------------------------------------------------------------
-//  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
-//----------------------------------------------------------------------------
-(* mark_debug = "true" *)  wire  [ 63:0]  piETH0_Nts0_Axis_tdata;
-(* mark_debug = "true" *)  wire  [ 7:0]   piETH0_Nts0_Axis_tkeep;
-(* mark_debug = "true" *)  wire           piETH0_Nts0_Axis_tlast;
-(* mark_debug = "true" *)  wire           piETH0_Nts0_Axis_tvalid;
-(* mark_debug = "true" *)  wire           poNTS0_Eth0_Axis_tready;
-
-(* mark_debug = "true" *)  wire  [ 47:0]  piMMIO_Nts0_MacAddress;
-(* mark_debug = "true" *)  wire  [ 31:0]  piMMIO_Nts0_IpAddress;
-
    
 // *****************************************************************************
 // **  STRUCTURE
@@ -198,8 +184,8 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   wire          sTODO_1b0  =  1'b0;
 
-  //OBSOLETE-20180413 wire  [31:0]  cloud_fpga_ip;  // [[FIXME]
-  //OBSOLETE-20180413 assign cloud_fpga_mac = 48'h0400C0FCF35C;  // [TODO - To be Removed]
+  //OBSOLETE-20180413 wire  [31:0]  cloud_fpga_ip;
+  //OBSOLETE-20180413 assign cloud_fpga_mac = 48'h0400C0FCF35C;
  
   //------------------------------------------------------------------
   //-- IPRX = IP-RX-HANDLER
@@ -580,7 +566,7 @@ module NetworkTransportSession_TcpIp (
   IpRxHandler IPRX (
    
     .aclk                     (piShlClk),
-    .aresetn                  (piShlRst),
+    .aresetn                  (~piShlRst),
    
     //------------------------------------------------------
     //-- From ETH0 Interfaces
@@ -695,7 +681,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS0 (
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- Form IPRX / Axis
     .s_axis_tdata   (sIPRX_Arp_Axis_tdata),
     .s_axis_tkeep   (sIPRX_Arp_Axis_tkeep),
@@ -734,7 +720,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS1 (
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- From IPRX / Axis
     .s_axis_tdata   (sIPRX_Icmp_Data_Axis_tdata),
     .s_axis_tkeep   (sIPRX_Icmp_Data_Axis_tkeep),
@@ -774,17 +760,17 @@ module NetworkTransportSession_TcpIp (
   AddressResolutionProcess ARP (
   
     .aclk                           (piShlClk),
-    .aresetn                        (piShlRst),
+    .aresetn                        (~piShlRst),
   
     //------------------------------------------------------
     //-- From IPRX Interfaces
     //------------------------------------------------------
     //-- IPRX / This / Axis
-    .axi_arp_slice_to_arp_tdata     (sIPRX_Arp_Axis_tdataReg),   // [FIXME - Bad HLS port names]
+    .axi_arp_slice_to_arp_tdata     (sIPRX_Arp_Axis_tdataReg),   // [TODO - Bad HLS port names]
     .axi_arp_slice_to_arp_tkeep     (sIPRX_Arp_Axis_tkeepReg),
     .axi_arp_slice_to_arp_tlast     (sIPRX_Arp_Axis_tlastReg),
     .axi_arp_slice_to_arp_tvalid    (sIPRX_Arp_Axis_tvalidReg),
-    .axi_arp_slice_to_arp_tready    (sARP_Iprx_Axis_tready),     // [FIXME - Bad HLS port names]
+    .axi_arp_slice_to_arp_tready    (sARP_Iprx_Axis_tready),     // [TODO - Bad HLS port names]
    
     //------------------------------------------------------
     //-- From IPTX Interfaces
@@ -852,7 +838,7 @@ module NetworkTransportSession_TcpIp (
   TcpOffloadEngine TOE (
   
     .aclk                               (piShlClk),
-    .aresetn                            (piShlRst),
+    .aresetn                            (~piShlRst),
    
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -1252,7 +1238,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS2 (
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- From IPRX / Toe / Axis 
     .s_axis_tdata   (sIPRX_Toe_Axis_tdata),
     .s_axis_tkeep   (sIPRX_Toe_Axis_tkeep),
@@ -1291,7 +1277,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS3 (
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- From TOE / L3mux / Axis
     .s_axis_tdata   (sTOE_L3mux_Axis_tdata),
     .s_axis_tkeep   (sTOE_L3mux_Axis_tkeep),
@@ -1331,7 +1317,7 @@ module NetworkTransportSession_TcpIp (
   TcpRoleInterface TRIF (
   
     .aclk                             (piShlClk),
-    .aresetn                          (piShlRst),
+    .aresetn                          (~piShlRst),
   
     //------------------------------------------------------
     //-- From ROLE Interfaces
@@ -1490,7 +1476,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS4 ( 
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- From TRIF / Role / Tcp / Axis 
     .s_axis_tvalid  (sTRIF_Rol_Axis_tvalid),
     .s_axis_tdata   (sTRIF_Rol_Axis_tdata),
@@ -1530,7 +1516,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS5 (
     .aclk           (piShlClk),
-    .aresetn        (piShlRst),
+    .aresetn        (~piShlRst),
     //-- From ROLE / Nts0 / Tcp / Axis -----------
     .s_axis_tdata   (piROL_Nts0_Tcp_Axis_tdata),
     .s_axis_tkeep   (piROL_Nts0_Tcp_Axis_tkeep),
@@ -1570,7 +1556,7 @@ module NetworkTransportSession_TcpIp (
   UdpCore UDP (
   
     .aclk                             (piShlClk),
-    .aresetn                          (piShlRst),
+    .aresetn                          (~piShlRst),
    
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -1719,7 +1705,7 @@ module NetworkTransportSession_TcpIp (
   UdpMultiplexer UDMX (
     
     .aclk                         (piShlClk),                                                  
-    .aresetn                      (piShlRst),
+    .aresetn                      (~piShlRst),
     
     //------------------------------------------------------
     //-- From DHCP Interfaces
@@ -1951,7 +1937,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS6 (
      .aclk          (piShlClk),
-     .aresetn       (piShlRst),
+     .aresetn       (~piShlRst),
      // From URIF / Role / Udp / Axis
      .s_axis_tdata  (sURIF_Rol_Axis_tdata),
      .s_axis_tkeep  (sURIF_Rol_Axis_tkeep),
@@ -2030,7 +2016,7 @@ module NetworkTransportSession_TcpIp (
   UdpRoleInterface URIF (
   
     .aclk                         (piShlClk),                      
-    .aresetn                      (piShlRst),
+    .aresetn                      (~piShlRst),
     
     //------------------------------------------------------
     //-- From UDMX Interfaces
@@ -2151,14 +2137,14 @@ module NetworkTransportSession_TcpIp (
   DynamicHostConfigurationProcess DHCP (
   
     .aclk                           (piShlClk),
-    .aresetn                        (piShlRst),
+    .aresetn                        (~piShlRst),
                                         
-    .dhcpEnable_V                   (1'b1),  // [FIXME-Do we still need a DHCP]
+    .dhcpEnable_V                   (1'b0),  // [TOOD - Remove this DHCP]
  
     .myMacAddress_V                 (piMMIO_Nts0_MacAddress),
 
     .inputIpAddress_V               (piMMIO_Nts0_IpAddress),
-    .dhcpIpAddressOut_V             (), // [FIXME] (piMMIO_Nts0_IpAddress),
+    .dhcpIpAddressOut_V             (),     // [INFO - This port was driving the IP address]
     
     //------------------------------------------------------
     //-- From UDMX Interfaces
@@ -2253,7 +2239,7 @@ module NetworkTransportSession_TcpIp (
   InternetControlMessageProcess ICMP (
   
     .aclk               (piShlClk),                           
-    .aresetn            (piShlRst),
+    .aresetn            (~piShlRst),
   
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -2330,15 +2316,15 @@ module NetworkTransportSession_TcpIp (
   AxisInterconnectRtl_3S1M_D8 L3MUX (
    
     .ACLK               (piShlClk),                         
-    .ARESETN            (piShlRst),                 
+    .ARESETN            (~piShlRst),                 
  
     .S00_AXIS_ACLK      (piShlClk),
     .S01_AXIS_ACLK      (piShlClk),            
     .S02_AXIS_ACLK      (piShlClk),        
  
-    .S00_AXIS_ARESETN   (piShlRst),       
-    .S01_AXIS_ARESETN   (piShlRst),       
-    .S02_AXIS_ARESETN   (piShlRst),     
+    .S00_AXIS_ARESETN   (~piShlRst),       
+    .S01_AXIS_ARESETN   (~piShlRst),       
+    .S02_AXIS_ARESETN   (~piShlRst),     
  
     //------------------------------------------------------
     //-- From ICMP Interfaces
@@ -2369,7 +2355,7 @@ module NetworkTransportSession_TcpIp (
          
              
     .M00_AXIS_ACLK      (piShlClk),        
-    .M00_AXIS_ARESETN   (piShlRst),    
+    .M00_AXIS_ARESETN   (~piShlRst),    
  
     //------------------------------------------------------
     //-- To IPTX Interfaces
@@ -2439,7 +2425,7 @@ module NetworkTransportSession_TcpIp (
   IpTxHandler IPTX (
   
     .aclk                     (piShlClk),         
-    .aresetn                  (piShlRst),  
+    .aresetn                  (~piShlRst),  
   
     //------------------------------------------------------
     //-- From L3MUX Interfaces
@@ -2520,12 +2506,12 @@ module NetworkTransportSession_TcpIp (
   AxisInterconnectRtl_2S1M_D8 L2MUX (
     
     .ACLK                 (piShlClk), 
-    .ARESETN              (piShlRst), 
+    .ARESETN              (~piShlRst), 
  
     .S00_AXIS_ACLK        (piShlClk), 
     .S01_AXIS_ACLK        (piShlClk), 
-    .S00_AXIS_ARESETN     (piShlRst), 
-    .S01_AXIS_ARESETN     (piShlRst),
+    .S00_AXIS_ARESETN     (~piShlRst), 
+    .S01_AXIS_ARESETN     (~piShlRst),
  
     //------------------------------------------------------
     //-- From ARP Interfaces
@@ -2549,7 +2535,7 @@ module NetworkTransportSession_TcpIp (
  
  
     .M00_AXIS_ACLK        (piShlClk), 
-    .M00_AXIS_ARESETN     (piShlRst), 
+    .M00_AXIS_ARESETN     (~piShlRst), 
  
     //------------------------------------------------------
     //-- To NTS0 / Eth0 / Axis Interfaces
