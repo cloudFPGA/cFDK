@@ -440,8 +440,9 @@ if { ${synth} } {
     if { ! ${create} } {
         open_project ${xprDir}/${xprName}.xpr
         # Reset the previous run 'synth_1' before launching a new one
-        reset_run synth_1
     }
+    
+    reset_run synth_1
 
     launch_runs synth_1 -jobs 8
     wait_on_run synth_1 
