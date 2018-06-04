@@ -54,7 +54,7 @@ use     UNISIM.vcomponents.all;
 --**  ENTITY  **  FMKU60 ROLE
 --******************************************************************************
 
-entity Role_Udp_Tcp_McDp_4BEmif is
+entity Role_x1Udp_x1Tcp_x2Mp is
   port (
     ---- Global Clock used by the entire ROLE --------------
     ------ This is the same clock as the SHELL -------------
@@ -172,7 +172,7 @@ entity Role_Udp_Tcp_McDp_4BEmif is
 
   );
   
-end Role_Udp_Tcp_McDp_4BEmif;
+end Role_x1Udp_x1Tcp_x2Mp;
 
 
 -- *****************************************************************************
@@ -201,7 +201,7 @@ end Role_Udp_Tcp_McDp_4BEmif;
 --**    signal assignments to avoid undefined content of the entity 'Role'.
 --*****************************************************************************
 
-architecture Void of Role_Udp_Tcp_McDp_4BEmif is
+architecture Void of Role_x1Udp_x1Tcp_x2Mp is
 
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Udp Interface to AVOID UNDEFINED CONTENT
