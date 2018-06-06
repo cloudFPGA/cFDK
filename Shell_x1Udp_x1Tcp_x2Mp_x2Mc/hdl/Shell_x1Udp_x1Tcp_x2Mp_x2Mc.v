@@ -466,6 +466,32 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMMIO_Eth0_PcsLoopbackEn;
   wire          sMMIO_Eth0_MacLoopbackEn;
   wire          sMMIO_Eth0_MacAddrSwapEn;
+  
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : HWICAPC 
+  //--------------------------------------------------------
+  //wire        sX_HWICAPC_eos_in;
+  wire        sX_HWICAPC_axi_aclk;
+  wire        sX_HWICAPC_axi_aresetn;
+  wire [ 8:0] sX_HWICAPC_axi_awaddr;
+  wire        sX_HWICAPC_axi_awvalid;
+  wire        sX_HWICAPC_axi_awready;
+  wire [31:0] sX_HWICAPC_axi_wdata;
+  wire        sX_HWICAPC_axi_wstrb;
+  wire        sX_HWICAPC_axi_wvalid;
+  wire        sX_HWICAPC_axi_wready;
+  wire [ 1:0] sX_HWICAPC_axi_bresp;
+  wire        sX_HWICAPC_axi_bvalid;
+  wire        sX_HWICAPC_axi_bready;
+  wire [ 8:0] sX_HWICAPC_axi_araddr;
+  wire        sX_HWICAPC_axi_arvalid; 
+  wire        sX_HWICAPC_axi_arready;
+  wire [31:0] sX_HWICAPC_axi_rdata;
+  wire [ 1:0] sX_HWICAPC_axi_rresp;
+  wire        sX_HWICAPC_axi_rvalid;
+  wire        sX_HWICAPC_axi_rready;
+  wire        sX_HWICAPC_ip2intc_irpt;
+
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -969,7 +995,30 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
   );  // End of MEM
   
-  
+  HWICAPC HWICAP (
+    .icap_clk       (sETH0_ShlClk),
+    .eos_in         (1),
+    .s_axi_aclk     (sX_HWICAPC_axi_aclk),
+    .s_axi_aresetn  (sX_HWICAPC_axi_aresetn),
+    .s_axi_awaddr   (sX_HWICAPC_axi_awaddr),
+    .s_axi_awvalid  (sX_HWICAPC_axi_awvalid),
+    .s_axi_awready  (sX_HWICAPC_axi_awready),
+    .s_axi_wdata    (sX_HWICAPC_axi_wdata),
+    .s_axi_wstrb    (sX_HWICAPC_axi_wstrb),
+    .s_axi_wvalid   (sX_HWICAPC_axi_wvalid),
+    .s_axi_wready   (sX_HWICAPC_axi_wready),
+    .s_axi_bresp    (sX_HWICAPC_axi_bresp),
+    .s_axi_bvalid   (sX_HWICAPC_axi_bvalid),
+    .s_axi_bready   (sX_HWICAPC_axi_bready),
+    .s_axi_araddr   (sX_HWICAPC_axi_araddr),
+    .s_axi_arvalid  (sX_HWICAPC_axi_arvalid), 
+    .s_axi_arready  (sX_HWICAPC_axi_arready),
+    .s_axi_rdata    (sX_HWICAPC_axi_rdata),
+    .s_axi_rresp    (sX_HWICAPC_axi_rresp),
+    .s_axi_rvalid   (sX_HWICAPC_axi_rvalid),
+    .s_axi_rready   (sX_HWICAPC_axi_rready),
+    .ip2intc_irpt   (sX_HWICAPC_ip2intc_irpt)
+  );
   //===========================================================================
   //==  INST: METASTABILITY HARDENED BLOCK FOR THE SHELL RESET (Active high)
   //==    [INFO] Note that we instantiate 2 or 3 library primitives rather than
