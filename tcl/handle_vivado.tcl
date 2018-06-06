@@ -710,6 +710,11 @@ if { $bitGen } {
       wait_on_run impl_1
     } else {
 
+      #Partial bitstream can be instrumented with CRC values every frame, so any failures are detected *before* the bad frame can be loaded in configuration memory, then corrective/fallback measures can be taken.
+      # for every open Checkpoint: 
+      #set_property bitstream.general.perFrameCRC yes [current_design]
+      # --> moved to fix_things.tcl
+
       set curImpl ${usedRole}
       if { $pr } {
         if { $activeFlowPr_1 } { 
