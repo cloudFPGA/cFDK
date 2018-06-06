@@ -71,31 +71,31 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     ---- Input AXI-Write Stream Interface ----------
     piSHL_Rol_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
     piSHL_Rol_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
     piSHL_Rol_Nts0_Udp_Axis_tlast       : in    std_ulogic;
+    piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;  
     poROL_Shl_Nts0_Udp_Axis_tready      : out   std_ulogic;
     ---- Output AXI-Write Stream Interface ---------
     piSHL_Rol_Nts0_Udp_Axis_tready      : in    std_ulogic;
     poROL_Shl_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
     poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-    poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
     poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
-    
+    poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
+   
     --------------------------------------------------------
     -- SHELL / Role / Nts0 / Tcp Interface
     --------------------------------------------------------
     ---- Input AXI-Write Stream Interface ----------
     piSHL_Rol_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
     piSHL_Rol_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-    piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
     piSHL_Rol_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
+    piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
     poROL_Shl_Nts0_Tcp_Axis_tready      : out   std_ulogic;
     ---- Output AXI-Write Stream Interface ---------
     piSHL_Rol_Nts0_Tcp_Axis_tready      : in    std_ulogic;
     poROL_Shl_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
     poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-    poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
     poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+    poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
     
     -------------------------------------------------------
     -- ROLE EMIF Registers
@@ -126,8 +126,8 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
     poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
     ------ Stream Write Status -----------------
-    piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
     piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+    piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
     poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
     ------ Stream Data Output Channel ----------
     piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
@@ -170,9 +170,8 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic;
     
     ------------------------------------------------
-    ---- TOP : Secondary Clock (Asynchronous)
+    -- TOP : Secondary Clock (Asynchronous)
     ------------------------------------------------
-    --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
     piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
     poVoid                              : out   std_ulogic
@@ -290,6 +289,8 @@ begin
           poROL_Shl_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
           poROL_Shl_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
           poROL_Shl_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+        else
+          poROL_Shl_Nts0_Udp_Axis_tlast   <= '0';
         end if;
       end if;
     end if;     
