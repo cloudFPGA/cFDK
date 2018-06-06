@@ -26,7 +26,7 @@ int main(){
 
 	printf("%#010x\n", (int) MMIO);
 
-	bool succeded = MMIO == 0x3ff80016;
+	bool succeded = MMIO == 0x3ff80013;
 
 	return succeded? 0 : -1;
 }

@@ -30,7 +30,7 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP)
 		WEMPTY = ISR & 0x4;
 		WFV_value = WFV & 0x7FF;
 
-		*MMIO = (WFV_value << WFV_V_SHIFT) | (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
+		*MMIO = (WFV_value << WFV_V_SHIFT) | (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | (EOS >> 2);
 
 		ap_wait_n(WAIT_CYCLES);
 
