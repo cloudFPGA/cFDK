@@ -7,7 +7,7 @@ generate_target all [get_ips HWICAPC]
 
 create_ip_run [get_ips HWICAPC]
 
-launch_runs -jobs 8 HWICAPC_synth_1
+#launch_runs -jobs 8 HWICAPC_synth_1
 
 
 #update_compile_order -fileset sources_1

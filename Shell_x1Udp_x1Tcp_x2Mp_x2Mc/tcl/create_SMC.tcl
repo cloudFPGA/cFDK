@@ -7,7 +7,7 @@ generate_target all [get_ips SMC]
 
 create_ip_run [get_ips SMC]
 
-launch_runs -jobs 8 SMC_synth_1
+#launch_runs -jobs 8 SMC_synth_1
 
 
 #update_compile_order -fileset sources_1

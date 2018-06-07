@@ -38,8 +38,8 @@ set ipPkgFormat    "ip_catalog"
 set currDir      [pwd]
 set srcDir       ${currDir}/src
 set tbDir        ${currDir}/tb
-set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../../ip
+#set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+#set repoDir      ${currDir}/../../ip
 
 
 # Get targets out of env  

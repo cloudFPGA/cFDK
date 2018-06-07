@@ -87,8 +87,11 @@ module MmioClient_A8_D8 #(
   output  [31:0]  poMMIO_Nts0_IpAddress,
   
   // ROLE EMIF Register 
-  output  [16:0]  poMMIO_ROLE_2B_Reg,
-  input   [16:0]  piMMIO_ROLE_2B_Reg,
+  output  [15:0]  poMMIO_ROLE_2B_Reg,
+  input   [15:0]  piMMIO_ROLE_2B_Reg,
+  
+  // SMC Registers
+  input   [31:0]  piMMIO_SMC_4B_Reg,
 
   output          poVoid
 
@@ -126,7 +129,7 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
+  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers & Burkhard's Playground
   localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
   localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
@@ -567,6 +570,12 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
   
   
+  //============================================================================
+  //  SMC Registers
+  //============================================================================
+  
+  assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
+
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
   //============================================================================

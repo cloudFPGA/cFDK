@@ -285,6 +285,9 @@ if { [ file exists ${ipDir} ] != 1 } {
     if { ${gTargetIpCore} eq "all" } { 
         file delete -force ${ipDir}/ip_user_files
         my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
+        
+        file delete -force ${ipXprDir}
+        my_dbg_trace "Done with the cleaning of: \'${ipXprDir}\' " ${dbgLvl_1}
     } else {
         if { [ file exists ${ipDir}/ip_user_files/${gTargetIpCore} ] } {
             file delete -force ${ipDir}/ip_user_files/${gTargetIpCore}
@@ -294,7 +297,8 @@ if { [ file exists ${ipDir} ] != 1 } {
 if { [ file exists ${ipXprDir} ] != 1 } {
     my_puts "Creating the managed IP project directory: \'${ipXprDir}\' "
     file mkdir ${ipXprDir}
-}
+} 
+
 if { [ file exists ${ipXprDir}/${ipXprName}.xpr ] != 1 } {
     my_puts "Creating the managed IP project: \'${ipXprName}.xpr\' "
     #my_warn ": ${ipXprName} ${ipXprDir} ${xilPartName}"
@@ -913,6 +917,24 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+#------------------------------------------------------------------------------
+# SMC related IP Cores 
+# TODO transfer in my_customize_ip? 
+
+
+my_dbg_trace "Start Creating SMC" ${::dbgLvl_1}
+source ${tclDir}/create_SMC.tcl 
+set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
+
+my_dbg_trace "Start Creating HWICAP" ${::dbgLvl_1}
+source ${tclDir}/create_HWICAP.tcl
+set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
+
+my_dbg_trace "Start Creating Decouple IP" ${::dbgLvl_1}
+source ${tclDir}/create_decouple_ip.tcl
+set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
+
+#------------------------------------------------------------------------------
 
 puts    ""
 my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] "

@@ -13,6 +13,7 @@ int main(){
 	ap_uint<32> SR;
 	ap_uint<32> ISR;
 	ap_uint<32> WFV;
+	ap_uint<1>  decoupActive = 0b0;
 
 	ap_uint<32> HWICAP[0x120];
 
@@ -25,12 +26,12 @@ int main(){
 	HWICAP[WFV_OFFSET] = WFV;
 
 	//smc_main(&MMIO,&SR, &ISR, &WFV);
-	smc_main(&MMIO, HWICAP);
+	smc_main(&MMIO, HWICAP, 0b1, &decoupActive);
 
 
 	printf("%#010x\n", (int) MMIO);
 
-	bool succeded = MMIO == 0x3ff80013;
+	bool succeded = MMIO == 0x3ff0000f;
 
 	return succeded? 0 : -1;
 }
