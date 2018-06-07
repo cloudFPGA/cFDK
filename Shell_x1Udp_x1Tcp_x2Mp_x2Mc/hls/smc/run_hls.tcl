@@ -41,6 +41,13 @@ set tbDir        ${currDir}/tb
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+
+# Get targets out of env  
+#-------------------------------------------------
+
+set hlsSim $env(hlsSim)
+set hlsCoSim $env(hlsCoSim)
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
@@ -62,14 +69,21 @@ create_clock -period 6.4 -name default
 
 # Run C Simulation and Synthesis
 #-------------------------------------------------
-csim_design -compiler gcc -clean
 
+if { $hlsSim} { 
+  csim_design -compiler gcc -clean
+} else {
 
-csynth_design
-#cosim_design -tool xsim -rtl vhdl -trace_level all
-
-# Export RTL
-#-------------------------------------------------
-export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+  csynth_design
+  
+  if { $hlsCoSim} {
+    cosim_design -tool xsim -rtl vhdl -trace_level all
+  } else {
+  
+  # Export RTL
+  #-------------------------------------------------
+    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+  }
+}
 
 exit

@@ -15,7 +15,8 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP)
 
 // #pragma HLS INTERFACE s_axilite port=return bundle=BUS_A
 
-	ap_uint<16> Done = 0, EOS = 0, WEMPTY = 0, WFV_value = 0;
+	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
+	ap_uint<32> WFV_value = 0;
 
 	ap_uint<32> SR = 0, ISR = 0, WFV = 0;
 
