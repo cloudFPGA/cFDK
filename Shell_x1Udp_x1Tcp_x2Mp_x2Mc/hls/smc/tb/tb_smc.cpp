@@ -1,7 +1,11 @@
 
+#define DEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "smc.hpp"
+#include "../src/smc.hpp"
+
+
 
 int main(){
 
