@@ -207,9 +207,6 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   signal sROL_Shl_Nts0_Udp_Axis_tvalid      : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tready      : std_ulogic;
 
-
-
-
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Tcp Interface to AVOID UNDEFINED CONTENT
   --============================================================================
@@ -270,34 +267,35 @@ begin
   --  connection. The echo is said to operate in "pass-through" mode because every received
   --  packet is sent back without being stored by the role.
   ------------------------------------------------------------------------------------------------
-  pEchoUdp : process(piSHL_156_25Clk)
+  pEchoUdp : process(piSHL_156_25Clk)   
   begin
     if rising_edge(piSHL_156_25Clk) then
       if (piSHL_156_25Rst = '1') then
-        poROL_Shl_Nts0_Udp_Axis_tdata   <= (others => '0');
-        poROL_Shl_Nts0_Udp_Axis_tkeep   <= (others => '0');
-        poROL_Shl_Nts0_Udp_Axis_tlast   <= '0';
-        poROL_Shl_Nts0_Udp_Axis_tvalid  <= '0';
-        sROL_Shl_Nts0_Udp_Axis_tready   <= '0';
+        -- Initialize the 'sSHL_Rol_Nts0_Udp_Axis' register
+        sSHL_Rol_Nts0_Udp_Axis_tdata   <= (others => '0');
+        sSHL_Rol_Nts0_Udp_Axis_tkeep   <= (others => '0');
+        sSHL_Rol_Nts0_Udp_Axis_tlast   <= '0';
+        sSHL_Rol_Nts0_Udp_Axis_tvalid  <= '0';
+        sSHL_Rol_Nts0_Udp_Axis_tready  <= '1';
       else
-        -- Always
-        sROL_Shl_Nts0_Udp_Axis_tready  <= piSHL_Rol_Nts0_Udp_Axis_tready;
-        poROL_Shl_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid and
-                                          sROL_Shl_Nts0_Udp_Axis_tready;
-        -- Register the inputs
-        if (piSHL_Rol_Nts0_Udp_Axis_tvalid = '1' and sROL_Shl_Nts0_Udp_Axis_tready = '1') then
-          poROL_Shl_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
-          poROL_Shl_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
-          poROL_Shl_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
-        else
-          poROL_Shl_Nts0_Udp_Axis_tlast   <= '0';
+        if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+          -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+          sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+          sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+          sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+          sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+          sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
         end if;
       end if;
     end if;     
   end process pEchoUdp;
       
   -- Output Ports Assignment
-  poROL_Shl_Nts0_Udp_Axis_tready <= sROL_Shl_Nts0_Udp_Axis_tready;
+  poROL_Shl_Nts0_Udp_Axis_tdata  <= sSHL_Rol_Nts0_Udp_Axis_tdata; 
+  poROL_Shl_Nts0_Udp_Axis_tkeep  <= sSHL_Rol_Nts0_Udp_Axis_tkeep;
+  poROL_Shl_Nts0_Udp_Axis_tlast  <= sSHL_Rol_Nts0_Udp_Axis_tlast;
+  poROL_Shl_Nts0_Udp_Axis_tvalid <= sSHL_Rol_Nts0_Udp_Axis_tvalid;
+  poROL_Shl_Nts0_Udp_Axis_tready <= sSHL_Rol_Nts0_Udp_Axis_tready;
   
   
   ------------------------------------------------------------------------------------------------
@@ -310,34 +308,33 @@ begin
   begin
     if rising_edge(piSHL_156_25Clk) then
       if (piSHL_156_25Rst = '1') then
-        poROL_Shl_Nts0_Tcp_Axis_tdata   <= (others => '0');
-        poROL_Shl_Nts0_Tcp_Axis_tkeep   <= (others => '0');
-        poROL_Shl_Nts0_Tcp_Axis_tlast   <= '0';
-        poROL_Shl_Nts0_Tcp_Axis_tvalid  <= '0';
-        sROL_Shl_Nts0_Tcp_Axis_tready   <= '0';
+        -- Initialize the 'sSHL_Rol_Nts0_Tcp_Axis' register
+        sSHL_Rol_Nts0_Tcp_Axis_tdata   <= (others => '0');
+        sSHL_Rol_Nts0_Tcp_Axis_tkeep   <= (others => '0');
+        sSHL_Rol_Nts0_Tcp_Axis_tlast   <= '0';
+        sSHL_Rol_Nts0_Tcp_Axis_tvalid  <= '0';
+        sSHL_Rol_Nts0_Tcp_Axis_tready  <= '1';
       else
-        -- Always
-        sROL_Shl_Nts0_Tcp_Axis_tready  <= piSHL_Rol_Nts0_Tcp_Axis_tready;
-        poROL_Shl_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid and
-                                          sROL_Shl_Nts0_Tcp_Axis_tready;
-        -- Register the inputs
-        if (piSHL_Rol_Nts0_Tcp_Axis_tvalid = '1' and sROL_Shl_Nts0_Tcp_Axis_tready = '1') then
-          poROL_Shl_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
-          poROL_Shl_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
-          poROL_Shl_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+        if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+          -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Tcp_Axis' register 
+          sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
+          sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
+          sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+          sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
+          sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
         end if;
       end if;
-    end if;
+    end if;     
   end process pEchoTcp;
- 
+        
   -- Output Ports Assignment
-  poROL_Shl_Nts0_Tcp_Axis_tready <= sROL_Shl_Nts0_Tcp_Axis_tready;
-  
-  
-  
-  
-  
-  
+  poROL_Shl_Nts0_Tcp_Axis_tdata  <= sSHL_Rol_Nts0_Tcp_Axis_tdata; 
+  poROL_Shl_Nts0_Tcp_Axis_tkeep  <= sSHL_Rol_Nts0_Tcp_Axis_tkeep;
+  poROL_Shl_Nts0_Tcp_Axis_tlast  <= sSHL_Rol_Nts0_Tcp_Axis_tlast;
+  poROL_Shl_Nts0_Tcp_Axis_tvalid <= sSHL_Rol_Nts0_Tcp_Axis_tvalid;
+  poROL_Shl_Nts0_Tcp_Axis_tready <= sSHL_Rol_Nts0_Tcp_Axis_tready;
+ 
+
   pMp0RdCmd : process(piSHL_156_25Clk)
   begin
     if rising_edge(piSHL_156_25Clk) then
