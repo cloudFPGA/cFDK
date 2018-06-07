@@ -264,7 +264,11 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
  
 begin
- 
+
+  -- write constant to EMIF Register to test read out 
+  poROL_SHL_EMIF_2B_Reg <= x"EFBE";
+
+
   ------------------------------------------------------------------------------------------------
   -- PROC: ECHO PASS-THROUGH UDP
   --  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the UDP
