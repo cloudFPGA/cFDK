@@ -499,12 +499,13 @@ if { ${link} } {
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
     set prConstrFile "${xdcDir}/topFMKU60_Flash_pr.xdc"
-    if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
-        my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
-        my_err_puts "  The script will be aborted here..."
-        my_puts ""
-        exit ${KO}
-    }
+    add_files -fileset ${constrObj} ${prConstrFile} 
+    #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
+    #    my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
+    #    my_err_puts "  The script will be aborted here..."
+    #    my_puts ""
+    #    exit ${KO}
+    #}
     my_puts "################################################################################"
     my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
