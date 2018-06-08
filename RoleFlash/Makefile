@@ -20,6 +20,6 @@ Role_x1Udp_x1Tcp_x2Mp_OOC.dcp: ./hdl ./xdc ./tcl
 
 
 clean: 
-	rm -rf ./xpr/ Role_OOC.dcp
+	rm -rf ./xpr/ Role*_OOC.dcp
 
 
