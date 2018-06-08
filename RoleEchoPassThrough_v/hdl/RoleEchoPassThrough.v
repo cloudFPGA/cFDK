@@ -38,7 +38,7 @@
 // **  MODULE - ECHO PASS-TRHOUGH ROLE FOR FMKU60
 // *****************************************************************************
 
-module RoleEchoPassThrough
+module Role_x1Udp_x1Tcp_x2Mp  // RoleEchoPassThrough
 (
 
     //------------------------------------------------------
@@ -74,15 +74,32 @@ module RoleEchoPassThrough
   //  SIGNAL (i.e. WIRES & REGISTERS) DECLARATIONS
   //============================================================================
  
-  //-- SHELL --> ROLE ------------------------------
-  reg [63:0]  sSHL_Rol_Nts0_Udp_Axis_tdata  = 64'd0;
-  reg [ 7:0]  sSHL_Rol_Nts0_Udp_Axis_tkeep  =  8'd0;
-  reg         sSHL_Rol_Nts0_Udp_Axis_tvalid =  1'b0;
-  reg         sSHL_Rol_Nts0_Udp_Axis_tlast  =  1'b0;
-  //-- ROLE --> SHELL ------------------------------ 
-  reg         sROL_Shl_Nts0_Udp_Axis_tready =  1'b0;
-
-   
+  //-- SHELL/Udp --> ROLE/Udp ------------------------------
+  reg         sROL_Shl_Nts0_Udp_Axis_tready;
+  reg [63:0]  sSHL_Rol_Nts0_Udp_Axis_tdata;
+  reg [ 7:0]  sSHL_Rol_Nts0_Udp_Axis_tkeep;
+  reg         sSHL_Rol_Nts0_Udp_Axis_tvalid;
+  reg         sSHL_Rol_Nts0_Udp_Axis_tlast;
+  //-- ROLE/Udp --> SHELL/Udp ------------------------------
+  reg  [63:0]  sROL_Shl_Nts0_Udp_Axis_tdata;
+  reg  [ 7:0]  sROL_Shl_Nts0_Udp_Axis_tkeep;
+  reg          sROL_Shl_Nts0_Udp_Axis_tlast;
+  reg          sROL_Shl_Nts0_Udp_Axis_tvalid;
+  reg          sSHL_Rol_Nts0_Udp_Axis_tready;
+  
+  //-- SHELL/Tcp --> ROLE/Tcp ------------------------------
+  reg         sROL_Shl_Nts0_Tcp_Axis_tready;
+  reg [63:0]  sSHL_Rol_Nts0_Tcp_Axis_tdata;
+  reg [ 7:0]  sSHL_Rol_Nts0_Tcp_Axis_tkeep;
+  reg         sSHL_Rol_Nts0_Tcp_Axis_tvalid;
+  reg         sSHL_Rol_Nts0_Tcp_Axis_tlast;
+  //-- ROLE/Tcp --> SHELL/Tcp ------------------------------
+  reg  [63:0]  sROL_Shl_Nts0_Tcp_Axis_tdata;
+  reg  [ 7:0]  sROL_Shl_Nts0_Tcp_Axis_tkeep;
+  reg          sROL_Shl_Nts0_Tcp_Axis_tlast;
+  reg          sROL_Shl_Nts0_Tcp_Axis_tvalid;
+  reg          sSHL_Rol_Nts0_Tcp_Axis_tready;
+  
   //------------------------------------------------------------------------------------------------
   //-- PROC: ECHO PASS-THROUGH UDP
   //--  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the UDP
@@ -91,20 +108,22 @@ module RoleEchoPassThrough
   //------------------------------------------------------------------------------------------------
   always@(posedge(piSHL_156_25Clk)) begin
     if (piSHL_156_25Rst) begin
-      sSHL_Rol_Nts0_Udp_Axis_tdata  <= 64'd0;
-      sSHL_Rol_Nts0_Udp_Axis_tkeep  <=  8'd0;
-      sSHL_Rol_Nts0_Udp_Axis_tvalid <=  1'b0;
-      sSHL_Rol_Nts0_Udp_Axis_tlast  <=  1'b0;
-    end else begin
-      // Always
-      sROL_Shl_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
-      sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid and sROL_Shl_Nts0_Udp_Axis_tready;
-      // Register the inputs
-      if (piSHL_Rol_Nts0_Udp_Axis_valid and ready) begin
-        sSHL_Rol_Nts0_Udp_Axis_tdata <= piSHL_Rol_Nts0_Udp_Axis_tdata;
-        sSHL_Rol_Nts0_Udp_Axis_tkeep <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
-        sSHL_Rol_Nts0_Udp_Axis_tlast <= piSHL_Rol_Nts0_Udp_Axis_tlast;
-      end   
+      // Initialize the 'sSHL_Rol_Nts0_Udp_Axis' register
+      sSHL_Rol_Nts0_Udp_Axis_tdata   <= 64'd0;
+      sSHL_Rol_Nts0_Udp_Axis_tkeep   <=  8'd0;
+      sSHL_Rol_Nts0_Udp_Axis_tlast   <=  1'b0;
+      sSHL_Rol_Nts0_Udp_Axis_tvalid  <=  1'b0;
+      sSHL_Rol_Nts0_Udp_Axis_tready  <=  1'b1;
+    end
+    else begin
+      if (piSHL_Rol_Nts0_Udp_Axis_tready == 1'b1) begin
+        // Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+        sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+        sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+        sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+        sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+        sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
+      end
     end
   end
 
@@ -115,7 +134,43 @@ module RoleEchoPassThrough
   assign poROL_Shl_Nts0_Udp_Axis_tkeep  = sSHL_Rol_Nts0_Udp_Axis_tkeep;
   assign poROL_Shl_Nts0_Udp_Axis_tlast  = sSHL_Rol_Nts0_Udp_Axis_tlast;
   assign poROL_Shl_Nts0_Udp_Axis_tvalid = sSHL_Rol_Nts0_Udp_Axis_tvalid;
-  assign poROL_Shl_Nts0_Udp_Axis_tready = sROL_Shl_Nts0_Udp_Axis_tready;
-
+  assign poROL_Shl_Nts0_Udp_Axis_tready = sSHL_Rol_Nts0_Udp_Axis_tready;
+  
+  
+  //------------------------------------------------------------------------------------------------
+  //-- PROC: ECHO PASS-THROUGH TCP
+  //--  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the TCP
+  //--  connection. The echo is said to operate in "pass-through" mode because every received
+  //--  packet is sent back without being stored by the role.
+  //------------------------------------------------------------------------------------------------
+  always@(posedge(piSHL_156_25Clk)) begin
+    if (piSHL_156_25Rst) begin
+      // Initialize the 'sSHL_Rol_Nts0_Tcp_Axis' register
+      sSHL_Rol_Nts0_Tcp_Axis_tdata   <= 64'd0;
+      sSHL_Rol_Nts0_Tcp_Axis_tkeep   <=  8'd0;
+      sSHL_Rol_Nts0_Tcp_Axis_tlast   <=  1'b0;
+      sSHL_Rol_Nts0_Tcp_Axis_tvalid  <=  1'b0;
+      sSHL_Rol_Nts0_Tcp_Axis_tready  <=  1'b1;
+    end
+    else begin
+      if (piSHL_Rol_Nts0_Tcp_Axis_tready == 1'b1) begin
+        // Load a new Axis chunk into the 'sSHL_Rol_Nts0_Tcp_Axis' register 
+        sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
+        sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
+        sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+        sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
+        sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
+      end
+   end
+  end
+  
+  //------------------------------------------------------------------------------------------------
+  //-- COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
+  //------------------------------------------------------------------------------------------------
+  assign poROL_Shl_Nts0_Tcp_Axis_tdata  = sSHL_Rol_Nts0_Tcp_Axis_tdata;
+  assign poROL_Shl_Nts0_Tcp_Axis_tkeep  = sSHL_Rol_Nts0_Tcp_Axis_tkeep;
+  assign poROL_Shl_Nts0_Tcp_Axis_tlast  = sSHL_Rol_Nts0_Tcp_Axis_tlast;
+  assign poROL_Shl_Nts0_Tcp_Axis_tvalid = sSHL_Rol_Nts0_Tcp_Axis_tvalid;
+  assign poROL_Shl_Nts0_Tcp_Axis_tready = sSHL_Rol_Nts0_Tcp_Axis_tready;
 endmodule
 
