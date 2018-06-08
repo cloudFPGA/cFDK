@@ -94,7 +94,7 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 	@/bin/echo "-link -role \\" >> .vivado_basecmd.sh
 
 #both
-../dcps/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl | $(XPR_PROJ)
+../dcps/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 
 $(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip | ../dcps 
