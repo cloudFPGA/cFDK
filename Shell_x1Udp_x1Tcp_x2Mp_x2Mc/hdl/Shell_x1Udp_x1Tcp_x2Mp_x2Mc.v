@@ -60,8 +60,8 @@
 
 module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
-  parameter gSecurityPriviledges = "super",  // "user" or "super"
-  parameter gBitstreamUsage      = "flash",  // "user" or "flash"
+  parameter gSecurityPriviledges = "user",  // "user" or "super"
+  parameter gBitstreamUsage      = "user",  // "user" or "flash"
   parameter gMmioAddrWidth       = 8,        // Default is 8-bits
   parameter gMmioDataWidth       = 8         // Default is 8-bits
 
