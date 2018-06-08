@@ -175,6 +175,10 @@ if {$pr || $link} {
   set forceWithoutBB 0
 }
 
+if {$pr && $impl && $synth} {
+  set link 1
+}
+
 if { ${create} } {
 
     my_puts "################################################################################"
