@@ -18,7 +18,7 @@ USED_ROLE_2 =RoleFlash_V2
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean
 
 all: pr
 #all: src_based
@@ -70,4 +70,12 @@ clean:
 	rm -rf ./xpr/ ./hd_visual/
 	#TODO discuss if delete dcps
 	rm -rf ./dcps/
+
+
+full_clean: clean 
+	$(MAKE) -C $(SHELL_DIR) clean 
+	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE) clean 
+	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2) clean
+
+
 
