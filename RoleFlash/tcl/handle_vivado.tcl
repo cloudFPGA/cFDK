@@ -217,7 +217,7 @@ if { ${create} } {
     #-------------------------------------------------------------------------------
     if { [ file exists ${xdcDir} ] } {
         set constrObj [ get_filesets constrs_1 ]
-        # If needed, you may want to populate the follwing list
+        # If needed, you may want to populate the following list
         set orderedList ""
 
         if { [ llength orderedList ] != 0 } {
@@ -235,12 +235,14 @@ if { ${create} } {
                     my_puts ""
                     exit ${KO}   
                 }
+                my_dbg_trace "Adding constraint file ${xdcDir}/${file}." ${dbgLvl_2}
             }
         } else {
             # Automatically add any XDC and TCL files that are present in the XDC directory.
             add_files -fileset ${constrObj} [ glob ${xdcDir}/*.tcl ]
+            my_dbg_trace "Adding constraint files ${xdcDir}/*.tcl" ${dbgLvl_2}
             add_files -fileset ${constrObj} [ glob ${xdcDir}/*.xdc ]
-            my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
+            my_dbg_trace "Adding constraint files ${xdcDir}/*.xdc" ${dbgLvl_2}
         }
         my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
     }
