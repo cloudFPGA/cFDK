@@ -15,7 +15,7 @@
 -- * Devices : xcku060-ffva1156-2-i
 -- * Tools   : Vivado v2016.4 / 2017.4 (64-bit)
 -- *
--- * Dependencies : clouFPGA Shell IP v1.0.
+-- * Dependencies : cloudFPGA Shell IP v1.0.
 -- *
 -- * Description : This top level implements the design programmed into the
 -- *  Flash of the FMKU60. The design builds on the Shell-Role Architecture
@@ -668,7 +668,7 @@ begin
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
-  --==    - one UDP, one TCP, and one MemoryChannel-DualPort interfaces. 
+  --==    - one UDP, one TCP, and two MemoryPort interfaces. 
   --==========================================================================
   SHELL : Shell_x1Udp_x1Tcp_x2Mp_x2Mc
       generic map (
