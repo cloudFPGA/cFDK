@@ -16,10 +16,11 @@
 // * Tools   : Vivado v2017.4 (64-bit)
 // * Depends : None
 // *
-// * Description : This version of the role implements an echo application made
-// *    of a UDP loopback and a TCP loopback connections. The role is said to be
-// *    operating in "pass-through" mode because every received packet is sent
-// *    back without being stored by the role.          
+// * Description : This version of the role implements an echo application between
+// *    the Rx and Tx ports of a UDP connection and between the the Rx and Tx ports
+// *    of a TCP connection. The role is said to be operating in "pass-through"
+// *    mode because every received packet is sent back without being stored by the
+// *    role.          
 // * 
 // * Infos & Conventions:
 // *    <pi> stands for "PortIn". 
@@ -44,25 +45,120 @@ module Role_x1Udp_x1Tcp_x2Mp  // RoleEchoPassThrough
     //------------------------------------------------------
     //-- SHELL / Global Input Clock and Reset Interface
     //------------------------------------------------------
-    input wire         piSHL_156_25Clk,
-    input wire         piSHL_156_25Rst,
+    input wire          piSHL_156_25Clk,
+    input wire          piSHL_156_25Rst,
 
     //--------------------------------------------------------
     //-- SHELL / Role / Nts0 / Udp Interface
     //--------------------------------------------------------
     //---- Input AXI-Write Stream Interface --------
-    input wire [63:0]  piSHL_Rol_Nts0_Udp_Axis_tdata,
-    input wire [7:0]   piSHL_Rol_Nts0_Udp_Axis_tkeep,
-    input wire [0:0]   piSHL_Rol_Nts0_Udp_Axis_tlast,
-    input wire         piSHL_Rol_Nts0_Udp_Axis_tvalid,
-    output wire        poROL_Shl_Nts0_Udp_Axis_tready,
+    input wire [ 63:0]  piSHL_Rol_Nts0_Udp_Axis_tdata,
+    input wire [ 7:0]   piSHL_Rol_Nts0_Udp_Axis_tkeep,
+    input wire          piSHL_Rol_Nts0_Udp_Axis_tlast,
+    input wire          piSHL_Rol_Nts0_Udp_Axis_tvalid,
+    output wire         poROL_Shl_Nts0_Udp_Axis_tready,
     //---- Output AXI-Write Stream Interface ---------
-    input wire         piSHL_Rol_Nts0_Udp_Axis_tready,
-    output wire [63:0] poROL_Shl_Nts0_Udp_Axis_tdata,
-    output wire [7:0]  poROL_Shl_Nts0_Udp_Axis_tkeep,
-    output wire [0:0]  poROL_Shl_Nts0_Udp_Axis_tlast,
-    output wire        poROL_Shl_Nts0_Udp_Axis_tvalid
- 
+    input wire          piSHL_Rol_Nts0_Udp_Axis_tready,
+    output wire [ 63:0] poROL_Shl_Nts0_Udp_Axis_tdata,
+    output wire [ 7:0]  poROL_Shl_Nts0_Udp_Axis_tkeep,
+    output wire         poROL_Shl_Nts0_Udp_Axis_tlast,
+    output wire         poROL_Shl_Nts0_Udp_Axis_tvalid,
+    
+    //--------------------------------------------------------
+    //-- SHELL / Role / Nts0 / Tcp Interface
+    //--------------------------------------------------------
+    //---- Input AXI-Write Stream Interface ----------
+    input wire [ 63:0]  piSHL_Rol_Nts0_Tcp_Axis_tdata,
+    input wire [ 7:0]   piSHL_Rol_Nts0_Tcp_Axis_tkeep,
+    input wire          piSHL_Rol_Nts0_Tcp_Axis_tlast,
+    input wire          piSHL_Rol_Nts0_Tcp_Axis_tvalid,
+    output wire         poROL_Shl_Nts0_Tcp_Axis_tready,
+    //---- Output AXI-Write Stream Interface ---------
+    input wire          piSHL_Rol_Nts0_Tcp_Axis_tready,
+    output wire [ 63:0] poROL_Shl_Nts0_Tcp_Axis_tdata,
+    output wire [ 7:0]  poROL_Shl_Nts0_Tcp_Axis_tkeep,
+    output wire         poROL_Shl_Nts0_Tcp_Axis_tlast,
+    output wire         poROL_Shl_Nts0_Tcp_Axis_tvalid,
+    
+    //-------------------------------------------------------
+    //-- ROLE EMIF Registers
+    //-------------------------------------------------------
+    output wire         poROL_SHL_EMIF_2B_Reg,
+    input wire          piSHL_ROL_EMIF_2B_Reg,
+    
+    //-----------------------------------------------
+    //-- SHELL / Role / Mem / Mp0 Interface
+    //------------------------------------------------
+    //---- Memory Port #0 / S2MM-AXIS ------------------   
+    //------ Stream Read Command -----------------
+    input wire          piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
+    output wire [ 71:0] poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
+    output wire         poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
+    //------ Stream Read Status ------------------
+    input wire  [  7:0] piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata,
+    input wire          piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid,
+    output wire         poROL_Shl_Mem_Mp0_Axis_RdSts_tready,
+    //------ Stream Data Input Channel -----------
+    input wire  [511:0] piSHL_Rol_Mem_Mp0_Axis_Read_tdata,
+    input wire  [ 63:0] piSHL_Rol_Mem_Mp0_Axis_Read_tkeep,
+    input wire          piSHL_Rol_Mem_Mp0_Axis_Read_tlast,
+    input wire          piSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
+    output wire         poROL_Shl_Mem_Mp0_Axis_Read_tready,
+    //------ Stream Write Command ----------------
+    input wire          piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
+    output wire [ 71:0] poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
+    output wire         poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
+    //------ Stream Write Status -----------------
+    input wire  [  7:0] piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata,
+    input wire          piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid,
+    output wire         poROL_Shl_Mem_Mp0_Axis_WrSts_tready,
+    //------ Stream Data Output Channel ----------
+    input wire          piSHL_Rol_Mem_Mp0_Axis_Write_tready,
+    output wire [511:0] poROL_Shl_Mem_Mp0_Axis_Write_tdata,
+    output wire [ 63:0] poROL_Shl_Mem_Mp0_Axis_Write_tkeep,
+    output wire         poROL_Shl_Mem_Mp0_Axis_Write_tlast,
+    output wire         poROL_Shl_Mem_Mp0_Axis_Write_tvalid,
+       
+    //------------------------------------------------
+    //-- SHELL / Role / Mem / Mp1 Interface
+    //------------------------------------------------
+    //---- Memory Port #1 / S2MM-AXIS ------------------   
+    //------ Stream Read Command -----------------
+    input wire          piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
+    output wire [ 71:0] poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
+    output wire         poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid,
+    //------ Stream Read Status ------------------
+    input wire  [  7:0] piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata,
+    input wire          piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid,
+    output wire         poROL_Shl_Mem_Mp1_Axis_RdSts_tready,
+    //------ Stream Data Input Channel -----------
+    input wire  [511:0] piSHL_Rol_Mem_Mp1_Axis_Read_tdata,
+    input wire  [ 63:0] piSHL_Rol_Mem_Mp1_Axis_Read_tkeep,
+    input wire          piSHL_Rol_Mem_Mp1_Axis_Read_tlast,
+    input wire          piSHL_Rol_Mem_Mp1_Axis_Read_tvalid,
+    output wire         poROL_Shl_Mem_Mp1_Axis_Read_tready,
+    //------ Stream Write Command ----------------
+    input wire          piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready,
+    output wire [ 71:0] poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
+    output wire         poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid,
+    //------ Stream Write Status -----------------
+    input wire          piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid,
+    input wire  [  7:0] piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata,
+    output wire         poROL_Shl_Mem_Mp1_Axis_WrSts_tready,
+    //------ Stream Data Output Channel ----------
+    input wire          piSHL_Rol_Mem_Mp1_Axis_Write_tready,
+    output wire [511:0] poROL_Shl_Mem_Mp1_Axis_Write_tdata,
+    output wire [ 63:0] poROL_Shl_Mem_Mp1_Axis_Write_tkeep,
+    output wire         poROL_Shl_Mem_Mp1_Axis_Write_tlast,
+    output wire         poROL_Shl_Mem_Mp1_Axis_Write_tvalid,
+    
+    //------------------------------------------------
+    //-- TOP : Secondary Clock (Asynchronous)
+    //------------------------------------------------
+    input wire          piTOP_250_00Clk,
+       
+    output wire         poVoid
+
 );
 
 
