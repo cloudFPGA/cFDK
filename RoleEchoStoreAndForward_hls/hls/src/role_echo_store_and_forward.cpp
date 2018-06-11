@@ -46,11 +46,10 @@
 
 using namespace hls;
 
-/** @ingroup echo_server_application
+/** @ingroup role_echo_application
  *
  */
 
-//#if 0
 
 /*
 ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the number of 1s in an 8-bit value
@@ -80,7 +79,6 @@ ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the num
 }
 
 
-//#if 0
 void echo_app(
 	stream<axiWord>& 			iRxData,
 	stream<axiWord>& 			oTxData)
@@ -137,159 +135,173 @@ void conv_512_to_64(stream<axiWord>& 			iData,
 
 }
 
-//DRAM 2 Ports
 
-void echo_app_with_ddr3(
-	//net rx
-	stream<axiWord>& 			iNetRxData,
-	//net tx
-	stream<axiWord>& 			oNetTxData,
+/*****************************************************************************/
+/* @brief { Brief description (1-2 lines) }
+ * @ingroup (<groupname> [<groupname> <groupname>])
+ *
+ * @param [(dir)] <parameter-name> { parameter description }
+ * @param[in]     _inArg1 Description of first function argument.
+ * @param[out]    _outArg2 Description of second function argument.
+ * @param[in,out] _inoutArg3 Description of third function argument.
+ * 
+ * @return { description of the return value }.
+ *****************************************************************************/
 
-	//DRAM Port 1
-	//mem wr
-	stream<mmCmd>&				oMemWrCmd_p1,
-	stream<mmStatus>&			iMemWrtatus_p1,
-	stream<axiMemWord>&			oMemWrData_p1,
+void RoleHls_x1Udp_x1Tcp_x2Mp(  // OBSOLETE-20180611 echo_app_with_ddr3(
+    //net rx
+    stream<axiWord>& 			iNetRxData,
+	   //net tx
+	   stream<axiWord>& 			oNetTxData,
 
-	//mem rd
-	stream<mmCmd>&				oMemRdCmd_p1,
-	//stream<mmStatus>&			iMemRdtatus,
-	stream<axiMemWord>&			iMemRdData_p1,
+	   //DRAM Port 1
+	   //mem wr
+	   stream<mmCmd>&				   oMemWrCmd_p1,
+    stream<mmStatus>&			 iMemWrtatus_p1,
+    stream<axiMemWord>&	oMemWrData_p1,
 
-	//DRAM Port 2
-	//mem wr
-	stream<mmCmd>&				oMemWrCmd_p2,
-	stream<mmStatus>&			iMemWrtatus_p2,
-	stream<axiMemWord>&			oMemWrData_p2,
+    //mem rd
+    stream<mmCmd>&				oMemRdCmd_p1,
+    //stream<mmStatus>&			iMemRdtatus,
+    stream<axiMemWord>&			iMemRdData_p1,
 
-	//mem rd
-	stream<mmCmd>&				oMemRdCmd_p2,
-	//stream<mmStatus>&			iMemRdtatus,
-	stream<axiMemWord>&			iMemRdData_p2)
+    //DRAM Port 2
+    //mem wr
+    stream<mmCmd>&				oMemWrCmd_p2,
+    stream<mmStatus>&			iMemWrtatus_p2,
+    stream<axiMemWord>&			oMemWrData_p2,
+
+    //mem rd
+    stream<mmCmd>&				oMemRdCmd_p2,
+    //stream<mmStatus>&			iMemRdtatus,
+    stream<axiMemWord>&			iMemRdData_p2)
 {
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS DATAFLOW //interval=1
 
-#pragma HLS resource core=AXI4Stream variable=iNetRxData metadata="-bus_bundle net_p1_s_axis_read_data"
-#pragma HLS resource core=AXI4Stream variable=oNetTxData metadata="-bus_bundle net_p1_m_axis_write_data"
+// Bundling: SHELL / Role / Nts0 / Udp Interface  
+#pragma HLS resource core=AXI4Stream variable=iNetRxData     metadata="-bus_bundle siSHL_Rol_Nts0_Udp         //OBSOLETE-20180610 net_p1_s_axis_read_data"
+#pragma HLS resource core=AXI4Stream variable=oNetTxData     metadata="-bus_bundle soROL_Shl_Nts0_Udp"        //OBSOLETE-20180610 net_p1_m_axis_write_data"
 
-//DRAM Port 1
-#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_p1 metadata="-bus_bundle dram_p1_m_axis_write_cmd"
-#pragma HLS resource core=AXI4Stream variable=iMemWrtatus_p1 metadata="-bus_bundle dram_p1_s_axis_write_sts"
-#pragma HLS resource core=AXI4Stream variable=oMemWrData_p1 metadata="-bus_bundle dram_p1_m_axis_write_data"
-#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_p1 metadata="-bus_bundle dram_p1_m_axis_read_cmd"
-#pragma HLS resource core=AXI4Stream variable=iMemRdData_p1 metadata="-bus_bundle dram_p1_s_axis_read_data"
+// Bundling: SHELL / Role / Nts0 / Tcp Interface  [TODO]
+
+// Bundling: SHELL / Role / Mem / Mp0 Interface
+#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_p1   metadata="-bus_bundle soROL_Shl_Mem_Mp0_RdCmd"   //OBSOLETE-20180610 dram_p1_m_axis_read_cmd"
+#pragma HLS resource core=AXI4Stream variable=iMemRdSts_p1   metadata="-bus_bundle siSHL_Rol_Mem_Mp0_RdSts"
+#pragma HLS resource core=AXI4Stream variable=iMemRdData_p1  metadata="-bus_bundle siSHL_Rol_Mem_Mp0_Read"    //OBSOLETE-20180610 dram_p1_s_axis_read_data"
+
+#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_p1   metadata="-bus_bundle soROL_Shl_Mem_Mp0_WrCmd"   //OBSOLETE-20180610 dram_p1_m_axis_write_cmd"
+#pragma HLS resource core=AXI4Stream variable=iMemWrtatus_p1 metadata="-bus_bundle siSHL_Rol_Mem_Mp0_WrSts"   //OBSOLETE-20180610 dram_p1_s_axis_write_sts"
+#pragma HLS resource core=AXI4Stream variable=oMemWrData_p1  metadata="-bus_bundle soROL_Shl_Mem_Mp0_Write"   //OBSOLETE-20180610 dram_p1_m_axis_write_data"
 
 #pragma HLS DATA_PACK variable=oMemWrCmd_p1
 #pragma HLS DATA_PACK variable=oMemRdCmd_p1
 #pragma HLS DATA_PACK variable=iMemWrtatus_p1
 
-//DRAM Port 2
-#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_p2 metadata="-bus_bundle dram_p2_m_axis_write_cmd"
+// Bundling: SHELL / Role / Mem / Mp1 Interface
+#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_p2   metadata="-bus_bundle dram_p2_m_axis_write_cmd"
 #pragma HLS resource core=AXI4Stream variable=iMemWrtatus_p2 metadata="-bus_bundle dram_p2_s_axis_write_sts"
-#pragma HLS resource core=AXI4Stream variable=oMemWrData_p2 metadata="-bus_bundle dram_p2_m_axis_write_data"
-#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_p2 metadata="-bus_bundle dram_p2_m_axis_read_cmd"
-#pragma HLS resource core=AXI4Stream variable=iMemRdData_p2 metadata="-bus_bundle dram_p2_s_axis_read_data"
+#pragma HLS resource core=AXI4Stream variable=oMemWrData_p2  metadata="-bus_bundle dram_p2_m_axis_write_data"
+#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_p2   metadata="-bus_bundle dram_p2_m_axis_read_cmd"
+#pragma HLS resource core=AXI4Stream variable=iMemRdData_p2  metadata="-bus_bundle dram_p2_s_axis_read_data"
 
 #pragma HLS DATA_PACK variable=oMemWrCmd_p2
 #pragma HLS DATA_PACK variable=oMemRdCmd_p2
 #pragma HLS DATA_PACK variable=iMemWrtatus_p2
 
 
-static enum state { APP_NET_RX_IDLE = 0,
-	                APP_MEM_WR_CMD_P1, APP_MEM_WR_P1, APP_MEM_WR_STS_P1, APP_MEM_RD_CMD_P1, APP_MEM_RD_P1,
-	                APP_MEM_WR_CMD_P2, APP_MEM_WR_P2, APP_MEM_WR_STS_P2, APP_MEM_RD_CMD_P2, APP_MEM_RD_P2,
-	                APP_NET_TX} app_state;
+  static enum state { APP_NET_RX_IDLE = 0,
+                      APP_MEM_WR_CMD_P1, APP_MEM_WR_P1, APP_MEM_WR_STS_P1, APP_MEM_RD_CMD_P1, APP_MEM_RD_P1,
+                      APP_MEM_WR_CMD_P2, APP_MEM_WR_P2, APP_MEM_WR_STS_P2, APP_MEM_RD_CMD_P2, APP_MEM_RD_P2,
+                      APP_NET_TX } app_state;
 
-static stream<axiWord> net_rx_data;
+  static stream<axiWord> net_rx_data;
 #pragma HLS STREAM variable=net_rx_data depth=1024
-static stream<axiWord> mem_rd_data;
+
+  static stream<axiWord> mem_rd_data;
 #pragma HLS STREAM variable=mem_rd_data depth=1024
-axiWord net_rx_temp_data;
-axiMemWord temp_mem_data;
-static ap_uint<4> protocol = 0;
-static ap_uint<16> num_net_rx_data_bytes = 0;
-static ap_uint<32> mem_wr_addr= 0x100;
+  axiWord                net_rx_temp_data;
+  axiMemWord             temp_mem_data;
+  static ap_uint<4>      protocol = 0;
+  static ap_uint<16>     num_net_rx_data_bytes = 0;
+  static ap_uint<32>     mem_wr_addr= 0x100;
 
-
-
-	switch(app_state){
+  switch(app_state) {
 		//net read
-		case APP_NET_RX_IDLE:
-			if (!iNetRxData.empty() && !net_rx_data.full()) {
-				iNetRxData.read(net_rx_temp_data);
-				net_rx_data.write(net_rx_temp_data);
-				num_net_rx_data_bytes = num_net_rx_data_bytes + keep_to_len(net_rx_temp_data.keep);
+  case APP_NET_RX_IDLE:
+    if (!iNetRxData.empty() && !net_rx_data.full()) {
+      iNetRxData.read(net_rx_temp_data);
+      net_rx_data.write(net_rx_temp_data);
+      num_net_rx_data_bytes = num_net_rx_data_bytes + keep_to_len(net_rx_temp_data.keep);
 
-				if(net_rx_temp_data.last)
-					app_state = APP_MEM_WR_CMD_P1;
-
-			}
-			break;
+      if(net_rx_temp_data.last)
+        app_state = APP_MEM_WR_CMD_P1;
+    }
+    break;
 		//dram port 1 write read
-		case APP_MEM_WR_CMD_P1:
-			if (!oMemWrCmd_p1.full()) {
-				oMemWrCmd_p1.write(mmCmd(mem_wr_addr, num_net_rx_data_bytes));
-				app_state = APP_MEM_WR_P1;
-			}
-			break;
-		case APP_MEM_WR_P1:
-			if (!net_rx_data.empty() && !oMemWrData_p1.full()) {
-				net_rx_data.read(net_rx_temp_data);
-				temp_mem_data.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000,net_rx_temp_data.data(63,0));
-				temp_mem_data.keep = (0x00, 0x00, 0x00, net_rx_temp_data.keep);
-				temp_mem_data.last = net_rx_temp_data.last;
-				oMemWrData_p1.write(temp_mem_data);
+  case APP_MEM_WR_CMD_P1:
+    if (!oMemWrCmd_p1.full()) {
+      oMemWrCmd_p1.write(mmCmd(mem_wr_addr, num_net_rx_data_bytes));
+      app_state = APP_MEM_WR_P1;
+    }
+    break;
+  case APP_MEM_WR_P1:
+    if (!net_rx_data.empty() && !oMemWrData_p1.full()) {
+      net_rx_data.read(net_rx_temp_data);
+      temp_mem_data.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, net_rx_temp_data.data(63,0));
+      temp_mem_data.keep = (0x00, 0x00, 0x00, net_rx_temp_data.keep);
+      temp_mem_data.last = net_rx_temp_data.last;
+      oMemWrData_p1.write(temp_mem_data);
 
-				if(net_rx_temp_data.last)
-					app_state = APP_MEM_WR_STS_P1;
-			}
-		break;
-		case APP_MEM_WR_STS_P1:
-			if(!iMemWrtatus_p1.empty()){
-				iMemWrtatus_p1.read();
-				app_state = APP_MEM_RD_CMD_P1;
-			}
-		break;
-		case APP_MEM_RD_CMD_P1:
-			if(!oMemRdCmd_p1.full()){
-				oMemRdCmd_p1.write(mmCmd(mem_wr_addr,num_net_rx_data_bytes));
-				app_state = APP_MEM_RD_P1;
-			}
-		break;
-		case APP_MEM_RD_P1:
-			if(!iMemRdData_p1.empty() && !mem_rd_data.full() ){
-				iMemRdData_p1.read(temp_mem_data);
-				net_rx_temp_data.data(63,0) = temp_mem_data.data(63,0);
-				net_rx_temp_data.keep = temp_mem_data.keep(7,0);
-				net_rx_temp_data.last = temp_mem_data.last;
-				mem_rd_data.write(net_rx_temp_data);
+      if(net_rx_temp_data.last)
+        app_state = APP_MEM_WR_STS_P1;
+    }
+    break;
+  case APP_MEM_WR_STS_P1:
+    if(!iMemWrtatus_p1.empty()){
+      iMemWrtatus_p1.read();
+      app_state = APP_MEM_RD_CMD_P1;
+    }
+    break;
+  case APP_MEM_RD_CMD_P1:
+    if(!oMemRdCmd_p1.full()){
+      oMemRdCmd_p1.write(mmCmd(mem_wr_addr,num_net_rx_data_bytes));
+      app_state = APP_MEM_RD_P1;
+    }
+    break;
+  case APP_MEM_RD_P1:
+    if(!iMemRdData_p1.empty() && !mem_rd_data.full() ){
+      iMemRdData_p1.read(temp_mem_data);
+      net_rx_temp_data.data(63,0) = temp_mem_data.data(63,0);
+      net_rx_temp_data.keep = temp_mem_data.keep(7,0);
+      net_rx_temp_data.last = temp_mem_data.last;
+      mem_rd_data.write(net_rx_temp_data);
 
-				if(net_rx_temp_data.last)
-					app_state = APP_MEM_WR_CMD_P2;
-			}
-		break;
+      if(net_rx_temp_data.last)
+        app_state = APP_MEM_WR_CMD_P2;
+    }
+    break;
 
 		//dram port 2 write read
-		case APP_MEM_WR_CMD_P2:
-			if (!oMemWrCmd_p2.full()) {
-				oMemWrCmd_p2.write(mmCmd(mem_wr_addr, num_net_rx_data_bytes));
-				app_state = APP_MEM_WR_P2;
-			}
-			break;
-		case APP_MEM_WR_P2:
-			if (!mem_rd_data.empty() && !oMemWrData_p2.full()) {
-				mem_rd_data.read(net_rx_temp_data);
-				temp_mem_data.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000,net_rx_temp_data.data(63,0));
-				temp_mem_data.keep = (0x00, 0x00, 0x00, net_rx_temp_data.keep);
-				temp_mem_data.last = net_rx_temp_data.last;
-				oMemWrData_p2.write(temp_mem_data);
+  case APP_MEM_WR_CMD_P2:
+    if (!oMemWrCmd_p2.full()) {
+      oMemWrCmd_p2.write(mmCmd(mem_wr_addr, num_net_rx_data_bytes));
+      app_state = APP_MEM_WR_P2;
+    }
+    break;
+  case APP_MEM_WR_P2:
+    if (!mem_rd_data.empty() && !oMemWrData_p2.full()) {
+      mem_rd_data.read(net_rx_temp_data);
+      temp_mem_data.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000,net_rx_temp_data.data(63,0));
+      temp_mem_data.keep = (0x00, 0x00, 0x00, net_rx_temp_data.keep);
+      temp_mem_data.last = net_rx_temp_data.last;
+      oMemWrData_p2.write(temp_mem_data);
 
-				if(net_rx_temp_data.last)
-					app_state = APP_MEM_WR_STS_P2;
-			}
-		break;
+      if(net_rx_temp_data.last)
+        app_state = APP_MEM_WR_STS_P2;
+    }
+    break;
 		case APP_MEM_WR_STS_P2:
 			if(!iMemWrtatus_p2.empty()){
 				iMemWrtatus_p2.read();
@@ -302,33 +314,35 @@ static ap_uint<32> mem_wr_addr= 0x100;
 				app_state = APP_MEM_RD_P2;
 			}
 		break;
-		case APP_MEM_RD_P2:
-			if(!iMemRdData_p2.empty() && !mem_rd_data.full() ){
-				iMemRdData_p2.read(temp_mem_data);
-				net_rx_temp_data.data(63,0) = temp_mem_data.data(63,0);
-				net_rx_temp_data.keep = temp_mem_data.keep(7,0);
-				net_rx_temp_data.last = temp_mem_data.last;
-				mem_rd_data.write(net_rx_temp_data);
+  case APP_MEM_RD_P2:
+    if(!iMemRdData_p2.empty() && !mem_rd_data.full() ){
+      iMemRdData_p2.read(temp_mem_data);
+      net_rx_temp_data.data(63,0) = temp_mem_data.data(63,0);
+      net_rx_temp_data.keep = temp_mem_data.keep(7,0);
+      net_rx_temp_data.last = temp_mem_data.last;
+      mem_rd_data.write(net_rx_temp_data);
 
-				if(net_rx_temp_data.last)
-					app_state = APP_NET_TX;
-			}
-		break;
+      if(net_rx_temp_data.last)
+        app_state = APP_NET_TX;
+    }
+    break;
 
-		//net write
-		case APP_NET_TX:
-			if(!mem_rd_data.empty() && !oNetTxData.full()){
-				mem_rd_data.read(net_rx_temp_data);
-				oNetTxData.write(net_rx_temp_data);
-				if(net_rx_temp_data.last) {
-					app_state = APP_NET_RX_IDLE;
-					num_net_rx_data_bytes = 0;
-				}
-			}
-		break;
-	}
+  //net write
+  case APP_NET_TX:
+    if(!mem_rd_data.empty() && !oNetTxData.full()){
+      mem_rd_data.read(net_rx_temp_data);
+      oNetTxData.write(net_rx_temp_data);
+      if(net_rx_temp_data.last) {
+        app_state = APP_NET_RX_IDLE;
+        num_net_rx_data_bytes = 0;
+      }
+    }
+    break;
+  }
 }
 
+
+/******************************************************************************
 #if 0
 //DRAM 1 Port
 void echo_app_with_ddr3(
@@ -445,8 +459,10 @@ static ap_uint<32> mem_wr_addr= 0x100;
 	}
 }
 #endif
+*********************************************************************/
 
 
+/*********************************************************************
 #if 0
 void echo_app_with_ddr3(
 	//net rx
@@ -553,9 +569,11 @@ static ap_uint<32> mem_wr_addr= 0x100;
 	}
 }
 #endif
+******************************************************/
 
 
 
+/******************************************************
 #if 0
 void echo_app_net_rx_ddr_wr_ddr_rd_net_tx_2_ports(
 	//net rx
@@ -587,16 +605,15 @@ void echo_app_net_rx_ddr_wr_ddr_rd_net_tx_2_ports(
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS DATAFLOW //interval=1
 
-/*
-#pragma HLS INTERFACE axis port=iNetRxData
-#pragma HLS INTERFACE axis port=oNetTxData
 
-#pragma HLS INTERFACE axis port=oMemWrCmd
-#pragma HLS INTERFACE axis port=iMemWrtatus
-#pragma HLS INTERFACE axis port=oMemWrData
-#pragma HLS INTERFACE axis port=oMemRdCmd
-#pragma HLS INTERFACE axis port=iMemRdData
-*/
+//#pragma HLS INTERFACE axis port=iNetRxData
+//#pragma HLS INTERFACE axis port=oNetTxData
+
+//#pragma HLS INTERFACE axis port=oMemWrCmd
+//#pragma HLS INTERFACE axis port=iMemWrtatus
+//#pragma HLS INTERFACE axis port=oMemWrData
+//#pragma HLS INTERFACE axis port=oMemRdCmd
+//#pragma HLS INTERFACE axis port=iMemRdData
 
 #pragma HLS resource core=AXI4Stream variable=iNetRxData metadata="-bus_bundle s_axis_net_rx_data"
 #pragma HLS resource core=AXI4Stream variable=oNetTxData metadata="-bus_bundle s_axis_net_tx_data"
@@ -755,7 +772,20 @@ static bool port_switch = true;
 	}
 }
 #endif
+**************************************************************************/
 
+
+/*****************************************************************************/
+/* @brief { Brief description (1-2 lines) }
+ * @ingroup (<groupname> [<groupname> <groupname>])
+ *
+ * @param [(dir)] <parameter-name> { parameter description }
+ * @param[in]     _inArg1 Description of first function argument.
+ * @param[out]    _outArg2 Description of second function argument.
+ * @param[in,out] _inoutArg3 Description of third function argument.
+ * 
+ * @return { description of the return value }.
+ *****************************************************************************/
 void echo_app_net_rx_ddr_wr_ddr_rd_net_tx_2_ports_mem_address_in_net_data(
 	//net rx
 	stream<axiWord>& 			iNetRxData,
@@ -789,7 +819,7 @@ void echo_app_net_rx_ddr_wr_ddr_rd_net_tx_2_ports_mem_address_in_net_data(
 /*
 #pragma HLS INTERFACE axis port=iNetRxData
 #pragma HLS INTERFACE axis port=oNetTxData
-
+xs
 #pragma HLS INTERFACE axis port=oMemWrCmd
 #pragma HLS INTERFACE axis port=iMemWrtatus
 #pragma HLS INTERFACE axis port=oMemWrData
@@ -797,24 +827,24 @@ void echo_app_net_rx_ddr_wr_ddr_rd_net_tx_2_ports_mem_address_in_net_data(
 #pragma HLS INTERFACE axis port=iMemRdData
 */
 
-#pragma HLS resource core=AXI4Stream variable=iNetRxData metadata="-bus_bundle s_axis_net_rx_data"
-#pragma HLS resource core=AXI4Stream variable=oNetTxData metadata="-bus_bundle s_axis_net_tx_data"
+#pragma HLS resource core=AXI4Stream variable=iNetRxData    metadata="-bus_bundle siSHL_Rol_Nts0_Udp_Axis"  //OBSOLETE s_axis_net_rx_data"
+#pragma HLS resource core=AXI4Stream variable=oNetTxData    metadata="-bus_bundle soROL_Shl_Nts0_Udp_Axis"  //OBSOLETE s_axis_net_tx_data"
 
-#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_1 metadata="-bus_bundle s_axis_mem_wr_cmd_1"
+#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_1   metadata="-bus_bundle s_axis_mem_wr_cmd_1"
 #pragma HLS resource core=AXI4Stream variable=iMemWrtatus_1 metadata="-bus_bundle s_axis_mem_wr_sts_1"
-#pragma HLS resource core=AXI4Stream variable=oMemWrData_1 metadata="-bus_bundle s_axis_mem_wr_data_1"
-#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_1 metadata="-bus_bundle s_axis_mem_rd_cmd_1"
-#pragma HLS resource core=AXI4Stream variable=iMemRdData_1 metadata="-bus_bundle s_axis_mem_rd_data_1"
+#pragma HLS resource core=AXI4Stream variable=oMemWrData_1  metadata="-bus_bundle s_axis_mem_wr_data_1"
+#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_1   metadata="-bus_bundle s_axis_mem_rd_cmd_1"
+#pragma HLS resource core=AXI4Stream variable=iMemRdData_1  metadata="-bus_bundle s_axis_mem_rd_data_1"
 
 #pragma HLS DATA_PACK variable=oMemWrCmd_1
 #pragma HLS DATA_PACK variable=oMemRdCmd_1
 #pragma HLS DATA_PACK variable=iMemWrtatus_1
 
-#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_2 metadata="-bus_bundle s_axis_mem_wr_cmd_2"
+#pragma HLS resource core=AXI4Stream variable=oMemWrCmd_2   metadata="-bus_bundle s_axis_mem_wr_cmd_2"
 #pragma HLS resource core=AXI4Stream variable=iMemWrtatus_2 metadata="-bus_bundle s_axis_mem_wr_sts_2"
-#pragma HLS resource core=AXI4Stream variable=oMemWrData_2 metadata="-bus_bundle s_axis_mem_wr_data_2"
-#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_2 metadata="-bus_bundle s_axis_mem_rd_cmd_2"
-#pragma HLS resource core=AXI4Stream variable=iMemRdData_2 metadata="-bus_bundle s_axis_mem_rd_data_2"
+#pragma HLS resource core=AXI4Stream variable=oMemWrData_2  metadata="-bus_bundle s_axis_mem_wr_data_2"
+#pragma HLS resource core=AXI4Stream variable=oMemRdCmd_2   metadata="-bus_bundle s_axis_mem_rd_cmd_2"
+#pragma HLS resource core=AXI4Stream variable=iMemRdData_2  metadata="-bus_bundle s_axis_mem_rd_data_2"
 
 #pragma HLS DATA_PACK variable=oMemWrCmd_2
 #pragma HLS DATA_PACK variable=oMemRdCmd_2
@@ -968,7 +998,7 @@ static bool port_switch = true;
 }
 
 
-
+/*************************************************
 #if 0
 void echo_app_net_rx_ddr_wr_ddr_rd_net_tx(
 	//net rx
@@ -989,16 +1019,16 @@ void echo_app_net_rx_ddr_wr_ddr_rd_net_tx(
 #pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS DATAFLOW //interval=1
 
-/*
-#pragma HLS INTERFACE axis port=iNetRxData
-#pragma HLS INTERFACE axis port=oNetTxData
 
-#pragma HLS INTERFACE axis port=oMemWrCmd
-#pragma HLS INTERFACE axis port=iMemWrtatus
-#pragma HLS INTERFACE axis port=oMemWrData
-#pragma HLS INTERFACE axis port=oMemRdCmd
-#pragma HLS INTERFACE axis port=iMemRdData
-*/
+//#pragma HLS INTERFACE axis port=iNetRxData
+//#pragma HLS INTERFACE axis port=oNetTxData
+
+//#pragma HLS INTERFACE axis port=oMemWrCmd
+//#pragma HLS INTERFACE axis port=iMemWrtatus
+//#pragma HLS INTERFACE axis port=oMemWrData
+//#pragma HLS INTERFACE axis port=oMemRdCmd
+//#pragma HLS INTERFACE axis port=iMemRdData
+
 
 #pragma HLS resource core=AXI4Stream variable=iNetRxData metadata="-bus_bundle s_axis_net_rx_data"
 #pragma HLS resource core=AXI4Stream variable=oNetTxData metadata="-bus_bundle s_axis_net_tx_data"
@@ -1084,8 +1114,8 @@ static ap_uint<32> mem_wr_addr= 0x100;
 }
 #endif
 
+**************************************************************/
 
-//#endif
 
 void traffic_sink(
 	stream<axiWord>& 			iRxData,

@@ -14,7 +14,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "role_echo_store_and_forward"
+set projectName    "roleEchoHls"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
