@@ -27,7 +27,7 @@ set brdPartName  "FMKU60"
 #  x2Mc  stands for two Memory Channel interfaces
 #-------------------------------------------------------------- 
 set topName      "Role_x1Udp_x1Tcp_x2Mp_x2Mc"
-set topFile      "Shell.v"
+set topFile      "roleEchoHdl.v"
 
 
 #-------------------------------------------------------------------------------
