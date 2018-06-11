@@ -1,10 +1,25 @@
 
 /*****************************************************************************
- * File:            <ThisFile>.cpp
- * Creation Date:   May 14, 2018
- * Description:     <Short description (1-2 lines)>
+ * @file       : { <ThisFile>.cpp }
+ * @brief      : { Brief description (1-2 lines) }
  *
- * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : { A more detailed descriptionof the file }
+ * 
+ * @note       : { text } 
+ * @remark     : { remark text }
+ * @warning    : { warning message }
+ * @todo       : { paragraph describing what is to be done }
+ * 
+ * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
  *
  *****************************************************************************/
 
@@ -41,32 +56,24 @@
 
 
 /*****************************************************************************/
-/* NameOfTheFunction
+/* @brief { Brief description (1-2 lines) }
+ * @ingroup (<groupname> [<groupname> <groupname>])
  *
- * \desc            Description of function.
- *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param [(dir)] <parameter-name> { parameter description }
+ * @param[in]     _inArg1 Description of first function argument.
+ * @param[out]    _outArg2 Description of second function argument.
+ * @param[in,out] _inoutArg3 Description of third function argument.
  * 
- * \return          The returned value.
- *
+ * @return { description of the return value }.
  *****************************************************************************/
-void tai_app_to_net( stream<axiWord>&           buff_data, 
-                     stream<ap_uint<16> >&      txMetaData, 
-                     stream<axiWord>&           oTxData, 
-                     stream<ap_uint<16> >&      r_session_id)
+void a_process( stream<axiWord>&           siData, 
+                stream<ap_uint<16> >&      soMetaData, 
+                stream<axiWord>&           soData, 
+                stream<ap_uint<16> >&      soSessionId)
 {
 
 }   /* end NameOfTheFuction */
 
-
-
-
-
-
-
-    return FM_FAIL;
-
-}   /* end fmPlatformReceiveProcess */
 
 
 
