@@ -13,7 +13,10 @@
 
 #define SR_OFFSET 0x110
 #define ISR_OFFSET 0x20
-#define WFV_OFFSET 0x114
+#define WFV_OFFSET 0x114 
+
+#define SMC_VERSION 0xA
+#define SMC_VERSION_SHIFT 8
 
 //void smc_main(ap_uint<32> *MMIO, ap_uint<32> *SR, ap_uint<32> *ISR, ap_uint<32> *WFV);
 //void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP);

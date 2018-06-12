@@ -38,6 +38,7 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 
 		*MMIO = (WFV_value << WFV_V_SHIFT) | (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
 		*MMIO |= (decoupStatus | 0x0) << DECOUP_SHIFT;
+		*MMIO |= SMC_VERSION << SMC_VERSION_SHIFT;
 
 		ap_wait_n(WAIT_CYCLES);
 

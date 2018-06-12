@@ -585,7 +585,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),
-    .piMMIO_ROLE_2B_Reg             (piROL_SHL_EMIF_2B_Reg),
+    .piMMIO_ROLE_2B_Reg             (sDECOUP_SHL_EMIF_2B_Reg),
     // SMC Registers
     .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
  
