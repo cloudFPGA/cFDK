@@ -562,7 +562,7 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
       } else { 
         write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp
       }
-      write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole}.dcp
+      #write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole}.dcp
       
       my_puts "################################################################################"
       my_puts "##  DONE WITH 1. IMPLEMENATATION RUN; .dcp SAVED "
@@ -624,7 +624,7 @@ if { $activeFlowPr_2 && $impl } {
   
   
   write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp
-  write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
+  #write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
   
   my_puts "################################################################################"
   my_puts "##  DONE WITH 2. IMPLEMENATATION RUN; .dcp SAVED "
