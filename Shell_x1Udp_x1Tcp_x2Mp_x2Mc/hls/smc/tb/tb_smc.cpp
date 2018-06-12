@@ -26,12 +26,19 @@ int main(){
 	HWICAP[WFV_OFFSET] = WFV;
 
 	//smc_main(&MMIO,&SR, &ISR, &WFV);
+	bool succeded = true;
+
+	for(int i=0; i<5; i++)
+	{
 	smc_main(&MMIO, HWICAP, 0b1, &decoupActive);
 
 
 	printf("%#010x\n", (int) MMIO);
+	int expected_value = 0x3ff00a0f + (i << CNT_SHIFT);
 
-	bool succeded = MMIO == 0x3ff00a0f;
+	 succeded = (MMIO == expected_value) && succeded;
+
+	}
 
 	return succeded? 0 : -1;
 }

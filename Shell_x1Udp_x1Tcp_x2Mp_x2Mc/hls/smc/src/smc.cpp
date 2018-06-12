@@ -5,6 +5,9 @@
 
 #include "smc.hpp"
 
+//TODO: static variables?
+ap_uint<4> cnt = 0;
+
 void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
 {
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -21,8 +24,6 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 	ap_uint<32> WFV_value = 0;
 
 	ap_uint<32> SR = 0, ISR = 0, WFV = 0;
-
-	ap_uint<4> cnt = 0;
 
 	*setDecoup = 0b0;
 
@@ -44,13 +45,15 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 		*MMIO |= SMC_VERSION << SMC_VERSION_SHIFT;
 		*MMIO |= (cnt | 0x0000) << CNT_SHIFT;
 
-		ap_wait_n(WAIT_CYCLES);
-
-		cnt = 0xf;
-
-		*MMIO |=  (cnt | 0x0000) << CNT_SHIFT;
+		cnt++;
 
 		ap_wait_n(WAIT_CYCLES);
+
+		//cnt = 0xf;
+
+		//*MMIO |=  (cnt | 0x0000) << CNT_SHIFT;
+
+		//ap_wait_n(WAIT_CYCLES);
 
 //#ifdef DEBUG
 //		break;
