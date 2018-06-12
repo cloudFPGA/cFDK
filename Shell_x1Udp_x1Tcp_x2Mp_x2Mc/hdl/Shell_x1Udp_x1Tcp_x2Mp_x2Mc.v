@@ -1078,7 +1078,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- Global Reset used by the entire SHELL -------------
     .ap_rst_n               (~ piTOP_156_25Rst),
     //core should start immediately 
-    .ap_start               (1),
+    //.ap_start               (1),
     .pioMMIO_V              (sCASTOR_MMIO_4B_Reg),
     .m_axi_poSMC_to_HWICAP_AXIM_AWADDR   (sCASTOR_HWICAPC_axi_awaddr),
     .m_axi_poSMC_to_HWICAP_AXIM_AWVALID  (sCASTOR_HWICAPC_axi_awvalid),

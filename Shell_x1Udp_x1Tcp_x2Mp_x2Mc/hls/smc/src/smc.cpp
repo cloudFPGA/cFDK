@@ -7,6 +7,7 @@
 
 void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
 {
+#pragma HLS INTERFACE ap_ctrl_none port=return
 //#pragma HLS INTERFACE m_axi depth=1 port=SR offset=0x110 bundle=poSMC_to_HWICAP_AXIM
 //#pragma HLS INTERFACE m_axi depth=1 port=ISR offset=0x20 bundle=poSMC_to_HWICAP_AXIM
 //#pragma HLS INTERFACE m_axi depth=1 port=WFV offset=0x114 bundle=poSMC_to_HWICAP_AXIM
@@ -21,11 +22,13 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 
 	ap_uint<32> SR = 0, ISR = 0, WFV = 0;
 
+	ap_uint<4> cnt = 0;
+
 	*setDecoup = 0b0;
 
 	//TODO: also read Abort Status Register -> if CRC fails
 
-	while(true){
+	//while(true){
 
 		SR = HWICAP[SR_OFFSET];
 		ISR = HWICAP[ISR_OFFSET];
@@ -39,14 +42,20 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 		*MMIO = (WFV_value << WFV_V_SHIFT) | (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
 		*MMIO |= (decoupStatus | 0x0) << DECOUP_SHIFT;
 		*MMIO |= SMC_VERSION << SMC_VERSION_SHIFT;
+		*MMIO |= (cnt | 0x0000) << CNT_SHIFT;
 
 		ap_wait_n(WAIT_CYCLES);
 
+		cnt = 0xf;
 
-#ifdef DEBUG
-		break;
-#endif
-	}
+		*MMIO |=  (cnt | 0x0000) << CNT_SHIFT;
+
+		ap_wait_n(WAIT_CYCLES);
+
+//#ifdef DEBUG
+//		break;
+//#endif
+	//}
 
 }
 

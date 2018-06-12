@@ -18,6 +18,8 @@
 #define SMC_VERSION 0xA
 #define SMC_VERSION_SHIFT 8
 
+#define CNT_SHIFT 12
+
 //void smc_main(ap_uint<32> *MMIO, ap_uint<32> *SR, ap_uint<32> *ISR, ap_uint<32> *WFV);
 //void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP);
 void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup);
