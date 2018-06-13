@@ -25,20 +25,21 @@ int main(){
 	HWICAP[ISR_OFFSET] = ISR;
 	HWICAP[WFV_OFFSET] = WFV;
 
-	//smc_main(&MMIO,&SR, &ISR, &WFV);
 	bool succeded = true;
 
-	for(int i=0; i<5; i++)
-	{
+	//for(int i=0; i<5; i++)
+	//{
 	smc_main(&MMIO, HWICAP, 0b1, &decoupActive);
 
 
 	printf("%#010x\n", (int) MMIO);
-	int expected_value = 0x3ff00a0f + (i << CNT_SHIFT);
+	//int expected_value = 0x3ff00a0f + (i << CNT_SHIFT);
 
-	 succeded = (MMIO == expected_value) && succeded;
+	 //succeded = (MMIO == expected_value) && succeded;
+	 
+	succeded = (MMIO == 0x3ff00a0f) && succeded;
 
-	}
+	//}
 
 	smc_main(&MMIO, HWICAP, 0b0, &decoupActive);
 
