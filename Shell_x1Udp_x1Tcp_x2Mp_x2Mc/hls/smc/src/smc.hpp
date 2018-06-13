@@ -9,11 +9,12 @@
 #define WEMPTY_SHIFT 2
 #define DECOUP_SHIFT 3
 
-#define WAIT_CYCLES 1000
+#define WAIT_CYCLES 10
+#define AXI_PAUSE_CYCLES 10
 
 #define SR_OFFSET 0x110
 #define ISR_OFFSET 0x20
-#define WFV_OFFSET 0x114 
+#define WFV_OFFSET 0x114
 
 #define SMC_VERSION 0xA
 #define SMC_VERSION_SHIFT 8

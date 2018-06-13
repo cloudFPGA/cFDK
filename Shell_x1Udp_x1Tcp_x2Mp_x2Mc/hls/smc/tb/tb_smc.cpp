@@ -33,5 +33,13 @@ int main(){
 
 	bool succeded = MMIO == 0x3ff00a0f;
 
+	smc_main(&MMIO, HWICAP, 0b0, &decoupActive);
+
+
+	printf("%#010x\n", (int) MMIO);
+
+	succeded = (MMIO == 0x3ff01a07) && succeded;
+
 	return succeded? 0 : -1;
+	//return 0;
 }

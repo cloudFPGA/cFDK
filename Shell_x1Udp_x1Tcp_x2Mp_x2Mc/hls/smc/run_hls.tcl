@@ -58,7 +58,7 @@ add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
 
 #for DEBUG flag 
-add_files -tb src/smc.cpp -cflags "-DDEBUG"
+#add_files -tb src/smc.cpp -cflags "-DDEBUG"
 add_files -tb tb/tb_smc.cpp
 
 
