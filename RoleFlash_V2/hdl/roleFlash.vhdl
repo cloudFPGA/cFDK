@@ -400,10 +400,5 @@ begin
   end process pMp0Write;
 
 
-  
-  -- write constant to EMIF Register to test read out 
-  poROL_SHL_EMIF_2B_Reg <= x"BEEF";
-
-  
 end architecture Flash;
   
