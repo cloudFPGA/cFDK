@@ -5,6 +5,9 @@
 
 #include "smc.hpp"
 
+//TODO: static variables?
+
+
 void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
 {
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -28,7 +31,7 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 
 	//TODO: also read Abort Status Register -> if CRC fails
 
-	//while(true){
+	while(true){
 
 		SR = HWICAP[SR_OFFSET];
 		ISR = HWICAP[ISR_OFFSET];
@@ -52,10 +55,12 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 
 		ap_wait_n(WAIT_CYCLES);
 
-//#ifdef DEBUG
-//		break;
-//#endif
-	//}
+		cnt = 0;
+
+#ifdef DEBUG
+		break;
+#endif
+	}
 
 }
 

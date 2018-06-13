@@ -188,8 +188,6 @@ module MmioClient_A8_D8 #(
   // Extended Page Select Register 
   localparam PAGE_SEL       = PAGE_REG_BASE; 
  
-  localparam ROLE_REG_WIDTH_HALF = 16;
-
   //============================================================================
   //  CONSTANT DEFINITIONS -- Default Reset Values of the Registers 
   //============================================================================
@@ -563,18 +561,19 @@ module MmioClient_A8_D8 #(
   //---- PAGE_SEL ----------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
   
+  //--------------------------------------------------------  
   // ROLE REGISTERS [TODO - Move these fields into the DIAGNOSTIC section]
-  //assign poMMIO_ROLE_2B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF];
-  //assign sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF] =  sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
-  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
-  assign sStatusVec[cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
+  //--------------------------------------------------------  
+  assign sStatusVec[cEDW*ROLE_REG_BASE+2*cEDW-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
+  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+4*cEDW-1:cEDW*ROLE_REG_BASE+2*cEDW]; //Write TO ROLE
   
   
   //============================================================================
   //  SMC Registers
   //============================================================================
   
-  assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
+  //Read
+  assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW-1:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
 
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
