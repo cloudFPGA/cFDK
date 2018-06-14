@@ -63,8 +63,8 @@ monolithic: ensureMonolithic ShellSrc | xpr
 ensureNotMonolithic: | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
 
-ensureMonolithic: | xpr 
-	@test  -f ./xpr/.project_monolithic.lock || (echo "This project was startet with Black Box flow => please clean up first" && exit 1)
+ensureMonolithic:
+	@test  -f ./xpr/.project_monolithic.lock || test ! -f ./xpr/ || (echo "This project was startet with Black Box flow => please clean up first" && exit 1)
 
 clean: 
 	$(MAKE) -C ./tcl/ clean 
