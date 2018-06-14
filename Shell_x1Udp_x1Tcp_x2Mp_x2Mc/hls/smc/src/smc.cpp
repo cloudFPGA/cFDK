@@ -14,9 +14,9 @@ void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, a
 //#pragma HLS INTERFACE m_axi depth=1 port=ISR offset=0x20 bundle=poSMC_to_HWICAP_AXIM
 //#pragma HLS INTERFACE m_axi depth=1 port=WFV offset=0x114 bundle=poSMC_to_HWICAP_AXIM
 #pragma HLS INTERFACE m_axi depth=512 port=HWICAP bundle=poSMC_to_HWICAP_AXIM
-#pragma HLS INTERFACE ap_none register port=MMIO name=pioMMIO
-#pragma HLS INTERFACE ap_none register port=decoupStatus name=piDECOUP_SMC_status
-#pragma HLS INTERFACE ap_none register port=setDecoup name=poSMC_DECOUP_activate
+#pragma HLS INTERFACE ap_ovld port=MMIO name=pioMMIO
+#pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_SMC_status
+#pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
 // #pragma HLS INTERFACE s_axilite port=return bundle=BUS_A
 
 	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
