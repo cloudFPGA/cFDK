@@ -31,6 +31,61 @@ set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
 
+  #while { [get_property STATUS [get_runs synth_1]] ne "synth_design Complete!" } {
+# 
+
+proc secureSynth {} {
+  my_puts "Secure synth started at: [clock format [clock seconds] -format {%T %a %b %d %Y}]"
+  set toSynth [get_runs -filter {PROGRESS < 100} *synth*] 
+  puts $toSynth
+  while { [ llength $toSynth] ne 0 } {
+    if { [catch {launch_runs synth_1 -jobs 8}] ne 0} {
+      foreach j $toSynth {
+        puts "$j"
+        reset_run $j 
+      }
+      my_err_puts "Must reset some synth runs once more: $toSynth"
+      reset_run synth_1
+      launch_runs synth_1 -jobs 8
+    }
+    wait_on_run synth_1
+    set toSynth [get_runs -filter {PROGRESS < 100} *synth*] 
+  
+  }
+
+    my_puts "################################################################################"
+    my_puts "Secure Synth end at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+}
+
+proc secureImpl {} {
+  my_puts "Secure Impl started at: [clock format [clock seconds] -format {%T %a %b %d %Y}]"
+  set toImpl [get_runs -filter {PROGRESS < 100} *impl*] 
+  puts $toImpl
+  set firstRun 1
+  while { [ llength $toImpl] ne 0 } {
+    if { [catch {launch_runs impl_1 -next_step -jobs 8}] ne 0} {
+      foreach j $toImpl {
+        puts "$j"
+        reset_run $j 
+      }
+      my_err_puts "Must reset some implemenation runs once more: $toImpl"
+      reset_run impl_1
+      launch_runs impl_1 -next_step -jobs 8
+      if { $firstRun } {
+        my_puts "make sure, that synthesis is complete: "
+        secureSynth
+      } 
+      set firstRun 0
+    }
+    wait_on_run impl_1
+    set toImpl [get_runs -filter {PROGRESS < 100} *impl*] 
+  }
+
+    my_puts "################################################################################"
+    my_puts "Secure Impl end at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+}
+
+
 
 ################################################################################
 #                                                                              #
@@ -61,6 +116,7 @@ set pr_grey 0
 set link 0
 set activeFlowPr_1 0
 set activeFlowPr_2 0
+set impl_opt 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -90,6 +146,7 @@ if { $argc > 0 } {
         { pr_verify "Run pr_verify." } 
         { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
+        { impl_opt "Optimize implementation for performance (increases runtime)"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -166,6 +223,10 @@ if { $argc > 0 } {
             if { ${key} eq "forceWithoutBB" && ${value} eq 1 } {
               set forceWithoutBB 1
               my_info_puts "The argument \'forceWithoutBB\' is set."
+            }
+            if { ${key} eq "impl_opt" && ${value} eq 1 } {
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set."
             }
         } 
     }
@@ -446,10 +507,12 @@ if { ${synth} } {
         # Reset the previous run 'synth_1' before launching a new one
     }
     
-    reset_run synth_1
+    #reset_run synth_1
 
-    launch_runs synth_1 -jobs 8
-    wait_on_run synth_1 
+    #launch_runs synth_1 -jobs 8
+    #wait_on_run synth_1 
+
+    secureSynth
 
     if { ! $forceWithoutBB } { 
       open_run synth_1 -name synth_1
@@ -548,13 +611,22 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
     #-------------------------------------------------------------------------------
     set implObj [ get_runs impl_1 ]
     
-    reset_run impl_1
-    set_property strategy Performance_Explore ${implObj}
-
-    launch_runs impl_1 -jobs 8
-    wait_on_run impl_1
-
+    #reset_run impl_1
     
+    if { ! $impl_opt } {
+      set_property strategy Flow_RuntimeOptimized ${implObj}
+      my_puts "Flow_RuntimeOptimized is set"
+    } else {
+      set_property strategy Performance_Explore ${implObj}
+      my_puts "Performance_Explore is set"
+    }
+
+    #launch_runs impl_1 -jobs 8
+    #wait_on_run impl_1
+
+    secureImpl
+   
+
     if { ! $forceWithoutBB } { 
       open_run impl_1
       if { $pr } { 
