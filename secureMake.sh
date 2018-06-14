@@ -12,7 +12,7 @@ while true ; do
 	for file in $logs 
 	do 
 		#echo $file
-		killed=$(cat $file | grep Kiled | wc -l)
+		killed=$(cat $file | grep Killed | wc -l)
 		#echo $killed
 		if [ $killed -gt 0 ];  then
 			succes=false 
