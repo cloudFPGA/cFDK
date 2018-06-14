@@ -52,26 +52,25 @@
 set_property CONFIG_VOLTAGE 1.8 [current_design]
 set_property CFGBVS GND [current_design]
 
-
 #---------------------------------------------------------------------
 # Enable bitstream compression
 #---------------------------------------------------------------------
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
+#---------------------------------------------------------------------
+# Settings for the BPI Flash Programming
+#
+#  [INFO] Run the following command to generate a '.mcs' file for a
+#         1Gbit (i.e. 128x8) BPI configuration flash.
+#           write_cfgmem -format mcs -size 128 -interface BPIx16  /
+#                        -loadbit {up 0x00000000 ${xprName}.bit } /
+#                        -file ${xprName}.mcs
+#---------------------------------------------------------------------
+set_property BITSTREAM.CONFIG.EXTMASTERCCLK_EN DIV-1 [current_design]
+set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1 [current_design]
+set_property CONFIG_MODE BPI16 [current_design]
 
 
-###############################################################################
-# [TODO] Flash Programming Settings: Uncomment as required by your design
-# Items below between < > must be updated with correct values to work properly.
-###############################################################################
-# [TODO] BPI Flash Programming
-#set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
-#set_property BITSTREAM.CONFIG.EXTMASTERCCLK_EN DIV-1 [current_design]
-#set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1 [current_design]
-#set_property CONFIG_MODE BPI16 [current_design]
-
-# Example PROM Generation command that should be executed from the Tcl Console
-# write_cfgmem -format mcs -size 128 -interface BPIx16 -loadbit {up 0x00000000 inputBitfile.bit } -file outputBitfile.mcs
 
 #OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
 #OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
