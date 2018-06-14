@@ -39,7 +39,7 @@ XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic
 all: full_src_pr
 
 
@@ -82,6 +82,14 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+monolithic: basecmd | $(XPR_PROJ) ../dcps 
+	@/bin/echo "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
 
 #without pr 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp

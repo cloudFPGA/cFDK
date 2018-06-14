@@ -56,9 +56,10 @@ pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
 
-monolithic: ensureMonolithic ShellSrc | xpr 
+monolithic: ensureMonolithic ShellSrc Role | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
-	export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
+	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic
 
 ensureNotMonolithic: | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
