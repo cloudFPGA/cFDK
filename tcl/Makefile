@@ -39,7 +39,7 @@ XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr
 all: full_src_pr
 
 
@@ -84,11 +84,22 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 	@rm .vivado_basecmd.sh
 
 monolithic: basecmd | $(XPR_PROJ) ../dcps 
-	@/bin/echo "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+monolithic_incr: basecmd | $(XPR_PROJ) ../dcps 
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
+save_mono_incr: 
+	# no dependencies, vivado should better fail on itslef 
+	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -save_incr 
 
 
 #without pr 

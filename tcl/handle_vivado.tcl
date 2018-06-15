@@ -63,6 +63,8 @@ set link 0
 set activeFlowPr_1 0
 set activeFlowPr_2 0
 set impl_opt 0
+set use_incr 0
+set save_incr 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -93,6 +95,8 @@ if { $argc > 0 } {
         { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
         { impl_opt "Optimize implementation for performance (increases runtime)"}
+        { use_incr "Use incremental compile (if possible)"}
+        { save_incr "Save current implementation for use in incremental compile"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -174,10 +178,20 @@ if { $argc > 0 } {
               set impl_opt 1
               my_info_puts "The argument \'impl_opt\' is set."
             }
+            if { ${key} eq "use_incr" && ${value} eq 1 } {
+              set use_incr 1
+              my_info_puts "The argument \'use_incr\' is set."
+            }
+            if { ${key} eq "save_incr" && ${value} eq 1 } {
+              set save_incr 1
+              my_info_puts "The argument \'save_incr\' is set."
+            }
         } 
     }
 }
 
+# -----------------------------------------------------
+# Assert valid combination of arguments 
 if {$pr || $link} {
   set forceWithoutBB 0
 }
@@ -185,6 +199,7 @@ if {$pr || $link} {
 if {$pr && $impl && $synth} {
   set link 1
 }
+# -----------------------------------------------------
 
 if { ${create} } {
 
@@ -568,6 +583,16 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
       my_puts "Performance_Explore is set"
     }
 
+    if { $use_incr } {
+      my_puts "Try to use incremental Checkpoint in ${dcpDir}"
+      if { $forceWithoutBB } { 
+        catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp ${implObj} }
+      } else { 
+        catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp ${implObj} }
+      }
+    }
+
+
     #launch_runs impl_1 -jobs 8
     #wait_on_run impl_1
 
@@ -612,7 +637,23 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
 
     }
 
-} 
+}
+
+if { $save_incr } { 
+  my_puts "################################################################################"
+  my_puts "trying to save current Design as reference Checkpoint"
+
+  open_run impl_1 
+
+  if { $forceWithoutBB } { 
+    write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp
+  } else {
+    write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp
+  }
+  my_puts "################################################################################"
+  my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+}
 
 
 if { $activeFlowPr_2 && $impl } { 
@@ -638,7 +679,13 @@ if { $activeFlowPr_2 && $impl } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-  opt_design
+  opt_design 
+
+  if { $use_incr } { 
+    my_puts "Trying to use incremental checkpoint"
+    catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp }
+  }
+
   place_design
   route_design
   
@@ -734,6 +781,7 @@ if { $bitGen } {
       #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 
       # TODO 
+      catch {open_run impl_1}
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
       #wait_on_run impl_1

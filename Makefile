@@ -18,7 +18,7 @@ USED_ROLE_2 =RoleFlash_V2
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr
 
 all: pr
 #all: src_based
@@ -60,6 +60,13 @@ monolithic: ensureMonolithic ShellSrc Role | xpr
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic
+
+monolithic_incr: ensureMonolithic ShellSrc Role | xpr 
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
+
+save_mono_incr: ensureMonolithic 
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
 
 ensureNotMonolithic: | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
