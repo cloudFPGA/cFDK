@@ -263,23 +263,26 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
 
-  signal EMIF_cnt   : std_logic_vector(3 downto 0);
+  signal EMIF_inv   : std_logic_vector(7 downto 0);
  
 begin
 
   -- write constant to EMIF Register to test read out 
-  poROL_SHL_EMIF_2B_Reg <= x"341" & EMIF_cnt; 
+  poROL_SHL_EMIF_2B_Reg <= x"EF" & EMIF_inv; 
 
-  debug_cnt: process(piSHL_156_25Clk)
-  begin 
-    if rising_edge(piSHL_156_25Clk) then
-      if (piSHL_156_25Rst = '1') then
-        EMIF_cnt <= (others => '0'); 
-      else 
-        EMIF_cnt <= std_logic_vector(unsigned(EMIF_cnt) + 1);
-      end if; 
-    end if;
-  end process;
+  EMIF_inv <= (not sSHL_ROL_EMIF_2B_Reg(7 downto 0)) when sSHL_ROL_EMIF_2B_Reg(15) = '1' else 
+              x"BE" ;
+
+  --debug_cnt: process(piSHL_156_25Clk)
+  --begin 
+  --  if rising_edge(piSHL_156_25Clk) then
+  --    if (piSHL_156_25Rst = '1') then
+  --      EMIF_inv <= (others => '0'); 
+  --    else 
+  --      EMIF_inv <= std_logic_vector(unsigned(EMIF_cnt) + 1);
+  --    end if; 
+  --  end if;
+  --end process;
 
 
   ------------------------------------------------------------------------------------------------
