@@ -725,6 +725,8 @@ if { $bitGen } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
     
+    set curImpl ${usedRole}
+
     if { ${forceWithoutBB} } {
       catch {open_project ${xprDir}/${xprName}.xpr} 
       set implObj [ get_runs impl_1 ]
@@ -742,7 +744,6 @@ if { $bitGen } {
       #set_property bitstream.general.perFrameCRC yes [current_design]
       # --> moved to fix_things.tcl
 
-      set curImpl ${usedRole}
       if { $pr } {
         if { $activeFlowPr_1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
