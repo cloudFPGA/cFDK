@@ -767,7 +767,7 @@ if { $bitGen } {
     my_puts "################################################################################"
     my_puts "##"
     my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
-    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey  "
+    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey BB: $forceWithoutBB "
     my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
@@ -780,8 +780,8 @@ if { $bitGen } {
       #set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
       #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 
-      # TODO 
-      catch {open_run impl_1}
+      #catch {open_run impl_1}
+      open_run impl_1
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
       #wait_on_run impl_1

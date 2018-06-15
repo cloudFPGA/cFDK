@@ -78,32 +78,42 @@ proc guidedSynth {} {
 proc guidedImpl {} {
   my_puts "Guided Impl started at: [clock format [clock seconds] -format {%T %a %b %d %Y}]"
   set toImpl [get_runs -filter {PROGRESS < 100} *impl*] 
-  my_puts "To Impl: $toImpl"
+  my_puts "To Impl: $toImpl" 
 
-  if { [ llength $toImpl] ne 0 } { 
+  #sometimes some impl runs are not marked as complete, but impl_1 itself is 
+  if { [regexp {.*Complete.*} [get_property STATUS [get_runs impl_1]] matched] ne 1 } {
+    
+     if { [ llength $toImpl] ne 0 } { 
 
-     if { [catch {launch_runs impl_1 -next_step -jobs 8}] ne 0} {
-       foreach j $toImpl {
-         puts "$j"
-         reset_run $j 
-       }
-       my_err_puts "Must reset some implemenation runs once more: $toImpl"
-       if { [catch {launch_runs impl_1 -next_step -jobs 8}] ne 0} {
-         #If still error occurs, then try to resynth
-         my_puts "make sure, that synthesis is complete: "
-         guidedSynth
-       } 
-       if { [catch {launch_runs impl_1 -next_step -jobs 8}] ne 0} {
-         # sometimes impl_1 itself is not in toImpl, don't know why
-         # so, if still an error occurs -> reset impl extra 
-         my_puts "reseting impl_1 once more"
-         reset_run impl_1 
-       }
-       launch_runs impl_1 -next_step -jobs 8
+       # seems not to work without 
+       reset_run impl_1 -prev_step 
+
+        if { [catch {launch_runs impl_1 -jobs 8}] ne 0} {
+          foreach j $toImpl {
+            puts "$j"
+            reset_run $j 
+          }
+          my_err_puts "Must reset some implemenation runs once more: $toImpl"
+          if { [catch {launch_runs impl_1 -jobs 8}] ne 0} {
+            #If still error occurs, then try to resynth
+            my_puts "make sure, that synthesis is complete: "
+            guidedSynth
+          } 
+          if { [catch {launch_runs impl_1 -jobs 8}] ne 0} {
+            # sometimes impl_1 itself is not in toImpl, don't know why
+            # so, if still an error occurs -> reset impl extra 
+            my_puts "reseting impl_1 once more"
+            reset_run impl_1 
+          }
+          launch_runs impl_1 -jobs 8
+        }
+        wait_on_run impl_1
+
      }
-     wait_on_run impl_1
-
+  } else {
+    my_puts "Implementation seems to be done completly already"
   }
+    set_property needs_refresh false [get_runs impl_1]
 
   my_puts "################################################################################"
   my_puts "Guided Impl end at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
