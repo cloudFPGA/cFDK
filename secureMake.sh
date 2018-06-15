@@ -16,8 +16,11 @@ while true ; do
 		#echo $killed
 		if [ $killed -gt 0 ];  then
 			succes=false 
-			echo "$file was killed" >> secureMake.log
-			date >> secureMake.log
+			echo "$file was killed " >> secureMake.log
+			date >> secureMake.log 
+			#echo "$file was killed, removing all logs" >> secureMake.log
+			#rm -rf ./xpr/topFMKU60_Flash.runs/*/runme.log
+			# log files should be overriden by themselfes
 			break;
 		fi
 	done
