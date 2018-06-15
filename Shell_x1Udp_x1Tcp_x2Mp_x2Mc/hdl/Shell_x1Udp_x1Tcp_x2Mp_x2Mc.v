@@ -533,6 +533,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //-- SIGNAL DECLARATIONS : CASTOR
   //--------------------------------------------------------
   wire [31:0] sCASTOR_MMIO_4B_Reg;
+  wire [31:0] sMMIO_CASTOR_4B_Reg;
   wire        sDECOUP_CASTOR_status;
   wire        sCASTOR_DECOUP_activate;
 
@@ -588,6 +589,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMMIO_ROLE_2B_Reg             (sDECOUP_SHL_EMIF_2B_Reg),
     // SMC Registers
     .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
+    .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
  
     .poVoid                         ()
 
@@ -1079,7 +1081,10 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     //core should start immediately 
     .ap_start               (1),
-    .pioMMIO_V              (sCASTOR_MMIO_4B_Reg),
+    .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
+    //.poMMIO_V_ap_vld     ( ),
+    .piMMIO_V              (sMMIO_CASTOR_4B_Reg),
+    .piMMIO_V_ap_vld        (1),
     .m_axi_poSMC_to_HWICAP_AXIM_AWADDR   (sCASTOR_HWICAPC_axi_awaddr),
     .m_axi_poSMC_to_HWICAP_AXIM_AWVALID  (sCASTOR_HWICAPC_axi_awvalid),
     .m_axi_poSMC_to_HWICAP_AXIM_AWREADY  (sCASTOR_HWICAPC_axi_awready),

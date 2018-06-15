@@ -27,26 +27,38 @@ int main(){
 
 	bool succeded = true;
 
-	//for(int i=0; i<5; i++)
-	//{
-	smc_main(&MMIO, HWICAP, 0b1, &decoupActive);
+	ap_uint<32> MMIO_in = 0x0;
 
 
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
 	printf("%#010x\n", (int) MMIO);
 	//int expected_value = 0x3ff00a0f + (i << CNT_SHIFT);
-
-	 //succeded = (MMIO == expected_value) && succeded;
+	//succeded = (MMIO == expected_value) && succeded;
 	 
 	succeded = (MMIO == 0x3ff00a0f) && succeded;
 
-	//}
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
+    printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x3ff00a0f) && succeded;
 
-	smc_main(&MMIO, HWICAP, 0b0, &decoupActive);
+	MMIO_in = 0b1;
+		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+		printf("%#010x\n", (int) MMIO);
+		succeded = (MMIO == 0x3ff01a07) && succeded;
 
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+		printf("%#010x\n", (int) MMIO);
+		succeded = (MMIO == 0x3ff01a07) && succeded;
 
-	printf("%#010x\n", (int) MMIO);
+	MMIO_in = 0b0;
+		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+		printf("%#010x\n", (int) MMIO);
+		succeded = (MMIO == 0x3ff01a07) && succeded;
 
-	succeded = (MMIO == 0x3ff01a07) && succeded;
+	MMIO_in = 0b1;
+		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+		printf("%#010x\n", (int) MMIO);
+		succeded = (MMIO == 0x3ff02a07) && succeded;
 
 	return succeded? 0 : -1;
 	//return 0;

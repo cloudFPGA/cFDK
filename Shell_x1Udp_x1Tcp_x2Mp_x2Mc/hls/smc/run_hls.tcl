@@ -77,7 +77,8 @@ if { $hlsSim} {
   csynth_design
   
   if { $hlsCoSim} {
-    cosim_design -tool xsim -rtl vhdl -trace_level all
+    #cosim_design -compiler gcc -trace_level all -rtl vhdl
+    cosim_design -compiler gcc -trace_level all 
   } else {
   
   # Export RTL

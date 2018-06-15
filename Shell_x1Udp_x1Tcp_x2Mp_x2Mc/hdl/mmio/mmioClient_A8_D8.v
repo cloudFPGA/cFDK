@@ -92,6 +92,7 @@ module MmioClient_A8_D8 #(
   
   // SMC Registers
   input   [31:0]  piMMIO_SMC_4B_Reg,
+  input   [31:0]  poMMIO_SMC_4B_Reg,
 
   output          poVoid
 
@@ -574,6 +575,8 @@ module MmioClient_A8_D8 #(
   
   //Read
   assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW-1:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
+  //Write 
+  assign poMMIO_SMC_4B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+10*cEDW-1:cEDW*ROLE_REG_BASE+7*cEDW];
 
   //============================================================================
   //  COMB: DECODE MMIO ACCESS

@@ -21,8 +21,8 @@
 
 #define CNT_SHIFT 12
 
-//void smc_main(ap_uint<32> *MMIO, ap_uint<32> *SR, ap_uint<32> *ISR, ap_uint<32> *WFV);
-//void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP);
-void smc_main(ap_uint<32> *MMIO, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup);
+#define INCR_SHIFT 0
+
+void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup);
 
 #endif
