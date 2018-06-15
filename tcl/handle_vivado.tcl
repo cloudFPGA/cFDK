@@ -415,6 +415,7 @@ if { ${create} } {
     if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
         set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
         add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
+        set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd ]
         set_property source_mgmt_mode All [ current_project ]
         update_compile_order -fileset sim_1
     }
