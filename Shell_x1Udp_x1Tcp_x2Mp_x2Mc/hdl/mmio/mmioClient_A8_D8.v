@@ -666,9 +666,9 @@ module MmioClient_A8_D8 #(
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (),
-        .piEnB        (),
-        .piWenB       (),
+        .piClkB       (1'b0),   // [TODO]
+        .piEnB        (1'b0),   // [TODO]
+        .piWenB       (1'b0),   // [TODO]
         .piAddrB      (),
         .piDataB      (),
         .poDataB      ()
