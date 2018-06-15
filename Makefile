@@ -18,7 +18,7 @@ USED_ROLE_2 =RoleFlash_V2
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr
 
 all: pr
 #all: src_based
@@ -69,6 +69,10 @@ monolithic_incr: ensureMonolithic ShellSrc | xpr
 
 save_mono_incr: ensureMonolithic 
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
+
+save_pr_incr: 
+	$(error NOT YET IMPLEMENTED)
+
 
 ensureNotMonolithic: | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)

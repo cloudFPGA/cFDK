@@ -98,7 +98,7 @@ monolithic_incr: basecmd | $(XPR_PROJ) ../dcps
 	@rm .vivado_basecmd.sh
 
 save_mono_incr: 
-	# no dependencies, vivado should better fail on itslef 
+	@# no dependencies, vivado should better fail on itslef 
 	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -role -forceWithoutBB -save_incr 
 
 

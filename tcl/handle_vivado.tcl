@@ -643,6 +643,9 @@ if { $save_incr } {
   my_puts "################################################################################"
   my_puts "trying to save current Design as reference Checkpoint"
 
+  # nothing must be called before
+  open_project ${xprDir}/${xprName}.xpr
+
   open_run impl_1 
 
   if { $forceWithoutBB } { 
