@@ -21,11 +21,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
 	ap_uint<32> WFV_value = 0;
 
-	ap_uint<32> SR = 0, ISR = 0, WFV = 0;
+	ap_uint<32> SR = 0, ISR = 0, WFV = 0, ASR = 0, CR = 0, RFO = 0;
 
-
-
-	*setDecoup = 0b0;
 
 	//TODO: also read Abort Status Register -> if CRC fails
 
@@ -33,17 +30,24 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 		//ap_wait_n(AXI_PAUSE_CYCLES);
 		ISR = HWICAP[ISR_OFFSET];
 	//	ap_wait_n(AXI_PAUSE_CYCLES);
-		WFV = HWICAP[WFV_OFFSET];
+	//	WFV = HWICAP[WFV_OFFSET];
+
+		ASR = HWICAP[ASR_OFFSET];
+		RFO = HWICAP[RFO_OFFSET];
+		CR = HWICAP[CR_OFFSET];
 
 		Done = SR & 0x1;
 		EOS  = (SR & 0x4) >> 2;
 		WEMPTY = (ISR & 0x4) >> 2;
 		WFV_value = WFV & 0x3FF;
 
-		*MMIO_out = (WFV_value << WFV_V_SHIFT) | (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
+		*MMIO_out = (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
+		//*MMIO_out |= (WFV_value << WFV_V_SHIFT);
+		*MMIO_out |= (RFO << WFV_V_SHIFT);
 		*MMIO_out |= (decoupStatus | 0x0) << DECOUP_SHIFT;
 		*MMIO_out |= SMC_VERSION << SMC_VERSION_SHIFT;
-
+		*MMIO_out |= (ASR & 0xF) << 4;
+		*MMIO_out |= (CR & 0x1F) << CMD_SHIFT;
 
 		ap_uint<1> toIncr = (*MMIO_in >> INCR_SHIFT) & 0b1;
 
@@ -60,6 +64,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 
 		*MMIO_out |= (cnt | 0x0000) << CNT_SHIFT;
 
+		ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
+
+		if ( toDecoup == 1 )
+		{
+			*setDecoup = 0b1;
+		} else {
+			*setDecoup = 0b0;
+		}
 
 		ap_wait_n(WAIT_CYCLES);
 }
