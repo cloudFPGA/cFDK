@@ -174,6 +174,21 @@ module MmioClient_A8_D8 #(
   localparam LY3_IP2        = LY3_REG_BASE  +  6; 
   localparam LY3_IP3        = LY3_REG_BASE  +  7;
   
+  //-- Burkhard's Playground ---------------------------------------------------------------
+  localparam NGL_FROM_ROLE0 = ROLE_REG_BASE + 0;
+  localparam NGL_FROM_ROLE1 = ROLE_REG_BASE + 1;
+  localparam NGL_TO_ROLE0   = ROLE_REG_BASE + 2;
+  localparam NGL_TO_ROLE1   = ROLE_REG_BASE + 3;
+  localparam NGL_FROM_SMC0  = ROLE_REG_BASE + 4;
+  localparam NGL_FROM_SMC1  = ROLE_REG_BASE + 5;
+  localparam NGL_FROM_SMC2  = ROLE_REG_BASE + 6;
+  localparam NGL_FROM_SMC3  = ROLE_REG_BASE + 7;
+  localparam NGL_TO_SMC0    = ROLE_REG_BASE + 8;
+  localparam NGL_TO_SMC1    = ROLE_REG_BASE + 9;
+  localparam NGL_TO_SMC2    = ROLE_REG_BASE + 10;
+  localparam NGL_TO_SMC3    = ROLE_REG_BASE + 11;
+  
+  
   //-- RES_REGS ---------------------------------------------------------------
   
   //-- DIAG_REGS --------------------------------------------------------------
@@ -261,7 +276,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg3D = 8'h00;
   localparam cDefReg3E = 8'h00;
   localparam cDefReg3F = 8'h00;  
-  //-- RES_REGS ---------------
+  //-- Burkhard's Playground
   localparam cDefReg40 = 8'h00;
   localparam cDefReg41 = 8'h00;
   localparam cDefReg42 = 8'h00;
@@ -276,8 +291,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg4B = 8'h00;
   localparam cDefReg4C = 8'h00;
   localparam cDefReg4D = 8'h00;
-  localparam cDefReg4E = 8'h00;
-  localparam cDefReg4F = 8'h00;
+  localparam cDefReg4E = 8'h13;
+  localparam cDefReg4F = 8'h37;
   //-- RES_REGS ---------------
   localparam cDefReg50 = 8'h00;
   localparam cDefReg51 = 8'h00;     
@@ -468,6 +483,49 @@ module MmioClient_A8_D8 #(
   //---- Not Implemented ---------------
  
   //-------------------------------------------------------- 
+  //-- NGL REGISTERS
+  //--------------------------------------------------------
+  //---- TO ROLE 
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_ROLE0
+      assign sStatusVec[cEDW*NGL_TO_ROLE0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE0+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_ROLE1
+      assign sStatusVec[cEDW*NGL_TO_ROLE1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+id]; // RW   
+    end
+  endgenerate
+  //---- TO SMC
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC0
+      assign sStatusVec[cEDW*NGL_TO_SMC0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC0+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC1
+      assign sStatusVec[cEDW*NGL_TO_SMC1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC1+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC2
+      assign sStatusVec[cEDW*NGL_TO_SMC2+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC2+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC3
+      assign sStatusVec[cEDW*NGL_TO_SMC3+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+id]; // RW   
+    end
+  endgenerate
+
+
+  //-------------------------------------------------------- 
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
   //---- DIAG_SCRATCH ------------------
@@ -562,21 +620,23 @@ module MmioClient_A8_D8 #(
   //---- PAGE_SEL ----------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
   
-  //--------------------------------------------------------  
-  // ROLE REGISTERS [TODO - Move these fields into the DIAGNOSTIC section]
-  //--------------------------------------------------------  
-  assign sStatusVec[cEDW*ROLE_REG_BASE+2*cEDW-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
-  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+4*cEDW-1:cEDW*ROLE_REG_BASE+2*cEDW]; //Write TO ROLE
-  
-  
   //============================================================================
-  //  SMC Registers
+  // NGL REGISTERS
   //============================================================================
+  //assign sStatusVec[cEDW*ROLE_REG_BASE+2*cEDW-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
+  //assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+4*cEDW-1:cEDW*ROLE_REG_BASE+2*cEDW]; //Write TO ROLE 
+  
+  //FROM and TO ROLE
+  assign sStatusVec[cEDW*NGL_FROM_ROLE1+7:cEDW*NGL_FROM_ROLE0+0] = piMMIO_ROLE_2B_Reg;
+  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+7:cEDW*NGL_TO_ROLE0+0];
+  //FROM and TO SMC 
+  assign sStatusVec[cEDW*NGL_FROM_SMC3+7:cEDW*NGL_FROM_SMC0+0] = piMMIO_SMC_4B_Reg;
+  assign poMMIO_SMC_4B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+7:cEDW*NGL_TO_SMC0+0];
   
   //Read
-  assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW-1:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
+  //assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW-1:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
   //Write 
-  assign poMMIO_SMC_4B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+10*cEDW-1:cEDW*ROLE_REG_BASE+7*cEDW];
+  //assign poMMIO_SMC_4B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+10*cEDW-1:cEDW*ROLE_REG_BASE+7*cEDW];
 
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
