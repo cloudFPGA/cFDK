@@ -407,7 +407,7 @@ architecture structural of topFlash is
       -- ROLE / Shl/ EMIF Registers 
       ----------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               : in std_logic_vector( 15 downto 0);
-      poSHL_ROL_EMIF_2B_Reg               : in std_logic_vector( 15 downto 0);
+      poSHL_ROL_EMIF_2B_Reg               : out std_logic_vector( 15 downto 0);
        
        ------------------------------------------------------  
        -- ROLE / Shl / Mem / Mp0 Interface
