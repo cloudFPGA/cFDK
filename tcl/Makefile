@@ -88,6 +88,8 @@ monolithic: basecmd $(MONO_LOCK)
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -127,7 +129,7 @@ save_mono_incr:
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip | ../dcps 
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 #with pr:
