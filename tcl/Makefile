@@ -36,10 +36,11 @@ ROLE_DIR =../../../ROLE
 #IP_SHELL = ../../../IP/Shell/component.xml
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
+MONO_LOCK = ../xpr/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr 
 all: full_src_pr
 
 
@@ -83,19 +84,25 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-monolithic: basecmd | $(XPR_PROJ) ../dcps 
+monolithic: basecmd $(MONO_LOCK)
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-monolithic_incr: basecmd | $(XPR_PROJ) ../dcps 
+monolithic_incr: basecmd $(MONO_LOCK)
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
+	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
