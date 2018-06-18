@@ -39,7 +39,7 @@ XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd
 all: full_src_pr
 
 
@@ -55,34 +55,31 @@ basecmd:
 	@/bin/echo -e "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
 	@/bin/echo -e $(shell date) > start.date
 
-
-full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
+finalcmd:
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit | ../dcps
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+incrcmd:
+	@/bin/echo -e " -use_incr \\" >> .vivado_basecmd.sh
+
+full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
+
+full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit finalcmd | ../dcps
 
 pr_verify: 
 	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -pr_verify
 
-full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit | ../dcps
-	@more  +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit finalcmd | ../dcps
 
-full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit | ../dcps
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit finalcmd | ../dcps
 
+full_src_pr_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+full_src_pr_2_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+#monolithic
 monolithic: basecmd | $(XPR_PROJ) ../dcps 
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh

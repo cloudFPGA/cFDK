@@ -53,6 +53,13 @@ pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
+pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr
+
+pr2_incr: ensureNotMonolithic ShellSrc Role2 | xpr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr
+
+
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
 
@@ -71,7 +78,7 @@ save_mono_incr: ensureMonolithic
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
 
 save_pr_incr: 
-	$(error NOT YET IMPLEMENTED)
+	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
 
 pr_verify: 
 	$(MAKE) -C ./tcl/ pr_verify

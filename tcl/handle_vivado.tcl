@@ -96,7 +96,7 @@ if { $argc > 0 } {
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
         { impl_opt "Optimize implementation for performance (increases runtime)"}
         { use_incr "Use incremental compile (if possible)"}
-        { save_incr "Save current implementation for use in incremental compile"}
+        { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -588,7 +588,11 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
       if { $forceWithoutBB } { 
         catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp ${implObj} }
       } else { 
-        catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp ${implObj} }
+        if { $pr } {
+          catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp ${implObj} }
+        } else {
+          catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp ${implObj} }
+        }
       }
     }
 
@@ -643,15 +647,18 @@ if { $save_incr } {
   my_puts "################################################################################"
   my_puts "trying to save current Design as reference Checkpoint"
 
-  # nothing must be called before
-  open_project ${xprDir}/${xprName}.xpr
-
-  open_run impl_1 
-
   if { $forceWithoutBB } { 
+    # nothing must be called before
+    open_project ${xprDir}/${xprName}.xpr
+
+    open_run impl_1 
+
     write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp
   } else {
-    write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp
+
+    my_err_puts "This line should never be reached! Saving the incremental checkpoint for other than the Non-BB-flow is done automatically!"
+    exit ${KO}
+
   }
 
   my_puts "################################################################################"
@@ -689,7 +696,7 @@ if { $activeFlowPr_2 && $impl } {
 
   if { $use_incr } { 
     my_puts "Trying to use incremental checkpoint"
-    catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp }
+    catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp }
   }
 
   place_design
