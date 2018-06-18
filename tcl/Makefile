@@ -133,7 +133,7 @@ $(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps
 
 #with pr:
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
-	@/bin/echo "-bitgen -role -pr -pr_verify \\" >> .vivado_basecmd.sh 
+	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
 	rm -f $@
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
