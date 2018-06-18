@@ -12,9 +12,9 @@
 #define WAIT_CYCLES 10
 #define AXI_PAUSE_CYCLES 10
 
-#define SR_OFFSET 0x110
-#define ISR_OFFSET 0x20
-#define WFV_OFFSET 0x114
+#define SR_OFFSET (0x110/4)
+#define ISR_OFFSET (0x20/4)
+#define WFV_OFFSET (0x114/4)
 
 #define SMC_VERSION 0xA
 #define SMC_VERSION_SHIFT 8
