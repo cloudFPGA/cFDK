@@ -653,6 +653,9 @@ if { $save_incr } {
   } else {
     write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_BB_reference.dcp
   }
+
+  my_puts "################################################################################"
+  my_puts "## CURRENT PROJECT IMPLEMENTATION RUN SAVED for use in INCREMENTAL BUILD" 
   my_puts "################################################################################"
   my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
@@ -747,7 +750,7 @@ if { $pr_verify } {
     my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
   } else {
     #pr_verify ${toVerifyList}
-    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll]
+    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll] -file ${dcpDir}/pr_verify.rpt
     # yes, $ll is here 'out of bounce' but tcl dosen't care
   
     my_puts "################################################################################"
