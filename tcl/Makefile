@@ -36,6 +36,7 @@ ROLE_DIR =../../../ROLE
 #IP_SHELL = ../../../IP/Shell/component.xml
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
+MONO_LOCK = ../xpr/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
@@ -64,6 +65,7 @@ finalcmd:
 incrcmd:
 	@/bin/echo -e " -use_incr \\" >> .vivado_basecmd.sh
 
+
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
 
 full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit finalcmd | ../dcps
@@ -79,20 +81,29 @@ full_src_pr_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_par
 
 full_src_pr_2_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
 
+
 #monolithic
-monolithic: basecmd | $(XPR_PROJ) ../dcps 
+monolithic: basecmd $(MONO_LOCK)
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-monolithic_incr: basecmd | $(XPR_PROJ) ../dcps 
+monolithic_incr: basecmd $(MONO_LOCK)
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
+	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
@@ -117,7 +128,7 @@ save_mono_incr:
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip | ../dcps 
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 #with pr:
