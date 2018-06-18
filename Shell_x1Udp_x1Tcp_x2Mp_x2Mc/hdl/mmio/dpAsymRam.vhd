@@ -107,10 +107,14 @@ architecture Behavioral of DualPortAsymmetricRam is
   -- array of array object. Its aspect ratio corresponds to the port with the
   -- lower data width (respectvely larger depth)
   type   tRAM is array (0 to cMaxSize - 1) of std_logic_vector(cMinWidth - 1 downto 0);
-  signal sRAM : tRAM := (others => (others => '0'));
+  --OBSOLETE-20180615 signal sRAM : tRAM := (others => (others => '0'));
 
-  signal sRAM_DataA : std_logic_vector(gDataWidth_A - 1 downto 0) := (others => '0');
-  signal sRAM_DataB : std_logic_vector(gDataWidth_B - 1 downto 0) := (others => '0');
+  -- You need to declare RAM as a shared variable when :
+  --   - the RAM has two write ports,
+  shared variable vRAM  : tRAM := (others =>  (others =>  '0'));
+
+  signal sRAM_DataA     : std_logic_vector(gDataWidth_A - 1 downto 0) := (others => '0');
+  signal sRAM_DataB     : std_logic_vector(gDataWidth_B - 1 downto 0) := (others => '0');
   signal sRAM_DataAReg  : std_logic_vector(gDataWidth_A - 1 downto 0) := (others => '0');
   signal sRAM_DataBReg  : std_logic_vector(gDataWidth_B - 1 downto 0) := (others => '0');
 
@@ -123,12 +127,14 @@ begin  -- architecture Behavioral
   begin
     if rising_edge(piClkA) then
       if (piEnA = '1') then
-        sRAM_DataA <= sRAM(conv_integer(piAddrA));
+        --OBSOLETE-20180615 sRAM_DataA <= sRAM(conv_integer(piAddrA));
+        sRAM_DataA <= vRAM(conv_integer(piAddrA));
         if (piWenA = '1') then
-          sRAM(conv_integer(piAddrA)) <= piDataA;
+          --OBSOLETE-20180615 sRAM(conv_integer(piAddrA)) <= piDataA;
+          vRAM(conv_integer(piAddrA)) := piDataA;
         end if;
       end if;
-      sRAM_DataAReg <= sRAM_DataA;
+      --OBSOLETE-20180615 sRAM_DataAReg <= sRAM_DataA;
     end if;
   end process pPortA;
   
@@ -141,21 +147,23 @@ begin  -- architecture Behavioral
       for i in 0 to cRatio - 1 loop
         if (piEnB = '1') then
           sRAM_DataB((i + 1) * cMinWidth - 1 downto i * cMinWidth) <=
-            sRAM(conv_integer(piAddrB & conv_std_logic_vector(i, fLog2(cRatio))));
+            vRAM(conv_integer(piAddrB & conv_std_logic_vector(i, fLog2(cRatio))));
           if (piWenB = '1') then
-            sRAM(conv_integer(piAddrB & conv_std_logic_vector(i, fLog2(cRatio)))) <=
+            vRAM(conv_integer(piAddrB & conv_std_logic_vector(i, fLog2(cRatio)))) :=
               piDataB((i + 1) * cMinWidth - 1 downto i * cMinWidth);
           end if;
         end if;
       end loop;
-      sRAM_DataBReg <= sRAM_DataB;
+      --OBSOLETE-20180615 sRAM_DataBReg <= sRAM_DataB;
     end if;
   end process pPortB;
 
   ----------------------------------------------------------
   -- Output Ports Assignment
   ---------------------------------------------------------- 
-  poDataA <= sRAM_DataAReg;
-  poDataB <= sRAM_DataBReg;
+  --OBSOLETE-20180615 poDataA <= sRAM_DataAReg;
+  poDataA <= sRAM_DataA;
+  --OBSOLETE-20180615 poDataB <= sRAM_DataBReg;
+  poDataB <= sRAM_DataB;  
     
 end Behavioral;
