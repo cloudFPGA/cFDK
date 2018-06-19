@@ -1,3 +1,27 @@
+/*****************************************************************************
+ * @file       : udp.cpp
+ * @brief      : UDP offload engine.
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : { [TODO] A more detailed descriptionof the file }
+ *
+ * @note       : { text }
+ * @remark     : { remark text }
+ * @warning    : { warning message }
+ * @todo       : { paragraph describing what is to be done }
+ *
+ * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
+ *
+ *****************************************************************************/
+
 #include "udp.hpp"
 
 #define packetSize 16
@@ -412,8 +436,26 @@ void rxEngineUdpChecksumVerification(stream<axiWord>	&dataIn,
 	}
 }
 
-void rxEngine(stream<axiWord> &inputPathInData, stream<ap_uint<16> >& app2portTable_port_req, stream<ap_uint<16> >&	app2portTable_port_rel,
-			  stream<bool> &portTable2app_port_assign, stream<axiWord> &inputPathOutData, stream<metadata> &inputPathOutputMetadata, stream<axiWord> &inputPathPortUnreachable) {
+/*****************************************************************************/
+/* @brief { Brief description (1-2 lines) }
+ * @ingroup (<groupname> [<groupname> <groupname>])
+ *
+ * @param [(dir)] <parameter-name> { parameter description }
+ * @param[in]     _inArg1 Description of first function argument.
+ * @param[out]    _outArg2 Description of second function argument.
+ * @param[in,out] _inoutArg3 Description of third function argument.
+ *
+ * @return { description of the return value }.
+ *****************************************************************************/
+void rxEngine(
+		stream<axiWord> &inputPathInData,
+		stream<ap_uint<16> > 	&app2portTable_port_req,
+		stream<ap_uint<16> >	&app2portTable_port_rel,
+		stream<bool> 			&portTable2app_port_assign,
+		stream<axiWord> 		&inputPathOutData,
+		stream<metadata> 		&inputPathOutputMetadata,
+		stream<axiWord> 		&inputPathPortUnreachable) {
+
 #pragma HLS INLINE
 	static stream<ap_uint<16> >		rxEng2portTable_check_req("rxEng2portTable_check_req");
 	static stream<bool>				portTable2rxEng_assign("portTable2rxEng_assign");
@@ -678,8 +720,23 @@ void addIpHeader(stream<axiWord> &outputPathRead2addIpHeader_data, stream<ipTupl
 	}
 }
 
-void txEngine(stream<axiWord> &outputPathInData, stream<metadata> &outputPathInMetadata, stream<ap_uint<16> > &outputpathInLength,
-			  stream<axiWord> &outputPathOutData) {
+/*****************************************************************************/
+/* @brief { Brief description (1-2 lines) }
+ * @ingroup (<groupname> [<groupname> <groupname>])
+ *
+ * @param [(dir)] <parameter-name> { parameter description }
+ * @param[in]     _inArg1 Description of first function argument.
+ * @param[out]    _outArg2 Description of second function argument.
+ * @param[in,out] _inoutArg3 Description of third function argument.
+ *
+ * @return { description of the return value }.
+ *****************************************************************************/
+void txEngine(
+		stream<axiWord> 		&outputPathInData,
+		stream<metadata> 		&outputPathInMetadata,
+		stream<ap_uint<16> > 	&outputpathInLength,
+		stream<axiWord> 		&outputPathOutData) {
+
 #pragma HLS INLINE
 
 	// Declare intermediate streams for inter-function communication
@@ -705,38 +762,39 @@ void txEngine(stream<axiWord> &outputPathInData, stream<metadata> &outputPathInM
 	udpChecksumCalculation(outputPathWriteFunction2checksumCalculation, checksumCalculation2outputPathReadFunction); // Calculates the UDP checksum value
 	outputPathReadFunction(packetData, packetLength, udpMetadata, checksumCalculation2outputPathReadFunction, outputPathRead2addIpHeader_data, outputPathRead2addIpHeader_ipAddress, outputPathReadFunction2addIpHeader_length); // Reads the checksum value and composes the UDP packet
 	addIpHeader(outputPathRead2addIpHeader_data, outputPathRead2addIpHeader_ipAddress, outputPathOutData, outputPathReadFunction2addIpHeader_length); // Adds the IP header on top of the UDP one.
-}  
-		  
-void udp(stream<axiWord> &inputPathInData,
-		 stream<axiWord> &inputpathOutData,
-		 stream<ap_uint<16> > &openPort,
-		 stream<bool> &confirmPortStatus,
-		 stream<metadata> &inputPathOutputMetadata,
-		 stream<ap_uint<16> > &portRelease, // Input Path Streams
-	     stream<axiWord> &outputPathInData,
-		 stream<axiWord> &outputPathOutData,
-		 stream<metadata> &outputPathInMetadata,
-	     stream<ap_uint<16> > &outputpathInLength,
-		 stream<axiWord> &inputPathPortUnreachable) {						// Output Path Streams
+}
+
+
+/*****************************************************************************/
+/* @brief 	Main process - UDP offload engine.
+ * @ingroup udp
+ *
+ * @param [(dir)] <parameter-name> { parameter description }         [TODO]
+ * @param[in]     _inArg1 Description of first function argument.    [TODO]
+ * @param[out]    _outArg2 Description of second function argument.  [TODO]
+ * @param[in,out] _inoutArg3 Description of third function argument. [TODO]
+ *
+ * @return { description of the return value }.
+ *****************************************************************************/
+void udp(stream<axiWord> 		&inputPathInData,
+		 stream<axiWord> 		&inputpathOutData,
+		 stream<ap_uint<16> > 	&openPort,
+		 stream<bool> 			&confirmPortStatus,
+		 stream<metadata> 		&inputPathOutputMetadata,
+		 stream<ap_uint<16> > 	&portRelease, 					// Input Path Streams
+	     stream<axiWord> 		&outputPathInData,
+		 stream<axiWord> 		&outputPathOutData,
+		 stream<metadata> 		&outputPathInMetadata,
+	     stream<ap_uint<16> >	&outputpathInLength,
+		 stream<axiWord> 		&inputPathPortUnreachable) {	// Output Path Streams
 
 	#pragma HLS INTERFACE ap_ctrl_none port=return 			// The block-level interface protocol is removed.
 	#pragma HLS DATAFLOW interval=1
 	
 	#pragma HLS DATA_PACK 	variable=inputPathOutputMetadata
 	#pragma HLS DATA_PACK 	variable=outputPathInMetadata
-	// Set all of the interfaces to AXI4S
-	/*#pragma HLS INTERFACE 	port=inputPathInData 				axis
-	#pragma HLS INTERFACE 	port=inputpathOutData 				axis
-	#pragma HLS INTERFACE 	port=openPort 						axis
-	#pragma HLS INTERFACE 	port=confirmPortStatus 				axis
-	#pragma HLS INTERFACE 	port=inputPathOutputMetadata 		axis
-	#pragma HLS INTERFACE 	port=portRelease 					axis
-	#pragma HLS INTERFACE 	port=outputPathInData 				axis
-	#pragma HLS INTERFACE 	port=outputPathOutData 				axis
-	#pragma HLS INTERFACE 	port=outputPathInMetadata 			axis
-	#pragma HLS INTERFACE 	port=inputPathPortUnreachable 		axis
-	#pragma HLS INTERFACE 	port=outputpathInLength 			axis*/
-	
+
+	// Set all of the interfaces as AXI4Stream
 	#pragma HLS resource core=AXI4Stream variable=inputPathInData 			metadata="-bus_bundle inputPathInData"
 	#pragma HLS resource core=AXI4Stream variable=inputpathOutData 			metadata="-bus_bundle inputpathOutData"
 	#pragma HLS resource core=AXI4Stream variable=openPort 					metadata="-bus_bundle openPort"
