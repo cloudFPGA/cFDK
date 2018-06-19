@@ -6,7 +6,7 @@
 #include "smc.hpp"
 
 ap_uint<4> cnt = 0;
-bool inputWasSet = false;
+
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
 {
@@ -18,62 +18,105 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 // #pragma HLS INTERFACE s_axilite port=return bundle=BUS_A
 // #pragma HLS INTERFACE ap_ctrl_none port=return
 
-	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
-	ap_uint<32> WFV_value = 0;
 
+//===========================================================
+// Connection to HWICAP
 	ap_uint<32> SR = 0, ISR = 0, WFV = 0, ASR = 0, CR = 0, RFO = 0;
+	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
+	ap_uint<32> WFV_value = 0, CR_value = 0;
 
 
-	//TODO: also read Abort Status Register -> if CRC fails
+	ap_uint<8> ASW1 = 0, ASW2 = 0, ASW3 = 0, ASW4= 0;
 
-		SR = HWICAP[SR_OFFSET];
-		//ap_wait_n(AXI_PAUSE_CYCLES);
-		ISR = HWICAP[ISR_OFFSET];
+
+	SR = HWICAP[SR_OFFSET];
+	//ap_wait_n(AXI_PAUSE_CYCLES);
+	ISR = HWICAP[ISR_OFFSET];
 	//	ap_wait_n(AXI_PAUSE_CYCLES);
 	//	WFV = HWICAP[WFV_OFFSET];
 
-		ASR = HWICAP[ASR_OFFSET];
-		RFO = HWICAP[RFO_OFFSET];
-		CR = HWICAP[CR_OFFSET];
+	ASR = HWICAP[ASR_OFFSET];
+	RFO = HWICAP[RFO_OFFSET];
+	CR = HWICAP[CR_OFFSET];
 
-		Done = SR & 0x1;
-		EOS  = (SR & 0x4) >> 2;
-		WEMPTY = (ISR & 0x4) >> 2;
-		WFV_value = WFV & 0x3FF;
+	Done = SR & 0x1;
+	EOS  = (SR & 0x4) >> 2;
+	WEMPTY = (ISR & 0x4) >> 2;
+	WFV_value = WFV & 0x3FF;
+	CR_value = CR & 0x1F; 
 
-		*MMIO_out = (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
-		//*MMIO_out |= (WFV_value << WFV_V_SHIFT);
-		*MMIO_out |= (RFO << WFV_V_SHIFT);
-		*MMIO_out |= (decoupStatus | 0x0) << DECOUP_SHIFT;
-		*MMIO_out |= SMC_VERSION << SMC_VERSION_SHIFT;
-		*MMIO_out |= (ASR & 0xF) << 4;
-		*MMIO_out |= (CR & 0x1F) << CMD_SHIFT;
+	ASW1 = ASR & 0xFF;
+	ASW2 = (ASR & 0xFF00) >> 8;
+	ASW3 = (ASR & 0xFF0000) >> 16;
+	ASW4 = (ASR & 0xFF000000) >> 24;
 
-		ap_uint<1> toIncr = (*MMIO_in >> INCR_SHIFT) & 0b1;
+//===========================================================
+// Decoupling 
+	ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
 
-		if ( toIncr == 1 && !inputWasSet)
-		{
-			cnt++;
-			inputWasSet = true;
-		}
+	if ( toDecoup == 1 )
+	{
+		*setDecoup = 0b1;
+	} else {
+		*setDecoup = 0b0;
+	}
 
-		if ( toIncr == 0 && inputWasSet)
-		{
-			inputWasSet = false;
-		}
+//===========================================================
+// Counter Handshake 
+	
+	ap_uint<4> WCnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
+	char *msg = new char[4];
+	msg = "ABC";
 
-		*MMIO_out |= (cnt | 0x0000) << CNT_SHIFT;
+	if (WCnt == (cnt + 1))
+	{ 
+		cnt++; 
+	} else {
+		msg = "ERR";
+	}
 
-		ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
+	
+//===========================================================
+//  putting displays together 
 
-		if ( toDecoup == 1 )
-		{
-			*setDecoup = 0b1;
-		} else {
-			*setDecoup = 0b0;
-		}
+	ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0; 
+	ap_uint<4> Dsel = 0;
 
-		ap_wait_n(WAIT_CYCLES);
+	Dsel = (*MMIO_in >> DSEL_SHIFT) & 0xF;
+
+	Display1 = (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
+	//Display1 |= WFV_value << WFV_V_SHIFT;
+	Display1 |= RFO << WFV_V_SHIFT;
+	//Display1 |= (decoupStatus | 0x00000000)  << DECOUP_SHIFT;
+	Display1 |= ((ap_uint<32>) decoupStatus)  << DECOUP_SHIFT;
+	Display1 |= ASW1 << ASW1_SHIFT;
+	Display1 |= CR_value << CMD_SHIFT; 
+
+	Display2 |= ASW2 << ASW2_SHIFT;
+	Display2 |= ASW3 << ASW3_SHIFT;
+	Display2 |= ASW4 << ASW4_SHIFT; 
+
+	Display3 |= ((ap_uint<32>) cnt) << RCNT_SHIFT;
+	Display3 |= ((ap_uint<32>) msg[0]) << MSG_SHIFT + 16;
+	Display3 |= ((ap_uint<32>) msg[1]) << MSG_SHIFT + 8;
+	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0;
+
+	switch (Dsel) {
+		case 1:
+						*MMIO_out = (0x1 << DSEL_SHIFT) | Display1; 
+							 break;
+		case 2:
+						*MMIO_out = (0x2 << DSEL_SHIFT) | Display2; 
+							 break;
+		case 3:
+						*MMIO_out = (0x3 << DSEL_SHIFT) | Display3; 
+							 break;
+		default: 
+						*MMIO_out = 0xBEBAFECA;
+							break;
+	}
+
+	ap_wait_n(WAIT_CYCLES);
 }
 
 
