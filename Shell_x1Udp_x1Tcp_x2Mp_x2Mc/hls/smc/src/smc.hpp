@@ -17,8 +17,8 @@
 #define ASW4_SHIFT 16
 
 //Display3
-#define RCNT_SHIFT 0
-#define MSG_SHIFT 4
+#define RCNT_SHIFT 24
+#define MSG_SHIFT 0
 
 
 #define WAIT_CYCLES 10

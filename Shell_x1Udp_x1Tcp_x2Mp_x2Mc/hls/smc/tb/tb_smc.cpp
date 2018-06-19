@@ -35,44 +35,48 @@ int main(){
 
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
 	printf("%#010x\n", (int) MMIO);
-	 
 	succeded = (MMIO == 0xBEBAFECA) && succeded;
 
 
 	MMIO_in = 0x1 << DSEL_SHIFT;
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x1003FF07) && succeded && (decoupActive == 0);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x1003FF07) && succeded && (decoupActive == 0);
 
 	MMIO_in = 0x2 << DSEL_SHIFT;
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x20000000) && succeded && (decoupActive == 0);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x20000000) && succeded && (decoupActive == 0);
 
 	MMIO_in = 0x1 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 1);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 1);
 
 	MMIO_in = 0x3 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x34552520) && succeded && (decoupActive == 1);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x30204F4B) && succeded && (decoupActive == 1);
 
 	MMIO_in = 0x1 << DSEL_SHIFT;
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 0);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 0);
 
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << WCNT_SHIFT);
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x34142431) && succeded && (decoupActive == 0);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x31414243) && succeded && (decoupActive == 0);
 
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 2 << WCNT_SHIFT);
-		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
-		printf("%#010x\n", (int) MMIO);
-		succeded = (MMIO == 0x34142432) && succeded && (decoupActive == 0);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x32414243) && succeded && (decoupActive == 0);
+
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 2 << WCNT_SHIFT);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive);
+	printf("%#010x\n", (int) MMIO);
+	succeded = (MMIO == 0x32204F4B) && succeded && (decoupActive == 0);
 
 	return succeded? 0 : -1;
 	//return 0;

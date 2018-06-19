@@ -15,8 +15,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 #pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
 #pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_SMC_status
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
-// #pragma HLS INTERFACE s_axilite port=return bundle=BUS_A
-// #pragma HLS INTERFACE ap_ctrl_none port=return
 
 
 //===========================================================
@@ -33,10 +31,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 	//ap_wait_n(AXI_PAUSE_CYCLES);
 	ISR = HWICAP[ISR_OFFSET];
 	//	ap_wait_n(AXI_PAUSE_CYCLES);
-	//	WFV = HWICAP[WFV_OFFSET];
+	WFV = HWICAP[WFV_OFFSET];
 
 	ASR = HWICAP[ASR_OFFSET];
-	RFO = HWICAP[RFO_OFFSET];
+	//RFO = HWICAP[RFO_OFFSET];
 	CR = HWICAP[CR_OFFSET];
 
 	Done = SR & 0x1;
@@ -64,13 +62,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 //===========================================================
 // Counter Handshake 
 	
-	ap_uint<4> WCnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
+	ap_uint<4> Wcnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
 	char *msg = new char[4];
 	msg = "ABC";
 
-	if (WCnt == (cnt + 1))
+	if (Wcnt == (cnt + 1) )
 	{ 
 		cnt++; 
+	} else if (Wcnt == cnt ) 
+	{ 
+		msg = " OK";
 	} else {
 		msg = "ERR";
 	}
@@ -85,8 +86,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 	Dsel = (*MMIO_in >> DSEL_SHIFT) & 0xF;
 
 	Display1 = (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
-	//Display1 |= WFV_value << WFV_V_SHIFT;
-	Display1 |= RFO << WFV_V_SHIFT;
+	Display1 |= WFV_value << WFV_V_SHIFT;
+	//Display1 |= RFO << WFV_V_SHIFT;
 	//Display1 |= (decoupStatus | 0x00000000)  << DECOUP_SHIFT;
 	Display1 |= ((ap_uint<32>) decoupStatus)  << DECOUP_SHIFT;
 	Display1 |= ASW1 << ASW1_SHIFT;
