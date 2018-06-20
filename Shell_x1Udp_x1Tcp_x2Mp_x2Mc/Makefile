@@ -31,9 +31,14 @@ hls_cores:
 hls: hls_cores
 
 # directory as dependency: not the best solution but here the most practical one 
-# CAVE: hls must be befor $(DEPS)! otherwise make does not see the updated *_prj 
+# CAVE: hls must be before $(DEPS)! otherwise make does not see the updated *_prj 
 ip: hls ./tcl/create_ip_cores.tcl $(DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+
+#dummy target to avoid make-error
+./ip/ip_user_files:
+	mkdir -p $@
+
 
 xpr: ip
 	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force
