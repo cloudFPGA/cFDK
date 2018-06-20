@@ -7,9 +7,47 @@
 
 ap_uint<4> cnt = 0;
 
-
-void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
+ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> cnt)
 {
+	ap_uint<32> buffer[MAX_LINES];
+//#pragma HLS RESOURCE variable=buffer core=ROM_1P_BRAM
+
+	if (cnt % 2 == 0)
+	{//even page
+		for(int i = 0; i<MAX_LINES; i++)
+		{
+			buffer[i] = xmem[i];
+		}
+	} else { //odd page
+		for(int i = 0; i<MAX_LINES; i++)
+		{
+			buffer[i] = xmem[i+MAX_LINES];
+		}
+	}
+
+	ap_uint<32> ctrlWord = 0;
+	for(int i = 0; i<8; i++)
+	{
+		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
+	}
+
+	for(int i = 0; i<MAX_LINES; i++)
+	{
+		if(buffer[i] != ctrlWord)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
+			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+			ap_uint<32> xmem[XMEM_SIZE])
+{
+#pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM
 #pragma HLS INTERFACE m_axi depth=512 port=HWICAP bundle=poSMC_to_HWICAP_AXIM
 #pragma HLS INTERFACE ap_ovld register port=MMIO_out name=poMMIO
 #pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
@@ -60,23 +98,37 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 	}
 
 //===========================================================
-// Counter Handshake 
+// Counter Handshake and Memory Copy
 	
 	ap_uint<4> Wcnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
 	char *msg = new char[4];
-	msg = "ABC";
+	//msg = "ABC";
 
 	if (Wcnt == (cnt + 1) )
 	{ 
-		cnt++; 
+		ap_uint<4> ret = copyAndCheckXmem(xmem,(cnt+1));
+		if ( ret == 0)
+		{
+			cnt++;
+			msg = " OK";
+		} else {
+			msg = "INV"; //Invalid data
+		}
 	} else if (Wcnt == cnt ) 
 	{ 
-		msg = " OK";
+		if (cnt == 0)
+		{
+			msg = "UNU"; // unused
+		} else {
+			msg = "UTD"; //Up-to-date
+		}
 	} else {
-		msg = "ERR";
+		msg = "CMM"; //Counter Miss match
 	}
-
 	
+//===========================================================
+//
+
 //===========================================================
 //  putting displays together 
 
@@ -104,17 +156,17 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, 
 
 	switch (Dsel) {
 		case 1:
-						*MMIO_out = (0x1 << DSEL_SHIFT) | Display1; 
-							 break;
+				*MMIO_out = (0x1 << DSEL_SHIFT) | Display1;
+					 break;
 		case 2:
-						*MMIO_out = (0x2 << DSEL_SHIFT) | Display2; 
-							 break;
+				*MMIO_out = (0x2 << DSEL_SHIFT) | Display2;
+					 break;
 		case 3:
-						*MMIO_out = (0x3 << DSEL_SHIFT) | Display3; 
-							 break;
+				*MMIO_out = (0x3 << DSEL_SHIFT) | Display3;
+					 break;
 		default: 
-						*MMIO_out = 0xBEBAFECA;
-							break;
+				*MMIO_out = 0xBEBAFECA;
+					break;
 	}
 
 	ap_wait_n(WAIT_CYCLES);

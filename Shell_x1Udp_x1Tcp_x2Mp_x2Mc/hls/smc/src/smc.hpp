@@ -40,6 +40,14 @@
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
 
-void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out, ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup);
+//XMEM
+#define MAX_LINES 4
+#define MAX_PAGES 2
+#define XMEM_SIZE (MAX_LINES * MAX_PAGES)
+
+void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
+			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+			ap_uint<32> xmem[XMEM_SIZE]);
+
 
 #endif
