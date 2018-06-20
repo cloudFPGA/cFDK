@@ -702,7 +702,7 @@ module MmioClient_A8_D8 #(
       //-- SPECIFIC SIGNAL ASSIGNMENTS -----------------------
       localparam cRamSize    = 2*1024;  // Dual Port RAM Size
       localparam cRatio      = 8;       // Port_B_Width / Port_A_Width
-      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;
+      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;  //TODO this is always =log2(cRamSize) -> simplify?
         
       wire [cAddrAWidth-1:0]   sDpramAddrA;       // DPRA-Port_A-Dual Port Address
       wire [       cEDW-1:0]   sDPRAM_PortA_Data; // Port-A - Data out
@@ -712,7 +712,7 @@ module MmioClient_A8_D8 #(
       wire                    sPSOC_Emif_Oe_n;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
-      assign sDpramAddrA = {sPageSel, sEmifAddr};
+      assign sDpramAddrA = {sPageSel, sEmifAddr};  // this gets truncated to [cAddrAwidth-1:0]
       assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
   
       //========================================================================
