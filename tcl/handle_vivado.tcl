@@ -386,15 +386,12 @@ if { ${create} } {
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
-    #===============================================================================
-    #
-    # Create and Specify Synthesis Settings
-    #
-    #=============================================================================== 
+    #-------------------------------------------------------------------------------
+    # Create 'synth_1' run (if not found)
+    #------------------------------------------------------------------------------- 
     set year [ lindex [ split [ version -short ] "." ] 0 ]
 
     if { [ string equal [ get_runs -quiet synth_1 ] ""] } {
-        # 'synth_1' run was not found --> create run
         create_run -name synth_1 -part ${xilPartName} -flow {Vivado Synthesis ${year}} -strategy "Vivado Synthesis Defaults" -constrset constrs_1
     } else {
         set_property strategy "Vivado Synthesis Defaults" [ get_runs synth_1 ]
@@ -403,10 +400,6 @@ if { ${create} } {
 
     # Set the current synth run
     set syntObj [ get_runs synth_1 ]
-
-    # Force the Out-Of-Context Mode for this module
-    #  [INFO] This ensures that no IOBUF get inferred for this module.
-    set_property -name {STEPS.SYNTH_DESIGN.ARGS.MORE OPTIONS} -value {-mode out_of_context} -objects ${syntObj}
 
     # Specify the tcl.pre script to apply before the synthesis run
     set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${syntObj}
@@ -441,7 +434,6 @@ if { ${create} } {
     if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
         set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
         add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
-        set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd ]
         set_property source_mgmt_mode All [ current_project ]
         update_compile_order -fileset sim_1
     }

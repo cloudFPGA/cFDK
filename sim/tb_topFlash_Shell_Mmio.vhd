@@ -77,9 +77,6 @@
     constant cEMIF_LY3_REG_BASE   : integer := 16#30#;  -- Layer-3       Registers
     constant cEMIF_RES_REG_BASE   : integer := 16#40#;  -- Spare         Registers
     constant cEMIF_DIAG_REG_BASE  : integer := 16#70#;  -- Diagnostic    Registers
-    
-    constant cEMIF_EXT_PAGE_BASE  : integer := 16#80#;  -- Extended Page Memory Base 
-    constant cEMIF_EXT_PAGE_SIZE  : integer := 16#04#;  -- Extended Page Memory Size
      
     --==========================================================================
     --== SIGNAL DECLARATIONS
@@ -373,40 +370,31 @@
       ) is
       begin
         if (expectedVal /= to_integer(unsigned(sPSOC_Mmio_Data))) then
-          report "[TbSimError] Data-Bus-Read = " & integer'image(to_integer(unsigned(sPSOC_Mmio_Data))) & " (0x" & to_hex_string(sPSOC_Mmio_Data) & ")" & " - Expected-Value = " & integer'image(expectedVal) & " (0x" & to_hex_string(to_signed(expectedVal,8)) & ")" severity ERROR;
+          report "[TbSimError] Data-Bus-Read = " & integer'image(to_integer(unsigned(sPSOC_Mmio_Data))) & " - Expected-Value = " & integer'image(expectedVal) severity ERROR;
           vTbErrors := vTbErrors + 1;
         end if;
       end pdAssessEmifData;
      
-    
-       -------------------------------------------------------------
-       -- Prdc: Report the number of errors 
-       -------------------------------------------------------------
-       procedure pdReportErrors (
-         nbErrors : in integer
-       ) is
-         variable myLine : line;
-       begin
-         write(myLine, string'("*****************************************************************************"));
-         writeline(output, myLine);
-         if (nbErrors > 0) then
-           write(myLine, string'("**  END of TESTBENCH - SIMULATION FAILED (KO): Total # error(s) = " ));
-           write(myLine, nbErrors);
-         elsif (nbErrors < 0) then
-           write(myLine, string'("**  ABORTING TESTBENCH - FATAL ERROR (Please Check the Console)" ));
-         else
-           write(myLine, string'("**  END of TESTBENCH - SIMULATION SUCCEEDED (OK): No Error."));
-         end if;
-         writeline(output, myLine);
-         write(myLine, string'("*****************************************************************************"));
-         writeline(output, myLine);
-         
-         if (nbErrors < 0) then
-           assert FALSE Report "Aborting simulation" severity FAILURE; 
-         else
-           assert FALSE Report "Successful end of simulation" severity FAILURE; 
-         end if;
-       end pdReportErrors; 
+      -------------------------------------------------------------
+      -- Prdc: Report the number of errors 
+      -------------------------------------------------------------
+      procedure pdReportErrors (
+        nbErrors : in integer
+      ) is
+      variable myLine : line;
+      begin
+        write(myLine, string'("*****************************************************************************"));
+        writeline(output, myLine);
+        if (nbErrors /= 0) then
+          write(myLine, string'("**  END of TESTBENCH - SIMULATION FAILED (KO): Total # error(s) = " ));
+          write(myLine, nbErrors);
+        else
+          write(myLine, string'("**  END of TESTBENCH - SIMULATION SUCCEEDED (OK): No Error."));
+        end if;
+        writeline(output, myLine);
+        write(myLine, string'("*****************************************************************************"));
+        writeline(output, myLine);
+      end pdReportErrors;
   
     begin
       
@@ -447,7 +435,7 @@
       
       -- Read EMIF_CFG_VPD[0] Register (EmifId) --------------------------------
       pdEmifRead(cEMIF_CFG_REG_BASE+0);
-      pdAssessEmifData(16#3D#);
+      pdAssessEmifData(16#42#);
       wait for 5 ns;
       -- Read EMIFI_CFG_VPD[1] Register (VersionId) ----------------------------
       pdEmifRead(cEMIF_CFG_REG_BASE+1);
@@ -505,42 +493,13 @@
         wait for 5 ns;
       end loop;
       
-       --========================================================================
-       --==  STEP-4: TEST READING and WRITING the EXTENDED PAGE MEMORY   
-       --========================================================================
-       
-       -- Write cycles ----------------------------------------------------------
-       for i in 0 to cEMIF_EXT_PAGE_SIZE-1 loop
-         pdEmifWrite(cEMIF_EXT_PAGE_BASE+i, i);
-         wait for 5 ns;
-       end loop;
-            
-       -- Read cycles -----------------------------------------------------------
-       for i in 0 to cEMIF_EXT_PAGE_SIZE-1 loop
-         pdEmifRead(cEMIF_EXT_PAGE_BASE+i);
-         pdAssessEmifData(i);
-          wait for 5 ns;
-       end loop;
-       
-       -- Write cycles ----------------------------------------------------------
-       for i in 0 to cEMIF_EXT_PAGE_SIZE-1 loop
-         pdEmifWrite(cEMIF_EXT_PAGE_BASE+i, cEMIF_EXT_PAGE_SIZE-1-i);
-         wait for 5 ns;
-       end loop;
-            
-       -- Read cycles -----------------------------------------------------------
-       for i in 0 to cEMIF_EXT_PAGE_SIZE-1 loop
-         pdEmifRead(cEMIF_EXT_PAGE_BASE+i);
-         pdAssessEmifData(cEMIF_EXT_PAGE_SIZE-1-i);
-          wait for 5 ns;
-       end loop;
-             
+         
       --========================================================================
-      --==  STEP-5: TRY READING VITAL PRODUCT DATA A SECOND TIME  
+      --==  STEP-4: TRY READING VITAL PRODUCT DATA A SECOND TIME  
       --========================================================================
       -- Read EMIF_CFG_VPD[0] Register (EmifId) --------------------------------
       pdEmifRead(cEMIF_CFG_REG_BASE+0);
-      pdAssessEmifData(16#3D#);
+      pdAssessEmifData(16#42#);
       wait for 5 ns;
       -- Read EMIFI_CFG_VPD[1] Register (VersionId) ----------------------------
       pdEmifRead(cEMIF_CFG_REG_BASE+1);
@@ -554,10 +513,38 @@
       pdEmifRead(cEMIF_CFG_REG_BASE+3);
       pdAssessEmifData(16#00#);
       wait for 50 ns;
-           
-     --========================================================================
-     --==  STEP-6: DONE  
-     --========================================================================
+      
+      
+      
+      
+      --pdEmifRead(7);
+      --pdAssessEmifData(16#77#);
+      --wait for 5 ns;
+      --pdEmifRead(8);
+      --pdAssessEmifData(16#88#);
+      --wait for 50 ns;
+      
+  
+      ---- Write cycle
+      --pdEmifWrite(7, 16#77#);
+      --wait for 5 ns;
+      ---- Write cycle
+      --pdEmifWrite(8, 16#88#);
+      --wait for 7.5 ns;
+  
+      
+      --Read cycle
+      --pdEmifRead(7);
+      --pdAssessEmifData(16#77#);
+      --wait for 5 ns;
+      --pdEmifRead(8);
+      --pdAssessEmifData(16#88#);
+      --wait for 50 ns;
+  
+     
+     
+     
+      
       wait for 50 ns;
       sTbRunCtrl <= '0';
       wait for 50 ns;

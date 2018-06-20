@@ -52,25 +52,26 @@
 set_property CONFIG_VOLTAGE 1.8 [current_design]
 set_property CFGBVS GND [current_design]
 
+
 #---------------------------------------------------------------------
 # Enable bitstream compression
 #---------------------------------------------------------------------
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 
-#---------------------------------------------------------------------
-# Settings for the BPI Flash Programming
-#
-#  [INFO] Run the following command to generate a '.mcs' file for a
-#         1Gbit (i.e. 128x8) BPI configuration flash.
-#           write_cfgmem -format mcs -size 128 -interface BPIx16  /
-#                        -loadbit {up 0x00000000 ${xprName}.bit } /
-#                        -file ${xprName}.mcs
-#---------------------------------------------------------------------
-set_property BITSTREAM.CONFIG.EXTMASTERCCLK_EN DIV-1 [current_design]
-set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1 [current_design]
-set_property CONFIG_MODE BPI16 [current_design]
 
 
+###############################################################################
+# [TODO] Flash Programming Settings: Uncomment as required by your design
+# Items below between < > must be updated with correct values to work properly.
+###############################################################################
+# [TODO] BPI Flash Programming
+#set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+#set_property BITSTREAM.CONFIG.EXTMASTERCCLK_EN DIV-1 [current_design]
+#set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1 [current_design]
+#set_property CONFIG_MODE BPI16 [current_design]
+
+# Example PROM Generation command that should be executed from the Tcl Console
+# write_cfgmem -format mcs -size 128 -interface BPIx16 -loadbit {up 0x00000000 inputBitfile.bit } -file outputBitfile.mcs
 
 #OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
 #OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
@@ -89,9 +90,3 @@ set_property CONFIG_MODE BPI16 [current_design]
 #OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
 
 
-
-
-set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
-set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
-set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-connect_debug_port dbg_hub/clk [get_nets clk]

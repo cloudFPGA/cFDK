@@ -354,7 +354,6 @@ set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poTOP_Ddr4_Mc0_Cs_n]
 
 set_property PACKAGE_PIN AF25 [get_ports poTOP_Ddr4_Mc0_Odt]
 set_property IOSTANDARD SSTL12_DCI [get_ports poTOP_Ddr4_Mc0_Odt]
-
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poTOP_Ddr4_Mc0_Odt]
 # [IS-NOT-USED] set_property PACKAGE_PIN      AE26        [get_ports {poTOP_Ddr4_Mc0_Odt[1]}]
 #OBSOLETE-20180413 set_property IOSTANDARD SSTL12_DCI [get_ports {poTOP_Ddr4_Mc0_Odt[*]}]
@@ -536,12 +535,9 @@ set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poTOP_Ddr4_Mc1_Cs_n]
 
 set_property PACKAGE_PIN D15 [get_ports poTOP_Ddr4_Mc1_Odt]
 set_property IOSTANDARD SSTL12_DCI [get_ports poTOP_Ddr4_Mc1_Odt]
-
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poTOP_Ddr4_Mc1_Odt]
 # [IS-NOT-USED] set_property PACKAGE_PIN H14 [get_ports {poTOP_Ddr4_Mc1_Odt[1]}]
 #OBSOLETE-20180413 set_property IOSTANDARD SSTL12_DCI [get_ports {poTOP_Ddr4_Mc1_Odt[*]}]
 #OBSOLETE-20180413 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poTOP_Ddr4_Mc1_Odt[*]}]
-
-
 
 
