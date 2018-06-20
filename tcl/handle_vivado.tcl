@@ -31,6 +31,7 @@ set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
 
+source extra_procs.tcl
 
 ################################################################################
 #                                                                              #
@@ -61,6 +62,9 @@ set pr_grey 0
 set link 0
 set activeFlowPr_1 0
 set activeFlowPr_2 0
+set impl_opt 0
+set use_incr 0
+set save_incr 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -90,6 +94,9 @@ if { $argc > 0 } {
         { pr_verify "Run pr_verify." } 
         { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
+        { impl_opt "Optimize implementation for performance (increases runtime)"}
+        { use_incr "Use incremental compile (if possible)"}
+        { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -167,13 +174,32 @@ if { $argc > 0 } {
               set forceWithoutBB 1
               my_info_puts "The argument \'forceWithoutBB\' is set."
             }
+            if { ${key} eq "impl_opt" && ${value} eq 1 } {
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set."
+            }
+            if { ${key} eq "use_incr" && ${value} eq 1 } {
+              set use_incr 1
+              my_info_puts "The argument \'use_incr\' is set."
+            }
+            if { ${key} eq "save_incr" && ${value} eq 1 } {
+              set save_incr 1
+              my_info_puts "The argument \'save_incr\' is set."
+            }
         } 
     }
 }
 
+# -----------------------------------------------------
+# Assert valid combination of arguments 
 if {$pr || $link} {
   set forceWithoutBB 0
 }
+
+if {$pr && $impl && $synth} {
+  set link 1
+}
+# -----------------------------------------------------
 
 if { ${create} } {
 
@@ -380,7 +406,8 @@ if { ${create} } {
 
     # Force the Out-Of-Context Mode for this module
     #  [INFO] This ensures that no IOBUF get inferred for this module.
-    set_property -name {STEPS.SYNTH_DESIGN.ARGS.MORE OPTIONS} -value {-mode out_of_context} -objects ${syntObj}
+    #  Why is this doe for the TopLevel/Complete synth? 
+    #set_property -name {STEPS.SYNTH_DESIGN.ARGS.MORE OPTIONS} -value {-mode out_of_context} -objects ${syntObj}
 
     # Specify the tcl.pre script to apply before the synthesis run
     set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${syntObj}
@@ -448,11 +475,15 @@ if { ${synth} } {
     if { ! ${create} } {
         open_project ${xprDir}/${xprName}.xpr
         # Reset the previous run 'synth_1' before launching a new one
-        reset_run synth_1
     }
+    
+    #reset_run synth_1
 
-    launch_runs synth_1 -jobs 8
-    wait_on_run synth_1 
+    #launch_runs synth_1 -jobs 8
+    #wait_on_run synth_1 
+
+    #secureSynth
+    guidedSynth
 
     if { ! $forceWithoutBB } { 
       open_run synth_1 -name synth_1
@@ -502,12 +533,13 @@ if { ${link} } {
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
     set prConstrFile "${xdcDir}/topFMKU60_Flash_pr.xdc"
-    if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
-        my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
-        my_err_puts "  The script will be aborted here..."
-        my_puts ""
-        exit ${KO}
-    }
+    add_files -fileset ${constrObj} ${prConstrFile} 
+    #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
+    #    my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
+    #    my_err_puts "  The script will be aborted here..."
+    #    my_puts ""
+    #    exit ${KO}
+    #}
     my_puts "################################################################################"
     my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
@@ -550,13 +582,37 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
     #-------------------------------------------------------------------------------
     set implObj [ get_runs impl_1 ]
     
-    reset_run impl_1
-    set_property strategy Performance_Explore ${implObj}
-
-    launch_runs impl_1 -jobs 8
-    wait_on_run impl_1
-
+    #reset_run impl_1
     
+    if { ! $impl_opt } {
+      set_property strategy Flow_RuntimeOptimized ${implObj}
+      my_puts "Flow_RuntimeOptimized is set"
+    } else {
+      set_property strategy Performance_Explore ${implObj}
+      my_puts "Performance_Explore is set"
+    }
+
+    if { $use_incr } {
+      my_puts "Try to use incremental Checkpoint in ${dcpDir}"
+      if { $forceWithoutBB } { 
+        catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp ${implObj} }
+      } else { 
+        if { $pr } {
+          catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp ${implObj} }
+        } else {
+          catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp ${implObj} }
+        }
+      }
+    }
+
+
+    #launch_runs impl_1 -jobs 8
+    #wait_on_run impl_1
+
+    #secureImpl
+    guidedImpl
+   
+
     if { ! $forceWithoutBB } { 
       open_run impl_1
       if { $pr } { 
@@ -564,7 +620,7 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
       } else { 
         write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp
       }
-      write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole}.dcp
+      #write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole}.dcp
       
       my_puts "################################################################################"
       my_puts "##  DONE WITH 1. IMPLEMENATATION RUN; .dcp SAVED "
@@ -594,7 +650,32 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
 
     }
 
-} 
+}
+
+if { $save_incr } { 
+  my_puts "################################################################################"
+  my_puts "trying to save current Design as reference Checkpoint"
+
+  if { $forceWithoutBB } { 
+    # nothing must be called before
+    open_project ${xprDir}/${xprName}.xpr
+
+    open_run impl_1 
+
+    write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp
+  } else {
+
+    my_err_puts "This line should never be reached! Saving the incremental checkpoint for other than the Non-BB-flow is done automatically!"
+    exit ${KO}
+
+  }
+
+  my_puts "################################################################################"
+  my_puts "## CURRENT PROJECT IMPLEMENTATION RUN SAVED for use in INCREMENTAL BUILD" 
+  my_puts "################################################################################"
+  my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+}
 
 
 if { $activeFlowPr_2 && $impl } { 
@@ -620,13 +701,19 @@ if { $activeFlowPr_2 && $impl } {
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
-  opt_design
+  opt_design 
+
+  if { $use_incr } { 
+    my_puts "Trying to use incremental checkpoint"
+    catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp }
+  }
+
   place_design
   route_design
   
   
   write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp
-  write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
+  #write_checkpoint -force -cell ROLE ${dcpDir}/2P_${topName}_impl_${usedRole2}.dcp
   
   my_puts "################################################################################"
   my_puts "##  DONE WITH 2. IMPLEMENATATION RUN; .dcp SAVED "
@@ -679,7 +766,7 @@ if { $pr_verify } {
     my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
   } else {
     #pr_verify ${toVerifyList}
-    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll]
+    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll] -file ${dcpDir}/pr_verify.rpt
     # yes, $ll is here 'out of bounce' but tcl dosen't care
   
     my_puts "################################################################################"
@@ -702,22 +789,31 @@ if { $bitGen } {
     my_puts "################################################################################"
     my_puts "##"
     my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
-    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey  "
+    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey BB: $forceWithoutBB "
     my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
     
+    set curImpl ${usedRole}
+
     if { ${forceWithoutBB} } {
       catch {open_project ${xprDir}/${xprName}.xpr} 
       set implObj [ get_runs impl_1 ]
-      set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
-      set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
+      #set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
+      #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 
-      launch_runs impl_1 -to_step write_bitstream -jobs 8
-      wait_on_run impl_1
+      #catch {open_run impl_1}
+      open_run impl_1
+      write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
+      #launch_runs impl_1 -to_step write_bitstream -jobs 8
+      #wait_on_run impl_1
     } else {
 
-      set curImpl ${usedRole}
+      #Partial bitstream can be instrumented with CRC values every frame, so any failures are detected *before* the bad frame can be loaded in configuration memory, then corrective/fallback measures can be taken.
+      # for every open Checkpoint: 
+      #set_property bitstream.general.perFrameCRC yes [current_design]
+      # --> moved to fix_things.tcl
+
       if { $pr } {
         if { $activeFlowPr_1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
