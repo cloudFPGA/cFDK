@@ -55,8 +55,8 @@ module MmioClient_A8_D8 #(
   //-- Global Clock used by the entire SHELL -----
   input           piShlClk,
  
-  //-- Global Reset used by the entire TOP -------
-  input           piTopRst,
+  //-- Global Reset used by the entire SHELL -----
+  input           piShlRst,
  
   //-- PSOC : Emif Bus Interface -----------------
   input           piPSOC_Mmio_Clk,
@@ -654,8 +654,9 @@ module MmioClient_A8_D8 #(
         
   ) EMIF (
   
-    //-- TOP : Global Resets input ---------------
-    .piRst        (piTopRst),
+    //-- TOP : Clocks and Resets inputs ----------
+    .piFab_Clk    (piShlClk),
+    .piRst        (piShlRst),
     
     //-- PSOC : CPU/DMA Bus Interface ------------
     .piBus_Clk    (piPSOC_Mmio_Clk),
@@ -666,7 +667,6 @@ module MmioClient_A8_D8 #(
     .poBus_Data   (sEMIF_Data),
 
     //-- SHELL : Internal Fabric Interface -------
-    .piFab_Clk    (piShlClk),
     .piFab_Data   (sStatusVec),
     .poFab_Data   (sEMIF_Ctrl)
     
@@ -737,9 +737,9 @@ module MmioClient_A8_D8 #(
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (1'b0),   // [TODO]
-        .piEnB        (1'b0),   // [TODO]
-        .piWenB       (1'b0),   // [TODO]
+        .piClkB       (),
+        .piEnB        (),
+        .piWenB       (),
         .piAddrB      (),
         .piDataB      (),
         .poDataB      ()

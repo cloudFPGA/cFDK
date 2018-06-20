@@ -61,8 +61,9 @@ entity PsocExtMemItf is
     gDefRegVal    : std_logic_vector
   );
   port (
-    -- Global Resets input -----------------------
+    -- Clocks and Resets inputs ------------------
     piRst         : in  std_logic;
+    piFab_Clk     : in  std_logic;
     -- CPU/DMA Bus Interface ---------------------
     piBus_Clk     : in  std_logic;
     piBus_Cs_n    : in  std_logic;
@@ -71,7 +72,6 @@ entity PsocExtMemItf is
     piBus_Data    : in  std_logic_vector(gDataWidth - 1 downto 0);
     poBus_Data    : out std_logic_vector(gDataWidth - 1 downto 0);
     -- Internal FPGA Fabric Interface
-    piFab_Clk     : in  std_logic;
     piFab_Data    : in  std_logic_vector(gDataWidth * (2**gAddrWidth) - 1 downto 0);
     poFab_Data    : out std_logic_vector(gDataWidth * (2**gAddrWidth) - 1 downto 0)
   );
