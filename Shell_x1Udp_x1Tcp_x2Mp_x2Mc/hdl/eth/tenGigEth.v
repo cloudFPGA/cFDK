@@ -144,7 +144,9 @@ module TenGigEth (
   wire              sCORE_Clk;
   wire              sCORE_GtRxClk;
    
-  wire              sALCG_AxiClk;
+  //-- Axi Lite Clock generator 
+  (* keep="true" *) 
+  wire              sALCG_DrpClk;
   wire              sALCG_DcmLocked;
 
   wire              sNoRemoteAndLocalFaults;
@@ -228,7 +230,7 @@ module TenGigEth (
     //-- Clocks and Resets inputs ----------------
     .refclk_n                         (piCLKT_Gt_RefClk_n),
     .refclk_p                         (piCLKT_Gt_RefClk_p),
-    .dclk                             (sALCG_AxiClk),
+    .dclk                             (sALCG_DrpClk),
     .reset                            (piTOP_Reset),
     
     //-- Clocks and Resets outputs ---------------
@@ -306,8 +308,7 @@ module TenGigEth (
   //==========================================================================
   TenGigEth_AxiLiteClk ALCG (
     .clk_in                          (piTOP_156_25Clk),
-    .s_axi_aclk                      (sALCG_AxiClk),
-    //OBSOLETE-20171129 .tx_mmcm_reset                   (piTOP_Reset),
+    .s_axi_aclk                      (sALCG_DrpClk),
     .tx_mmcm_locked                  (sALCG_DcmLocked)
   );
 
