@@ -43,7 +43,7 @@
 
 //XMEM
 #define MAX_LINES 32
-#define MAX_PAGES 2
+#define MAX_PAGES 1
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,

@@ -28,12 +28,12 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE] )
 	}
 	for(int i = 0; i<MAX_LINES; i++)
 	{
-		if (cnt % 2 == 0)
-		{
+	//	if (cnt % 2 == 0)
+	//	{
 			xmem[i] = ctrlWord;
-		} else {
-			xmem[i+MAX_LINES] = ctrlWord;
-		}
+	//	} else {
+	//		xmem[i+MAX_LINES] = ctrlWord;
+	//	}
 	}
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
 }
@@ -146,6 +146,7 @@ int main(){
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x34204f4b);
 	
+	//Test RST
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 0 << WCNT_SHIFT) | (1 << RST_SHIFT);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x30555444);

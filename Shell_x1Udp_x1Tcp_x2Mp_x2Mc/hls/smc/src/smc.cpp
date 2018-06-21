@@ -12,18 +12,18 @@ ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 	ap_uint<32> buffer[MAX_LINES];
 //#pragma HLS RESOURCE variable=buffer core=ROM_1P_BRAM
 
-	if (ExpCnt % 2 == 0)
-	{//even page
+//	if (ExpCnt % 2 == 0)
+//	{//even page
 		for(int i = 0; i<MAX_LINES; i++)
 		{
 			buffer[i] = xmem[i];
 		}
-	} else { //odd page
-		for(int i = 0; i<MAX_LINES; i++)
-		{
-			buffer[i] = xmem[i+MAX_LINES];
-		}
-	}
+//	} else { //odd page
+//		for(int i = 0; i<MAX_LINES; i++)
+//		{
+//			buffer[i] = xmem[i+MAX_LINES];
+//		}
+//	}
 
 	ap_uint<32> ctrlWord = 0;
 	for(int i = 0; i<8; i++)

@@ -98,7 +98,7 @@ module MmioClient_A8_D8 #(
   input           piSMC_MMIO_XMEM_Wren,
   input  [31:0]   piSMC_MMIO_XMEM_WrData,
   output [31:0]   poSMC_MMIO_XMEM_RData,
-  input  [5:0]    piSMC_MMIO_XMEM_Addr,
+  input  [4:0]    piSMC_MMIO_XMEM_Addr,
 
   output          poVoid
 
