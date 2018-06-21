@@ -404,10 +404,6 @@ if { ${create} } {
     # Set the current synth run
     set syntObj [ get_runs synth_1 ]
 
-    # Force the Out-Of-Context Mode for this module
-    #  [INFO] This ensures that no IOBUF get inferred for this module.
-    #  Why is this doe for the TopLevel/Complete synth? 
-    #set_property -name {STEPS.SYNTH_DESIGN.ARGS.MORE OPTIONS} -value {-mode out_of_context} -objects ${syntObj}
 
     # Specify the tcl.pre script to apply before the synthesis run
     set_property STEPS.SYNTH_DESIGN.TCL.PRE  ${xdcDir}/xdc_settings.tcl ${syntObj}
