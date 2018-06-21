@@ -537,6 +537,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [31:0] sMMIO_CASTOR_4B_Reg;
   wire        sDECOUP_CASTOR_status;
   wire        sCASTOR_DECOUP_activate;
+  wire [5:0]  sCASTOR_MMIO_XMEM_Addr;
+  wire [31:0] sCASTOR_MMIO_XMEM_RData;
+  wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -591,6 +594,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     // SMC Registers
     .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
     .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
+    //XMem Port B
+    .piSMC_MMIO_XMEM_en             (sCASTOR_MMIO_XMEM_cen),
+    .piSMC_MMIO_XMEM_Wren           (1'b0),
+    .piSMC_MMIO_XMEM_WrData         (32'h0),
+    .poSMC_MMIO_XMEM_RData          (sCASTOR_MMIO_XMEM_RData),
+    .piSMC_MMIO_XMEM_Addr           (sCASTOR_MMIO_XMEM_Addr),
  
     .poVoid                         ()
 
@@ -1103,8 +1112,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .m_axi_poSMC_to_HWICAP_AXIM_RRESP    (sCASTOR_HWICAPC_axi_rresp),
     .m_axi_poSMC_to_HWICAP_AXIM_RVALID   (sCASTOR_HWICAPC_axi_rvalid),
     .m_axi_poSMC_to_HWICAP_AXIM_RREADY   (sCASTOR_HWICAPC_axi_rready),
-    .piDECOUP_SMC_status_V          (sDECOUP_CASTOR_status),
-    .poSMC_DECOUP_activate_V        (sCASTOR_DECOUP_activate)
+    .piDECOUP_SMC_status_V               (sDECOUP_CASTOR_status),
+    .poSMC_DECOUP_activate_V             (sCASTOR_DECOUP_activate),
+    .xmem_V_Address0                     (sCASTOR_MMIO_XMEM_Addr),
+    .xmem_V_ce0                          (sCASTOR_MMIO_XMEM_cen), 
+    .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData) 
   );
 
 

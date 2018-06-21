@@ -140,6 +140,33 @@ int main(){
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x33434D4D);
 
+	cnt = 4;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x34204f4b);
+
+	for(int i = 5; i<0xf; i++)
+	{
+	cnt = i;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+
+	}
+	
+	cnt = 0xf;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x3f204f4b);
+
+	cnt = 0x0;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x30204f4b);
+
 
 	return succeded? 0 : -1;
 	//return 0;

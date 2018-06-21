@@ -7,12 +7,12 @@
 
 ap_uint<4> cnt = 0;
 
-ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> cnt)
+ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 {
 	ap_uint<32> buffer[MAX_LINES];
 //#pragma HLS RESOURCE variable=buffer core=ROM_1P_BRAM
 
-	if (cnt % 2 == 0)
+	if (ExpCnt % 2 == 0)
 	{//even page
 		for(int i = 0; i<MAX_LINES; i++)
 		{
@@ -28,7 +28,7 @@ ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> cnt)
 	ap_uint<32> ctrlWord = 0;
 	for(int i = 0; i<8; i++)
 	{
-		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
+		ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
 	}
 
 	for(int i = 0; i<MAX_LINES; i++)
@@ -104,12 +104,19 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	char *msg = new char[4];
 	//msg = "ABC";
 
-	if (Wcnt == (cnt + 1) )
+	//explicit overflow 
+	ap_uint<4> expCnt = cnt + 1;
+	if (cnt == 0xf)
+	{
+		expCnt = 0;
+	}
+
+	if (Wcnt == expCnt )
 	{ 
-		ap_uint<4> ret = copyAndCheckXmem(xmem,(cnt+1));
+		ap_uint<4> ret = copyAndCheckXmem(xmem,expCnt);
 		if ( ret == 0)
 		{
-			cnt++;
+			cnt = expCnt;
 			msg = " OK";
 		} else {
 			msg = "INV"; //Invalid data
@@ -142,12 +149,12 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	//Display1 |= RFO << WFV_V_SHIFT;
 	//Display1 |= (decoupStatus | 0x00000000)  << DECOUP_SHIFT;
 	Display1 |= ((ap_uint<32>) decoupStatus)  << DECOUP_SHIFT;
-	Display1 |= ASW1 << ASW1_SHIFT;
-	Display1 |= CR_value << CMD_SHIFT; 
+	Display1 |= ((ap_uint<32>) ASW1) << ASW1_SHIFT;
+	Display1 |= ((ap_uint<32>) CR_value) << CMD_SHIFT;
 
-	Display2 |= ASW2 << ASW2_SHIFT;
-	Display2 |= ASW3 << ASW3_SHIFT;
-	Display2 |= ASW4 << ASW4_SHIFT; 
+	Display2 |= ((ap_uint<32>) ASW2) << ASW2_SHIFT;
+	Display2 |= ((ap_uint<32>) ASW3) << ASW3_SHIFT;
+	Display2 |= ((ap_uint<32>) ASW4) << ASW4_SHIFT;
 
 	Display3 |= ((ap_uint<32>) cnt) << RCNT_SHIFT;
 	Display3 |= ((ap_uint<32>) msg[0]) << MSG_SHIFT + 16;

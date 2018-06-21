@@ -93,6 +93,12 @@ module MmioClient_A8_D8 #(
   // SMC Registers
   input   [31:0]  piMMIO_SMC_4B_Reg,
   input   [31:0]  poMMIO_SMC_4B_Reg,
+  //XMem Port B
+  input           piSMC_MMIO_XMEM_en,
+  input           piSMC_MMIO_XMEM_Wren,
+  input  [31:0]   piSMC_MMIO_XMEM_WrData,
+  output [31:0]   poSMC_MMIO_XMEM_RData,
+  input  [5:0]    piSMC_MMIO_XMEM_Addr,
 
   output          poVoid
 
@@ -623,8 +629,6 @@ module MmioClient_A8_D8 #(
   //============================================================================
   // NGL REGISTERS
   //============================================================================
-  //assign sStatusVec[cEDW*ROLE_REG_BASE+2*cEDW-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
-  //assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+4*cEDW-1:cEDW*ROLE_REG_BASE+2*cEDW]; //Write TO ROLE 
   
   //FROM and TO ROLE
   assign sStatusVec[cEDW*NGL_FROM_ROLE1+7:cEDW*NGL_FROM_ROLE0+0] = piMMIO_ROLE_2B_Reg;
@@ -633,10 +637,6 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*NGL_FROM_SMC3+7:cEDW*NGL_FROM_SMC0+0] = piMMIO_SMC_4B_Reg;
   assign poMMIO_SMC_4B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+7:cEDW*NGL_TO_SMC0+0];
   
-  //Read
-  //assign sStatusVec[cEDW*ROLE_REG_BASE+7*cEDW-1:cEDW*ROLE_REG_BASE+4*cEDW] = piMMIO_SMC_4B_Reg;
-  //Write 
-  //assign poMMIO_SMC_4B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+10*cEDW-1:cEDW*ROLE_REG_BASE+7*cEDW];
 
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
@@ -701,20 +701,29 @@ module MmioClient_A8_D8 #(
   
       //-- SPECIFIC SIGNAL ASSIGNMENTS -----------------------
       localparam cRamSize    = 2*1024;  // Dual Port RAM Size
-      localparam cRatio      = 8;       // Port_B_Width / Port_A_Width
+      localparam cRatio      = 4;       // Port_B_Width / Port_A_Width
       localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;  //TODO this is always =log2(cRamSize) -> simplify?
+      
+      //localparam cAddrBWidth = 6;
+      localparam cDataBWidth = 32;
         
       wire [cAddrAWidth-1:0]   sDpramAddrA;       // DPRA-Port_A-Dual Port Address
       wire [       cEDW-1:0]   sDPRAM_PortA_Data; // Port-A - Data out
       wire                     sCsDpRamA;         // Chip select Ddual-port RAM
 
       wire [       cEDW-1:0]   sMUXO_Data;
-      wire                    sPSOC_Emif_Oe_n;
+      wire                    sPSOC_Emif_Oe_n; 
+
+      //wire [cAddrBWidth-1:0]  sDpram_PortB_Addr;
+      wire [log2(cRamSize/cRatio)-1:0]  sDpram_PortB_Addr;
+      //wire [cDataBWidth-1:0]  sDpram_PortB_Data;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
       assign sDpramAddrA = {sPageSel, sEmifAddr};  // this gets truncated to [cAddrAwidth-1:0]
       assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
-  
+ 
+      assign sDpram_PortB_Addr = piSMC_MMIO_XMEM_Addr; //will be extended accordingly
+
       //========================================================================
       //  INST: TRUE DUAL PORT ASYMMETRIC RAM
       //========================================================================
@@ -723,8 +732,10 @@ module MmioClient_A8_D8 #(
         .gDataWidth_A (cEDW),
         .gSize_A      (cRamSize),
         .gAddrWidth_A (log2(cRamSize)),
-        .gDataWidth_B (cEDW*cRatio),
+        //.gDataWidth_B (cEDW*cRatio),
+        .gDataWidth_B (cDataBWidth),
         .gSize_B      (cRamSize/cRatio),
+        //.gAddrWidth_B (log2(cRamSize/cRatio))
         .gAddrWidth_B (log2(cRamSize/cRatio))
         
       ) DPRAM (
@@ -737,12 +748,12 @@ module MmioClient_A8_D8 #(
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (1'b0),   // [TODO]
-        .piEnB        (1'b0),   // [TODO]
-        .piWenB       (1'b0),   // [TODO]
-        .piAddrB      (),
-        .piDataB      (),
-        .poDataB      ()
+        .piClkB       (piShlClk),
+        .piEnB        (piSMC_MMIO_XMEM_en), 
+        .piWenB       (piSMC_MMIO_XMEM_Wren),
+        .piAddrB      (sDpram_PortB_Addr),
+        .piDataB      (piSMC_MMIO_XMEM_WrData),
+        .poDataB      (poSMC_MMIO_XMEM_RData)
        
       );  // End of SuperCfg:DPRAM
 

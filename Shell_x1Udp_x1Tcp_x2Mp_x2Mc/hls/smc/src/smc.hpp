@@ -41,7 +41,7 @@
 #define WCNT_SHIFT 8
 
 //XMEM
-#define MAX_LINES 4
+#define MAX_LINES 32
 #define MAX_PAGES 2
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
 
