@@ -55,8 +55,8 @@ module MmioClient_A8_D8 #(
   //-- Global Clock used by the entire SHELL -----
   input           piShlClk,
  
-  //-- Global Reset used by the entire SHELL -----
-  input           piShlRst,
+  //-- Global Reset used by the entire TOP -------
+  input           piTopRst,
  
   //-- PSOC : Emif Bus Interface -----------------
   input           piPSOC_Mmio_Clk,
@@ -654,9 +654,8 @@ module MmioClient_A8_D8 #(
         
   ) EMIF (
   
-    //-- TOP : Clocks and Resets inputs ----------
-    .piFab_Clk    (piShlClk),
-    .piRst        (piShlRst),
+    //-- TOP : Global Resets input ---------------
+    .piRst        (piTopRst),
     
     //-- PSOC : CPU/DMA Bus Interface ------------
     .piBus_Clk    (piPSOC_Mmio_Clk),
@@ -667,6 +666,7 @@ module MmioClient_A8_D8 #(
     .poBus_Data   (sEMIF_Data),
 
     //-- SHELL : Internal Fabric Interface -------
+    .piFab_Clk    (piShlClk),
     .piFab_Data   (sStatusVec),
     .poFab_Data   (sEMIF_Ctrl)
     
@@ -702,7 +702,7 @@ module MmioClient_A8_D8 #(
       //-- SPECIFIC SIGNAL ASSIGNMENTS -----------------------
       localparam cRamSize    = 2*1024;  // Dual Port RAM Size
       localparam cRatio      = 8;       // Port_B_Width / Port_A_Width
-      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;
+      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;  //TODO this is always =log2(cRamSize) -> simplify?
         
       wire [cAddrAWidth-1:0]   sDpramAddrA;       // DPRA-Port_A-Dual Port Address
       wire [       cEDW-1:0]   sDPRAM_PortA_Data; // Port-A - Data out
@@ -712,7 +712,7 @@ module MmioClient_A8_D8 #(
       wire                    sPSOC_Emif_Oe_n;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
-      assign sDpramAddrA = {sPageSel, sEmifAddr};
+      assign sDpramAddrA = {sPageSel, sEmifAddr};  // this gets truncated to [cAddrAwidth-1:0]
       assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
   
       //========================================================================
@@ -737,9 +737,9 @@ module MmioClient_A8_D8 #(
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (),
-        .piEnB        (),
-        .piWenB       (),
+        .piClkB       (1'b0),   // [TODO]
+        .piEnB        (1'b0),   // [TODO]
+        .piWenB       (1'b0),   // [TODO]
         .piAddrB      (),
         .piDataB      (),
         .poDataB      ()
