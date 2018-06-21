@@ -90,7 +90,7 @@ int main(){
 	MMIO_in = 0x3 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
 	printf("%#010x\n", (int) MMIO);
-	succeded = (MMIO == 0x30554E55) && succeded && (decoupActive == 1);
+	succeded = (MMIO == 0x30555444) && succeded && (decoupActive == 1);
 
 	MMIO_in = 0x1 << DSEL_SHIFT;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
@@ -145,8 +145,12 @@ int main(){
 	initBuffer((ap_uint<4>) cnt, xmem);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x34204f4b);
+	
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 0 << WCNT_SHIFT) | (1 << RST_SHIFT);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x30555444);
 
-	for(int i = 5; i<0xf; i++)
+	for(int i = 0; i<0xf; i++)
 	{
 	cnt = i;
 	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);

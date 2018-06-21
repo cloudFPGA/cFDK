@@ -56,14 +56,17 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 
 //===========================================================
-// Connection to HWICAP
+// Core-wide variables
 	ap_uint<32> SR = 0, ISR = 0, WFV = 0, ASR = 0, CR = 0, RFO = 0;
 	ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
 	ap_uint<32> WFV_value = 0, CR_value = 0;
 
 
 	ap_uint<8> ASW1 = 0, ASW2 = 0, ASW3 = 0, ASW4= 0;
+	char *msg = new char[4];
 
+//===========================================================
+// Connection to HWICAP
 
 	SR = HWICAP[SR_OFFSET];
 	//ap_wait_n(AXI_PAUSE_CYCLES);
@@ -98,10 +101,20 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	}
 
 //===========================================================
+// Reset global variables 
+
+	ap_uint<1> RST = (*MMIO_in >> RST_SHIFT) & 0b1; 
+
+	if (RST == 1)
+	{
+		cnt = 0;
+
+	} 
+
+//===========================================================
 // Counter Handshake and Memory Copy
 	
 	ap_uint<4> Wcnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
-	char *msg = new char[4];
 	//msg = "ABC";
 
 	//explicit overflow 
@@ -123,12 +136,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		}
 	} else if (Wcnt == cnt ) 
 	{ 
-		if (cnt == 0)
-		{
-			msg = "UNU"; // unused
-		} else {
-			msg = "UTD"; //Up-to-date
-		}
+		msg = "UTD"; //Up-to-date
 	} else {
 		msg = "CMM"; //Counter Miss match
 	}
@@ -138,6 +146,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 //===========================================================
 //  putting displays together 
+
 
 	ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0; 
 	ap_uint<4> Dsel = 0;

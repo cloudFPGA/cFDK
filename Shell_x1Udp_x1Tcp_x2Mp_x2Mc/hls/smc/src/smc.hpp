@@ -37,6 +37,7 @@
 
 // MMIO TO SMC Register
 #define DECOUP_CMD_SHIFT 0
+#define RST_SHIFT 0
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
 
