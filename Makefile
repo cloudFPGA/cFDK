@@ -18,7 +18,7 @@ USED_ROLE_2 =RoleFlash_V2
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic
+.PHONY: all clean src_based ip_based RoleFlash pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify
 
 all: pr
 #all: src_based
@@ -53,21 +53,54 @@ pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
+pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr
+
+pr2_incr: ensureNotMonolithic ShellSrc Role2 | xpr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr
+
+
 ip_based: 
 	$(error NOT YET IMPLEMENTED)
 
-monolithic: ShellSrc | xpr 
+#no ROLE, because Role is synthezied with sources!
+monolithic: ensureMonolithic ShellSrc | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
-	export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
+	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic
+
+#no ROLE, because Role is synthezied with sources!
+monolithic_incr: ensureMonolithic ShellSrc | xpr 
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
+
+save_mono_incr: ensureMonolithic 
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
+
+save_pr_incr: 
+	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
+
+pr_verify: 
+	$(MAKE) -C ./tcl/ pr_verify
+
 
 ensureNotMonolithic: | xpr 
 	@test ! -f ./xpr/.project_monolithic.lock || (cat ./xpr/.project_monolithic.lock && exit 1)
 
+ensureMonolithic:
+	@test  -f ./xpr/.project_monolithic.lock || test ! -f ./xpr/ || (echo "This project was startet with Black Box flow => please clean up first" && exit 1)
 
 clean: 
 	$(MAKE) -C ./tcl/ clean 
 	rm -rf $(CLEAN_TYPES)
 	rm -rf ./xpr/ ./hd_visual/
-	#TODO discuss if delete dcps
 	rm -rf ./dcps/
+
+
+full_clean: clean 
+	$(MAKE) -C $(SHELL_DIR) clean 
+	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE) clean 
+	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2) clean
+
+
 

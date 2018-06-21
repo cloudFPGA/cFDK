@@ -36,10 +36,11 @@ ROLE_DIR =../../../ROLE
 #IP_SHELL = ../../../IP/Shell/component.xml
 XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 
+MONO_LOCK = ../xpr/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd
 all: full_src_pr
 
 
@@ -55,74 +56,112 @@ basecmd:
 	@/bin/echo -e "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
 	@/bin/echo -e $(shell date) > start.date
 
-
-full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit
+finalcmd:
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit | ../dcps
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+incrcmd:
+	@/bin/echo -e " -use_incr \\" >> .vivado_basecmd.sh
+
+
+full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
+
+full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit finalcmd | ../dcps
 
 pr_verify: 
 	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -pr_verify
 
-full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit | ../dcps
-	@more  +2 .vivado_basecmd.sh
+full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit finalcmd | ../dcps
+
+full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit finalcmd | ../dcps
+
+full_src_pr_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+full_src_pr_2_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+
+#monolithic
+monolithic: basecmd $(MONO_LOCK)
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
-full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit | ../dcps
+monolithic_incr: basecmd $(MONO_LOCK)
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
 	@more +2 .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
+	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+
+
+save_mono_incr: 
+	@# no dependencies, vivado should better fail on itslef 
+	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -role -forceWithoutBB -save_incr 
+
 
 #without pr 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp
 	@/bin/echo "-bitgen -role \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete.dcp: ../dcps/1_$(TOP_NAME)_linked.dcp
 	@/bin/echo "-impl -role \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/1_$(TOP_NAME)_linked.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp  $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-link -role \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 #both
-../dcps/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl | $(XPR_PROJ)
+../dcps/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
+	rm -f $@
 
-$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip | ../dcps 
-	@/bin/echo "-create \\" >> .vivado_basecmd.sh
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
+	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 #with pr:
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp 
-	@/bin/echo "-bitgen -role -pr -pr_verify \\" >> .vivado_basecmd.sh
+	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
+	rm -f $@
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/3_$(TOP_NAME)_STATIC.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp
+	rm -f $@
 
 ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit: ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp 
 	@/bin/echo "-bitgen -pr -pr_verify -role2 \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-impl -pr -role2 \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/4_$(TOP_NAME)_impl_grey_box.bit: ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp
 	@/bin/echo "-bitgen -role -pr -pr_grey \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp
 	@/bin/echo "-impl -role -pr -pr_grey \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 #20180507: Does not work this way, because therefore we need to define how $(IP_SHELL) can be build
 #$(XPR_PROJ): $(IP_SHELL)
