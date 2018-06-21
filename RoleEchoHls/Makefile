@@ -11,7 +11,7 @@
 # * Synopsis:
 # *   make         : Runs the default build for this ROLE.
 # *   make clean   : Makes a cleanup of the current directory.
-# *	  make project :  Creates a toplevel project for Vivado and stops.
+# *   make project : Creates a toplevel project for Vivado and stops.
 # *   
 # ******************************************************************************
 

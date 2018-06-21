@@ -6,7 +6,7 @@
 # * Authors : Francois Abel, Jagath Weerasinghe  
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the application
-# *   RoleEchoStoreAndForward.
+# *   EchoStoreAndForward.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -14,7 +14,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "RoleEchoStoreAndForward"
+set projectName    "EchoStoreAndForward"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
@@ -32,7 +32,7 @@ set currDir      [pwd]
 set srcDir       ${currDir}/src
 set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-# [FIXME] set repoDir      ${currDir}/../../ip
+set repoDir      ${currDir}/../../ip
 
 # Open and Setup Project
 #-------------------------------------------------

@@ -287,7 +287,7 @@ module Role_x1Udp_x1Tcp_x2Mp  // RoleEchoStoreAndForward
    //============================================================================
   //  INST: EchoStoreAndForward
   //============================================================================
-  EchoStoreAndForward ESAF (
+  EchoStoreAndForward ECHO (
 
     .aclk                     (piSHL_156_25Clk),
     .aresetn                  (~piSHL_156_25Rst)                         
