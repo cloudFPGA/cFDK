@@ -16,9 +16,11 @@ The _RoleEchoHls_ application is a Vivado High-Level Synthesis (HLS) version of 
 ## How To Build
 
    - the current role design
+   
       --> make
 
 ## How To Configure
 
   - the settings of the Xilinx project
+  
       --> edit the script './tcl/xpr_settings.tcl' and set the variables of the 'User Defined Settings' section at the beginning of the file.
