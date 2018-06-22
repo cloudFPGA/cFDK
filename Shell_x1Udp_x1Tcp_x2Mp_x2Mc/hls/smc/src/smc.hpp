@@ -21,8 +21,8 @@
 #define MSG_SHIFT 0
 
 
-#define WAIT_CYCLES 10
-#define AXI_PAUSE_CYCLES 10
+//#define WAIT_CYCLES 10
+//#define AXI_PAUSE_CYCLES 10
 
 #define WS 4
 #define SR_OFFSET (0x110/WS)
@@ -37,9 +37,10 @@
 
 // MMIO TO SMC Register
 #define DECOUP_CMD_SHIFT 0
-#define RST_SHIFT 0
+#define RST_SHIFT 1
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
+#define START_SHIFT 12
 
 //XMEM
 #define MAX_LINES 32

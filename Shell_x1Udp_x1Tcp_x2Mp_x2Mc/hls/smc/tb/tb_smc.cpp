@@ -19,6 +19,35 @@ bool checkResult(ap_uint<32> MMIO, ap_uint<32> expected)
 	//exit -1;
 }
 
+void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
+{
+	ap_uint<32> ctrlWord = 0;
+	for(int i = 0; i<8; i++)
+	{
+		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
+	}
+	
+	for(int i = 0; i<MAX_LINES; i++)
+	{
+		xmem[i] = ctrlWord;
+	}
+	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
+	
+	//Set Header and Footer
+	ap_uint<8> header = (ap_uint<8>) cnt;
+	if (lastPage) 
+	{
+		header |= 0xf0; 
+	}
+	ap_uint<32> headerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
+	xmem[0] = headerLine;
+
+	//Footer == Header 
+	xmem[MAX_LINES-1] = headerLine;
+
+}
+
+/*
 void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE] )
 {
 	ap_uint<32> ctrlWord = 0;
@@ -36,7 +65,7 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE] )
 	//	}
 	}
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
-}
+}*/
 
 
 int main(){
@@ -90,7 +119,7 @@ int main(){
 	MMIO_in = 0x3 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
 	printf("%#010x\n", (int) MMIO);
-	succeded = (MMIO == 0x30555444) && succeded && (decoupActive == 1);
+	succeded = (MMIO == 0x3f49444C) && succeded && (decoupActive == 1);
 
 	MMIO_in = 0x1 << DSEL_SHIFT;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
@@ -100,77 +129,81 @@ int main(){
 //===========================================================
 //Test Counter & Xmem
 
-	int cnt = 1;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt,xmem);
+	int cnt = 0;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x30204F4B);
+
+	cnt = 1;
+	//MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x31204F4B);
 
 	cnt = 2;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
+	//initBuffer((ap_uint<4>) cnt, xmem);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x31555444);
+	
+	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x32204F4B);
 
+	//smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	//succeded &= checkResult(MMIO, 0x32555444);
+
 	cnt = 3;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	//initBuffer((ap_uint<4>) cnt, xmem);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	xmem[2] = 42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x32494E56);
+	succeded &= checkResult(MMIO, 0x32434F52);
+	
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x32434F52);
 
-	//cnt = 3;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
+	//RST
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << RST_SHIFT);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x33204F4B);
+	succeded &= checkResult(MMIO, 0x3f49444C);
 
+	cnt = 0;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x33555444);
-
-	cnt = 4;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
-	xmem[1] = 42;
+	succeded &= checkResult(MMIO, 0x30204F4B);
+	
+	cnt = 1;
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	xmem[0] =  42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x33494E56);
-
-	cnt = 5;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	//initBuffer((ap_uint<4>) cnt, xmem);
-	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x33434D4D);
-
-	cnt = 4;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
-	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x34204f4b);
+	succeded &= checkResult(MMIO, 0x30494E56);
 	
 	//Test RST
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 0 << WCNT_SHIFT) | (1 << RST_SHIFT);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x30555444);
+	succeded &= checkResult(MMIO, 0x3f49444C);
 
+	//one complete transfer with overflow
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
 	for(int i = 0; i<0xf; i++)
 	{
 	cnt = i;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 
 	}
 	
 	cnt = 0xf;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3f204f4b);
 
 	cnt = 0x0;
-	MMIO_in = 0x3 << DSEL_SHIFT | ( cnt << WCNT_SHIFT);
-	initBuffer((ap_uint<4>) cnt, xmem);
+	initBuffer((ap_uint<4>) cnt, xmem, true);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x30204f4b);
+	succeded &= checkResult(MMIO, 0x30535543);
 
 
 	return succeded? 0 : -1;

@@ -5,8 +5,68 @@
 
 #include "smc.hpp"
 
-ap_uint<4> cnt = 0;
+ap_uint<4> cnt = 0xF;
+ap_uint<1> transferErr = 0;
+char *msg = new char[4];
 
+
+ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
+{
+
+	ap_uint<32> buffer[MAX_LINES];
+	//ap_uint<32> curLine = xmem[0];
+
+	for(int i = 0; i<MAX_LINES; i++)
+	{
+		buffer[i] = xmem[i];
+	}
+
+	ap_uint<8> curHeader = (buffer[0] >> 24) & 0xff;
+	ap_uint<8> curFooter = (buffer[MAX_LINES-1] >> 24) & 0xff;
+	ap_uint<4> curCnt = curHeader & 0xf; 
+
+
+	if ( curHeader != curFooter)
+	{//page is invalid
+		return 1;
+	}
+	
+	if(curCnt == cnt)
+	{//page was already transfered
+		return 0;
+	}
+
+	if (curCnt != ExpCnt)
+	{//we must missed something 
+		return 2;
+	}
+
+	bool lastPage = (curHeader & 0xf0) == 0xf0;
+
+	ap_uint<32> ctrlWord = 0;
+	for(int i = 0; i<8; i++)
+	{
+		ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
+	}
+
+	//for simplicity check only lines in between
+	for(int i = 1; i<MAX_LINES-1; i++)
+	{
+		if(buffer[i] != ctrlWord)
+		{//data is corrupt 
+			return 3;
+		}
+	}
+
+	if (lastPage)
+	{
+		return 4;
+	}
+
+	return 5;
+}
+
+/*
 ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 {
 	ap_uint<32> buffer[MAX_LINES];
@@ -41,7 +101,7 @@ ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 
 	return 0;
 }
-
+*/
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
@@ -63,7 +123,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 
 	ap_uint<8> ASW1 = 0, ASW2 = 0, ASW3 = 0, ASW4= 0;
-	char *msg = new char[4];
 
 //===========================================================
 // Connection to HWICAP
@@ -107,13 +166,15 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 	if (RST == 1)
 	{
-		cnt = 0;
-
+		cnt = 0xf;
+		transferErr = 0;
+		msg = "IDL";
+		
 	} 
 
 //===========================================================
-// Counter Handshake and Memory Copy
-	
+// Counter Handshake and Memory Copy v1
+	/*
 	ap_uint<4> Wcnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
 	//msg = "ABC";
 
@@ -140,9 +201,57 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	} else {
 		msg = "CMM"; //Counter Miss match
 	}
-	
+	*/
 //===========================================================
-//
+// Start & Run Burst transfer 
+	
+	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
+
+	if (start == 1 && transferErr == 0) 
+	{
+		//explicit overflow 
+		ap_uint<4> expCnt = cnt + 1;
+		if (cnt == 0xf)
+		{
+			expCnt = 0;
+		} 
+
+		ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt);
+
+		switch (ret) {
+			case 0:
+							 msg = "UTD";
+								 break;
+			case 1:
+							 msg = "INV";
+							 transferErr = 1;
+								 break;
+			case 2:
+							 msg = "CMM";
+							 transferErr = 1;
+								 break;
+			case 3:
+							 msg = "COR";
+							 transferErr = 1;
+								 break;
+			case 4:
+							 msg = "SUC";
+							 //set error to not start again 
+							 transferErr=1;
+							 cnt = expCnt;
+								 break;
+			default: 
+							 msg= " OK";
+							 cnt = expCnt;
+							 break;
+		}
+
+	} else if (transferErr == 0 && start == 0)
+	{
+		msg = "IDL";
+	}
+	//otherwise don't touch msg 
+
 
 //===========================================================
 //  putting displays together 
@@ -161,11 +270,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	Display1 |= ((ap_uint<32>) ASW1) << ASW1_SHIFT;
 	Display1 |= ((ap_uint<32>) CR_value) << CMD_SHIFT;
 
-	Display2 |= ((ap_uint<32>) ASW2) << ASW2_SHIFT;
+	Display2 = ((ap_uint<32>) ASW2) << ASW2_SHIFT;
 	Display2 |= ((ap_uint<32>) ASW3) << ASW3_SHIFT;
 	Display2 |= ((ap_uint<32>) ASW4) << ASW4_SHIFT;
 
-	Display3 |= ((ap_uint<32>) cnt) << RCNT_SHIFT;
+	Display3 = ((ap_uint<32>) cnt) << RCNT_SHIFT;
 	Display3 |= ((ap_uint<32>) msg[0]) << MSG_SHIFT + 16;
 	Display3 |= ((ap_uint<32>) msg[1]) << MSG_SHIFT + 8;
 	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0;
@@ -185,7 +294,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 					break;
 	}
 
-	ap_wait_n(WAIT_CYCLES);
+	//ap_wait_n(WAIT_CYCLES);
+	return;
 }
 
 
