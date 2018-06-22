@@ -2,11 +2,11 @@ DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all
 
-all: RoleEchoStoreAndForward_prj
+all: EchoStoreAndForward_prj
 
-RoleEchoStoreAndForward_prj: $(DEPS)
+EchoStoreAndForward_prj: $(DEPS)
 	vivado_hls -f run_hls.tcl
 
 clean:
-	${RM} -rf RoleEchoStoreAndForward_prj
+	${RM} -rf EchoStoreAndForward_prj
 	${RM} vivado*.log

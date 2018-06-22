@@ -173,7 +173,7 @@ void EchoStoreAndForward(
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface
 	//------------------------------------------------------
-    stream<axiWord>			&siUdp,
+	stream<axiWord>			&siUdp,
 	stream<axiWord>			&soUdp,
 	
 	//------------------------------------------------------
@@ -191,8 +191,8 @@ void EchoStoreAndForward(
 	stream<axiMemWord>		&siMemReadP0,
 	//---- Write Path (S2MM) -----------
 	stream<mmCmd>			&soMemWrCmdP0,
-    stream<mmStatus>		&siMemWrStsP0,
-    stream<axiMemWord>		&soMemWriteP0,
+	stream<mmStatus>		&siMemWrStsP0,
+	stream<axiMemWord>		&soMemWriteP0,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
@@ -208,16 +208,14 @@ void EchoStoreAndForward(
 
 ) {
 
-#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS DATAFLOW //interval=1
 
 // Bundling: SHELL / Role / Nts0 / Udp Interface
 #pragma HLS RESOURCE core=AXI4Stream variable=siUdp        metadata="-bus_bundle siSHL_Rol_Nts0_Udp"
-#pragma HLS RESOURCE core=AXI4Stream variable=soUdp        metadata="-bus_bundle soROL_Shl_Nts0_Udp"
+#pragma HLS INTERFACE axis register both port=soUdp        metadata="-bus_bundle soROL_Shl_Nts0_Udp"
 
 // Bundling: SHELL / Role / Nts0 / Tcp Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=siTcp        metadata="-bus_bundle siSHL_Rol_Nts0_Tcp"
-#pragma HLS RESOURCE core=AXI4Stream variable=soTcp        metadata="-bus_bundle soROL_Shl_Nts0_Tcp"
+#pragma HLS INTERFACE axis register both port=siTcp        metadata="-bus_bundle siSHL_Rol_Nts0_Tcp"
+#pragma HLS INTERFACE axis register both port=soTcp        metadata="-bus_bundle soROL_Shl_Nts0_Tcp"
 
 // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
 #pragma HLS RESOURCE core=AXI4Stream variable=soMemRdCmd0  metadata="-bus_bundle soROL_Shl_Mem_Mp0_RdCmd"
@@ -245,9 +243,10 @@ void EchoStoreAndForward(
 #pragma HLS DATA_PACK                variable=siMemWrSts1
 #pragma HLS RESOURCE core=AXI4Stream variable=soMemWrite1  metadata="-bus_bundle soROL_Shl_Mem_Mp1_Write"
 
+#pragma HLS INTERFACE ap_ctrl_none port=return
 
   static enum UdpState { FSM_UDP_RX_IDLE = 0,
-	  	  	  	  	  	 FSM_MEM_WR_CMD_P0, FSM_MEM_WRITE_P0, FSM_MEM_WR_STS_P0,
+	 	  	  	  	  	 FSM_MEM_WR_CMD_P0, FSM_MEM_WRITE_P0, FSM_MEM_WR_STS_P0,
 						 FSM_MEM_RD_CMD_P0, FSM_MEM_READ_P0,  FSM_MEM_RD_STS_P0,
 						 FSM_UDP_TX } udpState;
 
@@ -257,10 +256,15 @@ void EchoStoreAndForward(
   static stream<axiWord> memRdStream;
 #pragma HLS STREAM variable=memRdStream depth=1024
 
+
+
+
   axiWord                tmpUdpAxiWord;
   axiMemWord             tmpMemAxiWord;
   static ap_uint<16>     cntUdpRxBytes = 0;
   static ap_uint<32>     cUDP_BUF_BASE_ADDR = 0x00000000;	// The address of the UDP buffer in DDR4
+
+  #pragma HLS DATAFLOW //interval=1
 
   switch(udpState) {
 

@@ -289,12 +289,102 @@ module Role_x1Udp_x1Tcp_x2Mp  // RoleEchoStoreAndForward
   //============================================================================
   EchoStoreAndForward ECHO (
 
-    .aclk                     (piSHL_156_25Clk),
-    .aresetn                  (~piSHL_156_25Rst)                         
-
+    //------------------------------------------------------
+	//-- SHELL / Role / Nts0 / Udp Interface
+	//------------------------------------------------------                            
+    //---- Input AXI-Write Stream Interface --------
+    .siSHL_Rol_Nts0_Udp_TDATA   (piSHL_Rol_Nts0_Udp_Axis_tdata),
+    .siSHL_Rol_Nts0_Udp_TKEEP   (piSHL_Rol_Nts0_Udp_Axis_tkeep),
+    .siSHL_Rol_Nts0_Udp_TLAST   (piSHL_Rol_Nts0_Udp_Axis_tlast),
+    .siSHL_Rol_Nts0_Udp_TVALID  (piSHL_Rol_Nts0_Udp_Axis_tvalid),
+    .siSHL_Rol_Nts0_Udp_TREADY  (poROL_Shl_Nts0_Udp_Axis_tready),
+    //---- Output AXI-Write Stream Interface ---------
+    .soROL_Shl_Nts0_Udp_TREADY  (piSHL_Rol_Nts0_Udp_Axis_tready),
+    .soROL_Shl_Nts0_Udp_TDATA   (poROL_Shl_Nts0_Udp_Axis_tdata),
+    .soROL_Shl_Nts0_Udp_TKEEP   (poROL_Shl_Nts0_Udp_Axis_tkeep),
+    .soROL_Shl_Nts0_Udp_TLAST   (poROL_Shl_Nts0_Udp_Axis_tlast),
+    .soROL_Shl_Nts0_Udp_TVALID  (poROL_Shl_Nts0_Udp_Axis_tvalid),
+     
+    //------------------------------------------------------
+	//-- SHELL / Role / Nts0 / Udp Interface
+	//------------------------------------------------------                            
+    //---- Input AXI-Write Stream Interface --------
+    .siSHL_Rol_Nts0_Tcp_TDATA   (piSHL_Rol_Nts0_Tcp_Axis_tdata),
+    .siSHL_Rol_Nts0_Tcp_TKEEP   (piSHL_Rol_Nts0_Tcp_Axis_tkeep),
+    .siSHL_Rol_Nts0_Tcp_TLAST   (piSHL_Rol_Nts0_Tcp_Axis_tlast),
+    .siSHL_Rol_Nts0_Tcp_TVALID  (piSHL_Rol_Nts0_Tcp_Axis_tvalid),
+    .siSHL_Rol_Nts0_Tcp_TREADY  (poROL_Shl_Nts0_Tcp_Axis_tready),
+    //---- Output AXI-Write Stream Interface ---------
+    .soROL_Shl_Nts0_Tcp_TREADY  (piSHL_Rol_Nts0_Tcp_Axis_tready),
+    .soROL_Shl_Nts0_Tcp_TDATA   (poROL_Shl_Nts0_Tcp_Axis_tdata),
+    .soROL_Shl_Nts0_Tcp_TKEEP   (poROL_Shl_Nts0_Tcp_Axis_tkeep),
+    .soROL_Shl_Nts0_Tcp_TLAST   (poROL_Shl_Nts0_Tcp_Axis_tlast),
+    .soROL_Shl_Nts0_Tcp_TVALID  (poROL_Shl_Nts0_Tcp_Axis_tvalid),
+                        
+	//------------------------------------------------------
+	//-- SHELL / Role / Mem / Mp0 Interface
+	//------------------------------------------------------
+	//---- Read Path (MM2S) ------------
+    .soROL_Shl_Mem_Mp0_RdCmd_TREADY (piSHL_Rol_Mem_Mp0_RdCmd_TREADY),
+    .soROL_Shl_Mem_Mp0_RdCmd_TDATA  (poROL_Shl_Mem_Mp0_RdCmd_TDATA),
+    .soROL_Shl_Mem_Mp0_RdCmd_TVALID (poROL_Shl_Mem_Mp0_RdCmd_TVALID),
+    .siSHL_Rol_Mem_Mp0_RdSts_TDATA  (piSHL_Rol_Mem_Mp0_RdSts_TDATA),
+    .siSHL_Rol_Mem_Mp0_RdSts_TVALID (piSHL_Rol_Mem_Mp0_RdSts_TVALID),
+    .siSHL_Rol_Mem_Mp0_RdSts_TREADY (poROL_Shl_Mem_Mp0_RdSts_TREADY),
+    .siSHL_Rol_Mem_Mp0_Read_TDATA   (piSHL_Rol_Mem_Mp0_Read_TDATA),
+    .siSHL_Rol_Mem_Mp0_Read_TKEEP   (piSHL_Rol_Mem_Mp0_Read_TKEEP),
+    .siSHL_Rol_Mem_Mp0_Read_TLAST   (piSHL_Rol_Mem_Mp0_Read_TLAST),
+    .siSHL_Rol_Mem_Mp0_Read_TVALID  (piSHL_Rol_Mem_Mp0_Read_TVALID),
+    .siSHL_Rol_Mem_Mp0_Read_TREADY  (poROL_Shl_Mem_Mp0_Read_TREADY),
+	//---- Write Path (S2MM) -----------
+    .soROL_Shl_Mem_Mp0_WrCmd_TREADY (piSHL_Rol_Mem_Mp0_WrCmd_TREADY),
+    .soROL_Shl_Mem_Mp0_WrCmd_TDATA  (poROL_Shl_Mem_Mp0_WrCmd_TDATA),
+    .soROL_Shl_Mem_Mp0_WrCmd_TVALID (poROL_Shl_Mem_Mp0_WrCmd_TVALID),
+    .siSHL_Rol_Mem_Mp0_WrSts_TDATA  (piSHL_Rol_Mem_Mp0_WrSts_TDATA),
+    .siSHL_Rol_Mem_Mp0_WrSts_TVALID (piSHL_Rol_Mem_Mp0_WrSts_TVALID),
+    .siSHL_Rol_Mem_Mp0_WrSts_TREADY (poROL_Shl_Mem_Mp0_WrSts_TREADY),
+    .siSHL_Rol_Mem_Mp0_Write_TDATA  (piSHL_Rol_Mem_Mp0_Write_TDATA),
+    .siSHL_Rol_Mem_Mp0_Write_TKEEP  (piSHL_Rol_Mem_Mp0_Write_TKEEP),
+    .siSHL_Rol_Mem_Mp0_Write_TLAST  (piSHL_Rol_Mem_Mp0_Write_TLAST),
+    .siSHL_Rol_Mem_Mp0_Write_TVALID (piSHL_Rol_Mem_Mp0_Write_TVALID),
+    .siSHL_Rol_Mem_Mp0_Write_TREADY (poROL_Shl_Mem_Mp0_Write_TREADY),
+                        
+	//------------------------------------------------------
+	//-- SHELL / Role / Mem / Mp1 Interface
+	//------------------------------------------------------
+	//---- Read Path (MM2S) ------------
+    .soROL_Shl_Mem_Mp1_RdCmd_TREADY (piSHL_Rol_Mem_Mp1_RdCmd_TREADY),
+    .soROL_Shl_Mem_Mp1_RdCmd_TDATA  (poROL_Shl_Mem_Mp1_RdCmd_TDATA),
+    .soROL_Shl_Mem_Mp1_RdCmd_TVALID (poROL_Shl_Mem_Mp1_RdCmd_TVALID),
+    .siSHL_Rol_Mem_Mp1_RdSts_TDATA  (piSHL_Rol_Mem_Mp1_RdSts_TDATA),
+    .siSHL_Rol_Mem_Mp1_RdSts_TVALID (piSHL_Rol_Mem_Mp1_RdSts_TVALID),
+    .siSHL_Rol_Mem_Mp1_RdSts_TREADY (poROL_Shl_Mem_Mp1_RdSts_TREADY),
+    .siSHL_Rol_Mem_Mp1_Read_TDATA   (piSHL_Rol_Mem_Mp1_Read_TDATA),
+    .siSHL_Rol_Mem_Mp1_Read_TKEEP   (piSHL_Rol_Mem_Mp1_Read_TKEEP),
+    .siSHL_Rol_Mem_Mp1_Read_TLAST   (piSHL_Rol_Mem_Mp1_Read_TLAST),
+    .siSHL_Rol_Mem_Mp1_Read_TVALID  (piSHL_Rol_Mem_Mp1_Read_TVALID),
+    .siSHL_Rol_Mem_Mp1_Read_TREADY  (poROL_Shl_Mem_Mp1_Read_TREADY),
+	//---- Write Path (S2MM) -----------
+    .soROL_Shl_Mem_Mp1_WrCmd_TREADY (piSHL_Rol_Mem_Mp1_WrCmd_TREADY),
+    .soROL_Shl_Mem_Mp1_WrCmd_TDATA  (poROL_Shl_Mem_Mp1_WrCmd_TDATA),
+    .soROL_Shl_Mem_Mp1_WrCmd_TVALID (poROL_Shl_Mem_Mp1_WrCmd_TVALID),
+    .siSHL_Rol_Mem_Mp1_WrSts_TDATA  (piSHL_Rol_Mem_Mp1_WrSts_TDATA),
+    .siSHL_Rol_Mem_Mp1_WrSts_TVALID (piSHL_Rol_Mem_Mp1_WrSts_TVALID),
+    .siSHL_Rol_Mem_Mp1_WrSts_TREADY (poROL_Shl_Mem_Mp1_WrSts_TREADY),
+    .siSHL_Rol_Mem_Mp1_Write_TDATA  (piSHL_Rol_Mem_Mp1_Write_TDATA),
+    .siSHL_Rol_Mem_Mp1_Write_TKEEP  (piSHL_Rol_Mem_Mp1_Write_TKEEP),
+    .siSHL_Rol_Mem_Mp1_Write_TLAST  (piSHL_Rol_Mem_Mp1_Write_TLAST),
+    .siSHL_Rol_Mem_Mp1_Write_TVALID (piSHL_Rol_Mem_Mp1_Write_TVALID),
+    .siSHL_Rol_Mem_Mp1_Write_TREADY (poROL_Shl_Mem_Mp1_Write_TREADY),
+                        
+    //------------------------------------------------------
+    //-- SHELL / Global Input Clock and Reset Interface
+    //------------------------------------------------------
+    .aclk               (piSHL_156_25Clk),
+    .aresetn            (~piSHL_156_25Rst)
  
-  );  // End of ESAF
-                       
+  );  // End of ECHO
+
 
 endmodule
 

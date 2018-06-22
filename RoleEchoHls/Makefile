@@ -8,22 +8,35 @@
 # * Description : A makefile that invokes all necesarry steps to synthezie 
 # *		this specific ROLE.
 # * 
-# * Synopsis:
-# *   make         : Runs the default build for this ROLE.
+# * Synopsis (and typical flow):
 # *   make clean   : Makes a cleanup of the current directory.
-# *   make project : Creates a toplevel project for Vivado and stops.
-# *   
+# *   make         : Runs the default build for this ROLE.
+# *   make project : Creates a toplevel project of this ROLE for Vivado.
+# *
 # ******************************************************************************
 
-.PHONY: all clean project
+DEPS := $(shell find ./hls/*_prj -maxdepth 0 -type d)
+
+.PHONY: all clean hls_core project
 
 all: RoleEchoHls 
 
-RoleEchoHls:
+hls_cores:
 	@$(MAKE) -C ./hls/
+
+hls: hls_cores
+
+ip: hls ./tcl/create_ip_cores.tcl $(DEPS) ./ip/ip_user_files
+	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+
+RoleEchoHls: ip
 
 clean: 
 	rm -rf ./xpr/
+	$(MAKE) -C ./hls clean
 
 project:
 	cd ./tcl/; vivado -mode batch -source handle_vivado.tcl -notrace -log create_project.log -tclargs -create
+
+# A little make receipt to print a variable (usage example: make print-DEPS)
+print-%: ; @echo $* = $($*)
