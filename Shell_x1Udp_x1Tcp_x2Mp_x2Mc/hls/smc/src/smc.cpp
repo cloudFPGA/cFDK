@@ -21,13 +21,15 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 		buffer[i] = xmem[i];
 	}
 
-	ap_uint<8> curHeader = (buffer[0] >> 24) & 0xff;
+	//ap_uint<8> curHeader = (buffer[0] >> 24) & 0xff; No! 
+	ap_uint<8> curHeader = buffer[0] & 0xff;
 	ap_uint<8> curFooter = (buffer[MAX_LINES-1] >> 24) & 0xff;
 	ap_uint<4> curCnt = curHeader & 0xf; 
 
 
 	if ( curHeader != curFooter)
-	{//page is invalid
+	{//page is invalid 
+		// NO! We are in the middle of a transfer!
 		return 1;
 	}
 	
@@ -224,7 +226,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 								 break;
 			case 1:
 							 msg = "INV";
-							 transferErr = 1;
+							 //transferErr = 1; NO!
 								 break;
 			case 2:
 							 msg = "CMM";

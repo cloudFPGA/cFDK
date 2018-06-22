@@ -39,11 +39,10 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 	{
 		header |= 0xf0; 
 	}
-	ap_uint<32> headerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
+	ap_uint<32> headerLine = header | (ctrlWord & 0xFFFFFF00);
+	ap_uint<32> footerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
 	xmem[0] = headerLine;
-
-	//Footer == Header 
-	xmem[MAX_LINES-1] = headerLine;
+	xmem[MAX_LINES-1] = footerLine;
 
 }
 
