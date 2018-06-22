@@ -16,6 +16,10 @@ In order not to do unecessary implementations twice, the ROLE can be implementat
 
 The ./tcl/Makefile analyzes all dependencies and assert the commands for handle_vivado.tcl accordingly, in order to re run as less as possible.
 
+To exploit further improvements in implementation time there are options to use *incremental compile.*
+
+All generated Bitstream (and Design-Checkpoints) are stored in ./dcps/ .
+
 ## HOWTO 
 
 **There are currently two ways to generate a Bitstream for FMKU60:**
@@ -28,13 +32,42 @@ NOT YET IMPLEMENTED
 
 ### 2. Source based 
 
-#### 2.1. without PR
+#### 2.1. without PR 
+
+Without the PR flow, there are two options:
+1. With BlackBox flow: SHELL and ROLE are synthesized independend of each other
+2. Monolithic: Everything is Synthesized and Implemented in one project
+
+#### 2.1.1. with BlackBox flow 
+
 Run
 ```
 make src_based
 ```
 
-#### 2.2. with PR
+##### 2.1.2 as one Project: Monolithic
+
+Run 
+```
+make monolithic
+``` 
+
+###### Inremental Compile: 
+
+Once a project has been implemented succesfully, run: 
+```
+make save_mono_incr
+``` 
+to save the correspondig checkpoint in the ./dcps/ dierectory. 
+
+Then start a new synthesis and implementation process exploiting incremental compile with: 
+```
+make monolithic_incr
+```
+
+If monolithic_incr get's invoked with no previous saved Design-Checkpoint available, it will behave like the monolithic flow. 
+
+##### 2.2. with PR
 Run
 ```
 make pr 
@@ -50,5 +83,26 @@ For Role1, Role2 and GreyBox:
 make pr_full
 ``` 
 
+##### Verify Partial Reconfiguration Designs 
 
+In order to avoid unpredected behaviour or even damage of the hardware the PR-Designs should be verified. 
+
+In the pr2 and pr_full flow this is done automatically. 
+For manually (re-)check the compatibillity of the Design-Checkpoints run:
+```
+make pr_verify
+```
+The result will be stored under ./dcps/pr_verify.rpt. 
+
+
+##### Inremental Compile:
+
+To speed up Implementation for the PR-Flow too, use: 
+```
+make pr_incr 
+# or 
+make pr2_incr 
+``` 
+
+This will reuse previous Design-Checkpoints. This dcps are created automatically inside the PR-Flow, so here it is NOT necesarry to extra save the incremental Design-Checkpoints (as in the monolithic version). 
 
