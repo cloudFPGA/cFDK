@@ -16,6 +16,9 @@ sim:
 cosim: 
 	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
 
+cosim_view: 
+	cd ./smc_prj/solution1/sim/verilog/; vivado -source open_wave.tcl
+
 clean:
 	${RM} -rf smc_prj
 	${RM} vivado*.log

@@ -27,10 +27,10 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
 	}
 	
-	for(int i = 0; i<MAX_LINES; i++)
+	/*for(int i = 0; i<MAX_LINES; i++)
 	{
 		xmem[i] = ctrlWord;
-	}
+	}*/
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
 	
 	//Set Header and Footer
@@ -87,7 +87,7 @@ int main(){
 	HWICAP[WFV_OFFSET] = WFV;
 	HWICAP[ASR_OFFSET] = 0;
 	HWICAP[CR_OFFSET] = 0;
-	HWICAP[RFO_OFFSET] = 0x3FF;
+	//HWICAP[RFO_OFFSET] = 0x3FF;
 
 	bool succeded = true;
 
@@ -156,11 +156,12 @@ int main(){
 	initBuffer((ap_uint<4>) cnt, xmem, false);
 	xmem[2] = 42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x32434F52);
+	//succeded &= checkResult(MMIO, 0x32434F52);
+	succeded &= checkResult(MMIO, 0x33204F4B);
 	
-	initBuffer((ap_uint<4>) cnt, xmem, false);
+	/*initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x32434F52);
+	succeded &= checkResult(MMIO, 0x32434F52);*/
 
 	//RST
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << RST_SHIFT);
@@ -183,6 +184,19 @@ int main(){
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 0 << WCNT_SHIFT) | (1 << RST_SHIFT);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3f49444C);
+	
+	//Test ABR
+	cnt = 0;
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	HWICAP[CR_OFFSET] = CR_ABORT;
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x3F414252);
+
+	MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x3f49444C);
+	HWICAP[CR_OFFSET] = 0x3;
 
 	//one complete transfer with overflow
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
@@ -193,6 +207,8 @@ int main(){
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 
 	}
+
+	assert(HWICAP[CR_OFFSET] == 0x3);
 	
 	cnt = 0xf;
 	initBuffer((ap_uint<4>) cnt, xmem, false);

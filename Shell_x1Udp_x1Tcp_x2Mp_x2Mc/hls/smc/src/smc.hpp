@@ -23,6 +23,7 @@
 
 //#define WAIT_CYCLES 10
 //#define AXI_PAUSE_CYCLES 10
+#define LOOP_WAIT_CYCLES 30
 
 #define WS 4
 #define SR_OFFSET (0x110/WS)
@@ -31,6 +32,7 @@
 #define ASR_OFFSET (0x11C/WS)
 #define CR_OFFSET (0x10C/WS)
 #define RFO_OFFSET (0x118/WS)
+#define WF_OFFSET (0x100/WS)
 
 #define SMC_VERSION 0xA
 #define SMC_VERSION_SHIFT 8
@@ -46,6 +48,15 @@
 #define MAX_LINES 32
 #define MAX_PAGES 1
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
+
+
+//HWICAP CR Commands 
+#define CR_ABORT 0x10
+#define CR_SWRST 0x8 
+#define CR_FICLR 0x4 
+#define CR_READ  0x2 
+#define CR_WRITE 0x1
+
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,

@@ -8,22 +8,61 @@
 ap_uint<4> cnt = 0xF;
 ap_uint<1> transferErr = 0;
 char *msg = new char[4];
-
+ap_uint<8> buffer[MAX_LINES*4];
+ap_uint<8> hangover_0 = 0;
+ap_uint<8> hangover_1 = 0;
+bool has_hangover = false;
 
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 {
 
-	ap_uint<32> buffer[MAX_LINES];
-	//ap_uint<32> curLine = xmem[0];
+	ap_uint<8> curHeader = 0;
+	ap_uint<8> curFooter = 0;
+
+	ap_int<32> buff_pointer = 0-1;
+	
+	if ( ExpCnt % 2 == 1)
+	{
+		buff_pointer = 2-1;
+		buffer[0] = hangover_0;
+		buffer[1] = hangover_1;
+	}
+
 
 	for(int i = 0; i<MAX_LINES; i++)
 	{
-		buffer[i] = xmem[i];
+		ap_uint<32> tmp = xmem[i];
+		if ( i == 0 )
+		{
+			curHeader = tmp & 0xff;
+		} else {
+			buff_pointer++;
+			buffer[buff_pointer] = (tmp & 0xff);
+		}
+
+		buff_pointer++;
+		buffer[buff_pointer] = (tmp >> 8) & 0xff;
+		buff_pointer++;
+		buffer[buff_pointer] = (tmp >> 16 ) & 0xff;
+
+		if ( i == MAX_LINES-1) 
+		{
+			curFooter = (tmp >> 24) & 0xff;
+		} else {
+			buff_pointer++;
+			buffer[buff_pointer] = (tmp >> 24) & 0xff;
+		}
 	}
 
-	//ap_uint<8> curHeader = (buffer[0] >> 24) & 0xff; No! 
-	ap_uint<8> curHeader = buffer[0] & 0xff;
-	ap_uint<8> curFooter = (buffer[MAX_LINES-1] >> 24) & 0xff;
+	if (ExpCnt % 2 == 0)
+	{
+		hangover_0 = buffer[(MAX_LINES-1)*4 + 0];
+		hangover_1 = buffer[(MAX_LINES-1)*4 + 1];
+		has_hangover = true;
+	} else {
+		has_hangover = false;
+	}
+
 	ap_uint<4> curCnt = curHeader & 0xf; 
 
 
@@ -45,7 +84,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 
 	bool lastPage = (curHeader & 0xf0) == 0xf0;
 
-	ap_uint<32> ctrlWord = 0;
+	/*ap_uint<32> ctrlWord = 0;
 	for(int i = 0; i<8; i++)
 	{
 		ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
@@ -58,7 +97,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 		{//data is corrupt 
 			return 3;
 		}
-	}
+	}*/
 
 	if (lastPage)
 	{
@@ -68,42 +107,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 	return 5;
 }
 
-/*
-ap_uint<4> copyAndCheckXmem(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
-{
-	ap_uint<32> buffer[MAX_LINES];
-//#pragma HLS RESOURCE variable=buffer core=ROM_1P_BRAM
-
-//	if (ExpCnt % 2 == 0)
-//	{//even page
-		for(int i = 0; i<MAX_LINES; i++)
-		{
-			buffer[i] = xmem[i];
-		}
-//	} else { //odd page
-//		for(int i = 0; i<MAX_LINES; i++)
-//		{
-//			buffer[i] = xmem[i+MAX_LINES];
-//		}
-//	}
-
-	ap_uint<32> ctrlWord = 0;
-	for(int i = 0; i<8; i++)
-	{
-		ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
-	}
-
-	for(int i = 0; i<MAX_LINES; i++)
-	{
-		if(buffer[i] != ctrlWord)
-		{
-			return 1;
-		}
-	}
-
-	return 0;
-}
-*/
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
@@ -175,77 +178,123 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	} 
 
 //===========================================================
-// Counter Handshake and Memory Copy v1
-	/*
-	ap_uint<4> Wcnt = (*MMIO_in >> WCNT_SHIFT) & 0xF; 
-	//msg = "ABC";
-
-	//explicit overflow 
-	ap_uint<4> expCnt = cnt + 1;
-	if (cnt == 0xf)
-	{
-		expCnt = 0;
-	}
-
-	if (Wcnt == expCnt )
-	{ 
-		ap_uint<4> ret = copyAndCheckXmem(xmem,expCnt);
-		if ( ret == 0)
-		{
-			cnt = expCnt;
-			msg = " OK";
-		} else {
-			msg = "INV"; //Invalid data
-		}
-	} else if (Wcnt == cnt ) 
-	{ 
-		msg = "UTD"; //Up-to-date
-	} else {
-		msg = "CMM"; //Counter Miss match
-	}
-	*/
-//===========================================================
 // Start & Run Burst transfer 
 	
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
 	if (start == 1 && transferErr == 0) 
 	{
-		//explicit overflow 
-		ap_uint<4> expCnt = cnt + 1;
-		if (cnt == 0xf)
-		{
-			expCnt = 0;
-		} 
+		ap_uint<1> wasAbort = (CR_value & CR_ABORT) >> 4;
 
-		ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt);
+		if( wasAbort == 1) 
+		{ //Abort occured in previous cycle
+			transferErr = 1;
+			msg = "ABR";
+		} else {
+			//explicit overflow 
+			ap_uint<4> expCnt = cnt + 1;
+			if (cnt == 0xf)
+			{
+				expCnt = 0;
+			} 
 
-		switch (ret) {
-			case 0:
-							 msg = "UTD";
-								 break;
-			case 1:
-							 msg = "INV";
-							 //transferErr = 1; NO!
-								 break;
-			case 2:
-							 msg = "CMM";
-							 transferErr = 1;
-								 break;
-			case 3:
-							 msg = "COR";
-							 transferErr = 1;
-								 break;
-			case 4:
-							 msg = "SUC";
-							 //set error to not start again 
-							 transferErr=1;
-							 cnt = expCnt;
-								 break;
-			default: 
-							 msg= " OK";
-							 cnt = expCnt;
-							 break;
+			if (EOS == 1)
+			{
+				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt);
+		
+				switch (ret) {
+					case 0:
+									 msg = "UTD";
+										 break;
+					case 1:
+									 msg = "INV";
+									 //transferErr = 1; NO!
+										 break;
+					case 2:
+									 msg = "CMM";
+									 transferErr = 1;
+										 break;
+					/*case 3:
+									 msg = "COR";
+									 transferErr = 1;
+										 break;*/
+					case 4:
+									 msg = "SUC";
+									 //set error to not start again 
+									 transferErr=1;
+									 cnt = expCnt;
+										 break;
+					default: 
+									 msg= " OK";
+									 cnt = expCnt;
+									 break;
+				}
+		
+				ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
+
+				if (ret == 4 || ret == 5)
+				{// write to HWICAP
+					
+					ap_uint<32> lastLine = MAX_LINES; 
+					if (has_hangover) 
+					{
+						lastLine = MAX_LINES-1;
+					} 
+		
+					for( int i = 0; i<lastLine; i++)
+					{
+						ap_uint<32> tmp = 0; 
+						tmp |= (ap_uint<32>) buffer[i];
+						tmp |= (((ap_uint<32>) buffer[i+1]) <<  8);
+						tmp |= (((ap_uint<32>) buffer[i+2]) << 16);
+						tmp |= (((ap_uint<32>) buffer[i+3]) << 24);
+						HWICAP[WF_OFFSET] = tmp;
+					}
+
+					if (CR_isWritting != 1)
+					{
+						HWICAP[CR_OFFSET] = CR_WRITE;
+					}
+				}
+
+				if (ret == 1)
+				{//Abort current opperation and exit 
+					HWICAP[CR_OFFSET] = CR_ABORT;
+					transferErr = 1;
+				}
+
+				if (ret == 4)
+				{//wait until all is written 
+					while(WFV_value < 0x3FF) 
+					{
+						ap_wait_n(LOOP_WAIT_CYCLES); 
+						
+						CR = HWICAP[WFV_OFFSET];
+						CR_value = CR & 0x1F; 
+						wasAbort = (CR_value & CR_ABORT) >> 4;
+						CR_isWritting = CR_value & CR_WRITE;
+
+						if(wasAbort == 1)
+						{
+							transferErr = 1;
+							msg = "ABR"; 
+							break;
+						}
+
+						if(CR_isWritting != 1)
+						{
+							HWICAP[CR_OFFSET] = CR_WRITE;
+						}
+						
+						WFV = HWICAP[WFV_OFFSET];
+						WFV_value = WFV & 0x3FF;
+					}
+				}
+		
+			} else {
+				msg = "INR";
+				transferErr = 1;
+			}
 		}
 
 	} else if (transferErr == 0 && start == 0)
