@@ -77,11 +77,13 @@ pr_verify:
 
 full_src_pr_2: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit finalcmd | ../dcps
 
-full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_grey_box.bit finalcmd | ../dcps
+full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit finalcmd | ../dcps
 
 full_src_pr_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
 
 full_src_pr_2_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+full_src_pr_all_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
 
 
 full_src_pr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit onlycmd finalcmd | ../dcps

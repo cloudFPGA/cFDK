@@ -59,6 +59,8 @@ pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
 pr2_incr: ensureNotMonolithic ShellSrc Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr
 
+pr_full_incr: ensureNotMonolithic ShellSrc Role Role2 | xpr
+	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all_incr
 
 pr_only: ensureNotMonolithic Role  | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_only
