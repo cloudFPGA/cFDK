@@ -251,7 +251,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 					}
 				}
 
-				if (ret == 1)
+				if (ret == 2)
 				{//Abort current opperation and exit 
 					HWICAP[CR_OFFSET] = CR_ABORT;
 					transferErr = 1;
