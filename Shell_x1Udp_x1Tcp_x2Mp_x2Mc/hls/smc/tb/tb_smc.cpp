@@ -205,6 +205,7 @@ int main(){
 	cnt = i;
 	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= (decoupActive == 1);
 
 	}
 

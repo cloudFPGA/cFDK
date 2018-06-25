@@ -154,17 +154,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	ASW4 = (ASR & 0xFF000000) >> 24;
 
 //===========================================================
-// Decoupling 
-	ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
-
-	if ( toDecoup == 1 )
-	{
-		*setDecoup = 0b1;
-	} else {
-		*setDecoup = 0b0;
-	}
-
-//===========================================================
 // Reset global variables 
 
 	ap_uint<1> RST = (*MMIO_in >> RST_SHIFT) & 0b1; 
@@ -178,8 +167,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	} 
 
 //===========================================================
-// Start & Run Burst transfer 
+// Start & Run Burst transfer; Manage Decoupling
 	
+	ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
+
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
 	if (start == 1 && transferErr == 0) 
@@ -200,6 +191,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 			if (EOS == 1)
 			{
+				//Activate Decoupling anyway 
+				toDecoup = 1;
+
 				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt);
 		
 				switch (ret) {
@@ -303,6 +297,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	}
 	//otherwise don't touch msg 
 
+
+//===========================================================
+// Decoupling 
+
+	if ( toDecoup == 1 || transferErr == 1)
+	{
+		*setDecoup = 0b1;
+	} else {
+		*setDecoup = 0b0;
+	}
 
 //===========================================================
 //  putting displays together 
