@@ -32,7 +32,7 @@ set currDir      [pwd]
 set srcDir       ${currDir}/src
 set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../../ip
+set repoDir      ${currDir}/../ip
 
 # Open and Setup Project
 #-------------------------------------------------

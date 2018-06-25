@@ -117,15 +117,44 @@ struct mmStatus
 };
 
 
-/** @defgroup echo_server_application Echo Server Application
+/** @defgroup RoleEchoHls Echo-Store-And-Forward Application
  *
  */
-void RoleHls_x1Udp_x1Tcp_x2Mp(
-    stream<axiWord>&            iNetRxData,
-    stream<axiWord>&            oNetTxData,
-    stream<mmCmd>&              oMemWrCmd,
-    stream<mmStatus>&           iMemWrtatus,
-    stream<axiMemWord>&         oMemWrData,
-    stream<mmCmd>&              oMemRdCmd,
-    stream<axiMemWord>&         iMemRdData);
+void EchoStoreAndForward(
 
+	//------------------------------------------------------
+	//-- SHELL / Role / Nts0 / Udp Interface
+	//------------------------------------------------------
+	stream<axiWord>			&siUdp,
+	stream<axiWord>			&soUdp,
+	
+	//------------------------------------------------------
+	//-- SHELL / Role / Nts0 / Tcp Interface
+	//------------------------------------------------------
+	stream<axis<64> >		&siTcp,
+	stream<axis<64> >		&soTcp,
+	
+	//------------------------------------------------------
+	//-- SHELL / Role / Mem / Mp0 Interface
+	//------------------------------------------------------
+	//---- Read Path (MM2S) ------------
+	stream<mmCmd>			&soMemRdCmdP0,
+	stream<mmStatus>		&siMemRdStsP0,
+	stream<axiMemWord>		&siMemReadP0,
+	//---- Write Path (S2MM) -----------
+	stream<mmCmd>			&soMemWrCmdP0,
+	stream<mmStatus>		&siMemWrStsP0,
+	stream<axiMemWord>		&soMemWriteP0
+
+    //------------------------------------------------------
+	//-- SHELL / Role / Mem / Mp1 Interface
+	//------------------------------------------------------
+	//---- Read Path (MM2S) ------------
+    // [TODO] stream<mmCmd>			&soMemRdCmdP1,
+	// [TODO] stream<mmStatus>		&simemRdStsP1,
+	// [TODO] stream<axiMemWord>		&siMemReadP1,
+    //---- Write Path (S2MM) -----------
+	// [TODO] stream<mmCmd>			&soMemWrCmdP1,
+	// [TODO] stream<mmStatus>		&siMemWrStsP1,
+    // [TODO] stream<axiMemWord>		&soMemWriteP1
+);

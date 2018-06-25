@@ -192,25 +192,25 @@ void EchoStoreAndForward(
 	//---- Write Path (S2MM) -----------
 	stream<mmCmd>			&soMemWrCmdP0,
 	stream<mmStatus>		&siMemWrStsP0,
-	stream<axiMemWord>		&soMemWriteP0,
+	stream<axiMemWord>		&soMemWriteP0
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    stream<mmCmd>			&soMemRdCmdP1,
-    stream<mmStatus>		&simemRdStsP1,
-    stream<axiMemWord>		&siMemReadP1,
+    // [TODO] stream<mmCmd>			&soMemRdCmdP1,
+	// [TODO] stream<mmStatus>		&simemRdStsP1,
+	// [TODO] stream<axiMemWord>		&siMemReadP1,
     //---- Write Path (S2MM) -----------
-    stream<mmCmd>			&soMemWrCmdP1,
-    stream<mmStatus>		&siMemWrStsP1,
-    stream<axiMemWord>		&soMemWriteP1
+	// [TODO] stream<mmCmd>			&soMemWrCmdP1,
+	// [TODO] stream<mmStatus>		&siMemWrStsP1,
+	// [TODO] stream<axiMemWord>		&soMemWriteP1
 
 ) {
 
 
 // Bundling: SHELL / Role / Nts0 / Udp Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=siUdp        metadata="-bus_bundle siSHL_Rol_Nts0_Udp"
+#pragma HLS INTERFACE axis register both port=siUdp        metadata="-bus_bundle siSHL_Rol_Nts0_Udp"
 #pragma HLS INTERFACE axis register both port=soUdp        metadata="-bus_bundle soROL_Shl_Nts0_Udp"
 
 // Bundling: SHELL / Role / Nts0 / Tcp Interface
@@ -218,30 +218,30 @@ void EchoStoreAndForward(
 #pragma HLS INTERFACE axis register both port=soTcp        metadata="-bus_bundle soROL_Shl_Nts0_Tcp"
 
 // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemRdCmd0  metadata="-bus_bundle soROL_Shl_Mem_Mp0_RdCmd"
-#pragma HLS DATA_PACK                variable=soMemRdCmd0
-#pragma HLS RESOURCE core=AXI4Stream variable=siMemRdSts0  metadata="-bus_bundle siSHL_Rol_Mem_Mp0_RdSts"
-#pragma HLS RESOURCE core=AXI4Stream variable=siMemRead0   metadata="-bus_bundle siSHL_Rol_Mem_Mp0_Read"
+#pragma HLS INTERFACE axis register both port=soMemRdCmdP0 metadata="-bus_bundle soROL_Shl_Mem_Mp0_RdCmd"
+#pragma HLS DATA_PACK                variable=soMemRdCmdP0
+#pragma HLS INTERFACE axis register both port=siMemRdStsP0 metadata="-bus_bundle siSHL_Rol_Mem_Mp0_RdSts"
+#pragma HLS INTERFACE axis register both port=siMemReadP0  metadata="-bus_bundle siSHL_Rol_Mem_Mp0_Read"
 
 // Bundling: SHELL / Role / Mem / Mp0 / Write Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemWrCmd0  metadata="-bus_bundle soROL_Shl_Mem_Mp0_WrCmd"
-#pragma HLS DATA_PACK                variable=soMemWrCmd0
-#pragma HLS RESOURCE core=AXI4Stream variable=siMemWrSts0  metadata="-bus_bundle siSHL_Rol_Mem_Mp0_WrSts"
-#pragma HLS DATA_PACK                variable=siMemWrSts0
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemWrite0  metadata="-bus_bundle soROL_Shl_Mem_Mp0_Write"
+#pragma HLS INTERFACE axis register both port=soMemWrCmdP0 metadata="-bus_bundle soROL_Shl_Mem_Mp0_WrCmd"
+#pragma HLS DATA_PACK                variable=soMemWrCmdP0
+#pragma HLS INTERFACE axis register both port=siMemWrStsP0 metadata="-bus_bundle siSHL_Rol_Mem_Mp0_WrSts"
+#pragma HLS DATA_PACK                variable=siMemWrStsP0
+#pragma HLS INTERFACE axis register both port=soMemWriteP0 metadata="-bus_bundle soROL_Shl_Mem_Mp0_Write"
 
 // Bundling: SHELL / Role / Mem / Mp1 / Read Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemRdCmd1  metadata="-bus_bundle soROL_Shl_Mem_Mp1_RdCmd"
-#pragma HLS DATA_PACK                variable=soMemRdCmd1
-#pragma HLS RESOURCE core=AXI4Stream variable=simemRdSts1  metadata="-bus_bundle siSHL_Rol_Mem_Mp1_RdSts"
-#pragma HLS RESOURCE core=AXI4Stream variable=siMemRead1   metadata="-bus_bundle siSHL_Rol_Mem_Mp1_Read"
+// [TODO] #pragma HLS INTERFACE axis register both port=soMemRdCmdP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_RdCmd"
+// [TODO] #pragma HLS DATA_PACK                variable=soMemRdCmdP1
+// [TODO] #pragma HLS INTERFACE axis register both port=simemRdStsP1 metadata="-bus_bundle siSHL_Rol_Mem_Mp1_RdSts"
+// [TODO] #pragma HLS INTERFACE axis register both port=siMemReadP1  metadata="-bus_bundle siSHL_Rol_Mem_Mp1_Read"
 
 // Bundling: SHELL / Role / Mem / Mp1 / Write Interface
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemRdCmd1  metadata="-bus_bundle soROL_Shl_Mem_Mp1_WrCmd"
-#pragma HLS DATA_PACK                variable=soMemRdCmd1
-#pragma HLS RESOURCE core=AXI4Stream variable=siMemWrSts1  metadata="-bus_bundle siSHL_Rol_Mem_Mp1_WrSts"
-#pragma HLS DATA_PACK                variable=siMemWrSts1
-#pragma HLS RESOURCE core=AXI4Stream variable=soMemWrite1  metadata="-bus_bundle soROL_Shl_Mem_Mp1_Write"
+// [TODO] #pragma HLS INTERFACE axis register both port=soMemRdCmdP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_WrCmd"
+// [TODO] #pragma HLS DATA_PACK                variable=soMemRdCmdP1
+// [TODO] #pragma HLS INTERFACE axis register both port=siMemWrStsP1 metadata="-bus_bundle siSHL_Rol_Mem_Mp1_WrSts"
+// [TODO] #pragma HLS DATA_PACK                variable=siMemWrStsP1
+// [TODO] #pragma HLS INTERFACE axis register both port=soMemWriteP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_Write"
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 

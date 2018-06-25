@@ -15,7 +15,7 @@
 # *
 # ******************************************************************************
 
-DEPS := $(shell find ./hls/*_prj -maxdepth 0 -type d)
+HLS_DEPS := $(shell find ./hls/*_prj -maxdepth 0 -type d)
 
 .PHONY: all clean hls_core project
 
@@ -26,17 +26,21 @@ hls_cores:
 
 hls: hls_cores
 
-ip: hls ./tcl/create_ip_cores.tcl $(DEPS) ./ip/ip_user_files
+ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+
+# Create IP directory if it does not exist
+./ip/ip_user_files:
+	mkdir -p $@
 
 RoleEchoHls: ip
 
 clean: 
-	rm -rf ./xpr/
+	rm -rf ./xpr ./ip
 	$(MAKE) -C ./hls clean
 
 project:
 	cd ./tcl/; vivado -mode batch -source handle_vivado.tcl -notrace -log create_project.log -tclargs -create
 
-# A little make receipt to print a variable (usage example: make print-DEPS)
+# A little make receipt to print a variable (usage example: make print-HLS_DEPS)
 print-%: ; @echo $* = $($*)
