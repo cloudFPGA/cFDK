@@ -65,6 +65,7 @@ set activeFlowPr_2 0
 set impl_opt 0
 set use_incr 0
 set save_incr 0
+set only_pr_bitgen 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -97,6 +98,7 @@ if { $argc > 0 } {
         { impl_opt "Optimize implementation for performance (increases runtime)"}
         { use_incr "Use incremental compile (if possible)"}
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
+        { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -185,6 +187,10 @@ if { $argc > 0 } {
             if { ${key} eq "save_incr" && ${value} eq 1 } {
               set save_incr 1
               my_info_puts "The argument \'save_incr\' is set."
+            }
+            if { ${key} eq "only_pr_bitgen" && ${value} eq 1 } {
+              set only_pr_bitgen 1
+              my_info_puts "The argument \'only_pr_bitgen\' is set."
             }
         } 
     }
@@ -810,7 +816,12 @@ if { $bitGen } {
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
           source ${tclDir}/fix_things.tcl 
-          write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+          if { $only_pr_bitgen } {
+            write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
+            # no file extenstions .bit/.bin here!
+          } else {
+            write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+          }
           close_project
         } 
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
@@ -828,7 +839,12 @@ if { $bitGen } {
         set curImpl ${usedRole2}
         
         source ${tclDir}/fix_things.tcl 
-        write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        if { $only_pr_bitgen } {
+          write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
+          # no file extenstions .bit/.bin here!
+        } else {
+          write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        }
         close_project
       } 
       if { $pr_grey } { 

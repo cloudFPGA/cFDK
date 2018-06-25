@@ -65,6 +65,8 @@ finalcmd:
 incrcmd:
 	@/bin/echo -e " -use_incr \\" >> .vivado_basecmd.sh
 
+onlycmd:
+	@/bin/echo -e " -only_pr_bitgen \\" >> .vivado_basecmd.sh
 
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
 
@@ -80,6 +82,15 @@ full_src_pr_all: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_part
 full_src_pr_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
 
 full_src_pr_2_incr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd finalcmd | ../dcps
+
+
+full_src_pr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit onlycmd finalcmd | ../dcps
+
+full_src_pr_2_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit onlycmd finalcmd | ../dcps
+
+full_src_pr_incr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit incrcmd onlycmd finalcmd | ../dcps
+
+full_src_pr_2_incr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd onlycmd finalcmd | ../dcps
 
 
 #monolithic
