@@ -92,7 +92,8 @@ struct axiMemWord
 
 
 
-struct mmCmd
+// AXI DataMover - Format of the command word (c.f PG022)
+struct dmCmd
 {
 	ap_uint<23>		bbt;
 	ap_uint<1>		type;
@@ -102,18 +103,21 @@ struct mmCmd
 	ap_uint<32>		saddr;
 	ap_uint<4>		tag;
 	ap_uint<4>		rsvd;
-	mmCmd() {}
-	mmCmd(ap_uint<32> addr,
+	dmCmd() {}
+	dmCmd(ap_uint<32> addr,
 		  ap_uint<16> len) : bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
-struct mmStatus
+
+// AXI DataMover - Format of the status word (c.f PG022)
+struct dmSts
 {
 	ap_uint<4>		tag;
 	ap_uint<1>		interr;
 	ap_uint<1>		decerr;
 	ap_uint<1>		slverr;
 	ap_uint<1>		okay;
+	dmSts() {}
 };
 
 
@@ -138,23 +142,23 @@ void EchoStoreAndForward(
 	//-- SHELL / Role / Mem / Mp0 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-	stream<mmCmd>			&soMemRdCmdP0,
-	stream<mmStatus>		&siMemRdStsP0,
+	stream<dmCmd>			&soMemRdCmdP0,
+	stream<dmSts>			&siMemRdStsP0,
 	stream<axiMemWord>		&siMemReadP0,
 	//---- Write Path (S2MM) -----------
-	stream<mmCmd>			&soMemWrCmdP0,
-	stream<mmStatus>		&siMemWrStsP0,
+	stream<dmCmd>			&soMemWrCmdP0,
+	stream<dmSts>			&siMemWrStsP0,
 	stream<axiMemWord>		&soMemWriteP0
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    // [TODO] stream<mmCmd>			&soMemRdCmdP1,
-	// [TODO] stream<mmStatus>		&simemRdStsP1,
-	// [TODO] stream<axiMemWord>		&siMemReadP1,
+    // [TODO] stream<dmCmd>			&soMemRdCmdP1,
+	// [TODO] stream<dmSts>			&simemRdStsP1,
+	// [TODO] stream<axiMemWord>	&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	// [TODO] stream<mmCmd>			&soMemWrCmdP1,
-	// [TODO] stream<mmStatus>		&siMemWrStsP1,
-    // [TODO] stream<axiMemWord>		&soMemWriteP1
+	// [TODO] stream<dmCmd>			&soMemWrCmdP1,
+	// [TODO] stream<dmSts>			&siMemWrStsP1,
+    // [TODO] stream<axiMemWord>	&soMemWriteP1
 );
