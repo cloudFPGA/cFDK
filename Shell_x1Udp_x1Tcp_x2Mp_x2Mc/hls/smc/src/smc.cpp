@@ -12,7 +12,7 @@ char *msg = new char[4];
 ap_uint<8> buffer[MAX_LINES*4];
 ap_uint<8> hangover_0 = 0;
 ap_uint<8> hangover_1 = 0;
-bool has_hangover = false;
+bool contains_hangover = false;
 
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 {
@@ -32,7 +32,9 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 
 	for(int i = 0; i<MAX_LINES; i++)
 	{
-		ap_uint<32> tmp = xmem[i];
+		ap_uint<32> tmp = 0;
+		tmp = xmem[i];
+
 		if ( i == 0 )
 		{
 			curHeader = tmp & 0xff;
@@ -59,9 +61,9 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 	{
 		hangover_0 = buffer[(MAX_LINES-1)*4 + 0];
 		hangover_1 = buffer[(MAX_LINES-1)*4 + 1];
-		has_hangover = true;
+		contains_hangover = false; //means, only 31 lines!
 	} else {
-		has_hangover = false;
+		contains_hangover = true; //means, full 32 lines!
 	}
 
 	ap_uint<4> curCnt = curHeader & 0xf; 
@@ -236,19 +238,30 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 				if (ret == 4 || ret == 5)
 				{// write to HWICAP
 					
-					ap_uint<32> lastLine = MAX_LINES; 
-					if (has_hangover) 
+					ap_uint<32> lastLine = MAX_LINES-1; 
+					if (contains_hangover) 
 					{
-						lastLine = MAX_LINES-1;
+						lastLine = MAX_LINES;
 					} 
 		
+					ap_uint<1> toSwap = (*MMIO_in >> SWAP_SHIFT) & 0b1;
+
 					for( int i = 0; i<lastLine; i++)
 					{
 						ap_uint<32> tmp = 0; 
-						tmp |= (ap_uint<32>) buffer[i];
-						tmp |= (((ap_uint<32>) buffer[i+1]) <<  8);
-						tmp |= (((ap_uint<32>) buffer[i+2]) << 16);
-						tmp |= (((ap_uint<32>) buffer[i+3]) << 24);
+						if ( toSwap == 0) 
+						{
+							tmp |= (ap_uint<32>) buffer[i*4];
+							tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
+							tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
+							tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
+						} else { 
+							tmp |= (ap_uint<32>) buffer[i*4 + 3];
+							tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
+							tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
+							tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
+						}
+						
 						HWICAP[WF_OFFSET] = tmp;
 					}
 

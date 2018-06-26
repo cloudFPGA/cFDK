@@ -43,6 +43,7 @@
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
 #define START_SHIFT 12
+#define SWAP_SHIFT 16
 
 //XMEM
 #define MAX_LINES 32
@@ -56,6 +57,10 @@
 #define CR_FICLR 0x4 
 #define CR_READ  0x2 
 #define CR_WRITE 0x1
+
+
+//FOR DEBUG
+extern ap_uint<8> buffer[MAX_LINES*4];
 
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,

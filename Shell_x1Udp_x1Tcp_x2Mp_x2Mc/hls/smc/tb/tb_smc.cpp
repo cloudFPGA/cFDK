@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "../src/smc.hpp"
 
+#include <stdint.h>
 
 bool checkResult(ap_uint<32> MMIO, ap_uint<32> expected)
 {
@@ -19,6 +20,22 @@ bool checkResult(ap_uint<32> MMIO, ap_uint<32> expected)
 	//exit -1;
 }
 
+void printBuffer(ap_uint<8> buffer_int[XMEM_SIZE*4], char* msg)
+{
+	printf("%s: \n",msg);
+	for( int i = 0; i < MAX_LINES*4; i++)
+	{
+		uint8_t cur_elem = (char) buffer_int[i];
+		printf("%2x ", cur_elem);
+
+		if(i % 8 == 7)
+		{
+			printf("\n");
+		}
+
+	}
+}
+
 void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 {
 	ap_uint<32> ctrlWord = 0;
@@ -27,10 +44,10 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
 	}
 	
-	/*for(int i = 0; i<MAX_LINES; i++)
+	for(int i = 0; i<MAX_LINES; i++)
 	{
 		xmem[i] = ctrlWord;
-	}*/
+	}
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
 	
 	//Set Header and Footer
@@ -45,26 +62,6 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 	xmem[MAX_LINES-1] = footerLine;
 
 }
-
-/*
-void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE] )
-{
-	ap_uint<32> ctrlWord = 0;
-	for(int i = 0; i<8; i++)
-	{
-		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
-	}
-	for(int i = 0; i<MAX_LINES; i++)
-	{
-	//	if (cnt % 2 == 0)
-	//	{
-			xmem[i] = ctrlWord;
-	//	} else {
-	//		xmem[i+MAX_LINES] = ctrlWord;
-	//	}
-	}
-	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
-}*/
 
 
 int main(){
@@ -205,9 +202,16 @@ int main(){
 	for(int i = 0; i<0xf; i++)
 	{
 	cnt = i;
-	initBuffer((ap_uint<4>) cnt, xmem, false);
+	initBuffer((ap_uint<4>) cnt, xmem, false); 
+	//printBuffer(xmem, "xmem");
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= (decoupActive == 1);
+
+	//printBuffer(buffer, "buffer");
+	//due to homogene buffer: no %2 here
+	assert(HWICAP[WF_OFFSET] == xmem[MAX_LINES-2]);
+	//printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
+	//printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
 
 	}
 
