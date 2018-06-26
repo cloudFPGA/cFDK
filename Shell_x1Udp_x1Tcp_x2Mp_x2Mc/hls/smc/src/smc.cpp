@@ -7,6 +7,7 @@
 
 ap_uint<4> cnt = 0xF;
 ap_uint<1> transferErr = 0;
+ap_uint<1> transferSuccess = 0;
 char *msg = new char[4];
 ap_uint<8> buffer[MAX_LINES*4];
 ap_uint<8> hangover_0 = 0;
@@ -162,6 +163,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	{
 		cnt = 0xf;
 		transferErr = 0;
+		transferSuccess = 0;
 		msg = "IDL";
 		
 	} 
@@ -173,9 +175,15 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
-	if (start == 1 && transferErr == 0) 
+	if (start == 1 && transferErr == 0 && transferSuccess == 0) 
 	{
 		ap_uint<1> wasAbort = (CR_value & CR_ABORT) >> 4;
+
+		//Maybe CR_ABORT is not set 
+		if( ASW1 != 0x00)
+		{
+			wasAbort = 1;
+		}
 
 		if( wasAbort == 1) 
 		{ //Abort occured in previous cycle
@@ -214,8 +222,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 										 break;*/
 					case 4:
 									 msg = "SUC";
-									 //set error to not start again 
-									 transferErr=1;
+									 transferSuccess = 1;
 									 cnt = expCnt;
 										 break;
 					default: 
@@ -291,7 +298,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			}
 		}
 
-	} else if (transferErr == 0 && start == 0)
+	} else if (transferErr == 0 && start == 0 && transferSuccess == 0)
 	{
 		msg = "IDL";
 	}

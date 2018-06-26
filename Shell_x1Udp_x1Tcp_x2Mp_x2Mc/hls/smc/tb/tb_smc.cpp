@@ -189,10 +189,12 @@ int main(){
 	cnt = 0;
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
 	initBuffer((ap_uint<4>) cnt, xmem, false);
-	HWICAP[CR_OFFSET] = CR_ABORT;
+	//HWICAP[CR_OFFSET] = CR_ABORT;
+	HWICAP[ASR_OFFSET] = 0x42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3F414252);
 
+	HWICAP[ASR_OFFSET] = 0x0;
 	MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3f49444C);
