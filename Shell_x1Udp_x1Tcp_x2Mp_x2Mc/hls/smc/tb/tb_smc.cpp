@@ -46,7 +46,8 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 	
 	for(int i = 0; i<MAX_LINES; i++)
 	{
-		xmem[i] = ctrlWord;
+		//xmem[i] = ctrlWord;
+		xmem[i] = ctrlWord+i;
 	}
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
 	
@@ -198,20 +199,20 @@ int main(){
 	HWICAP[CR_OFFSET] = 0x3;
 
 	//one complete transfer with overflow
-	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
 	for(int i = 0; i<0xf; i++)
 	{
-	cnt = i;
-	initBuffer((ap_uint<4>) cnt, xmem, false); 
-	//printBuffer(xmem, "xmem");
-	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= (decoupActive == 1);
+		cnt = i;
+		initBuffer((ap_uint<4>) cnt, xmem, false); 
+		//printBuffer(xmem, "xmem");
+		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+		succeded &= (decoupActive == 1);
 
-	//printBuffer(buffer, "buffer");
-	//due to homogene buffer: no %2 here
-	assert(HWICAP[WF_OFFSET] == xmem[MAX_LINES-2]);
-	//printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-	//printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
+		printBuffer(buffer, "buffer");
+		printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
+		printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
+		//due to homogene buffer: no %2 here
+		assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[MAX_LINES-1] & 0xfff));
 
 	}
 
