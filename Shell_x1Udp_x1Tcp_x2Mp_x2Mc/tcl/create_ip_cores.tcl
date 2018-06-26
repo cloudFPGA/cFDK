@@ -997,6 +997,7 @@ if { ${nrErrors} != 0 } {
   my_puts "##"
   my_err_puts "##                   Warning: Failed to generate ${nrErrors} IP core(s) ! "
   my_puts "##"
+  exit ${KO}
 }
 my_puts "################################################################################\n"
 
@@ -1005,6 +1006,7 @@ my_puts "#######################################################################
 #-------------------------------------------------
 close_project
 
+# seems not to work...
 return ${nrErrors}
 
 
