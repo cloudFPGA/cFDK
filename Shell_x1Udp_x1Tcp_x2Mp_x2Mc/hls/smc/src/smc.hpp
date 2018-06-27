@@ -43,7 +43,7 @@
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
 #define START_SHIFT 12
-#define SWAP_SHIFT 16
+//#define SWAP_SHIFT 16
 
 //XMEM
 #define MAX_LINES 32

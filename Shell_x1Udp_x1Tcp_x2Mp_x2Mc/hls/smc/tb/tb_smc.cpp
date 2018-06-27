@@ -199,7 +199,8 @@ int main(){
 	HWICAP[CR_OFFSET] = 0x3;
 
 	//one complete transfer with overflow
-	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
+	//MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
 	for(int i = 0; i<0xf; i++)
 	{
 		cnt = i;

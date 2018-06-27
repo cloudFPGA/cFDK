@@ -244,23 +244,24 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 						lastLine = MAX_LINES;
 					} 
 		
-					ap_uint<1> toSwap = (*MMIO_in >> SWAP_SHIFT) & 0b1;
+					//ap_uint<1> toSwap = (*MMIO_in >> SWAP_SHIFT) & 0b1;
+					//Turns out: we need to swap!
 
 					for( int i = 0; i<lastLine; i++)
 					{
 						ap_uint<32> tmp = 0; 
-						if ( toSwap == 0) 
-						{
-							tmp |= (ap_uint<32>) buffer[i*4];
-							tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
-							tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
-							tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
-						} else { 
-							tmp |= (ap_uint<32>) buffer[i*4 + 3];
-							tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
-							tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
-							tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
-						}
+					//	if ( toSwap == 0) 
+					//	{
+					//		tmp |= (ap_uint<32>) buffer[i*4];
+					//		tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
+					//		tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
+					//		tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
+					//	} else { 
+						tmp |= (ap_uint<32>) buffer[i*4 + 3];
+						tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
+						tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
+						tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
+					//	}
 						
 						HWICAP[WF_OFFSET] = tmp;
 					}
