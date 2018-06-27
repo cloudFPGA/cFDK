@@ -279,9 +279,12 @@ if { [ file exists ${ipDir} ] != 1 } {
     file mkdir ${ipDir}
 } else {
     my_puts "The managed IP directory already exists. "
-    if { ${gTargetIpCore} eq "all" } { 
-        file delete -force ${ipDir}/ip_user_files
-        my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
+    if { ${gTargetIpCore} eq "all" } {
+        if { [ file exists ${ipDir}/ip_user_files ] } {
+            file delete -force ${ipDir}/ip_user_files
+            file mkdir ${ipDir}/ip_user_files 
+            my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
+        }       
     } else {
         if { [ file exists ${ipDir}/ip_user_files/${gTargetIpCore} ] } {
             file delete -force ${ipDir}/ip_user_files/${gTargetIpCore}
@@ -375,7 +378,7 @@ update_ip_catalog
 # USER-HSL-IP : Echo Store And Forward
 #------------------------------------------------------------------------------
 set ipModName "EchoStoreAndForward"
-set ipName    "EchoStoreAndForward"
+set ipName    "echo_store_and_forward"
 set ipVendor  "USER"
 set ipLibrary "hls"
 set ipVersion "1.0"

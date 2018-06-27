@@ -21,6 +21,8 @@ HLS_DEPS := $(shell find ./hls/*_prj -maxdepth 0 -type d)
 
 all: RoleEchoHls 
 
+RoleEchoHls: ip
+
 hls_cores:
 	@$(MAKE) -C ./hls/
 
@@ -28,12 +30,12 @@ hls: hls_cores
 
 ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+	@echo ------- DONE ------------------------------------- 
 
 # Create IP directory if it does not exist
 ./ip/ip_user_files:
+	@echo -- Creating ip/ip_user_files directory -----------
 	mkdir -p $@
-
-RoleEchoHls: ip
 
 clean: 
 	rm -rf ./xpr ./ip
