@@ -1,12 +1,34 @@
-DEPS := $(shell find ./src/ -type f)
+# *****************************************************************************
+# *                            cloudFPGA
+# *            All rights reserved -- Property of IBM
+# *----------------------------------------------------------------------------
+# * Created : Jan 2018
+# * Authors : Francois Abel, Burkhard Ringlein
+# *
+# * Description : A makefile that synthesizes and packages the current HLS core
+# *     as an IP.
+# * 
+# * Synopsis:
+# *   make clean   : Cleanup of the current directory.
+# *   make         : Runs the default build for this core.
+# *
+# ******************************************************************************
 
-.PHONY: all
-all: udp_prj
+# Name of the HLS core to build
+ipName = udp
 
-udp_prj: $(DEPS)
+# Dependencies
+SRC_DEPS := $(shell find ./src/ -type f)
+
+.PHONY: all clean
+
+all: ${ipName}_prj
+
+${ipName}_prj: $(SRC_DEPS)
+	$(MAKE) clean
 	vivado_hls -f run_hls.tcl
 	@touch $@
 
 clean:
-	${RM} -rf udp_prj
+	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log

@@ -5,7 +5,7 @@
 # * Created : Apr 2018
 # * Authors : Burkhard Ringlein, Francois Abel
 # *
-# * Description : A makefile that invokes all necesarry steps to synthezie a SHELL
+# * Description : A makefile to build and synthezie the SHELL.
 # *
 # * Modifications:
 # *  Fab-Jun06 - Added dependency 'ip_user_files' for target 'ip'.
@@ -35,10 +35,9 @@ hls: hls_cores
 ip: hls ./tcl/create_ip_cores.tcl $(DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 
-#dummy target to avoid make-error
+# Create IP directory if it does not exist
 ./ip/ip_user_files:
 	mkdir -p $@
-
 
 xpr: ip
 	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force
