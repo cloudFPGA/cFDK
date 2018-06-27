@@ -7,10 +7,10 @@
 // *
 // * Title : Toplevel of the echo application in store-and-forward mode.
 // *
-// * File    : RoleEchoStoreAndForward.hpp
+// * File    : echo_store_and_forward.hpp
 // *
 // * Created : Apr. 2018
-// * Authors : Jagath Weerasinghe, Francois Abel <fab@zurich.ibm.com>
+// * Authors : Francois Abel <fab@zurich.ibm.com>
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2017.4 (64-bit)
@@ -22,18 +22,7 @@
 // *    first stored in the DDR4 before being read from that memory and being
 // *    sent back.          
 // * 
-// * Comments:
-// *
 // *****************************************************************************
-
-
-//
-//  !!! THIS CODE IS UNDER CONSTRUCTION. IT REMAINS TO BE ADDAPTED FOR FMKU60 !!!
-//  
-// 
-
-
-//OBSOLETE-20180611 #include "../toe/toe.hpp"
 
 #include <hls_stream.h>
 #include "ap_int.h"
@@ -124,7 +113,7 @@ struct dmSts
 /** @defgroup RoleEchoHls Echo-Store-And-Forward Application
  *
  */
-void EchoStoreAndForward(
+void echo_store_and_forward(
 
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface

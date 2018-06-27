@@ -7,11 +7,10 @@
 // *
 // * Title : Toplevel of the echo application in store-and-forward mode.
 // *
-// * File    : RoleEchoStoreAndForward.cpp
+// * File    : echo_store_and_forward.cpp
 // *
 // * Created : Apr. 2018
 // * Authors : Francois Abel <fab@zurich.ibm.com>
-// *           Jagath Weerasinghe
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2017.4 (64-bit)
@@ -44,7 +43,7 @@
 // *
 // *****************************************************************************
 
-#include "EchoStoreAndForward.hpp"
+#include "echo_store_and_forward.hpp"
 
 using namespace hls;
 
@@ -168,7 +167,7 @@ static bool tx =  true;
  * @return { description of the return value }.
  *****************************************************************************/
 
-void EchoStoreAndForward(
+void echo_store_and_forward(
 
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface

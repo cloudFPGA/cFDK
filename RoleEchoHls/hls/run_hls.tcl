@@ -3,10 +3,10 @@
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
 # * Created : Apr 2018
-# * Authors : Francois Abel, Jagath Weerasinghe  
+# * Authors : Francois Abel
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the application
-# *   EchoStoreAndForward.
+# * Description : A Tcl script for the HLS batch syhthesis of the ECHO role
+# *   application in sore and forward mode of operation. 
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -14,7 +14,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "EchoStoreAndForward"
+set projectName    "echo_store_and_forward"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
