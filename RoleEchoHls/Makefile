@@ -17,7 +17,7 @@
 
 HLS_DEPS := $(shell find ./hls/*_prj -maxdepth 0 -type d)
 
-.PHONY: all clean hls_core project
+.PHONY: all clean hls_cores project
 
 all: RoleEchoHls 
 
