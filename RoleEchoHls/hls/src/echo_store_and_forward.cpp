@@ -172,111 +172,127 @@ void echo_store_and_forward(
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface
 	//------------------------------------------------------
-	stream<axiWord>			&siUdp,
-	stream<axiWord>			&soUdp,
+	stream<axiWord>		&siUdp,
+	stream<axiWord>		&soUdp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Tcp Interface
 	//------------------------------------------------------
-	stream<axis<64> >		&siTcp,
-	stream<axis<64> >		&soTcp,
+	stream<axiWord>	&siTcp,
+	stream<axiWord>	&soTcp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp0 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-	stream<dmCmd>			&soMemRdCmdP0,
-	stream<dmSts>			&siMemRdStsP0,
-	stream<axiMemWord>		&siMemReadP0,
+	stream<dmCmd>		&soMemRdCmdP0,
+	stream<dmSts>		&siMemRdStsP0,
+	stream<axiMemWord>	&siMemReadP0,
 	//---- Write Path (S2MM) -----------
-	stream<dmCmd>			&soMemWrCmdP0,
-	stream<dmSts>			&siMemWrStsP0,
-	stream<axiMemWord>		&soMemWriteP0
+	stream<dmCmd>		&soMemWrCmdP0,
+	stream<dmSts>		&siMemWrStsP0,
+	stream<axiMemWord>	&soMemWriteP0,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    // [TODO] stream<dmCmd>			&soMemRdCmdP1,
-	// [TODO] stream<dmSts>			&simemRdStsP1,
-	// [TODO] stream<axiMemWord>	&siMemReadP1,
+    stream<dmCmd>		&soMemRdCmdP1,
+	stream<dmSts>		&siMemRdStsP1,
+	stream<axiMemWord>	&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	// [TODO] stream<dmCmd>			&soMemWrCmdP1,
-	// [TODO] stream<dmSts>			&siMemWrStsP1,
-	// [TODO] stream<axiMemWord>	&soMemWriteP1
+	stream<dmCmd>		&soMemWrCmdP1,
+	stream<dmSts>		&siMemWrStsP1,
+	stream<axiMemWord>	&soMemWriteP1
 
 ) {
 
 
-// Bundling: SHELL / Role / Nts0 / Udp Interface
-#pragma HLS INTERFACE axis register both port=siUdp
-#pragma HLS INTERFACE axis register both port=soUdp
+  // Bundling: SHELL / Role / Nts0 / Udp Interface
+  #pragma HLS INTERFACE axis register both port=siUdp
+  #pragma HLS INTERFACE axis register both port=soUdp
 
-// Bundling: SHELL / Role / Nts0 / Tcp Interface
-#pragma HLS INTERFACE axis register both port=siTcp
-#pragma HLS INTERFACE axis register both port=soTcp
+  // Bundling: SHELL / Role / Nts0 / Tcp Interface
+  #pragma HLS INTERFACE axis register both port=siTcp
+  #pragma HLS INTERFACE axis register both port=soTcp
 
-// Bundling: SHELL / Role / Mem / Mp0 / Read Interface
-#pragma HLS INTERFACE axis register both port=soMemRdCmdP0
-#pragma HLS DATA_PACK                variable=soMemRdCmdP0
-#pragma HLS INTERFACE axis register both port=siMemRdStsP0
-#pragma HLS DATA_PACK                variable=siMemRdStsP0
-#pragma HLS INTERFACE axis register both port=siMemReadP0
+  // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
+  #pragma HLS INTERFACE axis register both port=soMemRdCmdP0
+  #pragma HLS DATA_PACK                variable=soMemRdCmdP0
+  #pragma HLS INTERFACE axis register both port=siMemRdStsP0
+  #pragma HLS DATA_PACK                variable=siMemRdStsP0 
+  #pragma HLS INTERFACE axis register both port=siMemReadP0
 
-// Bundling: SHELL / Role / Mem / Mp0 / Write Interface
-#pragma HLS INTERFACE axis register both port=soMemWrCmdP0
-#pragma HLS DATA_PACK                variable=soMemWrCmdP0
-#pragma HLS INTERFACE axis register both port=siMemWrStsP0
-#pragma HLS DATA_PACK                variable=siMemWrStsP0
-#pragma HLS INTERFACE axis register both port=soMemWriteP0
+  // Bundling: SHELL / Role / Mem / Mp0 / Write Interface
+  #pragma HLS INTERFACE axis register both port=soMemWrCmdP0
+  #pragma HLS DATA_PACK                variable=soMemWrCmdP0
+  #pragma HLS INTERFACE axis register both port=siMemWrStsP0
+  #pragma HLS DATA_PACK                variable=siMemWrStsP0
+  #pragma HLS INTERFACE axis register both port=soMemWriteP0
 
-// Bundling: SHELL / Role / Mem / Mp1 / Read Interface
-// [TODO] #pragma HLS INTERFACE axis register both port=soMemRdCmdP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_RdCmd"
-// [TODO] #pragma HLS DATA_PACK                variable=soMemRdCmdP1
-// [TODO] #pragma HLS INTERFACE axis register both port=simemRdStsP1 metadata="-bus_bundle siSHL_Rol_Mem_Mp1_RdSts"
-// [TODO] #pragma HLS INTERFACE axis register both port=siMemReadP1  metadata="-bus_bundle siSHL_Rol_Mem_Mp1_Read"
+  // Bundling: SHELL / Role / Mem / Mp1 / Read Interface
+  #pragma HLS INTERFACE axis register both port=soMemRdCmdP1
+  #pragma HLS DATA_PACK                variable=soMemRdCmdP1
+  #pragma HLS INTERFACE axis register both port=siMemRdStsP1
+  #pragma HLS INTERFACE axis register both port=siMemReadP1
 
-// Bundling: SHELL / Role / Mem / Mp1 / Write Interface
-// [TODO] #pragma HLS INTERFACE axis register both port=soMemRdCmdP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_WrCmd"
-// [TODO] #pragma HLS DATA_PACK                variable=soMemRdCmdP1
-// [TODO] #pragma HLS INTERFACE axis register both port=siMemWrStsP1 metadata="-bus_bundle siSHL_Rol_Mem_Mp1_WrSts"
-// [TODO] #pragma HLS DATA_PACK                variable=siMemWrStsP1
-// [TODO] #pragma HLS INTERFACE axis register both port=soMemWriteP1 metadata="-bus_bundle soROL_Shl_Mem_Mp1_Write"
+  // Bundling: SHELL / Role / Mem / Mp1 / Write Interface
+  #pragma HLS INTERFACE axis register both port=soMemWrCmdP1
+  #pragma HLS DATA_PACK                variable=soMemWrCmdP1
+  #pragma HLS INTERFACE axis register both port=siMemWrStsP1
+  #pragma HLS DATA_PACK                variable=siMemWrStsP1
+  #pragma HLS INTERFACE axis register both port=soMemWriteP1
 
-#pragma HLS INTERFACE ap_ctrl_none port=return
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
+  #pragma HLS DATAFLOW //interval=1
 
   static enum UdpState { FSM_UDP_RX_IDLE = 0,
 	 	  	  	  	  	 FSM_MEM_WR_CMD_P0, FSM_MEM_WRITE_P0, FSM_MEM_WR_STS_P0,
 						 FSM_MEM_RD_CMD_P0, FSM_MEM_READ_P0,  FSM_MEM_RD_STS_P0,
 						 FSM_UDP_TX } udpState;
 
-  static stream<axiWord> udpRxStream;
-#pragma HLS STREAM variable=udpRxStream depth=1024
+  static enum TcpState { FSM_TCP_RX_IDLE = 0,
+					  	 FSM_MEM_WR_CMD_P1, FSM_MEM_WRITE_P1, FSM_MEM_WR_STS_P1,
+					     FSM_MEM_RD_CMD_P1, FSM_MEM_READ_P1,  FSM_MEM_RD_STS_P1,
+						 FSM_TCP_TX } tcpState;
 
-  static stream<axiWord> memRdStream;
-#pragma HLS STREAM variable=memRdStream depth=1024
+  static stream<axiWord> udpRxStream("udpRxStream");
+  #pragma HLS STREAM variable=udpRxStream depth=1024
 
+  static stream<axiWord> tcpRxStream("tcpRxStream");
+  #pragma HLS STREAM variable=udpRxStream depth=1024
 
+  static stream<axiWord> memRdP0Stream("memRdP0Stream");
+  #pragma HLS STREAM variable=memRdP0Stream depth=1024
 
+  static stream<axiWord> memRdP1Stream("memRdP1Stream");
+  #pragma HLS STREAM variable=memRdP1Stream depth=1024
 
-  axiWord                tmpUdpAxiWord;
-  axiMemWord             tmpMemAxiWord;
+  axiWord                udpWord,    tcpWord;
+  axiMemWord             memP0,      memP1;
+  dmSts                  memRdStsP0, memRdStsP1;
+  dmSts                  memWrStsP0, memWrStsP1;
+
   static ap_uint<16>     cntUdpRxBytes = 0;
+  static ap_uint<16>     cntTcpRxBytes = 0;
   static ap_uint<32>     cUDP_BUF_BASE_ADDR = 0x00000000;	// The address of the UDP buffer in DDR4
-  dmSts                  memRdStsP0;
+  static ap_uint<32>     cTCP_BUF_BASE_ADDR = 0x00010000;	// The address of the TCP buffer in DDR4
 
-  #pragma HLS DATAFLOW //interval=1
 
+  //------------------------------------------------------
+  //-- UDP STATE MACHINE
+  //------------------------------------------------------
   switch(udpState) {
 
   case FSM_UDP_RX_IDLE:
     if (!siUdp.empty() && !udpRxStream.full()) {
       //-- Read data from SHELL/Nts/Udp
-      siUdp.read(tmpUdpAxiWord);
-      udpRxStream.write(tmpUdpAxiWord);
-      cntUdpRxBytes = cntUdpRxBytes + keepToLen(tmpUdpAxiWord.keep);
+      siUdp.read(udpWord);
+      udpRxStream.write(udpWord);
+      cntUdpRxBytes = cntUdpRxBytes + keepToLen(udpWord.keep);
 
-      if(tmpUdpAxiWord.last)
+      if(udpWord.last)
         udpState = FSM_MEM_WR_CMD_P0;
     }
     break;
@@ -290,15 +306,17 @@ void echo_store_and_forward(
     break;
 
   case FSM_MEM_WRITE_P0:
-    if (!udpRxStream.empty() && !soMemWriteP0.full()) {
+    if (!udpRxStream.empty() && !soMemWriteP0.full()) {//------------------------------------------------------
+      //-- SHELL / Role / Mem / Mp1 Interface
+      //------------------------------------------------------
       //-- Assemble a memory word and write it to DRAM
-      udpRxStream.read(tmpUdpAxiWord);
-      tmpMemAxiWord.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, tmpUdpAxiWord.data(63,0));
-      tmpMemAxiWord.keep = (0x00, 0x00, 0x00, tmpUdpAxiWord.keep);
-      tmpMemAxiWord.last = tmpUdpAxiWord.last;
-      soMemWriteP0.write(tmpMemAxiWord);
+      udpRxStream.read(udpWord);
+      memP0.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, udpWord.data(63,0));
+      memP0.keep = (0x00, 0x00, 0x00, udpWord.keep);
+      memP0.last = udpWord.last;
+      soMemWriteP0.write(memP0);
 
-      if (tmpUdpAxiWord.last)
+      if (udpWord.last)
         udpState = FSM_MEM_WR_STS_P0;
     }
     break;
@@ -306,7 +324,7 @@ void echo_store_and_forward(
   case FSM_MEM_WR_STS_P0:
     if (!siMemWrStsP0.empty()) {
       //-- Get the memory write status for Mem/Mp0
-      siMemWrStsP0.read();
+      siMemWrStsP0.read(memWrStsP0);
       udpState = FSM_MEM_RD_CMD_P0;
     }
     break;
@@ -320,15 +338,15 @@ void echo_store_and_forward(
     break;
 
   case FSM_MEM_READ_P0:
-    if (!siMemReadP0.empty() && !memRdStream.full()) {
+    if (!siMemReadP0.empty() && !memRdP0Stream.full()) {
       //-- Read a memory word from DRAM
-      siMemReadP0.read(tmpMemAxiWord);
-      tmpUdpAxiWord.data(63,0) = tmpMemAxiWord.data(63,0);
-      tmpUdpAxiWord.keep       = tmpMemAxiWord.keep(7,0);
-      tmpUdpAxiWord.last       = tmpMemAxiWord.last;
-      memRdStream.write(tmpUdpAxiWord);
+      siMemReadP0.read(memP0);
+      udpWord.data(63,0) = memP0.data(63,0);
+      udpWord.keep       = memP0.keep(7,0);
+      udpWord.last       = memP0.last;
+      memRdP0Stream.write(udpWord);
 
-      if (tmpUdpAxiWord.last)
+      if (udpWord.last)
         udpState = FSM_MEM_RD_STS_P0;
     }
     break;
@@ -342,13 +360,108 @@ void echo_store_and_forward(
       break;
 
   case FSM_UDP_TX:
-    if (!memRdStream.empty() && !soUdp.full()) {
+    if (!memRdP0Stream.empty() && !soUdp.full()) {
       //-- Write data to SHELL/Nts/Udp
-      memRdStream.read(tmpUdpAxiWord);
-      soUdp.write(tmpUdpAxiWord);
-      if (tmpUdpAxiWord.last) {
+      memRdP0Stream.read(udpWord);
+      soUdp.write(udpWord);
+      if (udpWord.last) {
         udpState = FSM_UDP_RX_IDLE;
         cntUdpRxBytes = 0;
+      }
+    }
+    break;
+
+  }  // End: switch
+
+
+  //------------------------------------------------------
+  //-- TCP STATE MACHINE
+  //------------------------------------------------------
+  switch(tcpState) {
+
+  case FSM_TCP_RX_IDLE:
+    if (!siTcp.empty() && !tcpRxStream.full()) {
+      //-- Read data from SHELL/Nts/Tcp
+      siTcp.read(tcpWord);
+      tcpRxStream.write(tcpWord);
+      cntTcpRxBytes = cntTcpRxBytes + keepToLen(tcpWord.keep);
+
+      if(tcpWord.last)
+        tcpState = FSM_MEM_WR_CMD_P1;
+    }
+    break;
+
+  case FSM_MEM_WR_CMD_P1:
+    if (!soMemWrCmdP1.full()) {
+   	  //-- Post a memory write command to SHELL/Mem/Mp1
+      soMemWrCmdP1.write(dmCmd(cTCP_BUF_BASE_ADDR , cntTcpRxBytes));
+      tcpState = FSM_MEM_WRITE_P1;
+    }
+    break;
+
+  case FSM_MEM_WRITE_P1:
+    if (!tcpRxStream.empty() && !soMemWriteP1.full()) {
+      //------------------------------------------------------
+      ///-- SHELL / Role / Mem / Mp1 Interface
+      //------------------------------------------------------
+      //-- Assemble a memory word and write it to DRAM
+      tcpRxStream.read(tcpWord);
+      memP1.data = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, tcpWord.data(63,0));
+      memP1.keep = (0x00, 0x00, 0x00, tcpWord.keep);
+      memP1.last = tcpWord.last;
+      soMemWriteP1.write(memP1);
+
+      if (tcpWord.last)
+        tcpState = FSM_MEM_WR_STS_P1;
+    }
+    break;
+
+  case FSM_MEM_WR_STS_P1:
+    if (!siMemWrStsP1.empty()) {
+      //-- Get the memory write status for Mem/Mp1
+      siMemWrStsP1.read(memWrStsP1);
+      tcpState = FSM_MEM_RD_CMD_P1;
+    }
+    break;
+
+  case FSM_MEM_RD_CMD_P1:
+    if (!soMemRdCmdP1.full()) {
+      //-- Post a memory read command to SHELL/Mem/Mp1
+      soMemRdCmdP1.write(dmCmd(cTCP_BUF_BASE_ADDR, cntTcpRxBytes));
+      tcpState = FSM_MEM_RD_CMD_P1;
+    }
+    break;
+
+  case FSM_MEM_READ_P1:
+    if (!siMemReadP1.empty() && !memRdP1Stream.full()) {
+      //-- Read a memory word from DRAM
+      siMemReadP1.read(memP1);
+      tcpWord.data(63,0) = memP1.data(63,0);
+      tcpWord.keep       = memP1.keep(7,0);
+      tcpWord.last       = memP1.last;
+      memRdP1Stream.write(tcpWord);
+
+      if (tcpWord.last)
+        tcpState = FSM_MEM_RD_STS_P1;
+    }
+    break;
+
+  case FSM_MEM_RD_STS_P1:
+	if (!siMemRdStsP1.empty()) {
+        //-- Get the memory read status for Mem/Mp1
+        siMemRdStsP1.read(memRdStsP1);
+        tcpState = FSM_TCP_TX;
+      }
+      break;
+
+  case FSM_TCP_TX:
+    if (!memRdP1Stream.empty() && !soTcp.full()) {
+      //-- Write data to SHELL/Nts/Tcp
+      memRdP1Stream.read(tcpWord);
+      soTcp.write(tcpWord);
+      if (tcpWord.last) {
+        tcpState = FSM_TCP_RX_IDLE;
+        cntTcpRxBytes = 0;
       }
     }
     break;

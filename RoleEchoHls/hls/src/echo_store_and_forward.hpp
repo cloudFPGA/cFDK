@@ -77,6 +77,9 @@ struct axiMemWord
      ap_uint<TI>      id;
      ap_uint<TD>      dest;
    };
+
+ void example(ap_axis<32,2,5,6> A[50], ap_axis<32,2,5,6> B[50]) {...}
+
  *********/
 
 
