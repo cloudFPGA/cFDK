@@ -1190,14 +1190,15 @@ void detect_ip_protocol_1(stream<axiWord>&		dataIn,
  *  @param[out]		UDPdataOut, outgoing UDP data stream
  *  @param[out]		TCPdataOut, outgoing TCP data stream
  */
-void iprx_handler(stream<axiWord>&		dataIn,
-				stream<axiWord>&		ARPdataOut,
-				stream<axiWord>&		ICMPdataOut,
-				stream<axiWord>&		ICMPexpDataOut,
-				stream<axiWord>&		UDPdataOut,
-				stream<axiWord>&		TCPdataOut,
-				ap_uint<32>				regIpAddress,
-				ap_uint<48>				myMacAddress)
+void iprx_handler(
+		stream<axiWord>	&dataIn,
+		stream<axiWord>	&ARPdataOut,
+		stream<axiWord>	&ICMPdataOut,
+		stream<axiWord>	&ICMPexpDataOut,
+		stream<axiWord>	&UDPdataOut,
+		stream<axiWord>	&TCPdataOut,
+		ap_uint<32>		regIpAddress,
+		ap_uint<48>		myMacAddress)
 {
 #pragma HLS DATAFLOW
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -1209,12 +1210,12 @@ void iprx_handler(stream<axiWord>&		dataIn,
 //#pragma HLS INTERFACE port=UDPdataOut 		register axis
 //#pragma HLS INTERFACE port=TCPdataOut 		register axis
 
-	#pragma  HLS resource core=AXI4Stream variable=dataIn metadata="-bus_bundle s_dataIn"
-	#pragma  HLS resource core=AXI4Stream variable=ARPdataOut metadata="-bus_bundle m_ARPdataOut"
-	#pragma  HLS resource core=AXI4Stream variable=ICMPdataOut metadata="-bus_bundle m_ICMPdataOut"
-	#pragma  HLS resource core=AXI4Stream variable=ICMPexpDataOut metadata="-bus_bundle m_ICMPexpDataOut"
-	#pragma  HLS resource core=AXI4Stream variable=UDPdataOut metadata="-bus_bundle m_UDPdataOut"
-	#pragma  HLS resource core=AXI4Stream variable=TCPdataOut metadata="-bus_bundle m_TCPdataOut"
+	#pragma  HLS resource core=AXI4Stream variable=dataIn 			metadata="-bus_bundle s_dataIn"
+	#pragma  HLS resource core=AXI4Stream variable=ARPdataOut 		metadata="-bus_bundle m_ARPdataOut"
+	#pragma  HLS resource core=AXI4Stream variable=ICMPdataOut 		metadata="-bus_bundle m_ICMPdataOut"
+	#pragma  HLS resource core=AXI4Stream variable=ICMPexpDataOut 	metadata="-bus_bundle m_ICMPexpDataOut"
+	#pragma  HLS resource core=AXI4Stream variable=UDPdataOut 		metadata="-bus_bundle m_UDPdataOut"
+	#pragma  HLS resource core=AXI4Stream variable=TCPdataOut 		metadata="-bus_bundle m_TCPdataOut"
 
 	//If you need to run co-sim exchange the ap_none pragma for the ap_stable one in the 2 lines below. This will allow co-sim to go through ad
 	//does ot affect co-sim functionality as the IP adddress is anyhow fixed in the TB.

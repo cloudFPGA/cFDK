@@ -20,11 +20,11 @@ ipName = iprx_handler
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all
+.PHONY: all clean
+ 
+all: ${ipName}_prj/solution1/impl/ip
 
-all: ${ipName}_prj
-
-${ipName}_prj: $(SRC_DEPS)
+${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	vivado_hls -f run_hls.tcl
 	@touch $@

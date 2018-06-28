@@ -22,9 +22,9 @@ SRC_DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all clean
 
-all: ${ipName}_prj
+all: ${ipName}_prj/solution1/impl/ip
 
-${ipName}_prj: $(SRC_DEPS)
+${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	vivado_hls -f run_hls.tcl
 	@touch $@

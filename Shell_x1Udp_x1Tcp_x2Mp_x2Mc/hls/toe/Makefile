@@ -22,7 +22,7 @@ SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
 .PHONY: all clean
 
-all: ${ipName}_prj
+all: ${ipName}_prj/solution1/impl/ip
 
 ${ipName}_prj: $(SRC_DEPS)
 	$(MAKE) clean

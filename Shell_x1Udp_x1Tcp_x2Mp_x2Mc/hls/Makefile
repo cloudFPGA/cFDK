@@ -16,7 +16,7 @@ all: arp_server dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if to
 
 
 *:
-	@#echo ---- Building $@
+	@#echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $@
 
 clean:

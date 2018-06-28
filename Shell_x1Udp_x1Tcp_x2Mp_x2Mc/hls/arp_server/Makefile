@@ -15,14 +15,16 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = arp_server
+ipName =arp_server
 
 # Dependencies
-DEPS := $(shell find ./src/ -type f)
+SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all
+.PHONY: all clean
 
-${ipName}_prj: $(SRC_DEPS)
+all: ${ipName}_prj/solution1/impl/ip
+
+${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	vivado_hls -f run_hls.tcl
 	@touch $@
