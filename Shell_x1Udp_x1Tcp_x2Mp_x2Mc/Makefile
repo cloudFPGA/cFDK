@@ -12,7 +12,7 @@
 # * 
 # ******************************************************************************
 
-DEPS := $(shell find ./hls/*/*_prj -maxdepth 0 -type d)
+XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
 
 .PHONY: all hls_cores clean full_src shell_synth pkg_shell 
 
@@ -25,14 +25,14 @@ full_src: ip
 hls_cores: 
 	@$(MAKE) -C ./hls/ 
 
-# CAVE: hls itself must not be Phony (otherwise dependend targets are rebuild every time);
+# INFO: hls itself must not be Phony (otherwise dependend targets are rebuild every time);
 # But hls should check dependencis recursive every time, so it must depend on a Phony 
 # target itself
 hls: hls_cores
 
 # directory as dependency: not the best solution but here the most practical one 
-# CAVE: hls must be before $(DEPS)! otherwise make does not see the updated *_prj 
-ip: hls ./tcl/create_ip_cores.tcl $(DEPS) ./ip/ip_user_files
+# INFO: hls must be before $(XCI_DEPS)! otherwise make does not see the updated *_prj 
+ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 
 # Create IP directory if it does not exist
