@@ -97,16 +97,10 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
     poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
     
-    -------------------------------------------------------
-    -- ROLE EMIF Registers
-    -------------------------------------------------------
-    poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
-    piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
-
-    ------------------------------------------------
+    --------------------------------------------------------
     -- SHELL / Role / Mem / Mp0 Interface
-    ------------------------------------------------
-    ---- Memory Port #0 / S2MM-AXIS ------------------   
+    --------------------------------------------------------
+    ---- Memory Port #0 / S2MM-AXIS ----------------   
     ------ Stream Read Command -----------------
     piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
     poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
@@ -136,10 +130,10 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
     poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
     
-    ------------------------------------------------
+    --------------------------------------------------------
     -- SHELL / Role / Mem / Mp1 Interface
-    ------------------------------------------------
-    ---- Memory Port #1 / S2MM-AXIS ------------------   
+    --------------------------------------------------------
+    ---- Memory Port #1 / S2MM-AXIS ----------------   
     ------ Stream Read Command -----------------
     piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
     poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
@@ -169,9 +163,26 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
     poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic;
     
-    ------------------------------------------------
+    --------------------------------------------------------
+    -- SHELL / Role / Mmio / Flash Debug Interface
+    --------------------------------------------------------
+    -- MMIO / CTRL_2 Register ----------------
+    piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
+    piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+
+    --------------------------------------------------------
+    -- ROLE EMIF Registers
+    --------------------------------------------------------
+    poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
+    piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+
+    --------------------------------------------------------
     -- TOP : Secondary Clock (Asynchronous)
-    ------------------------------------------------
+    --------------------------------------------------------
     piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
     poVoid                              : out   std_ulogic
