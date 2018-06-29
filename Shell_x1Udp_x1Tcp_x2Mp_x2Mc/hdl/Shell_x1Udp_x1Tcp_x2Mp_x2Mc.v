@@ -62,8 +62,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gMmioAddrWidth       = 8,        // Default is 8-bits
-  parameter gMmioDataWidth       = 8         // Default is 8-bits
+  parameter gTopDateYear         =  8'hFF,  // uint8
+  parameter gTopDateMonth        =  8'hFF,  // uint8
+  parameter gTopDateDay          =  8'hFF,  // uint8
+  parameter gMmioAddrWidth       =      8,  // Default is 8-bits
+  parameter gMmioDataWidth       =      8   // Default is 8-bits
 
 ) (
 
@@ -182,14 +185,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output [  7:0]  poSHL_Rol_Nts0_Tcp_Axis_tkeep,
   output          poSHL_Rol_Nts0_Tcp_Axis_tlast,
   output          poSHL_Rol_Nts0_Tcp_Axis_tvalid, 
-
-  //----------------------------------------------------
-  // ROLE / Shl/ EMIF Registers 
-  //----------------------------------------------------
-  input   [15:0]  piROL_SHL_EMIF_2B_Reg,
-  output  [15:0]  poSHL_ROL_EMIF_2B_Reg,
-
-
+  
   //------------------------------------------------------  
   //-- ROLE / Shl / Mem / Mp0 Interface
   //------------------------------------------------------
@@ -254,8 +250,25 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input  [ 63:0]  piROL_Shl_Mem_Mp1_Axis_Write_tkeep,
   input           piROL_Shl_Mem_Mp1_Axis_Write_tlast,
   input           piROL_Shl_Mem_Mp1_Axis_Write_tvalid,
-  output          poSHL_Rol_Mem_Mp1_Axis_Write_tready
+  output          poSHL_Rol_Mem_Mp1_Axis_Write_tready,
+  
+  //------------------------------------------------------
+  //-- SHELL / Role / Mmio / Flash Debug Interface
+  //------------------------------------------------------
+  //-- MMIO / CTRL_2 Register ----------------
+  output  [ 1:0]  poSHL_Rol_Mmio_UdpEchoCtrl,
+  output          poSHL_Rol_Mmio_UdpPostPktEn,
+  output          poSHL_Rol_Mmio_UdpCaptPktEn,
+  output  [ 1:0]  poSHL_Rol_Mmio_TcpEchoCtrl,
+  output          poSHL_Rol_Mmio_TcpPostPktEn,
+  output          poSHL_Rol_Mmio_TcpCaptPktEn,
 
+  //----------------------------------------------------
+  // ROLE / Shl/ EMIF Registers 
+  //----------------------------------------------------
+  input   [15:0]  piROL_SHL_EMIF_2B_Reg,
+  output  [15:0]  poSHL_ROL_EMIF_2B_Reg
+  
 );  // End of PortList
 
 
@@ -478,6 +491,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //============================================================================
   MmioClient_A8_D8 #(
 
+    .gTopDateYear         (gTopDateYear),
+    .gTopDateMonth        (gTopDateMonth),
+    .gTopDateDay          (gTopDateDay),
     .gSecurityPriviledges (gSecurityPriviledges),
     .gBitstreamUsage      (gBitstreamUsage)
     
@@ -516,6 +532,14 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- NTS0: Status inputs and Control outputs ------
     .poMMIO_Nts0_MacAddress         (sMMIO_Nts0_MacAddress),
     .poMMIO_Nts0_IpAddress          (sMMIO_Nts0_IpAddress),
+    
+    //-- ROLE : Status inputs and Control Outputs --
+    .poMMIO_Role_UdpEchoCtrl        (poMMIO_Role_UdpEchoCtrl),
+    .poMMIO_Role_UdpPostPktEn       (poMMIO_Role_UdpPostPktEn),
+    .poMMIO_Role_UdpCaptPktEn       (poMMIO_Role_UdpCaptPktEn),
+    .poMMIO_Role_TcpEchoCtrl        (poMMIO_Role_TcpEchoCtrl),
+    .poMMIO_Role_TcpPostPktEn       (poMMIO_Role_TcpPostPktEn),
+    .poMMIO_Role_TcpCaptPktEn       (poMMIO_Role_TcpCaptPktEn),
     
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),

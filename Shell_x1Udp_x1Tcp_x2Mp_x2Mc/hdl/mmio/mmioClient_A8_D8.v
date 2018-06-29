@@ -48,8 +48,10 @@
 module MmioClient_A8_D8 #(
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
-  parameter gBitstreamUsage      = "user"   // "user" or "flash"
-
+  parameter gBitstreamUsage      = "user",  // "user" or "flash"
+  parameter gTopDateYear         =  8'hFF,  // uint8
+  parameter gTopDateMonth        =  8'hFF,  // uint8
+  parameter gTopDateDay          =  8'hFF   // uint8
 ) (
 
   //-- Global Clock used by the entire SHELL -----
@@ -85,6 +87,14 @@ module MmioClient_A8_D8 #(
   //-- NTS0 : Status inputs and Control Outputs --
   output  [47:0]  poMMIO_Nts0_MacAddress,
   output  [31:0]  poMMIO_Nts0_IpAddress,
+  
+  //-- ROLE : Status inputs and Control Outputs --
+  output  [ 1:0]  poMMIO_Role_UdpEchoCtrl,
+  output          poMMIO_Role_UdpPostPktEn,
+  output          poMMIO_Role_UdpCaptPktEn,
+  output  [ 1:0]  poMMIO_Role_TcpEchoCtrl,
+  output          poMMIO_Role_TcpPostPktEn,
+  output          poMMIO_Role_TcpCaptPktEn,
   
   // ROLE EMIF Register 
   output  [16:0]  poMMIO_ROLE_2B_Reg,
@@ -133,10 +143,15 @@ module MmioClient_A8_D8 #(
   localparam PAGE_REG_BASE  = 8'h7F;  // Page Select   Register
     
   //-- CFG_REGS ---------------------------------------------------------------
-  // Virtual Product Data
-  localparam CFG_VPD_ID     = CFG_REG_BASE  +  0; // Emif Id
-  localparam CFG_VPD_VER    = CFG_REG_BASE  +  1; // Emif Version 
-  localparam CFG_VPD_REV    = CFG_REG_BASE  +  2; // Emif Revision
+  // EMIF Virtual Product Data
+  localparam CFG_EMIF_ID    = CFG_REG_BASE  +  0; // Emif Id
+  localparam CFG_EMIF_VER   = CFG_REG_BASE  +  1; // Emif Version 
+  localparam CFG_EMIF_REV   = CFG_REG_BASE  +  2; // Emif Revision
+  // EMIF Virtual Product Data
+  localparam CFG_TOP_ID     = CFG_REG_BASE  +  4; // Top  Id
+  localparam CFG_TOP_YEAR   = CFG_REG_BASE  +  5; // Top  Build Year 
+  localparam CFG_TOP_MONTH  = CFG_REG_BASE  +  6; // Top  Build Month
+  localparam CFG_TOP_DAY    = CFG_REG_BASE  +  7; // Top  Build Day
 
   //-- PHY_REGS ---------------------------------------------------------------
   // Status of the Physical Interfaces
@@ -179,7 +194,9 @@ module MmioClient_A8_D8 #(
   localparam DIAG_SCRATCH2 = DIAG_REG_BASE +  2;
   localparam DIAG_SCRATCH3 = DIAG_REG_BASE +  3;
   // Control of the Loopback Interfaces
-  localparam DIAG_CTRL     = DIAG_REG_BASE +  4;
+  localparam DIAG_CTRL_1   = DIAG_REG_BASE +  4;
+  localparam DIAG_STAT_1   = DIAG_REG_BASE +  5;
+  localparam DIAG_CTRL_2   = DIAG_REG_BASE +  6;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
@@ -192,14 +209,15 @@ module MmioClient_A8_D8 #(
   //============================================================================
   //-- CFG_REGS ---------------
   localparam cDefReg00 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h3C :
-                         ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF;      
-  localparam cDefReg01 = 8'h01;  // CFG_VPD_VER     : Version of the EMIF component.
-  localparam cDefReg02 = 8'h00;  // CFG_VPD_REV     : Revision of the EMIF component.
-  localparam cDefReg03 = 8'h33;    
-  localparam cDefReg04 = 8'h00;   
-  localparam cDefReg05 = 8'h00;     
-  localparam cDefReg06 = 8'h00;   
-  localparam cDefReg07 = 8'h00;
+                         ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF; // CFG_EMIF_ID  
+  localparam cDefReg01 = 8'h01;  // CFG_EMIF_VER    : Version of the EMIF component.
+  localparam cDefReg02 = 8'h00;  // CFG_EMIF_REV    : Revision of the EMIF component.
+  localparam cDefReg03 = 8'h33;  // Reserved
+  localparam cDefReg04 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h81 :
+                         ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h01 : 8'hFF; // CFG_TOP_ID
+  localparam cDefReg05 = gTopDateYear;  // CFG_TOP_YEAR   
+  localparam cDefReg06 = gTopDateMonth; // CFG_TOP_MONTH   
+  localparam cDefReg07 = gTopDateDay;   // CFG_TOP_DAY
   localparam cDefReg08 = 8'h00;
   localparam cDefReg09 = 8'h00;
   localparam cDefReg0A = 8'h00;
@@ -315,9 +333,9 @@ module MmioClient_A8_D8 #(
   localparam cDefReg71 = 8'hAD;  // DIAG_SCRATCH1      
   localparam cDefReg72 = 8'hBE;  // DIAG_SCRATCH2 
   localparam cDefReg73 = 8'hEF;  // DIAG_SCRATCH3 
-  localparam cDefReg74 = 8'h00;  // DIAG_CTRL
-  localparam cDefReg75 = 8'h00;
-  localparam cDefReg76 = 8'h00;
+  localparam cDefReg74 = 8'h00;  // DIAG_CTRL_1
+  localparam cDefReg75 = 8'h00;  // DIAG_STAT_1
+  localparam cDefReg76 = 8'h00;  // DIAG_CTRL_2
   localparam cDefReg77 = 8'h00;
   localparam cDefReg78 = 8'h00;  
   localparam cDefReg79 = 8'h00;
@@ -381,28 +399,57 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------  
   //-- CONFIGURATION REGISTERS
   //--------------------------------------------------------
-  //---- CFG_VPD_ID --------------------
+  //---- CFG_EMIF_ID -------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_CFG_VPD_ID
-      assign sStatusVec[cEDW*CFG_VPD_ID+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_ID+id];  // RW   
+    begin: gen_CFG_EMIF_ID
+      assign sStatusVec[cEDW*CFG_EMIF_ID+id]  = sEMIF_Ctrl[cEDW*CFG_EMIF_ID+id];  // RO
     end
   endgenerate
-  //---- CFG_VPD_VER--------------------
+  //---- CFG_EMIF_VER-------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_CFG_VPD_VER
-      assign sStatusVec[cEDW*CFG_VPD_VER+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_VER+id];  // RW   
+    begin: gen_CFG_EMIF_VER
+      assign sStatusVec[cEDW*CFG_EMIF_VER+id]  = sEMIF_Ctrl[cEDW*CFG_EMIF_VER+id];  // RO
     end
   endgenerate
-  //---- CFG_VPD_REV -------------------
+  //---- CFG_EMIF_REV ------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_CFG_VPD_REV
-      assign sStatusVec[cEDW*CFG_VPD_REV+id]  = sEMIF_Ctrl[cEDW*CFG_VPD_REV+id];  // RW   
+    begin: gen_CFG_EMIF_REV
+      assign sStatusVec[cEDW*CFG_EMIF_REV+id]  = sEMIF_Ctrl[cEDW*CFG_EMIF_REV+id];  // RO
     end
-  endgenerate 
+  endgenerate
+  //---- CFG_EMIF_Reserved -------------
  
+  //---- CFG_TOP_ID --------------------
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_TOP_ID
+      assign sStatusVec[cEDW*CFG_TOP_ID+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_ID+id];  // RO
+    end
+  endgenerate
+  //---- CFG_TOP_YEAR ------------------
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_TOP_YEAR
+      assign sStatusVec[cEDW*CFG_TOP_YEAR+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_YEAR+id];  // RO
+    end
+  endgenerate
+  //---- CFG_TOP_MONTH -----------------
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_TOP_MONTH
+      assign sStatusVec[cEDW*CFG_TOP_MONTH+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_MONTH+id];  // RO
+    end
+  endgenerate
+  //---- CFG_TOP_DAY -------------------
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_CFG_TOP_DAY
+      assign sStatusVec[cEDW*CFG_TOP_DAY+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_DAY+id];  // RO
+    end
+  endgenerate
  
   //--------------------------------------------------------
   //-- PHYSICAL REGISTERS
@@ -475,11 +522,18 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_SCRATCH0+id]  = sEMIF_Ctrl[cEDW*DIAG_SCRATCH0+id]; // RW   
     end
   endgenerate  
-  //---- DIAG_CTRL ---------------------
+  //---- DIAG_CTRL_1 -------------------
   generate
   for (id=0; id<cEDW; id=id+1)
-    begin: gen_DIAG_CTRL
-      assign sStatusVec[cEDW*DIAG_CTRL+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL+id]; // RW   
+    begin: gen_DIAG_CTRL_1
+      assign sStatusVec[cEDW*DIAG_CTRL_1+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+id]; // RW   
+    end
+  endgenerate
+  //---- DIAG_CTRL_2 -------------------
+  generate
+  for (id=0; id<cEDW; id=id+1)
+    begin: gen_DIAG_CTRL_2
+      assign sStatusVec[cEDW*DIAG_CTRL_2+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+id]; // RW   
     end
   endgenerate
   
@@ -503,7 +557,8 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //-- CONFIGURATION REGISTERS
   //--------------------------------------------------------
-  //------ No Outputs to the Fabric
+  //-- [INFO] Do not connect these registers towards the FPGA fabric.
+  //--       They content burned-in values which are local to the MMIO client.
   
   //--------------------------------------------------------  
   //-- PHYSICAL REGISTERS
@@ -549,10 +604,21 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //---- DIAG_SCRATCH[0:3] -------------  
   //------ No Outputs to the Fabric
-  //---- DIAG_CTRL -----------------
-  assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+0]; // RW
-  assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+1]; // RW
-  assign poMMIO_Eth0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL+2]; // RW
+  //---- DIAG_CTRL_1 ---------------
+  assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+0]; // RW
+  assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+1]; // RW
+  assign poMMIO_Eth0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+2]; // RW
+  // [TODO] poMMIO_Mc0_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+5:cEDW*DIAG_CTRL_1+4]; // RW
+  // [TODO] poMMIO_Mc1_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+7:cEDW*DIAG_CTRL_1+6]; // RW
+  //---- DIAG_STAT_1 ---------------
+  // [TODO] 
+  //---- DIAG_CTRL_2 ---------------
+  assign poMMIO_Role_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
+  assign poMMIO_Role_UdpPostPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
+  assign poMMIO_Role_UdpCaptPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+3];                    // RW
+  assign poMMIO_Role_TcpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+5:cEDW*DIAG_CTRL_2+4]; // RW
+  assign poMMIO_Role_TcpPostPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+6];                    // RW
+  assign poMMIO_Role_TcpCaptPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+7];                    // RW
   
   //--------------------------------------------------------  
   //-- PAGE REGISTER
