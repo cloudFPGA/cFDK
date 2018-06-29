@@ -64,9 +64,13 @@ entity topFlash is
     -- Synthesis parameters ----------------------
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
+    -- Build date --------------------------------
+    gTopDateYear         : stDate  := 18;
+    gTopDateMonth        : stDate  := 06;
+    gTopDateDay          : stDate  := 29;
     -- External Memory Interface (EMIF) ----------
-    gEmifAddrWidth       : integer := 8;
-    gEmifDataWidth       : integer := 8
+    gEmifAddrWidth       : integer :=  8;
+    gEmifDataWidth       : integer :=  8
   );
   port (
     ------------------------------------------------------
@@ -275,6 +279,17 @@ architecture structural of topFlash is
   signal sROL_Shl_Mem_Mp1_Axis_Write_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp1_Axis_Write_tready : std_ulogic;
 
+  --------------------------------------------------------
+  -- SIGNAL DECLARATIONS : SHELL / MMIO <--> ROLE 
+  --------------------------------------------------------
+  -- MMIO / CTRL_2 Register ----------------
+  signal sSHL_Rol_Mmio_UdpEchoCtrl          : std_ulogic_vector(  1 downto 0);
+  signal sSHL_Rol_Mmio_UdpPostPktEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_UdpCaptPktEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_TcpEchoCtrl          : std_ulogic_vector(  1 downto 0);
+  signal sSHL_Rol_Mmio_TcpPostPktEn         : std_ulogic;
+  signal sSHL_Rol_Mmio_TcpCaptPktEn         : std_ulogic;
+
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
@@ -286,329 +301,352 @@ architecture structural of topFlash is
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-   component Shell_x1Udp_x1Tcp_x2Mp_x2Mc
-     generic (
-       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
-       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
-       gMmioAddrWidth       : integer := 8;       -- Default is 8-bits
-       gMmioDataWidth       : integer := 8        -- Default is 8-bits
-     );
-     port (
-       ------------------------------------------------------
-       -- TOP / Input Clocks and Resets from topFMKU60
-       ------------------------------------------------------
-       piTOP_156_25Rst                     : in    std_ulogic;
-       piTOP_156_25Clk                     : in    std_ulogic;
+  component Shell_x1Udp_x1Tcp_x2Mp_x2Mc
+    generic (
+      gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
+      gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
+      gTopDateYear         : stDate  := 255;      -- uint8
+      gTopDateMonth        : stDate  := 255;      -- uint8
+      gTopDateDay          : stDate  := 255;      -- uint8
+      gMmioAddrWidth       : integer := 8;        -- Default is 8-bits
+      gMmioDataWidth       : integer := 8         -- Default is 8-bits
+    );
+    port (
+      ------------------------------------------------------
+      -- TOP / Input Clocks and Resets from topFMKU60
+      ------------------------------------------------------
+      piTOP_156_25Rst                     : in    std_ulogic;
+      piTOP_156_25Clk                     : in    std_ulogic;
        
-       ------------------------------------------------------
-       -- CLKT / Shl / Clock Tree Interface 
-       ------------------------------------------------------
-       piCLKT_Shl_Mem0Clk_n                : in    std_ulogic;
-       piCLKT_Shl_Mem0Clk_p                : in    std_ulogic;
-       piCLKT_Shl_Mem1Clk_n                : in    std_ulogic;
-       piCLKT_Shl_Mem1Clk_p                : in    std_ulogic;
-       piCLKT_Shl_10GeClk_n                : in    std_ulogic;
-       piCLKT_Shl_10GeClk_p                : in    std_ulogic;
+      ------------------------------------------------------
+      -- CLKT / Shl / Clock Tree Interface 
+      ------------------------------------------------------
+      piCLKT_Shl_Mem0Clk_n                : in    std_ulogic;
+      piCLKT_Shl_Mem0Clk_p                : in    std_ulogic;
+      piCLKT_Shl_Mem1Clk_n                : in    std_ulogic;
+      piCLKT_Shl_Mem1Clk_p                : in    std_ulogic;
+      piCLKT_Shl_10GeClk_n                : in    std_ulogic;
+      piCLKT_Shl_10GeClk_p                : in    std_ulogic;
        
-       ------------------------------------------------------
-       -- PSOC / Shl / External Memory Interface (Emif)
-       ------------------------------------------------------
-       piPSOC_Shl_Emif_Clk                 : in    std_ulogic;
-       piPSOC_Shl_Emif_Cs_n                : in    std_ulogic;
-       piPSOC_Shl_Emif_We_n                : in    std_ulogic;
-       piPSOC_Shl_Emif_Oe_n                : in    std_ulogic;
-       piPSOC_Shl_Emif_AdS_n               : in    std_ulogic;
-       piPSOC_Shl_Emif_Addr                : in    std_ulogic_vector(gMmioAddrWidth-1 downto 0);
-       pioPSOC_Shl_Emif_Data               : inout std_ulogic_vector(gMmioDataWidth-1 downto 0);
+      ------------------------------------------------------
+      -- PSOC / Shl / External Memory Interface (Emif)
+      ------------------------------------------------------
+      piPSOC_Shl_Emif_Clk                 : in    std_ulogic;
+      piPSOC_Shl_Emif_Cs_n                : in    std_ulogic;
+      piPSOC_Shl_Emif_We_n                : in    std_ulogic;
+      piPSOC_Shl_Emif_Oe_n                : in    std_ulogic;
+      piPSOC_Shl_Emif_AdS_n               : in    std_ulogic;
+      piPSOC_Shl_Emif_Addr                : in    std_ulogic_vector(gMmioAddrWidth-1 downto 0);
+      pioPSOC_Shl_Emif_Data               : inout std_ulogic_vector(gMmioDataWidth-1 downto 0);
  
-       ------------------------------------------------------
-       -- LED / Shl / Heart Beat Interface (Yellow LED)
-       ------------------------------------------------------
-       poSHL_Led_HeartBeat_n               : out   std_ulogic;
+      ------------------------------------------------------
+      -- LED / Shl / Heart Beat Interface (Yellow LED)
+      ------------------------------------------------------
+      poSHL_Led_HeartBeat_n               : out   std_ulogic;
        
-       ------------------------------------------------------
-       -- DDR4 / Shl / Memory Channel 0 Interface (Mc0)
-       ------------------------------------------------------
-       pioDDR_Shl_Mem_Mc0_DmDbi_n          : inout std_ulogic_vector(  8 downto 0);
-       pioDDR_Shl_Mem_Mc0_Dq               : inout std_ulogic_vector( 71 downto 0);
-       pioDDR_Shl_Mem_Mc0_Dqs_n            : inout std_ulogic_vector(  8 downto 0);
-       pioDDR_Shl_Mem_Mc0_Dqs_p            : inout std_ulogic_vector(  8 downto 0);
-       poSHL_Ddr4_Mem_Mc0_Act_n            : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Adr              : out   std_ulogic_vector( 16 downto 0);
-       poSHL_Ddr4_Mem_Mc0_Ba               : out   std_ulogic_vector(  1 downto 0);
-       poSHL_Ddr4_Mem_Mc0_Bg               : out   std_ulogic_vector(  1 downto 0);
-       poSHL_Ddr4_Mem_Mc0_Cke              : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Odt              : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Cs_n             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Ck_n             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Ck_p             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc0_Reset_n          : out   std_ulogic;
+      ------------------------------------------------------
+      -- DDR4 / Shl / Memory Channel 0 Interface (Mc0)
+      ------------------------------------------------------
+      pioDDR_Shl_Mem_Mc0_DmDbi_n          : inout std_ulogic_vector(  8 downto 0);
+      pioDDR_Shl_Mem_Mc0_Dq               : inout std_ulogic_vector( 71 downto 0);
+      pioDDR_Shl_Mem_Mc0_Dqs_n            : inout std_ulogic_vector(  8 downto 0);
+      pioDDR_Shl_Mem_Mc0_Dqs_p            : inout std_ulogic_vector(  8 downto 0);
+      poSHL_Ddr4_Mem_Mc0_Act_n            : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Adr              : out   std_ulogic_vector( 16 downto 0);
+      poSHL_Ddr4_Mem_Mc0_Ba               : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Ddr4_Mem_Mc0_Bg               : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Ddr4_Mem_Mc0_Cke              : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Odt              : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Cs_n             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Ck_n             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Ck_p             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc0_Reset_n          : out   std_ulogic;
  
-       ------------------------------------------------------
-       -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
-       ------------------------------------------------------  
-       pioDDR_Shl_Mem_Mc1_DmDbi_n          : inout std_ulogic_vector(  8 downto 0);
-       pioDDR_Shl_Mem_Mc1_Dq               : inout std_ulogic_vector( 71 downto 0);
-       pioDDR_Shl_Mem_Mc1_Dqs_n            : inout std_ulogic_vector(  8 downto 0);
-       pioDDR_Shl_Mem_Mc1_Dqs_p            : inout std_ulogic_vector(  8 downto 0);
-       poSHL_Ddr4_Mem_Mc1_Act_n            : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Adr              : out   std_ulogic_vector( 16 downto 0);
-       poSHL_Ddr4_Mem_Mc1_Ba               : out   std_ulogic_vector(  1 downto 0);
-       poSHL_Ddr4_Mem_Mc1_Bg               : out   std_ulogic_vector(  1 downto 0);
-       poSHL_Ddr4_Mem_Mc1_Cke              : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Odt              : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Cs_n             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Ck_n             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Ck_p             : out   std_ulogic;
-       poSHL_Ddr4_Mem_Mc1_Reset_n          : out   std_ulogic;
+      ------------------------------------------------------
+      -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
+      ------------------------------------------------------  
+      pioDDR_Shl_Mem_Mc1_DmDbi_n          : inout std_ulogic_vector(  8 downto 0);
+      pioDDR_Shl_Mem_Mc1_Dq               : inout std_ulogic_vector( 71 downto 0);
+      pioDDR_Shl_Mem_Mc1_Dqs_n            : inout std_ulogic_vector(  8 downto 0);
+      pioDDR_Shl_Mem_Mc1_Dqs_p            : inout std_ulogic_vector(  8 downto 0);
+      poSHL_Ddr4_Mem_Mc1_Act_n            : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Adr              : out   std_ulogic_vector( 16 downto 0);
+      poSHL_Ddr4_Mem_Mc1_Ba               : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Ddr4_Mem_Mc1_Bg               : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Ddr4_Mem_Mc1_Cke              : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Odt              : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Cs_n             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Ck_n             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Ck_p             : out   std_ulogic;
+      poSHL_Ddr4_Mem_Mc1_Reset_n          : out   std_ulogic;
        
-       ------------------------------------------------------
-       -- ECON / Shl / Edge Connector Interface (SPD08-200)
-       ------------------------------------------------------
-       piECON_Shl_Eth0_10Ge0_n             : in    std_ulogic;
-       piECON_Shl_Eth0_10Ge0_p             : in    std_ulogic;
-       poSHL_Econ_Eth0_10Ge0_n             : out   std_ulogic;
-       poSHL_Econ_Eth0_10Ge0_p             : out   std_ulogic;
- 
-       ------------------------------------------------------
-       -- ROLE / Output Clock and Reset Interfaces
-       ------------------------------------------------------
-       poSHL_156_25Clk                     : out   std_ulogic;
-       poSHL_156_25Rst                     : out   std_ulogic;
+      ------------------------------------------------------
+      -- ECON / Shl / Edge Connector Interface (SPD08-200)
+      ------------------------------------------------------
+      piECON_Shl_Eth0_10Ge0_n             : in    std_ulogic;
+      piECON_Shl_Eth0_10Ge0_p             : in    std_ulogic;
+      poSHL_Econ_Eth0_10Ge0_n             : out   std_ulogic;
+      poSHL_Econ_Eth0_10Ge0_p             : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- ROLE / Output Clock and Reset Interfaces
+      ------------------------------------------------------
+      poSHL_156_25Clk                     : out   std_ulogic;
+      poSHL_156_25Rst                     : out   std_ulogic;
        
-       ------------------------------------------------------
-       -- ROLE / Shl/ Nts0 / Udp Interface
-       ------------------------------------------------------
-       -- Input AXI-Write Stream Interface ----------
-       piROL_Shl_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-       piROL_Shl_Nts0_Udp_Axis_tlast       : in    std_ulogic;
-       piROL_Shl_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
-       poSHL_Rol_Nts0_Udp_Axis_tready      : out   std_ulogic;
-       -- Output AXI-Write Stream Interface ---------
-       piROL_Shl_Nts0_Udp_Axis_tready      : in    std_ulogic;
-       poSHL_Rol_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Nts0_Udp_Axis_tlast       : out   std_ulogic;
-       poSHL_Rol_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
-       
-       ------------------------------------------------------
-       -- ROLE / Shl / Nts0 / Tcp Interfaces
-       ------------------------------------------------------
-       -- Input AXI-Write Stream Interface ----------
-       piROL_Shl_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-       piROL_Shl_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
-       piROL_Shl_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
-       poSHL_Rol_Nts0_Tcp_Axis_tready      : out   std_ulogic;
-       -- Output AXI-Write Stream Interface ---------
-       piROL_Shl_Nts0_Tcp_Axis_tready      : in    std_ulogic;
-       poSHL_Rol_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
-       poSHL_Rol_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
+      ------------------------------------------------------
+      -- ROLE / Shl/ Nts0 / Udp Interface
+      ------------------------------------------------------
+      -- Input AXI-Write Stream Interface ----------
+      piROL_Shl_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piROL_Shl_Nts0_Udp_Axis_tlast       : in    std_ulogic;
+      piROL_Shl_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tready      : out   std_ulogic;
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Udp_Axis_tready      : in    std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Nts0_Udp_Axis_tlast       : out   std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- ROLE / Shl / Nts0 / Tcp Interfaces
+      ------------------------------------------------------
+      -- Input AXI-Write Stream Interface ----------
+      piROL_Shl_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piROL_Shl_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
+      piROL_Shl_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tready      : out   std_ulogic;
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Tcp_Axis_tready      : in    std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
   
+      ------------------------------------------------------  
+      -- ROLE / Shl / Mem / Mp0 Interface
+      ------------------------------------------------------
+      -- Memory Port #0 / S2MM-AXIS ------------------   
+      ---- Stream Read Command -----------------
+      piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : out   std_ulogic;
+      ---- Stream Read Status ------------------
+      piROL_Shl_Mem_Mp0_Axis_RdSts_tready : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : out   std_ulogic;
+      ---- Stream Data Output Channel ----------
+      piROL_Shl_Mem_Mp0_Axis_Read_tready  : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
+      poSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Mem_Mp0_Axis_Read_tlast   : out   std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : out   std_ulogic;
+      ---- Stream Write Command ----------------
+      piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : out   std_ulogic;
+      ---- Stream Write Status -----------------
+      piROL_Shl_Mem_Mp0_Axis_WrSts_tready : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : out   std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+      ---- Stream Data Input Channel -----------
+      piROL_Shl_Mem_Mp0_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_Write_tlast  : in    std_ulogic;
+      piROL_Shl_Mem_Mp0_Axis_Write_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp0_Axis_Write_tready : out   std_ulogic;
+       
+      ------------------------------------------------------
+      -- ROLE / Shl / Mem / Mp1 Interface
+      ------------------------------------------------------
+      -- Memory Port #1 / S2MM-AXIS ------------------
+      ---- Stream Read Command -----------------
+      piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : out   std_ulogic;
+      ---- Stream Read Status ------------------
+      piROL_Shl_Mem_Mp1_Axis_RdSts_tready : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : out   std_ulogic;
+      ---- Stream Data Output Channel ----------
+      piROL_Shl_Mem_Mp1_Axis_Read_tready  : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
+      poSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Mem_Mp1_Axis_Read_tlast   : out   std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : out   std_ulogic;
+      ---- Stream Write Command ----------------
+      piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : out   std_ulogic;
+      ---- Stream Write Status -----------------
+      piROL_Shl_Mem_Mp1_Axis_WrSts_tready : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : out   std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
+      ---- Stream Data Input Channel -----------
+      piROL_Shl_Mem_Mp1_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_Write_tlast  : in    std_ulogic;
+      piROL_Shl_Mem_Mp1_Axis_Write_tvalid : in    std_ulogic;
+      poSHL_Rol_Mem_Mp1_Axis_Write_tready : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- ROLE / Shl / Mmio / Flash Debug Interface
+      ------------------------------------------------------
+      -- MMIO / CTRL_2 Register ----------------
+      poSHL_Rol_Mmio_UdpEchoCtrl          : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Rol_Mmio_UdpPostPktEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_UdpCaptPktEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_TcpEchoCtrl          : out   std_ulogic_vector(  1 downto 0);
+      poSHL_Rol_Mmio_TcpPostPktEn         : out   std_ulogic;
+      poSHL_Rol_Mmio_TcpCaptPktEn         : out   std_ulogic;
+
       ----------------------------------------------------
       -- ROLE / Shl/ EMIF Registers 
       ----------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               : in     std_logic_vector( 15 downto 0);
-      poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0);
-       
-       ------------------------------------------------------  
-       -- ROLE / Shl / Mem / Mp0 Interface
-       ------------------------------------------------------
-       -- Memory Port #0 / S2MM-AXIS ------------------   
-       ---- Stream Read Command -----------------
-       piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : out   std_ulogic;
-       ---- Stream Read Status ------------------
-       piROL_Shl_Mem_Mp0_Axis_RdSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : out   std_ulogic;
-       ---- Stream Data Output Channel ----------
-       piROL_Shl_Mem_Mp0_Axis_Read_tready  : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
-       poSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Mem_Mp0_Axis_Read_tlast   : out   std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : out   std_ulogic;
-       ---- Stream Write Command ----------------
-       piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : out   std_ulogic;
-       ---- Stream Write Status -----------------
-       piROL_Shl_Mem_Mp0_Axis_WrSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : out   std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       ---- Stream Data Input Channel -----------
-       piROL_Shl_Mem_Mp0_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
-       piROL_Shl_Mem_Mp0_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Mem_Mp0_Axis_Write_tlast  : in    std_ulogic;
-       piROL_Shl_Mem_Mp0_Axis_Write_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp0_Axis_Write_tready : out   std_ulogic;
-       
-       ------------------------------------------------------
-       -- ROLE / Shl / Mem / Mp1 Interface
-       ------------------------------------------------------
-       -- Memory Port #1 / S2MM-AXIS ------------------
-       ---- Stream Read Command -----------------
-       piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : out   std_ulogic;
-       ---- Stream Read Status ------------------
-       piROL_Shl_Mem_Mp1_Axis_RdSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       poSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : out   std_ulogic;
-       ---- Stream Data Output Channel ----------
-       piROL_Shl_Mem_Mp1_Axis_Read_tready  : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_Read_tdata   : out   std_ulogic_vector(511 downto 0);
-       poSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : out   std_ulogic_vector( 63 downto 0);
-       poSHL_Rol_Mem_Mp1_Axis_Read_tlast   : out   std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : out   std_ulogic;
-       ---- Stream Write Command ----------------
-       piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
-       piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : out   std_ulogic;
-       ---- Stream Write Status -----------------
-       piROL_Shl_Mem_Mp1_Axis_WrSts_tready : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : out   std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : out   std_ulogic_vector(  7 downto 0);
-       ---- Stream Data Input Channel -----------
-       piROL_Shl_Mem_Mp1_Axis_Write_tdata  : in    std_ulogic_vector(511 downto 0);
-       piROL_Shl_Mem_Mp1_Axis_Write_tkeep  : in    std_ulogic_vector( 63 downto 0);
-       piROL_Shl_Mem_Mp1_Axis_Write_tlast  : in    std_ulogic;
-       piROL_Shl_Mem_Mp1_Axis_Write_tvalid : in    std_ulogic;
-       poSHL_Rol_Mem_Mp1_Axis_Write_tready : out   std_ulogic
- 
-     );
-   end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
+      poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0)
+    );
+  end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
   component Role_x1Udp_x1Tcp_x2Mp
-      port (
+    port (
       
-        ------------------------------------------------------
-        -- SHELL / Global Input Clock and Reset Interface
-        ------------------------------------------------------
-        piSHL_156_25Clk                     : in    std_ulogic;
-        piSHL_156_25Rst                     : in    std_ulogic;
-        
-        --------------------------------------------------------
-        -- SHELL / Role / Nts0 / Udp Interface
-        --------------------------------------------------------
-        ---- Input AXI-Write Stream Interface ----------
-        piSHL_Rol_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
-        piSHL_Rol_Nts0_Udp_Axis_tlast       : in    std_ulogic;
-        poROL_Shl_Nts0_Udp_Axis_tready      : out   std_ulogic;
-        ---- Output AXI-Write Stream Interface ---------
-        piSHL_Rol_Nts0_Udp_Axis_tready      : in    std_ulogic;
-        poROL_Shl_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
-        poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
-        
-        --------------------------------------------------------
-        -- SHELL / Role / Nts0 / Tcp Interface
-        --------------------------------------------------------
-        ---- Input AXI-Write Stream Interface ----------
-        piSHL_Rol_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
-        piSHL_Rol_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
-        poROL_Shl_Nts0_Tcp_Axis_tready      : out   std_ulogic;
-        ---- Output AXI-Write Stream Interface ---------
-        piSHL_Rol_Nts0_Tcp_Axis_tready      : in    std_ulogic;
-        poROL_Shl_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
-        poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+      ------------------------------------------------------
+      -- SHELL / Global Input Clock and Reset Interface
+      ------------------------------------------------------
+      piSHL_156_25Clk                     : in    std_ulogic;
+      piSHL_156_25Rst                     : in    std_ulogic;
+      
+      ------------------------------------------------------
+      -- SHELL / Role / Nts0 / Udp Interface
+      ------------------------------------------------------
+      ---- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
+      piSHL_Rol_Nts0_Udp_Axis_tlast       : in    std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tready      : out   std_ulogic;
+      ---- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Udp_Axis_tready      : in    std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- SHELL / Role / Nts0 / Tcp Interface
+      ------------------------------------------------------
+      ---- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
+      piSHL_Rol_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tready      : out   std_ulogic;
+      ---- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Tcp_Axis_tready      : in    std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
 
-        -------------------------------------------------------
-        -- ROLE EMIF Registers
-        -------------------------------------------------------
-        poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
-        piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
-        
-        ------------------------------------------------
-        -- SHELL / Role / Mem / Mp0 Interface
-        ------------------------------------------------
-        ---- Memory Port #0 / S2MM-AXIS ------------------   
-        ------ Stream Read Command -----------------
-        piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
-        ------ Stream Read Status ------------------
-        piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : in    std_ulogic;
-        poROL_Shl_Mem_Mp0_Axis_RdSts_tready : out   std_ulogic;
-        ------ Stream Data Input Channel -----------
-        piSHL_Rol_Mem_Mp0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-        piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Mem_Mp0_Axis_Read_tlast   : in    std_ulogic;
-        piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : in    std_ulogic;
-        poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
-        ------ Stream Write Command ----------------
-        piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
-        ------ Stream Write Status -----------------
-        piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
-        piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
-        ------ Stream Data Output Channel ----------
-        piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
-        poROL_Shl_Mem_Mp0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-        poROL_Shl_Mem_Mp0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
-        poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
-        
-        ------------------------------------------------
-        -- SHELL / Role / Mem / Mp1 Interface
-        ------------------------------------------------
-        ---- Memory Port #1 / S2MM-AXIS ------------------   
-        ------ Stream Read Command -----------------
-        piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
-        ------ Stream Read Status ------------------
-        piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : in    std_ulogic;
-        poROL_Shl_Mem_Mp1_Axis_RdSts_tready : out   std_ulogic;
-        ------ Stream Data Input Channel -----------
-        piSHL_Rol_Mem_Mp1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-        piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-        piSHL_Rol_Mem_Mp1_Axis_Read_tlast   : in    std_ulogic;
-        piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : in    std_ulogic;
-        poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
-        ------ Stream Write Command ----------------
-        piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
-        poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
-        poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
-        ------ Stream Write Status -----------------
-        piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
-        piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-        poROL_Shl_Mem_Mp1_Axis_WrSts_tready : out   std_ulogic;
-        ------ Stream Data Output Channel ----------
-        piSHL_Rol_Mem_Mp1_Axis_Write_tready : in    std_ulogic; 
-        poROL_Shl_Mem_Mp1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-        poROL_Shl_Mem_Mp1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-        poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
-        poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic; 
-        
-        ------------------------------------------------
-        ---- TOP : Secondary Clock (Asynchronous)
-        ------------------------------------------------
-        --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
-        piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+      ------------------------------------------------------
+      -- SHELL / Role / Mem / Mp0 Interface
+      ------------------------------------------------------
+      ---- Memory Port #0 / S2MM-AXIS ------------------   
+      ------ Stream Read Command -----------------
+      piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
+      poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
+      ------ Stream Read Status ------------------
+      piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : in    std_ulogic;
+      poROL_Shl_Mem_Mp0_Axis_RdSts_tready : out   std_ulogic;
+      ------ Stream Data Input Channel -----------
+      piSHL_Rol_Mem_Mp0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
+      piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Mem_Mp0_Axis_Read_tlast   : in    std_ulogic;
+      piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : in    std_ulogic;
+      poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
+      ------ Stream Write Command ----------------
+      piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
+      poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
+      ------ Stream Write Status -----------------
+      piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
+      piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
+      ------ Stream Data Output Channel ----------
+      piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
+      poROL_Shl_Mem_Mp0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
+      poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
       
-        poVoid                              : out   std_ulogic          
-      );
-    end component Role_x1Udp_x1Tcp_x2Mp;
+      ------------------------------------------------------
+      -- SHELL / Role / Mem / Mp1 Interface
+      ------------------------------------------------------
+      ---- Memory Port #1 / S2MM-AXIS ------------------   
+      ------ Stream Read Command -----------------
+      piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
+      poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
+      ------ Stream Read Status ------------------
+      piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : in    std_ulogic;
+      poROL_Shl_Mem_Mp1_Axis_RdSts_tready : out   std_ulogic;
+      ------ Stream Data Input Channel -----------
+      piSHL_Rol_Mem_Mp1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
+      piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Mem_Mp1_Axis_Read_tlast   : in    std_ulogic;
+      piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : in    std_ulogic;
+      poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
+      ------ Stream Write Command ----------------
+      piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
+      poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
+      ------ Stream Write Status -----------------
+      piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
+      piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_WrSts_tready : out   std_ulogic;
+      ------ Stream Data Output Channel ----------
+      piSHL_Rol_Mem_Mp1_Axis_Write_tready : in    std_ulogic; 
+      poROL_Shl_Mem_Mp1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
+      poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic; 
+      
+      ------------------------------------------------------
+      -- SHELL / Role / Mmio / Flash Debug Interface
+      ------------------------------------------------------
+      -- MMIO / CTRL_2 Register ----------------
+      piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+             
+      ------------------------------------------------------
+      -- ROLE EMIF Registers
+      ------------------------------------------------------
+      poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
+      piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+      
+      ------------------------------------------------------
+      ---- TOP : Secondary Clock (Asynchronous)
+      ------------------------------------------------------
+      piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+    
+      poVoid                              : out   std_ulogic          
+    );
+  end component Role_x1Udp_x1Tcp_x2Mp;
 
 begin
   
@@ -635,17 +673,6 @@ begin
       IB => piCLKT_Usr1Clk_n
     );
 
-  --OBSOLETE-20180426 --===========================================================================
-  --OBSOLETE-20180426 --== PROC: SYS RESET (Active high)
-  --OBSOLETE-20180426 --===========================================================================  
-  --OBSOLETE-20180426 pSysReset : process (sTOP_156_25Clk)
-  --OBSOLETE-20180426 begin
-  --OBSOLETE-20180426   if rising_edge(sTOP_156_25Clk) then
-  --OBSOLETE-20180426     sPSOC_Fcfg_MetaRst <= not piPSOC_Fcfg_Rst_n;
-  --OBSOLETE-20180426     sTOP_156_25Rst     <= sPSOC_Fcfg_MetaRst;
-  --OBSOLETE-20180426   end if;
-  --OBSOLETE-20180426 end process pSysReset;
-  
   --===========================================================================
   --==  INST: METASTABILITY HARDENED BLOCK FOR THE SYSTEM RESET (Active high)
   --==    [INFO] Note that we instantiate 2 or 3 library primitives rather than
@@ -792,12 +819,6 @@ begin
       poSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast ,
       poSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
       
-      ----------------------------------------------------
-      -- ROLE / Shl/ EMIF Registers 
-      ----------------------------------------------------
-      piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
-      poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
-
       ------------------------------------------------------  
       -- ROLE / Shl / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -862,7 +883,24 @@ begin
       piROL_Shl_Mem_Mp1_Axis_Write_tkeep  => sROL_Shl_Mem_Mp1_Axis_Write_tkeep,
       piROL_Shl_Mem_Mp1_Axis_Write_tlast  => sROL_Shl_Mem_Mp1_Axis_Write_tlast,
       piROL_Shl_Mem_Mp1_Axis_Write_tvalid => sROL_Shl_Mem_Mp1_Axis_Write_tvalid,
-      poSHL_Rol_Mem_Mp1_Axis_Write_tready => sSHL_Rol_Mem_Mp1_Axis_Write_tready
+      poSHL_Rol_Mem_Mp1_Axis_Write_tready => sSHL_Rol_Mem_Mp1_Axis_Write_tready,
+
+      ------------------------------------------------------
+      -- ROLE / Shl / Flash Debug Interface
+      ------------------------------------------------------
+      -- MMIO / CTRL_2 Register ----------------
+      poSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
+      poSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
+      poSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      poSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
+      poSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
+      poSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      
+      ------------------------------------------------------
+      -- ROLE / Shl/ EMIF Registers 
+      ------------------------------------------------------
+      piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
+      poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg
            
   );  -- End of SuperShell instantiation
 
@@ -911,15 +949,9 @@ begin
       poROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
       poROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
       
-      -------------------------------------------------------
-      -- ROLE EMIF Registers
-      -------------------------------------------------------
-      poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
-      piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
-
-      ----------------------------------------------
+      ------------------------------------------------------
       -- SHELL / Role / Mem / Mp0 Interface
-      ----------------------------------------------
+      ------------------------------------------------------
       -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
       piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
@@ -950,9 +982,9 @@ begin
       poROL_Shl_Mem_Mp0_Axis_Write_tlast  => sROL_Shl_Mem_Mp0_Axis_Write_tlast,
       poROL_Shl_Mem_Mp0_Axis_Write_tvalid => sROL_Shl_Mem_Mp0_Axis_Write_tvalid,
       
-      ----------------------------------------------
+      ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
-      ----------------------------------------------
+      ------------------------------------------------------
       -- Memory Port #1 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
       piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready => sSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
@@ -983,10 +1015,26 @@ begin
       poROL_Shl_Mem_Mp1_Axis_Write_tlast  => sROL_Shl_Mem_Mp1_Axis_Write_tlast,
       poROL_Shl_Mem_Mp1_Axis_Write_tvalid => sROL_Shl_Mem_Mp1_Axis_Write_tvalid,
       
-      ------------------------------------------------
+      ------------------------------------------------------
+      -- SHELL / Role / Mmio / Flash Debug Interface
+      ------------------------------------------------------
+      -- MMIO / CTRL_2 Register ----------------
+      piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
+      piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
+      piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
+      piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
+      piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      
+      ------------------------------------------------------
+      -- ROLE EMIF Registers
+      ------------------------------------------------------
+      poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
+      piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+      
+      ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
-      ------------------------------------------------
-      --OBSOLETE-20180524 piTOP_Reset     => sTOP_156_25Rst,
+      ------------------------------------------------------
       piTOP_250_00Clk                     => sTOP_250_00Clk,  -- Freerunning
    
       poVoid                              => open  

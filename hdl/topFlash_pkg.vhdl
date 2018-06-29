@@ -63,7 +63,12 @@ package topFlash_pkg is
   ------------------------------------
   constant cFMKU60_SHELL_MEM_DataWidth  : integer := 512;
 
-  
+
+
+  ------------------------------------
+  -- FMKU60 / TOP SubType s         --
+  ------------------------------------
+  subtype stDate is Natural range 0 to 255;  
   
   ------------------------------------
   -- FMKU60 / SHELL / MMIO SubTypes --
