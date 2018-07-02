@@ -218,9 +218,6 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   signal sROL_Shl_Nts0_Udp_Axis_tvalid      : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tready      : std_ulogic;
 
-
-
-
   --============================================================================
   -- TEMPORARY PROC: ROLE / Nts0 / Tcp Interface to AVOID UNDEFINED CONTENT
   --============================================================================
@@ -274,6 +271,24 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
   -- signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
 
   signal EMIF_inv   : std_logic_vector(7 downto 0);
+
+  --============================================================================
+  --  VARIABLE DECLARATIONS
+  --============================================================================  
+  signal sUdpPostCnt : std_ulogic_vector(9 downto 0);
+ 
+ 
+--################################################################################
+--#                                                                              #
+--#                          #####   ####  ####  #     #                         #
+--#                          #    # #    # #   #  #   #                          #
+--#                          #    # #    # #    #  ###                           #
+--#                          #####  #    # #    #   #                            #
+--#                          #    # #    # #    #   #                            #
+--#                          #    # #    # #   #    #                            #
+--#                          #####   ####  ####     #                            #
+--#                                                                              #
+--################################################################################
  
 begin
 
@@ -283,26 +298,119 @@ begin
   EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
               x"BE" ;
 
-  --debug_cnt: process(piSHL_156_25Clk)
-  --begin 
-  --  if rising_edge(piSHL_156_25Clk) then
-  --    if (piSHL_156_25Rst = '1') then
-  --      EMIF_inv <= (others => '0'); 
-  --    else 
-  --      EMIF_inv <= std_logic_vector(unsigned(EMIF_cnt) + 1);
-  --    end if; 
-  --  end if;
-  --end process;
+  ------------------------------------------------------------------------------------------------
+  -- PROC: UDP APPLICATION
+  --  Implements the UDP application within the ROLE. The behavior of this is application is one
+  --  of the folllowing four options (defined by 'piSHL_Rol_Mmio_UdpEchoCtrl[1:0]'):
+  --    [00] Enable the UDP echo function in pass-through mode.
+  --    [01] Enable the UDP echo function in store-and-forward mode.
+  --    [10] Disable the UDP echo function and enable the UDP post function.
+  --    [11] Reserved.
+  ------------------------------------------------------------------------------------------------
+  pUdpApp : process(piSHL_156_25Clk)
+  
+    ------------------------------------------------------------------------------
+     -- Prcd: UDP ECHO PASS-THROUGH
+     --  Loopback between the Rx and Tx ports of the UDP connection.
+     --  The echo is said to operate in "pass-through" mode because every received
+     --  packet is sent back without being stored by the role.
+     ------------------------------------------------------------------------------
+    procedure pdUdpEchoPassThrough is
+    begin
+      if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+        sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+        sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+        sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+        sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+        sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
+      end if;
+    end procedure pdUdpEchoPassThrough;
+
+    ------------------------------------------------------------------------------
+    -- Prcd: UDP POST PACKET
+    --  Post a packet on the Tx port of the UDP connection.
+    --  @param[in]  len is length of the packet payload (40 <= len <= 1024).
+    ------------------------------------------------------------------------------
+    procedure pdUdpPostPkt(constant len : in integer) is
+    begin
+      if (piSHL_Rol_Mmio_UdpPostPktEn = '1') then
+        if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+          -- Load a new data chunk into the Axis register
+          case (sUdpPostCnt(5 downto 0)) is
+            when 6d"00" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"00000000_00000000";
+            when 6d"08" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"11111111_11111111";
+            when 6d"16" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"22222222_22222222";
+            when 6d"24" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"33333333_33333333";
+            when 6d"32" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"44444444_44444444";
+            when 6d"40" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"55555555_55555555";
+            when 6d"48" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"66666666_66666666";
+            when 6d"56" => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"77777777_77777777";
+            when others => sSHL_Rol_Nts0_Udp_Axis_tdata <= X"DEADBEEF_CAFEFADE";
+          end case;
+          -- Generate the corresponding keep bits
+          case (len - to_integer(unsigned(sUdpPostCnt))) is            
+            when 1 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00000001";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 2 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00000011";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 3 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00000111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 4 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00001111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 5 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00011111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 6 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"00111111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 7 =>
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"01111111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when 8 => 
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"11111111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '1';
+              sUdpPostCnt <= (others => '0');
+            when others => 
+              sSHL_Rol_Nts0_Udp_Axis_tkeep <= b"11111111";
+              sSHL_Rol_Nts0_Udp_Axis_tlast <= '0';
+              sUdpPostCnt <= std_ulogic_vector(unsigned(sUdpPostCnt)+8);
+          end case;
+          -- Set the valid bit  
+          sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
+        else
+          -- Reset the valid bit
+           sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
+        end if;
+      end if;
+    end procedure pdUdpPostPkt;
 
 
-  ------------------------------------------------------------------------------------------------
-  -- PROC: ECHO PASS-THROUGH UDP
-  --  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the UDP
-  --  connection. The echo is said to operate in "pass-through" mode because every received
-  --  packet is sent back without being stored by the role.
-  ------------------------------------------------------------------------------------------------
-  pEchoUdp : process(piSHL_156_25Clk)   
+  --################################################################################
+  --#                                                                              #
+  --#                        #     #                                               #
+  --#                        ##   ##    ##       #    #    #                       #
+  --#                        # # # #   #  #      #    ##   #                       #
+  --#                        #  #  #  #    #     #    # #  #                       #
+  --#                        #     #  ######     #    #  # #                       #
+  --#                        #     #  #    #     #    #   ##                       #
+  --#                        #     #  #    #     #    #    #                       #
+  --#                                                                              #
+  --################################################################################
+
   begin
+
     if rising_edge(piSHL_156_25Clk) then
       if (piSHL_156_25Rst = '1') then
         -- Initialize the 'sSHL_Rol_Nts0_Udp_Axis' register
@@ -311,18 +419,72 @@ begin
         sSHL_Rol_Nts0_Udp_Axis_tlast   <= '0';
         sSHL_Rol_Nts0_Udp_Axis_tvalid  <= '0';
         sSHL_Rol_Nts0_Udp_Axis_tready  <= '1';
+        -- Initialize the variables
+        sUdpPostCnt <= (others => '0');
       else
-        if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
-          -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
-          sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
-          sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
-          sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
-          sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
-          sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
-        end if;
+        case piSHL_Rol_Mmio_UdpEchoCtrl is
+          when "00" | "11" =>
+            pdUdpEchoPassThrough;
+          when "01" =>
+            ------------------------------------------------------------------------------
+            -- UDP ECHO STORE_AND_FORWARD
+            --  Loopback between the Rx and Tx ports of the UDP connection.
+            --  The echo is said to operate in "store-and-forward" mode because every
+            --  received packet first written in the DDR4 before before being reas and
+            --  sent back by the role.
+            ------------------------------------------------------------------------------
+            if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+              -- [TODO-TODO-TODO-TODO]
+              -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+--              sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+--              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+--              sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+--              sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+--              sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
+            end if;
+          when "10" =>
+            -- Post a UDP packet (64 is the payload size in bytes)
+            pdUdpPostPkt(64);
+          when others => 
+            sSHL_Rol_Nts0_Udp_Axis_tvalid  <= '0';      
+        end case;
       end if;
     end if;     
-  end process pEchoUdp;
+
+
+
+
+  end process pUdpApp;  
+  
+  
+  ------------------------------------------------------------------------------------------------
+  -- PROC: ECHO PASS-THROUGH UDP
+  --  Implements an echo application (i.e. loopback) between the Rx and Tx ports of the UDP
+  --  connection. The echo is said to operate in "pass-through" mode because every received
+  --  packet is sent back without being stored by the role.
+  ------------------------------------------------------------------------------------------------
+  --pEchoUdp : process(piSHL_156_25Clk)   
+  --begin
+  --  if rising_edge(piSHL_156_25Clk) then
+  --    if (piSHL_156_25Rst = '1') then
+  --      -- Initialize the 'sSHL_Rol_Nts0_Udp_Axis' register
+  --      sSHL_Rol_Nts0_Udp_Axis_tdata   <= (others => '0');
+  --      sSHL_Rol_Nts0_Udp_Axis_tkeep   <= (others => '0');
+  --      sSHL_Rol_Nts0_Udp_Axis_tlast   <= '0';
+  --      sSHL_Rol_Nts0_Udp_Axis_tvalid  <= '0';
+  --      sSHL_Rol_Nts0_Udp_Axis_tready  <= '1';
+  --    else
+  --      if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
+  --        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+  --        sSHL_Rol_Nts0_Udp_Axis_tdata  <= piSHL_Rol_Nts0_Udp_Axis_tdata;
+  --        sSHL_Rol_Nts0_Udp_Axis_tkeep  <= piSHL_Rol_Nts0_Udp_Axis_tkeep;
+  --        sSHL_Rol_Nts0_Udp_Axis_tlast  <= piSHL_Rol_Nts0_Udp_Axis_tlast;
+  --        sSHL_Rol_Nts0_Udp_Axis_tvalid <= piSHL_Rol_Nts0_Udp_Axis_tvalid;
+  --        sSHL_Rol_Nts0_Udp_Axis_tready <= piSHL_Rol_Nts0_Udp_Axis_tready;
+  --      end if;
+  --    end if;
+  --  end if;     
+  --end process pEchoUdp;
       
   -- Output Ports Assignment
   poROL_Shl_Nts0_Udp_Axis_tdata  <= sSHL_Rol_Nts0_Udp_Axis_tdata; 

@@ -97,6 +97,16 @@
     signal sROL_Shl_Nts0_Tcp_Axis_tlast       : std_ulogic;
     signal sROL_Shl_Nts0_Tcp_Axis_tvalid      : std_ulogic;
     
+    -- SHELL / Role / Mmio / Flash Debug Interface
+    ---- MMIO / CTRL_2 Register ----------------
+    signal sSHL_Rol_Mmio_UdpEchoCtrl          : std_ulogic_vector(  1 downto 0);
+    signal sSHL_Rol_Mmio_UdpPostPktEn         : std_ulogic;
+    signal sSHL_Rol_Mmio_UdpCaptPktEn         : std_ulogic;
+    signal sSHL_Rol_Mmio_TcpEchoCtrl          : std_ulogic_vector(  1 downto 0);
+    signal sSHL_Rol_Mmio_TcpPostPktEn         : std_ulogic;
+    signal sSHL_Rol_Mmio_TcpCaptPktEn         : std_ulogic;
+    
+    
     -- TOP : Secondary Clock (Asynchronous)
     signal sTOP_250_00Clk                     : std_ulogic;
        
@@ -206,13 +216,7 @@
          poROL_Shl_Nts0_Tcp_Axis_tkeep        => sROL_Shl_Nts0_Tcp_Axis_tkeep,
          poROL_Shl_Nts0_Tcp_Axis_tlast        => sROL_Shl_Nts0_Tcp_Axis_tlast,
          poROL_Shl_Nts0_Tcp_Axis_tvalid       => sROL_Shl_Nts0_Tcp_Axis_tvalid,
-         
-         -------------------------------------------------------
-         -- ROLE EMIF Registers
-         -------------------------------------------------------
-         poROL_SHL_EMIF_2B_Reg                => open,
-         piSHL_ROL_EMIF_2B_Reg                => (others=>'0'),
-     
+      
          ------------------------------------------------
          -- SHELL / Role / Mem / Mp0 Interface
          ------------------------------------------------
@@ -279,6 +283,23 @@
          poROL_Shl_Mem_Mp1_Axis_Write_tlast   => open,
          poROL_Shl_Mem_Mp1_Axis_Write_tvalid  => open,
          
+         --------------------------------------------------------
+         -- SHELL / Role / Mmio / Flash Debug Interface
+         --------------------------------------------------------
+         -- MMIO / CTRL_2 Register ----------------
+         piSHL_Rol_Mmio_UdpEchoCtrl           => sSHL_Rol_Mmio_UdpEchoCtrl,
+         piSHL_Rol_Mmio_UdpPostPktEn          => sSHL_Rol_Mmio_UdpPostPktEn,
+         piSHL_Rol_Mmio_UdpCaptPktEn          => sSHL_Rol_Mmio_UdpCaptPktEn,
+         piSHL_Rol_Mmio_TcpEchoCtrl           => sSHL_Rol_Mmio_TcpEchoCtrl,
+         piSHL_Rol_Mmio_TcpPostPktEn          => sSHL_Rol_Mmio_TcpPostPktEn,
+         piSHL_Rol_Mmio_TcpCaptPktEn          => sSHL_Rol_Mmio_TcpCaptPktEn,
+         
+         -------------------------------------------------------
+         -- ROLE EMIF Registers
+         -------------------------------------------------------
+         poROL_SHL_EMIF_2B_Reg                => open,
+         piSHL_ROL_EMIF_2B_Reg                => (others=>'0'),
+
          ------------------------------------------------
          ---- TOP =>  Secondary Clock (Asynchronous)
          ------------------------------------------------
@@ -601,6 +622,17 @@
       
       wait for 25 ns;
      
+      -- SHELL / Role / Mmio / Flash Debug Interface
+      ---- MMIO / CTRL_2 Register ----------------
+      sSHL_Rol_Mmio_UdpEchoCtrl     <= "00";
+      sSHL_Rol_Mmio_UdpPostPktEn    <= '0';
+      sSHL_Rol_Mmio_UdpCaptPktEn    <= '0';
+      sSHL_Rol_Mmio_TcpEchoCtrl     <= "00";
+      sSHL_Rol_Mmio_TcpPostPktEn    <= '0';
+      sSHL_Rol_Mmio_TcpCaptPktEn    <= '0';
+     
+      wait for 25 ns;
+     
       -- Release the reset
       sSHL_156_25Rst  <= '0';
       wait for 25 ns;
@@ -641,6 +673,12 @@
       pgGenShellTcpFc(1, 5);
       pdAxisWrite_SHL_Rol_Nts0_Tcp(X"0000000000000000_1111111111111111_2222222222222222_3333333333333333_4444444444444444_5555555555555555_6666666666666666_7777777777777777");
             
+      --========================================================================
+      --==  STEP-6: Enable the Posting of UDP Packets 
+      --========================================================================
+      sSHL_Rol_Mmio_UdpEchoCtrl     <= "10";
+      sSHL_Rol_Mmio_UdpPostPktEn    <= '1';
+      wait for 200 ns;
       
       --========================================================================
       --==  END OF TESTBENCH
