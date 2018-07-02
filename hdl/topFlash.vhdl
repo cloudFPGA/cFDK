@@ -65,9 +65,9 @@ entity topFlash is
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- Build date --------------------------------
-    gTopDateYear         : stDate  := 18;
-    gTopDateMonth        : stDate  := 06;
-    gTopDateDay          : stDate  := 29;
+    gTopDateYear         : stDate  := 8d"18";
+    gTopDateMonth        : stDate  := 8d"07";
+    gTopDateDay          : stDate  := 8d"02";
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
@@ -305,9 +305,9 @@ architecture structural of topFlash is
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
-      gTopDateYear         : stDate  := 255;      -- uint8
-      gTopDateMonth        : stDate  := 255;      -- uint8
-      gTopDateDay          : stDate  := 255;      -- uint8
+      gTopDateYear         : stDate  := 8d"255";  -- uint8
+      gTopDateMonth        : stDate  := 8d"255";  -- uint8
+      gTopDateDay          : stDate  := 8d"255";  -- Default is 8-bits
       gMmioAddrWidth       : integer := 8;        -- Default is 8-bits
       gMmioDataWidth       : integer := 8         -- Default is 8-bits
     );
@@ -701,6 +701,9 @@ begin
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
+      gTopDateYear         => gTopDateYear,
+      gTopDateMonth        => gTopDateMonth,
+      gTopDateDay          => gTopDateDay,
       gMmioAddrWidth       => gEmifAddrWidth,
       gMmioDataWidth       => gEmifDataWidth
     )
