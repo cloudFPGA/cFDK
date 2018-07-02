@@ -18,6 +18,9 @@ ap_uint<16> currentBufferPointer = 0x0;
 ap_uint<8> iter_count = 0;
 
 
+static enum HttpState { HTTP_IDLE = 0, 
+						HTTP_PARSE_HEADER, HTTP_PARSE_PAYLOAD } httpState = HTTP_IDLE; 
+
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_uint<1> checkPattern)
 {
 
@@ -93,15 +96,18 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
 	if(checkPattern == 1)
 	{
-		ap_uint<32> ctrlWord = 0;
-		for(int i = 0; i<8; i++)
+		//ap_uint<32> ctrlWord = 0;
+		ap_uint<8> ctrlByte = (((ap_uint<8>) ExpCnt) << 4) | ExpCnt;
+		/*for(int i = 0; i<8; i++)
 		{
 			ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
-		}
+		}*/ 
+
 		//for simplicity check only lines in between
-		for(int i = 1; i<MAX_LINES-1; i++)
+		for(int i = 1; i<MAX_LINES*4-1; i++)
 		{
-			if(buffer[currentBufferPointer  + i] != ctrlWord)
+			//if(buffer[currentBufferPointer  + i] != ctrlWord)
+			if(buffer[currentBufferPointer  + i] != ctrlByte)
 			{//data is corrupt 
 				return 3;
 			}
@@ -175,6 +181,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		msg = "IDL";
 		currentBufferPointer = 0;
 		iter_count = 0;
+		httpState = HTTP_IDLE;
 	} 
 
 //===========================================================
@@ -183,6 +190,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
 	
 	ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
+	
+	ap_uint<1> parseHTTP = (*MMIO_in >> PARSE_HTTP_SHIFT) & 0b1;
 
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
@@ -237,12 +246,24 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 									cnt = expCnt;
 									break;
 					case 5: 
-									// i.e. 5
 									msg= " OK";
 									cnt = expCnt;
-									 break;
+									break;
 				}
 
+				ap_uint<32> lastLine = MAX_LINES-1; 
+				if (contains_hangover) 
+				{
+					lastLine = MAX_LINES;
+				} 
+
+				//with HTTP the current buffer pointer is not always the start of the payload
+				ap_uint<16> currentPayloadStart = currentBufferPointer;
+
+				if (parseHTTP == 1)
+				{
+
+				}
 		
 				if (checkPattern == 0)
 				{//means: write to HWICAP
@@ -252,31 +273,25 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 					if (ret == 4 || ret == 5)
 					{// write to HWICAP
 						
-						ap_uint<32> lastLine = MAX_LINES-1; 
-						if (contains_hangover) 
-						{
-							lastLine = MAX_LINES;
-						} 
 		
 						ap_uint<1> notToSwap = (*MMIO_in >> SWAP_N_SHIFT) & 0b1;
 						//Turns out: we need to swap => active low
 
-						//TODO: for HTTP: start value and last value? 
 						for( int i = 0; i<lastLine; i++)
 						{
 							ap_uint<32> tmp = 0; 
 							if ( notToSwap == 1) 
 							{
-								tmp |= (ap_uint<32>) buffer[currentBufferPointer  + i*4];
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 1]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 2]) << 16);
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 3]) << 24);
+								tmp |= (ap_uint<32>) buffer[currentPayloadStart  + i*4];
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 1]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 2]) << 16);
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 3]) << 24);
 							} else { 
 								//default 
-								tmp |= (ap_uint<32>) buffer[currentBufferPointer  + i*4 + 3];
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 2]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 1]) << 16);
-								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 0]) << 24);
+								tmp |= (ap_uint<32>) buffer[currentPayloadStart  + i*4 + 3];
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 2]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 1]) << 16);
+								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 0]) << 24);
 							}
 							
 							HWICAP[WF_OFFSET] = tmp;
@@ -324,9 +339,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 				}
 				
 
-				currentBufferPointer += XMEM_SIZE;
+				//This also means, every address < currentBufferPointer is valid
+				currentBufferPointer += MAX_LINES*4;
 				iter_count++;
-				if (iter_count % 4 == 0)
+				if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
 				{ 
 					iter_count = 0;
 					currentBufferPointer = 0;

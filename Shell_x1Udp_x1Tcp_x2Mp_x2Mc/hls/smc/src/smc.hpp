@@ -52,8 +52,8 @@
 #define MAX_PAGES 1
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
 //#define BUFFER_SIZE (MAX_LINES*4)
-#define BUFFER_SIZE 1024 //should be smaller then 2^16
-
+#define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
+#define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round
 
 //HWICAP CR Commands 
 #define CR_ABORT 0x10
