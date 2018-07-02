@@ -53,14 +53,15 @@ pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
-pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr
+#pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
+#	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr
 
-pr2_incr: ensureNotMonolithic ShellSrc Role2 | xpr
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr
+# incremental compile seems not to work with second run
+#pr2_incr: ensureNotMonolithic ShellSrc Role2 | xpr
+#	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr
 
-pr_full_incr: ensureNotMonolithic ShellSrc Role Role2 | xpr
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all_incr
+#pr_full_incr: ensureNotMonolithic ShellSrc Role Role2 | xpr
+#	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all_incr
 
 pr_only: ensureNotMonolithic Role  | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_only
@@ -68,11 +69,12 @@ pr_only: ensureNotMonolithic Role  | xpr
 pr2_only: ensureNotMonolithic Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_only
 
-pr_incr_only: ensureNotMonolithic Role  | xpr
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr_only
+#pr_incr_only: ensureNotMonolithic Role  | xpr
+#	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr_only
 
-pr2_incr_only: ensureNotMonolithic Role2 | xpr
-	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr_only
+# incremental compile seems not to work with second run
+#pr2_incr_only: ensureNotMonolithic Role2 | xpr
+#	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_incr_only
 
 
 ip_based: 
