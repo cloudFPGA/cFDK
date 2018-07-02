@@ -96,7 +96,7 @@ architecture Behavioral of  PsocExtMemItf is
   signal sBus_Addr    : std_logic_vector(gAddrWidth - 1 downto 0);
   signal sBus_Data    : std_logic_vector(gDataWidth - 1 downto 0);
 
-  signal sDataReg    : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
+  signal sDataReg     : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
   
   -- Fpga Fabric Interface
   signal sFab_Data    : std_logic_vector(cDEPTH - 1 downto 0);
