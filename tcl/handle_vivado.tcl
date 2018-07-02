@@ -286,9 +286,10 @@ if { ${create} } {
     #-------------------------------------------------------------------------------
     update_ip_catalog -rebuild
 
-    # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
-    #-------------------------------------------------------------------------------
+    # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) and turn the VHDL-2008 mode on 
+    #----------------------------------------------------------------------------------------------------
     add_files -fileset ${srcObj} ${hdlDir}
+    set_property file_type {VHDL 2008} [ get_files *.vhd ]
     my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
 
     if { ${full_src} } {
