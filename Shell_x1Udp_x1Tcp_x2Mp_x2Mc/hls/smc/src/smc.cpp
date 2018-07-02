@@ -9,12 +9,12 @@ ap_uint<4> cnt = 0xF;
 ap_uint<1> transferErr = 0;
 ap_uint<1> transferSuccess = 0;
 char *msg = new char[4];
-ap_uint<8> buffer[MAX_LINES*4];
+ap_uint<8> buffer[BUFFER_SIZE];
 ap_uint<8> hangover_0 = 0;
 ap_uint<8> hangover_1 = 0;
 bool contains_hangover = false;
 
-ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
+ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_uint<1> checkPattern)
 {
 
 	ap_uint<8> curHeader = 0;
@@ -87,20 +87,22 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt)
 
 	bool lastPage = (curHeader & 0xf0) == 0xf0;
 
-	/*ap_uint<32> ctrlWord = 0;
-	for(int i = 0; i<8; i++)
+	if(checkPattern == 1)
 	{
-		ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
-	}
-
-	//for simplicity check only lines in between
-	for(int i = 1; i<MAX_LINES-1; i++)
-	{
-		if(buffer[i] != ctrlWord)
-		{//data is corrupt 
-			return 3;
+		ap_uint<32> ctrlWord = 0;
+		for(int i = 0; i<8; i++)
+		{
+			ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
 		}
-	}*/
+		//for simplicity check only lines in between
+		for(int i = 1; i<MAX_LINES-1; i++)
+		{
+			if(buffer[i] != ctrlWord)
+			{//data is corrupt 
+				return 3;
+			}
+		}
+	}
 
 	if (lastPage)
 	{
@@ -203,8 +205,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			{
 				//Activate Decoupling anyway 
 				toDecoup = 1;
+				
+				ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
 
-				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt);
+				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt, checkPattern);
 		
 				switch (ret) {
 					case 0:
@@ -218,10 +222,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 									 msg = "CMM";
 									 transferErr = 1;
 										 break;
-					/*case 3:
+					case 3:
 									 msg = "COR";
 									 transferErr = 1;
-										 break;*/
+										 break;
 					case 4:
 									 msg = "SUC";
 									 transferSuccess = 1;
@@ -233,79 +237,83 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 									 break;
 				}
 		
-				ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
+				if (checkPattern == 0)
+				{//means: write to HWICAP
 
-				if (ret == 4 || ret == 5)
-				{// write to HWICAP
-					
-					ap_uint<32> lastLine = MAX_LINES-1; 
-					if (contains_hangover) 
-					{
-						lastLine = MAX_LINES;
-					} 
-		
-					//ap_uint<1> toSwap = (*MMIO_in >> SWAP_SHIFT) & 0b1;
-					//Turns out: we need to swap!
+					ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
 
-					for( int i = 0; i<lastLine; i++)
-					{
-						ap_uint<32> tmp = 0; 
-					//	if ( toSwap == 0) 
-					//	{
-					//		tmp |= (ap_uint<32>) buffer[i*4];
-					//		tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
-					//		tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
-					//		tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
-					//	} else { 
-						tmp |= (ap_uint<32>) buffer[i*4 + 3];
-						tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
-						tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
-						tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
-					//	}
+					if (ret == 4 || ret == 5)
+					{// write to HWICAP
 						
-						HWICAP[WF_OFFSET] = tmp;
-					}
-
-					if (CR_isWritting != 1)
-					{
-						HWICAP[CR_OFFSET] = CR_WRITE;
-					}
-				}
-
-				if (ret == 2)
-				{//Abort current opperation and exit 
-					HWICAP[CR_OFFSET] = CR_ABORT;
-					transferErr = 1;
-				}
-
-				if (ret == 4)
-				{//wait until all is written 
-					while(WFV_value < 0x3FF) 
-					{
-						ap_wait_n(LOOP_WAIT_CYCLES); 
-						
-						CR = HWICAP[WFV_OFFSET];
-						CR_value = CR & 0x1F; 
-						wasAbort = (CR_value & CR_ABORT) >> 4;
-						CR_isWritting = CR_value & CR_WRITE;
-
-						if(wasAbort == 1)
+						ap_uint<32> lastLine = MAX_LINES-1; 
+						if (contains_hangover) 
 						{
-							transferErr = 1;
-							msg = "ABR"; 
-							break;
+							lastLine = MAX_LINES;
+						} 
+		
+						ap_uint<1> notToSwap = (*MMIO_in >> SWAP_N_SHIFT) & 0b1;
+						//Turns out: we need to swap => active low
+
+						for( int i = 0; i<lastLine; i++)
+						{
+							ap_uint<32> tmp = 0; 
+							if ( notToSwap == 1) 
+							{
+								tmp |= (ap_uint<32>) buffer[i*4];
+								tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
+								tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
+							} else { 
+								//default 
+								tmp |= (ap_uint<32>) buffer[i*4 + 3];
+								tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
+								tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
+							}
+							
+							HWICAP[WF_OFFSET] = tmp;
 						}
 
-						if(CR_isWritting != 1)
+						if (CR_isWritting != 1)
 						{
 							HWICAP[CR_OFFSET] = CR_WRITE;
 						}
-						
-						WFV = HWICAP[WFV_OFFSET];
-						WFV_value = WFV & 0x3FF;
+					}
+
+					if (ret == 2)
+					{//Abort current opperation and exit 
+						HWICAP[CR_OFFSET] = CR_ABORT;
+						transferErr = 1;
+					}
+
+					if (ret == 4)
+					{//wait until all is written 
+						while(WFV_value < 0x3FF) 
+						{
+							ap_wait_n(LOOP_WAIT_CYCLES); 
+							
+							CR = HWICAP[WFV_OFFSET];
+							CR_value = CR & 0x1F; 
+							wasAbort = (CR_value & CR_ABORT) >> 4;
+							CR_isWritting = CR_value & CR_WRITE;
+
+							if(wasAbort == 1)
+							{
+								transferErr = 1;
+								msg = "ABR"; 
+								break;
+							}
+
+							if(CR_isWritting != 1)
+							{
+								HWICAP[CR_OFFSET] = CR_WRITE;
+							}
+							
+							WFV = HWICAP[WFV_OFFSET];
+							WFV_value = WFV & 0x3FF;
+						}
 					}
 				}
-		
 			} else {
 				msg = "INR";
 				transferErr = 1;

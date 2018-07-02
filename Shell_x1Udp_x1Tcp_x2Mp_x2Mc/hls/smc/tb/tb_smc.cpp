@@ -46,8 +46,8 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 	
 	for(int i = 0; i<MAX_LINES; i++)
 	{
-		//xmem[i] = ctrlWord;
-		xmem[i] = ctrlWord+i;
+		xmem[i] = ctrlWord;
+		//xmem[i] = ctrlWord+i;
 	}
 	//printf("CtrlWord: %#010x\n",(int) ctrlWord);
 	
@@ -209,9 +209,9 @@ int main(){
 		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 		succeded &= (decoupActive == 1);
 
-		printBuffer(buffer, "buffer");
-		printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-		printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
+		//printBuffer(buffer, "buffer");
+		//printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
+		//printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
 		//due to homogene buffer: no %2 here
 		assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[MAX_LINES-1] & 0xfff));
 
@@ -224,10 +224,18 @@ int main(){
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3f204f4b);
 
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
 	cnt = 0x0;
+	initBuffer((ap_uint<4>) cnt, xmem, false);
+	HWICAP[WF_OFFSET] = 42;
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
+	
+	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	cnt = 0x1;
 	initBuffer((ap_uint<4>) cnt, xmem, true);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-	succeded &= checkResult(MMIO, 0x30535543);
+	succeded &= checkResult(MMIO, 0x31535543);
 
 
 	return succeded? 0 : -1;

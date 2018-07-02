@@ -43,12 +43,15 @@
 #define DSEL_SHIFT 28
 #define WCNT_SHIFT 8
 #define START_SHIFT 12
-//#define SWAP_SHIFT 16
+#define SWAP_N_SHIFT 16
+#define CHECK_PATTERN_SHIFT 17
+#define PARSE_HTTP_SHIFT 18
 
 //XMEM
 #define MAX_LINES 32
 #define MAX_PAGES 1
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
+#define BUFFER_SIZE (MAX_LINES*4)
 
 
 //HWICAP CR Commands 
@@ -60,7 +63,7 @@
 
 
 //FOR DEBUG
-extern ap_uint<8> buffer[MAX_LINES*4];
+extern ap_uint<8> buffer[BUFFER_SIZE];
 
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
