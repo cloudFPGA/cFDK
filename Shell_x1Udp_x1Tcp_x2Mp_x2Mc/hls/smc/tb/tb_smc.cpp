@@ -20,10 +20,10 @@ bool checkResult(ap_uint<32> MMIO, ap_uint<32> expected)
 	//exit -1;
 }
 
-void printBuffer(ap_uint<8> buffer_int[XMEM_SIZE*4], char* msg)
+void printBuffer(ap_uint<8> buffer_int[BUFFER_SIZE], char* msg)
 {
 	printf("%s: \n",msg);
-	for( int i = 0; i < MAX_LINES*4; i++)
+	for( int i = 0; i < BUFFER_SIZE; i++)
 	{
 		uint8_t cur_elem = (char) buffer_int[i];
 		printf("%2x ", cur_elem);
@@ -216,6 +216,8 @@ int main(){
 		assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[MAX_LINES-1] & 0xfff));
 
 	}
+	
+	//printBuffer(buffer, "buffer after 0xf transfers:");
 
 	assert(HWICAP[CR_OFFSET] == 0x3);
 	

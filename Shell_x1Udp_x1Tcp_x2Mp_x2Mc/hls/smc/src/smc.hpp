@@ -51,7 +51,8 @@
 #define MAX_LINES 32
 #define MAX_PAGES 1
 #define XMEM_SIZE (MAX_LINES * MAX_PAGES)
-#define BUFFER_SIZE (MAX_LINES*4)
+//#define BUFFER_SIZE (MAX_LINES*4)
+#define BUFFER_SIZE 1024 //should be smaller then 2^16
 
 
 //HWICAP CR Commands 

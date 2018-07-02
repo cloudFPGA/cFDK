@@ -14,19 +14,23 @@ ap_uint<8> hangover_0 = 0;
 ap_uint<8> hangover_1 = 0;
 bool contains_hangover = false;
 
+ap_uint<16> currentBufferPointer = 0x0;
+ap_uint<8> iter_count = 0;
+
+
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_uint<1> checkPattern)
 {
 
 	ap_uint<8> curHeader = 0;
 	ap_uint<8> curFooter = 0;
 
-	ap_int<32> buff_pointer = 0-1;
+	ap_int<16> buff_pointer = 0-1;
 	
 	if ( ExpCnt % 2 == 1)
 	{
 		buff_pointer = 2-1;
-		buffer[0] = hangover_0;
-		buffer[1] = hangover_1;
+		buffer[currentBufferPointer  + 0] = hangover_0;
+		buffer[currentBufferPointer  + 1] = hangover_1;
 	}
 
 
@@ -40,27 +44,27 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 			curHeader = tmp & 0xff;
 		} else {
 			buff_pointer++;
-			buffer[buff_pointer] = (tmp & 0xff);
+			buffer[currentBufferPointer  + buff_pointer] = (tmp & 0xff);
 		}
 
 		buff_pointer++;
-		buffer[buff_pointer] = (tmp >> 8) & 0xff;
+		buffer[currentBufferPointer  + buff_pointer] = (tmp >> 8) & 0xff;
 		buff_pointer++;
-		buffer[buff_pointer] = (tmp >> 16 ) & 0xff;
+		buffer[currentBufferPointer  + buff_pointer] = (tmp >> 16 ) & 0xff;
 
 		if ( i == MAX_LINES-1) 
 		{
 			curFooter = (tmp >> 24) & 0xff;
 		} else {
 			buff_pointer++;
-			buffer[buff_pointer] = (tmp >> 24) & 0xff;
+			buffer[currentBufferPointer  + buff_pointer] = (tmp >> 24) & 0xff;
 		}
 	}
 
 	if (ExpCnt % 2 == 0)
 	{
-		hangover_0 = buffer[(MAX_LINES-1)*4 + 0];
-		hangover_1 = buffer[(MAX_LINES-1)*4 + 1];
+		hangover_0 = buffer[currentBufferPointer  + (MAX_LINES-1)*4 + 0];
+		hangover_1 = buffer[currentBufferPointer  + (MAX_LINES-1)*4 + 1];
 		contains_hangover = false; //means, only 31 lines!
 	} else {
 		contains_hangover = true; //means, full 32 lines!
@@ -97,7 +101,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 		//for simplicity check only lines in between
 		for(int i = 1; i<MAX_LINES-1; i++)
 		{
-			if(buffer[i] != ctrlWord)
+			if(buffer[currentBufferPointer  + i] != ctrlWord)
 			{//data is corrupt 
 				return 3;
 			}
@@ -169,13 +173,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		transferErr = 0;
 		transferSuccess = 0;
 		msg = "IDL";
-		
+		currentBufferPointer = 0;
+		iter_count = 0;
 	} 
 
 //===========================================================
 // Start & Run Burst transfer; Manage Decoupling
 	
 	ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
+	
+	ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
 
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
@@ -205,37 +212,37 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			{
 				//Activate Decoupling anyway 
 				toDecoup = 1;
-				
-				ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
 
 				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt, checkPattern);
 		
 				switch (ret) {
 					case 0:
-									 msg = "UTD";
-										 break;
+									msg = "UTD";
+									break;
 					case 1:
-									 msg = "INV";
-									 //transferErr = 1; NO!
-										 break;
+									msg = "INV";
+									//transferErr = 1; NO!
+									break;
 					case 2:
-									 msg = "CMM";
-									 transferErr = 1;
-										 break;
+									msg = "CMM";
+									transferErr = 1;
+									break;
 					case 3:
-									 msg = "COR";
-									 transferErr = 1;
-										 break;
+									msg = "COR";
+									transferErr = 1;
+									break;
 					case 4:
-									 msg = "SUC";
-									 transferSuccess = 1;
-									 cnt = expCnt;
-										 break;
-					default: 
-									 msg= " OK";
-									 cnt = expCnt;
+									msg = "SUC";
+									transferSuccess = 1;
+									cnt = expCnt;
+									break;
+					case 5: 
+									// i.e. 5
+									msg= " OK";
+									cnt = expCnt;
 									 break;
 				}
+
 		
 				if (checkPattern == 0)
 				{//means: write to HWICAP
@@ -254,21 +261,22 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 						ap_uint<1> notToSwap = (*MMIO_in >> SWAP_N_SHIFT) & 0b1;
 						//Turns out: we need to swap => active low
 
+						//TODO: for HTTP: start value and last value? 
 						for( int i = 0; i<lastLine; i++)
 						{
 							ap_uint<32> tmp = 0; 
 							if ( notToSwap == 1) 
 							{
-								tmp |= (ap_uint<32>) buffer[i*4];
-								tmp |= (((ap_uint<32>) buffer[i*4 + 1]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[i*4 + 2]) << 16);
-								tmp |= (((ap_uint<32>) buffer[i*4 + 3]) << 24);
+								tmp |= (ap_uint<32>) buffer[currentBufferPointer  + i*4];
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 1]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 2]) << 16);
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 3]) << 24);
 							} else { 
 								//default 
-								tmp |= (ap_uint<32>) buffer[i*4 + 3];
-								tmp |= (((ap_uint<32>) buffer[i*4 + 2]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[i*4 + 1]) << 16);
-								tmp |= (((ap_uint<32>) buffer[i*4 + 0]) << 24);
+								tmp |= (ap_uint<32>) buffer[currentBufferPointer  + i*4 + 3];
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 2]) <<  8);
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 1]) << 16);
+								tmp |= (((ap_uint<32>) buffer[currentBufferPointer  + i*4 + 0]) << 24);
 							}
 							
 							HWICAP[WF_OFFSET] = tmp;
@@ -314,6 +322,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 						}
 					}
 				}
+				
+
+				currentBufferPointer += XMEM_SIZE;
+				iter_count++;
+				if (iter_count % 4 == 0)
+				{ 
+					iter_count = 0;
+					currentBufferPointer = 0;
+				}
+
 			} else {
 				msg = "INR";
 				transferErr = 1;
