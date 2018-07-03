@@ -537,7 +537,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [31:0] sMMIO_CASTOR_4B_Reg;
   wire        sDECOUP_CASTOR_status;
   wire        sCASTOR_DECOUP_activate;
-  wire [4:0]  sCASTOR_MMIO_XMEM_Addr;
+  wire [8:0]  sCASTOR_MMIO_XMEM_Addr;
   wire [31:0] sCASTOR_MMIO_XMEM_RData;
   wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
 

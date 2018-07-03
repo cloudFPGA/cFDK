@@ -20,6 +20,10 @@
 #define RCNT_SHIFT 24
 #define MSG_SHIFT 0
 
+//Display4
+#define ANSWER_LENGTH_SHIFT 0
+#define HTTP_STATE_SHIFT 4
+
 
 //#define WAIT_CYCLES 10
 //#define AXI_PAUSE_CYCLES 10
@@ -48,12 +52,13 @@
 #define PARSE_HTTP_SHIFT 18
 
 //XMEM
-#define MAX_LINES 32
-#define MAX_PAGES 1
-#define XMEM_SIZE (MAX_LINES * MAX_PAGES)
-//#define BUFFER_SIZE (MAX_LINES*4)
+#define LINES_PER_PAGE 32
+#define MAX_PAGES 16
+#define XMEM_SIZE (LINES_PER_PAGE * MAX_PAGES)
+#define BYTES_PER_PAGE (LINES_PER_PAGE*4)
 #define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
-#define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round
+#define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round 
+#define XMEM_ANSWER_START (1*BYTES_PER_PAGE)
 
 //HWICAP CR Commands 
 #define CR_ABORT 0x10
@@ -63,9 +68,11 @@
 #define CR_WRITE 0x1
 
 
-//FOR DEBUG
-extern ap_uint<8> buffer[BUFFER_SIZE];
+extern ap_uint<8> bufferIn[BUFFER_SIZE];
+extern ap_uint<8> bufferOut[BUFFER_SIZE];
 
+//for Debug 
+extern ap_uint<16> currentBufferInPtr;
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,

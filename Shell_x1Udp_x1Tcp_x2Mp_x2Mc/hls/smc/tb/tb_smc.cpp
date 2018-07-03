@@ -44,7 +44,7 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 		ctrlWord |= ((ap_uint<32>) cnt) << (i*4);
 	}
 	
-	for(int i = 0; i<MAX_LINES; i++)
+	for(int i = 0; i<LINES_PER_PAGE; i++)
 	{
 		xmem[i] = ctrlWord;
 		//xmem[i] = ctrlWord+i;
@@ -60,7 +60,7 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 	ap_uint<32> headerLine = header | (ctrlWord & 0xFFFFFF00);
 	ap_uint<32> footerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
 	xmem[0] = headerLine;
-	xmem[MAX_LINES-1] = footerLine;
+	xmem[LINES_PER_PAGE-1] = footerLine;
 
 }
 
@@ -201,23 +201,24 @@ int main(){
 	//one complete transfer with overflow
 	//MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+	//MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
 	for(int i = 0; i<0xf; i++)
 	{
 		cnt = i;
 		initBuffer((ap_uint<4>) cnt, xmem, false); 
-		//printBuffer(xmem, "xmem");
 		smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 		succeded &= (decoupActive == 1);
 
-		//printBuffer(buffer, "buffer");
+		//printBuffer(bufferIn, "buffer");
+		//printf("currentBufferInPtr: %#010x\n",(int) currentBufferInPtr);
 		//printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-		//printf("xmem: %#010x\n",(int) xmem[MAX_LINES-1]);
+		//printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
 		//due to homogene buffer: no %2 here
-		assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[MAX_LINES-1] & 0xfff));
+		assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[LINES_PER_PAGE-1] & 0xfff));
 
 	}
 	
-	//printBuffer(buffer, "buffer after 0xf transfers:");
+	printBuffer(bufferIn, "buffer after 0xf transfers:");
 
 	assert(HWICAP[CR_OFFSET] == 0x3);
 	
@@ -232,6 +233,13 @@ int main(){
 	HWICAP[WF_OFFSET] = 42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
+
+	MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+	xmem[XMEM_ANSWER_START] = 42;
+	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+	printBuffer(bufferOut, "BufferOut:");
+	assert(xmem[XMEM_ANSWER_START] == 0x48);
+
 	
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
 	cnt = 0x1;

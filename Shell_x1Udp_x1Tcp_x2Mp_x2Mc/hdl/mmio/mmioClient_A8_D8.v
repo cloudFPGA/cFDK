@@ -98,7 +98,7 @@ module MmioClient_A8_D8 #(
   input           piSMC_MMIO_XMEM_Wren,
   input  [31:0]   piSMC_MMIO_XMEM_WrData,
   output [31:0]   poSMC_MMIO_XMEM_RData,
-  input  [4:0]    piSMC_MMIO_XMEM_Addr,
+  input  [8:0]    piSMC_MMIO_XMEM_Addr,
 
   output          poVoid
 
@@ -735,7 +735,6 @@ module MmioClient_A8_D8 #(
         //.gDataWidth_B (cEDW*cRatio),
         .gDataWidth_B (cDataBWidth),
         .gSize_B      (cRamSize/cRatio),
-        //.gAddrWidth_B (log2(cRamSize/cRatio))
         .gAddrWidth_B (log2(cRamSize/cRatio))
         
       ) DPRAM (

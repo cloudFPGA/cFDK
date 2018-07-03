@@ -4,22 +4,33 @@
 #include "ap_utils.h"
 
 #include "smc.hpp"
+#include "http.hpp"
 
 ap_uint<4> cnt = 0xF;
 ap_uint<1> transferErr = 0;
 ap_uint<1> transferSuccess = 0;
 char *msg = new char[4];
-ap_uint<8> buffer[BUFFER_SIZE];
+ap_uint<8> bufferIn[BUFFER_SIZE];
 ap_uint<8> hangover_0 = 0;
 ap_uint<8> hangover_1 = 0;
 bool contains_hangover = false;
 
-ap_uint<16> currentBufferPointer = 0x0;
+ap_uint<16> currentBufferInPtr = 0x0;
 ap_uint<8> iter_count = 0;
 
+ap_uint<8> bufferOut[BUFFER_SIZE];
+ap_uint<16> currentBufferOutPtr = 0x0;
 
-static enum HttpState { HTTP_IDLE = 0, 
-						HTTP_PARSE_HEADER, HTTP_PARSE_PAYLOAD } httpState = HTTP_IDLE; 
+
+void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE])
+{
+	for(int i = 0; i < numberOfPages*128; i++)
+	{
+		xmem[XMEM_ANSWER_START + i] = bufferOut[i];
+	}
+	
+}
+
 
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_uint<1> checkPattern)
 {
@@ -32,12 +43,12 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 	if ( ExpCnt % 2 == 1)
 	{
 		buff_pointer = 2-1;
-		buffer[currentBufferPointer  + 0] = hangover_0;
-		buffer[currentBufferPointer  + 1] = hangover_1;
+		bufferIn[currentBufferInPtr  + 0] = hangover_0;
+		bufferIn[currentBufferInPtr  + 1] = hangover_1;
 	}
 
 
-	for(int i = 0; i<MAX_LINES; i++)
+	for(int i = 0; i<LINES_PER_PAGE; i++)
 	{
 		ap_uint<32> tmp = 0;
 		tmp = xmem[i];
@@ -47,27 +58,27 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 			curHeader = tmp & 0xff;
 		} else {
 			buff_pointer++;
-			buffer[currentBufferPointer  + buff_pointer] = (tmp & 0xff);
+			bufferIn[currentBufferInPtr  + buff_pointer] = (tmp & 0xff);
 		}
 
 		buff_pointer++;
-		buffer[currentBufferPointer  + buff_pointer] = (tmp >> 8) & 0xff;
+		bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 8) & 0xff;
 		buff_pointer++;
-		buffer[currentBufferPointer  + buff_pointer] = (tmp >> 16 ) & 0xff;
+		bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 16 ) & 0xff;
 
-		if ( i == MAX_LINES-1) 
+		if ( i == LINES_PER_PAGE-1) 
 		{
 			curFooter = (tmp >> 24) & 0xff;
 		} else {
 			buff_pointer++;
-			buffer[currentBufferPointer  + buff_pointer] = (tmp >> 24) & 0xff;
+			bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 24) & 0xff;
 		}
 	}
 
 	if (ExpCnt % 2 == 0)
 	{
-		hangover_0 = buffer[currentBufferPointer  + (MAX_LINES-1)*4 + 0];
-		hangover_1 = buffer[currentBufferPointer  + (MAX_LINES-1)*4 + 1];
+		hangover_0 = bufferIn[currentBufferInPtr  + (LINES_PER_PAGE-1)*4 + 0];
+		hangover_1 = bufferIn[currentBufferInPtr  + (LINES_PER_PAGE-1)*4 + 1];
 		contains_hangover = false; //means, only 31 lines!
 	} else {
 		contains_hangover = true; //means, full 32 lines!
@@ -102,13 +113,16 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 		{
 			ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
 		}*/ 
+		
+		//printf("ctrlByte: %#010x\n",(int) ctrlByte);
 
 		//for simplicity check only lines in between and skip potentiall hangover 
-		for(int i = 1; i< (MAX_LINES*4) -3; i++)
+		for(int i = 3; i< BYTES_PER_PAGE -3; i++)
 		{
-			//if(buffer[currentBufferPointer  + i] != ctrlWord)
-			if(buffer[currentBufferPointer  + i] != ctrlByte)
+			//if(bufferIn[currentBufferInPtr  + i] != ctrlWord)
+			if(bufferIn[currentBufferInPtr  + i] != ctrlByte)
 			{//data is corrupt 
+				//printf("corrupt at %d with %#010x\n",i, (int) bufferIn[currentBufferInPtr + i]);
 				return 3;
 			}
 		}
@@ -143,6 +157,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 
 	ap_uint<8> ASW1 = 0, ASW2 = 0, ASW3 = 0, ASW4= 0;
+
+	ap_uint<4> httpAnswerPageLength = 0;
 
 //===========================================================
 // Connection to HWICAP
@@ -179,9 +195,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		transferErr = 0;
 		transferSuccess = 0;
 		msg = "IDL";
-		currentBufferPointer = 0;
+		currentBufferInPtr = 0;
 		iter_count = 0;
-		httpState = HTTP_IDLE;
+		httpStateBla = HTTP_IDLE;
 	} 
 
 //===========================================================
@@ -251,19 +267,22 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 									break;
 				}
 
-				ap_uint<32> lastLine = MAX_LINES-1; 
+				ap_uint<32> lastLine = LINES_PER_PAGE-1;
+				ap_uint<16> currentAddedPayload = BYTES_PER_PAGE-4;
 				if (contains_hangover) 
 				{
-					lastLine = MAX_LINES;
+					lastLine = LINES_PER_PAGE;
+					currentAddedPayload = BYTES_PER_PAGE -2;
 				} 
 
 				//with HTTP the current buffer pointer is not always the start of the payload
-				ap_uint<16> currentPayloadStart = currentBufferPointer;
+				ap_uint<16> currentPayloadStart = currentBufferInPtr;
 
-				/*if (parseHTTP == 1)
+				if (parseHTTP == 1)
 				{
-
-				}*/
+						httpAnswerPageLength = writeHttpOK(currentBufferOutPtr);
+						copyOutBuffer(httpAnswerPageLength,xmem);
+				}
 		
 				if (checkPattern == 0)
 				{//means: write to HWICAP
@@ -282,16 +301,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 							ap_uint<32> tmp = 0; 
 							if ( notToSwap == 1) 
 							{
-								tmp |= (ap_uint<32>) buffer[currentPayloadStart  + i*4];
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 1]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 2]) << 16);
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 3]) << 24);
+								tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4];
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) <<  8);
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) << 16);
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3]) << 24);
 							} else { 
 								//default 
-								tmp |= (ap_uint<32>) buffer[currentPayloadStart  + i*4 + 3];
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 2]) <<  8);
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 1]) << 16);
-								tmp |= (((ap_uint<32>) buffer[currentPayloadStart  + i*4 + 0]) << 24);
+								tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3];
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) <<  8);
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) << 16);
+								tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 0]) << 24);
 							}
 							
 							HWICAP[WF_OFFSET] = tmp;
@@ -339,13 +358,13 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 				}
 				
 
-				//This also means, every address < currentBufferPointer is valid
-				currentBufferPointer += MAX_LINES*4;
+				//This also means, every address < currentBufferInPtr is valid
+				currentBufferInPtr += currentAddedPayload;
 				iter_count++;
 				if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
 				{ 
 					iter_count = 0;
-					currentBufferPointer = 0;
+					currentBufferInPtr = 0;
 				}
 
 			} else {
@@ -375,7 +394,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 //  putting displays together 
 
 
-	ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0; 
+	ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0; 
 	ap_uint<4> Dsel = 0;
 
 	Dsel = (*MMIO_in >> DSEL_SHIFT) & 0xF;
@@ -395,18 +414,24 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	Display3 = ((ap_uint<32>) cnt) << RCNT_SHIFT;
 	Display3 |= ((ap_uint<32>) msg[0]) << MSG_SHIFT + 16;
 	Display3 |= ((ap_uint<32>) msg[1]) << MSG_SHIFT + 8;
-	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0;
+	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0; 
+
+	Display4 = ((ap_uint<32>) httpAnswerPageLength) << ANSWER_LENGTH_SHIFT; 
+	Display4 |= ((ap_uint<32>) httpStateBla) << HTTP_STATE_SHIFT;
 
 	switch (Dsel) {
 		case 1:
 				*MMIO_out = (0x1 << DSEL_SHIFT) | Display1;
-					 break;
+					break;
 		case 2:
 				*MMIO_out = (0x2 << DSEL_SHIFT) | Display2;
-					 break;
+					break;
 		case 3:
 				*MMIO_out = (0x3 << DSEL_SHIFT) | Display3;
-					 break;
+					break;
+		case 4:
+				*MMIO_out = (0x4 << DSEL_SHIFT) | Display4;
+					break;
 		default: 
 				*MMIO_out = 0xBEBAFECA;
 					break;

@@ -56,6 +56,8 @@ set_top       smc_main
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
+add_files     ${srcDir}/http.cpp
+add_files     ${srcDir}/http.hpp
 
 #for DEBUG flag 
 #add_files -tb src/smc.cpp -cflags "-DDEBUG"
