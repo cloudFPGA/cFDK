@@ -540,6 +540,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [8:0]  sCASTOR_MMIO_XMEM_Addr;
   wire [31:0] sCASTOR_MMIO_XMEM_RData;
   wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
+  wire        sCASTOR_MMIO_XMEM_wren; //Write-enable
+  wire [31:0] sCASTOR_MMIO_XMEM_WData;
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -596,8 +598,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
     //XMem Port B
     .piSMC_MMIO_XMEM_en             (sCASTOR_MMIO_XMEM_cen),
-    .piSMC_MMIO_XMEM_Wren           (1'b0),
-    .piSMC_MMIO_XMEM_WrData         (32'h0),
+    .piSMC_MMIO_XMEM_Wren           (sCASTOR_MMIO_XMEM_wren),
+    .piSMC_MMIO_XMEM_WrData         (sCASTOR_MMIO_XMEM_WData),
     .poSMC_MMIO_XMEM_RData          (sCASTOR_MMIO_XMEM_RData),
     .piSMC_MMIO_XMEM_Addr           (sCASTOR_MMIO_XMEM_Addr),
  
@@ -1116,6 +1118,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poSMC_DECOUP_activate_V             (sCASTOR_DECOUP_activate),
     .xmem_V_Address0                     (sCASTOR_MMIO_XMEM_Addr),
     .xmem_V_ce0                          (sCASTOR_MMIO_XMEM_cen), 
+    .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wre),
+    .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
     .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData) 
   );
 

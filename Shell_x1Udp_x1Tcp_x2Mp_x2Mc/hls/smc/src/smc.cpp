@@ -22,6 +22,10 @@ ap_uint<8> bufferOut[BUFFER_SIZE];
 ap_uint<16> currentBufferOutPtr = 0x0;
 
 
+
+static HttpState httpState = HTTP_IDLE; 
+
+
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE])
 {
 	for(int i = 0; i < numberOfPages*128; i++)
@@ -197,7 +201,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		msg = "IDL";
 		currentBufferInPtr = 0;
 		iter_count = 0;
-		//httpState = HTTP_IDLE;
+		httpState = HTTP_IDLE;
 	} 
 
 //===========================================================
@@ -280,7 +284,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 				if (parseHTTP == 1)
 				{
-						httpAnswerPageLength = writeHttpOK(currentBufferOutPtr);
+						httpAnswerPageLength = writeHttpStatus(200,currentBufferOutPtr);
 						copyOutBuffer(httpAnswerPageLength,xmem);
 				}
 		
@@ -417,7 +421,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0; 
 
 	Display4 = ((ap_uint<32>) httpAnswerPageLength) << ANSWER_LENGTH_SHIFT; 
-	//Display4 |= ((ap_uint<32>) httpState) << HTTP_STATE_SHIFT;
+	Display4 |= ((ap_uint<32>) httpState) << HTTP_STATE_SHIFT;
 
 	switch (Dsel) {
 		case 1:
