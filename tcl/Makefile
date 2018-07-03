@@ -150,9 +150,9 @@ $(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps
 	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
 	rm -f $@
 
-../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
+../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp ../dcps/0_$(TOP_NAME)_static_without_role.dcp 
 	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
-	@#rm -f $@ #TODO! no, not for incrlemental use! 
+	@rm -f $@  
 
 ../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
@@ -165,10 +165,9 @@ $(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps
 	@/bin/echo "-bitgen2 -pr -pr_verify -role2 \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
+../dcps/2_$(TOP_NAME)_impl_$(usedRole2)_complete_pr.dcp: ../dcps/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR)/$(ROLE_NAME_2)/*.dcp ../dcps/0_$(TOP_NAME)_static_without_role.dcp 
 	@/bin/echo "-impl2 -pr -role2 \\" >> .vivado_basecmd.sh
 	rm -f $@ 
-	@#TODO incrlemental use seems not to work for flow 2 
 
 ../dcps/4_$(TOP_NAME)_impl_grey_box.bit: ../dcps/3_$(TOP_NAME)_static_with_grey_box.dcp
 	@/bin/echo "-bitgenGrey -role -pr -pr_verify \\" >> .vivado_basecmd.sh
