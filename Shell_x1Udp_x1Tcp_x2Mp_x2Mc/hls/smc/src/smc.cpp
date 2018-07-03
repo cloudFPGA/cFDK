@@ -197,7 +197,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		msg = "IDL";
 		currentBufferInPtr = 0;
 		iter_count = 0;
-		httpStateBla = HTTP_IDLE;
+		//httpState = HTTP_IDLE;
 	} 
 
 //===========================================================
@@ -417,7 +417,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0; 
 
 	Display4 = ((ap_uint<32>) httpAnswerPageLength) << ANSWER_LENGTH_SHIFT; 
-	Display4 |= ((ap_uint<32>) httpStateBla) << HTTP_STATE_SHIFT;
+	//Display4 |= ((ap_uint<32>) httpState) << HTTP_STATE_SHIFT;
 
 	switch (Dsel) {
 		case 1:

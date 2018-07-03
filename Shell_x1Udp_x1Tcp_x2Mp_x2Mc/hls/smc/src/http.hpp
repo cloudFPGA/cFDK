@@ -5,10 +5,10 @@
 #include "ap_int.h" 
 
 
-typedef enum HttpState { HTTP_IDLE = 0, 
+typedef enum { HTTP_IDLE = 0, 
 						HTTP_PARSE_HEADER = 1, HTTP_PARSE_PAYLOAD = 2 } HttpState;
 
-extern HttpState httpStateBla; 
+extern HttpState httpState; 
 
 int8_t writeHttpOK(ap_uint<16> startAddress);
 
