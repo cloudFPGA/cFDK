@@ -103,8 +103,8 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 			ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
 		}*/ 
 
-		//for simplicity check only lines in between
-		for(int i = 1; i<MAX_LINES*4-1; i++)
+		//for simplicity check only lines in between and skip potentiall hangover 
+		for(int i = 1; i< (MAX_LINES*4) -3; i++)
 		{
 			//if(buffer[currentBufferPointer  + i] != ctrlWord)
 			if(buffer[currentBufferPointer  + i] != ctrlByte)
@@ -260,10 +260,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 				//with HTTP the current buffer pointer is not always the start of the payload
 				ap_uint<16> currentPayloadStart = currentBufferPointer;
 
-				if (parseHTTP == 1)
+				/*if (parseHTTP == 1)
 				{
 
-				}
+				}*/
 		
 				if (checkPattern == 0)
 				{//means: write to HWICAP
