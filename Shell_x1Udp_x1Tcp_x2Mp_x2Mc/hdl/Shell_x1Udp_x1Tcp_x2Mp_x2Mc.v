@@ -1118,7 +1118,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poSMC_DECOUP_activate_V             (sCASTOR_DECOUP_activate),
     .xmem_V_Address0                     (sCASTOR_MMIO_XMEM_Addr),
     .xmem_V_ce0                          (sCASTOR_MMIO_XMEM_cen), 
-    .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wre),
+    .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
     .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
     .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData) 
   );
