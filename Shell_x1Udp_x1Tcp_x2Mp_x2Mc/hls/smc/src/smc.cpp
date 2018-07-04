@@ -28,9 +28,15 @@ static HttpState httpState = HTTP_IDLE;
 
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE])
 {
-	for(int i = 0; i < numberOfPages*128; i++)
+	for(int i = 0; i < numberOfPages*LINES_PER_PAGE; i++)
 	{
-		xmem[XMEM_ANSWER_START + i] = bufferOut[i];
+		ap_uint<32> tmp = 0; 
+		tmp = ((ap_uint<32>) bufferOut[i*4]); 
+		tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 8; 
+		tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 16; 
+		tmp |= ((ap_uint<32>) bufferOut[i*4 + 3]) << 24; 
+
+		xmem[XMEM_ANSWER_START + i] = tmp;
 	}
 	
 }

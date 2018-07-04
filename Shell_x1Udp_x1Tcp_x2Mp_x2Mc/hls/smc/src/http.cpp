@@ -69,7 +69,8 @@ int8_t writeHttpStatus(int status){
 		pageCnt++;
 	}
 
-	return pageCnt;
+	//return pageCnt;
+	return 1;
 }
 
 

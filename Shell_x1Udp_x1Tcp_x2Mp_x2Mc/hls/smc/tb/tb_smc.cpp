@@ -238,7 +238,8 @@ int main(){
 	xmem[XMEM_ANSWER_START] = 42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	printBuffer(bufferOut, "BufferOut:");
-	assert(xmem[XMEM_ANSWER_START] == 0x48);
+	printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
+	assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
 	
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
