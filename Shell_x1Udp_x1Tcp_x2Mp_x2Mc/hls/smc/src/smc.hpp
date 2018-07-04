@@ -58,7 +58,7 @@
 #define BYTES_PER_PAGE (LINES_PER_PAGE*4)
 #define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
 #define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round 
-#define XMEM_ANSWER_START (1*BYTES_PER_PAGE)
+#define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes!
 
 //HWICAP CR Commands 
 #define CR_ABORT 0x10
@@ -72,6 +72,10 @@ extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
 extern ap_uint<16> currentBufferInPtr;
 extern ap_uint<16> currentBufferOutPtr;
+
+
+void emptyInBuffer();
+void emptyOutBuffer();
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,

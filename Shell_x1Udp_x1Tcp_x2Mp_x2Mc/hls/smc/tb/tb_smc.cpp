@@ -26,7 +26,7 @@ void printBuffer(ap_uint<8> buffer_int[BUFFER_SIZE], char* msg)
 	for( int i = 0; i < BUFFER_SIZE; i++)
 	{
 		uint8_t cur_elem = (char) buffer_int[i];
-		printf("%2x ", cur_elem);
+		printf("%02x ", cur_elem);
 
 		if(i % 8 == 7)
 		{
@@ -35,6 +35,23 @@ void printBuffer(ap_uint<8> buffer_int[BUFFER_SIZE], char* msg)
 
 	}
 }
+
+void printBuffer32(ap_uint<32> buffer_int[XMEM_SIZE], char* msg)
+{
+	printf("%s: \n",msg);
+	for( int i = 0; i < XMEM_SIZE; i++)
+	{
+		int cur_elem = (int) buffer_int[i];
+		printf("%08x ", cur_elem);
+
+		if(i % 8 == 7)
+		{
+			printf("\n");
+		}
+
+	}
+}
+
 
 void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 {
@@ -226,6 +243,7 @@ int main(){
 	initBuffer((ap_uint<4>) cnt, xmem, false);
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x3f204f4b);
+	//printBuffer32(xmem, "Xmem:");
 
 	MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
 	cnt = 0x0;
@@ -234,11 +252,13 @@ int main(){
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
 
+	//MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT) | ( 1 << SWAP_N_SHIFT);
 	MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
 	xmem[XMEM_ANSWER_START] = 42;
 	smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
 	printBuffer(bufferOut, "BufferOut:");
 	printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
+	printBuffer32(xmem, "Xmem:");
 	assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
 	

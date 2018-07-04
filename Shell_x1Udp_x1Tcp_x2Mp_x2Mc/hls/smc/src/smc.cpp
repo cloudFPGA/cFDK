@@ -26,19 +26,47 @@ ap_uint<16> currentBufferOutPtr = 0x0;
 static HttpState httpState = HTTP_IDLE; 
 
 
-void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE])
+void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
 	for(int i = 0; i < numberOfPages*LINES_PER_PAGE; i++)
 	{
 		ap_uint<32> tmp = 0; 
-		tmp = ((ap_uint<32>) bufferOut[i*4]); 
-		tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 8; 
-		tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 16; 
-		tmp |= ((ap_uint<32>) bufferOut[i*4 + 3]) << 24; 
+
+		if (notToSwap == 1)
+		{
+			tmp = ((ap_uint<32>) bufferOut[i*4 + 3]); 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 8; 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 16; 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 0]) << 24; 
+		} else {
+			tmp = ((ap_uint<32>) bufferOut[i*4 + 0]); 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 8; 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 16; 
+			tmp |= ((ap_uint<32>) bufferOut[i*4 + 3]) << 24; 
+		}
 
 		xmem[XMEM_ANSWER_START + i] = tmp;
 	}
 	
+}
+
+
+void emptyInBuffer()
+{
+	for(int i = 0; i < BUFFER_SIZE; i++)
+	{
+		bufferIn[i] = 0x0;
+	}
+	currentBufferInPtr = 0x0;
+}
+
+void emptyOutBuffer()
+{
+	for(int i = 0; i < BUFFER_SIZE; i++)
+	{
+		bufferOut[i] = 0x0;
+	}
+	currentBufferOutPtr = 0x0;
 }
 
 
@@ -117,19 +145,13 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
 	if(checkPattern == 1)
 	{
-		//ap_uint<32> ctrlWord = 0;
 		ap_uint<8> ctrlByte = (((ap_uint<8>) ExpCnt) << 4) | ExpCnt;
-		/*for(int i = 0; i<8; i++)
-		{
-			ctrlWord |= ((ap_uint<32>) ExpCnt) << (i*4);
-		}*/ 
 		
 		//printf("ctrlByte: %#010x\n",(int) ctrlByte);
 
 		//for simplicity check only lines in between and skip potentiall hangover 
 		for(int i = 3; i< BYTES_PER_PAGE -3; i++)
 		{
-			//if(bufferIn[currentBufferInPtr  + i] != ctrlWord)
 			if(bufferIn[currentBufferInPtr  + i] != ctrlByte)
 			{//data is corrupt 
 				//printf("corrupt at %d with %#010x\n",i, (int) bufferIn[currentBufferInPtr + i]);
@@ -205,9 +227,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		transferErr = 0;
 		transferSuccess = 0;
 		msg = "IDL";
-		currentBufferInPtr = 0;
 		iter_count = 0;
 		httpState = HTTP_IDLE;
+		currentBufferInPtr = 0;
+		currentBufferOutPtr = 0;
 	} 
 
 //===========================================================
@@ -218,6 +241,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 	ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
 	
 	ap_uint<1> parseHTTP = (*MMIO_in >> PARSE_HTTP_SHIFT) & 0b1;
+						
+	ap_uint<1> notToSwap = (*MMIO_in >> SWAP_N_SHIFT) & 0b1;
+	//Turns out: we need to swap => active low
 
 	ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
@@ -247,6 +273,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			{
 				//Activate Decoupling anyway 
 				toDecoup = 1;
+
+				if (parseHTTP == 1 && httpState == HTTP_IDLE)
+				{
+					emptyInBuffer();
+				}
 
 				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt, checkPattern);
 		
@@ -285,14 +316,13 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 					currentAddedPayload = BYTES_PER_PAGE -2;
 				} 
 
-				//with HTTP the current buffer pointer is not always the start of the payload
-				ap_uint<16> currentPayloadStart = currentBufferInPtr;
-
-				if (parseHTTP == 1)
-				{
-						httpAnswerPageLength = writeHttpStatus(200);
-						copyOutBuffer(httpAnswerPageLength,xmem);
-				}
+//DEBUG
+							if (parseHTTP == 1)
+							{
+									httpAnswerPageLength = writeHttpStatus(200,0);
+									copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
+									//parseHTTP();
+							}
 		
 				if (checkPattern == 0)
 				{//means: write to HWICAP
@@ -300,11 +330,19 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 					ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
 
 					if (ret == 4 || ret == 5)
-					{// write to HWICAP
-						
+					{// valid buffer -> write to HWICAP
+				
+						//with HTTP the current buffer pointer is not always the start of the payload
+							ap_uint<16> currentPayloadStart = currentBufferInPtr;
+/*
+							if (parseHTTP == 1)
+							{
+									httpAnswerPageLength = writeHttpStatus(200,0);
+									copyOutBuffer(httpAnswerPageLength,xmem);
+									//parseHTTP();
+							}
+						*/
 		
-						ap_uint<1> notToSwap = (*MMIO_in >> SWAP_N_SHIFT) & 0b1;
-						//Turns out: we need to swap => active low
 
 						for( int i = 0; i<lastLine; i++)
 						{
