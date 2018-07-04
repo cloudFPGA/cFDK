@@ -284,7 +284,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 				if (parseHTTP == 1)
 				{
-						httpAnswerPageLength = writeHttpStatus(200,currentBufferOutPtr);
+						httpAnswerPageLength = writeHttpStatus(200);
 						copyOutBuffer(httpAnswerPageLength,xmem);
 				}
 		

@@ -31,7 +31,7 @@ int my_strlen(char * s) {
 }
 
 
-int8_t writeHttpStatus(int status, ap_uint<16> startAddress){
+int8_t writeHttpStatus(int status){
 
 	char* toWrite;
 
@@ -57,8 +57,10 @@ int8_t writeHttpStatus(int status, ap_uint<16> startAddress){
 
 	for(int i = 0; i<len; i++)
 	{
-		bufferOut[startAddress + i] = toWrite[i];
+		bufferOut[currentBufferOutPtr + i] = toWrite[i];
 	}
+
+	currentBufferOutPtr += len;
 
 	int8_t pageCnt = len/128; 
 
@@ -69,6 +71,16 @@ int8_t writeHttpStatus(int status, ap_uint<16> startAddress){
 
 	return pageCnt;
 }
+
+
+ap_uint<16> parseHttpInput()
+{
+	
+
+	//return offset to payload 
+	return 0; 
+}
+
 
 
 

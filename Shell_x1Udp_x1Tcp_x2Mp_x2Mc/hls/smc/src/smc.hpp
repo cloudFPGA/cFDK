@@ -70,9 +70,8 @@
 
 extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
-
-//for Debug 
 extern ap_uint<16> currentBufferInPtr;
+extern ap_uint<16> currentBufferOutPtr;
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
