@@ -22,7 +22,7 @@ ap_uint<8> bufferOut[BUFFER_SIZE];
 ap_uint<16> currentBufferOutPtr = 0x0;
 
 
-
+ap_uint<4> httpAnswerPageLength = 0;
 static HttpState httpState = HTTP_IDLE; 
 
 
@@ -190,7 +190,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 	ap_uint<8> ASW1 = 0, ASW2 = 0, ASW3 = 0, ASW4= 0;
 
-	ap_uint<4> httpAnswerPageLength = 0;
 
 //===========================================================
 // Connection to HWICAP
@@ -231,6 +230,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 		httpState = HTTP_IDLE;
 		currentBufferInPtr = 0;
 		currentBufferOutPtr = 0;
+		httpAnswerPageLength = 0;
 	} 
 
 //===========================================================
@@ -277,6 +277,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 				if (parseHTTP == 1 && httpState == HTTP_IDLE)
 				{
 					emptyInBuffer();
+					emptyOutBuffer();
 				}
 
 				ap_uint<4> ret = copyAndCheckBurst(xmem,expCnt, checkPattern);
