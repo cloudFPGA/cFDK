@@ -573,7 +573,7 @@ if { ${link} } {
 
 
 
-if { ${impl1} || $forceWithoutBB } {
+if { ${impl1} && $forceWithoutBB } {
 
     my_puts "################################################################################"
     my_puts "##"
