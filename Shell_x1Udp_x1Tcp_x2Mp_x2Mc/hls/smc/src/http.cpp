@@ -7,8 +7,8 @@
 #include "http.hpp"
 #include "smc.hpp" 
 
-extern HttpState httpState; 
-extern ap_uint<16> currentPayloadStart;
+//extern HttpState httpState; 
+//extern ap_uint<16> currentPayloadStart;
 
 //static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
 static char* httpHeader = "HTTP/1.1 ";
@@ -158,19 +158,20 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
 
 
 // from http://simplestcodings.blogspot.com/2010/08/custom-string-compare-function-in-c.html, adapted
-int my_strcmp(char *temp1, ap_uint<8> *temp2, int max_length)
+int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
 {
   int cnt = 0;
-  while(*temp1 && *temp2)
+  while(*temp1 && temp2[cnt])
   {
-    if(*temp1==*temp2)
+    if(*temp1== temp2[cnt])
     {
       temp1++;
-      temp2++;
+      //temp2++; 
+      cnt++;
     }
     else
     {
-      if(*temp1<*temp2)
+      if(*temp1< temp2[cnt])
       {
         return -1;  //returning a negative value
       }
@@ -183,7 +184,7 @@ int my_strcmp(char *temp1, ap_uint<8> *temp2, int max_length)
     {
       return 0; 
     } 
-    cnt++;
+    //cnt++;
   }
   return 0; //return 0 when strings are same
 }
@@ -249,7 +250,8 @@ int8_t extract_path()
   
 
   //int requestLen = request_len(PAYLOAD_BYTES_PER_PAGE*iter_count);
-  int requestLen = request_len(stringlen);
+  //int requestLen = request_len(stringlen);
+  int requestLen = 106; //request_len(128);
 
   //from here it looks like a valid header 
 
@@ -257,7 +259,7 @@ int8_t extract_path()
 
   reqType = INVALID; //reset 
 
-  if (my_strcmp(statusPath, bufferIn ,my_strlen(statusPath)) == 0 )
+ if (my_strcmp(statusPath, bufferIn ,my_strlen(statusPath)) == 0 )
   {
     reqType = GET_STATUS; 
     return 1;
@@ -267,15 +269,17 @@ int8_t extract_path()
     return 2;
   } else { //Invalid
     return -2;
-  }
+  } 
+  return -2;
 
 }
 
 
+//void parseHttpInput(ttpState httpState, ap_uint<1> transferErr, ap_uint<1> wasAbort)
 void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
 {
 
-  switch (httpState) {
+ switch (httpState) {
     case HTTP_IDLE: //both the same
     case HTTP_PARSE_HEADER: 
              //search for HTTP 
@@ -287,8 +291,8 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                    break; */
                case -2: //invalid content 
                  httpState = HTTP_INVALID_REQUEST;
-                emptyOutBuffer();
-                httpAnswerPageLength = writeHttpStatus(400,0);
+                //emptyOutBuffer();
+                //httpAnswerPageLength = writeHttpStatus(400,0);
                    break; 
                case -1: //not yet complete 
                  httpState = HTTP_PARSE_HEADER; 
@@ -302,14 +306,15 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                     httpState = HTTP_HEADER_PARSED;
                     break;
              }
+      //httpState = HTTP_INVALID_REQUEST;
                break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0 
                httpState = HTTP_READ_PAYLOAD;
                currentPayloadStart = 0;
                break; 
     case HTTP_REQUEST_COMPLETE: //one cycle pause between read and write 
-               httpState = HTTP_SEND_RESPONSE;
-               break;
+             //  httpState = HTTP_SEND_RESPONSE;
+             //  break;
     case HTTP_SEND_RESPONSE:
                emptyOutBuffer();
                if (transferErr == 1)
@@ -325,14 +330,16 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                  int answerLength = 0;
                  httpAnswerPageLength = writeHttpStatus(200,answerLength);
                  //write status
+               } else {
+                httpAnswerPageLength = writeHttpStatus(200,0);
                }
-               
-               httpAnswerPageLength = writeHttpStatus(200,0);
                httpState = HTTP_DONE;
                break;
     default:
                break;
   }
+
+  printf("parseHttpInput returns with state %d",httpState);
 
 }
 

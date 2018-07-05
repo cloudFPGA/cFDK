@@ -332,162 +332,166 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         transferErr = 1;
       }
     }
-    
-    if (checkPattern == 0 && handlePayload)
-    {//means: write to HWICAP
-
-      ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
-
-      if (copyRet == 4 || copyRet == 5)
-      {// valid buffer -> write to HWICAP
-    
-        //with HTTP the current buffer pointer is not always the start of the payload
-        currentPayloadStart = currentBufferInPtr;
-
-
-        if (parseHTTP == 1)
-        {
-            //httpAnswerPageLength = writeHttpStatus(200,0);
-            //copyOutBuffer(httpAnswerPageLength,xmem);
-            //emptyOutBuffer();
-            //uint8_t httpRet = 
-
-            if(wasAbort == 1 || transferErr == 1)
-            {
-              httpState = HTTP_SEND_RESPONSE;
-            }
-
-            parseHTTP(transferErr,wasAbort); 
-
-            switch (httpState) {
-              case HTTP_IDLE: 
-                handlePayload = false;
-                break; 
-              case HTTP_PARSE_HEADER: 
-                iter_count++;
-                currentBufferInPtr += currentAddedPayload;
-                handlePayload = false;
-                break; 
-              case HTTP_HEADER_PARSED:
-                       if( currentBufferInPtr + currentAddedPayload == currentPayloadStart) 
-                       {//corner case 
-                         handlePayload = false;
-                         httpState = HTTP_READ_PAYLOAD;
-                       }
-                       currentBufferInPtr += currentAddedPayload;
-                       iter_count++;
-                       break; 
-              case HTTP_READ_PAYLOAD:
-                       currentBufferInPtr += currentAddedPayload;
-                       iter_count++; 
-                       if (transferSuccess == 1)
-                       {
-                         httpState = HTTP_REQUEST_COMPLETE;
-                       }
-                       break;
-              case HTTP_REQUEST_COMPLETE: 
-                        handlePayload = false;
-                       ongoingTransfer = 1;
-                       currentBufferInPtr += currentAddedPayload;
-                       iter_count++;
-                         break;
-              case HTTP_INVALID_REQUEST:
-                         transferErr = 1; //no break: 
-              case HTTP_SEND_RESPONSE:
-              case HTTP_DONE:
-                         copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
-                         ongoingTransfer = 0;
-                         handlePayload = false;
-                         break;
-            }
-
-            //currentBufferInPtr += currentAddedPayload;
-            //iter_count++;
-        }
-
-
-       if (handlePayload) 
-       {
-          for( int i = 0; i<lastLine; i++)
-          {
-            ap_uint<32> tmp = 0; 
-            if ( notToSwap == 1) 
-            {
-              tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4];
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) <<  8);
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) << 16);
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3]) << 24);
-            } else { 
-              //default 
-              tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3];
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) <<  8);
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) << 16);
-              tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 0]) << 24);
-            }
-            
-            HWICAP[WF_OFFSET] = tmp;
-          }
-  
-          if (CR_isWritting != 1)
-          {
-            HWICAP[CR_OFFSET] = CR_WRITE;
-        }
-       }
-      }
-
-      if (copyRet == 2)
-      {//Abort current opperation and exit 
-        HWICAP[CR_OFFSET] = CR_ABORT;
-        transferErr = 1;
-      }
-
-      if (copyRet == 4 && handlePayload)
-      {//wait until all is written 
-        while(WFV_value < 0x3FF) 
-        {
-          ap_wait_n(LOOP_WAIT_CYCLES); 
-          
-          CR = HWICAP[WFV_OFFSET];
-          CR_value = CR & 0x1F; 
-          wasAbort = (CR_value & CR_ABORT) >> 4;
-          CR_isWritting = CR_value & CR_WRITE;
-
-          if(wasAbort == 1)
-          {
-            transferErr = 1;
-            msg = "ABR"; 
-            break;
-          }
-
-          if(CR_isWritting != 1)
-          {
-            HWICAP[CR_OFFSET] = CR_WRITE;
-          }
-          
-          WFV = HWICAP[WFV_OFFSET];
-          WFV_value = WFV & 0x3FF;
-        }
-      }
-    }
-    
-    if (parseHTTP == 0) // else to above
-    {
-     currentBufferInPtr += currentAddedPayload;
-     iter_count++;
-    }
-
-    if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
-    { 
-      iter_count = 0;
-      currentBufferInPtr = 0;
-    }
-
-
   } else if (transferErr == 0 && start == 0 && transferSuccess == 0)
   {
     msg = "IDL";
   }
   //otherwise don't touch msg 
+    
+  if ((checkPattern == 0 && handlePayload) || ongoingTransfer == 1)
+  {//means: write to HWICAP
+
+    ap_uint<1> CR_isWritting = CR_value & CR_WRITE;
+
+    if (copyRet == 4 || copyRet == 5 || ongoingTransfer == 1)
+    {// valid buffer -> write to HWICAP
+  
+      //with HTTP the current buffer pointer is not always the start of the payload
+      currentPayloadStart = currentBufferInPtr;
+
+
+      if (parseHTTP == 1)
+      {
+          //httpAnswerPageLength = writeHttpStatus(200,0);
+          //copyOutBuffer(httpAnswerPageLength,xmem);
+          //emptyOutBuffer();
+          //uint8_t httpRet = 
+
+          if(wasAbort == 1 || transferErr == 1)
+          {
+            httpState = HTTP_SEND_RESPONSE;
+          }
+
+          printf("httpState bevore HTTP Input: %d",httpState);
+
+          //parseHttpInput(httpState, transferErr,wasAbort); 
+          parseHttpInput(transferErr,wasAbort); 
+
+          switch (httpState) {
+            case HTTP_IDLE: 
+              handlePayload = false;
+              break; 
+            case HTTP_PARSE_HEADER: 
+              iter_count++;
+              currentBufferInPtr += currentAddedPayload;
+              handlePayload = false;
+              break; 
+            case HTTP_HEADER_PARSED:
+                     if( currentBufferInPtr + currentAddedPayload == currentPayloadStart) 
+                     {//corner case 
+                       handlePayload = false;
+                       httpState = HTTP_READ_PAYLOAD;
+                     }
+                     currentBufferInPtr += currentAddedPayload;
+                     iter_count++;
+                     break; 
+            case HTTP_READ_PAYLOAD:
+                     currentBufferInPtr += currentAddedPayload;
+                     iter_count++; 
+                     if (transferSuccess == 1)
+                     {
+                       httpState = HTTP_REQUEST_COMPLETE;
+                     }
+                     break;
+            case HTTP_REQUEST_COMPLETE: 
+                      handlePayload = false;
+                     ongoingTransfer = 1;
+                     currentBufferInPtr += currentAddedPayload;
+                     iter_count++;
+                       break;
+            case HTTP_INVALID_REQUEST:
+                       transferErr = 1; //no break: 
+            case HTTP_SEND_RESPONSE:
+            case HTTP_DONE:
+                       copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
+                       ongoingTransfer = 0;
+                       handlePayload = false;
+                       break;
+          }
+
+          //currentBufferInPtr += currentAddedPayload;
+          //iter_count++;
+      }
+
+
+      if (checkPattern == 0 && handlePayload)
+      {//means: write to HWICAP
+
+        for( int i = 0; i<lastLine; i++)
+        {
+          ap_uint<32> tmp = 0; 
+          if ( notToSwap == 1) 
+          {
+            tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4];
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) <<  8);
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) << 16);
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3]) << 24);
+          } else { 
+            //default 
+            tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3];
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) <<  8);
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) << 16);
+            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 0]) << 24);
+          }
+          
+          HWICAP[WF_OFFSET] = tmp;
+        }
+  
+        if (CR_isWritting != 1)
+        {
+          HWICAP[CR_OFFSET] = CR_WRITE;
+      }
+     }
+    }
+
+    if (copyRet == 2)
+    {//Abort current opperation and exit 
+      HWICAP[CR_OFFSET] = CR_ABORT;
+      transferErr = 1;
+    }
+
+    if (copyRet == 4 && handlePayload)
+    {//wait until all is written 
+      while(WFV_value < 0x3FF) 
+      {
+        ap_wait_n(LOOP_WAIT_CYCLES); 
+        
+        CR = HWICAP[WFV_OFFSET];
+        CR_value = CR & 0x1F; 
+        wasAbort = (CR_value & CR_ABORT) >> 4;
+        CR_isWritting = CR_value & CR_WRITE;
+
+        if(wasAbort == 1)
+        {
+          transferErr = 1;
+          msg = "ABR"; 
+          break;
+        }
+
+        if(CR_isWritting != 1)
+        {
+          HWICAP[CR_OFFSET] = CR_WRITE;
+        }
+        
+        WFV = HWICAP[WFV_OFFSET];
+        WFV_value = WFV & 0x3FF;
+      }
+    }
+  }
+  
+  if (parseHTTP == 0) // else to above
+  {
+   currentBufferInPtr += currentAddedPayload;
+   iter_count++;
+  }
+
+  if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
+  { 
+    iter_count = 0;
+    currentBufferInPtr = 0;
+  }
+
+
 
 
 //===========================================================
@@ -527,7 +531,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   Display3 |= ((ap_uint<32>) msg[2]) << MSG_SHIFT + 0; 
 
   Display4 = ((ap_uint<32>) httpAnswerPageLength) << ANSWER_LENGTH_SHIFT; 
-  Display4 |= ((ap_uint<32>) httpState) << HTTP_STATE_SHIFT;
+  Display4 |= ((int) httpState) << HTTP_STATE_SHIFT;
 
   switch (Dsel) {
     case 1:
@@ -541,6 +545,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           break;
     case 4:
         *MMIO_out = (0x4 << DSEL_SHIFT) | Display4;
+       //   printf("httpState should be: %d\n",httpState);
           break;
     default: 
         *MMIO_out = 0xBEBAFECA;

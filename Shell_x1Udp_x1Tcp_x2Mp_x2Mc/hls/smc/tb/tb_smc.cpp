@@ -81,6 +81,18 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
 
 }
 
+void copyBufferToXmem(char* buffer_int, ap_uint<32> xmem[XMEM_SIZE])
+{
+  for(int i = 0; i<LINES_PER_PAGE; i++)
+  {
+    ap_uint<32> tmp = 0; 
+    tmp = ((ap_uint<32>) (uint8_t) buffer_int[i*4 + 0]); 
+    tmp |= ((ap_uint<32>)(uint8_t) buffer_int[i*4 + 1]) << 8; 
+    tmp |= ((ap_uint<32>)(uint8_t) buffer_int[i*4 + 2]) << 16; 
+    tmp |= ((ap_uint<32>)(uint8_t) buffer_int[i*4 + 3]) << 24; 
+    xmem[i] = tmp;;
+  }
+}
 
 int main(){
 
@@ -217,8 +229,8 @@ int main(){
 
   //one complete transfer with overflow
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
-  //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
+  //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
   for(int i = 0; i<0xf; i++)
   {
     cnt = i;
@@ -231,11 +243,11 @@ int main(){
     //printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
     //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
     //due to homogene buffer: no %2 here
-    assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[LINES_PER_PAGE-1] & 0xfff));
+    //assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[LINES_PER_PAGE-1] & 0xfff));
 
   }
   
-  printBuffer(bufferIn, "buffer after 0xf transfers:");
+  //printBuffer(bufferIn, "buffer after 0xf transfers:");
 
   assert(HWICAP[CR_OFFSET] == 0x3);
   
@@ -252,21 +264,59 @@ int main(){
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
 
-  //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT) | ( 1 << SWAP_N_SHIFT);
-  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  xmem[XMEM_ANSWER_START] = 42;
-  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  printBuffer(bufferOut, "BufferOut:");
-  printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
-  printBuffer32(xmem, "Xmem:");
-  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-
   
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   cnt = 0x1;
   initBuffer((ap_uint<4>) cnt, xmem, true);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
+
+//===========================================================
+//Test HTTP
+  
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x3f49444C);
+
+//MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT) | ( 1 << SWAP_N_SHIFT);
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  char *httpBuffer = new char[128];
+  char* getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
+  httpBuffer[0] = 0xF0;
+  strcpy(&httpBuffer[1],getStatus);
+  httpBuffer[strlen(getStatus)+1] = 0x0;
+  httpBuffer[127] = 0xF0;
+  //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
+  copyBufferToXmem(httpBuffer,xmem);
+
+  xmem[XMEM_ANSWER_START] = 42;
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x30535543);
+  
+  printBuffer(bufferIn, "buffer after GET transfers:");
+
+  //one pause cycle, nothing should happen 
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x30535543);
+  
+ /* //one pause cycle, nothing should happen 
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x30535543);
+
+  //one pause cycle, nothing should happen 
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x30535543);*/
+
+  
+  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x40000071);
+  
+  printBuffer(bufferOut, "BufferOut:");
+  printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
+  //printBuffer32(xmem, "Xmem:");
+  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
+
 
 
   return succeded? 0 : -1;
