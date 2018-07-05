@@ -2,6 +2,7 @@
 #define _SMC_H_
 
 #include "ap_int.h"
+#include "http.hpp"
 
 //Display1
 #define WFV_V_SHIFT 8 
@@ -56,6 +57,7 @@
 #define MAX_PAGES 16
 #define XMEM_SIZE (LINES_PER_PAGE * MAX_PAGES)
 #define BYTES_PER_PAGE (LINES_PER_PAGE*4)
+#define PAYLOAD_BYTES_PER_PAGE (BYTES_PER_PAGE - 2)
 #define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
 #define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round 
 #define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes!
@@ -72,14 +74,18 @@ extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
 extern ap_uint<16> currentBufferInPtr;
 extern ap_uint<16> currentBufferOutPtr;
+extern ap_uint<8> iter_count;
+extern ap_uint<4> httpAnswerPageLength;
 
+extern HttpState httpState; 
+extern ap_uint<16> currentPayloadStart;
 
 void emptyInBuffer();
 void emptyOutBuffer();
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
-			ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-			ap_uint<32> xmem[XMEM_SIZE]);
+      ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+      ap_uint<32> xmem[XMEM_SIZE]);
 
 
 #endif
