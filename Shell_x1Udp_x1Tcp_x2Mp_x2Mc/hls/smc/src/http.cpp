@@ -192,34 +192,51 @@ int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
 
 
 static char *statusPath = "GET /status";
-static char *configurePath = "P0ST /configure";
+static char *configurePath = "POST /configure";
 
 enum RequestType {INVALID = 0, POST_CONFIG, GET_STATUS};
 enum RequestType reqType = INVALID; 
 
-int request_len(int maxLength)
+int request_len(ap_uint<16> offset, int maxLength)
 { 
 
-  if (bufferIn[0] == 0x00)
+  if (bufferIn[offset + 0] == 0x00)
   {//empty 
     return 0; 
   }
 
   int sum = 0;
-  ap_uint<32> tmp = 0; 
-  tmp = ((ap_uint<32>) bufferIn[0 + 0]); 
-  tmp |= ((ap_uint<32>) bufferIn[0 + 1]) << 8; 
-  tmp |= ((ap_uint<32>) bufferIn[0 + 2]) << 16; 
-  tmp |= ((ap_uint<32>) bufferIn[0 + 3]) << 24; 
+ /* ap_uint<32> tmp = 0; 
+  tmp = ((ap_uint<32>) bufferIn[offset + 0 + 0]); 
+  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 1]) << 8; 
+  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 2]) << 16; 
+  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 3]) << 24; 
 
   //check for double \r\n\r\n
   while(tmp != 0x0d0a0d0a && sum < maxLength) {
     sum += 4;
-    tmp = ((ap_uint<32>) bufferIn[0 + sum + 0]); 
-    tmp |= ((ap_uint<32>) bufferIn[0 + sum + 1]) << 8; 
-    tmp |= ((ap_uint<32>) bufferIn[0 + sum + 2]) << 16; 
-    tmp |= ((ap_uint<32>) bufferIn[0 + sum + 3]) << 24; 
-  } 
+    tmp = ((ap_uint<32>) bufferIn[offset + 0 + sum + 0]); 
+    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 1]) << 8; 
+    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 2]) << 16; 
+    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 3]) << 24; 
+  }*/ 
+
+  char c1 = 0, c2 = 0, c3 = 0, c4 = 0;
+  c1 = (char) bufferIn[offset + 0 + 0]; 
+  c2 = (char) bufferIn[offset + 0 + 1]; 
+  c3 = (char) bufferIn[offset + 0 + 2]; 
+  c4 = (char) bufferIn[offset + 0 + 3];  
+
+  while( (c1 != '\r' || c2 != '\n' || c3 != '\r' || c4 != '\n' ) && sum < maxLength)
+  {
+    //sum += 4;
+    sum++;
+    c1 = (char) bufferIn[offset + sum + 0]; 
+    c2 = (char) bufferIn[offset + sum + 1]; 
+    c3 = (char) bufferIn[offset + sum + 2]; 
+    c4 = (char) bufferIn[offset + sum + 3];  
+  }
+
   
   if (sum >= maxLength)
   { //not a valid end of header found --> invalid content, since we should have already the complete request in the buffer here 
@@ -249,13 +266,21 @@ int8_t extract_path()
   // a post request is not always ended with a \n or a payload (bitfile)  can also have a \0 in it => wie don't know the exact header length now 
   
 
-  int requestLen = request_len(stringlen);
+  printf("stringlen: %d\n",(int) stringlen);
+
+  int requestLen = request_len(0, stringlen);
+  //int requestLen = 135;
+  printf("requestLen: %d\n",(int) requestLen);
 
   //from here it looks like a valid header 
 
-  currentPayloadStart = requestLen;
 
   reqType = INVALID; //reset 
+
+  if(requestLen == -1)
+  {
+    return -2;
+  }
 
  if (my_strcmp(statusPath, bufferIn ,my_strlen(statusPath)) == 0 )
   {
@@ -263,6 +288,7 @@ int8_t extract_path()
     return 1;
   } else if (my_strcmp(configurePath, bufferIn ,my_strlen(configurePath)) == 0 )
   { 
+    currentPayloadStart = requestLen + 4;
     reqType = POST_CONFIG; 
     return 2;
   } else { //Invalid
@@ -306,7 +332,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0 
                httpState = HTTP_READ_PAYLOAD;
-               currentPayloadStart = 0;
+               currentPayloadStart = currentBufferInPtr;
                break; 
     case HTTP_REQUEST_COMPLETE: //for requests without payload -> need step in between in other process -> no break here!
     case HTTP_SEND_RESPONSE:
@@ -336,7 +362,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  //printf("parseHttpInput returns with state %d",httpState);
+  printf("parseHttpInput returns with state %d\n",httpState);
 
 }
 

@@ -407,16 +407,21 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                        handlePayload = false;
                        httpState = HTTP_READ_PAYLOAD;
                      }
-                     currentBufferInPtr += currentAddedPayload;
-                     iter_count++;
-                     break; 
+                     //currentBufferInPtr += currentAddedPayload;
+                     //iter_count++;
+                     //ongoingTransfer = 1;
+                     //break; 
             case HTTP_READ_PAYLOAD:
-                     currentBufferInPtr += currentAddedPayload;
-                     iter_count++; 
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
+                      printf("lastLine bevore update: %d\n",(int) lastLine);
+                       lastLine = request_len(currentPayloadStart,lastLine*4) / 4; //update last word 
+                      printf("lastLine after update: %d\n", (int) lastLine);
                      }
+                     currentBufferInPtr += currentAddedPayload;
+                     iter_count++; 
+                     ongoingTransfer = 1;
                      break;
             case HTTP_REQUEST_COMPLETE: 
                       handlePayload = false;

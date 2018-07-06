@@ -14,6 +14,7 @@ typedef enum { HTTP_IDLE = 0,
 
 int writeString(char* s);
 int8_t writeHttpStatus(int status, uint16_t content_length);
+int request_len(ap_uint<16> offset, int maxLength);
 
 void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort);
 
