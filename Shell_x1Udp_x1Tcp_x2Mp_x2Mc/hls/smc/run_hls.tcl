@@ -74,12 +74,14 @@ create_clock -period 6.4 -name default
 
 if { $hlsSim} { 
   csim_design -compiler gcc -clean
+  #csim_design -compiler clang -clean
 } else {
 
   csynth_design
   
   if { $hlsCoSim} {
     #cosim_design -compiler gcc -trace_level all -rtl vhdl
+    #cosim_design -compiler clang -trace_level all 
     cosim_design -compiler gcc -trace_level all 
   } else {
   

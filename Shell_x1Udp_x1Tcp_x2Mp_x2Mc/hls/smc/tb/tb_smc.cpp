@@ -304,7 +304,7 @@ int main(){
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x40000071);
+  succeded &= checkResult(MMIO, 0x40000072);
   
   printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);

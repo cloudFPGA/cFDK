@@ -74,7 +74,7 @@ void emptyOutBuffer()
 }
 
 
-void writeDisplaysToOutBuffer()
+uint8_t writeDisplaysToOutBuffer()
 {
   //Display1
   writeString("Status Display 1: ");
@@ -95,7 +95,9 @@ void writeDisplaysToOutBuffer()
   bufferOut[currentBufferOutPtr + 5] = '\n'; 
   currentBufferOutPtr  += 6;
   /* Display 3 & 4 is less informative outside EMIF Context
-   */
+   */ 
+
+  return 12;
 }
 
 

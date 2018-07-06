@@ -334,9 +334,13 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                  //int answerLength = 0;
                  //httpAnswerPageLength = writeHttpStatus(200,answerLength);
                  httpAnswerPageLength = writeHttpStatus(200,0);
-                 //write status
-                 writeDisplaysToOutBuffer();
-                 writeString(httpNL); //to finish body
+                 //write status 
+                 uint8_t contentLen = writeDisplaysToOutBuffer();
+                 writeString(httpNL); //to finish body 
+                 if (contentLen > 0)
+                 {
+                   httpAnswerPageLength++;
+                 }
                } else {
                 httpAnswerPageLength = writeHttpStatus(200,0);
                }
