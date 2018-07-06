@@ -212,7 +212,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 //===========================================================
 // Core-wide variables
-  ap_uint<32> SR = 0, ISR = 0, WFV = 0, ASR = 0, CR = 0, RFO = 0;
+  ap_uint<32> SR = 0, ISR = 0, WFV = 0, ASR = 0, CR = 0; // RFO = 0;
   ap_uint<32> Done = 0, EOS = 0, WEMPTY = 0;
   ap_uint<32> WFV_value = 0, CR_value = 0;
 
@@ -407,17 +407,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                        handlePayload = false;
                        httpState = HTTP_READ_PAYLOAD;
                      }
-                     //currentBufferInPtr += currentAddedPayload;
-                     //iter_count++;
-                     //ongoingTransfer = 1;
-                     //break; 
+                     //NO break 
             case HTTP_READ_PAYLOAD:
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
-                      printf("lastLine bevore update: %d\n",(int) lastLine);
+                      //printf("lastLine bevore update: %d\n",(int) lastLine);
                        lastLine = request_len(currentPayloadStart,lastLine*4) / 4; //update last word 
-                      printf("lastLine after update: %d\n", (int) lastLine);
+                      //printf("lastLine after update: %d\n", (int) lastLine);
                      }
                      currentBufferInPtr += currentAddedPayload;
                      iter_count++; 
@@ -430,7 +427,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      iter_count++;
                        break;
             case HTTP_INVALID_REQUEST:
-                       transferErr = 1; //no break: 
+                       transferErr = 1; //no break 
             case HTTP_SEND_RESPONSE:
             case HTTP_DONE:
                        copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
@@ -542,8 +539,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
   Display1 = (WEMPTY << WEMPTY_SHIFT) | (Done << DONE_SHIFT) | EOS;
   Display1 |= WFV_value << WFV_V_SHIFT;
-  //Display1 |= RFO << WFV_V_SHIFT;
-  //Display1 |= (decoupStatus | 0x00000000)  << DECOUP_SHIFT;
   Display1 |= ((ap_uint<32>) decoupStatus)  << DECOUP_SHIFT;
   Display1 |= ((ap_uint<32>) ASW1) << ASW1_SHIFT;
   Display1 |= ((ap_uint<32>) CR_value) << CMD_SHIFT;

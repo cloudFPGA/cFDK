@@ -7,7 +7,7 @@
 #include "http.hpp"
 #include "smc.hpp" 
 
-//extern HttpState httpState; 
+extern HttpState httpState; 
 //extern ap_uint<16> currentPayloadStart;
 
 //static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
@@ -206,21 +206,6 @@ int request_len(ap_uint<16> offset, int maxLength)
   }
 
   int sum = 0;
- /* ap_uint<32> tmp = 0; 
-  tmp = ((ap_uint<32>) bufferIn[offset + 0 + 0]); 
-  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 1]) << 8; 
-  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 2]) << 16; 
-  tmp |= ((ap_uint<32>) bufferIn[offset + 0 + 3]) << 24; 
-
-  //check for double \r\n\r\n
-  while(tmp != 0x0d0a0d0a && sum < maxLength) {
-    sum += 4;
-    tmp = ((ap_uint<32>) bufferIn[offset + 0 + sum + 0]); 
-    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 1]) << 8; 
-    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 2]) << 16; 
-    tmp |= ((ap_uint<32>) bufferIn[offset + 0 + sum + 3]) << 24; 
-  }*/ 
-
   char c1 = 0, c2 = 0, c3 = 0, c4 = 0;
   c1 = (char) bufferIn[offset + 0 + 0]; 
   c2 = (char) bufferIn[offset + 0 + 1]; 
@@ -278,7 +263,7 @@ int8_t extract_path()
   reqType = INVALID; //reset 
 
   if(requestLen == -1)
-  {
+  {//not a valid header
     return -2;
   }
 
