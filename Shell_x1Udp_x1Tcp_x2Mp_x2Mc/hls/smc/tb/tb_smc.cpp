@@ -346,6 +346,8 @@ int main(){
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
+#ifndef COSIM
+
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
@@ -450,7 +452,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
   assert(HWICAP[WF_OFFSET] == 0x32303030);
-
+#endif
 
   return succeded? 0 : -1;
   //return 0;

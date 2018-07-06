@@ -70,6 +70,28 @@
 #define CR_WRITE 0x1
 
 
+//Cosim enum Bug fix
+#define COSIM 
+#ifdef COSIM
+
+#define HTTP_IDLE 0
+#define HTTP_PARSE_HEADER 1
+#define HTTP_HEADER_PARSED 2
+#define HTTP_READ_PAYLOAD 3
+#define HTTP_REQUEST_COMPLETE 4
+#define HTTP_SEND_RESPONSE 5
+#define HTTP_INVALID_REQUEST 6
+#define HTTP_DONE 7 
+#define HttpState uint8_t 
+
+#else 
+typedef enum { HTTP_IDLE = 0, 
+            HTTP_PARSE_HEADER = 1, HTTP_HEADER_PARSED = 2, 
+            HTTP_READ_PAYLOAD = 3, HTTP_REQUEST_COMPLETE = 4,
+            HTTP_SEND_RESPONSE = 5, HTTP_INVALID_REQUEST =  6,
+            HTTP_DONE = 7 } HttpState; 
+#endif
+
 extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
 extern ap_uint<16> currentBufferInPtr;

@@ -4,10 +4,10 @@
 #include "ap_int.h"
 #include "ap_utils.h"
 
-#include "http.hpp"
 #include "smc.hpp" 
+#include "http.hpp"
 
-extern HttpState httpState; 
+//extern HttpState httpState; 
 //extern ap_uint<16> currentPayloadStart;
 
 //static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
@@ -194,8 +194,7 @@ int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
 static char *statusPath = "GET /status";
 static char *configurePath = "POST /configure";
 
-enum RequestType {INVALID = 0, POST_CONFIG, GET_STATUS};
-enum RequestType reqType = INVALID; 
+RequestType reqType = REQ_INVALID; 
 
 int request_len(ap_uint<16> offset, int maxLength)
 { 
@@ -260,9 +259,9 @@ int8_t extract_path()
   //from here it looks like a valid header 
 
 
-  reqType = INVALID; //reset 
+  reqType = REQ_INVALID; //reset 
 
-  if(requestLen == -1)
+  if(requestLen <= 0)
   {//not a valid header
     return -2;
   }
