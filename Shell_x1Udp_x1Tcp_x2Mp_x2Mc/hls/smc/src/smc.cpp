@@ -28,6 +28,7 @@ HttpState httpState = HTTP_IDLE;
 ap_uint<16> currentPayloadStart = 0;
 ap_uint<1> ongoingTransfer = 0;
 
+ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0; 
 
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
@@ -70,6 +71,31 @@ void emptyOutBuffer()
     bufferOut[i] = 0x0;
   }
   currentBufferOutPtr = 0x0;
+}
+
+
+void writeDisplaysToOutBuffer()
+{
+  //Display1
+  writeString("Status Display 1: ");
+  bufferOut[currentBufferOutPtr + 3] = Display1 & 0xFF; 
+  bufferOut[currentBufferOutPtr + 2] = (Display1 >> 8) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 1] = (Display1 >> 16) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 0] = (Display1 >> 24) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 4] = '\r'; 
+  bufferOut[currentBufferOutPtr + 5] = '\n'; 
+  currentBufferOutPtr  += 6;
+  //Display2
+  writeString("Status Display 2: ");
+  bufferOut[currentBufferOutPtr + 3] = Display2 & 0xFF; 
+  bufferOut[currentBufferOutPtr + 2] = (Display2 >> 8) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 1] = (Display2 >> 16) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 0] = (Display2 >> 24) & 0xFF; 
+  bufferOut[currentBufferOutPtr + 4] = '\r'; 
+  bufferOut[currentBufferOutPtr + 5] = '\n'; 
+  currentBufferOutPtr  += 6;
+  /* Display 3 & 4 is less informative outside EMIF Context
+   */
 }
 
 
@@ -235,6 +261,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     currentBufferOutPtr = 0;
     httpAnswerPageLength = 0;
     ongoingTransfer = 0;
+    Display1 = 0;
+    Display2 = 0;
+    Display3 = 0;
+    Display4 = 0;
   } 
 
 //===========================================================
@@ -352,19 +382,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
       if (parseHTTP == 1)
       {
-          //httpAnswerPageLength = writeHttpStatus(200,0);
-          //copyOutBuffer(httpAnswerPageLength,xmem);
-          //emptyOutBuffer();
-          //uint8_t httpRet = 
 
           if(wasAbort == 1 || transferErr == 1)
           {
             httpState = HTTP_SEND_RESPONSE;
           }
 
-          printf("httpState bevore HTTP Input: %d",httpState);
+          //printf("httpState bevore HTTP Input: %d",httpState);
 
-          //parseHttpInput(httpState, transferErr,wasAbort); 
           parseHttpInput(transferErr,wasAbort); 
 
           switch (httpState) {
@@ -409,8 +434,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                        break;
           }
 
-          //currentBufferInPtr += currentAddedPayload;
-          //iter_count++;
       }
 
 
@@ -508,7 +531,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 //  putting displays together 
 
 
-  ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0; 
   ap_uint<4> Dsel = 0;
 
   Dsel = (*MMIO_in >> DSEL_SHIFT) & 0xF;

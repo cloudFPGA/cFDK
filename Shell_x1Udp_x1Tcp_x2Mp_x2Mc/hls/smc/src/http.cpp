@@ -127,7 +127,7 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
   len += writeString(httpNL);
   len += writeString(generalHeader);
 
-  if ( content_length > 0)
+ /* if ( content_length > 0)
   {
     char *lengthAscii = new char[6];
 
@@ -142,7 +142,7 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
     len += writeString(lengthAscii);
     len += writeString(httpNL);
   }
-  
+  */
   len += writeString(httpNL); // to finish header 
 
   int8_t pageCnt = len/BYTES_PER_PAGE; 
@@ -249,9 +249,7 @@ int8_t extract_path()
   // a post request is not always ended with a \n or a payload (bitfile)  can also have a \0 in it => wie don't know the exact header length now 
   
 
-  //int requestLen = request_len(PAYLOAD_BYTES_PER_PAGE*iter_count);
-  //int requestLen = request_len(stringlen);
-  int requestLen = 106; //request_len(128);
+  int requestLen = request_len(stringlen);
 
   //from here it looks like a valid header 
 
@@ -275,7 +273,6 @@ int8_t extract_path()
 }
 
 
-//void parseHttpInput(ttpState httpState, ap_uint<1> transferErr, ap_uint<1> wasAbort)
 void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
 {
 
@@ -291,8 +288,8 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                    break; */
                case -2: //invalid content 
                  httpState = HTTP_INVALID_REQUEST;
-                //emptyOutBuffer();
-                //httpAnswerPageLength = writeHttpStatus(400,0);
+                emptyOutBuffer();
+                httpAnswerPageLength = writeHttpStatus(400,0);
                    break; 
                case -1: //not yet complete 
                  httpState = HTTP_PARSE_HEADER; 
@@ -306,15 +303,12 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                     httpState = HTTP_HEADER_PARSED;
                     break;
              }
-      //httpState = HTTP_INVALID_REQUEST;
                break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0 
                httpState = HTTP_READ_PAYLOAD;
                currentPayloadStart = 0;
                break; 
-    case HTTP_REQUEST_COMPLETE: //one cycle pause between read and write 
-             //  httpState = HTTP_SEND_RESPONSE;
-             //  break;
+    case HTTP_REQUEST_COMPLETE: //for requests without payload -> need step in between in other process -> no break here!
     case HTTP_SEND_RESPONSE:
                emptyOutBuffer();
                if (transferErr == 1)
@@ -327,9 +321,12 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                { 
                  //combine status 
                  //length??
-                 int answerLength = 0;
-                 httpAnswerPageLength = writeHttpStatus(200,answerLength);
+                 //int answerLength = 0;
+                 //httpAnswerPageLength = writeHttpStatus(200,answerLength);
+                 httpAnswerPageLength = writeHttpStatus(200,0);
                  //write status
+                 writeDisplaysToOutBuffer();
+                 writeString(httpNL); //to finish body
                } else {
                 httpAnswerPageLength = writeHttpStatus(200,0);
                }
@@ -339,7 +336,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  printf("parseHttpInput returns with state %d",httpState);
+  //printf("parseHttpInput returns with state %d",httpState);
 
 }
 

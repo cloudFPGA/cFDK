@@ -20,10 +20,11 @@ bool checkResult(ap_uint<32> MMIO, ap_uint<32> expected)
   //exit -1;
 }
 
-void printBuffer(ap_uint<8> buffer_int[BUFFER_SIZE], char* msg)
+void printBuffer(ap_uint<8> buffer_int[BUFFER_SIZE], char* msg, int max_pages)
 {
   printf("%s: \n",msg);
-  for( int i = 0; i < BUFFER_SIZE; i++)
+  //for( int i = 0; i < BUFFER_SIZE; i++)
+  for( int i = 0; i < BYTES_PER_PAGE*max_pages; i++)
   {
     uint8_t cur_elem = (char) buffer_int[i];
     printf("%02x ", cur_elem);
@@ -293,26 +294,19 @@ int main(){
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
   
-  printBuffer(bufferIn, "buffer after GET transfers:");
+  printBuffer(bufferIn, "buffer after GET transfers:",2);
 
   //one pause cycle, nothing should happen 
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
   
- /* //one pause cycle, nothing should happen 
-  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x30535543);
-
-  //one pause cycle, nothing should happen 
-  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x30535543);*/
 
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000071);
   
-  printBuffer(bufferOut, "BufferOut:");
+  printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);

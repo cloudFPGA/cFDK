@@ -82,6 +82,7 @@ extern ap_uint<16> currentPayloadStart;
 
 void emptyInBuffer();
 void emptyOutBuffer();
+void writeDisplaysToOutBuffer();
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
       ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,

@@ -12,9 +12,9 @@ typedef enum { HTTP_IDLE = 0,
             HTTP_DONE = 7 } HttpState;
 
 
+int writeString(char* s);
 int8_t writeHttpStatus(int status, uint16_t content_length);
 
-//void parseHttpInput(HttpState httpState, ap_uint<1> transferErr, ap_uint<1> wasAbort);
 void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort);
 
 
