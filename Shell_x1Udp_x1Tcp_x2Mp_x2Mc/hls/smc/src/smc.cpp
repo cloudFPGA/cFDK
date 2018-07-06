@@ -15,6 +15,7 @@ ap_uint<8> bufferIn[BUFFER_SIZE];
 ap_uint<8> hangover_0 = 0;
 ap_uint<8> hangover_1 = 0;
 bool contains_hangover = false;
+ap_uint<1> toDecoup = 0;
 
 ap_uint<16> currentBufferInPtr = 0x0;
 ap_uint<8> iter_count = 0;
@@ -267,12 +268,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     Display2 = 0;
     Display3 = 0;
     Display4 = 0;
+    toDecoup = 0;
   } 
 
 //===========================================================
 // Start & Run Burst transfer; Manage Decoupling
-  
-  ap_uint<1> toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1;
   
   ap_uint<1> checkPattern = (*MMIO_in >> CHECK_PATTERN_SHIFT ) & 0b1;
   
@@ -284,6 +284,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   ap_uint<1> start = (*MMIO_in >> START_SHIFT) & 0b1;
 
   ap_uint<1> wasAbort = (CR_value & CR_ABORT) >> 4;
+  
+  if (parseHTTP == 0)
+  { // only in manual mode 
+    toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1; 
+  }
 
   bool handlePayload = false; 
   ap_uint<32> lastLine = LINES_PER_PAGE-1;
@@ -313,8 +318,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
       if (EOS == 1)
       {
-        //Activate Decoupling anyway 
-        toDecoup = 1;
+        //Activate Decoupling anyway --> not for HTTP etc.
+        //toDecoup = 1;
 
         if (parseHTTP == 1 && httpState == HTTP_IDLE)
         {
@@ -421,6 +426,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      currentBufferInPtr += currentAddedPayload;
                      iter_count++; 
                      ongoingTransfer = 1;
+                     toDecoup = 1;
                      break;
             case HTTP_REQUEST_COMPLETE: 
                       handlePayload = false;
@@ -429,12 +435,16 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      iter_count++;
                        break;
             case HTTP_INVALID_REQUEST:
-                       transferErr = 1; //no break 
+                       //transferErr = 1;
+                       //set transferSuccess in order not to activate Decoup 
+                       //no break 
             case HTTP_SEND_RESPONSE:
             case HTTP_DONE:
                        copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
+                       transferSuccess = 1;
                        ongoingTransfer = 0;
                        handlePayload = false;
+                       toDecoup = 0;
                        break;
           }
 
@@ -442,7 +452,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
 
       if (checkPattern == 0 && handlePayload)
-      {//means: write to HWICAP
+      {//means: write to HWICAP 
+
+        toDecoup = 1;
 
         for( int i = 0; i<lastLine; i++)
         {
@@ -479,6 +491,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
     if (copyRet == 4 && handlePayload)
     {//wait until all is written 
+      // only for NOT-HTTP flow necessary
       while(WFV_value < 0x3FF) 
       {
         ap_wait_n(LOOP_WAIT_CYCLES); 
@@ -503,6 +516,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x3FF;
       }
+
+      if (parseHTTP == 0)
+      {
+        toDecoup = 0;
+      }
     }
   }
   
@@ -524,7 +542,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 //===========================================================
 // Decoupling 
 
-  if ( toDecoup == 1 || transferErr == 1)
+  if ( toDecoup == 1 || transferErr == 1 )
   {
     *setDecoup = 0b1;
   } else {
@@ -569,7 +587,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           break;
     case 4:
         *MMIO_out = (0x4 << DSEL_SHIFT) | Display4;
-       //   printf("httpState should be: %d\n",httpState);
           break;
     default: 
         *MMIO_out = 0xBEBAFECA;

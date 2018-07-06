@@ -282,7 +282,7 @@ int main(){
   // GET TEST
 //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT) | ( 1 << SWAP_N_SHIFT);
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  char *httpBuffer = new char[256];
+  char *httpBuffer = new char[512];
   char* getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
   httpBuffer[0] = 0xF0;
   strcpy(&httpBuffer[1],getStatus);
@@ -294,19 +294,22 @@ int main(){
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
+  assert(decoupActive == 0);
   
-  printBuffer(bufferIn, "buffer after GET transfers:",2);
+  //printBuffer(bufferIn, "buffer after GET transfers:",2);
 
   //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
+  assert(decoupActive == 0);
   
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000072);
+  assert(decoupActive == 0);
   
-  printBuffer(bufferOut, "BufferOut:",2);
+  //printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
@@ -316,6 +319,7 @@ int main(){
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f49444C);
+  assert(decoupActive == 0);
 
   // INVALID TEST 
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
@@ -330,23 +334,26 @@ int main(){
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
+  assert(decoupActive == 0);
   
   //printBuffer(bufferIn, "buffer after Invalid GET transfers:",2);
 
   //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
+  assert(decoupActive == 0);
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000061);
+  assert(decoupActive == 0);
   
-  printBuffer(bufferOut, "BufferOut:",2);
+  //printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
-#ifndef COSIM
+//#ifndef COSIM
 
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
@@ -363,33 +370,36 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   httpBuffer[127] = 0x00; //this will damage some payload, but should be ok here 
   httpBuffer[128] = 0xF1;
   httpBuffer[255] = 0XF1;
-  printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
+  //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
   copyBufferToXmem(httpBuffer,xmem);
 
   xmem[XMEM_ANSWER_START] = 42;
   HWICAP[WF_OFFSET] = 0x42;
 
-  printBuffer32(xmem, "Xmem:",2);
+  //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B);
   
-  printBuffer(bufferIn, "buffer IN after POST 1/2:",3);
+  //printBuffer(bufferIn, "buffer IN after POST 1/2:",3);
   copyBufferToXmem(&httpBuffer[128],xmem);
-  printBuffer32(xmem, "Xmem:",2);
+ // printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
+  assert(decoupActive == 1);
   
-  printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
+  //printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
 
   //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
+  //assert(decoupActive == 1); is in the middle...
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000071);
+  assert(decoupActive == 0);
   
-  printBuffer(bufferOut, "BufferOut:",2);
+ // printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
 
@@ -413,37 +423,41 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   httpBuffer[255] = 0X01;
   httpBuffer[256] = 0xF2;
   httpBuffer[383] = 0xF2;
-  printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
+  //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
   copyBufferToXmem(httpBuffer,xmem);
 
   xmem[XMEM_ANSWER_START] = 42;
   HWICAP[WF_OFFSET] = 0x42;
 
-  printBuffer32(xmem, "Xmem:",2);
+  //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B);
   
-  printBuffer(bufferIn, "buffer IN after POST 1/3:",3);
+  //printBuffer(bufferIn, "buffer IN after POST 1/3:",3);
   copyBufferToXmem(&httpBuffer[128],xmem);
-  printBuffer32(xmem, "Xmem:",2);
+  //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31204F4B);
+  assert(decoupActive == 1);
   
-  printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
+  //printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
 
   copyBufferToXmem(&httpBuffer[256],xmem);
-  printBuffer32(xmem, "Xmem:",2);
+  //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x32535543);
-  printBuffer(bufferIn, "buffer IN after POST 3/3:",3);
+  assert(decoupActive == 1);
+  //printBuffer(bufferIn, "buffer IN after POST 3/3:",3);
 
   //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x32535543);
+//  assert(decoupActive == 1);
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000071);
+  assert(decoupActive == 0);
   
   printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
@@ -452,7 +466,9 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
   assert(HWICAP[WF_OFFSET] == 0x32303030);
-#endif
+//#endif
+
+  printf("DONE\n");
 
   return succeded? 0 : -1;
   //return 0;

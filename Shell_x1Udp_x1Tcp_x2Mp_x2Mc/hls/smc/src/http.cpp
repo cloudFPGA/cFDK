@@ -250,11 +250,11 @@ int8_t extract_path()
   // a post request is not always ended with a \n or a payload (bitfile)  can also have a \0 in it => wie don't know the exact header length now 
   
 
-  printf("stringlen: %d\n",(int) stringlen);
+  //printf("stringlen: %d\n",(int) stringlen);
 
   int requestLen = request_len(0, stringlen);
   //int requestLen = 135;
-  printf("requestLen: %d\n",(int) requestLen);
+  //printf("requestLen: %d\n",(int) requestLen);
 
   //from here it looks like a valid header 
 
@@ -350,7 +350,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  printf("parseHttpInput returns with state %d\n",httpState);
+  //printf("parseHttpInput returns with state %d\n",httpState);
 
 }
 
