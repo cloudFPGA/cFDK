@@ -71,7 +71,7 @@
 
 
 //Cosim enum Bug fix
-#define COSIM 
+//#define COSIM 
 #ifdef COSIM
 
 #define HTTP_IDLE 0

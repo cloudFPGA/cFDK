@@ -5,7 +5,7 @@
 #include "ap_int.h" 
 
 
-#define COSIM
+//#define COSIM
 #ifdef COSIM 
 
 #define REQ_INVALID 0

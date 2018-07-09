@@ -54,15 +54,22 @@ open_project  ${projectName}_prj
 #set_top       ${projectName}
 set_top       smc_main
 
+
+if { $hlsSim } { 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
 add_files     ${srcDir}/http.cpp
 add_files     ${srcDir}/http.hpp
+} else {
+add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM"
+add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM"
+add_files     ${srcDir}/http.cpp -cflags "-DCOSIM"
+add_files     ${srcDir}/http.hpp -cflags "-DCOSIM"
+}
 
 #for DEBUG flag 
 #add_files -tb src/smc.cpp -cflags "-DDEBUG"
-add_files -tb tb/tb_smc.cpp
-
+add_files -tb tb/tb_smc.cpp 
 
 open_solution ${solutionName}
 
