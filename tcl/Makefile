@@ -152,7 +152,7 @@ $(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps
 
 ../dcps/2_$(TOP_NAME)_impl_$(usedRole)_complete_pr.dcp: ../dcps/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp ../dcps/0_$(TOP_NAME)_static_without_role.dcp 
 	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
-	@rm -f $@  
+	rm -f $@  
 
 ../dcps/1_$(TOP_NAME)_linked_pr.dcp: ../dcps/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
 	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
