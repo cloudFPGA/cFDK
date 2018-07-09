@@ -37,18 +37,18 @@ void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uin
   {
     ap_uint<32> tmp = 0; 
 
-    if (notToSwap == 1)
-    {
-      tmp = ((ap_uint<32>) bufferOut[i*4 + 3]); 
-      tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 8; 
-      tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 16; 
-      tmp |= ((ap_uint<32>) bufferOut[i*4 + 0]) << 24; 
-    } else {
+ //   if (notToSwap == 1)
+ //   {
+ //   tmp = ((ap_uint<32>) bufferOut[i*4 + 3]); 
+ //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 8; 
+ //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 16; 
+ //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 0]) << 24; 
+ // } else {
       tmp = ((ap_uint<32>) bufferOut[i*4 + 0]); 
       tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 8; 
       tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 16; 
       tmp |= ((ap_uint<32>) bufferOut[i*4 + 3]) << 24; 
-    }
+ //   }
 
     xmem[XMEM_ANSWER_START + i] = tmp;
   }
@@ -211,7 +211,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 #pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
 #pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_SMC_status
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
-
+//TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
 // Core-wide variables

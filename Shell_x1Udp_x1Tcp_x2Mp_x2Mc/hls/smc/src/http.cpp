@@ -182,7 +182,7 @@ int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
     }
     if (cnt == max_length -1 )
     {
-      return 0; 
+      return 0;  //equal until max_length
     } 
     //cnt++;
   }
@@ -341,6 +341,12 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                  {
                    httpAnswerPageLength++;
                  }
+               } else if(reqType == POST_CONFIG)
+               { 
+                httpAnswerPageLength = writeHttpStatus(200,0);
+                writeString("Reconfiguration of ROLE finished successfully!\r\n\r\n");
+                httpAnswerPageLength++;
+                 //write success message 
                } else {
                 httpAnswerPageLength = writeHttpStatus(200,0);
                }

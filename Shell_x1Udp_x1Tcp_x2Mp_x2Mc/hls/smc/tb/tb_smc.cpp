@@ -421,7 +421,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x40000071);
+  succeded &= checkResult(MMIO, 0x40000072);
   assert(decoupActive == 0);
   
  // printBuffer(bufferOut, "BufferOut:",2);
@@ -524,7 +524,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   MMIO_in = 0x4 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x40000071);
+  succeded &= checkResult(MMIO, 0x40000072);
   assert(decoupActive == 0);
   
   printBuffer(bufferOut, "BufferOut:",2);
