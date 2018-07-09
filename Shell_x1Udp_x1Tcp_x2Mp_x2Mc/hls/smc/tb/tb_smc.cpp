@@ -64,8 +64,9 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
   
   for(int i = 0; i<LINES_PER_PAGE; i++)
   {
-    xmem[i] = ctrlWord;
-    //xmem[i] = ctrlWord+i;
+    //xmem[i] = ctrlWord;
+    //xmem[i] = ctrlWord+i; 
+    xmem[i] = (ctrlWord << 16) + (rand() % 65536);
   }
   //printf("CtrlWord: %#010x\n",(int) ctrlWord);
   
@@ -75,8 +76,10 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
   {
     header |= 0xf0; 
   }
-  ap_uint<32> headerLine = header | (ctrlWord & 0xFFFFFF00);
-  ap_uint<32> footerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
+  //ap_uint<32> headerLine = header | (ctrlWord & 0xFFFFFF00);
+  ap_uint<32> headerLine = header | (xmem[0] & 0xFFFFFF00);
+  //ap_uint<32> footerLine = (((ap_uint<32>) header) << 24) | (ctrlWord & 0x00FFFFFF);
+  ap_uint<32> footerLine = (((ap_uint<32>) header) << 24) | (xmem[LINES_PER_PAGE-1] & 0x00FFFFFF);
   xmem[0] = headerLine;
   xmem[LINES_PER_PAGE-1] = footerLine;
 
@@ -228,7 +231,13 @@ int main(){
   succeded &= checkResult(MMIO, 0x3f49444C);
   HWICAP[CR_OFFSET] = 0x3;
 
+  //RST
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x3f49444C);
+
   //one complete transfer with overflow
+  //LOOP
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
@@ -237,18 +246,32 @@ int main(){
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false); 
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-    succeded &= (decoupActive == 1);
+    assert(decoupActive == 1);
 
-    //printBuffer(bufferIn, "buffer");
+    //printBuffer(bufferIn, "bufferIn", 7);
+    //printBuffer32(xmem,"Xmem",1);
     //printf("currentBufferInPtr: %#010x\n",(int) currentBufferInPtr);
-    //printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
+    printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
     //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
-    //due to homogene buffer: no %2 here
-    assert((HWICAP[WF_OFFSET] & 0xfff) == (xmem[LINES_PER_PAGE-1] & 0xfff));
+    int WF_should = 0;
+    if ( i % 2 == 0)
+    { 
+      WF_should = (((xmem[LINES_PER_PAGE-2] & 0xff00) >>8) << 24);
+      WF_should |= (xmem[LINES_PER_PAGE-2] & 0xff0000);
+      WF_should |= ((xmem[LINES_PER_PAGE-2] & 0xff000000) >> 16); //24-8
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff);
+    } else {
+      WF_should = (xmem[LINES_PER_PAGE-2] & 0xff000000);
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff) << 16;
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff00);
+      WF_should |= ((xmem[LINES_PER_PAGE-1] & 0xff0000) >> 16);
+    }
+    printf("WF_should: %#010x\n", WF_should);
+    assert((int) HWICAP[WF_OFFSET] == WF_should);
 
   }
   
-  //printBuffer(bufferIn, "buffer after 0xf transfers:");
+  printBuffer(bufferIn, "buffer after 0xf transfers:",8);
 
   assert(HWICAP[CR_OFFSET] == 0x3);
   
@@ -258,13 +281,14 @@ int main(){
   succeded &= checkResult(MMIO, 0x3f204f4b);
   //printBuffer32(xmem, "Xmem:");
 
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
+//  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
   cnt = 0x0;
   initBuffer((ap_uint<4>) cnt, xmem, false);
   HWICAP[WF_OFFSET] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
-
+  //succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
+  succeded &= checkResult(MMIO, 0x30204F4B);
+  assert(HWICAP[WF_OFFSET] != 42);
   
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   cnt = 0x1;
@@ -299,9 +323,9 @@ int main(){
   //printBuffer(bufferIn, "buffer after GET transfers:",2);
 
   //one pause cycle, nothing should happen (but required by state machine)
-  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+/*  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);
+  assert(decoupActive == 0);*/
   
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
@@ -339,9 +363,9 @@ int main(){
   //printBuffer(bufferIn, "buffer after Invalid GET transfers:",2);
 
   //one pause cycle, nothing should happen (but required by state machine)
-  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+/*  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);
+  assert(decoupActive == 0);*/
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
@@ -380,19 +404,20 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B);
   
-  //printBuffer(bufferIn, "buffer IN after POST 1/2:",3);
+  printBuffer(bufferIn, "buffer IN after POST 1/2:",3);
+
   copyBufferToXmem(&httpBuffer[128],xmem);
  // printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
   assert(decoupActive == 1);
-  
   //printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
+  
 
-  //one pause cycle, nothing should happen (but required by state machine)
+ /* //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
-  //assert(decoupActive == 1); is in the middle...
+  //assert(decoupActive == 1); is in the middle...*/
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
@@ -440,21 +465,64 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   succeded &= checkResult(MMIO, 0x31204F4B);
   assert(decoupActive == 1);
   
-  //printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
+  printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
 
-  copyBufferToXmem(&httpBuffer[256],xmem);
+/*  copyBufferToXmem(&httpBuffer[256],xmem);
   //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x32535543);
   assert(decoupActive == 1);
-  //printBuffer(bufferIn, "buffer IN after POST 3/3:",3);
+  //printBuffer(bufferIn, "buffer IN after POST 3/3:",3); */
+  for(int i = 2; i<0xf; i++)
+  {
+    cnt = i;
+    initBuffer((ap_uint<4>) cnt, xmem, false); 
+    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    assert(decoupActive == 1);
 
-  //one pause cycle, nothing should happen (but required by state machine)
+    //printBuffer(bufferIn, "bufferIn", 7);
+    //printBuffer32(xmem,"Xmem",1);
+    //printf("currentBufferInPtr: %#010x\n",(int) currentBufferInPtr);
+    printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
+    //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
+    int WF_should = 0;
+    if ( i % 2 == 0)
+    { 
+      WF_should = (((xmem[LINES_PER_PAGE-2] & 0xff00) >>8) << 24);
+      WF_should |= (xmem[LINES_PER_PAGE-2] & 0xff0000);
+      WF_should |= ((xmem[LINES_PER_PAGE-2] & 0xff000000) >> 16); //24-8
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff);
+    } else {
+      WF_should = (xmem[LINES_PER_PAGE-2] & 0xff000000);
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff) << 16;
+      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff00);
+      WF_should |= ((xmem[LINES_PER_PAGE-1] & 0xff0000) >> 16);
+    }
+    printf("WF_should: %#010x\n", WF_should);
+    assert((int) HWICAP[WF_OFFSET] == WF_should);
+
+  }
+  cnt = 0xf;
+  initBuffer((ap_uint<4>) cnt, xmem, true);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-  succeded &= checkResult(MMIO, 0x32535543);
-//  assert(decoupActive == 1);
+  succeded &= checkResult(MMIO, 0x3f535543);
+  //succeded &= checkResult(MMIO, 0x3f204f4b);
+  assert(decoupActive == 1);
+/*
+  //one pause cycle, nothing should happen (but required by state machine)
+  MMIO_in = 0x4 << DSEL_SHIFT;
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  //succeded &= checkResult(MMIO, 0x3f535543); 
+  succeded &= checkResult(MMIO, 0x40000040); 
+  assert(decoupActive == 1);
   
-  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  //succeded &= checkResult(MMIO, 0x3f535543);
+  succeded &= checkResult(MMIO, 0x40000071); 
+//  assert(decoupActive == 1);*/
+  
+  //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  MMIO_in = 0x4 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000071);
   assert(decoupActive == 0);
@@ -465,7 +533,6 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
 
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-  assert(HWICAP[WF_OFFSET] == 0x32303030);
 //#endif
 
   printf("DONE\n");

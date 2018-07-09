@@ -285,7 +285,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
   ap_uint<1> wasAbort = (CR_value & CR_ABORT) >> 4;
   
-  if (parseHTTP == 0)
+  if (parseHTTP == 0 && ongoingTransfer == 0)
   { // only in manual mode 
     toDecoup = (*MMIO_in >> DECOUP_CMD_SHIFT) & 0b1; 
   }
@@ -387,7 +387,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
       currentPayloadStart = currentBufferInPtr;
 
 
-      if (parseHTTP == 1)
+      if (parseHTTP == 1 || ongoingTransfer == 1)
       {
 
           if(wasAbort == 1 || transferErr == 1)
@@ -517,14 +517,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         WFV_value = WFV & 0x3FF;
       }
 
-      if (parseHTTP == 0)
+      if (parseHTTP == 0 && ongoingTransfer == 0)
       {
         toDecoup = 0;
       }
     }
   }
   
-  if (parseHTTP == 0) // else to above
+  if (parseHTTP == 0 && handlePayload) // else to above
   {
    currentBufferInPtr += currentAddedPayload;
    iter_count++;
