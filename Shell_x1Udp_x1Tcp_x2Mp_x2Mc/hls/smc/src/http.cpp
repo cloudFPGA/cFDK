@@ -358,7 +358,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  printf("parseHttpInput returns with state %d\n",httpState);
+  //printf("parseHttpInput returns with state %d\n",httpState);
 
 }
 

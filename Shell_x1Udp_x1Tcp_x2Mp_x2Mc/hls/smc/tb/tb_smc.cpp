@@ -54,7 +54,7 @@ void printBuffer32(ap_uint<32> buffer_int[XMEM_SIZE], char* msg, int max_pages)
 }
 
 
-void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
+void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage, bool withPattern )
 {
   ap_uint<32> ctrlWord = 0;
   for(int i = 0; i<8; i++)
@@ -64,9 +64,13 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage )
   
   for(int i = 0; i<LINES_PER_PAGE; i++)
   {
-    //xmem[i] = ctrlWord;
+    if (withPattern) 
+    {
+    xmem[i] = ctrlWord;
+    } else {
     //xmem[i] = ctrlWord+i; 
-    xmem[i] = (ctrlWord << 16) + (rand() % 65536);
+      xmem[i] = (ctrlWord << 16) + (rand() % 65536);
+    }
   }
   //printf("CtrlWord: %#010x\n",(int) ctrlWord);
   
@@ -161,13 +165,13 @@ int main(){
 
   int cnt = 0;
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B);
 
   cnt = 1;
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31204F4B);
 
@@ -176,7 +180,7 @@ int main(){
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31555444);
   
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x32204F4B);
 
@@ -184,7 +188,7 @@ int main(){
   //succeded &= checkResult(MMIO, 0x32555444);
 
   cnt = 3;
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   xmem[2] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   //succeded &= checkResult(MMIO, 0x32434F52);
@@ -201,12 +205,12 @@ int main(){
 
   cnt = 0;
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30204F4B);
   
   cnt = 1;
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   xmem[0] =  42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x30494E56);
@@ -219,7 +223,7 @@ int main(){
   //Test ABR
   cnt = 0;
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   //HWICAP[CR_OFFSET] = CR_ABORT;
   HWICAP[ASR_OFFSET] = 0x42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
@@ -244,7 +248,7 @@ int main(){
   for(int i = 0; i<0xf; i++)
   {
     cnt = i;
-    initBuffer((ap_uint<4>) cnt, xmem, false); 
+    initBuffer((ap_uint<4>) cnt, xmem, false, false); 
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     assert(decoupActive == 1);
 
@@ -276,14 +280,14 @@ int main(){
   assert(HWICAP[CR_OFFSET] == 0x3);
   
   cnt = 0xf;
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f204f4b);
   //printBuffer32(xmem, "Xmem:");
 
 //  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
   cnt = 0x0;
-  initBuffer((ap_uint<4>) cnt, xmem, false);
+  initBuffer((ap_uint<4>) cnt, xmem, false, false);
   HWICAP[WF_OFFSET] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   //succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
@@ -292,9 +296,39 @@ int main(){
   
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   cnt = 0x1;
-  initBuffer((ap_uint<4>) cnt, xmem, true);
+  initBuffer((ap_uint<4>) cnt, xmem, true, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
+  
+  //RST
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x3f49444C);
+
+  //one complete transfer with overflow and Memcheck
+  //LOOP
+  //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
+  //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
+  for(int i = 0; i<0xf; i++)
+  {
+    cnt = i;
+    initBuffer((ap_uint<4>) cnt, xmem, false, true); 
+    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    assert(decoupActive == 0);
+
+    //printBuffer(bufferIn, "bufferIn", 7);
+    //printBuffer32(xmem,"Xmem",1);
+    printf("MMIO out: %#010x\n", (int) MMIO);
+    assert((MMIO & 0xf0ffffff) == 0x30204F4B);
+  }
+  
+  cnt = 0xf;
+  initBuffer((ap_uint<4>) cnt, xmem, false, true);
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  assert(checkResult(MMIO, 0x3f204f4b));
+  
+  printBuffer(bufferIn, "buffer after 16 check pattern transfers:",8);
 
 //===========================================================
 //Test HTTP
@@ -477,7 +511,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   for(int i = 2; i<0xf; i++)
   {
     cnt = i;
-    initBuffer((ap_uint<4>) cnt, xmem, false); 
+    initBuffer((ap_uint<4>) cnt, xmem, false, false); 
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     assert(decoupActive == 1);
 
@@ -504,7 +538,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
 
   }
   cnt = 0xf;
-  initBuffer((ap_uint<4>) cnt, xmem, true);
+  initBuffer((ap_uint<4>) cnt, xmem, true, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f535543);
   //succeded &= checkResult(MMIO, 0x3f204f4b);

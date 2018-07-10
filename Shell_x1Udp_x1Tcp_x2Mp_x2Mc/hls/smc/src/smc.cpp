@@ -440,10 +440,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
-                      printf("lastLine bevore update: %d\n",(int) lastLine);
+                      //printf("lastLine bevore update: %d\n",(int) lastLine);
                        //lastLine = request_len(bufferInPtrRead,lastLine*4) / 4; //update last word 
                        lastLine = request_len(bufferInPtrRead,BYTES_PER_PAGE) / 4 + bufferInPtrRead/4; //update last word 
-                      printf("lastLine after update: %d\n", (int) lastLine);
+                      //printf("lastLine after update: %d\n", (int) lastLine);
                      }
                      //bufferInPtrWrite += currentAddedPayload;
                      ongoingTransfer = 1;
@@ -503,6 +503,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           }
 
           HWICAP[WF_OFFSET] = tmp;
+          //printf("writing to HWICAP: %#010x\n",(int) tmp);
         }
 
         if (CR_isWritting != 1)
