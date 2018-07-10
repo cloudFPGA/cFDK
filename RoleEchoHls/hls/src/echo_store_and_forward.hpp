@@ -26,11 +26,12 @@
 
 #include <hls_stream.h>
 #include "ap_int.h"
-//#include "ap_axi_sdata.h"
+
+// Not used:  #include "ap_axi_sdata.h"
 
 using namespace hls;
 
-
+/*** OBSOLETE-20180706 ****************
 struct axiWord
 {
 	ap_uint<64>		data;
@@ -47,41 +48,21 @@ struct axiMemWord
 	ap_uint<64>		keep;
 	ap_uint<1>		last;
     axiMemWord()    {}
-	axiMemWord(ap_uint<512>	 data, 
-               ap_uint<64>   keep, 
+	axiMemWord(ap_uint<512>	 data,
+               ap_uint<64>   keep,
                ap_uint<1>    last) : data(data), keep(keep), last(last) {}
 };
+***************************************/
 
 /*
  * A generic unsigned AXI4-Stream interface.
  */
  template<int D>
    struct axis {
-     ap_int<D>        data;
-     ap_uint<(D+7)/8> keep;
-     ap_uint<1>       last;
-     axis() {}
-     axis(ap_uint<D> 		data,
-    	  ap_uint<(D+7)/8> 	keep,
-		  ap_uint<1> 		last) : data(data), keep(keep), last(last) {}
+     ap_uint<D>       tdata;
+     ap_uint<(D+7)/8> tkeep;
+     ap_uint<1>       tlast;
    };
-
- /*** from ap_axi_sdata.h
- template<int D,int U,int TI,int TD>
-   struct ap_axiu{
-     ap_uint<D>       data;
-     ap_uint<(D+7)/8> keep;
-     ap_uint<(D+7)/8> strb;
-     ap_uint<U>       user;
-     ap_uint<1>       last;
-     ap_uint<TI>      id;
-     ap_uint<TD>      dest;
-   };
-
- void example(ap_axis<32,2,5,6> A[50], ap_axis<32,2,5,6> B[50]) {...}
-
- *********/
-
 
 
 // AXI DataMover - Format of the command word (c.f PG022)
@@ -96,8 +77,8 @@ struct dmCmd
 	ap_uint<4>		tag;
 	ap_uint<4>		rsvd;
 	dmCmd() {}
-	dmCmd(ap_uint<32> addr,
-		  ap_uint<16> len) : bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+	dmCmd(ap_uint<32> addr, ap_uint<16> len) :
+		bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
 
@@ -113,16 +94,13 @@ struct dmSts
 };
 
 
-/** @defgroup RoleEchoHls Echo-Store-And-Forward Application
- *
- */
 void echo_store_and_forward(
 
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface
 	//------------------------------------------------------
-	stream<axiWord>			&siUdp,
-	stream<axiWord>			&soUdp,
+	stream<axis<64> >	    &siUdp,
+	stream<axis<64> >		&soUdp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Tcp Interface
@@ -136,21 +114,21 @@ void echo_store_and_forward(
 	//---- Read Path (MM2S) ------------
 	stream<dmCmd>			&soMemRdCmdP0,
 	stream<dmSts>			&siMemRdStsP0,
-	stream<axiMemWord>		&siMemReadP0,
+	stream<axis<512> >  	&siMemReadP0,
 	//---- Write Path (S2MM) -----------
 	stream<dmCmd>			&soMemWrCmdP0,
 	stream<dmSts>			&siMemWrStsP0,
-	stream<axiMemWord>		&soMemWriteP0
+	stream<axis<512> >		&soMemWriteP0,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    // [TODO] stream<dmCmd>			&soMemRdCmdP1,
-	// [TODO] stream<dmSts>			&simemRdStsP1,
-	// [TODO] stream<axiMemWord>	&siMemReadP1,
+    stream<dmCmd>			&soMemRdCmdP1,
+	stream<dmSts>			&siMemRdStsP1,
+	stream<axis<512> >		&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	// [TODO] stream<dmCmd>			&soMemWrCmdP1,
-	// [TODO] stream<dmSts>			&siMemWrStsP1,
-    // [TODO] stream<axiMemWord>	&soMemWriteP1
+	stream<dmCmd>			&soMemWrCmdP1,
+	stream<dmSts>			&siMemWrStsP1,
+    stream<axis<512> >  	&soMemWriteP1
 );

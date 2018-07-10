@@ -28,29 +28,35 @@ set ipPkgFormat    "ip_catalog"
 
 # Set Project Environment Variables  
 #-------------------------------------------------
-set currDir      [pwd]
-set srcDir       ${currDir}/src
-set testDir      ${currDir}/test
-set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../ip
+set currDir  [pwd]
+set srcDir   ${currDir}/src
+set testDir  ${currDir}/test
+set implDir  ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set repoDir  ${currDir}/../ip
 
-# Open and Setup Project
+# Create and Setup Project
 #-------------------------------------------------
-open_project  ${projectName}_prj
-set_top       ${projectName}
+open_project -reset ${projectName}_prj
+set_top             ${projectName}
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files -tb ${testDir}/test_${projectName}.cpp
 
-open_solution ${solutionName}
+# Create a solution
+#-------------------------------------------------
+open_solution -reset ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Synthesis
+# Run C Simulation and Synthesis
 #-------------------------------------------------
 csim_design -clean -setup
 csynth_design
+
+# Run RTL Simulation
+#-------------------------------------------------
+cosim_design
 
 # Export RTL
 #-------------------------------------------------
