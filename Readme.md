@@ -97,12 +97,5 @@ The result will be stored under ./dcps/pr_verify.rpt.
 
 ##### Inremental Compile:
 
-To speed up Implementation for the PR-Flow too, use: 
-```
-make pr_incr 
-# or 
-make pr2_incr 
-``` 
-
-This will reuse previous Design-Checkpoints. This dcps are created automatically inside the PR-Flow, so here it is NOT necesarry to extra save the incremental Design-Checkpoints (as in the monolithic version). 
+Incremental Compile is not possible for PR-Flows. 
 
