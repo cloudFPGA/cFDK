@@ -8,7 +8,7 @@
 #include "http.hpp"
 
 //extern HttpState httpState; 
-//extern ap_uint<16> currentPayloadStart;
+//extern ap_uint<16> bufferInPtrRead;
 
 //static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
 static char* httpHeader = "HTTP/1.1 ";
@@ -40,9 +40,9 @@ int writeString(char* s)
   int len = my_strlen(s);
   for(int i = 0; i<len; i++)
   {
-    bufferOut[currentBufferOutPtr + i] = s[i];
+    bufferOut[bufferOutPtrWrite + i] = s[i];
   }
-  currentBufferOutPtr += len;
+  bufferOutPtrWrite += len;
 
   return len;
 }
@@ -213,7 +213,7 @@ int request_len(ap_uint<16> offset, int maxLength)
 
   while( (c1 != '\r' || c2 != '\n' || c3 != '\r' || c4 != '\n' ) && sum < maxLength)
   {
-    //sum += 4;
+    //NOT! sum += 4;
     sum++;
     c1 = (char) bufferIn[offset + sum + 0]; 
     c2 = (char) bufferIn[offset + sum + 1]; 
@@ -272,7 +272,7 @@ int8_t extract_path()
     return 1;
   } else if (my_strcmp(configurePath, bufferIn ,my_strlen(configurePath)) == 0 )
   { 
-    currentPayloadStart = requestLen + 4;
+    bufferInPtrRead = requestLen + 4;
     reqType = POST_CONFIG; 
     return 2;
   } else { //Invalid
@@ -316,7 +316,9 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0 
                httpState = HTTP_READ_PAYLOAD;
-               currentPayloadStart = currentBufferInPtr;
+               //no break 
+    case HTTP_READ_PAYLOAD:
+               //bufferInPtrRead = bufferInPtrWrite;
                break; 
     case HTTP_REQUEST_COMPLETE: //for requests without payload -> need step in between in other process -> no break here!
     case HTTP_SEND_RESPONSE:
@@ -356,7 +358,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  //printf("parseHttpInput returns with state %d\n",httpState);
+  printf("parseHttpInput returns with state %d\n",httpState);
 
 }
 

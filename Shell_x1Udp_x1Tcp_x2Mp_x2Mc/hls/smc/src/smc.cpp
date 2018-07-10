@@ -12,21 +12,23 @@ ap_uint<1> transferErr = 0;
 ap_uint<1> transferSuccess = 0;
 char *msg = new char[4];
 ap_uint<8> bufferIn[BUFFER_SIZE];
-ap_uint<8> hangover_0 = 0;
-ap_uint<8> hangover_1 = 0;
-bool contains_hangover = false;
+//ap_uint<8> hangover_0 = 0;
+//ap_uint<8> hangover_1 = 0;
+//bool contains_hangover = false;
 ap_uint<1> toDecoup = 0;
 
-ap_uint<16> currentBufferInPtr = 0x0;
-ap_uint<8> iter_count = 0;
+ap_uint<16> bufferInPtrWrite = 0x0;
+ap_uint<16> bufferInPtrRead = 0x0;
+//ap_uint<16> lastLine = LINES_PER_PAGE-1;
+ap_uint<16> lastLine = 0;
+//ap_uint<16> currentAddedPayload = BYTES_PER_PAGE-2;
 
 ap_uint<8> bufferOut[BUFFER_SIZE];
-ap_uint<16> currentBufferOutPtr = 0x0;
+ap_uint<16> bufferOutPtrWrite = 0x0;
 
 
 ap_uint<4> httpAnswerPageLength = 0;
 HttpState httpState = HTTP_IDLE; 
-ap_uint<16> currentPayloadStart = 0;
 ap_uint<1> ongoingTransfer = 0;
 
 ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0; 
@@ -62,7 +64,8 @@ void emptyInBuffer()
   {
     bufferIn[i] = 0x0;
   }
-  currentBufferInPtr = 0x0;
+  bufferInPtrWrite = 0x0;
+  bufferInPtrRead = 0x0;
 }
 
 void emptyOutBuffer()
@@ -71,7 +74,7 @@ void emptyOutBuffer()
   {
     bufferOut[i] = 0x0;
   }
-  currentBufferOutPtr = 0x0;
+  bufferOutPtrWrite = 0x0;
 }
 
 
@@ -79,22 +82,22 @@ uint8_t writeDisplaysToOutBuffer()
 {
   //Display1
   writeString("Status Display 1: ");
-  bufferOut[currentBufferOutPtr + 3] = Display1 & 0xFF; 
-  bufferOut[currentBufferOutPtr + 2] = (Display1 >> 8) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 1] = (Display1 >> 16) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 0] = (Display1 >> 24) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 4] = '\r'; 
-  bufferOut[currentBufferOutPtr + 5] = '\n'; 
-  currentBufferOutPtr  += 6;
+  bufferOut[bufferOutPtrWrite + 3] = Display1 & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 2] = (Display1 >> 8) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 1] = (Display1 >> 16) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 0] = (Display1 >> 24) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 4] = '\r'; 
+  bufferOut[bufferOutPtrWrite + 5] = '\n'; 
+  bufferOutPtrWrite  += 6;
   //Display2
   writeString("Status Display 2: ");
-  bufferOut[currentBufferOutPtr + 3] = Display2 & 0xFF; 
-  bufferOut[currentBufferOutPtr + 2] = (Display2 >> 8) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 1] = (Display2 >> 16) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 0] = (Display2 >> 24) & 0xFF; 
-  bufferOut[currentBufferOutPtr + 4] = '\r'; 
-  bufferOut[currentBufferOutPtr + 5] = '\n'; 
-  currentBufferOutPtr  += 6;
+  bufferOut[bufferOutPtrWrite + 3] = Display2 & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 2] = (Display2 >> 8) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 1] = (Display2 >> 16) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 0] = (Display2 >> 24) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 4] = '\r'; 
+  bufferOut[bufferOutPtrWrite + 5] = '\n'; 
+  bufferOutPtrWrite  += 6;
   /* Display 3 & 4 is less informative outside EMIF Context
    */ 
 
@@ -110,12 +113,12 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
   ap_int<16> buff_pointer = 0-1;
   
-  if ( ExpCnt % 2 == 1)
+ /* if ( ExpCnt % 2 == 1)
   {
     buff_pointer = 2-1;
-    bufferIn[currentBufferInPtr  + 0] = hangover_0;
-    bufferIn[currentBufferInPtr  + 1] = hangover_1;
-  }
+    bufferIn[bufferInPtrWrite  + 0] = hangover_0;
+    bufferIn[bufferInPtrWrite  + 1] = hangover_1;
+  }*/
 
 
   for(int i = 0; i<LINES_PER_PAGE; i++)
@@ -128,34 +131,48 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
       curHeader = tmp & 0xff;
     } else {
       buff_pointer++;
-      bufferIn[currentBufferInPtr  + buff_pointer] = (tmp & 0xff);
+      bufferIn[bufferInPtrWrite  + buff_pointer] = (tmp & 0xff);
     }
 
     buff_pointer++;
-    bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 8) & 0xff;
+    bufferIn[bufferInPtrWrite  + buff_pointer] = (tmp >> 8) & 0xff;
     buff_pointer++;
-    bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 16 ) & 0xff;
+    bufferIn[bufferInPtrWrite  + buff_pointer] = (tmp >> 16 ) & 0xff;
 
     if ( i == LINES_PER_PAGE-1) 
     {
       curFooter = (tmp >> 24) & 0xff;
     } else {
       buff_pointer++;
-      bufferIn[currentBufferInPtr  + buff_pointer] = (tmp >> 24) & 0xff;
+      bufferIn[bufferInPtrWrite  + buff_pointer] = (tmp >> 24) & 0xff;
     }
+  }
+
+  if (lastLine > (BUFFER_SIZE/4 - LINES_PER_PAGE + 1))
+  {
+    lastLine = 0;
   }
 
   if (ExpCnt % 2 == 0)
   {
-    hangover_0 = bufferIn[currentBufferInPtr  + (LINES_PER_PAGE-1)*4 + 0];
-    hangover_1 = bufferIn[currentBufferInPtr  + (LINES_PER_PAGE-1)*4 + 1];
-    contains_hangover = false; //means, only 31 lines!
+   /* hangover_0 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 0];
+    hangover_1 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 1];*/
+    lastLine += LINES_PER_PAGE - 1; //now absolute numbers!
+    //currentAddedPayload = 
+    //contains_hangover = false; //means, only 31 lines!
   } else {
-    contains_hangover = true; //means, full 32 lines!
+    //contains_hangover = true; //means, full 32 lines!
+    lastLine += LINES_PER_PAGE;
   }
 
   ap_uint<4> curCnt = curHeader & 0xf; 
 
+  bufferInPtrWrite += buff_pointer +1;
+  
+  if (bufferInPtrWrite >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE)) 
+  { 
+    bufferInPtrWrite = 0;
+  }
 
   if ( curHeader != curFooter)
   {//page is invalid 
@@ -184,12 +201,13 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
     //for simplicity check only lines in between and skip potentiall hangover 
     for(int i = 3; i< BYTES_PER_PAGE -3; i++)
     {
-      if(bufferIn[currentBufferInPtr  + i] != ctrlByte)
+      if(bufferIn[bufferInPtrRead  + i] != ctrlByte)
       {//data is corrupt 
-        //printf("corrupt at %d with %#010x\n",i, (int) bufferIn[currentBufferInPtr + i]);
+        //printf("corrupt at %d with %#010x\n",i, (int) bufferIn[bufferInPtrWrite + i]);
         return 3;
       }
     }
+    bufferInPtrRead = bufferInPtrWrite; //only for check pattern case
   }
 
   if (lastPage)
@@ -258,10 +276,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     transferErr = 0;
     transferSuccess = 0;
     msg = "IDL";
-    iter_count = 0;
     httpState = HTTP_IDLE;
-    currentBufferInPtr = 0;
-    currentBufferOutPtr = 0;
+    bufferInPtrWrite = 0;
+    bufferInPtrRead = 0;
+    bufferOutPtrWrite = 0;
     httpAnswerPageLength = 0;
     ongoingTransfer = 0;
     Display1 = 0;
@@ -269,6 +287,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     Display3 = 0;
     Display4 = 0;
     toDecoup = 0;
+    lastLine = 0; 
+    //currentAddedPayload = BYTES_PER_PAGE-2;
   } 
 
 //===========================================================
@@ -291,8 +311,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   }
 
   bool handlePayload = false; 
-  ap_uint<32> lastLine = LINES_PER_PAGE-1;
-  ap_uint<16> currentAddedPayload = BYTES_PER_PAGE-4;
   ap_uint<4> copyRet = 0;
 
   if (start == 1 && transferErr == 0 && transferSuccess == 0) 
@@ -357,11 +375,11 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                   break;
         }
 
-        if (contains_hangover) 
+        /*if (contains_hangover) 
         {
           lastLine = LINES_PER_PAGE;
           currentAddedPayload = BYTES_PER_PAGE -2;
-        } 
+        } */
 
 
       } else {
@@ -384,8 +402,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     {// valid buffer -> write to HWICAP
   
       //with HTTP the current buffer pointer is not always the start of the payload
-      currentPayloadStart = currentBufferInPtr;
-
+      //bufferInPtrRead = bufferInPtrWrite;
 
       if (parseHTTP == 1 || ongoingTransfer == 1)
       {
@@ -404,35 +421,38 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
               handlePayload = false;
               break; 
             case HTTP_PARSE_HEADER: 
-              iter_count++;
-              currentBufferInPtr += currentAddedPayload;
+              //bufferInPtrWrite += currentAddedPayload;
               handlePayload = false;
               break; 
             case HTTP_HEADER_PARSED:
-                     if( currentBufferInPtr + currentAddedPayload == currentPayloadStart) 
+                     //if( bufferInPtrWrite + currentAddedPayload == bufferInPtrRead) 
+                     //if( bufferInPtrWrite + (lastLine*4) == bufferInPtrRead) 
+                     if( (lastLine*4) == bufferInPtrRead) 
                      {//corner case 
                        handlePayload = false;
                        httpState = HTTP_READ_PAYLOAD;
                      }
+                     //TODO: adapt lastLine to offset between bufferInPtrRead and bufferInPtrWrite!!
+                     //--> start of bitfile must be aligned to 4?? do in sender??
                      //NO break 
             case HTTP_READ_PAYLOAD:
+                     // no handlePayload=true, because then we'll maybe process duplicates
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
-                      //printf("lastLine bevore update: %d\n",(int) lastLine);
-                       lastLine = request_len(currentPayloadStart,lastLine*4) / 4; //update last word 
-                      //printf("lastLine after update: %d\n", (int) lastLine);
+                      printf("lastLine bevore update: %d\n",(int) lastLine);
+                       //lastLine = request_len(bufferInPtrRead,lastLine*4) / 4; //update last word 
+                       lastLine = request_len(bufferInPtrRead,BYTES_PER_PAGE) / 4 + bufferInPtrRead/4; //update last word 
+                      printf("lastLine after update: %d\n", (int) lastLine);
                      }
-                     currentBufferInPtr += currentAddedPayload;
-                     iter_count++; 
+                     //bufferInPtrWrite += currentAddedPayload;
                      ongoingTransfer = 1;
                      toDecoup = 1;
                      break;
             case HTTP_REQUEST_COMPLETE: 
                       handlePayload = false;
                      ongoingTransfer = 1;
-                     currentBufferInPtr += currentAddedPayload;
-                     iter_count++;
+                     //bufferInPtrWrite += currentAddedPayload;
                        break;
             case HTTP_INVALID_REQUEST:
                        //transferErr = 1;
@@ -456,31 +476,49 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
         toDecoup = 1;
 
-        for( int i = 0; i<lastLine; i++)
+        //for( int i = bufferInPtrRead/4; i<lastLine; i++)
+        for( int i = bufferInPtrRead; i<lastLine*4; i += 4)
         {
           ap_uint<32> tmp = 0; 
           if ( notToSwap == 1) 
           {
-            tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4];
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) <<  8);
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) << 16);
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3]) << 24);
+            tmp |= (ap_uint<32>) bufferIn[0 + i];
+            tmp |= (((ap_uint<32>) bufferIn[0 + i + 1]) <<  8);
+            tmp |= (((ap_uint<32>) bufferIn[0 + i + 2]) << 16);
+            tmp |= (((ap_uint<32>) bufferIn[0 + i + 3]) << 24);
+            //tmp |= (ap_uint<32>) bufferIn[bufferInPtrRead  + i*4];
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 1]) <<  8);
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 2]) << 16);
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 3]) << 24);
           } else { 
             //default 
-            tmp |= (ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 3];
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 2]) <<  8);
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 1]) << 16);
-            tmp |= (((ap_uint<32>) bufferIn[currentPayloadStart  + i*4 + 0]) << 24);
+            tmp |= (ap_uint<32>) bufferIn[0 + i + 3];
+            tmp |= (((ap_uint<32>) bufferIn[0  + i + 2]) <<  8);
+            tmp |= (((ap_uint<32>) bufferIn[0  + i + 1]) << 16);
+            tmp |= (((ap_uint<32>) bufferIn[0  + i + 0]) << 24);
+            //tmp |= (ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 3];
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 2]) <<  8);
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 1]) << 16);
+            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 0]) << 24);
           }
-          
+
           HWICAP[WF_OFFSET] = tmp;
         }
-  
+
         if (CR_isWritting != 1)
         {
           HWICAP[CR_OFFSET] = CR_WRITE;
+        }
+
+        //bufferInPtrRead += 4*lastLine;
+        bufferInPtrRead = 4*lastLine;
+
+        if(bufferInPtrRead >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
+        {//should always hit even pages....
+          bufferInPtrRead = 0;
+        }
+
       }
-     }
     }
 
     if (copyRet == 2)
@@ -522,19 +560,20 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         toDecoup = 0;
       }
     }
+
+  /*  if ( parseHTTP == 0 && handlePayload)
+    {//update read ptr 
+      bufferInPtrRead = bufferInPtrWrite;
+    }*/
+
   }
-  
+ /* 
   if (parseHTTP == 0 && handlePayload) // else to above
   {
-   currentBufferInPtr += currentAddedPayload;
-   iter_count++;
-  }
+   //bufferInPtrWrite += currentAddedPayload;
+  }*/
 
-  if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
-  { 
-    iter_count = 0;
-    currentBufferInPtr = 0;
-  }
+  //if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
 
 
 

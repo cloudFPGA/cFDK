@@ -59,7 +59,6 @@
 #define BYTES_PER_PAGE (LINES_PER_PAGE*4)
 #define PAYLOAD_BYTES_PER_PAGE (BYTES_PER_PAGE - 2)
 #define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
-#define MAX_BUF_ITERS 8 //must be < BUFFER_SIZE/Bytes per Round 
 #define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes!
 
 //HWICAP CR Commands 
@@ -94,13 +93,13 @@ typedef enum { HTTP_IDLE = 0,
 
 extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
-extern ap_uint<16> currentBufferInPtr;
-extern ap_uint<16> currentBufferOutPtr;
-extern ap_uint<8> iter_count;
+extern ap_uint<16> bufferInPtrWrite;
+extern ap_uint<16> bufferInPtrRead;
+extern ap_uint<16> bufferOutPtrWrite;
 extern ap_uint<4> httpAnswerPageLength;
 
 extern HttpState httpState; 
-extern ap_uint<16> currentPayloadStart;
+//extern ap_uint<16> currentPayloadStart;
 
 void emptyInBuffer();
 void emptyOutBuffer();

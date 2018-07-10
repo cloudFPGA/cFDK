@@ -411,7 +411,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
   assert(decoupActive == 1);
-  //printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
+  printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
   
 
  /* //one pause cycle, nothing should happen (but required by state machine)
@@ -466,6 +466,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   assert(decoupActive == 1);
   
   printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
+    printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
 
 /*  copyBufferToXmem(&httpBuffer[256],xmem);
   //printBuffer32(xmem, "Xmem:",2);
@@ -482,7 +483,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
 
     //printBuffer(bufferIn, "bufferIn", 7);
     //printBuffer32(xmem,"Xmem",1);
-    //printf("currentBufferInPtr: %#010x\n",(int) currentBufferInPtr);
+    //printf("bufferInPtrRead: %#010x\n",(int) bufferInPtrRead);
     printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
     //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
     int WF_should = 0;
@@ -508,6 +509,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   succeded &= checkResult(MMIO, 0x3f535543);
   //succeded &= checkResult(MMIO, 0x3f204f4b);
   assert(decoupActive == 1);
+  printBuffer(bufferIn, "bufferIn after 15 HTTP transfer", 7);
 /*
   //one pause cycle, nothing should happen (but required by state machine)
   MMIO_in = 0x4 << DSEL_SHIFT;
@@ -535,7 +537,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 //#endif
 
-  printf("DONE\n");
+  //printf("DONE\n");
 
   return succeded? 0 : -1;
   //return 0;
