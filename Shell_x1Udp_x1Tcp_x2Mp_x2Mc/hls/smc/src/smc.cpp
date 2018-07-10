@@ -148,6 +148,34 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
     }
   }
 
+
+  ap_uint<4> curCnt = curHeader & 0xf; 
+
+
+  if ( curHeader != curFooter)
+  {//page is invalid 
+    // NO! We are in the middle of a transfer!
+    return 1;
+  }
+  
+  if(curCnt == cnt)
+  {//page was already transfered
+    return 0;
+  }
+
+  if (curCnt != ExpCnt)
+  {//we must missed something 
+    return 2;
+  }
+  
+  //now we have a clean transfer
+  bufferInPtrWrite += buff_pointer +1;
+  
+  if (bufferInPtrWrite >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE)) 
+  { 
+    bufferInPtrWrite = 0;
+  }
+  
   if (lastLine > (BUFFER_SIZE/4 - LINES_PER_PAGE + 1))
   {
     lastLine = 0;
@@ -165,31 +193,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
     lastLine += LINES_PER_PAGE;
   }
 
-  ap_uint<4> curCnt = curHeader & 0xf; 
-
-  bufferInPtrWrite += buff_pointer +1;
-  
-  if (bufferInPtrWrite >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE)) 
-  { 
-    bufferInPtrWrite = 0;
-  }
-
-  if ( curHeader != curFooter)
-  {//page is invalid 
-    // NO! We are in the middle of a transfer!
-    return 1;
-  }
-  
-  if(curCnt == cnt)
-  {//page was already transfered
-    return 0;
-  }
-
-  if (curCnt != ExpCnt)
-  {//we must missed something 
-    return 2;
-  }
-
   bool lastPage = (curHeader & 0xf0) == 0xf0;
 
   if(checkPattern == 1)
@@ -199,7 +202,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
     //printf("ctrlByte: %#010x\n",(int) ctrlByte);
 
     //for simplicity check only lines in between and skip potentiall hangover 
-    for(int i = 3; i< BYTES_PER_PAGE -3; i++)
+    for(int i = 3; i< PAYLOAD_BYTES_PER_PAGE -3; i++)
     {
       if(bufferIn[bufferInPtrRead  + i] != ctrlByte)
       {//data is corrupt 

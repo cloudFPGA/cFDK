@@ -304,23 +304,32 @@ int main(){
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f49444C);
+  assert(decoupActive == 0);
 
   //one complete transfer with overflow and Memcheck
   //LOOP
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
+
+  xmem[0] = 0xAABBCC00;
+  xmem[4] = 0x12121212;
+  xmem[127] = 0xAABBCCFF;
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  assert(checkResult(MMIO, 0x3f494e56));
+  assert(decoupActive == 0);
+
   for(int i = 0; i<0xf; i++)
   {
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false, true); 
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-    assert(decoupActive == 0);
 
     //printBuffer(bufferIn, "bufferIn", 7);
     //printBuffer32(xmem,"Xmem",1);
     printf("MMIO out: %#010x\n", (int) MMIO);
     assert((MMIO & 0xf0ffffff) == 0x30204F4B);
+    assert(decoupActive == 0);
   }
   
   cnt = 0xf;
@@ -421,7 +430,7 @@ int main(){
   // POST TEST 
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   getStatus = "POST /configure HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nContent-Length: 1607\r\n \
-Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044ffffffffffffffffaa99556620000000200000002000\r\n\r\n";
+Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044ffffffffffffffffaa99556620000000200000002000\r\n\r\n";
   httpBuffer[0] = 0x00;
   strcpy(&httpBuffer[1],getStatus);
   httpBuffer[strlen(getStatus)+1] = 0x0;
@@ -513,6 +522,13 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044fffff
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false, false); 
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    //test double call --> nothing should change
+    printf("DOUBLE CALL\n");
+    //fflush(stdout);
+    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    printf("TRIBLE CALL\n");
+    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    
     assert(decoupActive == 1);
 
     //printBuffer(bufferIn, "bufferIn", 7);

@@ -242,11 +242,12 @@ int8_t extract_path()
   {
     return 0;
   }
-  if (stringlen == PAYLOAD_BYTES_PER_PAGE && bufferIn[0 + stringlen -1] != '\n') //last byte of a header
+  //TODO if there comes directly a payload it is still a complete header
+  /*if (stringlen == PAYLOAD_BYTES_PER_PAGE && bufferIn[0 + stringlen -1] != '\n') //last byte of a header
   {
     // i.e. request is longer than one page 
     return -1;
-  }
+  }*/
   // a post request is not always ended with a \n or a payload (bitfile)  can also have a \0 in it => wie don't know the exact header length now 
   
 
@@ -262,7 +263,11 @@ int8_t extract_path()
   reqType = REQ_INVALID; //reset 
 
   if(requestLen <= 0)
-  {//not a valid header
+  {//not a valid header 
+    if (stringlen == PAYLOAD_BYTES_PER_PAGE)
+    {//not yet complete
+      return -1;
+    }
     return -2;
   }
 
@@ -323,12 +328,12 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
     case HTTP_REQUEST_COMPLETE: //for requests without payload -> need step in between in other process -> no break here!
     case HTTP_SEND_RESPONSE:
                emptyOutBuffer();
-               if (transferErr == 1)
-               {
-                 httpAnswerPageLength = writeHttpStatus(400,0);
-               } else if(wasAbort == 1)
+               if(wasAbort == 1) //abort always also triggers transferErr --> so check this first
                {
                  httpAnswerPageLength = writeHttpStatus(500,0);
+               } else if (transferErr == 1)
+               {
+                 httpAnswerPageLength = writeHttpStatus(400,0);
                } else if(reqType == GET_STATUS)
                { 
                  //combine status 
