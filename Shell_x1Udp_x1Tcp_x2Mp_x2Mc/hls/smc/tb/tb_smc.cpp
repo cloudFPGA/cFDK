@@ -430,7 +430,7 @@ int main(){
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
-//#ifndef COSIM
+  HWICAP[WFV_OFFSET] = 0x710;
 
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
@@ -475,13 +475,13 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044fffff
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x40000072);
-  assert(decoupActive == 0);
   
- // printBuffer(bufferOut, "BufferOut:",2);
+  printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
 
   //printBuffer32(xmem, "Xmem:");
+  assert(decoupActive == 0);
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
   assert(HWICAP[WF_OFFSET] == 0x32303030);
   
@@ -604,8 +604,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044fffff
 
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-//#endif
-
+  
   //printf("DONE\n");
 
   return succeded? 0 : -1;

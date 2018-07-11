@@ -16,6 +16,8 @@ ap_uint<8> bufferIn[BUFFER_SIZE];
 //ap_uint<8> hangover_1 = 0;
 //bool contains_hangover = false;
 ap_uint<1> toDecoup = 0;
+ap_uint<8> writeErrCnt = 0;
+ap_uint<8> fifoEmptyCnt = 0;
 
 ap_uint<16> bufferInPtrWrite = 0x0;
 ap_uint<16> bufferInPtrRead = 0x0;
@@ -291,6 +293,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     Display4 = 0;
     toDecoup = 0;
     lastLine = 0; 
+    writeErrCnt = 0;
+    fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
   } 
 
@@ -505,6 +509,13 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
             //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrRead  + i*4 + 0]) << 24);
           }
 
+          if ( tmp == 0x0d0a0d0a) 
+          {
+            //printf("Error: Tried to write 0d0a0d0a.\n");
+            writeErrCnt++;
+            continue;
+          }
+
           HWICAP[WF_OFFSET] = tmp;
           //printf("writing to HWICAP: %#010x\n",(int) tmp);
         }
@@ -522,6 +533,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         {//should always hit even pages....
           bufferInPtrRead = 0;
         }
+        
+        WFV = HWICAP[WFV_OFFSET];
+        WFV_value = WFV & 0x7FF;
+        if (WFV_value == 0x7FF)
+        {
+          //printf("FIFO is unexpected empty\n");
+          fifoEmptyCnt++;
+        }
 
       }
     }
@@ -534,12 +553,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
     if (copyRet == 4 && handlePayload)
     {//wait until all is written 
-      // only for NOT-HTTP flow necessary
+     
+    /*  printf("Wait for final write\n");
+
       while(WFV_value < 0x7FF) 
       {
         ap_wait_n(LOOP_WAIT_CYCLES); 
         
-        CR = HWICAP[WFV_OFFSET];
+        CR = HWICAP[CR_OFFSET];
         CR_value = CR & 0x1F; 
         wasAbort = (CR_value & CR_ABORT) >> 4;
         CR_isWritting = CR_value & CR_WRITE;
@@ -558,7 +579,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x7FF;
-      }
+      }*/
 
       if (parseHTTP == 0 && ongoingTransfer == 0)
       {
@@ -618,6 +639,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
   Display4 = ((ap_uint<32>) httpAnswerPageLength) << ANSWER_LENGTH_SHIFT; 
   Display4 |= ((int) httpState) << HTTP_STATE_SHIFT;
+  Display4 |= ((ap_uint<32>) writeErrCnt) << 8;
+  Display4 |= ((ap_uint<32>) fifoEmptyCnt) << 16;
 
   switch (Dsel) {
     case 1:
