@@ -34,7 +34,7 @@ HttpState httpState = HTTP_IDLE;
 ap_uint<1> ongoingTransfer = 0;
 
 ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0, Display5 = 0; 
-ap_uint<24> httpPageWriteCnt = 0;
+ap_uint<24> wordsWrittenToIcapCnt = 0;
 
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
@@ -297,7 +297,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     writeErrCnt = 0;
     fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
-    httpPageWriteCnt = 0;
+    wordsWrittenToIcapCnt = 0;
   } 
 
 //===========================================================
@@ -421,7 +421,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
             httpState = HTTP_SEND_RESPONSE;
           }
 
-          //printf("httpState bevore HTTP Input: %d",httpState);
+          printf("httpState bevore parseHTTP: %d\n",httpState);
 
           parseHttpInput(transferErr,wasAbort); 
 
@@ -445,30 +445,36 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      //--> start of bitfile must be aligned to 4?? do in sender??
                      //NO break 
             case HTTP_READ_PAYLOAD:
-                     // no handlePayload=true, because then we'll maybe process duplicates
+                     //handlePayload=true;
+                     //duplicates are prevented by the lastLine!!
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
-                      //printf("lastLine bevore update: %d\n",(int) lastLine);
+                     /* printf("lastLine bevore update: %d\n",(int) lastLine);
+                      printf("bufferInPtrRead: %d\n", (int) bufferInPtrRead);
                        //lastLine = request_len(bufferInPtrRead,lastLine*4) / 4; //update last word 
                        lastLine = request_len(bufferInPtrRead,BYTES_PER_PAGE) / 4 + bufferInPtrRead/4; //update last word 
-                      //printf("lastLine after update: %d\n", (int) lastLine);
+                      printf("lastLine after update: %d\n", (int) lastLine);*/
                      }
                      //bufferInPtrWrite += currentAddedPayload;
                      ongoingTransfer = 1;
                      toDecoup = 1;
-                     httpPageWriteCnt++;
                      break;
             case HTTP_REQUEST_COMPLETE: 
-                      handlePayload = false;
+                      //handlePayload = false;
+                     //handlePayload=true;
                      ongoingTransfer = 1;
+                     httpState = HTTP_SEND_RESPONSE;
                      //bufferInPtrWrite += currentAddedPayload;
+                       break;
+            case HTTP_SEND_RESPONSE:
+                       handlePayload = false;
+                       ongoingTransfer = 1;
                        break;
             case HTTP_INVALID_REQUEST:
                        //transferErr = 1;
                        //set transferSuccess in order not to activate Decoup 
                        //no break 
-            case HTTP_SEND_RESPONSE:
             case HTTP_DONE:
                        copyOutBuffer(httpAnswerPageLength,xmem,notToSwap);
                        transferSuccess = 1;
@@ -514,14 +520,19 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
           if ( tmp == 0x0d0a0d0a) 
           {
-            //printf("Error: Tried to write 0d0a0d0a.\n");
+            printf("Error: Tried to write 0d0a0d0a.\n");
             writeErrCnt++;
+
             continue;
           }
 
           HWICAP[WF_OFFSET] = tmp;
-          //printf("writing to HWICAP: %#010x\n",(int) tmp);
+          wordsWrittenToIcapCnt++;
+          printf("writing to HWICAP: %#010x\n",(int) tmp);
         }
+            
+        printf("lastLine: %d\n", (int) lastLine);
+        printf("bufferInPtrRead: %d\n", (int) bufferInPtrRead);
 
         CR_isWritting = CR_value & CR_WRITE;
         if (CR_isWritting != 1)
@@ -645,7 +656,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   Display4 |= ((ap_uint<32>) writeErrCnt) << 8;
   Display4 |= ((ap_uint<32>) fifoEmptyCnt) << 16;
 
-  Display5 = (ap_uint<32>) httpPageWriteCnt;
+  Display5 = (ap_uint<32>) wordsWrittenToIcapCnt;
 
   switch (Dsel) {
     case 1:

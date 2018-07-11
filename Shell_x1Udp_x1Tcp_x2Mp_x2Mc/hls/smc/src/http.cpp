@@ -312,7 +312,8 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                 case 0: //not vaild until now
                     break;
                 case 1: //get status 
-                    httpState = HTTP_REQUEST_COMPLETE;
+                    //httpState = HTTP_REQUEST_COMPLETE;
+                    httpState = HTTP_SEND_RESPONSE;
                     break;
                 case 2: //post config 
                     httpState = HTTP_HEADER_PARSED;
@@ -325,7 +326,8 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
     case HTTP_READ_PAYLOAD:
                //bufferInPtrRead = bufferInPtrWrite;
                break; 
-    case HTTP_REQUEST_COMPLETE: //for requests without payload -> need step in between in other process -> no break here!
+    case HTTP_REQUEST_COMPLETE: 
+             //  break; 
     case HTTP_SEND_RESPONSE:
                emptyOutBuffer();
                if(wasAbort == 1) //abort always also triggers transferErr --> so check this first
@@ -363,7 +365,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                break;
   }
 
-  //printf("parseHttpInput returns with state %d\n",httpState);
+  printf("parseHttpInput returns with state %d\n",httpState);
 
 }
 
