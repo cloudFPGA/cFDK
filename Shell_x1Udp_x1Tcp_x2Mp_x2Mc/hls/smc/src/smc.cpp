@@ -33,7 +33,8 @@ ap_uint<4> httpAnswerPageLength = 0;
 HttpState httpState = HTTP_IDLE; 
 ap_uint<1> ongoingTransfer = 0;
 
-ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0; 
+ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0, Display5 = 0; 
+ap_uint<24> httpPageWriteCnt = 0;
 
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
@@ -296,6 +297,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     writeErrCnt = 0;
     fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
+    httpPageWriteCnt = 0;
   } 
 
 //===========================================================
@@ -455,6 +457,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                      //bufferInPtrWrite += currentAddedPayload;
                      ongoingTransfer = 1;
                      toDecoup = 1;
+                     httpPageWriteCnt++;
                      break;
             case HTTP_REQUEST_COMPLETE: 
                       handlePayload = false;
@@ -642,6 +645,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   Display4 |= ((ap_uint<32>) writeErrCnt) << 8;
   Display4 |= ((ap_uint<32>) fifoEmptyCnt) << 16;
 
+  Display5 = (ap_uint<32>) httpPageWriteCnt;
+
   switch (Dsel) {
     case 1:
         *MMIO_out = (0x1 << DSEL_SHIFT) | Display1;
@@ -654,6 +659,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           break;
     case 4:
         *MMIO_out = (0x4 << DSEL_SHIFT) | Display4;
+          break;
+    case 5:
+        *MMIO_out = (0x5 << DSEL_SHIFT) | Display5;
           break;
     default: 
         *MMIO_out = 0xBEBAFECA;
