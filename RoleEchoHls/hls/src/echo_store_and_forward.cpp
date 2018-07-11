@@ -172,38 +172,38 @@ void echo_store_and_forward (
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface
 	//------------------------------------------------------
-	stream<axis<64> >	&siUdp,
-	stream<axis<64> >	&soUdp,
+	stream<Axis<64> >	&siUdp,
+	stream<Axis<64> >	&soUdp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Tcp Interface
 	//------------------------------------------------------
-	stream<axis<64> >   &siTcp,
-	stream<axis<64> >   &soTcp,
+	stream<Axis<64> >   &siTcp,
+	stream<Axis<64> >   &soTcp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp0 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-	stream<dmCmd>		&soMemRdCmdP0,
-	stream<dmSts>		&siMemRdStsP0,
-	stream<axis<512 > >	&siMemReadP0,
+	stream<DmCmd>		&soMemRdCmdP0,
+	stream<DmSts>		&siMemRdStsP0,
+	stream<Axis<512 > >	&siMemReadP0,
 	//---- Write Path (S2MM) -----------
-	stream<dmCmd>		&soMemWrCmdP0,
-	stream<dmSts>		&siMemWrStsP0,
-	stream<axis<512> >	&soMemWriteP0,
+	stream<DmCmd>		&soMemWrCmdP0,
+	stream<DmSts>		&siMemWrStsP0,
+	stream<Axis<512> >	&soMemWriteP0,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    stream<dmCmd>		&soMemRdCmdP1,
-	stream<dmSts>		&siMemRdStsP1,
-	stream<axis<512> >	&siMemReadP1,
+    stream<DmCmd>		&soMemRdCmdP1,
+	stream<DmSts>		&siMemRdStsP1,
+	stream<Axis<512> >	&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	stream<dmCmd>		&soMemWrCmdP1,
-	stream<dmSts>		&siMemWrStsP1,
-	stream<axis<512> >	&soMemWriteP1
+	stream<DmCmd>		&soMemWrCmdP1,
+	stream<DmSts>		&siMemWrStsP1,
+	stream<Axis<512> >	&soMemWriteP1
 
 ) {
 
@@ -262,24 +262,24 @@ void echo_store_and_forward (
 					     FSM_MEM_RD_CMD_P1, FSM_MEM_READ_P1,  FSM_MEM_RD_STS_P1,
 						 FSM_TCP_TX } tcpState;
 
-  static stream<axis<64> > udpRxStream("udpRxStream");
+  static stream<Axis<64> > 	  udpRxStream	("udpRxStream");
   #pragma HLS STREAM variable=udpRxStream depth=1024
 
-  static stream<axis<64> > tcpRxStream("tcpRxStream");
+  static stream<Axis<64> > 	  tcpRxStream	("tcpRxStream");
   #pragma HLS STREAM variable=tcpRxStream depth=1024
 
-  static stream<axis<64> > memRdP0Stream("memRdP0Stream");
+  static stream<Axis<64> > 	  memRdP0Stream	("memRdP0Stream");
   #pragma HLS STREAM variable=memRdP0Stream depth=1024
 
-  static stream<axis<64> > memRdP1Stream("memRdP1Stream");
+  static stream<Axis<64> > 	  memRdP1Stream	("memRdP1Stream");
   #pragma HLS STREAM variable=memRdP1Stream depth=1024
 
-  axis<64>               udpWord;
-  axis<64>				 tcpWord;
-  axis<512>              memP0;
-  axis<512>				 memP1;
-  dmSts                  memRdStsP0, memRdStsP1;
-  dmSts                  memWrStsP0, memWrStsP1;
+  Axis<64>               udpWord;
+  Axis<64>				 tcpWord;
+  Axis<512>              memP0;
+  Axis<512>				 memP1;
+  DmSts                  memRdStsP0, memRdStsP1;
+  DmSts                  memWrStsP0, memWrStsP1;
 
   static ap_uint<16>     cntUdpRxBytes = 0;
   static ap_uint<16>     cntTcpRxBytes = 0;
@@ -307,7 +307,7 @@ void echo_store_and_forward (
   case FSM_MEM_WR_CMD_P0:
     if (!soMemWrCmdP0.full()) {
    	  //-- Post a memory write command to SHELL/Mem/Mp0
-      soMemWrCmdP0.write(dmCmd(cUDP_BUF_BASE_ADDR , cntUdpRxBytes));
+      soMemWrCmdP0.write(DmCmd(cUDP_BUF_BASE_ADDR , cntUdpRxBytes));
       udpState = FSM_MEM_WRITE_P0;
     }
     break;
@@ -339,7 +339,7 @@ void echo_store_and_forward (
   case FSM_MEM_RD_CMD_P0:
     if (!soMemRdCmdP0.full()) {
       //-- Post a memory read command to SHELL/Mem/Mp0
-      soMemRdCmdP0.write(dmCmd(cUDP_BUF_BASE_ADDR, cntUdpRxBytes));
+      soMemRdCmdP0.write(DmCmd(cUDP_BUF_BASE_ADDR, cntUdpRxBytes));
       udpState = FSM_MEM_READ_P0;
     }
     break;
@@ -401,7 +401,7 @@ void echo_store_and_forward (
   case FSM_MEM_WR_CMD_P1:
     if (!soMemWrCmdP1.full()) {
    	  //-- Post a memory write command to SHELL/Mem/Mp1
-      soMemWrCmdP1.write(dmCmd(cTCP_BUF_BASE_ADDR , cntTcpRxBytes));
+      soMemWrCmdP1.write(DmCmd(cTCP_BUF_BASE_ADDR , cntTcpRxBytes));
       tcpState = FSM_MEM_WRITE_P1;
     }
     break;
@@ -434,7 +434,7 @@ void echo_store_and_forward (
   case FSM_MEM_RD_CMD_P1:
     if (!soMemRdCmdP1.full()) {
       //-- Post a memory read command to SHELL/Mem/Mp1
-      soMemRdCmdP1.write(dmCmd(cTCP_BUF_BASE_ADDR, cntTcpRxBytes));
+      soMemRdCmdP1.write(DmCmd(cTCP_BUF_BASE_ADDR, cntTcpRxBytes));
       tcpState = FSM_MEM_READ_P1;
     }
     break;

@@ -31,42 +31,21 @@
 
 using namespace hls;
 
-/*** OBSOLETE-20180706 ****************
-struct axiWord
-{
-	ap_uint<64>		data;
-	ap_uint<8>		keep;
-	ap_uint<1>		last;
-	axiWord() {}
-	axiWord(ap_uint<64>	 data, ap_uint<8> keep, ap_uint<1> last)
-				: data(data), keep(keep), last(last) {}
-};
-
-struct axiMemWord
-{
-    ap_uint<512>	data;
-	ap_uint<64>		keep;
-	ap_uint<1>		last;
-    axiMemWord()    {}
-	axiMemWord(ap_uint<512>	 data,
-               ap_uint<64>   keep,
-               ap_uint<1>    last) : data(data), keep(keep), last(last) {}
-};
-***************************************/
-
 /*
- * A generic unsigned AXI4-Stream interface.
+ * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
  */
  template<int D>
-   struct axis {
+   struct Axis {
      ap_uint<D>       tdata;
      ap_uint<(D+7)/8> tkeep;
      ap_uint<1>       tlast;
+     Axis() {}
+     Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
    };
 
 
 // AXI DataMover - Format of the command word (c.f PG022)
-struct dmCmd
+struct DmCmd
 {
 	ap_uint<23>		bbt;
 	ap_uint<1>		type;
@@ -76,21 +55,21 @@ struct dmCmd
 	ap_uint<32>		saddr;
 	ap_uint<4>		tag;
 	ap_uint<4>		rsvd;
-	dmCmd() {}
-	dmCmd(ap_uint<32> addr, ap_uint<16> len) :
+	DmCmd() {}
+	DmCmd(ap_uint<32> addr, ap_uint<16> len) :
 		bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
 
 // AXI DataMover - Format of the status word (c.f PG022)
-struct dmSts
+struct DmSts
 {
 	ap_uint<4>		tag;
 	ap_uint<1>		interr;
 	ap_uint<1>		decerr;
 	ap_uint<1>		slverr;
 	ap_uint<1>		okay;
-	dmSts() {}
+	DmSts() {}
 };
 
 
@@ -99,36 +78,36 @@ void echo_store_and_forward(
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Udp Interface
 	//------------------------------------------------------
-	stream<axis<64> >	    &siUdp,
-	stream<axis<64> >		&soUdp,
+	stream<Axis<64> >	    &siUdp,
+	stream<Axis<64> >		&soUdp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Nts0 / Tcp Interface
 	//------------------------------------------------------
-	stream<axis<64> >		&siTcp,
-	stream<axis<64> >		&soTcp,
+	stream<Axis<64> >		&siTcp,
+	stream<Axis<64> >		&soTcp,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp0 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-	stream<dmCmd>			&soMemRdCmdP0,
-	stream<dmSts>			&siMemRdStsP0,
-	stream<axis<512> >  	&siMemReadP0,
+	stream<DmCmd>			&soMemRdCmdP0,
+	stream<DmSts>			&siMemRdStsP0,
+	stream<Axis<512> >  	&siMemReadP0,
 	//---- Write Path (S2MM) -----------
-	stream<dmCmd>			&soMemWrCmdP0,
-	stream<dmSts>			&siMemWrStsP0,
-	stream<axis<512> >		&soMemWriteP0,
+	stream<DmCmd>			&soMemWrCmdP0,
+	stream<DmSts>			&siMemWrStsP0,
+	stream<Axis<512> >		&soMemWriteP0,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    stream<dmCmd>			&soMemRdCmdP1,
-	stream<dmSts>			&siMemRdStsP1,
-	stream<axis<512> >		&siMemReadP1,
+    stream<DmCmd>			&soMemRdCmdP1,
+	stream<DmSts>			&siMemRdStsP1,
+	stream<Axis<512> >		&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	stream<dmCmd>			&soMemWrCmdP1,
-	stream<dmSts>			&siMemWrStsP1,
-    stream<axis<512> >  	&soMemWriteP1
+	stream<DmCmd>			&soMemWrCmdP1,
+	stream<DmSts>			&siMemWrStsP1,
+    stream<Axis<512> >  	&soMemWriteP1
 );

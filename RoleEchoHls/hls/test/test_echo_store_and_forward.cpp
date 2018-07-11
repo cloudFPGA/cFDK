@@ -77,41 +77,41 @@ using namespace hls;
 int main() {
 
 	//-- SHELL / Role / Nts0 / Udp Interface
-	stream<axis<64> >		sSHL_Rol_Udp("sSHL_Rol_Udp");
-	stream<axis<64>	>		sROL_Shl_Udp("sROL_Shl_Udp");
+	stream<Axis<64> >		sSHL_Rol_Udp("sSHL_Rol_Udp");
+	stream<Axis<64>	>		sROL_Shl_Udp("sROL_Shl_Udp");
 	//-- SHELL / Role / Nts0 / Tcp Interface
-	stream<axis<64> >		sSHL_Rol_Tcp("sSHL_Rol_Tcp");
-	stream<axis<64>	>		sROL_Shl_Tcp("sROL_Shl_Tcp");
+	stream<Axis<64> >		sSHL_Rol_Tcp("sSHL_Rol_Tcp");
+	stream<Axis<64>	>		sROL_Shl_Tcp("sROL_Shl_Tcp");
 	//-- SHELL / Role / Mem / Mp0 Interface
 	//---- Read Path (MM2S) ------------
-	stream<dmCmd>			sROL_Shl_Mem_RdCmdP0("sROL_Shl_Mem_RdCmdP0");
-	stream<dmSts>			sSHL_Rol_Mem_RdStsP0("sSHL_Rol_Mem_RdStsP0");
-	stream<axis<512> >  	sSHL_Rol_Mem_ReadP0("sSHL_Rol_Mem_ReadP0");
+	stream<DmCmd>			sROL_Shl_Mem_RdCmdP0("sROL_Shl_Mem_RdCmdP0");
+	stream<DmSts>			sSHL_Rol_Mem_RdStsP0("sSHL_Rol_Mem_RdStsP0");
+	stream<Axis<512> >  	sSHL_Rol_Mem_ReadP0("sSHL_Rol_Mem_ReadP0");
 	//---- Write Path (S2MM) -----------
-	stream<dmCmd>			sROL_Shl_Mem_WrCmdP0("sROL_Shl_Mem_WrCmdP0");
-	stream<dmSts>			sSHL_Rol_Mem_WrStsP0("sSHL_Rol_Mem_WrStsP0");
-	stream<axis<512> >		sROL_Shl_Mem_WriteP0("sROL_Shl_Mem_WriteP0");
+	stream<DmCmd>			sROL_Shl_Mem_WrCmdP0("sROL_Shl_Mem_WrCmdP0");
+	stream<DmSts>			sSHL_Rol_Mem_WrStsP0("sSHL_Rol_Mem_WrStsP0");
+	stream<Axis<512> >		sROL_Shl_Mem_WriteP0("sROL_Shl_Mem_WriteP0");
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//---- Read Path (MM2S) ------------
-    stream<dmCmd>			sROL_Shl_Mem_RdCmdP1("sROL_Shl_Mem_RdCmdP1");
-	stream<dmSts>			sSHL_Rol_Mem_RdStsP1("sSHL_Rol_Mem_RdStsP1");
-	stream<axis<512> >		sSHL_Rol_Mem_ReadP1("sSHL_Rol_Mem_ReadP1");
+    stream<DmCmd>			sROL_Shl_Mem_RdCmdP1("sROL_Shl_Mem_RdCmdP1");
+	stream<DmSts>			sSHL_Rol_Mem_RdStsP1("sSHL_Rol_Mem_RdStsP1");
+	stream<Axis<512> >		sSHL_Rol_Mem_ReadP1("sSHL_Rol_Mem_ReadP1");
     //---- Write Path (S2MM) -----------
-	stream<dmCmd>			sROL_Shl_Mem_WrCmdP1("sROL_Shl_Mem_WrCmdP1");
-	stream<dmSts>			sSHL_Rol_Mem_WrStsP1("sSHL_Rol_Mem_WrStsP1");
-    stream<axis<512> >  	sROL_Shl_Mem_WriteP1("sROL_Shl_Mem_WriteP1");
+	stream<DmCmd>			sROL_Shl_Mem_WrCmdP1("sROL_Shl_Mem_WrCmdP1");
+	stream<DmSts>			sSHL_Rol_Mem_WrStsP1("sSHL_Rol_Mem_WrStsP1");
+    stream<Axis<512> >  	sROL_Shl_Mem_WriteP1("sROL_Shl_Mem_WriteP1");
 
-    axis<64>				axis_SHL_Rol_Udp[NR_UDP_PKT*SIZEOF_UDP_PKT];
-    axis<64> 				axis_ROL_Shl_Udp[NR_UDP_PKT*SIZEOF_UDP_PKT];
-    axis<64>				axis_SHL_Rol_Tcp[NR_TCP_PKT*SIZEOF_TCP_PKT];
-    axis<64>				axis_ROL_Shl_Tcp[NR_TCP_PKT*SIZEOF_TCP_PKT];
+    Axis<64>				axis_SHL_Rol_Udp[NR_UDP_PKT*SIZEOF_UDP_PKT];
+    Axis<64> 				axis_ROL_Shl_Udp[NR_UDP_PKT*SIZEOF_UDP_PKT];
+    Axis<64>				axis_SHL_Rol_Tcp[NR_TCP_PKT*SIZEOF_TCP_PKT];
+    Axis<64>				axis_ROL_Shl_Tcp[NR_TCP_PKT*SIZEOF_TCP_PKT];
 
-    dmCmd					dmCmd_MemWrCmdP0, dmCmd_MemWrCmdP1;
-    dmCmd					dmCmd_MemRdCmdP0, dmCmd_MemRdCmdP1;
-    dmSts					dmSts_MemWrStsP0, dmSts_MemWrStsP1;
-    dmSts					dmSts_MemRdStsP0, dmSts_MemRdStsP1;
-    axis<512>  				axis_MemP0[SIZEOF_UDP_PKT];
-    axis<512>				axis_MemP1[SIZEOF_TCP_PKT];
+    DmCmd					dmCmd_MemWrCmdP0, dmCmd_MemWrCmdP1;
+    DmCmd					dmCmd_MemRdCmdP0, dmCmd_MemRdCmdP1;
+    DmSts					dmSts_MemWrStsP0, dmSts_MemWrStsP1;
+    DmSts					dmSts_MemRdStsP0, dmSts_MemRdStsP1;
+    Axis<512>  				axis_MemP0[SIZEOF_UDP_PKT];
+    Axis<512>				axis_MemP1[SIZEOF_TCP_PKT];
 
     int	udpWrCnt = 0;
     int tcpWrCnt = 0;
