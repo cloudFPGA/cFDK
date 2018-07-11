@@ -8,7 +8,7 @@
 #define WFV_V_SHIFT 8 
 #define DONE_SHIFT 1
 #define WEMPTY_SHIFT 2
-#define DECOUP_SHIFT 18
+#define DECOUP_SHIFT 19
 #define CMD_SHIFT 3
 #define ASW1_SHIFT 20
 

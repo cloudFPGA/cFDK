@@ -260,7 +260,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   Done = SR & 0x1;
   EOS  = (SR & 0x4) >> 2;
   WEMPTY = (ISR & 0x4) >> 2;
-  WFV_value = WFV & 0x3FF;
+  WFV_value = WFV & 0x7FF;
   CR_value = CR & 0x1F; 
 
   ASW1 = ASR & 0xFF;
@@ -509,6 +509,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           //printf("writing to HWICAP: %#010x\n",(int) tmp);
         }
 
+        CR_isWritting = CR_value & CR_WRITE;
         if (CR_isWritting != 1)
         {
           HWICAP[CR_OFFSET] = CR_WRITE;
@@ -534,7 +535,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     if (copyRet == 4 && handlePayload)
     {//wait until all is written 
       // only for NOT-HTTP flow necessary
-      while(WFV_value < 0x3FF) 
+      while(WFV_value < 0x7FF) 
       {
         ap_wait_n(LOOP_WAIT_CYCLES); 
         
@@ -556,7 +557,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         }
         
         WFV = HWICAP[WFV_OFFSET];
-        WFV_value = WFV & 0x3FF;
+        WFV_value = WFV & 0x7FF;
       }
 
       if (parseHTTP == 0 && ongoingTransfer == 0)

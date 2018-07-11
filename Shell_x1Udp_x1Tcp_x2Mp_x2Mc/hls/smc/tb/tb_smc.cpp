@@ -138,7 +138,7 @@ int main(){
   MMIO_in = 0x1 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   printf("%#010x\n", (int) MMIO);
-  succeded = (MMIO == 0x1003FF07) && succeded && (decoupActive == 0);
+  succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 0);
 
   MMIO_in = 0x2 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
@@ -148,7 +148,7 @@ int main(){
   MMIO_in = 0x1 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
   printf("%#010x\n", (int) MMIO);
-  succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 1);
+  succeded = (MMIO == 0x100FFF07) && succeded && (decoupActive == 1);
 
   MMIO_in = 0x3 << DSEL_SHIFT | 0b1 << DECOUP_CMD_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
@@ -158,7 +158,7 @@ int main(){
   MMIO_in = 0x1 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem);
   printf("%#010x\n", (int) MMIO);
-  succeded = (MMIO == 0x1007FF07) && succeded && (decoupActive == 0);
+  succeded = (MMIO == 0x100FFF07) && succeded && (decoupActive == 0);
 
 //===========================================================
 //Test Counter & Xmem
@@ -233,13 +233,13 @@ int main(){
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f49444C);
-  HWICAP[CR_OFFSET] = 0x3;
 
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x3f49444C);
 
+  HWICAP[CR_OFFSET] = 0x0;
   //one complete transfer with overflow
   //LOOP
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
@@ -277,7 +277,8 @@ int main(){
   
   printBuffer(bufferIn, "buffer after 0xf transfers:",8);
 
-  assert(HWICAP[CR_OFFSET] == 0x3);
+  printf("CR: %#010x\n", CR_OFFSET);
+  assert(HWICAP[CR_OFFSET] == CR_WRITE);
   
   cnt = 0xf;
   initBuffer((ap_uint<4>) cnt, xmem, false, false);
@@ -289,16 +290,25 @@ int main(){
   cnt = 0x0;
   initBuffer((ap_uint<4>) cnt, xmem, false, false);
   HWICAP[WF_OFFSET] = 42;
+  HWICAP[CR_OFFSET] = 0;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   //succeded &= checkResult(MMIO, 0x30204F4B) && (HWICAP[WF_OFFSET] == 42);
   succeded &= checkResult(MMIO, 0x30204F4B);
   assert(HWICAP[WF_OFFSET] != 42);
+  assert(HWICAP[CR_OFFSET] == CR_WRITE);
   
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   cnt = 0x1;
   initBuffer((ap_uint<4>) cnt, xmem, true, false);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
   succeded &= checkResult(MMIO, 0x31535543);
+  assert(HWICAP[CR_OFFSET] == CR_WRITE);
+  
+  //Check CR_WRITE 
+  HWICAP[CR_OFFSET] = 0;
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x31535543);
+  assert(HWICAP[CR_OFFSET] == 0);
   
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
@@ -521,6 +531,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044fffff
   {
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false, false); 
+    HWICAP[CR_OFFSET] = 0;
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     //test double call --> nothing should change
     printf("DOUBLE CALL\n");
@@ -530,6 +541,7 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044fffff
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     
     assert(decoupActive == 1);
+    assert(HWICAP[CR_OFFSET] == CR_WRITE);
 
     //printBuffer(bufferIn, "bufferIn", 7);
     //printBuffer32(xmem,"Xmem",1);
@@ -573,6 +585,13 @@ Content-Type: application/x-www-form-urlencoded\r\n\r\nffffffffffbb11220044fffff
   succeded &= checkResult(MMIO, 0x40000071); 
 //  assert(decoupActive == 1);*/
   
+  //Check CR_WRITE 
+  HWICAP[CR_OFFSET] = 0;
+  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+  succeded &= checkResult(MMIO, 0x3f535543);
+  assert(HWICAP[CR_OFFSET] == 0);
+
+
   //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   MMIO_in = 0x4 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
