@@ -595,7 +595,20 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           if (parseHTTP == 1)
           {
             //ap_uint<4> telomere = bufferInPtrRead % 4;
-            ap_uint<4> telomere = (4*lastLine) - bufferInPtrRead + 4; //e.g. 1004 - 1006 + 4 = 2; 1004 - 1005 + 4 = 3; usw.
+            ap_uint<4> telomere = ((4*lastLine) - bufferInPtrRead + 4) % 4; //e.g. 1004 - 1006 + 4 = 2; 1004 - 1005 + 4 = 3; usw.
+            // 1002 - 1008 + 4 could not happen, because in this case the for loop would have run one more time
+            // but 1002 - 1002 + 4 is possbile, but then nothing must be copied -> %4 //TODO
+
+            /*ap_uint<4> telomere = 0; 
+            switch((4*lastLine) - bufferInPtrRead) // + 4;
+            { 
+              case -4: telomere = 4; break; //TODO
+              case -1: telomere = 3; break; 
+              case -2: telomere = 2; break;
+              case -3: telomere = 1; break;
+              default: telomere = 0;
+            }*/
+
             if (telomere != 0)
             {
               for(int j = 0; j<telomere; j++)
