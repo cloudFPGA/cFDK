@@ -23,6 +23,7 @@ ap_uint<16> bufferInPtrWrite = 0x0;
 ap_uint<16> bufferInPtrRead = 0x0;
 //ap_uint<16> lastLine = LINES_PER_PAGE-1;
 ap_uint<16> lastLine = 0;
+ap_uint<4> lastLineFill = 0;
 //ap_uint<16> currentAddedPayload = BYTES_PER_PAGE-2;
 
 ap_uint<8> bufferOut[BUFFER_SIZE];
@@ -172,7 +173,17 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
   }
   
   //now we have a clean transfer
-  bufferInPtrWrite += buff_pointer +1;
+  bufferInPtrWrite += buff_pointer; //later +1;
+
+ // lastLine = bufferInPtrWrite/4;
+ // lastLineFill = bufferInPtrWrite % 4;
+
+  bufferInPtrWrite++; //from above
+
+  /*if (lastLine % 4 != 0)
+  {
+    lastLine--;
+  }*/
   
   if (bufferInPtrWrite >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE)) 
   { 
@@ -186,8 +197,8 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
   if (ExpCnt % 2 == 0)
   {
-   /* hangover_0 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 0];
-    hangover_1 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 1];*/
+    //hangover_0 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 0];
+    //hangover_1 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 1];
     lastLine += LINES_PER_PAGE - 1; //now absolute numbers!
     //currentAddedPayload = 
     //contains_hangover = false; //means, only 31 lines!
@@ -298,6 +309,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
     wordsWrittenToIcapCnt = 0;
+    lastLineFill = 0;
   } 
 
 //===========================================================
@@ -492,9 +504,23 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
         toDecoup = 1;
 
-        //for( int i = bufferInPtrRead/4; i<lastLine; i++)
-        for( int i = bufferInPtrRead; i<lastLine*4; i += 4)
+        //if (parseHTTP == 1 && (bufferInPtrRead % 4 != 0))
+        if (httpState == HTTP_HEADER_PARSED && (bufferInPtrRead % 4 != 0))
         {
+          lastLine--;
+        }
+
+        //for( int i = bufferInPtrRead/4; i<lastLine; i++)
+        int i = 0;
+        for(i = bufferInPtrRead; i<lastLine*4; i += 4)
+        {
+
+          //if(bufferInPtrRead + i + 4 >= bufferInPtrWrite)
+        /*  if(bufferInPtrRead + i + 4 >= lastLine*4 + lastLineFill)
+          {
+            break;
+          }*/
+
           ap_uint<32> tmp = 0; 
           if ( notToSwap == 1) 
           {
@@ -532,7 +558,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         }
             
         printf("lastLine: %d\n", (int) lastLine);
+        printf("lastLineFill: %d\n", (int) lastLineFill);
         printf("bufferInPtrRead: %d\n", (int) bufferInPtrRead);
+        printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
 
         CR_isWritting = CR_value & CR_WRITE;
         if (CR_isWritting != 1)
@@ -541,12 +569,47 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
         }
 
         //bufferInPtrRead += 4*lastLine;
-        bufferInPtrRead = 4*lastLine;
+        //if (httpState == HTTP_HEADER_PARSED)
+        if (parseHTTP == 1)
+        {
+          /*if (i >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
+          {
+            ap_uint<4> telomere = bufferInPtrRead % 4;
+            if (telomere != 0)
+            {
+              for(int j = 0; j<telomere; j++)
+              {
+                bufferIn[j] = bufferIn[bufferInPtrRead/4 + j];
+              }
+              bufferInPtrWrite = telomere;
+            }
+          }*/
+          
+          bufferInPtrRead = i; //NOT i + 4, because that is already done by the for loop!
+        } else {
+          bufferInPtrRead = 4*lastLine;
+        }
 
         if(bufferInPtrRead >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
         {//should always hit even pages....
+          if (parseHTTP == 1)
+          {
+            //ap_uint<4> telomere = bufferInPtrRead % 4;
+            ap_uint<4> telomere = (4*lastLine) - bufferInPtrRead + 4; //e.g. 1004 - 1006 + 4 = 2; 1004 - 1005 + 4 = 3; usw.
+            if (telomere != 0)
+            {
+              for(int j = 0; j<telomere; j++)
+              {
+                bufferIn[j] = bufferIn[bufferInPtrRead + j];
+              }
+              bufferInPtrWrite = telomere;
+            }
+          }
+          
           bufferInPtrRead = 0;
         }
+        
+        printf("after UPDATE bufferInPtrRead: %d\n", (int) bufferInPtrRead);
         
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x7FF;
