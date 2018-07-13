@@ -8,7 +8,7 @@
 #include "http.hpp"
 
 //extern HttpState httpState; 
-//extern ap_uint<16> bufferInPtrRead;
+//extern ap_uint<16> bufferInPtrNextRead;
 
 //static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
 static char* httpHeader = "HTTP/1.1 ";
@@ -277,7 +277,7 @@ int8_t extract_path()
     return 1;
   } else if (my_strcmp(configurePath, bufferIn ,my_strlen(configurePath)) == 0 )
   { 
-    bufferInPtrRead = requestLen + 4;
+    bufferInPtrNextRead = requestLen + 4;
     reqType = POST_CONFIG; 
     return 2;
   } else { //Invalid
@@ -324,7 +324,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                httpState = HTTP_READ_PAYLOAD;
                //no break 
     case HTTP_READ_PAYLOAD:
-               //bufferInPtrRead = bufferInPtrWrite;
+               //bufferInPtrNextRead = bufferInPtrWrite;
                break; 
     case HTTP_REQUEST_COMPLETE: 
              //  break; 

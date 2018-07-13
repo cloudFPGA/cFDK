@@ -94,7 +94,7 @@ typedef enum { HTTP_IDLE = 0,
 extern ap_uint<8> bufferIn[BUFFER_SIZE];
 extern ap_uint<8> bufferOut[BUFFER_SIZE];
 extern ap_uint<16> bufferInPtrWrite;
-extern ap_uint<16> bufferInPtrRead;
+extern ap_uint<16> bufferInPtrNextRead;
 extern ap_uint<16> bufferOutPtrWrite;
 extern ap_uint<4> httpAnswerPageLength;
 

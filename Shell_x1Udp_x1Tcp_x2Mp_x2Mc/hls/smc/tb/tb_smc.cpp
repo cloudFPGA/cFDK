@@ -69,7 +69,8 @@ void initBuffer(ap_uint<4> cnt,ap_uint<32> xmem[XMEM_SIZE], bool lastPage, bool 
     xmem[i] = ctrlWord;
     } else {
     //xmem[i] = ctrlWord+i; 
-      xmem[i] = (ctrlWord << 16) + (rand() % 65536);
+    // xmem[i] = (ctrlWord << 16) + (rand() % 65536);
+      xmem[i] = (((ap_uint<32>) cnt) << 24) | 0x0A0B00 | ((ap_uint<32>) i);
     }
   }
   //printf("CtrlWord: %#010x\n",(int) ctrlWord);
@@ -495,7 +496,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   // POST TEST 2
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   //getStatus = "POST /configure HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nContent-Length: 1607\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044ffffffffffffffffaa995566200000002000000020000000200000002000000020000000200000002000000020000000200000002000000020000000200000002000000000200000002000000020000000200000002000";
-  getStatus = "POST /configure HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencodedAB\r\n\r\nffff000000bb11220044ffffffffffffffffaa995566200000002000000020000000200000002000000020000000200000002000000020000000200000002000000020000000200000002000000000200000002000000020000000200000002000";
+  getStatus = "POST /configure HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\nffff000000bb11220044ffffffffffffffffaa995566200000002000000020000000200000002000000020000000200000002000000020000000200000002000000020000000200000002000000000200000002000000020000000200000002000";
 
   printf("%s\n",getStatus);
 
@@ -538,19 +539,22 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false, false); 
     HWICAP[CR_OFFSET] = 0;
+    printBuffer32(xmem,"Xmem",1);
     smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     //test double call --> nothing should change
-    printf("DOUBLE CALL\n");
-    //fflush(stdout);
-    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
-    printf("TRIBLE CALL\n");
-    smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    for(int j = 0; j< 4; j++)
+    {
+    //printf("DOUBLE CALL\n");
+      printf("%d CALL\n",j);
+      smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
+    }
+    //printf("TRIBLE CALL\n");
+    //smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem);
     
     assert(decoupActive == 1);
     assert(HWICAP[CR_OFFSET] == CR_WRITE);
 
     printBuffer(bufferIn, "bufferIn", 8);
-    printBuffer32(xmem,"Xmem",1);
     //printf("bufferInPtrRead: %#010x\n",(int) bufferInPtrRead);
  /*   printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
     //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
