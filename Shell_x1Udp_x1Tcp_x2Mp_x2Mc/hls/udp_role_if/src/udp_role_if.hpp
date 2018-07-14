@@ -18,42 +18,55 @@ const ap_uint<48> BROADCAST_MAC	= 0xFFFFFFFFFFFF;	// Broadcast MAC Address
 
 const uint8_t 	noOfArpTableEntries	= 8;
 
+/*
+ * A generic unsigned AXI4-Stream interface.
+ */
+ template<int D>
+   struct Axis {
+     ap_uint<D>       tdata;
+     ap_uint<(D+7)/8> tkeep;
+     ap_uint<1>       tlast;
+     Axis() {}
+     Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
+   };
 
-struct axiWord {
-	ap_uint<64>		data;
-	ap_uint<8>		keep;
-	ap_uint<1>		last;
+//OBSOLETE-20180706 struct AxiWord {
+//OBSOLETE-20180706 	ap_uint<64>		data;
+//OBSOLETE-20180706 	ap_uint<8>		keep;
+//OBSOLETE-20180706 	ap_uint<1>		last;
+//OBSOLETE-20180706 };
+
+struct SocketAddr {
+    ap_uint<16>     port;   // Port in network byte order
+    ap_uint<32>		addr;   // IPv4 address
 };
 
-struct sockaddr_in {
-    ap_uint<16>     port;   /* port in network byte order */
-    ap_uint<32>		addr;   /* internet address */
+struct Metadata {
+	SocketAddr		src;	// Source socket address
+	SocketAddr		dst;	// Destination socket address
 };
 
-struct metadata {
-	sockaddr_in sourceSocket;
-	sockaddr_in destinationSocket;
-};
 
-/*-- OBSOLETE-20180118 ------------------------------------ 
-void udpLoopback(stream<axiWord>      &rxDataIn,
-                 stream<metadata>     &rxMetadataIn,
-                 stream<ap_uint<16> > &requestPortOpenOut,
-                 stream<bool>         &portOpenReplyIn,
-				 stream<axiWord>      &txDataOut,
-				 stream<metadata> 	  &txMetadataOut,
-				 stream<ap_uint<16> > &txLengthOut);
-                 ------------------------------------------*/ 
+void udp_role_if (
 
-void udp_role_if (stream<axiWord>       &lbRxDataIn,
-                  stream<metadata>      &lbRxMetadataIn,
-                  stream<ap_uint<16> >  &lbRequestPortOpenOut,
-                  stream<bool >         &lbPortOpenReplyIn,
-                  stream<axiWord> 		&lbTxDataOut,
-                  stream<metadata> 		&lbTxMetadataOut,
-                  stream<ap_uint<16> > 	&lbTxLengthOut,
-                  
-                  stream<axiWord>       &vFPGA_UDP_Rx_Data_Out,
-                  stream<axiWord>       &vFPGA_UDP_Tx_Data_in );
+		//------------------------------------------------------
+		//-- ROLE / This / Udp Interfaces
+		//------------------------------------------------------
+		stream<Axis<64> >	&siROL_This_Data,
+		stream<Axis<64> >   &soTHIS_Rol_Data,
 
+		//------------------------------------------------------
+		//-- UDMX / This / Open-Port Interfaces
+		//------------------------------------------------------
+		stream<Axis<1> >   	&siUDMX_This_OpnAck,
+		stream<Axis<16> >	&soTHIS_Udmx_OpnReq,
 
+		//------------------------------------------------------
+	    //-- UDMX / This / Data & MetaData Interfaces
+		//------------------------------------------------------
+		stream<Axis<64> >	&siUDMX_This_Data,
+		stream<Metadata>	&siUDMX_This_Meta,
+		stream<Axis<64> >	&soTHIS_Udmx_Data,
+		stream<Metadata>	&soTHIS_Udmx_Meta,
+		stream<Axis<16> >	&soTHIS_Udmx_Len
+);

@@ -1,277 +1,317 @@
-//OBSOLETE-20180118 #include "udpLoopback.hpp"
+/*****************************************************************************
+ * @file       : udp_role_if.cpp
+ * @brief      : UDP Role Interface
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : This process exposes the UDP data path to the role.
+ *
+ * @note       : { text }
+ * @remark     : { remark text }
+ * @warning    : { warning message }
+ * @todo       : { paragraph describing what is to be done }
+ *
+ * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
+ *
+ *****************************************************************************/
+
 #include "udp_role_if.hpp"
 
-void rxPath(stream<axiWord>&       lbRxDataIn,
-        	stream<metadata>&      lbRxMetadataIn,
-        	stream<ap_uint<16> >&  lbRequestPortOpenOut,
-        	stream<bool >&  		lbPortOpenReplyIn,
-        	stream<axiWord> 	   &lb_packetBuffer,
-        	stream<ap_uint<16> >   &lb_lengthBuffer,
-        	stream<metadata>	   &lb_metadataBuffer) {
-#pragma HLS PIPELINE II=1
 
-	static enum sState {LB_IDLE = 0, LB_W8FORPORT, LB_ACC_FIRST, LB_ACC} sinkState;
+/*****************************************************************************
+ * @brief Receive path from UDP core to ROLE.
+ * @ingroup udp_role_if
+ *
+ * @param[in]  siUdp_Data, data from UDP core.
+ * @param[in]  siUdp_Meta, meta-data from UDP core.
+ * @param[out] soUdp_OpnReq, open port request to UDP core.
+ * @param[in]  siUdp_OpnAck, open port acknowledgment from UDP core.
+ * @param[out] soRol_Data, data to ROLE.
+ * @param[out] soTxP_Len, UDP packet length to TxPath process.
+ * @param[out] soTxP_Meta, UDP meta-data to TxPath process.
+ *
+ * @return Nothing.
+ ******************************************************************************/
+void pRxPath(
+		stream<Axis<64> >	&siUdp_Data,
+		stream<Metadata>	&siUdp_Meta,
+		stream<Axis<16> >	&soUdp_OpnReq,
+		stream<Axis<1> >	&siUdp_OpnAck,
+		stream<Axis<64> > 	&soRol_Data,
+		stream<Axis<16> >	&soTxP_Len,
+		stream<Metadata>    &soTxP_Meta)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
+
+	static enum FsmState {FSM_IDLE = 0, FSM_W8FORPORT, FSM_ACC_FIRST, FSM_ACC} fsmState;
+
 	static uint16_t 			lbPacketLength 		= 0;
-	//static ap_uint<32> 			openPortWaitTime 	= TIME_5S;
-	static ap_uint<32> 			openPortWaitTime 	= 100;
+	static ap_uint<8> 			openPortWaitTime 	= 10;
 	
-	switch(sinkState) {
-		case LB_IDLE:
-			if(!lbRequestPortOpenOut.full() && openPortWaitTime == 0) {
-				//lbRequestPortOpenOut.write(0x0280);
-				lbRequestPortOpenOut.write(0x50);
-				sinkState = LB_W8FORPORT;
+	switch(fsmState) {
+
+		case FSM_IDLE:
+			if ( !soUdp_OpnReq.full() && openPortWaitTime == 0 ) {
+				// Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
+				soUdp_OpnReq.write(Axis<16>(0x50));
+				fsmState = FSM_W8FORPORT;
 			}
 			else 
 				openPortWaitTime--;
 			break;
-		case LB_W8FORPORT:
-			if(!lbPortOpenReplyIn.empty()) {
-				bool openPort = lbPortOpenReplyIn.read();
-				sinkState = LB_ACC_FIRST;
+		case FSM_W8FORPORT:
+			if ( !siUdp_OpnAck.empty() ) {
+				// Read the acknowledgment
+				Axis<1> sOpenAck = siUdp_OpnAck.read();
+				fsmState = FSM_ACC_FIRST;
 			}
 			break;
-		case LB_ACC_FIRST:
-			if (!lbRxDataIn.empty() && !lb_packetBuffer.full() && !lbRxMetadataIn.empty() && !lb_metadataBuffer.full()) {
-				metadata tempMetadata = lbRxMetadataIn.read();
-				sockaddr_in tempSocket = tempMetadata.sourceSocket ;
-				tempMetadata.sourceSocket = tempMetadata.destinationSocket;
-				tempMetadata.destinationSocket = tempSocket;
-				lb_metadataBuffer.write(tempMetadata);
-				axiWord tempWord = lbRxDataIn.read();
-				lb_packetBuffer.write(tempWord);
+		case FSM_ACC_FIRST:
+			if ( !siUdp_Data.empty() && !soRol_Data.full() &&
+			 	 !siUdp_Meta.empty() && !soTxP_Meta.full()) {
+
+				// Swap the source and destination socket addresses and forward result to pTxPath
+				Metadata	tempMetadata   = siUdp_Meta.read();
+				SocketAddr	tempSockAddr   = tempMetadata.src;
+				tempMetadata.src = tempMetadata.dst;
+				tempMetadata.dst = tempSockAddr;
+				soTxP_Meta.write(tempMetadata);
+
+				// Forward data chunk to ROLE and update byte counter
+				Axis<64>  tmpAxis64 = siUdp_Data.read();
+				soRol_Data.write(tmpAxis64);
 				ap_uint<4> counter = 0;
-				for (uint8_t i=0;i<8;++i) {
-					if (tempWord.keep.bit(i) == 1)
+				for (uint8_t i=0; i<8; ++i) {
+					if (tmpAxis64.tkeep.bit(i) == 1)
 						counter++;
 				}
-				/*switch(tempWord.keep) {
-					case 0x01:
-						counter = 1;
-						break;
-					case 0x03:
-						counter = 2;
-						break;
-					case 0x07:
-						counter = 3;
-						break;
-					case 0x0F:
-						counter = 4;
-						break;
-					case 0x1F:
-						counter = 5;
-						break;
-					case 0x3F:
-						counter = 6;
-						break;
-					case 0x7F:
-						counter = 7;
-						break;
-					case 0xFF:
-						counter = 8;
-						break;
-				}*/
 				lbPacketLength += counter;
-				if (tempWord.last) {
-					lb_lengthBuffer.write(lbPacketLength);
+
+				// Forward the packet length to pTxPath
+				if (tmpAxis64.tlast) {
+					soTxP_Len.write(Axis<16>(lbPacketLength));
 					lbPacketLength = 0;
 				}
 				else
-					sinkState = LB_ACC;
+					fsmState = FSM_ACC;
 			}
 			break;
-		case LB_ACC:
-			if (!lbRxDataIn.empty() && !lb_packetBuffer.full()) {
-				axiWord tempWord = lbRxDataIn.read();
-				lb_packetBuffer.write(tempWord);
+		case FSM_ACC:
+			if ( !siUdp_Data.empty() && !soRol_Data.full() ) {
+
+				// Forward data chunk to ROLE and update byte counter
+				Axis<64>  tempWord = siUdp_Data.read();
+				soRol_Data.write(tempWord);
 				ap_uint<4> counter = 0;
-				for (uint8_t i=0;i<8;++i) {
-					if (tempWord.keep.bit(i) == 1)
+				for (uint8_t i=0; i<8; ++i) {
+					if (tempWord.tkeep.bit(i) == 1)
 						counter++;
 				}
-				/*switch(tempWord.keep) {
-					case 0x01:
-						counter = 1;
-						break;
-					case 0x03:
-						counter = 2;
-						break;
-					case 0x07:
-						counter = 3;
-						break;
-					case 0x0F:
-						counter = 4;
-						break;
-					case 0x1F:
-						counter = 5;
-						break;
-					case 0x3F:
-						counter = 6;
-						break;
-					case 0x7F:
-						counter = 7;
-						break;
-					case 0xFF:
-						counter = 8;
-						break;
-				}*/
+
+				// Forward the packet length to pTxPath
 				lbPacketLength += counter;
-				if (tempWord.last) {
-					lb_lengthBuffer.write(lbPacketLength);
+				if (tempWord.tlast) {
+					soTxP_Len.write(Axis<16>(lbPacketLength));
 					lbPacketLength = 0;
-					sinkState = LB_ACC_FIRST;
+					fsmState = FSM_ACC_FIRST;
 				}
 			}
 			break;
 	}
 }
-void txPath(stream<axiWord> 	   &lb_packetBuffer,
-    		stream<ap_uint<16> >   &lb_lengthBuffer,
-    		stream<metadata>	   &lb_metadataBuffer,
-    		stream<axiWord> 	   &lbTxDataOut,
-		 	stream<metadata> 	   &lbTxMetadataOut,
-		 	stream<ap_uint<16> >   &lbTxLengthOut) {
-#pragma HLS PIPELINE II=1
-	if (!lb_packetBuffer.empty() && !lbTxDataOut.full())
-		lbTxDataOut.write(lb_packetBuffer.read());
-	if (!lb_metadataBuffer.empty()  && !lbTxMetadataOut.full())
-		lbTxMetadataOut.write(lb_metadataBuffer.read());
-	if (!lb_lengthBuffer.empty() && !lbTxLengthOut.full())
-		lbTxLengthOut.write(lb_lengthBuffer.read());
+
+
+/*****************************************************************************
+ * @brief Transmit path from ROLE to UDP core.
+ * @ingroup udp_role_if
+ *
+ * @param[in]  siRol_Data,  data from ROLE.
+ * @param[in]  siRxP_Len,   UDP packet length from RxPath process.
+ * @param[in]  siRxP_Meta,  UDP meta-data from RxPath process.
+ * @param[out] soUdp_Data,  data to UDP core.
+ * @param[out] soUdmx_Meta, UDP meta-data to UDP core.
+ * @param[out] soUdmx_Len,  UDP packet length to UDP core.
+ *
+ * @return Nothing.
+ *****************************************************************************/
+void pTxPath(
+		stream<Axis<64> > 	&siRol_Data,
+		stream<Axis<16> >   &siRxP_Len,
+		stream<Metadata>	&siRxP_Meta,
+		stream<Axis<64> > 	&soUdp_Data,
+		stream<Metadata> 	&soUdmx_Meta,
+		stream<Axis<16> >   &soUdmx_Len)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
+
+	if ( !siRol_Data.empty() && !soUdp_Data.full() )
+		soUdp_Data.write(siRol_Data.read());
+
+	if (!siRxP_Meta.empty()  && !soUdmx_Meta.full())
+		soUdmx_Meta.write(siRxP_Meta.read());
+
+	if (!siRxP_Len.empty() && !soUdmx_Len.full())
+		soUdmx_Len.write(siRxP_Len.read());
 }
 
 
-void buff_if(stream<axiWord>&   DataIn,
-        	 stream<axiWord>&	DataOut)
+/*****************************************************************************
+ * @brief Transfer data in between two streams. The communication channel is
+ *  	  handled with non-blocking read and write operations.
+ * @ingroup udp_role_if
+ *
+ * @param[in]  si, the incoming data stream.
+ * @param[out] so, the outgoing data stream.
+ *
+ * @return Nothing.
+ *****************************************************************************/
+void channel (
+		stream<Axis<64> >	&si,
+		stream<Axis<64> >	&so)
 {
-#pragma HLS PIPELINE II=1
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
 
-	if(!DataIn.empty() && !DataOut.full()){
-		DataOut.write(DataIn.read());
+	if (!si.empty() && !so.full()) {
+		so.write(si.read());
 	}
 }
 
 
-/*****************************************************************************/
-/* NameOfTheFunction
+/*****************************************************************************
+ * @brief Enqueue data on a FiFo stream.
+ * @ingroup udp_role_if
  *
- * \desc             Description of function.
+ * @param[in]  si, the incoming data stream.
+ * @param[out] so, the outgoing data stream.
  *
- * \param[streamIn]  lbRxDataIn is the data stream from UDP stack.
- * \param[streamIn]  lbRxMetadataIn
- *
- *
- * \return          The returned value.
- *
+ * @return Nothing.
  *****************************************************************************/
-void udp_role_if (stream<axiWord>       &lbRxDataIn,
-                  stream<metadata>      &lbRxMetadataIn,
-                  stream<ap_uint<16> >  &lbRequestPortOpenOut,
-                  stream<bool >         &lbPortOpenReplyIn,
-                  stream<axiWord> 		&lbTxDataOut,
-                  stream<metadata> 		&lbTxMetadataOut,
-                  stream<ap_uint<16> > 	&lbTxLengthOut,
-                  
-                  stream<axiWord>       &vFPGA_UDP_Rx_Data_Out,
-                  stream<axiWord>       &vFPGA_UDP_Tx_Data_in )
+void pEnqueue (
+		stream<Axis<64> >	&si,
+		stream<Axis<64> >	&so)
 {
-	#pragma HLS INTERFACE ap_ctrl_none port=return
-	#pragma HLS DATAFLOW
-
-	/*#pragma HLS INTERFACE port=lbRxDataIn 		axis
-	#pragma HLS INTERFACE port=lbRxMetadataIn 		axis
-	#pragma HLS INTERFACE port=lbRequestPortOpenOut axis
-	#pragma HLS INTERFACE port=lbPortOpenReplyIn 	axis
-	#pragma HLS INTERFACE port=lbTxDataOut 			axis
-	#pragma HLS INTERFACE port=lbTxMetadataOut	 	axis
-	#pragma HLS INTERFACE port=lbTxLengthOut	 	axis*/
-
-	#pragma HLS resource core=AXI4Stream variable=lbRxDataIn 			metadata="-bus_bundle lbRxDataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRxMetadataIn 		metadata="-bus_bundle lbRxMetadataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRequestPortOpenOut 	metadata="-bus_bundle lbRequestPortOpenOut"
-	#pragma HLS resource core=AXI4Stream variable=lbPortOpenReplyIn 	metadata="-bus_bundle lbPortOpenReplyIn"
-	#pragma HLS resource core=AXI4Stream variable=lbTxDataOut 			metadata="-bus_bundle lbTxDataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxMetadataOut 		metadata="-bus_bundle lbTxMetadataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxLengthOut 		metadata="-bus_bundle lbTxLengthOut"
-
-	#pragma HLS resource core=AXI4Stream variable=vFPGA_UDP_Rx_Data_Out 			metadata="-bus_bundle vFPGA_UDP_Rx_Data_Out"
-	#pragma HLS resource core=AXI4Stream variable=vFPGA_UDP_Tx_Data_in 			metadata="-bus_bundle vFPGA_UDP_Tx_Data_in"
-
-  	#pragma HLS DATA_PACK variable=lbRxMetadataIn
-  	#pragma HLS DATA_PACK variable=lbTxMetadataOut
-
-	static stream<ap_uint<16> > lb_lengthBuffer("lb_lengthBuffer");
-	static stream<metadata>		lb_metadataBuffer("lb_metadataBuffer");
-
-	static stream<axiWord> 		txPacketBuffer("txPacketBuffer");
-	//#pragma HLS DATA_PACK variable 	= txPacketBuffer
-	#pragma HLS STREAM variable 	= txPacketBuffer	depth = 1024
-
-	static stream<axiWord> 		rxPacketBuffer("rxPacketBuffer");
-	//#pragma HLS DATA_PACK variable 	= rxPacketBuffer
-	#pragma HLS STREAM variable 	= rxPacketBuffer	depth = 1024
-
-	rxPath(lbRxDataIn, lbRxMetadataIn, lbRequestPortOpenOut, lbPortOpenReplyIn, txPacketBuffer, lb_lengthBuffer, lb_metadataBuffer);
-	buff_if(txPacketBuffer, vFPGA_UDP_Rx_Data_Out);
-	buff_if(vFPGA_UDP_Tx_Data_in, rxPacketBuffer);
-	txPath(rxPacketBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
+	channel(si, so);
 }
 
 
-#if 0
-
-/*****************************************************************************/
-/* NameOfTheFunction
+/*****************************************************************************
+ * @brief Dequeue data from a FiFo stream.
+ * @ingroup udp_role_if
  *
- * \desc             UDP Loopback application. This is not being used anymore.
- *                   This is replaced by the udp_role_if, which exposes the data
- *                   path to the role.
+ * @param[in]  si, the incoming data stream.
+ * @param[out] so, the outgoing data stream.
  *
- * \param[streamIn] :
- *
- *
- * \return          The returned value.
- *
+ * @return Nothing.
  *****************************************************************************/
-void udpLoopback(stream<axiWord>&       lbRxDataIn,
-                 stream<metadata>&     	lbRxMetadataIn,
-				 stream<ap_uint<16> >&  lbRequestPortOpenOut,
-				 stream<bool >&			lbPortOpenReplyIn,
-				 stream<axiWord> 		&lbTxDataOut,
-				 stream<metadata> 		&lbTxMetadataOut,
-				 stream<ap_uint<16> > 	&lbTxLengthOut) {
-	#pragma HLS INTERFACE ap_ctrl_none port=return
-	#pragma HLS DATAFLOW
-
-	/*#pragma HLS INTERFACE port=lbRxDataIn 			axis
-	#pragma HLS INTERFACE port=lbRxMetadataIn 		axis
-	#pragma HLS INTERFACE port=lbRequestPortOpenOut 	axis
-	#pragma HLS INTERFACE port=lbPortOpenReplyIn 	axis
-	#pragma HLS INTERFACE port=lbTxDataOut 			axis
-	#pragma HLS INTERFACE port=lbTxMetadataOut	 	axis
-	#pragma HLS INTERFACE port=lbTxLengthOut	 		axis*/
-
-	#pragma HLS resource core=AXI4Stream variable=lbRxDataIn 				metadata="-bus_bundle lbRxDataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRxMetadataIn 			metadata="-bus_bundle lbRxMetadataIn"
-	#pragma HLS resource core=AXI4Stream variable=lbRequestPortOpenOut 	metadata="-bus_bundle lbRequestPortOpenOut"
-	#pragma HLS resource core=AXI4Stream variable=lbPortOpenReplyIn 	metadata="-bus_bundle lbPortOpenReplyIn"
-	#pragma HLS resource core=AXI4Stream variable=lbTxDataOut 			metadata="-bus_bundle lbTxDataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxMetadataOut 		metadata="-bus_bundle lbTxMetadataOut"
-	#pragma HLS resource core=AXI4Stream variable=lbTxLengthOut 			metadata="-bus_bundle lbTxLengthOut"
-
-  	#pragma HLS DATA_PACK variable=lbRxMetadataIn
-  	#pragma HLS DATA_PACK variable=lbTxMetadataOut
-
-	static stream<axiWord> 		lb_packetBuffer("lb_packetBuffer");
-	static stream<ap_uint<16> > lb_lengthBuffer("lb_lengthBuffer");
-	static stream<metadata>		lb_metadataBuffer("lb_metadataBuffer");
-	#pragma HLS DATA_PACK variable 	= lb_packetBuffer
-	#pragma HLS STREAM variable 	= lb_packetBuffer	depth = 1024
-
-	rxPath(lbRxDataIn, lbRxMetadataIn, lbRequestPortOpenOut, lbPortOpenReplyIn, lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer);
-	txPath(lb_packetBuffer, lb_lengthBuffer, lb_metadataBuffer, lbTxDataOut, lbTxMetadataOut, lbTxLengthOut);
+void pDequeue (
+		stream<Axis<64> >	&si,
+		stream<Axis<64> >	&so)
+{
+	channel(si, so);
 }
 
-#endif
+
+/*****************************************************************************
+ * @brief   Main process of the UDP Role Interface
+ * @ingroup udp_role_if
+ *
+ * @param[in]  siROL_This_Data, UDP data stream from the ROLE.
+ * @param[out] soTHIS_Rol_Data, UDP data stream to the ROLE.
+ *
+ * @return Nothing.
+ *****************************************************************************/
+void udp_role_if (
+
+		//------------------------------------------------------
+		//-- ROLE / This / Udp Interfaces
+		//------------------------------------------------------
+		stream<Axis<64> >	&siROL_This_Data,
+		stream<Axis<64> >   &soTHIS_Rol_Data,
+
+		//------------------------------------------------------
+		//-- UDMX / This / Open-Port Interfaces
+		//------------------------------------------------------
+		stream<Axis<1> >    &siUDMX_This_OpnAck,
+		stream<Axis<16> >   &soTHIS_Udmx_OpnReq,
+
+		//------------------------------------------------------
+	    //-- UDMX / This / Data & MetaData Interfaces
+		//------------------------------------------------------
+		stream<Axis<64> >   &siUDMX_This_Data,
+		stream<Metadata>    &siUDMX_This_Meta,
+		stream<Axis<64> >	&soTHIS_Udmx_Data,
+		stream<Metadata> 	&soTHIS_Udmx_Meta,
+		stream<Axis<16> >  &soTHIS_Udmx_Len)
+{
+
+	//-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+	#pragma HLS INTERFACE axis register forward port=siROL_This_Data
+	#pragma HLS INTERFACE axis register forward port=soTHIS_Rol_Data
+
+	#pragma HLS INTERFACE axis register forward port=siUDMX_This_OpnAck
+	#pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_OpnReq
+
+	#pragma HLS INTERFACE axis register forward port=siUDMX_This_Data
+	#pragma HLS INTERFACE axis register forward port=siUDMX_This_Meta
+	#pragma HLS DATA_PACK                   variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+	#pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Data
+	#pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Meta
+	#pragma HLS DATA_PACK                   variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+	#pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Len
+
+	//-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
+
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siROL_This_Data 			Metadata="-bus_bundle siROL_This_Data"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data 			Metadata="-bus_bundle soTHIS_Rol_Data"
+
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_OpnAck	// OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_OpnAck"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Data		// OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_Data"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Meta 	// OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_Meta"
+
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_OpnReq	// OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_OpnReq"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Data 	// OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Data"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Meta 	// OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Meta"
+	// OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Len 		// OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Len"
+
+	//-- LOCAL VARIABLES ------------------------------------------------------
+	static stream<Axis<64> >	sRolToUrifFifo	("sRolToUrifFifo");
+	#pragma HLS STREAM variable=sRolToUrifFifo depth=1024 dim=1
+
+	static stream<Axis<64> >	sUrifToRolFifo	("sUrifToRolFifo");
+	#pragma HLS STREAM variable=sUrifToRolFifo depth=1024 dim=1
+
+	static stream<Axis<16> >	sRxToTx_Len		("sRxToTx_Len");
+	static stream<Metadata>		sRxToTx_Meta	("sRxToTx_Meta");
+
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW
+
+	//-- PROCESS FUNCTIONS ----------------------------------------------------
+	//---- From ROLE
+	pEnqueue(siROL_This_Data, sRolToUrifFifo);
+	pTxPath(sRolToUrifFifo,
+			sRxToTx_Len,      sRxToTx_Meta,
+			soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_Len);
+
+	//---- To ROLE
+	pDequeue(sUrifToRolFifo, soTHIS_Rol_Data);
+	pRxPath(siUDMX_This_Data, siUDMX_This_Meta,
+			soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
+			sUrifToRolFifo,
+			sRxToTx_Len, sRxToTx_Meta);
+
+}
+
 
 
