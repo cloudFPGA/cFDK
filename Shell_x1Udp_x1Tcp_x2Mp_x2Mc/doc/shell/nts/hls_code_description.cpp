@@ -19,7 +19,8 @@
  * @warning    : { warning message }
  * @todo       : { paragraph describing what is to be done }
  * 
- * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
+ * @see        : { a placeholder for reference links e.g.  
+ *                 https://www.stack.nl/~dimitri/doxygen/manual/commands.html }
  *
  *****************************************************************************/
 
@@ -55,14 +56,14 @@
 
 
 
-/*****************************************************************************/
-/* @brief { Brief description (1-2 lines) }
+/*****************************************************************************
+ * @brief { Brief description (1-2 lines) }
  * @ingroup (<groupname> [<groupname> <groupname>])
  *
  * @param [(dir)] <parameter-name> { parameter description }
- * @param[in]     _inArg1 Description of first function argument.
- * @param[out]    _outArg2 Description of second function argument.
- * @param[in,out] _inoutArg3 Description of third function argument.
+ * @param[in]     _inArg1, Description of first function argument.
+ * @param[out]    _outArg2, Description of second function argument.
+ * @param[in,out] _inoutArg3, Description of third function argument.
  * 
  * @return { description of the return value }.
  *****************************************************************************/
