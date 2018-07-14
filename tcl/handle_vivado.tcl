@@ -222,6 +222,12 @@ if { ${create} } {
         my_dbg_trace "Finished cleaning the project directory." ${dbgLvl_1}
     } 
 
+    #===============================================================================
+    #
+    # STEP-1 : Create and Specify PROJECT Settings
+    #
+    #===============================================================================
+
     # Create the Xilinx project
     #-------------------------------------------------------------------------------
     if { [ file exists ${xprDir} ] != 1 } {
@@ -268,6 +274,12 @@ if { ${create} } {
 
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
+    #===============================================================================
+    #
+    # STEP-2 : Create and Specify SOURCE Settings
+    #
+    #===============================================================================
+
 
     # Create 'sources_1' fileset (if not found)
     #-------------------------------------------------------------------------------
@@ -286,30 +298,34 @@ if { ${create} } {
     #-------------------------------------------------------------------------------
     update_ip_catalog -rebuild
 
-    # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) and turn the VHDL-2008 mode on 
-    #----------------------------------------------------------------------------------------------------
+    # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
+    #-------------------------------------------------------------------------------
     add_files -fileset ${srcObj} ${hdlDir}
-    set_property file_type {VHDL 2008} [ get_files *.vhd ]
+
+    # Turn the VHDL-2008 mode on 
+    #-------------------------------------------------------------------------------
+    set_property file_type {VHDL 2008} [ get_files ${hdlDir}/*.vhd* ]
+
     my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
 
     if { ${full_src} } {
 
         # Add *ALL* the HDL Source Files for the SHELL
-        #-------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
-        my_dbg_trace "Done with add_files (HDL) for the SHELL." 1
-        
+        my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
+
         # IP Cores SHELL
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
-        #-------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         set ipDirShell ${rootDir}/../../SHELL/${usedShellType}/ip/
         set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         update_ip_catalog
-        my_dbg_trace "Done with update_ip_catalog for the SHELL" 1
+        my_dbg_trace "Done with update_ip_catalog for the SHELL" ${dbgLvl_1}
         
         # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the SHELL. 
-        #-------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         set ipList [ glob -nocomplain ${ipDirShell}/ip_user_files/ip/* ]
         if { $ipList ne "" } {
             foreach ip $ipList {
@@ -320,11 +336,11 @@ if { ${create} } {
         }
    
         # Update Compile Order
-        #-------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         update_compile_order -fileset sources_1
         
         # Add Constraints Files SHELL
-        #---------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/${usedShellType}/xdc/*.xdc ]
         
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
@@ -344,17 +360,26 @@ if { ${create} } {
     }
 
     if { $forceWithoutBB } {
-     # Add HDL Source Files for the ROLE
-        #-----------------------------------
+        # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
+        #---------------------------------------------------------------------------
         add_files  ${rootDir}/../../ROLE/${usedRole}/hdl/
+        set_property file_type {VHDL 2008} [ get_files [ file normalize ${rootDir}/../../ROLE/${usedRole}/hdl/*.vhd* ] ]
         update_compile_order -fileset sources_1
         my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
     
     
         # Update Compile Order
-        #-------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
         update_compile_order -fileset sources_1
     }
+
+
+
+    #===============================================================================
+    #
+    # STEP-3 : Create and Specify CONSTRAINTS Settings
+    #
+    #=============================================================================== 
 
     # Create 'constrs_1' fileset (if not found)
     #-------------------------------------------------------------------------------
@@ -387,9 +412,10 @@ if { ${create} } {
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
+
     #===============================================================================
     #
-    # Create and Specify Synthesis Settings
+    # STEP-4: Create and Specify SYNTHESIS Settings
     #
     #=============================================================================== 
     set year [ lindex [ split [ version -short ] "." ] 0 ]
@@ -412,6 +438,12 @@ if { ${create} } {
     current_run -synthesis ${syntObj}
 
 
+    #===============================================================================
+    #
+    # STEP-5: Create and Specify IMPLEMENTATION Settings
+    #
+    #===============================================================================
+
     #-------------------------------------------------------------------------------
     # Create 'impl_1' run (if not found)
     #-------------------------------------------------------------------------------
@@ -433,13 +465,25 @@ if { ${create} } {
     current_run -implementation ${implObj}
 
 
+    #===============================================================================
+    #
+    # STEP-6: Create and Specify SIMULATION Settings
+    #
+    #===============================================================================
+
     #-------------------------------------------------------------------------------
     # Create 'sim_1' run (if not found)
-    #------------------------------------------------------------------------------- 
+    #-------------------------------------------------------------------------------
     if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
         set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
-        add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
-        set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd ]
+        #OBSOLETE-20180705 add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
+        add_files -fileset sim_1 -norecurse  ${rootDir}/sim
+
+        # Turn the VHDL-2008 mode on 
+        #---------------------------------------------------------------------------
+        set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/*.vhd* ]
+        #OBSOLETE-20180705 set_property file_type {VHDL 2008} [ get_files  ${hdlDir}/*.vhd* ]
+
         set_property source_mgmt_mode All [ current_project ]
         update_compile_order -fileset sim_1
     }
@@ -450,9 +494,6 @@ if { ${create} } {
     my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 }
-
-
-
 
 
 

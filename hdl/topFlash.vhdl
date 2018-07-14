@@ -67,7 +67,7 @@ entity topFlash is
     -- Build date --------------------------------
     gTopDateYear         : stDate  := 8d"18";
     gTopDateMonth        : stDate  := 8d"07";
-    gTopDateDay          : stDate  := 8d"02";
+    gTopDateDay          : stDate  := 8d"11";
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
