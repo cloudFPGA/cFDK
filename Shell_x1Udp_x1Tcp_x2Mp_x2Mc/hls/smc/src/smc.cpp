@@ -238,6 +238,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
       ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
       ap_uint<32> xmem[XMEM_SIZE])
 {
+#pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM
 #pragma HLS INTERFACE m_axi depth=512 port=HWICAP bundle=poSMC_to_HWICAP_AXIM
 #pragma HLS INTERFACE ap_ovld register port=MMIO_out name=poMMIO

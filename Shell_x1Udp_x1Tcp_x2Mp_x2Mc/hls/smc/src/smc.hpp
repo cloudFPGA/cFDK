@@ -58,7 +58,7 @@
 #define XMEM_SIZE (LINES_PER_PAGE * MAX_PAGES)
 #define BYTES_PER_PAGE (LINES_PER_PAGE*4)
 #define PAYLOAD_BYTES_PER_PAGE (BYTES_PER_PAGE - 2)
-#define BUFFER_SIZE 1024 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
+#define BUFFER_SIZE 2048 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
 #define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes!
 
 //HWICAP CR Commands 

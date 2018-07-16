@@ -534,7 +534,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   succeded &= checkResult(MMIO, 0x32535543);
   assert(decoupActive == 1);
   //printBuffer(bufferIn, "buffer IN after POST 3/3:",3); */
-  for(int i = 2; i<0xf; i++)
+  for(int i = 2; i<0x1f; i++)
   {
     cnt = i;
     initBuffer((ap_uint<4>) cnt, xmem, false, false); 
