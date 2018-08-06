@@ -225,8 +225,15 @@ void pDequeue (
  * @brief   Main process of the UDP Role Interface
  * @ingroup udp_role_if
  *
- * @param[in]  siROL_This_Data, UDP data stream from the ROLE.
- * @param[out] soTHIS_Rol_Data, UDP data stream to the ROLE.
+ * @param[in]  siROL_This_Data,     UDP data stream from the ROLE.
+ * @param[out] soTHIS_Rol_Data,     UDP data stream to the ROLE.
+ * @param[in]  siUDMX_This_OpnAck   Open port request from the UDP-Mux. 
+ * @param[out] soTHIS_Udmx_OpnReq   Open port acknowledgment to the UDP-Mux.
+ * @param[in]  siUDMX_This_Data     Data path from the UDP-Mux.
+ * @param[in]  siUDMX_This_Meta     Metadata from the UDP-Mux.
+ * @param[out] soTHIS_Udmx_Data     Data path to the UDP-Mux.
+ * @param[out] soTHIS_Udmx_Meta     Metadata to the UDP-Mux.
+ * @param[out] soTHIS_Udmx_Len      Length of last Rx packet to the UDP-Mux. 
  *
  * @return Nothing.
  *****************************************************************************/
@@ -285,14 +292,14 @@ void udp_role_if (
     // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Len      // OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Len"
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-    static stream<Axis<64> >    sRolToUrifFifo    ("sRolToUrifFifo");
+    static stream<Axis<64> >    sRolToUrifFifo  ("sRolToUrifFifo");
     #pragma HLS STREAM variable=sRolToUrifFifo depth=1024 dim=1
 
-    static stream<Axis<64> >    sUrifToRolFifo    ("sUrifToRolFifo");
+    static stream<Axis<64> >    sUrifToRolFifo  ("sUrifToRolFifo");
     #pragma HLS STREAM variable=sUrifToRolFifo depth=1024 dim=1
 
-    static stream<Axis<16> >    sRxToTx_Len        ("sRxToTx_Len");
-    static stream<Metadata>        sRxToTx_Meta    ("sRxToTx_Meta");
+    static stream<Axis<16> >    sRxToTx_Len     ("sRxToTx_Len");
+    static stream<Metadata>     sRxToTx_Meta    ("sRxToTx_Meta");
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
