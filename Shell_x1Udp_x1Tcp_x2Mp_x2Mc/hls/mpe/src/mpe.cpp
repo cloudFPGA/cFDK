@@ -1,23 +1,33 @@
 
-#include <stdio.h>
-#include <stdint.h>
-#include "ap_int.h"
-#include "ap_utils.h"
-
 #include "mpe.hpp"
 
+using namespace hls;
 
-void mpe_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
-      ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup)
+
+void mpe_main(
+		// ----- link to SMC -----
+		ap_uint<32> *ctrlLink,
+
+		// ----- Nts0 / Tcp Interface -----
+		stream<Axis<64> >		&siTcp,
+		stream<Axis<64> >		&soTcp,
+
+		// ----- Memory -----
+		ap_uint<8> *MEM,
+
+		// ----- MPI_Interface -----
+		MPI_Interface *MPIif,
+		stream<Axis<8> > &MPI_data_in,
+		stream<Axis<8> > &MPI_data_out
+		)
 {
-//#pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
-//#pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
-//#pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM
-#pragma HLS INTERFACE m_axi depth=512 port=HWICAP bundle=poSMC_to_HWICAP_AXIM
-#pragma HLS INTERFACE ap_ovld register port=MMIO_out name=poMMIO
-#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
-#pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_SMC_status
-#pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
+#pragma HLS INTERFACE m_axi depth=2048 port=MEM bundle=poMPE_MEM_buffer_AXIM
+#pragma HLS INTERFACE axis register forward port=siTcp
+#pragma HLS INTERFACE axis register forward port=soTcp
+#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piSMC_MPE_ctrlLink
+#pragma HLS INTERFACE ap_stable register port=MPIif name=pioMPI_interface
+#pragma HLS INTERFACE axis register forward port=MPI_data_in
+#pragma HLS INTERFACE axis register forward port=MPI_data_out
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
