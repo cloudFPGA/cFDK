@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * @file       : udp_role_if.hpp
+ * @brief      : UDP Role Interface.
+ *  *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ * 				 UDP role interface.
+ *
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -27,8 +45,15 @@ const uint8_t 	noOfArpTableEntries	= 8;
      ap_uint<(D+7)/8> tkeep;
      ap_uint<1>       tlast;
      Axis() {}
-     Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
+     Axis(ap_uint<D> t_data) : tdata((ap_uint<D>)t_data) {
+    	 int val = 0;
+    	 for (int bit=0; bit<(D+7)/8; bit++)
+    		 val |= (1 << bit);
+    	 tkeep = val;
+    	 tlast = 1;
+     }
    };
+
 
 //OBSOLETE-20180706 struct AxiWord {
 //OBSOLETE-20180706 	ap_uint<64>		data;

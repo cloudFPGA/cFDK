@@ -12,6 +12,7 @@
  *****************************************************************************/
 
 #include <stdio.h>
+#include <hls_stream.h>
 
 #include "../src/udp_role_if.hpp"
 
@@ -176,7 +177,7 @@ int main() {
 			ofsURIF_Udmx_Data << " ";
 			ofsURIF_Udmx_Data << setw(1) << tmpAxis64.tlast.to_int()<< endl;
 			// Print DUT output to console
-			printf("URIF->UDMX_Data : TB is reading {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+			printf("URIF->UDMX_Data : TB is reading data {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
 					tmpAxis64.tdata.to_long(), tmpAxis64.tkeep.to_int(), tmpAxis64.tlast.to_int());
 		}
 		if ( !sURIF_Rol_Data.empty() ) {
@@ -189,21 +190,21 @@ int main() {
 			ofsURIF_Rol_Data << " ";
 			ofsURIF_Rol_Data << setw(1) << tmpAxis64.tlast.to_int()<< endl;
 			// Print DUT output to console
-			printf("URIF->ROLE_Data : TB is reading {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+			printf("URIF->ROLE_Data : TB is reading data {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
 					tmpAxis64.tdata.to_long(), tmpAxis64.tkeep.to_int(), tmpAxis64.tlast.to_int());
 		}
 		if ( !sURIF_Udmx_Meta.empty() ) {
 			// Get the DUT/Meta results
 			sURIF_Udmx_Meta.read(tmpConn);
 			// Print DUT/Meta output to console
-			printf("URIF->UDMX_Meta : TB is writing metadata {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+			printf("URIF->UDMX_Meta : TB is reading metadata {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
 					tmpConn.src.port.to_int(), tmpConn.src.addr.to_int(), tmpConn.dst.port.to_int(), tmpConn.dst.addr.to_int());
 		}
 		if ( !sURIF_Udmx_Len.empty() ) {
 			// Get the DUT/Len results
 			sURIF_Udmx_Len.read(tmpAxis16);
 			// Print DUT/Len output to console
-			printf("URIF->UDMX_Len  : TB is reading {D=0x%4.4llX, K=0x%1.1X, L=%d} \n",
+			printf("URIF->UDMX_Len  : TB is reading length {D=0x%4.4llX, K=0x%1.1X, L=%d} \n",
 					tmpAxis16.tdata.to_long(), tmpAxis16.tkeep.to_int(), tmpAxis16.tlast.to_int());
 		}
 	}
