@@ -1718,7 +1718,7 @@ module NetworkTransportSession_TcpIp (
     //-- DHCP / This / OpenPortRequest / Axis
     .siDHCP_This_OpnReq_TDATA     (sDHCP_Udmx_OpnReq_Axis_tdata),
     .siDHCP_This_OpnReq_TVALID    (sDHCP_Udmx_OpnReq_Axis_tvalid),
-    .siDHCP_This_OpnReq__TREADY   (sUDMX_Dhcp_OpnReq_Axis_tready),
+    .siDHCP_This_OpnReq_TREADY   (sUDMX_Dhcp_OpnReq_Axis_tready),
 
     //------------------------------------------------------
     //-- To DHCP / Open-Port Interfaces
@@ -1854,7 +1854,7 @@ module NetworkTransportSession_TcpIp (
     //-- THIS / Urif / Meta / Output AXI-Write Stream Interface
     .soTHIS_Urif_Meta_TREADY      (sURIF_Udmx_Meta_Axis_tready),
     .soTHIS_Urif_Meta_TDATA       (sUDMX_Urif_Meta_Axis_tdata),
-    .soTHIS_Urif_Meta_VALID       (sUDMX_Urif_Meta_Axis_tvalid)
+    .soTHIS_Urif_Meta_TVALID      (sUDMX_Urif_Meta_Axis_tvalid)
                                                      
   );
       
