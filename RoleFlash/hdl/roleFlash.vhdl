@@ -310,11 +310,11 @@ begin
   pUdpApp : process(piSHL_156_25Clk)
   
     ------------------------------------------------------------------------------
-     -- Prcd: UDP ECHO PASS-THROUGH
-     --  Loopback between the Rx and Tx ports of the UDP connection.
-     --  The echo is said to operate in "pass-through" mode because every received
-     --  packet is sent back without being stored by the role.
-     ------------------------------------------------------------------------------
+    -- Prcd: UDP ECHO PASS-THROUGH
+    --  Loopback between the Rx and Tx ports of the UDP connection.
+    --  The echo is said to operate in "pass-through" mode because every received
+    --  packet is sent back without being stored by the role.
+    ------------------------------------------------------------------------------
     procedure pdUdpEchoPassThrough is
     begin
       if (piSHL_Rol_Nts0_Udp_Axis_tready = '1') then
