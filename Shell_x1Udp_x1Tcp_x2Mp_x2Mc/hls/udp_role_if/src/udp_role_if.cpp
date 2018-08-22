@@ -1,6 +1,6 @@
 /*****************************************************************************
  * @file       : udp_role_if.cpp
- * @brief      : UDP Role Interface
+ * @brief      : UDP Role Interface (URIF)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -11,12 +11,17 @@
  *
  *----------------------------------------------------------------------------
  *
- * @details    : This process exposes the UDP data path to the role.
+ * @details    : This process exposes the UDP data path to the role. The main
+ *  purpose of the URIF is to hide the socket mechanism from the user's role
+ *  application. As a result, the user application sends and receives its data
+ *  octets over plain Tx and Rx AXI4-Stream interfaces.
  *
- * @note       : { text }
+ * @note       : The Tx data path (i.e. THIS->UDP) will block until a data
+ *                chunk and its corresponding metadata is received by the Rx
+ *                path.
  * @remark     : { remark text }
- * @warning    : { warning message }
- * @todo       : { paragraph describing what is to be done }
+ * @warning    : For the time being, all communications occur over port #80.
+ * @todo       : [TODO - Port# must configurable]
  *
  * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
  *
@@ -26,198 +31,324 @@
 
 
 /*****************************************************************************
- * @brief Receive path from UDP core to ROLE.
+ * @brief Update the payload length based on the setting of the 'tkeep' bits.
  * @ingroup udp_role_if
  *
- * @param[in]  siUdp_Data, data from UDP core.
- * @param[in]  siUdp_Meta, meta-data from UDP core.
- * @param[out] soUdp_OpnReq, open port request to UDP core.
- * @param[in]  siUdp_OpnAck, open port acknowledgment from UDP core.
- * @param[out] soRol_Data, data to ROLE.
- * @param[out] soTxP_Len, UDP packet length to TxPath process.
- * @param[out] soTxP_Meta, UDP meta-data to TxPath process.
- *
+ * @param[in]  	  axisChunk, a pointer to an AXI4-Stream chunk.
+ * @param[in,out] pldLen, a pointer to the payload length of the corresponding
+ * 					AXI4-Stream.
  * @return Nothing.
  ******************************************************************************/
-void pRxPath(
-        stream<Axis<64> >    &siUdp_Data,
-        stream<Metadata>     &siUdp_Meta,
-        stream<Axis<16> >    &soUdp_OpnReq,
-        stream<Axis<1> >     &siUdp_OpnAck,
-        stream<Axis<64> >    &soRol_Data,
-        stream<Axis<16> >    &soTxP_Len,
-        stream<Metadata>     &soTxP_Meta)
+void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
+	if (axisChunk->tlast) {
+		int bytCnt = 0;
+		for (int i = 0; i < 8; i++) {
+			if (axisChunk->tkeep.bit(i) == 1) {
+				bytCnt++;
+			}
+		}
+		*pldLen += bytCnt;
+	} else
+		*pldLen += 8;
+}
+
+
+/*****************************************************************************
+ * @brief Enqueue data onto a FiFo stream while computing the payload length
+ *         on the fly.
+ * @ingroup udp_role_if
+ *
+ * @param[in]	siData, the data stream to enqueue.
+ * @param[out]  soFifo, the FiFo stream to write.
+ * @param[out]  soPLen, the length of the enqueued payload.
+ *
+ * @return Nothing.
+ *****************************************************************************/
+ void pEnqueue (
+		stream<UdpWord>     &siData,
+		stream<UdpWord>		&soFifo,
+		stream<UdpPLen>     &soPLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+	//TMP-20180822 #pragma HLS PIPELINE II=1
 
-    static enum FsmState {FSM_IDLE = 0, FSM_W8FORPORT, FSM_ACC_FIRST, FSM_ACC} fsmState;
+    //-- LOCAL VARIABLES ------------------------------------------------------
+	static UdpPLen	pldLen;
 
-    static uint16_t             lbPacketLength       = 0;
-    static ap_uint<8>           openPortWaitTime     = 10;
+	static enum FsmState {FSM_RST=0, FSM_ACC, FSM_LAST_ACC} fsmState;
+
+	switch(fsmState) {
+
+		case FSM_RST:
+			pldLen = 0;
+			fsmState = FSM_ACC;
+			break;
+
+		case FSM_ACC:
+
+			// Default stream handling
+			if ( !siData.empty() && !soFifo.full() ) {
+
+				// Read incoming data chunk
+				UdpWord	aWord = siData.read();
+
+				// Increment the payload length
+				updatePayloadLength(&aWord, &pldLen);
+
+        		// Enqueue data chunk into FiFo
+				soFifo.write(aWord);
+
+	        	// Until LAST bit is set
+				if (aWord.tlast)
+					fsmState = FSM_LAST_ACC;
+			}
+			break;
+
+		case FSM_LAST_ACC:
+
+			// Forward the payload length
+			soPLen.write(pldLen);
+
+			// Reset the payload length
+			pldLen = 0;
+
+			// Start over
+			fsmState = FSM_ACC;
+
+			break;
+	}
+}
+
+
+ /*****************************************************************************
+  * @brief Dequeue data from a FiFo stream and forward the metadata when the
+  *         the LAST bit is set.
+  * @ingroup udp_role_if
+  *
+  * @param[in]	siFifo, the FiFo stream to read from.
+  * @param[in]	siMeta, the socket pair information provided by the Rx path.
+  * @param[in]   siPLen, the length of the enqueued payload.
+  * @param[out]  soData, the output data stream.
+  * @param[out]  soMeta, the output metadata stream.
+  * @param[out]  soPLen, the output payload length.
+  *
+  * @return Nothing.
+  *****************************************************************************/
+ void pDequeue (
+ 		stream<UdpWord>     &siFifo,
+ 		stream<UdpMeta>		&siMeta,
+ 		stream<UdpPLen>     &siPLen,
+ 		stream<UdpWord>		&soData,
+ 		stream<UdpMeta>		&soMeta,
+ 		stream<UdpPLen>		&soPLen)
+ {
+     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	 //TMP-20180822 #pragma HLS PIPELINE II=1
+
+	//-- LOCAL VARIABLES ------------------------------------------------------
+ 	static 	UdpMeta		txSocketPairReg;
+
+ 	static enum FsmState {FSM_W8FORMETA=0, FSM_FIRST_ACC, FSM_ACC} fsmState;
 
     switch(fsmState) {
 
-        case FSM_IDLE:
-            if ( !soUdp_OpnReq.full() && openPortWaitTime == 0 ) {
-                // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
-                soUdp_OpnReq.write(Axis<16>(0x50));
-                fsmState = FSM_W8FORPORT;
-            }
-            else 
-                openPortWaitTime--;
-            break;
-        case FSM_W8FORPORT:
-            if ( !siUdp_OpnAck.empty() ) {
-                // Read the acknowledgment
-                Axis<1> sOpenAck = siUdp_OpnAck.read();
-                fsmState = FSM_ACC_FIRST;
-            }
-            break;
-        case FSM_ACC_FIRST:
-            if ( !siUdp_Data.empty() && !soRol_Data.full() &&
-                  !siUdp_Meta.empty() && !soTxP_Meta.full()) {
+    	case FSM_W8FORMETA:
 
-                // Swap the source and destination socket addresses and forward result to pTxPath
-                Metadata    tempMetadata   = siUdp_Meta.read();
-                SocketAddr    tempSockAddr   = tempMetadata.src;
-                tempMetadata.src = tempMetadata.dst;
-                tempMetadata.dst = tempSockAddr;
-                soTxP_Meta.write(tempMetadata);
+    		// The very first time, wait until the Rx path provides us with the
+    		// socketPair information before continuing
+    		if ( !siMeta.empty() ) {
+    			txSocketPairReg = siMeta.read();
+    			fsmState = FSM_FIRST_ACC;
+    		}
+    		break;
 
-                // Forward data chunk to ROLE and update byte counter
-                Axis<64>  tmpAxis64 = siUdp_Data.read();
-                soRol_Data.write(tmpAxis64);
-                ap_uint<4> counter = 0;
-                for (uint8_t i=0; i<8; ++i) {
-                    if (tmpAxis64.tkeep.bit(i) == 1)
-                        counter++;
-                }
-                lbPacketLength += counter;
+        case FSM_FIRST_ACC:
 
-                // Forward the packet length to pTxPath
-                if (tmpAxis64.tlast) {
-                    soTxP_Len.write(Axis<16>(lbPacketLength));
-                    lbPacketLength = 0;
-                }
-                else
-                    fsmState = FSM_ACC;
-            }
+        	// Send out the first data together with the metadata and payload length information
+        	if ( !siFifo.empty() && !siPLen.empty() ) {
+        		if ( !soData.full() && !soMeta.full() && !soPLen.full() ) {
+					// Forward data chunk, metadata and payload length
+					UdpWord	aWord = siFifo.read();
+					if (!aWord.tlast) {
+						soData.write(aWord);
+						soMeta.write(txSocketPairReg);
+						soPLen.write(siPLen.read());
+						fsmState = FSM_ACC;
+					}
+				}
+        	}
+
+        	// Always drain the 'siMeta' stream to avoid any blocking on the Rx side
+        	if ( !siMeta.empty() )
+        		txSocketPairReg = siMeta.read();
+
             break;
+
         case FSM_ACC:
-            if ( !siUdp_Data.empty() && !soRol_Data.full() ) {
 
-                // Forward data chunk to ROLE and update byte counter
-                Axis<64>  tempWord = siUdp_Data.read();
-                soRol_Data.write(tempWord);
-                ap_uint<4> counter = 0;
-                for (uint8_t i=0; i<8; ++i) {
-                    if (tempWord.tkeep.bit(i) == 1)
-                        counter++;
-                }
-
-                // Forward the packet length to pTxPath
-                lbPacketLength += counter;
-                if (tempWord.tlast) {
-                    soTxP_Len.write(Axis<16>(lbPacketLength));
-                    lbPacketLength = 0;
-                    fsmState = FSM_ACC_FIRST;
-                }
+        	// Default stream handling
+            if ( !siFifo.empty() && !soData.full() ) {
+                // Forward data chunk
+                UdpWord	aWord = siFifo.read();
+                soData.write(aWord);
+                // Until LAST bit is set
+                if (aWord.tlast)
+                	fsmState = FSM_FIRST_ACC;
             }
+
+            // Always drain the 'siMeta' stream to avoid any blocking on the Rx side
+            if ( !siMeta.empty() )
+            	txSocketPairReg = siMeta.read();
+
             break;
     }
-}
+ }
 
 
 /*****************************************************************************
  * @brief Transmit path from ROLE to UDP core.
  * @ingroup udp_role_if
  *
- * @param[in]  siRol_Data,  data from ROLE.
- * @param[in]  siRxP_Len,   UDP packet length from RxPath process.
- * @param[in]  siRxP_Meta,  UDP meta-data from RxPath process.
- * @param[out] soUdp_Data,  data to UDP core.
- * @param[out] soUdmx_Meta, UDP meta-data to UDP core.
- * @param[out] soUdmx_Len,  UDP packet length to UDP core.
+ * @param[in]  siROL_This_Data,  data from ROLE.
+ * @param[in]  sRxP_Meta,  		 metadata from the RxPath process.
+ * @param[out] soTHIS_Udmx_Data, data to UDP-mux.
+ * @param[out] soTHIS_Udmx_Meta, meta-data to UDP-mux.
+ * @param[out] soTHIS_Udmx_PLen, packet length to UDP-mux.
  *
  * @return Nothing.
  *****************************************************************************/
 void pTxPath(
-        stream<Axis<64> >    &siRol_Data,
-        stream<Axis<16> >    &siRxP_Len,
-        stream<Metadata>     &siRxP_Meta,
-        stream<Axis<64> >    &soUdp_Data,
-        stream<Metadata>     &soUdmx_Meta,
-        stream<Axis<16> >    &soUdmx_Len)
+        stream<UdpWord>     &siROL_This_Data,
+        stream<UdpMeta>     &sRxP_Meta,
+        stream<UdpWord>     &soTHIS_Udmx_Data,
+        stream<UdpMeta>     &soTHIS_Udmx_Meta,
+        stream<UdpPLen> 	&soTHIS_Udmx_PLen)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+	//-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+	#pragma HLS INTERFACE axis register both port=siROL_This_Data
+    //#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
+    //#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
+    //#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
 
-    if ( !siRol_Data.empty() && !soUdp_Data.full() )
-        soUdp_Data.write(siRol_Data.read());
+	//#pragma HLS DATA_PACK variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
 
-    if (!siRxP_Meta.empty()  && !soUdmx_Meta.full())
-        soUdmx_Meta.write(siRxP_Meta.read());
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW
+    //TMP-20180822 #pragma HLS PIPELINE II=1
 
-    if (!siRxP_Len.empty() && !soUdmx_Len.full())
-        soUdmx_Len.write(siRxP_Len.read());
+    //-- LOCAL STREAMS --------------------------------------------------------
+	static stream<UdpPLen>		sTxPLen("sTxPLen");
+	static stream<UdpWord>		sTxFifo("sTxFifo");
+
+	#pragma HLS STREAM variable=sTxPLen depth=1
+	#pragma HLS STREAM variable=sTxFifo depth=2048	// Must be able to contain MTU
+
+	//-- LOCAL VARIABLES ------------------------------------------------------
+
+    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    pEnqueue(siROL_This_Data, sTxFifo, sTxPLen);
+
+    pDequeue(sTxFifo,    	   sRxP_Meta,        sTxPLen,
+    		 soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
 }
 
 
 /*****************************************************************************
- * @brief Transfer data in between two streams. The communication channel is
- *        handled with non-blocking read and write operations.
+ * @brief Receive path from UDP core to ROLE.
  * @ingroup udp_role_if
  *
- * @param[in]  si, the incoming data stream.
- * @param[out] so, the outgoing data stream.
+ * @param[in]  siUDMX_This_Data,   data from UDP-mux.
+ * @param[in]  siUDMX_This_Meta,   metadata from UDP-mux.
+ * @param[out] soTHIS_Udmx_OpnReq, open port request to UDP-mux.
+ * @param[in]  siUDMX_This_OpnAck, open port acknowledgment from UDP-mux.
+ * @param[out] soTHIS_Rol_Data,    data to ROLE.
+ * @param[out] sTxP_Meta,   	   the socketPair info for the TxPath process.
  *
  * @return Nothing.
- *****************************************************************************/
-void channel (
-        stream<Axis<64> >    &si,
-        stream<Axis<64> >    &so)
+ ******************************************************************************/
+void pRxPath(
+        stream<UdpWord>      &siUDMX_This_Data,
+        stream<UdpMeta>      &siUDMX_This_Meta,
+        stream<UdpPort>      &soTHIS_Udmx_OpnReq,
+        stream<AxisAck>      &siUDMX_This_OpnAck,
+        stream<UdpWord>      &soTHIS_Rol_Data,
+        stream<UdpMeta>      &sTxP_Meta)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+	//-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+	//#pragma HLS INTERFACE axis register both port=siUDMX_This_Data
+	//#pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
+	//#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
+	//#pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
+	//#pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
 
-    if (!si.empty() && !so.full()) {
-        so.write(si.read());
+	//#pragma HLS DATA_PACK variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	//TMP-20180822 #pragma HLS PIPELINE II=1
+
+    static enum FsmState {FSM_RESET=0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC} fsmState;
+
+    //-- LOCAL VARIABLES ------------------------------------------------------
+    static ap_uint<8>   openPortWaitTime;
+
+    switch(fsmState) {
+
+    	case FSM_RESET:
+    		openPortWaitTime = 10;
+    		fsmState = FSM_IDLE;
+    		break;
+
+        case FSM_IDLE:
+            if ( !soTHIS_Udmx_OpnReq.full() && openPortWaitTime == 0 ) {
+                // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
+                soTHIS_Udmx_OpnReq.write(0x0050);
+                fsmState = FSM_W8FORPORT;
+            }
+            else
+                openPortWaitTime--;
+            break;
+
+        case FSM_W8FORPORT:
+            if ( !siUDMX_This_OpnAck.empty() ) {
+                // Read the acknowledgment
+                AxisAck sOpenAck = siUDMX_This_OpnAck.read();
+                fsmState = FSM_FIRST_ACC;
+            }
+            break;
+
+        case FSM_FIRST_ACC:
+        	// Wait until both the first data chunk and the first metadata are received from UDP
+        	if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
+				if ( !soTHIS_Rol_Data.full() && !sTxP_Meta.full()) {
+					// Forward data chunk to ROLE
+					UdpWord	udpWord = siUDMX_This_Data.read();
+					if (!udpWord.tlast) {
+						soTHIS_Rol_Data.write(udpWord);
+						fsmState = FSM_ACC;
+					}
+					// Swap the source and destination socket addresses
+					UdpMeta		udpRxMeta = siUDMX_This_Meta.read();
+					UdpMeta		udpTxMeta;
+					udpTxMeta.dst = udpRxMeta.src;
+					udpTxMeta.src = udpRxMeta.dst;
+					// Forward the socketPair information to pTxPath
+					sTxP_Meta.write(udpTxMeta);
+				}
+        	}
+            break;
+
+        case FSM_ACC:
+        	// Default stream handling
+            if ( !siUDMX_This_Data.empty() && !soTHIS_Rol_Data.full() ) {
+                // Forward data chunk to ROLE
+                UdpWord	udpWord = siUDMX_This_Data.read();
+                soTHIS_Rol_Data.write(udpWord);
+                // Until LAST bit is set
+                if (udpWord.tlast)
+                	fsmState = FSM_FIRST_ACC;
+            }
+            break;
     }
-}
-
-
-/*****************************************************************************
- * @brief Enqueue data on a FiFo stream.
- * @ingroup udp_role_if
- *
- * @param[in]  si, the incoming data stream.
- * @param[out] so, the outgoing data stream.
- *
- * @return Nothing.
- *****************************************************************************/
-void pEnqueue (
-        stream<Axis<64> >    &si,
-        stream<Axis<64> >    &so)
-{
-    channel(si, so);
-}
-
-
-/*****************************************************************************
- * @brief Dequeue data from a FiFo stream.
- * @ingroup udp_role_if
- *
- * @param[in]  si, the incoming data stream.
- * @param[out] so, the outgoing data stream.
- *
- * @return Nothing.
- *****************************************************************************/
-void pDequeue (
-        stream<Axis<64> >    &si,
-        stream<Axis<64> >    &so)
-{
-    channel(si, so);
 }
 
 
@@ -225,15 +356,15 @@ void pDequeue (
  * @brief   Main process of the UDP Role Interface
  * @ingroup udp_role_if
  *
- * @param[in]  siROL_This_Data,     UDP data stream from the ROLE.
- * @param[out] soTHIS_Rol_Data,     UDP data stream to the ROLE.
+ * @param[in]  siROL_This_Data      UDP data stream from the ROLE.
+ * @param[out] soTHIS_Rol_Data      UDP data stream to the ROLE.
  * @param[in]  siUDMX_This_OpnAck   Open port request from the UDP-Mux. 
  * @param[out] soTHIS_Udmx_OpnReq   Open port acknowledgment to the UDP-Mux.
  * @param[in]  siUDMX_This_Data     Data path from the UDP-Mux.
  * @param[in]  siUDMX_This_Meta     Metadata from the UDP-Mux.
  * @param[out] soTHIS_Udmx_Data     Data path to the UDP-Mux.
  * @param[out] soTHIS_Udmx_Meta     Metadata to the UDP-Mux.
- * @param[out] soTHIS_Udmx_Len      Length of last Rx packet to the UDP-Mux. 
+ * @param[out] soTHIS_Udmx_PLen     Length of last Rx packet to the UDP-Mux.
  *
  * @return Nothing.
  *****************************************************************************/
@@ -242,81 +373,60 @@ void udp_role_if (
         //------------------------------------------------------
         //-- ROLE / This / Udp Interfaces
         //------------------------------------------------------
-        stream<Axis<64> >   &siROL_This_Data,
-        stream<Axis<64> >   &soTHIS_Rol_Data,
+        stream<UdpWord>     &siROL_This_Data,
+        stream<UdpWord>     &soTHIS_Rol_Data,
 
         //------------------------------------------------------
         //-- UDMX / This / Open-Port Interfaces
         //------------------------------------------------------
-        stream<Axis<1> >    &siUDMX_This_OpnAck,
-        stream<Axis<16> >   &soTHIS_Udmx_OpnReq,
+        stream<AxisAck>     &siUDMX_This_OpnAck,
+        stream<UdpPort>     &soTHIS_Udmx_OpnReq,
 
         //------------------------------------------------------
         //-- UDMX / This / Data & MetaData Interfaces
         //------------------------------------------------------
-        stream<Axis<64> >   &siUDMX_This_Data,
-        stream<Metadata>    &siUDMX_This_Meta,
-        stream<Axis<64> >   &soTHIS_Udmx_Data,
-        stream<Metadata>    &soTHIS_Udmx_Meta,
-        stream<Axis<16> >   &soTHIS_Udmx_Len)
+        stream<UdpWord>     &siUDMX_This_Data,
+        stream<UdpMeta>     &siUDMX_This_Meta,
+        stream<UdpWord>     &soTHIS_Udmx_Data,
+        stream<UdpMeta>     &soTHIS_Udmx_Meta,
+        stream<UdpPLen>     &soTHIS_Udmx_PLen)
 {
 
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE axis register forward port=siROL_This_Data
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Rol_Data
+	#pragma HLS INTERFACE ap_ctrl_hs port=return
 
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_OpnAck
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_OpnReq
+    #pragma HLS INTERFACE axis register both port=siROL_This_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
 
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Data
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Meta
-    #pragma HLS DATA_PACK                   variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Data
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Meta
-    #pragma HLS DATA_PACK                   variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Len
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
 
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siROL_This_Data     Metadata="-bus_bundle siROL_This_Data"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data     Metadata="-bus_bundle soTHIS_Rol_Data"
-
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_OpnAck   // OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_OpnAck"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Data     // OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_Data"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Meta     // OBSOLETE-20180704 Metadata="-bus_bundle siUDMX_This_Meta"
-
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_OpnReq   // OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_OpnReq"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Data     // OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Data"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Meta     // OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Meta"
-    // OBSOLETE-20180705 #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Len      // OBSOLETE-20180704 Metadata="-bus_bundle soTHIS_Udmx_Len"
-
-    //-- LOCAL VARIABLES ------------------------------------------------------
-    static stream<Axis<64> >    sRolToUrifFifo  ("sRolToUrifFifo");
-    #pragma HLS STREAM variable=sRolToUrifFifo depth=1024 dim=1
-
-    static stream<Axis<64> >    sUrifToRolFifo  ("sUrifToRolFifo");
-    #pragma HLS STREAM variable=sUrifToRolFifo depth=1024 dim=1
-
-    static stream<Axis<16> >    sRxToTx_Len     ("sRxToTx_Len");
-    static stream<Metadata>     sRxToTx_Meta    ("sRxToTx_Meta");
-
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_Data
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
+    #pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
+    #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
+ 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
 
+	//-- LOCAL STREAMS --------------------------------------------------------
+	static stream<UdpMeta>  	sRxToTx_Meta("sRxToTx_Meta");
+
+	#pragma HLS STREAM    variable=sRxToTx_Meta depth=1
+	#pragma HLS DATA_PACK variable=sRxToTx_Meta instance=sRxToTx_Meta
+
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     //---- From ROLE
-    pEnqueue(siROL_This_Data, sRolToUrifFifo);
-    pTxPath(sRolToUrifFifo,
-            sRxToTx_Len,      sRxToTx_Meta,
-            soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_Len);
+    pTxPath(siROL_This_Data,  sRxToTx_Meta,
+            soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
 
     //---- To ROLE
-    pDequeue(sUrifToRolFifo, soTHIS_Rol_Data);
-    pRxPath(siUDMX_This_Data, siUDMX_This_Meta,
+    pRxPath(siUDMX_This_Data, 	siUDMX_This_Meta,
             soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
-            sUrifToRolFifo,
-            sRxToTx_Len, sRxToTx_Meta);
+            soTHIS_Rol_Data, 	sRxToTx_Meta);
 
 }
 
