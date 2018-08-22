@@ -11,7 +11,7 @@
  *
  *----------------------------------------------------------------------------
  *
- * @details    : { [TODO] A more detailed descriptionof the file }
+ * @details    : This process implements the UDP core engine.
  *
  * @note       : { text }
  * @remark     : { remark text }
@@ -380,7 +380,8 @@ void stripIpHeader(stream<axiWord> &inputPathInData, stream<axiWord> &strip2inpu
 		if (!strip2rxChecksum.full() && !strip2inputPath_data.full()) {
 			axiWord tempWord = axiWord(0, 0, 1);
 			axiWord csWord = axiWord(0, outputWord.keep, 1);
-			csWord.data.range((bitCounter * 8) - 1, 0) = outputWord.data.range((bitCounter * 8) - 1, 0);
+			//OBSOLETE-20180813 csWord.data.range((bitCounter * 8) - 1, 0) = outputWord.data.range((bitCounter * 8) - 1, 0);
+			csWord.data.range((bitCounter.to_int() * 8) - 1, 0) = outputWord.data.range((bitCounter.to_int() * 8) - 1, 0);
 			strip2rxChecksum.write(csWord);
 			////std::cerr << std::hex << outputWord.data << std::endl;
 			tempWord.data.range(31, 0) = outputWord.data.range(63, 32);
@@ -393,7 +394,8 @@ void stripIpHeader(stream<axiWord> &inputPathInData, stream<axiWord> &strip2inpu
 	case STRIP_CS_RESIDUE:
 		if (!strip2rxChecksum.full()) {
 			axiWord csWord = axiWord(0, outputWord.keep, 1);
-			csWord.data.range((bitCounter * 8) - 1, 0) = outputWord.data.range((bitCounter * 8) - 1, 0);
+			//OBSOLETE-20180813 csWord.data.range((bitCounter * 8) - 1, 0) = outputWord.data.range((bitCounter * 8) - 1, 0);
+			csWord.data.range((bitCounter.to_int() * 8) - 1, 0) = outputWord.data.range((bitCounter.to_int() * 8) - 1, 0);
 			strip2rxChecksum.write(csWord);
 			stripState = STRIP_IDLE;
 		}
@@ -776,17 +778,27 @@ void txEngine(
  *
  * @return { description of the return value }.
  *****************************************************************************/
-void udp(stream<axiWord> 		&inputPathInData,
-		 stream<axiWord> 		&inputpathOutData,
-		 stream<ap_uint<16> > 	&openPort,
-		 stream<bool> 			&confirmPortStatus,
-		 stream<metadata> 		&inputPathOutputMetadata,
-		 stream<ap_uint<16> > 	&portRelease, 					// Input Path Streams
-	     stream<axiWord> 		&outputPathInData,
-		 stream<axiWord> 		&outputPathOutData,
-		 stream<metadata> 		&outputPathInMetadata,
-	     stream<ap_uint<16> >	&outputpathInLength,
-		 stream<axiWord> 		&inputPathPortUnreachable) {	// Output Path Streams
+void udp(
+
+		//------------------------------------------------------
+		//-- UDMX / This / Open-Port Interfaces
+		//------------------------------------------------------
+		stream<ap_uint<16> > 	&openPort,
+		stream<bool> 			&confirmPortStatus,
+
+
+
+		stream<axiWord> 		&inputPathInData,
+		stream<axiWord> 		&inputpathOutData,
+
+
+		stream<metadata> 		&inputPathOutputMetadata,
+		stream<ap_uint<16> > 	&portRelease, 					// Input Path Streams
+		stream<axiWord> 		&outputPathInData,
+		stream<axiWord> 		&outputPathOutData,
+		stream<metadata> 		&outputPathInMetadata,
+		stream<ap_uint<16> >	&outputpathInLength,
+		stream<axiWord> 		&inputPathPortUnreachable) {	// Output Path Streams
 
 	#pragma HLS INTERFACE ap_ctrl_none port=return 			// The block-level interface protocol is removed.
 	#pragma HLS DATAFLOW interval=1
