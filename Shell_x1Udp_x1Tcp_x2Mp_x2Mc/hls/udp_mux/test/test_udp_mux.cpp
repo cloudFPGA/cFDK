@@ -200,7 +200,8 @@ int main() {
 						sURIF_PLenStream.write(urifPLen);
 						printf("TB->sURIF_PLenStream : TB is writing payload length (%d bytes} \n", urifPLen.to_int());
 					}
-					resetPayloadLength(&urifPLen);
+					// Reset payload length
+					urifPLen = 0;
 				}
 			}
 		}
