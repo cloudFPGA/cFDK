@@ -18,6 +18,7 @@
 
 using namespace std;
 
+
 #define OK			true
 #define KO			false
 #define	VALID		true
@@ -33,26 +34,13 @@ stream<UdpWord>			sROLE_Urif_Data		("sROLE_Urif_Data");
 stream<UdpWord> 		sURIF_Role_Data		("sURIF_Role_Data");
 //-- UDMX / Urif / Open-Port Interfaces
 stream<AxisAck> 		sUDMX_Urif_OpnAck	("sUDMX_OpnAck");
+stream<UdpPort>	    	sURIF_Udmx_OpnReq	("sURIF_Udmx_OpnReq");
+//-- UDMX / Urif / Data & MetaData Interfaces
 stream<UdpWord>     	sUDMX_Urif_Data		("sUDMX_Urif_Data");
 stream<UdpMeta>     	sUDMX_Urif_Meta		("sUDMX_Urif_Meta");
-//-- UDMX / Urif / Data & MetaData Interfaces
-stream<UdpPort>	    	sURIF_Udmx_OpnReq	("sURIF_Udmx_OpnReq");
 stream<UdpWord>  		sURIF_Udmx_Data		("sURIF_Udmx_Data");
 stream<UdpMeta> 		sURIF_Udmx_Meta		("sURIF_Udmx_Meta");
 stream<UdpPLen> 		sURIF_Udmx_PLen		("sURIF_Udmx_PLen");
-
-//------------------------------------------------------
-//-- TBENCH INPUT STREAM INTERFACES AS GLOBAL BARIABLES
-//------------------------------------------------------
-stream<UdpWord>       	sROLE_DataStream	("sROLE_DataStream");
-
-stream<UdpWord>       	sUDMX_DataStream	("sUDMX_DataStream");
-stream<UdpMeta>       	sUDMX_MetaStream	("sUDMX_MetaStream");
-
-#pragma HLS STREAM variable=sROLE_DataStream depth=1024 dim=1
-
-#pragma HLS STREAM variable=sUDMX_DataStream depth=1024 dim=1
-#pragma HLS STREAM variable=sUDMX_MetaStream depth=256  dim=1
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -62,29 +50,29 @@ int 	 	simCnt;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
-
 	udp_role_if(
-		sROLE_Urif_Data, 	sURIF_Role_Data,
-		sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
-		sUDMX_Urif_Data, 	sUDMX_Urif_Meta,
-		sURIF_Udmx_Data, 	sURIF_Udmx_Meta,	sURIF_Udmx_PLen);
+			sROLE_Urif_Data, 	sURIF_Role_Data,
+			sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
+			sUDMX_Urif_Data, 	sUDMX_Urif_Meta,
+			sURIF_Udmx_Data, 	sURIF_Udmx_Meta,	sURIF_Udmx_PLen);
 	simCnt++;
-	printf("[ RUN DUT ] : cycle=%3d \n", simCnt);
+	printf("[%4.4d] STEP DUT \n", simCnt);
 }
 
 /*****************************************************************************
  * @brief Initialize an input data stream from a file.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in] sDataStream, the input data stream to set.
+ * @param[in] dataStreamName, the name of the data stream.
  * @param[in] inpFileName, the name of the input file to read from.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool setInputDataStream(stream<UdpWord> &sDataStream, const string inpFileName) {
+bool setInputDataStream(stream<UdpWord> &sDataStream, const string dataStreamName, const string inpFileName) {
 	string 		strLine;
 	ifstream 	inpFileStream;
 	string 		datFile = "../../../../test/" + inpFileName;
@@ -112,8 +100,9 @@ bool setInputDataStream(stream<UdpWord> &sDataStream, const string inpFileName) 
 				return(KO);
 			} else {
 				sDataStream.write(udpWord);
-				printf("%s->TB : TB is writing data to input stream {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-						inpFileName.c_str(),
+				// Print Data to console
+				printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+						simCnt, dataStreamName.c_str(),
 						udpWord.tdata.to_long(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
 			}
 		}
@@ -127,13 +116,14 @@ bool setInputDataStream(stream<UdpWord> &sDataStream, const string inpFileName) 
 
 /*****************************************************************************
  * @brief Initialize an input meta stream from a file.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in] sMetaStream, the input meta stream to set.
+ * @param[in] dataStreamName, the name of the data stream.
  * @param[in] inpFileName, the name of the input file to read from.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string inpFileName) {
+bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamName, const string inpFileName) {
 	string 		strLine;
 	ifstream 	inpFileStream;
 	string 		datFile = "../../../../test/" + inpFileName;
@@ -169,8 +159,9 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string inpFileName) 
 				}
 				else {
 					sMetaStream.write(socketPair);
-					printf("%s->TB : TB is writing metadata to input stream {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
-							inpFileName.c_str(),
+					// Print Metadata to console
+					printf("[%4.4d] TB is filling input stream [%s] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+							simCnt, dataStreamName.c_str(),
 							socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
 				}
 			}
@@ -184,54 +175,44 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string inpFileName) 
 }
 
 /*****************************************************************************
- * @brief Read an output data stream from the DUT.
- * @ingroup udp_mux
+ * @brief Read data from a stream.
+ * @ingroup udp_role_if
  *
- * @param[in]  sDataStream, the output data stream to read.
+ * @param[in]  sDataStream,    the output data stream to read.
  * @param[in]  dataStreamName, the name of the data stream.
- * @param[out] udpWord, a pointer to the storage location of the data to read.
+ * @param[out] udpWord,        a pointer to the storage location of the data
+ *                              to read.
  * @return VALID if a data was read, otherwise UNVALID.
  ******************************************************************************/
-bool readDataStream(stream <UdpWord> &sDataStream, const string dataStreamName, UdpWord *udpWord) {
-	if (!sDataStream.empty()) {
-		// Get the DUT/Data results
-		sDataStream.read(*udpWord);
-		// Print DUT/Data to console
-		printf("DUT[%s]->TB : TB is reading data from DUT {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-				dataStreamName.c_str(),
-				udpWord->tdata.to_long(), udpWord->tkeep.to_int(), udpWord->tlast.to_int());
-		return(VALID);
-	}
-	else
-		return(UNVALID);
+bool readDataStream(stream <UdpWord> &sDataStream, UdpWord *udpWord) {
+	// Get the DUT/Data results
+	sDataStream.read(*udpWord);
+	return(VALID);
 }
 
 /*****************************************************************************
  * @brief Read an output metadata stream from the DUT.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in]  sMetaStream, the output metadata stream to read.
  * @param[in]  metaStreamName, the name of the meta stream.
  * @param[out] udpMeta, a pointer to the storage location of the metadata to read.
  * @return VALID if a data was read, otherwise UNVALID.
  ******************************************************************************/
-bool readMetaStream(stream <UdpMeta> &sMetaStream, const string metaStreamName, UdpMeta *udpMeta) {
-	if (!sMetaStream.empty()) {
-		// Get the DUT/Metadata results
-		sMetaStream.read(*udpMeta);
-		// Print DUT/Metadata to console
-		printf("DUT[%s]->TB : TB is reading metadata from DUT {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
-				metaStreamName.c_str(),
-				udpMeta->src.port.to_int(), udpMeta->src.addr.to_int(), udpMeta->dst.port.to_int(), udpMeta->dst.addr.to_int());
-		return(VALID);
-	}
-	else
-		return(UNVALID);
+bool readMetaStream(stream <UdpMeta> &sMetaStream, const string metaStreamName,
+					UdpMeta *udpMeta) {
+	// Get the DUT/Metadata results
+	sMetaStream.read(*udpMeta);
+	// Print DUT/Metadata to console
+	printf("[%4.4d] TB is draining output stream [%s] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+			simCnt, metaStreamName.c_str(),
+			udpMeta->src.port.to_int(), udpMeta->src.addr.to_int(), udpMeta->dst.port.to_int(), udpMeta->dst.addr.to_int());
+	return(VALID);
 }
 
 /*****************************************************************************
  * @brief Read an output payload length stream from the DUT.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in]  sPLenStream, the output payload length stream to read.
  * @param[in]  plenStreamName, the name of the payload length stream.
@@ -239,22 +220,19 @@ bool readMetaStream(stream <UdpMeta> &sMetaStream, const string metaStreamName, 
  *  			to read.
  * @return VALID if a data was read, otherwise UNVALID.
  ******************************************************************************/
-bool readPLenStream(stream <UdpPLen> &sPLenStream, const string plenStreamName, UdpPLen *udpPLen) {
-	if (!sPLenStream.empty()) {
-		// Get the DUT/PayloadLength results
-		sPLenStream.read(*udpPLen);
-		// Print DUT/PayloadLength to console
-		printf("DUT[%s]->TB : TB is reading payload length = %d from DUT.\n",
-				plenStreamName.c_str(), udpPLen->to_int());
-		return(VALID);
-	}
-	else
-		return(UNVALID);
+bool readPLenStream(stream <UdpPLen> &sPLenStream, const string plenStreamName,
+					UdpPLen *udpPLen) {
+	// Get the DUT/PayloadLength results
+	sPLenStream.read(*udpPLen);
+	// Print DUT/PayloadLength to console
+	printf("[%4.4d] TB is draining output stream [%s] - Payload length = %d from DUT.\n",
+			simCnt, plenStreamName.c_str(), udpPLen->to_int());
+	return(VALID);
 }
 
 /*****************************************************************************
  * @brief Dump a data word to a file.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in] udpWord,		a pointer to the data word to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -275,7 +253,7 @@ bool dumpDataToFile(UdpWord *udpWord, ofstream &outFileStream) {
 
 /*****************************************************************************
  * @brief Dump a metadata information to a file.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in] udpMeta,		a pointer to the metadata structure to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -299,7 +277,7 @@ bool dumpMetaToFile(UdpMeta *udpMeta, ofstream &outFileStream) {
 
 /*****************************************************************************
  * @brief Dump a payload length information to a file.
- * @ingroup udp_mux
+ * @ingroup udp_role_if
  *
  * @param[in] udpPLen,		a pointer to the payload length to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -315,6 +293,132 @@ bool dumpPLenToFile(UdpPLen *udpPLen, ofstream &outFileStream) {
 	return(OK);
 }
 
+/*****************************************************************************
+ * @brief Fill an output file with data from an output stream.
+ * @ingroup udp_role_if
+ *
+ * @param[in] sDataStream,    the output data stream to set.
+ * @param[in] dataStreamName, the name of the data stream.
+ * @param[in] outFileName,    the name of the output file to write to.
+ * @return OK if successful, otherwise KO.
+ ******************************************************************************/
+bool getOutputDataStream(stream<UdpWord> &sDataStream,
+						 const string	 dataStreamName, const string 	outFileName)
+{
+	string 		strLine;
+	ofstream 	outFileStream;
+	string 		datFile = "../../../../test/" + outFileName;
+	UdpWord		udpWord;
+	bool		rc = OK;
+
+	//-- STEP-1 : OPEN FILE
+	outFileStream.open(datFile.c_str());
+	if ( !outFileStream ) {
+		cout << "### ERROR : Could not open the output data file " << datFile << endl;
+		return(KO);
+	}
+
+	//-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
+	while (!sDataStream.empty()) {
+		if (readDataStream(sDataStream, &udpWord) == VALID) {
+			// Print DUT/Data to console
+			printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+					simCnt, dataStreamName.c_str(),
+					udpWord.tdata.to_long(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+			if (!dumpDataToFile(&udpWord, outFileStream)) {
+				rc = KO;
+				break;
+			}
+		}
+	}
+
+	//-- STEP-3: CLOSE FILE
+	outFileStream.close();
+
+	return(rc);
+}
+
+/*****************************************************************************
+ * @brief Fill an output file with metadata from an output stream.
+ * @ingroup udp_role_if
+ *
+ * @param[in] sMetaStream,    the output metadata stream to set.
+ * @param[in] metaStreamName, the name of the metadata stream.
+ * @param[in] outFileName,    the name of the output file to write to.
+ * @return OK if successful, otherwise KO.
+ ******************************************************************************/
+bool getOutputMetaStream(stream<UdpMeta> &sMetaStream,
+						 const string	 metaStreamName, const string outFileName)
+{
+	string 		strLine;
+	ofstream 	outFileStream;
+	string 		datFile = "../../../../test/" + outFileName;
+	UdpMeta		udpMeta;
+	bool		rc = OK;
+
+	//-- STEP-1 : OPEN FILE
+	outFileStream.open(datFile.c_str());
+	if ( !outFileStream ) {
+		cout << "### ERROR : Could not open the output data file " << datFile << endl;
+		return(KO);
+	}
+
+	//-- STEP-2 : EMPTY STREAM AND DUMP METADATA TO FILE
+	while (!sMetaStream.empty()) {
+		if (readMetaStream(sMetaStream, metaStreamName, &udpMeta) == VALID) {
+			if (!dumpMetaToFile(&udpMeta, outFileStream)) {
+				rc = KO;
+				break;
+			}
+		}
+	}
+
+	//-- STEP-3: CLOSE FILE
+	outFileStream.close();
+
+	return(rc);
+}
+
+/*****************************************************************************
+ * @brief Fill an output file with payload length from an output stream.
+ * @ingroup udp_role_if
+ *
+ * @param[in] sPLenStream,    the output payload length stream to set.
+ * @param[in] plenStreamName, the name of the payload length stream.
+ * @param[in] outFileName,    the name of the output file to write to.
+ * @return OK if successful, otherwise KO.
+ ******************************************************************************/
+bool getOutputPLenStream(stream<UdpPLen> &sPLenStream,
+						 const string	 plenStreamName, const string outFileName)
+{
+	string 		strLine;
+	ofstream 	outFileStream;
+	string 		datFile = "../../../../test/" + outFileName;
+	UdpPLen		udpPLen;
+	bool		rc = OK;
+
+	//-- STEP-1 : OPEN FILE
+	outFileStream.open(datFile.c_str());
+	if ( !outFileStream ) {
+		cout << "### ERROR : Could not open the output data file " << datFile << endl;
+		return(KO);
+	}
+
+	//-- STEP-2 : EMPTY STREAM AND DUMP PAYLOAD LENGTH TO FILE
+	while (!sPLenStream.empty()) {
+		if (readPLenStream(sPLenStream, plenStreamName, &udpPLen) == VALID) {
+			if (!dumpPLenToFile(&udpPLen, outFileStream)) {
+				rc = KO;
+				break;
+			}
+		}
+	}
+
+	//-- STEP-3: CLOSE FILE
+	outFileStream.close();
+
+	return(rc);
+}
 
 int main() {
 
@@ -323,39 +427,6 @@ int main() {
 	//------------------------------------------------------
 	int 		nrErr 	= 0;
 	UdpMeta 	socketPair;
-
-	UdpWord  	roleWord, udmxWord, urifWord;
-	UdpMeta		roleMeta, udmxMeta, urifMeta;
-	UdpPLen		rolePLen, udmxPLen, urifPLen;
-
-	//------------------------------------------------------
-	//-- OPEN TEST BENCH FILES
-	//------------------------------------------------------
-	ofstream ofsURIF_Role_Data;
-	ofstream ofsURIF_Udmx_Data, ofsURIF_Udmx_Meta, ofsURIF_Udmx_PLen;
-
-	ofsURIF_Role_Data.open("../../../../test/ofsURIF_Role_Data.dat");
-	if ( !ofsURIF_Role_Data ) {
-		cout << "### ERROR : Could not open the output test file \'ofsURIF_Role_Data.dat\'." << endl;
-		return(-1);
-	}
-
-	ofsURIF_Udmx_Data.open("../../../../test/ofsURIF_Udmx_Data.dat");
-	if ( !ofsURIF_Udmx_Data ) {
-		cout << "### ERROR : Could not open the output test file \'ofsURIF_Udmx_Data.dat\'." << endl;
-		return(-1);
-	}
-	ofsURIF_Udmx_Meta.open("../../../../test/ofsURIF_Udmx_Meta.dat");
-	if ( !ofsURIF_Udmx_Meta ) {
-		cout << "### ERROR : Could not open the output test file \'ofsURIF_Udmx_Meta.dat\'." << endl;
-		return(-1);
-	}
-	ofsURIF_Udmx_PLen.open("../../../../test/ofsURIF_Udmx_PLen.dat");
-	if ( !ofsURIF_Udmx_PLen ) {
-		cout << "### ERROR : Could not open the output test file \'ofsURIF_Udmx_PLen.dat\'." << endl;
-		return(-1);
-	}
-
 
 	printf("#####################################################\n");
 	printf("## TESTBENCH STARTS HERE                           ##\n");
@@ -370,11 +441,11 @@ int main() {
 	for (int i=0; i<15; ++i) {
 		stepDut();
 		if ( !sURIF_Udmx_OpnReq.empty() ) {
-			printf("URIF->UDMX_OpnReq : DUT is requesting to open a port.\n");
 			sURIF_Udmx_OpnReq.read();
+			printf("[%4.4d] URIF->UDMX_OpnReq : DUT is requesting to open a port.\n", simCnt);
+			stepDut();
 			sUDMX_Urif_OpnAck.write(true);
-			printf("UDMX->URIF_OpnAck : TB  acknowledges the port opening.\n");
-			break;
+			printf("[%4.4d] UDMX->URIF_OpnAck : TB  acknowledges the port opening.\n", simCnt);
 		}
 	}
 
@@ -382,16 +453,16 @@ int main() {
 	//-- STEP-2 : CREATE TRAFFIC AS INPUT STREAMS
 	//------------------------------------------------------
 	if (nrErr == 0) {
-		if (!setInputDataStream(sROLE_DataStream, "ifsROLE_Urif_Data.dat")) {
+		if (!setInputDataStream(sROLE_Urif_Data, "sROLE_Urif_Data", "ifsROLE_Urif_Data.dat")) {
 			printf("### ERROR : Failed to set input data stream \"sROLE_DataStream\". \n");
 			nrErr++;
 		}
 
-		if (!setInputDataStream(sUDMX_DataStream, "ifsUDMX_Urif_Data.dat")) {
+		if (!setInputDataStream(sUDMX_Urif_Data, "sUDMX_Urif_Data", "ifsUDMX_Urif_Data.dat")) {
 			printf("### ERROR : Failed to set input data stream \"sUDMX_DataStream\". \n");
 			nrErr++;
 		}
-		if (!setInputMetaStream(sUDMX_MetaStream, "ifsUDMX_Urif_Data.dat")) {
+		if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
 			printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
 			nrErr++;
 		}
@@ -404,29 +475,6 @@ int main() {
 
 	while (!nrErr) {
 
-		//-------------------------------------------------
-		//-- STEP-3.0 : FEED INPUTS
-		//-------------------------------------------------
-		// ROLE->URIF
-		if (!sROLE_DataStream.empty() && !sROLE_Urif_Data.full())
-			sROLE_Urif_Data.write(sROLE_DataStream.read());
-
-		// UDMX->>URIF
-		if (sof) {
-			if (!sUDMX_MetaStream.empty() && !sUDMX_Urif_Meta.full())
-				sUDMX_Urif_Meta.write(sUDMX_MetaStream.read());
-			sof = false;
-		}
-		if (!sUDMX_DataStream.empty() && !sUDMX_Urif_Data.full()) {
-			urifWord = sUDMX_DataStream.read();
-			sUDMX_Urif_Data.write(urifWord);
-			if (urifWord.tlast)
-				sof = true;
-		}
-
-		//-------------------------------------------------
-		//-- STEP-3.1 : RUN DUT
-		//-------------------------------------------------
 		if (simCnt < 35)
 			stepDut();
 		else {
@@ -434,60 +482,32 @@ int main() {
 			break;
 		}
 
-		//-------------------------------------------------------
-		//-- STEP-3.2 : DRAIN DUT AND WRITE OUTPUT FILE STREAMS
-		//-------------------------------------------------------
-		//---- URIF-->ROLE ----
-		if (readDataStream(sURIF_Role_Data, "sURIF_Role_Data", &roleWord) == VALID) {
-			if (!dumpDataToFile(&roleWord, ofsURIF_Role_Data)) {
-				nrErr++;
-				break;
-			}
-		}
-
-		//---- URIF->UDMX ----
-		if (readDataStream(sURIF_Udmx_Data, "sURIF_Udmx_Data", &udmxWord) == VALID) {
-			if (!dumpDataToFile(&udmxWord, ofsURIF_Udmx_Data)) {
-				nrErr++;
-				break;
-			}
-		}
-		if (readMetaStream(sURIF_Udmx_Meta, "sURIF_Udmx_Meta", &udmxMeta) == VALID) {
-			if (!dumpMetaToFile(&udmxMeta, ofsURIF_Udmx_Meta)) {
-				nrErr++;
-				break;
-			}
-			if (!readPLenStream(sURIF_Udmx_PLen, "sURIF_Udmx_PLen", &udmxPLen)) {
-				nrErr++;
-				break;
-			}
-			else {
-				if (!dumpPLenToFile(&udmxPLen, ofsURIF_Udmx_PLen)) {
-					nrErr++;
-					break;
-				}
-			}
-		}
-
 	}  // End: while()
 
-	//------------------------------------------------------
-	//-- STEP-4 : CLOSE TEST BENCH OUTPUT FILES
-	//------------------------------------------------------
-	ofsURIF_Role_Data.close();
-
-	ofsURIF_Udmx_Data.close();
-	ofsURIF_Udmx_Meta.close();
-	ofsURIF_Udmx_PLen.close();
+	//-------------------------------------------------------
+	//-- STEP-4 : DRAIN AND WRITE OUTPUT FILE STREAMS
+	//-------------------------------------------------------
+	//---- URIF-->ROLE ----
+	if (!getOutputDataStream(sURIF_Role_Data, "sURIF_Role_Data", "ofsURIF_Role_Data.dat"))
+		nrErr++;
+	//---- URIF->UDMX ----
+	if (!getOutputDataStream(sURIF_Udmx_Data, "sURIF_Udmx_Data", "ofsURIF_Udmx_Data.dat"))
+			nrErr++;
+	if (!getOutputMetaStream(sURIF_Udmx_Meta, "sURIF_Udmx_Meta", "ofsURIF_Udmx_Meta.dat"))
+		nrErr++;
+	if (!getOutputPLenStream(sURIF_Udmx_PLen, "sURIF_Udmx_PLen", "ofsURIF_Udmx_PLen.dat"))
+		nrErr++;
 
 	//------------------------------------------------------
 	//-- STEP-5 : COMPARE INPUT AND OUTPUT FILE STREAMS
 	//------------------------------------------------------
-	int rc1 = system("diff --brief -w -i -y ../../../../test/ofsURIF_Role_Data.dat ../../../../test/ifsUDMX_Urif_Data.dat");
+	int rc1 = system("diff --brief -w -i -y ../../../../test/ofsURIF_Role_Data.dat \
+									        ../../../../test/ifsUDMX_Urif_Data.dat");
 	if (rc1)
 		printf("## Error : File \'ofsURIF_Role_Data.dat\' does not match \'ifsUDMX_Urif_Data.dat\'.\n");
 
-	int rc2 = system("diff --brief -w -i -y ../../../../test/ofsURIF_Udmx_Data.dat ../../../../test/ifsROLE_Urif_Data.dat");
+	int rc2 = system("diff --brief -w -i -y ../../../../test/ofsURIF_Udmx_Data.dat \
+		                                    ../../../../test/ifsROLE_Urif_Data.dat");
 	if (rc2)
 		printf("## Error : File \'ofsURIF_Udmx_Data.dat\' does not match \'ifsROLE_Urif_Data.dat\'.\n");
 	nrErr += rc1 + rc2;

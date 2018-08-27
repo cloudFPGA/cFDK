@@ -49,9 +49,12 @@ typedef bool AxisAck;		// Acknowledgment over Axi4-Stream I/F
  ********************************************/
 
 struct UdpWord {			// UDP Streaming Chunk (i.e. 8 bytes)
-	ap_uint<64>		tdata;
-	ap_uint<8>		tkeep;
-	ap_uint<1>		tlast;
+	ap_uint<64>	   tdata;
+	ap_uint<8>     tkeep;
+	ap_uint<1>	   tlast;
+	UdpWord()      {}
+	UdpWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+                   tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
 
 struct UdpMeta {			// UDP Socket Pair Association
@@ -62,59 +65,6 @@ struct UdpMeta {			// UDP Socket Pair Association
 typedef ap_uint<16>	UdpPLen; // UDP Payload Length
 
 typedef ap_uint<16>	UdpPort; // UDP Port Number
-
-
-
-
-/********************************************
- * A generic unsigned AXI4-Stream interface.
- ********************************************/
-template<int D>
-struct Axis {
-	ap_uint<D>       tdata;
-	ap_uint<(D+7)/8> tkeep;
-	ap_uint<1>       tlast;
-	Axis() {}
-	Axis(ap_uint<D> t_data) : tdata((ap_uint<D>)t_data) {
-		int val = 0;
-		for (int bit=0; bit<(D+7)/8; bit++)
-			val |= (1 << bit);
-		tkeep = val;
-		tlast = 1;
-	}
-};
-
-
-
-//OBSOLETE-20180706 struct sockaddr_in {
-//OBSOLETE-20180706     ap_uint<16>     port;   /* port in network byte order */
-//OBSOLETE-20180706     ap_uint<32>		addr;   /* internet address */
-//OBSOLETE-20180706 };
-
-//OBSOLETE-20180706 struct axiWord {
-//OBSOLETE-20180706 	ap_uint<64>		data;
-//OBSOLETE-20180706 	ap_uint<8>		keep;
-//OBSOLETE-20180706 	ap_uint<1>		last;
-//OBSOLETE-20180706 };
-
-//OBSOLETE-20180706 struct metadata {
-//OBSOLETE-20180706 	sockaddr_in sourceSocket;
-//OBSOLETE-20180706 	sockaddr_in destinationSocket;
-//OBSOLETE-20180706 };
-
-//OBSOLETE-20180706 void udp_mux( stream<axiWord>			&rxDataIn, 		stream<metadata>&     	rxMetadataIn,
-//OBSOLETE-20180706               stream<axiWord> 			&rxDataOutDhcp, stream<metadata>&     	rxMetadataOutDhcp,
-//OBSOLETE-20180706               stream<axiWord> 			&rxDataOutApp, 	stream<metadata>&     	rxMetadataOutApp,
-			   
-//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenOut, 		stream<bool >& portOpenReplyIn,
-//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenInDhcp, 	stream<bool >& portOpenReplyOutDhcp,
-//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenInApp, 	stream<bool >& portOpenReplyOutApp,
-			   
-//OBSOLETE-20180706               stream<axiWord> 		&txDataInDhcp, 	stream<metadata> 	&txMetadataInDhcp, 	stream<ap_uint<16> > 	&txLengthInDhcp,
-//OBSOLETE-20180706               stream<axiWord> 		&txDataInApp, 	stream<metadata> 	&txMetadataInApp, 	stream<ap_uint<16> > 	&txLengthInApp,
-//OBSOLETE-20180706               stream<axiWord> 		&txDataOut, 	stream<metadata> 	&txMetadataOut, 	stream<ap_uint<16> > 	&txLengthOut
-//OBSOLETE-20180706 );
-
 
 
 void udp_mux (
@@ -164,6 +114,56 @@ void udp_mux (
 		stream<UdpWord>       	&soTHIS_Urif_Data,
 		stream<UdpMeta>			&soTHIS_Urif_Meta
 );
+
+
+
+/********************************************
+ * A generic unsigned AXI4-Stream interface.
+ *
+template<int D>
+struct Axis {
+	ap_uint<D>       tdata;
+	ap_uint<(D+7)/8> tkeep;
+	ap_uint<1>       tlast;
+	Axis() {}
+	Axis(ap_uint<D> t_data) : tdata((ap_uint<D>)t_data) {
+		int val = 0;
+		for (int bit=0; bit<(D+7)/8; bit++)
+			val |= (1 << bit);
+		tkeep = val;
+		tlast = 1;
+	}
+};
+********************************************/
+
+//OBSOLETE-20180706 struct sockaddr_in {
+//OBSOLETE-20180706     ap_uint<16>     port;   /* port in network byte order */
+//OBSOLETE-20180706     ap_uint<32>		addr;   /* internet address */
+//OBSOLETE-20180706 };
+
+//OBSOLETE-20180706 struct axiWord {
+//OBSOLETE-20180706 	ap_uint<64>		data;
+//OBSOLETE-20180706 	ap_uint<8>		keep;
+//OBSOLETE-20180706 	ap_uint<1>		last;
+//OBSOLETE-20180706 };
+
+//OBSOLETE-20180706 struct metadata {
+//OBSOLETE-20180706 	sockaddr_in sourceSocket;
+//OBSOLETE-20180706 	sockaddr_in destinationSocket;
+//OBSOLETE-20180706 };
+
+//OBSOLETE-20180706 void udp_mux( stream<axiWord>			&rxDataIn, 		stream<metadata>&     	rxMetadataIn,
+//OBSOLETE-20180706               stream<axiWord> 			&rxDataOutDhcp, stream<metadata>&     	rxMetadataOutDhcp,
+//OBSOLETE-20180706               stream<axiWord> 			&rxDataOutApp, 	stream<metadata>&     	rxMetadataOutApp,
+			   
+//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenOut, 		stream<bool >& portOpenReplyIn,
+//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenInDhcp, 	stream<bool >& portOpenReplyOutDhcp,
+//OBSOLETE-20180706               stream<ap_uint<16> >&  requestPortOpenInApp, 	stream<bool >& portOpenReplyOutApp,
+			   
+//OBSOLETE-20180706               stream<axiWord> 		&txDataInDhcp, 	stream<metadata> 	&txMetadataInDhcp, 	stream<ap_uint<16> > 	&txLengthInDhcp,
+//OBSOLETE-20180706               stream<axiWord> 		&txDataInApp, 	stream<metadata> 	&txMetadataInApp, 	stream<ap_uint<16> > 	&txLengthInApp,
+//OBSOLETE-20180706               stream<axiWord> 		&txDataOut, 	stream<metadata> 	&txMetadataOut, 	stream<ap_uint<16> > 	&txLengthOut
+//OBSOLETE-20180706 );
 
 
 
