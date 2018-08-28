@@ -54,13 +54,13 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------
   //-- Input AXIS Interface ---------------------- 
   input [ 63:0]  piETH0_Nts0_Axis_tdata,
-  input [ 7:0]   piETH0_Nts0_Axis_tkeep,
+  input [  7:0]  piETH0_Nts0_Axis_tkeep,
   input          piETH0_Nts0_Axis_tlast,
   input          piETH0_Nts0_Axis_tvalid,
   output         poNTS0_Eth0_Axis_tready,
   //-- Output AXIS Interface --------------------- 
   output [ 63:0] poNTS0_Eth0_Axis_tdata,
-  output [ 7:0]  poNTS0_Eth0_Axis_tkeep,
+  output [  7:0] poNTS0_Eth0_Axis_tkeep,
   output         poNTS0_Eth0_Axis_tlast,
   output         poNTS0_Eth0_Axis_tvalid,
   input          piETH0_Nts0_Axis_tready,
@@ -71,15 +71,15 @@ module NetworkTransportSession_TcpIp (
   //-- Transmit Path / S2MM-AXIS -------------------------
   //---- Stream Read Command -------------------
   input          piMEM_Nts0_TxP_Axis_RdCmd_tready,
-  output [ 71:0] poNTS0_Mem_TxP_Axis_RdCmd_tdata,
+  output[ 71:0]  poNTS0_Mem_TxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
-  input [ 7:0]   piMEM_Nts0_TxP_Axis_RdSts_tdata,
+  input [  7:0]  piMEM_Nts0_TxP_Axis_RdSts_tdata,
   input          piMEM_Nts0_TxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
   input [ 63:0]  piMEM_Nts0_TxP_Axis_Read_tdata,
-  input [ 7:0]   piMEM_Nts0_TxP_Axis_Read_tkeep,
+  input [  7:0]  piMEM_Nts0_TxP_Axis_Read_tkeep,
   input          piMEM_Nts0_TxP_Axis_Read_tlast,
   input          piMEM_Nts0_TxP_Axis_Read_tvalid,
   output         poNTS0_Mem_TxP_Axis_Read_tready,
@@ -88,13 +88,13 @@ module NetworkTransportSession_TcpIp (
   output [ 71:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
-  input [ 7:0]   piMEM_Nts0_TxP_Axis_WrSts_tdata,
+  input [  7:0]  piMEM_Nts0_TxP_Axis_WrSts_tdata,
   input          piMEM_Nts0_TxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_WrSts_tready,
   //---- Stream Data Output Channel ----------
   input          piMEM_Nts0_TxP_Axis_Write_tready,
   output [ 63:0] poNTS0_Mem_TxP_Axis_Write_tdata,
-  output [ 7:0]  poNTS0_Mem_TxP_Axis_Write_tkeep,
+  output [  7:0] poNTS0_Mem_TxP_Axis_Write_tkeep,
   output         poNTS0_Mem_TxP_Axis_Write_tlast,
   output         poNTS0_Mem_TxP_Axis_Write_tvalid,
 
@@ -107,27 +107,27 @@ module NetworkTransportSession_TcpIp (
   output [ 71:0] poNTS0_Mem_RxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
-  input [ 7:0]   piMEM_Nts0_RxP_Axis_RdSts_tdata,
+  input [   7:0] piMEM_Nts0_RxP_Axis_RdSts_tdata,
   input          piMEM_Nts0_RxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
   input [ 63:0]  piMEM_Nts0_RxP_Axis_Read_tdata,
-  input [ 7:0]   piMEM_Nts0_RxP_Axis_Read_tkeep,
+  input [  7:0]  piMEM_Nts0_RxP_Axis_Read_tkeep,
   input          piMEM_Nts0_RxP_Axis_Read_tlast,
   input          piMEM_Nts0_RxP_Axis_Read_tvalid,
   output         poNTS0_Mem_RxP_Axis_Read_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_RxP_Axis_WrCmd_tready,
-  output [ 71:0] poNTS0_Mem_RxP_Axis_WrCmd_tdata,
+  output[ 71:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
-  input [ 7:0]   piMEM_Nts0_RxP_Axis_WrSts_tdata,
+  input [  7:0]  piMEM_Nts0_RxP_Axis_WrSts_tdata,
   input          piMEM_Nts0_RxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input          piMEM_Nts0_RxP_Axis_Write_tready, 
   output [ 63:0] poNTS0_Mem_RxP_Axis_Write_tdata,
-  output [ 7:0]  poNTS0_Mem_RxP_Axis_Write_tkeep,
+  output [  7:0] poNTS0_Mem_RxP_Axis_Write_tkeep,
   output         poNTS0_Mem_RxP_Axis_Write_tlast,
   output         poNTS0_Mem_RxP_Axis_Write_tvalid,
   
@@ -143,7 +143,7 @@ module NetworkTransportSession_TcpIp (
   //-- Output AXI-Write Stream Interface ---------
   input          piROL_Nts0_Udp_Axis_tready,
   output [ 63:0] poNTS0_Rol_Udp_Axis_tdata,
-  output [ 7:0]  poNTS0_Rol_Udp_Axis_tkeep,
+  output [  7:0] poNTS0_Rol_Udp_Axis_tkeep,
   output         poNTS0_Rol_Udp_Axis_tvalid,
   output         poNTS0_Rol_Udp_Axis_tlast,
   
@@ -152,22 +152,22 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------
   //-- Input AXI-Write Stream Interface ----------
   input [ 63:0]  piROL_Nts0_Tcp_Axis_tdata,
-  input [ 7:0]   piROL_Nts0_Tcp_Axis_tkeep,
+  input [  7:0]  piROL_Nts0_Tcp_Axis_tkeep,
   input          piROL_Nts0_Tcp_Axis_tvalid,
   input          piROL_Nts0_Tcp_Axis_tlast,
   output         poNTS0_Rol_Tcp_Axis_tready,
   //-- Output AXI-Write Stream Interface ---------
   input          piROL_Nts0_Tcp_Axis_tready,
   output [ 63:0] poNTS0_Rol_Tcp_Axis_tdata,
-  output [ 7:0]  poNTS0_Rol_Tcp_Axis_tkeep,
+  output [  7:0] poNTS0_Rol_Tcp_Axis_tkeep,
   output         poNTS0_Rol_Tcp_Axis_tvalid,
   output         poNTS0_Rol_Tcp_Axis_tlast,
   
   //------------------------------------------------------
   //-- MMIO / Nts0 / Interfaces
   //------------------------------------------------------
-  input [ 47:0]  piMMIO_Nts0_MacAddress,
-  input [ 31:0]  piMMIO_Nts0_IpAddress,
+  input  [ 47:0] piMMIO_Nts0_MacAddress,
+  input  [ 31:0] piMMIO_Nts0_IpAddress,
   
   output         poVoid
   
