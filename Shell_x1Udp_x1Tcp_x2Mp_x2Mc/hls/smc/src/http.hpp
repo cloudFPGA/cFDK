@@ -11,10 +11,13 @@
 #define REQ_INVALID 0
 #define POST_CONFIG 1
 #define GET_STATUS 2
+#define PUT_RANK 3
+#define PUT_SIZE 4 
+#define POST_ROUTING 5
 #define RequestType uint8_t
 
 #else
-typedef enum {REQ_INVALID = 0, POST_CONFIG, GET_STATUS} RequestType;
+typedef enum {REQ_INVALID = 0, POST_CONFIG, GET_STATUS, PUT_RANK, PUT_SIZE, POST_ROUTING} RequestType;
 #endif
 
 int writeString(char* s);

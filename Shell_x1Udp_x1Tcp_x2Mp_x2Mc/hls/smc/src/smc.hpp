@@ -25,6 +25,10 @@
 #define ANSWER_LENGTH_SHIFT 0
 #define HTTP_STATE_SHIFT 4
 
+//Display6 
+#define RANK_SHIFT 0 
+#define SIZE_SHIFT 8
+
 
 //#define WAIT_CYCLES 10
 //#define AXI_PAUSE_CYCLES 10
@@ -105,9 +109,12 @@ void emptyInBuffer();
 void emptyOutBuffer();
 uint8_t writeDisplaysToOutBuffer();
 
+void setRank(ap_uint<32> newRank);
+void setSize(ap_uint<32> newSize);
+
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
       ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-      ap_uint<32> xmem[XMEM_SIZE]);
+      ap_uint<32> xmem[XMEM_SIZE], ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
 
 
 #endif

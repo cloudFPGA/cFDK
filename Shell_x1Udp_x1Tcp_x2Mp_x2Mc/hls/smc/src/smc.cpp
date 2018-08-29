@@ -34,8 +34,12 @@ ap_uint<4> httpAnswerPageLength = 0;
 HttpState httpState = HTTP_IDLE; 
 ap_uint<1> ongoingTransfer = 0;
 
-ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0, Display5 = 0; 
+ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0, Display5 = 0, Display6 = 0; 
 ap_uint<24> wordsWrittenToIcapCnt = 0;
+
+ap_uint<32> nodeRank = 0;
+ap_uint<32> clusterSize = 0; 
+
 
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
@@ -84,8 +88,9 @@ void emptyOutBuffer()
 
 uint8_t writeDisplaysToOutBuffer()
 {
+  uint8_t len  = 0;
   //Display1
-  writeString("Status Display 1: ");
+  len = writeString("Status Display 1: ");
   bufferOut[bufferOutPtrWrite + 3] = Display1 & 0xFF; 
   bufferOut[bufferOutPtrWrite + 2] = (Display1 >> 8) & 0xFF; 
   bufferOut[bufferOutPtrWrite + 1] = (Display1 >> 16) & 0xFF; 
@@ -93,8 +98,10 @@ uint8_t writeDisplaysToOutBuffer()
   bufferOut[bufferOutPtrWrite + 4] = '\r'; 
   bufferOut[bufferOutPtrWrite + 5] = '\n'; 
   bufferOutPtrWrite  += 6;
+  len += 6; 
+
   //Display2
-  writeString("Status Display 2: ");
+  len += writeString("Status Display 2: ");
   bufferOut[bufferOutPtrWrite + 3] = Display2 & 0xFF; 
   bufferOut[bufferOutPtrWrite + 2] = (Display2 >> 8) & 0xFF; 
   bufferOut[bufferOutPtrWrite + 1] = (Display2 >> 16) & 0xFF; 
@@ -102,12 +109,44 @@ uint8_t writeDisplaysToOutBuffer()
   bufferOut[bufferOutPtrWrite + 4] = '\r'; 
   bufferOut[bufferOutPtrWrite + 5] = '\n'; 
   bufferOutPtrWrite  += 6;
+  len += 6; 
   /* Display 3 & 4 is less informative outside EMIF Context
    */ 
+  
+  //insert rank and size 
+  len += writeString("Rank: ");
+  bufferOut[bufferOutPtrWrite + 3] = nodeRank & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 2] = (nodeRank >> 8) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 1] = (nodeRank >> 16) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 0] = (nodeRank >> 24) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 4] = '\r'; 
+  bufferOut[bufferOutPtrWrite + 5] = '\n'; 
+  bufferOutPtrWrite  += 6;
+  
+  len += writeString("Size: ");
+  bufferOut[bufferOutPtrWrite + 3] = clusterSize & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 2] = (clusterSize >> 8) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 1] = (clusterSize >> 16) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 0] = (clusterSize >> 24) & 0xFF; 
+  bufferOut[bufferOutPtrWrite + 4] = '\r'; 
+  bufferOut[bufferOutPtrWrite + 5] = '\n'; 
+  bufferOutPtrWrite  += 6;
+  len += 6; 
 
-  return 12;
+  return len;
 }
 
+void setRank(ap_uint<32> newRank)
+{
+  nodeRank = newRank; 
+  //nothing else to do so far 
+}
+
+void setSize(ap_uint<32> newSize)
+{
+  clusterSize = newSize;
+  //nothing else to do so far 
+}
 
 ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_uint<1> checkPattern)
 {
@@ -236,7 +275,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
 void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
       ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-      ap_uint<32> xmem[XMEM_SIZE])
+      ap_uint<32> xmem[XMEM_SIZE], ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
 #pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
@@ -246,6 +285,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 #pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
 #pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_SMC_status
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
+#pragma HLS INTERFACE ap_ovld register port=role_rank name=poSMC_to_ROLE_rank
+#pragma HLS INTERFACE ap_ovld register port=cluster_size name=poSMC_to_ROLE_size
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
@@ -310,6 +351,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
     wordsWrittenToIcapCnt = 0;
+    //TODO or better not reset them? 
+    nodeRank = 0; 
+    clusterSize = 0;
   } 
 
 //===========================================================
@@ -716,6 +760,12 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   }
 
 //===========================================================
+// Set RANK and SIZE 
+
+  *role_rank = nodeRank; 
+  *cluster_size = clusterSize; 
+
+//===========================================================
 //  putting displays together 
 
 
@@ -743,7 +793,10 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
   Display4 |= ((ap_uint<32>) writeErrCnt) << 8;
   Display4 |= ((ap_uint<32>) fifoEmptyCnt) << 16;
 
-  Display5 = (ap_uint<32>) wordsWrittenToIcapCnt;
+  Display5 = (ap_uint<32>) wordsWrittenToIcapCnt; 
+
+  Display6  = nodeRank << RANK_SHIFT; 
+  Display6 |= clusterSize << SIZE_SHIFT; 
 
   switch (Dsel) {
     case 1:
@@ -760,6 +813,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           break;
     case 5:
         *MMIO_out = (0x5 << DSEL_SHIFT) | Display5;
+          break;
+    case 6:
+        *MMIO_out = (0x6 << DSEL_SHIFT) | Display6;
           break;
     default: 
         *MMIO_out = 0xBEBAFECA;
