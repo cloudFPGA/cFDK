@@ -211,7 +211,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
     return 2;
   }
   
-  printf("bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
+  //printf("bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
   //printf("lastLine: %d\n", (int) lastLine);
   //now we have a clean transfer
   bufferInPtrWrite += buff_pointer;// +1;
@@ -241,7 +241,7 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
   } 
   */
   
-  printf("After UPDATE bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
+  //printf("After UPDATE bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
   //printf("After UPDATE lastLine: %d\n", (int) lastLine);
 
   bool lastPage = (curHeader & 0xf0) == 0xf0;
@@ -538,6 +538,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                        ongoingTransfer = 0;
                        handlePayload = false;
                        toDecoup = 0;
+                       //TODO emptyInBuffer??
                        break;
           }
 
@@ -600,14 +601,14 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
           HWICAP[WF_OFFSET] = tmp;
           wordsWrittenToIcapCnt++;
-          printf("writing to HWICAP: %#010x\n",(int) tmp);
+          //printf("writing to HWICAP: %#010x\n",(int) tmp);
           //fprintf(stderr,"%#010x\n",(int) tmp);
         }
             
        // printf("lastLine: %d\n", (int) lastLine);
-        printf("bufferInPtrMaxWrite: %d\n", (int) bufferInPtrMaxWrite);
-        printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
-        printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
+       // printf("bufferInPtrMaxWrite: %d\n", (int) bufferInPtrMaxWrite);
+       // printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
+       // printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
 
         CR_isWritting = CR_value & CR_WRITE;
         if (CR_isWritting != 1)
@@ -677,7 +678,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           bufferInPtrNextRead = 0;
         }
         
-        printf("after UPDATE bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
+        //printf("after UPDATE bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
         
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x7FF;

@@ -72,6 +72,8 @@
 #define CR_READ  0x2 
 #define CR_WRITE 0x1
 
+//MAX CLUSTER/MAX RANK 
+#define MAX_CLUSTER_SIZE 1024  //only one limit is enough, there is no rank > clusterSize...
 
 //Cosim enum Bug fix
 //#define COSIM 

@@ -20,6 +20,7 @@ static char* status200 = "200 OK";
 static char* status400 = "400 Bad Request";
 static char* status403 = "403 Forbidden";
 static char* status404 = "404 Not Found";
+static char* status422 = "422 Unprocessable Entity";
 static char* status500 = "500 Internal Server Error";
 
 
@@ -142,6 +143,9 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
               break;
     case 404: 
               toWrite = status404; 
+              break;
+    case 422: 
+              toWrite = status422; 
               break;
     default: 
               toWrite = status500; 
@@ -316,6 +320,10 @@ int8_t extract_path()
     int intLen = my_wordlen(intStart);
 
     ap_uint<32> newRank = (unsigned int) my_atoi(intStart, intLen);
+    if(newRank >= MAX_CLUSTER_SIZE)
+    {//invalid 
+      return -2;
+    }
     setRank(newRank);
     return 3;
   } else if(my_strcmp(putSize, bufferIn, my_strlen(putSize)) == 0 )
@@ -325,6 +333,10 @@ int8_t extract_path()
     int intLen = my_wordlen(intStart);
 
     ap_uint<32> newSize = (unsigned int) my_atoi(intStart, intLen);
+    if(newSize >= MAX_CLUSTER_SIZE)
+    {//invalid 
+      return -2;
+    }
     setSize(newSize);
     return 4;
   } else { //Invalid / Not Found
@@ -388,7 +400,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                  httpAnswerPageLength = writeHttpStatus(500,0);
                } else if (transferErr == 1)
                {
-                 httpAnswerPageLength = writeHttpStatus(400,0);
+                 httpAnswerPageLength = writeHttpStatus(422,0);
                } else if(reqType == GET_STATUS)
                { 
                  //combine status 
