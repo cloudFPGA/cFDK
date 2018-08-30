@@ -749,7 +749,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
-  assert(nodeRank == 0);
+  //assert(nodeRank == 0);
 
   
   //RST

@@ -351,9 +351,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     fifoEmptyCnt = 0;
     //currentAddedPayload = BYTES_PER_PAGE-2;
     wordsWrittenToIcapCnt = 0;
-    //TODO or better not reset them? 
-    nodeRank = 0; 
-    clusterSize = 0;
+    //TODO or better reset them? 
+    //nodeRank = 0; 
+    //clusterSize = 0;
   } 
 
 //===========================================================
