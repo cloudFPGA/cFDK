@@ -188,7 +188,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //----------------------------------------------------
   input   [15:0]  piROL_SHL_EMIF_2B_Reg,
   output  [15:0]  poSHL_ROL_EMIF_2B_Reg,
-
+  
+  //----------------------------------------------------
+  // ROLE <--> SMC 
+  //----------------------------------------------------
+  output [31:0]  poSMC_ROLE_rank,
+  output [31:0]  poSMC_ROLE_size,
 
   //------------------------------------------------------  
   //-- ROLE / Shl / Mem / Mp0 Interface
@@ -542,6 +547,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
   wire        sCASTOR_MMIO_XMEM_wren; //Write-enable
   wire [31:0] sCASTOR_MMIO_XMEM_WData;
+  wire [31:0] sCASTOR_ROLE_rank; 
+  wire [31:0] sCASTOR_ROLE_size; 
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -1120,8 +1127,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .xmem_V_ce0                          (sCASTOR_MMIO_XMEM_cen), 
     .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
     .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
-    .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData) 
+    .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData),
+    .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
+    .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
   );
+
+  assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
+  assign poSMC_ROLE_size = sCASTOR_ROLE_size;
 
 
   Decoupler DECOUP (
