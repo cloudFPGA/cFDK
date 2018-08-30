@@ -300,7 +300,7 @@ module NetworkTransportSession_TcpIp (
   wire          sUDP_Udmx_Meta_Axis_tready;
 
   //-- UDMX ==> URIF / Open Port Acknowledge -----
-  wire  [ 0:0]  sUDMX_Urif_OpnAck_Axis_tdata;
+  wire  [ 7:0]  sUDMX_Urif_OpnAck_Axis_tdata;
   wire          sUDMX_Urif_OpnAck_Axis_tvalid;
   wire          sURIF_Udmx_OpnAck_Axis_tready;
   //-- UDMX ==> URIF / Data ----------------------
@@ -315,7 +315,7 @@ module NetworkTransportSession_TcpIp (
   wire          sURIF_Udmx_Meta_Axis_tready;
     
   //-- UDMX ==> DHCP / Open Port Acknowledge -----
-  wire  [ 0:0]  sUDMX_Dhcp_OpnAck_Axis_tdata;
+  wire  [ 7:0]  sUDMX_Dhcp_OpnAck_Axis_tdata;
   wire          sUDMX_Dhcp_OpnAck_Axis_tvalid;
   wire          sDHCP_Udmx_OpnAck_Axis_tready;
   //-- UDMX ==> DHCP -----------------------------
@@ -2180,72 +2180,71 @@ module NetworkTransportSession_TcpIp (
  -----/\----- EXCLUDED -----/\----- */
 
   //============================================================================
-  //  INST: DHCP-CLIENT -- [TOOD - Remove this DHCP-client module]
+  //  INST: DHCP-CLIENT -- [TOOD - Remove this useless DHCP-client module]
   //============================================================================
   DynamicHostConfigurationProcess DHCP (
   
-    .aclk                           (piShlClk),
-    .aresetn                        (~piShlRst),
+    .ap_clk                         (piShlClk),                      
+    .ap_rst_n                       (~piShlRst),
 
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------    
-    .dhcpEnable_V                   (1'b0),
-    .myMacAddress_V                 (piMMIO_Nts0_MacAddress),
+    .piMMIO_This_Enable_V           (1'b0),
+    .piMMIO_This_MacAddress_V       (piMMIO_Nts0_MacAddress),
     
     //------------------------------------------------------
     //-- To NTS IPv4 Interfaces
     //------------------------------------------------------
-    .inputIpAddress_V               (piMMIO_Nts0_IpAddress),
-    .dhcpIpAddressOut_V             (),     // [INFO - This port was driving the IP address]
+    .poTHIS_Nts_IpAddress_V         (),  // [INFO - Do not connect because we don't use DHCP]
     
     //------------------------------------------------------
     //-- From UDMX / Open-Port Interfaces
     //------------------------------------------------------
     //-- UDMX / This / OpenPortStatus / Axis
-    .s_axis_open_port_status_TDATA  (sUDMX_Dhcp_OpnAck_Axis_tdata),
-    .s_axis_open_port_status_TVALID (sUDMX_Dhcp_OpnAck_Axis_tvalid), 
-    .s_axis_open_port_status_TREADY (sDHCP_Udmx_OpnAck_Axis_tready),
+    .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Dhcp_OpnAck_Axis_tdata),
+    .siUDMX_This_OpnAck_V_TVALID    (sUDMX_Dhcp_OpnAck_Axis_tvalid), 
+    .siUDMX_This_OpnAck_V_TREADY    (sDHCP_Udmx_OpnAck_Axis_tready),
     
     //------------------------------------------------------
     //-- To UDMX / Open-Port Interfaces
     //------------------------------------------------------     
     //-- THIS / Udmx / OpenPortRequest / Axis
-    .m_axis_open_port_TREADY        (sUDMX_Dhcp_OpnReq_Axis_tready),
-    .m_axis_open_port_TDATA         (sDHCP_Udmx_OpnReq_Axis_tdata),
-    .m_axis_open_port_TVALID        (sDHCP_Udmx_OpnReq_Axis_tvalid),
+    .soTHIS_Udmx_OpnReq_V_V_TREADY  (sUDMX_Dhcp_OpnReq_Axis_tready),
+    .soTHIS_Udmx_OpnReq_V_V_TDATA   (sDHCP_Udmx_OpnReq_Axis_tdata),
+    .soTHIS_Udmx_OpnReq_V_V_TVALID  (sDHCP_Udmx_OpnReq_Axis_tvalid),
      
     //------------------------------------------------------
     //-- From UDMX / Data & MetaData Interfaces
     //------------------------------------------------------
-    //-- UDMX / This / Data / Axis             
-    .s_axis_rx_data_TDATA           (sUDMX_Dhcp_Data_Axis_tdata),
-    .s_axis_rx_data_TKEEP           (sUDMX_Dhcp_Data_Axis_tkeep),
-    .s_axis_rx_data_TLAST           (sUDMX_Dhcp_Data_Axis_tlast),
-    .s_axis_rx_data_TVALID          (sUDMX_Dhcp_Data_Axis_tvalid),
-    .s_axis_rx_data_TREADY          (sDHCP_Udmx_Data_Axis_tready),
+    //-- UDMX / This / Data / Axis            
+    .siUDMX_This_Data_TDATA         (sUDMX_Dhcp_Data_Axis_tdata),
+    .siUDMX_This_Data_TKEEP         (sUDMX_Dhcp_Data_Axis_tkeep),
+    .siUDMX_This_Data_TLAST         (sUDMX_Dhcp_Data_Axis_tlast),
+    .siUDMX_This_Data_TVALID        (sUDMX_Dhcp_Data_Axis_tvalid),
+    .siUDMX_This_Data_TREADY        (sDHCP_Udmx_Data_Axis_tready),
     //-- UDMX / This / MetaData / Axis
-    .s_axis_rx_metadata_TDATA       (sUDMX_Dhcp_Meta_Axis_tdata),
-    .s_axis_rx_metadata_TVALID      (sUDMX_Dhcp_Meta_Axis_tvalid),
-    .s_axis_rx_metadata_TREADY      (sDHCP_Udmx_Meta_Axis_tready),
+    .siUDMX_This_Meta_TDATA         (sUDMX_Dhcp_Meta_Axis_tdata),
+    .siUDMX_This_Meta_TVALID        (sUDMX_Dhcp_Meta_Axis_tvalid),
+    .siUDMX_This_Meta_TREADY        (sDHCP_Udmx_Meta_Axis_tready),
        
     //------------------------------------------------------
     //-- To UDMX / Data & MetaData Interfaces
     //------------------------------------------------------     
      //-- THIS / Udmx / Data / Axis
-    .m_axis_tx_data_TREADY          (sUDMX_Dhcp_Data_Axis_tready),
-    .m_axis_tx_data_TDATA           (sDHCP_Udmx_Data_Axis_tdata),                             
-    .m_axis_tx_data_TKEEP           (sDHCP_Udmx_Data_Axis_tkeep),                             
-    .m_axis_tx_data_TLAST           (sDHCP_Udmx_Data_Axis_tlast),  
-    .m_axis_tx_data_TVALID          (sDHCP_Udmx_Data_Axis_tvalid),
+    .soTHIS_Udmx_Data_TREADY        (sUDMX_Dhcp_Data_Axis_tready),
+    .soTHIS_Udmx_Data_TDATA         (sDHCP_Udmx_Data_Axis_tdata),                             
+    .soTHIS_Udmx_Data_TKEEP         (sDHCP_Udmx_Data_Axis_tkeep),                             
+    .soTHIS_Udmx_Data_TLAST         (sDHCP_Udmx_Data_Axis_tlast),  
+    .soTHIS_Udmx_Data_TVALID        (sDHCP_Udmx_Data_Axis_tvalid),
     //-- THIS / Udmx / MetaData / Axis
-    .m_axis_tx_metadata_TREADY      (sUDMX_Dhcp_Meta_Axis_tready),
-    .m_axis_tx_metadata_TDATA       (sDHCP_Udmx_Meta_Axis_tdata),
-    .m_axis_tx_metadata_TVALID      (sDHCP_Udmx_Meta_Axis_tvalid),
+    .soTHIS_Udmx_Meta_TREADY        (sUDMX_Dhcp_Meta_Axis_tready),
+    .soTHIS_Udmx_Meta_TDATA         (sDHCP_Udmx_Meta_Axis_tdata),
+    .soTHIS_Udmx_Meta_TVALID        (sDHCP_Udmx_Meta_Axis_tvalid),
     //-- THIS / Udmx / TxLength / Axis
-    .m_axis_tx_length_TREADY        (sUDMX_Dhcp_PLen_Axis_tready),
-    .m_axis_tx_length_TDATA         (sDHCP_Udmx_PLen_Axis_tdata),
-    .m_axis_tx_length_TVALID        (sDHCP_Udmx_PLen_Axis_tvalid)
+    .soTHIS_Udmx_PLen_V_V_TREADY    (sUDMX_Dhcp_PLen_Axis_tready),
+    .soTHIS_Udmx_PLen_V_V_TDATA     (sDHCP_Udmx_PLen_Axis_tdata),
+    .soTHIS_Udmx_PLen_V_V_TVALID    (sDHCP_Udmx_PLen_Axis_tvalid)
    
   ); // End of DHCP
 

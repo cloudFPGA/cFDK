@@ -1,22 +1,36 @@
-#include "dhcp_client.hpp"
+/*****************************************************************************
+ * @file       : test_dhcp_client.cpp
+ * @brief      : Testbench for the DHCP-client.
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
+#include "../src/dhcp_client.hpp"
+
 #include <iostream>
 #include <fstream>
 
 using namespace hls;
 using namespace std;
 
-void getOffer(stream<axiWord>& outData)
+void getOffer(stream<UdpWord>& outData)
 {
 	static ap_uint<6> wordCount = 0;
 	static bool done = false;
 
-	axiWord sendWord;
+	UdpWord sendWord;
 	if (!done)
 	{
 		switch (wordCount)
 		{
 		case 0:
-			sendWord.data = 0x34aad42800060102;
+			sendWord.tdata = 0x34aad42800060102;
 			break;
 		case 1: //seconds, flags, clientip
 		case 5: //clientMac padding + severhostname
@@ -43,16 +57,16 @@ void getOffer(stream<axiWord>& outData)
 		case 26:
 		case 27:
 		case 28:
-			sendWord.data = 0;
+			sendWord.tdata = 0;
 			break;
 		case 2:
-			sendWord.data = 0x0105050a0a05050a; //your ip, next server ip
+			sendWord.tdata = 0x0105050a0a05050a; //your ip, next server ip
 			break;
 		case 3:
-			sendWord.data = 0x0304050600000000;
+			sendWord.tdata = 0x0304050600000000;
 			break;
 		case 4:
-			sendWord.data = 0x0000000000000102; //clientMac 2nd part
+			sendWord.tdata = 0x0000000000000102; //clientMac 2nd part
 			break;
 		/*case 13:
 			sendWord.data = 0x6c65707800000000;
@@ -61,31 +75,31 @@ void getOffer(stream<axiWord>& outData)
 			sendWord.data = 0x0000302e78756e69;
 			break;*/
 		case 29:
-			sendWord.data = 0x6353826300000000; //Magic Cookie
+			sendWord.tdata = 0x6353826300000000; //Magic Cookie
 			break;
 		case 30:
-			sendWord.data = 0x05050a0436020135; //dhcp option 53, 54
+			sendWord.tdata = 0x05050a0436020135; //dhcp option 53, 54
 			break;
 		case 31:
-			sendWord.data = 0x0158020000043301; //54, 51, 58
+			sendWord.tdata = 0x0158020000043301; //54, 51, 58
 			break;
 		case 32:
-			sendWord.data = 0x0a040300ffffff04; // 58, 59
+			sendWord.tdata = 0x0a040300ffffff04; // 58, 59
 			break;
 		case 33:
-			sendWord.data = 0x05050a041c010505; // 59, 1
+			sendWord.tdata = 0x05050a041c010505; // 59, 1
 			break;
 		case 34:
-			sendWord.data = 0x7265746e69140fff; //1, 3, 15
+			sendWord.tdata = 0x7265746e69140fff; //1, 3, 15
 			break;
 		case 35:
-			sendWord.data = 0x6d6178652e6c616e; //15
+			sendWord.tdata = 0x6d6178652e6c616e; //15
 			break;
 		case 36:
-			sendWord.data = 0xff67726f2e656c70; //15, done
+			sendWord.tdata = 0xff67726f2e656c70; //15, done
 			break;
 		case 37:
-			sendWord.data = 0; //padding
+			sendWord.tdata = 0; //padding
 			done = true;
 			break;
 /*		case 38:
@@ -98,31 +112,32 @@ void getOffer(stream<axiWord>& outData)
 		} //switch
 		if (!done)
 		{
-			sendWord.keep = 0xff;
-			sendWord.last = 0;
+			sendWord.tkeep = 0xff;
+			sendWord.tlast = 0;
 		}
 		else
 		{
-			sendWord.keep = 0x0f;
-			sendWord.last = 1;
+			sendWord.tkeep = 0x0f;
+			sendWord.tlast = 1;
 		}
 		outData.write(sendWord);
 		wordCount++;
 	} //done
 }
 
-void getAck(stream<axiWord>& outData)
+
+void getAck(stream<UdpWord>& outData)
 {
 	static ap_uint<6> wordCount = 0;
 	static bool done = false;
 
-	axiWord sendWord;
+	UdpWord sendWord;
 	if (!done)
 	{
 		switch (wordCount)
 		{
 		case 0:
-			sendWord.data = 0x34aad42800060102;
+			sendWord.tdata = 0x34aad42800060102;
 			break;
 		case 1: //seconds, flags, clientip
 		case 5: //clientMac padding + severhostname
@@ -149,16 +164,16 @@ void getAck(stream<axiWord>& outData)
 		case 26:
 		case 27:
 		case 28:
-			sendWord.data = 0;
+			sendWord.tdata = 0;
 			break;
 		case 2:
-			sendWord.data = 0x0105050a0a05050a; //your ip, next server ip
+			sendWord.tdata = 0x0105050a0a05050a; //your ip, next server ip
 			break;
 		case 3:
-			sendWord.data = 0x0304050600000000;
+			sendWord.tdata = 0x0304050600000000;
 			break;
 		case 4:
-			sendWord.data = 0x0000000000000102; //clientMac 2nd part
+			sendWord.tdata = 0x0000000000000102; //clientMac 2nd part
 			break;
 		/*case 13:
 			sendWord.data = 0x6c65707800000000;
@@ -167,31 +182,31 @@ void getAck(stream<axiWord>& outData)
 			sendWord.data = 0x0000302e78756e69;
 			break;*/
 		case 29:
-			sendWord.data = 0x6353826300000000; //Magic Cookie
+			sendWord.tdata = 0x6353826300000000; //Magic Cookie
 			break;
 		case 30:
-			sendWord.data = 0x05050a0436050135; //dhcp option 53, 54
+			sendWord.tdata = 0x05050a0436050135; //dhcp option 53, 54
 			break;
 		case 31:
-			sendWord.data = 0x0158020000043301; //54, 51, 1
+			sendWord.tdata = 0x0158020000043301; //54, 51, 1
 			break;
 		case 32:
-			sendWord.data = 0x0a040300ffffff04; //
+			sendWord.tdata = 0x0a040300ffffff04; //
 			break;
 		case 33:
-			sendWord.data = 0x05050a041c010505; //
+			sendWord.tdata = 0x05050a041c010505; //
 			break;
 		case 34:
-			sendWord.data = 0x7265746e69140fff; //1, 28, 15
+			sendWord.tdata = 0x7265746e69140fff; //1, 28, 15
 			break;
 		case 35:
-			sendWord.data = 0x6d6178652e6c616e; //15
+			sendWord.tdata = 0x6d6178652e6c616e; //15
 			break;
 		case 36:
-			sendWord.data = 0xff67726f2e656c70; //15, done
+			sendWord.tdata = 0xff67726f2e656c70; //15, done
 			break;
 		case 37:
-			sendWord.data = 0; //padding
+			sendWord.tdata = 0; //padding
 			done = true;
 			break;
 /*		case 38:
@@ -204,29 +219,30 @@ void getAck(stream<axiWord>& outData)
 		} //switch
 		if (!done)
 		{
-			sendWord.keep = 0xff;
-			sendWord.last = 0;
+			sendWord.tkeep = 0xff;
+			sendWord.tlast = 0;
 		}
 		else
 		{
-			sendWord.keep = 0x0f;
-			sendWord.last = 1;
+			sendWord.tkeep = 0x0f;
+			sendWord.tlast = 1;
 		}
 		outData.write(sendWord);
 		wordCount++;
 	} //done
 }
+
 
 int main()
 {
 	stream<ap_uint<16> >	openPort("openPort");
 	stream<bool>			confirmPortStatus("confirmPortStatus");
 	//stream<ap_uint<16> >&	realeasePort,
-	stream<udpMetadata>		dataInMeta("dataInMeta");
-	stream<axiWord>			dataIn("dataIn");
-	stream<udpMetadata>		dataOutMeta("dataOutMeta");
-	stream<ap_uint<16> >	dataOutLength("dataOutLength");
-	stream<axiWord>			dataOut("dataOut");
+	stream<UdpMeta>			dataInMeta("dataInMeta");
+	stream<UdpWord>			dataIn("dataIn");
+	stream<UdpMeta>		    dataOutMeta("dataOutMeta");
+	stream<UdpPLen>			dataOutLength("dataOutLength");
+	stream<UdpWord>			dataOut("dataOut");
 	ap_uint<32>				ipAddressOut;
 	ap_uint<1>				dhcpEnable = 0;
 	ap_uint<32>				inputIpAddress = 0x0C0C0C0C;
@@ -249,17 +265,17 @@ int main()
 		return -1;
 	}
 	while (count < 1000) {
-		dhcp_client(	openPort,
-						confirmPortStatus,
-						dataInMeta,
-						dataIn,
-						dataOutMeta,
-						dataOutLength,
-						dataOut,
-						dhcpEnable,
-						inputIpAddress,
-						ipAddressOut,
-						myMacAddress);
+		dhcp_client(
+				dhcpEnable,
+				myMacAddress,
+				ipAddressOut,
+				confirmPortStatus,
+				openPort,
+				dataIn,
+				dataInMeta,
+				dataOut,
+				dataOutMeta,
+				dataOutLength);
 
 		if (!openPort.empty()) {
 			openPort.read(port);
@@ -280,11 +296,11 @@ int main()
 			getAck(dataIn);
 		}
 		count++;
-		std::cout << std::hex << count << " - " << ipAddressOut << std::endl;
+		//std::cout << std::hex << count << " - " << ipAddressOut << std::endl;
 	}
 
-	axiWord outWord;
-	udpMetadata outMeta;
+	UdpWord outWord;
+	UdpMeta outMeta;
 	ap_uint<16> outLen;
 	bool wasLast = true;
 	int outCount = 0;
@@ -296,12 +312,12 @@ int main()
 	while (!dataOut.empty()) {
 		if (wasLast && !dataOutMeta.empty()) {
 			dataOutMeta.read(outMeta);
-			std::cout << "Src: " << outMeta.sourceSocket.addr(31, 24)<< "." << outMeta.sourceSocket.addr(23, 16) << ".";
-			std::cout << outMeta.sourceSocket.addr(15, 8)<< "." << outMeta.sourceSocket.addr(7, 0) << ":";
-			std::cout << ":" << outMeta.sourceSocket.port << std::endl;
-			std::cout << "Dst: " << outMeta.destinationSocket.addr(31, 24)<< "." << outMeta.destinationSocket.addr(23, 16) << ".";
-			std::cout << outMeta.destinationSocket.addr(15, 8)<< "." << outMeta.destinationSocket.addr(7, 0) << ":";
-			std::cout << outMeta.destinationSocket.port << std::endl;
+			std::cout << "Src: " << outMeta.src.addr(31, 24)<< "." << outMeta.src.addr(23, 16) << ".";
+			std::cout << outMeta.src.addr(15, 8)<< "." << outMeta.src.addr(7, 0) << ":";
+			std::cout << ":" << outMeta.src.port << std::endl;
+			std::cout << "Dst: " << outMeta.dst.addr(31, 24)<< "." << outMeta.dst.addr(23, 16) << ".";
+			std::cout << outMeta.dst.addr(15, 8)<< "." << outMeta.dst.addr(7, 0) << ":";
+			std::cout << outMeta.dst.port << std::endl;
 		}
 		if (wasLast && !dataOutLength.empty()) {
 			dataOutLength.read(outLen);
@@ -309,20 +325,20 @@ int main()
 		}
 		dataOut.read(outWord);
 		std::cout << std::hex << std::setfill('0');
-		std::cout << std::setw(8) << ((uint32_t) outWord.data(63, 32)) << std::setw(8) << ((uint32_t) outWord.data(31, 0)) << "\t";
-		std::cout << std::setw(2) << outWord.keep << " " << outWord.last << std::endl;
-		wasLast = outWord.last;
+		std::cout << std::setw(8) << ((uint32_t) outWord.tdata(63, 32)) << std::setw(8) << ((uint32_t) outWord.tdata(31, 0)) << "\t";
+		std::cout << std::setw(2) << outWord.tkeep << " " << outWord.tlast << std::endl;
+		wasLast = outWord.tlast;
 
 		outputFile << std::hex << std::noshowbase;
 		outputFile << std::setfill('0');
-		outputFile << std::setw(8) << ((uint32_t) outWord.data(63, 32));
-		outputFile << std::setw(8) << ((uint32_t) outWord.data(31, 0));
-		outputFile << " " << std::setw(2) << ((uint32_t) outWord.keep) << " ";
-		outputFile << std::setw(1) << ((uint32_t) outWord.last) << std::endl;
+		outputFile << std::setw(8) << ((uint32_t) outWord.tdata(63, 32));
+		outputFile << std::setw(8) << ((uint32_t) outWord.tdata(31, 0));
+		outputFile << " " << std::setw(2) << ((uint32_t) outWord.tkeep) << " ";
+		outputFile << std::setw(1) << ((uint32_t) outWord.tlast) << std::endl;
 
 		goldenFile >> std::hex >> dataTemp >> keepTemp >> lastTemp;
 
-		if (outWord.data != dataTemp || outWord.keep != keepTemp || outWord.last != lastTemp) { // Compare results
+		if (outWord.tdata != dataTemp || outWord.tkeep != keepTemp || outWord.tlast != lastTemp) { // Compare results
 			errCount++;
 			cerr << "X";
 		} else {
@@ -330,7 +346,7 @@ int main()
 		}
 
 		outCount++;
-		if (outWord.last) {
+		if (outWord.tlast) {
 			std::cout << "computed length: " << std::dec <<  (outCount*8) << std::endl;
 				outCount = 0;
 		}
@@ -341,13 +357,26 @@ int main()
 	outputFile.close();
 	goldenFile.close();
 	cerr << " done." << endl << endl;
-	if (errCount == 0) {
-	    cerr << "*** Test Passed ***" << endl << endl;
-	    return 0;
-	} else {
-	   	cerr << "!!! TEST FAILED -- " << errCount << " mismatches detected !!!";
-	   	cerr << endl << endl;
-	   	//return -1;
+
+	printf("#####################################################\n");
+	if (errCount) {
+		printf("## ERROR - TESTBENCH FAILED (RC=%d) !!!             ##\n", errCount);
+		errCount = 1;
 	}
-	return 0;
+	else
+		printf("## SUCCESSFULL END OF TESTBENCH (RC=0)             ##\n");
+
+	printf("#####################################################\n");
+
+	return(errCount);
+
+	//OBSOLETE if (errCount == 0) {
+	//OBSOLETE     cerr << "*** Test Passed ***" << endl << endl;
+	//OBSOLETE     return 0;
+	//OBSOLETE } else {
+	//OBSOLETE    	cerr << "!!! TEST FAILED -- " << errCount << " mismatches detected !!!";
+	//OBSOLETE    	cerr << endl << endl;
+	//OBSOLETE    	//return -1;
+	//OBSOLETE }
+	//OBSOLETE return 0;
 }

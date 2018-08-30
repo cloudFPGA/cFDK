@@ -52,41 +52,31 @@ set_top       ${projectName}
 add_files     ${srcDir}/${projectName}.cpp
 add_files -tb ${testDir}/test_${projectName}.cpp
 
+# Create a solution
+#-------------------------------------------------
 open_solution ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Synthesis
+# Run C Simulation and Synthesis
 #-------------------------------------------------
-#csim_design -clean
-#csim_design -clean -setup
+csim_design -clean
 csynth_design
-#cosim_design -tool xsim -rtl verilog -trace_level all
 
-# Export RTL
+# Run RTL Simulation
+#-------------------------------------------------
+if { 0 } {
+    cosim_design -tool xsim -rtl verilog -trace_level all
+}
+
+# Export RTL (refer to UG902)
+#   -format ( sysgen | ip_catalog | syn_dcp )
 #-------------------------------------------------
 export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
-
-#####################
-# OBSOLETE-20180251 #  
-# ###################
-# #
-# # # Import Implemented IP Into User IP Repository
-# # #-------------------------------------------------
-# # if { [file exists ${repoDir} ] == 1 } {
-# #     if { ${ipPkgFormat} eq "ip_catalog" } {
-# #         if { [file exists ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion} ] } {
-# #             file delete -force  ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion}
-# #         }
-# #         file copy ${implDir} ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion}
-# #   }
-# # } else {
-# #     puts "WARNING: The IP repository \"${repoDir}\" does not exist!"
-# #     puts "         Cannot copy the implemented IP into the user IP repository."
-# # }
 
 # Exit Vivado HLS
 #--------------------------------------------------
 exit
+
 
