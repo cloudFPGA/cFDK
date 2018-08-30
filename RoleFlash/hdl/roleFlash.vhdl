@@ -175,6 +175,12 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     --OBSOLETE-20180524 piTOP_Reset                         : in    std_ulogic;
     piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
+    ------------------------------------------------
+    -- SMC Interface
+    ------------------------------------------------ 
+    piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
+    piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+    
     poVoid                              : out   std_ulogic
 
   );
@@ -268,7 +274,12 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 begin
 
   -- write constant to EMIF Register to test read out 
-  poROL_SHL_EMIF_2B_Reg <= x"EF" & EMIF_inv; 
+  --poROL_SHL_EMIF_2B_Reg <= x"EF" & EMIF_inv; 
+  poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
+  poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
+                                      x"F"; 
+  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
+                                      x"E"; 
 
   EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
               x"BE" ;
