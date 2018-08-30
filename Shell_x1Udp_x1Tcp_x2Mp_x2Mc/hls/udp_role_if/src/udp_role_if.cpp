@@ -203,11 +203,11 @@ void pTxP_Dequeue (
  * @brief Tx Path - From ROLE to UDP core.
  * @ingroup udp_role_if
  *
- * @param[in]  siROL_This_Data,  data from ROLE.
- * @param[in]  sRxP_Meta,        metadata from the RxPath process.
- * @param[out] soTHIS_Udmx_Data, data to UDP-mux.
- * @param[out] soTHIS_Udmx_Meta, meta-data to UDP-mux.
- * @param[out] soTHIS_Udmx_PLen, packet length to UDP-mux.
+ * @param[in]  siROL_Data,  data from ROLE.
+ * @param[in]  sRxP_Meta,   metadata from the RxPath process.
+ * @param[out] soUDMX_Data, data to UDP-mux.
+ * @param[out] soUDMX_Meta, meta-data to UDP-mux.
+ * @param[out] soUDMX_PLen, packet length to UDP-mux.
  *
  * @return Nothing.
  *****************************************************************************/
@@ -233,7 +233,7 @@ void pTxP(
                  sFifo_Data, sPLen);
 
     pTxP_Dequeue(sFifo_Data,  siRxP_Meta,  sPLen,
-                  soUDMX_Data, soUDMX_Meta, soUDMX_PLen);
+                 soUDMX_Data, soUDMX_Meta, soUDMX_PLen);
 }
 
 
@@ -331,13 +331,13 @@ void pRxP(
  *
  * @param[in]  siROL_This_Data     UDP data stream from the ROLE.
  * @param[out] soTHIS_Rol_Data     UDP data stream to the ROLE.
- * @param[in]  siUDMX_This_OpnAck  Open port request from the UDP-Mux.
- * @param[out] soTHIS_Udmx_OpnReq  Open port acknowledgment to the UDP-Mux.
+ * @param[in]  siUDMX_This_OpnAck  Open port acknowledgment from UDP-Mux.
+ * @param[out] soTHIS_Udmx_OpnReq  Open port request to UDP-Mux.
  * @param[in]  siUDMX_This_Data    Data path from the UDP-Mux.
  * @param[in]  siUDMX_This_Meta    Metadata from the UDP-Mux.
  * @param[out] soTHIS_Udmx_Data    Data path to the UDP-Mux.
  * @param[out] soTHIS_Udmx_Meta    Metadata to the UDP-Mux.
- * @param[out] soTHIS_Udmx_PLen    Length of last Rx packet to the UDP-Mux.
+ * @param[out] soTHIS_Udmx_PLen    Payload length to the UDP-Mux.
  *
  * @return Nothing.
  *****************************************************************************/
@@ -368,19 +368,19 @@ void udp_role_if (
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE axis register both port=siROL_This_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
+    #pragma HLS INTERFACE axis register forward port=siROL_This_Data
+    #pragma HLS INTERFACE axis register forward port=soTHIS_Rol_Data
 
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
+    #pragma HLS INTERFACE axis register forward port=siUDMX_This_OpnAck
+    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_OpnReq
 
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Data
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
-    #pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
+    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Data
+    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Meta
+    #pragma HLS DATA_PACK                   variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Data
+    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Meta
+    #pragma HLS DATA_PACK                   variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_PLen
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW interval=1
@@ -405,11 +405,11 @@ void udp_role_if (
     /*** OBSOLETE ***
     //---- From ROLE to TxEnqueue
     pTxP_Enqueue (siROL_This_Data,
-                sTxFifo,         sTxPLen);
+                  sTxFifo,         sTxPLen);
 
     //---- From TxDequeue to UDMX
     pTxP_Dequeue (sTxFifo,          sRxToTx_Meta,     sTxPLen,
-                soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
+                  soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
     ***/
 
     //---- From UDMX to ROLE
