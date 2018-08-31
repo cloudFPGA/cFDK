@@ -7,6 +7,9 @@ all: mpe_prj
 mpe_prj: $(DEPS) 
 	rm -rf $@
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
+	@#the following is for checking if the AXI4Lite Addresses had changed 
+	diff ./mpe_prj/solution1/impl/ip/drivers/mpe_main_v1_0/src/xmpe_main_hw.h ./ref/xmpe_main_hw.h
+	@/bin/echo -e "AXI4Lite Addresses checked: OK\n"
 	@touch $@
 
 sim: 
