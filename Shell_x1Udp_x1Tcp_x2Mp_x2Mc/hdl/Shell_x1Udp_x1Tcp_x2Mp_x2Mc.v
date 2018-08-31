@@ -1100,6 +1100,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     //core should start immediately 
     .ap_start               (1),
+    .piSysReset_V           (piTOP_156_25Rst),
     .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
     //.poMMIO_V_ap_vld     ( ),
     .piMMIO_V              (sMMIO_CASTOR_4B_Reg),

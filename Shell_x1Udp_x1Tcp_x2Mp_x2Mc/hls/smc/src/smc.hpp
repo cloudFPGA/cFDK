@@ -114,9 +114,17 @@ uint8_t writeDisplaysToOutBuffer();
 void setRank(ap_uint<32> newRank);
 void setSize(ap_uint<32> newSize);
 
-void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
-      ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-      ap_uint<32> xmem[XMEM_SIZE], ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
+void smc_main(
+    // ----- system reset ---
+    ap_uint<1> sys_reset,
+    //EMIF Registers
+    ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
+    //HWICAP and DECOUPLING
+    ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+    //XMEM
+    ap_uint<32> xmem[XMEM_SIZE], 
+    //TO ROLE 
+    ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
 
 
 #endif

@@ -242,10 +242,19 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 }
 
 
-void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
-      ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-      ap_uint<32> xmem[XMEM_SIZE], ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
+void smc_main(
+    // ----- system reset ---
+    ap_uint<1> sys_reset,
+    //EMIF Registers
+    ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
+    //HWICAP and DECOUPLING
+    ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+    //XMEM
+    ap_uint<32> xmem[XMEM_SIZE], 
+    //TO ROLE 
+    ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
+#pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
 #pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM
@@ -295,7 +304,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
   ap_uint<1> RST = (*MMIO_in >> RST_SHIFT) & 0b1; 
 
-  if (RST == 1)
+  if (RST == 1 || sys_reset == 1)
   {
     cnt = 0xf;
     transferErr = 0;
@@ -316,10 +325,13 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     writeErrCnt = 0;
     fifoEmptyCnt = 0;
     wordsWrittenToIcapCnt = 0;
-    //TODO or better reset them? 
-    //nodeRank = 0; 
-    //clusterSize = 0;
   } 
+  
+  if (sys_reset == 1)
+  {
+    nodeRank = 0;
+    clusterSize = 0;
+  }
 
 //===========================================================
 // Start & Run Burst transfer; Manage Decoupling
