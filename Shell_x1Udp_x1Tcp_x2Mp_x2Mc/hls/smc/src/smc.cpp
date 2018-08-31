@@ -12,9 +12,6 @@ ap_uint<1> transferErr = 0;
 ap_uint<1> transferSuccess = 0;
 char *msg = new char[4];
 ap_uint<8> bufferIn[BUFFER_SIZE];
-//ap_uint<8> hangover_0 = 0;
-//ap_uint<8> hangover_1 = 0;
-//bool contains_hangover = false;
 ap_uint<1> toDecoup = 0;
 ap_uint<8> writeErrCnt = 0;
 ap_uint<8> fifoEmptyCnt = 0;
@@ -22,9 +19,6 @@ ap_uint<8> fifoEmptyCnt = 0;
 ap_uint<16> bufferInPtrWrite = 0x0;
 ap_uint<16> bufferInPtrMaxWrite = 0x0;
 ap_uint<16> bufferInPtrNextRead = 0x0;
-//ap_uint<16> lastLine = LINES_PER_PAGE-1;
-//ap_uint<16> lastLine = 0;
-//ap_uint<16> currentAddedPayload = BYTES_PER_PAGE-2;
 
 ap_uint<8> bufferOut[BUFFER_SIZE];
 ap_uint<16> bufferOutPtrWrite = 0x0;
@@ -156,13 +150,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
   ap_int<16> buff_pointer = 0-1;
   
- /* if ( ExpCnt % 2 == 1)
-  {
-    buff_pointer = 2-1;
-    bufferIn[bufferInPtrWrite  + 0] = hangover_0;
-    bufferIn[bufferInPtrWrite  + 1] = hangover_1;
-  }*/
-
 
   for(int i = 0; i<LINES_PER_PAGE; i++)
   {
@@ -222,24 +209,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
   { 
     bufferInPtrWrite = 0;
   }
- /* 
-  if (lastLine > (BUFFER_SIZE/4 - LINES_PER_PAGE + 1))
-  {
-    lastLine = 0;
-  }*/
-/*
-  if (ExpCnt % 2 == 0)
-  {
-    //hangover_0 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 0];
-    //hangover_1 = bufferIn[bufferInPtrWrite  + (LINES_PER_PAGE-1)*4 + 1];
-    lastLine += LINES_PER_PAGE - 1; //now absolute numbers!
-    //currentAddedPayload = 
-    //contains_hangover = false; //means, only 31 lines!
-  } else {
-    //contains_hangover = true; //means, full 32 lines!
-    lastLine += LINES_PER_PAGE;
-  } 
-  */
   
   //printf("After UPDATE bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
   //printf("After UPDATE lastLine: %d\n", (int) lastLine);
@@ -303,9 +272,7 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 // Connection to HWICAP
 
   SR = HWICAP[SR_OFFSET];
-  //ap_wait_n(AXI_PAUSE_CYCLES);
   ISR = HWICAP[ISR_OFFSET];
-  //  ap_wait_n(AXI_PAUSE_CYCLES);
   WFV = HWICAP[WFV_OFFSET];
 
   ASR = HWICAP[ASR_OFFSET];
@@ -346,10 +313,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     Display3 = 0;
     Display4 = 0;
     toDecoup = 0;
-    //lastLine = 0; 
     writeErrCnt = 0;
     fifoEmptyCnt = 0;
-    //currentAddedPayload = BYTES_PER_PAGE-2;
     wordsWrittenToIcapCnt = 0;
     //TODO or better reset them? 
     //nodeRank = 0; 
@@ -440,13 +405,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
                   break;
         }
 
-        /*if (contains_hangover) 
-        {
-          lastLine = LINES_PER_PAGE;
-          currentAddedPayload = BYTES_PER_PAGE -2;
-        } */
-
-
       } else {
         msg = "INR";
         transferErr = 1;
@@ -486,43 +444,29 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
               handlePayload = false;
               break; 
             case HTTP_PARSE_HEADER: 
-              //bufferInPtrWrite += currentAddedPayload;
               handlePayload = false;
               break; 
             case HTTP_HEADER_PARSED:
-                     //if( bufferInPtrWrite + currentAddedPayload == bufferInPtrNextRead) 
-                     //if( bufferInPtrWrite + (lastLine*4) == bufferInPtrNextRead) 
-                     //if( (lastLine*4) == bufferInPtrNextRead) 
+
                      if( bufferInPtrMaxWrite == bufferInPtrNextRead) 
                      {//corner case 
                        handlePayload = false;
                        httpState = HTTP_READ_PAYLOAD;
                      }
-                     //TODO: adapt lastLine to offset between bufferInPtrNextRead and bufferInPtrWrite!!
-                     //--> start of bitfile must be aligned to 4?? do in sender??
+                     //TODO: start of bitfile must be aligned to 4?? do in sender??
                      //NO break 
             case HTTP_READ_PAYLOAD:
                      //handlePayload=true;
-                     //duplicates are prevented by the lastLine!!
                      if (transferSuccess == 1)
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
-                     /* printf("lastLine bevore update: %d\n",(int) lastLine);
-                      printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
-                       //lastLine = request_len(bufferInPtrNextRead,lastLine*4) / 4; //update last word 
-                       lastLine = request_len(bufferInPtrNextRead,BYTES_PER_PAGE) / 4 + bufferInPtrNextRead/4; //update last word 
-                      printf("lastLine after update: %d\n", (int) lastLine);*/
                      }
-                     //bufferInPtrWrite += currentAddedPayload;
                      ongoingTransfer = 1;
                      toDecoup = 1;
                      break;
             case HTTP_REQUEST_COMPLETE: 
-                      //handlePayload = false;
-                     //handlePayload=true;
                      ongoingTransfer = 1;
                      httpState = HTTP_SEND_RESPONSE;
-                     //bufferInPtrWrite += currentAddedPayload;
                        break;
             case HTTP_SEND_RESPONSE:
                        handlePayload = false;
@@ -550,24 +494,9 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
 
         toDecoup = 1;
 
-        //if (parseHTTP == 1 && (bufferInPtrNextRead % 4 != 0))
-       /* if (httpState == HTTP_HEADER_PARSED && (bufferInPtrNextRead % 4 != 0))
-        {
-          lastLine--;
-        }*/
-
-        //for( int i = bufferInPtrNextRead/4; i<lastLine; i++)
         int i = 0;
-        //for(i = bufferInPtrNextRead; i<lastLine*4; i += 4)
         for(i = bufferInPtrNextRead; i<=bufferInPtrMaxWrite -3 ; i += 4)
         {
-
-          //if(bufferInPtrNextRead + i + 4 >= bufferInPtrWrite)
-        /*  if(bufferInPtrNextRead + i + 4 >= lastLine*4 + lastLineFill)
-          {
-            break;
-          }*/
-
           ap_uint<32> tmp = 0; 
           if ( notToSwap == 1) 
           {
@@ -575,20 +504,12 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
             tmp |= (((ap_uint<32>) bufferIn[0 + i + 1]) <<  8);
             tmp |= (((ap_uint<32>) bufferIn[0 + i + 2]) << 16);
             tmp |= (((ap_uint<32>) bufferIn[0 + i + 3]) << 24);
-            //tmp |= (ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4];
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 1]) <<  8);
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 2]) << 16);
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 3]) << 24);
           } else { 
             //default 
             tmp |= (ap_uint<32>) bufferIn[0 + i + 3];
             tmp |= (((ap_uint<32>) bufferIn[0  + i + 2]) <<  8);
             tmp |= (((ap_uint<32>) bufferIn[0  + i + 1]) << 16);
             tmp |= (((ap_uint<32>) bufferIn[0  + i + 0]) << 24);
-            //tmp |= (ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 3];
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 2]) <<  8);
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 1]) << 16);
-            //tmp |= (((ap_uint<32>) bufferIn[bufferInPtrNextRead  + i*4 + 0]) << 24);
           }
 
           if ( tmp == 0x0d0a0d0a) 
@@ -602,10 +523,8 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           HWICAP[WF_OFFSET] = tmp;
           wordsWrittenToIcapCnt++;
           //printf("writing to HWICAP: %#010x\n",(int) tmp);
-          //fprintf(stderr,"%#010x\n",(int) tmp);
         }
             
-       // printf("lastLine: %d\n", (int) lastLine);
        // printf("bufferInPtrMaxWrite: %d\n", (int) bufferInPtrMaxWrite);
        // printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
        // printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
@@ -616,50 +535,15 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           HWICAP[CR_OFFSET] = CR_WRITE;
         }
 
-        //bufferInPtrNextRead += 4*lastLine;
-        //if (httpState == HTTP_HEADER_PARSED)
-       // if (parseHTTP == 1)
-       // {
-          /*if (i >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
-          {
-            ap_uint<4> telomere = bufferInPtrNextRead % 4;
-            if (telomere != 0)
-            {
-              for(int j = 0; j<telomere; j++)
-              {
-                bufferIn[j] = bufferIn[bufferInPtrNextRead/4 + j];
-              }
-              bufferInPtrWrite = telomere;
-            }
-          }*/
-          
           bufferInPtrNextRead = i; //NOT i + 4, because that is already done by the for loop!
-       // } else {
-        //  bufferInPtrNextRead = 4*lastLine;
-        //}
 
         if(bufferInPtrNextRead >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
         {//should always hit even pages....
           if (parseHTTP == 1)
           {
-            //ap_uint<4> telomere = bufferInPtrNextRead % 4;
-            //ap_uint<4> telomere = ((4*lastLine) - bufferInPtrNextRead + 4) % 4; //e.g. 1004 - 1006 + 4 = 2; 1004 - 1005 + 4 = 3; usw.
-            // 1002 - 1008 + 4 could not happen, because in this case the for loop would have run one more time
-            // but 1002 - 1002 + 4 is possbile, but then nothing must be copied -> %4 //TODO
-            
             ap_uint<4> telomere = bufferInPtrMaxWrite - bufferInPtrNextRead + 1; //+1 because MaxWrite is already filled (not next write)
             printf("telomere: %d\n", (int) telomere);
             
-            /*ap_uint<4> telomere = 0; 
-            switch((4*lastLine) - bufferInPtrNextRead) // + 4;
-            { 
-              case -4: telomere = 4; break; //TODO
-              case -1: telomere = 3; break; 
-              case -2: telomere = 2; break;
-              case -3: telomere = 1; break;
-              default: telomere = 0;
-            }*/
-
             if (telomere != 0)
             {
               for(int j = 0; j<telomere; j++)
@@ -698,55 +582,15 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     }
 
     if (copyRet == 4 && handlePayload)
-    {//wait until all is written 
+    {//last write was done: disable decoupling, if necessary
      
-    /*  printf("Wait for final write\n");
-
-      while(WFV_value < 0x7FF) 
-      {
-        ap_wait_n(LOOP_WAIT_CYCLES); 
-        
-        CR = HWICAP[CR_OFFSET];
-        CR_value = CR & 0x1F; 
-        wasAbort = (CR_value & CR_ABORT) >> 4;
-        CR_isWritting = CR_value & CR_WRITE;
-
-        if(wasAbort == 1)
-        {
-          transferErr = 1;
-          msg = "ABR"; 
-          break;
-        }
-
-        if(CR_isWritting != 1)
-        {
-          HWICAP[CR_OFFSET] = CR_WRITE;
-        }
-        
-        WFV = HWICAP[WFV_OFFSET];
-        WFV_value = WFV & 0x7FF;
-      }*/
-
       if (parseHTTP == 0 && ongoingTransfer == 0)
       {
         toDecoup = 0;
       }
     }
 
-  /*  if ( parseHTTP == 0 && handlePayload)
-    {//update read ptr 
-      bufferInPtrNextRead = bufferInPtrWrite;
-    }*/
-
   }
- /* 
-  if (parseHTTP == 0 && handlePayload) // else to above
-  {
-   //bufferInPtrWrite += currentAddedPayload;
-  }*/
-
-  //if (iter_count >= MAX_BUF_ITERS) // >= because the next transfer is written to the space of iter_count+1
-
 
 
 
@@ -823,7 +667,6 @@ void smc_main(ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
           break;
   }
 
-  //ap_wait_n(WAIT_CYCLES);
   return;
 }
 

@@ -374,20 +374,11 @@ int main(){
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
   //printBuffer(bufferIn, "buffer after GET transfers:",2);
-
-  //one pause cycle, nothing should happen (but required by state machine)
-/*  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
-  succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);*/
-  
-  
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x40000072);
@@ -414,18 +405,11 @@ int main(){
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
   //printBuffer(bufferIn, "buffer after Invalid GET transfers:",2);
-
-  //one pause cycle, nothing should happen (but required by state machine)
-/*  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
-  succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);*/
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
@@ -454,18 +438,11 @@ int main(){
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
   //printBuffer(bufferIn, "buffer after 2. Invalid GET transfers:",2);
-
-  //one pause cycle, nothing should happen (but required by state machine)
-/*  smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
-  succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);*/
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
@@ -490,7 +467,6 @@ int main(){
   getStatus = "POST /configure HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nContent-Length: 1607\r\n \
 Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044ffffffffffffffffaa99556620000000200000002000";
   printf("%s\n",getStatus);
-
   httpBuffer[0] = 0x00;
   strcpy(&httpBuffer[1],getStatus);
   httpBuffer[strlen(getStatus)+1] = 0x0;
@@ -499,37 +475,28 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   httpBuffer[255] = 0XF1;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   HWICAP[WF_OFFSET] = 0x42;
-
   //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30204F4B);
-  
   printBuffer(bufferIn, "buffer IN after POST 1/2:",3);
-
   copyBufferToXmem(&httpBuffer[128],xmem );
  // printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x31535543);
   assert(decoupActive == 1);
   printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
-  
-
   //one pause cycle, nothing should happen (but required by state machine)
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x31535543);
   //assert(decoupActive == 1); is in the middle...
-  
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x40000072);
-  
   printBuffer(bufferOut, "BufferOut:",2);
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-
   //printBuffer32(xmem, "Xmem:");
   assert(decoupActive == 0);
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
@@ -557,14 +524,11 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   httpBuffer[383] = 0xF2;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST httpBuffer", 3);
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   HWICAP[WF_OFFSET] = 0x42;
-
   //printBuffer32(xmem, "Xmem:",2);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30204F4B);
-  
   printBuffer(bufferIn, "buffer IN after POST 1/3:",3);
   copyBufferToXmem(&httpBuffer[128],xmem );
   //printBuffer32(xmem, "Xmem:",2);
@@ -649,7 +613,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printBuffer(bufferIn, "bufferIn after 15 HTTP transfer", 8);
   //assert((int) HWICAP[WF_OFFSET] == WF_should);
 /*
-  //one pause cycle, nothing should happen (but required by state machine)
+  //one pause cycle, nothing should happen 
   MMIO_in = 0x4 << DSEL_SHIFT;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   //succeded &= checkResult(MMIO, 0x3f535543); 
@@ -696,24 +660,19 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
   //printBuffer(bufferIn, "buffer after PUT RANK transfers:",2);
-
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x40000071);
   assert(decoupActive == 0);
-  
   printBuffer(bufferOut, "PUT RANK: BufferOut:",2);
   //printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-
   assert(nodeRank == 42);
 
   //RST
@@ -731,24 +690,19 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
  // printBuffer(bufferIn, "buffer after PUT RANK transfers:",2);
-
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x40000061);
   assert(decoupActive == 0);
-  
   printBuffer(bufferOut, "PUT RANK INVALID: BufferOut:",2);
   //printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-
   //assert(nodeRank == 0);
 
   
@@ -767,25 +721,21 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   httpBuffer[127] = 0xF0;
   //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
   copyBufferToXmem(httpBuffer,xmem );
-
   xmem[XMEM_ANSWER_START] = 42;
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x30535543);
   assert(decoupActive == 0);
-  
   //printBuffer(bufferIn, "buffer after PUT SIZE transfers:",2);
-
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   smc_main(&MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, &nodeRank, &clusterSize);
   succeded &= checkResult(MMIO, 0x40000071);
   assert(decoupActive == 0);
-  
   printBuffer(bufferOut, "PUT SIZE: BufferOut:",2);
   //printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-
   assert(clusterSize == 5);
+
 
   //printf("DONE\n");
 

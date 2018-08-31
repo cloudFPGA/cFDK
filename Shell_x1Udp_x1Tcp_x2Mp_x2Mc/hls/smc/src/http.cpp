@@ -1,16 +1,12 @@
 
 #include <stdint.h>
-//#include "hls_math.h"
 #include "ap_int.h"
 #include "ap_utils.h"
 
 #include "smc.hpp" 
 #include "http.hpp"
 
-//extern HttpState httpState; 
-//extern ap_uint<16> bufferInPtrNextRead;
 
-//static char* status500 = "HTTP/1.1 500 Internal Server Error\r\nCache-Control: private\r\nContent-Length: 25\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n\r\n500 Internal Server Error";
 static char* httpHeader = "HTTP/1.1 ";
 static char* generalHeader = "Cache-Control: private\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n";
 static char* httpNL = "\r\n";
@@ -36,7 +32,7 @@ int my_strlen(char *s) {
 }
 
 int my_wordlen(char *s) {
-  //word in the sense of: strin to next space
+  //word in the sense of: string to next space
   int sum = 0;
   char c = s[0];
 
@@ -62,7 +58,6 @@ int writeString(char* s)
 
 
 // from http://www.techackers.com/integer-ascii-itoa-function-c/
-
 void strrev (char *str)
 {
   unsigned char temp, len=0, i=0;
@@ -158,6 +153,7 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
   len += writeString(httpNL);
   len += writeString(generalHeader);
 
+  //TODO: 
  /* if ( content_length > 0)
   {
     char *lengthAscii = new char[6];
@@ -184,31 +180,29 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
   }
 
   return pageCnt;
-  //return 1;
 }
 
 
-// from http://simplestcodings.blogspot.com/2010/08/custom-string-compare-function-in-c.html, adapted
-int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
+int my_strcmp(char *tmp1, ap_uint<8> tmp2[BUFFER_SIZE], int max_length)
 {
   int cnt = 0;
-  while(*temp1 && temp2[cnt])
+  while(*tmp1 && tmp2[cnt])
   {
-    if(*temp1== temp2[cnt])
+    if(*tmp1== tmp2[cnt])
     {
-      temp1++;
-      //temp2++; 
+      tmp1++;
+      //tmp2++; 
       cnt++;
     }
     else
     {
-      if(*temp1< temp2[cnt])
+      if(*tmp1< tmp2[cnt])
       {
-        return -1;  //returning a negative value
+        return -1;
       }
       else
       {
-        return 1;   //returning a positive value
+        return 1;
       }
     }
     if (cnt == max_length -1 )
@@ -217,7 +211,7 @@ int my_strcmp(char *temp1, ap_uint<8> temp2[BUFFER_SIZE], int max_length)
     } 
     //cnt++;
   }
-  return 0; //return 0 when strings are same
+  return 0; //strings are same
 }
 
 
@@ -275,23 +269,15 @@ int8_t extract_path()
   {
     return 0;
   }
-  //TODO if there comes directly a payload it is still a complete header
-  /*if (stringlen == PAYLOAD_BYTES_PER_PAGE && bufferIn[0 + stringlen -1] != '\n') //last byte of a header
-  {
-    // i.e. request is longer than one page 
-    return -1;
-  }*/
-  // a post request is not always ended with a \n or a payload (bitfile)  can also have a \0 in it => wie don't know the exact header length now 
   
 
   //printf("stringlen: %d\n",(int) stringlen);
 
   int requestLen = request_len(0, stringlen);
-  //int requestLen = 135;
   //printf("requestLen: %d\n",(int) requestLen);
 
-  //from here it looks like a valid header 
 
+  //from here it looks like a valid header 
 
   reqType = REQ_INVALID; //reset 
 
@@ -371,7 +357,6 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                 case 0: //not vaild until now
                     break;
                 case 1: //get status 
-                    //httpState = HTTP_REQUEST_COMPLETE;
                     httpState = HTTP_SEND_RESPONSE;
                     break;
                 case 2: //post config 
