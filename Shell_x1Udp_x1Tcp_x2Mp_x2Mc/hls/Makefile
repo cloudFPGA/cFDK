@@ -11,9 +11,9 @@
 # ******************************************************************************
 
 #.PHONY: all clean 
-.PHONY: all clean arp_server dhcp_client echo_app icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc
+.PHONY: all clean arp_server dhcp_client echo_app icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc mpe
 
-all: arp_server dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc
+all: arp_server dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc mpe
 
 
 *:

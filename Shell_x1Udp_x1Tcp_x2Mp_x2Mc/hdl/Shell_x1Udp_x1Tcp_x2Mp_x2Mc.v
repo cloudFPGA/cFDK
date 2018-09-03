@@ -550,6 +550,69 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [31:0] sCASTOR_ROLE_rank; 
   wire [31:0] sCASTOR_ROLE_size; 
 
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : MPE
+  //--------------------------------------------------------
+  wire [63:0] sNTS_MPE_Tcp_TDATA;
+  wire        sNTS_MPE_Tcp_TVALID;
+  wire        sNTS_MPE_Tcp_TREADY;
+  wire [ 7:0] sNTS_MPE_Tcp_TKEEP;
+  wire        sNTS_MPE_Tcp_TLAST;
+  wire [31:0] sNTS_MPE_IP_ipAddress_TDATA;
+  wire        sNTS_MPE_IP_ipAddress_TVALID;
+  wire        sNTS_MPE_IP_ipAddress_TREADY;
+  wire [63:0] sMPE_NTS_Tcp_TDATA;
+  wire        sMPE_NTS_Tcp_TVALID;
+  wire        sMPE_NTS_Tcp_TREADY;
+  wire [ 7:0] sMPE_NTS_Tcp_TKEEP;
+  wire        sMPE_NTS_Tcp_TLAST;
+  wire [31:0] sMPE_NTS_IP_ipAddress_TDATA;
+  wire        sMPE_NTS_IP_ipAddress_TVALID;
+  wire        sMPE_NTS_IP_ipAddress_TREADY;
+  wire [ 7:0] sROLE_MPE_MPIif_mpi_call_TDATA;
+  wire        sROLE_MPE_MPIif_mpi_call_TVALID;
+  wire        sROLE_MPE_MPIif_mpi_call_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_count_in_TDATA;
+  wire        sROLE_MPE_MPIif_count_in_TVALID;
+  wire        sROLE_MPE_MPIif_count_in_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_count_out_TDATA;
+  wire        sROLE_MPE_MPIif_count_out_TVALID;
+  wire        sROLE_MPE_MPIif_count_out_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_src_rank_TDATA;
+  wire        sROLE_MPE_MPIif_src_rank_TVALID;
+  wire        sROLE_MPE_MPIif_src_rank_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_dst_rank_TDATA;
+  wire        sROLE_MPE_MPIif_dst_rank_TVALID;
+  wire        sROLE_MPE_MPIif_dst_rank_TREADY;
+  wire [ 7:0] sROLE_MPE_MPI_data_TDATA;
+  wire        sROLE_MPE_MPI_data_TVALID;
+  wire        sROLE_MPE_MPI_data_TREADY;
+  wire        sROLE_MPE_MPI_data_TKEEP;
+  wire        sROLE_MPE_MPI_data_TLAST;
+  wire [ 7:0] sMPE_ROLE_MPI_data_TDATA;
+  wire        sMPE_ROLE_MPI_data_TVALID;
+  wire        sMPE_ROLE_MPI_data_TREADY;
+  wire        sMPE_ROLE_MPI_data_TKEEP;
+  wire        sMPE_ROLE_MPI_data_TLAST;
+  wire        sSMC_MPE_ctrlLink_AXI_AWVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_AWREADY;
+  wire [13:0] sSMC_MPE_ctrlLink_AXI_AWADDR;
+  wire        sSMC_MPE_ctrlLink_AXI_WVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_WREADY;
+  wire [31:0] sSMC_MPE_ctrlLink_AXI_WDATA;
+  wire [ 3:0] sSMC_MPE_ctrlLink_AXI_WSTRB;
+  wire        sSMC_MPE_ctrlLink_AXI_ARVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_ARREADY;
+  wire [13:0] sSMC_MPE_ctrlLink_AXI_ARADDR;
+  wire        sSMC_MPE_ctrlLink_AXI_RVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_RREADY;
+  wire [31:0] sSMC_MPE_ctrlLink_AXI_RDATA;
+  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_RRESP;
+  wire        sSMC_MPE_ctrlLink_AXI_BVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_BREADY;
+  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_BRESP;
+  
+  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
     
@@ -1129,6 +1192,23 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
     .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
     .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWREADY        (sSMC_MPE_ctrlLink_AXI_AWREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WDATA        (sSMC_MPE_ctrlLink_AXI_WDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WSTRB        (sSMC_MPE_ctrlLink_AXI_WSTRB),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARVALID        (sSMC_MPE_ctrlLink_AXI_ARVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARREADY        (sSMC_MPE_ctrlLink_AXI_ARREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RDATA        (sSMC_MPE_ctrlLink_AXI_RDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
     .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
     .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
   );
@@ -1206,6 +1286,72 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .s_ROLE_Mem_Up1_Axis_Write_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid),
     .decouple     (sCASTOR_DECOUP_activate),
     .decouple_status (sDECOUP_CASTOR_status)
+  );
+
+  MPE MPI_LAYER (
+    //-- Global Clock used by the entire SHELL -------------
+    .ap_clk                 (sETH0_ShlClk),
+    //-- Global Reset used by the entire SHELL -------------
+    .ap_rst_n               (~ piTOP_156_25Rst),
+    .piSysReset_V           (piTOP_156_25Rst),
+    .siTcp_TDATA        (sNTS_MPE_Tcp_TDATA),
+    .siTcp_TVALID        (sNTS_MPE_Tcp_TVALID),
+    .siTcp_TREADY        (sNTS_MPE_Tcp_TREADY),
+    .siTcp_TKEEP        (sNTS_MPE_Tcp_TKEEP),
+    .siTcp_TLAST        (sNTS_MPE_Tcp_TLAST),
+    .siIP_V_ipAddress_V_TDATA        (sNTS_MPE_IP_V_ipAddress_V_TDATA),
+    .siIP_V_ipAddress_V_TVALID        (sNTS_MPE_IP_V_ipAddress_V_TVALID),
+    .siIP_V_ipAddress_V_TREADY        (sNTS_MPE_IP_V_ipAddress_V_TREADY),
+    .soTcp_TDATA        (sMPE_NTSTcp_TDATA),
+    .soTcp_TVALID        (sMPE_NTSTcp_TVALID),
+    .soTcp_TREADY        (sMPE_NTSTcp_TREADY),
+    .soTcp_TKEEP        (sMPE_NTSTcp_TKEEP),
+    .soTcp_TLAST        (sMPE_NTSTcp_TLAST),
+    .soIP_V_ipAddress_V_TDATA        (sMPE_NTSIP_ipAddress_TDATA),
+    .soIP_V_ipAddress_V_TVALID        (sMPE_NTSIP_ipAddress_TVALID),
+    .soIP_V_ipAddress_V_TREADY        (sMPE_NTSIP_ipAddress_VREADY),
+    .siMPIif_V_mpi_call_V_TDATA        (sROLE_MPE_MPIif_mpi_call_TDATA),
+    .siMPIif_V_mpi_call_V_TVALID        (sROLE_MPE_MPIif_mpi_call_TVALID),
+    .siMPIif_V_mpi_call_V_TREADY        (sROLE_MPE_MPIif_mpi_call_TREADY),
+    .siMPIif_V_count_in_V_TDATA        (sROLE_MPE_MPIif_count_in_TDATA),
+    .siMPIif_V_count_in_V_TVALID        (sROLE_MPE_MPIif_count_in_TVALID),
+    .siMPIif_V_count_in_V_TREADY        (sROLE_MPE_MPIif_count_in_TREADY),
+    .siMPIif_V_count_out_V_TDATA        (sROLE_MPE_MPIif_count_out_TDATA),
+    .siMPIif_V_count_out_V_TVALID        (sROLE_MPE_MPIif_count_out_TVALID),
+    .siMPIif_V_count_out_V_TREADY        (sROLE_MPE_MPIif_count_out_TREADY),
+    .siMPIif_V_src_rank_V_TDATA        (sROLE_MPE_MPIif_src_rank_TDATA),
+    .siMPIif_V_src_rank_V_TVALID        (sROLE_MPE_MPIif_src_rank_TVALID),
+    .siMPIif_V_src_rank_V_TREADY        (sROLE_MPE_MPIif_src_rank_TREADY),
+    .siMPIif_V_dst_rank_V_TDATA        (sROLE_MPE_MPIif_dst_rank_TDATA),
+    .siMPIif_V_dst_rank_V_TVALID        (sROLE_MPE_MPIif_dst_rank_TVALID),
+    .siMPIif_V_dst_rank_V_TREADY        (sROLE_MPE_MPIif_dst_rank_TREADY),
+    .siMPI_data_TDATA        (sROLE_MPE_MPI_data_TDATA),
+    .siMPI_data_TVALID        (sROLE_MPE_MPI_data_TVALID),
+    .siMPI_data_TREADY        (sROLE_MPE_MPI_data_TREADY),
+    .siMPI_data_TKEEP        (sROLE_MPE_MPI_data_TKEEP),
+    .siMPI_data_TLAST        (sROLE_MPE_MPI_data_TLAST),
+    .soMPI_data_TDATA        (sMPE_ROLE_MPI_data_TDATA),
+    .soMPI_data_TVALID        (sMPE_ROLE_MPI_data_TVALID),
+    .soMPI_data_TREADY        (sMPE_ROLE_MPI_data_TREADY),
+    .soMPI_data_TKEEP        (sMPE_ROLE_MPI_data_TKEEP),
+    .soMPI_data_TLAST        (sMPE_ROLE_MPI_data_TLAST),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWREADY        (sSMC_MPE_ctrlLink_AXI_AWREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WDATA        (sSMC_MPE_ctrlLink_AXI_WDATA),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WSTRB        (sSMC_MPE_ctrlLink_AXI_WSTRB),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARVALID        (sSMC_MPE_ctrlLink_AXI_ARVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARREADY        (sSMC_MPE_ctrlLink_AXI_ARREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RDATA        (sSMC_MPE_ctrlLink_AXI_RDATA),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
   );
 
   //===========================================================================

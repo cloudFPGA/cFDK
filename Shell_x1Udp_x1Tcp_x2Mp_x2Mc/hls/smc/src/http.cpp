@@ -120,7 +120,18 @@ int my_atoi(char *str, int strlen)
   return res;
 }
 
+int8_t bytesToPages(int len)
+{
+  int8_t pageCnt = len/BYTES_PER_PAGE; 
 
+  if(len % BYTES_PER_PAGE > 0)
+  {
+    pageCnt++;
+  } 
+
+  return pageCnt;
+
+}
 
 int8_t writeHttpStatus(int status, uint16_t content_length){
 
@@ -172,12 +183,7 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
   */
   len += writeString(httpNL); // to finish header 
 
-  int8_t pageCnt = len/BYTES_PER_PAGE; 
-
-  if(len % BYTES_PER_PAGE > 0)
-  {
-    pageCnt++;
-  }
+  int8_t pageCnt = bytesToPages(len);
 
   return pageCnt;
 }
@@ -398,7 +404,8 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                  writeString(httpNL); //to finish body 
                  if (contentLen > 0)
                  {
-                   httpAnswerPageLength++;
+                   //httpAnswerPageLength++;
+                   httpAnswerPageLength += bytesToPages(contentLen);
                  }
                } else if(reqType == POST_CONFIG)
                { 

@@ -35,6 +35,10 @@ ap_uint<32> nodeRank = 0;
 ap_uint<32> clusterSize = 0; 
 
 
+ap_uint<32> mpe_status[MPE_NUMBER_STATUS_WORDS];
+
+
+
 void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE], ap_uint<1> notToSwap)
 {
   for(int i = 0; i < numberOfPages*LINES_PER_PAGE; i++)
@@ -126,6 +130,21 @@ uint8_t writeDisplaysToOutBuffer()
   bufferOut[bufferOutPtrWrite + 5] = '\n'; 
   bufferOutPtrWrite  += 6;
   len += 6; 
+
+  //MPE status 
+  len += writeString("MPE Status (10 lines): \r\n"); //MPE_NUMBER_STATUS_WORDS
+
+  for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
+  {
+    bufferOut[bufferOutPtrWrite + 3] = mpe_status[i] & 0xFF; 
+    bufferOut[bufferOutPtrWrite + 2] = (mpe_status[i] >> 8) & 0xFF; 
+    bufferOut[bufferOutPtrWrite + 1] = (mpe_status[i] >> 16) & 0xFF; 
+    bufferOut[bufferOutPtrWrite + 0] = (mpe_status[i] >> 24) & 0xFF; 
+    bufferOut[bufferOutPtrWrite + 4] = '\r'; 
+    bufferOut[bufferOutPtrWrite + 5] = '\n'; 
+    bufferOutPtrWrite  += 6;
+    len += 6; 
+  }
 
   return len;
 }
@@ -251,6 +270,9 @@ void smc_main(
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
+    //MPE 
+    //ap_uint<32> mpeCtrl[MPE_NUMBER_CONFIG_WORDS + MPE_NUMBER_STATUS_WORDS + MAX_CLUSTER_SIZE],
+    ap_uint<32> mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH],
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
@@ -265,6 +287,7 @@ void smc_main(
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_ovld register port=cluster_size name=poSMC_to_ROLE_size
+#pragma HLS INTERFACE m_axi depth=16383 port=mpeCtrl bundle=poSMC_MPE_ctrlLink_AXI  //0x3fff - 0x2000
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
@@ -621,6 +644,23 @@ void smc_main(
 
   *role_rank = nodeRank; 
   *cluster_size = clusterSize; 
+
+//===========================================================
+// connection to MPE 
+
+  //start and set auto restart (TODO: can't harm? ) 
+  
+  if(mpeCtrl[MPE_AXI_CTRL_REGISTER] != 0x81)
+  { 
+    mpeCtrl[MPE_AXI_CTRL_REGISTER] = 0x81; //ap_start and auto_restart
+  } 
+
+  //copy status 
+  for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
+  {
+    mpe_status[i] = mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + MPE_NUMBER_CONFIG_WORDS + i];
+  }
+
 
 //===========================================================
 //  putting displays together 

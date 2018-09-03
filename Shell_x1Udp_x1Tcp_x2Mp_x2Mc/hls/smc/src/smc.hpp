@@ -74,6 +74,7 @@
 
 //MAX CLUSTER/MAX RANK 
 #define MAX_CLUSTER_SIZE 1024  //only one limit is enough, there is no rank > clusterSize...
+#include "../../mpe/src/mpe.hpp" //seems to have a dependency to MAX_CLUSTER_SIZE, so must be after it...
 
 //Cosim enum Bug fix
 //#define COSIM 
@@ -123,6 +124,9 @@ void smc_main(
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
+    //MPE 
+    //ap_uint<32> mpeCtrl[MPE_NUMBER_CONFIG_WORDS + MPE_NUMBER_STATUS_WORDS + MAX_CLUSTER_SIZE],
+    ap_uint<32> mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH],
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
 
