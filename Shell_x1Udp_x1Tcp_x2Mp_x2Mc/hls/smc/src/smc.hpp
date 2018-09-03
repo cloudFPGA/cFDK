@@ -126,7 +126,7 @@ void smc_main(
     ap_uint<32> xmem[XMEM_SIZE], 
     //MPE 
     //ap_uint<32> mpeCtrl[MPE_NUMBER_CONFIG_WORDS + MPE_NUMBER_STATUS_WORDS + MAX_CLUSTER_SIZE],
-    ap_uint<32> mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH],
+    ap_uint<32> mpeCtrl[MPE_CTRL_LINK_SIZE],
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
 
