@@ -14,7 +14,7 @@ int main(){
   ap_uint<1> sys_reset = 0b0;
   stream<Axis<64> > siTcp;
   stream<IPMeta>  siIP;
-  stream<Axis<64> >	soTcp;
+  stream<Axis<64> > soTcp;
   stream<IPMeta> soIP;
 
   stream<MPI_Interface> MPIif;
@@ -23,7 +23,7 @@ int main(){
 
   for(int i = 0; i < MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS; i++)
   {
-  			MRT[i] = 0;
+        MRT[i] = 0;
   }
 
   MRT[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] = 168496129; //10.11.12.1

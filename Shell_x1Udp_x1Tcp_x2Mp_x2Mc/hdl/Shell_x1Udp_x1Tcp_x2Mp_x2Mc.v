@@ -1351,7 +1351,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .s_axi_piSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
     .s_axi_piSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
     .s_axi_piSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
-    .s_axi_piSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP)
   );
 
   //===========================================================================

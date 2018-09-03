@@ -739,7 +739,50 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
   assert(clusterSize == 5);
+  
+//===========================================================
+//Test MPE
+ /*
+  printf("===== MPE =====\n");
 
+  stream<Axis<64> > siTcp;
+  stream<IPMeta>  siIP;
+  stream<Axis<64> > soTcp;
+  stream<IPMeta> soIP;
+  stream<MPI_Interface> MPIif;
+  stream<Axis<8> > MPI_data_in;
+  stream<Axis<8> > MPI_data_out;
+
+  mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
+  //TODO assert??
+
+  //Now a GET 
+  //RST 
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x3f49444C);
+  
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  httpBuffer[0] = 0xF0;
+  strcpy(&httpBuffer[1],getStatus);
+  httpBuffer[strlen(getStatus)+1] = 0x0;
+  httpBuffer[127] = 0xF0;
+  //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
+  copyBufferToXmem(httpBuffer,xmem );
+  xmem[XMEM_ANSWER_START] = 42;
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x30535543);
+  assert(decoupActive == 0);
+  //printBuffer(bufferIn, "buffer after GET transfers:",2);
+  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x40000073);
+  assert(decoupActive == 0);
+  printBuffer(bufferOut, "Valid HTTP GET: BufferOut:",3);
+  printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
+  //printBuffer32(xmem, "Xmem:");
+  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
+  */
 
   //printf("DONE\n");
 

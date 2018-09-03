@@ -9,25 +9,25 @@ ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
 void mpe_main(
-		// ----- system reset ---
-		ap_uint<1> sys_reset,
-		// ----- link to SMC -----
-		ap_uint<32> ctrlLink[MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    // ----- system reset ---
+    ap_uint<1> sys_reset,
+    // ----- link to SMC -----
+    ap_uint<32> ctrlLink[MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
-		// ----- Nts0 / Tcp Interface -----
-		stream<Axis<64> >		&siTcp,
-		stream<IPMeta> 			&siIP,
-		stream<Axis<64> >		&soTcp,
-		stream<IPMeta>			&soIP,
+    // ----- Nts0 / Tcp Interface -----
+    stream<Axis<64> >   &siTcp,
+    stream<IPMeta>      &siIP,
+    stream<Axis<64> >   &soTcp,
+    stream<IPMeta>      &soIP,
 
-		// ----- Memory -----
-		//ap_uint<8> *MEM, TODO: maybe later
+    // ----- Memory -----
+    //ap_uint<8> *MEM, TODO: maybe later
 
-		// ----- MPI_Interface -----
-		stream<MPI_Interface> &siMPIif,
-		stream<Axis<8> > &siMPI_data,
-		stream<Axis<8> > &soMPI_data
-		)
+    // ----- MPI_Interface -----
+    stream<MPI_Interface> &siMPIif,
+    stream<Axis<8> > &siMPI_data,
+    stream<Axis<8> > &soMPI_data
+    )
 {
 #pragma HLS INTERFACE axis register forward port=siTcp
 #pragma HLS INTERFACE axis register forward port=siIP
@@ -50,55 +50,55 @@ void mpe_main(
 //===========================================================
 // Reset global variables 
 
-	if(sys_reset == 1)
-	{
-		for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
-		{
-			localMRT[i] = 0;
-		}
-		for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-		{
-			config[i] = 0;
-		}
-		for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-		{
-			status[i] = 0;
-		}
-	}
+  if(sys_reset == 1)
+  {
+    for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
+    {
+      localMRT[i] = 0;
+    }
+    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+    {
+      config[i] = 0;
+    }
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+    {
+      status[i] = 0;
+    }
+  }
 
 //===========================================================
 //
 
-	//copy MRT axi Interface
-	//MRT data are after possible config DATA
-	for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
-	{
-				//localMRT[i] = MRT[i];
-		localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-	}
-	for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-	{
-		config[i] = ctrlLink[i];
-	}
+  //copy MRT axi Interface
+  //MRT data are after possible config DATA
+  for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
+  {
+        //localMRT[i] = MRT[i];
+    localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+  }
+  for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+  {
+    config[i] = ctrlLink[i];
+  }
 
-	//DEBUG
-	ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
+  //DEBUG
+  ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
 
-	//copy routing nodes 0 - 2 for debug
-	status[0] = localMRT[0];
-	status[1] = localMRT[1];
-	status[2] = localMRT[2];
+  //copy routing nodes 0 - 2 for debug
+  status[0] = localMRT[0];
+  status[1] = localMRT[1];
+  status[2] = localMRT[2];
 
 
-	//TODO: some consistency check for tables? (e.g. every IP address only once...)
+  //TODO: some consistency check for tables? (e.g. every IP address only once...)
  
 
 //===========================================================
 //  update status
-	for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-	{
-		ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
-	}
+  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  {
+    ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
+  }
 
   return;
 }
