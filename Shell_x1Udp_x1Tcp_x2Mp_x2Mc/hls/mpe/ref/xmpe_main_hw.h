@@ -25,7 +25,7 @@
 //          bit 1  - Channel 1 (ap_ready)
 //          others - reserved
 // 0x2000 ~
-// 0x3fff : Memory 'ctrlLink_V' (1044 * 32b)
+// 0x3fff : Memory 'ctrlLink_V' (1056 * 32b)
 //          Word n : bit [31:0] - ctrlLink_V[n]
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
 
@@ -36,5 +36,5 @@
 #define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
 #define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
 #define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
-#define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_DEPTH_CTRLLINK_V     1044
+#define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_DEPTH_CTRLLINK_V     1056
 
