@@ -37,6 +37,9 @@ ap_uint<32> clusterSize = 0;
 
 ap_uint<8> mpe_status_request_cnt = 0;
 ap_uint<32> mpe_status[MPE_NUMBER_STATUS_WORDS];
+ap_uint<1> routingTableComplete = 0;
+
+ap_uint<1> invalidPayload = 0;
 
 
 
@@ -349,6 +352,8 @@ void smc_main(
     writeErrCnt = 0;
     fifoEmptyCnt = 0;
     wordsWrittenToIcapCnt = 0;
+    routingTableComplete = 0;
+    invalidPayload = 0;
   } 
   
   if (sys_reset == 1)
@@ -467,14 +472,16 @@ void smc_main(
       if (parseHTTP == 1 || ongoingTransfer == 1)
       {
 
-          if(wasAbort == 1 || transferErr == 1)
-          {
+          if(wasAbort == 1 || transferErr == 1 || invalidPayload == 1)
+          {//TODO: better do in parseHttpInput?
             httpState = HTTP_SEND_RESPONSE;
           }
 
           printf("httpState bevore parseHTTP: %d\n",httpState);
 
-          parseHttpInput(transferErr,wasAbort); 
+          parseHttpInput(transferErr,wasAbort,invalidPayload); 
+
+          printf("reqType after parseHTTP: %d\n", reqType);
 
           switch (httpState) {
             case HTTP_IDLE: 
@@ -490,6 +497,10 @@ void smc_main(
                        handlePayload = false;
                        httpState = HTTP_READ_PAYLOAD;
                      }
+                     if( reqType == POST_ROUTING ) 
+                     { 
+                       routingTableComplete = 0; 
+                     }
                      //TODO: start of bitfile must be aligned to 4?? do in sender??
                      //NO break 
             case HTTP_READ_PAYLOAD:
@@ -498,8 +509,16 @@ void smc_main(
                      {
                        httpState = HTTP_REQUEST_COMPLETE;
                      }
+                     if (reqType == POST_ROUTING && routingTableComplete == 1)
+                     {
+                       httpState = HTTP_REQUEST_COMPLETE; 
+                     }
                      ongoingTransfer = 1;
-                     toDecoup = 1;
+                     if (reqType == POST_CONFIG)
+                     {
+                      printf("set toDecoup\n");
+                      toDecoup = 1;
+                     }
                      break;
             case HTTP_REQUEST_COMPLETE: 
                      ongoingTransfer = 1;
@@ -527,86 +546,144 @@ void smc_main(
 
 
       if (checkPattern == 0 && handlePayload)
-      {//means: write to HWICAP 
+      {
 
-        toDecoup = 1;
-
-        int i = 0;
-        for(i = bufferInPtrNextRead; i<=bufferInPtrMaxWrite -3 ; i += 4)
+        if (reqType == POST_CONFIG || parseHTTP == 0)
         {
-          ap_uint<32> tmp = 0; 
-          if ( notToSwap == 1) 
+          //means: write to HWICAP 
+
+          toDecoup = 1;
+
+          int i = 0;
+          for(i = bufferInPtrNextRead; i<=bufferInPtrMaxWrite -3 ; i += 4)
           {
-            tmp |= (ap_uint<32>) bufferIn[0 + i];
-            tmp |= (((ap_uint<32>) bufferIn[0 + i + 1]) <<  8);
-            tmp |= (((ap_uint<32>) bufferIn[0 + i + 2]) << 16);
-            tmp |= (((ap_uint<32>) bufferIn[0 + i + 3]) << 24);
-          } else { 
-            //default 
-            tmp |= (ap_uint<32>) bufferIn[0 + i + 3];
-            tmp |= (((ap_uint<32>) bufferIn[0  + i + 2]) <<  8);
-            tmp |= (((ap_uint<32>) bufferIn[0  + i + 1]) << 16);
-            tmp |= (((ap_uint<32>) bufferIn[0  + i + 0]) << 24);
+            ap_uint<32> tmp = 0; 
+            if ( notToSwap == 1) 
+            {
+              tmp |= (ap_uint<32>) bufferIn[0 + i];
+              tmp |= (((ap_uint<32>) bufferIn[0 + i + 1]) <<  8);
+              tmp |= (((ap_uint<32>) bufferIn[0 + i + 2]) << 16);
+              tmp |= (((ap_uint<32>) bufferIn[0 + i + 3]) << 24);
+            } else { 
+              //default 
+              tmp |= (ap_uint<32>) bufferIn[0 + i + 3];
+              tmp |= (((ap_uint<32>) bufferIn[0  + i + 2]) <<  8);
+              tmp |= (((ap_uint<32>) bufferIn[0  + i + 1]) << 16);
+              tmp |= (((ap_uint<32>) bufferIn[0  + i + 0]) << 24);
+            }
+
+            if ( tmp == 0x0d0a0d0a) 
+            {
+              printf("Error: Tried to write 0d0a0d0a.\n");
+              writeErrCnt++;
+
+              continue;
+            }
+
+            HWICAP[WF_OFFSET] = tmp;
+            wordsWrittenToIcapCnt++;
+            //printf("writing to HWICAP: %#010x\n",(int) tmp);
           }
 
-          if ( tmp == 0x0d0a0d0a) 
-          {
-            printf("Error: Tried to write 0d0a0d0a.\n");
-            writeErrCnt++;
+          // printf("bufferInPtrMaxWrite: %d\n", (int) bufferInPtrMaxWrite);
+          // printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
+          // printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
 
-            continue;
+          CR_isWritting = CR_value & CR_WRITE;
+          if (CR_isWritting != 1)
+          {
+            HWICAP[CR_OFFSET] = CR_WRITE;
           }
 
-          HWICAP[WF_OFFSET] = tmp;
-          wordsWrittenToIcapCnt++;
-          //printf("writing to HWICAP: %#010x\n",(int) tmp);
-        }
-            
-       // printf("bufferInPtrMaxWrite: %d\n", (int) bufferInPtrMaxWrite);
-       // printf("bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
-       // printf("wordsWrittenToIcapCnt: %d\n", (int) wordsWrittenToIcapCnt);
-
-        CR_isWritting = CR_value & CR_WRITE;
-        if (CR_isWritting != 1)
-        {
-          HWICAP[CR_OFFSET] = CR_WRITE;
-        }
+          WFV = HWICAP[WFV_OFFSET];
+          WFV_value = WFV & 0x7FF;
+          if (WFV_value == 0x7FF)
+          {
+            //printf("FIFO is unexpected empty\n");
+            fifoEmptyCnt++;
+          }
 
           bufferInPtrNextRead = i; //NOT i + 4, because that is already done by the for loop!
 
-        if(bufferInPtrNextRead >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
-        {//should always hit even pages....
-          if (parseHTTP == 1)
-          {
-            ap_uint<4> telomere = bufferInPtrMaxWrite - bufferInPtrNextRead + 1; //+1 because MaxWrite is already filled (not next write)
-            printf("telomere: %d\n", (int) telomere);
-            
-            if (telomere != 0)
+          if(bufferInPtrNextRead >= (BUFFER_SIZE - PAYLOAD_BYTES_PER_PAGE))
+          {//should always hit even pages....
+            if (parseHTTP == 1)
             {
-              for(int j = 0; j<telomere; j++)
+              ap_uint<4> telomere = bufferInPtrMaxWrite - bufferInPtrNextRead + 1; //+1 because MaxWrite is already filled (not next write)
+              printf("telomere: %d\n", (int) telomere);
+
+              if (telomere != 0)
               {
-                bufferIn[j] = bufferIn[bufferInPtrNextRead + j];
+                for(int j = 0; j<telomere; j++)
+                {
+                  bufferIn[j] = bufferIn[bufferInPtrNextRead + j];
+                }
+                bufferInPtrWrite = telomere;
               }
-              bufferInPtrWrite = telomere;
+              if (telomere < 0)
+              {
+                printf("ERROR negativ telomere!\n");
+                writeErrCnt++;
+              }
             }
-            if (telomere < 0)
+
+            bufferInPtrNextRead = 0;
+          }
+
+          //printf("after UPDATE bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
+
+        } else if(reqType == POST_ROUTING && parseHTTP == 1)
+        {
+
+          int bodyLen = request_len(bufferInPtrNextRead, bufferInPtrMaxWrite - bufferInPtrNextRead); 
+
+          int i = bufferInPtrNextRead;
+          int maxWhile = bufferInPtrMaxWrite - MIN_ROUTING_TABLE_LINE;
+          
+          if(bodyLen > 0)
+          { //body is complete here 
+            maxWhile = bufferInPtrNextRead + bodyLen; //bodyLen is WITHOUT the actual footer 
+            routingTableComplete = 1;
+          }
+
+          printf("nextRead: %d, maxWhile %d\n", i, maxWhile);
+
+          while(i<maxWhile)
+          {
+            char* intStart = (char*) &bufferIn[i];
+            int intLen = my_wordlen(intStart);
+            if(i + intLen + 1 + 4 + 1> bufferInPtrMaxWrite) //1: space, 4: IPv4 Address 1: \n (now we know the actual length)
             {
-              printf("ERROR negativ telomere!\n");
-              writeErrCnt++;
+              //TODO 
+              break; 
             }
+            //looks like complete line is here 
+            ap_uint<32> rankID = (unsigned int) my_atoi(intStart, intLen);
+            printf("intLen: %d, rankdID: %d\n", intLen, (unsigned int) rankID);
+            i += intLen; 
+            i++; //space
+            ap_uint<32> tmp = 0; 
+
+            tmp |= (ap_uint<32>) bufferIn[i + 3];
+            tmp |= (((ap_uint<32>) bufferIn[i + 2]) <<  8);
+            tmp |= (((ap_uint<32>) bufferIn[i + 1]) << 16);
+            tmp |= (((ap_uint<32>) bufferIn[i + 0]) << 24);
+            i+= 4;
+
+            i++; //newline
+
+            if(rankID >= MAX_CLUSTER_SIZE)
+            { //ignore and return 400
+              invalidPayload = 1;
+              break;
+            }
+
+            //transfer to MPE: 
+            mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + rankID] = tmp; 
+            printf("writing on Address %d to MPE: %#010x\n",(unsigned int) rankID, (int) tmp);
           }
           
-          bufferInPtrNextRead = 0;
-        }
-        
-        //printf("after UPDATE bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
-        
-        WFV = HWICAP[WFV_OFFSET];
-        WFV_value = WFV & 0x7FF;
-        if (WFV_value == 0x7FF)
-        {
-          //printf("FIFO is unexpected empty\n");
-          fifoEmptyCnt++;
+          bufferInPtrNextRead = i; //NOT i + x, because that is already done by the for loop!
         }
 
       }
@@ -620,7 +697,7 @@ void smc_main(
 
     if (copyRet == 4 && handlePayload)
     {//last write was done: disable decoupling, if necessary
-     
+
       if (parseHTTP == 0 && ongoingTransfer == 0)
       {
         toDecoup = 0;
@@ -631,8 +708,8 @@ void smc_main(
 
 
 
-//===========================================================
-// Decoupling 
+  //===========================================================
+  // Decoupling 
 
   if ( toDecoup == 1 || transferErr == 1 )
   {
@@ -641,24 +718,24 @@ void smc_main(
     *setDecoup = 0b0;
   }
 
-//===========================================================
-// Set RANK and SIZE 
+  //===========================================================
+  // Set RANK and SIZE 
 
   *role_rank = nodeRank; 
   *cluster_size = clusterSize; 
 
-//===========================================================
-// connection to MPE 
+  //===========================================================
+  // connection to MPE 
 
   //start and set auto restart 
-  
+
   if(mpeCtrl[MPE_AXI_CTRL_REGISTER] != 0x81)
   { 
     mpeCtrl[MPE_AXI_CTRL_REGISTER] = 0x81; //ap_start and auto_restart
   } 
 
   //for debuging the connection 
-  if(mpe_status_request_cnt == 0)
+ /* if(mpe_status_request_cnt == 0)
   {
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1 
   } else if (mpe_status_request_cnt == 1)
@@ -667,9 +744,9 @@ void smc_main(
   } else if (mpe_status_request_cnt == 2)
   {
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
-  }
-  
-  
+  }*/
+
+
   //copy status 
   //to enforce AWLEN/ARLEN = 0, one transfer per ap_call 
   mpe_status[mpe_status_request_cnt] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
@@ -681,8 +758,8 @@ void smc_main(
   }
 
 
-//===========================================================
-//  putting displays together 
+  //===========================================================
+  //  putting displays together 
 
 
   ap_uint<4> Dsel = 0;

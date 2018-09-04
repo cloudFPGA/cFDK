@@ -226,6 +226,7 @@ static char *statusPath = "GET /status";
 static char *configurePath = "POST /configure";
 static char *putRank = "PUT /rank/";
 static char *putSize = "PUT /size/";
+static char *postRouting = "POST /routing";
 
 RequestType reqType = REQ_INVALID; 
 
@@ -331,6 +332,13 @@ int8_t extract_path()
     }
     setSize(newSize);
     return 4;
+  } else if(my_strcmp(postRouting, bufferIn, my_strlen(postRouting)) == 0 )
+  {
+    reqType = POST_ROUTING;
+    bufferInPtrNextRead = requestLen + 4;
+
+    //TODO 
+    return 5;
   } else { //Invalid / Not Found
     return -3;
   } 
@@ -339,7 +347,7 @@ int8_t extract_path()
 }
 
 
-void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
+void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort, ap_uint<1> invalidPayload)
 {
 
  switch (httpState) {
@@ -374,6 +382,9 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                 case 4: //put size 
                     httpState = HTTP_SEND_RESPONSE;
                     break;
+                case 5: //post routing
+                    httpState = HTTP_HEADER_PARSED;
+                    break;
              }
                break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0 
@@ -389,7 +400,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                if(wasAbort == 1) //abort always also triggers transferErr --> so check this first
                {
                  httpAnswerPageLength = writeHttpStatus(500,0);
-               } else if (transferErr == 1)
+               } else if (transferErr == 1 || invalidPayload == 1)
                {
                  httpAnswerPageLength = writeHttpStatus(422,0);
                } else if(reqType == GET_STATUS)
@@ -414,7 +425,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
                 httpAnswerPageLength++;
                  //write success message 
                } else { 
-                 //PUT_RANK, PUT_SIZE 
+                 //PUT_RANK, PUT_SIZE, POST_ROUTING
                 httpAnswerPageLength = writeHttpStatus(200,0);
                }
                httpState = HTTP_DONE;
@@ -424,6 +435,7 @@ void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort)
   }
 
   printf("parseHttpInput returns with state %d\n",httpState);
+  //printf("RequestType after parseHttpInput %d\n",reqType);
 
 }
 

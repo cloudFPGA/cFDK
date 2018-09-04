@@ -20,11 +20,17 @@
 typedef enum {REQ_INVALID = 0, POST_CONFIG, GET_STATUS, PUT_RANK, PUT_SIZE, POST_ROUTING} RequestType;
 #endif
 
+extern RequestType reqType; 
+
 int writeString(char* s);
 int8_t writeHttpStatus(int status, uint16_t content_length);
 int request_len(ap_uint<16> offset, int maxLength);
 
-void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort);
+int my_wordlen(char *s);
+int my_atoi(char *str, int strlen);
+
+
+void parseHttpInput(ap_uint<1> transferErr, ap_uint<1> wasAbort, ap_uint<1> invalidPayload);
 
 
 #endif

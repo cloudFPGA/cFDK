@@ -134,7 +134,7 @@ int main(){
 
   ap_uint<32> MMIO_in = 0x0;
 
-  ap_uint<32> mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH];
+  ap_uint<32> mpeCtrl[MPE_CTRL_LINK_SIZE];
 
 
   smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b1, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
@@ -758,15 +758,89 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   stream<Axis<8> > MPI_data_in;
   stream<Axis<8> > MPI_data_out;
 
+  //POST ROUTING TABLE
+  getStatus = "POST /routing HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
+
+  printf("%s\n",getStatus);
+
+  httpBuffer[0] = 0x00;
+  strcpy(&httpBuffer[1],getStatus);
+  int startTable = strlen(getStatus); 
+  int routingTable[25] =  {0x30,0x20, 0x0a, 0x0b, 0x0c, 0x01, 0x0a, 0x31,0x20, 0x0a, 0x0b, 0x0c, 0x02, 0x0a, 0x32,0x20, 0x0a, 0x0b, 0x0c, 0x05, 0x0a, 0x0d, 0x0a, 0x0d, 0x0a};
+  {
+    int j = startTable + 1; 
+    int i = 0;
+    while(i<25)
+    {
+      if(j == 127) 
+      { 
+        httpBuffer[j] = 0x00;
+        httpBuffer[j + 1] = 0xF1;
+        j += 2;
+        continue; 
+      } 
+      /* else if(j == 255)
+         {
+         httpBuffer[j] = 0xF1;
+         }*/
+
+      httpBuffer[j] = routingTable[i]; 
+      i++;
+      j++;
+
+    }
+    //to be sure
+    httpBuffer[127] = 0x00;
+    httpBuffer[128] = 0xF1;
+    httpBuffer[255] = 0xF1;
+  }
+  printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST ROUTING httpBuffer", 3);
+  copyBufferToXmem(httpBuffer,xmem );
+  xmem[XMEM_ANSWER_START] = 42;
+  
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x30204F4B);
+  copyBufferToXmem(&httpBuffer[128],xmem );
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x31535543);
+  assert(decoupActive == 0);
+
+  assert(mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0] == 0x0a0b0c01);
+  assert(mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
+  assert(mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
+
   //mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
   mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
   //TODO assert??
+  
+  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x40000071);
+  assert(decoupActive == 0);
+  printBuffer(bufferOut, "POST_ROUTING: BufferOut:",2);
+  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
 
   //Now a GET 
   
+  //RST 
+  //hard reset to start copy status
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(0b1, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  httpBuffer[0] = 0xF0;
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+
+  //soft reset for start transfer
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  //actual request
   getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
+  httpBuffer[0] = 0xF0;
   strcpy(&httpBuffer[1],getStatus);
   httpBuffer[strlen(getStatus)+1] = 0x0;
   httpBuffer[127] = 0xF0;
@@ -786,6 +860,60 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
   
+  //POST ROUTING TABLE INVALID
+  //soft reset for start transfer
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  getStatus = "POST /routing HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
+  //printf("%s\n",getStatus);
+  httpBuffer[0] = 0x00;
+  strcpy(&httpBuffer[1],getStatus);
+  startTable = strlen(getStatus); 
+  int routingTable2[27] =  {0x30,0x20, 0x0a, 0x0b, 0x0c, 0x01, 0x0a, 0x35, 0x31, 0x31,0x20, 0x0a, 0x0b, 0x0c, 0x02, 0x0a, 0x32,0x20, 0x0a, 0x0b, 0x0c, 0x05, 0x0a, 0x0d, 0x0a, 0x0d, 0x0a};
+  {
+    int j = startTable + 1; 
+    int i = 0;
+    while(i<27)
+    {
+      if(j == 127) 
+      { 
+        httpBuffer[j] = 0x00;
+        httpBuffer[j + 1] = 0xF1;
+        j += 2;
+        continue; 
+      } 
+      /* else if(j == 255)
+         {
+         httpBuffer[j] = 0xF1;
+         }*/
+
+      httpBuffer[j] = routingTable2[i]; 
+      i++;
+      j++;
+
+    }
+    //to be sure
+    httpBuffer[127] = 0x00;
+    httpBuffer[128] = 0xF1;
+    httpBuffer[255] = 0xF1;
+  }
+  printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST ROUTING INVALID httpBuffer", 3);
+  copyBufferToXmem(httpBuffer,xmem );
+  xmem[XMEM_ANSWER_START] = 42;
+  
+  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x30204F4B);
+  copyBufferToXmem(&httpBuffer[128],xmem );
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x31535543);
+  
+  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x40000071);
+  assert(decoupActive == 0);
+  printBuffer(bufferOut, "POST ROUTING INVALID: BufferOut:",2);
 
   //printf("DONE\n");
 
