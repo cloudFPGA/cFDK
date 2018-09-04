@@ -742,9 +742,14 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   
 //===========================================================
 //Test MPE
- /*
+ 
   printf("===== MPE =====\n");
 
+  //RST 
+  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
+  smc_main(0b1, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
+  succeded &= checkResult(MMIO, 0x3f49444C);
   stream<Axis<64> > siTcp;
   stream<IPMeta>  siIP;
   stream<Axis<64> > soTcp;
@@ -753,17 +758,15 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   stream<Axis<8> > MPI_data_in;
   stream<Axis<8> > MPI_data_out;
 
-  mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
+  //mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
+  mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
   //TODO assert??
 
   //Now a GET 
-  //RST 
-  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
-  smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
-  succeded &= checkResult(MMIO, 0x3f49444C);
   
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   httpBuffer[0] = 0xF0;
+  getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
   strcpy(&httpBuffer[1],getStatus);
   httpBuffer[strlen(getStatus)+1] = 0x0;
   httpBuffer[127] = 0xF0;
@@ -782,7 +785,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
   //printBuffer32(xmem, "Xmem:");
   assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-  */
+  
 
   //printf("DONE\n");
 

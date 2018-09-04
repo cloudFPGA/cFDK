@@ -650,24 +650,14 @@ void smc_main(
 //===========================================================
 // connection to MPE 
 
-  //start and set auto restart (TODO: can't harm? ) 
+  //start and set auto restart 
   
   if(mpeCtrl[MPE_AXI_CTRL_REGISTER] != 0x81)
   { 
     mpeCtrl[MPE_AXI_CTRL_REGISTER] = 0x81; //ap_start and auto_restart
   } 
 
-  //copy status 
- /* for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
-  {
-    mpe_status[i] = mpeCtrl[(XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + MPE_NUMBER_CONFIG_WORDS + i)/4];
-  }*/
-    
-  
   //for debuging the connection 
-  //mpeCtrl[(XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1)/4] = 168496141; //10.11.12.13
-  //mpeCtrl[(XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2)/4] = 168496142; //10.11.12.14
-  
   if(mpe_status_request_cnt == 0)
   {
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1 
@@ -679,10 +669,9 @@ void smc_main(
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
   }
   
-  //mpe_status[0] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 0];
-  //ap_wait_n(AXI_PAUSE_CYCLES); //to enforce AWLEN/ARLEN = 0
-  //mpe_status[1] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 1];
   
+  //copy status 
+  //to enforce AWLEN/ARLEN = 0, one transfer per ap_call 
   mpe_status[mpe_status_request_cnt] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
   mpe_status_request_cnt++; 
 
