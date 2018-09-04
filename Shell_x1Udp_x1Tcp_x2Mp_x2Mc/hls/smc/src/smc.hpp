@@ -30,9 +30,7 @@
 #define SIZE_SHIFT 8
 
 
-//#define WAIT_CYCLES 10
 //#define AXI_PAUSE_CYCLES 10
-#define LOOP_WAIT_CYCLES 30
 
 #define WS 4
 #define SR_OFFSET (0x110/WS)

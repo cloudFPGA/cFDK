@@ -35,6 +35,7 @@ ap_uint<32> nodeRank = 0;
 ap_uint<32> clusterSize = 0; 
 
 
+ap_uint<8> mpe_status_request_cnt = 0;
 ap_uint<32> mpe_status[MPE_NUMBER_STATUS_WORDS];
 
 
@@ -132,7 +133,7 @@ uint8_t writeDisplaysToOutBuffer()
   len += 6; 
 
   //MPE status 
-  len += writeString("MPE Status (10 lines): \r\n"); //MPE_NUMBER_STATUS_WORDS
+  len += writeString("MPE Status (16 lines): \r\n"); //MPE_NUMBER_STATUS_WORDS
 
   for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
   {
@@ -354,6 +355,7 @@ void smc_main(
   {
     nodeRank = 0;
     clusterSize = 0;
+    mpe_status_request_cnt = 0;
   }
 
 //===========================================================
@@ -666,11 +668,28 @@ void smc_main(
   //mpeCtrl[(XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1)/4] = 168496141; //10.11.12.13
   //mpeCtrl[(XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2)/4] = 168496142; //10.11.12.14
   
-  mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1
-  mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 1 ] = 0x0a0b0c0d; //10.11.12.13
+  if(mpe_status_request_cnt == 0)
+  {
+    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1 
+  } else if (mpe_status_request_cnt == 1)
+  {
+    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 1 ] = 0x0a0b0c0d; //10.11.12.13 
+  } else if (mpe_status_request_cnt == 2)
+  {
+    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
+  }
   
-  mpe_status[0] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 0];
-  mpe_status[1] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 1];
+  //mpe_status[0] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 0];
+  //ap_wait_n(AXI_PAUSE_CYCLES); //to enforce AWLEN/ARLEN = 0
+  //mpe_status[1] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + 1];
+  
+  mpe_status[mpe_status_request_cnt] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
+  mpe_status_request_cnt++; 
+
+  if(mpe_status_request_cnt >= 16)
+  {
+    mpe_status_request_cnt = 0;
+  }
 
 
 //===========================================================
