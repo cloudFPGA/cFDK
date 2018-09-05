@@ -98,6 +98,7 @@ using namespace hls;
  };
 
 
+#define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
 #define MPE_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
@@ -107,7 +108,7 @@ using namespace hls;
   * ctrlLINK Structure:
   * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from SMC to MPE
   * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from MPE to SMC
-  * 3. NUMBER_STATUS_WORDS --  MAX_CLUSTER_SIZE +
+  * 3. NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
   *                              NUMBER_CONFIG_WORDS +
   *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT)
   */
@@ -116,7 +117,7 @@ void mpe_main(
 		// ----- system reset ---
 				ap_uint<1> sys_reset,
 				// ----- link to SMC -----
-				ap_uint<32> ctrlLink[MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+				ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
 				// ----- Nts0 / Tcp Interface -----
 				stream<Axis<64> >		&siTcp,

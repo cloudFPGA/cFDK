@@ -4,7 +4,7 @@
 
 using namespace hls;
 
-ap_uint<32> localMRT[MAX_CLUSTER_SIZE];
+ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
@@ -12,7 +12,7 @@ void mpe_main(
     // ----- system reset ---
     ap_uint<1> sys_reset,
     // ----- link to SMC -----
-    ap_uint<32> ctrlLink[MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
     // ----- Nts0 / Tcp Interface -----
     stream<Axis<64> >   &siTcp,
@@ -52,7 +52,7 @@ void mpe_main(
 
   if(sys_reset == 1)
   {
-    for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
+    for(int i = 0; i < MAX_MRT_SIZE; i++)
     {
       localMRT[i] = 0;
     }
@@ -71,7 +71,7 @@ void mpe_main(
 
   //copy MRT axi Interface
   //MRT data are after possible config DATA
-  for(int i = 0; i < MAX_CLUSTER_SIZE; i++)
+  for(int i = 0; i < MAX_MRT_SIZE; i++)
   {
         //localMRT[i] = MRT[i];
     localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
