@@ -267,8 +267,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   // ROLE / Shl/ EMIF Registers 
   //----------------------------------------------------
   input   [15:0]  piROL_SHL_EMIF_2B_Reg,
-  output  [15:0]  poSHL_ROL_EMIF_2B_Reg
-  
+  output  [15:0]  poSHL_ROL_EMIF_2B_Reg,
+
+  //----------------------------------------------------
+  // ROLE <--> SMC 
+  //----------------------------------------------------
+  output [31:0]  poSMC_ROLE_rank,
+  output [31:0]  poSMC_ROLE_size
 );  // End of PortList
 
 
@@ -482,7 +487,147 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMMIO_Eth0_PcsLoopbackEn;
   wire          sMMIO_Eth0_MacLoopbackEn;
   wire          sMMIO_Eth0_MacAddrSwapEn;
+  
+  //------------------------------------------------------
+  //-- SIGNAL DECLARATIONS: Decoupling
+  //------------------------------------------------------
+  wire   [ 63:0]  sDECOUP_Shl_Nts0_Udp_Axis_tdata;
+  wire   [  7:0]  sDECOUP_Shl_Nts0_Udp_Axis_tkeep;
+  wire            sDECOUP_Shl_Nts0_Udp_Axis_tlast;
+  wire            sDECOUP_Shl_Nts0_Udp_Axis_tvalid;
+  wire            sDECOUP_Shl_Nts0_Udp_Axis_tready;
+  wire   [ 63:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tdata;
+  wire   [  7:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tkeep;
+  wire            sDECOUP_Shl_Nts0_Tcp_Axis_tlast;
+  wire            sDECOUP_Shl_Nts0_Tcp_Axis_tvalid;
+  wire            sDECOUP_Shl_Nts0_Tcp_Axis_tready;
+  wire    [15:0]  sDECOUP_SHL_EMIF_2B_Reg;
+  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_Read_tready;
+  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready;
+  wire   [511:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata;
+  wire   [ 63:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast;
+  wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid;
+  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_Read_tready;
+  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready;
+  wire   [511:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata;
+  wire   [ 63:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tkeep;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast;
+  wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid;
 
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : HWICAPC 
+  //--------------------------------------------------------
+  //wire        sCASTOR_HWICAPC_eos_in;
+  //wire        sCASTOR_HWICAPC_axi_aclk;
+  //wire        sCASTOR_HWICAPC_axi_aresetn;
+  wire [ 8:0] sCASTOR_HWICAPC_axi_awaddr;
+  wire        sCASTOR_HWICAPC_axi_awvalid;
+  wire        sCASTOR_HWICAPC_axi_awready;
+  wire [31:0] sCASTOR_HWICAPC_axi_wdata;
+  wire        sCASTOR_HWICAPC_axi_wstrb;
+  wire        sCASTOR_HWICAPC_axi_wvalid;
+  wire        sCASTOR_HWICAPC_axi_wready;
+  wire [ 1:0] sCASTOR_HWICAPC_axi_bresp;
+  wire        sCASTOR_HWICAPC_axi_bvalid;
+  wire        sCASTOR_HWICAPC_axi_bready;
+  wire [ 8:0] sCASTOR_HWICAPC_axi_araddr;
+  wire        sCASTOR_HWICAPC_axi_arvalid; 
+  wire        sCASTOR_HWICAPC_axi_arready;
+  wire [31:0] sCASTOR_HWICAPC_axi_rdata;
+  wire [ 1:0] sCASTOR_HWICAPC_axi_rresp;
+  wire        sCASTOR_HWICAPC_axi_rvalid;
+  wire        sCASTOR_HWICAPC_axi_rready;
+  wire        sCASTOR_HWICAPC_ip2intc_irpt;
+  
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : CASTOR
+  //--------------------------------------------------------
+  wire [31:0] sCASTOR_MMIO_4B_Reg;
+  wire [31:0] sMMIO_CASTOR_4B_Reg;
+  wire        sDECOUP_CASTOR_status;
+  wire        sCASTOR_DECOUP_activate;
+  wire [8:0]  sCASTOR_MMIO_XMEM_Addr;
+  wire [31:0] sCASTOR_MMIO_XMEM_RData;
+  wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
+  wire        sCASTOR_MMIO_XMEM_wren; //Write-enable
+  wire [31:0] sCASTOR_MMIO_XMEM_WData;
+  wire [31:0] sCASTOR_ROLE_rank; 
+  wire [31:0] sCASTOR_ROLE_size; 
+
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : MPE
+  //--------------------------------------------------------
+  wire [63:0] sNTS_MPE_Tcp_TDATA;
+  wire        sNTS_MPE_Tcp_TVALID;
+  wire        sNTS_MPE_Tcp_TREADY;
+  wire [ 7:0] sNTS_MPE_Tcp_TKEEP;
+  wire        sNTS_MPE_Tcp_TLAST;
+  wire [31:0] sNTS_MPE_IP_ipAddress_TDATA;
+  wire        sNTS_MPE_IP_ipAddress_TVALID;
+  wire        sNTS_MPE_IP_ipAddress_TREADY;
+  wire [63:0] sMPE_NTS_Tcp_TDATA;
+  wire        sMPE_NTS_Tcp_TVALID;
+  wire        sMPE_NTS_Tcp_TREADY;
+  wire [ 7:0] sMPE_NTS_Tcp_TKEEP;
+  wire        sMPE_NTS_Tcp_TLAST;
+  wire [31:0] sMPE_NTS_IP_ipAddress_TDATA;
+  wire        sMPE_NTS_IP_ipAddress_TVALID;
+  wire        sMPE_NTS_IP_ipAddress_TREADY;
+  wire [ 7:0] sROLE_MPE_MPIif_mpi_call_TDATA;
+  wire        sROLE_MPE_MPIif_mpi_call_TVALID;
+  wire        sROLE_MPE_MPIif_mpi_call_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_count_in_TDATA;
+  wire        sROLE_MPE_MPIif_count_in_TVALID;
+  wire        sROLE_MPE_MPIif_count_in_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_count_out_TDATA;
+  wire        sROLE_MPE_MPIif_count_out_TVALID;
+  wire        sROLE_MPE_MPIif_count_out_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_src_rank_TDATA;
+  wire        sROLE_MPE_MPIif_src_rank_TVALID;
+  wire        sROLE_MPE_MPIif_src_rank_TREADY;
+  wire [31:0] sROLE_MPE_MPIif_dst_rank_TDATA;
+  wire        sROLE_MPE_MPIif_dst_rank_TVALID;
+  wire        sROLE_MPE_MPIif_dst_rank_TREADY;
+  wire [ 7:0] sROLE_MPE_MPI_data_TDATA;
+  wire        sROLE_MPE_MPI_data_TVALID;
+  wire        sROLE_MPE_MPI_data_TREADY;
+  wire        sROLE_MPE_MPI_data_TKEEP;
+  wire        sROLE_MPE_MPI_data_TLAST;
+  wire [ 7:0] sMPE_ROLE_MPI_data_TDATA;
+  wire        sMPE_ROLE_MPI_data_TVALID;
+  wire        sMPE_ROLE_MPI_data_TREADY;
+  wire        sMPE_ROLE_MPI_data_TKEEP;
+  wire        sMPE_ROLE_MPI_data_TLAST;
+  wire        sSMC_MPE_ctrlLink_AXI_AWVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_AWREADY;
+  wire [13:0] sSMC_MPE_ctrlLink_AXI_AWADDR;
+  wire        sSMC_MPE_ctrlLink_AXI_WVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_WREADY;
+  wire [31:0] sSMC_MPE_ctrlLink_AXI_WDATA;
+  wire [ 3:0] sSMC_MPE_ctrlLink_AXI_WSTRB;
+  wire        sSMC_MPE_ctrlLink_AXI_ARVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_ARREADY;
+  wire [13:0] sSMC_MPE_ctrlLink_AXI_ARADDR;
+  wire        sSMC_MPE_ctrlLink_AXI_RVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_RREADY;
+  wire [31:0] sSMC_MPE_ctrlLink_AXI_RDATA;
+  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_RRESP;
+  wire        sSMC_MPE_ctrlLink_AXI_BVALID;
+  wire        sSMC_MPE_ctrlLink_AXI_BREADY;
+  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_BRESP;
+  
+  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
     
@@ -543,7 +688,16 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),
-    .piMMIO_ROLE_2B_Reg             (piROL_SHL_EMIF_2B_Reg),
+    .piMMIO_ROLE_2B_Reg             (sDECOUP_SHL_EMIF_2B_Reg),
+    // SMC Registers
+    .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
+    .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
+    //XMem Port B
+    .piSMC_MMIO_XMEM_en             (sCASTOR_MMIO_XMEM_cen),
+    .piSMC_MMIO_XMEM_Wren           (sCASTOR_MMIO_XMEM_wren),
+    .piSMC_MMIO_XMEM_WrData         (sCASTOR_MMIO_XMEM_WData),
+    .poSMC_MMIO_XMEM_RData          (sCASTOR_MMIO_XMEM_RData),
+    .piSMC_MMIO_XMEM_Addr           (sCASTOR_MMIO_XMEM_Addr),
  
     .poVoid                         ()
 
@@ -759,13 +913,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- ROLE / Nts0 / Udp Interfaces
     //------------------------------------------------------
     //-- Input AXI-Write Stream Interface ----------
-    .piROL_Nts0_Udp_Axis_tdata        (piROL_Shl_Nts0_Udp_Axis_tdata),
-    .piROL_Nts0_Udp_Axis_tkeep        (piROL_Shl_Nts0_Udp_Axis_tkeep),
-    .piROL_Nts0_Udp_Axis_tlast        (piROL_Shl_Nts0_Udp_Axis_tlast),
-    .piROL_Nts0_Udp_Axis_tvalid       (piROL_Shl_Nts0_Udp_Axis_tvalid),
+    .piROL_Nts0_Udp_Axis_tdata        (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
+    .piROL_Nts0_Udp_Axis_tkeep        (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
+    .piROL_Nts0_Udp_Axis_tlast        (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
+    .piROL_Nts0_Udp_Axis_tvalid       (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
     .poNTS0_Rol_Udp_Axis_tready       (poSHL_Rol_Nts0_Udp_Axis_tready),
     //-- Output AXI-Write Stream Interface ---------
-    .piROL_Nts0_Udp_Axis_tready       (piROL_Shl_Nts0_Udp_Axis_tready),
+    .piROL_Nts0_Udp_Axis_tready       (sDECOUP_Shl_Nts0_Udp_Axis_tready),
     .poNTS0_Rol_Udp_Axis_tdata        (poSHL_Rol_Nts0_Udp_Axis_tdata),
     .poNTS0_Rol_Udp_Axis_tkeep        (poSHL_Rol_Nts0_Udp_Axis_tkeep),
     .poNTS0_Rol_Udp_Axis_tlast        (poSHL_Rol_Nts0_Udp_Axis_tlast),
@@ -775,13 +929,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- ROLE / Nts0 / TCP Interfaces
     //------------------------------------------------------
     //-- Input AXI-Write Stream Interface ----------
-    .piROL_Nts0_Tcp_Axis_tdata        (piROL_Shl_Nts0_Tcp_Axis_tdata),
-    .piROL_Nts0_Tcp_Axis_tkeep        (piROL_Shl_Nts0_Tcp_Axis_tkeep),
-    .piROL_Nts0_Tcp_Axis_tlast        (piROL_Shl_Nts0_Tcp_Axis_tlast),
-    .piROL_Nts0_Tcp_Axis_tvalid       (piROL_Shl_Nts0_Tcp_Axis_tvalid),
+    .piROL_Nts0_Tcp_Axis_tdata        (sDECOUP_Shl_Nts0_Tcp_Axis_tdata),
+    .piROL_Nts0_Tcp_Axis_tkeep        (sDECOUP_Shl_Nts0_Tcp_Axis_tkeep),
+    .piROL_Nts0_Tcp_Axis_tlast        (sDECOUP_Shl_Nts0_Tcp_Axis_tlast),
+    .piROL_Nts0_Tcp_Axis_tvalid       (sDECOUP_Shl_Nts0_Tcp_Axis_tvalid),
     .poNTS0_Rol_Tcp_Axis_tready       (poSHL_Rol_Nts0_Tcp_Axis_tready),
     //-- Output AXI-Write Stream Interface ---------
-    .piROL_Nts0_Tcp_Axis_tready       (piROL_Shl_Nts0_Tcp_Axis_tready),
+    .piROL_Nts0_Tcp_Axis_tready       (sDECOUP_Shl_Nts0_Tcp_Axis_tready),
     .poNTS0_Rol_Tcp_Axis_tdata        (poSHL_Rol_Nts0_Tcp_Axis_tdata),
     .poNTS0_Rol_Tcp_Axis_tkeep        (poSHL_Rol_Nts0_Tcp_Axis_tkeep),
     .poNTS0_Rol_Tcp_Axis_tlast        (poSHL_Rol_Nts0_Tcp_Axis_tlast),
@@ -913,32 +1067,32 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //------------------------------------------------------
     //-- Memory Port #0 / S2MM-AXIS ------------------   
     //---- Stream Read Command ---------------
-    .piROL_Mem_Mp0_Axis_RdCmd_tdata   (piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
-    .piROL_Mem_Mp0_Axis_RdCmd_tvalid  (piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
+    .piROL_Mem_Mp0_Axis_RdCmd_tdata   (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata),
+    .piROL_Mem_Mp0_Axis_RdCmd_tvalid  (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
     .poMEM_Rol_Mp0_Axis_RdCmd_tready  (poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .piROL_Mem_Mp0_Axis_RdSts_tready  (piROL_Shl_Mem_Mp0_Axis_RdSts_tready),
+    .piROL_Mem_Mp0_Axis_RdSts_tready  (sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready),
     .poMEM_Rol_Mp0_Axis_RdSts_tdata   (poSHL_Rol_Mem_Mp0_Axis_RdSts_tdata),
     .poMEM_Rol_Mp0_Axis_RdSts_tvalid  (poSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid),
     //---- Stream Data Output Channel --------
-    .piROL_Mem_Mp0_Axis_Read_tready   (piROL_Shl_Mem_Mp0_Axis_Read_tready),
+    .piROL_Mem_Mp0_Axis_Read_tready   (sDECOUP_Shl_Mem_Mp0_Axis_Read_tready),
     .poMEM_Rol_Mp0_Axis_Read_tdata    (poSHL_Rol_Mem_Mp0_Axis_Read_tdata),
     .poMEM_Rol_Mp0_Axis_Read_tkeep    (poSHL_Rol_Mem_Mp0_Axis_Read_tkeep),
     .poMEM_Rol_Mp0_Axis_Read_tlast    (poSHL_Rol_Mem_Mp0_Axis_Read_tlast),
     .poMEM_Rol_Mp0_Axis_Read_tvalid   (poSHL_Rol_Mem_Mp0_Axis_Read_tvalid),
     //---- Stream Write Command --------------
-    .piROL_Mem_Mp0_Axis_WrCmd_tdata   (piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata),
-    .piROL_Mem_Mp0_Axis_WrCmd_tvalid  (piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
+    .piROL_Mem_Mp0_Axis_WrCmd_tdata   (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata),
+    .piROL_Mem_Mp0_Axis_WrCmd_tvalid  (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
     .poMEM_Rol_Mp0_Axis_WrCmd_tready  (poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .piROL_Mem_Mp0_Axis_WrSts_tready  (piROL_Shl_Mem_Mp0_Axis_WrSts_tready),
+    .piROL_Mem_Mp0_Axis_WrSts_tready  (sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready),
     .poMEM_Rol_Mp0_Axis_WrSts_tdata   (poSHL_Rol_Mem_Mp0_Axis_WrSts_tdata),
     .poMEM_Rol_Mp0_Axis_WrSts_tvalid  (poSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid),
     //---- Stream Data Input Channel ---------
-    .piROL_Mem_Mp0_Axis_Write_tdata   (piROL_Shl_Mem_Mp0_Axis_Write_tdata),
-    .piROL_Mem_Mp0_Axis_Write_tkeep   (piROL_Shl_Mem_Mp0_Axis_Write_tkeep),
-    .piROL_Mem_Mp0_Axis_Write_tlast   (piROL_Shl_Mem_Mp0_Axis_Write_tlast),
-    .piROL_Mem_Mp0_Axis_Write_tvalid  (piROL_Shl_Mem_Mp0_Axis_Write_tvalid),
+    .piROL_Mem_Mp0_Axis_Write_tdata   (sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata),
+    .piROL_Mem_Mp0_Axis_Write_tkeep   (sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep),
+    .piROL_Mem_Mp0_Axis_Write_tlast   (sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast),
+    .piROL_Mem_Mp0_Axis_Write_tvalid  (sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid),
     .poMEM_Rol_Mp0_Axis_Write_tready  (poSHL_Rol_Mem_Mp0_Axis_Write_tready),
     
     //------------------------------------------------------
@@ -946,32 +1100,32 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //------------------------------------------------------
     //-- Memory Port #1 / S2MM-AXIS ------------------   
     //---- Stream Read Command ---------------
-    .piROL_Mem_Mp1_Axis_RdCmd_tdata   (piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata),
-    .piROL_Mem_Mp1_Axis_RdCmd_tvalid  (piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
+    .piROL_Mem_Mp1_Axis_RdCmd_tdata   (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata),
+    .piROL_Mem_Mp1_Axis_RdCmd_tvalid  (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
     .poMEM_Rol_Mp1_Axis_RdCmd_tready  (poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .piROL_Mem_Mp1_Axis_RdSts_tready  (piROL_Shl_Mem_Mp1_Axis_RdSts_tready),
+    .piROL_Mem_Mp1_Axis_RdSts_tready  (sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready),
     .poMEM_Rol_Mp1_Axis_RdSts_tdata   (poSHL_Rol_Mem_Mp1_Axis_RdSts_tdata),
     .poMEM_Rol_Mp1_Axis_RdSts_tvalid  (poSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid),
     //---- Stream Data Output Channel --------
-    .piROL_Mem_Mp1_Axis_Read_tready   (piROL_Shl_Mem_Mp1_Axis_Read_tready),
+    .piROL_Mem_Mp1_Axis_Read_tready   (sDECOUP_Shl_Mem_Mp1_Axis_Read_tready),
     .poMEM_Rol_Mp1_Axis_Read_tdata    (poSHL_Rol_Mem_Mp1_Axis_Read_tdata),
     .poMEM_Rol_Mp1_Axis_Read_tkeep    (poSHL_Rol_Mem_Mp1_Axis_Read_tkeep),
     .poMEM_Rol_Mp1_Axis_Read_tlast    (poSHL_Rol_Mem_Mp1_Axis_Read_tlast),
     .poMEM_Rol_Mp1_Axis_Read_tvalid   (poSHL_Rol_Mem_Mp1_Axis_Read_tvalid),
     //---- Stream Write Command --------------
-    .piROL_Mem_Mp1_Axis_WrCmd_tdata   (piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata),
-    .piROL_Mem_Mp1_Axis_WrCmd_tvalid  (piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
+    .piROL_Mem_Mp1_Axis_WrCmd_tdata   (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata),
+    .piROL_Mem_Mp1_Axis_WrCmd_tvalid  (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
     .poMEM_Rol_Mp1_Axis_WrCmd_tready  (poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .piROL_Mem_Mp1_Axis_WrSts_tready  (piROL_Shl_Mem_Mp1_Axis_WrSts_tready),
+    .piROL_Mem_Mp1_Axis_WrSts_tready  (sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready),
     .poMEM_Rol_Mp1_Axis_WrSts_tdata   (poSHL_Rol_Mem_Mp1_Axis_WrSts_tdata),
     .poMEM_Rol_Mp1_Axis_WrSts_tvalid  (poSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid),
     //---- Stream Data Input Channel ---------
-    .piROL_Mem_Mp1_Axis_Write_tdata   (piROL_Shl_Mem_Mp1_Axis_Write_tdata),
-    .piROL_Mem_Mp1_Axis_Write_tkeep   (piROL_Shl_Mem_Mp1_Axis_Write_tkeep),
-    .piROL_Mem_Mp1_Axis_Write_tlast   (piROL_Shl_Mem_Mp1_Axis_Write_tlast),
-    .piROL_Mem_Mp1_Axis_Write_tvalid  (piROL_Shl_Mem_Mp1_Axis_Write_tvalid),
+    .piROL_Mem_Mp1_Axis_Write_tdata   (sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata),
+    .piROL_Mem_Mp1_Axis_Write_tkeep   (sDECOUP_Shl_Mem_Mp1_Axis_Write_tkeep),
+    .piROL_Mem_Mp1_Axis_Write_tlast   (sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast),
+    .piROL_Mem_Mp1_Axis_Write_tvalid  (sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid),
     .poMEM_Rol_Mp1_Axis_Write_tready  (poSHL_Rol_Mem_Mp1_Axis_Write_tready),
   
     //------------------------------------------------------
@@ -996,7 +1150,236 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
   );  // End of MEM
   
-  
+  //===========================================================================
+  // SMC related modules 
+  //===========================================================================
+
+  HWICAPC HWICAP (
+    .icap_clk       (sETH0_ShlClk),
+    .eos_in         (1),
+    //.s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
+    .s_axi_aclk     (sETH0_ShlClk),
+    //.s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),
+    .s_axi_aresetn  (~ piTOP_156_25Rst),
+    .s_axi_awaddr   (sCASTOR_HWICAPC_axi_awaddr),
+    .s_axi_awvalid  (sCASTOR_HWICAPC_axi_awvalid),
+    .s_axi_awready  (sCASTOR_HWICAPC_axi_awready),
+    .s_axi_wdata    (sCASTOR_HWICAPC_axi_wdata),
+    .s_axi_wstrb    (sCASTOR_HWICAPC_axi_wstrb),
+    .s_axi_wvalid   (sCASTOR_HWICAPC_axi_wvalid),
+    .s_axi_wready   (sCASTOR_HWICAPC_axi_wready),
+    .s_axi_bresp    (sCASTOR_HWICAPC_axi_bresp),
+    .s_axi_bvalid   (sCASTOR_HWICAPC_axi_bvalid),
+    .s_axi_bready   (sCASTOR_HWICAPC_axi_bready),
+    .s_axi_araddr   (sCASTOR_HWICAPC_axi_araddr),
+    .s_axi_arvalid  (sCASTOR_HWICAPC_axi_arvalid), 
+    .s_axi_arready  (sCASTOR_HWICAPC_axi_arready),
+    .s_axi_rdata    (sCASTOR_HWICAPC_axi_rdata),
+    .s_axi_rresp    (sCASTOR_HWICAPC_axi_rresp),
+    .s_axi_rvalid   (sCASTOR_HWICAPC_axi_rvalid),
+    .s_axi_rready   (sCASTOR_HWICAPC_axi_rready),
+    .ip2intc_irpt   (sCASTOR_HWICAPC_ip2intc_irpt)
+  );
+
+
+  SMC CASTOR (
+    //-- Global Clock used by the entire SHELL -------------
+    .ap_clk                 (sETH0_ShlClk),
+    //-- Global Reset used by the entire SHELL -------------
+    .ap_rst_n               (~ piTOP_156_25Rst),
+    //core should start immediately 
+    .ap_start               (1),
+    .piSysReset_V           (piTOP_156_25Rst),
+    .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
+    //.poMMIO_V_ap_vld     ( ),
+    .piMMIO_V              (sMMIO_CASTOR_4B_Reg),
+    .piMMIO_V_ap_vld        (1),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWADDR   (sCASTOR_HWICAPC_axi_awaddr),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWVALID  (sCASTOR_HWICAPC_axi_awvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWREADY  (sCASTOR_HWICAPC_axi_awready),
+    .m_axi_poSMC_to_HWICAP_AXIM_WDATA    (sCASTOR_HWICAPC_axi_wdata),
+    .m_axi_poSMC_to_HWICAP_AXIM_WSTRB    (sCASTOR_HWICAPC_axi_wstrb),
+    .m_axi_poSMC_to_HWICAP_AXIM_WVALID   (sCASTOR_HWICAPC_axi_wvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_WREADY   (sCASTOR_HWICAPC_axi_wready),
+    .m_axi_poSMC_to_HWICAP_AXIM_BRESP    (sCASTOR_HWICAPC_axi_bresp),
+    .m_axi_poSMC_to_HWICAP_AXIM_BVALID   (sCASTOR_HWICAPC_axi_bvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_BREADY   (sCASTOR_HWICAPC_axi_bready),
+    .m_axi_poSMC_to_HWICAP_AXIM_ARADDR   (sCASTOR_HWICAPC_axi_araddr),
+    .m_axi_poSMC_to_HWICAP_AXIM_ARVALID  (sCASTOR_HWICAPC_axi_arvalid), 
+    .m_axi_poSMC_to_HWICAP_AXIM_ARREADY  (sCASTOR_HWICAPC_axi_arready),
+    .m_axi_poSMC_to_HWICAP_AXIM_RDATA    (sCASTOR_HWICAPC_axi_rdata),
+    .m_axi_poSMC_to_HWICAP_AXIM_RRESP    (sCASTOR_HWICAPC_axi_rresp),
+    .m_axi_poSMC_to_HWICAP_AXIM_RVALID   (sCASTOR_HWICAPC_axi_rvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_RREADY   (sCASTOR_HWICAPC_axi_rready),
+    .piDECOUP_SMC_status_V               (sDECOUP_CASTOR_status),
+    .poSMC_DECOUP_activate_V             (sCASTOR_DECOUP_activate),
+    .xmem_V_Address0                     (sCASTOR_MMIO_XMEM_Addr),
+    .xmem_V_ce0                          (sCASTOR_MMIO_XMEM_cen), 
+    .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
+    .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
+    .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWREADY        (sSMC_MPE_ctrlLink_AXI_AWREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WDATA        (sSMC_MPE_ctrlLink_AXI_WDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WSTRB        (sSMC_MPE_ctrlLink_AXI_WSTRB),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARVALID        (sSMC_MPE_ctrlLink_AXI_ARVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARREADY        (sSMC_MPE_ctrlLink_AXI_ARREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RDATA        (sSMC_MPE_ctrlLink_AXI_RDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
+    .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
+    .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
+  );
+
+  assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
+  assign poSMC_ROLE_size = sCASTOR_ROLE_size;
+
+
+  Decoupler DECOUP (
+    .rp_ROLE_Nts0_Udp_Axis_tready    (piROL_Shl_Nts0_Udp_Axis_tready),
+    .s_ROLE_Nts0_Udp_Axis_tready   (sDECOUP_Shl_Nts0_Udp_Axis_tready),
+    .rp_ROLE_Nts0_Udp_Axis_tdata     (piROL_Shl_Nts0_Udp_Axis_tdata),
+    .s_ROLE_Nts0_Udp_Axis_tdata    (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
+    .rp_ROLE_Nts0_Udp_Axis_tkeep        (piROL_Shl_Nts0_Udp_Axis_tkeep),
+    .s_ROLE_Nts0_Udp_Axis_tkeep    (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
+    .rp_ROLE_Nts0_Udp_Axis_tvalid       (piROL_Shl_Nts0_Udp_Axis_tvalid),
+    .s_ROLE_Nts0_Udp_Axis_tvalid   (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
+    .rp_ROLE_Nts0_Udp_Axis_tlast     (piROL_Shl_Nts0_Udp_Axis_tlast),
+    .s_ROLE_Nts0_Udp_Axis_tlast    (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
+    .rp_ROLE_Nts0_Tcp_Axis_tready       (piROL_Shl_Nts0_Tcp_Axis_tready),
+    .s_ROLE_Nts0_Tcp_Axis_tready   (sDECOUP_Shl_Nts0_Tcp_Axis_tready),
+    .rp_ROLE_Nts0_Tcp_Axis_tdata        (piROL_Shl_Nts0_Tcp_Axis_tdata),
+    .s_ROLE_Nts0_Tcp_Axis_tdata    (sDECOUP_Shl_Nts0_Tcp_Axis_tdata),
+    .rp_ROLE_Nts0_Tcp_Axis_tkeep        (piROL_Shl_Nts0_Tcp_Axis_tkeep),
+    .s_ROLE_Nts0_Tcp_Axis_tkeep    (sDECOUP_Shl_Nts0_Tcp_Axis_tkeep),
+    .rp_ROLE_Nts0_Tcp_Axis_tvalid       (piROL_Shl_Nts0_Tcp_Axis_tvalid),
+    .s_ROLE_Nts0_Tcp_Axis_tvalid   (sDECOUP_Shl_Nts0_Tcp_Axis_tvalid),
+    .rp_ROLE_Nts0_Tcp_Axis_tlast        (piROL_Shl_Nts0_Tcp_Axis_tlast),
+    .s_ROLE_Nts0_Tcp_Axis_tlast    (sDECOUP_Shl_Nts0_Tcp_Axis_tlast),
+    .rp_ROLE_EMIF_2B_Reg     (piROL_SHL_EMIF_2B_Reg),
+    .s_ROLE_EMIF_2B_Reg    (sDECOUP_SHL_EMIF_2B_Reg),
+    .rp_ROLE_Mem_Up0_Axis_RdCmd_tdata         (piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
+    .s_ROLE_Mem_Up0_Axis_RdCmd_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata),
+    .rp_ROLE_Mem_Up0_Axis_RdCmd_tvalid        (piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
+    .s_ROLE_Mem_Up0_Axis_RdCmd_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
+    .rp_ROLE_Mem_Up0_Axis_RdSts_tready        (piROL_Shl_Mem_Mp0_Axis_RdSts_tready),
+    .s_ROLE_Mem_Up0_Axis_RdSts_tready    (sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready),
+    .rp_ROLE_Mem_Up0_Axis_Read_tready         (piROL_Shl_Mem_Mp0_Axis_Read_tready),
+    .s_ROLE_Mem_Up0_Axis_Read_tready     (sDECOUP_Shl_Mem_Mp0_Axis_Read_tready),
+    .rp_ROLE_Mem_Up0_Axis_WrCmd_tdata         (piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata),
+    .s_ROLE_Mem_Up0_Axis_WrCmd_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata),
+    .rp_ROLE_Mem_Up0_Axis_WrCmd_tvalid        (piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
+    .s_ROLE_Mem_Up0_Axis_WrCmd_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
+    .rp_ROLE_Mem_Up0_Axis_WrSts_tready        (piROL_Shl_Mem_Mp0_Axis_WrSts_tready),
+    .s_ROLE_Mem_Up0_Axis_WrSts_tready    (sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready),
+    .rp_ROLE_Mem_Up0_Axis_Write_tdata         (piROL_Shl_Mem_Mp0_Axis_Write_tdata),
+    .s_ROLE_Mem_Up0_Axis_Write_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata),
+    .rp_ROLE_Mem_Up0_Axis_Write_tkeep         (piROL_Shl_Mem_Mp0_Axis_Write_tkeep),
+    .s_ROLE_Mem_Up0_Axis_Write_tkeep     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep),
+    .rp_ROLE_Mem_Up0_Axis_Write_tlast         (piROL_Shl_Mem_Mp0_Axis_Write_tlast),
+    .s_ROLE_Mem_Up0_Axis_Write_tlast     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast),
+    .rp_ROLE_Mem_Up0_Axis_Write_tvalid        (piROL_Shl_Mem_Mp0_Axis_Write_tvalid),
+    .s_ROLE_Mem_Up0_Axis_Write_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid),
+    .rp_ROLE_Mem_Up1_Axis_RdCmd_tdata         (piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata),
+    .s_ROLE_Mem_Up1_Axis_RdCmd_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata),
+    .rp_ROLE_Mem_Up1_Axis_RdCmd_tvalid        (piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
+    .s_ROLE_Mem_Up1_Axis_RdCmd_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
+    .rp_ROLE_Mem_Up1_Axis_RdSts_tready        (piROL_Shl_Mem_Mp1_Axis_RdSts_tready),
+    .s_ROLE_Mem_Up1_Axis_RdSts_tready    (sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready),
+    .rp_ROLE_Mem_Up1_Axis_Read_tready         (piROL_Shl_Mem_Mp1_Axis_Read_tready),
+    .s_ROLE_Mem_Up1_Axis_Read_tready     (sDECOUP_Shl_Mem_Mp1_Axis_Read_tready),
+    .rp_ROLE_Mem_Up1_Axis_WrCmd_tdata         (piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata),
+    .s_ROLE_Mem_Up1_Axis_WrCmd_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata),
+    .rp_ROLE_Mem_Up1_Axis_WrCmd_tvalid        (piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
+    .s_ROLE_Mem_Up1_Axis_WrCmd_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
+    .rp_ROLE_Mem_Up1_Axis_WrSts_tready        (piROL_Shl_Mem_Mp1_Axis_WrSts_tready),
+    .s_ROLE_Mem_Up1_Axis_WrSts_tready    (sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready),
+    .rp_ROLE_Mem_Up1_Axis_Write_tdata         (piROL_Shl_Mem_Mp1_Axis_Write_tdata),
+    .s_ROLE_Mem_Up1_Axis_Write_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata),
+    .rp_ROLE_Mem_Up1_Axis_Write_tkeep         (piROL_Shl_Mem_Mp1_Axis_Write_tkeep),
+    .s_ROLE_Mem_Up1_Axis_Write_tkeep     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tkeep),
+    .rp_ROLE_Mem_Up1_Axis_Write_tlast         (piROL_Shl_Mem_Mp1_Axis_Write_tlast),
+    .s_ROLE_Mem_Up1_Axis_Write_tlast     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast),
+    .rp_ROLE_Mem_Up1_Axis_Write_tvalid        (piROL_Shl_Mem_Mp1_Axis_Write_tvalid),
+    .s_ROLE_Mem_Up1_Axis_Write_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid),
+    .decouple     (sCASTOR_DECOUP_activate),
+    .decouple_status (sDECOUP_CASTOR_status)
+  );
+
+  MPE MPI_LAYER (
+    //-- Global Clock used by the entire SHELL -------------
+    .ap_clk                 (sETH0_ShlClk),
+    //-- Global Reset used by the entire SHELL -------------
+    .ap_rst_n               (~ piTOP_156_25Rst),
+    .piSysReset_V           (piTOP_156_25Rst),
+    .siTcp_TDATA        (sNTS_MPE_Tcp_TDATA),
+    .siTcp_TVALID        (sNTS_MPE_Tcp_TVALID),
+    .siTcp_TREADY        (sNTS_MPE_Tcp_TREADY),
+    .siTcp_TKEEP        (sNTS_MPE_Tcp_TKEEP),
+    .siTcp_TLAST        (sNTS_MPE_Tcp_TLAST),
+    .siIP_V_ipAddress_V_TDATA        (sNTS_MPE_IP_V_ipAddress_V_TDATA),
+    .siIP_V_ipAddress_V_TVALID        (sNTS_MPE_IP_V_ipAddress_V_TVALID),
+    .siIP_V_ipAddress_V_TREADY        (sNTS_MPE_IP_V_ipAddress_V_TREADY),
+    .soTcp_TDATA        (sMPE_NTSTcp_TDATA),
+    .soTcp_TVALID        (sMPE_NTSTcp_TVALID),
+    .soTcp_TREADY        (sMPE_NTSTcp_TREADY),
+    .soTcp_TKEEP        (sMPE_NTSTcp_TKEEP),
+    .soTcp_TLAST        (sMPE_NTSTcp_TLAST),
+    .soIP_V_ipAddress_V_TDATA        (sMPE_NTSIP_ipAddress_TDATA),
+    .soIP_V_ipAddress_V_TVALID        (sMPE_NTSIP_ipAddress_TVALID),
+    .soIP_V_ipAddress_V_TREADY        (sMPE_NTSIP_ipAddress_VREADY),
+    .siMPIif_V_mpi_call_V_TDATA        (sROLE_MPE_MPIif_mpi_call_TDATA),
+    .siMPIif_V_mpi_call_V_TVALID        (sROLE_MPE_MPIif_mpi_call_TVALID),
+    .siMPIif_V_mpi_call_V_TREADY        (sROLE_MPE_MPIif_mpi_call_TREADY),
+    .siMPIif_V_count_in_V_TDATA        (sROLE_MPE_MPIif_count_in_TDATA),
+    .siMPIif_V_count_in_V_TVALID        (sROLE_MPE_MPIif_count_in_TVALID),
+    .siMPIif_V_count_in_V_TREADY        (sROLE_MPE_MPIif_count_in_TREADY),
+    .siMPIif_V_count_out_V_TDATA        (sROLE_MPE_MPIif_count_out_TDATA),
+    .siMPIif_V_count_out_V_TVALID        (sROLE_MPE_MPIif_count_out_TVALID),
+    .siMPIif_V_count_out_V_TREADY        (sROLE_MPE_MPIif_count_out_TREADY),
+    .siMPIif_V_src_rank_V_TDATA        (sROLE_MPE_MPIif_src_rank_TDATA),
+    .siMPIif_V_src_rank_V_TVALID        (sROLE_MPE_MPIif_src_rank_TVALID),
+    .siMPIif_V_src_rank_V_TREADY        (sROLE_MPE_MPIif_src_rank_TREADY),
+    .siMPIif_V_dst_rank_V_TDATA        (sROLE_MPE_MPIif_dst_rank_TDATA),
+    .siMPIif_V_dst_rank_V_TVALID        (sROLE_MPE_MPIif_dst_rank_TVALID),
+    .siMPIif_V_dst_rank_V_TREADY        (sROLE_MPE_MPIif_dst_rank_TREADY),
+    .siMPI_data_TDATA        (sROLE_MPE_MPI_data_TDATA),
+    .siMPI_data_TVALID        (sROLE_MPE_MPI_data_TVALID),
+    .siMPI_data_TREADY        (sROLE_MPE_MPI_data_TREADY),
+    .siMPI_data_TKEEP        (sROLE_MPE_MPI_data_TKEEP),
+    .siMPI_data_TLAST        (sROLE_MPE_MPI_data_TLAST),
+    .soMPI_data_TDATA        (sMPE_ROLE_MPI_data_TDATA),
+    .soMPI_data_TVALID        (sMPE_ROLE_MPI_data_TVALID),
+    .soMPI_data_TREADY        (sMPE_ROLE_MPI_data_TREADY),
+    .soMPI_data_TKEEP        (sMPE_ROLE_MPI_data_TKEEP),
+    .soMPI_data_TLAST        (sMPE_ROLE_MPI_data_TLAST),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWREADY        (sSMC_MPE_ctrlLink_AXI_AWREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WDATA        (sSMC_MPE_ctrlLink_AXI_WDATA),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_WSTRB        (sSMC_MPE_ctrlLink_AXI_WSTRB),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARVALID        (sSMC_MPE_ctrlLink_AXI_ARVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARREADY        (sSMC_MPE_ctrlLink_AXI_ARREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RDATA        (sSMC_MPE_ctrlLink_AXI_RDATA),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
+    .s_axi_piSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP)
+  );
+
   //===========================================================================
   //==  INST: METASTABILITY HARDENED BLOCK FOR THE SHELL RESET (Active high)
   //==    [INFO] Note that we instantiate 2 or 3 library primitives rather than

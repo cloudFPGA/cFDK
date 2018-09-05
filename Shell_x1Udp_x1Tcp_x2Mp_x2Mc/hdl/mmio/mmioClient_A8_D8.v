@@ -97,8 +97,18 @@ module MmioClient_A8_D8 #(
   output          poMMIO_Role_TcpCaptPktEn,
   
   // ROLE EMIF Register 
-  output  [16:0]  poMMIO_ROLE_2B_Reg,
-  input   [16:0]  piMMIO_ROLE_2B_Reg,
+  output  [15:0]  poMMIO_ROLE_2B_Reg,
+  input   [15:0]  piMMIO_ROLE_2B_Reg,
+  
+  // SMC Registers
+  input   [31:0]  piMMIO_SMC_4B_Reg,
+  input   [31:0]  poMMIO_SMC_4B_Reg,
+  //XMem Port B
+  input           piSMC_MMIO_XMEM_en,
+  input           piSMC_MMIO_XMEM_Wren,
+  input  [31:0]   piSMC_MMIO_XMEM_WrData,
+  output [31:0]   poSMC_MMIO_XMEM_RData,
+  input  [8:0]    piSMC_MMIO_XMEM_Addr,
 
   output          poVoid
 
@@ -136,7 +146,7 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
+  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers & Burkhard's Playground
   localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
   localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
@@ -185,6 +195,21 @@ module MmioClient_A8_D8 #(
   localparam LY3_IP2        = LY3_REG_BASE  +  6; 
   localparam LY3_IP3        = LY3_REG_BASE  +  7;
   
+  //-- Burkhard's Playground ---------------------------------------------------------------
+  localparam NGL_FROM_ROLE0 = ROLE_REG_BASE + 0;
+  localparam NGL_FROM_ROLE1 = ROLE_REG_BASE + 1;
+  localparam NGL_TO_ROLE0   = ROLE_REG_BASE + 2;
+  localparam NGL_TO_ROLE1   = ROLE_REG_BASE + 3;
+  localparam NGL_FROM_SMC0  = ROLE_REG_BASE + 4;
+  localparam NGL_FROM_SMC1  = ROLE_REG_BASE + 5;
+  localparam NGL_FROM_SMC2  = ROLE_REG_BASE + 6;
+  localparam NGL_FROM_SMC3  = ROLE_REG_BASE + 7;
+  localparam NGL_TO_SMC0    = ROLE_REG_BASE + 8;
+  localparam NGL_TO_SMC1    = ROLE_REG_BASE + 9;
+  localparam NGL_TO_SMC2    = ROLE_REG_BASE + 10;
+  localparam NGL_TO_SMC3    = ROLE_REG_BASE + 11;
+  
+  
   //-- RES_REGS ---------------------------------------------------------------
   
   //-- DIAG_REGS --------------------------------------------------------------
@@ -202,8 +227,6 @@ module MmioClient_A8_D8 #(
   // Extended Page Select Register 
   localparam PAGE_SEL       = PAGE_REG_BASE; 
  
-  localparam ROLE_REG_WIDTH_HALF = 16;
-
   //============================================================================
   //  CONSTANT DEFINITIONS -- Default Reset Values of the Registers 
   //============================================================================
@@ -277,7 +300,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg3D = 8'h00;
   localparam cDefReg3E = 8'h00;
   localparam cDefReg3F = 8'h00;  
-  //-- RES_REGS ---------------
+  //-- Burkhard's Playground
   localparam cDefReg40 = 8'h00;
   localparam cDefReg41 = 8'h00;
   localparam cDefReg42 = 8'h00;
@@ -292,8 +315,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg4B = 8'h00;
   localparam cDefReg4C = 8'h00;
   localparam cDefReg4D = 8'h00;
-  localparam cDefReg4E = 8'h00;
-  localparam cDefReg4F = 8'h00;
+  localparam cDefReg4E = 8'h13;
+  localparam cDefReg4F = 8'h37;
   //-- RES_REGS ---------------
   localparam cDefReg50 = 8'h00;
   localparam cDefReg51 = 8'h00;     
@@ -513,6 +536,49 @@ module MmioClient_A8_D8 #(
   //---- Not Implemented ---------------
  
   //-------------------------------------------------------- 
+  //-- NGL REGISTERS
+  //--------------------------------------------------------
+  //---- TO ROLE 
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_ROLE0
+      assign sStatusVec[cEDW*NGL_TO_ROLE0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE0+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_ROLE1
+      assign sStatusVec[cEDW*NGL_TO_ROLE1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+id]; // RW   
+    end
+  endgenerate
+  //---- TO SMC
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC0
+      assign sStatusVec[cEDW*NGL_TO_SMC0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC0+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC1
+      assign sStatusVec[cEDW*NGL_TO_SMC1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC1+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC2
+      assign sStatusVec[cEDW*NGL_TO_SMC2+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC2+id]; // RW   
+    end
+  endgenerate
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_NGL_TO_SMC3
+      assign sStatusVec[cEDW*NGL_TO_SMC3+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+id]; // RW   
+    end
+  endgenerate
+
+
+  //-------------------------------------------------------- 
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
   //---- DIAG_SCRATCH ------------------
@@ -626,13 +692,18 @@ module MmioClient_A8_D8 #(
   //---- PAGE_SEL ----------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
   
-  // ROLE REGISTERS [TODO - Move these fields into the DIAGNOSTIC section]
-  //assign poMMIO_ROLE_2B_Reg = sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF];
-  //assign sStatusVec[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF] =  sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
-  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*ROLE_REG_BASE+2*ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF]; //Write TO ROLE
-  assign sStatusVec[cEDW*ROLE_REG_BASE+ROLE_REG_WIDTH_HALF-1:cEDW*ROLE_REG_BASE+0] = piMMIO_ROLE_2B_Reg; //Read FROM ROLE
+  //============================================================================
+  // NGL REGISTERS
+  //============================================================================
   
+  //FROM and TO ROLE
+  assign sStatusVec[cEDW*NGL_FROM_ROLE1+7:cEDW*NGL_FROM_ROLE0+0] = piMMIO_ROLE_2B_Reg;
+  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+7:cEDW*NGL_TO_ROLE0+0];
+  //FROM and TO SMC 
+  assign sStatusVec[cEDW*NGL_FROM_SMC3+7:cEDW*NGL_FROM_SMC0+0] = piMMIO_SMC_4B_Reg;
+  assign poMMIO_SMC_4B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+7:cEDW*NGL_TO_SMC0+0];
   
+
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
   //============================================================================
@@ -696,20 +767,29 @@ module MmioClient_A8_D8 #(
   
       //-- SPECIFIC SIGNAL ASSIGNMENTS -----------------------
       localparam cRamSize    = 2*1024;  // Dual Port RAM Size
-      localparam cRatio      = 8;       // Port_B_Width / Port_A_Width
-      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;
+      localparam cRatio      = 4;       // Port_B_Width / Port_A_Width
+      localparam cAddrAWidth = log2(cRamSize/128) + cLog2PageSize;  //TODO this is always =log2(cRamSize) -> simplify?
+      
+      //localparam cAddrBWidth = 6;
+      localparam cDataBWidth = 32;
         
       wire [cAddrAWidth-1:0]   sDpramAddrA;       // DPRA-Port_A-Dual Port Address
       wire [       cEDW-1:0]   sDPRAM_PortA_Data; // Port-A - Data out
       wire                     sCsDpRamA;         // Chip select Ddual-port RAM
 
       wire [       cEDW-1:0]   sMUXO_Data;
-      wire                    sPSOC_Emif_Oe_n;
+      wire                    sPSOC_Emif_Oe_n; 
+
+      //wire [cAddrBWidth-1:0]  sDpram_PortB_Addr;
+      wire [log2(cRamSize/cRatio)-1:0]  sDpram_PortB_Addr;
+      //wire [cDataBWidth-1:0]  sDpram_PortB_Data;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
-      assign sDpramAddrA = {sPageSel, sEmifAddr};
+      assign sDpramAddrA = {sPageSel, sEmifAddr};  // this gets truncated to [cAddrAwidth-1:0]
       assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
-  
+ 
+      assign sDpram_PortB_Addr = piSMC_MMIO_XMEM_Addr; //will be extended accordingly
+
       //========================================================================
       //  INST: TRUE DUAL PORT ASYMMETRIC RAM
       //========================================================================
@@ -718,7 +798,8 @@ module MmioClient_A8_D8 #(
         .gDataWidth_A (cEDW),
         .gSize_A      (cRamSize),
         .gAddrWidth_A (log2(cRamSize)),
-        .gDataWidth_B (cEDW*cRatio),
+        //.gDataWidth_B (cEDW*cRatio),
+        .gDataWidth_B (cDataBWidth),
         .gSize_B      (cRamSize/cRatio),
         .gAddrWidth_B (log2(cRamSize/cRatio))
         
@@ -732,12 +813,12 @@ module MmioClient_A8_D8 #(
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (1'b0),   // [TODO]
-        .piEnB        (1'b0),   // [TODO]
-        .piWenB       (1'b0),   // [TODO]
-        .piAddrB      (),
-        .piDataB      (),
-        .poDataB      ()
+        .piClkB       (piShlClk),
+        .piEnB        (piSMC_MMIO_XMEM_en), 
+        .piWenB       (piSMC_MMIO_XMEM_Wren),
+        .piAddrB      (sDpram_PortB_Addr),
+        .piDataB      (piSMC_MMIO_XMEM_WrData),
+        .poDataB      (poSMC_MMIO_XMEM_RData)
        
       );  // End of SuperCfg:DPRAM
 
