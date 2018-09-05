@@ -51,20 +51,24 @@ set force    0
 set full_src 0
 set create   0
 set synth    0
-set impl     0
-set bitGen 0
+set impl1     0
+set impl2     0
+set bitGen1  0
+set bitGen2  0
 set usedRole "RoleFlash"
 set usedRole2 "RoleFlash_V2" 
 set pr 0
 set pr_verify 0
 set forceWithoutBB 0
-set pr_grey 0
+set pr_grey_impl 0
+set pr_grey_bitgen 0
 set link 0
-set activeFlowPr_1 0
-set activeFlowPr_2 0
+#set activeFlowPr_1 0
+#set activeFlowPr_2 0
 set impl_opt 0
 set use_incr 0
 set save_incr 0
+set only_pr_bitgen 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -85,18 +89,22 @@ if { $argc > 0 } {
         { force    "Continue, even if an old project will be deleted."}
         { full_src "Import SHELL as source-code not as IP-core."} 
         { impl     "Only run the implemenation step."} 
+        { impl2    "Only run the implemenation step for 2nd PR flow."} 
+        { implGrey "Only run the implemenation step for GreyBox PR flow."} 
         { synth    "Only run the synthesis step."}
         { bitgen   "Only run the bitfile generation step."}
+        { bitgen2   "Only run the bitfile generation step for 2nd PR flow."}
+        { bitgenGrey "Only run the bitfile generation step for GreyBox PR flow."}
         { link     "Only run the link step (with or without pr)."}
-        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant. This also ACTIVATES all PR flow parts for Role 1."}
-        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant. This also ACTIVATES all PR flow parts for Role 2."}
+        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant."}
+        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant."}
         { pr       "Activates PARTIAL RECONFIGURATION flow (in all steps)." }
         { pr_verify "Run pr_verify." } 
-        { pr_grey  "Activates PR-Flow implemenation of GREY BOXES." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
         { impl_opt "Optimize implementation for performance (increases runtime)"}
         { use_incr "Use incremental compile (if possible)"}
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
+        { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -115,7 +123,6 @@ if { $argc > 0 } {
             set bitGen   1
             set pr 0
             set link 1
-            set pr_grey 0
             set pr_verify 0
 
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
@@ -137,26 +144,30 @@ if { $argc > 0 } {
                 my_info_puts "The argument \'synth\' is set."
             } 
             if { ${key} eq "impl" && ${value} eq 1 } {
-                set impl   1
+                set impl1   1
                  my_info_puts "The argument \'impl\' is set."
+            }
+            if { ${key} eq "impl2" && ${value} eq 1 } {
+                set impl2   1
+                 my_info_puts "The argument \'impl2\' is set."
+            }
+            if { ${key} eq "implGrey" && ${value} eq 1 } {
+                set pr_grey_impl   1
+                 my_info_puts "The argument \'implGrey\' is set."
             }
             if { ${key} eq "role" && ${value} eq 1 } {
               set usedRole $env(usedRole)
-              set activeFlowPr_1 1
+              #set activeFlowPr_1 1
               my_info_puts "Setting usedRole to $usedRole" 
             }
             if { ${key} eq "role2" && ${value} eq 1 } {
               set usedRole2 $env(usedRole2)
-              set activeFlowPr_2 1
+              #set activeFlowPr_2 1
               my_info_puts "Setting usedRole2 to $usedRole2" 
             }
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
               my_info_puts "The argument \'pr\' is set."
-            }
-            if { ${key} eq "pr_grey" && ${value} eq 1 } {
-              set pr_grey 1
-              my_info_puts "The argument \'pr_grey\' is set."
             }
             if { ${key} eq "pr_verify" && ${value} eq 1 } {
               set pr_verify 1
@@ -167,8 +178,16 @@ if { $argc > 0 } {
               my_info_puts "The argument \'bitgen\' is set."
             }
             if { ${key} eq "bitgen" && ${value} eq 1 } {
-              set bitGen 1
+              set bitGen1 1
               my_info_puts "The argument \'bitgen\' is set."
+            }
+            if { ${key} eq "bitgen2" && ${value} eq 1 } {
+              set bitGen2 1
+              my_info_puts "The argument \'bitgen2\' is set."
+            }
+            if { ${key} eq "bitgenGrey" && ${value} eq 1 } {
+              set pr_grey_bitgen 1
+              my_info_puts "The argument \'bitgenGrey\' is set."
             }
             if { ${key} eq "forceWithoutBB" && ${value} eq 1 } {
               set forceWithoutBB 1
@@ -186,6 +205,10 @@ if { $argc > 0 } {
               set save_incr 1
               my_info_puts "The argument \'save_incr\' is set."
             }
+            if { ${key} eq "only_pr_bitgen" && ${value} eq 1 } {
+              set only_pr_bitgen 1
+              my_info_puts "The argument \'only_pr_bitgen\' is set."
+            }
         } 
     }
 }
@@ -196,7 +219,7 @@ if {$pr || $link} {
   set forceWithoutBB 0
 }
 
-if {$pr && $impl && $synth} {
+if {$pr && $impl1 && $synth} {
   set link 1
 }
 # -----------------------------------------------------
@@ -597,7 +620,7 @@ if { ${link} } {
 
 
 
-if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
+if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
 
     my_puts "################################################################################"
     my_puts "##"
@@ -636,7 +659,9 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
         catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_monolithic_reference.dcp ${implObj} }
       } else { 
         if { $pr } {
-          catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp ${implObj} }
+          #catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp ${implObj} }
+          #catch { set_property incremental_checkpoint ${dcpDir}/3_${topName}_STATIC.dcp ${implObj} }
+          my_info_puts "Incremental compile seems not to work for PARTIAL RECONFIGURATION FLOW, so this option will be ignored."
         } else {
           catch { set_property incremental_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp ${implObj} }
         }
@@ -651,7 +676,13 @@ if { ${impl} && ($activeFlowPr_1 || $forceWithoutBB) } {
     guidedImpl
    
 
-    if { ! $forceWithoutBB } { 
+    if { ! $forceWithoutBB } {
+
+    #  if { $pr } { 
+    #    # it seems, that incremental compile does not work with pr after this step, so deactivate it in order to be safe
+    #    set_property incremental_checkpoint {} ${implObj}
+    #  }
+
       open_run impl_1
       if { $pr } { 
       write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp
@@ -716,7 +747,7 @@ if { $save_incr } {
 }
 
 
-if { $activeFlowPr_2 && $impl } { 
+if { $impl2 } { 
   
   catch {close_project}
   create_project -in_memory -part ${xilPartName}
@@ -742,8 +773,12 @@ if { $activeFlowPr_2 && $impl } {
   opt_design 
 
   if { $use_incr } { 
-    my_puts "Trying to use incremental checkpoint"
-    catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp }
+    #my_puts "Trying to use incremental checkpoint"
+    #catch { read_checkpoint -incremental ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp }
+    #catch { set_property incremental_checkpoint ${dcpDir}/3_${topName}_STATIC.dcp ${implObj} } 
+    #my_info_puts "Incremental compile seems not to work for the 2. Implementation run, so this option will be ignored."
+    #my_info_puts "And it is not necessary, because STATIC.dcp will be reused anyway."
+    my_info_puts "Incremental compile seems not to work for PARTIAL RECONFIGURATION FLOW, so this option will be ignored."
   }
 
   place_design
@@ -762,7 +797,7 @@ if { $activeFlowPr_2 && $impl } {
 } 
 
 
-if { $pr_grey && $impl } { 
+if { $pr_grey_impl } { 
 
   catch {close_project}
   open_checkpoint ${dcpDir}/3_${topName}_STATIC.dcp
@@ -818,7 +853,7 @@ if { $pr_verify } {
 }
 
 
-if { $bitGen } {
+if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
   if { ! $forceWithoutBB } {  
     catch {close_project}
@@ -827,7 +862,7 @@ if { $bitGen } {
     my_puts "################################################################################"
     my_puts "##"
     my_puts "##  RUN BITTSETREAM GENERATION: ${xprName}  "
-    my_puts "##  SETTING: PR: $pr PR FLOW 1: $activeFlowPr_1 PR FLOW 2: $activeFlowPr_2 PR_GREY: $pr_grey BB: $forceWithoutBB "
+    my_puts "##  SETTING: PR: $pr PR FLOW 1/NORMAL FLOW: $bitGen1 PR FLOW 2: $bitGen2 PR_GREY: $pr_grey_bitgen BB: $forceWithoutBB "
     my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
@@ -853,11 +888,16 @@ if { $bitGen } {
       # --> moved to fix_things.tcl
 
       if { $pr } {
-        if { $activeFlowPr_1 } { 
+        if { $bitGen1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
           source ${tclDir}/fix_things.tcl 
-          write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+          if { $only_pr_bitgen } {
+            write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
+            # no file extenstions .bit/.bin here!
+          } else {
+            write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+          }
           close_project
         } 
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
@@ -869,16 +909,21 @@ if { $bitGen } {
         close_project
       }
 
-      if { $activeFlowPr_2 } { 
+      if { $bitGen2 } { 
         catch {close_project}
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
         
         source ${tclDir}/fix_things.tcl 
-        write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        if { $only_pr_bitgen } {
+          write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
+          # no file extenstions .bit/.bin here!
+        } else {
+          write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
+        }
         close_project
       } 
-      if { $pr_grey } { 
+      if { $pr_grey_bitgen } { 
         catch {close_project}
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"

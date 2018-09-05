@@ -293,6 +293,12 @@ architecture structural of topFlash is
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
+    
+  ------------------------------------------------
+  -- SMC Interface
+  ------------------------------------------------  
+  signal sSMC_ROL_rank                      : std_logic_vector(31 downto 0);
+  signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -507,7 +513,13 @@ architecture structural of topFlash is
       -- ROLE / Shl/ EMIF Registers 
       ----------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               : in     std_logic_vector( 15 downto 0);
-      poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0)
+      poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0);
+
+      ------------------------------------------------------
+      -- ROLE <--> SMC 
+      ------------------------------------------------------
+      poSMC_ROLE_rank                     : out std_logic_vector(31 downto 0);
+      poSMC_ROLE_size                     : out std_logic_vector(31 downto 0)
     );
   end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
 
@@ -644,9 +656,15 @@ architecture structural of topFlash is
       ------------------------------------------------------
       piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
-      poVoid                              : out   std_ulogic          
-    );
-  end component Role_x1Udp_x1Tcp_x2Mp;
+        ------------------------------------------------
+        -- SMC Interface
+        ------------------------------------------------ 
+        piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
+        piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+          
+        poVoid                              : out   std_ulogic          
+      );
+    end component Role_x1Udp_x1Tcp_x2Mp;
 
 begin
   
@@ -903,8 +921,10 @@ begin
       -- ROLE / Shl/ EMIF Registers 
       ------------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
-      poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg
-           
+      poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+      
+      poSMC_ROLE_rank                     => sSMC_ROL_rank,
+      poSMC_ROLE_size                     => sSMC_ROL_size           
   );  -- End of SuperShell instantiation
 
 
@@ -1035,6 +1055,12 @@ begin
       poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
       piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
       
+      ------------------------------------------------
+      -- SMC Interface
+      ------------------------------------------------ 
+      piSMC_ROLE_rank                     => sSMC_ROL_rank,
+      piSMC_ROLE_size                     => sSMC_ROL_size,
+   
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
