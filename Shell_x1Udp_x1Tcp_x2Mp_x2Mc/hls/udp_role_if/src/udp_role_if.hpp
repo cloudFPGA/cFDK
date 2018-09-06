@@ -1,7 +1,7 @@
 /*****************************************************************************
  * @file       : udp_role_if.hpp
  * @brief      : UDP Role Interface.
- *  *
+ *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
@@ -12,7 +12,7 @@
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
- * 				 UDP-Role interface.
+ *                   UDP-Role interface.
  *
  *****************************************************************************/
 
@@ -34,7 +34,7 @@ using namespace hls;
 
 struct SocketAddr {
      ap_uint<16>    port;   // Port in network byte order
-     ap_uint<32>	addr;   // IPv4 address
+     ap_uint<32>    addr;   // IPv4 address
 };
 
 
@@ -42,54 +42,54 @@ struct SocketAddr {
  * Generic Streaming Interfaces.
  ********************************************/
 
-typedef bool AxisAck;		// Acknowledgment over Axi4-Stream I/F
+typedef bool AxisAck;       // Acknowledgment over Axi4-Stream I/F
 
 
 /********************************************
  * UDP Specific Streaming Interfaces.
  ********************************************/
 
-struct UdpWord {			// UDP Streaming Chunk (i.e. 8 bytes)
-	ap_uint<64>    tdata;
-	ap_uint<8>	   tkeep;
-	ap_uint<1>     tlast;
-	UdpWord()      {}
-	UdpWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+struct UdpWord {            // UDP Streaming Chunk (i.e. 8 bytes)
+    ap_uint<64>    tdata;
+    ap_uint<8>     tkeep;
+    ap_uint<1>     tlast;
+    UdpWord()      {}
+    UdpWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
                    tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
 
-struct UdpMeta {			// UDP Socket Pair Association
- 	SocketAddr		src;	// Source socket address
- 	SocketAddr		dst;	// Destination socket address
+struct UdpMeta {            // UDP Socket Pair Association
+    SocketAddr      src;    // Source socket address
+    SocketAddr      dst;    // Destination socket address
 };
 
-typedef ap_uint<16>	UdpPLen; // UDP Payload Length
+typedef ap_uint<16>     UdpPLen; // UDP Payload Length
 
-typedef ap_uint<16>	UdpPort; // UDP Port Number
+typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 
 void udp_role_if (
 
-		//------------------------------------------------------
-		//-- ROLE / This / Udp Interfaces
-		//------------------------------------------------------
-		stream<UdpWord>		&siROL_This_Data,
-		stream<UdpWord>   	&soTHIS_Rol_Data,
+        //------------------------------------------------------
+        //-- ROLE / This / Udp Interfaces
+        //------------------------------------------------------
+        stream<UdpWord>     &siROL_This_Data,
+        stream<UdpWord>     &soTHIS_Rol_Data,
 
-		//------------------------------------------------------
-		//-- UDMX / This / Open-Port Interfaces
-		//------------------------------------------------------
-		stream<AxisAck>   	&siUDMX_This_OpnAck,
-		stream<UdpPort>		&soTHIS_Udmx_OpnReq,
+        //------------------------------------------------------
+        //-- UDMX / This / Open-Port Interfaces
+        //------------------------------------------------------
+        stream<AxisAck>     &siUDMX_This_OpnAck,
+        stream<UdpPort>     &soTHIS_Udmx_OpnReq,
 
-		//------------------------------------------------------
-	    //-- UDMX / This / Data & MetaData Interfaces
-		//------------------------------------------------------
-		stream<UdpWord>		&siUDMX_This_Data,
-		stream<UdpMeta>		&siUDMX_This_Meta,
-		stream<UdpWord>		&soTHIS_Udmx_Data,
-		stream<UdpMeta>		&soTHIS_Udmx_Meta,
-		stream<UdpPLen>		&soTHIS_Udmx_Len
+        //------------------------------------------------------
+        //-- UDMX / This / Data & MetaData Interfaces
+        //------------------------------------------------------
+        stream<UdpWord>     &siUDMX_This_Data,
+        stream<UdpMeta>     &siUDMX_This_Meta,
+        stream<UdpWord>     &soTHIS_Udmx_Data,
+        stream<UdpMeta>     &soTHIS_Udmx_Meta,
+        stream<UdpPLen>     &soTHIS_Udmx_Len
 );
 
 

@@ -32,6 +32,7 @@
 
 `timescale 1ns / 1ps
 
+`define USE_DEPRECATED_DIRECTIVES
 
 // *****************************************************************************
 // **  MODULE - IP NETWORK + TCP/UDP TRANSPORT + DHCP SESSION SUBSYSTEM
@@ -563,6 +564,8 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: IP-RX-HANDLER
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+
   IpRxHandler IPRX (
 
                     
@@ -572,67 +575,72 @@ module NetworkTransportSession_TcpIp (
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
     .aresetn                  (~piShlRst),
-   
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------                     
+    .piMMIO_This_MacAddress_V (piMMIO_Nts0_MacAddress),
+    .piMMIO_This_Ip4Address_V (piMMIO_Nts0_IpAddress),
+                      
     //------------------------------------------------------
     //-- From ETH0 Interfaces
     //------------------------------------------------------
-    //-- ETH0 / Nts0 / Axis
-    .s_dataIn_TDATA           (piETH0_Nts0_Axis_tdata),
-    .s_dataIn_TKEEP           (piETH0_Nts0_Axis_tkeep),
-    .s_dataIn_TLAST           (piETH0_Nts0_Axis_tlast),
-    .s_dataIn_TVALID          (piETH0_Nts0_Axis_tvalid),
-    .s_dataIn_TREADY          (poNTS0_Eth0_Axis_tready),
+    //-- ETH[0] / Nts[0] / Data/ Axis
+    .siETH_This_Data_TDATA    (piETH0_Nts0_Axis_tdata),
+    .siETH_This_Data_TKEEP    (piETH0_Nts0_Axis_tkeep),
+    .siETH_This_Data_TLAST    (piETH0_Nts0_Axis_tlast),
+    .siETH_This_Data_TVALID   (piETH0_Nts0_Axis_tvalid),
+    .siETH_This_Data_TREADY   (poNTS0_Eth0_Axis_tready),
     
     //------------------------------------------------------
     //-- To ARP Interfaces
     //------------------------------------------------------
-    //-- THIS / Arp / Axis
-    .m_ARPdataOut_TREADY      (sARP_Iprx_Axis_treadyReg),     
-    .m_ARPdataOut_TDATA       (sIPRX_Arp_Axis_tdata),       
-    .m_ARPdataOut_TKEEP       (sIPRX_Arp_Axis_tkeep),      
-    .m_ARPdataOut_TLAST       (sIPRX_Arp_Axis_tlast),   
-    .m_ARPdataOut_TVALID      (sIPRX_Arp_Axis_tvalid), 
+    //-- THIS / Arp / Data / Axis
+    .soTHIS_Arp_Data_TREADY   (sARP_Iprx_Axis_treadyReg),     
+    .soTHIS_Arp_Data_TDATA    (sIPRX_Arp_Axis_tdata),       
+    .soTHIS_Arp_Data_TKEEP    (sIPRX_Arp_Axis_tkeep),      
+    .soTHIS_Arp_Data_TLAST    (sIPRX_Arp_Axis_tlast),   
+    .soTHIS_Arp_Data_TVALID   (sIPRX_Arp_Axis_tvalid), 
    
     //------------------------------------------------------
     //-- To ICMP Interfaces
     //------------------------------------------------------
     //-- THIS / Icmp / Data / Axis
-    .m_ICMPdataOut_TREADY     (sICMP_Iprx_Data_Axis_treadyReg),
-    .m_ICMPdataOut_TDATA      (sIPRX_Icmp_Data_Axis_tdata),
-    .m_ICMPdataOut_TKEEP      (sIPRX_Icmp_Data_Axis_tkeep),
-    .m_ICMPdataOut_TLAST      (sIPRX_Icmp_Data_Axis_tlast),
-    .m_ICMPdataOut_TVALID     (sIPRX_Icmp_Data_Axis_tvalid), 
-    //-- THIS / Icmp / Ttl / Axis
-    .m_ICMPexpDataOut_TREADY  (sICMP_Iprx_Ttl_Axis_tready),
-    .m_ICMPexpDataOut_TDATA   (sIPRX_Icmp_Ttl_Axis_tdata),      
-    .m_ICMPexpDataOut_TKEEP   (sIPRX_Icmp_Ttl_Axis_tkeep),      
-    .m_ICMPexpDataOut_TLAST   (sIPRX_Icmp_Ttl_Axis_tlast),  
-    .m_ICMPexpDataOut_TVALID  (sIPRX_Icmp_Ttl_Axis_tvalid),     
-        
+    .soTHIS_Icmp_Data_TREADY  (sICMP_Iprx_Data_Axis_treadyReg),
+    .soTHIS_Icmp_Data_TDATA   (sIPRX_Icmp_Data_Axis_tdata),
+    .soTHIS_Icmp_Data_TKEEP   (sIPRX_Icmp_Data_Axis_tkeep),
+    .soTHIS_Icmp_Data_TLAST   (sIPRX_Icmp_Data_Axis_tlast),
+    .soTHIS_Icmp_Data_TVALID  (sIPRX_Icmp_Data_Axis_tvalid),
+    //-- THIS / Icmp / Derr / Axis
+    .soTHIS_Icmp_Derr_TREADY  (sICMP_Iprx_Ttl_Axis_tready),
+    .soTHIS_Icmp_Derr_TDATA   (sIPRX_Icmp_Ttl_Axis_tdata),
+    .soTHIS_Icmp_Derr_TKEEP   (sIPRX_Icmp_Ttl_Axis_tkeep),
+    .soTHIS_Icmp_Derr_TLAST   (sIPRX_Icmp_Ttl_Axis_tlast),
+    .soTHIS_Icmp_Derr_TVALID  (sIPRX_Icmp_Ttl_Axis_tvalid),
+
     //------------------------------------------------------
     //-- To UDP Interfaces
     //------------------------------------------------------
     //-- THIS / Udp / Axis
-    .m_UDPdataOut_TREADY      (sUDP_Iprx_Axis_tready),
-    .m_UDPdataOut_TDATA       (sIPRX_Udp_Axis_tdata),
-    .m_UDPdataOut_TKEEP       (sIPRX_Udp_Axis_tkeep),
-    .m_UDPdataOut_TLAST       (sIPRX_Udp_Axis_tlast),
-    .m_UDPdataOut_TVALID      (sIPRX_Udp_Axis_tvalid),
+    .soTHIS_Udp_Data_TREADY   (sUDP_Iprx_Axis_tready),
+    .soTHIS_Udp_Data_TDATA    (sIPRX_Udp_Axis_tdata),
+    .soTHIS_Udp_Data_TKEEP    (sIPRX_Udp_Axis_tkeep),
+    .soTHIS_Udp_Data_TLAST    (sIPRX_Udp_Axis_tlast),
+    .soTHIS_Udp_Data_TVALID   (sIPRX_Udp_Axis_tvalid),
  
     //------------------------------------------------------
     //-- To TOE Interfaces
     //------------------------------------------------------
     //-- THIS / Toe / Axis
-    .m_TCPdataOut_TREADY      (sTOE_Iprx_Axis_treadyReg),
-    .m_TCPdataOut_TDATA       (sIPRX_Toe_Axis_tdata),
-    .m_TCPdataOut_TKEEP       (sIPRX_Toe_Axis_tkeep),
-    .m_TCPdataOut_TLAST       (sIPRX_Toe_Axis_tlast),
-    .m_TCPdataOut_TVALID      (sIPRX_Toe_Axis_tvalid),
- 
-    .myMacAddress_V           (piMMIO_Nts0_MacAddress),
-    .regIpAddress_V           (piMMIO_Nts0_IpAddress)
+    .soTHIS_Tcp_Data_TREADY   (sTOE_Iprx_Axis_treadyReg),
+    .soTHIS_Tcp_Data_TDATA    (sIPRX_Toe_Axis_tdata),
+    .soTHIS_Tcp_Data_TKEEP    (sIPRX_Toe_Axis_tkeep),
+    .soTHIS_Tcp_Data_TLAST    (sIPRX_Toe_Axis_tlast),
+    .soTHIS_Tcp_Data_TVALID   (sIPRX_Toe_Axis_tvalid)
 
   ); // End of IPRX
+
+`endif
       
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
@@ -1718,6 +1726,8 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: UDP-MUX
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+  
   UdpMultiplexer UDMX (  // Deprecated version
     
     .aclk                         (piShlClk),                                                  
@@ -1868,8 +1878,9 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Urif_Meta_TVALID      (sUDMX_Urif_Meta_Axis_tvalid)
                                                      
   );
+
+`else
   
-/* -----\/----- EXCLUDED -----\/-----  
     UdpMultiplexer UDMX (
     
     .ap_clk                       (piShlClk),                                                  
@@ -2020,7 +2031,8 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Urif_Meta_TVALID      (sUDMX_Urif_Meta_Axis_tvalid)
                                                      
   );
------/\----- EXCLUDED -----/\----- */
+
+`endif
   
       
 /* -----\/----- EXCLUDED -----\/-----
@@ -2207,6 +2219,85 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: UDP-ROLE-INTERFACE
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+  
+  UdpRoleInterface URIF (
+
+  .aclk                           (piShlClk),                      
+  .aresetn                        (~piShlRst),
+  
+  //------------------------------------------------------
+  //-- From ROLE Interfaces
+  //------------------------------------------------------
+  //-- ROLE / This / Udp / Axis
+  .siROL_This_Data_TDATA          (sROL_Nts0_Udp_Axis_tdataReg),
+  .siROL_This_Data_TKEEP          (sROL_Nts0_Udp_Axis_tkeepReg),
+  .siROL_This_Data_TLAST          (sROL_Nts0_Udp_Axis_tlastReg),
+  .siROL_This_Data_TVALID         (sROL_Nts0_Udp_Axis_tvalidReg),
+  .siROL_This_Data_TREADY         (sURIF_Rol_Axis_tready),
+  
+  //------------------------------------------------------
+  //-- To ROLE Interfaces
+  //------------------------------------------------------
+  //-- THIS / Role / Udp / Axis Output Interface
+  .soTHIS_Rol_Data_TREADY         (sROL_Urif_Axis_treadyReg),
+  .soTHIS_Rol_Data_TDATA          (sURIF_Rol_Axis_tdata),
+  .soTHIS_Rol_Data_TKEEP          (sURIF_Rol_Axis_tkeep),
+  .soTHIS_Rol_Data_TLAST          (sURIF_Rol_Axis_tlast),
+  .soTHIS_Rol_Data_TVALID         (sURIF_Rol_Axis_tvalid),
+
+  //------------------------------------------------------
+  //-- From UDMX / Open-Port Interfaces
+  //------------------------------------------------------
+  //-- UDMX / This / OpenPortAcknowledge / Axis
+  .siUDMX_This_OpnAck_TDATA       (sUDMX_Urif_OpnAck_Axis_tdata),
+  .siUDMX_This_OpnAck_TVALID      (sUDMX_Urif_OpnAck_Axis_tvalid),
+  .siUDMX_This_OpnAck_TREADY      (sURIF_Udmx_OpnAck_Axis_tready),
+
+  //------------------------------------------------------
+  //-- To UDMX / Open-Port Interfaces
+  //------------------------------------------------------
+  //-- THIS / Udmx / OpenPortRequest / Axis
+  .soTHIS_Udmx_OpnReq_TREADY      (sUDMX_Urif_OpnReq_Axis_tready),
+  .soTHIS_Udmx_OpnReq_TDATA       (sURIF_Udmx_OpnReq_Axis_tdata),
+  .soTHIS_Udmx_OpnReq_TVALID      (sURIF_Udmx_OpnReq_Axis_tvalid),
+
+  //------------------------------------------------------
+  //-- From UDMX / Data & MetaData Interfaces
+  //------------------------------------------------------
+  //-- UDMX / This / Data / Axis
+  .siUDMX_This_Data_TDATA         (sUDMX_Urif_Data_Axis_tdata),
+  .siUDMX_This_Data_TKEEP         (sUDMX_Urif_Data_Axis_tkeep),
+  .siUDMX_This_Data_TLAST         (sUDMX_Urif_Data_Axis_tlast),
+  .siUDMX_This_Data_TVALID        (sUDMX_Urif_Data_Axis_tvalid),
+  .siUDMX_This_Data_TREADY        (sURIF_Udmx_Data_Axis_tready),
+   //-- UDMX / This / MetaData / Axis
+  .siUDMX_This_Meta_TDATA         (sUDMX_Urif_Meta_Axis_tdata),
+  .siUDMX_This_Meta_TVALID        (sUDMX_Urif_Meta_Axis_tvalid),
+  .siUDMX_This_Meta_TREADY        (sURIF_Udmx_Meta_Axis_tready),
+  
+  //------------------------------------------------------
+  //-- To UDMX / Data & MetaData Interfaces
+  //------------------------------------------------------
+  //-- THIS / Udmx / Data / Axis  
+  .soTHIS_Udmx_Data_TREADY        (sUDMX_Urif_Data_Axis_tready),    
+  .soTHIS_Udmx_Data_TDATA         (sURIF_Udmx_Data_Axis_tdata),   
+  .soTHIS_Udmx_Data_TKEEP         (sURIF_Udmx_Data_Axis_tkeep),
+  .soTHIS_Udmx_Data_TLAST         (sURIF_Udmx_Data_Axis_tlast),
+  .soTHIS_Udmx_Data_TVALID        (sURIF_Udmx_Data_Axis_tvalid),
+  //-- THIS / Udmx / MetaData / Axis
+  .soTHIS_Udmx_Meta_TREADY        (sUDMX_Urif_Meta_Axis_tready),
+  .soTHIS_Udmx_Meta_TDATA         (sURIF_Udmx_Meta_Axis_tdata),
+  .soTHIS_Udmx_Meta_TVALID        (sURIF_Udmx_Meta_Axis_tvalid),
+  //-- THIS / Udmx / Tx Length / Axis
+  .soTHIS_Udmx_PLen_TREADY        (sUDMX_Urif_PLen_Axis_tready),
+  .soTHIS_Udmx_PLen_TDATA         (sURIF_Udmx_PLen_Axis_tdata),
+  .soTHIS_Udmx_PLen_TVALID        (sURIF_Udmx_PLen_Axis_tvalid)
+
+);
+
+`else
+
   UdpRoleInterface URIF (
   
     .ap_clk                         (piShlClk),                      
@@ -2280,7 +2371,8 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Udmx_PLen_V_V_TDATA     (sURIF_Udmx_PLen_Axis_tdata),
     .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid)
 
-  );  
+  );
+`endif    
   
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_udp_application_interface_1 URIF (
@@ -2336,6 +2428,76 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: DHCP-CLIENT -- [TOOD - Remove this useless DHCP-client module]
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+
+  DynamicHostConfigurationProcess DHCP (
+  
+    .aclk                           (piShlClk),                      
+    .aresetn                        (~piShlRst),
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_This_Enable_V           (1'b0),
+    .piMMIO_This_MacAddress_V       (piMMIO_Nts0_MacAddress),
+    
+    //------------------------------------------------------
+    //-- To NTS IPv4 Interfaces
+    //------------------------------------------------------
+    .poTHIS_Nts_IpAddress_V         (),  // [INFO - Do not connect because we don't use DHCP]
+    
+    //------------------------------------------------------
+    //-- From UDMX / Open-Port Interfaces
+    //------------------------------------------------------
+    //-- UDMX / This / OpenPortStatus / Axis
+    .siUDMX_This_OpnAck_TDATA       (sUDMX_Dhcp_OpnAck_Axis_tdata),
+    .siUDMX_This_OpnAck_TVALID      (sUDMX_Dhcp_OpnAck_Axis_tvalid), 
+    .siUDMX_This_OpnAck_TREADY      (sDHCP_Udmx_OpnAck_Axis_tready),
+    
+    //------------------------------------------------------
+    //-- To UDMX / Open-Port Interfaces
+    //------------------------------------------------------     
+    //-- THIS / Udmx / OpenPortRequest / Axis
+    .soTHIS_Udmx_OpnReq_TREADY      (sUDMX_Dhcp_OpnReq_Axis_tready),
+    .soTHIS_Udmx_OpnReq_TDATA       (sDHCP_Udmx_OpnReq_Axis_tdata),
+    .soTHIS_Udmx_OpnReq_TVALID      (sDHCP_Udmx_OpnReq_Axis_tvalid),
+     
+    //------------------------------------------------------
+    //-- From UDMX / Data & MetaData Interfaces
+    //------------------------------------------------------
+    //-- UDMX / This / Data / Axis            
+    .siUDMX_This_Data_TDATA         (sUDMX_Dhcp_Data_Axis_tdata),
+    .siUDMX_This_Data_TKEEP         (sUDMX_Dhcp_Data_Axis_tkeep),
+    .siUDMX_This_Data_TLAST         (sUDMX_Dhcp_Data_Axis_tlast),
+    .siUDMX_This_Data_TVALID        (sUDMX_Dhcp_Data_Axis_tvalid),
+    .siUDMX_This_Data_TREADY        (sDHCP_Udmx_Data_Axis_tready),
+    //-- UDMX / This / MetaData / Axis
+    .siUDMX_This_Meta_TDATA         (sUDMX_Dhcp_Meta_Axis_tdata),
+    .siUDMX_This_Meta_TVALID        (sUDMX_Dhcp_Meta_Axis_tvalid),
+    .siUDMX_This_Meta_TREADY        (sDHCP_Udmx_Meta_Axis_tready),
+       
+    //------------------------------------------------------
+    //-- To UDMX / Data & MetaData Interfaces
+    //------------------------------------------------------     
+     //-- THIS / Udmx / Data / Axis
+    .soTHIS_Udmx_Data_TREADY        (sUDMX_Dhcp_Data_Axis_tready),
+    .soTHIS_Udmx_Data_TDATA         (sDHCP_Udmx_Data_Axis_tdata),                             
+    .soTHIS_Udmx_Data_TKEEP         (sDHCP_Udmx_Data_Axis_tkeep),                             
+    .soTHIS_Udmx_Data_TLAST         (sDHCP_Udmx_Data_Axis_tlast),  
+    .soTHIS_Udmx_Data_TVALID        (sDHCP_Udmx_Data_Axis_tvalid),
+    //-- THIS / Udmx / MetaData / Axis
+    .soTHIS_Udmx_Meta_TREADY        (sUDMX_Dhcp_Meta_Axis_tready),
+    .soTHIS_Udmx_Meta_TDATA         (sDHCP_Udmx_Meta_Axis_tdata),
+    .soTHIS_Udmx_Meta_TVALID        (sDHCP_Udmx_Meta_Axis_tvalid),
+    //-- THIS / Udmx / TxLength / Axis
+    .soTHIS_Udmx_PLen_TREADY        (sUDMX_Dhcp_PLen_Axis_tready),
+    .soTHIS_Udmx_PLen_TDATA         (sDHCP_Udmx_PLen_Axis_tdata),
+    .soTHIS_Udmx_PLen_TVALID        (sDHCP_Udmx_PLen_Axis_tvalid)
+   
+  ); // End of DHCP
+
+`else
+
   DynamicHostConfigurationProcess DHCP (
   
     .ap_clk                         (piShlClk),                      
@@ -2402,6 +2564,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
+`endif
+   
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_dhcp_client DHCP (
 //    .dhcpEnable_V(1'b1),                                     

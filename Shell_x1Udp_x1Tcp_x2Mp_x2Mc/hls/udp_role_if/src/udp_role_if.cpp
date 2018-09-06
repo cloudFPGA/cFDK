@@ -29,6 +29,7 @@
 
 #include "udp_role_if.hpp"
 
+#define USE_DEPRECATED_DIRECTIVES
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -368,19 +369,46 @@ void udp_role_if (
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE axis register forward port=siROL_This_Data
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Rol_Data
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
 
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_OpnAck
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_OpnReq
+#if defined(USE_DEPRECATED_DIRECTIVES)
 
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Data
-    #pragma HLS INTERFACE axis register forward port=siUDMX_This_Meta
-    #pragma HLS DATA_PACK                   variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Data
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_Meta
-    #pragma HLS DATA_PACK                   variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-    #pragma HLS INTERFACE axis register forward port=soTHIS_Udmx_PLen
+	#pragma HLS resource core=AXI4Stream variable=siROL_This_Data    metadata="-bus_bundle siROL_This_Data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data    metadata="-bus_bundle soTHIS_Rol_Data"
+
+	#pragma HLS resource core=AXI4Stream variable=siUDMX_This_OpnAck metadata="-bus_bundle siUDMX_This_OpnAck"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_OpnReq metadata="-bus_bundle soTHIS_Udmx_OpnReq"
+
+	#pragma HLS resource core=AXI4Stream variable=siUDMX_This_Data   metadata="-bus_bundle siUDMX_This_Data"
+	#pragma HLS resource core=AXI4Stream variable=siUDMX_This_Meta   metadata="-bus_bundle siUDMX_This_Meta "
+	#pragma HLS DATA_PACK                variable=siUDMX_This_Meta
+
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Data   metadata="-bus_bundle soTHIS_Udmx_Data"    
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Meta   metadata="-bus_bundle soTHIS_Udmx_Meta"
+	#pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_PLen   metadata="-bus_bundle soTHIS_Udmx_PLen"
+
+#else
+
+    #pragma HLS INTERFACE axis register both port=siROL_This_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
+
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
+
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_Data
+    #pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
+    #pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
+    #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
+
+#endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW interval=1

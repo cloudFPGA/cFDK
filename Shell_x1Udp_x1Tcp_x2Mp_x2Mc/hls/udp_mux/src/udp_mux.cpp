@@ -25,6 +25,7 @@
 
 #include "udp_mux.hpp"
 
+#define USE_DEPRECATED_DIRECTIVES
 
 /*****************************************************************************
  * @brief Receive path from UDP core to ROLE or DHCP.
@@ -342,41 +343,12 @@ void udp_mux (
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    /*********************************************************************
-     *** For the time being, we continue designing with the DEPRECATED ***
-     *** directives because the new PRAGMAs do not work for us.        ***
-     *********************************************************************
-    #pragma HLS INTERFACE axis register both port=siDHCP_This_OpnReq
-    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_OpnAck
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
 
-    #pragma HLS INTERFACE axis register both port=siDHCP_This_Data
-    #pragma HLS INTERFACE axis register both port=siDHCP_This_Meta
-    #pragma HLS DATA_PACK                variable=siDHCP_This_Meta instance=siDHCP_This_Meta
-    #pragma HLS INTERFACE axis register both port=siDHCP_This_PLen
-    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Dhcp_Meta instance=soTHIS_Dhcp_Meta
-
-    #pragma HLS INTERFACE axis register both port=siUDP_This_OpnAck
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_OpnReq
-    #pragma HLS INTERFACE axis register both port=siUDP_This_Data
-    #pragma HLS INTERFACE axis register both port=siUDP_This_Meta
-    #pragma HLS DATA_PACK                variable=siUDP_This_Meta instance=siUDP_This_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Udp_Meta instance=soTHIS_Udp_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_PLen
-
-    #pragma HLS INTERFACE axis register both port=siURIF_This_OpnReq
-    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_OpnAck
-    #pragma HLS INTERFACE axis register both port=siURIF_This_Data
-    #pragma HLS INTERFACE axis register both port=siURIF_This_Meta
-    #pragma HLS DATA_PACK                variable=siURIF_This_Meta instance=siURIF_This_Meta
-    #pragma HLS INTERFACE axis register both port=siURIF_This_PLen
-    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Urif_Meta instance=soTHIS_Urif_Meta
-    *** End of NEW PRAGMAs **********************************************/
+#if defined(USE_DEPRECATED_DIRECTIVES)
 
     #pragma HLS resource core=AXI4Stream variable=siDHCP_This_OpnReq metadata="-bus_bundle siDHCP_This_OpnReq"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Dhcp_OpnAck metadata="-bus_bundle soTHIS_Dhcp_OpnAck"
@@ -413,6 +385,42 @@ void udp_mux (
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Urif_Data   metadata="-bus_bundle soTHIS_Urif_Data"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Urif_Meta   metadata="-bus_bundle soTHIS_Urif_Meta"
     #pragma HLS DATA_PACK                variable=soTHIS_Urif_Meta
+
+
+#else 
+
+    #pragma HLS INTERFACE axis register both port=siDHCP_This_OpnReq
+    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_OpnAck
+
+    #pragma HLS INTERFACE axis register both port=siDHCP_This_Data
+    #pragma HLS INTERFACE axis register both port=siDHCP_This_Meta
+    #pragma HLS DATA_PACK                variable=siDHCP_This_Meta instance=siDHCP_This_Meta
+    #pragma HLS INTERFACE axis register both port=siDHCP_This_PLen
+    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Dhcp_Meta
+    #pragma HLS DATA_PACK                variable=soTHIS_Dhcp_Meta instance=soTHIS_Dhcp_Meta
+
+    #pragma HLS INTERFACE axis register both port=siUDP_This_OpnAck
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_OpnReq
+    #pragma HLS INTERFACE axis register both port=siUDP_This_Data
+    #pragma HLS INTERFACE axis register both port=siUDP_This_Meta
+    #pragma HLS DATA_PACK                variable=siUDP_This_Meta instance=siUDP_This_Meta
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_Meta
+    #pragma HLS DATA_PACK                variable=soTHIS_Udp_Meta instance=soTHIS_Udp_Meta
+    #pragma HLS INTERFACE axis register both port=soTHIS_Udp_PLen
+
+    #pragma HLS INTERFACE axis register both port=siURIF_This_OpnReq
+    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_OpnAck
+    #pragma HLS INTERFACE axis register both port=siURIF_This_Data
+    #pragma HLS INTERFACE axis register both port=siURIF_This_Meta
+    #pragma HLS DATA_PACK                variable=siURIF_This_Meta instance=siURIF_This_Meta
+    #pragma HLS INTERFACE axis register both port=siURIF_This_PLen
+    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_Data
+    #pragma HLS INTERFACE axis register both port=soTHIS_Urif_Meta
+    #pragma HLS DATA_PACK                variable=soTHIS_Urif_Meta instance=soTHIS_Urif_Meta
+
+#endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW interval=1

@@ -50,6 +50,8 @@ open_project  ${projectName}_prj
 set_top       ${projectName}
 
 add_files     ${srcDir}/${projectName}.cpp
+add_files     ${srcDir}/${projectName}.hpp
+
 add_files -tb ${testDir}/test_${projectName}.cpp
 
 # Create a solution
