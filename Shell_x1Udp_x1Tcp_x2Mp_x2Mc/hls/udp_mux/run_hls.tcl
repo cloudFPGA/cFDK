@@ -65,7 +65,7 @@ csynth_design
 
 # Run RTL Simulation
 #-------------------------------------------------
-if { 0 } {
+if { 1 } {
     cosim_design -tool xsim -rtl verilog -trace_level all
 }
 
