@@ -78,25 +78,42 @@ using namespace hls;
      Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
    };
 
+
+typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1, 
+               MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
+              MPI_BARRIER = 4 } mpiCall; 
+
+
+
 /*
- * MPI Interface
+ * MPI-F Interface
  */
  struct MPI_Interface {
-	// stream<Axis<8> > 	 data_in;
-	// stream<Axis<8> >  	data_out;
-	 ap_uint<8>		   	mpi_call;
-	 ap_uint<32>	   	count_in;
-	 ap_uint<32>		count_out;
-	 ap_uint<32>		src_rank;
-	 ap_uint<32>		dst_rank;
-	 MPI_Interface() {}
+  // stream<Axis<8> >    data_in;
+  // stream<Axis<8> >   data_out;
+   ap_uint<8>     mpi_call;
+   ap_uint<32>    count;
+   ap_uint<32>    rank;
+   MPI_Interface() {}
  };
 
  struct IPMeta {
-	 ap_uint<32> ipAddress;
-	 IPMeta() {}
+   ap_uint<32> ipAddress;
+   IPMeta() {}
  };
 
+/*
+ * MPI-F Header 
+ */
+ struct MPI_Header {
+  ap_uint<32> dst_rank;
+  ap_uint<32> src_rank;
+  ap_uint<32> size; 
+  //ap_uint<8> mpi_call;
+  mpiCall call;
+  MPI_Header() {}
+ };
+#define MPIF_HEADER_LENGTH 32
 
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
@@ -114,25 +131,26 @@ using namespace hls;
   */
 
 void mpe_main(
-		// ----- system reset ---
-				ap_uint<1> sys_reset,
-				// ----- link to SMC -----
-				ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    // ----- system reset ---
+        ap_uint<1> sys_reset,
+        // ----- link to SMC -----
+        ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
-				// ----- Nts0 / Tcp Interface -----
-				stream<Axis<64> >		&siTcp,
-				stream<IPMeta> 			&siIP,
-				stream<Axis<64> >		&soTcp,
-				stream<IPMeta>			&soIP,
+        // ----- Nts0 / Tcp Interface -----
+        stream<Axis<64> >   &siTcp,
+        stream<IPMeta>      &siIP,
+        stream<Axis<64> >   &soTcp,
+        stream<IPMeta>      &soIP,
 
-				// ----- Memory -----
-				//ap_uint<8> *MEM, TODO: maybe later
+        // ----- Memory -----
+        //ap_uint<8> *MEM, TODO: maybe later
 
-				// ----- MPI_Interface -----
-				stream<MPI_Interface> &siMPIif,
-				stream<Axis<8> > &siMPI_data,
-				stream<Axis<8> > &soMPI_data
-		);
+        // ----- MPI_Interface -----
+        stream<MPI_Interface> &siMPIif,
+        stream<MPI_Interface> &soMPIif,
+        stream<Axis<8> > &siMPI_data,
+        stream<Axis<8> > &soMPI_data
+    );
 
 
 #endif

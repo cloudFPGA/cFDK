@@ -17,7 +17,8 @@ int main(){
   stream<Axis<64> > soTcp;
   stream<IPMeta> soIP;
 
-  stream<MPI_Interface> MPIif;
+  stream<MPI_Interface> MPIif_in;
+  stream<MPI_Interface> MPIif_out;
   stream<Axis<8> > MPI_data_in;
   stream<Axis<8> > MPI_data_out;
 
@@ -29,7 +30,7 @@ int main(){
   MRT[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] = 168496129; //10.11.12.1
   MRT[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] = 168496141; //10.11.12.13
   MRT[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2] = 168496142; //10.11.12.14
-  mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
+  mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
 
 
   printf("MRT 3: %d\n",(int) MRT[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 3]);
