@@ -85,6 +85,9 @@ typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1,
 
 typedef enum { IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState; 
 
+typedef enum { IDLE = 0, READ_HEADER, READ_DATA, READ_ERROR} receiveState;
+
+
 /*
  * MPI-F Interface
  */
@@ -135,8 +138,18 @@ typedef enum { IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState;
   *
   * STATUS[5] = WRITE_ERROR_CNT
   */
+#define MPE_CONFIG_OWN_RANK 0
 
-#define WRITE_ERROR_CNT 5
+#define MPE_STATUS_WRITE_ERROR_CNT 5
+#define MPE_STATUS_READ_ERROR_CNT 6
+#define MPE_STATUS_SEND_STATE 7
+#define MPE_STATUS_RECEIVE_STATE 8
+//TODO: last read/write error TYPE!
+
+
+ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb);
+void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes);
+
 
 void mpe_main(
     // ----- system reset ---

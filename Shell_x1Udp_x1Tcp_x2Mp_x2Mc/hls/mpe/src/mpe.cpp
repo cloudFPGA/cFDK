@@ -12,8 +12,12 @@ sendState fsmSendState = IDLE;
 static stream<Axis<8> > sFifoDataTX("sFifoDataTX");
 static stream<IPMeta> sFifoIPdstTX("sFifoIPdstTX");
 
-ap_uint<32> bigEndianToInteger(ap_uint<8> *buffer, int lsb)
-{
+receiveState fsmReceiveState = IDLE;
+static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
+
+
+ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
+{//TODO: verify!!
   ap_uint<32> tmp = 0;
   tmp  = ((ap_uint<32>) buffer[lsb + 0]); 
   tmp |= ((ap_uint<32>) buffer[lsb + 1]) << 8; 
@@ -22,6 +26,15 @@ ap_uint<32> bigEndianToInteger(ap_uint<8> *buffer, int lsb)
 
   return tmp;
 }
+
+void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes)
+{
+  bytes[0] = (n >> 24) & 0xFF;
+  bytes[1] = (n >> 16) & 0xFF;
+  bytes[2] = (n >> 8) & 0xFF;
+  bytes[3] = n & 0xFF;
+}
+
 
 void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 {
@@ -42,23 +55,50 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 
 }
 
-void integerToBigEndian(ap_uint<32> n, ap_uint<8> *bytes)
+void convertAxisToMpiWidth(Axis<64> &big, stream<Axis<8> > &out)
 {
-  bytes[0] = (n >> 24) & 0xFF;
-  bytes[1] = (n >> 16) & 0xFF;
-  bytes[2] = (n >> 8) & 0xFF;
-  bytes[3] = n & 0xFF;
+  //TODO
+
 }
 
 
-void bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header header)
+
+int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header header)
 {
-  header.dst_rank = bigEndianToInteger(bytes, 4);
-  header.src_rank = bigEndianToInteger(bytes,8);
-  header.size = bigEndianToInteger(bytes,12);
+  //check validity
+  for(int i = 0; i< 4; i++)
+  {
+    if(bytes[i] != 0x96)
+    {
+      return -1;
+    }
+  }
+  
+  for(int i = 17; i<28; i++)
+  {
+    if(bytes[i] != 0x00)
+    {
+      return -2;
+    }
+  }
+  
+  for(int i = 28; i<32; i++)
+  {
+    if(bytes[i] != 0x96)
+    {
+      return -3;
+    }
+  }
+
+  //convert
+  header.dst_rank = littleEndianToInteger(bytes, 4);
+  header.src_rank = littleEndianToInteger(bytes,8);
+  header.size = littleEndianToInteger(bytes,12);
 
   //header.call = (mpiCall) bytes[16]; 
   header.call = static_cast<mpiCall>((int) bytes[16]); 
+
+  return 0;
 
 }
 
@@ -69,17 +109,17 @@ void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH])
     bytes[i] = 0x96;
   }
   ap_uint<8> tmp[4];
-  integerToBigEndian(header.dst_rank, tmp);
+  integerToLittleEndian(header.dst_rank, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[4 + i] = tmp[i];
   }
-  integerToBigEndian(header.src_rank, tmp);
+  integerToLittleEndian(header.src_rank, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[8 + i] = tmp[i];
   }
-  integerToBigEndian(header.size, tmp);
+  integerToLittleEndian(header.size, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[12 + i] = tmp[i];
@@ -160,6 +200,7 @@ void mpe_main(
     }
 
     fsmSendState = IDLE;
+    fsmReceiveState = IDLE;
 
   }
 
@@ -186,6 +227,8 @@ void mpe_main(
   status[1] = localMRT[1];
   status[2] = localMRT[2];
 
+  status[MPE_STATUS_SEND_STATE] = (ap_uint<32>) fsmSendState;
+  status[MPE_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmReceiveState;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
  
@@ -212,7 +255,7 @@ void mpe_main(
         MPI_Header header = MPI_Header(); 
         MPI_Interface info = siMPIif.read(); 
         header.dst_rank = info.rank;
-        header.src_rank = config[0];
+        header.src_rank = config[MPE_CONFIG_OWN_RANK];
         header.size = info.count;
         header.call = static_cast<mpiCall>((int) info.mpi_call); 
 
@@ -231,7 +274,7 @@ void mpe_main(
         if(info.rank > MAX_CLUSTER_SIZE)
         {
           fsmSendState = WRITE_ERROR;
-          status[WRITE_ERROR_CNT]++;
+          status[MPE_STATUS_WRITE_ERROR_CNT]++;
           break;
         }
         
@@ -256,7 +299,7 @@ void mpe_main(
       }
 
       if( !siMPI_data.empty() && !sFifoDataTX.full() )
-      {//TODO: in a loop? MPI_WRITE_JUNK_SIZE? 
+      {//TODO: in a loop? MPI_WRITE_CHUNK_SIZE? 
         sFifoDataTX.write(siMPI_data.read());
       }
       break; 
@@ -269,7 +312,7 @@ void mpe_main(
       }
 
       //dequeue
-      if( !soTcp.full() ) 
+      if( !soTcp.full() && !sFifoDataTX.empty() ) 
       {
         Axis<64> word = Axis<64>();
         convertAxisToNtsWidth(sFifoDataTX, word);
@@ -305,8 +348,102 @@ void mpe_main(
 
 //===========================================================
 // MPI RX PATH
+{
+  #pragma HLS DATAFLOW 
+  #pragma HLS STREAM variable=sFifoDataRX depth=2048
+
+  switch(fsmReceiveState) { 
+    case IDLE: 
+      if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() && !soMPIif.full() )
+      {
+        //read header
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+        {
+          Axis<64> tmp = siTcp.read();
+
+          if(tmp.tkeep != 0xFF || tmp.tlast == 1)
+          {
+            printf("unexpected uncomplete read.\n");
+            fsmReceiveState = READ_ERROR;
+            status[MPE_STATUS_READ_ERROR_CNT]++;
+            break;
+          }
+
+          for(int j = 0; j<8; j++)
+          {
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+          }
+        }
+
+        MPI_Header header = MPI_Header();
+        int ret = bytesToHeader(bytes, header);
+
+        if(ret != 0)
+        {
+          printf("invalid header.\n");
+          fsmReceiveState = READ_ERROR;
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          break;
+        }
+
+        IPMeta srcIP = siIP.read();
+        ap_uint<32> ipSrc = localMRT[header.src_rank];
+
+        if(srcIP.ipAddress != ipSrc)
+        {
+          printf("header does not match ipAddress.\n");
+          fsmReceiveState = READ_ERROR;
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          break;
+        }
+
+        if(header.dst_rank != config[MPE_CONFIG_OWN_RANK])
+        {
+          printf("I'm not the right recepient!\n");
+          fsmReceiveState = READ_ERROR;
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          break;
+        }
+
+        //valid header && valid source
+
+        MPI_Interface info = MPI_Interface();
+        info.mpi_call = static_cast<int> header.call; 
+        info.count = header.size; 
+        info.rank = header.src_rank;
+        soMPIif.write(info);
+
+        fsmReceiveState = READ_DATA;
+      }
+      break; 
+
+   /* case READ_HEADER: 
+      break; */
+
+    case READ_DATA: 
+
+      if( !siTcp.empty() && !sFifoDataRX.full() )
+      {
+        //sFifoDataRX.write(siTcp.read());
+        //TODO: width conversion and enqueue
+      }
+
+      if( !sFifoDataRX.empty() && !soMPI_data.full() )
+      {
+        //TODO: dequeue 
+        //tlast -> IDLE
+      }
+
+      break;
+
+    case READ_ERROR: 
+      //TODO empty strings
+      break;
+  }
 
 
+}
 
   return;
 }
