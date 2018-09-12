@@ -746,6 +746,11 @@ void smc_main(
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
   }*/
 
+  //test and set config 
+  if(mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] != nodeRank)
+  {
+    mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] = nodeRank; 
+  }
 
   //copy status 
   //to enforce AWLEN/ARLEN = 0, one transfer per ap_call 

@@ -83,7 +83,7 @@ typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1,
                MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
               MPI_BARRIER = 4 } mpiCall; 
 
-
+typedef enum { IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState; 
 
 /*
  * MPI-F Interface
@@ -100,6 +100,7 @@ typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1,
  struct IPMeta {
    ap_uint<32> ipAddress;
    IPMeta() {}
+   IPMeta(ap_uint<32> ip) : ipAddress(ip) {}
  };
 
 /*
@@ -127,8 +128,15 @@ typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1,
   * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from MPE to SMC
   * 3. NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
   *                              NUMBER_CONFIG_WORDS +
-  *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT)
+  *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT) 
+  *
+  *
+  * CONFIG[0] = own rank 
+  *
+  * STATUS[5] = WRITE_ERROR_CNT
   */
+
+#define WRITE_ERROR_CNT 5
 
 void mpe_main(
     // ----- system reset ---

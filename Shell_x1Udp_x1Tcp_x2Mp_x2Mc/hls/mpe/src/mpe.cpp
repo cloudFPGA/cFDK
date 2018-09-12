@@ -8,7 +8,9 @@ ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-
+sendState fsmSendState = IDLE;
+static stream<Axis<8> > sFifoDataTX("sFifoDataTX");
+static stream<IPMeta> sFifoIPdstTX("sFifoIPdstTX");
 
 ap_uint<32> bigEndianToInteger(ap_uint<8> *buffer, int lsb)
 {
@@ -21,6 +23,24 @@ ap_uint<32> bigEndianToInteger(ap_uint<8> *buffer, int lsb)
   return tmp;
 }
 
+void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
+{
+  for(int i = 0; i < 8; i++)
+  {
+    if(!small.empty())
+    {
+      Axis<8> tmp = small.read();
+      out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< i*8;
+      out.tkeep |= 0x01 << i;
+      //TODO: latch?
+      out.tlast = tmp.tlast;
+
+    } else { 
+      break;
+    }
+  }
+
+}
 
 void integerToBigEndian(ap_uint<32> n, ap_uint<8> *bytes)
 {
@@ -138,10 +158,13 @@ void mpe_main(
     {
       status[i] = 0;
     }
+
+    fsmSendState = IDLE;
+
   }
 
 //===========================================================
-//
+// MRT
 
   //copy MRT axi Interface
   //MRT data are after possible config DATA
@@ -156,9 +179,9 @@ void mpe_main(
   }
 
   //DEBUG
-  ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
+  //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
 
-  //copy routing nodes 0 - 2 for debug
+  //copy routing nodes 0 - 2 FOR DEBUG
   status[0] = localMRT[0];
   status[1] = localMRT[1];
   status[2] = localMRT[2];
@@ -173,6 +196,117 @@ void mpe_main(
   {
     ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
   }
+
+
+//===========================================================
+// MPI TX PATH
+{
+  #pragma HLS DATAFLOW 
+  #pragma HLS STREAM variable=sFifoDataTX depth=2048
+  #pragma HLS STREAM variable=sFifoIPdstTX depth=1
+
+  switch(fsmSendState) { 
+    case IDLE: 
+      if ( !siMPIif.empty() && !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
+      {
+        MPI_Header header = MPI_Header(); 
+        MPI_Interface info = siMPIif.read(); 
+        header.dst_rank = info.rank;
+        header.src_rank = config[0];
+        header.size = info.count;
+        header.call = static_cast<mpiCall>((int) info.mpi_call); 
+
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        headerToBytes(header, bytes);
+
+        //write header
+        for(int i = 0; i < MPIF_HEADER_LENGTH; i++)
+        {
+          Axis<8> tmp = Axis<8>(bytes[i]);
+          tmp.tlast = 0;
+          sFifoDataTX.write(tmp);
+        }
+
+        //look up IP Addr and write meta data
+        if(info.rank > MAX_CLUSTER_SIZE)
+        {
+          fsmSendState = WRITE_ERROR;
+          status[WRITE_ERROR_CNT]++;
+          break;
+        }
+        
+        ap_uint<32> ipDst = localMRT[info.rank];
+        sFifoIPdstTX.write(IPMeta(ipDst));
+
+        fsmSendState = WRITE_START;
+
+      }
+      break; 
+
+   case WRITE_START:
+      if( !soTcp.full() && !soIP.full() )
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %d, tdata %d\n",(int) word.tkeep, (long long) word.tdata);
+
+        soIP.write(sFifoIPdstTX.read());
+        soTcp.write(word);
+        fsmSendState = WRITE_DATA;
+      }
+
+      if( !siMPI_data.empty() && !sFifoDataTX.full() )
+      {//TODO: in a loop? MPI_WRITE_JUNK_SIZE? 
+        sFifoDataTX.write(siMPI_data.read());
+      }
+      break; 
+
+    case WRITE_DATA: 
+      //enqueue 
+      if( !siMPI_data.empty() && !sFifoDataTX.full() )
+      {//TODO: in a loop? 
+        sFifoDataTX.write(siMPI_data.read());
+      }
+
+      //dequeue
+      if( !soTcp.full() ) 
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %d, tdata %d, tlast %d\n",(int) word.tkeep, (long long) word.tdata, (int) word.tlast);
+        soTcp.write(word);
+
+        if(word.tlast == 1)
+        {
+          fsmSendState = IDLE;
+        }
+      }
+      break; 
+
+    case WRITE_ERROR:
+      //empty all input streams 
+      printf("Write error occured.\n");
+      if( !siMPIif.empty())
+      {
+        siMPIif.read();
+      }
+      
+      if( !siMPI_data.empty())
+      {
+        siMPI_data.read();
+      } else { 
+        fsmSendState = IDLE;
+      }
+      break;
+  }
+
+
+}
+
+//===========================================================
+// MPI RX PATH
+
+
 
   return;
 }

@@ -754,7 +754,8 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   stream<IPMeta>  siIP;
   stream<Axis<64> > soTcp;
   stream<IPMeta> soIP;
-  stream<MPI_Interface> MPIif;
+  stream<MPI_Interface> MPIif_in;
+  stream<MPI_Interface> MPIif_out;
   stream<Axis<8> > MPI_data_in;
   stream<Axis<8> > MPI_data_out;
 
@@ -811,7 +812,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
 
   //mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
-  mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
+  mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
   //TODO assert??
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
