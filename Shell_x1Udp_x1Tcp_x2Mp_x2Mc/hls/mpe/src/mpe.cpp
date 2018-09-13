@@ -20,7 +20,7 @@ static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
 
 
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
-{//TODO: verify!!
+{
   ap_uint<32> tmp = 0;
   tmp  = ((ap_uint<32>) buffer[lsb + 3]); 
   tmp |= ((ap_uint<32>) buffer[lsb + 2]) << 8; 
@@ -55,9 +55,6 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
       Axis<8> tmp = small.read();
       printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
       out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
-      //ap_uint<64> newTdata = ((ap_uint<64>) (tmp.tdata) ) << (i*8);
-      //printf("new tdata: %#030llx\n", (uint64_t) newTdata.to_long());
-      //out.tdata |= newTdata;
       out.tkeep |= (ap_uint<8>) 0x01 << i;
       //TODO: latch?
       out.tlast = tmp.tlast;
@@ -129,7 +126,6 @@ int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
   header.src_rank = littleEndianToInteger(bytes,8);
   header.size = littleEndianToInteger(bytes,12);
 
-  //header.call = (mpiCall) bytes[16]; 
   header.call = static_cast<mpiCall>((int) bytes[16]); 
 
   return 0;
@@ -277,7 +273,7 @@ void mpe_main(
 
 //===========================================================
 // MPI TX PATH
-{
+//{
   #pragma HLS DATAFLOW 
   #pragma HLS STREAM variable=sFifoDataTX depth=2048
   #pragma HLS STREAM variable=sFifoIPdstTX depth=1
@@ -338,11 +334,6 @@ void mpe_main(
         fsmSendState = WRITE_DATA;
       }
 
-      /*
-      if( !siMPI_data.empty() && !sFifoDataTX.full() )
-      {//TODO: in a loop? MPI_WRITE_CHUNK_SIZE? 
-        sFifoDataTX.write(siMPI_data.read());
-      }*/
       cnt = 0;
       while( !siMPI_data.empty() && !sFifoDataTX.full() && cnt<=8)
       {
@@ -362,10 +353,6 @@ void mpe_main(
 
     case WRITE_DATA: 
       //enqueue 
-      /*if( !siMPI_data.empty() && !sFifoDataTX.full() )
-      {//TODO: in a loop? 
-        sFifoDataTX.write(siMPI_data.read());
-      }*/
       cnt = 0;
       while( !siMPI_data.empty() && !sFifoDataTX.full() && cnt<=8)
       {
@@ -416,12 +403,12 @@ void mpe_main(
   }
 
 
-}
+//}
 
 //===========================================================
 // MPI RX PATH
-{
-  #pragma HLS DATAFLOW 
+//{
+  //#pragma HLS DATAFLOW 
   #pragma HLS STREAM variable=sFifoDataRX depth=2048
 
   switch(fsmReceiveState) { 
@@ -501,7 +488,6 @@ void mpe_main(
 
       if( !siTcp.empty() && !sFifoDataRX.full() )
       {
-        //sFifoDataRX.write(siTcp.read());
         convertAxisToMpiWidth(siTcp.read(), sFifoDataRX);
       }
 
@@ -535,7 +521,7 @@ void mpe_main(
   }
 
 
-}
+//}
 
   return;
 }

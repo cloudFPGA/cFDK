@@ -78,15 +78,38 @@ using namespace hls;
      Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
    };
 
+#ifdef COSIM 
 
+#define MPI_SEND_INT 0
+#define MPI_RECV_INT 1
+#define MPI_SEND_FLOAT 2
+#define MPI_RECV_FLOAT 3
+#define MPI_BARRIER 4
+#define mpiCall uint8_t
+
+
+#define WRITE_IDLE 0
+#define WRITE_START 1
+#define WRITE_DATA 2
+#define WRITE_ERROR 3
+#define sendState uint8_t 
+
+
+#define READ_IDLE 0
+#define READ_DATA 2
+#define READ_ERROR 3
+#define receiveState uint8_t
+
+
+#else 
 typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1, 
                MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
               MPI_BARRIER = 4 } mpiCall; 
 
-typedef enum { WRITE_IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState; 
+typedef enum { WRITE_IDLE = 0, WRITE_START = 1, WRITE_DATA = 2, WRITE_ERROR = 3} sendState; 
 
-typedef enum { READ_IDLE = 0, READ_HEADER, READ_DATA, READ_ERROR} receiveState;
-
+typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3} receiveState; //READ_HEADER
+#endif
 
 /*
  * MPI-F Interface
