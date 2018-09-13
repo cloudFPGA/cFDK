@@ -210,6 +210,7 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 
 # By default, create all the IP cores 
 set gTargetIpCore "all"   
+set useMPI 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -227,6 +228,7 @@ if { $argc > 0 } {
     set options {
         { ipModuleName.arg "all"  "The module name of the IP to create." }
         { ipList                  "Display the list of IP modules names." }
+        { useMPI "quick'n'dirty."}
     }
     set usage "\nUSAGE: vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -258,6 +260,11 @@ if { $argc > 0 } {
             close ${thisScript}
             return ${::OK}
         } 
+
+        if { ${key} eq "useMPI" && ${value} eq 1} {
+          set useMPI 1
+          my_puts "MPI enabled"
+        }
     }
 }
 
@@ -758,7 +765,11 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # VIVADO-IP : Decouple IP 
 #------------------------------------------------------------------------------ 
 #get current port Descriptions 
-source ${tclDir}/decouple_ip_type.tcl 
+if{ $useMPI } {
+  source ${tclDir}/decouple_ip_type_MPI.tcl 
+} else { 
+  source ${tclDir}/decouple_ip_type.tcl 
+}
 
 set ipModName "Decoupler"
 set ipName    "pr_decoupler"

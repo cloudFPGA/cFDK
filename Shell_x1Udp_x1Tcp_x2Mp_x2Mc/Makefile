@@ -22,6 +22,8 @@ all: full_src
 
 full_src: ip 
 
+full_src_mpi: ip_mpi
+
 hls_cores: 
 	@$(MAKE) -C ./hls/ 
 
@@ -34,6 +36,9 @@ hls: hls_cores
 # INFO: hls must be before $(XCI_DEPS)! otherwise make does not see the updated *_prj 
 ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+
+ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
+	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log -tclargs -useMPI
 
 # Create IP directory if it does not exist
 ./ip/ip_user_files:
