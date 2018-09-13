@@ -8,11 +8,11 @@ ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-sendState fsmSendState = IDLE;
+sendState fsmSendState = WRITE_IDLE;
 static stream<Axis<8> > sFifoDataTX("sFifoDataTX");
 static stream<IPMeta> sFifoIPdstTX("sFifoIPdstTX");
 
-receiveState fsmReceiveState = IDLE;
+receiveState fsmReceiveState = READ_IDLE;
 static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
 
 
@@ -55,9 +55,18 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 
 }
 
-void convertAxisToMpiWidth(Axis<64> &big, stream<Axis<8> > &out)
+void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
-  //TODO
+  for(int i = 0; i < 8; i++)
+  {
+    //out.full? 
+    Axis<8> tmp = Axis<8>(); 
+    tmp.tlast = big.tlast;
+    tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
+    tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
+
+    out.write(tmp); 
+  }
 
 }
 
@@ -199,8 +208,8 @@ void mpe_main(
       status[i] = 0;
     }
 
-    fsmSendState = IDLE;
-    fsmReceiveState = IDLE;
+    fsmSendState = WRITE_IDLE;
+    fsmReceiveState = READ_IDLE;
 
   }
 
@@ -249,7 +258,7 @@ void mpe_main(
   #pragma HLS STREAM variable=sFifoIPdstTX depth=1
 
   switch(fsmSendState) { 
-    case IDLE: 
+    case WRITE_IDLE: 
       if ( !siMPIif.empty() && !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
       {
         MPI_Header header = MPI_Header(); 
@@ -275,6 +284,7 @@ void mpe_main(
         {
           fsmSendState = WRITE_ERROR;
           status[MPE_STATUS_WRITE_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_WRITE_ERROR] = TX_INVALID_DST_RANK;
           break;
         }
         
@@ -321,7 +331,7 @@ void mpe_main(
 
         if(word.tlast == 1)
         {
-          fsmSendState = IDLE;
+          fsmSendState = WRITE_IDLE;
         }
       }
       break; 
@@ -338,7 +348,7 @@ void mpe_main(
       {
         siMPI_data.read();
       } else { 
-        fsmSendState = IDLE;
+        fsmSendState = WRITE_IDLE;
       }
       break;
   }
@@ -353,7 +363,7 @@ void mpe_main(
   #pragma HLS STREAM variable=sFifoDataRX depth=2048
 
   switch(fsmReceiveState) { 
-    case IDLE: 
+    case READ_IDLE: 
       if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() && !soMPIif.full() )
       {
         //read header
@@ -367,6 +377,7 @@ void mpe_main(
             printf("unexpected uncomplete read.\n");
             fsmReceiveState = READ_ERROR;
             status[MPE_STATUS_READ_ERROR_CNT]++;
+            status[MPE_STATUS_LAST_READ_ERROR] = RX_INCOMPLETE_HEADER;
             break;
           }
 
@@ -384,6 +395,7 @@ void mpe_main(
           printf("invalid header.\n");
           fsmReceiveState = READ_ERROR;
           status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
           break;
         }
 
@@ -395,6 +407,7 @@ void mpe_main(
           printf("header does not match ipAddress.\n");
           fsmReceiveState = READ_ERROR;
           status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_IP_MISSMATCH;
           break;
         }
 
@@ -403,13 +416,14 @@ void mpe_main(
           printf("I'm not the right recepient!\n");
           fsmReceiveState = READ_ERROR;
           status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
           break;
         }
 
         //valid header && valid source
 
         MPI_Interface info = MPI_Interface();
-        info.mpi_call = static_cast<int> header.call; 
+        info.mpi_call = static_cast<int>(header.call); 
         info.count = header.size; 
         info.rank = header.src_rank;
         soMPIif.write(info);
@@ -426,19 +440,35 @@ void mpe_main(
       if( !siTcp.empty() && !sFifoDataRX.full() )
       {
         //sFifoDataRX.write(siTcp.read());
-        //TODO: width conversion and enqueue
+        convertAxisToMpiWidth(siTcp.read(), sFifoDataRX);
       }
 
       if( !sFifoDataRX.empty() && !soMPI_data.full() )
       {
-        //TODO: dequeue 
-        //tlast -> IDLE
-      }
+        Axis<8> tmp = sFifoDataRX.read();
+        soMPI_data.write(tmp);
 
+        if(tmp.tlast == 1)
+        {
+          fsmReceiveState = READ_IDLE;
+        }
+      }
       break;
 
     case READ_ERROR: 
-      //TODO empty strings
+      //empty strings
+      printf("Read error occured.\n");
+      if( !siIP.empty())
+      {
+        siIP.read();
+      }
+      
+      if( !siTcp.empty())
+      {
+        siTcp.read();
+      } else { 
+        fsmReceiveState = READ_IDLE;
+      }
       break;
   }
 

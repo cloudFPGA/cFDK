@@ -83,9 +83,9 @@ typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1,
                MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
               MPI_BARRIER = 4 } mpiCall; 
 
-typedef enum { IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState; 
+typedef enum { WRITE_IDLE = 0, WRITE_START, WRITE_DATA, WRITE_ERROR} sendState; 
 
-typedef enum { IDLE = 0, READ_HEADER, READ_DATA, READ_ERROR} receiveState;
+typedef enum { READ_IDLE = 0, READ_HEADER, READ_DATA, READ_ERROR} receiveState;
 
 
 /*
@@ -144,7 +144,15 @@ typedef enum { IDLE = 0, READ_HEADER, READ_DATA, READ_ERROR} receiveState;
 #define MPE_STATUS_READ_ERROR_CNT 6
 #define MPE_STATUS_SEND_STATE 7
 #define MPE_STATUS_RECEIVE_STATE 8
-//TODO: last read/write error TYPE!
+#define MPE_STATUS_LAST_WRITE_ERROR 9
+#define MPE_STATUS_LAST_READ_ERROR 10
+
+//Error types
+#define TX_INVALID_DST_RANK 0xd
+#define RX_INCOMPLETE_HEADER 0x1
+#define RX_INVALID_HEADER 0x2
+#define RX_IP_MISSMATCH 0x3 
+#define RX_WRONG_DST_RANK 0x4
 
 
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb);
