@@ -1,6 +1,7 @@
 
 #include "mpe.hpp"
 #include "../../smc/src/smc.hpp"
+#include <stdint.h>
 
 using namespace hls;
 
@@ -11,6 +12,8 @@ ap_uint<32> status[NUMBER_STATUS_WORDS];
 sendState fsmSendState = WRITE_IDLE;
 static stream<Axis<8> > sFifoDataTX("sFifoDataTX");
 static stream<IPMeta> sFifoIPdstTX("sFifoIPdstTX");
+int enqueueCnt = 0;
+bool tlastOccured = false;
 
 receiveState fsmReceiveState = READ_IDLE;
 static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
@@ -19,10 +22,12 @@ static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
 {//TODO: verify!!
   ap_uint<32> tmp = 0;
-  tmp  = ((ap_uint<32>) buffer[lsb + 0]); 
-  tmp |= ((ap_uint<32>) buffer[lsb + 1]) << 8; 
-  tmp |= ((ap_uint<32>) buffer[lsb + 2]) << 16; 
-  tmp |= ((ap_uint<32>) buffer[lsb + 3]) << 24; 
+  tmp  = ((ap_uint<32>) buffer[lsb + 3]); 
+  tmp |= ((ap_uint<32>) buffer[lsb + 2]) << 8; 
+  tmp |= ((ap_uint<32>) buffer[lsb + 1]) << 16; 
+  tmp |= ((ap_uint<32>) buffer[lsb + 0]) << 24; 
+
+  printf("LSB: %#1x, return: %#04x\n",(uint8_t) buffer[lsb + 3], (uint32_t) tmp);
 
   return tmp;
 }
@@ -38,17 +43,27 @@ void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes)
 
 void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 {
+
+  out.tdata = 0;
+  out.tlast = 0;
+  out.tkeep = 0;
+
   for(int i = 0; i < 8; i++)
   {
     if(!small.empty())
     {
       Axis<8> tmp = small.read();
-      out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< i*8;
-      out.tkeep |= 0x01 << i;
+      printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
+      out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
+      //ap_uint<64> newTdata = ((ap_uint<64>) (tmp.tdata) ) << (i*8);
+      //printf("new tdata: %#030llx\n", (uint64_t) newTdata.to_long());
+      //out.tdata |= newTdata;
+      out.tkeep |= (ap_uint<8>) 0x01 << i;
       //TODO: latch?
       out.tlast = tmp.tlast;
 
-    } else { 
+    } else {
+      printf("tried to read empty small stream!\n");
       break;
     }
   }
@@ -61,9 +76,19 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
   {
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
-    tmp.tlast = big.tlast;
+    if(i == 7)
+    {
+      tmp.tlast = big.tlast;
+    } else {
+      tmp.tlast = 0;
+    }
     tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
     tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
+
+    if(tmp.tkeep == 0)
+    {
+      continue;
+    }
 
     out.write(tmp); 
   }
@@ -72,7 +97,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 
 
 
-int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header header)
+int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
 {
   //check validity
   for(int i = 0; i< 4; i++)
@@ -257,6 +282,8 @@ void mpe_main(
   #pragma HLS STREAM variable=sFifoDataTX depth=2048
   #pragma HLS STREAM variable=sFifoIPdstTX depth=1
 
+  int cnt = 0;
+
   switch(fsmSendState) { 
     case WRITE_IDLE: 
       if ( !siMPIif.empty() && !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
@@ -277,6 +304,7 @@ void mpe_main(
           Axis<8> tmp = Axis<8>(bytes[i]);
           tmp.tlast = 0;
           sFifoDataTX.write(tmp);
+          printf("Writing Header byte: %#02x\n", (int) bytes[i]);
         }
 
         //look up IP Addr and write meta data
@@ -292,6 +320,8 @@ void mpe_main(
         sFifoIPdstTX.write(IPMeta(ipDst));
 
         fsmSendState = WRITE_START;
+        tlastOccured = false;
+        enqueueCnt = MPIF_HEADER_LENGTH;
 
       }
       break; 
@@ -301,33 +331,65 @@ void mpe_main(
       {
         Axis<64> word = Axis<64>();
         convertAxisToNtsWidth(sFifoDataTX, word);
-        printf("tkeep %d, tdata %d\n",(int) word.tkeep, (long long) word.tdata);
+        printf("tkeep %#03x, tdata %#022llx\n",(int) word.tkeep, (uint64_t) word.tdata);
 
         soIP.write(sFifoIPdstTX.read());
         soTcp.write(word);
         fsmSendState = WRITE_DATA;
       }
 
+      /*
       if( !siMPI_data.empty() && !sFifoDataTX.full() )
       {//TODO: in a loop? MPI_WRITE_CHUNK_SIZE? 
         sFifoDataTX.write(siMPI_data.read());
+      }*/
+      cnt = 0;
+      while( !siMPI_data.empty() && !sFifoDataTX.full() && cnt<=8)
+      {
+        Axis<8> tmp = siMPI_data.read();
+        sFifoDataTX.write(tmp);
+        cnt++;
+        if(tmp.tlast == 1)
+        {
+          tlastOccured = true;
+          printf("tlast Occured.\n");
+        }
       }
+      enqueueCnt += cnt;
+      printf("cnt: %d\n", cnt);
+      printf("enqueueCnt: %d\n", enqueueCnt);
       break; 
 
     case WRITE_DATA: 
       //enqueue 
-      if( !siMPI_data.empty() && !sFifoDataTX.full() )
+      /*if( !siMPI_data.empty() && !sFifoDataTX.full() )
       {//TODO: in a loop? 
         sFifoDataTX.write(siMPI_data.read());
+      }*/
+      cnt = 0;
+      while( !siMPI_data.empty() && !sFifoDataTX.full() && cnt<=8)
+      {
+        Axis<8> tmp = siMPI_data.read();
+        sFifoDataTX.write(tmp);
+        cnt++;
+        if(tmp.tlast == 1)
+        {
+          tlastOccured = true;
+          printf("tlast Occured.\n");
+        }
       }
+      enqueueCnt += cnt;
+      printf("cnt: %d\n", cnt);
 
       //dequeue
-      if( !soTcp.full() && !sFifoDataTX.empty() ) 
+      printf("enqueueCnt: %d\n", enqueueCnt);
+      if( !soTcp.full() && !sFifoDataTX.empty() && (enqueueCnt >= 8 || tlastOccured)) 
       {
         Axis<64> word = Axis<64>();
         convertAxisToNtsWidth(sFifoDataTX, word);
-        printf("tkeep %d, tdata %d, tlast %d\n",(int) word.tkeep, (long long) word.tdata, (int) word.tlast);
+        printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
         soTcp.write(word);
+        enqueueCnt -= 8;
 
         if(word.tlast == 1)
         {
@@ -404,7 +466,7 @@ void mpe_main(
 
         if(srcIP.ipAddress != ipSrc)
         {
-          printf("header does not match ipAddress.\n");
+          printf("header does not match ipAddress. mrt for rank %d: %#010x; IPMeta: %#010x;\n", (int) header.src_rank, (int) ipSrc, (int) srcIP.ipAddress);
           fsmReceiveState = READ_ERROR;
           status[MPE_STATUS_READ_ERROR_CNT]++;
           status[MPE_STATUS_LAST_READ_ERROR] = RX_IP_MISSMATCH;
