@@ -115,6 +115,15 @@ monolithic_incr: basecmd $(MONO_LOCK)
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
+monolithic_mpi: basecmd $(MONO_LOCK)
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -useMPI \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
 $(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 

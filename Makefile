@@ -41,6 +41,9 @@ RoleFlash_V2:
 ShellSrc:
 	$(MAKE) -C $(SHELL_DIR) full_src
 
+ShellSrcMPI:
+	$(MAKE) -C $(SHELL_DIR) full_src_mpi
+
 src_based: ensureNotMonolithic ShellSrc Role | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src
 
@@ -90,6 +93,11 @@ monolithic: ensureMonolithic ShellSrc | xpr
 monolithic_incr: ensureMonolithic ShellSrc | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
+
+#no ROLE, because Role is synthezied with sources!
+monolithic_mpi: ensureMonolithic ShellSrcMPI | xpr 
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_mpi
 
 save_mono_incr: ensureMonolithic 
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
