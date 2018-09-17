@@ -70,30 +70,30 @@ entity Role_MPIv0_x2Mp is
     ------------------------------------------------------
     poROLE_MPE_MPIif_mpi_call_TDATA        : out std_ulogic_vector(7 downto 0);
     poROLE_MPE_MPIif_mpi_call_TVALID       : out std_ulogic;
-    poROLE_MPE_MPIif_mpi_call_TREADY       : out std_ulogic;
+    piROLE_MPE_MPIif_mpi_call_TREADY       : in std_ulogic;
     piMPE_ROLE_MPIif_mpi_call_TDATA        : in  std_ulogic_vector(7 downto 0);
     piMPE_ROLE_MPIif_mpi_call_TVALID       : in  std_ulogic;
-    piMPE_ROLE_MPIif_mpi_call_TREADY       : in  std_ulogic;
+    poMPE_ROLE_MPIif_mpi_call_TREADY       : out  std_ulogic;
     piMPE_ROLE_MPIif_count_TDATA           : in  std_ulogic_vector(31 downto 0);
     piMPE_ROLE_MPIif_count_TVALID          : in  std_ulogic;
-    piMPE_ROLE_MPIif_count_TREADY          : in  std_ulogic;
+    poMPE_ROLE_MPIif_count_TREADY          : out  std_ulogic;
     poROLE_MPE_MPIif_count_TDATA           : out std_ulogic_vector(31 downto 0);
     poROLE_MPE_MPIif_count_TVALID          : out std_ulogic;
-    poROLE_MPE_MPIif_count_TREADY          : out std_ulogic;
+    piROLE_MPE_MPIif_count_TREADY          : in std_ulogic;
     piMPE_ROLE_MPIif_rank_TDATA            : in std_ulogic_vector(31 downto 0);
     piMPE_ROLE_MPIif_rank_TVALID           : in std_ulogic;
-    piMPE_ROLE_MPIif_rank_TREADY           : in std_ulogic;
+    poMPE_ROLE_MPIif_rank_TREADY           : out std_ulogic;
     poROLE_MPE_MPIif_rank_TDATA            : out std_ulogic_vector(31 downto 0);
     poROLE_MPE_MPIif_rank_TVALID           : out std_ulogic;
-    poROLE_MPE_MPIif_rank_TREADY           : out std_ulogic;
+    piROLE_MPE_MPIif_rank_TREADY           : in std_ulogic;
     piMPE_ROLE_MPI_data_TDATA              : in std_ulogic_vector(7 downto 0);
     piMPE_ROLE_MPI_data_TVALID             : in std_ulogic;
-    piMPE_ROLE_MPI_data_TREADY             : in std_ulogic;
+    poMPE_ROLE_MPI_data_TREADY             : out std_ulogic;
     piMPE_ROLE_MPI_data_TKEEP              : in std_ulogic;
     piMPE_ROLE_MPI_data_TLAST              : in std_ulogic;
     poROLE_MPE_MPI_data_TDATA              : out std_ulogic_vector(7 downto 0);
     poROLE_MPE_MPI_data_TVALID             : out std_ulogic;
-    poROLE_MPE_MPI_data_TREADY             : out std_ulogic;
+    piROLE_MPE_MPI_data_TREADY             : in std_ulogic;
     poROLE_MPE_MPI_data_TKEEP              : out std_ulogic;
     poROLE_MPE_MPI_data_TLAST              : out std_ulogic;
 
@@ -248,12 +248,12 @@ begin
   --poROL_SHL_EMIF_2B_Reg <= x"FE" & EMIF_inv; 
   poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
   poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
-                                      x"E"; 
-  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
                                       x"F"; 
+  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
+                                      x"E"; 
 
   EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
-              x"CA" ;
+              x"BE" ;
   
   
   
