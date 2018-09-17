@@ -12,6 +12,7 @@
 -- * Created : Feb 2018
 -- * Authors : Francois Abel <fab@zurich.ibm.com>
 -- *           Beat Weiss <wei@zurich.ibm.com>
+-- *           Burkhard Ringlein <ngl@zurich.ibm.com>
 -- *
 -- * Devices : xcku060-ffva1156-2-i
 -- * Tools   : Vivado v2016.4, 2017.4 (64-bit)
@@ -255,7 +256,45 @@ begin
   EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
               x"BE" ;
   
-  
+  pMpiEcho: process(piSHL_156_25Clk) 
+  begin
+    if rising_edge(piSHL_156_25Clk) then 
+      if piSHL_156_25Rst = '1' then 
+        poMPE_ROLE_MPI_data_TREADY <= '0';
+        poMPE_ROLE_MPIif_rank_TREADY <= '0';
+        poMPE_ROLE_MPIif_count_TREADY <= '0';
+        poMPE_ROLE_MPIif_mpi_call_TREADY <= '0';
+
+        poROLE_MPE_MPIif_mpi_call_TDATA <= (others => '0');
+        poROLE_MPE_MPIif_mpi_call_TVALID <= '0';
+        poROLE_MPE_MPIif_count_TDATA <= (others => '0');
+        poROLE_MPE_MPIif_count_TVALID <= '0';
+        poROLE_MPE_MPIif_rank_TDATA <= (others => '0');
+        poROLE_MPE_MPIif_rank_TVALID <= '0';
+        poROLE_MPE_MPI_data_TDATA <= (others => '0');
+        poROLE_MPE_MPI_data_TVALID <= '0';
+        poROLE_MPE_MPI_data_TKEEP <= '0';
+        poROLE_MPE_MPI_data_TLAST <= '0';
+      else 
+        poMPE_ROLE_MPI_data_TREADY <=          piROLE_MPE_MPI_data_TREADY;
+        poMPE_ROLE_MPIif_rank_TREADY <=        piROLE_MPE_MPIif_rank_TREADY;
+        poMPE_ROLE_MPIif_count_TREADY <=       piROLE_MPE_MPIif_count_TREADY; 
+        poMPE_ROLE_MPIif_mpi_call_TREADY <=    piROLE_MPE_MPIif_mpi_call_TREADY;
+        poROLE_MPE_MPIif_mpi_call_TDATA <=     piMPE_ROLE_MPIif_mpi_call_TDATA;
+        poROLE_MPE_MPIif_mpi_call_TVALID <=    piMPE_ROLE_MPIif_mpi_call_TVALID;
+        poROLE_MPE_MPIif_count_TDATA <=        piMPE_ROLE_MPIif_count_TDATA;
+        poROLE_MPE_MPIif_count_TVALID <=       piMPE_ROLE_MPIif_count_TVALID; 
+        poROLE_MPE_MPIif_rank_TDATA <=         piMPE_ROLE_MPIif_rank_TDATA;
+        poROLE_MPE_MPIif_rank_TVALID <=        piMPE_ROLE_MPIif_rank_TVALID;
+        poROLE_MPE_MPI_data_TDATA <=           piMPE_ROLE_MPI_data_TDATA; 
+        poROLE_MPE_MPI_data_TVALID <=          piMPE_ROLE_MPI_data_TVALID; 
+        poROLE_MPE_MPI_data_TKEEP <=           piMPE_ROLE_MPI_data_TKEEP; 
+        poROLE_MPE_MPI_data_TLAST <=           piMPE_ROLE_MPI_data_TLAST; 
+        
+      end if;
+
+    end if;
+  end process pMpiEcho;
   
   pMp0RdCmd : process(piSHL_156_25Clk)
   begin
