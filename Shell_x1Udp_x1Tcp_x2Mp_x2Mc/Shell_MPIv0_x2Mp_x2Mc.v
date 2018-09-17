@@ -900,21 +900,21 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- ROLE / Nts0 / Udp Interfaces
     //------------------------------------------------------
     //-- Input AXI-Write Stream Interface ----------
-   // .piROL_Nts0_Udp_Axis_tdata        (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
-   // .piROL_Nts0_Udp_Axis_tkeep        (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
-   // .piROL_Nts0_Udp_Axis_tlast        (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
-   // .piROL_Nts0_Udp_Axis_tvalid       (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
-   // .poNTS0_Rol_Udp_Axis_tready       (poSHL_Rol_Nts0_Udp_Axis_tready),
-   // //-- Output AXI-Write Stream Interface ---------
-   // .piROL_Nts0_Udp_Axis_tready       (sDECOUP_Shl_Nts0_Udp_Axis_tready),
-   // .poNTS0_Rol_Udp_Axis_tdata        (poSHL_Rol_Nts0_Udp_Axis_tdata),
-   // .poNTS0_Rol_Udp_Axis_tkeep        (poSHL_Rol_Nts0_Udp_Axis_tkeep),
-   // .poNTS0_Rol_Udp_Axis_tlast        (poSHL_Rol_Nts0_Udp_Axis_tlast),
-   // .poNTS0_Rol_Udp_Axis_tvalid       (poSHL_Rol_Nts0_Udp_Axis_tvalid),
+    .piROL_Nts0_Udp_Axis_tdata        (sMPE_NTS_Tcp_TDATA),
+    .piROL_Nts0_Udp_Axis_tkeep        (sMPE_NTS_Tcp_TKEEP),
+    .piROL_Nts0_Udp_Axis_tlast        (sMPE_NTS_Tcp_TLAST),
+    .piROL_Nts0_Udp_Axis_tvalid       (sMPE_NTS_Tcp_TVALID),
+    .poNTS0_Rol_Udp_Axis_tready       (sMPE_NTS_Tcp_TREADY),
+    //-- Output AXI-Write Stream Interface ---------
+    .poNTS0_Rol_Udp_Axis_tdata        (sNTS_MPE_Tcp_TDATA),
+    .poNTS0_Rol_Udp_Axis_tkeep        (sNTS_MPE_Tcp_TKEEP),
+    .poNTS0_Rol_Udp_Axis_tlast        (sNTS_MPE_Tcp_TLAST),
+    .poNTS0_Rol_Udp_Axis_tvalid       (sNTS_MPE_Tcp_TVALID),
+    .piROL_Nts0_Udp_Axis_tready       (sNTS_MPE_Tcp_TREADY),
 
-   // //------------------------------------------------------
-   // //-- ROLE / Nts0 / TCP Interfaces
-   // //------------------------------------------------------
+    //------------------------------------------------------
+    //-- ROLE / Nts0 / TCP Interfaces
+    //------------------------------------------------------
    // //-- Input AXI-Write Stream Interface ----------
    // .piROL_Nts0_Tcp_Axis_tdata        (sDECOUP_Shl_Nts0_Tcp_Axis_tdata),
    // .piROL_Nts0_Tcp_Axis_tkeep        (sDECOUP_Shl_Nts0_Tcp_Axis_tkeep),
@@ -927,7 +927,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
    // .poNTS0_Rol_Tcp_Axis_tkeep        (poSHL_Rol_Nts0_Tcp_Axis_tkeep),
    // .poNTS0_Rol_Tcp_Axis_tlast        (poSHL_Rol_Nts0_Tcp_Axis_tlast),
    // .poNTS0_Rol_Tcp_Axis_tvalid       (poSHL_Rol_Nts0_Tcp_Axis_tvalid),
-    
+   
     //------------------------------------------------------
     //-- MMIO / Nts0 / Interfaces
     //------------------------------------------------------
@@ -1323,11 +1323,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siIP_V_ipAddress_V_TDATA        (sNTS_MPE_IP_V_ipAddress_V_TDATA),
     .siIP_V_ipAddress_V_TVALID        (sNTS_MPE_IP_V_ipAddress_V_TVALID),
     .siIP_V_ipAddress_V_TREADY        (sNTS_MPE_IP_V_ipAddress_V_TREADY),
-    .soTcp_TDATA        (sMPE_NTSTcp_TDATA),
-    .soTcp_TVALID        (sMPE_NTSTcp_TVALID),
-    .soTcp_TREADY        (sMPE_NTSTcp_TREADY),
-    .soTcp_TKEEP        (sMPE_NTSTcp_TKEEP),
-    .soTcp_TLAST        (sMPE_NTSTcp_TLAST),
+    .soTcp_TDATA        (sMPE_NTS_Tcp_TDATA),
+    .soTcp_TVALID        (sMPE_NTS_Tcp_TVALID),
+    .soTcp_TREADY        (sMPE_NTS_Tcp_TREADY),
+    .soTcp_TKEEP        (sMPE_NTS_Tcp_TKEEP),
+    .soTcp_TLAST        (sMPE_NTS_Tcp_TLAST),
     .soIP_V_ipAddress_V_TDATA        (sMPE_NTSIP_ipAddress_TDATA),
     .soIP_V_ipAddress_V_TVALID        (sMPE_NTSIP_ipAddress_TVALID),
     .soIP_V_ipAddress_V_TREADY        (sMPE_NTSIP_ipAddress_VREADY),
