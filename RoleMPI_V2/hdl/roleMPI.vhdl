@@ -248,12 +248,12 @@ begin
   --poROL_SHL_EMIF_2B_Reg <= x"FE" & EMIF_inv; 
   poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
   poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
-                                      x"F"; 
-  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
                                       x"E"; 
+  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
+                                      x"F"; 
 
   EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
-              x"BE" ;
+              x"CA" ;
   
   
   
