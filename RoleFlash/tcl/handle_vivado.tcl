@@ -276,7 +276,7 @@ if { ${create} } {
         if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
             set simObj [ get_filesets sim_1 ]
             set_property SOURCE_SET sources_1 ${simObj}
-            add_files -fileset ${simObj} [ glob ${simDir}/*.vhdl ]
+            add_files -fileset ${simObj} [ glob ${simDir}/*.vhd* ]
             set_property source_mgmt_mode All [ current_project ]
             update_compile_order -fileset ${simObj}
         }
