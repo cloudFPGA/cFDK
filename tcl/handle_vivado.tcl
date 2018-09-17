@@ -356,9 +356,11 @@ if { ${create} } {
         #---------------------------------------------------------------------------
         add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
         if { $useMPI } { 
-          add_files     ${rootDir}/../../SHELL/${usedShellType}/Shell_MPIv0_x2Mp_x2Mc.v
+          add_files     ${rootDir}/../../SHELL/${usedShellType}/Shell_MPIv0_x2Mp_x2Mc.v 
+          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp.v
         } else { 
           add_files     ${rootDir}/../../SHELL/${usedShellType}/${usedShellType}.v
+          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp_MPI.v
         }
 
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
