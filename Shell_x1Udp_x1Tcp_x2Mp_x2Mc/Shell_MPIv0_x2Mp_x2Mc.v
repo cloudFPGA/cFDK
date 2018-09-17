@@ -160,30 +160,30 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   output [ 7:0] poMPE_ROLE_MPIif_out_mpi_call_TDATA,
   output        poMPE_ROLE_MPIif_out_mpi_call_TVALID,
-  output        poMPE_ROLE_MPIif_out_mpi_call_TREADY,
+  input         piMPE_ROLE_MPIif_out_mpi_call_TREADY,
   input  [ 7:0] piROLE_MPE_MPIif_in_mpi_call_TDATA,
   input         piROLE_MPE_MPIif_in_mpi_call_TVALID,
-  input         piROLE_MPE_MPIif_in_mpi_call_TREADY,
+  output        poROLE_MPE_MPIif_in_mpi_call_TREADY,
   input  [31:0] piROLE_MPE_MPIif_in_count_TDATA,
   input         piROLE_MPE_MPIif_in_count_TVALID,
-  input         piROLE_MPE_MPIif_in_count_TREADY,
+  output        poROLE_MPE_MPIif_in_count_TREADY,
   output [31:0] poMPE_ROLE_MPIif_out_count_TDATA,
   output        poMPE_ROLE_MPIif_out_count_TVALID,
-  output        poMPE_ROLE_MPIif_out_count_TREADY,
+  input         piMPE_ROLE_MPIif_out_count_TREADY,
   input  [31:0] piROLE_MPE_MPIif_in_rank_TDATA,
   input         piROLE_MPE_MPIif_in_rank_TVALID,
-  input         piROLE_MPE_MPIif_in_rank_TREADY,
+  output        poROLE_MPE_MPIif_in_rank_TREADY,
   output [31:0] poMPE_ROLE_MPIif_out_rank_TDATA,
   output        poMPE_ROLE_MPIif_out_rank_TVALID,
-  output        poMPE_ROLE_MPIif_out_rank_TREADY,
+  input         piMPE_ROLE_MPIif_out_rank_TREADY,
   input  [ 7:0] piROLE_MPE_MPI_data_TDATA,
   input         piROLE_MPE_MPI_data_TVALID,
-  input         piROLE_MPE_MPI_data_TREADY,
+  output        poROLE_MPE_MPI_data_TREADY,
   input         piROLE_MPE_MPI_data_TKEEP,
   input         piROLE_MPE_MPI_data_TLAST,
   output [ 7:0] poMPE_ROLE_MPI_data_TDATA,
   output        poMPE_ROLE_MPI_data_TVALID,
-  output        poMPE_ROLE_MPI_data_TREADY,
+  input         piMPE_ROLE_MPI_data_TREADY,
   output        poMPE_ROLE_MPI_data_TKEEP,
   output        poMPE_ROLE_MPI_data_TLAST,
 
@@ -492,16 +492,20 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   //-- SIGNAL DECLARATIONS: Decoupling
   //------------------------------------------------------
-  //wire   [ 63:0]  sDECOUP_Shl_Nts0_Udp_Axis_tdata;
-  //wire   [  7:0]  sDECOUP_Shl_Nts0_Udp_Axis_tkeep;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tlast;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tvalid;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tready;
-  //wire   [ 63:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tdata;
-  //wire   [  7:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tkeep;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tlast;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tvalid;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tready;
+  wire            sDECOUP_MPE_ROLE_MPIif_out_mpi_call_TREADY;
+  wire  [ 7:0]    sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TDATA;
+  wire            sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TVALID;
+  wire  [31:0]    sDECOUP_ROLE_MPE_MPIif_in_count_TDATA;
+  wire            sDECOUP_ROLE_MPE_MPIif_in_count_TVALID;
+  wire            sDECOUP_MPE_ROLE_MPIif_out_count_TREADY;
+  wire  [31:0]    sDECOUP_ROLE_MPE_MPIif_in_rank_TDATA;
+  wire            sDECOUP_ROLE_MPE_MPIif_in_rank_TVALID;
+  wire            sDECOUP_MPE_ROLE_MPIif_out_rank_TREADY;
+  wire  [ 7:0]    sDECOUP_ROLE_MPE_MPI_data_TDATA;
+  wire            sDECOUP_ROLE_MPE_MPI_data_TVALID;
+  wire            sDECOUP_ROLE_MPE_MPI_data_TKEEP;
+  wire            sDECOUP_ROLE_MPE_MPI_data_TLAST;
+  wire            sDECOUP_MPE_ROLE_MPI_data_TREADY;
   wire    [15:0]  sDECOUP_SHL_EMIF_2B_Reg;
   wire   [ 71:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid;
@@ -1220,26 +1224,34 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
 
   Decoupler DECOUP (
-//    .rp_ROLE_Nts0_Udp_Axis_tready    (piROL_Shl_Nts0_Udp_Axis_tready),
-//    .s_ROLE_Nts0_Udp_Axis_tready   (sDECOUP_Shl_Nts0_Udp_Axis_tready),
-//    .rp_ROLE_Nts0_Udp_Axis_tdata     (piROL_Shl_Nts0_Udp_Axis_tdata),
-//    .s_ROLE_Nts0_Udp_Axis_tdata    (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
-//    .rp_ROLE_Nts0_Udp_Axis_tkeep        (piROL_Shl_Nts0_Udp_Axis_tkeep),
-//    .s_ROLE_Nts0_Udp_Axis_tkeep    (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
-//    .rp_ROLE_Nts0_Udp_Axis_tvalid       (piROL_Shl_Nts0_Udp_Axis_tvalid),
-//    .s_ROLE_Nts0_Udp_Axis_tvalid   (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
-//    .rp_ROLE_Nts0_Udp_Axis_tlast     (piROL_Shl_Nts0_Udp_Axis_tlast),
-//    .s_ROLE_Nts0_Udp_Axis_tlast    (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
-//    .rp_ROLE_Nts0_Tcp_Axis_tready       (piROL_Shl_Nts0_Tcp_Axis_tready),
-//    .s_ROLE_Nts0_Tcp_Axis_tready   (sDECOUP_Shl_Nts0_Tcp_Axis_tready),
-//    .rp_ROLE_Nts0_Tcp_Axis_tdata        (piROL_Shl_Nts0_Tcp_Axis_tdata),
-//    .s_ROLE_Nts0_Tcp_Axis_tdata    (sDECOUP_Shl_Nts0_Tcp_Axis_tdata),
-//    .rp_ROLE_Nts0_Tcp_Axis_tkeep        (piROL_Shl_Nts0_Tcp_Axis_tkeep),
-//    .s_ROLE_Nts0_Tcp_Axis_tkeep    (sDECOUP_Shl_Nts0_Tcp_Axis_tkeep),
-//    .rp_ROLE_Nts0_Tcp_Axis_tvalid       (piROL_Shl_Nts0_Tcp_Axis_tvalid),
-//    .s_ROLE_Nts0_Tcp_Axis_tvalid   (sDECOUP_Shl_Nts0_Tcp_Axis_tvalid),
-//    .rp_ROLE_Nts0_Tcp_Axis_tlast        (piROL_Shl_Nts0_Tcp_Axis_tlast),
-//    .s_ROLE_Nts0_Tcp_Axis_tlast    (sDECOUP_Shl_Nts0_Tcp_Axis_tlast),
+    .rp_MPE_ROLE_MPIif_out_mpi_call_TREADY   (piMPE_ROLE_MPIif_out_mpi_call_TREADY),
+    .s_MPE_ROLE_MPIif_out_mpi_call_TREADY    (sDECOUP_MPE_ROLE_MPIif_out_mpi_call_TREADY),
+    .rp_ROLE_MPE_MPIif_in_mpi_call_TDATA     (piROLE_MPE_MPIif_in_mpi_call_TDATA),
+    .s_ROLE_MPE_MPIif_in_mpi_call_TDATA      (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TDATA),
+    .rp_ROLE_MPE_MPIif_in_mpi_call_TVALID    (piROLE_MPE_MPIif_in_mpi_call_TVALID),
+    .s_ROLE_MPE_MPIif_in_mpi_call_TVALID     (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TVALID),
+    .rp_ROLE_MPE_MPIif_in_count_TDATA        (piROLE_MPE_MPIif_in_count_TDATA),
+    .s_ROLE_MPE_MPIif_in_count_TDATA         (sDECOUP_ROLE_MPE_MPIif_in_count_TDATA),
+    .rp_ROLE_MPE_MPIif_in_count_TVALID       (piROLE_MPE_MPIif_in_count_TVALID),
+    .s_ROLE_MPE_MPIif_in_count_TVALID        (sDECOUP_ROLE_MPE_MPIif_in_count_TVALID),
+    .rp_MPE_ROLE_MPIif_out_count_TREADY      (piMPE_ROLE_MPIif_out_count_TREADY),
+    .s_MPE_ROLE_MPIif_out_count_TREADY       (sDECOUP_MPE_ROLE_MPIif_out_count_TREADY),
+    .rp_ROLE_MPE_MPIif_in_rank_TDATA         (piROLE_MPE_MPIif_in_rank_TDATA),
+    .s_ROLE_MPE_MPIif_in_rank_TDATA          (sDECOUP_ROLE_MPE_MPIif_in_rank_TDATA),
+    .rp_ROLE_MPE_MPIif_in_rank_TVALID        (piROLE_MPE_MPIif_in_rank_TVALID),
+    .s_ROLE_MPE_MPIif_in_rank_TVALID         (sDECOUP_ROLE_MPE_MPIif_in_rank_TVALID),
+    .rp_MPE_ROLE_MPIif_out_rank_TREADY       (piMPE_ROLE_MPIif_out_rank_TREADY),
+    .s_MPE_ROLE_MPIif_out_rank_TREADY        (sDECOUP_MPE_ROLE_MPIif_out_rank_TREADY),
+    .rp_ROLE_MPE_MPI_data_TDATA              (piROLE_MPE_MPI_data_TDATA),
+    .s_ROLE_MPE_MPI_data_TDATA               (sDECOUP_ROLE_MPE_MPI_data_TDATA),
+    .rp_ROLE_MPE_MPI_data_TVALID             (piROLE_MPE_MPI_data_TVALID),
+    .s_ROLE_MPE_MPI_data_TVALID              (sDECOUP_ROLE_MPE_MPI_data_TVALID),
+    .rp_ROLE_MPE_MPI_data_TKEEP              (piROLE_MPE_MPI_data_TKEEP),
+    .s_ROLE_MPE_MPI_data_TKEEP               (sDECOUP_ROLE_MPE_MPI_data_TKEEP),
+    .rp_ROLE_MPE_MPI_data_TLAST              (piROLE_MPE_MPI_data_TLAST),
+    .s_ROLE_MPE_MPI_data_TLAST               (sDECOUP_ROLE_MPE_MPI_data_TLAST),
+    .rp_MPE_ROLE_MPI_data_TREADY             (piMPE_ROLE_MPI_data_TREADY),
+    .s_MPE_ROLE_MPI_data_TREADY              (sDECOUP_MPE_ROLE_MPI_data_TREADY),
     .rp_ROLE_EMIF_2B_Reg     (piROL_SHL_EMIF_2B_Reg),
     .s_ROLE_EMIF_2B_Reg    (sDECOUP_SHL_EMIF_2B_Reg),
     .rp_ROLE_Mem_Up0_Axis_RdCmd_tdata         (piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
@@ -1312,32 +1324,32 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soIP_V_ipAddress_V_TDATA        (sMPE_NTSIP_ipAddress_TDATA),
     .soIP_V_ipAddress_V_TVALID        (sMPE_NTSIP_ipAddress_TVALID),
     .soIP_V_ipAddress_V_TREADY        (sMPE_NTSIP_ipAddress_VREADY),
-    .siMPIif_V_mpi_call_V_TDATA         (piROLE_MPE_MPIif_in_mpi_call_TDATA),
-    .siMPIif_V_mpi_call_V_TVALID        (piROLE_MPE_MPIif_in_mpi_call_TVALID),
-    .siMPIif_V_mpi_call_V_TREADY        (piROLE_MPE_MPIif_in_mpi_call_TREADY),
+    .siMPIif_V_mpi_call_V_TDATA         (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TDATA),
+    .siMPIif_V_mpi_call_V_TVALID        (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TVALID),
+    .siMPIif_V_mpi_call_V_TREADY        (poROLE_MPE_MPIif_in_mpi_call_TREADY),
     .soMPIif_V_mpi_call_V_TDATA         (poMPE_ROLE_MPIif_out_mpi_call_TDATA),
     .soMPIif_V_mpi_call_V_TVALID        (poMPE_ROLE_MPIif_out_mpi_call_TVALID),
-    .soMPIif_V_mpi_call_V_TREADY        (poMPE_ROLE_MPIif_out_mpi_call_TREADY),
-    .siMPIif_V_count_V_TDATA         (piROLE_MPE_MPIif_in_count_TDATA),
-    .siMPIif_V_count_V_TVALID        (piROLE_MPE_MPIif_in_count_TVALID),
-    .siMPIif_V_count_V_TREADY        (piROLE_MPE_MPIif_in_count_TREADY),
+    .soMPIif_V_mpi_call_V_TREADY        (sDECOUP_MPE_ROLE_MPIif_out_mpi_call_TREADY),
+    .siMPIif_V_count_V_TDATA         (sDECOUP_ROLE_MPE_MPIif_in_count_TDATA),
+    .siMPIif_V_count_V_TVALID        (sDECOUP_ROLE_MPE_MPIif_in_count_TVALID),
+    .siMPIif_V_count_V_TREADY        (poROLE_MPE_MPIif_in_count_TREADY),
     .soMPIif_V_count_V_TDATA         (poMPE_ROLE_MPIif_out_count_TDATA),
     .soMPIif_V_count_V_TVALID        (poMPE_ROLE_MPIif_out_count_TVALID),
-    .soMPIif_V_count_V_TREADY        (poMPE_ROLE_MPIif_out_count_TREADY),
-    .siMPIif_V_rank_V_TDATA         (piROLE_MPE_MPIif_in_rank_TDATA),
-    .siMPIif_V_rank_V_TVALID        (piROLE_MPE_MPIif_in_rank_TVALID),
-    .siMPIif_V_rank_V_TREADY        (piROLE_MPE_MPIif_in_rank_TREADY),
+    .soMPIif_V_count_V_TREADY        (sDECOUP_MPE_ROLE_MPIif_out_count_TREADY),
+    .siMPIif_V_rank_V_TDATA         (sDECOUP_ROLE_MPE_MPIif_in_rank_TDATA),
+    .siMPIif_V_rank_V_TVALID        (sDECOUP_ROLE_MPE_MPIif_in_rank_TVALID),
+    .siMPIif_V_rank_V_TREADY        (poROLE_MPE_MPIif_in_rank_TREADY),
     .soMPIif_V_rank_V_TDATA         (poMPE_ROLE_MPIif_out_rank_TDATA),
     .soMPIif_V_rank_V_TVALID        (poMPE_ROLE_MPIif_out_rank_TVALID),
-    .soMPIif_V_rank_V_TREADY        (poMPE_ROLE_MPIif_out_rank_TREADY),
-    .siMPI_data_TDATA        (piROLE_MPE_MPI_data_TDATA),
-    .siMPI_data_TVALID        (piROLE_MPE_MPI_data_TVALID),
-    .siMPI_data_TREADY        (piROLE_MPE_MPI_data_TREADY),
-    .siMPI_data_TKEEP        (piROLE_MPE_MPI_data_TKEEP),
-    .siMPI_data_TLAST        (piROLE_MPE_MPI_data_TLAST),
+    .soMPIif_V_rank_V_TREADY        (sDECOUP_MPE_ROLE_MPIif_out_rank_TREADY),
+    .siMPI_data_TDATA        (sDECOUP_ROLE_MPE_MPI_data_TDATA),
+    .siMPI_data_TVALID        (sDECOUP_ROLE_MPE_MPI_data_TVALID),
+    .siMPI_data_TREADY        (poROLE_MPE_MPI_data_TREADY),
+    .siMPI_data_TKEEP        (sDECOUP_ROLE_MPE_MPI_data_TKEEP),
+    .siMPI_data_TLAST        (sDECOUP_ROLE_MPE_MPI_data_TLAST),
     .soMPI_data_TDATA        (poMPE_ROLE_MPI_data_TDATA),
     .soMPI_data_TVALID        (poMPE_ROLE_MPI_data_TVALID),
-    .soMPI_data_TREADY        (poMPE_ROLE_MPI_data_TREADY),
+    .soMPI_data_TREADY        (sDECOUP_MPE_ROLE_MPI_data_TREADY),
     .soMPI_data_TKEEP        (poMPE_ROLE_MPI_data_TKEEP),
     .soMPI_data_TLAST        (poMPE_ROLE_MPI_data_TLAST),
     .s_axi_piSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),

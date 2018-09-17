@@ -39,6 +39,7 @@ ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
 
 ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log -tclargs -useMPI
+	@touch $@
 
 # Create IP directory if it does not exist
 ./ip/ip_user_files:
