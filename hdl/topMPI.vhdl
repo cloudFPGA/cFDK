@@ -410,30 +410,30 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poMPE_ROLE_MPIif_out_mpi_call_TDATA    : out std_ulogic_vector(7 downto 0);
       poMPE_ROLE_MPIif_out_mpi_call_TVALID   : out std_ulogic;
-      poMPE_ROLE_MPIif_out_mpi_call_TREADY   : out std_ulogic;
+      piMPE_ROLE_MPIif_out_mpi_call_TREADY   : in std_ulogic;
       piROLE_MPE_MPIif_in_mpi_call_TDATA     : in  std_ulogic_vector(7 downto 0);
       piROLE_MPE_MPIif_in_mpi_call_TVALID    : in  std_ulogic;
-      piROLE_MPE_MPIif_in_mpi_call_TREADY    : in  std_ulogic;
+      poROLE_MPE_MPIif_in_mpi_call_TREADY    : out  std_ulogic;
       piROLE_MPE_MPIif_in_count_TDATA        : in  std_ulogic_vector(31 downto 0);
       piROLE_MPE_MPIif_in_count_TVALID       : in  std_ulogic;
-      piROLE_MPE_MPIif_in_count_TREADY       : in  std_ulogic;
+      poROLE_MPE_MPIif_in_count_TREADY       : out  std_ulogic;
       poMPE_ROLE_MPIif_out_count_TDATA       : out std_ulogic_vector(31 downto 0);
       poMPE_ROLE_MPIif_out_count_TVALID      : out std_ulogic;
-      poMPE_ROLE_MPIif_out_count_TREADY      : out std_ulogic;
+      piMPE_ROLE_MPIif_out_count_TREADY      : in std_ulogic;
       piROLE_MPE_MPIif_in_rank_TDATA         : in std_ulogic_vector(31 downto 0);
       piROLE_MPE_MPIif_in_rank_TVALID        : in std_ulogic;
-      piROLE_MPE_MPIif_in_rank_TREADY        : in std_ulogic;
+      poROLE_MPE_MPIif_in_rank_TREADY        : out std_ulogic;
       poMPE_ROLE_MPIif_out_rank_TDATA        : out std_ulogic_vector(31 downto 0);
       poMPE_ROLE_MPIif_out_rank_TVALID       : out std_ulogic;
-      poMPE_ROLE_MPIif_out_rank_TREADY       : out std_ulogic;
+      piMPE_ROLE_MPIif_out_rank_TREADY       : in std_ulogic;
       piROLE_MPE_MPI_data_TDATA              : in std_ulogic_vector(7 downto 0);
       piROLE_MPE_MPI_data_TVALID             : in std_ulogic;
-      piROLE_MPE_MPI_data_TREADY             : in std_ulogic;
+      poROLE_MPE_MPI_data_TREADY             : out std_ulogic;
       piROLE_MPE_MPI_data_TKEEP              : in std_ulogic;
       piROLE_MPE_MPI_data_TLAST              : in std_ulogic;
       poMPE_ROLE_MPI_data_TDATA              : out std_ulogic_vector(7 downto 0);
       poMPE_ROLE_MPI_data_TVALID             : out std_ulogic;
-      poMPE_ROLE_MPI_data_TREADY             : out std_ulogic;
+      piMPE_ROLE_MPI_data_TREADY             : in std_ulogic;
       poMPE_ROLE_MPI_data_TKEEP              : out std_ulogic;
       poMPE_ROLE_MPI_data_TLAST              : out std_ulogic;
 
@@ -548,30 +548,30 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poROLE_MPE_MPIif_mpi_call_TDATA        : out std_ulogic_vector(7 downto 0);
       poROLE_MPE_MPIif_mpi_call_TVALID       : out std_ulogic;
-      poROLE_MPE_MPIif_mpi_call_TREADY       : out std_ulogic;
+      piROLE_MPE_MPIif_mpi_call_TREADY       : in std_ulogic;
       piMPE_ROLE_MPIif_mpi_call_TDATA        : in  std_ulogic_vector(7 downto 0);
       piMPE_ROLE_MPIif_mpi_call_TVALID       : in  std_ulogic;
-      piMPE_ROLE_MPIif_mpi_call_TREADY       : in  std_ulogic;
+      poMPE_ROLE_MPIif_mpi_call_TREADY       : out  std_ulogic;
       piMPE_ROLE_MPIif_count_TDATA           : in  std_ulogic_vector(31 downto 0);
       piMPE_ROLE_MPIif_count_TVALID          : in  std_ulogic;
-      piMPE_ROLE_MPIif_count_TREADY          : in  std_ulogic;
+      poMPE_ROLE_MPIif_count_TREADY          : out  std_ulogic;
       poROLE_MPE_MPIif_count_TDATA           : out std_ulogic_vector(31 downto 0);
       poROLE_MPE_MPIif_count_TVALID          : out std_ulogic;
-      poROLE_MPE_MPIif_count_TREADY          : out std_ulogic;
+      piROLE_MPE_MPIif_count_TREADY          : in std_ulogic;
       piMPE_ROLE_MPIif_rank_TDATA            : in std_ulogic_vector(31 downto 0);
       piMPE_ROLE_MPIif_rank_TVALID           : in std_ulogic;
-      piMPE_ROLE_MPIif_rank_TREADY           : in std_ulogic;
+      poMPE_ROLE_MPIif_rank_TREADY           : out std_ulogic;
       poROLE_MPE_MPIif_rank_TDATA            : out std_ulogic_vector(31 downto 0);
       poROLE_MPE_MPIif_rank_TVALID           : out std_ulogic;
-      poROLE_MPE_MPIif_rank_TREADY           : out std_ulogic;
+      piROLE_MPE_MPIif_rank_TREADY           : in std_ulogic;
       piMPE_ROLE_MPI_data_TDATA              : in std_ulogic_vector(7 downto 0);
       piMPE_ROLE_MPI_data_TVALID             : in std_ulogic;
-      piMPE_ROLE_MPI_data_TREADY             : in std_ulogic;
+      poMPE_ROLE_MPI_data_TREADY             : out std_ulogic;
       piMPE_ROLE_MPI_data_TKEEP              : in std_ulogic;
       piMPE_ROLE_MPI_data_TLAST              : in std_ulogic;
       poROLE_MPE_MPI_data_TDATA              : out std_ulogic_vector(7 downto 0);
       poROLE_MPE_MPI_data_TVALID             : out std_ulogic;
-      poROLE_MPE_MPI_data_TREADY             : out std_ulogic;
+      piROLE_MPE_MPI_data_TREADY             : in std_ulogic;
       poROLE_MPE_MPI_data_TKEEP              : out std_ulogic;
       poROLE_MPE_MPI_data_TLAST              : out std_ulogic;
 
@@ -821,30 +821,30 @@ begin
       ------------------------------------------------------
       poMPE_ROLE_MPIif_out_mpi_call_TDATA    => sMPE_ROLE_MPIif_out_mpi_call_TDATA ,
       poMPE_ROLE_MPIif_out_mpi_call_TVALID   => sMPE_ROLE_MPIif_out_mpi_call_TVALID,
-      poMPE_ROLE_MPIif_out_mpi_call_TREADY   => sMPE_ROLE_MPIif_out_mpi_call_TREADY,
+      piMPE_ROLE_MPIif_out_mpi_call_TREADY   => sMPE_ROLE_MPIif_out_mpi_call_TREADY,
       piROLE_MPE_MPIif_in_mpi_call_TDATA     => sROLE_MPE_MPIif_in_mpi_call_TDATA  ,
       piROLE_MPE_MPIif_in_mpi_call_TVALID    => sROLE_MPE_MPIif_in_mpi_call_TVALID ,
-      piROLE_MPE_MPIif_in_mpi_call_TREADY    => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
+      poROLE_MPE_MPIif_in_mpi_call_TREADY    => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
       piROLE_MPE_MPIif_in_count_TDATA        => sROLE_MPE_MPIif_in_count_TDATA     ,
       piROLE_MPE_MPIif_in_count_TVALID       => sROLE_MPE_MPIif_in_count_TVALID    ,
-      piROLE_MPE_MPIif_in_count_TREADY       => sROLE_MPE_MPIif_in_count_TREADY    ,
+      poROLE_MPE_MPIif_in_count_TREADY       => sROLE_MPE_MPIif_in_count_TREADY    ,
       poMPE_ROLE_MPIif_out_count_TDATA       => sMPE_ROLE_MPIif_out_count_TDATA    ,
       poMPE_ROLE_MPIif_out_count_TVALID      => sMPE_ROLE_MPIif_out_count_TVALID   ,
-      poMPE_ROLE_MPIif_out_count_TREADY      => sMPE_ROLE_MPIif_out_count_TREADY   ,
+      piMPE_ROLE_MPIif_out_count_TREADY      => sMPE_ROLE_MPIif_out_count_TREADY   ,
       piROLE_MPE_MPIif_in_rank_TDATA         => sROLE_MPE_MPIif_in_rank_TDATA      ,
       piROLE_MPE_MPIif_in_rank_TVALID        => sROLE_MPE_MPIif_in_rank_TVALID     ,
-      piROLE_MPE_MPIif_in_rank_TREADY        => sROLE_MPE_MPIif_in_rank_TREADY     ,
+      poROLE_MPE_MPIif_in_rank_TREADY        => sROLE_MPE_MPIif_in_rank_TREADY     ,
       poMPE_ROLE_MPIif_out_rank_TDATA        => sMPE_ROLE_MPIif_out_rank_TDATA     ,
       poMPE_ROLE_MPIif_out_rank_TVALID       => sMPE_ROLE_MPIif_out_rank_TVALID    ,
-      poMPE_ROLE_MPIif_out_rank_TREADY       => sMPE_ROLE_MPIif_out_rank_TREADY    ,
+      piMPE_ROLE_MPIif_out_rank_TREADY       => sMPE_ROLE_MPIif_out_rank_TREADY    ,
       piROLE_MPE_MPI_data_TDATA              => sROLE_MPE_MPI_data_TDATA           ,
       piROLE_MPE_MPI_data_TVALID             => sROLE_MPE_MPI_data_TVALID          ,
-      piROLE_MPE_MPI_data_TREADY             => sROLE_MPE_MPI_data_TREADY          ,
+      poROLE_MPE_MPI_data_TREADY             => sROLE_MPE_MPI_data_TREADY          ,
       piROLE_MPE_MPI_data_TKEEP              => sROLE_MPE_MPI_data_TKEEP           ,
       piROLE_MPE_MPI_data_TLAST              => sROLE_MPE_MPI_data_TLAST           ,
       poMPE_ROLE_MPI_data_TDATA              => sMPE_ROLE_MPI_data_TDATA           ,
       poMPE_ROLE_MPI_data_TVALID             => sMPE_ROLE_MPI_data_TVALID          ,
-      poMPE_ROLE_MPI_data_TREADY             => sMPE_ROLE_MPI_data_TREADY          ,
+      piMPE_ROLE_MPI_data_TREADY             => sMPE_ROLE_MPI_data_TREADY          ,
       poMPE_ROLE_MPI_data_TKEEP              => sMPE_ROLE_MPI_data_TKEEP           ,
       poMPE_ROLE_MPI_data_TLAST              => sMPE_ROLE_MPI_data_TLAST           ,
 
@@ -954,30 +954,30 @@ begin
       ------------------------------------------------------
       poROLE_MPE_MPIif_mpi_call_TDATA      => sROLE_MPE_MPIif_in_mpi_call_TDATA  ,
       poROLE_MPE_MPIif_mpi_call_TVALID     => sROLE_MPE_MPIif_in_mpi_call_TVALID ,
-      poROLE_MPE_MPIif_mpi_call_TREADY     => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
+      piROLE_MPE_MPIif_mpi_call_TREADY     => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
       piMPE_ROLE_MPIif_mpi_call_TDATA      => sMPE_ROLE_MPIif_out_mpi_call_TDATA   ,
       piMPE_ROLE_MPIif_mpi_call_TVALID     => sMPE_ROLE_MPIif_out_mpi_call_TVALID  ,
-      piMPE_ROLE_MPIif_mpi_call_TREADY     => sMPE_ROLE_MPIif_out_mpi_call_TREADY  ,
+      poMPE_ROLE_MPIif_mpi_call_TREADY     => sMPE_ROLE_MPIif_out_mpi_call_TREADY  ,
       piMPE_ROLE_MPIif_count_TDATA         => sMPE_ROLE_MPIif_out_count_TDATA      ,
       piMPE_ROLE_MPIif_count_TVALID        => sMPE_ROLE_MPIif_out_count_TVALID     ,
-      piMPE_ROLE_MPIif_count_TREADY        => sMPE_ROLE_MPIif_out_count_TREADY     ,
+      poMPE_ROLE_MPIif_count_TREADY        => sMPE_ROLE_MPIif_out_count_TREADY     ,
       poROLE_MPE_MPIif_count_TDATA         => sROLE_MPE_MPIif_in_count_TDATA     ,
       poROLE_MPE_MPIif_count_TVALID        => sROLE_MPE_MPIif_in_count_TVALID    ,
-      poROLE_MPE_MPIif_count_TREADY        => sROLE_MPE_MPIif_in_count_TREADY    ,
+      piROLE_MPE_MPIif_count_TREADY        => sROLE_MPE_MPIif_in_count_TREADY    ,
       piMPE_ROLE_MPIif_rank_TDATA          => sMPE_ROLE_MPIif_out_rank_TDATA       ,
       piMPE_ROLE_MPIif_rank_TVALID         => sMPE_ROLE_MPIif_out_rank_TVALID      ,
-      piMPE_ROLE_MPIif_rank_TREADY         => sMPE_ROLE_MPIif_out_rank_TREADY      ,
+      poMPE_ROLE_MPIif_rank_TREADY         => sMPE_ROLE_MPIif_out_rank_TREADY      ,
       poROLE_MPE_MPIif_rank_TDATA          => sROLE_MPE_MPIif_in_rank_TDATA      ,
       poROLE_MPE_MPIif_rank_TVALID         => sROLE_MPE_MPIif_in_rank_TVALID     ,
-      poROLE_MPE_MPIif_rank_TREADY         => sROLE_MPE_MPIif_in_rank_TREADY     ,
+      piROLE_MPE_MPIif_rank_TREADY         => sROLE_MPE_MPIif_in_rank_TREADY     ,
       piMPE_ROLE_MPI_data_TDATA            => sMPE_ROLE_MPI_data_TDATA            ,
       piMPE_ROLE_MPI_data_TVALID           => sMPE_ROLE_MPI_data_TVALID           ,
-      piMPE_ROLE_MPI_data_TREADY           => sMPE_ROLE_MPI_data_TREADY           ,
+      poMPE_ROLE_MPI_data_TREADY           => sMPE_ROLE_MPI_data_TREADY           ,
       piMPE_ROLE_MPI_data_TKEEP            => sMPE_ROLE_MPI_data_TKEEP            ,
       piMPE_ROLE_MPI_data_TLAST            => sMPE_ROLE_MPI_data_TLAST            ,
       poROLE_MPE_MPI_data_TDATA            => sROLE_MPE_MPI_data_TDATA            ,
       poROLE_MPE_MPI_data_TVALID           => sROLE_MPE_MPI_data_TVALID           ,
-      poROLE_MPE_MPI_data_TREADY           => sROLE_MPE_MPI_data_TREADY           ,
+      piROLE_MPE_MPI_data_TREADY           => sROLE_MPE_MPI_data_TREADY           ,
       poROLE_MPE_MPI_data_TKEEP            => sROLE_MPE_MPI_data_TKEEP            ,
       poROLE_MPE_MPI_data_TLAST            => sROLE_MPE_MPI_data_TLAST            ,
 

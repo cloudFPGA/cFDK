@@ -14,6 +14,8 @@ SHELL_DIR =../../SHELL/Shell_x1Udp_x1Tcp_x2Mp_x2Mc
 ROLE_DIR =../../ROLE
 USED_ROLE =RoleFlash
 USED_ROLE_2 =RoleFlash_V2
+USED_MPI_ROLE =RoleMPI
+USED_MPI_ROLE_2 =RoleMPI_V2
 
 CLEAN_TYPES = *.log *.jou *.str *.time
 
@@ -97,10 +99,18 @@ monolithic_incr: ensureMonolithic ShellSrc | xpr
 #no ROLE, because Role is synthezied with sources!
 monolithic_mpi: ensureMonolithic ShellSrcMPI | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
-	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_mpi
+	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_mpi
+
+#no ROLE, because Role is synthezied with sources!
+monolithic_mpi_incr: ensureMonolithic ShellSrc | xpr 
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
 
 save_mono_incr: ensureMonolithic 
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
+
+save_mono_mpi_incr: ensureMonolithic 
+	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
 
 save_pr_incr: 
 	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
