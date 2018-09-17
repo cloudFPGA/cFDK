@@ -434,10 +434,10 @@ void udp_app_flash (
     static stream<UdpWord>      sEptToTxp_Data("sEptToTxp_Data");
     static stream<UdpWord>      sEsfToTxp_Data("sEsfToTxp_Data");
 
-    #pragma HLS STREAM    variable=sRxpToEpt_Data depth=128
-	#pragma HLS STREAM    variable=sRxpToEsf_Data depth=8
-    #pragma HLS STREAM    variable=sEptToTxp_Data depth=128
-    #pragma HLS STREAM    variable=sEsfToTxp_Data depth=8
+    #pragma HLS STREAM    variable=sRxpToEpt_Data depth=2
+	#pragma HLS STREAM    variable=sRxpToEsf_Data depth=2
+    #pragma HLS STREAM    variable=sEptToTxp_Data depth=2
+    #pragma HLS STREAM    variable=sEsfToTxp_Data depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pRXPath(piSHL_This_MmioEchoCtrl,

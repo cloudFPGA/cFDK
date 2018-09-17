@@ -35,6 +35,8 @@
 -- * Parameters: None.
 -- *
 -- * Comments:
+-- *  [FIXME] - Why is 'sROL_Shl_Nts0_Udp_Axis_tdata[63:0]' only active every 
+-- *            second clock cycle?
 -- *
 -- *****************************************************************************
 
@@ -383,7 +385,7 @@ begin
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
           aclk                      => piSHL_156_25Clk,
-          aresetn                   => piSHL_156_25Rst,
+          aresetn                   => (not piSHL_156_25Rst),
           
            --------------------------------------------------------
            -- From SHELL / Mmio Interfaces
