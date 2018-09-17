@@ -645,12 +645,12 @@ architecture structural of topFlash is
       -- SHELL / Role / Mmio / Flash Debug Interface
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
-      piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+      --piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      --piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
+      --piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+      --piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      --piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
+      --piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
              
       ------------------------------------------------------
       -- ROLE EMIF Registers
@@ -1052,12 +1052,12 @@ begin
       -- SHELL / Role / Mmio / Flash Debug Interface
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
-      piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
-      piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
-      piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
-      piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
-      piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
-      piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      --piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
+      --piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
+      --piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      --piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
+      --piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
+      --piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
       
       ------------------------------------------------------
       -- ROLE EMIF Registers
