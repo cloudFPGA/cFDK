@@ -28,7 +28,7 @@
 #define USE_DEPRECATED_DIRECTIVES
 
 /*****************************************************************************
- * @brief Receive path from UDP core to ROLE or DHCP.
+ * @brief UDP Receive Path (urp) from UDP core to ROLE or DHCP.
  * @ingroup udp_mux
  *
  * @param[in]  siUDP_Data,  data from UDP-core.
@@ -51,16 +51,16 @@ void pUdpRxPath(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static enum ToBlock {ToDhcp=0, ToUrif} streamDestination;
+    static enum ToBlock {ToDhcp=0, ToUrif} urp_streamDestination;
 
-    static enum FsmState {FSM_IDLE=0, FSM_FIRST, FSM_ACC} fsmState;
+    static enum FsmState {FSM_IDLE=0, FSM_FIRST, FSM_ACC} urp_fsmState;
 
-    switch(fsmState) {
+    switch(urp_fsmState) {
 
         case FSM_IDLE:
             if (!siUDP_Meta.empty()) {
+            	// We must ensure both stream are not used before reading in the next socketPair
                 if (!soDHCP_Meta.full() && !soURIF_Meta.full()) {
-                    // We must ensure both stream are not used before reading in the next socketPair
                     UdpMeta socketPair = siUDP_Meta.read();
                     // When a DHCP server sends DHCPOFFER message to the client, that
                     // message contains the client's MAC address, the IP address that
@@ -69,52 +69,51 @@ void pUdpRxPath(
                     // Furthermore, the UDP source port=67 and UDP destination port=68.
                     if (socketPair.dst.port == 0x0044) {
                         soDHCP_Meta.write(socketPair);
-                        streamDestination = ToDhcp;
+                        urp_streamDestination = ToDhcp;
                     }
                     else {
-                        UdpMeta socketPair = siUDP_Meta.read();
                         soURIF_Meta.write(socketPair);
-                        streamDestination = ToUrif;
+                        urp_streamDestination = ToUrif;
                     }
                 }
-                fsmState = FSM_FIRST;
+                urp_fsmState = FSM_FIRST;
             }
             break;
 
         case FSM_FIRST:
             if (!siUDP_Data.empty()) {
-                if ( streamDestination == ToDhcp && !soDHCP_Data.full()) {
+                if ( urp_streamDestination == ToDhcp && !soDHCP_Data.full()) {
                     UdpWord outputWord = siUDP_Data.read();
                     soDHCP_Data.write(outputWord);
                     if (!outputWord.tlast)
-                        fsmState = FSM_ACC;
+                        urp_fsmState = FSM_ACC;
                     else if (outputWord.tlast)
-                        fsmState = FSM_IDLE;
+                        urp_fsmState = FSM_IDLE;
                 }
-                else if (streamDestination == ToUrif && !soURIF_Data.full()) {
+                else if (urp_streamDestination == ToUrif && !soURIF_Data.full()) {
                     UdpWord outputWord = siUDP_Data.read();
                     soURIF_Data.write(outputWord);
                     if (!outputWord.tlast)
-                        fsmState = FSM_ACC;
+                        urp_fsmState = FSM_ACC;
                     else if (outputWord.tlast)
-                        fsmState = FSM_IDLE;
+                        urp_fsmState = FSM_IDLE;
                 }
             }
             break;
 
         case FSM_ACC:
             if (!siUDP_Data.empty()) {
-                if (streamDestination == ToDhcp && !soDHCP_Data.full()) {
+                if (urp_streamDestination == ToDhcp && !soDHCP_Data.full()) {
                     UdpWord outputWord = siUDP_Data.read();
                     soDHCP_Data.write(outputWord);
                     if (outputWord.tlast)
-                        fsmState = FSM_IDLE;
+                        urp_fsmState = FSM_IDLE;
                 }
-                else if (streamDestination == ToUrif && !soURIF_Data.full()) {
+                else if (urp_streamDestination == ToUrif && !soURIF_Data.full()) {
                     UdpWord outputWord = siUDP_Data.read();
                     soURIF_Data.write(outputWord);
                     if (outputWord.tlast)
-                        fsmState = FSM_IDLE;
+                        urp_fsmState = FSM_IDLE;
                 }
             }
             break;
@@ -123,7 +122,7 @@ void pUdpRxPath(
 
 
 /*****************************************************************************
- * @brief Transmit data path from ROLE or DHCP to UDP-core.
+ * @brief UDP Transmit data Path (utp) from ROLE or DHCP to UDP-core.
  * @ingroup udp_mux
  *
  * @param[in]  siDHCP_Data, data from DHCP
@@ -152,48 +151,48 @@ void pUdpTxPath(
      //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static enum FromBlock { FromDhcp=0, FromUrif } streamSource;
+    static enum FromBlock { FromDhcp=0, FromUrif } utp_streamSource;
 
-    static enum FsmState {FSM_IDLE = 0, FSM_STREAM} fsmState;
+    static enum FsmState {FSM_IDLE = 0, FSM_STREAM} utp_fsmState;
 
-    switch(fsmState) {
+    switch(utp_fsmState) {
 
         case FSM_IDLE:
             if (!soUDP_Data.full() && !soUDP_Meta.full() && !soUDP_PLen.full()) {
                 if (!siDHCP_Data.empty() && !siDHCP_Meta.empty() && !siDHCP_PLen.empty()) {
-                    streamSource = FromDhcp;
+                    utp_streamSource = FromDhcp;
                     UdpWord outputWord = siDHCP_Data.read();
                     soUDP_Data.write(outputWord);
                     soUDP_Meta.write(siDHCP_Meta.read());
                     soUDP_PLen.write(siDHCP_PLen.read());
                     if (outputWord.tlast == 0)
-                        fsmState = FSM_STREAM;
+                        utp_fsmState = FSM_STREAM;
                 }
                 else if (!siURIF_Data.empty() && !siURIF_Meta.empty() && !siURIF_PLen.empty()) {
-                    streamSource = FromUrif;
+                    utp_streamSource = FromUrif;
                     UdpWord outputWord = siURIF_Data.read();
                     soUDP_Data.write(outputWord);
                     soUDP_Meta.write(siURIF_Meta.read());
                     soUDP_PLen.write(siURIF_PLen.read());
                     if (outputWord.tlast == 0)
-                        fsmState = FSM_STREAM;
+                        utp_fsmState = FSM_STREAM;
                 }
             }
             break;
 
         case FSM_STREAM:
             if (!soUDP_Data.full()) {
-                if (streamSource == FromDhcp && !siDHCP_Data.empty()) {
+                if (utp_streamSource == FromDhcp && !siDHCP_Data.empty()) {
                     UdpWord outputWord = siDHCP_Data.read();
                     soUDP_Data.write(outputWord);
                     if (outputWord.tlast == 1)
-                        fsmState = FSM_IDLE;
+                        utp_fsmState = FSM_IDLE;
                 }
-                else if (streamSource == 1 && !siURIF_Data.empty()) {
+                else if (utp_streamSource == 1 && !siURIF_Data.empty()) {
                     UdpWord outputWord = siURIF_Data.read();
                     soUDP_Data.write(outputWord);
                     if (outputWord.tlast == 1)
-                        fsmState = FSM_IDLE;
+                        utp_fsmState = FSM_IDLE;
                 }
             }
             break;
@@ -203,7 +202,8 @@ void pUdpTxPath(
 
 
 /*****************************************************************************
- * @brief Request and acknowledgment control for the opening of the ports.
+ * @brief Open Request and open Acknowledgment Control (orac) for the opening
+ *  	   of the ports.
  * @ingroup udp_mux
  *
  * @param[in]  siDHCP_OpnReq, open port request from DHCP.
@@ -226,35 +226,35 @@ void pOpnReqAckCtrl(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static enum FromBlock { FromDhcp=0, FromUrif } streamSource;
+    static enum FromBlock { FromDhcp=0, FromUrif } orac_streamSource;
 
-    static enum FsmState {PORT_IDLE = 0, PORT_STREAM} fsmState;
+    static enum FsmState {PORT_IDLE = 0, PORT_STREAM} orac_fsmState;
 
-    switch(fsmState) {
+    switch(orac_fsmState) {
 
         case PORT_IDLE:
             if (!soUDP_OpnReq.full()) {
                 if (!siDHCP_OpnReq.empty()) {
                     soUDP_OpnReq.write(siDHCP_OpnReq.read());
-                    streamSource = FromDhcp;
-                    fsmState = PORT_STREAM;
+                    orac_streamSource = FromDhcp;
+                    orac_fsmState = PORT_STREAM;
                 }
                 else if (!siURIF_OpnReq.empty()) {
                     soUDP_OpnReq.write(siURIF_OpnReq.read());
-                    streamSource = FromUrif;
-                    fsmState = PORT_STREAM;
+                    orac_streamSource = FromUrif;
+                    orac_fsmState = PORT_STREAM;
                 }
             }
             break;
         case PORT_STREAM:
             if (!soDHCP_OpnAck.full()) {
-                if (streamSource == FromDhcp && !siUDP_OpnAck.empty()) {
+                if (orac_streamSource == FromDhcp && !siUDP_OpnAck.empty()) {
                     soDHCP_OpnAck.write(siUDP_OpnAck.read());
-                    fsmState = PORT_IDLE;
+                    orac_fsmState = PORT_IDLE;
                 }
-                else if (streamSource == 1 && !siUDP_OpnAck.empty()) {
+                else if (orac_streamSource == 1 && !siUDP_OpnAck.empty()) {
                     soURIF_OpnAck.write(siUDP_OpnAck.read());
-                    fsmState = PORT_IDLE;
+                    orac_fsmState = PORT_IDLE;
                 }
             }
             break;
