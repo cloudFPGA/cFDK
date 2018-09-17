@@ -911,6 +911,16 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poNTS0_Rol_Udp_Axis_tlast        (sNTS_MPE_Tcp_TLAST),
     .poNTS0_Rol_Udp_Axis_tvalid       (sNTS_MPE_Tcp_TVALID),
     .piROL_Nts0_Udp_Axis_tready       (sNTS_MPE_Tcp_TREADY),
+  
+    //------------------------------------------------------
+    //-- ROLE / Nts0 / IP Meta
+    //------------------------------------------------------
+    .piMPE_Nts0_IPmeta_tdata         (sMPE_Nts0_IPmeta_tdata),
+    .piMPE_Nts0_IPmeta_tvalid        (sMPE_Nts0_IPmeta_tvalid),
+    .poMPE_Nts0_IPmeta_tready        (sMPE_Nts0_IPmeta_tready),
+    .poNts0_MPE_IPmeta_tdata         (sNts0_MPE_IPmeta_tdata),
+    .poNts0_MPE_IPmeta_tvalid        (sNts0_MPE_IPmeta_tvalid),
+    .piNts0_MPE_IPmeta_tready        (sNts0_MPE_IPmeta_tready),
 
     //------------------------------------------------------
     //-- ROLE / Nts0 / TCP Interfaces
@@ -1320,17 +1330,17 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siTcp_TREADY        (sNTS_MPE_Tcp_TREADY),
     .siTcp_TKEEP        (sNTS_MPE_Tcp_TKEEP),
     .siTcp_TLAST        (sNTS_MPE_Tcp_TLAST),
-    .siIP_V_ipAddress_V_TDATA        (sNTS_MPE_IP_V_ipAddress_V_TDATA),
-    .siIP_V_ipAddress_V_TVALID        (sNTS_MPE_IP_V_ipAddress_V_TVALID),
-    .siIP_V_ipAddress_V_TREADY        (sNTS_MPE_IP_V_ipAddress_V_TREADY),
+    .siIP_V_ipAddress_V_TDATA        (sNts0_MPE_IPmeta_tdata),
+    .siIP_V_ipAddress_V_TVALID       (sNts0_MPE_IPmeta_tvalid),
+    .siIP_V_ipAddress_V_TREADY       (sNts0_MPE_IPmeta_tready),
     .soTcp_TDATA        (sMPE_NTS_Tcp_TDATA),
     .soTcp_TVALID        (sMPE_NTS_Tcp_TVALID),
     .soTcp_TREADY        (sMPE_NTS_Tcp_TREADY),
     .soTcp_TKEEP        (sMPE_NTS_Tcp_TKEEP),
     .soTcp_TLAST        (sMPE_NTS_Tcp_TLAST),
-    .soIP_V_ipAddress_V_TDATA        (sMPE_NTSIP_ipAddress_TDATA),
-    .soIP_V_ipAddress_V_TVALID        (sMPE_NTSIP_ipAddress_TVALID),
-    .soIP_V_ipAddress_V_TREADY        (sMPE_NTSIP_ipAddress_VREADY),
+    .soIP_V_ipAddress_V_TDATA        (sMPE_Nts0_IPmeta_tdata),
+    .soIP_V_ipAddress_V_TVALID       (sMPE_Nts0_IPmeta_tvalid),
+    .soIP_V_ipAddress_V_TREADY       (sMPE_Nts0_IPmeta_tready),
     .siMPIif_V_mpi_call_V_TDATA         (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TDATA),
     .siMPIif_V_mpi_call_V_TVALID        (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TVALID),
     .siMPIif_V_mpi_call_V_TREADY        (poROLE_MPE_MPIif_in_mpi_call_TREADY),
