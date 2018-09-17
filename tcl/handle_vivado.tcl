@@ -51,23 +51,23 @@ set force    0
 set full_src 0
 set create   0
 set synth    0
-set impl1     0
-set impl2     0
+set impl1    0
+set impl2    0
 set bitGen1  0
 set bitGen2  0
 set usedRole "RoleFlash"
 set usedRole2 "RoleFlash_V2" 
-set pr 0
-set pr_verify 0
+set pr             0
+set pr_verify      0
 set forceWithoutBB 0
-set pr_grey_impl 0
+set pr_grey_impl   0
 set pr_grey_bitgen 0
 set link 0
 #set activeFlowPr_1 0
 #set activeFlowPr_2 0
-set impl_opt 0
-set use_incr 0
-set save_incr 0
+set impl_opt       0
+set use_incr       0
+set save_incr      0
 set only_pr_bitgen 0
 
 #-------------------------------------------------------------------------------
@@ -114,15 +114,15 @@ if { $argc > 0 } {
     foreach { key value } [ array get kvList ] {
         my_dbg_trace "KEY = ${key} | VALUE = ${value}" ${dbgLvl_2}
         if { ${key} eq "clean" && ${value} eq 1 } {
-            set clean    1
-            set force    1
-            set full_src 0
-            set create   1
-            set synth    1
-            set impl     1
-            set bitGen   1
-            set pr 0
-            set link 1
+            set clean     1
+            set force     1
+            set full_src  0
+            set create    1
+            set synth     1
+            set impl      1
+            set bitGen    1
+            set pr        0
+            set link      1
             set pr_verify 0
 
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
@@ -390,6 +390,27 @@ if { ${create} } {
         update_compile_order -fileset sources_1
         my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
     
+        # IP Cores ROLE
+        # Specify the IP Repository Path to make IPs available through the IP Catalog
+        #  (Must do this because IPs are stored outside of the current project) 
+        #----------------------------------------------------------------------------
+        set ipDirRole ${rootDir}/../../ROLE/${usedRole}/ip/
+        set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+                                    ${ipDirRole} ${rootDir}/../../ROLE/${usedRole}/hls ] [current_project]
+
+        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
+        #---------------------------------------------------------------------------
+        set ipList [ glob -nocomplain ${ipDirRole}/ip_user_files/ip/* ]
+        if { $ipList ne "" } {
+            foreach ip $ipList {
+                set ipName [file tail ${ip} ]
+                add_files ${ipDirRole}/${ipName}/${ipName}.xci
+                my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
+            }
+        }
+
+        update_ip_catalog
+        my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
     
         # Update Compile Order
         #---------------------------------------------------------------------------

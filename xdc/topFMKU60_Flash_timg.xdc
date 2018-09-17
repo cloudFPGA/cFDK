@@ -146,7 +146,7 @@ set_clock_groups -asynchronous -group [get_clocks piCLKT_10GeClk_p] -group [get_
 set_clock_groups -asynchronous -group [get_clocks piCLKT_10GeClk_p] -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/tx_mmcm/CLKOUT0]]
 set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/tx_mmcm/CLKOUT0]] -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]]
 set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/tx_mmcm/CLKOUT0]]
-
+set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -group [get_clocks -of_objects [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT5]]
 
 #=====================================================================
 # Setting Some Usefull TCL Variables and Aliases
@@ -301,6 +301,7 @@ set_false_path -from [get_pins SHELL/sLed_HeartBeat_reg_inv/C] -to [get_ports po
 #=====================================================================
 # DEBUG_HUB Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
 
 
 

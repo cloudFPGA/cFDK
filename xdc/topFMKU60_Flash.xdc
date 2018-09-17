@@ -93,3 +93,58 @@ set_property CONFIG_MODE BPI16 [current_design]
 
 
 
+
+create_debug_core u_ila_0 ila
+set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
+set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
+set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
+set_property C_DATA_DEPTH 1024 [get_debug_cores u_ila_0]
+set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
+set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
+set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
+set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
+set_property port_width 1 [get_debug_ports u_ila_0/clk]
+connect_debug_port u_ila_0/clk [get_nets [list SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/CLK]]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe0]
+set_property port_width 64 [get_debug_ports u_ila_0/probe0]
+connect_debug_port u_ila_0/probe0 [get_nets [list {sROL_Shl_Nts0_Udp_Axis_tdata[0]} {sROL_Shl_Nts0_Udp_Axis_tdata[1]} {sROL_Shl_Nts0_Udp_Axis_tdata[2]} {sROL_Shl_Nts0_Udp_Axis_tdata[3]} {sROL_Shl_Nts0_Udp_Axis_tdata[4]} {sROL_Shl_Nts0_Udp_Axis_tdata[5]} {sROL_Shl_Nts0_Udp_Axis_tdata[6]} {sROL_Shl_Nts0_Udp_Axis_tdata[7]} {sROL_Shl_Nts0_Udp_Axis_tdata[8]} {sROL_Shl_Nts0_Udp_Axis_tdata[9]} {sROL_Shl_Nts0_Udp_Axis_tdata[10]} {sROL_Shl_Nts0_Udp_Axis_tdata[11]} {sROL_Shl_Nts0_Udp_Axis_tdata[12]} {sROL_Shl_Nts0_Udp_Axis_tdata[13]} {sROL_Shl_Nts0_Udp_Axis_tdata[14]} {sROL_Shl_Nts0_Udp_Axis_tdata[15]} {sROL_Shl_Nts0_Udp_Axis_tdata[16]} {sROL_Shl_Nts0_Udp_Axis_tdata[17]} {sROL_Shl_Nts0_Udp_Axis_tdata[18]} {sROL_Shl_Nts0_Udp_Axis_tdata[19]} {sROL_Shl_Nts0_Udp_Axis_tdata[20]} {sROL_Shl_Nts0_Udp_Axis_tdata[21]} {sROL_Shl_Nts0_Udp_Axis_tdata[22]} {sROL_Shl_Nts0_Udp_Axis_tdata[23]} {sROL_Shl_Nts0_Udp_Axis_tdata[24]} {sROL_Shl_Nts0_Udp_Axis_tdata[25]} {sROL_Shl_Nts0_Udp_Axis_tdata[26]} {sROL_Shl_Nts0_Udp_Axis_tdata[27]} {sROL_Shl_Nts0_Udp_Axis_tdata[28]} {sROL_Shl_Nts0_Udp_Axis_tdata[29]} {sROL_Shl_Nts0_Udp_Axis_tdata[30]} {sROL_Shl_Nts0_Udp_Axis_tdata[31]} {sROL_Shl_Nts0_Udp_Axis_tdata[32]} {sROL_Shl_Nts0_Udp_Axis_tdata[33]} {sROL_Shl_Nts0_Udp_Axis_tdata[34]} {sROL_Shl_Nts0_Udp_Axis_tdata[35]} {sROL_Shl_Nts0_Udp_Axis_tdata[36]} {sROL_Shl_Nts0_Udp_Axis_tdata[37]} {sROL_Shl_Nts0_Udp_Axis_tdata[38]} {sROL_Shl_Nts0_Udp_Axis_tdata[39]} {sROL_Shl_Nts0_Udp_Axis_tdata[40]} {sROL_Shl_Nts0_Udp_Axis_tdata[41]} {sROL_Shl_Nts0_Udp_Axis_tdata[42]} {sROL_Shl_Nts0_Udp_Axis_tdata[43]} {sROL_Shl_Nts0_Udp_Axis_tdata[44]} {sROL_Shl_Nts0_Udp_Axis_tdata[45]} {sROL_Shl_Nts0_Udp_Axis_tdata[46]} {sROL_Shl_Nts0_Udp_Axis_tdata[47]} {sROL_Shl_Nts0_Udp_Axis_tdata[48]} {sROL_Shl_Nts0_Udp_Axis_tdata[49]} {sROL_Shl_Nts0_Udp_Axis_tdata[50]} {sROL_Shl_Nts0_Udp_Axis_tdata[51]} {sROL_Shl_Nts0_Udp_Axis_tdata[52]} {sROL_Shl_Nts0_Udp_Axis_tdata[53]} {sROL_Shl_Nts0_Udp_Axis_tdata[54]} {sROL_Shl_Nts0_Udp_Axis_tdata[55]} {sROL_Shl_Nts0_Udp_Axis_tdata[56]} {sROL_Shl_Nts0_Udp_Axis_tdata[57]} {sROL_Shl_Nts0_Udp_Axis_tdata[58]} {sROL_Shl_Nts0_Udp_Axis_tdata[59]} {sROL_Shl_Nts0_Udp_Axis_tdata[60]} {sROL_Shl_Nts0_Udp_Axis_tdata[61]} {sROL_Shl_Nts0_Udp_Axis_tdata[62]} {sROL_Shl_Nts0_Udp_Axis_tdata[63]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe1]
+set_property port_width 8 [get_debug_ports u_ila_0/probe1]
+connect_debug_port u_ila_0/probe1 [get_nets [list {sROL_Shl_Nts0_Udp_Axis_tkeep[0]} {sROL_Shl_Nts0_Udp_Axis_tkeep[1]} {sROL_Shl_Nts0_Udp_Axis_tkeep[2]} {sROL_Shl_Nts0_Udp_Axis_tkeep[3]} {sROL_Shl_Nts0_Udp_Axis_tkeep[4]} {sROL_Shl_Nts0_Udp_Axis_tkeep[5]} {sROL_Shl_Nts0_Udp_Axis_tkeep[6]} {sROL_Shl_Nts0_Udp_Axis_tkeep[7]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe2]
+set_property port_width 64 [get_debug_ports u_ila_0/probe2]
+connect_debug_port u_ila_0/probe2 [get_nets [list {sSHL_Rol_Nts0_Udp_Axis_tdata[0]} {sSHL_Rol_Nts0_Udp_Axis_tdata[1]} {sSHL_Rol_Nts0_Udp_Axis_tdata[2]} {sSHL_Rol_Nts0_Udp_Axis_tdata[3]} {sSHL_Rol_Nts0_Udp_Axis_tdata[4]} {sSHL_Rol_Nts0_Udp_Axis_tdata[5]} {sSHL_Rol_Nts0_Udp_Axis_tdata[6]} {sSHL_Rol_Nts0_Udp_Axis_tdata[7]} {sSHL_Rol_Nts0_Udp_Axis_tdata[8]} {sSHL_Rol_Nts0_Udp_Axis_tdata[9]} {sSHL_Rol_Nts0_Udp_Axis_tdata[10]} {sSHL_Rol_Nts0_Udp_Axis_tdata[11]} {sSHL_Rol_Nts0_Udp_Axis_tdata[12]} {sSHL_Rol_Nts0_Udp_Axis_tdata[13]} {sSHL_Rol_Nts0_Udp_Axis_tdata[14]} {sSHL_Rol_Nts0_Udp_Axis_tdata[15]} {sSHL_Rol_Nts0_Udp_Axis_tdata[16]} {sSHL_Rol_Nts0_Udp_Axis_tdata[17]} {sSHL_Rol_Nts0_Udp_Axis_tdata[18]} {sSHL_Rol_Nts0_Udp_Axis_tdata[19]} {sSHL_Rol_Nts0_Udp_Axis_tdata[20]} {sSHL_Rol_Nts0_Udp_Axis_tdata[21]} {sSHL_Rol_Nts0_Udp_Axis_tdata[22]} {sSHL_Rol_Nts0_Udp_Axis_tdata[23]} {sSHL_Rol_Nts0_Udp_Axis_tdata[24]} {sSHL_Rol_Nts0_Udp_Axis_tdata[25]} {sSHL_Rol_Nts0_Udp_Axis_tdata[26]} {sSHL_Rol_Nts0_Udp_Axis_tdata[27]} {sSHL_Rol_Nts0_Udp_Axis_tdata[28]} {sSHL_Rol_Nts0_Udp_Axis_tdata[29]} {sSHL_Rol_Nts0_Udp_Axis_tdata[30]} {sSHL_Rol_Nts0_Udp_Axis_tdata[31]} {sSHL_Rol_Nts0_Udp_Axis_tdata[32]} {sSHL_Rol_Nts0_Udp_Axis_tdata[33]} {sSHL_Rol_Nts0_Udp_Axis_tdata[34]} {sSHL_Rol_Nts0_Udp_Axis_tdata[35]} {sSHL_Rol_Nts0_Udp_Axis_tdata[36]} {sSHL_Rol_Nts0_Udp_Axis_tdata[37]} {sSHL_Rol_Nts0_Udp_Axis_tdata[38]} {sSHL_Rol_Nts0_Udp_Axis_tdata[39]} {sSHL_Rol_Nts0_Udp_Axis_tdata[40]} {sSHL_Rol_Nts0_Udp_Axis_tdata[41]} {sSHL_Rol_Nts0_Udp_Axis_tdata[42]} {sSHL_Rol_Nts0_Udp_Axis_tdata[43]} {sSHL_Rol_Nts0_Udp_Axis_tdata[44]} {sSHL_Rol_Nts0_Udp_Axis_tdata[45]} {sSHL_Rol_Nts0_Udp_Axis_tdata[46]} {sSHL_Rol_Nts0_Udp_Axis_tdata[47]} {sSHL_Rol_Nts0_Udp_Axis_tdata[48]} {sSHL_Rol_Nts0_Udp_Axis_tdata[49]} {sSHL_Rol_Nts0_Udp_Axis_tdata[50]} {sSHL_Rol_Nts0_Udp_Axis_tdata[51]} {sSHL_Rol_Nts0_Udp_Axis_tdata[52]} {sSHL_Rol_Nts0_Udp_Axis_tdata[53]} {sSHL_Rol_Nts0_Udp_Axis_tdata[54]} {sSHL_Rol_Nts0_Udp_Axis_tdata[55]} {sSHL_Rol_Nts0_Udp_Axis_tdata[56]} {sSHL_Rol_Nts0_Udp_Axis_tdata[57]} {sSHL_Rol_Nts0_Udp_Axis_tdata[58]} {sSHL_Rol_Nts0_Udp_Axis_tdata[59]} {sSHL_Rol_Nts0_Udp_Axis_tdata[60]} {sSHL_Rol_Nts0_Udp_Axis_tdata[61]} {sSHL_Rol_Nts0_Udp_Axis_tdata[62]} {sSHL_Rol_Nts0_Udp_Axis_tdata[63]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe3]
+set_property port_width 8 [get_debug_ports u_ila_0/probe3]
+connect_debug_port u_ila_0/probe3 [get_nets [list {sSHL_Rol_Nts0_Udp_Axis_tkeep[0]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[1]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[2]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[3]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[4]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[5]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[6]} {sSHL_Rol_Nts0_Udp_Axis_tkeep[7]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe4]
+set_property port_width 1 [get_debug_ports u_ila_0/probe4]
+connect_debug_port u_ila_0/probe4 [get_nets [list sROL_Shl_Nts0_Udp_Axis_tlast]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe5]
+set_property port_width 1 [get_debug_ports u_ila_0/probe5]
+connect_debug_port u_ila_0/probe5 [get_nets [list sROL_Shl_Nts0_Udp_Axis_tready]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe6]
+set_property port_width 1 [get_debug_ports u_ila_0/probe6]
+connect_debug_port u_ila_0/probe6 [get_nets [list sROL_Shl_Nts0_Udp_Axis_tvalid]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe7]
+set_property port_width 1 [get_debug_ports u_ila_0/probe7]
+connect_debug_port u_ila_0/probe7 [get_nets [list sSHL_Rol_Nts0_Udp_Axis_tlast]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe8]
+set_property port_width 1 [get_debug_ports u_ila_0/probe8]
+connect_debug_port u_ila_0/probe8 [get_nets [list sSHL_Rol_Nts0_Udp_Axis_tready]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe9]
+set_property port_width 1 [get_debug_ports u_ila_0/probe9]
+connect_debug_port u_ila_0/probe9 [get_nets [list sSHL_Rol_Nts0_Udp_Axis_tvalid]]
+set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
+set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
+set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
+connect_debug_port dbg_hub/clk [get_nets clk]
