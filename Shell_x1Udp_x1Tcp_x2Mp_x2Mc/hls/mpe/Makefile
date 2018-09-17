@@ -1,6 +1,6 @@
 DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all sim cosim cosim_view
+.PHONY: all sim cosim cosim_view clean
 all: mpe_prj
 
 # TODO clean before rebuild seems to be necessary...

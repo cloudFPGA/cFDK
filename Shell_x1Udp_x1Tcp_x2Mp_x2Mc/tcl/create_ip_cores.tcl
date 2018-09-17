@@ -955,6 +955,12 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------
 set ipModName "UdpRoleInterface"
 set ipName    "udp_role_if"
+
+if { $useMPI } { 
+  set ipModName "UdpRoleInterface2"
+  set ipName    "udp_role_if2"
+}
+
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
