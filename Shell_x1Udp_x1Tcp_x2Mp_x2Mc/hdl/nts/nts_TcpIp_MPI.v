@@ -149,6 +149,16 @@ module NetworkTransportSession_TcpIp (
   output         poNTS0_Rol_Udp_Axis_tlast,
   
   //------------------------------------------------------
+  //-- ROLE / Nts0 / IP Meta
+  //------------------------------------------------------
+  input [31:0]  piMPE_Nts0_IPmeta_tdata,
+  input         piMPE_Nts0_IPmeta_tvalid,
+  output        poMPE_Nts0_IPmeta_tready,
+  output [31:0] poNts0_MPE_IPmeta_tdata,
+  output        poNts0_MPE_IPmeta_tvalid,
+  input         piNts0_MPE_IPmeta_tready,
+  
+  //------------------------------------------------------
   //-- ROLE / Nts0 / Tcp Interfaces
   //------------------------------------------------------
   //-- Input AXI-Write Stream Interface ----------
@@ -2241,6 +2251,11 @@ module NetworkTransportSession_TcpIp (
   .siROL_This_Data_TLAST          (sROL_Nts0_Udp_Axis_tlastReg),
   .siROL_This_Data_TVALID         (sROL_Nts0_Udp_Axis_tvalidReg),
   .siROL_This_Data_TREADY         (sURIF_Rol_Axis_tready),
+
+  //IP Address (for RX path)
+  .siIP_V_ipAddress_V_TDATA        (piMPE_Nts0_IPmeta_tdata),
+  .siIP_V_ipAddress_V_TVALID       (piMPE_Nts0_IPmeta_tvalid),
+  .siIP_V_ipAddress_V_TREADY       (poMPE_Nts0_IPmeta_tready),
   
   //------------------------------------------------------
   //-- To ROLE Interfaces
@@ -2251,6 +2266,11 @@ module NetworkTransportSession_TcpIp (
   .soTHIS_Rol_Data_TKEEP          (sURIF_Rol_Axis_tkeep),
   .soTHIS_Rol_Data_TLAST          (sURIF_Rol_Axis_tlast),
   .soTHIS_Rol_Data_TVALID         (sURIF_Rol_Axis_tvalid),
+  
+  //IP Address (for TX path)
+  .soIP_V_ipAddress_V_TDATA        (poNts0_MPE_IPmeta_tdata),
+  .soIP_V_ipAddress_V_TVALID       (poNts0_MPE_IPmeta_tvalid),
+  .soIP_V_ipAddress_V_TREADY       (piNts0_MPE_IPmeta_tready),
 
   //------------------------------------------------------
   //-- From UDMX / Open-Port Interfaces
