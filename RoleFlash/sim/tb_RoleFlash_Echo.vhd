@@ -463,47 +463,84 @@
          
           wait until rising_edge(sSHL_156_25Clk);
           
-          if (sSHL_Rol_Nts0_Udp_Axis_tready = '1') then
-        
+          if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
             if (vI > 8*8) then
               -- Start and continue with chunks of 64-bits 
               sSHL_Rol_Nts0_Udp_Axis_tdata  <= vVec(vI-1 downto vI-64);
-              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
-              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
               sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
-              if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
-                vI := vI - 64;
-              end if;
+              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
+              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
+              vI := vI - 64;
+            elsif (vI /= 0) then
+              -- Last chunk to be transfered
+              sSHL_Rol_Nts0_Udp_Axis_tdata(63 downto 64-vI) <= vVec(vI-1 downto 0);
+              sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
+              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '1';
+              case (vI) is
+                when 1*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"80";
+                when 2*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"C0";
+                when 3*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"E0";
+                when 4*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F0";
+                when 5*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F8";
+                when 6*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FC";
+                when 7*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FE";
+                when 8*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
+              end case;
+              vI := 0;
             else
-              if (vI /= 0) then
-                -- Last chunk to be transfered
-                sSHL_Rol_Nts0_Udp_Axis_tdata(63 downto 64-vI) <= vVec(vI-1 downto 0);
-                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '1';
-                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
-                case (vI) is
-                  when 1*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"80";
-                  when 2*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"C0";
-                  when 3*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"E0";
-                  when 4*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F0";
-                  when 5*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F8";
-                  when 6*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FC";
-                  when 7*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FE";
-                  when 8*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
-                end case;
-                if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
-                  vI := 0;
-                end if;
-              else
-                -- End of the Axis Write transfer
-                sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others=>'X');
-                sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others=>'X');
-                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
-                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
-                return;
-              end if;
+              -- End of the Axis Write transfer
+              sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others=>'X');
+              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others=>'X');
+              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
+              sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
+              return;
             end if;
-          end if;
+          --OBSOLETE else
+          --OBSOLET   sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';           
+          end if;  
+          
         end loop;
+
+--        if (sSHL_Rol_Nts0_Udp_Axis_tready = '1') then        
+--            if (vI > 8*8) then
+--              -- Start and continue with chunks of 64-bits 
+--              sSHL_Rol_Nts0_Udp_Axis_tdata  <= vVec(vI-1 downto vI-64);
+--              sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
+--              sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
+--              sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
+--              if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
+--                vI := vI - 64;
+--              end if;
+--            else
+--              if (vI /= 0) then
+--                -- Last chunk to be transfered
+--                sSHL_Rol_Nts0_Udp_Axis_tdata(63 downto 64-vI) <= vVec(vI-1 downto 0);
+--                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '1';
+--                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '1';
+--                case (vI) is
+--                  when 1*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"80";
+--                  when 2*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"C0";
+--                  when 3*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"E0";
+--                  when 4*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F0";
+--                  when 5*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"F8";
+--                  when 6*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FC";
+--                  when 7*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FE";
+--                  when 8*8 => sSHL_Rol_Nts0_Udp_Axis_tkeep  <= X"FF";
+--                end case;
+--                if (sROL_Shl_Nts0_Udp_Axis_tready = '1') then
+--                  vI := 0;
+--                end if;
+--              else
+--                -- End of the Axis Write transfer
+--                sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others=>'X');
+--                sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others=>'X');
+--                sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
+--                sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
+--                return;
+--              end if;
+--            end if;
+--          end if;
+        
       end procedure pdAxisWrite_SHL_Rol_Nts0_Udp;
   
       
@@ -664,14 +701,14 @@
       --========================================================================     
       
       pgGenShellUdpFc(2, 4);
-      pdAxisWrite_SHL_Rol_Nts0_Udp(X"0000000000000000_1111111111111111_2222222222222222_3333333333333333_4444444444444444_5555555555555555_6666666666666666_7777777777777777");
+      pdAxisWrite_SHL_Rol_Nts0_Udp(X"0000000000000000_1010101010101010_2020202020202020_3030303030303030_4040404040404040_5050505050505050_6060606060606060_7070707070707070");
       
       --========================================================================
       --==  STEP-5: Write SHELL_Role_Nts0_Tcp_Axis while Activating Flow Control 
       --========================================================================     
             
       pgGenShellTcpFc(1, 5);
-      pdAxisWrite_SHL_Rol_Nts0_Tcp(X"0000000000000000_1111111111111111_2222222222222222_3333333333333333_4444444444444444_5555555555555555_6666666666666666_7777777777777777");
+      pdAxisWrite_SHL_Rol_Nts0_Tcp(X"0000000000000000_1010101010101010_2020202020202020_3030303030303030_4040404040404040_5050505050505050_6060606060606060_7070707070707070");
             
       --========================================================================
       --==  STEP-6: Enable the Posting of UDP Packets 

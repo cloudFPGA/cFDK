@@ -179,7 +179,6 @@ if { [ file exists ${ipDir} ] != 1 } {
 #-------------------------------------------------------------------------------
 update_ip_catalog -rebuild
 
-
 # Create 'sources_1' fileset (if not found)
 #-------------------------------------------------------------------------------
 if { [ string equal [ get_filesets -quiet sources_1 ] "" ] } {
@@ -215,6 +214,10 @@ my_dbg_trace "Done with adding HDL files.." ${dbgLvl_1}
 set obj [ get_filesets sources_1 ]
 set_property -name "top"      -value ${topName}           -objects ${obj} -verbose
 set_property -name "top_file" -value ${hdlDir}/${topFile} -objects ${obj} -verbose
+
+# Turn VHDL-2008 mode on 
+#-------------------------------------------------------------------------------
+set_property file_type {VHDL 2008} [ get_files *.vhd* ]
 
 
 # Create 'constrs_1' fileset (if not found)
