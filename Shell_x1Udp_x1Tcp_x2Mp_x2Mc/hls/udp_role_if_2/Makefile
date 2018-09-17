@@ -15,7 +15,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = udp_role_if
+ipName = udp_role_if_2
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
@@ -38,8 +38,8 @@ cosim:
 	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
 
 cosim_view:
-	@/bin/echo -e "current_fileset\nopen_wave_database udp_role_if.wdb\n" > ./udp_role_if_prj/solution1/sim/verilog/open_wave.tcl
-	cd ./udp_role_if/solution1/sim/verilog/; vivado -source open_wave.tcl
+	@/bin/echo -e "current_fileset\nopen_wave_database $(ipName).wdb\n" > ./$(ipName)_prj/solution1/sim/verilog/open_wave.tcl
+	cd ./$(ipName)_prj/solution1/sim/verilog/; vivado -source open_wave.tcl
 
 clean:
 	${RM} -rf ${ipName}_prj

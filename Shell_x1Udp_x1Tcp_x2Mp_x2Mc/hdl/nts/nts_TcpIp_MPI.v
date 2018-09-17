@@ -2223,8 +2223,14 @@ module NetworkTransportSession_TcpIp (
   
   UdpRoleInterface2 URIF (
 
-  .aclk                           (piShlClk),                      
-  .aresetn                        (~piShlRst),
+  .ap_clk                         (piShlClk),                      
+  .ap_rst_n                       (~piShlRst),
+
+  .ap_start                       (1),
+
+  //IP Address for TX
+  .piMyIpAddress_V                (piMMIO_Nts0_IpAddress),
+  .piMyIpAddress_V_ap_vld         (1),
   
   //------------------------------------------------------
   //-- From ROLE Interfaces

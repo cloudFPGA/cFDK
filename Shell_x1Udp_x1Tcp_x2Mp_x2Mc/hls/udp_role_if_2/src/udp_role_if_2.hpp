@@ -25,6 +25,9 @@
 #include "ap_int.h"
 #include <stdint.h>
 
+#include "../../mpe/src/mpe.hpp"
+
+
 using namespace hls;
 
 
@@ -60,12 +63,16 @@ struct UdpWord {            // UDP Streaming Chunk (i.e. 8 bytes)
 
 struct UdpMeta {            // UDP Socket Pair Association
     SocketAddr      src;    // Source socket address
-    SocketAddr      dst;    // Destination socket address
+    SocketAddr      dst;    // Destination socket address 
+    //UdpMeta()       {}
 };
 
 typedef ap_uint<16>     UdpPLen; // UDP Payload Length
 
 typedef ap_uint<16>     UdpPort; // UDP Port Number
+
+
+#define DEFAULT_TX_PORT 80  //0x0050
 
 
 void udp_role_if_2 (
@@ -75,6 +82,9 @@ void udp_role_if_2 (
         //------------------------------------------------------
         stream<UdpWord>     &siROL_This_Data,
         stream<UdpWord>     &soTHIS_Rol_Data,
+        stream<IPMeta>      &siIP,
+        stream<IPMeta>      &soIP,
+        ap_uint<32>         myIpAddress,
 
         //------------------------------------------------------
         //-- UDMX / This / Open-Port Interfaces

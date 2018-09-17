@@ -28,8 +28,9 @@
  *****************************************************************************/
 
 #include "udp_role_if_2.hpp"
+#include "../../mpe/src/mpe.hpp"
 
-#define USE_DEPRECATED_DIRECTIVES
+//#define USE_DEPRECATED_DIRECTIVES
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -98,7 +99,9 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
 
                 // Until LAST bit is set
                 if (aWord.tlast)
+                {
                     fsmState = FSM_LAST_ACC;
+                }
             }
             break;
 
@@ -124,7 +127,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
  * @ingroup udp_role_if
  *
  * @param[in]  siFifo, the FiFo stream to read from.
- * @param[in]  siMeta, the socket pair information provided by the Rx path.
+ * @param[in]  siIPaddr, the socket pair information provided by the Rx path.
  * @param[in]  siPLen, the length of the enqueued payload.
  * @param[out] soUDMX_Data, the output data stream.
  * @param[out] soUDMX_Meta, the output metadata stream.
@@ -134,27 +137,29 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
  *****************************************************************************/
 void pTxP_Dequeue (
         stream<UdpWord>  &siFifo,
-        stream<UdpMeta>  &siMeta,
+        stream<IPMeta>   &siIPaddr,
         stream<UdpPLen>  &siPLen,
         stream<UdpWord>  &soUDMX_Data,
         stream<UdpMeta>  &soUDMX_Meta,
-        stream<UdpPLen>  &soUDMX_PLen)
+        stream<UdpPLen>  &soUDMX_PLen,
+        ap_uint<32> myIpAddress)
 {
     //-- LOCAL VARIABLES ------------------------------------------------------
-    static UdpMeta txSocketPairReg;
+    static IPMeta txIPmetaReg;
 
     static enum FsmState {FSM_W8FORMETA=0, FSM_FIRST_ACC, FSM_ACC} fsmState;
 
     switch(fsmState) {
 
-        case FSM_W8FORMETA:
+      case FSM_W8FORMETA: //TODO: can be done also in FSM_FIRST_ACC, but leave it here for now
 
             // The very first time, wait until the Rx path provides us with the
             // socketPair information before continuing
-            if ( !siMeta.empty() ) {
-                txSocketPairReg = siMeta.read();
+            if ( !siIPaddr.empty() ) {
+                txIPmetaReg = siIPaddr.read();
                 fsmState = FSM_FIRST_ACC;
             }
+            //printf("waiting for IPMeta.\n");
             break;
 
         case FSM_FIRST_ACC:
@@ -166,16 +171,25 @@ void pTxP_Dequeue (
                     UdpWord    aWord = siFifo.read();
                     if (!aWord.tlast) {
                         soUDMX_Data.write(aWord);
-                        soUDMX_Meta.write(txSocketPairReg);
+
+                        // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
+                        UdpMeta txMeta = {{DEFAULT_TX_PORT, myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+                        //UdpMeta txMeta = UdpMeta();
+                        //txMeta.dst.addr = txIPmetaReg.ipAddress;
+                        //txMeta.dst.port = DEFAULT_TX_PORT;
+                        //txMeta.src.addr = myIpAddress;
+                        //txMeta.src.port = DEFAULT_TX_PORT;
+                        soUDMX_Meta.write(txMeta);
+
                         soUDMX_PLen.write(siPLen.read());
                         fsmState = FSM_ACC;
                     }
                 }
             }
 
-            // Always drain the 'siMeta' stream to avoid any blocking on the Rx side
-            if ( !siMeta.empty() )
-                txSocketPairReg = siMeta.read();
+            // Always drain the 'siIPaddr' stream to avoid any blocking on the Rx side
+          //  if ( !siIPaddr.empty() )
+           //     txIPmetaReg = siIPaddr.read();
 
             break;
 
@@ -187,13 +201,16 @@ void pTxP_Dequeue (
                 UdpWord    aWord = siFifo.read();
                 soUDMX_Data.write(aWord);
                 // Until LAST bit is set
-                if (aWord.tlast)
-                    fsmState = FSM_FIRST_ACC;
+                if (aWord.tlast) 
+                {
+                    //fsmState = FSM_FIRST_ACC;
+                    fsmState = FSM_W8FORMETA;
+                }
             }
 
-            // Always drain the 'siMeta' stream to avoid any blocking on the Rx side
-            if ( !siMeta.empty() )
-                txSocketPairReg = siMeta.read();
+            // Always drain the 'siIPaddr' stream to avoid any blocking on the Rx side
+           // if ( !siIPaddr.empty() )
+            //    txIPmetaReg = siIPaddr.read();
 
             break;
     }
@@ -214,10 +231,11 @@ void pTxP_Dequeue (
  *****************************************************************************/
 void pTxP(
         stream<UdpWord>     &siROL_Data,
-        stream<UdpMeta>     &siRxP_Meta,
+        stream<IPMeta>      &siTX_IP,
         stream<UdpWord>     &soUDMX_Data,
         stream<UdpMeta>     &soUDMX_Meta,
-        stream<UdpPLen>     &soUDMX_PLen)
+        stream<UdpPLen>     &soUDMX_PLen,
+        ap_uint<32>         myIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
@@ -233,8 +251,8 @@ void pTxP(
     pTxP_Enqueue(siROL_Data,
                  sFifo_Data, sPLen);
 
-    pTxP_Dequeue(sFifo_Data,  siRxP_Meta,  sPLen,
-                 soUDMX_Data, soUDMX_Meta, soUDMX_PLen);
+    pTxP_Dequeue(sFifo_Data,  siTX_IP,  sPLen,
+                 soUDMX_Data, soUDMX_Meta, soUDMX_PLen, myIpAddress);
 }
 
 
@@ -247,7 +265,7 @@ void pTxP(
  * @param[out] soUDMX_OpnReq, open port request to UDP-mux.
  * @param[in]  siUDMX_OpnAck, open port acknowledgment from UDP-mux.
  * @param[out] soROLE_Data,   data to ROLE.
- * @param[out] soTxP_Meta,    the socketPair info for the TxPath process.
+ * @param[out] soIPaddr,    the socketPair info for the TxPath process.
  *
  * @return Nothing.
  ******************************************************************************/
@@ -257,7 +275,7 @@ void pRxP(
         stream<UdpPort>      &soUDMX_OpnReq,
         stream<AxisAck>      &siUDMX_OpnAck,
         stream<UdpWord>      &soROLE_Data,
-        stream<UdpMeta>      &soTxP_Meta)
+        stream<IPMeta>       &soIPaddr)
 {
     //-- LOCAL VARIABLES ------------------------------------------------------
     static ap_uint<8>   openPortWaitTime;
@@ -292,7 +310,7 @@ void pRxP(
         case FSM_FIRST_ACC:
             // Wait until both the first data chunk and the first metadata are received from UDP
             if ( !siUDMX_Data.empty() && !siUDMX_Meta.empty() ) {
-                if ( !soROLE_Data.full() && !soTxP_Meta.full()) {
+                if ( !soROLE_Data.full() && !soIPaddr.full()) {
                     // Forward data chunk to ROLE
                     UdpWord    udpWord = siUDMX_Data.read();
                     if (!udpWord.tlast) {
@@ -300,13 +318,12 @@ void pRxP(
                         fsmState = FSM_ACC;
                     }
 
-                    // Swap the source and destination socket addresses
+                    //extrac src ip address
                     UdpMeta udpRxMeta = siUDMX_Meta.read();
-                    UdpMeta udpTxMeta;
-                    udpTxMeta.dst = udpRxMeta.src;
-                    udpTxMeta.src = udpRxMeta.dst;
-                    // Forward the socketPair information to pTxPath
-                    soTxP_Meta.write(udpTxMeta);
+                    IPMeta srcIP = IPMeta(udpRxMeta.src.addr);
+                    //TODO for now ignore udpRxMeta.src.port
+                    
+                    soIPaddr.write(srcIP);
                 }
             }
             break;
@@ -319,7 +336,9 @@ void pRxP(
                 soROLE_Data.write(udpWord);
                 // Until LAST bit is set
                 if (udpWord.tlast)
+                {
                     fsmState = FSM_FIRST_ACC;
+                }
             }
             break;
     }
@@ -349,6 +368,9 @@ void udp_role_if_2 (
         //------------------------------------------------------
         stream<UdpWord>     &siROL_This_Data,
         stream<UdpWord>     &soTHIS_Rol_Data,
+        stream<IPMeta>      &siIP,
+        stream<IPMeta>      &soIP,
+        ap_uint<32>         myIpAddress,
 
         //------------------------------------------------------
         //-- UDMX / This / Open-Port Interfaces
@@ -367,12 +389,20 @@ void udp_role_if_2 (
 {
 
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
+    //#pragma HLS INTERFACE ap_ctrl_none port=return
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
+
+
+//should work for both
+#pragma HLS INTERFACE axis register both port=siIP
+#pragma HLS INTERFACE axis register both port=soIP 
+
+#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
+
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
 
@@ -413,37 +443,15 @@ void udp_role_if_2 (
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW interval=1
 
-    //-- LOCAL STREAMS --------------------------------------------------------
-    //OBSOLETE static stream<UdpPLen>        sTxPLen("sTxPLen");
-    //OBSOLETE static stream<UdpWord>        sTxFifo("sTxFifo");
-
-    //OBSOLETE#pragma HLS STREAM variable=sTxPLen depth=2
-    //OBSOLETE#pragma HLS STREAM variable=sTxFifo depth=2048    // Must be able to contain MTU
-
-    static stream<UdpMeta>      sRxToTx_Meta("sRxToTx_Meta");
-
-    #pragma HLS STREAM    variable=sRxToTx_Meta depth=2
-    #pragma HLS DATA_PACK variable=sRxToTx_Meta instance=sRxToTx_Meta
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
-    pTxP(siROL_This_Data,  sRxToTx_Meta,
-         soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
-
-
-    /*** OBSOLETE ***
-    //---- From ROLE to TxEnqueue
-    pTxP_Enqueue (siROL_This_Data,
-                  sTxFifo,         sTxPLen);
-
-    //---- From TxDequeue to UDMX
-    pTxP_Dequeue (sTxFifo,          sRxToTx_Meta,     sTxPLen,
-                  soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
-    ***/
+    pTxP(siROL_This_Data,  siIP,
+         soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
 
     //---- From UDMX to ROLE
     pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
         soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
-        soTHIS_Rol_Data,    sRxToTx_Meta);
+        soTHIS_Rol_Data,    soIP);
 
 }
 

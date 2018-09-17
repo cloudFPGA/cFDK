@@ -27,8 +27,8 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Role Interface for cloudFPGA"
-set ipDescription  "An interface between user's role and the UDP core of the shell."
+set ipDisplayName  "UDP Role Interface for cloudFPGA VERSION 2"
+set ipDescription  "An interface between the MPE and the UDP core of the shell."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"

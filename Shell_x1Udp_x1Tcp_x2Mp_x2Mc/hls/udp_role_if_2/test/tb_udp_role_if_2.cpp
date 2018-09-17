@@ -42,6 +42,10 @@ stream<UdpWord>         sURIF_Udmx_Data     ("sURIF_Udmx_Data");
 stream<UdpMeta>         sURIF_Udmx_Meta     ("sURIF_Udmx_Meta");
 stream<UdpPLen>         sURIF_Udmx_PLen     ("sURIF_Udmx_PLen");
 
+ap_uint<32>             sIpAddress = 0x0a0b0c0d;
+stream<IPMeta>          sIPMeta_RX          ("sIPMeta_RX");
+stream<IPMeta>          sIPMeta_TX          ("sIPMeta_TX");
+
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
@@ -56,6 +60,8 @@ int         simCnt;
 void stepDut() {
     udp_role_if_2(
             sROLE_Urif_Data,    sURIF_Role_Data,
+            sIPMeta_TX,         sIPMeta_RX,
+            sIpAddress,
             sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
             sUDMX_Urif_Data,    sUDMX_Urif_Meta,
             sURIF_Udmx_Data,    sURIF_Udmx_Meta,    sURIF_Udmx_PLen);
@@ -150,7 +156,8 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
             if (udpWord.tlast) {
 
                 // Create an connection association {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-                socketPair = {{0x0050, 0x0A0A0A0A}, {0x8000, 0x01010101}};
+                //socketPair = {{0x0050, 0x0A0A0A0A}, {0x8000, 0x01010101}};
+                socketPair = {{0x0050, 0x0A0B0C02}, {0x0050, 0x01010101}};
 
                 //  Write to sMetaStream
                 if (sMetaStream.full()) {
@@ -466,6 +473,12 @@ int main() {
             printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
             nrErr++;
         }
+        //there are 5 streams
+        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
     }
 
     //------------------------------------------------------
@@ -476,8 +489,16 @@ int main() {
     while (!nrErr) {
 
         if (simCnt < 35)
+        {
             stepDut();
-        else {
+
+            if( !sIPMeta_RX.empty())
+            {
+              IPMeta tmp = sIPMeta_RX.read();
+              printf("Role received IPMeta stream from 0x%8.8X.\n", (int) tmp.ipAddress);
+            }
+
+        } else {
             printf("## End of simulation at cycle=%3d. \n", simCnt);
             break;
         }
