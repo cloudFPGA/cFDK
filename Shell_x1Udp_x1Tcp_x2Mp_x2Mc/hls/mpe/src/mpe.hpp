@@ -78,7 +78,7 @@ using namespace hls;
      Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(1), tlast(1) {}
    };
 
-#ifdef COSIM 
+//#ifdef COSIM 
 
 #define MPI_SEND_INT 0
 #define MPI_RECV_INT 1
@@ -92,31 +92,62 @@ using namespace hls;
 #define WRITE_START 1
 #define WRITE_DATA 2
 #define WRITE_ERROR 3
+#define WRITE_STANDBY 4
 #define sendState uint8_t 
 
 
 #define READ_IDLE 0
 #define READ_DATA 2
 #define READ_ERROR 3
+#define READ_STANDBY 4
 #define receiveState uint8_t
 
 
-#else 
-typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1, 
-               MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
-              MPI_BARRIER = 4 } mpiCall; 
+#define SEND_REQUEST 1
+#define CLEAR_TO_SEND 2
+#define DATA 3
+#define ACK 4
+#define ERROR 5
+#define packetType uint8_t
 
-typedef enum { WRITE_IDLE = 0, WRITE_START = 1, WRITE_DATA = 2, WRITE_ERROR = 3} sendState; 
 
-typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3} receiveState; //READ_HEADER
-#endif
+#define IDLE 0
+#define START_SEND 1
+#define SEND_REQ 9
+#define WAIT4CLEAR 2 
+#define SEND_DATA 3
+#define WAIT4ACK 4
+//#define START_RECEIVE 5
+#define WAIT4REQ 6
+#define SEND_CLEAR 10
+#define RECV_DATA 7
+#define SEND_ACK 8
+#define mpeState uint8_t
+
+#define MPI_INT 0
+#define MPI_FLOAT 1
+#define mpiType uint8_t
+
+//#else 
+//typedef enum { MPI_SEND_INT = 0, MPI_RECV_INT = 1, 
+//               MPI_SEND_FLOAT = 2, MPI_RECV_FLOAT = 3, 
+//              MPI_BARRIER = 4 } mpiCall; 
+//
+//typedef enum { WRITE_IDLE = 0, WRITE_START = 1, WRITE_DATA = 2, WRITE_ERROR = 3, WRITE_STANDBY = 4} sendState; 
+//
+//typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3, READ_STANDBY = 4} receiveState; //READ_HEADER 
+//
+//typedef enum {SEND_REQUEST = 0, CLEAR_TO_SEND, DATA, ACK, ERROR} packetType;
+//
+//typedef enum {IDLE = 0, START_SEND, WAIT4CLEAR, SEND_DATA, WAIT4ACK, START_RECEIVE, 
+//              WAIT4REQ, RECV_DATA, SEND_ACK} mpeState; 
+//
+//#endif
 
 /*
  * MPI-F Interface
  */
  struct MPI_Interface {
-  // stream<Axis<8> >    data_in;
-  // stream<Axis<8> >   data_out;
    ap_uint<8>     mpi_call;
    ap_uint<32>    count;
    ap_uint<32>    rank;
@@ -129,6 +160,8 @@ typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3} receiveState; //REA
    IPMeta(ap_uint<32> ip) : ipAddress(ip) {}
  };
 
+
+
 /*
  * MPI-F Header 
  */
@@ -136,8 +169,8 @@ typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3} receiveState; //REA
   ap_uint<32> dst_rank;
   ap_uint<32> src_rank;
   ap_uint<32> size; 
-  //ap_uint<8> mpi_call;
   mpiCall call;
+  packetType type;
   MPI_Header() {}
  };
 #define MPIF_HEADER_LENGTH 32
@@ -169,6 +202,8 @@ typedef enum { READ_IDLE = 0, READ_DATA = 2, READ_ERROR = 3} receiveState; //REA
 #define MPE_STATUS_RECEIVE_STATE 8
 #define MPE_STATUS_LAST_WRITE_ERROR 9
 #define MPE_STATUS_LAST_READ_ERROR 10
+#define MPE_STATUS_ERROR_HANDSHAKE_CNT 11
+#define MPE_STATUS_ACK_HANKSHAKE_CNT 12
 
 //Error types
 #define TX_INVALID_DST_RANK 0xd

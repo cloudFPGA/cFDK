@@ -18,6 +18,11 @@ bool tlastOccured = false;
 receiveState fsmReceiveState = READ_IDLE;
 static stream<Axis<8> > sFifoDataRX("sFifoDataRX");
 
+mpeState fsmMpeState = IDLE; 
+MPI_Interface currentInfo = MPI_Interface();
+packetType currentPacketType = ERROR;
+mpiType currentDataType = MPI_INT;
+int handshakeLinesCnt = 0;
 
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
 {
@@ -105,7 +110,7 @@ int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
     }
   }
   
-  for(int i = 17; i<28; i++)
+  for(int i = 18; i<28; i++)
   {
     if(bytes[i] != 0x00)
     {
@@ -126,7 +131,9 @@ int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
   header.src_rank = littleEndianToInteger(bytes,8);
   header.size = littleEndianToInteger(bytes,12);
 
-  header.call = static_cast<mpiCall>((int) bytes[16]); 
+  header.call = static_cast<mpiCall>((int) bytes[16]);
+
+  header.type = static_cast<mpiCall>((int) bytes[17]);
 
   return 0;
 
@@ -157,7 +164,9 @@ void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH])
 
   bytes[16] = (ap_uint<8>) header.call; 
 
-  for(int i = 17; i<28; i++)
+  bytes[17] = (ap_uint<8>) header.type;
+
+  for(int i = 18; i<28; i++)
   {
     bytes[i] = 0x00; 
   }
@@ -229,8 +238,14 @@ void mpe_main(
       status[i] = 0;
     }
 
-    fsmSendState = WRITE_IDLE;
-    fsmReceiveState = READ_IDLE;
+    fsmSendState = WRITE_STANDBY;
+    fsmReceiveState = READ_STANDBY;
+
+    fsmMpeState = IDLE;
+    currentInfo = MPI_Interface();
+    currentPacketType = ERROR;
+    currentDataType = MPI_INT;
+    handshakeLinesCnt = 0;
 
   }
 
@@ -272,24 +287,496 @@ void mpe_main(
 
 
 //===========================================================
-// MPI TX PATH
-//{
-  #pragma HLS DATAFLOW 
-  #pragma HLS STREAM variable=sFifoDataTX depth=2048
-  #pragma HLS STREAM variable=sFifoIPdstTX depth=1
+// MPE GLOBAL STATE 
+
+  switch(fsmMpeState) {
+    case IDLE: 
+      if ( !siMPIif.empty() ) 
+      {
+        currentInfo = siMPIif.read();
+        switch(currentInfo.mpi_call)
+        {
+          case MPI_SEND_INT:
+            currentDataType = MPI_INT;
+            fsmMpeState = START_SEND;
+            break;
+          case MPI_SEND_FLOAT:
+            currentDataType = MPI_FLOAT;
+            fsmMpeState = START_SEND;
+            break;
+          case MPI_RECV_INT:
+            currentDataType = MPI_INT;
+            //fsmMpeState = START_RECEIVE;
+            fsmMpeState = WAIT4REQ;
+            break;
+          case MPI_RECV_FLOAT:
+            currentDataType = MPI_FLOAT;
+            //fsmMpeState = START_RECEIVE;
+            fsmMpeState = WAIT4REQ;
+            break;
+          case MPI_BARRIER: 
+            //TODO not yet implemented 
+            break;
+        }
+      }
+      break;
+    case START_SEND: 
+      MPI_Header header = MPI_Header(); 
+      header.dst_rank = currentInfo.rank;
+      header.src_rank = config[MPE_CONFIG_OWN_RANK];
+      header.size = 0;
+      header.call = static_cast<mpiCall>((int) currentInfo.mpi_call);
+      header.type = SEND_REQUEST;
+
+      ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+      headerToBytes(header, bytes);
+
+      //in order not to block the URIF/TRIF core
+      ap_uint<32> ipDst = localMRT[info.rank];
+      sFifoIPdstTX.write(IPMeta(ipDst));
+
+      //write header
+      for(int i = 0; i < MPIF_HEADER_LENGTH; i++)
+      {
+        Axis<8> tmp = Axis<8>(bytes[i]);
+        tmp.tlast = 0;
+        if ( i == MPIF_HEADER_LENGTH - 1)
+        {
+          tmp.tlast = 1;
+        }
+        sFifoDataTX.write(tmp);
+        printf("Writing Header byte: %#02x\n", (int) bytes[i]);
+      }
+      handshakeLinesCnt = (MPIF_HEADER_LENGTH + 7) /8;
+
+      //dequeue
+      if( !soTcp.full() && !sFifoDataTX.empty() )
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        soTcp.write(word);
+        handshakeLinesCnt--;
+
+      }
+
+      fsmMpeState = SEND_REQ;
+      break;
+    case SEND_REQ:
+      //dequeue
+      if( !soTcp.full() && !sFifoDataTX.empty() )
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        soTcp.write(word);
+        handshakeLinesCnt--;
+
+      }
+      if( handshakeLinesCnt <= 0)
+      {
+        fsmMpeState = WAIT4CLEAR;
+      }
+      break;
+    case WAIT4CLEAR: 
+      if( !siTcp.empty() && !siIP.empty() )
+      {
+        //read header
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+        {
+          Axis<64> tmp = siTcp.read();
+
+          if(tmp.tkeep != 0xFF || tmp.tlast == 1)
+          {
+            printf("unexpected uncomplete read.\n");
+            //TODO
+            fsmMpeState = IDLE;
+            fsmReceiveState = READ_ERROR; //to clear streams?
+            status[MPE_STATUS_READ_ERROR_CNT]++;
+            status[MPE_STATUS_LAST_READ_ERROR] = RX_INCOMPLETE_HEADER;
+            break;
+          }
+
+          for(int j = 0; j<8; j++)
+          {
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+          }
+        }
+
+        MPI_Header header = MPI_Header();
+        int ret = bytesToHeader(bytes, header);
+
+        if(ret != 0)
+        {
+          printf("invalid header.\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          break;
+        }
+
+        IPMeta srcIP = siIP.read();
+        ap_uint<32> ipSrc = localMRT[header.src_rank];
+
+        if(srcIP.ipAddress != ipSrc)
+        {
+          printf("header does not match ipAddress. mrt for rank %d: %#010x; IPMeta: %#010x;\n", (int) header.src_rank, (int) ipSrc, (int) srcIP.ipAddress);
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_IP_MISSMATCH;
+          break;
+        }
+
+        if(header.dst_rank != config[MPE_CONFIG_OWN_RANK])
+        {
+          printf("I'm not the right recepient!\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
+        if(header.type != CLEAR_TO_SEND)
+        {
+          printf("Expected CLEAR_TO_SEND, got %d!\n", header.type);
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
+        //got CLEAR_TO_SEND 
+        printf("Got CLEAR to SEND\n");
+        fsmMpeState = SEND_DATA; 
+        //activate subFSM 
+        fsmSendState = WRITE_IDLE;
+      }
+
+      break;
+    case SEND_DATA: 
+      if(fsmSendState == WRITE_STANDBY)
+      {
+        printf("subFSM finished writing.\n");
+        fsmMpeState = WAIT4ACK;
+      }
+      break;
+    case WAIT4ACK: 
+      if( !siTcp.empty() && !siIP.empty() )
+      {
+        //read header
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+        {
+          Axis<64> tmp = siTcp.read();
+
+          if(tmp.tkeep != 0xFF || tmp.tlast == 1)
+          {
+            printf("unexpected uncomplete read.\n");
+            //TODO
+            fsmMpeState = IDLE;
+            fsmReceiveState = READ_ERROR; //to clear streams?
+            status[MPE_STATUS_READ_ERROR_CNT]++;
+            status[MPE_STATUS_LAST_READ_ERROR] = RX_INCOMPLETE_HEADER;
+            break;
+          }
+
+          for(int j = 0; j<8; j++)
+          {
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+          }
+        }
+
+        MPI_Header header = MPI_Header();
+        int ret = bytesToHeader(bytes, header);
+
+        if(ret != 0)
+        {
+          printf("invalid header.\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          break;
+        }
+
+        IPMeta srcIP = siIP.read();
+        ap_uint<32> ipSrc = localMRT[header.src_rank];
+
+        if(srcIP.ipAddress != ipSrc)
+        {
+          printf("header does not match ipAddress. mrt for rank %d: %#010x; IPMeta: %#010x;\n", (int) header.src_rank, (int) ipSrc, (int) srcIP.ipAddress);
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_IP_MISSMATCH;
+          break;
+        }
+
+        if(header.dst_rank != config[MPE_CONFIG_OWN_RANK])
+        {
+          printf("I'm not the right recepient!\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
+
+        if(header.type != ACK)
+        {
+          printf("Expected CLEAR_TO_SEND, got %d!\n", header.type);
+          //TODO ERROR? 
+          status[MPE_STATUS_ERROR_HANDSHAKE_CNT]++;
+        } else {
+          printf("ACK received.\n");
+          status[MPE_STATUS_ACK_HANKSHAKE_CNT]++;
+        }
+        fsmMpeState = IDLE;
+      }
+      break;
+      //case START_RECEIVE: 
+      //  break; 
+    case WAIT4REQ: 
+      if( !siTcp.empty() && !siIP.empty() )
+      {
+        //read header
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+        {
+          Axis<64> tmp = siTcp.read();
+
+          if(tmp.tkeep != 0xFF || tmp.tlast == 1)
+          {
+            printf("unexpected uncomplete read.\n");
+            //TODO
+            fsmMpeState = IDLE;
+            fsmReceiveState = READ_ERROR; //to clear streams?
+            status[MPE_STATUS_READ_ERROR_CNT]++;
+            status[MPE_STATUS_LAST_READ_ERROR] = RX_INCOMPLETE_HEADER;
+            break;
+          }
+
+          for(int j = 0; j<8; j++)
+          {
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+          }
+        }
+
+        MPI_Header header = MPI_Header();
+        int ret = bytesToHeader(bytes, header);
+
+        if(ret != 0)
+        {
+          printf("invalid header.\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          break;
+        }
+
+        IPMeta srcIP = siIP.read();
+        ap_uint<32> ipSrc = localMRT[header.src_rank];
+
+        if(srcIP.ipAddress != ipSrc)
+        {
+          printf("header does not match ipAddress. mrt for rank %d: %#010x; IPMeta: %#010x;\n", (int) header.src_rank, (int) ipSrc, (int) srcIP.ipAddress);
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_IP_MISSMATCH;
+          break;
+        }
+
+        if(header.dst_rank != config[MPE_CONFIG_OWN_RANK])
+        {
+          printf("I'm not the right recepient!\n");
+          //TODO
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
+        if(header.type != SEND_REQUEST)
+        {
+          printf("Expected SEND_REQUEST, got %d!\n", header.type);
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
+        //got SEND_REQUEST 
+        printf("Got SEND REQUEST\n");
+
+
+        MPI_Header header = MPI_Header(); 
+        header.dst_rank = currentInfo.rank;
+        header.src_rank = config[MPE_CONFIG_OWN_RANK];
+        header.size = 0;
+        header.call = static_cast<mpiCall>((int) currentInfo.mpi_call);
+        header.type = CLEAR_TO_SEND;
+
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        headerToBytes(header, bytes);
+
+        //in order not to block the URIF/TRIF core
+        ap_uint<32> ipDst = localMRT[info.rank];
+        sFifoIPdstTX.write(IPMeta(ipDst));
+
+        //write header
+        for(int i = 0; i < MPIF_HEADER_LENGTH; i++)
+        {
+          Axis<8> tmp = Axis<8>(bytes[i]);
+          tmp.tlast = 0;
+          if ( i == MPIF_HEADER_LENGTH - 1)
+          {
+            tmp.tlast = 1;
+          }
+          sFifoDataTX.write(tmp);
+          printf("Writing Header byte: %#02x\n", (int) bytes[i]);
+        }
+        handshakeLinesCnt = (MPIF_HEADER_LENGTH + 7) /8;
+
+        //dequeue
+        if( !soTcp.full() && !sFifoDataTX.empty() )
+        {
+          Axis<64> word = Axis<64>();
+          convertAxisToNtsWidth(sFifoDataTX, word);
+          printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+          soTcp.write(word);
+          handshakeLinesCnt--;
+
+        }
+
+        fsmMpeState = SEND_CLEAR; 
+      }
+      break;
+    case SEND_CLEAR:
+      //dequeue
+      if( !soTcp.full() && !sFifoDataTX.empty() )
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        soTcp.write(word);
+        handshakeLinesCnt--;
+
+      }
+      if( handshakeLinesCnt <= 0)
+      {
+        fsmMpeState = RECV_DATA;
+        //start subFSM
+        fsmReceiveState = READ_IDLE;
+      }
+      break;
+    case RECV_DATA:
+      if(fsmReceiveState == READ_STANDBY)
+      {
+        printf("Read completed.\n");
+
+        MPI_Header header = MPI_Header(); 
+        header.dst_rank = currentInfo.rank;
+        header.src_rank = config[MPE_CONFIG_OWN_RANK];
+        header.size = 0;
+        header.call = static_cast<mpiCall>((int) currentInfo.mpi_call);
+        header.type = ACK;
+
+        ap_uint<8> bytes[MPIF_HEADER_LENGTH];
+        headerToBytes(header, bytes);
+
+        //in order not to block the URIF/TRIF core
+        ap_uint<32> ipDst = localMRT[info.rank];
+        sFifoIPdstTX.write(IPMeta(ipDst));
+
+        //write header
+        for(int i = 0; i < MPIF_HEADER_LENGTH; i++)
+        {
+          Axis<8> tmp = Axis<8>(bytes[i]);
+          tmp.tlast = 0;
+          if ( i == MPIF_HEADER_LENGTH - 1)
+          {
+            tmp.tlast = 1;
+          }
+          sFifoDataTX.write(tmp);
+          printf("Writing Header byte: %#02x\n", (int) bytes[i]);
+        }
+        handshakeLinesCnt = (MPIF_HEADER_LENGTH + 7) /8;
+
+        //dequeue
+        if( !soTcp.full() && !sFifoDataTX.empty() )
+        {
+          Axis<64> word = Axis<64>();
+          convertAxisToNtsWidth(sFifoDataTX, word);
+          printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+          soTcp.write(word);
+          handshakeLinesCnt--;
+
+        }
+
+        fsmMpeState = SEND_ACK; 
+      }
+      break;
+    case SEND_ACK:
+      //dequeue
+      if( !soTcp.full() && !sFifoDataTX.empty() )
+      {
+        Axis<64> word = Axis<64>();
+        convertAxisToNtsWidth(sFifoDataTX, word);
+        printf("tkeep %#03x, tdata %#022llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        soTcp.write(word);
+        handshakeLinesCnt--;
+
+      }
+      if( handshakeLinesCnt <= 0)
+      {
+        fsmMpeState = IDLE;
+      }
+      break;
+  }
+
+  //===========================================================
+  // MPI TX PATH
+  //{
+#pragma HLS DATAFLOW 
+#pragma HLS STREAM variable=sFifoDataTX depth=2048
+#pragma HLS STREAM variable=sFifoIPdstTX depth=1
 
   int cnt = 0;
 
-  switch(fsmSendState) { 
+  switch(fsmSendState) {
+    case WRITE_STANDBY:
+      //global fsm is doing the job. 
+      break;
     case WRITE_IDLE: 
-      if ( !siMPIif.empty() && !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
+      //if ( !siMPIif.empty() && !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
+      if ( !siMPI_data.empty() && !sFifoDataTX.full() && !sFifoIPdstTX.full() )
       {
         MPI_Header header = MPI_Header(); 
-        MPI_Interface info = siMPIif.read(); 
+        //MPI_Interface info = siMPIif.read();
+        MPI_Interface info = currentInfo;
         header.dst_rank = info.rank;
         header.src_rank = config[MPE_CONFIG_OWN_RANK];
         header.size = info.count;
-        header.call = static_cast<mpiCall>((int) info.mpi_call); 
+        header.call = static_cast<mpiCall>((int) info.mpi_call);
+        header.type = DATA;
 
         ap_uint<8> bytes[MPIF_HEADER_LENGTH];
         headerToBytes(header, bytes);
@@ -304,14 +791,14 @@ void mpe_main(
         }
 
         //look up IP Addr and write meta data
-        if(info.rank > MAX_CLUSTER_SIZE)
-        {
+        /*if(info.rank > MAX_CLUSTER_SIZE)
+          {
           fsmSendState = WRITE_ERROR;
           status[MPE_STATUS_WRITE_ERROR_CNT]++;
           status[MPE_STATUS_LAST_WRITE_ERROR] = TX_INVALID_DST_RANK;
           break;
-        }
-        
+          }*/
+
         ap_uint<32> ipDst = localMRT[info.rank];
         sFifoIPdstTX.write(IPMeta(ipDst));
 
@@ -322,7 +809,7 @@ void mpe_main(
       }
       break; 
 
-   case WRITE_START:
+    case WRITE_START:
       if( !soTcp.full() && !soIP.full() )
       {
         Axis<64> word = Axis<64>();
@@ -331,6 +818,7 @@ void mpe_main(
 
         soIP.write(sFifoIPdstTX.read());
         soTcp.write(word);
+        enqueueCnt -= 8;
         fsmSendState = WRITE_DATA;
       }
 
@@ -380,7 +868,8 @@ void mpe_main(
 
         if(word.tlast == 1)
         {
-          fsmSendState = WRITE_IDLE;
+          //fsmSendState = WRITE_IDLE;
+          fsmSendState = WRITE_STANDBY;
         }
       }
       break; 
@@ -392,26 +881,30 @@ void mpe_main(
       {
         siMPIif.read();
       }
-      
+
       if( !siMPI_data.empty())
       {
         siMPI_data.read();
       } else { 
-        fsmSendState = WRITE_IDLE;
+        //fsmSendState = WRITE_IDLE;
+        fsmSendState = WRITE_STANDBY;
       }
       break;
   }
 
 
-//}
+  //}
 
-//===========================================================
-// MPI RX PATH
-//{
+  //===========================================================
+  // MPI RX PATH
+  //{
   //#pragma HLS DATAFLOW 
-  #pragma HLS STREAM variable=sFifoDataRX depth=2048
+#pragma HLS STREAM variable=sFifoDataRX depth=2048
 
   switch(fsmReceiveState) { 
+    case READ_STANDBY:
+      //global fsm is doing the job 
+      break;
     case READ_IDLE: 
       if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() && !soMPIif.full() )
       {
@@ -469,6 +962,15 @@ void mpe_main(
           break;
         }
 
+        if(header.type != DATA)
+        {
+          printf("Expected DATA, got %d!\n", header.type);
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+
         //valid header && valid source
 
         MPI_Interface info = MPI_Interface();
@@ -481,8 +983,8 @@ void mpe_main(
       }
       break; 
 
-   /* case READ_HEADER: 
-      break; */
+      /* case READ_HEADER: 
+         break; */
 
     case READ_DATA: 
 
@@ -498,7 +1000,8 @@ void mpe_main(
 
         if(tmp.tlast == 1)
         {
-          fsmReceiveState = READ_IDLE;
+          //fsmReceiveState = READ_IDLE;
+          fsmReceiveState = READ_STANDBY;
         }
       }
       break;
@@ -510,18 +1013,19 @@ void mpe_main(
       {
         siIP.read();
       }
-      
+
       if( !siTcp.empty())
       {
         siTcp.read();
       } else { 
-        fsmReceiveState = READ_IDLE;
+        //fsmReceiveState = READ_IDLE;
+        fsmReceiveState = READ_STANDBY;
       }
       break;
   }
 
 
-//}
+  //}
 
   return;
 }
