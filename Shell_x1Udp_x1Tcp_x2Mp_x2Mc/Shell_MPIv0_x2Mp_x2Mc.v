@@ -607,12 +607,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        sSMC_MPE_ctrlLink_AXI_BREADY;
   wire [ 1:0] sSMC_MPE_ctrlLink_AXI_BRESP;
   
-  wire [31:0] sMPE_Nts0_IPmeta_tdata,
-  wire        sMPE_Nts0_IPmeta_tvalid,
-  wire        sMPE_Nts0_IPmeta_tready,
-  wire [31:0] sNts0_MPE_IPmeta_tdata,
-  wire        sNts0_MPE_IPmeta_tvalid,
-  wire        sNts0_MPE_IPmeta_tready,
+  wire [31:0] sMPE_Nts0_IPmeta_tdata;
+  wire        sMPE_Nts0_IPmeta_tvalid;
+  wire        sMPE_Nts0_IPmeta_tready;
+  wire [31:0] sNts0_MPE_IPmeta_tdata;
+  wire        sNts0_MPE_IPmeta_tvalid;
+  wire        sNts0_MPE_IPmeta_tready;
   
   
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------

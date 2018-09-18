@@ -958,7 +958,7 @@ set ipName    "udp_role_if"
 
 if { $useMPI } { 
   set ipModName "UdpRoleInterface2"
-  set ipName    "udp_role_if2"
+  set ipName    "udp_role_if_2"
 }
 
 set ipVendor  "IBM"

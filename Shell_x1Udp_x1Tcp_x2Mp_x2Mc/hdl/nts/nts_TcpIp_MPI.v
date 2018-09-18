@@ -2276,17 +2276,17 @@ module NetworkTransportSession_TcpIp (
   //-- From UDMX / Open-Port Interfaces
   //------------------------------------------------------
   //-- UDMX / This / OpenPortAcknowledge / Axis
-  .siUDMX_This_OpnAck_TDATA       (sUDMX_Urif_OpnAck_Axis_tdata),
-  .siUDMX_This_OpnAck_TVALID      (sUDMX_Urif_OpnAck_Axis_tvalid),
-  .siUDMX_This_OpnAck_TREADY      (sURIF_Udmx_OpnAck_Axis_tready),
+  .siUDMX_This_OpnAck_V_TDATA       (sUDMX_Urif_OpnAck_Axis_tdata),
+  .siUDMX_This_OpnAck_V_TVALID      (sUDMX_Urif_OpnAck_Axis_tvalid),
+  .siUDMX_This_OpnAck_V_TREADY      (sURIF_Udmx_OpnAck_Axis_tready),
 
   //------------------------------------------------------
   //-- To UDMX / Open-Port Interfaces
   //------------------------------------------------------
   //-- THIS / Udmx / OpenPortRequest / Axis
-  .soTHIS_Udmx_OpnReq_TREADY      (sUDMX_Urif_OpnReq_Axis_tready),
-  .soTHIS_Udmx_OpnReq_TDATA       (sURIF_Udmx_OpnReq_Axis_tdata),
-  .soTHIS_Udmx_OpnReq_TVALID      (sURIF_Udmx_OpnReq_Axis_tvalid),
+  .soTHIS_Udmx_OpnReq_V_V_TREADY      (sUDMX_Urif_OpnReq_Axis_tready),
+  .soTHIS_Udmx_OpnReq_V_V_TDATA       (sURIF_Udmx_OpnReq_Axis_tdata),
+  .soTHIS_Udmx_OpnReq_V_V_TVALID      (sURIF_Udmx_OpnReq_Axis_tvalid),
 
   //------------------------------------------------------
   //-- From UDMX / Data & MetaData Interfaces
@@ -2316,9 +2316,9 @@ module NetworkTransportSession_TcpIp (
   .soTHIS_Udmx_Meta_TDATA         (sURIF_Udmx_Meta_Axis_tdata),
   .soTHIS_Udmx_Meta_TVALID        (sURIF_Udmx_Meta_Axis_tvalid),
   //-- THIS / Udmx / Tx Length / Axis
-  .soTHIS_Udmx_PLen_TREADY        (sUDMX_Urif_PLen_Axis_tready),
-  .soTHIS_Udmx_PLen_TDATA         (sURIF_Udmx_PLen_Axis_tdata),
-  .soTHIS_Udmx_PLen_TVALID        (sURIF_Udmx_PLen_Axis_tvalid)
+  .soTHIS_Udmx_PLen_V_V_TREADY        (sUDMX_Urif_PLen_Axis_tready),
+  .soTHIS_Udmx_PLen_V_V_TDATA         (sURIF_Udmx_PLen_Axis_tdata),
+  .soTHIS_Udmx_PLen_V_V_TVALID        (sURIF_Udmx_PLen_Axis_tvalid)
 
 );
 
