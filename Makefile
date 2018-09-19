@@ -30,6 +30,10 @@ Role: $(USED_ROLE)
 
 Role2: $(USED_ROLE_2)
 
+RoleMPI: $(USED_MPI_ROLE)
+
+RoleMPI2: $(USED_MPI_ROLE_2)
+
 
 xpr: 
 	mkdir -p ./xpr/ 
@@ -58,6 +62,9 @@ pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
+pr_full_mpi: ensureNotMonolithic ShellSrc RoleMPI RoleMPI2 | xpr
+	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all_mpi
+
 #pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
 #	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr
 
@@ -73,6 +80,12 @@ pr_only: ensureNotMonolithic Role  | xpr
 
 pr2_only: ensureNotMonolithic Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_only
+
+pr_only_mpi: ensureNotMonolithic ShellSrc RoleMPI | xpr
+	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_only_mpi
+
+pr2_only_mpi: ensureNotMonolithic ShellSrc RoleMPI2 | xpr
+	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_only_mpi
 
 #pr_incr_only: ensureNotMonolithic Role  | xpr
 #	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_incr_only
@@ -104,7 +117,7 @@ monolithic_mpi: ensureMonolithic ShellSrcMPI | xpr
 #no ROLE, because Role is synthezied with sources!
 monolithic_mpi_incr: ensureMonolithic ShellSrc | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
-	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
+	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_incr_mpi 
 
 save_mono_incr: ensureMonolithic 
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr

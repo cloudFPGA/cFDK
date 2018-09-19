@@ -41,6 +41,7 @@ MONO_LOCK = ../xpr/.project_monolithic.stamp
 CLEAN_TYPES = *.log *.jou *.str
 
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd onlycmd 
+.PHONY: full_src_pr_all_mpi monolithic_mpi monolithic_incr_mpi full_src_pr_only_mpi full_src_pr_2_only_mpi
 .PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only 
 all: full_src_pr
 
@@ -69,6 +70,9 @@ incrcmd:
 onlycmd:
 	@/bin/echo -e " -only_pr_bitgen \\" >> .vivado_basecmd.sh
 
+mpicmd:
+	@/bin/echo -e " -useMPI \\" >> .vivado_basecmd.sh
+
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
 
 full_src_pr: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit finalcmd | ../dcps
@@ -96,45 +100,39 @@ full_src_pr_2_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_
 #full_src_pr_2_incr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd onlycmd finalcmd | ../dcps
 
 
-#monolithic
-monolithic: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_all_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit mpicmd finalcmd | ../dcps
 
-monolithic_incr: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_only_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit onlycmd mpicmd finalcmd | ../dcps
 
-monolithic_mpi: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -useMPI \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_2_only_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit onlycmd mpicmd finalcmd | ../dcps
 
-monolithic_mpi_incr: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr -useMPI\\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+
+###########################################
+# Monolithic
+###########################################
+
 
 $(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+
+monobasecmd: basecmd
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+
+monofinalcmd: 
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
+monolithic: monobasecmd $(MONO_LOCK) monofinalcmd
+
+monolithic_incr: monobasecmd $(MONO_LOCK) incrcmd monofinalcmd
+
+monolithic_mpi: monobasecmd $(MONO_LOCK) mpicmd monofinalcmd
+
+monolithic_incr_mpi: monobasecmd $(MONO_LOCK) incrcmd mpicmd monofinalcmd
 
 
 save_mono_incr: 
