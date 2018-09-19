@@ -16,12 +16,11 @@
 #-------------------------------------------------------------------------------
 # Xilinx Project Settings
 #-------------------------------------------------------------------------------
-set xprName      "roleFMKU60_Flash"
+set xprName      "roleFMKU60_MPI"
 set xilPartName  "xcku060-ffva1156-2-i"
 
 set topName      "Role_MPIv0_x2Mp"
 set topFile      "roleMPI.vhdl"
-
 
 #-------------------------------------------------------------------------------
 # TOP  Project Settings  
@@ -31,14 +30,21 @@ set rootDir      [file dirname [pwd]]
 set hdlDir       ${rootDir}/hdl
 set hlsDir       ${rootDir}/hls
 set ipDir        ${rootDir}/ip
+set simDir       ${rootDir}/sim
 set tclDir       ${rootDir}/tcl
 set xdcDir       ${rootDir}/xdc
 set xprDir       ${rootDir}/xpr
 
-# Not used: set ipXprDir     ${ipDir}/managed_ip_project
-# Not used:set ipXprName    "managed_ip_project"
-# Not used: set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
+#-- IPs Managed by this Xilinx (Xpr) Project
+set ipXprDir     ${ipDir}/managed_ip_project
+set ipXprName    "managed_ip_project"
+set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
 
+#-- IPs Managed by the Shell-Role-Architecture (Sra) Project  
+set ipSraDir     ${rootDir}/../../IP
+set ipSraXprName "managed_ip_project"
+set ipSraXprDir  ${ipSraDir}/${ipSraXprName}
+set ipSraXprFile [ file join ${ipSraXprDir} ${ipSraXprName}.xpr ]
 
 #-------------------------------------------------------------------------------
 # TRACE, DEBUG and OTHER Settings and Variables  
