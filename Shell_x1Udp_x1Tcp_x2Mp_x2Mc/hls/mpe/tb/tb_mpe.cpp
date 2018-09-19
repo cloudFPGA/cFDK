@@ -178,6 +178,115 @@ int main(){
   {
     mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
   }
+  
+  //MPI_recv()
+  printf("Start MPI_recv....\n");
+  //change rank to receiver 
+  MRT[0] = 2;
+  for(int i = 0; i < 3; i++)
+  {
+    mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  }
+  
+  info = MPI_Interface();
+  info.mpi_call = MPI_RECV_INT;
+  info.count = 12;
+  info.rank = 1;
+
+  MPIif_in.write(info);
+  for(int i = 0; i < 3; i++)
+  {
+    mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  }
+  //now in WAIT4REQ 
+  IPMeta ipMS = IPMeta();
+  ipMS.ipAddress = 0x0a0b0c0d;
+  siIP.write(ipMS);
+
+  for(int i = 0; i < 20; i++)
+  {
+    mpe_main(sys_reset, MRT, storeSEND_REQ, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  }
+  //receive CLEAR_TO_SEND
+  ipDst = soIP.read();
+  printf("ipDst: %#010x\n", (unsigned int) ipDst.ipAddress);
+  assert(ipDst.ipAddress == ipMS.ipAddress);
+
+  //while(!soTcp.empty())
+  for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+  {
+    mpe_main(sys_reset, MRT, storeSEND_REQ, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+    tmp64 = soTcp.read();
+    printf("MPE out: %#016llx\n", (unsigned long long) tmp64.tdata);
+    //storeSEND_REQ.write(tmp64);
+    for(int j = 0; j<8; j++)
+    {
+      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+    }
+  }
+
+  ret = bytesToHeader(bytes, header); 
+  assert(ret == 0);
+  assert(header.dst_rank == 1 && header.src_rank == 2); 
+  assert(header.type == CLEAR_TO_SEND);
+
+  printf("received CLEAR_TO_SEND.\n");
+
+  //now send data and read from MPI
+  siIP.write(ipMS);
+
+  for(int i = 0; i < 5; i++)
+  {
+    mpe_main(sys_reset, MRT, storeData, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  }
+  //empty data
+  MPI_Interface info_out = MPIif_out.read();
+  assert(info_out.mpi_call == info.mpi_call);
+  assert(info_out.count == info.count);
+  assert(info_out.rank == 1);
+
+  for(int i = 0; i< 12; i++)
+  {
+    tmp8 = MPI_data_out.read();
+    
+    printf("MPI read data: %#02x\n", (int) tmp8.tdata);
+
+    mpe_main(sys_reset, MRT, storeData, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+
+    // tlast => i=11 
+    assert( !(tmp8.tlast == 1) || i==11);
+    assert(((int) tmp8.tdata) == msg[i]);
+  }
+  
+  //receive ACK 
+  for(int i = 0; i < 7; i++)
+  {
+    mpe_main(sys_reset, MRT, storeData, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  }
+  ipDst = soIP.read();
+  printf("ipDst: %#010x\n", (unsigned int) ipDst.ipAddress);
+  assert(ipDst.ipAddress == ipMS.ipAddress);
+
+  //while(!soTcp.empty())
+  for(int i = 0; i<MPIF_HEADER_LENGTH/8; i++)
+  {
+    mpe_main(sys_reset, MRT, storeSEND_REQ, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+    tmp64 = soTcp.read();
+    printf("MPE out: %#016llx\n", (unsigned long long) tmp64.tdata);
+    //storeSEND_REQ.write(tmp64);
+    for(int j = 0; j<8; j++)
+    {
+      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+    }
+  }
+
+  ret = bytesToHeader(bytes, header);
+  assert(ret == 0);
+  assert(header.dst_rank == 1 && header.src_rank == 2); 
+  assert(header.type == ACK);
+
+  printf("received ACK...\n");
+  
 
 
   printf("DONE\n");

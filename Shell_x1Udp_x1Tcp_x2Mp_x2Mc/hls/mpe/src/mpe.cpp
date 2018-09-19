@@ -74,12 +74,26 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
+
+  int positionOfTlast = 8; 
+  ap_uint<8> tkeep = big.tkeep;
+  for(int i = 0; i<8; i++)
+  {
+    tkeep = (tkeep >> 1);
+    if((tkeep & 0x01) == 0)
+    {
+      positionOfTlast = i;
+      break;
+    }
+  }
+
   for(int i = 0; i < 8; i++)
   {
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
-    if(i == 7)
+    if(i == positionOfTlast)
     {
+      //only possible position...
       tmp.tlast = big.tlast;
     } else {
       tmp.tlast = 0;
@@ -642,6 +656,17 @@ void mpe_main(
           status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
           break;
         }
+        //check data type 
+        if((currentDataType == MPI_INT && header.call != MPI_SEND_INT) || (currentDataType == MPI_FLOAT && header.call != MPI_SEND_FLOAT))
+        {
+          printf("receiver expects different data type: %d.\n", header.call);
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+          
 
         //got SEND_REQUEST 
         printf("Got SEND REQUEST\n");
@@ -914,7 +939,7 @@ void mpe_main(
       break;
   }
 
-
+  printf("fsmSendState after FSM: %d\n", fsmSendState);
   //}
 
   //===========================================================
@@ -991,11 +1016,23 @@ void mpe_main(
           status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
           break;
         }
+        //check data type 
+        if((currentDataType == MPI_INT && header.call != MPI_SEND_INT) || (currentDataType == MPI_FLOAT && header.call != MPI_SEND_FLOAT))
+        {
+          printf("receiver expects different data type: %d.\n", header.call);
+          fsmMpeState = IDLE;
+          fsmReceiveState = READ_ERROR; //to clear streams?
+          status[MPE_STATUS_READ_ERROR_CNT]++;
+          status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
+          break;
+        }
+          
 
         //valid header && valid source
 
         MPI_Interface info = MPI_Interface();
-        info.mpi_call = static_cast<int>(header.call); 
+        //info.mpi_call = static_cast<int>(header.call); 
+        info.mpi_call = currentInfo.mpi_call; //TODO
         info.count = header.size; 
         info.rank = header.src_rank;
         soMPIif.write(info);
@@ -1011,13 +1048,16 @@ void mpe_main(
 
       if( !siTcp.empty() && !sFifoDataRX.full() )
       {
-        convertAxisToMpiWidth(siTcp.read(), sFifoDataRX);
+        Axis<64> word = siTcp.read();
+        printf("tkeep %#03x, tdata %#016llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        convertAxisToMpiWidth(word, sFifoDataRX);
       }
 
       if( !sFifoDataRX.empty() && !soMPI_data.full() )
       {
         Axis<8> tmp = sFifoDataRX.read();
         soMPI_data.write(tmp);
+        printf("toROLE: tkeep %#03x, tdata %#03x, tlast %d\n",(int) tmp.tkeep, (unsigned long long) tmp.tdata, (int) tmp.tlast);
 
         if(tmp.tlast == 1)
         {
@@ -1045,6 +1085,7 @@ void mpe_main(
       break;
   }
 
+  printf("fsmReceiveState after FSM: %d\n",fsmReceiveState);
 
   //}
 
