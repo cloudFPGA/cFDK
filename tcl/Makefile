@@ -40,7 +40,8 @@ MONO_LOCK = ../xpr/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd onlycmd 
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr 
+.PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd mpicmd
 .PHONY: full_src_pr_all_mpi monolithic_mpi monolithic_incr_mpi full_src_pr_only_mpi full_src_pr_2_only_mpi
 .PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only 
 all: full_src_pr
