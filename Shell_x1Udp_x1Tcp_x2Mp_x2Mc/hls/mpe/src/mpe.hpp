@@ -204,18 +204,25 @@ using namespace hls;
 #define MPE_STATUS_LAST_READ_ERROR 10
 #define MPE_STATUS_ERROR_HANDSHAKE_CNT 11
 #define MPE_STATUS_ACK_HANKSHAKE_CNT 12
+#define MPE_STATUS_GLOBAL_STATE 13
 
 //Error types
 #define TX_INVALID_DST_RANK 0xd
 #define RX_INCOMPLETE_HEADER 0x1
 #define RX_INVALID_HEADER 0x2
 #define RX_IP_MISSMATCH 0x3 
-#define RX_WRONG_DST_RANK 0x4
+#define RX_WRONG_DST_RANK 0x4 
+#define RX_WRONG_DATA_TYPE 0x5
 
 
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb);
 void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes);
 
+
+void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out);
+void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out);
+int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header);
+void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH]);
 
 void mpe_main(
     // ----- system reset ---
