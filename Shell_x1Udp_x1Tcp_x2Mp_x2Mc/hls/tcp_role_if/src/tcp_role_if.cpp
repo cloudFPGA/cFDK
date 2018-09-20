@@ -1,9 +1,29 @@
 /*****************************************************************************
- * File:            tcp_role_if.cpp
- * Creation Date:   May 14, 2018
- * Description:     <Short description (1-2 lines)>
+ * @file       : tcp_role_if.cpp
+ * @brief      : TCP Role Interface (TRIF)
  *
- * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : This process exposes the TCP data path to the role. The main
+ *  purpose of the TRIF is to hide the socket mechanism from the user's role
+ *  application. As a result, the user application sends and receives its data
+ *  octets over plain Tx and Rx AXI4-Stream interfaces.
+ *
+ * @note       : The Tx data path (i.e. THIS->TCP) will block until a data
+ *                chunk and its corresponding metadata is received by the Rx
+ *                path.
+ * @remark     : { remark text }
+ * @warning    : For the time being, all communications occur over port #80.
+ * @todo       : [TODO - Port# must configurable]
+ *
+ * @see        :
  *
  *****************************************************************************/
 
@@ -449,98 +469,116 @@ void tai_app_to_net(
 }
 
 
-/*****************************************************************************/
-/* tcp_role_if
+/*****************************************************************************
+ * @brief   Main process of the TCP Role Interface
+ * @ingroup tcp_role_if
  *
- * \desc            Description of function.
+ * @param[in]  siROL_This_Data     TCP data stream from the ROLE.
+ * @param[out] soTHIS_Rol_Data     TCP data stream to the ROLE.
+ * @param[in]  siTOE_This_Data     Data path from the TOE.
+ * @param[in]  siTOE_This_Meta     Metadata from the TOE.
  *
- * \param[stream]	oListenPort is...
  *
- * \param[stream]	iListenPortStatus is ...
+ * @param[in]  siUDMX_This_OpnAck  Open port acknowledgment from UDP-Mux.
+ * @param[out] soTHIS_Udmx_OpnReq  Open port request to UDP-Mux.
+
+ * @param[out] soTHIS_Udmx_Data    Data path to the UDP-Mux.
+ * @param[out] soTHIS_Udmx_Meta    Metadata to the UDP-Mux.
+ * @param[out] soTHIS_Udmx_PLen    Payload length to the UDP-Mux.
  *
- * \param[stream]	iNotifications ...
+ * @return Nothing.
  *
- * \param[stream]	oReadRequest ..
- *
- * \param[stream]	iRxMetaData ...
- *
- * \param[stream]	iRxData
- *
- * \param[stream]	oOpenConnection
- *
- * \param[stream]	iOpenConStatus
- *
- * \param[stream]   oCloseConnection ...
- *
- * \param[stream]	oTxMetaData ...
- *
- * \param[stream]   oTxData ...
- *
- * \param[stream]	iTxStatus ...
- *
- * \param[stream] 	vFPGA_rx_data ...
- *
- * \param[stream]	vFPGA_tx_data is
- *
- * \return          The returned value.
- *
+ * @remark     : Session id is only updated if a new connection is established.
+ *  			  Therefore, the role does not have to always return the same
+ *  			  amount of segments received.
  *****************************************************************************/
-
-/*session id is updated for only if a new connection is established. therefore, app does not have to
- * always return the same amount of segments received */
-
 void tcp_role_if(
-		stream<ap_uint<16> >& 		oListenPort,
-		stream<bool>& 				iListenPortStatus,
-		stream<appNotification>& 	iNotifications,
-		stream<appReadRequest>& 	oReadRequest,
-		stream<ap_uint<16> >& 		iRxMetaData,
-		stream<axiWord>& 			iRxData,
-		stream<ipTuple>& 			oOpenConnection,
-		stream<openStatus>& 		iOpenConStatus,
-		stream<ap_uint<16> >& 		oCloseConnection,
-		stream<ap_uint<16> >& 		oTxMetaData,
-		stream<axiWord>& 			oTxData,
+
+        //------------------------------------------------------
+        //-- ROLE / This / Tcp Interfaces
+        //------------------------------------------------------
+		stream<axiWord>				&siROL_This_Data,
+		stream<axiWord>				&soTHIS_Rol_Data,
+
+	    //------------------------------------------------------
+	    //-- TOE / Data & MetaData Interfaces
+	    //------------------------------------------------------
+		stream<axiWord>				&siTOE_This_Data,
+		stream<ap_uint<16> >		&siTOE_This_Meta,
+		stream<axiWord>				&oTxData,
+		stream<ap_uint<16> >		&oTxMetaData,
+
+		//------------------------------------------------------
+		//-- TOE / This / Open-Connection Interfaces
+		//------------------------------------------------------
+		stream<openStatus>			&iOpenConStatus,
+		stream<ipTuple>				&oOpenConnection,
+
+		//------------------------------------------------------
+		//-- TOE / This / Listen-Port Interfaces
+		//------------------------------------------------------
+		stream<bool>				&iListenPortStatus,
+		stream<ap_uint<16> >		&oListenPort,
+
+		//------------------------------------------------------
+		//-- TOE / This / Data-Read-Request Interfaces
+		//------------------------------------------------------
+		stream<appNotification>		&iNotifications,
+		stream<appReadRequest>		&oReadRequest,
+
+		//------------------------------------------------------
+		//-- TOE / This / Close-Connection Interfaces
+		//------------------------------------------------------
 		stream<ap_int<17> >& 		iTxStatus,
-		stream<axiWord>& 			vFPGA_rx_data,
-		stream<axiWord>& 			vFPGA_tx_data)
+		stream<ap_uint<16> >& 		oCloseConnection)
+
 {
 
-#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS DATAFLOW
+	#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS DATAFLOW
 
-#pragma HLS resource core=AXI4Stream variable=oListenPort metadata="-bus_bundle m_axis_listen_port"
-#pragma HLS resource core=AXI4Stream variable=iListenPortStatus metadata="-bus_bundle s_axis_listen_port_status"
-#pragma HLS resource core=AXI4Stream variable=iNotifications metadata="-bus_bundle s_axis_notifications"
-#pragma HLS resource core=AXI4Stream variable=oReadRequest metadata="-bus_bundle m_axis_read_request"
-#pragma HLS resource core=AXI4Stream variable=iRxMetaData metadata="-bus_bundle s_axis_rx_meta_data"
-#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_rx_data"
-#pragma HLS resource core=AXI4Stream variable=oOpenConnection metadata="-bus_bundle m_axis_open_connection"
-#pragma HLS resource core=AXI4Stream variable=iOpenConStatus metadata="-bus_bundle s_axis_open_connection_status"
-#pragma HLS resource core=AXI4Stream variable=oCloseConnection metadata="-bus_bundle m_axis_close_connection"
-#pragma HLS resource core=AXI4Stream variable=oTxMetaData metadata="-bus_bundle m_axis_tx_meta_data"
-#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle m_axis_tx_data"
-#pragma HLS resource core=AXI4Stream variable=iTxStatus metadata="-bus_bundle s_axis_tx_status"
-#pragma HLS resource core=AXI4Stream variable=vFPGA_rx_data metadata="-bus_bundle m_axis_vfpga_rx_data"
-#pragma HLS resource core=AXI4Stream variable=vFPGA_tx_data metadata="-bus_bundle s_axis_vfpga_tx_data"
+	#pragma HLS resource core=AXI4Stream variable=siROL_This_Data	metadata="-bus_bundle siROL_This_Data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data	metadata="-bus_bundle soTHIS_Rol_Data"
 
-#pragma HLS DATA_PACK variable=iNotifications
-#pragma HLS DATA_PACK variable=oReadRequest
-#pragma HLS DATA_PACK variable=oOpenConnection
-#pragma HLS DATA_PACK variable=iOpenConStatus
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Data	metadata="-bus_bundle siTOE_This_Data"
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta	metadata="-bus_bundle siTOE_This_Meta"
+	#pragma HLS resource core=AXI4Stream variable=oTxData			metadata="-bus_bundle m_axis_tx_data"
+	#pragma HLS resource core=AXI4Stream variable=oTxMetaData		metadata="-bus_bundle m_axis_tx_meta_data"
 
+	#pragma HLS resource core=AXI4Stream variable=iOpenConStatus	metadata="-bus_bundle s_axis_open_connection_status"
+	#pragma HLS resource core=AXI4Stream variable=oOpenConnection	metadata="-bus_bundle m_axis_open_connection"
 
-static stream<session_id_table_entry>  w_entry("w_entry");
-#pragma HLS STREAM variable=w_entry depth=1
-static stream<ap_uint<4> > q_buffer_id("q_buffer_id");
-#pragma HLS STREAM variable=q_buffer_id depth=1
-static stream<ap_uint<16> > r_session_id("r_session_id");
-#pragma HLS STREAM variable=r_session_id depth=1
+	#pragma HLS resource core=AXI4Stream variable=iListenPortStatus	metadata="-bus_bundle s_axis_listen_port_status"
+	#pragma HLS resource core=AXI4Stream variable=oListenPort		metadata="-bus_bundle m_axis_listen_port"
 
-static stream<axiWord>  buff_data("buff_data");
-#pragma HLS STREAM variable=buff_data depth=1024
+	#pragma HLS resource core=AXI4Stream variable=iNotifications	metadata="-bus_bundle s_axis_notifications"
+	#pragma HLS resource core=AXI4Stream variable=oReadRequest		metadata="-bus_bundle m_axis_read_request"
 
+	#pragma HLS resource core=AXI4Stream variable=iTxStatus			metadata="-bus_bundle s_axis_tx_status"
+	#pragma HLS resource core=AXI4Stream variable=oCloseConnection	metadata="-bus_bundle m_axis_close_connection"
+
+	#pragma HLS DATA_PACK variable=iNotifications
+	#pragma HLS DATA_PACK variable=oReadRequest
+
+	#pragma HLS DATA_PACK variable=iOpenConStatus
+	#pragma HLS DATA_PACK variable=oOpenConnection
+
+	//-- LOCAL STREAMS --------------------------------------------------------
+	static stream<session_id_table_entry>  w_entry("w_entry");
+	#pragma HLS STREAM variable=w_entry depth=1
+
+	static stream<ap_uint<4> > q_buffer_id("q_buffer_id");
+	#pragma HLS STREAM variable=q_buffer_id depth=1
+
+	static stream<ap_uint<16> > r_session_id("r_session_id");
+	#pragma HLS STREAM variable=r_session_id depth=1
+
+	static stream<axiWord>  buff_data("buff_data");
+	#pragma HLS STREAM variable=buff_data depth=1024
+
+	//-- PROCESS FUNCTIONS ----------------------------------------------------
 	tai_open_connection(oOpenConnection, iOpenConStatus, oCloseConnection);
+
 	tai_listen_port_status(oListenPort, iListenPortStatus);
 
 	tai_listen_new_data(iNotifications, oReadRequest, w_entry);
@@ -549,9 +587,10 @@ static stream<axiWord>  buff_data("buff_data");
 
 	tai_session_id_table_server(w_entry, q_buffer_id, r_session_id);
 
-	tai_net_to_app(iRxMetaData, iRxData, vFPGA_rx_data);
+	tai_net_to_app(siTOE_This_Meta, siTOE_This_Data, soTHIS_Rol_Data);
 
-	tai_app_to_buf(vFPGA_tx_data, q_buffer_id, buff_data);
+	tai_app_to_buf(siROL_This_Data, q_buffer_id, buff_data);
+
 	tai_app_to_net(buff_data, oTxMetaData, oTxData, r_session_id);
 
 }
