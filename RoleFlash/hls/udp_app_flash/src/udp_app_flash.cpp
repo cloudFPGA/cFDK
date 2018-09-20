@@ -14,7 +14,8 @@
  * @details    : This application implements a set of UDP-oriented tests and
  *  functions which are embedded into the Flash of the cloudFPGA role.
  *
- * @note       :
+ * @note       : For the time being, we continue designing with the DEPRECATED
+ *				  directives because the new PRAGMAs do not work for us.
  * @remark     :
  * @warning    :
  *
@@ -26,6 +27,7 @@
 
 #define USE_DEPRECATED_DIRECTIVES
 
+#define MTU		1500	// Maximum Transmission Unit in bytes [TODO:Move to a common place]
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -207,13 +209,17 @@
  *
  * @return Nothing.
  ******************************************************************************/
+/*** OBSOLETE ***
 void pEchoPassThrough(
 		stream<UdpWord>		&siRxp_Data,
 		stream<UdpWord>     &soTxp_Data)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
 	static stream<UdpWord>	sFifo ("sFifo");
-	#pragma HLS stream      variable=sFifo depth=8
+	#pragma HLS stream      variable=sFifo depth=MTU
 
 	//-- FiFo Push
 	if ( !siRxp_Data.empty() && !sFifo.full() )
@@ -223,6 +229,7 @@ void pEchoPassThrough(
 	if ( !sFifo.empty() && !soTxp_Data.full() )
 		soTxp_Data.write(sFifo.read());
 }
+*****/
 
 
 /*****************************************************************************
@@ -281,14 +288,14 @@ void pTXPath(
     //-- LOCAL VARIABLES ------------------------------------------------------
 	UdpWord	udpWord;
 
-
    	//-- Forward incoming chunk to SHELL
     switch(piSHL_MmioEchoCtrl) {
 
         case ECHO_PATH_THRU:
         	// Read data chunk from pEchoPassThrough
-        	if ( !siEpt_Data.empty() )
+        	if ( !siEpt_Data.empty() ) {
         		udpWord = siEpt_Data.read();
+        	}
         	else
         		return;
         	break;
@@ -310,7 +317,7 @@ void pTXPath(
 
     //-- Forward data chunk to SHELL
     if ( !soSHL_Data.full() )
-    	soSHL_Data.write(udpWord);
+        soSHL_Data.write(udpWord);
 }
 
 
@@ -397,15 +404,15 @@ void udp_app_flash (
         stream<UdpWord>     &soTHIS_Shl_Data)
 {
 
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
+
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
     #pragma HLS INTERFACE ap_stable 	 port=piSHL_This_MmioEchoCtrl
     //[TODO] #pragma HLS INTERFACE ap_stable 	 port=piSHL_This_MmioPostPktEn
@@ -416,12 +423,16 @@ void udp_app_flash (
 
 #else
 
-    #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioEchoCtrl
-    #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioPostPktEn
-    #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioCaptPktEn
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE axis register both port=siSHL_This_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Shl_Data
+    #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioEchoCtrl
+	//[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioPostPktEn
+	//[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioCaptPktEn
+
+	// [INFO] Always add "register off" because (default value is "both")
+    #pragma HLS INTERFACE axis register off port=siSHL_This_Data
+    #pragma HLS INTERFACE axis register off port=soTHIS_Shl_Data
 
 #endif
 
@@ -429,28 +440,31 @@ void udp_app_flash (
     #pragma HLS DATAFLOW interval=1
 
     //-- LOCAL STREAMS --------------------------------------------------------
-    static stream<UdpWord>      sRxpToEpt_Data("sRxpToEpt_Data");
+    //OBSOLETE-20180918 static stream<UdpWord>      sRxpToEpt_Data("sRxpToEpt_Data");
+	//OBSOLETE-20180918 static stream<UdpWord>      sEptToTxp_Data("sEptToTxp_Data");
+
+	static stream<UdpWord>      sRxpToTxp_Data("sRxpToTxP_Data");
+
     static stream<UdpWord>      sRxpToEsf_Data("sRxpToEsf_Data");
-    static stream<UdpWord>      sEptToTxp_Data("sEptToTxp_Data");
     static stream<UdpWord>      sEsfToTxp_Data("sEsfToTxp_Data");
 
-    #pragma HLS STREAM    variable=sRxpToEpt_Data depth=2
-	#pragma HLS STREAM    variable=sRxpToEsf_Data depth=2
-    #pragma HLS STREAM    variable=sEptToTxp_Data depth=2
-    #pragma HLS STREAM    variable=sEsfToTxp_Data depth=2
+    //OBSOLETE-20180918 #pragma HLS STREAM    variable=sRxpToEpt_Data depth=512
+    //OBSOLETE-20180918 #pragma HLS STREAM    variable=sEptToTxp_Data depth=512
+
+    #pragma HLS STREAM variable=sRxpToTxp_Data off depth=1500
+	#pragma HLS STREAM variable=sRxpToEsf_Data depth=2
+    #pragma HLS STREAM variable=sEsfToTxp_Data depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pRXPath(piSHL_This_MmioEchoCtrl,
-            siSHL_This_Data, sRxpToEpt_Data, sRxpToEsf_Data);
+            siSHL_This_Data, sRxpToTxp_Data, sRxpToEsf_Data);
 
-    pEchoPassThrough(sRxpToEpt_Data, sEptToTxp_Data);
+    //OBSOLETE-20180918 pEchoPassThrough(sRxpToEpt_Data, sEptToTxp_Data);
 
     pEchoStoreAndForward(sRxpToEsf_Data, sEsfToTxp_Data);
 
     pTXPath(piSHL_This_MmioEchoCtrl,
-    		sEptToTxp_Data, sEsfToTxp_Data, soTHIS_Shl_Data);
-
-
+    		sRxpToTxp_Data, sEsfToTxp_Data, soTHIS_Shl_Data);
 
 }
 
