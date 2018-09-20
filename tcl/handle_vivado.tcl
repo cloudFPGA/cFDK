@@ -318,10 +318,11 @@ if { ${create} } {
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #---------------------------------------------------------------------------
-        set ipDirShell ${rootDir}/../../SHELL/${usedShellType}/ip/
+        set ipDirShell  ${rootDir}/../../SHELL/${usedShellType}/ip/
+        set hlsDirShell ${rootDir}/../../SHELL/${usedShellType}/hls
         #OBSOLETE-20180917 set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-                                                         ${ipDirShell} ] [current_project]
+                                          ${ipDirShell} ${hlsDirShell} ] [current_project]
         update_ip_catalog
         my_dbg_trace "Done with update_ip_catalog for the SHELL" ${dbgLvl_1}
         
@@ -372,9 +373,10 @@ if { ${create} } {
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #----------------------------------------------------------------------------
-        set ipDirRole ${rootDir}/../../ROLE/${usedRole}/ip/
+        set ipDirRole  ${rootDir}/../../ROLE/${usedRole}/ip
+        set hlsDirRole ${rootDir}/../../ROLE/${usedRole}/hls
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-                                                          ${ipDirRole} ] [current_project]
+                                            ${ipDirRole} ${hlsDirRole} ] [current_project]
 
         # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
         #---------------------------------------------------------------------------
