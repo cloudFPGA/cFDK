@@ -10,6 +10,12 @@
 
 using namespace hls;
 
+#define WAIT_CYCLES 100
+//Display0
+#define RECV_CNT_SHIFT 8
+#define SEND_CNT_SHIFT 4
+#define AP_DONE_SHIFT 12
+#define AP_INIT_SHIFT 13
 
 /*
  * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
@@ -41,8 +47,6 @@ struct MPI_Interface {
 };
 
 
-
-
 #define MPI_Status uint8_t
 #define MPI_Comm   uint8_t
 #define MPI_Datatype uint8_t
@@ -52,8 +56,8 @@ struct MPI_Interface {
 #define MPI_FLOAT   1
 
 
-
-void MPI_Init(int* argc, char*** argv);
+//void MPI_Init(int* argc, char*** argv);
+void MPI_Init();
 void MPI_Comm_rank(MPI_Comm communicator, int* rank);
 void MPI_Comm_size( MPI_Comm communicator, int* size);
 
@@ -77,26 +81,45 @@ void MPI_Recv(
 
 void MPI_Finalize();
 
-void MPI_Barrier(MPI_Comm communicator);
+//void MPI_Barrier(MPI_Comm communicator);
 
 
 
+//void mpi_wrapper(
+//    // ----- system reset ---
+//    ap_uint<1> sys_reset,
+//    //EMIF Registers
+//    ap_uint<16> *MMIO_in,
+//    ap_uint<16> *MMIO_out,
+//    // ----- MPI_Interface -----
+//    stream<MPI_Interface> &siMPIif,
+//    stream<MPI_Interface> &soMPIif,
+//    stream<Axis<8> > &siMPI_data,
+//    stream<Axis<8> > &soMPI_data,
+//    // ----- FROM SMC -----
+//    ap_uint<32> *role_rank,
+//    ap_uint<32> *cluster_size
+//    );
+//void mpi_wrapper();
 void mpi_wrapper(
     // ----- system reset ---
-    ap_uint<1> sys_reset,
-    //EMIF Registers
-    ap_uint<32> MMIO_in,
-    ap_uint<32> MMIO_out,
-    // ----- MPI_Interface -----
-    stream<MPI_Interface> siMPIif,
-    stream<MPI_Interface> soMPIif,
-    stream<Axis<8> > siMPI_data,
-    stream<Axis<8> > soMPI_data,
-    // ----- FROM SMC -----
-    ap_uint<32> role_rank,
-    ap_uint<32> cluster_size
+    ap_uint<1> sys_reset
     );
 
-
+void c_testbench_access(
+    // ----- system reset ---
+    ap_uint<1> *sys_reset_arg,
+    //EMIF Registers
+    ap_uint<16> *MMIO_in_arg,
+    ap_uint<16> *MMIO_out_arg,
+    // ----- MPI_Interface -----
+    stream<MPI_Interface> *siMPIif_arg,
+    stream<MPI_Interface> *soMPIif_arg,
+    stream<Axis<8> > *siMPI_data_arg,
+    stream<Axis<8> > *soMPI_data_arg,
+    // ----- FROM SMC -----
+    ap_uint<32> *role_rank_arg,
+    ap_uint<32> *cluster_size_arg
+    );
 
 #endif

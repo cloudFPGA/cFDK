@@ -37,10 +37,10 @@ void print_array(const float *A, size_t width, size_t height)
 }
 */
 
-//void jacobi2d_main();
 
-
-int main( int argc, char **argv );
+//int main( int argc, char **argv );
+//DUE TO SHITTY HLS...
+int app_main();
 
 
 #endif

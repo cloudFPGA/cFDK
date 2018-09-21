@@ -7,11 +7,12 @@
 #include "MPI.hpp"
 
 
-//void jacobi2d_main()
-int main( int argc, char **argv )
+//int main( int argc, char **argv )
+//DUE TO SHITTY HLS...
+int app_main()
 {
-	//MPI_Init();
-	MPI_Init(&argc, &argv);
+	MPI_Init();
+	//MPI_Init(&argc, &argv);
 
 	  int        rank, size;
 	  MPI_Status status;
