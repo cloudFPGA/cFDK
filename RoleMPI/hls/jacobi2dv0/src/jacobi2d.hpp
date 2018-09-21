@@ -13,6 +13,7 @@
 #define DATA_CHANNEL_TAG 1
 #define CMD_CHANNEL_TAG 2
 
+/*
 #ifdef USE_INTEGER
 void print_array(const int *A, size_t width, size_t height)
 #else
@@ -34,9 +35,12 @@ void print_array(const float *A, size_t width, size_t height)
   }
   printf("\n");
 }
+*/
+
+//void jacobi2d_main();
 
 
-void jacobi2d_main();
+int main( int argc, char **argv );
 
 
 #endif

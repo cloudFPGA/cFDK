@@ -26,7 +26,7 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 set projectName    "${appName}v0"
 
-set ipName         ${appName}
+set ipName         ${projectName}
 set ipDisplayName  "Jacobi2D filter with MPI"
 set ipDescription  "Application for cloudFPGA"
 set ipVendor       "IBM"
@@ -52,12 +52,14 @@ set hlsCoSim $env(hlsCoSim)
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
-set_top       ${appName}_main
+#set_top       ${appName}_main
+set_top       mpi_wrapper
 
 
-add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
+add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 add_files     ${srcDir}/MPI.hpp -cflags "-DCOSIM"
+add_files     ${srcDir}/MPI.cpp -cflags "-DCOSIM"
 
 #for DEBUG flag 
 #add_files -tb src/smc.cpp -cflags "-DDEBUG"

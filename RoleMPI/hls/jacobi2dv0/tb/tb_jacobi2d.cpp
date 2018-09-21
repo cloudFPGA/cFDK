@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-int main(){
+int tb_main(){
 
 
   bool succeded = true;

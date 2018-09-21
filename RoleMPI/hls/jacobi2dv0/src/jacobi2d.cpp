@@ -7,12 +7,18 @@
 #include "MPI.hpp"
 
 
-void jacobi2d_main()
+//void jacobi2d_main()
+int main( int argc, char **argv )
 {
-	MPI_Init();
+	//MPI_Init();
+	MPI_Init(&argc, &argv);
 
 	  int        rank, size;
 	  MPI_Status status;
+
+#ifdef USE_INTEGER
+    printf("USE_INTEGER defined.\n");
+#endif
 
 
 	  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
@@ -22,7 +28,7 @@ void jacobi2d_main()
 	  {//for now, we need uneven processes
 	    printf("ERROR: only uneven numbers of processes are supported!\n");
 	    //MPI_Abort(MPI_COMM_WORLD, 1);
-	    return;
+	    return -1;
 	  }
 
 	  if(rank == 0)
@@ -53,12 +59,14 @@ void jacobi2d_main()
 	        }
 	      }
 	    }
-
+/*
 	#ifdef USE_INTEGER
 	    print_array((const int*) grid, DIM, DIM);
 	#else
 	    print_array((const float*) grid, DIM, DIM);
 	#endif
+  */
+
 
 	    printf("Ditstribute data and start client nodes.\n");
 
@@ -68,7 +76,7 @@ void jacobi2d_main()
 	    if(size != 3)
 	    {//assert...
 	      printf("size != 3\n");
-	      return;
+	      return -1;
 	    }
 
 	    for(int i = 1; i<size; i++)
@@ -118,11 +126,13 @@ void jacobi2d_main()
 
 	    }
 
+      /*
 	#ifdef USE_INTEGER
 	    print_array((const int*) grid, DIM, DIM);
 	#else
 	    print_array((const float*) grid, DIM, DIM);
-	#endif
+	#endif 
+  */
 
 	    MPI_Barrier(MPI_COMM_WORLD);
 
@@ -174,7 +184,7 @@ void jacobi2d_main()
 
 	  MPI_Finalize();
 
-  return;
+  return -1;
 }
 
 
