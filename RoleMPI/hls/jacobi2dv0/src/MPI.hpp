@@ -108,7 +108,7 @@ void mpi_wrapper(
 
 void c_testbench_access(
     // ----- system reset ---
-    ap_uint<1> *sys_reset_arg,
+    //ap_uint<1> *sys_reset_arg,
     //EMIF Registers
     ap_uint<16> *MMIO_in_arg,
     ap_uint<16> *MMIO_out_arg,

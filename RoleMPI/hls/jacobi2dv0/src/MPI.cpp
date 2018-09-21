@@ -4,7 +4,8 @@
 #include "ap_utils.h"
 #include <hls_stream.h>
 
-#include "jacobi2d.hpp"
+//#include "jacobi2d.hpp"
+#include "test.hpp"
 #include "MPI.hpp"
 
 using namespace hls;
@@ -114,13 +115,22 @@ void MPI_Send(
 
   soMPIif->write(info);
 
-  Axis<8>  tmp8 = Axis<8>();
+  char *dataC = (char*) data;
   for(int i = 0; i< info.count; i++)
   {
-    tmp8.tdata = data[i];
+    //wait for stream 
+    while(soMPI_data->full())
+    {
+      ap_wait_n(WAIT_CYCLES);
+    }
+
+    Axis<8>  tmp8 = Axis<8>();
+    tmp8.tdata = dataC[i];
     if(i == info.count - 1)
     {
       tmp8.tlast = 1;
+    } else {
+      tmp8.tlast = 0;
     }
     printf("write MPI data: %#02x\n", (int) tmp8.tdata);
     soMPI_data->write(tmp8);
@@ -168,16 +178,21 @@ void MPI_Recv(
   soMPIif->write(info);
 
   bool tlastOccured = false;
+
+  char *dataC = (char*) data;
   
   for(int i = 0; i< info.count; i++)
   {
     //wait for stream 
-    while(siMPI_data->());
+    while(siMPI_data->empty())
+    {
+      ap_wait_n(WAIT_CYCLES);
+    }
 
     Axis<8>  tmp8 = siMPI_data->read();
     printf("read MPI data: %#02x\n", (int) tmp8.tdata);
 
-    data[i] = tmp8.tdata;
+    dataC[i] = tmp8.tdata;
     //type conversion is done implicitely by app itself
 
     if( tmp8.tlast == 1)
@@ -220,7 +235,7 @@ void MPI_Finalize()
 
 void c_testbench_access(
     // ----- system reset ---
-    ap_uint<1> *sys_reset_arg,
+    //ap_uint<1> *sys_reset_arg,
     //EMIF Registers
     ap_uint<16> *MMIO_in_arg,
     ap_uint<16> *MMIO_out_arg,
@@ -236,7 +251,7 @@ void c_testbench_access(
 {
   //sys_reset = sys_reset_arg;
 
-  MMIO_in = MMIO_in_arg;
+  //MMIO_in = MMIO_in_arg;
   MMIO_out = MMIO_out_arg;
 
   siMPIif = siMPIif_arg;
@@ -289,7 +304,9 @@ void mpi_wrapper(
     sendCnt = 0;
     recvCnt = 0;
     app_init = 0;
-    //don't start app in reset state
+    //don't start app in reset state 
+
+    setMMIO_out();
     return;
   }
 

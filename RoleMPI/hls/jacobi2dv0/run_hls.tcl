@@ -56,8 +56,11 @@ open_project  ${projectName}_prj
 set_top       mpi_wrapper
 
 
-add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
-add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
+# for Debug
+add_files     ${srcDir}/test.hpp -cflags "-DCOSIM"
+add_files     ${srcDir}/test.cpp -cflags "-DCOSIM"
+#add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
+#add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 add_files     ${srcDir}/MPI.hpp -cflags "-DCOSIM"
 add_files     ${srcDir}/MPI.cpp -cflags "-DCOSIM"
 
