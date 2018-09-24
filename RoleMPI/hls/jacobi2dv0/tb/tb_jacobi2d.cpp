@@ -29,13 +29,14 @@ int main(){
     ap_uint<32> cluster_size = 0;
 
 
-    c_testbench_access(&MMIO_in, &MMIO_out, &siMPIif, &soMPIif, &siMPI_data, &soMPI_data, &role_rank, &cluster_size); 
-    
-    //test reset 
-    mpi_wrapper(1);
-
     cluster_size = 2;
     role_rank = 1;
+
+    c_testbench_access(MMIO_in, MMIO_out, &siMPIif, &soMPIif, &siMPI_data, &soMPI_data, role_rank, cluster_size);
+    
+    //test reset 
+    //mpi_wrapper(1);
+
 
 
     int grid[DIM][DIM];
@@ -95,6 +96,8 @@ int main(){
   {//not while...because we want test if there are exactly i bytes left 
     soMPI_data.read();
   }
+
+  c_testbench_read(&MMIO_out);
 
   assert(MMIO_out == 0x1111);
 

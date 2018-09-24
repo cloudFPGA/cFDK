@@ -63,7 +63,7 @@ void MPI_Comm_size( MPI_Comm communicator, int* size);
 
 
 void MPI_Send(
-    void* data,
+    int* data,
     int count,
     MPI_Datatype datatype,
     int destination,
@@ -71,7 +71,7 @@ void MPI_Send(
     MPI_Comm communicator);
 
 void MPI_Recv(
-    void* data,
+    int* data,
     int count,
     MPI_Datatype datatype,
     int source,
@@ -110,16 +110,20 @@ void c_testbench_access(
     // ----- system reset ---
     //ap_uint<1> *sys_reset_arg,
     //EMIF Registers
-    ap_uint<16> *MMIO_in_arg,
-    ap_uint<16> *MMIO_out_arg,
+    ap_uint<16> MMIO_in_arg,
+    ap_uint<16> MMIO_out_arg,
     // ----- MPI_Interface -----
     stream<MPI_Interface> *siMPIif_arg,
     stream<MPI_Interface> *soMPIif_arg,
     stream<Axis<8> > *siMPI_data_arg,
     stream<Axis<8> > *soMPI_data_arg,
     // ----- FROM SMC -----
-    ap_uint<32> *role_rank_arg,
-    ap_uint<32> *cluster_size_arg
+    ap_uint<32> role_rank_arg,
+    ap_uint<32> cluster_size_arg
+    );
+
+void c_testbench_read(
+    ap_uint<16> *MMIO_out_arg
     );
 
 #endif

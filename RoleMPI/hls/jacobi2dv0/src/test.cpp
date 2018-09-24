@@ -8,6 +8,7 @@
 
 
 //for debugging
+/*
 void print_int_array(const int *A, size_t width, size_t height)
 {
   printf("\n");
@@ -21,7 +22,7 @@ void print_int_array(const int *A, size_t width, size_t height)
   }
   printf("\n");
 }
-
+*/
 
 
 //int main( int argc, char **argv )
@@ -45,10 +46,10 @@ void app_main()
 
 	    int local_grid[LDIMY][LDIMX];
 	    int local_new[LDIMY][LDIMX];
+//#pragma HLS RESOURCE variable=local_grid core=ROM_2P_BRAM
+	    MPI_Recv(&local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
 
-	    MPI_Recv(local_grid, LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
-
-	    print_int_array((const int*) local_grid, LDIMX, LDIMY);
+	   // print_int_array((const int*) local_grid, LDIMX, LDIMY);
 
 	    //only one iteration for now
 	    //treat all borders equal, the additional lines in the middle are cut out from the merge at the server
@@ -59,7 +60,7 @@ void app_main()
 	        local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
 	      }
 	    }
-	    MPI_Send(local_new, LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+	   MPI_Send(&local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
 	    
       //print_int_array((const int*) local_new, LDIMX, LDIMY);
 
