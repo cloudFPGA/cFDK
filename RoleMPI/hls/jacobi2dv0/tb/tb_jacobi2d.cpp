@@ -27,10 +27,6 @@ int main(){
     // ----- FROM SMC -----
     ap_uint<32> role_rank = 0;
     ap_uint<32> cluster_size = 0;
-#pragma HLS STREAM variable=siMPI_data depth=2048
-#pragma HLS STREAM variable=soMPI_data depth=2048
-#pragma HLS STREAM variable=siMPIif depth=2048
-#pragma HLS STREAM variable=soMPIif depth=2048
 
     cluster_size = 2;
     role_rank = 1;

@@ -72,18 +72,18 @@ entity Role_MPIv0_x2Mp is
     poROLE_MPE_MPIif_mpi_call_TDATA        : out std_ulogic_vector(7 downto 0);
     poROLE_MPE_MPIif_mpi_call_TVALID       : out std_ulogic;
     piROLE_MPE_MPIif_mpi_call_TREADY       : in std_ulogic;
-    piMPE_ROLE_MPIif_mpi_call_TDATA        : in  std_ulogic_vector(7 downto 0);
-    piMPE_ROLE_MPIif_mpi_call_TVALID       : in  std_ulogic;
-    poMPE_ROLE_MPIif_mpi_call_TREADY       : out  std_ulogic;
-    piMPE_ROLE_MPIif_count_TDATA           : in  std_ulogic_vector(31 downto 0);
-    piMPE_ROLE_MPIif_count_TVALID          : in  std_ulogic;
-    poMPE_ROLE_MPIif_count_TREADY          : out  std_ulogic;
+    --piMPE_ROLE_MPIif_mpi_call_TDATA        : in  std_ulogic_vector(7 downto 0);
+    --piMPE_ROLE_MPIif_mpi_call_TVALID       : in  std_ulogic;
+    --poMPE_ROLE_MPIif_mpi_call_TREADY       : out  std_ulogic;
+    --piMPE_ROLE_MPIif_count_TDATA           : in  std_ulogic_vector(31 downto 0);
+    --piMPE_ROLE_MPIif_count_TVALID          : in  std_ulogic;
+    --poMPE_ROLE_MPIif_count_TREADY          : out  std_ulogic;
     poROLE_MPE_MPIif_count_TDATA           : out std_ulogic_vector(31 downto 0);
     poROLE_MPE_MPIif_count_TVALID          : out std_ulogic;
     piROLE_MPE_MPIif_count_TREADY          : in std_ulogic;
-    piMPE_ROLE_MPIif_rank_TDATA            : in std_ulogic_vector(31 downto 0);
-    piMPE_ROLE_MPIif_rank_TVALID           : in std_ulogic;
-    poMPE_ROLE_MPIif_rank_TREADY           : out std_ulogic;
+    --piMPE_ROLE_MPIif_rank_TDATA            : in std_ulogic_vector(31 downto 0);
+    --piMPE_ROLE_MPIif_rank_TVALID           : in std_ulogic;
+    --poMPE_ROLE_MPIif_rank_TREADY           : out std_ulogic;
     poROLE_MPE_MPIif_rank_TDATA            : out std_ulogic_vector(31 downto 0);
     poROLE_MPE_MPIif_rank_TVALID           : out std_ulogic;
     piROLE_MPE_MPIif_rank_TREADY           : in std_ulogic;
@@ -197,10 +197,50 @@ end Role_MPIv0_x2Mp;
 architecture Flash of Role_MPIv0_x2Mp is
 
   --============================================================================
-  --  SIGNAL DECLARATIONS
+  -- COMPONENT DECLARATION 
   --============================================================================  
 
-  
+  component mpi_wrapper is
+    port (
+           ap_clk : IN STD_LOGIC;
+           ap_rst_n : IN STD_LOGIC;
+           ap_start : IN STD_LOGIC;
+           ap_done : OUT STD_LOGIC;
+           ap_idle : OUT STD_LOGIC;
+           ap_ready : OUT STD_LOGIC;
+           MMIO_out_V : OUT STD_LOGIC_VECTOR (15 downto 0);
+           MMIO_out_V_ap_vld : OUT STD_LOGIC;
+           soMPIif_V_mpi_call_V_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
+           soMPIif_V_mpi_call_V_TVALID : OUT STD_LOGIC;
+           soMPIif_V_mpi_call_V_TREADY : IN STD_LOGIC;
+           soMPIif_V_count_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
+           soMPIif_V_count_V_TVALID : OUT STD_LOGIC;
+           soMPIif_V_count_V_TREADY : IN STD_LOGIC;
+           soMPIif_V_rank_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
+           soMPIif_V_rank_V_TVALID : OUT STD_LOGIC;
+           soMPIif_V_rank_V_TREADY : IN STD_LOGIC;
+           siMPI_data_V_tdata_V_TDATA : IN STD_LOGIC_VECTOR (7 downto 0);
+           siMPI_data_V_tdata_V_TVALID : IN STD_LOGIC;
+           siMPI_data_V_tdata_V_TREADY : OUT STD_LOGIC;
+           siMPI_data_V_tkeep_V_TKEEP : IN STD_LOGIC_VECTOR (0 downto 0);
+           siMPI_data_V_tkeep_V_TVALID : IN STD_LOGIC;
+           siMPI_data_V_tkeep_V_TREADY : OUT STD_LOGIC;
+           siMPI_data_V_tlast_V_TLAST : IN STD_LOGIC_VECTOR (0 downto 0);
+           siMPI_data_V_tlast_V_TVALID : IN STD_LOGIC;
+           siMPI_data_V_tlast_V_TREADY : OUT STD_LOGIC;
+           soMPI_data_V_tdata_V_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
+           soMPI_data_V_tdata_V_TVALID : OUT STD_LOGIC;
+           soMPI_data_V_tdata_V_TREADY : IN STD_LOGIC;
+           soMPI_data_V_tkeep_V_TKEEP : OUT STD_LOGIC_VECTOR (0 downto 0);
+           soMPI_data_V_tkeep_V_TVALID : OUT STD_LOGIC;
+           soMPI_data_V_tkeep_V_TREADY : IN STD_LOGIC;
+           soMPI_data_V_tlast_V_TLAST : OUT STD_LOGIC_VECTOR (0 downto 0);
+           soMPI_data_V_tlast_V_TVALID : OUT STD_LOGIC;
+           soMPI_data_V_tlast_V_TREADY : IN STD_LOGIC;
+           piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0) );
+  end component;
+
+
   --============================================================================
   -- TEMPORARY PROC: ROLE / Mem / Mp0 Interface to AVOID UNDEFINED CONTENT
   --============================================================================
@@ -233,12 +273,18 @@ architecture Flash of Role_MPIv0_x2Mp is
   signal sROL_Shl_Mem_Mp0_Axis_Write_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp0_Axis_Write_tready : std_ulogic;
   
+  --============================================================================
+  --  SIGNAL DECLARATIONS
+  --============================================================================  
+  
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   
   
   signal EMIF_inv   : std_logic_vector(7 downto 0);
+
+  signal active_low_reset  : std_logic;
  
 begin
 
@@ -247,55 +293,59 @@ begin
 
   -- write constant to EMIF Register to test read out 
   --poROL_SHL_EMIF_2B_Reg <= x"FE" & EMIF_inv; 
-  poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
-  poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
-                                      x"F"; 
-  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
-                                      x"E"; 
+ -- poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
+ -- poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
+ --                                     x"F"; 
+ -- poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
+ --                                     x"E"; 
 
-  EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
-              x"BE" ;
+ -- EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
+ --             x"BE" ;
+ --
+
+  active_low_reset <= not piSHL_156_25Rst;
   
-  pMpiEcho: process(piSHL_156_25Clk) 
-  begin
-    if rising_edge(piSHL_156_25Clk) then 
-      if piSHL_156_25Rst = '1' then 
-        poMPE_ROLE_MPI_data_TREADY <= '0';
-        poMPE_ROLE_MPIif_rank_TREADY <= '0';
-        poMPE_ROLE_MPIif_count_TREADY <= '0';
-        poMPE_ROLE_MPIif_mpi_call_TREADY <= '0';
+  MPI_APP: mpi_wrapper
+    port map (
+         ap_clk     =>   piSHL_156_25Clk ,
+         ap_rst_n     =>    active_low_reset,
+         ap_start     =>    '1',
+         --ap_done     =>    ,
+         --ap_idle     =>    ,
+         --ap_ready     =>    ,
+         MMIO_out_V     =>   poROL_SHL_EMIF_2B_Reg ,
+         --MMIO_out_V_ap_vld     =>    ,
+         soMPIif_V_mpi_call_V_TDATA     =>  poROLE_MPE_MPIif_mpi_call_TDATA  ,
+         soMPIif_V_mpi_call_V_TVALID     => poROLE_MPE_MPIif_mpi_call_TVALID   ,
+         soMPIif_V_mpi_call_V_TREADY     => piROLE_MPE_MPIif_mpi_call_TREADY   ,
+         soMPIif_V_count_V_TDATA     =>     poROLE_MPE_MPIif_count_TDATA  ,
+         soMPIif_V_count_V_TVALID     =>    poROLE_MPE_MPIif_count_TVALID   ,
+         soMPIif_V_count_V_TREADY     =>    piROLE_MPE_MPIif_count_TREADY ,
+         soMPIif_V_rank_V_TDATA     =>      poROLE_MPE_MPIif_rank_TDATA ,
+         soMPIif_V_rank_V_TVALID     =>     poROLE_MPE_MPIif_rank_TVALID,
+         soMPIif_V_rank_V_TREADY     =>     piROLE_MPE_MPIif_rank_TREADY,
+         siMPI_data_V_tdata_V_TDATA     =>  piMPE_ROLE_MPI_data_TDATA    ,
+         siMPI_data_V_tdata_V_TVALID     => piMPE_ROLE_MPI_data_TVALID    ,
+         siMPI_data_V_tdata_V_TREADY     => poMPE_ROLE_MPI_data_TREADY    ,
+         siMPI_data_V_tkeep_V_TKEEP     =>  piMPE_ROLE_MPI_data_TKEEP    ,
+         siMPI_data_V_tkeep_V_TVALID     => piMPE_ROLE_MPI_data_TLAST     ,
+         siMPI_data_V_tkeep_V_TREADY     => poROLE_MPE_MPI_data_TDATA     ,
+         siMPI_data_V_tlast_V_TLAST     =>  poROLE_MPE_MPI_data_TVALID   ,
+         siMPI_data_V_tlast_V_TVALID     => piROLE_MPE_MPI_data_TREADY    ,
+         siMPI_data_V_tlast_V_TREADY     => poROLE_MPE_MPI_data_TKEEP     ,
+         soMPI_data_V_tdata_V_TDATA     =>  poROLE_MPE_MPI_data_TLAST    ,
+         soMPI_data_V_tdata_V_TVALID     =>    ,
+         soMPI_data_V_tdata_V_TREADY     =>    ,
+         soMPI_data_V_tkeep_V_TKEEP     =>    ,
+         soMPI_data_V_tkeep_V_TVALID     =>    ,
+         soMPI_data_V_tkeep_V_TREADY     =>    ,
+         soMPI_data_V_tlast_V_TLAST     =>    ,
+         soMPI_data_V_tlast_V_TVALID     =>    ,
+         soMPI_data_V_tlast_V_TREADY     =>    ,
+         piSysReset_V     =>    
+             );
 
-        poROLE_MPE_MPIif_mpi_call_TDATA <= (others => '0');
-        poROLE_MPE_MPIif_mpi_call_TVALID <= '0';
-        poROLE_MPE_MPIif_count_TDATA <= (others => '0');
-        poROLE_MPE_MPIif_count_TVALID <= '0';
-        poROLE_MPE_MPIif_rank_TDATA <= (others => '0');
-        poROLE_MPE_MPIif_rank_TVALID <= '0';
-        poROLE_MPE_MPI_data_TDATA <= (others => '0');
-        poROLE_MPE_MPI_data_TVALID <= '0';
-        poROLE_MPE_MPI_data_TKEEP <= '0';
-        poROLE_MPE_MPI_data_TLAST <= '0';
-      else 
-        poMPE_ROLE_MPI_data_TREADY <=          piROLE_MPE_MPI_data_TREADY;
-        poMPE_ROLE_MPIif_rank_TREADY <=        piROLE_MPE_MPIif_rank_TREADY;
-        poMPE_ROLE_MPIif_count_TREADY <=       piROLE_MPE_MPIif_count_TREADY; 
-        poMPE_ROLE_MPIif_mpi_call_TREADY <=    piROLE_MPE_MPIif_mpi_call_TREADY;
-        poROLE_MPE_MPIif_mpi_call_TDATA <=     piMPE_ROLE_MPIif_mpi_call_TDATA;
-        poROLE_MPE_MPIif_mpi_call_TVALID <=    piMPE_ROLE_MPIif_mpi_call_TVALID;
-        poROLE_MPE_MPIif_count_TDATA <=        piMPE_ROLE_MPIif_count_TDATA;
-        poROLE_MPE_MPIif_count_TVALID <=       piMPE_ROLE_MPIif_count_TVALID; 
-        poROLE_MPE_MPIif_rank_TDATA <=         piMPE_ROLE_MPIif_rank_TDATA;
-        poROLE_MPE_MPIif_rank_TVALID <=        piMPE_ROLE_MPIif_rank_TVALID;
-        poROLE_MPE_MPI_data_TDATA <=           piMPE_ROLE_MPI_data_TDATA; 
-        poROLE_MPE_MPI_data_TVALID <=          piMPE_ROLE_MPI_data_TVALID; 
-        poROLE_MPE_MPI_data_TKEEP <=           piMPE_ROLE_MPI_data_TKEEP; 
-        poROLE_MPE_MPI_data_TLAST <=           piMPE_ROLE_MPI_data_TLAST; 
-        
-      end if;
 
-    end if;
-  end process pMpiEcho;
-  
   pMp0RdCmd : process(piSHL_156_25Clk)
   begin
     if rising_edge(piSHL_156_25Clk) then

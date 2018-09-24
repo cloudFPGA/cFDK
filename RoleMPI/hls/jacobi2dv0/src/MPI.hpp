@@ -10,12 +10,24 @@
 
 using namespace hls;
 
-#define WAIT_CYCLES 100
+#define WAIT_CYCLES 10
 //Display0
 #define RECV_CNT_SHIFT 8
 #define SEND_CNT_SHIFT 4
 #define AP_DONE_SHIFT 12
 #define AP_INIT_SHIFT 13
+
+#define RECV_WRITE_INFO 0
+#define RECV_READ_DATA 1
+#define RECV_FINISH 2
+#define WrapperRecvState uint8_t
+
+#define SEND_WRITE_INFO 0
+#define SEND_WRITE_DATA 1
+#define SEND_FINISH 2
+#define WrapperSendState uint8_t
+
+
 
 /*
  * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
