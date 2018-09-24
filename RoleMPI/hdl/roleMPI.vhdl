@@ -285,6 +285,8 @@ architecture Flash of Role_MPIv0_x2Mp is
   signal EMIF_inv   : std_logic_vector(7 downto 0);
 
   signal active_low_reset  : std_logic;
+  signal siMPI_data_tready1, siMPI_data_tready2, siMPI_data_tready3 : std_logic;
+  signal soMPI_data_tvalid1, soMPI_data_tvalid2, soMPI_data_tvalid3: std_logic;
  
 begin
 
@@ -304,6 +306,9 @@ begin
  --
 
   active_low_reset <= not piSHL_156_25Rst;
+
+  poMPE_ROLE_MPI_data_TREADY <= siMPI_data_tready1 and siMPI_data_tready2 and siMPI_data_tready3;
+  poROLE_MPE_MPI_data_TVALID <= soMPI_data_tvalid1 and soMPI_data_tvalid2 and soMPI_data_tvalid3;
   
   MPI_APP: mpi_wrapper
     port map (
@@ -326,23 +331,23 @@ begin
          soMPIif_V_rank_V_TREADY     =>     piROLE_MPE_MPIif_rank_TREADY,
          siMPI_data_V_tdata_V_TDATA     =>  piMPE_ROLE_MPI_data_TDATA    ,
          siMPI_data_V_tdata_V_TVALID     => piMPE_ROLE_MPI_data_TVALID    ,
-         siMPI_data_V_tdata_V_TREADY     => poMPE_ROLE_MPI_data_TREADY    ,
+         siMPI_data_V_tdata_V_TREADY     => siMPI_data_tready1,
          siMPI_data_V_tkeep_V_TKEEP     =>  piMPE_ROLE_MPI_data_TKEEP    ,
-         siMPI_data_V_tkeep_V_TVALID     => piMPE_ROLE_MPI_data_TLAST     ,
-         siMPI_data_V_tkeep_V_TREADY     => poROLE_MPE_MPI_data_TDATA     ,
-         siMPI_data_V_tlast_V_TLAST     =>  poROLE_MPE_MPI_data_TVALID   ,
-         siMPI_data_V_tlast_V_TVALID     => piROLE_MPE_MPI_data_TREADY    ,
-         siMPI_data_V_tlast_V_TREADY     => poROLE_MPE_MPI_data_TKEEP     ,
-         soMPI_data_V_tdata_V_TDATA     =>  poROLE_MPE_MPI_data_TLAST    ,
-         soMPI_data_V_tdata_V_TVALID     =>    ,
-         soMPI_data_V_tdata_V_TREADY     =>    ,
-         soMPI_data_V_tkeep_V_TKEEP     =>    ,
-         soMPI_data_V_tkeep_V_TVALID     =>    ,
-         soMPI_data_V_tkeep_V_TREADY     =>    ,
-         soMPI_data_V_tlast_V_TLAST     =>    ,
-         soMPI_data_V_tlast_V_TVALID     =>    ,
-         soMPI_data_V_tlast_V_TREADY     =>    ,
-         piSysReset_V     =>    
+         siMPI_data_V_tkeep_V_TVALID     => piMPE_ROLE_MPI_data_TVALID,
+         siMPI_data_V_tkeep_V_TREADY     => siMPI_data_tready2    ,
+         siMPI_data_V_tlast_V_TLAST     =>  piMPE_ROLE_MPI_data_TLAST  ,
+         siMPI_data_V_tlast_V_TVALID     => piMPE_ROLE_MPI_data_TVALID    ,
+         siMPI_data_V_tlast_V_TREADY     => siMPI_data_tready3    ,
+         soMPI_data_V_tdata_V_TDATA     =>   poROLE_MPE_MPI_data_TDATA   ,
+         soMPI_data_V_tdata_V_TVALID     =>  soMPI_data_tvalid1,
+         soMPI_data_V_tdata_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
+         soMPI_data_V_tkeep_V_TKEEP     =>   poROLE_MPE_MPI_data_TKEEP  ,
+         soMPI_data_V_tkeep_V_TVALID     =>  soMPI_data_tvalid2,
+         soMPI_data_V_tkeep_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
+         soMPI_data_V_tlast_V_TLAST     =>   poROLE_MPE_MPI_data_TLAST ,
+         soMPI_data_V_tlast_V_TVALID     =>  soMPI_data_tvalid3 ,
+         soMPI_data_V_tlast_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
+         piSysReset_V     =>   piSHL_156_25Rst 
              );
 
 
