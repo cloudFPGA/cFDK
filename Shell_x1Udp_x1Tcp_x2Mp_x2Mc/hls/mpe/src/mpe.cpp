@@ -210,7 +210,7 @@ void mpe_main(
 
     // ----- MPI_Interface -----
     stream<MPI_Interface> &siMPIif,
-    stream<MPI_Interface> &soMPIif,
+    //stream<MPI_Interface> &soMPIif,
     stream<Axis<8> > &siMPI_data,
     stream<Axis<8> > &soMPI_data
     )
@@ -221,7 +221,7 @@ void mpe_main(
 #pragma HLS INTERFACE axis register both port=soIP
 #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piSMC_MPE_ctrlLink_AXI
 #pragma HLS INTERFACE axis register both port=siMPIif
-#pragma HLS INTERFACE axis register both port=soMPIif
+//#pragma HLS INTERFACE axis register both port=soMPIif
 #pragma HLS INTERFACE axis register both port=siMPI_data
 #pragma HLS INTERFACE axis register both port=soMPI_data
 #pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
@@ -953,7 +953,8 @@ void mpe_main(
       //global fsm is doing the job 
       break;
     case READ_IDLE: 
-      if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() && !soMPIif.full() )
+      //if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() && !soMPIif.full() )
+      if( !siTcp.empty() && !siIP.empty() && !sFifoDataRX.full() )
       {
         //read header
         for(int i = 0; i< (MPIF_HEADER_LENGTH+7)/8; i++)
@@ -1030,12 +1031,12 @@ void mpe_main(
 
         //valid header && valid source
 
-        MPI_Interface info = MPI_Interface();
+        /*MPI_Interface info = MPI_Interface();
         //info.mpi_call = static_cast<int>(header.call); 
         info.mpi_call = currentInfo.mpi_call; //TODO
         info.count = header.size; 
         info.rank = header.src_rank;
-        soMPIif.write(info);
+        soMPIif.write(info);*/
 
         fsmReceiveState = READ_DATA;
       }

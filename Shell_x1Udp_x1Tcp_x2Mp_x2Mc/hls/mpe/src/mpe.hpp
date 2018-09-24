@@ -241,7 +241,7 @@ void mpe_main(
 
         // ----- MPI_Interface -----
         stream<MPI_Interface> &siMPIif,
-        stream<MPI_Interface> &soMPIif,
+        //stream<MPI_Interface> &soMPIif,
         stream<Axis<8> > &siMPI_data,
         stream<Axis<8> > &soMPI_data
     );
