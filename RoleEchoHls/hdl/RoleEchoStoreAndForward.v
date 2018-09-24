@@ -202,43 +202,43 @@ module Role_x1Udp_x1Tcp_x2Mp
     //-- SHELL / Role / Nts0 / Udp Interface
 	  //------------------------------------------------------                            
     //---- Input AXI-Write Stream Interface --------
-    .si_Tcp_TDATA          (piSHL_Rol_Nts0_Tcp_Axis_tdata),
-    .si_Tcp_TKEEP          (piSHL_Rol_Nts0_Tcp_Axis_tkeep),
-    .si_Tcp_TLAST          (piSHL_Rol_Nts0_Tcp_Axis_tlast),
-    .si_Tcp_TVALID         (piSHL_Rol_Nts0_Tcp_Axis_tvalid),
-    .si_Tcp_TREADY         (poROL_Shl_Nts0_Tcp_Axis_tready),
+    .siTcp_TDATA           (piSHL_Rol_Nts0_Tcp_Axis_tdata),
+    .siTcp_TKEEP           (piSHL_Rol_Nts0_Tcp_Axis_tkeep),
+    .siTcp_TLAST           (piSHL_Rol_Nts0_Tcp_Axis_tlast),
+    .siTcp_TVALID          (piSHL_Rol_Nts0_Tcp_Axis_tvalid),
+    .siTcp_TREADY          (poROL_Shl_Nts0_Tcp_Axis_tready),
     //---- Output AXI-Write Stream Interface ---------
-    .so_Tcp_TREADY         (piSHL_Rol_Nts0_Tcp_Axis_tready),
-    .so_Tcp_TDATA          (poROL_Shl_Nts0_Tcp_Axis_tdata),
-    .so_Tcp_TKEEP          (poROL_Shl_Nts0_Tcp_Axis_tkeep),
-    .so_Tcp_TLAST          (poROL_Shl_Nts0_Tcp_Axis_tlast),
-    .so_Tcp_TVALID         (poROL_Shl_Nts0_Tcp_Axis_tvalid),
+    .soTcp_TREADY          (piSHL_Rol_Nts0_Tcp_Axis_tready),
+    .soTcp_TDATA           (poROL_Shl_Nts0_Tcp_Axis_tdata),
+    .soTcp_TKEEP           (poROL_Shl_Nts0_Tcp_Axis_tkeep),
+    .soTcp_TLAST           (poROL_Shl_Nts0_Tcp_Axis_tlast),
+    .soTcp_TVALID          (poROL_Shl_Nts0_Tcp_Axis_tvalid),
                         
 	  //------------------------------------------------------
 	  //-- SHELL / Role / Mem / Mp0 Interface
 	  //------------------------------------------------------
 	  //---- Read Path (MM2S) ------------
-    .soMemRdCmdP0_V_TREADY (piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready),
-    .soMemRdCmdP0_V_TDATA  (poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
-    .soMemRdCmdP0_V_TVALID (poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
+    .soMemRdCmdP0_TREADY   (piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready),
+    .soMemRdCmdP0_TDATA    (poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
+    .soMemRdCmdP0_TVALID   (poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
  
-    .siMemRdStsP0_V_TVALID (piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid),
-    .siMemRdStsP0_V_TDATA  (piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata),
-    .siMemRdStsP0_V_TREADY (poROL_Shl_Mem_Mp0_Axis_RdSts_tready),
+    .siMemRdStsP0_TVALID   (piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid),
+    .siMemRdStsP0_TDATA    (piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata),
+    .siMemRdStsP0_TREADY   (poROL_Shl_Mem_Mp0_Axis_RdSts_tready),
                             
-    .siMemReadP0_DATA      (piSHL_Rol_Mem_Mp0_Axis_Read_tdata),
+    .siMemReadP0_TDATA      (piSHL_Rol_Mem_Mp0_Axis_Read_tdata),
     .siMemReadP0_TKEEP     (piSHL_Rol_Mem_Mp0_Axis_Read_tkeep),
     .siMemReadP0_TLAST     (piSHL_Rol_Mem_Mp0_Axis_Read_tlast),
     .siMemReadP0_TVALID    (piSHL_Rol_Mem_Mp0_Axis_Read_tvalid),
     .siMemReadP0_TREADY    (poROL_Shl_Mem_Mp0_Axis_Read_tready),
 	  //---- Write Path (S2MM) -----------
-    .soMemWrCmdP0_V_TREADY (piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready),
-    .soMemWrCmdP0_V_TDATA  (poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata),
-    .soMemWrCmdP0_V_TVALID (poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
+    .soMemWrCmdP0_TREADY   (piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready),
+    .soMemWrCmdP0_TDATA    (poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata),
+    .soMemWrCmdP0_TVALID   (poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
                             
-    .siMemWrStsP0_V_TDATA  (piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata),
-    .siMemWrStsP0_V_TVALID (piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid),
-    .siMemWrStsP0_V_TREADY (poROL_Shl_Mem_Mp0_Axis_WrSts_tready),
+    .siMemWrStsP0_TDATA    (piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata),
+    .siMemWrStsP0_TVALID   (piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid),
+    .siMemWrStsP0_TREADY   (poROL_Shl_Mem_Mp0_Axis_WrSts_tready),
 
     .soMemWriteP0_TDATA    (poROL_Shl_Mem_Mp0_Axis_Write_tdata),
     .soMemWriteP0_TKEEP    (poROL_Shl_Mem_Mp0_Axis_Write_tkeep),
@@ -250,13 +250,13 @@ module Role_x1Udp_x1Tcp_x2Mp
 	  //-- SHELL / Role / Mem / Mp1 Interface
 	  //------------------------------------------------------
 	  //---- Read Path (MM2S) ------------
-    .soMemRdCmdP1_V_TREADY (piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready),
-    .soMemRdCmdP1_V_TDATA  (poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata),
-    .soMemRdCmdP1_V_TVALID (poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
+    .soMemRdCmdP1_TREADY   (piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready),
+    .soMemRdCmdP1_TDATA    (poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata),
+    .soMemRdCmdP1_TVALID   (poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
 
-    .siMemRdStsP1_V_TDATA  (piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata),
-    .siMemRdStsP1_V_TVALID (piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid),
-    .siMemRdStsP1_V_TREADY (poROL_Shl_Mem_Mp1_Axis_RdSts_tready),
+    .siMemRdStsP1_TDATA  (piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata),
+    .siMemRdStsP1_TVALID (piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid),
+    .siMemRdStsP1_TREADY (poROL_Shl_Mem_Mp1_Axis_RdSts_tready),
 
     .siMemReadP1_TDATA     (piSHL_Rol_Mem_Mp1_Axis_Read_tdata),
     .siMemReadP1_TKEEP     (piSHL_Rol_Mem_Mp1_Axis_Read_tkeep),
@@ -264,25 +264,25 @@ module Role_x1Udp_x1Tcp_x2Mp
     .siMemReadP1_TVALID    (piSHL_Rol_Mem_Mp1_Axis_Read_tvalid),
     .siMemReadP1_TREADY    (poROL_Shl_Mem_Mp1_Axis_Read_tready),
 	  //---- Write Path (S2MM) -----------
-    .soMemWrCmdP1_V_TREADY (piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready),
-    .soMemWrCmdP1_V_TDATA  (poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata),
-    .soMemWrCmdP1_V_TVALID (poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
+    .soMemWrCmdP1_TREADY   (piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready),
+    .soMemWrCmdP1_TDATA    (poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata),
+    .soMemWrCmdP1_TVALID   (poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
 
-    .siMemWrStsP1_V_TDATA  (piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata),
-    .siMemWrStsP1_V_TVALID (piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid),
-    .siMemWrStsP1_V_TREADY (poROL_Shl_Mem_Mp1_Axis_WrSts_tready),
+    .siMemWrStsP1_TDATA    (piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata),
+    .siMemWrStsP1_TVALID   (piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid),
+    .siMemWrStsP1_TREADY   (poROL_Shl_Mem_Mp1_Axis_WrSts_tready),
 
-    .soMemWriteP1_V_TDATA  (poROL_Shl_Mem_Mp1_Axis_Write_tdata),
-    .soMemWriteP1_V_TKEEP  (poROL_Shl_Mem_Mp1_Axis_Write_tkeep),
-    .soMemWriteP1_V_TLAST  (poROL_Shl_Mem_Mp1_Axis_Write_tlast),
-    .soMemWriteP1_V_TVALID (poROL_Shl_Mem_Mp1_Axis_Write_tvalid),
-    .soMemWriteP1_V_TREADY (piSHL_Rol_Mem_Mp1_Axis_Write_tready),
+    .soMemWriteP1_TDATA    (poROL_Shl_Mem_Mp1_Axis_Write_tdata),
+    .soMemWriteP1_TKEEP    (poROL_Shl_Mem_Mp1_Axis_Write_tkeep),
+    .soMemWriteP1_TLAST    (poROL_Shl_Mem_Mp1_Axis_Write_tlast),
+    .soMemWriteP1_TVALID   (poROL_Shl_Mem_Mp1_Axis_Write_tvalid),
+    .soMemWriteP1_TREADY   (piSHL_Rol_Mem_Mp1_Axis_Write_tready),
                         
     //------------------------------------------------------
     //-- SHELL / Global Input Clock and Reset Interface
     //------------------------------------------------------
-    .aclk                  (piSHL_156_25Clk),
-    .aresetn               (~piSHL_156_25Rst)
+    .ap_clk                (piSHL_156_25Clk),
+    .ap_rst_n              (~piSHL_156_25Rst)
  
   );  // End of ECHO
 
