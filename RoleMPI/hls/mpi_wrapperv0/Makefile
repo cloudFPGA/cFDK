@@ -1,5 +1,6 @@
 # Name of the HLS core to build
-ipName = jacobi2dv0
+#ipName = jacobi2dv0
+ipName = mpi_wrapperv0
 
 
 DEPS := $(shell find ./src/ -type f)
@@ -11,6 +12,7 @@ ${ipName}_prj/solution1/impl/ip: $(DEPS)
 	#rm -rf $@
 	rm -rf ${ipName}_prj
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
+	@#touch ${ipName}_prj
 	@touch $@
 
 sim: 

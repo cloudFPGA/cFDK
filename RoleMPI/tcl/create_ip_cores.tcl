@@ -361,7 +361,8 @@ update_ip_catalog
 #------------------------------------------------------------------------------  
 # MPI-Wrapper: MPI Wrapper and MPI App
 #------------------------------------------------------------------------------
-set ipModName "Jacobi2Dv0"
+#set ipModName "Jacobi2Dv0"
+set ipModName "mpi_wrapperv0"
 set ipName    "mpi_wrapper"
 set ipVendor  "IBM"
 set ipLibrary "hls"

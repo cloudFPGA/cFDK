@@ -12,7 +12,7 @@
 
 .PHONY: all clean jacobi2dv0
 
-all: jacobi2dv0
+all: mpi_wrapperv0 
 
 
 *:
