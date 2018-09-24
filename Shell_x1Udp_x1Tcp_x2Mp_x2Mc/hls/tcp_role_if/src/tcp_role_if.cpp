@@ -236,7 +236,7 @@ void tai_open_connection(
  * \return          The returned value.
  *
  *****************************************************************************/
-void tai_listen_port_status(
+void tai_listen_port_status(   // [FIXME - Isn't bind(port) a better name for this function ???
 		stream<ap_uint<16> >& 	listenPort,
 		stream<bool>& 			listenPortStatus)
 {
@@ -473,18 +473,20 @@ void tai_app_to_net(
  * @brief   Main process of the TCP Role Interface
  * @ingroup tcp_role_if
  *
- * @param[in]  siROL_This_Data     TCP data stream from the ROLE.
- * @param[out] soTHIS_Rol_Data     TCP data stream to the ROLE.
- * @param[in]  siTOE_This_Data     Data path from the TOE.
- * @param[in]  siTOE_This_Meta     Metadata from the TOE.
- *
- *
- * @param[in]  siUDMX_This_OpnAck  Open port acknowledgment from UDP-Mux.
- * @param[out] soTHIS_Udmx_OpnReq  Open port request to UDP-Mux.
-
- * @param[out] soTHIS_Udmx_Data    Data path to the UDP-Mux.
- * @param[out] soTHIS_Udmx_Meta    Metadata to the UDP-Mux.
- * @param[out] soTHIS_Udmx_PLen    Payload length to the UDP-Mux.
+ * @param[in]  siROL_This_Data   TCP data stream from the ROLE.
+ * @param[out] soTHIS_Rol_Data   TCP data stream to the ROLE.
+ * @param[in]  siTOE_This_Data   Data path from the TOE.
+ * @param[in]  siTOE_This_Meta   Metadata from the TOE.
+ * @param[out] soTHIS_Toe_Data   Data path to the TOE.
+ * @param[out] soTHIS_Toe_Meta	 Metadata to the TOE.
+ * @param[in]  siTOE_This_OpnSts Open connection status from TOE.
+ * @param[out] soTHIS_Toe_OpnReq Open connection request to TOE.
+ * @param[in]  siTOE_This_LsnAck Listen port acknowledge from TOE.
+ * @param[out] soTHIS_Toe_LsnReq Listen port request to TOE.
+ * @param[in]  siTOE_This_Notif  Read notification from TOE.
+ * @param[out] soTHIS_Toe_RdReq  Read request to TOE.
+ * @param[in]  siTOE_This_WrSts  Write status from TOE.
+ * @param[out] soTHIS_Toe_ClsReq Close connection request to TOE.
  *
  * @return Nothing.
  *
@@ -505,33 +507,36 @@ void tcp_role_if(
 	    //------------------------------------------------------
 		stream<axiWord>				&siTOE_This_Data,
 		stream<ap_uint<16> >		&siTOE_This_Meta,
-		stream<axiWord>				&oTxData,
-		stream<ap_uint<16> >		&oTxMetaData,
+		stream<axiWord>				&soTHIS_Toe_Data,
+		stream<ap_uint<16> >		&soTHIS_Toe_Meta,
 
 		//------------------------------------------------------
 		//-- TOE / This / Open-Connection Interfaces
 		//------------------------------------------------------
-		stream<openStatus>			&iOpenConStatus,
-		stream<ipTuple>				&oOpenConnection,
+		stream<openStatus>			&siTOE_This_OpnSts,
+		stream<ipTuple>				&soTHIS_Toe_OpnReq,
 
 		//------------------------------------------------------
 		//-- TOE / This / Listen-Port Interfaces
 		//------------------------------------------------------
-		stream<bool>				&iListenPortStatus,
-		stream<ap_uint<16> >		&oListenPort,
+		stream<bool>				&siTOE_This_LsnAck,
+		stream<ap_uint<16> >		&soTHIS_Toe_LsnReq,
 
 		//------------------------------------------------------
-		//-- TOE / This / Data-Read-Request Interfaces
+		//-- TOE / This / Read-Request Interfaces
 		//------------------------------------------------------
-		stream<appNotification>		&iNotifications,
-		stream<appReadRequest>		&oReadRequest,
+		stream<appNotification>		&siTOE_This_Notif,
+		stream<appReadRequest>		&soTHIS_Toe_RdReq,
+
+		//------------------------------------------------------
+		//-- TOE / This / Write-Status
+		//------------------------------------------------------
+		stream<ap_int<17> >& 		siTOE_This_WrSts,
 
 		//------------------------------------------------------
 		//-- TOE / This / Close-Connection Interfaces
 		//------------------------------------------------------
-		stream<ap_int<17> >& 		iTxStatus,
-		stream<ap_uint<16> >& 		oCloseConnection)
-
+		stream<ap_uint<16> >& 		soTHIS_Toe_ClsReq)
 {
 
 	#pragma HLS INTERFACE ap_ctrl_none port=return
@@ -542,48 +547,49 @@ void tcp_role_if(
 
 	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Data	metadata="-bus_bundle siTOE_This_Data"
 	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta	metadata="-bus_bundle siTOE_This_Meta"
-	#pragma HLS resource core=AXI4Stream variable=oTxData			metadata="-bus_bundle m_axis_tx_data"
-	#pragma HLS resource core=AXI4Stream variable=oTxMetaData		metadata="-bus_bundle m_axis_tx_meta_data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data	metadata="-bus_bundle soTHIS_Toe_Data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Meta	metadata="-bus_bundle soTHIS_Toe_Meta"
 
-	#pragma HLS resource core=AXI4Stream variable=iOpenConStatus	metadata="-bus_bundle s_axis_open_connection_status"
-	#pragma HLS resource core=AXI4Stream variable=oOpenConnection	metadata="-bus_bundle m_axis_open_connection"
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts	metadata="-bus_bundle siTOE_This_OpnSts"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq	metadata="-bus_bundle soTHIS_Toe_OpnReq"
 
-	#pragma HLS resource core=AXI4Stream variable=iListenPortStatus	metadata="-bus_bundle s_axis_listen_port_status"
-	#pragma HLS resource core=AXI4Stream variable=oListenPort		metadata="-bus_bundle m_axis_listen_port"
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck	metadata="-bus_bundle siTOE_This_LsnAck"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq	metadata="-bus_bundle soTHIS_Toe_LsnReq"
 
-	#pragma HLS resource core=AXI4Stream variable=iNotifications	metadata="-bus_bundle s_axis_notifications"
-	#pragma HLS resource core=AXI4Stream variable=oReadRequest		metadata="-bus_bundle m_axis_read_request"
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif	metadata="-bus_bundle siTOE_This_Notif"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_RdReq	metadata="-bus_bundle soTHIS_Toe_RdReq"
 
-	#pragma HLS resource core=AXI4Stream variable=iTxStatus			metadata="-bus_bundle s_axis_tx_status"
-	#pragma HLS resource core=AXI4Stream variable=oCloseConnection	metadata="-bus_bundle m_axis_close_connection"
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_WrSts  metadata="-bus_bundle siTOE_This_WrSts"
 
-	#pragma HLS DATA_PACK variable=iNotifications
-	#pragma HLS DATA_PACK variable=oReadRequest
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq	metadata="-bus_bundle soTHIS_Toe_ClsReq"
 
-	#pragma HLS DATA_PACK variable=iOpenConStatus
-	#pragma HLS DATA_PACK variable=oOpenConnection
+	#pragma HLS DATA_PACK variable=siTOE_This_OpnSts
+	#pragma HLS DATA_PACK variable=soTHIS_Toe_OpnReq
+
+	#pragma HLS DATA_PACK variable=siTOE_This_Notif
+	#pragma HLS DATA_PACK variable=soTHIS_Toe_RdReq
 
 	//-- LOCAL STREAMS --------------------------------------------------------
-	static stream<session_id_table_entry>  w_entry("w_entry");
-	#pragma HLS STREAM variable=w_entry depth=1
+	static stream<session_id_table_entry>  	w_entry      ("w_entry");
+	#pragma HLS STREAM             variable=w_entry depth=1
 
-	static stream<ap_uint<4> > q_buffer_id("q_buffer_id");
-	#pragma HLS STREAM variable=q_buffer_id depth=1
+	static stream<ap_uint<4> > 				q_buffer_id  ("q_buffer_id");
+	#pragma HLS STREAM             variable=q_buffer_id depth=1
 
-	static stream<ap_uint<16> > r_session_id("r_session_id");
-	#pragma HLS STREAM variable=r_session_id depth=1
+	static stream<ap_uint<16> > 			r_session_id ("r_session_id");
+	#pragma HLS STREAM             variable=r_session_id depth=1
 
-	static stream<axiWord>  buff_data("buff_data");
-	#pragma HLS STREAM variable=buff_data depth=1024
+	static stream<axiWord>  				buff_data	 ("buff_data");
+	#pragma HLS STREAM      	   variable=buff_data depth=1024
 
 	//-- PROCESS FUNCTIONS ----------------------------------------------------
-	tai_open_connection(oOpenConnection, iOpenConStatus, oCloseConnection);
+	tai_open_connection(soTHIS_Toe_OpnReq, siTOE_This_OpnSts, soTHIS_Toe_ClsReq);
 
-	tai_listen_port_status(oListenPort, iListenPortStatus);
+	tai_listen_port_status(soTHIS_Toe_LsnReq, siTOE_This_LsnAck);
 
-	tai_listen_new_data(iNotifications, oReadRequest, w_entry);
+	tai_listen_new_data(siTOE_This_Notif, soTHIS_Toe_RdReq, w_entry);
 
-	tai_check_tx_status(iTxStatus);
+	tai_check_tx_status(siTOE_This_WrSts);
 
 	tai_session_id_table_server(w_entry, q_buffer_id, r_session_id);
 
@@ -591,7 +597,7 @@ void tcp_role_if(
 
 	tai_app_to_buf(siROL_This_Data, q_buffer_id, buff_data);
 
-	tai_app_to_net(buff_data, oTxMetaData, oTxData, r_session_id);
+	tai_app_to_net(buff_data, soTHIS_Toe_Meta, soTHIS_Toe_Data, r_session_id);
 
 }
 
