@@ -16,7 +16,7 @@ using namespace hls;
 //ap_uint<16> *MMIO_in;
 ap_uint<16> *MMIO_out;
 // ----- MPI_Interface -----
-stream<MPI_Interface> *siMPIif;
+//stream<MPI_Interface> *siMPIif;
 stream<MPI_Interface> *soMPIif;
 stream<Axis<8> > *siMPI_data;
 stream<Axis<8> > *soMPI_data;
@@ -31,7 +31,10 @@ ap_uint<1> app_init = 0;
 ap_uint<4> sendCnt = 0;
 ap_uint<4> recvCnt = 0;
 
-
+WrapperRecvState recvState = 0;
+int recv_i = 0;
+WrapperSendState sendState = 0;
+int send_i = 0;
 
 void setMMIO_out()
 {
@@ -84,13 +87,17 @@ void MPI_Comm_size( MPI_Comm communicator, int* size)
 }
 
 void send_internal(
-    char* data,
+    uint8_t* data,
     int count,
     MPI_Datatype datatype,
     int destination)
 {
-#pragma HLS INTERFACE axis register both port=soMPIif    depth=16
-#pragma HLS INTERFACE axis register both port=soMPI_data depth=2048
+#pragma HLS INTERFACE axis register both port=soMPIif    //depth=16
+#pragma HLS INTERFACE axis register both port=soMPI_data //depth=2048
+//#pragma HLS resource core=AXI4Stream variable=soMPIif metadata="-bus_bundle soMPIif"
+//#pragma HLS resource core=AXI4Stream variable=soMPI_data metadata="-bus_bundle soMPI_data"
+//#pragma HLS STREAM depth=2048 variable=soMPI_data
+//#pragma HLS STREAM depth=128 variable=soMPIif
 
   MPI_Interface info = MPI_Interface();
   info.rank = destination;
@@ -161,7 +168,8 @@ void MPI_Send(
 {
   //INT Version, so datatype should always be MPI_INTEGER
 
-  char bytes[4*count];
+  uint8_t bytes[4*count];
+#pragma HLS RESOURCE variable=bytes core=RAM_2P_BRAM
 
   for(int i=0; i<count; i++)
   {
@@ -175,16 +183,24 @@ void MPI_Send(
 
 }
 
-void recv_internal(
-    char* data,
+int recv_internal(
+    uint8_t* data,
     int count,
     MPI_Datatype datatype,
     int source,
     MPI_Status* status)
 {
-#pragma HLS INTERFACE axis register both port=siMPIif    depth=16
-#pragma HLS INTERFACE axis register both port=soMPIif    depth=16
-#pragma HLS INTERFACE axis register both port=siMPI_data depth=2048
+//#pragma HLS INTERFACE axis register both port=siMPIif    //depth=16
+#pragma HLS INTERFACE axis register both port=soMPIif    //depth=16
+#pragma HLS INTERFACE axis register both port=siMPI_data //depth=2048
+//#pragma HLS DATA_PACK variable=siMPI_data
+//#pragma HLS resource core=AXI4Stream variable=siMPIif metadata="-bus_bundle siMPIif"
+//#pragma HLS resource core=AXI4Stream variable=soMPIif metadata="-bus_bundle soMPIif"
+//#pragma HLS resource core=AXI4Stream variable=siMPI_data metadata="-bus_bundle siMPI_data"
+//#pragma HLS DATA_PACK variable=soMPIif
+//#pragma HLS STREAM variable=siMPI_data depth=2048 dim=1
+//#pragma HLS STREAM depth=128 variable=soMPIif
+
   MPI_Interface info = MPI_Interface();
   info.rank = source;
 
@@ -204,7 +220,7 @@ void recv_internal(
       break;
     default:
       //not yet implemented 
-      return;
+      return 1;
   }
 
   info.count = typeWidth * count;
@@ -214,56 +230,87 @@ void recv_internal(
     ap_wait_n(WAIT_CYCLES);
     printf("wait for stream...\n");
     }*/
-  soMPIif->write(info);
-
+  Axis<8>  tmp8 = Axis<8>();
   bool tlastOccured = false;
+  switch(recvState) {
 
-  for(int i = 0; i< info.count; i++)
-  {
+  case 0:
+  soMPIif->write(info);
+  recvState = 1;
+  recv_i = 0;
+  break;
+  case 1:
+
+  //bool tlastOccured = false;
+
+  //for(int i = 0; i< info.count; i++)
+ // {
     //wait for stream 
-    /*while(siMPI_data->empty())
+    /*while(siMPI_data.empty())
       {
       ap_wait_n(WAIT_CYCLES);
       printf("wait for stream...\n");
       }*/
-
-    Axis<8>  tmp8 = siMPI_data->read();
+	 // Axis<8>  tmp8 = Axis<8>();
+	//  while(true)
+	//  {
+		  if(!siMPI_data->empty())
+		  {
+			  tmp8 = siMPI_data->read();
+	//		  break;
+	//	  } else {
+	//		  ap_wait_n(WAIT_CYCLES);
+	//	  }
+	//  }
+    //Axis<8>  tmp8 = siMPI_data.read();
     printf("read MPI data: %#02x\n", (int) tmp8.tdata);
 
-    data[i] = (char) tmp8.tdata;
-    //type conversion is done implicitely by app itself
+    data[recv_i] = (uint8_t) tmp8.tdata;
+    recv_i++;
 
     if( tmp8.tlast == 1)
     {
-      printf("received TLAST at count %d!\n", i);
+      printf("received TLAST at count %d!\n", recv_i);
       tlastOccured = true;
-      break;
+      recvState = 2;
+      //break;
     }
-  }
+    if(recv_i == info.count)
+    {
+    	recvState = 2;
+    }}
+    break;
+  case 2:
+//  }
 
   *status = 1;
-
+//  }
   //to empty stream 
   /*while(siMPIif->empty())
     {
     ap_wait_n(WAIT_CYCLES);
     printf("wait for stream...\n");
-    }*/
-  siMPIif->read();
+    }
+  siMPIif->read();*/
 
-  if(!tlastOccured)
+  //TODO
+ /* if(!tlastOccured)
   {
-    while(!siMPI_data->empty())
+    while(!siMPI_data.empty())
     {
       printf("received stream longer than count!\n");
-      Axis<8>  tmp8 = siMPI_data->read();
+      Axis<8>  tmp8 = siMPI_data.read();
       *status = 2;
     }
-  }
+  }*/
 
   recvCnt++;
   printf("MPI_recv completed.\n");
   setMMIO_out();
+
+  return 1;
+  }
+  return -1;
 
 }
 
@@ -277,33 +324,27 @@ void MPI_Recv(
     MPI_Comm communicator,
     MPI_Status* status)
 {
-  /*	int typeWidth = 1;
-
-      switch(datatype)
-      {
-      case MPI_INTEGER:
-      typeWidth = 4;
-      break;
-      case MPI_FLOAT:
-      typeWidth = 4;
-      break;
-      default:
-  //not yet implemented
-  return;
-  }*/
 
   //INT Version, so datatype should always be MPI_INTEGER
 
-  char dataChar[4*count];
+  uint8_t bytes[4*count];
+ #pragma HLS RESOURCE variable=bytes core=RAM_2P_BRAM
 
-  recv_internal(dataChar, count, datatype, source, status);
+  recvState = 0;
+  recv_i = 0;
+
+ while( recv_internal(bytes, count, datatype, source, status) != 1)
+ {
+	 ap_wait_n(WAIT_CYCLES);
+ }
 
   for(int i=0; i<count; i++)
   {
-    data[i]  = ((int) dataChar[i*4 + 3]);
-    data[i] |= ((int) dataChar[i*4 + 2]) << 8;
-    data[i] |= ((int) dataChar[i*4 + 1]) << 16;
-    data[i] |= ((int) dataChar[i*4 + 0]) << 24;
+	data[i]  = 0;
+    data[i]  = ((int) bytes[i*4 + 3]);
+    data[i] |= ((int) bytes[i*4 + 2]) << 8;
+    data[i] |= ((int) bytes[i*4 + 1]) << 16;
+    data[i] |= ((int) bytes[i*4 + 0]) << 24;
   }
 
 
@@ -321,7 +362,7 @@ void MPI_Finalize()
   {
 //not yet implemented
 }*/
-
+/*
 void c_testbench_access(
     // ----- system reset ---
     //ap_uint<1> *sys_reset_arg,
@@ -343,7 +384,7 @@ void c_testbench_access(
   //MMIO_in = MMIO_in_arg;
   MMIO_out = MMIO_out_arg;
 
-  siMPIif = siMPIif_arg;
+  //siMPIif = siMPIif_arg;
   soMPIif = soMPIif_arg;
 
   siMPI_data = siMPI_data_arg;
@@ -360,31 +401,49 @@ void c_testbench_read(
 {
   *MMIO_out_arg = *MMIO_out;
 }
-
+*/
 //void mpi_wrapper(
 //    // ----- system reset ---
 //    ap_uint<1> sys_reset,
 //    //EMIF Registers
-//    ap_uint<16> *MMIO_in,
-//    ap_uint<16> *MMIO_out,
+//    //ap_uint<16> *MMIO_in_arg,
+//    ap_uint<16> *MMIO_out_arg,
 //    // ----- MPI_Interface -----
-//    stream<MPI_Interface> &siMPIif,
-//    stream<MPI_Interface> &soMPIif,
-//    stream<Axis<8> > &siMPI_data,
-//    stream<Axis<8> > &soMPI_data,
+//    //stream<MPI_Interface> &siMPIif_arg,
+//    //stream<MPI_Interface> *soMPIif_arg,
+//    stream<Axis<8> > *siMPI_data_arg,
+//    stream<Axis<8> > *soMPI_data_arg,
 //    // ----- FROM SMC -----
-//    ap_uint<32> *role_rank,
-//    ap_uint<32> *cluster_size
+//    ap_uint<32> *role_rank_arg,
+//    ap_uint<32> *cluster_size_arg
 //    )
 void mpi_wrapper(
     // ----- system reset ---
     ap_uint<1> sys_reset
     )
 {
+//#pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
   //#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
+//#pragma HLS INTERFACE axis register both port=soMPIif_arg
+//#pragma HLS INTERFACE axis register both port=siMPI_data_arg
+//#pragma HLS INTERFACE axis register both port=soMPI_data_arg
+//#pragma HLS INTERFACE ap_ovld register port=MMIO_out_arg name=poMMIO
+//#pragma HLS INTERFACE ap_vld register port=role_rank_arg name=poSMC_to_ROLE_rank
+//#pragma HLS INTERFACE ap_vld register port=cluster_size_arg name=poSMC_to_ROLE_size
+//#pragma HLS DATAFLOW
 
-#pragma HLS DATAFLOW
+	/*MMIO_out = MMIO_out_arg;
+
+	  //soMPIif = soMPIif_arg;
+
+	  siMPI_data = siMPI_data_arg;
+	  soMPI_data = soMPI_data_arg;
+
+	  role_rank = *role_rank_arg;
+	  cluster_size = *cluster_size_arg;*/
+
+
   //===========================================================
   // Reset global variables 
 
