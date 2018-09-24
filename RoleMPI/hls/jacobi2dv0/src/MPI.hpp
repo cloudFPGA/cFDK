@@ -110,8 +110,8 @@ void c_testbench_access(
     // ----- system reset ---
     //ap_uint<1> *sys_reset_arg,
     //EMIF Registers
-    ap_uint<16> MMIO_in_arg,
-    ap_uint<16> MMIO_out_arg,
+    ap_uint<16> *MMIO_in_arg,
+    ap_uint<16> *MMIO_out_arg,
     // ----- MPI_Interface -----
     stream<MPI_Interface> *siMPIif_arg,
     stream<MPI_Interface> *soMPIif_arg,
