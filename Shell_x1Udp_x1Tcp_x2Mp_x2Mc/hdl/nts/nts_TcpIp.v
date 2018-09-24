@@ -897,13 +897,13 @@ module NetworkTransportSession_TcpIp (
     //-- From CAM Interfaces
     //------------------------------------------------------
     //-- CAM / This / LookupReply / Axis
-   .s_axis_session_lup_rsp_TDATA       (sCAM_Toe_LkpRpl_Axis_tdata),
-   .s_axis_session_lup_rsp_TVALID      (sCAM_Toe_LkpRpl_Axis_tvalid),
-   .s_axis_session_lup_rsp_TREADY      (sTOE_Cam_LkpRpl_Axis_tready),
-   //-- CAM / This / UpdateReply /Axis
-   .s_axis_session_upd_rsp_TDATA       (sCAM_Toe_UpdRpl_Axis_tdata),
-   .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
-   .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
+    .s_axis_session_lup_rsp_TDATA       (sCAM_Toe_LkpRpl_Axis_tdata),
+    .s_axis_session_lup_rsp_TVALID      (sCAM_Toe_LkpRpl_Axis_tvalid),
+    .s_axis_session_lup_rsp_TREADY      (sTOE_Cam_LkpRpl_Axis_tready),
+    //-- CAM / This / UpdateReply /Axis
+    .s_axis_session_upd_rsp_TDATA       (sCAM_Toe_UpdRpl_Axis_tdata),
+    .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
 
     //------------------------------------------------------
     //-- MEM / Nts0 / RxP Interface
@@ -1402,6 +1402,7 @@ module NetworkTransportSession_TcpIp (
      //-- TOE / This / ListenAcknowledge / Axis
     .siTOE_This_LsnAck_TDATA          (sTOE_Trif_LsnAck_Axis_tdata),
     .siTOE_This_LsnAck_TVALID         (sTOE_Trif_LsnAck_Axis_tvalid),
+    .siTOE_This_LsnAck_TREADY         (sTRIF_Toe_LsnAck_Axis_tready),
  
     //------------------------------------------------------
     //-- To TOE / Listen-On-Port Interfaces
