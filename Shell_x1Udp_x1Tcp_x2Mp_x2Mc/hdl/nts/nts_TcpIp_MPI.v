@@ -560,7 +560,17 @@ module NetworkTransportSession_TcpIp (
   wire  [ 7:0]  sROL_Nts0_Udp_Axis_tkeepReg;
   wire          sROL_Nts0_Udp_Axis_tlastReg;
   wire          sROL_Nts0_Udp_Axis_tvalidReg;
-  wire          sURIF_Rol_Axis_tready;
+  wire          sURIF_Rol_Axis_tready; 
+
+  // MPE <--> ARS8/9 <--> URIF2 
+
+  wire [31:0] sNts0_MPE_IPmeta_tdata;
+  wire        sNts0_MPE_IPmeta_tvalid;
+  wire        sNts0_MPE_IPmeta_tready;
+  wire [31:0] sMPE_Nts0_IPmeta_tdata;
+  wire        sMPE_Nts0_IPmeta_tvalid;
+  wire        sMPE_Nts0_IPmeta_tready;
+
 
   //-- End of signal declarations ----------------------------------------------
 
@@ -2207,6 +2217,30 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sROL_Nts0_Udp_Axis_tvalidReg)
   );
   
+  AxisRegisterSlice_64 ARS8 (
+    .aclk           (piShlClk),
+    .aresetn        (piShlRst),
+    .s_axis_tdata   (piMPE_Nts0_IPmeta_tdata),
+    .s_axis_tvalid  (piMPE_Nts0_IPmeta_tvalid),
+    .s_axis_tready  (poMPE_Nts0_IPmeta_tready),
+    
+    .m_axis_tdata   (sMPE_Nts0_IPmeta_tdata),
+    .m_axis_tvalid  (sMPE_Nts0_IPmeta_tvalid),
+    .m_axis_tready  (sMPE_Nts0_IPmeta_tready)
+  );
+  
+  AxisRegisterSlice_64 ARS9 (
+    .aclk           (piShlClk),
+    .aresetn        (piShlRst),
+    .s_axis_tdata   (sNts0_MPE_IPmeta_tdata),
+    .s_axis_tvalid  (sNts0_MPE_IPmeta_tvalid),
+    .s_axis_tready  (sNts0_MPE_IPmeta_tready),
+    
+    .m_axis_tdata   (poNts0_MPE_IPmeta_tdata),
+    .m_axis_tvalid  (poNts0_MPE_IPmeta_tvalid),
+    .m_axis_tready  (piNts0_MPE_IPmeta_tready)
+  );
+    //-- From ROLE / Nts0 / Udp / Axis
 /* -----\/----- EXCLUDED -----\/-----
 //  axis_register_slice_64 ARS7 (
 //    .aclk(cf_axi_clk),
@@ -2253,9 +2287,9 @@ module NetworkTransportSession_TcpIp (
   .siROL_This_Data_TREADY         (sURIF_Rol_Axis_tready),
 
   //IP Address (for RX path)
-  .siIP_V_ipAddress_V_TDATA        (piMPE_Nts0_IPmeta_tdata),
-  .siIP_V_ipAddress_V_TVALID       (piMPE_Nts0_IPmeta_tvalid),
-  .siIP_V_ipAddress_V_TREADY       (poMPE_Nts0_IPmeta_tready),
+  .siIP_V_ipAddress_V_TDATA        (sMPE_Nts0_IPmeta_tdata),
+  .siIP_V_ipAddress_V_TVALID       (sMPE_Nts0_IPmeta_tvalid),
+  .siIP_V_ipAddress_V_TREADY       (sMPE_Nts0_IPmeta_tready),
   
   //------------------------------------------------------
   //-- To ROLE Interfaces
@@ -2268,9 +2302,9 @@ module NetworkTransportSession_TcpIp (
   .soTHIS_Rol_Data_TVALID         (sURIF_Rol_Axis_tvalid),
   
   //IP Address (for TX path)
-  .soIP_V_ipAddress_V_TDATA        (poNts0_MPE_IPmeta_tdata),
-  .soIP_V_ipAddress_V_TVALID       (poNts0_MPE_IPmeta_tvalid),
-  .soIP_V_ipAddress_V_TREADY       (piNts0_MPE_IPmeta_tready),
+  .soIP_V_ipAddress_V_TDATA        (sNts0_MPE_IPmeta_tdata),
+  .soIP_V_ipAddress_V_TVALID       (sNts0_MPE_IPmeta_tvalid),
+  .soIP_V_ipAddress_V_TREADY       (sNts0_MPE_IPmeta_tready),
 
   //------------------------------------------------------
   //-- From UDMX / Open-Port Interfaces

@@ -279,6 +279,8 @@ void pRxP(
 {
     //-- LOCAL VARIABLES ------------------------------------------------------
     static ap_uint<8>   openPortWaitTime;
+    static IPMeta srcIP;
+    static bool metaWritten;
 
     static enum FsmState {FSM_RESET=0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC} fsmState;
 
@@ -310,7 +312,8 @@ void pRxP(
         case FSM_FIRST_ACC:
             // Wait until both the first data chunk and the first metadata are received from UDP
             if ( !siUDMX_Data.empty() && !siUDMX_Meta.empty() ) {
-                if ( !soROLE_Data.full() && !soIPaddr.full()) {
+                //if ( !soROLE_Data.full() && !soIPaddr.full()) {
+                if ( !soROLE_Data.full() ) {
                     // Forward data chunk to ROLE
                     UdpWord    udpWord = siUDMX_Data.read();
                     if (!udpWord.tlast) {
@@ -320,10 +323,11 @@ void pRxP(
 
                     //extrac src ip address
                     UdpMeta udpRxMeta = siUDMX_Meta.read();
-                    IPMeta srcIP = IPMeta(udpRxMeta.src.addr);
+                    srcIP = IPMeta(udpRxMeta.src.addr);
                     //TODO for now ignore udpRxMeta.src.port
                     
-                    soIPaddr.write(srcIP);
+                    //soIPaddr.write(srcIP);
+                    metaWritten = false;
                 }
             }
             break;
@@ -339,6 +343,11 @@ void pRxP(
                 {
                     fsmState = FSM_FIRST_ACC;
                 }
+            }
+            if ( !metaWritten && !soIPaddr.full() )
+            {
+              soIPaddr.write(srcIP);
+              metaWritten = true;
             }
             break;
     }
