@@ -49,27 +49,35 @@ open_project  ${projectName}_prj
 set_top       ${projectName}
 
 add_files     ${srcDir}/${projectName}.cpp
+add_files     ${srcDir}/${projectName}.hpp
+
 add_files -tb ${testDir}/test_${projectName}.cpp
 
+# Create a solution
+#-------------------------------------------------
 open_solution ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Synthesis
+# Run C Simulation and Synthesis
 #-------------------------------------------------
-#csim_design -clean              [FIXME]
-#csim_design -clean -setup       [FIXME]
+#[FIXME] csim_design -clean
 csynth_design
-#cosim_design -tool xsim -rtl verilog -trace_level all
+
+# Run RTL Simulation
+#-------------------------------------------------
+if { 0 } {
+    cosim_design -tool xsim -rtl verilog -trace_level all
+}
 
 # Export RTL (refer to UG902)
 #   -format ( sysgen | ip_catalog | syn_dcp )
 #-------------------------------------------------
 export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
 
-
 # Exit Vivado HLS
 #--------------------------------------------------
 exit
+
 

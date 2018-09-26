@@ -70,6 +70,9 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
         stream<UdpWord>    &soFifo_Data,
         stream<UdpPLen>    &soPLen)
 {
+	 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static UdpPLen    pldLen;
 
@@ -140,6 +143,9 @@ void pTxP_Dequeue (
         stream<UdpMeta>  &soUDMX_Meta,
         stream<UdpPLen>  &soUDMX_PLen)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static UdpMeta txSocketPairReg;
 
@@ -220,7 +226,7 @@ void pTxP(
         stream<UdpPLen>     &soUDMX_PLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW
+    #pragma HLS DATAFLOW interval=1
 
     //-- LOCAL STREAMS --------------------------------------------------------
     static stream<UdpPLen>        sPLen     ("sPLen");
@@ -259,6 +265,8 @@ void pRxP(
         stream<UdpWord>      &soROLE_Data,
         stream<UdpMeta>      &soTxP_Meta)
 {
+	#pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static ap_uint<8>   openPortWaitTime;
 
@@ -366,15 +374,15 @@ void udp_role_if (
         stream<UdpPLen>     &soTHIS_Udmx_PLen)
 {
 
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
+
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
 	#pragma HLS resource core=AXI4Stream variable=siROL_This_Data    metadata="-bus_bundle siROL_This_Data"
 	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data    metadata="-bus_bundle soTHIS_Rol_Data"
@@ -393,20 +401,23 @@ void udp_role_if (
 
 #else
 
-    #pragma HLS INTERFACE axis register both port=siROL_This_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
+    #pragma HLS INTERFACE axis register off port=siROL_This_Data
+    #pragma HLS INTERFACE axis register off port=soTHIS_Rol_Data
 
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Data
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
-    #pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+    #pragma HLS INTERFACE axis register off port=siUDMX_This_OpnAck
+    #pragma HLS INTERFACE axis register off port=soTHIS_Udmx_OpnReq
 
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
+    #pragma HLS INTERFACE axis register off port=siUDMX_This_Data
+    #pragma HLS INTERFACE axis register off port=siUDMX_This_Meta
+    #pragma HLS DATA_PACK               variable=siUDMX_This_Meta instance=siUDMX_This_Meta
+
+    #pragma HLS INTERFACE axis register off port=soTHIS_Udmx_Data
+    #pragma HLS INTERFACE axis register off port=soTHIS_Udmx_Meta
+    #pragma HLS DATA_PACK               variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+    #pragma HLS INTERFACE axis register off port=soTHIS_Udmx_PLen
 
 #endif
 
@@ -414,9 +425,6 @@ void udp_role_if (
     #pragma HLS DATAFLOW interval=1
 
     //-- LOCAL STREAMS --------------------------------------------------------
-    //OBSOLETE static stream<UdpPLen>        sTxPLen("sTxPLen");
-    //OBSOLETE static stream<UdpWord>        sTxFifo("sTxFifo");
-
     //OBSOLETE#pragma HLS STREAM variable=sTxPLen depth=2
     //OBSOLETE#pragma HLS STREAM variable=sTxFifo depth=2048    // Must be able to contain MTU
 
@@ -428,17 +436,6 @@ void udp_role_if (
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pTxP(siROL_This_Data,  sRxToTx_Meta,
          soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
-
-
-    /*** OBSOLETE ***
-    //---- From ROLE to TxEnqueue
-    pTxP_Enqueue (siROL_This_Data,
-                  sTxFifo,         sTxPLen);
-
-    //---- From TxDequeue to UDMX
-    pTxP_Dequeue (sTxFifo,          sRxToTx_Meta,     sTxPLen,
-                  soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen);
-    ***/
 
     //---- From UDMX to ROLE
     pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
