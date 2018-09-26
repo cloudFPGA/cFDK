@@ -35,6 +35,8 @@
 -- * Parameters: None.
 -- *
 -- * Comments:
+-- *  [FIXME] - Why is 'sROL_Shl_Nts0_Udp_Axis_tdata[63:0]' only active every 
+-- *            second clock cycle?
 -- *
 -- *****************************************************************************
 
@@ -313,15 +315,13 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       -- From SHELL / Clock and Reset
       ------------------------------------------------------
       aclk                      : in  std_logic;
-      aresetn                   : in  std_logic;
-      
-       --------------------------------------------------------
-       -- From SHELL / Mmio Interfaces
-       --------------------------------------------------------       
+      aresetn                   : in  std_logic;    
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------       
       piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
       --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
       --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
-      
       --------------------------------------------------------
       -- From SHELL / Udp Data Interfaces
       --------------------------------------------------------
@@ -340,8 +340,67 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTHIS_Shl_Data_tready    : in  std_logic
     );
   end component UdpApplicationFlash;
-   
  
+ 
+  component UdpApplicationFlashFail is
+    port (
+      ------------------------------------------------------
+      -- From SHELL / Clock and Reset
+      ------------------------------------------------------
+      ap_clk                    : in  std_logic;
+      ap_rst_n                  : in  std_logic;
+      ------------------------------------------------------
+      -- BLock-Level I/O Protocol
+      ------------------------------------------------------
+      --ap_start                  : in  std_logic;
+      --ap_ready                  : out std_logic;
+      --ap_done                   : out std_logic;
+      --ap_idle                   : out std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------       
+      piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
+      --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
+      --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      siSHL_This_Data_tdata     : in  std_logic_vector( 63 downto 0);
+      siSHL_This_Data_tkeep     : in  std_logic_vector(  7 downto 0);
+      siSHL_This_Data_tlast     : in  std_logic_vector(  0 downto 0);
+      siSHL_This_Data_tvalid    : in  std_logic;
+      siSHL_This_Data_tready    : out std_logic;
+      --------------------------------------------------------
+      -- To SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      soTHIS_Shl_Data_tdata     : out std_logic_vector( 63 downto 0);
+      soTHIS_Shl_Data_tkeep     : out std_logic_vector(  7 downto 0);
+      soTHIS_Shl_Data_tlast     : out std_logic_vector(  0 downto 0);
+      soTHIS_Shl_Data_tvalid    : out std_logic;
+      soTHIS_Shl_Data_tready    : in  std_logic
+    );
+  end component UdpApplicationFlashFail; 
+ 
+ 
+  --===========================================================================
+  --== FUNCTION DECLARATIONS  [TODO-Move to a package]
+  --===========================================================================
+  function fVectorize(s: std_logic) return std_logic_vector is
+    variable v: std_logic_vector(0 downto 0);
+  begin
+    v(0) := s;
+    return v;
+  end fVectorize;
+  
+  function fScalarize(v: in std_logic_vector) return std_ulogic is
+  begin
+    assert v'length = 1
+    report "scalarize: output port must be single bit!"
+    severity FAILURE;
+    return v(v'LEFT);
+  end;
+
+   
 --################################################################################
 --#                                                                              #
 --#                          #####   ####  ####  #     #                         #
@@ -378,8 +437,7 @@ begin
   --#                                                                              #
   --################################################################################
 
-
-  gUdpAppFlash : if cUSE_DEPRECATED_DIRECTIVES generate
+  gUdpAppFlashDepre : if cUSE_DEPRECATED_DIRECTIVES generate
     
     begin
       --==========================================================================
@@ -394,7 +452,7 @@ begin
           -- From SHELL / Clock and Reset
           ------------------------------------------------------
           aclk                      => piSHL_156_25Clk,
-          aresetn                   => piSHL_156_25Rst,
+          aresetn                   => (not piSHL_156_25Rst),
           
            --------------------------------------------------------
            -- From SHELL / Mmio Interfaces
@@ -423,6 +481,57 @@ begin
     
   end generate;
 
+  gUdpAppFlash : if cUSE_DEPRECATED_DIRECTIVES=false generate
+    begin
+      --==========================================================================
+      --==  INST: UDP-APPLICATION_FLASH for FMKU60
+      --==   This version of the 'udp_app_flash' has the following interfaces:
+      --==    - one bidirectionnal UDP data stream and one streaming MemoryPort. 
+      --==========================================================================
+      UAF : UdpApplicationFlashFail
+        port map (
+        
+          ------------------------------------------------------
+          -- From SHELL / Clock and Reset
+          ------------------------------------------------------
+          ap_clk                    => piSHL_156_25Clk,
+          ap_rst_n                  => (not piSHL_156_25Rst),
+          
+          ------------------------------------------------------
+          -- BLock-Level I/O Protocol
+          ------------------------------------------------------
+          --ap_start                  => (not piSHL_156_25Rst),
+          --ap_ready                  => open,
+          --ap_done                   => open,
+          --ap_idle                   => open,
+          
+          --------------------------------------------------------
+          -- From SHELL / Mmio Interfaces
+          --------------------------------------------------------       
+          piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_UdpEchoCtrl,
+          --[TODO] piSHL_This_MmioPostPktEn  => piSHL_Rol_Mmio_UdpPostPktEn,
+          --[TODO] piSHL_This_MmioCaptPktEn  => piSHL_Rol_Mmio_UdpCaptPktEn,
+          
+          --------------------------------------------------------
+          -- From SHELL / Udp Data Interfaces
+          --------------------------------------------------------
+          siSHL_This_Data_tdata     => piSHL_Rol_Nts0_Udp_Axis_tdata,
+          siSHL_This_Data_tkeep     => piSHL_Rol_Nts0_Udp_Axis_tkeep,
+          siSHL_This_Data_tlast     => fVectorize(piSHL_Rol_Nts0_Udp_Axis_tlast),
+          siSHL_This_Data_tvalid    => piSHL_Rol_Nts0_Udp_Axis_tvalid,
+          siSHL_This_Data_tready    => poROL_Shl_Nts0_Udp_Axis_tready,
+          --------------------------------------------------------
+          -- To SHELL / Udp Data Interfaces
+          --------------------------------------------------------
+          soTHIS_Shl_Data_tdata     => poROL_Shl_Nts0_Udp_Axis_tdata,
+          soTHIS_Shl_Data_tkeep     => poROL_Shl_Nts0_Udp_Axis_tkeep,
+          fScalarize(soTHIS_Shl_Data_tlast) => poROL_Shl_Nts0_Udp_Axis_tlast,
+          soTHIS_Shl_Data_tvalid    => poROL_Shl_Nts0_Udp_Axis_tvalid,
+          soTHIS_Shl_Data_tready    => piSHL_Rol_Nts0_Udp_Axis_tready
+          
+        );
+
+  end generate;
 
 --  ------------------------------------------------------------------------------------------------
 --  -- PROC: UDP APPLICATION

@@ -118,8 +118,8 @@
     shared variable vTcpFcReq                 : boolean;
     shared variable vUdpFcBegCyc, vUdpFcEndCyc: integer;
     shared variable vTcpFcBegCyc, vTcpFcEndCyc: integer;
-        
-         
+    
+             
     ------------------------------------------------------------------
     -- Prcd: Generate Clock
     ------------------------------------------------------------------
@@ -166,11 +166,19 @@
       vTcpFcEndCyc := endCyc;
     end procedure pgGenShellTcpFc;  
     
-  
-   --==========================================================================
-   --== ARCHITECTURE STATEMENT
-   --==========================================================================
-  
+   
+  --################################################################################
+  --#                                                                              #
+  --#                          #####   ####  ####  #     #                         #
+  --#                          #    # #    # #   #  #   #                          #
+  --#                          #    # #    # #    #  ###                           #
+  --#                          #####  #    # #    #   #                            #
+  --#                          #    # #    # #    #   #                            #
+  --#                          #    # #    # #   #    #                            #
+  --#                          #####   ####  ####     #                            #
+  --#                                                                              #
+  --################################################################################ 
+   
   begin -- of architecture
     
     ----------------------------------------------------------
@@ -304,7 +312,7 @@
          ---- TOP =>  Secondary Clock (Asynchronous)
          ------------------------------------------------
          piTOP_250_00Clk                      => sTOP_250_00Clk,  -- Freerunning
-         
+                 
          poVoid                               => open        
         
       );
@@ -445,13 +453,17 @@
       procedure pdAxisWrite_SHL_Rol_Nts0_Udp (
         bitStr : std_ulogic_vector
       ) is
-        variable vVec : std_ulogic_vector(bitStr'length - 1 downto 0);
-        variable vLen : integer;
-        variable vI   : integer;
+        variable vVec   : std_ulogic_vector(bitStr'length - 1 downto 0);
+        variable vLen   : integer;
+        variable vI     : integer;
+        variable myLine : line;
+        variable vErr   : integer;
       begin
         -- Assess that the 'input paranmeter is a multiple of 8 bits 
         vVec := bitStr;
         vLen := vVec'length;
+        vErr := 0;
+        
         if (vLen mod 8 /= 0) then
           vTbErrors := -1;
           pdReportErrors(vTbErrors);
@@ -495,8 +507,11 @@
               sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
               return;
             end if;
-          --OBSOLETE else
-          --OBSOLET   sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';           
+          else
+            --OBSOLET   sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
+            write(myLine, string'("[INFO] Cannot write to ROLE/UDP/Axis (sROL_Shl_Nts0_Udp_Axis_tready =0"));
+            writeline(output, myLine);
+            vErr := VErr + 1;
           end if;  
           
         end loop;
@@ -645,15 +660,15 @@
    
       -- Set default signal levels
       ---- SHELL / Role / Nts0 / Udp Interface
-      sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others => 'X');
-      sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others => 'X');
-      sSHL_Rol_Nts0_Udp_Axis_tlast  <= 'X';
+      sSHL_Rol_Nts0_Udp_Axis_tdata  <= (others => '0');
+      sSHL_Rol_Nts0_Udp_Axis_tkeep  <= (others => '0');
+      sSHL_Rol_Nts0_Udp_Axis_tlast  <= '0';
       sSHL_Rol_Nts0_Udp_Axis_tvalid <= '0';
       -- [INFO] The 'tready' signal is initialized by the process 'pGenShellUdpFc'
       ---- SHELL / Role / Nts0 / Tcp Interface
-      sSHL_Rol_Nts0_Tcp_Axis_tdata  <= (others => 'X');
-      sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= (others => 'X');
-      sSHL_Rol_Nts0_Tcp_Axis_tlast  <= 'X';
+      sSHL_Rol_Nts0_Tcp_Axis_tdata  <= (others => '0');
+      sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= (others => '0');
+      sSHL_Rol_Nts0_Tcp_Axis_tlast  <= '0';
       sSHL_Rol_Nts0_Tcp_Axis_tvalid <= '0';
       -- [INFO] The 'tready' signal is initialized by the process 'pGenShellTcpFc'
       
