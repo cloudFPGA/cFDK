@@ -9,7 +9,7 @@ DEPS := $(shell find ./src/ -type f)
 all: ${ipName}_prj/solution1/impl/ip
 
 ${ipName}_prj/solution1/impl/ip: $(DEPS)
-	#rm -rf $@
+	@#rm -rf $@
 	rm -rf ${ipName}_prj
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@#touch ${ipName}_prj

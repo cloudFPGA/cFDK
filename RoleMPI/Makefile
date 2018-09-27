@@ -16,9 +16,9 @@
 # ******************************************************************************
 
 
-HLS_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
+#BROKEN? HLS_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
 
-#OBSOLETE HLS_DEPS := $(shell find ./hls/*/*_prj -maxdepth 0 -type d)
+HLS_DEPS := $(shell find ./hls/*/*_prj -maxdepth 0 -type d)
 
 .PHONY: all clean hls_cores project
 
@@ -33,7 +33,8 @@ hls_cores:
 
 hls: hls_cores
 
-ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files
+# the order of the dependencies is critical: here hls must be right of HLS_DEPS
+ip: ./tcl/create_ip_cores.tcl $(HLS_DEPS) hls ./ip/ip_user_files
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 	@echo ------- DONE ------------------------------------- 
 	@touch $@

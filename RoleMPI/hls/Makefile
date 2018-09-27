@@ -10,13 +10,13 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean jacobi2dv0
+.PHONY: all clean mpi_wrapperv0
 
 all: mpi_wrapperv0 
 
 
 *:
-	@#echo ---- Building [ $@ ] ---------------------------- 
+	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $@
 
 clean:
