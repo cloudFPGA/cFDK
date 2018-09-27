@@ -47,6 +47,9 @@ RoleMPItypeSrc:
 xpr: 
 	mkdir -p ./xpr/ 
 
+RoleIp:
+	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE)/ ip
+
 #RoleFlash:
 #	$(MAKE) -C $(ROLE_DIR)/$@
 #
