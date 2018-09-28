@@ -57,15 +57,17 @@ void MPI_Init()
 {
 
   //TODO: send/wait for INIT packets? 
+  /*
+     while(cluster_size == 0)
+     {
+  //not yet initialized
+  printf("cluster size not yet set!\n");
 
-  while(cluster_size == 0)
-  {
-    //not yet initialized
-    printf("cluster size not yet set!\n");
+  //for good intention: wait until stabilized
+  ap_wait_n(WAIT_CYCLES);
+  } */
+  // INIT already done in wrapper_main
 
-    //for good intention: wait until stabilized
-    ap_wait_n(WAIT_CYCLES);
-  } 
   printf("clusterSize: %d, rank: %d\n", (int) cluster_size, (int) role_rank);
 
   app_init = 1;
@@ -75,14 +77,12 @@ void MPI_Init()
 
 void MPI_Comm_rank(MPI_Comm communicator, int* rank)
 {
-#pragma HLS INTERFACE ap_vld register port=role_rank name=poSMC_to_ROLE_rank
   *rank = role_rank;
   setMMIO_out();
 }
 
 void MPI_Comm_size( MPI_Comm communicator, int* size)
 {
-#pragma HLS INTERFACE ap_vld register port=cluster_size name=poSMC_to_ROLE_size
   *size = cluster_size;
   setMMIO_out();
 }
@@ -352,10 +352,10 @@ void c_testbench_access(
     stream<MPI_Interface> *siMPIif_arg,
     stream<MPI_Interface> *soMPIif_arg,
     stream<Axis<8> > *siMPI_data_arg,
-    stream<Axis<8> > *soMPI_data_arg,
+    stream<Axis<8> > *soMPI_data_arg
     // ----- FROM SMC -----
-    ap_uint<32> role_rank_arg,
-    ap_uint<32> cluster_size_arg
+    //ap_uint<32> *role_rank_arg,
+    //ap_uint<32> *cluster_size_arg
     )
 {
   //sys_reset = sys_reset_arg;
@@ -369,8 +369,8 @@ void c_testbench_access(
   siMPI_data = siMPI_data_arg;
   soMPI_data = soMPI_data_arg;
 
-  role_rank = role_rank_arg;
-  cluster_size = cluster_size_arg;
+  //role_rank = role_rank_arg;
+  //cluster_size = cluster_size_arg;
 
 }
 
@@ -398,13 +398,17 @@ void c_testbench_read(
 //    )
 void mpi_wrapper(
     // ----- system reset ---
-    ap_uint<1> sys_reset
+    ap_uint<1> sys_reset,
+    // ----- FROM SMC -----
+    ap_uint<32> role_rank_arg,
+    ap_uint<32> cluster_size_arg
     )
 {
-  //#pragma HLS INTERFACE ap_ctrl_none port=return
+//#pragma HLS INTERFACE ap_ctrl_none port=return
 #pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
-  //#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
-
+//#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
+#pragma HLS INTERFACE ap_vld register port=role_rank_arg name=piSMC_to_ROLE_rank
+#pragma HLS INTERFACE ap_vld register port=cluster_size_arg name=piSMC_to_ROLE_size
 
   //===========================================================
   // Reset global variables 
@@ -415,11 +419,30 @@ void mpi_wrapper(
     sendCnt = 0;
     recvCnt = 0;
     app_init = 0;
+    cluster_size = 0;
+    role_rank = 0;
     //don't start app in reset state 
 
     setMMIO_out();
     return;
   }
+  //===========================================================
+  // Wait for INIT
+  // nees do be done here, due to shitty HLS
+
+  if(cluster_size_arg == 0)
+  {
+    //not yet initialized
+    printf("cluster size not yet set!\n");
+
+    setMMIO_out();
+    return;
+
+  }
+  cluster_size = cluster_size_arg;
+  role_rank = role_rank_arg;
+  printf("clusterSize: %d, rank: %d\n", (int) cluster_size, (int) role_rank);
+
 
   //===========================================================
   // Start main program 

@@ -237,7 +237,11 @@ architecture Flash of Role_MPIv0_x2Mp is
            soMPI_data_V_tlast_V_TLAST : OUT STD_LOGIC_VECTOR (0 downto 0);
            soMPI_data_V_tlast_V_TVALID : OUT STD_LOGIC;
            soMPI_data_V_tlast_V_TREADY : IN STD_LOGIC;
-           piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0) );
+           piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0);
+           piSMC_to_ROLE_rank_V : IN STD_LOGIC_VECTOR (31 downto 0);
+           piSMC_to_ROLE_rank_V_ap_vld : IN STD_LOGIC;
+           piSMC_to_ROLE_size_V : IN STD_LOGIC_VECTOR (31 downto 0);
+           piSMC_to_ROLE_size_V_ap_vld : IN STD_LOGIC );
   end component;
 
 
@@ -354,7 +358,11 @@ begin
          soMPI_data_V_tlast_V_TLAST     =>    soMPI_data_tlast,
          soMPI_data_V_tlast_V_TVALID     =>  soMPI_data_tvalid3 ,
          soMPI_data_V_tlast_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
-         piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls 
+         piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
+         piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
+         piSMC_to_ROLE_rank_V_ap_vld => '1',
+         piSMC_to_ROLE_size_V => piSMC_ROLE_size,
+         piSMC_to_ROLE_size_V_ap_vld => '1'
      );
 
 

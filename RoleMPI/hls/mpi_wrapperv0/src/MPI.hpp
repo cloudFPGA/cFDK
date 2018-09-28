@@ -115,7 +115,10 @@ void MPI_Finalize();
 //void mpi_wrapper();
 void mpi_wrapper(
     // ----- system reset ---
-    ap_uint<1> sys_reset
+    ap_uint<1> sys_reset,
+	// ----- FROM SMC -----
+	ap_uint<32> role_rank_arg,
+	ap_uint<32> cluster_size_arg
     );
 
 void c_testbench_access(
@@ -128,10 +131,10 @@ void c_testbench_access(
     stream<MPI_Interface> *siMPIif_arg,
     stream<MPI_Interface> *soMPIif_arg,
     stream<Axis<8> > *siMPI_data_arg,
-    stream<Axis<8> > *soMPI_data_arg,
+    stream<Axis<8> > *soMPI_data_arg
     // ----- FROM SMC -----
-    ap_uint<32> role_rank_arg,
-    ap_uint<32> cluster_size_arg
+    //ap_uint<32> role_rank_arg,
+    //ap_uint<32> cluster_size_arg
     );
 
 void c_testbench_read(
