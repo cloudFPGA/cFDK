@@ -64,6 +64,9 @@
 
 #include "../../smc/src/smc.hpp"
 
+
+#include "zrlmpi_common.hpp"
+
 using namespace hls;
 
 /*
@@ -80,13 +83,6 @@ using namespace hls;
 
 //#ifdef COSIM 
 
-#define MPI_SEND_INT 0
-#define MPI_RECV_INT 1
-#define MPI_SEND_FLOAT 2
-#define MPI_RECV_FLOAT 3
-#define MPI_BARRIER 4
-#define mpiCall uint8_t
-
 
 #define WRITE_IDLE 0
 #define WRITE_START 1
@@ -101,14 +97,6 @@ using namespace hls;
 #define READ_ERROR 3
 #define READ_STANDBY 4
 #define receiveState uint8_t
-
-
-#define SEND_REQUEST 1
-#define CLEAR_TO_SEND 2
-#define DATA 3
-#define ACK 4
-#define ERROR 5
-#define packetType uint8_t
 
 
 #define IDLE 0
@@ -144,15 +132,6 @@ using namespace hls;
 //
 //#endif
 
-/*
- * MPI-F Interface
- */
- struct MPI_Interface {
-   ap_uint<8>     mpi_call;
-   ap_uint<32>    count;
-   ap_uint<32>    rank;
-   MPI_Interface() {}
- };
 
  struct IPMeta {
    ap_uint<32> ipAddress;
@@ -162,18 +141,6 @@ using namespace hls;
 
 
 
-/*
- * MPI-F Header 
- */
- struct MPI_Header {
-  ap_uint<32> dst_rank;
-  ap_uint<32> src_rank;
-  ap_uint<32> size; 
-  mpiCall call;
-  packetType type;
-  MPI_Header() {}
- };
-#define MPIF_HEADER_LENGTH 32
 
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
@@ -221,8 +188,8 @@ void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes);
 
 void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out);
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out);
-int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header);
-void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH]);
+//int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header);
+//void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH]);
 
 void mpe_main(
     // ----- system reset ---

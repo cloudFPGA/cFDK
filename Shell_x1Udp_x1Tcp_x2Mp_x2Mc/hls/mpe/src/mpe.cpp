@@ -3,6 +3,7 @@
 #include "../../smc/src/smc.hpp"
 #include <stdint.h>
 
+
 using namespace hls;
 
 ap_uint<32> localMRT[MAX_MRT_SIZE];
@@ -24,6 +25,7 @@ packetType currentPacketType = ERROR;
 mpiType currentDataType = MPI_INT;
 int handshakeLinesCnt = 0;
 
+/*
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
 {
   ap_uint<32> tmp = 0;
@@ -44,7 +46,7 @@ void integerToLittleEndian(ap_uint<32> n, ap_uint<8> *bytes)
   bytes[2] = (n >> 8) & 0xFF;
   bytes[3] = n & 0xFF;
 }
-
+*/
 
 void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 {
@@ -112,7 +114,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 }
 
 
-
+/*
 int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
 {
   //check validity
@@ -191,7 +193,7 @@ void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH])
   }
 
 }
-
+*/
 
 void mpe_main(
     // ----- system reset ---
@@ -467,7 +469,7 @@ void mpe_main(
 
         if(header.type != CLEAR_TO_SEND)
         {
-          printf("Expected CLEAR_TO_SEND, got %d!\n", header.type);
+          printf("Expected CLEAR_TO_SEND, got %d!\n", (int) header.type);
           fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
@@ -478,7 +480,7 @@ void mpe_main(
         //check data type 
         if((currentDataType == MPI_INT && header.call != MPI_RECV_INT) || (currentDataType == MPI_FLOAT && header.call != MPI_RECV_FLOAT))
         {
-          printf("receiver expects different data type: %d.\n", header.call);
+          printf("receiver expects different data type: %d.\n", (int) header.call);
           fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
@@ -570,7 +572,7 @@ void mpe_main(
 
         if(header.type != ACK)
         {
-          printf("Expected CLEAR_TO_SEND, got %d!\n", header.type);
+          printf("Expected CLEAR_TO_SEND, got %d!\n",(int) header.type);
           //TODO ERROR? 
           status[MPE_STATUS_ERROR_HANDSHAKE_CNT]++;
         } else {
