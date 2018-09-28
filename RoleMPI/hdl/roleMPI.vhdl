@@ -292,6 +292,7 @@ architecture Flash of Role_MPIv0_x2Mp is
   signal siMPI_data_tready1, siMPI_data_tready2, siMPI_data_tready3 : std_logic;
   signal soMPI_data_tvalid1, soMPI_data_tvalid2, soMPI_data_tvalid3: std_logic;
   signal siMPI_data_tkeep, siMPI_data_tlast, soMPI_data_tkeep, soMPI_data_tlast, reset_as_vector_i_hate_vivado_hls : std_logic_vector(0 downto 0);
+  signal ap_start_emif : std_logic;
  
 begin
 
@@ -310,7 +311,9 @@ begin
  --             x"BE" ;
  --
 
-  active_low_reset <= not piSHL_156_25Rst;
+  active_low_reset <= not (piSHL_156_25Rst or piSHL_ROL_EMIF_2B_Reg(0));
+
+  ap_start_emif <= piSHL_ROL_EMIF_2B_Reg(1);
 
   poMPE_ROLE_MPI_data_TREADY <= siMPI_data_tready1 and siMPI_data_tready2 and siMPI_data_tready3;
   poROLE_MPE_MPI_data_TVALID <= soMPI_data_tvalid1 and soMPI_data_tvalid2 and soMPI_data_tvalid3;
@@ -325,7 +328,8 @@ begin
     port map (
          ap_clk     =>   piSHL_156_25Clk ,
          ap_rst_n     =>    active_low_reset,
-         ap_start     =>    '1',
+         --ap_start     =>    '1',
+         ap_start     =>    ap_start_emif,
          --ap_done     =>    ,
          --ap_idle     =>    ,
          --ap_ready     =>    ,
@@ -360,9 +364,11 @@ begin
          soMPI_data_V_tlast_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
          piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
          piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
-         piSMC_to_ROLE_rank_V_ap_vld => '1',
+         --piSMC_to_ROLE_rank_V_ap_vld => '1',
+         piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
          piSMC_to_ROLE_size_V => piSMC_ROLE_size,
-         piSMC_to_ROLE_size_V_ap_vld => '1'
+         --piSMC_to_ROLE_size_V_ap_vld => '1'
+         piSMC_to_ROLE_size_V_ap_vld => ap_start_emif
      );
 
 
