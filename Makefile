@@ -21,7 +21,7 @@ CLEAN_TYPES = *.log *.jou *.str *.time
 
 
 .PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify
-.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_incr_mpi RoleMPItype RoleMPI2type RoleMPItypeSrc
+.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
 
 all: pr
 #all: src_based
