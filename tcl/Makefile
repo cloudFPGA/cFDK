@@ -159,7 +159,7 @@ save_mono_incr:
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl $(SHELL_DIR)/Shell*.v | ../dcps 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 #with pr:
