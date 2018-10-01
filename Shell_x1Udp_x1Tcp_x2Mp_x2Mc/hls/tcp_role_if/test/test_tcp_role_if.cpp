@@ -11,9 +11,6 @@
  *
  *****************************************************************************/
 
-// #include "../../toe/src/toe.hpp"
-// #include "tcp_role_if.hpp"
-
 #include <hls_stream.h>
 #include <iostream>
 
@@ -24,47 +21,50 @@ using namespace hls;
 
 int main()
 {
-	stream<axiWord>			vFPGA_tx_data;
-	stream<axiWord>			vFPGA_rx_data;
+	stream<TcpWord>			sROLE_TRIF_Data		("sROLE_TRIF_Data");
+	stream<TcpWord>			sTRIF_ROLE_Data		("sTRIF_ROLE_Data");
 
-	stream<axiWord> 		rxData;
-	stream<ap_uint<16> > 	rxMetaData;
-	stream<axiWord> 		txData;
-	stream<ap_uint<16> > 	txMetaData;
+	stream<TcpWord> 		sTOE_TRIF_Data		("sTOE_TRIF_Data");
+	stream<TcpMeta> 		sTOE_TRIF_Meta		("sTOE_TRIF_Meta");
+	stream<TcpWord> 		sTRIF_TOE_Data		("sTRIF_TOE_Data");
+	stream<TcpMeta> 		sTRIF_TOE_Meta		("sTRIF_TOE_Meta");
 
-	stream<openStatus> 		openConStatus;
-	stream<ipTuple> 		openConnection;
+	stream<TcpOpnSts> 		sTOE_TRIF_OpnSts	("sTOE_TRIF_OpnSts");
+	stream<TcpOpnReq> 		sTRIF_TOE_OpnReq	("sTRIF_TOE_OpnReq");
 
-	stream<bool> 			listenPortStatus("listenPortStatus");
-	stream<ap_uint<16> > 	listenPort("listenPort");
+	stream<TcpLsnAck>		sTOE_TRIF_LsnAck	("sTOE_TRIF_LsnAck");
+	stream<TcpLsnReq> 		sTRIF_TOE_LsnReq	("sTRIF_TOE_LsnReq");
 
-	stream<appNotification> notifications;
-	stream<appReadRequest> 	readRequest;
+	stream<TcpNotif> 		sTOE_TRIF_Notif		("sTOE_TRIF_Notif");
+	stream<TcpRdReq> 		sTRIF_TOE_RdReq		("sTRIF_TOE_RdReq");
 
-	stream<ap_int<17> >		txStatus;
-	stream<ap_uint<16> > 	closeConnection;
+	stream<TcpWrSts>		sTOE_TRIF_WrSts		("sTOE_TRIF_WrSts");
+
+	stream<TcpClsReq> 		sTRIF_TOE_ClsReq	("sTRIF_TOE_ClsReq");
 
 	int count = 0;
 	while (count < 50) {
 		tcp_role_if(
 				//-- ROLE / This / Tcp Interfaces
-				vFPGA_tx_data, vFPGA_rx_data,
+				sROLE_TRIF_Data, sTRIF_ROLE_Data,
 				//-- TOE / Data & MetaData Interfaces
-				rxData, rxMetaData,
-				txData, txMetaData,
+				sTOE_TRIF_Data, sTOE_TRIF_Meta,
+				sTRIF_TOE_Data, sTRIF_TOE_Meta,
 				//-- TOE / This / Open-Connection Interfaces
-				openConStatus, openConnection,
+				sTOE_TRIF_OpnSts, sTRIF_TOE_OpnReq,
 				//-- TOE / This / Listen-Port Interfaces
-				listenPortStatus, listenPort,
+				sTOE_TRIF_LsnAck, sTRIF_TOE_LsnReq,
 				//-- TOE / This / Data-Read-Request Interfaces
-				notifications, readRequest,
-				//-- TOE / This / Close-Connection Interfaces
-				txStatus, closeConnection);
+				sTOE_TRIF_Notif, sTRIF_TOE_RdReq,
+				//-- TOE / This / Write-Status Interface
+				sTOE_TRIF_WrSts,
+				//-- TOE / This / Close-Connection Interface
+				sTRIF_TOE_ClsReq);
 
-		if (!listenPort.empty())
-		{
-			listenPort.read();
-			listenPortStatus.write(true);
+		//-- Emulate the listening interface of the TOE
+		if (!sTRIF_TOE_LsnReq.empty()) {
+			sTRIF_TOE_LsnReq.read();
+			sTOE_TRIF_LsnAck.write(true);
 		}
 		count++;
 	}
