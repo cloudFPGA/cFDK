@@ -128,7 +128,7 @@ typedef bool		TcpLsnAck;	// TCP Listen Acknowledge
 
 typedef ap_uint<16> TcpLsnReq;	// TCP Listen Request
 
-typedef ap_int<17>	TcpWrSts;	// TCP Write Status
+typedef ap_int<17>	TcpDSts;	// TCP Data Status
 
 typedef ap_uint<16> TcpClsReq;	// TCP Close Request
 
@@ -137,46 +137,42 @@ typedef ap_uint<16> TcpClsReq;	// TCP Close Request
 void tcp_role_if(
 
         //------------------------------------------------------
-        //-- ROLE / This / Tcp Interfaces
+        //-- ROLE / This / Rx Data Interface
         //------------------------------------------------------
-        stream<TcpWord>         &siROL_This_Data,
-        stream<TcpWord>         &soTHIS_Rol_Data,
+        stream<TcpWord>     &siROL_This_Data,
 
         //------------------------------------------------------
-        //-- TOE / Data & MetaData Interfaces
+        //-- ROLE / This / Tx Data Interface
         //------------------------------------------------------
-        stream<TcpWord>         &siTOE_This_Data,
-        stream<TcpMeta>    		&siTOE_This_Meta,
-        stream<TcpWord>         &soTHIS_Toe_Data,
-        stream<TcpMeta>			&soTHIS_Toe_Meta,
+        stream<TcpWord>     &soTHIS_Rol_Data,
 
         //------------------------------------------------------
-        //-- TOE / This / Open-Connection Interfaces
+        //-- TOE / This / Rx Data Interfaces
         //------------------------------------------------------
-        stream<TcpOpnSts>		&siTOE_This_OpnSts,
-        stream<TcpOpnReq>     	&soTHIS_Toe_OpnReq,
+		stream<TcpNotif>	&siTOE_This_Notif,
+        stream<TcpWord>     &siTOE_This_Data,
+        stream<TcpMeta>		&siTOE_This_Meta,
+	    stream<TcpRdReq> 	&soTHIS_Toe_DReq,
+
+		//------------------------------------------------------
+		//-- TOE / This / Rx Ctrl Interfaces
+		//------------------------------------------------------
+		stream<TcpLsnAck>   &siTOE_This_LsnAck,
+		stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
+
+	    //------------------------------------------------------
+	    //-- TOE / This / Tx Data Interfaces
+	    //------------------------------------------------------
+		stream<TcpDSts>	&siTOE_This_DSts,
+        stream<TcpWord>     &soTHIS_Toe_Data,
+        stream<TcpMeta>		&soTHIS_Toe_Meta,
 
         //------------------------------------------------------
-        //-- TOE / This / Listen-Port Interfaces
+        //-- TOE / This / Tx Ctrl Interfaces
         //------------------------------------------------------
-        stream<TcpLsnAck>       &siTOE_This_LsnAck,
-        stream<TcpLsnReq>    	&soTHIS_Toe_LsnReq,
-
-        //------------------------------------------------------
-        //-- TOE / This / Read-Request Interfaces
-        //------------------------------------------------------
-        stream<TcpNotif>		&siTOE_This_Notif,
-        stream<TcpRdReq>  		&soTHIS_Toe_RdReq,
-
-        //------------------------------------------------------
-        //-- TOE / This / Write-Status
-        //------------------------------------------------------
-        stream<TcpWrSts>		&siTOE_This_WrSts,
-
-        //------------------------------------------------------
-        //-- TOE / This / Close-Connection Interfaces
-        //------------------------------------------------------
-        stream<TcpClsReq>		&soTHIS_Toe_ClsReq
+        stream<TcpOpnSts>	&siTOE_This_OpnSts,
+        stream<TcpOpnReq>	&soTHIS_Toe_OpnReq,
+        stream<TcpClsReq>	&soTHIS_Toe_ClsReq
 
 );
 

@@ -18,55 +18,110 @@
 
 using namespace hls;
 
+using namespace std;
+
+//------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//------------------------------------------------------
+int         gSimCnt;
+
+//------------------------------------------------------
+//-- DUT INTERFACES AS GLOBAL VARIABLES
+//------------------------------------------------------
+//-- ROLE / This / Rx Data Interface
+stream<TcpWord>		sROLE_Trif_Data		("sROLE_Trif_Data");
+//-- ROLE / This / Tx Data Interface
+stream<TcpWord>		sTRIF_Role_Data		("sTRIF_Role_Data");
+//-- TOE  / This / Rx Data Interfaces
+stream<TcpNotif>	sTOE_Trif_Notif		("sTOE_Trif_Notif");
+stream<TcpWord> 	sTOE_Trif_Data		("sTOE_Trif_Data");
+stream<TcpMeta> 	sTOE_Trif_Meta		("sTOE_Trif_Meta");
+stream<TcpRdReq>	sTRIF_Toe_DReq		("sTRIF_Toe_DReq");
+//-- TOE  / This / Rx Ctrl Interfaces
+stream<TcpLsnAck>	sTOE_Trif_LsnAck	("sTOE_Trif_LsnAck");
+stream<TcpLsnReq> 	sTRIF_Toe_LsnReq	("sTRIF_Toe_LsnReq");
+//-- TOE  / This / Tx Data Interfaces
+stream<TcpDSts>		sTOE_Trif_DSts		("sTOE_Trif_DSts");
+stream<TcpWord> 	sTRIF_Toe_Data		("sTRIF_Toe_Data");
+stream<TcpMeta> 	sTRIF_Toe_Meta		("sTRIF_Toe_Meta");
+//-- TOE  / This / Tx Ctrl Interfaces
+stream<TcpOpnSts> 	sTOE_Trif_OpnSts	("sTOE_Trif_OpnSts");
+stream<TcpOpnReq> 	sTRIF_Toe_OpnReq	("sTRIF_Toe_OpnReq");
+stream<TcpClsReq> 	sTRIF_Toe_ClsReq	("sTRIF_Toe_ClsReq");
+
+
+/*****************************************************************************
+ * @brief Run a single iteration of the DUT model.
+ * @ingroup tcp_role_if
+ * @return Nothing.
+ ******************************************************************************/
+void stepDut() {
+	tcp_role_if(
+			//-- ROLE / This / Rx & Tx Data Interfaces
+			sROLE_Trif_Data, sTRIF_Role_Data,
+			//-- TOE / This / Rx Data Interfaces
+			sTOE_Trif_Notif, sTOE_Trif_Data, sTOE_Trif_Meta, sTRIF_Toe_DReq,
+			//-- TOE / This / Rx Ctrl Interfaces
+			sTOE_Trif_LsnAck, sTRIF_Toe_LsnReq,
+			//-- TOE / This / Tx Data Interfaces
+			sTOE_Trif_DSts, sTRIF_Toe_Data, sTRIF_Toe_Meta,
+			//-- TOE / This / Tx Ctrl Interfaces
+			sTOE_Trif_OpnSts, sTRIF_Toe_OpnReq, sTRIF_Toe_ClsReq);
+    gSimCnt++;
+    printf("@%4.4d STEP DUT \n", gSimCnt);
+}
+
+
+
+
+
+
+
+
+
 
 int main()
 {
-	stream<TcpWord>			sROLE_TRIF_Data		("sROLE_TRIF_Data");
-	stream<TcpWord>			sTRIF_ROLE_Data		("sTRIF_ROLE_Data");
-
-	stream<TcpWord> 		sTOE_TRIF_Data		("sTOE_TRIF_Data");
-	stream<TcpMeta> 		sTOE_TRIF_Meta		("sTOE_TRIF_Meta");
-	stream<TcpWord> 		sTRIF_TOE_Data		("sTRIF_TOE_Data");
-	stream<TcpMeta> 		sTRIF_TOE_Meta		("sTRIF_TOE_Meta");
-
-	stream<TcpOpnSts> 		sTOE_TRIF_OpnSts	("sTOE_TRIF_OpnSts");
-	stream<TcpOpnReq> 		sTRIF_TOE_OpnReq	("sTRIF_TOE_OpnReq");
-
-	stream<TcpLsnAck>		sTOE_TRIF_LsnAck	("sTOE_TRIF_LsnAck");
-	stream<TcpLsnReq> 		sTRIF_TOE_LsnReq	("sTRIF_TOE_LsnReq");
-
-	stream<TcpNotif> 		sTOE_TRIF_Notif		("sTOE_TRIF_Notif");
-	stream<TcpRdReq> 		sTRIF_TOE_RdReq		("sTRIF_TOE_RdReq");
-
-	stream<TcpWrSts>		sTOE_TRIF_WrSts		("sTOE_TRIF_WrSts");
-
-	stream<TcpClsReq> 		sTRIF_TOE_ClsReq	("sTRIF_TOE_ClsReq");
-
+    //------------------------------------------------------
+    //-- TESTBENCH VARIABLES
+    //------------------------------------------------------
+    int nrErr = 0;
 	int count = 0;
-	while (count < 50) {
-		tcp_role_if(
-				//-- ROLE / This / Tcp Interfaces
-				sROLE_TRIF_Data, sTRIF_ROLE_Data,
-				//-- TOE / Data & MetaData Interfaces
-				sTOE_TRIF_Data, sTOE_TRIF_Meta,
-				sTRIF_TOE_Data, sTRIF_TOE_Meta,
-				//-- TOE / This / Open-Connection Interfaces
-				sTOE_TRIF_OpnSts, sTRIF_TOE_OpnReq,
-				//-- TOE / This / Listen-Port Interfaces
-				sTOE_TRIF_LsnAck, sTRIF_TOE_LsnReq,
-				//-- TOE / This / Data-Read-Request Interfaces
-				sTOE_TRIF_Notif, sTRIF_TOE_RdReq,
-				//-- TOE / This / Write-Status Interface
-				sTOE_TRIF_WrSts,
-				//-- TOE / This / Close-Connection Interface
-				sTRIF_TOE_ClsReq);
 
-		//-- Emulate the listening interface of the TOE
-		if (!sTRIF_TOE_LsnReq.empty()) {
-			sTRIF_TOE_LsnReq.read();
-			sTOE_TRIF_LsnAck.write(true);
+    printf("#####################################################\n");
+    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("#####################################################\n");
+
+    gSimCnt = 0;
+
+	while (count < 50) {
+
+		//-------------------------------------------------
+		//-- RUN DUT
+		//-------------------------------------------------
+		stepDut();
+
+		//-------------------------------------------------
+		//-- EMULATE TOE
+		//-------------------------------------------------
+		if (!sTRIF_Toe_LsnReq.empty()) {
+			TcpLsnReq	rxListenPortRequest;
+			sTRIF_Toe_LsnReq.read(rxListenPortRequest);
+			printf("\t[TOE] received listen port request #%d from [TRIF].\n",
+					rxListenPortRequest.to_int());
+			sTOE_Trif_LsnAck.write(true);
 		}
 		count++;
-	}
-	return 0;
+	} // end: while
+
+    printf("#####################################################\n");
+    if (nrErr)
+        printf("## ERROR - TESTBENCH FAILED (RC=%d) !!!             ##\n", nrErr);
+    else
+        printf("## SUCCESSFULL END OF TESTBENCH (RC=0)             ##\n");
+
+    printf("#####################################################\n");
+
+    return(nrErr);
+
 }

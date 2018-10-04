@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 using namespace hls;
+using namespace std;
 
 
 /*****************************************************************************
@@ -152,7 +153,6 @@ void pSessionIdServer (
  *
  * @param[in]  siTOE_OpnSts,  open connection status from TOE.
  * @param[out] soTOE_OpnReq,  open connection request to TOE.
- * @param[in]  siTOE_WrSts,   write status from TOE.
  * @param[out] soTOE_ClsReq,  close connection request to TOE.
  *
  * @return Nothing.
@@ -163,7 +163,6 @@ void pSessionIdServer (
 void pOpenCloseConn(
 		stream<TcpOpnSts>		&siTOE_OpnSts,
         stream<TcpOpnReq>		&soTOE_OpnReq,
-		stream<TcpWrSts>		&siTOE_WrSts,
         stream<TcpClsReq>		&soTOE_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -174,23 +173,22 @@ void pOpenCloseConn(
 
     if (!siTOE_OpnSts.empty() && !soTOE_OpnReq.full() && !soTOE_ClsReq.full()) {
         siTOE_OpnSts.read(newConn);
-        sockAddr.addr = 0x0b010101;
-        sockAddr.port = 0x3412;
+        sockAddr.addr = 0x2b010101;		// 1.1.1.43
+        sockAddr.port = 0x3412;			// 4660
         soTOE_OpnReq.write(sockAddr);
+        cout << "[TRIF]\t" << "Request to open socket address {" << hex << sockAddr.addr << "," << sockAddr.port << "}" << endl;
         if (newConn.success) {
             soTOE_ClsReq.write(newConn.sessionID);
             //closePort.write(occ_sockAddr.ip_port);
         }
     }
 
-    if (!siTOE_WrSts.empty()) {	//Make Checks
-    	siTOE_WrSts.read();
-    }
 }
 
 
 /*****************************************************************************
- * @brief Start listening (lsn) for incoming connections on a specific port.
+ * @brief Request the TOE to start listening (lsn) for incoming connections
+ * 	on a specific port.
  *
  * @ingroup trif
  *
@@ -225,42 +223,45 @@ void pListen(
 
 
 /*****************************************************************************
- * @brief Accept a new connection (acpt).
+ * @brief Accept incoming data (acpt).
+ * 	Waits for a notification indicating the availability of new data for
+ * 	the ROLE, issues a read request to accept the new data and forward a
+ * 	corresponding session id to the SessionIdServer process.
  *
  * @ingroup trif
  *
- * @param[in]  siTOE_Notif,	a new connection notification from TOE.
- * @param[out] soTOE_RdReq, a read request to TOE.
+ * @param[in]  siTOE_Notif,	a new Rx data notification from TOE.
+ * @param[out] soTOE_DReq,  a Rx data request to TOE.
  * @param[out] soSis_Entry, a new entry for the SessionIdServer process.
  *
  * @return Nothing.
  ******************************************************************************/
 void pAccept(
         stream<TcpNotif>			&siTOE_Notif,
-        stream<TcpRdReq>			&soTOE_RdReq,
+        stream<TcpRdReq>			&soTOE_DReq,
         stream<SessionIdCamEntry>	&soSis_Entry)
 {
 	 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1		//#pragma HLS INLINE OFF
+	#pragma HLS PIPELINE II=1		// OBSOLETE-20181004 #pragma HLS INLINE OFF
 
     static ap_uint<16> 	acpt_sessId  = 99;
     static bool 		acpt_firstWr = true;
 
-    static enum FSM_STATE { FSM_LISTEN_NOTIFICATION = 0, FSM_WRITE_SESSION } acpt_fsmState;
+    static enum FSM_STATE { FSM_WAIT_NOTIFICATION = 0, FSM_WRITE_SESSION } acpt_fsmState;
 
     TcpNotif notif;
 
     switch(acpt_fsmState) {
 
-    	case FSM_LISTEN_NOTIFICATION:
-            if (!siTOE_Notif.empty() && !soTOE_RdReq.full()) {
+    	case FSM_WAIT_NOTIFICATION:
+            if (!siTOE_Notif.empty() && !soTOE_DReq.full()) {
                 siTOE_Notif.read(notif);
 
                 if (notif.length != 0) {
-                    soTOE_RdReq.write(TcpRdReq(notif.sessionID, notif.length));
+                    soTOE_DReq.write(TcpRdReq(notif.sessionID, notif.length));
                 }
 
-                if(acpt_sessId != notif.sessionID ||  acpt_firstWr) {
+                if ((acpt_sessId != notif.sessionID) || acpt_firstWr) {
                     acpt_sessId = notif.sessionID;
                     acpt_fsmState = FSM_WRITE_SESSION;
                 }
@@ -275,7 +276,7 @@ void pAccept(
                 } else
                     soSis_Entry.write(SessionIdCamEntry(acpt_sessId, 1, 1));
 
-                acpt_fsmState = FSM_LISTEN_NOTIFICATION;
+                acpt_fsmState = FSM_WAIT_NOTIFICATION;
             }
         break;
     }
@@ -347,9 +348,10 @@ void pRxPath(
  *
  * @ingroup trif
  *
- * @param[in]  siROL_Data,	data from ROLE.
- * @param[out] soTOE_Data,	data to TOE.
- * @param[out] soTOE_Meta,	metadata to to TOE.
+ * @param[in]  siROL_Data,	Tx data from ROLE.
+ * @param[out] soTOE_Data,	Tx data to TOE.
+ * @param[out] soTOE_Meta,	Tx metadata to to TOE.
+ * @param[in]  siTOE_DSts,  Tx data write status from TOE.
  * @param[in]  siSis_SessId,session ID from  the SessionIdServer process.
  * @param[out] soSis_BufId, buffer ID to the SessionIdTable process.
  *
@@ -359,6 +361,7 @@ void pTxPath(
         stream<TcpWord>		 &siROL_Data,
 		stream<TcpWord>      &soTOE_Data,
 		stream<TcpMeta> 	 &soTOE_Meta,
+		stream<TcpDSts>		 &siTOE_DSts,
 		stream<ap_uint<16> > &siSis_SessId,
         stream<ap_uint<4> >	 &soSis_BufId)
 {
@@ -426,6 +429,11 @@ void pTxPath(
                     txp_fsmOutState = FSM_IDLE_OUT;
             }
         break;
+    }
+
+    //-- ALWAYS -----------------------
+    if (!siTOE_DSts.empty()) {
+    	siTOE_DSts.read();	// [TODO] Checking.
     }
 
 }
@@ -512,20 +520,20 @@ void tai_app_to_net(
  * @brief   Main process of the TCP Role Interface
  * @ingroup tcp_role_if
  *
- * @param[in]  siROL_This_Data   TCP data stream from the ROLE.
- * @param[out] soTHIS_Rol_Data   TCP data stream to the ROLE.
- * @param[in]  siTOE_This_Data   Data path from the TOE.
- * @param[in]  siTOE_This_Meta   Metadata from the TOE.
- * @param[out] soTHIS_Toe_Data   Data path to the TOE.
- * @param[out] soTHIS_Toe_Meta   Metadata to the TOE.
- * @param[in]  siTOE_This_OpnSts Open connection status from TOE.
- * @param[out] soTHIS_Toe_OpnReq Open connection request to TOE.
- * @param[in]  siTOE_This_LsnAck Listen port acknowledge from TOE.
- * @param[out] soTHIS_Toe_LsnReq Listen port request to TOE.
- * @param[in]  siTOE_This_Notif  Read notification from TOE.
- * @param[out] soTHIS_Toe_RdReq  Read request to TOE.
- * @param[in]  siTOE_This_WrSts  Write status from TOE.
- * @param[out] soTHIS_Toe_ClsReq Close connection request to TOE.
+ * @param[in]  siROL_This_Data   TCP Rx data stream from ROLE.
+ * @param[out] soTHIS_Rol_Data   TCP Tx data stream to ROLE.
+ * @param[in]  siTOE_This_Notif  TCP Rx data notification from TOE.
+ * @param[in]  siTOE_This_Data   TCP Rx data from TOE.
+ * @param[in]  siTOE_This_Meta   TCP Rx metadata from TOE.
+ * @param[out] soTHIS_Toe_RdReq  TCP Rx data request to TOE.
+ * @param[in]  siTOE_This_LsnAck TCP Rx listen port acknowledge from TOE.
+ * @param[out] soTHIS_Toe_LsnReq TCP Rx listen port request to TOE.
+ * @param[in]  siTOE_This_DSts   TCP Tx data status from TOE.
+ * @param[out] soTHIS_Toe_Data   TCP Tx data to TOE.
+ * @param[out] soTHIS_Toe_Meta   TCP Tx metadata to TOE.
+ * @param[in]  siTOE_This_OpnSts TCP Tx open connection status from TOE.
+ * @param[out] soTHIS_Toe_OpnReq TCP Tx open connection request to TOE.
+ * @param[out] soTHIS_Toe_ClsReq TCP Tx close connection request to TOE.
  *
  * @return Nothing.
  *
@@ -536,45 +544,41 @@ void tai_app_to_net(
 void tcp_role_if(
 
         //------------------------------------------------------
-        //-- ROLE / This / Tcp Interfaces
+        //-- ROLE / This / Rx Data Interface
         //------------------------------------------------------
         stream<TcpWord>     &siROL_This_Data,
+
+        //------------------------------------------------------
+        //-- ROLE / This / Tx Data Interface
+        //------------------------------------------------------
         stream<TcpWord>     &soTHIS_Rol_Data,
 
         //------------------------------------------------------
-        //-- TOE / Data & MetaData Interfaces
+        //-- TOE / This / Rx Data Interfaces
         //------------------------------------------------------
+		stream<TcpNotif>	&siTOE_This_Notif,
         stream<TcpWord>     &siTOE_This_Data,
         stream<TcpMeta>		&siTOE_This_Meta,
+	    stream<TcpRdReq> 	&soTHIS_Toe_DReq,
+
+		//------------------------------------------------------
+		//-- TOE / This / Rx Ctrl Interfaces
+		//------------------------------------------------------
+		stream<TcpLsnAck>   &siTOE_This_LsnAck,
+		stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
+
+	    //------------------------------------------------------
+	    //-- TOE / This / Tx Data Interfaces
+	    //------------------------------------------------------
+		stream<TcpDSts>		&siTOE_This_DSts,
         stream<TcpWord>     &soTHIS_Toe_Data,
         stream<TcpMeta>		&soTHIS_Toe_Meta,
 
         //------------------------------------------------------
-        //-- TOE / This / Open-Connection Interfaces
+        //-- TOE / This / Tx Ctrl Interfaces
         //------------------------------------------------------
         stream<TcpOpnSts>	&siTOE_This_OpnSts,
         stream<TcpOpnReq>	&soTHIS_Toe_OpnReq,
-
-        //------------------------------------------------------
-        //-- TOE / This / Listen-Port Interfaces
-        //------------------------------------------------------
-        stream<TcpLsnAck>   &siTOE_This_LsnAck,
-        stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
-
-        //------------------------------------------------------
-        //-- TOE / This / Read-Request Interfaces
-        //------------------------------------------------------
-        stream<TcpNotif>	&siTOE_This_Notif,
-        stream<TcpRdReq> 	&soTHIS_Toe_RdReq,
-
-        //------------------------------------------------------
-        //-- TOE / This / Write-Status Interface
-        //------------------------------------------------------
-        stream<TcpWrSts>	&siTOE_This_WrSts,
-
-        //------------------------------------------------------
-        //-- TOE / This / Close-Connection Interface
-        //------------------------------------------------------
         stream<TcpClsReq>	&soTHIS_Toe_ClsReq)
 {
 
@@ -582,31 +586,28 @@ void tcp_role_if(
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     #pragma HLS resource core=AXI4Stream variable=siROL_This_Data   metadata="-bus_bundle siROL_This_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
+	#pragma HLS DATA_PACK                variable=siTOE_This_Notif
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
     #pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta   metadata="-bus_bundle siTOE_This_Meta"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_DReq   metadata="-bus_bundle soTHIS_Toe_DReq"
+	#pragma HLS DATA_PACK                variable=soTHIS_Toe_DReq
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
+   	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_DSts   metadata="-bus_bundle siTOE_This_DSts"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Meta   metadata="-bus_bundle soTHIS_Toe_Meta"
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
-
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
-
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_RdReq  metadata="-bus_bundle soTHIS_Toe_RdReq"
-
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_WrSts  metadata="-bus_bundle siTOE_This_WrSts"
-
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
-
-    #pragma HLS DATA_PACK variable=siTOE_This_OpnSts
-    #pragma HLS DATA_PACK variable=soTHIS_Toe_OpnReq
-
-    #pragma HLS DATA_PACK variable=siTOE_This_Notif
-    #pragma HLS DATA_PACK variable=soTHIS_Toe_RdReq
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
+	#pragma HLS DATA_PACK                variable=siTOE_This_OpnSts
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
+	#pragma HLS DATA_PACK                variable=soTHIS_Toe_OpnReq
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 	#pragma HLS DATAFLOW
@@ -625,11 +626,11 @@ void tcp_role_if(
     //OBSOLETE-20180925 #pragma HLS STREAM             variable=buff_data depth=1024
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
-    pOpenCloseConn(siTOE_This_OpnSts, soTHIS_Toe_OpnReq, siTOE_This_WrSts , soTHIS_Toe_ClsReq);
+    pOpenCloseConn(siTOE_This_OpnSts, soTHIS_Toe_OpnReq, soTHIS_Toe_ClsReq);
 
     pListen(siTOE_This_LsnAck, soTHIS_Toe_LsnReq);
 
-    pAccept(siTOE_This_Notif, soTHIS_Toe_RdReq, sAcptToSis_Entry);
+    pAccept(siTOE_This_Notif, soTHIS_Toe_DReq, sAcptToSis_Entry);
 
     //OBSOLETE-20180925 tai_check_tx_status(siTOE_This_WrSts);
 
@@ -642,6 +643,7 @@ void tcp_role_if(
 
     //OBSOLETE-20180925 tai_app_to_net(buff_data, soTHIS_Toe_Meta, soTHIS_Toe_Data, sSisToTxp_SessId);
 
-    pTxPath(siROL_This_Data, soTHIS_Toe_Data, soTHIS_Toe_Meta, sSisToTxp_SessId,sTxpToSis_BufId);
+    pTxPath(siROL_This_Data, soTHIS_Toe_Data, soTHIS_Toe_Meta, siTOE_This_DSts,
+    		sSisToTxp_SessId,sTxpToSis_BufId);
 }
 
