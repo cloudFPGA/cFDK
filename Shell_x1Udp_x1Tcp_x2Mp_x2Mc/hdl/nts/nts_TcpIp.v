@@ -169,6 +169,8 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------
   input  [ 47:0] piMMIO_Nts0_MacAddress,
   input  [ 31:0] piMMIO_Nts0_IpAddress,
+  input  [ 31:0] piMMIO_Nts0_SubNetMask,
+  input  [ 31:0] piMMIO_Nts0_GatewayAddr,   
   
   output         poVoid
   
@@ -185,9 +187,6 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   wire          sTODO_1b0  =  1'b0;
 
-  //OBSOLETE-20180413 wire  [31:0]  cloud_fpga_ip;
-  //OBSOLETE-20180413 assign cloud_fpga_mac = 48'h0400C0FCF35C;
- 
   //------------------------------------------------------------------
   //-- IPRX = IP-RX-HANDLER
   //------------------------------------------------------------------
@@ -2895,8 +2894,8 @@ module NetworkTransportSession_TcpIp (
     .m_arpTableOut_TDATA      (sIPTX_Arp_LkpReq_Axis_tdata),
     .m_arpTableOut_TVALID     (sIPTX_Arp_LkpReq_Axis_tvalid),
   
-    .regSubNetMask_V          (32'h00FFFFFF),  // [FIXME] 
-    .regDefaultGateway_V      (32'h01010101),  // [FIXME]   
+    .regSubNetMask_V          (piMMIO_Nts0_SubNetMask),   //OBSOLETE-20181005 (32'h00FFFFFF), 
+    .regDefaultGateway_V      (piMMIO_Nts0_GatewayAddr),   //OBSOLETE-20181005 (32'h01010101),   
     .myMacAddress_V           (piMMIO_Nts0_MacAddress) 
     
   ); // End of IPTX
