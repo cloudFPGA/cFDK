@@ -50,11 +50,12 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
+add_files     ${srcDir}/${projectName}.hpp
 add_files -tb ${testDir}/test_${projectName}.cpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
 add_files ${srcDir}/close_timer/close_timer.cpp
-add_files ${srcDir}/dummy_memeory/dummy_memory.cpp
+add_files ${srcDir}/dummy_memory/dummy_memory.cpp
 add_files ${srcDir}/event_engine/event_engine.cpp
 add_files ${srcDir}/port_table/port_table.cpp
 add_files ${srcDir}/probe_timer/probe_timer.cpp
@@ -71,14 +72,23 @@ add_files ${srcDir}/tx_app_stream_if/tx_app_stream_if.cpp
 add_files ${srcDir}/tx_engine/tx_engine.cpp
 add_files ${srcDir}/tx_sar_table/tx_sar_table.cpp
 
+# Create a solution
+#-------------------------------------------------
 open_solution ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Synthesis
+# Run C Simulation and Synthesis
 #-------------------------------------------------
+# [FIXME - csim fails with SIGSEGV] csim_design -clean
 csynth_design
+
+# Run RTL Simulation
+#-------------------------------------------------
+if { 0 } {
+    cosim_design -tool xsim -rtl verilog -trace_level all
+}
 
 # Export RTL (refer to UG902)
 #   -format ( sysgen | ip_catalog | syn_dcp )

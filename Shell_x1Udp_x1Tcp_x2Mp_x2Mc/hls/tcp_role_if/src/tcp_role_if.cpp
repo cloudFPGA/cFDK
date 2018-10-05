@@ -1,558 +1,649 @@
 /*****************************************************************************
- * File:            tcp_role_if.cpp
- * Creation Date:   May 14, 2018
- * Description:     <Short description (1-2 lines)>
+ * @file       : tcp_role_if.cpp
+ * @brief      : TCP Role Interface (TRIF)
  *
- * Copyright 2014-2018 - IBM Research - All Rights Reserved.
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : This process exposes the TCP data path to the role. The main
+ *  purpose of the TRIF is to hide the socket mechanism from the user's role
+ *  application. As a result, the user application sends and receives its data
+ *  octets over plain Tx and Rx AXI4-Stream interfaces.
+ *
+ * @note       : The Tx data path (i.e. THIS->TCP) will block until a data
+ *                chunk and its corresponding metadata is received by the Rx
+ *                path.
+ * @remark     : { remark text }
+ * @warning    : For the time being, all communications occur over port #80.
+ * @todo       : [TODO - Port# must configurable]
+ *
+ * @see        :
  *
  *****************************************************************************/
 
 #include "tcp_role_if.hpp"
+#include <stdint.h>
 
 using namespace hls;
-
-///////////////////////////////////////////////////////////////////////
-/*****************************************************************************/
-/* NameOfTheFunction
- *
- * \desc            Description of function.
- *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
-session_id_cam::session_id_cam() {
-	for (uint8_t i=0;i<no_of_session_id_table_entries;++i) // Go through all the entries in the filter
-      	this->filter_entries[i].valid = 0;  // And mark them as invali
-}
+using namespace std;
 
 
-/*****************************************************************************/
-/* session_id_cam::write
- *
- * \desc            Description of function.
- *
- * \param[in]		write_entry is ...
- *
- * \return          True if ...
- *
- *****************************************************************************/
-bool session_id_cam::write(session_id_table_entry write_entry)
+/*****************************************************************************
+ * @brief SessionIdCam - Default constructor.
+ * @ingroup udp_role_if
+ ******************************************************************************/
+SessionIdCam::SessionIdCam()
 {
-//#pragma HLS PI Role_Udp_Tcp_McDp_4BEmifPELINE II=1
-
-	for (uint8_t i=0;i<no_of_session_id_table_entries;++i) { // Go through all the entries in the filter
-#pragma HLS UNROLL
-      		if (this->filter_entries[i].valid == 0 && write_entry.valid == 0) { // write
-         		this->filter_entries[i].session_id = write_entry.session_id;
-         		this->filter_entries[i].buffer_id = write_entry.buffer_id;
-         		this->filter_entries[i].valid = 1; // If all these conditions are met then return true;
-         		return true;
-      		} else if (this->filter_entries[i].valid == 1 && write_entry.valid == 1 && this->filter_entries[i].buffer_id == write_entry.buffer_id ) { // overwrite
-         		this->filter_entries[i].session_id = write_entry.session_id;
-         		this->filter_entries[i].buffer_id = write_entry.buffer_id;
-         		this->filter_entries[i].valid = 1; // If all these conditions are met then return true;
-         		return true;
-      		}
-   	}
-   	return false;
+    for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i)
+    	this->cam[i].valid = 0;
 }
 
-/*****************************************************************************/
-/* NameOfTheFunction
+/*****************************************************************************
+ * @brief SessionIdCam - Write a new entry into the CAM.
+ * @ingroup udp_role_if
  *
- * \desc            Description of function.
+ * @param[in] wrEntry, the entry to write into the CAM.
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
-ap_uint<16> session_id_cam::compare_buffer_id(
-		ap_uint<4> q_buffer_id)
+ * @return true if the entry was written, otherwise false.
+ ******************************************************************************/
+bool SessionIdCam::write(SessionIdCamEntry wrEntry)
 {
-//#pragma HLS PIPELINE II=1
-
-	for (uint8_t i=0;i<no_of_session_id_table_entries;++i){ // Go through all the entries in the filter
-#pragma HLS UNROLL
-      		if ((this->filter_entries[i].valid == 1) && (q_buffer_id == this->filter_entries[i].buffer_id)){ // Check if the entry is valid and if the addresses match
-         		return this->filter_entries[i].session_id; // If so delete the entry (mark as invalid)
-      		}
-   	}
-   	return -1;
+    for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i) {
+    	// Go through all the entries in the CAM
+		#pragma HLS UNROLL
+            if (this->cam[i].valid == 0 && wrEntry.valid == 0) {
+            	// Write new entry
+                this->cam[i].sessionId = wrEntry.sessionId;
+                this->cam[i].bufferId  = wrEntry.bufferId;
+                this->cam[i].valid      = 1;
+                return true;
+            } else if (this->cam[i].valid == 1 && wrEntry.valid == 1 &&
+            		   this->cam[i].bufferId == wrEntry.bufferId ) {
+            	// Overwrite current entry
+                this->cam[i].sessionId = wrEntry.sessionId;
+                this->cam[i].bufferId  = wrEntry.bufferId;
+                this->cam[i].valid     = 1;
+                // If all these conditions are met then return true;
+                return true;
+            }
+    }
+    return false;
 }
 
-
-/*****************************************************************************/
-/* NameOfTheFunction
+/*****************************************************************************
+ * @brief SessionIdCam - search for the presence of a buffer ID into the CAM.
+ * @ingroup udp_role_if
  *
- * \desc            Description of function.
+ * @param[in] bufferID, the buffer ID to lookup.
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
-void tai_session_id_table_server(
-		stream<session_id_table_entry>& w_entry,
-		stream<ap_uint<4> > &			q_buffer_id,
-		stream<ap_uint<16> > &			r_session_id)
+ * @return the session ID of the matching buffer ID, otherwise -1.
+ ******************************************************************************/
+ap_uint<16> SessionIdCam::search(ap_uint<4> bufferId)
 {
-#pragma HLS INLINE region
-#pragma HLS PIPELINE II=1 //enable_flush
-
-	//static enum uit_state {UIT_IDLE, UIT_RX_READ, UIT_TX_READ, UIT_WRITE, UIT_CLEAR} tcp_ip_table_state;
-
-   	static session_id_cam  session_id_cam_table;
-#pragma HLS array_partition variable=session_id_cam_table.filter_entries complete
-
-	session_id_table_entry in_entry;
-	ap_uint<4> in_buffer_id;
-	ap_uint<16> in_session_id;
-	//static bool rdWrswitch = true;
-
-	if(!q_buffer_id.empty() && !r_session_id.full() /*&& !rdWrswitch*/){
-		q_buffer_id.read(in_buffer_id);
-		in_session_id = session_id_cam_table.compare_buffer_id(in_buffer_id);
-		r_session_id.write(in_session_id);
-		//rdWrswitch = !rdWrswitch;
-	} else if(!w_entry.empty() /*&& rdWrswitch*/){
-		w_entry.read(in_entry);
-		session_id_cam_table.write(in_entry);
-		//rdWrswitch = !rdWrswitch;
-	}
-
-	//rdWrswitch = !rdWrswitch;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-
-
-/** @ingroup echo_server_application
- *
- */
-
-//#if 0
-
-/*
-ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the number of 1s in an 8-bit value
-	ap_uint<4> counter = 0;
-	for (ap_uint<4> i=0;i<8;++i) {
-		if (keepValue.bit(i) == 1)
-			counter++;
-	}
-	return counter;
-}
-*/
-
-/*****************************************************************************/
-/* NameOfTheFunction
- *
- * \desc            Description of function.
- *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
-ap_uint<4> keep_to_len(ap_uint<8> keepValue) { 		// This function counts the number of 1s in an 8-bit value
-	ap_uint<4> counter = 0;
-
-	switch(keepValue){
-		case 0x01: counter = 1; break;
-		case 0x03: counter = 2; break;
-		case 0x07: counter = 3; break;
-		case 0x0F: counter = 4; break;
-		case 0x1F: counter = 5; break;
-		case 0x3F: counter = 6; break;
-		case 0x7F: counter = 7; break;
-		case 0xFF: counter = 8; break;
-	}
-	return counter;
+	for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i) {
+    	// Go through all the entries in the CAM
+		#pragma HLS UNROLL
+        	if ((this->cam[i].valid == 1) && (bufferId == this->cam[i].bufferId)) {
+        		// The entry is valid and the buffer ID matches
+                return (this->cam[i].sessionId);
+            }
+    }
+    return -1;
 }
 
 
-/*****************************************************************************/
-/* NameOfTheFunction
+/*****************************************************************************
+ * @brief Session Id Server (sis).
  *
- * \desc            Description of function.
+ * @ingroup trif
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param[in]  siAcpt_WrEntry, a new session entry from the Accept process.
+ * @param[in]  siTxp_BufId,    a new buffer ID from the TxPath process.
+ * @param[out] soTxp_SessId,   the session ID corresponding to the incoming
+ *                              buffer ID.
  *
- * \return          The returned value.
- *
- *****************************************************************************/
-void tai_open_connection(
-		stream<ipTuple>& 		openConnection,
-		stream<openStatus>& 	openConStatus,
-		stream<ap_uint<16> >& 	closeConnection)
+ * @return Nothing.
+ ******************************************************************************/
+void pSessionIdServer (
+        stream<SessionIdCamEntry>	&siAcpt_Entry,
+        stream<ap_uint<4> > 		&siTxp_BuffId,
+        stream<ap_uint<16> > 		&soTxp_SessId)
 {
-#pragma HLS PIPELINE II=1
-//#pragma HLS INLINE OFF
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE region
+	#pragma HLS PIPELINE II=1  // enable_flush
 
-	openStatus newConn;
-	ipTuple tuple;
+    //OBSOLETE-20181001 static enum uit_state {UIT_IDLE, UIT_RX_READ, UIT_TX_READ, UIT_WRITE, UIT_CLEAR} tcp_ip_table_state;
 
-	if (!openConStatus.empty() && !openConnection.full() && !closeConnection.full()) {
-		openConStatus.read(newConn);
-		tuple.ip_address = 0x0b010101; 	// [TODO: Need to be received from the MGMT module]
-		tuple.ip_port =  0x3412;		// [TODO: Need to be received from the MGMT module]
-		openConnection.write(tuple);
-		if (newConn.success) {
-			closeConnection.write(newConn.sessionID);
-			//closePort.write(tuple.ip_port);
-		}
-	}
+	//-- LOCAL VARIABLES ------------------------------------------------------
+	static SessionIdCam  sessionIdCam;
+	#pragma HLS array_partition variable=sessionIdCam.cam complete
+
+    SessionIdCamEntry 	inEntry;
+    ap_uint<4> 			inBufferId;
+    ap_uint<16> 		inSessionId;
+
+    //OBSOLETE-20181001 static bool rdWrswitch = true;
+
+    if (!siTxp_BuffId.empty() && !soTxp_SessId.full() ) { /*OBSOLETE-20181001 && !rdWrswitch*/
+        siTxp_BuffId.read(inBufferId);
+        inSessionId = sessionIdCam.search(inBufferId);
+        soTxp_SessId.write(inSessionId);
+        //rdWrswitch = !rdWrswitch;
+    } else if (!siAcpt_Entry.empty()) {	/*OBSOLETE-20181001 && rdWrswitch*/
+        siAcpt_Entry.read(inEntry);
+        sessionIdCam.write(inEntry);
+        //OBSOLETE-20181001 rdWrswitch = !rdWrswitch;
+    }
+
+    //rdWrswitch = !rdWrswitch;
 }
 
-/*****************************************************************************/
-/* NameOfTheFunction
+
+/*****************************************************************************
+ * @brief Open/Close a Connection (occ).
  *
- * \desc            Description of function.
+ * @ingroup trif
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param[in]  siTOE_OpnSts,  open connection status from TOE.
+ * @param[out] soTOE_OpnReq,  open connection request to TOE.
+ * @param[out] soTOE_ClsReq,  close connection request to TOE.
  *
- * \return          The returned value.
+ * @return Nothing.
  *
- *****************************************************************************/
-void tai_listen_port_status(
-		stream<ap_uint<16> >& 	listenPort,
-		stream<bool>& 			listenPortStatus)
+ * @note  This code is not executed. It is added here to terminate every HLS
+ * 			stream of the module.
+ ******************************************************************************/
+void pOpenCloseConn(
+		stream<TcpOpnSts>		&siTOE_OpnSts,
+        stream<TcpOpnReq>		&soTOE_OpnReq,
+        stream<TcpClsReq>		&soTOE_ClsReq)
 {
-#pragma HLS PIPELINE II=1
-//#pragma HLS INLINE OFF
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1	//OBSOLETE-20180925 #pragma HLS INLINE OFF
 
-	static bool listenDone = false;
-	static bool waitPortStatus = false;
+    TcpOpnSts	newConn;
+    TcpOpnReq	sockAddr;
 
-	// Open/Listen on Port at startup
-	if (!listenDone && !waitPortStatus && !listenPort.full()) {
-		listenPort.write(80);
-		waitPortStatus = true;
-	} else if (waitPortStatus && !listenPortStatus.empty()) { // Check if listening on Port was successful, otherwise try again
-		listenPortStatus.read(listenDone);
-		waitPortStatus = false;
-	}
+    if (!siTOE_OpnSts.empty() && !soTOE_OpnReq.full() && !soTOE_ClsReq.full()) {
+        siTOE_OpnSts.read(newConn);
+        sockAddr.addr = 0x2b010101;		// 1.1.1.43
+        sockAddr.port = 0x3412;			// 4660
+        soTOE_OpnReq.write(sockAddr);
+        cout << "[TRIF]\t" << "Request to open socket address {" << hex << sockAddr.addr << "," << sockAddr.port << "}" << endl;
+        if (newConn.success) {
+            soTOE_ClsReq.write(newConn.sessionID);
+            //closePort.write(occ_sockAddr.ip_port);
+        }
+    }
+
 }
 
-/*****************************************************************************/
-/* NameOfTheFunction
+
+/*****************************************************************************
+ * @brief Request the TOE to start listening (lsn) for incoming connections
+ * 	on a specific port.
  *
- * \desc            Description of function.
+ * @ingroup trif
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param[in]  siTOE_LsnAck,  listen port acknowledge from TOE.
+ * @param[out] soTOE_LsnReq,  listen port request to TOE.
  *
- * \return          The returned value.
- *
- *****************************************************************************/
-void tai_listen_new_data(
-		stream<appNotification>& 		notifications,
-		stream<appReadRequest>& 		readRequest,
-		stream<session_id_table_entry>& sess_entry)
+ * @return Nothing.
+ ******************************************************************************/
+void pListen(
+		 stream<TcpLsnAck>		&siTOE_LsnAck,
+		 stream<TcpLsnReq>		&soTOE_LsnReq)
 {
-#pragma HLS PIPELINE II=1
-//#pragma HLS INLINE OFF
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1		//OBSOLETE-20180925 #pragma HLS INLINE OFF
 
-	static ap_uint<16> sess_id = 99;
-	static bool first_write = true;
-	static enum listen_new_data { LISTEN_NOTIFICATION = 0, WRITE_SESSION } listen_new_data_state;
-	appNotification notification;
+    static bool lsn_ack = false;
+    static bool lsn_req = false;
 
-	switch(listen_new_data_state)
-	{
-		case LISTEN_NOTIFICATION:
-			if (!notifications.empty() && !readRequest.full()){
-				notifications.read(notification);
+	#pragma HLS RESET variable=lsn_ack
+	#pragma HLS RESET variable=lsn_ack
 
-				if (notification.length != 0){
-					readRequest.write(appReadRequest(notification.sessionID, notification.length));
-				}
-
-				if(sess_id != notification.sessionID ||  first_write) {
-					sess_id = notification.sessionID;
-					listen_new_data_state = WRITE_SESSION;
-				}
-			}
-		break;
-		case WRITE_SESSION:
-			if (!sess_entry.full()){
-				if(first_write){
-					sess_entry.write(session_id_table_entry(sess_id, 1, 0));
-					first_write = !first_write;
-				} else
-					sess_entry.write(session_id_table_entry(sess_id, 1, 1));
-
-				listen_new_data_state = LISTEN_NOTIFICATION;
-			}
-		break;
-	}
+    // Bind and listen on port #80 at startup
+    if (!lsn_ack && !lsn_req && !soTOE_LsnReq.full()) {
+        soTOE_LsnReq.write(80);
+        lsn_req = true;
+    } else if (lsn_req && !siTOE_LsnAck.empty()) {
+    	// Check if the request for listening on port was successful, otherwise try again
+        siTOE_LsnAck.read(lsn_ack);
+        lsn_req = false;
+    }
 }
 
-/*****************************************************************************/
-/* NameOfTheFunction
+
+/*****************************************************************************
+ * @brief Accept incoming data (acpt).
+ * 	Waits for a notification indicating the availability of new data for
+ * 	the ROLE, issues a read request to accept the new data and forward a
+ * 	corresponding session id to the SessionIdServer process.
  *
- * \desc            Description of function.
+ * @ingroup trif
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param[in]  siTOE_Notif,	a new Rx data notification from TOE.
+ * @param[out] soTOE_DReq,  a Rx data request to TOE.
+ * @param[out] soSis_Entry, a new entry for the SessionIdServer process.
  *
- * \return          The returned value.
- *
- *****************************************************************************/
+ * @return Nothing.
+ ******************************************************************************/
+void pAccept(
+        stream<TcpNotif>			&siTOE_Notif,
+        stream<TcpRdReq>			&soTOE_DReq,
+        stream<SessionIdCamEntry>	&soSis_Entry)
+{
+	 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1		// OBSOLETE-20181004 #pragma HLS INLINE OFF
+
+    static ap_uint<16> 	acpt_sessId  = 99;
+    static bool 		acpt_firstWr = true;
+
+    static enum FSM_STATE { FSM_WAIT_NOTIFICATION = 0, FSM_WRITE_SESSION } acpt_fsmState;
+
+    TcpNotif notif;
+
+    switch(acpt_fsmState) {
+
+    	case FSM_WAIT_NOTIFICATION:
+            if (!siTOE_Notif.empty() && !soTOE_DReq.full()) {
+                siTOE_Notif.read(notif);
+
+                if (notif.length != 0) {
+                    soTOE_DReq.write(TcpRdReq(notif.sessionID, notif.length));
+                }
+
+                if ((acpt_sessId != notif.sessionID) || acpt_firstWr) {
+                    acpt_sessId = notif.sessionID;
+                    acpt_fsmState = FSM_WRITE_SESSION;
+                }
+            }
+        break;
+
+        case FSM_WRITE_SESSION:
+            if (!soSis_Entry.full()) {
+                if(acpt_firstWr) {
+                    soSis_Entry.write(SessionIdCamEntry(acpt_sessId, 1, 0));
+                    acpt_firstWr = !acpt_firstWr;
+                } else
+                    soSis_Entry.write(SessionIdCamEntry(acpt_sessId, 1, 1));
+
+                acpt_fsmState = FSM_WAIT_NOTIFICATION;
+            }
+        break;
+    }
+}
+
+
+/*** OBSOLETE-20180925 *** Was moved into 'pOpenCloseConn' **********
 void tai_check_tx_status(
-		stream<ap_int<17> >& txStatus)
+        stream<ap_int<17> >& txStatus)
 {
-#pragma HLS PIPELINE II=1
-//#pragma HLS INLINE OFF
+	#pragma HLS PIPELINE II=1 	//#pragma HLS INLINE OFF
 
-	if (!txStatus.empty()) //Make Checks
-	{
-		txStatus.read();
-	}
+    if (!txStatus.empty()) //Make Checks
+    {
+        txStatus.read();
+    }
+}
+*********************************************************************/
+
+
+/*****************************************************************************
+ * @brief Rx Path (rxp) - From TOE to ROLE.
+ *
+ * @ingroup trif
+ *
+ * @param[in]  siTOE_Data,	data from TOE.
+ * @param[in]  siTOE_Meta,	metadata from TOE.
+ * @param[out] soROL_Data,  data to ROLE.
+ *
+ * @return Nothing.
+ ******************************************************************************/
+void pRxPath(
+        stream<TcpWord>		&siTOE_Data,
+		stream<TcpMeta>		&siTOE_Meta,
+        stream<TcpWord>		&soROL_Data)
+{
+   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
+
+    ap_uint<16> 		sessionID;
+    TcpWord 			currWord;
+    //OBSOLETE-20180925 static ap_uint<16> 	old_session_id = 0;
+
+    static enum FsmState { FSM_IDLE = 0, FSM_STREAM } rxp_fsmState;
+
+    switch (rxp_fsmState)
+    {
+        case FSM_IDLE:
+            if (!siTOE_Meta.empty()) {
+            	siTOE_Meta.read(sessionID);
+                rxp_fsmState = FSM_STREAM;
+            }
+        break;
+        case FSM_STREAM:
+            if (!siTOE_Data.empty() && !soROL_Data.full()) {
+                siTOE_Data.read(currWord);
+                soROL_Data.write(currWord);
+
+                if (currWord.tlast)
+                    rxp_fsmState = FSM_IDLE;
+            }
+        break;
+    }
 }
 
-/*****************************************************************************/
-/* NameOfTheFunction
+
+/*****************************************************************************
+ * @brief Tx Path (txp) - From ROLE to TOE.
  *
- * \desc            Description of function.
+ * @ingroup trif
  *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
+ * @param[in]  siROL_Data,	Tx data from ROLE.
+ * @param[out] soTOE_Data,	Tx data to TOE.
+ * @param[out] soTOE_Meta,	Tx metadata to to TOE.
+ * @param[in]  siTOE_DSts,  Tx data write status from TOE.
+ * @param[in]  siSis_SessId,session ID from  the SessionIdServer process.
+ * @param[out] soSis_BufId, buffer ID to the SessionIdTable process.
  *
- * \return          The returned value.
- *
- *****************************************************************************/
-void tai_net_to_app(
-		stream<ap_uint<16> >& 	rxMetaData,
-		stream<axiWord>& 		rxData       /*, stream<ap_uint<16> >& txMetaData,*/,
-		stream<axiWord>& 		txData)
+ * @return Nothing.
+ ******************************************************************************/
+void pTxPath(
+        stream<TcpWord>		 &siROL_Data,
+		stream<TcpWord>      &soTOE_Data,
+		stream<TcpMeta> 	 &soTOE_Meta,
+		stream<TcpDSts>		 &siTOE_DSts,
+		stream<ap_uint<16> > &siSis_SessId,
+        stream<ap_uint<4> >	 &soSis_BufId)
 {
-#pragma HLS PIPELINE II=1
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
 
-	static enum read_write_engine { RWE_SESSION_ID = 0, RWE_DATA } read_write_engine_state;
-	ap_uint<16> sessionID;
-	axiWord currWord;
-	static ap_uint<16> old_session_id = 0;
+	//-- LOCAL STREAMS --------------------------------------------------------
+	static stream<TcpWord>		sFifo_Data("sFifo_Data");
+    #pragma HLS STREAM variable=sFifo_Data depth=1024
 
-	switch (read_write_engine_state)
-	{
-		case RWE_SESSION_ID:
-			if (!rxMetaData.empty() /*&& !txMetaData.full()*/) {
-				rxMetaData.read(sessionID);
-				//if(old_session_id != sessionID){
-					//txMetaData.write(sessionID);
-					//old_session_id = sessionID;
-				//}
-				read_write_engine_state = RWE_DATA;
-			}
-		break;
-		case RWE_DATA:
-			if (!rxData.empty() && !txData.full()) {
-				rxData.read(currWord);
-				txData.write(currWord);
 
-				if (currWord.last)
-					read_write_engine_state = RWE_SESSION_ID;
-			}
-		break;
-	}
+    TcpWord currWordIn;
+    TcpWord currWordOut;
+
+    //-- FSM #1: INPUT STREAMING ------
+    static enum FsmInState {FSM_IDLE_IN = 0, FSM_STREAM_IN} txp_fsmInState;
+
+    switch (txp_fsmInState) {
+
+    	case FSM_IDLE_IN:
+            if(!siROL_Data.empty() && !soSis_BufId.full() && !sFifo_Data.full()) {
+            	siROL_Data.read(currWordIn);
+                sFifo_Data.write(currWordIn);
+                soSis_BufId.write(1);
+
+                if(!currWordIn.tlast)
+                    txp_fsmInState = FSM_STREAM_IN;
+            }
+        break;
+
+    	case FSM_STREAM_IN:
+            if (!siROL_Data.empty() && !sFifo_Data.full()) {
+                siROL_Data.read(currWordIn);
+                sFifo_Data.write(currWordIn);
+
+                if(currWordIn.tlast)
+                    txp_fsmInState = FSM_IDLE_IN;
+            }
+        break;
+    }
+
+
+    //-- FSM #2: OUTPUT STREAMING -----
+    static enum FsmOutState {FSM_IDLE_OUT = 0, FSM_STREAM_OUT} txp_fsmOutState;
+
+    switch (txp_fsmOutState) {
+
+        case FSM_IDLE_OUT:
+            if(!sFifo_Data.empty() && !soTOE_Data.full() && !soTOE_Meta.full() && !siSis_SessId.empty()) {
+                sFifo_Data.read(currWordOut);
+                soTOE_Data.write(currWordOut);
+                soTOE_Meta.write(siSis_SessId.read());
+
+                if(!currWordOut.tlast)
+                    txp_fsmOutState = FSM_STREAM_OUT;
+            }
+        break;
+
+        case FSM_STREAM_OUT:
+            if (!sFifo_Data.empty() && !soTOE_Data.full()) {
+                sFifo_Data.read(currWordOut);
+                soTOE_Data.write(currWordOut);
+
+                if(currWordOut.tlast)
+                    txp_fsmOutState = FSM_IDLE_OUT;
+            }
+        break;
+    }
+
+    //-- ALWAYS -----------------------
+    if (!siTOE_DSts.empty()) {
+    	siTOE_DSts.read();	// [TODO] Checking.
+    }
+
 }
 
 
-/*****************************************************************************/
-/* NameOfTheFunction
- *
- * \desc            Description of function.
- *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
+/*** OBSOLETE-20180925 *******************************************
 void tai_app_to_buf(
-		stream<axiWord>& 		vFPGA_tx_data,
-		stream<ap_uint<4> >& 	q_buffer_id,
-		stream<axiWord>& 		buff_data)
+        stream<axiWord>		&vFPGA_tx_data,
+        stream<ap_uint<4> >	&q_buffer_id,
+        stream<axiWord>		&buff_data)
 {
-#pragma HLS PIPELINE II=1
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS PIPELINE II=1
 
-	static enum read_write_engine { RWE_SESS_RD = 0, RWE_BUFF_DATA} read_write_engine_state;
-	axiWord currWord;
+    static enum read_write_engine { RWE_SESS_RD = 0, RWE_BUFF_DATA} read_write_engine_state;
 
-	switch (read_write_engine_state)
-	{
-		case RWE_SESS_RD:
-			if(!vFPGA_tx_data.empty() && !q_buffer_id.full() && !buff_data.full()){
-				vFPGA_tx_data.read(currWord);
-				buff_data.write(currWord);
-				q_buffer_id.write(1);
+    axiWord currWord;
 
-				if(!currWord.last)
-					read_write_engine_state = RWE_BUFF_DATA;
-			}
-		break;
-		case RWE_BUFF_DATA:
-			if (!vFPGA_tx_data.empty() && !buff_data.full()) {
-				vFPGA_tx_data.read(currWord);
-				buff_data.write(currWord);
+    switch (read_write_engine_state)
+    {
+        case RWE_SESS_RD:
+            if(!vFPGA_tx_data.empty() && !q_buffer_id.full() && !buff_data.full()){
+                vFPGA_tx_data.read(currWord);
+                buff_data.write(currWord);
+                q_buffer_id.write(1);
 
-				if(currWord.last)
-					read_write_engine_state = RWE_SESS_RD;
-			}
-		break;
-	}
+                if(!currWord.last)
+                    read_write_engine_state = RWE_BUFF_DATA;
+            }
+        break;
+        case RWE_BUFF_DATA:
+            if (!vFPGA_tx_data.empty() && !buff_data.full()) {
+                vFPGA_tx_data.read(currWord);
+                buff_data.write(currWord);
+
+                if(currWord.last)
+                    read_write_engine_state = RWE_SESS_RD;
+            }
+        break;
+    }
 }
+********************************************************************/
 
-/*****************************************************************************/
-/* NameOfTheFunction
- *
- * \desc            Description of function.
- *
- * \param[in|out|stream] <NameOfTheParameter> with short description.
- *
- * \return          The returned value.
- *
- *****************************************************************************/
+/*** OBSOLETE-20180925 *******************************************
 void tai_app_to_net(
-		stream<axiWord>& 		buff_data,
-		stream<ap_uint<16> >& 	txMetaData,
-		stream<axiWord>& 		oTxData,
-		stream<ap_uint<16> >& 	r_session_id)
+        stream<axiWord>&        buff_data,
+        stream<ap_uint<16> >&   txMetaData,
+        stream<axiWord>&        oTxData,
+        stream<ap_uint<16> >&   r_session_id)
 {
 #pragma HLS PIPELINE II=1
 
-	static enum read_write_engine { RWE_SESS_RD = 0, RWE_TX_DATA} read_write_engine_state;
-	ap_uint<16> sessionID;
-	axiWord currWord;
+    static enum read_write_engine { RWE_SESS_RD = 0, RWE_TX_DATA} read_write_engine_state;
+    ap_uint<16> sessionID;
+    axiWord currWord;
 
-	switch (read_write_engine_state)
-	{
-		case RWE_SESS_RD:
-			if(!buff_data.empty() && !txMetaData.full() && !oTxData.full() && !r_session_id.empty()){
-				txMetaData.write(r_session_id.read());
-				buff_data.read(currWord);
-				oTxData.write(currWord);
+    switch (read_write_engine_state)
+    {
+        case RWE_SESS_RD:
+            if(!buff_data.empty() && !txMetaData.full() && !oTxData.full() && !r_session_id.empty()){
+                txMetaData.write(r_session_id.read());
+                buff_data.read(currWord);
+                oTxData.write(currWord);
 
-				if(!currWord.last)
-					read_write_engine_state = RWE_TX_DATA;
-			}
-		break;
-		case RWE_TX_DATA:
-			if (!buff_data.empty() && !oTxData.full()) {
-				buff_data.read(currWord);
-				oTxData.write(currWord);
+                if(!currWord.last)
+                    read_write_engine_state = RWE_TX_DATA;
+            }
+        break;
+        case RWE_TX_DATA:
+            if (!buff_data.empty() && !oTxData.full()) {
+                buff_data.read(currWord);
+                oTxData.write(currWord);
 
-				if(currWord.last)
-					read_write_engine_state = RWE_SESS_RD;
-			}
-		break;
-	}
+                if(currWord.last)
+                    read_write_engine_state = RWE_SESS_RD;
+            }
+        break;
+    }
 }
+********************************************************************/
 
 
-/*****************************************************************************/
-/* tcp_role_if
+/*****************************************************************************
+ * @brief   Main process of the TCP Role Interface
+ * @ingroup tcp_role_if
  *
- * \desc            Description of function.
+ * @param[in]  siROL_This_Data   TCP Rx data stream from ROLE.
+ * @param[out] soTHIS_Rol_Data   TCP Tx data stream to ROLE.
+ * @param[in]  siTOE_This_Notif  TCP Rx data notification from TOE.
+ * @param[in]  siTOE_This_Data   TCP Rx data from TOE.
+ * @param[in]  siTOE_This_Meta   TCP Rx metadata from TOE.
+ * @param[out] soTHIS_Toe_RdReq  TCP Rx data request to TOE.
+ * @param[in]  siTOE_This_LsnAck TCP Rx listen port acknowledge from TOE.
+ * @param[out] soTHIS_Toe_LsnReq TCP Rx listen port request to TOE.
+ * @param[in]  siTOE_This_DSts   TCP Tx data status from TOE.
+ * @param[out] soTHIS_Toe_Data   TCP Tx data to TOE.
+ * @param[out] soTHIS_Toe_Meta   TCP Tx metadata to TOE.
+ * @param[in]  siTOE_This_OpnSts TCP Tx open connection status from TOE.
+ * @param[out] soTHIS_Toe_OpnReq TCP Tx open connection request to TOE.
+ * @param[out] soTHIS_Toe_ClsReq TCP Tx close connection request to TOE.
  *
- * \param[stream]	oListenPort is...
+ * @return Nothing.
  *
- * \param[stream]	iListenPortStatus is ...
- *
- * \param[stream]	iNotifications ...
- *
- * \param[stream]	oReadRequest ..
- *
- * \param[stream]	iRxMetaData ...
- *
- * \param[stream]	iRxData
- *
- * \param[stream]	oOpenConnection
- *
- * \param[stream]	iOpenConStatus
- *
- * \param[stream]   oCloseConnection ...
- *
- * \param[stream]	oTxMetaData ...
- *
- * \param[stream]   oTxData ...
- *
- * \param[stream]	iTxStatus ...
- *
- * \param[stream] 	vFPGA_rx_data ...
- *
- * \param[stream]	vFPGA_tx_data is
- *
- * \return          The returned value.
- *
+ * @remark     : Session id is only updated if a new connection is established.
+ *                Therefore, the role does not have to always return the same
+ *                amount of segments received.
  *****************************************************************************/
-
-/*session id is updated for only if a new connection is established. therefore, app does not have to
- * always return the same amount of segments received */
-
 void tcp_role_if(
-		stream<ap_uint<16> >& 		oListenPort,
-		stream<bool>& 				iListenPortStatus,
-		stream<appNotification>& 	iNotifications,
-		stream<appReadRequest>& 	oReadRequest,
-		stream<ap_uint<16> >& 		iRxMetaData,
-		stream<axiWord>& 			iRxData,
-		stream<ipTuple>& 			oOpenConnection,
-		stream<openStatus>& 		iOpenConStatus,
-		stream<ap_uint<16> >& 		oCloseConnection,
-		stream<ap_uint<16> >& 		oTxMetaData,
-		stream<axiWord>& 			oTxData,
-		stream<ap_int<17> >& 		iTxStatus,
-		stream<axiWord>& 			vFPGA_rx_data,
-		stream<axiWord>& 			vFPGA_tx_data)
+
+        //------------------------------------------------------
+        //-- ROLE / This / Rx Data Interface
+        //------------------------------------------------------
+        stream<TcpWord>     &siROL_This_Data,
+
+        //------------------------------------------------------
+        //-- ROLE / This / Tx Data Interface
+        //------------------------------------------------------
+        stream<TcpWord>     &soTHIS_Rol_Data,
+
+        //------------------------------------------------------
+        //-- TOE / This / Rx Data Interfaces
+        //------------------------------------------------------
+		stream<TcpNotif>	&siTOE_This_Notif,
+        stream<TcpWord>     &siTOE_This_Data,
+        stream<TcpMeta>		&siTOE_This_Meta,
+	    stream<TcpRdReq> 	&soTHIS_Toe_DReq,
+
+		//------------------------------------------------------
+		//-- TOE / This / Rx Ctrl Interfaces
+		//------------------------------------------------------
+		stream<TcpLsnAck>   &siTOE_This_LsnAck,
+		stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
+
+	    //------------------------------------------------------
+	    //-- TOE / This / Tx Data Interfaces
+	    //------------------------------------------------------
+		stream<TcpDSts>		&siTOE_This_DSts,
+        stream<TcpWord>     &soTHIS_Toe_Data,
+        stream<TcpMeta>		&soTHIS_Toe_Meta,
+
+        //------------------------------------------------------
+        //-- TOE / This / Tx Ctrl Interfaces
+        //------------------------------------------------------
+        stream<TcpOpnSts>	&siTOE_This_OpnSts,
+        stream<TcpOpnReq>	&soTHIS_Toe_OpnReq,
+        stream<TcpClsReq>	&soTHIS_Toe_ClsReq)
 {
 
-#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS DATAFLOW
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
-#pragma HLS resource core=AXI4Stream variable=oListenPort metadata="-bus_bundle m_axis_listen_port"
-#pragma HLS resource core=AXI4Stream variable=iListenPortStatus metadata="-bus_bundle s_axis_listen_port_status"
-#pragma HLS resource core=AXI4Stream variable=iNotifications metadata="-bus_bundle s_axis_notifications"
-#pragma HLS resource core=AXI4Stream variable=oReadRequest metadata="-bus_bundle m_axis_read_request"
-#pragma HLS resource core=AXI4Stream variable=iRxMetaData metadata="-bus_bundle s_axis_rx_meta_data"
-#pragma HLS resource core=AXI4Stream variable=iRxData metadata="-bus_bundle s_axis_rx_data"
-#pragma HLS resource core=AXI4Stream variable=oOpenConnection metadata="-bus_bundle m_axis_open_connection"
-#pragma HLS resource core=AXI4Stream variable=iOpenConStatus metadata="-bus_bundle s_axis_open_connection_status"
-#pragma HLS resource core=AXI4Stream variable=oCloseConnection metadata="-bus_bundle m_axis_close_connection"
-#pragma HLS resource core=AXI4Stream variable=oTxMetaData metadata="-bus_bundle m_axis_tx_meta_data"
-#pragma HLS resource core=AXI4Stream variable=oTxData metadata="-bus_bundle m_axis_tx_data"
-#pragma HLS resource core=AXI4Stream variable=iTxStatus metadata="-bus_bundle s_axis_tx_status"
-#pragma HLS resource core=AXI4Stream variable=vFPGA_rx_data metadata="-bus_bundle m_axis_vfpga_rx_data"
-#pragma HLS resource core=AXI4Stream variable=vFPGA_tx_data metadata="-bus_bundle s_axis_vfpga_tx_data"
+    #pragma HLS resource core=AXI4Stream variable=siROL_This_Data   metadata="-bus_bundle siROL_This_Data"
 
-#pragma HLS DATA_PACK variable=iNotifications
-#pragma HLS DATA_PACK variable=oReadRequest
-#pragma HLS DATA_PACK variable=oOpenConnection
-#pragma HLS DATA_PACK variable=iOpenConStatus
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
+	#pragma HLS DATA_PACK                variable=siTOE_This_Notif
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta   metadata="-bus_bundle siTOE_This_Meta"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_DReq   metadata="-bus_bundle soTHIS_Toe_DReq"
+	#pragma HLS DATA_PACK                variable=soTHIS_Toe_DReq
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
+   	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_DSts   metadata="-bus_bundle siTOE_This_DSts"
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Meta   metadata="-bus_bundle soTHIS_Toe_Meta"
+
+	#pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
+	#pragma HLS DATA_PACK                variable=siTOE_This_OpnSts
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
+	#pragma HLS DATA_PACK                variable=soTHIS_Toe_OpnReq
+	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
+
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW
+
+    //-- LOCAL STREAMS --------------------------------------------------------
+    static stream<SessionIdCamEntry>   sAcptToSis_Entry("sAcptToSis_Entry");
+    #pragma HLS STREAM             variable=sAcptToSis_Entry depth=1
+
+    static stream<ap_uint<4> >              sTxpToSis_BufId ("sTxpToSis_BufId");
+    #pragma HLS STREAM             variable=sTxpToSis_BufId depth=1
+
+    static stream<ap_uint<16> >             sSisToTxp_SessId("sSisToTxp_SessId");
+    #pragma HLS STREAM             variable=sSisToTxp_SessId depth=1
+
+    //OBSOLETE-20180925 static stream<axiWord>                  buff_data       ("buff_data");
+    //OBSOLETE-20180925 #pragma HLS STREAM             variable=buff_data depth=1024
+
+    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    pOpenCloseConn(siTOE_This_OpnSts, soTHIS_Toe_OpnReq, soTHIS_Toe_ClsReq);
+
+    pListen(siTOE_This_LsnAck, soTHIS_Toe_LsnReq);
+
+    pAccept(siTOE_This_Notif, soTHIS_Toe_DReq, sAcptToSis_Entry);
+
+    //OBSOLETE-20180925 tai_check_tx_status(siTOE_This_WrSts);
+
+    pSessionIdServer(sAcptToSis_Entry, sTxpToSis_BufId, sSisToTxp_SessId);
+
+    pRxPath(siTOE_This_Data, siTOE_This_Meta, soTHIS_Rol_Data);
 
 
-static stream<session_id_table_entry>  w_entry("w_entry");
-#pragma HLS STREAM variable=w_entry depth=1
-static stream<ap_uint<4> > q_buffer_id("q_buffer_id");
-#pragma HLS STREAM variable=q_buffer_id depth=1
-static stream<ap_uint<16> > r_session_id("r_session_id");
-#pragma HLS STREAM variable=r_session_id depth=1
+    //OBSOLETE-20180925 tai_app_to_buf(siROL_This_Data, sTxpToSis_BufId, buff_data);
 
-static stream<axiWord>  buff_data("buff_data");
-#pragma HLS STREAM variable=buff_data depth=1024
+    //OBSOLETE-20180925 tai_app_to_net(buff_data, soTHIS_Toe_Meta, soTHIS_Toe_Data, sSisToTxp_SessId);
 
-	tai_open_connection(oOpenConnection, iOpenConStatus, oCloseConnection);
-	tai_listen_port_status(oListenPort, iListenPortStatus);
-
-	tai_listen_new_data(iNotifications, oReadRequest, w_entry);
-
-	tai_check_tx_status(iTxStatus);
-
-	tai_session_id_table_server(w_entry, q_buffer_id, r_session_id);
-
-	tai_net_to_app(iRxMetaData, iRxData, vFPGA_rx_data);
-
-	tai_app_to_buf(vFPGA_tx_data, q_buffer_id, buff_data);
-	tai_app_to_net(buff_data, oTxMetaData, oTxData, r_session_id);
-
+    pTxPath(siROL_This_Data, soTHIS_Toe_Data, soTHIS_Toe_Meta, siTOE_This_DSts,
+    		sSisToTxp_SessId,sTxpToSis_BufId);
 }
 
