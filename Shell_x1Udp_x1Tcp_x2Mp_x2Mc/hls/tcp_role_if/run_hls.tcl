@@ -62,12 +62,12 @@ create_clock -period 6.4 -name default
 
 # Run C Simulation and Synthesis
 #-------------------------------------------------
-#[FIXME] csim_design -clean
+csim_design -clean
 csynth_design
 
 # Run RTL Simulation
 #-------------------------------------------------
-if { 0 } {
+if { 1 } {
     cosim_design -tool xsim -rtl verilog -trace_level all
 }
 

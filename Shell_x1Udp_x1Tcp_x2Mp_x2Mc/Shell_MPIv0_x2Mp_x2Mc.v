@@ -483,6 +483,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire  [47:0]  sMMIO_Nts0_MacAddress;
   //---- Layer-3 Registers Interface -------------
   wire  [31:0]  sMMIO_Nts0_IpAddress;
+  wire  [31:0]  sMMIO_Nts0_SubNetMask;
+  wire  [31:0]  sMMIO_Nts0_GatewayAddr;   
   //---- Pcie Registers Interface ----------------
   //---- Diagnostic Registers Interface ----------
   wire          sMMIO_Eth0_PcsLoopbackEn;
@@ -684,6 +686,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- NTS0: Status inputs and Control outputs ------
     .poMMIO_Nts0_MacAddress         (sMMIO_Nts0_MacAddress),
     .poMMIO_Nts0_IpAddress          (sMMIO_Nts0_IpAddress),
+    .poMMIO_Nts0_SubNetMask         (sMMIO_Nts0_SubNetMask),
+    .poMMIO_Nts0_GatewayAddr        (sMMIO_Nts0_GatewayAddr),
     
     //-- ROLE : Status inputs and Control Outputs --
     .poMMIO_Role_UdpEchoCtrl        (poMMIO_Role_UdpEchoCtrl),
@@ -963,6 +967,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //------------------------------------------------------
     .piMMIO_Nts0_MacAddress           (sMMIO_Nts0_MacAddress),
     .piMMIO_Nts0_IpAddress            (sMMIO_Nts0_IpAddress),
+    .piMMIO_Nts0_SubNetMask           (sMMIO_Nts0_SubNetMask),
+    .piMMIO_Nts0_GatewayAddr          (sMMIO_Nts0_GatewayAddr),   
     
     .poVoid                           ()
   
