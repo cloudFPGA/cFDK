@@ -17,8 +17,8 @@ static const uint16_t MAX_SESSIONS = 32;
 
 #define noOfTxSessions 1 // Number of Tx Sessions to open for testing
 extern uint32_t packetCounter;
-extern uint32_t cycleCounter;
-extern unsigned int     simCycleCounter;
+extern uint32_t idleCycCnt;
+extern unsigned int     gSimCycCnt;
 // Forward declarations.
 struct rtlSessionUpdateRequest;
 struct rtlSessionUpdateReply;
@@ -541,48 +541,88 @@ ap_uint<4> keepMapping(ap_uint<8> keepValue);       // This function counts the 
 //template<class type> void streamMerger(stream<type> &input1, stream<type>& input2, stream<type>& output);
 template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T>& out);
 
-void toe(   // Data & Memory Interface
-            stream<axiWord>&                        ipRxData,
-            stream<mmStatus>&                       rxBufferWriteStatus,
-            stream<mmStatus>&                       txBufferWriteStatus,
-            stream<axiWord>&                        rxBufferReadData,
-            stream<axiWord>&                        txBufferReadData,
-            stream<axiWord>&                        ipTxData,
-            stream<mmCmd>&                          rxBufferWriteCmd,
-            stream<mmCmd>&                          rxBufferReadCmd,
-            stream<mmCmd>&                          txBufferWriteCmd,
-            stream<mmCmd>&                          txBufferReadCmd,
-            stream<axiWord>&                        rxBufferWriteData,
-            stream<axiWord>&                        txBufferWriteData,
-            // SmartCam Interface
-            stream<rtlSessionLookupReply>&          sessionLookup_rsp,
-            stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
-            //stream<ap_uint<14> >&                     readFinSessionId,
-            stream<rtlSessionLookupRequest>&        sessionLookup_req,
-            stream<rtlSessionUpdateRequest>&        sessionUpdate_req,
-            //stream<rtlSessionUpdateRequest>&      sessionInsert_req,
-            //stream<rtlSessionUpdateRequest>&      sessionDelete_req,
-            //stream<ap_uint<14> >&                     writeNewSessionId,
-            // Application Interface
-            stream<ap_uint<16> >&                   listenPortReq,
-            // This is disabled for the time being, due to complexity concerns
-            //stream<ap_uint<16> >&                     appClosePortIn,
-            stream<appReadRequest>&                     rxDataReq,
-            stream<ipTuple>&                        openConnReq,
-            stream<ap_uint<16> >&                   closeConnReq,
-            stream<ap_uint<16> >&                   txDataReqMeta,
-            stream<axiWord>&                        txDataReq,
+void toe(
+		//------------------------------------------------------
+	    //-- IPRX / This / IP Rx / Data Interface
+	    //------------------------------------------------------
+		stream<axiWord>						&siIPRX_This_Data,
 
-            stream<bool>&                           listenPortRsp,
-            stream<appNotification>&                notification,
-            stream<ap_uint<16> >&                   rxDataRspMeta,
-            stream<axiWord>&                        rxDataRsp,
-            stream<openStatus>&                         openConnRsp,
-            stream<ap_int<17> >&                    txDataRsp,
-            //IP Address Input
-            ap_uint<32>                                 regIpAddress,
-            //statistic
-            ap_uint<16>&                            relSessionCount,
-            ap_uint<16>&                            regSessionCount);
+		//------------------------------------------------------
+		//-- L3MUX / This / IP Tx / Data Interface
+		//------------------------------------------------------
+		stream<axiWord>                    	&soTHIS_L3mux_Data,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Rx / Data Interfaces
+		//------------------------------------------------------
+		stream<appReadRequest>             	&siTRIF_This_DReq,
+		stream<appNotification>            	&soTHIS_Trif_Notif,
+		stream<axiWord>                    	&soTHIS_Trif_Data,
+		stream<ap_uint<16> >               	&soTHIS_Trif_Meta,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Rx / Ctrl Interfaces
+		//------------------------------------------------------
+		stream<ap_uint<16> >               	&siTRIF_This_LsnReq,
+		stream<bool>                        &soTHIS_Trif_LsnAck,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Tx / Data Interfaces
+		//------------------------------------------------------
+		stream<axiWord>                    	&siTRIF_This_Data,
+		stream<ap_uint<16> >               	&siTRIF_This_Meta,
+		stream<ap_int<17> >                	&soTHIS_Trif_DSts,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Tx / Ctrl Interfaces
+		//------------------------------------------------------
+		stream<ipTuple>                    	&siTRIF_This_OpnReq,
+		stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
+		stream<openStatus>                 	&soTHIS_Trif_OpnSts,
+
+
+
+
+
+
+
+		//OBSOLETE  stream<axiWord>&                        ipRxData,
+		stream<mmStatus>&                       rxBufferWriteStatus,
+		stream<mmStatus>&                       txBufferWriteStatus,
+		stream<axiWord>&                        rxBufferReadData,
+		stream<axiWord>&                        txBufferReadData,
+		//OBSOLETE	stream<axiWord>&                        ipTxData,
+		stream<mmCmd>&                          rxBufferWriteCmd,
+		stream<mmCmd>&                          rxBufferReadCmd,
+		stream<mmCmd>&                          txBufferWriteCmd,
+		stream<mmCmd>&                          txBufferReadCmd,
+		stream<axiWord>&                        rxBufferWriteData,
+		stream<axiWord>&                        txBufferWriteData,
+		// SmartCam Interface
+		stream<rtlSessionLookupReply>&          sessionLookup_rsp,
+		stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
+		stream<rtlSessionLookupRequest>&        sessionLookup_req,
+		stream<rtlSessionUpdateRequest>&        sessionUpdate_req,
+		// Application Interface
+		//OBSOLETE	stream<ap_uint<16> >&                   listenPortReq,
+		// This is disabled for the time being, due to complexity concerns
+		//stream<ap_uint<16> >&                     		appClosePortIn,
+		//OBSOLETE  stream<appReadRequest>&                 rxDataReq,
+		//OBSOLETE	stream<ipTuple>&                        openConnReq,
+		//OBSOLETE	stream<ap_uint<16> >&                   closeConnReq,
+		//OBSOLETE	stream<ap_uint<16> >&                   txDataReqMeta,
+		//OBSOLETE	stream<axiWord>&                        txDataReq,
+
+		//OBSOLETE	stream<bool>&                           listenPortRsp,
+		//OBSOLETE	stream<appNotification>&                notification,
+		//OBSOLETE  stream<ap_uint<16> >&                   rxDataRspMeta,
+		//OBSOLETE  stream<axiWord>&                        rxDataRsp,
+		//OBSOLETE	stream<openStatus>&                     openConnRsp,
+		//OBSOLETE  stream<ap_int<17> >&                    txDataRsp,
+		//IP Address Input
+		ap_uint<32>                             regIpAddress,
+		//statistic
+		ap_uint<16>&                            relSessionCount,
+		ap_uint<16>&                            regSessionCount);
 
 #endif

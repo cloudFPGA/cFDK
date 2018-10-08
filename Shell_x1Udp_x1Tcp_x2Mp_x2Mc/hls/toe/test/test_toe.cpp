@@ -1,15 +1,37 @@
+/*****************************************************************************
+ * @file       : test_toe.cpp
+ * @brief      : Testbench for the TCP Offload Engine (TOE).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "../src/toe.hpp"
 #include "../src/dummy_memory/dummy_memory.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
 #include <map>
 #include <string>
-
-#define totalSimCycles 2500000
+#include <unistd.h>
 
 using namespace std;
 
-uint32_t cycleCounter;
-unsigned int    simCycleCounter         = 0;
+#define TRACE_LEVEL    1
+#define MAX_SIM_CYCLES 2500000
+
+//------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//------------------------------------------------------
+unsigned int    gSimCycCnt = 0;
+
+
+
+
+
 
 void sessionLookupStub(stream<rtlSessionLookupRequest>& lup_req, stream<rtlSessionLookupReply>& lup_rsp,
                         stream<rtlSessionUpdateRequest>& upd_req, stream<rtlSessionUpdateReply>& upd_rsp) {
@@ -376,36 +398,66 @@ ap_uint<16> recalculateChecksum(deque<axiWord> inputPacketizer) {
     inputPacketizer.pop_back();
     //for (uint8_t i=0;i<inputPacketizer.size();++i)
     //  cerr << hex << inputPacketizer[i].data << " " << inputPacketizer[i].keep << endl;
-    //newChecksum = checksumComputation(inputPacketizer);       // Calculate the checksum
+    //ne wChecksum = checksumComputation(inputPacketizer);       // Calculate the checksum
     //return newChecksum;
     return checksumComputation(inputPacketizer);
 }
 
-short int injectAckNumber(deque<axiWord> &inputPacketizer, map<fourTuple, ap_uint<32> > &sessionList) {
-    fourTuple newTuple = fourTuple(inputPacketizer[1].data.range(63, 32), inputPacketizer[2].data.range(31, 0), inputPacketizer[2].data.range(47, 32), inputPacketizer[2].data.range(63, 48));
-    //cerr << hex << inputPacketizer[4].data << endl;
-    if (inputPacketizer[4].data.bit(9))     {                                                   // If this packet is a SYN there's no need to inject anything
-        //cerr << " Open Tuple: " << hex << inputPacketizer[1].data.range(63, 32) << " - " << inputPacketizer[2].data.range(31, 0) << " - " << inputPacketizer[2].data.range(47, 32) << " - " << inputPacketizer[2].data.range(63, 48) << endl;
+
+/*****************************************************************************
+ * @brief Take the ACK number of a session and inject it into the sequence
+ * 	number field of the current packet.
+ *
+ * @ingroup toe
+ *
+ * @param[in]  inputPacketizer, a ref to a double-ended queue w/ packets.
+ * @param[in]  sessionList, 	a ref to an associative container which holds
+ * 								  the sessions as socket pair associations.
+ * @return 0 or 1 if success, otherwise -1.
+ ******************************************************************************/
+short int injectAckNumber(deque<axiWord> &inputPacketizer,
+							map<fourTuple, ap_uint<32> > &sessionList) {
+
+	fourTuple newTuple = fourTuple(inputPacketizer[1].data.range(63, 32), \
+								   inputPacketizer[2].data.range(31,  0), \
+								   inputPacketizer[2].data.range(47, 32), \
+								   inputPacketizer[2].data.range(63, 48));
+
+	if (inputPacketizer[4].data.bit(9)) {
+		// If this packet is a SYN there's no need to inject anything
+		if (TRACE_LEVEL >= 1)
+			cerr << "<D1> Current socket pair association: " << hex \
+			     << inputPacketizer[1].data.range(63, 32) << " - " 	\
+			     << inputPacketizer[2].data.range(31,  0) << " - " 	\
+				 << inputPacketizer[2].data.range(47, 32) << " - " 	\
+				 << inputPacketizer[2].data.range(63, 48) << endl;
         if (sessionList.find(newTuple) != sessionList.end()) {
-            cerr << "WARNING: Trying to open an existing session! - " << simCycleCounter << endl;
+            cerr << "WARNING: Trying to open an existing session! - " << gSimCycCnt << endl;
             return -1;
         }
         else {
             sessionList[newTuple] = 0;
-            cerr << "INFO: Opened new session - " << simCycleCounter << endl;
+            cerr << "INFO: Opened new session - " << gSimCycCnt << endl;
             return 0;
         }
     }
-    else {                                                                                  // if it is any other packet
+    else {
+    	// Packet is not a SYN
         if (sessionList.find(newTuple) != sessionList.end()) {
-            inputPacketizer[3].data.range(63, 32)   = sessionList[newTuple];                // inject the oldest acknowldgement number in the ack number deque
-            //cerr << hex << "Input: " << inputPacketizer[3].data.range(63, 32) << endl;
+            // Inject the oldest acknowledgment number in the ACK number deque
+            inputPacketizer[3].data.range(63, 32) = sessionList[newTuple];
+            if (TRACE_LEVEL >= 1)
+            	cerr << "<D1>" << hex <<  "Setting sequence number to: " \
+					 << inputPacketizer[3].data.range(63, 32) << endl;
+            // Recalculate and update the checksum
             ap_uint<16> tempChecksum = recalculateChecksum(inputPacketizer);
-            //inputPacketizer[4].data.range(47, 32)     = recalculateChecksum(inputPacketizer);     // and recalculate the checksum
             inputPacketizer[4].data.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
-            //inputPacketizer[4].data.range(47, 32)     = 0xB13D;
-            //for (uint8_t i=0;i<inputPacketizer.size();++i)
-            //  cerr << hex << inputPacketizer[i].data << endl;
+            if (TRACE_LEVEL >= 2) {
+            	cerr << "<D2> Current packet is : ";
+            	for (uint8_t i=0; i<inputPacketizer.size(); ++i)
+            		cerr << hex << inputPacketizer[i].data;
+            	cerr << endl;
+            }
             return 1;
         }
         else {
@@ -466,9 +518,9 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
             finPacket = true;
             //cerr << "Close Tuple: " << hex << outputPacketizer[2].data.range(31, 0) << " - " << outputPacketizer[1].data.range(63, 32) << " - " << inputPacketizer[2].data.range(63, 48) << " - " << outputPacketizer[2].data.range(47, 32) << endl;
             if (itemsErased != 1)
-                cerr << "WARNING: Received FIN segment for a non-existing session - " << simCycleCounter << endl;
+                cerr << "WARNING: Received FIN segment for a non-existing session - " << gSimCycCnt << endl;
             else
-                cerr << "INFO: Session closed successfully - " << simCycleCounter << endl;
+                cerr << "INFO: Session closed successfully - " << gSimCycCnt << endl;
         }
         // Check if the ACK packet also constains data. If it does generate an ACK for. Look into the IP header length for this.
         if (packetLength > 0 || finPacket == true) { // 20B of IP Header & 20B of TCP Header since we never generate options
@@ -512,11 +564,27 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
     return returnValue;
 }
 
-void flushInputPacketizer(deque<axiWord> &inputPacketizer, stream<axiWord> &ipRxData, map<fourTuple, ap_uint<32> > &sessionList) {
+
+/*****************************************************************************
+ * @brief Empty an input queue of packets stored as AXI-words and write them
+ * 	to an input stream of the TB.
+ *
+ *   // Before processing the input file data words, write any packets generated from the TB itself
+             Initialize an input meta stream from a file.
+ * @ingroup toe
+ *
+ * @param[in]  inputPacketizer, a reference to the double-ended queue to flush.
+ * @param[out] ipRxData,		a reference to the stream to write.
+ * @param[in]  sessionList, 	a reference to an associative container that
+ * 								  holds the sessions as socket pair associations.
+ * @return nothing.
+ ******************************************************************************/
+void flushInputPacketizer(deque<axiWord> &inputPacketizer, stream<axiWord> &ipRxData,
+							map<fourTuple, ap_uint<32> > &sessionList) {
     if (inputPacketizer.size() != 0) {
         injectAckNumber(inputPacketizer, sessionList);
         uint8_t inputPacketizerSize = inputPacketizer.size();
-        for (uint8_t i=0;i<inputPacketizerSize;++i) {
+        for (uint8_t i=0; i<inputPacketizerSize; ++i) {
             axiWord temp = inputPacketizer.front();
             ipRxData.write(temp);
             inputPacketizer.pop_front();
@@ -538,118 +606,167 @@ vector<string> parseLine(string stringBuffer) {
     return tempBuffer;
 }
 
+
+
+
 int main(int argc, char *argv[]) {
-    stream<axiWord>                         ipRxData("ipRxData");
+
+    //------------------------------------------------------
+    //-- DUT STREAM INTERFACES
+    //------------------------------------------------------
+    stream<axiWord>                     sIPRX_Toe_Data      ("sIPRX_Toe_Data");
+
+    stream<axiWord>                     sTOE_L3mux_Data         ("sTOE_L3mux_Data");
+
+    stream<axiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
+    stream<ap_uint<16> >                sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
+    stream<ap_int<17> >                 sTOE_Trif_DSts      ("sTOE_Trif_DSts");
+
+    stream<appReadRequest>              sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
+    stream<axiWord>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
+    stream<ap_uint<16> >                sTOE_Trif_Meta      ("sTOE_Trif_Meta");
+
+    stream<ap_uint<16> >                sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
+    stream<bool>                        sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
+
+    stream<ipTuple>                     sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
+    stream<openStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
+
+    stream<appNotification>             sTOE_Trif_Notif         ("sTOE_Trif_Notif");
+
+    stream<ap_uint<16> >                sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
+
+    //--------------------
+
     stream<mmStatus>                    rxBufferWriteStatus("rxBufferWriteStatus");
     stream<mmStatus>                    txBufferWriteStatus("txBufferWriteStatus");
-    stream<axiWord>                         rxBufferReadData("rxBufferReadData");
-    stream<axiWord>                         txBufferReadData("txBufferReadData");
-    stream<axiWord>                         ipTxData("ipTxData");
+    stream<axiWord>                     rxBufferReadData("rxBufferReadData");
+    stream<axiWord>                     txBufferReadData("txBufferReadData");
+
     stream<mmCmd>                       rxBufferWriteCmd("rxBufferWriteCmd");
     stream<mmCmd>                       rxBufferReadCmd("rxBufferReadCmd");
     stream<mmCmd>                       txBufferWriteCmd("txBufferWriteCmd");
     stream<mmCmd>                       txBufferReadCmd("txBufferReadCmd");
-    stream<axiWord>                         rxBufferWriteData("rxBufferWriteData");
-    stream<axiWord>                         txBufferWriteData("txBufferWriteData");
+    stream<axiWord>                     rxBufferWriteData("rxBufferWriteData");
+    stream<axiWord>                     txBufferWriteData("txBufferWriteData");
     stream<rtlSessionLookupReply>       sessionLookup_rsp("sessionLookup_rsp");
     stream<rtlSessionUpdateReply>       sessionUpdate_rsp("sessionUpdate_rsp");
-    stream<rtlSessionLookupRequest>         sessionLookup_req("sessionLookup_req");
-    stream<rtlSessionUpdateRequest>         sessionUpdate_req("sessionUpdate_req");
-//  stream<rtlSessionUpdateRequest>         sessionUpdate_req;
-    stream<ap_uint<16> >                listenPortReq("listenPortReq");
-    stream<appReadRequest>              rxDataReq("rxDataReq");
-    stream<ipTuple>                         openConnReq("openConnReq");
-    stream<ap_uint<16> >                closeConnReq("closeConnReq");
-    stream<ap_uint<16> >                txDataReqMeta("txDataReqMeta");
-    stream<axiWord>                         txDataReq("txDataReq");
-    stream<bool>                        listenPortRsp("listenPortRsp");
-    stream<appNotification>                 notification("notification");
-    stream<ap_uint<16> >                rxDataRspMeta("rxDataRspMeta");
-    stream<axiWord>                         rxDataRsp("rxDataRsp");
-    stream<openStatus>                  openConnRsp("openConnRsp");
-    stream<ap_int<17> >                     txDataRsp("txDataRsp");
-    ap_uint<16>                             regSessionCount;
-    ap_uint<16>                             relSessionCount;
-    axiWord                                 ipTxDataOut_Data;
-    axiWord                                 ipRxData_Data;
-    axiWord                                 ipTxDataIn_Data;
-    stream<axiWord>                     rxDataOut("rxDataOut");                         // This stream contains the data output from the Rx App I/F
-    axiWord                                 rxDataOut_Data;                                 // This variable is where the data read from the stream above is temporarily stored before output
+    stream<rtlSessionLookupRequest>     sessionLookup_req("sessionLookup_req");
+    stream<rtlSessionUpdateRequest>     sessionUpdate_req("sessionUpdate_req");
+    //stream<rtlSessionUpdateRequest>   sessionUpdate_req;
 
-    dummyMemory rxMemory;
-    dummyMemory txMemory;
-    
-    map<fourTuple, ap_uint<32> > sessionList;
+    //------------------------------------------------------
+    //-- TESTBENCH VARIABLES
+    //------------------------------------------------------
+    int           	nrErr;
+    bool			idlingReq;
+    unsigned int    idleCycReq;
+	unsigned int    idleCycCnt;
 
-    deque<axiWord>  inputPacketizer;
-    deque<axiWord>  outputPacketizer;                       // This deque collects the output data word until a whole packet is accumulated.
+    bool            firstWordFlag;
 
-    ifstream    rxInputFile;
+
+    ap_uint<16>                         regSessionCount;
+    ap_uint<16>                         relSessionCount;
+    axiWord                             ipTxDataOut_Data;
+    axiWord                             ipRxData_Data;
+    axiWord                             ipTxDataIn_Data;
+    stream<axiWord>                     rxDataOut("rxDataOut"); // This stream contains the data output from the Rx App I/F
+    axiWord                             rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
+
+    dummyMemory                         rxMemory;
+    dummyMemory                         txMemory;
+
+    map<fourTuple, ap_uint<32> >        sessionList;
+
+    //-- Double-ended queues ------------------------------
+    deque<axiWord>	inputPacketizer;
+    deque<axiWord>	outputPacketizer;  // This deque collects the output data word until a whole packet is accumulated.
+
+    //-- Input & Output File Streams ----------------------
+    ifstream    rxInputFile;    //
     ifstream    txInputFile;
     ofstream    rxOutput;
     ofstream    txOutput;
     ifstream    rxGold;
     ifstream    txGold;
-    unsigned int    skipCounter         = 0;
-    cycleCounter = 0;
-    simCycleCounter         = 0;
-    unsigned int    myCounter       = 0;
-    bool        idleCycle       = 0;
-    string      dataString, keepString;
-    vector<string>      stringVector;
+
+    unsigned int    myCounter   = 0;
+
+    string          dataString, keepString;
+    vector<string>  stringVector;
     vector<string>  txStringVector;
-    bool        firstWordFlag       = true;
-    int         rxGoldCompare       = 0;
+
+
+    int             rxGoldCompare       = 0;
     int             txGoldCompare       = 0; // not used yet
     int             returnValue         = 0;
-    uint16_t    txWordCounter       = 0;
-    uint16_t    rxPayloadCounter    = 0;    // This variable counts the number of packets output during the simulation on the Rx side
-    uint16_t    txPacketCounter         = 0;    // This variable countrs the number of packet send from the Tx side (total number of packets, all kinds, from all sessions).
-    bool        testRxPath      = true;     // This variable indicates if the Rx path is to be tested, thus it remains true in case of Rx only or bidirectional testing
-    bool        testTxPath      = true;     // Same but for the Tx path.
+    uint16_t        txWordCounter       = 0;
+    uint16_t        rxPayloadCounter    = 0;    // This variable counts the number of packets output during the simulation on the Rx side
+    uint16_t        txPacketCounter     = 0;    // This variable countrs the number of packet send from the Tx side (total number of packets, all kinds, from all sessions).
+    bool            testRxPath          = true;     // This variable indicates if the Rx path is to be tested, thus it remains true in case of Rx only or bidirectional testing
+    bool            testTxPath          = true;     // Same but for the Tx path.
     vector<ap_uint<16> > txSessionIDs;      // This vector holds the session IDs of the session to which data are transmitted.
-    uint16_t    currentTxSessionID  = 0;    // Holds the session ID which was last used to send data into the Tx path.
-    char        mode        = *argv[1];
+    uint16_t        currentTxSessionID  = 0;    // Holds the session ID which was last used to send data into the Tx path.
+    char            mode        = *argv[1];
 
+    char            cCurrPath[FILENAME_MAX];
+
+
+    //------------------------------------------------------
+    //-- PARSING TESBENCH ARGUMENTS
+    //------------------------------------------------------
     if (argc > 7 || argc < 4) {
-        cout << "Expected format: mode input_file rx_output_file tx_output_file (rx_gold_output)" << endl;
-//      cout << "You need to provide three parameters (the input file name followed by the output file name for the Rx Data and the one for the Tx Data)!" << endl;
+        printf("## [TB-ERROR] Expected 4 or 5 parameters with one of the the following synopsis:\n");
+        printf("\t mode(0) rxInputFileName rxOutputFileName txOutputFileName [rxGoldFileName] \n");
+        printf("\t mode(1) txInputFileName txOutputFileName [txGoldFileName] \n");
+        printf("\t mode(2) rxInputFileName txInputFileName rxOutputFileName txOutputFileName");
         return -1;
     }
-    if (mode == '0')  { // Test the Rx side only
+    if (mode == '0')  {
+        //-- Test the Rx side only ----
         rxInputFile.open(argv[2]);
         if (!rxInputFile) {
-            cout << " Error opening Rx Input file!" << endl;
+            printf("## [TB-ERROR] Cannot open Rx input file: \n\t %s \n", argv[2]);
+            if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
+                return -1;
+            }
+            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
         }
         rxOutput.open(argv[3]);
         if (!rxOutput) {
-            cout << " Error opening Rx Output file!" << endl;
+            printf("## [TB-ERROR] Missing Rx output file name!\n");
             return -1;
         }
         txOutput.open(argv[4]);
         if (!txOutput) {
-            cout << " Error opening Tx Output file!" << endl;
+            printf("## [TB-ERROR] Missing Tx output file name!\n");
             return -1;
         }
         if(argc == 6) {
             rxGold.open(argv[5]);
             if (!rxGold) {
-                cout << " Error accessing Gold Rx file!" << endl;
+                printf("## [TB-ERROR] Error accessing Rx gold file!");
                 return -1;
             }
         }
         testTxPath = false;
     }
-    else if (mode == '1') { // Test the Tx side only
+    else if (mode == '1') {
+        //-- Test the Tx side only ----
         txInputFile.open(argv[2]);
         if (!txInputFile) {
-            cout << " Error opening Tx Input file!" << endl;
+            printf("## [TB-ERROR] Cannot open Tx input file: \n\t %s \n", argv[2]);
+            if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
+                return -1;
+            }
+            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
         }
         txOutput.open(argv[3]);
         if (!txOutput) {
-            cout << " Error opening Tx Output file!" << endl;
+            printf("## [TB-ERROR] Missing Tx output file name!\n");
             return -1;
         }
         if(argc == 5){
@@ -661,74 +778,117 @@ int main(int argc, char *argv[]) {
         }
         testRxPath = false;
     }
-    else if (mode == '2') { // Test the Rx & Tx side together
+    else if (mode == '2') {
+        //-- Test both Rx & Tx sides --
         rxInputFile.open(argv[2]);
         if (!rxInputFile) {
-            cout << " Error opening Rx Input file!" << endl;
+            printf("## [TB-ERROR] Cannot open Rx input file: \n\t %s \n", argv[2]);
+            if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
+                return -1;
+            }
+            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
         }
         txInputFile.open(argv[3]);
         if (!txInputFile) {
-            cout << " Error opening Tx Input file!" << endl;
+            printf("## [TB-ERROR] Cannot open Tx input file: \n\t %s \n", argv[2]);
+            if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
+                return -1;
+            }
+            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
         }
         rxOutput.open(argv[4]);
         if (!rxOutput) {
-            cout << " Error opening Rx Output file!" << endl;
+            printf("## [TB-ERROR] Missing Rx output file name!\n");
             return -1;
         }
         txOutput.open(argv[5]);
         if (!txOutput) {
-            cout << " Error opening Tx Output file!" << endl;
+            printf("## [TB-ERROR] Missing Tx output file name!\n");
             return -1;
         }
-        if(argc == 7){
+        if(argc >= 7) {
             rxGold.open(argv[6]);
             if (!rxGold) {
-                cout << " Error accessing Gold Rx file!" << endl;
+                printf("## [TB-ERROR] Error accessing Rx gold file!");
+                return -1;
+            }
+            if (argc != 8) {
+                printf("## [TB-ERROR] Bi-directional testing requires two golden output files to be passed!");
+                return -1;
+            }
+            txGold.open(argv[7]);
+            if (!txGold) {
+                printf("## [TB-ERROR] Error accessing Tx gold file!");
                 return -1;
             }
         }
-        else if (argc == 6 ) {
-            cout << "Error! Bi-directional testing requires two golden output files to be passed!" << endl;
-            return -1;
-        }
     }
-    else { // Other cases are not allowed, exit.
-        cout << "First argument can be: 0 - Rx path testing only, 1 - Tx path testing only, 2 - Bi-directional testing." << endl;
+    else {
+        //-- Other cases are not allowed, exit
+        printf("## [TB-ERROR] First argument can be: \n \
+                \t 0 - Rx path testing only,         \n \
+                \t 1 - Tx path testing only,         \n \
+                \t 2 - Bi-directional testing. ");
         return -1;
     }
-    if (testTxPath == true) { // If the Tx Path will be tested then open a session for testing.
-        for (uint8_t i=0;i<noOfTxSessions;++i) { 
-            ipTuple newTuple = {150*(i+65355), 10*(i+65355)};       // IP address and port to open
-            openConnReq.write(newTuple);    // Write into TOE Tx I/F queue
+
+
+    printf("#####################################################\n");
+    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("#####################################################\n");
+    gSimCycCnt 	 = 0;		// Simulation cycle counter as a global variable
+    nrErr		 = 0;		// Total number of testbench errors
+    idlingReq	 = false;	// Request to idle (.i.e, do not feed TOE's input streams)
+    idleCycReq	 = 0; 		// The requested number of idle cycles
+    idleCycCnt 	 = 0;		// The count of idle cycles
+
+    firstWordFlag = true;	// AXI-word is first chunk of packet
+
+    if (testTxPath == true) {
+        //-- If the Tx Path will be tested then open a session for testing.
+        for (uint8_t i=0; i<noOfTxSessions; ++i) {
+            ipTuple newTuple = {150*(i+65355), 10*(i+65355)};   // IP address and port to open
+            sTRIF_Toe_OpnReq.write(newTuple);                   // Write into TOE Tx I/F queue
         }
     }
-//  while (simCycleCounter < totalSimCycles) {
+
+    //-----------------------------------------------------
+    //-- MAIN LOOP
+    //-----------------------------------------------------
     do {
-        if (idleCycle == true) {
-            if (cycleCounter >= skipCounter) {
-                cycleCounter = 0;
-                idleCycle = false;
+        if (idlingReq == true) {
+            if (idleCycCnt >= idleCycReq) {
+                idleCycCnt = 0;
+                idlingReq = false;
             }
             else
-                cycleCounter++;
+            	idleCycCnt++;
         }
-        else if (idleCycle == false) {
+        else {
             unsigned short int temp;
-            string stringBuffer;
-            string txStringBuffer;
-            flushInputPacketizer(inputPacketizer, ipRxData, sessionList);           // Before processing the input file data words, write any packets generated from the B itself
+            string 	stringBuffer;
+            string 	txStringBuffer;
+
+            // Before processing the input file data words, write any packets generated from the TB itself
+            flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
+
             if (testRxPath == true) {
-                //flushInputPacketizer(inputPacketizer, ipRxData, sessionList);             // Before processing the input file data words, write any packets generated from the B itself
+                //OBSOLETE Before processing the input file data words, write any packets generated from the B itself
+                //OBSOLETE flushInputPacketizer(inputPacketizer, ipRxData, sessionList);
                 getline(rxInputFile, stringBuffer);
                 stringVector = parseLine(stringBuffer);
-                if (stringVector[0] == "W") {   // Take into account wait cycles in the Rx input files. If they coincide with wait cycles in the Tx input files (only in case of idirectional testing, then the Tx side ones takes precedence.)
-                    skipCounter = atoi(stringVector[1].c_str());
-                    idleCycle = true;
+
+                if (stringVector[0] == "W") {
+                	// Take into account idle wait cycles in the Rx input files.
+                	// If they coincide with wait cycles in the Tx input files (only in case of bidirectional testing,
+                	// then the Tx side ones takes precedence.)
+                    idleCycReq = atoi(stringVector[1].c_str());
+                    idlingReq = true;
                 }
-                else if(rxInputFile.fail() == 1 || stringBuffer.empty()){
-                //break;
+                else if (rxInputFile.fail() == 1 || stringBuffer.empty()) {
+                	//break;
                 }
                 else {
                     do {
@@ -738,11 +898,13 @@ int main(int argc, char *argv[]) {
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
-                        ipRxData_Data = axiWord(encodeApUint64(stringVector[0]), encodeApUint8(stringVector[2]), atoi(stringVector[1].c_str()));
+                        ipRxData_Data = axiWord(encodeApUint64(stringVector[0]), \
+                        						encodeApUint8(stringVector[2]),  \
+												atoi(stringVector[1].c_str()));
                         inputPacketizer.push_back(ipRxData_Data);
                     } while (ipRxData_Data.last != 1);
                     firstWordFlag = true;
-                    flushInputPacketizer(inputPacketizer, ipRxData, sessionList);
+                    flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
                 }
             }
             if (testTxPath == true && txSessionIDs.size() > 0) {
@@ -750,50 +912,62 @@ int main(int argc, char *argv[]) {
                 getline(txInputFile, txStringBuffer);
                 txStringVector = parseLine(txStringBuffer);
                 if (txStringVector[0] == "W") {     // Only the Rx Path testing can 
-                    skipCounter = atoi(txStringVector[1].c_str());
-                    idleCycle = true;
+                    idleCycReq = atoi(txStringVector[1].c_str());
+                    idlingReq = true;
                 }
                 else if(txInputFile.fail() || txStringBuffer.empty()){
                     //break;
                     //return 0;
                 }
-                else { // Send data only after a session has been opened on the Tx Side
+                else {
+                	// Send data only after a session has been opened on the Tx Side
                     do {
                         if (firstWordFlag == false) { // If this isn't the first word of the packet then data have to be read in from the file
                             getline(txInputFile, txStringBuffer);
                             txStringVector = parseLine(txStringBuffer);
                         }
                         else { // If this is the first word of the data then the request has to be written into the Tx App I/F
-                            txDataReqMeta.write(txSessionIDs[currentTxSessionID]);
+                            sTRIF_Toe_Meta.write(txSessionIDs[currentTxSessionID]);
                             currentTxSessionID == noOfTxSessions - 1 ? currentTxSessionID = 0 : currentTxSessionID++;
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
                         ipTxDataIn_Data = axiWord(encodeApUint64(txStringVector[0]), encodeApUint8(txStringVector[2]), atoi(txStringVector[1].c_str()));
-                        txDataReq.write(ipTxDataIn_Data);
+                        sTRIF_Toe_Data.write(ipTxDataIn_Data);
                     } while (ipTxDataIn_Data.last != 1);
                     firstWordFlag = true;
                 }
             }
 //          }
         }
-        toe(ipRxData, rxBufferWriteStatus, txBufferWriteStatus, rxBufferReadData, txBufferReadData, ipTxData, rxBufferWriteCmd,
-            rxBufferReadCmd, txBufferWriteCmd, txBufferReadCmd, rxBufferWriteData, txBufferWriteData, sessionLookup_rsp, sessionUpdate_rsp,
-            sessionLookup_req, sessionUpdate_req, listenPortReq, rxDataReq, openConnReq, closeConnReq, txDataReqMeta, txDataReq,
-            //listenPortRsp, notification, rxDataRspMeta, rxDataRsp, openConnRsp, txDataRsp);
-            //relSessionCount, regSessionCount);
-            listenPortRsp, notification, rxDataRspMeta, rxDataRsp, openConnRsp, txDataRsp, 0x01010101, relSessionCount, regSessionCount);
 
-        iperf(listenPortReq, listenPortRsp, notification, rxDataReq,
-              rxDataRspMeta, rxDataRsp, rxDataOut, openConnReq, openConnRsp,
-              closeConnReq, txSessionIDs);
+        //-- INSTANCE TOE ---------------------------------
+        toe(
+            //-- IPv4 / Rx & Tx Interfaces
+            sIPRX_Toe_Data,   sTOE_L3mux_Data,
+            //-- TRIF / Rx Interfaces
+            sTRIF_Toe_DReq,   sTOE_Trif_Notif,  sTOE_Trif_Data,   sTOE_Trif_Meta,
+            sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
+            //-- TRIF / Tx Interfaces
+            sTRIF_Toe_Data,   sTRIF_Toe_Meta,   sTOE_Trif_DSts,
+            sTRIF_Toe_OpnReq, sTRIF_Toe_ClsReq, sTOE_Trif_OpnSts,
+            rxBufferWriteStatus, txBufferWriteStatus, rxBufferReadData, txBufferReadData, rxBufferWriteCmd,
+            rxBufferReadCmd, txBufferWriteCmd, txBufferReadCmd, rxBufferWriteData, txBufferWriteData, sessionLookup_rsp, sessionUpdate_rsp,
+            sessionLookup_req, sessionUpdate_req,
+                0x01010101, relSessionCount, regSessionCount);
+
+
+        //-- INSTANCE IPERF -------------------------------
+        iperf(sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck, sTOE_Trif_Notif, sTRIF_Toe_DReq,
+              sTOE_Trif_Meta, sTOE_Trif_Data, rxDataOut, sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
+              sTRIF_Toe_ClsReq, txSessionIDs);
 
         simulateRx(&rxMemory, rxBufferWriteCmd, rxBufferWriteStatus, rxBufferReadCmd, rxBufferWriteData, rxBufferReadData);
         simulateTx(&txMemory, txBufferWriteCmd, txBufferWriteStatus, txBufferReadCmd, txBufferWriteData, txBufferReadData);
                    sessionLookupStub(sessionLookup_req, sessionLookup_rsp,  sessionUpdate_req, sessionUpdate_rsp);
 
-        if (!ipTxData.empty()) {
-            ipTxData.read(ipTxDataOut_Data);
+        if (!sTOE_L3mux_Data.empty()) {
+            sTOE_L3mux_Data.read(ipTxDataOut_Data);
             string dataOutput = decodeApUint64(ipTxDataOut_Data.data);
             string keepOutput = decodeApUint8(ipTxDataOut_Data.keep);
             txOutput << dataOutput << " " << ipTxDataOut_Data.last << " " << keepOutput << endl;
@@ -823,15 +997,18 @@ int main(int argc, char *argv[]) {
                 rxPayloadCounter++;
             rxOutput << dataOutput << " " << rxDataOut_Data.last << " " << keepOutput << endl;
         }
-        if (!txDataRsp.empty()) {
-            ap_uint<17> tempResp = txDataRsp.read();
+        if (!sTOE_Trif_DSts.empty()) {
+            ap_uint<17> tempResp = sTOE_Trif_DSts.read();
             if (tempResp == -1 || tempResp == -2)
                 cerr << endl << "Warning: Attempt to write data into the Tx App I/F of the TOE was unsuccesfull. Returned error code: " << tempResp << endl;
         }
-        simCycleCounter++;
-        //cout << dec << simCycleCounter << endl;
+        gSimCycCnt++;
+        //cout << dec << gSimCycCnt << endl;
         //cerr << simCycleCounter << " - Number of Sessions opened: " <<  dec << regSessionCount << endl << "Number of Sessions closed: " << relSessionCount << endl;
-    } while (simCycleCounter < totalSimCycles);
+    } while (gSimCycCnt < MAX_SIM_CYCLES);
+
+
+
 //  while (!ipTxData.empty() || !ipRxData.empty() || !rxDataOut.empty());
     /*while (!txBufferWriteCmd.empty()) {
         mmCmd tempMemCmd = txBufferWriteCmd.read();
