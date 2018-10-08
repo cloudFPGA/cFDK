@@ -16,7 +16,7 @@
  *
  *****************************************************************************/
 
-#include "../../toe/src/toe.hpp"
+//OBSOLETE-20181010 #include "../../toe/src/toe.hpp"
 
 #include <hls_stream.h>
 #include "ap_int.h"
@@ -24,84 +24,155 @@
 using namespace hls;
 
 
-#define no_of_session_id_table_entries 4
+#define NR_SESSION_ENTRIES 4
 
 
-//struct axiWord {            // TCP Streaming Chunk (i.e. 8 bytes)
-//    ap_uint<64>    tdata;
-//    ap_uint<8>     tkeep;
-//    ap_uint<1>     tlast;
-//    axiWord()      {}
-//    axiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-//                   tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-//};
+/********************************************
+ * Generic TCP Type Definitions
+ ********************************************/
+typedef ap_uint<16> TcpSessId;	// TCP Session ID
+typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
 
 
-struct session_id_table_entry {
-	ap_uint<16> session_id;
-	ap_uint<4> buffer_id;
-	ap_uint<1> valid;
+/********************************************
+ * Session Id Table Entry
+ ********************************************/
+struct SessionIdCamEntry {
+	TcpSessId	sessionId;
+    TcpBuffId 	bufferId;
+    ap_uint<1> 	valid;
 
-	session_id_table_entry() {}
-	session_id_table_entry(ap_uint<16> session_id, ap_uint<4> buffer_id, ap_uint<1> valid)
-					  :session_id(session_id), buffer_id(buffer_id), valid(valid){}
+    SessionIdCamEntry() {}
+    SessionIdCamEntry(ap_uint<16> session_id, ap_uint<4> buffer_id, ap_uint<1> valid) :
+    	sessionId(session_id), bufferId(buffer_id), valid(valid){}
 };
 
 
-class session_id_cam {
-public:
-	session_id_table_entry filter_entries[no_of_session_id_table_entries];
-	session_id_cam();
-	bool write(session_id_table_entry write_entry); // Returns true if write completed successfully, else false
-	ap_uint<16>  compare_buffer_id(ap_uint<4> q_buffer_id);
-	/*return buffer id*/
-	ap_uint<4>  compare_session_id(ap_uint<16> q_session_id);
+/********************************************
+ * Session Id CAM
+ ********************************************/
+class SessionIdCam {
+    public:
+    	SessionIdCamEntry cam[NR_SESSION_ENTRIES];
+    	SessionIdCam();
+    	bool 		write(SessionIdCamEntry wrEntry);
+    	TcpSessId	search(TcpBuffId		buffId);
+    	TcpBuffId	search(TcpSessId		sessId);
 };
 
-void tai_session_id_table_server(stream<session_id_table_entry> &w_entry,
-						stream <bool > & w_entry_done,
-						stream<ap_uint<4> > &q_buffer_id,
-						stream<ap_uint<16> > &r_session_id);
+
+/********************************************
+ * Socket Transport Address.
+ ********************************************/
+struct SocketAddr {
+     ap_uint<16>    port;   // Port in network byte order
+     ap_uint<32>    addr;   // IPv4 address
+};
+
+
+/********************************************
+ * TCP Specific Streaming Interfaces.
+ ********************************************/
+struct TcpWord {            	// TCP Streaming Chunk (i.e. 8 bytes)
+    ap_uint<64>    tdata;
+    ap_uint<8>     tkeep;
+    ap_uint<1>     tlast;
+    TcpWord()      {}
+    TcpWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+    	tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+typedef TcpSessId	TcpMeta;	// TCP MetaData
+
+struct TcpOpnSts {				// TCP Open Status
+	TcpSessId	sessionID;
+	bool		success;
+	TcpOpnSts() {}
+	TcpOpnSts(TcpSessId id, bool success) :
+		sessionID(id), success(success) {}
+};
+
+typedef SocketAddr	TcpOpnReq;	// TCP Open Request
+
+struct TcpNotif	{				// TCP Notification
+	TcpSessId			sessionID;
+	ap_uint<16>			length;
+	ap_uint<32>			ipAddress;
+	ap_uint<16>			dstPort;
+	bool				closed;
+	TcpNotif() {}
+
+	TcpNotif(TcpSessId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
+		sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
+
+	TcpNotif(TcpSessId id, bool closed) :
+		sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
+
+	TcpNotif(TcpSessId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+		sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
+
+	TcpNotif(TcpSessId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+		sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
+};
+
+struct TcpRdReq {				// TCP Read Request
+	TcpSessId	sessionID;
+	ap_uint<16> length;
+	TcpRdReq() {}
+
+	TcpRdReq(TcpSessId id, ap_uint<16> len) :
+		sessionID(id), length(len) {}
+};
+
+typedef bool		TcpLsnAck;	// TCP Listen Acknowledge
+
+typedef ap_uint<16> TcpLsnReq;	// TCP Listen Request
+
+typedef ap_int<17>	TcpDSts;	// TCP Data Status
+
+typedef ap_uint<16> TcpClsReq;	// TCP Close Request
+
+
 
 void tcp_role_if(
 
-		//------------------------------------------------------
-		//-- ROLE / This / Tcp Interfaces
-		//------------------------------------------------------
-		stream<axiWord>& 			vFPGA_tx_data,
-		stream<axiWord>& 			vFPGA_rx_data,
+        //------------------------------------------------------
+        //-- ROLE / This / Rx Data Interface
+        //------------------------------------------------------
+        stream<TcpWord>     &siROL_This_Data,
+
+        //------------------------------------------------------
+        //-- ROLE / This / Tx Data Interface
+        //------------------------------------------------------
+        stream<TcpWord>     &soTHIS_Rol_Data,
+
+        //------------------------------------------------------
+        //-- TOE / This / Rx Data Interfaces
+        //------------------------------------------------------
+		stream<TcpNotif>	&siTOE_This_Notif,
+        stream<TcpWord>     &siTOE_This_Data,
+        stream<TcpMeta>		&siTOE_This_Meta,
+	    stream<TcpRdReq> 	&soTHIS_Toe_DReq,
 
 		//------------------------------------------------------
-		//-- TOE / Data & MetaData Interfaces
+		//-- TOE / This / Rx Ctrl Interfaces
 		//------------------------------------------------------
-		stream<axiWord>				&iRxData,
-		stream<ap_uint<16> >		&iRxMetaData,
-		stream<axiWord>				&oTxData,
-		stream<ap_uint<16> >		&oTxMetaData,
+		stream<TcpLsnAck>   &siTOE_This_LsnAck,
+		stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
 
-		//------------------------------------------------------
-		//-- TOE / This / Open-Connection Interfaces
-		//------------------------------------------------------
-		stream<openStatus>			&iOpenConStatus,
-		stream<ipTuple>				&oOpenConnection,
+	    //------------------------------------------------------
+	    //-- TOE / This / Tx Data Interfaces
+	    //------------------------------------------------------
+		stream<TcpDSts>	&siTOE_This_DSts,
+        stream<TcpWord>     &soTHIS_Toe_Data,
+        stream<TcpMeta>		&soTHIS_Toe_Meta,
 
-		//------------------------------------------------------
-		//-- TOE / This / Listen-Port Interfaces
-		//------------------------------------------------------
-		stream<bool>				&iListenPortStatus,
-		stream<ap_uint<16> >		&oListenPort,
-
-		//------------------------------------------------------
-		//-- TOE / This / Data-Read-Request Interfaces
-		//------------------------------------------------------
-		stream<appNotification>		&iNotifications,
-		stream<appReadRequest>		&oReadRequest,
-
-		//------------------------------------------------------
-		//-- TOE / This / Close-Connection Interfaces
-		//------------------------------------------------------
-		stream<ap_int<17> >& 		iTxStatus,
-		stream<ap_uint<16> >& 		oCloseConnection
+        //------------------------------------------------------
+        //-- TOE / This / Tx Ctrl Interfaces
+        //------------------------------------------------------
+        stream<TcpOpnSts>	&siTOE_This_OpnSts,
+        stream<TcpOpnReq>	&soTHIS_Toe_OpnReq,
+        stream<TcpClsReq>	&soTHIS_Toe_ClsReq
 
 );
 
@@ -127,27 +198,27 @@ void tcp_role_if(
 /*** OBSOLET **********************
 void tcp_role_if(
 
-		stream<axiWord>  		  & vFPGA_tx_data,
-		stream<axiWord>  		  & vFPGA_rx_data,
+        stream<axiWord>           & vFPGA_tx_data,
+        stream<axiWord>           & vFPGA_rx_data,
 
-		stream<ap_uint<16> >      & listenPort,
-		stream<bool>              & listenPortStatus,
+        stream<ap_uint<16> >      & listenPort,
+        stream<bool>              & listenPortStatus,
 
-		// This is disabled for the time being, because it adds complexity/potential issues
-		//stream<ap_uint<16> >& closePort,
-		stream<appNotification>   & notifications,
-		stream<appReadRequest>    & readRequest,
+        // This is disabled for the time being, because it adds complexity/potential issues
+        //stream<ap_uint<16> >& closePort,
+        stream<appNotification>   & notifications,
+        stream<appReadRequest>    & readRequest,
 
-		stream<ap_uint<16> >      & rxMetaData,
-		stream<axiWord>           & rxData,
+        stream<ap_uint<16> >      & rxMetaData,
+        stream<axiWord>           & rxData,
 
-		stream<ipTuple>           & openConnection,
-		stream<openStatus>        & openConStatus,
+        stream<ipTuple>           & openConnection,
+        stream<openStatus>        & openConStatus,
 
-		stream<ap_uint<16> >      & closeConnection,
+        stream<ap_uint<16> >      & closeConnection,
 
-		stream<ap_uint<16> >      & txMetaData,
-		stream<axiWord>           & txData,
+        stream<ap_uint<16> >      & txMetaData,
+        stream<axiWord>           & txData,
 
-		stream<ap_int<17> >       & txStatus);
+        stream<ap_int<17> >       & txStatus);
 ***********************************/

@@ -6,7 +6,7 @@ using namespace hls;
  *  @ingroup app_if
  *
  */
-void rx_app_if(	stream<ap_uint<16> >&				appListenPortReq,
-				stream<bool>&						portTable2rxApp_listen_rsp,
-				stream<bool>&						appListenPortRsp,
-				stream<ap_uint<16> >&				rxApp2portTable_listen_req);
+void rx_app_if( stream<ap_uint<16> >&               appListenPortReq,
+                stream<bool>&                       portTable2rxApp_listen_rsp,
+                stream<bool>&                       appListenPortRsp,
+                stream<ap_uint<16> >&               rxApp2portTable_listen_req);
