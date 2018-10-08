@@ -166,8 +166,10 @@ int send_internal(
 }
 
 void MPI_Send(
+	// ----- MPI_Interface -----
 	stream<MPI_Interface> *soMPIif,
 	stream<Axis<8> > *soMPI_data,
+	// ----- MPI Signature -----
     int* data,
     int count,
     MPI_Datatype datatype,
@@ -291,8 +293,10 @@ int recv_internal(
 
 
 void MPI_Recv(
+	// ----- MPI_Interface -----
 	stream<MPI_Interface> *soMPIif,
 	stream<Axis<8> > *siMPI_data,
+	// ----- MPI Signature -----
     int* data,
     int count,
     MPI_Datatype datatype,
@@ -405,6 +409,7 @@ void mpi_wrapper(
 	// ----- TO SMC ------
 	ap_uint<16> *MMIO_out,
 	// ----- MPI_Interface -----
+	//stream<MPI_Interface> *siMPIif,
 	stream<MPI_Interface> *soMPIif,
 	stream<Axis<8> > *soMPI_data,
 	stream<Axis<8> > *siMPI_data
@@ -461,7 +466,7 @@ void mpi_wrapper(
 
   if(my_app_done == 0)
   {
-    app_main();
+    app_main(soMPIif, soMPI_data, siMPI_data);
   }
 
  // at the end

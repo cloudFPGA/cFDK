@@ -27,7 +27,13 @@
 
 //int main( int argc, char **argv )
 //DUE TO SHITTY HLS...
-void app_main()
+//void app_main()
+void app_main(
+		// ----- MPI_Interface -----
+		stream<MPI_Interface> *soMPIif,
+		stream<Axis<8> > *soMPI_data,
+		stream<Axis<8> > *siMPI_data
+		)
 {
   MPI_Init();
   //MPI_Init(&argc, &argv);
@@ -47,7 +53,7 @@ void app_main()
   int local_grid[LDIMY][LDIMX];
   int local_new[LDIMY][LDIMX];
   //#pragma HLS RESOURCE variable=local_grid core=ROM_2P_BRAM
-  MPI_Recv(&local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
 
   // print_int_array((const int*) local_grid, LDIMX, LDIMY);
 
@@ -60,7 +66,7 @@ void app_main()
       local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
     }
   }
-  MPI_Send(&local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+  MPI_Send(soMPIif, soMPI_data, &local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
 
   //print_int_array((const int*) local_new, LDIMX, LDIMY);
 

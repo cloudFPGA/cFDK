@@ -31,10 +31,10 @@ int main(){
     cluster_size = 2;
     role_rank = 1;
 
-    c_testbench_access(&MMIO_in, &MMIO_out, &siMPIif, &soMPIif, &siMPI_data, &soMPI_data);
+    //c_testbench_access(&MMIO_in, &MMIO_out, &siMPIif, &soMPIif, &siMPI_data, &soMPI_data);
     
     //test reset 
-    //mpi_wrapper(1, role_rank, cluster_size);
+    mpi_wrapper(1, role_rank, cluster_size, &MMIO_out, &soMPIif, &soMPI_data, &siMPI_data);
 
 
     int grid[DIM][DIM];
@@ -82,7 +82,8 @@ int main(){
 
 
 
-    mpi_wrapper(sys_reset, role_rank, cluster_size);
+    //mpi_wrapper(sys_reset, role_rank, cluster_size);
+   mpi_wrapper(sys_reset, role_rank, cluster_size, &MMIO_out, &soMPIif, &soMPI_data, &siMPI_data);
 
     //empty streams
     info = soMPIif.read();
@@ -95,7 +96,8 @@ int main(){
     soMPI_data.read();
   }
 
-  c_testbench_read(&MMIO_out);
+  //c_testbench_read(&MMIO_out);
+  //TODO
 
   assert(MMIO_out == 0x1111);
 
