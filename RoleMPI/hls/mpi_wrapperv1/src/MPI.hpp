@@ -74,24 +74,6 @@ void MPI_Comm_rank(MPI_Comm communicator, int* rank);
 void MPI_Comm_size( MPI_Comm communicator, int* size);
 
 
-/*void MPI_Send(
-    int* data,
-    int count,
-    MPI_Datatype datatype,
-    int destination,
-    int tag,
-    MPI_Comm communicator);
-
-void MPI_Recv(
-    int* data,
-    int count,
-    MPI_Datatype datatype,
-    int source,
-    int tag,
-    MPI_Comm communicator,
-    MPI_Status* status);
-    */
-
 void MPI_Send(
 	// ----- MPI_Interface -----
 	stream<MPI_Interface> *soMPIif,
@@ -124,32 +106,6 @@ void MPI_Finalize();
 //void MPI_Barrier(MPI_Comm communicator);
 
 
-
-//void mpi_wrapper(
-//    // ----- system reset ---
-//    ap_uint<1> sys_reset,
-//    //EMIF Registers
-//    ap_uint<16> *MMIO_in,
-//    ap_uint<16> *MMIO_out,
-//    // ----- MPI_Interface -----
-//    stream<MPI_Interface> &siMPIif,
-//    stream<MPI_Interface> &soMPIif,
-//    stream<Axis<8> > &siMPI_data,
-//    stream<Axis<8> > &soMPI_data,
-//    // ----- FROM SMC -----
-//    ap_uint<32> *role_rank,
-//    ap_uint<32> *cluster_size
-//    );
-//void mpi_wrapper();
-/*
-void mpi_wrapper(
-    // ----- system reset ---
-    ap_uint<1> sys_reset,
-	// ----- FROM SMC -----
-	ap_uint<32> role_rank_arg,
-	ap_uint<32> cluster_size_arg
-    );*/
-
 void mpi_wrapper(
     // ----- system reset ---
     ap_uint<1> sys_reset,
@@ -165,25 +121,5 @@ void mpi_wrapper(
 	stream<Axis<8> > *siMPI_data
     );
 
-/*
-void c_testbench_access(
-    // ----- system reset ---
-    //ap_uint<1> *sys_reset_arg,
-    //EMIF Registers
-    ap_uint<16> *MMIO_in_arg,
-    ap_uint<16> *MMIO_out_arg,
-    // ----- MPI_Interface -----
-    stream<MPI_Interface> *siMPIif_arg,
-    stream<MPI_Interface> *soMPIif_arg,
-    stream<Axis<8> > *siMPI_data_arg,
-    stream<Axis<8> > *soMPI_data_arg
-    // ----- FROM SMC -----
-    //ap_uint<32> role_rank_arg,
-    //ap_uint<32> cluster_size_arg
-    );
 
-void c_testbench_read(
-    ap_uint<16> *MMIO_out_arg
-    );
-*/
 #endif

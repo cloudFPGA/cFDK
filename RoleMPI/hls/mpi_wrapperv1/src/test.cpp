@@ -52,7 +52,7 @@ void app_main(
 
   int local_grid[LDIMY][LDIMX];
   int local_new[LDIMY][LDIMX];
-  //#pragma HLS RESOURCE variable=local_grid core=ROM_2P_BRAM
+
   MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
 
   // print_int_array((const int*) local_grid, LDIMX, LDIMY);

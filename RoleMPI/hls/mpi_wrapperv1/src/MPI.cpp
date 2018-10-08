@@ -10,20 +10,9 @@
 
 using namespace hls;
 
-// ----- system reset ---
-//ap_uint<1> *sys_reset;
-//EMIF Registers
-//ap_uint<16> *MMIO_in;
-//ap_uint<16> *MMIO_out;
-// ----- MPI_Interface -----
-//stream<MPI_Interface> *siMPIif;
-//stream<MPI_Interface> *soMPIif;
-//stream<Axis<8> > *siMPI_data;
-//stream<Axis<8> > *soMPI_data;
-// ----- FROM SMC -----
+
 ap_uint<32> role_rank;
 ap_uint<32> cluster_size;
-
 
 ap_uint<1> my_app_done = 0;
 ap_uint<1> app_init = 0;
@@ -55,15 +44,6 @@ void MPI_Init()
 {
 
   //TODO: send/wait for INIT packets? 
-  /*
-     while(cluster_size == 0)
-     {
-  //not yet initialized
-  printf("cluster size not yet set!\n");
-
-  //for good intention: wait until stabilized
-  ap_wait_n(WAIT_CYCLES);
-  } */
   // INIT already done in wrapper_main
 
   printf("clusterSize: %d, rank: %d\n", (int) cluster_size, (int) role_rank);
@@ -145,10 +125,6 @@ int send_internal(
 
         soMPI_data->write(tmp8);
         send_i++;
-        //if(send_i == info.count)
-        //{
-        //  sendState = SEND_FINISH;
-        //}
       }
       break;
 
@@ -345,61 +321,6 @@ void MPI_Finalize()
 }*/
 
 
-
-//void c_testbench_access(
-    // ----- system reset ---
-    //ap_uint<1> *sys_reset_arg,
-    //EMIF Registers
-//    ap_uint<16> *MMIO_in_arg,
-//    ap_uint<16> *MMIO_out_arg,
-    // ----- MPI_Interface -----
-//    stream<MPI_Interface> *siMPIif_arg,
-//    stream<MPI_Interface> *soMPIif_arg,
-//    stream<Axis<8> > *siMPI_data_arg,
-//    stream<Axis<8> > *soMPI_data_arg
-    // ----- FROM SMC -----
-    //ap_uint<32> *role_rank_arg,
-    //ap_uint<32> *cluster_size_arg
-//    )
-//{
-  //sys_reset = sys_reset_arg;
-
-  //MMIO_in = MMIO_in_arg;
-//  MMIO_out = MMIO_out_arg;
-
-  //siMPIif = siMPIif_arg;
-//  soMPIif = soMPIif_arg;
-
- // siMPI_data = siMPI_data_arg;
- // soMPI_data = soMPI_data_arg;
-
-  //role_rank = role_rank_arg;
-  //cluster_size = cluster_size_arg;
-
-//}
-
-//void c_testbench_read(
-//    ap_uint<16> *MMIO_out_arg
-//    )
-//{
-//  *MMIO_out_arg = *MMIO_out;
-//}
-
-//void mpi_wrapper(
-//    // ----- system reset ---
-//    ap_uint<1> sys_reset,
-//    //EMIF Registers
-//    //ap_uint<16> *MMIO_in_arg,
-//    ap_uint<16> *MMIO_out_arg,
-//    // ----- MPI_Interface -----
-//    //stream<MPI_Interface> &siMPIif_arg,
-//    //stream<MPI_Interface> *soMPIif_arg,
-//    stream<Axis<8> > *siMPI_data_arg,
-//    stream<Axis<8> > *soMPI_data_arg,
-//    // ----- FROM SMC -----
-//    ap_uint<32> *role_rank_arg,
-//    ap_uint<32> *cluster_size_arg
-//    )
 void mpi_wrapper(
     // ----- system reset ---
     ap_uint<1> sys_reset,
@@ -460,6 +381,7 @@ void mpi_wrapper(
   role_rank = role_rank_arg;
   printf("clusterSize: %d, rank: %d\n", (int) cluster_size, (int) role_rank);
 
+  setMMIO_out(MMIO_out);
 
   //===========================================================
   // Start main program 
