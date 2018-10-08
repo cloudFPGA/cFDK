@@ -10,9 +10,9 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean mpi_wrapperv0
+.PHONY: all clean mpi_wrapperv1
 
-all: mpi_wrapperv0 
+all: mpi_wrapperv1 
 
 
 *:

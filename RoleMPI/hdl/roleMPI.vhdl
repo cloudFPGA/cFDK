@@ -200,7 +200,7 @@ architecture Flash of Role_MPIv0_x2Mp is
   -- COMPONENT DECLARATION 
   --============================================================================  
 
-  component mpi_wrapperv0 is
+  component mpi_wrapperv1 is
     port (
            ap_clk : IN STD_LOGIC;
            ap_rst_n : IN STD_LOGIC;
@@ -324,7 +324,7 @@ begin
   poROLE_MPE_MPI_data_TKEEP <= soMPI_data_tkeep(0);
   reset_as_vector_i_hate_vivado_hls(0) <= piSHL_156_25Rst;
   
-  MPI_APP: mpi_wrapperv0
+  MPI_APP: mpi_wrapperv1
     port map (
          ap_clk     =>   piSHL_156_25Clk ,
          ap_rst_n     =>    active_low_reset,
