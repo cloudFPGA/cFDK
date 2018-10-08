@@ -380,8 +380,81 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
       soTHIS_Shl_Data_tready    : in  std_logic
     );
   end component UdpApplicationFlashFail; 
+
+  
+  component TcpApplicationFlash is
+    port (
+      ------------------------------------------------------
+      -- From SHELL / Clock and Reset
+      ------------------------------------------------------
+      aclk                      : in  std_logic;
+      aresetn                   : in  std_logic;    
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------       
+      piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
+      --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
+      --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      siSHL_This_Data_tdata     : in  std_logic_vector( 63 downto 0);
+      siSHL_This_Data_tkeep     : in  std_logic_vector(  7 downto 0);
+      siSHL_This_Data_tlast     : in  std_logic;
+      siSHL_This_Data_tvalid    : in  std_logic;
+      siSHL_This_Data_tready    : out std_logic;
+      --------------------------------------------------------
+      -- To SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      soTHIS_Shl_Data_tdata     : out std_logic_vector( 63 downto 0);
+      soTHIS_Shl_Data_tkeep     : out std_logic_vector(  7 downto 0);
+      soTHIS_Shl_Data_tlast     : out std_logic;
+      soTHIS_Shl_Data_tvalid    : out std_logic;
+      soTHIS_Shl_Data_tready    : in  std_logic
+    );
+  end component TcpApplicationFlash;
  
- 
+
+  component TcpApplicationFlashFail is
+    port (
+      ------------------------------------------------------
+      -- From SHELL / Clock and Reset
+      ------------------------------------------------------
+      ap_clk                    : in  std_logic;
+      ap_rst_n                  : in  std_logic;
+      ------------------------------------------------------
+      -- BLock-Level I/O Protocol
+      ------------------------------------------------------
+      --ap_start                  : in  std_logic;
+      --ap_ready                  : out std_logic;
+      --ap_done                   : out std_logic;
+      --ap_idle                   : out std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Mmio Interfaces
+      --------------------------------------------------------       
+      piSHL_This_MmioEchoCtrl_V : in  std_logic_vector(  1 downto 0);
+      --[TODO] piSHL_This_MmioPostPktEn  : in  std_logic;
+      --[TODO] piSHL_This_MmioCaptPktEn  : in  std_logic;
+      --------------------------------------------------------
+      -- From SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      siSHL_This_Data_tdata     : in  std_logic_vector( 63 downto 0);
+      siSHL_This_Data_tkeep     : in  std_logic_vector(  7 downto 0);
+      siSHL_This_Data_tlast     : in  std_logic_vector(  0 downto 0);
+      siSHL_This_Data_tvalid    : in  std_logic;
+      siSHL_This_Data_tready    : out std_logic;
+      --------------------------------------------------------
+      -- To SHELL / Udp Data Interfaces
+      --------------------------------------------------------
+      soTHIS_Shl_Data_tdata     : out std_logic_vector( 63 downto 0);
+      soTHIS_Shl_Data_tkeep     : out std_logic_vector(  7 downto 0);
+      soTHIS_Shl_Data_tlast     : out std_logic_vector(  0 downto 0);
+      soTHIS_Shl_Data_tvalid    : out std_logic;
+      soTHIS_Shl_Data_tready    : in  std_logic
+    );
+  end component TcpApplicationFlashFail; 
+
+  
   --===========================================================================
   --== FUNCTION DECLARATIONS  [TODO-Move to a package]
   --===========================================================================
@@ -736,177 +809,281 @@ begin
 --  end process pUdpApp;
   
   
-  
-  
+  --################################################################################
+  --#                                                                              #
+  --#    #######    ####   ######     #####                                        #
+  --#       #      #       #     #   #     # #####   #####                         #
+  --#       #     #        #     #   #     # #    #  #    #                        #
+  --#       #     #        ######    ####### #####   #####                         #
+  --#       #      #       #         #     # #       #                             #
+  --#       #       ####   #         #     # #       #                             #
+  --#                                                                              #
+  --################################################################################
 
-  ------------------------------------------------------------------------------------------------             
-  -- PROC: TCP APPLICATION                                                                                     
-  --  Implements the TCP application within the ROLE. The behavior of this is application is one               
-  --  of the folllowing four options (defined by 'piSHL_Rol_Mmio_TcpEchoCtrl[1:0]'):                           
-  --    [00] Enable the TCP echo function in pass-through mode.                                                
-  --    [01] Enable the TCP echo function in store-and-forward mode.                                           
-  --    [10] Disable the TCP echo function and enable the TCP post function.                                   
-  --    [11] Reserved.                                                                                         
-  ------------------------------------------------------------------------------------------------
-  pTcpApp : process(piSHL_156_25Clk) is
-  
-
-    ------------------------------------------------------------------------------
-    -- Prcd: TCP ECHO PASS-THROUGH
-    --  Loopback between the Rx and Tx ports of the TCP connection.
-    --  The echo is said to operate in "pass-through" mode because every received
-    --  packet is sent back without being stored by the role.
-    ------------------------------------------------------------------------------
-    procedure pdTcpEchoPassThrough is
-    begin
-      if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
-        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
-        sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
-        sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
-        sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
-        sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
-        sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
-      end if;
-    end procedure pdTcpEchoPassThrough;
+  gTcpAppFlashDepre : if cUSE_DEPRECATED_DIRECTIVES generate
     
-    ------------------------------------------------------------------------------
-    -- Prcd: TCP ECHO STORE-AND-FORWARD --  [TODO-TODO-TODO-]
-    --  Loopback between the Rx and Tx ports of the TCP connection.
-    --  The echo is said to operate in "store-and-forward" mode because every
-    --  received packet is first written in the DDR4 before before being read
-    --  and sent back by the role.
-    ------------------------------------------------------------------------------
-    procedure pdTcpEchoStoreAndForward is
     begin
-      if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
-        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
-        sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
-        sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
-        sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
-        sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
-        sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
-      end if;
-    end procedure pdTcpEchoStoreAndForward;
-  
-    ------------------------------------------------------------------------------
-    -- Prcd: TCP POST PACKET
-    --  Post a packet on the Tx port of the TCP connection.
-    --  @param[in]  len is length of the packet payload (40 <= len <= 1024).
-    ------------------------------------------------------------------------------
-    procedure pdTcpPostPkt(constant len : in integer) is
-    begin
-      if (piSHL_Rol_Mmio_TcpPostPktEn = '1') then
-        if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
-          -- Load a new data chunk into the Axis register
-          case (sTcpPostCnt(5 downto 0)) is
-            when 6d"00" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"00000000_00000000";
-            when 6d"08" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"11111111_11111111";
-            when 6d"16" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"22222222_22222222";
-            when 6d"24" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"33333333_33333333";
-            when 6d"32" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"44444444_44444444";
-            when 6d"40" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"55555555_55555555";
-            when 6d"48" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"66666666_66666666";
-            when 6d"56" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"77777777_77777777";
-            when others => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"DEADBEEF_CAFEFADE";
-          end case;
-          -- Generate the corresponding keep bits
-          case (len - to_integer(unsigned(sTcpPostCnt))) is            
-            when 1 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000001";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 2 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000011";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 3 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 4 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00001111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 5 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00011111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 6 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00111111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 7 =>
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"01111111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when 8 => 
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"11111111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
-              sTcpPostCnt <= (others => '0');
-            when others => 
-              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"11111111";
-              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '0';
-              sTcpPostCnt <= std_ulogic_vector(unsigned(sTcpPostCnt)+8);
-          end case;
-          -- Set the valid bit  
-          sSHL_Rol_Nts0_Tcp_Axis_tvalid <= '1';
-        else
-          -- Reset the valid bit
-           sSHL_Rol_Nts0_Tcp_Axis_tvalid <= '0';
-        end if;
-      end if;
-    end procedure pdTcpPostPkt;
-  
-  --################################################################################                         
-  --#                                                                              #                         
-  --#    #######   ##### ######    #     #                                         #                         
-  --#       #     #      #     #   ##   ##    ##    #  #    #                      #                         
-  --#       #    #       #     #   #  #  #  #    #  #  # #  #                      #                         
-  --#       #    #       ######    #     #  ######  #  #  # #                      #                         
-  --#       #     #      #         #     #  #    #  #  #   ##                      #                         
-  --#       #      ##### #         #     #  #    #  #  #    #                      #                         
-  --#                                                                              #                         
-  --################################################################################    
-  
-  begin 
+      --==========================================================================
+      --==  INST: UDP-APPLICATION_FLASH for FMKU60
+      --==   This version of the 'tcp_app_flash' has the following interfaces:
+      --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
+      --==========================================================================
+      TAF : TcpApplicationFlash
+        port map (
+        
+          ------------------------------------------------------
+          -- From SHELL / Clock and Reset
+          ------------------------------------------------------
+          aclk                      => piSHL_156_25Clk,
+          aresetn                   => (not piSHL_156_25Rst),
+          
+           --------------------------------------------------------
+           -- From SHELL / Mmio Interfaces
+           --------------------------------------------------------       
+          piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
+          --[TODO] piSHL_This_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
+          --[TODO] piSHL_This_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
+          
+          --------------------------------------------------------
+          -- From SHELL / Tcp Data Interfaces
+          --------------------------------------------------------
+          siSHL_This_Data_tdata     => piSHL_Rol_Nts0_Tcp_Axis_tdata,
+          siSHL_This_Data_tkeep     => piSHL_Rol_Nts0_Tcp_Axis_tkeep,
+          siSHL_This_Data_tlast     => piSHL_Rol_Nts0_Tcp_Axis_tlast,
+          siSHL_This_Data_tvalid    => piSHL_Rol_Nts0_Tcp_Axis_tvalid,
+          siSHL_This_Data_tready    => poROL_Shl_Nts0_Tcp_Axis_tready,
+          --------------------------------------------------------
+          -- To SHELL / Tcp Data Interfaces
+          --------------------------------------------------------
+          soTHIS_Shl_Data_tdata     => poROL_Shl_Nts0_Tcp_Axis_tdata,
+          soTHIS_Shl_Data_tkeep     => poROL_Shl_Nts0_Tcp_Axis_tkeep,
+          soTHIS_Shl_Data_tlast     => poROL_Shl_Nts0_Tcp_Axis_tlast,
+          soTHIS_Shl_Data_tvalid    => poROL_Shl_Nts0_Tcp_Axis_tvalid,
+          soTHIS_Shl_Data_tready    => piSHL_Rol_Nts0_Tcp_Axis_tready
+        );
+    
+  end generate;
 
-    if rising_edge(piSHL_156_25Clk) then
-      if (piSHL_156_25Rst = '1') then
-        -- Initialize the 'sSHL_Rol_Nts0_Tcp_Axis' register
-        sSHL_Rol_Nts0_Tcp_Axis_tdata   <= (others => '0');
-        sSHL_Rol_Nts0_Tcp_Axis_tkeep   <= (others => '0');
-        sSHL_Rol_Nts0_Tcp_Axis_tlast   <= '0';
-        sSHL_Rol_Nts0_Tcp_Axis_tvalid  <= '0';
-        sSHL_Rol_Nts0_Tcp_Axis_tready  <= '1';
-        -- Initialize the variables
-        sTcpPostCnt <= (others => '0');
-      else
-        case piSHL_Rol_Mmio_TcpEchoCtrl is
-          when "00" | "11" =>
-            pdTcpEchoPassThrough;
-          when "01" =>
-            if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
-              pdTcpEchoStoreAndForward;
-            end if;
-          when "10" =>
-            -- Post a TCP packet (64 is the payload size in bytes)
-            pdTcpPostPkt(64);
-          when others => 
-            sSHL_Rol_Nts0_Tcp_Axis_tvalid  <= '0';      
-        end case;
-      end if;
-      
-      -- Always: Output Ports Assignment
-      poROL_Shl_Nts0_Tcp_Axis_tdata  <= sSHL_Rol_Nts0_Tcp_Axis_tdata; 
-      poROL_Shl_Nts0_Tcp_Axis_tkeep  <= sSHL_Rol_Nts0_Tcp_Axis_tkeep;
-      poROL_Shl_Nts0_Tcp_Axis_tlast  <= sSHL_Rol_Nts0_Tcp_Axis_tlast;
-      poROL_Shl_Nts0_Tcp_Axis_tvalid <= sSHL_Rol_Nts0_Tcp_Axis_tvalid;
-      poROL_Shl_Nts0_Tcp_Axis_tready <= sSHL_Rol_Nts0_Tcp_Axis_tready;
-    end if;
-  
-  end process pTcpApp;
+  gTcpAppFlash : if cUSE_DEPRECATED_DIRECTIVES=false generate
+    begin
+      --==========================================================================
+      --==  INST: TCP-APPLICATION_FLASH for FMKU60
+      --==   This version of the 'tcp_app_flash' has the following interfaces:
+      --==    - one bidirectionnal TCP data stream and one streaming MemoryPort. 
+      --==========================================================================
+      TAF : TcpApplicationFlashFail
+        port map (
+        
+          ------------------------------------------------------
+          -- From SHELL / Clock and Reset
+          ------------------------------------------------------
+          ap_clk                    => piSHL_156_25Clk,
+          ap_rst_n                  => (not piSHL_156_25Rst),
+          
+          ------------------------------------------------------
+          -- BLock-Level I/O Protocol
+          ------------------------------------------------------
+          --ap_start                  => (not piSHL_156_25Rst),
+          --ap_ready                  => open,
+          --ap_done                   => open,
+          --ap_idle                   => open,
+          
+          --------------------------------------------------------
+          -- From SHELL / Mmio Interfaces
+          --------------------------------------------------------       
+          piSHL_This_MmioEchoCtrl_V => piSHL_Rol_Mmio_TcpEchoCtrl,
+          --[TODO] piSHL_This_MmioPostPktEn  => piSHL_Rol_Mmio_TcpPostPktEn,
+          --[TODO] piSHL_This_MmioCaptPktEn  => piSHL_Rol_Mmio_TcpCaptPktEn,
+          
+          --------------------------------------------------------
+          -- From SHELL / Tcp Data Interfaces
+          --------------------------------------------------------
+          siSHL_This_Data_tdata     => piSHL_Rol_Nts0_Tcp_Axis_tdata,
+          siSHL_This_Data_tkeep     => piSHL_Rol_Nts0_Tcp_Axis_tkeep,
+          siSHL_This_Data_tlast     => fVectorize(piSHL_Rol_Nts0_Tcp_Axis_tlast),
+          siSHL_This_Data_tvalid    => piSHL_Rol_Nts0_Tcp_Axis_tvalid,
+          siSHL_This_Data_tready    => poROL_Shl_Nts0_Tcp_Axis_tready,
+          --------------------------------------------------------
+          -- To SHELL / Tcp Data Interfaces
+          --------------------------------------------------------
+          soTHIS_Shl_Data_tdata     => poROL_Shl_Nts0_Tcp_Axis_tdata,
+          soTHIS_Shl_Data_tkeep     => poROL_Shl_Nts0_Tcp_Axis_tkeep,
+          fScalarize(soTHIS_Shl_Data_tlast) => poROL_Shl_Nts0_Tcp_Axis_tlast,
+          soTHIS_Shl_Data_tvalid    => poROL_Shl_Nts0_Tcp_Axis_tvalid,
+          soTHIS_Shl_Data_tready    => piSHL_Rol_Nts0_Tcp_Axis_tready
+          
+        );
+
+  end generate;
   
 
+--  ------------------------------------------------------------------------------------------------             
+--  -- PROC: TCP APPLICATION                                                                                     
+--  --  Implements the TCP application within the ROLE. The behavior of this is application is one               
+--  --  of the folllowing four options (defined by 'piSHL_Rol_Mmio_TcpEchoCtrl[1:0]'):                           
+--  --    [00] Enable the TCP echo function in pass-through mode.                                                
+--  --    [01] Enable the TCP echo function in store-and-forward mode.                                           
+--  --    [10] Disable the TCP echo function and enable the TCP post function.                                   
+--  --    [11] Reserved.                                                                                         
+--  ------------------------------------------------------------------------------------------------
+--  pTcpApp : process(piSHL_156_25Clk) is
+--  
+--
+--    ------------------------------------------------------------------------------
+--    -- Prcd: TCP ECHO PASS-THROUGH
+--    --  Loopback between the Rx and Tx ports of the TCP connection.
+--    --  The echo is said to operate in "pass-through" mode because every received
+--    --  packet is sent back without being stored by the role.
+--    ------------------------------------------------------------------------------
+--    procedure pdTcpEchoPassThrough is
+--    begin
+--      if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+--        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+--        sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
+--        sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
+--        sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+--        sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
+--        sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
+--      end if;
+--    end procedure pdTcpEchoPassThrough;
+--    
+--    ------------------------------------------------------------------------------
+--    -- Prcd: TCP ECHO STORE-AND-FORWARD --  [TODO-TODO-TODO-]
+--    --  Loopback between the Rx and Tx ports of the TCP connection.
+--    --  The echo is said to operate in "store-and-forward" mode because every
+--    --  received packet is first written in the DDR4 before before being read
+--    --  and sent back by the role.
+--    ------------------------------------------------------------------------------
+--    procedure pdTcpEchoStoreAndForward is
+--    begin
+--      if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+--        -- Load a new Axis chunk into the 'sSHL_Rol_Nts0_Udp_Axis' register 
+--        sSHL_Rol_Nts0_Tcp_Axis_tdata  <= piSHL_Rol_Nts0_Tcp_Axis_tdata;
+--        sSHL_Rol_Nts0_Tcp_Axis_tkeep  <= piSHL_Rol_Nts0_Tcp_Axis_tkeep;
+--        sSHL_Rol_Nts0_Tcp_Axis_tlast  <= piSHL_Rol_Nts0_Tcp_Axis_tlast;
+--        sSHL_Rol_Nts0_Tcp_Axis_tvalid <= piSHL_Rol_Nts0_Tcp_Axis_tvalid;
+--        sSHL_Rol_Nts0_Tcp_Axis_tready <= piSHL_Rol_Nts0_Tcp_Axis_tready;
+--      end if;
+--    end procedure pdTcpEchoStoreAndForward;
+--  
+--    ------------------------------------------------------------------------------
+--    -- Prcd: TCP POST PACKET
+--    --  Post a packet on the Tx port of the TCP connection.
+--    --  @param[in]  len is length of the packet payload (40 <= len <= 1024).
+--    ------------------------------------------------------------------------------
+--    procedure pdTcpPostPkt(constant len : in integer) is
+--    begin
+--      if (piSHL_Rol_Mmio_TcpPostPktEn = '1') then
+--        if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+--          -- Load a new data chunk into the Axis register
+--          case (sTcpPostCnt(5 downto 0)) is
+--            when 6d"00" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"00000000_00000000";
+--            when 6d"08" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"11111111_11111111";
+--            when 6d"16" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"22222222_22222222";
+--            when 6d"24" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"33333333_33333333";
+--            when 6d"32" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"44444444_44444444";
+--            when 6d"40" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"55555555_55555555";
+--            when 6d"48" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"66666666_66666666";
+--            when 6d"56" => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"77777777_77777777";
+--            when others => sSHL_Rol_Nts0_Tcp_Axis_tdata <= X"DEADBEEF_CAFEFADE";
+--          end case;
+--          -- Generate the corresponding keep bits
+--          case (len - to_integer(unsigned(sTcpPostCnt))) is            
+--            when 1 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000001";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 2 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000011";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 3 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00000111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 4 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00001111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 5 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00011111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 6 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"00111111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 7 =>
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"01111111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when 8 => 
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"11111111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '1';
+--              sTcpPostCnt <= (others => '0');
+--            when others => 
+--              sSHL_Rol_Nts0_Tcp_Axis_tkeep <= b"11111111";
+--              sSHL_Rol_Nts0_Tcp_Axis_tlast <= '0';
+--              sTcpPostCnt <= std_ulogic_vector(unsigned(sTcpPostCnt)+8);
+--          end case;
+--          -- Set the valid bit  
+--          sSHL_Rol_Nts0_Tcp_Axis_tvalid <= '1';
+--        else
+--          -- Reset the valid bit
+--           sSHL_Rol_Nts0_Tcp_Axis_tvalid <= '0';
+--        end if;
+--      end if;
+--    end procedure pdTcpPostPkt;
+--  
+--  --################################################################################                         
+--  --#                                                                              #                         
+--  --#    #######   ##### ######    #     #                                         #                         
+--  --#       #     #      #     #   ##   ##    ##    #  #    #                      #                         
+--  --#       #    #       #     #   #  #  #  #    #  #  # #  #                      #                         
+--  --#       #    #       ######    #     #  ######  #  #  # #                      #                         
+--  --#       #     #      #         #     #  #    #  #  #   ##                      #                         
+--  --#       #      ##### #         #     #  #    #  #  #    #                      #                         
+--  --#                                                                              #                         
+--  --################################################################################    
+--  
+--  begin 
+--
+--    if rising_edge(piSHL_156_25Clk) then
+--      if (piSHL_156_25Rst = '1') then
+--        -- Initialize the 'sSHL_Rol_Nts0_Tcp_Axis' register
+--        sSHL_Rol_Nts0_Tcp_Axis_tdata   <= (others => '0');
+--        sSHL_Rol_Nts0_Tcp_Axis_tkeep   <= (others => '0');
+--        sSHL_Rol_Nts0_Tcp_Axis_tlast   <= '0';
+--        sSHL_Rol_Nts0_Tcp_Axis_tvalid  <= '0';
+--        sSHL_Rol_Nts0_Tcp_Axis_tready  <= '1';
+--        -- Initialize the variables
+--        sTcpPostCnt <= (others => '0');
+--      else
+--        case piSHL_Rol_Mmio_TcpEchoCtrl is
+--          when "00" | "11" =>
+--            pdTcpEchoPassThrough;
+--          when "01" =>
+--            if (piSHL_Rol_Nts0_Tcp_Axis_tready = '1') then
+--              pdTcpEchoStoreAndForward;
+--            end if;
+--          when "10" =>
+--            -- Post a TCP packet (64 is the payload size in bytes)
+--            pdTcpPostPkt(64);
+--          when others => 
+--            sSHL_Rol_Nts0_Tcp_Axis_tvalid  <= '0';      
+--        end case;
+--      end if;
+--      
+--      -- Always: Output Ports Assignment
+--      poROL_Shl_Nts0_Tcp_Axis_tdata  <= sSHL_Rol_Nts0_Tcp_Axis_tdata; 
+--      poROL_Shl_Nts0_Tcp_Axis_tkeep  <= sSHL_Rol_Nts0_Tcp_Axis_tkeep;
+--      poROL_Shl_Nts0_Tcp_Axis_tlast  <= sSHL_Rol_Nts0_Tcp_Axis_tlast;
+--      poROL_Shl_Nts0_Tcp_Axis_tvalid <= sSHL_Rol_Nts0_Tcp_Axis_tvalid;
+--      poROL_Shl_Nts0_Tcp_Axis_tready <= sSHL_Rol_Nts0_Tcp_Axis_tready;
+--    end if;
+--  
+--  end process pTcpApp;
+  
  
   pMp0RdCmd : process(piSHL_156_25Clk)                                                                       
   begin                                                                                                      
