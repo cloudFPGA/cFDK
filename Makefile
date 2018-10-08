@@ -67,7 +67,7 @@ pr2: ensureNotMonolithic ShellSrc Role2 | xpr
 pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all
 
-pr_full_mpi: ensureNotMonolithic ShellSrc RoleMPItype RoleMPI2type | xpr
+pr_full_mpi: ensureNotMonolithic ShellSrcMPI RoleMPItype RoleMPI2type | xpr
 	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_all_mpi
 
 #pr_incr: ensureNotMonolithic ShellSrc Role  | xpr
@@ -86,10 +86,10 @@ pr_only: ensureNotMonolithic Role  | xpr
 pr2_only: ensureNotMonolithic Role2 | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_only
 
-pr_only_mpi: ensureNotMonolithic ShellSrc RoleMPItype | xpr
+pr_only_mpi: ensureNotMonolithic RoleMPItype | xpr
 	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_only_mpi
 
-pr2_only_mpi: ensureNotMonolithic ShellSrc RoleMPI2type | xpr
+pr2_only_mpi: ensureNotMonolithic RoleMPI2type | xpr
 	export usedRole=$(USED_MPI_ROLE); export usedRole2=$(USED_MPI_ROLE_2); $(MAKE) -C ./tcl/ full_src_pr_2_only_mpi
 
 #pr_incr_only: ensureNotMonolithic Role  | xpr
@@ -154,6 +154,8 @@ full_clean: clean
 	$(MAKE) -C $(SHELL_DIR) clean 
 	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE) clean 
 	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2) clean
+	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE) clean
+	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE_2) clean
 
 
 
