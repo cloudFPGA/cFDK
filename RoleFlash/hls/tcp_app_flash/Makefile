@@ -6,7 +6,7 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that synthesizes and packages the current HLS core
-# *     as an IP.
+# *                 as an IP.
 # * 
 # * Synopsis:
 # *   make clean   : Cleanup of the current directory.
