@@ -111,13 +111,13 @@ ip_based:
 	$(error NOT YET IMPLEMENTED)
 
 #no ROLE, because Role is synthezied with sources!
-monolithic: ensureMonolithic ShellSrc | xpr
+monolithic: ensureMonolithic ShellSrc RoleIP | xpr
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic
 
 #no ROLE, because Role is synthezied with sources!
-monolithic_incr: ensureMonolithic ShellSrc | xpr 
+monolithic_incr: ensureMonolithic ShellSrc RoleIP | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
 
