@@ -202,46 +202,38 @@ architecture Flash of Role_MPIv0_x2Mp is
 
   component mpi_wrapperv1 is
     port (
-           ap_clk : IN STD_LOGIC;
-           ap_rst_n : IN STD_LOGIC;
-           ap_start : IN STD_LOGIC;
-           ap_done : OUT STD_LOGIC;
-           ap_idle : OUT STD_LOGIC;
-           ap_ready : OUT STD_LOGIC;
-           MMIO_out_V : OUT STD_LOGIC_VECTOR (15 downto 0);
-           MMIO_out_V_ap_vld : OUT STD_LOGIC;
-           soMPIif_V_mpi_call_V_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
-           soMPIif_V_mpi_call_V_TVALID : OUT STD_LOGIC;
-           soMPIif_V_mpi_call_V_TREADY : IN STD_LOGIC;
-           soMPIif_V_count_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
-           soMPIif_V_count_V_TVALID : OUT STD_LOGIC;
-           soMPIif_V_count_V_TREADY : IN STD_LOGIC;
-           soMPIif_V_rank_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
-           soMPIif_V_rank_V_TVALID : OUT STD_LOGIC;
-           soMPIif_V_rank_V_TREADY : IN STD_LOGIC;
-           siMPI_data_V_tdata_V_TDATA : IN STD_LOGIC_VECTOR (7 downto 0);
-           siMPI_data_V_tdata_V_TVALID : IN STD_LOGIC;
-           siMPI_data_V_tdata_V_TREADY : OUT STD_LOGIC;
-           siMPI_data_V_tkeep_V_TKEEP : IN STD_LOGIC_VECTOR (0 downto 0);
-           siMPI_data_V_tkeep_V_TVALID : IN STD_LOGIC;
-           siMPI_data_V_tkeep_V_TREADY : OUT STD_LOGIC;
-           siMPI_data_V_tlast_V_TLAST : IN STD_LOGIC_VECTOR (0 downto 0);
-           siMPI_data_V_tlast_V_TVALID : IN STD_LOGIC;
-           siMPI_data_V_tlast_V_TREADY : OUT STD_LOGIC;
-           soMPI_data_V_tdata_V_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
-           soMPI_data_V_tdata_V_TVALID : OUT STD_LOGIC;
-           soMPI_data_V_tdata_V_TREADY : IN STD_LOGIC;
-           soMPI_data_V_tkeep_V_TKEEP : OUT STD_LOGIC_VECTOR (0 downto 0);
-           soMPI_data_V_tkeep_V_TVALID : OUT STD_LOGIC;
-           soMPI_data_V_tkeep_V_TREADY : IN STD_LOGIC;
-           soMPI_data_V_tlast_V_TLAST : OUT STD_LOGIC_VECTOR (0 downto 0);
-           soMPI_data_V_tlast_V_TVALID : OUT STD_LOGIC;
-           soMPI_data_V_tlast_V_TREADY : IN STD_LOGIC;
-           piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0);
-           piSMC_to_ROLE_rank_V : IN STD_LOGIC_VECTOR (31 downto 0);
-           piSMC_to_ROLE_rank_V_ap_vld : IN STD_LOGIC;
-           piSMC_to_ROLE_size_V : IN STD_LOGIC_VECTOR (31 downto 0);
-           piSMC_to_ROLE_size_V_ap_vld : IN STD_LOGIC );
+    ap_clk : IN STD_LOGIC;
+    ap_rst_n : IN STD_LOGIC;
+    ap_start : IN STD_LOGIC;
+    ap_done : OUT STD_LOGIC;
+    ap_idle : OUT STD_LOGIC;
+    ap_ready : OUT STD_LOGIC;
+    piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0);
+    piSMC_to_ROLE_rank_V : IN STD_LOGIC_VECTOR (31 downto 0);
+    piSMC_to_ROLE_rank_V_ap_vld : IN STD_LOGIC;
+    piSMC_to_ROLE_size_V : IN STD_LOGIC_VECTOR (31 downto 0);
+    piSMC_to_ROLE_size_V_ap_vld : IN STD_LOGIC;
+    poMMIO_V : OUT STD_LOGIC_VECTOR (15 downto 0);
+    poMMIO_V_ap_vld : OUT STD_LOGIC;
+    soMPIif_V_mpi_call_V_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
+    soMPIif_V_mpi_call_V_TVALID : OUT STD_LOGIC;
+    soMPIif_V_mpi_call_V_TREADY : IN STD_LOGIC;
+    soMPIif_V_count_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
+    soMPIif_V_count_V_TVALID : OUT STD_LOGIC;
+    soMPIif_V_count_V_TREADY : IN STD_LOGIC;
+    soMPIif_V_rank_V_TDATA : OUT STD_LOGIC_VECTOR (31 downto 0);
+    soMPIif_V_rank_V_TVALID : OUT STD_LOGIC;
+    soMPIif_V_rank_V_TREADY : IN STD_LOGIC;
+    soMPI_data_TDATA : OUT STD_LOGIC_VECTOR (7 downto 0);
+    soMPI_data_TVALID : OUT STD_LOGIC;
+    soMPI_data_TREADY : IN STD_LOGIC;
+    soMPI_data_TKEEP : OUT STD_LOGIC_VECTOR (0 downto 0);
+    soMPI_data_TLAST : OUT STD_LOGIC_VECTOR (0 downto 0);
+    siMPI_data_TDATA : IN STD_LOGIC_VECTOR (7 downto 0);
+    siMPI_data_TVALID : IN STD_LOGIC;
+    siMPI_data_TREADY : OUT STD_LOGIC;
+    siMPI_data_TKEEP : IN STD_LOGIC_VECTOR (0 downto 0);
+    siMPI_data_TLAST : IN STD_LOGIC_VECTOR (0 downto 0) );
   end component;
 
 
@@ -289,9 +281,10 @@ architecture Flash of Role_MPIv0_x2Mp is
   signal EMIF_inv   : std_logic_vector(7 downto 0);
 
   signal active_low_reset  : std_logic;
-  signal siMPI_data_tready1, siMPI_data_tready2, siMPI_data_tready3 : std_logic;
-  signal soMPI_data_tvalid1, soMPI_data_tvalid2, soMPI_data_tvalid3: std_logic;
-  signal siMPI_data_tkeep, siMPI_data_tlast, soMPI_data_tkeep, soMPI_data_tlast, reset_as_vector_i_hate_vivado_hls : std_logic_vector(0 downto 0);
+  --signal siMPI_data_tready1, siMPI_data_tready2, siMPI_data_tready3 : std_logic;
+  --signal soMPI_data_tvalid1, soMPI_data_tvalid2, soMPI_data_tvalid3: std_logic;
+  signal siMPI_data_tkeep, siMPI_data_tlast, soMPI_data_tkeep, soMPI_data_tlast : std_logic_vector(0 downto 0);
+  signal reset_as_vector_i_hate_vivado_hls : std_logic_vector(0 downto 0);
   signal ap_start_emif : std_logic;
  
 begin
@@ -315,8 +308,8 @@ begin
 
   ap_start_emif <= piSHL_ROL_EMIF_2B_Reg(1);
 
-  poMPE_ROLE_MPI_data_TREADY <= siMPI_data_tready1 and siMPI_data_tready2 and siMPI_data_tready3;
-  poROLE_MPE_MPI_data_TVALID <= soMPI_data_tvalid1 and soMPI_data_tvalid2 and soMPI_data_tvalid3;
+  --poMPE_ROLE_MPI_data_TREADY <= siMPI_data_tready1 and siMPI_data_tready2 and siMPI_data_tready3;
+  --poROLE_MPE_MPI_data_TVALID <= soMPI_data_tvalid1 and soMPI_data_tvalid2 and soMPI_data_tvalid3;
 
   siMPI_data_tkeep(0) <= piMPE_ROLE_MPI_data_TKEEP;
   siMPI_data_tlast(0) <= piMPE_ROLE_MPI_data_TLAST;
@@ -333,8 +326,15 @@ begin
          --ap_done     =>    ,
          --ap_idle     =>    ,
          --ap_ready     =>    ,
-         MMIO_out_V     =>   poROL_SHL_EMIF_2B_Reg ,
-         --MMIO_out_V_ap_vld     =>    ,
+         piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
+         piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
+         --piSMC_to_ROLE_rank_V_ap_vld => '1',
+         piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
+         piSMC_to_ROLE_size_V => piSMC_ROLE_size,
+         --piSMC_to_ROLE_size_V_ap_vld => '1'
+         piSMC_to_ROLE_size_V_ap_vld => ap_start_emif,
+         poMMIO_V     =>   poROL_SHL_EMIF_2B_Reg ,
+         --MMIO_V_ap_vld     =>    ,
          soMPIif_V_mpi_call_V_TDATA     =>  poROLE_MPE_MPIif_mpi_call_TDATA  ,
          soMPIif_V_mpi_call_V_TVALID     => poROLE_MPE_MPIif_mpi_call_TVALID   ,
          soMPIif_V_mpi_call_V_TREADY     => piROLE_MPE_MPIif_mpi_call_TREADY   ,
@@ -344,31 +344,16 @@ begin
          soMPIif_V_rank_V_TDATA     =>      poROLE_MPE_MPIif_rank_TDATA ,
          soMPIif_V_rank_V_TVALID     =>     poROLE_MPE_MPIif_rank_TVALID,
          soMPIif_V_rank_V_TREADY     =>     piROLE_MPE_MPIif_rank_TREADY,
-         siMPI_data_V_tdata_V_TDATA     =>  piMPE_ROLE_MPI_data_TDATA    ,
-         siMPI_data_V_tdata_V_TVALID     => piMPE_ROLE_MPI_data_TVALID    ,
-         siMPI_data_V_tdata_V_TREADY     => siMPI_data_tready1,
-         siMPI_data_V_tkeep_V_TKEEP     =>  siMPI_data_tkeep,
-         siMPI_data_V_tkeep_V_TVALID     => piMPE_ROLE_MPI_data_TVALID,
-         siMPI_data_V_tkeep_V_TREADY     => siMPI_data_tready2    ,
-         siMPI_data_V_tlast_V_TLAST     =>  siMPI_data_tlast,
-         siMPI_data_V_tlast_V_TVALID     => piMPE_ROLE_MPI_data_TVALID    ,
-         siMPI_data_V_tlast_V_TREADY     => siMPI_data_tready3    ,
-         soMPI_data_V_tdata_V_TDATA     =>   poROLE_MPE_MPI_data_TDATA   ,
-         soMPI_data_V_tdata_V_TVALID     =>  soMPI_data_tvalid1,
-         soMPI_data_V_tdata_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
-         soMPI_data_V_tkeep_V_TKEEP     =>   soMPI_data_tkeep,
-         soMPI_data_V_tkeep_V_TVALID     =>  soMPI_data_tvalid2,
-         soMPI_data_V_tkeep_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
-         soMPI_data_V_tlast_V_TLAST     =>    soMPI_data_tlast,
-         soMPI_data_V_tlast_V_TVALID     =>  soMPI_data_tvalid3 ,
-         soMPI_data_V_tlast_V_TREADY     =>  piROLE_MPE_MPI_data_TREADY  ,
-         piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
-         piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
-         --piSMC_to_ROLE_rank_V_ap_vld => '1',
-         piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
-         piSMC_to_ROLE_size_V => piSMC_ROLE_size,
-         --piSMC_to_ROLE_size_V_ap_vld => '1'
-         piSMC_to_ROLE_size_V_ap_vld => ap_start_emif
+         soMPI_data_TDATA   =>  poROLE_MPE_MPI_data_TDATA  ,
+         soMPI_data_TVALID  =>  poROLE_MPE_MPI_data_TVALID ,
+         soMPI_data_TREADY  =>  piROLE_MPE_MPI_data_TREADY ,
+         soMPI_data_TKEEP   =>  soMPI_data_tkeep,
+         soMPI_data_TLAST   =>  soMPI_data_tlast,
+         siMPI_data_TDATA   =>  piMPE_ROLE_MPI_data_TDATA  ,
+         siMPI_data_TVALID  =>  piMPE_ROLE_MPI_data_TVALID ,
+         siMPI_data_TREADY  =>  poMPE_ROLE_MPI_data_TREADY ,
+         siMPI_data_TKEEP   =>  siMPI_data_tkeep,
+         siMPI_data_TLAST   =>  siMPI_data_tlast
      );
 
 
