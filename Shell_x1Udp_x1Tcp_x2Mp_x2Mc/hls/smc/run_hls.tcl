@@ -72,8 +72,8 @@ add_files     ${srcDir}/http.hpp -cflags "-DCOSIM"
 add_files -tb tb/tb_smc.cpp 
 
 #for MPE debugging 
-add_files -tb ../mpe/src/mpe.cpp
-add_files -tb ../mpe/src/mpe.hpp
+#add_files -tb ../mpe/src/mpe.cpp
+#add_files -tb ../mpe/src/mpe.hpp
 
 open_solution ${solutionName}
 

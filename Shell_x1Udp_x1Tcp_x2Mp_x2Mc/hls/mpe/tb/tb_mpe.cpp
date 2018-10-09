@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "zrlmpi_common.hpp"
+#include "../src/zrlmpi_common.hpp"
 #include "../src/mpe.hpp"
 
 #include <stdint.h>

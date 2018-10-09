@@ -9,7 +9,7 @@ smc_prj: $(DEPS)
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@touch $@
 
-sim: 
+sim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 
 

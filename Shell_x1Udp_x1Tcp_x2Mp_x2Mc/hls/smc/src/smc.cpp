@@ -140,6 +140,18 @@ uint8_t writeDisplaysToOutBuffer()
 
   for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
   {
+    if(i<=9)
+    {
+      bufferOut[bufferOutPtrWrite] = '0' + i;
+    } else { 
+      bufferOut[bufferOutPtrWrite] = '1';
+      bufferOutPtrWrite++;
+      len++;
+      bufferOut[bufferOutPtrWrite] = '0' + (i-10);
+    }
+    bufferOutPtrWrite++;
+    len++;
+    len+=writeString(": ");
     bufferOut[bufferOutPtrWrite + 3] = mpe_status[i] & 0xFF; 
     bufferOut[bufferOutPtrWrite + 2] = (mpe_status[i] >> 8) & 0xFF; 
     bufferOut[bufferOutPtrWrite + 1] = (mpe_status[i] >> 16) & 0xFF; 

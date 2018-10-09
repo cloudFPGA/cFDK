@@ -743,7 +743,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 //===========================================================
 //Test MPE
  
-  printf("===== MPE =====\n");
+/*  printf("===== MPE =====\n");
 
   //RST 
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
@@ -780,10 +780,10 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
         j += 2;
         continue; 
       } 
-      /* else if(j == 255)
-         {
-         httpBuffer[j] = 0xF1;
-         }*/
+     // else if(j == 255)
+     //    {
+     //    httpBuffer[j] = 0xF1;
+     //    }
 
       httpBuffer[j] = routingTable[i]; 
       i++;
@@ -812,7 +812,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
 
   //mpe_main(sys_reset, &mpeCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
-  mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif_in, MPIif_out, MPI_data_in, MPI_data_out);
+  mpe_main(sys_reset, &mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif_out, MPI_data_in, MPI_data_out);
   //TODO assert??
   
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
@@ -840,7 +840,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   smc_main(sys_reset, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, xmem, mpeCtrl, &nodeRank, &clusterSize);
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   //actual request
-  getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
+  getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\n\r\n\r\n";
   httpBuffer[0] = 0xF0;
   strcpy(&httpBuffer[1],getStatus);
   httpBuffer[strlen(getStatus)+1] = 0x0;
@@ -884,10 +884,10 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
         j += 2;
         continue; 
       } 
-      /* else if(j == 255)
-         {
-         httpBuffer[j] = 0xF1;
-         }*/
+     // else if(j == 255)
+     //    {
+     //    httpBuffer[j] = 0xF1;
+     //    }
 
       httpBuffer[j] = routingTable2[i]; 
       i++;
@@ -915,7 +915,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   succeded &= checkResult(MMIO, 0x40000071);
   assert(decoupActive == 0);
   printBuffer(bufferOut, "POST ROUTING INVALID: BufferOut:",2);
-
+*/
   //printf("DONE\n");
 
   return succeded? 0 : -1;
