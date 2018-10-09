@@ -64,15 +64,14 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
       //printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
       out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
       out.tkeep |= (ap_uint<8>) 0x01 << i;
-
-      // due to reversed byte order, this mus be latched
-      //if(out.tlast == 0)
-      //{
-        out.tlast = tmp.tlast;
-      //}
+      //NO latch, because last read from small is still last read
+      out.tlast = tmp.tlast;
 
     } else {
       printf("tried to read empty small stream!\n");
+      //adapt tdata and tkeep to meet default shape
+      out.tdata = out.tdata >> (i+1)*8;
+      out.tkeep = out.tkeep >> (i+1);
       break;
     }
   }
@@ -82,7 +81,7 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
 
-  int positionOfTlast = 8; 
+ /* int positionOfTlast = 8; 
   ap_uint<8> tkeep = big.tkeep;
   for(int i = 0; i<8; i++) //no reverse order!
   {
@@ -92,25 +91,26 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
       positionOfTlast = i;
       break;
     }
-  }
+  }*/
 
-  //for(int i = 7; i >=0 ; i--)
-  for(int i = 0; i < 8; i++)
+  for(int i = 7; i >=0 ; i--)
+  //for(int i = 0; i < 8; i++)
   {
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
     //if(i == positionOfTlast)
-    if(i == positionOfTlast)
+    if(i == 0)
     {
       //only possible position...
       tmp.tlast = big.tlast;
+      printf("tlast set.\n");
     } else {
       tmp.tlast = 0;
     }
-    //tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
-    tmp.tdata = (ap_uint<8>) (big.tdata >> (7-i)*8);
-    //tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
-    tmp.tkeep = (ap_uint<1>) (big.tkeep >> (7-i));
+    tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
+    //tmp.tdata = (ap_uint<8>) (big.tdata >> (7-i)*8);
+    tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
+    //tmp.tkeep = (ap_uint<1>) (big.tkeep >> (7-i));
 
     if(tmp.tkeep == 0)
     {
@@ -893,6 +893,7 @@ void mpe_main(
         {
           tlastOccured = true;
           printf("tlast Occured.\n");
+          printf("MPI read data: %#02x, tkeep: %d, tlast %d\n", (int) tmp.tdata, (int) tmp.tkeep, (int) tmp.tlast);
         }
       }
       enqueueCnt += cnt;
@@ -912,6 +913,7 @@ void mpe_main(
         {
           tlastOccured = true;
           printf("tlast Occured.\n");
+          printf("MPI read data: %#02x, tkeep: %d, tlast %d\n", (int) tmp.tdata, (int) tmp.tkeep, (int) tmp.tlast);
         }
       }
       enqueueCnt += cnt;
@@ -1065,7 +1067,7 @@ void mpe_main(
       if( !siTcp.empty() && !sFifoDataRX.full() )
       {
         Axis<64> word = siTcp.read();
-        printf("tkeep %#03x, tdata %#016llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
+        printf("READ: tkeep %#03x, tdata %#016llx, tlast %d\n",(int) word.tkeep, (unsigned long long) word.tdata, (int) word.tlast);
         convertAxisToMpiWidth(word, sFifoDataRX);
       }
 

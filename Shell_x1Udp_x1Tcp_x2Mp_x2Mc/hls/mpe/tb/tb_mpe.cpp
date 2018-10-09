@@ -64,6 +64,8 @@ int main(){
     if(i == 11)
     {
       tmp8.tlast = 1; 
+    } else {
+      tmp8.tlast = 0;
     }
     printf("write MPI data: %#02x\n", (int) tmp8.tdata);
     MPI_data_in.write(tmp8);
