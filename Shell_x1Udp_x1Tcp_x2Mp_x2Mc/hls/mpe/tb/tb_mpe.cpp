@@ -65,7 +65,7 @@ int main(){
     {
       tmp8.tlast = 1; 
     }
-   // printf("write MPI data: %#02x\n", (int) tmp8.tdata);
+    printf("write MPI data: %#02x\n", (int) tmp8.tdata);
     MPI_data_in.write(tmp8);
 
     mpe_main(sys_reset, MRT, siTcp, siIP, soTcp, soIP, MPIif_in, MPI_data_in, MPI_data_out);
@@ -89,7 +89,8 @@ int main(){
     storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 
@@ -223,7 +224,8 @@ int main(){
     //storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 
@@ -251,7 +253,7 @@ int main(){
   {
     tmp8 = MPI_data_out.read();
     
-    printf("MPI read data: %#02x\n", (int) tmp8.tdata);
+    printf("MPI read data: %#02x, i: %d, tlast %d\n", (int) tmp8.tdata, i, (int) tmp8.tlast);
 
     mpe_main(sys_reset, MRT, storeData, siIP, soTcp, soIP, MPIif_in, MPI_data_in, MPI_data_out);
 
@@ -278,7 +280,8 @@ int main(){
     //storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 

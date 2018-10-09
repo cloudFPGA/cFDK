@@ -12,7 +12,7 @@ mpe_prj: $(DEPS)
 	@/bin/echo -e "AXI4Lite Addresses checked: OK\n"
 	@touch $@
 
-sim: 
+sim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 
 

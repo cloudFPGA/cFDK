@@ -55,7 +55,8 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
   out.tlast = 0;
   out.tkeep = 0;
 
-  for(int i = 0; i < 8; i++)
+  //for(int i = 0; i < 8; i++)
+  for(int i = 7; i >=0 ; i--)
   {
     if(!small.empty())
     {
@@ -63,8 +64,12 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
       //printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
       out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
       out.tkeep |= (ap_uint<8>) 0x01 << i;
-      //TODO: latch?
-      out.tlast = tmp.tlast;
+
+      // due to reversed byte order, this mus be latched
+      //if(out.tlast == 0)
+      //{
+        out.tlast = tmp.tlast;
+      //}
 
     } else {
       printf("tried to read empty small stream!\n");
@@ -79,7 +84,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 
   int positionOfTlast = 8; 
   ap_uint<8> tkeep = big.tkeep;
-  for(int i = 0; i<8; i++)
+  for(int i = 0; i<8; i++) //no reverse order!
   {
     tkeep = (tkeep >> 1);
     if((tkeep & 0x01) == 0)
@@ -89,10 +94,12 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
     }
   }
 
+  //for(int i = 7; i >=0 ; i--)
   for(int i = 0; i < 8; i++)
   {
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
+    //if(i == positionOfTlast)
     if(i == positionOfTlast)
     {
       //only possible position...
@@ -100,8 +107,10 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
     } else {
       tmp.tlast = 0;
     }
-    tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
-    tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
+    //tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
+    tmp.tdata = (ap_uint<8>) (big.tdata >> (7-i)*8);
+    //tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
+    tmp.tkeep = (ap_uint<1>) (big.tkeep >> (7-i));
 
     if(tmp.tkeep == 0)
     {
@@ -143,9 +152,9 @@ int bytesToHeader(ap_uint<8> bytes[MPIF_HEADER_LENGTH], MPI_Header &header)
   }
 
   //convert
-  header.dst_rank = littleEndianToInteger(bytes, 4);
-  header.src_rank = littleEndianToInteger(bytes,8);
-  header.size = littleEndianToInteger(bytes,12);
+  header.dst_rank = bigEndianToInteger(bytes, 4);
+  header.src_rank = bigEndianToInteger(bytes,8);
+  header.size = bigEndianToInteger(bytes,12);
 
   header.call = static_cast<mpiCall>((int) bytes[16]);
 
@@ -162,17 +171,17 @@ void headerToBytes(MPI_Header header, ap_uint<8> bytes[MPIF_HEADER_LENGTH])
     bytes[i] = 0x96;
   }
   ap_uint<8> tmp[4];
-  integerToLittleEndian(header.dst_rank, tmp);
+  integerToBigEndian(header.dst_rank, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[4 + i] = tmp[i];
   }
-  integerToLittleEndian(header.src_rank, tmp);
+  integerToBigEndian(header.src_rank, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[8 + i] = tmp[i];
   }
-  integerToLittleEndian(header.size, tmp);
+  integerToBigEndian(header.size, tmp);
   for(int i = 0; i< 4; i++)
   {
     bytes[12 + i] = tmp[i];
@@ -424,7 +433,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -526,7 +536,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -606,7 +617,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+           // bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + 7 -j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -974,7 +986,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
