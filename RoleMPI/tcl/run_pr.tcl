@@ -172,7 +172,7 @@ if { [ file exists ${ipDir} ] != 1 } {
     file mkdir ${ipDir}
 } else {
     my_dbg_trace "Setting ip_repo_paths to ${ipDir}" ${dbgLvl_1}
-    set_property "ip_repo_paths" "${ipDir}" ${obj}
+    set_property ip_repo_paths [ concat ${ipDir} ${hlsDir} ] [current_project]
 }
 
 # Rebuild user ip_repo's index before adding any source files
@@ -207,6 +207,22 @@ my_dbg_trace "Done with adding HDL files.." ${dbgLvl_1}
 
 # Set 'sources_1' fileset file properties for local files
 # None
+
+        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
+        #---------------------------------------------------------------------------
+        set ipList [ glob -nocomplain ${ipDir}/ip_user_files/ip/* ]
+        if { $ipList ne "" } {
+            foreach ip $ipList {
+                set ipName [file tail ${ip} ]
+                add_files ${ipDir}/${ipName}/${ipName}.xci
+                my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
+            }
+        }
+
+        update_ip_catalog
+        my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
+
+
 
 
 # Set 'sources_1' fileset properties
@@ -281,8 +297,10 @@ if { [ string equal [ get_filesets -quiet constrs_1 ] "" ] } {
 #set obj [get_runs synth_1]
 #set_property -name "part" -value ${xilPartName} -objects ${obj}
 #set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects ${obj}
-
-# set the current synth run
+#
+#set_property -name "mode" -value "out_of_context" -objects ${obj}
+#
+## set the current synth run
 #current_run -synthesis [get_runs synth_1]
 
 
@@ -301,6 +319,16 @@ my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
 #launch_runs synth_1
 #wait_on_run synth_1
+        
+#synth ip cores
+set ipList [ glob -nocomplain ${ipDir}/ip_user_files/ip/* ]
+        if { $ipList ne "" } {
+            foreach ip $ipList {
+                set ipName [file tail ${ip} ]
+                synth_ip [get_files ${ipDir}/${ipName}/${ipName}.xci] -force
+                my_dbg_trace "Done with SYNTHESIS of IP Core: ${ipDir}/${ipName}/${ipName}.xci" 2
+            }
+        }
 
 synth_design -mode out_of_context -top $topName -part ${xilPartName}
 
