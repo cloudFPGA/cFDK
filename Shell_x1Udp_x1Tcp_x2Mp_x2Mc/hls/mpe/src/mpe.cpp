@@ -448,7 +448,9 @@ void mpe_main(
           fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
-          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = ret;
+          status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
           break;
         }
 
@@ -551,7 +553,8 @@ void mpe_main(
           fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
-          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
           break;
         }
 
@@ -632,7 +635,9 @@ void mpe_main(
           fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
-          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = ret;
+          status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
           break;
         }
 
@@ -1001,7 +1006,9 @@ void mpe_main(
           printf("invalid header.\n");
           fsmReceiveState = READ_ERROR;
           status[MPE_STATUS_READ_ERROR_CNT]++;
-          status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
+          //status[MPE_STATUS_LAST_READ_ERROR] = ret;
+          status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
           break;
         }
 
