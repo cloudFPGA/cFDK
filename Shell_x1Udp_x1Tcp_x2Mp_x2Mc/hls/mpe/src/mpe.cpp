@@ -55,8 +55,8 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
   out.tlast = 0;
   out.tkeep = 0;
 
-  //for(int i = 0; i < 8; i++)
-  for(int i = 7; i >=0 ; i--)
+  for(int i = 0; i < 8; i++)
+  //for(int i = 7; i >=0 ; i--)
   {
     if(!small.empty())
     {
@@ -69,9 +69,9 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 
     } else {
       printf("tried to read empty small stream!\n");
-      //adapt tdata and tkeep to meet default shape
-      out.tdata = out.tdata >> (i+1)*8;
-      out.tkeep = out.tkeep >> (i+1);
+      ////adapt tdata and tkeep to meet default shape
+      //out.tdata = out.tdata >> (i+1)*8;
+      //out.tkeep = out.tkeep >> (i+1);
       break;
     }
   }
@@ -81,7 +81,7 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
 
- /* int positionOfTlast = 8; 
+  int positionOfTlast = 8; 
   ap_uint<8> tkeep = big.tkeep;
   for(int i = 0; i<8; i++) //no reverse order!
   {
@@ -91,15 +91,15 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
       positionOfTlast = i;
       break;
     }
-  }*/
+  }
 
-  for(int i = 7; i >=0 ; i--)
-  //for(int i = 0; i < 8; i++)
+  //for(int i = 7; i >=0 ; i--)
+  for(int i = 0; i < 8; i++)
   {
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
-    //if(i == positionOfTlast)
-    if(i == 0)
+    if(i == positionOfTlast)
+    //if(i == 0)
     {
       //only possible position...
       tmp.tlast = big.tlast;
@@ -433,8 +433,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
-            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -538,8 +538,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
-            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -620,8 +620,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-           // bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
-            bytes[i*8 + 7 -j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + 7 -j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 
@@ -993,8 +993,8 @@ void mpe_main(
 
           for(int j = 0; j<8; j++)
           {
-            //bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
-            bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            bytes[i*8 + j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
+            //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp.tdata >> j*8) ;
           }
         }
 

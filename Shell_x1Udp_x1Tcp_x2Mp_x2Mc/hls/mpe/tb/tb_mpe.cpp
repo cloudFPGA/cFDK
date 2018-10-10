@@ -91,8 +91,8 @@ int main(){
     storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
-      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 
@@ -226,8 +226,8 @@ int main(){
     //storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
-      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 
@@ -282,8 +282,8 @@ int main(){
     //storeSEND_REQ.write(tmp64);
     for(int j = 0; j<8; j++)
     {
-      //bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
-      bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      bytes[i*8 + j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
+      //bytes[i*8 + 7-j] = (ap_uint<8>) ( tmp64.tdata >> j*8) ;
     }
   }
 
