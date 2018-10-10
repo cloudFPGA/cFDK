@@ -127,7 +127,7 @@ monolithic_mpi: ensureMonolithic ShellSrcMPI RoleMPItypeSrc | xpr
 	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_mpi
 
 #no ROLE, because Role is synthezied with sources!
-monolithic_mpi_incr: ensureMonolithic ShellSrc RoleMPItypeSrc | xpr 
+monolithic_mpi_incr: ensureMonolithic ShellSrcMPI RoleMPItypeSrc | xpr 
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./tcl/ monolithic_incr_mpi 
 
