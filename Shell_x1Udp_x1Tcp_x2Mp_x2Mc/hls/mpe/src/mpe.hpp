@@ -172,6 +172,8 @@ using namespace hls;
 #define MPE_STATUS_ERROR_HANDSHAKE_CNT 11
 #define MPE_STATUS_ACK_HANKSHAKE_CNT 12
 #define MPE_STATUS_GLOBAL_STATE 13
+#define MPE_STATUS_READOUT 14
+//and 15 and 16 
 
 //Error types
 #define TX_INVALID_DST_RANK 0xd

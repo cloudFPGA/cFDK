@@ -451,6 +451,21 @@ void mpe_main(
           //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
           //status[MPE_STATUS_LAST_READ_ERROR] = ret;
           status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
+          status[MPE_STATUS_READOUT] = 0;
+          status[MPE_STATUS_READOUT + 1] = 0;
+          status[MPE_STATUS_READOUT + 2] = 0;
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT] |= ((ap_uint<32>) bytes[i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 1] |= ((ap_uint<32>) bytes[4 + i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 2] |= ((ap_uint<32>) bytes[8 + i]) << i*8;
+          }
           break;
         }
 
@@ -555,6 +570,21 @@ void mpe_main(
           status[MPE_STATUS_READ_ERROR_CNT]++;
           //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
           status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
+          status[MPE_STATUS_READOUT] = 0;
+          status[MPE_STATUS_READOUT + 1] = 0;
+          status[MPE_STATUS_READOUT + 2] = 0;
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT] |= ((ap_uint<32>) bytes[i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 1] |= ((ap_uint<32>) bytes[4 + i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 2] |= ((ap_uint<32>) bytes[8 + i]) << i*8;
+          }
           break;
         }
 
@@ -638,6 +668,21 @@ void mpe_main(
           //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
           //status[MPE_STATUS_LAST_READ_ERROR] = ret;
           status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
+          status[MPE_STATUS_READOUT] = 0;
+          status[MPE_STATUS_READOUT + 1] = 0;
+          status[MPE_STATUS_READOUT + 2] = 0;
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT] |= ((ap_uint<32>) bytes[i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 1] |= ((ap_uint<32>) bytes[4 + i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 2] |= ((ap_uint<32>) bytes[8 + i]) << i*8;
+          }
           break;
         }
 
@@ -1009,6 +1054,21 @@ void mpe_main(
           //status[MPE_STATUS_LAST_READ_ERROR] = RX_INVALID_HEADER;
           //status[MPE_STATUS_LAST_READ_ERROR] = ret;
           status[MPE_STATUS_LAST_READ_ERROR] = 10 - ret;
+          status[MPE_STATUS_READOUT] = 0;
+          status[MPE_STATUS_READOUT + 1] = 0;
+          status[MPE_STATUS_READOUT + 2] = 0;
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT] |= ((ap_uint<32>) bytes[i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 1] |= ((ap_uint<32>) bytes[4 + i]) << i*8;
+          }
+          for(int i = 0; i< 4; i++)
+          {
+            status[MPE_STATUS_READOUT + 2] |= ((ap_uint<32>) bytes[8 + i]) << i*8;
+          }
           break;
         }
 
