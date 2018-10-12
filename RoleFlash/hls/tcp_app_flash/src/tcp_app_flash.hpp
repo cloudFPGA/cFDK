@@ -56,9 +56,9 @@ void tcp_app_flash (
         //------------------------------------------------------
         //-- SHELL / This / Mmio / Config Interfaces
         //------------------------------------------------------
-        ap_uint<2>          &piSHL_This_MmioEchoCtrl,
-        //[TODO] ap_uint<1>          &piSHL_This_MmioPostPktEn,
-        //[TODO] ap_uint<1>          &piSHL_This_MmioCaptPktEn,
+        ap_uint<2>          piSHL_This_MmioEchoCtrl,
+        //[TODO] ap_uint<1> piSHL_This_MmioPostPktEn,
+        //[TODO] ap_uint<1> piSHL_This_MmioCaptPktEn,
 
         //------------------------------------------------------
         //-- SHELL / This / Tcp Interfaces
