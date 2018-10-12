@@ -13,9 +13,10 @@
 
 static const uint16_t MAX_SESSIONS = 32;
 
-//#include "session_lookup_controller/session_lookup_controller.hpp"
+//OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
-#define noOfTxSessions 1 // Number of Tx Sessions to open for testing
+#define noTxSessions 1 // Number of Tx Sessions to open for testing
+
 extern uint32_t packetCounter;
 extern uint32_t idleCycCnt;
 extern unsigned int     gSimCycCnt;
@@ -574,30 +575,33 @@ void toe(
 		stream<ap_int<17> >                	&soTHIS_Trif_DSts,
 
 		//------------------------------------------------------
-		//-- TRIF / This / ROLE Tx / Ctrl Interfaces
+		//-- TRIF / This / Tx PATH / Ctrl Interfaces
 		//------------------------------------------------------
 		stream<ipTuple>                    	&siTRIF_This_OpnReq,
-		stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
 		stream<openStatus>                 	&soTHIS_Trif_OpnSts,
+		stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
+		//-- Not USed                       &soTHIS_Trif_ClsSts,
 
+		//------------------------------------------------------
+		//-- MEM / This / Rx PATH / S2MM Interface
+		//------------------------------------------------------
+		//-- Not Used                       &siMEM_This_RxP_RdSts,
+		stream<mmCmd>                      	&soTHIS_Mem_RxP_RdCmd,
+		stream<axiWord>                    	&siMEM_This_RxP_Data,
+		stream<mmStatus>                   	&siMEM_This_RxP_WrSts,
+		stream<mmCmd>                      	&soTHIS_Mem_RxP_WrCmd,
+		stream<axiWord>                    	&soTHIS_Mem_RxP_Data,
 
+		//------------------------------------------------------
+		//-- MEM / This / Tx PATH / S2MM Interface
+		//------------------------------------------------------
+		//-- Not Used                       &siMEM_This_TxP_RdSts,
+		stream<mmCmd>                      	&soTHIS_Mem_TxP_RdCmd,
+		stream<axiWord>                    	&siMEM_This_TxP_Data,
+		stream<mmStatus>                   	&siMEM_This_TxP_WrSts,
+		stream<mmCmd>                      	&soTHIS_Mem_TxP_WrCmd,
+		stream<axiWord>                    	&soTHIS_Mem_TxP_Data,
 
-
-
-
-
-		//OBSOLETE  stream<axiWord>&                        ipRxData,
-		stream<mmStatus>&                       rxBufferWriteStatus,
-		stream<mmStatus>&                       txBufferWriteStatus,
-		stream<axiWord>&                        rxBufferReadData,
-		stream<axiWord>&                        txBufferReadData,
-		//OBSOLETE	stream<axiWord>&                        ipTxData,
-		stream<mmCmd>&                          rxBufferWriteCmd,
-		stream<mmCmd>&                          rxBufferReadCmd,
-		stream<mmCmd>&                          txBufferWriteCmd,
-		stream<mmCmd>&                          txBufferReadCmd,
-		stream<axiWord>&                        rxBufferWriteData,
-		stream<axiWord>&                        txBufferWriteData,
 		// SmartCam Interface
 		stream<rtlSessionLookupReply>&          sessionLookup_rsp,
 		stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
