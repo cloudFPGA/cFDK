@@ -437,7 +437,7 @@ short int injectAckNumber(deque<axiWord> &inputPacketizer,
         }
         else {
             sessionList[newTuple] = 0;
-            cerr << "INFO: Opened new session - " << gSimCycCnt << endl;
+            cerr << "<D0> Opened new session @" << gSimCycCnt << endl;
             return 0;
         }
     }
@@ -461,7 +461,7 @@ short int injectAckNumber(deque<axiWord> &inputPacketizer,
             return 1;
         }
         else {
-            cerr << "WARNING: Trying to send data to a non-existing session!" << endl;
+            cerr << "<D0> Warning, trying to send data to a non-existing session!" << endl;
             return -1;
         }
     }
@@ -569,24 +569,22 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
  * @brief Empty an input queue of packets stored as AXI-words and write them
  * 	to an input stream of the TB.
  *
- *   // Before processing the input file data words, write any packets generated from the TB itself
-             Initialize an input meta stream from a file.
  * @ingroup toe
  *
  * @param[in]  inputPacketizer, a reference to the double-ended queue to flush.
- * @param[out] ipRxData,		a reference to the stream to write.
+ * @param[out] ipRxData,		a reference to the data stream to write.
  * @param[in]  sessionList, 	a reference to an associative container that
  * 								  holds the sessions as socket pair associations.
  * @return nothing.
  ******************************************************************************/
-void flushInputPacketizer(deque<axiWord> &inputPacketizer, stream<axiWord> &ipRxData,
+void flushInputPacketizer(deque<axiWord> &inputPacketizer, stream<axiWord> &sData,
 							map<fourTuple, ap_uint<32> > &sessionList) {
     if (inputPacketizer.size() != 0) {
         injectAckNumber(inputPacketizer, sessionList);
         uint8_t inputPacketizerSize = inputPacketizer.size();
         for (uint8_t i=0; i<inputPacketizerSize; ++i) {
             axiWord temp = inputPacketizer.front();
-            ipRxData.write(temp);
+            sData.write(temp);
             inputPacketizer.pop_front();
         }
     }
@@ -616,7 +614,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     stream<axiWord>                     sIPRX_Toe_Data      ("sIPRX_Toe_Data");
 
-    stream<axiWord>                     sTOE_L3mux_Data         ("sTOE_L3mux_Data");
+    stream<axiWord>                     sTOE_L3mux_Data     ("sTOE_L3mux_Data");
 
     stream<axiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
     stream<ap_uint<16> >                sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
@@ -632,23 +630,25 @@ int main(int argc, char *argv[]) {
     stream<ipTuple>                     sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
     stream<openStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
 
-    stream<appNotification>             sTOE_Trif_Notif         ("sTOE_Trif_Notif");
+    stream<appNotification>             sTOE_Trif_Notif     ("sTOE_Trif_Notif");
 
     stream<ap_uint<16> >                sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
 
+    stream<mmCmd>                       soTOE_Mem_RxP_RdCmd	("soTOE_Mem_RxP_RdCmd");
+    stream<axiWord>                     siMEM_Toe_RxP_Data  ("siMEM_Toe_RxP_Data");
+    stream<mmStatus>                    siMEM_Toe_RxP_WrSts ("siMEM_Toe_RxP_WrSts");
+    stream<mmCmd>                       soTOE_Mem_RxP_WrCmd ("soTOE_Mem_RxP_WrCmd");
+    stream<axiWord>                     soTOE_Mem_RxP_Data  ("soTOE_Mem_RxP_Data");
+
+    stream<mmCmd>                       soTOE_Mem_TxP_RdCmd ("soTOE_Mem_TxP_RdCmd");
+    stream<axiWord>                     siMEM_Toe_TxP_Data  ("siMEM_Toe_TxP_Data");
+    stream<mmStatus>                    siMEM_Toe_TxP_WrSts ("siMEM_Toe_TxP_WrSts");
+    stream<mmCmd>                       soTOE_Mem_TxP_WrCmd ("soTOE_Mem_TxP_WrCmd");
+    stream<axiWord>                     soTOE_Mem_TxP_Data  ("soTOE_Mem_TxP_Data");
+    
     //--------------------
 
-    stream<mmStatus>                    rxBufferWriteStatus("rxBufferWriteStatus");
-    stream<mmStatus>                    txBufferWriteStatus("txBufferWriteStatus");
-    stream<axiWord>                     rxBufferReadData("rxBufferReadData");
-    stream<axiWord>                     txBufferReadData("txBufferReadData");
 
-    stream<mmCmd>                       rxBufferWriteCmd("rxBufferWriteCmd");
-    stream<mmCmd>                       rxBufferReadCmd("rxBufferReadCmd");
-    stream<mmCmd>                       txBufferWriteCmd("txBufferWriteCmd");
-    stream<mmCmd>                       txBufferReadCmd("txBufferReadCmd");
-    stream<axiWord>                     rxBufferWriteData("rxBufferWriteData");
-    stream<axiWord>                     txBufferWriteData("txBufferWriteData");
     stream<rtlSessionLookupReply>       sessionLookup_rsp("sessionLookup_rsp");
     stream<rtlSessionUpdateReply>       sessionUpdate_rsp("sessionUpdate_rsp");
     stream<rtlSessionLookupRequest>     sessionLookup_req("sessionLookup_req");
@@ -666,11 +666,14 @@ int main(int argc, char *argv[]) {
     bool            firstWordFlag;
 
 
+    axiWord         ipRxData;	// An IP  chunk
+    axiWord         tcpTxData;	// A  TCP chunk
+
     ap_uint<16>                         regSessionCount;
     ap_uint<16>                         relSessionCount;
     axiWord                             ipTxDataOut_Data;
-    axiWord                             ipRxData_Data;
-    axiWord                             ipTxDataIn_Data;
+
+
     stream<axiWord>                     rxDataOut("rxDataOut"); // This stream contains the data output from the Rx App I/F
     axiWord                             rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
 
@@ -706,8 +709,12 @@ int main(int argc, char *argv[]) {
     uint16_t        txPacketCounter     = 0;    // This variable countrs the number of packet send from the Tx side (total number of packets, all kinds, from all sessions).
     bool            testRxPath          = true;     // This variable indicates if the Rx path is to be tested, thus it remains true in case of Rx only or bidirectional testing
     bool            testTxPath          = true;     // Same but for the Tx path.
-    vector<ap_uint<16> > txSessionIDs;      // This vector holds the session IDs of the session to which data are transmitted.
-    uint16_t        currentTxSessionID  = 0;    // Holds the session ID which was last used to send data into the Tx path.
+
+
+    vector<ap_uint<16> > txSessionIDs;		// The Tx session ID that is sent from TRIF/Meta to TOE/Meta
+
+    uint16_t        currTxSessionID = 0;	// The current Tx session ID
+
     char            mode        = *argv[1];
 
     char            cCurrPath[FILENAME_MAX];
@@ -848,7 +855,7 @@ int main(int argc, char *argv[]) {
 
     if (testTxPath == true) {
         //-- If the Tx Path will be tested then open a session for testing.
-        for (uint8_t i=0; i<noOfTxSessions; ++i) {
+        for (uint8_t i=0; i<noTxSessions; ++i) {
             ipTuple newTuple = {150*(i+65355), 10*(i+65355)};   // IP address and port to open
             sTRIF_Toe_OpnReq.write(newTuple);                   // Write into TOE Tx I/F queue
         }
@@ -875,15 +882,13 @@ int main(int argc, char *argv[]) {
             flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
 
             if (testRxPath == true) {
-                //OBSOLETE Before processing the input file data words, write any packets generated from the B itself
-                //OBSOLETE flushInputPacketizer(inputPacketizer, ipRxData, sessionList);
                 getline(rxInputFile, stringBuffer);
                 stringVector = parseLine(stringBuffer);
 
                 if (stringVector[0] == "W") {
                 	// Take into account idle wait cycles in the Rx input files.
-                	// If they coincide with wait cycles in the Tx input files (only in case of bidirectional testing,
-                	// then the Tx side ones takes precedence.)
+                	// Warning, if they coincide with wait cycles in the Tx input files (only in case of bidirectional testing),
+                	// then the Tx side ones takes precedence.
                     idleCycReq = atoi(stringVector[1].c_str());
                     idlingReq = true;
                 }
@@ -891,6 +896,7 @@ int main(int argc, char *argv[]) {
                 	//break;
                 }
                 else {
+                	// Send data to the IPRX side
                     do {
                         if (firstWordFlag == false) {
                             getline(rxInputFile, stringBuffer);
@@ -898,47 +904,51 @@ int main(int argc, char *argv[]) {
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
-                        ipRxData_Data = axiWord(encodeApUint64(stringVector[0]), \
-                        						encodeApUint8(stringVector[2]),  \
-												atoi(stringVector[1].c_str()));
-                        inputPacketizer.push_back(ipRxData_Data);
-                    } while (ipRxData_Data.last != 1);
+                        ipRxData = axiWord(encodeApUint64(stringVector[0]), \
+                        				   encodeApUint8(stringVector[2]),  \
+										   atoi(stringVector[1].c_str()));
+                        inputPacketizer.push_back(ipRxData);
+                    } while (ipRxData.last != 1);
                     firstWordFlag = true;
                     flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
                 }
             }
+
             if (testTxPath == true && txSessionIDs.size() > 0) {
-                //flushInputPacketizer(inputPacketizer, ipRxData, sessionList);             // Before processing the input file data words, write any packets generated from the B itself
                 getline(txInputFile, txStringBuffer);
                 txStringVector = parseLine(txStringBuffer);
-                if (txStringVector[0] == "W") {     // Only the Rx Path testing can 
+
+                if (txStringVector[0] == "W") {
+                	// Info: In case of bidirectional testing, the Tx wait cycles takes precedence on Rx cycles.
                     idleCycReq = atoi(txStringVector[1].c_str());
                     idlingReq = true;
                 }
                 else if(txInputFile.fail() || txStringBuffer.empty()){
                     //break;
-                    //return 0;
                 }
                 else {
                 	// Send data only after a session has been opened on the Tx Side
                     do {
-                        if (firstWordFlag == false) { // If this isn't the first word of the packet then data have to be read in from the file
+                        if (firstWordFlag == false) {
                             getline(txInputFile, txStringBuffer);
                             txStringVector = parseLine(txStringBuffer);
                         }
-                        else { // If this is the first word of the data then the request has to be written into the Tx App I/F
-                            sTRIF_Toe_Meta.write(txSessionIDs[currentTxSessionID]);
-                            currentTxSessionID == noOfTxSessions - 1 ? currentTxSessionID = 0 : currentTxSessionID++;
+                        else {
+                        	// This is the first chunk of a frame.
+                        	// A Tx data request (i.e. a metadata) must sent by the TRIF to the TOE
+                            sTRIF_Toe_Meta.write(txSessionIDs[currTxSessionID]);
+                            currTxSessionID == noTxSessions - 1 ? currTxSessionID = 0 : currTxSessionID++;
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
-                        ipTxDataIn_Data = axiWord(encodeApUint64(txStringVector[0]), encodeApUint8(txStringVector[2]), atoi(txStringVector[1].c_str()));
-                        sTRIF_Toe_Data.write(ipTxDataIn_Data);
-                    } while (ipTxDataIn_Data.last != 1);
+                        tcpTxData = axiWord(encodeApUint64(txStringVector[0]), \
+                        						  encodeApUint8(txStringVector[2]),	 \
+												  atoi(txStringVector[1].c_str()));
+                        sTRIF_Toe_Data.write(tcpTxData);
+                    } while (tcpTxData.last != 1);
                     firstWordFlag = true;
                 }
             }
-//          }
         }
 
         //-- INSTANCE TOE ---------------------------------
@@ -950,11 +960,15 @@ int main(int argc, char *argv[]) {
             sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
             //-- TRIF / Tx Interfaces
             sTRIF_Toe_Data,   sTRIF_Toe_Meta,   sTOE_Trif_DSts,
-            sTRIF_Toe_OpnReq, sTRIF_Toe_ClsReq, sTOE_Trif_OpnSts,
-            rxBufferWriteStatus, txBufferWriteStatus, rxBufferReadData, txBufferReadData, rxBufferWriteCmd,
-            rxBufferReadCmd, txBufferWriteCmd, txBufferReadCmd, rxBufferWriteData, txBufferWriteData, sessionLookup_rsp, sessionUpdate_rsp,
-            sessionLookup_req, sessionUpdate_req,
-                0x01010101, relSessionCount, regSessionCount);
+            sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts, sTRIF_Toe_ClsReq,
+			//-- MEM / Rx PATH / S2MM Interface
+			soTOE_Mem_RxP_RdCmd, siMEM_Toe_RxP_Data, siMEM_Toe_RxP_WrSts, soTOE_Mem_RxP_WrCmd, soTOE_Mem_RxP_Data,
+			soTOE_Mem_TxP_RdCmd, siMEM_Toe_TxP_Data, siMEM_Toe_TxP_WrSts, soTOE_Mem_TxP_WrCmd, soTOE_Mem_TxP_Data,
+			//--
+			sessionLookup_rsp, sessionUpdate_rsp,
+			sessionLookup_req, sessionUpdate_req,
+            0x01010101,
+			relSessionCount, regSessionCount);
 
 
         //-- INSTANCE IPERF -------------------------------
@@ -962,8 +976,8 @@ int main(int argc, char *argv[]) {
               sTOE_Trif_Meta, sTOE_Trif_Data, rxDataOut, sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
               sTRIF_Toe_ClsReq, txSessionIDs);
 
-        simulateRx(&rxMemory, rxBufferWriteCmd, rxBufferWriteStatus, rxBufferReadCmd, rxBufferWriteData, rxBufferReadData);
-        simulateTx(&txMemory, txBufferWriteCmd, txBufferWriteStatus, txBufferReadCmd, txBufferWriteData, txBufferReadData);
+        simulateRx(&rxMemory, soTOE_Mem_RxP_WrCmd, siMEM_Toe_RxP_WrSts, soTOE_Mem_RxP_RdCmd, soTOE_Mem_TxP_Data, siMEM_Toe_RxP_Data);
+        simulateTx(&txMemory, soTOE_Mem_TxP_WrCmd, siMEM_Toe_TxP_WrSts, soTOE_Mem_TxP_RdCmd, soTOE_Mem_RxP_Data, siMEM_Toe_TxP_Data);
                    sessionLookupStub(sessionLookup_req, sessionLookup_rsp,  sessionUpdate_req, sessionUpdate_rsp);
 
         if (!sTOE_L3mux_Data.empty()) {
@@ -1074,5 +1088,6 @@ int main(int argc, char *argv[]) {
             txGold.close();
         }
     }
-    return returnValue;
+
+    return 0;  // [FIXME] return returnValue;
 }

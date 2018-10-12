@@ -860,11 +860,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_TxP_Axis_RdSts_tvalid (sMEM_Nts0_TxP_Axis_RdSts_tvalid),
     .poNTS0_Mem_TxP_Axis_RdSts_tready (sNTS0_Mem_TxP_Axis_RdSts_tready),
     //---- Stream Data Input Channel -----------
-    .piMEM_Nts0_TxP_Axis_Read_tdata   (sMEM_Nts0_TxP_Axis_Read_tdata),
-    .piMEM_Nts0_TxP_Axis_Read_tkeep   (sMEM_Nts0_TxP_Axis_Read_tkeep),
-    .piMEM_Nts0_TxP_Axis_Read_tlast   (sMEM_Nts0_TxP_Axis_Read_tlast),
-    .piMEM_Nts0_TxP_Axis_Read_tvalid  (sMEM_Nts0_TxP_Axis_Read_tvalid),
-    .poNTS0_Mem_TxP_Axis_Read_tready  (sNTS0_Mem_TxP_Axis_Read_tready),
+    .piMEM_Nts0_TxP_Axis_Data_tdata   (sMEM_Nts0_TxP_Axis_Read_tdata),
+    .piMEM_Nts0_TxP_Axis_Data_tkeep   (sMEM_Nts0_TxP_Axis_Read_tkeep),
+    .piMEM_Nts0_TxP_Axis_Data_tlast   (sMEM_Nts0_TxP_Axis_Read_tlast),
+    .piMEM_Nts0_TxP_Axis_Data_tvalid  (sMEM_Nts0_TxP_Axis_Read_tvalid),
+    .poNTS0_Mem_TxP_Axis_Data_tready  (sNTS0_Mem_TxP_Axis_Read_tready),
     //---- Stream Write Command ----------------
     .piMEM_Nts0_TxP_Axis_WrCmd_tready (sMEM_Nts0_TxP_Axis_WrCmd_tready),
     .poNTS0_Mem_TxP_Axis_WrCmd_tdata  (sNTS0_Mem_TxP_Axis_WrCmd_tdata),
@@ -874,11 +874,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_TxP_Axis_WrSts_tvalid (sMEM_Nts0_TxP_Axis_WrSts_tvalid),
     .poNTS0_Mem_TxP_Axis_WrSts_tready (sNTS0_Mem_TxP_Axis_WrSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMEM_Nts0_TxP_Axis_Write_tready (sMEM_Nts0_TxP_Axis_Write_tready),
-    .poNTS0_Mem_TxP_Axis_Write_tdata  (sNTS0_Mem_TxP_Axis_Write_tdata),
-    .poNTS0_Mem_TxP_Axis_Write_tkeep  (sNTS0_Mem_TxP_Axis_Write_tkeep),
-    .poNTS0_Mem_TxP_Axis_Write_tlast  (sNTS0_Mem_TxP_Axis_Write_tlast),
-    .poNTS0_Mem_TxP_Axis_Write_tvalid (sNTS0_Mem_TxP_Axis_Write_tvalid),
+    .piMEM_Nts0_TxP_Axis_Data_tready  (sMEM_Nts0_TxP_Axis_Write_tready),
+    .poNTS0_Mem_TxP_Axis_Data_tdata   (sNTS0_Mem_TxP_Axis_Write_tdata),
+    .poNTS0_Mem_TxP_Axis_Data_tkeep   (sNTS0_Mem_TxP_Axis_Write_tkeep),
+    .poNTS0_Mem_TxP_Axis_Data_tlast   (sNTS0_Mem_TxP_Axis_Write_tlast),
+    .poNTS0_Mem_TxP_Axis_Data_tvalid  (sNTS0_Mem_TxP_Axis_Write_tvalid),
 
     //------------------------------------------------------
     //-- MEM / Nts0 / RxP Interfaces
@@ -893,11 +893,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_RxP_Axis_RdSts_tvalid (sMEM_Nts0_RxP_Axis_RdSts_tvalid),
     .poNTS0_Mem_RxP_Axis_RdSts_tready (sNTS0_Mem_RxP_Axis_RdSts_tready),
     //---- Stream Data Input Channel ----------
-    .piMEM_Nts0_RxP_Axis_Read_tdata   (sMEM_Nts0_RxP_Axis_Read_tdata),
-    .piMEM_Nts0_RxP_Axis_Read_tkeep   (sMEM_Nts0_RxP_Axis_Read_tkeep),
-    .piMEM_Nts0_RxP_Axis_Read_tlast   (sMEM_Nts0_RxP_Axis_Read_tlast),
-    .piMEM_Nts0_RxP_Axis_Read_tvalid  (sMEM_Nts0_RxP_Axis_Read_tvalid),
-    .poNTS0_Mem_RxP_Axis_Read_tready  (sNTS0_Mem_RxP_Axis_Read_tready),
+    .piMEM_Nts0_RxP_Axis_Data_tdata   (sMEM_Nts0_RxP_Axis_Read_tdata),
+    .piMEM_Nts0_RxP_Axis_Data_tkeep   (sMEM_Nts0_RxP_Axis_Read_tkeep),
+    .piMEM_Nts0_RxP_Axis_Data_tlast   (sMEM_Nts0_RxP_Axis_Read_tlast),
+    .piMEM_Nts0_RxP_Axis_Data_tvalid  (sMEM_Nts0_RxP_Axis_Read_tvalid),
+    .poNTS0_Mem_RxP_Axis_Data_tready  (sNTS0_Mem_RxP_Axis_Read_tready),
     //---- Stream Write Command ----------------
     .piMEM_Nts0_RxP_Axis_WrCmd_tready (sMEM_Nts0_RxP_Axis_WrCmd_tready),
     .poNTS0_Mem_RxP_Axis_WrCmd_tdata  (sNTS0_Mem_RxP_Axis_WrCmd_tdata),
@@ -907,11 +907,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_RxP_Axis_WrSts_tvalid (sMEM_Nts0_RxP_Axis_WrSts_tvalid),
     .poNTS0_Mem_RxP_Axis_WrSts_tready (sNTS0_Mem_RxP_Axis_WrSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMEM_Nts0_RxP_Axis_Write_tready (sMEM_Nts0_RxP_Axis_Write_tready),  
-    .poNTS0_Mem_RxP_Axis_Write_tdata  (sNTS0_Mem_RxP_Axis_Write_tdata),
-    .poNTS0_Mem_RxP_Axis_Write_tkeep  (sNTS0_Mem_RxP_Axis_Write_tkeep),
-    .poNTS0_Mem_RxP_Axis_Write_tlast  (sNTS0_Mem_RxP_Axis_Write_tlast),
-    .poNTS0_Mem_RxP_Axis_Write_tvalid (sNTS0_Mem_RxP_Axis_Write_tvalid),
+    .piMEM_Nts0_RxP_Axis_Data_tready  (sMEM_Nts0_RxP_Axis_Write_tready),  
+    .poNTS0_Mem_RxP_Axis_Data_tdata   (sNTS0_Mem_RxP_Axis_Write_tdata),
+    .poNTS0_Mem_RxP_Axis_Data_tkeep   (sNTS0_Mem_RxP_Axis_Write_tkeep),
+    .poNTS0_Mem_RxP_Axis_Data_tlast   (sNTS0_Mem_RxP_Axis_Write_tlast),
+    .poNTS0_Mem_RxP_Axis_Data_tvalid  (sNTS0_Mem_RxP_Axis_Write_tvalid),
     
     //------------------------------------------------------
     //-- ROLE / Nts0 / Udp Interfaces

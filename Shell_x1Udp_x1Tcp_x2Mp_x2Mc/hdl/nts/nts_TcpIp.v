@@ -79,11 +79,11 @@ module NetworkTransportSession_TcpIp (
   input          piMEM_Nts0_TxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
-  input [ 63:0]  piMEM_Nts0_TxP_Axis_Read_tdata,
-  input [  7:0]  piMEM_Nts0_TxP_Axis_Read_tkeep,
-  input          piMEM_Nts0_TxP_Axis_Read_tlast,
-  input          piMEM_Nts0_TxP_Axis_Read_tvalid,
-  output         poNTS0_Mem_TxP_Axis_Read_tready,
+  input [ 63:0]  piMEM_Nts0_TxP_Axis_Data_tdata,
+  input [  7:0]  piMEM_Nts0_TxP_Axis_Data_tkeep,
+  input          piMEM_Nts0_TxP_Axis_Data_tlast,
+  input          piMEM_Nts0_TxP_Axis_Data_tvalid,
+  output         poNTS0_Mem_TxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_TxP_Axis_WrCmd_tready,
   output [ 71:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
@@ -93,11 +93,11 @@ module NetworkTransportSession_TcpIp (
   input          piMEM_Nts0_TxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_WrSts_tready,
   //---- Stream Data Output Channel ----------
-  input          piMEM_Nts0_TxP_Axis_Write_tready,
-  output [ 63:0] poNTS0_Mem_TxP_Axis_Write_tdata,
-  output [  7:0] poNTS0_Mem_TxP_Axis_Write_tkeep,
-  output         poNTS0_Mem_TxP_Axis_Write_tlast,
-  output         poNTS0_Mem_TxP_Axis_Write_tvalid,
+  input          piMEM_Nts0_TxP_Axis_Data_tready,
+  output [ 63:0] poNTS0_Mem_TxP_Axis_Data_tdata,
+  output [  7:0] poNTS0_Mem_TxP_Axis_Data_tkeep,
+  output         poNTS0_Mem_TxP_Axis_Data_tlast,
+  output         poNTS0_Mem_TxP_Axis_Data_tvalid,
 
   //------------------------------------------------------
   //-- MEM / Nts0 / RxP Interfaces
@@ -112,11 +112,11 @@ module NetworkTransportSession_TcpIp (
   input          piMEM_Nts0_RxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
-  input [ 63:0]  piMEM_Nts0_RxP_Axis_Read_tdata,
-  input [  7:0]  piMEM_Nts0_RxP_Axis_Read_tkeep,
-  input          piMEM_Nts0_RxP_Axis_Read_tlast,
-  input          piMEM_Nts0_RxP_Axis_Read_tvalid,
-  output         poNTS0_Mem_RxP_Axis_Read_tready,
+  input [ 63:0]  piMEM_Nts0_RxP_Axis_Data_tdata,
+  input [  7:0]  piMEM_Nts0_RxP_Axis_Data_tkeep,
+  input          piMEM_Nts0_RxP_Axis_Data_tlast,
+  input          piMEM_Nts0_RxP_Axis_Data_tvalid,
+  output         poNTS0_Mem_RxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_RxP_Axis_WrCmd_tready,
   output[ 71:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
@@ -126,11 +126,11 @@ module NetworkTransportSession_TcpIp (
   input          piMEM_Nts0_RxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input          piMEM_Nts0_RxP_Axis_Write_tready, 
-  output [ 63:0] poNTS0_Mem_RxP_Axis_Write_tdata,
-  output [  7:0] poNTS0_Mem_RxP_Axis_Write_tkeep,
-  output         poNTS0_Mem_RxP_Axis_Write_tlast,
-  output         poNTS0_Mem_RxP_Axis_Write_tvalid,
+  input          piMEM_Nts0_RxP_Axis_Data_tready, 
+  output [ 63:0] poNTS0_Mem_RxP_Axis_Data_tdata,
+  output [  7:0] poNTS0_Mem_RxP_Axis_Data_tkeep,
+  output         poNTS0_Mem_RxP_Axis_Data_tlast,
+  output         poNTS0_Mem_RxP_Axis_Data_tvalid,
   
   //------------------------------------------------------
   //-- ROLE / Nts0 / Udp Interfaces
@@ -943,20 +943,83 @@ module NetworkTransportSession_TcpIp (
     .siTRIF_This_OpnReq_TDATA           (sTRIF_Toe_OpnReq_Axis_tdata),
     .siTRIF_This_OpnReq_TVALID          (sTRIF_Toe_OpnReq_Axis_tvalid),
     .siTRIF_This_OpnReq_TREADY          (sTOE_Trif_OpnReq_Axis_tready),
-    //-- THIS / Trif / Tx Close Connection Request / Axis
-    .siTRIF_This_ClsReq_TDATA           (sTRIF_Toe_ClsReq_Axis_tdata),
-    .siTRIF_This_ClsReq_TVALID          (sTRIF_Toe_ClsReq_Axis_tvalid),
-    .siTRIF_This_ClsReq_TREADY          (sTOE_Trif_ClsReq_Axis_tready),
-
-    //------------------------------------------------------
-    //-- To TRIF / ROLE Tx Ctrl Interfaces
-    //------------------------------------------------------
     //-- THIS / Trif / Tx Open Connection Status / Axis
     .soTHIS_Trif_OpnSts_TREADY          (sTRIF_Toe_OpnSts_Axis_tready),
     .soTHIS_Trif_OpnSts_TDATA           (sTOE_Trif_OpnSts_Axis_tdata),
     .soTHIS_Trif_OpnSts_TVALID          (sTOE_Trif_OpnSts_Axis_tvalid),
 
+    //------------------------------------------------------
+    //-- To TRIF / ROLE Tx Ctrl Interfaces
+    //------------------------------------------------------
+    //-- TRIF / This / Tx Close Connection Request / Axis
+    .siTRIF_This_ClsReq_TDATA           (sTRIF_Toe_ClsReq_Axis_tdata),
+    .siTRIF_This_ClsReq_TVALID          (sTRIF_Toe_ClsReq_Axis_tvalid),
+    .siTRIF_This_ClsReq_TREADY          (sTOE_Trif_ClsReq_Axis_tready),
+    //--  THIS / Trif / Tx Close Connection Request / Axis
+    // [INFO] Not used                                 
    
+    //------------------------------------------------------
+    //-- MEM / Nts0 / RxP Interface
+    //------------------------------------------------------
+    //-- Receive Path / S2MM-AXIS --------------------------
+    //---- Stream Read Status ------------------
+    // [INFO] Not used                                 
+    //---- Stream Read Command -----------------
+    .soTHIS_Mem_RxP_RdCmd_TREADY        (piMEM_Nts0_RxP_Axis_RdCmd_tready),
+    .soTHIS_Mem_RxP_RdCmd_TDATA         (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
+    .soTHIS_Mem_RxP_RdCmd_TVALID        (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
+    //---- Stream Data Input Channel -----------
+    .siMEM_This_RxP_Data_TDATA          (piMEM_Nts0_RxP_Axis_Data_tdata),
+    .siMEM_This_RxP_Data_TKEEP          (piMEM_Nts0_RxP_Axis_Data_tkeep),
+    .siMEM_This_RxP_Data_TLAST          (piMEM_Nts0_RxP_Axis_Data_tlast),
+    .siMEM_This_RxP_Data_TVALID         (piMEM_Nts0_RxP_Axis_Data_tvalid),  
+    .siMEM_This_RxP_Data_TREADY         (poNTS0_Mem_RxP_Axis_Data_tready),
+    //---- Stream Write Status -----------------
+    .siMEM_This_RxP_WrSts_TDATA         (piMEM_Nts0_RxP_Axis_WrSts_tdata),
+    .siMEM_This_RxP_WrSts_TVALID        (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
+    .siMEM_This_RxP_WrSts_TREADY        (poNTS0_Mem_RxP_Axis_WrSts_tready),                        
+    //---- Stream Write Command ----------------
+    .soTHIS_Mem_RxP_WrCmd_TREADY        (piMEM_Nts0_RxP_Axis_WrCmd_tready),
+    .soTHIS_Mem_RxP_WrCmd_TDATA         (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
+    .soTHIS_Mem_RxP_WrCmd_TVALID        (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
+    //---- Stream Data Output Channel ----------
+    .soTHIS_Mem_RxP_Data_TREADY         (piMEM_Nts0_RxP_Axis_Data_tready),
+    .soTHIS_Mem_RxP_Data_TDATA          (poNTS0_Mem_RxP_Axis_Data_tdata),
+    .soTHIS_Mem_RxP_Data_TKEEP          (poNTS0_Mem_RxP_Axis_Data_tkeep),
+    .soTHIS_Mem_RxP_Data_TLAST          (poNTS0_Mem_RxP_Axis_Data_tlast),
+    .soTHIS_Mem_RxP_Data_TVALID         (poNTS0_Mem_RxP_Axis_Data_tvalid),
+
+    //------------------------------------------------------
+    //-- MEM / Nts0 / TxP Interface
+    //------------------------------------------------------
+    //-- Transmit Path / S2MM-AXIS -------------------------
+    //---- Stream Read Status ------------------
+    // [INFO] Not used
+    //---- Stream Read Command -----------------
+    .soTHIS_Mem_TxP_RdCmd_TREADY        (piMEM_Nts0_TxP_Axis_RdCmd_tready),
+    .soTHIS_Mem_TxP_RdCmd_TDATA         (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
+    .soTHIS_Mem_TxP_RdCmd_TVALID        (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
+    //---- Stream Data Input Channel ----------- 
+    .siMEM_This_TxP_Data_TDATA          (piMEM_Nts0_TxP_Axis_Data_tdata),
+    .siMEM_This_TxP_Data_TKEEP          (piMEM_Nts0_TxP_Axis_Data_tkeep),
+    .siMEM_This_TxP_Data_TLAST          (piMEM_Nts0_TxP_Axis_Data_tlast),
+    .siMEM_This_TxP_Data_TVALID         (piMEM_Nts0_TxP_Axis_Data_tvalid),
+    .siMEM_This_TxP_Data_TREADY         (poNTS0_Mem_TxP_Axis_Data_tready),
+    //---- Stream Write Status -----------------
+    .siMEM_This_TxP_WrSts_TDATA         (piMEM_Nts0_TxP_Axis_WrSts_tdata),
+    .siMEM_This_TxP_WrSts_TVALID        (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
+    .siMEM_This_TxP_WrSts_TREADY        (poNTS0_Mem_TxP_Axis_WrSts_tready),
+    //---- Stream Write Command ----------------
+    .soTHIS_Mem_TxP_WrCmd_TREADY        (piMEM_Nts0_TxP_Axis_WrCmd_tready),
+    .soTHIS_Mem_TxP_WrCmd_TDATA         (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
+    .soTHIS_Mem_TxP_WrCmd_TVALID        (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
+    //---- Stream Data Output Channel ----------
+    .soTHIS_Mem_TxP_Data_TREADY         (piMEM_Nts0_TxP_Axis_Data_tready),
+    .soTHIS_Mem_TxP_Data_TDATA          (poNTS0_Mem_TxP_Axis_Data_tdata),
+    .soTHIS_Mem_TxP_Data_TKEEP          (poNTS0_Mem_TxP_Axis_Data_tkeep),
+    .soTHIS_Mem_TxP_Data_TLAST          (poNTS0_Mem_TxP_Axis_Data_tlast),
+    .soTHIS_Mem_TxP_Data_TVALID         (poNTS0_Mem_TxP_Axis_Data_tvalid),
+
     //------------------------------------------------------
     //-- From CAM Interfaces
     //------------------------------------------------------
@@ -969,68 +1032,7 @@ module NetworkTransportSession_TcpIp (
     .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
     .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
 
-    //------------------------------------------------------
-    //-- MEM / Nts0 / RxP Interface
-    //------------------------------------------------------
-    //-- Receive Path / S2MM-AXIS ------------------
-    //---- Stream Read Command -----------------
-    .m_axis_rxread_cmd_TREADY           (piMEM_Nts0_RxP_Axis_RdCmd_tready),
-    .m_axis_rxread_cmd_TDATA            (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
-    .m_axis_rxread_cmd_TVALID           (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
-    //---- Stream Read Status ------------------
-    // [INFO] Not used                                 
-    //---- Stream Data Input Channel -----------
-    .s_axis_rxread_data_TDATA           (piMEM_Nts0_RxP_Axis_Read_tdata),
-    .s_axis_rxread_data_TKEEP           (piMEM_Nts0_RxP_Axis_Read_tkeep),
-    .s_axis_rxread_data_TLAST           (piMEM_Nts0_RxP_Axis_Read_tlast),
-    .s_axis_rxread_data_TVALID          (piMEM_Nts0_RxP_Axis_Read_tvalid),  
-    .s_axis_rxread_data_TREADY          (poNTS0_Mem_RxP_Axis_Read_tready),
-    //---- Stream Write Command ----------------
-    .m_axis_rxwrite_cmd_TREADY          (piMEM_Nts0_RxP_Axis_WrCmd_tready),
-    .m_axis_rxwrite_cmd_TDATA           (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
-    .m_axis_rxwrite_cmd_TVALID          (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
-    //---- Stream Write Status -----------------
-    .s_axis_rxwrite_sts_TDATA           (piMEM_Nts0_RxP_Axis_WrSts_tdata),
-    .s_axis_rxwrite_sts_TVALID          (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
-    .s_axis_rxwrite_sts_TREADY          (poNTS0_Mem_RxP_Axis_WrSts_tready),
-    //---- Stream Data Output Channel ----------
-    .m_axis_rxwrite_data_TREADY         (piMEM_Nts0_RxP_Axis_Write_tready),
-    .m_axis_rxwrite_data_TDATA          (poNTS0_Mem_RxP_Axis_Write_tdata),
-    .m_axis_rxwrite_data_TKEEP          (poNTS0_Mem_RxP_Axis_Write_tkeep),
-    .m_axis_rxwrite_data_TLAST          (poNTS0_Mem_RxP_Axis_Write_tlast),
-    .m_axis_rxwrite_data_TVALID         (poNTS0_Mem_RxP_Axis_Write_tvalid),
-
-    //------------------------------------------------------
-    //-- MEM / Nts0 / TxP Interface
-    //------------------------------------------------------
-    //-- Transmit Path / S2MM-AXIS -------------------------
-    //---- Stream Read Command -------------------
-    .m_axis_txread_cmd_TREADY           (piMEM_Nts0_TxP_Axis_RdCmd_tready),
-    .m_axis_txread_cmd_TDATA            (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
-    .m_axis_txread_cmd_TVALID           (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
-    //---- Stream Read Status ------------------
-    // [INFO] Not used
-    //---- Stream Data Input Channel ----------- 
-    .s_axis_txread_data_TDATA           (piMEM_Nts0_TxP_Axis_Read_tdata),
-    .s_axis_txread_data_TKEEP           (piMEM_Nts0_TxP_Axis_Read_tkeep),
-    .s_axis_txread_data_TLAST           (piMEM_Nts0_TxP_Axis_Read_tlast),
-    .s_axis_txread_data_TVALID          (piMEM_Nts0_TxP_Axis_Read_tvalid),
-    .s_axis_txread_data_TREADY          (poNTS0_Mem_TxP_Axis_Read_tready),
-    //---- Stream Write Command ----------------
-    .m_axis_txwrite_cmd_TREADY          (piMEM_Nts0_TxP_Axis_WrCmd_tready),
-    .m_axis_txwrite_cmd_TDATA           (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
-    .m_axis_txwrite_cmd_TVALID          (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
-    //---- Stream Write Status -----------------
-    .s_axis_txwrite_sts_TDATA           (piMEM_Nts0_TxP_Axis_WrSts_tdata),
-    .s_axis_txwrite_sts_TVALID          (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
-    .s_axis_txwrite_sts_TREADY          (poNTS0_Mem_TxP_Axis_WrSts_tready),
-    //---- Stream Data Output Channel ----------
-    .m_axis_txwrite_data_TREADY         (piMEM_Nts0_TxP_Axis_Write_tready),
-    .m_axis_txwrite_data_TDATA          (poNTS0_Mem_TxP_Axis_Write_tdata),
-    .m_axis_txwrite_data_TKEEP          (poNTS0_Mem_TxP_Axis_Write_tkeep),
-    .m_axis_txwrite_data_TLAST          (poNTS0_Mem_TxP_Axis_Write_tlast),
-    .m_axis_txwrite_data_TVALID         (poNTS0_Mem_TxP_Axis_Write_tvalid),
-
+                        
     //------------------------------------------------------
     //-- To CAM Interfaces
     //------------------------------------------------------

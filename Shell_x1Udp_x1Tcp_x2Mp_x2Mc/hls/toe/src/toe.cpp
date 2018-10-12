@@ -385,20 +385,22 @@
 	 * @param[out] soTHIS_Trif_OpnSts, 	TCP open port status to TRIF.
 	 * @param[out] soTHIS_Trif_Notif,	TCP notification to TRIF.
 	 * @param[in]  siTRIF_This_ClsReq,	TCP close connection request from TRIF.
+	 * @warning:   Not-Used,  			TCP close connection status to TRIF.
+	 * @warning:   Not-Used,  			Rx memory read status from MEM.
+	 * @param[out] soTHIS_Mem_RxP_RdCmd,Rx memory read command to MEM.
+	 * @param[in]  siMEM_This_RxP_Data, Rx memory data from MEM.
+	 * @param[out] soTHIS_Mem_RxP_WrCmd,Rx memory write command to MEM.
+	 * @param[in]  siMEM_This_RxP_WrSts,Rx memory write status from MEM.
+	 * @param[out] soTHIS_Mem_RxP_Data, Rx memory data to MEM.
+	 * @warning:   Not-Used,  			Tx memory read status from MEM.
+	 * @param[out] soTHIS_Mem_TxP_RdCmd,Tx memory read command to MEM.
+	 * @param[in]  siMEM_This_TxP_Data, Tx memory data from MEM.
+	 * @param[out] soTHIS_Mem_TxP_WrCmd,Tx memory write command to MEM.
+	 * @param[out] siMEM_This_TxP_WrSts,Tx memory write status from MEM.
+	 * @param[out] soTHIS_Mem_TxP_Data, Tx memory data to MEM.
 	 *
 	 *
-	 *
-	 * @param[in]  rxBufferWriteStatus
-	 * @param[in]  txBufferWriteStatus
-	 * @param[in]  rxBufferReadData
-	 * @param[in]  txBufferReadData
-
-	 * @param[out] rxBufferWriteCmd
-	 * @param[out] rxBufferReadCmd
 	 * @param[out] txWriteReadCmd
-	 * @param[out] txBufferReadCmd
-	 * @param[out] rxBufferWriteData
-	 * @param[out] txBufferWriteData
 	 * @param[in]  sessionLookup_rsp
 	 * @param[in]  sessionUpdate_rsp
 	 * @param[in]  finSessionIdIn
@@ -419,7 +421,7 @@
 			stream<axiWord>                    	&soTHIS_L3mux_Data,
 
 			//------------------------------------------------------
-			//-- TRIF / This / ROLE Rx / Data Interfaces
+			//-- TRIF / This / Rx PATH / Data Interfaces
 			//------------------------------------------------------
 			stream<appReadRequest>             	&siTRIF_This_DReq,
 			stream<appNotification>            	&soTHIS_Trif_Notif,
@@ -427,41 +429,47 @@
 			stream<ap_uint<16> >               	&soTHIS_Trif_Meta,
 
 			//------------------------------------------------------
-			//-- TRIF / This / ROLE Rx / Ctrl Interfaces
+			//-- TRIF / This / Rx PATH / Ctrl Interfaces
 			//------------------------------------------------------
 			stream<ap_uint<16> >               	&siTRIF_This_LsnReq,
 			stream<bool>                        &soTHIS_Trif_LsnAck,
 
 			//------------------------------------------------------
-			//-- TRIF / This / ROLE Tx / Data Interfaces
+			//-- TRIF / This / Tx PATH / Data Interfaces
 			//------------------------------------------------------
 			stream<axiWord>                    	&siTRIF_This_Data,
 			stream<ap_uint<16> >               	&siTRIF_This_Meta,
 			stream<ap_int<17> >                	&soTHIS_Trif_DSts,
 
 			//------------------------------------------------------
-			//-- TRIF / This / ROLE Tx / Ctrl Interfaces
+			//-- TRIF / This / Tx PATH / Ctrl Interfaces
 			//------------------------------------------------------
 			stream<ipTuple>                    	&siTRIF_This_OpnReq,
-			stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
 			stream<openStatus>                 	&soTHIS_Trif_OpnSts,
+			stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
+			//-- Not USed                       &soTHIS_Trif_ClsSts,
+
+			//------------------------------------------------------
+			//-- MEM / This / Rx PATH / S2MM Interface
+			//------------------------------------------------------
+			//-- Not Used                       &siMEM_This_RxP_RdSts,
+			stream<mmCmd>                      	&soTHIS_Mem_RxP_RdCmd,
+			stream<axiWord>                    	&siMEM_This_RxP_Data,
+			stream<mmStatus>                   	&siMEM_This_RxP_WrSts,
+			stream<mmCmd>                      	&soTHIS_Mem_RxP_WrCmd,
+			stream<axiWord>                    	&soTHIS_Mem_RxP_Data,
+
+			//------------------------------------------------------
+			//-- MEM / This / Tx PATH / S2MM Interface
+			//------------------------------------------------------
+			//-- Not Used                       &siMEM_This_TxP_RdSts,
+			stream<mmCmd>                      	&soTHIS_Mem_TxP_RdCmd,
+			stream<axiWord>                    	&siMEM_This_TxP_Data,
+			stream<mmStatus>                   	&siMEM_This_TxP_WrSts,
+			stream<mmCmd>                      	&soTHIS_Mem_TxP_WrCmd,
+			stream<axiWord>                    	&soTHIS_Mem_TxP_Data,
 
 
-
-
-
-
-			stream<mmStatus>                   	&rxBufferWriteStatus,
-			stream<mmStatus>                   	&txBufferWriteStatus,
-			stream<axiWord>                    	&rxBufferReadData,
-			stream<axiWord>                    	&txBufferReadData,
-
-			stream<mmCmd>                      	&rxBufferWriteCmd,
-			stream<mmCmd>                      	&rxBufferReadCmd,
-			stream<mmCmd>                      	&txBufferWriteCmd,
-			stream<mmCmd>                      	&txBufferReadCmd,
-			stream<axiWord>                    	&rxBufferWriteData,
-			stream<axiWord>                    	&txBufferWriteData,
 			// SmartCam Interface
 			stream<rtlSessionLookupReply>      	&sessionLookup_rsp,
 			stream<rtlSessionUpdateReply>      	&sessionUpdate_rsp,
@@ -509,34 +517,28 @@
 		#pragma HLS DATA_PACK                variable=siTRIF_This_OpnReq
 		#pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_OpnSts metadata="-bus_bundle soTHIS_Trif_OpnSts"
 		#pragma HLS DATA_PACK                variable=soTHIS_Trif_OpnSts
-
 		#pragma HLS resource core=AXI4Stream variable=siTRIF_This_ClsReq metadata="-bus_bundle siTRIF_This_ClsReq"
 
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_RdCmd metadata="-bus_bundle soTHIS_Mem_RxP_RdCmd"
+		#pragma HLS DATA_PACK                variable=soTHIS_Mem_RxP_RdCmd
+		#pragma HLS resource core=AXI4Stream variable=siMEM_This_RxP_Data  metadata="-bus_bundle siMEM_This_RxP_Data"
+		#pragma HLS resource core=AXI4Stream variable=siMEM_This_RxP_WrSts metadata="-bus_bundle siMEM_This_RxP_WrSts"
+		#pragma HLS DATA_PACK                variable=siMEM_This_RxP_WrSts
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_WrCmd metadata="-bus_bundle soTHIS_Mem_RxP_WrCmd"
+		#pragma HLS DATA_PACK                variable=soTHIS_Mem_RxP_WrCmd
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_Data  metadata="-bus_bundle soTHIS_Mem_RxP_Data"
 
-//---------------------------
-		#pragma HLS resource core=AXI4Stream variable=rxBufferWriteData metadata="-bus_bundle m_axis_rxwrite_data"
-		#pragma HLS resource core=AXI4Stream variable=rxBufferReadData 	metadata="-bus_bundle s_axis_rxread_data"
-
-		#pragma HLS resource core=AXI4Stream variable=txBufferWriteData metadata="-bus_bundle m_axis_txwrite_data"
-		#pragma HLS resource core=AXI4Stream variable=txBufferReadData 	metadata="-bus_bundle s_axis_txread_data"
-
-		#pragma HLS resource core=AXI4Stream variable=rxBufferWriteCmd 	metadata="-bus_bundle m_axis_rxwrite_cmd"
-		#pragma HLS resource core=AXI4Stream variable=rxBufferReadCmd 	metadata="-bus_bundle m_axis_rxread_cmd"
-		#pragma HLS DATA_PACK variable=rxBufferWriteCmd
-		#pragma HLS DATA_PACK variable=rxBufferReadCmd
-
-		#pragma HLS resource core=AXI4Stream variable=txBufferWriteCmd 	metadata="-bus_bundle m_axis_txwrite_cmd"
-		#pragma HLS resource core=AXI4Stream variable=txBufferReadCmd 	metadata="-bus_bundle m_axis_txread_cmd"
-		#pragma HLS DATA_PACK variable=txBufferWriteCmd
-		#pragma HLS DATA_PACK variable=txBufferReadCmd
-
-
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_RdCmd metadata="-bus_bundle soTHIS_Mem_TxP_RdCmd"
+		#pragma HLS DATA_PACK                variable=soTHIS_Mem_TxP_RdCmd
+		#pragma HLS resource core=AXI4Stream variable=siMEM_This_TxP_Data  metadata="-bus_bundle siMEM_This_TxP_Data"
+		#pragma HLS resource core=AXI4Stream variable=siMEM_This_TxP_WrSts metadata="-bus_bundle siMEM_This_TxP_WrSts"
+		#pragma HLS DATA_PACK                variable=siMEM_This_TxP_WrSts
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_WrCmd metadata="-bus_bundle soTHIS_Mem_TxP_WrCmd"
+		#pragma HLS DATA_PACK                variable=soTHIS_Mem_TxP_WrCmd
+		#pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_Data  metadata="-bus_bundle soTHIS_Mem_TxP_Data"
 
 
-		#pragma HLS resource core=AXI4Stream variable=rxBufferWriteStatus metadata="-bus_bundle s_axis_rxwrite_sts"
-		#pragma HLS resource core=AXI4Stream variable=txBufferWriteStatus metadata="-bus_bundle s_axis_txwrite_sts"
-		#pragma HLS DATA_PACK variable=rxBufferWriteStatus
-		#pragma HLS DATA_PACK variable=txBufferWriteStatus
+		//------------------------------------------------------------------------------
 
 		// SmartCam Interface
 		#pragma HLS resource core=AXI4Stream variable=sessionLookup_req metadata="-bus_bundle m_axis_session_lup_req"
@@ -805,8 +807,8 @@
 					portTable2rxEng_check_rsp,
 					rxSar2rxEng_upd_rsp,
 					txSar2rxEng_upd_rsp,
-					rxBufferWriteStatus,
-					rxBufferWriteData,
+					siMEM_This_RxP_WrSts,
+					soTHIS_Mem_RxP_Data,
 					rxEng2sLookup_req,
 					rxEng2stateTable_upd_req,
 					rxEng2portTable_check_req,
@@ -817,20 +819,20 @@
 					rxEng2timer_setCloseTimer,
 					conEstablishedFifo,
 					rxEng2eventEng_setEvent,
-					rxBufferWriteCmd,
+					soTHIS_Mem_RxP_WrCmd,
 					rxEng2rxApp_notification
 					);
 		// TX Engine
 		tx_engine(  eventEng2txEng_event,
 					rxSar2txEng_rsp,
 					txSar2txEng_upd_rsp,
-					txBufferReadData,
+					siMEM_This_TxP_Data,
 					sLookup2txEng_rev_rsp,
 					txEng2rxSar_req,
 					txEng2txSar_upd_req,
 					txEng2timer_setRetransmitTimer,
 					txEng2timer_setProbeTimer,
-					txBufferReadCmd,
+					soTHIS_Mem_TxP_RdCmd,
 					txEng2sLookup_rev_req,
 					soTHIS_L3mux_Data,
 					txEngFifoReadCount);
@@ -846,9 +848,9 @@
 						timer2rxApp_notification,
 						soTHIS_Trif_Meta,
 						rxApp2rxSar_upd_req,
-						rxBufferReadCmd, soTHIS_Trif_LsnAck,
+						soTHIS_Mem_RxP_RdCmd, soTHIS_Trif_LsnAck,
 						rxApp2portTable_listen_req,
-						soTHIS_Trif_Notif, rxBufferReadData,
+						soTHIS_Trif_Notif, siMEM_This_RxP_Data,
 						soTHIS_Trif_Data);
 
 		tx_app_interface(   siTRIF_This_Meta,
@@ -856,7 +858,7 @@
 							stateTable2txApp_rsp,
 							//txSar2txApp_upd_rsp,
 							txSar2txApp_ack_push,
-							txBufferWriteStatus,
+							siMEM_This_TxP_WrSts,
 							siTRIF_This_OpnReq,
 							siTRIF_This_ClsReq,
 							sLookup2txApp_rsp,
@@ -866,8 +868,8 @@
 							soTHIS_Trif_DSts,
 							txApp2stateTable_req,
 							//txApp2txSar_upd_req,
-							txBufferWriteCmd,
-							txBufferWriteData,
+							soTHIS_Mem_TxP_WrCmd,
+							soTHIS_Mem_TxP_Data,
 							txApp2txSar_push,
 							soTHIS_Trif_OpnSts,
 							txApp2sLookup_req,
