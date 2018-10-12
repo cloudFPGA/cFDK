@@ -126,7 +126,7 @@ module NetworkTransportSession_TcpIp (
   input          piMEM_Nts0_RxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input          piMEM_Nts0_RxP_Axis_Write_tready, 
+  input          piMEM_Nts0_RxP_Axis_Data_tready, 
   output [ 63:0] poNTS0_Mem_RxP_Axis_Data_tdata,
   output [  7:0] poNTS0_Mem_RxP_Axis_Data_tkeep,
   output         poNTS0_Mem_RxP_Axis_Data_tlast,
@@ -983,7 +983,7 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Mem_RxP_WrCmd_TDATA         (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
     .soTHIS_Mem_RxP_WrCmd_TVALID        (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
     //---- Stream Data Output Channel ----------
-    .soTHIS_Mem_RxP_Data_TREADY         (piMEM_Nts0_RxP_Axis_Write_tready),
+    .soTHIS_Mem_RxP_Data_TREADY         (piMEM_Nts0_RxP_Axis_Data_tready),
     .soTHIS_Mem_RxP_Data_TDATA          (poNTS0_Mem_RxP_Axis_Data_tdata),
     .soTHIS_Mem_RxP_Data_TKEEP          (poNTS0_Mem_RxP_Axis_Data_tkeep),
     .soTHIS_Mem_RxP_Data_TLAST          (poNTS0_Mem_RxP_Axis_Data_tlast),
