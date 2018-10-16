@@ -30,7 +30,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 
-sim: 
+sim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 
 

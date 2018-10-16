@@ -74,32 +74,47 @@ typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 #define DEFAULT_TX_PORT 80  //0x0050
 
+//enum FsmState {FSM_RESET=0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC} fsmState;
+//static enum FsmState {FSM_RST=0, FSM_ACC, FSM_LAST_ACC} fsmState;
+//static enum FsmState {FSM_W8FORMETA=0, FSM_FIRST_ACC, FSM_ACC} fsmState;
+#define FSM_RESET 0
+#define FSM_IDLE  1
+#define FSM_W8FORPORT 2
+#define FSM_FIRST_ACC 3
+#define FSM_ACC 4
+#define FSM_LAST_ACC 5
+#define FSM_W8FORMETA 6
+#define FsmState uint8_t
+
+
 
 void udp_role_if_2 (
+    // ----- system reset ---
+    ap_uint<1> sys_reset,
 
-        //------------------------------------------------------
-        //-- ROLE / This / Udp Interfaces
-        //------------------------------------------------------
-        stream<UdpWord>     &siROL_This_Data,
-        stream<UdpWord>     &soTHIS_Rol_Data,
-        stream<IPMeta>      &siIP,
-        stream<IPMeta>      &soIP,
-        ap_uint<32>         *myIpAddress,
+    //------------------------------------------------------
+    //-- ROLE / This / Udp Interfaces
+    //------------------------------------------------------
+    stream<UdpWord>     &siROL_This_Data,
+    stream<UdpWord>     &soTHIS_Rol_Data,
+    stream<IPMeta>      &siIP,
+    stream<IPMeta>      &soIP,
+    ap_uint<32>         *myIpAddress,
 
-        //------------------------------------------------------
-        //-- UDMX / This / Open-Port Interfaces
-        //------------------------------------------------------
-        stream<AxisAck>     &siUDMX_This_OpnAck,
-        stream<UdpPort>     &soTHIS_Udmx_OpnReq,
+    //------------------------------------------------------
+    //-- UDMX / This / Open-Port Interfaces
+    //------------------------------------------------------
+    stream<AxisAck>     &siUDMX_This_OpnAck,
+    stream<UdpPort>     &soTHIS_Udmx_OpnReq,
 
-        //------------------------------------------------------
-        //-- UDMX / This / Data & MetaData Interfaces
-        //------------------------------------------------------
-        stream<UdpWord>     &siUDMX_This_Data,
-        stream<UdpMeta>     &siUDMX_This_Meta,
-        stream<UdpWord>     &soTHIS_Udmx_Data,
-        stream<UdpMeta>     &soTHIS_Udmx_Meta,
-        stream<UdpPLen>     &soTHIS_Udmx_Len
+    //------------------------------------------------------
+    //-- UDMX / This / Data & MetaData Interfaces
+    //------------------------------------------------------
+    stream<UdpWord>     &siUDMX_This_Data,
+    stream<UdpMeta>     &siUDMX_This_Meta,
+    stream<UdpWord>     &soTHIS_Udmx_Data,
+    stream<UdpMeta>     &soTHIS_Udmx_Meta,
+    stream<UdpPLen>     &soTHIS_Udmx_Len
 );
 
 
