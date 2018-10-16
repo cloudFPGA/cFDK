@@ -608,7 +608,13 @@ void udp_role_if_2 (
             soTHIS_Udmx_Data.write(aWord);
 
             // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-            UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+            ap_uint<32> ipAddrLE = 0;
+            ipAddrLE  = (*myIpAddress >> 24) & 0xFF;
+            ipAddrLE |= (*myIpAddress >> 8) & 0xFF00;
+            ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
+            ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
+            //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+            UdpMeta txMeta = {{DEFAULT_TX_PORT, ipAddrLE}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
             //UdpMeta txMeta = UdpMeta();
             //txMeta.dst.addr = txIPmetaReg.ipAddress;
             //txMeta.dst.port = DEFAULT_TX_PORT;
