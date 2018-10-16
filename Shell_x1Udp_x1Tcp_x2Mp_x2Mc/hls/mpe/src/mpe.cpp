@@ -631,6 +631,7 @@ void mpe_main(
     case WAIT4REQ: 
       if( !siTcp.empty() && !siIP.empty() && !soIP.full() && !sFifoDataTX.full() )
       {
+        IPMeta srcIP = siIP.read();
         //read header
         for(int i = 0; i< (MPIF_HEADER_LENGTH+7)/8; i++)
         {
@@ -647,6 +648,14 @@ void mpe_main(
             status[MPE_STATUS_LAST_READ_ERROR] = RX_INCOMPLETE_HEADER;
             break;
           }*/
+          
+          //TODO 
+          //header should have always full lines
+          if(tmp.tkeep != 0xff)
+          {
+            i--;
+            continue;
+          }
 
           for(int j = 0; j<8; j++)
           {
@@ -686,7 +695,7 @@ void mpe_main(
           break;
         }
 
-        IPMeta srcIP = siIP.read();
+        //IPMeta srcIP = siIP.read();
         ipSrc = localMRT[header.src_rank];
 
         if(srcIP.ipAddress != ipSrc)

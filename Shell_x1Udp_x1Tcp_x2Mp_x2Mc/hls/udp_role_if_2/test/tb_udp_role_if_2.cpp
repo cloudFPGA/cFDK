@@ -61,7 +61,7 @@ void stepDut() {
     udp_role_if_2(
             sROLE_Urif_Data,    sURIF_Role_Data,
             sIPMeta_TX,         sIPMeta_RX,
-            sIpAddress,
+            &sIpAddress,
             sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
             sUDMX_Urif_Data,    sUDMX_Urif_Meta,
             sURIF_Udmx_Data,    sURIF_Udmx_Meta,    sURIF_Udmx_PLen);
@@ -473,10 +473,7 @@ int main() {
             printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
             nrErr++;
         }
-        //there are 5 streams
-        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
-        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
-        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        //there are 2 streams from the ROLE to UDMX
         sIPMeta_TX.write(IPMeta(0x0a0d0c02));
         sIPMeta_TX.write(IPMeta(0x0a0d0c02));
     }
@@ -488,7 +485,7 @@ int main() {
 
     while (!nrErr) {
 
-        if (simCnt < 35)
+        if (simCnt < 42)
         {
             stepDut();
 
@@ -497,6 +494,11 @@ int main() {
               IPMeta tmp = sIPMeta_RX.read();
               printf("Role received IPMeta stream from 0x%8.8X.\n", (int) tmp.ipAddress);
             }
+
+            // is done below
+           // if( !sURIF_Udmx_Meta.empty() )
+           // {
+           // }
 
         } else {
             printf("## End of simulation at cycle=%3d. \n", simCnt);

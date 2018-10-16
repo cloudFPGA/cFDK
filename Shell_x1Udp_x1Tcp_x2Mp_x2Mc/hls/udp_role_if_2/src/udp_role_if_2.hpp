@@ -84,7 +84,7 @@ void udp_role_if_2 (
         stream<UdpWord>     &soTHIS_Rol_Data,
         stream<IPMeta>      &siIP,
         stream<IPMeta>      &soIP,
-        ap_uint<32>         myIpAddress,
+        ap_uint<32>         *myIpAddress,
 
         //------------------------------------------------------
         //-- UDMX / This / Open-Port Interfaces

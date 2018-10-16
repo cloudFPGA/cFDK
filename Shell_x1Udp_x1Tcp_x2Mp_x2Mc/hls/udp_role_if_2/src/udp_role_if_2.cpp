@@ -71,6 +71,9 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
         stream<UdpWord>    &soFifo_Data,
         stream<UdpPLen>    &soPLen)
 {
+	 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static UdpPLen    pldLen;
 
@@ -142,8 +145,11 @@ void pTxP_Dequeue (
         stream<UdpWord>  &soUDMX_Data,
         stream<UdpMeta>  &soUDMX_Meta,
         stream<UdpPLen>  &soUDMX_PLen,
-        ap_uint<32> myIpAddress)
+        ap_uint<32> *myIpAddress)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS DATAFLOW interval=1
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static IPMeta txIPmetaReg;
 
@@ -173,7 +179,7 @@ void pTxP_Dequeue (
                         soUDMX_Data.write(aWord);
 
                         // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-                        UdpMeta txMeta = {{DEFAULT_TX_PORT, myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+                        UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
                         //UdpMeta txMeta = UdpMeta();
                         //txMeta.dst.addr = txIPmetaReg.ipAddress;
                         //txMeta.dst.port = DEFAULT_TX_PORT;
@@ -188,8 +194,11 @@ void pTxP_Dequeue (
             }
 
             // Always drain the 'siIPaddr' stream to avoid any blocking on the Rx side
-          //  if ( !siIPaddr.empty() )
-           //     txIPmetaReg = siIPaddr.read();
+            //TODO
+            //if ( !siIPaddr.empty() )
+            //{
+            //  txIPmetaReg = siIPaddr.read();
+           // }
 
             break;
 
@@ -209,8 +218,11 @@ void pTxP_Dequeue (
             }
 
             // Always drain the 'siIPaddr' stream to avoid any blocking on the Rx side
-           // if ( !siIPaddr.empty() )
-            //    txIPmetaReg = siIPaddr.read();
+            //TODO
+            //if ( !siIPaddr.empty() )
+            //{
+            //  txIPmetaReg = siIPaddr.read();
+            //}
 
             break;
     }
@@ -235,10 +247,10 @@ void pTxP(
         stream<UdpWord>     &soUDMX_Data,
         stream<UdpMeta>     &soUDMX_Meta,
         stream<UdpPLen>     &soUDMX_PLen,
-        ap_uint<32>         myIpAddress)
+        ap_uint<32>         *myIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW
+    #pragma HLS DATAFLOW interval=1
 
     //-- LOCAL STREAMS --------------------------------------------------------
     static stream<UdpPLen>        sPLen     ("sPLen");
@@ -379,7 +391,7 @@ void udp_role_if_2 (
         stream<UdpWord>     &soTHIS_Rol_Data,
         stream<IPMeta>      &siIP,
         stream<IPMeta>      &soIP,
-        ap_uint<32>         myIpAddress,
+        ap_uint<32>         *myIpAddress,
 
         //------------------------------------------------------
         //-- UDMX / This / Open-Port Interfaces
@@ -406,14 +418,12 @@ void udp_role_if_2 (
     /*********************************************************************/
 
 
-//should work for both
-#pragma HLS INTERFACE axis register both port=siIP
-#pragma HLS INTERFACE axis register both port=soIP 
-
-#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
-
-
 #if defined(USE_DEPRECATED_DIRECTIVES)
+
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
+	
+  #pragma HLS INTERFACE ap_stable register port=myIpAddress name=piMyIpAddress
 
 	#pragma HLS resource core=AXI4Stream variable=siROL_This_Data    metadata="-bus_bundle siROL_This_Data"
 	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data    metadata="-bus_bundle soTHIS_Rol_Data"
@@ -430,7 +440,14 @@ void udp_role_if_2 (
 	#pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta
 	#pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_PLen   metadata="-bus_bundle soTHIS_Udmx_PLen"
 
+	#pragma HLS resource core=AXI4Stream variable=siIP   metadata="-bus_bundle siIP"
+	#pragma HLS resource core=AXI4Stream variable=soIP   metadata="-bus_bundle soIP"
+
+
 #else
+
+	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
     #pragma HLS INTERFACE axis register both port=siROL_This_Data
     #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
@@ -446,6 +463,12 @@ void udp_role_if_2 (
     #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
     #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
     #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
+
+    #pragma HLS INTERFACE axis register both port=siIP
+    #pragma HLS INTERFACE axis register both port=soIP 
+
+	#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
+
 
 #endif
 
