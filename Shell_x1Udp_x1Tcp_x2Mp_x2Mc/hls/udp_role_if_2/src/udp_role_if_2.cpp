@@ -84,7 +84,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
  *
  * @return Nothing.
  *****************************************************************************/
- void pTxP_Enqueue (
+ /*void pTxP_Enqueue (
         stream<UdpWord>    &siROLE_Data,
         stream<UdpWord>    &soFifo_Data,
         stream<UdpPLen>    &soPLen)
@@ -140,7 +140,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
             break;
     }
 }
-
+*/
 
 /*****************************************************************************
  * @brief TxPath - Dequeue data from a FiFo stream and forward the metadata
@@ -156,7 +156,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
  *
  * @return Nothing.
  *****************************************************************************/
-void pTxP_Dequeue (
+/*void pTxP_Dequeue (
         stream<UdpWord>  &siFifo,
         stream<IPMeta>   &siIPaddr,
         stream<UdpPLen>  &siPLen,
@@ -248,7 +248,7 @@ void pTxP_Dequeue (
             break;
     }
 }
-
+*/
 
 /*****************************************************************************
  * @brief Tx Path - From ROLE to UDP core.
@@ -498,11 +498,14 @@ void udp_role_if_2 (
 
 #endif
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS DATAFLOW interval=1
+#pragma HLS STREAM variable=sPLen depth=1
+#pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
-//=================================================================================================
-// Reset 
+
+  //=================================================================================================
+  // Reset 
 
   if(sys_reset == 1)
   {
@@ -515,100 +518,221 @@ void udp_role_if_2 (
     return;
   }
 
-    //-- PROCESS FUNCTIONS ----------------------------------------------------
-    //pTxP(siROL_This_Data,  siIP,
-    //     soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
+  //-- PROCESS FUNCTIONS ----------------------------------------------------
+  //pTxP(siROL_This_Data,  siIP,
+  //     soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
 //=================================================================================================
 // TX 
-    
 
-    #pragma HLS STREAM variable=sPLen depth=1
-    #pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
-    //-- PROCESS FUNCTIONS ----------------------------------------------------
-    pTxP_Enqueue(siROL_This_Data,
-                 sFifo_Data, sPLen);
+  //-- PROCESS FUNCTIONS ----------------------------------------------------
+  //pTxP_Enqueue(siROL_This_Data,
+  //             sFifo_Data, sPLen);
+//-------------------------------------------------------------------------------------------------
+// TX Enqueue
 
-    pTxP_Dequeue(sFifo_Data,  siIP,  sPLen,
-                 soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
+  switch(fsmStateTXenq) {
 
-    //---- From UDMX to ROLE
-    //pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
-    //    soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
-    //    soTHIS_Rol_Data,    soIP);
+    case FSM_RESET:
+      pldLen = 0;
+      fsmStateTXenq = FSM_ACC;
+      break;
+
+    case FSM_ACC:
+
+      // Default stream handling
+      if ( !siROL_This_Data.empty() && !sFifo_Data.full() ) {
+
+        // Read incoming data chunk
+        UdpWord aWord = siROL_This_Data.read();
+
+        // Increment the payload length
+        updatePayloadLength(&aWord, &pldLen);
+
+        // Enqueue data chunk into FiFo
+        sFifo_Data.write(aWord);
+
+        // Until LAST bit is set
+        if (aWord.tlast)
+        {
+          fsmStateTXenq = FSM_LAST_ACC;
+        }
+      }
+      break;
+
+    case FSM_LAST_ACC:
+
+      // Forward the payload length
+      sPLen.write(pldLen);
+
+      // Reset the payload length
+      pldLen = 0;
+
+      // Start over
+      fsmStateTXenq = FSM_ACC;
+
+      break;
+  }
+
+
+
+  //pTxP_Dequeue(sFifo_Data,  siIP,  sPLen,
+  //             soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
+//-------------------------------------------------------------------------------------------------
+// TX Dequeue
+
+  switch(fsmStateTXdeq) {
+
+    case FSM_RESET: 
+      fsmStateTXdeq = FSM_W8FORMETA;
+      //NO break! --> to be same as FSM_W8FORMETA
+    case FSM_W8FORMETA: //TODO: can be done also in FSM_FIRST_ACC, but leave it here for now
+
+      // The very first time, wait until the Rx path provides us with the
+      // socketPair information before continuing
+      if ( !siIP.empty() ) {
+        txIPmetaReg = siIP.read();
+        fsmStateTXdeq = FSM_FIRST_ACC;
+      }
+      //printf("waiting for IPMeta.\n");
+      break;
+
+    case FSM_FIRST_ACC:
+
+      // Send out the first data together with the metadata and payload length information
+      if ( !sFifo_Data.empty() && !sPLen.empty() ) {
+        if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) {
+          // Forward data chunk, metadata and payload length
+          UdpWord    aWord = sFifo_Data.read();
+          if (!aWord.tlast) {
+            soTHIS_Udmx_Data.write(aWord);
+
+            // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
+            UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+            //UdpMeta txMeta = UdpMeta();
+            //txMeta.dst.addr = txIPmetaReg.ipAddress;
+            //txMeta.dst.port = DEFAULT_TX_PORT;
+            //txMeta.src.addr = myIpAddress;
+            //txMeta.src.port = DEFAULT_TX_PORT;
+            soTHIS_Udmx_Meta.write(txMeta);
+
+            soTHIS_Udmx_PLen.write(sPLen.read());
+            fsmStateTXdeq = FSM_ACC;
+          }
+        }
+      }
+
+      // Always drain the 'sIP' stream to avoid any blocking on the Rx side
+      //TODO
+      //if ( !sIP.empty() )
+      //{
+      //  txIPmetaReg = sIP.read();
+      // }
+
+      break;
+
+    case FSM_ACC:
+
+      // Default stream handling
+      if ( !sFifo_Data.empty() && !soTHIS_Udmx_Data.full() ) {
+        // Forward data chunk
+        UdpWord    aWord = sFifo_Data.read();
+        soTHIS_Udmx_Data.write(aWord);
+        // Until LAST bit is set
+        if (aWord.tlast) 
+        {
+          //fsmStateTXdeq = FSM_FIRST_ACC;
+          fsmStateTXdeq = FSM_W8FORMETA;
+        }
+      }
+
+      // Always drain the 'sIP' stream to avoid any blocking on the Rx side
+      //TODO
+      //if ( !sIP.empty() )
+      //{
+      //  txIPmetaReg = sIP.read();
+      //}
+
+      break;
+  }
+
+  //---- From UDMX to ROLE
+  //pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
+  //    soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
+  //    soTHIS_Rol_Data,    soIP);
 //=================================================================================================
 // RX 
 
-    switch(fsmStateRX) {
+  switch(fsmStateRX) {
 
-        case FSM_RESET:
-            openPortWaitTime = 10;
-            fsmStateRX = FSM_IDLE;
-            break;
+    case FSM_RESET:
+      openPortWaitTime = 10;
+      fsmStateRX = FSM_IDLE;
+      break;
 
-        case FSM_IDLE:
-            if ( !soTHIS_Udmx_OpnReq.full() && openPortWaitTime == 0 ) {
-                // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
-                soTHIS_Udmx_OpnReq.write(0x0050);
-                fsmStateRX = FSM_W8FORPORT;
-            }
-            else
-                openPortWaitTime--;
-            break;
+    case FSM_IDLE:
+      if ( !soTHIS_Udmx_OpnReq.full() && openPortWaitTime == 0 ) {
+        // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
+        soTHIS_Udmx_OpnReq.write(0x0050);
+        fsmStateRX = FSM_W8FORPORT;
+      }
+      else
+        openPortWaitTime--;
+      break;
 
-        case FSM_W8FORPORT:
-            if ( !siUDMX_This_OpnAck.empty() ) {
-                // Read the acknowledgment
-                AxisAck sOpenAck = siUDMX_This_OpnAck.read();
-                fsmStateRX = FSM_FIRST_ACC;
-            }
-            break;
+    case FSM_W8FORPORT:
+      if ( !siUDMX_This_OpnAck.empty() ) {
+        // Read the acknowledgment
+        AxisAck sOpenAck = siUDMX_This_OpnAck.read();
+        fsmStateRX = FSM_FIRST_ACC;
+      }
+      break;
 
-        case FSM_FIRST_ACC:
-            // Wait until both the first data chunk and the first metadata are received from UDP
-            if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
-                //if ( !soTHIS_Rol_Data.full() && !soIP.full()) {
-                if ( !soTHIS_Rol_Data.full() ) {
-                    // Forward data chunk to ROLE
-                    UdpWord    udpWord = siUDMX_This_Data.read();
-                    if (!udpWord.tlast) {
-                        soTHIS_Rol_Data.write(udpWord);
-                        fsmStateRX = FSM_ACC;
-                    }
+    case FSM_FIRST_ACC:
+      // Wait until both the first data chunk and the first metadata are received from UDP
+      if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
+        //if ( !soTHIS_Rol_Data.full() && !soIP.full()) {
+        if ( !soTHIS_Rol_Data.full() ) {
+          // Forward data chunk to ROLE
+          UdpWord    udpWord = siUDMX_This_Data.read();
+          if (!udpWord.tlast) {
+            soTHIS_Rol_Data.write(udpWord);
+            fsmStateRX = FSM_ACC;
+          }
 
-                    //extrac src ip address
-                    UdpMeta udpRxMeta = siUDMX_This_Meta.read();
-                    srcIP = IPMeta(udpRxMeta.src.addr);
-                    //TODO for now ignore udpRxMeta.src.port
-                    
-                    //soIP.write(srcIP);
-                    metaWritten = false;
-                }
-            }
-            break;
+          //extrac src ip address
+          UdpMeta udpRxMeta = siUDMX_This_Meta.read();
+          srcIP = IPMeta(udpRxMeta.src.addr);
+          //TODO for now ignore udpRxMeta.src.port
 
-        case FSM_ACC:
-            // Default stream handling
-            if ( !siUDMX_This_Data.empty() && !soTHIS_Rol_Data.full() ) {
-                // Forward data chunk to ROLE
-                UdpWord    udpWord = siUDMX_This_Data.read();
-                soTHIS_Rol_Data.write(udpWord);
-                // Until LAST bit is set
-                if (udpWord.tlast)
-                {
-                    fsmStateRX = FSM_FIRST_ACC;
-                }
-            }
-            if ( !metaWritten && !soIP.full() )
-            {
-              soIP.write(srcIP);
-              metaWritten = true;
-            }
-            break;
-    }
+          //soIP.write(srcIP);
+          metaWritten = false;
+        }
+      }
+      break;
 
-
+    case FSM_ACC:
+      // Default stream handling
+      if ( !siUDMX_This_Data.empty() && !soTHIS_Rol_Data.full() ) {
+        // Forward data chunk to ROLE
+        UdpWord    udpWord = siUDMX_This_Data.read();
+        soTHIS_Rol_Data.write(udpWord);
+        // Until LAST bit is set
+        if (udpWord.tlast)
+        {
+          fsmStateRX = FSM_FIRST_ACC;
+        }
+      }
+      if ( !metaWritten && !soIP.full() )
+      {
+        soIP.write(srcIP);
+        metaWritten = true;
+      }
+      break;
+  }
 
 
-}
+
+
+  }
 
