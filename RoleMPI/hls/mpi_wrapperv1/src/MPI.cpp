@@ -41,6 +41,7 @@ void setMMIO_out(ap_uint<16> *MMIO_out)
 
 //void MPI_Init(int* argc, char*** argv)
 void MPI_Init()
+//void MPI_Init(ap_uint<16> *MMIO_out)
 {
 
   //TODO: send/wait for INIT packets? 
@@ -234,12 +235,12 @@ int recv_internal(
         {
           printf("received TLAST at count %d!\n", recv_i);
           recv_tlastOccured = true;
-          recvState = 2;
+          recvState = RECV_FINISH;
           //break;
         }
         if(recv_i == info.count)
         {
-          recvState = 2;
+          recvState = RECV_FINISH;
         }
       }
       break;
@@ -308,6 +309,7 @@ void MPI_Recv(
 }
 
 void MPI_Finalize()
+//void MPI_Finalize(ap_uint<16> *MMIO_out)
 {
   //TODO: send something like DONE packets?
   my_app_done = 1;
@@ -337,7 +339,7 @@ void mpi_wrapper(
     )
 {
 //#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_none register port=sys_reset name=piSysReset
 //#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
 #pragma HLS INTERFACE ap_vld register port=role_rank_arg name=piSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_vld register port=cluster_size_arg name=piSMC_to_ROLE_size
@@ -381,6 +383,8 @@ void mpi_wrapper(
   role_rank = role_rank_arg;
   printf("clusterSize: %d, rank: %d\n", (int) cluster_size, (int) role_rank);
 
+  app_init = 1;
+
   setMMIO_out(MMIO_out);
 
   //===========================================================
@@ -388,6 +392,7 @@ void mpi_wrapper(
 
   if(my_app_done == 0)
   {
+    //app_main(MMIO_out, soMPIif, soMPI_data, siMPI_data);
     app_main(soMPIif, soMPI_data, siMPI_data);
   }
 

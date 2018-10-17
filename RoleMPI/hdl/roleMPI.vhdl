@@ -306,7 +306,7 @@ begin
 
   active_low_reset <= not (piSHL_156_25Rst or piSHL_ROL_EMIF_2B_Reg(0));
 
-  ap_start_emif <= piSHL_ROL_EMIF_2B_Reg(1);
+  --ap_start_emif <= piSHL_ROL_EMIF_2B_Reg(1);
 
   --poMPE_ROLE_MPI_data_TREADY <= siMPI_data_tready1 and siMPI_data_tready2 and siMPI_data_tready3;
   --poROLE_MPE_MPI_data_TVALID <= soMPI_data_tvalid1 and soMPI_data_tvalid2 and soMPI_data_tvalid3;
@@ -315,24 +315,24 @@ begin
   siMPI_data_tlast(0) <= piMPE_ROLE_MPI_data_TLAST;
   poROLE_MPE_MPI_data_TLAST <= soMPI_data_tlast(0);
   poROLE_MPE_MPI_data_TKEEP <= soMPI_data_tkeep(0);
-  reset_as_vector_i_hate_vivado_hls(0) <= piSHL_156_25Rst;
+  reset_as_vector_i_hate_vivado_hls(0) <= piSHL_156_25Rst or piSHL_ROL_EMIF_2B_Reg(0);
   
   MPI_APP: mpi_wrapperv1
     port map (
          ap_clk     =>   piSHL_156_25Clk ,
          ap_rst_n     =>    active_low_reset,
-         --ap_start     =>    '1',
-         ap_start     =>    ap_start_emif,
+         ap_start     =>    '1',
+         --ap_start     =>    ap_start_emif,
          --ap_done     =>    ,
          --ap_idle     =>    ,
          --ap_ready     =>    ,
          piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
          piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
-         --piSMC_to_ROLE_rank_V_ap_vld => '1',
-         piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
+         piSMC_to_ROLE_rank_V_ap_vld => '1',
+         --piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
          piSMC_to_ROLE_size_V => piSMC_ROLE_size,
-         --piSMC_to_ROLE_size_V_ap_vld => '1'
-         piSMC_to_ROLE_size_V_ap_vld => ap_start_emif,
+         piSMC_to_ROLE_size_V_ap_vld => '1',
+         --piSMC_to_ROLE_size_V_ap_vld => ap_start_emif,
          poMMIO_V     =>   poROL_SHL_EMIF_2B_Reg ,
          --MMIO_V_ap_vld     =>    ,
          soMPIif_V_mpi_call_V_TDATA     =>  poROLE_MPE_MPIif_mpi_call_TDATA  ,

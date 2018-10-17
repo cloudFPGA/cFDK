@@ -29,13 +29,15 @@
 //DUE TO SHITTY HLS...
 //void app_main()
 void app_main(
-		// ----- MPI_Interface -----
-		stream<MPI_Interface> *soMPIif,
-		stream<Axis<8> > *soMPI_data,
-		stream<Axis<8> > *siMPI_data
-		)
+    // ----- MPI_Interface -----
+    //ap_uint<16> *MMIO_out,
+    stream<MPI_Interface> *soMPIif,
+    stream<Axis<8> > *soMPI_data,
+    stream<Axis<8> > *siMPI_data
+    )
 {
   MPI_Init();
+  //MPI_Init(MMIO_out);
   //MPI_Init(&argc, &argv);
 
 
@@ -74,6 +76,7 @@ void app_main(
 
 
   MPI_Finalize();
+  //MPI_Finalize(MMIO_out);
 
   return;
 }
