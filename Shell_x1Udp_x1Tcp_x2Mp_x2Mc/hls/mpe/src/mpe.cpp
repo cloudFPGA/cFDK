@@ -235,7 +235,7 @@ void mpe_main(
 //#pragma HLS INTERFACE axis register both port=soMPIif
 #pragma HLS INTERFACE axis register both port=siMPI_data
 #pragma HLS INTERFACE axis register both port=soMPI_data
-#pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_none register port=sys_reset name=piSysReset
 #pragma HLS INTERFACE s_axilite port=return bundle=piSMC_MPE_ctrlLink_AXI
 
 //#pragma HLS RESOURCE variable=localMRT core=RAM_1P_BRAM //maybe better to decide automatic?
@@ -406,7 +406,8 @@ void mpe_main(
         handshakeLinesCnt--;
 
       }
-      if( handshakeLinesCnt <= 0)
+      //if( handshakeLinesCnt <= 0)
+      if( handshakeLinesCnt <= 0 || sFifoDataTX.empty())
       {
         fsmMpeState = WAIT4CLEAR;
       }
@@ -651,11 +652,11 @@ void mpe_main(
           
           //TODO 
           //header should have always full lines
-          if(tmp.tkeep != 0xff)
-          {
-            i--;
-            continue;
-          }
+          //if(tmp.tkeep != 0xff)
+          //{
+          //  i--;
+          //  continue;
+          //}
 
           for(int j = 0; j<8; j++)
           {
@@ -797,7 +798,8 @@ void mpe_main(
         handshakeLinesCnt--;
 
       }
-      if( handshakeLinesCnt <= 0)
+      //if( handshakeLinesCnt <= 0)
+      if( handshakeLinesCnt <= 0 || sFifoDataTX.empty())
       {
         fsmMpeState = RECV_DATA;
         //start subFSM
@@ -861,7 +863,7 @@ void mpe_main(
         handshakeLinesCnt--;
 
       }
-      if( handshakeLinesCnt <= 0)
+      if( handshakeLinesCnt <= 0 || sFifoDataTX.empty())
       {
         fsmMpeState = IDLE;
       }
