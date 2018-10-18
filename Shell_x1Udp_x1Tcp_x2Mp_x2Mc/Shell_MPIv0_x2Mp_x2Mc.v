@@ -1354,7 +1354,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //  INST: AXI4-STREAM REGISTER SLICE (ROLE <==> MPE)
   //============================================================================
   AxisRegisterSlice_64 ARS0 (
-    .aclk           (piTOP_156_25Clk),
+    .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
     .s_axis_tdata   (sDECOUP_ROLE_MPE_MPI_data_TDATA),
@@ -1371,7 +1371,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   );
 
   AxisRegisterSlice_64 ARS1 (
-    .aclk           (piTOP_156_25Clk),
+    .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From MPE
     .s_axis_tdata   (sMPE_ROLE_MPI_data_TDATA),
@@ -1388,7 +1388,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   );
   
   AxisRegisterSlice_64 ARS2 (
-    .aclk           (piTOP_156_25Clk),
+    .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
     .s_axis_tdata   (sDECOUP_ROLE_MPE_MPIif_in_mpi_call_TDATA),
@@ -1401,7 +1401,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   );
   
   AxisRegisterSlice_64 ARS3 (
-    .aclk           (piTOP_156_25Clk),
+    .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
     .s_axis_tdata   (sDECOUP_ROLE_MPE_MPIif_in_count_TDATA),
@@ -1414,7 +1414,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   );
   
   AxisRegisterSlice_64 ARS4 (
-    .aclk           (piTOP_156_25Clk),
+    .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
     .s_axis_tdata   (sDECOUP_ROLE_MPE_MPIif_in_rank_TDATA),
