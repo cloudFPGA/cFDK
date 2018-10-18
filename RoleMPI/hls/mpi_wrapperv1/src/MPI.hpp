@@ -70,6 +70,7 @@ struct MPI_Interface {
 
 //void MPI_Init(int* argc, char*** argv);
 void MPI_Init();
+//void MPI_Init(ap_uint<16> *MMIO_out);
 void MPI_Comm_rank(MPI_Comm communicator, int* rank);
 void MPI_Comm_size( MPI_Comm communicator, int* size);
 
@@ -102,6 +103,7 @@ void MPI_Recv(
 
 
 void MPI_Finalize();
+//void MPI_Finalize(ap_uint<16> *MMIO_out);
 
 //void MPI_Barrier(MPI_Comm communicator);
 

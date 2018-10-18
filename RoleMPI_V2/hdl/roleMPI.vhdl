@@ -182,6 +182,8 @@ entity Role_MPIv0_x2Mp is
     piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
     piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
     
+    piSMC_softReset                      : in    std_ulogic;
+    
     poVoid                              : out   std_ulogic
 
   );
