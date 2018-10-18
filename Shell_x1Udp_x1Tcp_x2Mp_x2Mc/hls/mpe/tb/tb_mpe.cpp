@@ -56,12 +56,12 @@ int main(){
 
   MPIif_in.write(info);
 
-  char* msg = "HELLO WORLD!";
+  char* msg = "HELLO WORLD! 1234";
 
-  for(int i = 0; i< 12; i++)
+  for(int i = 0; i< 17; i++)
   {
     tmp8.tdata = msg[i];
-    if(i == 11)
+    if(i == 16)
     {
       tmp8.tlast = 1; 
     } else {
@@ -251,7 +251,7 @@ int main(){
   //assert(info_out.count == info.count);
   //assert(info_out.rank == 1);
 
-  for(int i = 0; i< 12; i++)
+  for(int i = 0; i< 17; i++)
   {
     tmp8 = MPI_data_out.read();
     
@@ -260,7 +260,11 @@ int main(){
     mpe_main(sys_reset, MRT, storeData, siIP, soTcp, soIP, MPIif_in, MPI_data_in, MPI_data_out);
 
     // tlast => i=11 
-    assert( !(tmp8.tlast == 1) || i==11);
+    //assert( !(tmp8.tlast == 1) || i==11);
+    if(i == 16)
+    {
+      assert(tmp8.tlast == 1);
+    }
     assert(((int) tmp8.tdata) == msg[i]);
   }
   
