@@ -182,6 +182,8 @@ entity Role_MPIv0_x2Mp is
     ------------------------------------------------ 
     piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
     piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+
+    piSMC_softReset                      : in    std_ulogic;
     
     poVoid                              : out   std_ulogic
 
@@ -316,7 +318,8 @@ begin
   siMPI_data_tlast(0) <= piMPE_ROLE_MPI_data_TLAST;
   poROLE_MPE_MPI_data_TLAST <= soMPI_data_tlast(0);
   poROLE_MPE_MPI_data_TKEEP <= soMPI_data_tkeep(0);
-  reset_as_vector_i_hate_vivado_hls(0) <= piSHL_156_25Rst or piSHL_ROL_EMIF_2B_Reg(0);
+  --reset_as_vector_i_hate_vivado_hls(0) <= piSHL_156_25Rst or piSHL_ROL_EMIF_2B_Reg(0);
+  reset_as_vector_i_hate_vivado_hls(0) <= piSMC_softReset or piSHL_ROL_EMIF_2B_Reg(0);
   
   MPI_APP: mpi_wrapperv1
     port map (
