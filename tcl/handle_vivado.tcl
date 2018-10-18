@@ -683,7 +683,12 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     #if { ! ${create} } {
         catch {open_project ${xprDir}/${xprName}.xpr}
     #}
-  
+ 
+
+    if { $forceWithoutBB && $useMPI } { 
+      add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
+    }
+
     set_property needs_refresh false [get_runs synth_1]
     
     # Select a Strategy

@@ -89,3 +89,4 @@ set_property CONFIG_MODE BPI16 [current_design]
 #OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
 
 
+
