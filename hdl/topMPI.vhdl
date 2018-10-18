@@ -303,6 +303,8 @@ architecture structural of topFlash is
   ------------------------------------------------  
   signal sSMC_ROL_rank                      : std_logic_vector(31 downto 0);
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
+
+  signal sSMC_SoftReset                     : std_ulogic;
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -525,7 +527,8 @@ architecture structural of topFlash is
       -- ROLE <--> SMC 
       ------------------------------------------------------
       poSMC_ROLE_rank                     : out std_logic_vector(31 downto 0);
-      poSMC_ROLE_size                     : out std_logic_vector(31 downto 0)
+      poSMC_ROLE_size                     : out std_logic_vector(31 downto 0);
+      poSMC_softReset                     : out std_ulogic
     );
   --end component Shell_MPIv0_x2Mp_x2Mc;
   end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
@@ -668,6 +671,7 @@ architecture structural of topFlash is
         ------------------------------------------------ 
         piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
         piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+        piSMC_softReset                      : in    std_ulogic; 
           
         poVoid                              : out   std_ulogic          
       );
@@ -932,7 +936,8 @@ begin
       poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
       
       poSMC_ROLE_rank                     => sSMC_ROL_rank,
-      poSMC_ROLE_size                     => sSMC_ROL_size           
+      poSMC_ROLE_size                     => sSMC_ROL_size,
+      poSMC_softReset                     => sSMC_SoftReset
   );  -- End of SuperShell instantiation
 
 
@@ -1070,6 +1075,7 @@ begin
       ------------------------------------------------ 
       piSMC_ROLE_rank                     => sSMC_ROL_rank,
       piSMC_ROLE_size                     => sSMC_ROL_size,
+      piSMC_softReset                     => sSMC_SoftReset,
    
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
