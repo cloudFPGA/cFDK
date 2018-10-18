@@ -274,7 +274,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   // ROLE <--> SMC 
   //----------------------------------------------------
   output [31:0]  poSMC_ROLE_rank,
-  output [31:0]  poSMC_ROLE_size
+  output [31:0]  poSMC_ROLE_size,
+  output         poSMC_softReset
 );  // End of PortList
 
 
@@ -571,6 +572,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [31:0] sCASTOR_MMIO_XMEM_WData;
   wire [31:0] sCASTOR_ROLE_rank; 
   wire [31:0] sCASTOR_ROLE_size; 
+  wire        sCASTOR_softReset;
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MPE
@@ -1260,11 +1262,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .m_axi_poSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
     .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
     .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
-    .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
+    .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size),
+    .poSoftReset_V                       (sCASTOR_softReset)
   );
 
   assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
   assign poSMC_ROLE_size = sCASTOR_ROLE_size;
+  assign poSMC_softReset = sCASTOR_softReset;
 
 
   Decoupler DECOUP (
@@ -1428,7 +1432,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
     .ap_rst_n               (~ piTOP_156_25Rst),
-    .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V           (sCASTOR_softReset),
     .piSysReset_V_ap_vld    (1),
     .siTcp_TDATA        (sNTS_MPE_Tcp_TDATA),
     .siTcp_TVALID        (sNTS_MPE_Tcp_TVALID),

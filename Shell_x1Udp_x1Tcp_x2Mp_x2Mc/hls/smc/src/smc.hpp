@@ -53,6 +53,7 @@
 #define SWAP_N_SHIFT 16
 #define CHECK_PATTERN_SHIFT 13
 #define PARSE_HTTP_SHIFT 14
+#define SOFT_RST_SHIFT 2
 
 //XMEM
 #define LINES_PER_PAGE 32
@@ -122,6 +123,8 @@ void smc_main(
     ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+    // Soft Reset 
+    ap_uint<1> *setSoftReset,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //MPE 

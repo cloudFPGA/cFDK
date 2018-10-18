@@ -284,6 +284,8 @@ void smc_main(
     ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+    // Soft Reset 
+    ap_uint<1> *setSoftReset,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //MPE 
@@ -304,6 +306,7 @@ void smc_main(
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_ovld register port=cluster_size name=poSMC_to_ROLE_size
 #pragma HLS INTERFACE m_axi depth=16383 port=mpeCtrl bundle=poSMC_MPE_ctrlLink_AXI  //0x3fff - 0x2000
+#pragma HLS INTERFACE ap_ovld register port=setSoftReset name=poSoftReset 
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
@@ -374,6 +377,9 @@ void smc_main(
     clusterSize = 0;
     mpe_status_request_cnt = 0;
   }
+
+  // SOFT RESET 
+  *setSoftReset = (*MMIO_in >> SOFT_RST_SHIFT) & 0b1;
 
 //===========================================================
 // Start & Run Burst transfer; Manage Decoupling

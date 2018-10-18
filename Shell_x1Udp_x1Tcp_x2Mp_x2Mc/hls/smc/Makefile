@@ -1,10 +1,10 @@
 DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all sim cosim cosim_view
-all: smc_prj
+all: smc_prj/solution1/impl
 
 # TODO clean before rebuild seems to be necessary...
-smc_prj: $(DEPS) 
+smc_prj/solution1/impl: $(DEPS) 
 	rm -rf $@
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@touch $@
