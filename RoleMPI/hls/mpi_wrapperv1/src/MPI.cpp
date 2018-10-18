@@ -339,7 +339,7 @@ void mpi_wrapper(
     )
 {
 //#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS INTERFACE ap_none register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 //#pragma HLS INTERFACE ap_vld register port=MMIO_in name=piMMIO
 #pragma HLS INTERFACE ap_vld register port=role_rank_arg name=piSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_vld register port=cluster_size_arg name=piSMC_to_ROLE_size

@@ -209,6 +209,7 @@ architecture Flash of Role_MPIv0_x2Mp is
     ap_idle : OUT STD_LOGIC;
     ap_ready : OUT STD_LOGIC;
     piSysReset_V : IN STD_LOGIC_VECTOR (0 downto 0);
+    piSysReset_V_ap_vld : IN STD_LOGIC;
     piSMC_to_ROLE_rank_V : IN STD_LOGIC_VECTOR (31 downto 0);
     piSMC_to_ROLE_rank_V_ap_vld : IN STD_LOGIC;
     piSMC_to_ROLE_size_V : IN STD_LOGIC_VECTOR (31 downto 0);
@@ -327,6 +328,7 @@ begin
          --ap_idle     =>    ,
          --ap_ready     =>    ,
          piSysReset_V     =>  reset_as_vector_i_hate_vivado_hls,
+         piSysReset_V_ap_vld => '1',
          piSMC_to_ROLE_rank_V => piSMC_ROLE_rank,
          piSMC_to_ROLE_rank_V_ap_vld => '1',
          --piSMC_to_ROLE_rank_V_ap_vld => ap_start_emif,
