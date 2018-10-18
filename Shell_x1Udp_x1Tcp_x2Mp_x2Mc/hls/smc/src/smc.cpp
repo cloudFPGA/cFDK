@@ -292,7 +292,7 @@ void smc_main(
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
-#pragma HLS INTERFACE ap_none register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 #pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM

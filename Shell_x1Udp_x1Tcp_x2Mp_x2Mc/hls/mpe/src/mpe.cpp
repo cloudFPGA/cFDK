@@ -235,7 +235,7 @@ void mpe_main(
 //#pragma HLS INTERFACE axis register both port=soMPIif
 #pragma HLS INTERFACE axis register both port=siMPI_data
 #pragma HLS INTERFACE axis register both port=soMPI_data
-#pragma HLS INTERFACE ap_none register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 #pragma HLS INTERFACE s_axilite port=return bundle=piSMC_MPE_ctrlLink_AXI
 
 //#pragma HLS RESOURCE variable=localMRT core=RAM_1P_BRAM //maybe better to decide automatic?

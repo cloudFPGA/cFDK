@@ -1213,6 +1213,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //core should start immediately 
     .ap_start               (1),
     .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V_ap_vld   (1),
     .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
     //.poMMIO_V_ap_vld     ( ),
     .piMMIO_V              (sMMIO_CASTOR_4B_Reg),
@@ -1428,6 +1429,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- Global Reset used by the entire SHELL -------------
     .ap_rst_n               (~ piTOP_156_25Rst),
     .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V_ap_vld    (1),
     .siTcp_TDATA        (sNTS_MPE_Tcp_TDATA),
     .siTcp_TVALID        (sNTS_MPE_Tcp_TVALID),
     .siTcp_TREADY        (sNTS_MPE_Tcp_TREADY),

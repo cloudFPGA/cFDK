@@ -72,7 +72,8 @@ typedef ap_uint<16>     UdpPLen; // UDP Payload Length
 typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 
-#define DEFAULT_TX_PORT 80  //0x0050
+#define DEFAULT_TX_PORT 2718
+#define DEFAULT_RX_PORT 2718
 
 //enum FsmState {FSM_RESET=0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC} fsmState;
 //static enum FsmState {FSM_RST=0, FSM_ACC, FSM_LAST_ACC} fsmState;

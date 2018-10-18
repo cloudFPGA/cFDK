@@ -679,7 +679,8 @@ void udp_role_if_2 (
     case FSM_IDLE:
       if ( !soTHIS_Udmx_OpnReq.full() && openPortWaitTime == 0 ) {
         // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
-        soTHIS_Udmx_OpnReq.write(0x0050);
+        //soTHIS_Udmx_OpnReq.write(0x0050);
+        soTHIS_Udmx_OpnReq.write(DEFAULT_RX_PORT);
         fsmStateRX = FSM_W8FORPORT;
       }
       else
