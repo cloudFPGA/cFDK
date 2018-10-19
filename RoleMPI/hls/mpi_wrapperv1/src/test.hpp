@@ -6,9 +6,9 @@
 
 #include "MPI.hpp"
 
-#define DIM 4
-#define LDIMX 4
-#define LDIMY 3 // = DIM/2 + 1
+#define DIM 128
+#define LDIMX 128
+#define LDIMY 65 // = DIM/2 + 1
 
 
 
