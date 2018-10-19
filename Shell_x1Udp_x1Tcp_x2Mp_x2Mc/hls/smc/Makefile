@@ -8,6 +8,8 @@ smc_prj/solution1/impl: $(DEPS)
 	rm -rf $@
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../.ip_guard
+
 
 sim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl

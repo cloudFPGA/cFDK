@@ -11,6 +11,8 @@ mpe_prj/solution1/impl/ip: $(DEPS)
 	diff ./mpe_prj/solution1/impl/ip/drivers/mpe_main_v1_0/src/xmpe_main_hw.h ./ref/xmpe_main_hw.h
 	@/bin/echo -e "AXI4Lite Addresses checked: OK\n"
 	@touch $@
+	@touch ../../.ip_guard
+
 
 sim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl

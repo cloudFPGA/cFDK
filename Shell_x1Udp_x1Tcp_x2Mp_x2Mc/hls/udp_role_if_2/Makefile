@@ -28,6 +28,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../.ip_guard
+
 
 
 sim: clean

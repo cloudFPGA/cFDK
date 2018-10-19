@@ -28,6 +28,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../.ip_guard
+
 
 clean:
 	${RM} -rf ${ipName}_prj
