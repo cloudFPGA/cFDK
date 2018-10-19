@@ -14,6 +14,7 @@ ${ipName}_prj/solution1/impl/ip: $(DEPS)
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@#touch ${ipName}_prj
 	@touch $@
+	@touch ../../.ip_guard
 
 sim: 
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl

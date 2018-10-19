@@ -18,7 +18,8 @@
 
 #BROKEN? HLS_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
 
-HLS_DEPS := $(shell find ./hls/*/*_prj -maxdepth 0 -type d)
+#we need both types of directories to detect all possible reasons to re-run create_ip_cores.tcl
+HLS_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip ./hls/*/src/ -maxdepth 0 -type d)
 
 .PHONY: all clean hls_cores project
 
@@ -33,10 +34,16 @@ hls_cores:
 
 hls: hls_cores
 
-# the order of the dependencies is critical: here hls must be right of HLS_DEPS
-ip: ./tcl/create_ip_cores.tcl $(HLS_DEPS) hls ./ip/ip_user_files
+# We need ./.ip_guard to be touched by the hls ip core makefiles, because HLS_DEPS doesn't work. i
+# HLS_DEPS get's evaluated BEFORE the hls target get's executed, so if a hls core doesn't exist completly (e.g. after a clean)
+# the create_ip_cores.tcl will not be started. 
+# TODO: $(HLS_DEPS) obsolete?
+ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files ./.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 	@echo ------- DONE ------------------------------------- 
+	@touch $@
+
+.ip_guard: 
 	@touch $@
 
 # Create IP directory if it does not exist
