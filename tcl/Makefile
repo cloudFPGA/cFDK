@@ -113,7 +113,7 @@ full_src_pr_2_only_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_R
 ###########################################
 
 
-$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
+$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/* $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(XPR_PROJ) ../dcps/
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 monobasecmd: basecmd
