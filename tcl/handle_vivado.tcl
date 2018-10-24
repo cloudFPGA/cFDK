@@ -685,7 +685,7 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     #}
  
 
-    # TODO
+    # TODO DEBUG
     if { $forceWithoutBB && $useMPI } { 
       add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
     }
@@ -936,7 +936,13 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       open_run impl_1
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
-      #wait_on_run impl_1
+      #wait_on_run impl_1 
+
+      #TODO DEBUG
+      if { $useMPI } { 
+        write_debug_probes -force ${dcpDir}/5_${topName}_impl_RoleMPI_monolithic.ltx
+      }
+
     } else {
 
       #Partial bitstream can be instrumented with CRC values every frame, so any failures are detected *before* the bad frame can be loaded in configuration memory, then corrective/fallback measures can be taken.
