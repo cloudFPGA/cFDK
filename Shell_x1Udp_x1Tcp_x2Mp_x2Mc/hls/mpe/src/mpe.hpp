@@ -146,7 +146,8 @@ using namespace hls;
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
 #define MPE_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
-#define MPE_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS
+#define MPE_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS 
+#define MPE_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
 
  /*
   * ctrlLINK Structure:
@@ -182,6 +183,7 @@ using namespace hls;
 #define RX_IP_MISSMATCH 0x3 
 #define RX_WRONG_DST_RANK 0x4 
 #define RX_WRONG_DATA_TYPE 0x5
+#define RX_TIMEOUT 0x6
 
 
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb);
