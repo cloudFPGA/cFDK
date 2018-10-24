@@ -686,9 +686,9 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
  
 
     # TODO
-    #if { $forceWithoutBB && $useMPI } { 
-    #  add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
-    #}
+    if { $forceWithoutBB && $useMPI } { 
+      add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
+    }
 
     set_property needs_refresh false [get_runs synth_1]
     
