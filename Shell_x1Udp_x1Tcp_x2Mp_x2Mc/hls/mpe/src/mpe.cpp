@@ -1027,7 +1027,7 @@ void mpe_main(
   // MPI RX PATH
   //{
   //#pragma HLS DATAFLOW 
-#pragma HLS STREAM variable=sFifoDataRX depth=2048
+#pragma HLS STREAM variable=sFifoDataRX depth=4096
 
   switch(fsmReceiveState) { 
     case READ_STANDBY:
