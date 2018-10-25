@@ -120,7 +120,8 @@ monobasecmd: basecmd
 	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 
 monofinalcmd: 
-	@more +2 .vivado_basecmd.sh
+	@#more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
 	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
