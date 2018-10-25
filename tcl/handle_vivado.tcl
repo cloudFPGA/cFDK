@@ -685,10 +685,10 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     #}
  
 
-    # TODO DEBUG
-    if { $forceWithoutBB && $useMPI } { 
-      add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
-    }
+    ## TODO DEBUG
+    #if { $forceWithoutBB && $useMPI } { 
+    #  add_files -fileset constrs_1 ${xdcDir}/mpi_debug.xdc
+    #}
 
     set_property needs_refresh false [get_runs synth_1]
     
@@ -938,10 +938,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
       #wait_on_run impl_1 
 
-      #TODO DEBUG
-      if { $useMPI } { 
-        write_debug_probes -force ${dcpDir}/5_${topName}_impl_RoleMPI_monolithic.ltx
-      }
+      ##TODO DEBUG
+      #if { $useMPI } { 
+      #  write_debug_probes -force ${dcpDir}/5_${topName}_impl_RoleMPI_monolithic.ltx
+      #}
 
     } else {
 
