@@ -56,12 +56,12 @@ clean:
 
 
 basecmd:
-	@/bin/echo -e '#!/bin/bash\nlength=$$(cat $$0 | grep -v "only" | grep -v "useMPI" | grep -v "vivado" | grep -v "incr" | grep -v "bash" | grep -v "date" | grep -v "echo" | grep -v "grep" | grep -v "more" | wc -l)\nif [  $$length -lt 10 ]; then\n\techo "handle_vivado.tcl: Nothing to do for target. Stop."\nelse\nmore +7 $$0| head -n5 \nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\' > .vivado_basecmd.sh
+	@/bin/echo -e '#!/bin/bash\nlength=$$(cat $$0 | grep -v "only" | grep -v "useMPI" | grep -v "vivado" | grep -v "incr" | grep -v "bash" | grep -v "date" | grep -v "echo" | grep -v "grep" | grep -v "more" | wc -l)\nif [  $$length -lt 12 ]; then\n\techo "handle_vivado.tcl: Nothing to do for target. Stop."\nelse\nmore +7 $$0| head -n9 \nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\' > .vivado_basecmd.sh
 	@/bin/echo -e $(shell date) > start.date
 
 finalcmd:
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
