@@ -25,7 +25,7 @@ packetType currentPacketType = ERROR;
 mpiType currentDataType = MPI_INT;
 int handshakeLinesCnt = 0;
 
-ap_uint<32> read_timeout_cnt = 0;
+//ap_uint<32> read_timeout_cnt = 0;
 
 /*
 ap_uint<32> littleEndianToInteger(ap_uint<8> *buffer, int lsb)
@@ -273,7 +273,7 @@ void mpe_main(
     currentPacketType = ERROR;
     currentDataType = MPI_INT;
     handshakeLinesCnt = 0;
-    read_timeout_cnt = 0;
+    //read_timeout_cnt = 0;
 
   }
 
@@ -1027,7 +1027,7 @@ void mpe_main(
   // MPI RX PATH
   //{
   //#pragma HLS DATAFLOW 
-#pragma HLS STREAM variable=sFifoDataRX depth=4096
+#pragma HLS STREAM variable=sFifoDataRX depth=2048
 
   switch(fsmReceiveState) { 
     case READ_STANDBY:
@@ -1120,7 +1120,7 @@ void mpe_main(
         if((currentDataType == MPI_INT && header.call != MPI_SEND_INT) || (currentDataType == MPI_FLOAT && header.call != MPI_SEND_FLOAT))
         {
           printf("receiver expects different data type: %d.\n", header.call);
-          //fsmMpeState = IDLE;
+          fsmMpeState = IDLE;
           fsmReceiveState = READ_ERROR; //to clear streams?
           status[MPE_STATUS_READ_ERROR_CNT]++;
           status[MPE_STATUS_LAST_READ_ERROR] = RX_WRONG_DST_RANK;
@@ -1138,7 +1138,7 @@ void mpe_main(
         soMPIif.write(info);*/
 
         fsmReceiveState = READ_DATA;
-        read_timeout_cnt = 0;
+        //read_timeout_cnt = 0;
       }
       break; 
 
@@ -1166,15 +1166,15 @@ void mpe_main(
           fsmReceiveState = READ_STANDBY;
         }
       }
-      read_timeout_cnt++;
-      if(read_timeout_cnt >= MPE_READ_TIMEOUT)
-      {
-          //fsmReceiveState = READ_ERROR; //to clear streams?
-          fsmReceiveState = READ_STANDBY;
-          status[MPE_STATUS_READ_ERROR_CNT]++;
-          status[MPE_STATUS_LAST_READ_ERROR] = RX_TIMEOUT;
+      //read_timeout_cnt++;
+      //if(read_timeout_cnt >= MPE_READ_TIMEOUT)
+      //{
+      //    //fsmReceiveState = READ_ERROR; //to clear streams?
+      //    fsmReceiveState = READ_STANDBY;
+      //    status[MPE_STATUS_READ_ERROR_CNT]++;
+      //    status[MPE_STATUS_LAST_READ_ERROR] = RX_TIMEOUT;
 
-      }
+      //}
       break;
 
     case READ_ERROR: 
