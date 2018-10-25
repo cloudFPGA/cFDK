@@ -7,9 +7,9 @@
 
 #define USE_INTEGER
 
-#define DIM 64
-#define LDIMX 64
-#define LDIMY 4
+#define DIM 256
+#define LDIMX 256
+#define LDIMY 16
 
 #define PACKETLENGTH 256
 #define CORNER_VALUE_INT 128
