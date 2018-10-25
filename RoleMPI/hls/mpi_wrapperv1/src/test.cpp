@@ -1,85 +1,81 @@
 
+#include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <math.h>
-
-#include "test.hpp"
 #include "MPI.hpp"
+#include "test.hpp"
 
 
-//for debugging
-/*
-   void print_int_array(const int *A, size_t width, size_t height)
-   {
-   printf("\n");
-   for(size_t i = 0; i < height; ++i)
-   {
-   for(size_t j = 0; j < width; ++j)
-   {
-   printf("%d ", A[i * width + j]);
-   }
-   printf("\n");
-   }
-   printf("\n");
-   }
-   */
 
-
-//int main( int argc, char **argv )
-//DUE TO SHITTY HLS...
-//void app_main()
-void app_main(
+int app_main(
     // ----- MPI_Interface -----
-    //ap_uint<16> *MMIO_out,
     stream<MPI_Interface> *soMPIif,
     stream<Axis<8> > *soMPI_data,
     stream<Axis<8> > *siMPI_data
     )
 {
-  MPI_Init();
-  //MPI_Init(MMIO_out);
-  //MPI_Init(&argc, &argv);
-
-
   int        rank, size;
   MPI_Status status;
 
+  MPI_Init();
 
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
   MPI_Comm_size( MPI_COMM_WORLD, &size );
 
-  //Slaves ...
 
   printf("Here is rank %d, size is %d. \n",rank, size);
 
-  int local_grid[LDIMY][LDIMX];
-  int local_new[LDIMY][LDIMX];
 
-  MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+    int local_grid[LDIMY][LDIMX];
+    int local_new[LDIMY][LDIMX];
 
-  // print_int_array((const int*) local_grid, LDIMX, LDIMY);
+    //MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+    //int number_of_recv_packets = LDIMY + 1; 
+    //if(rank == size -1)
+    //{
+    //  number_of_recv_packets--;
+    //}
 
-  //only one iteration for now
-  //treat all borders equal, the additional lines in the middle are cut out from the merge at the server
-  for(int i = 1; i<LDIMY-1; i++)
-  {
-    for(int j = 1; j<LDIMX-1; j++)
+    //for(int j = 0; j< LDIMY; j++)
+    //{
+      //if(j == number_of_recv_packets)
+      //{
+      //  break;
+      //}
+      MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+    //}
+
+    // print_int_array((const int*) local_grid, LDIMX, LDIMY);
+
+    //only one iteration for now
+    //treat all borders equal, the additional lines in the middle are cut out from the merge at the server
+    for(int i = 1; i < LDIMY - 1; i++)
     {
-      local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
+      //if(i == number_of_recv_packets)
+      //{
+      //  break;
+      //}
+      for(int j = 1; j<LDIMX-1; j++)
+      {
+        local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
+      }
     }
-  }
-  MPI_Send(soMPIif, soMPI_data, &local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+    //MPI_Send(soMPIif, soMPI_data, &local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+    //for(int j = 0; j< LDIMY; j++)
+    //{
+      //if(j == number_of_recv_packets)
+      //{
+      //  break;
+      //}
+      MPI_Send(soMPIif, soMPI_data, &local_new[0][0], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+    //}
 
-  //print_int_array((const int*) local_new, LDIMX, LDIMY);
+    //print_int_array((const int*) local_new, LDIMX, LDIMY);
 
-  printf("Calculation finished.\n");
-
+    //printf("Calculation finished.\n");
 
   MPI_Finalize();
-  //MPI_Finalize(MMIO_out);
-
-  return;
+  return 0;
 }
-
 
 
