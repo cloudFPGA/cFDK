@@ -5,9 +5,11 @@
 #include <stdio.h>
 #include "MPI.hpp"
 
-#define DIM 4
-#define LDIMX 4
-#define LDIMY 3 // = DIM/2 + 1
+#define USE_INTEGER
+
+#define DIM 64
+#define LDIMX 64
+#define LDIMY 4
 
 #define PACKETLENGTH 256
 #define CORNER_VALUE_INT 128
