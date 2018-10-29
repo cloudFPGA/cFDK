@@ -462,9 +462,9 @@ module NetworkTransportSession_TcpIp (
   wire          sTOE_Cam_LkpReq_Axis_tvalid;
   wire          sCAM_Toe_LkpReq_Axis_tready;
   //-- TOE ==> CAM / UpdateRequest / Axis
-  wire  [111:0] sTOE_Cam_Updreq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
-  wire          sTOE_Cam_Updreq_Axis_tvalid;
-  wire          sCAM_Toe_Updreq_Axis_tready;
+  wire  [111:0] sTOE_Cam_UpdReq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
+  wire          sTOE_Cam_UpdReq_Axis_tvalid;
+  wire          sCAM_Toe_UpdReq_Axis_tready;
  
   //------------------------------------------------------------------
   //-- CAM = TOE-CAM
@@ -851,7 +851,12 @@ module NetworkTransportSession_TcpIp (
   
     .aclk                               (piShlClk),
     .aresetn                            (~piShlRst),
-   
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_This_IpAddr_V               (piMMIO_Nts0_IpAddress),
+                        
     //------------------------------------------------------
     //-- From IPRX / IP Rx Data Interface
     //------------------------------------------------------
@@ -1021,35 +1026,34 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Mem_TxP_Data_TVALID         (poNTS0_Mem_TxP_Axis_Data_tvalid),
 
     //------------------------------------------------------
-    //-- From CAM Interfaces
+    //-- From CAM / Session Lookup & Update Interfaces
     //------------------------------------------------------
     //-- CAM / This / LookupReply / Axis
-    .s_axis_session_lup_rsp_TDATA       (sCAM_Toe_LkpRpl_Axis_tdata),
-    .s_axis_session_lup_rsp_TVALID      (sCAM_Toe_LkpRpl_Axis_tvalid),
-    .s_axis_session_lup_rsp_TREADY      (sTOE_Cam_LkpRpl_Axis_tready),
+    .siCAM_This_SssLkpRpl_TDATA         (sCAM_Toe_LkpRpl_Axis_tdata),
+    .siCAM_This_SssLkpRpl_TVALID        (sCAM_Toe_LkpRpl_Axis_tvalid),
+    .siCAM_This_SssLkpRpl_TREADY        (sTOE_Cam_LkpRpl_Axis_tready),
     //-- CAM / This / UpdateReply /Axis
-    .s_axis_session_upd_rsp_TDATA       (sCAM_Toe_UpdRpl_Axis_tdata),
-    .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
-    .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
+    .siCAM_This_SssUpdRpl_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
+    .siCAM_This_SssUpdRpl_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .siCAM_This_SssUpdRpl_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
 
-                        
     //------------------------------------------------------
     //-- To CAM Interfaces
     //------------------------------------------------------
     //-- THIS / Cam / LookupRequest / Axis
-    .m_axis_session_lup_req_TREADY      (sCAM_Toe_LkpReq_Axis_tready),
-    .m_axis_session_lup_req_TDATA       (sTOE_Cam_LkpReq_Axis_tdata),
-    .m_axis_session_lup_req_TVALID      (sTOE_Cam_LkpReq_Axis_tvalid),
+    .soTHIS_Cam_SssLkpReq_TREADY        (sCAM_Toe_LkpReq_Axis_tready),
+    .soTHIS_Cam_SssLkpReq_TDATA         (sTOE_Cam_LkpReq_Axis_tdata),
+    .soTHIS_Cam_SssLkpReq_TVALID        (sTOE_Cam_LkpReq_Axis_tvalid),
     //-- THIS / Cam / UpdateRequest / Axis
-    .m_axis_session_upd_req_TREADY      (sCAM_Toe_Updreq_Axis_tready),
-    .m_axis_session_upd_req_TDATA       (sTOE_Cam_Updreq_Axis_tdata),
-    .m_axis_session_upd_req_TVALID      (sTOE_Cam_Updreq_Axis_tvalid),
-    
-    // Debug signals //
-    ////////////////////
-    .regIpAddress_V                     (piMMIO_Nts0_IpAddress),
-    .relSessionCount_V                  (),                       // [FIXME] was (relSessionCount)
-    .regSessionCount_V                  ()                        // [FIXME] was (relSessionCount)
+    .soTHIS_Cam_SssUpdReq_TREADY        (sCAM_Toe_UpdReq_Axis_tready),
+    .soTHIS_Cam_SssUpdReq_TDATA         (sTOE_Cam_UpdReq_Axis_tdata),
+    .soTHIS_Cam_SssUpdReq_TVALID        (sTOE_Cam_UpdReq_Axis_tvalid),
+
+    //------------------------------------------------------
+    //-- To DEBUG / Session Statistics Interfaces
+    //------------------------------------------------------
+    .poTHIS_Dbg_SssRelCnt_V             (),
+    .poTHIS_Dbg_SssRegCnt_V             ()
 
   );  // End of TOE
   
@@ -1223,9 +1227,9 @@ module NetworkTransportSession_TcpIp (
     .lup_req_valid                (sTOE_Cam_LkpReq_Axis_tvalid),
     .lup_req_ready                (sCAM_Toe_LkpReq_Axis_tready),
     //-- TOE / This / UpdateRequest / Axis
-    .upd_req_din                  (sTOE_Cam_Updreq_Axis_tdata),
-    .upd_req_valid                (sTOE_Cam_Updreq_Axis_tvalid),
-    .upd_req_ready                (sCAM_Toe_Updreq_Axis_tready),
+    .upd_req_din                  (sTOE_Cam_UpdReq_Axis_tdata),
+    .upd_req_valid                (sTOE_Cam_UpdReq_Axis_tvalid),
+    .upd_req_ready                (sCAM_Toe_UpdReq_Axis_tready),
     
     //------------------------------------------------------
     //-- To TOE Interfaces

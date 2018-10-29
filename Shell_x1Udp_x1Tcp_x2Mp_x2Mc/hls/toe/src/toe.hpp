@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * @file       : toe.hpp
+ * @brief      : TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *                   TCP offload engine.
+ *
+ *****************************************************************************/
+
 #ifndef TOE_H_
 #define TOE_H_
 
@@ -113,6 +131,29 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
     return (ap_int<32>)(seq1-seq2) < 0;
 }
 #define after(seq2, seq1)       before(seq1, seq2)
+
+
+
+
+/********************************************
+ * Generic IP4 Type Definitions
+ ********************************************/
+typedef ap_uint<16> Ip4TotLen; 	// IPv4 Total Length
+
+
+/********************************************
+ * Generic TCP Type Definitions
+ ********************************************/
+typedef ap_uint<16> TcpSessId;	// TCP Session ID
+typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
+
+
+
+
+
+
+
+
 
 struct axiWord
 {
@@ -543,6 +584,13 @@ ap_uint<4> keepMapping(ap_uint<8> keepValue);       // This function counts the 
 template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T>& out);
 
 void toe(
+
+	    //------------------------------------------------------
+	    //-- From MMIO Interfaces
+	    //------------------------------------------------------
+		ap_uint<32>                         piMMIO_This_IpAddr,
+
+
 		//------------------------------------------------------
 	    //-- IPRX / This / IP Rx / Data Interface
 	    //------------------------------------------------------
@@ -602,31 +650,18 @@ void toe(
 		stream<mmCmd>                      	&soTHIS_Mem_TxP_WrCmd,
 		stream<axiWord>                    	&soTHIS_Mem_TxP_Data,
 
-		// SmartCam Interface
-		stream<rtlSessionLookupReply>&          sessionLookup_rsp,
-		stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
-		stream<rtlSessionLookupRequest>&        sessionLookup_req,
-		stream<rtlSessionUpdateRequest>&        sessionUpdate_req,
-		// Application Interface
-		//OBSOLETE	stream<ap_uint<16> >&                   listenPortReq,
-		// This is disabled for the time being, due to complexity concerns
-		//stream<ap_uint<16> >&                     		appClosePortIn,
-		//OBSOLETE  stream<appReadRequest>&                 rxDataReq,
-		//OBSOLETE	stream<ipTuple>&                        openConnReq,
-		//OBSOLETE	stream<ap_uint<16> >&                   closeConnReq,
-		//OBSOLETE	stream<ap_uint<16> >&                   txDataReqMeta,
-		//OBSOLETE	stream<axiWord>&                        txDataReq,
+	    //------------------------------------------------------
+	    //-- CAM / This / Session Lookup & Update Interfaces
+	    //------------------------------------------------------
+		stream<rtlSessionLookupReply>      	&siCAM_This_SssLkpRpl,
+		stream<rtlSessionUpdateReply>      	&siCAM_This_SssUpdRpl,
+		stream<rtlSessionLookupRequest>    	&soTHIS_Cam_SssLkpReq,
+		stream<rtlSessionUpdateRequest>    	&soTHIS_Cam_SssUpdReq,
 
-		//OBSOLETE	stream<bool>&                           listenPortRsp,
-		//OBSOLETE	stream<appNotification>&                notification,
-		//OBSOLETE  stream<ap_uint<16> >&                   rxDataRspMeta,
-		//OBSOLETE  stream<axiWord>&                        rxDataRsp,
-		//OBSOLETE	stream<openStatus>&                     openConnRsp,
-		//OBSOLETE  stream<ap_int<17> >&                    txDataRsp,
-		//IP Address Input
-		ap_uint<32>                             regIpAddress,
-		//statistic
-		ap_uint<16>&                            relSessionCount,
-		ap_uint<16>&                            regSessionCount);
+		//------------------------------------------------------
+		//-- DEBUG / Session Statistics Interfaces
+		//------------------------------------------------------
+		ap_uint<16>                        	&poTHIS_Dbg_SssRelCnt,
+		ap_uint<16>                        	&poTHIS_Dbg_SssRegCnt);
 
 #endif

@@ -1,92 +1,184 @@
+/*****************************************************************************
+ * @file       : rx_engine.cpp
+ * @brief      : Rx Engine (RXE) of the TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    :
+ * @note       :
+ * @remark     :
+ * @warning    :
+ * @todo       :
+ *
+ * @see        :
+ *
+ *****************************************************************************/
+
 #include "rx_engine.hpp"
+
+#define THIS_NAME "RXE"
 
 using namespace hls;
 
-/** @ingroup rx_engine
- * Extracts tcpLength from IP header, removes the header and prepends the IP addresses to the payload,
- * such that the output can be used for the TCP pseudo header creation
- * The TCP length is computed from the total length and the IP header length
- * @param[in]       dataIn, incoming data stream
- * @param[out]      dataOut, outgoing data stream
- * @param[out]      tcpLenFifoOut, the TCP length is stored into this FIFO
- * @TODO maybe compute TCP length in another way!!
- */
-void rxTcpLengthExtract(stream<axiWord>&            dataIn,
-                        stream<axiWord>&            dataOut,
-                        stream<ap_uint<16> >&       tcpLenFifoOut)
-{
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
+#define DEBUG_TRACE true
 
-    static ap_uint<8> tle_ipHeaderLen = 0;
-    static ap_uint<16> tle_ipTotalLen = 0;
-    static ap_uint<4> tle_wordCount = 0;
-    static bool tle_insertWord = false;
-    static bool tle_wasLast = false;
-    static bool tle_shift = true;
-    static axiWord tle_prevWord;
-    axiWord sendWord;
+
+/*****************************************************************************
+ * @brief Prints one chunk of a data stream (used for debugging).
+ *
+ * @param[out] myName,		the name of my process (e.g. "TLE").
+ * @param[out] chunk, 		the data stream chunk to display.
+ *****************************************************************************/
+void printChunk (const char *myName, axiWord chunk)
+{
+	if (DEBUG_TRACE)
+		printf("[%s/%s] data chunk = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+				THIS_NAME, myName,
+				chunk.data.to_ulong(), chunk.keep.to_int(), chunk.last.to_int());
+}
+
+
+/*****************************************************************************
+ * @brief TCP length extraction (Tle).
+ *
+ * @param[in]  siIPRX_Data,	IP4 data stream form IPRX.
+ * @param[out] soData,      The resulting data stream.
+ * @param[out] soIp4TotLen	The length of the IPv4 datagram in octets.
+ *
+ * @details
+ *   This is the process that handles the incoming data stream from the IPRX.
+ *   It extracts the TCP length field from the IP header, removes that IP header
+ * 	 but keeps the IP source and destination addresses in front of the TCP header
+ * 	 so that the output can be used for the TCP pseudo header creation. The TCP
+ * 	 length is computed from the total length and the IP header length.
+ *
+ *   The format of an incoming IPv4 datagram is as follows:
+ *
+ *         6                   5                   4                   3                   2                   1                   0
+ *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |      Fragment Offset    |Flags|         Identification        |          Total Length         |Type of Service|  IHL  |Version|
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |       Destination Port        |          Source Port          |                    Destination Address                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                    Acknowledgment Number                      |                        Sequence Number                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               |                               |                               |F|S|R|P|A|U|           |  Data |
+ *  |         Urgent Pointer        |           Checksum            |            Window             |I|Y|S|S|C|R| Reserved  | Offset|
+ *  |                               |                               |                               |N|N|T|H|K|G|           |       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                             data                                                              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *	The format of the outgoing IP datagram is the following:
+ *
+ *         6                   5                   4                   3                   2                   1                   0
+ *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                    Destination Address                        |                      Source Address                           |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                      0x0000000000000000                                                       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                        Sequence Number                        |       Destination Port        |          Source Port          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               |F|S|R|P|A|U|           |  Data |                                                               |
+ *  |            Window             |I|Y|S|S|C|R| Reserved  | Offset|                    Acknowledgment Number                      |
+ *  |                               |N|N|T|H|K|G|           |       |                                                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                               |                               |                               |
+ *  |                              data                             |         Urgent Pointer        |           Checksum            |
+ *  |                                                               |                               |                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               NU                              |                             data                              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *
+ * @ingroup rx_engine
+ ******************************************************************************/
+void pTcpLengthExtract(
+		stream<axiWord>		&siIPRX_Data,
+		stream<axiWord>		&soData,
+		stream<Ip4TotLen>	&soIp4TotLen)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
+
+    static ap_uint<8> 	tle_ipHeaderLen = 0;
+    static ap_uint<16> 	tle_ipTotalLen  = 0;
+    static ap_uint<4> 	tle_wordCount   = 0;
+    static bool 		tle_insertWord  = false;
+    static bool 		tle_wasLast     = false;
+    static bool 		tle_shift       = true;
+    static axiWord 		tle_prevWord;
+    axiWord 			sendWord;
+
+    const char *myName = "Tle";
 
     if (tle_insertWord) {
         sendWord = axiWord(0, 0xFF, 0);
-        dataOut.write(sendWord);
+        soData.write(sendWord);
         tle_insertWord = false;
+        printChunk(myName, sendWord);
     }
-    else if (!dataIn.empty() && !tle_wasLast) {
-        axiWord currWord = dataIn.read();
+    else if (!siIPRX_Data.empty() && !tle_wasLast) {
+        axiWord currWord = siIPRX_Data.read();
         switch (tle_wordCount) {
         case 0:
-            tle_ipHeaderLen = currWord.data(3, 0);
-            tle_ipTotalLen = byteSwap16(currWord.data(31, 16));
-            tle_ipTotalLen -= (tle_ipHeaderLen * 4);
-            tle_ipHeaderLen -= 2;
+            tle_ipHeaderLen  = currWord.data(3, 0);
+            tle_ipTotalLen   = byteSwap16(currWord.data(31, 16));
+            tle_ipTotalLen  -= (tle_ipHeaderLen * 4);
+            tle_ipHeaderLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 1:
-            // Get source IP address -> is put into prevWord
-            tcpLenFifoOut.write(tle_ipTotalLen); // Write length
-            tle_ipHeaderLen -= 2;
+        	// Forward the IP total length to 'pInsertPseudoHeader'
+            soIp4TotLen.write(tle_ipTotalLen);
+            tle_ipHeaderLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 2:
             // Get destination IP address
-            sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)), (currWord.keep(3, 0), tle_prevWord.keep(7, 4)), (currWord.keep[4] == 0));
-            //sendWord.data(31, 0) = tle_prevWord.data(63, 32);
-            //sendWord.keep(3, 0) = tle_prevWord.keep(7, 4);
-            //sendWord.data(63, 32) = currWord.data(31, 0);
-            //sendWord.keep(7, 4) = currWord.keep(3, 0);
-            //sendWord.last = currWord.last;
-            //sendWord.last = (currWord.keep[4] == 0);
-            dataOut.write(sendWord);
-            tle_ipHeaderLen -= 1;
+        	// Warning, half of this address is now in 'prevWord'
+            sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
+            				   (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
+							   (currWord.keep[4] == 0));
+            soData.write(sendWord);
+            tle_ipHeaderLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
+            printChunk(myName, sendWord);
             break;
         case 3:
             switch (tle_ipHeaderLen) {
-            case 0: //half of prevWord contains valuable data and currWord is full of valuable
-                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)), (currWord.keep(3, 0), tle_prevWord.keep(7, 4)), (currWord.keep[4] == 0));
-                //sendWord.data(31, 0) = tle_prevWord.data(63, 32);
-                //sendWord.keep(3, 0) = tle_prevWord.keep(7, 4);
-                //sendWord.data(63, 32) = currWord.data(31, 0);
-                //sendWord.keep(7, 4) = currWord.keep(3, 0);
-                //sendWord.last = currWord.last;
-                //sendWord.last = (currWord.keep[4] == 0);
-                dataOut.write(sendWord);
-                //printWord(sendWord);
+            case 0: // Half of prevWord contains valuable data and currWord is full of valuable
+                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
+                		           (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
+								   (currWord.keep[4] == 0));
+                soData.write(sendWord);
                 tle_shift = true;
                 tle_ipHeaderLen = 0;
                 tle_wordCount++;
+                printChunk(myName, sendWord);
                 break;
-            case 1: //prevWord contains shitty data, but currWord is valuable
+            case 1: // The prevWord contains garbage data, but currWord is valuable
                 sendWord = currWord;
-                dataOut.write(sendWord);
-                //printWord(sendWord);
+                soData.write(sendWord);
                 tle_shift = false;
                 tle_ipHeaderLen = 0;
                 tle_wordCount++;
+                printChunk(myName, sendWord);
                 break;
-            default: //prevWord contains shitty data, currWord at least half shitty
+            default: // The prevWord contains garbage data, currWord at least half garbage
                 //Drop this shit
                 tle_ipHeaderLen -= 2;
                 break;
@@ -94,107 +186,153 @@ void rxTcpLengthExtract(stream<axiWord>&            dataIn,
             break;
         default:
             if (tle_shift) {
-                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)), (currWord.keep(3, 0), tle_prevWord.keep(7, 4)), (currWord.keep[4] == 0));
-                //sendWord.data(31, 0) = tle_prevWord.data(63, 32);
-                //sendWord.keep(3, 0) = tle_prevWord.keep(7, 4);
-                //sendWord.data(63, 32) = currWord.data(31, 0);
-                //sendWord.keep(7, 4) = currWord.keep(3, 0);
-                //sendWord.last = (currWord.keep[4] == 0);
-                dataOut.write(sendWord);
+                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
+                		           (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
+								   (currWord.keep[4] == 0));
+                soData.write(sendWord);
+                printChunk(myName, sendWord);
             }
             else {
                 sendWord = currWord;
-                dataOut.write(sendWord);
+                soData.write(sendWord);
+                printChunk(myName, sendWord);
             }
             break;
-        } //switch on WORD_N
+
+        } // End of: switch (tle_wordCount)
+
         tle_prevWord = currWord;
         if (currWord.last) {
             tle_wordCount = 0;
             tle_wasLast = !sendWord.last;
         }
-    } // if !empty
+
+    } // End of: else if (!siIPRX_Data.empty() && !tle_wasLast) {
+
     else if (tle_wasLast) { //Assumption has to be shift
-        // Send remainng data
+        // Send remaining data
         axiWord sendWord = axiWord(0, 0, 1);
         sendWord.data(31, 0) = tle_prevWord.data(63, 32);
-        sendWord.keep(3, 0) = tle_prevWord.keep(7, 4);
-        dataOut.write(sendWord);
+        sendWord.keep( 3, 0) = tle_prevWord.keep( 7,  4);
+        soData.write(sendWord);
         tle_wasLast = false;
+        printChunk(myName, sendWord);
     }
 }
 
-/** @ingroup rx_engine
- * Constructs the TCP pseudo header and prepends it to the TCP payload
- * @param[in]   dataIn, incoming Axi-Stream
- * @param[in]   tcpLenFifoIn, FIFO containing the TCP length of the current packet
- * @param[out]  dataOut, outgoing Axi-Stream
- */
-void rxInsertPseudoHeader(stream<axiWord>&              dataIn,
-                            stream<ap_uint<16> >&       tcpLenFifoIn,
-                            stream<axiWord>&            dataOut) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
 
-    static bool iph_wasLast = false;
-    static ap_uint<2> iph_wordCount = 0;
-    axiWord currWord, sendWord;
-    static axiWord iph_prevWord;
-    ap_uint<1> valid;
-    ap_uint<16> tcpLen;
+/*****************************************************************************
+ * @brief TCP insert pseudo header (Iph).
+ *
+ * @param[in]  siTle_Data,	Data stream from TCP Length Extraction.
+ * @param[in]  siTle_DLen	The length of the incoming datagram in octets.
+ * @param[out] soData,      The outgoing data stream.
+ *
+ * @details
+ *	Constructs a TCP pseudo header and prepends it to the TCP payload.
+ *
+ *	The format of the incoming IP datagram is as follows:
+ *
+ *         6                   5                   4                   3                   2                   1                   0
+ *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                    Destination Address                        |                      Source Address                           |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                      0x0000000000000000                                                       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                        Sequence Number                        |       Destination Port        |          Source Port          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               |F|S|R|P|A|U|           |  Data |                                                               |
+ *  |            Window             |I|Y|S|S|C|R| Reserved  | Offset|                    Acknowledgment Number                      |
+ *  |                               |N|N|T|H|K|G|           |       |                                                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                               |                               |                               |
+ *  |                              data                             |         Urgent Pointer        |           Checksum            |
+ *  |                                                               |                               |                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               NU                              |                             data                              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *	The format of the outgoing pseudo header is as follows:
+ *
+ *         6                   5                   4                   3                   2                   1                   0
+ *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                    Destination Address                        |                      Source Address                           |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *
+ *
+ *
+ *
+ *
+ * @ingroup rx_engine
+ ******************************************************************************/
+void pInsertPseudoHeader(
+		stream<axiWord>		&siTle_Data,
+		stream<Ip4TotLen>	&siTle_DLen,
+		stream<axiWord>		&soData)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
+
+    static bool 		iph_wasLast = false;
+    static ap_uint<2> 	iph_wordCount = 0;
+    axiWord 			currWord, sendWord;
+    static axiWord 		iph_prevWord;
+    ap_uint<1> 			valid;
+    Ip4TotLen 			datagramLen;
 
     currWord.last = 0;
-    if (iph_wasLast)
-    {
-        sendWord.data(31,0) = iph_prevWord.data(63,32);
-        sendWord.keep(3, 0) = iph_prevWord.keep(7,4);
-        sendWord.keep(7, 4) = 0x0;
+
+    if (iph_wasLast) {
+    	sendWord.data(31, 0) = iph_prevWord.data(63,32);
+        sendWord.keep( 3, 0) = iph_prevWord.keep(7,4);
+        sendWord.keep( 7, 4) = 0x0;
         sendWord.last = 0x1;
-        dataOut.write(sendWord);
+        soData.write(sendWord);
         iph_wasLast = false;
     }
-    else if(!dataIn.empty())
-    {
-        switch (iph_wordCount)
-        {
-        case 0:
-            dataIn.read(currWord);
+    else if(!siTle_Data.empty()) {
+    	switch (iph_wordCount) {
+    	case 0:
+            siTle_Data.read(currWord);
             iph_wordCount++;
             break;
         case 1:
-            dataIn.read(currWord);
+            siTle_Data.read(currWord);
             sendWord = iph_prevWord;
-            dataOut.write(sendWord);
+            // Forward IP-DA & IP-SA
+            soData.write(sendWord);
             iph_wordCount++;
             break;
         case 2:
-            if (!tcpLenFifoIn.empty())
-            {
-                dataIn.read(currWord);
-                tcpLenFifoIn.read(tcpLen);
-                sendWord.data(15, 0) = 0x0600;
-                sendWord.data(23, 16) = tcpLen(15, 8);
-                sendWord.data(31, 24) = tcpLen(7, 0);
+            if (!siTle_DLen.empty()) {
+                siTle_Data.read(currWord);
+                siTle_DLen.read(datagramLen);
+                sendWord.data(15,  0) = 0x0600;
+                sendWord.data(23, 16) = datagramLen(15, 8);
+                sendWord.data(31, 24) = datagramLen(7, 0);
                 sendWord.data(63, 32) = currWord.data(31, 0);
                 sendWord.keep = 0xFF;
                 sendWord.last = 0;
-                dataOut.write(sendWord);
+                soData.write(sendWord);
                 iph_wordCount++;
             }
             break;
         default:
-            dataIn.read(currWord);
-            sendWord.data.range(31, 0) = iph_prevWord.data.range(63, 32);
+            siTle_Data.read(currWord);
+            sendWord.data.range(31,  0) = iph_prevWord.data.range(63, 32);
             sendWord.data.range(63, 32) = currWord.data.range(31, 0);
-            sendWord.keep.range(3, 0) = iph_prevWord.keep.range(7, 4);
-            sendWord.keep.range(7, 4) = currWord.keep.range(3, 0);
+            sendWord.keep.range( 3,  0) = iph_prevWord.keep.range(7, 4);
+            sendWord.keep.range( 7,  4) = currWord.keep.range(3, 0);
             sendWord.last = (currWord.keep[4] == 0); //some "nice" stuff here
-            dataOut.write(sendWord);
+            soData.write(sendWord);
             break;
         }
         iph_prevWord = currWord;
-        if (currWord.last == 1)
-        {
+        if (currWord.last == 1) {
             iph_wordCount = 0;
             iph_wasLast = !sendWord.last;
         }
@@ -1226,69 +1364,95 @@ void rxEngMemWrite( stream<axiWord>&    rxMemWrDataIn,
     } //switch
 }
 
-/** @ingroup rx_engine
- *  The @ref rx_engine is processing the data packets on the receiving path.
- *  When a new packet enters the engine its TCP checksum is tested, afterwards the header is parsed
- *  and some more checks are done. Before it is evaluated by the main TCP state machine which triggers Events
- *  and updates the data structures depending on the packet. If the packet contains valid payload it is stored
- *  in memory and the application is notified about the new data.
- *  @param[in]      ipRxData
- *  @param[in]      sLookup2rxEng_rsp
- *  @param[in]      stateTable2rxEng_upd_rsp
- *  @param[in]      portTable2rxEng_rsp
- *  @param[in]      rxSar2rxEng_upd_rsp
- *  @param[in]      txSar2rxEng_upd_rsp
- *  @param[in]      rxBufferWriteStatus
+
+/*****************************************************************************
+ * @brief The rx_engine processes the data packets received from IPRX.
+ *    When a new packet enters the engine its TCP checksum is tested, the
+ *    header is parsed and some more checks are done. Next, it is evaluated
+ *    by the main TCP state machine which triggers events and updates the data
+ *    structures according to the type of received packet. Finally, if the
+ *    packet contains valid payload, it is stored in external DDR4 memory and
+ *    the application is notified about the arrival of new data.
  *
- *  @param[out]     rxBufferWriteData
- *  @param[out]     rxEng2sLookup_req
- *  @param[out]     rxEng2stateTable_upd_req
- *  @param[out]     rxEng2portTable_req
- *  @param[out]     rxEng2rxSar_upd_req
- *  @param[out]     rxEng2txSar_upd_req
- *  @param[out]     rxEng2timer_clearRetransmitTimer
- *  @param[out]     rxEng2timer_setCloseTimer
- *  @param[out]     openConStatusOut
- *  @param[out]     rxEng2eventEng_setEvent
- *  @param[out]     rxBufferWriteCmd
- *  @param[out]     rxEng2rxApp_notification
- */
-void rx_engine( stream<axiWord>&                    ipRxData,
-                stream<sessionLookupReply>&         sLookup2rxEng_rsp,
-                stream<sessionState>&               stateTable2rxEng_upd_rsp,
-                stream<bool>&                       portTable2rxEng_rsp,
-                stream<rxSarEntry>&                 rxSar2rxEng_upd_rsp,
-                stream<rxTxSarReply>&               txSar2rxEng_upd_rsp,
-                stream<mmStatus>&                   rxBufferWriteStatus,
-                stream<axiWord>&                    rxBufferWriteData,
-                stream<sessionLookupQuery>&         rxEng2sLookup_req,
-                stream<stateQuery>&                 rxEng2stateTable_upd_req,
-                stream<ap_uint<16> >&               rxEng2portTable_req,
-                stream<rxSarRecvd>&                 rxEng2rxSar_upd_req,
-                stream<rxTxSarQuery>&               rxEng2txSar_upd_req,
-                stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRetransmitTimer,
-                stream<ap_uint<16> >&               rxEng2timer_clearProbeTimer,
-                stream<ap_uint<16> >&               rxEng2timer_setCloseTimer,
-                stream<openStatus>&                 openConStatusOut,
-                stream<extendedEvent>&              rxEng2eventEng_setEvent,
-                stream<mmCmd>&                      rxBufferWriteCmd,
-                stream<appNotification>&            rxEng2rxApp_notification)
+ * @ingroup rx_engine
+ *
+ *  @param[in]  siIPRX_Data,		IP4 data stream form IPRX.
+ *  @param[in]  sLookup2rxEng_rsp
+ *  @param[in]  stateTable2rxEng_upd_rsp
+ *  @param[in]  portTable2rxEng_rsp
+ *  @param[in]  rxSar2rxEng_upd_rsp
+ *  @param[in]  txSar2rxEng_upd_rsp
+ *  @param[in]  rxBufferWriteStatus
+ *
+ *  @param[out] rxBufferWriteData
+ *  @param[out] rxEng2sLookup_req
+ *  @param[out] rxEng2stateTable_upd_req
+ *  @param[out] rxEng2portTable_req
+ *  @param[out] rxEng2rxSar_upd_req
+ *  @param[out] rxEng2txSar_upd_req
+ *  @param[out] rxEng2timer_clearRetransmitTimer
+ *  @param[out] rxEng2timer_setCloseTimer
+ *  @param[out] openConStatusOut
+ *  @param[out] rxEng2eventEng_setEvent
+ *  @param[out] rxBufferWriteCmd
+ *  @param[out] rxEng2rxApp_notification
+ *
+ * @return Nothing.
+ ******************************************************************************/
+void rx_engine(
+		stream<axiWord>						&siIPRX_Data,
+		stream<sessionLookupReply>			&sLookup2rxEng_rsp,
+		stream<sessionState>				&stateTable2rxEng_upd_rsp,
+		stream<bool>						&portTable2rxEng_rsp,
+		stream<rxSarEntry>					&rxSar2rxEng_upd_rsp,
+		stream<rxTxSarReply>				&txSar2rxEng_upd_rsp,
+		stream<mmStatus>					&rxBufferWriteStatus,
+		stream<axiWord>						&rxBufferWriteData,
+		stream<sessionLookupQuery>			&rxEng2sLookup_req,
+		stream<stateQuery>					&rxEng2stateTable_upd_req,
+		stream<ap_uint<16> >				&rxEng2portTable_req,
+		stream<rxSarRecvd>					&rxEng2rxSar_upd_req,
+		stream<rxTxSarQuery>				&rxEng2txSar_upd_req,
+		stream<rxRetransmitTimerUpdate>		&rxEng2timer_clearRetransmitTimer,
+		stream<ap_uint<16> >				&rxEng2timer_clearProbeTimer,
+		stream<ap_uint<16> >				&rxEng2timer_setCloseTimer,
+		stream<openStatus>					&openConStatusOut,
+		stream<extendedEvent>				&rxEng2eventEng_setEvent,
+		stream<mmCmd>						&rxBufferWriteCmd,
+		stream<appNotification>				&rxEng2rxApp_notification)
 {
-//#pragma HLS DATAFLOW
-//#pragma HLS INTERFACE ap_ctrl_none port=return
-#pragma HLS INLINE
+
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	//#pragma HLS DATAFLOW
+	//#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS INLINE
+
+	//-- LOCAL STREAMS --------------------------------------------------------
+	static stream<axiWord>      	sTleToIph_Data("sTleToIph_Data");
+	#pragma HLS stream     variable=sTleToIph_Data depth=8
+	#pragma HLS DATA_PACK  variable=sTleToIph_Data
+
+	static stream<Ip4TotLen>     	sTleToIph_DLen("sTleToIph_DLen");
+	#pragma HLS stream     variable=sTleToIph_DLen depth=2
+
+	static stream<axiWord>      	sIphToCsa_Data("sIphToCsa_Data");
+	#pragma     HLS stream variable=sIphToCsa_Data depth=8
+	#pragma HLS DATA_PACK  variable=sIphToCsa_Data
+
+
+
+
 
     // Axi Streams
-    static stream<axiWord>      rxEng_dataBuffer0("rxEng_dataBuffer0");
-    static stream<axiWord>      rxEng_dataBuffer1("rxEng_dataBuffer1");
+
     static stream<axiWord>      rxEng_dataBuffer2("rxEng_dataBuffer2");
     static stream<axiWord>      rxEng_dataBuffer3("rxEng_dataBuffer3");
-    #pragma HLS stream variable=rxEng_dataBuffer0 depth=8
-    #pragma HLS stream variable=rxEng_dataBuffer1 depth=8
+
+
     #pragma HLS stream variable=rxEng_dataBuffer2 depth=256 //critical, tcp checksum computation
     #pragma HLS stream variable=rxEng_dataBuffer3 depth=8
-    #pragma HLS DATA_PACK variable=rxEng_dataBuffer0
-    #pragma HLS DATA_PACK variable=rxEng_dataBuffer1
+
+
     #pragma HLS DATA_PACK variable=rxEng_dataBuffer2
     #pragma HLS DATA_PACK variable=rxEng_dataBuffer3
 
@@ -1297,11 +1461,11 @@ void rx_engine( stream<axiWord>&                    ipRxData,
     static stream<rxEngineMetaData>     rxEng_metaDataFifo("rx_metaDataFifo");
     static stream<rxFsmMetaData>        rxEng_fsmMetaDataFifo("rxEng_fsmMetaDataFifo");
     static stream<fourTuple>            rxEng_tupleBuffer("rx_tupleBuffer");
-    static stream<ap_uint<16> >         rxEng_tcpLenFifo("rx_tcpLenFifo");
+
     #pragma HLS stream variable=rxEng_tcpValidFifo depth=2
     #pragma HLS stream variable=rxEng_metaDataFifo depth=2
     #pragma HLS stream variable=rxEng_tupleBuffer depth=2
-    #pragma HLS stream variable=rxEng_tcpLenFifo depth=2
+
     #pragma HLS DATA_PACK variable=rxEng_metaDataFifo
     #pragma HLS DATA_PACK variable=rxEng_tupleBuffer
 
@@ -1334,11 +1498,17 @@ void rx_engine( stream<axiWord>&                    ipRxData,
     static stream<ap_uint<1> >              rxEngDoubleAccess("rxEngDoubleAccess");
     #pragma HLS stream variable=rxEngDoubleAccess depth=8
 
-    rxTcpLengthExtract(ipRxData, rxEng_dataBuffer0, rxEng_tcpLenFifo);
 
-    rxInsertPseudoHeader(rxEng_dataBuffer0, rxEng_tcpLenFifo, rxEng_dataBuffer1);
+    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    pTcpLengthExtract(
+    		siIPRX_Data,
+			sTleToIph_Data, sTleToIph_DLen);
 
-    rxCheckTCPchecksum(rxEng_dataBuffer1, rxEng_dataBuffer2, rxEng_metaDataFifo,
+    pInsertPseudoHeader(
+    		sTleToIph_Data, sTleToIph_DLen,
+			sIphToCsa_Data);
+
+    rxCheckTCPchecksum(sIphToCsa_Data, rxEng_dataBuffer2, rxEng_metaDataFifo,
                        rxEng2portTable_req, rxEng_tupleBuffer, rxEng_tcpValidFifo);
 
     rxTcpInvalidDropper(rxEng_dataBuffer2, rxEng_tcpValidFifo, rxEng_dataBuffer3);

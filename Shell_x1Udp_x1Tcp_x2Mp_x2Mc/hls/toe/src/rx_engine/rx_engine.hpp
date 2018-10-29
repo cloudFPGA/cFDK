@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * @file       : rx_engine.hpp
+ * @brief      : Rx Engine (RXE) of the TCP Offload Engine (TOE).
+ **
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *               TCP Rx Engine.
+ *
+ *****************************************************************************/
+
 #include "../toe.hpp"
 
 using namespace hls;
