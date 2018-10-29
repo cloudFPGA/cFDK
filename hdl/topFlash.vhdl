@@ -66,8 +66,8 @@ entity topFlash is
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- Build date --------------------------------
     gTopDateYear         : stDate  := 8d"18";
-    gTopDateMonth        : stDate  := 8d"09";
-    gTopDateDay          : stDate  := 8d"29";
+    gTopDateMonth        : stDate  := 8d"10";
+    gTopDateDay          : stDate  := 8d"15";
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
