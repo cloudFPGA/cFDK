@@ -121,10 +121,12 @@ void updateRequestSender(stream<rtlSessionUpdateRequest>&   sessionInsert_req,
                     stream<rtlSessionUpdateRequest>&        sessionDelete_req,
                     stream<rtlSessionUpdateRequest>&        sessionUpdate_req,
                     stream<ap_uint<14> >&                   sessionIdFinFifo,
-                    ap_uint<16>&                            relSessionCount,
-                    ap_uint<16>&                            regSessionCount) {
-#pragma HLS PIPELINE II=1
-#pragma HLS INLINE off
+                    ap_uint<16>                            &poSssRelCnt,
+                    ap_uint<16>                            &poSssRegCnt)
+{
+
+	#pragma HLS PIPELINE II=1
+	#pragma HLS INLINE off
 
     static ap_uint<16> usedSessionIDs = 0;
     static ap_uint<16> releasedSessionIDs = 0;
@@ -132,7 +134,7 @@ void updateRequestSender(stream<rtlSessionUpdateRequest>&   sessionInsert_req,
     if (!sessionInsert_req.empty()) {
         sessionUpdate_req.write(sessionInsert_req.read());
         usedSessionIDs++;
-        regSessionCount = usedSessionIDs;
+        poSssRegCnt = usedSessionIDs;
     }
     else if (!sessionDelete_req.empty()) {
         rtlSessionUpdateRequest request = sessionDelete_req.read();
@@ -140,8 +142,8 @@ void updateRequestSender(stream<rtlSessionUpdateRequest>&   sessionInsert_req,
         sessionIdFinFifo.write(request.value);
         //usedSessionIDs--;
         releasedSessionIDs++;
-        relSessionCount = releasedSessionIDs;
-        //regSessionCount = usedSessionIDs;
+        poSssRelCnt = releasedSessionIDs;
+        //poSssRegCnt = usedSessionIDs;
     }
 }
 
@@ -213,6 +215,11 @@ void reverseLookupTableInterface(   stream<revLupInsert>& revTableInserts,
  *  @param[out]     txResponse
  *  @param[out]     lookupOut
  *  @param[out]     updateOut
+ *
+ * -- DEBUG / Session Statistics Interfaces
+ * @param[out] poSssRelCnt,	Session release count.
+ * @param[out] poSssRegCnt,	Session register count.
+ *
  *  @TODO rename
  */
 void session_lookup_controller( stream<sessionLookupQuery>&         rxEng2sLookup_req,
@@ -229,8 +236,8 @@ void session_lookup_controller( stream<sessionLookupQuery>&         rxEng2sLooku
                                 //stream<rtlSessionUpdateRequest>&  sessionInsert_req,
                                 //stream<rtlSessionUpdateRequest>&  sessionDelete_req,
                                 stream<rtlSessionUpdateReply>&      sessionUpdate_rsp,
-                                ap_uint<16>& relSessionCount,
-                                ap_uint<16>& regSessionCount) {
+                                ap_uint<16>							&poSssRelCnt,
+                                ap_uint<16>							&poSssRegCnt) {
 //#pragma HLS DATAFLOW
 #pragma HLS INLINE
 
@@ -269,14 +276,14 @@ void session_lookup_controller( stream<sessionLookupQuery>&         rxEng2sLooku
                         sLookup2txApp_rsp,
                         sessionInsert_req,
                         reverseLupInsertFifo);
-                        //regSessionCount);
+                        //poSssRegCnt);
 
     updateRequestSender(sessionInsert_req,
                         sessionDelete_req,
                         sessionUpdate_req,
                         slc_sessionIdFinFifo,
-                        relSessionCount,
-                        regSessionCount);
+                        poSssRelCnt,
+                        poSssRegCnt);
 
     updateReplyHandler( sessionUpdate_rsp,
                         slc_sessionInsert_rsp);
