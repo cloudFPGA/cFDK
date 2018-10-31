@@ -134,15 +134,55 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 
 
 
-
 /********************************************
- * Generic IP4 Type Definitions
+ * AXI - Generic Streaming Interface
  ********************************************/
-typedef ap_uint<16> Ip4TotLen; 	// IPv4 Total Length
+struct AxiWord {	// AXI4-Streaming Chunk (i.e. 8 bytes)
+	ap_uint<64>		tdata;
+    ap_uint<8>		tkeep;
+    ap_uint<1>		tlast;
+    AxiWord()		{}
+    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+    		tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+struct axiWord {
+    ap_uint<64>		data;
+    ap_uint<8>      keep;
+    ap_uint<1>      last;
+    axiWord() {}
+    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
+    		data(data), keep(keep), last(last) {}
+};
 
 
 /********************************************
- * Generic TCP Type Definitions
+ * IP4 - Header Type Definitions
+ ********************************************/
+typedef ap_uint<4>	Ip4HeaderLen; 	// IPv4 Header Length
+typedef ap_uint<16> Ip4TotalLen; 	// IPv4 Total Length
+
+/********************************************
+ * IP4 - Custom Type Definitions
+ ********************************************/
+typedef ap_uint<16> Ip4PLen; 			// IPv4 Payload Length
+
+/********************************************
+ * IP4 - Streaming Type Definition
+ ********************************************/
+typedef	AxiWord	Ip4Word;
+
+
+
+
+
+
+
+
+
+
+/********************************************
+ * TCP - Type Definitions
  ********************************************/
 typedef ap_uint<16> TcpSessId;	// TCP Session ID
 typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
@@ -155,15 +195,7 @@ typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
 
 
 
-struct axiWord
-{
-    ap_uint<64>         data;
-    ap_uint<8>      keep;
-    ap_uint<1>      last;
-    axiWord() {}
-    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last)
-                : data(data), keep(keep), last(last) {}
-};
+
 
 struct fourTuple
 {
@@ -594,12 +626,12 @@ void toe(
 		//------------------------------------------------------
 	    //-- IPRX / This / IP Rx / Data Interface
 	    //------------------------------------------------------
-		stream<axiWord>						&siIPRX_This_Data,
+		stream<Ip4Word>						&siIPRX_This_Data,
 
 		//------------------------------------------------------
 		//-- L3MUX / This / IP Tx / Data Interface
 		//------------------------------------------------------
-		stream<axiWord>                    	&soTHIS_L3mux_Data,
+		stream<Ip4Word>                    	&soTHIS_L3mux_Data,
 
 		//------------------------------------------------------
 		//-- TRIF / This / ROLE Rx / Data Interfaces

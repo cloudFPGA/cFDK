@@ -39,7 +39,7 @@ using namespace hls;
 void printChunk (const char *myName, axiWord chunk)
 {
 	if (DEBUG_TRACE)
-		printf("[%s/%s] data chunk = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+		printf("[%s/%s] data chunk = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
 				THIS_NAME, myName,
 				chunk.data.to_ulong(), chunk.keep.to_int(), chunk.last.to_int());
 }
@@ -49,34 +49,36 @@ void printChunk (const char *myName, axiWord chunk)
  * @brief TCP length extraction (Tle).
  *
  * @param[in]  siIPRX_Data,	IP4 data stream form IPRX.
- * @param[out] soData,      The resulting data stream.
- * @param[out] soIp4TotLen	The length of the IPv4 datagram in octets.
+ * @param[out] soData,      IP4 data stream w/o header (i.e., TPC datagram).
+ * @param[out] soDLen,		IP4 data length in octets (i.e., TCP datagram len).
  *
  * @details
  *   This is the process that handles the incoming data stream from the IPRX.
- *   It extracts the TCP length field from the IP header, removes that IP header
- * 	 but keeps the IP source and destination addresses in front of the TCP header
- * 	 so that the output can be used for the TCP pseudo header creation. The TCP
- * 	 length is computed from the total length and the IP header length.
+ *   It extracts the TCP length field from the IP header, removes that IP
+ *   header but keeps the IP source and destination addresses in front of the
+ *   TCP header so that the output can be used for the TCP pseudo header
+ *   creation. The length of the IPv4 data (.i.e. the TCP datagram length) is
+ *   also computed from the IPv4 total length and the IPv4 header length.
  *
- *   The format of an incoming IPv4 datagram is as follows:
+ *   The data received from the Ethernet MAC are logically divided into lane #0
+ *   (7:0) to lane #7 (63:56). The format of an incoming IPv4 datagram is then:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |      Fragment Offset    |Flags|         Identification        |          Total Length         |Type of Service|  IHL  |Version|
+ *  | Frag Ofst (L) |Flags|  FO(H)  |   Ident (L)   |   Ident (H)   | Total Len (L) | Total Len (H) |Type of Service|Version|  IHL  |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+ *  |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    | Hd Chksum (L) | Hd Chksum (H) |    Protocol   |  Time to Live |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |       Destination Port        |          Source Port          |                    Destination Address                        |
+ *  |     DP (L)    |     DP (H)    |     SP (L)    |    SP (H)     |     DA (LL)   |     DA (L)    |      DA (H)   |    DA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                    Acknowledgment Number                      |                        Sequence Number                        |
+ *  |    Ack (LL)   |    Ack (L)    |    Ack (H)    |   Ack (HH)    |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                               |                               |                               |F|S|R|P|A|U|           |  Data |
- *  |         Urgent Pointer        |           Checksum            |            Window             |I|Y|S|S|C|R| Reserved  | Offset|
- *  |                               |                               |                               |N|N|T|H|K|G|           |       |
+ *  |               |               |               |               |               |               |   |U|A|P|R|S|F|  Data |       |
+ *  |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |    Win (L)    |    Win (H)    |Res|R|C|S|S|Y|I| Offset| Res   |
+ *  |               |               |               |               |               |               |   |G|K|H|T|N|N|       |       |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                                                             data                                                              |
+ *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *	The format of the outgoing IP datagram is the following:
@@ -84,42 +86,43 @@ void printChunk (const char *myName, axiWord chunk)
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                    Destination Address                        |                      Source Address                           |
+ *  |     DA (LL)   |     DA (L)    |      DA (H)   |    DA (HH)    |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |                                                      0x0000000000000000                                                       |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                        Sequence Number                        |       Destination Port        |          Source Port          |
+ *  |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |     DP (L)    |     DP (H)    |     SP (L)    |    SP (H)     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                               |F|S|R|P|A|U|           |  Data |                                                               |
- *  |            Window             |I|Y|S|S|C|R| Reserved  | Offset|                    Acknowledgment Number                      |
- *  |                               |N|N|T|H|K|G|           |       |                                                               |
+ *  |               |               |   |U|A|P|R|S|F|  Data |       |               |               |               |               |
+ *  |    Win (L)    |    Win (H)    |Res|R|C|S|S|Y|I| Offset| Res   |    Ack (LL)   |    Ack (L)    |    Ack (H)    |   Ack (HH)    |
+ *  |               |               |   |G|K|H|T|N|N|       |       |               |               |               |               |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                                                               |                               |                               |
- *  |                              data                             |         Urgent Pointer        |           Checksum            |
- *  |                                                               |                               |                               |
+ *  |               |               |               |               |               |               |               |               |
+ *  |    Data 3     |    Data 2     |    Data 1     |    Data 0     |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |
+ *  |               |               |               |               |               |               |               |               |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                               NU                              |                             data                              |
+ *  |                               NU                              |    Data 7     |    Data 6     |    Data 5     |    Data 4     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *
  * @ingroup rx_engine
  ******************************************************************************/
 void pTcpLengthExtract(
-		stream<axiWord>		&siIPRX_Data,
+		stream<Ip4Word>		&siIPRX_Data,
 		stream<axiWord>		&soData,
-		stream<Ip4TotLen>	&soIp4TotLen)
+		stream<Ip4PLen>		&soDLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 	#pragma HLS INLINE off
 	#pragma HLS pipeline II=1
 
-    static ap_uint<8> 	tle_ipHeaderLen = 0;
-    static ap_uint<16> 	tle_ipTotalLen  = 0;
+    static Ip4HeaderLen	tle_ipHeaderLen = 0;
+    static Ip4TotalLen	tle_ipTotalLen  = 0;
+    static Ip4PLen		tle_ipDataLen   = 0;
     static ap_uint<4> 	tle_wordCount   = 0;
     static bool 		tle_insertWord  = false;
     static bool 		tle_wasLast     = false;
     static bool 		tle_shift       = true;
-    static axiWord 		tle_prevWord;
+    static Ip4Word 		tle_prevWord;
     axiWord 			sendWord;
 
     const char *myName = "Tle";
@@ -131,27 +134,28 @@ void pTcpLengthExtract(
         printChunk(myName, sendWord);
     }
     else if (!siIPRX_Data.empty() && !tle_wasLast) {
-        axiWord currWord = siIPRX_Data.read();
+        Ip4Word currWord = siIPRX_Data.read();
         switch (tle_wordCount) {
         case 0:
-            tle_ipHeaderLen  = currWord.data(3, 0);
-            tle_ipTotalLen   = byteSwap16(currWord.data(31, 16));
-            tle_ipTotalLen  -= (tle_ipHeaderLen * 4);
+            tle_ipHeaderLen  = currWord.tdata(3, 0);
+            tle_ipTotalLen   = byteSwap16(currWord.tdata(31, 16));
+            // Compute length of IPv4 data (.i.e. the TCP datagram length)
+            tle_ipDataLen    = tle_ipTotalLen - (tle_ipHeaderLen * 4);
             tle_ipHeaderLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 1:
-        	// Forward the IP total length to 'pInsertPseudoHeader'
-            soIp4TotLen.write(tle_ipTotalLen);
+        	// Forward length of IPv4 data
+            soDLen.write(tle_ipDataLen);
             tle_ipHeaderLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 2:
-            // Get destination IP address
+            // Forward destination IP address
         	// Warning, half of this address is now in 'prevWord'
-            sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
-            				   (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
-							   (currWord.keep[4] == 0));
+            sendWord = axiWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+            				   (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+							   (currWord.tkeep[4] == 0));
             soData.write(sendWord);
             tle_ipHeaderLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
@@ -161,9 +165,9 @@ void pTcpLengthExtract(
         case 3:
             switch (tle_ipHeaderLen) {
             case 0: // Half of prevWord contains valuable data and currWord is full of valuable
-                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
-                		           (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
-								   (currWord.keep[4] == 0));
+                sendWord = axiWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+                		           (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+								   (currWord.tkeep[4] == 0));
                 soData.write(sendWord);
                 tle_shift = true;
                 tle_ipHeaderLen = 0;
@@ -171,7 +175,7 @@ void pTcpLengthExtract(
                 printChunk(myName, sendWord);
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
-                sendWord = currWord;
+                sendWord = axiWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soData.write(sendWord);
                 tle_shift = false;
                 tle_ipHeaderLen = 0;
@@ -186,14 +190,14 @@ void pTcpLengthExtract(
             break;
         default:
             if (tle_shift) {
-                sendWord = axiWord((currWord.data(31, 0), tle_prevWord.data(63, 32)),
-                		           (currWord.keep( 3, 0), tle_prevWord.keep( 7,  4)),
-								   (currWord.keep[4] == 0));
+                sendWord = axiWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+                		           (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+								   (currWord.tkeep[4] == 0));
                 soData.write(sendWord);
                 printChunk(myName, sendWord);
             }
             else {
-                sendWord = currWord;
+            	sendWord = axiWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soData.write(sendWord);
                 printChunk(myName, sendWord);
             }
@@ -202,7 +206,7 @@ void pTcpLengthExtract(
         } // End of: switch (tle_wordCount)
 
         tle_prevWord = currWord;
-        if (currWord.last) {
+        if (currWord.tlast) {
             tle_wordCount = 0;
             tle_wasLast = !sendWord.last;
         }
@@ -212,8 +216,8 @@ void pTcpLengthExtract(
     else if (tle_wasLast) { //Assumption has to be shift
         // Send remaining data
         axiWord sendWord = axiWord(0, 0, 1);
-        sendWord.data(31, 0) = tle_prevWord.data(63, 32);
-        sendWord.keep( 3, 0) = tle_prevWord.keep( 7,  4);
+        sendWord.data(31, 0) = tle_prevWord.tdata(63, 32);
+        sendWord.keep( 3, 0) = tle_prevWord.tkeep( 7,  4);
         soData.write(sendWord);
         tle_wasLast = false;
         printChunk(myName, sendWord);
@@ -224,53 +228,60 @@ void pTcpLengthExtract(
 /*****************************************************************************
  * @brief TCP insert pseudo header (Iph).
  *
- * @param[in]  siTle_Data,	Data stream from TCP Length Extraction.
- * @param[in]  siTle_DLen	The length of the incoming datagram in octets.
- * @param[out] soData,      The outgoing data stream.
+ * @param[in]  siTle_Data,	IP4 data stream w/o header from TCP Length Extraction.
+ * @param[in]  siTle_DLen	The length of the incoming data stream in octets.
+ * @param[out] soData,      TCP pseudo-datagram stream.
  *
  * @details
  *	Constructs a TCP pseudo header and prepends it to the TCP payload.
  *
- *	The format of the incoming IP datagram is as follows:
+ *	The format of the incoming datagram is as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                    Destination Address                        |                      Source Address                           |
+ *  |     DA (LL)   |     DA (L)    |      DA (H)   |    DA (HH)    |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |                                                      0x0000000000000000                                                       |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                        Sequence Number                        |       Destination Port        |          Source Port          |
+ *  |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |     DP (L)    |     DP (H)    |     SP (L)    |    SP (H)     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                               |F|S|R|P|A|U|           |  Data |                                                               |
- *  |            Window             |I|Y|S|S|C|R| Reserved  | Offset|                    Acknowledgment Number                      |
- *  |                               |N|N|T|H|K|G|           |       |                                                               |
+ *  |               |               |   |U|A|P|R|S|F|  Data |       |               |               |               |               |
+ *  |    Win (L)    |    Win (H)    |Res|R|C|S|S|Y|I| Offset| Res   |    Ack (LL)   |    Ack (L)    |    Ack (H)    |   Ack (HH)    |
+ *  |               |               |   |G|K|H|T|N|N|       |       |               |               |               |               |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                                                               |                               |                               |
- *  |                              data                             |         Urgent Pointer        |           Checksum            |
- *  |                                                               |                               |                               |
+ *  |               |               |               |               |               |               |               |               |
+ *  |    Data 3     |    Data 2     |    Data 1     |    Data 0     |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |
+ *  |               |               |               |               |               |               |               |               |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                               NU                              |                             data                              |
+ *  |                               NU                              |    Data 7     |    Data 6     |    Data 5     |    Data 4     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
  *
  *	The format of the outgoing pseudo header is as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |                    Destination Address                        |                      Source Address                           |
+ *  |     DA (LL)   |     DA (L)    |      DA (H)   |    DA (HH)    |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *
- *
- *
- *
+ *  |     DP (L)    |     DP (H)    |     SP (L)    |    SP (H)     |         Datagram Len          |      0x06     |    0x00       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |    Ack (LL)   |    Ack (L)    |    Ack (H)    |   Ack (HH)    |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |               |               |               |               |               |               |   |U|A|P|R|S|F|  Data |       |
+ *  |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |    Win (L)    |    Win (H)    |Res|R|C|S|S|Y|I| Offset| Res   |
+ *  |               |               |               |               |               |               |   |G|K|H|T|N|N|       |       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *
  * @ingroup rx_engine
  ******************************************************************************/
 void pInsertPseudoHeader(
 		stream<axiWord>		&siTle_Data,
-		stream<Ip4TotLen>	&siTle_DLen,
+		stream<Ip4TotalLen>	&siTle_DLen,
 		stream<axiWord>		&soData)
 {
 	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -282,17 +293,20 @@ void pInsertPseudoHeader(
     axiWord 			currWord, sendWord;
     static axiWord 		iph_prevWord;
     ap_uint<1> 			valid;
-    Ip4TotLen 			datagramLen;
+    Ip4TotalLen 			datagramLen;
+
+    const char *myName = "Iph";
 
     currWord.last = 0;
 
     if (iph_wasLast) {
     	sendWord.data(31, 0) = iph_prevWord.data(63,32);
-        sendWord.keep( 3, 0) = iph_prevWord.keep(7,4);
+        sendWord.keep( 3, 0) = iph_prevWord.keep( 7, 4);
         sendWord.keep( 7, 4) = 0x0;
-        sendWord.last = 0x1;
+        sendWord.last        = 0x1;
         soData.write(sendWord);
         iph_wasLast = false;
+        printChunk(myName, sendWord);
     }
     else if(!siTle_Data.empty()) {
     	switch (iph_wordCount) {
@@ -306,29 +320,37 @@ void pInsertPseudoHeader(
             // Forward IP-DA & IP-SA
             soData.write(sendWord);
             iph_wordCount++;
+            printChunk(myName, sendWord);
             break;
         case 2:
             if (!siTle_DLen.empty()) {
                 siTle_Data.read(currWord);
                 siTle_DLen.read(datagramLen);
-                sendWord.data(15,  0) = 0x0600;
+                // Forward Protocol and Datagram length
+                sendWord.data(15,  0) = 0x0600;		// 06 is for TCP
                 sendWord.data(23, 16) = datagramLen(15, 8);
-                sendWord.data(31, 24) = datagramLen(7, 0);
+                sendWord.data(31, 24) = datagramLen( 7, 0);
+                // Forward TCP-SP & TCP-DP
                 sendWord.data(63, 32) = currWord.data(31, 0);
-                sendWord.keep = 0xFF;
-                sendWord.last = 0;
+                sendWord.keep         = 0xFF;
+                sendWord.last         = 0;
                 soData.write(sendWord);
                 iph_wordCount++;
+                printChunk(myName, sendWord);
             }
             break;
         default:
             siTle_Data.read(currWord);
+            // Forward { Sequence Number, Acknowledgment Number } or
+            //         { Flags, Window, Checksum, UrgentPointer } or
+            //         { Data }
             sendWord.data.range(31,  0) = iph_prevWord.data.range(63, 32);
             sendWord.data.range(63, 32) = currWord.data.range(31, 0);
             sendWord.keep.range( 3,  0) = iph_prevWord.keep.range(7, 4);
             sendWord.keep.range( 7,  4) = currWord.keep.range(3, 0);
-            sendWord.last = (currWord.keep[4] == 0); //some "nice" stuff here
+            sendWord.last               = (currWord.keep[4] == 0); // see format of the incoming datagram
             soData.write(sendWord);
+            printChunk(myName, sendWord);
             break;
         }
         iph_prevWord = currWord;
@@ -339,96 +361,110 @@ void pInsertPseudoHeader(
     }
 }
 
-/** @ingroup rx_engine
- *  Checks the TCP checksum writes valid into @p validBuffer
+
+/*****************************************************************************
+ * @brief TCP checksum validation (csa).
+ *
+ * @param[in]  siIph_Data,	Data stream from Insert Pseudo Header.
+ *
+ * @param[out]     dataOut
+ * @param[out]     validFifoOut
+ * @param[out]     metaDataFifoOut
+ * @param[out]     tupleFifoOut
+ * @param[out]     portTableOut
+ *
+ * @details
+ * 	Checks the TCP checksum writes valid into @p validBuffer
  *  Additionally it extracts some metadata and the IP tuples from
  *  the TCP packet and writes it to @p metaDataFifoOut
  *  and @p tupleFifoOut
  *  It also sends the destination port number to the @ref port_table
  *  to check if the port is open.
- *  @param[in]      dataIn
- *  @param[out]     dataOut
- *  @param[out]     validFifoOut
- *  @param[out]     metaDataFifoOut
- *  @param[out]     tupleFifoOut
- *  @param[out]     portTableOut
- */
-void rxCheckTCPchecksum(stream<axiWord>&                    dataIn,
-                            stream<axiWord>&                dataOut,
-                            stream<rxEngineMetaData>&       metaDataFifoOut,
-                            stream<ap_uint<16> >&           portTableOut,
-                            stream<fourTuple>&              tupleFifoOut,
-                            stream<bool>&                   validFifoOut) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
+ *
+ * @ingroup rx_engine
+ ******************************************************************************/
+void pCheckTcpChecksum(
+		stream<axiWord>				&siIph_Data,
+		stream<axiWord>				&dataOut,
+		stream<rxEngineMetaData>	&metaDataFifoOut,
+		stream<ap_uint<16> >		&portTableOut,
+		stream<fourTuple>			&tupleFifoOut,
+		stream<bool>				&validFifoOut)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
 
-    static ap_uint<17> csa_tcp_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8> csa_dataOffset = 0xFF;
-    static ap_uint<16> csa_wordCount = 0;
-    static fourTuple csa_sessionTuple;
-    static bool csa_shift = false;
-    static bool csa_wasLast = false;
-    static bool csa_checkChecksum = false;
-    static ap_uint<36> halfWord; //FIXME only 35 used
-    axiWord currWord, sendWord;
-    static rxEngineMetaData csa_meta;
-    static ap_uint<16> csa_port;
+    static ap_uint<17> 		csa_tcp_sums[4] = {0, 0, 0, 0};
+    static ap_uint<8> 		csa_dataOffset = 0xFF;
+    static ap_uint<16> 		csa_wordCount = 0;
+    static fourTuple 		csa_sessionTuple;
+    static bool 			csa_shift = false;
+    static bool 			csa_wasLast = false;
+    static bool 			csa_checkChecksum = false;
+    static ap_uint<36> 		halfWord; //FIXME only 35 used
+    axiWord 				currWord, sendWord;
+    static rxEngineMetaData	csa_meta;
+    static ap_uint<16> 		csa_port;
 
-    static ap_uint<3> csa_cc_state = 0;
+    const char *myName = "Csa";
 
-    //currWord.last = 0; //mighnt no be necessary any more FIXME to you want to risk it ;)
-    if (!dataIn.empty() && !csa_checkChecksum)
-    {
-        dataIn.read(currWord);
-        switch (csa_wordCount)
-        {
+    static ap_uint<3> 		csa_cc_state = 0;
+
+    //currWord.last = 0; // might no be necessary any more FIXME to you want to risk it ;)
+
+    if (!siIph_Data.empty() && !csa_checkChecksum) {
+    	siIph_Data.read(currWord);
+        switch (csa_wordCount) {
         case 0:
             csa_dataOffset = 0xFF;
             csa_shift = false;
                 // We don't switch bytes, internally we store it Most Significant Byte Last
-                csa_sessionTuple.srcIp = currWord.data(31, 0);
+                csa_sessionTuple.srcIp = currWord.data(31,  0);
                 csa_sessionTuple.dstIp = currWord.data(63, 32);
-                sendWord.last = currWord.last;
+                sendWord.last 		   = currWord.last;
 
             break;
         case 1:
             // Get length
-            csa_meta.length(7, 0) = currWord.data(31, 24);
-            csa_meta.length(15, 8) = currWord.data(23, 16);
+            csa_meta.length( 7, 0)   = currWord.data(31, 24);
+            csa_meta.length(15, 8)   = currWord.data(23, 16);
             // We don't switch bytes, internally we store it Most Significant Byte Last
             csa_sessionTuple.srcPort = currWord.data(47, 32);
             csa_sessionTuple.dstPort = currWord.data(63, 48);
-            csa_port = currWord.data(63, 48);
-            sendWord.last = currWord.last;
+            csa_port                 = currWord.data(63, 48);
+            sendWord.last            = currWord.last;
             break;
         case 2:
-            // GET SEQ and ACK number
-            csa_meta.seqNumb(7, 0) = currWord.data(31, 24);
-            csa_meta.seqNumb(15, 8) = currWord.data(23, 16);
-            csa_meta.seqNumb(23, 16) = currWord.data(15, 8);
-            csa_meta.seqNumb(31, 24) = currWord.data(7, 0);
-            csa_meta.ackNumb(7, 0) = currWord.data(63, 56);
-            csa_meta.ackNumb(15, 8) = currWord.data(55, 48);
+            // Get Sequence and Acknowledgment Numbers
+            csa_meta.seqNumb( 7,  0) = currWord.data(31, 24);
+            csa_meta.seqNumb(15,  8) = currWord.data(23, 16);
+            csa_meta.seqNumb(23, 16) = currWord.data(15,  8);
+            csa_meta.seqNumb(31, 24) = currWord.data( 7,  0);
+            csa_meta.ackNumb( 7,  0) = currWord.data(63, 56);
+            csa_meta.ackNumb(15,  8) = currWord.data(55, 48);
             csa_meta.ackNumb(23, 16) = currWord.data(47, 40);
             csa_meta.ackNumb(31, 24) = currWord.data(39, 32);
-            sendWord.last = currWord.last;
+            sendWord.last            = currWord.last;
             break;
         case 3:
-            csa_dataOffset = currWord.data.range(7, 4);
+        	// Get Data Offset
+            csa_dataOffset   = currWord.data.range(7, 4);
             csa_meta.length -= (csa_dataOffset * 4);
             //csa_dataOffset -= 5; //FIXME, do -5
-            /* Control bits:
-             * [8] == FIN
-             * [9] == SYN
-             * [10] == RST
-             * [11] == PSH
-             * [12] == ACK
-             * [13] == URG
+            // Get Control Bits
+            /*  [ 8] == FIN
+             *  [ 9] == SYN
+             *  [10] == RST
+             *  [11] == PSH
+             *  [12] == ACK
+             *  [13] == URG
              */
             csa_meta.ack = currWord.data[12];
             csa_meta.rst = currWord.data[10];
-            csa_meta.syn = currWord.data[9];
-            csa_meta.fin = currWord.data[8];
+            csa_meta.syn = currWord.data[ 9];
+            csa_meta.fin = currWord.data[ 8];
+
             csa_meta.winSize(7, 0) = currWord.data(31, 24);
             csa_meta.winSize(15, 8) = currWord.data(23, 16);
             // We add checksum as well and check for cs == 0
@@ -1400,7 +1436,7 @@ void rxEngMemWrite( stream<axiWord>&    rxMemWrDataIn,
  * @return Nothing.
  ******************************************************************************/
 void rx_engine(
-		stream<axiWord>						&siIPRX_Data,
+		stream<Ip4Word>						&siIPRX_Data,
 		stream<sessionLookupReply>			&sLookup2rxEng_rsp,
 		stream<sessionState>				&stateTable2rxEng_upd_rsp,
 		stream<bool>						&portTable2rxEng_rsp,
@@ -1432,7 +1468,7 @@ void rx_engine(
 	#pragma HLS stream     variable=sTleToIph_Data depth=8
 	#pragma HLS DATA_PACK  variable=sTleToIph_Data
 
-	static stream<Ip4TotLen>     	sTleToIph_DLen("sTleToIph_DLen");
+	static stream<Ip4TotalLen>     	sTleToIph_DLen("sTleToIph_DLen");
 	#pragma HLS stream     variable=sTleToIph_DLen depth=2
 
 	static stream<axiWord>      	sIphToCsa_Data("sIphToCsa_Data");
@@ -1508,8 +1544,9 @@ void rx_engine(
     		sTleToIph_Data, sTleToIph_DLen,
 			sIphToCsa_Data);
 
-    rxCheckTCPchecksum(sIphToCsa_Data, rxEng_dataBuffer2, rxEng_metaDataFifo,
-                       rxEng2portTable_req, rxEng_tupleBuffer, rxEng_tcpValidFifo);
+    pCheckTcpChecksum(
+    		sIphToCsa_Data, rxEng_dataBuffer2, rxEng_metaDataFifo,
+			rxEng2portTable_req, rxEng_tupleBuffer, rxEng_tcpValidFifo);
 
     rxTcpInvalidDropper(rxEng_dataBuffer2, rxEng_tcpValidFifo, rxEng_dataBuffer3);
 

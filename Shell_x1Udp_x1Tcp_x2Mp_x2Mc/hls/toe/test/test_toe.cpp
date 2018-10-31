@@ -395,12 +395,22 @@ ap_uint<8> encodeApUint8(string keepString){
     return tempOutput;
 }
 
-ap_uint<16> checksumComputation(deque<axiWord>  pseudoHeader) {
+ap_uint<16> checksumComputation(deque<AxiWord>  pseudoHeader) {
     ap_uint<32> tcpChecksum = 0;
+
     for (uint8_t i=0;i<pseudoHeader.size();++i) {
-        ap_uint<64> tempInput = (pseudoHeader[i].data.range(7, 0), pseudoHeader[i].data.range(15, 8), pseudoHeader[i].data.range(23, 16), pseudoHeader[i].data.range(31, 24), pseudoHeader[i].data.range(39, 32), pseudoHeader[i].data.range(47, 40), pseudoHeader[i].data.range(55, 48), pseudoHeader[i].data.range(63, 56));
+        ap_uint<64> tempInput = (pseudoHeader[i].tdata.range( 7,  0),
+        						 pseudoHeader[i].tdata.range(15,  8),
+								 pseudoHeader[i].tdata.range(23, 16),
+								 pseudoHeader[i].tdata.range(31, 24),
+								 pseudoHeader[i].tdata.range(39, 32),
+								 pseudoHeader[i].tdata.range(47, 40),
+								 pseudoHeader[i].tdata.range(55, 48),
+								 pseudoHeader[i].tdata.range(63, 56));
         //cerr << hex << tempInput << " " << pseudoHeader[i].data << endl;
-        tcpChecksum = ((((tcpChecksum + tempInput.range(63, 48)) + tempInput.range(47, 32)) + tempInput.range(31, 16)) + tempInput.range(15, 0));
+        tcpChecksum = ((((tcpChecksum +
+        				tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+        				tempInput.range(31, 16)) + tempInput.range(15, 0));
         tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
         tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
     }
@@ -423,16 +433,16 @@ ap_uint<16> checksumComputation(deque<axiWord>  pseudoHeader) {
 //  return tcpChecksum.range(15, 0);    // and write it into the output
 //}
 
-ap_uint<16> recalculateChecksum(deque<axiWord> inputPacketizer) {
+ap_uint<16> recalculateChecksum(deque<AxiWord> inputPacketizer) {
     ap_uint<16> newChecksum = 0;
     // Create the pseudo-header
-    ap_uint<16> tcpLength                   = (inputPacketizer[0].data.range(23, 16), inputPacketizer[0].data.range(31, 24)) - 20;
-    inputPacketizer[0].data                     = (inputPacketizer[2].data.range(31, 0), inputPacketizer[1].data.range(63, 32));
-    inputPacketizer[1].data.range(15, 0)    = 0x0600;
-    inputPacketizer[1].data.range(31, 16)   = (tcpLength.range(7, 0), tcpLength(15, 8));
-    inputPacketizer[4].data.range(47, 32)   = 0x0;
+    ap_uint<16> tcpLength                   = (inputPacketizer[0].tdata.range(23, 16), inputPacketizer[0].tdata.range(31, 24)) - 20;
+    inputPacketizer[0].tdata                = (inputPacketizer[2].tdata.range(31,  0), inputPacketizer[1].tdata.range(63, 32));
+    inputPacketizer[1].tdata.range(15, 0)   = 0x0600;
+    inputPacketizer[1].tdata.range(31, 16)  = (tcpLength.range(7, 0), tcpLength(15, 8));
+    inputPacketizer[4].tdata.range(47, 32)	= 0x0;
     //ap_uint<32> temp  = (tcpLength, 0x0600);
-    inputPacketizer[1].data.range(63, 32)   = inputPacketizer[2].data.range(63, 32);
+    inputPacketizer[1].tdata.range(63, 32)   = inputPacketizer[2].tdata.range(63, 32);
     for (uint8_t i=2;i<inputPacketizer.size() -1;++i)
         inputPacketizer[i]= inputPacketizer[i+1];
     inputPacketizer.pop_back();
@@ -455,22 +465,22 @@ ap_uint<16> recalculateChecksum(deque<axiWord> inputPacketizer) {
  * 								  the sessions as socket pair associations.
  * @return 0 or 1 if success, otherwise -1.
  ******************************************************************************/
-short int injectAckNumber(deque<axiWord> &inputPacketizer,
+short int injectAckNumber(deque<AxiWord> &inputPacketizer,
 							map<fourTuple, ap_uint<32> > &sessionList) {
 
-	fourTuple newTuple = fourTuple(inputPacketizer[1].data.range(63, 32), \
-								   inputPacketizer[2].data.range(31,  0), \
-								   inputPacketizer[2].data.range(47, 32), \
-								   inputPacketizer[2].data.range(63, 48));
+	fourTuple newTuple = fourTuple(inputPacketizer[1].tdata.range(63, 32), \
+								   inputPacketizer[2].tdata.range(31,  0), \
+								   inputPacketizer[2].tdata.range(47, 32), \
+								   inputPacketizer[2].tdata.range(63, 48));
 
-	if (inputPacketizer[4].data.bit(9)) {
+	if (inputPacketizer[4].tdata.bit(9)) {
 		// If this packet is a SYN there's no need to inject anything
 		if (TRACE_LEVEL >= 1)
 			cerr << "<D1> Current socket pair association: " << hex \
-			     << inputPacketizer[1].data.range(63, 32) << " - " 	\
-			     << inputPacketizer[2].data.range(31,  0) << " - " 	\
-				 << inputPacketizer[2].data.range(47, 32) << " - " 	\
-				 << inputPacketizer[2].data.range(63, 48) << endl;
+			     << inputPacketizer[1].tdata.range(63, 32) << " - " 	\
+			     << inputPacketizer[2].tdata.range(31,  0) << " - " 	\
+				 << inputPacketizer[2].tdata.range(47, 32) << " - " 	\
+				 << inputPacketizer[2].tdata.range(63, 48) << endl;
         if (sessionList.find(newTuple) != sessionList.end()) {
             cerr << "WARNING: Trying to open an existing session! - " << gSimCycCnt << endl;
             return -1;
@@ -485,17 +495,17 @@ short int injectAckNumber(deque<axiWord> &inputPacketizer,
     	// Packet is not a SYN
         if (sessionList.find(newTuple) != sessionList.end()) {
             // Inject the oldest acknowledgment number in the ACK number deque
-            inputPacketizer[3].data.range(63, 32) = sessionList[newTuple];
+            inputPacketizer[3].tdata.range(63, 32) = sessionList[newTuple];
             if (TRACE_LEVEL >= 1)
             	cerr << "<D1>" << hex <<  "Setting sequence number to: " \
-					 << inputPacketizer[3].data.range(63, 32) << endl;
+					 << inputPacketizer[3].tdata.range(63, 32) << endl;
             // Recalculate and update the checksum
             ap_uint<16> tempChecksum = recalculateChecksum(inputPacketizer);
-            inputPacketizer[4].data.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
+            inputPacketizer[4].tdata.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
             if (TRACE_LEVEL >= 2) {
             	cerr << "<D2> Current packet is : ";
             	for (uint8_t i=0; i<inputPacketizer.size(); ++i)
-            		cerr << hex << inputPacketizer[i].data;
+            		cerr << hex << inputPacketizer[i].tdata;
             	cerr << endl;
             }
             return 1;
@@ -507,30 +517,33 @@ short int injectAckNumber(deque<axiWord> &inputPacketizer,
     }
 }
 
-bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<32> > &sessionList, deque<axiWord> &inputPacketizer) {      // Looks for an ACK packet in the output stream and when found if stores the ackNumber from that packet into
-// the seqNumbers deque and clears the deque containing the output packet.
+bool parseOutputPacket(deque<AxiWord> &outputPacketizer, map<fourTuple, ap_uint<32> > &sessionList,
+						deque<AxiWord> &inputPacketizer) {
+	// Looks for an ACK packet in the output stream and when found if stores the ackNumber from that packet into
+	// the seqNumbers deque and clears the deque containing the output packet.
     bool returnValue = false;
     bool finPacket = false;
     static int pOpacketCounter = 0;
     static ap_uint<32> oldSeqNumber = 0;
-    if (outputPacketizer[4].data.bit(9) && !outputPacketizer[4].data.bit(12)) { // Check if this is a SYN packet and if so reply with a SYN-ACK
+    if (outputPacketizer[4].tdata.bit(9) && !outputPacketizer[4].tdata.bit(12)) {
+    	// Check if this is a SYN packet and if so reply with a SYN-ACK
         inputPacketizer.push_back(outputPacketizer[0]);
-        ap_uint<32> ipBuffer = outputPacketizer[1].data.range(63, 32);
-        outputPacketizer[1].data.range(63, 32) = outputPacketizer[2].data.range(31, 0);
+        ap_uint<32> ipBuffer = outputPacketizer[1].tdata.range(63, 32);
+        outputPacketizer[1].tdata.range(63, 32) = outputPacketizer[2].tdata.range(31, 0);
         inputPacketizer.push_back(outputPacketizer[1]);
-        outputPacketizer[2].data.range(31, 0) = ipBuffer;
-        ap_uint<16> portBuffer = outputPacketizer[2].data.range(47, 32);
-        outputPacketizer[2].data.range(47, 32) = outputPacketizer[2].data.range(63, 48);
-        outputPacketizer[2].data.range(63, 48) = portBuffer;
+        outputPacketizer[2].tdata.range(31, 0) = ipBuffer;
+        ap_uint<16> portBuffer = outputPacketizer[2].tdata.range(47, 32);
+        outputPacketizer[2].tdata.range(47, 32) = outputPacketizer[2].tdata.range(63, 48);
+        outputPacketizer[2].tdata.range(63, 48) = portBuffer;
         inputPacketizer.push_back(outputPacketizer[2]);
-        ap_uint<32> reversedSeqNumber = (outputPacketizer[3].data.range(7,0), outputPacketizer[3].data.range(15, 8), outputPacketizer[3].data.range(23, 16), outputPacketizer[3].data.range(31, 24)) + 1;
+        ap_uint<32> reversedSeqNumber = (outputPacketizer[3].tdata.range(7,0), outputPacketizer[3].tdata.range(15, 8), outputPacketizer[3].tdata.range(23, 16), outputPacketizer[3].tdata.range(31, 24)) + 1;
         reversedSeqNumber = (reversedSeqNumber.range(7, 0), reversedSeqNumber.range(15, 8), reversedSeqNumber.range(23, 16), reversedSeqNumber.range(31, 24));
-        outputPacketizer[3].data.range(31, 0) = outputPacketizer[3].data.range(63, 32);
-        outputPacketizer[3].data.range(63, 32) = reversedSeqNumber;
+        outputPacketizer[3].tdata.range(31, 0) = outputPacketizer[3].tdata.range(63, 32);
+        outputPacketizer[3].tdata.range(63, 32) = reversedSeqNumber;
         inputPacketizer.push_back(outputPacketizer[3]);
-        outputPacketizer[4].data.bit(12) = 1;                                               // Set the ACK bit
+        outputPacketizer[4].tdata.bit(12) = 1;                                               // Set the ACK bit
         ap_uint<16> tempChecksum = recalculateChecksum(outputPacketizer);
-        outputPacketizer[4].data.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
+        outputPacketizer[4].tdata.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
         inputPacketizer.push_back(outputPacketizer[4]);
         /*cerr << hex << outputPacketizer[0].data << endl;
         cerr << hex << outputPacketizer[1].data << endl;
@@ -538,23 +551,23 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
         cerr << hex << outputPacketizer[3].data << endl;
         cerr << hex << outputPacketizer[4].data << endl;*/
     }
-    else if (outputPacketizer[4].data.bit(8) && !outputPacketizer[4].data.bit(12))      // If the FIN bit is set but without the ACK bit being set at the same time
-        sessionList.erase(fourTuple(outputPacketizer[1].data.range(63, 32), outputPacketizer[2].data.range(31, 0), outputPacketizer[2].data.range(47, 32), outputPacketizer[2].data.range(63, 48))); // Erase the tuple for this session from the map
-    else if (outputPacketizer[4].data.bit(12)) { // If the ACK bit is set
-        uint16_t packetLength = byteSwap16(outputPacketizer[0].data.range(31, 16));
-        ap_uint<32> reversedSeqNumber = (outputPacketizer[3].data.range(7,0), outputPacketizer[3].data.range(15, 8), outputPacketizer[3].data.range(23, 16), outputPacketizer[3].data.range(31, 24));
-        if (outputPacketizer[4].data.bit(9) || outputPacketizer[4].data.bit(8))
+    else if (outputPacketizer[4].tdata.bit(8) && !outputPacketizer[4].tdata.bit(12))      // If the FIN bit is set but without the ACK bit being set at the same time
+        sessionList.erase(fourTuple(outputPacketizer[1].tdata.range(63, 32), outputPacketizer[2].tdata.range(31, 0), outputPacketizer[2].tdata.range(47, 32), outputPacketizer[2].tdata.range(63, 48))); // Erase the tuple for this session from the map
+    else if (outputPacketizer[4].tdata.bit(12)) { // If the ACK bit is set
+        uint16_t packetLength = byteSwap16(outputPacketizer[0].tdata.range(31, 16));
+        ap_uint<32> reversedSeqNumber = (outputPacketizer[3].tdata.range(7,0), outputPacketizer[3].tdata.range(15, 8), outputPacketizer[3].tdata.range(23, 16), outputPacketizer[3].tdata.range(31, 24));
+        if (outputPacketizer[4].tdata.bit(9) || outputPacketizer[4].tdata.bit(8))
             reversedSeqNumber++;
         if (packetLength >= 40) {
             packetLength -= 40;
             reversedSeqNumber += packetLength;
         }
         reversedSeqNumber = (reversedSeqNumber.range(7, 0), reversedSeqNumber.range(15, 8), reversedSeqNumber.range(23, 16), reversedSeqNumber.range(31, 24));
-        fourTuple packetTuple = fourTuple(outputPacketizer[2].data.range(31, 0), outputPacketizer[1].data.range(63, 32), outputPacketizer[2].data.range(63, 48), outputPacketizer[2].data.range(47, 32));
+        fourTuple packetTuple = fourTuple(outputPacketizer[2].tdata.range(31, 0), outputPacketizer[1].tdata.range(63, 32), outputPacketizer[2].tdata.range(63, 48), outputPacketizer[2].tdata.range(47, 32));
         sessionList[packetTuple] = reversedSeqNumber;
         returnValue = true;
-        if (outputPacketizer[4].data.bit(8)) {  // This might be a FIN segment at the same time. In this case erase the session from the list
-            uint8_t itemsErased = sessionList.erase(fourTuple(outputPacketizer[2].data.range(31, 0), outputPacketizer[1].data.range(63, 32), outputPacketizer[2].data.range(63, 48), outputPacketizer[2].data.range(47, 32))); // Erase the tuple for this session from the map
+        if (outputPacketizer[4].tdata.bit(8)) {  // This might be a FIN segment at the same time. In this case erase the session from the list
+            uint8_t itemsErased = sessionList.erase(fourTuple(outputPacketizer[2].tdata.range(31, 0), outputPacketizer[1].tdata.range(63, 32), outputPacketizer[2].tdata.range(63, 48), outputPacketizer[2].tdata.range(47, 32))); // Erase the tuple for this session from the map
             finPacket = true;
             //cerr << "Close Tuple: " << hex << outputPacketizer[2].data.range(31, 0) << " - " << outputPacketizer[1].data.range(63, 32) << " - " << inputPacketizer[2].data.range(63, 48) << " - " << outputPacketizer[2].data.range(47, 32) << endl;
             if (itemsErased != 1)
@@ -565,27 +578,27 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
         // Check if the ACK packet also constains data. If it does generate an ACK for. Look into the IP header length for this.
         if (packetLength > 0 || finPacket == true) { // 20B of IP Header & 20B of TCP Header since we never generate options
             finPacket = false;
-            outputPacketizer[0].data.range(31, 16) = 0x2800;
+            outputPacketizer[0].tdata.range(31, 16) = 0x2800;
             inputPacketizer.push_back(outputPacketizer[0]);
-            ap_uint<32> ipBuffer = outputPacketizer[1].data.range(63, 32);
-            outputPacketizer[1].data.range(63, 32) = outputPacketizer[2].data.range(31, 0);
+            ap_uint<32> ipBuffer = outputPacketizer[1].tdata.range(63, 32);
+            outputPacketizer[1].tdata.range(63, 32) = outputPacketizer[2].tdata.range(31, 0);
             inputPacketizer.push_back(outputPacketizer[1]);
-            outputPacketizer[2].data.range(31, 0) = ipBuffer;
-            ap_uint<16> portBuffer = outputPacketizer[2].data.range(47, 32);
-            outputPacketizer[2].data.range(47, 32) = outputPacketizer[2].data.range(63, 48);
-            outputPacketizer[2].data.range(63, 48) = portBuffer;
+            outputPacketizer[2].tdata.range(31, 0) = ipBuffer;
+            ap_uint<16> portBuffer = outputPacketizer[2].tdata.range(47, 32);
+            outputPacketizer[2].tdata.range(47, 32) = outputPacketizer[2].tdata.range(63, 48);
+            outputPacketizer[2].tdata.range(63, 48) = portBuffer;
             inputPacketizer.push_back(outputPacketizer[2]);
             //ap_uint<32> seqNumber = outputPacketizer[3].data.range(31, 0);
-            outputPacketizer[3].data.range(31, 0) = outputPacketizer[3].data.range(63, 32);
-            outputPacketizer[3].data.range(63, 32) = reversedSeqNumber;
+            outputPacketizer[3].tdata.range(31, 0) = outputPacketizer[3].tdata.range(63, 32);
+            outputPacketizer[3].tdata.range(63, 32) = reversedSeqNumber;
             //cerr << hex << outputPacketizer[3].data.range(63, 32) << " - " << reversedSeqNumber << endl;
             inputPacketizer.push_back(outputPacketizer[3]);
-            outputPacketizer[4].data.bit(12) = 1;                                               // Set the ACK bit
-            outputPacketizer[4].data.bit(8) = 0;                                                // Unset the FIN bit
+            outputPacketizer[4].tdata.bit(12) = 1;                                               // Set the ACK bit
+            outputPacketizer[4].tdata.bit(8) = 0;                                                // Unset the FIN bit
             ap_uint<16> tempChecksum = recalculateChecksum(outputPacketizer);
-            outputPacketizer[4].data.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
-            outputPacketizer[4].keep = 0x3F;
-            outputPacketizer[4].last = 1;
+            outputPacketizer[4].tdata.range(47, 32) = (tempChecksum.range(7, 0), tempChecksum(15, 8));
+            outputPacketizer[4].tkeep = 0x3F;
+            outputPacketizer[4].tlast = 1;
             inputPacketizer.push_back(outputPacketizer[4]);
             /*cerr << std::hex << outputPacketizer[0].data << " - " << outputPacketizer[0].keep << " - " << outputPacketizer[0].last << endl;
             cerr << std::hex << outputPacketizer[1].data << " - " << outputPacketizer[1].keep << " - " << outputPacketizer[1].last << endl;
@@ -617,13 +630,39 @@ bool parseOutputPacket(deque<axiWord> &outputPacketizer, map<fourTuple, ap_uint<
  *
  * @ingroup toe
  ******************************************************************************/
-void flushInputPacketizer(deque<axiWord> &inputPacketizer, stream<axiWord> &sData,
+void flushInputPacketizer(deque<AxiWord> &inputPacketizer, stream<AxiWord> &sData,
 							map<fourTuple, ap_uint<32> > &sessionList) {
     if (inputPacketizer.size() != 0) {
         injectAckNumber(inputPacketizer, sessionList);
         uint8_t inputPacketizerSize = inputPacketizer.size();
         for (uint8_t i=0; i<inputPacketizerSize; ++i) {
-            axiWord temp = inputPacketizer.front();
+            AxiWord temp = inputPacketizer.front();
+            sData.write(temp);
+            inputPacketizer.pop_front();
+        }
+    }
+}
+
+
+/*****************************************************************************
+ * @brief Empty an input queue of packets stored as IPv4-Words and write them
+ *			to an input stream of the TB.
+ *
+ * @param[in]  inputPacketizer, a reference to the double-ended queue to flush.
+ * @param[out] ipRxData,		a reference to the data stream to write.
+ * @param[in]  sessionList, 	a reference to an associative container that
+ * 								  holds the sessions as socket pair associations.
+ * @return nothing.
+ *
+ * @ingroup toe
+ ******************************************************************************/
+void flushIp4Packetizer(deque<Ip4Word> &inputPacketizer, stream<Ip4Word> &sData,
+							map<fourTuple, ap_uint<32> > &sessionList) {
+    if (inputPacketizer.size() != 0) {
+        injectAckNumber(inputPacketizer, sessionList);
+        uint8_t inputPacketizerSize = inputPacketizer.size();
+        for (uint8_t i=0; i<inputPacketizerSize; ++i) {
+            Ip4Word temp = inputPacketizer.front();
             sData.write(temp);
             inputPacketizer.pop_front();
         }
@@ -679,9 +718,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
-    stream<axiWord>                     sIPRX_Toe_Data      ("sIPRX_Toe_Data");
+    stream<Ip4Word>                     sIPRX_Toe_Data      ("sIPRX_Toe_Data");
 
-    stream<axiWord>                     sTOE_L3mux_Data     ("sTOE_L3mux_Data");
+    stream<Ip4Word>                     sTOE_L3mux_Data     ("sTOE_L3mux_Data");
 
     stream<axiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
     stream<ap_uint<16> >                sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
@@ -735,7 +774,9 @@ int main(int argc, char *argv[]) {
 
     bool            firstWordFlag;
 
-    axiWord         ipRxData;	// An IP4 chunk
+    Ip4Word         ipRxData;	// An IP4 chunk
+    Ip4Word         ipTxData;	// An IP4 chunk
+
     axiWord         tcpTxData;	// A  TCP chunk
 
     ap_uint<32>		mmioIpAddr = 0x01010101;
@@ -743,8 +784,6 @@ int main(int argc, char *argv[]) {
     ap_uint<16>     relSessionCount;
 
 
-
-    axiWord                             ipTxDataOut_Data;
 
 
     axiWord                             rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
@@ -755,8 +794,9 @@ int main(int argc, char *argv[]) {
     map<fourTuple, ap_uint<32> >        sessionList;
 
     //-- Double-ended queues ------------------------------
-    deque<axiWord>	inputPacketizer;
-    deque<axiWord>	outputPacketizer;  // This deque collects the output data word until a whole packet is accumulated.
+    deque<AxiWord>	inputPacketizer;
+
+    deque<AxiWord>	outputPacketizer;  // This deque collects the output data word until a whole packet is accumulated.
 
     //-- Input & Output File Streams ----------------------
     ifstream    rxInputFile;    //
@@ -955,7 +995,7 @@ int main(int argc, char *argv[]) {
             string 	txStringBuffer;
 
             // Before processing the input file data words, write any packets generated from the TB itself
-            flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
+            flushIp4Packetizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
 
             //-- FEED RX INPUT PATH -----------------------
             if (testRxPath == true) {
@@ -996,13 +1036,13 @@ int main(int argc, char *argv[]) {
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
-                        ipRxData = axiWord(encodeApUint64(stringVector[0]), \
+                        ipRxData = Ip4Word(encodeApUint64(stringVector[0]), \
                         				   encodeApUint8(stringVector[2]),  \
 										   atoi(stringVector[1].c_str()));
                         inputPacketizer.push_back(ipRxData);
-                    } while (ipRxData.last != 1);
+                    } while (ipRxData.tlast != 1);
                     firstWordFlag = true;
-                    flushInputPacketizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
+                    flushIp4Packetizer(inputPacketizer, sIPRX_Toe_Data, sessionList);
                 }
             }
 
@@ -1039,10 +1079,11 @@ int main(int argc, char *argv[]) {
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
                         tcpTxData = axiWord(encodeApUint64(txStringVector[0]), \
-                        						  encodeApUint8(txStringVector[2]),	 \
-												  atoi(txStringVector[1].c_str()));
+                        				    encodeApUint8(txStringVector[2]),	 \
+											atoi(txStringVector[1].c_str()));
                         sTRIF_Toe_Data.write(tcpTxData);
                     } while (tcpTxData.last != 1);
+
                     firstWordFlag = true;
                 }
             }
@@ -1104,12 +1145,12 @@ int main(int argc, char *argv[]) {
 
         //-- STEP-5.1 : DRAIN TOE-->L3MUX ----------------------
         if (!sTOE_L3mux_Data.empty()) {
-        	sTOE_L3mux_Data.read(ipTxDataOut_Data);
-            string dataOutput = decodeApUint64(ipTxDataOut_Data.data);
-            string keepOutput = decodeApUint8(ipTxDataOut_Data.keep);
-            txOutputFile << dataOutput << " " << ipTxDataOut_Data.last << " " << keepOutput << endl;
-            outputPacketizer.push_back(ipTxDataOut_Data);
-            if (ipTxDataOut_Data.last == 1) {
+        	sTOE_L3mux_Data.read(ipTxData);
+            string dataOutput = decodeApUint64(ipTxData.tdata);
+            string keepOutput = decodeApUint8(ipTxData.tkeep);
+            txOutputFile << dataOutput << " " << ipTxData.tlast << " " << keepOutput << endl;
+            outputPacketizer.push_back(ipTxData);
+            if (ipTxData.tlast == 1) {
                 // The whole packet has been written into the deque. Now parse it.
             	parseOutputPacket(outputPacketizer, sessionList, inputPacketizer);
             	txWordCounter = 0;

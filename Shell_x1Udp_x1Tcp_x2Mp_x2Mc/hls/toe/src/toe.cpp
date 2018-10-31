@@ -427,12 +427,12 @@ void toe(
 		//------------------------------------------------------
 		//-- IPRX / This / IP Rx / Data Interface
 		//------------------------------------------------------
-		stream<axiWord>						&siIPRX_This_Data,
+		stream<Ip4Word>						&siIPRX_This_Data,
 
 		//------------------------------------------------------
 		//-- L3MUX / This / IP Tx / Data Interface
 		//------------------------------------------------------
-		stream<axiWord>                    	&soTHIS_L3mux_Data,
+		stream<Ip4Word>                    	&soTHIS_L3mux_Data,
 
 		//------------------------------------------------------
 		//-- TRIF / This / Rx PATH / Data Interfaces
