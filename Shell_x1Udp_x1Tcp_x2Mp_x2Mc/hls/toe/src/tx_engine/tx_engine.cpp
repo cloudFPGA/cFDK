@@ -65,10 +65,12 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             eventEng2txEng_event.read(ml_curEvent);
             readCountFifo.write(1);
             ml_sarLoaded = false;
-            //NOT necessary for SYN/SYN_ACK only needs one
-            if (ml_curEvent.type == RT || ml_curEvent.type == TX || ml_curEvent.type == SYN_ACK || ml_curEvent.type == FIN || ml_curEvent.type == ACK || ml_curEvent.type == ACK_NODELAY) {
-                txEng2rxSar_req.write(ml_curEvent.sessionID);
-                txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
+            // NOT necessary for SYN/SYN_ACK only needs one
+            if ( (ml_curEvent.type == RT)      || (ml_curEvent.type == TX)  ||
+            	 (ml_curEvent.type == SYN_ACK) || (ml_curEvent.type == FIN) ||
+				 (ml_curEvent.type == ACK)     || (ml_curEvent.type == ACK_NODELAY) ) {
+            	txEng2rxSar_req.write(ml_curEvent.sessionID);
+            	txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
             }
             else if (ml_curEvent.type == RST) {
                 resetEvent = ml_curEvent;
