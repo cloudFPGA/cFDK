@@ -65,10 +65,12 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             eventEng2txEng_event.read(ml_curEvent);
             readCountFifo.write(1);
             ml_sarLoaded = false;
-            //NOT necessary for SYN/SYN_ACK only needs one
-            if (ml_curEvent.type == RT || ml_curEvent.type == TX || ml_curEvent.type == SYN_ACK || ml_curEvent.type == FIN || ml_curEvent.type == ACK || ml_curEvent.type == ACK_NODELAY) {
-                txEng2rxSar_req.write(ml_curEvent.sessionID);
-                txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
+            // NOT necessary for SYN/SYN_ACK only needs one
+            if ( (ml_curEvent.type == RT)      || (ml_curEvent.type == TX)  ||
+            	 (ml_curEvent.type == SYN_ACK) || (ml_curEvent.type == FIN) ||
+				 (ml_curEvent.type == ACK)     || (ml_curEvent.type == ACK_NODELAY) ) {
+            	txEng2rxSar_req.write(ml_curEvent.sessionID);
+            	txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
             }
             else if (ml_curEvent.type == RST) {
                 resetEvent = ml_curEvent;
@@ -797,16 +799,18 @@ void tx_compute_tcp_checksum(   stream<subSums>&            txEng_subChecksumsFi
  *  @param[in]      tcpChecksumFifoIn
  *  @param[out]     dataOut
  */
-void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
-                    stream<axiWord>&        payloadIn,
-                    stream<ap_uint<16> >&   txEng_tcpChecksumFifoIn,
-                    stream<axiWord>&        ipTxDataOut)
+void pkgStitcher(
+		stream<axiWord>&        txEng_ipHeaderBufferIn,
+		stream<axiWord>&        payloadIn,
+		stream<ap_uint<16> >&   txEng_tcpChecksumFifoIn,
+		stream<Ip4Word>			&ipTxDataOut)
 {
 //#pragma HLS INLINE off
 #pragma HLS pipeline II=1
 
     static ap_uint<3> ps_wordCount = 0;
-    axiWord headWord, dataWord, sendWord;
+    axiWord headWord, dataWord;
+    Ip4Word sendWord;
     ap_uint<16> checksum;
 
     switch (ps_wordCount)
@@ -816,7 +820,7 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         if (!txEng_ipHeaderBufferIn.empty())
         {
             txEng_ipHeaderBufferIn.read(headWord);
-            sendWord = headWord;
+            sendWord = Ip4Word(headWord.data, headWord.keep, headWord.last);
             ipTxDataOut.write(sendWord);
             ps_wordCount++;
         }
@@ -826,10 +830,10 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         {
             txEng_ipHeaderBufferIn.read(headWord);
             payloadIn.read(dataWord);
-            sendWord.data(31, 0) = headWord.data(31, 0);
-            sendWord.data(63, 32) = dataWord.data(63, 32);
-            sendWord.keep = 0xFF;
-            sendWord.last = 0;
+            sendWord.tdata(31,  0) = headWord.data(31,  0);
+            sendWord.tdata(63, 32) = dataWord.data(63, 32);
+            sendWord.tkeep         = 0xFF;
+            sendWord.tlast         = 0;
             ipTxDataOut.write(sendWord);
             ps_wordCount++;
         }
@@ -838,7 +842,7 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         if (!payloadIn.empty())
         {
             payloadIn.read(dataWord);
-            sendWord = dataWord;
+            sendWord = Ip4Word(dataWord.data, dataWord.keep, dataWord.last);
             ipTxDataOut.write(sendWord);
             ps_wordCount++;
         }
@@ -848,10 +852,10 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         {
             payloadIn.read(dataWord);
             txEng_tcpChecksumFifoIn.read(checksum);
-            sendWord = dataWord;
+            sendWord = Ip4Word(dataWord.data, dataWord.keep, dataWord.last);
             // Insert TCP checksum
-            sendWord.data(39, 32) = checksum(15, 8);
-            sendWord.data(47, 40) = checksum(7, 0);
+            sendWord.tdata(39, 32) = checksum(15, 8);
+            sendWord.tdata(47, 40) = checksum(7, 0);
             ipTxDataOut.write(sendWord);
             ps_wordCount++;
             if (dataWord.last) // is required, might be last word (when no data)
@@ -864,7 +868,7 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         if (!payloadIn.empty())
         {
             payloadIn.read(dataWord);
-            sendWord = dataWord;
+            sendWord = Ip4Word(dataWord.data, dataWord.keep, dataWord.last);
             ipTxDataOut.write(sendWord);
             if (dataWord.last)
             {
@@ -874,7 +878,6 @@ void pkgStitcher(   stream<axiWord>&        txEng_ipHeaderBufferIn,
         break;
 
     }
-
 
 }
 
@@ -925,19 +928,20 @@ void txEngMemAccessBreakdown(stream<mmCmd> &inputMemAccess, stream<mmCmd> &outpu
  *  @param[out]     txEng2sLookup_rev_req
  *  @param[out]     ipTxData
  */
-void tx_engine( stream<extendedEvent>&          eventEng2txEng_event,
-                stream<rxSarEntry>&             rxSar2txEng_rsp,
-                stream<txTxSarReply>&           txSar2txEng_upd_rsp,
-                stream<axiWord>&                txBufferReadData,
-                stream<fourTuple>&              sLookup2txEng_rev_rsp,
-                stream<ap_uint<16> >&           txEng2rxSar_req,
-                stream<txTxSarQuery>&           txEng2txSar_upd_req,
-                stream<txRetransmitTimerSet>&   txEng2timer_setRetransmitTimer,
-                stream<ap_uint<16> >&           txEng2timer_setProbeTimer,
-                stream<mmCmd>&                  txBufferReadCmd,
-                stream<ap_uint<16> >&           txEng2sLookup_rev_req,
-                stream<axiWord>&                ipTxData,
-                stream<ap_uint<1> >&            readCountFifo)
+void tx_engine(
+		stream<extendedEvent>&          eventEng2txEng_event,
+		stream<rxSarEntry>&             rxSar2txEng_rsp,
+		stream<txTxSarReply>&           txSar2txEng_upd_rsp,
+		stream<axiWord>&                txBufferReadData,
+		stream<fourTuple>&              sLookup2txEng_rev_rsp,
+		stream<ap_uint<16> >&           txEng2rxSar_req,
+		stream<txTxSarQuery>&           txEng2txSar_upd_req,
+		stream<txRetransmitTimerSet>&   txEng2timer_setRetransmitTimer,
+		stream<ap_uint<16> >&           txEng2timer_setProbeTimer,
+		stream<mmCmd>&                  txBufferReadCmd,
+		stream<ap_uint<16> >&           txEng2sLookup_rev_req,
+		stream<Ip4Word>					&ipTxData,
+		stream<ap_uint<1> >&            readCountFifo)
 {
 #pragma HLS DATAFLOW
 #pragma HLS INTERFACE ap_ctrl_none port=return

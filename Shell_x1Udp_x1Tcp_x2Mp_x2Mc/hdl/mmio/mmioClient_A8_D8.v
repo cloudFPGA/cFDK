@@ -87,6 +87,8 @@ module MmioClient_A8_D8 #(
   //-- NTS0 : Status inputs and Control Outputs --
   output  [47:0]  poMMIO_Nts0_MacAddress,
   output  [31:0]  poMMIO_Nts0_IpAddress,
+  output  [31:0]  poMMIO_Nts0_SubNetMask,
+  output  [31:0]  poMMIO_Nts0_GatewayAddr,
   
   //-- ROLE : Status inputs and Control Outputs --
   output  [ 1:0]  poMMIO_Role_UdpEchoCtrl,
@@ -184,7 +186,17 @@ module MmioClient_A8_D8 #(
   localparam LY3_IP1        = LY3_REG_BASE  +  5; 
   localparam LY3_IP2        = LY3_REG_BASE  +  6; 
   localparam LY3_IP3        = LY3_REG_BASE  +  7;
-  
+  // IP SubNetMask Register
+  localparam LY3_SNM0       = LY3_REG_BASE  +  8;
+  localparam LY3_SNM1       = LY3_REG_BASE  +  9;
+  localparam LY3_SNM2       = LY3_REG_BASE  + 10;
+  localparam LY3_SNM3       = LY3_REG_BASE  + 11;
+  // IP DefGateway Register
+  localparam LY3_GTW0       = LY3_REG_BASE  + 12;
+  localparam LY3_GTW1       = LY3_REG_BASE  + 13;
+  localparam LY3_GTW2       = LY3_REG_BASE  + 14;
+  localparam LY3_GTW3       = LY3_REG_BASE  + 15;       
+    
   //-- RES_REGS ---------------------------------------------------------------
   
   //-- DIAG_REGS --------------------------------------------------------------
@@ -269,14 +281,14 @@ module MmioClient_A8_D8 #(
   localparam cDefReg35 = 8'h00;  // LY3_IP1  
   localparam cDefReg36 = 8'h00;  // LY3_IP2
   localparam cDefReg37 = 8'h00;  // LY3_IP3
-  localparam cDefReg38 = 8'h00;  
-  localparam cDefReg39 = 8'h00;
-  localparam cDefReg3A = 8'h00;
-  localparam cDefReg3B = 8'h00;
-  localparam cDefReg3C = 8'h00;
-  localparam cDefReg3D = 8'h00;
-  localparam cDefReg3E = 8'h00;
-  localparam cDefReg3F = 8'h00;  
+  localparam cDefReg38 = 8'hFF;  // LY3_SNM0 (.i.e, 255.255.0.0)
+  localparam cDefReg39 = 8'hFF;  // LY3_SNM1
+  localparam cDefReg3A = 8'h00;  // LY3_SNM2
+  localparam cDefReg3B = 8'h00;  // LY3_SNM3
+  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.2.0.1)
+  localparam cDefReg3D = 8'h02;  // LY3_GTW1
+  localparam cDefReg3E = 8'h00;  // LY3_GTW2
+  localparam cDefReg3F = 8'h01;  // LY3_GTW3 
   //-- RES_REGS ---------------
   localparam cDefReg40 = 8'h00;
   localparam cDefReg41 = 8'h00;
@@ -494,19 +506,33 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------
   //---- LY3_CONTROL --------------------
   generate
-  for (id=0; id<8; id=id+1)
+  for (id=0; id<16; id=id+1)
     begin: gen_LY3_CTRL
-      assign sStatusVec[cEDW*LY3_CTRL0+id]  = sEMIF_Ctrl[cEDW*LY3_CTRL0+id]; // RW   
+      assign sStatusVec[cEDW*LY3_CTRL0+id] = sEMIF_Ctrl[cEDW*LY3_CTRL0+id]; // RW   
     end
   endgenerate
   //---- LY3_IP -------------------------
   generate
   for (id=0; id<32; id=id+1)
     begin: gen_LY3_IP_ADDR
-      assign sStatusVec[cEDW*LY3_IP0+id]  = sEMIF_Ctrl[cEDW*LY3_IP0+id]; // RW   
+      assign sStatusVec[cEDW*LY3_IP0+id] = sEMIF_Ctrl[cEDW*LY3_IP0+id]; // RW   
     end
   endgenerate
- 
+  //---- LY3_SUBNET --------------------
+  generate
+  for (id=0; id<32; id=id+1)
+    begin: gen_LY3_SUBNET
+      assign sStatusVec[cEDW*LY3_SNM0+id] = sEMIF_Ctrl[cEDW*LY3_SNM0+id]; // RW   
+    end
+  endgenerate
+  //---- LY3_IP -------------------------
+  generate
+  for (id=0; id<32; id=id+1)
+    begin: gen_LY3_GATEWAY
+      assign sStatusVec[cEDW*LY3_GTW0+id] = sEMIF_Ctrl[cEDW*LY3_GTW0+id]; // RW   
+    end
+  endgenerate
+  
   //-------------------------------------------------------- 
   //-- PCIE REGISTERS
   //--------------------------------------------------------
@@ -594,10 +620,20 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poMMIO_Nts0_IpAddress[31:24] = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];  // RW
-  assign poMMIO_Nts0_IpAddress[23:16] = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];  // RW
-  assign poMMIO_Nts0_IpAddress[15: 8] = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];  // RW
-  assign poMMIO_Nts0_IpAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];  // RW
+  assign poMMIO_Nts0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
+  assign poMMIO_Nts0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
+  assign poMMIO_Nts0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
+  assign poMMIO_Nts0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
+  //---- LY3_SUBNET[0:3] -------------------
+  assign poMMIO_Nts0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
+  assign poMMIO_Nts0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
+  assign poMMIO_Nts0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
+  assign poMMIO_Nts0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
+  //---- LY3_GATEWAY[0:3] -------------------
+  assign poMMIO_Nts0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW3+0]; // RW
+  assign poMMIO_Nts0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
+  assign poMMIO_Nts0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
+  assign poMMIO_Nts0_GatewayAddr[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
   
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS

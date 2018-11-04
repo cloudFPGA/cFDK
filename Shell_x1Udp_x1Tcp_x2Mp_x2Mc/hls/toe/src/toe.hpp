@@ -1,3 +1,32 @@
+/*****************************************************************************
+ * @file       : toe.hpp
+ * @brief      : TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *                   TCP offload engine.
+ *
+ * @terminology:
+ * 	In telecommunications, a protocol data unit (PDU) is a single unit of
+ * 	 information transmitted among peer entities of a computer network.
+ * 	A PDU is therefore composed of a protocol specific control information
+ * 	 (e.g, a header) and a user data section.
+ *	This source code uses the following terminology:
+ *	 - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *	 - a DATAGRAM (or UDP Packet) refers to the UDP protocol data unit.
+ *	 - a PACKET (or IP Packet) refers to the IP protocol data unit.
+ *	 - a FRAME (or MAC Frame) refers to the Ethernet data link layer.
+ *
+ *****************************************************************************/
+
 #ifndef TOE_H_
 #define TOE_H_
 
@@ -13,12 +42,13 @@
 
 static const uint16_t MAX_SESSIONS = 32;
 
-//#include "session_lookup_controller/session_lookup_controller.hpp"
+//OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
-#define noOfTxSessions 1 // Number of Tx Sessions to open for testing
+#define noTxSessions 1 // Number of Tx Sessions to open for testing
+
 extern uint32_t packetCounter;
-extern uint32_t cycleCounter;
-extern unsigned int     simCycleCounter;
+extern uint32_t idleCycCnt;
+extern unsigned int     gSimCycCnt;
 // Forward declarations.
 struct rtlSessionUpdateRequest;
 struct rtlSessionUpdateReply;
@@ -113,18 +143,125 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 }
 #define after(seq2, seq1)       before(seq1, seq2)
 
-struct axiWord
-{
-    ap_uint<64>         data;
+
+
+/*************************************************************************
+ * STREAM - Generic Stream Type Definitions
+ *************************************************************************/
+
+/********************************************
+ * SINGLE BIT - Types and Definitions
+ ********************************************/
+typedef bool AckBit;	// Acknowledge: Always has to go back to the source of the request (e.g. OpenReq/OpenAck).
+typedef bool CmdBit;    // Command    : Indicates an action (e.g. Drop). Does not expect a return from recipient.
+typedef bool QryBit;	// Query      : Indicates a demand for an answer.
+typedef bool ReqBit;	// Request    : Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBit;	// Reply	  :	Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBit;	// Response   : Can go back to a different source.
+typedef bool StsBit;	// Status bit : Does not  have to go back (e.g. isOpen).
+typedef bool ValBit;	// Valid bit  : Must go along with something to validate/invalidate.
+
+
+/********************************************
+ * AXIS - Generic AXI4-Streaming Interface
+ ********************************************/
+struct AxiWord {	// AXI4-Streaming Chunk (i.e. 8 bytes)
+	ap_uint<64>		tdata;
+    ap_uint<8>		tkeep;
+    ap_uint<1>		tlast;
+    AxiWord()		{}
+    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+    		tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+struct axiWord {
+    ap_uint<64>		data;
     ap_uint<8>      keep;
     ap_uint<1>      last;
     axiWord() {}
-    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last)
-                : data(data), keep(keep), last(last) {}
+    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
+    		data(data), keep(keep), last(last) {}
 };
 
-struct fourTuple
-{
+
+
+
+
+
+/*************************************************************************
+ * NETWORK LAYER-3 SECTION
+ *************************************************************************
+ * Terminology & Conventions
+ * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).
+ *************************************************************************/
+
+/********************************************
+ * IP4 - Header Type Definitions
+ ********************************************/
+typedef ap_uint< 4>	Ip4Hdr_HeaderLen; 	// IPv4 Header Length
+typedef ap_uint<16> Ip4Hdr_TotalLen; 	// IPv4 Total Length
+
+/********************************************
+ * IP4 - Specific Type Definitions
+ ********************************************/
+typedef ap_uint<16> Ip4PktLen;	// IP4 Packet Length in octets (same as Ip4TotalLen)
+typedef ap_uint< 8> Ip4HdrLen;	// IP4 Header Length in octets (same as 4*Ip4HeaderLen)
+typedef ap_uint<16> Ip4DatLen;	// IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
+
+typedef ap_uint<32> Ip4Addr;	// IP4 fixed 32-bit length address
+
+/********************************************
+ * IP4 - Streaming Type Definition
+ ********************************************/
+typedef	AxiWord	Ip4Word;
+
+
+
+/*************************************************************************
+ * NETWORK LAYER-4 SECTION
+ *************************************************************************
+ * Terminology & Conventions
+ * - a SEGMENT (or TcpPacket) refers to a TCP-PDU (i.e., Header+Data).
+ * - a DATAGRAM (or UdpPacket) refrers to a UDP-PDU (i.e., Header+Data).
+ *************************************************************************/
+
+/********************************************
+ * TCP - Header Type Definitions
+ ********************************************/
+
+
+/********************************************
+ * TCP - Specific Type Definitions
+ ********************************************/
+typedef ap_uint<16> TcpSegLen;	// TCP Segment Length in octets (same as Ip4DatLen)
+typedef ap_uint< 8> TcpHdrLen;	// TCP Header  Length in octets
+typedef ap_uint<16> TcpDatLen;	// TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
+
+typedef ap_uint<16>	TcpPort; 	// TCP Port Number
+
+
+
+/********************************************
+ * Socket Transport Pair & Address
+ ********************************************/
+
+struct SockAddr {	// Socket Address
+	Ip4Addr		addr;   // IPv4 address in reversed network byte order !!!
+	TcpPort		port;   // Port in reversed network byte order !!!
+	SockAddr() {}
+	SockAddr(Ip4Addr addr, TcpPort port) :
+		addr(addr), port(port) {}
+};
+
+struct SocketPair {	// Socket Pair Association
+	SockAddr	src;	// Source socket address
+    SockAddr	dst;    // Destination socket address
+    SocketPair() {}
+    SocketPair(SockAddr src, SockAddr dst) :
+    	src(src), dst(dst) {}
+};
+
+struct fourTuple {
     ap_uint<32> srcIp;
     ap_uint<32> dstIp;
     ap_uint<16> srcPort;
@@ -133,6 +270,32 @@ struct fourTuple
     fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
               : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
 };
+
+
+
+
+
+
+typedef ap_uint<16> TcpSessId;	// TCP Session ID
+typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
+
+
+/********************************************
+ * TCP - Streaming Type Definition
+ ********************************************/
+typedef	AxiWord	TcpWord;
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
@@ -161,6 +324,8 @@ struct sessionLookupReply
             :sessionID(id), hit(hit) {}
 };
 
+#define QUERY_RD  0
+#define QUERY_WR  1
 
 struct stateQuery
 {
@@ -168,11 +333,12 @@ struct stateQuery
     sessionState    state;
     ap_uint<1>      write;
     stateQuery() {}
-    stateQuery(ap_uint<16> id)
-            :sessionID(id), state(CLOSED), write(0){}
-    stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write)
-            :sessionID(id), state(state), write(write) {}
+    stateQuery(ap_uint<16> id) :
+        sessionID(id), state(CLOSED), write(0) {}
+    stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write) :
+        sessionID(id), state(state), write(write) {}
 };
+
 
 /** @ingroup rx_sar_table
  *  @ingroup rx_engine
@@ -397,14 +563,14 @@ struct txRetransmitTimerSet {
 
 struct event
 {
-    eventType   type;
+    eventType       type;
     ap_uint<16>     sessionID;
     //eventType     type;
     //ap_uint<16>   sessionID;
-    ap_uint<16> address;
-    ap_uint<16> length;
-    ap_uint<3>  rt_count;
-    //bool      retransmit;
+    ap_uint<16>     address;
+    ap_uint<16>     length;
+    ap_uint<3>      rt_count;
+    //bool          retransmit;
     event() {}
     //event(const event&) {}
     event(eventType type, ap_uint<16> id)
@@ -490,7 +656,7 @@ struct mm_ibtt_status
     ap_uint<1>  decerr;
     ap_uint<1>  slverr;
     ap_uint<1>  okay;
-    ap_uint<22>     brc_vd;
+    ap_uint<22> brc_vd;
     ap_uint<1>  eop;
 };
 
@@ -505,11 +671,11 @@ struct openStatus
 
 struct appNotification
 {
-    ap_uint<16>             sessionID;
-    ap_uint<16>             length;
-    ap_uint<32>             ipAddress;
-    ap_uint<16>             dstPort;
-    bool                closed;
+    ap_uint<16>        sessionID;
+    ap_uint<16>        length;
+    ap_uint<32>        ipAddress;
+    ap_uint<16>        dstPort;
+    bool               closed;
     appNotification() {}
     appNotification(ap_uint<16> id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port)
                 :sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
@@ -541,48 +707,85 @@ ap_uint<4> keepMapping(ap_uint<8> keepValue);       // This function counts the 
 //template<class type> void streamMerger(stream<type> &input1, stream<type>& input2, stream<type>& output);
 template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T>& out);
 
-void toe(   // Data & Memory Interface
-            stream<axiWord>&                        ipRxData,
-            stream<mmStatus>&                       rxBufferWriteStatus,
-            stream<mmStatus>&                       txBufferWriteStatus,
-            stream<axiWord>&                        rxBufferReadData,
-            stream<axiWord>&                        txBufferReadData,
-            stream<axiWord>&                        ipTxData,
-            stream<mmCmd>&                          rxBufferWriteCmd,
-            stream<mmCmd>&                          rxBufferReadCmd,
-            stream<mmCmd>&                          txBufferWriteCmd,
-            stream<mmCmd>&                          txBufferReadCmd,
-            stream<axiWord>&                        rxBufferWriteData,
-            stream<axiWord>&                        txBufferWriteData,
-            // SmartCam Interface
-            stream<rtlSessionLookupReply>&          sessionLookup_rsp,
-            stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
-            //stream<ap_uint<14> >&                     readFinSessionId,
-            stream<rtlSessionLookupRequest>&        sessionLookup_req,
-            stream<rtlSessionUpdateRequest>&        sessionUpdate_req,
-            //stream<rtlSessionUpdateRequest>&      sessionInsert_req,
-            //stream<rtlSessionUpdateRequest>&      sessionDelete_req,
-            //stream<ap_uint<14> >&                     writeNewSessionId,
-            // Application Interface
-            stream<ap_uint<16> >&                   listenPortReq,
-            // This is disabled for the time being, due to complexity concerns
-            //stream<ap_uint<16> >&                     appClosePortIn,
-            stream<appReadRequest>&                     rxDataReq,
-            stream<ipTuple>&                        openConnReq,
-            stream<ap_uint<16> >&                   closeConnReq,
-            stream<ap_uint<16> >&                   txDataReqMeta,
-            stream<axiWord>&                        txDataReq,
+void toe(
 
-            stream<bool>&                           listenPortRsp,
-            stream<appNotification>&                notification,
-            stream<ap_uint<16> >&                   rxDataRspMeta,
-            stream<axiWord>&                        rxDataRsp,
-            stream<openStatus>&                         openConnRsp,
-            stream<ap_int<17> >&                    txDataRsp,
-            //IP Address Input
-            ap_uint<32>                                 regIpAddress,
-            //statistic
-            ap_uint<16>&                            relSessionCount,
-            ap_uint<16>&                            regSessionCount);
+	    //------------------------------------------------------
+	    //-- From MMIO Interfaces
+	    //------------------------------------------------------
+		ap_uint<32>                         piMMIO_This_IpAddr,
+
+
+		//------------------------------------------------------
+	    //-- IPRX / This / IP Rx / Data Interface
+	    //------------------------------------------------------
+		stream<Ip4Word>						&siIPRX_This_Data,
+
+		//------------------------------------------------------
+		//-- L3MUX / This / IP Tx / Data Interface
+		//------------------------------------------------------
+		stream<Ip4Word>                    	&soTHIS_L3mux_Data,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Rx / Data Interfaces
+		//------------------------------------------------------
+		stream<appReadRequest>             	&siTRIF_This_DReq,
+		stream<appNotification>            	&soTHIS_Trif_Notif,
+		stream<axiWord>                    	&soTHIS_Trif_Data,
+		stream<ap_uint<16> >               	&soTHIS_Trif_Meta,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Rx / Ctrl Interfaces
+		//------------------------------------------------------
+		stream<ap_uint<16> >               	&siTRIF_This_LsnReq,
+		stream<bool>                        &soTHIS_Trif_LsnAck,
+
+		//------------------------------------------------------
+		//-- TRIF / This / ROLE Tx / Data Interfaces
+		//------------------------------------------------------
+		stream<axiWord>                    	&siTRIF_This_Data,
+		stream<ap_uint<16> >               	&siTRIF_This_Meta,
+		stream<ap_int<17> >                	&soTHIS_Trif_DSts,
+
+		//------------------------------------------------------
+		//-- TRIF / This / Tx PATH / Ctrl Interfaces
+		//------------------------------------------------------
+		stream<ipTuple>                    	&siTRIF_This_OpnReq,
+		stream<openStatus>                 	&soTHIS_Trif_OpnSts,
+		stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
+		//-- Not USed                       &soTHIS_Trif_ClsSts,
+
+		//------------------------------------------------------
+		//-- MEM / This / Rx PATH / S2MM Interface
+		//------------------------------------------------------
+		//-- Not Used                       &siMEM_This_RxP_RdSts,
+		stream<mmCmd>                      	&soTHIS_Mem_RxP_RdCmd,
+		stream<axiWord>                    	&siMEM_This_RxP_Data,
+		stream<mmStatus>                   	&siMEM_This_RxP_WrSts,
+		stream<mmCmd>                      	&soTHIS_Mem_RxP_WrCmd,
+		stream<axiWord>                    	&soTHIS_Mem_RxP_Data,
+
+		//------------------------------------------------------
+		//-- MEM / This / Tx PATH / S2MM Interface
+		//------------------------------------------------------
+		//-- Not Used                       &siMEM_This_TxP_RdSts,
+		stream<mmCmd>                      	&soTHIS_Mem_TxP_RdCmd,
+		stream<axiWord>                    	&siMEM_This_TxP_Data,
+		stream<mmStatus>                   	&siMEM_This_TxP_WrSts,
+		stream<mmCmd>                      	&soTHIS_Mem_TxP_WrCmd,
+		stream<axiWord>                    	&soTHIS_Mem_TxP_Data,
+
+	    //------------------------------------------------------
+	    //-- CAM / This / Session Lookup & Update Interfaces
+	    //------------------------------------------------------
+		stream<rtlSessionLookupReply>      	&siCAM_This_SssLkpRpl,
+		stream<rtlSessionUpdateReply>      	&siCAM_This_SssUpdRpl,
+		stream<rtlSessionLookupRequest>    	&soTHIS_Cam_SssLkpReq,
+		stream<rtlSessionUpdateRequest>    	&soTHIS_Cam_SssUpdReq,
+
+		//------------------------------------------------------
+		//-- DEBUG / Session Statistics Interfaces
+		//------------------------------------------------------
+		ap_uint<16>                        	&poTHIS_Dbg_SssRelCnt,
+		ap_uint<16>                        	&poTHIS_Dbg_SssRegCnt);
 
 #endif

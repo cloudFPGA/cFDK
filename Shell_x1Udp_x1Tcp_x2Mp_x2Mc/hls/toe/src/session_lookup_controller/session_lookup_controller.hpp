@@ -171,5 +171,5 @@ void session_lookup_controller( stream<sessionLookupQuery>&         rxEng2sLooku
                                 //stream<rtlSessionUpdateRequest>&  sessionInsert_req,
                                 //stream<rtlSessionUpdateRequest>&  sessionDelete_req,
                                 stream<rtlSessionUpdateReply>&      sessionUpdate_rsp,
-                                ap_uint<16>&                        relSessionCount,
-                                ap_uint<16>&                        regSessionCount);
+                                ap_uint<16>                         &poSssRelCnt,
+                                ap_uint<16>                         &poSssRegCnt);

@@ -3,7 +3,7 @@
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
 # * Created : Dec 2017
-# * Authors : Jagath Weerasinghe, Francois Abel  
+# * Authors : Francois Abel, Burkhard Ringlein
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the TCP offload 
 # *   engine used by the shell of the cloudFPGA module.
@@ -42,6 +42,13 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+# Retrieve the HLS target goals from ENV
+#-------------------------------------------------
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
@@ -79,21 +86,31 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Simulation and Synthesis
+# Run C Simulation (refer to UG902)
 #-------------------------------------------------
-# [FIXME - csim fails with SIGSEGV] csim_design -clean
-csynth_design
+if { $hlsCSim} {
+    csim_design -setup -clean -compiler gcc
+    csim_design -argv "0 ../../../../test/testVectors/inOnePkt.dat ../../../../test/rxOut.dat ../../../../test/txOut.dat" 
+}
 
-# Run RTL Simulation
+# Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { 0 } {
+if { $hlsCSynth} { 
+    csynth_design
+}
+
+# Run C/RTL CoSimulation (refer to UG902)
+#-------------------------------------------------
+if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level all
 }
 
 # Export RTL (refer to UG902)
 #   -format ( sysgen | ip_catalog | syn_dcp )
 #-------------------------------------------------
-export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+if { $hlsRtl } {
+    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+}
 
 # Exit Vivado HLS
 #--------------------------------------------------
