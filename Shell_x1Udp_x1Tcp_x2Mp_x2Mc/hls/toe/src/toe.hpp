@@ -14,6 +14,17 @@
  * @details    : Data structures, types and prototypes definitions for the
  *                   TCP offload engine.
  *
+ * @terminology:
+ * 	In telecommunications, a protocol data unit (PDU) is a single unit of
+ * 	 information transmitted among peer entities of a computer network.
+ * 	A PDU is therefore composed of a protocol specific control information
+ * 	 (e.g, a header) and a user data section.
+ *	This source code uses the following terminology:
+ *	 - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *	 - a DATAGRAM (or UDP Packet) refers to the UDP protocol data unit.
+ *	 - a PACKET (or IP Packet) refers to the IP protocol data unit.
+ *	 - a FRAME (or MAC Frame) refers to the Ethernet data link layer.
+ *
  *****************************************************************************/
 
 #ifndef TOE_H_
@@ -134,8 +145,25 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 
 
 
+/*************************************************************************
+ * STREAM - Generic Stream Type Definitions
+ *************************************************************************/
+
 /********************************************
- * AXI - Generic Streaming Interface
+ * SINGLE BIT - Types and Definitions
+ ********************************************/
+typedef bool AckBit;	// Acknowledge: Always has to go back to the source of the request (e.g. OpenReq/OpenAck).
+typedef bool CmdBit;    // Command    : Indicates an action (e.g. Drop). Does not expect a return from recipient.
+typedef bool QryBit;	// Query      : Indicates a demand for an answer.
+typedef bool ReqBit;	// Request    : Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBit;	// Reply	  :	Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBit;	// Response   : Can go back to a different source.
+typedef bool StsBit;	// Status bit : Does not  have to go back (e.g. isOpen).
+typedef bool ValBit;	// Valid bit  : Must go along with something to validate/invalidate.
+
+
+/********************************************
+ * AXIS - Generic AXI4-Streaming Interface
  ********************************************/
 struct AxiWord {	// AXI4-Streaming Chunk (i.e. 8 bytes)
 	ap_uint<64>		tdata;
@@ -156,16 +184,31 @@ struct axiWord {
 };
 
 
+
+
+
+
+/*************************************************************************
+ * NETWORK LAYER-3 SECTION
+ *************************************************************************
+ * Terminology & Conventions
+ * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).
+ *************************************************************************/
+
 /********************************************
  * IP4 - Header Type Definitions
  ********************************************/
-typedef ap_uint<4>	Ip4HeaderLen; 	// IPv4 Header Length
-typedef ap_uint<16> Ip4TotalLen; 	// IPv4 Total Length
+typedef ap_uint< 4>	Ip4Hdr_HeaderLen; 	// IPv4 Header Length
+typedef ap_uint<16> Ip4Hdr_TotalLen; 	// IPv4 Total Length
 
 /********************************************
- * IP4 - Custom Type Definitions
+ * IP4 - Specific Type Definitions
  ********************************************/
-typedef ap_uint<16> Ip4PLen; 			// IPv4 Payload Length
+typedef ap_uint<16> Ip4PktLen;	// IP4 Packet Length in octets (same as Ip4TotalLen)
+typedef ap_uint< 8> Ip4HdrLen;	// IP4 Header Length in octets (same as 4*Ip4HeaderLen)
+typedef ap_uint<16> Ip4DatLen;	// IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
+
+typedef ap_uint<32> Ip4Addr;	// IP4 fixed 32-bit length address
 
 /********************************************
  * IP4 - Streaming Type Definition
@@ -174,31 +217,51 @@ typedef	AxiWord	Ip4Word;
 
 
 
+/*************************************************************************
+ * NETWORK LAYER-4 SECTION
+ *************************************************************************
+ * Terminology & Conventions
+ * - a SEGMENT (or TcpPacket) refers to a TCP-PDU (i.e., Header+Data).
+ * - a DATAGRAM (or UdpPacket) refrers to a UDP-PDU (i.e., Header+Data).
+ *************************************************************************/
+
+/********************************************
+ * TCP - Header Type Definitions
+ ********************************************/
 
 
+/********************************************
+ * TCP - Specific Type Definitions
+ ********************************************/
+typedef ap_uint<16> TcpSegLen;	// TCP Segment Length in octets (same as Ip4DatLen)
+typedef ap_uint< 8> TcpHdrLen;	// TCP Header  Length in octets
+typedef ap_uint<16> TcpDatLen;	// TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
-
+typedef ap_uint<16>	TcpPort; 	// TCP Port Number
 
 
 
 /********************************************
- * TCP - Type Definitions
+ * Socket Transport Pair & Address
  ********************************************/
-typedef ap_uint<16> TcpSessId;	// TCP Session ID
-typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
 
+struct SockAddr {	// Socket Address
+	Ip4Addr		addr;   // IPv4 address in reversed network byte order !!!
+	TcpPort		port;   // Port in reversed network byte order !!!
+	SockAddr() {}
+	SockAddr(Ip4Addr addr, TcpPort port) :
+		addr(addr), port(port) {}
+};
 
+struct SocketPair {	// Socket Pair Association
+	SockAddr	src;	// Source socket address
+    SockAddr	dst;    // Destination socket address
+    SocketPair() {}
+    SocketPair(SockAddr src, SockAddr dst) :
+    	src(src), dst(dst) {}
+};
 
-
-
-
-
-
-
-
-
-struct fourTuple
-{
+struct fourTuple {
     ap_uint<32> srcIp;
     ap_uint<32> dstIp;
     ap_uint<16> srcPort;
@@ -207,6 +270,32 @@ struct fourTuple
     fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
               : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
 };
+
+
+
+
+
+
+typedef ap_uint<16> TcpSessId;	// TCP Session ID
+typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
+
+
+/********************************************
+ * TCP - Streaming Type Definition
+ ********************************************/
+typedef	AxiWord	TcpWord;
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
@@ -235,6 +324,8 @@ struct sessionLookupReply
             :sessionID(id), hit(hit) {}
 };
 
+#define QUERY_RD  0
+#define QUERY_WR  1
 
 struct stateQuery
 {
@@ -242,11 +333,12 @@ struct stateQuery
     sessionState    state;
     ap_uint<1>      write;
     stateQuery() {}
-    stateQuery(ap_uint<16> id)
-            :sessionID(id), state(CLOSED), write(0){}
-    stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write)
-            :sessionID(id), state(state), write(write) {}
+    stateQuery(ap_uint<16> id) :
+        sessionID(id), state(CLOSED), write(0) {}
+    stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write) :
+        sessionID(id), state(state), write(write) {}
 };
+
 
 /** @ingroup rx_sar_table
  *  @ingroup rx_engine
@@ -471,14 +563,14 @@ struct txRetransmitTimerSet {
 
 struct event
 {
-    eventType   type;
+    eventType       type;
     ap_uint<16>     sessionID;
     //eventType     type;
     //ap_uint<16>   sessionID;
-    ap_uint<16> address;
-    ap_uint<16> length;
-    ap_uint<3>  rt_count;
-    //bool      retransmit;
+    ap_uint<16>     address;
+    ap_uint<16>     length;
+    ap_uint<3>      rt_count;
+    //bool          retransmit;
     event() {}
     //event(const event&) {}
     event(eventType type, ap_uint<16> id)
@@ -564,7 +656,7 @@ struct mm_ibtt_status
     ap_uint<1>  decerr;
     ap_uint<1>  slverr;
     ap_uint<1>  okay;
-    ap_uint<22>     brc_vd;
+    ap_uint<22> brc_vd;
     ap_uint<1>  eop;
 };
 
@@ -579,11 +671,11 @@ struct openStatus
 
 struct appNotification
 {
-    ap_uint<16>             sessionID;
-    ap_uint<16>             length;
-    ap_uint<32>             ipAddress;
-    ap_uint<16>             dstPort;
-    bool                closed;
+    ap_uint<16>        sessionID;
+    ap_uint<16>        length;
+    ap_uint<32>        ipAddress;
+    ap_uint<16>        dstPort;
+    bool               closed;
     appNotification() {}
     appNotification(ap_uint<16> id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port)
                 :sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
