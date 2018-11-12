@@ -43,47 +43,55 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+# Retrieve the HLS target goals from ENV
+#-------------------------------------------------
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
 set_top       ${projectName}
 
+# Add files
+#-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
 add_files -tb ${testDir}/test_${projectName}.cpp
 
+# Create a solution
+#-------------------------------------------------
 open_solution ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Synthesis
+# Run C Simulation (refer to UG902)
 #-------------------------------------------------
-#csim_design -clean              [FIXME]
-#csim_design -clean -setup       [FIXME]
-csynth_design
-#cosim_design -tool xsim -rtl verilog -trace_level all
+if { $hlsCSim} {
+    csim_design -setup -clean -compiler gcc
+    csim_design -argv "" 
+}
 
-# Export RTL
+# Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+if { $hlsCSynth} { 
+    csynth_design
+}
 
-#####################
-# OBSOLETE-20180251 #  
-# ###################
-# #
-# # # Import Implemented IP Into User IP Repository
-# # #-------------------------------------------------
-# # if { [file exists ${repoDir} ] == 1 } {
-# #     if { ${ipPkgFormat} eq "ip_catalog" } {
-# #         if { [file exists ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion} ] } {
-# #             file delete -force  ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion}
-# #         }
-# #         file copy ${implDir} ${repoDir}/${ipVendor}_${ipLibrary}_${ipName}_${ipVersion}
-# #   }
-# # } else {
-# #     puts "WARNING: The IP repository \"${repoDir}\" does not exist!"
-# #     puts "         Cannot copy the implemented IP into the user IP repository."
-# # }
+# Run C/RTL CoSimulation (refer to UG902)
+#-------------------------------------------------
+if { $hlsCoSim } {
+    cosim_design -tool xsim -rtl verilog -trace_level all
+}
+
+# Export RTL (refer to UG902)
+#   -format ( sysgen | ip_catalog | syn_dcp )
+#-------------------------------------------------
+if { $hlsRtl } {
+    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+}
 
 # Exit Vivado HLS
 #--------------------------------------------------
