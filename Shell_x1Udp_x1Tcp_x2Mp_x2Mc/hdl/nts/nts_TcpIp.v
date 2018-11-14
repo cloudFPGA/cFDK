@@ -639,7 +639,8 @@ module NetworkTransportSession_TcpIp (
 
   ); // End of IPRX
 
-`endif
+`endif //  `ifdef USE_DEPRECATED_DIRECTIVES
+   
       
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
@@ -2091,7 +2092,8 @@ module NetworkTransportSession_TcpIp (
                                                      
   );
 
-`endif
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   
       
 /* -----\/----- EXCLUDED -----\/-----
@@ -2355,8 +2357,8 @@ module NetworkTransportSession_TcpIp (
 
 );
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+ 
   UdpRoleInterface URIF (
   
     .ap_clk                         (piShlClk),                      
@@ -2431,8 +2433,10 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid)
 
   );
-`endif    
-  
+   
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
+ 
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_udp_application_interface_1 URIF (
 //    .lbPortOpenReplyIn_TVALID(lbPortOpenReplyIn_TVALID),      
@@ -2555,8 +2559,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   DynamicHostConfigurationProcess DHCP (
   
     .ap_clk                         (piShlClk),                      
@@ -2623,7 +2627,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`endif
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
+   
    
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_dhcp_client DHCP (
@@ -2673,10 +2678,21 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: ICMP-SERVER
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+
   InternetControlMessageProcess ICMP (
-  
-    .aclk               (piShlClk),                           
-    .aresetn            (~piShlRst),
+                    
+    //------------------------------------------------------
+    //-- From SHELL Interfaces
+    //------------------------------------------------------
+    //-- Global Clock & Reset
+    .aclk                     (piShlClk),
+    .aresetn                  (~piShlRst),
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------                     
+    .piMMIO_This_IpAddr_V (piMMIO_Nts0_IpAddress),
   
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -2714,8 +2730,11 @@ module NetworkTransportSession_TcpIp (
     .m_dataOut_TLAST    (sICMP_L3mux_Axis_tlast),
     .m_dataOut_TVALID   (sICMP_L3mux_Axis_tvalid)
 
-  );
+  ); // End of ICMP
 
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
+   
+   
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_icmp_server_1 ICMP (
 //    .s_dataIn_TVALID(axi_icmp_slice_to_icmp_tvalid),   

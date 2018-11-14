@@ -15,15 +15,15 @@
  *                   TCP offload engine.
  *
  * @terminology:
- * 	In telecommunications, a protocol data unit (PDU) is a single unit of
- * 	 information transmitted among peer entities of a computer network.
- * 	A PDU is therefore composed of a protocol specific control information
- * 	 (e.g, a header) and a user data section.
- *	This source code uses the following terminology:
- *	 - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
- *	 - a DATAGRAM (or UDP Packet) refers to the UDP protocol data unit.
- *	 - a PACKET (or IP Packet) refers to the IP protocol data unit.
- *	 - a FRAME (or MAC Frame) refers to the Ethernet data link layer.
+ *      In telecommunications, a protocol data unit (PDU) is a single unit of
+ *       information transmitted among peer entities of a computer network.
+ *      A PDU is therefore composed of a protocol specific control information
+ *       (e.g, a header) and a user data section.
+ *  This source code uses the following terminology:
+ *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *   - a DATAGRAM (or UDP Packet) refers to the UDP protocol data unit.
+ *   - a PACKET (or IP Packet) refers to the IP protocol data unit.
+ *   - a FRAME (or MAC Frame) refers to the Ethernet data link layer.
  *
  *****************************************************************************/
 
@@ -84,8 +84,8 @@ static const ap_uint<32> TIME_1ms       = 1;
 static const ap_uint<32> TIME_5ms       = 1;
 static const ap_uint<32> TIME_25ms      = 1;
 static const ap_uint<32> TIME_50ms      = 1;
-static const ap_uint<32> TIME_100ms         = 1;
-static const ap_uint<32> TIME_250ms         = 1;
+static const ap_uint<32> TIME_100ms     = 1;
+static const ap_uint<32> TIME_250ms     = 1;
 static const ap_uint<32> TIME_1s        = 1;
 static const ap_uint<32> TIME_5s        = 1;
 static const ap_uint<32> TIME_7s        = 2;
@@ -100,8 +100,8 @@ static const ap_uint<32> TIME_1ms       = 15;
 static const ap_uint<32> TIME_5ms       = 75;
 static const ap_uint<32> TIME_25ms      = 375;
 static const ap_uint<32> TIME_50ms      = 750;
-static const ap_uint<32> TIME_100ms         = 1515;
-static const ap_uint<32> TIME_250ms         = 3780;
+static const ap_uint<32> TIME_100ms     = 1515;
+static const ap_uint<32> TIME_250ms     = 3780;
 static const ap_uint<32> TIME_1s        = 15150;
 static const ap_uint<32> TIME_5s        = 75075;
 static const ap_uint<32> TIME_7s        = 105105;
@@ -135,7 +135,7 @@ enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4 };
 * before()  <
 * !after()  <=
 * after()   >
-* !before()     >=
+* !before() >=
 *
 */
 static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
@@ -152,35 +152,35 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 /********************************************
  * SINGLE BIT - Types and Definitions
  ********************************************/
-typedef bool AckBit;	// Acknowledge: Always has to go back to the source of the request (e.g. OpenReq/OpenAck).
+typedef bool AckBit;    // Acknowledge: Always has to go back to the source of the request (e.g. OpenReq/OpenAck).
 typedef bool CmdBit;    // Command    : Indicates an action (e.g. Drop). Does not expect a return from recipient.
-typedef bool QryBit;	// Query      : Indicates a demand for an answer.
-typedef bool ReqBit;	// Request    : Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBit;	// Reply	  :	Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBit;	// Response   : Can go back to a different source.
-typedef bool StsBit;	// Status bit : Does not  have to go back (e.g. isOpen).
-typedef bool ValBit;	// Valid bit  : Must go along with something to validate/invalidate.
+typedef bool QryBit;    // Query      : Indicates a demand for an answer.
+typedef bool ReqBit;    // Request    : Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBit;    // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBit;    // Response   : Can go back to a different source.
+typedef bool StsBit;    // Status bit : Does not  have to go back (e.g. isOpen).
+typedef bool ValBit;    // Valid bit  : Must go along with something to validate/invalidate.
 
 
 /********************************************
  * AXIS - Generic AXI4-Streaming Interface
  ********************************************/
-struct AxiWord {	// AXI4-Streaming Chunk (i.e. 8 bytes)
-	ap_uint<64>		tdata;
-    ap_uint<8>		tkeep;
-    ap_uint<1>		tlast;
-    AxiWord()		{}
+struct AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
+    ap_uint<64>     tdata;
+    ap_uint<8>      tkeep;
+    ap_uint<1>      tlast;
+    AxiWord()       {}
     AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-    		tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
 
 struct axiWord {
-    ap_uint<64>		data;
+    ap_uint<64>     data;
     ap_uint<8>      keep;
     ap_uint<1>      last;
     axiWord() {}
     axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
-    		data(data), keep(keep), last(last) {}
+            data(data), keep(keep), last(last) {}
 };
 
 
@@ -198,22 +198,22 @@ struct axiWord {
 /********************************************
  * IP4 - Header Type Definitions
  ********************************************/
-typedef ap_uint< 4>	Ip4Hdr_HeaderLen; 	// IPv4 Header Length
-typedef ap_uint<16> Ip4Hdr_TotalLen; 	// IPv4 Total Length
+typedef ap_uint< 4>     Ip4Hdr_HeaderLen;   // IPv4 Header Length
+typedef ap_uint<16> Ip4Hdr_TotalLen;        // IPv4 Total Length
 
 /********************************************
  * IP4 - Specific Type Definitions
  ********************************************/
-typedef ap_uint<16> Ip4PktLen;	// IP4 Packet Length in octets (same as Ip4TotalLen)
-typedef ap_uint< 8> Ip4HdrLen;	// IP4 Header Length in octets (same as 4*Ip4HeaderLen)
-typedef ap_uint<16> Ip4DatLen;	// IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
+typedef ap_uint<16> Ip4PktLen;  // IP4 Packet Length in octets (same as Ip4TotalLen)
+typedef ap_uint< 8> Ip4HdrLen;  // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
+typedef ap_uint<16> Ip4DatLen;  // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
 
-typedef ap_uint<32> Ip4Addr;	// IP4 fixed 32-bit length address
+typedef ap_uint<32> Ip4Addr;    // IP4 fixed 32-bit length address
 
 /********************************************
  * IP4 - Streaming Type Definition
  ********************************************/
-typedef	AxiWord	Ip4Word;
+typedef     AxiWord     Ip4Word;
 
 
 
@@ -233,11 +233,11 @@ typedef	AxiWord	Ip4Word;
 /********************************************
  * TCP - Specific Type Definitions
  ********************************************/
-typedef ap_uint<16> TcpSegLen;	// TCP Segment Length in octets (same as Ip4DatLen)
-typedef ap_uint< 8> TcpHdrLen;	// TCP Header  Length in octets
-typedef ap_uint<16> TcpDatLen;	// TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
+typedef ap_uint<16> TcpSegLen;  // TCP Segment Length in octets (same as Ip4DatLen)
+typedef ap_uint< 8> TcpHdrLen;  // TCP Header  Length in octets
+typedef ap_uint<16> TcpDatLen;  // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
-typedef ap_uint<16>	TcpPort; 	// TCP Port Number
+typedef ap_uint<16>     TcpPort;    // TCP Port Number
 
 
 
@@ -245,20 +245,20 @@ typedef ap_uint<16>	TcpPort; 	// TCP Port Number
  * Socket Transport Pair & Address
  ********************************************/
 
-struct SockAddr {	// Socket Address
-	Ip4Addr		addr;   // IPv4 address in reversed network byte order !!!
-	TcpPort		port;   // Port in reversed network byte order !!!
-	SockAddr() {}
-	SockAddr(Ip4Addr addr, TcpPort port) :
-		addr(addr), port(port) {}
+struct SockAddr {   // Socket Address
+    Ip4Addr         addr;   // IPv4 address in reversed network byte order !!!
+    TcpPort         port;   // Port in reversed network byte order !!!
+    SockAddr() {}
+    SockAddr(Ip4Addr addr, TcpPort port) :
+        addr(addr), port(port) {}
 };
 
-struct SocketPair {	// Socket Pair Association
-	SockAddr	src;	// Source socket address
-    SockAddr	dst;    // Destination socket address
+struct SocketPair {     // Socket Pair Association
+    SockAddr    src;    // Source socket address
+    SockAddr    dst;    // Destination socket address
     SocketPair() {}
     SocketPair(SockAddr src, SockAddr dst) :
-    	src(src), dst(dst) {}
+        src(src), dst(dst) {}
 };
 
 struct fourTuple {
@@ -276,22 +276,14 @@ struct fourTuple {
 
 
 
-typedef ap_uint<16> TcpSessId;	// TCP Session ID
-typedef ap_uint<4>	TcpBuffId;  // TCP buffer  ID
+typedef ap_uint<16> TcpSessId;  // TCP Session ID
+typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
 
 
 /********************************************
  * TCP - Streaming Type Definition
  ********************************************/
-typedef	AxiWord	TcpWord;
-
-
-
-
-
-
-
-
+typedef     AxiWord     TcpWord;
 
 
 
@@ -437,7 +429,7 @@ struct rxTxSarQuery
 
 struct txTxSarQuery
 {
-    ap_uint<16> sessionID;  
+    ap_uint<16> sessionID;
     ap_uint<32> not_ackd;
     ap_uint<1>  write;
     ap_uint<1>  init;
@@ -709,83 +701,83 @@ template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T
 
 void toe(
 
-	    //------------------------------------------------------
-	    //-- From MMIO Interfaces
-	    //------------------------------------------------------
-		ap_uint<32>                         piMMIO_This_IpAddr,
+        //------------------------------------------------------
+        //-- From MMIO Interfaces
+        //------------------------------------------------------
+        ap_uint<32>                             piMMIO_This_IpAddr,
 
 
-		//------------------------------------------------------
-	    //-- IPRX / This / IP Rx / Data Interface
-	    //------------------------------------------------------
-		stream<Ip4Word>						&siIPRX_This_Data,
+        //------------------------------------------------------
+        //-- IPRX / This / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<Ip4Word>                         &siIPRX_This_Data,
 
-		//------------------------------------------------------
-		//-- L3MUX / This / IP Tx / Data Interface
-		//------------------------------------------------------
-		stream<Ip4Word>                    	&soTHIS_L3mux_Data,
+        //------------------------------------------------------
+        //-- L3MUX / This / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<Ip4Word>                         &soTHIS_L3mux_Data,
 
-		//------------------------------------------------------
-		//-- TRIF / This / ROLE Rx / Data Interfaces
-		//------------------------------------------------------
-		stream<appReadRequest>             	&siTRIF_This_DReq,
-		stream<appNotification>            	&soTHIS_Trif_Notif,
-		stream<axiWord>                    	&soTHIS_Trif_Data,
-		stream<ap_uint<16> >               	&soTHIS_Trif_Meta,
+        //------------------------------------------------------
+        //-- TRIF / This / ROLE Rx / Data Interfaces
+        //------------------------------------------------------
+        stream<appReadRequest>                  &siTRIF_This_DReq,
+        stream<appNotification>                 &soTHIS_Trif_Notif,
+        stream<axiWord>                         &soTHIS_Trif_Data,
+        stream<ap_uint<16> >                    &soTHIS_Trif_Meta,
 
-		//------------------------------------------------------
-		//-- TRIF / This / ROLE Rx / Ctrl Interfaces
-		//------------------------------------------------------
-		stream<ap_uint<16> >               	&siTRIF_This_LsnReq,
-		stream<bool>                        &soTHIS_Trif_LsnAck,
+        //------------------------------------------------------
+        //-- TRIF / This / ROLE Rx / Ctrl Interfaces
+        //------------------------------------------------------
+        stream<ap_uint<16> >                    &siTRIF_This_LsnReq,
+        stream<bool>                            &soTHIS_Trif_LsnAck,
 
-		//------------------------------------------------------
-		//-- TRIF / This / ROLE Tx / Data Interfaces
-		//------------------------------------------------------
-		stream<axiWord>                    	&siTRIF_This_Data,
-		stream<ap_uint<16> >               	&siTRIF_This_Meta,
-		stream<ap_int<17> >                	&soTHIS_Trif_DSts,
+        //------------------------------------------------------
+        //-- TRIF / This / ROLE Tx / Data Interfaces
+        //------------------------------------------------------
+        stream<axiWord>                         &siTRIF_This_Data,
+        stream<ap_uint<16> >                    &siTRIF_This_Meta,
+        stream<ap_int<17> >                     &soTHIS_Trif_DSts,
 
-		//------------------------------------------------------
-		//-- TRIF / This / Tx PATH / Ctrl Interfaces
-		//------------------------------------------------------
-		stream<ipTuple>                    	&siTRIF_This_OpnReq,
-		stream<openStatus>                 	&soTHIS_Trif_OpnSts,
-		stream<ap_uint<16> >               	&siTRIF_This_ClsReq,
-		//-- Not USed                       &soTHIS_Trif_ClsSts,
+        //------------------------------------------------------
+        //-- TRIF / This / Tx PATH / Ctrl Interfaces
+        //------------------------------------------------------
+        stream<ipTuple>                         &siTRIF_This_OpnReq,
+        stream<openStatus>                      &soTHIS_Trif_OpnSts,
+        stream<ap_uint<16> >                    &siTRIF_This_ClsReq,
+        //-- Not USed                           &soTHIS_Trif_ClsSts,
 
-		//------------------------------------------------------
-		//-- MEM / This / Rx PATH / S2MM Interface
-		//------------------------------------------------------
-		//-- Not Used                       &siMEM_This_RxP_RdSts,
-		stream<mmCmd>                      	&soTHIS_Mem_RxP_RdCmd,
-		stream<axiWord>                    	&siMEM_This_RxP_Data,
-		stream<mmStatus>                   	&siMEM_This_RxP_WrSts,
-		stream<mmCmd>                      	&soTHIS_Mem_RxP_WrCmd,
-		stream<axiWord>                    	&soTHIS_Mem_RxP_Data,
+        //------------------------------------------------------
+        //-- MEM / This / Rx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                           &siMEM_This_RxP_RdSts,
+        stream<mmCmd>                           &soTHIS_Mem_RxP_RdCmd,
+        stream<axiWord>                         &siMEM_This_RxP_Data,
+        stream<mmStatus>                        &siMEM_This_RxP_WrSts,
+        stream<mmCmd>                           &soTHIS_Mem_RxP_WrCmd,
+        stream<axiWord>                         &soTHIS_Mem_RxP_Data,
 
-		//------------------------------------------------------
-		//-- MEM / This / Tx PATH / S2MM Interface
-		//------------------------------------------------------
-		//-- Not Used                       &siMEM_This_TxP_RdSts,
-		stream<mmCmd>                      	&soTHIS_Mem_TxP_RdCmd,
-		stream<axiWord>                    	&siMEM_This_TxP_Data,
-		stream<mmStatus>                   	&siMEM_This_TxP_WrSts,
-		stream<mmCmd>                      	&soTHIS_Mem_TxP_WrCmd,
-		stream<axiWord>                    	&soTHIS_Mem_TxP_Data,
+        //------------------------------------------------------
+        //-- MEM / This / Tx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                           &siMEM_This_TxP_RdSts,
+        stream<mmCmd>                           &soTHIS_Mem_TxP_RdCmd,
+        stream<axiWord>                         &siMEM_This_TxP_Data,
+        stream<mmStatus>                        &siMEM_This_TxP_WrSts,
+        stream<mmCmd>                           &soTHIS_Mem_TxP_WrCmd,
+        stream<axiWord>                         &soTHIS_Mem_TxP_Data,
 
-	    //------------------------------------------------------
-	    //-- CAM / This / Session Lookup & Update Interfaces
-	    //------------------------------------------------------
-		stream<rtlSessionLookupReply>      	&siCAM_This_SssLkpRpl,
-		stream<rtlSessionUpdateReply>      	&siCAM_This_SssUpdRpl,
-		stream<rtlSessionLookupRequest>    	&soTHIS_Cam_SssLkpReq,
-		stream<rtlSessionUpdateRequest>    	&soTHIS_Cam_SssUpdReq,
+        //------------------------------------------------------
+        //-- CAM / This / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<rtlSessionLookupReply>           &siCAM_This_SssLkpRpl,
+        stream<rtlSessionUpdateReply>           &siCAM_This_SssUpdRpl,
+        stream<rtlSessionLookupRequest>         &soTHIS_Cam_SssLkpReq,
+        stream<rtlSessionUpdateRequest>         &soTHIS_Cam_SssUpdReq,
 
-		//------------------------------------------------------
-		//-- DEBUG / Session Statistics Interfaces
-		//------------------------------------------------------
-		ap_uint<16>                        	&poTHIS_Dbg_SssRelCnt,
-		ap_uint<16>                        	&poTHIS_Dbg_SssRegCnt);
+        //------------------------------------------------------
+        //-- DEBUG / Session Statistics Interfaces
+        //------------------------------------------------------
+        ap_uint<16>                             &poTHIS_Dbg_SssRelCnt,
+        ap_uint<16>                             &poTHIS_Dbg_SssRegCnt);
 
 #endif

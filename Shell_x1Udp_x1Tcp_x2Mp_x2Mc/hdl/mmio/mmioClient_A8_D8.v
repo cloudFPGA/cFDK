@@ -285,10 +285,10 @@ module MmioClient_A8_D8 #(
   localparam cDefReg39 = 8'hFF;  // LY3_SNM1
   localparam cDefReg3A = 8'h00;  // LY3_SNM2
   localparam cDefReg3B = 8'h00;  // LY3_SNM3
-  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.2.0.1)
-  localparam cDefReg3D = 8'h02;  // LY3_GTW1
+  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.12.0.254)
+  localparam cDefReg3D = 8'h0C;  // LY3_GTW1
   localparam cDefReg3E = 8'h00;  // LY3_GTW2
-  localparam cDefReg3F = 8'h01;  // LY3_GTW3 
+  localparam cDefReg3F = 8'hFE;  // LY3_GTW3 
   //-- RES_REGS ---------------
   localparam cDefReg40 = 8'h00;
   localparam cDefReg41 = 8'h00;
