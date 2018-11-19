@@ -198,8 +198,14 @@ struct axiWord {
 /********************************************
  * IP4 - Header Type Definitions
  ********************************************/
-typedef ap_uint< 4>     Ip4Hdr_HeaderLen;   // IPv4 Header Length
-typedef ap_uint<16> Ip4Hdr_TotalLen;        // IPv4 Total Length
+typedef ap_uint< 4> IP4Hdr_Version;     // IPv4 Version
+typedef ap_uint< 4> Ip4Hdr_HdrLen;      // IPv4 Internet Header Length
+typedef ap_uint< 8> Ip4Hdr_ToS;         // IPv4 Type of Service
+typedef ap_uint<16> Ip4Hdr_TotalLen;    // IPv4 Total Length
+typedef ap_uint<32> Ip4Hdr_SrcAddr;     // IPv4 Source Address
+typedef ap_uint<32> Ip4Hdr_DstAddr;     // IPv4 Destination Address
+typedef ap_uint<32> Ip4Hdr_Address;     // IPv4 Source or Destination Address
+
 
 /********************************************
  * IP4 - Specific Type Definitions
@@ -213,7 +219,8 @@ typedef ap_uint<32> Ip4Addr;    // IP4 fixed 32-bit length address
 /********************************************
  * IP4 - Streaming Type Definition
  ********************************************/
-typedef     AxiWord     Ip4Word;
+typedef AxiWord     Ip4Word;
+
 
 
 
@@ -228,6 +235,16 @@ typedef     AxiWord     Ip4Word;
 /********************************************
  * TCP - Header Type Definitions
  ********************************************/
+typedef ap_uint<16> TcpHdr_SrcPort;     // TCP Source Port
+typedef ap_uint<16> TcpHdr_DstPort;     // TCP Destination Port
+typedef ap_uint<16> TcpHdr_Port;        // TCP Source or Destination Port
+typedef ap_uint<32> TcpHdr_SeqNum;      // TCP Sequence Number
+typedef ap_uint<32> TcpHdr_AckNum;      // TCP Acknowledgment Number
+typedef ap_uint<4>  TcpHdr_DataOff;     // TCP Data Offset
+typedef ap_uint<6>  TcpHdr_CtrlBits;    // TCP Control Bits
+typedef ap_uint<16> TcpHdr_Window;      // TCP Window
+typedef ap_uint<16> TcpHdr_Checksum;    // TCP Checksum
+typedef ap_uint<16> TcpHdr_UrgPtr;      // TCP Urgent Pointer
 
 
 /********************************************
@@ -237,8 +254,9 @@ typedef ap_uint<16> TcpSegLen;  // TCP Segment Length in octets (same as Ip4DatL
 typedef ap_uint< 8> TcpHdrLen;  // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;  // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
-typedef ap_uint<16>     TcpPort;    // TCP Port Number
-
+typedef ap_uint<16> TcpPort;    // TCP Port Number
+typedef ap_uint<32> TcpSeqNum;	// TCP Sequence Number
+typedef ap_uint<16> TcpCSum;    // TCP Checksum
 
 
 /********************************************
@@ -260,6 +278,13 @@ struct SocketPair {     // Socket Pair Association
     SocketPair(SockAddr src, SockAddr dst) :
         src(src), dst(dst) {}
 };
+
+
+inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
+        return ((s1.dst.addr < s2.dst.addr) ||
+        		(s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+}
+
 
 struct fourTuple {
     ap_uint<32> srcIp;
@@ -291,7 +316,8 @@ typedef     AxiWord     TcpWord;
 
 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
-    }
+}
+
 struct ipTuple
 {
     ap_uint<32>     ip_address;

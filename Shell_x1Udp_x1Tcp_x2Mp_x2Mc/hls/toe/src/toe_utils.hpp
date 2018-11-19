@@ -23,16 +23,26 @@
  *************************************************************************/
 
 // Concatenate two char constants
-#define concat(firstCharConst, secondCharConst) firstCharConst secondCharConst
+#define concat2(firstCharConst, secondCharConst) firstCharConst secondCharConst
 // Concatenate three char constants
-#define concat(firstCharConst, secondCharConst, thirdCharConst) firstCharConst secondCharConst thirdCharConst
+#define concat3(firstCharConst, secondCharConst, thirdCharConst) firstCharConst secondCharConst thirdCharConst
 
 
 /*************************************************************************
  * PROTOTYPE DEFINITIONS
  *************************************************************************/
-//char * concat(const char *first, const char *second);
 void printAxiWord(const char *callerName, AxiWord chunk);
 
+void printInfo(const char *callerName, const char *message);
+
+void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
+
+void printSockPair(const char *callerName, SocketPair sockPair);
+
+void printWarn(const char *callerName, const char *message);
+
+ap_uint<16> swapWord(ap_uint<16> inpWord);
+
+ap_uint<32> swapDWord(ap_uint<32> inpDWord);
 
 #endif
