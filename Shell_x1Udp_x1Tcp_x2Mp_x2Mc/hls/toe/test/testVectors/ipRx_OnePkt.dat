@@ -1,5 +1,5 @@
 #
-# @file  : inOnePkt.dat
+# @file  : ipRx_OnePkt.dat
 # @brief : A unique IPv4 packet with a TCP segment for the IPRX input of the TOE.
 #          
 #         6                   5                   4                   3                   2                   1                   0   
@@ -23,13 +23,13 @@
 
 C 250
 
-W 5
+W 25
 
 0000000028000045 0 FF
-0A0A0A0A000006FF 0 FF
-5700890001010101 0 FF
-00000000CDFF0000 0 FF
-00001F9500040250 1 FF
+0A0A0A0ABAA506FF 0 FF
+5050505001010101 0 FF
+0000000090909090 0 FF
+0000D40B00040250 1 FF
 
 
 
