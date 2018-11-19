@@ -73,6 +73,7 @@ add_files ${srcDir}/rx_engine/rx_engine.cpp
 add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files ${srcDir}/state_table/state_table.cpp
+add_files ${srcDir}/toe_utils.cpp
 add_files ${srcDir}/tx_app_if/tx_app_if.cpp
 add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files ${srcDir}/tx_app_stream_if/tx_app_stream_if.cpp
@@ -90,7 +91,7 @@ create_clock -period 6.4 -name default
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "0 ../../../../test/testVectors/inOnePkt.dat ../../../../test/rxOut.dat ../../../../test/txOut.dat" 
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat ../../../../test/apRx_OnePkt.dat ../../../../test/ipTx_OnePkt.dat" 
 }
 
 # Run C Synthesis (refer to UG902)
