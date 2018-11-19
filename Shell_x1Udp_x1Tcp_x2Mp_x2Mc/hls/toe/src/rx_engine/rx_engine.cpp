@@ -23,50 +23,16 @@
 
 #include "rx_engine.hpp"
 
-#define THIS_NAME "RXE"
+#define THIS_NAME "TOE/RXe"
 
 using namespace hls;
 
-#define DEBUG_TRACE true
-
+#define DEBUG_LEVEL 1
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 
-/*****************************************************************************
- * @brief Prints one chunk of a data stream (used for debugging).
- *
- * @param[in] myName,   the name of my process (e.g. "Tle").
- * @param[in] chunk,    the data stream chunk to display.
- *****************************************************************************/
-void printAxiWord (const char *myName, AxiWord chunk)
-{
-    if (DEBUG_TRACE)
-        printf("[%s/%s] data chunk = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-                THIS_NAME, myName,
-                chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
-}
 
-/*****************************************************************************
- * @brief Prints the socket pair association of a data segment (for debug).
- *
- * @param[in] myName,       the name of my process (e.g. "Mdh").
- * @param[in] sockPair,     the socket pair to display.
- *****************************************************************************/
-void printSockPair (const char *myName, SocketPair sockPair)
-{
-    if (DEBUG_TRACE) {
-        unsigned int srcAddr = sockPair.src.addr;
-        unsigned int srcPort = sockPair.src.port;
-        unsigned int dstAddr = sockPair.dst.addr;
-        unsigned int dstPort = sockPair.dst.port;
-
-        printf("[%s/%s] Socket {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
-                THIS_NAME, myName,
-                (unsigned int)sockPair.src.addr, (unsigned int)sockPair.src.port,
-                (unsigned int)sockPair.dst.addr, (unsigned int)sockPair.dst.addr);
-    }
-}
 
 
 /*****************************************************************************
@@ -80,9 +46,10 @@ void printSockPair (const char *myName, SocketPair sockPair)
  *   This is the process that handles the incoming data stream from the IPRX.
  *   It extracts the TCP length field from the IP header, removes that IP
  *   header but keeps the IP source and destination addresses in front of the
- *   TCP segment so that the output can be used for the TCP pseudo header
- *   creation. The length of the IPv4 data (.i.e. the TCP segment length) is
- *   also computed from the IPv4 total length and the IPv4 header length.
+ *   TCP segment so that the output can be used by the next process to build
+ *   the 12-byte TCP pseudo header.
+ *   The length of the IPv4 data (.i.e. the TCP segment length) is also
+ *   computed from the IPv4 total length and the IPv4 header length.
  *
  *   The data received from the Ethernet MAC are logically divided into lane #0
  *   (7:0) to lane #7 (63:56). The format of an incoming IPv4 packet is then:
@@ -139,9 +106,9 @@ void pTcpLengthExtract(
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
-    const char *myName = "Tle";
+    const char *myName  = concat3(THIS_NAME, "/", "Tle");
 
-    static Ip4Hdr_HeaderLen tle_ipHeaderLen = 0;
+    static Ip4Hdr_HdrLen    tle_ipHeaderLen = 0;
     static Ip4Hdr_TotalLen  tle_ipTotalLen  = 0;
     static Ip4DatLen        tle_ipDataLen   = 0;
     static ap_uint<4>       tle_wordCount   = 0;
@@ -155,7 +122,7 @@ void pTcpLengthExtract(
         sendWord = TcpWord(0, 0xFF, 0);
         soTcpSeg.write(sendWord);
         tle_insertWord = false;
-        printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
     }
     else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
         Ip4Word currWord = siIPRX_Pkt.read();
@@ -184,7 +151,7 @@ void pTcpLengthExtract(
             tle_ipHeaderLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
-            printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
             break;
         case 3:
             switch (tle_ipHeaderLen) {
@@ -196,7 +163,7 @@ void pTcpLengthExtract(
                 tle_shift = true;
                 tle_ipHeaderLen = 0;
                 tle_wordCount++;
-                printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
@@ -204,7 +171,7 @@ void pTcpLengthExtract(
                 tle_shift = false;
                 tle_ipHeaderLen = 0;
                 tle_wordCount++;
-                printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
                 break;
             default: // The prevWord contains garbage data, currWord at least half garbage
                 //Drop this shit
@@ -218,12 +185,12 @@ void pTcpLengthExtract(
                                    (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                    (currWord.tkeep[4] == 0));
                 soTcpSeg.write(sendWord);
-                printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
             }
             else {
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soTcpSeg.write(sendWord);
-                printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
             }
             break;
 
@@ -244,7 +211,7 @@ void pTcpLengthExtract(
         sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
         soTcpSeg.write(sendWord);
         tle_wasLast = false;
-        printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
     }
 }
 
@@ -319,7 +286,7 @@ void pInsertPseudoHeader(
     TcpWord             sendWord;
     static TcpWord      iph_prevWord;
 
-    const char *myName = "Iph";
+    const char *myName  = concat3(THIS_NAME, "/", "Iph");
 
     currWord.tlast = 0;
 
@@ -330,7 +297,7 @@ void pInsertPseudoHeader(
         sendWord.tlast        = 0x1;
         soTcpSeg.write(sendWord);
         iph_wasLast = false;
-        printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
     }
     else if(!siTle_TcpSeg.empty()) {
         switch (iph_wordCount) {
@@ -344,7 +311,7 @@ void pInsertPseudoHeader(
             // Forward IP-DA & IP-SA
             soTcpSeg.write(sendWord);
             iph_wordCount++;
-            printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
             break;
         case 2:
             if (!siTle_TcpSegLen.empty()) {
@@ -360,7 +327,7 @@ void pInsertPseudoHeader(
                 sendWord.tlast         = 0;
                 soTcpSeg.write(sendWord);
                 iph_wordCount++;
-                printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
             }
             break;
         default:
@@ -374,7 +341,7 @@ void pInsertPseudoHeader(
             sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
             sendWord.tlast               = (currWord.tkeep[4] == 0); // see format of the incoming segment
             soTcpSeg.write(sendWord);
-            printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
             break;
         }
         iph_prevWord = currWord;
@@ -438,7 +405,8 @@ void pCheckSumAccumulator(
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
-    const char *myName = "Csa";
+    const char *myName  = concat3(THIS_NAME, "/", "Csa");
+    char message[256];
 
     static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
     static ap_uint<8>       csa_dataOffset = 0xFF;
@@ -449,6 +417,7 @@ void pCheckSumAccumulator(
     TcpWord                 sendWord;
     static rxEngineMetaData csa_meta;
     static ap_uint<16>      csa_dstPort;
+    static TcpHdr_Checksum  csa_tcpHdr_CSum;
 
     static bool             csa_doShift     = false;
     static bool             csa_wasLast     = false;
@@ -468,7 +437,7 @@ void pCheckSumAccumulator(
                 //  Warning: IP addresses are stored w/ the Most Significant Byte Last
                 csa_sessionTuple.srcIp = currWord.tdata(31,  0);
                 csa_sessionTuple.dstIp = currWord.tdata(63, 32);
-                sendWord.tlast            = currWord.tlast;
+                sendWord.tlast         = currWord.tlast;
             break;
         case 1:
             // Get SEGMENT length
@@ -494,7 +463,7 @@ void pCheckSumAccumulator(
             //OBSOLETE-20181031 csa_meta.ackNumb(23, 16) = currWord.data(47, 40);
             //OBSOLETE-20181031 csa_meta.ackNumb(31, 24) = currWord.data(39, 32);
             csa_meta.ackNumb = byteSwap32(currWord.tdata(63, 32));
-            sendWord.tlast    = currWord.tlast;
+            sendWord.tlast   = currWord.tlast;
             break;
         case 3:
             // Get Data Offset
@@ -517,7 +486,8 @@ void pCheckSumAccumulator(
             //OBSOLETE-20181031 csa_meta.winSize(7, 0) = currWord.data(31, 24);
             //OBSOLETE-20181031 csa_meta.winSize(15, 8) = currWord.data(23, 16);
             csa_meta.winSize = byteSwap16(currWord.tdata(31, 16));
-            //OBSOLETE-20181031  We add checksum as well and check for cs == 0
+            // Get the checksum of the pseudo-header (only for debug purposes)
+            csa_tcpHdr_CSum = currWord.tdata(47, 32);
             sendWord.tlast = currWord.tlast;
             break;
         default:
@@ -637,6 +607,14 @@ void pCheckSumAccumulator(
                 }
                 else if(csa_meta.length != 0) {
                     soDataValid.write(false);
+                    if (DEBUG_LEVEL > 0) {
+                        sprintf(message, "BAD CHECKSUM (0x%4.4X).", csa_tcpHdr_CSum.to_uint());
+                        printWarn(myName, message);
+                        sprintf(message, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}",
+                                csa_sessionTuple.srcIp.to_uint(), csa_sessionTuple.srcPort.to_uint(),
+                                csa_sessionTuple.dstIp.to_uint(), csa_sessionTuple.dstPort.to_uint());
+                        printInfo(myName, message);
+                    }
                 }
                 csa_doCSumVerif = false;
                 csa_tcp_sums[0] = 0;
@@ -748,7 +726,8 @@ void pMetaDataHandler(
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
-    const char *myName = "Mdh";
+    const char *myName = concat3(THIS_NAME, "/", "Mdh");
+    char message[256];
 
     static rxEngineMetaData     mdh_meta;
     static sessionLookupReply   mdh_sessLookupReply;
@@ -756,7 +735,7 @@ void pMetaDataHandler(
     static TcpPort              mdh_dstTcpPort;
 
     fourTuple    tuple;            // TODO - Upgrade to SocketPair
-    StsBit         isPortOpen;
+    StsBit       isPortOpen;
 
     //OBSOLETE-20181101 enum mhStateType {META, LOOKUP};
     //OBSOLETE-20181101 static mhStateType mdh_state = META;
@@ -807,18 +786,21 @@ void pMetaDataHandler(
                         soDropCmd.write(DROP_CMD);
                     }
 
-                    if (DEBUG_TRACE)
-                        printf("[%s/%s] Warning: Port %d is not open. \n",
-                                    THIS_NAME, myName, tuple.dstPort.to_uint());
+                    if (DEBUG_LEVEL > 1) {
+                        sprintf(message, "Port %d is not open.", tuple.dstPort.to_uint());
+                        printWarn(myName, message);
+                    }
                 }
                 else {
                     // Query session lookup. Only allow creation of a new entry when SYN or SYN_ACK
                     soSessLookupReq.write(sessionLookupQuery(tuple,
                                                          (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     mdh_fsmState = LOOKUP;
-                    printSockPair(myName,
-                                  SocketPair(SockAddr(tuple.srcIp, tuple.srcPort),
-                                             SockAddr(tuple.dstIp, tuple.dstPort)));
+                    if (DEBUG_LEVEL > 1) {
+                        printSockPair(myName,
+                            SocketPair(SockAddr(tuple.srcIp, tuple.srcPort),
+                                       SockAddr(tuple.dstIp, tuple.dstPort)));
+                    }
                 }
             }
         }
@@ -894,7 +876,7 @@ void pFiniteStateMachine(
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
-    const char *myName = "Fsm";
+    const char *myName  = concat3(THIS_NAME, "/", "Fsm");
 
     //OBSOLETE-20181103 enum fsmStateType {LOAD, TRANSITION};
     //OBSOLETE-20181103 static fsmStateType fsm_state = LOAD;
