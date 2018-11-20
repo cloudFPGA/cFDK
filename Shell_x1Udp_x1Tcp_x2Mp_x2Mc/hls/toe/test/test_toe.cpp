@@ -66,9 +66,9 @@ bool isACK(AxiWord axiWord) {
 
 
 string decodeApUint64(ap_uint<64> inputNumber) {
-    string                  outputString    = "0000000000000000";
-    unsigned short int          tempValue       = 16;
-    static const char* const    lut             = "0123456789ABCDEF";
+    string                    outputString    = "0000000000000000";
+    unsigned short int        tempValue       = 16;
+    static const char* const  lut             = "0123456789ABCDEF";
     for (int i = 15;i>=0;--i) {
     tempValue = 0;
     for (unsigned short int k = 0;k<4;++k) {
@@ -81,7 +81,7 @@ string decodeApUint64(ap_uint<64> inputNumber) {
 }
 
 string decodeApUint8(ap_uint<8> inputNumber) {
-    string                          outputString    = "00";
+    string                      outputString    = "00";
     unsigned short int          tempValue       = 16;
     static const char* const    lut             = "0123456789ABCDEF";
     for (int i = 1;i>=0;--i) {
@@ -96,8 +96,8 @@ string decodeApUint8(ap_uint<8> inputNumber) {
 }
 
 ap_uint<64> encodeApUint64(string dataString){
-    ap_uint<64> tempOutput = 0;
-    unsigned short int  tempValue = 16;
+    ap_uint<64> tempOutput          = 0;
+    unsigned short int  tempValue   = 16;
     static const char* const    lut = "0123456789ABCDEF";
 
     for (unsigned short int i = 0; i<dataString.size();++i) {
@@ -120,9 +120,9 @@ ap_uint<64> encodeApUint64(string dataString){
 }
 
 ap_uint<8> encodeApUint8(string keepString){
-    ap_uint<8> tempOutput = 0;
-    unsigned short int  tempValue = 16;
-    static const char* const    lut = "0123456789ABCDEF";
+    ap_uint<8>               tempOutput = 0;
+    unsigned short int       tempValue  = 16;
+    static const char* const lut        = "0123456789ABCDEF";
 
     for (unsigned short int i = 0; i<2;++i) {
         for (unsigned short int j = 0;j<16;++j) {
@@ -145,9 +145,9 @@ ap_uint<8> encodeApUint8(string keepString){
 
 
 void pEmulateCam(
-        stream<rtlSessionLookupRequest>    &lup_req,
+        stream<rtlSessionLookupRequest>  &lup_req,
         stream<rtlSessionLookupReply>    &lup_rsp,
-        stream<rtlSessionUpdateRequest>    &upd_req,
+        stream<rtlSessionUpdateRequest>  &upd_req,
         stream<rtlSessionUpdateReply>    &upd_rsp)
 {
     //stream<ap_uint<14> >& new_id, stream<ap_uint<14> >& fin_id)
@@ -354,7 +354,7 @@ TcpCSum recalculateChecksum(
 {
     TcpCSum    newChecksum = 0;
 
-    Ip4Hdr_TotalLen    ip4Hdr_TotLen = ipPktQueue[0].tdata.range(31, 16);
+    AxiIp4TotalLen  ip4Hdr_TotLen = ipPktQueue[0].tdata.range(31, 16);
     TcpDatLen        tcpDatLen     = swapWord(ip4Hdr_TotLen) - 20;
 
     // Create the pseudo-header
@@ -392,12 +392,14 @@ TcpCSum recalculateChecksum(
  *
  * @ingroup toe
  ******************************************************************************/
-vector<string> tokenize(string strBuff) {
-    vector<string>     tmpBuff;
+vector<string> myTokenizer(string strBuff) {
+    vector<string>   tmpBuff;
     bool             found = false;
 
-    if (strBuff.empty())
+    if (strBuff.empty()) {
+        tmpBuff.push_back(strBuff);
         return tmpBuff;
+    }
     else {
         // Substitute the "\r" with nothing
         if (strBuff[strBuff.size() - 1] == '\r')
@@ -437,7 +439,7 @@ vector<string> tokenize(string strBuff) {
  ******************************************************************************/
 short int injectAckNumber(
         deque<AxiWord>                   &ipRxPacketizer,
-        map<SocketPair, TcpHdr_SeqNum>   &sessionList)
+        map<SocketPair, AxiTcpSeqNum>   &sessionList)
 {
 
     SockAddr   srcSock = SockAddr(ipRxPacketizer[1].tdata.range(63, 32),
@@ -466,7 +468,7 @@ short int injectAckNumber(
         // Packet is not a SYN
         if (sessionList.find(newSockPair) != sessionList.end()) {
             // Inject the oldest acknowledgment number in the ACK number deque
-            TcpHdr_AckNum newTcpHdr_AckNum = sessionList[newSockPair];
+            AxiTcpAckNum newTcpHdr_AckNum = sessionList[newSockPair];
             ipRxPacketizer[3].tdata.range(63, 32) = newTcpHdr_AckNum;
             if (DEBUG_LEVEL >= 1)
                 printf("<D1> Setting the sequence number of this segment to: %u \n",
@@ -474,7 +476,7 @@ short int injectAckNumber(
 
             // Recalculate and update the checksum
             TcpCSum         newTcpCSum = recalculateChecksum(ipRxPacketizer);
-            TcpHdr_Checksum newHdrCSum = swapWord(newTcpCSum);
+            AxiTcpChecksum newHdrCSum = swapWord(newTcpCSum);
             ipRxPacketizer[4].tdata.range(47, 32) = newHdrCSum;
             if (DEBUG_LEVEL >= 2) {
                 printf("<D2> [injectAckNumber] Current packet is : ");
@@ -509,7 +511,7 @@ short int injectAckNumber(
 void feedTOE(
         deque<Ip4Word>                      &ipRxPacketizer,
         stream<Ip4Word>                     &sIPRX_Toe_Data,
-        map<SocketPair, TcpHdr_SeqNum>   &sessionList)
+        map<SocketPair, AxiTcpSeqNum>   &sessionList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
 
@@ -556,7 +558,7 @@ void pIPRX(
         bool                                &idlingReq,
         unsigned int                        &idleCycReq,
         deque<Ip4Word>                      &ipRxPacketizer,
-        map<SocketPair, TcpHdr_SeqNum>   &sessionList,
+        map<SocketPair, AxiTcpSeqNum>   &sessionList,
         stream<Ip4Word>                     &sIPRX_Toe_Data)
 {
     unsigned short int     temp;
@@ -579,7 +581,7 @@ void pIPRX(
     do {
         getline(iprxFile, rxStringBuffer);
 
-        stringVector = tokenize(rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer);
 
         if (stringVector[0] == "") {
             continue;
@@ -618,7 +620,7 @@ void pIPRX(
             do {
                 if (firstWordFlag == false) {
                     getline(iprxFile, rxStringBuffer);
-                    stringVector = tokenize(rxStringBuffer);
+                    stringVector = myTokenizer(rxStringBuffer);
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
@@ -658,14 +660,14 @@ void pIPRX(
  ******************************************************************************/
 bool parseL3MuxPacket(
         deque<AxiWord>                   &ipTxPacketizer,
-        map<SocketPair, TcpHdr_SeqNum>   &sessionList,
+        map<SocketPair, AxiTcpSeqNum>   &sessionList,
         deque<AxiWord>                   &ipRxPacketizer)
 {
 
     bool                    returnValue       = false;
     bool                    finPacket         = false;
     static int              ipTxPktCounter    = 0;
-    static TcpHdr_SeqNum prevTcpHdr_SeqNum    = 0;
+    static AxiTcpSeqNum prevTcpHdr_SeqNum    = 0;
 
     const char *myName = concat3(THIS_NAME, "/", "L3MUX/Parse");
 
@@ -680,8 +682,8 @@ bool parseL3MuxPacket(
         //--------------------------------------------------
         ipRxPacketizer.push_back(ipTxPacketizer[0]);
 
-        Ip4Hdr_Address savedIp4Hdr_Addr = ipTxPacketizer[1].tdata.range(63, 32);
-        TcpHdr_Port    savedTcpHdr_Port = ipTxPacketizer[2].tdata.range(47, 32);
+        AxiIp4Address savedIp4Hdr_Addr = ipTxPacketizer[1].tdata.range(63, 32);
+        AxiTcpPort    savedTcpHdr_Port = ipTxPacketizer[2].tdata.range(47, 32);
 
         // Replace in-going IPv4 Source w/ out-coming IPv4 Destination Address
         ipTxPacketizer[1].tdata.range(63, 32) = ipTxPacketizer[2].tdata.range(31, 0);
@@ -695,9 +697,9 @@ bool parseL3MuxPacket(
         ipRxPacketizer.push_back(ipTxPacketizer[2]);
 
         // Swap the SEQ and ACK NUmbers while incrementing the ACK
-        TcpHdr_SeqNum tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
+        AxiTcpSeqNum tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
         TcpSeqNum        tcpSeqNum     = swapDWord(tcpHdr_SeqNum) + 1;
-        TcpHdr_AckNum tcpHdr_AckNum = swapDWord(tcpSeqNum);
+        AxiTcpAckNum tcpHdr_AckNum = swapDWord(tcpSeqNum);
 
         ipTxPacketizer[3].tdata.range(31,  0) = ipTxPacketizer[3].tdata.range(63, 32);
         ipTxPacketizer[3].tdata.range(63, 32) = tcpHdr_AckNum;
@@ -706,7 +708,7 @@ bool parseL3MuxPacket(
         // Set the ACK bit and Recalculate the Checksum
         ipTxPacketizer[4].tdata.bit(12) = 1;
         TcpCSum         tempChecksum    = recalculateChecksum(ipTxPacketizer);
-        TcpHdr_Checksum tcpHdr_Checksum = swapWord(tempChecksum);
+        AxiTcpChecksum tcpHdr_Checksum = swapWord(tempChecksum);
         ipTxPacketizer[4].tdata.range(47, 32) = tcpHdr_Checksum;
         ipRxPacketizer.push_back(ipTxPacketizer[4]);
 
@@ -734,10 +736,10 @@ bool parseL3MuxPacket(
 
         // The ACK bit is set
         //-----------------------------------------
-        Ip4Hdr_TotalLen  ip4Hdr_TotLen = ipTxPacketizer[0].tdata.range(31, 16);
+        AxiIp4TotalLen  ip4Hdr_TotLen = ipTxPacketizer[0].tdata.range(31, 16);
         Ip4PktLen        ip4PktLen     = swapWord(ip4Hdr_TotLen);
 
-        TcpHdr_SeqNum    tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
+        AxiTcpSeqNum    tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
         TcpSeqNum        tcpSeqNum     = swapDWord(tcpHdr_SeqNum);
 
         if (isFIN(ipTxPacketizer[4])) {
@@ -803,12 +805,12 @@ bool parseL3MuxPacket(
               // If it does generate an ACK for. Look into the IP header length for this.
             finPacket = false;
             // Update the IPv4 Total Length
-            Ip4Hdr_TotalLen ip4Hdr_TotalLen = 0x2800;
+            AxiIp4TotalLen ip4Hdr_TotalLen = 0x2800;
             ipTxPacketizer[0].tdata.range(31, 16) = ip4Hdr_TotalLen;
             ipRxPacketizer.push_back(ipTxPacketizer[0]);
 
-            Ip4Hdr_Address savedIp4Hdr_Addr = ipTxPacketizer[1].tdata.range(63, 32);
-            TcpHdr_Port    savedTcpHdr_Port = ipTxPacketizer[2].tdata.range(47, 32);
+            AxiIp4Address savedIp4Hdr_Addr = ipTxPacketizer[1].tdata.range(63, 32);
+            AxiTcpPort    savedTcpHdr_Port = ipTxPacketizer[2].tdata.range(47, 32);
 
             // Replace in-going IPv4 Source w/ out-coming IPv4 Destination Address
             ipTxPacketizer[1].tdata.range(63, 32) = ipTxPacketizer[2].tdata.range(31, 0);
@@ -878,7 +880,7 @@ bool parseL3MuxPacket(
 void pL3MUX(
         stream<Ip4Word>                  &sTOE_L3mux_Data,
         ofstream                         &iptxFile,
-        map<SocketPair, TcpHdr_SeqNum>   &sessionList,
+        map<SocketPair, AxiTcpSeqNum>   &sessionList,
         int                              &ipTxPktCounter,
         deque<Ip4Word>                   &ipRxPacketizer)
 {
@@ -939,7 +941,7 @@ void pL3MUX(
  *
  * @ingroup toe
  ******************************************************************************/
-void pEmulateTcpRoleInterface(
+void pTRIF(
         stream<ap_uint<16> >    &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
         stream<appNotification> &siTOE_Notif,
@@ -952,7 +954,7 @@ void pEmulateTcpRoleInterface(
         stream<ap_uint<16> >    &soTOE_ClsReq,
         vector<ap_uint<16> >    &txSessionIDs)
 {
-    static bool listenDone           = false;
+    static bool listenDone        = false;
     static bool runningExperiment = false;
     static ap_uint<1> listenFsm   = 0;
 
@@ -961,17 +963,34 @@ void pEmulateTcpRoleInterface(
     ipTuple         tuple;
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
+    char message[256];
 
-    //-- Request to listen on port #20560
+    //-- Request to listen on a port number
     if (!listenDone) {
+        AxiTcpPort axiTcpPort = 0x5700;   // #87
         switch (listenFsm) {
         case 0:
-            soTOE_LsnReq.write(0x5050);
-            listenFsm++;
+            soTOE_LsnReq.write(axiTcpPort);
+            if (DEBUG_LEVEL > 0) {
+                sprintf(message, "Request to listen on port %d (0x%4.4X).",
+                        axiTcpPort.to_uint(), axiTcpPort.to_uint());
+                printInfo(myName, message);
+                listenFsm++;
+            }
             break;
         case 1:
             if (!siTOE_LsnAck.empty()) {
                 siTOE_LsnAck.read(listenDone);
+                if (listenDone) {
+                    sprintf(message, "TOE is now listening on port %d (0x%4.4X).",
+                            axiTcpPort.to_uint(), axiTcpPort.to_uint());
+                    printInfo(myName, message);
+                }
+                else {
+                    sprintf(message, "TOE denied listening on port %d (0x%4.4X).",
+                            axiTcpPort.to_uint(), axiTcpPort.to_uint());
+                    printWarn(myName, message);
+                }
                 listenFsm++;
             }
             break;
@@ -996,7 +1015,6 @@ void pEmulateTcpRoleInterface(
         else // closed
             runningExperiment = false;
     }
-
 
     //-- IPERF PROCESSING
     enum   consumeFsmStateType {WAIT_PKG, CONSUME, HEADER_2, HEADER_3};
@@ -1134,7 +1152,7 @@ int main(int argc, char *argv[]) {
     dummyMemory     rxMemory;
     dummyMemory     txMemory;
 
-    map<SocketPair, TcpHdr_SeqNum>    sessionList;
+    map<SocketPair, AxiTcpSeqNum>    sessionList;
 
     //-- Double-ended queues ------------------------------
     deque<AxiWord>  ipRxPacketizer;        // Packets intended for the IPRX interface of TOE
@@ -1330,8 +1348,6 @@ int main(int argc, char *argv[]) {
             }
             else
                 idleCycCnt++;
-            // Always increment the global simulator cycle counter
-            gSimCycCnt++;
         }
         else {
 
@@ -1407,7 +1423,7 @@ int main(int argc, char *argv[]) {
                 string     txStringBuffer;
 
                 getline(txInputFile, txStringBuffer);
-                txStringVector = tokenize(txStringBuffer);
+                txStringVector = myTokenizer(txStringBuffer);
 
                 if (stringVector[0] == "#") {
                     printf("%s", txStringBuffer.c_str());
@@ -1426,7 +1442,7 @@ int main(int argc, char *argv[]) {
                     do {
                         if (firstWordFlag == false) {
                             getline(txInputFile, txStringBuffer);
-                            txStringVector = tokenize(txStringBuffer);
+                            txStringVector = myTokenizer(txStringBuffer);
                         }
                         else {
                             // This is the first chunk of a frame.
@@ -1501,7 +1517,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
-        pEmulateTcpRoleInterface(
+        pTRIF(
             sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
             sTOE_Trif_Notif,  sTRIF_Toe_DReq,
             sTOE_Trif_Meta,   sTOE_Trif_Data, sTRIF_Role_Data,

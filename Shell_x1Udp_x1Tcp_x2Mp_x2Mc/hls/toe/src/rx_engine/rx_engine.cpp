@@ -27,7 +27,7 @@
 
 using namespace hls;
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 7
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -108,8 +108,8 @@ void pTcpLengthExtract(
 
     const char *myName  = concat3(THIS_NAME, "/", "Tle");
 
-    static Ip4Hdr_HdrLen    tle_ipHeaderLen = 0;
-    static Ip4Hdr_TotalLen  tle_ipTotalLen  = 0;
+    static Ip4HdrLen        tle_ip4HdrLen   = 0;
+    static Ip4TotalLen      tle_ip4TotalLen = 0;
     static Ip4DatLen        tle_ipDataLen   = 0;
     static ap_uint<4>       tle_wordCount   = 0;
     static bool             tle_insertWord  = false;
@@ -122,23 +122,23 @@ void pTcpLengthExtract(
         sendWord = TcpWord(0, 0xFF, 0);
         soTcpSeg.write(sendWord);
         tle_insertWord = false;
-        if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
     }
     else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
         Ip4Word currWord = siIPRX_Pkt.read();
         switch (tle_wordCount) {
         case 0:
-            tle_ipHeaderLen  = currWord.tdata(3, 0);
-            tle_ipTotalLen   = byteSwap16(currWord.tdata(31, 16));
+            tle_ip4HdrLen   = currWord.tdata(3, 0);
+            tle_ip4TotalLen = byteSwap16(currWord.tdata(31, 16));
             // Compute length of IPv4 data (.i.e. the TCP segment length)
-            tle_ipDataLen    = tle_ipTotalLen - (tle_ipHeaderLen * 4);
-            tle_ipHeaderLen -= 2; // We just processed 8 bytes
+            tle_ipDataLen  = tle_ip4TotalLen - (tle_ip4HdrLen * 4);
+            tle_ip4HdrLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 1:
             // Forward length of IPv4 data
             soTcpSegLen.write(tle_ipDataLen);
-            tle_ipHeaderLen -= 2; // We just processed 8 bytes
+            tle_ip4HdrLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
         case 2:
@@ -148,34 +148,34 @@ void pTcpLengthExtract(
                                (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                (currWord.tkeep[4] == 0));
             soTcpSeg.write(sendWord);
-            tle_ipHeaderLen -= 1;  // We just processed the last 8 bytes of the IP header
+            tle_ip4HdrLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
-            if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
             break;
         case 3:
-            switch (tle_ipHeaderLen) {
+            switch (tle_ip4HdrLen) {
             case 0: // Half of prevWord contains valuable data and currWord is full of valuable
                 sendWord = TcpWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
                                    (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                    (currWord.tkeep[4] == 0));
                 soTcpSeg.write(sendWord);
                 tle_shift = true;
-                tle_ipHeaderLen = 0;
+                tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soTcpSeg.write(sendWord);
                 tle_shift = false;
-                tle_ipHeaderLen = 0;
+                tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
                 break;
             default: // The prevWord contains garbage data, currWord at least half garbage
                 //Drop this shit
-                tle_ipHeaderLen -= 2;
+                tle_ip4HdrLen -= 2;
                 break;
             }
             break;
@@ -185,12 +185,12 @@ void pTcpLengthExtract(
                                    (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                    (currWord.tkeep[4] == 0));
                 soTcpSeg.write(sendWord);
-                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
             }
             else {
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soTcpSeg.write(sendWord);
-                if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
             }
             break;
 
@@ -211,7 +211,7 @@ void pTcpLengthExtract(
         sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
         soTcpSeg.write(sendWord);
         tle_wasLast = false;
-        if (DEBUG_LEVEL > 0) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
     }
 }
 
@@ -297,7 +297,7 @@ void pInsertPseudoHeader(
         sendWord.tlast        = 0x1;
         soTcpSeg.write(sendWord);
         iph_wasLast = false;
-        if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
     }
     else if(!siTle_TcpSeg.empty()) {
         switch (iph_wordCount) {
@@ -311,7 +311,7 @@ void pInsertPseudoHeader(
             // Forward IP-DA & IP-SA
             soTcpSeg.write(sendWord);
             iph_wordCount++;
-            if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
             break;
         case 2:
             if (!siTle_TcpSegLen.empty()) {
@@ -319,15 +319,16 @@ void pInsertPseudoHeader(
                 siTle_TcpSegLen.read(tcpSegLen);
                 // Forward Protocol and Segment length
                 sendWord.tdata(15,  0) = 0x0600;        // 06 is for TCP
-                sendWord.tdata(23, 16) = tcpSegLen(15, 8);
-                sendWord.tdata(31, 24) = tcpSegLen( 7, 0);
+                //OBSOLETE-20181120 sendWord.tdata(23, 16) = tcpSegLen(15, 8);
+                //OBSOLETE-20181120 sendWord.tdata(31, 24) = tcpSegLen( 7, 0);
+                sendWord.tdata(31, 16) = byteSwap16(tcpSegLen);
                 // Forward TCP-SP & TCP-DP
                 sendWord.tdata(63, 32) = currWord.tdata(31, 0);
                 sendWord.tkeep         = 0xFF;
                 sendWord.tlast         = 0;
                 soTcpSeg.write(sendWord);
                 iph_wordCount++;
-                if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
             }
             break;
         default:
@@ -341,7 +342,7 @@ void pInsertPseudoHeader(
             sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
             sendWord.tlast               = (currWord.tkeep[4] == 0); // see format of the incoming segment
             soTcpSeg.write(sendWord);
-            if (DEBUG_LEVEL > 1) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
             break;
         }
         iph_prevWord = currWord;
@@ -417,7 +418,7 @@ void pCheckSumAccumulator(
     TcpWord                 sendWord;
     static rxEngineMetaData csa_meta;
     static ap_uint<16>      csa_dstPort;
-    static TcpHdr_Checksum  csa_tcpHdr_CSum;
+    static AxiTcpChecksum   csa_axiTcpCSum;
 
     static bool             csa_doShift     = false;
     static bool             csa_wasLast     = false;
@@ -487,7 +488,7 @@ void pCheckSumAccumulator(
             //OBSOLETE-20181031 csa_meta.winSize(15, 8) = currWord.data(23, 16);
             csa_meta.winSize = byteSwap16(currWord.tdata(31, 16));
             // Get the checksum of the pseudo-header (only for debug purposes)
-            csa_tcpHdr_CSum = currWord.tdata(47, 32);
+            csa_axiTcpCSum = currWord.tdata(47, 32);
             sendWord.tlast = currWord.tlast;
             break;
         default:
@@ -595,20 +596,22 @@ void pCheckSumAccumulator(
                 csa_cc_state++;
                 break;
             case 4:
-                // If summation == 0 then checksum is correct
                 if (csa_tcp_sums[0](15, 0) == 0) {
-                    // TCP segment is valid, write out metadata, 4-tuple and check port
+                    // The checksum is correct. TCP segment is valid.
+                    // Forward to MetaDataHandler
                     soMeta.write(csa_meta);
-                    soDstPort.write(csa_dstPort);
                     soSockPair.write(csa_sessionTuple);
+                    // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
                         soDataValid.write(true);
                     }
+                    // Forward to PortTable
+                    soDstPort.write(csa_dstPort);
                 }
                 else if(csa_meta.length != 0) {
                     soDataValid.write(false);
-                    if (DEBUG_LEVEL > 0) {
-                        sprintf(message, "BAD CHECKSUM (0x%4.4X).", csa_tcpHdr_CSum.to_uint());
+                    if (DEBUG_LEVEL >= 0) {
+                        sprintf(message, "BAD CHECKSUM (0x%4.4X).", csa_axiTcpCSum.to_uint());
                         printWarn(myName, message);
                         sprintf(message, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}",
                                 csa_sessionTuple.srcIp.to_uint(), csa_sessionTuple.srcPort.to_uint(),
@@ -748,7 +751,6 @@ void pMetaDataHandler(
         if (!siPRt_PortSts.empty()) {
             //  Read metadata and socket pair
             if (!siCsa_Meta.empty() && !siCsa_SockPair.empty()) {
-
                 siPRt_PortSts.read(isPortOpen);
                 siCsa_Meta.read(mdh_meta);
                 siCsa_SockPair.read(tuple);
@@ -762,6 +764,10 @@ void pMetaDataHandler(
 
                 if (!isPortOpen) {
                     // The destination port is closed
+                    if (DEBUG_LEVEL >= 0) {
+                        sprintf(message, "Port %d is not open.", tuple.dstPort.to_uint());
+                        printWarn(myName, message);
+                    }
                     if (!mdh_meta.rst) {
                         // Reply with RST+ACK and send necessary socket-pair through event
                         fourTuple switchedTuple;
@@ -785,22 +791,21 @@ void pMetaDataHandler(
                     if (mdh_meta.length != 0) {
                         soDropCmd.write(DROP_CMD);
                     }
-
-                    if (DEBUG_LEVEL > 1) {
-                        sprintf(message, "Port %d is not open.", tuple.dstPort.to_uint());
-                        printWarn(myName, message);
-                    }
                 }
                 else {
-                    // Query session lookup. Only allow creation of a new entry when SYN or SYN_ACK
-                    soSessLookupReq.write(sessionLookupQuery(tuple,
-                                                         (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
-                    mdh_fsmState = LOOKUP;
-                    if (DEBUG_LEVEL > 1) {
-                        printSockPair(myName,
-                            SocketPair(SockAddr(tuple.srcIp, tuple.srcPort),
-                                       SockAddr(tuple.dstIp, tuple.dstPort)));
+                    // Destination Port is open
+                    if (DEBUG_LEVEL >= 4) {
+                        sprintf(message, "Port %d is open.", tuple.dstPort.to_uint());
+                        printInfo(myName, message);
                     }
+                    // Query session lookup. Only allow creation of a new entry when SYN or SYN_ACK
+                    if (DEBUG_LEVEL >= 4) {
+                        sprintf(message, "Request to lookup session {{TODO},{TODO}}.");
+                        printInfo(myName, message);
+                    }
+                    soSessLookupReq.write(sessionLookupQuery(tuple,
+                                              (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
+                    mdh_fsmState = LOOKUP;
                 }
             }
         }

@@ -106,62 +106,62 @@ void printInfo(const char *callerName, const char *message)
  *****************************************************************************/
 void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
 {
-    IP4Hdr_Version  ip4Hdr_Ver     = pktChunk[0].tdata.range( 3,  0);
-    Ip4Hdr_HdrLen   ip4Hdr_HdrLen  = pktChunk[0].tdata.range( 7,  4);
-    Ip4Hdr_ToS      ip4Hdr_ToS     = pktChunk[0].tdata.range(15,  8);
-    Ip4Hdr_TotalLen ip4Hdr_TotLen  = pktChunk[0].tdata.range(31, 16);
-    Ip4Hdr_SrcAddr  ip4Hdr_SrcAddr = pktChunk[1].tdata.range(63, 32);
-    Ip4Hdr_DstAddr  ip4Hdr_DstAddr = pktChunk[2].tdata.range(31,  0);
+    AxiIp4Version  axiIp4Version = pktChunk[0].tdata.range( 3,  0);
+    AxiIp4HdrLen   axiIp4HdrLen  = pktChunk[0].tdata.range( 7,  4);
+    AxiIp4ToS      axiIp4ToS     = pktChunk[0].tdata.range(15,  8);
+    AxiIp4TotalLen axiIp4TotLen  = pktChunk[0].tdata.range(31, 16);
+    AxiIp4SrcAddr  axiIp4SrcAddr = pktChunk[1].tdata.range(63, 32);
+    AxiIp4DstAddr  axiIp4DstAddr = pktChunk[2].tdata.range(31,  0);
 
-    TcpHdr_SrcPort  tcpHdr_SrcPort = pktChunk[2].tdata.range(47, 32);
-    TcpHdr_DstPort  tcpHdr_DstPort = pktChunk[2].tdata.range(63, 48);
-    TcpHdr_SeqNum   tcpHdr_SeqNum  = pktChunk[3].tdata.range(31,  0);
-    TcpHdr_AckNum   tcpHdr_AckNum  = pktChunk[3].tdata.range(63, 32);
-    TcpHdr_DataOff  tcpHdr_DatOff  = pktChunk[4].tdata.range( 7,  4);
-    TcpHdr_CtrlBits tcpHdr_Contol  = pktChunk[4].tdata.range(13,  8);
-    TcpHdr_Window   tcpHdr_Window  = pktChunk[4].tdata.range(31, 16);
-    TcpHdr_Checksum tcpHdr_CSum    = pktChunk[4].tdata.range(47, 32);
-    TcpHdr_UrgPtr   tcpHdr_UrgPtr  = pktChunk[4].tdata.range(63, 48);
+    AxiTcpSrcPort  axiTcpSrcPort = pktChunk[2].tdata.range(47, 32);
+    AxiTcpDstPort  axiTcpDstPort = pktChunk[2].tdata.range(63, 48);
+    AxiTcpSeqNum   axiTcpSeqNum  = pktChunk[3].tdata.range(31,  0);
+    AxiTcpAckNum   axiTcpAckNum  = pktChunk[3].tdata.range(63, 32);
+    AxiTcpDataOff  axiTcpDatOff  = pktChunk[4].tdata.range( 7,  4);
+    AxiTcpCtrlBits axiTcpContol  = pktChunk[4].tdata.range(13,  8);
+    AxiTcpWindow   axiTcpWindow  = pktChunk[4].tdata.range(31, 16);
+    AxiTcpChecksum axiTcpCSum    = pktChunk[4].tdata.range(47, 32);
+    AxiTcpUrgPtr   axiTcpUrgPtr  = pktChunk[4].tdata.range(63, 48);
 
-    printf("[%s] IP PACKET HEADER (HEX numbers are in network byte order): \n", callerName);
+    printf("[%s] IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n", callerName);
     printf("\t IP4 Source Address      = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
-            ip4Hdr_SrcAddr.to_uint(),
-            ip4Hdr_SrcAddr.to_uint() & 0xFF000000 >> 24,
-            ip4Hdr_SrcAddr.to_uint() & 0x00FF0000 >> 16,
-            ip4Hdr_SrcAddr.to_uint() & 0x0000FF00 >>  8,
-            ip4Hdr_SrcAddr.to_uint() & 0x000000FF >>  0);
+            axiIp4SrcAddr.to_uint(),
+            axiIp4SrcAddr.to_uint() & 0xFF000000 >> 24,
+            axiIp4SrcAddr.to_uint() & 0x00FF0000 >> 16,
+            axiIp4SrcAddr.to_uint() & 0x0000FF00 >>  8,
+            axiIp4SrcAddr.to_uint() & 0x000000FF >>  0);
     printf("\t IP4 Destination Address = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
-            ip4Hdr_DstAddr.to_uint(),
-            ip4Hdr_DstAddr.to_uint() & 0xFF000000 >> 24,
-            ip4Hdr_DstAddr.to_uint() & 0x00FF0000 >> 16,
-            ip4Hdr_DstAddr.to_uint() & 0x0000FF00 >>  8,
-            ip4Hdr_DstAddr.to_uint() & 0x000000FF >>  0);
-    printf("\t TCP Source Port         = 0x%4.4X     (%5u) \n",
-            tcpHdr_SrcPort.to_uint(), swapWord(tcpHdr_SrcPort).to_uint());
-    printf("\t TCP Destination Port    = 0x%4.4X     (%5u) \n",
-            tcpHdr_DstPort.to_uint(), swapWord(tcpHdr_DstPort).to_uint());
-    printf("\t TCP Sequence Number     = 0x%8.8X (%10u) \n",
-            tcpHdr_SeqNum.to_uint(), swapDWord(tcpHdr_SeqNum).to_uint());
-    printf("\t TCP Acknowledge Number  = 0x%8.8X (%10u) \n",
-            tcpHdr_AckNum.to_uint(), swapDWord(tcpHdr_AckNum).to_uint());
+            axiIp4DstAddr.to_uint(),
+            axiIp4DstAddr.to_uint() & 0xFF000000 >> 24,
+            axiIp4DstAddr.to_uint() & 0x00FF0000 >> 16,
+            axiIp4DstAddr.to_uint() & 0x0000FF00 >>  8,
+            axiIp4DstAddr.to_uint() & 0x000000FF >>  0);
+    printf("\t TCP Source Port         = 0x%4.4X     (%u) \n",
+            axiTcpSrcPort.to_uint(), swapWord(axiTcpSrcPort).to_uint());
+    printf("\t TCP Destination Port    = 0x%4.4X     (%u) \n",
+            axiTcpDstPort.to_uint(), swapWord(axiTcpDstPort).to_uint());
+    printf("\t TCP Sequence Number     = 0x%8.8X (%u) \n",
+            axiTcpSeqNum.to_uint(), swapDWord(axiTcpSeqNum).to_uint());
+    printf("\t TCP Acknowledge Number  = 0x%8.8X (%u) \n",
+            axiTcpAckNum.to_uint(), swapDWord(axiTcpAckNum).to_uint());
     printf("\t TCP Data Offset         = 0x%1.1X        (%d) \n",
-            tcpHdr_DatOff.to_uint(), tcpHdr_DatOff.to_uint());
+            axiTcpDatOff.to_uint(), axiTcpDatOff.to_uint());
 
     printf("\t TCP Control Bits        = ");
-    printf("%s", tcpHdr_Contol[0] ? "FIN |" : "");
-    printf("%s", tcpHdr_Contol[1] ? "SYN |" : "");
-    printf("%s", tcpHdr_Contol[2] ? "RST |" : "");
-    printf("%s", tcpHdr_Contol[3] ? "PSH |" : "");
-    printf("%s", tcpHdr_Contol[4] ? "ACK |" : "");
-    printf("%s", tcpHdr_Contol[5] ? "URG |" : "");
+    printf("%s", axiTcpContol[0] ? "FIN |" : "");
+    printf("%s", axiTcpContol[1] ? "SYN |" : "");
+    printf("%s", axiTcpContol[2] ? "RST |" : "");
+    printf("%s", axiTcpContol[3] ? "PSH |" : "");
+    printf("%s", axiTcpContol[4] ? "ACK |" : "");
+    printf("%s", axiTcpContol[5] ? "URG |" : "");
     printf("\n");
 
     printf("\t TCP Window              = 0x%4.4X     (%u) \n",
-            tcpHdr_Window.to_uint(), swapWord(tcpHdr_Window).to_uint());
+            axiTcpWindow.to_uint(), swapWord(axiTcpWindow).to_uint());
     printf("\t TCP Checksum            = 0x%4.4X     (%u) \n",
-            tcpHdr_CSum.to_uint(), tcpHdr_CSum.to_uint());
+            axiTcpCSum.to_uint(), axiTcpCSum.to_uint());
     printf("\t TCP Urgent Pointer      = 0x%4.4X     (%u) \n",
-            tcpHdr_UrgPtr.to_uint(), swapWord(tcpHdr_UrgPtr).to_uint());
+            axiTcpUrgPtr.to_uint(), swapWord(axiTcpUrgPtr).to_uint());
 }
 
 /*****************************************************************************

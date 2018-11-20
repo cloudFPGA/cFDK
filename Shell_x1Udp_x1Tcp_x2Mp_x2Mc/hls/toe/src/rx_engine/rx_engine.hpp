@@ -1,7 +1,7 @@
 /*****************************************************************************
  * @file       : rx_engine.hpp
  * @brief      : Rx Engine (RXE) of the TCP Offload Engine (TOE).
- **
+ *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
@@ -21,15 +21,16 @@
 
 using namespace hls;
 
-/** @ingroup rx_engine
- *  @TODO check if same as in Tx engine
- */
+
+/********************************************
+ * RXe - MetaData Interface
+ ********************************************/
 struct rxEngineMetaData
 {
     ap_uint<32> seqNumb;
     ap_uint<32> ackNumb;
     ap_uint<16> winSize;
-    ap_uint<16> length;
+    ap_uint<16> length;     // Segment Length
     ap_uint<1>  ack;
     ap_uint<1>  rst;
     ap_uint<1>  syn;
@@ -37,9 +38,9 @@ struct rxEngineMetaData
     //ap_uint<16> dstPort;
 };
 
-/** @ingroup rx_engine
- *
- */
+/********************************************
+ * RXe - FsmMetaData Interface
+ ********************************************/
 struct rxFsmMetaData
 {
     ap_uint<16>         sessionID;
@@ -47,14 +48,16 @@ struct rxFsmMetaData
     ap_uint<16>         dstIpPort;
     rxEngineMetaData    meta; //check if all needed
     rxFsmMetaData() {}
-    rxFsmMetaData(ap_uint<16> id, ap_uint<32> ipAddr, ap_uint<16> ipPort, rxEngineMetaData meta)
-                :sessionID(id), srcIpAddress(ipAddr), dstIpPort(ipPort), meta(meta) {}
+    rxFsmMetaData(ap_uint<16> id, ap_uint<32> ipAddr, ap_uint<16> ipPort, rxEngineMetaData meta) :
+        sessionID(id), srcIpAddress(ipAddr), dstIpPort(ipPort), meta(meta) {}
 };
 
-/** @defgroup rx_engine RX Engine
- *  @ingroup tcp_module
- *  RX Engine
- */
+
+/*****************************************************************************
+ * @brief   Main process of the TCP Rx Engine (RXe).
+ *
+ * @ingroup rx_engine
+ *****************************************************************************/
 void rx_engine(
 		stream<Ip4Word>						&siIPRX_Pkt,
 		stream<sessionLookupReply>			&siSLc_LookupRsp,
