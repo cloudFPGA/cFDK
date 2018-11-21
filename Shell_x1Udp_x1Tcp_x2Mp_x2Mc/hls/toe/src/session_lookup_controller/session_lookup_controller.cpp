@@ -77,7 +77,10 @@ void lookupReplyHandler(stream<rtlSessionLookupReply>&          sessionLookup_rs
         }
         else if (!rxEng2sLookup_req.empty()) {
             sessionLookupQuery query = rxEng2sLookup_req.read();
-            sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(query.tuple.dstIp, query.tuple.srcIp, query.tuple.dstPort, query.tuple.srcPort), query.allowCreation, RX);
+            //OBSOLETE-20181120 sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(query.tuple.dstIp, query.tuple.srcIp, query.tuple.dstPort, query.tuple.srcPort), query.allowCreation, RX);
+            sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(
+                    query.tuple.dst.addr, query.tuple.src.addr, query.tuple.dst.port, query.tuple.src.port),
+                    query.allowCreation, RX);
             sessionLookup_req.write(rtlSessionLookupRequest(intQuery.tuple, intQuery.source));
             slc_queryCache.write(intQuery);
             slc_fsmState = LUP_RSP;

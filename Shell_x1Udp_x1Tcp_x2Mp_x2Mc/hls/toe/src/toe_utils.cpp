@@ -169,18 +169,21 @@ void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
  *
  * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
  * @param[in] sockPair,     the socket pair to display.
+ *
+ * @note
+ *  The the socket pair addresses and port are stored in little-endian order.
  *****************************************************************************/
 void printSockPair(const char *callerName, SocketPair sockPair)
 {
-    unsigned int srcAddr = sockPair.src.addr;
-    unsigned int srcPort = sockPair.src.port;
-    unsigned int dstAddr = sockPair.dst.addr;
-    unsigned int dstPort = sockPair.dst.port;
+    AxiIp4Address srcAddr = sockPair.src.addr;
+    AxiTcpPort    srcPort = sockPair.src.port;
+    AxiIp4Address dstAddr = sockPair.dst.addr;
+    AxiTcpPort    dstPort = sockPair.dst.port;
 
     printf("[%s] SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
         callerName,
-        (unsigned int)sockPair.src.addr, (unsigned int)sockPair.src.port,
-        (unsigned int)sockPair.dst.addr, (unsigned int)sockPair.dst.port);
+        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
+        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
 }
 
 /*****************************************************************************

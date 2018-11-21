@@ -330,7 +330,9 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                 txEng_ipMetaFifoOut.write(0);
                 txEng_tcpMetaFifoOut.write(tx_engine_meta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 txEng_isLookUpFifoOut.write(false);
-                txEng_tupleShortCutFifoOut.write(ml_curEvent.tuple);
+                // [TODO-Upgrade to SocketPair]  txEng_tupleShortCutFifoOut.write(ml_curEvent.tuple);
+                txEng_tupleShortCutFifoOut.write(fourTuple(ml_curEvent.tuple.src.addr, ml_curEvent.tuple.dst.addr,
+                                                           ml_curEvent.tuple.src.port, ml_curEvent.tuple.dst.port));
                 ml_FsmState = 0;
             }
             else if (!txSar2txEng_upd_rsp.empty()) {

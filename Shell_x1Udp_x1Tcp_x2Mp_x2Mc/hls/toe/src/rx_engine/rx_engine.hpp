@@ -27,10 +27,10 @@ using namespace hls;
  ********************************************/
 struct rxEngineMetaData
 {
-    ap_uint<32> seqNumb;
-    ap_uint<32> ackNumb;
-    ap_uint<16> winSize;
-    ap_uint<16> length;     // Segment Length
+	TcpSeqNum   seqNumb;    // TCP Sequence Number
+	TcpAckNum   ackNumb;    // TCP Acknowledgment Number
+	TcpWindow   winSize;    // TCP Window Size
+    TcpSegLen   length;     // TCP Segment Length
     ap_uint<1>  ack;
     ap_uint<1>  rst;
     ap_uint<1>  syn;

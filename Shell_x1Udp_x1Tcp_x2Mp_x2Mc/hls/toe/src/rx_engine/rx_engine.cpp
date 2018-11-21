@@ -399,8 +399,8 @@ void pCheckSumAccumulator(
         stream<AxiWord>             &soData,
         stream<ValBit>              &soDataValid,
         stream<rxEngineMetaData>    &soMeta,
-        stream<fourTuple>           &soSockPair,
-        stream<TcpPort>             &soDstPort)
+        stream<SocketPair>          &soSockPair,
+        stream<AxiTcpPort>          &soDstPort)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -410,14 +410,14 @@ void pCheckSumAccumulator(
     char message[256];
 
     static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8>       csa_dataOffset = 0xFF;
+    static ap_uint<8>       csa_dataOffset = 0xFF; // [FIXME-Why not make it of type AxiTcpDataOff]
     static ap_uint<16>      csa_wordCount = 0;
-    static fourTuple        csa_sessionTuple;
+    static SocketPair       csa_sessTuple;  // OBSOLETE-20181120 static fourTuple csa_sessionTuple;
     static ap_uint<36>      halfWord;
     TcpWord                 currWord;
     TcpWord                 sendWord;
     static rxEngineMetaData csa_meta;
-    static ap_uint<16>      csa_dstPort;
+    static AxiTcpDstPort    csa_axiTcpDstPort; // OBSOLETE-20181120 static ap_uint<16>      csa_dstPort;
     static AxiTcpChecksum   csa_axiTcpCSum;
 
     static bool             csa_doShift     = false;
@@ -435,34 +435,24 @@ void pCheckSumAccumulator(
             csa_dataOffset = 0xFF;
             csa_doShift = false;
                 // Get IP-SA & IP-DA
-                //  Warning: IP addresses are stored w/ the Most Significant Byte Last
-                csa_sessionTuple.srcIp = currWord.tdata(31,  0);
-                csa_sessionTuple.dstIp = currWord.tdata(63, 32);
+                //  Warning: Remember that IP addresses come in little-endian order
+                csa_sessTuple.src.addr = currWord.tdata(31,  0);
+                csa_sessTuple.dst.addr = currWord.tdata(63, 32);
                 sendWord.tlast         = currWord.tlast;
             break;
         case 1:
-            // Get SEGMENT length
-            //OBSOLETE-20181031 csa_meta.length( 7, 0)   = currWord.tdata(31, 24);
-            //OBSOLETE-20181031 csa_meta.length(15, 8)   = currWord.tdata(23, 16);
+            // Get Segment length
             csa_meta.length = byteSwap16(currWord.tdata(31, 16));
             // Get TCP-SP & TCP-DP
-            //  Warning: TCP ports are stored w/ Most Significant Byte Last
-            csa_sessionTuple.srcPort = currWord.tdata(47, 32);
-            csa_sessionTuple.dstPort = currWord.tdata(63, 48);
-            csa_dstPort              = currWord.tdata(63, 48);
-            sendWord.tlast           = currWord.tlast;
+            //  Warning: Remember that TCP ports come in little-endian order
+            csa_sessTuple.src.port = currWord.tdata(47, 32);
+            csa_sessTuple.dst.port = currWord.tdata(63, 48);
+            csa_axiTcpDstPort      = currWord.tdata(63, 48);
+            sendWord.tlast         = currWord.tlast;
             break;
         case 2:
             // Get Sequence and Acknowledgment Numbers
-            //OBSOLETE-20181031 csa_meta.seqNumb( 7,  0) = currWord.data(31, 24);
-            //OBSOLETE-20181031 csa_meta.seqNumb(15,  8) = currWord.data(23, 16);
-            //OBSOLETE-20181031 csa_meta.seqNumb(23, 16) = currWord.data(15,  8);
-            //OBSOLETE-20181031 csa_meta.seqNumb(31, 24) = currWord.data( 7,  0);
             csa_meta.seqNumb = byteSwap32(currWord.tdata(31, 0));
-            //OBSOLETE-20181031 csa_meta.ackNumb( 7,  0) = currWord.data(63, 56);
-            //OBSOLETE-20181031 csa_meta.ackNumb(15,  8) = currWord.data(55, 48);
-            //OBSOLETE-20181031 csa_meta.ackNumb(23, 16) = currWord.data(47, 40);
-            //OBSOLETE-20181031 csa_meta.ackNumb(31, 24) = currWord.data(39, 32);
             csa_meta.ackNumb = byteSwap32(currWord.tdata(63, 32));
             sendWord.tlast   = currWord.tlast;
             break;
@@ -484,8 +474,6 @@ void pCheckSumAccumulator(
             csa_meta.syn = currWord.tdata[ 9];
             csa_meta.fin = currWord.tdata[ 8];
             // Get Window Size
-            //OBSOLETE-20181031 csa_meta.winSize(7, 0) = currWord.data(31, 24);
-            //OBSOLETE-20181031 csa_meta.winSize(15, 8) = currWord.data(23, 16);
             csa_meta.winSize = byteSwap16(currWord.tdata(31, 16));
             // Get the checksum of the pseudo-header (only for debug purposes)
             csa_axiTcpCSum = currWord.tdata(47, 32);
@@ -503,7 +491,6 @@ void pCheckSumAccumulator(
                 csa_doShift = true;
                 halfWord.range(31,  0) = currWord.tdata.range(63, 32);
                 halfWord.range(35, 32) = currWord.tkeep.range( 7,  4);
-                //OBSOLETE-20181031 halfWord[36] = currWord.last;
                 sendWord.tlast = (currWord.tkeep[4] == 0);
             }
             else {    // csa_dataOffset == 5 (or less)
@@ -517,14 +504,9 @@ void pCheckSumAccumulator(
                     sendWord.tkeep.range( 3,  0) = halfWord.range(35, 32);
                     sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
                     sendWord.tlast = (currWord.tkeep[4] == 0);
-                    //OBSOLETE-20181031 /*if (currWord.last && currWord.strb.range(7, 4) != 0)
-                    //OBSOLETE-20181031 {
-                    //OBSOLETE-20181031     sendWord.last = 0;
-                    //OBSOLETE-20181031 }*/
                     soData.write(sendWord);
                     halfWord.range(31,  0) = currWord.tdata.range(63, 32);
                     halfWord.range(35, 32) = currWord.tkeep.range(7, 4);
-                    //OBSOLETE-20181031 //halfWord[36] = currWord.last; //FIXME not needed
                 }
             }
             break;
@@ -533,7 +515,7 @@ void pCheckSumAccumulator(
         // Accumulate TCP checksum
         for (int i = 0; i < 4; i++) {
             #pragma HLS UNROLL
-            ap_uint<16> temp;
+        	TcpCSum temp;
             if (currWord.tkeep.range(i*2+1, i*2) == 0x3) {
                 temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
                 temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16);
@@ -550,7 +532,7 @@ void pCheckSumAccumulator(
 
         csa_wordCount++;
 
-        if(currWord.tlast == 1) {  // FIXME - Can we get ride of this cycle (see ETHZ version)
+        if(currWord.tlast == 1) {
             csa_wordCount = 0;
             csa_wasLast = !sendWord.tlast;
             csa_doCSumVerif = true;
@@ -600,13 +582,13 @@ void pCheckSumAccumulator(
                     // The checksum is correct. TCP segment is valid.
                     // Forward to MetaDataHandler
                     soMeta.write(csa_meta);
-                    soSockPair.write(csa_sessionTuple);
+                    soSockPair.write(csa_sessTuple);
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
                         soDataValid.write(true);
                     }
                     // Forward to PortTable
-                    soDstPort.write(csa_dstPort);
+                    soDstPort.write(csa_axiTcpDstPort);
                 }
                 else if(csa_meta.length != 0) {
                     soDataValid.write(false);
@@ -614,8 +596,8 @@ void pCheckSumAccumulator(
                         sprintf(message, "BAD CHECKSUM (0x%4.4X).", csa_axiTcpCSum.to_uint());
                         printWarn(myName, message);
                         sprintf(message, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}",
-                                csa_sessionTuple.srcIp.to_uint(), csa_sessionTuple.srcPort.to_uint(),
-                                csa_sessionTuple.dstIp.to_uint(), csa_sessionTuple.dstPort.to_uint());
+                                csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
+                                csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
                         printInfo(myName, message);
                     }
                 }
@@ -717,7 +699,7 @@ void pTcpInvalidDropper(
  *****************************************************************************/
 void pMetaDataHandler(
         stream<rxEngineMetaData>    &siCsa_Meta,
-        stream<fourTuple>           &siCsa_SockPair,
+        stream<SocketPair>          &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSessLookupReq,
@@ -734,10 +716,10 @@ void pMetaDataHandler(
 
     static rxEngineMetaData     mdh_meta;
     static sessionLookupReply   mdh_sessLookupReply;
-    static Ip4Addr              mdh_srcIp4Addr;
+    static Ip4Address           mdh_srcIp4Addr;
     static TcpPort              mdh_dstTcpPort;
 
-    fourTuple    tuple;            // TODO - Upgrade to SocketPair
+    SocketPair   tuple;
     StsBit       isPortOpen;
 
     //OBSOLETE-20181101 enum mhStateType {META, LOOKUP};
@@ -755,33 +737,37 @@ void pMetaDataHandler(
                 siCsa_Meta.read(mdh_meta);
                 siCsa_SockPair.read(tuple);
 
-                mdh_srcIp4Addr( 7,  0) = tuple.srcIp(31, 24);
-                mdh_srcIp4Addr(15,  8) = tuple.srcIp(23, 16);
-                mdh_srcIp4Addr(23, 16) = tuple.srcIp(15,  8);
-                mdh_srcIp4Addr(31, 24) = tuple.srcIp( 7,  0);
-                mdh_dstTcpPort( 7,  0) = tuple.dstPort(15, 8);
-                mdh_dstTcpPort(15,  8) = tuple.dstPort( 7, 0);
+                //OBSOLETE-20181120 mdh_srcIp4Addr( 7,  0) = tuple.srcIp(31, 24);
+                //OBSOLETE-20181120 mdh_srcIp4Addr(15,  8) = tuple.srcIp(23, 16);
+                //OBSOLETE-20181120 mdh_srcIp4Addr(23, 16) = tuple.srcIp(15,  8);
+                //OBSOLETE-20181120 mdh_srcIp4Addr(31, 24) = tuple.srcIp( 7,  0);
+                mdh_srcIp4Addr = byteSwap32(tuple.src.addr);
+
+                //OBSOLETE-20181120 mdh_dstTcpPort( 7,  0) = tuple.dstPort(15, 8);
+                //OBSOLETE-20181120 mdh_dstTcpPort(15,  8) = tuple.dstPort( 7, 0);
+                mdh_dstTcpPort = byteSwap16(tuple.dst.port);
 
                 if (!isPortOpen) {
                     // The destination port is closed
                     if (DEBUG_LEVEL >= 0) {
-                        sprintf(message, "Port %d is not open.", tuple.dstPort.to_uint());
+                        sprintf(message, "Port 0x%4.4X (%d) is not open.",
+                                mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                         printWarn(myName, message);
                     }
                     if (!mdh_meta.rst) {
                         // Reply with RST+ACK and send necessary socket-pair through event
-                        fourTuple switchedTuple;
-                        switchedTuple.srcIp   = tuple.dstIp;
-                        switchedTuple.dstIp   = tuple.srcIp;
-                        switchedTuple.srcPort = tuple.dstPort;
-                        switchedTuple.dstPort = tuple.srcPort;
+                        SocketPair  switchedTuple;
+                        switchedTuple.src.addr = tuple.dst.addr;
+                        switchedTuple.dst.addr = tuple.src.addr;
+                        switchedTuple.src.port = tuple.dst.port;
+                        switchedTuple.dst.port = tuple.src.port;
                         if (mdh_meta.syn || mdh_meta.fin) {
                             soSetEvent.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length+1),
-                                    switchedTuple)); //always 0
+                                                           switchedTuple)); //always 0
                         }
                         else {
                             soSetEvent.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length),
-                                    switchedTuple));
+                                                           switchedTuple));
                         }
                     }
                     else {
@@ -795,28 +781,26 @@ void pMetaDataHandler(
                 else {
                     // Destination Port is open
                     if (DEBUG_LEVEL >= 4) {
-                        sprintf(message, "Port %d is open.", tuple.dstPort.to_uint());
+                        sprintf(message, "Port 0x%4.4X (%d) is open.",
+                                mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                         printInfo(myName, message);
                     }
-                    // Query session lookup. Only allow creation of a new entry when SYN or SYN_ACK
-                    if (DEBUG_LEVEL >= 4) {
-                        sprintf(message, "Request to lookup session {{TODO},{TODO}}.");
-                        printInfo(myName, message);
-                    }
+                    // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
                     soSessLookupReq.write(sessionLookupQuery(tuple,
-                                              (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
+                                          (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     mdh_fsmState = LOOKUP;
                 }
             }
         }
         break;
+
     case LOOKUP:
         // Wait until we get a reply from the Port Table (PRt).
         //  Warning: There may be a large delay for the lookup to complete
         if (!siSLc_SessLookupRep.empty()) {
             siSLc_SessLookupRep.read(mdh_sessLookupReply);
             if (mdh_sessLookupReply.hit) {
-                //Write out lup and meta
+                // Forward metadata to the TCP Finite State Machine
                 soMeta.write(rxFsmMetaData(mdh_sessLookupReply.sessionID,
                                            mdh_srcIp4Addr,
                                            mdh_dstTcpPort,
@@ -1608,7 +1592,7 @@ void rx_engine(
         stream<mmStatus>                &siMEM_WrSts,
         stream<axiWord>                 &soMemWrData,
         stream<stateQuery>              &soSessStateReq,
-        stream<TcpPort>                 &soDstPort,
+        stream<AxiTcpPort>              &soDstPort,
         stream<sessionLookupQuery>      &soSessLookupReq,
         stream<rxSarRecvd>              &soSessRxSarReq,
         stream<rxTxSarQuery>            &soSessTxSarReq,
@@ -1655,7 +1639,7 @@ void rx_engine(
     #pragma HLS stream     variable=sCsaToMdh_Meta         depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_Meta
 
-    static stream<fourTuple>        sCsaToMdh_SockPair     ("rx_tupleBuffer");
+    static stream<SocketPair>       sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
     #pragma HLS stream     variable=sCsaToMdh_SockPair     depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_SockPair
 

@@ -271,10 +271,11 @@ typedef ap_uint<16> Ip4TotalLen;    // IP4 Total  Length
 typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
 typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
 typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
+typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
 
 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
-typedef ap_uint<32> Ip4Addr;        // IP4 fixed 32-bit length address
+
 
 /********************************************
  * IP4 - Streaming Type Definition
@@ -295,28 +296,36 @@ typedef AxiWord     Ip4Word;
 /******************************************************
  * TCP - Computer Type Definitions (in Little-Endian)
  ******************************************************/
-typedef ap_uint<16> TcpSegLen;  // TCP Segment Length in octets (same as Ip4DatLen)
-typedef ap_uint< 8> TcpHdrLen;  // TCP Header  Length in octets
-typedef ap_uint<16> TcpDatLen;  // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
+typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
+typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
+typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
+typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
+typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
+typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
+typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
+typedef ap_uint<16> TcpWindow;      // TCP Window
+typedef ap_uint<16> TcpChecksum;    // TCP Checksum
+typedef ap_uint<16> TcpCSum;        // TCP Checksum
+typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
-typedef ap_uint<16> TcpPort;    // TCP Port Number
-typedef ap_uint<32> TcpSeqNum;	// TCP Sequence Number
-typedef ap_uint<16> TcpCSum;    // TCP Checksum
+typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
+typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
+typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
 
 /********************************************
  * Socket Transport Pair & Address
  ********************************************/
 
-struct SockAddr {   // Socket Address
-    Ip4Addr         addr;   // IPv4 network eversed network byte order !!!
-    TcpPort         port;   // Port in reversed network byte order !!!
+struct SockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
+    AxiIp4Address   addr;   // IPv4 address in LITTLE-ENDIAN order !!!
+    AxiTcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!
     SockAddr() {}
-    SockAddr(Ip4Addr addr, TcpPort port) :
+    SockAddr(AxiIp4Address addr, AxiTcpPort port) :
         addr(addr), port(port) {}
 };
 
-struct SocketPair {     // Socket Pair Association
+struct SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
     SockAddr    src;    // Source socket address
     SockAddr    dst;    // Destination socket address
     SocketPair() {}
@@ -329,23 +338,6 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr < s2.dst.addr) ||
         		(s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
-/******************************************************
-struct FourTuple {  // A socket pair association stored in little-endian order
-    AxiIp4SrcAddr   srcIp;      //
-    AxiIp4DstAddr   dstIp;      //
-    AxiTcpSrcPort   srcPort;    //
-    AxiTcpSrcPort   dstPort;    //
-    FourTuple() {}
-    FourTuple(AxiIp4SrcAddr srcIp, AxiIp4DstAddr dstIp, AxiTcpSrcPort srcPort, AxiTcpSrcPort dstPort)
-              : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
-};
-
-inline bool operator < (FourTuple const& lhs, FourTuple const& rhs) {
-        return ((lhs.dstIp < rhs.dstIp) ||
-                (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp));
-}
-********************************************************/
-
 
 struct fourTuple {
     ap_uint<32> srcIp;
@@ -374,24 +366,25 @@ typedef     AxiWord     TcpWord;
 
 
 
-
-
-
-
-
 struct ipTuple
 {
     ap_uint<32>     ip_address;
     ap_uint<16>     ip_port;
 };
 
+
+
+/********************************************
+ * Session Lookup Controller (SLc)
+ ********************************************/
+
 struct sessionLookupQuery
 {
-    fourTuple   tuple;
+    SocketPair  tuple;
     bool        allowCreation;
     sessionLookupQuery() {}
-    sessionLookupQuery(fourTuple tuple, bool allowCreation)
-            :tuple(tuple), allowCreation(allowCreation) {}
+    sessionLookupQuery(SocketPair tuple, bool allowCreation) :
+        tuple(tuple), allowCreation(allowCreation) {}
 };
 
 struct sessionLookupReply
@@ -399,10 +392,13 @@ struct sessionLookupReply
     ap_uint<16> sessionID;
     bool        hit;
     sessionLookupReply() {}
-    sessionLookupReply(ap_uint<16> id, bool hit)
-            :sessionID(id), hit(hit) {}
+    sessionLookupReply(ap_uint<16> id, bool hit) :
+        sessionID(id), hit(hit) {}
 };
 
+/********************************************
+ * Port Table (PRt)
+ ********************************************/
 #define QUERY_RD  0
 #define QUERY_WR  1
 
@@ -417,6 +413,7 @@ struct stateQuery
     stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write) :
         sessionID(id), state(state), write(write) {}
 };
+
 
 
 /** @ingroup rx_sar_table
@@ -640,6 +637,9 @@ struct txRetransmitTimerSet {
             :sessionID(id), type(type) {}
 };
 
+/********************************************
+ * Event Engine
+ ********************************************/
 struct event
 {
     eventType       type;
@@ -652,24 +652,24 @@ struct event
     //bool          retransmit;
     event() {}
     //event(const event&) {}
-    event(eventType type, ap_uint<16> id)
-            :type(type), sessionID(id), address(0), length(0), rt_count(0) {}
-    event(eventType type, ap_uint<16> id, ap_uint<3> rt_count)
-            :type(type), sessionID(id), address(0), length(0), rt_count(rt_count) {}
-    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len)
-            :type(type), sessionID(id), address(addr), length(len), rt_count(0) {}
-    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count)
-            :type(type), sessionID(id), address(addr), length(len), rt_count(rt_count) {}
+    event(eventType type, ap_uint<16> id) :
+        type(type), sessionID(id), address(0), length(0), rt_count(0) {}
+    event(eventType type, ap_uint<16> id, ap_uint<3> rt_count) :
+        type(type), sessionID(id), address(0), length(0), rt_count(rt_count) {}
+    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len) :
+        type(type), sessionID(id), address(addr), length(len), rt_count(0) {}
+    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count) :
+        type(type), sessionID(id), address(addr), length(len), rt_count(rt_count) {}
 };
 
 struct extendedEvent : public event
 {
-    fourTuple   tuple;
+    SocketPair  tuple;
     extendedEvent() {}
-    extendedEvent(const event& ev)
-            :event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    extendedEvent(const event& ev, fourTuple tuple)
-            :event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
+    extendedEvent(const event& ev) :
+        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
+    extendedEvent(const event& ev, SocketPair tuple) :
+        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
 struct rstEvent : public event
