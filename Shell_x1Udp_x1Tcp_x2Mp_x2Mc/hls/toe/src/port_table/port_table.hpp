@@ -1,23 +1,47 @@
+/*****************************************************************************
+ * @file       : port_table.hpp
+ * @brief      : Port Table (PRt) of the TCP Offload Engine (TOE).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types & prototypes definitions for TOE/PRt.
+ *
+ *****************************************************************************/
+
 #include "../toe.hpp"
 
 using namespace hls;
 
-/** @ingroup port_table
- *
- */
-struct portTableEntry
-{
-    bool listening;
-    bool used;
-};
+// OBSOLETE-2018-11-23 /********************************************
+// OBSOLETE-2018-11-23  * PRt - Structure of the Port Table
+// OBSOLETE-2018-11-23  ********************************************/
+// OBSOLETE-2018-11-23 struct portTableEntry
+// OBSOLETE-2018-11-23 {
+// OBSOLETE-2018-11-23    bool listening;
+// OBSOLETE-2018-11-23    bool used;
+// OBSOLETE-2018-11-23 };
 
-/** @defgroup port_table Port Table
+
+/*****************************************************************************
+ * @brief   Main process of the TCP Port Table (PRt).
  *
- */
-void port_table(stream<ap_uint<16> >&       rxEng2portTable_check_req,
-                stream<ap_uint<16> >&       rxApp2portTable_listen_req,
-                stream<ap_uint<1> >&        txApp2portTable_port_req,
-                stream<ap_uint<16> >&       sLookup2portTable_releasePort,
-                stream<bool>&               portTable2rxEng_check_rsp,
-                stream<bool>&               portTable2rxApp_listen_rsp,
-                stream<ap_uint<16> >&       portTable2txApp_port_rsp);
+ * @ingroup port_table
+ *****************************************************************************/
+void port_table(
+        stream<AxiTcpPort>         &siRXe_PortStateReq,
+        stream<bool>               &soPortStateRep,
+        stream<TcpPort>            &siRAi_LsnPortStateReq,
+        stream<bool>               &soLsnPortStateRep,
+        stream<ap_uint<1> >        &siTAi_ActPortStateReq,
+        stream<ap_uint<16> >       &soActPortStateRep,
+        stream<ap_uint<16> >       &siSLc_ReleasePort
+);
+
+

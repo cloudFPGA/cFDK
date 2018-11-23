@@ -358,11 +358,11 @@ void pInsertPseudoHeader(
  * @brief TCP checksum accumulator (csa).
  *
  * @param[in]  siIph_TcpSeg,A pseudo TCP segment from Insert Pseudo Header (Iph).
- * @param[out] soData,      TCP data stream.
- * @param[out] soDataValid, TCP data valid.
- * @param[out] soMeta,      TCP metadata.
- * @param[out] soSockPair,  TCP socket pair.
- * @param[out] soDstPort    TCP destination port number.
+ * @param[out] soData,          TCP data stream.
+ * @param[out] soDataValid,     TCP data valid.
+ * @param[out] soMeta,          TCP metadata.
+ * @param[out] soSockPair,      TCP socket pair.
+ * @param[out] soGetPortState,  Request the state of the port.
 
  *
  * @details
@@ -400,14 +400,13 @@ void pCheckSumAccumulator(
         stream<ValBit>              &soDataValid,
         stream<rxEngineMetaData>    &soMeta,
         stream<SocketPair>          &soSockPair,
-        stream<AxiTcpPort>          &soDstPort)
+        stream<AxiTcpPort>          &soGetPortState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "Csa");
-    char message[256];
 
     static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
     static ap_uint<8>       csa_dataOffset = 0xFF; // [FIXME-Why not make it of type AxiTcpDataOff]
@@ -588,17 +587,15 @@ void pCheckSumAccumulator(
                         soDataValid.write(true);
                     }
                     // Forward to PortTable
-                    soDstPort.write(csa_axiTcpDstPort);
+                    soGetPortState.write(csa_axiTcpDstPort);
                 }
                 else if(csa_meta.length != 0) {
                     soDataValid.write(false);
                     if (DEBUG_LEVEL >= 0) {
-                        sprintf(message, "BAD CHECKSUM (0x%4.4X).", csa_axiTcpCSum.to_uint());
-                        printWarn(myName, message);
-                        sprintf(message, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}",
+                        printWarn(myName, "BAD CHECKSUM (0x%4.4X).\n", csa_axiTcpCSum.to_uint());
+                        printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
                                 csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
                                 csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
-                        printInfo(myName, message);
                     }
                 }
                 csa_doCSumVerif = false;
@@ -712,7 +709,6 @@ void pMetaDataHandler(
     #pragma HLS pipeline II=1
 
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
-    char message[256];
 
     static rxEngineMetaData     mdh_meta;
     static sessionLookupReply   mdh_sessLookupReply;
@@ -750,9 +746,8 @@ void pMetaDataHandler(
                 if (!isPortOpen) {
                     // The destination port is closed
                     if (DEBUG_LEVEL >= 0) {
-                        sprintf(message, "Port 0x%4.4X (%d) is not open.",
-                                mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
-                        printWarn(myName, message);
+                        printWarn(myName, "Port 0x%4.4X (%d) is not open.\n",
+                                  mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                     }
                     if (!mdh_meta.rst) {
                         // Reply with RST+ACK and send necessary socket-pair through event
@@ -781,9 +776,8 @@ void pMetaDataHandler(
                 else {
                     // Destination Port is open
                     if (DEBUG_LEVEL >= 4) {
-                        sprintf(message, "Port 0x%4.4X (%d) is open.",
-                                mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
-                        printInfo(myName, message);
+                        printInfo(myName, "Port 0x%4.4X (%d) is open.\n",
+                                  mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                     }
                     // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
                     soSessLookupReq.write(sessionLookupQuery(tuple,
@@ -814,7 +808,8 @@ void pMetaDataHandler(
         break;
 
     } // End of: switch
-}
+
+} // End of: pMetaDataHandler
 
 
 /*****************************************************************************
@@ -1547,15 +1542,7 @@ void pMemWriter(
 
 
 /*****************************************************************************
- * @brief The rx_engine processes the data packets received from IPRX.
- *    When a new packet enters the engine its TCP checksum is tested, the
- *    header is parsed and some more checks are done. Next, it is evaluated
- *    by the main TCP state machine which triggers events and updates the data
- *    structures according to the type of received packet. Finally, if the
- *    packet contains valid payload, it is stored in external DDR4 memory and
- *    the application is notified about the arrival of new data.
- *
- *
+ * @brief The rx_engine (RXe) processes the data packets received from IPRX.
  *
  * @param[in]  siIPRX_Data,         IP4 data stream form IPRX.
  * @param[in]  siSLc_SessLookupRep, Session lookup lookup reply from SLc.
@@ -1566,7 +1553,7 @@ void pMemWriter(
  * @param[in]  siMEM_WrSts,         Memory write status from MEM.
  * @param[out] soMemWrData,         Memory data write stream to MEM controller.
  * @param[out] soSessStateReq,      Session state request.
- * @param[out] soDstPort,           TCP destination port number.
+ * @param[out] soGetPortState,      Ask the state of the port.
  * @param[out] soSessLookupReq,     Session lookup request.
  * @param[out] soSessRxSarReq,      Request to read the session Rx SAR.
  * @param[out] soSessTxSarReq,      Request to read the session Tx SAR.
@@ -1577,6 +1564,14 @@ void pMemWriter(
  * @param[out] soSetEvent,          Set an event.
  * @param[out] soMemWrCmd,          Memory write command,
  * @param[out] soRxNotification,    Rx data notification for the application.
+ *
+ * @details
+ *  When a new packet enters the engine its TCP checksum is tested, the header
+ *   is parsed and some more checks are done. Next, it is evaluated by the main
+ *   TCP state machine which triggers events and updates the data structures
+ *   according to the type of received packet. Finally, if the packet contains
+ *   valid payload, it is stored in external DDR4 memory and the application is
+ *   notified about the arrival of new data.
  *
  * @return Nothing.
  *
@@ -1592,7 +1587,7 @@ void rx_engine(
         stream<mmStatus>                &siMEM_WrSts,
         stream<axiWord>                 &soMemWrData,
         stream<stateQuery>              &soSessStateReq,
-        stream<AxiTcpPort>              &soDstPort,
+        stream<AxiTcpPort>              &soGetPortState,
         stream<sessionLookupQuery>      &soSessLookupReq,
         stream<rxSarRecvd>              &soSessRxSarReq,
         stream<rxTxSarQuery>            &soSessTxSarReq,
@@ -1704,7 +1699,7 @@ void rx_engine(
             sCsaToTid_DataValid,
             sCsaToMdh_Meta,
             sCsaToMdh_SockPair,
-            soDstPort);
+            soGetPortState);
 
     pTcpInvalidDropper(
             sCsaToTid_Data,

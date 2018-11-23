@@ -27,19 +27,37 @@
 // Concatenate three char constants
 #define concat3(firstCharConst, secondCharConst, thirdCharConst) firstCharConst secondCharConst thirdCharConst
 
+/*****************************************************************************
+ * @brief A macro to print an information message.
+ * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in] message,      the message to print.
+ *****************************************************************************/
+#define printInfo(callerName , format, ...) \
+    do { printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
+
+/*****************************************************************************
+ * @brief A macro to print a warning message.
+ * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in] message,      the message to print.
+ *****************************************************************************/
+#define printWarn(callerName , format, ...) \
+    do { printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
+
+
+
+
 
 /*************************************************************************
  * PROTOTYPE DEFINITIONS
  *************************************************************************/
+
 void printAxiWord(const char *callerName, AxiWord chunk);
 
-void printInfo(const char *callerName, const char *message);
-
-void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
+#ifndef __SYNTHESIS__
+  void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
+#endif
 
 void printSockPair(const char *callerName, SocketPair sockPair);
-
-void printWarn(const char *callerName, const char *message);
 
 ap_uint<16> swapWord(ap_uint<16> inpWord);
 

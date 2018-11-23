@@ -13,12 +13,15 @@ using namespace hls;
  *  @param[out]     rxApp2rxSar_upd_req
  *  @param[out]     rxBufferReadCmd
  */
-void rx_app_stream_if(stream<appReadRequest>&       appRxDataReq,
-                      stream<rxSarAppd>&            rxSar2rxApp_upd_rsp,
-                      stream<ap_uint<16> >&         appRxDataRspMetadata,
-                      stream<rxSarAppd>&            rxApp2rxSar_upd_req,
-                      stream<mmCmd>&                rxBufferReadCmd) {
-#pragma HLS PIPELINE II=1
+void rx_app_stream_if(
+        stream<appReadRequest>      &siTRIF_DataReq,
+        stream<rxSarAppd>           &rxSar2rxApp_upd_rsp,
+        stream<ap_uint<16> >        &appRxDataRspMetadata,
+        stream<rxSarAppd>           &rxApp2rxSar_upd_req,
+        stream<mmCmd>               &rxBufferReadCmd)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
 
     static ap_uint<16>              rasi_readLength;
     static ap_uint<2>               rasi_fsmState   = 0;
@@ -27,8 +30,8 @@ void rx_app_stream_if(stream<appReadRequest>&       appRxDataReq,
 
     switch (rasi_fsmState) {
         case 0:
-            if (!appRxDataReq.empty() && !rxApp2rxSar_upd_req.full()) {
-                appReadRequest  app_read_request = appRxDataReq.read();
+            if (!siTRIF_DataReq.empty() && !rxApp2rxSar_upd_req.full()) {
+                appReadRequest  app_read_request = siTRIF_DataReq.read();
                 if (app_read_request.length != 0) {     // Make sure length is not 0, otherwise Data Mover will hang up
                     rxApp2rxSar_upd_req.write(rxSarAppd(app_read_request.sessionID)); // Get app pointer
                     rasi_readLength = app_read_request.length;

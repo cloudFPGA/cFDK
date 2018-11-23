@@ -438,7 +438,7 @@ vector<string> myTokenizer(string strBuff) {
  * @ingroup toe
  ******************************************************************************/
 short int injectAckNumber(
-        deque<AxiWord>                   &ipRxPacketizer,
+        deque<AxiWord>                  &ipRxPacketizer,
         map<SocketPair, AxiTcpSeqNum>   &sessionList)
 {
 
@@ -452,14 +452,14 @@ short int injectAckNumber(
         // This packet is a SYN and there's no need to inject anything
         if (sessionList.find(newSockPair) != sessionList.end()) {
             const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
-            printWarn(myName, "Trying to open an existing session.");
+            printWarn(myName, "Trying to open an existing session %d.\n", 1999);
             printSockPair(myName, newSockPair);
             return -1;
         }
         else {
             sessionList[newSockPair] = 0;
             const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
-            printInfo(myName, "Successfully opened a new session.");
+            printInfo(myName, "Successfully opened a new session.\n");
             printSockPair(myName, newSockPair);
             return 0;
         }
@@ -509,8 +509,8 @@ short int injectAckNumber(
  * @ingroup toe
  ******************************************************************************/
 void feedTOE(
-        deque<Ip4Word>                      &ipRxPacketizer,
-        stream<Ip4Word>                     &sIPRX_Toe_Data,
+        deque<Ip4Word>                  &ipRxPacketizer,
+        stream<Ip4Word>                 &sIPRX_Toe_Data,
         map<SocketPair, AxiTcpSeqNum>   &sessionList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
@@ -554,15 +554,15 @@ void feedTOE(
  * @ingroup toe
  ******************************************************************************/
 void pIPRX(
-        ifstream                            &iprxFile,
-        bool                                &idlingReq,
-        unsigned int                        &idleCycReq,
-        deque<Ip4Word>                      &ipRxPacketizer,
+        ifstream                        &iprxFile,
+        bool                            &idlingReq,
+        unsigned int                    &idleCycReq,
+        deque<Ip4Word>                  &ipRxPacketizer,
         map<SocketPair, AxiTcpSeqNum>   &sessionList,
-        stream<Ip4Word>                     &sIPRX_Toe_Data)
+        stream<Ip4Word>                 &sIPRX_Toe_Data)
 {
-    unsigned short int     temp;
-    string                 rxStringBuffer;
+    unsigned short int  temp;
+    string              rxStringBuffer;
     vector<string>      stringVector;
 
     const char *myName  = concat3(THIS_NAME, "/", "IPRX");
@@ -659,15 +659,15 @@ void pIPRX(
  *  @ingroup toe
  ******************************************************************************/
 bool parseL3MuxPacket(
-        deque<AxiWord>                   &ipTxPacketizer,
+        deque<AxiWord>                  &ipTxPacketizer,
         map<SocketPair, AxiTcpSeqNum>   &sessionList,
-        deque<AxiWord>                   &ipRxPacketizer)
+        deque<AxiWord>                  &ipRxPacketizer)
 {
 
-    bool                    returnValue       = false;
-    bool                    finPacket         = false;
-    static int              ipTxPktCounter    = 0;
-    static AxiTcpSeqNum prevTcpHdr_SeqNum    = 0;
+    bool                returnValue       = false;
+    bool                finPacket         = false;
+    static int          ipTxPktCounter    = 0;
+    static AxiTcpSeqNum prevTcpHdr_SeqNum = 0;
 
     const char *myName = concat3(THIS_NAME, "/", "L3MUX/Parse");
 
@@ -878,11 +878,11 @@ bool parseL3MuxPacket(
  * @ingroup toe
  ******************************************************************************/
 void pL3MUX(
-        stream<Ip4Word>                  &sTOE_L3mux_Data,
-        ofstream                         &iptxFile,
+        stream<Ip4Word>                 &sTOE_L3mux_Data,
+        ofstream                        &iptxFile,
         map<SocketPair, AxiTcpSeqNum>   &sessionList,
-        int                              &ipTxPktCounter,
-        deque<Ip4Word>                   &ipRxPacketizer)
+        int                             &ipTxPktCounter,
+        deque<Ip4Word>                  &ipRxPacketizer)
 {
     Ip4Word        ipTxWord;        // An IP4 chunk
     deque<AxiWord> ipTxPacketizer;  // A double-ended queue
@@ -942,7 +942,7 @@ void pL3MUX(
  * @ingroup toe
  ******************************************************************************/
 void pTRIF(
-        stream<ap_uint<16> >    &soTOE_LsnReq,
+        stream<TcpPort>         &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
         stream<appNotification> &siTOE_Notif,
         stream<appReadRequest>  &soTOE_DReq,
@@ -963,18 +963,16 @@ void pTRIF(
     ipTuple         tuple;
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
-    char message[256];
 
     //-- Request to listen on a port number
     if (!listenDone) {
-        AxiTcpPort axiTcpPort = 0x5700;   // #87
+        TcpPort listeningPort = 0x0057;   // #87
         switch (listenFsm) {
         case 0:
-            soTOE_LsnReq.write(axiTcpPort);
+            soTOE_LsnReq.write(listeningPort);
             if (DEBUG_LEVEL > 0) {
-                sprintf(message, "Request to listen on port %d (0x%4.4X).",
-                        axiTcpPort.to_uint(), axiTcpPort.to_uint());
-                printInfo(myName, message);
+                printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
+                          listeningPort.to_uint(), listeningPort.to_uint());
                 listenFsm++;
             }
             break;
@@ -982,14 +980,12 @@ void pTRIF(
             if (!siTOE_LsnAck.empty()) {
                 siTOE_LsnAck.read(listenDone);
                 if (listenDone) {
-                    sprintf(message, "TOE is now listening on port %d (0x%4.4X).",
-                            axiTcpPort.to_uint(), axiTcpPort.to_uint());
-                    printInfo(myName, message);
+                    printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
+                              listeningPort.to_uint(), listeningPort.to_uint());
                 }
                 else {
-                    sprintf(message, "TOE denied listening on port %d (0x%4.4X).",
-                            axiTcpPort.to_uint(), axiTcpPort.to_uint());
-                    printWarn(myName, message);
+                    printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
+                            listeningPort.to_uint(), listeningPort.to_uint());
                 }
                 listenFsm++;
             }
@@ -1096,7 +1092,7 @@ int main(int argc, char *argv[]) {
     stream<axiWord>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
     stream<ap_uint<16> >                sTOE_Trif_Meta      ("sTOE_Trif_Meta");
 
-    stream<ap_uint<16> >                sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
+    stream<TcpPort>                     sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
     stream<bool>                        sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
 
     stream<ipTuple>                     sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");

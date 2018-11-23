@@ -355,20 +355,20 @@ void rxAppMemDataRead(
 
 // TODO - Rename RxAppWrapper into RxAppInterface
 void rxAppWrapper(
-        stream<appReadRequest>&             appRxDataReq,
-        stream<rxSarAppd>&              rxSar2rxApp_upd_rsp,
-        stream<ap_uint<16> >&           appListenPortReq,
-        stream<bool>&                   portTable2rxApp_listen_rsp,
-        stream<appNotification>&        rxEng2rxApp_notification,
-        stream<appNotification>&        timer2rxApp_notification,
-        stream<ap_uint<16> >&           appRxDataRspMetadata,
-        stream<rxSarAppd>&              rxApp2rxSar_upd_req,
-        stream<mmCmd>&                  rxBufferReadCmd,
-        stream<bool>&                   appListenPortRsp,
-        stream<ap_uint<16> >&           rxApp2portTable_listen_req,
-        stream<appNotification>&        appNotification,
-        stream<axiWord>                 &rxBufferReadData,
-        stream<axiWord>                 &rxDataRsp)
+        stream<appReadRequest>      &siTRIF_DataReq,
+        stream<rxSarAppd>           &rxSar2rxApp_upd_rsp,
+        stream<TcpPort>             &siTRIF_ListenPortReq,
+        stream<bool>                &sPRtToRAi_LsnPortStateRep,
+        stream<appNotification>     &rxEng2rxApp_notification,
+        stream<appNotification>     &timer2rxApp_notification,
+        stream<ap_uint<16> >        &appRxDataRspMetadata,
+        stream<rxSarAppd>           &rxApp2rxSar_upd_req,
+        stream<mmCmd>               &rxBufferReadCmd,
+        stream<bool>                &appListenPortRsp,
+        stream<TcpPort>             &soPRt_ListenReq,
+        stream<appNotification>     &appNotification,
+        stream<axiWord>             &rxBufferReadData,
+        stream<axiWord>             &rxDataRsp)
 {
     #pragma HLS INLINE
     static stream<mmCmd> rxAppStreamIf2memAccessBreakdown("rxAppStreamIf2memAccessBreakdown");
@@ -378,7 +378,7 @@ void rxAppWrapper(
 
     // RX Application Stream Interface
     rx_app_stream_if(
-            appRxDataReq,
+            siTRIF_DataReq,
             rxSar2rxApp_upd_rsp,
             appRxDataRspMetadata,
             rxApp2rxSar_upd_req,
@@ -396,10 +396,10 @@ void rxAppWrapper(
 
     // RX Application Interface
     rx_app_if(
-            appListenPortReq,
-            portTable2rxApp_listen_rsp,
+            siTRIF_ListenPortReq,
+            sPRtToRAi_LsnPortStateRep,
             appListenPortRsp,
-            rxApp2portTable_listen_req);
+            soPRt_ListenReq);
 
     //notificationMerger(rxEng2rxApp_notification, timer2rxApp_notification, appNotification);
     mergeFunction(
@@ -488,7 +488,7 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / This / Rx PATH / Ctrl Interfaces
         //------------------------------------------------------
-        stream<ap_uint<16> >                &siTRIF_This_LsnReq,
+        stream<TcpPort>                     &siTRIF_This_LsnReq,
         stream<bool>                        &soTHIS_Trif_LsnAck,
 
         //------------------------------------------------------
@@ -543,33 +543,33 @@ void toe(
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    //-- From MMIO Interfaces
+    //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable port=piMMIO_This_IpAddr
-    //-- From IPRX / IP Rx Data Interface -------------------------------------------
+    //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siIPRX_This_Data     metadata="-bus_bundle siIPRX_This_Data"
-    //-- To L3MUX / IP Tx Data Interface --------------------------------------------
+    //-- L3MUX / IP Tx Data Interface -----------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soTHIS_L3mux_Data    metadata="-bus_bundle soTHIS_L3mux_Data"
-    //-- To TRIF / ROLE Rx Data Interfaces ------------------------------------------
+    //-- TRIF / ROLE Rx Data Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_DReq     metadata="-bus_bundle siTRIF_This_DReq"
     #pragma HLS DATA_PACK                variable=siTRIF_This_DReq
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_Notif    metadata="-bus_bundle soTHIS_Trif_Notif"
     #pragma HLS DATA_PACK                variable=soTHIS_Trif_Notif
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_Data     metadata="-bus_bundle soTHIS_Trif_Data"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_Meta     metadata="-bus_bundle soTHIS_Trif_Meta"
-     //-- To TRIF / ROLE Rx Listen Interface ----------------------------------------
+     //-- TRIF / ROLE Rx Listen Interface -------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_LsnReq   metadata="-bus_bundle siTRIF_This_LsnReq"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_LsnAck   metadata="-bus_bundle soTHIS_Trif_LsnAck"
-    //-- TRIF / ROLE Tx Data Interfaces ---------------------------------------------
+    //-- TRIF / ROLE Tx Data Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_Data     metadata="-bus_bundle siTRIF_This_Data"
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_Meta     metadata="-bus_bundle siTRIF_This_Meta"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_DSts     metadata="-bus_bundle soTHIS_Trif_DSts"
-    //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------------
+    //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_OpnReq   metadata="-bus_bundle siTRIF_This_OpnReq"
     #pragma HLS DATA_PACK                variable=siTRIF_This_OpnReq
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Trif_OpnSts   metadata="-bus_bundle soTHIS_Trif_OpnSts"
     #pragma HLS DATA_PACK                variable=soTHIS_Trif_OpnSts
     #pragma HLS resource core=AXI4Stream variable=siTRIF_This_ClsReq   metadata="-bus_bundle siTRIF_This_ClsReq"
-    //-- MEM / Nts0 / RxP Interface -------------------------------------------------
+    //-- MEM / Nts0 / RxP Interface -------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_RdCmd metadata="-bus_bundle soTHIS_Mem_RxP_RdCmd"
     #pragma HLS DATA_PACK                variable=soTHIS_Mem_RxP_RdCmd
     #pragma HLS resource core=AXI4Stream variable=siMEM_This_RxP_Data  metadata="-bus_bundle siMEM_This_RxP_Data"
@@ -578,7 +578,7 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_WrCmd metadata="-bus_bundle soTHIS_Mem_RxP_WrCmd"
     #pragma HLS DATA_PACK                variable=soTHIS_Mem_RxP_WrCmd
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_RxP_Data  metadata="-bus_bundle soTHIS_Mem_RxP_Data"
-    //-- MEM / Nts0 / TxP Interface -------------------------------------------------
+    //-- MEM / Nts0 / TxP Interface -------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_RdCmd metadata="-bus_bundle soTHIS_Mem_TxP_RdCmd"
     #pragma HLS DATA_PACK                variable=soTHIS_Mem_TxP_RdCmd
     #pragma HLS resource core=AXI4Stream variable=siMEM_This_TxP_Data  metadata="-bus_bundle siMEM_This_TxP_Data"
@@ -587,7 +587,7 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_WrCmd metadata="-bus_bundle soTHIS_Mem_TxP_WrCmd"
     #pragma HLS DATA_PACK                variable=soTHIS_Mem_TxP_WrCmd
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Mem_TxP_Data  metadata="-bus_bundle soTHIS_Mem_TxP_Data"
-    //-- From CAM / Session Lookup & Update Interfaces --------------------------------------
+    //-- CAM / Session Lookup & Update Interfaces -----------------------------
     #pragma HLS resource core=AXI4Stream variable=siCAM_This_SssLkpRpl metadata="-bus_bundle siCAM_This_SssLkpRpl"
     #pragma HLS DATA_PACK                variable=siCAM_This_SssLkpRpl
     #pragma HLS resource core=AXI4Stream variable=siCAM_This_SssUpdRpl metadata="-bus_bundle siCAM_This_SssUpdRpl"
@@ -596,7 +596,7 @@ void toe(
     #pragma HLS DATA_PACK                variable=soTHIS_Cam_SssLkpReq
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Cam_SssUpdReq metadata="-bus_bundle soTHIS_Cam_SssUpdReq"
     #pragma HLS DATA_PACK                variable=soTHIS_Cam_SssUpdReq
-    //-- To DEBUG / Session Statistics Interfaces
+    //-- DEBUG / Session Statistics Interfaces
     #pragma HLS INTERFACE ap_none register port=poTHIS_Dbg_SssRelCnt
     #pragma HLS INTERFACE ap_none register port=poTHIS_Dbg_SssRegCnt
 
@@ -610,50 +610,58 @@ void toe(
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
-
     //-- Rx Engine (RXe) ------------------------------------------------------
-    static stream<sessionLookupQuery>   sRXeToSLc_SessLkpReq    ("sRXeToSLc_SessLkpReq");
-    #pragma HLS stream         variable=sRXeToSLc_SessLkpReq    depth=4
+    static stream<sessionLookupQuery>   sRXeToSLc_SessLkpReq      ("sRXeToSLc_SessLkpReq");
+    #pragma HLS stream         variable=sRXeToSLc_SessLkpReq      depth=4
     #pragma HLS DATA_PACK      variable=sRXeToSLc_SessLkpReq
 
-    static stream<TcpPort>              sRXeToPRt_DstPort       ("sRXeToPRt_DstPort");
-    #pragma HLS stream         variable=sRXeToPRt_DstPort       depth=4
+    static stream<AxiTcpPort>           sRXeToPRt_PortStateReq    ("sRXeToPRt_PortStateReq");
+    #pragma HLS stream         variable=sRXeToPRt_PortStateReq    depth=4
 
-    static stream<rxSarRecvd>           sRXeToRSt_SessRxSarReq  ("sRXeToRSt_SessRxSarReq");
-    #pragma HLS stream         variable=sRXeToRSt_SessRxSarReq   depth=2
+    static stream<rxSarRecvd>           sRXeToRSt_SessRxSarReq    ("sRXeToRSt_SessRxSarReq");
+    #pragma HLS stream         variable=sRXeToRSt_SessRxSarReq    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToRSt_SessRxSarReq
 
-    static stream<rxTxSarQuery>         sRXeToTSt_SessTxSarReq  ("sRXeToTSt_SessTxSarReq");
-    #pragma HLS stream         variable=sRXeToTSt_SessTxSarReq   depth=2
+    static stream<rxTxSarQuery>         sRXeToTSt_SessTxSarReq    ("sRXeToTSt_SessTxSarReq");
+    #pragma HLS stream         variable=sRXeToTSt_SessTxSarReq    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTSt_SessTxSarReq
 
     static stream<rxRetransmitTimerUpdate> sRXeToTIm_ClearReTxTimer("sRXeToTIm_ClearReTxTimer");
-    #pragma HLS stream         variable=sRXeToTIm_ClearReTxTimer depth=2
+    #pragma HLS stream         variable=sRXeToTIm_ClearReTxTimer   depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTIm_ClearReTxTimer
 
-    static stream<ap_uint<16> >         sRXeToTIm_ClearProbeTimer("sRXeToTIm_ClearProbeTimer");
+    static stream<ap_uint<16> >         sRXeToTIm_ClearProbeTimer ("sRXeToTIm_ClearProbeTimer");
 
-    static stream<appNotification>      sRXeToRXa_Notification  ("sRXeToRXa_Notification");
-    #pragma HLS stream         variable=sRXeToRXa_Notification  depth=4
+    static stream<appNotification>      sRXeToRXa_Notification    ("sRXeToRXa_Notification");
+    #pragma HLS stream         variable=sRXeToRXa_Notification    depth=4
     #pragma HLS DATA_PACK      variable=sRXeToRXa_Notification
 
-    static stream<openStatus>           sRXeToTAi_SessOpnStatus ("sRXeToTAi_SessOpnStatus");
-    #pragma HLS stream         variable=sRXeToTAi_SessOpnStatus depth=4
+    static stream<openStatus>           sRXeToTAi_SessOpnStatus   ("sRXeToTAi_SessOpnStatus");
+    #pragma HLS stream         variable=sRXeToTAi_SessOpnStatus   depth=4
     #pragma HLS DATA_PACK      variable=sRXeToTAi_SessOpnStatus
 
+    //-- Rx Application Interface (RAi) ---------------------------------------
+    static stream<TcpPort>              sRAiToPRt_LsnPortStateReq ("sRAiToPRt_LsnPortStateReq");
+    #pragma HLS stream         variable=sRAiToPRt_LsnPortStateReq depth=4
 
+    //-- Rx SAR Table (RSt) ---------------------------------------------------
+    static stream<rxSarEntry>           sRStToRXe_SessRxSarRep    ("sRStToRXe_SessRxSarRep");
+    #pragma HLS stream         variable=sRStToRXe_SessRxSarRep    depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRXe_SessRxSarRep
 
     //-- Tx Engine (TXe) ------------------------------------------------------
 
+    //-- Tx Application Interface (TAi)
+    static stream<ap_uint<1> >          sTAiToPRt_ActPortStateReq ("sTAiToPRt_ActPortStateReq");
+    #pragma HLS stream         variable=sTAiToPRt_ActPortStateReq depth=4
 
-    //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<rxSarEntry>           sRStToRXe_SessRxSarRep  ("sRStToRXe_SessRxSarRep");
-    #pragma HLS stream         variable=sRStToRXe_SessRxSarRep  depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRXe_SessRxSarRep
+    static stream<fourTuple>            txApp2sLookup_req         ("txApp2sLookup_req");
+    #pragma HLS DATA_PACK      variable=txApp2sLookup_req
+    #pragma HLS stream         variable=txApp2sLookup_req         depth=4
 
     //-- Tx SAR Table (TsT) ---------------------------------------------------
-    static stream<rxTxSarReply>         sTStToRXe_SessTxSarRep  ("sTStToRXe_SessTxSarRep");
-    #pragma HLS stream         variable=sTStToRXe_SessTxSarRep  depth=2
+    static stream<rxTxSarReply>         sTStToRXe_SessTxSarRep    ("sTStToRXe_SessTxSarRep");
+    #pragma HLS stream         variable=sTStToRXe_SessTxSarRep    depth=2
     #pragma HLS DATA_PACK      variable=sTStToRXe_SessTxSarRep
 
     //-- Event Engine (EVe) ---------------------------------------------------
@@ -662,38 +670,48 @@ void toe(
 
 
     //-- State Table (STt) ----------------------------------------------------
-    static stream<sessionState>         sSTtToRXe_SessStateRep  ("sSTtToRXe_SessStateRep");
-    #pragma HLS stream         variable=sSTtToRXe_SessStateRep      depth=2
+    static stream<sessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
+    #pragma HLS stream         variable=sSTtToRXe_SessStateRep    depth=2
 
 
     //-- Port Table (PRt) -----------------------------------------------------
-    static stream<StsBit>               sPRtToRXe_PortSts       ("sPRtToRXe_PortSts");
-    #pragma HLS stream         variable=sPRtToRXe_PortSts       depth=4
+    static stream<StsBit>               sPRtToRXe_PortStateRep    ("sPRtToRXe_PortStateRep");
+    #pragma HLS stream         variable=sPRtToRXe_PortStateRep    depth=4
 
-    //-- Session Lookup Controller (SCl) --------------------------------------
-    static stream<sessionLookupReply>   sSLcToRXe_SessLkpRep    ("sSLcToRXe_SessLkpRep");
-    #pragma HLS stream         variable=sSLcToRXe_SessLkpRep    depth=4
+    static stream<bool>                 sPRtToRAi_LsnPortStateRep ("sPRtToRAi_LsnPortStateRep");
+    #pragma HLS stream         variable=sPRtToRAi_LsnPortStateRep depth=4
+
+    static stream<ap_uint<16> >         sPRtToTAi_ActPortStateRsp ("sPRtToTAi_ActPortStateRsp");
+    #pragma HLS stream         variable=sPRtToTAi_ActPortStateRsp depth=4
+
+    //-- Session Lookup Controller (SLc) --------------------------------------
+    static stream<sessionLookupReply>   sSLcToRXe_SessLkpRep      ("sSLcToRXe_SessLkpRep");
+    #pragma HLS stream         variable=sSLcToRXe_SessLkpRep      depth=4
     #pragma HLS DATA_PACK      variable=sSLcToRXe_SessLkpRep
 
+    static stream<ap_uint<16> >         sSLcToPRt_ReleasePort     ("sSLcToPRt_ReleasePort");
+    #pragma HLS stream          sSLcToPRt_ReleasePortleasePort    depth=4
 
+
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
 
-    static stream<fourTuple>                txApp2sLookup_req("txApp2sLookup_req");
     static stream<sessionLookupReply>       sLookup2txApp_rsp("sLookup2txApp_rsp");
     static stream<ap_uint<16> >             txEng2sLookup_rev_req("txEng2sLookup_rev_req");
     static stream<fourTuple>                sLookup2txEng_rev_rsp("sLookup2txEng_rev_rsp");
 
 
-    #pragma HLS stream variable=txApp2sLookup_req           depth=4
+
     #pragma HLS stream variable=sLookup2txApp_rsp           depth=4
     #pragma HLS stream variable=txEng2sLookup_rev_req       depth=4
     #pragma HLS stream variable=sLookup2txEng_rev_rsp       depth=4
 
 
-    #pragma HLS DATA_PACK variable=txApp2sLookup_req
+
     #pragma HLS DATA_PACK variable=sLookup2txApp_rsp
     #pragma HLS DATA_PACK variable=sLookup2txEng_rev_rsp
 
@@ -810,18 +828,13 @@ void toe(
 
     // Port Table
 
-    static stream<ap_uint<16> >                 rxApp2portTable_listen_req("rxApp2portTable_listen_req");
-    static stream<bool>                         portTable2rxApp_listen_rsp("portTable2rxApp_listen_rsp");
-    static stream<ap_uint<1> >              txApp2portTable_port_req("txApp2portTable_port_req");
-    static stream<ap_uint<16> >                 portTable2txApp_port_rsp("portTable2txApp_port_rsp");
-    static stream<ap_uint<16> >                 sLookup2portTable_releasePort("sLookup2portTable_releasePort");
 
 
-    #pragma HLS stream variable=rxApp2portTable_listen_req          depth=4
-    #pragma HLS stream variable=portTable2rxApp_listen_rsp          depth=4
-    #pragma HLS stream variable=txApp2portTable_port_req            depth=4
-    #pragma HLS stream variable=portTable2txApp_port_rsp            depth=4
-    #pragma HLS stream variable=sLookup2portTable_releasePort       depth=4
+
+
+
+
+
     static stream<openStatus>               rtTimer2txApp_notification("rtTimer2txApp_notifcation");
     #pragma HLS stream variable=rtTimer2txApp_notification depth=4
     #pragma HLS DATA_PACK variable=rtTimer2txApp_notification
@@ -835,7 +848,7 @@ void toe(
             sRXeToSLc_SessLkpReq,
             sSLcToRXe_SessLkpRep,
             stateTable2sLookup_releaseSession,
-            sLookup2portTable_releasePort,
+            sSLcToPRt_ReleasePort,
             txApp2sLookup_req,
             sLookup2txApp_rsp,
             txEng2sLookup_rev_req,
@@ -882,13 +895,13 @@ void toe(
 
     //-- Port Table (PRt) --------------------------------------------------
     port_table(
-            sRXeToPRt_DstPort,
-            rxApp2portTable_listen_req,
-            txApp2portTable_port_req,
-            sLookup2portTable_releasePort,
-            sPRtToRXe_PortSts,
-            portTable2rxApp_listen_rsp,
-            portTable2txApp_port_rsp);
+            sRXeToPRt_PortStateReq,
+            sPRtToRXe_PortStateRep,
+            sRAiToPRt_LsnPortStateReq,
+            sPRtToRAi_LsnPortStateRep,
+            sTAiToPRt_ActPortStateReq,
+            sPRtToTAi_ActPortStateRsp,
+            sSLcToPRt_ReleasePort);
 
     //-- Timers (TIm) ------------------------------------------------------
     timerWrapper(
@@ -922,13 +935,13 @@ void toe(
             siIPRX_This_Data,
             sSLcToRXe_SessLkpRep,
             sSTtToRXe_SessStateRep,
-            sPRtToRXe_PortSts,
+            sPRtToRXe_PortStateRep,
             sRStToRXe_SessRxSarRep,
             sTStToRXe_SessTxSarRep,
             siMEM_This_RxP_WrSts,
             soTHIS_Mem_RxP_Data,
             rxEng2stateTable_upd_req,
-            sRXeToPRt_DstPort,
+            sRXeToPRt_PortStateReq,
             sRXeToSLc_SessLkpReq,
             sRXeToRSt_SessRxSarReq,
             sRXeToTSt_SessTxSarReq,
@@ -966,14 +979,16 @@ void toe(
              siTRIF_This_DReq,
              rxSar2rxApp_upd_rsp,
              siTRIF_This_LsnReq,
-             portTable2rxApp_listen_rsp,
+             sPRtToRAi_LsnPortStateRep,
              sRXeToRXa_Notification,
              timer2rxApp_notification,
              soTHIS_Trif_Meta,
              rxApp2rxSar_upd_req,
-             soTHIS_Mem_RxP_RdCmd, soTHIS_Trif_LsnAck,
-             rxApp2portTable_listen_req,
-             soTHIS_Trif_Notif, siMEM_This_RxP_Data,
+             soTHIS_Mem_RxP_RdCmd,
+             soTHIS_Trif_LsnAck,
+             sRAiToPRt_LsnPortStateReq,
+             soTHIS_Trif_Notif,
+             siMEM_This_RxP_Data,
              soTHIS_Trif_Data);
 
     //-- Tx Application Interface (TAi) ------------------------------------
@@ -987,7 +1002,7 @@ void toe(
             siTRIF_This_OpnReq,
             siTRIF_This_ClsReq,
             sLookup2txApp_rsp,
-            portTable2txApp_port_rsp,
+            sPRtToTAi_ActPortStateRsp,
             stateTable2txApp_upd_rsp,
             sRXeToTAi_SessOpnStatus,
             soTHIS_Trif_DSts,
@@ -998,7 +1013,7 @@ void toe(
             txApp2txSar_push,
             soTHIS_Trif_OpnSts,
             txApp2sLookup_req,
-            txApp2portTable_port_req,
+            sTAiToPRt_ActPortStateReq,
             txApp2stateTable_upd_req,
             txApp2eventEng_setEvent,
             rtTimer2txApp_notification,

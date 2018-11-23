@@ -26,6 +26,7 @@
 #include "toe.hpp"
 
 
+
 //*** [ FIXME - Consider adding byteSwap16 and byteSwap32 here]  
 
 /*****************************************************************************
@@ -71,10 +72,11 @@ void printAxiWord(const char *callerName, AxiWord chunk)
  * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
  * @param[in] message,      the message to print.
  *****************************************************************************/
-void printInfo(const char *callerName, const char *message)
-{
-    printf("[%s] INFO - %s \n", callerName, message);
-}
+//OBSOLETE
+//void printInfo(const char *callerName, const char *message)
+//{
+//    printf("[%s] INFO - %s \n", callerName, message);
+//}
 
 /*****************************************************************************
  * @brief Prints the content of an IP streamed packet (for debugging).
@@ -104,65 +106,67 @@ void printInfo(const char *callerName, const char *message)
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *****************************************************************************/
-void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
-{
-    AxiIp4Version  axiIp4Version = pktChunk[0].tdata.range( 3,  0);
-    AxiIp4HdrLen   axiIp4HdrLen  = pktChunk[0].tdata.range( 7,  4);
-    AxiIp4ToS      axiIp4ToS     = pktChunk[0].tdata.range(15,  8);
-    AxiIp4TotalLen axiIp4TotLen  = pktChunk[0].tdata.range(31, 16);
-    AxiIp4SrcAddr  axiIp4SrcAddr = pktChunk[1].tdata.range(63, 32);
-    AxiIp4DstAddr  axiIp4DstAddr = pktChunk[2].tdata.range(31,  0);
+#ifndef __SYNTHESIS__
+	void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
+	{
+		AxiIp4Version  axiIp4Version = pktChunk[0].tdata.range( 3,  0);
+		AxiIp4HdrLen   axiIp4HdrLen  = pktChunk[0].tdata.range( 7,  4);
+		AxiIp4ToS      axiIp4ToS     = pktChunk[0].tdata.range(15,  8);
+		AxiIp4TotalLen axiIp4TotLen  = pktChunk[0].tdata.range(31, 16);
+		AxiIp4SrcAddr  axiIp4SrcAddr = pktChunk[1].tdata.range(63, 32);
+		AxiIp4DstAddr  axiIp4DstAddr = pktChunk[2].tdata.range(31,  0);
 
-    AxiTcpSrcPort  axiTcpSrcPort = pktChunk[2].tdata.range(47, 32);
-    AxiTcpDstPort  axiTcpDstPort = pktChunk[2].tdata.range(63, 48);
-    AxiTcpSeqNum   axiTcpSeqNum  = pktChunk[3].tdata.range(31,  0);
-    AxiTcpAckNum   axiTcpAckNum  = pktChunk[3].tdata.range(63, 32);
-    AxiTcpDataOff  axiTcpDatOff  = pktChunk[4].tdata.range( 7,  4);
-    AxiTcpCtrlBits axiTcpContol  = pktChunk[4].tdata.range(13,  8);
-    AxiTcpWindow   axiTcpWindow  = pktChunk[4].tdata.range(31, 16);
-    AxiTcpChecksum axiTcpCSum    = pktChunk[4].tdata.range(47, 32);
-    AxiTcpUrgPtr   axiTcpUrgPtr  = pktChunk[4].tdata.range(63, 48);
+		AxiTcpSrcPort  axiTcpSrcPort = pktChunk[2].tdata.range(47, 32);
+		AxiTcpDstPort  axiTcpDstPort = pktChunk[2].tdata.range(63, 48);
+		AxiTcpSeqNum   axiTcpSeqNum  = pktChunk[3].tdata.range(31,  0);
+		AxiTcpAckNum   axiTcpAckNum  = pktChunk[3].tdata.range(63, 32);
+		AxiTcpDataOff  axiTcpDatOff  = pktChunk[4].tdata.range( 7,  4);
+		AxiTcpCtrlBits axiTcpContol  = pktChunk[4].tdata.range(13,  8);
+		AxiTcpWindow   axiTcpWindow  = pktChunk[4].tdata.range(31, 16);
+		AxiTcpChecksum axiTcpCSum    = pktChunk[4].tdata.range(47, 32);
+		AxiTcpUrgPtr   axiTcpUrgPtr  = pktChunk[4].tdata.range(63, 48);
 
-    printf("[%s] IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n", callerName);
-    printf("\t IP4 Source Address      = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
-            axiIp4SrcAddr.to_uint(),
-            axiIp4SrcAddr.to_uint() & 0xFF000000 >> 24,
-            axiIp4SrcAddr.to_uint() & 0x00FF0000 >> 16,
-            axiIp4SrcAddr.to_uint() & 0x0000FF00 >>  8,
-            axiIp4SrcAddr.to_uint() & 0x000000FF >>  0);
-    printf("\t IP4 Destination Address = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
-            axiIp4DstAddr.to_uint(),
-            axiIp4DstAddr.to_uint() & 0xFF000000 >> 24,
-            axiIp4DstAddr.to_uint() & 0x00FF0000 >> 16,
-            axiIp4DstAddr.to_uint() & 0x0000FF00 >>  8,
-            axiIp4DstAddr.to_uint() & 0x000000FF >>  0);
-    printf("\t TCP Source Port         = 0x%4.4X     (%u) \n",
-            axiTcpSrcPort.to_uint(), swapWord(axiTcpSrcPort).to_uint());
-    printf("\t TCP Destination Port    = 0x%4.4X     (%u) \n",
-            axiTcpDstPort.to_uint(), swapWord(axiTcpDstPort).to_uint());
-    printf("\t TCP Sequence Number     = 0x%8.8X (%u) \n",
-            axiTcpSeqNum.to_uint(), swapDWord(axiTcpSeqNum).to_uint());
-    printf("\t TCP Acknowledge Number  = 0x%8.8X (%u) \n",
-            axiTcpAckNum.to_uint(), swapDWord(axiTcpAckNum).to_uint());
-    printf("\t TCP Data Offset         = 0x%1.1X        (%d) \n",
-            axiTcpDatOff.to_uint(), axiTcpDatOff.to_uint());
+		printf("[%s] IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n", callerName);
+		printf("\t IP4 Source Address      = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
+				axiIp4SrcAddr.to_uint(),
+				axiIp4SrcAddr.to_uint() & 0xFF000000 >> 24,
+				axiIp4SrcAddr.to_uint() & 0x00FF0000 >> 16,
+				axiIp4SrcAddr.to_uint() & 0x0000FF00 >>  8,
+				axiIp4SrcAddr.to_uint() & 0x000000FF >>  0);
+		printf("\t IP4 Destination Address = 0x%8.8X (%3d.%3d.%3d.%3d) \n",
+				axiIp4DstAddr.to_uint(),
+				axiIp4DstAddr.to_uint() & 0xFF000000 >> 24,
+				axiIp4DstAddr.to_uint() & 0x00FF0000 >> 16,
+				axiIp4DstAddr.to_uint() & 0x0000FF00 >>  8,
+				axiIp4DstAddr.to_uint() & 0x000000FF >>  0);
+		printf("\t TCP Source Port         = 0x%4.4X     (%u) \n",
+				axiTcpSrcPort.to_uint(), swapWord(axiTcpSrcPort).to_uint());
+		printf("\t TCP Destination Port    = 0x%4.4X     (%u) \n",
+				axiTcpDstPort.to_uint(), swapWord(axiTcpDstPort).to_uint());
+		printf("\t TCP Sequence Number     = 0x%8.8X (%u) \n",
+				axiTcpSeqNum.to_uint(), swapDWord(axiTcpSeqNum).to_uint());
+		printf("\t TCP Acknowledge Number  = 0x%8.8X (%u) \n",
+				axiTcpAckNum.to_uint(), swapDWord(axiTcpAckNum).to_uint());
+		printf("\t TCP Data Offset         = 0x%1.1X        (%d) \n",
+				axiTcpDatOff.to_uint(), axiTcpDatOff.to_uint());
 
-    printf("\t TCP Control Bits        = ");
-    printf("%s", axiTcpContol[0] ? "FIN |" : "");
-    printf("%s", axiTcpContol[1] ? "SYN |" : "");
-    printf("%s", axiTcpContol[2] ? "RST |" : "");
-    printf("%s", axiTcpContol[3] ? "PSH |" : "");
-    printf("%s", axiTcpContol[4] ? "ACK |" : "");
-    printf("%s", axiTcpContol[5] ? "URG |" : "");
-    printf("\n");
+		printf("\t TCP Control Bits        = ");
+		printf("%s", axiTcpContol[0] ? "FIN |" : "");
+		printf("%s", axiTcpContol[1] ? "SYN |" : "");
+		printf("%s", axiTcpContol[2] ? "RST |" : "");
+		printf("%s", axiTcpContol[3] ? "PSH |" : "");
+		printf("%s", axiTcpContol[4] ? "ACK |" : "");
+		printf("%s", axiTcpContol[5] ? "URG |" : "");
+		printf("\n");
 
-    printf("\t TCP Window              = 0x%4.4X     (%u) \n",
-            axiTcpWindow.to_uint(), swapWord(axiTcpWindow).to_uint());
-    printf("\t TCP Checksum            = 0x%4.4X     (%u) \n",
-            axiTcpCSum.to_uint(), axiTcpCSum.to_uint());
-    printf("\t TCP Urgent Pointer      = 0x%4.4X     (%u) \n",
-            axiTcpUrgPtr.to_uint(), swapWord(axiTcpUrgPtr).to_uint());
-}
+		printf("\t TCP Window              = 0x%4.4X     (%u) \n",
+				axiTcpWindow.to_uint(), swapWord(axiTcpWindow).to_uint());
+		printf("\t TCP Checksum            = 0x%4.4X     (%u) \n",
+				axiTcpCSum.to_uint(), axiTcpCSum.to_uint());
+		printf("\t TCP Urgent Pointer      = 0x%4.4X     (%u) \n",
+				axiTcpUrgPtr.to_uint(), swapWord(axiTcpUrgPtr).to_uint());
+	}
+#endif
 
 /*****************************************************************************
  * @brief Prints the socket pair association of a data segment (for debug).
@@ -192,7 +196,10 @@ void printSockPair(const char *callerName, SocketPair sockPair)
  * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
  * @param[in] message,      the message to print.
  *****************************************************************************/
-void printWarn(const char *callerName, const char *message)
-{
-    printf("[%s] WARNING - %s \n", callerName, message);
-}
+//OBSOLETE
+//void printWarn(const char *callerName, const char *message)
+//{
+//    printf("[%s] WARNING - %s \n", callerName, message);
+//}
+
+
