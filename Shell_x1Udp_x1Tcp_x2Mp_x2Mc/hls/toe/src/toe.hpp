@@ -415,12 +415,9 @@ struct stateQuery
 };
 
 
-
-/** @ingroup rx_sar_table
- *  @ingroup rx_engine
- *  @ingroup tx_engine
- *  This struct defines an entry of the @ref rx_sar_table
- */
+/********************************************
+ * Rx SAR Table (SRt)
+ ********************************************/
 struct rxSarEntry
 {
     ap_uint<32> recvd;
@@ -431,15 +428,15 @@ struct rxSarRecvd
 {
     ap_uint<16> sessionID;
     ap_uint<32> recvd;
-    ap_uint<1> write;
-    ap_uint<1> init;
+    ap_uint<1>  write;
+    ap_uint<1>  init;
     rxSarRecvd() {}
-    rxSarRecvd(ap_uint<16> id)
-                :sessionID(id), recvd(0), write(0), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write)
-                :sessionID(id), recvd(recvd), write(write), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init)
-                    :sessionID(id), recvd(recvd), write(write), init(init) {}
+    rxSarRecvd(ap_uint<16> id) :
+        sessionID(id), recvd(0), write(0), init(0) {}
+    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write) :
+        sessionID(id), recvd(recvd), write(write), init(0) {}
+    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
+        sessionID(id), recvd(recvd), write(write), init(init) {}
 };
 
 struct rxSarAppd
@@ -449,11 +446,12 @@ struct rxSarAppd
     // ap_uint<32> recvd; // for comparison with application data request - ensure appd + length < recvd
     ap_uint<1>  write;
     rxSarAppd() {}
-    rxSarAppd(ap_uint<16> id)
-            :sessionID(id), appd(0), write(0) {}
-    rxSarAppd(ap_uint<16> id, ap_uint<16> appd)
-            :sessionID(id), appd(appd), write(1) {}
+    rxSarAppd(ap_uint<16> id) :
+        sessionID(id), appd(0), write(0) {}
+    rxSarAppd(ap_uint<16> id, ap_uint<16> appd) :
+        sessionID(id), appd(appd), write(1) {}
 };
+
 
 /*struct rxSarOffset
 {
@@ -500,15 +498,15 @@ struct rxTxSarQuery
     ap_uint<16> sessionID;
     ap_uint<32> ackd;
     ap_uint<16> recv_window;
-    ap_uint<16>     cong_window;
+    ap_uint<16> cong_window;
     ap_uint<2>  count;
-    ap_uint<1> write;
+    ap_uint<1>  write;
     ap_uint<1>  init;
     rxTxSarQuery () {}
-    rxTxSarQuery(ap_uint<16> id)
-                :sessionID(id), ackd(0), recv_window(0), count(0), write(0) {}
-    rxTxSarQuery(ap_uint<16> id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init)
-                :sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
+    rxTxSarQuery(ap_uint<16> id) :
+        sessionID(id), ackd(0), recv_window(0), count(0), write(0) {}
+    rxTxSarQuery(ap_uint<16> id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
+        sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
 struct txTxSarQuery
@@ -521,30 +519,29 @@ struct txTxSarQuery
     bool        finSent;
     bool        isRtQuery;
     txTxSarQuery() {}
-    txTxSarQuery(ap_uint<16> id)
-                :sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
+    txTxSarQuery(ap_uint<16> id) :
+        sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
     //txTxSarQuery(ap_uint<16> id, ap_uint<1> lock)
     //          :sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write)
-                :sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init)
-                :sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent)
-                :sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt)
-                :sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
+    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write) :
+        sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
+    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
+        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
+    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
+        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
+    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
+        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
 struct txTxSarRtQuery : public txTxSarQuery
 {
     txTxSarRtQuery() {}
-    txTxSarRtQuery(const txTxSarQuery& q)
-            :txTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
-    txTxSarRtQuery(ap_uint<16> id, ap_uint<16> ssthresh)
-            :txTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
-    ap_uint<16> getThreshold()
-    {
-    return not_ackd(15, 0);
+    txTxSarRtQuery(const txTxSarQuery& q) :
+        txTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
+    txTxSarRtQuery(ap_uint<16> id, ap_uint<16> ssthresh) :
+         txTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
+    ap_uint<16> getThreshold() {
+    	return not_ackd(15, 0);
     }
 };
 

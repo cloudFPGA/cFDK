@@ -1,85 +1,117 @@
+/*****************************************************************************
+ * @file       : tx_engine.cpp
+ * @brief      : Tx Engine (TXe) of the TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    :
+ * @note       :
+ * @remark     :
+ * @warning    :
+ * @todo       :
+ *
+ * @see        :
+ *
+ *****************************************************************************/
+
 #include "tx_engine.hpp"
 #include <algorithm>
 
+#define THIS_NAME "TOE/TXe"
+
 using namespace hls;
 
-/** @ingroup tx_engine
- *  @name metaLoader
- *  The metaLoader reads the Events from the EventEngine then it loads all the necessary MetaData from the data
- *  structures (RX & TX Sar Table). Depending on the Event type it generates the necessary MetaData for the
- *  ipHeaderConstruction and the pseudoHeaderConstruction.
- *  Additionally it requests the IP Tuples from the Session. In some special cases the IP Tuple is delivered directly
- *  from @ref rx_engine and does not have to be loaded from the Session Table. The isLookUpFifo indicates this special cases.
- *  Lookup Table for the current session.
- *  Depending on the Event Type the retransmit or/and probe Timer is set.
- *  @param[in]      eventEng2txEng_event
- *  @param[in]      rxSar2txEng_upd_rsp
- *  @param[in]      txSar2txEng_upd_rsp
- *  @param[out]     txEng2rxSar_upd_req
- *  @param[out]     txEng2txSar_upd_req
- *  @param[out]     txEng2timer_setRetransmitTimer
- *  @param[out]     txEng2timer_setProbeTimer
- *  @param[out]     txEng_ipMetaFifoOut
- *  @param[out]     txEng_tcpMetaFifoOut
- *  @param[out]     txBufferReadCmd
- *  @param[out]     txEng2sLookup_rev_req
- *  @param[out]     txEng_isLookUpFifoOut
- *  @param[out]     txEng_tupleShortCutFifoOut
- */
-void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
-                stream<rxSarEntry>&                 rxSar2txEng_rsp,
-                stream<txTxSarReply>&               txSar2txEng_upd_rsp,                // From HERE
-                stream<ap_uint<16> >&               txEng2rxSar_req,
-                stream<txTxSarQuery>&               txEng2txSar_upd_req,
-                stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
-                stream<ap_uint<16> >&               txEng2timer_setProbeTimer,
-                stream<ap_uint<16> >&               txEng_ipMetaFifoOut,
-                stream<tx_engine_meta>&             txEng_tcpMetaFifoOut,
-                stream<mmCmd>&                      txBufferReadCmd,
-                stream<ap_uint<16> >&               txEng2sLookup_rev_req,
-                stream<bool>&                       txEng_isLookUpFifoOut,
-                stream<fourTuple>&                  txEng_tupleShortCutFifoOut,
-                stream<ap_uint<1> >&                readCountFifo) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
+#define DEBUG_LEVEL 4
 
-    static ap_uint<1> ml_FsmState = 0;
-    static bool ml_sarLoaded = false;
+
+/*****************************************************************************
+ * @brief Metaloader
+ *
+ * @param[in]  siAKd_Event,  Event from Ack Delayer (AKd).
+ * @param[in]  siRSt_SessRxSarRep,Session Rx SAR reply from Rx SAR Table (RSt).
+ * @param[out] soEVe_RxEventSig,  Signals the reception of an event.
+ * @param[out] soRSt_RxSarRdReq,  Request to read the session Rx SAR.
+ * @param[out] soTSt_TxSarUpdReq, Request to update the Tx SAR Table (TSt).
+ *  *
+ * @details
+ *  The metaLoader reads the events from the Event Engine (EVe) and loads the
+ *   the necessary data from the matadata structures (RX & TX Sar Table).
+ *  Depending on the event type, it generates the necessary metadata for the
+ *   'pIpHeaderConstruction' and the 'pPseudoHeaderConstruction'.
+ * Additionally it requests the IP tuples from Session Lookup Controller (SLc).
+ * In some special cases the IP tuple is delivered directly from the Rx Engine
+ *  (RXe) and it does not have to be loaded from the SLc. The 'isLookUpFifo'
+ *  indicates this special cases.
+ * Depending on the Event Type the retransmit or/and probe Timer is set.
+ *
+ *
+ * @ingroup tx_engine
+ *****************************************************************************/
+void pMetaLoader(
+        stream<extendedEvent>&              siAKd_Event,
+        stream<rxSarEntry>&                 siRSt_SessRxSarRep,
+        stream<txTxSarReply>&               txSar2txEng_upd_rsp,    // From HERE
+        stream<ap_uint<16> >&               soRSt_RxSarRdReq,
+        stream<txTxSarQuery>&               soTSt_TxSarUpdReq,
+        stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
+        stream<ap_uint<16> >&               txEng2timer_setProbeTimer,
+        stream<ap_uint<16> >&               txEng_ipMetaFifoOut,
+        stream<tx_engine_meta>&             txEng_tcpMetaFifoOut,
+        stream<mmCmd>&                      txBufferReadCmd,
+        stream<ap_uint<16> >&               txEng2sLookup_rev_req,
+        stream<bool>&                       txEng_isLookUpFifoOut,
+        stream<fourTuple>&                  txEng_tupleShortCutFifoOut,
+        stream<ap_uint<1> >&                soEVe_RxEventSig)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
+
+    static ap_uint<1>    ml_FsmState = 0;
+    static bool          ml_sarLoaded = false;
     static extendedEvent ml_curEvent;
-    static ap_uint<32> ml_randomValue= 0x562301af; //Random seed initialization
+    static ap_uint<32>   ml_randomValue= 0x562301af; //Random seed initialization
 
-    static ap_uint<2> ml_segmentCount = 0;
+    static ap_uint<2>   ml_segmentCount = 0;
     static rxSarEntry   rxSar;
     static txTxSarReply txSar;
-    ap_uint<16> currLength;
-    ap_uint<16> usableWindow;
-    ap_uint<16> slowstart_threshold;
-    static tx_engine_meta meta;
-    rstEvent resetEvent;
+    ap_uint<16>         currLength;
+    ap_uint<16>         usableWindow;
+    ap_uint<16>         slowstart_threshold;
+    static              tx_engine_meta meta;
+    rstEvent            resetEvent;
 
-    static uint16_t txEngCounter = 0;
+    static uint16_t     txEngCounter = 0;
 
     switch (ml_FsmState) {
+
     case 0:
-        if (!eventEng2txEng_event.empty()) {
-            eventEng2txEng_event.read(ml_curEvent);
-            readCountFifo.write(1);
+        if (!siAKd_Event.empty()) {
+            siAKd_Event.read(ml_curEvent);
+            soEVe_RxEventSig.write(1);
             ml_sarLoaded = false;
             // NOT necessary for SYN/SYN_ACK only needs one
-            if ( (ml_curEvent.type == RT)      || (ml_curEvent.type == TX)  ||
-            	 (ml_curEvent.type == SYN_ACK) || (ml_curEvent.type == FIN) ||
-				 (ml_curEvent.type == ACK)     || (ml_curEvent.type == ACK_NODELAY) ) {
-            	txEng2rxSar_req.write(ml_curEvent.sessionID);
-            	txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
+            if ((ml_curEvent.type == RT)      || (ml_curEvent.type == TX)  ||
+                (ml_curEvent.type == SYN_ACK) || (ml_curEvent.type == FIN) ||
+                (ml_curEvent.type == ACK)     || (ml_curEvent.type == ACK_NODELAY) ) {
+                soRSt_RxSarRdReq.write(ml_curEvent.sessionID);
+                soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID));
             }
             else if (ml_curEvent.type == RST) {
                 resetEvent = ml_curEvent;
                 if (resetEvent.hasSessionID())
-                txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
+                soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID));
             }
             else if (ml_curEvent.type == SYN) {
                 if (ml_curEvent.rt_count != 0)
-                    txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID));
+                    soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID));
             }
             ml_FsmState = 1;
             ml_randomValue++; //make sure it doesn't become zero TODO move this out of if, but breaks my testsuite
@@ -90,9 +122,9 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
         switch(ml_curEvent.type) {
         case TX:
             // Sends everyting between txSar.not_ackd and txSar.app
-            if ((!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
+            if ((!siRSt_SessRxSarRep.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
                 if (!ml_sarLoaded) {
-                    rxSar2txEng_rsp.read(rxSar);
+                    siRSt_SessRxSarRep.read(rxSar);
                     txSar2txEng_upd_rsp.read(txSar);
                 }
 
@@ -129,7 +161,7 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                         //}
                         //else
                         txEng2timer_setProbeTimer.write(ml_curEvent.sessionID);
-                        txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1)); // Write back txSar not_ackd pointer
+                        soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1)); // Write back txSar not_ackd pointer
                     }
                 }
                 else {
@@ -145,7 +177,7 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                         //}
                         // Set probe Timer to try again later
                         txEng2timer_setProbeTimer.write(ml_curEvent.sessionID);
-                        txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1));
                         ml_FsmState = 0;
                     }
                 }
@@ -166,9 +198,9 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             }
             break;
         case RT:
-            if ((!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
+            if ((!siRSt_SessRxSarRep.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
                 if (!ml_sarLoaded) {
-                    rxSar2txEng_rsp.read(rxSar);
+                    siRSt_SessRxSarRep.read(rxSar);
                     txSar2txEng_upd_rsp.read(txSar);
                 }
 
@@ -190,7 +222,7 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                         slowstart_threshold = currLength/2;
                     else
                         slowstart_threshold = (2 * MMS);
-                    txEng2txSar_upd_req.write(txTxSarRtQuery(ml_curEvent.sessionID, slowstart_threshold));
+                    soTSt_TxSarUpdReq.write(txTxSarRtQuery(ml_curEvent.sessionID, slowstart_threshold));
                 }
 
                 // Since we are retransmitting from txSar.ackd to txSar.not_ackd, this data is already inside the usableWindow
@@ -229,8 +261,8 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             break;
         case ACK:
         case ACK_NODELAY:
-            if (!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) {
-                rxSar2txEng_rsp.read(rxSar);
+            if (!siRSt_SessRxSarRep.empty() && !txSar2txEng_upd_rsp.empty()) {
+                siRSt_SessRxSarRep.read(rxSar);
                 txSar2txEng_upd_rsp.read(txSar);
                 ap_uint<16> windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1;
                 meta = tx_engine_meta(txSar.not_ackd, rxSar.recvd, windowSize, 1, 0, 0, 0);
@@ -252,7 +284,7 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                     txSar.not_ackd = ml_randomValue; // FIXME better rand()
                     ml_randomValue = (ml_randomValue* 8) xor ml_randomValue;
                     meta.seqNumb = txSar.not_ackd;
-                    txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
+                    soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
                 }
 
                 txEng_ipMetaFifoOut.write(0);
@@ -265,19 +297,22 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             }
             break;
         case SYN_ACK:
-            if (!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) {
-                rxSar2txEng_rsp.read(rxSar);
+            if (!siRSt_SessRxSarRep.empty() && !txSar2txEng_upd_rsp.empty()) {
+                siRSt_SessRxSarRep.read(rxSar);
                 txSar2txEng_upd_rsp.read(txSar);
 
-                //tx_engine_meta(ap_uint<32> seqNumb, ap_uint<32> ackNumb, ap_uint<16> window_size, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin
-                meta = tx_engine_meta(0, rxSar.recvd, 0xFFFF, 1, 0, 1, 0); // construct SYN_ACK message
+                //OBSOLETE tx_engine_meta(ap_uint<32> seqNumb, ap_uint<32> ackNumb, ap_uint<16> window_size, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin
+
+                // Construct SYN_ACK message
+                meta = tx_engine_meta(0, rxSar.recvd, 0xFFFF, 1, 0, 1, 0);
                 if (ml_curEvent.rt_count != 0)
                     meta.seqNumb = txSar.ackd;
                 else {
                     txSar.not_ackd = ml_randomValue; // FIXME better rand();
                     ml_randomValue = (ml_randomValue* 8) xor ml_randomValue;
                     meta.seqNumb = txSar.not_ackd;
-                    txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
+                    soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID,
+                                            txSar.not_ackd+1, 1, 1));
                 }
 
                 txEng_ipMetaFifoOut.write(0);
@@ -291,9 +326,9 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
             }
             break;
         case FIN:
-            if ((!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
+            if ((!siRSt_SessRxSarRep.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
                 if (!ml_sarLoaded) {
-                    rxSar2txEng_rsp.read(rxSar);
+                    siRSt_SessRxSarRep.read(rxSar);
                     txSar2txEng_upd_rsp.read(txSar);
                 }
                 ap_uint<16> windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1;
@@ -307,9 +342,9 @@ void metaLoader(stream<extendedEvent>&              eventEng2txEng_event,
                     // Check if all data is sent, otherwise we have to delay FIN message
                     // Set fin flag, such that probeTimer is informed
                     if (txSar.app == txSar.not_ackd(15, 0))
-                        txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
+                        soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
                     else
-                        txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
+                        soTSt_TxSarUpdReq.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
                 }
 
                 // Check if there is a FIN to be sent //TODO maybe restruce this
@@ -635,7 +670,7 @@ void tcpPkgStitcher(stream<axiWord>&        txEng_tcpHeaderBufferIn,
         if (!txBufferReadData.empty() && !txEng_tcpSegOut.full()) {    // Read the first word of a non_aligned second mem. access
             axiWord outputWord = axiWord(currWord.data, 0xFF, 0);
             currWord = txBufferReadData.read();
-            outputWord.data.range(63, (shiftBuffer * 8)) = currWord.data.range(((8 - shiftBuffer) * 8) - 1, 0);
+            outputWord.data.range(63, (shiftBuffer * 8)) = currWord.data.range(((8 - shiftBuffer.to_uint()) * 8) - 1, 0);
             ap_uint<4> keepCounter = keepMapping(currWord.keep);
             if (keepCounter < 8 - shiftBuffer) {    // If the entirety of the 2nd mem. access fits in this data word..
                 outputWord.keep = returnKeep(keepCounter + shiftBuffer);
@@ -653,9 +688,9 @@ void tcpPkgStitcher(stream<axiWord>&        txEng_tcpHeaderBufferIn,
     else if (ps_wordCount == 6) {
         if (!txBufferReadData.empty() && !txEng_tcpSegOut.full()) {    // Read the first word of a non_aligned second mem. access
             axiWord outputWord = axiWord(0, 0xFF, 0);
-            outputWord.data.range((shiftBuffer * 8) - 1, 0) = currWord.data.range(63, (8 - shiftBuffer) * 8);
+            outputWord.data.range((shiftBuffer.to_uint() * 8) - 1, 0) = currWord.data.range(63, (8 - shiftBuffer.to_uint()) * 8);
             currWord = txBufferReadData.read();
-            outputWord.data.range(63, (8 * shiftBuffer)) = currWord.data.range(((8 - shiftBuffer) * 8) - 1, 0);
+            outputWord.data.range(63, (8 * shiftBuffer)) = currWord.data.range(((8 - shiftBuffer.to_uint()) * 8) - 1, 0);
             ap_uint<4> keepCounter = keepMapping(currWord.keep);
             if (keepCounter < 8 - shiftBuffer) {    // If the entirety of the 2nd mem. access fits in this data word..
                 outputWord.keep = returnKeep(keepCounter + shiftBuffer);
@@ -672,7 +707,7 @@ void tcpPkgStitcher(stream<axiWord>&        txEng_tcpHeaderBufferIn,
         if (!txEng_tcpSegOut.full()) {
             ap_uint<4> keepCounter = keepMapping(currWord.keep) - (8 - shiftBuffer);                            // This is how many bits are valid in this word
             axiWord outputWord = axiWord(0, returnKeep(keepCounter), 1);
-            outputWord.data.range((shiftBuffer * 8) - 1, 0) = currWord.data.range(63, (8 - shiftBuffer) * 8);
+            outputWord.data.range((shiftBuffer.to_uint() * 8) - 1, 0) = currWord.data.range(63, (8 - shiftBuffer.to_uint()) * 8);
             txEng_tcpSegOut.write(outputWord);
             //std::cerr <<  std::dec << cycleCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
             ps_wordCount = 0;
@@ -916,51 +951,61 @@ void txEngMemAccessBreakdown(stream<mmCmd> &inputMemAccess, stream<mmCmd> &outpu
     }
 }
 
-/** @ingroup tx_engine
- *  @param[in]      eventEng2txEng_event
- *  @param[in]      rxSar2txEng_upd_rsp
- *  @param[in]      txSar2txEng_upd_rsp
- *  @param[in]      txBufferReadData
- *  @param[in]      sLookup2txEng_rev_rsp
- *  @param[out]     txEng2rxSar_upd_req
- *  @param[out]     txEng2txSar_upd_req
- *  @param[out]     txEng2timer_setRetransmitTimer
- *  @param[out]     txEng2timer_setProbeTimer
- *  @param[out]     txBufferReadCmd
- *  @param[out]     txEng2sLookup_rev_req
- *  @param[out]     ipTxData
- */
+
+/*****************************************************************************
+ * @brief The tx_engine (TXe) builds the IPv4 packets to be sent to L3MUX.
+ *
+ * @param[in]  siAKd_Event,       Event from Ack Delayer (AKd).
+ * @param[in]  siRSt_SessRxSarRep,Session Rx SAR reply from Rx SAR Table (RSt).
+ * @param
+ * @param
+ * @param
+ * @param[out] soRSt_RxSarRdReq,  Request to read the session from Rx SAR Table (RSt).
+ * @param[out] soTSt_TxSarUpdReq, Request to update the Tx SAR Table (TSt).
+ *
+ * @param[out] soEVe_RxEventSig,  Signals the reception of an event.
+ *
+ * @details
+ *
+ * @return Nothing.
+ *
+ * @ingroup tx_engine
+ ******************************************************************************/
 void tx_engine(
-		stream<extendedEvent>&          eventEng2txEng_event,
-		stream<rxSarEntry>&             rxSar2txEng_rsp,
-		stream<txTxSarReply>&           txSar2txEng_upd_rsp,
-		stream<axiWord>&                txBufferReadData,
-		stream<fourTuple>&              sLookup2txEng_rev_rsp,
-		stream<ap_uint<16> >&           txEng2rxSar_req,
-		stream<txTxSarQuery>&           txEng2txSar_upd_req,
-		stream<txRetransmitTimerSet>&   txEng2timer_setRetransmitTimer,
-		stream<ap_uint<16> >&           txEng2timer_setProbeTimer,
-		stream<mmCmd>&                  txBufferReadCmd,
-		stream<ap_uint<16> >&           txEng2sLookup_rev_req,
-		stream<Ip4Word>					&ipTxData,
-		stream<ap_uint<1> >&            readCountFifo)
+        stream<extendedEvent>           &siAKd_Event,
+        stream<rxSarEntry>              &siRSt_SessRxSarRep,
+        stream<txTxSarReply>            &txSar2txEng_upd_rsp,
+        stream<axiWord>                 &txBufferReadData,
+        stream<fourTuple>               &sLookup2txEng_rev_rsp,
+        stream<ap_uint<16> >            &soRSt_RxSarRdReq,
+        stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
+        stream<txRetransmitTimerSet>    &txEng2timer_setRetransmitTimer,
+        stream<ap_uint<16> >            &txEng2timer_setProbeTimer,
+        stream<mmCmd>                   &txBufferReadCmd,
+        stream<ap_uint<16> >            &txEng2sLookup_rev_req,
+        stream<Ip4Word>                 &ipTxData,
+        stream<ap_uint<1> >             &soEVe_RxEventSig)
 {
-#pragma HLS DATAFLOW
-#pragma HLS INTERFACE ap_ctrl_none port=return
-//#pragma HLS PIPELINE II=1
-#pragma HLS INLINE //off
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS DATAFLOW
+    #pragma HLS INTERFACE ap_ctrl_none port=return  // [FIXME - No needed here?]
+   //#pragma HLS PIPELINE II=1
+    #pragma HLS INLINE //off
 
-#pragma HLS resource core=AXI4Stream variable=ipTxData metadata="-bus_bundle m_axis_tcp_data"
+    //-------------------------------------------------------------------------
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //-------------------------------------------------------------------------
 
-//#pragma HLS DATA_PACK variable=eventEng2txEng_event
-//#pragma HLS DATA_PACK variable=txSar2txEng_upd_rsp
-#pragma HLS DATA_PACK variable=txBufferReadData
-#pragma HLS DATA_PACK variable=txEng2rxSar_req
-//#pragma HLS DATA_PACK variable=txEng2txSar_upd_req
-//#pragma HLS DATA_PACK variable=txEng2timer_setRetransmitTimer
-//#pragma HLS DATA_PACK variable=txEng2timer_setProbeTimer
-#pragma HLS DATA_PACK variable=txEng2sLookup_rev_req
-#pragma HLS DATA_PACK variable=ipTxData
+
+
+    #pragma HLS resource core=AXI4Stream variable=ipTxData metadata="-bus_bundle m_axis_tcp_data"
+
+    #pragma HLS DATA_PACK variable=txBufferReadData
+    //OBSOLETE-20181125 #pragma HLS DATA_PACK variable=soRSt_RxSarRdReq
+
+    #pragma HLS DATA_PACK variable=txEng2sLookup_rev_req
+    #pragma HLS DATA_PACK variable=ipTxData
+
 
 
     // Memory Read delay around 76 cycles, 10 cycles/packet, so keep meta of at least 8 packets
@@ -1011,37 +1056,67 @@ void tx_engine(
     static stream<ap_uint<1> > memAccessBreakdown2txPkgStitcher("memAccessBreakdown2txPkgStitcher");
     #pragma HLS stream variable=memAccessBreakdown2txPkgStitcher depth=32
     
-    metaLoader( eventEng2txEng_event,
-                rxSar2txEng_rsp,
-                txSar2txEng_upd_rsp,
-                txEng2rxSar_req,
-                txEng2txSar_upd_req,
-                txEng2timer_setRetransmitTimer,
-                txEng2timer_setProbeTimer,
-                txEng_ipMetaFifo,
-                txEng_tcpMetaFifo,
-                txMetaloader2memAccessBreakdown,
-                txEng2sLookup_rev_req,
-                txEng_isLookUpFifo,
-                txEng_tupleShortCutFifo,
-                readCountFifo);
+    //-------------------------------------------------------------------------
+    //-- PROCESS FUNCTIONS
+    //-------------------------------------------------------------------------
+
+    pMetaLoader(
+            siAKd_Event,
+            siRSt_SessRxSarRep,
+            txSar2txEng_upd_rsp,
+            soRSt_RxSarRdReq,
+            soTSt_TxSarUpdReq,
+            txEng2timer_setRetransmitTimer,
+            txEng2timer_setProbeTimer,
+            txEng_ipMetaFifo,
+            txEng_tcpMetaFifo,
+            txMetaloader2memAccessBreakdown,
+            txEng2sLookup_rev_req,
+            txEng_isLookUpFifo,
+            txEng_tupleShortCutFifo,
+            soEVe_RxEventSig);
     
-    txEngMemAccessBreakdown(txMetaloader2memAccessBreakdown, txBufferReadCmd, memAccessBreakdown2txPkgStitcher);
+    txEngMemAccessBreakdown(
+            txMetaloader2memAccessBreakdown,
+            txBufferReadCmd,
+            memAccessBreakdown2txPkgStitcher);
 
-    tupleSplitter(  sLookup2txEng_rev_rsp,
-                    txEng_tupleShortCutFifo,
-                    txEng_isLookUpFifo,
-                    txEng_ipTupleFifo,
-                    txEng_tcpTupleFifo);
+    tupleSplitter(
+            sLookup2txEng_rev_rsp,
+            txEng_tupleShortCutFifo,
+            txEng_isLookUpFifo,
+            txEng_ipTupleFifo,
+            txEng_tcpTupleFifo);
 
-    ipHeaderConstruction(txEng_ipMetaFifo, txEng_ipTupleFifo, txEng_ipHeaderBuffer);
+    ipHeaderConstruction(
+            txEng_ipMetaFifo,
+            txEng_ipTupleFifo,
+            txEng_ipHeaderBuffer);
 
-    pseudoHeaderConstruction(txEng_tcpMetaFifo, txEng_tcpTupleFifo, txEng_tcpHeaderBuffer);
+    pseudoHeaderConstruction(
+            txEng_tcpMetaFifo,
+            txEng_tcpTupleFifo,
+            txEng_tcpHeaderBuffer);
 
-    tcpPkgStitcher(txEng_tcpHeaderBuffer, txBufferReadData, txEng_tcpPkgBuffer1, memAccessBreakdown2txPkgStitcher);
+    tcpPkgStitcher(
+            txEng_tcpHeaderBuffer,
+            txBufferReadData,
+            txEng_tcpPkgBuffer1,
+            memAccessBreakdown2txPkgStitcher);
 
-    tx_compute_tcp_subchecksums(txEng_tcpPkgBuffer1, txEng_tcpPkgBuffer2, txEng_subChecksumsFifo);
-    tx_compute_tcp_checksum(txEng_subChecksumsFifo, txEng_tcpChecksumFifo);
+    tx_compute_tcp_subchecksums(
+            txEng_tcpPkgBuffer1,
+            txEng_tcpPkgBuffer2,
+            txEng_subChecksumsFifo);
 
-    pkgStitcher(txEng_ipHeaderBuffer, txEng_tcpPkgBuffer2, txEng_tcpChecksumFifo, ipTxData);
+    tx_compute_tcp_checksum(
+            txEng_subChecksumsFifo,
+            txEng_tcpChecksumFifo);
+
+    pkgStitcher(
+            txEng_ipHeaderBuffer,
+            txEng_tcpPkgBuffer2,
+            txEng_tcpChecksumFifo,
+            ipTxData);
+
 }

@@ -1,6 +1,6 @@
 /*****************************************************************************
  * @file       : rx_engine.cpp
- * @brief      : Rx Engine (RXE) of the TCP Offload Engine (TOE)
+ * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -676,7 +676,7 @@ void pTcpInvalidDropper(
  * @param[in]  siSLc_SessLookupRep, Session lookup reply from Session Lookup Controller (SLc).
  * @param[in]  siPRt_PortSts,   Port state (open/close) from Port Table (PRt).
  * @param[out] soSessLookupReq, Session lookup request.
- * @param[out] soSetEvent,      Set event.
+ * @param[out] soEVe_Event,     Event to Event Engine (EVe).
  * @param[out] soDropCmd,       Drop command.
  * @param[out] soMeta,          Metadata for the central FSM of the Rx engine.
  *
@@ -700,7 +700,7 @@ void pMetaDataHandler(
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSessLookupReq,
-        stream<extendedEvent>       &soSetEvent,
+        stream<extendedEvent>       &soEVe_Event,
         stream<CmdBit>              &soDropCmd,
         stream<rxFsmMetaData>       &soMeta)
 {
@@ -757,11 +757,11 @@ void pMetaDataHandler(
                         switchedTuple.src.port = tuple.dst.port;
                         switchedTuple.dst.port = tuple.src.port;
                         if (mdh_meta.syn || mdh_meta.fin) {
-                            soSetEvent.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length+1),
+                            soEVe_Event.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length+1),
                                                            switchedTuple)); //always 0
                         }
                         else {
-                            soSetEvent.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length),
+                            soEVe_Event.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length),
                                                            switchedTuple));
                         }
                     }
@@ -782,6 +782,10 @@ void pMetaDataHandler(
                     // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
                     soSessLookupReq.write(sessionLookupQuery(tuple,
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
+                    if (DEBUG_LEVEL >= 4) {
+                        printInfo(myName, "Request the SLc to lookup the following session:\n");
+                        printSockPair(myName, tuple);
+                    }
                     mdh_fsmState = LOOKUP;
                 }
             }
@@ -799,6 +803,8 @@ void pMetaDataHandler(
                                            mdh_srcIp4Addr,
                                            mdh_dstTcpPort,
                                            mdh_meta));
+            if (DEBUG_LEVEL >= 4)
+                printInfo(myName, "Got a session lookup \'Hit\'. \n");
             }
             if (mdh_meta.length != 0) {
                 soDropCmd.write(!mdh_sessLookupReply.hit);
@@ -819,17 +825,17 @@ void pMetaDataHandler(
  * @param[in]  siSTt_SessStateRep,Session state reply from State Table (STt).
  * @param[in]  siRSt_SessRxSarRep,Session Rx SAR reply from Rx SAR Table (RSt).
  * @param[in]  siTSt_SessTxSarRep,Session Tx SAR reply from Tx SAR Table (TSt).
- * @param[out] soSessStateReq,    Request to read the session state.
- * @param[out] soSessRxSarReq,    Request to read the session Rx SAR.
- * @param[out] soSessTxSarReq,    Request to read the session Tx SAR.
- * @param[out] soClearReTxTimer,  Clear the retransmit timer.
- * @param[out] soClearProbeTimer, Clear the probing timer.
- * @param[out] soCloseTimer,      Close session timer.
- * @param[out] soSessOpnSts,	  Open status of the session.
- * @param[out] soSetEvent,        Set an event.
+ * @param[out] soSTt_SessStateReq,Request to read the session state.
+ * @param[out] soRSt_RxSarUpdReq, Request to update the session Rx SAR.
+ * @param[out] soTSt_TxSarRdReq,  Request to read the session Tx SAR.
+ * @param[out] soTIm_ClearReTxTimer, Clear the retransmit timer.
+ * @param[out] soTIm_ClearProbeTimer,Clear the probing timer.
+ * @param[out] soTIm_CloseTimer,  Close session timer.
+ * @param[out] soTAi_SessOpnSts,  Open status of the session.
+ * @param[out] soEVe_Event,       Event to the Event Engine (EVe).
  * @param[out] soDropCmd,         Drop command for the process having the segment data.
  * @param[out] soMemWrCmd,        Memory write command.
- * @param[out] soRxNotif,         Rx data notification for the application.
+ * @param[out] soRAi_RxNotif,     Rx data notification for the application.
  *
  * @details
  *  This process implements the typical TCP state and metadata management. It
@@ -844,14 +850,14 @@ void pFiniteStateMachine(
         stream<sessionState>                &siSTt_SessStateRep,
         stream<rxSarEntry>                  &siRSt_SessRxSarRep,
         stream<rxTxSarReply>                &siTSt_SessTxSarRep,
-        stream<stateQuery>                  &soSessStateReq,
-        stream<rxSarRecvd>                  &soSessRxSarReq,
-        stream<rxTxSarQuery>                &soSessTxSarReq,
-        stream<rxRetransmitTimerUpdate>     &soClearReTxTimer,
-        stream<ap_uint<16> >                &soClearProbeTimer,
-        stream<ap_uint<16> >                &soCloseTimer,
-        stream<openStatus>                  &soSessOpnSts, //TODO merge with eventEngine
-        stream<event>                       &soSetEvent,
+        stream<stateQuery>                  &soSTt_SessStateReq,
+        stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
+        stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
+        stream<rxRetransmitTimerUpdate>     &soTIm_ClearReTxTimer,
+        stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
+        stream<ap_uint<16> >                &soTIm_CloseTimer,
+        stream<openStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
+        stream<event>                       &soEVe_Event,
         stream<CmdBit>                      &soDropCmd,
         stream<mmCmd>                       &soMemWrCmd,
         stream<appNotification>             &soRxNotif)
@@ -870,35 +876,37 @@ void pFiniteStateMachine(
 
     static uint16_t rxEngSynCounter = 0;
 
-    ap_uint<4>         control_bits = 0;
-    sessionState     tcpState;
-    rxSarEntry         rxSar;
-    rxTxSarReply     txSar;
+    ap_uint<4>      control_bits = 0;
+    sessionState    tcpState;
+    rxSarEntry      rxSar;
+    rxTxSarReply    txSar;
 
-    static enum State {LOAD=0, TRANSITION} fsm_state;
+    static enum FsmState {LOAD=0, TRANSITION} fsmState;
 
-    switch(fsm_state) {
+    switch(fsmState) {
+
     case LOAD:
         if (!siMdh_Meta.empty()) {
             siMdh_Meta.read(fsm_meta);
             // Request the current state of the session
-            soSessStateReq.write(stateQuery(fsm_meta.sessionID));
+            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID));
             // Always request the rxSar, even though not required for SYN-ACK
-            soSessRxSarReq.write(rxSarRecvd(fsm_meta.sessionID));
+            soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID));
 
             if (fsm_meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
-                soSessTxSarReq.write(rxTxSarQuery(fsm_meta.sessionID));
+                soTSt_TxSarRdReq.write(rxTxSarQuery(fsm_meta.sessionID));
                 fsm_txSarRequest = true;
             }
-            fsm_state = TRANSITION;
+            fsmState = TRANSITION;
         }
         break;
+
     case TRANSITION:
         // Check if transition to LOAD occurs
         if (!siSTt_SessStateRep.empty() && !siRSt_SessRxSarRep.empty() &&
             !(fsm_txSarRequest && siTSt_SessTxSarRep.empty())) {
-            fsm_state = LOAD;
+            fsmState = LOAD;
             fsm_txSarRequest = false;
         }
 
@@ -909,11 +917,11 @@ void pFiniteStateMachine(
 
         switch (control_bits) {
         case 1: // ACK
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_SessRxSarRep.read(rxSar);
                 siTSt_SessTxSarRep.read(txSar);
-                soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
                      (tcpState == LAST_ACK) ) {
@@ -925,7 +933,7 @@ void pFiniteStateMachine(
                     }
                     else {
                         // Notify probeTimer about new ACK
-                        soClearProbeTimer.write(fsm_meta.sessionID);
+                        soTIm_ClearProbeTimer.write(fsm_meta.sessionID);
 
                         // Check for SlowStart & Increase Congestion Window (TODO-CheckDiff)
                         if (txSar.cong_window <= (txSar.slowstart_threshold-MMS)) {
@@ -940,12 +948,12 @@ void pFiniteStateMachine(
                     // TX SAR (TODO-CheckDiff)
                     if ( (  (txSar.prevAck <= fsm_meta.meta.ackNumb) && (fsm_meta.meta.ackNumb <= txSar.nextByte) ) ||
                          ( ((txSar.prevAck <= fsm_meta.meta.ackNumb) || (fsm_meta.meta.ackNumb <= txSar.nextByte) ) && (txSar.nextByte < txSar.prevAck) ) ) {
-                        soSessTxSarReq.write((rxTxSarQuery(fsm_meta.sessionID,
-                                                fsm_meta.meta.ackNumb,
-                                                fsm_meta.meta.winSize,
-                                                txSar.cong_window,
-                                                txSar.count,
-                                                0)));
+                        soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionID,
+                                                 fsm_meta.meta.ackNumb,
+                                                 fsm_meta.meta.winSize,
+                                                 txSar.cong_window,
+                                                 txSar.count,
+                                                 0)));
                     }
 
                     // Check if packet contains payload
@@ -956,7 +964,7 @@ void pFiniteStateMachine(
                         // Check if segment in order and if enough free space is available
                         if ( (fsm_meta.meta.seqNumb == rxSar.recvd) &&
                              (free_space > fsm_meta.meta.length) ) {
-                            soSessRxSarReq.write(rxSarRecvd(fsm_meta.sessionID, newRecvd, 1));
+                            soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID, newRecvd, 1));
                             // Build memory address for this segment
                             ap_uint<32> memSegAddr;
                             memSegAddr(31, 30) = 0x0;
@@ -976,150 +984,152 @@ void pFiniteStateMachine(
                         // OBSOLETE-soSetEvent.write(event(ACK, fsm_meta.sessionID));
                     }
                     if (txSar.count == 3) {
-                        soSetEvent.write(event(RT, fsm_meta.sessionID));
+                        soEVe_Event.write(event(RT, fsm_meta.sessionID));
                     }
                     else if (fsm_meta.meta.length != 0) {
-                        soSetEvent.write(event(ACK, fsm_meta.sessionID));
+                        soEVe_Event.write(event(ACK, fsm_meta.sessionID));
                     }
 
                     // Reset Retransmit Timer
-                    // OBSOLET soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (mdh_meta.ackNumb == txSarNextByte)));
+                    // OBSOLET soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (mdh_meta.ackNumb == txSarNextByte)));
                     if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                         switch (tcpState) {
                         case SYN_RECEIVED:  //TODO MAYBE REARRANGE
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, ESTABLISHED, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, ESTABLISHED, 1));
                             break;
                         case CLOSING:
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, TIME_WAIT, 1));
-                            soCloseTimer.write(fsm_meta.sessionID);
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, TIME_WAIT, 1));
+                            soTIm_CloseTimer.write(fsm_meta.sessionID);
                             break;
                         case LAST_ACK:
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
                             break;
                         default:
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                             break;
                         }
                     }
                     else { // we have to release the lock
                         // reset rtTimer
                         // OBSOLETE rtTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID));
-                        soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1)); // or ESTABLISHED
+                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1)); // or ESTABLISHED
                     }
                 } // End of : if ( (tcpState...
 
                 // TODO if timewait just send ACK, can it be time wait??
                 else { // state == (CLOSED || SYN_SENT || CLOSE_WAIT || FIN_WAIT_2 || TIME_WAIT)
                     // SENT RST, RFC 793: fig.11
-                    soSetEvent.write(rstEvent(fsm_meta.sessionID, fsm_meta.meta.seqNumb+fsm_meta.meta.length)); // noACK ?
+                    soEVe_Event.write(rstEvent(fsm_meta.sessionID, fsm_meta.meta.seqNumb+fsm_meta.meta.length)); // noACK ?
                     // if data is in the pipe it needs to be droppped
                     if (fsm_meta.meta.length != 0) {
                         soDropCmd.write(DROP_CMD);
                     }
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, QUERY_WR));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, QUERY_WR));
                 }
-                //fsm_state = LOAD;
+                //fsmState = LOAD;
             }
             break;
 
         case 2: // SYN
+            if (DEBUG_LEVEL >= 5) printInfo(myName, "Segment is SYN.\n");
             // OBBSOLETE if (!siSTt_SessStateRep.empty())
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 rxEngSynCounter++;
                 //std::cerr << "SYN Counter: " << rxEngSynCounter << std::endl;
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_SessRxSarRep.read(rxSar);
                 if (tcpState == CLOSED || tcpState == SYN_SENT) {
-                	// Actually this is LISTEN || SYN_SENT
+                    // Actually this is LISTEN || SYN_SENT
                     // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
-                    soSessRxSarReq.write(rxSarRecvd(fsm_meta.sessionID, fsm_meta.meta.seqNumb + 1, 1, 1));
+                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID, fsm_meta.meta.seqNumb + 1, 1, 1));
                     // Initialize receive window
-                    soSessTxSarReq.write((rxTxSarQuery(fsm_meta.sessionID, 0, fsm_meta.meta.winSize,
-                                          txSar.cong_window, 0, 1))); //TODO maybe include count check
+                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionID, 0, fsm_meta.meta.winSize,
+                                              txSar.cong_window, 0, 1))); //TODO maybe include count check
                     // Set SYN_ACK event
-                    soSetEvent.write(event(SYN_ACK, fsm_meta.sessionID));
+                    soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionID));
+                    if (DEBUG_LEVEL >= 5) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_meta.sessionID.to_uint());
                     // Change State to SYN_RECEIVED
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, SYN_RECEIVED, 1));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, SYN_RECEIVED, 1));
                 }
                 else if (tcpState == SYN_RECEIVED) { // && mdh_meta.seqNumb+1 == rxSar.recvd) // Maybe Check for seq
                     // If it is the same SYN, we resent SYN-ACK, almost like quick RT, we could also wait for RT timer
                     if (fsm_meta.meta.seqNumb+1 == rxSar.recvd) {
                         // Retransmit SYN_ACK
-                        soSetEvent.write(event(SYN_ACK, fsm_meta.sessionID, 1));
-                        soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                        soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionID, 1));
+                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                     }
                     else { // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
-                        soSetEvent.write(rstEvent(fsm_meta.sessionID, fsm_meta.meta.seqNumb+1)); //length == 0
-                        soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
+                        soEVe_Event.write(rstEvent(fsm_meta.sessionID, fsm_meta.meta.seqNumb+1)); //length == 0
+                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
                     }
                 }
                 else { // Any synchronized state
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soSetEvent.write(event(ACK_NODELAY, fsm_meta.sessionID));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionID));
                     // TODo send RST, has no ACK??
                     // Respond with RST, no ACK, seq ==
                     //eventEngine.write(rstEvent(mdh_meta.seqNumb, mh_meta.length, true));
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                 }
             }
             break;
 
         case 3: // SYN_ACK
             //OBSOLETE if (!siSTt_SessStateRep.empty() && !siTSt_SessTxSarRep.empty())
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_SessRxSarRep.read(rxSar);
                 siTSt_SessTxSarRep.read(txSar);
-                soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
+                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                                                                (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == SYN_SENT) && (fsm_meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
                     //initialize rx_sar, SEQ + phantom byte, last '1' for appd init
-                    soSessRxSarReq.write(rxSarRecvd(fsm_meta.sessionID,
+                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID,
                                                     fsm_meta.meta.seqNumb + 1, 1, 1));
-                    soSessTxSarReq.write((rxTxSarQuery(fsm_meta.sessionID,
-                                                       fsm_meta.meta.ackNumb,
-                                                       fsm_meta.meta.winSize,
-                                                       txSar.cong_window, 0, 1))); //CHANGE this was added //TODO maybe include count check
+                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionID,
+                                                           fsm_meta.meta.ackNumb,
+                                                           fsm_meta.meta.winSize,
+                                                           txSar.cong_window, 0, 1))); //CHANGE this was added //TODO maybe include count check
                     // Set ACK event
-                    soSetEvent.write(event(ACK_NODELAY, fsm_meta.sessionID));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionID));
 
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, ESTABLISHED, 1));
-                    soSessOpnSts.write(openStatus(fsm_meta.sessionID, true));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, ESTABLISHED, 1));
+                    soTAi_SessOpnSts.write(openStatus(fsm_meta.sessionID, true));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
                     // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
-                    soSetEvent.write(rstEvent(fsm_meta.sessionID,
+                    soEVe_Event.write(rstEvent(fsm_meta.sessionID,
                                               fsm_meta.meta.seqNumb+fsm_meta.meta.length+1));
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
                 }
                 else {
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soSetEvent.write(event(ACK_NODELAY, fsm_meta.sessionID));
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionID));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                 }
             }
             break;
 
         case 5: //FIN (_ACK)
             //OBSOLETE if (!siRSt_SessRxSarRep.empty() && !siSTt_SessStateRep.empty() && !siTSt_SessTxSarRep.empty())
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_SessRxSarRep.read(rxSar);
                 siTSt_SessTxSarRep.read(txSar);
-                soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
+                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                                        (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
                 if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
                       tcpState == FIN_WAIT_2) && (rxSar.recvd == fsm_meta.meta.seqNumb) ) {
-                    soSessTxSarReq.write((rxTxSarQuery(fsm_meta.sessionID,
-                                          fsm_meta.meta.ackNumb, fsm_meta.meta.winSize,
-                                          txSar.cong_window, txSar.count, 0))); //TODO include count check
+                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionID,
+                                              fsm_meta.meta.ackNumb, fsm_meta.meta.winSize,
+                                              txSar.cong_window, txSar.count, 0))); //TODO include count check
 
                     // +1 for phantom byte, there might be data too
-                    soSessRxSarReq.write(rxSarRecvd(fsm_meta.sessionID, fsm_meta.meta.seqNumb+fsm_meta.meta.length+1, 1)); //diff to ACK
+                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID, fsm_meta.meta.seqNumb+fsm_meta.meta.length+1, 1)); //diff to ACK
 
                     // Clear the probe timer
-                    soClearProbeTimer.write(fsm_meta.sessionID);
+                    soTIm_ClearProbeTimer.write(fsm_meta.sessionID);
 
                     // Check if there is payload
                     if (fsm_meta.meta.length != 0) {
@@ -1141,24 +1151,24 @@ void pFiniteStateMachine(
 
                     // Update state
                     if (tcpState == ESTABLISHED) {
-                        soSetEvent.write(event(FIN, fsm_meta.sessionID));
-                        soSessStateReq.write(stateQuery(fsm_meta.sessionID, LAST_ACK, 1));
+                        soEVe_Event.write(event(FIN, fsm_meta.sessionID));
+                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, LAST_ACK, 1));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // check if final FIN is ACK'd -> LAST_ACK
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, TIME_WAIT, 1));
-                            soCloseTimer.write(fsm_meta.sessionID);
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, TIME_WAIT, 1));
+                            soTIm_CloseTimer.write(fsm_meta.sessionID);
                         }
                         else {
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSING, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSING, 1));
                         }
-                        soSetEvent.write(event(ACK, fsm_meta.sessionID));
+                        soEVe_Event.write(event(ACK, fsm_meta.sessionID));
                     }
                 }
                 else { // NOT (ESTABLISHED || FIN_WAIT_1 || FIN_WAIT_2)
-                    soSetEvent.write(event(ACK, fsm_meta.sessionID));
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                    soEVe_Event.write(event(ACK, fsm_meta.sessionID));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                     // If there is payload we need to drop it
                     if (fsm_meta.meta.length != 0) {
                         soDropCmd.write(DROP_CMD);
@@ -1171,25 +1181,25 @@ void pFiniteStateMachine(
             // stateTable is locked, make sure it is released in at the end
             // If there is an ACK we read txSar
             // We always read rxSar
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_SessRxSarRep.read(rxSar); //TODO not sure nb works
                 siTSt_SessTxSarRep.read_nb(txSar);
             }
-            if (fsm_state == LOAD) {
+            if (fsmState == LOAD) {
                 // Handle if RST
                 if (fsm_meta.meta.rst) {
                     if (tcpState == SYN_SENT) { //TODO this would be a RST,ACK i think
                     	// Check if matching SYN
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // Tell application, could not open connection
-                            soSessOpnSts.write(openStatus(fsm_meta.sessionID, false));
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
-                            soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            soTAi_SessOpnSts.write(openStatus(fsm_meta.sessionID, false));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
+                            soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                         }
                         else {
                             // Ignore since not matching
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                         }
                     }
                     else {
@@ -1197,12 +1207,12 @@ void pFiniteStateMachine(
                         if (fsm_meta.meta.seqNumb == rxSar.recvd) {
                             //tell application, RST occurred, abort
                             soRxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1)); //TODO maybe some TIME_WAIT state
-                            soClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1)); //TODO maybe some TIME_WAIT state
+                            soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                         }
                         else {
                             // Ignore since not matching window
-                            soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                         }
                     }
                 }
@@ -1210,7 +1220,7 @@ void pFiniteStateMachine(
                     //TODO maybe sent RST ourselves, or simply ignore
                     // For now ignore, sent ACK??
                     //eventsOut.write(rstEvent(mh_meta.seqNumb, 0, true));
-                    soSessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
+                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                 } // End of: if (fsm_meta.meta.rst)
             } // if fsm_stat
             break;
@@ -1361,9 +1371,9 @@ void pRxAppNotifier(
 /*****************************************************************************
  * @brief Event Multiplexer (Evm)
  *
- * @param[in]  siCsa_Data,      TCP data stream from Checksum Accumulator (Csa).
- * @param[in]  siCsa_DataVal,   TCP data valid.
- * @param[out] soData,          TCP data stream.
+ * @param[in]  siMdh_Event, Event from MetaData HAndler (Mdh).
+ * @param[in]  siFsm_Event, Event from Finite State Machine (Fsm).
+ * @param[out] soEVe_Event, Event to Event Engine (EVe).
  *
  * @details
  *  Takes two extended events as inputs and mux them on a single output. Note
@@ -1373,19 +1383,19 @@ void pRxAppNotifier(
  * @ingroup rx_engine
  *****************************************************************************/
 void pEventMultiplexer(
-        stream<extendedEvent>    &siEvent1,
-        stream<event>            &siEvent2,
-        stream<extendedEvent>    &soEvent)
+        stream<extendedEvent>    &siMdh_Event,
+        stream<event>            &siFsm_Event,
+        stream<extendedEvent>    &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE
 
-    if (!siEvent1.empty()) {
-        soEvent.write(siEvent1.read());
+    if (!siMdh_Event.empty()) {
+        soEVe_Event.write(siMdh_Event.read());
     }
-    else if (!siEvent2.empty()) {
-        soEvent.write(siEvent2.read());
+    else if (!siFsm_Event.empty()) {
+        soEVe_Event.write(siFsm_Event.read());
     }
 }
 
@@ -1552,16 +1562,16 @@ void pMemWriter(
  * @param[in]  siTSt_SessTxSarRep   Session Tx SAR reply from Tx SAR Table (TSt).
  * @param[in]  siMEM_WrSts,         Memory write status from MEM.
  * @param[out] soMemWrData,         Memory data write stream to MEM controller.
- * @param[out] soSessStateReq,      Session state request.
+ * @param[out] soSTt_SessStateReq,  Session state request.
  * @param[out] soGetPortState,      Ask the state of the port.
  * @param[out] soSessLookupReq,     Session lookup request.
- * @param[out] soSessRxSarReq,      Request to read the session Rx SAR.
- * @param[out] soSessTxSarReq,      Request to read the session Tx SAR.
- * @param[out] soClearReTxTimer,    Clear the retransmit timer.
- * @param[out] soClearProbeTimer,   Clear the probe timer.
- * @param[out] soCloseTimer,        Close session timer.
- * @param[out] soSessOpnStatus,     Open status of the session.
- * @param[out] soSetEvent,          Set an event.
+ * @param[out] soRSt_RxSarUpdReq,   Request to update the session Rx SAR.
+ * @param[out] soTSt_TxSarRdReq,    Request to read the session Tx SAR.
+ * @param[out] soTIm_ClearReTxTimer,Clear the retransmit timer.
+ * @param[out] soTIm_ClearProbeTimer,Clear the probe timer.
+ * @param[out] soTIm_CloseTimer,    Close session timer.
+ * @param[out] soTAi_SessOpnSts,    Open status of the session.
+ * @param[out] soEVe_SetEvent,      Forward event to Event Engine (EVe).
  * @param[out] soMemWrCmd,          Memory write command,
  * @param[out] soRxNotification,    Rx data notification for the application.
  *
@@ -1586,16 +1596,16 @@ void rx_engine(
         stream<rxTxSarReply>            &siTSt_SessTxSarRep,
         stream<mmStatus>                &siMEM_WrSts,
         stream<axiWord>                 &soMemWrData,
-        stream<stateQuery>              &soSessStateReq,
+        stream<stateQuery>              &soSTt_SessStateReq,
         stream<AxiTcpPort>              &soGetPortState,
         stream<sessionLookupQuery>      &soSessLookupReq,
-        stream<rxSarRecvd>              &soSessRxSarReq,
-        stream<rxTxSarQuery>            &soSessTxSarReq,
-        stream<rxRetransmitTimerUpdate> &soClearReTxTimer,
-        stream<ap_uint<16> >            &soClearProbeTimer,
-        stream<ap_uint<16> >            &soCloseTimer,
-        stream<openStatus>              &soSessOpnStatus,
-        stream<extendedEvent>           &soSetEvent,
+        stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
+        stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
+        stream<rxRetransmitTimerUpdate> &soTIm_ClearReTxTimer,
+        stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
+        stream<ap_uint<16> >            &soTIm_CloseTimer,
+        stream<openStatus>              &soTAi_SessOpnSts,
+        stream<extendedEvent>           &soEVe_SetEvent,
         stream<mmCmd>                   &soMemWrCmd,
         stream<appNotification>         &soRxNotification)
 {
@@ -1648,9 +1658,9 @@ void rx_engine(
     #pragma HLS DATA_PACK  variable=sTsdToMwr_Data
 
     //-- MetaData Handler (Mdh) -----------------------------------------------
-    static stream<extendedEvent>    sMdhToEvm_SetEvent     ("sMdhToEvm_SetEvent");
-    #pragma HLS stream     variable=sMdhToEvm_SetEvent     depth=2
-    #pragma HLS DATA_PACK  variable=sMdhToEvm_SetEvent
+    static stream<extendedEvent>    sMdhToEvm_Event        ("sMdhToEvm_Event");
+    #pragma HLS stream     variable=sMdhToEvm_Event        depth=2
+    #pragma HLS DATA_PACK  variable=sMdhToEvm_Event
 
     static stream<CmdBit>           sMdhToTsd_DropCmd      ("sMdhToTsd_DropCmd");
     #pragma HLS stream     variable=sMdhToTsd_DropCmd      depth=2
@@ -1667,9 +1677,9 @@ void rx_engine(
     #pragma HLS stream     variable=sFsmToRan_Notif        depth=8  // This depends on the memory delay
     #pragma HLS DATA_PACK  variable=sFsmToRan_Notif
 
-    static stream<event>            sFsmToEvm_SetEvent     ("sFsmToEvm_SetEvent");
-    #pragma HLS stream     variable=sFsmToEvm_SetEvent     depth=2
-    #pragma HLS DATA_PACK  variable=sFsmToEvm_SetEvent
+    static stream<event>            sFsmToEvm_Event        ("sFsmToEvm_Event");
+    #pragma HLS stream     variable=sFsmToEvm_Event        depth=2
+    #pragma HLS DATA_PACK  variable=sFsmToEvm_Event
 
     static stream<mmCmd>            sFsmToMwr_WrCmd        ("sFsmToMwr_WrCmd");
     #pragma HLS stream     variable=sFsmToMwr_WrCmd        depth=8
@@ -1712,7 +1722,7 @@ void rx_engine(
             siSLc_SessLookupRep,
             siPRt_PortSts,
             soSessLookupReq,
-            sMdhToEvm_SetEvent,
+            sMdhToEvm_Event,
             sMdhToTsd_DropCmd,
             sMdhToFsm_Meta);
 
@@ -1721,14 +1731,14 @@ void rx_engine(
             siSTt_SessStateRep,
             siRSt_SessRxSarRep,
             siTSt_SessTxSarRep,
-            soSessStateReq,
-            soSessRxSarReq,
-            soSessTxSarReq,
-            soClearReTxTimer,
-            soClearProbeTimer,
-            soCloseTimer,
-            soSessOpnStatus,
-            sFsmToEvm_SetEvent,
+            soSTt_SessStateReq,
+            soRSt_RxSarUpdReq,
+            soTSt_TxSarRdReq,
+            soTIm_ClearReTxTimer,
+            soTIm_ClearProbeTimer,
+            soTIm_CloseTimer,
+            soTAi_SessOpnSts,
+            sFsmToEvm_Event,
             sFsmToTsd_DropCmd,
             sFsmToMwr_WrCmd,
             sFsmToRan_Notif);
@@ -1753,8 +1763,8 @@ void rx_engine(
             sMwrToRan_DoubleAccess);
 
     pEventMultiplexer(
-            sMdhToEvm_SetEvent,
-            sFsmToEvm_SetEvent,
-            soSetEvent);
+            sMdhToEvm_Event,
+            sFsmToEvm_Event,
+            soEVe_SetEvent);
 
 }

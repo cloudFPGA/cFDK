@@ -40,6 +40,9 @@ ap_uint<16> swapWord(ap_uint<16> inpWord)
 {
     return (inpWord.range(7,0), inpWord(15, 8));
 }
+ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
+    return (inputVector.range(7,0), inputVector(15, 8));
+}
 
 /*****************************************************************************
  * @brief Swap the four bytes of a double-word.
@@ -52,6 +55,10 @@ ap_uint<32> swapDWord(ap_uint<32> inpDWord)
 {
     return (inpDWord.range( 7, 0), inpDWord(15,  8),
             inpDWord.range(23,16), inpDWord(31, 24));
+}
+ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
+    return (inputVector.range( 7, 0), inputVector(15,  8),
+        inputVector.range(23,16), inputVector(31, 24));
 }
 
 /*****************************************************************************
