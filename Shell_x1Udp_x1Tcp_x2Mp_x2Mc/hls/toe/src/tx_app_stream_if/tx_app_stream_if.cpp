@@ -104,12 +104,15 @@ void tasi_metaLoader(   stream<ap_uint<16> >&           appTxDataReqMetaData,
  *  it writes the memory command and pushes the data to the DataMover,
  *  otherwise the packet is dropped.
  */
-void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
-                        stream<pkgPushMeta>&            tasi_writeToBufFifo,
-                        stream<mmCmd>&                  txBufferWriteCmd,
-                        stream<axiWord>&                txBufferWriteData) {
-#pragma HLS pipeline II=1 enable_flush
-#pragma HLS INLINE off
+void tasi_pkg_pusher(
+        stream<axiWord>         &tasi_pkgBuffer,
+        stream<pkgPushMeta>     &tasi_writeToBufFifo,
+        stream<mmCmd>           &txBufferWriteCmd,
+        stream<AxiWord>         &soMEM_TxP_Data)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS pipeline II=1 enable_flush
+    #pragma HLS INLINE off
 
     static ap_uint<3> tasiPkgPushState = 0;
     static pkgPushMeta tasi_pushMeta;
@@ -170,7 +173,8 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
                 }
                 txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = AxiWord(outputWord.data, outputWord.keep, outputWord.last);
+                soMEM_TxP_Data.write(FixMe);
             }
             else {
                 if (pushWord.last == 1)
@@ -196,19 +200,20 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
         }
         break;
     case 3: // This is the non-realignment state
-        if (!tasi_pkgBuffer.empty() & !txBufferWriteData.full()) {
+        if (!tasi_pkgBuffer.empty() & !soMEM_TxP_Data.full()) {
             tasi_pkgBuffer.read(pushWord);
             if (!tasi_pushMeta.drop) {
                 txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << pushWord.data << " - " << pushWord.keep << " - " << pushWord.last << std::endl;
-                txBufferWriteData.write(pushWord);
+                AxiWord FixMe = AxiWord(pushWord.data, pushWord.keep, pushWord.last);
+                soMEM_TxP_Data.write(FixMe);
             }
             if (pushWord.last == 1)
                 tasiPkgPushState = 0;
         }
         break;
     case 4: // We go into this state when we need to realign things
-        if (!tasi_pkgBuffer.empty() && !txBufferWriteData.full()) {
+        if (!tasi_pkgBuffer.empty() && !soMEM_TxP_Data.full()) {
             axiWord outputWord = axiWord(0, 0xFF, 0);
             outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.data.range(63, lengthBuffer*8);
             pushWord = tasi_pkgBuffer.read();
@@ -230,7 +235,8 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
                     txAppBreakTemp -= 8;
                 //txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = AxiWord(outputWord.data, outputWord.keep, outputWord.last);
+                soMEM_TxP_Data.write(FixMe);
             }
             else {
                 if (pushWord.last == 1)
@@ -239,13 +245,14 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
         }
         break;
     case 5:
-        if (!txBufferWriteData.full()) {
+        if (!soMEM_TxP_Data.full()) {
             if (!tasi_pushMeta.drop) {
                 axiWord outputWord = axiWord(0, returnKeep(txAppBreakTemp), 1);
                 outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.data.range(63, lengthBuffer*8);
                 //txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = AxiWord(outputWord.data, outputWord.keep, outputWord.last);
+                soMEM_TxP_Data.write(FixMe);
                 tasiPkgPushState = 0;
             }
         }
@@ -271,18 +278,20 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
  *  @param[out]     txBufferWriteData
  *  @param[out]     txAppStream2eventEng_setEvent
  */
-void tx_app_stream_if(  stream<ap_uint<16> >&           appTxDataReqMetaData,
-                        stream<axiWord>&                appTxDataReq,
-                        stream<sessionState>&           stateTable2txApp_rsp,
-                        stream<txAppTxSarReply>&        txSar2txApp_upd_rsp, //TODO rename
-                        stream<ap_int<17> >&            appTxDataRsp,
-                        stream<ap_uint<16> >&           txApp2stateTable_req,
-                        stream<txAppTxSarQuery>&        txApp2txSar_upd_req, //TODO rename
-                        stream<mmCmd>&                  txBufferWriteCmd,
-                        stream<axiWord>&                txBufferWriteData,
-                        stream<event>&                  txAppStream2eventEng_setEvent)
+void tx_app_stream_if(
+        stream<ap_uint<16> >       &appTxDataReqMetaData,
+        stream<axiWord>            &appTxDataReq,
+        stream<sessionState>       &stateTable2txApp_rsp,
+        stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
+        stream<ap_int<17> >        &appTxDataRsp,
+        stream<ap_uint<16> >       &txApp2stateTable_req,
+        stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
+        stream<mmCmd>              &txBufferWriteCmd,
+        stream<AxiWord>            &soMEM_TxP_Data,
+        stream<event>              &txAppStream2eventEng_setEvent)
 {
-#pragma HLS INLINE
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE
 
     // FIFOs
     static stream<axiWord> tasi_pkgBuffer("tasi_pkgBuffer");
@@ -310,8 +319,10 @@ void tx_app_stream_if(  stream<ap_uint<16> >&           appTxDataReqMetaData,
                         tasi_writeToBufFifo,
                         txAppStream2eventEng_setEvent);
 
-    tasi_pkg_pusher(    tasi_pkgBuffer,
-                        tasi_writeToBufFifo,
-                        txBufferWriteCmd,
-                        txBufferWriteData);
+    tasi_pkg_pusher(
+            tasi_pkgBuffer,
+            tasi_writeToBufFifo,
+            txBufferWriteCmd,
+            soMEM_TxP_Data);
+
 }

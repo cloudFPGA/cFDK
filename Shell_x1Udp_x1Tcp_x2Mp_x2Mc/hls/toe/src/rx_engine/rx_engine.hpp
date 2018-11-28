@@ -1,6 +1,6 @@
 /*****************************************************************************
  * @file       : rx_engine.hpp
- * @brief      : Rx Engine (RXE) of the TCP Offload Engine (TOE).
+ * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -27,9 +27,9 @@ using namespace hls;
  ********************************************/
 struct rxEngineMetaData
 {
-	TcpSeqNum   seqNumb;    // TCP Sequence Number
-	TcpAckNum   ackNumb;    // TCP Acknowledgment Number
-	TcpWindow   winSize;    // TCP Window Size
+    TcpSeqNum   seqNumb;    // TCP Sequence Number
+    TcpAckNum   ackNumb;    // TCP Acknowledgment Number
+    TcpWindow   winSize;    // TCP Window Size
     TcpSegLen   length;     // TCP Segment Length
     ap_uint<1>  ack;
     ap_uint<1>  rst;

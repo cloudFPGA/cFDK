@@ -823,8 +823,8 @@ void pMetaDataHandler(
  *
  * @param[in]  siMdh_Meta,        Metadata from MetData Handler (Mdh).
  * @param[in]  siSTt_SessStateRep,Session state reply from State Table (STt).
- * @param[in]  siRSt_SessRxSarRep,Session Rx SAR reply from Rx SAR Table (RSt).
- * @param[in]  siTSt_SessTxSarRep,Session Tx SAR reply from Tx SAR Table (TSt).
+ * @param[in]  siRSt_RxSarUpdRep, Update reply from Rx SAR Table (RSt).
+ * @param[in]  siTSt_TxSarRdRep,  Read reply from Tx SAR Table (TSt).
  * @param[out] soSTt_SessStateReq,Request to read the session state.
  * @param[out] soRSt_RxSarUpdReq, Request to update the session Rx SAR.
  * @param[out] soTSt_TxSarRdReq,  Request to read the session Tx SAR.
@@ -848,8 +848,8 @@ void pMetaDataHandler(
 void pFiniteStateMachine(
         stream<rxFsmMetaData>               &siMdh_Meta,
         stream<sessionState>                &siSTt_SessStateRep,
-        stream<rxSarEntry>                  &siRSt_SessRxSarRep,
-        stream<rxTxSarReply>                &siTSt_SessTxSarRep,
+        stream<rxSarEntry>                  &siRSt_RxSarUpdRep,
+        stream<rxTxSarReply>                &siTSt_TxSarRdRep,
         stream<stateQuery>                  &soSTt_SessStateReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
         stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
@@ -904,8 +904,8 @@ void pFiniteStateMachine(
 
     case TRANSITION:
         // Check if transition to LOAD occurs
-        if (!siSTt_SessStateRep.empty() && !siRSt_SessRxSarRep.empty() &&
-            !(fsm_txSarRequest && siTSt_SessTxSarRep.empty())) {
+        if (!siSTt_SessStateRep.empty() && !siRSt_RxSarUpdRep.empty() &&
+            !(fsm_txSarRequest && siTSt_TxSarRdRep.empty())) {
             fsmState = LOAD;
             fsm_txSarRequest = false;
         }
@@ -919,8 +919,8 @@ void pFiniteStateMachine(
         case 1: // ACK
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
-                siRSt_SessRxSarRep.read(rxSar);
-                siTSt_SessTxSarRep.read(txSar);
+                siRSt_RxSarUpdRep.read(rxSar);
+                siTSt_TxSarRdRep.read(txSar);
                 soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
@@ -1037,7 +1037,7 @@ void pFiniteStateMachine(
                 rxEngSynCounter++;
                 //std::cerr << "SYN Counter: " << rxEngSynCounter << std::endl;
                 siSTt_SessStateRep.read(tcpState);
-                siRSt_SessRxSarRep.read(rxSar);
+                siRSt_RxSarUpdRep.read(rxSar);
                 if (tcpState == CLOSED || tcpState == SYN_SENT) {
                     // Actually this is LISTEN || SYN_SENT
                     // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
@@ -1075,11 +1075,11 @@ void pFiniteStateMachine(
             break;
 
         case 3: // SYN_ACK
-            //OBSOLETE if (!siSTt_SessStateRep.empty() && !siTSt_SessTxSarRep.empty())
+            //OBSOLETE if (!siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
-                siRSt_SessRxSarRep.read(rxSar);
-                siTSt_SessTxSarRep.read(txSar);
+                siRSt_RxSarUpdRep.read(rxSar);
+                siTSt_TxSarRdRep.read(txSar);
                 soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                                                                (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == SYN_SENT) && (fsm_meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
@@ -1111,11 +1111,11 @@ void pFiniteStateMachine(
             break;
 
         case 5: //FIN (_ACK)
-            //OBSOLETE if (!siRSt_SessRxSarRep.empty() && !siSTt_SessStateRep.empty() && !siTSt_SessTxSarRep.empty())
+            //OBSOLETE if (!siRSt_RxSarUpdRep.empty() && !siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
-                siRSt_SessRxSarRep.read(rxSar);
-                siTSt_SessTxSarRep.read(txSar);
+                siRSt_RxSarUpdRep.read(rxSar);
+                siTSt_TxSarRdRep.read(txSar);
                 soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                                        (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
@@ -1183,8 +1183,8 @@ void pFiniteStateMachine(
             // We always read rxSar
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
-                siRSt_SessRxSarRep.read(rxSar); //TODO not sure nb works
-                siTSt_SessTxSarRep.read_nb(txSar);
+                siRSt_RxSarUpdRep.read(rxSar); //TODO not sure nb works
+                siTSt_TxSarRdRep.read_nb(txSar);
             }
             if (fsmState == LOAD) {
                 // Handle if RST
@@ -1558,8 +1558,8 @@ void pMemWriter(
  * @param[in]  siSLc_SessLookupRep, Session lookup lookup reply from SLc.
  * @param[in]  siSTt_SessStateRep,  Session state reply
  * @param[in]  siPRt_PortSts,       Port state (open/close) from Port Table (PRt).
- * @param[in]  siRSt_SessRxSarRep   Session Rx SAR reply form Rx SAR Table (RSt).
- * @param[in]  siTSt_SessTxSarRep   Session Tx SAR reply from Tx SAR Table (TSt).
+ * @param[in]  siRSt_RxSarUpdRep    Update reply form Rx SAR Table (RSt).
+ * @param[in]  siTSt_TxSarRdRep     Read reply from Tx SAR Table (TSt).
  * @param[in]  siMEM_WrSts,         Memory write status from MEM.
  * @param[out] soMemWrData,         Memory data write stream to MEM controller.
  * @param[out] soSTt_SessStateReq,  Session state request.
@@ -1592,8 +1592,8 @@ void rx_engine(
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
         stream<sessionState>            &siSTt_SessStateRep,
         stream<StsBit>                  &siPRt_PortSts,
-        stream<rxSarEntry>              &siRSt_SessRxSarRep,
-        stream<rxTxSarReply>            &siTSt_SessTxSarRep,
+        stream<rxSarEntry>              &siRSt_RxSarUpdRep,
+        stream<rxTxSarReply>            &siTSt_TxSarRdRep,
         stream<mmStatus>                &siMEM_WrSts,
         stream<axiWord>                 &soMemWrData,
         stream<stateQuery>              &soSTt_SessStateReq,
@@ -1729,8 +1729,8 @@ void rx_engine(
     pFiniteStateMachine(
             sMdhToFsm_Meta,
             siSTt_SessStateRep,
-            siRSt_SessRxSarRep,
-            siTSt_SessTxSarRep,
+            siRSt_RxSarUpdRep,
+            siTSt_TxSarRdRep,
             soSTt_SessStateReq,
             soRSt_RxSarUpdReq,
             soTSt_TxSarRdReq,

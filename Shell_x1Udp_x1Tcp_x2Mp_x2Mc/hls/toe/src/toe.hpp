@@ -238,6 +238,7 @@ typedef ap_uint<16> AxiIp4TotalLen;    // IPv4 Total Length over Axi
 typedef ap_uint<32> AxiIp4SrcAddr;     // IPv4 Source Address over Axi
 typedef ap_uint<32> AxiIp4DstAddr;     // IPv4 Destination Address over Axi
 typedef ap_uint<32> AxiIp4Address;     // IPv4 Source or Destination Address over Axi
+typedef ap_uint<32> AxiIp4Addr;        // IPv4 Source or Destination Address over Axi
 
 /*************************************************************************
  * TCP - Header Type Definitions in Axi4-Stream Order (Little-Endian)
@@ -340,10 +341,10 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
 }
 
 struct fourTuple {
-    ap_uint<32> srcIp;
-    ap_uint<32> dstIp;
-    ap_uint<16> srcPort;
-    ap_uint<16> dstPort;
+    ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+    ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
     fourTuple() {}
     fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
               : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
@@ -362,7 +363,7 @@ typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
 /********************************************
  * TCP - Streaming Type Definition
  ********************************************/
-typedef     AxiWord     TcpWord;
+typedef AxiWord         TcpWord;
 
 
 
@@ -378,6 +379,8 @@ struct ipTuple
  * Session Lookup Controller (SLc)
  ********************************************/
 
+typedef ap_uint<16>     SessionId;
+
 struct sessionLookupQuery
 {
     SocketPair  tuple;
@@ -389,10 +392,10 @@ struct sessionLookupQuery
 
 struct sessionLookupReply
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     bool        hit;
     sessionLookupReply() {}
-    sessionLookupReply(ap_uint<16> id, bool hit) :
+    sessionLookupReply(SessionId id, bool hit) :
         sessionID(id), hit(hit) {}
 };
 
@@ -404,13 +407,13 @@ struct sessionLookupReply
 
 struct stateQuery
 {
-    ap_uint<16>     sessionID;
+	SessionId       sessionID;
     sessionState    state;
     ap_uint<1>      write;
     stateQuery() {}
-    stateQuery(ap_uint<16> id) :
+    stateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(0) {}
-    stateQuery(ap_uint<16> id, sessionState state, ap_uint<1> write) :
+    stateQuery(SessionId id, sessionState state, ap_uint<1> write) :
         sessionID(id), state(state), write(write) {}
 };
 
@@ -426,29 +429,29 @@ struct rxSarEntry
 
 struct rxSarRecvd
 {
-    ap_uint<16> sessionID;
-    ap_uint<32> recvd;
-    ap_uint<1>  write;
-    ap_uint<1>  init;
+	SessionId       sessionID;
+    ap_uint<32>     recvd;
+    ap_uint<1>      write;
+    ap_uint<1>      init;
     rxSarRecvd() {}
-    rxSarRecvd(ap_uint<16> id) :
+    rxSarRecvd(SessionId id) :
         sessionID(id), recvd(0), write(0), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write) :
+    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write) :
         sessionID(id), recvd(recvd), write(write), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
+    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
         sessionID(id), recvd(recvd), write(write), init(init) {}
 };
 
 struct rxSarAppd
 {
-    ap_uint<16> sessionID;
-    ap_uint<16> appd;
+	SessionId       sessionID;
+    ap_uint<16>     appd;
     // ap_uint<32> recvd; // for comparison with application data request - ensure appd + length < recvd
     ap_uint<1>  write;
     rxSarAppd() {}
-    rxSarAppd(ap_uint<16> id) :
+    rxSarAppd(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    rxSarAppd(ap_uint<16> id, ap_uint<16> appd) :
+    rxSarAppd(SessionId id, ap_uint<16> appd) :
         sessionID(id), appd(appd), write(1) {}
 };
 
@@ -480,6 +483,9 @@ struct rxSarRecvd
             :sessionID(id), recvd(recvd), write(write), init(init) {}
 };*/
 
+/********************************************
+ * Tx SAR Table (TSt)
+ ********************************************/
 struct txSarEntry
 {
     ap_uint<32> ackd;
@@ -495,7 +501,7 @@ struct txSarEntry
 
 struct rxTxSarQuery
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     ap_uint<32> ackd;
     ap_uint<16> recv_window;
     ap_uint<16> cong_window;
@@ -503,15 +509,15 @@ struct rxTxSarQuery
     ap_uint<1>  write;
     ap_uint<1>  init;
     rxTxSarQuery () {}
-    rxTxSarQuery(ap_uint<16> id) :
+    rxTxSarQuery(SessionId id) :
         sessionID(id), ackd(0), recv_window(0), count(0), write(0) {}
-    rxTxSarQuery(ap_uint<16> id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
+    rxTxSarQuery(SessionId id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
 struct txTxSarQuery
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     ap_uint<32> not_ackd;
     ap_uint<1>  write;
     ap_uint<1>  init;
@@ -519,17 +525,17 @@ struct txTxSarQuery
     bool        finSent;
     bool        isRtQuery;
     txTxSarQuery() {}
-    txTxSarQuery(ap_uint<16> id) :
+    txTxSarQuery(SessionId id) :
         sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
     //txTxSarQuery(ap_uint<16> id, ap_uint<1> lock)
     //          :sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write) :
+    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write) :
         sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
+    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
+    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
-    txTxSarQuery(ap_uint<16> id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
+    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
@@ -538,100 +544,108 @@ struct txTxSarRtQuery : public txTxSarQuery
     txTxSarRtQuery() {}
     txTxSarRtQuery(const txTxSarQuery& q) :
         txTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
-    txTxSarRtQuery(ap_uint<16> id, ap_uint<16> ssthresh) :
+    txTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
          txTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
     ap_uint<16> getThreshold() {
     	return not_ackd(15, 0);
     }
 };
 
+
 struct txAppTxSarQuery
 {
-    ap_uint<16> sessionID;
-    //ap_uint<16> ackd;
+    SessionId   sessionID;
     ap_uint<16> mempt;
     bool        write;
     txAppTxSarQuery() {}
-    txAppTxSarQuery(ap_uint<16> id)
+    txAppTxSarQuery(SessionId id)
             :sessionID(id), mempt(0), write(false) {}
-    txAppTxSarQuery(ap_uint<16> id, ap_uint<16> pt)
+    txAppTxSarQuery(SessionId id, ap_uint<16> pt)
             :sessionID(id), mempt(pt), write(true) {}
 };
 
+/********************************************
+ * Rx SAR Table (RSt) Reply
+ ********************************************/
 struct rxTxSarReply
 {
-    ap_uint<32>     prevAck;
-    ap_uint<32> nextByte;
-    ap_uint<16>     cong_window;
-    ap_uint<16> slowstart_threshold;
-    ap_uint<2>  count;
+    TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
+    TcpAckNum       nextByte;    //OBSOLETE-20181126 ap_uint<32>     nextByte;
+    TcpWindow       cong_window; //OBSOLETE-20181126  ap_uint<16>     cong_window;
+    ap_uint<16>     slowstart_threshold;
+    ap_uint<2>      count;
     rxTxSarReply() {}
-    rxTxSarReply(ap_uint<32> ack, ap_uint<32> next, ap_uint<16> cong_win, ap_uint<16> sstresh, ap_uint<2> count)
-            :prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
+    rxTxSarReply(ap_uint<32> ack, ap_uint<32> next, ap_uint<16> cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
+        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
 };
+
+
 
 struct txAppTxSarReply
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     ap_uint<16> ackd;
     ap_uint<16> mempt;
     txAppTxSarReply() {}
-    txAppTxSarReply(ap_uint<16> id, ap_uint<16> ackd, ap_uint<16> pt)
-            :sessionID(id), ackd(ackd), mempt(pt) {}
+    txAppTxSarReply(SessionId id, ap_uint<16> ackd, ap_uint<16> pt) :
+        sessionID(id), ackd(ackd), mempt(pt) {}
 };
 
 struct txAppTxSarPush
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     ap_uint<16> app;
     txAppTxSarPush() {}
-    txAppTxSarPush(ap_uint<16> id, ap_uint<16> app)
-            :sessionID(id), app(app) {}
+    txAppTxSarPush(SessionId id, ap_uint<16> app) :
+         sessionID(id), app(app) {}
 };
 
 struct txSarAckPush
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     ap_uint<16> ackd;
     ap_uint<1>  init;
     txSarAckPush() {}
-    txSarAckPush(ap_uint<16> id, ap_uint<16> ackd)
-            :sessionID(id), ackd(ackd), init(0) {}
-    txSarAckPush(ap_uint<16> id, ap_uint<16> ackd, ap_uint<1> init)
-            :sessionID(id), ackd(ackd), init(init) {}
+    txSarAckPush(SessionId id, ap_uint<16> ackd) :
+        sessionID(id), ackd(ackd), init(0) {}
+    txSarAckPush(SessionId id, ap_uint<16> ackd, ap_uint<1> init) :
+        sessionID(id), ackd(ackd), init(init) {}
 };
 
+/********************************************
+ * Tx SAR Table (TSt) Reply
+ ********************************************/
 struct txTxSarReply
 {
-    ap_uint<32> ackd;
-    ap_uint<32> not_ackd;
-    ap_uint<16> min_window;
-    ap_uint<16> app;
-    bool        finReady;
-    bool        finSent;
+	TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
+	TcpAckNum       not_ackd;   //OBSOLETE ap_uint<32>  not_ackd;
+    TcpWindow       min_window; //OBSOLETE ap_uint<16>  min_window;
+    ap_uint<16>     app;
+    bool            finReady;
+    bool            finSent;
     txTxSarReply() {}
-    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent)
-        :ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
+    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
+        ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
 struct rxRetransmitTimerUpdate {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     bool        stop;
     rxRetransmitTimerUpdate() {}
-    rxRetransmitTimerUpdate(ap_uint<16> id)
-            :sessionID(id), stop(0) {}
-    rxRetransmitTimerUpdate(ap_uint<16> id, bool stop)
-            :sessionID(id), stop(stop) {}
+    rxRetransmitTimerUpdate(SessionId id) :
+         sessionID(id), stop(0) {}
+    rxRetransmitTimerUpdate(ap_uint<16> id, bool stop) :
+        sessionID(id), stop(stop) {}
 };
 
 struct txRetransmitTimerSet {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     eventType   type;
     txRetransmitTimerSet() {}
-    txRetransmitTimerSet(ap_uint<16> id)
-            :sessionID(id), type(RT) {} //FIXME??
-    txRetransmitTimerSet(ap_uint<16> id, eventType type)
-            :sessionID(id), type(type) {}
+    txRetransmitTimerSet(SessionId id) :
+        sessionID(id), type(RT) {} //FIXME??
+    txRetransmitTimerSet(SessionId id, eventType type) :
+        sessionID(id), type(type) {}
 };
 
 /********************************************
@@ -640,28 +654,26 @@ struct txRetransmitTimerSet {
 struct event
 {
     eventType       type;
-    ap_uint<16>     sessionID;
-    //eventType     type;
-    //ap_uint<16>   sessionID;
+    SessionId       sessionID;
     ap_uint<16>     address;
     ap_uint<16>     length;
     ap_uint<3>      rt_count;
     //bool          retransmit;
     event() {}
     //event(const event&) {}
-    event(eventType type, ap_uint<16> id) :
+    event(eventType type, SessionId id) :
         type(type), sessionID(id), address(0), length(0), rt_count(0) {}
-    event(eventType type, ap_uint<16> id, ap_uint<3> rt_count) :
+    event(eventType type, SessionId id, ap_uint<3> rt_count) :
         type(type), sessionID(id), address(0), length(0), rt_count(rt_count) {}
-    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len) :
+    event(eventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len) :
         type(type), sessionID(id), address(addr), length(len), rt_count(0) {}
-    event(eventType type, ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count) :
+    event(eventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count) :
         type(type), sessionID(id), address(addr), length(len), rt_count(rt_count) {}
 };
 
 struct extendedEvent : public event
 {
-    SocketPair  tuple;
+    SocketPair  tuple;    // [FIXME - Considre renaming]
     extendedEvent() {}
     extendedEvent(const event& ev) :
         event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
@@ -672,48 +684,92 @@ struct extendedEvent : public event
 struct rstEvent : public event
 {
     rstEvent() {}
-    rstEvent(const event& ev)
-        :event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    rstEvent(ap_uint<32> seq)
-            //:event(RST, 0, false), seq(seq) {}
-            :event(RST, 0, seq(31, 16), seq(15, 0), 0) {}
-    rstEvent(ap_uint<16> id, ap_uint<32> seq)
-            :event(RST, id, seq(31, 16), seq(15, 0), 1) {}
-            //:event(RST, id, true), seq(seq) {}
-    rstEvent(ap_uint<16> id, ap_uint<32> seq, bool hasSessionID)
-            :event(RST, id, seq(31, 16), seq(15, 0), hasSessionID) {}
-        //:event(RST, id, hasSessionID), seq(seq) {}
-    ap_uint<32> getAckNumb()
-    {
+    rstEvent(const event& ev) :
+        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
+    rstEvent(ap_uint<32> seq) :                         //:event(RST, 0, false), seq(seq) {}
+        event(RST, 0, seq(31, 16), seq(15, 0), 0) {}
+    rstEvent(SessionId id, ap_uint<32> seq) :
+        event(RST, id, seq(31, 16), seq(15, 0), 1) {}   //:event(RST, id, true), seq(seq) {}
+    rstEvent(SessionId id, ap_uint<32> seq, bool hasSessionID) :
+        event(RST, id, seq(31, 16), seq(15, 0), hasSessionID) {}  //:event(RST, id, hasSessionID), seq(seq) {}
+    ap_uint<32> getAckNumb() {
         ap_uint<32> seq;
         seq(31, 16) = address;
         seq(15, 0) = length;
         return seq;
     }
-    bool hasSessionID()
-    {
+    bool hasSessionID() {
         return (rt_count != 0);
     }
 };
 
+
+
+
+
+
+
+
+/*************************************************************************
+ * EXTERNAL DRAM MEMORY INTERFACE SECTION
+ *************************************************************************
+ * Terminology & Conventions (see Xilinx LogiCORE PG022).
+ *  [DM]  stands for AXI Data Mover
+ *  [DRE] stands for Data Realignment Engine.
+ *************************************************************************/
+
+/********************************************
+ * Data Mover Command Interface (c.f PG022)
+ ********************************************/
+struct DmCmd
+{
+    ap_uint<23>     bbt;    // Bytes To Transfer
+    ap_uint<1>      type;   // Type of AXI4 access (0=FIXED, 1=INCR)
+    ap_uint<6>      dsa;    // DRE Stream Alignment
+    ap_uint<1>      eof;    // End of Frame
+    ap_uint<1>      drr;    // DRE ReAlignment Request
+    ap_uint<32>     saddr;  // Start Address
+    ap_uint<4>      tag;    // Command Tag
+    ap_uint<4>      rsvd;   // Reserved
+    DmCmd() {}
+    DmCmd(ap_uint<32> addr, ap_uint<16> len) :
+        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+};
+
+
 struct mmCmd
 {
-    ap_uint<23>     bbt;
+    ap_uint<23> bbt;
     ap_uint<1>  type;
     ap_uint<6>  dsa;
     ap_uint<1>  eof;
     ap_uint<1>  drr;
-    ap_uint<32>     saddr;
+    ap_uint<32> saddr;
     ap_uint<4>  tag;
     ap_uint<4>  rsvd;
     mmCmd() {}
-    mmCmd(ap_uint<32> addr, ap_uint<16> len)
-            :bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+    mmCmd(ap_uint<32> addr, ap_uint<16> len) :
+        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+
     /*mm_cmd(ap_uint<32> addr, ap_uint<16> len, ap_uint<1> last)
             :bbt(len), type(1), dsa(0), eof(last), drr(1), saddr(addr), tag(0), rsvd(0) {}*/
     /*mm_cmd(ap_uint<32> addr, ap_uint<16> len, ap_uint<4> dsa)
             :bbt(len), type(1), dsa(dsa), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}*/
 };
+
+/********************************************
+ * Data Mover Status Interface (c.f PG022)
+ ********************************************/
+struct DmSts
+{
+    ap_uint<4>      tag;
+    ap_uint<1>      interr;
+    ap_uint<1>      decerr;
+    ap_uint<1>      slverr;
+    ap_uint<1>      okay;
+    DmSts() {}
+};
+
 
 struct mmStatus
 {
@@ -723,6 +779,9 @@ struct mmStatus
     ap_uint<1>  slverr;
     ap_uint<1>  okay;
 };
+
+
+
 
 //TODO is this required??
 struct mm_ibtt_status
@@ -738,40 +797,40 @@ struct mm_ibtt_status
 
 struct openStatus
 {
-    ap_uint<16>     sessionID;
+	SessionId   sessionID;
     bool        success;
     openStatus() {}
-    openStatus(ap_uint<16> id, bool success)
-        :sessionID(id), success(success) {}
+    openStatus(SessionId id, bool success) :
+        sessionID(id), success(success) {}
 };
 
 struct appNotification
 {
-    ap_uint<16>        sessionID;
+	SessionId          sessionID;
     ap_uint<16>        length;
     ap_uint<32>        ipAddress;
     ap_uint<16>        dstPort;
     bool               closed;
     appNotification() {}
-    appNotification(ap_uint<16> id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port)
-                :sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
-    appNotification(ap_uint<16> id, bool closed)
-                :sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
-    appNotification(ap_uint<16> id, ap_uint<32> addr, ap_uint<16> port, bool closed)
-                :sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
-    appNotification(ap_uint<16> id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed)
-            :sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
+    appNotification(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
+        sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
+    appNotification(SessionId id, bool closed) :
+        sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
+    appNotification(SessionId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+        sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
+    appNotification(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+        sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
 };
 
 
 struct appReadRequest
 {
-    ap_uint<16> sessionID;
+	SessionId   sessionID;
     //ap_uint<16> address;
     ap_uint<16> length;
     appReadRequest() {}
-    appReadRequest(ap_uint<16> id, ap_uint<16> len)
-            :sessionID(id), length(len) {}
+    appReadRequest(SessionId id, ap_uint<16> len) :
+        sessionID(id), length(len) {}
 };
 //ap_uint<8> length2keep_mapping(uint16_t lengthValue);
 ap_uint<8> returnKeep(ap_uint<4> length);
@@ -845,10 +904,10 @@ void toe(
         //------------------------------------------------------
         //-- Not Used                           &siMEM_This_TxP_RdSts,
         stream<mmCmd>                           &soTHIS_Mem_TxP_RdCmd,
-        stream<axiWord>                         &siMEM_This_TxP_Data,
+        stream<AxiWord>                         &siMEM_This_TxP_Data,
         stream<mmStatus>                        &siMEM_This_TxP_WrSts,
         stream<mmCmd>                           &soTHIS_Mem_TxP_WrCmd,
-        stream<axiWord>                         &soTHIS_Mem_TxP_Data,
+        stream<AxiWord>                         &soTHIS_Mem_TxP_Data,
 
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces

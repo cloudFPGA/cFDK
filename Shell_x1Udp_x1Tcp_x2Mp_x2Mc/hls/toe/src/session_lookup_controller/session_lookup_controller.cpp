@@ -310,7 +310,7 @@ void reverseLookupTableInterface(
  * @param[in]
  * @param[in]  siTAi_SessLookupReq, Session lookup request from Tx App. I/F (TAi).
  * @param[out] soTAi_SessLookupReq, Session lookup reply to TAi.
- * @param[in]
+ * @param[in]  siTXe_ReverseLkpReq, Reverse lookup request for Tx Engine (TXe).
  * @param[out]
  * @param[out]
  * @param[out] soCAM_SessLookupReq, Request to ternary CAM (CAM).
@@ -343,7 +343,7 @@ void session_lookup_controller(
         stream<ap_uint<16> >               &sLookup2portTable_releasePort,
         stream<fourTuple>                  &siTAi_SessLookupReq,
         stream<sessionLookupReply>         &soTAi_SessLookupRep,
-        stream<ap_uint<16> >               &txEng2sLookup_rev_req,
+        stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &sLookup2txEng_rev_rsp,
         stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
         stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
@@ -418,7 +418,7 @@ void session_lookup_controller(
     reverseLookupTableInterface(
             reverseLupInsertFifo,
             stateTable2sLookup_releaseSession,
-            txEng2sLookup_rev_req,
+            siTXe_ReverseLkpReq,
             sLookup2portTable_releasePort,
             sessionDelete_req,
             sLookup2txEng_rev_rsp);

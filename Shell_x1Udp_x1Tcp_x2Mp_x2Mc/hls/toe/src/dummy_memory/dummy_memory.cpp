@@ -1,13 +1,21 @@
+/*****************************************************************************
+ * @file       : dummy_memory.cpp
+ * @brief      : Buffer memory emulator for the test bench of the TOE.
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "dummy_memory.hpp"
 #include <iostream>
 
 
-/*dummyMemory::dummyMemory(const dummyMemory& another)
-{
-
-}*/
-
-void dummyMemory::setReadCmd(mmCmd cmd)
+void DummyMemory::setReadCmd(mmCmd cmd)
 {
 //  readAddr = cmd.saddr(7, 0);
     readAddr = cmd.saddr(15, 0);
@@ -17,7 +25,7 @@ void dummyMemory::setReadCmd(mmCmd cmd)
     //std::cout << readLen << std::endl;
 }
 
-void dummyMemory::setWriteCmd(mmCmd cmd)
+void DummyMemory::setWriteCmd(mmCmd cmd)
 {
 //  writeAddr = cmd.saddr(7, 0);
     writeAddr = cmd.saddr(15, 0);
@@ -25,71 +33,64 @@ void dummyMemory::setWriteCmd(mmCmd cmd)
 }
 
 
-void dummyMemory::readWord(axiWord& word)
+void DummyMemory::readWord(AxiWord &word)
 {
     readStorageIt = storage.find(readId);
-    if (readStorageIt == storage.end())
-    {
+    if (readStorageIt == storage.end()) {
         readStorageIt = createBuffer(readId);
         // check it?
     }
     int i = 0;
-    word.keep = 0;
-    while (readLen > 0 && i < 8)
-    {
-        word.data((i*8)+7, i*8) = (readStorageIt->second)[readAddr];
-        word.keep = (word.keep << 1);
-        word.keep++;
+    word.tkeep = 0;
+    while (readLen > 0 && i < 8) {
+        word.tdata((i*8)+7, i*8) = (readStorageIt->second)[readAddr];
+        word.tkeep = (word.tkeep << 1);
+        word.tkeep++;
         readLen--;
         readAddr++;
         i++;
     }
-    if (readLen == 0)
-    {
-        word.last = 1;
+    if (readLen == 0) {
+        word.tlast = 1;
     }
-    else
-    {
-        word.last = 0;
+    else {
+        word.tlast = 0;
     }
 }
 
-void dummyMemory::writeWord(axiWord& word)
+
+void DummyMemory::writeWord(AxiWord &word)
 {
     writeStorageIt = storage.find(writeId);
-    if (writeStorageIt == storage.end())
-    {
+    if (writeStorageIt == storage.end()) {
         writeStorageIt = createBuffer(writeId);
         // check it?
     }
     //shuffleWord(word.data);
-    for (int i = 0; i < 8; i++)
-    {
-        if (word.keep[i])
-        {
-            (writeStorageIt->second)[writeAddr] = word.data((i*8)+7, i*8);
+    for (int i = 0; i < 8; i++) {
+        if (word.tkeep[i]) {
+            (writeStorageIt->second)[writeAddr] = word.tdata((i*8)+7, i*8);
             writeAddr++;
         }
-        else
-        {
+        else {
             break;
         }
     }
 }
 
-std::map<ap_uint<16>, ap_uint<8>*>::iterator dummyMemory::createBuffer(ap_uint<16> id)
+
+std::map<ap_uint<16>, ap_uint<8>*>::iterator DummyMemory::createBuffer(ap_uint<16> id)
 {
     ap_uint<8>* array = new ap_uint<8>[65536]; // [255] default
     std::pair<std::map<ap_uint<16>, ap_uint<8>*>::iterator, bool> ret;
     ret = storage.insert(std::make_pair(id, array));
-    if (ret.second)
-    {
+    if (ret.second) {
         return ret.first;
     }
     return storage.end();
 }
 
-void dummyMemory::shuffleWord(ap_uint<64>& word)
+void DummyMemory::shuffleWord(ap_uint<64>& word)
 {
     ap_uint<64> temp;
     temp(7, 0) = word(63, 56);
@@ -103,6 +104,8 @@ void dummyMemory::shuffleWord(ap_uint<64>& word)
     temp(63, 56) = word(7, 0);
     word = temp;
 }
+
+
 
 /*bool* dummyMemory::getBitMask(ap_uint<4> keep)
 {

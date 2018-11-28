@@ -64,7 +64,11 @@ ap_uint<4> keepMapping(ap_uint<8> keepValue) {          // This function counts 
 }
 */
 
-ap_uint<4> keepMapping(ap_uint<8> keepValue) {          // This function counts the number of 1s in an 8-bit value
+
+/*****************************************************************************
+ * @brief A function to count the number of 1s in an 8-bit value.
+ *****************************************************************************/
+ap_uint<4> keepMapping(ap_uint<8> keepValue) {
     ap_uint<4> counter = 0;
 
     switch(keepValue){
@@ -80,30 +84,23 @@ ap_uint<4> keepMapping(ap_uint<8> keepValue) {          // This function counts 
     return counter;
 }
 
-/*
-ap_uint<8> returnKeep(ap_uint<4> length) {
+
+/*****************************************************************************
+ * @brief A function to set a number of 1s in an 8-bit value.
+ *****************************************************************************/
+ap_uint<8> returnKeep(ap_uint<4> count) {
     ap_uint<8> keep = 0;
-    for (uint8_t i=0;i<8;++i) {
-        if (i < length)
-            keep.bit(i) = 1;
+
+    switch(count){
+        case 1: keep = 0x01; break;
+        case 2: keep = 0x03; break;
+        case 3: keep = 0x07; break;
+        case 4: keep = 0x0F; break;
+        case 5: keep = 0x1F; break;
+        case 6: keep = 0x3F; break;
+        case 7: keep = 0x7F; break;
+        case 8: keep = 0xFF; break;
     }
-    return keep;
-}
-*/
-
-ap_uint<8> returnKeep(ap_uint<4> length) {
-    ap_uint<8> keep = 0;
-
-    switch(length){
-            case 1: keep = 0x01; break;
-            case 2: keep = 0x03; break;
-            case 3: keep = 0x07; break;
-            case 4: keep = 0x0F; break;
-            case 5: keep = 0x1F; break;
-            case 6: keep = 0x3F; break;
-            case 7: keep = 0x7F; break;
-            case 8: keep = 0xFF; break;
-        }
 
     return keep;
 }
@@ -122,9 +119,10 @@ template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T
 /*****************************************************************************
  * @brief This a wrapper for the timer processes (TIm).
  *
- * @param[in]  siRXe_ClearReTxTimer, Clear retransmission timer from Rx Engine (RXe).
- * @param[out]
- * @param[out]
+ * @param[in]  siRXe_ClrReTxTimer,  Clear retransmission timer from Rx Engine (RXe).
+ * @param[in]  siTXe_SetReTxTimer,  Set   retransmission timer from Tx Engine (TXe).
+ * @param[]
+ * @param[in]  siTXe_SetProbeTimer, Set probe timer from Tx Engine (TXe).
  * @param[out]
  *
  * @details
@@ -134,10 +132,10 @@ template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T
  * @ingroup toe
  *****************************************************************************/
 void pTimers(
-        stream<rxRetransmitTimerUpdate> &siRXe_ClearReTxTimer,
-        stream<txRetransmitTimerSet>    &txEng2timer_setRetransmitTimer,
+        stream<rxRetransmitTimerUpdate> &siRXe_ClrReTxTimer,
+        stream<txRetransmitTimerSet>    &siTXe_SetReTxTimer,
         stream<ap_uint<16> >            &rxEng2timer_clearProbeTimer,
-        stream<ap_uint<16> >            &txEng2timer_setProbeTimer,
+        stream<ap_uint<16> >            &siTXe_SetProbeTimer,
         stream<ap_uint<16> >            &rxEng2timer_setCloseTimer,
         stream<ap_uint<16> >            &timer2stateTable_releaseState,
         stream<event>                   &timer2eventEng_setEvent,
@@ -161,8 +159,8 @@ void pTimers(
     //eventMerger(rtTimer2eventEng_setEvent, probeTimer2eventEng_setEvent, timer2eventEng_setEvent);
     mergeFunction(rtTimer2eventEng_setEvent, probeTimer2eventEng_setEvent, timer2eventEng_setEvent);
     retransmit_timer(
-            siRXe_ClearReTxTimer,
-            txEng2timer_setRetransmitTimer,
+            siRXe_ClrReTxTimer,
+            siTXe_SetReTxTimer,
             rtTimer2eventEng_setEvent,
             rtTimer2stateTable_releaseState,
             rtTimer2txApp_notification,
@@ -170,7 +168,7 @@ void pTimers(
 
     probe_timer(
             rxEng2timer_clearProbeTimer,
-            txEng2timer_setProbeTimer,
+            siTXe_SetProbeTimer,
             probeTimer2eventEng_setEvent);
 
     close_timer(
@@ -530,10 +528,10 @@ void toe(
         //------------------------------------------------------
         //-- Not Used                       &siMEM_This_TxP_RdSts,
         stream<mmCmd>                       &soTHIS_Mem_TxP_RdCmd,
-        stream<axiWord>                     &siMEM_This_TxP_Data,
+        stream<AxiWord>                     &siMEM_This_TxP_Data,
         stream<mmStatus>                    &siMEM_This_TxP_WrSts,
         stream<mmCmd>                       &soTHIS_Mem_TxP_WrCmd,
-        stream<axiWord>                     &soTHIS_Mem_TxP_Data,
+        stream<AxiWord>                     &soTHIS_Mem_TxP_Data,
 
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
@@ -680,7 +678,7 @@ void toe(
     static stream<ap_uint<16> >         sRXeToTIm_CloseTimer      ("sRXeToTIm_CloseTimer");
     #pragma HLS stream         variable=sRXeToTIm_CloseTimer      depth=2
 
-    static stream<ap_uint<16> >         sRXeToTIm_ClearProbeTimer ("sRXeToTIm_ClearProbeTimer");
+    static stream<ap_uint<16> >         sRXeToTIm_ClrProbeTimer   ("sRXeToTIm_ClrProbeTimer");
     // FIXME - No depth for this stream ?
 
     static stream<appNotification>      sRXeToRXa_Notification    ("sRXeToRXa_Notification");
@@ -696,9 +694,9 @@ void toe(
     #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<rxSarEntry>           sRStToRXe_SessRxSarRep    ("sRStToRXe_SessRxSarRep");
-    #pragma HLS stream         variable=sRStToRXe_SessRxSarRep    depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRXe_SessRxSarRep
+    static stream<rxSarEntry>           sRStToRXe_RxSarUpdRep     ("sRStToRXe_RxSarUpdRep");
+    #pragma HLS stream         variable=sRStToRXe_RxSarUpdRep     depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarUpdRep
 
     static stream<rxSarAppd>            sRStToRAi_RxSarUpdRep     ("sRStToRAi_RxSarUpdRep");
     #pragma HLS stream         variable=sRStToRAi_RxSarUpdRep     depth=2
@@ -719,6 +717,10 @@ void toe(
 
     static stream<ap_uint<16> >         sSLcToPRt_ReleasePort     ("sSLcToPRt_ReleasePort");
     #pragma HLS stream         variable=sSLcToPRt_ReleasePort     depth=4
+
+    static stream<fourTuple>            sSLcToTXe_ReverseLkpRep   ("sSLcToTXe_ReverseLkpRep");
+    #pragma HLS stream         variable=sSLcToTXe_ReverseLkpRep   depth=4
+    #pragma HLS DATA_PACK      variable=sSLcToTXe_ReverseLkpRep
 
     //-- State Table (STt) ----------------------------------------------------
     static stream<sessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
@@ -741,32 +743,45 @@ void toe(
     #pragma HLS stream         variable=sTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
     #pragma HLS DATA_PACK      variable=sTImToEVe_Event
 
-    //-- Tx Engine (TXe) ------------------------------------------------------
+    //-------------------------------------------------------------------------
+    //-- Tx Engine (TXe)
+    //-------------------------------------------------------------------------
     static stream<ap_uint<1> >          sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
     static stream<ap_uint<16> >         sTXeToRSt_RxSarRdReq      ("sTXeToRSt_RxSarRdReq");
     #pragma HLS stream         variable=sTXeToRSt_RxSarRdReq      depth=2
 
-    //-- Tx SAR Table (TsT) ---------------------------------------------------
+    static stream<txTxSarQuery>         sTXeToTSt_TxSarUpdReq     ("sTXeToTSt_TxSarUpdReq");
+    #pragma HLS stream         variable=sTXeToTSt_TxSarUpdReq     depth=2
+    #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarUpdReq
+
+    static stream<ap_uint<16> >         sTXeToSLc_ReverseLkpReq   ("sTXeToSLc_ReverseLkpReq");
+    #pragma HLS stream         variable=sTXeToSLc_ReverseLkpReq   depth=4
+
+    static stream<txRetransmitTimerSet> sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
+    #pragma HLS stream         variable=sTXeToTIm_SetReTxTimer    depth=2
+    #pragma HLS DATA_PACK      variable=sTXeToTIm_SetReTxTimer
+
+    static stream<ap_uint<16> >         sTXeToTIm_SetProbeTimer   ("sTXeToTIm_SetProbeTimer");
+    #pragma HLS stream         variable=sTXeToTIm_SetProbeTimer   depth=2
+
+    //-------------------------------------------------------------------------
+    //-- Tx SAR Table (TSt)
+    //-------------------------------------------------------------------------
     static stream<rxTxSarReply>         sTStToRXe_SessTxSarRep    ("sTStToRXe_SessTxSarRep");
     #pragma HLS stream         variable=sTStToRXe_SessTxSarRep    depth=2
     #pragma HLS DATA_PACK      variable=sTStToRXe_SessTxSarRep
 
+    static stream<txTxSarReply>         sTStToTXe_TxSarUpdRep     ("sTStToTXe_TxSarUpdRep");
+    #pragma HLS stream         variable=sTStToTXe_TxSarUpdRep     depth=2
+    #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarUpdRep
+
+
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-    static stream<ap_uint<16> >             txEng2sLookup_rev_req("txEng2sLookup_rev_req");
-    static stream<fourTuple>                sLookup2txEng_rev_rsp("sLookup2txEng_rev_rsp");
-
-
-    #pragma HLS stream variable=txEng2sLookup_rev_req       depth=4
-    #pragma HLS stream variable=sLookup2txEng_rev_rsp       depth=4
-
-
-    #pragma HLS DATA_PACK variable=sLookup2txEng_rev_rsp
 
     // State Table
 
@@ -804,24 +819,24 @@ void toe(
 
 
     // TX Sar Table
-    static stream<txTxSarQuery>             txEng2txSar_upd_req("txEng2txSar_upd_req");
-    static stream<txTxSarReply>             txSar2txEng_upd_rsp("txSar2txEng_upd_rsp");
+
+
     //static stream<txAppTxSarQuery>        txApp2txSar_upd_req("txApp2txSar_upd_req");
     //static stream<txAppTxSarReply>        txSar2txApp_upd_rsp("txSar2txApp_upd_rsp");
 
 
     static stream<txSarAckPush>             txSar2txApp_ack_push("txSar2txApp_ack_push");
     static stream<txAppTxSarPush>       txApp2txSar_push("txApp2txSar_push");
-    #pragma HLS stream variable=txEng2txSar_upd_req         depth=2
-    #pragma HLS stream variable=txSar2txEng_upd_rsp         depth=2
+
+
     //#pragma HLS stream variable=txApp2txSar_upd_req       depth=2
     //#pragma HLS stream variable=txSar2txApp_upd_rsp       depth=2
 
 
     #pragma HLS stream variable=txSar2txApp_ack_push    depth=2
     #pragma HLS stream variable=txApp2txSar_push        depth=2
-    #pragma HLS DATA_PACK variable=txEng2txSar_upd_req
-    #pragma HLS DATA_PACK variable=txSar2txEng_upd_rsp
+
+
     //#pragma HLS DATA_PACK variable=txApp2txSar_upd_req
     //#pragma HLS DATA_PACK variable=txSar2txApp_upd_rsp
 
@@ -831,15 +846,15 @@ void toe(
 
     // Retransmit Timer
 
-    static stream<txRetransmitTimerSet>             txEng2timer_setRetransmitTimer("txEng2timer_setRetransmitTimer");
 
-    #pragma HLS stream variable=txEng2timer_setRetransmitTimer depth=2
 
-    #pragma HLS DATA_PACK variable=txEng2timer_setRetransmitTimer
+
+
+
     // Probe Timer
 
-    static stream<ap_uint<16> >                     txEng2timer_setProbeTimer("txEng2timer_setProbeTimer");
-    #pragma HLS stream variable=txEng2timer_setProbeTimer depth=2
+
+
     // Close Timer
 
 
@@ -884,8 +899,8 @@ void toe(
             sSLcToPRt_ReleasePort,
             sTAiToSLc_SessLookupReq,
             sSLcToTAi_SessLookupRep,
-            txEng2sLookup_rev_req,
-            sLookup2txEng_rev_rsp,
+            sTXeToSLc_ReverseLkpReq,
+            sSLcToTXe_ReverseLkpRep,
             soTHIS_Cam_SssLkpReq,
             siCAM_This_SssLkpRep,
             soTHIS_Cam_SssUpdReq,
@@ -911,7 +926,7 @@ void toe(
             sRXeToRSt_RxSarUpdReq,
             sRAiToRSt_RxSarUpdRep,
             sTXeToRSt_RxSarRdReq,
-            sRStToRXe_SessRxSarRep,
+            sRStToRXe_RxSarUpdRep,
             sRStToRAi_RxSarUpdRep,
             sRStToTXe_RxSarRdRep);
 
@@ -919,11 +934,11 @@ void toe(
     tx_sar_table(
             sRXeToTSt_TxSarUpdReq,
             //txApp2txSar_upd_req,
-            txEng2txSar_upd_req,
+            sTXeToTSt_TxSarUpdReq,
             txApp2txSar_push,
             sTStToRXe_SessTxSarRep,
             //txSar2txApp_upd_rsp,
-            txSar2txEng_upd_rsp,
+            sTStToTXe_TxSarUpdRep,
             txSar2txApp_ack_push);
 
     //-- Port Table (PRt) --------------------------------------------------
@@ -939,9 +954,9 @@ void toe(
     //-- Timers (TIm) ------------------------------------------------------
     pTimers(
             sRXeToTIm_ClearReTxTimer,
-            txEng2timer_setRetransmitTimer,
-            sRXeToTIm_ClearProbeTimer,
-            txEng2timer_setProbeTimer,
+            sTXeToTIm_SetReTxTimer,
+            sRXeToTIm_ClrProbeTimer,
+            sTXeToTIm_SetProbeTimer,
             sRXeToTIm_CloseTimer,
             timer2stateTable_releaseState,
             sTImToEVe_Event,
@@ -976,7 +991,7 @@ void toe(
             sSLcToRXe_SessLkpRep,
             sSTtToRXe_SessStateRep,
             sPRtToRXe_PortStateRep,
-            sRStToRXe_SessRxSarRep,
+            sRStToRXe_RxSarUpdRep,
             sTStToRXe_SessTxSarRep,
             siMEM_This_RxP_WrSts,
             soTHIS_Mem_RxP_Data,
@@ -986,7 +1001,7 @@ void toe(
             sRXeToRSt_RxSarUpdReq,
             sRXeToTSt_TxSarUpdReq,
             sRXeToTIm_ClearReTxTimer,
-            sRXeToTIm_ClearProbeTimer,
+            sRXeToTIm_ClrProbeTimer,
             sRXeToTIm_CloseTimer,
             sRXeToTAi_SessOpnSts,
             sRXeToEVe_Event,
@@ -996,18 +1011,18 @@ void toe(
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
             sAKdToTXe_Event,
-            sRStToTXe_RxSarRdRep,
-            txSar2txEng_upd_rsp,
-            siMEM_This_TxP_Data,
-            sLookup2txEng_rev_rsp,
             sTXeToRSt_RxSarRdReq,
-            txEng2txSar_upd_req,
-            txEng2timer_setRetransmitTimer,
-            txEng2timer_setProbeTimer,
+            sRStToTXe_RxSarRdRep,
+            sTXeToTSt_TxSarUpdReq,
+            sTStToTXe_TxSarUpdRep,
+            siMEM_This_TxP_Data,
+            sTXeToTIm_SetReTxTimer,
+            sTXeToTIm_SetProbeTimer,
             soTHIS_Mem_TxP_RdCmd,
-            txEng2sLookup_rev_req,
-            soTHIS_L3mux_Data,
-            sTXeToEVe_RxEventSig);
+            sTXeToSLc_ReverseLkpReq,
+            sSLcToTXe_ReverseLkpRep,
+            sTXeToEVe_RxEventSig,
+            soTHIS_L3mux_Data);
 
 
     /**********************************************************************
