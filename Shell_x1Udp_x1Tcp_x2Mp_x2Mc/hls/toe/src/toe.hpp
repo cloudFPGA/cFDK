@@ -165,14 +165,22 @@ typedef bool ValBit;    // Valid bit  : Must go along with something to validate
 /********************************************
  * AXIS - Generic AXI4-Streaming Interface
  ********************************************/
-struct AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
-    ap_uint<1>      tlast;
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
+    public:
+        ap_uint<64>     tdata;
+        ap_uint<8>      tkeep;
+        ap_uint<1>      tlast;
+    public:
+        AxiWord()       {}
+        AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+                tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
+
+// Sub-types of the generic AXI4-Stream Interface
+//------------------------------------------------
+typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
+typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
+
 
 struct axiWord {
     ap_uint<64>     data;
@@ -239,6 +247,7 @@ typedef ap_uint<32> AxiIp4SrcAddr;     // IPv4 Source Address over Axi
 typedef ap_uint<32> AxiIp4DstAddr;     // IPv4 Destination Address over Axi
 typedef ap_uint<32> AxiIp4Address;     // IPv4 Source or Destination Address over Axi
 typedef ap_uint<32> AxiIp4Addr;        // IPv4 Source or Destination Address over Axi
+typedef Ip4Word     AxiIpData;         // IPv4 Data stream
 
 /*************************************************************************
  * TCP - Header Type Definitions in Axi4-Stream Order (Little-Endian)
@@ -253,7 +262,7 @@ typedef ap_uint<6>  AxiTcpCtrlBits;    // TCP Control Bits over Axi
 typedef ap_uint<16> AxiTcpWindow;      // TCP Window over Axi
 typedef ap_uint<16> AxiTcpChecksum;    // TCP Checksum
 typedef ap_uint<16> AxiTcpUrgPtr;      // TCP Urgent Pointer over Axi
-
+typedef TcpWord     AxiTcpData;        // TCP Data stream
 
 /*************************************************************************
  * NETWORK LAYER-3 SECTION
@@ -262,9 +271,9 @@ typedef ap_uint<16> AxiTcpUrgPtr;      // TCP Urgent Pointer over Axi
  * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).
  *************************************************************************/
 
-/******************************************************
- * IP4 - Internal Type Definitions (as used by the CPU)
- ******************************************************/
+/********************************************************
+ * IP4 - Little-Endian Type Definitions (as used by HLS)
+ ********************************************************/
 typedef ap_uint< 4> Ip4Version;     // IP4 Version
 typedef ap_uint< 8> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
 typedef ap_uint< 8> Ip4ToS;         // IP4 Type of Service
@@ -278,12 +287,22 @@ typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4T
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
 
 
-/********************************************
- * IP4 - Streaming Type Definition
- ********************************************/
-typedef AxiWord     Ip4Word;
+/*******************************************************************
+ * IP4 - Streaming Word Class Definition as Encoded by the MAC.
+ *******************************************************************/
+class Ip4overAxi : public AxiWord {
+    public:
+        Ip4overAxi() {}
+        Ip4overAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+            AxiWord(tdata, tkeep, tlast) {}
 
+    void setVersion(int version);
+};
 
+// Set the Version field of and
+//void Ip4overAxi::setVersion(int version) {
+//
+//}
 
 
 /*************************************************************************
@@ -294,9 +313,9 @@ typedef AxiWord     Ip4Word;
  * - a DATAGRAM (or UdpPacket) refrers to a UDP-PDU (i.e., Header+Data).
  *************************************************************************/
 
-/******************************************************
- * TCP - Computer Type Definitions (in Little-Endian)
- ******************************************************/
+/********************************************************
+ * TCP - Little-Endian Type Definitions (as used by HLS)
+ ********************************************************/
 typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
 typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
 typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
@@ -355,16 +374,23 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
 }
 
 
-
 typedef ap_uint<16> TcpSessId;  // TCP Session ID
 typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
 
 
-/********************************************
- * TCP - Streaming Type Definition
- ********************************************/
-typedef AxiWord         TcpWord;
+/*******************************************************************
+ * TCP - Streaming Word Class Definition as Encoded by the MAC.
+ *******************************************************************/
+class TcpOverAxi : public AxiWord {
+    public:
+        TcpOverAxi()       {}
+        TcpOverAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+            AxiWord(tdata, tkeep, tlast) {}
 
+    //void setVersion(int version);
+};
+
+// [IXMS - Add a PseudoHeader class]
 
 
 struct ipTuple
@@ -673,7 +699,7 @@ struct event
 
 struct extendedEvent : public event
 {
-    SocketPair  tuple;    // [FIXME - Considre renaming]
+    SocketPair  tuple;    // [FIXME - Consider renaming]
     extendedEvent() {}
     extendedEvent(const event& ev) :
         event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
@@ -833,10 +859,6 @@ struct appReadRequest
         sessionID(id), length(len) {}
 };
 //ap_uint<8> length2keep_mapping(uint16_t lengthValue);
-ap_uint<8> returnKeep(ap_uint<4> length);
-ap_uint<16> byteSwap16(ap_uint<16> inputVector);
-ap_uint<32> byteSwap32(ap_uint<32> inputVector);
-ap_uint<4> keepMapping(ap_uint<8> keepValue);       // This function counts the number of 1s in an 8-bit value
 
 //template<class type> void streamBroadcaster (stream<type> &input, stream<type> &output1, stream<type> &output2);
 //template<class type> void streamMerger(stream<type> &input1, stream<type>& input2, stream<type>& output);

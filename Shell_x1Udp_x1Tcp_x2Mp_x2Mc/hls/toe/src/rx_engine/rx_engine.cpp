@@ -23,16 +23,34 @@
 
 #include "rx_engine.hpp"
 
-#define THIS_NAME "TOE/RXe"
-
 using namespace hls;
 
-#define DEBUG_LEVEL 7
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ ************************************************/
+extern bool gTraceEvent;
+#define THIS_NAME "TOE/RXe"
+
+#define TRACE_OFF  0x0000
+#define TRACE_TLE 1 <<  1
+#define TRACE_IPH 1 <<  2
+#define TRACE_CSA 1 <<  3
+#define TRACE_MDH 1 <<  4
+#define TRACE_TID 1 <<  5
+#define TRACE_TSD 1 <<  6
+#define TRACE_EVM 1 <<  7
+#define TRACE_FSM 1 <<  8
+#define MTRACE_WR 1 <<  9
+#define TRACE_RAN 1 << 10
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_OFF)
+
+
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
-
-
-
 
 
 /*****************************************************************************
@@ -122,7 +140,7 @@ void pTcpLengthExtract(
         sendWord = TcpWord(0, 0xFF, 0);
         soTcpSeg.write(sendWord);
         tle_insertWord = false;
-        if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
     }
     else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
         Ip4Word currWord = siIPRX_Pkt.read();
@@ -151,7 +169,7 @@ void pTcpLengthExtract(
             tle_ip4HdrLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
-            if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
             break;
         case 3:
             switch (tle_ip4HdrLen) {
@@ -163,7 +181,7 @@ void pTcpLengthExtract(
                 tle_shift = true;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
@@ -171,7 +189,7 @@ void pTcpLengthExtract(
                 tle_shift = false;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
                 break;
             default: // The prevWord contains garbage data, currWord at least half garbage
                 //Drop this shit
@@ -185,12 +203,12 @@ void pTcpLengthExtract(
                                    (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                    (currWord.tkeep[4] == 0));
                 soTcpSeg.write(sendWord);
-                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
             }
             else {
                 sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soTcpSeg.write(sendWord);
-                if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
             }
             break;
 
@@ -206,12 +224,12 @@ void pTcpLengthExtract(
 
     else if (tle_wasLast) { //Assumption has to be shift
         // Send remaining data
-        AxiWord sendWord = AxiWord(0, 0, 1);
+        TcpWord sendWord = TcpWord(0, 0, 1);
         sendWord.tdata(31, 0) = tle_prevWord.tdata(63, 32);
         sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
         soTcpSeg.write(sendWord);
         tle_wasLast = false;
-        if (DEBUG_LEVEL >= 1) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
     }
 }
 
@@ -297,7 +315,7 @@ void pInsertPseudoHeader(
         sendWord.tlast        = 0x1;
         soTcpSeg.write(sendWord);
         iph_wasLast = false;
-        if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
     }
     else if(!siTle_TcpSeg.empty()) {
         switch (iph_wordCount) {
@@ -311,7 +329,7 @@ void pInsertPseudoHeader(
             // Forward IP-DA & IP-SA
             soTcpSeg.write(sendWord);
             iph_wordCount++;
-            if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
             break;
         case 2:
             if (!siTle_TcpSegLen.empty()) {
@@ -328,7 +346,7 @@ void pInsertPseudoHeader(
                 sendWord.tlast         = 0;
                 soTcpSeg.write(sendWord);
                 iph_wordCount++;
-                if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
             }
             break;
         default:
@@ -342,7 +360,7 @@ void pInsertPseudoHeader(
             sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
             sendWord.tlast               = (currWord.tkeep[4] == 0); // see format of the incoming segment
             soTcpSeg.write(sendWord);
-            if (DEBUG_LEVEL >= 2) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
             break;
         }
         iph_prevWord = currWord;
@@ -614,8 +632,8 @@ void pCheckSumAccumulator(
 /*****************************************************************************
  * @brief TCP Invalid checksum Dropper (Tid)
  *
- * @param[in]  siCsa_Data,      TCP data stream from Checksum Accumulator (Csa).
- * @param[in]  siCsa_DataVal,   TCP data valid.
+ * @param[in]  siCsa_TcpData,   TCP data stream from Checksum Accumulator (Csa).
+ * @param[in]  siCsa_TcpDataVal,TCP data valid.
  * @param[out] soData,          TCP data stream.
  *
  * @details
@@ -625,7 +643,7 @@ void pCheckSumAccumulator(
  * @ingroup rx_engine
  *****************************************************************************/
 void pTcpInvalidDropper(
-        stream<AxiWord>     &siCsa_Data,
+        stream<TcpWord>     &siCsa_Data,
         stream<ValBit>      &siCsa_DataVal,
         stream<AxiWord>     &soData)
 {
@@ -775,14 +793,14 @@ void pMetaDataHandler(
                 }
                 else {
                     // Destination Port is open
-                    if (DEBUG_LEVEL >= 4) {
+                    if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Port 0x%4.4X (%d) is open.\n",
                                   mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                     }
                     // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
                     soSessLookupReq.write(sessionLookupQuery(tuple,
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
-                    if (DEBUG_LEVEL >= 4) {
+                    if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Request the SLc to lookup the following session:\n");
                         printSockPair(myName, tuple);
                     }
@@ -803,7 +821,7 @@ void pMetaDataHandler(
                                            mdh_srcIp4Addr,
                                            mdh_dstTcpPort,
                                            mdh_meta));
-            if (DEBUG_LEVEL >= 4)
+            if (DEBUG_LEVEL & TRACE_MDH)
                 printInfo(myName, "Got a session lookup \'Hit\'. \n");
             }
             if (mdh_meta.length != 0) {
@@ -1031,7 +1049,7 @@ void pFiniteStateMachine(
             break;
 
         case 2: // SYN
-            if (DEBUG_LEVEL >= 5) printInfo(myName, "Segment is SYN.\n");
+            if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Segment is SYN.\n");
             // OBBSOLETE if (!siSTt_SessStateRep.empty())
             if (fsmState == LOAD) {
                 rxEngSynCounter++;
@@ -1047,7 +1065,7 @@ void pFiniteStateMachine(
                                               txSar.cong_window, 0, 1))); //TODO maybe include count check
                     // Set SYN_ACK event
                     soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionID));
-                    if (DEBUG_LEVEL >= 5) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_meta.sessionID.to_uint());
+                    if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_meta.sessionID.to_uint());
                     // Change State to SYN_RECEIVED
                     soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, SYN_RECEIVED, 1));
                 }

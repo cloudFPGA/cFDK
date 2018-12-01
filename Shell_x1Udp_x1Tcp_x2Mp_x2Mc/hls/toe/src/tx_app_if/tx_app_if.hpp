@@ -1,4 +1,5 @@
 #include "../toe.hpp"
+#include "../toe_utils.hpp"
 
 using namespace hls;
 

@@ -53,57 +53,6 @@
 //OBSOLETE-20181120         inputVector.range(23,16), inputVector(31, 24));
 //OBSOLETE-20181120 }
 
-/*
-ap_uint<4> keepMapping(ap_uint<8> keepValue) {          // This function counts the number of 1s in an 8-bit value
-    ap_uint<4> counter = 0;
-    for (ap_uint<4> i=0;i<8;++i) {
-        if (keepValue.bit(i) == 1)
-            counter++;
-    }
-    return counter;
-}
-*/
-
-
-/*****************************************************************************
- * @brief A function to count the number of 1s in an 8-bit value.
- *****************************************************************************/
-ap_uint<4> keepMapping(ap_uint<8> keepValue) {
-    ap_uint<4> counter = 0;
-
-    switch(keepValue){
-        case 0x01: counter = 1; break;
-        case 0x03: counter = 2; break;
-        case 0x07: counter = 3; break;
-        case 0x0F: counter = 4; break;
-        case 0x1F: counter = 5; break;
-        case 0x3F: counter = 6; break;
-        case 0x7F: counter = 7; break;
-        case 0xFF: counter = 8; break;
-    }
-    return counter;
-}
-
-
-/*****************************************************************************
- * @brief A function to set a number of 1s in an 8-bit value.
- *****************************************************************************/
-ap_uint<8> returnKeep(ap_uint<4> count) {
-    ap_uint<8> keep = 0;
-
-    switch(count){
-        case 1: keep = 0x01; break;
-        case 2: keep = 0x03; break;
-        case 3: keep = 0x07; break;
-        case 4: keep = 0x0F; break;
-        case 5: keep = 0x1F; break;
-        case 6: keep = 0x3F; break;
-        case 7: keep = 0x7F; break;
-        case 8: keep = 0xFF; break;
-    }
-
-    return keep;
-}
 
 
 template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T>& out) {

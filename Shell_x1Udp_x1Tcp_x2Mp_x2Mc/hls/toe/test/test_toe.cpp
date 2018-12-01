@@ -21,18 +21,35 @@
 
 using namespace std;
 
-#define DEBUG_LEVEL    2
-#define MAX_SIM_CYCLES 2500000
-
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
 #define THIS_NAME "TB"
+
+#define TRACE_OFF    0x0000
+#define TRACE_IPRX   1 <<  1
+#define TRACE_L3MUX  1 <<  2
+#define TRACE_TRIF   1 <<  3
+#define TRACE_CAM    1 <<  4
+#define TRACE_TXMEM  1 <<  5
+#define TRACE_RXMEM  1 <<  6
+#define TRACE_ALL    0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
+
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL DEFINES
+//---------------------------------------------------------
+#define MAX_SIM_CYCLES 2500000
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //---------------------------------------------------------
-unsigned int    gSimCycCnt       = 0;
+unsigned int    gSimCycCnt    = 0;
 unsigned int    gMaxSimCycles = 100;    // Might be updated by content of the test vector file.
-
-
+bool            gTraceEvent        = false;
 
 /*****************************************************************************
  * @brief Returns true if packet is a FIN.
@@ -186,13 +203,22 @@ void pEmulateCam(
     }
 }
 
-// Use Dummy Memory
-void pEmulateRxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<mmStatus>& WriteStatusFifo, stream<mmCmd>& ReadCmdFifo,
-                    stream<axiWord>& BufferIn, stream<axiWord>& BufferOut) {
-    mmCmd cmd;
+
+void pEmulateRxBufMem(
+        DummyMemory         *memory,
+        stream<mmCmd>       &WriteCmdFifo,
+        stream<mmStatus>    &WriteStatusFifo,
+        stream<mmCmd>       &ReadCmdFifo,
+        stream<axiWord>     &BufferIn,
+        stream<axiWord>     &BufferOut)
+{
+    mmCmd    cmd;
     mmStatus status;
-    axiWord inWord = axiWord(0, 0, 0);
-    axiWord outWord = axiWord(0, 0, 0);
+    axiWord  tmpInWord  = axiWord(0, 0, 0);  // [FIXME - Upgrade to AxiWord ]
+    AxiWord  inWord  = AxiWord(0, 0, 0);
+    AxiWord  outWord = AxiWord(0, 0, 0);
+    axiWord  tmpOutWord = axiWord(0, 0, 0);
+
     static uint32_t rxMemCounter = 0;
     static uint32_t rxMemCounterRd = 0;
 
@@ -212,7 +238,8 @@ void pEmulateRxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
         stx_write = true;
     }
     else if (!BufferIn.empty() && stx_write) {
-        BufferIn.read(inWord);
+        BufferIn.read(tmpInWord);
+        inWord = AxiWord(tmpInWord.data, tmpInWord.keep, tmpInWord.last);
         //cerr << dec << rxMemCounter << " - " << hex << inWord.data << " " << inWord.keep << " " << inWord.last << endl;
         //rxMemCounter++;;
         memory->writeWord(inWord);
@@ -233,7 +260,8 @@ void pEmulateRxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
     }
     else if(stx_read) {
         memory->readWord(outWord);
-        BufferOut.write(outWord);
+        tmpOutWord = axiWord(outWord.tdata, outWord.tkeep, outWord.tlast);
+        BufferOut.write(tmpOutWord);
         //cerr << dec << rxMemCounterRd << " - " << hex << outWord.data << " " << outWord.keep << " " << outWord.last << endl;
         rxMemCounterRd++;;
         if (wrBufferReadCounter < 9)
@@ -244,12 +272,18 @@ void pEmulateRxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
 }
 
 
-void pEmulateTxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<mmStatus>& WriteStatusFifo, stream<mmCmd>& ReadCmdFifo,
-                    stream<axiWord>& BufferIn, stream<axiWord>& BufferOut) {
-    mmCmd cmd;
+void pEmulateTxBufMem(
+        DummyMemory         *memory,
+        stream<mmCmd>       &WriteCmdFifo,
+        stream<mmStatus>    &WriteStatusFifo,
+        stream<mmCmd>       &ReadCmdFifo,
+        stream<AxiWord>     &BufferIn,
+        stream<AxiWord>     &soTOE_TxP_Dat)
+{
+    mmCmd    cmd;
     mmStatus status;
-    axiWord inWord;
-    axiWord outWord;
+    AxiWord  inWord;
+    AxiWord  outWord;
 
     static bool stx_write = false;
     static bool stx_read = false;
@@ -268,7 +302,7 @@ void pEmulateTxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
         BufferIn.read(inWord);
         //cerr << "Data: " << dec << cycleCounter << hex << inWord.data << " - " << inWord.keep << " - " << inWord.last << endl;
         memory->writeWord(inWord);
-        if (inWord.last) {
+        if (inWord.tlast) {
             //fake_txBuffer.write(inWord); // RT hack
             stx_write = false;
             status.okay = 1;
@@ -284,8 +318,8 @@ void pEmulateTxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
     else if(stx_read) {
         memory->readWord(outWord);
         //cerr << inWord.data << " " << inWord.last << " - ";
-        BufferOut.write(outWord);
-        if (outWord.last)
+        soTOE_TxP_Dat.write(outWord);
+        if (outWord.tlast)
             stx_read = false;
     }
 }
@@ -301,7 +335,7 @@ void pEmulateTxBufMem(dummyMemory* memory, stream<mmCmd>& WriteCmdFifo,  stream<
  *
  * @ingroup toe
  ******************************************************************************/
-ap_uint<16> checksumComputation(deque<AxiWord>  pseudoHeader) {
+TcpChecksum checksumComputation(deque<Ip4Word>  pseudoHeader) {
     ap_uint<32> tcpChecksum = 0;
 
     for (uint8_t i=0;i<pseudoHeader.size();++i) {
@@ -350,7 +384,7 @@ ap_uint<16> checksumComputation(deque<AxiWord>  pseudoHeader) {
  * @ingroup toe
  ******************************************************************************/
 TcpCSum recalculateChecksum(
-        deque<AxiWord> ipPktQueue)
+        deque<Ip4Word> ipPktQueue)
 {
     TcpCSum    newChecksum = 0;
 
@@ -438,9 +472,10 @@ vector<string> myTokenizer(string strBuff) {
  * @ingroup toe
  ******************************************************************************/
 short int injectAckNumber(
-        deque<AxiWord>                  &ipRxPacketizer,
+        deque<Ip4Word>                  &ipRxPacketizer,
         map<SocketPair, AxiTcpSeqNum>   &sessionList)
 {
+    const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
 
     SockAddr   srcSock = SockAddr(ipRxPacketizer[1].tdata.range(63, 32),
                                   ipRxPacketizer[2].tdata.range(47, 32));
@@ -451,14 +486,12 @@ short int injectAckNumber(
     if (isSYN(ipRxPacketizer[4])) {
         // This packet is a SYN and there's no need to inject anything
         if (sessionList.find(newSockPair) != sessionList.end()) {
-            const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
             printWarn(myName, "Trying to open an existing session %d.\n", 1999);
             printSockPair(myName, newSockPair);
             return -1;
         }
         else {
             sessionList[newSockPair] = 0;
-            const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
             printInfo(myName, "Successfully opened a new session.\n");
             printSockPair(myName, newSockPair);
             return 0;
@@ -470,16 +503,16 @@ short int injectAckNumber(
             // Inject the oldest acknowledgment number in the ACK number deque
             AxiTcpAckNum newTcpHdr_AckNum = sessionList[newSockPair];
             ipRxPacketizer[3].tdata.range(63, 32) = newTcpHdr_AckNum;
-            if (DEBUG_LEVEL >= 1)
-                printf("<D1> Setting the sequence number of this segment to: %u \n",
+            if (DEBUG_LEVEL & TRACE_IPRX)
+                printInfo(myName, "Setting the sequence number of this segment to: %u \n",
                         ipRxPacketizer[3].tdata.range(63, 32).to_uint());
 
             // Recalculate and update the checksum
             TcpCSum         newTcpCSum = recalculateChecksum(ipRxPacketizer);
             AxiTcpChecksum newHdrCSum = swapWord(newTcpCSum);
             ipRxPacketizer[4].tdata.range(47, 32) = newHdrCSum;
-            if (DEBUG_LEVEL >= 2) {
-                printf("<D2> [injectAckNumber] Current packet is : ");
+            if (DEBUG_LEVEL & TRACE_IPRX) {
+                printInfo(myName, "Current packet is : ");
                 for (uint8_t i=0; i<ipRxPacketizer.size(); ++i)
                     printf("%16.16lX ", ipRxPacketizer[i].tdata.to_uint());
                 printf("\n");
@@ -487,7 +520,7 @@ short int injectAckNumber(
             return 1;
         }
         else {
-            printf("<D0> WARNING: Trying to send data to a non-existing session! \n");
+            printWarn(myName, "Trying to send data to a non-existing session! \n");
             return -1;
         }
     }
@@ -518,7 +551,7 @@ void feedTOE(
     if (ipRxPacketizer.size() != 0) {
         // Insert proper ACK Number in packet
         injectAckNumber(ipRxPacketizer, sessionList);
-        if (DEBUG_LEVEL >= 1) {
+        if (DEBUG_LEVEL & TRACE_IPRX) {
             printIpPktStream(myName, ipRxPacketizer);
         }
         // Write stream IPRX->TOE
@@ -659,9 +692,9 @@ void pIPRX(
  *  @ingroup toe
  ******************************************************************************/
 bool parseL3MuxPacket(
-        deque<AxiWord>                  &ipTxPacketizer,
+        deque<Ip4Word>                  &ipTxPacketizer,
         map<SocketPair, AxiTcpSeqNum>   &sessionList,
-        deque<AxiWord>                  &ipRxPacketizer)
+        deque<Ip4Word>                  &ipRxPacketizer)
 {
 
     bool                returnValue       = false;
@@ -671,7 +704,7 @@ bool parseL3MuxPacket(
 
     const char *myName = concat3(THIS_NAME, "/", "L3MUX/Parse");
 
-    if (DEBUG_LEVEL >= 1) {
+    if (DEBUG_LEVEL & TRACE_L3MUX) {
         printIpPktStream(myName, ipTxPacketizer);
     }
 
@@ -691,14 +724,14 @@ bool parseL3MuxPacket(
 
         // Replace in-going IPv4 Destination w/ out-coming IPv4 Source Address
         // Also swap in-going and out-coming TCP Ports.
-        ipTxPacketizer[2].tdata.range(31, 0) = savedIp4Hdr_Addr;
+        ipTxPacketizer[2].tdata.range(31,  0) = savedIp4Hdr_Addr;
         ipTxPacketizer[2].tdata.range(47, 32) = ipTxPacketizer[2].tdata.range(63, 48);
         ipTxPacketizer[2].tdata.range(63, 48) = savedTcpHdr_Port;
         ipRxPacketizer.push_back(ipTxPacketizer[2]);
 
         // Swap the SEQ and ACK NUmbers while incrementing the ACK
         AxiTcpSeqNum tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
-        TcpSeqNum        tcpSeqNum     = swapDWord(tcpHdr_SeqNum) + 1;
+        TcpSeqNum        tcpSeqNum = swapDWord(tcpHdr_SeqNum) + 1;
         AxiTcpAckNum tcpHdr_AckNum = swapDWord(tcpSeqNum);
 
         ipTxPacketizer[3].tdata.range(31,  0) = ipTxPacketizer[3].tdata.range(63, 32);
@@ -712,8 +745,8 @@ bool parseL3MuxPacket(
         ipTxPacketizer[4].tdata.range(47, 32) = tcpHdr_Checksum;
         ipRxPacketizer.push_back(ipTxPacketizer[4]);
 
-        if (DEBUG_LEVEL >= 2)
-            printf("<D2> Got a SYN from TOE. Replied with a SYN-ACK.\n");
+        if (DEBUG_LEVEL & TRACE_L3MUX)
+            printInfo(myName, "Got a SYN from TOE. Replied with a SYN-ACK.\n");
     }
 
     else if (isFIN(ipTxPacketizer[4]) && !isACK(ipTxPacketizer[4])) {
@@ -727,8 +760,8 @@ bool parseL3MuxPacket(
                                        ipTxPacketizer[2].tdata.range(63, 48));
         sessionList.erase(SocketPair(srcAddr, dstSock));
 
-        if (DEBUG_LEVEL >= 2)
-            printf("<D2> Got a FIN from TOE.\n");
+        if (DEBUG_LEVEL & TRACE_L3MUX)
+            printInfo(myName, "Got a FIN from TOE.\n");
 
     }
 
@@ -737,22 +770,22 @@ bool parseL3MuxPacket(
         // The ACK bit is set
         //-----------------------------------------
         AxiIp4TotalLen  ip4Hdr_TotLen = ipTxPacketizer[0].tdata.range(31, 16);
-        Ip4PktLen        ip4PktLen     = swapWord(ip4Hdr_TotLen);
+        Ip4PktLen       ip4PktLen     = swapWord(ip4Hdr_TotLen);
 
         AxiTcpSeqNum    tcpHdr_SeqNum = ipTxPacketizer[3].tdata.range(31, 0);
-        TcpSeqNum        tcpSeqNum     = swapDWord(tcpHdr_SeqNum);
+        TcpSeqNum       tcpSeqNum     = swapDWord(tcpHdr_SeqNum);
 
         if (isFIN(ipTxPacketizer[4])) {
             // The FIN bit is set
             tcpSeqNum++;
-            if (DEBUG_LEVEL >= 2)
-                printf("<D2> Got an FIN+ACK from TOE.\n");
+            if (DEBUG_LEVEL & TRACE_L3MUX)
+                printInfo(myName, "Got an FIN+ACK from TOE.\n");
         }
         else if (isSYN(ipTxPacketizer[4])) {
             // The SYN
             tcpSeqNum++;
-            if (DEBUG_LEVEL >= 2)
-                printf("<D2> Got an SYN+ACK from TOE.\n");
+            if (DEBUG_LEVEL & TRACE_L3MUX)
+                printInfo(myName, "Got an SYN+ACK from TOE.\n");
         }
 
         if (ip4PktLen >= 40) {
@@ -790,8 +823,8 @@ bool parseL3MuxPacket(
             finPacket = true;
             //cerr << "Close Tuple: " << hex << outputPacketizer[2].data.range(31, 0) << " - " << outputPacketizer[1].data.range(63, 32) << " - " << inputPacketizer[2].data.range(63, 48) << " - " << outputPacketizer[2].data.range(47, 32) << endl;
 
-            if (DEBUG_LEVEL >= 2)
-                printf("<D2> Got an ACK+FIN from TOE.\n");
+            if (DEBUG_LEVEL & TRACE_L3MUX)
+                printInfo(myName, "Got an ACK+FIN from TOE.\n");
 
             if (itemsErased != 1)
                 cerr << "WARNING: Received FIN segment for a non-existing session - " << gSimCycCnt << endl;
@@ -801,11 +834,19 @@ bool parseL3MuxPacket(
 
         if (ip4PktLen > 0 || finPacket == true) {
 
-            // The ACK packet also contains data.
-              // If it does generate an ACK for. Look into the IP header length for this.
+            // The ACK packet also contains data (.e.g, TCP options).
+            // [TODO - Print the TCP option]
             finPacket = false;
-            // Update the IPv4 Total Length
-            AxiIp4TotalLen ip4Hdr_TotalLen = 0x2800;
+
+            // Build an ACK packet. Look into the IP header length for this.
+            Ip4Word   ip4Word;
+
+            // CHUNK[0] =  {IHL, Version, Tos, TotLen, Identification, FragOff, Flags}
+            //ip4Word.setIp4HdrLen(5);    ip4HdrLen       = 5;            AxiIp4HdrLen   ip4HdrLen       = 5;
+            //AxiIp4Version  ip4Version      = 4;
+            //AxiIp4ToS      ip4ToS          =
+            AxiIp4TotalLen ip4Hdr_TotalLen = byteSwap16(40);
+
             ipTxPacketizer[0].tdata.range(31, 16) = ip4Hdr_TotalLen;
             ipRxPacketizer.push_back(ipTxPacketizer[0]);
 
@@ -826,8 +867,8 @@ bool parseL3MuxPacket(
             // Swap the SEQ and ACK Numbers
             ipTxPacketizer[3].tdata.range(31,  0) = ipTxPacketizer[3].tdata.range(63, 32);
             ipTxPacketizer[3].tdata.range(63, 32) = tcpHdr_SeqNum;
-            if (DEBUG_LEVEL >= 2)
-                printf("<D2> tcpHdr_SeqNum = 0x%8.8X \n", tcpHdr_SeqNum.to_uint());
+            if (DEBUG_LEVEL & TRACE_L3MUX)
+                printInfo(myName, "tcpHdr_SeqNum = 0x%8.8X \n", tcpHdr_SeqNum.to_uint());
             ipRxPacketizer.push_back(ipTxPacketizer[3]);
 
             // Set the ACK bit and Recalculate the Checksum
@@ -841,8 +882,8 @@ bool parseL3MuxPacket(
 
             if (prevTcpHdr_SeqNum != tcpHdr_SeqNum) {
                 ipTxPktCounter++;
-                if (DEBUG_LEVEL >= 1) {
-                    printf("<D1> IP Tx Packet Counter = %d \n", ipTxPktCounter);
+                if (DEBUG_LEVEL & TRACE_L3MUX) {
+                    printInfo(myName, "IP Tx Packet Counter = %d \n", ipTxPktCounter);
                     //cerr << "ACK cnt: " << dec << pOpacketCounter << hex << " - " << outputPacketizer[3].data.range(63, 32) << endl;
                 }
             }
@@ -884,9 +925,10 @@ void pL3MUX(
         int                             &ipTxPktCounter,
         deque<Ip4Word>                  &ipRxPacketizer)
 {
-    Ip4Word        ipTxWord;        // An IP4 chunk
-    deque<AxiWord> ipTxPacketizer;  // A double-ended queue
 
+    static deque<Ip4Word> ipTxPacketizer;  // A double-ended queue
+
+    Ip4Word        ipTxWord;        // An IP4 chunk
     uint16_t       ipTxWordCounter = 0;
 
     //const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
@@ -970,7 +1012,7 @@ void pTRIF(
         switch (listenFsm) {
         case 0:
             soTOE_LsnReq.write(listeningPort);
-            if (DEBUG_LEVEL > 0) {
+            if (DEBUG_LEVEL & TRACE_TRIF) {
                 printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
                           listeningPort.to_uint(), listeningPort.to_uint());
                 listenFsm++;
@@ -1109,10 +1151,10 @@ int main(int argc, char *argv[]) {
     stream<axiWord>                     sTOE_Mem_RxP_Data   ("sTOE_Mem_RxP_Data");
 
     stream<mmCmd>                       sTOE_Mem_TxP_RdCmd  ("sTOE_Mem_TxP_RdCmd");
-    stream<axiWord>                     sMEM_Toe_TxP_Data   ("sMEM_Toe_TxP_Data");
+    stream<AxiWord>                     sMEM_Toe_TxP_Data   ("sMEM_Toe_TxP_Data");
     stream<mmStatus>                    sMEM_Toe_TxP_WrSts  ("sMEM_Toe_TxP_WrSts");
     stream<mmCmd>                       sTOE_Mem_TxP_WrCmd  ("sTOE_Mem_TxP_WrCmd");
-    stream<axiWord>                     sTOE_Mem_TxP_Data   ("sTOE_Mem_TxP_Data");
+    stream<AxiWord>                     sTOE_Mem_TxP_Data   ("sTOE_Mem_TxP_Data");
 
     stream<rtlSessionLookupReply>       sCAM_This_SssLkpRpl ("sCAM_This_SssLkpRpl");
     stream<rtlSessionUpdateReply>       sCAM_This_SssUpdRpl ("sCAM_This_SssUpdRpl");
@@ -1145,16 +1187,16 @@ int main(int argc, char *argv[]) {
 
     axiWord         rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
 
-    dummyMemory     rxMemory;
-    dummyMemory     txMemory;
+    DummyMemory     rxMemory;
+    DummyMemory     txMemory;
 
     map<SocketPair, AxiTcpSeqNum>    sessionList;
 
     //-- Double-ended queues ------------------------------
-    deque<AxiWord>  ipRxPacketizer;        // Packets intended for the IPRX interface of TOE
+    deque<Ip4Word>  ipRxPacketizer;  // Packets intended for the IPRX interface of TOE
 
     //-- Input & Output File Streams ----------------------
-    ifstream        iprxFile;            // Packets for the IPRX I/F of TOE.
+    ifstream        iprxFile;        // Packets for the IPRX I/F of TOE.
     ifstream        txInputFile;
     ofstream        rxOutputile;
     ofstream        iptxFile;        // Packets from the L3MUX I/F of TOE.
@@ -1488,12 +1530,12 @@ int main(int argc, char *argv[]) {
         pEmulateRxBufMem(
             &rxMemory,
             sTOE_Mem_RxP_WrCmd, sMEM_Toe_RxP_WrSts,
-            sTOE_Mem_RxP_RdCmd, sTOE_Mem_TxP_Data, sMEM_Toe_RxP_Data);
+            sTOE_Mem_RxP_RdCmd, sTOE_Mem_RxP_Data, sMEM_Toe_RxP_Data);
 
         pEmulateTxBufMem(
             &txMemory,
             sTOE_Mem_TxP_WrCmd, sMEM_Toe_TxP_WrSts,
-            sTOE_Mem_TxP_RdCmd, sTOE_Mem_RxP_Data, sMEM_Toe_TxP_Data);
+            sTOE_Mem_TxP_RdCmd, sTOE_Mem_TxP_Data, sMEM_Toe_TxP_Data);
 
         pEmulateCam(
             sTHIS_Cam_SssLkpReq, sCAM_This_SssLkpRpl,
@@ -1549,8 +1591,10 @@ int main(int argc, char *argv[]) {
         //-- STEP-6 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         gSimCycCnt++;
-        if (DEBUG_LEVEL)
-            printf("@%4.4d STEP DUT \n", gSimCycCnt);
+        if (gTraceEvent) {
+            printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+            gTraceEvent = false;
+        }
 
         //cerr << simCycleCounter << " - Number of Sessions opened: " <<  dec << regSessionCount << endl << "Number of Sessions closed: " << relSessionCount << endl;
 

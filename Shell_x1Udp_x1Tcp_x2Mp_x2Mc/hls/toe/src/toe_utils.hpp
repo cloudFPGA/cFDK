@@ -33,7 +33,7 @@
  * @param[in] message,      the message to print.
  *****************************************************************************/
 #define printInfo(callerName , format, ...) \
-    do { printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
+    do { gTraceEvent = true; printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
 
 /*****************************************************************************
  * @brief A macro to print a warning message.
@@ -41,9 +41,7 @@
  * @param[in] message,      the message to print.
  *****************************************************************************/
 #define printWarn(callerName , format, ...) \
-    do { printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
-
-
+    do { gTraceEvent = true; printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
 
 
 
@@ -51,16 +49,24 @@
  * PROTOTYPE DEFINITIONS
  *************************************************************************/
 
-void printAxiWord(const char *callerName, AxiWord chunk);
-
 #ifndef __SYNTHESIS__
-  void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
+void printAxiWord    (const char *callerName, AxiWord chunk);
+void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
+void printSockPair   (const char *callerName, SocketPair sockPair);
 #endif
 
-void printSockPair(const char *callerName, SocketPair sockPair);
 
-ap_uint<16> swapWord(ap_uint<16> inpWord);
 
-ap_uint<32> swapDWord(ap_uint<32> inpDWord);
+ap_uint<16> swapWord  (ap_uint<16> inpWord);        // [FIXME - To be replaced w/ byteSwap16]
+ap_uint<16> byteSwap16(ap_uint<16> inputVector);
+
+ap_uint<32> swapDWord (ap_uint<32> inpDWord);      // [FIXME - To be replaced w/ byteSwap32]
+ap_uint<32> byteSwap32(ap_uint<32> inputVector);
+
+ap_uint<8>  lenToKeep (ap_uint<4> noValidBytes);
+ap_uint<8>  returnKeep(ap_uint<4> length);
+
+ap_uint<4>  keepToLen  (ap_uint<8> keepValue);
+ap_uint<4>  keepMapping(ap_uint<8> keepValue);
 
 #endif
