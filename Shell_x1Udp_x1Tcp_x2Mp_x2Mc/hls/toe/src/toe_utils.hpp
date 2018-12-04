@@ -16,7 +16,13 @@
 
 #include <stdio.h>
 
+#include "toe.hpp"
 
+// Forward declarations
+//-----------------------
+class AxiWord;
+class Ip4overAxi;
+class AxiSocketPair;
 
 /*************************************************************************
  * MACRO DEFINITIONS
@@ -43,6 +49,13 @@
 #define printWarn(callerName , format, ...) \
     do { gTraceEvent = true; printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
 
+/*****************************************************************************
+ * @brief A macro to print an error message.
+ * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in] message,      the message to print.
+ *****************************************************************************/
+#define printError(callerName , format, ...) \
+    do { gTraceEvent = true; printf("[%s] ERROR - " format, callerName, ##__VA_ARGS__); } while (0)
 
 
 /*************************************************************************
@@ -50,9 +63,11 @@
  *************************************************************************/
 
 #ifndef __SYNTHESIS__
+
 void printAxiWord    (const char *callerName, AxiWord chunk);
-void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk);
-void printSockPair   (const char *callerName, SocketPair sockPair);
+void printIpPktStream(const char *callerName, std::deque<Ip4overAxi> &pktChunk);
+void printSockPair   (const char *callerName, AxiSocketPair sockPair);
+
 #endif
 
 

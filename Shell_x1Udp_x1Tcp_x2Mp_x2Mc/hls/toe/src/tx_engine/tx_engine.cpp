@@ -94,7 +94,7 @@ void pMetaDataLoader(
         stream<mmCmd>                   &soMai_BufferRdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
-        stream<SocketPair>              &soSps_RstSockPair,
+        stream<AxiSocketPair>           &soSps_RstSockPair,
         stream<ap_uint<1> >             &soEVe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -579,10 +579,10 @@ void pMetaDataLoader(
  *****************************************************************************/
 void pSocketPairSplitter(
         stream<fourTuple>       &siSLc_ReverseLkpRep,
-        stream<SocketPair>      &siMdl_RstSockPair,
+        stream<AxiSocketPair>   &siMdl_RstSockPair,
         stream<bool>            &txEng_isLookUpFifoIn,
         stream<IpAddrPair>      &soIhc_IpAddrPair,
-        stream<SocketPair>      &soPhc_SocketPair)
+        stream<AxiSocketPair>   &soPhc_SocketPair)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
@@ -591,7 +591,7 @@ void pSocketPairSplitter(
     static bool ts_isLookUp;
 
     fourTuple   tuple;	// [FIXME - Update to SocketPair]
-    SocketPair  sockPair;
+    AxiSocketPair  sockPair;
 
     if (ts_getMeta) {
         if (!txEng_isLookUpFifoIn.empty()) {
@@ -603,8 +603,8 @@ void pSocketPairSplitter(
         if (!siSLc_ReverseLkpRep.empty() && ts_isLookUp) {
             siSLc_ReverseLkpRep.read(tuple);
             soIhc_IpAddrPair.write(IpAddrPair(tuple.srcIp, tuple.dstIp));
-            soPhc_SocketPair.write(SocketPair(SockAddr(tuple.srcIp, tuple.srcPort),
-                                              SockAddr(tuple.dstIp, tuple.dstPort)));
+            soPhc_SocketPair.write(AxiSocketPair(AxiSockAddr(tuple.srcIp, tuple.srcPort),
+                                                 AxiSockAddr(tuple.dstIp, tuple.dstPort)));
             ts_getMeta = true;
         }
         else if(!siMdl_RstSockPair.empty() && !ts_isLookUp) {
@@ -749,7 +749,7 @@ void pIpHeaderConstructor(
  *****************************************************************************/
 void pPseudoHeaderConstructor(
         stream<tx_engine_meta>      &siMdl_TxeMeta,
-        stream<SocketPair>          &siSps_SockPair,
+        stream<AxiSocketPair>       &siSps_SockPair,
         stream<AxiWord>             &soTss_TcpWord)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -761,7 +761,7 @@ void pPseudoHeaderConstructor(
     static uint16_t       phc_wordCount = 0;
     TcpWord               sendWord;
     static tx_engine_meta phc_meta;
-    static SocketPair     phc_sockPair;
+    static AxiSocketPair  phc_sockPair;
     //OBSOLETE-20181130 static bool           phc_done = true;
     TcpSegLen             pseudoHdrLen = 0;
 
@@ -1373,7 +1373,7 @@ void pIpPktStitcher(
         stream<Ip4Word>         &siIhc_Ip4Word,
         stream<TcpWord>         &siSca_TcpWord,
         stream<TcpCSum>         &siTca_TcpCsum,
-        stream<Ip4Word>         &soL3MUX_Data)
+        stream<Ip4overAxi>      &soL3MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     //#pragma HLS INLINE off
@@ -1382,10 +1382,10 @@ void pIpPktStitcher(
     const char *myName  = concat3(THIS_NAME, "/", "Ips");
 
     static ap_uint<3> ps_wordCount = 0;
-    Ip4Word ip4HdrWord;
-    Ip4Word sendWord;
-    TcpCSum tcpCsum;
-    TcpWord tcpDatWord;
+    Ip4overAxi ip4HdrWord;
+    Ip4overAxi sendWord;
+    TcpCSum    tcpCsum;
+    TcpWord    tcpDatWord;
 
     switch (ps_wordCount) {
 
@@ -1393,7 +1393,7 @@ void pIpPktStitcher(
     case WORD_1:
         if (!siIhc_Ip4Word.empty()) {
             siIhc_Ip4Word.read(ip4HdrWord);
-            sendWord = ip4HdrWord;             //OBSOLETE-20181128 Ip4Word(ip4HdrWord.tdata, ip4HdrWord.tkeep, ip4HdrWord.tlast);
+            sendWord = ip4HdrWord;
 
             soL3MUX_Data.write(sendWord);
             ps_wordCount++;
@@ -1405,6 +1405,7 @@ void pIpPktStitcher(
         if (!siIhc_Ip4Word.empty() && !siSca_TcpWord.empty()) {
             siIhc_Ip4Word.read(ip4HdrWord);
             siSca_TcpWord.read(tcpDatWord);
+
             sendWord.tdata(31,  0) = ip4HdrWord.tdata(31,  0);  // IPv4 Destination Address
             sendWord.tdata(63, 32) = tcpDatWord.tdata(63, 32);  // TCP DstPort & SrcPort
             sendWord.tkeep         = 0xFF;
@@ -1418,8 +1419,8 @@ void pIpPktStitcher(
 
     case WORD_3:
         if (!siSca_TcpWord.empty()) {
-            siSca_TcpWord.read(tcpDatWord);
-            sendWord = tcpDatWord;            // TCP SeqNum & AckNum
+            siSca_TcpWord.read(tcpDatWord);  // TCP SeqNum & AckNum
+            sendWord = Ip4overAxi(tcpDatWord.tdata, tcpDatWord.tkeep, tcpDatWord.tlast);
 
             soL3MUX_Data.write(sendWord);
             ps_wordCount++;
@@ -1430,10 +1431,12 @@ void pIpPktStitcher(
     case WORD_4:
         if (!siSca_TcpWord.empty() && !siTca_TcpCsum.empty()) {
             siSca_TcpWord.read(tcpDatWord);
-            siTca_TcpCsum.read(tcpCsum);
-            sendWord = tcpDatWord;            // TCP UrgPtr & Checksum & Window & CtrlBits
+            siTca_TcpCsum.read(tcpCsum);  // TCP UrgPtr & Checksum & Window & CtrlBits
+
+            sendWord = Ip4overAxi(tcpDatWord.tdata, tcpDatWord.tkeep, tcpDatWord.tlast);
             // Now overwrite TCP checksum
-            sendWord.tdata(47, 32) = byteSwap16(tcpCsum);
+            sendWord.setTcpChecksum(tcpCsum);
+            //OBSOLETE-20181202 sendWord.tdata(47, 32) = byteSwap16(tcpCsum);
             //OBSOLETE-20181128 sendWord.tdata(39, 32) = tcpCsum(15,  8);
             //OBSOLETE-20181128 sendWord.tdata(47, 40) = tcpCsum( 7,  0);
 
@@ -1449,8 +1452,8 @@ void pIpPktStitcher(
 
     default:
         if (!siSca_TcpWord.empty()) {
-            siSca_TcpWord.read(tcpDatWord);
-            sendWord = tcpDatWord;
+            siSca_TcpWord.read(tcpDatWord);  // TCP Data
+            sendWord = Ip4overAxi(tcpDatWord.tdata, tcpDatWord.tkeep, tcpDatWord.tlast);
 
             soL3MUX_Data.write(sendWord);
             if (tcpDatWord.tlast) {
@@ -1557,7 +1560,7 @@ void tx_engine(
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         stream<ap_uint<1> >             &soEVe_RxEventSig,
-        stream<Ip4Word>                 &soL3MUX_Data)
+        stream<Ip4overAxi>              &soL3MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
@@ -1586,7 +1589,7 @@ void tx_engine(
     #pragma HLS stream         variable=sMdlToMai_BufferRdCmd   depth=32
     #pragma HLS DATA_PACK      variable=sMdlToMai_BufferRdCmd
 
-    static stream<SocketPair>           sMdlToSps_RstSockPair   ("sMdlToSps_RstSockPair");
+    static stream<AxiSocketPair>        sMdlToSps_RstSockPair   ("sMdlToSps_RstSockPair");
     #pragma HLS stream         variable=sMdlToSps_RstSockPair   depth=2
     #pragma HLS DATA_PACK      variable=sMdlToSps_RstSockPair
 
@@ -1612,7 +1615,7 @@ void tx_engine(
     #pragma HLS stream         variable=sSpsToIhc_IpAddrPair    depth=4
     #pragma HLS DATA_PACK      variable=sSpsToIhc_IpAddrPair
 
-    static stream<SocketPair>           sSpsToPhc_SockPair      ("sSpsToPhc_SockPair");
+    static stream<AxiSocketPair>        sSpsToPhc_SockPair      ("sSpsToPhc_SockPair");
     #pragma HLS stream         variable=sSpsToPhc_SockPair      depth=4
     #pragma HLS DATA_PACK      variable=sSpsToPhc_SockPair
 

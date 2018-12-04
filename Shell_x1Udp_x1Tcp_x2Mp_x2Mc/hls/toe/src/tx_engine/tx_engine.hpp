@@ -97,5 +97,5 @@ void tx_engine(
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         stream<ap_uint<1> >             &soEVe_RxEventSig,
-        stream<Ip4Word>                 &soL3MUX_Data
+        stream<Ip4overAxi>              &soL3MUX_Data
 );

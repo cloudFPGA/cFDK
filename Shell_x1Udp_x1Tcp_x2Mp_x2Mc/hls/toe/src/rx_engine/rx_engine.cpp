@@ -116,7 +116,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
  * @ingroup rx_engine
  ******************************************************************************/
 void pTcpLengthExtract(
-        stream<Ip4Word>        &siIPRX_Pkt,
+        stream<Ip4overAxi>     &siIPRX_Pkt,
         stream<TcpWord>        &soTcpSeg,
         stream<TcpSegLen>      &soTcpSegLen)
 {
@@ -417,7 +417,7 @@ void pCheckSumAccumulator(
         stream<AxiWord>             &soData,
         stream<ValBit>              &soDataValid,
         stream<rxEngineMetaData>    &soMeta,
-        stream<SocketPair>          &soSockPair,
+        stream<AxiSocketPair>          &soSockPair,
         stream<AxiTcpPort>          &soGetPortState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -429,7 +429,7 @@ void pCheckSumAccumulator(
     static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
     static ap_uint<8>       csa_dataOffset = 0xFF; // [FIXME-Why not make it of type AxiTcpDataOff]
     static ap_uint<16>      csa_wordCount = 0;
-    static SocketPair       csa_sessTuple;  // OBSOLETE-20181120 static fourTuple csa_sessionTuple;
+    static AxiSocketPair    csa_sessTuple;  // OBSOLETE-20181120 static fourTuple csa_sessionTuple;
     static ap_uint<36>      halfWord;
     TcpWord                 currWord;
     TcpWord                 sendWord;
@@ -714,7 +714,7 @@ void pTcpInvalidDropper(
  *****************************************************************************/
 void pMetaDataHandler(
         stream<rxEngineMetaData>    &siCsa_Meta,
-        stream<SocketPair>          &siCsa_SockPair,
+        stream<AxiSocketPair>       &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSessLookupReq,
@@ -733,8 +733,8 @@ void pMetaDataHandler(
     static Ip4Address           mdh_srcIp4Addr;
     static TcpPort              mdh_dstTcpPort;
 
-    SocketPair   tuple;
-    StsBit       isPortOpen;
+    AxiSocketPair tuple;
+    StsBit        isPortOpen;
 
     //OBSOLETE-20181101 enum mhStateType {META, LOOKUP};
     //OBSOLETE-20181101 static mhStateType mdh_state = META;
@@ -769,7 +769,7 @@ void pMetaDataHandler(
                     }
                     if (!mdh_meta.rst) {
                         // Reply with RST+ACK and send necessary socket-pair through event
-                        SocketPair  switchedTuple;
+                        AxiSocketPair  switchedTuple;
                         switchedTuple.src.addr = tuple.dst.addr;
                         switchedTuple.dst.addr = tuple.src.addr;
                         switchedTuple.src.port = tuple.dst.port;
@@ -1606,7 +1606,7 @@ void pMemWriter(
  * @ingroup rx_engine
  ******************************************************************************/
 void rx_engine(
-        stream<Ip4Word>                 &siIPRX_Pkt,
+        stream<Ip4overAxi>              &siIPRX_Pkt,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
         stream<sessionState>            &siSTt_SessStateRep,
         stream<StsBit>                  &siPRt_PortSts,
@@ -1662,7 +1662,7 @@ void rx_engine(
     #pragma HLS stream     variable=sCsaToMdh_Meta         depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_Meta
 
-    static stream<SocketPair>       sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
+    static stream<AxiSocketPair>    sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
     #pragma HLS stream     variable=sCsaToMdh_SockPair     depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_SockPair
 

@@ -59,7 +59,7 @@ struct rxFsmMetaData
  * @ingroup rx_engine
  *****************************************************************************/
 void rx_engine(
-        stream<Ip4Word>                 &siIPRX_Pkt,
+        stream<Ip4overAxi>              &siIPRX_Pkt,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
         stream<sessionState>            &siSTt_SessStateRep,
         stream<StsBit>                  &siPRt_PortSts,

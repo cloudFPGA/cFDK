@@ -40,20 +40,25 @@
 #include <stdint.h>
 #include <vector>
 
+#include "toe_utils.hpp"
+
 static const uint16_t MAX_SESSIONS = 32;
 
 //OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
 #define noTxSessions 1 // Number of Tx Sessions to open for testing
 
-extern uint32_t packetCounter;
-extern uint32_t idleCycCnt;
-extern unsigned int     gSimCycCnt;
+extern uint32_t      packetCounter;
+extern uint32_t      idleCycCnt;
+extern unsigned int  gSimCycCnt;
+
 // Forward declarations.
 struct rtlSessionUpdateRequest;
 struct rtlSessionUpdateReply;
 struct rtlSessionLookupReply;
 struct rtlSessionLookupRequest;
+
+
 
 
 #define OOO_N 4     // number of OOO blocks accepted
@@ -162,35 +167,6 @@ typedef bool StsBit;    // Status bit : Does not  have to go back (e.g. isOpen).
 typedef bool ValBit;    // Valid bit  : Must go along with something to validate/invalidate.
 
 
-/********************************************
- * AXIS - Generic AXI4-Streaming Interface
- ********************************************/
-class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-    public:
-        ap_uint<64>     tdata;
-        ap_uint<8>      tkeep;
-        ap_uint<1>      tlast;
-    public:
-        AxiWord()       {}
-        AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-                tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
-
-// Sub-types of the generic AXI4-Stream Interface
-//------------------------------------------------
-typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
-typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
-
-
-struct axiWord {
-    ap_uint<64>     data;
-    ap_uint<8>      keep;
-    ap_uint<1>      last;
-    axiWord() {}
-    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
-            data(data), keep(keep), last(last) {}
-};
-
 
 /*************************************************************************
  * NETWORK LAYER-2 SECTION
@@ -247,7 +223,7 @@ typedef ap_uint<32> AxiIp4SrcAddr;     // IPv4 Source Address over Axi
 typedef ap_uint<32> AxiIp4DstAddr;     // IPv4 Destination Address over Axi
 typedef ap_uint<32> AxiIp4Address;     // IPv4 Source or Destination Address over Axi
 typedef ap_uint<32> AxiIp4Addr;        // IPv4 Source or Destination Address over Axi
-typedef Ip4Word     AxiIpData;         // IPv4 Data stream
+typedef ap_uint<64> AxiIpData;         // IPv4 Data stream
 
 /*************************************************************************
  * TCP - Header Type Definitions in Axi4-Stream Order (Little-Endian)
@@ -262,7 +238,7 @@ typedef ap_uint<6>  AxiTcpCtrlBits;    // TCP Control Bits over Axi
 typedef ap_uint<16> AxiTcpWindow;      // TCP Window over Axi
 typedef ap_uint<16> AxiTcpChecksum;    // TCP Checksum
 typedef ap_uint<16> AxiTcpUrgPtr;      // TCP Urgent Pointer over Axi
-typedef TcpWord     AxiTcpData;        // TCP Data stream
+typedef ap_uint<64> AxiTcpData;        // TCP Data stream
 
 /*************************************************************************
  * NETWORK LAYER-3 SECTION
@@ -275,9 +251,15 @@ typedef TcpWord     AxiTcpData;        // TCP Data stream
  * IP4 - Little-Endian Type Definitions (as used by HLS)
  ********************************************************/
 typedef ap_uint< 4> Ip4Version;     // IP4 Version
-typedef ap_uint< 8> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
+typedef ap_uint< 4> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
 typedef ap_uint< 8> Ip4ToS;         // IP4 Type of Service
 typedef ap_uint<16> Ip4TotalLen;    // IP4 Total  Length
+typedef ap_uint<16> Ip4Ident;       // IP4 Identification
+typedef ap_uint<13> Ip4FragOff;     // IP4 Fragment Offset
+typedef ap_uint< 3> Ip4Flags;       // IP4 Flags
+typedef ap_uint< 8> Ip4TtL;         // IP4 Time to Live
+typedef ap_uint< 8> Ip4Prot;        // IP4 Protocol
+typedef ap_uint< 8> Ip4HdrCsum;     // IP4 Header Checksum
 typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
 typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
 typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
@@ -285,24 +267,6 @@ typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
 
 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
-
-
-/*******************************************************************
- * IP4 - Streaming Word Class Definition as Encoded by the MAC.
- *******************************************************************/
-class Ip4overAxi : public AxiWord {
-    public:
-        Ip4overAxi() {}
-        Ip4overAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            AxiWord(tdata, tkeep, tlast) {}
-
-    void setVersion(int version);
-};
-
-// Set the Version field of and
-//void Ip4overAxi::setVersion(int version) {
-//
-//}
 
 
 /*************************************************************************
@@ -323,6 +287,7 @@ typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
 typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
 typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
 typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
+typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
 typedef ap_uint<16> TcpWindow;      // TCP Window
 typedef ap_uint<16> TcpChecksum;    // TCP Checksum
 typedef ap_uint<16> TcpCSum;        // TCP Checksum
@@ -333,30 +298,31 @@ typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
 
+
 /********************************************
  * Socket Transport Pair & Address
  ********************************************/
 
-struct SockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
+struct AxiSockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
     AxiIp4Address   addr;   // IPv4 address in LITTLE-ENDIAN order !!!
     AxiTcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!
-    SockAddr() {}
-    SockAddr(AxiIp4Address addr, AxiTcpPort port) :
+    AxiSockAddr() {}
+    AxiSockAddr(AxiIp4Address addr, AxiTcpPort port) :
         addr(addr), port(port) {}
 };
 
-struct SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
-    SockAddr    src;    // Source socket address
-    SockAddr    dst;    // Destination socket address
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
+struct AxiSocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
+    AxiSockAddr    src;    // Source socket address in LITTLE-ENDIAN order !!!
+    AxiSockAddr    dst;    // Destination socket address in LITTLE-ENDIAN order !!!
+    AxiSocketPair() {}
+    AxiSocketPair(AxiSockAddr src, AxiSockAddr dst) :
         src(src), dst(dst) {}
 };
 
 
-inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
+inline bool operator < (AxiSocketPair const &s1, AxiSocketPair const &s2) {
         return ((s1.dst.addr < s2.dst.addr) ||
-        		(s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+               (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
 struct fourTuple {
@@ -374,25 +340,6 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
 }
 
 
-typedef ap_uint<16> TcpSessId;  // TCP Session ID
-typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
-
-
-/*******************************************************************
- * TCP - Streaming Word Class Definition as Encoded by the MAC.
- *******************************************************************/
-class TcpOverAxi : public AxiWord {
-    public:
-        TcpOverAxi()       {}
-        TcpOverAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            AxiWord(tdata, tkeep, tlast) {}
-
-    //void setVersion(int version);
-};
-
-// [IXMS - Add a PseudoHeader class]
-
-
 struct ipTuple
 {
     ap_uint<32>     ip_address;
@@ -401,18 +348,186 @@ struct ipTuple
 
 
 
+
+
+
+
+
+/********************************************
+ * AXIS - Generic AXI4-Streaming Interface
+ ********************************************/
+class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
+public:
+    ap_uint<64>     tdata;
+    ap_uint<8>      tkeep;
+    ap_uint<1>      tlast;
+public:
+    AxiWord()       {}
+    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+// Sub-types of the generic AXI4-Stream Interface
+//------------------------------------------------
+typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
+typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
+
+
+struct axiWord {
+    ap_uint<64>     data;
+    ap_uint<8>      keep;
+    ap_uint<1>      last;
+    axiWord() {}
+    axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
+            data(data), keep(keep), last(last) {}
+};
+
+
+
+/*******************************************************************
+ * IP4 - Streaming Word Class Definition as Encoded by the MAC.
+ *******************************************************************/
+class Ip4overAxi: public AxiWord {
+
+  public:
+    Ip4overAxi() {}
+    Ip4overAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+      AxiWord(tdata, tkeep, tlast) {}
+
+    // Set-Get the IP4 Version
+    void setIp4Version(Ip4Version ver)   { tdata.range( 7,  4) = ver; }
+    Ip4Version getIp4Version()    { return tdata.range( 7,  4); }
+
+    // Set-Get the IP4 Internet Header Length
+    void      setIp4HdrLen(Ip4HdrLen ihl)       {        tdata.range( 3,  0) = ihl;                       }
+    Ip4HdrLen getIp4HdrLen()                    { return tdata.range( 3,  0);                             }
+    // Set the IP4 Type of Service
+    void setIp4ToS(Ip4ToS tos)           { tdata.range(15,  8) = tos; }
+
+    // Set the IP4 Total Length
+    void        setIp4TotalLen(Ip4TotalLen len) {                 tdata.range(31, 16) = swapWord(len);    }
+    Ip4TotalLen getIp4TotalLen()                { return swapWord(tdata.range(31, 16));                   }
+    //OBSOLETE AxiIp4TotalLen getIp4TotLen() { return swapWord(tdata.range(31, 16)); }
+
+    // Set the IP4 Identification
+    void setIp4Ident(Ip4Ident id)        { tdata.range(47, 32) = swapWord(id); }
+    // Set the IP4 Fragment Offset
+    void setIp4FragOff(Ip4FragOff offset){ tdata.range(63, 56) = offset( 7, 0);
+                                           tdata.range(52, 48) = offset(12, 8); }
+    // Set the IP4 Flags
+    void setIp4Flags(Ip4Flags flags)     { tdata.range(55, 53) = flags; }
+    // Set the IP4 Time to Live
+    void setIp4TtL(Ip4TtL ttl)           { tdata.range( 7,  0) = ttl; }
+    // Set the IP4 Protocol
+    void setIp4Prot(Ip4Prot prot)        { tdata.range(15,  8) = prot; }
+    // Set the IP4 Header Checksum
+    void setIp4HdrCsum(Ip4HdrCsum csum)  { tdata.range(31, 16) = csum; }
+
+    // Set-Get the IP4 Source Address
+    void          setIp4SrcAddr(Ip4Addr addr)   {                  tdata.range(63, 32) = swapDWord(addr); }
+    Ip4Addr       getIp4SrcAddr()               { return swapDWord(tdata.range(63, 32));                  }
+    AxiIp4Addr getAxiIp4SrcAddr()               {           return tdata.range(63, 32);                   }
+
+    // Set-Get the IP4 Destination Address
+    void          setIp4DstAddr(Ip4Addr addr)   {                  tdata.range(31,  0) = swapDWord(addr); }
+    Ip4Addr       getIp4DstAddr()               { return swapDWord(tdata.range(31,  0));                  }
+    AxiIp4Addr getAxiIp4DstAddr()               {           return tdata.range(31,  0);                   }
+
+    // Set-Get the TCP Source Port
+    void          setTcpSrcPort(TcpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
+    TcpPort       getTcpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
+    AxiTcpPort getAxiTcpSrcPort()               {           return tdata.range(47, 32) ;                  }
+
+    // Set-Get the TCP Destination Port
+    void          setTcpDstPort(TcpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
+    TcpPort       getTcpDstPort()               { return swapWord (tdata.range(63, 48));                  }
+    AxiTcpPort getAxiTcpDstPort()               {           return tdata.range(63, 48);                   }
+
+    // Set-Get the TCP Sequence Number
+    void       setTcpSeqNum(TcpSeqNum num)      {                  tdata.range(31,  0) = swapDWord(num);  }
+    TcpSeqNum  getTcpSeqNum()                   { return swapDWord(tdata.range(31,  0));                  }
+
+    // Set-Get the TCP Acknowledgment Number
+    void       setTcpAckNum(TcpAckNum num)      {                  tdata.range(63, 32) = swapDWord(num);  }
+    TcpAckNum  getTcpAckNum()                   { return swapDWord(tdata.range(63, 32));                  }
+
+    // Set-Get the TCP Data Offset
+    void       setTcpDataOff(TcpDataOff offset) {                  tdata.range( 7,  4) = offset;          }
+    TcpDataOff getTcpDataOff()                  { return           tdata.range( 7,  4);                   }
+
+    // Set-Get the TCP Control Bits
+    void setTcpCtrlFin(TcpCtrlBit bit)   { tdata.bit( 8) = bit; }
+    TcpCtrlBit getTcpCtrlFin()    { return tdata.bit( 8); }
+    void setTcpCtrlSyn(TcpCtrlBit bit)   { tdata.bit( 9) = bit; }
+    TcpCtrlBit getTcpCtrlSyn()    { return tdata.bit( 9); }
+    void setTcpCtrlRst(TcpCtrlBit bit)   { tdata.bit(10) = bit; }
+    TcpCtrlBit getTcpCtrlRst()    { return tdata.bit(10); }
+    void setTcpCtrlPsh(TcpCtrlBit bit)   { tdata.bit(11) = bit; }
+    TcpCtrlBit getTcpCtrlPsh()    { return tdata.bit(11); }
+    void setTcpCtrlAck(TcpCtrlBit bit)   { tdata.bit(12) = bit; }
+    TcpCtrlBit getTcpCtrlAck()    { return tdata.bit(12); }
+    void setTcpCtrlUrg(TcpCtrlBit bit)   { tdata.bit(13) = bit; }
+    TcpCtrlBit getTcpCtrlUrg()    { return tdata.bit(13); }
+
+    // Set-Get the TCP Window
+    void        setTcpWindow(TcpWindow win)     {                  tdata.range(31, 16) = swapWord(win);   }
+    TcpWindow   getTcpWindow()                  { return swapWord (tdata.range(31, 16));                  }
+
+    // Set-Get the TCP Checksum
+    void        setTcpChecksum(TcpChecksum csum){ tdata.range(47, 32) = swapWord(csum);                   }
+    TcpChecksum getTcpChecksum()                { return swapWord (tdata.range(47, 32));                  }
+
+    // Set-Get the TCP Urgent Pointer
+    void        setTcpUrgPtr(TcpUrgPtr ptr)     {                  tdata.range(63, 48) = swapWord(ptr);   }
+    TcpUrgPtr   getTcpUrgPtr()                  { return swapWord (tdata.range(63, 48));                  }
+
+    //OBSOLETE Copy Assignment from an AxiWord
+    //OBSOLETE Ip4overAxi& operator= (const Ip4overAxi&);
+    //OBSOLETE Ip4overAxi& operator= (const TcpWord&);
+
+  private:
+    // Swap the two bytes of a word (.i.e, 16 bits)
+    ap_uint<16> swapWord(ap_uint<16> inpWord) {
+      return (inpWord.range(7,0), inpWord(15, 8));
+    }
+    // Swap the four bytes of a double-word (.i.e, 32 bits)
+    ap_uint<32> swapDWord(ap_uint<32> inpDWord) {
+      return (inpDWord.range( 7, 0), inpDWord(15,  8),
+              inpDWord.range(23,16), inpDWord(31, 24));
+    }
+
+}; // End of: Ip4overAxi
+
+
+
+/*******************************************************************
+ * TCP - Streaming Word Class Definition as Encoded by the MAC.
+ *******************************************************************/
+//class TcpOverAxi : public Ip4overAxi {
+//    public:
+//        TcpOverAxi() {}
+//        TcpOverAxi(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+//            Ip4overAxi(tdata, tkeep, tlast) {}
+//}
+
+
+// [FIXME - Add a PseudoHeader class]
+
+
 /********************************************
  * Session Lookup Controller (SLc)
  ********************************************/
 
 typedef ap_uint<16>     SessionId;
+typedef ap_uint<16> TcpSessId;  // TCP Session ID
+typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
 
 struct sessionLookupQuery
 {
-    SocketPair  tuple;
+    AxiSocketPair  tuple;
     bool        allowCreation;
     sessionLookupQuery() {}
-    sessionLookupQuery(SocketPair tuple, bool allowCreation) :
+    sessionLookupQuery(AxiSocketPair tuple, bool allowCreation) :
         tuple(tuple), allowCreation(allowCreation) {}
 };
 
@@ -699,11 +814,11 @@ struct event
 
 struct extendedEvent : public event
 {
-    SocketPair  tuple;    // [FIXME - Consider renaming]
+    AxiSocketPair  tuple;    // [FIXME - Consider renaming]
     extendedEvent() {}
     extendedEvent(const event& ev) :
         event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    extendedEvent(const event& ev, SocketPair tuple) :
+    extendedEvent(const event& ev, AxiSocketPair tuple) :
         event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
@@ -871,16 +986,15 @@ void toe(
         //------------------------------------------------------
         ap_uint<32>                             piMMIO_This_IpAddr,
 
-
         //------------------------------------------------------
         //-- IPRX / This / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<Ip4Word>                         &siIPRX_This_Data,
+        stream<Ip4overAxi>                      &siIPRX_This_Data,
 
         //------------------------------------------------------
         //-- L3MUX / This / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<Ip4Word>                         &soTHIS_L3mux_Data,
+        stream<Ip4overAxi>                      &soTHIS_L3mux_Data,
 
         //------------------------------------------------------
         //-- TRIF / This / ROLE Rx / Data Interfaces
@@ -893,7 +1007,7 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / This / ROLE Rx / Ctrl Interfaces
         //------------------------------------------------------
-        stream<ap_uint<16> >                    &siTRIF_This_LsnReq,
+        stream<TcpPort>                         &siTRIF_This_LsnReq,
         stream<bool>                            &soTHIS_Trif_LsnAck,
 
         //------------------------------------------------------

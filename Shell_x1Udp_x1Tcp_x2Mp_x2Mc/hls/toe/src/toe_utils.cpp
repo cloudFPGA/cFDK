@@ -11,10 +11,10 @@
  *
  *****************************************************************************/
 
-// OBSOLETE #include <queue>
-// OBSOLET #include "toe_utils.hpp"
-#include "toe.hpp"
+#include <queue>
+
 #include "toe_utils.hpp"
+
 
 
 /*****************************************************************************
@@ -24,10 +24,6 @@
  *
  * @return a 16-bit unsigned data.
  *****************************************************************************/
-ap_uint<16> swapWord(ap_uint<16> inpWord)
-{
-    return (inpWord.range(7,0), inpWord(15, 8));
-}
 ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
     return (inputVector.range(7,0), inputVector(15, 8));
 }
@@ -39,11 +35,6 @@ ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
  *
  * @return a 32-bit unsigned data.
  *****************************************************************************/
-ap_uint<32> swapDWord(ap_uint<32> inpDWord)
-{
-    return (inpDWord.range( 7, 0), inpDWord(15,  8),
-            inpDWord.range(23,16), inpDWord(31, 24));
-}
 ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
     return (inputVector.range( 7, 0), inputVector(15,  8),
         inputVector.range(23,16), inputVector(31, 24));
@@ -152,6 +143,19 @@ void printAxiWord(const char *callerName, AxiWord chunk)
               chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
 }
 
+/*****************************************************************************
+ * @brief Print a socket pair association (used for debugging).
+ *
+ * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
+ * @param[in] sockPair,     the socket pair to display.
+ *****************************************************************************/
+void printSockPair(const char *callerName, AxiSocketPair sockPair)
+{
+    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
+        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
+        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
+}
+
 
 /*****************************************************************************
  * @brief Prints the content of an IP streamed packet (for debugging).
@@ -181,7 +185,7 @@ void printAxiWord(const char *callerName, AxiWord chunk)
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *****************************************************************************/
-void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
+void printIpPktStream(const char *callerName, std::deque<Ip4overAxi> &pktChunk)
 {
     AxiIp4Version  axiIp4Version = pktChunk[0].tdata.range( 3,  0);
     AxiIp4HdrLen   axiIp4HdrLen  = pktChunk[0].tdata.range( 7,  4);
@@ -214,13 +218,13 @@ void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
             axiIp4DstAddr.to_uint() & 0x0000FF00 >>  8,
             axiIp4DstAddr.to_uint() & 0x000000FF >>  0);
     printf("\t TCP Source Port         = 0x%4.4X     (%u) \n",
-            axiTcpSrcPort.to_uint(), swapWord(axiTcpSrcPort).to_uint());
+            axiTcpSrcPort.to_uint(), byteSwap16(axiTcpSrcPort).to_uint());
     printf("\t TCP Destination Port    = 0x%4.4X     (%u) \n",
-            axiTcpDstPort.to_uint(), swapWord(axiTcpDstPort).to_uint());
+            axiTcpDstPort.to_uint(), byteSwap16(axiTcpDstPort).to_uint());
     printf("\t TCP Sequence Number     = 0x%8.8X (%u) \n",
-            axiTcpSeqNum.to_uint(), swapDWord(axiTcpSeqNum).to_uint());
+            axiTcpSeqNum.to_uint(), byteSwap32(axiTcpSeqNum).to_uint());
     printf("\t TCP Acknowledge Number  = 0x%8.8X (%u) \n",
-            axiTcpAckNum.to_uint(), swapDWord(axiTcpAckNum).to_uint());
+            axiTcpAckNum.to_uint(), byteSwap32(axiTcpAckNum).to_uint());
     printf("\t TCP Data Offset         = 0x%1.1X        (%d) \n",
             axiTcpDatOff.to_uint(), axiTcpDatOff.to_uint());
 
@@ -234,34 +238,17 @@ void printIpPktStream(const char *callerName, std::deque<Ip4Word> &pktChunk)
     printf("\n");
 
     printf("\t TCP Window              = 0x%4.4X     (%u) \n",
-            axiTcpWindow.to_uint(), swapWord(axiTcpWindow).to_uint());
+            axiTcpWindow.to_uint(), byteSwap16(axiTcpWindow).to_uint());
     printf("\t TCP Checksum            = 0x%4.4X     (%u) \n",
             axiTcpCSum.to_uint(), axiTcpCSum.to_uint());
     printf("\t TCP Urgent Pointer      = 0x%4.4X     (%u) \n",
-            axiTcpUrgPtr.to_uint(), swapWord(axiTcpUrgPtr).to_uint());
+            axiTcpUrgPtr.to_uint(), byteSwap16(axiTcpUrgPtr).to_uint());
 }
 
 
-/*****************************************************************************
- * @brief Prints the socket pair association of a data segment (for debug).
- *
- * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
- * @param[in] sockPair,     the socket pair to display.
- *
- * @note
- *  The the socket pair addresses and port are stored in little-endian order.
- *****************************************************************************/
-void printSockPair(const char *callerName, SocketPair sockPair)
-{
-    AxiIp4Address srcAddr = sockPair.src.addr;
-    AxiTcpPort    srcPort = sockPair.src.port;
-    AxiIp4Address dstAddr = sockPair.dst.addr;
-    AxiTcpPort    dstPort = sockPair.dst.port;
 
-    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
-        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
-        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
-}
+
+
 
 
 #endif
