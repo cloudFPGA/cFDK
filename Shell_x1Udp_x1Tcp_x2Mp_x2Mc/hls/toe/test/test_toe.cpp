@@ -11,10 +11,11 @@
  *
  *****************************************************************************/
 
+#include "./test_toe.hpp"
 #include "../src/toe.hpp"
-//#include "../src/toe_utils.hpp"
 #include "../src/dummy_memory/dummy_memory.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
+
 #include <map>
 #include <string>
 #include <unistd.h>
@@ -38,7 +39,6 @@ using namespace std;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL DEFINES
 //---------------------------------------------------------
@@ -51,9 +51,13 @@ unsigned int    gSimCycCnt    = 0;
 unsigned int    gMaxSimCycles = 100;    // Might be updated by content of the test vector file.
 bool            gTraceEvent        = false;
 
-/********************************************
+/*******************************************************************
  * @brief Class Testbench Socket Address
- ********************************************/
+ *  This class differs from the class 'SockAddr' used by TOE from an
+ *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  opposed to the one used by TOE which stores its data members in
+ *  LITTLE-ENDIAN order.
+ *******************************************************************/
 class TbSockAddr {  // Testbench Socket Address
   public:
     int     addr;   // IPv4 address
@@ -63,9 +67,13 @@ class TbSockAddr {  // Testbench Socket Address
         addr(addr), port(port) {}
 };
 
-/********************************************
+/*******************************************************************
  * @brief Class Testbench Socket Pair
- ********************************************/
+ *  This class differs from the class 'SockAddr' used by TOE from an
+ *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  opposed to the one used by TOE which stores its data members in
+ *  LITTLE-ENDIAN order.
+ *******************************************************************/
 class TbSocketPair {    // Socket Pair Association
   public:
     TbSockAddr  src;    // Source socket address in LITTLE-ENDIAN order !!!
@@ -96,7 +104,7 @@ void printTbSockPair(const char *callerName, TbSocketPair sockPair)
 /********************************************************
  * TCP - Type Definitions (as used by the Testbench)
  ********************************************************/
-typedef int TbTcpSeqNum;    // TCP Sequence Number
+//OBSOLETE-20181205 typedef int TbTcpSeqNum;    // TCP Sequence Number
 
 
 /*****************************************************************************
@@ -118,12 +126,13 @@ class IpPacket {
     IpPacket() {}
     // Construct a packet of length 'pktLen'
     IpPacket(int pktLen) {
-        while(pktLen > 8) {
+        int noBytes = pktLen;
+        while(noBytes > 8) {
             Ip4overAxi newAxiWord(0x0000000000000000, 0xFF, 0);
             axiWordQueue.push_back(newAxiWord);
-            pktLen -= 8;
+            noBytes -= 8;
         }
-        Ip4overAxi newAxiWord(0x0000000000000000, lenToKeep(pktLen), 1);
+        Ip4overAxi newAxiWord(0x0000000000000000, lenToKeep(noBytes), 1);
         axiWordQueue.push_back(newAxiWord);
         // Set all the default fields.
         setIpInternetHeaderLength(5);
@@ -139,39 +148,39 @@ class IpPacket {
     }
 
     // Return the front chunk element
-    Ip4overAxi front()                      { return this->axiWordQueue.front();        }
+    Ip4overAxi front()                               { return this->axiWordQueue.front();            }
     // Clear the content of the Axi word queue
-    void clear()                            { this->axiWordQueue.clear();               }
+    void clear()                                     {        this->axiWordQueue.clear();            }
     // Remove the first chunk element
-    void pop_front()                        { this->axiWordQueue.pop_front();           }
+    void pop_front()                                 {        this->axiWordQueue.pop_front();        }
     // Add an IP chunk element at the end of the Axi word queue
-    void push_back(Ip4overAxi ipChunk)      { this->axiWordQueue.push_back(ipChunk);    }
+    void push_back(Ip4overAxi ipChunk)               {        this->axiWordQueue.push_back(ipChunk); }
     // Return the number of elements
-    int size()                              { return this->axiWordQueue.size();         }
+    int size()                                       { return this->axiWordQueue.size();             }
 
     // Set-Get the IP Version field
-    void setIpVersion(int version)          {        axiWordQueue[0].setIp4Version(version); }
-    int  getIpVersion()                     { return axiWordQueue[0].getIp4Version();        }
+    void setIpVersion(int version)                   {        axiWordQueue[0].setIp4Version(version);}
+    int  getIpVersion()                              { return axiWordQueue[0].getIp4Version();       }
     // Set-Get the IP Internet Header Length field
-    void setIpInternetHeaderLength(int ihl) {        axiWordQueue[0].setIp4HdrLen(ihl); }
-    int  getIpInternetHeaderLength()        { return axiWordQueue[0].getIp4HdrLen();    }
+    void setIpInternetHeaderLength(int ihl)          {        axiWordQueue[0].setIp4HdrLen(ihl);     }
+    int  getIpInternetHeaderLength()                 { return axiWordQueue[0].getIp4HdrLen();        }
     // Set the IP Type of Service field
-    void setIpTypeOfService(int tos)        { axiWordQueue[0].setIp4ToS(tos);           }
+    void setIpTypeOfService(int tos)                 {        axiWordQueue[0].setIp4ToS(tos);        }
     // Set-Get the IP Total Length field
-    void setIpTotalLength(int totLen)       {        axiWordQueue[0].setIp4TotalLen(totLen); }
-    int  getIpTotalLength()                 { return axiWordQueue[0].getIp4TotalLen();       }
+    void setIpTotalLength(int totLen)                {        axiWordQueue[0].setIp4TotalLen(totLen);}
+    int  getIpTotalLength()                          { return axiWordQueue[0].getIp4TotalLen();      }
     // Set the IP Identification field
-    void setIpIdentification(int id)        { axiWordQueue[0].setIp4Ident(id);       }
+    void setIpIdentification(int id)                 {        axiWordQueue[0].setIp4Ident(id);       }
     // Set the IP Fragment Offset field
-    void setIpFragmentOffset(int offset)    { axiWordQueue[0].setIp4FragOff(offset); }
+    void setIpFragmentOffset(int offset)             {        axiWordQueue[0].setIp4FragOff(offset); }
     // Set the IP Flags field
-    void setIpFlags(int flags)              { axiWordQueue[0].setIp4Flags(flags);    }
+    void setIpFlags(int flags)                       {        axiWordQueue[0].setIp4Flags(flags);    }
     // Set the IP Time To Live field
-    void setIpTimeToLive(int ttl)           { axiWordQueue[1].setIp4TtL(ttl);        }
+    void setIpTimeToLive(int ttl)                    {        axiWordQueue[1].setIp4TtL(ttl);        }
     // Set the IP Protocol field
-    void setIpProtocol(int prot)            { axiWordQueue[1].setIp4Prot(prot);      }
+    void setIpProtocol(int prot)                     {        axiWordQueue[1].setIp4Prot(prot);      }
     // Set the IP Header Checksum field
-    void setIpHeaderChecksum(int csum)      { axiWordQueue[1].setIp4HdrCsum(csum);   }
+    void setIpHeaderChecksum(int csum)               {        axiWordQueue[1].setIp4HdrCsum(csum);   }
     // Set-Get the IP Source Address field
     void          setIpSourceAddress(int addr)       {        axiWordQueue[1].setIp4SrcAddr(addr);   }
     int           getIpSourceAddress()               { return axiWordQueue[1].getIp4SrcAddr();       }
@@ -189,11 +198,11 @@ class IpPacket {
     int           getTcpDestinationPort()            { return axiWordQueue[2].getTcpDstPort();       }
     AxiTcpPort getAxiTcpDestinationPort()            { return axiWordQueue[2].getAxiTcpDstPort();    }
     // Set-Get the TCP Sequence Number field
-    void setTcpSequenceNumber(int num)               {        axiWordQueue[3].setTcpSeqNum(num);     }
-    int  getTcpSequenceNumber()                      { return axiWordQueue[3].getTcpSeqNum();        }
+    void       setTcpSequenceNumber(TcpSeqNum num)   {        axiWordQueue[3].setTcpSeqNum(num);     }
+    TcpSeqNum  getTcpSequenceNumber()                { return axiWordQueue[3].getTcpSeqNum();        }
     // Set the TCP Acknowledgment Number
-    void setTcpAcknowlegmentNumber(int num)          {        axiWordQueue[3].setTcpAckNum(num);     }
-    int  getTcpAcknowledgmentNumber()                { return axiWordQueue[3].getTcpAckNum();        }
+    void       setTcpAcknowledgeNumber(TcpAckNum num){        axiWordQueue[3].setTcpAckNum(num);     }
+    TcpAckNum  getTcpAcknowledgeNumber()             { return axiWordQueue[3].getTcpAckNum();        }
     // Set-Get the TCP Data Offset field
     void setTcpDataOffset(int offset)                {        axiWordQueue[4].setTcpDataOff(offset); }
     int  getTcpDataOffset()                          { return axiWordQueue[4].getTcpDataOff();       }
@@ -219,7 +228,11 @@ class IpPacket {
     // Set-Get the TCP Urgent Pointer field
     void setTcpUrgentPointer(int ptr)                {        axiWordQueue[4].setTcpUrgPtr(ptr);     }
     int  getTcpUrgentPointer()                       { return axiWordQueue[4].getTcpUrgPtr();        }
-
+    // Set-Get the TCP Option fields
+    void setTcpOptionKind(int val)                   {        axiWordQueue[5].setTcpOptKind(val);    }
+    int  getTcpOptionKind()                          { return axiWordQueue[5].getTcpOptKind();       }
+    void setTcpOptionMss(int val)                    {        axiWordQueue[5].setTcpOptMss(val);     }
+    int  getTcpOptionMss()                           { return axiWordQueue[5].getTcpOptMss();        }
     // Additional Debug and Utilities Procedures
     void clone(IpPacket &ipPkt);
     bool isFIN();
@@ -245,19 +258,22 @@ class IpPacket {
  *****************************************************************************/
 void IpPacket::printHdr(const char *callerName)
 {
-    AxiIp4SrcAddr    axiIp4SrcAddr = byteSwap32(this->getIpSourceAddress());
-    AxiIp4DstAddr    axiIp4DstAddr = byteSwap32(this->getIpDestinationAddress());
+    AxiIp4TotalLen   axiIp4TotalLen = byteSwap16(this->getIpTotalLength());
+    AxiIp4SrcAddr    axiIp4SrcAddr  = byteSwap32(this->getIpSourceAddress());
+    AxiIp4DstAddr    axiIp4DstAddr  = byteSwap32(this->getIpDestinationAddress());
 
-    AxiTcpSrcPort    axiTcpSrcPort = byteSwap16(this->getTcpSourcePort());
-    AxiTcpDstPort    axiTcpDstPort = byteSwap16(this->getTcpDestinationPort());
-    AxiTcpSeqNum     axiTcpSeqNum  = byteSwap32(this->getTcpSequenceNumber());
-    AxiTcpAckNum     axiTcpAckNum  = byteSwap32(this->getTcpAcknowledgmentNumber());
+    AxiTcpSrcPort    axiTcpSrcPort  = byteSwap16(this->getTcpSourcePort());
+    AxiTcpDstPort    axiTcpDstPort  = byteSwap16(this->getTcpDestinationPort());
+    AxiTcpSeqNum     axiTcpSeqNum   = byteSwap32(this->getTcpSequenceNumber());
+    AxiTcpAckNum     axiTcpAckNum   = byteSwap32(this->getTcpAcknowledgeNumber());
 
-    AxiTcpWindow     axiTcpWindow  = byteSwap16(this->getTcpWindow());
-    AxiTcpChecksum   axiTcpCSum    = byteSwap16(this->getTcpChecksum());
-    AxiTcpUrgPtr     axiTcpUrgPtr  = byteSwap16(this->getTcpUrgentPointer());
+    AxiTcpWindow     axiTcpWindow   = byteSwap16(this->getTcpWindow());
+    AxiTcpChecksum   axiTcpCSum     = byteSwap16(this->getTcpChecksum());
+    AxiTcpUrgPtr     axiTcpUrgPtr   = byteSwap16(this->getTcpUrgentPointer());
 
     printInfo(callerName, "IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n");
+    printf("\t IP4 Total Length        = %15u (0x%4.4X) \n",
+            this->getIpTotalLength(), axiIp4TotalLen.to_uint());
     printf("\t IP4 Source Address      = %3d.%3d.%3d.%3d (0x%8.8X) \n",
             this->getIpSourceAddress() & 0xFF000000 >> 24,
             this->getIpSourceAddress() & 0x00FF0000 >> 16,
@@ -270,15 +286,15 @@ void IpPacket::printHdr(const char *callerName)
             this->getIpDestinationAddress() & 0x0000FF00 >>  8,
             this->getIpDestinationAddress() & 0x000000FF >>  0,
             axiIp4DstAddr.to_uint());
-    printf("\t TCP Source Port         = %14u  (0x%4.4X) \n",
+    printf("\t TCP Source Port         = %15u (0x%4.4X) \n",
             this->getTcpSourcePort(), axiTcpSrcPort.to_uint());
-    printf("\t TCP Destination Port    = %14u  (0x%4.4X) \n",
+    printf("\t TCP Destination Port    = %15u (0x%4.4X) \n",
     		this->getTcpDestinationPort(), axiTcpDstPort.to_uint());
-    printf("\t TCP Sequence Number     = %14u  (0x%8.8X) \n",
-            this->getTcpSequenceNumber(), axiTcpSeqNum.to_uint());
-    printf("\t TCP Acknowledge Number  = %14u  (0x%8.8X) \n",
-            this->getTcpAcknowledgmentNumber(), axiTcpAckNum.to_uint());
-    printf("\t TCP Data Offset         = %14d  (0x%1.1X)  \n",
+    printf("\t TCP Sequence Number     = %15u (0x%8.8X) \n",
+            this->getTcpSequenceNumber().to_uint(), axiTcpSeqNum.to_uint());
+    printf("\t TCP Acknowledge Number  = %15u (0x%8.8X) \n",
+            this->getTcpAcknowledgeNumber().to_uint(), axiTcpAckNum.to_uint());
+    printf("\t TCP Data Offset         = %15d (0x%1.1X)  \n",
             this->getTcpDataOffset(), this->getTcpDataOffset());
 
     printf("\t TCP Control Bits        = ");
@@ -290,12 +306,21 @@ void IpPacket::printHdr(const char *callerName)
     printf("%s", this->getTcpControlUrg() ? "URG |" : "");
     printf("\n");
 
-    printf("\t TCP Window              = %14u (0x%4.4X) \n",
+    printf("\t TCP Window              = %15u (0x%4.4X) \n",
             this->getTcpWindow(),        axiTcpWindow.to_uint());
-    printf("\t TCP Checksum            = %14u (0x%4.4X) \n",
+    printf("\t TCP Checksum            = %15u (0x%4.4X) \n",
             this->getTcpChecksum(),      axiTcpCSum.to_uint());
-    printf("\t TCP Urgent Pointer      = %14u (0x%4.4X) \n",
+    printf("\t TCP Urgent Pointer      = %15u (0x%4.4X) \n",
             this->getTcpUrgentPointer(), axiTcpUrgPtr.to_uint());
+
+    if (this->getTcpDataOffset() == 6) {
+        printf("\t TCP Option:\n");
+        switch (this->getTcpOptionKind()) {
+        case 0x02:
+    printf("\t    Maximum Segment Size = %15u \n",
+                    this->getTcpOptionMss());
+        }
+    }
 }
 
 /*****************************************************************************
@@ -309,7 +334,7 @@ void IpPacket::printRaw(const char *callerName)
 {
     printInfo(callerName, "Current packet is : \n");
     for (int c=0; c<this->size(); c++)
-        printf("\t\t%16.16lX %2.2X %d \n",
+        printf("\t\t%16.16LX %2.2X %d \n",
                this->axiWordQueue[c].tdata.to_uint(),
                this->axiWordQueue[c].tkeep.to_uint(),
                this->axiWordQueue[c].tlast.to_uint());
@@ -819,7 +844,7 @@ vector<string> myTokenizer(string strBuff) {
  ******************************************************************************/
 int injectAckNumber(
         IpPacket                         &ipRxPacket,
-        map<TbSocketPair, TbTcpSeqNum>   &sessionList)
+        map<TbSocketPair, TcpSeqNum>     &sessionList)
 {
     const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
 
@@ -832,27 +857,28 @@ int injectAckNumber(
     if (ipRxPacket.isSYN()) {
         // This packet is a SYN and there's no need to inject anything
         if (sessionList.find(newSockPair) != sessionList.end()) {
-            printWarn(myName, "Trying to open an existing session (%d)!\n", sessionList.find(newSockPair)->second);
+            printWarn(myName, "Trying to open an existing session (%d)!\n", (sessionList.find(newSockPair)->second).to_uint());
             printTbSockPair(myName, newSockPair);
             return -1;
         }
         else {
             sessionList[newSockPair] = 0;
-            printInfo(myName, "Successfully opened a new session (%d).\n", sessionList.find(newSockPair)->second);
+            printInfo(myName, "Successfully opened a new session (%d).\n", (sessionList.find(newSockPair)->second).to_uint());
             printTbSockPair(myName, newSockPair);
             return 0;
         }
     }
-    else {
-        // Packet is not a SYN
+    else if (ipRxPacket.isACK()) {
+        // This packet is an ACK and we must update the its acknowledgment number
         if (sessionList.find(newSockPair) != sessionList.end()) {
             // Inject the oldest acknowledgment number in the ACK number field
-            //OBSOLETE-20181203 AxiTcpAckNum newTcpHdr_AckNum = sessionList[newSockPair];
-            TbTcpSeqNum newAckNum = sessionList[newSockPair];
-            //OBSOLETE-20181203 ipRxPacketizer[3].tdata.range(63, 32) = newTcpHdr_AckNum;
-            ipRxPacket.setTcpAcknowlegmentNumber(newAckNum);
+            TcpSeqNum newAckNum = sessionList[newSockPair];
+            ipRxPacket.setTcpAcknowledgeNumber(newAckNum);
+
             if (DEBUG_LEVEL & TRACE_IPRX)
-                printInfo(myName, "Setting the sequence number of this segment to: %u \n", newAckNum);
+                printInfo(myName, "Setting the TCP Acknowledge of this segment to: %u (0x%8.8X) \n",
+                          newAckNum.to_uint(), byteSwap32(newAckNum).to_uint());
+
 
             // Recalculate and update the checksum
             int newTcpCsum = ipRxPacket.recalculateChecksum();
@@ -876,10 +902,12 @@ int injectAckNumber(
 /*****************************************************************************
  * @brief Feed TOE with IP an Rx packet.
  *
- * @param[in]  ipRxPacketizer, a ref to the dqueue w/ an IP Rx packets.
- * @param[out] sIPRX_Toe_Data, a ref to the data stream to write.
- * @param[in]  sessionList,    a ref to an associative container that
- *                              holds the sessions as socket pair associations.
+ * @param[in]  ipRxPacketizer,    a ref to the dqueue w/ an IP Rx packets.
+ * @param[in/out] ipRxPktCounter, a ref to the IP Rx packet counter.
+ *                                 (counts all kinds and from all sessions).
+ * @param[out] sIPRX_Toe_Data,    a ref to the data stream to write.
+ * @param[in]  sessionList,       a ref to an associative container that
+ *                                 holds the sessions as socket pair associations.
  *
  * @details:
  *  Empties the double-ended packetizer queue which contains the IPv4 packet
@@ -889,9 +917,10 @@ int injectAckNumber(
  * @ingroup toe
  ******************************************************************************/
 void feedTOE(
-        deque<IpPacket>                 &ipRxPacketizer,
-        stream<Ip4overAxi>              &sIPRX_Toe_Data,
-        map<TbSocketPair, TbTcpSeqNum>  &sessionList)
+        deque<IpPacket>               &ipRxPacketizer,
+        int                           &ipRxPktCounter,
+        stream<Ip4overAxi>            &sIPRX_Toe_Data,
+        map<TbSocketPair, TcpSeqNum>  &sessionList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
 
@@ -899,7 +928,7 @@ void feedTOE(
         // Insert proper ACK Number in packet at the head of the queue
         injectAckNumber(ipRxPacketizer[0], sessionList);
         if (DEBUG_LEVEL & TRACE_IPRX) {
-        	ipRxPacketizer[0].printHdr(myName);
+            ipRxPacketizer[0].printHdr(myName);
         }
         // Write stream IPRX->TOE
         int noPackets= ipRxPacketizer.size();
@@ -911,6 +940,7 @@ void feedTOE(
                 sIPRX_Toe_Data.write(axiWord);
                 ipRxPacket.pop_front();
             }
+            ipRxPktCounter++;
             ipRxPacketizer.pop_front();
         }
     }
@@ -921,6 +951,8 @@ void feedTOE(
  * @brief Emulate the behavior of the IP Rx Path (IPRX).
  *
  * @param[in]     iprxFile,       the input file stream to read from.
+ * @param[in/out] ipRxPktCounter, a ref to the IP Rx packet counter.
+ *                                 (counts all kinds and from all sessions).
  * @param[in/out] idlingReq,      a ref to the request to idle.
  * @param[in/out] idleCycReq,     a ref to the no cycles to idle.
  * @param[in/out] ipRxPacketizer, a ref to the RxPacketizer (double-ended queue).
@@ -940,14 +972,14 @@ void feedTOE(
  * @ingroup toe
  ******************************************************************************/
 void pIPRX(
-        ifstream                        &iprxFile,
-        bool                            &idlingReq,
-        unsigned int                    &idleCycReq,
-        deque<IpPacket>                 &ipRxPacketizer,
-        map<TbSocketPair, TbTcpSeqNum>  &sessionList,
-        stream<Ip4overAxi>              &sIPRX_Toe_Data)
+        ifstream                      &iprxFile,
+        int                           &ipRxPktCounter,
+        bool                          &idlingReq,
+        unsigned int                  &idleCycReq,
+        deque<IpPacket>               &ipRxPacketizer,
+        map<TbSocketPair, TcpSeqNum>  &sessionList,
+        stream<Ip4overAxi>            &sIPRX_Toe_Data)
 {
-    //OBSOLETE unsigned short int  temp;
     string              rxStringBuffer;
     vector<string>      stringVector;
     static IpPacket     ipRxPacket;
@@ -958,7 +990,7 @@ void pIPRX(
     //  process which emulates the Layer-3 Multiplexer (.i.e, L3Mux).
     //  Therefore, we start by flushing these packets (if any) before reading a
     //  new packet from the file.
-    feedTOE(ipRxPacketizer, sIPRX_Toe_Data, sessionList);
+    feedTOE(ipRxPacketizer, ipRxPktCounter, sIPRX_Toe_Data, sessionList);
 
     // Check for EOF
     if (iprxFile.eof())
@@ -1018,7 +1050,7 @@ void pIPRX(
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
-            feedTOE(ipRxPacketizer, sIPRX_Toe_Data, sessionList);
+            feedTOE(ipRxPacketizer, ipRxPktCounter, sIPRX_Toe_Data, sessionList);
 
             return;
         }
@@ -1047,29 +1079,30 @@ void pIPRX(
  ******************************************************************************/
 bool parseL3MuxPacket(
         //OBSOLETE-20181203 deque<Ip4overAxi>               &ipTxPacket,
-        IpPacket                        &ipTxPacket,
-        map<TbSocketPair, TbTcpSeqNum>  &sessionList,
-        deque<IpPacket>                 &ipRxPacketizer)
+        IpPacket                      &ipTxPacket,
+        map<TbSocketPair, TcpSeqNum>  &sessionList,
+        deque<IpPacket>               &ipRxPacketizer)
 {
     bool        returnValue    = false;
     bool        isFinAck       = false;
+    bool        isSynAck       = false;
     static int  ipTxPktCounter = 0;
-    static int   currAckNum    = 0;
-
-    //TMPstatic AxiTcpSeqNum prevTcpHdr_SeqNum = 0;
+    static int  currAckNum     = 0;
 
     const char *myName = concat3(THIS_NAME, "/", "L3MUX/Parse");
 
     if (DEBUG_LEVEL & TRACE_L3MUX) {
-        //OBSOLETE-20181203 printIpPktStream(myName, ipTxPacket);
         ipTxPacket.printHdr(myName);
     }
 
     if (ipTxPacket.isSYN() && !ipTxPacket.isACK()) {
         //------------------------------------------------------
-        // This is a SYN segment. Reply with a SYN-ACK segment.
+        // This is a SYN segment. Reply with a SYN+ACK packet.
         //------------------------------------------------------
-        IpPacket synAckPacket;
+        if (DEBUG_LEVEL & TRACE_L3MUX)
+            printInfo(myName, "Got a SYN from TOE. Replying with a SYN+ACK.\n");
+
+        IpPacket synAckPacket(40);
         synAckPacket.clone(ipTxPacket);
 
         // Swap IP_SA and IP_DA
@@ -1080,20 +1113,18 @@ bool parseL3MuxPacket(
         synAckPacket.setTcpDestinationPort(ipTxPacket.getTcpSourcePort());
         synAckPacket.setTcpSourcePort(ipTxPacket.getTcpDestinationPort());
 
-        // Swap the SEQ and ACK NUmbers while incrementing the ACK
-        synAckPacket.setTcpAcknowlegmentNumber(ipTxPacket.getTcpSequenceNumber() + 1);
-        synAckPacket.setTcpSequenceNumber(ipTxPacket.getTcpAcknowledgmentNumber());
+        // Swap the SEQ and ACK Numbers while incrementing the ACK
+        synAckPacket.setTcpSequenceNumber(0);
+        synAckPacket.setTcpAcknowledgeNumber(ipTxPacket.getTcpSequenceNumber() + 1);
 
         // Set the ACK bit and Recalculate the Checksum
         synAckPacket.setTcpControlAck(1);
         int newTcpCsum = synAckPacket.recalculateChecksum();
         synAckPacket.setTcpChecksum(newTcpCsum);
 
-        // Add the created SYN-ACK to the ipRxPacketizer
+        // Add the created SYN+ACK packet to the ipRxPacketizer
         ipRxPacketizer.push_back(synAckPacket);
 
-        if (DEBUG_LEVEL & TRACE_L3MUX)
-            printInfo(myName, "Got a SYN from TOE. Replied with a SYN-ACK.\n");
     }
 
     else if (ipTxPacket.isFIN() && !ipTxPacket.isACK()) {
@@ -1109,13 +1140,15 @@ bool parseL3MuxPacket(
         TbSockAddr  dstSock = TbSockAddr(ipTxPacket.getIpDestinationAddress(),
                                          ipTxPacket.getTcpDestinationPort());
         TbSocketPair sockPair(dstSock, srcSock);
-        // Erase the socket pair for this session from the map.
-        sessionList.erase(sockPair);
 
         if (DEBUG_LEVEL & TRACE_L3MUX) {
             printInfo(myName, "Got a FIN from TOE. Closing the following connection:\n");
             printTbSockPair(myName, sockPair);
         }
+
+        // Erase the socket pair for this session from the map.
+        sessionList.erase(sockPair);
+
     }
 
     else if (ipTxPacket.isACK()) {
@@ -1125,9 +1158,9 @@ bool parseL3MuxPacket(
         returnValue = true;
 
         // Retrieve IP packet length and TCP sequence numbers
-        int ip4PktLen = ipTxPacket.getIpTotalLength();
+        int ip4PktLen  = ipTxPacket.getIpTotalLength();
         int nextAckNum = ipTxPacket.getTcpSequenceNumber();
-        currAckNum     = ipTxPacket.getTcpAcknowledgmentNumber();
+        currAckNum     = ipTxPacket.getTcpAcknowledgeNumber();
 
         // Retrieve the initial socket pair information.
         // Note how we call the constructor with swapped source and destination.
@@ -1140,24 +1173,24 @@ bool parseL3MuxPacket(
 
         if (ipTxPacket.isFIN() && !ipTxPacket.isSYN()) {
             // The FIN bit is also set
-            nextAckNum++;
+            nextAckNum++;  // A FIN consumes 1 sequence #
             if (DEBUG_LEVEL & TRACE_L3MUX)
-               printInfo(myName, "Got a ACK+FIN from TOE.\n");
+               printInfo(myName, "Got a FIN+ACK from TOE.\n");
         }
         else if (ipTxPacket.isSYN() && !ipTxPacket.isFIN()) {
             // The SYN bit is also set
-            nextAckNum++;
+            nextAckNum++;  // A SYN consumes 1 sequence #
             if (DEBUG_LEVEL & TRACE_L3MUX)
-                printInfo(myName, "Got a ACK+SYN from TOE.\n");
+                printInfo(myName, "Got a SYN+ACK from TOE.\n");
         }
         else if (ipTxPacket.isFIN() && ipTxPacket.isSYN()) {
-             printError(myName, "Got a ACK+SYN+FIN from TOE.\n");
+             printError(myName, "Got a SYN+FIN+ACK from TOE.\n");
              // [FIXME - MUST CREATE AND INCREMENT A GLOBAL ERROR COUNTER]
         }
-
-        if (ip4PktLen >= 40) {
+        else if (ip4PktLen >= 40) {
             // Decrement by 40B (.i.e, 20B of IP Header + 20B of TCP Header
             // [FIXME - What if we add options???]
+            // [TODO - Print the TCP options ]
             ip4PktLen -= 40;
             nextAckNum += ip4PktLen;
         }
@@ -1166,7 +1199,7 @@ bool parseL3MuxPacket(
         sessionList[sockPair] = nextAckNum;
 
         if (ipTxPacket.isFIN()) {
-            //-------------------------------------------------
+            //------------------------------------------------
             // This is an ACK+FIN segment.
             //------------------------------------------------
             isFinAck = true;
@@ -1192,11 +1225,11 @@ bool parseL3MuxPacket(
             //--------------------------------------------------------
             // The ACK segment contains more data (.e.g, TCP options),
             // and/or the segment is a FIN+ACK segment.
-            // In both cases, reply with an ACK segment.
+            // In both cases, reply with an empty ACK packet.
             //--------------------------------------------------------
             IpPacket ackPacket(40);  // [FIXME - What if we generate options ???]
 
-            // [TODO - Print the TCP option]
+            // [TODO - Add TCP Window option]
 
             // Swap IP_SA and IP_DA
             ackPacket.setIpDestinationAddress(ipTxPacket.getIpSourceAddress());
@@ -1206,9 +1239,9 @@ bool parseL3MuxPacket(
             ackPacket.setTcpDestinationPort(ipTxPacket.getTcpSourcePort());
             ackPacket.setTcpSourcePort(ipTxPacket.getTcpDestinationPort());
 
-            // Swap the SEQ and ACK NUmbers while incrementing the ACK
+            // Swap the SEQ and ACK Numbers while incrementing the ACK
             ackPacket.setTcpSequenceNumber(currAckNum);
-            ackPacket.setTcpAcknowlegmentNumber(nextAckNum);
+            ackPacket.setTcpAcknowledgeNumber(nextAckNum);
 
             // Set the ACK bit and unset the FIN bit
             ackPacket.setTcpControlAck(1);
@@ -1263,15 +1296,14 @@ bool parseL3MuxPacket(
  * @ingroup toe
  ******************************************************************************/
 void pL3MUX(
-        stream<Ip4overAxi>              &sTOE_L3mux_Data,
-        ofstream                        &iptxFile,
-        map<TbSocketPair, TbTcpSeqNum>  &sessionList,
-        int                             &ipTxPktCounter,
-        deque<IpPacket>                 &ipRxPacketizer)
+        stream<Ip4overAxi>            &sTOE_L3mux_Data,
+        ofstream                      &iptxFile,
+        map<TbSocketPair, TcpSeqNum>  &sessionList,
+        int                           &ipTxPktCounter,
+        deque<IpPacket>               &ipRxPacketizer)
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
 
-    //OBSOLETE-20181203 static deque<Ip4overAxi> ipTxPacket;
     static IpPacket ipTxPacket;
 
     Ip4overAxi  ipTxWord;  // An IP4 chunk
@@ -1283,15 +1315,15 @@ void pL3MUX(
         sTOE_L3mux_Data.read(ipTxWord);
 
         //-- STEP-2 : Write to packet --------------------
-        //OBSOLETE-20181203 ipTxPacket.push_back(ipTxWord);
         ipTxPacket.push_back(ipTxWord);
 
         //-- STEP-3 : Parse the received packet------------
         if (ipTxWord.tlast == 1) {
             // The whole packet is now into the deque.
-            parseL3MuxPacket(ipTxPacket, sessionList, ipRxPacketizer) ;
-            ipTxWordCounter = 0;
-            ipTxPktCounter++;
+            if (parseL3MuxPacket(ipTxPacket, sessionList, ipRxPacketizer) == true) {
+                ipTxWordCounter = 0;
+                ipTxPktCounter++;
+            }
         }
         else
             ipTxWordCounter++;
@@ -1537,7 +1569,7 @@ int main(int argc, char *argv[]) {
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
 
-    map<TbSocketPair, TbTcpSeqNum>    sessionList;
+    map<TbSocketPair, TcpSeqNum>    sessionList;
 
     //-- Double-ended queue of packets --------------------
     //OBSOLETE-20181203 deque<Ip4overAxi>   ipRxPacketizer; // Packets intended for the IPRX interface of TOE
@@ -1564,7 +1596,9 @@ int main(int argc, char *argv[]) {
     int             txGoldCompare       = 0; // not used yet
     int             returnValue         = 0;
     uint16_t        rxPayloadCounter    = 0;    // Counts the #packets output during the simulation on the Rx side
-    int             ipTxPktCounter      = 0;    // Counts the # IP Tx packets send by the TOE (all kinds and from all sessions).
+
+    int             ipRxPktCounter      = 0;    // Counts the # IP Rx packets rcvd by the TOE (all kinds and from all sessions).
+    int             ipTxPktCounter      = 0;    // Counts the # IP Tx packets sent by the TOE (all kinds and from all sessions).
     bool            testRxPath          = true; // Indicates if the Rx path is to be tested, thus it remains true in case of Rx only or bidirectional testing
     bool            testTxPath          = true; // Same but for the Tx path.
 
@@ -1741,8 +1775,8 @@ int main(int argc, char *argv[]) {
                 //-------------------------------------------------
                 //-- STEP-1.1 : Emulate the IPv4 Rx Path
                 //-------------------------------------------------
-                pIPRX(iprxFile,       idlingReq,   idleCycReq,
-                      ipRxPacketizer, sessionList, sIPRX_Toe_Data);
+                pIPRX(iprxFile,       ipRxPktCounter, idlingReq,   idleCycReq,
+                      ipRxPacketizer, sessionList,    sIPRX_Toe_Data);
             }
 
             /*** OBSOLETE-2018115 ******************************************************************
