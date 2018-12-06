@@ -183,8 +183,10 @@ void pLookupReplyHandler(
 /*****************************************************************************
  * @brief Update Request Sender (Urs)...
  *
- *  @param[in]
- *
+ * @param[in]
+ * @TODO
+ * @param[out] poSssRelCnt, Session release count to DEBUG.
+ * @param[out] poSssRegCnt, Session register count to DEBUG.
  * @details
  *  TODO...
  *
@@ -209,17 +211,19 @@ void updateRequestSender(
     if (!sessionInsert_req.empty()) {
         sessionUpdate_req.write(sessionInsert_req.read());
         usedSessionIDs++;
-        poSssRegCnt = usedSessionIDs;
+
     }
     else if (!sessionDelete_req.empty()) {
         rtlSessionUpdateRequest request = sessionDelete_req.read();
         sessionUpdate_req.write(request);
         sessionIdFinFifo.write(request.value);
-        //usedSessionIDs--;
+        //OBSOLETE usedSessionIDs--;
         releasedSessionIDs++;
-        poSssRelCnt = releasedSessionIDs;
-        //poSssRegCnt = usedSessionIDs;
+        //OBSOLETE poSssRegCnt = usedSessionIDs;
     }
+    // Always
+    poSssRegCnt = usedSessionIDs;
+    poSssRelCnt = releasedSessionIDs;
 }
 
 
@@ -318,8 +322,6 @@ void reverseLookupTableInterface(
  * @param[out]
  * @param[out]
  * @param[out]
- *
- * -- DEBUG / Session Statistics Interfaces
  * @param[out] poSssRelCnt,	Session release count.
  * @param[out] poSssRegCnt,	Session register count.]
  *
