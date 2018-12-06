@@ -24,10 +24,17 @@ class AxiWord;
 class Ip4overAxi;
 class AxiSocketPair;
 
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  FYI: The global variable 'gTraceEvent' is set
+ *        whenever a trace call is done.
+ ************************************************/
+extern bool gTraceEvent;
+
+
 /*************************************************************************
  * MACRO DEFINITIONS
  *************************************************************************/
-
 // Concatenate two char constants
 #define concat2(firstCharConst, secondCharConst) firstCharConst secondCharConst
 // Concatenate three char constants
@@ -61,16 +68,8 @@ class AxiSocketPair;
 /*************************************************************************
  * PROTOTYPE DEFINITIONS
  *************************************************************************/
-
-#ifndef __SYNTHESIS__
-
 void printAxiWord    (const char *callerName, AxiWord chunk);
-void printIpPktStream(const char *callerName, std::deque<Ip4overAxi> &pktChunk);
 void printSockPair   (const char *callerName, AxiSocketPair sockPair);
-
-#endif
-
-
 
 ap_uint<16> swapWord  (ap_uint<16> inpWord);        // [FIXME - To be replaced w/ byteSwap16]
 ap_uint<16> byteSwap16(ap_uint<16> inputVector);

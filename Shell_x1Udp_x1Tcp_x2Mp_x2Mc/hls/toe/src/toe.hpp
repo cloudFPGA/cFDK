@@ -293,6 +293,9 @@ typedef ap_uint<16> TcpChecksum;    // TCP Checksum
 typedef ap_uint<16> TcpCSum;        // TCP Checksum
 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
+typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
+typedef ap_uint<16> TcpOptMss;      // TCP Option MAximum Segment Size
+
 typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
 typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
@@ -474,12 +477,18 @@ class Ip4overAxi: public AxiWord {
     TcpWindow   getTcpWindow()                  { return swapWord (tdata.range(31, 16));                  }
 
     // Set-Get the TCP Checksum
-    void        setTcpChecksum(TcpChecksum csum){ tdata.range(47, 32) = swapWord(csum);                   }
+    void        setTcpChecksum(TcpChecksum csum){                  tdata.range(47, 32) = swapWord(csum);                   }
     TcpChecksum getTcpChecksum()                { return swapWord (tdata.range(47, 32));                  }
 
     // Set-Get the TCP Urgent Pointer
     void        setTcpUrgPtr(TcpUrgPtr ptr)     {                  tdata.range(63, 48) = swapWord(ptr);   }
     TcpUrgPtr   getTcpUrgPtr()                  { return swapWord (tdata.range(63, 48));                  }
+
+    // Set-Get the TCP Options
+    void        setTcpOptKind(TcpOptKind val)   {                  tdata.range( 7,  0);                   }
+    TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
+    void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
+    TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 
     //OBSOLETE Copy Assignment from an AxiWord
     //OBSOLETE Ip4overAxi& operator= (const Ip4overAxi&);

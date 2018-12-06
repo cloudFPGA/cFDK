@@ -59,6 +59,7 @@ set_top       ${projectName}
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
 add_files -tb ${testDir}/test_${projectName}.cpp
+add_files -tb ${testDir}/test_${projectName}.hpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
 add_files ${srcDir}/close_timer/close_timer.cpp
@@ -91,7 +92,8 @@ create_clock -period 6.4 -name default
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat ../../../../test/apRx_OneSynPkt.dat ../../../../test/ipTx_OneSynPkt.dat" 
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat ../../../../test/apRx_TOE.dat ../../../../test/ipTx_TOE.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat    ../../../../test/apRx_TOE.dat ../../../../test/ipTx_TOE.dat"
 }
 
 # Run C Synthesis (refer to UG902)

@@ -827,10 +827,11 @@ void pPseudoHeaderConstructor(
             break;
 
         case WORD_3:
-            sendWord.tdata( 7,  0) = 0x50;
+            sendWord.tdata(3, 1) = 0; // Reserved
+            sendWord.tdata(7, 4) = (0x5 + phc_meta.syn); // Data Offset (+1 for MSS)
             /* Control bits:
-             * [8] == FIN
-             * [9] == SYN
+             * [ 8] == FIN
+             * [ 9] == SYN
              * [10] == RST
              * [11] == PSH
              * [12] == ACK
