@@ -249,7 +249,7 @@ void IpPacket::printRaw(const char *callerName)
     printInfo(callerName, "Current packet is : \n");
     for (int c=0; c<this->size(); c++)
         printf("\t\t%16.16LX %2.2X %d \n",
-               this->axiWordQueue[c].tdata.to_uint(),
+               this->axiWordQueue[c].tdata.to_ulong(),
                this->axiWordQueue[c].tkeep.to_uint(),
                this->axiWordQueue[c].tlast.to_uint());
 }

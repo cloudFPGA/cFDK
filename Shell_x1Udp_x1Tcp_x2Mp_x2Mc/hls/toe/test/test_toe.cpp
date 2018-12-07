@@ -230,122 +230,156 @@ void pEmulateCam(
     }
 }
 
-
+/*****************************************************************************
+ * @brief Emulate the behavior of the Receive DDR4 Buffer Memory (RXMEM).
+ *
+ * @param[in/out] *memory,         A pointer to a dummy model of the DDR4 memory.
+ * @param[in]     siTOE_RxP_WrCmd, A ref to the write command stream from TOE.
+ * @param[out]    soTOE_RxP_WrSts, A ref to the write status stream to TOE.
+ * @param[in]     siTOE_RxP_RdCmd, A ref to the read command stream from TOE.
+ * @param[in]     siTOE_RxP_Data,  A ref to the data stream from TOE.
+ * @param[out]    soTOE_RxP_Data,  A ref to the data stream to TOE.
+ *
+ * @details
+ *
+ * @ingroup toe
+ ******************************************************************************/
 void pEmulateRxBufMem(
         DummyMemory         *memory,
-        stream<mmCmd>       &WriteCmdFifo,
-        stream<mmStatus>    &WriteStatusFifo,
-        stream<mmCmd>       &ReadCmdFifo,
-        stream<axiWord>     &BufferIn,
-        stream<axiWord>     &BufferOut)
+        stream<DmCmd>       &siTOE_RxP_WrCmd,
+        stream<DmSts>       &soTOE_RxP_WrSts,
+        stream<DmCmd>       &siTOE_RxP_RdCmd,
+        stream<AxiWord>     &siTOE_RxP_Data,
+        stream<AxiWord>     &soTOE_RxP_Data)
 {
-    mmCmd    cmd;
-    mmStatus status;
-    axiWord  tmpInWord  = axiWord(0, 0, 0);  // [FIXME - Upgrade to AxiWord ]
-    AxiWord  inWord  = AxiWord(0, 0, 0);
-    AxiWord  outWord = AxiWord(0, 0, 0);
-    axiWord  tmpOutWord = axiWord(0, 0, 0);
+    DmCmd    dmCmd;     // Data Mover Command
+    DmSts    dmSts;     // Data Mover Status
 
-    static uint32_t rxMemCounter = 0;
+    AxiWord  tmpInWord  = AxiWord(0, 0, 0);
+    AxiWord  inWord     = AxiWord(0, 0, 0);
+    AxiWord  outWord    = AxiWord(0, 0, 0);
+    AxiWord  tmpOutWord = AxiWord(0, 0, 0);
+
+    //OBSOLETE static uint32_t rxMemCounter   = 0;
     static uint32_t rxMemCounterRd = 0;
 
     static bool stx_write = false;
     static bool stx_read = false;
 
-    static bool stx_readCmd = false;
-    static ap_uint<16> wrBufferWriteCounter = 0;
-    static ap_uint<16> wrBufferReadCounter = 0;
+    static bool         stx_readCmd = false;
+    static ap_uint<16>  noBytesToWrite = 0;
+    static ap_uint<16>  noBytesToRead  = 0;
 
     const char *myName  = concat3(THIS_NAME, "/", "RXMEM");
 
-    if (!WriteCmdFifo.empty() && !stx_write) {
-        WriteCmdFifo.read(cmd);
-        memory->setWriteCmd(cmd);
-        wrBufferWriteCounter = cmd.bbt;
+    if (!siTOE_RxP_WrCmd.empty() && !stx_write) {
+        // Memory Write Command
+        siTOE_RxP_WrCmd.read(dmCmd);
+        memory->setWriteCmd(dmCmd);
+        noBytesToWrite = dmCmd.bbt;
         stx_write = true;
     }
-    else if (!BufferIn.empty() && stx_write) {
-        BufferIn.read(tmpInWord);
-        inWord = AxiWord(tmpInWord.data, tmpInWord.keep, tmpInWord.last);
+    else if (!siTOE_RxP_Data.empty() && stx_write) {
+        // Data Memory Write Transfer
+        siTOE_RxP_Data.read(tmpInWord);
+        inWord = tmpInWord;
         //cerr << dec << rxMemCounter << " - " << hex << inWord.data << " " << inWord.keep << " " << inWord.last << endl;
         //rxMemCounter++;;
         memory->writeWord(inWord);
-        if (wrBufferWriteCounter < 9) {
-            //fake_txBuffer.write(inWord); // RT hack
-            stx_write = false;
-            status.okay = 1;
-            WriteStatusFifo.write(status);
+        if (noBytesToWrite < 9) {
+            // We are done
+            stx_write  = false;
+            dmSts.okay = 1;
+            soTOE_RxP_WrSts.write(dmSts);
         }
         else
-            wrBufferWriteCounter -= 8;
+            noBytesToWrite -= 8;
     }
-    if (!ReadCmdFifo.empty() && !stx_read) {
-        ReadCmdFifo.read(cmd);
-        memory->setReadCmd(cmd);
-        wrBufferReadCounter = cmd.bbt;
-        stx_read = true;
+
+    if (!siTOE_RxP_RdCmd.empty() && !stx_read) {
+        // Memory Read Command
+        siTOE_RxP_RdCmd.read(dmCmd);
+        memory->setReadCmd(dmCmd);
+        noBytesToRead = dmCmd.bbt;
+        stx_read      = true;
     }
     else if(stx_read) {
+        // Data Memory Read Transfer
         memory->readWord(outWord);
-        tmpOutWord = axiWord(outWord.tdata, outWord.tkeep, outWord.tlast);
-        BufferOut.write(tmpOutWord);
+        tmpOutWord = outWord;
+        soTOE_RxP_Data.write(tmpOutWord);
         //cerr << dec << rxMemCounterRd << " - " << hex << outWord.data << " " << outWord.keep << " " << outWord.last << endl;
-        rxMemCounterRd++;;
-        if (wrBufferReadCounter < 9)
+        rxMemCounterRd++;
+        if (noBytesToRead < 9)
             stx_read = false;
         else
-            wrBufferReadCounter -= 8;
+            noBytesToRead -= 8;
     }
-}
+
+} // End of: pEmulateRxBufMem
 
 
+/*****************************************************************************
+ * @brief Emulate the behavior of the Transmit DDR4 Buffer Memory (TXMEM).
+ *
+ * @param[in/out] *memory,         A pointer to a dummy model of the DDR4 memory.
+ * @param[in]     siTOE_TxP_WrCmd, A ref to the write command stream from TOE.
+ * @param[out]    soTOE_TxP_WrSts, A ref to the write status stream to TOE.
+ * @param[in]     siTOE_TxP_RdCmd, A ref to the read command stream from TOE.
+ * @param[in]     siTOE_TxP_Data,  A ref to the data stream from TOE.
+ * @param[out]    soTOE_TxP_Data,  A ref to the data stream to TOE.
+ *
+ * @details
+ *
+ * @ingroup toe
+ ******************************************************************************/
 void pEmulateTxBufMem(
         DummyMemory         *memory,
-        stream<mmCmd>       &WriteCmdFifo,
-        stream<mmStatus>    &WriteStatusFifo,
-        stream<mmCmd>       &ReadCmdFifo,
-        stream<AxiWord>     &BufferIn,
-        stream<AxiWord>     &soTOE_TxP_Dat)
+        stream<DmCmd>       &siTOE_TxP_WrCmd,
+        stream<DmSts>       &soTOE_TxP_WrSts,
+        stream<DmCmd>       &siTOE_TxP_RdCmd,
+        stream<AxiWord>     &siTOE_TxP_Data,
+        stream<AxiWord>     &soTOE_TxP_Data)
 {
-    mmCmd    cmd;
-    mmStatus status;
+    DmCmd    dmCmd;     // Data Mover Command
+    DmSts    dmSts;     // Data Mover Status
     AxiWord  inWord;
     AxiWord  outWord;
 
     static bool stx_write = false;
-    static bool stx_read = false;
+    static bool stx_read  = false;
 
     static bool stx_readCmd = false;
 
     const char *myName  = concat3(THIS_NAME, "/", "TXMEM");
 
-    if (!WriteCmdFifo.empty() && !stx_write) {
-        WriteCmdFifo.read(cmd);
-        //cerr << "WR: " << dec << cycleCounter << hex << " - " << cmd.saddr << " - " << cmd.bbt << endl;
-        memory->setWriteCmd(cmd);
+    if (!siTOE_TxP_WrCmd.empty() && !stx_write) {
+        // Memory Write Command
+        siTOE_TxP_WrCmd.read(dmCmd);
+        memory->setWriteCmd(dmCmd);
         stx_write = true;
     }
-    else if (!BufferIn.empty() && stx_write) {
-        BufferIn.read(inWord);
-        //cerr << "Data: " << dec << cycleCounter << hex << inWord.data << " - " << inWord.keep << " - " << inWord.last << endl;
+    else if (!siTOE_TxP_Data.empty() && stx_write) {
+        // Data Memory Write Transfer
+        siTOE_TxP_Data.read(inWord);
         memory->writeWord(inWord);
         if (inWord.tlast) {
-            //fake_txBuffer.write(inWord); // RT hack
             stx_write = false;
-            status.okay = 1;
-            WriteStatusFifo.write(status);
+            dmSts.okay = 1;
+            soTOE_TxP_WrSts.write(dmSts);
         }
     }
-    if (!ReadCmdFifo.empty() && !stx_read) {
-        ReadCmdFifo.read(cmd);
-        //cerr << "RD: " << cmd.saddr << " - " << cmd.bbt << endl;
-        memory->setReadCmd(cmd);
+
+    if (!siTOE_TxP_RdCmd.empty() && !stx_read) {
+        // Memory Read Command
+        siTOE_TxP_RdCmd.read(dmCmd);
+        memory->setReadCmd(dmCmd);
         stx_read = true;
     }
     else if(stx_read) {
+        // Data Memory Read Transfer
         memory->readWord(outWord);
-        //cerr << inWord.data << " " << inWord.last << " - ";
-        soTOE_TxP_Dat.write(outWord);
+        soTOE_TxP_Data.write(outWord);
         if (outWord.tlast)
             stx_read = false;
     }
@@ -445,8 +479,6 @@ int injectAckNumber(
 
             // Recalculate and update the checksum
             int newTcpCsum = ipRxPacket.recalculateChecksum();
-            //OBSOLETE-20181203 AxiTcpChecksum newHdrCSum = byteSwap16(newTcpCSum);
-            //OBSOLETE-20181203 ipRxPacketizer[4].tdata.range(47, 32) = newHdrCSum;
             ipRxPacket.setTcpChecksum(newTcpCsum);
 
             if (DEBUG_LEVEL & TRACE_IPRX) {
@@ -468,7 +500,7 @@ int injectAckNumber(
  * @param[in]  ipRxPacketizer,    a ref to the dqueue w/ an IP Rx packets.
  * @param[in/out] ipRxPktCounter, a ref to the IP Rx packet counter.
  *                                 (counts all kinds and from all sessions).
- * @param[out] sIPRX_Toe_Data,    a ref to the data stream to write.
+ * @param[out] soTOE_Data,        A reference to the data stream to TOE.
  * @param[in]  sessionList,       a ref to an associative container that
  *                                 holds the sessions as socket pair associations.
  *
@@ -482,7 +514,7 @@ int injectAckNumber(
 void feedTOE(
         deque<IpPacket>               &ipRxPacketizer,
         int                           &ipRxPktCounter,
-        stream<Ip4overAxi>            &sIPRX_Toe_Data,
+        stream<Ip4overAxi>            &soTOE_Data,
         map<TbSocketPair, TcpSeqNum>  &sessionList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
@@ -500,7 +532,7 @@ void feedTOE(
             int noChunks = ipRxPacket.size();
             for (int c=0; c<noChunks; c++) {;
                 Ip4overAxi axiWord = ipRxPacket.front();
-                sIPRX_Toe_Data.write(axiWord);
+                soTOE_Data.write(axiWord);
                 ipRxPacket.pop_front();
             }
             ipRxPktCounter++;
@@ -523,8 +555,8 @@ void feedTOE(
  * @param[in/out] ipRxPacketizer, A ref to the RxPacketizer (double-ended queue).
  * @param[in]     sessionList,    A ref to an associative container which holds
  *                                  the sessions as socket pair associations.
- * @param[out]    sIPRX_Toe_Data, A reference to the data stream between this
- *                                  process and the TOE.
+ * @param[out]    soTOE_Data,     A reference to the data stream to TOE.
+ *
  * @details
  *  Reads in new IPv4 packets from the Rx input file and stores them into the
  *   the IPv4 RxPacketizer (ipRxPacketizer). This ipRxPacketizer is a
@@ -544,7 +576,7 @@ void pIPRX(
         unsigned int                  &idleCycReq,
         deque<IpPacket>               &ipRxPacketizer,
         map<TbSocketPair, TcpSeqNum>  &sessionList,
-        stream<Ip4overAxi>            &sIPRX_Toe_Data)
+        stream<Ip4overAxi>            &soTOE_Data)
 {
     string              rxStringBuffer;
     vector<string>      stringVector;
@@ -556,7 +588,7 @@ void pIPRX(
     //  process which emulates the Layer-3 Multiplexer (.i.e, L3Mux).
     //  Therefore, we start by flushing these packets (if any) before reading a
     //  new packet from the file.
-    feedTOE(ipRxPacketizer, ipRxPktCounter, sIPRX_Toe_Data, sessionList);
+    feedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
 
     // Check for EOF
     if (iprxFile.eof())
@@ -620,7 +652,7 @@ void pIPRX(
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
-            feedTOE(ipRxPacketizer, ipRxPktCounter, sIPRX_Toe_Data, sessionList);
+            feedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
 
             return;
         }
@@ -648,7 +680,6 @@ void pIPRX(
  *  @ingroup toe
  ******************************************************************************/
 bool parseL3MuxPacket(
-        //OBSOLETE-20181203 deque<Ip4overAxi>               &ipTxPacket,
         IpPacket                      &ipTxPacket,
         map<TbSocketPair, TcpSeqNum>  &sessionList,
         deque<IpPacket>               &ipRxPacketizer)
@@ -846,7 +877,7 @@ bool parseL3MuxPacket(
 /*****************************************************************************
  * @brief Emulate the behavior of the Layer-3 Multiplexer (L3MUX).
  *
- * @param[in]     sTOE_L3mux_Data, A reference to the data stream between TOE and this process.
+ * @param[in]     siTOE_Data,      A reference to the data stream from TOE.
  * @param[in]     iptxFile,        The output file stream to write.
  * @param[in]     sessionList,     A ref to an associative container which holds the sessions as socket pair associations.
  * @param[in/out] ipTxPktCount,    A ref to the IP Tx packet counter (counts all kinds and from all sessions).
@@ -864,7 +895,7 @@ bool parseL3MuxPacket(
  * @ingroup toe
  ******************************************************************************/
 void pL3MUX(
-        stream<Ip4overAxi>            &sTOE_L3mux_Data,
+        stream<Ip4overAxi>            &siTOE_Data,
         ofstream                      &iptxFile,
         map<TbSocketPair, TcpSeqNum>  &sessionList,
         int                           &ipTxPktCounter,
@@ -878,10 +909,10 @@ void pL3MUX(
     Ip4overAxi  ipTxWord;  // An IP4 chunk
     uint16_t    ipTxWordCounter = 0;
 
-    if (!sTOE_L3mux_Data.empty()) {
+    if (!siTOE_Data.empty()) {
 
         //-- STEP-1 : Drain the TOE -----------------------
-        sTOE_L3mux_Data.read(ipTxWord);
+        siTOE_Data.read(ipTxWord);
 
         //-- STEP-2 : Write to packet --------------------
         ipTxPacket.push_back(ipTxWord);
@@ -907,7 +938,7 @@ void pL3MUX(
 
 
 /*****************************************************************************
- * @brief Emulate the behavior of the TCP Role Interface (TRIF).
+ * @brief Emulates the behavior of the TCP Role Interface (TRIF).
  *             This process implements Iperf.
  *
  * @param[out] soTOE_LsnReq,    TCP listen port request to TOE.
@@ -922,13 +953,17 @@ void pL3MUX(
  * @param[out] soTOE_ClsReq,    TCP close connection request to TOE.
  * @param[out] txSessionIDs,    TCP metadata (i.e. the Tx session ID) to TOE.
  *
- * @remark    The metadata from TRIF (i.e., the Tx session ID) is not directly
- *             sent to TOE. Instead, it is pushed into a vector that is used by
- *             the main process when it feeds the input data flows [FIXME].
+ * @details:
  *
- * @details By default, the Iperf client connects to the Iperf server on the
- *             TCP port 5001 and the bandwidth displayed by Iperf is the bandwidth
- *             from the client to the server.
+ *
+ *
+ * @remark:
+ *  By default, the Iperf client connects to the Iperf server on the TCP port
+ *   5001 and the bandwidth displayed by Iperf is the bandwidth from the client
+ *   to the server.
+ *  The metadata from TRIF (i.e., the Tx session ID) is not directly sent to
+ *   TOE. Instead, it is pushed into a vector that is used by the main process
+ *   when it feeds the input data flows [FIXME].
  *
  * @ingroup toe
  ******************************************************************************/
@@ -938,8 +973,8 @@ void pTRIF(
         stream<appNotification> &siTOE_Notif,
         stream<appReadRequest>  &soTOE_DReq,
         stream<ap_uint<16> >    &siTOE_Meta,
-        stream<axiWord>         &siTOE_Data,
-        stream<axiWord>         &soTOE_Data,
+        stream<AxiWord>         &siTOE_Data,
+        stream<AxiWord>         &soTOE_Data,
         stream<ipTuple>         &soTOE_OpnReq,
         stream<openStatus>      &siTOE_OpnSts,
         stream<ap_uint<16> >    &soTOE_ClsReq,
@@ -958,6 +993,7 @@ void pTRIF(
     //-- Request to listen on a port number
     if (!listenDone) {
         TcpPort listeningPort = 0x0057;   // #87
+
         switch (listenFsm) {
         case 0:
             soTOE_LsnReq.write(listeningPort);
@@ -984,8 +1020,6 @@ void pTRIF(
         }
     }
 
-    //OBSOLETE-20181017 axiWord transmitWord;
-
     // In case we are connecting back
     if (!siTOE_OpnSts.empty()) {
         openStatus tempStatus = siTOE_OpnSts.read();
@@ -995,7 +1029,6 @@ void pTRIF(
 
     if (!siTOE_Notif.empty())     {
         siTOE_Notif.read(notification);
-
         if (notification.length != 0)
             soTOE_DReq.write(appReadRequest(notification.sessionID,
                                             notification.length));
@@ -1008,11 +1041,11 @@ void pTRIF(
     static consumeFsmStateType  serverFsmState = WAIT_PKG;
 
     ap_uint<16>         sessionID;
-    axiWord             currWord;
+    AxiWord             currWord;
     static bool         dualTest = false;
     static ap_uint<32>     mAmount = 0;
 
-    currWord.last = 0;
+    currWord.tlast = 0;
 
     switch (serverFsmState) {
     case WAIT_PKG: // Read 1st chunk: [IP-SA|IP-DA]
@@ -1022,7 +1055,7 @@ void pTRIF(
             soTOE_Data.write(currWord);
             if (!runningExperiment) {
                 // Check if a bidirectional test is requested (i.e. dualtest)
-                if (currWord.data(31, 0) == 0x00000080)
+                if (currWord.tdata(31, 0) == 0x00000080)
                     dualTest = true;
                 else
                     dualTest = false;
@@ -1039,7 +1072,7 @@ void pTRIF(
             soTOE_Data.write(currWord);
             if (dualTest) {
                 tuple.ip_address = 0x0a010101;  // FIXME
-                tuple.ip_port = currWord.data(31, 16);
+                tuple.ip_port = currWord.tdata(31, 16);
                 soTOE_OpnReq.write(tuple);
             }
             serverFsmState = HEADER_3;
@@ -1049,7 +1082,7 @@ void pTRIF(
         if (!siTOE_Data.empty()) {
             siTOE_Data.read(currWord);
             soTOE_Data.write(currWord);
-            mAmount = currWord.data(63, 32);
+            mAmount = currWord.tdata(63, 32);
             serverFsmState = CONSUME;
         }
         break;
@@ -1060,7 +1093,7 @@ void pTRIF(
         }
         break;
     }
-    if (currWord.last == 1)
+    if (currWord.tlast == 1)
         serverFsmState = WAIT_PKG;
 }
 
@@ -1075,12 +1108,12 @@ int main(int argc, char *argv[]) {
 
     stream<Ip4overAxi>                  sTOE_L3mux_Data     ("sTOE_L3mux_Data");
 
-    stream<axiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
+    stream<AxiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
     stream<ap_uint<16> >                sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
     stream<ap_int<17> >                 sTOE_Trif_DSts      ("sTOE_Trif_DSts");
 
     stream<appReadRequest>              sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
-    stream<axiWord>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
+    stream<AxiWord>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
     stream<ap_uint<16> >                sTOE_Trif_Meta      ("sTOE_Trif_Meta");
 
     stream<TcpPort>                     sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
@@ -1093,16 +1126,16 @@ int main(int argc, char *argv[]) {
 
     stream<ap_uint<16> >                sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
 
-    stream<mmCmd>                       sTOE_Mem_RxP_RdCmd    ("sTOE_Mem_RxP_RdCmd");
-    stream<axiWord>                     sMEM_Toe_RxP_Data   ("sMEM_Toe_RxP_Data");
-    stream<mmStatus>                    sMEM_Toe_RxP_WrSts  ("sMEM_Toe_RxP_WrSts");
-    stream<mmCmd>                       sTOE_Mem_RxP_WrCmd  ("sTOE_Mem_RxP_WrCmd");
-    stream<axiWord>                     sTOE_Mem_RxP_Data   ("sTOE_Mem_RxP_Data");
+    stream<DmCmd>                       sTOE_Mem_RxP_RdCmd  ("sTOE_Mem_RxP_RdCmd");
+    stream<AxiWord>                     sMEM_Toe_RxP_Data   ("sMEM_Toe_RxP_Data");
+    stream<DmSts>                       sMEM_Toe_RxP_WrSts  ("sMEM_Toe_RxP_WrSts");
+    stream<DmCmd>                       sTOE_Mem_RxP_WrCmd  ("sTOE_Mem_RxP_WrCmd");
+    stream<AxiWord>                     sTOE_Mem_RxP_Data   ("sTOE_Mem_RxP_Data");
 
-    stream<mmCmd>                       sTOE_Mem_TxP_RdCmd  ("sTOE_Mem_TxP_RdCmd");
+    stream<DmCmd>                       sTOE_Mem_TxP_RdCmd  ("sTOE_Mem_TxP_RdCmd");
     stream<AxiWord>                     sMEM_Toe_TxP_Data   ("sMEM_Toe_TxP_Data");
-    stream<mmStatus>                    sMEM_Toe_TxP_WrSts  ("sMEM_Toe_TxP_WrSts");
-    stream<mmCmd>                       sTOE_Mem_TxP_WrCmd  ("sTOE_Mem_TxP_WrCmd");
+    stream<DmSts>                       sMEM_Toe_TxP_WrSts  ("sMEM_Toe_TxP_WrSts");
+    stream<DmCmd>                       sTOE_Mem_TxP_WrCmd  ("sTOE_Mem_TxP_WrCmd");
     stream<AxiWord>                     sTOE_Mem_TxP_Data   ("sTOE_Mem_TxP_Data");
 
     stream<rtlSessionLookupReply>       sCAM_This_SssLkpRpl ("sCAM_This_SssLkpRpl");
@@ -1110,7 +1143,7 @@ int main(int argc, char *argv[]) {
     stream<rtlSessionLookupRequest>     sTHIS_Cam_SssLkpReq ("sTHIS_Cam_SssLkpReq");
     stream<rtlSessionUpdateRequest>     sTHIS_Cam_SssUpdReq ("sTHIS_Cam_SssUpdReq");
 
-    stream<axiWord>                     sTRIF_Role_Data     ("sTRIF_Role_Data");
+    stream<AxiWord>                     sTRIF_Role_Data     ("sTRIF_Role_Data");
 
 
     //-- TESTBENCH MODES OF OPERATION ---------------------
@@ -1128,13 +1161,13 @@ int main(int argc, char *argv[]) {
 
     Ip4Word         ipRxData;    // An IP4 chunk
 
-    axiWord         tcpTxData;    // A  TCP chunk
+    AxiWord         tcpTxData;    // A  TCP chunk
 
     ap_uint<32>     mmioIpAddr = 0x01010101;
     ap_uint<16>     opnSessionCount;
     ap_uint<16>     clsSessionCount;
 
-    axiWord         rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
+    AxiWord         rxDataOut_Data;         // This variable is where the data read from the stream above is temporarily stored before output
 
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
@@ -1388,11 +1421,11 @@ int main(int argc, char *argv[]) {
                         }
                         firstWordFlag = false;
                         string tempString = "0000000000000000";
-                        tcpTxData = axiWord(encodeApUint64(txStringVector[0]), \
+                        tcpTxData = AxiWord(encodeApUint64(txStringVector[0]), \
                                             encodeApUint8(txStringVector[2]),     \
                                             atoi(txStringVector[1].c_str()));
                         sTRIF_Toe_Data.write(tcpTxData);
-                    } while (tcpTxData.last != 1);
+                    } while (tcpTxData.tlast != 1);
 
                     firstWordFlag = true;
                 }
@@ -1463,21 +1496,21 @@ int main(int argc, char *argv[]) {
         //-- STEP-4.2 : DRAIN TRIF-->ROLE -----------------
         if (!sTRIF_Role_Data.empty()) {
             sTRIF_Role_Data.read(rxDataOut_Data);
-            string dataOutput = decodeApUint64(rxDataOut_Data.data);
-            string keepOutput = decodeApUint8(rxDataOut_Data.keep);
+            string dataOutput = decodeApUint64(rxDataOut_Data.tdata);
+            string keepOutput = decodeApUint8(rxDataOut_Data.tkeep);
             // cout << rxDataOut_Data.keep << endl;
             for (int i = 0; i<8; ++i) {
                 // Delete the data not to be kept by "keep" - for Golden comparison
-                if(rxDataOut_Data.keep[7-i] == 0) {
+                if(rxDataOut_Data.tkeep[7-i] == 0) {
                     // cout << "rxDataOut_Data.keep[" << i << "] = " << rxDataOut_Data.keep[i] << endl;
                     // cout << "dataOutput " << dataOutput[i*2] << dataOutput[(i*2)+1] << " is replaced by 00" << endl;
                     dataOutput.replace(i*2, 2, "00");
                 }
             }
-            if (rxDataOut_Data.last == 1)
+            if (rxDataOut_Data.tlast == 1)
                 rxPayloadCounter++;
             // Write fo file
-            rxOutputile << dataOutput << " " << rxDataOut_Data.last << " " << keepOutput << endl;
+            rxOutputile << dataOutput << " " << rxDataOut_Data.tlast << " " << keepOutput << endl;
         }
         if (!sTOE_Trif_DSts.empty()) {
             ap_uint<17> tempResp = sTOE_Trif_DSts.read();
