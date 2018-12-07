@@ -14,25 +14,24 @@
 #include "dummy_memory.hpp"
 #include <iostream>
 
-
-void DummyMemory::setReadCmd(mmCmd cmd)
+// Set the private data elements for a Read Command
+void DummyMemory::setReadCmd(DmCmd cmd)
 {
-//  readAddr = cmd.saddr(7, 0);
-    readAddr = cmd.saddr(15, 0);
-    readId = cmd.saddr(31, 16);
-    uint16_t tempLen = (uint16_t) cmd.bbt(15, 0);
-    readLen = (int) tempLen;
-    //std::cout << readLen << std::endl;
+    this->readAddr = cmd.saddr(15,  0); // Start address
+    this->readId   = cmd.saddr(31, 16); // Buffer address
+
+    uint16_t tempLen = (uint16_t) cmd.bbt(15, 0); // Byte to Transfer
+    this->readLen    = (int) tempLen;
 }
 
-void DummyMemory::setWriteCmd(mmCmd cmd)
+// Set the private data elements for a Write Command
+void DummyMemory::setWriteCmd(DmCmd cmd)
 {
-//  writeAddr = cmd.saddr(7, 0);
-    writeAddr = cmd.saddr(15, 0);
-    writeId = cmd.saddr(31, 16);
+    this->writeAddr = cmd.saddr(15,  0); // Start address
+    this->writeId   = cmd.saddr(31, 16); // Buffer address
 }
 
-
+// Read an AXI word from the memory
 void DummyMemory::readWord(AxiWord &word)
 {
     readStorageIt = storage.find(readId);
@@ -59,14 +58,16 @@ void DummyMemory::readWord(AxiWord &word)
 }
 
 
+// Write an AXI word into the memory
 void DummyMemory::writeWord(AxiWord &word)
 {
     writeStorageIt = storage.find(writeId);
+
     if (writeStorageIt == storage.end()) {
         writeStorageIt = createBuffer(writeId);
         // check it?
     }
-    //shuffleWord(word.data);
+    // shuffleWord(word.data);
     for (int i = 0; i < 8; i++) {
         if (word.tkeep[i]) {
             (writeStorageIt->second)[writeAddr] = word.tdata((i*8)+7, i*8);
@@ -83,6 +84,7 @@ std::map<ap_uint<16>, ap_uint<8>*>::iterator DummyMemory::createBuffer(ap_uint<1
 {
     ap_uint<8>* array = new ap_uint<8>[65536]; // [255] default
     std::pair<std::map<ap_uint<16>, ap_uint<8>*>::iterator, bool> ret;
+
     ret = storage.insert(std::make_pair(id, array));
     if (ret.second) {
         return ret.first;
@@ -93,8 +95,9 @@ std::map<ap_uint<16>, ap_uint<8>*>::iterator DummyMemory::createBuffer(ap_uint<1
 void DummyMemory::shuffleWord(ap_uint<64>& word)
 {
     ap_uint<64> temp;
-    temp(7, 0) = word(63, 56);
-    temp(15, 8) = word(55, 48);
+
+    temp( 7,  0) = word(63, 56);
+    temp(15,  8) = word(55, 48);
     temp(23, 16) = word(47, 40);
     temp(31, 24) = word(39, 32);
 

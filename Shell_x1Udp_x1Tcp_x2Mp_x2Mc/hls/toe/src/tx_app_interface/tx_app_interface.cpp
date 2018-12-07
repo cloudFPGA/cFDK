@@ -2,7 +2,7 @@
 
 using namespace hls;
 
-void txAppStatusHandler(stream<mmStatus>&               txBufferWriteStatus,
+void txAppStatusHandler(stream<DmSts>&                  txBufferWriteStatus,
                         stream<event>&                  tasi_eventCacheFifo,
                         stream<txAppTxSarPush>&         txApp2txSar_app_push,
                         stream<event>&                  txAppStream2eventEng_setEvent){
@@ -25,7 +25,7 @@ void txAppStatusHandler(stream<mmStatus>&               txBufferWriteStatus,
         break;
     case 1:
         if (!txBufferWriteStatus.empty()) {
-            mmStatus status = txBufferWriteStatus.read();
+            DmSts status = txBufferWriteStatus.read();
             ap_uint<17> tempLength = ev.address + ev.length;
             if (tempLength <= 0x10000) {
                 if (status.okay) {
@@ -40,7 +40,7 @@ void txAppStatusHandler(stream<mmStatus>&               txBufferWriteStatus,
         break;
     case 2:
         if (!txBufferWriteStatus.empty()) {
-            mmStatus status = txBufferWriteStatus.read();
+            DmSts status = txBufferWriteStatus.read();
             ap_uint<17> tempLength = (ev.address + ev.length);
             if (status.okay) {
                 txApp2txSar_app_push.write(txAppTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
@@ -85,10 +85,10 @@ void tx_app_table(  stream<txSarAckPush>&       txSar2txApp_ack_push,
 
 void tx_app_interface(
         stream<ap_uint<16> >           &appTxDataReqMetadata,
-        stream<axiWord>                &appTxDataReq,
+        stream<AxiWord>                &appTxDataReq,
         stream<sessionState>           &stateTable2txApp_rsp,
         stream<txSarAckPush>           &txSar2txApp_ack_push,
-        stream<mmStatus>               &txBufferWriteStatus,
+        stream<DmSts>                  &txBufferWriteStatus,
 
         stream<ipTuple>                &appOpenConnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
@@ -99,7 +99,7 @@ void tx_app_interface(
 
         stream<ap_int<17> >            &appTxDataRsp,
         stream<ap_uint<16> >           &txApp2stateTable_req,
-        stream<mmCmd>                  &txBufferWriteCmd,
+        stream<DmCmd>                  &txBufferWriteCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<txAppTxSarPush>         &txApp2txSar_push,
 

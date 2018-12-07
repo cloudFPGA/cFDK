@@ -15,10 +15,10 @@ struct txAppTableEntry
 
 void tx_app_interface(
         stream<ap_uint<16> >           &appTxDataReqMetadata,
-        stream<axiWord>                &appTxDataReq,
+        stream<AxiWord>                &appTxDataReq,
         stream<sessionState>           &stateTable2txApp_rsp,
         stream<txSarAckPush>           &txSar2txApp_ack_push,
-        stream<mmStatus>               &txBufferWriteStatus,
+        stream<DmSts>                  &txBufferWriteStatus,
 
         stream<ipTuple>                &appOpenConnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
@@ -29,7 +29,7 @@ void tx_app_interface(
 
         stream<ap_int<17> >            &appTxDataRsp,
         stream<ap_uint<16> >           &txApp2stateTable_req,
-        stream<mmCmd>                  &txBufferWriteCmd,
+        stream<DmCmd>                  &txBufferWriteCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<txAppTxSarPush>         &txApp2txSar_push,
 

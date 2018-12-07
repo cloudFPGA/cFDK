@@ -527,8 +527,9 @@ class Ip4overAxi: public AxiWord {
  * Session Lookup Controller (SLc)
  ********************************************/
 
-typedef ap_uint<16>     SessionId;
-typedef ap_uint<16> TcpSessId;  // TCP Session ID
+typedef ap_uint<16> SessionId;
+
+typedef SessionId   TcpSessId;  // TCP Session ID
 typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
 
 struct sessionLookupQuery
@@ -871,8 +872,9 @@ struct rstEvent : public event
 /********************************************
  * Data Mover Command Interface (c.f PG022)
  ********************************************/
-struct DmCmd
+class DmCmd
 {
+  public:
     ap_uint<23>     bbt;    // Bytes To Transfer
     ap_uint<1>      type;   // Type of AXI4 access (0=FIXED, 1=INCR)
     ap_uint<6>      dsa;    // DRE Stream Alignment
@@ -910,8 +912,9 @@ struct mmCmd
 /********************************************
  * Data Mover Status Interface (c.f PG022)
  ********************************************/
-struct DmSts
+class DmSts
 {
+  public:
     ap_uint<4>      tag;
     ap_uint<1>      interr;
     ap_uint<1>      decerr;
@@ -1010,8 +1013,8 @@ void toe(
         //------------------------------------------------------
         stream<appReadRequest>                  &siTRIF_This_DReq,
         stream<appNotification>                 &soTHIS_Trif_Notif,
-        stream<axiWord>                         &soTHIS_Trif_Data,
-        stream<ap_uint<16> >                    &soTHIS_Trif_Meta,
+        stream<AxiWord>                         &soTHIS_Trif_Data,
+        stream<SessionId>                       &soTHIS_Trif_Meta,
 
         //------------------------------------------------------
         //-- TRIF / This / ROLE Rx / Ctrl Interfaces
@@ -1022,7 +1025,7 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / This / ROLE Tx / Data Interfaces
         //------------------------------------------------------
-        stream<axiWord>                         &siTRIF_This_Data,
+        stream<AxiWord>                         &siTRIF_This_Data,
         stream<ap_uint<16> >                    &siTRIF_This_Meta,
         stream<ap_int<17> >                     &soTHIS_Trif_DSts,
 
@@ -1038,20 +1041,20 @@ void toe(
         //-- MEM / This / Rx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                           &siMEM_This_RxP_RdSts,
-        stream<mmCmd>                           &soTHIS_Mem_RxP_RdCmd,
-        stream<axiWord>                         &siMEM_This_RxP_Data,
-        stream<mmStatus>                        &siMEM_This_RxP_WrSts,
-        stream<mmCmd>                           &soTHIS_Mem_RxP_WrCmd,
-        stream<axiWord>                         &soTHIS_Mem_RxP_Data,
+        stream<DmCmd>                           &soTHIS_Mem_RxP_RdCmd,
+        stream<AxiWord>                         &siMEM_This_RxP_Data,
+        stream<DmSts>                           &siMEM_This_RxP_WrSts,
+        stream<DmCmd>                           &soTHIS_Mem_RxP_WrCmd,
+        stream<AxiWord>                         &soTHIS_Mem_RxP_Data,
 
         //------------------------------------------------------
         //-- MEM / This / Tx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                           &siMEM_This_TxP_RdSts,
-        stream<mmCmd>                           &soTHIS_Mem_TxP_RdCmd,
+        stream<DmCmd>                           &soTHIS_Mem_TxP_RdCmd,
         stream<AxiWord>                         &siMEM_This_TxP_Data,
-        stream<mmStatus>                        &siMEM_This_TxP_WrSts,
-        stream<mmCmd>                           &soTHIS_Mem_TxP_WrCmd,
+        stream<DmSts>                           &siMEM_This_TxP_WrSts,
+        stream<DmCmd>                           &soTHIS_Mem_TxP_WrCmd,
         stream<AxiWord>                         &soTHIS_Mem_TxP_Data,
 
         //------------------------------------------------------

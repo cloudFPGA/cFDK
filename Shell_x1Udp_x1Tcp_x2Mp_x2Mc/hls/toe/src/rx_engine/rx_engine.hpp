@@ -65,8 +65,8 @@ void rx_engine(
         stream<StsBit>                  &siPRt_PortSts,
         stream<rxSarEntry>              &siRSt_SessRxSarRep,
         stream<rxTxSarReply>            &siTSt_SessTxSarRep,
-        stream<mmStatus>                &siMEM_WrSts,
-        stream<axiWord>                 &soMemWrData,
+        stream<DmSts>                   &siMEM_WrSts,
+        stream<AxiWord>                 &soMemWrData,
         stream<stateQuery>              &soSessStateReq,
         stream<AxiTcpPort>              &soGetPortState,
         stream<sessionLookupQuery>      &soSessLookupReq,
@@ -77,6 +77,6 @@ void rx_engine(
         stream<ap_uint<16> >            &soCloseTimer,
         stream<openStatus>              &soSessOpnStatus,
         stream<extendedEvent>           &soSetEvent,
-        stream<mmCmd>                   &soMemWrCmd,
+        stream<DmCmd>                   &soMemWrCmd,
         stream<appNotification>         &soRxNotification
 );

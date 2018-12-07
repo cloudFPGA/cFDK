@@ -75,15 +75,11 @@ struct IpAddrPair
 };
 
 
-/** @defgroup tx_engine TX Engine
- *  @ingroup tcp_module
- *  @image html tx_engine.png
- *  Explain the TX Engine
- *  The @ref tx_engine contains a state machine with a state for each Event Type.
- *  It then loads and generates the necessary metadata to construct the packet. If the packet
- *  contains any payload the data is retrieved from the Memory and put into the packet. The
- *  complete packet is then streamed out of the @ref tx_engine.
- */
+/*****************************************************************************
+ * @brief   Main process of the TCP Tx Engine (TXe).
+ *
+ * @ingroup tx_engine
+ *****************************************************************************/
 void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
@@ -93,7 +89,7 @@ void tx_engine(
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<txRetransmitTimerSet>    &soTIm_SetReTxTimer,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
-        stream<mmCmd>                   &soMEM_Txp_RdCmd,
+        stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         stream<ap_uint<1> >             &soEVe_RxEventSig,

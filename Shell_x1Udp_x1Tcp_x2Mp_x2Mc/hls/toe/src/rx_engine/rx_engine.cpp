@@ -877,7 +877,7 @@ void pFiniteStateMachine(
         stream<openStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
         stream<event>                       &soEVe_Event,
         stream<CmdBit>                      &soDropCmd,
-        stream<mmCmd>                       &soMemWrCmd,
+        stream<DmCmd>                       &soMemWrCmd,
         stream<appNotification>             &soRxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -988,7 +988,7 @@ void pFiniteStateMachine(
                             memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_meta.sessionID(13, 0);
                             memSegAddr(15,  0) = fsm_meta.meta.seqNumb.range(15, 0);
-                            soMemWrCmd.write(mmCmd(memSegAddr, fsm_meta.meta.length));
+                            soMemWrCmd.write(DmCmd(memSegAddr, fsm_meta.meta.length));
                             // Only notify about new data available
                             soRxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
                                                             fsm_meta.srcIpAddress, fsm_meta.dstIpPort));
@@ -1155,7 +1155,7 @@ void pFiniteStateMachine(
                         pkgAddr(31, 30) = 0x0;
                         pkgAddr(29, 16) = fsm_meta.sessionID(13, 0);
                         pkgAddr(15,  0) = fsm_meta.meta.seqNumb(15, 0);
-                        soMemWrCmd.write(mmCmd(pkgAddr, fsm_meta.meta.length));
+                        soMemWrCmd.write(DmCmd(pkgAddr, fsm_meta.meta.length));
                         // Tell Application new data is available and connection got closed
                         soRxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
                                                         fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true));
@@ -1330,7 +1330,7 @@ void pTcpSegmentDropper(
  * @ingroup rx_engine
  *****************************************************************************/
 void pRxAppNotifier(
-        stream<mmStatus>            &siMEM_WrSts,
+        stream<DmSts>               &siMEM_WrSts,
         stream<appNotification>     &siFsm_Notif,
         stream<appNotification>     &soRxNotif,
         stream<ap_uint<1> >         &doubleAccess)
@@ -1346,7 +1346,7 @@ void pRxAppNotifier(
 
     static ap_uint<1>       rxAppNotificationDoubleAccessFlag = false;
     static ap_uint<5>       rand_fifoCount = 0;
-    static mmStatus         rxAppNotificationStatus1, rxAppNotificationStatus2;
+    static DmSts            rxAppNotificationStatus1, rxAppNotificationStatus2;
     static appNotification  rxAppNotification;
 
     if (rxAppNotificationDoubleAccessFlag == true) {
@@ -1433,25 +1433,22 @@ void pEventMultiplexer(
  *****************************************************************************/
 void pMemWriter(
         stream<AxiWord>     &siTid_MemWrData,
-        stream<mmCmd>       &siFsm_MemWrCmd,
-        stream<mmCmd>       &soMemWrCmd,
-        stream<axiWord>     &soMemWrData,
+        stream<DmCmd>       &siFsm_MemWrCmd,
+        stream<DmCmd>       &soMemWrCmd,
+        stream<AxiWord>     &soMemWrData,
         stream<ap_uint<1> > &soDoubleAccess)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
     #pragma HLS INLINE off
 
-    static mmCmd       rxMemWriterCmd = mmCmd(0, 0);
+    static DmCmd       rxMemWriterCmd = DmCmd(0, 0);
     static ap_uint<16> rxEngBreakTemp = 0;
     static uint8_t     lengthBuffer   = 0;
     static ap_uint<3>  rxEngAccessResidue = 0;
     static bool        txAppBreakdown = false;
 
     static AxiWord     pushWord = AxiWord(0, 0xFF, 0);
-
-    //OBSOLETE static uint16_t txAppPktCounter = 0;
-    //OBSOLETE static uint16_t txAppWordCounter = 0;
 
     static enum FsmState {RXMEMWR_IDLE,       RXMEMWR_WRFIRST,
                           RXMEMWR_EVALSECOND, RXMEMWR_WRSECONDSTR,
@@ -1462,11 +1459,11 @@ void pMemWriter(
     case RXMEMWR_IDLE:
         if (!siFsm_MemWrCmd.empty() && !soMemWrCmd.full() && !soDoubleAccess.full()) {
             rxMemWriterCmd = siFsm_MemWrCmd.read();
-            mmCmd tempCmd = rxMemWriterCmd;
+            DmCmd tempCmd = rxMemWriterCmd;
             if ((rxMemWriterCmd.saddr.range(15, 0) + rxMemWriterCmd.bbt) > 65536) {
                 rxEngBreakTemp = 65536 - rxMemWriterCmd.saddr;
                 rxMemWriterCmd.bbt -= rxEngBreakTemp;
-                tempCmd = mmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
+                tempCmd = DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
                 txAppBreakdown = true;
             }
             else
@@ -1482,7 +1479,7 @@ void pMemWriter(
     case RXMEMWR_WRFIRST:
         if (!siTid_MemWrData.empty() && !soMemWrData.full()) {
             siTid_MemWrData.read(pushWord);
-            axiWord outputWord = axiWord(pushWord.tdata, pushWord.tkeep, pushWord.tlast);
+            AxiWord outputWord = pushWord;
             ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
             if (rxEngBreakTemp > 8)
                 rxEngBreakTemp -= 8;
@@ -1491,8 +1488,8 @@ void pMemWriter(
                     // Changes are to go in here
                     // If the word is not perfectly aligned then there is some magic to be worked.
                     if (rxMemWriterCmd.saddr.range(15, 0) % 8 != 0)
-                        outputWord.keep = returnKeep(rxEngBreakTemp);
-                    outputWord.last = 1;
+                        outputWord.tkeep = returnKeep(rxEngBreakTemp);
+                    outputWord.tlast = 1;
                     mwr_fsmState = RXMEMWR_EVALSECOND;
                     rxEngAccessResidue = byteCount - rxEngBreakTemp;
                     lengthBuffer = rxEngBreakTemp;  // Buffer the number of bits consumed.
@@ -1517,7 +1514,7 @@ void pMemWriter(
                 mwr_fsmState = RXMEMWR_RESIDUE;
             rxMemWriterCmd.saddr.range(15, 0) = 0;
             rxEngBreakTemp = rxMemWriterCmd.bbt;
-            soMemWrCmd.write(mmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp));
+            soMemWrCmd.write(DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp));
             //std::cerr <<  "Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << txAppTempCmd.saddr << " - " << txAppTempCmd.bbt << std::endl;
             txAppBreakdown = false;
         }
@@ -1526,7 +1523,7 @@ void pMemWriter(
     case RXMEMWR_ALIGNED:   // This is the non-realignment state
         if (!siTid_MemWrData.empty() & !soMemWrData.full()) {
             siTid_MemWrData.read(pushWord);
-            soMemWrData.write(axiWord(pushWord.tdata, pushWord.tkeep, pushWord.tlast));
+            soMemWrData.write(pushWord);
             if (pushWord.tlast == 1)
                 mwr_fsmState = RXMEMWR_IDLE;
         }
@@ -1534,10 +1531,10 @@ void pMemWriter(
 
     case RXMEMWR_WRSECONDSTR: // We go into this state when we need to realign things
         if (!siTid_MemWrData.empty() && !soMemWrData.full()) {
-            axiWord outputWord = axiWord(0, 0xFF, 0);
-            outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
+            AxiWord outputWord = AxiWord(0, 0xFF, 0);
+            outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
             pushWord = siTid_MemWrData.read();
-            outputWord.data.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
+            outputWord.tdata.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
 
             if (pushWord.tlast == 1) {
                 if (rxEngBreakTemp - rxEngAccessResidue > lengthBuffer) { // In this case there's residue to be handled
@@ -1545,8 +1542,8 @@ void pMemWriter(
                     mwr_fsmState = RXMEMWR_RESIDUE;
                 }
                 else {
-                    outputWord.keep = returnKeep(rxEngBreakTemp);
-                    outputWord.last = 1;
+                    outputWord.tkeep = returnKeep(rxEngBreakTemp);
+                    outputWord.tlast = 1;
                     mwr_fsmState = RXMEMWR_IDLE;
                 }
             }
@@ -1558,8 +1555,8 @@ void pMemWriter(
 
     case RXMEMWR_RESIDUE:
         if (!soMemWrData.full()) {
-            axiWord outputWord = axiWord(0, returnKeep(rxEngBreakTemp), 1);
-            outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
+            AxiWord outputWord = AxiWord(0, returnKeep(rxEngBreakTemp), 1);
+            outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
             soMemWrData.write(outputWord);
             mwr_fsmState = RXMEMWR_IDLE;
         }
@@ -1612,8 +1609,8 @@ void rx_engine(
         stream<StsBit>                  &siPRt_PortSts,
         stream<rxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarReply>            &siTSt_TxSarRdRep,
-        stream<mmStatus>                &siMEM_WrSts,
-        stream<axiWord>                 &soMemWrData,
+        stream<DmSts>                   &siMEM_WrSts,
+        stream<AxiWord>                 &soMemWrData,
         stream<stateQuery>              &soSTt_SessStateReq,
         stream<AxiTcpPort>              &soGetPortState,
         stream<sessionLookupQuery>      &soSessLookupReq,
@@ -1624,7 +1621,7 @@ void rx_engine(
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<openStatus>              &soTAi_SessOpnSts,
         stream<extendedEvent>           &soEVe_SetEvent,
-        stream<mmCmd>                   &soMemWrCmd,
+        stream<DmCmd>                   &soMemWrCmd,
         stream<appNotification>         &soRxNotification)
 {
 
@@ -1699,7 +1696,7 @@ void rx_engine(
     #pragma HLS stream     variable=sFsmToEvm_Event        depth=2
     #pragma HLS DATA_PACK  variable=sFsmToEvm_Event
 
-    static stream<mmCmd>            sFsmToMwr_WrCmd        ("sFsmToMwr_WrCmd");
+    static stream<DmCmd>            sFsmToMwr_WrCmd        ("sFsmToMwr_WrCmd");
     #pragma HLS stream     variable=sFsmToMwr_WrCmd        depth=8
     #pragma HLS DATA_PACK  variable=sFsmToMwr_WrCmd
 

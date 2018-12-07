@@ -20,25 +20,27 @@
 
 class DummyMemory {
 
-public:
-    void setReadCmd(mmCmd cmd);
-    void setWriteCmd(mmCmd cmd);
-    void readWord(AxiWord &word);
-    void writeWord(AxiWord &word);
+  private:
+    ap_uint<16> readAddr;   // Read Address within a read buffer (16 LSbits -->  64k bytes)
+    ap_uint<16> readId;     // Address of the read buffer in DDR (16 MSbits -->  64k buffer).
+    int         readLen;
+    ap_uint<16> writeAddr;  // Write Address within a write buffer (16 LSbits -->  64k bytes)
+    ap_uint<16> writeId;    // Address of the write buffer in DDR  (16 MSbits -->  64k buffer).
 
-private:
-    std::map<ap_uint<16>, ap_uint<8>*>::iterator createBuffer(ap_uint<16> id);
-    void shuffleWord(ap_uint<64> &);
-    bool* getBitMask(ap_uint<4> keep);
-    ap_uint<16> readAddr; //<8>
-    ap_uint<16> readId;
-    int readLen;
-    ap_uint<16> writeAddr; //<8>
-    ap_uint<16> writeId;
-    //ap_uint<16> writeLen;
-    std::map<ap_uint<16>, ap_uint<8>*> storage;
+    std::map<ap_uint<16>, ap_uint<8>*>           storage;
     std::map<ap_uint<16>, ap_uint<8>*>::iterator readStorageIt;
     std::map<ap_uint<16>, ap_uint<8>*>::iterator writeStorageIt;
+
+    std::map<ap_uint<16>, ap_uint<8>*>::iterator createBuffer(ap_uint<16> id);
+    void  shuffleWord(ap_uint<64> &);
+    bool *getBitMask (ap_uint< 4> keep);
+
+  public:
+    void setReadCmd (DmCmd    cmd);
+    void setWriteCmd(DmCmd    cmd);
+    void readWord   (AxiWord &word);
+    void writeWord  (AxiWord &word);
+
 };
 
 #endif

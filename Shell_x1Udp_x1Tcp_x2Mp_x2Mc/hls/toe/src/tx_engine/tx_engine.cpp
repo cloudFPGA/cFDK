@@ -91,7 +91,7 @@ void pMetaDataLoader(
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
         stream<tx_engine_meta>          &soIhc_TxeMeta,
-        stream<mmCmd>                   &soMai_BufferRdCmd,
+        stream<DmCmd>                   &soMai_BufferRdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
         stream<AxiSocketPair>           &soSps_RstSockPair,
@@ -298,7 +298,7 @@ void pMetaDataLoader(
                 }
 
                 if (txeMeta.length != 0)
-                    soMai_BufferRdCmd.write(mmCmd(pkgAddr, txeMeta.length));
+                    soMai_BufferRdCmd.write(DmCmd(pkgAddr, txeMeta.length));
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
                     soIhc_TcpSegLen.write(txeMeta.length);
@@ -375,7 +375,7 @@ void pMetaDataLoader(
 
                 // Only send a packet if there is data
                 if (txeMeta.length != 0) {
-                    soMai_BufferRdCmd.write(mmCmd(pkgAddr, txeMeta.length));
+                    soMai_BufferRdCmd.write(DmCmd(pkgAddr, txeMeta.length));
                     soIhc_TcpSegLen.write(txeMeta.length);
                     soIhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
@@ -1486,8 +1486,8 @@ void pIpPktStitcher(
  * @ingroup tx_engine
  *****************************************************************************/
 void pMemoryAccessInterface(
-        stream<mmCmd>       &inputMemAccess,
-        stream<mmCmd>       &outputMemAccess,
+        stream<DmCmd>       &inputMemAccess,
+        stream<DmCmd>       &outputMemAccess,
         stream<ap_uint<1> > &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1495,17 +1495,17 @@ void pMemoryAccessInterface(
     #pragma HLS INLINE off
 
     static bool     txEngBreakdown = false;
-    static mmCmd    txEngTempCmd;
+    static DmCmd    txEngTempCmd;
     static uint16_t txEngBreakTemp = 0;
     static uint16_t txPktCounter = 0;
 
     if (txEngBreakdown == false) {
         if (!inputMemAccess.empty() && !outputMemAccess.full()) {
             txEngTempCmd = inputMemAccess.read();
-            mmCmd tempCmd = txEngTempCmd;
+            DmCmd tempCmd = txEngTempCmd;
             if ((txEngTempCmd.saddr.range(15, 0) + txEngTempCmd.bbt) > 65536) {
                 txEngBreakTemp = 65536 - txEngTempCmd.saddr;
-                tempCmd = mmCmd(txEngTempCmd.saddr, txEngBreakTemp);
+                tempCmd = DmCmd(txEngTempCmd.saddr, txEngBreakTemp);
                 txEngBreakdown = true;
             }
             outputMemAccess.write(tempCmd);
@@ -1518,7 +1518,7 @@ void pMemoryAccessInterface(
         if (!outputMemAccess.full()) {
             txEngTempCmd.saddr.range(15, 0) = 0;
             //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << std::hex << " - " << txEngTempCmd.saddr << " - " << txEngTempCmd.bbt - txEngBreakTemp << std::endl;
-            outputMemAccess.write(mmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
+            outputMemAccess.write(DmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
             txEngBreakdown = false;
         }
     }
@@ -1543,8 +1543,13 @@ void pMemoryAccessInterface(
  * @param[out] soL3MUX_Data,      Outgoing data stream.
  *
  * @details
- *
- * @return Nothing.
+ *  The Tx Engine (TXe) is responsible for the generation and transmission of
+ *   IPv4 packets with embedded TCP payload. It contains a state machine with
+ *   a state for each Event Type. Upon reception of an event, it loads and
+ *   generates the necessary metadata to construct an IPv4 packet. If that
+ *   packet contains any payload, the data is retrieved from the DDR4 memory
+ *   and is put as a TCP segment into the IPv4 packet. The complete packet is
+ *   then streamed out over the IPv4 Tx interface of the TOE (.i.e, soL3MUX).
  *
  * @ingroup tx_engine
  ******************************************************************************/
@@ -1557,7 +1562,7 @@ void tx_engine(
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<txRetransmitTimerSet>    &soTIm_SetReTxTimer,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
-        stream<mmCmd>                   &soMEM_Txp_RdCmd,
+        stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         stream<ap_uint<1> >             &soEVe_RxEventSig,
@@ -1586,7 +1591,7 @@ void tx_engine(
     static stream<bool>                 sMdlToSpS_IsLookup      ("sMdlToSpS_IsLookup");
     #pragma HLS stream         variable=sMdlToSpS_IsLookup      depth=4
 
-    static stream<mmCmd>                sMdlToMai_BufferRdCmd   ("sMdlToMai_BufferRdCmd");
+    static stream<DmCmd>                sMdlToMai_BufferRdCmd   ("sMdlToMai_BufferRdCmd");
     #pragma HLS stream         variable=sMdlToMai_BufferRdCmd   depth=32
     #pragma HLS DATA_PACK      variable=sMdlToMai_BufferRdCmd
 
