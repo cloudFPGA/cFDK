@@ -28,48 +28,58 @@ int app_main(
     int local_grid[LDIMY + 1][LDIMX];
     int local_new[LDIMY + 1][LDIMX];
 
-    //MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
-    int number_of_recv_packets = LDIMY + 1; 
-    if(rank == size -1)
+    for(int k = 0; k< JACOBI_ITERATIONS; k++)
     {
-      number_of_recv_packets--;
-    }
 
-    for(int j = 0; j< LDIMY + 1; j++)
-    {
-      if(j == number_of_recv_packets)
+      //MPI_Recv(soMPIif, siMPI_data, &local_grid[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+      int number_of_recv_packets = LDIMY + 1; 
+      if(rank == size -1)
       {
-        break;
+        number_of_recv_packets--;
       }
-      MPI_Recv(soMPIif, siMPI_data, &local_grid[j][0], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
-    }
 
-    // print_int_array((const int*) local_grid, LDIMX, LDIMY);
+      for(int j = 0; j< LDIMY + 1; j++)
+      {
+        if(j == number_of_recv_packets)
+        {
+          break;
+        }
+        for(int p = 0; p<LDIMX/PACKETLENGTH; p++)
+        {
+          MPI_Recv(soMPIif, siMPI_data, &local_grid[j][p*PACKETLENGTH], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, &status);
+        }
+      }
 
-    //only one iteration for now
-    //treat all borders equal, the additional lines in the middle are cut out from the merge at the server
-    for(int i = 1; i < LDIMY + 1; i++)
-    {
-      if(i == number_of_recv_packets)
-      {
-        break;
-      }
-      for(int j = 1; j<LDIMX-1; j++)
-      {
-        local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
-      }
-    }
-    //MPI_Send(soMPIif, soMPI_data, &local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
-    for(int j = 0; j< LDIMY + 1; j++)
-    {
-      if(j == number_of_recv_packets)
-      {
-        break;
-      }
-      MPI_Send(soMPIif, soMPI_data, &local_new[j][0], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
-    }
+      // print_int_array((const int*) local_grid, LDIMX, LDIMY);
 
-    //print_int_array((const int*) local_new, LDIMX, LDIMY);
+      //only one iteration for now
+      //treat all borders equal, the additional lines in the middle are cut out from the merge at the server
+      for(int i = 1; i < LDIMY + 1; i++)
+      {
+        if(i == number_of_recv_packets)
+        {
+          break;
+        }
+        for(int j = 1; j<LDIMX-1; j++)
+        {
+          local_new[i][j] = (local_grid[i][j-1] + local_grid[i][j+1] + local_grid[i-1][j] + local_grid[i+1][j]) / 4.0;
+        }
+      }
+      //MPI_Send(soMPIif, soMPI_data, &local_new[0][0], LDIMY*LDIMX, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+      for(int j = 0; j< LDIMY + 1; j++)
+      {
+        if(j == number_of_recv_packets)
+        {
+          break;
+        }
+        for(int p = 0; p<LDIMX/PACKETLENGTH; p++)
+        {
+          MPI_Send(soMPIif, soMPI_data, &local_new[j][p*PACKETLENGTH], PACKETLENGTH, MPI_INTEGER, 0, 0, MPI_COMM_WORLD);
+        }
+      }
+
+      //print_int_array((const int*) local_new, LDIMX, LDIMY);
+    }
 
     //printf("Calculation finished.\n");
 
