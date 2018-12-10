@@ -12,7 +12,11 @@
 # * 
 # ******************************************************************************
 
-XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
+#XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
+
+#we need both types of directories to detect all possible reasons to re-run create_ip_cores.tcl
+XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip ./hls/*/src/ -maxdepth 0 -type d)
+
 
 .PHONY: all hls_cores clean full_src shell_synth pkg_shell 
 
@@ -21,6 +25,8 @@ XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip -maxdepth 0 -type d)
 all: full_src
 
 full_src: ip 
+
+full_src_mpi: ip_mpi
 
 hls_cores: 
 	@$(MAKE) -C ./hls/ 
@@ -31,9 +37,20 @@ hls_cores:
 hls: hls_cores
 
 # directory as dependency: not the best solution but here the most practical one 
-# INFO: hls must be before $(XCI_DEPS)! otherwise make does not see the updated *_prj 
-ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files
+# We need ./.ip_guard to be touched by the hls ip core makefiles, because XCI_DEPS doesn't work. i
+# HLS_DEPS get's evaluated BEFORE the hls target get's executed, so if a hls core doesn't exist completly (e.g. after a clean)
+# the create_ip_cores.tcl will not be started. 
+# TODO: $(XCI_DEPS) obsolete?
+ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+
+ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
+	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log -tclargs -useMPI
+	@touch $@
+
+.ip_guard: 
+	@touch $@
+
 
 # Create IP directory if it does not exist
 ./ip/ip_user_files:
