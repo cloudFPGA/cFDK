@@ -10,9 +10,9 @@
 # *
 # ******************************************************************************
 
-.PHONY: all clean udp_app_flash tcp_app_flash
+.PHONY: all clean udp_app_flash tcp_app_flash mem_test_flash
 
-all: udp_app_flash tcp_app_flash
+all: udp_app_flash tcp_app_flash mem_test_flash
 
 
 *:

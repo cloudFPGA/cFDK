@@ -33,9 +33,16 @@ hls_cores:
 
 hls: hls_cores
 
-ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files
+# We need ./.ip_guard to be touched by the hls ip core makefiles, because HLS_DEPS doesn't work. i
+# HLS_DEPS get's evaluated BEFORE the hls target get's executed, so if a hls core doesn't exist completly (e.g. after a clean)
+# the create_ip_cores.tcl will not be started. 
+# TODO: $(HLS_DEPS) obsolete?
+ip: hls ./tcl/create_ip_cores.tcl $(HLS_DEPS) ./ip/ip_user_files ./.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 	@echo ------- DONE ------------------------------------- 
+
+.ip_guard: 
+	@touch $@
 
 # Create IP directory if it does not exist
 ./ip/ip_user_files:
