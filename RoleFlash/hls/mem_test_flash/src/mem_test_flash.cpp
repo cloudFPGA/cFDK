@@ -100,17 +100,11 @@ ap_uint<4> keepToLen(ap_uint<8> keepVal) {
 
 void mem_test_flash_main(
 
-  //------------------------------------------------------
-  //-- SHELL / Role / Nts0 / Udp Interface
-  //------------------------------------------------------
-  stream<Axis<64> >   &siUdp,
-  stream<Axis<64> >   &soUdp,
-
-  //------------------------------------------------------
-  //-- SHELL / Role / Nts0 / Tcp Interface
-  //------------------------------------------------------
-  stream<Axis<64> >   &siTcp,
-  stream<Axis<64> >   &soTcp,
+		// ----- system reset ---
+		    ap_uint<1> sys_reset,
+			// ----- MMIO ------
+			ap_uint<2> DIAG_CTRL_IN,
+			ap_uint<2> *DIAG_STAT_OUT,
 
   //------------------------------------------------------
   //-- SHELL / Role / Mem / Mp0 Interface
@@ -122,30 +116,12 @@ void mem_test_flash_main(
   //---- Write Path (S2MM) -----------
   stream<DmCmd>       &soMemWrCmdP0,
   stream<DmSts>       &siMemWrStsP0,
-  stream<Axis<512> >  &soMemWriteP0,
-
-    //------------------------------------------------------
-  //-- SHELL / Role / Mem / Mp1 Interface
-  //------------------------------------------------------
-  //---- Read Path (MM2S) ------------
-    stream<DmCmd>     &soMemRdCmdP1,
-  stream<DmSts>       &siMemRdStsP1,
-  stream<Axis<512> >  &siMemReadP1,
-    //---- Write Path (S2MM) -----------
-  stream<DmCmd>       &soMemWrCmdP1,
-  stream<DmSts>       &siMemWrStsP1,
-  stream<Axis<512> >  &soMemWriteP1
+  stream<Axis<512> >  &soMemWriteP0
 
 ) {
 
-
-  // Bundling: SHELL / Role / Nts0 / Udp Interface
-  #pragma HLS INTERFACE axis register both port=siUdp
-  #pragma HLS INTERFACE axis register both port=soUdp
-
-  // Bundling: SHELL / Role / Nts0 / Tcp Interface
-  #pragma HLS INTERFACE axis register both port=siTcp
-  #pragma HLS INTERFACE axis register both port=soTcp
+#pragma HLS INTERFACE ap_vld register port=DIAG_CTRL_IN name=piMMIO_diag_ctrl
+#pragma HLS INTERFACE ap_ovld register port=DIAG_STAT_OUT name=poMMIO_diag_stat
 
   // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
   #pragma HLS INTERFACE axis register both port=soMemRdCmdP0
@@ -163,61 +139,21 @@ void mem_test_flash_main(
   #pragma HLS DATA_PACK variable=soMemWrCmdP0 instance=soMemWrCmdP0
   #pragma HLS DATA_PACK variable=siMemWrStsP0 instance=siMemWrStsP0
 
-  // Bundling: SHELL / Role / Mem / Mp1 / Read Interface
-  #pragma HLS INTERFACE axis register both port=soMemRdCmdP1
-  #pragma HLS INTERFACE axis register both port=siMemRdStsP1
-  #pragma HLS INTERFACE axis register both port=siMemReadP1
-
-  #pragma HLS DATA_PACK variable=soMemRdCmdP1 instance=soMemRdCmdP1
-  #pragma HLS DATA_PACK variable=siMemRdStsP1 instance=siMemRdStsP1
-
-  // Bundling: SHELL / Role / Mem / Mp1 / Write Interface
-  #pragma HLS INTERFACE axis register both port=soMemWrCmdP1
-  #pragma HLS INTERFACE axis register both port=siMemWrStsP1
-  #pragma HLS INTERFACE axis register both port=soMemWriteP1
-
-  #pragma HLS DATA_PACK variable=soMemWrCmdP1 instance=soMemWrCmdP1
-  #pragma HLS DATA_PACK variable=siMemWrStsP1 instance=siMemWrStsP1
 
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #pragma HLS DATAFLOW //interval=1
 
-  static enum UdpState { FSM_UDP_RX_IDLE = 0,
-                         FSM_MEM_WR_CMD_P0, FSM_MEM_WRITE_P0, FSM_MEM_WR_STS_P0,
-                         FSM_MEM_RD_CMD_P0, FSM_MEM_READ_P0,  FSM_MEM_RD_STS_P0,
-                         FSM_UDP_TX } udpState;
-
-  static enum TcpState { FSM_TCP_RX_IDLE = 0,
-                         FSM_MEM_WR_CMD_P1, FSM_MEM_WRITE_P1, FSM_MEM_WR_STS_P1,
-                         FSM_MEM_RD_CMD_P1, FSM_MEM_READ_P1,  FSM_MEM_RD_STS_P1,
-                         FSM_TCP_TX } tcpState;
-
-  static stream<Axis<64> >    udpRxStream   ("udpRxStream");
-  #pragma HLS STREAM variable=udpRxStream depth=1024
-
-  static stream<Axis<64> >    tcpRxStream   ("tcpRxStream");
-  #pragma HLS STREAM variable=tcpRxStream depth=1024
-
-  static stream<Axis<64> >    memRdP0Stream ("memRdP0Stream");
-  #pragma HLS STREAM variable=memRdP0Stream depth=1024
-
-  static stream<Axis<64> >    memRdP1Stream ("memRdP1Stream");
-  #pragma HLS STREAM variable=memRdP1Stream depth=1024
-
-  Axis<64>               udpWord;
-  Axis<64>               tcpWord;
   Axis<512>              memP0;
-  Axis<512>              memP1;
-  DmSts                  memRdStsP0, memRdStsP1;
-  DmSts                  memWrStsP0, memWrStsP1;
+  DmSts                  memRdStsP0;
+  DmSts                  memWrStsP0;
 
   static ap_uint<16>     cntUdpRxBytes = 0;
   static ap_uint<16>     cntTcpRxBytes = 0;
   static ap_uint<32>     cUDP_BUF_BASE_ADDR = 0x00000000; // The address of the UDP buffer in DDR4
   static ap_uint<32>     cTCP_BUF_BASE_ADDR = 0x00010000; // The address of the TCP buffer in DDR4
 
-
+/*
   //------------------------------------------------------
   //-- UDP STATE MACHINE
   //------------------------------------------------------
@@ -405,5 +341,5 @@ void mem_test_flash_main(
     }
     break;
 
-  }
+  }*/
 }

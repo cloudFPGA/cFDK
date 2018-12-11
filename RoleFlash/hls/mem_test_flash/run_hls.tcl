@@ -63,7 +63,7 @@ add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 
 #for DEBUG flag 
 #add_files -tb src/smc.cpp -cflags "-DDEBUG"
-#add_files -tb tb/tb_${appName}.cpp 
+add_files -tb tb/tb_${appName}.cpp 
 
 
 open_solution ${solutionName}

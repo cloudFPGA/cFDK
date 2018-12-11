@@ -74,18 +74,11 @@ struct DmSts
 
 
 void mem_test_flash_main(
-
-	//------------------------------------------------------
-	//-- SHELL / Role / Nts0 / Udp Interface
-	//------------------------------------------------------
-	stream<Axis<64> >	    &siUdp,
-	stream<Axis<64> >		&soUdp,
-	
-	//------------------------------------------------------
-	//-- SHELL / Role / Nts0 / Tcp Interface
-	//------------------------------------------------------
-	stream<Axis<64> >		&siTcp,
-	stream<Axis<64> >		&soTcp,
+		// ----- system reset ---
+		    ap_uint<1> sys_reset,
+			// ----- MMIO ------
+			ap_uint<2> DIAG_CTRL_IN,
+			ap_uint<2> *DIAG_STAT_OUT,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp0 Interface
@@ -97,17 +90,17 @@ void mem_test_flash_main(
 	//---- Write Path (S2MM) -----------
 	stream<DmCmd>			&soMemWrCmdP0,
 	stream<DmSts>			&siMemWrStsP0,
-	stream<Axis<512> >		&soMemWriteP0,
+	stream<Axis<512> >		&soMemWriteP0  //,
 
     //------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp1 Interface
 	//------------------------------------------------------
 	//---- Read Path (MM2S) ------------
-    stream<DmCmd>			&soMemRdCmdP1,
-	stream<DmSts>			&siMemRdStsP1,
-	stream<Axis<512> >		&siMemReadP1,
+    //stream<DmCmd>			&soMemRdCmdP1,
+	//stream<DmSts>			&siMemRdStsP1,
+	//stream<Axis<512> >		&siMemReadP1,
     //---- Write Path (S2MM) -----------
-	stream<DmCmd>			&soMemWrCmdP1,
-	stream<DmSts>			&siMemWrStsP1,
-    stream<Axis<512> >  	&soMemWriteP1
+	//stream<DmCmd>			&soMemWrCmdP1,
+	//stream<DmSts>			&siMemWrStsP1,
+   // stream<Axis<512> >  	&soMemWriteP1
 );
