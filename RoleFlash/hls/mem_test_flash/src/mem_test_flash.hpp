@@ -47,7 +47,7 @@ using namespace hls;
 // AXI DataMover - Format of the command word (c.f PG022)
 struct DmCmd
 {
-	ap_uint<23>		bbt;
+	ap_uint<23>		btt;
 	ap_uint<1>		type;
 	ap_uint<6>		dsa;
 	ap_uint<1>		eof;
@@ -57,7 +57,7 @@ struct DmCmd
 	ap_uint<4>		rsvd;
 	DmCmd() {}
 	DmCmd(ap_uint<32> addr, ap_uint<16> len) :
-		bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+		btt(len), type(1), dsa(0), eof(1), drr(0), saddr(addr), tag(0), rsvd(0) {}
 };
 
 
@@ -79,6 +79,8 @@ void mem_test_flash_main(
 			// ----- MMIO ------
 			ap_uint<2> DIAG_CTRL_IN,
 			ap_uint<2> *DIAG_STAT_OUT,
+			// ---- add. Debug output ----
+					ap_uint<16> *debug_out,
 	
 	//------------------------------------------------------
 	//-- SHELL / Role / Mem / Mp0 Interface

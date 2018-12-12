@@ -73,6 +73,78 @@ ap_uint<4> keepToLen(ap_uint<8> keepVal) {
 }
 
 
+//returns if error free or not
+bool c_march(ap_uint<32> startAddress, ap_uint<23> nBytes,
+		stream<DmCmd> &soMemRdCmdP0, stream<DmSts> &siMemRdStsP0, stream<Axis<512 > > &siMemReadP0,
+		stream<DmCmd> &soMemWrCmdP0, stream<DmSts> &siMemWrStsP0, stream<Axis<512> >  &soMemWriteP0,
+		ap_uint<16> *debug_out)
+{
+    unsigned long offset;
+    unsigned long nWords = nBytes / sizeof(ap_uint<32>);
+
+    ap_uint<32> pattern;
+    ap_uint<32> antipattern;
+
+
+    /*
+     * Fill memory with a known pattern.
+     */
+    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
+    {
+		txAddr.write((ap_uint<32>) (baseAddress + offset));
+		txData.write((ap_uint<32>) pattern);
+
+    }
+
+    /*
+     * Check each location and invert it for the second pass.
+     */
+    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
+    {
+        /*if (baseAddress[offset] != pattern)
+        {
+            return ((datum *) &baseAddress[offset]);
+        }*/
+				rxAddr.write((ap_uint<32>) (baseAddress + offset));
+				//TODO: Delay?
+				ap_uint<32> res = rxData.read();
+
+				if(res != pattern)
+				{
+					return (ap_uint<32>) (baseAddress + offset);
+				}
+
+        antipattern = ~pattern;
+        //baseAddress[offset] = antipattern;
+				txAddr.write((ap_uint<32>) (baseAddress + offset));
+				txData.write((ap_uint<32>) pattern);
+    }
+
+    /*
+     * Check each location for the inverted pattern
+     */
+    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
+    {
+        antipattern = ~pattern;
+        /*if (baseAddress[offset] != antipattern)
+        {
+            return ((datum *) &baseAddress[offset]);
+        }*/
+				rxAddr.write((ap_uint<32>) (baseAddress + offset));
+				//TODO: Delay?
+				ap_uint<32> res = rxData.read();
+
+				if(res != antipattern)
+				{
+					return (ap_uint<32>) (baseAddress + offset);
+				}
+    }
+
+    return 0;
+
+}
+
+
 
 /*****************************************************************************/
 /* @brief   Main process of the ECHO application.
@@ -106,6 +178,9 @@ void mem_test_flash_main(
 			ap_uint<2> DIAG_CTRL_IN,
 			ap_uint<2> *DIAG_STAT_OUT,
 
+		// ---- add. Debug output ----
+		ap_uint<16> *debug_out,
+
   //------------------------------------------------------
   //-- SHELL / Role / Mem / Mp0 Interface
   //------------------------------------------------------
@@ -122,6 +197,7 @@ void mem_test_flash_main(
 
 #pragma HLS INTERFACE ap_vld register port=DIAG_CTRL_IN name=piMMIO_diag_ctrl
 #pragma HLS INTERFACE ap_ovld register port=DIAG_STAT_OUT name=poMMIO_diag_stat
+#pragma HLS INTERFACE ap_ovld register port=debug_out name=poDebug
 
   // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
   #pragma HLS INTERFACE axis register both port=soMemRdCmdP0
@@ -148,10 +224,8 @@ void mem_test_flash_main(
   DmSts                  memRdStsP0;
   DmSts                  memWrStsP0;
 
-  static ap_uint<16>     cntUdpRxBytes = 0;
-  static ap_uint<16>     cntTcpRxBytes = 0;
-  static ap_uint<32>     cUDP_BUF_BASE_ADDR = 0x00000000; // The address of the UDP buffer in DDR4
-  static ap_uint<32>     cTCP_BUF_BASE_ADDR = 0x00010000; // The address of the TCP buffer in DDR4
+  static ap_uint<32>     MEM_START_ADDR = 0x000000000; // Start address of user space in DDR4
+  static ap_uint<32>     MEM_END_ADDR   = 0x1FFFFFFFF; // End address of user space in DDR4
 
 /*
   //------------------------------------------------------
