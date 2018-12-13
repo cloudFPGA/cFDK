@@ -518,11 +518,10 @@ architecture structural of topFlash is
       ----------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               : in     std_logic_vector( 15 downto 0);
       poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0);
-      --------------------------------------------------------
-      -- DIAG Registers for MemTest
-      --------------------------------------------------------
-      piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
-      poDIAG_STAT                         : out std_logic_vector(1 downto 0);
+
+      -- MemTest DiagRegisters
+      poSHL_Mc1_MemTestCtrl               : out std_logic_vector(1 downto 0);
+      piSHL_DIAG_STAT_1                   : in  std_logic_vector(7 downto 0);
 
       ------------------------------------------------------
       -- ROLE <--> SMC 
@@ -659,6 +658,11 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
       piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+      --------------------------------------------------------
+      -- DIAG Registers for MemTest
+      --------------------------------------------------------
+      piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
+      poDIAG_STAT                         : out std_logic_vector(1 downto 0);
       
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
