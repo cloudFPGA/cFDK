@@ -269,6 +269,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input   [15:0]  piROL_SHL_EMIF_2B_Reg,
   output  [15:0]  poSHL_ROL_EMIF_2B_Reg,
 
+  // MemTest DiagRegisters
+  output [1:0] poSHL_Mc1_MemTestCtrl,
+  input  [7:0] piSHL_DIAG_STAT_1,
+  
+
   //----------------------------------------------------
   // ROLE <--> SMC 
   //----------------------------------------------------
@@ -696,6 +701,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     // SMC Registers
     .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
     .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
+    // MemTest DiagRegisters 
+    .poMMIO_Mc1_MemTestCtrl         (poSHL_Mc1_MemTestCtrl),
+    .piMMIO_DIAG_STAT_1             (piSHL_DIAG_STAT_1),
     //XMem Port B
     .piSMC_MMIO_XMEM_en             (sCASTOR_MMIO_XMEM_cen),
     .piSMC_MMIO_XMEM_Wren           (sCASTOR_MMIO_XMEM_wren),

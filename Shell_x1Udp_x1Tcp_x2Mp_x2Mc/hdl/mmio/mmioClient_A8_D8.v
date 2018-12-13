@@ -105,6 +105,11 @@ module MmioClient_A8_D8 #(
   // SMC Registers
   input   [31:0]  piMMIO_SMC_4B_Reg,
   input   [31:0]  poMMIO_SMC_4B_Reg,
+
+  // MemTest DiagRegisters
+  output [1:0] poMMIO_Mc1_MemTestCtrl,
+  input  [7:0] piMMIO_DIAG_STAT_1,
+
   //XMem Port B
   input           piSMC_MMIO_XMEM_en,
   input           piSMC_MMIO_XMEM_Wren,
@@ -621,6 +626,13 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_CTRL_1+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+id]; // RW   
     end
   endgenerate
+  //---- DIAG_STAT_1 -------------------
+  generate
+  for (id=0; id<cEDW; id=id+1)
+    begin: gen_DIAG_STAT_1
+      assign sStatusVec[cEDW*DIAG_STAT_1+id]  = sEMIF_Ctrl[cEDW*DIAG_STAT_1+id]; // RW   
+    end
+  endgenerate
   //---- DIAG_CTRL_2 -------------------
   generate
   for (id=0; id<cEDW; id=id+1)
@@ -711,9 +723,9 @@ module MmioClient_A8_D8 #(
   assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+1]; // RW
   assign poMMIO_Eth0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+2]; // RW
   // [TODO] poMMIO_Mc0_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+5:cEDW*DIAG_CTRL_1+4]; // RW
-  // [TODO] poMMIO_Mc1_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+7:cEDW*DIAG_CTRL_1+6]; // RW
+  assign poMMIO_Mc1_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+7:cEDW*DIAG_CTRL_1+6]; // RW
   //---- DIAG_STAT_1 ---------------
-  // [TODO] 
+  assign sStatusVec[cEDW*DIAG_STAT_1+7:cEDW*DIAG_STAT_1+0] = piMMIO_DIAG_STAT_1; //RO
   //---- DIAG_CTRL_2 ---------------
   assign poMMIO_Role_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
   assign poMMIO_Role_UdpPostPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
