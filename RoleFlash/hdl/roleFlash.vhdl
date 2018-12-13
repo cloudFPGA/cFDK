@@ -305,6 +305,11 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
 
   signal EMIF_inv   : std_logic_vector(7 downto 0);
 
+  -- I hate Vivado HLS 
+  signal sReadTlastAsVector : std_logic_vector(0 downto 0);
+  signal sWriteTlastAsVector : std_logic_vector(0 downto 0);
+  signal sResetAsVector : std_logic_vector(0 downto 0);
+
   --============================================================================
   --  VARIABLE DECLARATIONS
   --============================================================================  
@@ -1186,11 +1191,15 @@ begin
 --  end process pMp0Write; 
 -- 
 
+  sReadTlastAsVector(0) <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;
+  poROL_Shl_Mem_Mp0_Axis_Write_tlast <= sWriteTlastAsVector(0);
+  sResetAsVector(0) <= not piSHL_156_25Rst;
+
   MEM_TEST: mem_test_flash_main
     port map(
            ap_clk                     => piSHL_156_25Clk,
            ap_rst_n                   => (not piSHL_156_25Rst),
-           piSysReset_V               => (not piSysReset_V),
+           piSysReset_V               => sResetAsVector,
            piSysReset_V_ap_vld        => '1',
            piMMIO_diag_ctrl_V         => piDIAG_CTRL,
            piMMIO_diag_ctrl_V_ap_vld  => '1',
@@ -1208,7 +1217,7 @@ begin
            siMemReadP0_TVALID         => piSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
            siMemReadP0_TREADY         => poROL_SHL_Mem_Mp0_Axis_Read_tready,
            siMemReadP0_TKEEP          => piSHL_Rol_Mem_Mp0_Axis_Read_tkeep ,
-           siMemReadP0_TLAST          => piSHL_Rol_Mem_Mp0_Axis_Read_tlast ,
+           siMemReadP0_TLAST          => sReadTlastAsVector,
            soMemWrCmdP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata ,
            soMemWrCmdP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
            soMemWrCmdP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
@@ -1219,7 +1228,7 @@ begin
            soMemWriteP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_Write_tvalid,
            soMemWriteP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_Write_tready,
            soMemWriteP0_TKEEP         => poROL_Shl_Mem_Mp0_Axis_Write_tkeep ,
-           soMemWriteP0_TLAST         => poROL_Shl_Mem_Mp0_Axis_Write_tlast
+           soMemWriteP0_TLAST         => sWriteTlastAsVector
          );
   
 
