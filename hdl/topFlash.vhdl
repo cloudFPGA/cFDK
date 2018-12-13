@@ -293,6 +293,10 @@ architecture structural of topFlash is
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
+
+  ------ MemTest Registers ---------------
+  signal sSHL_ROL_diag_ctrl                 : std_logic_vector(1 downto 0);
+  signal sROL_SHL_diag_stat                 : std_logic_vector(7 downto 0);
     
   ------------------------------------------------
   -- SMC Interface
@@ -514,6 +518,11 @@ architecture structural of topFlash is
       ----------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               : in     std_logic_vector( 15 downto 0);
       poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0);
+      --------------------------------------------------------
+      -- DIAG Registers for MemTest
+      --------------------------------------------------------
+      piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
+      poDIAG_STAT                         : out std_logic_vector(1 downto 0);
 
       ------------------------------------------------------
       -- ROLE <--> SMC 
@@ -922,6 +931,10 @@ begin
       ------------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
       poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
+      -- Memtest 
+      poSHL_Mc1_MemTestCtrl               => sSHL_ROL_diag_ctrl,
+      piSHL_DIAG_STAT_1                   => sROL_SHL_diag_stat,
       
       poSMC_ROLE_rank                     => sSMC_ROL_rank,
       poSMC_ROLE_size                     => sSMC_ROL_size           
@@ -1054,6 +1067,9 @@ begin
       ------------------------------------------------------
       poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
       piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
+      piDIAG_CTRL                         => sSHL_ROL_diag_ctrl,
+      poDIAG_STAT                         => sROL_SHL_diag_stat(7 downto 6),
       
       ------------------------------------------------
       -- SMC Interface
