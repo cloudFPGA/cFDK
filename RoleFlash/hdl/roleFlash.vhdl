@@ -12,6 +12,7 @@
 -- * Created : Feb 2018
 -- * Authors : Francois Abel <fab@zurich.ibm.com>
 -- *           Beat Weiss <wei@zurich.ibm.com>
+-- *           Burkhard Ringlein <ngl@zurich.ibm.com>
 -- *
 -- * Devices : xcku060-ffva1156-2-i
 -- * Tools   : Vivado v2016.4, 2017.4 (64-bit)
@@ -181,7 +182,11 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     --------------------------------------------------------
     poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
     piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
-
+    --------------------------------------------------------
+    -- DIAG Registers for MemTest
+    --------------------------------------------------------
+    piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
+    poDIAG_STAT                         : out std_logic_vector(1 downto 0);
     --------------------------------------------------------
     -- TOP : Secondary Clock (Asynchronous)
     --------------------------------------------------------
@@ -454,6 +459,43 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
     );
   end component TcpApplicationFlashFail; 
 
+  component mem_test_flash_main is
+    port (
+           ap_clk                     : IN STD_LOGIC;
+           ap_rst_n                   : IN STD_LOGIC;
+           piSysReset_V               : IN STD_LOGIC_VECTOR (0 downto 0);
+           piSysReset_V_ap_vld        : IN STD_LOGIC;
+           piMMIO_diag_ctrl_V         : IN STD_LOGIC_VECTOR (1 downto 0);
+           piMMIO_diag_ctrl_V_ap_vld  : IN STD_LOGIC;
+           poMMIO_diag_stat_V         : OUT STD_LOGIC_VECTOR (1 downto 0);
+           poMMIO_diag_stat_V_ap_vld  : OUT STD_LOGIC;
+           poDebug_V                  : OUT STD_LOGIC_VECTOR (15 downto 0);
+           poDebug_V_ap_vld           : OUT STD_LOGIC;
+           soMemRdCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (71 downto 0);
+           soMemRdCmdP0_TVALID        : OUT STD_LOGIC;
+           soMemRdCmdP0_TREADY        : IN STD_LOGIC;
+           siMemRdStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
+           siMemRdStsP0_TVALID        : IN STD_LOGIC;
+           siMemRdStsP0_TREADY        : OUT STD_LOGIC;
+           siMemReadP0_TDATA          : IN STD_LOGIC_VECTOR (511 downto 0);
+           siMemReadP0_TVALID         : IN STD_LOGIC;
+           siMemReadP0_TREADY         : OUT STD_LOGIC;
+           siMemReadP0_TKEEP          : IN STD_LOGIC_VECTOR (63 downto 0);
+           siMemReadP0_TLAST          : IN STD_LOGIC_VECTOR (0 downto 0);
+           soMemWrCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (71 downto 0);
+           soMemWrCmdP0_TVALID        : OUT STD_LOGIC;
+           soMemWrCmdP0_TREADY        : IN STD_LOGIC;
+           siMemWrStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
+           siMemWrStsP0_TVALID        : IN STD_LOGIC;
+           siMemWrStsP0_TREADY        : OUT STD_LOGIC;
+           soMemWriteP0_TDATA         : OUT STD_LOGIC_VECTOR (511 downto 0);
+           soMemWriteP0_TVALID        : OUT STD_LOGIC;
+           soMemWriteP0_TREADY        : IN STD_LOGIC;
+           soMemWriteP0_TKEEP         : OUT STD_LOGIC_VECTOR (63 downto 0);
+           soMemWriteP0_TLAST         : OUT STD_LOGIC_VECTOR (0 downto 0) 
+         );
+  end component mem_test_flash_main;
+
   
   --===========================================================================
   --== FUNCTION DECLARATIONS  [TODO-Move to a package]
@@ -488,17 +530,17 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
  
 begin
 
-  -- write constant to EMIF Register to test read out 
-  --poROL_SHL_EMIF_2B_Reg <= x"EF" & EMIF_inv; 
-  poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
-  poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
-                                      x"F"; 
-  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
-                                      x"E"; 
-
-  EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
-              x"BE" ;
-
+--  -- write constant to EMIF Register to test read out 
+--  --poROL_SHL_EMIF_2B_Reg <= x"EF" & EMIF_inv; 
+--  poROL_SHL_EMIF_2B_Reg( 7 downto 0)  <= EMIF_inv; 
+--  poROL_SHL_EMIF_2B_Reg(11 downto 8) <= piSMC_ROLE_rank(3 downto 0) when (unsigned(piSMC_ROLE_rank) /= 0) else 
+--                                      x"F"; 
+--  poROL_SHL_EMIF_2B_Reg(15 downto 12) <= piSMC_ROLE_size(3 downto 0) when (unsigned(piSMC_ROLE_size) /= 0) else 
+--                                      x"E"; 
+--
+--  EMIF_inv <= (not piSHL_ROL_EMIF_2B_Reg(7 downto 0)) when piSHL_ROL_EMIF_2B_Reg(15) = '1' else 
+--              x"BE" ;
+--
   --################################################################################
   --#                                                                              #
   --#    #     #  #####    ######     #####                                        #
@@ -1085,64 +1127,103 @@ begin
 --  end process pTcpApp;
   
  
-  pMp0RdCmd : process(piSHL_156_25Clk)                                                                       
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready  <= piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready;                            
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  <= (others => '1');                                                  
-    poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid <= '0';                                                              
-  end process pMp0RdCmd;                                                                                     
-                                                                                                             
-  pMp0RdSts : process(piSHL_156_25Clk)                                                                       
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_RdSts_tdata   <= piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata;                             
-      sSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid;                            
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_RdSts_tready <= '1';                                                              
-  end process pMp0RdSts;                                                                                     
-                                                                                                             
-  pMp0Read : process(piSHL_156_25Clk)                                                                        
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_Read_tdata   <= piSHL_Rol_Mem_Mp0_Axis_Read_tdata;                               
-      sSHL_Rol_Mem_Mp0_Axis_Read_tkeep   <= piSHL_Rol_Mem_Mp0_Axis_Read_tkeep;                               
-      sSHL_Rol_Mem_Mp0_Axis_Read_tlast   <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;                               
-      sSHL_Rol_Mem_Mp0_Axis_Read_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_Read_tvalid;                              
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_Read_tready <= '1';                                                               
-  end process pMp0Read;                                                                                      
-                                                                                                             
-  pMp0WrCmd : process(piSHL_156_25Clk)                                                                       
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready  <= piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready;                            
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  <= (others => '0');                                                  
-    poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid <= '0';                                                              
-  end process pMp0WrCmd;                                                                                     
-                                                                                                             
-  pMp0WrSts : process(piSHL_156_25Clk)                                                                       
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_WrSts_tdata   <= piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata;                             
-      sSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid;                            
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_WrSts_tready <= '1';                                                              
-  end process pMp0WrSts;                                                                                     
-                                                                                                             
-  pMp0Write : process(piSHL_156_25Clk)                                                                       
-  begin                                                                                                      
-    if rising_edge(piSHL_156_25Clk) then                                                                     
-      sSHL_Rol_Mem_Mp0_Axis_Write_tready  <= piSHL_Rol_Mem_Mp0_Axis_Write_tready;                            
-    end if;                                                                                                  
-    poROL_Shl_Mem_Mp0_Axis_Write_tdata  <= (others => '0');                                                  
-    poROL_Shl_Mem_Mp0_Axis_Write_tkeep  <= (others => '0');                                                  
-    poROL_Shl_Mem_Mp0_Axis_Write_tlast  <= '0';                                                              
-    poROL_Shl_Mem_Mp0_Axis_Write_tvalid <= '0';                                                              
-  end process pMp0Write; 
+--  pMp0RdCmd : process(piSHL_156_25Clk)                                                                       
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready  <= piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready;                            
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  <= (others => '1');                                                  
+--    poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid <= '0';                                                              
+--  end process pMp0RdCmd;                                                                                     
+--                                                                                                             
+--  pMp0RdSts : process(piSHL_156_25Clk)                                                                       
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_RdSts_tdata   <= piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata;                             
+--      sSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid;                            
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_RdSts_tready <= '1';                                                              
+--  end process pMp0RdSts;                                                                                     
+--                                                                                                             
+--  pMp0Read : process(piSHL_156_25Clk)                                                                        
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_Read_tdata   <= piSHL_Rol_Mem_Mp0_Axis_Read_tdata;                               
+--      sSHL_Rol_Mem_Mp0_Axis_Read_tkeep   <= piSHL_Rol_Mem_Mp0_Axis_Read_tkeep;                               
+--      sSHL_Rol_Mem_Mp0_Axis_Read_tlast   <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;                               
+--      sSHL_Rol_Mem_Mp0_Axis_Read_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_Read_tvalid;                              
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_Read_tready <= '1';                                                               
+--  end process pMp0Read;                                                                                      
+--                                                                                                             
+--  pMp0WrCmd : process(piSHL_156_25Clk)                                                                       
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready  <= piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready;                            
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  <= (others => '0');                                                  
+--    poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid <= '0';                                                              
+--  end process pMp0WrCmd;                                                                                     
+--                                                                                                             
+--  pMp0WrSts : process(piSHL_156_25Clk)                                                                       
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_WrSts_tdata   <= piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata;                             
+--      sSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid  <= piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid;                            
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_WrSts_tready <= '1';                                                              
+--  end process pMp0WrSts;                                                                                     
+--                                                                                                             
+--  pMp0Write : process(piSHL_156_25Clk)                                                                       
+--  begin                                                                                                      
+--    if rising_edge(piSHL_156_25Clk) then                                                                     
+--      sSHL_Rol_Mem_Mp0_Axis_Write_tready  <= piSHL_Rol_Mem_Mp0_Axis_Write_tready;                            
+--    end if;                                                                                                  
+--    poROL_Shl_Mem_Mp0_Axis_Write_tdata  <= (others => '0');                                                  
+--    poROL_Shl_Mem_Mp0_Axis_Write_tkeep  <= (others => '0');                                                  
+--    poROL_Shl_Mem_Mp0_Axis_Write_tlast  <= '0';                                                              
+--    poROL_Shl_Mem_Mp0_Axis_Write_tvalid <= '0';                                                              
+--  end process pMp0Write; 
+-- 
+
+  MEM_TEST: mem_test_flash_main
+    port map(
+           ap_clk                     => piSHL_156_25Clk,
+           ap_rst_n                   => (not piSHL_156_25Rst),
+           piSysReset_V               => (not piSysReset_V),
+           piSysReset_V_ap_vld        => '1',
+           piMMIO_diag_ctrl_V         => piDIAG_CTRL,
+           piMMIO_diag_ctrl_V_ap_vld  => '1',
+           poMMIO_diag_stat_V         => poDIAG_STAT,
+           --poMMIO_diag_stat_V_ap_vld  => ,
+           poDebug_V                  => poROL_SHL_EMIF_2B_Reg,
+           --poDebug_V_ap_vld           => ,
+           soMemRdCmdP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata ,
+           soMemRdCmdP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
+           soMemRdCmdP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
+           siMemRdStsP0_TDATA         => piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata ,
+           siMemRdStsP0_TVALID        => piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid,
+           siMemRdStsP0_TREADY        => poROL_SHL_Mem_Mp0_Axis_RdSts_tready,
+           siMemReadP0_TDATA          => piSHL_Rol_Mem_Mp0_Axis_Read_tdata ,
+           siMemReadP0_TVALID         => piSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
+           siMemReadP0_TREADY         => poROL_SHL_Mem_Mp0_Axis_Read_tready,
+           siMemReadP0_TKEEP          => piSHL_Rol_Mem_Mp0_Axis_Read_tkeep ,
+           siMemReadP0_TLAST          => piSHL_Rol_Mem_Mp0_Axis_Read_tlast ,
+           soMemWrCmdP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata ,
+           soMemWrCmdP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
+           soMemWrCmdP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
+           siMemWrStsP0_TDATA         => piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata ,
+           siMemWrStsP0_TVALID        => piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid,
+           siMemWrStsP0_TREADY        => poROL_SHL_Mem_Mp0_Axis_WrSts_tready,
+           soMemWriteP0_TDATA         => poROL_Shl_Mem_Mp0_Axis_Write_tdata ,
+           soMemWriteP0_TVALID        => poROL_Shl_Mem_Mp0_Axis_Write_tvalid,
+           soMemWriteP0_TREADY        => piSHL_Rol_Mem_Mp0_Axis_Write_tready,
+           soMemWriteP0_TKEEP         => poROL_Shl_Mem_Mp0_Axis_Write_tkeep ,
+           soMemWriteP0_TLAST         => poROL_Shl_Mem_Mp0_Axis_Write_tlast
+         );
   
+
+
 
 end architecture Flash;
   
