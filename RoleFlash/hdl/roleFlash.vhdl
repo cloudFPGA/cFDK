@@ -464,7 +464,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
     );
   end component TcpApplicationFlashFail; 
 
-  component mem_test_flash_main is
+  component MemTestFlash is
     port (
            ap_clk                     : IN STD_LOGIC;
            ap_rst_n                   : IN STD_LOGIC;
@@ -499,7 +499,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
            soMemWriteP0_TKEEP         : OUT STD_LOGIC_VECTOR (63 downto 0);
            soMemWriteP0_TLAST         : OUT STD_LOGIC_VECTOR (0 downto 0) 
          );
-  end component mem_test_flash_main;
+  end component MemTestFlash;
 
   
   --===========================================================================
@@ -1195,7 +1195,7 @@ begin
   poROL_Shl_Mem_Mp0_Axis_Write_tlast <= sWriteTlastAsVector(0);
   sResetAsVector(0) <= not piSHL_156_25Rst;
 
-  MEM_TEST: mem_test_flash_main
+  MEM_TEST: MemTestFlash 
     port map(
            ap_clk                     => piSHL_156_25Clk,
            ap_rst_n                   => (not piSHL_156_25Rst),

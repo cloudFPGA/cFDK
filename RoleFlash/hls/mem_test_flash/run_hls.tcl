@@ -21,15 +21,14 @@
 
 # User defined settings
 #-------------------------------------------------
-#set appName        "jacobi2d"
 set appName        "mem_test_flash"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 set projectName    "${appName}"
 
 set ipName         ${projectName}
-set ipDisplayName  "Jacobi2D filter with MPI"
-set ipDescription  "Application for cloudFPGA"
+set ipDisplayName  "MemTestFlash"
+set ipDescription  "DDR4 Meomry Test (single channel)"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
