@@ -31,27 +31,27 @@
 // *   channels for handling the transaction between the two domains.
 // *   For more details, refer to Xilinx/LogiCORE-IP-Product-Guide (PG022).
 // *
-// *   	 	+-------------------------------------------+
-// *		|	ROLE (i.e. mem_test_flash.cpp)	|
-// *		|                   						|
-// *		|											|
-// *	->--+ siUdp            [UDP]              soUdp +--->
-// *		|											|
-// *	->--+ siTcp            [TCP]              soTcp +--->
-// *		|											|
-// *    ->--+ siMemRdStsP0  [MEM-RD-P0]	   soMemRdCmdP0 +--->
+// *      +-------------------------------------------+
+// *    | ROLE (i.e. mem_test_flash.cpp)  |
+// *    |                               |
+// *    |                     |
+// *  ->--+ siUdp            [UDP]              soUdp +--->
+// *    |                     |
+// *  ->--+ siTcp            [TCP]              soTcp +--->
+// *    |                     |
+// *    ->--+ siMemRdStsP0  [MEM-RD-P0]    soMemRdCmdP0 +--->
 // *    ->--+ siMemReadP0                               |
-// *		|											|
+// *    |                     |
 // *    ->--+ siMemWrStsP0  [MEM-WR-P0]    soMemWrCmdP0 +--->
 // *        |                              soMemWriteP0 +--->
-// *        |											|
-// *    ->--+ siMemRdStsP1 	[MEM-RD-P1]    soMemRdCmdP1 +--->
+// *        |                     |
+// *    ->--+ siMemRdStsP1  [MEM-RD-P1]    soMemRdCmdP1 +--->
 // *    ->--+ siMemReadP1                               |
-// *		|											|
+// *    |                     |
 // *    ->--+ siMemWrStsP1  [MEM-WR-P1]    soMemWrCmdP1 +--->
 // *        |                              soMemWriteP1 +--->
-// *        |											|
-// *   	 	+-------------------------------------------+
+// *        |                     |
+// *      +-------------------------------------------+
 // *
 // * Conventions:
 // *   <pi> stands for "PortIn".
@@ -74,39 +74,61 @@ using namespace hls;
 int main() {
 
 
-	//-- SHELL / Role / Mem / Mp0 Interface
-	//---- Read Path (MM2S) ------------
-	stream<DmCmd>			sROL_Shl_Mem_RdCmdP0("sROL_Shl_Mem_RdCmdP0");
-	stream<DmSts>			sSHL_Rol_Mem_RdStsP0("sSHL_Rol_Mem_RdStsP0");
-	stream<Axis<512> >  	sSHL_Rol_Mem_ReadP0("sSHL_Rol_Mem_ReadP0");
-	//---- Write Path (S2MM) -----------
-	stream<DmCmd>			sROL_Shl_Mem_WrCmdP0("sROL_Shl_Mem_WrCmdP0");
-	stream<DmSts>			sSHL_Rol_Mem_WrStsP0("sSHL_Rol_Mem_WrStsP0");
-	stream<Axis<512> >		sROL_Shl_Mem_WriteP0("sROL_Shl_Mem_WriteP0");
-	// ----- system reset ---
-	ap_uint<1> sys_reset;
-	// ----- MMIO ------
-	ap_uint<2> DIAG_CTRL_IN;
-	ap_uint<2> DIAG_STAT_OUT;
-	ap_uint<16> debug_out;
+  //-- SHELL / Role / Mem / Mp0 Interface
+  //---- Read Path (MM2S) ------------
+  stream<DmCmd>     sROL_Shl_Mem_RdCmdP0("sROL_Shl_Mem_RdCmdP0");
+  stream<DmSts>     sSHL_Rol_Mem_RdStsP0("sSHL_Rol_Mem_RdStsP0");
+  stream<Axis<512> >    sSHL_Rol_Mem_ReadP0("sSHL_Rol_Mem_ReadP0");
+  //---- Write Path (S2MM) -----------
+  stream<DmCmd>     sROL_Shl_Mem_WrCmdP0("sROL_Shl_Mem_WrCmdP0");
+  stream<DmSts>     sSHL_Rol_Mem_WrStsP0("sSHL_Rol_Mem_WrStsP0");
+  stream<Axis<512> >    sROL_Shl_Mem_WriteP0("sROL_Shl_Mem_WriteP0");
+  // ----- system reset ---
+  ap_uint<1> sys_reset;
+  // ----- MMIO ------
+  ap_uint<2> DIAG_CTRL_IN;
+  ap_uint<2> DIAG_STAT_OUT;
+  ap_uint<16> debug_out;
 
 
-    DmCmd					dmCmd_MemWrCmdP0;
-    DmCmd					dmCmd_MemRdCmdP0;
-    DmSts					dmSts_MemWrStsP0;
-    DmSts					dmSts_MemRdStsP0;
-    Axis<512>  				axis_MemP0[TEST_MEM_SIZE];
+  DmCmd         dmCmd_MemWrCmdP0;
+  DmCmd         dmCmd_MemRdCmdP0;
+  DmSts         dmSts_MemWrStsP0;
+  DmSts         dmSts_MemRdStsP0;
+  Axis<512>     memP0;
+  ap_uint<64>   currentMemPattern = 0;
+
+  sys_reset = 1;
+
+#define DUT mem_test_flash_main(sys_reset, DIAG_CTRL_IN, &DIAG_STAT_OUT, &debug_out,sROL_Shl_Mem_RdCmdP0, sSHL_Rol_Mem_RdStsP0, sSHL_Rol_Mem_ReadP0,sROL_Shl_Mem_WrCmdP0, sSHL_Rol_Mem_WrStsP0, sROL_Shl_Mem_WriteP0);
+  DUT
+  sys_reset = 0;
+
+  DIAG_CTRL_IN = 0b01;
+  DUT
+  assert(DIAG_STAT_OUT = 0b10);
+
+  DUT
+  sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemWrCmdP0);
+  assert(dmCmd_MemWrCmdP0.btt == CHECK_CHUNK_SIZE); 
+  assert(dmCmd_MemWrCmdP0.saddr == 0x0); 
+  assert(dmCmd_MemWrCmdP0.type == 1 && dmCmd_MemWrCmdP0.dsa == 0 && dmCmd_MemWrCmdP0.eof == 1 && dmCmd_MemWrCmdP0.drr == 0 && dmCmd_MemWrCmdP0.tag == 0);
+  
+  DUT 
+  sROL_Shl_Mem_WriteP0.read(memP0);
+  assert(memP0.tlast == 0);
+  assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  currentMemPattern = 1;
+  assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
+
+  DUT
+  sROL_Shl_Mem_WriteP0.read(memP0);
+  assert(memP0.tlast == 0);
+  assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  currentMemPattern = 2;
+  assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
 
 
-    	//-------------------------------------------------
-    	//-- DUT
-    	//-------------------------------------------------
-    	mem_test_flash_main(
-    			sys_reset, DIAG_CTRL_IN, &DIAG_STAT_OUT, &debug_out,
-			//-- SHELL / Role / Mem / Mp0 Interface
-			sROL_Shl_Mem_RdCmdP0, sSHL_Rol_Mem_RdStsP0, sSHL_Rol_Mem_ReadP0,
-			sROL_Shl_Mem_WrCmdP0, sSHL_Rol_Mem_WrStsP0, sROL_Shl_Mem_WriteP0
-	    );
-
-
+  printf("------ DONE ------\n");
+  return 0;
 }

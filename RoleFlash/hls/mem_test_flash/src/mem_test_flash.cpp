@@ -45,8 +45,16 @@
 
 #include "mem_test_flash.hpp"
 
+using namespace std;
 using namespace hls;
 
+ap_uint<8> fsmState = FSM_IDLE;
+bool runContiniously = false;
+ap_uint<1> wasError = 0;
+ap_uint<32> lastCheckedAddress = 0;
+ap_uint<32> currentPatternAdderss = 0;
+ap_uint<64> currentMemPattern = 0;
+ap_uint<32> patternWriteNum = 0;
 
 /*****************************************************************************/
 /* @brief     Counts the number of 1s an 8-bit value.
@@ -72,78 +80,16 @@ ap_uint<4> keepToLen(ap_uint<8> keepVal) {
   return (count);
 }
 
-
-//returns if error free or not
-bool c_march(ap_uint<32> startAddress, ap_uint<23> nBytes,
-		stream<DmCmd> &soMemRdCmdP0, stream<DmSts> &siMemRdStsP0, stream<Axis<512 > > &siMemReadP0,
-		stream<DmCmd> &soMemWrCmdP0, stream<DmSts> &siMemWrStsP0, stream<Axis<512> >  &soMemWriteP0,
-		ap_uint<16> *debug_out)
+ap_uint<8> STS_to_Vector(DmSts sts)
 {
-    unsigned long offset;
-    unsigned long nWords = nBytes / sizeof(ap_uint<32>);
-
-    ap_uint<32> pattern;
-    ap_uint<32> antipattern;
-
-
-    /*
-     * Fill memory with a known pattern.
-     */
-    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
-    {
-		txAddr.write((ap_uint<32>) (baseAddress + offset));
-		txData.write((ap_uint<32>) pattern);
-
-    }
-
-    /*
-     * Check each location and invert it for the second pass.
-     */
-    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
-    {
-        /*if (baseAddress[offset] != pattern)
-        {
-            return ((datum *) &baseAddress[offset]);
-        }*/
-				rxAddr.write((ap_uint<32>) (baseAddress + offset));
-				//TODO: Delay?
-				ap_uint<32> res = rxData.read();
-
-				if(res != pattern)
-				{
-					return (ap_uint<32>) (baseAddress + offset);
-				}
-
-        antipattern = ~pattern;
-        //baseAddress[offset] = antipattern;
-				txAddr.write((ap_uint<32>) (baseAddress + offset));
-				txData.write((ap_uint<32>) pattern);
-    }
-
-    /*
-     * Check each location for the inverted pattern
-     */
-    for (pattern = 1, offset = 0; offset < nWords; pattern++, offset++)
-    {
-        antipattern = ~pattern;
-        /*if (baseAddress[offset] != antipattern)
-        {
-            return ((datum *) &baseAddress[offset]);
-        }*/
-				rxAddr.write((ap_uint<32>) (baseAddress + offset));
-				//TODO: Delay?
-				ap_uint<32> res = rxData.read();
-
-				if(res != antipattern)
-				{
-					return (ap_uint<32>) (baseAddress + offset);
-				}
-    }
-
-    return 0;
-
+  ap_uint<8> ret = 0;
+  ret |= sts.tag;
+  ret |= ((ap_uint<8>) sts.interr) << 4;
+  ret |= ((ap_uint<8>) sts.decerr) << 5;
+  ret |= ((ap_uint<8>) sts.slverr) << 6;
+  ret |= ((ap_uint<8>) sts.okay)   << 7;
+  return ret;
 }
-
 
 
 /*****************************************************************************/
@@ -172,248 +118,290 @@ bool c_march(ap_uint<32> startAddress, ap_uint<23> nBytes,
 
 void mem_test_flash_main(
 
-		// ----- system reset ---
-		    ap_uint<1> sys_reset,
-			// ----- MMIO ------
-			ap_uint<2> DIAG_CTRL_IN,
-			ap_uint<2> *DIAG_STAT_OUT,
+    // ----- system reset ---
+    ap_uint<1> sys_reset,
+    // ----- MMIO ------
+    ap_uint<2> DIAG_CTRL_IN,
+    ap_uint<2> *DIAG_STAT_OUT,
 
-		// ---- add. Debug output ----
-		ap_uint<16> *debug_out,
+    // ---- add. Debug output ----
+    ap_uint<16> *debug_out,
 
-  //------------------------------------------------------
-  //-- SHELL / Role / Mem / Mp0 Interface
-  //------------------------------------------------------
-  //---- Read Path (MM2S) ------------
-  stream<DmCmd>       &soMemRdCmdP0,
-  stream<DmSts>       &siMemRdStsP0,
-  stream<Axis<512 > > &siMemReadP0,
-  //---- Write Path (S2MM) -----------
-  stream<DmCmd>       &soMemWrCmdP0,
-  stream<DmSts>       &siMemWrStsP0,
-  stream<Axis<512> >  &soMemWriteP0
+    //------------------------------------------------------
+    //-- SHELL / Role / Mem / Mp0 Interface
+    //------------------------------------------------------
+    //---- Read Path (MM2S) ------------
+    stream<DmCmd>       &soMemRdCmdP0,
+    stream<DmSts>       &siMemRdStsP0,
+    stream<Axis<512 > > &siMemReadP0,
+    //---- Write Path (S2MM) -----------
+    stream<DmCmd>       &soMemWrCmdP0,
+    stream<DmSts>       &siMemWrStsP0,
+    stream<Axis<512> >  &soMemWriteP0
 
-) {
+    ) 
+{
 
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 #pragma HLS INTERFACE ap_vld register port=DIAG_CTRL_IN name=piMMIO_diag_ctrl
 #pragma HLS INTERFACE ap_ovld register port=DIAG_STAT_OUT name=poMMIO_diag_stat
 #pragma HLS INTERFACE ap_ovld register port=debug_out name=poDebug
 
   // Bundling: SHELL / Role / Mem / Mp0 / Read Interface
-  #pragma HLS INTERFACE axis register both port=soMemRdCmdP0
-  #pragma HLS INTERFACE axis register both port=siMemRdStsP0
-  #pragma HLS INTERFACE axis register both port=siMemReadP0
+#pragma HLS INTERFACE axis register both port=soMemRdCmdP0
+#pragma HLS INTERFACE axis register both port=siMemRdStsP0
+#pragma HLS INTERFACE axis register both port=siMemReadP0
 
-  #pragma HLS DATA_PACK variable=soMemRdCmdP0 instance=soMemRdCmdP0
-  #pragma HLS DATA_PACK variable=siMemRdStsP0 instance=siMemRdStsP0
+#pragma HLS DATA_PACK variable=soMemRdCmdP0 instance=soMemRdCmdP0
+#pragma HLS DATA_PACK variable=siMemRdStsP0 instance=siMemRdStsP0
 
   // Bundling: SHELL / Role / Mem / Mp0 / Write Interface
-  #pragma HLS INTERFACE axis register both port=soMemWrCmdP0
-  #pragma HLS INTERFACE axis register both port=siMemWrStsP0
-  #pragma HLS INTERFACE axis register both port=soMemWriteP0
+#pragma HLS INTERFACE axis register both port=soMemWrCmdP0
+#pragma HLS INTERFACE axis register both port=siMemWrStsP0
+#pragma HLS INTERFACE axis register both port=soMemWriteP0
 
-  #pragma HLS DATA_PACK variable=soMemWrCmdP0 instance=soMemWrCmdP0
-  #pragma HLS DATA_PACK variable=siMemWrStsP0 instance=siMemWrStsP0
+#pragma HLS DATA_PACK variable=soMemWrCmdP0 instance=soMemWrCmdP0
+#pragma HLS DATA_PACK variable=siMemWrStsP0 instance=siMemWrStsP0
 
 
-  #pragma HLS INTERFACE ap_ctrl_none port=return
+#pragma HLS INTERFACE ap_ctrl_none port=return
 
-  #pragma HLS DATAFLOW //interval=1
+//#pragma HLS DATAFLOW //interval=1
 
-  Axis<512>              memP0;
-  DmSts                  memRdStsP0;
-  DmSts                  memWrStsP0;
+  Axis<512>     memP0;
+  DmSts         memRdStsP0;
+  DmSts         memWrStsP0;
+  ap_uint<16>   debugVec = 0;
 
-  static ap_uint<32>     MEM_START_ADDR = 0x000000000; // Start address of user space in DDR4
-  static ap_uint<32>     MEM_END_ADDR   = 0x1FFFFFFFF; // End address of user space in DDR4
+  if(sys_reset == 1)
+  {
+    fsmState = FSM_IDLE;
+    runContiniously = false;
+    wasError = 0;
+    lastCheckedAddress = 0;
+    currentPatternAdderss = 0;
+    currentMemPattern = 0;
+    patternWriteNum = 0;
+    return;
+  }
 
-/*
-  //------------------------------------------------------
-  //-- UDP STATE MACHINE
-  //------------------------------------------------------
-  switch(udpState) {
 
-  case FSM_UDP_RX_IDLE:
-    if (!siUdp.empty() && !udpRxStream.full()) {
-      //-- Read data from SHELL/Nts/Udp
-      siUdp.read(udpWord);
-      udpRxStream.write(udpWord);
-      cntUdpRxBytes = cntUdpRxBytes + keepToLen(udpWord.tkeep);
+  switch(fsmState) {
 
-      if(udpWord.tlast)
-        udpState = FSM_MEM_WR_CMD_P0;
-    }
-    break;
-
-  case FSM_MEM_WR_CMD_P0:
-    if (!soMemWrCmdP0.full()) {
-      //-- Post a memory write command to SHELL/Mem/Mp0
-      soMemWrCmdP0.write(DmCmd(cUDP_BUF_BASE_ADDR , cntUdpRxBytes));
-      udpState = FSM_MEM_WRITE_P0;
-    }
-    break;
-
-  case FSM_MEM_WRITE_P0:
-    if (!udpRxStream.empty() && !soMemWriteP0.full()) {
-      //------------------------------------------------------
-      //-- SHELL / Role / Mem / Mp1 Interface
-      //------------------------------------------------------
-      //-- Assemble a memory word and write it to DRAM
-      udpRxStream.read(udpWord);
-      memP0.tdata = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, udpWord.tdata(63,0));
-      memP0.tkeep = (0x00, 0x00, 0x00, udpWord.tkeep);
-      memP0.tlast = udpWord.tlast;
-      soMemWriteP0.write(memP0);
-
-      if (udpWord.tlast)
-        udpState = FSM_MEM_WR_STS_P0;
-    }
-    break;
-
-  case FSM_MEM_WR_STS_P0:
-    if (!siMemWrStsP0.empty()) {
-      //-- Get the memory write status for Mem/Mp0
-      siMemWrStsP0.read(memWrStsP0);
-      udpState = FSM_MEM_RD_CMD_P0;
-    }
-    break;
-
-  case FSM_MEM_RD_CMD_P0:
-    if (!soMemRdCmdP0.full()) {
-      //-- Post a memory read command to SHELL/Mem/Mp0
-      soMemRdCmdP0.write(DmCmd(cUDP_BUF_BASE_ADDR, cntUdpRxBytes));
-      udpState = FSM_MEM_READ_P0;
-    }
-    break;
-
-  case FSM_MEM_READ_P0:
-    if (!siMemReadP0.empty() && !memRdP0Stream.full()) {
-      //-- Read a memory word from DRAM
-      siMemReadP0.read(memP0);
-      udpWord.tdata(63,0) = memP0.tdata(63,0);
-      udpWord.tkeep       = memP0.tkeep(7,0);
-      udpWord.tlast       = memP0.tlast;
-      memRdP0Stream.write(udpWord);
-
-      if (udpWord.tlast)
-        udpState = FSM_MEM_RD_STS_P0;
-    }
-    break;
-
-  case FSM_MEM_RD_STS_P0:
-  if (!siMemRdStsP0.empty()) {
-        //-- Get the memory read status for Mem/Mp0
-        siMemRdStsP0.read(memRdStsP0);
-        udpState = FSM_UDP_TX;
+    case FSM_IDLE:
+      switch(DIAG_CTRL_IN) {
+        case 0x3: //reserved --> idle
+        case 0x0: //stay IDLE, stop test
+          *DIAG_STAT_OUT = (0 << 1) | wasError;
+          runContiniously = false;
+          lastCheckedAddress = MEM_START_ADDR;
+          break; 
+        case 0x2: 
+          runContiniously = true;
+          //NO break
+        case 0x1: //Run once
+          if (lastCheckedAddress == MEM_START_ADDR)
+          { // start new test
+            wasError = 0;
+            lastCheckedAddress = MEM_START_ADDR;
+            fsmState = FSM_WR_PAT_CMD;
+            *DIAG_STAT_OUT = 0b10;
+            debugVec = 0;
+          } else if(lastCheckedAddress >= MEM_END_ADDR)
+          {//checked space completely once
+            if (runContiniously)
+            {
+              fsmState = FSM_WR_PAT_CMD;
+              lastCheckedAddress = MEM_START_ADDR;
+              *DIAG_STAT_OUT = (1 << 1) | wasError;
+            } else { //stay here
+              fsmState = FSM_IDLE;
+              *DIAG_STAT_OUT = (0 << 1) | wasError;
+            }
+          } else { //continue current run
+            fsmState = FSM_WR_PAT_CMD;
+            *DIAG_STAT_OUT = (1 << 1) | wasError;
+          }
+          break;
       }
       break;
 
-  case FSM_UDP_TX:
-    if (!memRdP0Stream.empty() && !soUdp.full()) {
-      //-- Write data to SHELL/Nts/Udp
-      memRdP0Stream.read(udpWord);
-      soUdp.write(udpWord);
-      if (udpWord.tlast) {
-        udpState = FSM_UDP_RX_IDLE;
-        cntUdpRxBytes = 0;
+    case FSM_WR_PAT_CMD:
+      if (!soMemWrCmdP0.full()) {
+        if(lastCheckedAddress == MEM_START_ADDR)
+        {
+          currentPatternAdderss = MEM_START_ADDR;
+        } else {
+          currentPatternAdderss = lastCheckedAddress+1;
+        }
+        //-- Post a memory write command to SHELL/Mem/Mp0
+        soMemWrCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
+        currentMemPattern = 0;
+        patternWriteNum = 0;
+        fsmState = FSM_WR_PAT_DATA;
       }
-    }
-    break;
+      break;
+
+    case FSM_WR_PAT_DATA:
+      if (!soMemWriteP0.full()) {
+        //-- Assemble a memory word and write it to DRAM
+        currentMemPattern++;
+        memP0.tdata = (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern);
+        memP0.tkeep = (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
+
+        if(patternWriteNum == CHECK_CHUNK_SIZE/64) //64 Bytes per write
+        {
+          memP0.tlast = 1;
+          fsmState = FSM_WR_PAT_STS;
+        } else {
+          memP0.tlast = 0;
+        }
+        soMemWriteP0.write(memP0);
+        patternWriteNum++;
+      }
+      break;
+
+    case FSM_WR_PAT_STS:
+      if (!siMemWrStsP0.empty()) {
+        //-- Get the memory write status for Mem/Mp0
+        siMemWrStsP0.read(memWrStsP0);
+        //latch errors
+        debugVec |= (ap_uint<16>) STS_to_Vector(memWrStsP0);
+        fsmState = FSM_RD_PAT_CMD;
+      }
+      break;
+
+    case FSM_RD_PAT_CMD:
+      if (!soMemRdCmdP0.full()) {
+        //-- Post a memory read command to SHELL/Mem/Mp0
+        soMemRdCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
+        currentMemPattern = 0;
+        fsmState = FSM_RD_PAT_DATA;
+      }
+      break;
+
+    case FSM_RD_PAT_DATA:
+      if (!siMemReadP0.empty()) {
+        //-- Read a memory word from DRAM
+        siMemReadP0.read(memP0);
+        currentMemPattern++;
+        if (memP0.tdata != ((ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern)) )
+        {
+          printf("error in pattern reading!\n");
+          wasError = true;
+        }
+        if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
+        {
+          printf("error in tkeep\n");
+        }
+        //I trust that there will be a tlast (so no counting)
+        if (memP0.tlast)
+        {
+          fsmState = FSM_RD_PAT_STS;
+        }
+      }
+      break;
+
+    case FSM_RD_PAT_STS:
+      if (!siMemRdStsP0.empty()) {
+        //-- Get the memory read status for Mem/Mp0
+        siMemRdStsP0.read(memRdStsP0);
+        //latch errors
+        debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
+        fsmState = FSM_WR_ANTI_CMD;
+      }
+      break;
+
+    case FSM_WR_ANTI_CMD:
+      if (!soMemWrCmdP0.full()) {
+        if(lastCheckedAddress == MEM_START_ADDR)
+        {
+          currentPatternAdderss = MEM_START_ADDR;
+        } else {
+          currentPatternAdderss = lastCheckedAddress+1;
+        }
+        //-- Post a memory write command to SHELL/Mem/Mp0
+        soMemWrCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
+        currentMemPattern = 0;
+        patternWriteNum = 0;
+        fsmState = FSM_WR_ANTI_DATA;
+      }
+      break;
+
+    case FSM_WR_ANTI_DATA:
+      if (!soMemWriteP0.full()) {
+        //-- Assemble a memory word and write it to DRAM
+        currentMemPattern++;
+        memP0.tdata = (~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern);
+        memP0.tkeep = (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
+
+        if(patternWriteNum == CHECK_CHUNK_SIZE/64) //64 Bytes per write
+        {
+          memP0.tlast = 1;
+          fsmState = FSM_WR_ANTI_STS;
+        } else {
+          memP0.tlast = 0;
+        }
+        soMemWriteP0.write(memP0);
+        patternWriteNum++;
+      }
+      break;
+
+    case FSM_WR_ANTI_STS:
+      if (!siMemWrStsP0.empty()) {
+        //-- Get the memory write status for Mem/Mp0
+        siMemWrStsP0.read(memWrStsP0);
+        //latch errors
+        debugVec |= (ap_uint<16>) STS_to_Vector(memWrStsP0);
+        fsmState = FSM_RD_ANTI_CMD;
+      }
+      break;
+
+    case FSM_RD_ANTI_CMD:
+      if (!soMemRdCmdP0.full()) {
+        //-- Post a memory read command to SHELL/Mem/Mp0
+        soMemRdCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
+        currentMemPattern = 0;
+        fsmState = FSM_RD_ANTI_DATA;
+      }
+      break;
+
+    case FSM_RD_ANTI_DATA:
+      if (!siMemReadP0.empty()) {
+        //-- Read a memory word from DRAM
+        siMemReadP0.read(memP0);
+        currentMemPattern++;
+        if (memP0.tdata != ((ap_uint<512>) (~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern)) )
+        {
+          printf("error in antipattern reading!\n");
+          wasError = true;
+        }
+        if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
+        {
+          printf("error in tkeep\n");
+        }
+        //I trust that there will be a tlast (so no counting)
+        if (memP0.tlast)
+        {
+          fsmState = FSM_RD_ANTI_STS;
+        }
+      }
+      break;
+
+    case FSM_RD_ANTI_STS:
+      if (!siMemRdStsP0.empty()) {
+        //-- Get the memory read status for Mem/Mp0
+        siMemRdStsP0.read(memRdStsP0);
+        //latch errors
+        debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
+        lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE;
+        fsmState = FSM_IDLE;
+      }
+      break;
 
   }  // End: switch
 
+  *debug_out = debugVec;
 
-  //------------------------------------------------------
-  //-- TCP STATE MACHINE
-  //------------------------------------------------------
-  switch(tcpState) {
-
-  case FSM_TCP_RX_IDLE:
-    if (!siTcp.empty() && !tcpRxStream.full()) {
-      //-- Read data from SHELL/Nts/Tcp
-      siTcp.read(tcpWord);
-      tcpRxStream.write(tcpWord);
-      cntTcpRxBytes = cntTcpRxBytes + keepToLen(tcpWord.tkeep);
-
-      if(tcpWord.tlast)
-        tcpState = FSM_MEM_WR_CMD_P1;
-    }
-    break;
-
-  case FSM_MEM_WR_CMD_P1:
-    if (!soMemWrCmdP1.full()) {
-      //-- Post a memory write command to SHELL/Mem/Mp1
-      soMemWrCmdP1.write(DmCmd(cTCP_BUF_BASE_ADDR , cntTcpRxBytes));
-      tcpState = FSM_MEM_WRITE_P1;
-    }
-    break;
-
-  case FSM_MEM_WRITE_P1:
-    if (!tcpRxStream.empty() && !soMemWriteP1.full()) {
-      //------------------------------------------------------
-      ///-- SHELL / Role / Mem / Mp1 Interface
-      //------------------------------------------------------
-      //-- Assemble a memory word and write it to DRAM
-      tcpRxStream.read(tcpWord);
-      memP1.tdata = (0x0000000000000000, 0x0000000000000000, 0x0000000000000000, tcpWord.tdata(63,0));
-      memP1.tkeep = (0x00, 0x00, 0x00, tcpWord.tkeep);
-      memP1.tlast = tcpWord.tlast;
-      soMemWriteP1.write(memP1);
-
-      if (tcpWord.tlast)
-        tcpState = FSM_MEM_WR_STS_P1;
-    }
-    break;
-
-  case FSM_MEM_WR_STS_P1:
-    if (!siMemWrStsP1.empty()) {
-      //-- Get the memory write status for Mem/Mp1
-      siMemWrStsP1.read(memWrStsP1);
-      tcpState = FSM_MEM_RD_CMD_P1;
-    }
-    break;
-
-  case FSM_MEM_RD_CMD_P1:
-    if (!soMemRdCmdP1.full()) {
-      //-- Post a memory read command to SHELL/Mem/Mp1
-      soMemRdCmdP1.write(DmCmd(cTCP_BUF_BASE_ADDR, cntTcpRxBytes));
-      tcpState = FSM_MEM_READ_P1;
-    }
-    break;
-
-  case FSM_MEM_READ_P1:
-    if (!siMemReadP1.empty() && !memRdP1Stream.full()) {
-      //-- Read a memory word from DRAM
-      siMemReadP1.read(memP1);
-      tcpWord.tdata(63,0) = memP1.tdata(63,0);
-      tcpWord.tkeep       = memP1.tkeep(7,0);
-      tcpWord.tlast       = memP1.tlast;
-      memRdP1Stream.write(tcpWord);
-
-      if (tcpWord.tlast)
-        tcpState = FSM_MEM_RD_STS_P1;
-    }
-    break;
-
-  case FSM_MEM_RD_STS_P1:
-  if (!siMemRdStsP1.empty()) {
-        //-- Get the memory read status for Mem/Mp1
-        siMemRdStsP1.read(memRdStsP1);
-        tcpState = FSM_TCP_TX;
-      }
-      break;
-
-  case FSM_TCP_TX:
-    if (!memRdP1Stream.empty() && !soTcp.full()) {
-      //-- Write data to SHELL/Nts/Tcp
-      memRdP1Stream.read(tcpWord);
-      soTcp.write(tcpWord);
-      if (tcpWord.tlast) {
-        tcpState = FSM_TCP_RX_IDLE;
-        cntTcpRxBytes = 0;
-      }
-    }
-    break;
-
-  }*/
+  return;
 }
