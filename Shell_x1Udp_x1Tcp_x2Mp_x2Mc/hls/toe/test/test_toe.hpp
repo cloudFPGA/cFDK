@@ -18,6 +18,8 @@
 #include "./test_toe.hpp"
 #include "../src/toe.hpp"
 
+#define MTU 1500	// Maximum Transfer Unit (1518 - 14 (DLL) - 4 (FCS))
+
 
 using namespace std;
 
@@ -34,22 +36,26 @@ using namespace std;
  * @ingroup test_toe
  ******************************************************************************/
 class IpPacket {
+    int len;
     std::deque<Ip4overAxi> axiWordQueue;  // A double-ended queue to store IP chunks.
     int checksumComputation(std::deque<Ip4overAxi> pseudoHeader);
+    void setLen(int pktLen) { this->len = pktLen; }
   public:
     // Default Constructor
     IpPacket() {}
     // Construct a packet of length 'pktLen'
     IpPacket(int pktLen) {
+        if (pktLen > 0 && pktLen <= MTU)
+            setLen(pktLen);
         int noBytes = pktLen;
         while(noBytes > 8) {
             Ip4overAxi newAxiWord(0x0000000000000000, 0xFF, 0);
             axiWordQueue.push_back(newAxiWord);
             noBytes -= 8;
         }
-        Ip4overAxi newAxiWord(0x0000000000000000, lenToKeep(noBytes), 1);
+        Ip4overAxi newAxiWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
         axiWordQueue.push_back(newAxiWord);
-        // Set all the default fields.
+        // Set all the default IP packet fields.
         setIpInternetHeaderLength(5);
         setIpVersion(4);
         setIpTypeOfService(0);
@@ -60,6 +66,8 @@ class IpPacket {
         setIpTimeToLive(255);
         setIpProtocol(6);
         setIpHeaderChecksum(0);
+        // Set all the default TCP segment fields
+        setTcpDataOffset(5);
     }
 
     // Return the front chunk element of the AXI word queue
@@ -70,8 +78,8 @@ class IpPacket {
     void pop_front()                                 {        this->axiWordQueue.pop_front();        }
     // Add an element at the end of the AXI word queue
     void push_back(Ip4overAxi ipChunk)               {        this->axiWordQueue.push_back(ipChunk); }
-    // Return the number of elements in the AXI word queue
-    int size()                                       { return this->axiWordQueue.size();             }
+    // Return the length of the IPv4 packet
+    int length()                                     { return this->len;                             }
 
     // Set-Get the IP Version field
     void setIpVersion(int version)                   {        axiWordQueue[0].setIp4Version(version);}
@@ -149,17 +157,18 @@ class IpPacket {
     void setTcpOptionMss(int val)                    {        axiWordQueue[5].setTcpOptMss(val);     }
     int  getTcpOptionMss()                           { return axiWordQueue[5].getTcpOptMss();        }
     // Additional Debug and Utilities Procedures
-    void clone(IpPacket &ipPkt);
-    bool isFIN();
-    bool isSYN();
-    bool isRST();
-    bool isPSH();
-    bool isACK();
-    bool isURG();
-    void printHdr(const char *callerName);
-    void printRaw(const char *callerName);
-    int  recalculateChecksum();
-    int  sizeOfTcpData();
+    void   clone(IpPacket &ipPkt);
+    string getTcpData();
+    bool   isFIN();
+    bool   isSYN();
+    bool   isRST();
+    bool   isPSH();
+    bool   isACK();
+    bool   isURG();
+    void   printHdr(const char *callerName);
+    void   printRaw(const char *callerName);
+    int    recalculateChecksum();
+    int    sizeOfTcpData();
 
 }; // End of: IpPacket
 
@@ -231,10 +240,12 @@ void IpPacket::printHdr(const char *callerName)
         printf("\t TCP Option:\n");
         switch (this->getTcpOptionKind()) {
         case 0x02:
-    printf("\t    Maximum Segment Size = %15u \n",
+            printf("\t    Maximum Segment Size = %15u \n",
                     this->getTcpOptionMss());
         }
     }
+
+    printf("\t TCP Data Length         = %15u \n", this->sizeOfTcpData());
 }
 
 /*****************************************************************************
@@ -247,11 +258,71 @@ void IpPacket::printHdr(const char *callerName)
 void IpPacket::printRaw(const char *callerName)
 {
     printInfo(callerName, "Current packet is : \n");
-    for (int c=0; c<this->size(); c++)
+    for (int c=0; c<this->axiWordQueue.size(); c++)
         printf("\t\t%16.16LX %2.2X %d \n",
                this->axiWordQueue[c].tdata.to_ulong(),
                this->axiWordQueue[c].tkeep.to_uint(),
                this->axiWordQueue[c].tlast.to_uint());
+}
+
+/*****************************************************************************
+ * @brief Converts an UINT8 into a string of 2 HEX characters.
+ *
+ * @param[in]   inputNumber, the UINT8 to convert.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+string toHexString(
+        ap_uint<8> inputNumber)
+{
+    string                      outputString    = "00";
+    unsigned short int          tempValue       = 16;
+    static const char* const    lut             = "0123456789ABCDEF";
+
+    for (int i = 1;i>=0;--i) {
+    tempValue = 0;
+    for (unsigned short int k = 0; k<4; ++k) {
+        if (inputNumber.bit((i+1)*4-k-1) == 1)
+            tempValue += static_cast <unsigned short int>(pow(2.0, 3-k));
+        }
+        outputString[1-i] = lut[tempValue];
+    }
+    return outputString;
+}
+
+/*****************************************************************************
+ * @brief Get TCP data the IP packet.
+ *
+ @ returns a string.
+ *
+ * @ingroup test_toe
+ *****************************************************************************/
+string IpPacket::getTcpData()
+{
+    string  tcpDataStr = "";
+    int     tcpDataSize = this->sizeOfTcpData();
+
+    if(tcpDataSize > 0) {
+        int     ip4DataOffset = (4 * this->getIpInternetHeaderLength());
+        int     tcpDataOffset = ip4DataOffset + (4 * this->getTcpDataOffset());
+        AxiWord axiWord;
+        int     bytCnt = 0;
+
+        for (int chunkNum=0; chunkNum<this->axiWordQueue.size(); chunkNum++) {
+            for (int bytNum=0; bytNum<8; bytNum++) {
+                if ((bytCnt >= tcpDataOffset) & (bytCnt < (tcpDataOffset + tcpDataSize))) {
+                    if (this->axiWordQueue[chunkNum].tkeep.bit(bytNum)) {
+                        int hi = ((bytNum*8) + 7);
+                        int lo = ((bytNum*8) + 0);
+                        ap_uint<8>  octet = this->axiWordQueue[chunkNum].tdata.range(hi, lo);
+                        tcpDataStr += toHexString(octet);
+                    }
+                }
+                bytCnt++;
+            }
+        }
+    }
+    return tcpDataStr;
 }
 
 /*****************************************************************************
@@ -385,15 +456,42 @@ bool IpPacket::isACK() {
 
 
 
+/*******************************************************************
+ * @brief Class Testbench Socket Address
+ *  This class differs from the class 'SockAddr' used by TOE from an
+ *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  opposed to the one used by TOE which stores its data members in
+ *  LITTLE-ENDIAN order.
+ *******************************************************************/
+class TbSockAddr {  // Testbench Socket Address
+  public:
+    int     addr;       // IPv4 address
+    int     port;       // TCP  port
+    TbSockAddr() {}
+    TbSockAddr(int addr, int port) :
+        addr(addr), port(port) {}
+};
 
+/*******************************************************************
+ * @brief Class Testbench Socket Pair
+ *  This class differs from the class 'SockAddr' used by TOE from an
+ *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  opposed to the one used by TOE which stores its data members in
+ *  LITTLE-ENDIAN order.
+ *******************************************************************/
+class TbSocketPair {    // Socket Pair Association
+  public:
+    TbSockAddr  src;    // Source socket address in LITTLE-ENDIAN order !!!
+    TbSockAddr  dst;    // Destination socket address in LITTLE-ENDIAN order !!!
+    TbSocketPair() {}
+    TbSocketPair(TbSockAddr src, TbSockAddr dst) :
+        src(src), dst(dst) {}
+};
 
-
-
-
-/*************************************************************************
- * PROTOTYPE DEFINITIONS
- *************************************************************************/
-
+inline bool operator < (TbSocketPair const &s1, TbSocketPair const &s2) {
+        return ((s1.dst.addr < s2.dst.addr) ||
+                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+}
 
 
 #endif

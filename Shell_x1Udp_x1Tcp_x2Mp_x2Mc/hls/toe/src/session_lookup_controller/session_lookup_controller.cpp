@@ -29,34 +29,40 @@ using namespace hls;
 
 #define DEBUG_LEVEL 2
 
+
 /*****************************************************************************
  * @brief Session Id Manager (Sim)
  *
- * @param[in]  fin_id, IDs that are released and appended to the SessionID free list
- * @param[out] new_id, get a new SessionID from the SessionID free list
- *
+ * @param[in]  siUrs_FreeId,   The session ID to recycle from Update Request Sender (Urs).
+ * @param[out] soLrh_FreeList, The free list of session IDs to the Lookup Reply Handler (Lrh).
  *
  * @details
- *
+ *  Implements the free list of session IDs as a FiFo stream.
  *
  * @ingroup session_lookup_controller
  *****************************************************************************/
-void sessionIdManager(
-        stream<ap_uint<14> >    &new_id,
-        stream<ap_uint<14> >    &fin_id)
+void pSessionIdManager(
+        stream<RtlSessId>    &siUrs_FreeId,
+        stream<RtlSessId>    &soLrh_FreeList)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    static ap_uint<14> counter = 0;
+    static RtlSessId           counter = 0;
+    #pragma HLS reset variable=counter
 
-    if (!fin_id.empty()) {
-        new_id.write(fin_id.read());
-    }
-    else if (counter < MAX_SESSIONS) {
-        new_id.write(counter);
+    RtlSessId rtlSessId;   // [FIXME - Why is sessionId 14 bits and not 16?]
+
+    if (counter < MAX_SESSIONS) {
+        // Initialize the free list after a reset
+        soLrh_FreeList.write(counter);
         counter++;
+    }
+    else if (!siUrs_FreeId.empty()) {
+        // Recycle the incoming session ID
+        siUrs_FreeId.read(rtlSessId);
+        soLrh_FreeList.write(rtlSessId);
     }
 }
 
@@ -97,7 +103,7 @@ void pLookupReplyHandler(
         stream<sessionLookupReply>          &soRXe_SessLookupRep,
         stream<fourTuple>                   &siTAi_SessLookupReq,
         stream<sessionLookupReply>          &soTAi_SessLookupRep,
-        stream<ap_uint<14> >                &sessionIdFreeList,
+        stream<RtlSessId>                   &sessionIdFreeList,
         stream<rtlSessionUpdateRequest>     &sessionInsert_req,
         stream<revLupInsert>                &reverseTableInsertFifo)
 {
@@ -149,7 +155,7 @@ void pLookupReplyHandler(
             rtlSessionLookupReply lupReply = siCAM_SessLookupRep.read();
             sessionLookupQueryInternal intQuery = sQueryCache.read();
             if (!lupReply.hit && intQuery.allowCreation && !sessionIdFreeList.empty()) {
-                ap_uint<14> freeID = sessionIdFreeList.read();
+                RtlSessId freeID = sessionIdFreeList.read();
                 sessionInsert_req.write(rtlSessionUpdateRequest(intQuery.tuple, freeID, INSERT, lupReply.source));
                 sInsertTuples.write(intQuery.tuple);
                 slc_fsmState = UPD_RSP;
@@ -181,23 +187,26 @@ void pLookupReplyHandler(
 
 
 /*****************************************************************************
- * @brief Update Request Sender (Urs)...
+ * @brief Update Request Sender (Urs).
  *
  * @param[in]
- * @TODO
- * @param[out] poSssRelCnt, Session release count to DEBUG.
- * @param[out] poSssRegCnt, Session register count to DEBUG.
+ * @
+ * @
+ * @param[out] soSim_FreeId, The SessId to recycle to the Session Id Manager (Sim).
+ * @param[out] poSssRelCnt,  Session release count to DEBUG.
+ * @param[out] poSssRegCnt,  Session register count to DEBUG.
+ *
  * @details
  *  TODO...
  *
  * @ingroup session_lookup_controller
  *
  *****************************************************************************/
-void updateRequestSender(
+void pUpdateRequestSender(
         stream<rtlSessionUpdateRequest>     &sessionInsert_req,
         stream<rtlSessionUpdateRequest>     &sessionDelete_req,
         stream<rtlSessionUpdateRequest>     &sessionUpdate_req,
-        stream<ap_uint<14> >                &sessionIdFinFifo,
+        stream<RtlSessId>                   &soSim_FreeId,
         ap_uint<16>                         &poSssRelCnt,
         ap_uint<16>                         &poSssRegCnt)
 {
@@ -205,32 +214,33 @@ void updateRequestSender(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    static ap_uint<16> usedSessionIDs = 0;
+    static ap_uint<16> usedSessionIDs     = 0;
     static ap_uint<16> releasedSessionIDs = 0;
+
+    rtlSessionUpdateRequest request;
 
     if (!sessionInsert_req.empty()) {
         sessionUpdate_req.write(sessionInsert_req.read());
         usedSessionIDs++;
-
     }
     else if (!sessionDelete_req.empty()) {
-        rtlSessionUpdateRequest request = sessionDelete_req.read();
+        sessionDelete_req.read(request);
         sessionUpdate_req.write(request);
-        sessionIdFinFifo.write(request.value);
-        //OBSOLETE usedSessionIDs--;
+        soSim_FreeId.write(request.value);
+        usedSessionIDs--;
         releasedSessionIDs++;
-        //OBSOLETE poSssRegCnt = usedSessionIDs;
     }
     // Always
-    poSssRegCnt = usedSessionIDs;
-    poSssRelCnt = releasedSessionIDs;
+    poSssRegCnt = usedSessionIDs;      // [FIXME-Replace Reg by Used]
+    poSssRelCnt = releasedSessionIDs;  // [FIXME-Remove this counter]
 }
 
 
 /*****************************************************************************
- * @brief Update ReplyHandler (Urh)...
+ * @brief Update Reply Handler (Urh)...
  *
  *  @param[in]
+ *  @param[out] soLrh_SessInsertRsp, Session insertion response to Lookup Reply Handler (Lrh).
  *
  * @details
  *  TODO...
@@ -238,18 +248,21 @@ void updateRequestSender(
  * @ingroup session_lookup_controller
  *
  *****************************************************************************/
-void updateReplyHandler(    stream<rtlSessionUpdateReply>&          sessionUpdate_rsp,
-                            stream<rtlSessionUpdateReply>&          sessionInsert_rsp) {
-#pragma HLS PIPELINE II=1
-#pragma HLS INLINE off
+void pUpdateReplyHandler(
+        stream<rtlSessionUpdateReply>   &sessionUpdate_rsp,
+        stream<rtlSessionUpdateReply>   &soLrh_SessInsertRsp)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     rtlSessionUpdateReply upReply;
-    fourTupleInternal tuple;
+    fourTupleInternal     tuple;
 
     if (!sessionUpdate_rsp.empty()) {
         sessionUpdate_rsp.read(upReply);
         if (upReply.op == INSERT)
-            sessionInsert_rsp.write(upReply);
+        	soLrh_SessInsertRsp.write(upReply);
     }
 }
 
@@ -322,8 +335,8 @@ void reverseLookupTableInterface(
  * @param[out]
  * @param[out]
  * @param[out]
- * @param[out] poSssRelCnt,	Session release count.
- * @param[out] poSssRegCnt,	Session register count.]
+ * @param[out] poSssRelCnt,         Session release count.
+ * @param[out] poSssRegCnt,         Session register count.
  *
  * @details
  *  The SLc maps a four-tuple information {{IP4_SA,TCP_SA},{IP4_DA,TCP_DP}} of
@@ -363,18 +376,31 @@ void session_lookup_controller(
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
+    // Session Id Manager (Sim) -----------------------------------------------
+    static stream<RtlSessId>             sSimToLrh_FreeList     ("sSimToLrh_FreeList");
+    #pragma HLS stream          variable=sSimToLrh_FreeList     depth=16384  // 0x4000 [FIXME - Can we replace 16384 with MAX_SESSIONS]
+
+    // Lookup Reply Handler (Lrh) ---------------------------------------------
+    static stream<RtlSessId>             sUrsToSim_FreeId       ("sUrsToSim_FreeId");
+    #pragma HLS stream          variable=sUrsToSim_FreeId       depth=2
+
+    // Update Reply Handler
+    static stream<rtlSessionUpdateReply> slc_sessionInsert_rsp("slc_sessionInsert_rsp");
+    #pragma HLS STREAM          variable=slc_sessionInsert_rsp depth=4
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     static stream<sessionLookupQueryInternal> slc_lookups("slc_lookups");
     #pragma HLS stream               variable=slc_lookups depth=4
     #pragma HLS DATA_PACK            variable=slc_lookups
 
-    static stream<ap_uint<14> >               slc_sessionIdFreeList("slc_sessionIdFreeList");
-    static stream<ap_uint<14> >               slc_sessionIdFinFifo("slc_sessionIdFinFifo");
-    #pragma HLS stream variable=              slc_sessionIdFreeList depth=16384
-    #pragma HLS stream variable=              slc_sessionIdFinFifo depth=2
 
-    static stream<rtlSessionUpdateReply>      slc_sessionInsert_rsp("slc_sessionInsert_rsp");
-    #pragma HLS STREAM               variable=slc_sessionInsert_rsp depth=4
+
+
+
+
+
+
 
     static stream<rtlSessionUpdateRequest>    sessionInsert_req("sessionInsert_req");
     #pragma HLS STREAM               variable=sessionInsert_req depth=4
@@ -389,9 +415,9 @@ void session_lookup_controller(
     //-- PROCESS FUNCTIONS
     //-------------------------------------------------------------------------
 
-    sessionIdManager(
-            slc_sessionIdFreeList,
-            slc_sessionIdFinFifo);
+    pSessionIdManager(
+            sUrsToSim_FreeId,
+            sSimToLrh_FreeList);
 
     pLookupReplyHandler(
             soCAM_SessLookupReq,
@@ -401,19 +427,20 @@ void session_lookup_controller(
             soRXe_SessLookupRep,
             siTAi_SessLookupReq,
             soTAi_SessLookupRep,
-            slc_sessionIdFreeList,
+            sSimToLrh_FreeList,
             sessionInsert_req,
             reverseLupInsertFifo);
             //poSssRegCnt);
 
-    updateRequestSender(sessionInsert_req,
+    pUpdateRequestSender(
+            sessionInsert_req,
             sessionDelete_req,
             sessionUpdate_req,
-            slc_sessionIdFinFifo,
+            sUrsToSim_FreeId,
             poSssRelCnt,
             poSssRegCnt);
 
-    updateReplyHandler(
+    pUpdateReplyHandler(
             sessionUpdate_rsp,
             slc_sessionInsert_rsp);
 

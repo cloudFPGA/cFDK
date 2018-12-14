@@ -1,15 +1,28 @@
+/*****************************************************************************
+ * @file       : session_lookup.hpp
+ * @brief      : Session Lookup Controller (SLc) of TCP Offload Engine (TOE).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *               TCP Session Lookup Controller.
+ *
+ *****************************************************************************/
+
 #include "../toe.hpp"
 
 using namespace hls;
 
-/** @ingroup session_lookup_controller
- *
- */
+
 enum lookupSource {RX, TX_APP};
 
-/** @ingroup session_lookup_controller
- *
- */
 enum lookupOp {INSERT, DELETE};
 
 struct slupRouting
@@ -21,10 +34,13 @@ struct slupRouting
             :isUpdate(isUpdate), source(src) {}
 };
 
-/** @ingroup session_lookup_controller
- *  This struct defines the internal storage format of the IP tuple instead of destiantion and source,
- *  my and their is used. When a tuple is sent or received from the tx/rx path it is mapped to the fourTuple struct.
- *  The < operator is necessary for the c++ dummy memory implementation which uses an std::map
+/*
+ *  This struct defines the internal storage format of the IP tuple.
+ *  This struct uses the terms 'my' and 'their' instead of 'dest' and 'source'.
+ *  When a tuple is sent or received from the tx/rx path it is mapped to the
+ *  fourTuple struct.
+ *  The operator '<' is necessary here for the c++ dummy memory implementation
+ *  which uses an std::map.
  */
 struct fourTupleInternal
 {
@@ -38,26 +54,19 @@ struct fourTupleInternal
 
     bool operator<(const fourTupleInternal& other) const
     {
-        if (myIp < other.myIp)
-        {
+        if (myIp < other.myIp) {
             return true;
         }
-        else if (myIp == other.myIp)
-        {
-            if (theirIp < other.theirIp)
-            {
+        else if (myIp == other.myIp) {
+            if (theirIp < other.theirIp) {
                 return true;
             }
-            else if(theirIp == other.theirIp)
-            {
-                if (myPort < other.myPort)
-                {
+            else if(theirIp == other.theirIp) {
+                if (myPort < other.myPort) {
                     return true;
                 }
-                else if (myPort == other.myPort)
-                {
-                    if (theirPort < other.theirPort)
-                    {
+                else if (myPort == other.myPort) {
+                    if (theirPort < other.theirPort) {
                         return true;
                     }
                 }
@@ -67,7 +76,7 @@ struct fourTupleInternal
     }
 };
 
-/** @ingroup session_lookup_controller
+/* @ingroup session_lookup_controller
  *
  */
 struct sessionLookupQueryInternal
@@ -92,58 +101,59 @@ struct rtlSessionLookupRequest
                 :key(tuple), source(src) {}
 };
 
-/** @ingroup session_lookup_controller
- *
- */
+/*************************************************************************
+ * RTL Session Type Definitions
+ *************************************************************************/
+typedef ap_uint<14> RtlSessId;  // [FIXME - Align size with log2(MAX_SESSIONS)]
+
+/********************************************
+ * Rtl Session Update Request
+ ********************************************/
 struct rtlSessionUpdateRequest
 {
     lookupSource        source;
     lookupOp            op;
-    ap_uint<14>         value;
+    RtlSessId           value;
     fourTupleInternal   key;
-    /*ap_uint<14>           value;
-    lookupOp            op;
-    lookupSource        source;*/
+
     rtlSessionUpdateRequest() {}
-    /*rtlSessionUpdateRequest(fourTupleInternal key, lookupSource src)
-                :key(key), value(0), op(INSERT), source(src) {}*/
-    rtlSessionUpdateRequest(fourTupleInternal key, ap_uint<14> value, lookupOp op, lookupSource src)
-            :key(key), value(value), op(op), source(src) {}
+    rtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
+        key(key), value(value), op(op), source(src) {}
 };
 
-/** @ingroup session_lookup_controller
- *
- */
+
+/********************************************
+ * Rtl Session Lookup Reply
+ *********************************************/
 struct rtlSessionLookupReply
 {
-    //bool              hit;
-    //ap_uint<14>           sessionID;
     lookupSource        source;
-    ap_uint<14>         sessionID;
+    RtlSessId           sessionID;
     bool                hit;
+
     rtlSessionLookupReply() {}
-    rtlSessionLookupReply(bool hit, lookupSource src)
-            :hit(hit), sessionID(0), source(src) {}
-    rtlSessionLookupReply(bool hit, ap_uint<14> id, lookupSource src)
-            :hit(hit), sessionID(id), source(src) {}
+    rtlSessionLookupReply(bool hit, lookupSource src) :
+        hit(hit), sessionID(0), source(src) {}
+    rtlSessionLookupReply(bool hit, RtlSessId id, lookupSource src) :
+        hit(hit), sessionID(id), source(src) {}
 };
 
-/** @ingroup session_lookup_controller
- *
- */
+/********************************************
+ * Rtl Session Update Reply
+ *********************************************/
 struct rtlSessionUpdateReply
 {
     lookupSource        source;
     lookupOp            op;
-    ap_uint<14>         sessionID;
-    //lookupOp          op;
-    //lookupSource      source;
+    RtlSessId           sessionID;
+
     rtlSessionUpdateReply() {}
-    rtlSessionUpdateReply(lookupOp op, lookupSource src)
-            :op(op), source(src) {}
-    rtlSessionUpdateReply(ap_uint<14> id, lookupOp op, lookupSource src)
-            :sessionID(id), op(op), source(src) {}
+    rtlSessionUpdateReply(lookupOp op, lookupSource src) :
+        op(op), source(src) {}
+    rtlSessionUpdateReply(RtlSessId id, lookupOp op, lookupSource src) :
+        sessionID(id), op(op), source(src) {}
 };
+
 
 struct revLupInsert
 {
@@ -154,22 +164,26 @@ struct revLupInsert
             :key(key), value(value) {}
 };
 
-/** @defgroup session_lookup_controller Session Lookup Controller
- *  @ingroup tcp_module
- */
-void session_lookup_controller( stream<sessionLookupQuery>&         rxEng2sLookup_req,
-                                stream<sessionLookupReply>&         sLookup2rxEng_rsp,
-                                stream<ap_uint<16> >&               stateTable2sLookup_releaseSession,
-                                stream<ap_uint<16> >&               sLookup2portTable_releasePort,
-                                stream<fourTuple>&                  txApp2sLookup_req,
-                                stream<sessionLookupReply>&         sLookup2txApp_rsp,
-                                stream<ap_uint<16> >&               txEng2sLookup_rev_req,
-                                stream<fourTuple>&                  sLookup2txEng_rev_rsp,
-                                stream<rtlSessionLookupRequest>&    sessionLookup_req,
-                                stream<rtlSessionLookupReply>&      sessionLookup_rsp,
-                                stream<rtlSessionUpdateRequest>&    sessionUpdate_req,
-                                //stream<rtlSessionUpdateRequest>&  sessionInsert_req,
-                                //stream<rtlSessionUpdateRequest>&  sessionDelete_req,
-                                stream<rtlSessionUpdateReply>&      sessionUpdate_rsp,
-                                ap_uint<16>                         &poSssRelCnt,
-                                ap_uint<16>                         &poSssRegCnt);
+/*****************************************************************************
+ * @brief   Main process of the TCP Session Lookup Controller (SLc).
+ *
+ * @ingroup session_lookup_controller
+ *****************************************************************************/
+void session_lookup_controller(
+        stream<sessionLookupQuery>&         rxEng2sLookup_req,
+        stream<sessionLookupReply>&         sLookup2rxEng_rsp,
+        stream<ap_uint<16> >&               stateTable2sLookup_releaseSession,
+        stream<ap_uint<16> >&               sLookup2portTable_releasePort,
+        stream<fourTuple>&                  txApp2sLookup_req,
+        stream<sessionLookupReply>&         sLookup2txApp_rsp,
+        stream<ap_uint<16> >&               txEng2sLookup_rev_req,
+        stream<fourTuple>&                  sLookup2txEng_rev_rsp,
+        stream<rtlSessionLookupRequest>&    sessionLookup_req,
+        stream<rtlSessionLookupReply>&      sessionLookup_rsp,
+        stream<rtlSessionUpdateRequest>&    sessionUpdate_req,
+        //stream<rtlSessionUpdateRequest>&  sessionInsert_req,
+        //stream<rtlSessionUpdateRequest>&  sessionDelete_req,
+        stream<rtlSessionUpdateReply>&      sessionUpdate_rsp,
+        ap_uint<16>                         &poSssRelCnt,
+        ap_uint<16>                         &poSssRegCnt
+);

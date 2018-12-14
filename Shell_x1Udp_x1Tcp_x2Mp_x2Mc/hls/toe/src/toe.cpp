@@ -937,25 +937,25 @@ void toe(
     //-- RX Engine (RXe) --------------------------------------------------
     rx_engine(
             siIPRX_This_Data,
-            sSLcToRXe_SessLkpRep,
-            sSTtToRXe_SessStateRep,
-            sPRtToRXe_PortStateRep,
-            sRStToRXe_RxSarUpdRep,
-            sTStToRXe_SessTxSarRep,
-            siMEM_This_RxP_WrSts,
-            soTHIS_Mem_RxP_Data,
-            sRXeToSTt_SessStateReq,
-            sRXeToPRt_PortStateReq,
             sRXeToSLc_SessLkpReq,
+            sSLcToRXe_SessLkpRep,
+            sRXeToSTt_SessStateReq,
+            sSTtToRXe_SessStateRep,
+            sRXeToPRt_PortStateReq,
+            sPRtToRXe_PortStateRep,
             sRXeToRSt_RxSarUpdReq,
+            sRStToRXe_RxSarUpdRep,
             sRXeToTSt_TxSarUpdReq,
+            sTStToRXe_SessTxSarRep,
             sRXeToTIm_ClearReTxTimer,
             sRXeToTIm_ClrProbeTimer,
             sRXeToTIm_CloseTimer,
-            sRXeToTAi_SessOpnSts,
             sRXeToEVe_Event,
+            sRXeToTAi_SessOpnSts,
+            sRXeToRXa_Notification,
             soTHIS_Mem_RxP_WrCmd,
-            sRXeToRXa_Notification);
+            soTHIS_Mem_RxP_Data,
+            siMEM_This_RxP_WrSts);
 
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(

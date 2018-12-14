@@ -306,7 +306,8 @@ typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as Tcp
  * Socket Transport Pair & Address
  ********************************************/
 
-struct AxiSockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
+class AxiSockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
+  public:
     AxiIp4Address   addr;   // IPv4 address in LITTLE-ENDIAN order !!!
     AxiTcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!
     AxiSockAddr() {}
@@ -314,7 +315,8 @@ struct AxiSockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
         addr(addr), port(port) {}
 };
 
-struct AxiSocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
+class AxiSocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
+  public:
     AxiSockAddr    src;    // Source socket address in LITTLE-ENDIAN order !!!
     AxiSockAddr    dst;    // Destination socket address in LITTLE-ENDIAN order !!!
     AxiSocketPair() {}
@@ -342,7 +344,6 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
 
-
 struct ipTuple
 {
     ap_uint<32>     ip_address;
@@ -369,6 +370,8 @@ public:
     AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
+
+#define TLAST       1
 
 // Sub-types of the generic AXI4-Stream Interface
 //------------------------------------------------
@@ -398,33 +401,33 @@ class Ip4overAxi: public AxiWord {
       AxiWord(tdata, tkeep, tlast) {}
 
     // Set-Get the IP4 Version
-    void setIp4Version(Ip4Version ver)   { tdata.range( 7,  4) = ver; }
-    Ip4Version getIp4Version()    { return tdata.range( 7,  4); }
+    void setIp4Version(Ip4Version ver)          {                  tdata.range( 7,  4) = ver;             }
+    Ip4Version getIp4Version()                  {           return tdata.range( 7,  4);                   }
 
     // Set-Get the IP4 Internet Header Length
-    void      setIp4HdrLen(Ip4HdrLen ihl)       {        tdata.range( 3,  0) = ihl;                       }
-    Ip4HdrLen getIp4HdrLen()                    { return tdata.range( 3,  0);                             }
+    void      setIp4HdrLen(Ip4HdrLen ihl)       {                  tdata.range( 3,  0) = ihl;             }
+    Ip4HdrLen getIp4HdrLen()                    {           return tdata.range( 3,  0);                   }
     // Set the IP4 Type of Service
-    void setIp4ToS(Ip4ToS tos)           { tdata.range(15,  8) = tos; }
+    void setIp4ToS(Ip4ToS tos)                  {                  tdata.range(15,  8) = tos;             }
 
     // Set the IP4 Total Length
-    void        setIp4TotalLen(Ip4TotalLen len) {                 tdata.range(31, 16) = swapWord(len);    }
-    Ip4TotalLen getIp4TotalLen()                { return swapWord(tdata.range(31, 16));                   }
+    void        setIp4TotalLen(Ip4TotalLen len) {                  tdata.range(31, 16) = swapWord(len);   }
+    Ip4TotalLen getIp4TotalLen()                { return swapWord (tdata.range(31, 16));                  }
     //OBSOLETE AxiIp4TotalLen getIp4TotLen() { return swapWord(tdata.range(31, 16)); }
 
     // Set the IP4 Identification
-    void setIp4Ident(Ip4Ident id)        { tdata.range(47, 32) = swapWord(id); }
+    void setIp4Ident(Ip4Ident id)               {                  tdata.range(47, 32) = swapWord(id);    }
     // Set the IP4 Fragment Offset
-    void setIp4FragOff(Ip4FragOff offset){ tdata.range(63, 56) = offset( 7, 0);
-                                           tdata.range(52, 48) = offset(12, 8); }
+    void setIp4FragOff(Ip4FragOff offset)       {                  tdata.range(63, 56) = offset( 7, 0);
+                                                                   tdata.range(52, 48) = offset(12, 8);   }
     // Set the IP4 Flags
-    void setIp4Flags(Ip4Flags flags)     { tdata.range(55, 53) = flags; }
+    void setIp4Flags(Ip4Flags flags)            {                  tdata.range(55, 53) = flags;           }
     // Set the IP4 Time to Live
-    void setIp4TtL(Ip4TtL ttl)           { tdata.range( 7,  0) = ttl; }
+    void setIp4TtL(Ip4TtL ttl)                  {                  tdata.range( 7,  0) = ttl;             }
     // Set the IP4 Protocol
-    void setIp4Prot(Ip4Prot prot)        { tdata.range(15,  8) = prot; }
+    void setIp4Prot(Ip4Prot prot)               {                  tdata.range(15,  8) = prot;            }
     // Set the IP4 Header Checksum
-    void setIp4HdrCsum(Ip4HdrCsum csum)  { tdata.range(31, 16) = csum; }
+    void setIp4HdrCsum(Ip4HdrCsum csum)         {                  tdata.range(31, 16) = csum;            }
 
     // Set-Get the IP4 Source Address
     void          setIp4SrcAddr(Ip4Addr addr)   {                  tdata.range(63, 32) = swapDWord(addr); }
@@ -459,18 +462,18 @@ class Ip4overAxi: public AxiWord {
     TcpDataOff getTcpDataOff()                  { return           tdata.range( 7,  4);                   }
 
     // Set-Get the TCP Control Bits
-    void setTcpCtrlFin(TcpCtrlBit bit)   { tdata.bit( 8) = bit; }
-    TcpCtrlBit getTcpCtrlFin()    { return tdata.bit( 8); }
-    void setTcpCtrlSyn(TcpCtrlBit bit)   { tdata.bit( 9) = bit; }
-    TcpCtrlBit getTcpCtrlSyn()    { return tdata.bit( 9); }
-    void setTcpCtrlRst(TcpCtrlBit bit)   { tdata.bit(10) = bit; }
-    TcpCtrlBit getTcpCtrlRst()    { return tdata.bit(10); }
-    void setTcpCtrlPsh(TcpCtrlBit bit)   { tdata.bit(11) = bit; }
-    TcpCtrlBit getTcpCtrlPsh()    { return tdata.bit(11); }
-    void setTcpCtrlAck(TcpCtrlBit bit)   { tdata.bit(12) = bit; }
-    TcpCtrlBit getTcpCtrlAck()    { return tdata.bit(12); }
-    void setTcpCtrlUrg(TcpCtrlBit bit)   { tdata.bit(13) = bit; }
-    TcpCtrlBit getTcpCtrlUrg()    { return tdata.bit(13); }
+    void setTcpCtrlFin(TcpCtrlBit bit)          {                  tdata.bit( 8) = bit;                   }
+    TcpCtrlBit getTcpCtrlFin()                  {           return tdata.bit( 8);                         }
+    void setTcpCtrlSyn(TcpCtrlBit bit)          {                  tdata.bit( 9) = bit;                   }
+    TcpCtrlBit getTcpCtrlSyn()                  {           return tdata.bit( 9);                         }
+    void setTcpCtrlRst(TcpCtrlBit bit)          {                  tdata.bit(10) = bit;                   }
+    TcpCtrlBit getTcpCtrlRst()                  {           return tdata.bit(10);                         }
+    void setTcpCtrlPsh(TcpCtrlBit bit)          {                  tdata.bit(11) = bit;                   }
+    TcpCtrlBit getTcpCtrlPsh()                  {           return tdata.bit(11);                         }
+    void setTcpCtrlAck(TcpCtrlBit bit)          {                  tdata.bit(12) = bit;                   }
+    TcpCtrlBit getTcpCtrlAck()                  {           return tdata.bit(12);                         }
+    void setTcpCtrlUrg(TcpCtrlBit bit)          {                  tdata.bit(13) = bit;                   }
+    TcpCtrlBit getTcpCtrlUrg()                  {           return tdata.bit(13);                         }
 
     // Set-Get the TCP Window
     void        setTcpWindow(TcpWindow win)     {                  tdata.range(31, 16) = swapWord(win);   }
@@ -868,6 +871,9 @@ struct rstEvent : public event
  *  [DM]  stands for AXI Data Mover
  *  [DRE] stands for Data Realignment Engine.
  *************************************************************************/
+
+#define RXMEMBUF    65536   // 64KB = 2^16
+#define TXMEMBUF    65536   // 64KB = 2^16
 
 /********************************************
  * Data Mover Command Interface (c.f PG022)

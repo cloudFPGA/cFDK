@@ -52,42 +52,6 @@ unsigned int    gSimCycCnt    = 0;
 unsigned int    gMaxSimCycles = 100;    // Might be updated by content of the test vector file.
 bool            gTraceEvent   = false;
 
-/*******************************************************************
- * @brief Class Testbench Socket Address
- *  This class differs from the class 'SockAddr' used by TOE from an
- *  ENDIANESS point of view. This class is ENDIAN independent as
- *  opposed to the one used by TOE which stores its data members in
- *  LITTLE-ENDIAN order.
- *******************************************************************/
-class TbSockAddr {  // Testbench Socket Address
-  public:
-    int     addr;   // IPv4 address
-    int     port;   // TCP  port
-    TbSockAddr() {}
-    TbSockAddr(int addr, int port) :
-        addr(addr), port(port) {}
-};
-
-/*******************************************************************
- * @brief Class Testbench Socket Pair
- *  This class differs from the class 'SockAddr' used by TOE from an
- *  ENDIANESS point of view. This class is ENDIAN independent as
- *  opposed to the one used by TOE which stores its data members in
- *  LITTLE-ENDIAN order.
- *******************************************************************/
-class TbSocketPair {    // Socket Pair Association
-  public:
-    TbSockAddr  src;    // Source socket address in LITTLE-ENDIAN order !!!
-    TbSockAddr  dst;    // Destination socket address in LITTLE-ENDIAN order !!!
-    TbSocketPair() {}
-    TbSocketPair(TbSockAddr src, TbSockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (TbSocketPair const &s1, TbSocketPair const &s2) {
-        return ((s1.dst.addr < s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
 
 /*****************************************************************************
  * @brief Print the socket pair association of a data segment.
@@ -102,15 +66,20 @@ void printTbSockPair(const char *callerName, TbSocketPair sockPair)
         sockPair.dst.addr, sockPair.dst.port);
 }
 
-/********************************************************
- * TCP - Type Definitions (as used by the Testbench)
- ********************************************************/
-
-
-string decodeApUint64(ap_uint<64> inputNumber) {
+/*****************************************************************************
+ * @brief Converts an UINT64 into a string of 16 HEX characters.
+ *
+ * @param[in]   inputNumber, the UINT64 to convert.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+string decodeApUint64(
+        ap_uint<64> inputNumber)
+{
     string                    outputString    = "0000000000000000";
     unsigned short int        tempValue       = 16;
     static const char* const  lut             = "0123456789ABCDEF";
+
     for (int i = 15;i>=0;--i) {
     tempValue = 0;
     for (unsigned short int k = 0;k<4;++k) {
@@ -122,13 +91,23 @@ string decodeApUint64(ap_uint<64> inputNumber) {
     return outputString;
 }
 
-string decodeApUint8(ap_uint<8> inputNumber) {
+/*****************************************************************************
+ * @brief Converts an UINT8 into a string of 2 HEX characters.
+ *
+ * @param[in]   inputNumber, the UINT8 to convert.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+string decodeApUint8(
+        ap_uint<8> inputNumber)
+{
     string                      outputString    = "00";
     unsigned short int          tempValue       = 16;
     static const char* const    lut             = "0123456789ABCDEF";
+
     for (int i = 1;i>=0;--i) {
     tempValue = 0;
-    for (unsigned short int k = 0;k<4;++k) {
+    for (unsigned short int k = 0; k<4; ++k) {
         if (inputNumber.bit((i+1)*4-k-1) == 1)
             tempValue += static_cast <unsigned short int>(pow(2.0, 3-k));
         }
@@ -137,12 +116,21 @@ string decodeApUint8(ap_uint<8> inputNumber) {
     return outputString;
 }
 
-ap_uint<64> encodeApUint64(string dataString){
+/*****************************************************************************
+ * @brief Converts a string of 16 HEX characters into an UINT64.
+ *
+ * @param[in]   inputNumber, the string to convert.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+ap_uint<64> encodeApUint64(
+        string dataString)
+{
     ap_uint<64> tempOutput          = 0;
     unsigned short int  tempValue   = 16;
     static const char* const    lut = "0123456789ABCDEF";
 
-    for (unsigned short int i = 0; i<dataString.size();++i) {
+    for (unsigned short int i = 0; i<dataString.size(); ++i) {
         for (unsigned short int j = 0;j<16;++j) {
             if (lut[j] == dataString[i]) {
                 tempValue = j;
@@ -150,7 +138,7 @@ ap_uint<64> encodeApUint64(string dataString){
             }
         }
         if (tempValue != 16) {
-            for (short int k = 3;k>=0;--k) {
+            for (short int k = 3; k>=0; --k) {
                 if (tempValue >= pow(2.0, k)) {
                     tempOutput.bit(63-(4*i+(3-k))) = 1;
                     tempValue -= static_cast <unsigned short int>(pow(2.0, k));
@@ -161,7 +149,16 @@ ap_uint<64> encodeApUint64(string dataString){
     return tempOutput;
 }
 
-ap_uint<8> encodeApUint8(string keepString){
+/*****************************************************************************
+ * @brief Converts a string of 2 HEX characters into an UINT8.
+ *
+ * @param[in]   inputNumber, the string to convert.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+ap_uint<8> encodeApUint8(
+        string keepString)
+{
     ap_uint<8>               tempOutput = 0;
     unsigned short int       tempValue  = 16;
     static const char* const lut        = "0123456789ABCDEF";
@@ -186,8 +183,15 @@ ap_uint<8> encodeApUint8(string keepString){
 }
 
 
-
-
+/*****************************************************************************
+ * @brief Emulate the behavior of the Content Addressable Memory (CAM).
+ *
+ * @param[TODO]
+ *
+ * @details
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
 void pEmulateCam(
         stream<rtlSessionLookupRequest>  &lup_req,
         stream<rtlSessionLookupReply>    &lup_rsp,
@@ -383,7 +387,7 @@ void pEmulateTxBufMem(
         if (outWord.tlast)
             stx_read = false;
     }
-}
+} // End of: pEmulateTxBufMem
 
 
 /*****************************************************************************
@@ -426,6 +430,45 @@ vector<string> myTokenizer(string strBuff) {
     tmpBuff.push_back(strBuff);
     return tmpBuff;
 }
+
+/*****************************************************************************
+ * @brief Write the TCP data part of an IP packet into the Tx Application Gold
+ *         file. This file will latter be compared with the 'TxAppFile'.
+ *
+ * @param[in]     appTxGold,  a ref to the gold file to write.
+ * @param[in]     ipRxPacket, a ref to an IP RX packet.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+void writeAppTxGoldFile(
+        ofstream    &appTxGold,
+        IpPacket    &ipPacket)
+{
+    if(ipPacket.sizeOfTcpData() > 0) {
+        string tcpData = ipPacket.getTcpData();
+        if (tcpData.size() > 0)
+            appTxGold << tcpData << endl;
+    }
+}
+
+
+/************
+string tdataToFile = decodeApUint64(tcpWord.tdata);
+string tkeepToFile = decodeApUint8 (tcpWord.tkeep);
+
+for (int i = 0; i<8; ++i) {
+    // Delete the data not to be kept by "keep" - for Golden comparison
+    if(tcpWord.tkeep[7-i] == 0) {
+        tdataToFile.replace(i*2, 2, "00");
+    }
+    appTxBytCounter++;
+}
+
+if (tcpWord.tlast == 1)
+    appTxFile << tdataToFile << endl;
+else
+    appTxFile << tdataToFile;
+***************/
 
 
 /*****************************************************************************
@@ -491,8 +534,8 @@ int injectAckNumber(
             return -1;
         }
     }
+    return -1;
 } // End of: injectAckNumber()
-
 
 /*****************************************************************************
  * @brief Feed TOE with IP an Rx packet.
@@ -529,12 +572,12 @@ void feedTOE(
         int noPackets= ipRxPacketizer.size();
         for (int p=0; p<noPackets; p++) {
             IpPacket ipRxPacket = ipRxPacketizer.front();
-            int noChunks = ipRxPacket.size();
-            for (int c=0; c<noChunks; c++) {;
-                Ip4overAxi axiWord = ipRxPacket.front();
+            Ip4overAxi axiWord;
+            do {
+                axiWord = ipRxPacket.front();
                 soTOE_Data.write(axiWord);
                 ipRxPacket.pop_front();
-            }
+            } while (!axiWord.tlast);
             ipRxPktCounter++;
             ipRxPacketizer.pop_front();
         }
@@ -570,6 +613,7 @@ void feedTOE(
  ******************************************************************************/
 void pIPRX(
         ifstream                      &ipRxFile,
+        ofstream                      &appTxGold,
         int                           &ipRxPktCounter,
         int                           &tcpRxBytCounter,
         bool                          &idlingReq,
@@ -580,7 +624,6 @@ void pIPRX(
 {
     string              rxStringBuffer;
     vector<string>      stringVector;
-    //OBSOLETE-20181206 static IpPacket     ipRxPacket;
 
     const char *myName  = concat3(THIS_NAME, "/", "IPRX");
 
@@ -626,7 +669,7 @@ void pIPRX(
             return;
         }
         else if (ipRxFile.fail() == 1 || rxStringBuffer.empty()) {
-            return;;
+            return;
         }
         else {
             // Build a new packet from data file
@@ -649,6 +692,9 @@ void pIPRX(
 
             // Count the number of data bytes contained in the TCP payload
             tcpRxBytCounter += ipRxPacket.sizeOfTcpData();
+
+            // Write to the Application Tx Gold file
+            writeAppTxGoldFile(appTxGold, ipRxPacket);
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
@@ -936,40 +982,87 @@ void pL3MUX(
     }
 }
 
+
 /*****************************************************************************
- * @brief Write a TCP piece of data into the Rx Application file.
- *            number field of the current packet.
+ * @brief Write a TCP piece of data into the Tx Application file.
  *
- * @param[in]   appRxFile, a ref to the file to write.
- * @param[in]   tcpWord,   a ref to the AXI word to write.
+ * @param[in]     appTxFile, a ref to the file to write.
+ * @param[in]     tcpWord,   a ref to the AXI word to write.
+ * @param[in/out] appTxBytCounter, A ref to the counter of bytes from TOE to APP.
  *
  * @ingroup test_toe
  ******************************************************************************/
-void writeApplicationRxFile(
-        ofstream    &appRxFile,
-        AxiWord     &tcpWord)
+void writeAppTxDataFile(
+        ofstream    &appTxFile,
+        AxiWord     &tcpWord,
+        int         &appTxBytCounter)
 {
-    string tdataToFile = decodeApUint64(tcpWord.tdata);
-    string tkeepToFile = decodeApUint8 (tcpWord.tkeep);
+    string tdataToFile = "";
 
-    for (int i = 0; i<8; ++i) {
-        // Delete the data not to be kept by "keep" - for Golden comparison
-        if(tcpWord.tkeep[7-i] == 0) {
-            tdataToFile.replace(i*2, 2, "00");
+    for (int bytNum=0; bytNum<8; bytNum++) {
+        if (tcpWord.tkeep.bit(bytNum)) {
+            int hi = ((bytNum*8) + 7);
+            int lo = ((bytNum*8) + 0);
+            ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
+            tdataToFile += toHexString(octet);
+            appTxBytCounter++;
         }
     }
 
-
     if (tcpWord.tlast == 1)
-        appRxFile << tdataToFile << endl;
+        appTxFile << tdataToFile << endl;
     else
-        appRxFile << tdataToFile;
+        appTxFile << tdataToFile;
 
-    // TODO : Count the number of bytes and number of packets
-    //if (tdataToFile.tlast == 1)
-    //    rxPayloadCounter++;
-    // Write fo file
+}
 
+/*****************************************************************************
+ * @brief Start listening on a given port number.
+ *
+ * @param[in]  portNum,      the port number to listen.
+ * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
+ * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
+ *
+ * @return true if listening was successful, otherwise false.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+bool listen(
+        TcpPort           portNum,
+        stream<TcpPort>  &soTOE_LsnReq,
+        stream<bool>     &siTOE_LsnAck)
+{
+    static ap_uint<1> listenFsm   = 0;
+    bool              listenDone  = false;
+
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/listen()");
+
+    switch (listenFsm) {
+    case 0:
+        soTOE_LsnReq.write(portNum);
+        if (DEBUG_LEVEL & TRACE_TRIF) {
+            printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
+                      portNum.to_uint(), portNum.to_uint());
+            listenFsm++;
+        }
+        break;
+
+    case 1:
+        if (!siTOE_LsnAck.empty()) {
+            siTOE_LsnAck.read(listenDone);
+            if (listenDone) {
+                printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
+                          portNum.to_uint(), portNum.to_uint());
+            }
+            else {
+                printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
+                          portNum.to_uint(), portNum.to_uint());
+            }
+            listenFsm++;
+        }
+        break;
+    }
+    return listenDone;
 }
 
 
@@ -977,14 +1070,14 @@ void writeApplicationRxFile(
  * @brief Emulates the behavior of the TCP Role Interface (TRIF).
  *             This process implements Iperf.
  *
- * @param[in]  appRxFile,    A ref to the output Rx application file to write.
+ * @param[in]  appTxFile,    A ref to the output Tx application file to write.
+ * @param[in/out] appTxBytCounter, A ref to the counter of bytes from TOE to APP.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  * @param[in]  siTOE_Notif,  TCP notification from TOE.
  * @param[out] soTOE_DReq,   TCP data request to TOE.
  * @param[in]  siTOE_Meta,   TCP metadata stream from TOE.
  * @param[in]  siTOE_Data,   TCP data stream from TOE.
-  //OBSOLETE-20181207 * @param[out] soTOE_Data,      TCP data stream to ROLE.
  * @param[out] soTOE_OpnReq, TCP open port request to TOE.
  * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
  * @param[out] soTOE_ClsReq, TCP close connection request to TOE.
@@ -1004,14 +1097,14 @@ void writeApplicationRxFile(
  * @ingroup toe
  ******************************************************************************/
 void pTRIF(
-        ofstream                &appRxFile,
+        ofstream                &appTxFile,
+        int                     &appTxBytCounter,
         stream<TcpPort>         &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
         stream<appNotification> &siTOE_Notif,
         stream<appReadRequest>  &soTOE_DReq,
         stream<SessionId>       &siTOE_Meta,
         stream<AxiWord>         &siTOE_Data,
-		 //OBSOLETE-20181207 stream<AxiWord>         &soTOE_Data,
         stream<ipTuple>         &soTOE_OpnReq,
         stream<openStatus>      &siTOE_OpnSts,
         stream<ap_uint<16> >    &soTOE_ClsReq,
@@ -1019,7 +1112,6 @@ void pTRIF(
 {
     static bool listenDone        = false;
     static bool runningExperiment = false;
-    static ap_uint<1> listenFsm   = 0;
 
     openStatus      newConStatus;
     appNotification notification;
@@ -1027,44 +1119,32 @@ void pTRIF(
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
 
-    //-- Request to listen on a port number
+    //------------------------------------------------
+    //-- STEP-1 : REQUEST TO LISTEN ON  A PORT
+    //------------------------------------------------
+    TcpPort listeningPort = 0x0057;   // #87
     if (!listenDone) {
-        TcpPort listeningPort = 0x0057;   // #87
-
-        switch (listenFsm) {
-        case 0:
-            soTOE_LsnReq.write(listeningPort);
-            if (DEBUG_LEVEL & TRACE_TRIF) {
-                printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
-                          listeningPort.to_uint(), listeningPort.to_uint());
-                listenFsm++;
-            }
-            break;
-        case 1:
-            if (!siTOE_LsnAck.empty()) {
-                siTOE_LsnAck.read(listenDone);
-                if (listenDone) {
-                    printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
-                              listeningPort.to_uint(), listeningPort.to_uint());
-                }
-                else {
-                    printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
-                            listeningPort.to_uint(), listeningPort.to_uint());
-                }
-                listenFsm++;
-            }
-            break;
-        }
+        listenDone = listen(listeningPort, soTOE_LsnReq, siTOE_LsnAck);
     }
 
     // In case we are connecting back
     if (!siTOE_OpnSts.empty()) {
         openStatus tempStatus = siTOE_OpnSts.read();
-        if(tempStatus.success)
+        if(tempStatus.success) {
             txSessionIDs.push_back(tempStatus.sessionID);
+            if (DEBUG_LEVEL & TRACE_TRIF)
+                printInfo(myName, "Session #%d is now opened.\n", tempStatus.sessionID.to_uint());
+        }
+        else {
+            if (DEBUG_LEVEL & TRACE_TRIF)
+                printWarn(myName, "Session #%d is not yet opened.\n", tempStatus.sessionID.to_uint());
+        }
     }
 
-    if (!siTOE_Notif.empty())     {
+    //------------------------------------------------
+    //-- STEP-2 : READ NOTIFICATION
+    //------------------------------------------------
+    if (!siTOE_Notif.empty()) {
         siTOE_Notif.read(notification);
         if (notification.length != 0)
             soTOE_DReq.write(appReadRequest(notification.sessionID,
@@ -1094,27 +1174,28 @@ void pTRIF(
             siTOE_Meta.read(tcpSessId);
             siTOE_Data.read(currWord);
             // Write TCP data chunk to file
-            writeApplicationRxFile(appRxFile, currWord);
+            writeAppTxDataFile(appTxFile, currWord, appTxBytCounter);
 
-            if (!runningExperiment) {
-                // Check if a bidirectional test is requested (i.e. dualtest)
-                if (currWord.tdata(31, 0) == 0x00000080)
-                    dualTest = true;
-                else
-                    dualTest = false;
-                runningExperiment = true;
-                fsmState = HEADER_2;
-            }
-            else
-                fsmState = CONSUME;
+            //FIXME if (!runningExperiment) {
+            //FIXME     // Check if a bidirectional test is requested (i.e. dualtest)
+            //FIXME     if (currWord.tdata(31, 0) == 0x00000080)
+            //FIXME         dualTest = true;
+            //FIXME     else
+            //FIXME         dualTest = false;
+            //FIXME     runningExperiment = true;
+            //FIXME     fsmState = HEADER_2;
+            //FIXME }
+            //FIXME else
+            fsmState = CONSUME;
         }
         break;
 
+    /*** FIXME ***
     case HEADER_2:
         if (!siTOE_Data.empty()) {
         	 // Read the 2nd TCP data chunk
             siTOE_Data.read(currWord);
-            writeApplicationRxFile(appRxFile, currWord);
+            writeApplicationTxFile(appTxFile, currWord, appTxBytCounter);
 
             if (dualTest) {
                 tuple.ip_address = 0x0a010101;  // FIXME
@@ -1129,18 +1210,19 @@ void pTRIF(
         if (!siTOE_Data.empty()) {
             // Read 3rd TCP data chunk
             siTOE_Data.read(currWord);
-            writeApplicationRxFile(appRxFile, currWord);
+            writeApplicationTxFile(appTxFile, currWord, appTxBytCounter);
 
             mAmount = currWord.tdata(63, 32);
             fsmState = CONSUME;
         }
         break;
+    **************/
 
     case CONSUME:
         if (!siTOE_Data.empty()) {
             // Read all the remaining TCP data chunks
             siTOE_Data.read(currWord);
-            writeApplicationRxFile(appRxFile, currWord);
+            writeAppTxDataFile(appTxFile, currWord, appTxBytCounter);
         }
         break;
     }
@@ -1150,7 +1232,6 @@ void pTRIF(
         fsmState = WAIT_SEG;
 
 }
-
 
 
 /*****************************************************************************
@@ -1249,14 +1330,27 @@ int main(int argc, char *argv[]) {
     deque<IpPacket>   ipRxPacketizer; // Packets intended for the IPRX interface of TOE
 
     //-- Input & Output File Streams ----------------------
-    ifstream        ipRxFile;        // Packets to   the IPRX  I/F of TOE.
-    ofstream        ipTxFile;        // Packets from the L3MUX I/F of TOE.
+    ifstream        ipRxFile;   // IP packets to         IPRX  I/F of TOE.
+    ofstream        appTxFile;  // APP byte streams from TRIF  I/F of TOE.
+    ofstream        appTxGold;  // Gold reference file for 'appTxFile'
 
-    ifstream        txInputFile;
-    ofstream        apRxFile;
+    ifstream        appRxFile;  // APP data streams to   TRIF  I/F of TOE.
+    ofstream        ipTxFile;   // IP packets from       L3MUX I/F of TOE.
+    ofstream        ipTxGold;   // Gold reference file for 'ipTxFile'
 
-    ifstream        rxGoldFile;
-    ifstream        txGoldFile;
+
+    ifstream        txInputFile; // FIXME
+    //Not USed ifstream        rxGoldFile;  // FIXME
+    ifstream        txGoldFile;  // FIXME
+
+    int             rxGoldCompare       = 0;
+    int             returnValue         = 0;
+
+    const char *ipTxFileName  = "../../../../test/ipTx_TOE.dat";
+    const char *ipTxGoldName  = "../../../../test/ipTx_TOE.gold";
+    const char *appTxFileName = "../../../../test/appTx_TOE.dat";
+    const char *appTxGoldName = "../../../../test/appTx_TOE.gold";
+
 
     unsigned int    myCounter   = 0;
 
@@ -1267,46 +1361,36 @@ int main(int argc, char *argv[]) {
     vector<ap_uint<16> > txSessionIDs;      // The Tx session ID that is sent from TRIF/Meta to TOE/Meta
     uint16_t        currTxSessionID = 0;    // The current Tx session ID
 
-    int             rxGoldCompare       = 0;
-    int             txGoldCompare       = 0;    // not used yet
-    int             returnValue         = 0;
-
-    //OBSOLETE-20181207 uint16_t        rxPayloadCounter    = 0;    // Counts the #packets output during the simulation on the Rx side
-
     int             ipRxPktCounter      = 0;    // Counts the # IP packets rcvd by the TOE (all kinds and from all sessions).
-    int             tcpRxBytCounter     = 0;    // Counts the # TCP bytes  rcvd by the TOE (all kinds and from all sessions).
-
+    int             tcpRxBytCounter     = 0;    // Counts the # TCP bytes  rcvd by the TOE.
 
     int             ipTxPktCounter      = 0;    // Counts the # IP packets sent by the TOE (all kinds and from all sessions).
+    int             appTxBytCounter     = 0;    // Counts the # APP bytes  sent by the TOE.
+    int             tcpTxBytCounter     = 0;    // Counts the # TCP bytes  sent by the TOE.
 
-
-    int             tcpTxBytCounter     = 0;    // Counts the # TCP bytes  sent by the TOE (all kinds and from all sessions).
-
-
-    bool            testRxPath          = true; // Indicates if the Rx path is to be tested, thus it remains true in case of Rx only or bidirectional testing
-    bool            testTxPath          = true; // Same but for the Tx path.
+    bool            testRxPath          = false; // Indicates if the Rx path is to be tested.
+    bool            testTxPath          = false; // Indicates if the Tx path is to be tested.
 
     char            mode        = *argv[1];
     char            cCurrPath[FILENAME_MAX];
 
-
     //------------------------------------------------------
     //-- PARSING TESBENCH ARGUMENTS
-    // [FIXME - Cleanup the number of required parameters]
     //------------------------------------------------------
-    if (argc > 7 || argc < 4) {
-        printf("## [TB-ERROR] Expected 4 or 5 parameters with one of the the following synopsis:\n");
-        printf("\t mode(0) ipRxFileName appRxFileName iptxFileName [rxGoldFileName] \n");
-        printf("\t mode(1) txInputFileName iptxFileName [txGoldFileName] \n");
-        printf("\t mode(2) rxInputFileName txInputFileName rxOutputFileName iptxFileName");
+    if (argc < 3) {
+        printf("## [TB-ERROR] Expected a minimum of 2 or 3 parameters with one of the the following synopsis:\n");
+        printf("\t mode(0) ipRxFileName\n");
+        printf("\t mode(1) apRxFileName\n");
+        printf("\t mode(2) ipRxFileName apRxFileName\n");
         return -1;
     }
 
     printf("INFO: This TB-run executes in mode \'%c\'.\n", mode);
 
-    if (mode == RX_MODE)  {
+    if ((mode == RX_MODE) || (mode == BIDIR_MODE)) {
+        testRxPath = true;
         //-------------------------------------------------
-        //-- Test the Rx side only                       --
+        //-- Files used for the test of the Rx side
         //-------------------------------------------------
         ipRxFile.open(argv[2]);
         if (!ipRxFile) {
@@ -1318,116 +1402,57 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        const char *appRxFileName = "../../../../test/apRx_TOE.dat";
-        apRxFile.open(appRxFileName);
-        if (!apRxFile) {
-            printf("## [TB-ERROR] Cannot open the Application Rx file:  \n\t %s \n", appRxFileName);
+        appTxFile.open(appTxFileName);
+        if (!appTxFile) {
+            printf("## [TB-ERROR] Cannot open the Application Tx file:  \n\t %s \n", appTxFileName);
             return -1;
         }
 
-        /*** TODO ****
-        iptxFile.open(argv[4]);
-        if (!iptxFile) {
-            printf("## [TB-ERROR] Missing Tx output file name!\n");
+        appTxGold.open(appTxGoldName);
+        if (!appTxGold) {
+            printf("## [TB-ERROR] Cannot open the Application Tx gold file:  \n\t %s \n", appTxGoldName);
             return -1;
         }
-        if(argc == 6) {
-            rxGoldFile.open(argv[5]);
-            if (!rxGoldFile) {
-                printf("## [TB-ERROR] Error accessing Rx gold file!");
-                return -1;
-            }
-        }
-        ******/
-        testTxPath = false;
     }
-    else if (mode == TX_MODE) {
-        //-- Test the Tx side only ----
-        txInputFile.open(argv[2]);
-        if (!txInputFile) {
-            printf("## [TB-ERROR] Cannot open Tx input file: \n\t %s \n", argv[2]);
-            if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
-                return -1;
-            }
-            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
-            return -1;
-        }
-        ipTxFile.open(argv[3]);
-        if (!ipTxFile) {
-            printf("## [TB-ERROR] Missing Tx output file name!\n");
-            return -1;
-        }
-        if(argc == 5){
-            txGoldFile.open(argv[4]);
-            if (!txGoldFile) {
-                cout << " Error accessing Gold Tx file!" << endl;
-                return -1;
-            }
-        }
-        testRxPath = false;
-    }
-    else if (mode == BIDIR_MODE) {
+
+    if ((mode == TX_MODE) || (mode == BIDIR_MODE)) {
+        testTxPath = true;
         //-------------------------------------------------
-        //-- Test both Rx & Tx sides                     --
+        //-- Files used for the test of the Tx side
         //-------------------------------------------------
-        ipRxFile.open(argv[2]);
-        if (!ipRxFile) {
-            printf("## [TB-ERROR] Cannot open input file: \n\t %s \n", argv[2]);
+        switch (mode) {
+        case TX_MODE:
+            appRxFile.open(argv[2]);
+            printf("## [TB-ERROR] Cannot open the APP Rx file: \n\t %s \n", argv[2]);
             if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                 return -1;
             }
             printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
-        }
-        txInputFile.open(argv[3]);
-        if (!txInputFile) {
-            printf("## [TB-ERROR] Cannot open Tx input file: \n\t %s \n", argv[2]);
+            break;
+        case BIDIR_MODE:
+            appRxFile.open(argv[3]);
+            printf("## [TB-ERROR] Cannot open the APP Rx file: \n\t %s \n", argv[3]);
             if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                 return -1;
             }
             printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
+            break;
         }
 
-        const char *appRxFileName = "./apRxFile.dat";
-        apRxFile.open(appRxFileName);
-        if (!apRxFile) {
-            printf("## [TB-ERROR] Cannot open the Application Rx file:  \n\t %s \n", appRxFileName);
-            return -1;
-        }
-
-
-        ipTxFile.open(argv[5]);
+        ipTxFile.open(ipTxFileName);
         if (!ipTxFile) {
-            printf("## [TB-ERROR] Missing Tx output file name!\n");
+            printf("## [TB-ERROR] Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName);
             return -1;
         }
-        if(argc >= 7) {
-            rxGoldFile.open(argv[6]);
-            if (!rxGoldFile) {
-                printf("## [TB-ERROR] Error accessing Rx gold file!");
-                return -1;
-            }
-            if (argc != 8) {
-                printf("## [TB-ERROR] Bi-directional testing requires two golden output files to be passed!");
-                return -1;
-            }
-            txGoldFile.open(argv[7]);
-            if (!txGoldFile) {
-                printf("## [TB-ERROR] Error accessing Tx gold file!");
-                return -1;
-            }
+
+        ipTxGold.open(ipTxGoldName);
+        if (!ipTxGold) {
+            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxGoldName);
+            return -1;
         }
     }
-    else {
-        //-- Other cases are not allowed, exit
-        printf("## [TB-ERROR] First argument can be: \n \
-                \t 0 - Rx path testing only,         \n \
-                \t 1 - Tx path testing only,         \n \
-                \t 2 - Bi-directional testing. ");
-        return -1;
-    }
-
 
     printf("#####################################################\n");
     printf("## TESTBENCH STARTS HERE                           ##\n");
@@ -1442,9 +1467,11 @@ int main(int argc, char *argv[]) {
 
     if (testTxPath == true) {
         //-- If the Tx Path will be tested then open a session for testing.
-        for (uint8_t i=0; i<noTxSessions; ++i) {
-            ipTuple newTuple = {150*(i+65355), 10*(i+65355)};   // IP address and port to open
-            sTRIF_Toe_OpnReq.write(newTuple);                   // Write into TOE Tx I/F queue
+        for (int8_t i=0; i<noTxSessions; ++i) {
+           // IP address and port to open
+            ipTuple newTuple = {150*(i+65355), 10*(i+65355)};
+            // Write into TOE Tx open request I/F
+            sTRIF_Toe_OpnReq.write(newTuple);
         }
     }
 
@@ -1469,8 +1496,10 @@ int main(int argc, char *argv[]) {
                 //-------------------------------------------------
                 //-- STEP-1.1 : Emulate the IPv4 Rx Path
                 //-------------------------------------------------
-                pIPRX(ipRxFile,   ipRxPktCounter, tcpRxBytCounter, idlingReq,
-                      idleCycReq, ipRxPacketizer, sessionList,    sIPRX_Toe_Data);
+                pIPRX(ipRxFile,       appTxGold,
+                      ipRxPktCounter, tcpRxBytCounter,
+                      idlingReq,      idleCycReq,
+                      ipRxPacketizer, sessionList, sIPRX_Toe_Data);
             }
 
             //-- FEED TX INPUT PATH -----------------------
@@ -1574,10 +1603,10 @@ int main(int argc, char *argv[]) {
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
         pTRIF(
-            apRxFile,
+            appTxFile,        appTxBytCounter,
             sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
             sTOE_Trif_Notif,  sTRIF_Toe_DReq,
-            sTOE_Trif_Meta,   sTOE_Trif_Data,     // OBSOLETE-20181207 sTRIF_Role_Data,
+            sTOE_Trif_Meta,   sTOE_Trif_Data,
             sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
             sTRIF_Toe_ClsReq, txSessionIDs);
 
@@ -1597,17 +1626,8 @@ int main(int argc, char *argv[]) {
             gTraceEvent = false;
         }
 
-        //cerr << simCycleCounter << " - Number of Sessions opened: " <<  dec << regSessionCount << endl << "Number of Sessions closed: " << relSessionCount << endl;
-
     } while (gSimCycCnt < gMaxSimCycles);
 
-
-
-    // while (!ipTxData.empty() || !ipRxData.empty() || !sTRIF_Role_Data.empty());
-    /*while (!txBufferWriteCmd.empty()) {
-        mmCmd tempMemCmd = txBufferWriteCmd.read();
-        std::cerr <<  "Left-over Cmd: " << std::hex << tempMemCmd.saddr << " - " << tempMemCmd.bbt << std::endl;
-    }*/
 
     printf("#####################################################\n");
     printf("## TESTBENCH ENDS HERE                             ##\n");
@@ -1623,84 +1643,45 @@ int main(int argc, char *argv[]) {
     printInfo(THIS_NAME, "Number of IP  Packets sent by TOE : %6d \n", ipRxPktCounter);
 
     printInfo(THIS_NAME, "Number of TCP Bytes   rcvd by TOE : %6d \n", tcpRxBytCounter);
+    printInfo(THIS_NAME, "Number of APP Bytes   sent by TOE : %6d \n", appTxBytCounter);
+
     printInfo(THIS_NAME, "Number of TCP Bytes   sent by TOE : %6d \n", tcpTxBytCounter);
 
-
+    printf("\n");
     //---------------------------------------------------------------
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
-
-    /*** TODO ***
-    // Only RX Gold supported for now
-    float          rxDividedPacketCounter = static_cast <float>(rxPayloadCounter) / 2;
-    unsigned int roundedRxPayloadCounter = rxPayloadCounter / 2;
-
-    if (rxDividedPacketCounter > roundedRxPayloadCounter)
-        roundedRxPayloadCounter++;
-
-    if (roundedRxPayloadCounter != (ipTxPktCounter - 1))
-        cout << "WARNING: Number of received packets (" << rxPayloadCounter << ") is not equal to the number of Tx Packets (" << ipTxPktCounter << ")!" << endl;
-
-    // Output Number of Sessions
-    cerr << "Number of Sessions opened: " << dec << regSessionCount << endl;
-    cerr << "Number of Sessions closed: " << dec << relSessionCount << endl;
-
-    // Convert command line arguments to strings
-    if(argc == 5) {
-        vector<string> args(argc);
-        for (int i=1; i<argc; ++i)
-            args[i] = argv[i];
-
-        rxGoldCompare = system(("diff --brief -w "+args[2]+" " + args[4]+" ").c_str());
-        //  txGoldCompare = system(("diff --brief -w "+args[3]+" " + args[5]+" ").c_str()); // uncomment when TX Golden comparison is supported
-
-        if (rxGoldCompare != 0){
-            cout << "RX Output != Golden RX Output. Simulation FAILED." << endl;
-            returnValue = 0;
+    if (mode == RX_MODE) {
+        if (tcpRxBytCounter != appTxBytCounter) {
+            printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TRIF interface (%d). \n", tcpRxBytCounter, appTxBytCounter);
+            nrErr++;
         }
-        else cout << "RX Output == Golden RX Output" << endl;
 
-        //  if (txGoldCompare != 0){
-        //      cout << "TX Output != Golden TX Output" << endl;
-        //      returnValue = 1;
-        //  }
-        //  else cout << "TX Output == Golden TX Output" << endl;
-
-        if(rxGoldCompare == 0 && txGoldCompare == 0){
-            cout << "Test Passed! (Both Golden files match)" << endl;
-            returnValue = 0; // Return 0 if the test passes
+        int appTxCompare = system(("diff --brief -w " + std::string(appTxFileName) + " " + std::string(appTxGoldName) + " ").c_str());
+        if (appTxCompare != 0) {
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", appTxFileName, appTxGoldName);
+            nrErr++;
         }
     }
-    *** TODO ***/
 
-    if (mode == RX_MODE) {
+    if ((mode == RX_MODE) || (mode == BIDIR_MODE)) {
         // Rx side testing only
         ipRxFile.close();
-        apRxFile.close();
-        //FIXME iptxFile.close();
-        //FIXME if(argc == 6)
-        //FIXME    rxGoldFile.close();
+        appTxFile.close();
+        appTxGold.close();
     }
-    else if (mode == TX_MODE) {
+
+    if ((mode == TX_MODE) || (mode == BIDIR_MODE)) {
         // Tx side testing only
+        appRxFile.close();
         ipTxFile.close();
-        //FIXME apTxFile.close();
-        //FIXME if(argc == 5)
-        //FIXME     txGoldFile.close();
-    }
-    else if (mode == BIDIR_MODE) {
-        // Bi-directional testing
-        ipRxFile.close();
-        apRxFile.close();
-
-        //FIXME txInputFile.close();
-        //FIXME iptxFile.close();
-        //FIXME if(argc == 7){
-        //FIXME     rxGoldFile.close();
-        //FIXME     txGoldFile.close();
-        //FIXME }
+        ipTxGold.close();
     }
 
+    if (nrErr)
+        printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %d ####\n\n", nrErr);
+    else
+         printInfo(THIS_NAME, "####  SUCCESSFUL END OF TEST   ####\n\n");
 
-    return 0;  // [FIXME] return returnValue;
+    return nrErr;
 }

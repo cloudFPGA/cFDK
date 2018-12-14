@@ -92,8 +92,8 @@ create_clock -period 6.4 -name default
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat ../../../../test/apRx_TOE.dat ../../../../test/ipTx_TOE.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat    ../../../../test/apRx_TOE.dat ../../../../test/ipTx_TOE.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
 }
 
 # Run C Synthesis (refer to UG902)

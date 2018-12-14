@@ -135,6 +135,18 @@ void printAxiWord(const char *callerName, AxiWord chunk)
 }
 
 /*****************************************************************************
+ * @brief Prints the details of a Data Mover Command (used for debugging).
+ *
+ * @param[in] callerName,   the name of the caller process (e.g. "Mwr").
+ * @param[in] dmCmd,        the data mover command to display.
+ *****************************************************************************/
+void printDmCmd(const char *callerName, DmCmd dmCmd)
+{
+    printInfo(callerName, "DmCmd = {BBT=0x%6.6X, TYPE=0x%1.1X DSA=0x%2.2X, EOF=0x%1.1X, DRR=0x%1.1X, SADDR=0x%8.8X, TAG=0x%1.1X} \n",
+              dmCmd.bbt.to_uint(), dmCmd.type.to_uint(), dmCmd.dsa.to_uint(), dmCmd.eof.to_uint(), dmCmd.drr.to_uint(), dmCmd.saddr.to_uint(), dmCmd.tag.to_uint());
+}
+
+/*****************************************************************************
  * @brief Print a socket pair association (used for debugging).
  *
  * @param[in] callerName,   the name of the caller process (e.g. "Mdh").

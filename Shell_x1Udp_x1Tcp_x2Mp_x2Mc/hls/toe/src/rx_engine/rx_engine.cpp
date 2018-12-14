@@ -42,12 +42,11 @@ extern bool gTraceEvent;
 #define TRACE_TSD 1 <<  6
 #define TRACE_EVM 1 <<  7
 #define TRACE_FSM 1 <<  8
-#define MTRACE_WR 1 <<  9
+#define TRACE_MWR 1 <<  9
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
-
+#define DEBUG_LEVEL (TRACE_OFF | TRACE_TID | TRACE_MWR)
 
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
@@ -634,7 +633,7 @@ void pCheckSumAccumulator(
  *
  * @param[in]  siCsa_TcpData,   TCP data stream from Checksum Accumulator (Csa).
  * @param[in]  siCsa_TcpDataVal,TCP data valid.
- * @param[out] soData,          TCP data stream.
+ * @param[out] soTsd_Data,      TCP data stream to Tcp Segment Dropper.
  *
  * @details
  *  Drops the TCP data when they are flagged with an invalid checksum by
@@ -645,12 +644,15 @@ void pCheckSumAccumulator(
 void pTcpInvalidDropper(
         stream<TcpWord>     &siCsa_Data,
         stream<ValBit>      &siCsa_DataVal,
-        stream<AxiWord>     &soData)
+        stream<AxiWord>     &soTsd_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "Tid");
+
+    /*** OBSOLETE-20181212 ***********
     static bool tid_isFirstWord = true;
     static bool tid_doDrop      = false;
 
@@ -670,20 +672,62 @@ void pTcpInvalidDropper(
             if (!isValid)
                 tid_doDrop = true;
             else
-                soData.write(currWord);
+                soTsd_Data.write(currWord);
             tid_isFirstWord = false;
         }
     }
     else if(!siCsa_Data.empty()) {
         siCsa_Data.read(currWord);
-        soData.write(currWord);
+        soTsd_Data.write(currWord);
     }
 
     if (currWord.tlast == 1) {
         tid_doDrop      = false;
         tid_isFirstWord = true;
     }
-}
+    **********************************/
+
+    static enum FsmState {GET_VALID=0, FWD, DROP} tid_fsmState=GET_VALID;
+
+    AxiWord currWord;
+    bool    isValid;
+
+    switch (tid_fsmState) {
+
+    case GET_VALID:
+        if (!siCsa_DataVal.empty()) {
+            siCsa_DataVal.read(isValid);
+            if (isValid) {
+                tid_fsmState = FWD;
+            }
+            else {
+                tid_fsmState = DROP;
+            }
+        }
+        break;
+
+    case FWD:
+        if(!siCsa_Data.empty() && !soTsd_Data.full()) {
+            siCsa_Data.read(currWord);
+            soTsd_Data.write(currWord);
+            if (currWord.tlast)
+                tid_fsmState = GET_VALID;
+            if (DEBUG_LEVEL & TRACE_TID) printAxiWord(myName, currWord);
+        }
+        break;
+
+    case DROP:
+        if(!siCsa_Data.empty()) {
+            siCsa_Data.read(currWord);
+            if (currWord.tlast) {
+                tid_fsmState = GET_VALID;
+            }
+        }
+        break;
+
+    } // End of: switch
+
+} // End of: pTcpInvalidDropper
 
 
 /*****************************************************************************
@@ -1257,7 +1301,7 @@ void pFiniteStateMachine(
  * @param[in]  siTid_Data,      TCP data stream from Tcp Invalid Dropper (Tid).
  * @param[in]  siMdh_DropCmd,   Drop command from MetaData Handler (Mdh).
  * @param[in]  siFsm_DropCmd,   Drop command from FiniteState Machine (Fsm).
- * @param[out] soData,          TCP data stream.
+ * @param[out] soMwr_Data,      TCP data stream to Memory Writer (MWr).
  *
  * @details
  *  Drops TCP segments when their metadata did not match and/or is invalid.
@@ -1268,11 +1312,13 @@ void pTcpSegmentDropper(
         stream<AxiWord>     &siTid_Data,
         stream<CmdBit>      &siMdh_DropCmd,
         stream<CmdBit>      &siFsm_DropCmd,
-        stream<AxiWord>     &soData)
+        stream<AxiWord>     &soMwr_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "Tsd");
 
     static enum FsmState {FSM_RD_DROP_CMD1=0, FSM_RD_DROP_CMD2, FSM_FWD, FSM_DROP} tsd_fsmState = FSM_RD_DROP_CMD1;
 
@@ -1294,11 +1340,11 @@ void pTcpSegmentDropper(
         }
         break;
     case FSM_FWD:
-        if(!siTid_Data.empty() && !soData.full()) {
+        if(!siTid_Data.empty() && !soMwr_Data.full()) {
             AxiWord currWord = siTid_Data.read();
             if (currWord.tlast)
                 tsd_fsmState = FSM_RD_DROP_CMD1;
-            soData.write(currWord);
+            soMwr_Data.write(currWord);
         }
         break;
     case FSM_DROP:
@@ -1338,6 +1384,8 @@ void pRxAppNotifier(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "Ran");
 
     //-- LOCAL STREAMS
     static stream<appNotification> sRxNotifFifo("sRxNotifFifo");
@@ -1409,6 +1457,8 @@ void pEventMultiplexer(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE
 
+    const char *myName  = concat3(THIS_NAME, "/", "Evm");
+
     if (!siMdh_Event.empty()) {
         soEVe_Event.write(siMdh_Event.read());
     }
@@ -1442,6 +1492,8 @@ void pMemWriter(
     #pragma HLS pipeline II=1
     #pragma HLS INLINE off
 
+    const char *myName  = concat3(THIS_NAME, "/", "Mwr");
+
     static DmCmd       rxMemWriterCmd = DmCmd(0, 0);
     static ap_uint<16> rxEngBreakTemp = 0;
     static uint8_t     lengthBuffer   = 0;
@@ -1450,86 +1502,92 @@ void pMemWriter(
 
     static AxiWord     pushWord = AxiWord(0, 0xFF, 0);
 
-    static enum FsmState {RXMEMWR_IDLE,       RXMEMWR_WRFIRST,
-                          RXMEMWR_EVALSECOND, RXMEMWR_WRSECONDSTR,
-                          RXMEMWR_ALIGNED,    RXMEMWR_RESIDUE} mwr_fsmState;
+    static enum FsmState {IDLE,       WRFIRST,
+                          EVALSECOND, WRSECONDSTR,
+                          ALIGNED,    RESIDUE} mwr_fsmState;
 
     switch (mwr_fsmState) {
 
-    case RXMEMWR_IDLE:
+    case IDLE:
         if (!siFsm_MemWrCmd.empty() && !soMemWrCmd.full() && !soDoubleAccess.full()) {
             rxMemWriterCmd = siFsm_MemWrCmd.read();
             DmCmd tempCmd = rxMemWriterCmd;
-            if ((rxMemWriterCmd.saddr.range(15, 0) + rxMemWriterCmd.bbt) > 65536) {
-                rxEngBreakTemp = 65536 - rxMemWriterCmd.saddr;
+            if ((rxMemWriterCmd.saddr.range(15, 0) + rxMemWriterCmd.bbt) > RXMEMBUF) {
+                // Break into two memory accesses because TCP rx buffer wraps around
+                rxEngBreakTemp = RXMEMBUF - rxMemWriterCmd.saddr;
                 rxMemWriterCmd.bbt -= rxEngBreakTemp;
                 tempCmd = DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
                 txAppBreakdown = true;
             }
-            else
+            else {
                 rxEngBreakTemp = rxMemWriterCmd.bbt;
+            }
             soMemWrCmd.write(tempCmd);
             soDoubleAccess.write(txAppBreakdown);
-            //txAppPktCounter++;
-            //std::cerr <<  "Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << tempCmd.saddr << " - " << tempCmd.bbt << std::endl;
-            mwr_fsmState = RXMEMWR_WRFIRST;
+            if (DEBUG_LEVEL & TRACE_MWR) printDmCmd(myName, tempCmd);
+            mwr_fsmState = WRFIRST;
         }
         break;
 
-    case RXMEMWR_WRFIRST:
+    case WRFIRST:
         if (!siTid_MemWrData.empty() && !soMemWrData.full()) {
             siTid_MemWrData.read(pushWord);
             AxiWord outputWord = pushWord;
-            ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
-            if (rxEngBreakTemp > 8)
+            //OBSOLETE-20181213 ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
+            ap_uint<4> byteCount = keepToLen(pushWord.tkeep);
+            if (rxEngBreakTemp > 8) {
                 rxEngBreakTemp -= 8;
+            }
             else {
                 if (txAppBreakdown == true) {
                     // Changes are to go in here
                     // If the word is not perfectly aligned then there is some magic to be worked.
-                    if (rxMemWriterCmd.saddr.range(15, 0) % 8 != 0)
-                        outputWord.tkeep = returnKeep(rxEngBreakTemp);
+                    if (rxMemWriterCmd.saddr.range(15, 0) % 8 != 0) {
+                        outputWord.tkeep = lenToKeep(rxEngBreakTemp);
+                    }
                     outputWord.tlast = 1;
-                    mwr_fsmState = RXMEMWR_EVALSECOND;
+                    mwr_fsmState = EVALSECOND;
                     rxEngAccessResidue = byteCount - rxEngBreakTemp;
                     lengthBuffer = rxEngBreakTemp;  // Buffer the number of bits consumed.
                 }
-                else
-                    mwr_fsmState = RXMEMWR_IDLE;
+                else {
+                    mwr_fsmState = IDLE;
+                }
             }
-            //txAppWordCounter++;
-            //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << pushWord.data << std::endl;
             soMemWrData.write(outputWord);
+            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, outputWord);
         }
         break;
 
-    case RXMEMWR_EVALSECOND:
+    case EVALSECOND:
         if (!soMemWrCmd.full()) {
             if (rxMemWriterCmd.saddr.range(15, 0) % 8 == 0)
-                mwr_fsmState = RXMEMWR_ALIGNED;
+                mwr_fsmState = ALIGNED;
             //else if (rxMemWriterCmd.bbt + rxEngAccessResidue > 8 || rxEngAccessResidue > 0)
             else if (rxMemWriterCmd.bbt - rxEngAccessResidue > 0)
-                mwr_fsmState = RXMEMWR_WRSECONDSTR;
+                mwr_fsmState = WRSECONDSTR;
             else
-                mwr_fsmState = RXMEMWR_RESIDUE;
+                mwr_fsmState = RESIDUE;
             rxMemWriterCmd.saddr.range(15, 0) = 0;
             rxEngBreakTemp = rxMemWriterCmd.bbt;
-            soMemWrCmd.write(DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp));
-            //std::cerr <<  "Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << txAppTempCmd.saddr << " - " << txAppTempCmd.bbt << std::endl;
+            DmCmd tempCmd = DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
+            soMemWrCmd.write(tempCmd);
+            if (DEBUG_LEVEL & TRACE_MWR) printDmCmd(myName, tempCmd);
             txAppBreakdown = false;
         }
         break;
 
-    case RXMEMWR_ALIGNED:   // This is the non-realignment state
+    case ALIGNED:   // This is the non-realignment state
         if (!siTid_MemWrData.empty() & !soMemWrData.full()) {
             siTid_MemWrData.read(pushWord);
             soMemWrData.write(pushWord);
+            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, pushWord);
             if (pushWord.tlast == 1)
-                mwr_fsmState = RXMEMWR_IDLE;
+                mwr_fsmState = IDLE;
         }
         break;
 
-    case RXMEMWR_WRSECONDSTR: // We go into this state when we need to realign things
+    case WRSECONDSTR: // We go into this state when we need to realign things
         if (!siTid_MemWrData.empty() && !soMemWrData.full()) {
             AxiWord outputWord = AxiWord(0, 0xFF, 0);
             outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
@@ -1537,28 +1595,31 @@ void pMemWriter(
             outputWord.tdata.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
 
             if (pushWord.tlast == 1) {
-                if (rxEngBreakTemp - rxEngAccessResidue > lengthBuffer) { // In this case there's residue to be handled
+                if (rxEngBreakTemp - rxEngAccessResidue > lengthBuffer) {
+                    // In this case there's residue to be handled
                     rxEngBreakTemp -= 8;
-                    mwr_fsmState = RXMEMWR_RESIDUE;
+                    mwr_fsmState = RESIDUE;
                 }
                 else {
                     outputWord.tkeep = returnKeep(rxEngBreakTemp);
                     outputWord.tlast = 1;
-                    mwr_fsmState = RXMEMWR_IDLE;
+                    mwr_fsmState = IDLE;
                 }
             }
             else
                 rxEngBreakTemp -= 8;
             soMemWrData.write(outputWord);
+            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, outputWord);
         }
         break;
 
-    case RXMEMWR_RESIDUE:
+    case RESIDUE:
         if (!soMemWrData.full()) {
             AxiWord outputWord = AxiWord(0, returnKeep(rxEngBreakTemp), 1);
             outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
             soMemWrData.write(outputWord);
-            mwr_fsmState = RXMEMWR_IDLE;
+            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, outputWord);
+            mwr_fsmState = IDLE;
         }
         break;
 
@@ -1570,25 +1631,25 @@ void pMemWriter(
  * @brief The rx_engine (RXe) processes the data packets received from IPRX.
  *
  * @param[in]  siIPRX_Data,         IP4 data stream form IPRX.
+ * @param[out] soSLc_SessLookupReq, Session lookup request.
  * @param[in]  siSLc_SessLookupRep, Session lookup lookup reply from SLc.
- * @param[in]  siSTt_SessStateRep,  Session state reply
- * @param[in]  siPRt_PortSts,       Port state (open/close) from Port Table (PRt).
- * @param[in]  siRSt_RxSarUpdRep    Update reply form Rx SAR Table (RSt).
- * @param[in]  siTSt_TxSarRdRep     Read reply from Tx SAR Table (TSt).
- * @param[in]  siMEM_WrSts,         Memory write status from MEM.
- * @param[out] soMemWrData,         Memory data write stream to MEM controller.
  * @param[out] soSTt_SessStateReq,  Session state request.
- * @param[out] soGetPortState,      Ask the state of the port.
- * @param[out] soSessLookupReq,     Session lookup request.
+ * @param[in]  siSTt_SessStateRep,  Session state reply
+ * @param[out] soPRt_GetPortState,  Ask the state of the port.
+ * @param[in]  siPRt_PortSts,       Port status (open/close) from Port Table (PRt).
  * @param[out] soRSt_RxSarUpdReq,   Request to update the session Rx SAR.
+ * @param[in]  siRSt_RxSarUpdRep    Update reply form Rx SAR Table (RSt).
  * @param[out] soTSt_TxSarRdReq,    Request to read the session Tx SAR.
+ * @param[in]  siTSt_TxSarRdRep     Read reply from Tx SAR Table (TSt).
  * @param[out] soTIm_ClearReTxTimer,Clear the retransmit timer.
  * @param[out] soTIm_ClearProbeTimer,Clear the probe timer.
  * @param[out] soTIm_CloseTimer,    Close session timer.
- * @param[out] soTAi_SessOpnSts,    Open status of the session.
  * @param[out] soEVe_SetEvent,      Forward event to Event Engine (EVe).
- * @param[out] soMemWrCmd,          Memory write command,
- * @param[out] soRxNotification,    Rx data notification for the application.
+ * @param[out] soTAi_SessOpnSts,    Open status of the session.
+ * @param[out] soRAi_RxNotif,       Rx data notification for the application.
+ * @param[out] soMEM_WrCmd,         Memory write command,
+ * @param[out] soMEM_WrData,        Memory data write stream to MEM controller.
+ * @param[in]  siMEM_WrSts,         Memory write status from MEM.
  *
  * @details
  *  When a new packet enters the engine its TCP checksum is tested, the header
@@ -1604,25 +1665,25 @@ void pMemWriter(
  ******************************************************************************/
 void rx_engine(
         stream<Ip4overAxi>              &siIPRX_Pkt,
+        stream<sessionLookupQuery>      &soSLc_SessLookupReq,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
-        stream<sessionState>            &siSTt_SessStateRep,
-        stream<StsBit>                  &siPRt_PortSts,
-        stream<rxSarEntry>              &siRSt_RxSarUpdRep,
-        stream<rxTxSarReply>            &siTSt_TxSarRdRep,
-        stream<DmSts>                   &siMEM_WrSts,
-        stream<AxiWord>                 &soMemWrData,
         stream<stateQuery>              &soSTt_SessStateReq,
-        stream<AxiTcpPort>              &soGetPortState,
-        stream<sessionLookupQuery>      &soSessLookupReq,
+        stream<sessionState>            &siSTt_SessStateRep,
+        stream<AxiTcpPort>              &soPRt_GetPortState,
+        stream<StsBit>                  &siPRt_PortSts,
         stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
+        stream<rxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
+        stream<rxTxSarReply>            &siTSt_TxSarRdRep,
         stream<rxRetransmitTimerUpdate> &soTIm_ClearReTxTimer,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
-        stream<openStatus>              &soTAi_SessOpnSts,
         stream<extendedEvent>           &soEVe_SetEvent,
-        stream<DmCmd>                   &soMemWrCmd,
-        stream<appNotification>         &soRxNotification)
+        stream<openStatus>              &soTAi_SessOpnSts,
+        stream<appNotification>         &soRAi_RxNotif,
+        stream<DmCmd>                   &soMEM_WrCmd,
+        stream<AxiWord>                 &soMEM_WrData,
+        stream<DmSts>                   &siMEM_WrSts)
 {
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1724,7 +1785,7 @@ void rx_engine(
             sCsaToTid_DataValid,
             sCsaToMdh_Meta,
             sCsaToMdh_SockPair,
-            soGetPortState);
+            soPRt_GetPortState);
 
     pTcpInvalidDropper(
             sCsaToTid_Data,
@@ -1736,7 +1797,7 @@ void rx_engine(
             sCsaToMdh_SockPair,
             siSLc_SessLookupRep,
             siPRt_PortSts,
-            soSessLookupReq,
+            soSLc_SessLookupReq,
             sMdhToEvm_Event,
             sMdhToTsd_DropCmd,
             sMdhToFsm_Meta);
@@ -1767,14 +1828,14 @@ void rx_engine(
     pMemWriter(
             sTsdToMwr_Data,
             sFsmToMwr_WrCmd,
-            soMemWrCmd,
-            soMemWrData,
+            soMEM_WrCmd,
+            soMEM_WrData,
             sMwrToRan_DoubleAccess);
 
     pRxAppNotifier(
             siMEM_WrSts,
             sFsmToRan_Notif,
-            soRxNotification,
+            soRAi_RxNotif,
             sMwrToRan_DoubleAccess);
 
     pEventMultiplexer(
