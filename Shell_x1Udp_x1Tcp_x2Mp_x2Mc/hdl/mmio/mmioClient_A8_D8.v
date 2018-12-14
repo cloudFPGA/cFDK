@@ -626,13 +626,13 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_CTRL_1+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+id]; // RW   
     end
   endgenerate
-  //---- DIAG_STAT_1 -------------------
-  generate
-  for (id=0; id<cEDW; id=id+1)
-    begin: gen_DIAG_STAT_1
-      assign sStatusVec[cEDW*DIAG_STAT_1+id]  = sEMIF_Ctrl[cEDW*DIAG_STAT_1+id]; // RW   
-    end
-  endgenerate
+  ////---- DIAG_STAT_1 -------------------
+  //generate
+  //for (id=0; id<cEDW; id=id+1)
+  //  begin: gen_DIAG_STAT_1
+  //    assign sStatusVec[cEDW*DIAG_STAT_1+id]  = sEMIF_Ctrl[cEDW*DIAG_STAT_1+id]; // RW   
+  //  end
+  //endgenerate
   //---- DIAG_CTRL_2 -------------------
   generate
   for (id=0; id<cEDW; id=id+1)
