@@ -1,0 +1,143 @@
+#
+# @file  : ipRx_ThreePkt.dat
+# @brief : Three IPv4s packet following a SYN packet that opens the connection.
+#          
+#         6                   5                   4                   3                   2                   1                   0   
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                    Acknowledgment Number                      |                        Sequence Number                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                               |                               |                               |   |U|A|P|R|S|F|  Data |       |
+#  |         Urgent Pointer        |           Checksum            |            Window             |   |R|C|S|S|Y|I| Offset|  Res  |
+#  |                               |                               |                               |   |G|K|H|T|N|N|       |       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# @details :
+#   Packets use the following connection settings:
+#     IP-SA = 10.10.10.10, IP-DA=1.1.1.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
+#
+
+C 1000
+
+W 20
+
+# STEP-1: TCP CONNECTION ESTABLISHMENT ==================
+0000000028000045 0 FF
+0A0A0A0A000006FF 0 FF
+5700890001010101 0 FF
+00000000CDFF0000 0 FF
+00001F9500040250 1 FF
+
+W 50
+
+# == STEP-2: TCP DATA TRANSFER ============================= 
+0000000051000045 0 FF
+0A0A0A0A000006FF 0 FF
+5700890001010101 0 FF
+00000000CEFF0000 0 FF
+0000FDAE00041050 0 FF
+88DAC85D74C01B7F 0 FF
+CAD7EE7357BF4667 0 FF
+C84312CF15850E56 0 FF
+7AB53EB68FCD338E 0 FF
+858486046701C275 0 FF
+0000000000000046 1 01
+
+W 50
+
+# == STEP-2: TCP DATA TRANSFER ============================= 
+0000000051000045 0 FF
+0A0A0A0A000006FF 0 FF
+5700890001010101 0 FF
+00000000F7FF0000 0 FF
+0000FDAE00041050 0 FF
+88DAC85D74C01B7F 0 FF
+CAD7EE7357BF4667 0 FF
+C84312CF15850E56 0 FF
+7AB53EB68FCD338E 0 FF
+858486046701C275 0 FF
+0000000000000046 1 01
+
+W 50
+
+# == STEP-3: TCP DATA TRANSFER =============================
+0000000040020045 0 FF
+0A0A0A0A000006FF 0 FF
+5700890001010101 0 FF
+0000000020000100 0 FF
+0000166600041050 0 FF
+F17707ECBDF1CBBD 0 FF
+03928B3F781CE6A6 0 FF
+9E23CC28C4EA4737 0 FF
+4ADFFB3735DF0020 0 FF
+E4F7B0F034AD8AF6 0 FF
+009A4D10252A5C4C 0 FF
+B47B507BD14F56AD 0 FF
+5DC904D8BF05F90E 0 FF
+EDC132F42E0B0294 0 FF
+CCBF1BC6865A58F1 0 FF
+57EB9C5717F209DC 0 FF
+B026142D514F8BEC 0 FF
+983C6788FC0C29FF 0 FF
+D67E08EA0E6B74D3 0 FF
+266F1BC9A1F3BB21 0 FF
+7C74F9DAFF744BD8 0 FF
+F5FD6025674A7ABA 0 FF
+5CDEC84516567FA0 0 FF
+47B45DC2A9B1C6C9 0 FF
+0294A6F24BB0C57C 0 FF
+59CCA5D176AB408C 0 FF
+F9B0DED759D4BCA4 0 FF
+B17AEFD62A8784F4 0 FF
+9F6BAA94C72BBAB8 0 FF
+38A6702807B8A3C6 0 FF
+51220D39780AA1AF 0 FF
+3C979C617709312E 0 FF
+5FD41D68476700E7 0 FF
+D1F594568B189D09 0 FF
+F59098245EA4D06B 0 FF
+9D901B00E4599BF7 0 FF
+F84A396E60E4A124 0 FF
+6A7FFB4298E9F661 0 FF
+719F1F7A497DFB51 0 FF
+C8EF468803D3C84B 0 FF
+A5799B4BFD27443E 0 FF
+4B56884CC21EBE9A 0 FF
+74400997BE5C7687 0 FF
+B5936DC7038BE3EA 0 FF
+4B32DA6462E97BA1 0 FF
+E9C7496EB1D610D4 0 FF
+CF9527547F8C7A24 0 FF
+FAB806A9CAD13A11 0 FF
+B6F3A538D70CB3FF 0 FF
+9F29699C26EB4A22 0 FF
+E0BE930E12611B0B 0 FF
+0E5FF07D99506E22 0 FF
+439E8EE981A126B2 0 FF
+BC5F3C2284C0418D 0 FF
+981F17AA15A7B62D 0 FF
+0DB907CB527AE03D 0 FF
+D2AAF91D39AEF326 0 FF
+62599D553C5A9F23 0 FF
+9784DA6ECDA5D422 0 FF
+E30A33081865BD92 0 FF
+776D9EE37800C27B 0 FF
+4126E1625F282719 0 FF
+5EEC087B3C492947 0 FF
+4AAB1EF278ACB0F0 0 FF
+66143B063329BAAC 0 FF
+29B7BB48774F5DF9 0 FF
+0F01F96EA5F0AC3D 0 FF
+185984FD8C0B69C7 0 FF
+650C3E0DEF7DE612 0 FF
+2DF8090D4E68410F 0 FF
+EB8A1B5015886782 0 FF
+60927C8A0436DB99 1 FF
