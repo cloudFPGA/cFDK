@@ -94,6 +94,9 @@ if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
 }
 
 # Run C Synthesis (refer to UG902)

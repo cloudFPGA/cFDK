@@ -895,9 +895,9 @@ void pMetaDataHandler(
  * @param[out] soTIm_CloseTimer,  Close session timer.
  * @param[out] soTAi_SessOpnSts,  Open status of the session.
  * @param[out] soEVe_Event,       Event to the Event Engine (EVe).
- * @param[out] soDropCmd,         Drop command for the process having the segment data.
- * @param[out] soMemWrCmd,        Memory write command.
- * @param[out] soRAi_RxNotif,     Rx data notification for the application.
+ * @param[out] soTsd_DropCmd,     Drop command to Tcp Segment Dropper (Tsd).
+ * @param[out] soMwr_WrCmd,       Memory write command to Memory Writer (Mwr).
+ * @param[out] soRAi_RxNotif,     Rx data notification to Rx App Notifier (RAn).
  *
  * @details
  *  This process implements the typical TCP state and metadata management. It
@@ -920,9 +920,9 @@ void pFiniteStateMachine(
         stream<ap_uint<16> >                &soTIm_CloseTimer,
         stream<openStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
         stream<event>                       &soEVe_Event,
-        stream<CmdBit>                      &soDropCmd,
-        stream<DmCmd>                       &soMemWrCmd,
-        stream<appNotification>             &soRxNotif)
+        stream<CmdBit>                      &soTsd_DropCmd,
+        stream<DmCmd>                       &soMwr_WrCmd,
+        stream<appNotification>             &soRAi_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -943,7 +943,7 @@ void pFiniteStateMachine(
     rxSarEntry      rxSar;
     rxTxSarReply    txSar;
 
-    static enum FsmState {LOAD=0, TRANSITION} fsmState;
+    static enum FsmState {LOAD=0, TRANSITION} fsmState=LOAD;
 
     switch(fsmState) {
 
@@ -1032,14 +1032,14 @@ void pFiniteStateMachine(
                             memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_meta.sessionID(13, 0);
                             memSegAddr(15,  0) = fsm_meta.meta.seqNumb.range(15, 0);
-                            soMemWrCmd.write(DmCmd(memSegAddr, fsm_meta.meta.length));
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_meta.meta.length));
                             // Only notify about new data available
-                            soRxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
+                            soRAi_RxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
                                                             fsm_meta.srcIpAddress, fsm_meta.dstIpPort));
-                            soDropCmd.write(KEEP_CMD);
+                            soTsd_DropCmd.write(KEEP_CMD);
                         }
                         else {
-                            soDropCmd.write(DROP_CMD);
+                            soTsd_DropCmd.write(DROP_CMD);
                         }
 
                         // OBSOLETE-Sent ACK
@@ -1084,7 +1084,7 @@ void pFiniteStateMachine(
                     soEVe_Event.write(rstEvent(fsm_meta.sessionID, fsm_meta.meta.seqNumb+fsm_meta.meta.length)); // noACK ?
                     // if data is in the pipe it needs to be droppped
                     if (fsm_meta.meta.length != 0) {
-                        soDropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(DROP_CMD);
                     }
                     soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, QUERY_WR));
                 }
@@ -1199,15 +1199,15 @@ void pFiniteStateMachine(
                         pkgAddr(31, 30) = 0x0;
                         pkgAddr(29, 16) = fsm_meta.sessionID(13, 0);
                         pkgAddr(15,  0) = fsm_meta.meta.seqNumb(15, 0);
-                        soMemWrCmd.write(DmCmd(pkgAddr, fsm_meta.meta.length));
+                        soMwr_WrCmd.write(DmCmd(pkgAddr, fsm_meta.meta.length));
                         // Tell Application new data is available and connection got closed
-                        soRxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
+                        soRAi_RxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
                                                         fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true));
-                        soDropCmd.write(KEEP_CMD);
+                        soTsd_DropCmd.write(KEEP_CMD);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
-                        soRxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress,
+                        soRAi_RxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress,
                                                         fsm_meta.dstIpPort, true)); //CLOSE
                     }
 
@@ -1233,7 +1233,7 @@ void pFiniteStateMachine(
                     soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, tcpState, 1));
                     // If there is payload we need to drop it
                     if (fsm_meta.meta.length != 0) {
-                        soDropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(DROP_CMD);
                     }
                 }
             }
@@ -1268,7 +1268,7 @@ void pFiniteStateMachine(
                         // Check if in window
                         if (fsm_meta.meta.seqNumb == rxSar.recvd) {
                             //tell application, RST occurred, abort
-                            soRxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
+                            soRAi_RxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
                             soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1)); //TODO maybe some TIME_WAIT state
                             soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                         }
