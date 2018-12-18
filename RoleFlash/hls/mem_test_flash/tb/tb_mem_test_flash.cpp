@@ -66,8 +66,11 @@
 // *****************************************************************************
 #include "../src/mem_test_flash.hpp"
 
+//#include <boost/multiprecision/cpp_int.hpp>
+
 using namespace std;
 using namespace hls;
+//using namespace boost::multiprecision;
 
 #define TEST_MEM_SIZE 512
 
@@ -112,19 +115,23 @@ int main() {
   sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemWrCmdP0);
   assert(dmCmd_MemWrCmdP0.btt == CHECK_CHUNK_SIZE); 
   assert(dmCmd_MemWrCmdP0.saddr == 0x0); 
-  assert(dmCmd_MemWrCmdP0.type == 1 && dmCmd_MemWrCmdP0.dsa == 0 && dmCmd_MemWrCmdP0.eof == 1 && dmCmd_MemWrCmdP0.drr == 0 && dmCmd_MemWrCmdP0.tag == 0);
+  assert(dmCmd_MemWrCmdP0.type == 1 && dmCmd_MemWrCmdP0.dsa == 0 && dmCmd_MemWrCmdP0.eof == 1 && dmCmd_MemWrCmdP0.drr == 0 && dmCmd_MemWrCmdP0.tag == 0x7);
   
   DUT 
   sROL_Shl_Mem_WriteP0.read(memP0);
+  //printf("tdata: 0x64%llX)\n", (uint512_t) ((ap_uint<512>) memP0.tdata));
+  printf("tkeep: 0x%llX\n", (uint64_t) memP0.tkeep);
   assert(memP0.tlast == 0);
-  assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  assert(memP0.tkeep == 0xffffffffffffffff);
   currentMemPattern = 1;
   assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
 
   DUT
   sROL_Shl_Mem_WriteP0.read(memP0);
   assert(memP0.tlast == 0);
-  assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+  assert(memP0.tkeep == 0xffffffffffffffff);
   currentMemPattern = 2;
   assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
 

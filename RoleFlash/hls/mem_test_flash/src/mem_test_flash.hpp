@@ -58,6 +58,8 @@ using namespace hls;
 #define MEM_END_ADDR   0xFFFFF000 // End address of user space in DDR4
 
 #define CHECK_CHUNK_SIZE 0x1000 //4 KiB
+#define BYTE_PER_MEM_WORD 64
+#define TRANSFERS_PER_CHUNK (CHECK_CHUNK_SIZE/BYTE_PER_MEM_WORD) //64
 
 /*
  * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
@@ -85,7 +87,7 @@ struct DmCmd
   ap_uint<4>    rsvd;
   DmCmd() {}
   DmCmd(ap_uint<32> addr, ap_uint<16> len) :
-    btt(len), type(1), dsa(0), eof(1), drr(0), saddr(addr), tag(0), rsvd(0) {}
+    btt(len), type(1), dsa(0), eof(1), drr(0), saddr(addr), tag(0x7), rsvd(0) {}
 };
 
 

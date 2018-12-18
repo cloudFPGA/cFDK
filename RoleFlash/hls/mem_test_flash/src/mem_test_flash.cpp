@@ -55,6 +55,7 @@ ap_uint<32> lastCheckedAddress = 0;
 ap_uint<32> currentPatternAdderss = 0;
 ap_uint<64> currentMemPattern = 0;
 ap_uint<32> patternWriteNum = 0;
+ap_uint<16> debugVec = 0;
 
 /*****************************************************************************/
 /* @brief     Counts the number of 1s an 8-bit value.
@@ -171,7 +172,6 @@ void mem_test_flash_main(
   Axis<512>     memP0;
   DmSts         memRdStsP0;
   DmSts         memWrStsP0;
-  ap_uint<16>   debugVec = 0;
 
   if(sys_reset == 1)
   {
@@ -182,6 +182,7 @@ void mem_test_flash_main(
     currentPatternAdderss = 0;
     currentMemPattern = 0;
     patternWriteNum = 0;
+    debugVec = 0;
     return;
   }
 
@@ -246,10 +247,12 @@ void mem_test_flash_main(
       if (!soMemWriteP0.full()) {
         //-- Assemble a memory word and write it to DRAM
         currentMemPattern++;
-        memP0.tdata = (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern);
-        memP0.tkeep = (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
+        memP0.tdata = (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern);
+        ap_uint<8> keepVal = 0xFF;
+        memP0.tkeep = (ap_uint<64>) (keepVal, keepVal, keepVal, keepVal, keepVal, keepVal, keepVal, keepVal);
+        //memP0.tkeep = (ap_uint<64>) (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
 
-        if(patternWriteNum == CHECK_CHUNK_SIZE/64) //64 Bytes per write
+        if(patternWriteNum == TRANSFERS_PER_CHUNK -1) 
         {
           memP0.tlast = 1;
           fsmState = FSM_WR_PAT_STS;
@@ -290,12 +293,12 @@ void mem_test_flash_main(
           printf("error in pattern reading!\n");
           wasError = true;
         }
-        if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
+        /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
         {
           printf("error in tkeep\n");
-        }
+        }*/
         //I trust that there will be a tlast (so no counting)
-        if (memP0.tlast)
+        if (memP0.tlast == 1)
         {
           fsmState = FSM_RD_PAT_STS;
         }
@@ -332,10 +335,16 @@ void mem_test_flash_main(
       if (!soMemWriteP0.full()) {
         //-- Assemble a memory word and write it to DRAM
         currentMemPattern++;
-        memP0.tdata = (~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern);
-        memP0.tkeep = (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
+        ap_uint<64> currentAntiPattern = ~currentMemPattern;
+        //debug 
+        printf("AntiPattern: 0x%llX\n", (uint64_t) currentAntiPattern);
 
-        if(patternWriteNum == CHECK_CHUNK_SIZE/64) //64 Bytes per write
+        memP0.tdata = (currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern);
+        ap_uint<8> keepVal = 0xFF;
+        memP0.tkeep = (ap_uint<64>) (keepVal, keepVal, keepVal, keepVal, keepVal, keepVal, keepVal, keepVal);
+        //memP0.tkeep = (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF);
+
+        if(patternWriteNum == TRANSFERS_PER_CHUNK -1) 
         {
           memP0.tlast = 1;
           fsmState = FSM_WR_ANTI_STS;
@@ -371,17 +380,19 @@ void mem_test_flash_main(
         //-- Read a memory word from DRAM
         siMemReadP0.read(memP0);
         currentMemPattern++;
-        if (memP0.tdata != ((ap_uint<512>) (~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern,~currentMemPattern)) )
+        ap_uint<64> currentAntiPattern = ~currentMemPattern;
+
+        if (memP0.tdata != ((ap_uint<512>) (currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern)) )
         {
           printf("error in antipattern reading!\n");
           wasError = true;
         }
-        if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
+        /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
         {
           printf("error in tkeep\n");
-        }
+        }*/
         //I trust that there will be a tlast (so no counting)
-        if (memP0.tlast)
+        if (memP0.tlast == 1)
         {
           fsmState = FSM_RD_ANTI_STS;
         }
