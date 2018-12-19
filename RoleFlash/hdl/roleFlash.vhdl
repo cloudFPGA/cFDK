@@ -468,6 +468,10 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
     port (
            ap_clk                     : IN STD_LOGIC;
            ap_rst_n                   : IN STD_LOGIC;
+           ap_start                   : IN STD_LOGIC;
+           ap_done                    : OUT STD_LOGIC;
+           ap_idle                    : OUT STD_LOGIC;
+           ap_ready                   : OUT STD_LOGIC;
            piSysReset_V               : IN STD_LOGIC_VECTOR (0 downto 0);
            piSysReset_V_ap_vld        : IN STD_LOGIC;
            piMMIO_diag_ctrl_V         : IN STD_LOGIC_VECTOR (1 downto 0);
