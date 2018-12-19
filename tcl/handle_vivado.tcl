@@ -656,6 +656,10 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     #if { ! ${create} } {
         catch {open_project ${xprDir}/${xprName}.xpr}
     #}
+    
+    set constrObj [ get_filesets constrs_1 ]
+    add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
+    my_info_puts "DEBUG XDC ADDED."
   
     set_property needs_refresh false [get_runs synth_1]
     
@@ -922,7 +926,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           } else {
             write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
           }
-          close_project
+          #close_project
         } 
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
         
@@ -930,7 +934,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
         source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
-        close_project
+        #close_project
       }
 
       if { $bitGen2 } { 
@@ -945,7 +949,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         } else {
           write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         }
-        close_project
+        #close_project
       } 
       if { $pr_grey_bitgen } { 
         catch {close_project}
@@ -954,10 +958,15 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         
         source ${tclDir}/fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
-        close_project
+        #close_project
       } 
 
     }
+
+    #DEBUG
+    write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+
+
     my_puts "################################################################################"
     my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
     my_puts "################################################################################"
