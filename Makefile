@@ -94,6 +94,15 @@ monolithic_incr: ensureMonolithic ShellSrc RoleIp | xpr
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr 
 
+#TODO: merge with enhanced version in ngl_develop
+monolithic_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_debug
+
+monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr
+	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
+	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ monolithic_incr_debug
+
 save_mono_incr: ensureMonolithic 
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./tcl/ save_mono_incr
 
@@ -109,6 +118,11 @@ ensureNotMonolithic: | xpr
 
 ensureMonolithic:
 	@test  -f ./xpr/.project_monolithic.lock || test ! -d ./xpr/ || (echo "This project was startet with Black Box flow => please clean up first" && exit 1)
+
+ensureDebugNets:
+	@test -f ./xdc/.DEBUG_SWITCH || echo "This file is a guard for handle_vivado.tcl and should prevent the failure of a build process\nbecuase the make target monolithic_debug is called but the debug nets aren't defined in\n<Top>/xdc/debug.xdc .\nThis must be done once manually in the Gui and then write "YES" in the last line of this file.\n(It must stay the last line...)\n\nHave you defined the debug nets etc. in <Top>/xdc/debug.xdc?\nNO" > ./xdc/.DEBUG_SWITCH
+	@test `tail -n 1 ./xdc/.DEBUG_SWITCH` = YES || (echo "Please define debug nets in ./xdc/debug.xdc and answer the question in ./xdc/.DEBUG_SWITCH" && exit 1)
+
 
 clean: 
 	$(MAKE) -C ./tcl/ clean 

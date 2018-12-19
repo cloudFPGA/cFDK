@@ -41,7 +41,7 @@ MONO_LOCK = ../xpr/.project_monolithic.stamp
 CLEAN_TYPES = *.log *.jou *.str
 
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd onlycmd 
-.PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only 
+.PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only monolithic_incr_debug monolithic_debug debugcmd
 all: full_src_pr
 
 
@@ -68,6 +68,9 @@ incrcmd:
 
 onlycmd:
 	@/bin/echo -e " -only_pr_bitgen \\" >> .vivado_basecmd.sh
+
+debugcmd:
+	@/bin/echo -e " -insert_ila \\" >> .vivado_basecmd.sh
 
 full_src: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole).bit finalcmd
 
@@ -114,6 +117,28 @@ monolithic_incr: basecmd $(MONO_LOCK)
 	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
+
+
+#TODO: merge with ngl_develop version
+monolithic_incr_debug: basecmd debugcmd $(MONO_LOCK)
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
+
+monolithic_debug: basecmd debugcmd $(MONO_LOCK)
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+	@more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
 
 $(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh

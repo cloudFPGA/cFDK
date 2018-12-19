@@ -69,6 +69,7 @@ set impl_opt       0
 set use_incr       0
 set save_incr      0
 set only_pr_bitgen 0
+set insert_ila 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -105,6 +106,7 @@ if { $argc > 0 } {
         { use_incr "Use incremental compile (if possible)"}
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
+        { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -209,6 +211,11 @@ if { $argc > 0 } {
               set only_pr_bitgen 1
               my_info_puts "The argument \'only_pr_bitgen\' is set."
             }
+            if { ${key} eq "insert_ila" && ${value} eq 1 } {
+              set insert_ila 1
+              my_info_puts "The argument \'insert_ila\' is set."
+            }
+        } 
         } 
     }
 }
@@ -657,9 +664,11 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
         catch {open_project ${xprDir}/${xprName}.xpr}
     #}
     
-    set constrObj [ get_filesets constrs_1 ]
-    add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
-    my_info_puts "DEBUG XDC ADDED."
+    if { $insert_ila } { 
+     set constrObj [ get_filesets constrs_1 ]
+     add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
+     my_info_puts "DEBUG XDC ADDED."
+    }
   
     set_property needs_refresh false [get_runs synth_1]
     
@@ -964,7 +973,9 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     }
 
     #DEBUG
-    write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+    if { $insert_ila } { 
+      write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+    }
 
 
     my_puts "################################################################################"
