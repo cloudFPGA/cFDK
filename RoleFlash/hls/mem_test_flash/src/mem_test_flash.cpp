@@ -165,13 +165,19 @@ void mem_test_flash_main(
 #pragma HLS DATA_PACK variable=siMemWrStsP0 instance=siMemWrStsP0
 
 
-#pragma HLS INTERFACE ap_ctrl_none port=return
+//#pragma HLS INTERFACE ap_ctrl_none port=return
 
 //#pragma HLS DATAFLOW //interval=1
 
   Axis<512>     memP0;
   DmSts         memRdStsP0;
   DmSts         memWrStsP0;
+
+  //initalize ??
+  memP0.tdata = 0;
+  memP0.tlast = 0;
+  memP0.tkeep = 0;
+
 
   if(sys_reset == 1)
   {
@@ -317,12 +323,12 @@ void mem_test_flash_main(
 
     case FSM_WR_ANTI_CMD:
       if (!soMemWrCmdP0.full()) {
-        if(lastCheckedAddress == MEM_START_ADDR)
-        {
-          currentPatternAdderss = MEM_START_ADDR;
-        } else {
-          currentPatternAdderss = lastCheckedAddress+1;
-        }
+        //if(lastCheckedAddress == MEM_START_ADDR)
+        //{
+        //  currentPatternAdderss = MEM_START_ADDR;
+        //} else {
+        //  currentPatternAdderss = lastCheckedAddress+1;
+        //}
         //-- Post a memory write command to SHELL/Mem/Mp0
         soMemWrCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
         currentMemPattern = 0;
@@ -337,7 +343,7 @@ void mem_test_flash_main(
         currentMemPattern++;
         ap_uint<64> currentAntiPattern = ~currentMemPattern;
         //debug 
-        printf("AntiPattern: 0x%llX\n", (uint64_t) currentAntiPattern);
+        //printf("AntiPattern: 0x%llX\n", (uint64_t) currentAntiPattern);
 
         memP0.tdata = (currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern);
         ap_uint<8> keepVal = 0xFF;
@@ -405,7 +411,7 @@ void mem_test_flash_main(
         siMemRdStsP0.read(memRdStsP0);
         //latch errors
         debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
-        lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE;
+        lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE -1;
         fsmState = FSM_IDLE;
       }
       break;

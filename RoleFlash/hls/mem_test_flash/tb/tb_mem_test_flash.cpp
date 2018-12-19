@@ -94,8 +94,7 @@ int main() {
   ap_uint<16> debug_out;
 
 
-  DmCmd         dmCmd_MemWrCmdP0;
-  DmCmd         dmCmd_MemRdCmdP0;
+  DmCmd         dmCmd_MemCmdP0;
   DmSts         dmSts_MemWrStsP0;
   DmSts         dmSts_MemRdStsP0;
   Axis<512>     memP0;
@@ -111,29 +110,138 @@ int main() {
   DUT
   assert(DIAG_STAT_OUT = 0b10);
 
-  DUT
-  sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemWrCmdP0);
-  assert(dmCmd_MemWrCmdP0.btt == CHECK_CHUNK_SIZE); 
-  assert(dmCmd_MemWrCmdP0.saddr == 0x0); 
-  assert(dmCmd_MemWrCmdP0.type == 1 && dmCmd_MemWrCmdP0.dsa == 0 && dmCmd_MemWrCmdP0.eof == 1 && dmCmd_MemWrCmdP0.drr == 0 && dmCmd_MemWrCmdP0.tag == 0x7);
-  
-  DUT 
-  sROL_Shl_Mem_WriteP0.read(memP0);
-  //printf("tdata: 0x64%llX)\n", (uint512_t) ((ap_uint<512>) memP0.tdata));
-  printf("tkeep: 0x%llX\n", (uint64_t) memP0.tkeep);
-  assert(memP0.tlast == 0);
-  //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
-  assert(memP0.tkeep == 0xffffffffffffffff);
-  currentMemPattern = 1;
-  assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
+  for(int j = 0; j<3; j++)
+  {
 
-  DUT
-  sROL_Shl_Mem_WriteP0.read(memP0);
-  assert(memP0.tlast == 0);
-  //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
-  assert(memP0.tkeep == 0xffffffffffffffff);
-  currentMemPattern = 2;
-  assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
+    DUT
+    sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemCmdP0);
+    assert(dmCmd_MemCmdP0.btt == CHECK_CHUNK_SIZE); 
+    assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE*j); 
+    assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
+
+
+    //Pattern
+    for(int i = 0; i < 64; i++)
+    {
+      DUT 
+        sROL_Shl_Mem_WriteP0.read(memP0);
+      //printf("tdata: 0x64%llX)\n", (uint512_t) ((ap_uint<512>) memP0.tdata));
+      //printf("tkeep: 0x%llX\n", (uint64_t) memP0.tkeep);
+      if(i < 63)
+      {
+        assert(memP0.tlast == 0);
+      } else {
+        assert(memP0.tlast == 1);
+      }
+      //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+      assert(memP0.tkeep == 0xffffffffffffffff);
+      currentMemPattern = i+1;
+      assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
+
+      sSHL_Rol_Mem_ReadP0.write(memP0);
+
+    }
+
+    dmSts_MemWrStsP0.tag = 7;
+    dmSts_MemWrStsP0.okay = 1;
+    dmSts_MemWrStsP0.interr = 0;
+    dmSts_MemWrStsP0.slverr = 0;
+    dmSts_MemWrStsP0.decerr = 0;
+    sSHL_Rol_Mem_WrStsP0.write(dmSts_MemWrStsP0);
+    DUT
+      printf("debug_out: 0x%x\n", (uint16_t) debug_out);
+    assert((debug_out & 0xFF) == 0x0087);
+
+    DUT
+      sROL_Shl_Mem_RdCmdP0.read(dmCmd_MemCmdP0);
+    assert(dmCmd_MemCmdP0.btt == CHECK_CHUNK_SIZE); 
+    assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE * j); 
+    assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
+
+    for(int i = 0; i < 64; i++)
+    {
+      DUT
+    }
+
+    dmSts_MemRdStsP0.tag = 7;
+    dmSts_MemRdStsP0.okay = 1;
+    dmSts_MemRdStsP0.interr = 0;
+    dmSts_MemRdStsP0.slverr = 0;
+    dmSts_MemRdStsP0.decerr = 0;
+    sSHL_Rol_Mem_RdStsP0.write(dmSts_MemWrStsP0);
+    DUT
+    printf("debug_out: 0x%x\n", (uint16_t) debug_out);
+    assert(debug_out == 0x8787);
+
+    printf("%d. Write & Read Pattern completed.\n", j);
+
+
+    DUT
+    sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemCmdP0);
+    assert(dmCmd_MemCmdP0.btt == CHECK_CHUNK_SIZE); 
+    assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE*j); 
+    assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
+
+
+    //Antipattern
+    for(int i = 0; i < 64; i++)
+    {
+      DUT 
+        sROL_Shl_Mem_WriteP0.read(memP0);
+      //printf("tdata: 0x64%llX)\n", (uint512_t) ((ap_uint<512>) memP0.tdata));
+      //printf("tkeep: 0x%llX\n", (uint64_t) memP0.tkeep);
+      if(i < 63)
+      {
+        assert(memP0.tlast == 0);
+      } else {
+        assert(memP0.tlast == 1);
+      }
+      //assert(memP0.tkeep == (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF) );
+      assert(memP0.tkeep == 0xffffffffffffffff);
+      currentMemPattern = ~(i+1);
+      assert(memP0.tdata == (ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern));
+
+      sSHL_Rol_Mem_ReadP0.write(memP0);
+
+    }
+
+    dmSts_MemWrStsP0.tag = 7;
+    dmSts_MemWrStsP0.okay = 1;
+    dmSts_MemWrStsP0.interr = 0;
+    dmSts_MemWrStsP0.slverr = 0;
+    dmSts_MemWrStsP0.decerr = 0;
+    sSHL_Rol_Mem_WrStsP0.write(dmSts_MemWrStsP0);
+    DUT
+      printf("debug_out: 0x%x\n", (uint16_t) debug_out);
+    assert(debug_out == 0x8787);
+
+    DUT
+      sROL_Shl_Mem_RdCmdP0.read(dmCmd_MemCmdP0);
+    assert(dmCmd_MemCmdP0.btt == CHECK_CHUNK_SIZE); 
+    assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE * j); 
+    assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
+
+    for(int i = 0; i < 64; i++)
+    {
+      DUT
+    }
+
+    dmSts_MemRdStsP0.tag = 7;
+    dmSts_MemRdStsP0.okay = 1;
+    dmSts_MemRdStsP0.interr = 0;
+    dmSts_MemRdStsP0.slverr = 0;
+    dmSts_MemRdStsP0.decerr = 0;
+    sSHL_Rol_Mem_RdStsP0.write(dmSts_MemWrStsP0);
+    DUT
+      printf("debug_out: 0x%x\n", (uint16_t) debug_out);
+    assert(debug_out == 0x8787);
+
+    printf("%d. Write & Read Antipattern completed.\n", j);
+
+    //Idle State
+    DUT
+
+  }
 
 
   printf("------ DONE ------\n");

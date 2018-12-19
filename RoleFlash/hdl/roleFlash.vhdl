@@ -1193,13 +1193,15 @@ begin
 
   sReadTlastAsVector(0) <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;
   poROL_Shl_Mem_Mp0_Axis_Write_tlast <= sWriteTlastAsVector(0);
-  sResetAsVector(0) <= piSHL_156_25Rst;
+  --sResetAsVector(0) <= piSHL_156_25Rst;
+  sResetAsVector(0) <= piSHL_ROL_EMIF_2B_Reg(0);
 
   MEM_TEST: MemTestFlash 
     port map(
            ap_clk                     => piSHL_156_25Clk,
-           --ap_rst_n                   => (not piSHL_156_25Rst),
-           ap_rst_n                   => '1',
+           ap_rst_n                   => (not piSHL_156_25Rst),
+           --ap_rst_n                   => '1',
+           ap_start                   => '1',
            piSysReset_V               => sResetAsVector,
            piSysReset_V_ap_vld        => '1',
            piMMIO_diag_ctrl_V         => piDIAG_CTRL,
