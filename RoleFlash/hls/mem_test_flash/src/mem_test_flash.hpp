@@ -5,23 +5,16 @@
 // *
 // *----------------------------------------------------------------------------
 // *
-// * Title : Toplevel of the echo application in store-and-forward mode.
+// * Title : Memory test in HSL using AXI DataMover 
 // *
-// * File    : echo_store_and_forward.hpp
-// *
-// * Created : Apr. 2018
-// * Authors : Francois Abel <fab@zurich.ibm.com>
+// * Created : Dec. 2018
+// * Authors : Burkhard Ringlein (NGL@zurich.ibm.com)
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2017.4 (64-bit)
 // * Depends : None
 // *
-// * Description : This version of the role implements an echo application made
-// *    of a UDP loopback and a TCP loopback connections. The role is said to be
-// *    operating in "store-and-forward" mode because every received packet is
-// *    first stored in the DDR4 before being read from that memory and being
-// *    sent back.          
-// * 
+// *
 // *****************************************************************************
 
 #include <stdint.h>
@@ -29,7 +22,6 @@
 #include <hls_stream.h>
 #include "ap_int.h"
 
-// Not used:  #include "ap_axi_sdata.h"
 
 using namespace std;
 using namespace hls;

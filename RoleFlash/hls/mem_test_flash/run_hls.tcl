@@ -3,14 +3,12 @@
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
 # * Created : Jun 2017
-# * Authors : Burkhard Ringlein
+# * Authors : Burkhard Ringlein (NGL@zurich.ibm.com)
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the "Castor" SMC
-# *   process used by the SHELL of a cloudFPGA module.
-# *   project.
+# * Description : A Tcl script for the HLS batch syhthesis 
 # * 
 # * Synopsis : vivado_hls -f <this_file>
-# *
+# * Version: 2.0
 # *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
@@ -61,7 +59,7 @@ add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
 add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 
 #for DEBUG flag 
-#add_files -tb src/smc.cpp -cflags "-DDEBUG"
+#add_files -tb src/${appName}.cpp -cflags "-DDEBUG"
 add_files -tb tb/tb_${appName}.cpp 
 
 
