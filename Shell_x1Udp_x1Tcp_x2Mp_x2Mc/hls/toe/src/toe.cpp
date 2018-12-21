@@ -88,7 +88,7 @@ void pTimers(
         stream<ap_uint<16> >            &rxEng2timer_setCloseTimer,
         stream<ap_uint<16> >            &timer2stateTable_releaseState,
         stream<event>                   &timer2eventEng_setEvent,
-        stream<openStatus>              &rtTimer2txApp_notification,
+        stream<OpenStatus>              &rtTimer2txApp_notification,
         stream<appNotification>         &rtTimer2rxApp_notification)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -421,7 +421,7 @@ void toe(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        ap_uint<32>                         piMMIO_This_IpAddr,
+        AxiIp4Addr                           piMMIO_This_IpAddr,
 
         //------------------------------------------------------
         //-- IPRX / This / IP Rx / Data Interface
@@ -457,8 +457,8 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / This / Tx PATH / Ctrl Interfaces
         //------------------------------------------------------
-        stream<ipTuple>                     &siTRIF_This_OpnReq,
-        stream<openStatus>                  &soTHIS_Trif_OpnSts,
+        stream<AxiSockAddr>                 &siTRIF_This_OpnReq,
+        stream<OpenStatus>                  &soTHIS_Trif_OpnSts,
         stream<ap_uint<16> >                &siTRIF_This_ClsReq,
         //-- Not USed                       &soTHIS_Trif_ClsSts,
 
@@ -634,7 +634,7 @@ void toe(
     #pragma HLS stream         variable=sRXeToRXa_Notification    depth=4
     #pragma HLS DATA_PACK      variable=sRXeToRXa_Notification
 
-    static stream<openStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
+    static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
     #pragma HLS DATA_PACK      variable=sRXeToTAi_SessOpnSts
 
@@ -679,7 +679,7 @@ void toe(
     static stream<ap_uint<1> >          sTAiToPRt_ActPortStateReq ("sTAiToPRt_ActPortStateReq");
     #pragma HLS stream         variable=sTAiToPRt_ActPortStateReq depth=4
 
-    static stream<fourTuple>            sTAiToSLc_SessLookupReq   ("sTAiToSLc_SessLookupReq");
+    static stream<AxiSocketPair>        sTAiToSLc_SessLookupReq   ("sTAiToSLc_SessLookupReq");
     #pragma HLS DATA_PACK      variable=sTAiToSLc_SessLookupReq
     #pragma HLS stream         variable=sTAiToSLc_SessLookupReq   depth=4
 
@@ -832,7 +832,7 @@ void toe(
 
 
 
-    static stream<openStatus>               rtTimer2txApp_notification("rtTimer2txApp_notifcation");
+    static stream<OpenStatus>               rtTimer2txApp_notification("rtTimer2txApp_notifcation");
     #pragma HLS stream variable=rtTimer2txApp_notification depth=4
     #pragma HLS DATA_PACK variable=rtTimer2txApp_notification
 

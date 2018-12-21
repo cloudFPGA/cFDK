@@ -32,9 +32,11 @@ struct mergedInput
 /** @defgroup retransmit_timer Retransmit Timer
  *
  */
-void retransmit_timer(  stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRetransmitTimer,
-                        stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
-                        stream<event>&                      rtTimer2eventEng_setEvent,
-                        stream<ap_uint<16> >&               rtTimer2stateTable_releaseState,
-                        stream<openStatus>&                 rtTimer2txApp_notification,
-                        stream<appNotification>&            rtTimer2rxApp_notification);
+void retransmit_timer(
+        stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRetransmitTimer,
+        stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
+        stream<event>&                      rtTimer2eventEng_setEvent,
+        stream<ap_uint<16> >&               rtTimer2stateTable_releaseState,
+        stream<OpenStatus>&                 rtTimer2txApp_notification,
+        stream<appNotification>&            rtTimer2rxApp_notification
+);

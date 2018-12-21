@@ -20,6 +20,7 @@
 
 // Forward declarations
 //-----------------------
+class AxiSockAddr;
 class AxiSocketPair;
 class AxiWord;
 class DmCmd;
@@ -72,6 +73,7 @@ extern bool gTraceEvent;
  *************************************************************************/
 void printAxiWord    (const char *callerName, AxiWord       chunk);
 void printDmCmd      (const char *callerName, DmCmd         dmCmd);
+void printSockAddr   (const char *callerName, AxiSockAddr   sockAddr);
 void printSockPair   (const char *callerName, AxiSocketPair sockPair);
 
 ap_uint<16> swapWord  (ap_uint<16> inpWord);        // [FIXME - To be replaced w/ byteSwap16]

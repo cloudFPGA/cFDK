@@ -183,10 +183,10 @@ typedef bool ValBit;    // Valid bit  : Must go along with something to validate
  *     Rx and Tx interfaces into 8 lanes (see PG157). The result of this
  *     division into lanes, is that the IPv4 and TCP fields end up being
  *     stored in LITTLE-ENDIAN  order instead of the initial big-endian
- *     order used to transmit bytes over the media. As an exemple, consider
+ *     order used to transmit bytes over the media. As an example, consider
  *     the 16-bit field "Total Length" of an IPv4 packet and let us assume
  *     that this length is 40. This field will be transmitted on the media
- *     in big-endian order as '0x00' followed by '0x28'. Finally, the same
+ *     in big-endian order as '0x00' followed by '0x28'. However, the same
  *     field will end up being ordered in little-endian mode (.i.e, 0x2800)
  *     by the AXI4-Stream interface of the 10GbE MAC.
  *
@@ -248,7 +248,7 @@ typedef ap_uint<64> AxiTcpData;        // TCP Data stream
  *************************************************************************/
 
 /********************************************************
- * IP4 - Little-Endian Type Definitions (as used by HLS)
+ * IP4 - Default Type Definitions (as used by HLS)
  ********************************************************/
 typedef ap_uint< 4> Ip4Version;     // IP4 Version
 typedef ap_uint< 4> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
@@ -278,7 +278,7 @@ typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4P
  *************************************************************************/
 
 /********************************************************
- * TCP - Little-Endian Type Definitions (as used by HLS)
+ * TCP - Default Type Definitions (as used by HLS)
  ********************************************************/
 typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
 typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
@@ -343,6 +343,16 @@ struct fourTuple {
 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
+
+//class SockAddr {   // Socket Address
+// public:
+//    Ip4Addr   addr;   // IPv4 address
+//    TcpPort   port;   // TCP  port
+//    SockAddr() {}
+//    SockAddr(Ip4Address addr, TcpPort port) :
+//        addr(addr), port(port) {}
+//};
+
 
 struct ipTuple
 {
@@ -954,12 +964,25 @@ struct mm_ibtt_status
     ap_uint<1>  eop;
 };
 
+/*** OBSOLETE-20181219 *****
 struct openStatus
 {
 	SessionId   sessionID;
     bool        success;
     openStatus() {}
     openStatus(SessionId id, bool success) :
+        sessionID(id), success(success) {}
+};
+****************************/
+
+// Status returned after an open connection request
+class OpenStatus
+{
+  public:
+    SessionId   sessionID;
+    bool        success;
+    OpenStatus() {}
+    OpenStatus(SessionId id, bool success) :
         sessionID(id), success(success) {}
 };
 
@@ -1002,7 +1025,7 @@ void toe(
         //------------------------------------------------------
         //-- From MMIO Interfaces
         //------------------------------------------------------
-        ap_uint<32>                             piMMIO_This_IpAddr,
+        AxiIp4Addr                               piMMIO_This_IpAddr,
 
         //------------------------------------------------------
         //-- IPRX / This / IP Rx / Data Interface
@@ -1038,8 +1061,8 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / This / Tx PATH / Ctrl Interfaces
         //------------------------------------------------------
-        stream<ipTuple>                         &siTRIF_This_OpnReq,
-        stream<openStatus>                      &soTHIS_Trif_OpnSts,
+        stream<AxiSockAddr>                     &siTRIF_This_OpnReq,
+        stream<OpenStatus>                      &soTHIS_Trif_OpnSts,
         stream<ap_uint<16> >                    &siTRIF_This_ClsReq,
         //-- Not USed                           &soTHIS_Trif_ClsSts,
 
@@ -1075,6 +1098,7 @@ void toe(
         //-- DEBUG / Session Statistics Interfaces
         //------------------------------------------------------
         ap_uint<16>                             &poTHIS_Dbg_SssRelCnt,
-        ap_uint<16>                             &poTHIS_Dbg_SssRegCnt);
+        ap_uint<16>                             &poTHIS_Dbg_SssRegCnt
+);
 
 #endif

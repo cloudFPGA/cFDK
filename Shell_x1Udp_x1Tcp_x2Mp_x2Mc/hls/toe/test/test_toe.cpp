@@ -1045,7 +1045,7 @@ void writeAppTxDataFile(
  * @ingroup test_toe
  ******************************************************************************/
 bool listen(
-        TcpPort           portNum,
+        TcpPort          &portNum,
         stream<TcpPort>  &soTOE_LsnReq,
         stream<bool>     &siTOE_LsnAck)
 {
@@ -1060,8 +1060,8 @@ bool listen(
         if (DEBUG_LEVEL & TRACE_TRIF) {
             printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
                       portNum.to_uint(), portNum.to_uint());
-            listenFsm++;
         }
+        listenFsm++;
         break;
 
     case 1:
@@ -1082,12 +1082,80 @@ bool listen(
     return listenDone;
 }
 
+/*****************************************************************************
+ * @brief Open a new socket and setup connection.
+ *
+ * @param[in]  localSockAddr, The local socket address .
+ * @param[out] txSessIdVector,A vector containing the generated Tx session IDs.
+ * @param[out] soTOE_OpnReq,  TCP open connection request to TOE.
+ * @param[in]  siTOE_OpnSts,  TCP open connection status from TOE.
+ *
+ * @return true if a socket was successfully opened, otherwise false. The
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+bool openCon(
+        TbSockAddr             &localSockAddr,
+        vector<SessionId>      &txSessIdVector,
+        stream<AxiSockAddr>    &soTOE_OpnReq,
+        stream<OpenStatus>     &siTOE_OpnSts)
+{
+
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/socket()");
+
+    for (static int8_t i=0; i<noTxSessions; ++i) {
+        // Define the socket pair involved in the connection
+        TbSockAddr   foreignSockAddr(150*(i+65355), 10*(i+65355));
+        TbSocketPair socketPair(localSockAddr, foreignSockAddr);
+
+
+        //OBSOLETE-20181221 AxiSocketPair axiSocketPair(AxiSockAddr(byteSwap32(localSockAddr.addr),   byteSwap16(localSockAddr.port)),
+        //OBSOLETE-20181221                            AxiSockAddr(byteSwap32(foreignSockAddr.addr), byteSwap16(foreignSockAddr.port)));
+
+        AxiSockAddr axiForeignSockAddr(AxiSockAddr(byteSwap32(foreignSockAddr.addr),
+                                                   byteSwap16(foreignSockAddr.port)));
+
+        static int openFsm = 0;
+
+        switch (openFsm) {
+
+        case 0:
+            soTOE_OpnReq.write(axiForeignSockAddr);
+            if (DEBUG_LEVEL & TRACE_TRIF) {
+                printInfo(myName, "Request to open the following socket: \n");
+                printSockAddr(myName, axiForeignSockAddr);
+            }
+            openFsm++;
+            break;
+
+        case 1:
+            if (!siTOE_OpnSts.empty()) {
+                OpenStatus openConStatus = siTOE_OpnSts.read();
+                if(openConStatus.success) {
+                    txSessIdVector.push_back(openConStatus.sessionID);
+                    if (DEBUG_LEVEL & TRACE_TRIF)
+                        printInfo(myName, "Session #%d is now opened.\n", openConStatus.sessionID.to_uint());
+                }
+                else {
+                    printWarn(myName, "Session #%d is not yet opened.\n", openConStatus.sessionID.to_uint());
+                }
+                openFsm++;
+            }
+            break;
+        }
+    }
+
+    return true;
+}
+
+
 
 /*****************************************************************************
  * @brief Emulates the behavior of the TCP Role Interface (TRIF).
  *             This process implements Iperf.
  *
  * @param[in]  testTxPath,   Indicates if the Tx path is to be tested.
+ * @param[in]  myIpAddress,  The local IP address used by the TOE.
  * @param[in]  appRxFile,    A ref to the input Rx application file to read.
  * @param[in]  appTxFile,    A ref to the output Tx application file to write.
  * @param[in/out] appTxBytCounter, A ref to the counter of bytes from TOE to APP.
@@ -1104,7 +1172,7 @@ bool listen(
  * @details:
  *
  * *
- * @remark:
+ * @remark: [FIXME - Not accurate. To be updated]
  *  By default, the Iperf client connects to the Iperf server on the TCP port
  *   5001 and the bandwidth displayed by Iperf is the bandwidth from the client
  *   to the server.
@@ -1116,6 +1184,7 @@ bool listen(
  ******************************************************************************/
 void pTRIF(
         bool                    &testTxPath,
+        Ip4Address              &myIpAddress,
         ifstream                &appRxFile,
         ofstream                &appTxFile,
         int                     &appTxBytCounter,
@@ -1125,21 +1194,26 @@ void pTRIF(
         stream<appReadRequest>  &soTOE_DReq,
         stream<SessionId>       &siTOE_Meta,
         stream<AxiWord>         &siTOE_Data,
-        stream<ipTuple>         &soTOE_OpnReq,
-        stream<openStatus>      &siTOE_OpnSts,
+        stream<AxiSockAddr>     &soTOE_OpnReq,
+        stream<OpenStatus>      &siTOE_OpnSts,
         stream<ap_uint<16> >    &soTOE_ClsReq)
 {
-    static bool         listenDone        = false;
-    static bool         runningExperiment = false;
+    static bool         listenDone         = false;
+    static bool         openDone           = false;
+    static bool         runningExperiment  = false;
 
     static bool         appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
     static unsigned int appRxIdleCycReq = 0;     // The requested number of idle cycles
     static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
 
-    openStatus          newConStatus;
+    OpenStatus          newConStatus;
     appNotification     notification;
     ipTuple             tuple;
-    vector<ap_uint<16> > txSessionIDs;  // The Tx session ID that is sent from TRIF/Meta to TOE/Meta
+    vector<SessionId>   txSessIdVector;  // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
+
+    //Ip4Addr  openAddr = 0x0A0A0A0A;   // 10.10.10.10
+    //TcpPort  openPort = 0x89;         // #137
+    //TbSockAddr(openAddr, openPort);
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
 
@@ -1151,27 +1225,21 @@ void pTRIF(
         listenDone = listen(listeningPort, soTOE_LsnReq, siTOE_LsnAck);
     }
 
-    // In case we are connecting back
-    if (!siTOE_OpnSts.empty()) {
-        openStatus tempStatus = siTOE_OpnSts.read();
-        if(tempStatus.success) {
-            txSessionIDs.push_back(tempStatus.sessionID);
-            if (DEBUG_LEVEL & TRACE_TRIF)
-                printInfo(myName, "Session #%d is now opened.\n", tempStatus.sessionID.to_uint());
-        }
-        else {
-            if (DEBUG_LEVEL & TRACE_TRIF)
-                printWarn(myName, "Session #%d is not yet opened.\n", tempStatus.sessionID.to_uint());
-        }
+    //------------------------------------------------
+    //-- STEP-2 : REQUEST TO OPEN CONNECTION(S)
+    //------------------------------------------------
+    TbSockAddr  localTbSockAddr(myIpAddress, listeningPort);
+    if (!openDone) {
+        openDone = openCon(localTbSockAddr, txSessIdVector, soTOE_OpnReq, siTOE_OpnSts);
     }
 
     //-----------------------------------------------------
-    //-- STEP-2 : READ THE APP RX FILE AND FEED THE TOE
+    //-- STEP-3 : READ THE APP RX FILE AND FEED THE TOE
     //-----------------------------------------------------
     // Only if Tx test mode is enabled and after a session has been opened on the Tx Side
-    if (testTxPath == true && txSessionIDs.size() > 0) {
+    if (testTxPath == true && txSessIdVector.size() > 0) {
 
-        //-- STEP-2.0 : RETURN IF IDLING IS REQUESTED -----
+        //-- STEP-3.0 : RETURN IF IDLING IS REQUESTED -----
         if (appRxIdlingReq == true) {
             if (appRxIdleCycCnt >= appRxIdleCycReq) {
                 appRxIdleCycCnt = 0;
@@ -1181,7 +1249,7 @@ void pTRIF(
                 appRxIdleCycCnt++;
         }
 
-        //-- STEP-2.1 : FEED the APP Rx INTERFACE ---------
+        //-- STEP-3.1 : FEED the APP Rx INTERFACE ---------
         //TODO-TODAY feedTOE(appRxPacketizer, appRxPktCounter, soTOE_Data, sessionList);
 
          //-- STEP-2.2 : READ THE APP RX FILE -------------
@@ -1235,7 +1303,7 @@ void pTRIF(
                     else {
                         // This is the first chunk of a frame.
                         // A Tx data request (i.e. a metadata) must be sent by TRIF to TOE
-                    	//TODO-TODAY soTOE_Meta.write(txSessionIDs[currTxSessionID]);
+                    	//TODO-TODAY soTOE_Meta.write(txSessIdVector[currTxSessionID]);
                     	//TODO-TODAY currTxSessionID == noTxSessions - 1 ? currTxSessionID = 0 : currTxSessionID++;
 					}
                     firstWordFlag = false;
@@ -1260,7 +1328,7 @@ void pTRIF(
     }
 
     //------------------------------------------------
-    //-- STEP-3 : READ NOTIFICATION
+    //-- STEP-4 : READ NOTIFICATION
     //------------------------------------------------
     if (!siTOE_Notif.empty()) {
         siTOE_Notif.read(notification);
@@ -1272,7 +1340,7 @@ void pTRIF(
     }
 
     //------------------------------------------------
-    //-- STEP-4 : DRAIN TOE-->TRIF
+    //-- STEP-5 : DRAIN TOE-->TRIF
     //------------------------------------------------
     //-- IPERF PROCESSING
     static enum FsmState {WAIT_SEG=0, CONSUME, HEADER_2, HEADER_3} fsmState = WAIT_SEG;
@@ -1391,8 +1459,8 @@ int main(int argc, char *argv[]) {
     stream<TcpPort>                     sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
     stream<bool>                        sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
 
-    stream<ipTuple>                     sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
-    stream<openStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
+    stream<AxiSockAddr>                 sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
+    stream<OpenStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
 
     stream<appNotification>             sTOE_Trif_Notif     ("sTOE_Trif_Notif");
 
@@ -1426,12 +1494,13 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     int             nrErr;
 
-    bool            firstWordFlag;
+    //OBSOLETE-20181219 bool            firstWordFlag;
 
     Ip4Word         ipRxData;    // An IP4 chunk
     AxiWord         tcpTxData;    // A  TCP chunk
 
-    ap_uint<32>     mmioIpAddr = 0x01010101;
+    Ip4Address      myIpAddress = 0x01010101;  // [TODO - Make this a parameter of the testbench]
+
     ap_uint<16>     opnSessionCount;
     ap_uint<16>     clsSessionCount;
 
@@ -1573,20 +1642,10 @@ int main(int argc, char *argv[]) {
     printf("#####################################################\n");
     printf("## TESTBENCH STARTS HERE                           ##\n");
     printf("#####################################################\n");
-    gSimCycCnt     = 0;     // Simulation cycle counter as a global variable
-    nrErr          = 0;     // Total number of testbench errors
+    gSimCycCnt = 0;     // Simulation cycle counter as a global variable
+    nrErr      = 0;     // Total number of testbench errors
 
-    firstWordFlag = true;    // AXI-word is first chunk of packet
-
-    if (testTxPath == true) {
-        //-- If the Tx Path will be tested then open a session for testing.
-        for (int8_t i=0; i<noTxSessions; ++i) {
-           // IP address and port to open
-            ipTuple newTuple = {150*(i+65355), 10*(i+65355)};
-            // Write into TOE Tx open request I/F
-            sTRIF_Toe_OpnReq.write(newTuple);
-        }
-    }
+    AxiIp4Addr mmioIpAddr = (AxiIp4Addr)(byteSwap32(myIpAddress));
 
     //-----------------------------------------------------
     //-- MAIN LOOP
@@ -1656,7 +1715,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
         pTRIF(
-            testTxPath,
+            testTxPath,       myIpAddress,
             appRxFile,        appTxFile,
             appTxBytCounter,
             sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,

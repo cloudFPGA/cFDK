@@ -21,7 +21,7 @@ void retransmit_timer(  stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRet
                         stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
                         stream<event>&                      rtTimer2eventEng_setEvent,
                         stream<ap_uint<16> >&               rtTimer2stateTable_releaseState,
-                        stream<openStatus>&                 rtTimer2txApp_notification,
+                        stream<OpenStatus>&                 rtTimer2txApp_notification,
                         stream<appNotification>&            rtTimer2rxApp_notification) {
 #pragma HLS PIPELINE II=1
 //#pragma HLS INLINE
@@ -117,7 +117,7 @@ void retransmit_timer(  stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRet
                         currEntry.retries = 0;
                         rtTimer2stateTable_releaseState.write(currID);
                         if (currEntry.type == SYN)
-                            rtTimer2txApp_notification.write(openStatus(currID, false));
+                            rtTimer2txApp_notification.write(OpenStatus(currID, false));
                         else
                             rtTimer2rxApp_notification.write(appNotification(currID, true)); //TIME_OUT
                     }

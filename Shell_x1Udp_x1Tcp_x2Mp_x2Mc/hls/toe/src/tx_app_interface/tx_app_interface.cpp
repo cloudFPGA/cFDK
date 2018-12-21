@@ -1,12 +1,39 @@
+/*****************************************************************************
+ * @file       : tx_app_interface.cpp
+ * @brief      : Tx Application Interface (TAi)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *****************************************************************************/
+
 #include "tx_app_interface.hpp"
 
 using namespace hls;
 
-void txAppStatusHandler(stream<DmSts>&                  txBufferWriteStatus,
-                        stream<event>&                  tasi_eventCacheFifo,
-                        stream<txAppTxSarPush>&         txApp2txSar_app_push,
-                        stream<event>&                  txAppStream2eventEng_setEvent){
-#pragma HLS pipeline II=1
+
+/*****************************************************************************
+ * @brief Tx Application Status Handler (Tas).
+ *
+ * @param[]
+ * @param[]
+ * @param[]
+ *
+ * @details
+ *
+ * @ingroup tx_app_interface
+ ******************************************************************************/
+void txAppStatusHandler(
+        stream<DmSts>           &txBufferWriteStatus,
+        stream<event>           &tasi_eventCacheFifo,
+        stream<txAppTxSarPush>  &txApp2txSar_app_push,
+        stream<event>           &txAppStream2eventEng_setEvent)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS pipeline II=1
 
     static ap_uint<2> tash_state = 0;
     static event ev;
@@ -53,10 +80,24 @@ void txAppStatusHandler(stream<DmSts>&                  txBufferWriteStatus,
 }
 
 
-void tx_app_table(  stream<txSarAckPush>&       txSar2txApp_ack_push,
-                    stream<txAppTxSarQuery>&    txApp_upd_req,
-                    stream<txAppTxSarReply>&    txApp_upd_rsp) {
-#pragma HLS PIPELINE II=1
+/*****************************************************************************
+ * @brief Tx Application Table (Tab).
+ *
+ * @param[]
+ * @param[]
+ * @param[]
+ *
+ * @details
+ *
+ * @ingroup tx_app_interface
+ ******************************************************************************/
+void tx_app_table(
+        stream<txSarAckPush>&       txSar2txApp_ack_push,
+        stream<txAppTxSarQuery>&    txApp_upd_req,
+        stream<txAppTxSarReply>&    txApp_upd_rsp)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
 
     static txAppTableEntry app_table[MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=app_table inter false
@@ -83,6 +124,33 @@ void tx_app_table(  stream<txSarAckPush>&       txSar2txApp_ack_push,
 
 }
 
+
+/*****************************************************************************
+ * @brief The tx_app_interface (TAi) is front-end of the TCP Role I/F (TRIF).
+ *
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[in]  siTRIF_OpnReq, Open connection request from TCP Role I/F (TRIF).
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[out] soSLc_SessLookupReq, Session lookup request to Session Lookup Controller(SLc).
+ *
+ * @details
+ *
+ * @ingroup tx_app_interface
+ ******************************************************************************/
 void tx_app_interface(
         stream<ap_uint<16> >           &appTxDataReqMetadata,
         stream<AxiWord>                &appTxDataReq,
@@ -90,12 +158,12 @@ void tx_app_interface(
         stream<txSarAckPush>           &txSar2txApp_ack_push,
         stream<DmSts>                  &txBufferWriteStatus,
 
-        stream<ipTuple>                &appOpenConnReq,
+        stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &sLookup2txApp_rsp,
         stream<ap_uint<16> >           &portTable2txApp_port_rsp,
         stream<sessionState>           &stateTable2txApp_upd_rsp,
-        stream<openStatus>             &conEstablishedFifo,
+        stream<OpenStatus>             &conEstablishedFifo,
 
         stream<ap_int<17> >            &appTxDataRsp,
         stream<ap_uint<16> >           &txApp2stateTable_req,
@@ -103,12 +171,12 @@ void tx_app_interface(
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<txAppTxSarPush>         &txApp2txSar_push,
 
-        stream<openStatus>             &appOpenConnRsp,
-        stream<fourTuple>              &txApp2sLookup_req,
+        stream<OpenStatus>             &appOpenConnRsp,
+        stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ap_uint<1> >            &txApp2portTable_port_req,
         stream<stateQuery>             &txApp2stateTable_upd_req,
         stream<event>                  &txApp2eventEng_setEvent,
-        stream<openStatus>             &rtTimer2txApp_notification,
+        stream<OpenStatus>             &rtTimer2txApp_notification,
         ap_uint<32>                     regIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -153,22 +221,24 @@ void tx_app_interface(
             txAppStream2event_mergeEvent);
 
     // TX Application Interface
-    tx_app_if(  appOpenConnReq,
-                appCloseConnReq,
-                sLookup2txApp_rsp,
-                portTable2txApp_port_rsp,
-                stateTable2txApp_upd_rsp,
-                conEstablishedFifo,
-                appOpenConnRsp,
-                txApp2sLookup_req,
-                txApp2portTable_port_req,
-                txApp2stateTable_upd_req,
-                txApp2eventEng_mergeEvent,
-                rtTimer2txApp_notification,
-                regIpAddress);
+    tx_app_if(
+            siTRIF_OpnReq,
+            appCloseConnReq,
+            sLookup2txApp_rsp,
+            portTable2txApp_port_rsp,
+            stateTable2txApp_upd_rsp,
+            conEstablishedFifo,
+            appOpenConnRsp,
+            soSLc_SessLookupReq,
+            txApp2portTable_port_req,
+            txApp2stateTable_upd_req,
+            txApp2eventEng_mergeEvent,
+            rtTimer2txApp_notification,
+            regIpAddress);
 
     // TX App Meta Table
-    tx_app_table(   txSar2txApp_ack_push,
-                    txApp2txSar_upd_req,
-                    txSar2txApp_upd_rsp);
+    tx_app_table(
+            txSar2txApp_ack_push,
+            txApp2txSar_upd_req,
+            txSar2txApp_upd_rsp);
 }

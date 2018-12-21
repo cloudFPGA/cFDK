@@ -474,8 +474,8 @@ bool IpPacket::isACK() {
 
 /*******************************************************************
  * @brief Class Testbench Socket Address
- *  This class differs from the class 'SockAddr' used by TOE from an
- *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  This class differs from the class 'AxiSockAddr' used by TOE from
+ *  an ENDIANESS point of view. This class is ENDIAN independent as
  *  opposed to the one used by TOE which stores its data members in
  *  LITTLE-ENDIAN order.
  *******************************************************************/

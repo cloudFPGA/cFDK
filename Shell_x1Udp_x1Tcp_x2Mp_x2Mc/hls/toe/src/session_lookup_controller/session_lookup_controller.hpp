@@ -170,20 +170,20 @@ struct revLupInsert
  * @ingroup session_lookup_controller
  *****************************************************************************/
 void session_lookup_controller(
-        stream<sessionLookupQuery>&         rxEng2sLookup_req,
-        stream<sessionLookupReply>&         sLookup2rxEng_rsp,
-        stream<ap_uint<16> >&               stateTable2sLookup_releaseSession,
-        stream<ap_uint<16> >&               sLookup2portTable_releasePort,
-        stream<fourTuple>&                  txApp2sLookup_req,
-        stream<sessionLookupReply>&         sLookup2txApp_rsp,
-        stream<ap_uint<16> >&               txEng2sLookup_rev_req,
-        stream<fourTuple>&                  sLookup2txEng_rev_rsp,
-        stream<rtlSessionLookupRequest>&    sessionLookup_req,
-        stream<rtlSessionLookupReply>&      sessionLookup_rsp,
-        stream<rtlSessionUpdateRequest>&    sessionUpdate_req,
-        //stream<rtlSessionUpdateRequest>&  sessionInsert_req,
-        //stream<rtlSessionUpdateRequest>&  sessionDelete_req,
-        stream<rtlSessionUpdateReply>&      sessionUpdate_rsp,
-        ap_uint<16>                         &poSssRelCnt,
-        ap_uint<16>                         &poSssRegCnt
+        stream<sessionLookupQuery>         &siRXe_SessLookupReq,
+        stream<sessionLookupReply>         &soRXe_SessLookupRep,
+        stream<ap_uint<16> >               &stateTable2sLookup_releaseSession,
+        stream<ap_uint<16> >               &sLookup2portTable_releasePort,
+        stream<AxiSocketPair>              &siTAi_SessLookupReq,
+        stream<sessionLookupReply>         &soTAi_SessLookupRep,
+        stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
+        stream<fourTuple>                  &sLookup2txEng_rev_rsp,
+        stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
+        stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
+        stream<rtlSessionUpdateRequest>    &sessionUpdate_req,
+        //stream<rtlSessionUpdateRequest>  &sessionInsert_req,
+        //stream<rtlSessionUpdateRequest>  &sessionDelete_req,
+        stream<rtlSessionUpdateReply>      &sessionUpdate_rsp,
+        ap_uint<16>                        &poSssRelCnt,
+        ap_uint<16>                        &poSssRegCnt
 );

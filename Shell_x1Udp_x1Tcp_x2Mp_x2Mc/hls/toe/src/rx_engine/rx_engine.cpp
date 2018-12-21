@@ -918,7 +918,7 @@ void pFiniteStateMachine(
         stream<rxRetransmitTimerUpdate>     &soTIm_ClearReTxTimer,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
-        stream<openStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
+        stream<OpenStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
         stream<event>                       &soEVe_Event,
         stream<CmdBit>                      &soTsd_DropCmd,
         stream<DmCmd>                       &soMwr_WrCmd,
@@ -1156,7 +1156,7 @@ void pFiniteStateMachine(
                     soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionID));
 
                     soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, ESTABLISHED, 1));
-                    soTAi_SessOpnSts.write(openStatus(fsm_meta.sessionID, true));
+                    soTAi_SessOpnSts.write(OpenStatus(fsm_meta.sessionID, true));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
                     // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
@@ -1255,7 +1255,7 @@ void pFiniteStateMachine(
                     	// Check if matching SYN
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // Tell application, could not open connection
-                            soTAi_SessOpnSts.write(openStatus(fsm_meta.sessionID, false));
+                            soTAi_SessOpnSts.write(OpenStatus(fsm_meta.sessionID, false));
                             soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
                             soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                         }
@@ -1679,7 +1679,7 @@ void rx_engine(
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,
-        stream<openStatus>              &soTAi_SessOpnSts,
+        stream<OpenStatus>              &soTAi_SessOpnSts,
         stream<appNotification>         &soRAi_RxNotif,
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxiWord>                 &soMEM_WrData,

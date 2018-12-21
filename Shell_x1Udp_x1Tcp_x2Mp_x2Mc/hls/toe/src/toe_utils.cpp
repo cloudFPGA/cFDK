@@ -159,4 +159,16 @@ void printSockPair(const char *callerName, AxiSocketPair sockPair)
         sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
 }
 
+/*****************************************************************************
+ * @brief Print a socket address (used for debugging).
+ *
+ * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
+ * @param[in] sockAddr,     the socket address to display.
+ *****************************************************************************/
+void printSockAddr(const char *callerName, AxiSockAddr sockAddr)
+{
+    printInfo(callerName, "SocketAddr {Src,Dst} = {0x%8.8X,0x%4.4X} \n",
+        sockAddr.addr.to_uint(), sockAddr.port.to_uint());
+}
+
 
