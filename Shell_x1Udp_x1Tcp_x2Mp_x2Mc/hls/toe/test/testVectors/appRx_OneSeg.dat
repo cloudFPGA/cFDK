@@ -1,0 +1,16 @@
+#
+# @file  : appRx_OneSeg.dat
+# @brief : A unique TCP segment for the Rx Application I/F of TOE.
+#
+
+C 350
+
+W 200
+
+# STEP-1: TCP DATA SEGMENT TRANSFER ========================
+0101010101010101 0 FF
+0202020202020202 0 FF
+0303030303030303 0 FF
+0404040404040404 0 FF
+0505050505050505 1 FF
+
