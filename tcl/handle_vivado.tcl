@@ -216,7 +216,6 @@ if { $argc > 0 } {
               my_info_puts "The argument \'insert_ila\' is set."
             }
         } 
-        } 
     }
 }
 
@@ -569,13 +568,13 @@ if { ${synth} } {
         # Reset the previous run 'synth_1' before launching a new one
     }
     
-    #reset_run synth_1
+    reset_run synth_1
 
-    #launch_runs synth_1 -jobs 8
-    #wait_on_run synth_1 
+    launch_runs synth_1 -jobs 8
+    wait_on_run synth_1 
 
     #secureSynth
-    guidedSynth
+    #guidedSynth
 
     if { ! $forceWithoutBB } { 
       open_run synth_1 -name synth_1
@@ -680,8 +679,6 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     #-------------------------------------------------------------------------------
     set implObj [ get_runs impl_1 ]
     
-    #reset_run impl_1
-    
     if { ! $impl_opt } {
       set_property strategy Flow_RuntimeOptimized ${implObj}
       my_puts "Flow_RuntimeOptimized is set"
@@ -706,11 +703,12 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     }
 
 
-    #launch_runs impl_1 -jobs 8
-    #wait_on_run impl_1
+    reset_run impl_1
+    launch_runs impl_1 -jobs 8
+    wait_on_run impl_1
 
     #secureImpl
-    guidedImpl
+    #guidedImpl
    
 
     if { ! $forceWithoutBB } {
