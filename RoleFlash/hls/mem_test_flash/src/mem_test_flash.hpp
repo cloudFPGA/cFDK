@@ -74,11 +74,11 @@ struct DmCmd
   ap_uint<6>    dsa;
   ap_uint<1>    eof;
   ap_uint<1>    drr;
-  ap_uint<32>   saddr;
+  ap_uint<33>   saddr;
   ap_uint<4>    tag;
   ap_uint<4>    rsvd;
   DmCmd() {}
-  DmCmd(ap_uint<32> addr, ap_uint<16> len) :
+  DmCmd(ap_uint<33> addr, ap_uint<16> len) :
     btt(len), type(1), dsa(0), eof(1), drr(0), saddr(addr), tag(0x7), rsvd(0) {}
 };
 
