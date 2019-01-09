@@ -89,7 +89,7 @@ module MemoryChannel_DualPort #(
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
   //---- Stream Read Command -----------------
-  input  [71:0]   piMP0_Mc_Axis_RdCmd_tdata,
+  input  [72:0]   piMP0_Mc_Axis_RdCmd_tdata,
   input           piMP0_Mc_Axis_RdCmd_tvalid,
   output          poMC_Mp0_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -105,7 +105,7 @@ module MemoryChannel_DualPort #(
   output          poMC_Mp0_Axis_Read_tlast,
   output          poMC_Mp0_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [71:0]   piMP0_Mc_Axis_WrCmd_tdata,
+  input  [72:0]   piMP0_Mc_Axis_WrCmd_tdata,
   input           piMP0_Mc_Axis_WrCmd_tvalid,
   output          poMC_Mp0_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -125,7 +125,7 @@ module MemoryChannel_DualPort #(
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------  
   //---- Stream Read Command -----------------
-  input  [71:0]   piMP1_Mc_Axis_RdCmd_tdata,
+  input  [72:0]   piMP1_Mc_Axis_RdCmd_tdata,
   input           piMP1_Mc_Axis_RdCmd_tvalid,
   output          poMC_Mp1_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -141,7 +141,7 @@ module MemoryChannel_DualPort #(
   output          poMC_Mp1_Axis_Read_tlast,
   output          poMC_Mp1_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [71:0]   piMP1_Mc_Axis_WrCmd_tdata,
+  input  [72:0]   piMP1_Mc_Axis_WrCmd_tdata,
   input           piMP1_Mc_Axis_WrCmd_tvalid,
   output          poMC_Mp1_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -193,7 +193,7 @@ module MemoryChannel_DualPort #(
     
   //-- SIGNAL DECLARATIONS : DATA MOVER #0 AND #1 ----------
   wire [0:0]   sDM0_Axi_WrAdd_Id,        sDM1_Axi_WrAdd_Id;
-  wire [31:0]  sDM0_Axi_WrAdd_Addr,      sDM1_Axi_WrAdd_Addr;
+  wire [32:0]  sDM0_Axi_WrAdd_Addr,      sDM1_Axi_WrAdd_Addr;
   wire [7:0]   sDM0_Axi_WrAdd_Len,       sDM1_Axi_WrAdd_Len;
   wire [2:0]   sDM0_Axi_WrAdd_Size,      sDM1_Axi_WrAdd_Size;
   wire [1:0]   sDM0_Axi_WrAdd_Burst,     sDM1_Axi_WrAdd_Burst;
@@ -207,7 +207,7 @@ module MemoryChannel_DualPort #(
   wire         sDM0_Axi_WrRes_Ready,     sDM1_Axi_WrRes_Ready;
 
   wire [0:0]   sDM0_Axi_RdAdd_Id,        sDM1_Axi_RdAdd_Id;
-  wire [31:0]  sDM0_Axi_RdAdd_Addr,      sDM1_Axi_RdAdd_Addr;  
+  wire [32:0]  sDM0_Axi_RdAdd_Addr,      sDM1_Axi_RdAdd_Addr;  
   wire [7:0]   sDM0_Axi_RdAdd_Len,       sDM1_Axi_RdAdd_Len;
   wire [2:0]   sDM0_Axi_RdAdd_Size,      sDM1_Axi_RdAdd_Size;
   wire [1:0]   sDM0_Axi_RdAdd_Burst,     sDM1_Axi_RdAdd_Burst;
@@ -236,7 +236,7 @@ module MemoryChannel_DualPort #(
   wire         sICT_S00_Axi_RdAdd_Ready, sICT_S01_Axi_RdAdd_Ready;
 
   wire [3:0]                            sICT_M00_Axi_WrAdd_Wid;
-  wire [31:0]                           sICT_M00_Axi_WrAdd_Addr;
+  wire [32:0]                           sICT_M00_Axi_WrAdd_Addr;
   wire [7:0]                            sICT_M00_Axi_WrAdd_Len;
   wire [2:0]                            sICT_M00_Axi_WrAdd_Size;
   wire [1:0]                            sICT_M00_Axi_WrAdd_Burst;
@@ -250,7 +250,7 @@ module MemoryChannel_DualPort #(
   wire                                  sICT_M00_Axi_WrRes_Ready;
   
   wire [3:0]                            sICT_M00_Axi_RdAdd_Id;
-  wire [31:0]                           sICT_M00_Axi_RdAdd_Addr;
+  wire [32:0]                           sICT_M00_Axi_RdAdd_Addr;
   wire [7:0]                            sICT_M00_Axi_RdAdd_Len;
   wire [2:0]                            sICT_M00_Axi_RdAdd_Size;
   wire [1:0]                            sICT_M00_Axi_RdAdd_Burst; 
@@ -890,7 +890,7 @@ module MemoryChannel_DualPort #(
     .c0_ddr4_interrupt          (/*po*/),   // left open
     //-- AXI4 Slave Write Address Channel --------
     .c0_ddr4_s_axi_awid         (sICT_M00_Axi_WrAdd_Wid),
-    .c0_ddr4_s_axi_awaddr       ({1'b0, sICT_M00_Axi_WrAdd_Addr}),
+    .c0_ddr4_s_axi_awaddr       (sICT_M00_Axi_WrAdd_Addr),
     .c0_ddr4_s_axi_awlen        (sICT_M00_Axi_WrAdd_Len),
     .c0_ddr4_s_axi_awsize       (sICT_M00_Axi_WrAdd_Size),
     .c0_ddr4_s_axi_awburst      (sICT_M00_Axi_WrAdd_Burst),
@@ -913,7 +913,7 @@ module MemoryChannel_DualPort #(
     .c0_ddr4_s_axi_bvalid       (sMCC_Axi_WrRes_Valid),
     //-- AXI4 Slave Read Address Channel ---------
     .c0_ddr4_s_axi_arid         (sICT_M00_Axi_RdAdd_Id),
-    .c0_ddr4_s_axi_araddr       ({1'b0, sICT_M00_Axi_RdAdd_Addr}),
+    .c0_ddr4_s_axi_araddr       (sICT_M00_Axi_RdAdd_Addr),
     .c0_ddr4_s_axi_arlen        (sICT_M00_Axi_RdAdd_Len),
     .c0_ddr4_s_axi_arsize       (sICT_M00_Axi_RdAdd_Size),
     .c0_ddr4_s_axi_arburst      (sICT_M00_Axi_RdAdd_Burst),

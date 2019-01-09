@@ -470,6 +470,7 @@ set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_m_axi_s2mm_data_width {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {64} \
                       CONFIG.c_s2mm_burst_size {16} \
+                      CONFIG.c_addr_width {33} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
 
@@ -531,6 +532,7 @@ set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_m_axi_s2mm_data_width {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {512} \
                       CONFIG.c_s2mm_burst_size {64} \
+                      CONFIG.c_addr_width {33} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
 
@@ -582,6 +584,7 @@ set ipCfgList  [ list CONFIG.INTERCONNECT_DATA_WIDTH {512} \
                       CONFIG.S01_AXI_READ_ACCEPTANCE {16} \
                       CONFIG.M00_AXI_WRITE_ISSUING {16} \
                       CONFIG.M00_AXI_READ_ISSUING {16} \
+                      CONFIG.AXI_ADDR_WIDTH {33} \
                       CONFIG.S00_AXI_REGISTER {1} \
                       CONFIG.S01_AXI_REGISTER {1} \
                       CONFIG.M00_AXI_REGISTER {1} ]
