@@ -480,7 +480,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
            poMMIO_diag_stat_V_ap_vld  : OUT STD_LOGIC;
            poDebug_V                  : OUT STD_LOGIC_VECTOR (15 downto 0);
            poDebug_V_ap_vld           : OUT STD_LOGIC;
-           soMemRdCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (71 downto 0);
+           soMemRdCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
            soMemRdCmdP0_TVALID        : OUT STD_LOGIC;
            soMemRdCmdP0_TREADY        : IN STD_LOGIC;
            siMemRdStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
@@ -491,7 +491,7 @@ architecture Flash of Role_x1Udp_x1Tcp_x2Mp is
            siMemReadP0_TREADY         : OUT STD_LOGIC;
            siMemReadP0_TKEEP          : IN STD_LOGIC_VECTOR (63 downto 0);
            siMemReadP0_TLAST          : IN STD_LOGIC_VECTOR (0 downto 0);
-           soMemWrCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (71 downto 0);
+           soMemWrCmdP0_TDATA         : OUT STD_LOGIC_VECTOR (79 downto 0);
            soMemWrCmdP0_TVALID        : OUT STD_LOGIC;
            soMemWrCmdP0_TREADY        : IN STD_LOGIC;
            siMemWrStsP0_TDATA         : IN STD_LOGIC_VECTOR (7 downto 0);
