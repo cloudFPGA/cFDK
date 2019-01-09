@@ -17,7 +17,6 @@
 // *
 // *****************************************************************************
 #include "../src/mem_test_flash.hpp"
-//#include "mem_test_flash.hpp"
 
 //#include <boost/multiprecision/cpp_int.hpp>
 
@@ -63,12 +62,12 @@ int main() {
   DUT
     assert(DIAG_STAT_OUT = 0b10);
 
-
+#define TEST_ITERATIONS (MEM_END_ADDR/CHECK_CHUNK_SIZE + 1)
 
   //phase ramp write
 
   currentMemPattern = 0;
-  for(int j = 0; j<3; j++)
+  for(int j = 0; j< TEST_ITERATIONS; j++)
   {
     DUT
       sROL_Shl_Mem_WrCmdP0.read(dmCmd_MemCmdP0);
@@ -76,7 +75,7 @@ int main() {
     assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE*j); 
     assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
     //Pattern
-    for(int i = 0; i < 64; i++)
+    for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
     {
       DUT 
         sROL_Shl_Mem_WriteP0.read(memP0);
@@ -115,7 +114,7 @@ int main() {
 
   //phase ramp read
 
-  for(int j = 0; j<3; j++)
+  for(int j = 0; j<TEST_ITERATIONS; j++)
   {
 
     DUT
@@ -124,7 +123,7 @@ int main() {
     assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE * j); 
     assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
 
-    for(int i = 0; i < 64; i++)
+    for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
     {
       DUT
     }
@@ -149,7 +148,7 @@ int main() {
   DUT
 
     //phase stress
-    for(int j = 0; j<3; j++)
+    for(int j = 0; j<TEST_ITERATIONS; j++)
     {
 
       DUT
@@ -159,7 +158,7 @@ int main() {
       assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
 
       //Pattern
-      for(int i = 0; i < 64; i++)
+      for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
       {
         DUT 
           sROL_Shl_Mem_WriteP0.read(memP0);
@@ -196,7 +195,7 @@ int main() {
       assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE * j); 
       assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
 
-      for(int i = 0; i < 64; i++)
+      for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
       {
         DUT
       }
@@ -222,7 +221,7 @@ int main() {
 
 
       //Antipattern
-      for(int i = 0; i < 64; i++)
+      for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
       {
         DUT 
           sROL_Shl_Mem_WriteP0.read(memP0);
@@ -259,7 +258,7 @@ int main() {
       assert(dmCmd_MemCmdP0.saddr == CHECK_CHUNK_SIZE * j); 
       assert(dmCmd_MemCmdP0.type == 1 && dmCmd_MemCmdP0.dsa == 0 && dmCmd_MemCmdP0.eof == 1 && dmCmd_MemCmdP0.drr == 0 && dmCmd_MemCmdP0.tag == 0x7);
 
-      for(int i = 0; i < 64; i++)
+      for(int i = 0; i < TRANSFERS_PER_CHUNK; i++)
       {
         DUT
       }

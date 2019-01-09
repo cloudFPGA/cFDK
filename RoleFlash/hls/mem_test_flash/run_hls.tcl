@@ -56,19 +56,21 @@ set_top       ${appName}_main
 
 
 #for DEBUG flag 
-if { $hlsSim || $hlsCoSim } { 
-  add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM -DDEBUG"
-  add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM -DDEBUG"
-  
-  add_files -tb ${tbDir}/tb_${appName}.cpp -cflags "-DDEBUG"
-
-} else {
+#if { $hlsSim || $hlsCoSim } { 
+#  add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM -DDEBUG"
+#  add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM -DDEBUG"
+#  
+#  add_files -tb ${tbDir}/tb_${appName}.cpp -cflags "-DDEBUG"
+#
+#} else {
   add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
   add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 
   add_files -tb ${tbDir}/tb_${appName}.cpp 
-}
+#}
 
+#since DEBUG flag won't work....
+add_files ${srcDir}/dynamic.hpp
 
 open_solution ${solutionName}
 
