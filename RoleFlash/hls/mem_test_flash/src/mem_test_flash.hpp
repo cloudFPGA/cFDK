@@ -70,6 +70,9 @@ using namespace hls;
 #define BYTE_PER_MEM_WORD 64
 #define TRANSFERS_PER_CHUNK (CHECK_CHUNK_SIZE/BYTE_PER_MEM_WORD) //64
 
+
+#define CYCLES_UNTIL_TIMEOUT 0xF4240
+
 /*
  * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
  */

@@ -31,6 +31,7 @@ ap_uint<64> currentMemPattern = 0;
 ap_uint<32> patternWriteNum = 0;
 ap_uint<16> debugVec = 0;
 ap_uint<8> testPhase = PHASE_IDLE;
+ap_uint<32> timeoutCnt = 0;
 
 ap_uint<8> STS_to_Vector(DmSts sts)
 {
@@ -114,6 +115,7 @@ void mem_test_flash_main(
     patternWriteNum = 0;
     debugVec = 0;
     testPhase = PHASE_IDLE;
+    timeoutCnt = 0;
     return;
   }
 
@@ -223,6 +225,7 @@ void mem_test_flash_main(
         {
           memP0.tlast = 1;
           fsmState = FSM_WR_PAT_STS;
+          timeoutCnt = 0;
         } else {
           memP0.tlast = 0;
         }
@@ -247,7 +250,15 @@ void mem_test_flash_main(
           fsmState = FSM_RD_PAT_CMD;
           currentMemPattern = 0;
         }
+      } else { 
+        timeoutCnt++;
+        if (timeoutCnt >= CYCLES_UNTIL_TIMEOUT)
+        {
+          wasError = 1;
+          fsmState = FSM_IDLE;
+        }
       }
+
       break;
 
     case FSM_RD_PAT_CMD:
@@ -276,6 +287,7 @@ void mem_test_flash_main(
         if (memP0.tlast == 1)
         {
           fsmState = FSM_RD_PAT_STS;
+          timeoutCnt = 0;
         }
       }
       break;
@@ -295,6 +307,13 @@ void mem_test_flash_main(
         } else {
           fsmState = FSM_WR_ANTI_CMD;
           currentMemPattern = 0;
+        }
+      } else { 
+        timeoutCnt++;
+        if (timeoutCnt >= CYCLES_UNTIL_TIMEOUT)
+        {
+          wasError = 1;
+          fsmState = FSM_IDLE;
         }
       }
       break;
@@ -326,6 +345,7 @@ void mem_test_flash_main(
         {
           memP0.tlast = 1;
           fsmState = FSM_WR_ANTI_STS;
+          timeoutCnt = 0;
         } else {
           memP0.tlast = 0;
         }
@@ -341,6 +361,13 @@ void mem_test_flash_main(
         //latch errors
         debugVec |= (ap_uint<16>) STS_to_Vector(memWrStsP0);
         fsmState = FSM_RD_ANTI_CMD;
+      } else { 
+        timeoutCnt++;
+        if (timeoutCnt >= CYCLES_UNTIL_TIMEOUT)
+        {
+          wasError = 1;
+          fsmState = FSM_IDLE;
+        }
       }
       break;
 
@@ -373,6 +400,7 @@ void mem_test_flash_main(
         if (memP0.tlast == 1)
         {
           fsmState = FSM_RD_ANTI_STS;
+          timeoutCnt = 0;
         }
       }
       break;
@@ -385,6 +413,13 @@ void mem_test_flash_main(
         debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
         lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE -1;
         fsmState = FSM_IDLE;
+      } else { 
+        timeoutCnt++;
+        if (timeoutCnt >= CYCLES_UNTIL_TIMEOUT)
+        {
+          wasError = 1;
+          fsmState = FSM_IDLE;
+        }
       }
       break;
 
