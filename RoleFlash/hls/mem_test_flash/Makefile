@@ -18,8 +18,10 @@ sim:
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 
 
-cosim: 
+cosim:
+	@/bin/echo -e "This CoSim runs with smaller test sizes than the synthezised design!\nSo it must be rebuild again for the synthesis.\n"
 	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
+	@rm -rf ${ipName}_prj/solution1/impl/ip
 
 cosim_view:
 	@/bin/echo -e "current_fileset\nopen_wave_database $(ipName)_main.wdb\n" > ./$(ipName)_prj/solution1/sim/verilog/open_wave.tcl

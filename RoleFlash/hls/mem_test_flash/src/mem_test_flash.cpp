@@ -185,6 +185,13 @@ void mem_test_flash_main(
           break;
       }
 
+      //stop on error
+      if(wasError == 1)
+      {
+        fsmState = FSM_IDLE;
+        *DIAG_STAT_OUT = (0 << 1) | wasError;
+      }
+
       //set current address
       if(lastCheckedAddress == MEM_START_ADDR)
       {
@@ -259,7 +266,7 @@ void mem_test_flash_main(
         if (memP0.tdata != ((ap_uint<512>) (currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern,currentMemPattern)) )
         {
           printf("error in pattern reading!\n");
-          wasError = true;
+          wasError = 1;
         }
         /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
           {
@@ -356,7 +363,7 @@ void mem_test_flash_main(
         if (memP0.tdata != ((ap_uint<512>) (currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern,currentAntiPattern)) )
         {
           printf("error in antipattern reading!\n");
-          wasError = true;
+          wasError = 1;
         }
         /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
           {

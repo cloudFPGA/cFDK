@@ -17,6 +17,7 @@
 // *
 // *****************************************************************************
 #include "../src/mem_test_flash.hpp"
+//#include "mem_test_flash.hpp"
 
 //#include <boost/multiprecision/cpp_int.hpp>
 

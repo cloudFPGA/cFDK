@@ -52,17 +52,16 @@ using namespace hls;
 #define PHASE_STRESS 3
 
 
-//8GB 
 #define MEM_START_ADDR 0x000000000 // Start address of user space in DDR4
 #ifdef DEBUG
-  #define MEM_END_ADDR 0x2000 //DEBUG
+#define MEM_END_ADDR 0x2000 //DEBUG
 #else
-  #define MEM_END_ADDR   0x1FFFFF000 // End address of user space in DDR4
+//8GB 
+#define MEM_END_ADDR   0x1FFFFF000 // End address of user space in DDR4
+//4GB 
+//#define MEM_END_ADDR   0xFFFFF000 // End address of user space in DDR4
 #endif
 
-//4GB 
-//#define MEM_START_ADDR 0x00000000 // Start address of user space in DDR4
-//#define MEM_END_ADDR   0xFFFFF000 // End address of user space in DDR4
 
 #define CHECK_CHUNK_SIZE 0x1000 //4 KiB
 #define BYTE_PER_MEM_WORD 64

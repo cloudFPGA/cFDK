@@ -54,16 +54,19 @@ set_top       ${appName}_main
 #set_top       mpi_wrapper
 
 
-#add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
-add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 
 #for DEBUG flag 
-add_files -tb src/${appName}.cpp -cflags "-DDEBUG"
-#add_files -tb tb/tb_${appName}.cpp 
-if { $hlsSim} { 
+if { $hlsSim || $hlsCoSim } { 
+  add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM -DDEBUG"
   add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM -DDEBUG"
+  
+  add_files -tb ${tbDir}/tb_${appName}.cpp -cflags "-DDEBUG"
+
 } else {
   add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
+  add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
+
+  add_files -tb ${tbDir}/tb_${appName}.cpp 
 }
 
 
@@ -75,13 +78,13 @@ create_clock -period 6.4 -name default
 # Run C Simulation and Synthesis
 #-------------------------------------------------
 
-if { $hlsSim} { 
+if { $hlsSim } { 
   csim_design -compiler gcc -clean
 } else {
 
   csynth_design
   
-  if { $hlsCoSim} {
+  if { $hlsCoSim } {
     cosim_design -compiler gcc -trace_level all 
   } else {
   
