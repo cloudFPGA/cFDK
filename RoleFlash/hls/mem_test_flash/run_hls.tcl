@@ -53,14 +53,18 @@ open_project  ${projectName}_prj
 set_top       ${appName}_main
 #set_top       mpi_wrapper
 
-#add_files     ${srcDir}/test.hpp -cflags "-DCOSIM"
-#add_files     ${srcDir}/test.cpp -cflags "-DCOSIM"
-add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
+
+#add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
 add_files     ${srcDir}/${appName}.cpp -cflags "-DCOSIM"
 
 #for DEBUG flag 
-#add_files -tb src/${appName}.cpp -cflags "-DDEBUG"
-add_files -tb tb/tb_${appName}.cpp 
+add_files -tb src/${appName}.cpp -cflags "-DDEBUG"
+#add_files -tb tb/tb_${appName}.cpp 
+if { $hlsSim} { 
+  add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM -DDEBUG"
+} else {
+  add_files     ${srcDir}/${appName}.hpp -cflags "-DCOSIM"
+}
 
 
 open_solution ${solutionName}

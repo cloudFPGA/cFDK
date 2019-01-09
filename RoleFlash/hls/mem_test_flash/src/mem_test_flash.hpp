@@ -17,6 +17,10 @@
 // *
 // *****************************************************************************
 
+#ifndef _MEM_TEST_H_
+#define _MEM_TEST_H_
+
+
 #include <stdint.h>
 #include <stdio.h>
 #include <hls_stream.h>
@@ -41,9 +45,20 @@ using namespace hls;
 #define FSM_RD_ANTI_STS 12
 //#define FsmState uint8_t
 
+
+#define PHASE_IDLE 0
+#define PHASE_RAMP_WRITE 1
+#define PHASE_RAMP_READ 2
+#define PHASE_STRESS 3
+
+
 //8GB 
-#define MEM_START_ADDR 0x000000000; // Start address of user space in DDR4
-#define MEM_END_ADDR   0x1FFFFF000; // End address of user space in DDR4
+#define MEM_START_ADDR 0x000000000 // Start address of user space in DDR4
+#ifdef DEBUG
+  #define MEM_END_ADDR 0x2000 //DEBUG
+#else
+  #define MEM_END_ADDR   0x1FFFFF000 // End address of user space in DDR4
+#endif
 
 //4GB 
 //#define MEM_START_ADDR 0x00000000 // Start address of user space in DDR4
@@ -128,3 +143,5 @@ void mem_test_flash_main(
 //stream<DmSts>     &siMemWrStsP1,
 // stream<Axis<512> >   &soMemWriteP1
 );
+
+#endif

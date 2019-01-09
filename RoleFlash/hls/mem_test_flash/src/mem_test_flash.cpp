@@ -30,7 +30,7 @@ ap_uint<33> currentPatternAdderss = 0;
 ap_uint<64> currentMemPattern = 0;
 ap_uint<32> patternWriteNum = 0;
 ap_uint<16> debugVec = 0;
-
+ap_uint<8> testPhase = PHASE_IDLE;
 
 ap_uint<8> STS_to_Vector(DmSts sts)
 {
@@ -113,6 +113,7 @@ void mem_test_flash_main(
     currentMemPattern = 0;
     patternWriteNum = 0;
     debugVec = 0;
+    testPhase = PHASE_IDLE;
     return;
   }
 
@@ -138,36 +139,65 @@ void mem_test_flash_main(
             fsmState = FSM_WR_PAT_CMD;
             *DIAG_STAT_OUT = 0b10;
             debugVec = 0;
+            testPhase = PHASE_RAMP_WRITE;
+            currentMemPattern = 0;
           } else if(lastCheckedAddress >= MEM_END_ADDR)
-          {//checked space completely once
-            if (runContiniously)
+          {//checked space completely once 
+
+            if(testPhase == PHASE_RAMP_WRITE)
+            {
+              testPhase = PHASE_RAMP_READ;
+              lastCheckedAddress = MEM_START_ADDR;
+              fsmState = FSM_RD_PAT_CMD;
+              currentMemPattern = 0;
+            } else if(testPhase == PHASE_RAMP_READ)
+            {
+              testPhase = PHASE_STRESS;
+              lastCheckedAddress = MEM_START_ADDR;
+              fsmState = FSM_WR_PAT_CMD;
+              currentMemPattern = 0;
+            } else if (runContiniously)
             {
               fsmState = FSM_WR_PAT_CMD;
               lastCheckedAddress = MEM_START_ADDR;
+              currentMemPattern = 0;
+              testPhase = PHASE_RAMP_WRITE;
               *DIAG_STAT_OUT = (1 << 1) | wasError;
             } else { //stay here
               fsmState = FSM_IDLE;
               *DIAG_STAT_OUT = (0 << 1) | wasError;
             }
           } else { //continue current run
-            fsmState = FSM_WR_PAT_CMD;
+
+            if(testPhase == PHASE_RAMP_READ)
+            {
+              fsmState = FSM_RD_PAT_CMD;
+            } else {
+              fsmState = FSM_WR_PAT_CMD;
+            }
+
             *DIAG_STAT_OUT = (1 << 1) | wasError;
+            if(testPhase == PHASE_STRESS)
+            {
+              currentMemPattern = 0;
+            }
           }
           break;
+      }
+
+      //set current address
+      if(lastCheckedAddress == MEM_START_ADDR)
+      {
+        currentPatternAdderss = MEM_START_ADDR;
+      } else {
+        currentPatternAdderss = lastCheckedAddress+1;
       }
       break;
 
     case FSM_WR_PAT_CMD:
       if (!soMemWrCmdP0.full()) {
-        if(lastCheckedAddress == MEM_START_ADDR)
-        {
-          currentPatternAdderss = MEM_START_ADDR;
-        } else {
-          currentPatternAdderss = lastCheckedAddress+1;
-        }
         //-- Post a memory write command to SHELL/Mem/Mp0
         soMemWrCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
-        currentMemPattern = 0;
         patternWriteNum = 0;
         fsmState = FSM_WR_PAT_DATA;
       }
@@ -200,7 +230,16 @@ void mem_test_flash_main(
         siMemWrStsP0.read(memWrStsP0);
         //latch errors
         debugVec |= (ap_uint<16>) STS_to_Vector(memWrStsP0);
-        fsmState = FSM_RD_PAT_CMD;
+
+        if(testPhase == PHASE_RAMP_WRITE)
+        {
+          fsmState = FSM_IDLE;
+          debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
+          lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE -1;
+        } else {
+          fsmState = FSM_RD_PAT_CMD;
+          currentMemPattern = 0;
+        }
       }
       break;
 
@@ -208,7 +247,6 @@ void mem_test_flash_main(
       if (!soMemRdCmdP0.full()) {
         //-- Post a memory read command to SHELL/Mem/Mp0
         soMemRdCmdP0.write(DmCmd(currentPatternAdderss, CHECK_CHUNK_SIZE));
-        currentMemPattern = 0;
         fsmState = FSM_RD_PAT_DATA;
       }
       break;
@@ -224,9 +262,9 @@ void mem_test_flash_main(
           wasError = true;
         }
         /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
-        {
+          {
           printf("error in tkeep\n");
-        }*/
+          }*/
         //I trust that there will be a tlast (so no counting)
         if (memP0.tlast == 1)
         {
@@ -241,7 +279,16 @@ void mem_test_flash_main(
         siMemRdStsP0.read(memRdStsP0);
         //latch errors
         debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
-        fsmState = FSM_WR_ANTI_CMD;
+
+        if(testPhase == PHASE_RAMP_READ)
+        {
+          fsmState = FSM_IDLE;
+          debugVec |= ((ap_uint<16>) STS_to_Vector(memRdStsP0) )<< 8;
+          lastCheckedAddress = currentPatternAdderss+CHECK_CHUNK_SIZE -1;
+        } else {
+          fsmState = FSM_WR_ANTI_CMD;
+          currentMemPattern = 0;
+        }
       }
       break;
 
@@ -312,9 +359,9 @@ void mem_test_flash_main(
           wasError = true;
         }
         /*if (memP0.tkeep != (0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF))
-        {
+          {
           printf("error in tkeep\n");
-        }*/
+          }*/
         //I trust that there will be a tlast (so no counting)
         if (memP0.tlast == 1)
         {
