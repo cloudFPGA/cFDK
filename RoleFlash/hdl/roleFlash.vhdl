@@ -106,7 +106,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     ---- Memory Port #0 / S2MM-AXIS ----------------   
     ------ Stream Read Command -----------------
     piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 72 downto 0);
+    poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
     poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
     ------ Stream Read Status ------------------
     piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
@@ -120,7 +120,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
     ------ Stream Write Command ----------------
     piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 72 downto 0);
+    poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
     poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
     ------ Stream Write Status -----------------
     piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
@@ -139,7 +139,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     ---- Memory Port #1 / S2MM-AXIS ----------------   
     ------ Stream Read Command -----------------
     piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 72 downto 0);
+    poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
     poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
     ------ Stream Read Status ------------------
     piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
@@ -153,7 +153,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
     ------ Stream Write Command ----------------
     piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
-    poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 72 downto 0);
+    poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
     poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
     ------ Stream Write Status -----------------
     piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;

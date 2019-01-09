@@ -25,8 +25,8 @@ using namespace hls;
 ap_uint<8> fsmState = FSM_IDLE;
 bool runContiniously = false;
 ap_uint<1> wasError = 0;
-ap_uint<32> lastCheckedAddress = 0;
-ap_uint<32> currentPatternAdderss = 0;
+ap_uint<33> lastCheckedAddress = 0;
+ap_uint<33> currentPatternAdderss = 0;
 ap_uint<64> currentMemPattern = 0;
 ap_uint<32> patternWriteNum = 0;
 ap_uint<16> debugVec = 0;
@@ -92,9 +92,6 @@ void mem_test_flash_main(
 #pragma HLS DATA_PACK variable=siMemWrStsP0 instance=siMemWrStsP0
 
 
-//#pragma HLS INTERFACE ap_ctrl_none port=return
-
-//#pragma HLS DATAFLOW //interval=1
 
   Axis<512>     memP0;
   DmSts         memRdStsP0;

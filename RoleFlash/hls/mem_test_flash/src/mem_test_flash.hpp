@@ -42,12 +42,12 @@ using namespace hls;
 //#define FsmState uint8_t
 
 //8GB 
-//#define MEM_START_ADDR 0x000000000; // Start address of user space in DDR4
-//#define MEM_END_ADDR   0x1FFFFFFFF; // End address of user space in DDR4
+#define MEM_START_ADDR 0x000000000; // Start address of user space in DDR4
+#define MEM_END_ADDR   0x1FFFFF000; // End address of user space in DDR4
 
 //4GB 
-#define MEM_START_ADDR 0x00000000 // Start address of user space in DDR4
-#define MEM_END_ADDR   0xFFFFF000 // End address of user space in DDR4
+//#define MEM_START_ADDR 0x00000000 // Start address of user space in DDR4
+//#define MEM_END_ADDR   0xFFFFF000 // End address of user space in DDR4
 
 #define CHECK_CHUNK_SIZE 0x1000 //4 KiB
 #define BYTE_PER_MEM_WORD 64
@@ -74,11 +74,11 @@ struct DmCmd
   ap_uint<6>    dsa;
   ap_uint<1>    eof;
   ap_uint<1>    drr;
-  ap_uint<33>   saddr;
+  ap_uint<40>   saddr;
   ap_uint<4>    tag;
   ap_uint<4>    rsvd;
   DmCmd() {}
-  DmCmd(ap_uint<33> addr, ap_uint<16> len) :
+  DmCmd(ap_uint<40> addr, ap_uint<16> len) :
     btt(len), type(1), dsa(0), eof(1), drr(0), saddr(addr), tag(0x7), rsvd(0) {}
 };
 
