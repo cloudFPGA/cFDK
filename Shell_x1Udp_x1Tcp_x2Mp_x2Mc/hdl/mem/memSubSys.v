@@ -91,7 +91,7 @@ module MemorySubSystem # (
   //----------------------------------------------
   //-- Transmit Path / S2MM-AXIS -----------------
   //---- Stream Read Command -----------------
-  input  [72:0]   piNTS0_Mem_TxP_Axis_RdCmd_tdata,
+  input  [79:0]   piNTS0_Mem_TxP_Axis_RdCmd_tdata,
   input           piNTS0_Mem_TxP_Axis_RdCmd_tvalid,
   output          poMEM_Nts0_TxP_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -105,7 +105,7 @@ module MemorySubSystem # (
   output          poMEM_Nts0_TxP_Axis_Read_tlast,
   output          poMEM_Nts0_TxP_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piNTS0_Mem_TxP_Axis_WrCmd_tdata,
+  input  [79:0]   piNTS0_Mem_TxP_Axis_WrCmd_tdata,
   input           piNTS0_Mem_TxP_Axis_WrCmd_tvalid,
   output          poMEM_Nts0_TxP_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -124,7 +124,7 @@ module MemorySubSystem # (
   //----------------------------------------------
   //-- Receive Path  / S2MM-AXIS -----------------
   //---- Stream Read Command -----------------
-  input  [72:0]   piNTS0_Mem_RxP_Axis_RdCmd_tdata,
+  input  [79:0]   piNTS0_Mem_RxP_Axis_RdCmd_tdata,
   input           piNTS0_Mem_RxP_Axis_RdCmd_tvalid,
   output          poMEM_Nts0_RxP_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -138,7 +138,7 @@ module MemorySubSystem # (
   output          poMEM_Nts0_RxP_Axis_Read_tlast,
   output          poMEM_Nts0_RxP_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piNTS0_Mem_RxP_Axis_WrCmd_tdata,
+  input  [79:0]   piNTS0_Mem_RxP_Axis_WrCmd_tdata,
   input           piNTS0_Mem_RxP_Axis_WrCmd_tvalid,
   output          poMEM_Nts0_RxP_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -175,7 +175,7 @@ module MemorySubSystem # (
   //----------------------------------------------
   //-- Memory Port #0 / S2MM-AXIS ------------------   
   //---- Stream Read Command -----------------
-  input  [72:0]   piROL_Mem_Mp0_Axis_RdCmd_tdata,
+  input  [79:0]   piROL_Mem_Mp0_Axis_RdCmd_tdata,
   input           piROL_Mem_Mp0_Axis_RdCmd_tvalid,
   output          poMEM_Rol_Mp0_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -189,7 +189,7 @@ module MemorySubSystem # (
   output          poMEM_Rol_Mp0_Axis_Read_tlast,
   output          poMEM_Rol_Mp0_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piROL_Mem_Mp0_Axis_WrCmd_tdata,
+  input  [79:0]   piROL_Mem_Mp0_Axis_WrCmd_tdata,
   input           piROL_Mem_Mp0_Axis_WrCmd_tvalid,
   output          poMEM_Rol_Mp0_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -208,7 +208,7 @@ module MemorySubSystem # (
   //----------------------------------------------
   //-- Memory Port #1 / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
-  input  [72:0]   piROL_Mem_Mp1_Axis_RdCmd_tdata,
+  input  [79:0]   piROL_Mem_Mp1_Axis_RdCmd_tdata,
   input           piROL_Mem_Mp1_Axis_RdCmd_tvalid,
   output          poMEM_Rol_Mp1_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -222,7 +222,7 @@ module MemorySubSystem # (
   output          poMEM_Rol_Mp1_Axis_Read_tlast,
   output          poMEM_Rol_Mp1_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piROL_Mem_Mp1_Axis_WrCmd_tdata,
+  input  [79:0]   piROL_Mem_Mp1_Axis_WrCmd_tdata,
   input           piROL_Mem_Mp1_Axis_WrCmd_tvalid,
   output          poMEM_Rol_Mp1_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------

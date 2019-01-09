@@ -191,7 +191,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   //-- Memory Port #0 / S2MM-AXIS ------------------   
   //---- Stream Read Command -----------------
-  input  [ 72:0]  piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
   input           piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
   output          poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -205,7 +205,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Rol_Mem_Mp0_Axis_Read_tlast,
   output          poSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [ 72:0]  piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
   input           piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
   output          poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -224,7 +224,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   //-- Memory Port #1 / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
-  input  [ 72:0]  piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
   input           piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid,
   output          poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -238,7 +238,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Rol_Mem_Mp1_Axis_Read_tlast,
   output          poSHL_Rol_Mem_Mp1_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [ 72:0]  piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
   input           piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid,
   output          poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -319,7 +319,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //--------------------------------------------------------
   //----  Transmit Path --------------------------
   //------  Stream Read Command --------------
-  wire [ 72:0]  sNTS0_Mem_TxP_Axis_RdCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_TxP_Axis_RdCmd_tdata;
   wire          sNTS0_Mem_TxP_Axis_RdCmd_tvalid;
   wire          sMEM_Nts0_TxP_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -333,7 +333,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_TxP_Axis_Read_tlast;
   wire          sMEM_Nts0_TxP_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 72:0]  sNTS0_Mem_TxP_Axis_WrCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_TxP_Axis_WrCmd_tdata;
   wire          sNTS0_Mem_TxP_Axis_WrCmd_tvalid;
   wire          sMEM_Nts0_TxP_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -348,7 +348,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_TxP_Axis_Write_tready;
   //---- Receive Path ----------------------------
   //------ Stream Read Command ---------------
-  wire [ 72:0]  sNTS0_Mem_RxP_Axis_RdCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_RxP_Axis_RdCmd_tdata;
   wire          sNTS0_Mem_RxP_Axis_RdCmd_tvalid;
   wire          sMEM_Nts0_RxP_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -362,7 +362,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_RxP_Axis_Read_tlast;
   wire          sMEM_Nts0_RxP_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 72:0]  sNTS0_Mem_RxP_Axis_WrCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_RxP_Axis_WrCmd_tdata;
   wire          sNTS0_Mem_RxP_Axis_WrCmd_tvalid;
   wire          sMEM_Nts0_RxP_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -381,7 +381,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //--------------------------------------------------------
   //-- Memory Port #0 ------------------------------
   //------  Stream Read Command --------------
-  wire [ 72:0]  sROL_Mem_Mp0_Axis_RdCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp0_Axis_RdCmd_tdata;
   wire          sROL_Mem_Mp0_Axis_RdCmd_tvalid;
   wire          sMEM_Rol_Mp0_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -395,7 +395,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp0_Axis_Read_tlast;
   wire          sMEM_Rol_Mp0_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 72:0]  sROL_Mem_Mp0_Axis_WrCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp0_Axis_WrCmd_tdata;
   wire          sROL_Mem_Mp0_Axis_WrCmd_tvalid;
   wire          sMEM_Rol_Mp0_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -410,7 +410,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp0_Axis_Write_tready;
   //---- Receive Path ----------------------------
   //------ Stream Read Command ---------------
-  wire [ 72:0]  sROL_Mem_Mp1_Axis_RdCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp1_Axis_RdCmd_tdata;
   wire          sROL_Mem_Mp1_Axis_RdCmd_tvalid;
   wire          sMEM_Rol_Mp1_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -424,7 +424,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp1_Axis_Read_tlast;
   wire          sMEM_Rol_Mp1_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 72:0]  sROL_Mem_Mp1_Axis_WrCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp1_Axis_WrCmd_tdata;
   wire          sROL_Mem_Mp1_Axis_WrCmd_tvalid;
   wire          sMEM_Rol_Mp1_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -509,22 +509,22 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire            sDECOUP_Shl_Nts0_Tcp_Axis_tvalid;
   wire            sDECOUP_Shl_Nts0_Tcp_Axis_tready;
   wire    [15:0]  sDECOUP_SHL_EMIF_2B_Reg;
-  wire   [ 72:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Read_tready;
-  wire   [ 72:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready;
   wire   [511:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata;
   wire   [ 63:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid;
-  wire   [ 72:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_Read_tready;
-  wire   [ 72:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready;
   wire   [511:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata;

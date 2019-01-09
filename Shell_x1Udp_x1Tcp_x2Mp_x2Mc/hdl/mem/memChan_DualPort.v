@@ -89,7 +89,7 @@ module MemoryChannel_DualPort #(
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
   //---- Stream Read Command -----------------
-  input  [72:0]   piMP0_Mc_Axis_RdCmd_tdata,
+  input  [79:0]   piMP0_Mc_Axis_RdCmd_tdata,
   input           piMP0_Mc_Axis_RdCmd_tvalid,
   output          poMC_Mp0_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -105,7 +105,7 @@ module MemoryChannel_DualPort #(
   output          poMC_Mp0_Axis_Read_tlast,
   output          poMC_Mp0_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piMP0_Mc_Axis_WrCmd_tdata,
+  input  [79:0]   piMP0_Mc_Axis_WrCmd_tdata,
   input           piMP0_Mc_Axis_WrCmd_tvalid,
   output          poMC_Mp0_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -125,7 +125,7 @@ module MemoryChannel_DualPort #(
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------  
   //---- Stream Read Command -----------------
-  input  [72:0]   piMP1_Mc_Axis_RdCmd_tdata,
+  input  [79:0]   piMP1_Mc_Axis_RdCmd_tdata,
   input           piMP1_Mc_Axis_RdCmd_tvalid,
   output          poMC_Mp1_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -141,7 +141,7 @@ module MemoryChannel_DualPort #(
   output          poMC_Mp1_Axis_Read_tlast,
   output          poMC_Mp1_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [72:0]   piMP1_Mc_Axis_WrCmd_tdata,
+  input  [79:0]   piMP1_Mc_Axis_WrCmd_tdata,
   input           piMP1_Mc_Axis_WrCmd_tvalid,
   output          poMC_Mp1_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
