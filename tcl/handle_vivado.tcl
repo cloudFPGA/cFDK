@@ -972,7 +972,11 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
     #DEBUG
     if { $insert_ila } { 
-      write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+      if { ${forceWithoutBB} } {
+        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
+      } else {
+        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+      }
     }
 
 
