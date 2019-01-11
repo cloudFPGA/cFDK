@@ -303,6 +303,8 @@ architecture structural of topFlash is
   ------------------------------------------------  
   signal sSMC_ROL_rank                      : std_logic_vector(31 downto 0);
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
+
+  signal sSHL_156_25Rst_delayed             : std_ulogic;
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -403,6 +405,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poSHL_156_25Clk                     : out   std_ulogic;
       poSHL_156_25Rst                     : out   std_ulogic;
+      poSHL_156_25Rst_delayed             : out   std_ulogic;
        
       ------------------------------------------------------
       -- ROLE / Shl/ Nts0 / Udp Interface
@@ -543,6 +546,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
+      piSHL_156_25Rst_delayed             : in    std_ulogic;
       
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
@@ -820,6 +824,7 @@ begin
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
       poSHL_156_25Rst                      => sSHL_156_25Rst,
+      poSHL_156_25Rst_delayed              => sSHL_156_25Rst_delayed,
       
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Udp Interface
@@ -956,6 +961,7 @@ begin
       ------------------------------------------------------
       piSHL_156_25Clk                     => sSHL_156_25Clk,
       piSHL_156_25Rst                     => sSHL_156_25Rst,
+      piSHL_156_25Rst_delayed             => sSHL_156_25Rst_delayed,
             
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
