@@ -67,6 +67,7 @@ entity Role_x1Udp_x1Tcp_x2Mp is
     ------------------------------------------------------
     piSHL_156_25Clk                     : in    std_ulogic;
     piSHL_156_25Rst                     : in    std_ulogic;
+    piSHL_156_25Rst_delayed             : in    std_ulogic;
 
     --------------------------------------------------------
     -- SHELL / Role / Nts0 / Udp Interface
@@ -1198,7 +1199,8 @@ begin
   sReadTlastAsVector(0) <= piSHL_Rol_Mem_Mp0_Axis_Read_tlast;
   poROL_Shl_Mem_Mp0_Axis_Write_tlast <= sWriteTlastAsVector(0);
   --sResetAsVector(0) <= piSHL_156_25Rst;
-  sResetAsVector(0) <= piSHL_ROL_EMIF_2B_Reg(0);
+  --sResetAsVector(0) <= piSHL_ROL_EMIF_2B_Reg(0);
+  sResetAsVector(0) <= piSHL_156_25Rst_delayed;
 
   MEM_TEST: MemTestFlash 
     port map(
