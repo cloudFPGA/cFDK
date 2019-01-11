@@ -154,6 +154,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_156_25Clk,
   output          poSHL_156_25Rst,
 
+  // Soft Reset 
+  output         poSHL_156_25Rst_delayed,
+
   //------------------------------------------------------
   //-- ROLE / Shl/ Nts0 / Udp Interface
   //------------------------------------------------------
@@ -637,6 +640,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
+  //Registers 
+  reg [7:0] reset_delay_cnt;
+  reg [7:0] reset_duration_cnt;
+  reg       soft_reset;
+  wire      sig_soft_reset;
+  reg       soft_reset_done;
     
   //============================================================================
   //  INST: MMIIO CLIENT
@@ -1203,7 +1212,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     //core should start immediately 
     .ap_start               (1),
-    .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V           (sig_soft_reset),
     .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
     //.poMMIO_V_ap_vld     ( ),
     .piMMIO_V              (sMMIO_CASTOR_4B_Reg),
@@ -1333,7 +1342,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
     .ap_rst_n               (~ piTOP_156_25Rst),
-    .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V           (sig_soft_reset),
     .siTcp_TDATA        (sNTS_MPE_Tcp_TDATA),
     .siTcp_TVALID        (sNTS_MPE_Tcp_TVALID),
     .siTcp_TREADY        (sNTS_MPE_Tcp_TREADY),
@@ -1463,34 +1472,63 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   assign poSHL_156_25Clk = sETH0_ShlClk;
   assign poSHL_156_25Rst = sETH0_ShlRst;
 
-    
-  //============================================================================
-  //  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
-  //============================================================================
-  
-  //-- ETH0 ==> NTS0 / AXIS Interface ---------------------------- 
-  //(* mark_debug = "true" *)  wire  [ 63:0]  sETH0_Nts0_Axis_tdata;
-  //(* mark_debug = "true" *)  wire  [ 7:0]   sETH0_Nts0_Axis_tkeep;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tlast;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tvalid;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tready;
-  //-- ETHERNET / Nts0 / Output AXIS Interface ---------------------- 
-  //(* mark_debug = "true" *)  wire  [ 63:0]  sNTS0_Eth0_Axis_tdata;
-  //(* mark_debug = "true" *)  wire  [  7:0]  sNTS0_Eth0_Axis_tkeep;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tlast;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tvalid;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tready;
-  
-  //============================================================================
-  //  VIO FOR HARDWARE BRING-UP AND DEBUG
-  //============================================================================
-  //  VirtualInputOutput_IP_0 VIO0 (
-  //    .clk        (sSD4MI_Ui_Clk),
-  //    .probe_in0  (piPSOC_Fcfg_Rst_n),                
-  //    .probe_in1  (sMC0_InitCalibComplete),
-  //    .probe_in2  (sDataCompareError),
-  //    .probe_in3  (poSHL_Led_HeartBeat_n)
-  //  );
-  
+  //Soft Reset 
+
+  always @(posedge sETH0_ShlClk)
+  begin
+    if (sETH0_ShlRst == 1) begin 
+      reset_delay_cnt <= 0;
+      reset_duration_cnt <= 0;
+      soft_reset <= 0;
+      soft_reset_done <= 0;
+    end else begin
+      if (soft_reset_done == 0) begin 
+        reset_delay_cnt <= reset_delay_cnt + 1;
+        soft_reset <= 0;
+        if(reset_delay_cnt >= 10) begin //TODO longer? 
+          reset_duration_cnt <= reset_duration_cnt + 1;
+          soft_reset <= 1;
+        end 
+        if(reset_duration_cnt >= 10) begin 
+          soft_reset <= 0;
+          soft_reset_done <= 1;
+        end
+      end 
+    end
+  end
+
+  assign sig_soft_reset = soft_reset;
+  assign poSHL_156_25Rst_delayed = soft_reset;
+
+
+
+//============================================================================
+//  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
+//============================================================================
+
+//-- ETH0 ==> NTS0 / AXIS Interface ---------------------------- 
+//(* mark_debug = "true" *)  wire  [ 63:0]  sETH0_Nts0_Axis_tdata;
+//(* mark_debug = "true" *)  wire  [ 7:0]   sETH0_Nts0_Axis_tkeep;
+//(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tlast;
+//(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tvalid;
+//(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tready;
+//-- ETHERNET / Nts0 / Output AXIS Interface ---------------------- 
+//(* mark_debug = "true" *)  wire  [ 63:0]  sNTS0_Eth0_Axis_tdata;
+//(* mark_debug = "true" *)  wire  [  7:0]  sNTS0_Eth0_Axis_tkeep;
+//(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tlast;
+//(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tvalid;
+//(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tready;
+
+//============================================================================
+//  VIO FOR HARDWARE BRING-UP AND DEBUG
+//============================================================================
+//  VirtualInputOutput_IP_0 VIO0 (
+//    .clk        (sSD4MI_Ui_Clk),
+//    .probe_in0  (piPSOC_Fcfg_Rst_n),                
+//    .probe_in1  (sMC0_InitCalibComplete),
+//    .probe_in2  (sDataCompareError),
+//    .probe_in3  (poSHL_Led_HeartBeat_n)
+//  );
+
 
 endmodule
