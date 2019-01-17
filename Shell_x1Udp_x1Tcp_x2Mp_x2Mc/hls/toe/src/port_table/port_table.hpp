@@ -35,14 +35,22 @@ using namespace hls;
  *
  * @ingroup port_table
  *****************************************************************************/
+//void port_table(
+//        stream<AxiTcpPort>         &siRXe_PortStateReq,
+//        stream<bool>               &soPortStateRep,
+//        stream<TcpPort>            &siRAi_LsnPortStateReq,
+//        stream<bool>               &soLsnPortStateRep,
+//        stream<ap_uint<1> >        &siTAi_ActPortStateReq,
+//        stream<ap_uint<16> >       &soActPortStateRep,
+//        stream<ap_uint<16> >       &siSLc_ReleasePort
+//);
+
 void port_table(
-        stream<AxiTcpPort>         &siRXe_PortStateReq,
-        stream<bool>               &soPortStateRep,
-        stream<TcpPort>            &siRAi_LsnPortStateReq,
-        stream<bool>               &soLsnPortStateRep,
-        stream<ap_uint<1> >        &siTAi_ActPortStateReq,
-        stream<ap_uint<16> >       &soActPortStateRep,
-        stream<ap_uint<16> >       &siSLc_ReleasePort
+        stream<AxiTcpPort>      &siRXe_GetPortStateReq,
+        stream<RepBit>          &soRXe_GetPortStateRep,
+        stream<TcpPort>         &siRAi_OpenPortReq,
+        stream<RepBit>          &soRAi_OpenPortRep,
+        stream<ReqBit>          &siTAi_GetFreePortReq,
+        stream<TcpPort>         &siTAi_GetFreePortRep,
+        stream<TcpPort>         &siSLc_ClosePortCmd
 );
-
-
