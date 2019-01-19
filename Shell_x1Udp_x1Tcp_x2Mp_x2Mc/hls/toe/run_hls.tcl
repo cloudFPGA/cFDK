@@ -97,6 +97,10 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+    csim_design -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeeSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
 }
 
 # Run C Synthesis (refer to UG902)
