@@ -1,10 +1,30 @@
+/*****************************************************************************
+ * @file       : retransmit_timer.hpp
+ * @brief      : Retransmission timers (Rtt) of the TCP Offload Engine (TOE).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *               TCP Retransmission Timers.
+ *
+ *****************************************************************************/
+
 #include "../toe.hpp"
 
 using namespace hls;
 
-/** @ingroup retransmit_timer
- *
- */
+/********************************************
+ * Rtt - Retransmission Timer Entry
+ ********************************************/
+
+/*** OBSOLETE-20180181 ***
 struct retransmitTimerEntry
 {
     ap_uint<32>     time;
@@ -12,10 +32,20 @@ struct retransmitTimerEntry
     bool            active;
     eventType       type;
 };
+**************************/
 
-/** @ingroup retransmit_timer
- *
- */
+enum StateEntry {DISABLED_ENTRY = false,
+                 ACTIVE_ENTRY   = true};
+
+struct ReTxTimerEntry
+{
+    ap_uint<32>     time;
+    ap_uint<3>      retries;
+    bool            active;
+    EventType       type;
+};
+
+
 struct mergedInput
 {
     ap_uint<16>     sessionID;
@@ -29,14 +59,17 @@ struct mergedInput
             :sessionID(id), type(RT), stop(stop), isSet(false) {}
 };
 
-/** @defgroup retransmit_timer Retransmit Timer
+
+/*****************************************************************************
+ * @brief   Main process of the TCP Retransmission Timers (Rt).
  *
- */
-void retransmit_timer(
-        stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRetransmitTimer,
-        stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
-        stream<event>&                      rtTimer2eventEng_setEvent,
-        stream<ap_uint<16> >&               rtTimer2stateTable_releaseState,
-        stream<OpenStatus>&                 rtTimer2txApp_notification,
-        stream<appNotification>&            rtTimer2rxApp_notification
+ * @ingroup retransmit_timer
+ *****************************************************************************/
+void pRetransmitTimer(
+        stream<ReTxTimerCmd>       &siRXe_ReTxTimerCmd,
+        stream<ReTxTimerEvent>     &siTXe_SetReTxTimer,
+        stream<event>              &soEmx_SetEvent,
+        stream<ap_uint<16> >       &soSmx_ReleaseState,
+        stream<OpenStatus>         &soTAi_Notif,
+        stream<appNotification>    &soRAi_Notif
 );

@@ -87,11 +87,11 @@ void tx_engine(
         stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
         stream<txTxSarReply>            &siTSt_TxSarUpdRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
-        stream<txRetransmitTimerSet>    &soTIm_SetReTxTimer,
+        stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
-        stream<ap_uint<1> >             &soEVe_RxEventSig,
+        stream<SigBit>                  &soEVe_RxEventSig,
         stream<Ip4overAxi>              &soL3MUX_Data
 );

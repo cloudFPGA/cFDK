@@ -50,7 +50,7 @@ void tx_app_interface(
 
         stream<OpenStatus>             &appOpenConnRsp,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
-        stream<ap_uint<1> >            &txApp2portTable_port_req,
+        stream<ReqBit>                 &soTAi_GetFreePortReq,
         stream<stateQuery>             &txApp2stateTable_upd_req,
         stream<event>                  &txApp2eventEng_setEvent,
         stream<OpenStatus>             &rtTimer2txApp_notification,

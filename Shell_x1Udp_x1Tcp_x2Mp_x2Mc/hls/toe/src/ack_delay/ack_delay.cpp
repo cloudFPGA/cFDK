@@ -9,16 +9,6 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
  *****************************************************************************/
 
 #include "ack_delay.hpp"
@@ -31,56 +21,68 @@ using namespace hls;
 
 
 /*****************************************************************************
- * @brief The ACK Delayer (AKd) manages the transmission of the ACks.
+ * @brief The ACK Delayer (AKd) manages the transmission delay of the ACks.
  *
- * @param[in]  siEVe_Event,  Event from Event Engine (EVe).
- * @param[out] soTXe_Event,  Event to Tx Engine (TXe).
+ * @param[in]  siEVe_Event,      Event from Event Engine (EVe).
+ * @param[out] soTXe_Event,      Event to Tx Engine (TXe).
  * @param[out] soEVe_RxEventSig, Signals the reception of an event.
  * @param[out] soEVe_TxEventSig, Signals the transmission of an event.
  *
  * @details
+ *  Upon reception of an ACK, the counter associated to the corresponding
+ *   session is initialized to (100ms/MAX_SESSIONS). Next, this counter is
+ *   decremented every (MAX_SESSIONS) until it reaches zero. At that time,
+ *   a request to generate an ACK for that session is forwarded to the
+ *   [TxEngine].
  *
  * @ingroup event_engine
  *****************************************************************************/
 void ack_delay(
         stream<extendedEvent>   &siEVe_Event,
         stream<extendedEvent>   &soTXe_Event,
-        stream<ap_uint<1> >     &soEVe_RxEventSig,
-        stream<ap_uint<1> >     &soEVe_TxEventSig)
+        stream<SigBit>          &soEVe_RxEventSig,
+        stream<SigBit>          &soEVe_TxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static ap_uint<12>              ack_table[MAX_SESSIONS];
-    #pragma HLS RESOURCE   variable=ack_table core=RAM_T2P_BRAM
-    #pragma HLS DEPENDENCE variable=ack_table inter false
+    static ap_uint<12>              ACK_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
+    #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
 
-    static ap_uint<16>  ad_pointer = 0;
+    static ap_uint<16>  akd_pointer = 0;
+
+    extendedEvent ev;
 
     if (!siEVe_Event.empty()) {
-        extendedEvent ev = siEVe_Event.read();
-        soEVe_RxEventSig.write(1);
-        if (ev.type == ACK && ack_table[ev.sessionID] == 0) {
-            // CHECK IF THERE IS A DELAYED ACK
-            ack_table[ev.sessionID] = TIME_100ms;
+        siEVe_Event.read(ev);
+        // Tell the [EventEngine] that we just received an event
+        soEVe_RxEventSig.write(true);
+        // Check if there is a delayed ACK
+        if (ev.type == ACK && ACK_TABLE[ev.sessionID] == 0) {
+            ACK_TABLE[ev.sessionID] = TIME_100ms;
         }
-        else if (ev.type != ACK) {
+        else {
             // Assumption no SYN/RST
-            ack_table[ev.sessionID] = 0;
+            ACK_TABLE[ev.sessionID] = 0;
+            // Forward event to [TxEngine]
             soTXe_Event.write(ev);
-            soEVe_TxEventSig.write(1);
+            // Tell the [EventEngine] that we just forwarded an event to TXe
+            soEVe_TxEventSig.write(true);
         }
     }
     else {
-        if (ack_table[ad_pointer] > 0 && !soTXe_Event.full()) {
-            if (ack_table[ad_pointer] == 1) {
-                soTXe_Event.write(event(ACK, ad_pointer));
-                soEVe_TxEventSig.write(1);
+        if (ACK_TABLE[akd_pointer] > 0 && !soTXe_Event.full()) {
+            if (ACK_TABLE[akd_pointer] == 1) {
+                // Request the [TxEngine] to generate an ACK for this session #
+                soTXe_Event.write(event(ACK, akd_pointer)); // [FIXME - Stream name should be soTXe_GenAckReq]
+                // Tell the [EventEngine] that we just forwarded an event to TXe
+                soEVe_TxEventSig.write(true);
             }
-            ack_table[ad_pointer] -= 1;     // Decrease value
+            ACK_TABLE[akd_pointer] -= 1;     // Decrease value
         }
-        ad_pointer++;
-        if (ad_pointer == MAX_SESSIONS)
-            ad_pointer = 0;
+        akd_pointer++;
+        if (akd_pointer == MAX_SESSIONS)
+            akd_pointer = 0;
     }
 }

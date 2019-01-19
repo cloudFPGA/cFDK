@@ -146,6 +146,7 @@ void tx_app_table(
  * @param[]
  * @param[]
  * @param[out] soSLc_SessLookupReq, Session lookup request to Session Lookup Controller(SLc).
+ * @param[out] soTAi_GetFreePortReq,Request to get a free port to [TxAppInterface].
  *
  * @details
  *
@@ -173,7 +174,7 @@ void tx_app_interface(
 
         stream<OpenStatus>             &appOpenConnRsp,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
-        stream<ap_uint<1> >            &txApp2portTable_port_req,
+        stream<ReqBit>                 &soTAi_GetFreePortReq,
         stream<stateQuery>             &txApp2stateTable_upd_req,
         stream<event>                  &txApp2eventEng_setEvent,
         stream<OpenStatus>             &rtTimer2txApp_notification,
@@ -201,11 +202,17 @@ void tx_app_interface(
     #pragma HLS DATA_PACK variable=txApp2txSar_upd_req
     #pragma HLS DATA_PACK variable=txSar2txApp_upd_rsp
 
-    // Merge Events
-    //txEventMerger(txApp2eventEng_mergeEvent, txAppStream2event_mergeEvent, txApp_eventCache);
-    mergeFunction(txApp2eventEng_mergeEvent, txAppStream2event_mergeEvent, txApp_eventCache);
-    //streamMerger<event>(txApp2eventEng_mergeEvent, txAppStream2event_mergeEvent, txApp_eventCache);
-    txAppStatusHandler(txBufferWriteStatus, txApp_eventCache, txApp2txSar_push, txApp2eventEng_setEvent);
+    // Multiplex Events
+    pStreamMux(
+        txApp2eventEng_mergeEvent,
+        txAppStream2event_mergeEvent,
+        txApp_eventCache);
+
+    txAppStatusHandler(
+        txBufferWriteStatus,
+        txApp_eventCache,
+        txApp2txSar_push,
+        txApp2eventEng_setEvent);
 
     // TX application Stream Interface
     tx_app_stream_if(
@@ -230,7 +237,7 @@ void tx_app_interface(
             conEstablishedFifo,
             appOpenConnRsp,
             soSLc_SessLookupReq,
-            txApp2portTable_port_req,
+            soTAi_GetFreePortReq,
             txApp2stateTable_upd_req,
             txApp2eventEng_mergeEvent,
             rtTimer2txApp_notification,

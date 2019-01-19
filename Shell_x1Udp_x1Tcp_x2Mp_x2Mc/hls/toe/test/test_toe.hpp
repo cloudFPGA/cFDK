@@ -38,11 +38,14 @@ using namespace std;
 class IpPacket {
     int len;
     std::deque<Ip4overAxi> axiWordQueue;  // A double-ended queue to store IP chunks.
+
     int checksumComputation(std::deque<Ip4overAxi> pseudoHeader);
     void setLen(int pktLen) { this->len = pktLen; }
   public:
     // Default Constructor
-    IpPacket() {}
+    IpPacket() {
+        this->len = 0;
+    }
     // Construct a packet of length 'pktLen'
     IpPacket(int pktLen) {
         if (pktLen > 0 && pktLen <= MTU)
@@ -77,7 +80,8 @@ class IpPacket {
     // Remove the first chunk element of the AXI word queue
     void pop_front()                                 {        this->axiWordQueue.pop_front();        }
     // Add an element at the end of the AXI word queue
-    void push_back(Ip4overAxi ipChunk)               {        this->axiWordQueue.push_back(ipChunk); }
+    void push_back(Ip4overAxi ipChunk)               {        this->axiWordQueue.push_back(ipChunk);
+                                                              this->len += keepToLen(ipChunk.tkeep); }
     // Return the length of the IPv4 packet
     int length()                                     { return this->len;                             }
 
@@ -198,19 +202,19 @@ void IpPacket::printHdr(const char *callerName)
     printf("[%s] IP4 Total Length        = %15u (0x%4.4X) \n",
             (std::string(callerName)).c_str(),
             this->getIpTotalLength(), axiIp4TotalLen.to_uint());
-    printf("[%s] IP4 Source Address      = %3d.%3d.%3d.%3d (0x%8.8X) \n",
+    printf("[%s] IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
             (std::string(callerName)).c_str(),
-            this->getIpSourceAddress() & 0xFF000000 >> 24,
-            this->getIpSourceAddress() & 0x00FF0000 >> 16,
-            this->getIpSourceAddress() & 0x0000FF00 >>  8,
-            this->getIpSourceAddress() & 0x000000FF >>  0,
+            (this->getIpSourceAddress() & 0xFF000000) >> 24,
+            (this->getIpSourceAddress() & 0x00FF0000) >> 16,
+            (this->getIpSourceAddress() & 0x0000FF00) >>  8,
+            (this->getIpSourceAddress() & 0x000000FF) >>  0,
             axiIp4SrcAddr.to_uint());
-    printf("[%s] IP4 Destination Address = %3d.%3d.%3d.%3d (0x%8.8X) \n",
+    printf("[%s] IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
             (std::string(callerName)).c_str(),
-            this->getIpDestinationAddress() & 0xFF000000 >> 24,
-            this->getIpDestinationAddress() & 0x00FF0000 >> 16,
-            this->getIpDestinationAddress() & 0x0000FF00 >>  8,
-            this->getIpDestinationAddress() & 0x000000FF >>  0,
+            (this->getIpDestinationAddress() & 0xFF000000) >> 24,
+            (this->getIpDestinationAddress() & 0x00FF0000) >> 16,
+            (this->getIpDestinationAddress() & 0x0000FF00) >>  8,
+            (this->getIpDestinationAddress() & 0x000000FF) >>  0,
             axiIp4DstAddr.to_uint());
     printf("[%s] TCP Source Port         = %15u (0x%4.4X) \n",
             (std::string(callerName)).c_str(),
@@ -490,8 +494,8 @@ class TbSockAddr {  // Testbench Socket Address
 
 /*******************************************************************
  * @brief Class Testbench Socket Pair
- *  This class differs from the class 'SockAddr' used by TOE from an
- *  ENDIANESS point of view. This class is ENDIAN independent as
+ *  This class differs from the class 'AxiSockAddr' used by TOE from
+ *  an ENDIANESS point of view. This class is ENDIAN independent as
  *  opposed to the one used by TOE which stores its data members in
  *  LITTLE-ENDIAN order.
  *******************************************************************/

@@ -57,7 +57,7 @@ extern bool gTraceEvent;
  * @param[in]  siRSt_RxSarRdRep,   Read reply from Rx SAR Table (RSt).
  * @param[out] soTSt_TxSarUpdReq,  Request to update the Tx SAR Table (TSt).
  * @param[in]  siTSt_TxSarUpdRep,  Update reply from Tx SAR Table (TSt).
- * @param[out] soTIm_SetReTxTimer, Set retransmission timer to Timers (TIm).
+ * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set the probe timer to Timers (TIm).
  * @param[out] soMai_BufferRdCmd,  Buffer read command to Memory Access Interface (MAi).
  * @param[out] soIhc_TcpSegLen,    TCP segment length to Ip Header Constructor(Ihc).
@@ -66,7 +66,7 @@ extern bool gTraceEvent;
  * @param[out] soSps_IsLookup,     Tells the Socket Pair Splitter (Sps) that a
  *                                  reverse lookup is to be expected.
  * @prama[out] soSps_RstSockPair,  Tells the Sps about the socket pair to reset.
- * @param[out] soEVe_RxEventSig,   Signals the reception of an event.
+ * @param[out] soEVe_RxEventSig,   Signals the reception of an event to {EventEngine].
  *
  * @details
  *  The meta data loader reads the events from the Event Engine (EVe) and loads
@@ -87,7 +87,7 @@ void pMetaDataLoader(
         stream<rxSarEntry>              &siRSt_RxSarRdRep,
         stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
         stream<txTxSarReply>            &siTSt_TxSarUpdRep,
-        stream<txRetransmitTimerSet>    &soTIm_SetReTxTimer,
+        stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
         stream<tx_engine_meta>          &soIhc_TxeMeta,
@@ -95,7 +95,7 @@ void pMetaDataLoader(
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
         stream<AxiSocketPair>           &soSps_RstSockPair,
-        stream<ap_uint<1> >             &soEVe_RxEventSig)
+        stream<SigBit>                  &soEVe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -125,7 +125,7 @@ void pMetaDataLoader(
     case 0:
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
-            soEVe_RxEventSig.write(1);
+            soEVe_RxEventSig.write(true);
             mdl_sarLoaded = false;
             // NOT necessary for SYN/SYN_ACK only needs one
             switch(mdl_curEvent.type) {
@@ -225,7 +225,6 @@ void pMetaDataLoader(
                 txeMeta.syn = 0;
                 txeMeta.fin = 0;
                 txeMeta.length = 0;
-                //OBSOLETE-20181129 txeMeta = tx_engine_meta(txSar.not_ackd, rxSar.recvd, windowSize, 1, 0, 0, 0);
 
                 currLength = (txSar.app - ((ap_uint<16>)txSar.not_ackd));
                 ap_uint<16> usedLength = ((ap_uint<16>) txSar.not_ackd - txSar.ackd);
@@ -236,7 +235,6 @@ void pMetaDataLoader(
                 else {
                     usableWindow = 0;
                 }
-                //OBSOLETE-20181129 (txSar.min_window > usedLength) ? usableWindow = txSar.min_window - usedLength : usableWindow = 0;
 
                 // Construct address before modifying txSar.not_ackd
                 ap_uint<32> pkgAddr;  // 0x40000000
@@ -258,23 +256,17 @@ void pMetaDataLoader(
                             mdl_FsmState = 0;
 
                         // Check if small segment and if unacknowledged data in pipe (Nagle)
-                        if (txSar.ackd == txSar.not_ackd)
-                        {
+                        if (txSar.ackd == txSar.not_ackd) {
                             txSar.not_ackd += currLength;
                             txeMeta.length = currLength;
                         }
-                        else
-                        {
+                        else {
                             soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
                         }
 
                         // Write back txSar not_ackd pointer
                         soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
 
-                        //OBSOLETE-20181129 txSar.not_ackd += currLength; //mdl_curEvent.length; ///////////////////////////////////
-                        //OBSOLETE-20181129 txeMeta.length = currLength; //mdl_curEvent.length;
-                        //OBSOLETE-20181129 soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        //OBSOLETE-20181129 soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1)); // Write back txSar not_ackd pointer
                     }
                 }
                 else {
@@ -299,16 +291,19 @@ void pMetaDataLoader(
 
                 if (txeMeta.length != 0)
                     soMai_BufferRdCmd.write(DmCmd(pkgAddr, txeMeta.length));
+
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
                     soIhc_TcpSegLen.write(txeMeta.length);
                     soIhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
-                    // Only set RT timer if we actually send sth, TODO only set if we change state and sent sth
-                    soTIm_SetReTxTimer.write(txRetransmitTimerSet(mdl_curEvent.sessionID));
-                }//TODO if probe send msg length 1
-                //OBSOLETE-20181130 ap_uint<17> tempAddr = txSar.not_ackd(15, 0) + txeMeta.length;
+                    // Only set RT timer if we actually send sth,
+                    // [TODO - Only set if we change state and sent sth]
+                    soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID));
+                } // [TODO - if probe send msg length 1]
+
+
                 mdl_sarLoaded = true;
             }
             break;
@@ -387,7 +382,7 @@ void pMetaDataLoader(
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
 
                     // Only set RT timer if we actually send sth
-                    soTIm_SetReTxTimer.write(txRetransmitTimerSet(mdl_curEvent.sessionID));
+                    soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID));
                 }
                 mdl_sarLoaded = true;
             }
@@ -444,7 +439,7 @@ void pMetaDataLoader(
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 // Set retransmit timer
-                soTIm_SetReTxTimer.write(txRetransmitTimerSet(mdl_curEvent.sessionID, SYN));
+                soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID, SYN_EVENT));
                 mdl_FsmState = 0;
             }
             break;
@@ -482,7 +477,7 @@ void pMetaDataLoader(
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
 
                 // Set retransmit timer
-                soTIm_SetReTxTimer.write(txRetransmitTimerSet(mdl_curEvent.sessionID, SYN_ACK));
+                soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID, SYN_ACK_EVENT));
                 mdl_FsmState = 0;
             }
             break;
@@ -520,14 +515,14 @@ void pMetaDataLoader(
                         soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
                 }
 
-                // Check if there is a FIN to be sent //TODO maybe restruce this
+                // Check if there is a FIN to be sent //TODO maybe restrict this
                 if (txeMeta.seqNumb(15, 0) == txSar.app) {
                     soIhc_TcpSegLen.write(txeMeta.length);
                     soIhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                     // Set retransmit timer
-                    soTIm_SetReTxTimer.write(txRetransmitTimerSet(mdl_curEvent.sessionID));
+                    soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID));
                 }
                 mdl_FsmState = 0;
             }
@@ -1472,8 +1467,8 @@ void pIpPktStitcher(
 /*****************************************************************************
  * @brief Memory Access Interface (Mai)
  *
- * @param[]
- * @parm[in]   siMdl_BufferRdCmd, Buffer read command from Meta Data Loader (Mdl).
+ * @param[in]  siMdl_BufferRdCmd, Buffer read command from Meta Data Loader (Mdl).
+ * @param[out] soMEM_Txp_RdCmd,   Memory read command to the DRAM Memory (MEM).
  * @param[out] soTss_SplitMemAcc, Splitted memory access to Tcp Segment Stitcher (Tss).
  *
  * @details
@@ -1486,8 +1481,8 @@ void pIpPktStitcher(
  * @ingroup tx_engine
  *****************************************************************************/
 void pMemoryAccessInterface(
-        stream<DmCmd>       &inputMemAccess,
-        stream<DmCmd>       &outputMemAccess,
+        stream<DmCmd>       &siMdl_BufferRdCmd,
+        stream<DmCmd>       &soMEM_Txp_RdCmd,
         stream<ap_uint<1> > &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1500,25 +1495,25 @@ void pMemoryAccessInterface(
     static uint16_t txPktCounter = 0;
 
     if (txEngBreakdown == false) {
-        if (!inputMemAccess.empty() && !outputMemAccess.full()) {
-            txEngTempCmd = inputMemAccess.read();
+        if (!siMdl_BufferRdCmd.empty() && !soMEM_Txp_RdCmd.full()) {
+            txEngTempCmd = siMdl_BufferRdCmd.read();
             DmCmd tempCmd = txEngTempCmd;
             if ((txEngTempCmd.saddr.range(15, 0) + txEngTempCmd.bbt) > 65536) {
                 txEngBreakTemp = 65536 - txEngTempCmd.saddr;
                 tempCmd = DmCmd(txEngTempCmd.saddr, txEngBreakTemp);
                 txEngBreakdown = true;
             }
-            outputMemAccess.write(tempCmd);
+            soMEM_Txp_RdCmd.write(tempCmd);
             soTss_SplitMemAcc.write(txEngBreakdown);
             txPktCounter++;
             //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << txPktCounter << " - " << std::hex << " - " << tempCmd.saddr << " - " << tempCmd.bbt << std::endl;
         }
     }
     else if (txEngBreakdown == true) {
-        if (!outputMemAccess.full()) {
+        if (!soMEM_Txp_RdCmd.full()) {
             txEngTempCmd.saddr.range(15, 0) = 0;
             //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << std::hex << " - " << txEngTempCmd.saddr << " - " << txEngTempCmd.bbt - txEngBreakTemp << std::endl;
-            outputMemAccess.write(DmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
+            soMEM_Txp_RdCmd.write(DmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
             txEngBreakdown = false;
         }
     }
@@ -1534,13 +1529,13 @@ void pMemoryAccessInterface(
  * @param[out] soTSt_TxSarUpdReq,  Request to update the Tx SAR Table (TSt).
  * @param[in]  siTSt_TxSarUpdRep,  Update reply from Tx SAR Table (TSt).
  * @param[in]  siMEM_TxP_Data,     Data payload from the DRAM Memory (MEM).
- * @param[out] soTIm_SetReTxTimer, Set retransmission timer to Timers (TIm).
+ * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set probe timer to Timers (TIm).
  * @param[out] soMEM_Txp_RdCmd,    Memory read command to the DRAM Memory (MEM).
  * @param[out] soSLc_ReverseLkpReq,Reverse lookup request to Session Lookup Controller (SLc).
  * @param[in]  siSLc_ReverseLkpRep,Reverse lookup reply from SLc.
- * @param[out] soEVe_RxEventSig,  Signals the reception of an event.
- * @param[out] soL3MUX_Data,      Outgoing data stream.
+ * @param[out] soEVe_RxEventSig,   Signals the reception of an event to [EventEngine].
+ * @param[out] soL3MUX_Data,       Outgoing data stream.
  *
  * @details
  *  The Tx Engine (TXe) is responsible for the generation and transmission of
@@ -1560,12 +1555,12 @@ void tx_engine(
         stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
         stream<txTxSarReply>            &siTSt_TxSarUpdRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
-        stream<txRetransmitTimerSet>    &soTIm_SetReTxTimer,
+        stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
-        stream<ap_uint<1> >             &soEVe_RxEventSig,
+        stream<SigBit>                  &soEVe_RxEventSig,
         stream<Ip4overAxi>              &soL3MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1680,7 +1675,7 @@ void tx_engine(
             siRSt_RxSarRdRep,
             soTSt_TxSarUpdReq,
             siTSt_TxSarUpdRep,
-            soTIm_SetReTxTimer,
+            soTIm_ReTxTimerEvent,
             soTIm_SetProbeTimer,
             sMdlToIhc_TcpSegLen,
             sMdlToPhc_TxeMeta,

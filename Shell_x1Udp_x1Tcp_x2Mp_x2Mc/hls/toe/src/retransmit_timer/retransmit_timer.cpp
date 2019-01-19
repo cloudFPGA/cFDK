@@ -1,133 +1,202 @@
+/*****************************************************************************
+ * @file       : retransmit_timer.cpp
+ * @brief      : Re-Transmission Timer (Rtt) of the TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "retransmit_timer.hpp"
 
 using namespace hls;
 
-/** @ingroup retransmit_timer
- *  The @ref tx_engine sends the Session-ID and Eventy type through the @param txRetransmitTimerFifoIn.
- *  If the timer is unactivated for this session it is activated, the time-out interval is set depending on
- *  how often the session already time-outed.
- *  The @ref rx_engine indicates when a timer for a specific session has to be stopped.
- *  If a timer times-out the corresponding EVent is fired back to the @ref tx_engine. If a session times-out more than 4 times
- *  in a row, it is aborted. The session is released through @param retransmitTimerReleaseFifoOut and the application is
- *  notified through @param timerNotificationFifoOut.
- *  Currently the II is 2 which means that the interval take twice as much time as defined.
- *  @param[in]      rxEng2timer_clearRetransmitTimer
- *  @param[in]      txEng2timer_setRetransmitTimer
- *  @param[out]     rtTimer2eventEng_setEvent
- *  @param[out]     rtTimer2stateTable_releaseState
- *  @param[out]     rtTimer2rxApp_notification
- */
-void retransmit_timer(  stream<rxRetransmitTimerUpdate>&    rxEng2timer_clearRetransmitTimer,
-                        stream<txRetransmitTimerSet>&       txEng2timer_setRetransmitTimer,
-                        stream<event>&                      rtTimer2eventEng_setEvent,
-                        stream<ap_uint<16> >&               rtTimer2stateTable_releaseState,
-                        stream<OpenStatus>&                 rtTimer2txApp_notification,
-                        stream<appNotification>&            rtTimer2rxApp_notification) {
-#pragma HLS PIPELINE II=1
-//#pragma HLS INLINE
-#pragma HLS DATA_PACK variable=rtTimer2eventEng_setEvent
-#pragma HLS DATA_PACK variable=rtTimer2stateTable_releaseState
 
-    static retransmitTimerEntry retransmitTimerTable[MAX_SESSIONS];
-    #pragma HLS RESOURCE variable=retransmitTimerTable core=RAM_T2P_BRAM
-    //#pragma HLS DATA_PACK variable=retransmitTimerTable
-    #pragma HLS DEPENDENCE variable=retransmitTimerTable inter false
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TRACE_OFF | TRACE_TIM)
+ ************************************************/
+extern bool gTraceEvent;
+#define THIS_NAME "TOE/TIm/Rtt"
 
-    static ap_uint<16>          rt_position = 0;
-    static bool                         rt_waitForWrite = false;
-    static ap_uint<16>                  rt_prevPosition = 0;
-    static rxRetransmitTimerUpdate  rt_update;
+#define TRACE_OFF  0x0000
+#define TRACE_RTT  1 <<  1
+#define TRACE_ALL  0xFFFF
 
-    retransmitTimerEntry    currEntry;
-    ap_uint<1> operationSwitch = 0;
-    txRetransmitTimerSet    set;
-    ap_uint<16>             currID;
+#define DEBUG_LEVEL (TRACE_OFF | TRACE_RTT)
 
-    if (rt_waitForWrite && rt_update.sessionID != rt_prevPosition) { //TODO maybe prevprev too
-        if (!rt_update.stop)
-            retransmitTimerTable[rt_update.sessionID].time = TIME_1s;
+
+/*****************************************************************************
+ * @brief ReTransmit Timer (Rtt) process.
+ *
+ * @param[in]      siRXe_ReTxTimerCmd,   Retransmit timer command from [RxEngine].
+ * @param[in]      siTXe_ReTxTimerEvent, Retransmit timer event from [TxEngine].
+ * @param[out]     soEmx_Event,          Event to Event Multiplexer (Emx).
+ * @param[out]     soSmx_ReleaseState,   Set event to StateTable Mux (Smx).
+ * @param[out]     soTAi_Notif,          Notification to Tx Application I/F (TAi).
+ * @param[out]     soRAi_Notif,          Notification to Rx Application I/F (RAi).
+ *
+ * @details
+ *  This process receives a session-id and event-type from [TxEngine]. If the
+ *   retransmit timer corresponding to this session-id is not active, then it
+ *   is activated and its time-out interval is set depending on how often the
+ *   session already time-outed. Next, an event is fired back to [TxEnghine],
+ *   whenever a timer times-out.
+ *  The process also receives a command from [RxEngine] specifying if the timer
+ *   of a session must be stopped or loaded with a default time-out value.
+ *  If a session times-out more than 4 times in a row, it is aborted. A release
+ *   command is then sent to [StateTable] and the application is notified
+ *   [FIXME - the application is notified through @param timerNotificationFifoOut].
+ *
+ * @ingroup retransmit_timer
+ *******************************************************************************/
+void pRetransmitTimer(
+        stream<ReTxTimerCmd>             &siRXe_ReTxTimerCmd,
+        stream<ReTxTimerEvent>           &siTXe_ReTxTimerEvent,
+        stream<event>                    &soEmx_Event,
+        stream<ap_uint<16> >             &soSmx_ReleaseState,
+        stream<OpenStatus>               &soTAi_Notif,
+        stream<appNotification>          &soRAi_Notif)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
+    //#pragma HLS INLINE
+
+    #pragma HLS DATA_PACK variable=soEmx_Event
+    #pragma HLS DATA_PACK variable=soSmx_ReleaseState
+
+    static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM
+    #pragma HLS DEPENDENCE variable=RETRANSMIT_TIMER_TABLE inter false
+
+    const char *myName  = THIS_NAME;
+
+    static bool                     rtt_waitForWrite = false;
+    static SessionId                rtt_position     = 0;
+    static SessionId                rtt_prevPosition = 0;
+    static ReTxTimerCmd             rtt_cmd;
+
+    ReTxTimerEntry  currEntry;
+    ReTxTimerEvent  txEvent;
+    ap_uint<1>      operationSwitch = 0;
+    SessionId       currID;
+
+    if (rtt_waitForWrite && rtt_cmd.sessionID != rtt_prevPosition) {
+        // [TODO - maybe prevprev too]
+        //OBSOLETE-20190181 if (!rtt_cmd.stop)
+        if (rtt_cmd.command == LOAD_TIMER)
+            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].time = TIME_1s;
         else {
-            retransmitTimerTable[rt_update.sessionID].time = 0;
-            retransmitTimerTable[rt_update.sessionID].active = false;
+            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].time   = 0;
+            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].active = false;
         }
-        retransmitTimerTable[rt_update.sessionID].retries = 0;
-        rt_waitForWrite = false;
+        RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].retries = 0;
+        rtt_waitForWrite = false;
     }
-    else if (!rxEng2timer_clearRetransmitTimer.empty() && !rt_waitForWrite) { //FIXME rx path has priority over tx path
-        rxEng2timer_clearRetransmitTimer.read(rt_update);
-        rt_waitForWrite = true;
+    //------------------------------------------------
+    // Handle the input streams from [RxEngine]
+    //------------------------------------------------
+    else if (!siRXe_ReTxTimerCmd.empty() && !rtt_waitForWrite) {
+        // INFO: Rx path has priority over Tx path
+        siRXe_ReTxTimerCmd.read(rtt_cmd);
+        rtt_waitForWrite = true;
     }
     else {
-        currID = rt_position;
-
-        if (!txEng2timer_setRetransmitTimer.empty()) {
-            txEng2timer_setRetransmitTimer.read(set);
-            currID = set.sessionID;
+        currID = rtt_position;
+        //------------------------------------------------
+        // Handle the input streams from [TxEngine]
+        //------------------------------------------------
+        if (!siTXe_ReTxTimerEvent.empty()) {
+            siTXe_ReTxTimerEvent.read(txEvent);
+            currID = txEvent.sessionID;
             operationSwitch = 1;
-            if (set.sessionID-3 < rt_position && rt_position <= set.sessionID)
-                rt_position += 5;
+            if ( (txEvent.sessionID-3 <  rtt_position) &&
+                 (rtt_position    <= txEvent.sessionID) )
+                rtt_position += 5;
         }
-        else { // increment position
-            (rt_position >= MAX_SESSIONS) ? rt_position = 0 : rt_position++;
+        else {
+            // Increment position
+            rtt_position++;
+            if (rtt_position >= MAX_SESSIONS)
+                rtt_position = 0;
             operationSwitch = 0;
         }
-        currEntry = retransmitTimerTable[currID]; // Get entry from table
+
+        // Get current entry from table
+        currEntry = RETRANSMIT_TIMER_TABLE[currID];
+
         switch (operationSwitch) {
-        case 1:
-            currEntry.type = set.type;
+
+        case 1: // Got an event from [TxEngine]
+            currEntry.type = txEvent.type;
             if (!currEntry.active) {
                 switch(currEntry.retries) {
                 case 0:
-                    currEntry.time = TIME_1s; //TIME_5s;
+                    currEntry.time = TIME_1s;
                     break;
                 case 1:
-                    currEntry.time = TIME_5s; //TIME_7s;
+                    currEntry.time = TIME_5s;
                     break;
                 case 2:
-                    currEntry.time = TIME_10s; //TIME_15s;
+                    currEntry.time = TIME_10s;
                     break;
                 case 3:
-                    currEntry.time = TIME_15s; //TIME_20s;
+                    currEntry.time = TIME_15s;
                     break;
                 default:
-                    currEntry.time = TIME_30s; //TIME_30s;
+                    currEntry.time = TIME_30s;
                     break;
                 }
             }
             currEntry.active = true;
-            retransmitTimerTable[currID].active = currEntry.active;
-            retransmitTimerTable[currID].time   = currEntry.time;
-            retransmitTimerTable[currID].type   = currEntry.type;
+            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].active = currEntry.active;
+            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].time   = currEntry.time;
+            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].type   = currEntry.type;
             break;
+
         case 0:
             if (currEntry.active) {
                 if (currEntry.time > 0)
                     currEntry.time--;
-                // We need to check if we can generate another event, otherwise we might end up in a Deadlock,
-                // since the TX Engine will not be able to set new retransmit timers
-                else if (!rtTimer2eventEng_setEvent.full()) {
-                    currEntry.time = 0;
+                // We need to check if we can generate another event, otherwise we might
+                // end up in a Deadlock since the [TxEngine] will not be able to set new
+                // retransmit timers.
+                else if (!soEmx_Event.full()) {
+                    currEntry.time   = 0;
                     currEntry.active = false;
-                    retransmitTimerTable[currID].active = currEntry.active;
+                    //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].active = currEntry.active;
                     if (currEntry.retries < 4) {
                         currEntry.retries++;
-                        rtTimer2eventEng_setEvent.write(event(currEntry.type, currID, currEntry.retries));
+                        soEmx_Event.write(event((eventType)currEntry.type,
+                                          currID,
+                                          currEntry.retries));
+                        if (DEBUG_LEVEL & TRACE_RTT) {
+                            if (currEntry.type == RT_EVENT)
+                                printInfo(myName, "Forwarding RT event to [EventEngine].\n");
+                            }
                     }
                     else {
                         currEntry.retries = 0;
-                        rtTimer2stateTable_releaseState.write(currID);
-                        if (currEntry.type == SYN)
-                            rtTimer2txApp_notification.write(OpenStatus(currID, false));
+                        soSmx_ReleaseState.write(currID);
+                        if (currEntry.type == SYN_EVENT)
+                            soTAi_Notif.write(OpenStatus(currID, false));
                         else
-                            rtTimer2rxApp_notification.write(appNotification(currID, true)); //TIME_OUT
+                            soRAi_Notif.write(appNotification(currID, true)); //TIME_OUT
                     }
                 }
             }
-            retransmitTimerTable[currID].time    = currEntry.time;
-            retransmitTimerTable[currID].retries = currEntry.retries;
+            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].time    = currEntry.time;
+            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].retries = currEntry.retries;
             break;
-        } //switch
-        //retransmitTimerTable[currID] = currEntry; // write entry back
-        rt_prevPosition = currID;
+
+        } // End of: switch
+
+        // Write the entry back into the table
+        RETRANSMIT_TIMER_TABLE[currID] = currEntry;
+        rtt_prevPosition = currID;
     }
 }

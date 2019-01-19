@@ -21,9 +21,8 @@
  *       (e.g, a header) and a user data section.
  *  This source code uses the following terminology:
  *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
- *   - a DATAGRAM (or UDP Packet) refers to the UDP protocol data unit.
- *   - a PACKET (or IP Packet) refers to the IP protocol data unit.
- *   - a FRAME (or MAC Frame) refers to the Ethernet data link layer.
+ *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
+ *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
  *
  *****************************************************************************/
 
@@ -46,7 +45,7 @@ static const uint16_t MAX_SESSIONS = 32;
 
 //OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
-#define noTxSessions 1 // Number of Tx Sessions to open for testing
+#define NO_TX_SESSIOSNS 1 // Number of Tx Sessions to open for testing
 
 extern uint32_t      packetCounter;
 extern uint32_t      idleCycCnt;
@@ -85,41 +84,51 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 using namespace hls;
 
 #ifndef __SYNTHESIS__
-static const ap_uint<32> TIME_1ms       = 1;
-static const ap_uint<32> TIME_5ms       = 1;
-static const ap_uint<32> TIME_25ms      = 1;
-static const ap_uint<32> TIME_50ms      = 1;
-static const ap_uint<32> TIME_100ms     = 1;
-static const ap_uint<32> TIME_250ms     = 1;
-static const ap_uint<32> TIME_1s        = 1;
-static const ap_uint<32> TIME_5s        = 1;
-static const ap_uint<32> TIME_7s        = 2;
-static const ap_uint<32> TIME_10s       = 3;
-static const ap_uint<32> TIME_15s       = 4;
-static const ap_uint<32> TIME_20s       = 5;
-static const ap_uint<32> TIME_30s       = 6;
-static const ap_uint<32> TIME_60s       = 1;
-static const ap_uint<32> TIME_120s      = 120;
+  // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
+  //   works with your longest segment. In other words, if 'TIME_1s' is too short
+  //   and/or your segment is too long, you may experience retransmission events
+  //   (RT) which will break the test. You may want to use 'appRx_OneSeg.dat' or
+  //   'appRx_TwoSeg.dat' to tune this parameter.
+  static const ap_uint<32> TIME_1s        =   25;
+
+  static const ap_uint<32> TIME_1ms       = (((ap_uint<32>)(TIME_1s/1000) > 1) ? (ap_uint<32>)(TIME_1s/1000) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_5ms       = (((ap_uint<32>)(TIME_1s/ 200) > 1) ? (ap_uint<32>)(TIME_1s/ 200) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_25ms      = (((ap_uint<32>)(TIME_1s/  40) > 1) ? (ap_uint<32>)(TIME_1s/  40) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_50ms      = (((ap_uint<32>)(TIME_1s/  20) > 1) ? (ap_uint<32>)(TIME_1s/  20) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_100ms     = (((ap_uint<32>)(TIME_1s/  10) > 1) ? (ap_uint<32>)(TIME_1s/  10) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_250ms     = (((ap_uint<32>)(TIME_1s/   4) > 1) ? (ap_uint<32>)(TIME_1s/   4) : (ap_uint<32>)1);
+
+  static const ap_uint<32> TIME_5s        = (  5*TIME_1s);
+  static const ap_uint<32> TIME_7s        = (  7*TIME_1s);
+  static const ap_uint<32> TIME_10s       = ( 10*TIME_1s);
+  static const ap_uint<32> TIME_15s       = ( 15*TIME_1s);
+  static const ap_uint<32> TIME_20s       = ( 20*TIME_1s);
+  static const ap_uint<32> TIME_30s       = ( 30*TIME_1s);
+  static const ap_uint<32> TIME_60s       = ( 60*TIME_1s);
+  static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
-static const ap_uint<32> TIME_1ms       = 15;
-static const ap_uint<32> TIME_5ms       = 75;
-static const ap_uint<32> TIME_25ms      = 375;
-static const ap_uint<32> TIME_50ms      = 750;
-static const ap_uint<32> TIME_100ms     = 1515;
-static const ap_uint<32> TIME_250ms     = 3780;
-static const ap_uint<32> TIME_1s        = 15150;
-static const ap_uint<32> TIME_5s        = 75075;
-static const ap_uint<32> TIME_7s        = 105105;
-static const ap_uint<32> TIME_10s       = 150150;
-static const ap_uint<32> TIME_15s       = 225225;
-static const ap_uint<32> TIME_20s       = 300300;
-static const ap_uint<32> TIME_30s       = 450450;
-static const ap_uint<32> TIME_60s       = 900900;
-static const ap_uint<32> TIME_120s      = 1801801;
+  static const ap_uint<32> TIME_1ms       = (  0.001/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5ms       = (  0.005/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_25ms      = (  0.025/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_50ms      = (  0.050/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_100ms     = (  0.100/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_250ms     = (  0.250/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_1s        = (  1.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5s        = (  5.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_7s        = (  7.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_10s       = ( 10.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_15s       = ( 15.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_20s       = ( 20.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_30s       = ( 30.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_60s       = ( 60.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_120s      = (120.000/0.0000000064/MAX_SESSIONS) + 1;
 #endif
 
 #define BROADCASTCHANNELS 2
+
 enum eventType {TX, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY};
+
+
 
 /*
  * There is no explicit LISTEN state
@@ -157,14 +166,15 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 /********************************************
  * SINGLE BIT - Types and Definitions
  ********************************************/
-typedef bool AckBit;    // Acknowledge: Always has to go back to the source of the request (e.g. OpenReq/OpenAck).
-typedef bool CmdBit;    // Command    : Indicates an action (e.g. Drop). Does not expect a return from recipient.
-typedef bool QryBit;    // Query      : Indicates a demand for an answer.
-typedef bool ReqBit;    // Request    : Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBit;    // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBit;    // Response   : Can go back to a different source.
-typedef bool StsBit;    // Status bit : Does not  have to go back (e.g. isOpen).
-typedef bool ValBit;    // Valid bit  : Must go along with something to validate/invalidate.
+typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool CmdBit;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef bool QryBit;  // Query      : Indicates a demand for an answer (.e.g stateQry).
+typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
+typedef bool SigBit;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+typedef bool StsBit;  // Status bit : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus..
+typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
 
 
@@ -294,16 +304,23 @@ typedef ap_uint<16> TcpCSum;        // TCP Checksum
 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
 typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
-typedef ap_uint<16> TcpOptMss;      // TCP Option MAximum Segment Size
+typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
 
 typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
 typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
+/********************************************
+ * TCP - Port Ranges (Static & Ephemeral)
+ ********************************************/
+typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
+typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
+
+
 
 
 /********************************************
- * Socket Transport Pair & Address
+ * SOCKET - Transport Pair & Address
  ********************************************/
 
 class AxiSockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
@@ -792,8 +809,15 @@ struct txTxSarReply
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
+/********************************************
+ * Timers (TIm)
+ ********************************************/
+enum TimerCmd {LOAD_TIMER = false,
+               STOP_TIMER = true};
+
+/*** OBSOLETE-20190181 ***
 struct rxRetransmitTimerUpdate {
-	SessionId   sessionID;
+    SessionId   sessionID;
     bool        stop;
     rxRetransmitTimerUpdate() {}
     rxRetransmitTimerUpdate(SessionId id) :
@@ -801,7 +825,20 @@ struct rxRetransmitTimerUpdate {
     rxRetransmitTimerUpdate(ap_uint<16> id, bool stop) :
         sessionID(id), stop(stop) {}
 };
+***************************/
 
+class ReTxTimerCmd {  // ReTransmit Timer Command
+  public:
+    SessionId   sessionID;
+    CmdBit      command;  // {LOAD=false; STOP=true
+    ReTxTimerCmd() {}
+    ReTxTimerCmd(SessionId id) :
+        sessionID(id), command(STOP_TIMER) {}
+    ReTxTimerCmd(SessionId id, CmdBit cmd) :
+        sessionID(id), command(cmd) {}
+};
+
+/*** OBSOLETE-20190118 ***
 struct txRetransmitTimerSet {
 	SessionId   sessionID;
     eventType   type;
@@ -809,6 +846,21 @@ struct txRetransmitTimerSet {
     txRetransmitTimerSet(SessionId id) :
         sessionID(id), type(RT) {} //FIXME??
     txRetransmitTimerSet(SessionId id, eventType type) :
+        sessionID(id), type(type) {}
+};
+**************************/
+
+enum EventType {TX_EVENT, RT_EVENT, ACK_EVENT, SYN_EVENT,
+                SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT};
+
+class ReTxTimerEvent {  // ReTransmit Timer Event
+public:
+    SessionId   sessionID;
+    EventType   type;
+    ReTxTimerEvent() {}
+    ReTxTimerEvent(SessionId id) :
+        sessionID(id), type(RT_EVENT) {} // [FIXME - Why RT??]
+    ReTxTimerEvent(SessionId id, EventType type) :
         sessionID(id), type(type) {}
 };
 
@@ -1017,8 +1069,12 @@ struct appReadRequest
 //ap_uint<8> length2keep_mapping(uint16_t lengthValue);
 
 //template<class type> void streamBroadcaster (stream<type> &input, stream<type> &output1, stream<type> &output2);
-//template<class type> void streamMerger(stream<type> &input1, stream<type>& input2, stream<type>& output);
-template<typename T> void mergeFunction(stream<T>& in1, stream<T>& in2, stream<T>& out);
+
+template<typename T> void pStreamMux(
+        stream<T>  &si1,
+        stream<T>  &si2,
+        stream<T>  &so);
+
 
 void toe(
 

@@ -45,6 +45,14 @@ using namespace std;
 //---------------------------------------------------------
 #define MAX_SIM_CYCLES 2500000
 
+#define TOE_IP4_ADDR  0x0A0CC801  // TOE's IP Address = 10.12.200.01
+#define TOE_TCP_LSN   0x0050      // TOE listens on port =    80 (static  ports must be     0..32767)
+#define TOE_TCP_OPN   0x8000      // TOE opens the  port = 32768 (dynamic ports must be 32768..65535)
+
+#define TB_IP4_ADDR   0x0A0A0A0A  // TB's IP Address  = 10.10.10.10
+#define TB_TCP_LSN    TOE_TCP_OPN // Listen on active ports opened by TOE (.i.e, 32768..65535)
+#define TB_TCP_OPN    TOE_TCP_LSN // Open a port that TOE is listening on (.i.e,     0..32767)
+
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //---------------------------------------------------------
@@ -52,18 +60,38 @@ unsigned int    gSimCycCnt    = 0;
 unsigned int    gMaxSimCycles = 100;    // Might be updated by content of the test vector file.
 bool            gTraceEvent   = false;
 
+/*****************************************************************************
+ * @brief Print a socket address.
+ *
+ * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
+ * @param[in] sockAddr,     the socket address to display.
+ *****************************************************************************/
+void printTbSockAddr(const char *callerName, TbSockAddr sockAddr)
+{
+    printInfo(callerName, "SocketAddr {Addr,Port} = {%3.3d.%3.3d.%3.3d.%3.3d, %5.5d} \n",
+        (sockAddr.addr & 0xFF000000) >> 24,
+        (sockAddr.addr & 0x00FF0000) >> 16,
+        (sockAddr.addr & 0x0000FF00) >>  8,
+        (sockAddr.addr & 0x000000FF) >>  0, sockAddr.port);
+}
 
 /*****************************************************************************
- * @brief Print the socket pair association of a data segment.
+ * @brief Print a socket pair association.
  *
  * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
  * @param[in] sockPair,     the socket pair to display.
  *****************************************************************************/
 void printTbSockPair(const char *callerName, TbSocketPair sockPair)
 {
-    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
-        sockPair.src.addr, sockPair.src.port,
-        sockPair.dst.addr, sockPair.dst.port);
+    printInfo(callerName, "SocketPair {Src,Dst} = {{%3.3d.%3.3d.%3.3d.%3.3d,%5.5d},{%3.3d.%3.3d.%3.3d.%3.3d,%5.5d}} \n",
+        (sockPair.src.addr & 0xFF000000) >> 24,
+        (sockPair.src.addr & 0x00FF0000) >> 16,
+        (sockPair.src.addr & 0x0000FF00) >>  8,
+        (sockPair.src.addr & 0x000000FF) >>  0, sockPair.src.port,
+        (sockPair.dst.addr & 0xFF000000) >> 24,
+        (sockPair.dst.addr & 0x00FF0000) >> 16,
+        (sockPair.dst.addr & 0x0000FF00) >>  8,
+        (sockPair.dst.addr & 0x000000FF) >>  0, sockPair.dst.port);
 }
 
 /*****************************************************************************
@@ -440,6 +468,7 @@ vector<string> myTokenizer(string strBuff) {
  *
  * @ingroup test_toe
  ******************************************************************************/
+/*** OBSOLETE-20180104 ***
 void writeAppTxGoldFile(
         ofstream    &appTxGold,
         IpPacket    &ipPacket)
@@ -448,6 +477,26 @@ void writeAppTxGoldFile(
         string tcpData = ipPacket.getTcpData();
         if (tcpData.size() > 0)
             appTxGold << tcpData << endl;
+    }
+}
+*** OBSOLETE-20180104 ***/
+
+/*****************************************************************************
+ * @brief Write the TCP data part of an IP packet into a file.
+ *
+ * @param[in]   outFile,  a ref to the gold file to write.
+ * @param[in]   ipPacket, a ref to an IP RX packet.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+void writeTcpDataToFile(
+        ofstream    &outFile,
+        IpPacket    &ipPacket)
+{
+    if(ipPacket.sizeOfTcpData() > 0) {
+        string tcpData = ipPacket.getTcpData();
+        if (tcpData.size() > 0)
+            outFile << tcpData << endl;
     }
 }
 
@@ -461,7 +510,7 @@ for (int i = 0; i<8; ++i) {
     if(tcpWord.tkeep[7-i] == 0) {
         tdataToFile.replace(i*2, 2, "00");
     }
-    appTxBytCounter++;
+    apTx_TcpBytCntr++;
 }
 
 if (tcpWord.tlast == 1)
@@ -482,7 +531,7 @@ else
  *
  * @ingroup toe
  ******************************************************************************/
-int injectAckNumber(
+int pIPRX_InjectAckNumber(
         IpPacket                         &ipRxPacket,
         map<TbSocketPair, TcpAckNum>     &sessionList)
 {
@@ -537,15 +586,16 @@ int injectAckNumber(
     return -1;
 } // End of: injectAckNumber()
 
+
 /*****************************************************************************
  * @brief Feed TOE with IP an Rx packet.
  *
- * @param[in]  ipRxPacketizer,    a ref to the dqueue w/ an IP Rx packets.
- * @param[in/out] ipRxPktCounter, a ref to the IP Rx packet counter.
- *                                 (counts all kinds and from all sessions).
- * @param[out] soTOE_Data,        A reference to the data stream to TOE.
- * @param[in]  sessionList,       a ref to an associative container that
- *                                 holds the sessions as socket pair associations.
+ * @param[in]  ipRxPacketizer, a ref to the dqueue w/ an IP Rx packets.
+ * @param[i/o] ipRxPktCounter, a ref to the IP Rx packet counter.
+ *                              (counts all kinds and from all sessions).
+ * @param[out] soTOE_Data,     A reference to the data stream to TOE.
+ * @param[in]  sessionList,    a ref to an associative container that
+ *                              holds the sessions as socket pair associations.
  *
  * @details:
  *  Empties the double-ended packetizer queue which contains the IPv4 packet
@@ -554,7 +604,7 @@ int injectAckNumber(
  *
  * @ingroup toe
  ******************************************************************************/
-void feedTOE(
+void pIPRX_FeedTOE(
         deque<IpPacket>               &ipRxPacketizer,
         int                           &ipRxPktCounter,
         stream<Ip4overAxi>            &soTOE_Data,
@@ -564,7 +614,7 @@ void feedTOE(
 
     if (ipRxPacketizer.size() != 0) {
         // Insert proper ACK Number in packet at the head of the queue
-        injectAckNumber(ipRxPacketizer[0], sessionList);
+        pIPRX_InjectAckNumber(ipRxPacketizer[0], sessionList);
         if (DEBUG_LEVEL & TRACE_IPRX) {
             ipRxPacketizer[0].printHdr(myName);
         }
@@ -588,15 +638,18 @@ void feedTOE(
 /*****************************************************************************
  * @brief Emulate the behavior of the IP Rx Path (IPRX).
  *
- * @param[in]     ipRxFile,       A ref to the input file w/ IP Rx packets.
- * @param[in/out] ipRxPktCounter, A ref to the IP Rx packet counter.
+ * @param[in]  ipRxFile,       A ref to the input file w/ IP Rx packets.
+ * @param[in]  appTxGold,      A ref to the [TODO]
+ * @param[in]  testRxPath,      Indicates if the test of the Rx path is enabled.
+ * @param[i/o] ipRxPktCounter, A ref to the IP Rx packet counter.
  *                                 (counts all kinds and from all sessions).
- * @param[in/out] tcpRxBytCounter,A ref to the IP Rx byte counter.
- *                                 (counts all kinds and from all sessions).
- * @param[in/out] ipRxPacketizer, A ref to the RxPacketizer (double-ended queue).
- * @param[in]     sessionList,    A ref to an associative container which holds
- *                                  the sessions as socket pair associations.
- * @param[out]    soTOE_Data,     A reference to the data stream to TOE.
+ * @param[i/o] ipRx_TcpBytCntr,A ref to the counter of TCP data bytes received
+ *                               on the IP Rx interface.
+ *                              (counts all kinds and from all sessions).
+ * @param[i/o] ipRxPacketizer, A ref to the RxPacketizer (double-ended queue).
+ * @param[in]  sessionList,    A ref to an associative container which holds
+ *                               the sessions as socket pair associations.
+ * @param[out] soTOE_Data,     A reference to the data stream to TOE.
  *
  * @details
  *  Reads in new IPv4 packets from the Rx input file and stores them into the
@@ -612,8 +665,9 @@ void feedTOE(
 void pIPRX(
         ifstream                      &ipRxFile,
         ofstream                      &appTxGold,
+        bool                          &testRxPath,
         int                           &ipRxPktCounter,
-        int                           &tcpRxBytCounter,
+        int                           &ipRx_TcpBytCntr,
         deque<IpPacket>               &ipRxPacketizer,
         map<TbSocketPair, TcpAckNum>  &sessionList,
         stream<Ip4overAxi>            &soTOE_Data)
@@ -635,18 +689,24 @@ void pIPRX(
             ipRxIdleCycCnt = 0;
             ipRxIdlingReq = false;
         }
-        else
+        else {
             ipRxIdleCycCnt++;
+        }
+        return;
     }
 
     //-----------------------------------------------------
-    //-- STEP-2 : FEED the IP Rx INTERFACE
+    //-- STEP-2 : ALWAYS FEED the IP Rx INTERFACE
     //-----------------------------------------------------
     // Note: The IPv4 RxPacketizer may contain an ACK packet generated by the
     //  process which emulates the Layer-3 Multiplexer (.i.e, L3Mux).
     //  Therefore, we start by flushing these packets (if any) before reading a
-    //  new packet from the file.
-    feedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
+    //  new packet from the IP Rx input file.
+    pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
+
+    // Quit here if the Rx test mode is not enabled
+    if (not testRxPath)
+        return;
 
     //-----------------------------------------------------
     //-- STEP-3 : READ THE IP RX FILE
@@ -664,26 +724,34 @@ void pIPRX(
         if (stringVector[0] == "") {
             continue;
         }
-        else if (stringVector[0] == "#") {
-            // WARNING: A comment must start with a hash symbol followed by a space character
-            for (int t=0; t<stringVector.size(); t++)
-                printf("%s ", stringVector[t].c_str());
-            printf("\n");
-            continue;
-        }
-        else if (stringVector[0] == "C") {
-            // The test vector file is specifying a minimum number of simulation cycles.
-            int noSimCycles = atoi(stringVector[1].c_str());
-            if (noSimCycles > gMaxSimCycles)
-                gMaxSimCycles = noSimCycles;
-            return;
-        }
-        else if (stringVector[0] == "W") {
-            // The test vector is is willing to request idle wait cycles before providing
-            // TOE with a new IPRX packet.
-            ipRxIdleCycReq = atoi(stringVector[1].c_str());
-            ipRxIdlingReq = true;
-            return;
+        else if (stringVector[0].length() == 1) {
+            // WARNING:
+            //  A comment must start with a hash symbol followed by a space character.
+            //  A command must start with an upper character followed by a space character.
+            if (stringVector[0] == "#") {
+                for (int t=0; t<stringVector.size(); t++)
+                    printf("%s ", stringVector[t].c_str());
+                printf("\n");
+                continue;
+            }
+            else if (stringVector[0] == "C") {
+                // The test vector file is specifying a minimum number of simulation cycles.
+                int noSimCycles = atoi(stringVector[1].c_str());
+                if (noSimCycles > gMaxSimCycles)
+                    gMaxSimCycles = noSimCycles;
+                return;
+            }
+            else if (stringVector[0] == "W") {
+                // The test vector is is willing to request idle wait cycles before providing
+                // TOE with a new IPRX packet.
+                ipRxIdleCycReq = atoi(stringVector[1].c_str());
+                ipRxIdlingReq = true;
+                return;
+            }
+            else {
+                printError(myName, "Read unknown command \"%s\" from ipRxFile.\n", stringVector[1].c_str());
+                exit(1);
+            }
         }
         else if (ipRxFile.fail() == 1 || rxStringBuffer.empty()) {
             return;
@@ -708,21 +776,21 @@ void pIPRX(
             } while (ipRxData.tlast != 1);
 
             // Count the number of data bytes contained in the TCP payload
-            tcpRxBytCounter += ipRxPacket.sizeOfTcpData();
+            ipRx_TcpBytCntr += ipRxPacket.sizeOfTcpData();
 
             // Write to the Application Tx Gold file
-            writeAppTxGoldFile(appTxGold, ipRxPacket);
+            writeTcpDataToFile(appTxGold, ipRxPacket);
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
-            feedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList); // [FIXME-Can be removed?]
+            pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList); // [FIXME-Can be removed?]
 
             return;
         }
 
     } while(!ipRxFile.eof());
 
-}
+} // End of: pIPRX
 
 
 /*****************************************************************************
@@ -742,7 +810,7 @@ void pIPRX(
  *
  *  @ingroup toe
  ******************************************************************************/
-bool parseL3MuxPacket(
+bool pL3MUX_Parse(
         IpPacket                      &ipTxPacket,
         map<TbSocketPair, TcpAckNum>  &sessionList,
         deque<IpPacket>               &ipRxPacketizer)
@@ -750,7 +818,7 @@ bool parseL3MuxPacket(
     bool        returnValue    = false;
     bool        isFinAck       = false;
     bool        isSynAck       = false;
-    static int  ipTxPktCounter = 0;
+    //OBSOLETE-20190104 static int  ipTxPktCounter = 0;
     static int  currAckNum     = 0;
 
     const char *myName = concat3(THIS_NAME, "/", "L3MUX/Parse");
@@ -766,7 +834,7 @@ bool parseL3MuxPacket(
         if (DEBUG_LEVEL & TRACE_L3MUX)
             printInfo(myName, "Got a SYN from TOE. Replying with a SYN+ACK.\n");
 
-        IpPacket synAckPacket(40);
+        IpPacket synAckPacket;
         synAckPacket.clone(ipTxPacket);
 
         // Swap IP_SA and IP_DA
@@ -911,6 +979,9 @@ bool parseL3MuxPacket(
             ackPacket.setTcpControlAck(1);
             ackPacket.setTcpControlFin(0);
 
+            // Set the Window size
+            ackPacket.setTcpWindow(7777);
+
             // Recalculate the Checksum
             int newTcpCsum = ackPacket.recalculateChecksum();
             ackPacket.setTcpChecksum(newTcpCsum);
@@ -918,19 +989,17 @@ bool parseL3MuxPacket(
             // Add the created ACK packet to the ipRxPacketizer
             ipRxPacketizer.push_back(ackPacket);
 
-            // Increment the packet counter
-            if (currAckNum != nextAckNum) {
-                ipTxPktCounter++;
-                if (DEBUG_LEVEL & TRACE_L3MUX) {
-                    printInfo(myName, "IP Tx Packet Counter = %d \n", ipTxPktCounter);
-                }
-            }
+            //OBSOLETE-20190104 // Increment the packet counter
+            //OBSOLETE-20190104 if (currAckNum != nextAckNum) {
+            //OBSOLETE-20190104     ipTxPktCounter++;
+            //OBSOLETE-20190104     if (DEBUG_LEVEL & TRACE_L3MUX) {
+            //OBSOLETE-20190104         printInfo(myName, "IP Tx Packet Counter = %d \n", ipTxPktCounter);
+            //OBSOLETE-20190104     }
+            //OBSOLETE-20190104 }
             currAckNum = nextAckNum;
         }
     }
 
-    // Clear the received Tx packet
-    ipTxPacket.clear();
 
     return returnValue;
 
@@ -940,12 +1009,15 @@ bool parseL3MuxPacket(
 /*****************************************************************************
  * @brief Emulate the behavior of the Layer-3 Multiplexer (L3MUX).
  *
- * @param[in]     siTOE_Data,      A reference to the data stream from TOE.
- * @param[in]     iptxFile,        The output file stream to write.
- * @param[in]     sessionList,     A ref to an associative container which holds the sessions as socket pair associations.
- * @param[in/out] ipTxPktCount,    A ref to the IP Tx packet counter (counts all kinds and from all sessions).
- * @param[in/out] tcpTxBytCounter, A ref to the TCP Tx byte counter (counts all kinds and from all sessions).
- * @param[out]    ipRxPacketizer,  A ref to the IPv4 Rx packetizer.
+ * @param[in]  siTOE_Data,      A reference to the data stream from TOE.
+ * @param[in]  ipTxFile1,       The output file to write.
+ * @param[in]  ipTxFile2,       The output file to write.
+ * @param[in]  sessionList,     A ref to an associative container which holds
+ *                               the sessions as socket pair associations.
+ * @param[i/o] ipTx_PktCounter, A ref to the packet counter on the IP Tx I/F.
+ *                               (counts all kinds and from all sessions).
+ * @param[i/o] ipTx_TcpBytCntr, A ref to the TCP byte counter on the IP Tx I/F.
+ * @param[out] ipRxPacketizer,  A ref to the IPv4 Rx packetizer.
  *
  * @details
  *  Drains the data from the L3MUX interface of the TOE and stores them into
@@ -959,10 +1031,11 @@ bool parseL3MuxPacket(
  ******************************************************************************/
 void pL3MUX(
         stream<Ip4overAxi>            &siTOE_Data,
-        ofstream                      &iptxFile,
+        ofstream                      &ipTxFile1,
+        ofstream                      &ipTxFile2,
         map<TbSocketPair, TcpAckNum>  &sessionList,
-        int                           &ipTxPktCounter,
-        int                           &tcpTxBytCounter,
+        int                           &ipTx_PktCounter,
+        int                           &ipTx_TcpBytCntr,
         deque<IpPacket>               &ipRxPacketizer)
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
@@ -983,11 +1056,19 @@ void pL3MUX(
         //-- STEP-3 : Parse the received packet------------
         if (ipTxWord.tlast == 1) {
             // The whole packet is now into the deque.
-            if (parseL3MuxPacket(ipTxPacket, sessionList, ipRxPacketizer) == true) {
-                ipTxPktCounter++;
-                tcpTxBytCounter += ipTxPacket.sizeOfTcpData();
-                ipTxWordCounter = 0;
+            if (pL3MUX_Parse(ipTxPacket, sessionList, ipRxPacketizer) == true) {
+                // Found an ACK
+                ipTx_PktCounter++;
+                int tcpPayloadSize = ipTxPacket.sizeOfTcpData();
+                if (tcpPayloadSize) {
+                    ipTx_TcpBytCntr += tcpPayloadSize;
+                    // Write to the IP Tx Gold file
+                    writeTcpDataToFile(ipTxFile2, ipTxPacket);
+                }
             }
+            // Clear the word counter and the received IP packet
+            ipTxWordCounter = 0;
+            ipTxPacket.clear();
         }
         else
             ipTxWordCounter++;
@@ -995,26 +1076,27 @@ void pL3MUX(
         //-- STEP-4 : Write to file ------------- ---------
         string dataOutput = decodeApUint64(ipTxWord.tdata);
         string keepOutput = decodeApUint8(ipTxWord.tkeep);
-        iptxFile << dataOutput << " " << ipTxWord.tlast << " " << keepOutput << endl;
+        ipTxFile1 << dataOutput << " " << ipTxWord.tlast << " " << keepOutput << endl;
     }
-}
+} // End of: pL3MUX
 
 
 /*****************************************************************************
- * @brief Write a TCP piece of data into the Tx Application file.
+ * @brief Write a TCP AXI word into a file.
  *
- * @param[in]     appTxFile, a ref to the file to write.
- * @param[in]     tcpWord,   a ref to the AXI word to write.
- * @param[in/out] appTxBytCounter, A ref to the counter of bytes from TOE to APP.
+ * @param[in]  outFile, a ref to the file to write.
+ * @param[in]  tcpWord, a ref to the AXI word to write.
+ *
+ * @return the number of bytes written into the file.
  *
  * @ingroup test_toe
  ******************************************************************************/
-void writeAppTxDataFile(
-        ofstream    &appTxFile,
-        AxiWord     &tcpWord,
-        int         &appTxBytCounter)
+int writeTcpWordToFile(
+        ofstream    &outFile,
+        AxiWord     &tcpWord)
 {
     string tdataToFile = "";
+    int writtenBytes = 0;
 
     for (int bytNum=0; bytNum<8; bytNum++) {
         if (tcpWord.tkeep.bit(bytNum)) {
@@ -1022,21 +1104,23 @@ void writeAppTxDataFile(
             int lo = ((bytNum*8) + 0);
             ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
             tdataToFile += toHexString(octet);
-            appTxBytCounter++;
+            writtenBytes++;
         }
     }
 
     if (tcpWord.tlast == 1)
-        appTxFile << tdataToFile << endl;
+        outFile << tdataToFile << endl;
     else
-        appTxFile << tdataToFile;
+        outFile << tdataToFile;
 
+    return writtenBytes;
 }
 
+
 /*****************************************************************************
- * @brief Start listening on a given port number.
+ * @brief Start listening on new port(s). The port numbers correspond to the
+ *         ones opened by the TOE.
  *
- * @param[in]  portNum,      the port number to listen.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  *
@@ -1044,15 +1128,16 @@ void writeAppTxDataFile(
  *
  * @ingroup test_toe
  ******************************************************************************/
-bool listen(
-        TcpPort          &portNum,
+bool pTRIF_Listen(
         stream<TcpPort>  &soTOE_LsnReq,
         stream<bool>     &siTOE_LsnAck)
 {
     static ap_uint<1> listenFsm   = 0;
     bool              listenDone  = false;
 
-    const char *myName  = concat3(THIS_NAME, "/", "TRIF/listen()");
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/Listen()");
+
+    TcpPort portNum = TOE_TCP_LSN;  // The port # to listen to.
 
     switch (listenFsm) {
     case 0:
@@ -1083,37 +1168,38 @@ bool listen(
 }
 
 /*****************************************************************************
- * @brief Open a new socket and setup connection.
+ * @brief Open new socket(s) and setup connection(s).
  *
- * @param[in]  localSockAddr, The local socket address .
+ * @param[in]  toeSockAddr,   The local socket address of the TOE.
  * @param[out] txSessIdVector,A vector containing the generated Tx session IDs.
  * @param[out] soTOE_OpnReq,  TCP open connection request to TOE.
  * @param[in]  siTOE_OpnSts,  TCP open connection status from TOE.
  *
  * @return true if a socket was successfully opened, otherwise false. The
  *
+ * @details:
+ *  The number of connections to open is given by 'noTxSessions'.
+ *
  * @ingroup test_toe
  ******************************************************************************/
-bool openCon(
-        TbSockAddr             &localSockAddr,
+bool pTRIF_OpenCon(
+        TbSockAddr             &toeSockAddr,
         vector<SessionId>      &txSessIdVector,
         stream<AxiSockAddr>    &soTOE_OpnReq,
         stream<OpenStatus>     &siTOE_OpnSts)
 {
+    static int noOpenCon = 0;
 
-    const char *myName  = concat3(THIS_NAME, "/", "TRIF/socket()");
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/OpenCon()");
 
-    for (static int8_t i=0; i<noTxSessions; ++i) {
+    if (noOpenCon < NO_TX_SESSIOSNS) {
         // Define the socket pair involved in the connection
-        TbSockAddr   foreignSockAddr(150*(i+65355), 10*(i+65355));
-        TbSocketPair socketPair(localSockAddr, foreignSockAddr);
+        //OBSOLETE-20190110 TbSockAddr   toeSockAddr(150*(noOpenCon+65355), 10*(noOpenCon+65355));
+        TbSockAddr   tbSockAddr(TB_IP4_ADDR + noOpenCon, TB_TCP_LSN + noOpenCon);
+        TbSocketPair socketPair(toeSockAddr, tbSockAddr);
 
-
-        //OBSOLETE-20181221 AxiSocketPair axiSocketPair(AxiSockAddr(byteSwap32(localSockAddr.addr),   byteSwap16(localSockAddr.port)),
-        //OBSOLETE-20181221                            AxiSockAddr(byteSwap32(foreignSockAddr.addr), byteSwap16(foreignSockAddr.port)));
-
-        AxiSockAddr axiForeignSockAddr(AxiSockAddr(byteSwap32(foreignSockAddr.addr),
-                                                   byteSwap16(foreignSockAddr.port)));
+        AxiSockAddr axiForeignSockAddr(AxiSockAddr(byteSwap32(tbSockAddr.addr),
+                                                   byteSwap16(tbSockAddr.port)));
 
         static int openFsm = 0;
 
@@ -1123,7 +1209,8 @@ bool openCon(
             soTOE_OpnReq.write(axiForeignSockAddr);
             if (DEBUG_LEVEL & TRACE_TRIF) {
                 printInfo(myName, "Request to open the following socket: \n");
-                printSockAddr(myName, axiForeignSockAddr);
+                //OBSOLETE-20190115 printAxiSockAddr(myName, axiForeignSockAddr);
+                printTbSockAddr(myName, tbSockAddr);
             }
             openFsm++;
             break;
@@ -1139,15 +1226,344 @@ bool openCon(
                 else {
                     printWarn(myName, "Session #%d is not yet opened.\n", openConStatus.sessionID.to_uint());
                 }
+                noOpenCon++;
                 openFsm++;
             }
             break;
         }
+        return false;
     }
-
-    return true;
+    else {
+        return true;
+    }
 }
 
+
+/*****************************************************************************
+ * @brief Emulates behavior of the receive half of TCP Role Interface (TRIF).
+ *
+ * @param[in]  appTxFile,    A ref to the output Tx application file to write.
+ * @param[i/o] apTx_TcpBytCntr, A ref to the counter of bytes on the APP Tx I/F.
+ * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
+ * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
+ * @param[in]  siTOE_Notif,  TCP notification from TOE.
+ * @param[out] soTOE_DReq,   TCP data request to TOE.
+ * @param[in]  siTOE_Meta,   TCP metadata stream from TOE.
+ * @param[in]  siTOE_Data,   TCP data stream from TOE.
+ *
+ * @details:
+ *
+ * @ingroup toe
+ ******************************************************************************/
+void pTRIF_Recv(
+        ofstream                &appTxFile,
+        int                     &apTx_TcpBytCntr,
+        stream<TcpPort>         &soTOE_LsnReq,
+        stream<bool>            &siTOE_LsnAck,
+        stream<appNotification> &siTOE_Notif,
+        stream<appReadRequest>  &soTOE_DReq,
+        stream<SessionId>       &siTOE_Meta,
+        stream<AxiWord>         &siTOE_Data)
+{
+    static bool         listenDone         = false;
+    static bool         openDone           = false;
+    static bool         runningExperiment  = false;
+    static SessionId    currTxSessionID    = 0;  // The current Tx session ID
+
+    static bool         appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
+    static unsigned int appRxIdleCycReq = 0;     // The requested number of idle cycles
+    static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
+
+    static vector<SessionId> txSessIdVector;     // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
+
+    string              rxStringBuffer;
+    vector<string>      stringVector;
+
+    OpenStatus          newConStatus;
+    appNotification     notification;
+    ipTuple             tuple;
+
+    //Ip4Addr  openAddr = 0x0A0A0A0A;   // 10.10.10.10
+    //TcpPort  openPort = 0x89;         // #137
+    //TbSockAddr(openAddr, openPort);
+
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/Recv");
+
+    //------------------------------------------------
+    //-- STEP-1 : REQUEST TO LISTEN ON A PORT
+    //------------------------------------------------
+    if (!listenDone) {
+        listenDone = pTRIF_Listen(soTOE_LsnReq, siTOE_LsnAck);
+        return;
+    }
+
+    //------------------------------------------------
+    //-- STEP-2 : READ NOTIFICATION
+    //------------------------------------------------
+    if (!siTOE_Notif.empty()) {
+        siTOE_Notif.read(notification);
+        if (notification.length != 0)
+            soTOE_DReq.write(appReadRequest(notification.sessionID,
+                                            notification.length));
+        else // closed
+            runningExperiment = false;
+    }
+
+    //------------------------------------------------
+    //-- STEP-3 : DRAIN TOE-->TRIF
+    //------------------------------------------------
+    //-- IPERF PROCESSING
+    static enum FsmState {WAIT_SEG=0, CONSUME, HEADER_2, HEADER_3} fsmState = WAIT_SEG;
+
+    SessionId           tcpSessId;
+    AxiWord             currWord;
+    static bool         dualTest = false;
+    static ap_uint<32>  mAmount = 0;
+
+    currWord.tlast = 0;
+
+    switch (fsmState) {
+
+    case WAIT_SEG:
+        if (!siTOE_Meta.empty() && !siTOE_Data.empty()) {
+            // Read the TCP session ID and the 1st TCP data chunk
+            siTOE_Meta.read(tcpSessId);
+            siTOE_Data.read(currWord);
+            // Write TCP data chunk to file
+            apTx_TcpBytCntr += writeTcpWordToFile(appTxFile, currWord);
+
+            //FIXME if (!runningExperiment) {
+            //FIXME     // Check if a bidirectional test is requested (i.e. dualtest)
+            //FIXME     if (currWord.tdata(31, 0) == 0x00000080)
+            //FIXME         dualTest = true;
+            //FIXME     else
+            //FIXME         dualTest = false;
+            //FIXME     runningExperiment = true;
+            //FIXME     fsmState = HEADER_2;
+            //FIXME }
+            //FIXME else
+            fsmState = CONSUME;
+        }
+        break;
+
+    /*** FIXME ***
+    case HEADER_2:
+        if (!siTOE_Data.empty()) {
+        	 // Read the 2nd TCP data chunk
+            siTOE_Data.read(currWord);
+            writeApplicationTxFile(appTxFile, currWord, apTx_TcpBytCntr);
+
+            if (dualTest) {
+                tuple.ip_address = 0x0a010101;  // FIXME
+                tuple.ip_port    = currWord.tdata(31, 16);
+                soTOE_OpnReq.write(tuple);
+            }    // Check for EOF
+    if (ipRxFile.eof())
+        return;
+            fsmState = HEADER_3;
+        }
+        break;
+
+    case HEADER_3:
+        if (!siTOE_Data.empty()) {
+            // Read 3rd TCP data chunk
+            siTOE_Data.read(currWord);
+            writeApplicationTxFile(appTxFile, currWord, apTx_TcpBytCntr);
+
+            mAmount = currWord.tdata(63, 32);
+            fsmState = CONSUME;
+        }
+        break;
+    **************/
+
+    case CONSUME:
+        if (!siTOE_Data.empty()) {
+            // Read all the remaining TCP data chunks
+            siTOE_Data.read(currWord);
+            apTx_TcpBytCntr += writeTcpWordToFile(appTxFile, currWord);
+        }
+        break;
+    }
+
+    // Intercept the cases where TCP payload in less that 4 chunks
+    if (currWord.tlast == 1)
+        fsmState = WAIT_SEG;
+
+} // End of: pTRIF_Recv
+
+
+/*****************************************************************************
+ * @brief Emulates behavior of the send half of TCP Role Interface (TRIF).
+ *
+ * @param[in]  testTxPath,   Indicates if the Tx path is to be tested.
+ * @param[in]  myIpAddress,  The local IP address used by the TOE.
+ * @param[in]  appRxFile,    A ref to the input Rx application file to read.
+ * @param[in]  ipTxGoldFile, A ref to the output IP Tx gold file to write.
+ * @param[i/o] apRx_TcpBytCntr, A ref to the counter of bytes on the APP Rx I/F.
+ * @param[out] soTOE_OpnReq, TCP open port request to TOE.
+ * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
+ * @param[out] soTOE_Meta,   TCP metadata stream to TOE.
+ * @param[out] soTOE_Data,   TCP data stream to TOE.
+ * @param[out] soTOE_ClsReq, TCP close connection request to TOE.
+ *
+ * @details:
+ *
+ * @ingroup toe
+ ******************************************************************************/
+void pTRIF_Send(
+        bool                    &testTxPath,
+        Ip4Address              &myIpAddress,
+        ifstream                &appRxFile,
+        ofstream                &ipTxGoldFile,
+        int                     &apRx_TcpBytCntr,
+        stream<AxiSockAddr>     &soTOE_OpnReq,
+        stream<OpenStatus>      &siTOE_OpnSts,
+        stream<SessionId>       &soTOE_Meta,
+        stream<AxiWord>         &soTOE_Data,
+        stream<ap_uint<16> >    &soTOE_ClsReq)
+{
+    //static bool         listenDone         = false;
+    static bool         openDone           = false;
+    //static bool         runningExperiment  = false;
+    static SessionId    currTxSessionID    = 0;  // The current Tx session ID
+
+    static bool         appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
+    static unsigned int appRxIdleCycReq = 0;     // The requested number of idle cycles
+    static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
+
+    static vector<SessionId> txSessIdVector;     // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
+
+    string              rxStringBuffer;
+    vector<string>      stringVector;
+
+    OpenStatus          newConStatus;
+    //OBSOLETE appNotification     notification;
+    //OBSOLETE ipTuple             tuple;
+    //OBSOLETE Ip4Addr  openAddr = 0x0A0A0A0A;   // 10.10.10.10
+    //OBSOLETE TcpPort  openPort = 0x89;         // #137
+    //OBSOLETE TbSockAddr(openAddr, openPort);
+
+    const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send");
+
+    //------------------------------------------------
+    //-- STEP-1 : REQUEST TO OPEN CONNECTION(S)
+    //------------------------------------------------
+    TcpPort    listeningPort = TOE_TCP_OPN;
+    TbSockAddr toeSockAddr(myIpAddress, listeningPort);
+    if (!openDone) {
+        openDone = pTRIF_OpenCon(toeSockAddr, txSessIdVector, soTOE_OpnReq, siTOE_OpnSts);
+        return;
+    }
+
+    //-----------------------------------------------------
+    //-- STEP-2 : READ THE APP RX FILE AND FEED THE TOE
+    //-----------------------------------------------------
+    // Only if a session has been opened on the Tx Side
+    if (txSessIdVector.size() > 0) {
+
+        //-- STEP-2.0 : RETURN IF IDLING IS REQUESTED -----
+        if (appRxIdlingReq == true) {
+            if (appRxIdleCycCnt >= appRxIdleCycReq) {
+                appRxIdleCycCnt = 0;
+                appRxIdlingReq = false;
+                printInfo(myName, "End of APP Rx idling phase. \n");
+            }
+            else {
+                appRxIdleCycCnt++;
+            }
+            return;
+        }
+
+        //-- STEP-2.1 : QUIT HERE IF TX TEST MODE IS NOT ENABLED
+        if (not testTxPath)
+            return;
+
+        //-- STEP-2.2 : QUIT HERE IF END OF FILE IS REACHED
+        if (appRxFile.eof())
+             return;
+
+        //-- STEP-2.2 : READ THE APP RX FILE --------------
+        do {
+            //-- READ A LINE FROM APP RX FILE -------------
+            getline(appRxFile, rxStringBuffer);
+
+            stringVector = myTokenizer(rxStringBuffer);
+
+            if (stringVector[0] == "") {
+                continue;
+            }
+            else if (stringVector[0].length() == 1) {
+                // WARNING:
+                //  A comment must start with a hash symbol followed by a space character.
+                //  A command must start with an upper character followed by a space character.
+                if (stringVector[0] == "#") {
+                    for (int t=0; t<stringVector.size(); t++)
+                        printf("%s ", stringVector[t].c_str());
+                    printf("\n");
+                    continue;
+                }
+                else if (stringVector[0] == "C") {
+                    // The test vector file is specifying a minimum number of simulation cycles.
+                    int noSimCycles = atoi(stringVector[1].c_str());
+                    if (noSimCycles > gMaxSimCycles)
+                        gMaxSimCycles = noSimCycles;
+                    printInfo(myName, "Request a total of %d simulation cycles. \n", noSimCycles);
+                    return;
+                }
+                else if (stringVector[0] == "W") {
+                    // The test vector is is willing to request idle wait cycles before providing
+                    // TOE with a new APPRX segment.
+                    appRxIdleCycReq = atoi(stringVector[1].c_str());
+                    appRxIdlingReq = true;
+                    printInfo(myName, "Start of APP Rx  idling phase (IdleCycReq=%d). \n", appRxIdleCycReq);
+                    return;
+                }
+                else {
+                    printError(myName, "Read unknown command \"%s\" from ipRxFile.\n", stringVector[0].c_str());
+                    exit(1);
+                }
+            }
+            else if (appRxFile.fail() == 1 || rxStringBuffer.empty()) {
+                return;
+            }
+            else {
+                //-- Feed the TOE with data from file
+                AxiWord appRxData;
+                bool    firstWordFlag = true; // AXI-word is first data chunk of segment
+
+                do {
+                    if (firstWordFlag == false) {
+                        getline(appRxFile, rxStringBuffer);
+                        stringVector = myTokenizer(rxStringBuffer);
+                    }
+                    else {
+                        // This is the first chunk of a frame.
+                        // A Tx data request (i.e. a metadata) must be sent by TRIF to TOE
+                        soTOE_Meta.write(txSessIdVector[currTxSessionID]);
+                        if (currTxSessionID == (NO_TX_SESSIOSNS - 1))
+                            currTxSessionID = 0;
+                        else
+                            currTxSessionID++;
+                    }
+                    firstWordFlag = false;
+                    string tempString = "0000000000000000";
+                    appRxData = AxiWord(encodeApUint64(stringVector[0]), \
+                                        encodeApUint8(stringVector[2]),  \
+                                        atoi(stringVector[1].c_str()));
+                    soTOE_Data.write(appRxData);
+
+                    // Write current word to the gold file
+                    apRx_TcpBytCntr += writeTcpWordToFile(ipTxGoldFile, appRxData);
+
+                } while (appRxData.tlast != 1);
+
+            } // End of: else
+
+        } while(!appRxFile.eof());
+
+    } // End of: if (txSessIdVector.size() > 0) {
+
+} // End of: pTRIF_Send
 
 
 /*****************************************************************************
@@ -1158,7 +1574,9 @@ bool openCon(
  * @param[in]  myIpAddress,  The local IP address used by the TOE.
  * @param[in]  appRxFile,    A ref to the input Rx application file to read.
  * @param[in]  appTxFile,    A ref to the output Tx application file to write.
- * @param[in/out] appTxBytCounter, A ref to the counter of bytes from TOE to APP.
+ * @param[in]  ipTxGoldFile, A ref to the output IP Tx gold file to write.
+ * @param[i/o] apRx_TcpBytCntr, A ref to the counter of bytes on the APP Rx I/F.
+ * @param[i/o] apTx_TcpBytCntr, A ref to the counter of bytes on the APP Tx I/F.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  * @param[in]  siTOE_Notif,  TCP notification from TOE.
@@ -1167,11 +1585,12 @@ bool openCon(
  * @param[in]  siTOE_Data,   TCP data stream from TOE.
  * @param[out] soTOE_OpnReq, TCP open port request to TOE.
  * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
+ * @param[out] soTOE_Meta,   TCP metadata stream to TOE.
+ * @param[out] soTOE_Data,   TCP data stream to TOE.
  * @param[out] soTOE_ClsReq, TCP close connection request to TOE.
  *
  * @details:
  *
- * *
  * @remark: [FIXME - Not accurate. To be updated]
  *  By default, the Iperf client connects to the Iperf server on the TCP port
  *   5001 and the bandwidth displayed by Iperf is the bandwidth from the client
@@ -1187,7 +1606,9 @@ void pTRIF(
         Ip4Address              &myIpAddress,
         ifstream                &appRxFile,
         ofstream                &appTxFile,
-        int                     &appTxBytCounter,
+        ofstream                &ipTxGoldFile,
+        int                     &apRx_TcpBytCntr,
+        int                     &apTx_TcpBytCntr,
         stream<TcpPort>         &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
         stream<appNotification> &siTOE_Notif,
@@ -1196,26 +1617,49 @@ void pTRIF(
         stream<AxiWord>         &siTOE_Data,
         stream<AxiSockAddr>     &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnSts,
+        stream<SessionId>       &soTOE_Meta,
+        stream<AxiWord>         &soTOE_Data,
         stream<ap_uint<16> >    &soTOE_ClsReq)
 {
-    static bool         listenDone         = false;
-    static bool         openDone           = false;
-    static bool         runningExperiment  = false;
+    //static bool         listenDone         = false;
+    //static bool         openDone           = false;
+    //static bool         runningExperiment  = false;
+    //static SessionId    currTxSessionID    = 0;  // The current Tx session ID
 
-    static bool         appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
-    static unsigned int appRxIdleCycReq = 0;     // The requested number of idle cycles
-    static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
+    //static bool         appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
+    //static unsigned int appRxIdleCycReq = 0;     // The requested number of idle cycles
+    //static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
 
-    OpenStatus          newConStatus;
-    appNotification     notification;
-    ipTuple             tuple;
-    vector<SessionId>   txSessIdVector;  // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
+    //static vector<SessionId> txSessIdVector;     // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
 
-    //Ip4Addr  openAddr = 0x0A0A0A0A;   // 10.10.10.10
-    //TcpPort  openPort = 0x89;         // #137
-    //TbSockAddr(openAddr, openPort);
+    //string              rxStringBuffer;
+    //vector<string>      stringVector;
+
+    //OpenStatus          newConStatus;
+    //appNotification     notification;
+    //ipTuple             tuple;
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
+
+    pTRIF_Recv(
+            appTxFile,
+            apTx_TcpBytCntr,
+            soTOE_LsnReq, siTOE_LsnAck,
+            siTOE_Notif,  soTOE_DReq,
+            siTOE_Meta,   siTOE_Data);
+
+    pTRIF_Send(
+            testTxPath,
+            myIpAddress,
+            appRxFile,
+            ipTxGoldFile,
+            apRx_TcpBytCntr,
+            soTOE_OpnReq, siTOE_OpnSts,
+            soTOE_Meta,
+            soTOE_Data,
+            soTOE_ClsReq);
+
+    /**** OBSOLETE-20180104 ***************************************************
 
     //------------------------------------------------
     //-- STEP-1 : REQUEST TO LISTEN ON A PORT
@@ -1223,6 +1667,7 @@ void pTRIF(
     TcpPort listeningPort = 0x0057;   // #87
     if (!listenDone) {
         listenDone = listen(listeningPort, soTOE_LsnReq, siTOE_LsnAck);
+        return;
     }
 
     //------------------------------------------------
@@ -1231,13 +1676,14 @@ void pTRIF(
     TbSockAddr  localTbSockAddr(myIpAddress, listeningPort);
     if (!openDone) {
         openDone = openCon(localTbSockAddr, txSessIdVector, soTOE_OpnReq, siTOE_OpnSts);
+        return;
     }
 
     //-----------------------------------------------------
     //-- STEP-3 : READ THE APP RX FILE AND FEED THE TOE
     //-----------------------------------------------------
-    // Only if Tx test mode is enabled and after a session has been opened on the Tx Side
-    if (testTxPath == true && txSessIdVector.size() > 0) {
+    // Only if a session has been opened on the Tx Side
+    if (txSessIdVector.size() > 0) {
 
         //-- STEP-3.0 : RETURN IF IDLING IS REQUESTED -----
         if (appRxIdlingReq == true) {
@@ -1245,19 +1691,22 @@ void pTRIF(
                 appRxIdleCycCnt = 0;
                 appRxIdlingReq = false;
             }
-            else
+            else {
                 appRxIdleCycCnt++;
+            }
+            return;
         }
 
-        //-- STEP-3.1 : FEED the APP Rx INTERFACE ---------
-        //TODO-TODAY feedTOE(appRxPacketizer, appRxPktCounter, soTOE_Data, sessionList);
+        //-- STEP-3.1 : QUIT HERE IF TX TEST MODE IS NOT ENABLED
+        if (not testTxPath)
+            return;
 
-         //-- STEP-2.2 : READ THE APP RX FILE -------------
-        while(!appRxFile.eof()) {
+        //-- STEP-2.2 : READ THE APP RX FILE -------------
+        if (appRxFile.eof())
+             return;
 
-            string          rxStringBuffer;
-            vector<string>  stringVector;
-
+       do {
+            //-- READ A LINE FROM IAPPRX INPUT FILE ------------
             getline(appRxFile, rxStringBuffer);
 
             stringVector = myTokenizer(rxStringBuffer);
@@ -1277,11 +1726,11 @@ void pTRIF(
                 int noSimCycles = atoi(stringVector[1].c_str());
                 if (noSimCycles > gMaxSimCycles)
                     gMaxSimCycles = noSimCycles;
-                return;
+            return;
             }
             else if (stringVector[0] == "W") {
                 // The test vector is is willing to request idle wait cycles before providing
-                // TOE with a new APP segment.
+                // TOE with a new APPRX segment.
                 appRxIdleCycReq = atoi(stringVector[1].c_str());
                 appRxIdlingReq = true;
                 return;
@@ -1290,10 +1739,9 @@ void pTRIF(
                 return;
             }
             else {
-                // Build a new segment from data file
-            	//TODO-TODAY TcpSegment  appRxSegment;
-            	//TODO-TODAY TcpOverAxi  tcpRxData;
-                bool        firstWordFlag = true; // AXI-word is first chunk of segment
+                // // Feed the TOE with data from file
+                AxiWord appRxData;
+                bool    firstWordFlag = true; // AXI-word is first data chunk of segment
 
                 do {
                     if (firstWordFlag == false) {
@@ -1303,29 +1751,28 @@ void pTRIF(
                     else {
                         // This is the first chunk of a frame.
                         // A Tx data request (i.e. a metadata) must be sent by TRIF to TOE
-                    	//TODO-TODAY soTOE_Meta.write(txSessIdVector[currTxSessionID]);
-                    	//TODO-TODAY currTxSessionID == noTxSessions - 1 ? currTxSessionID = 0 : currTxSessionID++;
-					}
+                        soTOE_Meta.write(txSessIdVector[currTxSessionID]);
+                        if (currTxSessionID == (NO_TX_SESSIOSNS - 1))
+                            currTxSessionID = 0;
+                        else
+                            currTxSessionID++;
+                    }
                     firstWordFlag = false;
                     string tempString = "0000000000000000";
-                    //TODO-TODAY tcpRxData = AxiWord(encodeApUint64(stringVector[0]),\
-                                        encodeApUint8(stringVector[2]),\
+                    appRxData = AxiWord(encodeApUint64(stringVector[0]), \
+                                        encodeApUint8(stringVector[2]),  \
                                         atoi(stringVector[1].c_str()));
-                    //TODO-TODAY tcpRxSegment.push_back(appRxData);
-                } while (1); //TODO-TODAY  tcpRxData.tlast != 1);
+                    soTOE_Data.write(appRxData);
+                } while (appRxData.tlast != 1);
 
-                // Count the number of data bytes contained in the TCP segment
-                //TODO-TODAY tcpRxBytCounter += appRxSegment.sizeOfTcpData();
+                // Write to the IP Tx Gold file
+                //TODO-TODAY writeIpTxGoldFile(ipTxGold, appRxSegment);
 
-                // Write to the TCP Tx Gold file
-                //TODO-TODAY writeAppTxGoldFile(tcpTxGold, ipTxPacket);
+            } // End of: else
 
-                // Push that packet into the packetizer
-                //TODO-TODAY appRxSegmentizer.push_back(appRxSegment);
+        } while(!appRxFile.eof());
 
-            }
-        }
-    }
+    } // End of: if (txSessIdVector.size() > 0) {
 
     //------------------------------------------------
     //-- STEP-4 : READ NOTIFICATION
@@ -1360,7 +1807,7 @@ void pTRIF(
             siTOE_Meta.read(tcpSessId);
             siTOE_Data.read(currWord);
             // Write TCP data chunk to file
-            writeAppTxDataFile(appTxFile, currWord, appTxBytCounter);
+            writeAppTxDataFile(appTxFile, currWord, apTx_TcpBytCntr);
 
             //FIXME if (!runningExperiment) {
             //FIXME     // Check if a bidirectional test is requested (i.e. dualtest)
@@ -1376,41 +1823,39 @@ void pTRIF(
         }
         break;
 
-    /*** FIXME ***
-    case HEADER_2:
-        if (!siTOE_Data.empty()) {
-        	 // Read the 2nd TCP data chunk
-            siTOE_Data.read(currWord);
-            writeApplicationTxFile(appTxFile, currWord, appTxBytCounter);
+    // case HEADER_2:
+    //     if (!siTOE_Data.empty()) {
+    //     	 // Read the 2nd TCP data chunk
+    //         siTOE_Data.read(currWord);
+    //         writeApplicationTxFile(appTxFile, currWord, apTx_TcpBytCntr);
 
-            if (dualTest) {
-                tuple.ip_address = 0x0a010101;  // FIXME
-                tuple.ip_port    = currWord.tdata(31, 16);
-                soTOE_OpnReq.write(tuple);
-            }    // Check for EOF
-    if (ipRxFile.eof())
-        return;
-            fsmState = HEADER_3;
-        }
-        break;
+    //         if (dualTest) {
+    //             tuple.ip_address = 0x0a010101;  // FIXME
+    //             tuple.ip_port    = currWord.tdata(31, 16);
+    //             soTOE_OpnReq.write(tuple);
+    //         }    // Check for EOF
+    // if (ipRxFile.eof())
+    //     return;
+    //         fsmState = HEADER_3;
+    //     }
+    //     break;
 
-    case HEADER_3:
-        if (!siTOE_Data.empty()) {
-            // Read 3rd TCP data chunk
-            siTOE_Data.read(currWord);
-            writeApplicationTxFile(appTxFile, currWord, appTxBytCounter);
+    // case HEADER_3:
+    //     if (!siTOE_Data.empty()) {
+    //         // Read 3rd TCP data chunk
+    //         siTOE_Data.read(currWord);
+    //         writeApplicationTxFile(appTxFile, currWord, apTx_TcpBytCntr);
 
-            mAmount = currWord.tdata(63, 32);
-            fsmState = CONSUME;
-        }
-        break;
-    **************/
+    //         mAmount = currWord.tdata(63, 32);
+    //         fsmState = CONSUME;
+    //     }
+    //     break;
 
     case CONSUME:
         if (!siTOE_Data.empty()) {
             // Read all the remaining TCP data chunks
             siTOE_Data.read(currWord);
-            writeAppTxDataFile(appTxFile, currWord, appTxBytCounter);
+            writeAppTxDataFile(appTxFile, currWord, apTx_TcpBytCntr);
         }
         break;
     }
@@ -1419,7 +1864,9 @@ void pTRIF(
     if (currWord.tlast == 1)
         fsmState = WAIT_SEG;
 
-}
+    **** OBSOLETE-20180104 ***************************************************/
+
+} // End of: pTRIF
 
 
 /*****************************************************************************
@@ -1449,7 +1896,7 @@ int main(int argc, char *argv[]) {
     stream<Ip4overAxi>                  sTOE_L3mux_Data     ("sTOE_L3mux_Data");
 
     stream<AxiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
-    stream<ap_uint<16> >                sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
+    stream<SessionId>                   sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
     stream<ap_int<17> >                 sTOE_Trif_DSts      ("sTOE_Trif_DSts");
 
     stream<appReadRequest>              sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
@@ -1483,8 +1930,6 @@ int main(int argc, char *argv[]) {
     stream<rtlSessionLookupRequest>     sTHIS_Cam_SssLkpReq ("sTHIS_Cam_SssLkpReq");
     stream<rtlSessionUpdateRequest>     sTHIS_Cam_SssUpdReq ("sTHIS_Cam_SssUpdReq");
 
-    //OBSOLETE-20181207 stream<AxiWord>                     sTRIF_Role_Data     ("sTRIF_Role_Data");
-
 
     //-- TESTBENCH MODES OF OPERATION ---------------------
     enum TestingMode {RX_MODE='0', TX_MODE='1', BIDIR_MODE='2'};
@@ -1494,12 +1939,8 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     int             nrErr;
 
-    //OBSOLETE-20181219 bool            firstWordFlag;
-
     Ip4Word         ipRxData;    // An IP4 chunk
-    AxiWord         tcpTxData;    // A  TCP chunk
-
-    Ip4Address      myIpAddress = 0x01010101;  // [TODO - Make this a parameter of the testbench]
+    AxiWord         tcpTxData;   // A  TCP chunk
 
     ap_uint<16>     opnSessionCount;
     ap_uint<16>     clsSessionCount;
@@ -1516,13 +1957,21 @@ int main(int argc, char *argv[]) {
 
     //-- Input & Output File Streams ----------------------
     ifstream        ipRxFile;   // IP packets to         IPRX  I/F of TOE.
+    ifstream        appRxFile;  // APP data streams to   TRIF  I/F of TOE.
+
     ofstream        appTxFile;  // APP byte streams from TRIF  I/F of TOE.
     ofstream        appTxGold;  // Gold reference file for 'appTxFile'
+    ofstream        ipTxFile1;  // Raw IP packets from L3MUX I/F of TOE.
+    ofstream        ipTxGold1;  // Gold reference file for 'ipTxFile1' (not used)
+    ofstream        ipTxFile2;  // Tcp payload of the IP packets from L3MUX I/F of TOE.
+    ofstream        ipTxGold2;  // Gold reference file for 'ipTxFile2'
 
-    ifstream        appRxFile;  // APP data streams to   TRIF  I/F of TOE.
-    ofstream        ipTxFile;   // IP packets from       L3MUX I/F of TOE.
-    ofstream        ipTxGold;   // Gold reference file for 'ipTxFile'
-
+    const char      *appTxFileName = "../../../../test/appTx_TOE.strm";
+    const char      *appTxGoldName = "../../../../test/appTx_TOE.gold";
+    const char      *ipTxFileName1 = "../../../../test/ipTx_TOE.dat";
+    const char      *ipTxGoldName1 = "../../../../test/ipTx_TOE.gold";
+    const char      *ipTxFileName2 = "../../../../test/ipTx_TOE_TcpData.strm";
+    const char      *ipTxGoldName2 = "../../../../test/ipTx_TOE_TcpData.gold";
 
     //Not USed ifstream        txInputFile; // FIXME
     //Not USed ifstream        rxGoldFile;  // FIXME
@@ -1530,27 +1979,22 @@ int main(int argc, char *argv[]) {
 
     int             rxGoldCompare       = 0;
     int             returnValue         = 0;
-
-    const char      *ipTxFileName  = "../../../../test/ipTx_TOE.dat";
-    const char      *ipTxGoldName  = "../../../../test/ipTx_TOE.gold";
-    const char      *appTxFileName = "../../../../test/appTx_TOE.dat";
-    const char      *appTxGoldName = "../../../../test/appTx_TOE.gold";
-
-
     unsigned int    myCounter   = 0;
 
     string          dataString, keepString;
-    uint16_t        currTxSessionID = 0;    // The current Tx session ID
 
-    int             ipRxPktCounter      = 0;    // Counts the # IP packets rcvd by the TOE (all kinds and from all sessions).
-    int             tcpRxBytCounter     = 0;    // Counts the # TCP bytes  rcvd by the TOE.
+    int             ipRx_PktCounter = 0;  // Counts the # IP packets rcvd by TOE/IpRx (all kinds and from all sessions).
+    int             ipRx_TcpBytCntr = 0;  // Counts the # TCP bytes  rcvd by TOE/IpRx.
 
-    int             ipTxPktCounter      = 0;    // Counts the # IP packets sent by the TOE (all kinds and from all sessions).
-    int             appTxBytCounter     = 0;    // Counts the # APP bytes  sent by the TOE.
-    int             tcpTxBytCounter     = 0;    // Counts the # TCP bytes  sent by the TOE.
+    int             ipTx_PktCounter = 0;  // Counts the # IP packets sent by TOE/IpTx (all kinds and from all sessions).
+    int             ipTx_TcpBytCntr = 0;  // Counts the # TCP bytes  sent by TOE/IpTx.
 
-    bool            testRxPath          = false; // Indicates if the Rx path is to be tested.
-    bool            testTxPath          = false; // Indicates if the Tx path is to be tested.
+    int             apRx_TcpBytCntr = 0;  // Counts the # TCP bytes  rcvd by TOE/AppRx.
+
+    int             apTx_TcpBytCntr = 0;  // Counts the # TCP bytes  sent by TOE/AppTx.
+
+    bool            testRxPath      = false; // Indicates if the Rx path is to be tested.
+    bool            testTxPath      = false; // Indicates if the Tx path is to be tested.
 
     char            mode        = *argv[1];
     char            cCurrPath[FILENAME_MAX];
@@ -1561,8 +2005,8 @@ int main(int argc, char *argv[]) {
     if (argc < 3) {
         printf("## [TB-ERROR] Expected a minimum of 2 or 3 parameters with one of the the following synopsis:\n");
         printf("\t mode(0) ipRxFileName\n");
-        printf("\t mode(1) apRxFileName\n");
-        printf("\t mode(2) ipRxFileName apRxFileName\n");
+        printf("\t mode(1) appRxFileName\n");
+        printf("\t mode(2) ipRxFileName appRxFileName\n");
         return -1;
     }
 
@@ -1626,15 +2070,20 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        ipTxFile.open(ipTxFileName);
-        if (!ipTxFile) {
-            printf("## [TB-ERROR] Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName);
+        ipTxFile1.open(ipTxFileName1);
+        if (!ipTxFile1) {
+            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName1);
+            return -1;
+        }
+        ipTxFile2.open(ipTxFileName2);
+        if (!ipTxFile2) {
+            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName2);
             return -1;
         }
 
-        ipTxGold.open(ipTxGoldName);
-        if (!ipTxGold) {
-            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxGoldName);
+        ipTxGold2.open(ipTxGoldName2);
+        if (!ipTxGold2) {
+            printf("## [TB-ERROR] Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName2);
             return -1;
         }
     }
@@ -1645,20 +2094,18 @@ int main(int argc, char *argv[]) {
     gSimCycCnt = 0;     // Simulation cycle counter as a global variable
     nrErr      = 0;     // Total number of testbench errors
 
-    AxiIp4Addr mmioIpAddr = (AxiIp4Addr)(byteSwap32(myIpAddress));
+    AxiIp4Addr mmioIpAddr = (AxiIp4Addr)(byteSwap32(TOE_IP4_ADDR));
 
     //-----------------------------------------------------
     //-- MAIN LOOP
     //-----------------------------------------------------
     do {
-        if (testRxPath == true) {
-            //-------------------------------------------------
-            //-- STEP-1 : Emulate the IPv4 Rx Path
-            //-------------------------------------------------
-            pIPRX(ipRxFile,       appTxGold,
-                  ipRxPktCounter, tcpRxBytCounter,
-                  ipRxPacketizer, sessionList, sIPRX_Toe_Data);
-        }
+        //-------------------------------------------------
+        //-- STEP-1 : Emulate the IPv4 Rx Path
+        //-------------------------------------------------
+        pIPRX(ipRxFile,       appTxGold,
+              testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
+              ipRxPacketizer, sessionList,     sIPRX_Toe_Data);
 
         //-------------------------------------------------
         //-- STEP-2 : RUN DUT
@@ -1708,20 +2155,26 @@ int main(int argc, char *argv[]) {
         //-- STEP-4.0 : Emulate Layer-3 Multiplexer
         //-------------------------------------------------
         pL3MUX(
-            sTOE_L3mux_Data, ipTxFile,       sessionList,
-            ipTxPktCounter,  tcpTxBytCounter, ipRxPacketizer);
+            sTOE_L3mux_Data,
+            ipTxFile1,       ipTxFile2,
+            sessionList,
+            ipTx_PktCounter, ipTx_TcpBytCntr,
+            ipRxPacketizer);
 
         //-------------------------------------------------
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
+        Ip4Address myIpAddress = TOE_IP4_ADDR;
         pTRIF(
             testTxPath,       myIpAddress,
             appRxFile,        appTxFile,
-            appTxBytCounter,
+            ipTxGold2,
+            apRx_TcpBytCntr,  apTx_TcpBytCntr,
             sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
             sTOE_Trif_Notif,  sTRIF_Toe_DReq,
             sTOE_Trif_Meta,   sTOE_Trif_Data,
             sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
+            sTRIF_Toe_Meta,   sTRIF_Toe_Data,
             sTRIF_Toe_ClsReq);
 
         // TODO
@@ -1750,30 +2203,45 @@ int main(int argc, char *argv[]) {
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
     //---------------------------------------------------------------
-    printInfo(THIS_NAME, "Number of sessions opened by TOE  : %6d \n", opnSessionCount.to_uint());
-    printInfo(THIS_NAME, "Number of sessions closed by TOE  : %6d \n", clsSessionCount.to_uint());
+    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", opnSessionCount.to_uint());
+    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", clsSessionCount.to_uint());
 
-    printInfo(THIS_NAME, "Number of IP  Packets rcvd by TOE : %6d \n", ipRxPktCounter);
-    printInfo(THIS_NAME, "Number of IP  Packets sent by TOE : %6d \n", ipRxPktCounter);
+    printInfo(THIS_NAME, "Number of IP  Packets rcvd by TOE/IpRx : %6d \n", ipRx_PktCounter);
 
-    printInfo(THIS_NAME, "Number of TCP Bytes   rcvd by TOE : %6d \n", tcpRxBytCounter);
-    printInfo(THIS_NAME, "Number of APP Bytes   sent by TOE : %6d \n", appTxBytCounter);
+    printInfo(THIS_NAME, "Number of IP  Packets sent by TOE/IpTx : %6d \n", ipTx_PktCounter);
 
-    printInfo(THIS_NAME, "Number of TCP Bytes   sent by TOE : %6d \n", tcpTxBytCounter);
+    printInfo(THIS_NAME, "Number of TCP Bytes   rcvd by TOE/IpRx : %6d \n", ipRx_TcpBytCntr);
+    printInfo(THIS_NAME, "Number of TCP Bytes   sent by TOE/AppTx: %6d \n", apTx_TcpBytCntr);
+
+    printInfo(THIS_NAME, "Number of TCP Bytes   rcvd by TOE/AppRx: %6d \n", apRx_TcpBytCntr);
+    printInfo(THIS_NAME, "Number of TCP Bytes   sent by TOE/IpTx : %6d \n", ipTx_TcpBytCntr);
 
     printf("\n");
     //---------------------------------------------------------------
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
     if (mode == RX_MODE) {
-        if (tcpRxBytCounter != appTxBytCounter) {
-            printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TRIF interface (%d). \n", tcpRxBytCounter, appTxBytCounter);
+        if (ipRx_TcpBytCntr != apTx_TcpBytCntr) {
+            printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TRIF interface (%d). \n", ipRx_TcpBytCntr, apTx_TcpBytCntr);
             nrErr++;
         }
 
         int appTxCompare = system(("diff --brief -w " + std::string(appTxFileName) + " " + std::string(appTxGoldName) + " ").c_str());
         if (appTxCompare != 0) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", appTxFileName, appTxGoldName);
+            nrErr++;
+        }
+    }
+
+    if (mode == TX_MODE) {
+        if (ipTx_TcpBytCntr != apRx_TcpBytCntr) {
+            printError(THIS_NAME, "The number of TCP bytes forwarded by TOE on its IP interface (%d) does not match the number TCP bytes received by TOE from the application over its TRIF interface (%d). \n", ipTx_TcpBytCntr, apRx_TcpBytCntr);
+            nrErr++;
+        }
+
+        int ipTx_TcpDataCompare = system(("diff --brief -w " + std::string(ipTxFileName2) + " " + std::string(ipTxGoldName2) + " ").c_str());
+        if (ipTx_TcpDataCompare != 0) {
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ipTxFileName2, ipTxGoldName2);
             nrErr++;
         }
     }
@@ -1788,17 +2256,22 @@ int main(int argc, char *argv[]) {
     if ((mode == TX_MODE) || (mode == BIDIR_MODE)) {
         // Tx side testing only
         appRxFile.close();
-        ipTxFile.close();
-        ipTxGold.close();
+        ipTxFile1.close();
+        ipTxFile2.close();
+        ipTxGold2.close();
     }
 
-    if (nrErr)
-        printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %d ####\n\n", nrErr);
-    else {
+    if (nrErr) {
+        printError(THIS_NAME, "###########################################################\n");
+        printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
+        printError(THIS_NAME, "###########################################################\n");
+    }
+        else {
         printInfo(THIS_NAME, "########################################\n");
         printInfo(THIS_NAME, "####     SUCCESSFUL END OF TEST     ####\n");
         printInfo(THIS_NAME, "########################################\n");
     }
 
     return nrErr;
+
 }

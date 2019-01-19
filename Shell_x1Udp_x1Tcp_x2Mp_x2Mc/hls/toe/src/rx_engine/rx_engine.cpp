@@ -9,16 +9,6 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
  *****************************************************************************/
 
 #include "rx_engine.hpp"
@@ -846,7 +836,7 @@ void pMetaDataHandler(
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Request the SLc to lookup the following session:\n");
-                        printSockPair(myName, tuple);
+                        printAxiSockPair(myName, tuple);
                     }
                     mdh_fsmState = LOOKUP;
                 }
@@ -890,7 +880,7 @@ void pMetaDataHandler(
  * @param[out] soSTt_SessStateReq,Request to read the session state.
  * @param[out] soRSt_RxSarUpdReq, Request to update the session Rx SAR.
  * @param[out] soTSt_TxSarRdReq,  Request to read the session Tx SAR.
- * @param[out] soTIm_ClearReTxTimer, Clear the retransmit timer.
+ * @param[out] soTIm_ReTxTimerCmd, Command for a retransmit timer of [Timers].
  * @param[out] soTIm_ClearProbeTimer,Clear the probing timer.
  * @param[out] soTIm_CloseTimer,  Close session timer.
  * @param[out] soTAi_SessOpnSts,  Open status of the session.
@@ -915,7 +905,8 @@ void pFiniteStateMachine(
         stream<stateQuery>                  &soSTt_SessStateReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
         stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
-        stream<rxRetransmitTimerUpdate>     &soTIm_ClearReTxTimer,
+        //OBSOLETE-20190118 stream<rxRetransmitTimerUpdate>     &soTIm_ReTxTimerCmd,
+        stream<ReTxTimerCmd>                &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
         stream<OpenStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
@@ -978,12 +969,19 @@ void pFiniteStateMachine(
         control_bits[3] = fsm_meta.meta.rst;
 
         switch (control_bits) {
-        case 1: // ACK
+
+        case 1:
+            //--------------------------------------
+            //-- ACK
+            //--------------------------------------
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
-                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
+                //OBSOLETE-20190181                                                 (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
+                                                     (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
                      (tcpState == LAST_ACK) ) {
@@ -1053,7 +1051,7 @@ void pFiniteStateMachine(
                     }
 
                     // Reset Retransmit Timer
-                    // OBSOLET soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (mdh_meta.ackNumb == txSarNextByte)));
+                    // OBSOLETE soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, (mdh_meta.ackNumb == txSarNextByte)));
                     if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                         switch (tcpState) {
                         case SYN_RECEIVED:  //TODO MAYBE REARRANGE
@@ -1092,7 +1090,10 @@ void pFiniteStateMachine(
             }
             break;
 
-        case 2: // SYN
+        case 2:
+            //--------------------------------------
+            //-- SYN
+            //--------------------------------------
             if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Segment is SYN.\n");
             // OBBSOLETE if (!siSTt_SessStateRep.empty())
             if (fsmState == LOAD) {
@@ -1136,14 +1137,19 @@ void pFiniteStateMachine(
             }
             break;
 
-        case 3: // SYN_ACK
+        case 3:
+            //--------------------------------------
+            //-- SYN_ACK
+            //--------------------------------------
             //OBSOLETE if (!siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
-                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
-                                                               (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
+                //OBSOLETE-20190181                                                (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
+                                                     (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == SYN_SENT) && (fsm_meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
                     //initialize rx_sar, SEQ + phantom byte, last '1' for appd init
                     soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionID,
@@ -1172,14 +1178,19 @@ void pFiniteStateMachine(
             }
             break;
 
-        case 5: //FIN (_ACK)
+        case 5:
+            //--------------------------------------
+            //-- FIN (_ACK)
+            //--------------------------------------
             //OBSOLETE if (!siRSt_RxSarUpdRep.empty() && !siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
-                soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
-                                       (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                //OBSOLETE-20190118 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
+                //OBSOLETE-20190118                         (fsm_meta.meta.ackNumb == txSar.nextByte)));
+                soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
+                                                     (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
                 if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
                       tcpState == FIN_WAIT_2) && (rxSar.recvd == fsm_meta.meta.seqNumb) ) {
@@ -1251,13 +1262,16 @@ void pFiniteStateMachine(
             if (fsmState == LOAD) {
                 // Handle if RST
                 if (fsm_meta.meta.rst) {
-                    if (tcpState == SYN_SENT) { //TODO this would be a RST,ACK i think
-                    	// Check if matching SYN
+                    if (tcpState == SYN_SENT) {
+                        // [TODO this would be a RST,ACK i think]
+                        // Check if matching SYN
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // Tell application, could not open connection
                             soTAi_SessOpnSts.write(OpenStatus(fsm_meta.sessionID, false));
                             soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1));
-                            soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            //OBSOLETE-20180118 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
+                                                                  STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching
@@ -1267,10 +1281,12 @@ void pFiniteStateMachine(
                     else {
                         // Check if in window
                         if (fsm_meta.meta.seqNumb == rxSar.recvd) {
-                            //tell application, RST occurred, abort
+                            // Tell application, RST occurred, abort
                             soRAi_RxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
                             soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1)); //TODO maybe some TIME_WAIT state
-                            soTIm_ClearReTxTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
+                            soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
+                                                                  STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching window
@@ -1437,12 +1453,12 @@ void pRxAppNotifier(
 /*****************************************************************************
  * @brief Event Multiplexer (Evm)
  *
- * @param[in]  siMdh_Event, Event from MetaData HAndler (Mdh).
- * @param[in]  siFsm_Event, Event from Finite State Machine (Fsm).
- * @param[out] soEVe_Event, Event to Event Engine (EVe).
+ * @param[in]  siMdh_Event, Event from [MetaDataHandler].
+ * @param[in]  siFsm_Event, Event from [FiniteStateMachine].
+ * @param[out] soEVe_Event, Event to   [EVentEngine].
  *
  * @details
- *  Takes two extended events as inputs and mux them on a single output. Note
+ *  Takes two events as inputs and muxes them on a single output. Note
  *   that the first input has priority over the second one.
  *
  *
@@ -1641,7 +1657,7 @@ void pMemWriter(
  * @param[in]  siRSt_RxSarUpdRep    Update reply form Rx SAR Table (RSt).
  * @param[out] soTSt_TxSarRdReq,    Request to read the session Tx SAR.
  * @param[in]  siTSt_TxSarRdRep     Read reply from Tx SAR Table (TSt).
- * @param[out] soTIm_ClearReTxTimer,Clear the retransmit timer.
+ * @param[out] soTIm_ReTxTimerCmd,  Command for a retransmit timer of [Timers].
  * @param[out] soTIm_ClearProbeTimer,Clear the probe timer.
  * @param[out] soTIm_CloseTimer,    Close session timer.
  * @param[out] soEVe_SetEvent,      Forward event to Event Engine (EVe).
@@ -1675,7 +1691,8 @@ void rx_engine(
         stream<rxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
         stream<rxTxSarReply>            &siTSt_TxSarRdRep,
-        stream<rxRetransmitTimerUpdate> &soTIm_ClearReTxTimer,
+        stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
+		//OBSOLETE-20190118 stream<rxRetransmitTimerUpdate> &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,
@@ -1810,7 +1827,7 @@ void rx_engine(
             soSTt_SessStateReq,
             soRSt_RxSarUpdReq,
             soTSt_TxSarRdReq,
-            soTIm_ClearReTxTimer,
+            soTIm_ReTxTimerCmd,
             soTIm_ClearProbeTimer,
             soTIm_CloseTimer,
             soTAi_SessOpnSts,

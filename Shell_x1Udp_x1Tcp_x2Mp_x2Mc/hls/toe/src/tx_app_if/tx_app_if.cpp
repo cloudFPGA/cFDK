@@ -21,10 +21,8 @@ using namespace hls;
  * @param[in]  siTRIF_OpnReq,       Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[]
- *
- *
- *
- * @param[out] soSLc_SessLookupReq, Session lookup request to Session Lookup Controller(SLc).
+ * @param[out] soSLc_SessLookupReq, Request a session lookup to [SessionLookupController].
+ * @param[out] soTAi_GetFreePortReq,Request to get a free port to [TxAppInterface]. *
  *
  * @details
  *  This interface exposes the creation and tear down of connections to the
@@ -48,7 +46,7 @@ void tx_app_if(
         stream<OpenStatus>          &conEstablishedIn, //alter
         stream<OpenStatus>          &appOpenConnRsp,
         stream<AxiSocketPair>       &soSLc_SessLookupReq,
-        stream<ap_uint<1> >         &txApp2portTable_port_req,
+        stream<ReqBit>              &soTAi_GetFreePortReq,
         stream<stateQuery>          &txApp2stateTable_upd_req,
         stream<event>               &txApp2eventEng_setEvent,
         stream<OpenStatus>          &rtTimer2txApp_notification,
@@ -68,9 +66,9 @@ void tx_app_if(
     switch (tai_fsmState) {
 
     case IDLE:
-        if (!siTRIF_OpnReq.empty() && !txApp2portTable_port_req.full()) {
+        if (!siTRIF_OpnReq.empty() && !soTAi_GetFreePortReq.full()) {
             localFifo.write(siTRIF_OpnReq.read());
-            txApp2portTable_port_req.write(1);
+            soTAi_GetFreePortReq.write(true);
         }
         else if (!sLookup2txApp_rsp.empty())    {
             sessionLookupReply session = sLookup2txApp_rsp.read();                          // Read session

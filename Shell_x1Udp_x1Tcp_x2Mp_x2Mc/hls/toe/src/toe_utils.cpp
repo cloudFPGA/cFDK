@@ -147,28 +147,30 @@ void printDmCmd(const char *callerName, DmCmd dmCmd)
 }
 
 /*****************************************************************************
- * @brief Print a socket pair association (used for debugging).
+ * @brief Print an Axi socket pair association (used for debugging).
  *
  * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
  * @param[in] sockPair,     the socket pair to display.
  *****************************************************************************/
-void printSockPair(const char *callerName, AxiSocketPair sockPair)
+void printAxiSockPair(const char *callerName, AxiSocketPair sockPair)
 {
-    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
+    printInfo(callerName, "AxiSocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
         sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
         sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
 }
 
 /*****************************************************************************
- * @brief Print a socket address (used for debugging).
+ * @brief Print an Axi socket address (used for debugging).
  *
  * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
  * @param[in] sockAddr,     the socket address to display.
  *****************************************************************************/
-void printSockAddr(const char *callerName, AxiSockAddr sockAddr)
+void printAxiSockAddr(const char *callerName, AxiSockAddr sockAddr)
 {
-    printInfo(callerName, "SocketAddr {Src,Dst} = {0x%8.8X,0x%4.4X} \n",
+    printInfo(callerName, "AxiSocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
         sockAddr.addr.to_uint(), sockAddr.port.to_uint());
 }
+
+
 
 

@@ -73,8 +73,8 @@ extern bool gTraceEvent;
  *************************************************************************/
 void printAxiWord    (const char *callerName, AxiWord       chunk);
 void printDmCmd      (const char *callerName, DmCmd         dmCmd);
-void printSockAddr   (const char *callerName, AxiSockAddr   sockAddr);
-void printSockPair   (const char *callerName, AxiSocketPair sockPair);
+void printAxiSockAddr(const char *callerName, AxiSockAddr   sockAddr);
+void printAxiSockPair(const char *callerName, AxiSocketPair sockPair);
 
 ap_uint<16> swapWord  (ap_uint<16> inpWord);        // [FIXME - To be replaced w/ byteSwap16]
 ap_uint<16> byteSwap16(ap_uint<16> inputVector);

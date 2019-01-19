@@ -70,7 +70,7 @@ void rx_engine(
         stream<rxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
         stream<rxTxSarReply>            &siTSt_TxSarRdRep,
-        stream<rxRetransmitTimerUpdate> &soTIm_ClearReTxTimer,
+        stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,

@@ -9,38 +9,38 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
  *****************************************************************************/
 
 #include "event_engine.hpp"
 
-#define THIS_NAME "TOE/EVe"
-
 using namespace hls;
 
-#define DEBUG_LEVEL 1
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ ************************************************/
+extern bool gTraceEvent;
+#define THIS_NAME "TOE/EVe"
+
+#define TRACE_OFF  0x0000
+#define TRACE_EVE 1 <<  1
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_OFF | TRACE_EVE)
 
 
 /*****************************************************************************
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
  *         them event to the Tx Engine (TXe).
  *
- * @param[in]  siTAi_Event,     Event from Tx Application Interface (TAi).
- * @param[in]  siRXe_Event,     Event from the Rx Engine (RXe).
- * @param[in]  siTIm_Event,     Event from Timers (TIm).
- * @param[out] soAKd_Event,      Event to the ACK Delayer (AKd).
+ * @param[in]  siTAi_Event,      Event from [TxApplicationInterface].
+ * @param[in]  siRXe_Event,      Event from [RxEngine].
+ * @param[in]  siTIm_Event,      Event from [Timers].
+ * @param[out] soAKd_Event,      Event to   [AckDelayer].
  * @param[in]  siAKd_RxEventSig, The ACK Delayer (AKd) just received an event.
  * @param[in]  siAKd_TxEventSig, The ACK Delayer (AKd) just forwarded an event.
-*  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe) just received an event.
+*  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe)   just received an event.
  *
  * @details
  *
@@ -51,18 +51,22 @@ void event_engine(
         stream<extendedEvent>   &siRXe_Event,
         stream<event>           &siTIm_Event,
         stream<extendedEvent>   &soAKd_Event,
-        stream<ap_uint<1> >     &siAKd_RxEventSig,
-        stream<ap_uint<1> >     &siAKd_TxEventSig,
-        stream<ap_uint<1> >     &siTXe_RxEventSig)
+        stream<SigBit>          &siAKd_RxEventSig,
+        stream<SigBit>          &siAKd_TxEventSig,
+        stream<SigBit>          &siTXe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
+    const char *myName  = THIS_NAME;
+
     static ap_uint<1> eventEnginePriority = 0;
-    static ap_uint<8> ee_writeCounter     = 0;
-    static ap_uint<8> ee_adReadCounter    = 0; //depends on FIFO depth
-    static ap_uint<8> ee_adWriteCounter   = 0; //depends on FIFO depth
-    static ap_uint<8> ee_txEngReadCounter = 0; //depends on FIFO depth
+
+    // Warning: the following counters depend on the FiFo depth between EVe and AKd
+    static ap_uint<8> eve_eveTxEventCnt = 0; // Keeps track of the #events forwarded to [AckDelayer]
+    static ap_uint<8> eve_akdRxEventCnt = 0; // Keeps track of the #events received  by [AckDelayer]
+    static ap_uint<8> eve_akdTxEventCnt = 0; // Keeps track of the #events forwarded to [TxEngine] by [AckDelayer]
+    static ap_uint<8> eve_txeRxEventCnt = 0; // Keeps track of the #events received  by [TxEngine]
     extendedEvent ev;
 
     /*switch (eventEnginePriority)
@@ -86,40 +90,57 @@ void event_engine(
         break;
     case 1:*/
 
-        if (!siRXe_Event.empty() && !soAKd_Event.full()) {
-            siRXe_Event.read(ev);
+    //------------------------------------------
+    // Handle input streams from [RxEngine]
+    //------------------------------------------
+    if (!siRXe_Event.empty() && !soAKd_Event.full()) {
+        siRXe_Event.read(ev);
+        soAKd_Event.write(ev);
+        eve_eveTxEventCnt++;
+    }
+    else if (eve_eveTxEventCnt == eve_akdRxEventCnt &&
+             eve_akdTxEventCnt == eve_txeRxEventCnt) {
+        // RetransmitTimer and ProbeTimer events have priority
+        if (!siTIm_Event.empty()) {
+            siTIm_Event.read(ev);
             soAKd_Event.write(ev);
-            ee_writeCounter++;
-        }
-        else if (ee_writeCounter   == ee_adReadCounter &&
-                 ee_adWriteCounter == ee_txEngReadCounter) {
-            // rtTimer and probeTimer events have priority
-            if (!siTIm_Event.empty()) {
-                siTIm_Event.read(ev);
-                soAKd_Event.write(ev);
-                ee_writeCounter++;
-            }
-            else if (!siTAi_Event.empty()) {
-                siTAi_Event.read(ev);
-                soAKd_Event.write(ev);
-                ee_writeCounter++;
+            eve_eveTxEventCnt++;
+            if (DEBUG_LEVEL & TRACE_EVE) {
+                if (ev.type == RT)
+                    printInfo(myName, "Received RT event from [Timers].\n");
             }
         }
+        else if (!siTAi_Event.empty()) {
+            siTAi_Event.read(ev);
+            soAKd_Event.write(ev);
+            eve_eveTxEventCnt++;
+        }
+    }
 
         //break;
     //} //switch
     //eventEnginePriority++;
 
+    //------------------------------------------
+    // Handle input streams from [AckDelayer]
+    //------------------------------------------
     if (!siAKd_RxEventSig.empty()) {
+        // Remote [AckDelayer] just received an event from [EventEngine]
         siAKd_RxEventSig.read();
-        ee_adReadCounter++;
+        eve_akdRxEventCnt++;
     }
+
     if (!siAKd_TxEventSig.empty()) {
-        ee_adWriteCounter++;
+        // Remote [AckDelayer] just forwarded an event to [TxEngine]
         siAKd_TxEventSig.read();
+        eve_akdTxEventCnt++;
     }
+
+    //------------------------------------------
+    // Handle input streams from [TxEngine]
+    //------------------------------------------
     if (!siTXe_RxEventSig.empty()) {
-        ee_txEngReadCounter++;
         siTXe_RxEventSig.read();
+        eve_txeRxEventCnt++;
     }
 }
