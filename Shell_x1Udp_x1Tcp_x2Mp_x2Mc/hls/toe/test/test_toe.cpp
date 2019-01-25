@@ -1141,10 +1141,12 @@ bool pTRIF_Listen(
         stream<TcpPort>  &soTOE_LsnReq,
         stream<bool>     &siTOE_LsnAck)
 {
-    static ap_uint<1> listenFsm   = 0;
-    bool              listenDone  = false;
-
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Listen()");
+
+    static ap_uint<1> listenFsm     =   0;
+    static int        watchDogTimer = 100;
+
+    bool              listenDone  = false;
 
     TcpPort portNum = gLocalSocket.port;  // The port # to listen to.
 
@@ -1155,10 +1157,12 @@ bool pTRIF_Listen(
             printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
                       portNum.to_uint(), portNum.to_uint());
         }
+        watchDogTimer = 100;
         listenFsm++;
         break;
 
     case 1:
+        watchDogTimer--;
         if (!siTOE_LsnAck.empty()) {
             siTOE_LsnAck.read(listenDone);
             if (listenDone) {
@@ -1169,7 +1173,14 @@ bool pTRIF_Listen(
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
                           portNum.to_uint(), portNum.to_uint());
             }
-            listenFsm++;
+            listenFsm = 0;
+        }
+        else {
+            if (watchDogTimer == 0) {
+                printError(myName, "Timeout: Failed to listen on port %d %d (0x%4.4X).\n",
+                           portNum.to_uint(), portNum.to_uint());
+            }
+            listenFsm = 0;
         }
         break;
     }
@@ -1199,7 +1210,8 @@ bool pTRIF_OpenSess(
         stream<AxiSockAddr>           &soTOE_OpnReq,
         stream<OpenStatus>            &siTOE_OpnSts)
 {
-    static int noOpenSess = 0;
+    static int noOpenSess    =   0;
+    static int watchDogTimer = 100;
 
     bool rc = false;
 
@@ -1235,15 +1247,16 @@ bool pTRIF_OpenSess(
         if (DEBUG_LEVEL & TRACE_TRIF) {
             printInfo(myName, "Request to open the following socket: \n");
             printTbSockPair(myName, aSocketPair);
-            }
+        }
+        watchDogTimer = 100;
         openFsm++;
         break;
 
     case 1:
+        watchDogTimer--;
         if (!siTOE_OpnSts.empty()) {
             OpenStatus openConStatus = siTOE_OpnSts.read();
             if(openConStatus.success) {
-                //txSessIdVector.push_back(openConStatus.sessionID);
                 // Update the list of opened sessions with the new ID
                 openSessList[aSocketPair] = openConStatus.sessionID;
                 if (DEBUG_LEVEL & TRACE_TRIF) {
@@ -1254,9 +1267,16 @@ bool pTRIF_OpenSess(
                 rc = true;
             }
             else {
-                printWarn(myName, "Session #%d is not yet opened.\n", openConStatus.sessionID.to_uint());
+                printError(myName, "Failed to to open session #%d.\n", openConStatus.sessionID.to_uint());
             }
-            openFsm++;
+            openFsm = 0;
+        }
+        else {
+            if (watchDogTimer == 0) {
+                printError(myName, "Timeout: Failed to open the following socket:\n");
+                printTbSockPair(myName, aSocketPair);
+            }
+            openFsm = 0;
         }
         break;
 
@@ -1282,6 +1302,7 @@ bool pTRIF_OpenSess(
  *
  * @ingroup test_toe
  ******************************************************************************/
+/*** OBSOLETE-20190125 *************************
 bool pTRIF_OpenConOld(
         TbSockAddr             &toeSockAddr,
         vector<SessionId>      &txSessIdVector,
@@ -1341,7 +1362,7 @@ bool pTRIF_OpenConOld(
         return true;
     }
 }
-
+************************************************/
 
 /*****************************************************************************
  * @brief Emulates behavior of the receive half of TCP Role Interface (TRIF).
@@ -1668,7 +1689,7 @@ void pTRIF_Send(
     TbSocketPair  currSocketPair(gLocalSocket, currForeignSocket);
     isOpen = pTRIF_OpenSess(currSocketPair, openSessList, soTOE_OpnReq, siTOE_OpnSts);
     if (!isOpen)
-        return;    // [TODO - Add timeout]
+        return;
 
     //-----------------------------------------------------
     //-- STEP-4 : READ THE APP RX FILE AND FEED THE TOE
@@ -1716,7 +1737,7 @@ void pTRIF_Send(
                         currForeignSocket.addr = ip4Addr;
                         unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
                         currForeignSocket.port = tcpPort;
-                        printInfo(myName, "Creating foreign socket <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
+                        printInfo(myName, "Setting foreign socket to <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
                         return;
                     }
                 }
@@ -1885,7 +1906,7 @@ void pTRIF_Send(
 
 /*****************************************************************************
  * @brief Emulates the behavior of the TCP Role Interface (TRIF).
- *             This process implements Iperf.
+ *             This process implements Iperf [FIXME].
  *
  * @param[in]  testTxPath,   Indicates if the Tx path is to be tested.
  * @param[in]  myIpAddress,  The local IP address used by the TOE.

@@ -1,11 +1,26 @@
-#
+# ########################################################################################
 # @file  : appRx_TwoSeg.dat
 # @brief : Two TCP segments for the Rx Application I/F of TOE.
 #
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles     <NUM>         --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM LocalSocket   <ADDR> <PORT> --> Request to setup a local socket for the TOE. 
+#    G PARAM ForeignSocket <ADDR> <PORT> --> Request to setup a foreign socket.
+#    # This is a comment
+#    > SET   ForeignSocket <ADDR> <PORT> --> Request to add foreign socket.
+#    > IDLE  <NUM>                       --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
 
-C 5000
+G PARAM SimCycles     5000
 
-W 100
+> IDLE 100
 
 # == FIRST TCP DATA SEGMENT ======================
 0101010101010101 0 FF
@@ -13,9 +28,12 @@ W 100
 0101010101010101 0 FF
 0101010101010101 1 FF
 
-W 100
+> IDLE 100
 
 # == SECOND TCP DATA SEGMENT =====================
+
+> SET ForeignSocket 0xCAFEFADE 0x8001
+
 0000000000000000 0 FF
 0000000000000001 0 FF
 0000000000000002 0 FF
