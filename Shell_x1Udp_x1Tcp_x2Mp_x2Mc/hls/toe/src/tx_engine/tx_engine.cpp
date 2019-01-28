@@ -582,6 +582,8 @@ void pSocketPairSplitter(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "Sps");
+
 	static bool ts_getMeta = true;
     static bool ts_isLookUp;
 
@@ -597,9 +599,14 @@ void pSocketPairSplitter(
     else {
         if (!siSLc_ReverseLkpRep.empty() && ts_isLookUp) {
             siSLc_ReverseLkpRep.read(tuple);
-            soIhc_IpAddrPair.write(IpAddrPair(tuple.srcIp, tuple.dstIp));
-            soPhc_SocketPair.write(AxiSocketPair(AxiSockAddr(tuple.srcIp, tuple.srcPort),
-                                                 AxiSockAddr(tuple.dstIp, tuple.dstPort)));
+            AxiSocketPair axiSocketPair(AxiSockAddr(tuple.srcIp, tuple.srcPort),
+                                        AxiSockAddr(tuple.dstIp, tuple.dstPort));
+            if (DEBUG_LEVEL & TRACE_SPS) {
+               printInfo(myName, "Received the following socket-pair from [SLc]: \n");
+               printAxiSockPair(myName, axiSocketPair);
+            }
+            soIhc_IpAddrPair.write(IpAddrPair(axiSocketPair.src.addr, axiSocketPair.dst.addr));
+            soPhc_SocketPair.write(axiSocketPair);
             ts_getMeta = true;
         }
         else if(!siMdl_RstSockPair.empty() && !ts_isLookUp) {

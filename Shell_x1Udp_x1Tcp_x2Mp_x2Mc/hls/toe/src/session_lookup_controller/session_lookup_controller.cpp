@@ -33,8 +33,8 @@ using namespace hls;
 /*****************************************************************************
  * @brief Session Id Manager (Sim)
  *
- * @param[in]  siUrs_FreeId,   The session ID to recycle from Update Request Sender (Urs).
- * @param[out] soLrh_FreeList, The free list of session IDs to the Lookup Reply Handler (Lrh).
+ * @param[in]  siUrs_FreeId,   The session ID to recycle from [UpdateRequestSender].
+ * @param[out] soLrh_FreeList, The free list of session IDs to [LookupReplyHandler].
  *
  * @details
  *  Implements the free list of session IDs as a FiFo stream.
@@ -79,7 +79,7 @@ void pSessionIdManager(
  * @param[in]  siTAi_SessLookupReq, Request from Tx App. I/F (TAi).
  * @param[out] soTAi_SessLookupRep, Reply from CAM to TAi.
  * @param[in]
- * @param[out]
+ * @param[out] soUrs_InsertSessReq, Request to insert session to [UpdateRequestSender].
  * @param[out]
  *
  * @details
@@ -104,7 +104,7 @@ void pLookupReplyHandler(
         stream<AxiSocketPair>               &siTAi_SessLookupReq,
         stream<sessionLookupReply>          &soTAi_SessLookupRep,
         stream<RtlSessId>                   &sessionIdFreeList,
-        stream<rtlSessionUpdateRequest>     &sessionInsert_req,
+        stream<rtlSessionUpdateRequest>     &soUrs_InsertSessReq,
         stream<revLupInsert>                &reverseTableInsertFifo)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -158,7 +158,7 @@ void pLookupReplyHandler(
             sessionLookupQueryInternal intQuery = sQueryCache.read();
             if (!lupReply.hit && intQuery.allowCreation && !sessionIdFreeList.empty()) {
                 RtlSessId freeID = sessionIdFreeList.read();
-                sessionInsert_req.write(rtlSessionUpdateRequest(intQuery.tuple, freeID, INSERT, lupReply.source));
+                soUrs_InsertSessReq.write(rtlSessionUpdateRequest(intQuery.tuple, freeID, INSERT, lupReply.source));
                 sInsertTuples.write(intQuery.tuple);
                 slc_fsmState = UPD_RSP;
             }
@@ -191,10 +191,10 @@ void pLookupReplyHandler(
 /*****************************************************************************
  * @brief Update Request Sender (Urs).
  *
- * @param[in]
+ * @param[in]  siLrh_InsertSessReq, Request to insert session from [LookupReplyHandler].
  * @
  * @
- * @param[out] soSim_FreeId, The SessId to recycle to the Session Id Manager (Sim).
+ * @param[out] soSim_FreeId, The SessId to recycle to the [SessionIdManager].
  * @param[out] poSssRelCnt,  Session release count to DEBUG.
  * @param[out] poSssRegCnt,  Session register count to DEBUG.
  *
@@ -205,7 +205,7 @@ void pLookupReplyHandler(
  *
  *****************************************************************************/
 void pUpdateRequestSender(
-        stream<rtlSessionUpdateRequest>     &sessionInsert_req,
+        stream<rtlSessionUpdateRequest>     &siLrh_InsertSessReq,
         stream<rtlSessionUpdateRequest>     &sessionDelete_req,
         stream<rtlSessionUpdateRequest>     &sessionUpdate_req,
         stream<RtlSessId>                   &soSim_FreeId,
@@ -221,8 +221,8 @@ void pUpdateRequestSender(
 
     rtlSessionUpdateRequest request;
 
-    if (!sessionInsert_req.empty()) {
-        sessionUpdate_req.write(sessionInsert_req.read());
+    if (!siLrh_InsertSessReq.empty()) {
+        sessionUpdate_req.write(siLrh_InsertSessReq.read());
         usedSessionIDs++;
     }
     else if (!sessionDelete_req.empty()) {
@@ -365,8 +365,8 @@ void session_lookup_controller(
         stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
         stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
         stream<rtlSessionUpdateRequest>    &sessionUpdate_req,
-        //stream<rtlSessionUpdateRequest>  &sessionInsert_req,
-        //stream<rtlSessionUpdateRequest>  &sessionDelete_req,
+        //OBSOLETE-20190128 stream<rtlSessionUpdateRequest>  &sessionInsert_req,
+        //OBSOLETE-20190128 stream<rtlSessionUpdateRequest>  &sessionDelete_req,
         stream<rtlSessionUpdateReply>      &sessionUpdate_rsp,
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt)
@@ -379,12 +379,17 @@ void session_lookup_controller(
     //-------------------------------------------------------------------------
 
     // Session Id Manager (Sim) -----------------------------------------------
-    static stream<RtlSessId>             sSimToLrh_FreeList     ("sSimToLrh_FreeList");
-    #pragma HLS stream          variable=sSimToLrh_FreeList     depth=16384  // 0x4000 [FIXME - Can we replace 16384 with MAX_SESSIONS]
+    static stream<RtlSessId>               sSimToLrh_FreeList      ("sSimToLrh_FreeList");
+    #pragma HLS stream            variable=sSimToLrh_FreeList      depth=16384  // 0x4000 [FIXME - Can we replace 16384 with MAX_SESSIONS]
+
 
     // Lookup Reply Handler (Lrh) ---------------------------------------------
-    static stream<RtlSessId>             sUrsToSim_FreeId       ("sUrsToSim_FreeId");
-    #pragma HLS stream          variable=sUrsToSim_FreeId       depth=2
+    static stream<RtlSessId>               sUrsToSim_FreeId        ("sUrsToSim_FreeId");
+    #pragma HLS stream            variable=sUrsToSim_FreeId        depth=2
+
+    static stream<rtlSessionUpdateRequest> sLrhToUrs_InsertSessReq ("sLrhToUrs_InsertSessReq");
+    #pragma HLS STREAM            variable=sLrhToUrs_InsertSessReq depth=4
+
 
     // Update Reply Handler
     static stream<rtlSessionUpdateReply> slc_sessionInsert_rsp("slc_sessionInsert_rsp");
@@ -404,8 +409,7 @@ void session_lookup_controller(
 
 
 
-    static stream<rtlSessionUpdateRequest>    sessionInsert_req("sessionInsert_req");
-    #pragma HLS STREAM               variable=sessionInsert_req depth=4
+
 
     static stream<rtlSessionUpdateRequest>    sessionDelete_req("sessionDelete_req");
     #pragma HLS STREAM               variable=sessionDelete_req depth=4
@@ -430,12 +434,12 @@ void session_lookup_controller(
             siTAi_SessLookupReq,
             soTAi_SessLookupRep,
             sSimToLrh_FreeList,
-            sessionInsert_req,
+            sLrhToUrs_InsertSessReq,
             reverseLupInsertFifo);
             //poSssRegCnt);
 
     pUpdateRequestSender(
-            sessionInsert_req,
+            sLrhToUrs_InsertSessReq,
             sessionDelete_req,
             sessionUpdate_req,
             sUrsToSim_FreeId,

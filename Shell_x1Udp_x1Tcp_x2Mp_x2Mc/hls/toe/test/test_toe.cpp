@@ -1275,8 +1275,8 @@ bool pTRIF_OpenSess(
             if (watchDogTimer == 0) {
                 printError(myName, "Timeout: Failed to open the following socket:\n");
                 printTbSockPair(myName, aSocketPair);
+                openFsm = 0;
             }
-            openFsm = 0;
         }
         break;
 

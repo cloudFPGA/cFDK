@@ -40,7 +40,7 @@ extern bool gTraceEvent;
 #define TRACE_FPT 1 <<  4
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_IRR | TRACE_ORM | TRACE_LPT | TRACE_FPT)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 enum PortState {CLOSED_PORT = false, OPENED_PORT    = true };

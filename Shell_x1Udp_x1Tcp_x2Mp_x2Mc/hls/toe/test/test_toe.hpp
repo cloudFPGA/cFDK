@@ -485,10 +485,10 @@ bool IpPacket::isACK() {
  *******************************************************************/
 class TbSockAddr {  // Testbench Socket Address
   public:
-    int     addr;       // IPv4 address
-    int     port;       // TCP  port
+    unsigned int addr;  // IPv4 address
+    unsigned int port;  // TCP  port
     TbSockAddr() {}
-    TbSockAddr(int addr, int port) :
+    TbSockAddr(unsigned int addr, unsigned int port) :
         addr(addr), port(port) {}
 };
 
