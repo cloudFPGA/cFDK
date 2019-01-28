@@ -45,7 +45,7 @@ static const uint16_t MAX_SESSIONS = 32;
 
 //OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
-#define NO_TX_SESSIOSNS 1 // Number of Tx Sessions to open for testing
+#define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
 
 extern uint32_t      packetCounter;
 extern uint32_t      idleCycCnt;
