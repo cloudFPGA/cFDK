@@ -1,19 +1,37 @@
+# ########################################################################################
+# @file  : appRx_ThreeSeg.dat
+# @brief : Three TCP segments for the Rx Application I/F of TOE.
 #
-# @file  : appRx_TwoSeg.dat
-# @brief : Two TCP segments for the Rx Application I/F of TOE.
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
 #
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles     <NUM>         --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM LocalSocket   <ADDR> <PORT> --> Request to setup a local socket for the TOE. 
+#    G PARAM ForeignSocket <ADDR> <PORT> --> Request to setup a foreign socket.
+#    # This is a comment
+#    > SET   ForeignSocket <ADDR> <PORT> --> Request to add foreign socket.
+#    > IDLE  <NUM>                       --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
 
-C 5000
+G PARAM SimCycles     5000
 
-W 100
+> IDLE 100
 
 # == FIRST TCP DATA SEGMENT ======================
-0101010101010101 0 FF
-0101010101010101 0 FF
-0101010101010101 0 FF
-0101010101010101 1 FF
+1000000001111111 0 FF
+1100000000111111 0 FF
+1110000000011111 0 FF
+1111000000001111 0 FF
+1111100000000111 0 FF
+1111110000000011 0 FF
+1111111000000001 1 FF
 
-W 100
+> IDLE 100
 
 # == SECOND TCP DATA SEGMENT =====================
 0000000000000000 0 FF
@@ -203,8 +221,15 @@ W 100
 # FYI: MSS=1456=182*8 
 #
 
-W 50
+> IDLE 1456
 
+#
+# [FIXME] Why do we need to wait so long before writing again to the same socket ???
+#   FYI, if we set a new foreign socket address, we can write right after the previous segment! 
+#
+
+# == THIRD TCP DATA SEGMENT =====================
+# > SET  ForeignSocket 03.03.03.03 8000
 0303030303030303 0 FF
 0303030303030303 0 FF
 0303030303030303 0 FF
