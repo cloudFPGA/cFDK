@@ -1179,8 +1179,8 @@ bool pTRIF_Listen(
             if (watchDogTimer == 0) {
                 printError(myName, "Timeout: Failed to listen on port %d %d (0x%4.4X).\n",
                            portNum.to_uint(), portNum.to_uint());
+                listenFsm = 0;
             }
-            listenFsm = 0;
         }
         break;
     }
@@ -1414,8 +1414,10 @@ void pTRIF_Recv(
     //---------------------------------------------------------------
     //-- STEP-0 : Give this process some grace time before starting.
     //---------------------------------------------------------------
-    if (startupDelay--)
+    if (startupDelay) {
+        startupDelay--;
         return;
+    }
 
     //------------------------------------------------
     //-- STEP-1 : REQUEST TO LISTEN ON A PORT
@@ -2223,10 +2225,9 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         if (simCycCnt > TB_GRACE_TIME) {
             // Give the TB some grace time to do some of the required initializations
-            //OBSOLETE-20190124 AxiIp4Addr mmioIpAddr = (AxiIp4Addr)(byteSwap32(gLocalSocket.addr));
             toe(
                 //-- From MMIO Interfaces
-                (AxiIp4Addr)(byteSwap32(gLocalSocket.addr)),   // OBSOELTE-20190124 mmioIpAddr,
+                (AxiIp4Addr)(byteSwap32(gLocalSocket.addr)),
                 //-- IPv4 / Rx & Tx Interfaces
                 sIPRX_Toe_Data,   sTOE_L3mux_Data,
                 //-- TRIF / Rx Interfaces
