@@ -307,7 +307,7 @@ architecture structural of topFlash is
   signal sSHL_156_25Rst_delayed             : std_ulogic;
 
   -- Delayed reset counter 
-  signal rst_delay_counter                  : std_logic_vector(4 downto 0);
+  signal rst_delay_counter                  : std_logic_vector(5 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
