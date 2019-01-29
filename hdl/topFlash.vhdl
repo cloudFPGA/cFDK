@@ -305,6 +305,9 @@ architecture structural of topFlash is
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
 
   signal sSHL_156_25Rst_delayed             : std_ulogic;
+
+  -- Delayed reset counter 
+  signal rst_delay_counter                  : std_logic_vector(4 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -405,7 +408,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poSHL_156_25Clk                     : out   std_ulogic;
       poSHL_156_25Rst                     : out   std_ulogic;
-      poSHL_156_25Rst_delayed             : out   std_ulogic;
+      piSHL_156_25Rst_delayed             : out   std_ulogic;
        
       ------------------------------------------------------
       -- ROLE / Shl/ Nts0 / Udp Interface
@@ -727,6 +730,29 @@ begin
    );
    sTOP_156_25Rst <= not sTOP_156_25Rst_n;
 
+   -- ========================================================================
+   -- == Generation of delayed reset vor HLS cores
+   -- ========================================================================
+   process(sSHL_156_25Clk)
+   begin
+     if rising_edge(sSHL_156_25Clk) then 
+       if sSHL_156_25Rst = '1' then
+         sSHL_156_25Rst_delayed <= '0';
+        rst_delay_counter <= (others => '0');
+       else
+         if unsigned(rst_delay_counter) <= 20 then 
+           sSHL_156_25Rst_delayed <= '0';
+           rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
+        elsif unsigned(rst_delay_counter) <= 40 then 
+           sSHL_156_25Rst_delayed <= '1';
+           rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
+        else
+           sSHL_156_25Rst_delayed <= '0';
+         end if;
+       end if;
+     end if;
+   end process;
+
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
@@ -824,7 +850,7 @@ begin
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
       poSHL_156_25Rst                      => sSHL_156_25Rst,
-      poSHL_156_25Rst_delayed              => sSHL_156_25Rst_delayed,
+      piSHL_156_25Rst_delayed              => sSHL_156_25Rst_delayed,
       
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Udp Interface
