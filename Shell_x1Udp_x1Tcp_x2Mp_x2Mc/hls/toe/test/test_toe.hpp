@@ -429,7 +429,13 @@ int IpPacket::recalculateChecksum()
         pseudoHeader.push_back(axiWord);
     }
 
-    return checksumComputation(pseudoHeader);
+    // Compute the pseudo pseudo-header checksum
+    int pseudoHeaderCsum = checksumComputation(pseudoHeader);
+
+    /// Overwrite the former checksum
+    this->setTcpChecksum(pseudoHeaderCsum);
+
+    return pseudoHeaderCsum;
 }
 
 /*****************************************************************************

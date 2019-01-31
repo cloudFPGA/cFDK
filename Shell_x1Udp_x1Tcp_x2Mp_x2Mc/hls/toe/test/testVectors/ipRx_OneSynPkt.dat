@@ -1,7 +1,23 @@
+# ##################################################################################################################################
+#  @file  : ipRx_OneSynPkt.dat
+#  @brief : A unique IPv4 packet with the TCP-SYN bit set to indicate that the segment is being used to initialize a connection.
+#          #
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
 #
-# @file  : ipRx_OneSynPkt.dat
-# @brief : A unique IPv4 packet with the TCP-SYN bit set to indicate that the segment is being used to initialize a connection.
-#          
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles     <NUM>         --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM LocalSocket   <ADDR> <PORT> --> Request to setup a local socket for the TOE. 
+#    G PARAM ForeignSocket <ADDR> <PORT> --> Request to setup a foreign socket.
+#    # This is a comment
+#    > SET   ForeignSocket <ADDR> <PORT> --> Request to add foreign socket.
+#    > IDLE  <NUM>                       --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
 #         6                   5                   4                   3                   2                   1                   0   
 #   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -22,7 +38,7 @@
 #
 # @details :
 #   This unique segment is used to test the initialization of a connection with the following settings:
-#     IP-SA = 10.10.10.10, IP-DA=1.1.1.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
+#     IP-SA = 10.10.10.10, IP-DA=10.12.200.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
 #
 #   The corresponding data stream received from the MAC is as follows:
 #          
@@ -33,22 +49,24 @@
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #  |                         0x0A0A0A0A                            |            0x0000             |      0x06     |     0xFF      |
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#  |             0x5700 (87))      |            0x8900 (137)       |                         0x01010101                            |
+#  |             0x5700 (87))      |            0x8900 (137)       |                         0x01C80C0A                            |
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #  |                         0x00000000                            |                         0xCDFF0000 (65485)                    |
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #  |                               |                               |                               |   |U|A|P|R|S|F|               |
-#  |             0x0000            |            0x1F95 (38175)     |            0x0004 (1024)      |   |R|C|S|S|Y|I|     0x50      |
+#  |             0x0000            |            0x13c5 (5066)      |            0x0004 (1024)      |   |R|C|S|S|Y|I|     0x50      |
 #  |                               |                               |                               |   |G|K|H|T|N|N|               |
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #
+# ###################################################################################################################################
 
-C 250
+G PARAM SimCycles 250
 
-W 20
+> IDLE 20
 0000000028000045 0 FF
 0A0A0A0A000006FF 0 FF
-5700890001010101 0 FF
+5700890001C80C0A 0 FF
 00000000CDFF0000 0 FF
-00001F9500040250 1 FF
+000013c500040250 1 FF
+
 

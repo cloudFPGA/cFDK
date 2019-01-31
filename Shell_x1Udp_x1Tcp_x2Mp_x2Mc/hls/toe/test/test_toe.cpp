@@ -54,7 +54,7 @@ using namespace std;
 //--  of the test vector files.
 //---------------------------------------------------------
 #define DEFAULT_LOCAL_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
-#define DEFAULT_LOCAL_TCP_PORT   0x0050      // TOE listens on port     = 80 (static  ports must be     0..32767)
+#define DEFAULT_LOCAL_TCP_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
 #define DEFAULT_FOREIGN_IP4_ADDR 0x0A0A0A0A  // TB's foreign IP Address = 10.10.10.10
 #define DEFAULT_FOREIGN_TCP_PORT 0x8000      // TB listens on port      = 32768 (dynamic ports must be 32768..65535)
 
@@ -169,7 +169,7 @@ ap_uint<64> encodeApUint64(
 
     for (unsigned short int i = 0; i<dataString.size(); ++i) {
         for (unsigned short int j = 0;j<16;++j) {
-            if (lut[j] == dataString[i]) {
+            if (lut[j] == toupper(dataString[i])) {
                 tempValue = j;
                 break;
             }
@@ -202,7 +202,7 @@ ap_uint<8> encodeApUint8(
 
     for (unsigned short int i = 0; i<2;++i) {
         for (unsigned short int j = 0;j<16;++j) {
-            if (lut[j] == keepString[i]) {
+            if (lut[j] == toupper(keepString[i])) {
                 tempValue = j;
                 break;
             }
@@ -437,6 +437,7 @@ void pEmulateTxBufMem(
  ******************************************************************************/
 vector<string> myTokenizer(string strBuff) {
     vector<string>   tmpBuff;
+    int              tokenCounter = 0;
     bool             found = false;
 
     if (strBuff.empty()) {
@@ -449,18 +450,18 @@ vector<string> myTokenizer(string strBuff) {
             strBuff.erase(strBuff.size() - 1);
     }
 
-    // Search for spaces delimiting the different data words
+    // Search for space characters delimiting the different data words
     while (strBuff.find(" ") != string::npos) {
-        // while (!string::npos) {
-        //if (strBuff.find(" ")) {
-            // Split the string in two parts
-            string temp  = strBuff.substr(0, strBuff.find(" "));
-            strBuff = strBuff.substr(strBuff.find(" ")+1, strBuff.length());
-            // Store the new part into the vector.
-            if (temp != "")
-                tmpBuff.push_back(temp);
-        //}
-        // Continue searching until no more spaces are found.
+        // Split the string in two parts
+        string temp = strBuff.substr(0, strBuff.find(" "));
+        // Remove first element from 'strBuff'
+        strBuff = strBuff.substr(strBuff.find(" ")+1, strBuff.length());
+        // Store the new part into the vector.
+        if (temp != "")
+            tmpBuff.push_back(temp);
+        // Quit if the current line is a comment
+        if ((tokenCounter == 0) && (temp =="#"))
+            break;
     }
 
     // Push the final part of the string into the vector when no more spaces are present.
@@ -468,27 +469,75 @@ vector<string> myTokenizer(string strBuff) {
     return tmpBuff;
 }
 
+
 /*****************************************************************************
- * @brief Write the TCP data part of an IP packet into the Tx Application Gold
- *         file. This file will latter be compared with the 'TxAppFile'.
+ * @brief Parse the input test file and set the global parameters of the TB.
  *
- * @param[in]     appTxGold,  a ref to the gold file to write.
- * @param[in]     ipRxPacket, a ref to an IP RX packet.
+ * @param[in]  inputFile,    A ref to the input file to parse.
  *
- * @ingroup test_toe
+ * @details:
+ *  A global parameter specifies a general property of the testbench such as
+ *  the minimum number of simulation cycles, the default IP address of the TOE
+ *  or the default port to listen to. Such a parameter is passed to the TB via
+ *  the test vector file. The line containing such a parameter must start with
+ *  the single upper character 'G' followed by a space character.
+ *  Examples:
+ *    G PARAM SimCycles     <NUM>
+ *    G PARAM LocalSocket   <ADDR> <PORT>
+ *
+ * @ingroup toe
  ******************************************************************************/
-/*** OBSOLETE-20180104 ***
-void writeAppTxGoldFile(
-        ofstream    &appTxGold,
-        IpPacket    &ipPacket)
+bool setGlobalParameters(ifstream &inputFile)
 {
-    if(ipPacket.sizeOfTcpData() > 0) {
-        string tcpData = ipPacket.getTcpData();
-        if (tcpData.size() > 0)
-            appTxGold << tcpData << endl;
-    }
-}
-*** OBSOLETE-20180104 ***/
+    const char *myName  = concat3(THIS_NAME, "/TRIF_Send/", "setGlobalParameters");
+
+    string              rxStringBuffer;
+    vector<string>      stringVector;
+
+    do {
+        //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
+        getline(inputFile, rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer);
+
+        if (stringVector[0] == "") {
+            continue;
+        }
+        else if (stringVector[0].length() == 1) {
+            // By convention, a global parameter must start with a single 'G' character.
+            if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
+                if (stringVector[2] == "SimCycles") {
+                    // The test vector file is specifying a minimum number of simulation cycles.
+                    int noSimCycles = atoi(stringVector[3].c_str());
+                    if (noSimCycles > gMaxSimCycles)
+                        gMaxSimCycles = noSimCycles;
+                    printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
+                }
+                else if (stringVector[2] == "LocalSocket") {
+                    char * ptr;
+                    unsigned int ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+                    gLocalSocket.addr = ip4Addr;
+                    unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                    gLocalSocket.port = tcpPort;
+                    printInfo(myName, "Creating local socket <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
+                }
+                else {
+                    printError(myName, "Unknown parameter \'%s\'.\n", stringVector[2].c_str());
+                    return false;
+                }
+            }
+            else
+                continue;
+        }
+    } while(!inputFile.eof());
+
+    // Seek back to the start of stream
+    inputFile.clear();
+    inputFile.seekg(0, ios::beg);
+
+    return true;
+
+} // End of: setGlopbalParameters
+
 
 /*****************************************************************************
  * @brief Write the TCP data part of an IP packet into a file.
@@ -553,6 +602,7 @@ int pIPRX_InjectAckNumber(
     TbSocketPair newSockPair = TbSocketPair(srcSock, dstSock);
 
     if (ipRxPacket.isSYN()) {
+
         // This packet is a SYN and there's no need to inject anything
         if (sessionList.find(newSockPair) != sessionList.end()) {
             printWarn(myName, "Trying to open an existing session (%d)!\n", (sessionList.find(newSockPair)->second).to_uint());
@@ -560,10 +610,20 @@ int pIPRX_InjectAckNumber(
             return -1;
         }
         else {
-            sessionList[newSockPair] = 0;
-            printInfo(myName, "Successfully opened a new session (%d).\n", (sessionList.find(newSockPair)->second).to_uint());
-            printTbSockPair(myName, newSockPair);
-            return 0;
+            // Let's check the pseudo-header checksum of the packet
+            int computedCsum = ipRxPacket.recalculateChecksum();
+            int embeddedCsum = ipRxPacket.getTcpChecksum();
+            if (computedCsum != embeddedCsum) {
+                printError(myName, "WRONG PSEUDO-HEADER CHECKSUM (0x%4.4X) - Expected 0x%4.4X \n",
+                           embeddedCsum, byteSwap16(computedCsum).to_uint());
+                return -1;
+            }
+            else {
+                sessionList[newSockPair] = 0;
+                printInfo(myName, "Successfully opened a new session (%d).\n", (sessionList.find(newSockPair)->second).to_uint());
+                printTbSockPair(myName, newSockPair);
+                return 0;
+            }
         }
     }
     else if (ipRxPacket.isACK()) {
@@ -579,8 +639,12 @@ int pIPRX_InjectAckNumber(
 
 
             // Recalculate and update the checksum
-            int newTcpCsum = ipRxPacket.recalculateChecksum();
-            ipRxPacket.setTcpChecksum(newTcpCsum);
+            int oldCsum = ipRxPacket.getTcpChecksum();
+            int newCsum = ipRxPacket.recalculateChecksum();
+            //OBSOLETE-20190130 ipRxPacket.setTcpChecksum(newTcpCsum);
+            if (DEBUG_LEVEL & TRACE_IPRX)
+                printInfo(myName, "Updating the checksum of this packet from 0x%4.4X to 0x%4.4X\n",
+                          oldCsum, newCsum);
 
             if (DEBUG_LEVEL & TRACE_IPRX) {
                 ipRxPacket.printRaw(myName);
@@ -599,7 +663,7 @@ int pIPRX_InjectAckNumber(
 /*****************************************************************************
  * @brief Feed TOE with IP an Rx packet.
  *
- * @param[in]  ipRxPacketizer, a ref to the dqueue w/ an IP Rx packets.
+ * @param[in]  ipRxPacketizer, a ref to the deque w/ an IP Rx packets.
  * @param[i/o] ipRxPktCounter, a ref to the IP Rx packet counter.
  *                              (counts all kinds and from all sessions).
  * @param[out] soTOE_Data,     A reference to the data stream to TOE.
@@ -681,14 +745,32 @@ void pIPRX(
         map<TbSocketPair, TcpAckNum>  &sessionList,
         stream<Ip4overAxi>            &soTOE_Data)
 {
+    static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
     static unsigned int ipRxIdleCycReq = 0;     // The requested number of idle cycles
     static unsigned int ipRxIdleCycCnt = 0;     // The count of idle cycles
+
+    // Keep track of the current active local socket
+     static TbSockAddr   currLocalSocket(DEFAULT_LOCAL_IP4_ADDR,
+                                         DEFAULT_LOCAL_TCP_PORT);
 
     string              rxStringBuffer;
     vector<string>      stringVector;
 
     const char *myName  = concat3(THIS_NAME, "/", "IPRX");
+
+    //-------------------------------------------------------------------------
+    //-- STEP-0: PARSE THE APP RX FILE.
+    //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
+    //-------------------------------------------------------------------------
+    if (!globParseDone) {
+        globParseDone = setGlobalParameters(ipRxFile);
+        if (globParseDone == false) {
+            printInfo(myName, "Aborting testbench (check for previous error).\n");
+            exit(1);
+        }
+        return;
+    }
 
     //-----------------------------------------------------
     //-- STEP-1 : RETURN IF IDLING IS REQUESTED
@@ -713,31 +795,39 @@ void pIPRX(
     //  new packet from the IP Rx input file.
     pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
 
-    // Quit here if the Rx test mode is not enabled
-    if (not testRxPath)
+    //-------------------------------------------------------------------------
+    //-- STEP-3: QUIT HERE IF RX TEST MODE IS DISABLED OR EOF IS REACHED
+    //-------------------------------------------------------------------------
+    if ((not testRxPath) || (ipRxFile.eof()))
         return;
 
-    //-----------------------------------------------------
-    //-- STEP-3 : READ THE IP RX FILE
-    //-----------------------------------------------------
-    // Check for EOF
-    if (ipRxFile.eof())
-        return;
+    //------------------------------------------------------
+    //-- STEP-? : [TODO] CHECK IF CURRENT LOCAL SOCKET IS LISTENING
+    //------------------------------------------------------
+    // TbSocketPair  currSocketPair(gLocalSocket, currForeignSocket);
+    // isOpen = pTRIF_OpenSess(currSocketPair, openSessList, soTOE_OpnReq, siTOE_OpnSts);
+    // if (!isOpen)
+    //     return;
 
+    //-----------------------------------------------------
+    //-- STEP-4 : READ THE IP RX FILE
+    //-----------------------------------------------------
     do {
         //-- READ A LINE FROM IPRX INPUT FILE -------------
         getline(ipRxFile, rxStringBuffer);
-
         stringVector = myTokenizer(rxStringBuffer);
 
         if (stringVector[0] == "") {
             continue;
         }
         else if (stringVector[0].length() == 1) {
-            // WARNING:
-            //  A comment must start with a hash symbol followed by a space character.
-            //  A command must start with an upper character followed by a space character.
+            //------------------------------------------------------
+            //-- Process the command and comment lines
+            //--  FYI: A command or a comment start with a single
+            //--       character followed by a space character.
+            //------------------------------------------------------
             if (stringVector[0] == "#") {
+                // This is a comment line.
                 for (int t=0; t<stringVector.size(); t++)
                     printf("%s ", stringVector[t].c_str());
                 printf("\n");
@@ -749,9 +839,10 @@ void pIPRX(
             }
             else if (stringVector[0] == ">") {
                 // The test vector is issuing a command
+                //  FYI, don't forget to return at the end of command execution.
                 if (stringVector[1] == "IDLE") {
                     // Cmd = Request to idle for <NUM> cycles.
-                    ipRxIdleCycReq = atoi(stringVector[1].c_str());
+                    ipRxIdleCycReq = atoi(stringVector[2].c_str());
                     ipRxIdlingReq = true;
                     printInfo(myName, "Request to idle for %d cycles. \n", ipRxIdleCycReq);
                     return;
@@ -1523,75 +1614,6 @@ void pTRIF_Recv(
 
 
 /*****************************************************************************
- * @brief Parse the input test file and set the global parameters of the TB.
- *
- * @param[in]  inputFile,    A ref to the input file to parse.
- *
- * @details:
- *  A global parameter specifies a general property of the testbench such as
- *  the minimum number of simulation cycles, the default IP address of the TOE
- *  or the default port to listen to. Such a parameter is passed to the TB via
- *  the test vector file. The line containing such a parameter must start with
- *  the single upper character 'G' followed by a space character.
- *  Examples:
- *    G PARAM SimCycles     <NUM>
- *    G PARAM LocalSocket   <ADDR> <PORT>
- *
- * @ingroup toe
- ******************************************************************************/
-bool setGlobalParameters(ifstream &inputFile)
-{
-    const char *myName  = concat3(THIS_NAME, "/TRIF_Send/", "setGlobalParameters");
-
-    string              rxStringBuffer;
-    vector<string>      stringVector;
-
-    do {
-        //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
-        getline(inputFile, rxStringBuffer);
-        stringVector = myTokenizer(rxStringBuffer);
-
-        if (stringVector[0] == "") {
-            continue;
-        }
-        else if (stringVector[0].length() == 1) {
-            // By convention, a global parameter must start with a single 'G' character.
-            if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
-                if (stringVector[2] == "SimCycles") {
-                    // The test vector file is specifying a minimum number of simulation cycles.
-                    int noSimCycles = atoi(stringVector[3].c_str());
-                    if (noSimCycles > gMaxSimCycles)
-                        gMaxSimCycles = noSimCycles;
-                    printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
-                }
-                else if (stringVector[2] == "LocalSocket") {
-                    char * ptr;
-                    unsigned int ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
-                    gLocalSocket.addr = ip4Addr;
-                    unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
-                    gLocalSocket.port = tcpPort;
-                    printInfo(myName, "Creating local socket <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
-                }
-                else {
-                    printError(myName, "Unknown parameter \'%s\'.\n", stringVector[2].c_str());
-                    return false;
-                }
-            }
-            else
-                continue;
-        }
-    } while(!inputFile.eof());
-
-    // Seek back to the start of stream
-    inputFile.clear();
-    inputFile.seekg(0, ios::beg);
-
-    return true;
-
-} // End of: setGlopbalParameters
-
-
-/*****************************************************************************
  * @brief Emulates behavior of the send half of the TCP Role Interface (TRIF).
  *
  * @param[in]  testTxPath,   Indicates if the Tx path is to be tested.
@@ -2203,9 +2225,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
-    printf("#####################################################\n");
+    printf("############################################################################\n");
+    printf("## TESTBENCH STARTS HERE                                                  ##\n");
+    printf("############################################################################\n");
+    printf("   FYI - LocalSocket = { 0x%8.8X, 0x%4.4X} \n\n", gLocalSocket.addr, gLocalSocket.port);
     simCycCnt = 0;     // Simulation cycle counter as a global variable
     nrErr     = 0;     // Total number of testbench errors
 
@@ -2304,17 +2327,17 @@ int main(int argc, char *argv[]) {
         //-- STEP-6 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         simCycCnt++;
-        if (gTraceEvent) {
+        if (gTraceEvent || ((simCycCnt % 100) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
             gTraceEvent = false;
         }
 
     } while (simCycCnt < gMaxSimCycles);
 
-    printf("#####################################################\n");
-    printf("## TESTBENCH ENDS HERE                             ##\n");
-    printf("#####################################################\n");
     printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
+    printf("############################################################################\n");
+    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("############################################################################\n");
 
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
@@ -2345,6 +2368,11 @@ int main(int argc, char *argv[]) {
         int appTxCompare = system(("diff --brief -w " + std::string(appTxFileName) + " " + std::string(appTxGoldName) + " ").c_str());
         if (appTxCompare != 0) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", appTxFileName, appTxGoldName);
+            nrErr++;
+        }
+
+        if ((opnSessionCount == 0) && (ipRx_PktCounter > 0)) {
+            printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
             nrErr++;
         }
     }
@@ -2383,9 +2411,9 @@ int main(int argc, char *argv[]) {
         printError(THIS_NAME, "###########################################################\n");
     }
         else {
-        printInfo(THIS_NAME, "########################################\n");
-        printInfo(THIS_NAME, "####     SUCCESSFUL END OF TEST     ####\n");
-        printInfo(THIS_NAME, "########################################\n");
+        printInfo(THIS_NAME, "#############################################################\n");
+        printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");
+        printInfo(THIS_NAME, "#############################################################\n");
     }
 
     return nrErr;

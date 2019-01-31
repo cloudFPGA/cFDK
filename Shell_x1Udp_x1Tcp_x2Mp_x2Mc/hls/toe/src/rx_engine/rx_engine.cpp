@@ -36,7 +36,7 @@ extern bool gTraceEvent;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF | TRACE_TID | TRACE_MWR)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
@@ -364,13 +364,12 @@ void pInsertPseudoHeader(
 /*****************************************************************************
  * @brief TCP checksum accumulator (csa).
  *
- * @param[in]  siIph_TcpSeg,A pseudo TCP segment from Insert Pseudo Header (Iph).
- * @param[out] soData,          TCP data stream.
- * @param[out] soDataValid,     TCP data valid.
- * @param[out] soMeta,          TCP metadata.
- * @param[out] soSockPair,      TCP socket pair.
- * @param[out] soGetPortState,  Request the state of the port.
-
+ * @param[in]  siIph_TcpSeg,   A pseudo TCP segment from [InsertPseudoHeader].
+ * @param[out] soTid_Data,     TCP data stream to [TcpInvalidDropper].
+ * @param[out] soTid_DataVal,  TCP data valid to [TcpInvalidDropper].
+ * @param[out] soMdh_Meta,,    TCP metadata to [MetaDataHandler].
+ * @param[out] soMdh_SockPair, TCP socket pair to [MetaDataHandler].
+ * @param[out] soPRt_GetState, Req for port state to [PortTable].
  *
  * @details
  *  This process extracts the data (i.e. text octets) from the incoming segment
@@ -402,12 +401,12 @@ void pInsertPseudoHeader(
  * @ingroup rx_engine
  ******************************************************************************/
 void pCheckSumAccumulator(
-        stream<TcpWord>             &siIph_TcpSeg,
-        stream<AxiWord>             &soData,
-        stream<ValBit>              &soDataValid,
-        stream<rxEngineMetaData>    &soMeta,
-        stream<AxiSocketPair>          &soSockPair,
-        stream<AxiTcpPort>          &soGetPortState)
+        stream<TcpWord>           &siIph_TcpSeg,
+        stream<AxiWord>           &soTid_Data,
+        stream<ValBit>            &soTid_DataVal,
+        stream<rxEngineMetaData>  &soMdh_Meta,
+        stream<AxiSocketPair>     &soMdh_SockPair,
+        stream<AxiTcpPort>        &soPRt_GetState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -418,12 +417,12 @@ void pCheckSumAccumulator(
     static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
     static ap_uint<8>       csa_dataOffset = 0xFF; // [FIXME-Why not make it of type AxiTcpDataOff]
     static ap_uint<16>      csa_wordCount = 0;
-    static AxiSocketPair    csa_sessTuple;  // OBSOLETE-20181120 static fourTuple csa_sessionTuple;
+    static AxiSocketPair    csa_sessTuple;
     static ap_uint<36>      halfWord;
     TcpWord                 currWord;
     TcpWord                 sendWord;
     static rxEngineMetaData csa_meta;
-    static AxiTcpDstPort    csa_axiTcpDstPort; // OBSOLETE-20181120 static ap_uint<16>      csa_dstPort;
+    static AxiTcpDstPort    csa_axiTcpDstPort;
     static AxiTcpChecksum   csa_axiTcpCSum;
 
     static bool             csa_doShift     = false;
@@ -431,8 +430,6 @@ void pCheckSumAccumulator(
     static bool             csa_doCSumVerif = false;
 
     static ap_uint<3>       csa_cc_state = 0;
-
-    //OBSOLETE-20181031 currWord.last = 0; // might no be necessary any more FIXME to you want to risk it ;)
 
     if (!siIph_TcpSeg.empty() && !csa_doCSumVerif) {
         siIph_TcpSeg.read(currWord);
@@ -502,7 +499,7 @@ void pCheckSumAccumulator(
             else {    // csa_dataOffset == 5 (or less)
                 if (!csa_doShift) {
                     sendWord = currWord;
-                    soData.write(sendWord);
+                    soTid_Data.write(sendWord);
                 }
                 else {
                     sendWord.tdata.range(31,  0) = halfWord.range(31, 0);
@@ -510,7 +507,7 @@ void pCheckSumAccumulator(
                     sendWord.tkeep.range( 3,  0) = halfWord.range(35, 32);
                     sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
                     sendWord.tlast = (currWord.tkeep[4] == 0);
-                    soData.write(sendWord);
+                    soTid_Data.write(sendWord);
                     halfWord.range(31,  0) = currWord.tdata.range(63, 32);
                     halfWord.range(35, 32) = currWord.tkeep.range(7, 4);
                 }
@@ -553,7 +550,7 @@ void pCheckSumAccumulator(
             sendWord.tkeep.range( 3,  0) = halfWord.range(35, 32);
             sendWord.tkeep.range( 7,  4) = 0;
             sendWord.tlast               = 1;
-            soData.write(sendWord);
+            soTid_Data.write(sendWord);
         }
         csa_wasLast = false;
     }
@@ -587,19 +584,24 @@ void pCheckSumAccumulator(
                 if (csa_tcp_sums[0](15, 0) == 0) {
                     // The checksum is correct. TCP segment is valid.
                     // Forward to MetaDataHandler
-                    soMeta.write(csa_meta);
-                    soSockPair.write(csa_sessTuple);
+                    soMdh_Meta.write(csa_meta);
+                    soMdh_SockPair.write(csa_sessTuple);
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
-                        soDataValid.write(true);
+                        soTid_DataVal.write(true);
                     }
                     // Forward to PortTable
-                    soGetPortState.write(csa_axiTcpDstPort);
+                    soPRt_GetState.write(csa_axiTcpDstPort);
                 }
-                else if(csa_meta.length != 0) {
-                    soDataValid.write(false);
-                    if (DEBUG_LEVEL >= 0) {
-                        printWarn(myName, "BAD CHECKSUM (0x%4.4X).\n", csa_axiTcpCSum.to_uint());
+                else {
+                    if(csa_meta.length != 0) {
+                        // Packet has some TCP payload
+                        soTid_DataVal.write(false);
+                    }
+                    if (DEBUG_LEVEL & TRACE_CSA) {
+                        printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
+                                    csa_axiTcpCSum.to_uint(),
+                                    byteSwap16(~csa_tcp_sums[0](15, 0) & 0xFFFF).to_uint());
                         printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
                                 csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
                                 csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
@@ -615,7 +617,7 @@ void pCheckSumAccumulator(
 
         } // End of: switch
     }
-}
+} // End of: pCheckSumAccumulator
 
 
 /*****************************************************************************
@@ -692,6 +694,7 @@ void pTcpInvalidDropper(
             }
             else {
                 tid_fsmState = DROP;
+                printWarn(myName, "Bad checksum: Dropping payload for this packet!\n");
             }
         }
         break;
@@ -727,10 +730,10 @@ void pTcpInvalidDropper(
  * @param[in]  siCsa_SockPair,  TCP socket pair from CheckSum Accumulator.
  * @param[in]  siSLc_SessLookupRep, Session lookup reply from Session Lookup Controller (SLc).
  * @param[in]  siPRt_PortSts,   Port state (open/close) from Port Table (PRt).
- * @param[out] soSessLookupReq, Session lookup request.
- * @param[out] soEVe_Event,     Event to Event Engine (EVe).
- * @param[out] soDropCmd,       Drop command.
- * @param[out] soMeta,          Metadata for the central FSM of the Rx engine.
+ * @param[out] soSLc_SessLkpReq,Session lookup request to [SessionLookupConroller].
+ * @param[out] soEVe_Event,     Event to [EVentEngine].
+ * @param[out] soTsd_DropCmd,   Drop command to [TcpSegmentDropper].
+ * @param[out] soFsm_Meta,      Metadata to central [FiniteStateMachine] of RXe.
  *
  * @details
  *  This process waits until it gets a response from the Port Table (PRt).
@@ -751,10 +754,10 @@ void pMetaDataHandler(
         stream<AxiSocketPair>       &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
-        stream<sessionLookupQuery>  &soSessLookupReq,
+        stream<sessionLookupQuery>  &soSLc_SessLkpReq,
         stream<extendedEvent>       &soEVe_Event,
-        stream<CmdBit>              &soDropCmd,
-        stream<rxFsmMetaData>       &soMeta)
+        stream<CmdBit>              &soTsd_DropCmd,
+        stream<rxFsmMetaData>       &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -770,8 +773,6 @@ void pMetaDataHandler(
     AxiSocketPair tuple;
     StsBit        isPortOpen;
 
-    //OBSOLETE-20181101 enum mhStateType {META, LOOKUP};
-    //OBSOLETE-20181101 static mhStateType mdh_state = META;
     static enum FsmState {META=0, LOOKUP} mdh_fsmState;
 
     switch (mdh_fsmState) {
@@ -784,20 +785,12 @@ void pMetaDataHandler(
                 siPRt_PortSts.read(isPortOpen);
                 siCsa_Meta.read(mdh_meta);
                 siCsa_SockPair.read(tuple);
-
-                //OBSOLETE-20181120 mdh_srcIp4Addr( 7,  0) = tuple.srcIp(31, 24);
-                //OBSOLETE-20181120 mdh_srcIp4Addr(15,  8) = tuple.srcIp(23, 16);
-                //OBSOLETE-20181120 mdh_srcIp4Addr(23, 16) = tuple.srcIp(15,  8);
-                //OBSOLETE-20181120 mdh_srcIp4Addr(31, 24) = tuple.srcIp( 7,  0);
                 mdh_srcIp4Addr = byteSwap32(tuple.src.addr);
-
-                //OBSOLETE-20181120 mdh_dstTcpPort( 7,  0) = tuple.dstPort(15, 8);
-                //OBSOLETE-20181120 mdh_dstTcpPort(15,  8) = tuple.dstPort( 7, 0);
                 mdh_dstTcpPort = byteSwap16(tuple.dst.port);
 
                 if (!isPortOpen) {
                     // The destination port is closed
-                    if (DEBUG_LEVEL >= 0) {
+                    if (DEBUG_LEVEL & TRACE_MDH) {
                         printWarn(myName, "Port 0x%4.4X (%d) is not open.\n",
                                   mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                     }
@@ -822,7 +815,7 @@ void pMetaDataHandler(
                     }
 
                     if (mdh_meta.length != 0) {
-                        soDropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(DROP_CMD);
                     }
                 }
                 else {
@@ -832,7 +825,7 @@ void pMetaDataHandler(
                                   mdh_dstTcpPort.to_uint(), mdh_dstTcpPort.to_uint());
                     }
                     // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
-                    soSessLookupReq.write(sessionLookupQuery(tuple,
+                    soSLc_SessLkpReq.write(sessionLookupQuery(tuple,
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Request the SLc to lookup the following session:\n");
@@ -851,15 +844,19 @@ void pMetaDataHandler(
             siSLc_SessLookupRep.read(mdh_sessLookupReply);
             if (mdh_sessLookupReply.hit) {
                 // Forward metadata to the TCP Finite State Machine
-                soMeta.write(rxFsmMetaData(mdh_sessLookupReply.sessionID,
-                                           mdh_srcIp4Addr,
-                                           mdh_dstTcpPort,
-                                           mdh_meta));
-            if (DEBUG_LEVEL & TRACE_MDH)
-                printInfo(myName, "Got a session lookup \'Hit\'. \n");
+                soFsm_Meta.write(rxFsmMetaData(mdh_sessLookupReply.sessionID,
+                                               mdh_srcIp4Addr,
+                                               mdh_dstTcpPort,
+                                               mdh_meta));
+                if (DEBUG_LEVEL & TRACE_MDH)
+                    printInfo(myName, "Successful session lookup. \n");
+            }
+            else {
+                if (DEBUG_LEVEL & TRACE_MDH)
+                    printWarn(myName, "Session lookup failed! \n");
             }
             if (mdh_meta.length != 0) {
-                soDropCmd.write(!mdh_sessLookupReply.hit);
+                soTsd_DropCmd.write(!mdh_sessLookupReply.hit);
             }
             mdh_fsmState = META;
         }
@@ -1346,13 +1343,25 @@ void pTcpSegmentDropper(
     case FSM_RD_DROP_CMD1:
         if (!siMdh_DropCmd.empty()) {
             CmdBit dropCmd = siMdh_DropCmd.read();
-            (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_RD_DROP_CMD2;
+            //OBSOLETE-20190130 (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_RD_DROP_CMD2;
+            if (dropCmd) {
+                tsd_fsmState = FSM_DROP;
+                printWarn(myName, "[Mdh] is requesting to drop this packet.\n");
+            }
+            else
+                tsd_fsmState = FSM_RD_DROP_CMD2;
         }
         break;
     case FSM_RD_DROP_CMD2:
         if (!siFsm_DropCmd.empty()) {
             CmdBit dropCmd = siFsm_DropCmd.read();
-            (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_FWD;
+            //OBSOLETE-20190130 (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_FWD;
+            if (dropCmd) {
+                tsd_fsmState = FSM_DROP;
+                printWarn(myName, "[Fsm] is requesting to drop this packet.\n");
+            }
+            else
+                tsd_fsmState = FSM_FWD;
         }
         break;
     case FSM_FWD:

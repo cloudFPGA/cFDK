@@ -99,7 +99,7 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeeSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
 }
 
