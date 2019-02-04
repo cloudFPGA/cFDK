@@ -873,7 +873,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- THIS / L3mux / Data / Axis
     .soTHIS_L3mux_Data_TREADY           (sL3MUX_Toe_Axis_treadyReg),
-    .soTHIS_L3mux_Data_TDATA            (sTOE_L3mux_Axis_tdata),etworkTransportSession_TcpI
+    .soTHIS_L3mux_Data_TDATA            (sTOE_L3mux_Axis_tdata),
     .soTHIS_L3mux_Data_TKEEP            (sTOE_L3mux_Axis_tkeep),    
     .soTHIS_L3mux_Data_TLAST            (sTOE_L3mux_Axis_tlast),
     .soTHIS_L3mux_Data_TVALID           (sTOE_L3mux_Axis_tvalid),
@@ -1034,9 +1034,9 @@ module NetworkTransportSession_TcpIp (
     .siCAM_This_SssLkpRep_TVALID        (sCAM_Toe_LkpRep_Axis_tvalid),
     .siCAM_This_SssLkpRep_TREADY        (sTOE_Cam_LkpRep_Axis_tready),
     //-- CAM / This / UpdateReply /Axis
-    .siCAM_This_SssUpdRpl_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
-    .siCAM_This_SssUpdRpl_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
-    .siCAM_This_SssUpdRpl_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
+    .siCAM_This_SssUpdRep_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
+    .siCAM_This_SssUpdRep_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .siCAM_This_SssUpdRep_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
 
     //------------------------------------------------------
     //-- To CAM Interfaces
