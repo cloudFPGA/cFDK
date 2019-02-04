@@ -2067,11 +2067,10 @@ int main(int argc, char *argv[]) {
     stream<DmCmd>                       sTOE_Mem_TxP_WrCmd  ("sTOE_Mem_TxP_WrCmd");
     stream<AxiWord>                     sTOE_Mem_TxP_Data   ("sTOE_Mem_TxP_Data");
 
-    stream<rtlSessionLookupReply>       sCAM_This_SssLkpRpl ("sCAM_This_SssLkpRpl");
-    stream<rtlSessionUpdateReply>       sCAM_This_SssUpdRpl ("sCAM_This_SssUpdRpl");
     stream<rtlSessionLookupRequest>     sTHIS_Cam_SssLkpReq ("sTHIS_Cam_SssLkpReq");
+    stream<rtlSessionLookupReply>       sCAM_This_SssLkpRep ("sCAM_This_SssLkpRep");
     stream<rtlSessionUpdateRequest>     sTHIS_Cam_SssUpdReq ("sTHIS_Cam_SssUpdReq");
-
+    stream<rtlSessionUpdateReply>       sCAM_This_SssUpdRep ("sCAM_This_SssUpdRep");
 
     //-- TESTBENCH MODES OF OPERATION ---------------------
     enum TestingMode {RX_MODE='0', TX_MODE='1', BIDIR_MODE='2'};
@@ -2263,8 +2262,8 @@ int main(int argc, char *argv[]) {
                 sTOE_Mem_RxP_RdCmd, sMEM_Toe_RxP_Data, sMEM_Toe_RxP_WrSts, sTOE_Mem_RxP_WrCmd, sTOE_Mem_RxP_Data,
                 sTOE_Mem_TxP_RdCmd, sMEM_Toe_TxP_Data, sMEM_Toe_TxP_WrSts, sTOE_Mem_TxP_WrCmd, sTOE_Mem_TxP_Data,
                 //-- CAM / This / Session Lookup & Update Interfaces
-                sCAM_This_SssLkpRpl, sCAM_This_SssUpdRpl,
-                sTHIS_Cam_SssLkpReq, sTHIS_Cam_SssUpdReq,
+                sTHIS_Cam_SssLkpReq, sCAM_This_SssLkpRep,
+                sTHIS_Cam_SssUpdReq, sCAM_This_SssUpdRep,
                 //-- DEBUG / Session Statistics Interfaces
                 clsSessionCount, opnSessionCount);
         }
@@ -2283,8 +2282,8 @@ int main(int argc, char *argv[]) {
             sTOE_Mem_TxP_RdCmd, sTOE_Mem_TxP_Data, sMEM_Toe_TxP_Data);
 
         pEmulateCam(
-            sTHIS_Cam_SssLkpReq, sCAM_This_SssLkpRpl,
-            sTHIS_Cam_SssUpdReq, sCAM_This_SssUpdRpl);
+            sTHIS_Cam_SssLkpReq, sCAM_This_SssLkpRep,
+            sTHIS_Cam_SssUpdReq, sCAM_This_SssUpdRep);
 
         //------------------------------------------------------
         //-- STEP-4 : DRAIN DUT AND WRITE OUTPUT FILE STREAMS

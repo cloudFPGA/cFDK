@@ -20,7 +20,10 @@ using namespace hls;
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
  ************************************************/
-extern bool gTraceEvent;
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
 #define THIS_NAME "TOE/RXe"
 
 #define TRACE_OFF  0x0000

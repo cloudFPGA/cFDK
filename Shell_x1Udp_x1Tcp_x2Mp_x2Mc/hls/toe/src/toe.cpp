@@ -430,7 +430,7 @@ void rx_app_interface(
  * @param[out] soTHIS_Mem_TxP_Data, Tx memory data to MEM.
  * -- CAM / This / Session Lookup & Update Interfaces
  * @param[in]  siCAM_This_SssLkpRep,Session lookup reply from CAM.
- * @param[in]  siCAM_This_SssUpdRpl,Session update reply from CAM.
+ * @param[in]  siCAM_This_SssUpdRep,Session update reply from CAM.
  * @param[out] soTHIS_Cam_SssLkpReq,Session lookup request to CAM.
  * @param[out] soTHIS_Cam_SssUpdReq,Session update request to CAM.
  * -- DEBUG / Session Statistics Interfaces
@@ -506,10 +506,10 @@ void toe(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupReply>       &siCAM_This_SssLkpRep,
-        stream<rtlSessionUpdateReply>       &siCAM_This_SssUpdRpl,
         stream<rtlSessionLookupRequest>     &soTHIS_Cam_SssLkpReq,
+        stream<rtlSessionLookupReply>       &siCAM_This_SssLkpRep,
         stream<rtlSessionUpdateRequest>     &soTHIS_Cam_SssUpdReq,
+        stream<rtlSessionUpdateReply>       &siCAM_This_SssUpdRep,
 
         //------------------------------------------------------
         //-- To DEBUG / Session Statistics Interfaces
@@ -567,8 +567,8 @@ void toe(
     //-- CAM / Session Lookup & Update Interfaces -----------------------------
     #pragma HLS resource core=AXI4Stream variable=siCAM_This_SssLkpRep metadata="-bus_bundle siCAM_This_SssLkpRep"
     #pragma HLS DATA_PACK                variable=siCAM_This_SssLkpRep
-    #pragma HLS resource core=AXI4Stream variable=siCAM_This_SssUpdRpl metadata="-bus_bundle siCAM_This_SssUpdRpl"
-    #pragma HLS DATA_PACK                variable=siCAM_This_SssUpdRpl
+    #pragma HLS resource core=AXI4Stream variable=siCAM_This_SssUpdRep metadata="-bus_bundle siCAM_This_SssUpdRep"
+    #pragma HLS DATA_PACK                variable=siCAM_This_SssUpdRep
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Cam_SssLkpReq metadata="-bus_bundle soTHIS_Cam_SssLkpReq"
     #pragma HLS DATA_PACK                variable=soTHIS_Cam_SssLkpReq
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Cam_SssUpdReq metadata="-bus_bundle soTHIS_Cam_SssUpdReq"
@@ -894,7 +894,7 @@ void toe(
             soTHIS_Cam_SssUpdReq,
             //sessionInsert_req,
             //sessionDelete_req,
-            siCAM_This_SssUpdRpl,
+            siCAM_This_SssUpdRep,
             poTHIS_Dbg_SssRelCnt,
             poTHIS_Dbg_SssRegCnt);
 

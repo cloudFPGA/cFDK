@@ -42,7 +42,7 @@ cosim: ## Runs the HLS C/RTL cosimulation
 project: ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-clean:
+clean: ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
 

@@ -1145,10 +1145,10 @@ void toe(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupReply>           &siCAM_This_SssLkpRpl,
-        stream<rtlSessionUpdateReply>           &siCAM_This_SssUpdRpl,
         stream<rtlSessionLookupRequest>         &soTHIS_Cam_SssLkpReq,
+        stream<rtlSessionLookupReply>           &siCAM_This_SssLkpRpl,
         stream<rtlSessionUpdateRequest>         &soTHIS_Cam_SssUpdReq,
+        stream<rtlSessionUpdateReply>           &siCAM_This_SssUpdRpl,
 
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
