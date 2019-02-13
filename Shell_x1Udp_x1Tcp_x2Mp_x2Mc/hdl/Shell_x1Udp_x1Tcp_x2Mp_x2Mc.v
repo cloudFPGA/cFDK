@@ -62,9 +62,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gTopDateYear         =  8'hFF,  // uint8
-  parameter gTopDateMonth        =  8'hFF,  // uint8
-  parameter gTopDateDay          =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateYear         =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateMonth        =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateDay          =  8'hFF,  // uint8
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
 
@@ -75,6 +75,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   input           piTOP_156_25Rst,
   input           piTOP_156_25Clk,
+  
+  //------------------------------------------------------
+  //-- TOP / Shl / Bitstream Identification
+  //------------------------------------------------------
+  input  [31: 0]  piTOP_Timestamp,
   
   //------------------------------------------------------
   //-- CLKT / Shl / Clock Tree Interface 
@@ -493,9 +498,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //============================================================================
   MmioClient_A8_D8 #(
 
-    .gTopDateYear         (gTopDateYear),
-    .gTopDateMonth        (gTopDateMonth),
-    .gTopDateDay          (gTopDateDay),
+    //OBSOLETE-20190204 .gTopDateYear         (gTopDateYear),
+    //OBSOLETE-20190204 .gTopDateMonth        (gTopDateMonth),
+    //OBSOLETE-20190204 .gTopDateDay          (gTopDateDay),
     .gSecurityPriviledges (gSecurityPriviledges),
     .gBitstreamUsage      (gBitstreamUsage)
     
@@ -506,6 +511,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
  
     //-- Global Reset used by the entire TOP ----------
     .piTopRst                       (piTOP_156_25Rst),   
+    
+    //-- Bitstream Identification ---------------------
+    .piTOP_Timestamp                (piTOP_Timestamp),
      
     //-- PSOC : Mmio Bus Interface --------------------
     .piPSOC_Mmio_Clk                (piPSOC_Shl_Emif_Clk),
@@ -538,12 +546,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poMMIO_Nts0_GatewayAddr        (sMMIO_Nts0_GatewayAddr),
     
     //-- ROLE : Status inputs and Control Outputs --
-    .poMMIO_Role_UdpEchoCtrl        (poMMIO_Role_UdpEchoCtrl),
-    .poMMIO_Role_UdpPostPktEn       (poMMIO_Role_UdpPostPktEn),
-    .poMMIO_Role_UdpCaptPktEn       (poMMIO_Role_UdpCaptPktEn),
-    .poMMIO_Role_TcpEchoCtrl        (poMMIO_Role_TcpEchoCtrl),
-    .poMMIO_Role_TcpPostPktEn       (poMMIO_Role_TcpPostPktEn),
-    .poMMIO_Role_TcpCaptPktEn       (poMMIO_Role_TcpCaptPktEn),
+    .poMMIO_Role_UdpEchoCtrl        (poSHL_Rol_Mmio_UdpEchoCtrl),
+    .poMMIO_Role_UdpPostPktEn       (poSHL_Rol_Mmio_UdpPostPktEn),
+    .poMMIO_Role_UdpCaptPktEn       (poSHL_Rol_Mmio_UdpCaptPktEn),
+    .poMMIO_Role_TcpEchoCtrl        (poSHL_Rol_Mmio_TcpEchoCtrl),
+    .poMMIO_Role_TcpPostPktEn       (poSHL_Rol_Mmio_TcpPostPktEn),
+    .poMMIO_Role_TcpCaptPktEn       (poSHL_Rol_Mmio_TcpCaptPktEn),
     
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),
