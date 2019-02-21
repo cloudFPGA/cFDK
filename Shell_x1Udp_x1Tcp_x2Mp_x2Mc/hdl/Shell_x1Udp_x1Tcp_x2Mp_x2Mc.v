@@ -62,9 +62,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gTopDateYear         =  8'hFF,  // uint8
-  parameter gTopDateMonth        =  8'hFF,  // uint8
-  parameter gTopDateDay          =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateYear         =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateMonth        =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateDay          =  8'hFF,  // uint8
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
 
@@ -76,6 +76,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piTOP_156_25Rst,
   input           piTOP_156_25Clk,
 
+  //------------------------------------------------------
+  //-- TOP / Shl / Bitstream Identification
+  //------------------------------------------------------
+  input  [31: 0]  piTOP_Timestamp,
+  
   //------------------------------------------------------
   //-- CLKT / Shl / Clock Tree Interface 
   //------------------------------------------------------
@@ -95,14 +100,15 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piPSOC_Shl_Emif_Oe_n,
   input           piPSOC_Shl_Emif_AdS_n,
   input [gMmioAddrWidth-1: 0]  
-  piPSOC_Shl_Emif_Addr,
-    inout [gMmioDataWidth-1: 0]  
-    pioPSOC_Shl_Emif_Data,
+  input [gMmioAddrWidth-1: 0]  
+                  piPSOC_Shl_Emif_Addr,
+  inout [gMmioDataWidth-1: 0]  
+                  pioPSOC_Shl_Emif_Data,
 
-      //------------------------------------------------------
-      //-- LED / Shl / Heart Beat Interface (Yellow LED)
-      //------------------------------------------------------
-      output          poSHL_Led_HeartBeat_n,
+  //------------------------------------------------------
+  //-- LED / Shl / Heart Beat Interface (Yellow LED)
+  //------------------------------------------------------
+  output          poSHL_Led_HeartBeat_n,
 
       //------------------------------------------------------
       // -- DDR4 / Shl / Memory Channel 0 Interface (Mc0)
@@ -645,21 +651,24 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
         //============================================================================
         MmioClient_A8_D8 #(
 
-        .gTopDateYear         (gTopDateYear),
-        .gTopDateMonth        (gTopDateMonth),
-        .gTopDateDay          (gTopDateDay),
-        .gSecurityPriviledges (gSecurityPriviledges),
-        .gBitstreamUsage      (gBitstreamUsage)
-
-      ) MMIO (
-
+    //OBSOLETE-20190204 .gTopDateYear         (gTopDateYear),
+    //OBSOLETE-20190204 .gTopDateMonth        (gTopDateMonth),
+    //OBSOLETE-20190204 .gTopDateDay          (gTopDateDay),
+    .gSecurityPriviledges (gSecurityPriviledges),
+    .gBitstreamUsage      (gBitstreamUsage)
+    
+       ) MMIO (
+   
         //-- Global Clock used by the entire SHELL --------
-        .piShlClk                       (sETH0_ShlClk),
-
+       .piShlClk                       (sETH0_ShlClk),
+ 
         //-- Global Reset used by the entire TOP ----------
         .piTopRst                       (piTOP_156_25Rst),   
+    
+        //-- Bitstream Identification ---------------------
+	.piTOP_Timestamp                (piTOP_Timestamp),
 
-        //-- PSOC : Mmio Bus Interface --------------------
+	//-- PSOC : Mmio Bus Interface --------------------
         .piPSOC_Mmio_Clk                (piPSOC_Shl_Emif_Clk),
         .piPSOC_Mmio_Cs_n               (piPSOC_Shl_Emif_Cs_n),
         .piPSOC_Mmio_We_n               (piPSOC_Shl_Emif_We_n),

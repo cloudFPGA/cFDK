@@ -1,4 +1,5 @@
 #include "../toe.hpp"
+#include "../toe_utils.hpp"
 
 using namespace hls;
 
@@ -35,13 +36,15 @@ struct pkgPushMeta
 /** @defgroup tx_app_stream_if TX Application Stream Interface
  *  @ingroup app_if
  */
-void tx_app_stream_if(  stream<ap_uint<16> >&           appTxDataReqMetaData,
-                        stream<axiWord>&                appTxDataReq,
-                        stream<sessionState>&           stateTable2txApp_rsp,
-                        stream<txAppTxSarReply>&        txSar2txApp_upd_rsp, //TODO rename
-                        stream<ap_int<17> >&            appTxDataRsp,
-                        stream<ap_uint<16> >&           txApp2stateTable_req,
-                        stream<txAppTxSarQuery>&        txApp2txSar_upd_req, //TODO rename
-                        stream<mmCmd>&                  txBufferWriteCmd,
-                        stream<axiWord>&                txBufferWriteData,
-                        stream<event>&                  txAppStream2eventEng_setEvent);
+void tx_app_stream_if(
+        stream<ap_uint<16> >       &appTxDataReqMetaData,
+        stream<AxiWord>            &appTxDataReq,
+        stream<sessionState>       &stateTable2txApp_rsp,
+        stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
+        stream<ap_int<17> >        &appTxDataRsp,
+        stream<ap_uint<16> >       &txApp2stateTable_req,
+        stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
+        stream<DmCmd>              &txBufferWriteCmd,
+        stream<AxiWord>            &soMEM_TxP_Data,
+        stream<event>              &txAppStream2eventEng_setEvent
+);

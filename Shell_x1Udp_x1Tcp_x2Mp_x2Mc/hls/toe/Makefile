@@ -20,7 +20,7 @@ ipName = toe
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
-.PHONY: all clean help csim csynth cosim
+.PHONY: all clean help csim csynth cosim project
 
 all: ${ipName}_prj
 
@@ -39,7 +39,10 @@ csynth: ## Runs the HLS C synthesis
 cosim: ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-clean:
+project: ## Creates the HLS project
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+clean: ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
 

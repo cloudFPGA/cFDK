@@ -48,10 +48,10 @@
 module MmioClient_A8_D8 #(
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
-  parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gTopDateYear         =  8'hFF,  // uint8
-  parameter gTopDateMonth        =  8'hFF,  // uint8
-  parameter gTopDateDay          =  8'hFF   // uint8
+  parameter gBitstreamUsage      = "user"   // "user" or "flash"
+  //OBSOLETE-20190204 parameter gTopDateYear         =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateMonth        =  8'hFF,  // uint8
+  //OBSOLETE-20190204 parameter gTopDateDay          =  8'hFF   // uint8
 ) (
 
   //-- Global Clock used by the entire SHELL -----
@@ -59,6 +59,9 @@ module MmioClient_A8_D8 #(
  
   //-- Global Reset used by the entire TOP -------
   input           piTopRst,
+  
+  //-- Bitstream Identification ------------------
+  input   [31:0]  piTOP_Timestamp,
  
   //-- PSOC : Emif Bus Interface -----------------
   input           piPSOC_Mmio_Clk,
@@ -153,7 +156,7 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers & Burkhard's Playground
+  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
   localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
   localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
@@ -201,7 +204,7 @@ module MmioClient_A8_D8 #(
   localparam LY3_IP1        = LY3_REG_BASE  +  5; 
   localparam LY3_IP2        = LY3_REG_BASE  +  6; 
   localparam LY3_IP3        = LY3_REG_BASE  +  7;
- // IP SubNetMask Register
+  // IP SubNetMask Register
   localparam LY3_SNM0       = LY3_REG_BASE  +  8;
   localparam LY3_SNM1       = LY3_REG_BASE  +  9;
   localparam LY3_SNM2       = LY3_REG_BASE  + 10;
@@ -249,15 +252,18 @@ module MmioClient_A8_D8 #(
   //============================================================================
   //-- CFG_REGS ---------------
   localparam cDefReg00 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h3C :
-                         ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF; // CFG_EMIF_ID  
+                         ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h3D : 8'hFF; // CFG_EMIF_ID
   localparam cDefReg01 = 8'h01;  // CFG_EMIF_VER    : Version of the EMIF component.
   localparam cDefReg02 = 8'h00;  // CFG_EMIF_REV    : Revision of the EMIF component.
   localparam cDefReg03 = 8'h33;  // Reserved
   localparam cDefReg04 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h81 :
                          ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h01 : 8'hFF; // CFG_TOP_ID
-  localparam cDefReg05 = gTopDateYear;  // CFG_TOP_YEAR   
-  localparam cDefReg06 = gTopDateMonth; // CFG_TOP_MONTH   
-  localparam cDefReg07 = gTopDateDay;   // CFG_TOP_DAY
+  //OBSOLETE-20190204 localparam cDefReg05 = gTopDateYear;  // CFG_TOP_YEAR   
+  //OBSOLETE-20190204 localparam cDefReg06 = gTopDateMonth; // CFG_TOP_MONTH   
+  //OBSOLETE-20190204 localparam cDefReg07 = gTopDateDay;   // CFG_TOP_DAY
+  localparam cDefReg05 = 8'h00;  // CFG_TOP_YEAR   
+  localparam cDefReg06 = 8'h00;  // CFG_TOP_MONTH   
+  localparam cDefReg07 = 8'h00;  // CFG_TOP_DAY
   localparam cDefReg08 = 8'h00;
   localparam cDefReg09 = 8'h00;
   localparam cDefReg0A = 8'h00;
@@ -313,8 +319,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg39 = 8'hFF;  // LY3_SNM1
   localparam cDefReg3A = 8'h00;  // LY3_SNM2
   localparam cDefReg3B = 8'h00;  // LY3_SNM3
-  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.2.0.1)
-  localparam cDefReg3D = 8'h02;  // LY3_GTW1
+  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.12.0.1)
+  localparam cDefReg3D = 8'h0C;  // LY3_GTW1
   localparam cDefReg3E = 8'h00;  // LY3_GTW2
   localparam cDefReg3F = 8'h01;  // LY3_GTW3
   //-- Burkhard's Playground
@@ -471,26 +477,29 @@ module MmioClient_A8_D8 #(
   endgenerate
   //---- CFG_TOP_YEAR ------------------
   generate
-  for (id=0; id<8; id=id+1)
+  for (id=0; id<6; id=id+1)
     begin: gen_CFG_TOP_YEAR
-      assign sStatusVec[cEDW*CFG_TOP_YEAR+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_YEAR+id];  // RO
+      assign sStatusVec[cEDW*CFG_TOP_YEAR+id] = piTOP_Timestamp[17+id];  // RO
     end
   endgenerate
+  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_YEAR+7:cEDW*CFG_TOP_YEAR+0] = "00" & piTOP_Timestamp[22:17]; // RO
   //---- CFG_TOP_MONTH -----------------
   generate
-  for (id=0; id<8; id=id+1)
+  for (id=0; id<4; id=id+1)
     begin: gen_CFG_TOP_MONTH
-      assign sStatusVec[cEDW*CFG_TOP_MONTH+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_MONTH+id];  // RO
+      assign sStatusVec[cEDW*CFG_TOP_MONTH+id]  = piTOP_Timestamp[23+id];  // RO
     end
   endgenerate
+  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_MONTH+7:cEDW*CFG_TOP_MONTH+0] = "0000" & piTOP_Timestamp[26:23];  // RO
   //---- CFG_TOP_DAY -------------------
   generate
-  for (id=0; id<8; id=id+1)
+  for (id=0; id<5; id=id+1)
     begin: gen_CFG_TOP_DAY
-      assign sStatusVec[cEDW*CFG_TOP_DAY+id]  = sEMIF_Ctrl[cEDW*CFG_TOP_DAY+id];  // RO
+      assign sStatusVec[cEDW*CFG_TOP_DAY+id] = piTOP_Timestamp[27+id];  // RO
     end
   endgenerate
- 
+  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_DAY+7:cEDW*CFG_TOP_DAY+0] = "000" & piTOP_Timestamp[31:27];  // RO
+
   //--------------------------------------------------------
   //-- PHYSICAL REGISTERS
   //--------------------------------------------------------

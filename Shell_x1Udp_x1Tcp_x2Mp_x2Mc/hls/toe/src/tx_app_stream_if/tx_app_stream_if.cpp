@@ -5,19 +5,19 @@ using namespace hls;
 /** @ingroup tx_app_stream_if
  *  Computes the size of the packet which the application wants to send
  */
-void tasi_compute_pkg_size( stream<axiWord>&            appTxDataReq,
-                            stream<axiWord>&            tasi_pkgBuffer,
+void tasi_compute_pkg_size( stream<AxiWord>&            appTxDataReq,
+                            stream<AxiWord>&            tasi_pkgBuffer,
                             stream<ap_uint<16> >&       tasi_pkgLenFifo) {
 #pragma HLS pipeline II=1
 
     static ap_uint<16> tasi_pkgLen = 0;
-    axiWord currWord = axiWord(0, 0xFF, 0);
+    AxiWord currWord = AxiWord(0, 0xFF, 0);
 
     if (!appTxDataReq.empty()) {
         appTxDataReq.read(currWord);
         tasi_pkgBuffer.write(currWord);
-        tasi_pkgLen += keepMapping(currWord.keep);
-        if (currWord.last) {
+        tasi_pkgLen += keepMapping(currWord.tkeep);
+        if (currWord.tlast) {
             tasi_pkgLenFifo.write(tasi_pkgLen);
             tasi_pkgLen = 0;
         }
@@ -104,21 +104,24 @@ void tasi_metaLoader(   stream<ap_uint<16> >&           appTxDataReqMetaData,
  *  it writes the memory command and pushes the data to the DataMover,
  *  otherwise the packet is dropped.
  */
-void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
-                        stream<pkgPushMeta>&            tasi_writeToBufFifo,
-                        stream<mmCmd>&                  txBufferWriteCmd,
-                        stream<axiWord>&                txBufferWriteData) {
-#pragma HLS pipeline II=1 enable_flush
-#pragma HLS INLINE off
+void tasi_pkg_pusher(
+        stream<AxiWord>         &tasi_pkgBuffer,
+        stream<pkgPushMeta>     &tasi_writeToBufFifo,
+        stream<DmCmd>           &txBufferWriteCmd,
+        stream<AxiWord>         &soMEM_TxP_Data)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS pipeline II=1 enable_flush
+    #pragma HLS INLINE off
 
     static ap_uint<3> tasiPkgPushState = 0;
     static pkgPushMeta tasi_pushMeta;
-    static mmCmd txAppTempCmd = mmCmd(0, 0);
+    static DmCmd txAppTempCmd = DmCmd(0, 0);
     static ap_uint<16> txAppBreakTemp = 0;
     static uint8_t lengthBuffer = 0;
     static ap_uint<3> accessResidue = 0;
     static bool txAppBreakdown = false;
-    static axiWord pushWord = axiWord(0, 0xFF, 0);
+    static AxiWord pushWord = AxiWord(0, 0xFF, 0);
 
     static uint16_t txAppPktCounter = 0;
     static uint32_t txAppWordCounter = 0;
@@ -131,12 +134,12 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
                 ap_uint<32> pkgAddr = 0x40000000;
                 pkgAddr(29, 16) = tasi_pushMeta.sessionID(13, 0);
                 pkgAddr(15, 0) = tasi_pushMeta.address;
-                txAppTempCmd = mmCmd(pkgAddr, tasi_pushMeta.length);
-                mmCmd tempCmd = txAppTempCmd;
+                txAppTempCmd = DmCmd(pkgAddr, tasi_pushMeta.length);
+                DmCmd tempCmd = txAppTempCmd;
                 if ((txAppTempCmd.saddr.range(15, 0) + txAppTempCmd.bbt) > 65536) {
                     txAppBreakTemp = 65536 - txAppTempCmd.saddr;
                     txAppTempCmd.bbt -= txAppBreakTemp;
-                    tempCmd = mmCmd(txAppTempCmd.saddr, txAppBreakTemp);
+                    tempCmd = DmCmd(txAppTempCmd.saddr, txAppBreakTemp);
                     txAppBreakdown = true;
                 }
                 else
@@ -151,16 +154,16 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
     case 1:
         if (!tasi_pkgBuffer.empty()) {
             tasi_pkgBuffer.read(pushWord);
-            axiWord outputWord = pushWord;
-            ap_uint<4> byteCount = keepMapping(pushWord.keep);
+            AxiWord outputWord = pushWord;
+            ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
             if (!tasi_pushMeta.drop) {
                 if (txAppBreakTemp > 8)
                     txAppBreakTemp -= 8;
                 else {
                     if (txAppBreakdown == true) {               /// Changes are to go in here
                         if (txAppTempCmd.saddr.range(15, 0) % 8 != 0) // If the word is not perfectly alligned then there is some magic to be worked.
-                            outputWord.keep = returnKeep(txAppBreakTemp);
-                        outputWord.last = 1;
+                            outputWord.tkeep = returnKeep(txAppBreakTemp);
+                        outputWord.tlast = 1;
                         tasiPkgPushState = 2;
                         accessResidue = byteCount - txAppBreakTemp;
                         lengthBuffer = txAppBreakTemp;  // Buffer the number of bits consumed.
@@ -170,10 +173,11 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
                 }
                 txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = outputWord;
+                soMEM_TxP_Data.write(FixMe);
             }
             else {
-                if (pushWord.last == 1)
+                if (pushWord.tlast == 1)
                     tasiPkgPushState = 0;
             }
         }
@@ -189,63 +193,66 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
                 tasiPkgPushState = 5;
             txAppTempCmd.saddr.range(15, 0) = 0;
             txAppBreakTemp = txAppTempCmd.bbt;
-            txBufferWriteCmd.write(mmCmd(txAppTempCmd.saddr, txAppBreakTemp));
+            txBufferWriteCmd.write(DmCmd(txAppTempCmd.saddr, txAppBreakTemp));
             //std::cerr <<  "2nd Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << txAppTempCmd.saddr << " - " << txAppTempCmd.bbt << std::endl;
             txAppBreakdown = false;
 
         }
         break;
     case 3: // This is the non-realignment state
-        if (!tasi_pkgBuffer.empty() & !txBufferWriteData.full()) {
+        if (!tasi_pkgBuffer.empty() & !soMEM_TxP_Data.full()) {
             tasi_pkgBuffer.read(pushWord);
             if (!tasi_pushMeta.drop) {
                 txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << pushWord.data << " - " << pushWord.keep << " - " << pushWord.last << std::endl;
-                txBufferWriteData.write(pushWord);
+                AxiWord FixMe = pushWord;
+                soMEM_TxP_Data.write(FixMe);
             }
-            if (pushWord.last == 1)
+            if (pushWord.tlast == 1)
                 tasiPkgPushState = 0;
         }
         break;
     case 4: // We go into this state when we need to realign things
-        if (!tasi_pkgBuffer.empty() && !txBufferWriteData.full()) {
-            axiWord outputWord = axiWord(0, 0xFF, 0);
-            outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.data.range(63, lengthBuffer*8);
+        if (!tasi_pkgBuffer.empty() && !soMEM_TxP_Data.full()) {
+            AxiWord outputWord = AxiWord(0, 0xFF, 0);
+            outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
             pushWord = tasi_pkgBuffer.read();
-            outputWord.data.range(63, (8-lengthBuffer)*8) = pushWord.data.range((lengthBuffer * 8), 0 );
+            outputWord.tdata.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
 
             if (!tasi_pushMeta.drop) {
-                if (pushWord.last == 1) {
+                if (pushWord.tlast == 1) {
                     if (txAppBreakTemp - accessResidue > lengthBuffer)  { // In this case there's residue to be handled
                         txAppBreakTemp -=8;
                         tasiPkgPushState = 5;
                     }
                     else {
                         tasiPkgPushState = 0;
-                        outputWord.keep = returnKeep(txAppBreakTemp);
-                        outputWord.last = 1;
+                        outputWord.tkeep = returnKeep(txAppBreakTemp);
+                        outputWord.tlast = 1;
                     }
                 }
                 else
                     txAppBreakTemp -= 8;
                 //txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = outputWord;
+                soMEM_TxP_Data.write(FixMe);
             }
             else {
-                if (pushWord.last == 1)
+                if (pushWord.tlast == 1)
                     tasiPkgPushState = 0;
             }
         }
         break;
     case 5:
-        if (!txBufferWriteData.full()) {
+        if (!soMEM_TxP_Data.full()) {
             if (!tasi_pushMeta.drop) {
-                axiWord outputWord = axiWord(0, returnKeep(txAppBreakTemp), 1);
-                outputWord.data.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.data.range(63, lengthBuffer*8);
+                AxiWord outputWord = AxiWord(0, returnKeep(txAppBreakTemp), 1);
+                outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
                 //txAppWordCounter++;
                 //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                txBufferWriteData.write(outputWord);
+                AxiWord FixMe = outputWord;
+                soMEM_TxP_Data.write(FixMe);
                 tasiPkgPushState = 0;
             }
         }
@@ -271,34 +278,37 @@ void tasi_pkg_pusher(   stream<axiWord>&                tasi_pkgBuffer,
  *  @param[out]     txBufferWriteData
  *  @param[out]     txAppStream2eventEng_setEvent
  */
-void tx_app_stream_if(  stream<ap_uint<16> >&           appTxDataReqMetaData,
-                        stream<axiWord>&                appTxDataReq,
-                        stream<sessionState>&           stateTable2txApp_rsp,
-                        stream<txAppTxSarReply>&        txSar2txApp_upd_rsp, //TODO rename
-                        stream<ap_int<17> >&            appTxDataRsp,
-                        stream<ap_uint<16> >&           txApp2stateTable_req,
-                        stream<txAppTxSarQuery>&        txApp2txSar_upd_req, //TODO rename
-                        stream<mmCmd>&                  txBufferWriteCmd,
-                        stream<axiWord>&                txBufferWriteData,
-                        stream<event>&                  txAppStream2eventEng_setEvent)
+void tx_app_stream_if(
+        stream<ap_uint<16> >       &appTxDataReqMetaData,
+        stream<AxiWord>            &appTxDataReq,
+        stream<sessionState>       &stateTable2txApp_rsp,
+        stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
+        stream<ap_int<17> >        &appTxDataRsp,
+        stream<ap_uint<16> >       &txApp2stateTable_req,
+        stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
+        stream<DmCmd>              &txBufferWriteCmd,
+        stream<AxiWord>            &soMEM_TxP_Data,
+        stream<event>              &txAppStream2eventEng_setEvent)
 {
-#pragma HLS INLINE
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE
 
     // FIFOs
-    static stream<axiWord> tasi_pkgBuffer("tasi_pkgBuffer");
-    #pragma HLS stream variable=tasi_pkgBuffer depth=256
+    static stream<AxiWord>         tasi_pkgBuffer("tasi_pkgBuffer");
+    #pragma HLS stream    variable=tasi_pkgBuffer depth=256
     #pragma HLS DATA_PACK variable=tasi_pkgBuffer
 
-    static stream<ap_uint<16> > tasi_pkgLenFifo("tasi_pkgLenFifo");
-    #pragma HLS stream variable=tasi_pkgLenFifo depth=32
+    static stream<ap_uint<16> >    tasi_pkgLenFifo("tasi_pkgLenFifo");
+    #pragma HLS stream    variable=tasi_pkgLenFifo depth=32
 
-    static stream<pkgPushMeta> tasi_writeToBufFifo("tasi_writeToBufFifo");
-    #pragma HLS stream variable=tasi_writeToBufFifo depth=128
+    static stream<pkgPushMeta>     tasi_writeToBufFifo("tasi_writeToBufFifo");
+    #pragma HLS stream    variable=tasi_writeToBufFifo depth=128
     #pragma HLS DATA_PACK variable=tasi_writeToBufFifo
 
-    tasi_compute_pkg_size(  appTxDataReq,
-                            tasi_pkgBuffer,
-                            tasi_pkgLenFifo);
+    tasi_compute_pkg_size(
+            appTxDataReq,
+            tasi_pkgBuffer,
+            tasi_pkgLenFifo);
 
     tasi_metaLoader(    appTxDataReqMetaData,
                         stateTable2txApp_rsp,
@@ -310,8 +320,10 @@ void tx_app_stream_if(  stream<ap_uint<16> >&           appTxDataReqMetaData,
                         tasi_writeToBufFifo,
                         txAppStream2eventEng_setEvent);
 
-    tasi_pkg_pusher(    tasi_pkgBuffer,
-                        tasi_writeToBufFifo,
-                        txBufferWriteCmd,
-                        txBufferWriteData);
+    tasi_pkg_pusher(
+            tasi_pkgBuffer,
+            tasi_writeToBufFifo,
+            txBufferWriteCmd,
+            soMEM_TxP_Data);
+
 }

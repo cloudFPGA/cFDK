@@ -1,57 +1,74 @@
+/*****************************************************************************
+ * @file       : tx_app_if.cpp
+ * @brief      : Tx Application Interface (Tai) // [FIXME - Need a better name]
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *****************************************************************************/
+
 #include "tx_app_if.hpp"
 
 using namespace hls;
 
-/** @ingroup tx_app_if
- *  This interface exposes the creation and tear down of connetions to the application.
- *  The IP tuple for a new connection is read from @param appOpenConIn, the interface then
- *  requests a free port number from the @ref port_table and fires a SYN event. Once the connetion
- *  is established it notifies the application through @p appOpenConOut and delivers the Session-ID
- *  belonging to the new connection.
- *  If opening of the connection is not successful this is also indicated through the @p
- *  appOpenConOut.
- *  By sending the Session-ID through @p closeConIn the application can initiate the teardown of
- *  the connection.
- *  @param[in]      appOpenConIn
- *  @param[in]      closeConIn
- *  @param[in]      txAppSessionLookupIn
- *  @param[in]      portTableIn
- *  @param[in]      stateTableIn
- *  @param[in]      conEstablishedIn
- *  @param[out]     appOpenConOut
- *  @param[out]     txAppSessionLookupOut
- *  @param[out]     portTableOut
- *  @param[out]     stateTableOut
- *  @param[out]     eventFifoOut
- *  @TODO reorganize code
- */
-void tx_app_if( stream<ipTuple>&                appOpenConnReq,
-                stream<ap_uint<16> >&           closeConnReq,
-                stream<sessionLookupReply>&     sLookup2txApp_rsp,
-                stream<ap_uint<16> >&           portTable2txApp_port_rsp,
-                stream<sessionState>&           stateTable2txApp_upd_rsp,
-                stream<openStatus>&             conEstablishedIn, //alter
-                stream<openStatus>&             appOpenConnRsp,
-                stream<fourTuple>&              txApp2sLookup_req,
-                stream<ap_uint<1> >&            txApp2portTable_port_req,
-                stream<stateQuery>&             txApp2stateTable_upd_req,
-                stream<event>&                  txApp2eventEng_setEvent,
-                stream<openStatus>&             rtTimer2txApp_notification,
-                ap_uint<32>                     regIpAddress) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
 
-    enum taiFsmStateType {IDLE, CLOSE_CONN};
-    static taiFsmStateType tai_fsmState = IDLE;
+/*****************************************************************************
+ * @brief Tx Application Status Handler (Tas).
+ *
+ * @param[in]  siTRIF_OpnReq,       Open connection request from TCP Role I/F (TRIF).
+ * @param[]
+ * @param[]
+ * @param[out] soSLc_SessLookupReq, Request a session lookup to [SessionLookupController].
+ * @param[out] soTAi_GetFreePortReq,Request to get a free port to [TxAppInterface]. *
+ *
+ * @details
+ *  This interface exposes the creation and tear down of connections to the
+ *   application. The IP tuple for a new connection is read from 'appOpenConIn'
+ *   and then requests a free port number from 'port_table' and fires a SYN
+ *   event. Once the connection is established it notifies the application
+ *   through 'appOpenConOut' and delivers the Session-ID belonging to the new
+ *   connection.
+ *  If opening of the connection is not successful this is also indicated
+ *   through the 'appOpenConOut'. By sending the Session-ID through 'closeConIn'
+ *   the application can initiate the teardown of the connection.
+ *
+ * @ingroup tx_app_if
+ ******************************************************************************/
+void tx_app_if(
+        stream<AxiSockAddr>         &siTRIF_OpnReq,
+        stream<ap_uint<16> >        &closeConnReq,
+        stream<sessionLookupReply>  &sLookup2txApp_rsp,
+        stream<ap_uint<16> >        &portTable2txApp_port_rsp,
+        stream<sessionState>        &stateTable2txApp_upd_rsp,
+        stream<OpenStatus>          &conEstablishedIn, //alter
+        stream<OpenStatus>          &appOpenConnRsp,
+        stream<AxiSocketPair>       &soSLc_SessLookupReq,
+        stream<ReqBit>              &soTAi_GetFreePortReq,
+        stream<stateQuery>          &txApp2stateTable_upd_req,
+        stream<event>               &txApp2eventEng_setEvent,
+        stream<OpenStatus>          &rtTimer2txApp_notification,
+		AxiIp4Address                regIpAddress)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
+
     static ap_uint<16> tai_closeSessionID;
-    static stream<ipTuple> txAppIpTupleBuffer("txAppIpTupleBuffer");
-    #pragma HLS stream variable=txAppIpTupleBuffer          depth=4
+
+    static stream<AxiSockAddr>  localFifo ("localFifo");
+    #pragma HLS stream variable=localFifo depth=4
+
+    static enum FsmState {IDLE=0, CLOSE_CONN} tai_fsmState = IDLE;
 
     switch (tai_fsmState) {
+
     case IDLE:
-        if (!appOpenConnReq.empty() && !txApp2portTable_port_req.full()) {
-            txAppIpTupleBuffer.write(appOpenConnReq.read());
-            txApp2portTable_port_req.write(1);
+        if (!siTRIF_OpnReq.empty() && !soTAi_GetFreePortReq.full()) {
+            localFifo.write(siTRIF_OpnReq.read());
+            soTAi_GetFreePortReq.write(true);
         }
         else if (!sLookup2txApp_rsp.empty())    {
             sessionLookupReply session = sLookup2txApp_rsp.read();                          // Read session
@@ -60,7 +77,7 @@ void tx_app_if( stream<ipTuple>&                appOpenConnReq,
                 txApp2stateTable_upd_req.write(stateQuery(session.sessionID, SYN_SENT, 1));
             }
             else
-                appOpenConnRsp.write(openStatus(0, false));
+                appOpenConnRsp.write(OpenStatus(0, false));
         }
         else if (!conEstablishedIn.empty())
             appOpenConnRsp.write(conEstablishedIn.read());  //Maybe check if we are actually waiting for this one
@@ -71,12 +88,15 @@ void tx_app_if( stream<ipTuple>&                appOpenConnReq,
             txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID));
             tai_fsmState = CLOSE_CONN;
         }
-        else if (!portTable2txApp_port_rsp.empty() && !txApp2sLookup_req.full()) {
+        else if (!portTable2txApp_port_rsp.empty() && !soSLc_SessLookupReq.full()) {
             ap_uint<16> freePort    = portTable2txApp_port_rsp.read() + 32768;
-            ipTuple server_addr     = txAppIpTupleBuffer.read();
-            txApp2sLookup_req.write(fourTuple(regIpAddress, byteSwap32(server_addr.ip_address), byteSwap16(freePort), byteSwap16(server_addr.ip_port))); // Implicit creationAllowed <= true
+            AxiSockAddr axiServerAddr = localFifo.read();
+            //OBSOLETE-20181218 soSLc_SessLookupReq.write(fourTuple(regIpAddress, byteSwap32(server_addr.ip_address), byteSwap16(freePort), byteSwap16(server_addr.ip_port))); // Implicit creationAllowed <= true
+            soSLc_SessLookupReq.write(AxiSocketPair(AxiSockAddr(regIpAddress,       byteSwap16(freePort)),
+                                                    AxiSockAddr(axiServerAddr.addr, axiServerAddr.port)));
         }
         break;
+
     case CLOSE_CONN:
         if (!stateTable2txApp_upd_rsp.empty()) {
             sessionState state = stateTable2txApp_upd_rsp.read();
@@ -90,5 +110,5 @@ void tx_app_if( stream<ipTuple>&                appOpenConnReq,
             tai_fsmState = IDLE;
         }
         break;
-    } //switch
+    }
 }

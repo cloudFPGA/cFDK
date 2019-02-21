@@ -462,17 +462,17 @@ module NetworkTransportSession_TcpIp (
   wire          sTOE_Cam_LkpReq_Axis_tvalid;
   wire          sCAM_Toe_LkpReq_Axis_tready;
   //-- TOE ==> CAM / UpdateRequest / Axis
-  wire  [111:0] sTOE_Cam_Updreq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
-  wire          sTOE_Cam_Updreq_Axis_tvalid;
-  wire          sCAM_Toe_Updreq_Axis_tready;
+  wire  [111:0] sTOE_Cam_UpdReq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
+  wire          sTOE_Cam_UpdReq_Axis_tvalid;
+  wire          sCAM_Toe_UpdReq_Axis_tready;
  
   //------------------------------------------------------------------
   //-- CAM = TOE-CAM
   //------------------------------------------------------------------
   //-- CAM ==> TOE / LookupReply / Axis
-  wire  [15:0]  sCAM_Toe_LkpRpl_Axis_tdata;
-  wire          sCAM_Toe_LkpRpl_Axis_tvalid;
-  wire          sTOE_Cam_LkpRpl_Axis_tready;
+  wire  [15:0]  sCAM_Toe_LkpRep_Axis_tdata;
+  wire          sCAM_Toe_LkpRep_Axis_tvalid;
+  wire          sTOE_Cam_LkpRep_Axis_tready;
   //-- CAM ==> TOE / UpdateReply / Axis
   wire  [15:0]  sCAM_Toe_UpdRpl_Axis_tdata;
   wire          sCAM_Toe_UpdRpl_Axis_tvalid;
@@ -639,7 +639,8 @@ module NetworkTransportSession_TcpIp (
 
   ); // End of IPRX
 
-`endif
+`endif //  `ifdef USE_DEPRECATED_DIRECTIVES
+   
       
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
@@ -851,7 +852,12 @@ module NetworkTransportSession_TcpIp (
   
     .aclk                               (piShlClk),
     .aresetn                            (~piShlRst),
-   
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_This_IpAddr_V               (piMMIO_Nts0_IpAddress),
+                        
     //------------------------------------------------------
     //-- From IPRX / IP Rx Data Interface
     //------------------------------------------------------
@@ -1021,35 +1027,34 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Mem_TxP_Data_TVALID         (poNTS0_Mem_TxP_Axis_Data_tvalid),
 
     //------------------------------------------------------
-    //-- From CAM Interfaces
+    //-- From CAM / Session Lookup & Update Interfaces
     //------------------------------------------------------
     //-- CAM / This / LookupReply / Axis
-    .s_axis_session_lup_rsp_TDATA       (sCAM_Toe_LkpRpl_Axis_tdata),
-    .s_axis_session_lup_rsp_TVALID      (sCAM_Toe_LkpRpl_Axis_tvalid),
-    .s_axis_session_lup_rsp_TREADY      (sTOE_Cam_LkpRpl_Axis_tready),
+    .siCAM_This_SssLkpRep_TDATA         (sCAM_Toe_LkpRep_Axis_tdata),
+    .siCAM_This_SssLkpRep_TVALID        (sCAM_Toe_LkpRep_Axis_tvalid),
+    .siCAM_This_SssLkpRep_TREADY        (sTOE_Cam_LkpRep_Axis_tready),
     //-- CAM / This / UpdateReply /Axis
-    .s_axis_session_upd_rsp_TDATA       (sCAM_Toe_UpdRpl_Axis_tdata),
-    .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
-    .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
+    .siCAM_This_SssUpdRep_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
+    .siCAM_This_SssUpdRep_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .siCAM_This_SssUpdRep_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
 
-                        
     //------------------------------------------------------
     //-- To CAM Interfaces
     //------------------------------------------------------
     //-- THIS / Cam / LookupRequest / Axis
-    .m_axis_session_lup_req_TREADY      (sCAM_Toe_LkpReq_Axis_tready),
-    .m_axis_session_lup_req_TDATA       (sTOE_Cam_LkpReq_Axis_tdata),
-    .m_axis_session_lup_req_TVALID      (sTOE_Cam_LkpReq_Axis_tvalid),
+    .soTHIS_Cam_SssLkpReq_TREADY        (sCAM_Toe_LkpReq_Axis_tready),
+    .soTHIS_Cam_SssLkpReq_TDATA         (sTOE_Cam_LkpReq_Axis_tdata),
+    .soTHIS_Cam_SssLkpReq_TVALID        (sTOE_Cam_LkpReq_Axis_tvalid),
     //-- THIS / Cam / UpdateRequest / Axis
-    .m_axis_session_upd_req_TREADY      (sCAM_Toe_Updreq_Axis_tready),
-    .m_axis_session_upd_req_TDATA       (sTOE_Cam_Updreq_Axis_tdata),
-    .m_axis_session_upd_req_TVALID      (sTOE_Cam_Updreq_Axis_tvalid),
-    
-    // Debug signals //
-    ////////////////////
-    .regIpAddress_V                     (piMMIO_Nts0_IpAddress),
-    .relSessionCount_V                  (),                       // [FIXME] was (relSessionCount)
-    .regSessionCount_V                  ()                        // [FIXME] was (relSessionCount)
+    .soTHIS_Cam_SssUpdReq_TREADY        (sCAM_Toe_UpdReq_Axis_tready),
+    .soTHIS_Cam_SssUpdReq_TDATA         (sTOE_Cam_UpdReq_Axis_tdata),
+    .soTHIS_Cam_SssUpdReq_TVALID        (sTOE_Cam_UpdReq_Axis_tvalid),
+
+    //------------------------------------------------------
+    //-- To DEBUG / Session Statistics Interfaces
+    //------------------------------------------------------
+    .poTHIS_Dbg_SssRelCnt_V             (),
+    .poTHIS_Dbg_SssRegCnt_V             ()
 
   );  // End of TOE
   
@@ -1223,17 +1228,17 @@ module NetworkTransportSession_TcpIp (
     .lup_req_valid                (sTOE_Cam_LkpReq_Axis_tvalid),
     .lup_req_ready                (sCAM_Toe_LkpReq_Axis_tready),
     //-- TOE / This / UpdateRequest / Axis
-    .upd_req_din                  (sTOE_Cam_Updreq_Axis_tdata),
-    .upd_req_valid                (sTOE_Cam_Updreq_Axis_tvalid),
-    .upd_req_ready                (sCAM_Toe_Updreq_Axis_tready),
+    .upd_req_din                  (sTOE_Cam_UpdReq_Axis_tdata),
+    .upd_req_valid                (sTOE_Cam_UpdReq_Axis_tvalid),
+    .upd_req_ready                (sCAM_Toe_UpdReq_Axis_tready),
     
     //------------------------------------------------------
     //-- To TOE Interfaces
     //------------------------------------------------------
     //-- THIS / Toe / LookupReply / Axis
-    .lup_rsp_ready                (sTOE_Cam_LkpRpl_Axis_tready),
-    .lup_rsp_dout                 (sCAM_Toe_LkpRpl_Axis_tdata),
-    .lup_rsp_valid                (sCAM_Toe_LkpRpl_Axis_tvalid),
+    .lup_rsp_ready                (sTOE_Cam_LkpRep_Axis_tready),
+    .lup_rsp_dout                 (sCAM_Toe_LkpRep_Axis_tdata),
+    .lup_rsp_valid                (sCAM_Toe_LkpRep_Axis_tvalid),
     //-- THIS / Toe / UpdateReply / Axis
     .upd_rsp_ready                (sTOE_Cam_UpdRpl_Axis_tready),
     .upd_rsp_dout                 (sCAM_Toe_UpdRpl_Axis_tdata),
@@ -2087,7 +2092,8 @@ module NetworkTransportSession_TcpIp (
                                                      
   );
 
-`endif
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   
       
 /* -----\/----- EXCLUDED -----\/-----
@@ -2351,8 +2357,8 @@ module NetworkTransportSession_TcpIp (
 
 );
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+ 
   UdpRoleInterface URIF (
   
     .ap_clk                         (piShlClk),                      
@@ -2427,8 +2433,10 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid)
 
   );
-`endif    
-  
+   
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
+ 
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_udp_application_interface_1 URIF (
 //    .lbPortOpenReplyIn_TVALID(lbPortOpenReplyIn_TVALID),      
@@ -2551,8 +2559,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   DynamicHostConfigurationProcess DHCP (
   
     .ap_clk                         (piShlClk),                      
@@ -2619,7 +2627,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`endif
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
+   
    
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_dhcp_client DHCP (
@@ -2669,10 +2678,21 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: ICMP-SERVER
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+
   InternetControlMessageProcess ICMP (
-  
-    .aclk               (piShlClk),                           
-    .aresetn            (~piShlRst),
+                    
+    //------------------------------------------------------
+    //-- From SHELL Interfaces
+    //------------------------------------------------------
+    //-- Global Clock & Reset
+    .aclk                     (piShlClk),
+    .aresetn                  (~piShlRst),
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------                     
+    .piMMIO_This_IpAddr_V (piMMIO_Nts0_IpAddress),
   
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -2710,8 +2730,11 @@ module NetworkTransportSession_TcpIp (
     .m_dataOut_TLAST    (sICMP_L3mux_Axis_tlast),
     .m_dataOut_TVALID   (sICMP_L3mux_Axis_tvalid)
 
-  );
+  ); // End of ICMP
 
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
+   
+   
 /* -----\/----- EXCLUDED -----\/-----
 //  cloudFPGA_icmp_server_1 ICMP (
 //    .s_dataIn_TVALID(axi_icmp_slice_to_icmp_tvalid),   

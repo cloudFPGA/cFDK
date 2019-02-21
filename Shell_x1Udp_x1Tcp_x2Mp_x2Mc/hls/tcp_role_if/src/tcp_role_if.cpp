@@ -20,7 +20,7 @@
  *                chunk and its corresponding metadata is received by the Rx
  *                path.
  * @remark     : { remark text }
- * @warning    : For the time being, all communications occur over port #80.
+ * @warning    : 
  * @todo       : [TODO - Port# must configurable]
  *
  * @see        :
@@ -41,7 +41,7 @@ using namespace std;
 SessionIdCam::SessionIdCam()
 {
     for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i)
-    	this->cam[i].valid = 0;
+        this->cam[i].valid = 0;
 }
 
 /*****************************************************************************
@@ -55,17 +55,17 @@ SessionIdCam::SessionIdCam()
 bool SessionIdCam::write(SessionIdCamEntry wrEntry)
 {
     for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i) {
-    	// Go through all the entries in the CAM
-		#pragma HLS UNROLL
+        // Go through all the entries in the CAM
+        #pragma HLS UNROLL
             if (this->cam[i].valid == 0 && wrEntry.valid == 0) {
-            	// Write new entry
+                // Write new entry
                 this->cam[i].sessionId = wrEntry.sessionId;
                 this->cam[i].bufferId  = wrEntry.bufferId;
-                this->cam[i].valid      = 1;
+                this->cam[i].valid     = 1;
                 return true;
             } else if (this->cam[i].valid == 1 && wrEntry.valid == 1 &&
-            		   this->cam[i].bufferId == wrEntry.bufferId ) {
-            	// Overwrite current entry
+                       this->cam[i].bufferId == wrEntry.bufferId ) {
+                // Overwrite current entry
                 this->cam[i].sessionId = wrEntry.sessionId;
                 this->cam[i].bufferId  = wrEntry.bufferId;
                 this->cam[i].valid     = 1;
@@ -86,11 +86,11 @@ bool SessionIdCam::write(SessionIdCamEntry wrEntry)
  ******************************************************************************/
 ap_uint<16> SessionIdCam::search(ap_uint<4> bufferId)
 {
-	for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i) {
-    	// Go through all the entries in the CAM
-		#pragma HLS UNROLL
-        	if ((this->cam[i].valid == 1) && (bufferId == this->cam[i].bufferId)) {
-        		// The entry is valid and the buffer ID matches
+    for (uint8_t i=0; i<NR_SESSION_ENTRIES; ++i) {
+        // Go through all the entries in the CAM
+        #pragma HLS UNROLL
+            if ((this->cam[i].valid == 1) && (bufferId == this->cam[i].bufferId)) {
+                // The entry is valid and the buffer ID matches
                 return (this->cam[i].sessionId);
             }
     }
@@ -111,23 +111,23 @@ ap_uint<16> SessionIdCam::search(ap_uint<4> bufferId)
  * @return Nothing.
  ******************************************************************************/
 void pSessionIdServer (
-        stream<SessionIdCamEntry>	&siAcpt_Entry,
-        stream<ap_uint<4> > 		&siTxp_BuffId,
-        stream<ap_uint<16> > 		&soTxp_SessId)
+        stream<SessionIdCamEntry>   &siAcpt_Entry,
+        stream<ap_uint<4> >         &siTxp_BuffId,
+        stream<ap_uint<16> >        &soTxp_SessId)
 {
-	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS INLINE region
-	#pragma HLS PIPELINE II=1  // enable_flush
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE region
+    #pragma HLS PIPELINE II=1  // enable_flush
 
     //OBSOLETE-20181001 static enum uit_state {UIT_IDLE, UIT_RX_READ, UIT_TX_READ, UIT_WRITE, UIT_CLEAR} tcp_ip_table_state;
 
-	//-- LOCAL VARIABLES ------------------------------------------------------
-	static SessionIdCam  sessionIdCam;
-	#pragma HLS array_partition variable=sessionIdCam.cam complete
+    //-- LOCAL VARIABLES ------------------------------------------------------
+    static SessionIdCam                  sessionIdCam;
+    #pragma HLS array_partition variable=sessionIdCam.cam complete
 
-    SessionIdCamEntry 	inEntry;
-    ap_uint<4> 			inBufferId;
-    ap_uint<16> 		inSessionId;
+    SessionIdCamEntry   inEntry;
+    ap_uint<4>          inBufferId;
+    ap_uint<16>         inSessionId;
 
     //OBSOLETE-20181001 static bool rdWrswitch = true;
 
@@ -136,7 +136,7 @@ void pSessionIdServer (
         inSessionId = sessionIdCam.search(inBufferId);
         soTxp_SessId.write(inSessionId);
         //rdWrswitch = !rdWrswitch;
-    } else if (!siAcpt_Entry.empty()) {	/*OBSOLETE-20181001 && rdWrswitch*/
+    } else if (!siAcpt_Entry.empty()) { /*OBSOLETE-20181001 && rdWrswitch*/
         siAcpt_Entry.read(inEntry);
         sessionIdCam.write(inEntry);
         //OBSOLETE-20181001 rdWrswitch = !rdWrswitch;
@@ -147,7 +147,7 @@ void pSessionIdServer (
 
 
 /*****************************************************************************
- * @brief Open/Close a Connection (occ).
+ * @brief Open/Close a Connection for transmission (occ).
  *
  * @ingroup trif
  *
@@ -158,23 +158,23 @@ void pSessionIdServer (
  * @return Nothing.
  *
  * @note  This code is not executed. It is added here to terminate every HLS
- * 			stream of the module.
+ *          stream of the module.
  ******************************************************************************/
 void pOpenCloseConn(
-		stream<TcpOpnSts>		&siTOE_OpnSts,
-        stream<TcpOpnReq>		&soTOE_OpnReq,
-        stream<TcpClsReq>		&soTOE_ClsReq)
+        stream<TcpOpnSts>       &siTOE_OpnSts,
+        stream<TcpOpnReq>       &soTOE_OpnReq,
+        stream<TcpClsReq>       &soTOE_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1	//OBSOLETE-20180925 #pragma HLS INLINE OFF
+    #pragma HLS PIPELINE II=1   //OBSOLETE-20180925 #pragma HLS INLINE OFF
 
-    TcpOpnSts	newConn;
-    TcpOpnReq	sockAddr;
+    TcpOpnSts   newConn;
+    TcpOpnReq   sockAddr;
 
     if (!siTOE_OpnSts.empty() && !soTOE_OpnReq.full() && !soTOE_ClsReq.full()) {
         siTOE_OpnSts.read(newConn);
-        sockAddr.addr = 0x2b010101;		// 1.1.1.43
-        sockAddr.port = 0x3412;			// 4660
+        sockAddr.addr = 0x32C80C0A;    // reversed byte order of 10.12.200.50
+        sockAddr.port = 0x5050;        // reversed byte order of 20560
         soTOE_OpnReq.write(sockAddr);
         cout << "[TRIF]\t" << "Request to open socket address {" << hex << sockAddr.addr << "," << sockAddr.port << "}" << endl;
         if (newConn.success) {
@@ -187,35 +187,42 @@ void pOpenCloseConn(
 
 
 /*****************************************************************************
- * @brief Request the TOE to start listening (lsn) for incoming connections
- * 	on a specific port.
+ * @brief Request the TOE to start listening (Lsn) for incoming connections
+ *  on a specific port (.i.e open connection for reception).
  *
  * @ingroup trif
  *
  * @param[in]  siTOE_LsnAck,  listen port acknowledge from TOE.
  * @param[out] soTOE_LsnReq,  listen port request to TOE.
  *
+ * @warning
+ *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
+ *   32,767) which are used for listening ports, and one for dynamically
+ *   assigned or ephemeral ports (32,768 to 65,535) which are used for active
+ *   connections. Therefore, listening port numbers should be in the range 0
+ *   to 32,767.
+ * 
  * @return Nothing.
  ******************************************************************************/
 void pListen(
-		 stream<TcpLsnAck>		&siTOE_LsnAck,
-		 stream<TcpLsnReq>		&soTOE_LsnReq)
+         stream<TcpLsnAck>      &siTOE_LsnAck,
+         stream<TcpLsnReq>      &soTOE_LsnReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1		//OBSOLETE-20180925 #pragma HLS INLINE OFF
+    #pragma HLS PIPELINE II=1       //OBSOLETE-20180925 #pragma HLS INLINE OFF
 
     static bool lsn_ack = false;
     static bool lsn_req = false;
 
-	#pragma HLS RESET variable=lsn_ack
-	#pragma HLS RESET variable=lsn_ack
+    #pragma HLS RESET variable=lsn_ack
+    #pragma HLS RESET variable=lsn_ack
 
-    // Bind and listen on port #80 at startup
+    // Bind and listen on port #20560 (0x5050) at startup
     if (!lsn_ack && !lsn_req && !soTOE_LsnReq.full()) {
-        soTOE_LsnReq.write(80);
+        soTOE_LsnReq.write(0x5050);
         lsn_req = true;
     } else if (lsn_req && !siTOE_LsnAck.empty()) {
-    	// Check if the request for listening on port was successful, otherwise try again
+        // Check if the request for listening on port was successful, otherwise try again
         siTOE_LsnAck.read(lsn_ack);
         lsn_req = false;
     }
@@ -224,28 +231,28 @@ void pListen(
 
 /*****************************************************************************
  * @brief Accept incoming data (acpt).
- * 	Waits for a notification indicating the availability of new data for
- * 	the ROLE, issues a read request to accept the new data and forward a
- * 	corresponding session id to the SessionIdServer process.
+ *  Waits for a notification indicating the availability of new data for
+ *  the ROLE, issues a read request to accept the new data and forward a
+ *  corresponding session id to the SessionIdServer process.
  *
  * @ingroup trif
  *
- * @param[in]  siTOE_Notif,	a new Rx data notification from TOE.
+ * @param[in]  siTOE_Notif, a new Rx data notification from TOE.
  * @param[out] soTOE_DReq,  a Rx data request to TOE.
  * @param[out] soSis_Entry, a new entry for the SessionIdServer process.
  *
  * @return Nothing.
  ******************************************************************************/
 void pAccept(
-        stream<TcpNotif>			&siTOE_Notif,
-        stream<TcpRdReq>			&soTOE_DReq,
-        stream<SessionIdCamEntry>	&soSis_Entry)
+        stream<TcpNotif>            &siTOE_Notif,
+        stream<TcpRdReq>            &soTOE_DReq,
+        stream<SessionIdCamEntry>   &soSis_Entry)
 {
-	 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1		// OBSOLETE-20181004 #pragma HLS INLINE OFF
+     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1       // OBSOLETE-20181004 #pragma HLS INLINE OFF
 
-    static ap_uint<16> 	acpt_sessId  = 99;
-    static bool 		acpt_firstWr = true;
+    static ap_uint<16>  acpt_sessId  = 99;
+    static bool         acpt_firstWr = true;
 
     static enum FSM_STATE { FSM_WAIT_NOTIFICATION = 0, FSM_WRITE_SESSION } acpt_fsmState;
 
@@ -253,7 +260,7 @@ void pAccept(
 
     switch(acpt_fsmState) {
 
-    	case FSM_WAIT_NOTIFICATION:
+        case FSM_WAIT_NOTIFICATION:
             if (!siTOE_Notif.empty() && !soTOE_DReq.full()) {
                 siTOE_Notif.read(notif);
 
@@ -287,7 +294,7 @@ void pAccept(
 void tai_check_tx_status(
         stream<ap_int<17> >& txStatus)
 {
-	#pragma HLS PIPELINE II=1 	//#pragma HLS INLINE OFF
+    #pragma HLS PIPELINE II=1   //#pragma HLS INLINE OFF
 
     if (!txStatus.empty()) //Make Checks
     {
@@ -298,27 +305,27 @@ void tai_check_tx_status(
 
 
 /*****************************************************************************
- * @brief Rx Path (rxp) - From TOE to ROLE.
+ * @brief Rx Path (Rxp) - From TOE to ROLE.
  *
  * @ingroup trif
  *
- * @param[in]  siTOE_Data,	data from TOE.
- * @param[in]  siTOE_Meta,	metadata from TOE.
+ * @param[in]  siTOE_Data,  data from TOE.
+ * @param[in]  siTOE_Meta,  metadata from TOE.
  * @param[out] soROL_Data,  data to ROLE.
  *
  * @return Nothing.
  ******************************************************************************/
 void pRxPath(
-        stream<TcpWord>		&siTOE_Data,
-		stream<TcpMeta>		&siTOE_Meta,
-        stream<TcpWord>		&soROL_Data)
+        stream<AxiWord>     &siTOE_Data,
+        stream<TcpMeta>     &siTOE_Meta,
+        stream<AxiWord>     &soROL_Data)
 {
    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
 
-    ap_uint<16> 		sessionID;
-    TcpWord 			currWord;
-    //OBSOLETE-20180925 static ap_uint<16> 	old_session_id = 0;
+    ap_uint<16>         sessionID;
+    AxiWord             currWord;
+    //OBSOLETE-20180925 static ap_uint<16>  old_session_id = 0;
 
     static enum FsmState { FSM_IDLE = 0, FSM_STREAM } rxp_fsmState;
 
@@ -326,7 +333,7 @@ void pRxPath(
     {
         case FSM_IDLE:
             if (!siTOE_Meta.empty()) {
-            	siTOE_Meta.read(sessionID);
+                siTOE_Meta.read(sessionID);
                 rxp_fsmState = FSM_STREAM;
             }
         break;
@@ -344,13 +351,13 @@ void pRxPath(
 
 
 /*****************************************************************************
- * @brief Tx Path (txp) - From ROLE to TOE.
+ * @brief Tx Path (Txp) - From ROLE to TOE.
  *
  * @ingroup trif
  *
- * @param[in]  siROL_Data,	Tx data from ROLE.
- * @param[out] soTOE_Data,	Tx data to TOE.
- * @param[out] soTOE_Meta,	Tx metadata to to TOE.
+ * @param[in]  siROL_Data,  Tx data from ROLE.
+ * @param[out] soTOE_Data,  Tx data to TOE.
+ * @param[out] soTOE_Meta,  Tx metadata to to TOE.
  * @param[in]  siTOE_DSts,  Tx data write status from TOE.
  * @param[in]  siSis_SessId,session ID from  the SessionIdServer process.
  * @param[out] soSis_BufId, buffer ID to the SessionIdTable process.
@@ -358,32 +365,32 @@ void pRxPath(
  * @return Nothing.
  ******************************************************************************/
 void pTxPath(
-        stream<TcpWord>		 &siROL_Data,
-		stream<TcpWord>      &soTOE_Data,
-		stream<TcpMeta> 	 &soTOE_Meta,
-		stream<TcpDSts>		 &siTOE_DSts,
-		stream<ap_uint<16> > &siSis_SessId,
-        stream<ap_uint<4> >	 &soSis_BufId)
+        stream<AxiWord>      &siROL_Data,
+        stream<AxiWord>      &soTOE_Data,
+        stream<TcpMeta>      &soTOE_Meta,
+        stream<TcpDSts>      &siTOE_DSts,
+        stream<ap_uint<16> > &siSis_SessId,
+        stream<ap_uint<4> >  &soSis_BufId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
 
-	//-- LOCAL STREAMS --------------------------------------------------------
-	static stream<TcpWord>		sFifo_Data("sFifo_Data");
+    //-- LOCAL STREAMS --------------------------------------------------------
+    static stream<AxiWord>      sFifo_Data("sFifo_Data");
     #pragma HLS STREAM variable=sFifo_Data depth=1024
 
 
-    TcpWord currWordIn;
-    TcpWord currWordOut;
+    AxiWord currWordIn;
+    AxiWord currWordOut;
 
     //-- FSM #1: INPUT STREAMING ------
     static enum FsmInState {FSM_IDLE_IN = 0, FSM_STREAM_IN} txp_fsmInState;
 
     switch (txp_fsmInState) {
 
-    	case FSM_IDLE_IN:
+        case FSM_IDLE_IN:
             if(!siROL_Data.empty() && !soSis_BufId.full() && !sFifo_Data.full()) {
-            	siROL_Data.read(currWordIn);
+                siROL_Data.read(currWordIn);
                 sFifo_Data.write(currWordIn);
                 soSis_BufId.write(1);
 
@@ -392,7 +399,7 @@ void pTxPath(
             }
         break;
 
-    	case FSM_STREAM_IN:
+        case FSM_STREAM_IN:
             if (!siROL_Data.empty() && !sFifo_Data.full()) {
                 siROL_Data.read(currWordIn);
                 sFifo_Data.write(currWordIn);
@@ -433,7 +440,7 @@ void pTxPath(
 
     //-- ALWAYS -----------------------
     if (!siTOE_DSts.empty()) {
-    	siTOE_DSts.read();	// [TODO] Checking.
+        siTOE_DSts.read();  // [TODO] Checking.
     }
 
 }
@@ -441,12 +448,12 @@ void pTxPath(
 
 /*** OBSOLETE-20180925 *******************************************
 void tai_app_to_buf(
-        stream<axiWord>		&vFPGA_tx_data,
-        stream<ap_uint<4> >	&q_buffer_id,
-        stream<axiWord>		&buff_data)
+        stream<axiWord>     &vFPGA_tx_data,
+        stream<ap_uint<4> > &q_buffer_id,
+        stream<axiWord>     &buff_data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
 
     static enum read_write_engine { RWE_SESS_RD = 0, RWE_BUFF_DATA} read_write_engine_state;
 
@@ -484,7 +491,7 @@ void tai_app_to_net(
         stream<axiWord>&        oTxData,
         stream<ap_uint<16> >&   r_session_id)
 {
-#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
 
     static enum read_write_engine { RWE_SESS_RD = 0, RWE_TX_DATA} read_write_engine_state;
     ap_uint<16> sessionID;
@@ -546,40 +553,40 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- ROLE / This / Rx Data Interface
         //------------------------------------------------------
-        stream<TcpWord>     &siROL_This_Data,
+        stream<AxiWord>     &siROL_This_Data,
 
         //------------------------------------------------------
         //-- ROLE / This / Tx Data Interface
         //------------------------------------------------------
-        stream<TcpWord>     &soTHIS_Rol_Data,
+        stream<AxiWord>     &soTHIS_Rol_Data,
 
         //------------------------------------------------------
         //-- TOE / This / Rx Data Interfaces
         //------------------------------------------------------
-		stream<TcpNotif>	&siTOE_This_Notif,
-        stream<TcpWord>     &siTOE_This_Data,
-        stream<TcpMeta>		&siTOE_This_Meta,
-	    stream<TcpRdReq> 	&soTHIS_Toe_DReq,
+        stream<TcpNotif>    &siTOE_This_Notif,
+        stream<AxiWord>     &siTOE_This_Data,
+        stream<TcpMeta>     &siTOE_This_Meta,
+        stream<TcpRdReq>    &soTHIS_Toe_DReq,
 
-		//------------------------------------------------------
-		//-- TOE / This / Rx Ctrl Interfaces
-		//------------------------------------------------------
-		stream<TcpLsnAck>   &siTOE_This_LsnAck,
-		stream<TcpLsnReq>	&soTHIS_Toe_LsnReq,
+        //------------------------------------------------------
+        //-- TOE / This / Rx Ctrl Interfaces
+        //------------------------------------------------------
+        stream<TcpLsnAck>   &siTOE_This_LsnAck,
+        stream<TcpLsnReq>   &soTHIS_Toe_LsnReq,
 
-	    //------------------------------------------------------
-	    //-- TOE / This / Tx Data Interfaces
-	    //------------------------------------------------------
-		stream<TcpDSts>		&siTOE_This_DSts,
-        stream<TcpWord>     &soTHIS_Toe_Data,
-        stream<TcpMeta>		&soTHIS_Toe_Meta,
+        //------------------------------------------------------
+        //-- TOE / This / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpDSts>     &siTOE_This_DSts,
+        stream<AxiWord>     &soTHIS_Toe_Data,
+        stream<TcpMeta>     &soTHIS_Toe_Meta,
 
         //------------------------------------------------------
         //-- TOE / This / Tx Ctrl Interfaces
         //------------------------------------------------------
-        stream<TcpOpnSts>	&siTOE_This_OpnSts,
-        stream<TcpOpnReq>	&soTHIS_Toe_OpnReq,
-        stream<TcpClsReq>	&soTHIS_Toe_ClsReq)
+        stream<TcpOpnSts>   &siTOE_This_OpnSts,
+        stream<TcpOpnReq>   &soTHIS_Toe_OpnReq,
+        stream<TcpClsReq>   &soTHIS_Toe_ClsReq)
 {
 
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -587,63 +594,81 @@ void tcp_role_if(
 
     #pragma HLS resource core=AXI4Stream variable=siROL_This_Data   metadata="-bus_bundle siROL_This_Data"
 
-	#pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
 
-	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
-	#pragma HLS DATA_PACK                variable=siTOE_This_Notif
-	#pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
+    #pragma HLS DATA_PACK                variable=siTOE_This_Notif
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
     #pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta   metadata="-bus_bundle siTOE_This_Meta"
-	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_DReq   metadata="-bus_bundle soTHIS_Toe_DReq"
-	#pragma HLS DATA_PACK                variable=soTHIS_Toe_DReq
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_DReq   metadata="-bus_bundle soTHIS_Toe_DReq"
+    #pragma HLS DATA_PACK                variable=soTHIS_Toe_DReq
 
-	#pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
-   	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
 
-	#pragma HLS resource core=AXI4Stream variable=siTOE_This_DSts   metadata="-bus_bundle siTOE_This_DSts"
-	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_DSts   metadata="-bus_bundle siTOE_This_DSts"
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
     #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Meta   metadata="-bus_bundle soTHIS_Toe_Meta"
 
-	#pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
-	#pragma HLS DATA_PACK                variable=siTOE_This_OpnSts
-	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
-	#pragma HLS DATA_PACK                variable=soTHIS_Toe_OpnReq
-	#pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
+    #pragma HLS DATA_PACK                variable=siTOE_This_OpnSts
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
+    #pragma HLS DATA_PACK                variable=soTHIS_Toe_OpnReq
+    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS DATAFLOW
+    #pragma HLS DATAFLOW
 
     //-- LOCAL STREAMS --------------------------------------------------------
     static stream<SessionIdCamEntry>   sAcptToSis_Entry("sAcptToSis_Entry");
-    #pragma HLS STREAM             variable=sAcptToSis_Entry depth=1
+    #pragma HLS STREAM        variable=sAcptToSis_Entry depth=1
 
-    static stream<ap_uint<4> >              sTxpToSis_BufId ("sTxpToSis_BufId");
-    #pragma HLS STREAM             variable=sTxpToSis_BufId depth=1
+    static stream<ap_uint<4> >         sTxpToSis_BufId ("sTxpToSis_BufId");
+    #pragma HLS STREAM        variable=sTxpToSis_BufId depth=1
 
-    static stream<ap_uint<16> >             sSisToTxp_SessId("sSisToTxp_SessId");
-    #pragma HLS STREAM             variable=sSisToTxp_SessId depth=1
+    static stream<ap_uint<16> >        sSisToTxp_SessId("sSisToTxp_SessId");
+    #pragma HLS STREAM        variable=sSisToTxp_SessId depth=1
 
     //OBSOLETE-20180925 static stream<axiWord>                  buff_data       ("buff_data");
     //OBSOLETE-20180925 #pragma HLS STREAM             variable=buff_data depth=1024
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
-    pOpenCloseConn(siTOE_This_OpnSts, soTHIS_Toe_OpnReq, soTHIS_Toe_ClsReq);
+    pOpenCloseConn(
+            siTOE_This_OpnSts,
+            soTHIS_Toe_OpnReq,
+            soTHIS_Toe_ClsReq);
 
-    pListen(siTOE_This_LsnAck, soTHIS_Toe_LsnReq);
+    pListen(
+            siTOE_This_LsnAck,
+            soTHIS_Toe_LsnReq);
 
-    pAccept(siTOE_This_Notif, soTHIS_Toe_DReq, sAcptToSis_Entry);
+    pAccept(
+            siTOE_This_Notif,
+            soTHIS_Toe_DReq,
+            sAcptToSis_Entry);
 
     //OBSOLETE-20180925 tai_check_tx_status(siTOE_This_WrSts);
 
-    pSessionIdServer(sAcptToSis_Entry, sTxpToSis_BufId, sSisToTxp_SessId);
+    pSessionIdServer(
+            sAcptToSis_Entry,
+            sTxpToSis_BufId,
+            sSisToTxp_SessId);
 
-    pRxPath(siTOE_This_Data, siTOE_This_Meta, soTHIS_Rol_Data);
-
+    pRxPath(
+            siTOE_This_Data,
+            siTOE_This_Meta,
+            soTHIS_Rol_Data);
 
     //OBSOLETE-20180925 tai_app_to_buf(siROL_This_Data, sTxpToSis_BufId, buff_data);
 
     //OBSOLETE-20180925 tai_app_to_net(buff_data, soTHIS_Toe_Meta, soTHIS_Toe_Data, sSisToTxp_SessId);
 
-    pTxPath(siROL_This_Data, soTHIS_Toe_Data, soTHIS_Toe_Meta, siTOE_This_DSts,
-    		sSisToTxp_SessId,sTxpToSis_BufId);
+    pTxPath(
+            siROL_This_Data,
+            soTHIS_Toe_Data,
+            soTHIS_Toe_Meta,
+            siTOE_This_DSts,
+            sSisToTxp_SessId,
+            sTxpToSis_BufId);
 }
 
