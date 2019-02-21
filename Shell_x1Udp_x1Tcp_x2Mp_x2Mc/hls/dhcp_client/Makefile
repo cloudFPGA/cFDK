@@ -20,16 +20,38 @@ ipName = dhcp_client
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean
+.PHONY: all clean help csim csynth cosim project
 
-all: ${ipName}_prj/solution1/impl/ip
+all: ${ipName}_prj
 
-${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
+${ipName}_prj: $(SRC_DEPS)
 	$(MAKE) clean
-	vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
 
-clean:
+csim: ## Runs the HLS C simulation
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+csynth: ## Runs the HLS C synthesis
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+cosim: ## Runs the HLS C/RTL cosimulation
+	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+project: ## Creates the HLS project
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
+clean: ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
 
+help: ## Shows this help message
+    # This target is for self documentation of the Makefile. 
+    # Every text starting with '##' and placed after a target will be considered as helper text.
+	@echo
+	@echo 'Usage:'
+	@echo '    make [target]'
+	@echo	
+	@echo 'Targets:'
+	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
+	@echo

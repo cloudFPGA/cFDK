@@ -14,10 +14,6 @@
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
 # *
-# *-----------------------------------------------------------------------------
-# * Modification History:
-# *  Fab: Jan-16-2018 Adds header and environment variables.
-# *  Fab: Feb-15-2018 Changed the export procedure.
 # ******************************************************************************
 
 # User defined settings
