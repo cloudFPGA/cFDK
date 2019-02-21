@@ -27,7 +27,7 @@ all: ${ipName}_prj
 
 ${ipName}_prj: $(SRC_DEPS)
 	$(MAKE) clean
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
 
 
