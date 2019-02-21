@@ -66,9 +66,10 @@ package topFlash_pkg is
 
 
   ------------------------------------
-  -- FMKU60 / TOP SubType s         --
+  -- FMKU60 / TOP SubTypes          --
   ------------------------------------
-  subtype stDate is std_ulogic_vector(7 downto 0); -- [OBSOLETE] Natural range 0 to 255;  
+  subtype stTimeStamp is std_ulogic_vector(31 downto 0);
+  subtype stDate      is std_ulogic_vector( 7 downto 0);  
   
   ------------------------------------
   -- FMKU60 / SHELL / MMIO SubTypes --

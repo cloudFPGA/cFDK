@@ -905,19 +905,28 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     set curImpl ${usedRole}
 
     if { ${forceWithoutBB} } {
+      #---------------------------
+      # We are in monolythic flow
+      #---------------------------
       catch {open_project ${xprDir}/${xprName}.xpr} 
       set implObj [ get_runs impl_1 ]
       #set_property "steps.write_bitstream.args.readback_file" "0" ${implObj}
       #set_property "steps.write_bitstream.args.verbose"       "0" ${implObj}
 
       #catch {open_run impl_1}
+      
       open_run impl_1
+      # Request to embed a timestamp into the bitstream
+      set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
+
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
       #wait_on_run impl_1
     } else {
-
-      #Partial bitstream can be instrumented with CRC values every frame, so any failures are detected *before* the bad frame can be loaded in configuration memory, then corrective/fallback measures can be taken.
+      #---------------------------
+      # We are in PR flow
+      #---------------------------
+      # Partial bitstream can be instrumented with CRC values every frame, so any failures are detected *before* the bad frame can be loaded in configuration memory, then corrective/fallback measures can be taken.
       # for every open Checkpoint: 
       #set_property bitstream.general.perFrameCRC yes [current_design]
       # --> moved to fix_things.tcl
@@ -991,12 +1000,6 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 # Close project
 #-------------------------------------------------------------------------------
 catch {close_project}
-
-# OBSOLETE 20180418
-# Launch Vivado' GUI
-#-------------------------------------------------------------------------------
-#catch { cd ${xprDir} }
-#start_gui
 
 
 

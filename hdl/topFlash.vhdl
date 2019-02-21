@@ -66,8 +66,8 @@ entity topFlash is
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- Build date --------------------------------
     gTopDateYear         : stDate  := 8d"18";
-    gTopDateMonth        : stDate  := 8d"09";
-    gTopDateDay          : stDate  := 8d"29";
+    gTopDateMonth        : stDate  := 8d"11";
+    gTopDateDay          : stDate  := 8d"13";
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
@@ -186,6 +186,9 @@ architecture structural of topFlash is
   -- Global Source Synchronous SHELL Clock and Reset ----
   signal sSHL_156_25Clk                     : std_ulogic;
   signal sSHL_156_25Rst                     : std_ulogic;
+  
+  -- Bitstream Identification Value ---------------------
+  signal sTimestamp                         : stTimeStamp; 
      
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
@@ -320,9 +323,9 @@ architecture structural of topFlash is
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
-      gTopDateYear         : stDate  := 8d"255";  -- uint8
-      gTopDateMonth        : stDate  := 8d"255";  -- uint8
-      gTopDateDay          : stDate  := 8d"255";  -- Default is 8-bits
+      --OBSOLETE-20190204 gTopDateYear         : stDate  := 8d"255";  -- uint8
+      --OBSOLETE-20190204 gTopDateMonth        : stDate  := 8d"255";  -- uint8
+      --OBSOLETE-20190204  gTopDateDay          : stDate  := 8d"255";  -- Default is 8-bits
       gMmioAddrWidth       : integer := 8;        -- Default is 8-bits
       gMmioDataWidth       : integer := 8         -- Default is 8-bits
     );
@@ -332,6 +335,11 @@ architecture structural of topFlash is
       ------------------------------------------------------
       piTOP_156_25Rst                     : in    std_ulogic;
       piTOP_156_25Clk                     : in    std_ulogic;
+       
+      ------------------------------------------------------
+      -- TOP / Shl / Bitstream Identification
+      ------------------------------------------------------
+      piTOP_Timestamp                      : in   stTimeStamp;
        
       ------------------------------------------------------
       -- CLKT / Shl / Clock Tree Interface 
@@ -718,18 +726,32 @@ begin
   --==      property to those instances.
   --=========================================================================== 
   TOP_META_RST : HARD_SYNC
-   generic map (
+    generic map (
       INIT => '0',            -- Initial values, '0', '1'
       IS_CLK_INVERTED => '0', -- Programmable inversion on CLK input
       LATENCY => 2            -- 2-3
-   )
-   port map (
+    )
+    port map (
       CLK  => sTOP_156_25Clk,
       DIN  => piPSOC_Fcfg_Rst_n,
       DOUT => sTOP_156_25Rst_n
-   );
-   sTOP_156_25Rst <= not sTOP_156_25Rst_n;
+    );
+  sTOP_156_25Rst <= not sTOP_156_25Rst_n;
 
+  --===========================================================================
+  --==  INST: BITSTREAM IDENTIFICATION BLOCK with USR_ACCESSE2 PRIMITIVE
+  --==    [INFO] This component provides direct FPGA logic access to the 32-bit
+  --==      value stored by the FPGA bitstream. We use this register to retrieve
+  --==      an accurate timestamp corresponding to the date of the bitstream
+  --==      generation (note that we don't track the sminiutes and seconds).    
+  --============================================================================  
+  TOP_TIMESTAMP : USR_ACCESSE2
+    port map (
+      CFGCLK    => open,        -- Not used in the static mode
+      DATA      => sTimestamp,  -- 32-bit configuration data
+      DATAVALID => open         -- Not used in the static mode
+    );
+   
    -- ========================================================================
    -- == Generation of delayed reset vor HLS cores
    -- ========================================================================
@@ -753,6 +775,8 @@ begin
      end if;
    end process;
 
+
+
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
@@ -762,9 +786,9 @@ begin
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
-      gTopDateYear         => gTopDateYear,
-      gTopDateMonth        => gTopDateMonth,
-      gTopDateDay          => gTopDateDay,
+      --OBSOLETE-20190204 gTopDateYear         => gTopDateYear,
+      --OBSOLETE-20190204 gTopDateMonth        => gTopDateMonth,
+      --OBSOLETE-20190204 gTopDateDay          => gTopDateDay,
       gMmioAddrWidth       => gEmifAddrWidth,
       gMmioDataWidth       => gEmifDataWidth
     )
@@ -774,7 +798,12 @@ begin
       ------------------------------------------------------
       piTOP_156_25Rst                      => sTOP_156_25Rst,
       piTOP_156_25Clk                      => sTOP_156_25Clk,
-
+      
+      ------------------------------------------------------
+      -- TOP / Shl / Bitstream Identification
+      ------------------------------------------------------
+      piTOP_Timestamp                      => sTimestamp,
+      
       ------------------------------------------------------
       -- CLKT / Shl / Clock Tree Interface 
       ------------------------------------------------------
