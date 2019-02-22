@@ -129,12 +129,14 @@ clean:
 	rm -rf $(CLEAN_TYPES)
 	rm -rf ./xpr/ ./hd_visual/
 	rm -rf ./dcps/
+	# rm -rf ./xdc/.DEBUG_SWITCH
 
 
 full_clean: clean 
 	$(MAKE) -C $(SHELL_DIR) clean 
 	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE) clean 
 	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2) clean
+	rm -rf ./xdc/.DEBUG_SWITCH
 
 
 
