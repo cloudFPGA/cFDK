@@ -100,7 +100,6 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piPSOC_Shl_Emif_Oe_n,
   input           piPSOC_Shl_Emif_AdS_n,
   input [gMmioAddrWidth-1: 0]  
-  input [gMmioAddrWidth-1: 0]  
                   piPSOC_Shl_Emif_Addr,
   inout [gMmioDataWidth-1: 0]  
                   pioPSOC_Shl_Emif_Data,
