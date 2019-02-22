@@ -66,7 +66,8 @@ create_clock -period 6.4 -name default
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    # [FIXME] csim_design
+    # [FIXME] - Missing input test vectors
+    csim_design
 }
 
 # Run C Synthesis (refer to UG902)
@@ -78,7 +79,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # [FIXME] cosim_design -tool xsim -rtl verilog -trace_level all
+    cosim_design -tool xsim -rtl verilog -trace_level all
 }
 
 # Export RTL (refer to UG902)

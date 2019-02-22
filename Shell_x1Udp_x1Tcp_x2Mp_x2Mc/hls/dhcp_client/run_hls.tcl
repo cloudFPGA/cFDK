@@ -80,7 +80,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # [FIXME] cosim_design -tool xsim -rtl verilog -trace_level all
+    cosim_design -tool xsim -rtl verilog -trace_level all
 }
 
 # Export RTL (refer to UG902)

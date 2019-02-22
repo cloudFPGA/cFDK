@@ -68,6 +68,7 @@ create_clock -period 6.4 -name default
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
+    csim_design
 }  
 
 # Run C Synthesis (refer to UG902)

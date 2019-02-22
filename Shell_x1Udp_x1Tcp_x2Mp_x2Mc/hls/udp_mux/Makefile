@@ -9,6 +9,7 @@
 # *               as an IP.
 # *
 # * Synopsis:
+# *   make help    : Displays a help message.
 # *   make clean   : Cleanup of the current directory.
 # *   make         : Runs the default build for this core.
 # *
@@ -27,7 +28,6 @@ all: ${ipName}_prj
 ${ipName}_prj: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
-	vivado_hls -f run_hls.tcl
 	@touch $@
 
 csim: ## Runs the HLS C simulation
@@ -56,5 +56,4 @@ help: ## Shows this help message
 	@echo 'Targets:'
 	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
 	@echo
-
 

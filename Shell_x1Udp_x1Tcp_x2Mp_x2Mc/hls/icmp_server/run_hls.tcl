@@ -3,7 +3,7 @@
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
 # * Created : Dec 2017
-# * Authors : Francois Abel, Jagath Weerasinghe
+# * Authors : Francois Abel, Burkhard Ringlein
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the ICMP server
 # *   process used by the SHELL of the cloudFPGA module.
@@ -11,14 +11,9 @@
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
-# *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
 # *
-# *-----------------------------------------------------------------------------
-# * Modification History:
-# *  Fab: Jan-16-2018 Adds header and environment variables.
-# *  Fab: Feb-15-2018 Changed the export procedure.
 # ******************************************************************************
 
 # User defined settings
@@ -76,7 +71,7 @@ if { $hlsCSim} {
 
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { $hlsCSynth} { 
+if { $hlsCSynth} {
     csynth_design
 }
 
