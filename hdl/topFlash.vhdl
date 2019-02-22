@@ -760,7 +760,7 @@ begin
      if rising_edge(sSHL_156_25Clk) then 
        if sSHL_156_25Rst = '1' then
          sSHL_156_25Rst_delayed <= '0';
-        rst_delay_counter <= (others => '0');
+         rst_delay_counter <= (others => '0');
        else
          if unsigned(rst_delay_counter) <= 20 then 
            sSHL_156_25Rst_delayed <= '0';
