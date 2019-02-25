@@ -1476,7 +1476,7 @@ void pTRIF_Recv(
         int                     &apTx_TcpBytCntr,
         stream<TcpPort>         &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
-        stream<appNotification> &siTOE_Notif,
+        stream<AppNotif>        &siTOE_Notif,
         stream<appReadRequest>  &soTOE_DReq,
         stream<SessionId>       &siTOE_Meta,
         stream<AxiWord>         &siTOE_Data)
@@ -1497,7 +1497,7 @@ void pTRIF_Recv(
     vector<string>      stringVector;
 
     OpenStatus          newConStatus;
-    appNotification     notification;
+    AppNotif     notification;
     ipTuple             tuple;
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF_Recv");
@@ -1973,7 +1973,7 @@ void pTRIF(
         int                     &apTx_TcpBytCntr,
         stream<TcpPort>         &soTOE_LsnReq,
         stream<bool>            &siTOE_LsnAck,
-        stream<appNotification> &siTOE_Notif,
+        stream<AppNotif>        &siTOE_Notif,
         stream<appReadRequest>  &soTOE_DReq,
         stream<SessionId>       &siTOE_Meta,
         stream<AxiWord>         &siTOE_Data,
@@ -2051,7 +2051,7 @@ int main(int argc, char *argv[]) {
     stream<AxiSockAddr>                 sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
     stream<OpenStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
 
-    stream<appNotification>             sTOE_Trif_Notif     ("sTOE_Trif_Notif");
+    stream<AppNotif>                    sTOE_Trif_Notif     ("sTOE_Trif_Notif");
 
     stream<ap_uint<16> >                sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
 

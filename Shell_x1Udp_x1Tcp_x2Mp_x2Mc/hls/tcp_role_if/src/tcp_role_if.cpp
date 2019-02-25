@@ -16,7 +16,7 @@
  *  application. As a result, the user application sends and receives its data
  *  octets over plain Tx and Rx AXI4-Stream interfaces.
  *
- * @note       : The Tx data path (i.e. THIS->TCP) will block until a data
+ * @note       : The Tx data path (i.e. THIS->TOE) will block until a data
  *                chunk and its corresponding metadata is received by the Rx
  *                path.
  * @remark     : { remark text }
@@ -244,7 +244,7 @@ void pListen(
  * @return Nothing.
  ******************************************************************************/
 void pAccept(
-        stream<TcpNotif>            &siTOE_Notif,
+        stream<AppNotif>            &siTOE_Notif,
         stream<TcpRdReq>            &soTOE_DReq,
         stream<SessionIdCamEntry>   &soSis_Entry)
 {
@@ -256,7 +256,7 @@ void pAccept(
 
     static enum FSM_STATE { FSM_WAIT_NOTIFICATION = 0, FSM_WRITE_SESSION } acpt_fsmState;
 
-    TcpNotif notif;
+    AppNotif notif;
 
     switch(acpt_fsmState) {
 
@@ -563,7 +563,7 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- TOE / This / Rx Data Interfaces
         //------------------------------------------------------
-        stream<TcpNotif>    &siTOE_This_Notif,
+        stream<AppNotif>    &siTOE_This_Notif,
         stream<AxiWord>     &siTOE_This_Data,
         stream<TcpMeta>     &siTOE_This_Meta,
         stream<TcpRdReq>    &soTHIS_Toe_DReq,

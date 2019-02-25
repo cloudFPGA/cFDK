@@ -922,10 +922,6 @@ struct rstEvent : public event
 
 
 
-
-
-
-
 /*************************************************************************
  * EXTERNAL DRAM MEMORY INTERFACE SECTION
  *************************************************************************
@@ -955,7 +951,6 @@ class DmCmd
     DmCmd(ap_uint<32> addr, ap_uint<16> len) :
         bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
-
 
 struct mmCmd
 {
@@ -991,7 +986,6 @@ class DmSts
     DmSts() {}
 };
 
-
 struct mmStatus
 {
     ap_uint<4>  tag;
@@ -1000,9 +994,6 @@ struct mmStatus
     ap_uint<1>  slverr;
     ap_uint<1>  okay;
 };
-
-
-
 
 //TODO is this required??
 struct mm_ibtt_status
@@ -1015,6 +1006,14 @@ struct mm_ibtt_status
     ap_uint<22> brc_vd;
     ap_uint<1>  eop;
 };
+
+
+/*************************************************************************
+ * TCP ROLE INTERFACE SECTION
+ *************************************************************************
+ * Terminology & Conventions.
+ *  [APP] stands for Application.
+ *************************************************************************/
 
 /*** OBSOLETE-20181219 *****
 struct openStatus
@@ -1038,21 +1037,27 @@ class OpenStatus
         sessionID(id), success(success) {}
 };
 
-struct appNotification
+/********************************************
+ * Application Notification - Indicates that
+ *  data are available in Rx buffer.
+ ********************************************/
+class AppNotif
 {
-	SessionId          sessionID;
-    ap_uint<16>        length;
+  public:
+    SessionId          sessionID;
+    TcpSegLen          length;
+    //OBSOLETE-20190225 ap_uint<16>        length;
     ap_uint<32>        ipAddress;
     ap_uint<16>        dstPort;
     bool               closed;
-    appNotification() {}
-    appNotification(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
+    AppNotif() {}
+    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
         sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
-    appNotification(SessionId id, bool closed) :
+    AppNotif(SessionId id, bool closed) :
         sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
-    appNotification(SessionId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+    AppNotif(SessionId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
         sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
-    appNotification(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
         sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
 };
 
@@ -1097,7 +1102,7 @@ void toe(
         //-- TRIF / This / ROLE Rx / Data Interfaces
         //------------------------------------------------------
         stream<appReadRequest>                  &siTRIF_This_DReq,
-        stream<appNotification>                 &soTHIS_Trif_Notif,
+        stream<AppNotif>                 &soTHIS_Trif_Notif,
         stream<AxiWord>                         &soTHIS_Trif_Data,
         stream<SessionId>                       &soTHIS_Trif_Meta,
 

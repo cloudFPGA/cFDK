@@ -71,5 +71,5 @@ void pRetransmitTimer(
         stream<event>              &soEmx_SetEvent,
         stream<ap_uint<16> >       &soSmx_ReleaseState,
         stream<OpenStatus>         &soTAi_Notif,
-        stream<appNotification>    &soRAi_Notif
+        stream<AppNotif>           &soRAi_Notif
 );

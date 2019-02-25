@@ -101,7 +101,7 @@ void pTimers(
         stream<ap_uint<16> >      &soSTt_ReleaseState,
         stream<event>             &soEVe_Event,
         stream<OpenStatus>        &soTAi_Notif,
-        stream<appNotification>   &soRAi_Notif)
+        stream<AppNotif>          &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -336,22 +336,24 @@ void rx_app_interface(
         stream<rxSarAppd>           &siRSt_RxSarUpdRep,
         stream<TcpPort>             &siTRIF_ListenPortReq,
         stream<bool>                &sPRtToRAi_LsnPortStateRep,
-        stream<appNotification>     &rxEng2rxApp_notification,
-        stream<appNotification>     &timer2rxApp_notification,
+        stream<AppNotif>            &rxEng2rxApp_notification,
+        stream<AppNotif>            &timer2rxApp_notification,
         stream<SessionId>           &appRxDataRspMetadata,
         stream<rxSarAppd>           &soRSt_RxSarUpdRep,
         stream<DmCmd>               &rxBufferReadCmd,
         stream<bool>                &appListenPortRsp,
         stream<TcpPort>             &soPRt_ListenReq,
-        stream<appNotification>     &appNotification,
+        stream<AppNotif>            &appNotification,
         stream<AxiWord>             &rxBufferReadData,
         stream<AxiWord>             &rxDataRsp)
 {
     #pragma HLS INLINE
-    static stream<DmCmd> rxAppStreamIf2memAccessBreakdown("rxAppStreamIf2memAccessBreakdown");
-    static stream<ap_uint<1> > rxAppDoubleAccess("rxAppDoubleAccess");
-    #pragma HLS stream variable=rxAppStreamIf2memAccessBreakdown    depth=16
-    #pragma HLS stream variable=rxAppDoubleAccess                   depth=16
+
+    static stream<DmCmd>        rxAppStreamIf2memAccessBreakdown ("rxAppStreamIf2memAccessBreakdown");
+    #pragma HLS stream variable=rxAppStreamIf2memAccessBreakdown depth=16
+
+    static stream<ap_uint<1> >  rxAppDoubleAccess                ("rxAppDoubleAccess");
+    #pragma HLS stream variable=rxAppDoubleAccess                depth=16
 
     // RX Application Stream Interface
     rx_app_stream_if(
@@ -458,7 +460,7 @@ void toe(
         //-- TRIF / This / Rx PATH / Data Interfaces
         //------------------------------------------------------
         stream<appReadRequest>              &siTRIF_This_DReq,
-        stream<appNotification>             &soTHIS_Trif_Notif,
+        stream<AppNotif>             &soTHIS_Trif_Notif,
         stream<AxiWord>                     &soTHIS_Trif_Data,
         stream<SessionId>                   &soTHIS_Trif_Meta,
 
@@ -659,7 +661,7 @@ void toe(
     static stream<ap_uint<16> >         sRXeToTIm_ClrProbeTimer   ("sRXeToTIm_ClrProbeTimer");
     // FIXME - No depth for this stream ?
 
-    static stream<appNotification>      sRXeToRXa_Notification    ("sRXeToRXa_Notification");
+    static stream<AppNotif>      sRXeToRXa_Notification    ("sRXeToRXa_Notification");
     #pragma HLS stream         variable=sRXeToRXa_Notification    depth=4
     #pragma HLS DATA_PACK      variable=sRXeToRXa_Notification
 
@@ -736,7 +738,7 @@ void toe(
     #pragma HLS stream         variable=sTImToTAi_Notif           depth=4
     #pragma HLS DATA_PACK      variable=sTImToTAi_Notif
 
-    static stream<appNotification>      sTImToRAi_Notif           ("sTImToRAi_Notif");
+    static stream<AppNotif>             sTImToRAi_Notif           ("sTImToRAi_Notif");
     #pragma HLS stream         variable=sTImToRAi_Notif           depth=4
     #pragma HLS DATA_PACK      variable=sTImToRAi_Notif
 

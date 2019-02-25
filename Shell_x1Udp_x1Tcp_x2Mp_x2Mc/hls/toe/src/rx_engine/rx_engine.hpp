@@ -75,7 +75,7 @@ void rx_engine(
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,
         stream<OpenStatus>              &soTAi_SessOpnSts,
-        stream<appNotification>         &soRAi_RxNotif,
+        stream<AppNotif>                &soRAi_RxNotif,
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxiWord>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts

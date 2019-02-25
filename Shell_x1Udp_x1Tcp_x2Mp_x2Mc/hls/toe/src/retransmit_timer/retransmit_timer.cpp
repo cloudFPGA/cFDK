@@ -60,7 +60,7 @@ void pRetransmitTimer(
         stream<event>                    &soEmx_Event,
         stream<ap_uint<16> >             &soSmx_ReleaseState,
         stream<OpenStatus>               &soTAi_Notif,
-        stream<appNotification>          &soRAi_Notif)
+        stream<AppNotif>                 &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -185,7 +185,7 @@ void pRetransmitTimer(
                         if (currEntry.type == SYN_EVENT)
                             soTAi_Notif.write(OpenStatus(currID, false));
                         else
-                            soRAi_Notif.write(appNotification(currID, true)); //TIME_OUT
+                            soRAi_Notif.write(AppNotif(currID, true)); //TIME_OUT
                     }
                 }
             }

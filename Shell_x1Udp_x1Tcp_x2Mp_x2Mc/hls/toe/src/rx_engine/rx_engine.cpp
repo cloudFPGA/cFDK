@@ -1,5 +1,5 @@
 /*****************************************************************************
- * @file       : rx_engine.cpp
+notif * @file       : rx_engine.cpp
  * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
@@ -913,7 +913,7 @@ void pFiniteStateMachine(
         stream<event>                       &soEVe_Event,
         stream<CmdBit>                      &soTsd_DropCmd,
         stream<DmCmd>                       &soMwr_WrCmd,
-        stream<appNotification>             &soRAi_RxNotif)
+        stream<AppNotif>                    &soRAi_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -1032,8 +1032,8 @@ void pFiniteStateMachine(
                             memSegAddr(15,  0) = fsm_meta.meta.seqNumb.range(15, 0);
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_meta.meta.length));
                             // Only notify about new data available
-                            soRAi_RxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
-                                                            fsm_meta.srcIpAddress, fsm_meta.dstIpPort));
+                            soRAi_RxNotif.write(AppNotif(fsm_meta.sessionID,    fsm_meta.meta.length,
+                                                         fsm_meta.srcIpAddress, fsm_meta.dstIpPort));
                             soTsd_DropCmd.write(KEEP_CMD);
                         }
                         else {
@@ -1212,13 +1212,13 @@ void pFiniteStateMachine(
                         pkgAddr(15,  0) = fsm_meta.meta.seqNumb(15, 0);
                         soMwr_WrCmd.write(DmCmd(pkgAddr, fsm_meta.meta.length));
                         // Tell Application new data is available and connection got closed
-                        soRAi_RxNotif.write(appNotification(fsm_meta.sessionID,    fsm_meta.meta.length,
+                        soRAi_RxNotif.write(AppNotif(fsm_meta.sessionID,    fsm_meta.meta.length,
                                                         fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true));
                         soTsd_DropCmd.write(KEEP_CMD);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
-                        soRAi_RxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress,
+                        soRAi_RxNotif.write(AppNotif(fsm_meta.sessionID, fsm_meta.srcIpAddress,
                                                         fsm_meta.dstIpPort, true)); //CLOSE
                     }
 
@@ -1282,7 +1282,7 @@ void pFiniteStateMachine(
                         // Check if in window
                         if (fsm_meta.meta.seqNumb == rxSar.recvd) {
                             // Tell application, RST occurred, abort
-                            soRAi_RxNotif.write(appNotification(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
+                            soRAi_RxNotif.write(AppNotif(fsm_meta.sessionID, fsm_meta.srcIpAddress, fsm_meta.dstIpPort, true)); //RESET
                             soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionID, CLOSED, 1)); //TODO maybe some TIME_WAIT state
                             //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                             soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionID,
@@ -1405,8 +1405,8 @@ void pTcpSegmentDropper(
  *****************************************************************************/
 void pRxAppNotifier(
         stream<DmSts>               &siMEM_WrSts,
-        stream<appNotification>     &siFsm_Notif,
-        stream<appNotification>     &soRxNotif,
+        stream<AppNotif>     &siFsm_Notif,
+        stream<AppNotif>     &soRxNotif,
         stream<ap_uint<1> >         &doubleAccess)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1416,14 +1416,14 @@ void pRxAppNotifier(
     const char *myName  = concat3(THIS_NAME, "/", "Ran");
 
     //-- LOCAL STREAMS
-    static stream<appNotification> sRxNotifFifo("sRxNotifFifo");
+    static stream<AppNotif> sRxNotifFifo("sRxNotifFifo");
     #pragma HLS STREAM    variable=sRxNotifFifo depth=32 // Depends on memory delay
     #pragma HLS DATA_PACK variable=sRxNotifFifo
 
     static ap_uint<1>       rxAppNotificationDoubleAccessFlag = false;
     static ap_uint<5>       rand_fifoCount = 0;
     static DmSts            rxAppNotificationStatus1, rxAppNotificationStatus2;
-    static appNotification  rxAppNotification;
+    static AppNotif  rxAppNotification;
 
     if (rxAppNotificationDoubleAccessFlag == true) {
         if(!siMEM_WrSts.empty()) {
@@ -1709,7 +1709,7 @@ void rx_engine(
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,
         stream<OpenStatus>              &soTAi_SessOpnSts,
-        stream<appNotification>         &soRAi_RxNotif,
+        stream<AppNotif>         &soRAi_RxNotif,
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxiWord>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts)
@@ -1778,7 +1778,7 @@ void rx_engine(
     #pragma HLS stream     variable=sFsmToTsd_DropCmd      depth=2
     #pragma HLS DATA_PACK  variable=sFsmToTsd_DropCmd
 
-    static stream<appNotification>  sFsmToRan_Notif        ("sFsmToRan_Notif");
+    static stream<AppNotif>  sFsmToRan_Notif        ("sFsmToRan_Notif");
     #pragma HLS stream     variable=sFsmToRan_Notif        depth=8  // This depends on the memory delay
     #pragma HLS DATA_PACK  variable=sFsmToRan_Notif
 

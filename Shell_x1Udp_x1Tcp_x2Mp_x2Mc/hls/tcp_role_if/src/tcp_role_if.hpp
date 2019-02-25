@@ -71,7 +71,7 @@ typedef ap_uint<16> TcpSegLen;  // TCP Segment Length in octets (same as Ip4DatL
 typedef ap_uint< 8> TcpHdrLen;  // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;  // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
-typedef ap_uint<16>     TcpPort;    // TCP Port Number
+typedef ap_uint<16>  TcpPort;    // TCP Port Number
 
 
 /********************************************
@@ -127,6 +127,18 @@ struct SocketPair {     // Socket Pair Association
         src(src), dst(dst) {}
 };
 
+/********************************************
+ * Session Lookup Controller (SLc)
+ ********************************************/
+typedef ap_uint<16> SessionId;
+
+
+/*************************************************************************
+ * TCP OFFLOAD ENGINE INTERFACE SECTION
+ *************************************************************************
+ * Terminology & Conventions.
+ *  [APP] stands for Application.
+ *************************************************************************/
 
 /********************************************
  * TCP Specific Streaming Interfaces.
@@ -145,24 +157,27 @@ struct TcpOpnSts {              // TCP Open Status
 
 typedef SockAddr    TcpOpnReq;  // TCP Open Request
 
-struct TcpNotif {               // TCP Notification
-    TcpSessId       sessionID;
-    ap_uint<16>     length;
-    ap_uint<32>     ipAddress;
-    ap_uint<16>     dstPort;
-    bool            closed;
-    TcpNotif() {}
-
-    TcpNotif(TcpSessId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
+/********************************************
+ * Application Notification - Indicates that
+ *  data are available in Rx buffer.
+ ********************************************/
+class AppNotif
+{
+  public:
+    SessionId          sessionID;
+    TcpSegLen          length;
+  //OBSOLETE-20190252 ap_uint<16>        length;
+    ap_uint<32>        ipAddress;
+    ap_uint<16>        dstPort;
+    bool               closed;
+    AppNotif() {}
+    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
         sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
-
-    TcpNotif(TcpSessId id, bool closed) :
+    AppNotif(SessionId id, bool closed) :
         sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
-
-    TcpNotif(TcpSessId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+    AppNotif(SessionId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
         sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
-
-    TcpNotif(TcpSessId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
+    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
         sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
 };
 
@@ -200,9 +215,9 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- TOE / This / Rx Data Interfaces
         //------------------------------------------------------
-        stream<TcpNotif>    &siTOE_This_Notif,
+        stream<AppNotif>    &siTOE_This_Notif,
         stream<AxiWord>     &siTOE_This_Data,
-        stream<TcpMeta>         &siTOE_This_Meta,
+        stream<TcpMeta>     &siTOE_This_Meta,
         stream<TcpRdReq>    &soTHIS_Toe_DReq,
 
         //------------------------------------------------------
@@ -216,7 +231,7 @@ void tcp_role_if(
         //------------------------------------------------------
         stream<TcpDSts>     &siTOE_This_DSts,
         stream<AxiWord>     &soTHIS_Toe_Data,
-        stream<TcpMeta>         &soTHIS_Toe_Meta,
+        stream<TcpMeta>     &soTHIS_Toe_Meta,
 
         //------------------------------------------------------
         //-- TOE / This / Tx Ctrl Interfaces

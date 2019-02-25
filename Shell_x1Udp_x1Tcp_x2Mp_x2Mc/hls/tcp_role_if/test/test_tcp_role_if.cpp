@@ -29,11 +29,11 @@ int         gSimCnt;
 //-- DUT INTERFACES AS GLOBAL VARIABLES
 //------------------------------------------------------
 //-- ROLE / This / Rx Data Interface
-stream<AxiWord>         sROLE_Trif_Data         ("sROLE_Trif_Data");
+stream<AxiWord>     sROLE_Trif_Data     ("sROLE_Trif_Data");
 //-- ROLE / This / Tx Data Interface
-stream<AxiWord>         sTRIF_Role_Data         ("sTRIF_Role_Data");
+stream<AxiWord>     sTRIF_Role_Data     ("sTRIF_Role_Data");
 //-- TOE  / This / Rx Data Interfaces
-stream<TcpNotif>    sTOE_Trif_Notif         ("sTOE_Trif_Notif");
+stream<AppNotif>    sTOE_Trif_Notif         ("sTOE_Trif_Notif");
 stream<AxiWord>     sTOE_Trif_Data      ("sTOE_Trif_Data");
 stream<TcpMeta>     sTOE_Trif_Meta      ("sTOE_Trif_Meta");
 stream<TcpRdReq>    sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
