@@ -62,7 +62,9 @@ create_clock -period 6.4 -name default
 
 # Run C Simulation and Synthesis
 #-------------------------------------------------
-csim_design -clean
+if { 0 } {
+  csim_design -clean
+}
 csynth_design
 
 # Run RTL Simulation
