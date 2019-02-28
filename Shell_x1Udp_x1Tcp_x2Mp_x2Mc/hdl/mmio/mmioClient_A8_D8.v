@@ -49,9 +49,7 @@ module MmioClient_A8_D8 #(
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user"   // "user" or "flash"
-  //OBSOLETE-20190204 parameter gTopDateYear         =  8'hFF,  // uint8
-  //OBSOLETE-20190204 parameter gTopDateMonth        =  8'hFF,  // uint8
-  //OBSOLETE-20190204 parameter gTopDateDay          =  8'hFF   // uint8
+  
 ) (
 
   //-- Global Clock used by the entire SHELL -----
@@ -258,9 +256,6 @@ module MmioClient_A8_D8 #(
   localparam cDefReg03 = 8'h33;  // Reserved
   localparam cDefReg04 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h81 :
                          ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h01 : 8'hFF; // CFG_TOP_ID
-  //OBSOLETE-20190204 localparam cDefReg05 = gTopDateYear;  // CFG_TOP_YEAR   
-  //OBSOLETE-20190204 localparam cDefReg06 = gTopDateMonth; // CFG_TOP_MONTH   
-  //OBSOLETE-20190204 localparam cDefReg07 = gTopDateDay;   // CFG_TOP_DAY
   localparam cDefReg05 = 8'h00;  // CFG_TOP_YEAR   
   localparam cDefReg06 = 8'h00;  // CFG_TOP_MONTH   
   localparam cDefReg07 = 8'h00;  // CFG_TOP_DAY
@@ -482,7 +477,6 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*CFG_TOP_YEAR+id] = piTOP_Timestamp[17+id];  // RO
     end
   endgenerate
-  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_YEAR+7:cEDW*CFG_TOP_YEAR+0] = "00" & piTOP_Timestamp[22:17]; // RO
   //---- CFG_TOP_MONTH -----------------
   generate
   for (id=0; id<4; id=id+1)
@@ -490,7 +484,6 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*CFG_TOP_MONTH+id]  = piTOP_Timestamp[23+id];  // RO
     end
   endgenerate
-  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_MONTH+7:cEDW*CFG_TOP_MONTH+0] = "0000" & piTOP_Timestamp[26:23];  // RO
   //---- CFG_TOP_DAY -------------------
   generate
   for (id=0; id<5; id=id+1)
@@ -498,7 +491,6 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*CFG_TOP_DAY+id] = piTOP_Timestamp[27+id];  // RO
     end
   endgenerate
-  //OBSOLETE-20190212 assign sStatusVec[cEDW*CFG_TOP_DAY+7:cEDW*CFG_TOP_DAY+0] = "000" & piTOP_Timestamp[31:27];  // RO
 
   //--------------------------------------------------------
   //-- PHYSICAL REGISTERS
