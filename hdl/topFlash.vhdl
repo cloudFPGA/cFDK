@@ -65,9 +65,9 @@ entity topFlash is
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- Build date --------------------------------
-    gTopDateYear         : stDate  := 8d"18";
-    gTopDateMonth        : stDate  := 8d"11";
-    gTopDateDay          : stDate  := 8d"13";
+    gTopDateYear         : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
+    gTopDateMonth        : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
+    gTopDateDay          : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
@@ -186,9 +186,10 @@ architecture structural of topFlash is
   -- Global Source Synchronous SHELL Clock and Reset ----
   signal sSHL_156_25Clk                     : std_ulogic;
   signal sSHL_156_25Rst                     : std_ulogic;
+  signal sSHL_156_25Rst_delayed             : std_ulogic;
   
   -- Bitstream Identification Value ---------------------
-  signal sTimestamp                         : stTimeStamp; 
+  signal sTOP_Timestamp                     : stTimeStamp; 
      
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
@@ -306,9 +307,7 @@ architecture structural of topFlash is
   ------------------------------------------------  
   signal sSMC_ROL_rank                      : std_logic_vector(31 downto 0);
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
-
-  signal sSHL_156_25Rst_delayed             : std_ulogic;
-
+ 
   -- Delayed reset counter 
   signal rst_delay_counter                  : std_logic_vector(5 downto 0);
   
@@ -323,9 +322,6 @@ architecture structural of topFlash is
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
-      --OBSOLETE-20190204 gTopDateYear         : stDate  := 8d"255";  -- uint8
-      --OBSOLETE-20190204 gTopDateMonth        : stDate  := 8d"255";  -- uint8
-      --OBSOLETE-20190204  gTopDateDay          : stDate  := 8d"255";  -- Default is 8-bits
       gMmioAddrWidth       : integer := 8;        -- Default is 8-bits
       gMmioDataWidth       : integer := 8         -- Default is 8-bits
     );
@@ -416,7 +412,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poSHL_156_25Clk                     : out   std_ulogic;
       poSHL_156_25Rst                     : out   std_ulogic;
-      piSHL_156_25Rst_delayed             : out   std_ulogic;
+      piSHL_156_25Rst_delayed             : in    std_ulogic;
        
       ------------------------------------------------------
       -- ROLE / Shl/ Nts0 / Udp Interface
@@ -671,26 +667,26 @@ architecture structural of topFlash is
       ------------------------------------------------------
       -- ROLE EMIF Registers
       ------------------------------------------------------
-      poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
-      piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+      poROL_SHL_EMIF_2B_Reg               : out   std_logic_vector( 15 downto 0);
+      piSHL_ROL_EMIF_2B_Reg               : in    std_logic_vector( 15 downto 0);
       --------------------------------------------------------
       -- DIAG Registers for MemTest
       --------------------------------------------------------
-      piDIAG_CTRL                         : in  std_logic_vector(1 downto 0);
-      poDIAG_STAT                         : out std_logic_vector(1 downto 0);
+      piDIAG_CTRL                         : in    std_logic_vector(1 downto 0);
+      poDIAG_STAT                         : out   std_logic_vector(1 downto 0);
       
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
       piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
-        ------------------------------------------------
-        -- SMC Interface
-        ------------------------------------------------ 
-        piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
-        piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+      ------------------------------------------------
+      -- SMC Interface
+      ------------------------------------------------ 
+      piSMC_ROLE_rank                     : in    std_logic_vector(31 downto 0);
+      piSMC_ROLE_size                     : in    std_logic_vector(31 downto 0);
           
-        poVoid                              : out   std_ulogic          
+      poVoid                              : out   std_ulogic          
       );
     end component Role_x1Udp_x1Tcp_x2Mp;
 
@@ -747,9 +743,9 @@ begin
   --============================================================================  
   TOP_TIMESTAMP : USR_ACCESSE2
     port map (
-      CFGCLK    => open,        -- Not used in the static mode
-      DATA      => sTimestamp,  -- 32-bit configuration data
-      DATAVALID => open         -- Not used in the static mode
+      CFGCLK    => open,            -- Not used in the static mode
+      DATA      => sTOP_Timestamp,  -- 32-bit configuration data
+      DATAVALID => open             -- Not used in the static mode
     );
    
    -- ========================================================================
@@ -786,9 +782,6 @@ begin
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
-      --OBSOLETE-20190204 gTopDateYear         => gTopDateYear,
-      --OBSOLETE-20190204 gTopDateMonth        => gTopDateMonth,
-      --OBSOLETE-20190204 gTopDateDay          => gTopDateDay,
       gMmioAddrWidth       => gEmifAddrWidth,
       gMmioDataWidth       => gEmifDataWidth
     )
@@ -802,7 +795,7 @@ begin
       ------------------------------------------------------
       -- TOP / Shl / Bitstream Identification
       ------------------------------------------------------
-      piTOP_Timestamp                      => sTimestamp,
+      piTOP_Timestamp                      => sTOP_Timestamp,
       
       ------------------------------------------------------
       -- CLKT / Shl / Clock Tree Interface 
