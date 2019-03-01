@@ -57,6 +57,7 @@ int main() {
 #define DUT mem_test_flash_main(sys_reset, DIAG_CTRL_IN, &DIAG_STAT_OUT, &debug_out,sROL_Shl_Mem_RdCmdP0, sSHL_Rol_Mem_RdStsP0, sSHL_Rol_Mem_ReadP0,sROL_Shl_Mem_WrCmdP0, sSHL_Rol_Mem_WrStsP0, sROL_Shl_Mem_WriteP0);
   DUT
     sys_reset = 0;
+  DUT
 
   DIAG_CTRL_IN = 0b01;
   DUT

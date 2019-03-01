@@ -109,7 +109,8 @@ void mem_test_flash_main(
     fsmState = FSM_IDLE;
     runContiniously = false;
     wasError = 0;
-    lastCheckedAddress = 0;
+    //lastCheckedAddress = 0;
+    lastCheckedAddress = MEM_END_ADDR + 1; //to stop the test
     currentPatternAdderss = 0;
     currentMemPattern = 0;
     patternWriteNum = 0;
