@@ -416,7 +416,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poSHL_156_25Clk                     : out   std_ulogic;
       poSHL_156_25Rst                     : out   std_ulogic;
-      piSHL_156_25Rst_delayed             : out   std_ulogic;
+      piSHL_156_25Rst_delayed             : in    std_ulogic;
        
       ------------------------------------------------------
       -- ROLE / Shl/ Nts0 / Udp Interface
@@ -762,10 +762,10 @@ begin
          sSHL_156_25Rst_delayed <= '0';
          rst_delay_counter <= (others => '0');
        else
-         if unsigned(rst_delay_counter) <= 20 then 
-           sSHL_156_25Rst_delayed <= '0';
-           rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
-        elsif unsigned(rst_delay_counter) <= 40 then 
+        -- if unsigned(rst_delay_counter) <= 20 then 
+        --   sSHL_156_25Rst_delayed <= '0';
+        --   rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
+        if unsigned(rst_delay_counter) <= 20 then 
            sSHL_156_25Rst_delayed <= '1';
            rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
         else
