@@ -944,11 +944,11 @@ class DmCmd
     ap_uint<6>      dsa;    // DRE Stream Alignment
     ap_uint<1>      eof;    // End of Frame
     ap_uint<1>      drr;    // DRE ReAlignment Request
-    ap_uint<32>     saddr;  // Start Address
+    ap_uint<40>     saddr;  // Start Address
     ap_uint<4>      tag;    // Command Tag
     ap_uint<4>      rsvd;   // Reserved
     DmCmd() {}
-    DmCmd(ap_uint<32> addr, ap_uint<16> len) :
+    DmCmd(ap_uint<40> addr, ap_uint<16> len) :
         bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
@@ -959,17 +959,13 @@ struct mmCmd
     ap_uint<6>  dsa;
     ap_uint<1>  eof;
     ap_uint<1>  drr;
-    ap_uint<32> saddr;
+    ap_uint<40> saddr;
     ap_uint<4>  tag;
     ap_uint<4>  rsvd;
     mmCmd() {}
-    mmCmd(ap_uint<32> addr, ap_uint<16> len) :
+    mmCmd(ap_uint<40> addr, ap_uint<16> len) :
         bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 
-    /*mm_cmd(ap_uint<32> addr, ap_uint<16> len, ap_uint<1> last)
-            :bbt(len), type(1), dsa(0), eof(last), drr(1), saddr(addr), tag(0), rsvd(0) {}*/
-    /*mm_cmd(ap_uint<32> addr, ap_uint<16> len, ap_uint<4> dsa)
-            :bbt(len), type(1), dsa(dsa), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}*/
 };
 
 /********************************************

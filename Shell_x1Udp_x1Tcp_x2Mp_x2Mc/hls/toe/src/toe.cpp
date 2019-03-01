@@ -389,7 +389,7 @@ void rx_app_interface(
 
 
 /*****************************************************************************
- * @brief   Main process of the TCP Role Interface
+ * @brief   Main process of the TCP Offload Engine.
  *
  * @ingroup toe
  *
@@ -460,7 +460,7 @@ void toe(
         //-- TRIF / This / Rx PATH / Data Interfaces
         //------------------------------------------------------
         stream<appReadRequest>              &siTRIF_This_DReq,
-        stream<AppNotif>             &soTHIS_Trif_Notif,
+        stream<AppNotif>                    &soTHIS_Trif_Notif,
         stream<AxiWord>                     &soTHIS_Trif_Data,
         stream<SessionId>                   &soTHIS_Trif_Meta,
 
@@ -651,7 +651,7 @@ void toe(
     #pragma HLS stream         variable=sRXeToTSt_TxSarUpdReq     depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarUpdReq
 
-    static stream<ReTxTimerCmd>         sRXeToTIm_ReTxTimerCmd ("sRXeToTIm_ReTxTimerCmd");
+    static stream<ReTxTimerCmd>         sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
     #pragma HLS stream         variable=sRXeToTIm_ReTxTimerCmd    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTIm_ReTxTimerCmd
 
@@ -661,7 +661,7 @@ void toe(
     static stream<ap_uint<16> >         sRXeToTIm_ClrProbeTimer   ("sRXeToTIm_ClrProbeTimer");
     // FIXME - No depth for this stream ?
 
-    static stream<AppNotif>      sRXeToRXa_Notification    ("sRXeToRXa_Notification");
+    static stream<AppNotif>      sRXeToRXa_Notification           ("sRXeToRXa_Notification");
     #pragma HLS stream         variable=sRXeToRXa_Notification    depth=4
     #pragma HLS DATA_PACK      variable=sRXeToRXa_Notification
 

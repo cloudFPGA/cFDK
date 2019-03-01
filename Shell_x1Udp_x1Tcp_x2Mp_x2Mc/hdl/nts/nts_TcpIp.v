@@ -10,8 +10,7 @@
 // * File    : nts_TcpIp.v
 // *
 // * Created : Nov. 2017
-// * Authors : Jagath Weerasinghe, 
-// *           Francois Abel <fab@zurich.ibm.com>
+// * Authors : Francois Abel <fab@zurich.ibm.com>
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2016.4 (64-bit)
@@ -72,7 +71,7 @@ module NetworkTransportSession_TcpIp (
   //-- Transmit Path / S2MM-AXIS -------------------------
   //---- Stream Read Command -------------------
   input          piMEM_Nts0_TxP_Axis_RdCmd_tready,
-  output[ 71:0]  poNTS0_Mem_TxP_Axis_RdCmd_tdata,
+  output[ 79:0]  poNTS0_Mem_TxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
   input [  7:0]  piMEM_Nts0_TxP_Axis_RdSts_tdata,
@@ -86,7 +85,7 @@ module NetworkTransportSession_TcpIp (
   output         poNTS0_Mem_TxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_TxP_Axis_WrCmd_tready,
-  output [ 71:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
+  output [ 79:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
   input [  7:0]  piMEM_Nts0_TxP_Axis_WrSts_tdata,
@@ -105,7 +104,7 @@ module NetworkTransportSession_TcpIp (
   //-- Receive Path / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
   input          piMEM_Nts0_RxP_Axis_RdCmd_tready,
-  output [ 71:0] poNTS0_Mem_RxP_Axis_RdCmd_tdata,
+  output [ 79:0] poNTS0_Mem_RxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
   input [   7:0] piMEM_Nts0_RxP_Axis_RdSts_tdata,
@@ -119,7 +118,7 @@ module NetworkTransportSession_TcpIp (
   output         poNTS0_Mem_RxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_RxP_Axis_WrCmd_tready,
-  output[ 71:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
+  output[ 79:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
   input [  7:0]  piMEM_Nts0_RxP_Axis_WrSts_tdata,
@@ -642,7 +641,7 @@ module NetworkTransportSession_TcpIp (
 `endif //  `ifdef USE_DEPRECATED_DIRECTIVES
    
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
 //    .s_dataIn_TVALID(rx_data_TVALID),                  
 //    .s_dataIn_TREADY(rx_data_TREADY),                 
@@ -687,7 +686,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                               
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> ARP)
@@ -709,7 +708,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Arp_Axis_tvalidReg)
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS0 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -726,7 +725,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_arp_slice_to_arp_tkeep),
 //    .m_axis_tlast(axi_arp_slice_to_arp_tlast)
 //  );  
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> ICMP)
@@ -748,7 +747,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Icmp_Data_Axis_tvalidReg)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS1 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -765,7 +764,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_icmp_slice_to_icmp_tkeep),
 //    .m_axis_tlast(axi_icmp_slice_to_icmp_tlast)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: ARP 
@@ -816,7 +815,7 @@ module NetworkTransportSession_TcpIp (
 
   ); // End of ARP
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  arpServerWrapper ARP (
 //    .axi_arp_to_arp_slice_tvalid(axi_arp_to_arp_slice_tvalid),
 //    .axi_arp_to_arp_slice_tready(axi_arp_to_arp_slice_tready),
@@ -843,7 +842,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: TCP-OFFLOAD-MODULE
@@ -1058,7 +1057,7 @@ module NetworkTransportSession_TcpIp (
 
   );  // End of TOE
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_tcp_module_1_01 TCP ( 
 //    // Data output
 //    .m_axis_tcp_data_TVALID(toe_to_iph_slice_tvalid), // output AXI_M_Stream_TVALID
@@ -1210,7 +1209,7 @@ module NetworkTransportSession_TcpIp (
 //    .aresetn(cf_aresetn)                        // input aresetn
  
 //  );  // End of TCP
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: TOE-CAM-MODULE
@@ -1252,7 +1251,7 @@ module NetworkTransportSession_TcpIp (
 
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  SmartCamCtl CAM (
 //    .clk(cf_axi_clk),
 //    .rst(~cf_aresetn),
@@ -1278,7 +1277,7 @@ module NetworkTransportSession_TcpIp (
 
 //    .debug()
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> TOE)
@@ -1300,7 +1299,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Toe_Axis_tvalidReg)
   ); 
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS2 (
 //   .aclk(cf_axi_clk),
 //   .aresetn(cf_aresetn),
@@ -1317,7 +1316,7 @@ module NetworkTransportSession_TcpIp (
 //   .m_axis_tkeep(iph_to_toe_slice_tkeep),
 //   .m_axis_tlast(iph_to_toe_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (TCP ==> IPTX)
@@ -1339,7 +1338,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sTOE_L3mux_Axix_tvalidReg)
   ); 
    
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS3 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1356,7 +1355,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_toe_to_toe_slice_tkeep),
 //    .m_axis_tlast(axi_toe_to_toe_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: TCP-ROLE-INTERFACE
@@ -1476,7 +1475,7 @@ module NetworkTransportSession_TcpIp (
      
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_tcp_app_interface_18 TRIF (
 //    .m_axis_close_connection_TVALID(axis_close_connection_TVALID),
 //    .m_axis_close_connection_TREADY(axis_close_connection_TREADY),
@@ -1545,7 +1544,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
   
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (TRIF ==> NTS0/Role/Tcp)
@@ -1568,7 +1567,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (poNTS0_Rol_Tcp_Axis_tvalid)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS4 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1585,7 +1584,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(vFPGA_TCP_rx_data_TKEEP),
 //    .m_axis_tlast(vFPGA_TCP_rx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/Tcp ==> TRIF)
@@ -1607,7 +1606,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sROL_Nts0_Tcp_Axis_tvalidReg)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS5 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1624,7 +1623,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(rs_to_net_vFPGA_tx_data_TKEEP),
 //    .m_axis_tlast(rs_to_net_vFPGA_tx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: UDP-CORE-MODULE
@@ -1719,7 +1718,7 @@ module NetworkTransportSession_TcpIp (
                           
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_module UDP (
 //    .inputPathInData_TVALID(axi_iph_to_udp_tvalid),                  
 //    .inputPathInData_TREADY(axi_iph_to_udp_tready),                  
@@ -1781,7 +1780,7 @@ module NetworkTransportSession_TcpIp (
 //      .aclk(cf_axi_clk),                                                  
 //      .aresetn(cf_aresetn)                                   
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: UDP-MUX
@@ -2096,7 +2095,7 @@ module NetworkTransportSession_TcpIp (
    
   
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_app_if UMUX (
 //    .portOpenReplyIn_TVALID(udp2mux_portOpenReplyIn_V_V_TVALID),         
 //    .portOpenReplyIn_TREADY(udp2mux_portOpenReplyIn_V_V_TREADY),          
@@ -2197,7 +2196,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                                  
 //    .aresetn(cf_aresetn)                                                   
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (URIF ==> NTS0/Role/Udp)
@@ -2219,7 +2218,7 @@ module NetworkTransportSession_TcpIp (
      .m_axis_tvalid (poNTS0_Rol_Udp_Axis_tvalid)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS6 (
 //     .aclk(cf_axi_clk),
 //     .aresetn(cf_aresetn),
@@ -2236,7 +2235,7 @@ module NetworkTransportSession_TcpIp (
 //     .m_axis_tkeep(vFPGA_UDP_rx_data_TKEEP),
 //     .m_axis_tlast(vFPGA_UDP_rx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/Udp ==> URIF)
@@ -2258,7 +2257,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sROL_Nts0_Udp_Axis_tvalidReg)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS7 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -2275,7 +2274,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(app_to_uai_slice_tkeep),
 //    .m_axis_tlast(app_to_uai_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: UDP-ROLE-INTERFACE
@@ -2437,7 +2436,7 @@ module NetworkTransportSession_TcpIp (
 `endif // !`ifdef USE_DEPRECATED_DIRECTIVES
    
  
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_application_interface_1 URIF (
 //    .lbPortOpenReplyIn_TVALID(lbPortOpenReplyIn_TVALID),      
 //    .lbPortOpenReplyIn_TREADY(lbPortOpenReplyIn_TREADY),      
@@ -2486,7 +2485,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                       
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: DHCP-CLIENT -- [TOOD - Remove this useless DHCP-client module]
@@ -2630,7 +2629,7 @@ module NetworkTransportSession_TcpIp (
 `endif // `ifdef USE_DEPRECATED_DIRECTIVES
    
    
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_dhcp_client DHCP (
 //    .dhcpEnable_V(1'b1),                                     
 //    //.inputIpAddress_V(inputIpAddress),                           
@@ -2673,7 +2672,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                                    
 //    .aresetn(cf_aresetn)                                                  
 //  );    
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: ICMP-SERVER
@@ -2735,7 +2734,7 @@ module NetworkTransportSession_TcpIp (
 `endif // `ifdef USE_DEPRECATED_DIRECTIVES
    
    
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_icmp_server_1 ICMP (
 //    .s_dataIn_TVALID(axi_icmp_slice_to_icmp_tvalid),   
 //    .s_dataIn_TREADY(axi_icmp_slice_to_icmp_tready),   
@@ -2764,7 +2763,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                             
 //    .aresetn(cf_aresetn)                            
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: L3MUX AXI4-STREAM INTERCONNECT RTL (Muxes ICMP, TCP, and UDP)
@@ -2827,7 +2826,7 @@ module NetworkTransportSession_TcpIp (
     .S02_ARB_REQ_SUPPRESS(1'b0)  
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_interconnect_3_to_1 L3MRG (
 //    .ACLK(cf_axi_clk),                         
 //    .ARESETN(cf_aresetn),                 
@@ -2873,7 +2872,7 @@ module NetworkTransportSession_TcpIp (
 //    .S01_ARB_REQ_SUPPRESS(1'b0),
 //    .S02_ARB_REQ_SUPPRESS(1'b0)  
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: IP TX HANDLER
@@ -2925,7 +2924,7 @@ module NetworkTransportSession_TcpIp (
     
   ); // End of IPTX
     
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_ip_module_tx_path_2 IPTX (
 //    .s_dataIn_TVALID(axi_intercon_to_mie_tvalid),                  
 //    .s_dataIn_TREADY(axi_intercon_to_mie_tready),                   
@@ -2954,7 +2953,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),         
 //    .aresetn(cf_aresetn)    
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: L2MUX AXI4-STREAM INTERCONNECT RTL (Muxes IP and ARP)
@@ -3007,7 +3006,7 @@ module NetworkTransportSession_TcpIp (
     .S01_ARB_REQ_SUPPRESS (1'b0)
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_interconnect_2to1 L2MRG (
 //    .ACLK(cf_axi_clk), 
 //    .ARESETN(cf_aresetn), 
@@ -3044,6 +3043,6 @@ module NetworkTransportSession_TcpIp (
 //    .S00_ARB_REQ_SUPPRESS(1'b0), 
 //    .S01_ARB_REQ_SUPPRESS(1'b0)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
 endmodule
