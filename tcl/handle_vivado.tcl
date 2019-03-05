@@ -71,6 +71,9 @@ set save_incr      0
 set only_pr_bitgen 0
 set insert_ila 0
 
+#TODO: quick'n'dirty 
+set useMPI 0
+
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
 #  Note: All the strings after the '-tclargs' option are considered as TCL
@@ -106,7 +109,8 @@ if { $argc > 0 } {
         { use_incr "Use incremental compile (if possible)"}
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
-        { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
+        { useMPI "quick'n'dirty..."}
+	{ insert_ila "Insert the debug nets according to xdc/debug.xdc"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -211,7 +215,13 @@ if { $argc > 0 } {
               set only_pr_bitgen 1
               my_info_puts "The argument \'only_pr_bitgen\' is set."
             }
-            if { ${key} eq "insert_ila" && ${value} eq 1 } {
+            #TODO: quick'n'dirty 
+            if { ${key} eq "useMPI" && ${value} eq 1 } {
+              set useMPI 1
+              set usedRoleType "Role_MPIv0_x2Mp"
+              my_info_puts "The argument \'useMPI\' is set."
+            }
+	    if { ${key} eq "insert_ila" && ${value} eq 1 } {
               set insert_ila 1
               my_info_puts "The argument \'insert_ila\' is set."
             }
@@ -328,7 +338,16 @@ if { ${create} } {
 
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
     #-------------------------------------------------------------------------------
-    add_files -fileset ${srcObj} ${hdlDir}
+    
+    #TODO: quick'n'dirty 
+   # add_files -fileset ${srcObj} ${hdlDir} 
+    
+    add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
+    if { $useMPI } { 
+      add_files -fileset ${srcObj} ${hdlDir}/topMPI.vhdl
+    } else { 
+      add_files -fileset ${srcObj} ${hdlDir}/topFlash.vhdl
+    }
 
     # Turn the VHDL-2008 mode on 
     #-------------------------------------------------------------------------------
@@ -341,6 +360,14 @@ if { ${create} } {
         # Add *ALL* the HDL Source Files for the SHELL
         #---------------------------------------------------------------------------
         add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
+        if { $useMPI } { 
+          add_files     ${rootDir}/../../SHELL/${usedShellType}/Shell_MPIv0_x2Mp_x2Mc.v 
+          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp.v
+        } else { 
+          add_files     ${rootDir}/../../SHELL/${usedShellType}/${usedShellType}.v
+          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp_MPI.v
+        }
+
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
         # IP Cores SHELL

@@ -40,8 +40,10 @@ MONO_LOCK = ../xpr/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all basecmd monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr finalcmd incrcmd onlycmd 
-.PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only monolithic_incr_debug monolithic_debug debugcmd
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr 
+.PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd mpicmd
+.PHONY: full_src_pr_all_mpi monolithic_mpi monolithic_incr_mpi full_src_pr_only_mpi full_src_pr_2_only_mpi
+.PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only  monolithic_incr_debug monolithic_debug debugcmd
 all: full_src_pr
 
 
@@ -54,12 +56,12 @@ clean:
 
 
 basecmd:
-	@/bin/echo -e "#!/bin/bash\nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\" > .vivado_basecmd.sh
+	@/bin/echo -e '#!/bin/bash\nlength=$$(cat $$0 | grep -v "only" | grep -v "useMPI" | grep -v "vivado" | grep -v "incr" | grep -v "bash" | grep -v "date" | grep -v "echo" | grep -v "grep" | grep -v "more" | wc -l)\nif [  $$length -lt 12 ]; then\n\techo "handle_vivado.tcl: Nothing to do for target. Stop."\nelse\nmore +7 $$0| head -n9 \nvivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force \\' > .vivado_basecmd.sh
 	@/bin/echo -e $(shell date) > start.date
 
 finalcmd:
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@#more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -68,6 +70,9 @@ incrcmd:
 
 onlycmd:
 	@/bin/echo -e " -only_pr_bitgen \\" >> .vivado_basecmd.sh
+
+mpicmd:
+	@/bin/echo -e " -useMPI \\" >> .vivado_basecmd.sh
 
 debugcmd:
 	@/bin/echo -e " -insert_ila \\" >> .vivado_basecmd.sh
@@ -99,50 +104,44 @@ full_src_pr_2_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_
 #full_src_pr_2_incr_only: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit incrcmd onlycmd finalcmd | ../dcps
 
 
-#monolithic
-monolithic: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_all_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit mpicmd finalcmd | ../dcps
 
-monolithic_incr: basecmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+full_src_pr_only_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole)_pblock_ROLE_partial.bit onlycmd mpicmd finalcmd | ../dcps
+
+full_src_pr_2_only_mpi: basecmd ../dcps/4_$(TOP_NAME)_impl_$(usedRole2)_pblock_ROLE_partial.bit onlycmd mpicmd finalcmd | ../dcps
 
 
-#TODO: merge with ngl_develop version
-monolithic_incr_debug: basecmd debugcmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen -use_incr \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
+###########################################
+# Monolithic
+###########################################
 
 
-monolithic_debug: basecmd debugcmd $(MONO_LOCK)
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
-	@more +2 .vivado_basecmd.sh
-	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
-	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@bash .vivado_basecmd.sh
-	@rm .vivado_basecmd.sh
-
-
-$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/hdl/* | $(XPR_PROJ) ../dcps/
+$(MONO_LOCK):  $(ROLE_DIR)/$(ROLE_NAME_1)/* $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(XPR_PROJ) ../dcps/
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
+monobasecmd: basecmd
+	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+
+monofinalcmd: 
+	@#more +2 .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+
+monolithic: monobasecmd $(MONO_LOCK) monofinalcmd
+
+monolithic_incr: monobasecmd $(MONO_LOCK) incrcmd monofinalcmd
+
+monolithic_mpi: monobasecmd $(MONO_LOCK) mpicmd monofinalcmd
+
+monolithic_incr_mpi: monobasecmd $(MONO_LOCK) incrcmd mpicmd monofinalcmd
+
+monolithic_incr_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
+
+monolithic_debug: basecmd debugcmd $(MONO_LOCK) monofinalcmd
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
@@ -167,7 +166,8 @@ save_mono_incr:
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
+#$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | ../dcps 
+$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl $(SHELL_DIR)/Shell*.v | ../dcps 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 #with pr:
