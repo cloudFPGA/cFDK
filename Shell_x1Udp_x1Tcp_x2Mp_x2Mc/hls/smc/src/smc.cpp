@@ -140,6 +140,18 @@ uint8_t writeDisplaysToOutBuffer()
 
   for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
   {
+    if(i<=9)
+    {
+      bufferOut[bufferOutPtrWrite] = '0' + i;
+    } else { 
+      bufferOut[bufferOutPtrWrite] = '1';
+      bufferOutPtrWrite++;
+      len++;
+      bufferOut[bufferOutPtrWrite] = '0' + (i-10);
+    }
+    bufferOutPtrWrite++;
+    len++;
+    len+=writeString(": ");
     bufferOut[bufferOutPtrWrite + 3] = mpe_status[i] & 0xFF; 
     bufferOut[bufferOutPtrWrite + 2] = (mpe_status[i] >> 8) & 0xFF; 
     bufferOut[bufferOutPtrWrite + 1] = (mpe_status[i] >> 16) & 0xFF; 
@@ -272,6 +284,8 @@ void smc_main(
     ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
+    // Soft Reset 
+    ap_uint<1> *setSoftReset,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //MPE 
@@ -280,7 +294,7 @@ void smc_main(
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
-#pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 #pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=bufferOut core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=xmem core=RAM_1P_BRAM
@@ -292,6 +306,7 @@ void smc_main(
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_ovld register port=cluster_size name=poSMC_to_ROLE_size
 #pragma HLS INTERFACE m_axi depth=16383 port=mpeCtrl bundle=poSMC_MPE_ctrlLink_AXI  //0x3fff - 0x2000
+#pragma HLS INTERFACE ap_ovld register port=setSoftReset name=poSoftReset 
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
 //===========================================================
@@ -362,6 +377,9 @@ void smc_main(
     clusterSize = 0;
     mpe_status_request_cnt = 0;
   }
+
+  // SOFT RESET 
+  *setSoftReset = (*MMIO_in >> SOFT_RST_SHIFT) & 0b1;
 
 //===========================================================
 // Start & Run Burst transfer; Manage Decoupling
@@ -746,6 +764,11 @@ void smc_main(
     mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
   }*/
 
+  //test and set config 
+  if(mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] != nodeRank)
+  {
+    mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] = nodeRank; 
+  }
 
   //copy status 
   //to enforce AWLEN/ARLEN = 0, one transfer per ap_call 

@@ -56,6 +56,9 @@ set_top       mpe_main
 
 add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM"
 add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM"
+add_files     ${srcDir}/zrlmpi_int.hpp
+add_files     ${srcDir}/zrlmpi_common.cpp 
+add_files     ${srcDir}/zrlmpi_common.hpp 
 
 add_files -tb tb/tb_${projectName}.cpp 
 

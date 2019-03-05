@@ -29,6 +29,8 @@ ${ipName}_prj: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../.ip_guard
+
 
 
 csim: ## Runs the HLS C simulation

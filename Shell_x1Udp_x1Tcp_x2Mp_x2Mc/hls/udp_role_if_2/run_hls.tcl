@@ -2,12 +2,11 @@
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
-# * Created : Jun 2017
-# * Authors : Burkhard Ringlein
+# * Created : Dec 2017
+# * Authors : Francois Abel  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the "Castor" SMC
-# *   process used by the SHELL of a cloudFPGA module.
-# *   project.
+# * Description : A Tcl script for the HLS batch syhthesis of the UDP interface 
+# *   between the cloudFPGA SHELL and the user application ROLE.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -17,17 +16,19 @@
 # *
 # *-----------------------------------------------------------------------------
 # * Modification History:
+# *  Fab: Jan-18-2018 Adds header and environment variables.
+# *  Fab: Feb-15-2018 Changed the export procedure.
 # ******************************************************************************
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "smc"
+set projectName    "udp_role_if_2"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "SMC for cloudFPGA"
-set ipDescription  "Shell Management Core, aka Castor"
+set ipDisplayName  "UDP Role Interface for cloudFPGA VERSION 2"
+set ipDescription  "An interface between the MPE and the UDP core of the shell."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -37,62 +38,40 @@ set ipPkgFormat    "ip_catalog"
 #-------------------------------------------------
 set currDir      [pwd]
 set srcDir       ${currDir}/src
-set tbDir        ${currDir}/tb
-#set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-#set repoDir      ${currDir}/../../ip
-
+set testDir      ${currDir}/test
+set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set repoDir      ${currDir}/../../ip
 
 # Get targets out of env  
 #-------------------------------------------------
-
 set hlsSim $env(hlsSim)
 set hlsCoSim $env(hlsCoSim)
+
 
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
-#set_top       ${projectName}
-set_top       smc_main
+set_top       ${projectName}
 
+add_files     ${srcDir}/${projectName}.cpp
+add_files     ${srcDir}/${projectName}.hpp
 
-#if { $hlsSim } { 
-#add_files     ${srcDir}/${projectName}.cpp
-#add_files     ${srcDir}/${projectName}.hpp
-#add_files     ${srcDir}/http.cpp
-#add_files     ${srcDir}/http.hpp
-#} else {
-add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM"
-add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM"
-add_files     ${srcDir}/http.cpp -cflags "-DCOSIM"
-add_files     ${srcDir}/http.hpp -cflags "-DCOSIM"
-#}
+add_files -tb ${testDir}/tb_${projectName}.cpp
 
-#for DEBUG flag 
-#add_files -tb src/smc.cpp -cflags "-DDEBUG"
-add_files -tb tb/tb_smc.cpp 
-
-#for MPE debugging 
-#add_files -tb ../mpe/src/mpe.cpp
-#add_files -tb ../mpe/src/mpe.hpp
-
+# Create a solution
+#-------------------------------------------------
 open_solution ${solutionName}
 
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Run C Simulation and Synthesis
-#-------------------------------------------------
-
 if { $hlsSim} { 
   csim_design -compiler gcc -clean
-  #csim_design -compiler clang -clean
 } else {
 
   csynth_design
   
   if { $hlsCoSim} {
-    #cosim_design -compiler gcc -trace_level all -rtl vhdl
-    #cosim_design -compiler clang -trace_level all 
     cosim_design -compiler gcc -trace_level all 
   } else {
   
@@ -102,4 +81,7 @@ if { $hlsSim} {
   }
 }
 
+# Exit Vivado HLS
+#--------------------------------------------------
 exit
+
