@@ -65,9 +65,9 @@ entity topFlash is
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
     gSecurityPriviledges : string  := "super";  -- "user" or "super"
     -- Build date --------------------------------
-    gTopDateYear         : stDate  := 8d"18";
-    gTopDateMonth        : stDate  := 8d"08";
-    gTopDateDay          : stDate  := 8d"08";
+    gTopDateYear         : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
+    gTopDateMonth        : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
+    gTopDateDay          : stDate  := 8d"00";   --  Not used w/ Xilinx parts (see USR_ACCESSE2)
     -- External Memory Interface (EMIF) ----------
     gEmifAddrWidth       : integer :=  8;
     gEmifDataWidth       : integer :=  8
@@ -186,6 +186,10 @@ architecture structural of topFlash is
   -- Global Source Synchronous SHELL Clock and Reset ----
   signal sSHL_156_25Clk                     : std_ulogic;
   signal sSHL_156_25Rst                     : std_ulogic;
+  signal sSHL_156_25Rst_delayed             : std_ulogic;
+  
+  -- Bitstream Identification Value ---------------------
+  signal sTOP_Timestamp                     : stTimeStamp; 
      
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / MPE <--> ROLE 
@@ -226,7 +230,7 @@ architecture structural of topFlash is
   --------------------------------------------------------
   -- Memory Port #0 ------------------------------
   ------  Stream Read Command --------------
-  signal sROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : std_ulogic_vector( 79 downto 0);
   signal sROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : std_ulogic;
   ------ Stream Read Status ----------------
@@ -240,7 +244,7 @@ architecture structural of topFlash is
   signal sSHL_Rol_Mem_Mp0_Axis_Read_tlast   : std_ulogic;
   signal sSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : std_ulogic;
   ------ Stream Write Command --------------
-  signal sROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : std_ulogic_vector( 79 downto 0);
   signal sROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : std_ulogic;
   ------ Stream Write Status ---------------
@@ -255,7 +259,7 @@ architecture structural of topFlash is
   signal sSHL_Rol_Mem_Mp0_Axis_Write_tready : std_ulogic;
   -- Memory Port #1 ------------------------------------------
   ------ Stream Read Command ---------------
-  signal sROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : std_ulogic_vector( 79 downto 0);
   signal sROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : std_ulogic;
   ------ Stream Read Status ----------------
@@ -269,7 +273,7 @@ architecture structural of topFlash is
   signal sSHL_Rol_Mem_Mp1_Axis_Read_tlast   : std_ulogic;
   signal sSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : std_ulogic;
   ------ Stream Write Command --------------
-  signal sROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : std_ulogic_vector( 71 downto 0);
+  signal sROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : std_ulogic_vector( 79 downto 0);
   signal sROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : std_ulogic;
   signal sSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : std_ulogic;
   ------ Stream Write Status ---------------
@@ -305,6 +309,9 @@ architecture structural of topFlash is
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
 
   signal sSMC_SoftReset                     : std_ulogic;
+
+  -- Delayed reset counter 
+  signal rst_delay_counter                  : std_logic_vector(5 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS
@@ -318,9 +325,6 @@ architecture structural of topFlash is
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
       gBitstreamUsage      : string  := "flash";  -- Can be "user" or "flash"
-      gTopDateYear         : stDate  := 8d"255";  -- uint8
-      gTopDateMonth        : stDate  := 8d"255";  -- uint8
-      gTopDateDay          : stDate  := 8d"255";  -- Default is 8-bits
       gMmioAddrWidth       : integer := 8;        -- Default is 8-bits
       gMmioDataWidth       : integer := 8         -- Default is 8-bits
     );
@@ -330,6 +334,11 @@ architecture structural of topFlash is
       ------------------------------------------------------
       piTOP_156_25Rst                     : in    std_ulogic;
       piTOP_156_25Clk                     : in    std_ulogic;
+       
+      ------------------------------------------------------
+      -- TOP / Shl / Bitstream Identification
+      ------------------------------------------------------
+      piTOP_Timestamp                      : in   stTimeStamp;
        
       ------------------------------------------------------
       -- CLKT / Shl / Clock Tree Interface 
@@ -406,6 +415,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       poSHL_156_25Clk                     : out   std_ulogic;
       poSHL_156_25Rst                     : out   std_ulogic;
+      piSHL_156_25Rst_delayed             : in    std_ulogic;
        
       ------------------------------------------------------
       -- ROLE / MPI Interface
@@ -445,7 +455,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command -----------------
-      piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : in    std_ulogic_vector( 79 downto 0);
       piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : in    std_ulogic;
       poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : out   std_ulogic;
       ---- Stream Read Status ------------------
@@ -459,7 +469,7 @@ architecture structural of topFlash is
       poSHL_Rol_Mem_Mp0_Axis_Read_tlast   : out   std_ulogic;
       poSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : out   std_ulogic;
       ---- Stream Write Command ----------------
-      piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : in    std_ulogic_vector( 79 downto 0);
       piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : in    std_ulogic;
       poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : out   std_ulogic;
       ---- Stream Write Status -----------------
@@ -478,7 +488,7 @@ architecture structural of topFlash is
       ------------------------------------------------------
       -- Memory Port #1 / S2MM-AXIS ------------------
       ---- Stream Read Command -----------------
-      piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : in    std_ulogic_vector( 79 downto 0);
       piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : in    std_ulogic;
       poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : out   std_ulogic;
       ---- Stream Read Status ------------------
@@ -492,7 +502,7 @@ architecture structural of topFlash is
       poSHL_Rol_Mem_Mp1_Axis_Read_tlast   : out   std_ulogic;
       poSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : out   std_ulogic;
       ---- Stream Write Command ----------------
-      piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 71 downto 0);
+      piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : in    std_ulogic_vector( 79 downto 0);
       piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : in    std_ulogic;
       poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : out   std_ulogic;
       ---- Stream Write Status -----------------
@@ -584,7 +594,7 @@ architecture structural of topFlash is
       ---- Memory Port #0 / S2MM-AXIS ------------------   
       ------ Stream Read Command -----------------
       piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
       poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
       ------ Stream Read Status ------------------
       piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
@@ -598,7 +608,7 @@ architecture structural of topFlash is
       poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
       ------ Stream Write Command ----------------
       piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
       poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
       ------ Stream Write Status -----------------
       piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
@@ -617,7 +627,7 @@ architecture structural of topFlash is
       ---- Memory Port #1 / S2MM-AXIS ------------------   
       ------ Stream Read Command -----------------
       piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
       poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
       ------ Stream Read Status ------------------
       piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
@@ -631,7 +641,7 @@ architecture structural of topFlash is
       poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
       ------ Stream Write Command ----------------
       piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 71 downto 0);
+      poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
       poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
       ------ Stream Write Status -----------------
       piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
@@ -709,17 +719,56 @@ begin
   --==      property to those instances.
   --=========================================================================== 
   TOP_META_RST : HARD_SYNC
-   generic map (
+    generic map (
       INIT => '0',            -- Initial values, '0', '1'
       IS_CLK_INVERTED => '0', -- Programmable inversion on CLK input
       LATENCY => 2            -- 2-3
-   )
-   port map (
+    )
+    port map (
       CLK  => sTOP_156_25Clk,
       DIN  => piPSOC_Fcfg_Rst_n,
       DOUT => sTOP_156_25Rst_n
-   );
-   sTOP_156_25Rst <= not sTOP_156_25Rst_n;
+    );
+  sTOP_156_25Rst <= not sTOP_156_25Rst_n;
+
+  --===========================================================================
+  --==  INST: BITSTREAM IDENTIFICATION BLOCK with USR_ACCESSE2 PRIMITIVE
+  --==    [INFO] This component provides direct FPGA logic access to the 32-bit
+  --==      value stored by the FPGA bitstream. We use this register to retrieve
+  --==      an accurate timestamp corresponding to the date of the bitstream
+  --==      generation (note that we don't track the sminiutes and seconds).    
+  --============================================================================  
+  TOP_TIMESTAMP : USR_ACCESSE2
+    port map (
+      CFGCLK    => open,            -- Not used in the static mode
+      DATA      => sTOP_Timestamp,  -- 32-bit configuration data
+      DATAVALID => open             -- Not used in the static mode
+    );
+   
+   -- ========================================================================
+   -- == Generation of delayed reset vor HLS cores
+   -- ========================================================================
+   process(sSHL_156_25Clk)
+   begin
+     if rising_edge(sSHL_156_25Clk) then 
+       if sSHL_156_25Rst = '1' then
+         sSHL_156_25Rst_delayed <= '0';
+         rst_delay_counter <= (others => '0');
+       else
+        -- if unsigned(rst_delay_counter) <= 20 then 
+        --   sSHL_156_25Rst_delayed <= '0';
+        --   rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
+        if unsigned(rst_delay_counter) <= 20 then 
+           sSHL_156_25Rst_delayed <= '1';
+           rst_delay_counter <= std_logic_vector(unsigned(rst_delay_counter) + 1);
+        else
+           sSHL_156_25Rst_delayed <= '0';
+         end if;
+       end if;
+     end if;
+   end process;
+
+
 
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
@@ -743,7 +792,12 @@ begin
       ------------------------------------------------------
       piTOP_156_25Rst                      => sTOP_156_25Rst,
       piTOP_156_25Clk                      => sTOP_156_25Clk,
-
+      
+      ------------------------------------------------------
+      -- TOP / Shl / Bitstream Identification
+      ------------------------------------------------------
+      piTOP_Timestamp                      => sTOP_Timestamp,
+      
       ------------------------------------------------------
       -- CLKT / Shl / Clock Tree Interface 
       ------------------------------------------------------
@@ -819,6 +873,7 @@ begin
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
       poSHL_156_25Rst                      => sSHL_156_25Rst,
+      piSHL_156_25Rst_delayed              => sSHL_156_25Rst_delayed,
       
       ------------------------------------------------------
       -- ROLE / MPI Interface
