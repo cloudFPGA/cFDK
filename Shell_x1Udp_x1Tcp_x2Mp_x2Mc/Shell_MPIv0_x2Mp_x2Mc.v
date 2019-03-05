@@ -60,12 +60,9 @@
 
 //module Shell_MPIv0_x2Mp_x2Mc # (
 module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
-  
+
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gTopDateYear         =  8'hFF,  // uint8
-  parameter gTopDateMonth        =  8'hFF,  // uint8
-  parameter gTopDateDay          =  8'hFF,  // uint8
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
 
@@ -76,6 +73,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   input           piTOP_156_25Rst,
   input           piTOP_156_25Clk,
+
+  //------------------------------------------------------
+  //-- TOP / Shl / Bitstream Identification
+  //------------------------------------------------------
+  input  [31: 0]  piTOP_Timestamp,
   
   //------------------------------------------------------
   //-- CLKT / Shl / Clock Tree Interface 
@@ -86,7 +88,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piCLKT_Shl_Mem1Clk_p,
   input           piCLKT_Shl_10GeClk_n,
   input           piCLKT_Shl_10GeClk_p,
-  
+
   //------------------------------------------------------
   //-- PSOC / Shl / External Memory Interface (Emif)
   //------------------------------------------------------
@@ -99,12 +101,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
                   piPSOC_Shl_Emif_Addr,
   inout [gMmioDataWidth-1: 0]  
                   pioPSOC_Shl_Emif_Data,
-                  
+
   //------------------------------------------------------
   //-- LED / Shl / Heart Beat Interface (Yellow LED)
   //------------------------------------------------------
   output          poSHL_Led_HeartBeat_n,
-                                    
+
   //------------------------------------------------------
   // -- DDR4 / Shl / Memory Channel 0 Interface (Mc0)
   //------------------------------------------------------
@@ -140,7 +142,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output [ 0:0]   poSHL_Ddr4_Mem_Mc1_Ck_n,
   output [ 0:0]   poSHL_Ddr4_Mem_Mc1_Ck_p,
   output          poSHL_Ddr4_Mem_Mc1_Reset_n,
-  
+
   //------------------------------------------------------
   //-- ECON / Shl / Edge Connector Interface (SPD08-200)
   //------------------------------------------------------
@@ -154,6 +156,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   output          poSHL_156_25Clk,
   output          poSHL_156_25Rst,
+
+  // Soft Reset 
+  input         piSHL_156_25Rst_delayed,
 
   //------------------------------------------------------
   //-- ROLE / MPI Interface
@@ -192,7 +197,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   //-- Memory Port #0 / S2MM-AXIS ------------------   
   //---- Stream Read Command -----------------
-  input  [ 71:0]  piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata,
   input           piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid,
   output          poSHL_Rol_Mem_Mp0_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -206,7 +211,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Rol_Mem_Mp0_Axis_Read_tlast,
   output          poSHL_Rol_Mem_Mp0_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [ 71:0]  piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata,
   input           piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid,
   output          poSHL_Rol_Mem_Mp0_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -219,13 +224,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piROL_Shl_Mem_Mp0_Axis_Write_tlast,
   input           piROL_Shl_Mem_Mp0_Axis_Write_tvalid,
   output          poSHL_Rol_Mem_Mp0_Axis_Write_tready, 
-  
+
   //------------------------------------------------------
   //-- ROLE / Shl / Mem / Mp1 Interface
   //------------------------------------------------------
   //-- Memory Port #1 / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
-  input  [ 71:0]  piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata,
   input           piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid,
   output          poSHL_Rol_Mem_Mp1_Axis_RdCmd_tready,
   //---- Stream Read Status ------------------
@@ -239,7 +244,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Rol_Mem_Mp1_Axis_Read_tlast,
   output          poSHL_Rol_Mem_Mp1_Axis_Read_tvalid,
   //---- Stream Write Command ----------------
-  input  [ 71:0]  piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
+  input  [ 79:0]  piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata,
   input           piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid,
   output          poSHL_Rol_Mem_Mp1_Axis_WrCmd_tready,
   //---- Stream Write Status -----------------
@@ -252,7 +257,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input           piROL_Shl_Mem_Mp1_Axis_Write_tlast,
   input           piROL_Shl_Mem_Mp1_Axis_Write_tvalid,
   output          poSHL_Rol_Mem_Mp1_Axis_Write_tready,
-  
+
   //------------------------------------------------------
   //-- SHELL / Role / Mmio / Flash Debug Interface
   //------------------------------------------------------
@@ -279,14 +284,14 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 );  // End of PortList
 
 
-// *****************************************************************************
-// **  STRUCTURE
-// *****************************************************************************
+  // *****************************************************************************
+  // **  STRUCTURE
+  // *****************************************************************************
 
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
-  
+
   //-- Global Clock and Reset used by the entire SHELL -------------------------
   //---- This clock is generated by the ETH core and runs at 156.25MHz ---------
   (* keep="true" *)
@@ -294,7 +299,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   (* keep="true" *)
   wire          sETH0_ShlRst;
   wire          sETH0_CoreResetDone;  
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ETH0 <--> NTS0 
   //--------------------------------------------------------
@@ -310,13 +315,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sNTS0_Eth0_Axis_tvalid;
   wire          sNTS0_Eth0_Axis_tlast;
   wire          sETH0_Nts0_Axis_tready;
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : NTS0 <--> MEM
   //--------------------------------------------------------
   //----  Transmit Path --------------------------
   //------  Stream Read Command --------------
-  wire [ 71:0]  sNTS0_Mem_TxP_Axis_RdCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_TxP_Axis_RdCmd_tdata;
   wire          sNTS0_Mem_TxP_Axis_RdCmd_tvalid;
   wire          sMEM_Nts0_TxP_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -330,7 +335,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_TxP_Axis_Read_tlast;
   wire          sMEM_Nts0_TxP_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 71:0]  sNTS0_Mem_TxP_Axis_WrCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_TxP_Axis_WrCmd_tdata;
   wire          sNTS0_Mem_TxP_Axis_WrCmd_tvalid;
   wire          sMEM_Nts0_TxP_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -345,7 +350,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_TxP_Axis_Write_tready;
   //---- Receive Path ----------------------------
   //------ Stream Read Command ---------------
-  wire [ 71:0]  sNTS0_Mem_RxP_Axis_RdCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_RxP_Axis_RdCmd_tdata;
   wire          sNTS0_Mem_RxP_Axis_RdCmd_tvalid;
   wire          sMEM_Nts0_RxP_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -359,7 +364,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Nts0_RxP_Axis_Read_tlast;
   wire          sMEM_Nts0_RxP_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 71:0]  sNTS0_Mem_RxP_Axis_WrCmd_tdata;
+  wire [ 79:0]  sNTS0_Mem_RxP_Axis_WrCmd_tdata;
   wire          sNTS0_Mem_RxP_Axis_WrCmd_tvalid;
   wire          sMEM_Nts0_RxP_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -372,13 +377,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sNTS0_Mem_RxP_Axis_Write_tlast;
   wire          sNTS0_Mem_RxP_Axis_Write_tvalid;
   wire          sMEM_Nts0_RxP_Axis_Write_tready;
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ROLE <--> MEM
   //--------------------------------------------------------
   //-- Memory Port #0 ------------------------------
   //------  Stream Read Command --------------
-  wire [ 71:0]  sROL_Mem_Mp0_Axis_RdCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp0_Axis_RdCmd_tdata;
   wire          sROL_Mem_Mp0_Axis_RdCmd_tvalid;
   wire          sMEM_Rol_Mp0_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -392,7 +397,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp0_Axis_Read_tlast;
   wire          sMEM_Rol_Mp0_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 71:0]  sROL_Mem_Mp0_Axis_WrCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp0_Axis_WrCmd_tdata;
   wire          sROL_Mem_Mp0_Axis_WrCmd_tvalid;
   wire          sMEM_Rol_Mp0_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -407,7 +412,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp0_Axis_Write_tready;
   //---- Receive Path ----------------------------
   //------ Stream Read Command ---------------
-  wire [ 71:0]  sROL_Mem_Mp1_Axis_RdCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp1_Axis_RdCmd_tdata;
   wire          sROL_Mem_Mp1_Axis_RdCmd_tvalid;
   wire          sMEM_Rol_Mp1_Axis_RdCmd_tready;
   //------ Stream Read Status ----------------
@@ -421,7 +426,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMEM_Rol_Mp1_Axis_Read_tlast;
   wire          sMEM_Rol_Mp1_Axis_Read_tvalid;
   //------ Stream Write Command --------------
-  wire [ 71:0]  sROL_Mem_Mp1_Axis_WrCmd_tdata;
+  wire [ 79:0]  sROL_Mem_Mp1_Axis_WrCmd_tdata;
   wire          sROL_Mem_Mp1_Axis_WrCmd_tvalid;
   wire          sMEM_Rol_Mp1_Axis_WrCmd_tready;
   //------ Stream Write Status ---------------
@@ -464,7 +469,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [  7:0]  sNTS0_Rol_Tcp_Axis_tkeep;
   wire          sNTS0_Rol_Tcp_Axis_tlast;
   wire          sNTS0_Rol_Tcp_Axis_tvalid;
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MMIO <--> ETH0 
   //--------------------------------------------------------
@@ -491,7 +496,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sMMIO_Eth0_PcsLoopbackEn;
   wire          sMMIO_Eth0_MacLoopbackEn;
   wire          sMMIO_Eth0_MacAddrSwapEn;
-  
+
   //------------------------------------------------------
   //-- SIGNAL DECLARATIONS: Decoupling
   //------------------------------------------------------
@@ -510,22 +515,22 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire            sDECOUP_ROLE_MPE_MPI_data_TLAST;
   wire            sDECOUP_MPE_ROLE_MPI_data_TREADY;
   wire    [15:0]  sDECOUP_SHL_EMIF_2B_Reg;
-  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Read_tready;
-  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready;
   wire   [511:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata;
   wire   [ 63:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast;
   wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid;
-  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_Read_tready;
-  wire   [ 71:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
+  wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready;
   wire   [511:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata;
@@ -557,7 +562,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        sCASTOR_HWICAPC_axi_rvalid;
   wire        sCASTOR_HWICAPC_axi_rready;
   wire        sCASTOR_HWICAPC_ip2intc_irpt;
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : CASTOR
   //--------------------------------------------------------
@@ -641,26 +646,24 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
-    
   //============================================================================
   //  INST: MMIIO CLIENT
   //============================================================================
   MmioClient_A8_D8 #(
-
-    .gTopDateYear         (gTopDateYear),
-    .gTopDateMonth        (gTopDateMonth),
-    .gTopDateDay          (gTopDateDay),
     .gSecurityPriviledges (gSecurityPriviledges),
     .gBitstreamUsage      (gBitstreamUsage)
-    
+
   ) MMIO (
-   
+
     //-- Global Clock used by the entire SHELL --------
     .piShlClk                       (sETH0_ShlClk),
- 
+
     //-- Global Reset used by the entire TOP ----------
     .piTopRst                       (piTOP_156_25Rst),   
-     
+
+    //-- Bitstream Identification ---------------------
+    .piTOP_Timestamp                (piTOP_Timestamp),
+
     //-- PSOC : Mmio Bus Interface --------------------
     .piPSOC_Mmio_Clk                (piPSOC_Shl_Emif_Clk),
     .piPSOC_Mmio_Cs_n               (piPSOC_Shl_Emif_Cs_n),
@@ -669,11 +672,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piPSOC_Mmio_Oe_n               (piPSOC_Shl_Emif_Oe_n),
     .piPSOC_Mmio_Addr               (piPSOC_Shl_Emif_Addr),
     .pioPSOC_Mmio_Data              (pioPSOC_Shl_Emif_Data),
- 
+
     //-- MEM : Status inputs and Control outputs ------
     .piMEM_Mmio_Mc0InitCalComplete  (sMEM_Mmio_Mc0InitCalComplete),
     .piMEM_Mmio_Mc1InitCalComplete  (sMEM_Mmio_Mc1InitCalComplete),
-    
+
     //-- ETH0: Status inputs and Control outputs ------
     .piETH0_Mmio_CoreReady          (sETH0_Mmio_CoreReady),
     .piETH0_Mmio_QpllLock           (sETH0_Mmio_QpllLock),
@@ -684,27 +687,30 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poMMIO_Eth0_PcsLoopbackEn      (sMMIO_Eth0_PcsLoopbackEn),
     .poMMIO_Eth0_MacLoopbackEn      (sMMIO_Eth0_MacLoopbackEn),
     .poMMIO_Eth0_MacAddrSwapEn      (sMMIO_Eth0_MacAddrSwapEn),
-    
+
     //-- NTS0: Status inputs and Control outputs ------
     .poMMIO_Nts0_MacAddress         (sMMIO_Nts0_MacAddress),
     .poMMIO_Nts0_IpAddress          (sMMIO_Nts0_IpAddress),
     .poMMIO_Nts0_SubNetMask         (sMMIO_Nts0_SubNetMask),
     .poMMIO_Nts0_GatewayAddr        (sMMIO_Nts0_GatewayAddr),
-    
+
     //-- ROLE : Status inputs and Control Outputs --
-    .poMMIO_Role_UdpEchoCtrl        (poMMIO_Role_UdpEchoCtrl),
-    .poMMIO_Role_UdpPostPktEn       (poMMIO_Role_UdpPostPktEn),
-    .poMMIO_Role_UdpCaptPktEn       (poMMIO_Role_UdpCaptPktEn),
-    .poMMIO_Role_TcpEchoCtrl        (poMMIO_Role_TcpEchoCtrl),
-    .poMMIO_Role_TcpPostPktEn       (poMMIO_Role_TcpPostPktEn),
-    .poMMIO_Role_TcpCaptPktEn       (poMMIO_Role_TcpCaptPktEn),
-    
+    .poMMIO_Role_UdpEchoCtrl        (poSHL_Rol_Mmio_UdpEchoCtrl),
+    .poMMIO_Role_UdpPostPktEn       (poSHL_Rol_Mmio_UdpPostPktEn),
+    .poMMIO_Role_UdpCaptPktEn       (poSHL_Rol_Mmio_UdpCaptPktEn),
+    .poMMIO_Role_TcpEchoCtrl        (poSHL_Rol_Mmio_TcpEchoCtrl),
+    .poMMIO_Role_TcpPostPktEn       (poSHL_Rol_Mmio_TcpPostPktEn),
+    .poMMIO_Role_TcpCaptPktEn       (poSHL_Rol_Mmio_TcpCaptPktEn),
+
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),
     .piMMIO_ROLE_2B_Reg             (sDECOUP_SHL_EMIF_2B_Reg),
     // SMC Registers
     .piMMIO_SMC_4B_Reg              (sCASTOR_MMIO_4B_Reg),
     .poMMIO_SMC_4B_Reg              (sMMIO_CASTOR_4B_Reg),
+    // MemTest DiagRegisters 
+    .poMMIO_Mc1_MemTestCtrl         (poSHL_Mc1_MemTestCtrl),
+    .piMMIO_DIAG_STAT_1             (piSHL_DIAG_STAT_1),
     //XMem Port B
     .piSMC_MMIO_XMEM_en             (sCASTOR_MMIO_XMEM_cen),
     .piSMC_MMIO_XMEM_Wren           (sCASTOR_MMIO_XMEM_wren),
@@ -715,7 +721,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poVoid                         ()
 
   );  // End of MMMIO
- 
+
 
   //============================================================================
   //  CONDITIONAL INSTANTIATION OF A LOOPBACK TURN BETWEEN ETH0 Ly2 and Ly3.  
@@ -833,13 +839,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //  INST: NETWORK+TRANSPORT+SESSION SUBSYSTEM (OSI Network Layers 3+4+5)
   //============================================================================
   NetworkTransportSession_TcpIp NTS0 (
-  
+
     //-- Global Clock used by the entire SHELL --------------
     .piShlClk                         (sETH0_ShlClk),
-  
+
     //-- Global Reset used by the entire SHELL --------------
     .piShlRst                         (sETH0_ShlRst),
-   
+
     //------------------------------------------------------
     //-- ETH0 / Nts0 / AXI-Write Stream Interfaces
     //------------------------------------------------------
@@ -855,7 +861,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poNTS0_Eth0_Axis_tkeep           (sNTS0_Eth0_Axis_tkeep),
     .poNTS0_Eth0_Axis_tlast           (sNTS0_Eth0_Axis_tlast),
     .poNTS0_Eth0_Axis_tvalid          (sNTS0_Eth0_Axis_tvalid),
- 
+
     //------------------------------------------------------
     //-- MEM / Nts0 / TxP Interfaces
     //------------------------------------------------------
@@ -869,11 +875,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_TxP_Axis_RdSts_tvalid (sMEM_Nts0_TxP_Axis_RdSts_tvalid),
     .poNTS0_Mem_TxP_Axis_RdSts_tready (sNTS0_Mem_TxP_Axis_RdSts_tready),
     //---- Stream Data Input Channel -----------
-    .piMEM_Nts0_TxP_Axis_Read_tdata   (sMEM_Nts0_TxP_Axis_Read_tdata),
-    .piMEM_Nts0_TxP_Axis_Read_tkeep   (sMEM_Nts0_TxP_Axis_Read_tkeep),
-    .piMEM_Nts0_TxP_Axis_Read_tlast   (sMEM_Nts0_TxP_Axis_Read_tlast),
-    .piMEM_Nts0_TxP_Axis_Read_tvalid  (sMEM_Nts0_TxP_Axis_Read_tvalid),
-    .poNTS0_Mem_TxP_Axis_Read_tready  (sNTS0_Mem_TxP_Axis_Read_tready),
+    .piMEM_Nts0_TxP_Axis_Data_tdata   (sMEM_Nts0_TxP_Axis_Read_tdata),
+    .piMEM_Nts0_TxP_Axis_Data_tkeep   (sMEM_Nts0_TxP_Axis_Read_tkeep),
+    .piMEM_Nts0_TxP_Axis_Data_tlast   (sMEM_Nts0_TxP_Axis_Read_tlast),
+    .piMEM_Nts0_TxP_Axis_Data_tvalid  (sMEM_Nts0_TxP_Axis_Read_tvalid),
+    .poNTS0_Mem_TxP_Axis_Data_tready  (sNTS0_Mem_TxP_Axis_Read_tready),
     //---- Stream Write Command ----------------
     .piMEM_Nts0_TxP_Axis_WrCmd_tready (sMEM_Nts0_TxP_Axis_WrCmd_tready),
     .poNTS0_Mem_TxP_Axis_WrCmd_tdata  (sNTS0_Mem_TxP_Axis_WrCmd_tdata),
@@ -883,11 +889,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_TxP_Axis_WrSts_tvalid (sMEM_Nts0_TxP_Axis_WrSts_tvalid),
     .poNTS0_Mem_TxP_Axis_WrSts_tready (sNTS0_Mem_TxP_Axis_WrSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMEM_Nts0_TxP_Axis_Write_tready (sMEM_Nts0_TxP_Axis_Write_tready),
-    .poNTS0_Mem_TxP_Axis_Write_tdata  (sNTS0_Mem_TxP_Axis_Write_tdata),
-    .poNTS0_Mem_TxP_Axis_Write_tkeep  (sNTS0_Mem_TxP_Axis_Write_tkeep),
-    .poNTS0_Mem_TxP_Axis_Write_tlast  (sNTS0_Mem_TxP_Axis_Write_tlast),
-    .poNTS0_Mem_TxP_Axis_Write_tvalid (sNTS0_Mem_TxP_Axis_Write_tvalid),
+    .piMEM_Nts0_TxP_Axis_Data_tready  (sMEM_Nts0_TxP_Axis_Write_tready),
+    .poNTS0_Mem_TxP_Axis_Data_tdata   (sNTS0_Mem_TxP_Axis_Write_tdata),
+    .poNTS0_Mem_TxP_Axis_Data_tkeep   (sNTS0_Mem_TxP_Axis_Write_tkeep),
+    .poNTS0_Mem_TxP_Axis_Data_tlast   (sNTS0_Mem_TxP_Axis_Write_tlast),
+    .poNTS0_Mem_TxP_Axis_Data_tvalid  (sNTS0_Mem_TxP_Axis_Write_tvalid),
 
     //------------------------------------------------------
     //-- MEM / Nts0 / RxP Interfaces
@@ -902,11 +908,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_RxP_Axis_RdSts_tvalid (sMEM_Nts0_RxP_Axis_RdSts_tvalid),
     .poNTS0_Mem_RxP_Axis_RdSts_tready (sNTS0_Mem_RxP_Axis_RdSts_tready),
     //---- Stream Data Input Channel ----------
-    .piMEM_Nts0_RxP_Axis_Read_tdata   (sMEM_Nts0_RxP_Axis_Read_tdata),
-    .piMEM_Nts0_RxP_Axis_Read_tkeep   (sMEM_Nts0_RxP_Axis_Read_tkeep),
-    .piMEM_Nts0_RxP_Axis_Read_tlast   (sMEM_Nts0_RxP_Axis_Read_tlast),
-    .piMEM_Nts0_RxP_Axis_Read_tvalid  (sMEM_Nts0_RxP_Axis_Read_tvalid),
-    .poNTS0_Mem_RxP_Axis_Read_tready  (sNTS0_Mem_RxP_Axis_Read_tready),
+    .piMEM_Nts0_RxP_Axis_Data_tdata   (sMEM_Nts0_RxP_Axis_Read_tdata),
+    .piMEM_Nts0_RxP_Axis_Data_tkeep   (sMEM_Nts0_RxP_Axis_Read_tkeep),
+    .piMEM_Nts0_RxP_Axis_Data_tlast   (sMEM_Nts0_RxP_Axis_Read_tlast),
+    .piMEM_Nts0_RxP_Axis_Data_tvalid  (sMEM_Nts0_RxP_Axis_Read_tvalid),
+    .poNTS0_Mem_RxP_Axis_Data_tready  (sNTS0_Mem_RxP_Axis_Read_tready),
     //---- Stream Write Command ----------------
     .piMEM_Nts0_RxP_Axis_WrCmd_tready (sMEM_Nts0_RxP_Axis_WrCmd_tready),
     .poNTS0_Mem_RxP_Axis_WrCmd_tdata  (sNTS0_Mem_RxP_Axis_WrCmd_tdata),
@@ -916,12 +922,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMEM_Nts0_RxP_Axis_WrSts_tvalid (sMEM_Nts0_RxP_Axis_WrSts_tvalid),
     .poNTS0_Mem_RxP_Axis_WrSts_tready (sNTS0_Mem_RxP_Axis_WrSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMEM_Nts0_RxP_Axis_Write_tready (sMEM_Nts0_RxP_Axis_Write_tready),  
-    .poNTS0_Mem_RxP_Axis_Write_tdata  (sNTS0_Mem_RxP_Axis_Write_tdata),
-    .poNTS0_Mem_RxP_Axis_Write_tkeep  (sNTS0_Mem_RxP_Axis_Write_tkeep),
-    .poNTS0_Mem_RxP_Axis_Write_tlast  (sNTS0_Mem_RxP_Axis_Write_tlast),
-    .poNTS0_Mem_RxP_Axis_Write_tvalid (sNTS0_Mem_RxP_Axis_Write_tvalid),
-    
+    .piMEM_Nts0_RxP_Axis_Data_tready  (sMEM_Nts0_RxP_Axis_Write_tready),  
+    .poNTS0_Mem_RxP_Axis_Data_tdata   (sNTS0_Mem_RxP_Axis_Write_tdata),
+    .poNTS0_Mem_RxP_Axis_Data_tkeep   (sNTS0_Mem_RxP_Axis_Write_tkeep),
+    .poNTS0_Mem_RxP_Axis_Data_tlast   (sNTS0_Mem_RxP_Axis_Write_tlast),
+    .poNTS0_Mem_RxP_Axis_Data_tvalid  (sNTS0_Mem_RxP_Axis_Write_tvalid),
+
     //------------------------------------------------------
     //-- ROLE / Nts0 / Udp Interfaces
     //------------------------------------------------------
@@ -971,34 +977,34 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piMMIO_Nts0_IpAddress            (sMMIO_Nts0_IpAddress),
     .piMMIO_Nts0_SubNetMask           (sMMIO_Nts0_SubNetMask),
     .piMMIO_Nts0_GatewayAddr          (sMMIO_Nts0_GatewayAddr),   
-    
+
     .poVoid                           ()
-  
+
   );  // End of NTS0
-  
+
 
   //============================================================================
   //  INST: SYNCHRONOUS DYNAMIC RANDOM ACCESS MEMORY SUBSYSTEM
   //============================================================================
   MemorySubSystem #(
-    
+
     "user",     // gSecurityPriviledges
     "user"      // gBitstreamUsage
-    
+
   ) MEM (
-  
+
     //-- Global Clock used by the entire SHELL -------------
     .piShlClk                         (sETH0_ShlClk),
 
     //-- Global Reset used by the entire SHELL -------------
     .piTOP_156_25Rst                  (piTOP_156_25Rst),
-  
+
     //-- DDR4 Reference Memory Clocks ----------------------
     .piCLKT_Mem0Clk_n                 (piCLKT_Shl_Mem0Clk_n),
     .piCLKT_Mem0Clk_p                 (piCLKT_Shl_Mem0Clk_p),
     .piCLKT_Mem1Clk_n                 (piCLKT_Shl_Mem1Clk_n),
     .piCLKT_Mem1Clk_p                 (piCLKT_Shl_Mem1Clk_p),
-  
+
     //-- Control Inputs and Status Ouputs ------------------
     .poMmio_Mc0_InitCalComplete       (sMEM_Mmio_Mc0InitCalComplete),
     .poMmio_Mc1_InitCalComplete       (sMEM_Mmio_Mc1InitCalComplete),
@@ -1035,7 +1041,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piNTS0_Mem_TxP_Axis_Write_tlast  (sNTS0_Mem_TxP_Axis_Write_tlast),
     .piNTS0_Mem_TxP_Axis_Write_tvalid (sNTS0_Mem_TxP_Axis_Write_tvalid),
     .poMEM_Nts0_TxP_Axis_Write_tready (sMEM_Nts0_TxP_Axis_Write_tready),
-    
+
     //------------------------------------------------------
     //-- NTS0 / Mem / Rx Interface
     //------------------------------------------------------
@@ -1119,7 +1125,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piROL_Mem_Mp0_Axis_Write_tlast   (sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast),
     .piROL_Mem_Mp0_Axis_Write_tvalid  (sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid),
     .poMEM_Rol_Mp0_Axis_Write_tready  (poSHL_Rol_Mem_Mp0_Axis_Write_tready),
-    
+
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
@@ -1152,7 +1158,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piROL_Mem_Mp1_Axis_Write_tlast   (sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast),
     .piROL_Mem_Mp1_Axis_Write_tvalid  (sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid),
     .poMEM_Rol_Mp1_Axis_Write_tready  (poSHL_Rol_Mem_Mp1_Axis_Write_tready),
-  
+
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1
     //------------------------------------------------------
@@ -1172,9 +1178,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poMEM_Ddr4_Mc1_Reset_n           (poSHL_Ddr4_Mem_Mc1_Reset_n),
 
     .poVoid                           ()
-  
+
   );  // End of MEM
-  
+
   //===========================================================================
   // SMC related modules 
   //===========================================================================
@@ -1214,7 +1220,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     //core should start immediately 
     .ap_start               (1),
-    .piSysReset_V           (piTOP_156_25Rst),
+    .piSysReset_V           (piSHL_156_25Rst_delayed),
     .piSysReset_V_ap_vld   (1),
     .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
     //.poMMIO_V_ap_vld     ( ),
@@ -1244,23 +1250,23 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
     .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
     .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_AWVALID        (sSMC_MPE_ctrlLink_AXI_AWVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_AWREADY        (sSMC_MPE_ctrlLink_AXI_AWREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWVALID       (sSMC_MPE_ctrlLink_AXI_AWVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_AWREADY       (sSMC_MPE_ctrlLink_AXI_AWREADY),
     .m_axi_poSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
     .m_axi_poSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
     .m_axi_poSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WDATA        (sSMC_MPE_ctrlLink_AXI_WDATA),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WSTRB        (sSMC_MPE_ctrlLink_AXI_WSTRB),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_ARVALID        (sSMC_MPE_ctrlLink_AXI_ARVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_ARREADY        (sSMC_MPE_ctrlLink_AXI_ARREADY),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WDATA         (sSMC_MPE_ctrlLink_AXI_WDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_WSTRB         (sSMC_MPE_ctrlLink_AXI_WSTRB),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARVALID       (sSMC_MPE_ctrlLink_AXI_ARVALID),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_ARREADY       (sSMC_MPE_ctrlLink_AXI_ARREADY),
     .m_axi_poSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
     .m_axi_poSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
     .m_axi_poSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RDATA        (sSMC_MPE_ctrlLink_AXI_RDATA),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RRESP        (sSMC_MPE_ctrlLink_AXI_RRESP),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RDATA         (sSMC_MPE_ctrlLink_AXI_RDATA),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_RRESP         (sSMC_MPE_ctrlLink_AXI_RRESP),
     .m_axi_poSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
     .m_axi_poSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP        (sSMC_MPE_ctrlLink_AXI_BRESP),
+    .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP         (sSMC_MPE_ctrlLink_AXI_BRESP),
     .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
     .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size),
     .poSoftReset_V                       (sCASTOR_softReset)
@@ -1512,8 +1518,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .DIN  (piTOP_156_25Rst | ~sETH0_CoreResetDone),   // 1-bit input:  Data
     .DOUT (sETH0_ShlRst)                              // 1-bit output: Data
   );
-  
-    
+
+
   //============================================================================
   //  PROC: BINARY COUNTER
   //============================================================================
@@ -1522,8 +1528,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
   always @(posedge sETH0_ShlClk)
     sBinCnt <= sBinCnt + 1'b1;  
-   
-   
+
+
   //============================================================================
   //  PROC: HEART_BEAT
   //----------------------------------------------------------------------------
@@ -1542,23 +1548,23 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //
   //============================================================================
   reg   sLed_HeartBeat;
-  
+
   wire  sETH0_Ready;
   assign sETH0_Ready = sETH0_Mmio_CoreReady;
-  
+
   wire sMc0_Ready;
   wire sMc1_Ready;
   assign sMc0_Ready = sMEM_Mmio_Mc0InitCalComplete;
   assign sMc1_Ready = sMEM_Mmio_Mc1InitCalComplete;
-  
+
   always @(posedge sETH0_ShlClk)
     sLed_HeartBeat <= (!sBinCnt[29] && !sBinCnt[28])                                              ||  // Start bit
                       (!sBinCnt[29] &&  sBinCnt[28] && !sBinCnt[27] && sBinCnt[26] & sMc0_Ready)  ||  // Memory channel 0
                       (!sBinCnt[29] &&  sBinCnt[28] &&  sBinCnt[27] && sBinCnt[26] & sMc1_Ready)  ||  // Memory channel 1
                       ( sBinCnt[29] && !sBinCnt[28] && !sBinCnt[27] && sBinCnt[26] & sETH0_Ready);    // Ethernet MAC 0
-  
+
   assign poSHL_Led_HeartBeat_n = ~sLed_HeartBeat; // LED is active low  
-  
+
 
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
@@ -1566,11 +1572,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   assign poSHL_156_25Clk = sETH0_ShlClk;
   assign poSHL_156_25Rst = sETH0_ShlRst;
 
-    
+
+
   //============================================================================
   //  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
   //============================================================================
-  
+
   //-- ETH0 ==> NTS0 / AXIS Interface ---------------------------- 
   //(* mark_debug = "true" *)  wire  [ 63:0]  sETH0_Nts0_Axis_tdata;
   //(* mark_debug = "true" *)  wire  [ 7:0]   sETH0_Nts0_Axis_tkeep;
@@ -1583,7 +1590,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tlast;
   //(* mark_debug = "true" *)  wire           sNTS0_Eth0_Axis_tvalid;
   //(* mark_debug = "true" *)  wire           sETH0_Nts0_Axis_tready;
-  
+
   //============================================================================
   //  VIO FOR HARDWARE BRING-UP AND DEBUG
   //============================================================================
@@ -1594,6 +1601,6 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //    .probe_in2  (sDataCompareError),
   //    .probe_in3  (poSHL_Led_HeartBeat_n)
   //  );
-  
+
 
 endmodule
