@@ -439,7 +439,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sROL_Mem_Mp1_Axis_Write_tlast;
   wire          sROL_Mem_Mp1_Axis_Write_tvalid;
   wire          sMEM_Rol_Mp1_Axis_Write_tready;
-  
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ROLE <--> NTS0
   //--------------------------------------------------------

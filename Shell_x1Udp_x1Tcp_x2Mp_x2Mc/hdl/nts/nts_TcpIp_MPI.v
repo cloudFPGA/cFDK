@@ -10,8 +10,7 @@
 // * File    : nts_TcpIp.v
 // *
 // * Created : Nov. 2017
-// * Authors : Jagath Weerasinghe, 
-// *           Francois Abel <fab@zurich.ibm.com>
+// * Authors : Francois Abel <fab@zurich.ibm.com>
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2016.4 (64-bit)
@@ -72,32 +71,32 @@ module NetworkTransportSession_TcpIp (
   //-- Transmit Path / S2MM-AXIS -------------------------
   //---- Stream Read Command -------------------
   input          piMEM_Nts0_TxP_Axis_RdCmd_tready,
-  output[ 71:0]  poNTS0_Mem_TxP_Axis_RdCmd_tdata,
+  output[ 79:0]  poNTS0_Mem_TxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
   input [  7:0]  piMEM_Nts0_TxP_Axis_RdSts_tdata,
   input          piMEM_Nts0_TxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
-  input [ 63:0]  piMEM_Nts0_TxP_Axis_Read_tdata,
-  input [  7:0]  piMEM_Nts0_TxP_Axis_Read_tkeep,
-  input          piMEM_Nts0_TxP_Axis_Read_tlast,
-  input          piMEM_Nts0_TxP_Axis_Read_tvalid,
-  output         poNTS0_Mem_TxP_Axis_Read_tready,
+  input [ 63:0]  piMEM_Nts0_TxP_Axis_Data_tdata,
+  input [  7:0]  piMEM_Nts0_TxP_Axis_Data_tkeep,
+  input          piMEM_Nts0_TxP_Axis_Data_tlast,
+  input          piMEM_Nts0_TxP_Axis_Data_tvalid,
+  output         poNTS0_Mem_TxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_TxP_Axis_WrCmd_tready,
-  output [ 71:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
+  output [ 79:0] poNTS0_Mem_TxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_TxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
   input [  7:0]  piMEM_Nts0_TxP_Axis_WrSts_tdata,
   input          piMEM_Nts0_TxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_TxP_Axis_WrSts_tready,
   //---- Stream Data Output Channel ----------
-  input          piMEM_Nts0_TxP_Axis_Write_tready,
-  output [ 63:0] poNTS0_Mem_TxP_Axis_Write_tdata,
-  output [  7:0] poNTS0_Mem_TxP_Axis_Write_tkeep,
-  output         poNTS0_Mem_TxP_Axis_Write_tlast,
-  output         poNTS0_Mem_TxP_Axis_Write_tvalid,
+  input          piMEM_Nts0_TxP_Axis_Data_tready,
+  output [ 63:0] poNTS0_Mem_TxP_Axis_Data_tdata,
+  output [  7:0] poNTS0_Mem_TxP_Axis_Data_tkeep,
+  output         poNTS0_Mem_TxP_Axis_Data_tlast,
+  output         poNTS0_Mem_TxP_Axis_Data_tvalid,
 
   //------------------------------------------------------
   //-- MEM / Nts0 / RxP Interfaces
@@ -105,32 +104,32 @@ module NetworkTransportSession_TcpIp (
   //-- Receive Path / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
   input          piMEM_Nts0_RxP_Axis_RdCmd_tready,
-  output [ 71:0] poNTS0_Mem_RxP_Axis_RdCmd_tdata,
+  output [ 79:0] poNTS0_Mem_RxP_Axis_RdCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_RdCmd_tvalid,
   //---- Stream Read Status ------------------
   input [   7:0] piMEM_Nts0_RxP_Axis_RdSts_tdata,
   input          piMEM_Nts0_RxP_Axis_RdSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_RdSts_tready,
   //---- Stream Data Input Channel ----------
-  input [ 63:0]  piMEM_Nts0_RxP_Axis_Read_tdata,
-  input [  7:0]  piMEM_Nts0_RxP_Axis_Read_tkeep,
-  input          piMEM_Nts0_RxP_Axis_Read_tlast,
-  input          piMEM_Nts0_RxP_Axis_Read_tvalid,
-  output         poNTS0_Mem_RxP_Axis_Read_tready,
+  input [ 63:0]  piMEM_Nts0_RxP_Axis_Data_tdata,
+  input [  7:0]  piMEM_Nts0_RxP_Axis_Data_tkeep,
+  input          piMEM_Nts0_RxP_Axis_Data_tlast,
+  input          piMEM_Nts0_RxP_Axis_Data_tvalid,
+  output         poNTS0_Mem_RxP_Axis_Data_tready,
   //---- Stream Write Command ----------------
   input          piMEM_Nts0_RxP_Axis_WrCmd_tready,
-  output[ 71:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
+  output[ 79:0]  poNTS0_Mem_RxP_Axis_WrCmd_tdata,
   output         poNTS0_Mem_RxP_Axis_WrCmd_tvalid,
   //---- Stream Write Status -----------------
   input [  7:0]  piMEM_Nts0_RxP_Axis_WrSts_tdata,
   input          piMEM_Nts0_RxP_Axis_WrSts_tvalid,
   output         poNTS0_Mem_RxP_Axis_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input          piMEM_Nts0_RxP_Axis_Write_tready, 
-  output [ 63:0] poNTS0_Mem_RxP_Axis_Write_tdata,
-  output [  7:0] poNTS0_Mem_RxP_Axis_Write_tkeep,
-  output         poNTS0_Mem_RxP_Axis_Write_tlast,
-  output         poNTS0_Mem_RxP_Axis_Write_tvalid,
+  input          piMEM_Nts0_RxP_Axis_Data_tready, 
+  output [ 63:0] poNTS0_Mem_RxP_Axis_Data_tdata,
+  output [  7:0] poNTS0_Mem_RxP_Axis_Data_tkeep,
+  output         poNTS0_Mem_RxP_Axis_Data_tlast,
+  output         poNTS0_Mem_RxP_Axis_Data_tvalid,
   
   //------------------------------------------------------
   //-- ROLE / Nts0 / Udp Interfaces
@@ -472,17 +471,17 @@ module NetworkTransportSession_TcpIp (
   wire          sTOE_Cam_LkpReq_Axis_tvalid;
   wire          sCAM_Toe_LkpReq_Axis_tready;
   //-- TOE ==> CAM / UpdateRequest / Axis
-  wire  [111:0] sTOE_Cam_Updreq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
-  wire          sTOE_Cam_Updreq_Axis_tvalid;
-  wire          sCAM_Toe_Updreq_Axis_tready;
+  wire  [111:0] sTOE_Cam_UpdReq_Axis_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
+  wire          sTOE_Cam_UpdReq_Axis_tvalid;
+  wire          sCAM_Toe_UpdReq_Axis_tready;
  
   //------------------------------------------------------------------
   //-- CAM = TOE-CAM
   //------------------------------------------------------------------
   //-- CAM ==> TOE / LookupReply / Axis
-  wire  [15:0]  sCAM_Toe_LkpRpl_Axis_tdata;
-  wire          sCAM_Toe_LkpRpl_Axis_tvalid;
-  wire          sTOE_Cam_LkpRpl_Axis_tready;
+  wire  [15:0]  sCAM_Toe_LkpRep_Axis_tdata;
+  wire          sCAM_Toe_LkpRep_Axis_tvalid;
+  wire          sTOE_Cam_LkpRep_Axis_tready;
   //-- CAM ==> TOE / UpdateReply / Axis
   wire  [15:0]  sCAM_Toe_UpdRpl_Axis_tdata;
   wire          sCAM_Toe_UpdRpl_Axis_tvalid;
@@ -659,9 +658,10 @@ module NetworkTransportSession_TcpIp (
 
   ); // End of IPRX
 
-`endif
+`endif //  `ifdef USE_DEPRECATED_DIRECTIVES
+   
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_ip_module_rx_path_1 IPRX (
 //    .s_dataIn_TVALID(rx_data_TVALID),                  
 //    .s_dataIn_TREADY(rx_data_TREADY),                 
@@ -706,7 +706,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                               
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> ARP)
@@ -728,7 +728,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Arp_Axis_tvalidReg)
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS0 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -745,7 +745,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_arp_slice_to_arp_tkeep),
 //    .m_axis_tlast(axi_arp_slice_to_arp_tlast)
 //  );  
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> ICMP)
@@ -767,7 +767,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Icmp_Data_Axis_tvalidReg)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS1 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -784,7 +784,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_icmp_slice_to_icmp_tkeep),
 //    .m_axis_tlast(axi_icmp_slice_to_icmp_tlast)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: ARP 
@@ -835,7 +835,7 @@ module NetworkTransportSession_TcpIp (
 
   ); // End of ARP
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  arpServerWrapper ARP (
 //    .axi_arp_to_arp_slice_tvalid(axi_arp_to_arp_slice_tvalid),
 //    .axi_arp_to_arp_slice_tready(axi_arp_to_arp_slice_tready),
@@ -862,7 +862,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: TCP-OFFLOAD-MODULE
@@ -871,7 +871,12 @@ module NetworkTransportSession_TcpIp (
   
     .aclk                               (piShlClk),
     .aresetn                            (~piShlRst),
-   
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_This_IpAddr_V               (piMMIO_Nts0_IpAddress),
+                        
     //------------------------------------------------------
     //-- From IPRX / IP Rx Data Interface
     //------------------------------------------------------
@@ -978,100 +983,111 @@ module NetworkTransportSession_TcpIp (
 
    
     //------------------------------------------------------
-    //-- From CAM Interfaces
+    //-- To TRIF / ROLE Tx Ctrl Interfaces
     //------------------------------------------------------
-    //-- CAM / This / LookupReply / Axis
-    .s_axis_session_lup_rsp_TDATA       (sCAM_Toe_LkpRpl_Axis_tdata),
-    .s_axis_session_lup_rsp_TVALID      (sCAM_Toe_LkpRpl_Axis_tvalid),
-    .s_axis_session_lup_rsp_TREADY      (sTOE_Cam_LkpRpl_Axis_tready),
-    //-- CAM / This / UpdateReply /Axis
-    .s_axis_session_upd_rsp_TDATA       (sCAM_Toe_UpdRpl_Axis_tdata),
-    .s_axis_session_upd_rsp_TVALID      (sCAM_Toe_UpdRpl_Axis_tvalid),
-    .s_axis_session_upd_rsp_TREADY      (sTOE_Cam_UpdRpl_Axis_tready),
-
+    //-- TRIF / This / Tx Close Connection Request / Axis
+    //.siTRIF_This_ClsReq_TDATA           (sTRIF_Toe_ClsReq_Axis_tdata),
+    //.siTRIF_This_ClsReq_TVALID          (sTRIF_Toe_ClsReq_Axis_tvalid),
+    //.siTRIF_This_ClsReq_TREADY          (sTOE_Trif_ClsReq_Axis_tready),
+    //--  THIS / Trif / Tx Close Connection Request / Axis
+    // [INFO] Not used  
+    // [DEBUG] not connected in MPI case
+   
     //------------------------------------------------------
     //-- MEM / Nts0 / RxP Interface
     //------------------------------------------------------
-    //-- Receive Path / S2MM-AXIS ------------------
-    //---- Stream Read Command -----------------
-    .m_axis_rxread_cmd_TREADY           (piMEM_Nts0_RxP_Axis_RdCmd_tready),
-    .m_axis_rxread_cmd_TDATA            (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
-    .m_axis_rxread_cmd_TVALID           (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
+    //-- Receive Path / S2MM-AXIS --------------------------
     //---- Stream Read Status ------------------
     // [INFO] Not used                                 
+    //---- Stream Read Command -----------------
+    .soTHIS_Mem_RxP_RdCmd_TREADY        (piMEM_Nts0_RxP_Axis_RdCmd_tready),
+    .soTHIS_Mem_RxP_RdCmd_TDATA         (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
+    .soTHIS_Mem_RxP_RdCmd_TVALID        (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
     //---- Stream Data Input Channel -----------
-    .s_axis_rxread_data_TDATA           (piMEM_Nts0_RxP_Axis_Read_tdata),
-    .s_axis_rxread_data_TKEEP           (piMEM_Nts0_RxP_Axis_Read_tkeep),
-    .s_axis_rxread_data_TLAST           (piMEM_Nts0_RxP_Axis_Read_tlast),
-    .s_axis_rxread_data_TVALID          (piMEM_Nts0_RxP_Axis_Read_tvalid),  
-    .s_axis_rxread_data_TREADY          (poNTS0_Mem_RxP_Axis_Read_tready),
-    //---- Stream Write Command ----------------
-    .m_axis_rxwrite_cmd_TREADY          (piMEM_Nts0_RxP_Axis_WrCmd_tready),
-    .m_axis_rxwrite_cmd_TDATA           (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
-    .m_axis_rxwrite_cmd_TVALID          (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
+    .siMEM_This_RxP_Data_TDATA          (piMEM_Nts0_RxP_Axis_Data_tdata),
+    .siMEM_This_RxP_Data_TKEEP          (piMEM_Nts0_RxP_Axis_Data_tkeep),
+    .siMEM_This_RxP_Data_TLAST          (piMEM_Nts0_RxP_Axis_Data_tlast),
+    .siMEM_This_RxP_Data_TVALID         (piMEM_Nts0_RxP_Axis_Data_tvalid),  
+    .siMEM_This_RxP_Data_TREADY         (poNTS0_Mem_RxP_Axis_Data_tready),
     //---- Stream Write Status -----------------
-    .s_axis_rxwrite_sts_TDATA           (piMEM_Nts0_RxP_Axis_WrSts_tdata),
-    .s_axis_rxwrite_sts_TVALID          (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
-    .s_axis_rxwrite_sts_TREADY          (poNTS0_Mem_RxP_Axis_WrSts_tready),
+    .siMEM_This_RxP_WrSts_TDATA         (piMEM_Nts0_RxP_Axis_WrSts_tdata),
+    .siMEM_This_RxP_WrSts_TVALID        (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
+    .siMEM_This_RxP_WrSts_TREADY        (poNTS0_Mem_RxP_Axis_WrSts_tready),                        
+    //---- Stream Write Command ----------------
+    .soTHIS_Mem_RxP_WrCmd_TREADY        (piMEM_Nts0_RxP_Axis_WrCmd_tready),
+    .soTHIS_Mem_RxP_WrCmd_TDATA         (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
+    .soTHIS_Mem_RxP_WrCmd_TVALID        (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
     //---- Stream Data Output Channel ----------
-    .m_axis_rxwrite_data_TREADY         (piMEM_Nts0_RxP_Axis_Write_tready),
-    .m_axis_rxwrite_data_TDATA          (poNTS0_Mem_RxP_Axis_Write_tdata),
-    .m_axis_rxwrite_data_TKEEP          (poNTS0_Mem_RxP_Axis_Write_tkeep),
-    .m_axis_rxwrite_data_TLAST          (poNTS0_Mem_RxP_Axis_Write_tlast),
-    .m_axis_rxwrite_data_TVALID         (poNTS0_Mem_RxP_Axis_Write_tvalid),
+    .soTHIS_Mem_RxP_Data_TREADY         (piMEM_Nts0_RxP_Axis_Data_tready),
+    .soTHIS_Mem_RxP_Data_TDATA          (poNTS0_Mem_RxP_Axis_Data_tdata),
+    .soTHIS_Mem_RxP_Data_TKEEP          (poNTS0_Mem_RxP_Axis_Data_tkeep),
+    .soTHIS_Mem_RxP_Data_TLAST          (poNTS0_Mem_RxP_Axis_Data_tlast),
+    .soTHIS_Mem_RxP_Data_TVALID         (poNTS0_Mem_RxP_Axis_Data_tvalid),
 
     //------------------------------------------------------
     //-- MEM / Nts0 / TxP Interface
     //------------------------------------------------------
     //-- Transmit Path / S2MM-AXIS -------------------------
-    //---- Stream Read Command -------------------
-    .m_axis_txread_cmd_TREADY           (piMEM_Nts0_TxP_Axis_RdCmd_tready),
-    .m_axis_txread_cmd_TDATA            (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
-    .m_axis_txread_cmd_TVALID           (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
     //---- Stream Read Status ------------------
     // [INFO] Not used
+    //---- Stream Read Command -----------------
+    .soTHIS_Mem_TxP_RdCmd_TREADY        (piMEM_Nts0_TxP_Axis_RdCmd_tready),
+    .soTHIS_Mem_TxP_RdCmd_TDATA         (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
+    .soTHIS_Mem_TxP_RdCmd_TVALID        (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
     //---- Stream Data Input Channel ----------- 
-    .s_axis_txread_data_TDATA           (piMEM_Nts0_TxP_Axis_Read_tdata),
-    .s_axis_txread_data_TKEEP           (piMEM_Nts0_TxP_Axis_Read_tkeep),
-    .s_axis_txread_data_TLAST           (piMEM_Nts0_TxP_Axis_Read_tlast),
-    .s_axis_txread_data_TVALID          (piMEM_Nts0_TxP_Axis_Read_tvalid),
-    .s_axis_txread_data_TREADY          (poNTS0_Mem_TxP_Axis_Read_tready),
-    //---- Stream Write Command ----------------
-    .m_axis_txwrite_cmd_TREADY          (piMEM_Nts0_TxP_Axis_WrCmd_tready),
-    .m_axis_txwrite_cmd_TDATA           (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
-    .m_axis_txwrite_cmd_TVALID          (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
+    .siMEM_This_TxP_Data_TDATA          (piMEM_Nts0_TxP_Axis_Data_tdata),
+    .siMEM_This_TxP_Data_TKEEP          (piMEM_Nts0_TxP_Axis_Data_tkeep),
+    .siMEM_This_TxP_Data_TLAST          (piMEM_Nts0_TxP_Axis_Data_tlast),
+    .siMEM_This_TxP_Data_TVALID         (piMEM_Nts0_TxP_Axis_Data_tvalid),
+    .siMEM_This_TxP_Data_TREADY         (poNTS0_Mem_TxP_Axis_Data_tready),
     //---- Stream Write Status -----------------
-    .s_axis_txwrite_sts_TDATA           (piMEM_Nts0_TxP_Axis_WrSts_tdata),
-    .s_axis_txwrite_sts_TVALID          (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
-    .s_axis_txwrite_sts_TREADY          (poNTS0_Mem_TxP_Axis_WrSts_tready),
+    .siMEM_This_TxP_WrSts_TDATA         (piMEM_Nts0_TxP_Axis_WrSts_tdata),
+    .siMEM_This_TxP_WrSts_TVALID        (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
+    .siMEM_This_TxP_WrSts_TREADY        (poNTS0_Mem_TxP_Axis_WrSts_tready),
+    //---- Stream Write Command ----------------
+    .soTHIS_Mem_TxP_WrCmd_TREADY        (piMEM_Nts0_TxP_Axis_WrCmd_tready),
+    .soTHIS_Mem_TxP_WrCmd_TDATA         (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
+    .soTHIS_Mem_TxP_WrCmd_TVALID        (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
     //---- Stream Data Output Channel ----------
-    .m_axis_txwrite_data_TREADY         (piMEM_Nts0_TxP_Axis_Write_tready),
-    .m_axis_txwrite_data_TDATA          (poNTS0_Mem_TxP_Axis_Write_tdata),
-    .m_axis_txwrite_data_TKEEP          (poNTS0_Mem_TxP_Axis_Write_tkeep),
-    .m_axis_txwrite_data_TLAST          (poNTS0_Mem_TxP_Axis_Write_tlast),
-    .m_axis_txwrite_data_TVALID         (poNTS0_Mem_TxP_Axis_Write_tvalid),
+    .soTHIS_Mem_TxP_Data_TREADY         (piMEM_Nts0_TxP_Axis_Data_tready),
+    .soTHIS_Mem_TxP_Data_TDATA          (poNTS0_Mem_TxP_Axis_Data_tdata),
+    .soTHIS_Mem_TxP_Data_TKEEP          (poNTS0_Mem_TxP_Axis_Data_tkeep),
+    .soTHIS_Mem_TxP_Data_TLAST          (poNTS0_Mem_TxP_Axis_Data_tlast),
+    .soTHIS_Mem_TxP_Data_TVALID         (poNTS0_Mem_TxP_Axis_Data_tvalid),
+
+    //------------------------------------------------------
+    //-- From CAM / Session Lookup & Update Interfaces
+    //------------------------------------------------------
+    //-- CAM / This / LookupReply / Axis
+    .siCAM_This_SssLkpRep_TDATA         (sCAM_Toe_LkpRep_Axis_tdata),
+    .siCAM_This_SssLkpRep_TVALID        (sCAM_Toe_LkpRep_Axis_tvalid),
+    .siCAM_This_SssLkpRep_TREADY        (sTOE_Cam_LkpRep_Axis_tready),
+    //-- CAM / This / UpdateReply /Axis
+    .siCAM_This_SssUpdRep_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
+    .siCAM_This_SssUpdRep_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .siCAM_This_SssUpdRep_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
 
     //------------------------------------------------------
     //-- To CAM Interfaces
     //------------------------------------------------------
     //-- THIS / Cam / LookupRequest / Axis
-    .m_axis_session_lup_req_TREADY      (sCAM_Toe_LkpReq_Axis_tready),
-    .m_axis_session_lup_req_TDATA       (sTOE_Cam_LkpReq_Axis_tdata),
-    .m_axis_session_lup_req_TVALID      (sTOE_Cam_LkpReq_Axis_tvalid),
+    .soTHIS_Cam_SssLkpReq_TREADY        (sCAM_Toe_LkpReq_Axis_tready),
+    .soTHIS_Cam_SssLkpReq_TDATA         (sTOE_Cam_LkpReq_Axis_tdata),
+    .soTHIS_Cam_SssLkpReq_TVALID        (sTOE_Cam_LkpReq_Axis_tvalid),
     //-- THIS / Cam / UpdateRequest / Axis
-    .m_axis_session_upd_req_TREADY      (sCAM_Toe_Updreq_Axis_tready),
-    .m_axis_session_upd_req_TDATA       (sTOE_Cam_Updreq_Axis_tdata),
-    .m_axis_session_upd_req_TVALID      (sTOE_Cam_Updreq_Axis_tvalid),
-    
-    // Debug signals //
-    ////////////////////
-    .regIpAddress_V                     (piMMIO_Nts0_IpAddress),
-    .relSessionCount_V                  (),                       // [FIXME] was (relSessionCount)
-    .regSessionCount_V                  ()                        // [FIXME] was (relSessionCount)
+    .soTHIS_Cam_SssUpdReq_TREADY        (sCAM_Toe_UpdReq_Axis_tready),
+    .soTHIS_Cam_SssUpdReq_TDATA         (sTOE_Cam_UpdReq_Axis_tdata),
+    .soTHIS_Cam_SssUpdReq_TVALID        (sTOE_Cam_UpdReq_Axis_tvalid),
+
+    //------------------------------------------------------
+    //-- To DEBUG / Session Statistics Interfaces
+    //------------------------------------------------------
+    .poTHIS_Dbg_SssRelCnt_V             (),
+    .poTHIS_Dbg_SssRegCnt_V             ()
 
   );  // End of TOE
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_tcp_module_1_01 TCP ( 
 //    // Data output
 //    .m_axis_tcp_data_TVALID(toe_to_iph_slice_tvalid), // output AXI_M_Stream_TVALID
@@ -1223,7 +1239,7 @@ module NetworkTransportSession_TcpIp (
 //    .aresetn(cf_aresetn)                        // input aresetn
  
 //  );  // End of TCP
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: TOE-CAM-MODULE
@@ -1241,17 +1257,17 @@ module NetworkTransportSession_TcpIp (
     .lup_req_valid                (sTOE_Cam_LkpReq_Axis_tvalid),
     .lup_req_ready                (sCAM_Toe_LkpReq_Axis_tready),
     //-- TOE / This / UpdateRequest / Axis
-    .upd_req_din                  (sTOE_Cam_Updreq_Axis_tdata),
-    .upd_req_valid                (sTOE_Cam_Updreq_Axis_tvalid),
-    .upd_req_ready                (sCAM_Toe_Updreq_Axis_tready),
+    .upd_req_din                  (sTOE_Cam_UpdReq_Axis_tdata),
+    .upd_req_valid                (sTOE_Cam_UpdReq_Axis_tvalid),
+    .upd_req_ready                (sCAM_Toe_UpdReq_Axis_tready),
     
     //------------------------------------------------------
     //-- To TOE Interfaces
     //------------------------------------------------------
     //-- THIS / Toe / LookupReply / Axis
-    .lup_rsp_ready                (sTOE_Cam_LkpRpl_Axis_tready),
-    .lup_rsp_dout                 (sCAM_Toe_LkpRpl_Axis_tdata),
-    .lup_rsp_valid                (sCAM_Toe_LkpRpl_Axis_tvalid),
+    .lup_rsp_ready                (sTOE_Cam_LkpRep_Axis_tready),
+    .lup_rsp_dout                 (sCAM_Toe_LkpRep_Axis_tdata),
+    .lup_rsp_valid                (sCAM_Toe_LkpRep_Axis_tvalid),
     //-- THIS / Toe / UpdateReply / Axis
     .upd_rsp_ready                (sTOE_Cam_UpdRpl_Axis_tready),
     .upd_rsp_dout                 (sCAM_Toe_UpdRpl_Axis_tdata),
@@ -1265,7 +1281,7 @@ module NetworkTransportSession_TcpIp (
 
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  SmartCamCtl CAM (
 //    .clk(cf_axi_clk),
 //    .rst(~cf_aresetn),
@@ -1291,7 +1307,7 @@ module NetworkTransportSession_TcpIp (
 
 //    .debug()
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==> TOE)
@@ -1313,7 +1329,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sIPRX_Toe_Axis_tvalidReg)
   ); 
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS2 (
 //   .aclk(cf_axi_clk),
 //   .aresetn(cf_aresetn),
@@ -1330,7 +1346,7 @@ module NetworkTransportSession_TcpIp (
 //   .m_axis_tkeep(iph_to_toe_slice_tkeep),
 //   .m_axis_tlast(iph_to_toe_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (TCP ==> IPTX)
@@ -1352,7 +1368,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sTOE_L3mux_Axix_tvalidReg)
   ); 
    
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS3 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1369,7 +1385,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(axi_toe_to_toe_slice_tkeep),
 //    .m_axis_tlast(axi_toe_to_toe_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: TCP-ROLE-INTERFACE
@@ -1489,7 +1505,7 @@ module NetworkTransportSession_TcpIp (
      
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_tcp_app_interface_18 TRIF (
 //    .m_axis_close_connection_TVALID(axis_close_connection_TVALID),
 //    .m_axis_close_connection_TREADY(axis_close_connection_TREADY),
@@ -1558,7 +1574,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
   
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (TRIF ==> NTS0/Role/Tcp)
@@ -1581,7 +1597,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (poNTS0_Rol_Tcp_Axis_tvalid)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS4 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1598,7 +1614,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(vFPGA_TCP_rx_data_TKEEP),
 //    .m_axis_tlast(vFPGA_TCP_rx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/Tcp ==> TRIF)
@@ -1620,7 +1636,7 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tvalid  (sROL_Nts0_Tcp_Axis_tvalidReg)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS5 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -1637,7 +1653,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(rs_to_net_vFPGA_tx_data_TKEEP),
 //    .m_axis_tlast(rs_to_net_vFPGA_tx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: UDP-CORE-MODULE
@@ -1732,7 +1748,7 @@ module NetworkTransportSession_TcpIp (
                           
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_module UDP (
 //    .inputPathInData_TVALID(axi_iph_to_udp_tvalid),                  
 //    .inputPathInData_TREADY(axi_iph_to_udp_tready),                  
@@ -1794,7 +1810,7 @@ module NetworkTransportSession_TcpIp (
 //      .aclk(cf_axi_clk),                                                  
 //      .aresetn(cf_aresetn)                                   
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: UDP-MUX
@@ -2105,10 +2121,11 @@ module NetworkTransportSession_TcpIp (
                                                      
   );
 
-`endif
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_app_if UMUX (
 //    .portOpenReplyIn_TVALID(udp2mux_portOpenReplyIn_V_V_TVALID),         
 //    .portOpenReplyIn_TREADY(udp2mux_portOpenReplyIn_V_V_TREADY),          
@@ -2209,7 +2226,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                                  
 //    .aresetn(cf_aresetn)                                                   
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (URIF ==> NTS0/Role/Udp)
@@ -2231,7 +2248,7 @@ module NetworkTransportSession_TcpIp (
      .m_axis_tvalid (poNTS0_Rol_Udp_Axis_tvalid)
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS6 (
 //     .aclk(cf_axi_clk),
 //     .aresetn(cf_aresetn),
@@ -2248,7 +2265,7 @@ module NetworkTransportSession_TcpIp (
 //     .m_axis_tkeep(vFPGA_UDP_rx_data_TKEEP),
 //     .m_axis_tlast(vFPGA_UDP_rx_data_TLAST)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/Udp ==> URIF)
@@ -2294,7 +2311,8 @@ module NetworkTransportSession_TcpIp (
     .m_axis_tready  (piNts0_MPE_IPmeta_tready)
   );
     //-- From ROLE / Nts0 / Udp / Axis
-/* -----\/----- EXCLUDED -----\/-----
+
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_register_slice_64 ARS7 (
 //    .aclk(cf_axi_clk),
 //    .aresetn(cf_aresetn),
@@ -2311,7 +2329,7 @@ module NetworkTransportSession_TcpIp (
 //    .m_axis_tkeep(app_to_uai_slice_tkeep),
 //    .m_axis_tlast(app_to_uai_slice_tlast)
 //  ); 
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: UDP-ROLE-INTERFACE
@@ -2413,8 +2431,8 @@ module NetworkTransportSession_TcpIp (
 
 );
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+ 
   UdpRoleInterface URIF (
   
     .ap_clk                         (piShlClk),                      
@@ -2489,9 +2507,11 @@ module NetworkTransportSession_TcpIp (
     .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid)
 
   );
-`endif    
-  
-/* -----\/----- EXCLUDED -----\/-----
+   
+`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
+ 
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_udp_application_interface_1 URIF (
 //    .lbPortOpenReplyIn_TVALID(lbPortOpenReplyIn_TVALID),      
 //    .lbPortOpenReplyIn_TREADY(lbPortOpenReplyIn_TREADY),      
@@ -2540,7 +2560,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                       
 //    .aresetn(cf_aresetn)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: DHCP-CLIENT -- [TOOD - Remove this useless DHCP-client module]
@@ -2613,8 +2633,8 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`else
-
+`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
   DynamicHostConfigurationProcess DHCP (
   
     .ap_clk                         (piShlClk),                      
@@ -2681,9 +2701,10 @@ module NetworkTransportSession_TcpIp (
    
   ); // End of DHCP
 
-`endif
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
    
-/* -----\/----- EXCLUDED -----\/-----
+   
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_dhcp_client DHCP (
 //    .dhcpEnable_V(1'b1),                                     
 //    //.inputIpAddress_V(inputIpAddress),                           
@@ -2726,15 +2747,26 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                                                    
 //    .aresetn(cf_aresetn)                                                  
 //  );    
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: ICMP-SERVER
   //============================================================================
+`ifdef USE_DEPRECATED_DIRECTIVES
+
   InternetControlMessageProcess ICMP (
-  
-    .aclk               (piShlClk),                           
-    .aresetn            (~piShlRst),
+                    
+    //------------------------------------------------------
+    //-- From SHELL Interfaces
+    //------------------------------------------------------
+    //-- Global Clock & Reset
+    .aclk                     (piShlClk),
+    .aresetn                  (~piShlRst),
+
+    //------------------------------------------------------
+    //-- From MMIO Interfaces
+    //------------------------------------------------------                     
+    .piMMIO_This_IpAddr_V (piMMIO_Nts0_IpAddress),
   
     //------------------------------------------------------
     //-- From IPRX Interfaces
@@ -2772,9 +2804,12 @@ module NetworkTransportSession_TcpIp (
     .m_dataOut_TLAST    (sICMP_L3mux_Axis_tlast),
     .m_dataOut_TVALID   (sICMP_L3mux_Axis_tvalid)
 
-  );
+  ); // End of ICMP
 
-/* -----\/----- EXCLUDED -----\/-----
+`endif // `ifdef USE_DEPRECATED_DIRECTIVES
+   
+   
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_icmp_server_1 ICMP (
 //    .s_dataIn_TVALID(axi_icmp_slice_to_icmp_tvalid),   
 //    .s_dataIn_TREADY(axi_icmp_slice_to_icmp_tready),   
@@ -2803,7 +2838,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),                             
 //    .aresetn(cf_aresetn)                            
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: L3MUX AXI4-STREAM INTERCONNECT RTL (Muxes ICMP, TCP, and UDP)
@@ -2866,7 +2901,7 @@ module NetworkTransportSession_TcpIp (
     .S02_ARB_REQ_SUPPRESS(1'b0)  
   );
   
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_interconnect_3_to_1 L3MRG (
 //    .ACLK(cf_axi_clk),                         
 //    .ARESETN(cf_aresetn),                 
@@ -2912,7 +2947,7 @@ module NetworkTransportSession_TcpIp (
 //    .S01_ARB_REQ_SUPPRESS(1'b0),
 //    .S02_ARB_REQ_SUPPRESS(1'b0)  
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
    
   //============================================================================
   //  INST: IP TX HANDLER
@@ -2964,7 +2999,7 @@ module NetworkTransportSession_TcpIp (
     
   ); // End of IPTX
     
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  cloudFPGA_ip_module_tx_path_2 IPTX (
 //    .s_dataIn_TVALID(axi_intercon_to_mie_tvalid),                  
 //    .s_dataIn_TREADY(axi_intercon_to_mie_tready),                   
@@ -2993,7 +3028,7 @@ module NetworkTransportSession_TcpIp (
 //    .aclk(cf_axi_clk),         
 //    .aresetn(cf_aresetn)    
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
   //  INST: L2MUX AXI4-STREAM INTERCONNECT RTL (Muxes IP and ARP)
@@ -3046,7 +3081,7 @@ module NetworkTransportSession_TcpIp (
     .S01_ARB_REQ_SUPPRESS (1'b0)
   );
       
-/* -----\/----- EXCLUDED -----\/-----
+/* -----\/----- [OBSOLETE] -----\/-----
 //  axis_interconnect_2to1 L2MRG (
 //    .ACLK(cf_axi_clk), 
 //    .ARESETN(cf_aresetn), 
@@ -3083,6 +3118,6 @@ module NetworkTransportSession_TcpIp (
 //    .S00_ARB_REQ_SUPPRESS(1'b0), 
 //    .S01_ARB_REQ_SUPPRESS(1'b0)
 //  );
- -----/\----- EXCLUDED -----/\----- */
+ -----/\----- [OBSOLETE] -----/\----- */
 
 endmodule
