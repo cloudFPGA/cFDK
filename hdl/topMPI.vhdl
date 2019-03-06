@@ -780,9 +780,6 @@ begin
       generic map (
       gSecurityPriviledges => "super",
       gBitstreamUsage      => "flash",
-      gTopDateYear         => gTopDateYear,
-      gTopDateMonth        => gTopDateMonth,
-      gTopDateDay          => gTopDateDay,
       gMmioAddrWidth       => gEmifAddrWidth,
       gMmioDataWidth       => gEmifDataWidth
     )
