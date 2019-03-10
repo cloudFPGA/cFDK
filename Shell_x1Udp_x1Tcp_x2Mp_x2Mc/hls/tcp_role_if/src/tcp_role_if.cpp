@@ -163,7 +163,7 @@ void pListen(
     #pragma HLS PIPELINE II=1
 
     static bool                lsnAck = false;
-    #pragma HLS RESET variable=lsn_ack
+    #pragma HLS RESET variable=lsnAck
 
     static bool isListening = false;
 
