@@ -1,6 +1,6 @@
 /*****************************************************************************
  * @file       : test_tcp_role_if.cpp
- * @brief      : Testbench for the TCP role interface.
+ * @brief      : Testbench for the TCP Role Interface.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -20,107 +20,237 @@ using namespace hls;
 
 using namespace std;
 
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
+#define THIS_NAME "TB"
+
+#define TRACE_OFF    0x0000
+#define TRACE_TOE    1 <<  1
+#define TRACE_APP    1 <<  2
+#define TRACE_ALL    0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-int         gSimCnt;
+#define MAX_SIM_CYCLES 500
 
-//------------------------------------------------------
-//-- DUT INTERFACES AS GLOBAL VARIABLES
-//------------------------------------------------------
-//-- ROLE / This / Rx Data Interface
-stream<AxiWord>     sROLE_Trif_Data     ("sROLE_Trif_Data");
-//-- ROLE / This / Tx Data Interface
-stream<AxiWord>     sTRIF_Role_Data     ("sTRIF_Role_Data");
-//-- TOE  / This / Rx Data Interfaces
-stream<AppNotif>    sTOE_Trif_Notif         ("sTOE_Trif_Notif");
-stream<AxiWord>     sTOE_Trif_Data      ("sTOE_Trif_Data");
-stream<TcpMeta>     sTOE_Trif_Meta      ("sTOE_Trif_Meta");
-stream<TcpRdReq>    sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
-//-- TOE  / This / Rx Ctrl Interfaces
-stream<TcpLsnAck>   sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
-stream<TcpLsnReq>   sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
-//-- TOE  / This / Tx Data Interfaces
-stream<TcpDSts>         sTOE_Trif_DSts      ("sTOE_Trif_DSts");
-stream<AxiWord>     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
-stream<TcpMeta>     sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
-//-- TOE  / This / Tx Ctrl Interfaces
-stream<TcpOpnSts>   sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
-stream<TcpOpnReq>   sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
-stream<TcpClsReq>   sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//--  These variables might be updated/overwritten by the
+//--  content of a test-vector file.
+//---------------------------------------------------------
+unsigned int    gMaxSimCycles   = 100;
+bool            gTraceEvent     = false;
 
 
 /*****************************************************************************
- * @brief Run a single iteration of the DUT model.
- * @ingroup tcp_role_if
- * @return Nothing.
+ * @brief Emulate the behavior of the TCP Offload Engine (TOE).
+ *
+ * @param[in]  siTRIF_LsnReq, A ref to listen port request from TRIF.
+ * @param[out] soTRIF_LsnAck, A ref to listen port acknowledge to TOE.
+ *
+ * @details
+ *
+ * @ingroup test_tcp_role_if
  ******************************************************************************/
-void stepDut() {
-    tcp_role_if(
-            //-- ROLE / This / Rx & Tx Data Interfaces
-            sROLE_Trif_Data, sTRIF_Role_Data,
-            //-- TOE / This / Rx Data Interfaces
-            sTOE_Trif_Notif, sTOE_Trif_Data, sTOE_Trif_Meta, sTRIF_Toe_DReq,
-            //-- TOE / This / Rx Ctrl Interfaces
-            sTOE_Trif_LsnAck, sTRIF_Toe_LsnReq,
-            //-- TOE / This / Tx Data Interfaces
-            sTOE_Trif_DSts, sTRIF_Toe_Data, sTRIF_Toe_Meta,
-            //-- TOE / This / Tx Ctrl Interfaces
-            sTOE_Trif_OpnSts, sTRIF_Toe_OpnReq, sTRIF_Toe_ClsReq);
-    gSimCnt++;
-    printf("@%4.4d STEP DUT \n", gSimCnt);
+void pTOE(
+        //-- TOE / Tx Data Interfaces
+        stream<AppNotif>    &soTRIF_Notif,
+        stream<AppRdReq>    &siTRIF_DReq,
+        stream<AppData>     &soTRIF_Data,
+        stream<AppMeta>     &soTRIF_Meta,
+        //-- TOE / Listen Interfaces
+        stream<AppLsnReq>   &siTRIF_LsnReq,
+        stream<AppLsnAck>   &soTRIF_LsnAck)
+{
+    SessionId  sessionId  = 42;
+    TcpSegLen  tcpSegLen  = 32;
+    Ip4SrcAddr ip4SrcAddr = 0x0A0A0A0A;
+    TcpDstPort tcpDstPort;
+
+    static int  appDstPort = -1;
+    static int  loop       = 1;
+
+    static enum FSM_STATE { FSM_WAIT4LSNREQ, FSM_NOTIF, FSM_WAIT4DREQ,
+                            FSM_DATA} fsmState = FSM_WAIT4LSNREQ;
+
+    const char *myName  = concat3(THIS_NAME, "/", "TOE");
+
+    switch (fsmState) {
+
+    case FSM_WAIT4LSNREQ:
+        //------------------------------------------------------
+        //-- STEP-1 : CHECK IF A LISTENING REQUEST IS PENDING
+        //------------------------------------------------------
+        if (!siTRIF_LsnReq.empty()) {
+            AppLsnReq appLsnPortReq;
+            siTRIF_LsnReq.read(appLsnPortReq);
+            printInfo(myName, "Received a listen port request #%d from [TRIF].\n",
+                              appLsnPortReq.to_int());
+            soTRIF_LsnAck.write(true);
+            appDstPort = appLsnPortReq.to_int();
+            fsmState = FSM_NOTIF;
+        }
+        break;
+
+    case FSM_NOTIF:
+        //------------------------------------------------------
+        //-- STEP-2 : SEND A NOTIFICATION TO TRIF
+        //------------------------------------------------------
+        sessionId  = 42;
+        tcpSegLen  = 32;
+        ip4SrcAddr = 0x0A0A0A0A;
+        tcpDstPort = appDstPort;
+        soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
+                                    ip4SrcAddr, tcpDstPort));
+        printInfo(myName, "Sending notification to [TRIF] (sessId=%d, segLen=%d).\n",
+                          sessionId.to_int(), tcpSegLen.to_int());
+        fsmState = FSM_WAIT4DREQ;
+        break;
+
+    case FSM_WAIT4DREQ:
+         //------------------------------------------------------
+         //-- STEP-3 : WAIT FOR A DATA REQUEST FROM TRIF
+         //------------------------------------------------------
+        if (!siTRIF_DReq.empty()) {
+            AppRdReq appRdReq;
+            siTRIF_DReq.read(appRdReq);
+            printInfo(myName, "Received a data read request from [TRIF] (sessId=%d, segLen=%d).\n",
+                               appRdReq.sessionID.to_int(), appRdReq.length.to_int());
+            fsmState = FSM_DATA;
+        }
+        break;
+
+    }  // End-of: switch())
+
 }
 
 
 
-
-
-
-
-
-
+/*****************************************************************************
+ * @brief Main function.
+ *
+ * @ingroup test_tcp_role_if
+ ******************************************************************************/
 
 int main()
 {
+
+    //------------------------------------------------------
+    //-- DUT STREAM INTERFACES
+    //------------------------------------------------------
+
+    //-- ROLE / Rx Data Interface
+    stream<AppData>     sROLE_To_TRIF_Data     ("sROLE_To_TRIF_Data");
+    //-- ROLE / This / Tx Data Interface
+    stream<AppData>     sTRIF_To_ROLE_Data     ("sTRIF_To_ROLE_Data");
+    //-- TOE  / Rx Data Interfaces
+    stream<AppNotif>    sTOE_To_TRIF_Notif     ("sTOE_To_TRIF_Notif");
+    stream<AppData>     sTOE_To_TRIF_Data      ("sTOE_To_TRIF_Data");
+    stream<AppMeta>     sTOE_to_TRIF_Meta      ("sTOE_to_TRIF_Meta");
+    stream<AppRdReq>    sTRIF_To_TOE_DReq      ("sTRIF_To_TOE_DReq");
+    //-- TOE  / Listen Interfaces
+    stream<AppLsnAck>   sTOE_To_TRIF_LsnAck    ("sTOE_To_TRIF_LsnAck");
+    stream<AppLsnReq>   sTRIF_To_TOE_LsnReq    ("sTRIF_To_TOE_LsnReq");
+    //-- TOE  / Tx Data Interfaces
+    stream<AppWrSts>    sTOE_To_TRIF_DSts      ("sTOE_To_TRIF_DSts");
+    stream<AppData>     sTRIF_To_TOE_Data      ("sTRIF_To_TOE_Data");
+    stream<AppMeta>     sTRIF_To_TOE_Meta      ("sTRIF_To_TOE_Meta");
+    //-- TOE  / Open Interfaces
+    stream<AppOpnSts>   sTOE_To_TRIF_OpnSts    ("sTOE_To_TRIF_OpnSts");
+    stream<AppOpnReq>   sTRIF_To_TOE_OpnReq    ("sTRIF_To_TOE_OpnReq");
+    stream<AppClsReq>   sTRIF_To_TOE_ClsReq    ("sTRIF_To_TOE_ClsReq");
+
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
     //------------------------------------------------------
-    int nrErr = 0;
-    int count = 0;
+    unsigned int    simCycCnt      = 0;
+    int             nrErr;
 
     printf("#####################################################\n");
     printf("## TESTBENCH STARTS HERE                           ##\n");
     printf("#####################################################\n");
+    simCycCnt = 0;  // Simulation cycle counter as a global variable
+    nrErr     = 0;  // Total number of testbench errors
 
-    gSimCnt = 0;
-
-    while (count < 50) {
-
-        //-------------------------------------------------
-        //-- RUN DUT
-        //-------------------------------------------------
-        stepDut();
+    //-----------------------------------------------------
+    //-- MAIN LOOP
+    //-----------------------------------------------------
+    do {
 
         //-------------------------------------------------
         //-- EMULATE TOE
         //-------------------------------------------------
-        if (!sTRIF_Toe_LsnReq.empty()) {
-            TcpLsnReq   rxListenPortRequest;
-            sTRIF_Toe_LsnReq.read(rxListenPortRequest);
-            printf("\t[TOE] received listen port request #%d from [TRIF].\n",
-                    rxListenPortRequest.to_int());
-            sTOE_Trif_LsnAck.write(true);
+        pTOE(
+            //-- TOE / Tx Data Interfaces
+            sTOE_To_TRIF_Notif,
+            sTRIF_To_TOE_DReq,
+            sTOE_To_TRIF_Data,
+            sTOE_to_TRIF_Meta,
+            //-- TOE / Listen Interfaces
+            sTRIF_To_TOE_LsnReq,
+            sTOE_To_TRIF_LsnAck);
+
+        //-------------------------------------------------
+        //-- RUN DUT
+        //-------------------------------------------------
+        tcp_role_if(
+            //-- ROLE / Rx & Tx Data Interfaces
+            sROLE_To_TRIF_Data,
+            sTRIF_To_ROLE_Data,
+            //-- TOE / Rx Data Interfaces
+            sTOE_To_TRIF_Notif,
+            sTRIF_To_TOE_DReq,
+            sTOE_To_TRIF_Data,
+            sTOE_to_TRIF_Meta,
+            //-- TOE / Listen Interfaces
+            sTRIF_To_TOE_LsnReq,
+            sTOE_To_TRIF_LsnAck,
+            //-- TOE / Tx Data Interfaces
+            sTRIF_To_TOE_Data,
+            sTRIF_To_TOE_Meta,
+            sTOE_To_TRIF_DSts,
+            //-- TOE / Tx Open Interfaces
+            sTRIF_To_TOE_OpnReq,
+            sTOE_To_TRIF_OpnSts,
+            //-- TOE / Close Interfaces
+            sTRIF_To_TOE_ClsReq);
+
+        //-------------------------------------------------
+        //-- EMULATE APP
+        //-------------------------------------------------
+
+        //------------------------------------------------------
+        //-- STEP-? : INCREMENT SIMULATION COUNTER
+        //------------------------------------------------------
+        simCycCnt++;
+        if (gTraceEvent || ((simCycCnt % 100) == 0)) {
+            printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
+            gTraceEvent = false;
         }
-        count++;
-    } // end: while
 
-    printf("#####################################################\n");
-    if (nrErr)
-        printf("## ERROR - TESTBENCH FAILED (RC=%d) !!!             ##\n", nrErr);
-    else
-        printf("## SUCCESSFULL END OF TESTBENCH (RC=0)             ##\n");
+    } while (simCycCnt < gMaxSimCycles);
 
-    printf("#####################################################\n");
+
+    printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
+    printf("############################################################################\n");
+    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("############################################################################\n");
+
+    if (nrErr) {
+         printError(THIS_NAME, "###########################################################\n");
+         printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
+         printError(THIS_NAME, "###########################################################\n");
+     }
+         else {
+         printInfo(THIS_NAME, "#############################################################\n");
+         printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");
+         printInfo(THIS_NAME, "#############################################################\n");
+     }
 
     return(nrErr);
 

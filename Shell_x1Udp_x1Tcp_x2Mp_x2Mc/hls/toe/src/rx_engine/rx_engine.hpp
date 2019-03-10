@@ -43,13 +43,13 @@ struct rxEngineMetaData
  ********************************************/
 struct rxFsmMetaData
 {
-    ap_uint<16>         sessionID;
-    ap_uint<32>         srcIpAddress;
-    ap_uint<16>         dstIpPort;
+    SessionId           sessionId;
+    Ip4SrcAddr          ip4SrcAddr;
+    TcpDstPort          tcpDstPort;
     rxEngineMetaData    meta; //check if all needed
     rxFsmMetaData() {}
-    rxFsmMetaData(ap_uint<16> id, ap_uint<32> ipAddr, ap_uint<16> ipPort, rxEngineMetaData meta) :
-        sessionID(id), srcIpAddress(ipAddr), dstIpPort(ipPort), meta(meta) {}
+    rxFsmMetaData(SessionId id, Ip4SrcAddr ipAddr, TcpDstPort tcpPort, rxEngineMetaData meta) :
+        sessionId(id), ip4SrcAddr(ipAddr), tcpDstPort(tcpPort), meta(meta) {}
 };
 
 

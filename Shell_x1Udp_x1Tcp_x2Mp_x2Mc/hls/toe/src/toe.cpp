@@ -332,18 +332,18 @@ void rxAppMemDataRead(
 
 // RxAppInterface (RAi)
 void rx_app_interface(
-        stream<appReadRequest>      &siTRIF_DataReq,
+        stream<AppRdReq>            &siTRIF_DataReq,
         stream<rxSarAppd>           &siRSt_RxSarUpdRep,
-        stream<TcpPort>             &siTRIF_ListenPortReq,
+        stream<AppLsnReq>           &siTRIF_ListenPortReq,
         stream<bool>                &sPRtToRAi_LsnPortStateRep,
-        stream<AppNotif>            &rxEng2rxApp_notification,
-        stream<AppNotif>            &timer2rxApp_notification,
+        stream<AppNotif>            &siRXe_Notif,
+        stream<AppNotif>            &siTIm_Notif,
         stream<SessionId>           &appRxDataRspMetadata,
         stream<rxSarAppd>           &soRSt_RxSarUpdRep,
         stream<DmCmd>               &rxBufferReadCmd,
         stream<bool>                &appListenPortRsp,
         stream<TcpPort>             &soPRt_ListenReq,
-        stream<AppNotif>            &appNotification,
+        stream<AppNotif>            &soAPP_Notif,
         stream<AxiWord>             &rxBufferReadData,
         stream<AxiWord>             &rxDataRsp)
 {
@@ -382,9 +382,9 @@ void rx_app_interface(
 
     // Multiplex the notifications
     pStreamMux(
-            rxEng2rxApp_notification,
-            timer2rxApp_notification,
-            appNotification);
+            siRXe_Notif,
+            siTIm_Notif,
+            soAPP_Notif);
 }
 
 
@@ -399,21 +399,22 @@ void rx_app_interface(
  * @param[in]  siIPRX_This_Data,    IP4 data stream from IPRX.
  * -- L3MUX / This / IP Tx / Data Interface
  * @param[out] soTHIS_L3mux_Data,   IP4 data stream to L3MUX.
- * -- TRIF / This / Rx PATH / Data Interfaces
- * @param[in]  siTRIF_This_DReq,    TCP data request from TRIF.
+ * -- TRIF / Tx Data Interfaces
  * @param[out] soTHIS_Trif_Notif,   TCP notification to TRIF.
+ * @param[in]  siTRIF_This_DReq,    TCP data request from TRIF.
  * @param[out] soTHIS_Trif_Data,    TCP data stream to TRIF.
  * @param[out] soTHIS_Trif_Meta,    TCP metadata stream to TRIF.
- * -- TRIF / This / Rx PATH / Ctrl Interfaces
+ * -- TRIF / Listen Interfaces
  * @param[in]  siTRIF_This_LsnReq,  TCP listen port request from TRIF.
  * @param[out] soTHIS_Trif_LsnAck,  TCP listen port acknowledge to TRIF.
- * -- TRIF / This / Tx PATH / Data Interfaces
+ * -- TRIF / Rx Data Interfaces
  * @param[in]  siTRIF_This_Data,    TCP data stream from TRIF.
  * @param[in]  siTRIF_This_Meta,    TCP metadata stream from TRIF.
  * @param[out] soTHIS_Trif_DSts,    TCP data status to TRIF.
- * -- TRIF / This / Tx PATH / Ctrl Interfaces
+ * -- TRIF / Open Interfaces
  * @param[in]  siTRIF_This_OpnReq,  TCP open port request from TRIF.
  * @param[out] soTHIS_Trif_OpnSts,  TCP open port status to TRIF.
+ * -- TRIF / Close Interfaces
  * @param[in]  siTRIF_This_ClsReq,  TCP close connection request from TRIF.
  * @warning:   Not-Used,            TCP close connection status to TRIF.
  * -- MEM / This / Rx PATH / S2MM Interface
@@ -457,32 +458,36 @@ void toe(
         stream<Ip4overAxi>                  &soTHIS_L3mux_Data,
 
         //------------------------------------------------------
-        //-- TRIF / This / Rx PATH / Data Interfaces
+        //-- TRIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<appReadRequest>              &siTRIF_This_DReq,
         stream<AppNotif>                    &soTHIS_Trif_Notif,
-        stream<AxiWord>                     &soTHIS_Trif_Data,
-        stream<SessionId>                   &soTHIS_Trif_Meta,
+        stream<AppRdReq>                    &siTRIF_This_DReq,
+        stream<AppData>                     &soTHIS_Trif_Data,
+        stream<AppMeta>                     &soTHIS_Trif_Meta,
 
         //------------------------------------------------------
-        //-- TRIF / This / Rx PATH / Ctrl Interfaces
+        //-- TRIF / Listen Interfaces
         //------------------------------------------------------
-        stream<TcpPort>                     &siTRIF_This_LsnReq,
-        stream<bool>                        &soTHIS_Trif_LsnAck,
+        stream<AppLsnReq>                   &siTRIF_This_LsnReq,
+        stream<AppLsnAck>                   &soTHIS_Trif_LsnAck,
 
         //------------------------------------------------------
-        //-- TRIF / This / Tx PATH / Data Interfaces
+        //-- TRIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxiWord>                     &siTRIF_This_Data,
-        stream<ap_uint<16> >                &siTRIF_This_Meta,
-        stream<ap_int<17> >                 &soTHIS_Trif_DSts,
+        stream<AppData>                     &siTRIF_This_Data,
+        stream<AppMeta>                     &siTRIF_This_Meta,
+        stream<AppWrSts>                    &soTHIS_Trif_DSts,
 
         //------------------------------------------------------
-        //-- TRIF / This / Tx PATH / Ctrl Interfaces
+        //-- TRIF / Open Interfaces
         //------------------------------------------------------
-        stream<AxiSockAddr>                 &siTRIF_This_OpnReq,
-        stream<OpenStatus>                  &soTHIS_Trif_OpnSts,
-        stream<ap_uint<16> >                &siTRIF_This_ClsReq,
+        stream<AppOpnReq>                   &siTRIF_This_OpnReq,
+        stream<AppOpnSts>                   &soTHIS_Trif_OpnSts,
+
+        //------------------------------------------------------
+        //-- TRIF / Close Interfaces
+        //------------------------------------------------------
+        stream<AppClsReq>                   &siTRIF_This_ClsReq,
         //-- Not USed                       &soTHIS_Trif_ClsSts,
 
         //------------------------------------------------------
@@ -661,9 +666,9 @@ void toe(
     static stream<ap_uint<16> >         sRXeToTIm_ClrProbeTimer   ("sRXeToTIm_ClrProbeTimer");
     // FIXME - No depth for this stream ?
 
-    static stream<AppNotif>      sRXeToRXa_Notification           ("sRXeToRXa_Notification");
-    #pragma HLS stream         variable=sRXeToRXa_Notification    depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToRXa_Notification
+    static stream<AppNotif>             sRXeToRAi_Notif           ("sRXeToRAi_Notif");
+    #pragma HLS stream         variable=sRXeToRAi_Notif           depth=4
+    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notif
 
     static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
@@ -993,7 +998,7 @@ void toe(
             sRXeToTIm_CloseTimer,
             sRXeToEVe_Event,
             sRXeToTAi_SessOpnSts,
-            sRXeToRXa_Notification,
+            sRXeToRAi_Notif,
             soTHIS_Mem_RxP_WrCmd,
             soTHIS_Mem_RxP_Data,
             siMEM_This_RxP_WrSts);
@@ -1025,7 +1030,7 @@ void toe(
              sRStToRAi_RxSarUpdRep,
              siTRIF_This_LsnReq,
              sPRtToRAi_LsnPortStateRep,
-             sRXeToRXa_Notification,
+             sRXeToRAi_Notif,
              sTImToRAi_Notif,
              soTHIS_Trif_Meta,
              sRAiToRSt_RxSarUpdRep,

@@ -3,7 +3,7 @@
  * @brief      : TCP Role Interface.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Interface with Network Transport Session (NTS) of the SHELL.
  * Language    : Vivado HLS
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
@@ -16,7 +16,7 @@
  *
  *****************************************************************************/
 
-//OBSOLETE-20181010 #include "../../toe/src/toe.hpp"
+#include "../../toe/src/toe.hpp"
 
 #include <hls_stream.h>
 #include "ap_int.h"
@@ -24,74 +24,27 @@
 using namespace hls;
 
 
-#define NR_SESSION_ENTRIES 4
+#define NR_SESSION_ENTRIES  4
+#define MAX_SESSIONS        NR_SESSION_ENTRIES
 
 
 /********************************************
- * AXIS - Generic AXI4-Streaming Interface
+ * Specific Definitions for the TCP Role I/F
  ********************************************/
-struct AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
-    ap_uint<1>      tlast;
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
-
-
-
-/*************************************************************************
- * NETWORK LAYER-3 SECTION
- *************************************************************************
- * Terminology & Conventions
- * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).
- *************************************************************************/
-
-typedef ap_uint<32> Ip4Addr;    // IP4 fixed 32-bit length address
-
-
-/*************************************************************************
- * NETWORK LAYER-4 SECTION
- *************************************************************************
- * Terminology & Conventions
- * - a SEGMENT (or TcpPacket) refers to a  TCP-PDU (i.e., Header+Data).
- * - a DATAGRAM (or UdpPacket) refers to a UDP-PDU (i.e., Header+Data).
- *************************************************************************/
-
-/********************************************
- * TCP - Header Type Definitions
- ********************************************/
-
-
-/********************************************
- * TCP - Specific Type Definitions
- ********************************************/
-typedef ap_uint<16> TcpSegLen;  // TCP Segment Length in octets (same as Ip4DatLen)
-typedef ap_uint< 8> TcpHdrLen;  // TCP Header  Length in octets
-typedef ap_uint<16> TcpDatLen;  // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
-
-typedef ap_uint<16>  TcpPort;    // TCP Port Number
-
-
-/********************************************
- * Generic TCP Type Definitions
- ********************************************/
-typedef ap_uint<16> TcpSessId;  // TCP Session ID
-typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID
+//typedef ap_uint<4>   TcpBuffId;  // TCP buffer  ID  // [FIXME as f(MAX_SESSIONS)]
 
 
 /********************************************
  * Session Id Table Entry
  ********************************************/
-struct SessionIdCamEntry {
-    TcpSessId   sessionId;
-    TcpBuffId   bufferId;
-    ap_uint<1>  valid;
+class SessionIdCamEntry {
+  public:
+    TcpSessId   sessId;
+    ValBit      valid;
 
     SessionIdCamEntry() {}
-    SessionIdCamEntry(ap_uint<16> session_id, ap_uint<4> buffer_id, ap_uint<1> valid) :
-        sessionId(session_id), bufferId(buffer_id), valid(valid){}
+    SessionIdCamEntry(TcpSessId tcpSessId, ValBit val) :
+        sessId(tcpSessId), valid(val){}
 };
 
 
@@ -99,147 +52,62 @@ struct SessionIdCamEntry {
  * Session Id CAM
  ********************************************/
 class SessionIdCam {
-    public:
-        SessionIdCamEntry cam[NR_SESSION_ENTRIES];
-        SessionIdCam();
-        bool        write(SessionIdCamEntry wrEntry);
-        TcpSessId   search(TcpBuffId        buffId);
-        TcpBuffId   search(TcpSessId        sessId);
+  public:
+    SessionIdCamEntry CAM[NR_SESSION_ENTRIES];
+    SessionIdCam();
+    bool   write(SessionIdCamEntry wrEntry);
+    bool   search(TcpSessId        sessId);
 };
-
-
-/********************************************
- * Socket Transport Address.
- ********************************************/
-struct SockAddr {   // Socket Address
-    Ip4Addr     addr;   // IPv4 address in reversed network byte order !!!
-    TcpPort     port;   // Port in reversed network byte order !!!
-    SockAddr() {}
-    SockAddr(Ip4Addr addr, TcpPort port) :
-        addr(addr), port(port) {}
-};
-
-struct SocketPair {     // Socket Pair Association
-    SockAddr    src;    // Source socket address
-    SockAddr    dst;    // Destination socket address
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-/********************************************
- * Session Lookup Controller (SLc)
- ********************************************/
-typedef ap_uint<16> SessionId;
 
 
 /*************************************************************************
- * TCP OFFLOAD ENGINE INTERFACE SECTION
- *************************************************************************
- * Terminology & Conventions.
- *  [APP] stands for Application.
+ *
+ * ENTITY - TCP ROLE INTERFACE (TRIF)
+ *
  *************************************************************************/
-
-/********************************************
- * TCP Specific Streaming Interfaces.
- ********************************************/
-typedef AxiWord     TcpWord;
-
-typedef TcpSessId   TcpMeta;    // TCP MetaData
-
-struct TcpOpnSts {              // TCP Open Status
-    TcpSessId   sessionID;
-    bool        success;
-    TcpOpnSts() {}
-    TcpOpnSts(TcpSessId id, bool success) :
-        sessionID(id), success(success) {}
-};
-
-typedef SockAddr    TcpOpnReq;  // TCP Open Request
-
-/********************************************
- * Application Notification - Indicates that
- *  data are available in Rx buffer.
- ********************************************/
-class AppNotif
-{
-  public:
-    SessionId          sessionID;
-    TcpSegLen          length;
-  //OBSOLETE-20190252 ap_uint<16>        length;
-    ap_uint<32>        ipAddress;
-    ap_uint<16>        dstPort;
-    bool               closed;
-    AppNotif() {}
-    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port) :
-        sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(false) {}
-    AppNotif(SessionId id, bool closed) :
-        sessionID(id), length(0), ipAddress(0),  dstPort(0), closed(closed) {}
-    AppNotif(SessionId id, ap_uint<32> addr, ap_uint<16> port, bool closed) :
-        sessionID(id), length(0), ipAddress(addr),  dstPort(port), closed(closed) {}
-    AppNotif(SessionId id, ap_uint<16> len, ap_uint<32> addr, ap_uint<16> port, bool closed) :
-        sessionID(id), length(len), ipAddress(addr), dstPort(port), closed(closed) {}
-};
-
-struct TcpRdReq {               // TCP Read Request
-    TcpSessId   sessionID;
-    ap_uint<16> length;
-    TcpRdReq() {}
-
-    TcpRdReq(TcpSessId id, ap_uint<16> len) :
-        sessionID(id), length(len) {}
-};
-
-typedef bool        TcpLsnAck;  // TCP Listen Acknowledge
-
-typedef ap_uint<16> TcpLsnReq;  // TCP Listen Request
-
-typedef ap_int<17>  TcpDSts;    // TCP Data Status
-
-typedef ap_uint<16> TcpClsReq;  // TCP Close Request
-
-
-
 void tcp_role_if(
 
         //------------------------------------------------------
-        //-- ROLE / This / Rx Data Interface
+        //-- ROLE / Rx Data Interface
         //------------------------------------------------------
-        stream<AxiWord>     &siROL_This_Data,
+        stream<AppData>     &siROL_This_Data,
 
         //------------------------------------------------------
-        //-- ROLE / This / Tx Data Interface
+        //-- ROLE / Tx Data Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soTHIS_Rol_Data,
+        stream<AppData>     &soTHIS_Rol_Data,
 
         //------------------------------------------------------
-        //-- TOE / This / Rx Data Interfaces
+        //-- TOE / Rx Data Interfaces
         //------------------------------------------------------
         stream<AppNotif>    &siTOE_This_Notif,
-        stream<AxiWord>     &siTOE_This_Data,
-        stream<TcpMeta>     &siTOE_This_Meta,
-        stream<TcpRdReq>    &soTHIS_Toe_DReq,
+        stream<AppRdReq>    &soTHIS_Toe_DReq,
+        stream<AppData>     &siTOE_This_Data,
+        stream<AppMeta>     &siTOE_This_Meta,
 
         //------------------------------------------------------
-        //-- TOE / This / Rx Ctrl Interfaces
+        //-- TOE / Listen Interfaces
         //------------------------------------------------------
-        stream<TcpLsnAck>   &siTOE_This_LsnAck,
-        stream<TcpLsnReq>   &soTHIS_Toe_LsnReq,
+        stream<AppLsnReq>   &soTHIS_Toe_LsnReq,
+        stream<AppLsnAck>   &siTOE_This_LsnAck,
 
         //------------------------------------------------------
-        //-- TOE / This / Tx Data Interfaces
+        //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
-        stream<TcpDSts>     &siTOE_This_DSts,
-        stream<AxiWord>     &soTHIS_Toe_Data,
-        stream<TcpMeta>     &soTHIS_Toe_Meta,
+        stream<AppData>     &soTHIS_Toe_Data,
+        stream<AppMeta>     &soTHIS_Toe_Meta,
+        stream<AppWrSts>    &siTOE_This_DSts,
 
         //------------------------------------------------------
-        //-- TOE / This / Tx Ctrl Interfaces
+        //-- TOE / Open Interfaces
         //------------------------------------------------------
-        stream<TcpOpnSts>   &siTOE_This_OpnSts,
-        stream<TcpOpnReq>   &soTHIS_Toe_OpnReq,
-        stream<TcpClsReq>   &soTHIS_Toe_ClsReq
+        stream<AppOpnReq>   &soTHIS_Toe_OpnReq,
+        stream<AppOpnSts>   &siTOE_This_OpnSts,
+
+        //------------------------------------------------------
+        //-- TOE / Close Interfaces
+        //------------------------------------------------------
+        stream<AppClsReq>   &soTHIS_Toe_ClsReq
 
 );
-
 

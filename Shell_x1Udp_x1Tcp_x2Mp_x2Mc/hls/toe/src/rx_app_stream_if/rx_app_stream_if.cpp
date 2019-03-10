@@ -36,7 +36,7 @@ using namespace hls;
  * @ingroup rx_app_stream_if
  *****************************************************************************/
 void rx_app_stream_if(
-        stream<appReadRequest>      &siTRIF_DataReq,
+        stream<AppRdReq>            &siTRIF_DataReq,
         stream<rxSarAppd>           &rxSar2rxApp_upd_rsp,
         stream<SessionId>           &appRxDataRspMetadata,
         stream<rxSarAppd>           &rxApp2rxSar_upd_req,
@@ -53,12 +53,12 @@ void rx_app_stream_if(
     switch (rasi_fsmState) {
         case 0:
             if (!siTRIF_DataReq.empty() && !rxApp2rxSar_upd_req.full()) {
-                appReadRequest  app_read_request = siTRIF_DataReq.read();
-                if (app_read_request.length != 0) {
+                AppRdReq  appReadRequest = siTRIF_DataReq.read();
+                if (appReadRequest.length != 0) {
                     // Make sure length is not 0, otherwise Data Mover will hang up
-                    rxApp2rxSar_upd_req.write(rxSarAppd(app_read_request.sessionID));
+                    rxApp2rxSar_upd_req.write(rxSarAppd(appReadRequest.sessionID));
                     // Get app pointer
-                    rasi_readLength = app_read_request.length;
+                    rasi_readLength = appReadRequest.length;
                     rasi_fsmState = 1;
                 }
             }

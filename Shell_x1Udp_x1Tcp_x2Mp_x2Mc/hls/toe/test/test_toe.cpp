@@ -1229,8 +1229,8 @@ int writeTcpWordToFile(
  * @ingroup test_toe
  ******************************************************************************/
 bool pTRIF_Listen(
-        stream<TcpPort>  &soTOE_LsnReq,
-        stream<bool>     &siTOE_LsnAck)
+        stream<AppLsnReq>  &soTOE_LsnReq,
+        stream<AppLsnAck>  &siTOE_LsnAck)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Listen()");
 
@@ -1322,7 +1322,7 @@ bool pTRIF_OpenSess(
 
     // Assess that the port number falls in the dynamic port range
     if (aSocketPair.dst.port < 0x8000) {
-        printError(myName, "Port #%d is not a dynamic port (.i.e, in the range 32768..65535).\n");
+        printError(myName, "Port #%d is not a dynamic port (.i.e, in the range 32768..65535).\n", aSocketPair.dst.port);
         exit(1);
     }
 
@@ -1474,12 +1474,12 @@ bool pTRIF_OpenConOld(
 void pTRIF_Recv(
         ofstream                &appTxFile,
         int                     &apTx_TcpBytCntr,
-        stream<TcpPort>         &soTOE_LsnReq,
-        stream<bool>            &siTOE_LsnAck,
+        stream<AppLsnReq>       &soTOE_LsnReq,
+        stream<AppLsnAck>       &siTOE_LsnAck,
         stream<AppNotif>        &siTOE_Notif,
-        stream<appReadRequest>  &soTOE_DReq,
-        stream<SessionId>       &siTOE_Meta,
-        stream<AxiWord>         &siTOE_Data)
+        stream<AppRdReq>        &soTOE_DReq,
+        stream<AppMeta>         &siTOE_Meta,
+        stream<AppData>         &siTOE_Data)
 {
     static bool         listenDone         = false;
     static bool         openDone           = false;
@@ -1523,9 +1523,9 @@ void pTRIF_Recv(
     //------------------------------------------------
     if (!siTOE_Notif.empty()) {
         siTOE_Notif.read(notification);
-        if (notification.length != 0)
-            soTOE_DReq.write(appReadRequest(notification.sessionID,
-                                            notification.length));
+        if (notification.tcpSegLen != 0)
+            soTOE_DReq.write(AppRdReq(notification.sessionID,
+                                      notification.tcpSegLen));
         else // closed
             runningExperiment = false;
     }
@@ -1971,17 +1971,17 @@ void pTRIF(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         int                     &apTx_TcpBytCntr,
-        stream<TcpPort>         &soTOE_LsnReq,
-        stream<bool>            &siTOE_LsnAck,
+        stream<AppLsnReq>       &soTOE_LsnReq,
+        stream<AppLsnAck>       &siTOE_LsnAck,
         stream<AppNotif>        &siTOE_Notif,
-        stream<appReadRequest>  &soTOE_DReq,
-        stream<SessionId>       &siTOE_Meta,
-        stream<AxiWord>         &siTOE_Data,
-        stream<AxiSockAddr>     &soTOE_OpnReq,
-        stream<OpenStatus>      &siTOE_OpnSts,
-        stream<SessionId>       &soTOE_Meta,
-        stream<AxiWord>         &soTOE_Data,
-        stream<ap_uint<16> >    &soTOE_ClsReq)
+        stream<AppRdReq>        &soTOE_DReq,
+        stream<AppMeta>         &siTOE_Meta,
+        stream<AppData>         &siTOE_Data,
+        stream<AppOpnReq>       &soTOE_OpnReq,
+        stream<AppOpnSts>       &siTOE_OpnSts,
+        stream<AppMeta>         &soTOE_Meta,
+        stream<AppData>         &soTOE_Data,
+        stream<AppClsReq>       &soTOE_ClsReq)
 {
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
@@ -2037,23 +2037,23 @@ int main(int argc, char *argv[]) {
 
     stream<Ip4overAxi>                  sTOE_L3mux_Data     ("sTOE_L3mux_Data");
 
-    stream<AxiWord>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
-    stream<SessionId>                   sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
-    stream<ap_int<17> >                 sTOE_Trif_DSts      ("sTOE_Trif_DSts");
+    stream<AppData>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
+    stream<AppMeta>                     sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
+    stream<AppWrSts>                    sTOE_Trif_DSts      ("sTOE_Trif_DSts");
 
-    stream<appReadRequest>              sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
-    stream<AxiWord>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
-    stream<SessionId>                   sTOE_Trif_Meta      ("sTOE_Trif_Meta");
+    stream<AppRdReq>                    sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
+    stream<AppData>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
+    stream<AppMeta>                     sTOE_Trif_Meta      ("sTOE_Trif_Meta");
 
-    stream<TcpPort>                     sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
-    stream<bool>                        sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
+    stream<AppLsnReq>                   sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
+    stream<AppLsnAck>                   sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
 
-    stream<AxiSockAddr>                 sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
-    stream<OpenStatus>                  sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
+    stream<AppOpnReq>                   sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
+    stream<AppOpnSts>                   sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
 
     stream<AppNotif>                    sTOE_Trif_Notif     ("sTOE_Trif_Notif");
 
-    stream<ap_uint<16> >                sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
+    stream<AppClsReq>                   sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
 
     stream<DmCmd>                       sTOE_Mem_RxP_RdCmd  ("sTOE_Mem_RxP_RdCmd");
     stream<AxiWord>                     sMEM_Toe_RxP_Data   ("sMEM_Toe_RxP_Data");
@@ -2252,12 +2252,18 @@ int main(int argc, char *argv[]) {
                 (AxiIp4Addr)(byteSwap32(gLocalSocket.addr)),
                 //-- IPv4 / Rx & Tx Interfaces
                 sIPRX_Toe_Data,   sTOE_L3mux_Data,
-                //-- TRIF / Rx Interfaces
-                sTRIF_Toe_DReq,   sTOE_Trif_Notif,  sTOE_Trif_Data,   sTOE_Trif_Meta,
+                //-- TRIF / Tx Data Interfaces
+                sTOE_Trif_Notif,  sTRIF_Toe_DReq,
+                sTOE_Trif_Data,   sTOE_Trif_Meta,
+                //-- TRIF / Listen Interfaces
                 sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
-                //-- TRIF / Tx Interfaces
-                sTRIF_Toe_Data,   sTRIF_Toe_Meta,   sTOE_Trif_DSts,
-                sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts, sTRIF_Toe_ClsReq,
+                //-- TRIF / Rx Data Interfaces
+                sTRIF_Toe_Data,   sTRIF_Toe_Meta,
+                sTOE_Trif_DSts,
+                //-- TRIF / Open Interfaces
+                sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
+                //-- TRIF / Close Interfaces
+                sTRIF_Toe_ClsReq,
                 //-- MEM / Rx PATH / S2MM Interface
                 sTOE_Mem_RxP_RdCmd, sMEM_Toe_RxP_Data, sMEM_Toe_RxP_WrSts, sTOE_Mem_RxP_WrCmd, sTOE_Mem_RxP_Data,
                 sTOE_Mem_TxP_RdCmd, sMEM_Toe_TxP_Data, sMEM_Toe_TxP_WrSts, sTOE_Mem_TxP_WrCmd, sTOE_Mem_TxP_Data,
