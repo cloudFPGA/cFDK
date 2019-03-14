@@ -55,6 +55,9 @@ set_top       ${projectName}
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
 
+add_files     ${currDir}/../toe/src/toe_utils.cpp
+add_files     ${currDir}/../toe/src/toe_utils.hpp
+
 add_files -tb ${testDir}/test_${projectName}.cpp
 
 # Create a solution

@@ -147,30 +147,53 @@ void printDmCmd(const char *callerName, DmCmd dmCmd)
 }
 
 /*****************************************************************************
- * @brief Print an Axi socket pair association (used for debugging).
+ * @brief Print a socket pair association encoded in LITTLE-ENDIAN order.
  *
- * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
- * @param[in] sockPair,     the socket pair to display.
+ * @param[in] callerName, the name of the caller process (e.g. "Mdh").
+ * @param[in] sockPair,   the socket pair to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
 void printAxiSockPair(const char *callerName, AxiSocketPair sockPair)
 {
-    printInfo(callerName, "AxiSocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
+    printInfo(callerName, "MacSocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
         sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
         sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
 }
 
 /*****************************************************************************
- * @brief Print an Axi socket address (used for debugging).
+ * @brief Print a socket pair association encoded in NETWORK-BYTE order.
  *
- * @param[in] callerName,   the name of the caller process (e.g. "Mdh").
- * @param[in] sockAddr,     the socket address to display.
+ * @param[in] callerName, the name of the caller process (e.g. "Mdh").
+ * @param[in] sockPair,   the socket pair to display (in NETWORK-BYTE order).
+ *****************************************************************************/
+void printSockPair(const char *callerName, SocketPair sockPair)
+{
+    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
+        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
+        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
+}
+
+/*****************************************************************************
+ * @brief Print a socket address encoded in LITTLE_ENDIAN order.
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "Mdh").
+ * @param[in] sockAddr,   the socket address to display (in LITTLE-ENDIAN order).
  *****************************************************************************/
 void printAxiSockAddr(const char *callerName, AxiSockAddr sockAddr)
 {
-    printInfo(callerName, "AxiSocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
+    printInfo(callerName, "MacSocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
         sockAddr.addr.to_uint(), sockAddr.port.to_uint());
 }
 
-
+/*****************************************************************************
+ * @brief Print a socket address encoded in NETWORK-BYTE order.
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "Mdh").
+ * @param[in] sockAddr,   the socket address to display (in NETWORK-BYTE order).
+ *****************************************************************************/
+void printSockAddr(const char *callerName, SockAddr sockAddr)
+{
+    printInfo(callerName, "SocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
+        sockAddr.addr.to_uint(), sockAddr.port.to_uint());
+}
 
 

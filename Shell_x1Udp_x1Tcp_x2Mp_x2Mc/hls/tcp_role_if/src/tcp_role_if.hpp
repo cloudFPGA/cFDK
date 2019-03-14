@@ -25,13 +25,12 @@ using namespace hls;
 
 
 #define NR_SESSION_ENTRIES  4
-#define MAX_SESSIONS        NR_SESSION_ENTRIES
+#define TRIF_MAX_SESSIONS   NR_SESSION_ENTRIES
 
 
 /********************************************
  * Specific Definitions for the TCP Role I/F
  ********************************************/
-//typedef ap_uint<4>   TcpBuffId;  // TCP buffer  ID  // [FIXME as f(MAX_SESSIONS)]
 
 
 /********************************************

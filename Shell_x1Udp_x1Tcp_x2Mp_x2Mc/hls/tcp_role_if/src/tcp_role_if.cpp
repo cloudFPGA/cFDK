@@ -28,10 +28,34 @@
  *****************************************************************************/
 
 #include "tcp_role_if.hpp"
+#include "../../toe/src/toe_utils.hpp"
+
 #include <stdint.h>
 
 using namespace hls;
 using namespace std;
+
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TRIF"
+
+#define TRACE_OFF  0x0000
+#define TRACE_RXP 1 <<  1
+#define TRACE_TXP 1 <<  2
+#define TRACE_SAM 1 <<  3
+#define TRACE_LSN 1 <<  4
+#define TRACE_OPN 1 <<  5
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_OFF)
+
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
@@ -98,10 +122,11 @@ bool SessionIdCam::search(SessionId sessId)
 
 
 /*****************************************************************************
- * @brief Open/Close a Connection for transmission (occ).
+ * @brief Open/Close a Connection for transmission (OPn).
  *
  * @ingroup trif
  *
+ * @param[in]  siSAm_SockAddr,the socket address to open from [SessionAcceptManager].
  * @param[in]  siTOE_OpnSts,  open connection status from TOE.
  * @param[out] soTOE_OpnReq,  open connection request to TOE.
  * @param[out] soTOE_ClsReq,  close connection request to TOE.
@@ -112,6 +137,7 @@ bool SessionIdCam::search(SessionId sessId)
  *          stream of the module.
  ******************************************************************************/
 void pOpenCloseConn(
+        stream<SockAddr>        &siSAm_SockAddr,
         stream<AppOpnSts>       &siTOE_OpnSts,
         stream<AppOpnReq>       &soTOE_OpnReq,
         stream<AppClsReq>       &soTOE_ClsReq)
@@ -119,26 +145,38 @@ void pOpenCloseConn(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    AppOpnSts   newConn;
-    AppOpnReq   sockAddr;
+    const char *myName  = concat3(THIS_NAME, "/", "OPn");
 
-    if (!siTOE_OpnSts.empty() && !soTOE_OpnReq.full() && !soTOE_ClsReq.full()) {
-        siTOE_OpnSts.read(newConn);
-        sockAddr.addr = 0x32C80C0A;    // reversed byte order of 10.12.200.50
-        sockAddr.port = 0x5050;        // reversed byte order of 20560
-        soTOE_OpnReq.write(sockAddr);
-        cout << "[TRIF]\t" << "Request to open socket address {" << hex << sockAddr.addr << "," << sockAddr.port << "}" << endl;
-        if (newConn.success) {
-            soTOE_ClsReq.write(newConn.sessionID);
-            //closePort.write(occ_sockAddr.ip_port);
+    AppOpnSts   newConn;
+    SockAddr    sockAddr;     // Socket Address stored in NETWORK BYTE ORDER
+    AppOpnReq   macSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+
+
+    if (!siSAm_SockAddr.empty() && !soTOE_OpnReq.full()) {
+        //OBSOLETE sockAddr.addr = 0x32C80C0A;    // reversed byte order of 10.12.200.50
+        //OBSOLETE sockAddr.port = 0x5050;        // reversed byte order of 20560
+        siSAm_SockAddr.read(sockAddr);
+        macSockAddr.addr = byteSwap32(sockAddr.addr);
+        macSockAddr.port = byteSwap16(sockAddr.port);
+        soTOE_OpnReq.write(macSockAddr);
+        if (DEBUG_LEVEL & TRACE_OPN) {
+            printInfo(myName, "Request to open SockAddr={0x%8.8X, 0x%4.4X}.\n",
+                              sockAddr.addr.to_uint(), sockAddr.port.to_uint());
         }
     }
-
+    else if (!siTOE_OpnSts.empty()) {
+        siTOE_OpnSts.read(newConn);
+        // Here we add some dummy code which should never be executed but is
+        // required to avoid the 'ClsReq' ports to be synthesized away during optimization.
+        if (!newConn.success) {
+            soTOE_ClsReq.write(newConn.sessionID);
+        }
+    }
 }
 
 
 /*****************************************************************************
- * @brief Request the TOE to start listening (Lsn) for incoming connections
+ * @brief Request the TOE to start listening (LSn) for incoming connections
  *  on a specific port (.i.e open connection for reception).
  *
  * @ingroup trif
@@ -161,6 +199,8 @@ void pListen(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "LSn");
 
     static bool                lsnAck = false;
     #pragma HLS RESET variable=lsnAck
@@ -210,6 +250,8 @@ void pSessionAcceptManager(
      //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1       // OBSOLETE-20181004 #pragma HLS INLINE OFF
 
+    const char *myName  = concat3(THIS_NAME, "/", "SAm");
+
     //-- LOCAL VARIABLES ------------------------------------------------------
     static SessionIdCam                  sessionIdCam;
     #pragma HLS array_partition variable=sessionIdCam.CAM complete
@@ -239,7 +281,7 @@ void pSessionAcceptManager(
                     soRXp_DropCmd.write(KEEP_CMD);
                 }
                 else {
-                    if (nrSess < MAX_SESSIONS) {
+                    if (nrSess < TRIF_MAX_SESSIONS) {
                         // Open a socket for this connection
                         //  WARNING: The Port Table (PRt) of TOE supports two port ranges;
                         //   one for static ports (0 to 32,767) which are used for listening
@@ -276,20 +318,6 @@ void pSessionAcceptManager(
 }
 
 
-/*** OBSOLETE-20180925 *** Was moved into 'pOpenCloseConn' **********
-void tai_check_tx_status(
-        stream<ap_int<17> >& txStatus)
-{
-    #pragma HLS PIPELINE II=1   //#pragma HLS INLINE OFF
-
-    if (!txStatus.empty()) //Make Checks
-    {
-        txStatus.read();
-    }
-}
-*********************************************************************/
-
-
 /*****************************************************************************
  * @brief Rx Path (RXp) - From TOE to ROLE.
  *  Process waits for a new data segment and forwards it to the ROLE.
@@ -314,6 +342,8 @@ void pRxPath(
    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
+    const char *myName  = concat3(THIS_NAME, "/", "RXp");
+
     SessionId       sessionID;
     AppData         currWord;
     ValBit          dropCmd;
@@ -326,8 +356,10 @@ void pRxPath(
             if (!siTOE_Meta.empty() && !siSAm_DropCmd.empty()) {
                 siTOE_Meta.read(sessionID);
                 siSAm_DropCmd.read(dropCmd);
-                if (dropCmd == KEEP_CMD)
+                if (dropCmd == KEEP_CMD) {
+                	soTXp_SessId.write(sessionID);
                     rxp_fsmState = FSM_STREAM;
+                }
                 else
                     rxp_fsmState = FSM_DROP;
             }
@@ -377,9 +409,7 @@ void pTxPath(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    //-- LOCAL STREAMS --------------------------------------------------------
-    //OBSOLETE static stream<AxiWord>      sFifo_Data("sFifo_Data");
-    //OBSOLETE #pragma HLS STREAM variable=sFifo_Data depth=1024
+    const char *myName  = concat3(THIS_NAME, "/", "TXp");
 
     AxiWord   currWordIn;
     AxiWord   currWordOut;
@@ -393,8 +423,12 @@ void pTxPath(
         case FSM_IDLE:
             if(!siROL_Data.empty() && !siRXp_SessId.empty() &&
                !soTOE_Data.full()  && !soTOE_Meta.full() ) {
-                siROL_Data.read(currWordIn);
                 siRXp_SessId.read(tcpSessId);
+                siROL_Data.read(currWordIn);
+                if (DEBUG_LEVEL & TRACE_TXP) {
+                    printInfo(myName, "Receiving data for session #%d\n", tcpSessId.to_int());
+                    printAxiWord(myName, currWordIn);
+                }
                 if(!currWordIn.tlast) {
                     soTOE_Data.write(currWordIn);
                     soTOE_Meta.write(tcpSessId);
@@ -406,6 +440,9 @@ void pTxPath(
         case FSM_STREAM:
             if (!siROL_Data.empty() && !soTOE_Data.full()) {
                 siROL_Data.read(currWordIn);
+                if (DEBUG_LEVEL & TRACE_TXP) {
+                     printAxiWord(myName, currWordIn);
+                }
                 soTOE_Data.write(currWordIn);
                 if(currWordIn.tlast)
                     fsmState = FSM_IDLE;
@@ -533,6 +570,7 @@ void tcp_role_if(
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pOpenCloseConn(
+            sSAmToOPn_SockAddr,
             siTOE_This_OpnSts,
             soTHIS_Toe_OpnReq,
             soTHIS_Toe_ClsReq);

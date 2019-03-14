@@ -20,6 +20,8 @@
 
 // Forward declarations
 //-----------------------
+class SockAddr;
+class SocketPair;
 class AxiSockAddr;
 class AxiSocketPair;
 class AxiWord;
@@ -89,6 +91,8 @@ class Ip4overAxi;
  *************************************************************************/
 void printAxiWord    (const char *callerName, AxiWord       chunk);
 void printDmCmd      (const char *callerName, DmCmd         dmCmd);
+void printSockAddr   (const char *callerName, SockAddr      sockAddr);
+void printSockPair   (const char *callerName, SocketPair    sockPair);
 void printAxiSockAddr(const char *callerName, AxiSockAddr   sockAddr);
 void printAxiSockPair(const char *callerName, AxiSocketPair sockPair);
 

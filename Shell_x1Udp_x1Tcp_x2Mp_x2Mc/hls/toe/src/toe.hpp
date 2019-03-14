@@ -390,6 +390,20 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
 
+class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
+  public:
+    SockAddr    src;    // Source socket address in NETWORK-BYTE order !!!
+    SockAddr    dst;    // Destination socket address in NETWORK-BYTE order !!!
+    SocketPair() {}
+    SocketPair(SockAddr src, SockAddr dst) :
+        src(src), dst(dst) {}
+};
+
+inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
+        return ((s1.dst.addr <  s2.dst.addr) ||
+                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+}
+
 
 /***********************************************
  * AXI4 STREAMING INTERFACES (alias AXIS)
