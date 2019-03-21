@@ -868,7 +868,7 @@ begin
       poSHL_Econ_Eth0_10Ge0_p              => poTOP_Econ_10Ge0_p,
       
       ------------------------------------------------------
-      -- ROLE / Output Reset and Clock Interfaces
+      -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
       poSHL_156_25Rst                      => sSHL_156_25Rst,
@@ -893,7 +893,7 @@ begin
       ------------------------------------------------------
       -- ROLE / Shl /Nts0 / Tcp Interfaces
       ------------------------------------------------------
-      -- Input AXI-Write Stream Interface ----------
+      -- Input AXI-Write Stream Interface ---------piSHL_156_25Rst_delayed-
       piROL_Shl_Nts0_Tcp_Axis_tdata       => sROL_Shl_Nts0_Tcp_Axis_tdata ,
       piROL_Shl_Nts0_Tcp_Axis_tkeep       => sROL_Shl_Nts0_Tcp_Axis_tkeep ,
       piROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
