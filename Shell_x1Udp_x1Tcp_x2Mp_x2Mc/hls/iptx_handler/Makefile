@@ -23,7 +23,7 @@ SRC_DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all clean help csim csynth cosim project
 
-all: ${ipName}_prj
+all: ${ipName}_prj/solution1/impl/ip
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
