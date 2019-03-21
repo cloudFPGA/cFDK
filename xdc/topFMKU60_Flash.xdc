@@ -88,3 +88,7 @@ set_property CONFIG_MODE BPI16 [current_design]
 #OBSOLETE-20180419 add_cells_to_pblock [get_pblocks pblock_MC1] [get_cells -quiet [list SHELL/inst/MEM/MC1]]
 #OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
 
+
+
+
+
