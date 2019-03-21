@@ -44,6 +44,9 @@ set dbgLvl      1
 
 set force 0
 
+#TODO 
+set useMPI 0
+
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
 #  Note: All the strings after the '-tclargs' option are considered as TCL
@@ -60,6 +63,7 @@ if { $argc > 0 } {
     set options {
         { h     "Display the help information." }
         { force    "Continue, even if an old project will be deleted."}
+        { useMPI "quick'n'dirty."}
     }
     set usage "\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -75,6 +79,11 @@ if { $argc > 0 } {
         if { ${key} eq "force" && ${value} eq 1 } { 
           set force 1
           my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+        }
+        #TODO: quick'n'dirty
+        if { ${key} eq "useMPI" && ${value} eq 1 } { 
+          set useMPI 1
+          my_dbg_trace "Setting useMPI to \'1\' " ${dbgLvl_1}
         }
     }
 }
@@ -150,11 +159,18 @@ set_property part              ${xilPartName}       $obj                -verbose
 set_property "target_language" "Verilog"            $obj                -verbose
 
 set_property top               ${topName}           [ current_fileset ] -verbose
-set_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
+#OBSOLTETEset_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
 
 # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
 #-------------------------------------------------------------------------------
 add_files    ${hdlDir}
+
+if { $useMPI } { 
+  add_files ${rootDir}/Shell_MPIv0_x2Mp_x2Mc.v
+} else { 
+  add_files ${rootDir}/Shell_x1Udp_x1Tcp_x2Mp_x2Mc.v
+}
+
 my_dbg_trace "Done with add_files (HDL)." 1
 
 # Specify the IP Repository Path to make IPs available through the IP Catalog

@@ -1213,6 +1213,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //core should start immediately 
     .ap_start               (1),
     .piSysReset_V           (piSHL_156_25Rst_delayed),
+    .piSysReset_V_ap_vld   (1),
     .poMMIO_V              (sCASTOR_MMIO_4B_Reg),
     //.poMMIO_V_ap_vld     ( ),
     .piMMIO_V              (sMMIO_CASTOR_4B_Reg),

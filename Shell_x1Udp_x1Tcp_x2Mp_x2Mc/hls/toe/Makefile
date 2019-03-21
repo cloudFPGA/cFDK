@@ -24,10 +24,12 @@ SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
 all: ${ipName}_prj
 
-${ipName}_prj: $(SRC_DEPS)
+${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
+	@touch ../../.ip_guard
+
 
 
 csim: ## Runs the HLS C simulation
