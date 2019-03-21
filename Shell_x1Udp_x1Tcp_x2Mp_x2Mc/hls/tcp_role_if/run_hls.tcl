@@ -67,6 +67,8 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
+# config_rtl -reset state
+
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {

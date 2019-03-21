@@ -151,13 +151,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Econ_Eth0_10Ge0_p,
 
   //------------------------------------------------------
-  //-- ROLE / Output Clock and Reset Interfaces
+  //-- ROLE / Reset and Clock Interfaces
   //------------------------------------------------------
   output          poSHL_156_25Clk,
   output          poSHL_156_25Rst,
-
-  // Soft Reset 
-  input         piSHL_156_25Rst_delayed,
+  input           piSHL_156_25Rst_delayed,  // Soft Reset
 
   //------------------------------------------------------
   //-- ROLE / Shl/ Nts0 / Udp Interface
@@ -834,11 +832,22 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   NetworkTransportSession_TcpIp NTS0 (
 
     //-- Global Clock used by the entire SHELL --------------
+    //--   (This is typically 'sETH0_ShlClk' and we use it all over the place) 
     .piShlClk                         (sETH0_ShlClk),
 
-    //-- Global Reset used by the entire SHELL --------------
+    //-- Global Reset used by the entire SHELL -------------
+    //--   (This is typically 'sETH0_ShlRst'. If the module is created by HLS,
+    //--    we use it as the default startup reset of the module.) 
     .piShlRst                         (sETH0_ShlRst),
-
+    
+    //-- System Reset --------------------------------------
+    //--   (This is a delayed version of the global reset. We use it when we
+    //--    specifically want to control the re-initialization of a HLS variable.
+    //--    We recommended to leave the "config_rtl" configuration to its default
+    //--    "control" setting and to use this signal to provide finer grain reset
+    //--    functionnality. See "Controlling the Reset Behavior" in UG902).
+    .piShlRstDly                      (piSHL_156_25Rst_delayed),
+    
     //------------------------------------------------------
     //-- ETH0 / Nts0 / AXI-Write Stream Interfaces
     //------------------------------------------------------

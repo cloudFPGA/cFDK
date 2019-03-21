@@ -32,7 +32,7 @@ using namespace std;
 #define TRACE_ROLE   1 <<  2
 #define TRACE_ALL    0xFFFF
 
-#define DEBUG_LEVEL (TRACE_TOE)
+#define DEBUG_LEVEL (TRACE_TOE | TRACE_ROLE)
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -263,6 +263,8 @@ int main()
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
+    //-- SHELL / System Reset
+    ap_uint<1>          piSHL_SysRst;
     //-- ROLE / Rx Data Interface
     stream<AppData>     sROLE_To_TRIF_Data     ("sROLE_To_TRIF_Data");
     //-- ROLE / This / Tx Data Interface
@@ -287,7 +289,7 @@ int main()
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
     //------------------------------------------------------
-    unsigned int    simCycCnt      = 0;
+    unsigned int    simCycCnt = 0;
     int             nrErr;
 
     printf("#####################################################\n");
@@ -300,6 +302,14 @@ int main()
     //-- MAIN LOOP
     //-----------------------------------------------------
     do {
+
+        //-----------------------------------------------------
+        //-- SYSTEM RESET
+        //-----------------------------------------------------
+        if (simCycCnt < 10)
+            piSHL_SysRst.write(1);
+        else
+            piSHL_SysRst.write(0);
 
         //-------------------------------------------------
         //-- EMULATE TOE
@@ -325,6 +335,8 @@ int main()
         //-- RUN DUT
         //-------------------------------------------------
         tcp_role_if(
+            //-- SHELL / System Reset
+            piSHL_SysRst,
             //-- ROLE / Rx & Tx Data Interfaces
             sROLE_To_TRIF_Data,
             sTRIF_To_ROLE_Data,
@@ -356,7 +368,7 @@ int main()
             sROLE_To_TRIF_Data);
 
         //------------------------------------------------------
-        //-- STEP-? : INCREMENT SIMULATION COUNTER
+        //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         simCycCnt++;
         if (gTraceEvent || ((simCycCnt % 100) == 0)) {

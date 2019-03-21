@@ -48,15 +48,15 @@ using namespace std;
 #define TB_GRACE_TIME       10
 
 //---------------------------------------------------------
-//-- DEFAULT LOCAL AND FOREIGN SOCKETS
+//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the
 //--  testbench, unless the user specifies new ones via one
 //--  of the test vector files.
 //---------------------------------------------------------
-#define DEFAULT_LOCAL_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
-#define DEFAULT_LOCAL_TCP_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
-#define DEFAULT_FOREIGN_IP4_ADDR 0x0A0A0A0A  // TB's foreign IP Address = 10.10.10.10
-#define DEFAULT_FOREIGN_TCP_PORT 0x8000      // TB listens on port      = 32768 (dynamic ports must be 32768..65535)
+#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
+#define DEFAULT_FPGA_TCP_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
+#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
+#define DEFAULT_HOST_TCP_PORT   0x8000      // TB listens on port      = 32768 (dynamic ports must be 32768..65535)
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -64,8 +64,8 @@ using namespace std;
 //--  content of a test-vector file.
 //---------------------------------------------------------
 unsigned int    gMaxSimCycles   = 100;
-TbSockAddr      gLocalSocket(DEFAULT_LOCAL_IP4_ADDR, DEFAULT_LOCAL_TCP_PORT);
-TbSockAddr      gForeignSocket(DEFAULT_FOREIGN_IP4_ADDR, DEFAULT_FOREIGN_TCP_PORT);
+TbSockAddr      gLocalSocket(DEFAULT_FPGA_IP4_ADDR, DEFAULT_FPGA_TCP_PORT);
+TbSockAddr      gForeignSocket(DEFAULT_HOST_IP4_ADDR, DEFAULT_HOST_TCP_PORT);
 bool            gTraceEvent     = false;
 
 
@@ -518,7 +518,7 @@ bool setGlobalParameters(ifstream &inputFile)
                     gLocalSocket.addr = ip4Addr;
                     unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
                     gLocalSocket.port = tcpPort;
-                    printInfo(myName, "Creating local socket <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
+                    printInfo(myName, "Redefining the default FPGA socket to be <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
                 }
                 else {
                     printError(myName, "Unknown parameter \'%s\'.\n", stringVector[2].c_str());
@@ -529,6 +529,8 @@ bool setGlobalParameters(ifstream &inputFile)
                 continue;
         }
     } while(!inputFile.eof());
+
+    printInfo(myName, "Done with the parsing of the input test file.\n\n");
 
     // Seek back to the start of stream
     inputFile.clear();
@@ -751,8 +753,8 @@ void pIPRX(
     static unsigned int ipRxIdleCycCnt = 0;     // The count of idle cycles
 
     // Keep track of the current active local socket
-     static TbSockAddr   currLocalSocket(DEFAULT_LOCAL_IP4_ADDR,
-                                         DEFAULT_LOCAL_TCP_PORT);
+     static TbSockAddr   currLocalSocket(DEFAULT_FPGA_IP4_ADDR,
+                                         DEFAULT_FPGA_TCP_PORT);
 
     string              rxStringBuffer;
     vector<string>      stringVector;
@@ -866,6 +868,14 @@ void pIPRX(
                 if (firstWordFlag == false) {
                     getline(ipRxFile, rxStringBuffer);
                     stringVector = myTokenizer(rxStringBuffer);
+                }
+                if (stringVector[0] == "#") {
+                    // This is a comment line.
+                    for (int t=0; t<stringVector.size(); t++) {
+                        printf("%s ", stringVector[t].c_str());
+                        printf("\n");
+                    }
+                    continue;
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
@@ -1649,8 +1659,8 @@ void pTRIF_Send(
     //OBSOLETE-20190123 static SessionId    currTxSessionID   = 0;  // The current Tx session ID
 
     // Keep track of the current active foreign socket
-    static TbSockAddr   currForeignSocket(DEFAULT_FOREIGN_IP4_ADDR,
-                                          DEFAULT_FOREIGN_TCP_PORT);
+    static TbSockAddr   currForeignSocket(DEFAULT_HOST_IP4_ADDR,
+                                          DEFAULT_HOST_TCP_PORT);
     // Keep track of the opened sessions
     static map<TbSocketPair, SessionId>  openSessList;
 

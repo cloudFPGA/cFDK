@@ -54,7 +54,7 @@ using namespace std;
 #define TRACE_OPN 1 <<  5
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_LSN | TRACE_OPN)
 
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
@@ -126,6 +126,8 @@ bool SessionIdCam::search(SessionId sessId)
  *
  * @ingroup trif
  *
+ * @param[in]  piSHL_SysRst, System reset from [SHELL].
+ * @param[in]  piSHL_SysRst,  A system reset that we control (not HLS).
  * @param[in]  siSAm_SockAddr,the socket address to open from [SessionAcceptManager].
  * @param[in]  siTOE_OpnSts,  open connection status from TOE.
  * @param[out] soTOE_OpnReq,  open connection request to TOE.
@@ -137,10 +139,11 @@ bool SessionIdCam::search(SessionId sessId)
  *          stream of the module.
  ******************************************************************************/
 void pOpenCloseConn(
-        stream<SockAddr>        &siSAm_SockAddr,
-        stream<AppOpnSts>       &siTOE_OpnSts,
-        stream<AppOpnReq>       &soTOE_OpnReq,
-        stream<AppClsReq>       &soTOE_ClsReq)
+        ap_uint<1>           piSHL_SysRst,
+        stream<SockAddr>    &siSAm_SockAddr,
+        stream<AppOpnSts>   &siTOE_OpnSts,
+        stream<AppOpnReq>   &soTOE_OpnReq,
+        stream<AppClsReq>   &soTOE_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -151,7 +154,103 @@ void pOpenCloseConn(
     SockAddr    sockAddr;     // Socket Address stored in NETWORK BYTE ORDER
     AppOpnReq   macSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 
+    static ap_uint<8>   idleTime;
+    static enum FSM_STATE { FSM_IDLE, FSM_OPN_REQ, FSM_OPN_STS, FSM_OPN_DONE } fsmOpen=FSM_IDLE;
 
+    if (piSHL_SysRst == 1) {
+        #ifndef __SYNTHESIS__
+            idleTime =   5;
+        #else
+            idleTime = 255;
+        #endif
+        fsmOpen = FSM_IDLE;
+        return;
+    }
+
+    /*** OBSOLETE ********
+    if (!openConStatus.empty() && !openConnection.full() && !closeConnection.full()) {
+    		openConStatus.read(newConn);
+    		tuple.ip_address = 0x0b010101; //0x0a010101;
+    		tuple.ip_port =  0x3412;//0x4412;
+    		openConnection.write(tuple);
+    		if (newConn.success) {
+    			closeConnection.write(newConn.sessionID);
+    			//closePort.write(tuple.ip_port);
+    		}
+    	}
+    **********************/
+
+    switch (fsmOpen) {
+        case FSM_IDLE:
+            if (idleTime > 0)
+                idleTime--;
+            else
+                fsmOpen = FSM_OPN_REQ;
+            break;
+        case FSM_OPN_REQ:
+            if (!soTOE_OpnReq.full()) {
+                SockAddr    sockAddr(0x0A0CC832, 8803);   // {10.12.200.50, 8803}
+                macSockAddr.addr = byteSwap32(sockAddr.addr);
+                macSockAddr.port = byteSwap16(sockAddr.port);
+                soTOE_OpnReq.write(macSockAddr);
+                if (DEBUG_LEVEL & TRACE_OPN) {
+                    printInfo(myName, "Request to open SockAddr={0x%8.8X, 0x%4.4X}.\n",
+                              sockAddr.addr.to_uint(), sockAddr.port.to_uint());
+                }
+                fsmOpen = FSM_OPN_STS;
+            }
+            else if (!siTOE_OpnSts.empty()) {
+                // Drain the status stream
+                siTOE_OpnSts.read();
+            }
+            break;
+        case FSM_OPN_STS:
+            if (!siTOE_OpnSts.empty()) {
+                // Read the status stream
+                siTOE_OpnSts.read(newConn);
+                if (!newConn.success) {
+                    soTOE_ClsReq.write(newConn.sessionID);
+                    if (DEBUG_LEVEL & TRACE_OPN) {
+                        printInfo(myName, "Request to close sessionId=%d.\n", newConn.sessionID.to_uint());
+                    }
+                    fsmOpen = FSM_IDLE;
+                }
+                else {
+                    if (DEBUG_LEVEL & TRACE_OPN) {
+                        printInfo(myName, "Socket was successfully opened..\n");
+                    }
+                    fsmOpen = FSM_OPN_DONE;
+                }
+            }
+            break;
+        case FSM_OPN_DONE:
+            break;
+    }
+
+    /*** OBSOLETE *********
+    if (!siTOE_OpnSts.empty() && !soTOE_OpnReq.full() && !soTOE_ClsReq.full()) {
+        siTOE_OpnSts.read(newConn);
+        macSockAddr.addr = byteSwap32(0x0A0CC832);    // 10.12.200.50
+        macSockAddr.port = byteSwap16(8803);
+        soTOE_OpnReq.write(macSockAddr);
+        if (DEBUG_LEVEL & TRACE_OPN) {
+            printInfo(myName, "Request to open SockAddr={0x%8.8X, 0x%4.4X}.\n",
+                               sockAddr.addr.to_uint(), sockAddr.port.to_uint());
+        }
+        if (!newConn.success) {
+            soTOE_ClsReq.write(newConn.sessionID);
+            if (DEBUG_LEVEL & TRACE_OPN) {
+                printInfo(myName, "Request to close sessionId=%d.\n", newConn.sessionID.to_uint());
+            }
+        }
+    }
+
+    if (!siSAm_SockAddr.empty()) {
+        siSAm_SockAddr.read(sockAddr);
+    }
+    *************************/
+
+    /*** [FIXME] *******
     if (!siSAm_SockAddr.empty() && !soTOE_OpnReq.full()) {
         //OBSOLETE sockAddr.addr = 0x32C80C0A;    // reversed byte order of 10.12.200.50
         //OBSOLETE sockAddr.port = 0x5050;        // reversed byte order of 20560
@@ -172,6 +271,8 @@ void pOpenCloseConn(
             soTOE_ClsReq.write(newConn.sessionID);
         }
     }
+    ********************/
+
 }
 
 
@@ -181,6 +282,7 @@ void pOpenCloseConn(
  *
  * @ingroup trif
  *
+ * @param[in]  piSHL_SysRst,  System reset from [SHELL].
  * @param[in]  siTOE_LsnAck,  listen port acknowledge from TOE.
  * @param[out] soTOE_LsnReq,  listen port request to TOE.
  *
@@ -194,32 +296,47 @@ void pOpenCloseConn(
  * @return Nothing.
  ******************************************************************************/
 void pListen(
-         stream<AppLsnAck>      &siTOE_LsnAck,
-         stream<AppLsnReq>      &soTOE_LsnReq)
+        ap_uint<1>           piSHL_SysRst,
+        stream<AppLsnAck>   &siTOE_LsnAck,
+        stream<AppLsnReq>   &soTOE_LsnReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "LSn");
+    const int  cDefLsnPort = 8803;  // FYI, this is the ZIP code of Ruschlikon ;-)
 
-    static bool                lsnAck = false;
-    #pragma HLS RESET variable=lsnAck
+    static bool  lsnAck      = false;
+    static bool  isListening = false;
 
-    static bool isListening = false;
-
-    const int cDefLsnPort = 8803;  // FYI, this is the ZIP code of Ruschlikon ;-)
+    if (piSHL_SysRst == 1) {
+        lsnAck      = false;
+        isListening = false;
+        return;
+    }
 
     if (!isListening) {
-        // Bind and listen on a default port
+        // Request to listen on a default port
         if (!lsnAck && !soTOE_LsnReq.full()) {
             soTOE_LsnReq.write(cDefLsnPort);
             isListening = true;
+            // [TODO-Add an MMIO status indicating that we are listening.]
+            if (DEBUG_LEVEL & TRACE_LSN) {
+                printInfo(myName, "Request to listen on port #%d.\n", cDefLsnPort);
+            }
         }
     } else if (isListening && !siTOE_LsnAck.empty()) {
         // Check if the listening request was successful, otherwise try again
         siTOE_LsnAck.read(lsnAck);
-        isListening = false;
+        if (lsnAck == false)
+            isListening = false;
+        else {
+            if (DEBUG_LEVEL & TRACE_LSN) {
+                printInfo(myName, "Received listen acknowledgement from TOE.\n");
+            }
+        }
     }
+
 }
 
 
@@ -234,6 +351,7 @@ void pListen(
  *
  * @ingroup trif
  *
+ * @param[in]  piSHL_SysRst,   System reset from [SHELL].
  * @param[in]  siTOE_Notif,    a new Rx data notification from TOE.
  * @param[out] soTOE_DReq,     a Rx data request to TOE.
  * @param[out] soOPn_SockAddr, the socket address to open.
@@ -242,32 +360,35 @@ void pListen(
  * @return Nothing.
  ******************************************************************************/
 void pSessionAcceptManager(
+        ap_uint<1>           piSHL_SysRst,
         stream<AppNotif>    &siTOE_Notif,
         stream<AppRdReq>    &soTOE_DReq,
         stream<SockAddr>    &soOPn_SockAddr,
         stream<CmdBit>      &soRXp_DropCmd)
 {
-     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1       // OBSOLETE-20181004 #pragma HLS INLINE OFF
-
     const char *myName  = concat3(THIS_NAME, "/", "SAm");
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-    static SessionIdCam                  sessionIdCam;
+    static  SessionIdCam                 sessionIdCam;
     #pragma HLS array_partition variable=sessionIdCam.CAM complete
 
-    //static SessionId  drr_sessId  = 99;
-    //static bool       drr_firstWr = true;
-    static ap_uint<8>   nrSess   = 0;
-
-    static enum FSM_STATE { FSM_WAIT_NOTIFICATION = 0, FSM_WRITE_SESSION } fsmState;
-
+    //OBSOLETE static SessionId  drr_sessId  = 99;
+    //OBSOLETE static bool       drr_firstWr = true;
     AppNotif notif;
     bool     sessStatus = false;
 
-    switch(fsmState) {
+    static ap_uint<8>   nrSess   = 0;
+    static enum FSM_STATE { FSM_WAIT_NOTIFICATION, FSM_WRITE_SESSION } fsmAccept=FSM_WAIT_NOTIFICATION;
 
-        case FSM_WAIT_NOTIFICATION:
+    if (piSHL_SysRst == 1) {
+        nrSess    = 0;
+        fsmAccept = FSM_WAIT_NOTIFICATION;
+    }
+
+    switch(fsmAccept) {
+
+        /****
+         case FSM_WAIT_NOTIFICATION:
             if (!siTOE_Notif.empty() && !soTOE_DReq.full() &&
                 !soOPn_SockAddr.full() && !soRXp_DropCmd.full() ) {
                 siTOE_Notif.read(notif);
@@ -299,7 +420,7 @@ void pSessionAcceptManager(
                         // Accept the incoming data segment
                         soRXp_DropCmd.write(KEEP_CMD);
                         // Add this session ID to the CAM
-                        fsmState = FSM_WRITE_SESSION;
+                        fsmAccept = FSM_WRITE_SESSION;
                     }
                     else {
                         // Drop the incoming data segment
@@ -312,9 +433,25 @@ void pSessionAcceptManager(
         case FSM_WRITE_SESSION:
             sessionIdCam.write(SessionIdCamEntry(notif.sessionID, true));
             nrSess++;
-            fsmState = FSM_WAIT_NOTIFICATION;
+            fsmAccept = FSM_WAIT_NOTIFICATION;
+            break;
+         ****/
+
+        case FSM_WAIT_NOTIFICATION:
+            if (!siTOE_Notif.empty() && !soTOE_DReq.full()) {
+                siTOE_Notif.read(notif);
+                if (notif.tcpSegLen == 0)
+                    return;
+                // Always request the data segment to be received
+                soTOE_DReq.write(AppRdReq(notif.sessionID, notif.tcpSegLen));
+            }
             break;
     }
+
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1
+    //OBSOLETE #pragma HLS reset variable=fsmAccept
+
 }
 
 
@@ -324,6 +461,7 @@ void pSessionAcceptManager(
  *
  * @ingroup trif
  *
+ * @param[in]  piSHL_SysRst, System reset from [SHELL].
  * @param[in]  siTOE_Data,   Data from TOE.
  * @param[in]  siTOE_Meta,   Metadata from TOE.
  * @param[out] soROL_Data,   Data to ROLE.
@@ -333,14 +471,16 @@ void pSessionAcceptManager(
  * @return Nothing.
  *****************************************************************************/
 void pRxPath(
+        ap_uint<1>           piSHL_SysRst,
         stream<AppData>     &siTOE_Data,
         stream<AppMeta>     &siTOE_Meta,
         stream<AppData>     &soROL_Data,
         stream<ValBit>      &siSAm_DropCmd,
         stream<SessionId>   &soTXp_SessId)
 {
-   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+     #pragma HLS PIPELINE II=1
+     //OBSOLETE #pragma HLS reset variable=fsmRxP
 
     const char *myName  = concat3(THIS_NAME, "/", "RXp");
 
@@ -348,20 +488,27 @@ void pRxPath(
     AppData         currWord;
     ValBit          dropCmd;
 
-    static enum FsmState { FSM_IDLE = 0, FSM_STREAM, FSM_DROP } rxp_fsmState;
+    static enum FSM_STATE { FSM_IDLE=0, FSM_STREAM, FSM_DROP } fsmRxP;
 
-    switch (rxp_fsmState) {
+    switch (fsmRxP) {
 
         case FSM_IDLE:
+            /****
             if (!siTOE_Meta.empty() && !siSAm_DropCmd.empty()) {
                 siTOE_Meta.read(sessionID);
                 siSAm_DropCmd.read(dropCmd);
                 if (dropCmd == KEEP_CMD) {
-                	soTXp_SessId.write(sessionID);
-                    rxp_fsmState = FSM_STREAM;
+                    soTXp_SessId.write(sessionID);
+                    fsmRxP = FSM_STREAM;
                 }
                 else
-                    rxp_fsmState = FSM_DROP;
+                    fsmRxP = FSM_DROP;
+            }
+            ****/
+            if (!siTOE_Meta.empty())  {
+                siTOE_Meta.read(sessionID);
+                soTXp_SessId.write(sessionID);
+                fsmRxP = FSM_STREAM;
             }
             break;
 
@@ -370,18 +517,21 @@ void pRxPath(
                 siTOE_Data.read(currWord);
                 soROL_Data.write(currWord);
                 if (currWord.tlast)
-                    rxp_fsmState = FSM_IDLE;
+                    fsmRxP = FSM_IDLE;
             }
             break;
 
+        /***
         case FSM_DROP:
             if (!siTOE_Data.empty()) {
                 siTOE_Data.read(currWord);
                 if (currWord.tlast)
-                    rxp_fsmState = FSM_IDLE;
+                    fsmRxP = FSM_IDLE;
             }
             break;
+        ***/
     }
+
 }
 
 
@@ -391,15 +541,17 @@ void pRxPath(
  *
  * @ingroup trif
  *
- * @param[in]  siROL_Data,  Tx data from ROLE.
- * @param[out] soTOE_Data,  Tx data to TOE.
- * @param[out] soTOE_Meta,  Tx metadata to to TOE.
- * @param[in]  siTOE_DSts,  Tx data write status from TOE.
- * @param[in]  siRXp_SessId,The session ID from [RxPath].
+ * @param[in]  piSHL_SysRst, System reset from [SHELL].
+ * @param[in]  siROL_Data,   Tx data from ROLE.
+ * @param[out] soTOE_Data,   Tx data to TOE.
+ * @param[out] soTOE_Meta,   Tx metadata to to TOE.
+ * @param[in]  siTOE_DSts,   Tx data write status from TOE.
+ * @param[in]  siRXp_SessId, The session ID from [RxPath].
  *
  * @return Nothing.
  ******************************************************************************/
 void pTxPath(
+        ap_uint<1>            piSHL_SysRst,
         stream<AppData>      &siROL_Data,
         stream<AppData>      &soTOE_Data,
         stream<AppMeta>      &soTOE_Meta,
@@ -416,9 +568,9 @@ void pTxPath(
     SessionId tcpSessId;
 
     //-- FSM ----------------
-    static enum FsmInState {FSM_IDLE = 0, FSM_STREAM} fsmState;
+    static enum FSM_STATE {FSM_IDLE=0, FSM_STREAM} fsmTxP;
 
-    switch (fsmState) {
+    switch (fsmTxP) {
 
         case FSM_IDLE:
             if(!siROL_Data.empty() && !siRXp_SessId.empty() &&
@@ -432,7 +584,7 @@ void pTxPath(
                 if(!currWordIn.tlast) {
                     soTOE_Data.write(currWordIn);
                     soTOE_Meta.write(tcpSessId);
-                    fsmState = FSM_STREAM;
+                    fsmTxP = FSM_STREAM;
                 }
             }
         break;
@@ -445,7 +597,7 @@ void pTxPath(
                 }
                 soTOE_Data.write(currWordIn);
                 if(currWordIn.tlast)
-                    fsmState = FSM_IDLE;
+                    fsmTxP = FSM_IDLE;
             }
         break;
     }
@@ -462,6 +614,7 @@ void pTxPath(
  * @brief   Main process of the TCP Role Interface (TRIF)
  * @ingroup tcp_role_if
  *
+ * @param[in]  piSHL_SysRst      A system reset that we control (not HLS).
  * @param[in]  siROL_This_Data   TCP Rx data stream from ROLE.
  * @param[out] soTHIS_Rol_Data   TCP Tx data stream to ROLE.
  * @param[in]  siTOE_This_Notif  TCP Rx data notification from TOE.
@@ -484,6 +637,10 @@ void pTxPath(
  *                amount of segments received.
  *****************************************************************************/
 void tcp_role_if(
+        //------------------------------------------------------
+        //-- SHELL / System Reset
+        //------------------------------------------------------
+        ap_uint<1>           piSHL_SysRst,
 
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface
@@ -527,9 +684,10 @@ void tcp_role_if(
         //------------------------------------------------------
         stream<AppClsReq>   &soTHIS_Toe_ClsReq)
 {
-
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_stable port=piSHL_SysRst
 
     #pragma HLS resource core=AXI4Stream variable=siROL_This_Data   metadata="-bus_bundle siROL_This_Data"
 
@@ -570,22 +728,26 @@ void tcp_role_if(
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pOpenCloseConn(
+            piSHL_SysRst,
             sSAmToOPn_SockAddr,
             siTOE_This_OpnSts,
             soTHIS_Toe_OpnReq,
             soTHIS_Toe_ClsReq);
 
     pListen(
+            piSHL_SysRst,
             siTOE_This_LsnAck,
             soTHIS_Toe_LsnReq);
 
     pSessionAcceptManager(
+            piSHL_SysRst,
             siTOE_This_Notif,
             soTHIS_Toe_DReq,
             sSAmToOPn_SockAddr,
             sSAmToRXp_DropCmd);
 
     pRxPath(
+            piSHL_SysRst,
             siTOE_This_Data,
             siTOE_This_Meta,
             soTHIS_Rol_Data,
@@ -593,6 +755,7 @@ void tcp_role_if(
             sRXpToTXp_SessId);
 
     pTxPath(
+            piSHL_SysRst,
             siROL_This_Data,
             soTHIS_Toe_Data,
             soTHIS_Toe_Meta,

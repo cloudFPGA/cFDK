@@ -40,12 +40,21 @@
 module NetworkTransportSession_TcpIp (
 
   //-- Global Clock used by the entire SHELL -------------
-  //--   (This is typically 'sETH0_ShlClk') 
+  //--   (This is typically 'sETH0_ShlClk' and we use it all over the place) 
   input          piShlClk,
   
   //-- Global Reset used by the entire SHELL -------------
-  //--   (This is typically 'sETH0_ShlRst')  
+  //--   (This is typically 'sETH0_ShlRst'. If the module is created by HLS,
+  //--    we use it as the default startup reset of the module.) 
   input          piShlRst,
+  
+  //-- System Reset --------------------------------------
+  //--   (This is a delayed version of the global reset. We use it when we
+  //--    specifically want to control the re-initialization of a HLS variable.
+  //--    We recommended to leave the "config_rtl" configuration to its default
+  //--    "control" setting and to use this signal to provide finer grain reset
+  //--    functionnality. See "Controlling the Reset Behavior" in UG902).
+  input          piShlRstDly,
   
   //-- MMIO : Control inputs and Status outputs ----------
    
@@ -1364,6 +1373,11 @@ module NetworkTransportSession_TcpIp (
   
     .aclk                             (piShlClk),
     .aresetn                          (~piShlRst),
+  
+    //------------------------------------------------------
+    //-- SHELL / System Reset
+    //------------------------------------------------------
+    .piSHL_SysRst_V                   (piShlRstDly),
   
     //------------------------------------------------------
     //-- From ROLE / Rx Data Interface
