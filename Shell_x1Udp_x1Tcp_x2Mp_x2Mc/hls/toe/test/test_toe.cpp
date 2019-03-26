@@ -107,10 +107,11 @@ void printTbSockPair(const char *callerName, TbSocketPair sockPair)
  * @brief Converts an UINT64 into a string of 16 HEX characters.
  *
  * @param[in]   inputNumber, the UINT64 to convert.
+ * @return      a string of 16 HEX characters.
  *
  * @ingroup test_toe
  ******************************************************************************/
-string decodeApUint64(
+string myUint64ToStrHex(
         ap_uint<64> inputNumber)
 {
     string                    outputString    = "0000000000000000";
@@ -132,10 +133,11 @@ string decodeApUint64(
  * @brief Converts an UINT8 into a string of 2 HEX characters.
  *
  * @param[in]   inputNumber, the UINT8 to convert.
+ * @return      a string of 2 HEX characters.
  *
  * @ingroup test_toe
  ******************************************************************************/
-string decodeApUint8(
+string myUint8ToStrHex(
         ap_uint<8> inputNumber)
 {
     string                      outputString    = "00";
@@ -157,10 +159,11 @@ string decodeApUint8(
  * @brief Converts a string of 16 HEX characters into an UINT64.
  *
  * @param[in]   inputNumber, the string to convert.
+ * @return      an UINT64.
  *
  * @ingroup test_toe
  ******************************************************************************/
-ap_uint<64> encodeApUint64(
+ap_uint<64> myStrHexToUint64(
         string dataString)
 {
     ap_uint<64> tempOutput          = 0;
@@ -190,10 +193,11 @@ ap_uint<64> encodeApUint64(
  * @brief Converts a string of 2 HEX characters into an UINT8.
  *
  * @param[in]   inputNumber, the string to convert.
+ * @return      an UINT8.
  *
  * @ingroup test_toe
  ******************************************************************************/
-ap_uint<8> encodeApUint8(
+ap_uint<8> myStrHexToUint8(
         string keepString)
 {
     ap_uint<8>               tempOutput = 0;
@@ -270,6 +274,7 @@ void pEmulateCam(
         }
     }
 }
+
 
 /*****************************************************************************
  * @brief Emulate the behavior of the Receive DDR4 Buffer Memory (RXMEM).
@@ -428,14 +433,16 @@ void pEmulateTxBufMem(
 
 
 /*****************************************************************************
- * @brief Brakes a string into tokens by using the 'space' delimiter.
+ * @brief Brakes a string into tokens by using the 'delimiter' character.
  *
  * @param[in]  stringBuffer, the string to tokenize.
+ * @param[in]  delimiter,    the delimiter character to use.
+ *
  * @return a vector of strings.
  *
  * @ingroup toe
  ******************************************************************************/
-vector<string> myTokenizer(string strBuff) {
+vector<string> myTokenizer(string strBuff, char delimiter) {
     vector<string>   tmpBuff;
     int              tokenCounter = 0;
     bool             found = false;
@@ -450,12 +457,12 @@ vector<string> myTokenizer(string strBuff) {
             strBuff.erase(strBuff.size() - 1);
     }
 
-    // Search for space characters delimiting the different data words
-    while (strBuff.find(" ") != string::npos) {
+    // Search for 'delimiter' characters between the different data words
+    while (strBuff.find(delimiter) != string::npos) {
         // Split the string in two parts
-        string temp = strBuff.substr(0, strBuff.find(" "));
+        string temp = strBuff.substr(0, strBuff.find(delimiter));
         // Remove first element from 'strBuff'
-        strBuff = strBuff.substr(strBuff.find(" ")+1, strBuff.length());
+        strBuff = strBuff.substr(strBuff.find(delimiter)+1, strBuff.length());
         // Store the new part into the vector.
         if (temp != "")
             tmpBuff.push_back(temp);
@@ -469,6 +476,76 @@ vector<string> myTokenizer(string strBuff) {
     return tmpBuff;
 }
 
+
+/*****************************************************************************
+ * @brief Checks if a string contains a hexadecimal number.
+ *
+ * @param[in]   str, the string to assess.
+ * @return      True/False.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+bool isHexString(string str) {
+    char     *ptr;
+    long int  res;
+
+    if (str == "")
+        return false;
+    res = strtol(str.c_str(), &ptr, 16);
+    //  If string is not '\0' and *ptr is '\0' on return, the entire string is valid.
+    if (res != '\0') {
+        if ((str.find("0x") == string::npos) || (str.find("0X") == string::npos))
+            return false;
+        else
+            return true;
+    }
+    else
+        return false;
+}
+
+
+/*****************************************************************************
+ * @brief Checks if a string contains an IP address represented in dot-decimal
+ *        notation.
+ *
+ * @param[in]   ipAddStr, the string to assess.
+ * @return      True/False.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+bool isDottedDecimal(string ipStr) {
+    vector<string>  stringVector;
+
+    stringVector = myTokenizer(ipStr, '.');
+    if (stringVector.size() == 4)
+        return true;
+    else
+        return false;
+}
+
+
+/*****************************************************************************
+ * @brief Converts an IPv4 address represented with a dotted-decimal string
+ *        into an UINT32.
+ *
+ * @param[in]   inputNumber, the string to convert.
+ * @return      an UINT64.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+ap_uint<32> myDottedDecimalIpToUint32(string ipStr) {
+    vector<string>  stringVector;
+    ap_uint<32>     ip4Uint = 0x00000000;
+    ap_uint<32>     octet;
+
+    stringVector = myTokenizer(ipStr, '.');
+    char * ptr;
+    for (int i=0; i<stringVector.size(); i++) {
+        octet = strtoul(stringVector[i].c_str(), &ptr, 10);
+        ip4Uint |= (octet << 8*(3-i));
+    }
+    return ip4Uint;
+}
 
 /*****************************************************************************
  * @brief Parse the input test file and set the global parameters of the TB.
@@ -497,7 +574,7 @@ bool setGlobalParameters(ifstream &inputFile)
     do {
         //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
         getline(inputFile, rxStringBuffer);
-        stringVector = myTokenizer(rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer, ' ');
 
         if (stringVector[0] == "") {
             continue;
@@ -514,9 +591,21 @@ bool setGlobalParameters(ifstream &inputFile)
                 }
                 else if (stringVector[2] == "LocalSocket") {
                     char * ptr;
-                    unsigned int ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+                    // Retrieve the IPv4 address to set
+                    unsigned int ip4Addr;
+                    if (isDottedDecimal(stringVector[3]))
+                        ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+                    else if (isHexString(stringVector[3]))
+                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+                    else
+                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gLocalSocket.addr = ip4Addr;
-                    unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                    // Retrieve the TCP-Port to set
+                    unsigned int tcpPort;
+                    if (isHexString(stringVector[4]))
+                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                    else
+                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
                     gLocalSocket.port = tcpPort;
                     printInfo(myName, "Redefining the default FPGA socket to be <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
                 }
@@ -817,7 +906,7 @@ void pIPRX(
     do {
         //-- READ A LINE FROM IPRX INPUT FILE -------------
         getline(ipRxFile, rxStringBuffer);
-        stringVector = myTokenizer(rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer, ' ');
 
         if (stringVector[0] == "") {
             continue;
@@ -867,7 +956,7 @@ void pIPRX(
             do {
                 if (firstWordFlag == false) {
                     getline(ipRxFile, rxStringBuffer);
-                    stringVector = myTokenizer(rxStringBuffer);
+                    stringVector = myTokenizer(rxStringBuffer, ' ');
                 }
                 if (stringVector[0] == "#") {
                     // This is a comment line.
@@ -879,8 +968,8 @@ void pIPRX(
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
-                ipRxData = Ip4overAxi(encodeApUint64(stringVector[0]), \
-                                      encodeApUint8(stringVector[2]),  \
+                ipRxData = Ip4overAxi(myStrHexToUint64(stringVector[0]), \
+                                      myStrHexToUint8(stringVector[2]),  \
                                       atoi(stringVector[1].c_str()));
                 ipRxPacket.push_back(ipRxData);
             } while (ipRxData.tlast != 1);
@@ -1184,8 +1273,8 @@ void pL3MUX(
             ipTxWordCounter++;
 
         //-- STEP-4 : Write to file ------------- ---------
-        string dataOutput = decodeApUint64(ipTxWord.tdata);
-        string keepOutput = decodeApUint8(ipTxWord.tkeep);
+        string dataOutput = myUint64ToStrHex(ipTxWord.tdata);
+        string keepOutput = myUint8ToStrHex(ipTxWord.tkeep);
         ipTxFile1 << dataOutput << " " << ipTxWord.tlast << " " << keepOutput << endl;
     }
 } // End of: pL3MUX
@@ -1731,7 +1820,7 @@ void pTRIF_Send(
     do {
         //-- READ A LINE FROM APP RX FILE -------------
         getline(appRxFile, rxStringBuffer);
-        stringVector = myTokenizer(rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer, ' ');
 
         if (stringVector[0] == "") {
             continue;
@@ -1794,7 +1883,7 @@ void pTRIF_Send(
             do {
                 if (firstWordFlag == false) {
                     getline(appRxFile, rxStringBuffer);
-                    stringVector = myTokenizer(rxStringBuffer);
+                    stringVector = myTokenizer(rxStringBuffer, ' ');
                 }
                 else {
                     // A Tx data request (i.e. a metadata) must be sent by TRIF to TOE
@@ -1802,8 +1891,8 @@ void pTRIF_Send(
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
-                appRxData = AxiWord(encodeApUint64(stringVector[0]), \
-                                    encodeApUint8(stringVector[2]),  \
+                appRxData = AxiWord(myStrHexToUint64(stringVector[0]), \
+                                    myStrHexToUint8(stringVector[2]),  \
                                     atoi(stringVector[1].c_str()));
                 soTOE_Data.write(appRxData);
 
