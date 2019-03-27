@@ -486,18 +486,18 @@ vector<string> myTokenizer(string strBuff, char delimiter) {
  * @ingroup test_toe
  ******************************************************************************/
 bool isHexString(string str) {
-    char     *ptr;
+    char     *pEnd;
     long int  res;
 
     if (str == "")
         return false;
-    res = strtol(str.c_str(), &ptr, 16);
-    //  If string is not '\0' and *ptr is '\0' on return, the entire string is valid.
-    if (res != '\0') {
-        if ((str.find("0x") == string::npos) || (str.find("0X") == string::npos))
-            return false;
-        else
+    res = strtol(str.c_str(), &pEnd, 16);
+    //  If string is not '\0' and *pEnd is '\0' on return, the entire string is valid.
+    if (*pEnd == '\0') {
+        if ((str.find("0x") != string::npos) || (str.find("0X") != string::npos))
             return true;
+        else
+            return false;
     }
     else
         return false;
@@ -1743,9 +1743,7 @@ void pTRIF_Send(
         stream<AxiWord>         &soTOE_Data,
         stream<ap_uint<16> >    &soTOE_ClsReq)
 {
-    //OBSOLETE-20190123 static bool         openDone          = false;
     static bool         globParseDone     = false;
-    //OBSOLETE-20190123 static SessionId    currTxSessionID   = 0;  // The current Tx session ID
 
     // Keep track of the current active foreign socket
     static TbSockAddr   currForeignSocket(DEFAULT_HOST_IP4_ADDR,
@@ -1763,6 +1761,7 @@ void pTRIF_Send(
     vector<string>      stringVector;
     OpenStatus          newConStatus;
     bool                isOpen;
+    char               *pEnd;
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF_Send");
 
@@ -1847,18 +1846,30 @@ void pTRIF_Send(
                 //  FYI, don't forget to return at the end of command execution.
                 if (stringVector[1] == "IDLE") {
                     // Cmd = Request to idle for <NUM> cycles.
-                    appRxIdleCycReq = atoi(stringVector[2].c_str());
+                    appRxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
                     appRxIdlingReq = true;
                     printInfo(myName, "Request to idle for %d cycles. \n", appRxIdleCycReq);
                     return;
                 }
                 if (stringVector[1] == "SET") {
-                    // Cmd = Set a new foreign socket.
                     if (stringVector[2] == "ForeignSocket") {
-                        char * ptr;
-                        unsigned int ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+                        // Command = Set a new foreign socket.
+                        char *pEnd;
+                        // Retrieve the current foreign IPv4 address to set
+                        unsigned int ip4Addr;
+                        if (isDottedDecimal(stringVector[3]))
+                            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+                        else if (isHexString(stringVector[3]))
+                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
+                        else
+                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
                         currForeignSocket.addr = ip4Addr;
-                        unsigned int tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                        // Retrieve the current foreign TCP-Port to set
+                        unsigned int tcpPort;
+                        if (isHexString(stringVector[4]))
+                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 16);
+                        else
+                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 10);
                         currForeignSocket.port = tcpPort;
                         printInfo(myName, "Setting foreign socket to <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
                         return;
@@ -2234,18 +2245,23 @@ int main(int argc, char *argv[]) {
     char            mode            = *argv[1];
     char            cCurrPath[FILENAME_MAX];
 
+
+    printf("\n\n\n\n");
+    printf("############################################################################\n");
+    printf("## TESTBENCH STARTS HERE                                                  ##\n");
+    printf("############################################################################\n");
+    simCycCnt = 0;     // Simulation cycle counter as a global variable
+    nrErr     = 0;     // Total number of testbench errors
+
     //------------------------------------------------------
     //-- PARSING TESBENCH ARGUMENTS
     //------------------------------------------------------
     if (argc < 3) {
-        printf("## [TB-ERROR] Expected a minimum of 2 or 3 parameters with one of the the following synopsis:\n");
-        printf("\t mode(0) ipRxFileName\n");
-        printf("\t mode(1) appRxFileName\n");
-        printf("\t mode(2) ipRxFileName appRxFileName\n");
+        printError(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0) ipRxFileName\n \t\t mode(1) appRxFileName\n \t\t mode(2) ipRxFileName appRxFileName\n");
         return -1;
     }
 
-    printf("INFO: This TB-run executes in mode \'%c\'.\n", mode);
+    printInfo(THIS_NAME, "This run executes in mode \'%c\'.\n", mode);
 
     if ((mode == RX_MODE) || (mode == BIDIR_MODE)) {
         testRxPath = true;
@@ -2254,23 +2270,24 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         ipRxFile.open(argv[2]);
         if (!ipRxFile) {
-            printf("## [TB-ERROR] Cannot open the IP Rx file: \n\t %s \n", argv[2]);
+            printError(THIS_NAME, "Cannot open the IP Rx file: \n\t %s \n", argv[2]);
             if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                 return -1;
             }
-            printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
+            printInfo (THIS_NAME, "\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
             return -1;
         }
+        printInfo(THIS_NAME, "This run executes with IP Rx file  : %s.\n", argv[2]);
 
         appTxFile.open(appTxFileName);
         if (!appTxFile) {
-            printf("## [TB-ERROR] Cannot open the Application Tx file:  \n\t %s \n", appTxFileName);
+            printError(THIS_NAME, , "Cannot open the Application Tx file:  \n\t %s \n", appTxFileName);
             return -1;
         }
 
         appTxGold.open(appTxGoldName);
         if (!appTxGold) {
-            printf("## [TB-ERROR] Cannot open the Application Tx gold file:  \n\t %s \n", appTxGoldName);
+            printInfo(THIS_NAME, "Cannot open the Application Tx gold file:  \n\t %s \n", appTxGoldName);
             return -1;
         }
     }
@@ -2284,51 +2301,46 @@ int main(int argc, char *argv[]) {
         case TX_MODE:
             appRxFile.open(argv[2]);
             if (!appRxFile) {
-                printf("## [TB-ERROR] Cannot open the APP Rx file: \n\t %s \n", argv[2]);
+                printError(THIS_NAME, "Cannot open the APP Rx file: \n\t %s \n", argv[2]);
                 if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                     return -1;
                 }
-                printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
+                printInfo (THIS_NAME, "\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
                 return -1;
             }
+            printInfo(THIS_NAME, "This run executes with APP Rx file : %s.\n", argv[2]);
             break;
         case BIDIR_MODE:
             appRxFile.open(argv[3]);
             if (!appRxFile) {
-                printf("## [TB-ERROR] Cannot open the APP Rx file: \n\t %s \n", argv[3]);
+                printError(THIS_NAME, "Cannot open the APP Rx file: \n\t %s \n", argv[3]);
                 if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                     return -1;
                 }
                 printf ("\t (FYI - The current working directory is: \n\t %s) \n", cCurrPath);
                 return -1;
             }
+            printInfo(THIS_NAME, "This run executes with APP Rx file : %s.\n", argv[3]);
             break;
         }
 
         ipTxFile1.open(ipTxFileName1);
         if (!ipTxFile1) {
-            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName1);
+            printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName1);
             return -1;
         }
         ipTxFile2.open(ipTxFileName2);
         if (!ipTxFile2) {
-            printf("## [TB-ERROR] Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName2);
+            printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName2);
             return -1;
         }
 
         ipTxGold2.open(ipTxGoldName2);
         if (!ipTxGold2) {
-            printf("## [TB-ERROR] Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName2);
+            printError(THIS_NAME, "Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName2);
             return -1;
         }
     }
-
-    printf("############################################################################\n");
-    printf("## TESTBENCH STARTS HERE                                                  ##\n");
-    printf("############################################################################\n");
-    printf("   FYI - LocalSocket = { 0x%8.8X, 0x%4.4X} \n\n", gLocalSocket.addr, gLocalSocket.port);
-    simCycCnt = 0;     // Simulation cycle counter as a global variable
-    nrErr     = 0;     // Total number of testbench errors
 
     //-----------------------------------------------------
     //-- MAIN LOOP
