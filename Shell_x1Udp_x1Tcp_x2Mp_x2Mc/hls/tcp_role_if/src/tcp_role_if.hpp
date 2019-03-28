@@ -74,44 +74,44 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &siROL_This_Data,
+        stream<AppData>     &siROL_Data,
 
         //------------------------------------------------------
         //-- ROLE / Tx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &soTHIS_Rol_Data,
+        stream<AppData>     &soROL_Data,
 
         //------------------------------------------------------
         //-- TOE / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>    &siTOE_This_Notif,
-        stream<AppRdReq>    &soTHIS_Toe_DReq,
-        stream<AppData>     &siTOE_This_Data,
-        stream<AppMeta>     &siTOE_This_Meta,
+        stream<AppNotif>    &siTOE_Notif,
+        stream<AppRdReq>    &soTOE_DReq,
+        stream<AppData>     &siTOE_Data,
+        stream<AppMeta>     &siTOE_Meta,
 
         //------------------------------------------------------
         //-- TOE / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>   &soTHIS_Toe_LsnReq,
-        stream<AppLsnAck>   &siTOE_This_LsnAck,
+        stream<AppLsnReq>   &soTOE_LsnReq,
+        stream<AppLsnAck>   &siTOE_LsnAck,
 
         //------------------------------------------------------
         //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>     &soTHIS_Toe_Data,
-        stream<AppMeta>     &soTHIS_Toe_Meta,
-        stream<AppWrSts>    &siTOE_This_DSts,
+        stream<AppData>     &soTOE_Data,
+        stream<AppMeta>     &soTOE_Meta,
+        stream<AppWrSts>    &siTOE_DSts,
 
         //------------------------------------------------------
         //-- TOE / Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>   &soTHIS_Toe_OpnReq,
-        stream<AppOpnSts>   &siTOE_This_OpnSts,
+        stream<AppOpnReq>   &soTOE_OpnReq,
+        stream<AppOpnSts>   &siTOE_OpnSts,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>   &soTHIS_Toe_ClsReq
+        stream<AppClsReq>   &soTOE_ClsReq
 
 );
 

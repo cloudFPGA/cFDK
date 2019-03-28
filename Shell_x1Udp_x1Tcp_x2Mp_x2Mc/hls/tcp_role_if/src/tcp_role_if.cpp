@@ -150,20 +150,23 @@ void pOpenCloseConn(
 
     const char *myName  = concat3(THIS_NAME, "/", "OPn");
 
-    AppOpnSts   newConn;
+
     SockAddr    sockAddr;     // Socket Address stored in NETWORK BYTE ORDER
     AppOpnReq   macSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 
+    static AppOpnSts    newConn;
     static ap_uint<8>   idleTime;
+    static int          watchDogTimer = 100;
     static enum FSM_STATE { FSM_IDLE, FSM_OPN_REQ, FSM_OPN_STS, FSM_OPN_DONE } fsmOpen=FSM_IDLE;
 
     if (piSHL_SysRst == 1) {
         #ifndef __SYNTHESIS__
-            idleTime =   5;
+            idleTime =  25;
         #else
             idleTime = 255;
         #endif
-        fsmOpen = FSM_IDLE;
+        fsmOpen       = FSM_IDLE;
+        watchDogTimer = 100;
         return;
     }
 
@@ -181,12 +184,19 @@ void pOpenCloseConn(
     **********************/
 
     switch (fsmOpen) {
-        case FSM_IDLE:
-            if (idleTime > 0)
+
+    case FSM_IDLE:
+            if (idleTime > 0) {
                 idleTime--;
+                if (!siTOE_OpnSts.empty()) {
+                    // Drain any potential status data
+                    siTOE_OpnSts.read();
+                }
+            }
             else
                 fsmOpen = FSM_OPN_REQ;
             break;
+
         case FSM_OPN_REQ:
             if (!soTOE_OpnReq.full()) {
                 SockAddr    sockAddr(0x0A0CC832, 8803);   // {10.12.200.50, 8803}
@@ -197,30 +207,39 @@ void pOpenCloseConn(
                     printInfo(myName, "Request to open SockAddr={0x%8.8X, 0x%4.4X}.\n",
                               sockAddr.addr.to_uint(), sockAddr.port.to_uint());
                 }
+                watchDogTimer = 100;
                 fsmOpen = FSM_OPN_STS;
             }
-            else if (!siTOE_OpnSts.empty()) {
-                // Drain the status stream
-                siTOE_OpnSts.read();
-            }
             break;
+
         case FSM_OPN_STS:
+            watchDogTimer--;
             if (!siTOE_OpnSts.empty()) {
                 // Read the status stream
                 siTOE_OpnSts.read(newConn);
-                if (!newConn.success) {
-                    soTOE_ClsReq.write(newConn.sessionID);
-                    if (DEBUG_LEVEL & TRACE_OPN) {
-                        printInfo(myName, "Request to close sessionId=%d.\n", newConn.sessionID.to_uint());
-                    }
-                    fsmOpen = FSM_IDLE;
-                }
-                else {
+                if (newConn.success) {
                     if (DEBUG_LEVEL & TRACE_OPN) {
                         printInfo(myName, "Socket was successfully opened..\n");
-                    }
-                    fsmOpen = FSM_OPN_DONE;
+                     }
+                     fsmOpen = FSM_OPN_DONE;
                 }
+                else {
+                     printError(myName, "Failed to open socket:\n");
+                     printSockAddr(myName, sockAddr);
+                     fsmOpen = FSM_OPN_REQ;
+                 }
+            }
+            else {
+                if (watchDogTimer == 0) {
+                    if (DEBUG_LEVEL & TRACE_OPN) {
+                        printError(myName, "Timeout: Failed to open the following socket:\n");
+                        printSockAddr(myName, sockAddr);
+                        printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
+                    }
+                    soTOE_ClsReq.write(newConn.sessionID);
+                    fsmOpen = FSM_IDLE;
+                }
+
             }
             break;
         case FSM_OPN_DONE:
@@ -303,9 +322,14 @@ void pListen(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    const char *myName  = concat3(THIS_NAME, "/", "LSn");
-    const int  cDefLsnPort = 8803;  // FYI, this is the ZIP code of Ruschlikon ;-)
+    const char    *myName      = concat3(THIS_NAME, "/", "LSn");
+    const TcpPort  cDefLsnPort = 8803;  // FYI, this is the ZIP code of Ruschlikon ;-)
+    bool           listenDone  = false;
 
+    static ap_uint<1> listenFsm     =   0;
+    static int        watchDogTimer = 100;
+
+    /*** OBSOLETE-20190327 *********************
     static bool  lsnAck      = false;
     static bool  isListening = false;
 
@@ -332,11 +356,53 @@ void pListen(
             isListening = false;
         else {
             if (DEBUG_LEVEL & TRACE_LSN) {
-                printInfo(myName, "Received listen acknowledgement from TOE.\n");
+                printInfo(myName, "Received listen acknowledgment from TOE.\n");
             }
         }
     }
+    *********************************************/
 
+    if (piSHL_SysRst == 1) {
+        listenFsm  = 0;
+        listenDone = false;
+        return;
+    }
+
+    if (!listenDone) {
+        switch (listenFsm) {
+        case 0:
+            soTOE_LsnReq.write(cDefLsnPort);
+            if (DEBUG_LEVEL & TRACE_LSN) {
+                printInfo(myName, "Request to listen on port #%d (0x%4.4X).\n",
+                          cDefLsnPort.to_uint(), cDefLsnPort.to_uint());
+            }
+            watchDogTimer = 100;
+            listenFsm++;
+            break;
+
+        case 1:
+            watchDogTimer--;
+            if (!siTOE_LsnAck.empty()) {
+                siTOE_LsnAck.read(listenDone);
+                if (listenDone) {
+                    printInfo(myName, "Received listen acknowledgment from TOE.\n");
+                }
+                else {
+                    printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
+                              cDefLsnPort.to_uint(), cDefLsnPort.to_uint());
+                }
+                listenFsm = 0;
+            }
+            else {
+                if (watchDogTimer == 0) {
+                    printError(myName, "Timeout: Failed to listen on port %d %d (0x%4.4X).\n",
+                               cDefLsnPort.to_uint(), cDefLsnPort.to_uint());
+                    listenFsm = 0;
+                }
+            }
+            break;
+        }
+    }
 }
 
 
@@ -616,19 +682,19 @@ void pTxPath(
  *
  * @param[in]  piSHL_SysRst      A system reset that we control (not HLS).
  * @param[in]  siROL_This_Data   TCP Rx data stream from ROLE.
- * @param[out] soTHIS_Rol_Data   TCP Tx data stream to ROLE.
+ * @param[out] soTRIF_Rol_Data   TCP Tx data stream to ROLE.
  * @param[in]  siTOE_This_Notif  TCP Rx data notification from TOE.
- * @param[out] soTHIS_Toe_RdReq  TCP Rx data request to TOE.
+ * @param[out] soTRIF_Toe_RdReq  TCP Rx data request to TOE.
  * @param[in]  siTOE_This_Data   TCP Rx data from TOE.
  * @param[in]  siTOE_This_Meta   TCP Rx metadata from TOE.
- * @param[out] soTHIS_Toe_LsnReq TCP Rx listen port request to TOE.
+ * @param[out] soTRIF_Toe_LsnReq TCP Rx listen port request to TOE.
  * @param[in]  siTOE_This_LsnAck TCP Rx listen port acknowledge from TOE.
- * @param[out] soTHIS_Toe_Data   TCP Tx data to TOE.
- * @param[out] soTHIS_Toe_Meta   TCP Tx metadata to TOE.
+ * @param[out] soTRIF_Toe_Data   TCP Tx data to TOE.
+ * @param[out] soTRIF_Toe_Meta   TCP Tx metadata to TOE.
  * @param[in]  siTOE_This_DSts   TCP Tx data status from TOE.
- * @param[out] soTHIS_Toe_OpnReq TCP Tx open connection request to TOE.
+ * @param[out] soTRIF_Toe_OpnReq TCP Tx open connection request to TOE.
  * @param[in]  siTOE_This_OpnSts TCP Tx open connection status from TOE.
- * @param[out] soTHIS_Toe_ClsReq TCP Tx close connection request to TOE.
+ * @param[out] soTRIF_Toe_ClsReq TCP Tx close connection request to TOE.
  *
  * @return Nothing.
  *
@@ -645,73 +711,73 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &siROL_This_Data,
+        stream<AppData>     &siROL_Data,
 
         //------------------------------------------------------
         //-- ROLE / Tx Data Interface
         //------------------------------------------------------
-        stream<AppData>     &soTHIS_Rol_Data,
+        stream<AppData>     &soROL_Data,
 
         //------------------------------------------------------
         //-- TOE / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>    &siTOE_This_Notif,
-        stream<AppRdReq>    &soTHIS_Toe_DReq,
-        stream<AppData>     &siTOE_This_Data,
-        stream<AppMeta>     &siTOE_This_Meta,
+        stream<AppNotif>    &siTOE_Notif,
+        stream<AppRdReq>    &soTOE_DReq,
+        stream<AppData>     &siTOE_Data,
+        stream<AppMeta>     &siTOE_Meta,
 
         //------------------------------------------------------
         //-- TOE / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>   &soTHIS_Toe_LsnReq,
-        stream<AppLsnAck>   &siTOE_This_LsnAck,
+        stream<AppLsnReq>   &soTOE_LsnReq,
+        stream<AppLsnAck>   &siTOE_LsnAck,
 
         //------------------------------------------------------
         //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>     &soTHIS_Toe_Data,
-        stream<AppMeta>     &soTHIS_Toe_Meta,
-        stream<AppWrSts>    &siTOE_This_DSts,
+        stream<AppData>     &soTOE_Data,
+        stream<AppMeta>     &soTOE_Meta,
+        stream<AppWrSts>    &siTOE_DSts,
 
         //------------------------------------------------------
         //-- TOE / Tx Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>   &soTHIS_Toe_OpnReq,
-        stream<AppOpnSts>   &siTOE_This_OpnSts,
+        stream<AppOpnReq>   &soTOE_OpnReq,
+        stream<AppOpnSts>   &siTOE_OpnSts,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>   &soTHIS_Toe_ClsReq)
+        stream<AppClsReq>   &soTOE_ClsReq)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable port=piSHL_SysRst
+    #pragma HLS INTERFACE ap_stable          port=piSHL_SysRst
 
-    #pragma HLS resource core=AXI4Stream variable=siROL_This_Data   metadata="-bus_bundle siROL_This_Data"
+    #pragma HLS resource core=AXI4Stream variable=siROL_Data   metadata="-bus_bundle siROL_Data"
 
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data   metadata="-bus_bundle soTHIS_Rol_Data"
+    #pragma HLS resource core=AXI4Stream variable=soROL_Data   metadata="-bus_bundle soROL_Data"
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Notif  metadata="-bus_bundle siTOE_This_Notif"
-    #pragma HLS DATA_PACK                variable=siTOE_This_Notif
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Data   metadata="-bus_bundle siTOE_This_Data"
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_Meta   metadata="-bus_bundle siTOE_This_Meta"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_DReq   metadata="-bus_bundle soTHIS_Toe_DReq"
-    #pragma HLS DATA_PACK                variable=soTHIS_Toe_DReq
+    #pragma HLS resource core=AXI4Stream variable=siTOE_Notif  metadata="-bus_bundle siTOE_Notif"
+    #pragma HLS DATA_PACK                variable=siTOE_Notif
+    #pragma HLS resource core=AXI4Stream variable=siTOE_Data   metadata="-bus_bundle siTOE_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_Meta   metadata="-bus_bundle siTOE_Meta"
+    #pragma HLS resource core=AXI4Stream variable=soTOE_DReq   metadata="-bus_bundle soTOE_DReq"
+    #pragma HLS DATA_PACK                variable=soTOE_DReq
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_LsnAck metadata="-bus_bundle siTOE_This_LsnAck"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_LsnReq metadata="-bus_bundle soTHIS_Toe_LsnReq"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_LsnAck metadata="-bus_bundle siTOE_LsnAck"
+    #pragma HLS resource core=AXI4Stream variable=soTOE_LsnReq metadata="-bus_bundle soTOE_LsnReq"
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_DSts   metadata="-bus_bundle siTOE_This_DSts"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Data   metadata="-bus_bundle soTHIS_Toe_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_Meta   metadata="-bus_bundle soTHIS_Toe_Meta"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_DSts   metadata="-bus_bundle siTOE_DSts"
+    #pragma HLS resource core=AXI4Stream variable=soTOE_Data   metadata="-bus_bundle soTOE_Data"
+    #pragma HLS resource core=AXI4Stream variable=soTOE_Meta   metadata="-bus_bundle soTOE_Meta"
 
-    #pragma HLS resource core=AXI4Stream variable=siTOE_This_OpnSts metadata="-bus_bundle siTOE_This_OpnSts"
-    #pragma HLS DATA_PACK                variable=siTOE_This_OpnSts
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_OpnReq metadata="-bus_bundle soTHIS_Toe_OpnReq"
-    #pragma HLS DATA_PACK                variable=soTHIS_Toe_OpnReq
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Toe_ClsReq metadata="-bus_bundle soTHIS_Toe_ClsReq"
+    #pragma HLS resource core=AXI4Stream variable=siTOE_OpnSts metadata="-bus_bundle siTOE_OpnSts"
+    #pragma HLS DATA_PACK                variable=siTOE_OpnSts
+    #pragma HLS resource core=AXI4Stream variable=soTOE_OpnReq metadata="-bus_bundle soTOE_OpnReq"
+    #pragma HLS DATA_PACK                variable=soTOE_OpnReq
+    #pragma HLS resource core=AXI4Stream variable=soTOE_ClsReq metadata="-bus_bundle soTOE_ClsReq"
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
@@ -730,36 +796,36 @@ void tcp_role_if(
     pOpenCloseConn(
             piSHL_SysRst,
             sSAmToOPn_SockAddr,
-            siTOE_This_OpnSts,
-            soTHIS_Toe_OpnReq,
-            soTHIS_Toe_ClsReq);
+            siTOE_OpnSts,
+            soTOE_OpnReq,
+            soTOE_ClsReq);
 
     pListen(
             piSHL_SysRst,
-            siTOE_This_LsnAck,
-            soTHIS_Toe_LsnReq);
+            siTOE_LsnAck,
+            soTOE_LsnReq);
 
     pSessionAcceptManager(
             piSHL_SysRst,
-            siTOE_This_Notif,
-            soTHIS_Toe_DReq,
+            siTOE_Notif,
+            soTOE_DReq,
             sSAmToOPn_SockAddr,
             sSAmToRXp_DropCmd);
 
     pRxPath(
             piSHL_SysRst,
-            siTOE_This_Data,
-            siTOE_This_Meta,
-            soTHIS_Rol_Data,
+            siTOE_Data,
+            siTOE_Meta,
+            soROL_Data,
             sSAmToRXp_DropCmd,
             sRXpToTXp_SessId);
 
     pTxPath(
             piSHL_SysRst,
-            siROL_This_Data,
-            soTHIS_Toe_Data,
-            soTHIS_Toe_Meta,
-            siTOE_This_DSts,
+            siROL_Data,
+            soTOE_Data,
+            soTOE_Meta,
+            siTOE_DSts,
             sRXpToTXp_SessId);
 
 }
