@@ -126,8 +126,7 @@ bool SessionIdCam::search(SessionId sessId)
  *
  * @ingroup trif
  *
- * @param[in]  piSHL_SysRst, System reset from [SHELL].
- * @param[in]  piSHL_SysRst,  A system reset that we control (not HLS).
+ * @param[in]  piSHL_SysRst_n, the system reset from [SHELL].
  * @param[in]  siSAm_SockAddr,the socket address to open from [SessionAcceptManager].
  * @param[in]  siTOE_OpnSts,  open connection status from TOE.
  * @param[out] soTOE_OpnReq,  open connection request to TOE.
@@ -139,7 +138,7 @@ bool SessionIdCam::search(SessionId sessId)
  *          stream of the module.
  ******************************************************************************/
 void pOpenCloseConn(
-        ap_uint<1>           piSHL_SysRst,
+        ap_uint<1>           piSHL_SysRst_n,
         stream<SockAddr>    &siSAm_SockAddr,
         stream<AppOpnSts>   &siTOE_OpnSts,
         stream<AppOpnReq>   &soTOE_OpnReq,
@@ -159,7 +158,7 @@ void pOpenCloseConn(
     static int          watchDogTimer = 100;
     static enum FSM_STATE { FSM_IDLE, FSM_OPN_REQ, FSM_OPN_STS, FSM_OPN_DONE } fsmOpen=FSM_IDLE;
 
-    if (piSHL_SysRst == 1) {
+    if (piSHL_SysRst_n == 0) {
         #ifndef __SYNTHESIS__
             idleTime =  25;
         #else
@@ -301,9 +300,9 @@ void pOpenCloseConn(
  *
  * @ingroup trif
  *
- * @param[in]  piSHL_SysRst,  System reset from [SHELL].
- * @param[in]  siTOE_LsnAck,  listen port acknowledge from TOE.
- * @param[out] soTOE_LsnReq,  listen port request to TOE.
+ * @param[in]  piSHL_SysRst_n, System reset from [SHELL].
+ * @param[in]  siTOE_LsnAck,   listen port acknowledge from TOE.
+ * @param[out] soTOE_LsnReq,   listen port request to TOE.
  *
  * @warning
  *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
@@ -315,7 +314,7 @@ void pOpenCloseConn(
  * @return Nothing.
  ******************************************************************************/
 void pListen(
-        ap_uint<1>           piSHL_SysRst,
+        ap_uint<1>           piSHL_SysRst_n,
         stream<AppLsnAck>   &siTOE_LsnAck,
         stream<AppLsnReq>   &soTOE_LsnReq)
 {
@@ -324,8 +323,8 @@ void pListen(
 
     const char    *myName      = concat3(THIS_NAME, "/", "LSn");
     const TcpPort  cDefLsnPort = 8803;  // FYI, this is the ZIP code of Ruschlikon ;-)
-    bool           listenDone  = false;
 
+    static bool       listenDone    = false;
     static ap_uint<1> listenFsm     =   0;
     static int        watchDogTimer = 100;
 
@@ -333,7 +332,7 @@ void pListen(
     static bool  lsnAck      = false;
     static bool  isListening = false;
 
-    if (piSHL_SysRst == 1) {
+    if (piSHL_SysRst_n == 0) {
         lsnAck      = false;
         isListening = false;
         return;
@@ -362,13 +361,14 @@ void pListen(
     }
     *********************************************/
 
-    if (piSHL_SysRst == 1) {
+    if (piSHL_SysRst_n == 0) {
         listenFsm  = 0;
         listenDone = false;
         return;
     }
 
     if (!listenDone) {
+
         switch (listenFsm) {
         case 0:
             soTOE_LsnReq.write(cDefLsnPort);
@@ -377,7 +377,7 @@ void pListen(
                           cDefLsnPort.to_uint(), cDefLsnPort.to_uint());
             }
             watchDogTimer = 100;
-            listenFsm++;
+            listenFsm = 1;
             break;
 
         case 1:
@@ -417,7 +417,7 @@ void pListen(
  *
  * @ingroup trif
  *
- * @param[in]  piSHL_SysRst,   System reset from [SHELL].
+ * @param[in]  piSHL_SysRst_n, the system reset from [SHELL].
  * @param[in]  siTOE_Notif,    a new Rx data notification from TOE.
  * @param[out] soTOE_DReq,     a Rx data request to TOE.
  * @param[out] soOPn_SockAddr, the socket address to open.
@@ -426,7 +426,7 @@ void pListen(
  * @return Nothing.
  ******************************************************************************/
 void pSessionAcceptManager(
-        ap_uint<1>           piSHL_SysRst,
+        ap_uint<1>           piSHL_SysRst_n,
         stream<AppNotif>    &siTOE_Notif,
         stream<AppRdReq>    &soTOE_DReq,
         stream<SockAddr>    &soOPn_SockAddr,
@@ -446,7 +446,7 @@ void pSessionAcceptManager(
     static ap_uint<8>   nrSess   = 0;
     static enum FSM_STATE { FSM_WAIT_NOTIFICATION, FSM_WRITE_SESSION } fsmAccept=FSM_WAIT_NOTIFICATION;
 
-    if (piSHL_SysRst == 1) {
+    if (piSHL_SysRst_n == 0) {
         nrSess    = 0;
         fsmAccept = FSM_WAIT_NOTIFICATION;
     }
@@ -527,17 +527,17 @@ void pSessionAcceptManager(
  *
  * @ingroup trif
  *
- * @param[in]  piSHL_SysRst, System reset from [SHELL].
- * @param[in]  siTOE_Data,   Data from TOE.
- * @param[in]  siTOE_Meta,   Metadata from TOE.
- * @param[out] soROL_Data,   Data to ROLE.
- * @param[in]  siSAm_DropCmd,Drop command from [SessionAcceptManager].
- * @param[out] soTXp_SessId, The incoming session ID forwarded to [TxPath].
+ * @param[in]  piSHL_SysRst_n, the system reset from [SHELL].
+ * @param[in]  siTOE_Data,     Data from TOE.
+ * @param[in]  siTOE_Meta,     Metadata from TOE.
+ * @param[out] soROL_Data,     Data to ROLE.
+ * @param[in]  siSAm_DropCmd,  Drop command from [SessionAcceptManager].
+ * @param[out] soTXp_SessId,   The incoming session ID forwarded to [TxPath].
  *
  * @return Nothing.
  *****************************************************************************/
 void pRxPath(
-        ap_uint<1>           piSHL_SysRst,
+        ap_uint<1>           piSHL_SysRst_n,
         stream<AppData>     &siTOE_Data,
         stream<AppMeta>     &siTOE_Meta,
         stream<AppData>     &soROL_Data,
@@ -607,17 +607,17 @@ void pRxPath(
  *
  * @ingroup trif
  *
- * @param[in]  piSHL_SysRst, System reset from [SHELL].
- * @param[in]  siROL_Data,   Tx data from ROLE.
- * @param[out] soTOE_Data,   Tx data to TOE.
- * @param[out] soTOE_Meta,   Tx metadata to to TOE.
- * @param[in]  siTOE_DSts,   Tx data write status from TOE.
- * @param[in]  siRXp_SessId, The session ID from [RxPath].
+ * @param[in]  piSHL_SysRst_n, the system reset from [SHELL].
+ * @param[in]  siROL_Data,     Tx data from ROLE.
+ * @param[out] soTOE_Data,     Tx data to TOE.
+ * @param[out] soTOE_Meta,     Tx metadata to to TOE.
+ * @param[in]  siTOE_DSts,     Tx data write status from TOE.
+ * @param[in]  siRXp_SessId,   The session ID from [RxPath].
  *
  * @return Nothing.
  ******************************************************************************/
 void pTxPath(
-        ap_uint<1>            piSHL_SysRst,
+        ap_uint<1>            piSHL_SysRst_n,
         stream<AppData>      &siROL_Data,
         stream<AppData>      &soTOE_Data,
         stream<AppMeta>      &soTOE_Meta,
@@ -680,7 +680,7 @@ void pTxPath(
  * @brief   Main process of the TCP Role Interface (TRIF)
  * @ingroup tcp_role_if
  *
- * @param[in]  piSHL_SysRst      A system reset that we control (not HLS).
+ * @param[in]  piSHL_SysRst_n,   the system reset from [SHELL].
  * @param[in]  siROL_This_Data   TCP Rx data stream from ROLE.
  * @param[out] soTRIF_Rol_Data   TCP Tx data stream to ROLE.
  * @param[in]  siTOE_This_Notif  TCP Rx data notification from TOE.
@@ -706,7 +706,7 @@ void tcp_role_if(
         //------------------------------------------------------
         //-- SHELL / System Reset
         //------------------------------------------------------
-        ap_uint<1>           piSHL_SysRst,
+        ap_uint<1>           piSHL_SysRst_n,
 
         //------------------------------------------------------
         //-- ROLE / Rx Data Interface
@@ -753,7 +753,7 @@ void tcp_role_if(
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable          port=piSHL_SysRst
+    #pragma HLS INTERFACE ap_stable          port=piSHL_SysRst_n
 
     #pragma HLS resource core=AXI4Stream variable=siROL_Data   metadata="-bus_bundle siROL_Data"
 
@@ -794,26 +794,26 @@ void tcp_role_if(
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pOpenCloseConn(
-            piSHL_SysRst,
+            piSHL_SysRst_n,
             sSAmToOPn_SockAddr,
             siTOE_OpnSts,
             soTOE_OpnReq,
             soTOE_ClsReq);
 
     pListen(
-            piSHL_SysRst,
+            piSHL_SysRst_n,
             siTOE_LsnAck,
             soTOE_LsnReq);
 
     pSessionAcceptManager(
-            piSHL_SysRst,
+            piSHL_SysRst_n,
             siTOE_Notif,
             soTOE_DReq,
             sSAmToOPn_SockAddr,
             sSAmToRXp_DropCmd);
 
     pRxPath(
-            piSHL_SysRst,
+            piSHL_SysRst_n,
             siTOE_Data,
             siTOE_Meta,
             soROL_Data,
@@ -821,7 +821,7 @@ void tcp_role_if(
             sRXpToTXp_SessId);
 
     pTxPath(
-            piSHL_SysRst,
+            piSHL_SysRst_n,
             siROL_Data,
             soTOE_Data,
             soTOE_Meta,
