@@ -45,8 +45,7 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_OFF)
 
-
-enum PortState {CLOSED_PORT = false, OPENED_PORT    = true };
+enum PortState {CLOSED_PORT = false, OPENED_PORT    = true};
 enum PortRange {ACTIVE_PORT = false, LISTENING_PORT = true};
 enum OpenReply {KO          = false, OK             = true};
 
@@ -84,7 +83,7 @@ void pListeningPortTable(
     #pragma HLS RESOURCE   variable=LISTEN_PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=LISTEN_PORT_TABLE inter false
 
-    ap_uint<16> currPort;
+    TcpPort     currPort;
 
     if (!siRAi_OpenPortReq.empty()) {
         siRAi_OpenPortReq.read(currPort);
@@ -331,8 +330,6 @@ void port_table(
 {
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE #pragma HLS dataflow interval=1
-    //OBSOLETE #pragma HLS PIPELINE II=1
     #pragma HLS INLINE
 
     //-------------------------------------------------------------------------

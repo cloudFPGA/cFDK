@@ -858,117 +858,117 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   TcpOffloadEngine TOE (
   
-    .aclk                               (piShlClk),
-    .aresetn                            (~piShlRst),
+    .aclk                      (piShlClk),
+    .aresetn                   (~piShlRst),
 
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_This_IpAddr_V               (piMMIO_Nts0_IpAddress),
+    .piMMIO_IpAddr_V           (piMMIO_Nts0_IpAddress),
                         
     //------------------------------------------------------
     //-- From IPRX / IP Rx Data Interface
     //------------------------------------------------------
     //-- IPRX / This / Data / Axis
-    .siIPRX_This_Data_TDATA             (sIPRX_Toe_Axis_tdataReg),
-    .siIPRX_This_Data_TKEEP             (sIPRX_Toe_Axis_tkeepReg),
-    .siIPRX_This_Data_TLAST             (sIPRX_Toe_Axis_tlastReg),
-    .siIPRX_This_Data_TVALID            (sIPRX_Toe_Axis_tvalidReg),
-    .siIPRX_This_Data_TREADY            (sTOE_Iprx_Axis_tready),
+    .siIPRX_Data_TDATA         (sIPRX_Toe_Axis_tdataReg),
+    .siIPRX_Data_TKEEP         (sIPRX_Toe_Axis_tkeepReg),
+    .siIPRX_Data_TLAST         (sIPRX_Toe_Axis_tlastReg),
+    .siIPRX_Data_TVALID        (sIPRX_Toe_Axis_tvalidReg),
+    .siIPRX_Data_TREADY        (sTOE_Iprx_Axis_tready),
 
     //------------------------------------------------------
     //-- To L3MUX / IP Tx Data Interface
     //------------------------------------------------------
     //-- THIS / L3mux / Data / Axis
-    .soTHIS_L3mux_Data_TREADY           (sL3MUX_Toe_Axis_treadyReg),
-    .soTHIS_L3mux_Data_TDATA            (sTOE_L3mux_Axis_tdata),
-    .soTHIS_L3mux_Data_TKEEP            (sTOE_L3mux_Axis_tkeep),    
-    .soTHIS_L3mux_Data_TLAST            (sTOE_L3mux_Axis_tlast),
-    .soTHIS_L3mux_Data_TVALID           (sTOE_L3mux_Axis_tvalid),
+    .soL3MUX_Data_TREADY       (sL3MUX_Toe_Axis_treadyReg),
+    .soL3MUX_Data_TDATA        (sTOE_L3mux_Axis_tdata),
+    .soL3MUX_Data_TKEEP        (sTOE_L3mux_Axis_tkeep),    
+    .soL3MUX_Data_TLAST        (sTOE_L3mux_Axis_tlast),
+    .soL3MUX_Data_TVALID       (sTOE_L3mux_Axis_tvalid),
 
     //------------------------------------------------------
     //-- From TRIF / ROLE Rx Data Interfaces
     //------------------------------------------------------
     //-- TRIF / This / Rx Data Request / Axis
-    .siTRIF_This_DReq_TDATA             (sTRIF_Toe_DReq_Axis_tdata),
-    .siTRIF_This_DReq_TVALID            (sTRIF_Toe_DReq_Axis_tvalid),
-    .siTRIF_This_DReq_TREADY            (sTOE_Trif_DReq_Axis_tready),
+    .siTRIF_DReq_TDATA         (sTRIF_Toe_DReq_Axis_tdata),
+    .siTRIF_DReq_TVALID        (sTRIF_Toe_DReq_Axis_tvalid),
+    .siTRIF_DReq_TREADY        (sTOE_Trif_DReq_Axis_tready),
 
     //------------------------------------------------------
     //-- To TRIF / ROLE Rx Data Interfaces
     //------------------------------------------------------
     //-- THIS / Trif / Rx Notification / Axis
-    .soTHIS_Trif_Notif_TREADY           (sTRIF_Toe_Notif_Axis_tready),
-    .soTHIS_Trif_Notif_TDATA            (sTOE_Trif_Notif_Axis_tdata),
-    .soTHIS_Trif_Notif_TVALID           (sTOE_Trif_Notif_Axis_tvalid),  
+    .soTRIF_Notif_TREADY       (sTRIF_Toe_Notif_Axis_tready),
+    .soTRIF_Notif_TDATA        (sTOE_Trif_Notif_Axis_tdata),
+    .soTRIF_Notif_TVALID       (sTOE_Trif_Notif_Axis_tvalid),  
     //-- THIS / Trif / Rx Data Reply / Axis
-    .soTHIS_Trif_Data_TREADY            (sTRIF_Toe_Data_Axis_tready),
-    .soTHIS_Trif_Data_TDATA             (sTOE_Trif_Data_Axis_tdata),
-    .soTHIS_Trif_Data_TKEEP             (sTOE_Trif_Data_Axis_tkeep),
-    .soTHIS_Trif_Data_TLAST             (sTOE_Trif_Data_Axis_tlast),
-    .soTHIS_Trif_Data_TVALID            (sTOE_Trif_Data_Axis_tvalid),
+    .soTRIF_Data_TREADY        (sTRIF_Toe_Data_Axis_tready),
+    .soTRIF_Data_TDATA         (sTOE_Trif_Data_Axis_tdata),
+    .soTRIF_Data_TKEEP         (sTOE_Trif_Data_Axis_tkeep),
+    .soTRIF_Data_TLAST         (sTOE_Trif_Data_Axis_tlast),
+    .soTRIF_Data_TVALID        (sTOE_Trif_Data_Axis_tvalid),
     //-- THIS / Trif / Rx MetaData Reply / Axis
-    .soTHIS_Trif_Meta_TREADY            (sTRIF_Toe_Meta_Axis_tready),
-    .soTHIS_Trif_Meta_TDATA             (sTOE_Trif_Meta_Axis_tdata),
-    .soTHIS_Trif_Meta_TVALID            (sTOE_Trif_Meta_Axis_tvalid),
+    .soTRIF_Meta_TREADY        (sTRIF_Toe_Meta_Axis_tready),
+    .soTRIF_Meta_TDATA         (sTOE_Trif_Meta_Axis_tdata),
+    .soTRIF_Meta_TVALID        (sTOE_Trif_Meta_Axis_tvalid),
                         
     //------------------------------------------------------
     //-- From TRIF / ROLE Rx Ctrl Interfaces
     //------------------------------------------------------
     //-- TRIF / This / Rx Listen Port Request / Axis
-    .siTRIF_This_LsnReq_TDATA           (sTRIF_Toe_LsnReq_Axis_tdata),
-    .siTRIF_This_LsnReq_TVALID          (sTRIF_Toe_LsnReq_Axis_tvalid),
-    .siTRIF_This_LsnReq_TREADY          (sTOE_Trif_LsnReq_Axis_tready),
+    .siTRIF_LsnReq_TDATA       (sTRIF_Toe_LsnReq_Axis_tdata),
+    .siTRIF_LsnReq_TVALID      (sTRIF_Toe_LsnReq_Axis_tvalid),
+    .siTRIF_LsnReq_TREADY      (sTOE_Trif_LsnReq_Axis_tready),
 
     //------------------------------------------------------
     //-- To TRIF / ROLE Rx Listen Interface
     //------------------------------------------------------
     // THIS / Trif / Rx Listen Port Acknowledge / Axis
-    .soTHIS_Trif_LsnAck_TREADY          (sTRIF_Toe_LsnAck_Axis_tready),
-    .soTHIS_Trif_LsnAck_TDATA           (sTOE_Trif_LsnAck_Axis_tdata),
-    .soTHIS_Trif_LsnAck_TVALID          (sTOE_Trif_LsnAck_Axis_tvalid),
+    .soTRIF_LsnAck_TREADY      (sTRIF_Toe_LsnAck_Axis_tready),
+    .soTRIF_LsnAck_TDATA       (sTOE_Trif_LsnAck_Axis_tdata),
+    .soTRIF_LsnAck_TVALID      (sTOE_Trif_LsnAck_Axis_tvalid),
                                                
     //------------------------------------------------------
     //-- From TRIF / ROLE Tx Data Interfaces
     //------------------------------------------------------
     //-- TRIF / This / Tx Data / Axis
-    .siTRIF_This_Data_TDATA             (sTRIF_Toe_Data_Axis_tdata),
-    .siTRIF_This_Data_TKEEP             (sTRIF_Toe_Data_Axis_tkeep),
-    .siTRIF_This_Data_TLAST             (sTRIF_Toe_Data_Axis_tlast),
-    .siTRIF_This_Data_TVALID            (sTRIF_Toe_Data_Axis_tvalid),
-    .siTRIF_This_Data_TREADY            (sTOE_Trif_Data_Axis_tready),
+    .siTRIF_Data_TDATA         (sTRIF_Toe_Data_Axis_tdata),
+    .siTRIF_Data_TKEEP         (sTRIF_Toe_Data_Axis_tkeep),
+    .siTRIF_Data_TLAST         (sTRIF_Toe_Data_Axis_tlast),
+    .siTRIF_Data_TVALID        (sTRIF_Toe_Data_Axis_tvalid),
+    .siTRIF_Data_TREADY        (sTOE_Trif_Data_Axis_tready),
     //-- TRIF / This / Tx MetaData / Axis
-    .siTRIF_This_Meta_TDATA             (sTRIF_Toe_Meta_Axis_tdata),
-    .siTRIF_This_Meta_TVALID            (sTRIF_Toe_Meta_Axis_tvalid),
-    .siTRIF_This_Meta_TREADY            (sTOE_Trif_Meta_Axis_tready),
+    .siTRIF_Meta_TDATA         (sTRIF_Toe_Meta_Axis_tdata),
+    .siTRIF_Meta_TVALID        (sTRIF_Toe_Meta_Axis_tvalid),
+    .siTRIF_Meta_TREADY        (sTOE_Trif_Meta_Axis_tready),
                         
     //------------------------------------------------------
     //-- To TRIF / ROLE Tx Data Interfaces
     //------------------------------------------------------                 
     //-- THIS / Trif / Tx Data Status / Axis
-    .soTHIS_Trif_DSts_TREADY            (sTRIF_Toe_DSts_Axis_tready),
-    .soTHIS_Trif_DSts_TDATA             (sTOE_Trif_DSts_Axis_tdata),
-    .soTHIS_Trif_DSts_TVALID            (sTOE_Trif_DSts_Axis_tvalid),    
+    .soTRIF_DSts_TREADY        (sTRIF_Toe_DSts_Axis_tready),
+    .soTRIF_DSts_TDATA         (sTOE_Trif_DSts_Axis_tdata),
+    .soTRIF_DSts_TVALID        (sTOE_Trif_DSts_Axis_tvalid),    
                         
     //------------------------------------------------------
     //-- From TRIF / ROLE Tx Ctrl Interfaces
     //------------------------------------------------------
     //-- TRIF / This / Tx Open Connection Request / Axis
-    .siTRIF_This_OpnReq_TDATA           (sTRIF_Toe_OpnReq_Axis_tdata),
-    .siTRIF_This_OpnReq_TVALID          (sTRIF_Toe_OpnReq_Axis_tvalid),
-    .siTRIF_This_OpnReq_TREADY          (sTOE_Trif_OpnReq_Axis_tready),
+    .siTRIF_OpnReq_TDATA       (sTRIF_Toe_OpnReq_Axis_tdata),
+    .siTRIF_OpnReq_TVALID      (sTRIF_Toe_OpnReq_Axis_tvalid),
+    .siTRIF_OpnReq_TREADY      (sTOE_Trif_OpnReq_Axis_tready),
     //-- THIS / Trif / Tx Open Connection Status / Axis
-    .soTHIS_Trif_OpnSts_TREADY          (sTRIF_Toe_OpnSts_Axis_tready),
-    .soTHIS_Trif_OpnSts_TDATA           (sTOE_Trif_OpnSts_Axis_tdata),
-    .soTHIS_Trif_OpnSts_TVALID          (sTOE_Trif_OpnSts_Axis_tvalid),
+    .soTRIF_OpnSts_TREADY      (sTRIF_Toe_OpnSts_Axis_tready),
+    .soTRIF_OpnSts_TDATA       (sTOE_Trif_OpnSts_Axis_tdata),
+    .soTRIF_OpnSts_TVALID      (sTOE_Trif_OpnSts_Axis_tvalid),
 
     //------------------------------------------------------
     //-- To TRIF / ROLE Tx Ctrl Interfaces
     //------------------------------------------------------
     //-- TRIF / This / Tx Close Connection Request / Axis
-    .siTRIF_This_ClsReq_TDATA           (sTRIF_Toe_ClsReq_Axis_tdata),
-    .siTRIF_This_ClsReq_TVALID          (sTRIF_Toe_ClsReq_Axis_tvalid),
-    .siTRIF_This_ClsReq_TREADY          (sTOE_Trif_ClsReq_Axis_tready),
+    .siTRIF_ClsReq_TDATA       (sTRIF_Toe_ClsReq_Axis_tdata),
+    .siTRIF_ClsReq_TVALID      (sTRIF_Toe_ClsReq_Axis_tvalid),
+    .siTRIF_ClsReq_TREADY      (sTOE_Trif_ClsReq_Axis_tready),
     //--  THIS / Trif / Tx Close Connection Request / Axis
     // [INFO] Not used                                 
    
@@ -979,29 +979,29 @@ module NetworkTransportSession_TcpIp (
     //---- Stream Read Status ------------------
     // [INFO] Not used                                 
     //---- Stream Read Command -----------------
-    .soTHIS_Mem_RxP_RdCmd_TREADY        (piMEM_Nts0_RxP_Axis_RdCmd_tready),
-    .soTHIS_Mem_RxP_RdCmd_TDATA         (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
-    .soTHIS_Mem_RxP_RdCmd_TVALID        (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
+    .soMEM_RxP_RdCmd_TREADY    (piMEM_Nts0_RxP_Axis_RdCmd_tready),
+    .soMEM_RxP_RdCmd_TDATA     (poNTS0_Mem_RxP_Axis_RdCmd_tdata),
+    .soMEM_RxP_RdCmd_TVALID    (poNTS0_Mem_RxP_Axis_RdCmd_tvalid),
     //---- Stream Data Input Channel -----------
-    .siMEM_This_RxP_Data_TDATA          (piMEM_Nts0_RxP_Axis_Data_tdata),
-    .siMEM_This_RxP_Data_TKEEP          (piMEM_Nts0_RxP_Axis_Data_tkeep),
-    .siMEM_This_RxP_Data_TLAST          (piMEM_Nts0_RxP_Axis_Data_tlast),
-    .siMEM_This_RxP_Data_TVALID         (piMEM_Nts0_RxP_Axis_Data_tvalid),  
-    .siMEM_This_RxP_Data_TREADY         (poNTS0_Mem_RxP_Axis_Data_tready),
+    .siMEM_RxP_Data_TDATA      (piMEM_Nts0_RxP_Axis_Data_tdata),
+    .siMEM_RxP_Data_TKEEP      (piMEM_Nts0_RxP_Axis_Data_tkeep),
+    .siMEM_RxP_Data_TLAST      (piMEM_Nts0_RxP_Axis_Data_tlast),
+    .siMEM_RxP_Data_TVALID     (piMEM_Nts0_RxP_Axis_Data_tvalid),  
+    .siMEM_RxP_Data_TREADY     (poNTS0_Mem_RxP_Axis_Data_tready),
     //---- Stream Write Status -----------------
-    .siMEM_This_RxP_WrSts_TDATA         (piMEM_Nts0_RxP_Axis_WrSts_tdata),
-    .siMEM_This_RxP_WrSts_TVALID        (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
-    .siMEM_This_RxP_WrSts_TREADY        (poNTS0_Mem_RxP_Axis_WrSts_tready),                        
+    .siMEM_RxP_WrSts_TDATA     (piMEM_Nts0_RxP_Axis_WrSts_tdata),
+    .siMEM_RxP_WrSts_TVALID    (piMEM_Nts0_RxP_Axis_WrSts_tvalid), 
+    .siMEM_RxP_WrSts_TREADY    (poNTS0_Mem_RxP_Axis_WrSts_tready),                        
     //---- Stream Write Command ----------------
-    .soTHIS_Mem_RxP_WrCmd_TREADY        (piMEM_Nts0_RxP_Axis_WrCmd_tready),
-    .soTHIS_Mem_RxP_WrCmd_TDATA         (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
-    .soTHIS_Mem_RxP_WrCmd_TVALID        (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
+    .soMEM_RxP_WrCmd_TREADY    (piMEM_Nts0_RxP_Axis_WrCmd_tready),
+    .soMEM_RxP_WrCmd_TDATA     (poNTS0_Mem_RxP_Axis_WrCmd_tdata),
+    .soMEM_RxP_WrCmd_TVALID    (poNTS0_Mem_RxP_Axis_WrCmd_tvalid),
     //---- Stream Data Output Channel ----------
-    .soTHIS_Mem_RxP_Data_TREADY         (piMEM_Nts0_RxP_Axis_Data_tready),
-    .soTHIS_Mem_RxP_Data_TDATA          (poNTS0_Mem_RxP_Axis_Data_tdata),
-    .soTHIS_Mem_RxP_Data_TKEEP          (poNTS0_Mem_RxP_Axis_Data_tkeep),
-    .soTHIS_Mem_RxP_Data_TLAST          (poNTS0_Mem_RxP_Axis_Data_tlast),
-    .soTHIS_Mem_RxP_Data_TVALID         (poNTS0_Mem_RxP_Axis_Data_tvalid),
+    .soMEM_RxP_Data_TREADY     (piMEM_Nts0_RxP_Axis_Data_tready),
+    .soMEM_RxP_Data_TDATA      (poNTS0_Mem_RxP_Axis_Data_tdata),
+    .soMEM_RxP_Data_TKEEP      (poNTS0_Mem_RxP_Axis_Data_tkeep),
+    .soMEM_RxP_Data_TLAST      (poNTS0_Mem_RxP_Axis_Data_tlast),
+    .soMEM_RxP_Data_TVALID     (poNTS0_Mem_RxP_Axis_Data_tvalid),
 
     //------------------------------------------------------
     //-- MEM / Nts0 / TxP Interface
@@ -1010,59 +1010,59 @@ module NetworkTransportSession_TcpIp (
     //---- Stream Read Status ------------------
     // [INFO] Not used
     //---- Stream Read Command -----------------
-    .soTHIS_Mem_TxP_RdCmd_TREADY        (piMEM_Nts0_TxP_Axis_RdCmd_tready),
-    .soTHIS_Mem_TxP_RdCmd_TDATA         (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
-    .soTHIS_Mem_TxP_RdCmd_TVALID        (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
+    .soMEM_TxP_RdCmd_TREADY    (piMEM_Nts0_TxP_Axis_RdCmd_tready),
+    .soMEM_TxP_RdCmd_TDATA     (poNTS0_Mem_TxP_Axis_RdCmd_tdata),
+    .soMEM_TxP_RdCmd_TVALID    (poNTS0_Mem_TxP_Axis_RdCmd_tvalid),
     //---- Stream Data Input Channel ----------- 
-    .siMEM_This_TxP_Data_TDATA          (piMEM_Nts0_TxP_Axis_Data_tdata),
-    .siMEM_This_TxP_Data_TKEEP          (piMEM_Nts0_TxP_Axis_Data_tkeep),
-    .siMEM_This_TxP_Data_TLAST          (piMEM_Nts0_TxP_Axis_Data_tlast),
-    .siMEM_This_TxP_Data_TVALID         (piMEM_Nts0_TxP_Axis_Data_tvalid),
-    .siMEM_This_TxP_Data_TREADY         (poNTS0_Mem_TxP_Axis_Data_tready),
+    .siMEM_TxP_Data_TDATA      (piMEM_Nts0_TxP_Axis_Data_tdata),
+    .siMEM_TxP_Data_TKEEP      (piMEM_Nts0_TxP_Axis_Data_tkeep),
+    .siMEM_TxP_Data_TLAST      (piMEM_Nts0_TxP_Axis_Data_tlast),
+    .siMEM_TxP_Data_TVALID     (piMEM_Nts0_TxP_Axis_Data_tvalid),
+    .siMEM_TxP_Data_TREADY     (poNTS0_Mem_TxP_Axis_Data_tready),
     //---- Stream Write Status -----------------
-    .siMEM_This_TxP_WrSts_TDATA         (piMEM_Nts0_TxP_Axis_WrSts_tdata),
-    .siMEM_This_TxP_WrSts_TVALID        (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
-    .siMEM_This_TxP_WrSts_TREADY        (poNTS0_Mem_TxP_Axis_WrSts_tready),
+    .siMEM_TxP_WrSts_TDATA     (piMEM_Nts0_TxP_Axis_WrSts_tdata),
+    .siMEM_TxP_WrSts_TVALID    (piMEM_Nts0_TxP_Axis_WrSts_tvalid),
+    .siMEM_TxP_WrSts_TREADY    (poNTS0_Mem_TxP_Axis_WrSts_tready),
     //---- Stream Write Command ----------------
-    .soTHIS_Mem_TxP_WrCmd_TREADY        (piMEM_Nts0_TxP_Axis_WrCmd_tready),
-    .soTHIS_Mem_TxP_WrCmd_TDATA         (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
-    .soTHIS_Mem_TxP_WrCmd_TVALID        (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
+    .soMEM_TxP_WrCmd_TREADY    (piMEM_Nts0_TxP_Axis_WrCmd_tready),
+    .soMEM_TxP_WrCmd_TDATA     (poNTS0_Mem_TxP_Axis_WrCmd_tdata),
+    .soMEM_TxP_WrCmd_TVALID    (poNTS0_Mem_TxP_Axis_WrCmd_tvalid),
     //---- Stream Data Output Channel ----------
-    .soTHIS_Mem_TxP_Data_TREADY         (piMEM_Nts0_TxP_Axis_Data_tready),
-    .soTHIS_Mem_TxP_Data_TDATA          (poNTS0_Mem_TxP_Axis_Data_tdata),
-    .soTHIS_Mem_TxP_Data_TKEEP          (poNTS0_Mem_TxP_Axis_Data_tkeep),
-    .soTHIS_Mem_TxP_Data_TLAST          (poNTS0_Mem_TxP_Axis_Data_tlast),
-    .soTHIS_Mem_TxP_Data_TVALID         (poNTS0_Mem_TxP_Axis_Data_tvalid),
+    .soMEM_TxP_Data_TREADY     (piMEM_Nts0_TxP_Axis_Data_tready),
+    .soMEM_TxP_Data_TDATA      (poNTS0_Mem_TxP_Axis_Data_tdata),
+    .soMEM_TxP_Data_TKEEP      (poNTS0_Mem_TxP_Axis_Data_tkeep),
+    .soMEM_TxP_Data_TLAST      (poNTS0_Mem_TxP_Axis_Data_tlast),
+    .soMEM_TxP_Data_TVALID     (poNTS0_Mem_TxP_Axis_Data_tvalid),
 
     //------------------------------------------------------
     //-- From CAM / Session Lookup & Update Interfaces
     //------------------------------------------------------
     //-- CAM / This / LookupReply / Axis
-    .siCAM_This_SssLkpRep_TDATA         (sCAM_Toe_LkpRep_Axis_tdata),
-    .siCAM_This_SssLkpRep_TVALID        (sCAM_Toe_LkpRep_Axis_tvalid),
-    .siCAM_This_SssLkpRep_TREADY        (sTOE_Cam_LkpRep_Axis_tready),
+    .siCAM_SssLkpRep_TDATA     (sCAM_Toe_LkpRep_Axis_tdata),
+    .siCAM_SssLkpRep_TVALID    (sCAM_Toe_LkpRep_Axis_tvalid),
+    .siCAM_SssLkpRep_TREADY    (sTOE_Cam_LkpRep_Axis_tready),
     //-- CAM / This / UpdateReply /Axis
-    .siCAM_This_SssUpdRep_TDATA         (sCAM_Toe_UpdRpl_Axis_tdata),
-    .siCAM_This_SssUpdRep_TVALID        (sCAM_Toe_UpdRpl_Axis_tvalid),
-    .siCAM_This_SssUpdRep_TREADY        (sTOE_Cam_UpdRpl_Axis_tready),
+    .siCAM_SssUpdRep_TDATA     (sCAM_Toe_UpdRpl_Axis_tdata),
+    .siCAM_SssUpdRep_TVALID    (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .siCAM_SssUpdRep_TREADY    (sTOE_Cam_UpdRpl_Axis_tready),
 
     //------------------------------------------------------
     //-- To CAM Interfaces
     //------------------------------------------------------
     //-- THIS / Cam / LookupRequest / Axis
-    .soTHIS_Cam_SssLkpReq_TREADY        (sCAM_Toe_LkpReq_Axis_tready),
-    .soTHIS_Cam_SssLkpReq_TDATA         (sTOE_Cam_LkpReq_Axis_tdata),
-    .soTHIS_Cam_SssLkpReq_TVALID        (sTOE_Cam_LkpReq_Axis_tvalid),
+    .soCAM_SssLkpReq_TREADY    (sCAM_Toe_LkpReq_Axis_tready),
+    .soCAM_SssLkpReq_TDATA     (sTOE_Cam_LkpReq_Axis_tdata),
+    .soCAM_SssLkpReq_TVALID    (sTOE_Cam_LkpReq_Axis_tvalid),
     //-- THIS / Cam / UpdateRequest / Axis
-    .soTHIS_Cam_SssUpdReq_TREADY        (sCAM_Toe_UpdReq_Axis_tready),
-    .soTHIS_Cam_SssUpdReq_TDATA         (sTOE_Cam_UpdReq_Axis_tdata),
-    .soTHIS_Cam_SssUpdReq_TVALID        (sTOE_Cam_UpdReq_Axis_tvalid),
+    .soCAM_SssUpdReq_TREADY    (sCAM_Toe_UpdReq_Axis_tready),
+    .soCAM_SssUpdReq_TDATA     (sTOE_Cam_UpdReq_Axis_tdata),
+    .soCAM_SssUpdReq_TVALID    (sTOE_Cam_UpdReq_Axis_tvalid),
 
     //------------------------------------------------------
     //-- To DEBUG / Session Statistics Interfaces
     //------------------------------------------------------
-    .poTHIS_Dbg_SssRelCnt_V             (),
-    .poTHIS_Dbg_SssRegCnt_V             ()
+    .poDBG_SssRelCnt_V         (),
+    .poDBG_SssRegCnt_V         ()
 
   );  // End of TOE
   
@@ -1371,13 +1371,13 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   TcpRoleInterface TRIF (
   
-    .aclk                             (piShlClk),
-    .aresetn                          (~piShlRst),
+    .aclk                        (piShlClk),
+    .aresetn                     (~piShlRst),
   
     //------------------------------------------------------
     //-- SHELL / System Reset
     //------------------------------------------------------
-    .piSHL_SysRst_V                   (piShlRst),
+    .piSHL_SysRst_n_V            (~piShlRst),
   
     //------------------------------------------------------
     //-- From ROLE / Rx Data Interface

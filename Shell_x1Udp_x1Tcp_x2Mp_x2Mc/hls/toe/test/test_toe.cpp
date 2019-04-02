@@ -1457,7 +1457,7 @@ bool pTRIF_OpenSess(
                 rc = true;
             }
             else {
-                printError(myName, "Failed to to open session #%d.\n", openConStatus.sessionID.to_uint());
+                printError(myName, "Failed to open session #%d.\n", openConStatus.sessionID.to_uint());
             }
             openFsm = 0;
         }

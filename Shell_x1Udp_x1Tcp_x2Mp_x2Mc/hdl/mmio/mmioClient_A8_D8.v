@@ -306,10 +306,10 @@ module MmioClient_A8_D8 #(
   localparam cDefReg31 = 8'h00;  // LY3_CONTROL_1
   localparam cDefReg32 = 8'h00;  // LY3_STATUS_0
   localparam cDefReg33 = 8'h00;  // LY3_STATUS_1
-  localparam cDefReg34 = 8'h00;  // LY3_IP0
-  localparam cDefReg35 = 8'h00;  // LY3_IP1  
-  localparam cDefReg36 = 8'h00;  // LY3_IP2
-  localparam cDefReg37 = 8'h00;  // LY3_IP3
+  localparam cDefReg34 = 8'h0A;  // LY3_IP0 (.i.e, 10.12.200.19) [FIXME]
+  localparam cDefReg35 = 8'h0C;  // LY3_IP1  
+  localparam cDefReg36 = 8'hC8;  // LY3_IP2
+  localparam cDefReg37 = 8'h13;  // LY3_IP3
   localparam cDefReg38 = 8'hFF;  // LY3_SNM0 (.i.e, 255.255.0.0)
   localparam cDefReg39 = 8'hFF;  // LY3_SNM1
   localparam cDefReg3A = 8'h00;  // LY3_SNM2

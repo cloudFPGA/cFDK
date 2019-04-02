@@ -1203,84 +1203,84 @@ void toe(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        AxiIp4Addr                               piMMIO_This_IpAddr,
+        AxiIp4Addr                               piMMIO_IpAddr,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overAxi>                      &siIPRX_This_Data,
+        stream<Ip4overAxi>                      &siIPRX_Data,
 
         //------------------------------------------------------
         //-- L3MUX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overAxi>                      &soTHIS_L3mux_Data,
+        stream<Ip4overAxi>                      &soL3MUX_Data,
 
         //------------------------------------------------------
         //-- TRIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AppNotif>                        &soTHIS_Trif_Notif,
-        stream<AppRdReq>                        &siTRIF_This_DReq,
-        stream<AppData>                         &soTHIS_Trif_Data,
-        stream<AppMeta>                         &soTHIS_Trif_Meta,
+        stream<AppNotif>                        &soTRIF_Notif,
+        stream<AppRdReq>                        &siTRIF_DReq,
+        stream<AppData>                         &soTRIF_Data,
+        stream<AppMeta>                         &soTRIF_Meta,
 
         //------------------------------------------------------
         //-- TRIF / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>                       &siTRIF_This_LsnReq,
-        stream<AppLsnAck>                       &soTHIS_Trif_LsnAck,
+        stream<AppLsnReq>                       &siTRIF_LsnReq,
+        stream<AppLsnAck>                       &soTRIF_LsnAck,
 
         //------------------------------------------------------
         //-- TRIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>                         &siTRIF_This_Data,
-        stream<AppMeta>                         &siTRIF_This_Meta,
-        stream<AppWrSts>                        &soTHIS_Trif_DSts,
+        stream<AppData>                         &siTRIF_Data,
+        stream<AppMeta>                         &siTRIF_Meta,
+        stream<AppWrSts>                        &soTRIF_DSts,
 
         //------------------------------------------------------
         //-- TRIF / Open Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>                       &siTRIF_This_OpnReq,
-        stream<AppOpnSts>                       &soTHIS_Trif_OpnSts,
+        stream<AppOpnReq>                       &siTRIF_OpnReq,
+        stream<AppOpnSts>                       &soTRIF_OpnSts,
 
         //------------------------------------------------------
         //-- TRIF / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>                       &siTRIF_This_ClsReq,
-        //-- Not USed                           &soTHIS_Trif_ClsSts,
+        stream<AppClsReq>                       &siTRIF_ClsReq,
+        //-- Not USed                           &soTRIF_ClsSts,
 
         //------------------------------------------------------
         //-- MEM / Rx PATH / S2MM Interface
         //------------------------------------------------------
-        //-- Not Used                           &siMEM_This_RxP_RdSts,
-        stream<DmCmd>                           &soTHIS_Mem_RxP_RdCmd,
-        stream<AxiWord>                         &siMEM_This_RxP_Data,
-        stream<DmSts>                           &siMEM_This_RxP_WrSts,
-        stream<DmCmd>                           &soTHIS_Mem_RxP_WrCmd,
-        stream<AxiWord>                         &soTHIS_Mem_RxP_Data,
+        //-- Not Used                           &siMEM_RxP_RdSts,
+        stream<DmCmd>                           &soMEM_RxP_RdCmd,
+        stream<AxiWord>                         &siMEM_RxP_Data,
+        stream<DmSts>                           &siMEM_RxP_WrSts,
+        stream<DmCmd>                           &soMEM_RxP_WrCmd,
+        stream<AxiWord>                         &soMEM_RxP_Data,
 
         //------------------------------------------------------
         //-- MEM / Tx PATH / S2MM Interface
         //------------------------------------------------------
-        //-- Not Used                           &siMEM_This_TxP_RdSts,
-        stream<DmCmd>                           &soTHIS_Mem_TxP_RdCmd,
-        stream<AxiWord>                         &siMEM_This_TxP_Data,
-        stream<DmSts>                           &siMEM_This_TxP_WrSts,
-        stream<DmCmd>                           &soTHIS_Mem_TxP_WrCmd,
-        stream<AxiWord>                         &soTHIS_Mem_TxP_Data,
+        //-- Not Used                           &siMEM_TxP_RdSts,
+        stream<DmCmd>                           &soMEM_TxP_RdCmd,
+        stream<AxiWord>                         &siMEM_TxP_Data,
+        stream<DmSts>                           &siMEM_TxP_WrSts,
+        stream<DmCmd>                           &soMEM_TxP_WrCmd,
+        stream<AxiWord>                         &soMEM_TxP_Data,
 
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupRequest>         &soTHIS_Cam_SssLkpReq,
-        stream<rtlSessionLookupReply>           &siCAM_This_SssLkpRpl,
-        stream<rtlSessionUpdateRequest>         &soTHIS_Cam_SssUpdReq,
-        stream<rtlSessionUpdateReply>           &siCAM_This_SssUpdRpl,
+        stream<rtlSessionLookupRequest>         &soCAM_SssLkpReq,
+        stream<rtlSessionLookupReply>           &siCAM_SssLkpRpl,
+        stream<rtlSessionUpdateRequest>         &soCAM_SssUpdReq,
+        stream<rtlSessionUpdateReply>           &siCAM_SssUpdRpl,
 
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
         //------------------------------------------------------
-        ap_uint<16>                             &poTHIS_Dbg_SssRelCnt,
-        ap_uint<16>                             &poTHIS_Dbg_SssRegCnt
+        ap_uint<16>                             &poDBG_SssRelCnt,
+        ap_uint<16>                             &poDBG_SssRegCnt
 );
 
 #endif
