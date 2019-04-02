@@ -749,7 +749,7 @@ begin
     );
    
    -- ========================================================================
-   -- == Generation of delayed reset vor HLS cores
+   -- == Generation of delayed reset for HLS cores
    -- ========================================================================
    process(sSHL_156_25Clk)
    begin
