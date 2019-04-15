@@ -1,0 +1,33 @@
+# ########################################################################################
+#  @file  : appRx_OneSeg.dat
+#  @brief : A unique TCP segment for the Rx Application I/F of TOE.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles     <NUM>         --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM LocalSocket   <ADDR> <PORT> --> Request to setup a local socket for the TOE. 
+#    G PARAM ForeignSocket <ADDR> <PORT> --> Request to setup a foreign socket.
+#    # This is a comment
+#    > SET   ForeignSocket <ADDR> <PORT> --> Request to add foreign socket.
+#    > IDLE  <NUM>                       --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
+
+G PARAM SimCycles     350
+G PARAM LocalSocket   0x0A0CC802 0x0050
+
+# STEP-1: TCP DATA SEGMENT TRANSFER ========================
+
+0101010101010101 0 FF
+0202020202020202 0 FF
+0303030303030303 0 FF
+0404040404040404 0 FF
+0505050505050505 1 FF
+
+> IDLE 100
+
