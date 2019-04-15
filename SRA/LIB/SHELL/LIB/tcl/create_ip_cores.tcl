@@ -210,7 +210,6 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 
 # By default, create all the IP cores 
 set gTargetIpCore "all"   
-set useMPI 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -228,7 +227,6 @@ if { $argc > 0 } {
     set options {
         { ipModuleName.arg "all"  "The module name of the IP to create." }
         { ipList                  "Display the list of IP modules names." }
-        { useMPI "quick'n'dirty."}
     }
     set usage "\nUSAGE: vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -260,11 +258,6 @@ if { $argc > 0 } {
             close ${thisScript}
             return ${::OK}
         } 
-
-        if { ${key} eq "useMPI" && ${value} eq 1} {
-          set useMPI 1
-          my_puts "MPI enabled"
-        }
     }
 }
 
@@ -764,26 +757,23 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-#------------------------------------------------------------------------------  
-# VIVADO-IP : Decouple IP 
-#------------------------------------------------------------------------------ 
-#get current port Descriptions 
-if { $useMPI } {
-  source ${tclDir}/decouple_ip_type_MPI.tcl 
-} else { 
-  source ${tclDir}/decouple_ip_type.tcl 
-}
-
-set ipModName "Decoupler"
-set ipName    "pr_decoupler"
-set ipVendor  "xilinx.com"
-set ipLibrary "ip"
-set ipVersion "1.0"
-set ipCfgList ${DecouplerType}
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE: moved to Shell-tcl
+##------------------------------------------------------------------------------  
+## VIVADO-IP : Decouple IP 
+##------------------------------------------------------------------------------ 
+##get current port Descriptions 
+#source ${tclDir}/decouple_ip_type.tcl 
+#
+#set ipModName "Decoupler"
+#set ipName    "pr_decoupler"
+#set ipVendor  "xilinx.com"
+#set ipLibrary "ip"
+#set ipVersion "1.0"
+#set ipCfgList ${DecouplerType}
+#
+#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#
+#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
@@ -958,12 +948,6 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------
 set ipModName "UdpRoleInterface"
 set ipName    "udp_role_if"
-
-if { $useMPI } { 
-  set ipModName "UdpRoleInterface2"
-  set ipName    "udp_role_if_2"
-}
-
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -987,61 +971,6 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : MPE IP
-#------------------------------------------------------------------------------
-set ipModName "MPE"
-set ipName    "mpe_main"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list CONFIG.Component_Name {MPE} ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-
-#------------------------------------------------------------------------------
-# SMC related IP Cores 
-# TODO transfer in my_customize_ip? 
-
-
-#my_dbg_trace "Start Creating SMC" ${::dbgLvl_1}
-#source ${tclDir}/create_SMC.tcl 
-#set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
-
-#my_dbg_trace "Start Creating HWICAP" ${::dbgLvl_1}
-#source ${tclDir}/create_HWICAP.tcl
-#set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
-
-#my_dbg_trace "Start Creating Decouple IP" ${::dbgLvl_1}
-#source ${tclDir}/create_decouple_ip.tcl
-#set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
-
-#------------------------------------------------------------------------------
-
-puts    ""
-my_puts "End at: [clock format [clock seconds] -format {%T %a %b %d %Y}] "
-my_puts "################################################################################"
-my_puts "##"
-my_puts "##  DONE WITH THE CREATION OF \[ ${nrGenIPs} \] IP CORE(S) FROM THE MANAGED IP REPOSITORY "
-my_puts "##"
-if { ${nrErrors} != 0 } {
-  my_puts "##"
-  my_err_puts "##                   Warning: Failed to generate ${nrErrors} IP core(s) ! "
-  my_puts "##"
-  exit ${KO}
-}
-my_puts "################################################################################\n"
-
-
-# Close project
-#-------------------------------------------------
-close_project
-
-exit ${nrErrors}
 
 
 
