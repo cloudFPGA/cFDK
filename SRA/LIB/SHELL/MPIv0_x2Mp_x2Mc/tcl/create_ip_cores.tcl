@@ -12,7 +12,7 @@
 
 package require cmdline
 
-source ../../LIB/tcl/xpr_constants.tcl
+source ../../tcl/tcl/xpr_constants.tcl
 
 
 # execute the LIB version
