@@ -18,9 +18,8 @@
 XCI_DEPS := $(shell find ./hls/*/*_prj/solution1/impl/ip ./hls/*/src/ -maxdepth 0 -type d)
 
 
-.PHONY: all hls_cores clean full_src shell_synth pkg_shell 
+.PHONY: all hls_cores clean full_src 
 
-# [TODO-Flow for pkg_shell]
 
 all: full_src
 
@@ -44,9 +43,9 @@ hls: hls_cores
 ip: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
 
-ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
-	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log -tclargs -useMPI
-	@touch $@
+#ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
+#	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log -tclargs -useMPI
+#	@touch $@
 
 .ip_guard: 
 	@touch $@
@@ -56,20 +55,9 @@ ip_mpi: hls ./tcl/create_ip_cores.tcl $(XCI_DEPS) ./ip/ip_user_files ./.ip_guard
 ./ip/ip_user_files:
 	mkdir -p $@
 
-xpr: ip
-	cd ./tcl/ ; vivado -mode batch -source create_project.tcl -notrace -log create_project.log -tclargs -force
-
-shell_synth: xpr # NOT TESTED
-	@#cd ./tcl/ ;  vivado -mode batch -source synth_ip_cores.tcl -notrace -log synth_ip_cores.log
-	$(error NOT YET IMPLEMENTED)
-
-pkg_shell: xpr shell_synth # NOT TESTED
-	@#cd ./tcl/ ; vivado -mode batch -source package_project.tcl -notrace
-	$(error NOT YET IMPLEMENTED)
-
 
 clean: 
-	rm -rf ./ip ./xpr 
+	rm -rf ./ip
 	$(MAKE) -C ./hls clean
 
 
