@@ -6,7 +6,7 @@
 #  *     Authors: FAB, WEI, NGL
 #  *
 #  *     Description:
-#  *        XPR/TCL board and project SPECIFIC settings
+#  *        XPR/TCL BOARD SPECIFIC settings
 #  *
 
 #-------------------------------------------------------------------------------

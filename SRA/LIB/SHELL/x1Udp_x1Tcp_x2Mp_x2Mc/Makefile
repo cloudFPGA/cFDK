@@ -23,12 +23,11 @@ endif
 #XCI_DEPS := $(shell find ../LIB/hls/*/*_prj/solution1/impl/ip ./hls/*/src/ -maxdepth 0 -type d)
 
 
-.PHONY: all hls_cores clean full_src ip 
+.PHONY: all hls_cores clean ip 
 
 
-all: full_src
+all: ip
 
-full_src: ip 
 
 hls_cores: 
 	@$(MAKE) -C ../LIB/hls/ 
