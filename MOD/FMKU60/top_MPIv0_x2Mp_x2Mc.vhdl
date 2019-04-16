@@ -59,7 +59,7 @@ use     XIL_DEFAULTLIB.topFlash_pkg.all;
 --**  ENTITY  **  FMKU60 FLASH
 --******************************************************************************
 
-entity topFlash is
+entity topFMKU60 is
   generic (
     -- Synthesis parameters ----------------------
     gBitstreamUsage      : string  := "flash";  -- "user" or "flash"
@@ -163,13 +163,13 @@ entity topFlash is
 
   );
   
-end topFlash; 
+end topFMKU60; 
 
 
 --*****************************************************************************
 --**  ARCHITECTURE  **  FMKU60 FLASH
 --*****************************************************************************
-architecture structural of topFlash is
+architecture structural of topFMKU60 is
 
   --===========================================================================
   --== SIGNAL DECLARATIONS

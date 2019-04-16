@@ -1,0 +1,161 @@
+##############################################################################################
+##                                                                                          ##
+##	These are all the Vivado-related files which are ignored by the cloudFPGA/SRA project.  ##
+##                                                                                          ##
+##    WARNING: This ignore file is specified in reverse mode. First we exclude *ALL* files  ##
+##       from GIT and then we specifically list the files that we want to be added in GIT.  ## 
+##                                                                                          ##
+##	                (See also reference documents: XAPP 1165)                               ##
+##                                                                                          ##
+##############################################################################################
+
+
+##############################################################################################
+#                                                                                            #
+#                       STEP-1: LIST ALL THE FILES TO BE EXCLUDED                            # 
+#                                                                                            #
+##############################################################################################
+
+#################################### 
+# Exclude all (by default)
+####################################
+*
+.* 
+
+# OBSOLETE-20180426 #################################### 
+# OBSOLETE-20180426 # Ignore project and ip directories
+# OBSOLETE-20180426 ####################################
+
+# OBSOLETE-20180426 #################################### 
+# OBSOLETE-20180426 # Ignore local project files
+# OBSOLETE-20180426 ####################################
+# OBSOLETE-20180426 *_prj
+*/*_prj
+
+##############################################################################################
+#                                                                                            #
+#                      STEP-2: LIST ALL THE FILES TO BE INCLUDED IN GIT                      # 
+#                                                                                            #
+##############################################################################################
+
+!.gitignore
+
+###########################################################################
+##	VIVADO
+###########################################################################
+
+####################################
+# Source files
+####################################
+# Do NOT ignore VHDL, Verilog, block diagrams or EDIF files.
+!*.vhd
+!*.vhdl
+!*.v
+!*.bd
+!*.edif
+
+####################################
+# IP files
+####################################
+# .xci: synthesis and implemented not possible - you need to return back to the previous version to generate output products
+# .xci + .dcp: implementation possible but not re-synthesis
+# *.xci(www.spiritconsortium.org)
+!*.xci
+# *.dcp(checkpoint files)
+!*.dcp
+!*.vds
+!*.pb
+# All bd comments and layout coordinates are stored within .ui
+!*.ui
+!*.ooc
+
+####################################
+# System Generator
+####################################
+!*.mdl
+!*.slx
+!*.bxml
+
+####################################
+# Simulation logic analyzer
+####################################
+!*.wcfg
+!*.coe
+
+####################################
+# MIG
+####################################
+!*.prj
+!*.mem
+
+####################################
+# Project files
+####################################
+
+####################################
+# Constraint files
+####################################
+# Do NOT ignore *.xdc files
+!*.xdc
+
+####################################
+# TCL - files
+####################################
+!*.tcl
+
+####################################
+# Journal - files
+####################################
+# !*.jou
+
+####################################
+# Reports
+####################################
+!*.rpt
+!*.txt
+!*.vdi
+
+####################################
+# C-files
+####################################
+!*.c
+!*.h
+!*.elf
+!*.bmm
+!*.xmp
+!*.cpp
+!*.hpp
+
+####################################
+# READMEs
+####################################
+!README.md
+
+# Markdown in general 
+!*.md 
+
+####################################
+# Makefiles
+####################################
+!Makefile
+
+
+# ###################################
+# PROPAGATE THIS RULES TO SUB DIRECTORIES 
+# ###################################
+!*/
+
+##############################################################################################
+#                                                                                            #
+#                      STEP-3: EXCLUDE ALL DIRECTORIES OF CERTAIN NAMES                      #
+#                      This needs to be done, because we propagated the                      #
+#                      rules to Subdirectories                                               #
+#                                                                                            #
+##############################################################################################
+
+*_prj
+*ip/
+*prj/
+*xpr/
+*hd_visual/
+*dcps/

@@ -26,7 +26,7 @@ use     IEEE.numeric_std.all;
 --******************************************************************************
 --**  PACKAGE DECALARATION - FLASH_PKG
 --******************************************************************************
-package topFlash_pkg is 
+package topFMKU_pkg is 
 
   ------------------------------------------------------------------------------
   -- CONSTANTS & TYPES DEFINITION
@@ -130,7 +130,7 @@ package topFlash_pkg is
     return integer;
 
 
-end topFlash_pkg;
+end topFMKU_pkg;
 
 
 
@@ -139,7 +139,7 @@ end topFlash_pkg;
 --******************************************************************************
 --**  PACKAGE BODY - FLASH_PKG
 --******************************************************************************
-package body topFlash_pkg is
+package body topFMKU_pkg is
 
   -------------------------------------
   -- Function fLog2Ceil()
@@ -159,7 +159,7 @@ package body topFlash_pkg is
     return m;
   end fLog2Ceil;
 
-end topFlash_pkg;
+end topFMKU_pkg;
 
 
 
