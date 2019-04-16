@@ -9,58 +9,44 @@
 # *
 # ******************************************************************************
 
+
+# assert ENVIRONMENT
+../bash/assert_envs.sh
+
 # NO HEADING OR TRAILING SPACES!!
-SHELL_DIR =../../SHELL/Shell_x1Udp_x1Tcp_x2Mp_x2Mc
-ROLE_DIR =../../ROLE
-USED_ROLE =RoleFlash
-USED_ROLE_2 =RoleFlash_V2
-USED_MPI_ROLE =RoleMPI
-USED_MPI_ROLE_2 =RoleMPI_V2
+SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
+ROLE_DIR =$(usedRoleDir)
+ROLE2_DIR =$(usedRole2Dir)
 
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
 .PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify
-.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
+#.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
 
 all: pr
 #all: src_based
 #OR ip_based, whatever is preferred as default
 
-Role: #$(USED_ROLE)
-	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE)
+Role: 
+	$(MAKE) -C $(ROLE_DIR)
 
-Role2: #$(USED_ROLE_2)
-	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2)
-
-RoleMPItype: #$(USED_MPI_ROLE)
-	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE)
-
-RoleMPI2type: #$(USED_MPI_ROLE_2)
-	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE_2)
-
-RoleMPItypeSrc: 
-	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE) ip
-
+Role2: 
+	$(MAKE) -C $(ROLE2_DIR)
 
 
 xpr: 
-	mkdir -p ./xpr/ 
+	mkdir -p $(cFpXprDir)
 
 RoleIp:
-	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE)/ ip
+	$(MAKE) -C $(ROLE_DIR)/ ip
 
-#RoleFlash:
-#	$(MAKE) -C $(ROLE_DIR)/$@
-#
-#RoleFlash_V2:
-#	$(MAKE) -C $(ROLE_DIR)/$@
+RoleIp2:
+	$(MAKE) -C $(ROLE2_DIR)/ ip
+
 
 ShellSrc:
-	$(MAKE) -C $(SHELL_DIR) full_src
-
-ShellSrcMPI:
-	$(MAKE) -C $(SHELL_DIR) full_src_mpi
+	$(MAKE) -C $(SHELL_DIR) 
 
 src_based: ensureNotMonolithic ShellSrc Role | xpr
 	export usedRole=$(USED_ROLE); export usedRole2=$(USED_ROLE_2); $(MAKE) -C ./tcl/ full_src

@@ -52,7 +52,7 @@ use     UNISIM.vcomponents.all;
 --use     WORK.topFlash_pkg.all;
 
 library XIL_DEFAULTLIB;
-use     XIL_DEFAULTLIB.topFlash_pkg.all;
+use     XIL_DEFAULTLIB.topFMKU60_pkg.all;
 
 
 --******************************************************************************
@@ -192,38 +192,34 @@ architecture structural of topFMKU60 is
   signal sTOP_Timestamp                     : stTimeStamp; 
      
   --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : SHELL / MPE <--> ROLE 
+  -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
   --------------------------------------------------------
-  --signal sMPE_ROLE_MPIif_out_mpi_call_TDATA    : std_ulogic_vector(7 downto 0);
-  --signal sMPE_ROLE_MPIif_out_mpi_call_TVALID   : std_ulogic;
-  --signal sMPE_ROLE_MPIif_out_mpi_call_TREADY   : std_ulogic;
-  signal sROLE_MPE_MPIif_in_mpi_call_TDATA     : std_ulogic_vector(7 downto 0);
-  signal sROLE_MPE_MPIif_in_mpi_call_TVALID    : std_ulogic;
-  signal sROLE_MPE_MPIif_in_mpi_call_TREADY    : std_ulogic;
-  signal sROLE_MPE_MPIif_in_count_TDATA        : std_ulogic_vector(31 downto 0);
-  signal sROLE_MPE_MPIif_in_count_TVALID       : std_ulogic;
-  signal sROLE_MPE_MPIif_in_count_TREADY       : std_ulogic;
-  --signal sMPE_ROLE_MPIif_out_count_TDATA       : std_ulogic_vector(31 downto 0);
-  --signal sMPE_ROLE_MPIif_out_count_TVALID      : std_ulogic;
-  --signal sMPE_ROLE_MPIif_out_count_TREADY      : std_ulogic;
-  signal sROLE_MPE_MPIif_in_rank_TDATA         : std_ulogic_vector(31 downto 0);
-  signal sROLE_MPE_MPIif_in_rank_TVALID        : std_ulogic;
-  signal sROLE_MPE_MPIif_in_rank_TREADY        : std_ulogic;
-  --signal sMPE_ROLE_MPIif_out_rank_TDATA        : std_ulogic_vector(31 downto 0);
-  --signal sMPE_ROLE_MPIif_out_rank_TVALID       : std_ulogic;
-  --signal sMPE_ROLE_MPIif_out_rank_TREADY       : std_ulogic;
-  signal sROLE_MPE_MPI_data_TDATA              : std_ulogic_vector(7 downto 0);
-  signal sROLE_MPE_MPI_data_TVALID             : std_ulogic;
-  signal sROLE_MPE_MPI_data_TREADY             : std_ulogic;
-  signal sROLE_MPE_MPI_data_TKEEP              : std_ulogic;
-  signal sROLE_MPE_MPI_data_TLAST              : std_ulogic;
-  signal sMPE_ROLE_MPI_data_TDATA              : std_ulogic_vector(7 downto 0);
-  signal sMPE_ROLE_MPI_data_TVALID             : std_ulogic;
-  signal sMPE_ROLE_MPI_data_TREADY             : std_ulogic;
-  signal sMPE_ROLE_MPI_data_TKEEP              : std_ulogic;
-  signal sMPE_ROLE_MPI_data_TLAST              : std_ulogic;
-
-
+  ---- UDP Interface --------------------------- 
+  ------ Input AXI-Write Stream Interface ------
+  signal sROL_Shl_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
+  signal sROL_Shl_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
+  signal sROL_Shl_Nts0_Udp_Axis_tlast       : std_ulogic;
+  signal sROL_Shl_Nts0_Udp_Axis_tvalid      : std_ulogic;
+  signal sSHL_Rol_Nts0_Udp_Axis_tready      : std_ulogic;
+  ------ Output AXI-Write Stream Interface -----
+  signal sROL_Shl_Nts0_Udp_Axis_tready      : std_ulogic;
+  signal sSHL_Rol_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
+  signal sSHL_Rol_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Nts0_Udp_Axis_tlast       : std_ulogic;
+  signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;  
+  ---- TCP Interface ---------------------------
+  ------ Input AXI-Write Stream Interface ------
+  signal sROL_Shl_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
+  signal sROL_Shl_Nts0_Tcp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
+  signal sROL_Shl_Nts0_Tcp_Axis_tlast       : std_ulogic;
+  signal sROL_Shl_Nts0_Tcp_Axis_tvalid      : std_ulogic;
+  signal sSHL_Rol_Nts0_Tcp_Axis_tready      : std_ulogic;
+  ------ Output AXI-Write Stream Interface -----
+  signal sROL_Shl_Nts0_Tcp_Axis_tready      : std_ulogic;
+  signal sSHL_Rol_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
+  signal sSHL_Rol_Nts0_Tcp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Nts0_Tcp_Axis_tlast       : std_ulogic;
+  signal sSHL_Rol_Nts0_Tcp_Axis_tvalid      : std_ulogic;
  
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / MEM <--> ROLE 
@@ -301,15 +297,17 @@ architecture structural of topFMKU60 is
   ------ ROLE EMIF Registers ---------------
   signal sSHL_ROL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
   signal sROL_SHL_EMIF_2B_Reg               : std_logic_vector( 15 downto 0);
+
+  ------ MemTest Registers ---------------
+  signal sSHL_ROL_diag_ctrl                 : std_logic_vector(1 downto 0);
+  signal sROL_SHL_diag_stat                 : std_logic_vector(7 downto 0);
     
   ------------------------------------------------
   -- SMC Interface
   ------------------------------------------------  
   signal sSMC_ROL_rank                      : std_logic_vector(31 downto 0);
   signal sSMC_ROL_size                      : std_logic_vector(31 downto 0);
-
-  signal sSMC_SoftReset                     : std_ulogic;
-
+ 
   -- Delayed reset counter 
   signal rst_delay_counter                  : std_logic_vector(5 downto 0);
   
@@ -320,7 +318,6 @@ architecture structural of topFMKU60 is
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  --component Shell_MPIv0_x2Mp_x2Mc
   component Shell_x1Udp_x1Tcp_x2Mp_x2Mc
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
@@ -418,37 +415,36 @@ architecture structural of topFMKU60 is
       piSHL_156_25Rst_delayed             : in    std_ulogic;
        
       ------------------------------------------------------
-      -- ROLE / MPI Interface
+      -- ROLE / Shl/ Nts0 / Udp Interface
       ------------------------------------------------------
-      --poMPE_ROLE_MPIif_out_mpi_call_TDATA    : out std_ulogic_vector(7 downto 0);
-      --poMPE_ROLE_MPIif_out_mpi_call_TVALID   : out std_ulogic;
-      --piMPE_ROLE_MPIif_out_mpi_call_TREADY   : in std_ulogic;
-      piROLE_MPE_MPIif_in_mpi_call_TDATA     : in  std_ulogic_vector(7 downto 0);
-      piROLE_MPE_MPIif_in_mpi_call_TVALID    : in  std_ulogic;
-      poROLE_MPE_MPIif_in_mpi_call_TREADY    : out  std_ulogic;
-      piROLE_MPE_MPIif_in_count_TDATA        : in  std_ulogic_vector(31 downto 0);
-      piROLE_MPE_MPIif_in_count_TVALID       : in  std_ulogic;
-      poROLE_MPE_MPIif_in_count_TREADY       : out  std_ulogic;
-      --poMPE_ROLE_MPIif_out_count_TDATA       : out std_ulogic_vector(31 downto 0);
-      --poMPE_ROLE_MPIif_out_count_TVALID      : out std_ulogic;
-      --piMPE_ROLE_MPIif_out_count_TREADY      : in std_ulogic;
-      piROLE_MPE_MPIif_in_rank_TDATA         : in std_ulogic_vector(31 downto 0);
-      piROLE_MPE_MPIif_in_rank_TVALID        : in std_ulogic;
-      poROLE_MPE_MPIif_in_rank_TREADY        : out std_ulogic;
-      --poMPE_ROLE_MPIif_out_rank_TDATA        : out std_ulogic_vector(31 downto 0);
-      --poMPE_ROLE_MPIif_out_rank_TVALID       : out std_ulogic;
-      --piMPE_ROLE_MPIif_out_rank_TREADY       : in std_ulogic;
-      piROLE_MPE_MPI_data_TDATA              : in std_ulogic_vector(7 downto 0);
-      piROLE_MPE_MPI_data_TVALID             : in std_ulogic;
-      poROLE_MPE_MPI_data_TREADY             : out std_ulogic;
-      piROLE_MPE_MPI_data_TKEEP              : in std_ulogic;
-      piROLE_MPE_MPI_data_TLAST              : in std_ulogic;
-      poMPE_ROLE_MPI_data_TDATA              : out std_ulogic_vector(7 downto 0);
-      poMPE_ROLE_MPI_data_TVALID             : out std_ulogic;
-      piMPE_ROLE_MPI_data_TREADY             : in std_ulogic;
-      poMPE_ROLE_MPI_data_TKEEP              : out std_ulogic;
-      poMPE_ROLE_MPI_data_TLAST              : out std_ulogic;
-
+      -- Input AXI-Write Stream Interface ----------
+      piROL_Shl_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piROL_Shl_Nts0_Udp_Axis_tlast       : in    std_ulogic;
+      piROL_Shl_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tready      : out   std_ulogic;
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Udp_Axis_tready      : in    std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Nts0_Udp_Axis_tlast       : out   std_ulogic;
+      poSHL_Rol_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- ROLE / Shl / Nts0 / Tcp Interfaces
+      ------------------------------------------------------
+      -- Input AXI-Write Stream Interface ----------
+      piROL_Shl_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piROL_Shl_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
+      piROL_Shl_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tready      : out   std_ulogic;
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Tcp_Axis_tready      : in    std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+      poSHL_Rol_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
   
       ------------------------------------------------------  
       -- ROLE / Shl / Mem / Mp0 Interface
@@ -533,21 +529,23 @@ architecture structural of topFMKU60 is
       piROL_SHL_EMIF_2B_Reg               : in     std_logic_vector( 15 downto 0);
       poSHL_ROL_EMIF_2B_Reg               : out    std_logic_vector( 15 downto 0);
 
+      -- MemTest DiagRegisters
+      poSHL_Mc1_MemTestCtrl               : out std_logic_vector(1 downto 0);
+      piSHL_DIAG_STAT_1                   : in  std_logic_vector(7 downto 0);
+
       ------------------------------------------------------
       -- ROLE <--> SMC 
       ------------------------------------------------------
       poSMC_ROLE_rank                     : out std_logic_vector(31 downto 0);
-      poSMC_ROLE_size                     : out std_logic_vector(31 downto 0);
-      poSMC_softReset                     : out std_ulogic
+      poSMC_ROLE_size                     : out std_logic_vector(31 downto 0)
     );
-  --end component Shell_MPIv0_x2Mp_x2Mc;
   end component Shell_x1Udp_x1Tcp_x2Mp_x2Mc;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
-  component Role_MPIv0_x2Mp
+  component Role_x1Udp_x1Tcp_x2Mp
     port (
       
       ------------------------------------------------------
@@ -555,38 +553,39 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
+      piSHL_156_25Rst_delayed             : in    std_ulogic;
       
       ------------------------------------------------------
-      -- SHELL / MPI Interface
+      -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
-      poROLE_MPE_MPIif_mpi_call_TDATA        : out std_ulogic_vector(7 downto 0);
-      poROLE_MPE_MPIif_mpi_call_TVALID       : out std_ulogic;
-      piROLE_MPE_MPIif_mpi_call_TREADY       : in std_ulogic;
-      --piMPE_ROLE_MPIif_mpi_call_TDATA        : in  std_ulogic_vector(7 downto 0);
-      --piMPE_ROLE_MPIif_mpi_call_TVALID       : in  std_ulogic;
-      --poMPE_ROLE_MPIif_mpi_call_TREADY       : out  std_ulogic;
-      --piMPE_ROLE_MPIif_count_TDATA           : in  std_ulogic_vector(31 downto 0);
-      --piMPE_ROLE_MPIif_count_TVALID          : in  std_ulogic;
-      --poMPE_ROLE_MPIif_count_TREADY          : out  std_ulogic;
-      poROLE_MPE_MPIif_count_TDATA           : out std_ulogic_vector(31 downto 0);
-      poROLE_MPE_MPIif_count_TVALID          : out std_ulogic;
-      piROLE_MPE_MPIif_count_TREADY          : in std_ulogic;
-      --piMPE_ROLE_MPIif_rank_TDATA            : in std_ulogic_vector(31 downto 0);
-      --piMPE_ROLE_MPIif_rank_TVALID           : in std_ulogic;
-      --poMPE_ROLE_MPIif_rank_TREADY           : out std_ulogic;
-      poROLE_MPE_MPIif_rank_TDATA            : out std_ulogic_vector(31 downto 0);
-      poROLE_MPE_MPIif_rank_TVALID           : out std_ulogic;
-      piROLE_MPE_MPIif_rank_TREADY           : in std_ulogic;
-      piMPE_ROLE_MPI_data_TDATA              : in std_ulogic_vector(7 downto 0);
-      piMPE_ROLE_MPI_data_TVALID             : in std_ulogic;
-      poMPE_ROLE_MPI_data_TREADY             : out std_ulogic;
-      piMPE_ROLE_MPI_data_TKEEP              : in std_ulogic;
-      piMPE_ROLE_MPI_data_TLAST              : in std_ulogic;
-      poROLE_MPE_MPI_data_TDATA              : out std_ulogic_vector(7 downto 0);
-      poROLE_MPE_MPI_data_TVALID             : out std_ulogic;
-      piROLE_MPE_MPI_data_TREADY             : in std_ulogic;
-      poROLE_MPE_MPI_data_TKEEP              : out std_ulogic;
-      poROLE_MPE_MPI_data_TLAST              : out std_ulogic;
+      ---- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Udp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Nts0_Udp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Nts0_Udp_Axis_tvalid      : in    std_ulogic;
+      piSHL_Rol_Nts0_Udp_Axis_tlast       : in    std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tready      : out   std_ulogic;
+      ---- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Udp_Axis_tready      : in    std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
+      poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
+      
+      ------------------------------------------------------
+      -- SHELL / Role / Nts0 / Tcp Interface
+      ------------------------------------------------------
+      ---- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
+      piSHL_Rol_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tready      : out   std_ulogic;
+      ---- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Tcp_Axis_tready      : in    std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
+      poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
 
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp0 Interface
@@ -658,34 +657,38 @@ architecture structural of topFMKU60 is
       -- SHELL / Role / Mmio / Flash Debug Interface
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
-      --piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      --piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
-      --piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
-      --piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      --piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
-      --piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
+      piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
+      piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
              
       ------------------------------------------------------
       -- ROLE EMIF Registers
       ------------------------------------------------------
-      poROL_SHL_EMIF_2B_Reg               : out  std_logic_vector( 15 downto 0);
-      piSHL_ROL_EMIF_2B_Reg               : in   std_logic_vector( 15 downto 0);
+      poROL_SHL_EMIF_2B_Reg               : out   std_logic_vector( 15 downto 0);
+      piSHL_ROL_EMIF_2B_Reg               : in    std_logic_vector( 15 downto 0);
+      --------------------------------------------------------
+      -- DIAG Registers for MemTest
+      --------------------------------------------------------
+      piDIAG_CTRL                         : in    std_logic_vector(1 downto 0);
+      poDIAG_STAT                         : out   std_logic_vector(1 downto 0);
       
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
       piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
     
-        ------------------------------------------------
-        -- SMC Interface
-        ------------------------------------------------ 
-        piSMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
-        piSMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
-        piSMC_softReset                      : in    std_ulogic; 
+      ------------------------------------------------
+      -- SMC Interface
+      ------------------------------------------------ 
+      piSMC_ROLE_rank                     : in    std_logic_vector(31 downto 0);
+      piSMC_ROLE_size                     : in    std_logic_vector(31 downto 0);
           
-        poVoid                              : out   std_ulogic          
+      poVoid                              : out   std_ulogic          
       );
-    end component Role_MPIv0_x2Mp;
+    end component Role_x1Udp_x1Tcp_x2Mp;
 
 begin
   
@@ -746,7 +749,7 @@ begin
     );
    
    -- ========================================================================
-   -- == Generation of delayed reset vor HLS cores
+   -- == Generation of delayed reset for HLS cores
    -- ========================================================================
    process(sSHL_156_25Clk)
    begin
@@ -775,7 +778,6 @@ begin
   --==   This version of the SHELL has the following user interfaces:
   --==    - one UDP, one TCP, and two MemoryPort interfaces. 
   --==========================================================================
-  --SHELL : Shell_MPIv0_x2Mp_x2Mc
   SHELL : Shell_x1Udp_x1Tcp_x2Mp_x2Mc
       generic map (
       gSecurityPriviledges => "super",
@@ -866,45 +868,45 @@ begin
       poSHL_Econ_Eth0_10Ge0_p              => poTOP_Econ_10Ge0_p,
       
       ------------------------------------------------------
-      -- ROLE / Output Reset and Clock Interfaces
+      -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
       poSHL_156_25Clk                      => sSHL_156_25Clk,
       poSHL_156_25Rst                      => sSHL_156_25Rst,
       piSHL_156_25Rst_delayed              => sSHL_156_25Rst_delayed,
       
       ------------------------------------------------------
-      -- ROLE / MPI Interface
+      -- ROLE / Shl / Nts0 / Udp Interface
       ------------------------------------------------------
-      --poMPE_ROLE_MPIif_out_mpi_call_TDATA    => sMPE_ROLE_MPIif_out_mpi_call_TDATA ,
-      --poMPE_ROLE_MPIif_out_mpi_call_TVALID   => sMPE_ROLE_MPIif_out_mpi_call_TVALID,
-      --piMPE_ROLE_MPIif_out_mpi_call_TREADY   => sMPE_ROLE_MPIif_out_mpi_call_TREADY,
-      piROLE_MPE_MPIif_in_mpi_call_TDATA     => sROLE_MPE_MPIif_in_mpi_call_TDATA  ,
-      piROLE_MPE_MPIif_in_mpi_call_TVALID    => sROLE_MPE_MPIif_in_mpi_call_TVALID ,
-      poROLE_MPE_MPIif_in_mpi_call_TREADY    => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
-      piROLE_MPE_MPIif_in_count_TDATA        => sROLE_MPE_MPIif_in_count_TDATA     ,
-      piROLE_MPE_MPIif_in_count_TVALID       => sROLE_MPE_MPIif_in_count_TVALID    ,
-      poROLE_MPE_MPIif_in_count_TREADY       => sROLE_MPE_MPIif_in_count_TREADY    ,
-      --poMPE_ROLE_MPIif_out_count_TDATA       => sMPE_ROLE_MPIif_out_count_TDATA    ,
-      --poMPE_ROLE_MPIif_out_count_TVALID      => sMPE_ROLE_MPIif_out_count_TVALID   ,
-      --piMPE_ROLE_MPIif_out_count_TREADY      => sMPE_ROLE_MPIif_out_count_TREADY   ,
-      piROLE_MPE_MPIif_in_rank_TDATA         => sROLE_MPE_MPIif_in_rank_TDATA      ,
-      piROLE_MPE_MPIif_in_rank_TVALID        => sROLE_MPE_MPIif_in_rank_TVALID     ,
-      poROLE_MPE_MPIif_in_rank_TREADY        => sROLE_MPE_MPIif_in_rank_TREADY     ,
-      --poMPE_ROLE_MPIif_out_rank_TDATA        => sMPE_ROLE_MPIif_out_rank_TDATA     ,
-      --poMPE_ROLE_MPIif_out_rank_TVALID       => sMPE_ROLE_MPIif_out_rank_TVALID    ,
-      --piMPE_ROLE_MPIif_out_rank_TREADY       => sMPE_ROLE_MPIif_out_rank_TREADY    ,
-      piROLE_MPE_MPI_data_TDATA              => sROLE_MPE_MPI_data_TDATA           ,
-      piROLE_MPE_MPI_data_TVALID             => sROLE_MPE_MPI_data_TVALID          ,
-      poROLE_MPE_MPI_data_TREADY             => sROLE_MPE_MPI_data_TREADY          ,
-      piROLE_MPE_MPI_data_TKEEP              => sROLE_MPE_MPI_data_TKEEP           ,
-      piROLE_MPE_MPI_data_TLAST              => sROLE_MPE_MPI_data_TLAST           ,
-      poMPE_ROLE_MPI_data_TDATA              => sMPE_ROLE_MPI_data_TDATA           ,
-      poMPE_ROLE_MPI_data_TVALID             => sMPE_ROLE_MPI_data_TVALID          ,
-      piMPE_ROLE_MPI_data_TREADY             => sMPE_ROLE_MPI_data_TREADY          ,
-      poMPE_ROLE_MPI_data_TKEEP              => sMPE_ROLE_MPI_data_TKEEP           ,
-      poMPE_ROLE_MPI_data_TLAST              => sMPE_ROLE_MPI_data_TLAST           ,
-
+      -- Input AXI-Write Stream Interface ----------
+      piROL_Shl_Nts0_Udp_Axis_tdata       => sROL_Shl_Nts0_Udp_Axis_tdata,
+      piROL_Shl_Nts0_Udp_Axis_tkeep       => sROL_Shl_Nts0_Udp_Axis_tkeep,
+      piROL_Shl_Nts0_Udp_Axis_tlast       => sROL_Shl_Nts0_Udp_Axis_tlast,
+      piROL_Shl_Nts0_Udp_Axis_tvalid      => sROL_Shl_Nts0_Udp_Axis_tvalid,
+      poSHL_Rol_Nts0_Udp_Axis_tready      => sSHL_Rol_Nts0_Udp_Axis_tready,
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Udp_Axis_tready      => sROL_Shl_Nts0_Udp_Axis_tready,
+      poSHL_Rol_Nts0_Udp_Axis_tdata       => sSHL_Rol_Nts0_Udp_Axis_tdata ,
+      poSHL_Rol_Nts0_Udp_Axis_tkeep       => sSHL_Rol_Nts0_Udp_Axis_tkeep,
+      poSHL_Rol_Nts0_Udp_Axis_tlast       => sSHL_Rol_Nts0_Udp_Axis_tlast ,
+      poSHL_Rol_Nts0_Udp_Axis_tvalid      => sSHL_Rol_Nts0_Udp_Axis_tvalid,
+      
       ------------------------------------------------------
+      -- ROLE / Shl /Nts0 / Tcp Interfaces
+      ------------------------------------------------------
+      -- Input AXI-Write Stream Interface ---------piSHL_156_25Rst_delayed-
+      piROL_Shl_Nts0_Tcp_Axis_tdata       => sROL_Shl_Nts0_Tcp_Axis_tdata ,
+      piROL_Shl_Nts0_Tcp_Axis_tkeep       => sROL_Shl_Nts0_Tcp_Axis_tkeep ,
+      piROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
+      piROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
+      poSHL_Rol_Nts0_Tcp_Axis_tready      => sSHL_Rol_Nts0_Tcp_Axis_tready,
+      -- Output AXI-Write Stream Interface ---------
+      piROL_Shl_Nts0_Tcp_Axis_tready      => sROL_Shl_Nts0_Tcp_Axis_tready,
+      poSHL_Rol_Nts0_Tcp_Axis_tdata       => sSHL_Rol_Nts0_Tcp_Axis_tdata ,
+      poSHL_Rol_Nts0_Tcp_Axis_tkeep       => sSHL_Rol_Nts0_Tcp_Axis_tkeep,
+      poSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast ,
+      poSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
+      
+      ------------------------------------------------------  
       -- ROLE / Shl / Mem / Mp0 Interface
       ------------------------------------------------------
       -- Memory Port #0 / S2MM-AXIS ------------------   
@@ -986,17 +988,20 @@ begin
       ------------------------------------------------------
       piROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
       poSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
+      -- Memtest 
+      poSHL_Mc1_MemTestCtrl               => sSHL_ROL_diag_ctrl,
+      piSHL_DIAG_STAT_1                   => sROL_SHL_diag_stat,
       
       poSMC_ROLE_rank                     => sSMC_ROL_rank,
-      poSMC_ROLE_size                     => sSMC_ROL_size,
-      poSMC_softReset                     => sSMC_SoftReset
+      poSMC_ROLE_size                     => sSMC_ROL_size           
   );  -- End of SuperShell instantiation
 
 
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
-  ROLE : Role_MPIv0_x2Mp
+  ROLE : Role_x1Udp_x1Tcp_x2Mp
     port map (
     
       ------------------------------------------------------
@@ -1004,41 +1009,40 @@ begin
       ------------------------------------------------------
       piSHL_156_25Clk                     => sSHL_156_25Clk,
       piSHL_156_25Rst                     => sSHL_156_25Rst,
+      piSHL_156_25Rst_delayed             => sSHL_156_25Rst_delayed,
             
-     
       ------------------------------------------------------
-      -- SHELL / MPI Interface
+      -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
-      poROLE_MPE_MPIif_mpi_call_TDATA      => sROLE_MPE_MPIif_in_mpi_call_TDATA  ,
-      poROLE_MPE_MPIif_mpi_call_TVALID     => sROLE_MPE_MPIif_in_mpi_call_TVALID ,
-      piROLE_MPE_MPIif_mpi_call_TREADY     => sROLE_MPE_MPIif_in_mpi_call_TREADY ,
-      --piMPE_ROLE_MPIif_mpi_call_TDATA      => sMPE_ROLE_MPIif_out_mpi_call_TDATA   ,
-      --piMPE_ROLE_MPIif_mpi_call_TVALID     => sMPE_ROLE_MPIif_out_mpi_call_TVALID  ,
-      --poMPE_ROLE_MPIif_mpi_call_TREADY     => sMPE_ROLE_MPIif_out_mpi_call_TREADY  ,
-      --piMPE_ROLE_MPIif_count_TDATA         => sMPE_ROLE_MPIif_out_count_TDATA      ,
-      --piMPE_ROLE_MPIif_count_TVALID        => sMPE_ROLE_MPIif_out_count_TVALID     ,
-      --poMPE_ROLE_MPIif_count_TREADY        => sMPE_ROLE_MPIif_out_count_TREADY     ,
-      poROLE_MPE_MPIif_count_TDATA         => sROLE_MPE_MPIif_in_count_TDATA     ,
-      poROLE_MPE_MPIif_count_TVALID        => sROLE_MPE_MPIif_in_count_TVALID    ,
-      piROLE_MPE_MPIif_count_TREADY        => sROLE_MPE_MPIif_in_count_TREADY    ,
-      --piMPE_ROLE_MPIif_rank_TDATA          => sMPE_ROLE_MPIif_out_rank_TDATA       ,
-      --piMPE_ROLE_MPIif_rank_TVALID         => sMPE_ROLE_MPIif_out_rank_TVALID      ,
-      --poMPE_ROLE_MPIif_rank_TREADY         => sMPE_ROLE_MPIif_out_rank_TREADY      ,
-      poROLE_MPE_MPIif_rank_TDATA          => sROLE_MPE_MPIif_in_rank_TDATA      ,
-      poROLE_MPE_MPIif_rank_TVALID         => sROLE_MPE_MPIif_in_rank_TVALID     ,
-      piROLE_MPE_MPIif_rank_TREADY         => sROLE_MPE_MPIif_in_rank_TREADY     ,
-      piMPE_ROLE_MPI_data_TDATA            => sMPE_ROLE_MPI_data_TDATA            ,
-      piMPE_ROLE_MPI_data_TVALID           => sMPE_ROLE_MPI_data_TVALID           ,
-      poMPE_ROLE_MPI_data_TREADY           => sMPE_ROLE_MPI_data_TREADY           ,
-      piMPE_ROLE_MPI_data_TKEEP            => sMPE_ROLE_MPI_data_TKEEP            ,
-      piMPE_ROLE_MPI_data_TLAST            => sMPE_ROLE_MPI_data_TLAST            ,
-      poROLE_MPE_MPI_data_TDATA            => sROLE_MPE_MPI_data_TDATA            ,
-      poROLE_MPE_MPI_data_TVALID           => sROLE_MPE_MPI_data_TVALID           ,
-      piROLE_MPE_MPI_data_TREADY           => sROLE_MPE_MPI_data_TREADY           ,
-      poROLE_MPE_MPI_data_TKEEP            => sROLE_MPE_MPI_data_TKEEP            ,
-      poROLE_MPE_MPI_data_TLAST            => sROLE_MPE_MPI_data_TLAST            ,
-
-
+      -- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Udp_Axis_tdata       => sSHL_Rol_Nts0_Udp_Axis_tdata,
+      piSHL_Rol_Nts0_Udp_Axis_tkeep       => sSHL_Rol_Nts0_Udp_Axis_tkeep,
+      piSHL_Rol_Nts0_Udp_Axis_tlast       => sSHL_Rol_Nts0_Udp_Axis_tlast,
+      piSHL_Rol_Nts0_Udp_Axis_tvalid      => sSHL_Rol_Nts0_Udp_Axis_tvalid,
+      poROL_Shl_Nts0_Udp_Axis_tready      => sROL_Shl_Nts0_Udp_Axis_tready,
+      -- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Udp_Axis_tready      => sSHL_Rol_Nts0_Udp_Axis_tready,
+      poROL_Shl_Nts0_Udp_Axis_tdata       => sROL_Shl_Nts0_Udp_Axis_tdata,
+      poROL_Shl_Nts0_Udp_Axis_tkeep       => sROL_Shl_Nts0_Udp_Axis_tkeep,
+      poROL_Shl_Nts0_Udp_Axis_tlast       => sROL_Shl_Nts0_Udp_Axis_tlast,
+      poROL_Shl_Nts0_Udp_Axis_tvalid      => sROL_Shl_Nts0_Udp_Axis_tvalid,
+      
+      ------------------------------------------------------
+      -- SHELL / Role / Nts0 / Tcp Interface
+      ------------------------------------------------------
+      -- Input AXI-Write Stream Interface ----------
+      piSHL_Rol_Nts0_Tcp_Axis_tdata       => sSHL_Rol_Nts0_Tcp_Axis_tdata,
+      piSHL_Rol_Nts0_Tcp_Axis_tkeep       => sSHL_Rol_Nts0_Tcp_Axis_tkeep,
+      piSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast,
+      piSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
+      poROL_Shl_Nts0_Tcp_Axis_tready      => sROL_Shl_Nts0_Tcp_Axis_tready,
+      -- Output AXI-Write Stream Interface ---------
+      piSHL_Rol_Nts0_Tcp_Axis_tready      => sSHL_Rol_Nts0_Tcp_Axis_tready,
+      poROL_Shl_Nts0_Tcp_Axis_tdata       => sROL_Shl_Nts0_Tcp_Axis_tdata,
+      poROL_Shl_Nts0_Tcp_Axis_tkeep       => sROL_Shl_Nts0_Tcp_Axis_tkeep,
+      poROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
+      poROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
+      
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1109,25 +1113,27 @@ begin
       -- SHELL / Role / Mmio / Flash Debug Interface
       ------------------------------------------------------
       -- MMIO / CTRL_2 Register ----------------
-      --piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
-      --piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
-      --piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
-      --piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
-      --piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
-      --piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
+      piSHL_Rol_Mmio_UdpEchoCtrl          => sSHL_Rol_Mmio_UdpEchoCtrl,
+      piSHL_Rol_Mmio_UdpPostPktEn         => sSHL_Rol_Mmio_UdpPostPktEn,
+      piSHL_Rol_Mmio_UdpCaptPktEn         => sSHL_Rol_Mmio_UdpCaptPktEn,
+      piSHL_Rol_Mmio_TcpEchoCtrl          => sSHL_Rol_Mmio_TcpEchoCtrl,
+      piSHL_Rol_Mmio_TcpPostPktEn         => sSHL_Rol_Mmio_TcpPostPktEn,
+      piSHL_Rol_Mmio_TcpCaptPktEn         => sSHL_Rol_Mmio_TcpCaptPktEn,
       
       ------------------------------------------------------
       -- ROLE EMIF Registers
       ------------------------------------------------------
       poROL_SHL_EMIF_2B_Reg               => sROL_SHL_EMIF_2B_Reg,
       piSHL_ROL_EMIF_2B_Reg               => sSHL_ROL_EMIF_2B_Reg,
+
+      piDIAG_CTRL                         => sSHL_ROL_diag_ctrl,
+      poDIAG_STAT                         => sROL_SHL_diag_stat(7 downto 6),
       
       ------------------------------------------------
       -- SMC Interface
       ------------------------------------------------ 
       piSMC_ROLE_rank                     => sSMC_ROL_rank,
       piSMC_ROLE_size                     => sSMC_ROL_size,
-      piSMC_softReset                     => sSMC_SoftReset,
    
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)

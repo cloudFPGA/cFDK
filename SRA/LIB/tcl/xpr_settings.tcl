@@ -17,8 +17,8 @@ source ./xpr_constants.tcl
 ## IMPORT ENVIRONMENTs
 set cFpIpDir $env(cFpIpDir)
 set cFpMOD   $env(cFpMOD)
-set usedRole $env(usedRole)
-set usedRole2 $env(usedRole2)
+set usedRoleDir $env(usedRoleDir)
+set usedRole2Dir $env(usedRole2Dir)
 set cFpSRAtype $env(cFpSRAtype)
 set cFpRootDir $env(cFpRootDir)
 set cFpXprDir $env(cFpXprDir)
@@ -60,11 +60,6 @@ set topFile      "top.vhdl"
 set usedRoleType  "Role_${cFpSRAtype}"
 set usedShellType "Shell_${cFpSRAtype}"
 
-
-#TODO !!! 
-# usedRole = Dir name; usedRoleType = Entity name 
-# BUT: usedShellType = Entity and DIR name 
-# -> FIX 
 
 
 
