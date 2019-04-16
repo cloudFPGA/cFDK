@@ -10,6 +10,8 @@
 [ -z "$cFpRootDir" ] && echo "ERROR: cFpRootDir MUST BE DEFINED as environment variable!" && exit 1;
 [ -z "$cFpXprDir" ] && echo "ERROR: cFpXprDir MUST BE DEFINED as environment variable!" && exit 1;
 [ -z "$cFpDcpDir" ] && echo "ERROR: cFpDcpDir MUST BE DEFINED as environment variable!" && exit 1;
+[ -z "$roleName1" ] && echo "ERROR: roleName1 MUST BE DEFINED as environment variable!" && exit 1;
+[ -z "$roleName2" ] && echo "ERROR: roleName2 MUST BE DEFINED as environment variable!" && exit 1;
 
 exit 0;
 

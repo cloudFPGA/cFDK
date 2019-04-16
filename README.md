@@ -13,13 +13,13 @@ t.b.c.
 Dependencies
 ------------------
 
-## Installation
+### Installation
 
 t.b.c.
 
 
 
-## Environment variables
+### Environment variables
 
 In order to resolve *project-specific dependencies*, the following environment variables *must be defined by the project-specific Makefile*:
 
@@ -31,4 +31,40 @@ In order to resolve *project-specific dependencies*, the following environment v
 * `cFpRootDir`:    The Root directory of the cFp (*absolute path*). 
 * `cFpXprDir`:    The xpr directory (i.e. vivado project) of the cFp (*absolute path*). 
 * `cFpDcpDir`:    The dcps directory of the cFp (*absolute path*). 
+* `roleName1`:    The Name of the Role (in case without PR: `default`).
+* `roleName2`:    The Name of the Role 2 (necessary for PR).
+
+
+Because some cFps will have multiple Roles, some others not, must the `usedRoleDir` always point to the *directory itself (containing hdl, hls, etc.)*, not to the directory that contains e.g. `roleName1`. 
+`roleName1` and `roleName2` are there to make some bitfiles and dcps readable, *not* to find the right sources. 
+
+
+### Conventions
+
+* Name of the project file: `top$(cFpMOD).xpr` (inside `$(cFpXprDir)`)
+* Name of the top VDHL file: `top.vhdl`
+* Name of a Shell: `Shell.v` (in directory `$(cFpSRAtype)`)
+* Structure of a **cFp** is as follows:
+    ```bash
+    cFDK/ (submodule)
+    TOP/
+    └──tcl/
+       └──Makefile
+       └──handle_vivado.tcl 
+       └── a.s.o.
+    └──xdc/ (as expected)
+    └──hdl/
+       └──top.vhdl
+       └── a.s.o.
+    ROLE/
+    └── role1 (or not, depends on PR, etc.)
+    └── a.s.o.
+    dcps/ (contains the dcps)
+    xpr/ (as expected)
+    ip/ (contains the IP cores (generated during build))
+    Makefile (from template)
+    config.sh (sets the envrionments)
+    ```
+
+
 
