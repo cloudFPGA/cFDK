@@ -35,7 +35,7 @@ In order to resolve *project-specific dependencies*, the following environment v
 * `roleName2`:    The Name of the Role 2 (necessary for PR).
 
 
-Because some cFps will have multiple Roles, some others not, must the `usedRoleDir` always point to the *directory itself (containing hdl, hls, etc.)*, not to the directory that contains e.g. `roleName1`. 
+Because some cFps will have multiple Roles and some others not, the `usedRoleDir` must always point to the *directory itself (containing hdl, hls, etc.)*, not to the directory that contains e.g. `roleName1`. 
 `roleName1` and `roleName2` are there to make some bitfiles and dcps readable, *not* to find the right sources. 
 
 
