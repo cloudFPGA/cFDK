@@ -38,6 +38,7 @@ set rootDir      ${cFpRootDir}
 set ipDir        ${cFpIpDir}
 #set tclDir       ${rootDir}/tcl
 #set xdcDir       ${rootDir}/xdc
+set xdcDir       ../../../MOD/${cFpMOD}/xdc/
 #set xprDir       ${rootDir}/xpr 
 set xprDir       ${cFpXprDir}
 #set dcpDir       ${rootDir}/dcps
@@ -60,7 +61,16 @@ set topFile      "top.vhdl"
 set usedRoleType  "Role_${cFpSRAtype}"
 set usedShellType "Shell_${cFpSRAtype}"
 
+#-------------------------------------------------------------------------------
+# Debug outpus
+#-------------------------------------------------------------------------------
 
-
+my_info_puts "RootDir: ${rootDir}"
+my_info_puts "ipDir: ${ipDir}"
+my_info_puts "xdcDir: ${xdcDir}"
+my_info_puts "xprDir: ${xprDir}"
+my_info_puts "dcpDir: ${dcpDir}"
+my_info_puts "Role 1 Dir: ${usedRoleDir}"
+my_info_puts "Role 2 Dir: ${usedRole2Dir}"
 
 

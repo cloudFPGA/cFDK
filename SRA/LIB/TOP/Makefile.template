@@ -1,14 +1,13 @@
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Apr 2018
-# * Authors : Burkhard Ringlein
-# *
-# * Description : A makefile that invokes all necesarry steps to synthezie a TOP
-# *
-# ******************************************************************************
-
+#  *
+#  *                       cloudFPGA
+#  *     Copyright IBM Research, All Rights Reserved
+#  *    =============================================
+#  *     Created: Apr 2019
+#  *     Authors: FAB, WEI, NGL
+#  *
+#  *     Description:
+#  *       Makefile to build a cloudFPGA-project (cFp)
+#  *
 
 # assert ENVIRONMENT
 #../bash/assert_envs.sh 

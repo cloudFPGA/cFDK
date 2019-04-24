@@ -1,19 +1,13 @@
-
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Apr 2018
-# * Authors : Francois Abel & Burkhard Ringlein 
-# *
-# * Description : A makefile to create a Vivado XPR project for the TopFlash 
-# *               and to run the synthesis and implemenation steps.
-# *
-# * Usage:
-# *  make	: Create, synthesize and implement the "topFMKU_Flash" design.
-# *  make clean : Removes the previous XPR directory and starts a new project.  
-# *
-# ******************************************************************************
+#  *
+#  *                       cloudFPGA
+#  *     Copyright IBM Research, All Rights Reserved
+#  *    =============================================
+#  *     Created: Apr 2019
+#  *     Authors: FAB, WEI, NGL
+#  *
+#  *     Description:
+#  *       Makefile to create vivado commands (in .vivado_basecmd.sh)
+#  *
 
 
 TOP_NAME = top$(cFpMOD)
@@ -109,7 +103,7 @@ $(MONO_LOCK):  $(ROLE_DIR_1)/* $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ) $(
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 monobasecmd: basecmd
-	@/bin/echo -e "-forceWithoutBB -role -synth -impl -bitgen \\" >> .vivado_basecmd.sh
+	@/bin/echo -e "-forceWithoutBB  -synth -impl -bitgen \\" >> .vivado_basecmd.sh
 
 monofinalcmd: 
 	@#more +2 .vivado_basecmd.sh
@@ -134,20 +128,20 @@ monolithic_debug: basecmd debugcmd $(MONO_LOCK) monofinalcmd
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
-	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -role -forceWithoutBB -save_incr 
+	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs  -forceWithoutBB -save_incr 
 
 
 #without pr 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1).bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete.dcp
-	@/bin/echo "-bitgen -role \\" >> .vivado_basecmd.sh
+	@/bin/echo "-bitgen  \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete.dcp: $(cFpIpDir) | $(XPR_PROJ)
-	@/bin/echo "-impl -role \\" >> .vivado_basecmd.sh
+	@/bin/echo "-impl  \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 #$(cFpDcpDir)/1_$(TOP_NAME)_linked.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp  $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
-#	@/bin/echo "-link -role \\" >> .vivado_basecmd.sh
+#	@/bin/echo "-link  \\" >> .vivado_basecmd.sh
 #	rm -f $@
 
 #both 
@@ -161,34 +155,34 @@ $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/i
 	rm -f $@
 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp 
-	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
+	@/bin/echo "-bitgen  -pr \\" >> .vivado_basecmd.sh 
 	rm -f $@
 
 $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR_1)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
-	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
-	rm -f $@  
+	@/bin/echo "-impl  -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
 
 $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR_1)/*.dcp
-	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
+	@/bin/echo "-link  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp
 	@#rm -f $@ TODO incrlemental use?
 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp 
-	@/bin/echo "-bitgen2 -pr -pr_verify -role2 \\" >> .vivado_basecmd.sh
+	@/bin/echo "-bitgen2 -pr -pr_verify  \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR_2)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
-	@/bin/echo "-impl2 -pr -role2 \\" >> .vivado_basecmd.sh
+	@/bin/echo "-impl2 -pr  \\" >> .vivado_basecmd.sh
 	rm -f $@ 
 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_grey_box.bit: $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp
-	@/bin/echo "-bitgenGrey -role -pr -pr_verify \\" >> .vivado_basecmd.sh
+	@/bin/echo "-bitgenGrey  -pr -pr_verify \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp
-	@/bin/echo "-implGrey -role -pr \\" >> .vivado_basecmd.sh
+	@/bin/echo "-implGrey  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@
 
 

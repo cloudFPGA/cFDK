@@ -45,6 +45,7 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
 * Name of the top VDHL file: `top.vhdl`
 * Name of a Shell: `Shell.v` (in directory `$(cFpSRAtype)`)
 * The file `Shell.v` should contain a version counter that is also readable with the EMIF.
+* The xdc files are all in the corresponding MOD directory, except the debug nets.
 * Structure of a **cFp** is as follows:
     ```bash
     cFDK/ (submodule)
@@ -53,7 +54,7 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
        └──Makefile
        └──handle_vivado.tcl 
        └── a.s.o.
-    └──xdc/ (as expected)
+    └──xdc/ (for debug ONLY)
     └──hdl/
        └──top.vhdl
        └── a.s.o.
@@ -72,5 +73,5 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
 
 * The environment variables should always be set from the MAIN makefile
 * The `xpr_settings.tcl are generic (based on the environment variables), so the `cFDK/SRA/LIB/tcl/xpr_settings.tcl` should work for *all* cases. 
-
+* The `MOD/${cFpMOD}/xdc` folder contains a `order.tcl` file that sets the variable `orderedList` accordingly.
 

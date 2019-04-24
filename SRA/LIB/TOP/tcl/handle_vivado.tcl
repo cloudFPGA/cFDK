@@ -1,23 +1,16 @@
-# ******************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *-----------------------------------------------------------------------------
-# * Created : Mar 02 2018
-# * Authors : Francois Abel, Burkhard Ringlein
-# * 
-# * Description : A Tcl script that creates the TOP level project in so-called
-# *   "Project Mode" of the Vivado design flow. The design is then further 
-# *   synthesized, placed and routed in batch mode.
-# * 
-# * Synopsis : vivado -mode batch -source <this_file> [-notrace]
-# *                               [-log     <log_file_name>]
-# *                               [-tclargs [script_arguments]]
-# *
-# * Reference documents:
-# *  - UG939 / Lab3 / Scripting the Project Mode.
-# *  - UG835 / All  / Vivado Design Suite Tcl Guide.
-# *  - UG903 / Ch2  / Constraints Methodology.
-# ******************************************************************************
+#  *
+#  *                       cloudFPGA
+#  *     Copyright IBM Research, All Rights Reserved
+#  *    =============================================
+#  *     Created: Apr 2019
+#  *     Authors: FAB, WEI, NGL
+#  *
+#  *     Description:
+#  *        TCL file execute the Vivado commands
+#  *
+
+
+
 
 package require cmdline
 
@@ -25,6 +18,10 @@ package require cmdline
 #-------------------------------------------------------------------------------
 #source xpr_settings.tcl
 source ../../cFDK/SRA/LIB/tcl/xpr_settings.tcl
+
+# import environment Variables
+set usedRole $env(roleName1)
+set usedRole2 $env(roleName2)
 
 # Set the Local Settings used by this Script
 #-------------------------------------------------------------------------------
@@ -57,10 +54,6 @@ set impl1    0
 set impl2    0
 set bitGen1  0
 set bitGen2  0
-#set usedRole "RoleFlash"
-set usedRole $env(roleName1)
-#set usedRole2 "RoleFlash_V2" 
-set usedRole2 $env(roleName2)
 set pr             0
 set pr_verify      0
 set forceWithoutBB 0
@@ -102,8 +95,6 @@ if { $argc > 0 } {
         { bitgen2   "Only run the bitfile generation step for 2nd PR flow."}
         { bitgenGrey "Only run the bitfile generation step for GreyBox PR flow."}
         { link     "Only run the link step (with or without pr)."}
-        { role     "Use the ENVIRONMET VARIABLE usedRole as ROLE variant."}
-        { role2    "Use the ENVIRONMET VARIABLE usedRole2 as 2. ROLE variant."}
         { pr       "Activates PARTIAL RECONFIGURATION flow (in all steps)." }
         { pr_verify "Run pr_verify." } 
         { forceWithoutBB "Disable any reuse of intermediate results or the use of Black Boxes."}
@@ -162,18 +153,6 @@ if { $argc > 0 } {
                 set pr_grey_impl   1
                  my_info_puts "The argument \'implGrey\' is set."
             }
-            if { ${key} eq "role" && ${value} eq 1 } {
-              set usedRole $env(usedRole)
-              # TODO seems to be redundant...
-              #set activeFlowPr_1 1
-              my_info_puts "Setting usedRole to $usedRole" 
-            }
-            if { ${key} eq "role2" && ${value} eq 1 } {
-              set usedRole2 $env(usedRole2)
-              # TODO seems to be redundant...
-              #set activeFlowPr_2 1
-              my_info_puts "Setting usedRole2 to $usedRole2" 
-            }
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
               my_info_puts "The argument \'pr\' is set."
@@ -218,13 +197,7 @@ if { $argc > 0 } {
               set only_pr_bitgen 1
               my_info_puts "The argument \'only_pr_bitgen\' is set."
             }
-            #TODO: quick'n'dirty 
-            if { ${key} eq "useMPI" && ${value} eq 1 } {
-              set useMPI 1
-              set usedRoleType "Role_MPIv0_x2Mp"
-              my_info_puts "The argument \'useMPI\' is set."
-            }
-	    if { ${key} eq "insert_ila" && ${value} eq 1 } {
+            if { ${key} eq "insert_ila" && ${value} eq 1 } {
               set insert_ila 1
               my_info_puts "The argument \'insert_ila\' is set."
             }
@@ -303,7 +276,7 @@ if { ${create} } {
 
 
     set_property top               ${topName}           [ current_fileset ] -verbose
-    set_property top_file          ${hdlDir}/${topFile} [ current_fileset ] -verbose 
+    set_property top_file          ../${topFile} [ current_fileset ] -verbose 
 
     set_property "default_lib"                "xil_defaultlib" ${xprObj}
     set_property "ip_cache_permissions"       "read write"     ${xprObj}
@@ -342,19 +315,12 @@ if { ${create} } {
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
     #-------------------------------------------------------------------------------
     
-    #TODO: quick'n'dirty 
-   # add_files -fileset ${srcObj} ${hdlDir} 
-    
-    add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
-    if { $useMPI } { 
-      add_files -fileset ${srcObj} ${hdlDir}/topMPI.vhdl
-    } else { 
-      add_files -fileset ${srcObj} ${hdlDir}/topFlash.vhdl
-    }
+    add_files -fileset ${srcObj} ../hdl/
+    #add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
 
     # Turn the VHDL-2008 mode on 
     #-------------------------------------------------------------------------------
-    set_property file_type {VHDL 2008} [ get_files ${hdlDir}/*.vhd* ]
+    set_property file_type {VHDL 2008} [ get_files ../hdl/*.vhd* ]
 
     my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
 
@@ -411,20 +377,18 @@ if { ${create} } {
         # Create and customize the SHELL module from the Shell IP
         #-------------------------------------------------------------------------------
         my_puts ""
-        my_warn_puts "THE USAGE OF THE SHELL AS A PACKAGED IP IS NOT YET SUPPORTED !!!"
+        my_warn_puts "THE USAGE OF THE SHELL AS A STATIC NETLIST IS NOT YET SUPPORTED !!!"
         my_warn_puts "  The script will be aborted here..."
         my_puts ""
         exit ${KO}
-        # [TODO] create_ip -name Shell -vendor ZRL -library cloudFPGA -version 1.0 -module_name SuperShell
-        # [TODO] update_compile_order -fileset sources_1
-        # [TODO] my_dbg_trace "Done with the creation and customization of the SHELL-IP (.i.e SuperShell)." ${dbgLvl_1}
+        #TODO: maybe import static netlist here?
     }
 
     if { $forceWithoutBB } {
         # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
         #---------------------------------------------------------------------------
-        add_files  ${rootDir}/../../ROLE/${usedRole}/hdl/
-        set_property file_type {VHDL 2008} [ get_files [ file normalize ${rootDir}/../../ROLE/${usedRole}/hdl/*.vhd* ] ]
+        add_files  ${usedRoleDir}/hdl/
+        set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
         update_compile_order -fileset sources_1
         my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
     
@@ -432,8 +396,8 @@ if { ${create} } {
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #----------------------------------------------------------------------------
-        set ipDirRole  ${rootDir}/../../ROLE/${usedRole}/ip
-        set hlsDirRole ${rootDir}/../../ROLE/${usedRole}/hls
+        set ipDirRole  ${usedRoleDir}/ip
+        set hlsDirRole ${usedRoleDir}/hls
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
                                             ${ipDirRole} ${hlsDirRole} ] [current_project]
 
@@ -471,6 +435,7 @@ if { ${create} } {
     }
 
     # Add Constraints Files
+    # cFDK: adding here only the MOD/${cFpMOD}/ files. 
     #  INFO: By default, the order of the XDC files (or Tcl scripts) displayed in
     #        the Vivado IDE defines the read sequence used by the tool when loading
     #        an elaborated or synthesized design into memory (UG903-Ch2). Therefore,
@@ -480,18 +445,17 @@ if { ${create} } {
     #         Timing Assertions -> Timing Exceptions -> Physical Constraints
     #-------------------------------------------------------------------------------
     set constrObj [ get_filesets constrs_1 ]
-    set orderedList "xdc_settings.tcl topFMKU60_Flash_timg.xdc topFMKU60_Flash_pins.xdc  topFMKU60_Flash.xdc"
-    #OBSOLETE-20180504 Temporary remove of: topFMKU60_Flash_pr.xdc
+    #set orderedList "xdc_settings.tcl topFMKU60_timg.xdc topFMKU60_pins.xdc  topFMKU60.xdc"
+    # import orderedList
+    source ${xdcDir}/order.tcl 
     foreach file ${orderedList} {
         if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
             my_err_puts "Could not add file \'${file}\' to the fileset \'${constrObj}\' !!!"
             my_err_puts "  The script will be aborted here..."
             my_puts ""
-            exit ${KO}        
+            exit ${KO}
         }
     }
-    #OBSOLETE-20180503 add_files -fileset ${obj} [ glob ${xdcDir}/*.xdc ]
-    #OBSOLETE-20180503 set_property PROCESSING_ORDER LATE [ get_files ${xdcDir}/${xprName}_pins.xdc ]
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
@@ -557,19 +521,20 @@ if { ${create} } {
     #-------------------------------------------------------------------------------
     # Create 'sim_1' run (if not found)
     #-------------------------------------------------------------------------------
-    if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
-        set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
-        #OBSOLETE-20180705 add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
-        add_files -fileset sim_1 -norecurse  ${rootDir}/sim
+    # TODO: add SIM 
+    #if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
+    #    set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
+    #    #OBSOLETE-20180705 add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
+    #    add_files -fileset sim_1 -norecurse  ${rootDir}/sim
 
-        # Turn the VHDL-2008 mode on 
-        #---------------------------------------------------------------------------
-        set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/*.vhd* ]
-        #OBSOLETE-20180705 set_property file_type {VHDL 2008} [ get_files  ${hdlDir}/*.vhd* ]
+    #    # Turn the VHDL-2008 mode on 
+    #    #---------------------------------------------------------------------------
+    #    set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/*.vhd* ]
+    #    #OBSOLETE-20180705 set_property file_type {VHDL 2008} [ get_files  ${hdlDir}/*.vhd* ]
 
-        set_property source_mgmt_mode All [ current_project ]
-        update_compile_order -fileset sim_1
-    }
+    #    set_property source_mgmt_mode All [ current_project ]
+    #    update_compile_order -fileset sim_1
+    #}
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH PROJECT CREATION "
@@ -636,7 +601,8 @@ if { ${link} } {
   #if { ! ${create} } {
      catch {open_project ${xprDir}/${xprName}.xpr} 
   #}
-  set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
+  #set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
+  set roleDcpFile ${usedRoleDir}/Role_${cFpSRAtype}_OOC.dcp
   add_files ${roleDcpFile}
   update_compile_order -fileset sources_1
   my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
@@ -653,7 +619,7 @@ if { ${link} } {
 
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
-    set prConstrFile "${xdcDir}/topFMKU60_Flash_pr.xdc"
+    set prConstrFile "${xdcDir}/topFMKU60_pr.xdc"
     add_files -fileset ${constrObj} ${prConstrFile} 
     #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
     #    my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
@@ -695,7 +661,8 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     
     if { $insert_ila } { 
      set constrObj [ get_filesets constrs_1 ]
-     add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
+     #add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
+     add_files -fileset ${constrObj} ../debug.xdc 
      my_info_puts "DEBUG XDC ADDED."
     }
   
@@ -819,7 +786,8 @@ if { $impl2 } {
   add_files ${dcpDir}/3_${topName}_STATIC.dcp
   my_dbg_trace "Started in-memory project; added locked static part." ${dbgLvl_1}
   
-  set roleDcpFile_conf2 ${rootDir}/../../ROLE/${usedRole2}/${usedRoleType}_OOC.dcp
+  #set roleDcpFile_conf2 ${rootDir}/../../ROLE/${usedRole2}/${usedRoleType}_OOC.dcp
+  set roleDcpFile_conf2  ${usedRole2Dir}/Role_${cFpSRAtype}_OOC.dcp
   add_files ${roleDcpFile_conf2}
   set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile_conf2} ]
   my_dbg_trace "Added dcp of ROLE ${roleDcpFile_conf2}." ${dbgLvl_1}
@@ -965,7 +933,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         if { $bitGen1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
-          source ${tclDir}/fix_things.tcl 
+          #source ${tclDir}/fix_things.tcl 
+          source ./fix_things.tcl 
           if { $only_pr_bitgen } {
             write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
             # no file extenstions .bit/.bin here!
@@ -978,7 +947,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
-        source ${tclDir}/fix_things.tcl 
+        #source ${tclDir}/fix_things.tcl 
+        source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       }
@@ -988,7 +958,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
         
-        source ${tclDir}/fix_things.tcl 
+        source ./fix_things.tcl 
+        #source ${tclDir}/fix_things.tcl 
         if { $only_pr_bitgen } {
           write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
           # no file extenstions .bit/.bin here!
@@ -1002,7 +973,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"
         
-        source ${tclDir}/fix_things.tcl 
+        #source ${tclDir}/fix_things.tcl 
+        source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       } 
