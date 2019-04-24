@@ -54,4 +54,9 @@ git-ref.tex
 #Folders 
 
 build/
+*_prj/
+
+#cFDK specific files 
+.ip_guard
+
 
