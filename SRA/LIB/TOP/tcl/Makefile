@@ -17,22 +17,22 @@
 
 
 TOP_NAME = top$(cFpMOD)
-ROLE_DIR_1 = $(usedRoleDir)
-ROLE_DIR_2 = $(usedRole2Dir)
+# NO HEADING OR TRAILING SPACES!!
+ROLE_DIR_1 =$(usedRoleDir)
+ROLE_DIR_2 =$(usedRole2Dir)
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
-
-#IP_SHELL = ../../../IP/Shell/component.xml
 #XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
-XPR_PROJ = $(cFpXprDir)/top$(cFpMOD).xpr
+XPR_PROJ =$(cFpXprDir)/top$(cFpMOD).xpr
 
-MONO_LOCK = $(cFpXprDir)/.project_monolithic.stamp
+MONO_LOCK =$(cFpXprDir)/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr full_src_pr_incr full_src_pr_2_incr 
+.PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr 
 .PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd
 #.PHONY: full_src_pr_all_mpi monolithic_mpi monolithic_incr_mpi full_src_pr_only_mpi full_src_pr_2_only_mpi mpicmd
-.PHONY: full_src_pr_only full_src_pr_2_only full_src_pr_2_incr_only full_src_pr_incr_only  monolithic_incr_debug monolithic_debug debugcmd
+# full_src_pr_2_incr_only full_src_pr_incr_only full_src_pr_incr full_src_pr_2_incr 
+.PHONY: full_src_pr_only full_src_pr_2_only   monolithic_incr_debug monolithic_debug debugcmd
 all: full_src_pr
 
 
@@ -151,45 +151,44 @@ $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete.dcp: $(cFpIpDir) | $(XPR_P
 #	rm -f $@
 
 #both 
-# TODO
-#$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(XPR_PROJ)
-#	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
-#	rm -f $@
-
 #$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(cFpDcpDir) 
-$(XPR_PROJ): ../../xdc ../../hdl $(cFpIpDir) $(SHELL_DIR)/ $(SHELL_DIR)/Shell.v | $(cFpDcpDir) 
+$(XPR_PROJ): ../../xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDir) 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
-##with pr: TODO
-#$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp 
-#	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
-#	rm -f $@
-#
-#$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
-#	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
-#	rm -f $@  
-#
-#$(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR)/$(ROLE_NAME_1)/*.dcp
-#	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
-#	rm -f $@
-#
-#$(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp
-#	@#rm -f $@ TODO incrlemental use?
-#
-#$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp 
-#	@/bin/echo "-bitgen2 -pr -pr_verify -role2 \\" >> .vivado_basecmd.sh
-#	rm -f $@
-#
-#$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR)/$(ROLE_NAME_2)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
-#	@/bin/echo "-impl2 -pr -role2 \\" >> .vivado_basecmd.sh
-#	rm -f $@ 
-#
-#$(cFpDcpDir)/4_$(TOP_NAME)_impl_grey_box.bit: $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp
-#	@/bin/echo "-bitgenGrey -role -pr -pr_verify \\" >> .vivado_basecmd.sh
-#	rm -f $@
-#
-#$(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp
-#	@/bin/echo "-implGrey -role -pr \\" >> .vivado_basecmd.sh
-#	rm -f $@
-#
+##with pr: 
+$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
+	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
+	rm -f $@
+
+$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp 
+	@/bin/echo "-bitgen -role -pr \\" >> .vivado_basecmd.sh 
+	rm -f $@
+
+$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR_1)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
+	@/bin/echo "-impl -role -pr \\" >> .vivado_basecmd.sh
+	rm -f $@  
+
+$(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR_1)/*.dcp
+	@/bin/echo "-link -role -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
+
+$(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp
+	@#rm -f $@ TODO incrlemental use?
+
+$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp 
+	@/bin/echo "-bitgen2 -pr -pr_verify -role2 \\" >> .vivado_basecmd.sh
+	rm -f $@
+
+$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR_2)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp 
+	@/bin/echo "-impl2 -pr -role2 \\" >> .vivado_basecmd.sh
+	rm -f $@ 
+
+$(cFpDcpDir)/4_$(TOP_NAME)_impl_grey_box.bit: $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp
+	@/bin/echo "-bitgenGrey -role -pr -pr_verify \\" >> .vivado_basecmd.sh
+	rm -f $@
+
+$(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp
+	@/bin/echo "-implGrey -role -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
+
 

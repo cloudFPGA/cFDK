@@ -23,7 +23,8 @@ package require cmdline
 
 # Set the Global Settings used by the SHELL Project
 #-------------------------------------------------------------------------------
-source xpr_settings.tcl
+#source xpr_settings.tcl
+source ../../cFDK/SRA/LIB/tcl/xpr_settings.tcl
 
 # Set the Local Settings used by this Script
 #-------------------------------------------------------------------------------
@@ -31,7 +32,8 @@ set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
 
-source extra_procs.tcl
+#TODO not used any longer?
+#source extra_procs.tcl
 
 ################################################################################
 #                                                                              #
@@ -55,8 +57,10 @@ set impl1    0
 set impl2    0
 set bitGen1  0
 set bitGen2  0
-set usedRole "RoleFlash"
-set usedRole2 "RoleFlash_V2" 
+#set usedRole "RoleFlash"
+set usedRole $env(roleName1)
+#set usedRole2 "RoleFlash_V2" 
+set usedRole2 $env(roleName2)
 set pr             0
 set pr_verify      0
 set forceWithoutBB 0
@@ -71,8 +75,6 @@ set save_incr      0
 set only_pr_bitgen 0
 set insert_ila 0
 
-#TODO: quick'n'dirty 
-set useMPI 0
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -109,8 +111,7 @@ if { $argc > 0 } {
         { use_incr "Use incremental compile (if possible)"}
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
-        { useMPI "quick'n'dirty..."}
-	{ insert_ila "Insert the debug nets according to xdc/debug.xdc"}
+        { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -163,11 +164,13 @@ if { $argc > 0 } {
             }
             if { ${key} eq "role" && ${value} eq 1 } {
               set usedRole $env(usedRole)
+              # TODO seems to be redundant...
               #set activeFlowPr_1 1
               my_info_puts "Setting usedRole to $usedRole" 
             }
             if { ${key} eq "role2" && ${value} eq 1 } {
               set usedRole2 $env(usedRole2)
+              # TODO seems to be redundant...
               #set activeFlowPr_2 1
               my_info_puts "Setting usedRole2 to $usedRole2" 
             }

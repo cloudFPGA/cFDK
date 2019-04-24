@@ -11,7 +11,7 @@
 
 
 # assert ENVIRONMENT
-#../bash/assert_envs.sh #TODO
+#../bash/assert_envs.sh 
 ./cFDK/SRA/LIB/bash/assert_envs.sh
 #$(cFpRootDir)/cFDK/SRA/LIB/bash/assert_envs.sh
 
@@ -134,8 +134,8 @@ save_mono_incr: ensureMonolithic
 #save_mono_mpi_incr: ensureMonolithic 
 #	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./TOP/tcl/ save_mono_incr
 
-save_pr_incr: 
-	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
+#save_pr_incr: 
+#	$(error THIS IS DONE AUTOMATICALLY DURING THE FLOW)
 
 pr_verify: 
 	$(MAKE) -C ./TOP/tcl/ pr_verify
@@ -162,10 +162,8 @@ clean:
 
 full_clean: clean 
 	$(MAKE) -C $(SHELL_DIR) clean 
-	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE) clean 
-	$(MAKE) -C $(ROLE_DIR)/$(USED_ROLE_2) clean
-	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE) clean
-	$(MAKE) -C $(ROLE_DIR)/$(USED_MPI_ROLE_2) clean
+	$(MAKE) -C $(ROLE_DIR) clean 
+	$(MAKE) -C $(ROLE2_DIR) clean
 	rm -rf ./TOP/xdc/.DEBUG_SWITCH
 
 

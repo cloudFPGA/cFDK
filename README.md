@@ -39,11 +39,12 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
 `roleName1` and `roleName2` are there to make some bitfiles and dcps readable, *not* to find the right sources. 
 
 
-### Conventions
+### Conventions & Requirements
 
 * Name of the project file: `top$(cFpMOD).xpr` (inside `$(cFpXprDir)`)
 * Name of the top VDHL file: `top.vhdl`
 * Name of a Shell: `Shell.v` (in directory `$(cFpSRAtype)`)
+* The file `Shell.v` should contain a version counter that is also readable with the EMIF.
 * Structure of a **cFp** is as follows:
     ```bash
     cFDK/ (submodule)
@@ -62,9 +63,14 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
     dcps/ (contains the dcps)
     xpr/ (as expected)
     ip/ (contains the IP cores (generated during build))
-    Makefile (from template)
+    Makefile (from template; referred as MAIN makefile)
     config.sh (sets the envrionments)
     ```
 
+
+### Internal Dependencies
+
+* The environment variables should always be set from the MAIN makefile
+* The `xpr_settings.tcl are generic (based on the environment variables), so the `cFDK/SRA/LIB/tcl/xpr_settings.tcl` should work for *all* cases. 
 
 
