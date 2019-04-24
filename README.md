@@ -50,14 +50,14 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
     ```bash
     cFDK/ (submodule)
     TOP/
-    └──tcl/
+    └──tcl/  (copied from SRA/LIB)
        └──Makefile
        └──handle_vivado.tcl 
        └── a.s.o.
     └──xdc/ (for debug ONLY)
     └──hdl/
        └──top.vhdl
-       └── a.s.o.
+       └── a.s.o. (if custom hdl files for TOP; SRA/LIB/TOP will be linked)
     ROLE/
     └── role1 (or not, depends on PR, etc.)
     └── a.s.o.
@@ -68,6 +68,7 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
     config.sh (sets the envrionments)
     ```
 
+* The `top.vhdl` is board dependent. There exist different top.vhdl per board, which instantiate different SHELL-ROLE combinations. The library of TOP-hdl-templates is in `cFDK/MOD/{board}/hdl/`.
 
 ### Internal Dependencies
 

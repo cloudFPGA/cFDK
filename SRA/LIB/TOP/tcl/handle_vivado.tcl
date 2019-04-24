@@ -317,6 +317,9 @@ if { ${create} } {
     
     add_files -fileset ${srcObj} ../hdl/
     #add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
+    
+    # add TOP library files
+    add_files -fileset ${srcObj} ${rootDir}/cFDK/SRA/LIB/TOP/hdl/
 
     # Turn the VHDL-2008 mode on 
     #-------------------------------------------------------------------------------

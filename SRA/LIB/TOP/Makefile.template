@@ -11,7 +11,7 @@
 
 # assert ENVIRONMENT
 #../bash/assert_envs.sh 
-./cFDK/SRA/LIB/bash/assert_envs.sh
+$(shell ./cFDK/SRA/LIB/bash/assert_envs.sh)
 #$(cFpRootDir)/cFDK/SRA/LIB/bash/assert_envs.sh
 
 # NO HEADING OR TRAILING SPACES!!
