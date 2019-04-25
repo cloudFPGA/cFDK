@@ -34,12 +34,16 @@
 
 package require cmdline
 
-# Set the Global Settings used by the SHELL Project
-#-------------------------------------------------------------------------------
-if { ! [ info exists ipXprDir ] && ! [ info exists ipXprName ] } {
-    # Expect to be in the TCL directory and source the TCL settings file 
-    source xpr_settings.tcl
-}
+## Set the Global Settings used by the SHELL Project
+##-------------------------------------------------------------------------------
+#if { ! [ info exists ipXprDir ] && ! [ info exists ipXprName ] } {
+#    # Expect to be in the TCL directory and source the TCL settings file 
+#    source xpr_settings.tcl
+#}
+
+set ipXprDir     ${ipDir}/managed_ip_project
+set ipXprName    "managed_ip_project"
+set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
 
 # Set the Local Settings used by this Script
 #-------------------------------------------------------------------------------
@@ -285,6 +289,8 @@ if { [ file exists ${ipDir} ] != 1 } {
     if { ${gTargetIpCore} eq "all" } { 
         if { [ file exists ${ipDir}/ip_user_files ] } {
             file delete -force ${ipDir}/ip_user_files
+            #TODO:
+            file delete -force ${ipXprDir}/${ipXprName}.xpr
             file mkdir ${ipDir}/ip_user_files 
             my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
         }   
@@ -805,7 +811,10 @@ my_puts ""
 # Specify the IP Repository Path to add the HLS-based IP implementation paths.
 #   (Must do this because IPs are stored outside of the current project) 
 #-------------------------------------------------------------------------------
-set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
+#set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
+#set_property      ip_repo_paths [list ${ip_repo_paths} ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls ] [ current_fileset ]
+# --> only HLS cores in SHELL/LIB; should be an absolut path
+set_property      ip_repo_paths ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls [ current_fileset ]
 update_ip_catalog
 
 #------------------------------------------------------------------------------  

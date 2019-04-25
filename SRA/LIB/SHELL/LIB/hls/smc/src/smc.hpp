@@ -73,7 +73,28 @@
 
 //MAX CLUSTER/MAX RANK 
 #define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
+
 #include "../../mpe/src/mpe.hpp" //seems to have a dependency to MAX_CLUSTER_SIZE, so must be after it... 
+//#define MPE_AXI_CTRL_REGISTER 0
+//#define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
+//#define XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
+//
+//#define MPE_CTRL_LINK_SIZE (XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH/4)
+//#define MPE_CTRL_LINK_CONFIG_START_ADDR (0x2000/4)
+//#define MPE_CTRL_LINK_CONFIG_END_ADDR (0x203F/4)
+//#define MPE_CTRL_LINK_STATUS_START_ADDR (0x2040/4)
+//#define MPE_CTRL_LINK_STATUS_END_ADDR (0x207F/4)
+//#define MPE_CTRL_LINK_MRT_START_ADDR (0x2080/4)
+//#define MPE_CTRL_LINK_MRT_END_ADDR (0x307F/4)
+//
+//#define MAX_MRT_SIZE 1024
+//#define NUMBER_CONFIG_WORDS 16
+//#define NUMBER_STATUS_WORDS 16
+//#define MPE_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
+//#define MPE_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS 
+//#define MPE_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
+
+
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
 
 

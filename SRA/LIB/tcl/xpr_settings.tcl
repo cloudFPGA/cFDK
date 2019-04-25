@@ -11,8 +11,6 @@
 #  *
 
 
-#source constants and functions 
-source ./xpr_constants.tcl
 
 ## IMPORT ENVIRONMENTs
 set cFpIpDir $env(cFpIpDir)
@@ -24,8 +22,12 @@ set cFpRootDir $env(cFpRootDir)
 set cFpXprDir $env(cFpXprDir)
 set cFpDcpDir $env(cFpDcpDir)
 
+#source constants and functions 
+#source xpr_constants.tcl
+source ${cFpRootDir}/cFDK/SRA/LIB/tcl/xpr_constants.tcl
 # source board specific settings 
-source ../../../MOD/${cFpMOD}/tcl/xpr_settings.tcl
+#source ../../../MOD/${cFpMOD}/tcl/xpr_settings.tcl
+source ${cFpRootDir}/cFDK/MOD/${cFpMOD}/tcl/xpr_settings.tcl
 
 #-------------------------------------------------------------------------------
 # TOP  Project Settings  
@@ -38,7 +40,8 @@ set rootDir      ${cFpRootDir}
 set ipDir        ${cFpIpDir}
 #set tclDir       ${rootDir}/tcl
 #set xdcDir       ${rootDir}/xdc
-set xdcDir       ../../../MOD/${cFpMOD}/xdc/
+#set xdcDir       ../../../MOD/${cFpMOD}/xdc/
+set xdcDir       ${cFpRootDir}cFDK/MOD/${cFpMOD}/xdc/
 #set xprDir       ${rootDir}/xpr 
 set xprDir       ${cFpXprDir}
 #set dcpDir       ${rootDir}/dcps

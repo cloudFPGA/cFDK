@@ -11,37 +11,11 @@ tags
 *.out
 *.hex
 
-#Latex
+#Vivado
 *.log
-*.aux
-*.backup
-*.toc
-*._aux
-*._log
-*.project.vim
-*.synctex.gz
-*.synctex.gz(busy)
-*.fls
-*.fdb*
-*.bbl
-*.blg
+*.jou
+*_prj/
 
-*.bcf
-*.idx
-*.ind
-*.ilg
-*.ist
-*.lof
-*.lol
-*.lot
-*.mw
-*.run.xml 
-
-*.acn
-*.alg
-*.acr
-
-git-ref.tex 
 
 #vim 
 *.swp
@@ -54,7 +28,6 @@ git-ref.tex
 #Folders 
 
 build/
-*_prj/
 
 #cFDK specific files 
 .ip_guard

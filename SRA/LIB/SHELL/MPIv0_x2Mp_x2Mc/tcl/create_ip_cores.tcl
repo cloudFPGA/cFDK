@@ -16,8 +16,16 @@ package require cmdline
 source ../../../tcl/xpr_settings.tcl
 
 
+set savedDir [pwd]
 # execute the LIB version
 source ../../LIB/tcl/create_ip_cores.tcl
+
+cd $savedDir 
+
+
+# seems not to be necessary currently...(only HLS cores in LIB)
+#set_property      ip_repo_paths [list ${ip_repo_paths} ../hls/ ] [ current_fileset ]
+#update_ip_catalog
 
 
 #------------------------------------------------------------------------------  
