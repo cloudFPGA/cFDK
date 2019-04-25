@@ -15,7 +15,7 @@ tags
 *.log
 *.jou
 *_prj/
-
+*.Xil/
 
 #vim 
 *.swp
@@ -28,8 +28,14 @@ tags
 #Folders 
 
 build/
+ip/
+xpr/
+
 
 #cFDK specific files 
 .ip_guard
+*.date
+*.vivado*
+*.dat
 
 

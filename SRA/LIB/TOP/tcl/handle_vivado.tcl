@@ -205,6 +205,9 @@ if { $argc > 0 } {
     }
 }
 
+my_info_puts "usedRole  is set to $usedRole"
+my_info_puts "usedRole2 is set to $usedRole2"
+
 # -----------------------------------------------------
 # Assert valid combination of arguments 
 if {$pr || $link} {
@@ -276,7 +279,7 @@ if { ${create} } {
 
 
     set_property top               ${topName}           [ current_fileset ] -verbose
-    set_property top_file          ../${topFile} [ current_fileset ] -verbose 
+    set_property top_file          ${rootDir}/TOP/hdl/${topFile} [ current_fileset ] -verbose 
 
     set_property "default_lib"                "xil_defaultlib" ${xprObj}
     set_property "ip_cache_permissions"       "read write"     ${xprObj}
@@ -315,7 +318,8 @@ if { ${create} } {
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
     #-------------------------------------------------------------------------------
     
-    add_files -fileset ${srcObj} ../hdl/
+    #add_files -fileset ${srcObj} ../hdl/
+    add_files -fileset ${srcObj} ${rootDir}/TOP/hdl/
     #add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
     
     # add TOP library files
@@ -323,7 +327,8 @@ if { ${create} } {
 
     # Turn the VHDL-2008 mode on 
     #-------------------------------------------------------------------------------
-    set_property file_type {VHDL 2008} [ get_files ../hdl/*.vhd* ]
+    set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/TOP/hdl/* ] ]
+    set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/TOP/hdl/* ] ]
 
     my_dbg_trace "Finished adding the HDL files of the TOP." ${dbgLvl_1}
 
@@ -331,14 +336,8 @@ if { ${create} } {
 
         # Add *ALL* the HDL Source Files for the SHELL
         #---------------------------------------------------------------------------
-        add_files     ${rootDir}/../../SHELL/${usedShellType}/hdl/
-        if { $useMPI } { 
-          add_files     ${rootDir}/../../SHELL/${usedShellType}/Shell_MPIv0_x2Mp_x2Mc.v 
-          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp.v
-        } else { 
-          add_files     ${rootDir}/../../SHELL/${usedShellType}/${usedShellType}.v
-          remove_files  ${rootDir}/../../SHELL/${usedShellType}/hdl/nts/nts_TcpIp_MPI.v
-        }
+        add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/${cFpSRAtype}/Shell.v
+        add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
@@ -346,8 +345,9 @@ if { ${create} } {
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #---------------------------------------------------------------------------
-        set ipDirShell  ${rootDir}/../../SHELL/${usedShellType}/ip/
-        set hlsDirShell ${rootDir}/../../SHELL/${usedShellType}/hls
+        #set ipDirShell  ${rootDir}/cFDK/SRA/LIB/SHELL/${usedShellType}/ip/
+        set ipDirShell  ${ipDir}
+        set hlsDirShell ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hls/
         #OBSOLETE-20180917 set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
                                           ${ipDirShell} ${hlsDirShell} ] [current_project]
