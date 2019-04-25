@@ -75,4 +75,8 @@ Because some cFps will have multiple Roles and some others not, the `usedRoleDir
 * The environment variables should always be set from the MAIN makefile
 * The `xpr_settings.tcl are generic (based on the environment variables), so the `cFDK/SRA/LIB/tcl/xpr_settings.tcl` should work for *all* cases. 
 * The `MOD/${cFpMOD}/xdc` folder contains a `order.tcl` file that sets the variable `orderedList` accordingly.
+* In theory, each Shell could have its own `hls/` folder, but to increase re-usability, all HLS cores should be in `SHELL/LIB/`. Other Shells then can just ignore them. 
+* The folder `hdl` in `SHELL/{SRAtype}/` is automatically included by handle_vivado.tcl. 
+
+
 
