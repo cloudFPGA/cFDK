@@ -337,6 +337,7 @@ if { ${create} } {
         # Add *ALL* the HDL Source Files for the SHELL
         #---------------------------------------------------------------------------
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/${cFpSRAtype}/Shell.v
+        add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/${cFpSRAtype}/hdl/
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}

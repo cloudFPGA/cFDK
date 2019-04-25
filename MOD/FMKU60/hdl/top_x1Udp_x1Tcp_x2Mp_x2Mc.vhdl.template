@@ -52,7 +52,7 @@ use     UNISIM.vcomponents.all;
 --use     WORK.topFlash_pkg.all;
 
 library XIL_DEFAULTLIB;
-use     XIL_DEFAULTLIB.topFMKU60_pkg.all;
+use     XIL_DEFAULTLIB.topFMKU_pkg.all;
 
 
 --******************************************************************************
