@@ -38,4 +38,5 @@ xpr/
 *.vivado*
 *.dat
 env/
+dcps/
 
