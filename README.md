@@ -3,76 +3,39 @@ cFDK
 **cloudFPGA Hardware Development Kit (cFDK)**
 
 
-Structure
+cFDK provides all design files that are necessary to create a new cloudFPGA application, also called *cloudFPGA project (cFp)*. 
+
+On cloudFPGA, there are different types of *Shell-Role-Architectures (SRA)* and *FPGA Modules (MOD)* available. 
+Before creating a new cFp, the desiner must decide for a SRA and a MOD, both are explained in the documentation section.
+
+To set up a new cFp properly, the *cloudFPGA Build Framework* (cFBuild) is highly recommended!
+
+Documentation
 -------------
 
-t.b.c. 
+### Shell-Role-Architectures
 
+To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA).
+![SRA concept](./DOC/imgs/sra_flow.png)
 
+Currently, the following SRAs are available:
+* [x1Udp_x1Tcp_x2Mp_x2Mc](./DOC/x1Udp_x1Tcp_x2Mp_x2Mc.md) This interface has one AXI-Stream for UDP and TCP each, as well as two stream based memory ports.
+* [MPIv0_x2Mp_x2Mc](./DOC/MPIv0_x2Mp_x2Mc.md) This interface one stream based MPI interface, as well as two stream based memory ports.
 
-Dependencies
+Details for the interfaces can be found in the linked documents.
+
+### cloudFPGA Modules
+
+The cloudFPGA service provides different types of FPGAs and module cards (MOD).
+
+The module looks like follows:
+![FMKU60 module](./DOC/imgs/fmku60.png)
+
+Currently, the following MODs are available:
+* **FMKU60**: This module hosts a *Xilinx Kintex xcku060* and has *8GB of DDR4 memory* available. It is connected via *10GbE*.
+
+Create new applications
 ------------------
 
-### Installation
-
-t.b.c.
-
-
-
-### Environment variables
-
-In order to resolve *project-specific dependencies*, the following environment variables *must be defined by the project-specific Makefile*:
-
-* `cFpIpDir`:    The IP directory of the cFp (*absolute path*). 
-* `cFpMOD`:      The type of Module (e.g. `FMKU60`).
-* `usedRoleDir`:    The *directory path* to the ROLE sources (*absolute path*).
-* `usedRole2Dir`:   The *directory path* to the 2nd ROLE sources (in case of PR)(*absolute path*). 
-* `cFpSRAtype`:  The SRA Interface type, e.g. `x1Udp_x1Tcp_x2Mp_x2Mc` or `MPIv0_x2Mp_x2Mc`.
-* `cFpRootDir`:    The Root directory of the cFp (*absolute path*). 
-* `cFpXprDir`:    The xpr directory (i.e. vivado project) of the cFp (*absolute path*). 
-* `cFpDcpDir`:    The dcps directory of the cFp (*absolute path*). 
-* `roleName1`:    The Name of the Role (in case without PR: `default`).
-* `roleName2`:    The Name of the Role 2 (necessary for PR).
-
-
-Because some cFps will have multiple Roles and some others not, the `usedRoleDir` must always point to the *directory itself (containing hdl, hls, etc.)*, not to the directory that contains e.g. `roleName1`. 
-`roleName1` and `roleName2` are there to make some bitfiles and dcps readable, *not* to find the right sources. 
-
-
-### Conventions & Requirements
-
-* Name of the project file: `top$(cFpMOD).xpr` (inside `$(cFpXprDir)`)
-* Name of the top VDHL file: `top.vhdl`
-* Name of a Shell: `Shell.v` (in directory `$(cFpSRAtype)`)
-* The file `Shell.v` should contain a version counter that is also readable with the EMIF.
-* The xdc files are all in the corresponding MOD directory, except the debug nets.
-* Structure of a **cFp** is as follows:
-    ```bash
-    cFDK/ (submodule)
-    TOP/
-    └──tcl/  (copied from SRA/LIB)
-       └──Makefile
-       └──handle_vivado.tcl 
-       └── a.s.o.
-    └──xdc/ (for debug ONLY)
-    └──hdl/
-       └──top.vhdl
-       └── a.s.o. (if custom hdl files for TOP; SRA/LIB/TOP will be linked)
-    ROLE/
-    └── role1 (or not, depends on PR, etc.)
-    └── a.s.o.
-    dcps/ (contains the dcps)
-    xpr/ (as expected)
-    ip/ (contains the IP cores (generated during build))
-    Makefile (from template; referred as MAIN makefile)
-    config.sh (sets the envrionments)
-    ```
-
-* The `top.vhdl` is board dependent. There exist different top.vhdl per board, which instantiate different SHELL-ROLE combinations. The library of TOP-hdl-templates is in `cFDK/MOD/{board}/hdl/`.
-
-### Internal Dependencies
-
-* The environment variables should always be set from the MAIN makefile
-* The `xpr_settings.tcl are generic (based on the environment variables), so the `cFDK/SRA/LIB/tcl/xpr_settings.tcl` should work for *all* cases. 
-* The `MOD/${cFpMOD}/xdc` folder contains a `order.tcl` file that sets the variable `orderedList` accordingly.
+Follow the instructions of the [*cFBuild* documentation](https://github.ibm.com/cloudFPGA/cFBuild).
 
