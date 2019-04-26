@@ -36,7 +36,7 @@ ap_uint<32> clusterSize = 0;
 
 
 ap_uint<8> mpe_status_request_cnt = 0;
-ap_uint<32> mpe_status[MPE_NUMBER_STATUS_WORDS];
+ap_uint<32> mpe_status[NRC_NUMBER_STATUS_WORDS];
 ap_uint<1> routingTableComplete = 0;
 
 ap_uint<1> invalidPayload = 0;
@@ -135,10 +135,10 @@ uint8_t writeDisplaysToOutBuffer()
   bufferOutPtrWrite  += 6;
   len += 6; 
 
-  //MPE status 
-  len += writeString("MPE Status (16 lines): \r\n"); //MPE_NUMBER_STATUS_WORDS
+  //NRC status 
+  len += writeString("NRC Status (16 lines): \r\n"); //NRC_NUMBER_STATUS_WORDS
 
-  for(int i = 0; i<MPE_NUMBER_STATUS_WORDS; i++)
+  for(int i = 0; i<NRC_NUMBER_STATUS_WORDS; i++)
   {
     if(i<=9)
     {
@@ -288,9 +288,9 @@ void smc_main(
     ap_uint<1> *setSoftReset,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
-    //MPE 
-    //ap_uint<32> mpeCtrl[MPE_NUMBER_CONFIG_WORDS + MPE_NUMBER_STATUS_WORDS + MAX_CLUSTER_SIZE],
-    ap_uint<32> mpeCtrl[MPE_CTRL_LINK_SIZE],
+    //NRC 
+    //ap_uint<32> mpeCtrl[NRC_NUMBER_CONFIG_WORDS + NRC_NUMBER_STATUS_WORDS + MAX_CLUSTER_SIZE],
+    ap_uint<32> mpeCtrl[NRC_CTRL_LINK_SIZE],
     //TO ROLE 
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
@@ -305,7 +305,7 @@ void smc_main(
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poSMC_DECOUP_activate
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poSMC_to_ROLE_rank
 #pragma HLS INTERFACE ap_ovld register port=cluster_size name=poSMC_to_ROLE_size
-#pragma HLS INTERFACE m_axi depth=16383 port=mpeCtrl bundle=poSMC_MPE_ctrlLink_AXI  //0x3fff - 0x2000
+#pragma HLS INTERFACE m_axi depth=16383 port=mpeCtrl bundle=poSMC_NRC_ctrlLink_AXI  //0x3fff - 0x2000
 #pragma HLS INTERFACE ap_ovld register port=setSoftReset name=poSoftReset 
 //TODO: ap_ctrl?? (in order not to need reset in the first place)
 
@@ -696,9 +696,9 @@ void smc_main(
               break;
             }
 
-            //transfer to MPE: 
-            mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + rankID] = tmp; 
-            printf("writing on Address %d to MPE: %#010x\n",(unsigned int) rankID, (int) tmp);
+            //transfer to NRC: 
+            mpeCtrl[NRC_CTRL_LINK_MRT_START_ADDR + rankID] = tmp; 
+            printf("writing on Address %d to NRC: %#010x\n",(unsigned int) rankID, (int) tmp);
           }
           
           bufferInPtrNextRead = i; //NOT i + x, because that is already done by the for loop!
@@ -743,36 +743,36 @@ void smc_main(
   *cluster_size = clusterSize; 
 
   //===========================================================
-  // connection to MPE 
+  // connection to NRC 
 
   //start and set auto restart 
 
-  if(mpeCtrl[MPE_AXI_CTRL_REGISTER] != 0x81)
+  if(mpeCtrl[NRC_AXI_CTRL_REGISTER] != 0x81)
   { 
-    mpeCtrl[MPE_AXI_CTRL_REGISTER] = 0x81; //ap_start and auto_restart
+    mpeCtrl[NRC_AXI_CTRL_REGISTER] = 0x81; //ap_start and auto_restart
   } 
 
   //for debuging the connection 
  /* if(mpe_status_request_cnt == 0)
   {
-    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1 
+    mpeCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0 ] = 168496129; //10.11.12.1 
   } else if (mpe_status_request_cnt == 1)
   {
-    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 1 ] = 0x0a0b0c0d; //10.11.12.13 
+    mpeCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1 ] = 0x0a0b0c0d; //10.11.12.13 
   } else if (mpe_status_request_cnt == 2)
   {
-    mpeCtrl[MPE_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
+    mpeCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2 ] = 0x0a0b0c0e; //10.11.12.14 
   }*/
 
   //test and set config 
-  if(mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] != nodeRank)
+  if(mpeCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR] != nodeRank)
   {
-    mpeCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR] = nodeRank; 
+    mpeCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR] = nodeRank; 
   }
 
   //copy status 
   //to enforce AWLEN/ARLEN = 0, one transfer per ap_call 
-  mpe_status[mpe_status_request_cnt] = mpeCtrl[MPE_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
+  mpe_status[mpe_status_request_cnt] = mpeCtrl[NRC_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
   mpe_status_request_cnt++; 
 
   if(mpe_status_request_cnt >= 16)

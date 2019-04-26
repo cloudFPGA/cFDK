@@ -46,7 +46,7 @@ using namespace hls;
 
 struct SocketAddr {
      ap_uint<16>    port;   // Port in network byte order
-     ap_uint<32>    addr;   // IPv4 address
+     ap_uint<32>    addr;   // IPv4 address (or node_id)
 };
 
 
@@ -79,6 +79,24 @@ struct UdpMeta {            // UDP Socket Pair Association
 typedef ap_uint<16>     UdpPLen; // UDP Payload Length
 
 typedef ap_uint<16>     UdpPort; // UDP Port Number
+
+
+typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
+typedef ap_uint<32>     NodeId;  // Cluster Node Id
+
+//TODO: remove redundant UdpMeta
+//...but for now I don't now if the redefinition would break somewhere...
+struct NrcMeta {
+   NodeId     dst_id;
+   NrcPort    dst_port;
+   NodeId     src_id;
+   NrcPort    src_port;
+   NrcMeta() {}
+   //"alphabetical order"
+   NrcMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port) :
+     dst_id(d_id), dst_port(d_port), src_id(s_id), src_port(s_port) {}
+ };
+
 
 
 // ================ some functions ==========

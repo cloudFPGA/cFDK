@@ -12,10 +12,7 @@
 #include "nrc.hpp"
 #include "../../../../../hls/network_utils.hpp"
 
-//#define USE_DEPRECATED_DIRECTIVES
 
-
-//-- LOCAL STREAMS --------------------------------------------------------
 stream<UdpPLen>        sPLen     ("sPLen");
 stream<UdpWord>        sFifo_Data("sFifo_Data");
 
@@ -24,12 +21,17 @@ IPMeta srcIP;
 bool metaWritten = false;
 
 FsmState fsmStateRX = FSM_RESET;
-    
+
 UdpPLen    pldLen = 0;
 FsmState fsmStateTXenq = FSM_RESET;
-    
+
 IPMeta txIPmetaReg;
 FsmState fsmStateTXdeq = FSM_RESET;
+
+ap_uint<32> localMRT[MAX_MRT_SIZE];
+ap_uint<32> config[NUMBER_CONFIG_WORDS];
+ap_uint<32> status[NUMBER_STATUS_WORDS];
+
 
 
 /*****************************************************************************
@@ -58,125 +60,89 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
 
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
- * @ingroup udp_role_if
  *
- * @param[in]  siROL_This_Data     UDP data stream from the ROLE.
- * @param[out] soTHIS_Rol_Data     UDP data stream to the ROLE.
- * @param[in]  siUDMX_This_OpnAck  Open port acknowledgment from UDP-Mux.
- * @param[out] soTHIS_Udmx_OpnReq  Open port request to UDP-Mux.
- * @param[in]  siUDMX_This_Data    Data path from the UDP-Mux.
- * @param[in]  siUDMX_This_Meta    Metadata from the UDP-Mux.
- * @param[out] soTHIS_Udmx_Data    Data path to the UDP-Mux.
- * @param[out] soTHIS_Udmx_Meta    Metadata to the UDP-Mux.
- * @param[out] soTHIS_Udmx_PLen    Payload length to the UDP-Mux.
- *
- * @return Nothing.
  *****************************************************************************/
 void nrc(
     // ----- system reset ---
     ap_uint<1> sys_reset,
+    // ----- link to SMC -----
+    ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
-    //------------------------------------------------------
-    //-- ROLE / This / Udp Interfaces
-    //------------------------------------------------------
-    stream<UdpWord>     &siROL_This_Data,
-    stream<UdpWord>     &soTHIS_Rol_Data,
-    stream<IPMeta>      &siIP,
-    stream<IPMeta>      &soIP,
+    //-- ROLE / This / Network Interfaces
+    ap_uint<32>         *pi_udp_rx_ports,
+    stream<UdpWord>     &siUdp_data,
+    stream<UdpWord>     &soUdp_data,
+    stream<NrcMeta>     &siNrc_meta,
+    stream<NrcMeta>     &soNrc_meta,
     ap_uint<32>         *myIpAddress,
 
-    //------------------------------------------------------
     //-- UDMX / This / Open-Port Interfaces
-    //------------------------------------------------------
     stream<AxisAck>     &siUDMX_This_OpnAck,
     stream<UdpPort>     &soTHIS_Udmx_OpnReq,
 
-    //------------------------------------------------------
     //-- UDMX / This / Data & MetaData Interfaces
-    //------------------------------------------------------
     stream<UdpWord>     &siUDMX_This_Data,
     stream<UdpMeta>     &siUDMX_This_Meta,
     stream<UdpWord>     &soTHIS_Udmx_Data,
     stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen)
+    stream<UdpPLen>     &soTHIS_Udmx_PLen
+  )
 {
 
-  //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-  //#pragma HLS INTERFACE ap_ctrl_none port=return
+//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
+#pragma HLS INTERFACE axis register both port=siUdp_data
+#pragma HLS INTERFACE axis register both port=soUdp_data
 
-  /*********************************************************************/
-  /*** For the time being, we continue designing with the DEPRECATED ***/
-  /*** directives because the new PRAGMAs do not work for us.        ***/
-  /*********************************************************************/
+#pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
+#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
 
+#pragma HLS INTERFACE axis register both port=siUDMX_This_Data
+#pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
+#pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
+#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
+#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
+#pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
+#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
 
-  //-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-  
-  #pragma HLS INTERFACE ap_stable register port=myIpAddress name=piMyIpAddress
-  #pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
+#pragma HLS INTERFACE axis register both port=siNrc_meta
+#pragma HLS DATA_PACK                variable=siNrc_meta instance=siNrc_meta
+#pragma HLS INTERFACE axis register both port=soNrc_meta 
+#pragma HLS DATA_PACK                variable=soNrc_meta instance=soNrc_meta
 
-  #pragma HLS resource core=AXI4Stream variable=siROL_This_Data    metadata="-bus_bundle siROL_This_Data"
-  #pragma HLS resource core=AXI4Stream variable=soTHIS_Rol_Data    metadata="-bus_bundle soTHIS_Rol_Data"
+#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
+#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_NRC_Udp_Rx_ports
+#pragma HLS INTERFACE ap_vld register port=sys_reset name=piSysReset
 
-  #pragma HLS resource core=AXI4Stream variable=siUDMX_This_OpnAck metadata="-bus_bundle siUDMX_This_OpnAck"
-  #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_OpnReq metadata="-bus_bundle soTHIS_Udmx_OpnReq"
-
-  #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Data   metadata="-bus_bundle siUDMX_This_Data"
-  #pragma HLS resource core=AXI4Stream variable=siUDMX_This_Meta   metadata="-bus_bundle siUDMX_This_Meta "
-  #pragma HLS DATA_PACK                variable=siUDMX_This_Meta
-
-  #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Data   metadata="-bus_bundle soTHIS_Udmx_Data"    
-  #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_Meta   metadata="-bus_bundle soTHIS_Udmx_Meta"
-  #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta
-  #pragma HLS resource core=AXI4Stream variable=soTHIS_Udmx_PLen   metadata="-bus_bundle soTHIS_Udmx_PLen"
-
-  #pragma HLS resource core=AXI4Stream variable=siIP   metadata="-bus_bundle siIP"
-  #pragma HLS resource core=AXI4Stream variable=soIP   metadata="-bus_bundle soIP"
+#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piSMC_NRC_ctrlLink_AXI
+#pragma HLS INTERFACE s_axilite port=return bundle=piSMC_NRC_ctrlLink_AXI
 
 
-#else
 
-  //-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-  //#pragma HLS INTERFACE ap_ctrl_none port=return
-
-    #pragma HLS INTERFACE axis register both port=siROL_This_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Rol_Data
-
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
-
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Data
-    #pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
-    #pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
-    #pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-    #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
-
-    #pragma HLS INTERFACE axis register both port=siIP
-    #pragma HLS INTERFACE axis register both port=soIP 
-
-  #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
-  #pragma HLS INTERFACE ap_stable register port=sys_reset name=piSysReset
-
-
-#endif
-
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS DATAFLOW interval=1
 #pragma HLS STREAM variable=sPLen depth=1
 #pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
 
-  //=================================================================================================
-  // Reset 
+//=================================================================================================
+// Reset global variables 
 
   if(sys_reset == 1)
   {
+    for(int i = 0; i < MAX_MRT_SIZE; i++)
+    {
+      localMRT[i] = 0;
+    }
+    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+    {
+      config[i] = 0;
+    }
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+    {
+      status[i] = 0;
+    }
+
     openPortWaitTime = 10;
     metaWritten = false; 
     fsmStateRX = FSM_RESET;
@@ -185,7 +151,7 @@ void nrc(
     pldLen = 0;
     return;
   }
-
+/*
   //-- PROCESS FUNCTIONS ----------------------------------------------------
   //pTxP(siROL_This_Data,  siIP,
   //     soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
@@ -405,7 +371,7 @@ void nrc(
       }
       break;
   }
-
+*/
 
 
 

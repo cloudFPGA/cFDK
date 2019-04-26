@@ -55,6 +55,8 @@ set_top       ${projectName}
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
+add_files     ${srcDir}/../../../../../hls/network_utils.cpp
+add_files     ${srcDir}/../../../../../hls/network_utils.hpp
 
 add_files -tb ${testDir}/tb_${projectName}.cpp
 
