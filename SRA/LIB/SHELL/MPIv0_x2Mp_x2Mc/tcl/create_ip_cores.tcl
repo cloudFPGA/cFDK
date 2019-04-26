@@ -32,7 +32,7 @@ cd $savedDir
 # VIVADO-IP : Decouple IP 
 #------------------------------------------------------------------------------ 
 #get current port Descriptions 
-source ${tclDir}/decouple_ip_type.tcl 
+source ./decouple_ip_type.tcl 
 
 set ipModName "Decoupler"
 set ipName    "pr_decoupler"
