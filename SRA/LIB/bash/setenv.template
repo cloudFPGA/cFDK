@@ -9,18 +9,19 @@
 #  *        Auto generated file that exports all necessary environment variables
 #  *
 
-# we need absolut pathes 
-rootDir="T.B.D."
+##SOURCE_VIVADO##
+# we need absolut pathes
+rootDir="##ROOTDIR##"
 
 export cFpRootDir="$rootDir/"
 export cFpIpDir="$rootDir/ip/"
-export cFpMOD="FMKU60"
-export usedRoleDir="$rootDir/ROLE/RoleFlash/"
-export usedRole2Dir="$rootDir/ROLE/RoleFlash_V2/"
-export cFpSRAtype="x1Udp_x1Tcp_x2Mp_x2Mc"
+export cFpMOD="##MOD##"
+export usedRoleDir="$rootDir/ROLE/##DIR1##"
+export usedRole2Dir="$rootDir/ROLE/##DIR2##"
+export cFpSRAtype="##SRA##"
 export cFpXprDir="$rootDir/xpr/"
 export cFpDcpDir="$rootDir/dcps/"
-export roleName1="default"
-export roleName2="V2"
+export roleName1="##ROLE1##"
+export roleName2="##ROLE2##"
 
 
