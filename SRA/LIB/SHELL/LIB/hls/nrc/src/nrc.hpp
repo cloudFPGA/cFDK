@@ -9,8 +9,8 @@
 //  *        A interface between the UDP stack and the NRC (mainly a buffer).
 //  *
 
-#ifndef _UDP_RIF_
-#define _UDP_RIF_
+#ifndef _NRC_H_
+#define _NRC_H_
 
 #include <stdio.h>
 #include <iostream>
@@ -43,7 +43,7 @@ using namespace hls;
 
 
 
-void udp_role_if_3 (
+void nrc(
     // ----- system reset ---
     ap_uint<1> sys_reset,
 

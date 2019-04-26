@@ -9,7 +9,7 @@
 //  *        A interface between the UDP stack and the NRC (mainly a buffer).
 //  *
 
-#include "udp_role_if_3.hpp"
+#include "nrc.hpp"
 #include "../../../../../hls/network_utils.hpp"
 
 //#define USE_DEPRECATED_DIRECTIVES
@@ -72,7 +72,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
  *
  * @return Nothing.
  *****************************************************************************/
-void udp_role_if_3 (
+void nrc(
     // ----- system reset ---
     ap_uint<1> sys_reset,
 

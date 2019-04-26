@@ -22,13 +22,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "udp_role_if_3"
+set projectName    "nrc"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Role Interface for cloudFPGA VERSION 3"
-set ipDescription  "An interface between the NRC and the UDP core of the Shell."
+set ipDisplayName  "Network Routing Core"
+set ipDescription  "The Network Routing Core for the Shell"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"

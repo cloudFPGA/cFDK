@@ -2,7 +2,7 @@
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
-# * Created : Jan 2018
+# * Created : July 2018
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that synthesizes and packages the current HLS core
@@ -15,7 +15,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = udp_role_if_3
+ipName = nrc
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
