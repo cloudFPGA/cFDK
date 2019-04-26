@@ -29,6 +29,21 @@ cd $savedDir
 
 
 #------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Role Interface VERSION 2
+#------------------------------------------------------------------------------
+set ipModName "UdpRoleInterface2"
+set ipName    "udp_role_if_2"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
 # VIVADO-IP : Decouple IP 
 #------------------------------------------------------------------------------ 
 #get current port Descriptions 
