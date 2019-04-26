@@ -83,6 +83,8 @@
 
 using namespace hls;
 
+#define UDP_RX_MIN_PORT 2718
+#define UDP_RX_MAX_PORT 2749
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
@@ -99,19 +101,19 @@ using namespace hls;
 #define FsmState uint8_t
 
 
-#define WRITE_IDLE 0
-#define WRITE_START 1
-#define WRITE_DATA 2
-#define WRITE_ERROR 3
-#define WRITE_STANDBY 4
-#define sendState uint8_t 
-
-
-#define READ_IDLE 0
-#define READ_DATA 2
-#define READ_ERROR 3
-#define READ_STANDBY 4
-#define receiveState uint8_t
+//#define WRITE_IDLE 0
+//#define WRITE_START 1
+//#define WRITE_DATA 2
+//#define WRITE_ERROR 3
+//#define WRITE_STANDBY 4
+//#define sendState uint8_t 
+//
+//
+//#define READ_IDLE 0
+//#define READ_DATA 2
+//#define READ_ERROR 3
+//#define READ_STANDBY 4
+//#define receiveState uint8_t
 
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
@@ -135,6 +137,17 @@ using namespace hls;
   */
 #define NRC_CONFIG_OWN_RANK 0
 
+//#define NRC_STATUS_WRITE_ERROR_CNT 4
+//#define NRC_STATUS_READ_ERROR_CNT 5
+#define NRC_STATUS_SEND_STATE 6
+#define NRC_STATUS_RECEIVE_STATE 7
+//#define NRC_STATUS_LAST_WRITE_ERROR 8
+//#define NRC_STATUS_LAST_READ_ERROR 9
+//#define NRC_STATUS_ERROR_HANDSHAKE_CNT 10
+//#define NRC_STATUS_ACK_HANKSHAKE_CNT 11
+#define NRC_STATUS_GLOBAL_STATE 12
+//#define NRC_STATUS_READOUT 13
+//and 14 and 15 
 
 void nrc(
     // ----- system reset ---

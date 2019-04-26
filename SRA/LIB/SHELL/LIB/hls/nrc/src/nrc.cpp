@@ -11,13 +11,13 @@
 
 #include "nrc.hpp"
 #include "../../../../../hls/network_utils.hpp"
-
+//#include "hls_math.h"
+//#include "ap_fixed.h"
 
 stream<UdpPLen>        sPLen     ("sPLen");
 stream<UdpWord>        sFifo_Data("sFifo_Data");
 
 ap_uint<8>   openPortWaitTime = 10;
-IPMeta srcIP;
 bool metaWritten = false;
 
 FsmState fsmStateRX = FSM_RESET;
@@ -25,14 +25,15 @@ FsmState fsmStateRX = FSM_RESET;
 UdpPLen    pldLen = 0;
 FsmState fsmStateTXenq = FSM_RESET;
 
-IPMeta txIPmetaReg;
 FsmState fsmStateTXdeq = FSM_RESET;
 
 ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-
+ap_uint<32> udp_rx_ports_processed = 0;
+bool need_udp_port_req = false;
+ap_uint<16> new_relative_port_to_req = 0;
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -56,7 +57,35 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen) {
         *pldLen += 8;
 }
 
+//returns the ZERO-based bit position (so 0 for LSB)
+ap_uint<32> getRightmostBitPos(ap_uint<32> num) 
+{ 
+  //return (ap_uint<32>) log2((ap_fixed<32,2>) (num & -num));
+  ap_uint<32> pos = 0; 
+  for (int i = 0; i < 32; i++) { 
+    if (!(num & (1 << i)))
+    {
+      pos++; 
+    }
+    else {
+      break; 
+    }
+  } 
+  return pos; 
+}
 
+
+NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
+{
+  for(NodeId i = 0; i< MAX_MRT_SIZE; i++)
+  {
+    if(localMRT[i] == ipAddr)
+    {
+      return i;
+    }
+  }
+  return 0xFFFF;
+}
 
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
@@ -149,18 +178,77 @@ void nrc(
     fsmStateTXenq = FSM_RESET;
     fsmStateTXdeq = FSM_RESET;
     pldLen = 0;
+
+    //TODO: reset processed ports if ports can also be closed 
+    // or does a double request not harm?
+    udp_rx_ports_processed = 0;
+    need_udp_port_req = false;
+    new_relative_port_to_req = 0;
     return;
   }
-/*
+
+//===========================================================
+// MRT
+
+  //copy MRT axi Interface
+  //MRT data are after possible config DATA
+  for(int i = 0; i < MAX_MRT_SIZE; i++)
+  {
+        //localMRT[i] = MRT[i];
+    localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+  }
+  for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+  {
+    config[i] = ctrlLink[i];
+  }
+
+  //DEBUG
+  //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
+
+  //copy routing nodes 0 - 2 FOR DEBUG
+  status[0] = localMRT[0];
+  status[1] = localMRT[1];
+  status[2] = localMRT[2];
+
+  status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX;
+  status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq;
+  status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq;
+
+  //TODO: some consistency check for tables? (e.g. every IP address only once...)
+ 
+
+//===========================================================
+//  update status
+  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  {
+    ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
+  }
+
+//===========================================================
+//  port requests
+  if(udp_rx_ports_processed != *pi_udp_rx_ports)
+  {
+    //we can't close, so only look for newly opened
+    ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
+    ap_uint<32> diff = udp_rx_ports_processed & tmp;
+    if(diff != 0)
+    {//we have to open new ports, one after another
+      new_relative_port_to_req = getRightmostBitPos(diff);
+      need_udp_port_req = true;
+    }
+  } else {
+    need_udp_port_req = false;
+  }
+
   //-- PROCESS FUNCTIONS ----------------------------------------------------
-  //pTxP(siROL_This_Data,  siIP,
+  //pTxP(siUdp_data,  siIP,
   //     soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
 //=================================================================================================
 // TX 
 
 
   //-- PROCESS FUNCTIONS ----------------------------------------------------
-  //pTxP_Enqueue(siROL_This_Data,
+  //pTxP_Enqueue(siUdp_data,
   //             sFifo_Data, sPLen);
 //-------------------------------------------------------------------------------------------------
 // TX Enqueue
@@ -175,10 +263,10 @@ void nrc(
     case FSM_ACC:
 
       // Default stream handling
-      if ( !siROL_This_Data.empty() && !sFifo_Data.full() ) {
+      if ( !siUdp_data.empty() && !sFifo_Data.full() ) {
 
         // Read incoming data chunk
-        UdpWord aWord = siROL_This_Data.read();
+        UdpWord aWord = siUdp_data.read();
 
         // Increment the payload length
         updatePayloadLength(&aWord, &pldLen);
@@ -215,6 +303,8 @@ void nrc(
 //-------------------------------------------------------------------------------------------------
 // TX Dequeue
 
+  NrcMeta out_meta;
+
   switch(fsmStateTXdeq) {
 
     case FSM_RESET: 
@@ -224,8 +314,8 @@ void nrc(
 
       // The very first time, wait until the Rx path provides us with the
       // socketPair information before continuing
-      if ( !siIP.empty() ) {
-        txIPmetaReg = siIP.read();
+      if ( !siNrc_meta.empty() ) {
+        out_meta = siNrc_meta.read();
         fsmStateTXdeq = FSM_FIRST_ACC;
       }
       //printf("waiting for IPMeta.\n");
@@ -238,7 +328,7 @@ void nrc(
         if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) {
           // Forward data chunk, metadata and payload length
           UdpWord    aWord = sFifo_Data.read();
-          if (!aWord.tlast) {
+          if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
             soTHIS_Udmx_Data.write(aWord);
 
             // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
@@ -248,7 +338,8 @@ void nrc(
             ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
             ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
             //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
-            UdpMeta txMeta = {{DEFAULT_TX_PORT, ipAddrLE}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+            ap_uint<32> dst_ip_addr = localMRT[out_meta.dst_id];
+            UdpMeta txMeta = {{out_meta.src_port, ipAddrLE}, {out_meta.dst_port, dst_ip_addr}};
             //UdpMeta txMeta = UdpMeta();
             //txMeta.dst.addr = txIPmetaReg.ipAddress;
             //txMeta.dst.port = DEFAULT_TX_PORT;
@@ -299,9 +390,12 @@ void nrc(
   //---- From UDMX to ROLE
   //pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
   //    soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
-  //    soTHIS_Rol_Data,    soIP);
+  //    soUdp_data,    soIP);
 //=================================================================================================
 // RX 
+
+
+  NrcMeta in_meta;
 
   switch(fsmStateRX) {
 
@@ -311,14 +405,21 @@ void nrc(
       break;
 
     case FSM_IDLE:
-      if ( !soTHIS_Udmx_OpnReq.full() && openPortWaitTime == 0 ) {
-        // Request to open UDP port 80 -- [FIXME - Port# should be a parameter]
-        //soTHIS_Udmx_OpnReq.write(0x0050);
-        soTHIS_Udmx_OpnReq.write(DEFAULT_RX_PORT);
-        fsmStateRX = FSM_W8FORPORT;
+      if(openPortWaitTime == 0) { 
+        if ( !soTHIS_Udmx_OpnReq.full() && need_udp_port_req) {
+          ap_uint<16> new_absolute_port = UDP_RX_MIN_PORT + new_relative_port_to_req;
+          //soTHIS_Udmx_OpnReq.write(DEFAULT_RX_PORT);
+          soTHIS_Udmx_OpnReq.write(new_absolute_port);
+          fsmStateRX = FSM_W8FORPORT;
+        } else if(udp_rx_ports_processed > 0)
+        { // we have already at least one open port 
+          //don't hang after reset
+          fsmStateRX = FSM_FIRST_ACC;
+        }
       }
-      else
+      else {
         openPortWaitTime--;
+      }
       break;
 
     case FSM_W8FORPORT:
@@ -326,54 +427,58 @@ void nrc(
         // Read the acknowledgment
         AxisAck sOpenAck = siUDMX_This_OpnAck.read();
         fsmStateRX = FSM_FIRST_ACC;
+        //port acknowleded
+        need_udp_port_req = false;
+        udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req + 1);
+        printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
       }
       break;
 
     case FSM_FIRST_ACC:
       // Wait until both the first data chunk and the first metadata are received from UDP
       if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
-        //if ( !soTHIS_Rol_Data.full() && !soIP.full()) {
-        if ( !soTHIS_Rol_Data.full() ) {
+        if ( !soUdp_data.full() ) {
           // Forward data chunk to ROLE
           UdpWord    udpWord = siUDMX_This_Data.read();
           if (!udpWord.tlast) {
-            soTHIS_Rol_Data.write(udpWord);
+            soUdp_data.write(udpWord);
             fsmStateRX = FSM_ACC;
           }
 
           //extrac src ip address
           UdpMeta udpRxMeta = siUDMX_This_Meta.read();
-          srcIP = IPMeta(udpRxMeta.src.addr);
-          //TODO for now ignore udpRxMeta.src.port
+          NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+          in_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
 
-          //soIP.write(srcIP);
           metaWritten = false;
         }
+      }
+      if(need_udp_port_req)
+      {
+        fsmStateRX = FSM_IDLE;
       }
       break;
 
     case FSM_ACC:
       // Default stream handling
-      if ( !siUDMX_This_Data.empty() && !soTHIS_Rol_Data.full() ) {
+      if ( !siUDMX_This_Data.empty() && !soUdp_data.full() ) {
         // Forward data chunk to ROLE
         UdpWord    udpWord = siUDMX_This_Data.read();
-        soTHIS_Rol_Data.write(udpWord);
+        soUdp_data.write(udpWord);
         // Until LAST bit is set
         if (udpWord.tlast)
         {
           fsmStateRX = FSM_FIRST_ACC;
         }
       }
-      if ( !metaWritten && !soIP.full() )
+      if ( !metaWritten && !soNrc_meta.full() )
       {
-        soIP.write(srcIP);
+        soNrc_meta.write(in_meta);
         metaWritten = true;
       }
       break;
   }
-*/
 
 
-
-  }
+}
 
