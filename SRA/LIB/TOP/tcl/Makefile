@@ -15,6 +15,7 @@ TOP_NAME = top$(cFpMOD)
 ROLE_DIR_1 =$(usedRoleDir)
 ROLE_DIR_2 =$(usedRole2Dir)
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
+MOD_DIR =$(cFpRootDir)/cFDK/MOD/$(cFpMOD)/
 #XPR_PROJ = ../xpr/topFMKU60_Flash.xpr
 XPR_PROJ =$(cFpXprDir)/top$(cFpMOD).xpr
 
@@ -146,7 +147,7 @@ $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete.dcp: $(cFpIpDir) | $(XPR_P
 
 #both 
 #$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(cFpDcpDir) 
-$(XPR_PROJ): ../../xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDir) 
+$(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDir) 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 ##with pr: 
