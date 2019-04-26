@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <hls_stream.h>
 
-#include "../src/udp_role_if_2.hpp"
+#include "../src/udp_role_if_3.hpp"
 
 using namespace std;
 
@@ -58,7 +58,7 @@ int         simCnt;
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
-    udp_role_if_2(
+    udp_role_if_3(
         0,
             sROLE_Urif_Data,    sURIF_Role_Data,
             sIPMeta_TX,         sIPMeta_RX,
