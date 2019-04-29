@@ -98,12 +98,14 @@ void nrc(
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
     //-- ROLE / This / Network Interfaces
-    ap_uint<32>         *pi_udp_rx_ports,
-    stream<UdpWord>     &siUdp_data,
-    stream<UdpWord>     &soUdp_data,
-    stream<NrcMeta>     &siNrc_meta,
-    stream<NrcMeta>     &soNrc_meta,
-    ap_uint<32>         *myIpAddress,
+    ap_uint<32>             *pi_udp_rx_ports,
+    stream<UdpWord>         &siUdp_data,
+    stream<UdpWord>         &soUdp_data,
+    //stream<NrcMeta>   &siNrc_meta,
+    stream<NrcMetaStream>   &siNrc_meta,
+    //stream<NrcMeta>   &soNrc_meta,
+    stream<NrcMetaStream>   &soNrc_meta,
+    ap_uint<32>             *myIpAddress,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -135,9 +137,9 @@ void nrc(
 #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
 
 #pragma HLS INTERFACE axis register both port=siNrc_meta
-#pragma HLS DATA_PACK                variable=siNrc_meta instance=siNrc_meta
-#pragma HLS INTERFACE axis register both port=soNrc_meta 
-#pragma HLS DATA_PACK                variable=soNrc_meta instance=soNrc_meta
+//#pragma HLS DATA_PACK                variable=siNrc_meta instance=siNrc_meta
+#pragma HLS INTERFACE axis register both port=soNrc_meta
+//#pragma HLS DATA_PACK                variable=soNrc_meta instance=soNrc_meta
 
 #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
 #pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_NRC_Udp_Rx_ports
@@ -149,7 +151,7 @@ void nrc(
 
 
 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-#pragma HLS DATAFLOW interval=1
+//#pragma HLS DATAFLOW interval=1
 #pragma HLS STREAM variable=sPLen depth=1
 #pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
@@ -303,7 +305,8 @@ void nrc(
 //-------------------------------------------------------------------------------------------------
 // TX Dequeue
 
-  NrcMeta out_meta;
+  NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET!
+  //NrcMeta out_meta = NrcMeta();
 
   switch(fsmStateTXdeq) {
 
@@ -316,6 +319,7 @@ void nrc(
       // socketPair information before continuing
       if ( !siNrc_meta.empty() ) {
         out_meta = siNrc_meta.read();
+        //out_meta = (NrcMeta) siNrc_meta.read();
         fsmStateTXdeq = FSM_FIRST_ACC;
       }
       //printf("waiting for IPMeta.\n");
@@ -338,8 +342,10 @@ void nrc(
             ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
             ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
             //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
-            ap_uint<32> dst_ip_addr = localMRT[out_meta.dst_id];
-            UdpMeta txMeta = {{out_meta.src_port, ipAddrLE}, {out_meta.dst_port, dst_ip_addr}};
+            ap_uint<32> dst_ip_addr = localMRT[out_meta.tdata.dst_rank];
+            //ap_uint<32> dst_ip_addr = localMRT[out_meta.dst_rank];
+            UdpMeta txMeta = {{out_meta.tdata.src_port, ipAddrLE}, {out_meta.tdata.dst_port, dst_ip_addr}};
+            //UdpMeta txMeta = {{out_meta.src_port, ipAddrLE}, {out_meta.dst_port, dst_ip_addr}};
             //UdpMeta txMeta = UdpMeta();
             //txMeta.dst.addr = txIPmetaReg.ipAddress;
             //txMeta.dst.port = DEFAULT_TX_PORT;
@@ -395,7 +401,8 @@ void nrc(
 // RX 
 
 
-  NrcMeta in_meta;
+  NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
+  //NrcMeta in_meta = NrcMeta();
 
   switch(fsmStateRX) {
 
@@ -448,7 +455,12 @@ void nrc(
           //extrac src ip address
           UdpMeta udpRxMeta = siUDMX_This_Meta.read();
           NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
-          in_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
+          NrcMeta tmp_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
+          in_meta = NrcMetaStream(tmp_meta);
+          //in_meta.dst_rank = config[NRC_CONFIG_OWN_RANK];
+          //in_meta.dst_port = udpRxMeta.dst.port;
+          //in_meta.src_rank = src_id;
+          //in_meta.src_port = udpRxMeta.src.port;
 
           metaWritten = false;
         }

@@ -156,12 +156,14 @@ void nrc(
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 
     //-- ROLE / This / Network Interfaces
-    ap_uint<32>         *pi_udp_rx_ports,
-    stream<UdpWord>     &siUdp_data,
-    stream<UdpWord>     &soUdp_data,
-    stream<NrcMeta>     &siNrc_meta,
-    stream<NrcMeta>     &soNrc_meta,
-    ap_uint<32>         *myIpAddress,
+    ap_uint<32>              *pi_udp_rx_ports,
+    stream<UdpWord>          &siUdp_data,
+    stream<UdpWord>          &soUdp_data,
+    stream<NrcMetaStream>    &siNrc_meta,
+    //stream<NrcMeta>          &siNrc_meta,
+    stream<NrcMetaStream>    &soNrc_meta,
+    //stream<NrcMeta>          &soNrc_meta,
+    ap_uint<32>              *myIpAddress,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,

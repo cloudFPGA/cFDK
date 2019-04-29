@@ -82,21 +82,28 @@ typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
-typedef ap_uint<32>     NodeId;  // Cluster Node Id
+typedef ap_uint<8>      NodeId;  // Cluster Node Id
 
-//TODO: remove redundant UdpMeta
-//...but for now I don't now if the redefinition would break somewhere...
 struct NrcMeta {
-   NodeId     dst_id;
-   NrcPort    dst_port;
-   NodeId     src_id;
-   NrcPort    src_port;
-   NrcMeta() {}
-   //"alphabetical order"
-   NrcMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port) :
-     dst_id(d_id), dst_port(d_port), src_id(s_id), src_port(s_port) {}
+  NodeId  dst_rank; //ATTENTION: don't use 'id' in a struct...will be ignored by axis directive and lead to segfaults...
+  NrcPort dst_port;
+  NodeId  src_rank;
+  NrcPort src_port;
+  //ap_uint<16> padding;
+  NrcMeta() {}
+  //"alphabetical order"
+  NrcMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port) :
+    dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port) {}
  };
 
+//ATTENTION: split between NrcMeta and NrcMetaStream is necessary, due to flaws in Vivados hls::stream library
+struct NrcMetaStream {
+  NrcMeta tdata; 
+  ap_uint<(sizeof(NrcMeta)+7)/8> tkeep;
+  ap_uint<1> tlast;
+  NrcMetaStream() {}
+  NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(1), tlast(1) {}
+};
 
 
 // ================ some functions ==========
