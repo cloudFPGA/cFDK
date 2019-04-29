@@ -43,8 +43,13 @@ stream<UdpMeta>         sURIF_Udmx_Meta     ("sURIF_Udmx_Meta");
 stream<UdpPLen>         sURIF_Udmx_PLen     ("sURIF_Udmx_PLen");
 
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
-stream<IPMeta>          sIPMeta_RX          ("sIPMeta_RX");
-stream<IPMeta>          sIPMeta_TX          ("sIPMeta_TX");
+ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+ap_uint<32>             pi_udp_rx_ports = 0x1;
+stream<NrcMetaStream>   siNrc_meta          ("siNrc_meta");
+//stream<NrcMeta>          &siNrc_meta,
+stream<NrcMetaStream>   soNrc_meta          ("soNrc_meta");
+//stream<NrcMeta>          &soNrc_meta,
+ap_uint<32>             myIpAddress;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -60,8 +65,10 @@ int         simCnt;
 void stepDut() {
     nrc(
         0,
+        ctrlLink,
+        &pi_udp_rx_ports,
             sROLE_Urif_Data,    sURIF_Role_Data,
-            sIPMeta_TX,         sIPMeta_RX,
+            siNrc_meta,         soNrc_meta,
             &sIpAddress,
             sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
             sUDMX_Urif_Data,    sUDMX_Urif_Meta,
@@ -158,7 +165,8 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
 
                 // Create an connection association {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
                 //socketPair = {{0x0050, 0x0A0A0A0A}, {0x8000, 0x01010101}};
-                socketPair = {{0x0050, 0x0A0B0C02}, {0x0050, 0x01010101}};
+                //socketPair = {{0x0050, 0x0A0B0C02}, {0x0050, 0x01010101}};
+                socketPair = (UdpMeta) {{DEFAULT_RX_PORT, 0x0A0B0C01}, {DEFAULT_RX_PORT, 0x0A0B0C0E}};
 
                 //  Write to sMetaStream
                 if (sMetaStream.full()) {
@@ -442,6 +450,17 @@ int main() {
 
     simCnt = 0;
     nrErr  = 0;
+  
+    //prepare MRT (routing table)
+    for(int i = 0; i < MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS; i++)
+    {
+        ctrlLink[i] = 0;
+    }
+
+    ctrlLink[0] = 1; //own rank 
+    ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] = 0x0a0d0c01; //10.11.12.1
+    ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] = 0x0a0d0c0d; //10.11.12.13
+    ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2] = 0x0a0d0c0e; //10.11.12.14
 
     //------------------------------------------------------
     //-- STEP-1 : OPEN PORT REQUEST
@@ -456,6 +475,10 @@ int main() {
             printf("[%4.4d] UDMX->URIF_OpnAck : TB  acknowledges the port opening.\n", simCnt);
         }
     }
+  //check DEBUG copies
+  assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] == ctrlLink[NUMBER_CONFIG_WORDS + 0]);
+  assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] == ctrlLink[NUMBER_CONFIG_WORDS + 1]);
+  assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2] == ctrlLink[NUMBER_CONFIG_WORDS + 2]);
 
     //------------------------------------------------------
     //-- STEP-2 : CREATE TRAFFIC AS INPUT STREAMS
@@ -470,13 +493,21 @@ int main() {
             printf("### ERROR : Failed to set input data stream \"sUDMX_DataStream\". \n");
             nrErr++;
         }
-        if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
-            printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
-            nrErr++;
-        }
+        //if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
+        //    printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
+        //    nrErr++;
+        //}
         //there are 2 streams from the ROLE to UDMX
-        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
-        sIPMeta_TX.write(IPMeta(0x0a0d0c02));
+        socketPair = (UdpMeta) {{DEFAULT_RX_PORT, 0x0A0B0C01}, {DEFAULT_RX_PORT, 0x0A0B0C0E}};
+        sUDMX_Urif_Meta.write(socketPair);
+        sUDMX_Urif_Meta.write(socketPair);
+        // Print Metadata to console
+        printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+        simCnt,   socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+       
+        NrcMeta tmp_meta = NrcMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT);
+       // siNrc_meta.write(NrcMetaStream(tmp_meta));
+        //siNrc_meta.write(NrcMetaStream(tmp_meta));
     }
 
     //------------------------------------------------------
@@ -490,10 +521,10 @@ int main() {
         {
             stepDut();
 
-            if( !sIPMeta_RX.empty())
+            if( !soNrc_meta.empty())
             {
-              IPMeta tmp = sIPMeta_RX.read();
-              printf("Role received IPMeta stream from 0x%8.8X.\n", (int) tmp.ipAddress);
+              NrcMetaStream tmp_meta = soNrc_meta.read();
+              printf("Role received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
             }
 
             // is done below

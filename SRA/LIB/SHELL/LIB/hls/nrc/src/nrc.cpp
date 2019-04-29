@@ -232,7 +232,10 @@ void nrc(
   {
     //we can't close, so only look for newly opened
     ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
-    ap_uint<32> diff = udp_rx_ports_processed & tmp;
+    ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
+    //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
+    //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
+    printf("port diff: %#04x\n",(int) diff);
     if(diff != 0)
     {//we have to open new ports, one after another
       new_relative_port_to_req = getRightmostBitPos(diff);
@@ -436,7 +439,7 @@ void nrc(
         fsmStateRX = FSM_FIRST_ACC;
         //port acknowleded
         need_udp_port_req = false;
-        udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req + 1);
+        udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req);
         printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
       }
       break;
