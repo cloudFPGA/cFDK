@@ -1,56 +1,15 @@
 //                              -*- Mode: Verilog -*-
-// Filename        : Shell_x1Udp_x1Tcp_x2Mc.v
-// Description     : 
-// *****************************************************************************
-// *
-// *                             cloudFPGA
-// *            All rights reserved -- Property of IBM
-// *
-// *----------------------------------------------------------------------------
-// *
-// * Title : Shell for the FMKU2595 when equipped with a XCKU060.
-// *
-// * File    : Shell_x1Udp_x1Tcp_x2Mp_x2Mc.v
-// *
-// * Created : Nov. 2017
-// * Authors : Francois Abel <fab@zurich.ibm.com>
-// *
-// * Devices : xcku060-ffva1156-2-i
-// * Tools   : Vivado v2016.4 (64-bit)
-// * Depends : None
-// *
-// * Description : cloudFPGA uses a 'SHELL' to abstract the HW components of an
-// *    FPGA module and to expose a unified interface for the user to integrate 
-// *    its application, referred to as 'ROLE'. 
-// * 
-// *    As the name indicates, this shell implements the following interfaces: 
-// *      - one UDP port interface (based on the AXI4-Stream interface), 
-// *      - one TCP port interface (based on the AXI4-Stream interface),
-// *      - two Memory Port interfaces (based on the MM2S and S2MM AXI4-Stream interfaces)
-// *      - two Memory Channel interfaces towards two DDR4 banks. 
-// *
-// *    This shell implements the following IP cores and physical interfaces:
-// *      - one 10G Ethernet subsystem (ETH0) as described in PG157,
-// *      - two 8GB DDR4 Memory Channels (MC0, MC1) as described in PG150,
-// *      - one network, tansport and session (NTS0) core based on TCP/IP,
-// *      - one register file with memory mapped IOs (MMIO).
-// *     
-// *    The interfaces exposed to the user's ROLE are:
-// *      - one AXI4-Stream interface for the UDP interface, 
-// *      - one AXI4-Stream interface for the TCP interface,
-// *      - two MM2S and two S2MM AXI4-Stream interfaces for the Memory Ports.
-// *        (refer to PG022-AXI- DataMover for a description of the MM2S and S2MM).     
-// * 
-// * Parameters:
-// *    gSecurityPriviledges: Sets the level of the security privileges.
-// *      [ "user" (Default) | "super" ]
-// *    gBitstreamUsage: defines the usage of the bitstream to generate.
-// *      [ "user" (Default) | "flash" ]
-// *
-// * Comments:
-// *
-// *
-// *****************************************************************************
+//  *
+//  *                       cloudFPGA
+//  *     Copyright IBM Research, All Rights Reserved
+//  *    =============================================
+//  *     Created: Apr 2019
+//  *     Authors: FAB, WEI, NGL
+//  *
+//  *     Description:
+//  *        Shell with node2node communication for UDP
+//  *
+
 
 `timescale 1ns / 1ps
 
@@ -58,7 +17,7 @@
 // **  MODULE - SHELL FOR FMKU60
 // *****************************************************************************
 
-module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
+module Shell_Themisto # (
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
@@ -151,7 +110,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          poSHL_Econ_Eth0_10Ge0_p,
 
   //------------------------------------------------------
-  //-- ROLE / Reset and Clock Interfaces
+  //-- Reset and Clock Interfaces
   //------------------------------------------------------
   output          poSHL_156_25Clk,
   output          poSHL_156_25Rst,
@@ -172,6 +131,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output [  7:0]  poSHL_Rol_Nts0_Udp_Axis_tkeep,
   output          poSHL_Rol_Nts0_Udp_Axis_tlast,
   output          poSHL_Rol_Nts0_Udp_Axis_tvalid,
+
+  input [ 32:0]   piROL_Nrc_Udp_Rx_ports,
 
   //------------------------------------------------------
   //-- ROLE / Shl / Nts0 / Tcp Interfaces
@@ -535,6 +496,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast;
   wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid;
 
+  wire   [ 31:0]  sDECOUP_Nrc_Udp_Rx_ports;
+
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : HWICAPC 
   //--------------------------------------------------------
@@ -576,8 +539,42 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire [31:0] sCASTOR_ROLE_size; 
 
   //--------------------------------------------------------
-  //-- SIGNAL DECLARATIONS : MPE
+  //-- SIGNAL DECLARATIONS : NRC
   //--------------------------------------------------------
+  //-- UDMX ==> URIF / Open Port Acknowledge -----
+  wire  [ 7:0]  sUDMX_Urif_OpnAck_Axis_tdata;
+  wire          sUDMX_Urif_OpnAck_Axis_tvalid;
+  wire          sURIF_Udmx_OpnAck_Axis_tready;
+  //-- UDMX ==> URIF / Data ----------------------
+  wire  [63:0]  sUDMX_Urif_Data_Axis_tdata;
+  wire  [ 7:0]  sUDMX_Urif_Data_Axis_tkeep;
+  wire          sUDMX_Urif_Data_Axis_tlast;
+  wire          sUDMX_Urif_Data_Axis_tvalid;
+  wire          sURIF_Udmx_Data_Axis_tready;
+  //-- UDMX ==> URIF / Meta ----------------------
+  wire  [95:0]  sUDMX_Urif_Meta_Axis_tdata;
+  wire          sUDMX_Urif_Meta_Axis_tvalid;
+  wire          sURIF_Udmx_Meta_Axis_tready;
+  //-- URIF ==> UDMX / OpenPortRequest / Axis ----
+  wire  [15:0]  sURIF_Udmx_OpnReq_Axis_tdata;
+  wire          sURIF_Udmx_OpnReq_Axis_tvalid;
+  wire          sUDMX_Urif_OpnReq_Axis_tready;
+  //-- URIF ==> UDMX / Data / Axis ---------------              
+  wire  [63:0]  sURIF_Udmx_Data_Axis_tdata;    
+  wire  [ 7:0]  sURIF_Udmx_Data_Axis_tkeep;
+  wire          sURIF_Udmx_Data_Axis_tlast;
+  wire          sURIF_Udmx_Data_Axis_tvalid;   
+  wire          sUDMX_Urif_Data_Axis_tready;
+  //-- URIF ==> UDMX / Meta / Axis ---------------
+  wire  [95:0]  sURIF_Udmx_Meta_Axis_tdata;
+  wire          sURIF_Udmx_Meta_Axis_tvalid;
+  wire          sUDMX_Urif_Meta_Axis_tready;
+  //-- URIF ==> UDMX / TxLen / Axis --------------
+  wire  [15:0]  sURIF_Udmx_PLen_Axis_tdata;
+  wire          sURIF_Udmx_PLen_Axis_tvalid;
+  wire          sUDMX_Urif_PLen_Axis_tready;
+   
+
   wire [63:0] sNTS_MPE_Tcp_TDATA;
   wire        sNTS_MPE_Tcp_TVALID;
   wire        sNTS_MPE_Tcp_TREADY;
@@ -619,23 +616,23 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        sMPE_ROLE_MPI_data_TREADY;
   wire        sMPE_ROLE_MPI_data_TKEEP;
   wire        sMPE_ROLE_MPI_data_TLAST;
-  wire        sSMC_MPE_ctrlLink_AXI_AWVALID;
-  wire        sSMC_MPE_ctrlLink_AXI_AWREADY;
-  wire [13:0] sSMC_MPE_ctrlLink_AXI_AWADDR;
-  wire        sSMC_MPE_ctrlLink_AXI_WVALID;
-  wire        sSMC_MPE_ctrlLink_AXI_WREADY;
-  wire [31:0] sSMC_MPE_ctrlLink_AXI_WDATA;
-  wire [ 3:0] sSMC_MPE_ctrlLink_AXI_WSTRB;
-  wire        sSMC_MPE_ctrlLink_AXI_ARVALID;
-  wire        sSMC_MPE_ctrlLink_AXI_ARREADY;
-  wire [13:0] sSMC_MPE_ctrlLink_AXI_ARADDR;
-  wire        sSMC_MPE_ctrlLink_AXI_RVALID;
-  wire        sSMC_MPE_ctrlLink_AXI_RREADY;
-  wire [31:0] sSMC_MPE_ctrlLink_AXI_RDATA;
-  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_RRESP;
-  wire        sSMC_MPE_ctrlLink_AXI_BVALID;
-  wire        sSMC_MPE_ctrlLink_AXI_BREADY;
-  wire [ 1:0] sSMC_MPE_ctrlLink_AXI_BRESP;
+  wire        sSMC_NRC_ctrlLink_AXI_AWVALID;
+  wire        sSMC_NRC_ctrlLink_AXI_AWREADY;
+  wire [13:0] sSMC_NRC_ctrlLink_AXI_AWADDR;
+  wire        sSMC_NRC_ctrlLink_AXI_WVALID;
+  wire        sSMC_NRC_ctrlLink_AXI_WREADY;
+  wire [31:0] sSMC_NRC_ctrlLink_AXI_WDATA;
+  wire [ 3:0] sSMC_NRC_ctrlLink_AXI_WSTRB;
+  wire        sSMC_NRC_ctrlLink_AXI_ARVALID;
+  wire        sSMC_NRC_ctrlLink_AXI_ARREADY;
+  wire [13:0] sSMC_NRC_ctrlLink_AXI_ARADDR;
+  wire        sSMC_NRC_ctrlLink_AXI_RVALID;
+  wire        sSMC_NRC_ctrlLink_AXI_RREADY;
+  wire [31:0] sSMC_NRC_ctrlLink_AXI_RDATA;
+  wire [ 1:0] sSMC_NRC_ctrlLink_AXI_RRESP;
+  wire        sSMC_NRC_ctrlLink_AXI_BVALID;
+  wire        sSMC_NRC_ctrlLink_AXI_BREADY;
+  wire [ 1:0] sSMC_NRC_ctrlLink_AXI_BRESP;
 
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
@@ -931,20 +928,41 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poNTS0_Mem_RxP_Axis_Data_tvalid  (sNTS0_Mem_RxP_Axis_Write_tvalid),
 
     //------------------------------------------------------
-    //-- ROLE / Nts0 / Udp Interfaces
+    //-- NRC / Nts0 / Udp Interfaces
     //------------------------------------------------------
-    //-- Input AXI-Write Stream Interface ----------
-    .piROL_Nts0_Udp_Axis_tdata        (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
-    .piROL_Nts0_Udp_Axis_tkeep        (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
-    .piROL_Nts0_Udp_Axis_tlast        (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
-    .piROL_Nts0_Udp_Axis_tvalid       (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
-    .poNTS0_Rol_Udp_Axis_tready       (poSHL_Rol_Nts0_Udp_Axis_tready),
-    //-- Output AXI-Write Stream Interface ---------
-    .piROL_Nts0_Udp_Axis_tready       (sDECOUP_Shl_Nts0_Udp_Axis_tready),
-    .poNTS0_Rol_Udp_Axis_tdata        (poSHL_Rol_Nts0_Udp_Axis_tdata),
-    .poNTS0_Rol_Udp_Axis_tkeep        (poSHL_Rol_Nts0_Udp_Axis_tkeep),
-    .poNTS0_Rol_Udp_Axis_tlast        (poSHL_Rol_Nts0_Udp_Axis_tlast),
-    .poNTS0_Rol_Udp_Axis_tvalid       (poSHL_Rol_Nts0_Udp_Axis_tvalid),
+    //-- UDMX ==> URIF / Open Port Acknowledge -----
+    .soUDMX_Urif_OpnAck_Axis_tdata    (sUDMX_Urif_OpnAck_Axis_tdata),
+    .soUDMX_Urif_OpnAck_Axis_tvalid   (sUDMX_Urif_OpnAck_Axis_tvalid),
+    .soURIF_Udmx_OpnAck_Axis_tready   (sURIF_Udmx_OpnAck_Axis_tready),
+    //-- UDMX ==> URIF / Data ----------------------
+    .soUDMX_Urif_Data_Axis_tdata      (sUDMX_Urif_Data_Axis_tdata),
+    .soUDMX_Urif_Data_Axis_tvalid     (sUDMX_Urif_Data_Axis_tvalid),
+    .soURIF_Udmx_Data_Axis_tready     (sURIF_Udmx_Data_Axis_tready),
+    .soUDMX_Urif_Data_Axis_tkeep      (sUDMX_Urif_Data_Axis_tkeep),
+    .soUDMX_Urif_Data_Axis_tlast      (sUDMX_Urif_Data_Axis_tlast),
+    //-- UDMX ==> URIF / Meta ----------------------
+    .soUDMX_Urif_Meta_Axis_tdata      (sUDMX_Urif_Meta_Axis_tdata),
+    .soUDMX_Urif_Meta_Axis_tvalid     (sUDMX_Urif_Meta_Axis_tvalid),
+    .soURIF_Udmx_Meta_Axis_tready     (sURIF_Udmx_Meta_Axis_tready),
+    //-- URIF ==> UDMX / OpenPortRequest / Axis ----
+    .siURIF_Udmx_OpnReq_Axis_tdata    (sURIF_Udmx_OpnReq_Axis_tdata),
+    .siURIF_Udmx_OpnReq_Axis_tvalid   (sURIF_Udmx_OpnReq_Axis_tvalid),
+    .siUDMX_Urif_OpnReq_Axis_tready   (sUDMX_Urif_OpnReq_Axis_tready),
+    //-- URIF ==> UDMX / Data / Axis ---------------              
+    .siURIF_Udmx_Data_Axis_tdata      (sURIF_Udmx_Data_Axis_tdata),
+    .siURIF_Udmx_Data_Axis_tvalid     (sURIF_Udmx_Data_Axis_tvalid),
+    .siUDMX_Urif_Data_Axis_tready     (sUDMX_Urif_Data_Axis_tready),
+    .siURIF_Udmx_Data_Axis_tkeep      (sURIF_Udmx_Data_Axis_tkeep),
+    .siURIF_Udmx_Data_Axis_tlast      (sURIF_Udmx_Data_Axis_tlast),
+    //-- URIF ==> UDMX / Meta / Axis ---------------
+    .siURIF_Udmx_Meta_Axis_tdata      (sURIF_Udmx_Meta_Axis_tdata),
+    .siURIF_Udmx_Meta_Axis_tvalid     (sURIF_Udmx_Meta_Axis_tvalid),
+    .siUDMX_Urif_Meta_Axis_tready     (sUDMX_Urif_Meta_Axis_tready),
+    //-- URIF ==> UDMX / TxLen / Axis --------------
+    .siURIF_Udmx_PLen_Axis_tdata      (sURIF_Udmx_PLen_Axis_tdata),
+    .siURIF_Udmx_PLen_Axis_tvalid     (sURIF_Udmx_PLen_Axis_tvalid),
+    .siUDMX_Urif_PLen_Axis_tready     (sUDMX_Urif_PLen_Axis_tready),
+  
 
     //------------------------------------------------------
     //-- ROLE / Nts0 / TCP Interfaces
@@ -1242,41 +1260,119 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .xmem_V_we0                          (sCASTOR_MMIO_XMEM_wren),
     .xmem_V_d0                           (sCASTOR_MMIO_XMEM_WData),
     .xmem_V_q0                           (sCASTOR_MMIO_XMEM_RData),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_AWVALID       (sSMC_MPE_ctrlLink_AXI_AWVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_AWREADY       (sSMC_MPE_ctrlLink_AXI_AWREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_AWADDR        (sSMC_MPE_ctrlLink_AXI_AWADDR),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WVALID        (sSMC_MPE_ctrlLink_AXI_WVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WREADY        (sSMC_MPE_ctrlLink_AXI_WREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WDATA         (sSMC_MPE_ctrlLink_AXI_WDATA),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_WSTRB         (sSMC_MPE_ctrlLink_AXI_WSTRB),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_ARVALID       (sSMC_MPE_ctrlLink_AXI_ARVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_ARREADY       (sSMC_MPE_ctrlLink_AXI_ARREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_ARADDR        (sSMC_MPE_ctrlLink_AXI_ARADDR),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RVALID        (sSMC_MPE_ctrlLink_AXI_RVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RREADY        (sSMC_MPE_ctrlLink_AXI_RREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RDATA         (sSMC_MPE_ctrlLink_AXI_RDATA),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_RRESP         (sSMC_MPE_ctrlLink_AXI_RRESP),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_BVALID        (sSMC_MPE_ctrlLink_AXI_BVALID),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_BREADY        (sSMC_MPE_ctrlLink_AXI_BREADY),
-    .m_axi_poSMC_MPE_ctrlLink_AXI_BRESP         (sSMC_MPE_ctrlLink_AXI_BRESP),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWVALID       (sSMC_NRC_ctrlLink_AXI_AWVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWREADY       (sSMC_NRC_ctrlLink_AXI_AWREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWADDR        (sSMC_NRC_ctrlLink_AXI_AWADDR),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WVALID        (sSMC_NRC_ctrlLink_AXI_WVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WREADY        (sSMC_NRC_ctrlLink_AXI_WREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WDATA         (sSMC_NRC_ctrlLink_AXI_WDATA),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WSTRB         (sSMC_NRC_ctrlLink_AXI_WSTRB),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARVALID       (sSMC_NRC_ctrlLink_AXI_ARVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARREADY       (sSMC_NRC_ctrlLink_AXI_ARREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARADDR        (sSMC_NRC_ctrlLink_AXI_ARADDR),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RVALID        (sSMC_NRC_ctrlLink_AXI_RVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RREADY        (sSMC_NRC_ctrlLink_AXI_RREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RDATA         (sSMC_NRC_ctrlLink_AXI_RDATA),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RRESP         (sSMC_NRC_ctrlLink_AXI_RRESP),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BVALID        (sSMC_NRC_ctrlLink_AXI_BVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BREADY        (sSMC_NRC_ctrlLink_AXI_BREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BRESP         (sSMC_NRC_ctrlLink_AXI_BRESP),
     .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
     .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
   );
 
+  NRC NRC_LAYER (
+    //-- Global Clock used by the entire SHELL -------------
+    .ap_clk                 (sETH0_ShlClk),
+    //-- Global Reset used by the entire SHELL -------------
+    .ap_rst_n               (~ piTOP_156_25Rst),
+    //core should start immediately 
+    .ap_start               (1),
+    .piSysReset_V             (piSHL_156_25Rst_delayed),
+    .piSysReset_V_ap_vld      (1),
+    .piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
+    .piROL_NRC_Udp_Rx_ports_V_ap_vld (1),
+    .siUdp_data_TDATA         (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
+    .siUdp_data_TVALID        (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
+    .siUdp_data_TLAST         (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
+    .siUdp_data_TKEEP         (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
+    .siUdp_data_TREADY        (poSHL_Rol_Nts0_Udp_Axis_tready),
+    .soUdp_data_TDATA         (poSHL_Rol_Nts0_Udp_Axis_tdata),
+    .soUdp_data_TVALID        (poSHL_Rol_Nts0_Udp_Axis_tvalid),
+    .soUdp_data_TREADY        (sDECOUP_Shl_Nts0_Udp_Axis_tready),
+    .soUdp_data_TKEEP         (poSHL_Rol_Nts0_Udp_Axis_tkeep),
+    .soUdp_data_TLAST         (poSHL_Rol_Nts0_Udp_Axis_tlast),
+    .siNrc_meta_TDATA         ,
+    .siNrc_meta_TVALID        ,
+    .siNrc_meta_TREADY        ,
+    .siNrc_meta_TKEEP         ,
+    .siNrc_meta_TLAST         ,
+    .soNrc_meta_TDATA         ,
+    .soNrc_meta_TVALID        ,
+    .soNrc_meta_TREADY        ,
+    .soNrc_meta_TKEEP         ,
+    .soNrc_meta_TLAST         ,
+    .piMyIpAddress_V          (sMMIO_Nts0_IpAddress),
+    .piMyIpAddress_V_ap_vld   (1),
+    .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Urif_OpnAck_Axis_tdata),
+    .siUDMX_This_OpnAck_V_TVALID    (sUDMX_Urif_OpnAck_Axis_tvalid),
+    .siUDMX_This_OpnAck_V_TREADY    (sURIF_Udmx_OpnAck_Axis_tready),
+    .soTHIS_Udmx_OpnReq_V_V_TDATA   (sURIF_Udmx_OpnReq_Axis_tdata),
+    .soTHIS_Udmx_OpnReq_V_V_TVALID  (sURIF_Udmx_OpnReq_Axis_tvalid),
+    .soTHIS_Udmx_OpnReq_V_V_TREADY  (sUDMX_Urif_OpnReq_Axis_tready),
+    .siUDMX_This_Data_TDATA         (sUDMX_Urif_Data_Axis_tdata),
+    .siUDMX_This_Data_TVALID        (sUDMX_Urif_Data_Axis_tvalid),
+    .siUDMX_This_Data_TREADY        (sURIF_Udmx_Data_Axis_tready),
+    .siUDMX_This_Data_TKEEP         (sUDMX_Urif_Data_Axis_tkeep),
+    .siUDMX_This_Data_TLAST         (sUDMX_Urif_Data_Axis_tlast),
+    .siUDMX_This_Meta_TDATA         (sUDMX_Urif_Meta_Axis_tdata),
+    .siUDMX_This_Meta_TVALID        (sUDMX_Urif_Meta_Axis_tvalid),
+    .siUDMX_This_Meta_TREADY        (sURIF_Udmx_Meta_Axis_tready),
+    .soTHIS_Udmx_Data_TDATA         (sURIF_Udmx_Data_Axis_tdata),
+    .soTHIS_Udmx_Data_TVALID        (sURIF_Udmx_Data_Axis_tvalid),
+    .soTHIS_Udmx_Data_TREADY        (sUDMX_Urif_Data_Axis_tready),
+    .soTHIS_Udmx_Data_TKEEP         (sURIF_Udmx_Data_Axis_tkeep),
+    .soTHIS_Udmx_Data_TLAST         (sURIF_Udmx_Data_Axis_tlast),
+    .soTHIS_Udmx_Meta_TDATA         (sURIF_Udmx_Meta_Axis_tdata),
+    .soTHIS_Udmx_Meta_TVALID        (sURIF_Udmx_Meta_Axis_tvalid),
+    .soTHIS_Udmx_Meta_TREADY        (sUDMX_Urif_Meta_Axis_tready),
+    .soTHIS_Udmx_PLen_V_V_TDATA     (sURIF_Udmx_PLen_Axis_tdata),
+    .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid),
+    .soTHIS_Udmx_PLen_V_V_TREADY    (sUDMX_Urif_PLen_Axis_tready),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_AWVALID   (sSMC_NRC_ctrlLink_AXI_AWVALID),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_AWREADY   (sSMC_NRC_ctrlLink_AXI_AWREADY),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_AWADDR    (sSMC_NRC_ctrlLink_AXI_AWADDR),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_WVALID    (sSMC_NRC_ctrlLink_AXI_WVALID),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_WREADY    (sSMC_NRC_ctrlLink_AXI_WREADY),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_WDATA     (sSMC_NRC_ctrlLink_AXI_WDATA),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_WSTRB     (sSMC_NRC_ctrlLink_AXI_WSTRB),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_ARVALID   (sSMC_NRC_ctrlLink_AXI_ARVALID),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_ARREADY   (sSMC_NRC_ctrlLink_AXI_ARREADY),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_ARADDR    (sSMC_NRC_ctrlLink_AXI_ARADDR),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_RVALID    (sSMC_NRC_ctrlLink_AXI_RVALID),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_RREADY    (sSMC_NRC_ctrlLink_AXI_RREADY),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_RDATA     (sSMC_NRC_ctrlLink_AXI_RDATA),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_RRESP     (sSMC_NRC_ctrlLink_AXI_RRESP),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_BVALID    (sSMC_NRC_ctrlLink_AXI_BVALID),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_BREADY    (sSMC_NRC_ctrlLink_AXI_BREADY),
+    .s_axi_piSMC_NRC_ctrlLink_AXI_BRESP     (sSMC_NRC_ctrlLink_AXI_BRESP)
+);
+
+
   // Temporary assignment (until MPE module is back)
-  assign sSMC_MPE_ctrlLink_AXI_AWREADY = 0;
-  assign sSMC_MPE_ctrlLink_AXI_WREADY  = 0;
-  //assign sSMC_MPE_ctrlLink_AXI_BID     = 0;
-  assign sSMC_MPE_ctrlLink_AXI_BRESP   = 0; 
-  //assign sSMC_MPE_ctrlLink_AXI_BUSER   = 0;  
-  assign sSMC_MPE_ctrlLink_AXI_BVALID  = 0;
-  assign sSMC_MPE_ctrlLink_AXI_ARREADY = 0;
-  assign sSMC_MPE_ctrlLink_AXI_BREADY  = 0;
-  assign sSMC_MPE_ctrlLink_AXI_RDATA   = 0;
-  assign sSMC_MPE_ctrlLink_AXI_RRESP   = 0;
-  //assign sSMC_MPE_ctrlLink_AXI_RLAST   = 0;
-  //assign sSMC_MPE_ctrlLink_AXI_RUSER   = 0;
-  assign sSMC_MPE_ctrlLink_AXI_RVALID  = 0;
+  assign sSMC_NRC_ctrlLink_AXI_AWREADY = 0;
+  assign sSMC_NRC_ctrlLink_AXI_WREADY  = 0;
+  //assign sSMC_NRC_ctrlLink_AXI_BID     = 0;
+  assign sSMC_NRC_ctrlLink_AXI_BRESP   = 0; 
+  //assign sSMC_NRC_ctrlLink_AXI_BUSER   = 0;  
+  assign sSMC_NRC_ctrlLink_AXI_BVALID  = 0;
+  assign sSMC_NRC_ctrlLink_AXI_ARREADY = 0;
+  assign sSMC_NRC_ctrlLink_AXI_BREADY  = 0;
+  assign sSMC_NRC_ctrlLink_AXI_RDATA   = 0;
+  assign sSMC_NRC_ctrlLink_AXI_RRESP   = 0;
+  //assign sSMC_NRC_ctrlLink_AXI_RLAST   = 0;
+  //assign sSMC_NRC_ctrlLink_AXI_RUSER   = 0;
+  assign sSMC_NRC_ctrlLink_AXI_RVALID  = 0;
 
   assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
   assign poSMC_ROLE_size = sCASTOR_ROLE_size;
