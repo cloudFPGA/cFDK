@@ -137,9 +137,7 @@ void nrc(
 #pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
 
 #pragma HLS INTERFACE axis register both port=siNrc_meta
-//#pragma HLS DATA_PACK                variable=siNrc_meta instance=siNrc_meta
 #pragma HLS INTERFACE axis register both port=soNrc_meta
-//#pragma HLS DATA_PACK                variable=soNrc_meta instance=soNrc_meta
 
 #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
 #pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_NRC_Udp_Rx_ports
@@ -308,8 +306,7 @@ void nrc(
 //-------------------------------------------------------------------------------------------------
 // TX Dequeue
 
-  NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET!
-  //NrcMeta out_meta = NrcMeta();
+  NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
 
   switch(fsmStateTXdeq) {
 
@@ -322,10 +319,9 @@ void nrc(
       // socketPair information before continuing
       if ( !siNrc_meta.empty() ) {
         out_meta = siNrc_meta.read();
-        //out_meta = (NrcMeta) siNrc_meta.read();
         fsmStateTXdeq = FSM_FIRST_ACC;
       }
-      //printf("waiting for IPMeta.\n");
+      //printf("waiting for NrcMeta.\n");
       break;
 
     case FSM_FIRST_ACC:
@@ -335,39 +331,29 @@ void nrc(
         if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) {
           // Forward data chunk, metadata and payload length
           UdpWord    aWord = sFifo_Data.read();
-          if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
+          //if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
             soTHIS_Udmx_Data.write(aWord);
 
-            // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
             ap_uint<32> ipAddrLE = 0;
             ipAddrLE  = (*myIpAddress >> 24) & 0xFF;
             ipAddrLE |= (*myIpAddress >> 8) & 0xFF00;
             ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
             ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
             //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+
             ap_uint<32> dst_ip_addr = localMRT[out_meta.tdata.dst_rank];
-            //ap_uint<32> dst_ip_addr = localMRT[out_meta.dst_rank];
+            // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
             UdpMeta txMeta = {{out_meta.tdata.src_port, ipAddrLE}, {out_meta.tdata.dst_port, dst_ip_addr}};
-            //UdpMeta txMeta = {{out_meta.src_port, ipAddrLE}, {out_meta.dst_port, dst_ip_addr}};
-            //UdpMeta txMeta = UdpMeta();
-            //txMeta.dst.addr = txIPmetaReg.ipAddress;
-            //txMeta.dst.port = DEFAULT_TX_PORT;
-            //txMeta.src.addr = myIpAddress;
-            //txMeta.src.port = DEFAULT_TX_PORT;
             soTHIS_Udmx_Meta.write(txMeta);
 
             soTHIS_Udmx_PLen.write(sPLen.read());
+          if (aWord.tlast) { 
+            fsmStateTXdeq = FSM_W8FORMETA;
+          } else {
             fsmStateTXdeq = FSM_ACC;
           }
         }
       }
-
-      // Always drain the 'sIP' stream to avoid any blocking on the Rx side
-      //TODO
-      //if ( !sIP.empty() )
-      //{
-      //  txIPmetaReg = sIP.read();
-      // }
 
       break;
 
@@ -386,13 +372,6 @@ void nrc(
         }
       }
 
-      // Always drain the 'sIP' stream to avoid any blocking on the Rx side
-      //TODO
-      //if ( !sIP.empty() )
-      //{
-      //  txIPmetaReg = sIP.read();
-      //}
-
       break;
   }
 
@@ -405,7 +384,6 @@ void nrc(
 
 
   NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
-  //NrcMeta in_meta = NrcMeta();
 
   switch(fsmStateRX) {
 
@@ -450,9 +428,11 @@ void nrc(
         if ( !soUdp_data.full() ) {
           // Forward data chunk to ROLE
           UdpWord    udpWord = siUDMX_This_Data.read();
+          soUdp_data.write(udpWord);
           if (!udpWord.tlast) {
-            soUdp_data.write(udpWord);
             fsmStateRX = FSM_ACC;
+          } else { 
+            fsmStateRX = FSM_FIRST_ACC; //wait for next packet = stay here
           }
 
           //extrac src ip address
@@ -460,13 +440,9 @@ void nrc(
           NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
           NrcMeta tmp_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
           in_meta = NrcMetaStream(tmp_meta);
-          //in_meta.dst_rank = config[NRC_CONFIG_OWN_RANK];
-          //in_meta.dst_port = udpRxMeta.dst.port;
-          //in_meta.src_rank = src_id;
-          //in_meta.src_port = udpRxMeta.src.port;
 
           metaWritten = false;
-        }
+        } 
       }
       if(need_udp_port_req)
       {
