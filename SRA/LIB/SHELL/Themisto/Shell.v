@@ -131,8 +131,19 @@ module Shell_Themisto # (
   output [  7:0]  poSHL_Rol_Nts0_Udp_Axis_tkeep,
   output          poSHL_Rol_Nts0_Udp_Axis_tlast,
   output          poSHL_Rol_Nts0_Udp_Axis_tvalid,
-
+  //Open Port vector
   input [ 32:0]   piROL_Nrc_Udp_Rx_ports,
+  //-- ROLE <-> NRC Meta Interface
+  input   [47:0] piROLE_Nrc_Meta_TDATA;
+  input          piROLE_Nrc_Meta_TVALID;
+  output         piROLE_Nrc_Meta_TREADY;
+  input   [ 5:0] piROLE_Nrc_Meta_TKEEP;
+  input          piROLE_Nrc_Meta_TLAST;
+  output  [47:0] poNRC_Role_Meta_TDATA;
+  output         poNRC_Role_Meta_TVALID;
+  input          poNRC_Role_Meta_TREADY;
+  output  [ 5:0] poNRC_Role_Meta_TKEEP;
+  output         poNRC_Role_Meta_TLAST;
 
   //------------------------------------------------------
   //-- ROLE / Shl / Nts0 / Tcp Interfaces
@@ -573,49 +584,18 @@ module Shell_Themisto # (
   wire  [15:0]  sURIF_Udmx_PLen_Axis_tdata;
   wire          sURIF_Udmx_PLen_Axis_tvalid;
   wire          sUDMX_Urif_PLen_Axis_tready;
-   
-
-  wire [63:0] sNTS_MPE_Tcp_TDATA;
-  wire        sNTS_MPE_Tcp_TVALID;
-  wire        sNTS_MPE_Tcp_TREADY;
-  wire [ 7:0] sNTS_MPE_Tcp_TKEEP;
-  wire        sNTS_MPE_Tcp_TLAST;
-  wire [31:0] sNTS_MPE_IP_ipAddress_TDATA;
-  wire        sNTS_MPE_IP_ipAddress_TVALID;
-  wire        sNTS_MPE_IP_ipAddress_TREADY;
-  wire [63:0] sMPE_NTS_Tcp_TDATA;
-  wire        sMPE_NTS_Tcp_TVALID;
-  wire        sMPE_NTS_Tcp_TREADY;
-  wire [ 7:0] sMPE_NTS_Tcp_TKEEP;
-  wire        sMPE_NTS_Tcp_TLAST;
-  wire [31:0] sMPE_NTS_IP_ipAddress_TDATA;
-  wire        sMPE_NTS_IP_ipAddress_TVALID;
-  wire        sMPE_NTS_IP_ipAddress_TREADY;
-  wire [ 7:0] sROLE_MPE_MPIif_mpi_call_TDATA;
-  wire        sROLE_MPE_MPIif_mpi_call_TVALID;
-  wire        sROLE_MPE_MPIif_mpi_call_TREADY;
-  wire [31:0] sROLE_MPE_MPIif_count_in_TDATA;
-  wire        sROLE_MPE_MPIif_count_in_TVALID;
-  wire        sROLE_MPE_MPIif_count_in_TREADY;
-  wire [31:0] sROLE_MPE_MPIif_count_out_TDATA;
-  wire        sROLE_MPE_MPIif_count_out_TVALID;
-  wire        sROLE_MPE_MPIif_count_out_TREADY;
-  wire [31:0] sROLE_MPE_MPIif_src_rank_TDATA;
-  wire        sROLE_MPE_MPIif_src_rank_TVALID;
-  wire        sROLE_MPE_MPIif_src_rank_TREADY;
-  wire [31:0] sROLE_MPE_MPIif_dst_rank_TDATA;
-  wire        sROLE_MPE_MPIif_dst_rank_TVALID;
-  wire        sROLE_MPE_MPIif_dst_rank_TREADY;
-  wire [ 7:0] sROLE_MPE_MPI_data_TDATA;
-  wire        sROLE_MPE_MPI_data_TVALID;
-  wire        sROLE_MPE_MPI_data_TREADY;
-  wire        sROLE_MPE_MPI_data_TKEEP;
-  wire        sROLE_MPE_MPI_data_TLAST;
-  wire [ 7:0] sMPE_ROLE_MPI_data_TDATA;
-  wire        sMPE_ROLE_MPI_data_TVALID;
-  wire        sMPE_ROLE_MPI_data_TREADY;
-  wire        sMPE_ROLE_MPI_data_TKEEP;
-  wire        sMPE_ROLE_MPI_data_TLAST;
+  //-- ROLE <-> NRC Meta Interface
+  wire  [47:0] siROLE_Nrc_Meta_TDATA;
+  wire         siROLE_Nrc_Meta_TVALID;
+  wire         siROLE_Nrc_Meta_TREADY;
+  wire  [ 5:0] siROLE_Nrc_Meta_TKEEP;
+  wire         siROLE_Nrc_Meta_TLAST;
+  wire  [47:0] soNRC_Role_Meta_TDATA;
+  wire         soNRC_Role_Meta_TVALID;
+  wire         soNRC_Role_Meta_TREADY;
+  wire  [ 5:0] soNRC_Role_Meta_TKEEP;
+  wire         soNRC_Role_Meta_TLAST;
+  // SMC <==> NRC ctrlLink
   wire        sSMC_NRC_ctrlLink_AXI_AWVALID;
   wire        sSMC_NRC_ctrlLink_AXI_AWREADY;
   wire [13:0] sSMC_NRC_ctrlLink_AXI_AWADDR;
@@ -634,6 +614,26 @@ module Shell_Themisto # (
   wire        sSMC_NRC_ctrlLink_AXI_BREADY;
   wire [ 1:0] sSMC_NRC_ctrlLink_AXI_BRESP;
 
+  wire [63:0] slcUdp_data_TDATA  ;
+  wire        slcUdp_data_TVALID ;
+  wire        slcUdp_data_TREADY ;
+  wire [ 7:0] slcUdp_data_TKEEP  ;
+  wire        slcUdp_data_TLAST  ;
+  wire [63:0] slcUdp_data_TDATA  ;
+  wire        slcUdp_data_TVALID ;
+  wire        slcUdp_data_TREADY ;
+  wire [ 7:0] slcUdp_data_TKEEP  ;
+  wire        slcUdp_data_TLAST  ;
+  wire [47:0] slcNrc_meta_TDATA  ;
+  wire        slcNrc_meta_TVALID ;
+  wire        slcNrc_meta_TREADY ;
+  wire [ 5:0] slcNrc_meta_TKEEP  ;
+  wire        slcNrc_meta_TLAST  ;
+  wire [47:0] slcNrc_meta_TDATA  ;
+  wire        slcNrc_meta_TVALID ;
+  wire        slcNrc_meta_TREADY ;
+  wire [ 5:0] slcNrc_meta_TKEEP  ;
+  wire        slcNrc_meta_TLAST  ;
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -1292,26 +1292,26 @@ module Shell_Themisto # (
     .piSysReset_V_ap_vld      (1),
     .piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
     .piROL_NRC_Udp_Rx_ports_V_ap_vld (1),
-    .siUdp_data_TDATA         (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
-    .siUdp_data_TVALID        (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
-    .siUdp_data_TLAST         (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
-    .siUdp_data_TKEEP         (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
-    .siUdp_data_TREADY        (poSHL_Rol_Nts0_Udp_Axis_tready),
-    .soUdp_data_TDATA         (poSHL_Rol_Nts0_Udp_Axis_tdata),
-    .soUdp_data_TVALID        (poSHL_Rol_Nts0_Udp_Axis_tvalid),
-    .soUdp_data_TREADY        (sDECOUP_Shl_Nts0_Udp_Axis_tready),
-    .soUdp_data_TKEEP         (poSHL_Rol_Nts0_Udp_Axis_tkeep),
-    .soUdp_data_TLAST         (poSHL_Rol_Nts0_Udp_Axis_tlast),
-    .siNrc_meta_TDATA         ,
-    .siNrc_meta_TVALID        ,
-    .siNrc_meta_TREADY        ,
-    .siNrc_meta_TKEEP         ,
-    .siNrc_meta_TLAST         ,
-    .soNrc_meta_TDATA         ,
-    .soNrc_meta_TVALID        ,
-    .soNrc_meta_TREADY        ,
-    .soNrc_meta_TKEEP         ,
-    .soNrc_meta_TLAST         ,
+    .siUdp_data_TDATA         (slcUdp_data_TDATA ) ,
+    .siUdp_data_TVALID        (slcUdp_data_TVALID) ,
+    .siUdp_data_TREADY        (slcUdp_data_TREADY) ,
+    .siUdp_data_TKEEP         (slcUdp_data_TKEEP ) ,
+    .siUdp_data_TLAST         (slcUdp_data_TLAST ) ,
+    .soUdp_data_TDATA         (slcUdp_data_TDATA ) ,
+    .soUdp_data_TVALID        (slcUdp_data_TVALID) ,
+    .soUdp_data_TREADY        (slcUdp_data_TREADY) ,
+    .soUdp_data_TKEEP         (slcUdp_data_TKEEP ) ,
+    .soUdp_data_TLAST         (slcUdp_data_TLAST ) ,
+    .siNrc_meta_TDATA         (slcNrc_meta_TDATA ) ,
+    .siNrc_meta_TVALID        (slcNrc_meta_TVALID) ,
+    .siNrc_meta_TREADY        (slcNrc_meta_TREADY) ,
+    .siNrc_meta_TKEEP         (slcNrc_meta_TKEEP ) ,
+    .siNrc_meta_TLAST         (slcNrc_meta_TLAST ) ,
+    .soNrc_meta_TDATA         (slcNrc_meta_TDATA ) ,
+    .soNrc_meta_TVALID        (slcNrc_meta_TVALID) ,
+    .soNrc_meta_TREADY        (slcNrc_meta_TREADY) ,
+    .soNrc_meta_TKEEP         (slcNrc_meta_TKEEP ) ,
+    .soNrc_meta_TLAST         (slcNrc_meta_TLAST ) ,
     .piMyIpAddress_V          (sMMIO_Nts0_IpAddress),
     .piMyIpAddress_V_ap_vld   (1),
     .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Urif_OpnAck_Axis_tdata),
@@ -1358,21 +1358,74 @@ module Shell_Themisto # (
     .s_axi_piSMC_NRC_ctrlLink_AXI_BRESP     (sSMC_NRC_ctrlLink_AXI_BRESP)
 );
 
+  AxisRegisterSlice_64 ARS0 (
+    .aclk           (sETH0_ShlClk),
+    .aresetn        (~piTOP_156_25Rst),
+    //-- From ROLE 
+    .s_axis_tdata   (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
+    .s_axis_tvalid  (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
+    .s_axis_tready  (poSHL_Rol_Nts0_Udp_Axis_tready),
+    .s_axis_tkeep   (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
+    .s_axis_tlast   (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
+    //-- To NRC
+    .m_axis_tdata   (slcUdp_data_TDATA ),
+    .m_axis_tvalid  (slcUdp_data_TVALID),
+    .m_axis_tready  (slcUdp_data_TREADY),
+    .m_axis_tkeep   (slcUdp_data_TKEEP ),
+    .m_axis_tlast   (slcUdp_data_TLAST ) 
+  );
 
-  // Temporary assignment (until MPE module is back)
-  assign sSMC_NRC_ctrlLink_AXI_AWREADY = 0;
-  assign sSMC_NRC_ctrlLink_AXI_WREADY  = 0;
-  //assign sSMC_NRC_ctrlLink_AXI_BID     = 0;
-  assign sSMC_NRC_ctrlLink_AXI_BRESP   = 0; 
-  //assign sSMC_NRC_ctrlLink_AXI_BUSER   = 0;  
-  assign sSMC_NRC_ctrlLink_AXI_BVALID  = 0;
-  assign sSMC_NRC_ctrlLink_AXI_ARREADY = 0;
-  assign sSMC_NRC_ctrlLink_AXI_BREADY  = 0;
-  assign sSMC_NRC_ctrlLink_AXI_RDATA   = 0;
-  assign sSMC_NRC_ctrlLink_AXI_RRESP   = 0;
-  //assign sSMC_NRC_ctrlLink_AXI_RLAST   = 0;
-  //assign sSMC_NRC_ctrlLink_AXI_RUSER   = 0;
-  assign sSMC_NRC_ctrlLink_AXI_RVALID  = 0;
+  AxisRegisterSlice_64 ARS1 (
+    .aclk           (sETH0_ShlClk),
+    .aresetn        (~piTOP_156_25Rst),
+    //-- From NRC
+    .s_axis_tdata   (slcUdp_data_TDATA ),
+    .s_axis_tvalid  (slcUdp_data_TVALID),
+    .s_axis_tready  (slcUdp_data_TREADY),
+    .s_axis_tkeep   (slcUdp_data_TKEEP ),
+    .s_axis_tlast   (slcUdp_data_TLAST ),
+    //-- To ROLE
+    .m_axis_tdata   (poSHL_Rol_Nts0_Udp_Axis_tdata),
+    .m_axis_tvalid  (poSHL_Rol_Nts0_Udp_Axis_tvalid),
+    .m_axis_tready  (sDECOUP_Shl_Nts0_Udp_Axis_tready),
+    .m_axis_tkeep   (poSHL_Rol_Nts0_Udp_Axis_tkeep),
+    .m_axis_tlast   (poSHL_Rol_Nts0_Udp_Axis_tlast)
+  );
+  
+  AxisRegisterSlice_64 ARS2 (
+    .aclk           (sETH0_ShlClk),
+    .aresetn        (~piTOP_156_25Rst),
+    //-- From ROLE 
+    .s_axis_tdata   (siROLE_Nrc_Meta_TDATA),
+    .s_axis_tvalid  (siROLE_Nrc_Meta_TVALID),
+    .s_axis_tready  (siROLE_Nrc_Meta_TREADY),
+    .s_axis_tkeep   (siROLE_Nrc_Meta_TKEEP),
+    .s_axis_tlast   (siROLE_Nrc_Meta_TLAST),
+    //-- To NRC
+    .m_axis_tdata   (slcNrc_meta_TDATA ),
+    .m_axis_tvalid  (slcNrc_meta_TVALID),
+    .m_axis_tready  (slcNrc_meta_TREADY),
+    .m_axis_tkeep   (slcNrc_meta_TKEEP ),
+    .m_axis_tlast   (slcNrc_meta_TLAST )
+  );
+  
+  AxisRegisterSlice_64 ARS3 (
+    .aclk           (sETH0_ShlClk),
+    .aresetn        (~piTOP_156_25Rst),
+    //-- From NRC
+    .s_axis_tdata   (slcNrc_meta_TDATA ) ,
+    .s_axis_tvalid  (slcNrc_meta_TVALID) ,
+    .s_axis_tready  (slcNrc_meta_TREADY) ,
+    .s_axis_tkeep   (slcNrc_meta_TKEEP ) ,
+    .s_axis_tlast   (slcNrc_meta_TLAST ) ,
+    //-- To Role
+    .m_axis_tdata   (soNRC_Role_Meta_TDATA),
+    .m_axis_tvalid  (soNRC_Role_Meta_TVALID),
+    .m_axis_tready  (soNRC_Role_Meta_TREADY),
+    .m_axis_tkeep   (soNRC_Role_Meta_TKEEP),
+    .m_axis_tlast   (soNRC_Role_Meta_TLAST)
+  );
+  
 
   assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
   assign poSMC_ROLE_size = sCASTOR_ROLE_size;
