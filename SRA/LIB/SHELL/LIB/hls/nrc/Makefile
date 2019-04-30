@@ -16,7 +16,7 @@
 
 # Name of the HLS core to build
 ipName = nrc
-
+top_suffix =_main
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
@@ -28,7 +28,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 	@#the following is for checking if the AXI4Lite Addresses had changed 
-	diff ./${ipName}_prj/solution1/impl/ip/drivers/${ipName}_v1_0/src/x${ipName}_hw.h ./ref/x${ipName}_hw.h
+	diff ./${ipName}_prj/solution1/impl/ip/drivers/${ipName}${top_suffix}_v1_0/src/x${ipName}${top_suffix}_hw.h ./ref/x${ipName}${top_suffix}_hw.h
 	@/bin/echo -e "AXI4Lite Addresses checked: OK\n"
 	@touch $@
 	@touch ../../.ip_guard

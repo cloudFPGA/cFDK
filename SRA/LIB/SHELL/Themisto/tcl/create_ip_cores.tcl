@@ -47,7 +47,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : NRC IP
 #------------------------------------------------------------------------------
 set ipModName "NRC"
-set ipName    "nrc"
+set ipName    "nrc_main"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

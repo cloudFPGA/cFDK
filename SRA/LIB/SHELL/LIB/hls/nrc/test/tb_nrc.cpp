@@ -63,7 +63,7 @@ int         simCnt;
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
-    nrc(
+    nrc_main(
         0,
         ctrlLink,
         &pi_udp_rx_ports,

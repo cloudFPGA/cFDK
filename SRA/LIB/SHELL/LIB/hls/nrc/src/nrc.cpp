@@ -91,7 +91,7 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
  * @brief   Main process of the UDP Role Interface
  *
  *****************************************************************************/
-void nrc(
+void nrc_main(
     // ----- system reset ---
     ap_uint<1> sys_reset,
     // ----- link to SMC -----

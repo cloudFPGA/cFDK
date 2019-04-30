@@ -149,7 +149,7 @@ using namespace hls;
 //#define NRC_STATUS_READOUT 13
 //and 14 and 15 
 
-void nrc(
+void nrc_main(
     // ----- system reset ---
     ap_uint<1> sys_reset,
     // ----- link to SMC -----

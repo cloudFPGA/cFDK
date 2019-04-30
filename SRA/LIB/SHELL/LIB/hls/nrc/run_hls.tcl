@@ -51,7 +51,7 @@ set hlsCoSim $env(hlsCoSim)
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
-set_top       ${projectName}
+set_top       ${projectName}_main
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp

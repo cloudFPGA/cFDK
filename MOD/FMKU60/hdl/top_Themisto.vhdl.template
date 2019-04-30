@@ -178,9 +178,9 @@ architecture structural of topFMKU60 is
   signal sSHL_Rol_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tlast       : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;
-  signal -- Open Port vector
+  -- Open Port vector
   signal sROL_Nrc_Udp_Rx_ports              : std_ulogic_vector( 31 downto 0);
-  signal -- ROLE <-> NRC Meta Interface
+  -- ROLE <-> NRC Meta Interface
   signal sROLE_Nrc_Meta_TDATA               : std_ulogic_vector( 47 downto 0);
   signal sROLE_Nrc_Meta_TVALID              : std_ulogic;
   signal sROLE_Nrc_Meta_TREADY              : std_ulogic;
