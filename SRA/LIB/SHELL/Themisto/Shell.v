@@ -132,7 +132,7 @@ module Shell_Themisto # (
   output          poSHL_Rol_Nts0_Udp_Axis_tlast,
   output          poSHL_Rol_Nts0_Udp_Axis_tvalid,
   //Open Port vector
-  input [ 32:0]   piROL_Nrc_Udp_Rx_ports,
+  input [ 31:0]   piROL_Nrc_Udp_Rx_ports,
   //-- ROLE <-> NRC Meta Interface
   input   [47:0] piROLE_Nrc_Meta_TDATA;
   input          piROLE_Nrc_Meta_TVALID;

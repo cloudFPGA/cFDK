@@ -177,7 +177,21 @@ architecture structural of topFMKU60 is
   signal sSHL_Rol_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tlast       : std_ulogic;
-  signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;  
+  signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;
+  signal -- Open Port vector
+  signal sROL_Nrc_Udp_Rx_ports              : std_ulogic_vector( 31 downto 0);
+  signal -- ROLE <-> NRC Meta Interface
+  signal sROLE_Nrc_Meta_TDATA               : std_ulogic_vector( 47 downto 0);
+  signal sROLE_Nrc_Meta_TVALID              : std_ulogic;
+  signal sROLE_Nrc_Meta_TREADY              : std_ulogic;
+  signal sROLE_Nrc_Meta_TKEEP               : std_ulogic_vector(  5 downto 0);
+  signal sROLE_Nrc_Meta_TLAST               : std_ulogic;
+  signal sNRC_Role_Meta_TDATA               : std_ulogic_vector( 47 downto 0);
+  signal sNRC_Role_Meta_TVALID              : std_ulogic;
+  signal sNRC_Role_Meta_TREADY              : std_ulogic;
+  signal sNRC_Role_Meta_TKEEP               : std_ulogic_vector(  5 downto 0);
+  signal sNRC_Role_Meta_TLAST               : std_ulogic;
+  
   ---- TCP Interface ---------------------------
   ------ Input AXI-Write Stream Interface ------
   signal sROL_Shl_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
@@ -554,6 +568,19 @@ architecture structural of topFMKU60 is
       poROL_Shl_Nts0_Udp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
       poROL_Shl_Nts0_Udp_Axis_tvalid      : out   std_ulogic;
       poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
+      -- Open Port vector
+      poROL_Nrc_Udp_Rx_ports              : out    std_ulogic_vector( 31 downto 0);
+      -- ROLE <-> NRC Meta Interface
+      poROLE_Nrc_Meta_TDATA               : out   std_ulogic_vector( 47 downto 0);
+      poROLE_Nrc_Meta_TVALID              : out   std_ulogic;
+      poROLE_Nrc_Meta_TREADY              : in    std_ulogic;
+      poROLE_Nrc_Meta_TKEEP               : out   std_ulogic_vector(  5 downto 0);
+      poROLE_Nrc_Meta_TLAST               : out   std_ulogic;
+      piNRC_Role_Meta_TDATA               : in    std_ulogic_vector( 47 downto 0);
+      piNRC_Role_Meta_TVALID              : in    std_ulogic;
+      piNRC_Role_Meta_TREADY              : out   std_ulogic;
+      piNRC_Role_Meta_TKEEP               : in    std_ulogic_vector(  5 downto 0);
+      piNRC_Role_Meta_TLAST               : in    std_ulogic;
       
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Tcp Interface
@@ -873,6 +900,19 @@ begin
       poSHL_Rol_Nts0_Udp_Axis_tkeep       => sSHL_Rol_Nts0_Udp_Axis_tkeep,
       poSHL_Rol_Nts0_Udp_Axis_tlast       => sSHL_Rol_Nts0_Udp_Axis_tlast ,
       poSHL_Rol_Nts0_Udp_Axis_tvalid      => sSHL_Rol_Nts0_Udp_Axis_tvalid,
+      -- Open Port vector
+      piROL_Nrc_Udp_Rx_ports              =>  sROL_Nrc_Udp_Rx_ports  ,
+      -- ROLE <-> NRC Meta Interface 
+      piROLE_Nrc_Meta_TDATA               =>  sROLE_Nrc_Meta_TDATA   ,
+      piROLE_Nrc_Meta_TVALID              =>  sROLE_Nrc_Meta_TVALID  ,
+      piROLE_Nrc_Meta_TREADY              =>  sROLE_Nrc_Meta_TREADY  ,
+      piROLE_Nrc_Meta_TKEEP               =>  sROLE_Nrc_Meta_TKEEP   ,
+      piROLE_Nrc_Meta_TLAST               =>  sROLE_Nrc_Meta_TLAST   ,
+      poNRC_Role_Meta_TDATA               =>  sNRC_Role_Meta_TDATA   ,
+      poNRC_Role_Meta_TVALID              =>  sNRC_Role_Meta_TVALID  ,
+      poNRC_Role_Meta_TREADY              =>  sNRC_Role_Meta_TREADY  ,
+      poNRC_Role_Meta_TKEEP               =>  sNRC_Role_Meta_TKEEP   ,
+      poNRC_Role_Meta_TLAST               =>  sNRC_Role_Meta_TLAST   ,
       
       ------------------------------------------------------
       -- ROLE / Shl /Nts0 / Tcp Interfaces
@@ -1010,6 +1050,19 @@ begin
       poROL_Shl_Nts0_Udp_Axis_tkeep       => sROL_Shl_Nts0_Udp_Axis_tkeep,
       poROL_Shl_Nts0_Udp_Axis_tlast       => sROL_Shl_Nts0_Udp_Axis_tlast,
       poROL_Shl_Nts0_Udp_Axis_tvalid      => sROL_Shl_Nts0_Udp_Axis_tvalid,
+      -- Open Port vector
+      poROL_Nrc_Udp_Rx_ports              =>  sROL_Nrc_Udp_Rx_ports  ,
+      -- ROLE <-> NRC Meta Interface
+      poROLE_Nrc_Meta_TDATA               =>  sROLE_Nrc_Meta_TDATA   ,
+      poROLE_Nrc_Meta_TVALID              =>  sROLE_Nrc_Meta_TVALID  ,
+      poROLE_Nrc_Meta_TREADY              =>  sROLE_Nrc_Meta_TREADY  ,
+      poROLE_Nrc_Meta_TKEEP               =>  sROLE_Nrc_Meta_TKEEP   ,
+      poROLE_Nrc_Meta_TLAST               =>  sROLE_Nrc_Meta_TLAST   ,
+      piNRC_Role_Meta_TDATA               =>  sNRC_Role_Meta_TDATA   ,
+      piNRC_Role_Meta_TVALID              =>  sNRC_Role_Meta_TVALID  ,
+      piNRC_Role_Meta_TREADY              =>  sNRC_Role_Meta_TREADY  ,
+      piNRC_Role_Meta_TKEEP               =>  sNRC_Role_Meta_TKEEP   ,
+      piNRC_Role_Meta_TLAST               =>  sNRC_Role_Meta_TLAST   ,
       
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Tcp Interface
