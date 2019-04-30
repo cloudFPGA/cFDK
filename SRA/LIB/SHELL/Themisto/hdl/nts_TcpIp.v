@@ -162,19 +162,19 @@ module NetworkTransportSession_TcpIp (
   input           siURIF_Udmx_OpnReq_Axis_tvalid,
   output          siUDMX_Urif_OpnReq_Axis_tready,
   //-- URIF ==> UDMX / Data / Axis ---------------              
-  input   [63:0]  siURIF_Udmx_Data_Axis_tdata;    
-  input   [ 7:0]  siURIF_Udmx_Data_Axis_tkeep;
-  input           siURIF_Udmx_Data_Axis_tlast;
-  input           siURIF_Udmx_Data_Axis_tvalid;   
-  output          siUDMX_Urif_Data_Axis_tready;
+  input   [63:0]  siURIF_Udmx_Data_Axis_tdata,
+  input   [ 7:0]  siURIF_Udmx_Data_Axis_tkeep,
+  input           siURIF_Udmx_Data_Axis_tlast,
+  input           siURIF_Udmx_Data_Axis_tvalid,   
+  output          siUDMX_Urif_Data_Axis_tready,
   //-- URIF ==> UDMX / Meta / Axis ---------------
-  input   [95:0]  siURIF_Udmx_Meta_Axis_tdata;
-  input           siURIF_Udmx_Meta_Axis_tvalid;
-  output          siUDMX_Urif_Meta_Axis_tready;
+  input   [95:0]  siURIF_Udmx_Meta_Axis_tdata,
+  input           siURIF_Udmx_Meta_Axis_tvalid,
+  output          siUDMX_Urif_Meta_Axis_tready,
   //-- URIF ==> UDMX / TxLen / Axis --------------
-  input   [15:0]  siURIF_Udmx_PLen_Axis_tdata;
-  input           siURIF_Udmx_PLen_Axis_tvalid;
-  output          siUDMX_Urif_PLen_Axis_tready;
+  input   [15:0]  siURIF_Udmx_PLen_Axis_tdata,
+  input           siURIF_Udmx_PLen_Axis_tvalid,
+  output          siUDMX_Urif_PLen_Axis_tready,
   
   //------------------------------------------------------
   //-- ROLE / Nts0 / Tcp Interfaces

@@ -134,16 +134,16 @@ module Shell_Themisto # (
   //Open Port vector
   input [ 31:0]   piROL_Nrc_Udp_Rx_ports,
   //-- ROLE <-> NRC Meta Interface
-  input   [47:0] piROLE_Nrc_Meta_TDATA;
-  input          piROLE_Nrc_Meta_TVALID;
-  output         piROLE_Nrc_Meta_TREADY;
-  input   [ 5:0] piROLE_Nrc_Meta_TKEEP;
-  input          piROLE_Nrc_Meta_TLAST;
-  output  [47:0] poNRC_Role_Meta_TDATA;
-  output         poNRC_Role_Meta_TVALID;
-  input          poNRC_Role_Meta_TREADY;
-  output  [ 5:0] poNRC_Role_Meta_TKEEP;
-  output         poNRC_Role_Meta_TLAST;
+  input   [47:0] piROLE_Nrc_Meta_TDATA,
+  input          piROLE_Nrc_Meta_TVALID,
+  output         piROLE_Nrc_Meta_TREADY,
+  input   [ 5:0] piROLE_Nrc_Meta_TKEEP,
+  input          piROLE_Nrc_Meta_TLAST,
+  output  [47:0] poNRC_Role_Meta_TDATA,
+  output         poNRC_Role_Meta_TVALID,
+  input          poNRC_Role_Meta_TREADY,
+  output  [ 5:0] poNRC_Role_Meta_TKEEP,
+  output         poNRC_Role_Meta_TLAST,
 
   //------------------------------------------------------
   //-- ROLE / Shl / Nts0 / Tcp Interfaces
@@ -1286,8 +1286,6 @@ module Shell_Themisto # (
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
     .ap_rst_n               (~ piTOP_156_25Rst),
-    //core should start immediately 
-    .ap_start               (1),
     .piSysReset_V             (piSHL_156_25Rst_delayed),
     .piSysReset_V_ap_vld      (1),
     .piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
