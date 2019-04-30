@@ -21,6 +21,7 @@ To abstract the details of the hardware from the user and to assert certain leve
 Currently, the following SRAs are available:
 * [x1Udp_x1Tcp_x2Mp_x2Mc](./DOC/x1Udp_x1Tcp_x2Mp_x2Mc.md) This interface has one AXI-Stream for UDP and TCP each, as well as two stream based memory ports.
 * [MPIv0_x2Mp_x2Mc](./DOC/MPIv0_x2Mp_x2Mc.md) This interface one stream based MPI interface, as well as two stream based memory ports.
+* [Themisto](./DOC/Themisto.md) This SRA type enables node2node communication within cloudFPGA. 
 
 Details for the interfaces can be found in the linked documents.
 
