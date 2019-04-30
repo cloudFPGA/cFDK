@@ -99,7 +99,8 @@ struct NrcMeta {
 //ATTENTION: split between NrcMeta and NrcMetaStream is necessary, due to flaws in Vivados hls::stream library
 struct NrcMetaStream {
   NrcMeta tdata; 
-  ap_uint<(sizeof(NrcMeta)+7)/8> tkeep;
+  //ap_uint<(sizeof(NrcMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
+  ap_uint<6> tkeep;
   ap_uint<1> tlast;
   NrcMetaStream() {}
   NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(1), tlast(1) {}
