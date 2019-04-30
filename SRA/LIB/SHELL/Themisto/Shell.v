@@ -614,26 +614,26 @@ module Shell_Themisto # (
   wire        sSMC_NRC_ctrlLink_AXI_BREADY;
   wire [ 1:0] sSMC_NRC_ctrlLink_AXI_BRESP;
 
-  wire [63:0] slcUdp_data_TDATA  ;
-  wire        slcUdp_data_TVALID ;
-  wire        slcUdp_data_TREADY ;
-  wire [ 7:0] slcUdp_data_TKEEP  ;
-  wire        slcUdp_data_TLAST  ;
-  wire [63:0] slcUdp_data_TDATA  ;
-  wire        slcUdp_data_TVALID ;
-  wire        slcUdp_data_TREADY ;
-  wire [ 7:0] slcUdp_data_TKEEP  ;
-  wire        slcUdp_data_TLAST  ;
-  wire [47:0] slcNrc_meta_TDATA  ;
-  wire        slcNrc_meta_TVALID ;
-  wire        slcNrc_meta_TREADY ;
-  wire [ 5:0] slcNrc_meta_TKEEP  ;
-  wire        slcNrc_meta_TLAST  ;
-  wire [47:0] slcNrc_meta_TDATA  ;
-  wire        slcNrc_meta_TVALID ;
-  wire        slcNrc_meta_TREADY ;
-  wire [ 5:0] slcNrc_meta_TKEEP  ;
-  wire        slcNrc_meta_TLAST  ;
+  wire [63:0] slcInUdp_data_TDATA  ;
+  wire        slcInUdp_data_TVALID ;
+  wire        slcInUdp_data_TREADY ;
+  wire [ 7:0] slcInUdp_data_TKEEP  ;
+  wire        slcInUdp_data_TLAST  ;
+  wire [63:0] slcOutUdp_data_TDATA  ;
+  wire        slcOutUdp_data_TVALID ;
+  wire        slcOutUdp_data_TREADY ;
+  wire [ 7:0] slcOutUdp_data_TKEEP  ;
+  wire        slcOutUdp_data_TLAST  ;
+  wire [47:0] slcInNrc_meta_TDATA  ;
+  wire        slcInNrc_meta_TVALID ;
+  wire        slcInNrc_meta_TREADY ;
+  wire [ 5:0] slcInNrc_meta_TKEEP  ;
+  wire        slcInNrc_meta_TLAST  ;
+  wire [47:0] slcOutNrc_meta_TDATA  ;
+  wire        slcOutNrc_meta_TVALID ;
+  wire        slcOutNrc_meta_TREADY ;
+  wire [ 5:0] slcOutNrc_meta_TKEEP  ;
+  wire        slcOutNrc_meta_TLAST  ;
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -1288,28 +1288,29 @@ module Shell_Themisto # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     .piSysReset_V             (piSHL_156_25Rst_delayed),
     .piSysReset_V_ap_vld      (1),
-    .piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
+    //.piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
+    .piROL_NRC_Udp_Rx_ports_V (piROL_Nrc_Udp_Rx_ports),
     .piROL_NRC_Udp_Rx_ports_V_ap_vld (1),
-    .siUdp_data_TDATA         (slcUdp_data_TDATA ) ,
-    .siUdp_data_TVALID        (slcUdp_data_TVALID) ,
-    .siUdp_data_TREADY        (slcUdp_data_TREADY) ,
-    .siUdp_data_TKEEP         (slcUdp_data_TKEEP ) ,
-    .siUdp_data_TLAST         (slcUdp_data_TLAST ) ,
-    .soUdp_data_TDATA         (slcUdp_data_TDATA ) ,
-    .soUdp_data_TVALID        (slcUdp_data_TVALID) ,
-    .soUdp_data_TREADY        (slcUdp_data_TREADY) ,
-    .soUdp_data_TKEEP         (slcUdp_data_TKEEP ) ,
-    .soUdp_data_TLAST         (slcUdp_data_TLAST ) ,
-    .siNrc_meta_TDATA         (slcNrc_meta_TDATA ) ,
-    .siNrc_meta_TVALID        (slcNrc_meta_TVALID) ,
-    .siNrc_meta_TREADY        (slcNrc_meta_TREADY) ,
-    .siNrc_meta_TKEEP         (slcNrc_meta_TKEEP ) ,
-    .siNrc_meta_TLAST         (slcNrc_meta_TLAST ) ,
-    .soNrc_meta_TDATA         (slcNrc_meta_TDATA ) ,
-    .soNrc_meta_TVALID        (slcNrc_meta_TVALID) ,
-    .soNrc_meta_TREADY        (slcNrc_meta_TREADY) ,
-    .soNrc_meta_TKEEP         (slcNrc_meta_TKEEP ) ,
-    .soNrc_meta_TLAST         (slcNrc_meta_TLAST ) ,
+    .siUdp_data_TDATA         (slcInUdp_data_TDATA ) ,
+    .siUdp_data_TVALID        (slcInUdp_data_TVALID) ,
+    .siUdp_data_TREADY        (slcInUdp_data_TREADY) ,
+    .siUdp_data_TKEEP         (slcInUdp_data_TKEEP ) ,
+    .siUdp_data_TLAST         (slcInUdp_data_TLAST ) ,
+    .soUdp_data_TDATA         (slcOutUdp_data_TDATA ) ,
+    .soUdp_data_TVALID        (slcOutUdp_data_TVALID) ,
+    .soUdp_data_TREADY        (slcOutUdp_data_TREADY) ,
+    .soUdp_data_TKEEP         (slcOutUdp_data_TKEEP ) ,
+    .soUdp_data_TLAST         (slcOutUdp_data_TLAST ) ,
+    .siNrc_meta_TDATA         (slcInNrc_meta_TDATA ) ,
+    .siNrc_meta_TVALID        (slcInNrc_meta_TVALID) ,
+    .siNrc_meta_TREADY        (slcInNrc_meta_TREADY) ,
+    .siNrc_meta_TKEEP         (slcInNrc_meta_TKEEP ) ,
+    .siNrc_meta_TLAST         (slcInNrc_meta_TLAST ) ,
+    .soNrc_meta_TDATA         (slcOutNrc_meta_TDATA ) ,
+    .soNrc_meta_TVALID        (slcOutNrc_meta_TVALID) ,
+    .soNrc_meta_TREADY        (slcOutNrc_meta_TREADY) ,
+    .soNrc_meta_TKEEP         (slcOutNrc_meta_TKEEP ) ,
+    .soNrc_meta_TLAST         (slcOutNrc_meta_TLAST ) ,
     .piMyIpAddress_V          (sMMIO_Nts0_IpAddress),
     .piMyIpAddress_V_ap_vld   (1),
     .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Urif_OpnAck_Axis_tdata),
@@ -1356,7 +1357,7 @@ module Shell_Themisto # (
     .s_axi_piSMC_NRC_ctrlLink_AXI_BRESP     (sSMC_NRC_ctrlLink_AXI_BRESP)
 );
 
-  AxisRegisterSlice_64 ARS0 (
+  AxisRegisterSlice_64 SARS0 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
@@ -1366,22 +1367,22 @@ module Shell_Themisto # (
     .s_axis_tkeep   (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
     .s_axis_tlast   (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
     //-- To NRC
-    .m_axis_tdata   (slcUdp_data_TDATA ),
-    .m_axis_tvalid  (slcUdp_data_TVALID),
-    .m_axis_tready  (slcUdp_data_TREADY),
-    .m_axis_tkeep   (slcUdp_data_TKEEP ),
-    .m_axis_tlast   (slcUdp_data_TLAST ) 
+    .m_axis_tdata   (slcInUdp_data_TDATA ),
+    .m_axis_tvalid  (slcInUdp_data_TVALID),
+    .m_axis_tready  (slcInUdp_data_TREADY),
+    .m_axis_tkeep   (slcInUdp_data_TKEEP ),
+    .m_axis_tlast   (slcInUdp_data_TLAST ) 
   );
 
-  AxisRegisterSlice_64 ARS1 (
+  AxisRegisterSlice_64 SARS1 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From NRC
-    .s_axis_tdata   (slcUdp_data_TDATA ),
-    .s_axis_tvalid  (slcUdp_data_TVALID),
-    .s_axis_tready  (slcUdp_data_TREADY),
-    .s_axis_tkeep   (slcUdp_data_TKEEP ),
-    .s_axis_tlast   (slcUdp_data_TLAST ),
+    .s_axis_tdata   (slcOutUdp_data_TDATA ),
+    .s_axis_tvalid  (slcOutUdp_data_TVALID),
+    .s_axis_tready  (slcOutUdp_data_TREADY),
+    .s_axis_tkeep   (slcOutUdp_data_TKEEP ),
+    .s_axis_tlast   (slcOutUdp_data_TLAST ),
     //-- To ROLE
     .m_axis_tdata   (poSHL_Rol_Nts0_Udp_Axis_tdata),
     .m_axis_tvalid  (poSHL_Rol_Nts0_Udp_Axis_tvalid),
@@ -1390,38 +1391,38 @@ module Shell_Themisto # (
     .m_axis_tlast   (poSHL_Rol_Nts0_Udp_Axis_tlast)
   );
   
-  AxisRegisterSlice_64 ARS2 (
+  AxisRegisterSlice_64 SARS2 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
-    .s_axis_tdata   (siROLE_Nrc_Meta_TDATA),
-    .s_axis_tvalid  (siROLE_Nrc_Meta_TVALID),
-    .s_axis_tready  (siROLE_Nrc_Meta_TREADY),
-    .s_axis_tkeep   (siROLE_Nrc_Meta_TKEEP),
-    .s_axis_tlast   (siROLE_Nrc_Meta_TLAST),
+    .s_axis_tdata   (piROLE_Nrc_Meta_TDATA),
+    .s_axis_tvalid  (piROLE_Nrc_Meta_TVALID),
+    .s_axis_tready  (piROLE_Nrc_Meta_TREADY),
+    .s_axis_tkeep   (piROLE_Nrc_Meta_TKEEP),
+    .s_axis_tlast   (piROLE_Nrc_Meta_TLAST),
     //-- To NRC
-    .m_axis_tdata   (slcNrc_meta_TDATA ),
-    .m_axis_tvalid  (slcNrc_meta_TVALID),
-    .m_axis_tready  (slcNrc_meta_TREADY),
-    .m_axis_tkeep   (slcNrc_meta_TKEEP ),
-    .m_axis_tlast   (slcNrc_meta_TLAST )
+    .m_axis_tdata   (slcInNrc_meta_TDATA ),
+    .m_axis_tvalid  (slcInNrc_meta_TVALID),
+    .m_axis_tready  (slcInNrc_meta_TREADY),
+    .m_axis_tkeep   (slcInNrc_meta_TKEEP ),
+    .m_axis_tlast   (slcInNrc_meta_TLAST )
   );
   
-  AxisRegisterSlice_64 ARS3 (
+  AxisRegisterSlice_64 SARS3 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From NRC
-    .s_axis_tdata   (slcNrc_meta_TDATA ) ,
-    .s_axis_tvalid  (slcNrc_meta_TVALID) ,
-    .s_axis_tready  (slcNrc_meta_TREADY) ,
-    .s_axis_tkeep   (slcNrc_meta_TKEEP ) ,
-    .s_axis_tlast   (slcNrc_meta_TLAST ) ,
+    .s_axis_tdata   (slcOutNrc_meta_TDATA ) ,
+    .s_axis_tvalid  (slcOutNrc_meta_TVALID) ,
+    .s_axis_tready  (slcOutNrc_meta_TREADY) ,
+    .s_axis_tkeep   (slcOutNrc_meta_TKEEP ) ,
+    .s_axis_tlast   (slcOutNrc_meta_TLAST ) ,
     //-- To Role
-    .m_axis_tdata   (soNRC_Role_Meta_TDATA),
-    .m_axis_tvalid  (soNRC_Role_Meta_TVALID),
-    .m_axis_tready  (soNRC_Role_Meta_TREADY),
-    .m_axis_tkeep   (soNRC_Role_Meta_TKEEP),
-    .m_axis_tlast   (soNRC_Role_Meta_TLAST)
+    .m_axis_tdata   (poNRC_Role_Meta_TDATA),
+    .m_axis_tvalid  (poNRC_Role_Meta_TVALID),
+    .m_axis_tready  (poNRC_Role_Meta_TREADY),
+    .m_axis_tkeep   (poNRC_Role_Meta_TKEEP),
+    .m_axis_tlast   (poNRC_Role_Meta_TLAST)
   );
   
 
