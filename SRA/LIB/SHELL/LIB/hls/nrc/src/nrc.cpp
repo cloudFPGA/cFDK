@@ -342,8 +342,18 @@ void nrc_main(
             //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
 
             ap_uint<32> dst_ip_addr = localMRT[out_meta.tdata.dst_rank];
+            NrcPort src_port = out_meta.tdata.src_port; //TODO: DEBUG
+            if (src_port == 0)
+            {
+              src_port = DEFAULT_RX_PORT;
+            }
+            NrcPort dst_port = out_meta.tdata.dst_port; //TODO: DEBUG
+            if (dst_port == 0)
+            {
+              dst_port = DEFAULT_RX_PORT;
+            }
             // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-            UdpMeta txMeta = {{out_meta.tdata.src_port, ipAddrLE}, {out_meta.tdata.dst_port, dst_ip_addr}};
+            UdpMeta txMeta = {{src_port, ipAddrLE}, {dst_port, dst_ip_addr}};
             soTHIS_Udmx_Meta.write(txMeta);
 
             soTHIS_Udmx_PLen.write(sPLen.read());
