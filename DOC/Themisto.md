@@ -81,6 +81,17 @@ struct UdpWord {            // UDP Streaming Chunk (i.e. 8 bytes)
 };
 ```
 
+### Protocol
+
+A packet transmission consists *always of two streams: one data stream and one meta stream*. 
+
+For each data stream *one valid* transaction of the meta stream comes along 
+(i.e. the meta stream has the `tlast` and the `tvalid` asserted). 
+
+The Network Core does not process a data stream, before a valid Meta-word was received.
+Therefore, it is recommended to send the meta stream along with the start of the data stream.
+
+
 SRA interface
 -------------------
 
