@@ -8,7 +8,7 @@
 
 
 static char* httpHeader = "HTTP/1.1 ";
-static char* generalHeader = "Cache-Control: private\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n";
+static char* generalHeader = "Cache-Control: private\r\nContent-Type: text/plain; charset=utf-8\r\nServer: cloudFPGA/0.2\r\n"; //TODO: use CFDK version
 static char* httpNL = "\r\n";
 static char* contentLengthHeader = "Content-Length: ";
 

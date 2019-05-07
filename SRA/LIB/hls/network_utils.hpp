@@ -83,6 +83,7 @@ typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
+#define MAX_CF_NODE_ID 128
 
 struct NrcMeta {
   NodeId  dst_rank; //ATTENTION: don't use 'id' in a struct...will be ignored by axis directive and lead to segfaults...

@@ -546,8 +546,6 @@ module Shell_Themisto # (
   wire        sCASTOR_MMIO_XMEM_cen; //Chip-enable
   wire        sCASTOR_MMIO_XMEM_wren; //Write-enable
   wire [31:0] sCASTOR_MMIO_XMEM_WData;
-  wire [31:0] sCASTOR_ROLE_rank; 
-  wire [31:0] sCASTOR_ROLE_size; 
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : NRC
@@ -1277,8 +1275,8 @@ module Shell_Themisto # (
     .m_axi_poSMC_NRC_ctrlLink_AXI_BVALID        (sSMC_NRC_ctrlLink_AXI_BVALID),
     .m_axi_poSMC_NRC_ctrlLink_AXI_BREADY        (sSMC_NRC_ctrlLink_AXI_BREADY),
     .m_axi_poSMC_NRC_ctrlLink_AXI_BRESP         (sSMC_NRC_ctrlLink_AXI_BRESP),
-    .poSMC_to_ROLE_rank_V                (sCASTOR_ROLE_rank),
-    .poSMC_to_ROLE_size_V                (sCASTOR_ROLE_size)
+    .poSMC_to_ROLE_rank_V                (poSMC_ROLE_rank),
+    .poSMC_to_ROLE_size_V                (poSMC_ROLE_size)
   );
 
   NRC NRC_LAYER (
@@ -1425,9 +1423,6 @@ module Shell_Themisto # (
     .m_axis_tlast   (poNRC_Role_Meta_TLAST)
   );
   
-
-  assign poSMC_ROLE_rank = sCASTOR_ROLE_rank;
-  assign poSMC_ROLE_size = sCASTOR_ROLE_size;
 
 
   Decoupler DECOUP (

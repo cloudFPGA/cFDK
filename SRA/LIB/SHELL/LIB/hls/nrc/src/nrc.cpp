@@ -35,6 +35,14 @@ ap_uint<32> udp_rx_ports_processed = 0;
 bool need_udp_port_req = false;
 ap_uint<16> new_relative_port_to_req = 0;
 
+ap_uint<32> node_id_missmatch_RX_cnt = 0;
+NodeId last_rx_node_id = 0;
+NrcPort last_rx_port = 0;
+ap_uint<32> node_id_missmatch_TX_cnt = 0;
+NodeId last_tx_node_id = 0;
+NrcPort last_tx_port = 0;
+ap_uint<32> port_corrections_TX_cnt = 0;
+
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
  * @ingroup udp_role_if
@@ -84,6 +92,7 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
       return i;
     }
   }
+  node_id_missmatch_RX_cnt++;
   return 0xFFFF;
 }
 
@@ -157,6 +166,13 @@ void nrc_main(
 //=================================================================================================
 // Reset global variables 
 
+#pragma HLS reset variable=metaWritten
+#pragma HLS reset variable=fsmStateRX
+#pragma HLS reset variable=fsmStateTXenq
+#pragma HLS reset variable=fsmStateTXdeq
+#pragma HLS reset variable=pldLen
+
+
   if(sys_reset == 1)
   {
     for(int i = 0; i < MAX_MRT_SIZE; i++)
@@ -184,6 +200,13 @@ void nrc_main(
     udp_rx_ports_processed = 0;
     need_udp_port_req = false;
     new_relative_port_to_req = 0;
+    node_id_missmatch_RX_cnt = 0;
+    node_id_missmatch_TX_cnt = 0;
+    port_corrections_TX_cnt = 0;
+    last_rx_node_id = 0;
+    last_rx_port = 0;
+    last_tx_node_id = 0;
+    last_tx_port = 0;
     return;
   }
 
@@ -213,6 +236,11 @@ void nrc_main(
   status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX;
   status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq;
   status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq;
+  status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+  status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+  status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+  status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (ap_uint<32>) port_corrections_TX_cnt;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
  
@@ -340,8 +368,15 @@ void nrc_main(
             ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
             ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
             //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
-
-            ap_uint<32> dst_ip_addr = localMRT[out_meta.tdata.dst_rank];
+            
+            NodeId dst_rank = out_meta.tdata.dst_rank;
+            if(dst_rank > MAX_CF_NODE_ID)
+            {
+              node_id_missmatch_TX_cnt++;
+              dst_rank = 0;
+            }
+            ap_uint<32> dst_ip_addr = localMRT[dst_rank];
+            last_tx_node_id = dst_rank;
             NrcPort src_port = out_meta.tdata.src_port; //TODO: DEBUG
             if (src_port == 0)
             {
@@ -351,7 +386,9 @@ void nrc_main(
             if (dst_port == 0)
             {
               dst_port = DEFAULT_RX_PORT;
+              port_corrections_TX_cnt++;
             }
+            last_tx_port = dst_port;
             // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
             UdpMeta txMeta = {{src_port, ipAddrLE}, {dst_port, dst_ip_addr}};
             soTHIS_Udmx_Meta.write(txMeta);
@@ -448,6 +485,8 @@ void nrc_main(
           //extrac src ip address
           UdpMeta udpRxMeta = siUDMX_This_Meta.read();
           NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+          last_rx_node_id = src_id;
+          last_rx_port = udpRxMeta.dst.port;
           NrcMeta tmp_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
           in_meta = NrcMetaStream(tmp_meta);
 
