@@ -3,6 +3,7 @@
 
 #include "ap_int.h"
 #include "http.hpp"
+#include "../../../../../hls/cfdk.hpp"
 
 //Display1
 #define WFV_V_SHIFT 8 

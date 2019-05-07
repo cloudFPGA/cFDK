@@ -114,7 +114,7 @@ uint8_t writeDisplaysToOutBuffer()
   len += 6; 
   /* Display 3 & 4 is less informative outside EMIF Context
    */ 
-  
+ //TODO: integrate cFDK version 
   //insert rank and size 
   len += writeString("Rank: ");
   bufferOut[bufferOutPtrWrite + 3] = nodeRank & 0xFF; 
