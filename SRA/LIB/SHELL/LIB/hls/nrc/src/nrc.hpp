@@ -98,6 +98,7 @@ using namespace hls;
 #define FSM_ACC 4
 #define FSM_LAST_ACC 5
 #define FSM_W8FORMETA 6
+#define FSM_WRITE_META 7
 #define FsmState uint8_t
 
 
@@ -147,8 +148,8 @@ using namespace hls;
 #define NRC_STATUS_LAST_TX_NODE_ID 11
 #define NRC_STATUS_TX_NODEID_ERROR 12
 #define NRC_STATUS_TX_PORT_CORRECTIONS 13
-//#define NRC_STATUS_READOUT 13
-//and 14 and 15  
+#define NRC_STATUS_PACKET_CNT_RX 14
+#define NRC_STATUS_PACKET_CNT_TX 15
 
 
 

@@ -101,10 +101,10 @@ struct NrcMeta {
 struct NrcMetaStream {
   NrcMeta tdata; 
   //ap_uint<(sizeof(NrcMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
-  ap_uint<6> tkeep;
+  ap_uint<6> tkeep; //TODO: set value in constructor correct based on the length
   ap_uint<1> tlast;
   NrcMetaStream() {}
-  NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(1), tlast(1) {}
+  NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(0xFF), tlast(1) {}
 };
 
 

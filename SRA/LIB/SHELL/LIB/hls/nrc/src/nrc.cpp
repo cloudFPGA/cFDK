@@ -43,6 +43,9 @@ NodeId last_tx_node_id = 0;
 NrcPort last_tx_port = 0;
 ap_uint<32> port_corrections_TX_cnt = 0;
 
+ap_uint<32> packet_count_RX = 0;
+ap_uint<32> packet_count_TX = 0;
+
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
  * @ingroup udp_role_if
@@ -203,6 +206,8 @@ void nrc_main(
     node_id_missmatch_RX_cnt = 0;
     node_id_missmatch_TX_cnt = 0;
     port_corrections_TX_cnt = 0;
+    packet_count_RX = 0;
+    packet_count_TX = 0;
     last_rx_node_id = 0;
     last_rx_port = 0;
     last_tx_node_id = 0;
@@ -241,6 +246,8 @@ void nrc_main(
   status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
   status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
   status[NRC_STATUS_TX_PORT_CORRECTIONS] = (ap_uint<32>) port_corrections_TX_cnt;
+  status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+  status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
  
@@ -392,6 +399,7 @@ void nrc_main(
             // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
             UdpMeta txMeta = {{src_port, ipAddrLE}, {dst_port, dst_ip_addr}};
             soTHIS_Udmx_Meta.write(txMeta);
+            packet_count_TX++;
 
             soTHIS_Udmx_PLen.write(sPLen.read());
           if (aWord.tlast) { 
@@ -476,11 +484,6 @@ void nrc_main(
           // Forward data chunk to ROLE
           UdpWord    udpWord = siUDMX_This_Data.read();
           soUdp_data.write(udpWord);
-          if (!udpWord.tlast) {
-            fsmStateRX = FSM_ACC;
-          } else { 
-            fsmStateRX = FSM_FIRST_ACC; //wait for next packet = stay here
-          }
 
           //extrac src ip address
           UdpMeta udpRxMeta = siUDMX_This_Meta.read();
@@ -490,7 +493,13 @@ void nrc_main(
           NrcMeta tmp_meta = NrcMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port);
           in_meta = NrcMetaStream(tmp_meta);
 
-          metaWritten = false;
+          metaWritten = false; //don't put the meta stream in the critical path
+          if (!udpWord.tlast) {
+            fsmStateRX = FSM_ACC;
+          } else { 
+            //fsmStateRX = FSM_FIRST_ACC; //wait for next packet = stay here
+            fsmStateRX = FSM_WRITE_META; 
+          }
         } 
       }
       if(need_udp_port_req)
@@ -511,10 +520,17 @@ void nrc_main(
           fsmStateRX = FSM_FIRST_ACC;
         }
       }
+      //no break!
+    case FSM_WRITE_META:
       if ( !metaWritten && !soNrc_meta.full() )
       {
         soNrc_meta.write(in_meta);
+        packet_count_RX++;
         metaWritten = true;
+        if ( fsmStateRX == FSM_WRITE_META)
+        {//was a small packet
+          fsmStateRX = FSM_FIRST_ACC;
+        }
       }
       break;
   }
