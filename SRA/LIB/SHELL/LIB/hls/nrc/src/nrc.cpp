@@ -162,7 +162,7 @@ void nrc_main(
 
 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 //#pragma HLS DATAFLOW interval=1
-#pragma HLS STREAM variable=sPLen depth=1
+#pragma HLS STREAM variable=sPLen depth=8
 #pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
 
@@ -174,6 +174,19 @@ void nrc_main(
 #pragma HLS reset variable=fsmStateTXenq
 #pragma HLS reset variable=fsmStateTXdeq
 #pragma HLS reset variable=pldLen
+#pragma HLS reset variable=openPortWaitTime
+#pragma HLS reset variable=udp_rx_ports_processed
+#pragma HLS reset variable=need_udp_port_req
+#pragma HLS reset variable=new_relative_port_to_req
+#pragma HLS reset variable=node_id_missmatch_RX_cnt
+#pragma HLS reset variable=node_id_missmatch_TX_cnt
+#pragma HLS reset variable=port_corrections_TX_cnt
+#pragma HLS reset variable=packet_count_RX
+#pragma HLS reset variable=packet_count_TX
+#pragma HLS reset variable=last_rx_node_id
+#pragma HLS reset variable=last_rx_port
+#pragma HLS reset variable=last_tx_node_id
+#pragma HLS reset variable=last_tx_port
 
 
   if(sys_reset == 1)
@@ -191,27 +204,28 @@ void nrc_main(
       status[i] = 0;
     }
 
-    openPortWaitTime = 10;
-    metaWritten = false; 
-    fsmStateRX = FSM_RESET;
-    fsmStateTXenq = FSM_RESET;
-    fsmStateTXdeq = FSM_RESET;
-    pldLen = 0;
+//    openPortWaitTime = 10;
+//    metaWritten = false; 
+//    fsmStateRX = FSM_RESET;
+//    fsmStateTXenq = FSM_RESET;
+//    fsmStateTXdeq = FSM_RESET;
+//    pldLen = 0;
+//
+//    //TODO: reset processed ports if ports can also be closed 
+//    // or does a double request not harm?
+//    udp_rx_ports_processed = 0;
+//    need_udp_port_req = false;
+//    new_relative_port_to_req = 0;
+//    node_id_missmatch_RX_cnt = 0;
+//    node_id_missmatch_TX_cnt = 0;
+//    port_corrections_TX_cnt = 0;
+//    packet_count_RX = 0;
+//    packet_count_TX = 0;
+//    last_rx_node_id = 0;
+//    last_rx_port = 0;
+//    last_tx_node_id = 0;
+//    last_tx_port = 0;
 
-    //TODO: reset processed ports if ports can also be closed 
-    // or does a double request not harm?
-    udp_rx_ports_processed = 0;
-    need_udp_port_req = false;
-    new_relative_port_to_req = 0;
-    node_id_missmatch_RX_cnt = 0;
-    node_id_missmatch_TX_cnt = 0;
-    port_corrections_TX_cnt = 0;
-    packet_count_RX = 0;
-    packet_count_TX = 0;
-    last_rx_node_id = 0;
-    last_rx_port = 0;
-    last_tx_node_id = 0;
-    last_tx_port = 0;
     return;
   }
 
@@ -321,15 +335,14 @@ void nrc_main(
       break;
 
     case FSM_LAST_ACC:
-
-      // Forward the payload length
-      sPLen.write(pldLen);
-
-      // Reset the payload length
-      pldLen = 0;
-
-      // Start over
-      fsmStateTXenq = FSM_ACC;
+      if( !sPLen.full() ) {
+        // Forward the payload length
+        sPLen.write(pldLen);
+        // Reset the payload length
+        pldLen = 0;
+        // Start over
+        fsmStateTXenq = FSM_ACC;
+      }
 
       break;
   }
