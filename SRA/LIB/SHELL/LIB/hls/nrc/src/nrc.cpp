@@ -162,7 +162,7 @@ void nrc_main(
 
 //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 //#pragma HLS DATAFLOW interval=1
-#pragma HLS STREAM variable=sPLen depth=8
+#pragma HLS STREAM variable=sPLen depth=1
 #pragma HLS STREAM variable=sFifo_Data depth=2048    // Must be able to contain MTU
 
 
