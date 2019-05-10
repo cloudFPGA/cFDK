@@ -344,6 +344,30 @@ void smc_main(
 //===========================================================
 // Reset global variables 
 
+  //TODO: Debug...some resets cause unexpected behaivour
+//#pragma HLS reset variable=mpe_status_request_cnt
+//#pragma HLS reset variable=cnt
+//#pragma HLS reset variable=transferErr
+//#pragma HLS reset variable=transferSuccess
+//#pragma HLS reset variable=httpState
+//#pragma HLS reset variable=bufferInPtrWrite
+//#pragma HLS reset variable=bufferInPtrMaxWrite
+//#pragma HLS reset variable=bufferInPtrNextRead
+//#pragma HLS reset variable=bufferOutPtrWrite
+//#pragma HLS reset variable=httpAnswerPageLength
+//#pragma HLS reset variable=ongoingTransfer
+//#pragma HLS reset variable=Display1
+//#pragma HLS reset variable=Display2
+//#pragma HLS reset variable=Display3
+//#pragma HLS reset variable=Display4
+//#pragma HLS reset variable=toDecoup
+//#pragma HLS reset variable=writeErrCnt
+//#pragma HLS reset variable=fifoEmptyCnt
+//#pragma HLS reset variable=wordsWrittenToIcapCnt
+//#pragma HLS reset variable=routingTableComplete
+//#pragma HLS reset variable=invalidPayload
+
+
   ap_uint<1> RST = (*MMIO_in >> RST_SHIFT) & 0b1; 
 
   if (RST == 1 || sys_reset == 1)
@@ -373,8 +397,8 @@ void smc_main(
   
   if (sys_reset == 1)
   {
-    nodeRank = 0;
-    clusterSize = 0;
+ //   nodeRank = 0; //NO, rank and size should remain. Explicit API command necessary
+ //   clusterSize = 0;
     mpe_status_request_cnt = 0;
   }
 

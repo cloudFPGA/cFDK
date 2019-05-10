@@ -35,6 +35,9 @@ ap_uint<32> udp_rx_ports_processed = 0;
 bool need_udp_port_req = false;
 ap_uint<16> new_relative_port_to_req = 0;
 
+NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
+NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
+
 ap_uint<32> node_id_missmatch_RX_cnt = 0;
 NodeId last_rx_node_id = 0;
 NrcPort last_rx_port = 0;
@@ -45,8 +48,8 @@ ap_uint<32> port_corrections_TX_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
-  
-NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
+
+
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -190,21 +193,27 @@ void nrc_main(
 #pragma HLS reset variable=last_tx_node_id
 #pragma HLS reset variable=last_tx_port
 #pragma HLS reset variable=out_meta
+#pragma HLS reset variable=in_meta
+
+//DO NOT reset MRT and config. This should be done explicitly by the SMC
+#pragma HLS reset variable=localMRT off
+#pragma HLS reset variable=config off
 
 
   if(sys_reset == 1)
   {
-    for(int i = 0; i < MAX_MRT_SIZE; i++)
-    {
-      localMRT[i] = 0;
-    }
-    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-    {
-      config[i] = 0;
-    }
+//DO NOT reset MRT and config. This should be done explicitly by the SMC
+//    for(int i = 0; i < MAX_MRT_SIZE; i++)
+//    {
+//      localMRT[i] = 0;
+//    }
+//    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+//    {
+//      config[i] = 0;
+//    }
     for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
     {
-      status[i] = 0;
+      status[i] = 0; //TODO: can an array also be reset with pragma?
     }
 
 //    openPortWaitTime = 10;
@@ -453,7 +462,6 @@ void nrc_main(
 // RX 
 
 
-  NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
 
   switch(fsmStateRX) {
 
