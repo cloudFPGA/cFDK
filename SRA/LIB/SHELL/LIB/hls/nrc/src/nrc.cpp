@@ -45,6 +45,8 @@ ap_uint<32> port_corrections_TX_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
+  
+NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -187,6 +189,7 @@ void nrc_main(
 #pragma HLS reset variable=last_rx_port
 #pragma HLS reset variable=last_tx_node_id
 #pragma HLS reset variable=last_tx_port
+#pragma HLS reset variable=out_meta
 
 
   if(sys_reset == 1)
@@ -354,7 +357,6 @@ void nrc_main(
 //-------------------------------------------------------------------------------------------------
 // TX Dequeue
 
-  NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
 
   switch(fsmStateTXdeq) {
 
