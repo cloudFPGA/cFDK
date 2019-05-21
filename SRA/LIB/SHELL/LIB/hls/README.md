@@ -2,8 +2,17 @@
 
 This directory contains the High-Level Synthesis (HLS) code used by the Network Transport and Session (NTS) stack of the cloudFPGA platform. 
 
+## Acknowledgment
+This codes was initialy developed by the Xilinx Dublin Labs who kindly acepted to share it with the cloudFPGA project via the GitHub repository: https://github.com/Xilinx/HLx_Examples/tree/master/Acceleration/tcp_ip. In 2018, the code was ported and adapted for the needs and specificities of the cloudFPGA platform.
+
 ## Preliminary
-This codes was initialy developed by the Xilinx Dublin Labs who kindly acepted to share it with the cloudFPGA project via the GitHub repository: https://github.com/XilinxDublinLabs/arches . In 2018, the code was ported and adapted for the needs and specificities of the cloudFPGA platform.
+Please consider having a quick look at the [documentation of the NTS](../../../../../DOC/NTS) before diving or contributing to this part of the cloudFPGA project.
+
+
+
+
+
+
 
 ## HLS Coding Style and Naming Conventions
 Please consider reading the following HLS naming conventions document before diving or contributing to this part of the cloudFPGA project: [TODO - Link to a MD file] 
