@@ -18,36 +18,36 @@ stream<UdpPLen>        sPLen     ("sPLen");
 stream<UdpWord>        sFifo_Data("sFifo_Data");
 
 ap_uint<8>   openPortWaitTime = 10;
-bool metaWritten = false;
+static bool metaWritten = false;
 
-FsmState fsmStateRX = FSM_RESET;
+static FsmState fsmStateRX = FSM_RESET;
 
-UdpPLen    pldLen = 0;
-FsmState fsmStateTXenq = FSM_RESET;
+static UdpPLen    pldLen = 0;
+static FsmState fsmStateTXenq = FSM_RESET;
 
-FsmState fsmStateTXdeq = FSM_RESET;
+static FsmState fsmStateTXdeq = FSM_RESET;
 
-ap_uint<32> localMRT[MAX_MRT_SIZE];
+static ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-ap_uint<32> udp_rx_ports_processed = 0;
-bool need_udp_port_req = false;
-ap_uint<16> new_relative_port_to_req = 0;
+static ap_uint<32> udp_rx_ports_processed = 0;
+static bool need_udp_port_req = false;
+static ap_uint<16> new_relative_port_to_req = 0;
 
-NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
-NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
+static NrcMetaStream out_meta = NrcMetaStream(); //DON'T FORGET to initilize!
+static NrcMetaStream in_meta = NrcMetaStream(); //ATTENTION: don't forget initilizer...
 
-ap_uint<32> node_id_missmatch_RX_cnt = 0;
-NodeId last_rx_node_id = 0;
-NrcPort last_rx_port = 0;
-ap_uint<32> node_id_missmatch_TX_cnt = 0;
-NodeId last_tx_node_id = 0;
-NrcPort last_tx_port = 0;
-ap_uint<32> port_corrections_TX_cnt = 0;
-
-ap_uint<32> packet_count_RX = 0;
-ap_uint<32> packet_count_TX = 0;
+static ap_uint<32> node_id_missmatch_RX_cnt = 0;
+static NodeId last_rx_node_id = 0;
+static NrcPort last_rx_port = 0;
+static ap_uint<32> node_id_missmatch_TX_cnt = 0;
+static NodeId last_tx_node_id = 0;
+static NrcPort last_tx_port = 0;
+static ap_uint<32> port_corrections_TX_cnt = 0;
+static 
+static ap_uint<32> packet_count_RX = 0;
+static ap_uint<32> packet_count_TX = 0;
 
 
 
