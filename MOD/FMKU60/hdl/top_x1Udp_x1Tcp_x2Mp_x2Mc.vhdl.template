@@ -194,8 +194,8 @@ architecture structural of topFMKU60 is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / NTS0 <--> ROLE 
   --------------------------------------------------------
-  ---- UDP Interface --------------------------- 
-  ------ Input AXI-Write Stream Interface ------
+  ---- UDP Interface ------------------------------------- 
+  ------ Input AXI-Write Stream Interface --------
   signal sROL_Shl_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
   signal sROL_Shl_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sROL_Shl_Nts0_Udp_Axis_tlast       : std_ulogic;
@@ -207,19 +207,27 @@ architecture structural of topFMKU60 is
   signal sSHL_Rol_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
   signal sSHL_Rol_Nts0_Udp_Axis_tlast       : std_ulogic;
   signal sSHL_Rol_Nts0_Udp_Axis_tvalid      : std_ulogic;  
-  ---- TCP Interface ---------------------------
-  ------ Input AXI-Write Stream Interface ------
-  signal sROL_Shl_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
-  signal sROL_Shl_Nts0_Tcp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
-  signal sROL_Shl_Nts0_Tcp_Axis_tlast       : std_ulogic;
-  signal sROL_Shl_Nts0_Tcp_Axis_tvalid      : std_ulogic;
-  signal sSHL_Rol_Nts0_Tcp_Axis_tready      : std_ulogic;
-  ------ Output AXI-Write Stream Interface -----
-  signal sROL_Shl_Nts0_Tcp_Axis_tready      : std_ulogic;
-  signal sSHL_Rol_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
-  signal sSHL_Rol_Nts0_Tcp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
-  signal sSHL_Rol_Nts0_Tcp_Axis_tlast       : std_ulogic;
-  signal sSHL_Rol_Nts0_Tcp_Axis_tvalid      : std_ulogic;
+  ---- TCP Interfaces ------------------------------------
+  ------ Input TCP Data (AXI4S) ------------------
+  signal sROL_Shl_Nts0_TcpData_Axis_tdata   : std_ulogic_vector( 63 downto 0);
+  signal sROL_Shl_Nts0_TcpData_Axis_tkeep   : std_ulogic_vector(  7 downto 0);
+  signal sROL_Shl_Nts0_TcpData_Axis_tlast   : std_ulogic;
+  signal sROL_Shl_Nts0_TcpData_Axis_tvalid  : std_ulogic;
+  signal sSHL_Rol_Nts0_TcpData_Axis_tready  : std_ulogic;
+  ------ Input TCP Mata (AXI4S) ------------------
+  signal sROL_Shl_Nts0_TcpMeta_Axis_tdata   : std_ulogic_vector( 15 downto 0);
+  signal sROL_Shl_Nts0_TcpMeta_Axis_tvalid  : std_ulogic;
+  signal sSHL_Rol_Nts0_TcpMeta_Axis_tready  : std_ulogic;
+  ------ Output TCP Data (AXIS4) -----------------
+  signal sROL_Shl_Nts0_TcpData_Axis_tready  : std_ulogic;
+  signal sSHL_Rol_Nts0_TcpData_Axis_tdata   : std_ulogic_vector( 63 downto 0);
+  signal sSHL_Rol_Nts0_TcpData_Axis_tkeep   : std_ulogic_vector(  7 downto 0);
+  signal sSHL_Rol_Nts0_TcpData_Axis_tlast   : std_ulogic;
+  signal sSHL_Rol_Nts0_TcpData_Axis_tvalid  : std_ulogic;
+  ------ Output TCP Meta (AXIS4) -----------------
+  signal sROL_Shl_Nts0_TcpMeta_Axis_tready  : std_ulogic;
+  signal sSHL_Rol_Nts0_TcpMeta_Axis_tdata   : std_ulogic_vector( 15 downto 0);
+  signal sSHL_Rol_Nts0_TcpMeta_Axis_tvalid  : std_ulogic;
  
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : SHELL / MEM <--> ROLE 
@@ -433,18 +441,26 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Tcp Interfaces
       ------------------------------------------------------
-      -- Input AXI-Write Stream Interface ----------
-      piROL_Shl_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-      piROL_Shl_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-      piROL_Shl_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
-      piROL_Shl_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
-      poSHL_Rol_Nts0_Tcp_Axis_tready      : out   std_ulogic;
-      -- Output AXI-Write Stream Interface ---------
-      piROL_Shl_Nts0_Tcp_Axis_tready      : in    std_ulogic;
-      poSHL_Rol_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-      poSHL_Rol_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-      poSHL_Rol_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
-      poSHL_Rol_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
+      -- Input TCP Data (AXI4S) ------------------
+      piROL_Shl_Nts0_TcpData_Axis_tdata   : in    std_ulogic_vector( 63 downto 0);
+      piROL_Shl_Nts0_TcpData_Axis_tkeep   : in    std_ulogic_vector(  7 downto 0);
+      piROL_Shl_Nts0_TcpData_Axis_tlast   : in    std_ulogic;
+      piROL_Shl_Nts0_TcpData_Axis_tvalid  : in    std_ulogic;
+      poSHL_Rol_Nts0_TcpData_Axis_tready  : out   std_ulogic;
+      -- Input TCP Meta (AXI4S) ------------------
+      piROL_Shl_Nts0_TcpMeta_Axis_tdata   : in    std_ulogic_vector( 15 downto 0);
+      piROL_Shl_Nts0_TcpMeta_Axis_tvalid  : in    std_ulogic;
+      poSHL_Rol_Nts0_TcpMeta_Axis_tready  : out   std_ulogic;
+      -- Output TCP Data (AXIS4) -----------------
+      piROL_Shl_Nts0_TcpData_Axis_tready  : in    std_ulogic;
+      poSHL_Rol_Nts0_TcpData_Axis_tdata   : out   std_ulogic_vector( 63 downto 0);
+      poSHL_Rol_Nts0_TcpData_Axis_tkeep   : out   std_ulogic_vector(  7 downto 0);
+      poSHL_Rol_Nts0_TcpData_Axis_tlast   : out   std_ulogic;
+      poSHL_Rol_Nts0_TcpData_Axis_tvalid  : out   std_ulogic;
+      -- Output TCP Meta (AXIS4) -----------------
+      piROL_Shl_Nts0_TcpMeta_Axis_tready  : in    std_ulogic;
+      poSHL_Rol_Nts0_TcpMeta_Axis_tdata   : out   std_ulogic_vector( 15 downto 0);
+      poSHL_Rol_Nts0_TcpMeta_Axis_tvalid  : out   std_ulogic;
   
       ------------------------------------------------------  
       -- ROLE / Shl / Mem / Mp0 Interface
@@ -572,20 +588,28 @@ architecture structural of topFMKU60 is
       poROL_Shl_Nts0_Udp_Axis_tlast       : out   std_ulogic;
       
       ------------------------------------------------------
-      -- SHELL / Role / Nts0 / Tcp Interface
+      -- SHELL / Role / Nts0 / Tcp Interfaces
       ------------------------------------------------------
-      ---- Input AXI-Write Stream Interface ----------
-      piSHL_Rol_Nts0_Tcp_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-      piSHL_Rol_Nts0_Tcp_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-      piSHL_Rol_Nts0_Tcp_Axis_tvalid      : in    std_ulogic;
-      piSHL_Rol_Nts0_Tcp_Axis_tlast       : in    std_ulogic;
-      poROL_Shl_Nts0_Tcp_Axis_tready      : out   std_ulogic;
-      ---- Output AXI-Write Stream Interface ---------
-      piSHL_Rol_Nts0_Tcp_Axis_tready      : in    std_ulogic;
-      poROL_Shl_Nts0_Tcp_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-      poROL_Shl_Nts0_Tcp_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-      poROL_Shl_Nts0_Tcp_Axis_tvalid      : out   std_ulogic;
-      poROL_Shl_Nts0_Tcp_Axis_tlast       : out   std_ulogic;
+      ---- Input TCP Data (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpData_Axis_tdata   : in    std_ulogic_vector( 63 downto 0);
+      piSHL_Rol_Nts0_TcpData_Axis_tkeep   : in    std_ulogic_vector(  7 downto 0);
+      piSHL_Rol_Nts0_TcpData_Axis_tvalid  : in    std_ulogic;
+      piSHL_Rol_Nts0_TcpDAta_Axis_tlast   : in    std_ulogic;
+      poROL_Shl_Nts0_TcpData_Axis_tready  : out   std_ulogic;
+      ---- Input TCP Meta (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpMeta_Axis_tdata   : in    std_ulogic_vector( 15 downto 0);
+      piSHL_Rol_Nts0_TcpMeta_Axis_tvalid  : in    std_ulogic;
+      poROL_Shl_Nts0_TcpMeta_Axis_tready  : out   std_ulogic;
+      ---- Output TCP Data (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpData_Axis_tready  : in    std_ulogic;
+      poROL_Shl_Nts0_TcpData_Axis_tdata   : out   std_ulogic_vector( 63 downto 0);
+      poROL_Shl_Nts0_TcpData_Axis_tkeep   : out   std_ulogic_vector(  7 downto 0);
+      poROL_Shl_Nts0_TcpData_Axis_tvalid  : out   std_ulogic;
+      poROL_Shl_Nts0_TcpData_Axis_tlast   : out   std_ulogic;
+      ---- Output TCP Meta (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpMeta_Axis_tready  : in    std_ulogic;
+      poROL_Shl_Nts0_TcpMeta_Axis_tdata   : out   std_ulogic_vector( 15 downto 0);
+      poROL_Shl_Nts0_TcpMeta_Axis_tvalid   : out   std_ulogic;
 
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp0 Interface
@@ -893,18 +917,26 @@ begin
       ------------------------------------------------------
       -- ROLE / Shl /Nts0 / Tcp Interfaces
       ------------------------------------------------------
-      -- Input AXI-Write Stream Interface ---------piSHL_156_25Rst_delayed-
-      piROL_Shl_Nts0_Tcp_Axis_tdata       => sROL_Shl_Nts0_Tcp_Axis_tdata ,
-      piROL_Shl_Nts0_Tcp_Axis_tkeep       => sROL_Shl_Nts0_Tcp_Axis_tkeep ,
-      piROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
-      piROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
-      poSHL_Rol_Nts0_Tcp_Axis_tready      => sSHL_Rol_Nts0_Tcp_Axis_tready,
-      -- Output AXI-Write Stream Interface ---------
-      piROL_Shl_Nts0_Tcp_Axis_tready      => sROL_Shl_Nts0_Tcp_Axis_tready,
-      poSHL_Rol_Nts0_Tcp_Axis_tdata       => sSHL_Rol_Nts0_Tcp_Axis_tdata ,
-      poSHL_Rol_Nts0_Tcp_Axis_tkeep       => sSHL_Rol_Nts0_Tcp_Axis_tkeep,
-      poSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast ,
-      poSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
+      -- Input TCP Data (AXI4S) --------------------
+      piROL_Shl_Nts0_TcpData_Axis_tdata   => sROL_Shl_Nts0_TcpData_Axis_tdata ,
+      piROL_Shl_Nts0_TcpData_Axis_tkeep   => sROL_Shl_Nts0_TcpData_Axis_tkeep ,
+      piROL_Shl_Nts0_TcpData_Axis_tlast   => sROL_Shl_Nts0_TcpData_Axis_tlast,
+      piROL_Shl_Nts0_TcpData_Axis_tvalid  => sROL_Shl_Nts0_TcpData_Axis_tvalid,
+      poSHL_Rol_Nts0_TcpData_Axis_tready  => sSHL_Rol_Nts0_TcpData_Axis_tready,
+      -- Input TCP Meta (AXI4S) --------------------
+      piROL_Shl_Nts0_TcpMeta_Axis_tdata   => sROL_Shl_Nts0_TcpMeta_Axis_tdata ,
+      piROL_Shl_Nts0_TcpMeta_Axis_tvalid  => sROL_Shl_Nts0_TcpMeta_Axis_tvalid,
+      poSHL_Rol_Nts0_TcpMeta_Axis_tready  => sSHL_Rol_Nts0_TcpMeta_Axis_tready,
+      -- Output TCP Data (AXI4S) -------------------
+      piROL_Shl_Nts0_TcpData_Axis_tready  => sROL_Shl_Nts0_TcpData_Axis_tready,
+      poSHL_Rol_Nts0_TcpData_Axis_tdata   => sSHL_Rol_Nts0_TcpData_Axis_tdata ,
+      poSHL_Rol_Nts0_TcpData_Axis_tkeep   => sSHL_Rol_Nts0_TcpData_Axis_tkeep,
+      poSHL_Rol_Nts0_TcpData_Axis_tlast   => sSHL_Rol_Nts0_TcpData_Axis_tlast ,
+      poSHL_Rol_Nts0_TcpData_Axis_tvalid  => sSHL_Rol_Nts0_TcpData_Axis_tvalid,
+      -- Output TCP Metata (AXI4S) -------------------
+      piROL_Shl_Nts0_TcpMeta_Axis_tready  => sROL_Shl_Nts0_TcpMeta_Axis_tready,
+      poSHL_Rol_Nts0_TcpMeta_Axis_tdata   => sSHL_Rol_Nts0_TcpMeta_Axis_tdata ,
+      poSHL_Rol_Nts0_TcpMeta_Axis_tvalid  => sSHL_Rol_Nts0_TcpMeta_Axis_tvalid,
       
       ------------------------------------------------------  
       -- ROLE / Shl / Mem / Mp0 Interface
@@ -1028,21 +1060,29 @@ begin
       poROL_Shl_Nts0_Udp_Axis_tvalid      => sROL_Shl_Nts0_Udp_Axis_tvalid,
       
       ------------------------------------------------------
-      -- SHELL / Role / Nts0 / Tcp Interface
+      -- SHELL / Role / Nts0 / Tcp Interfaces
       ------------------------------------------------------
-      -- Input AXI-Write Stream Interface ----------
-      piSHL_Rol_Nts0_Tcp_Axis_tdata       => sSHL_Rol_Nts0_Tcp_Axis_tdata,
-      piSHL_Rol_Nts0_Tcp_Axis_tkeep       => sSHL_Rol_Nts0_Tcp_Axis_tkeep,
-      piSHL_Rol_Nts0_Tcp_Axis_tlast       => sSHL_Rol_Nts0_Tcp_Axis_tlast,
-      piSHL_Rol_Nts0_Tcp_Axis_tvalid      => sSHL_Rol_Nts0_Tcp_Axis_tvalid,
-      poROL_Shl_Nts0_Tcp_Axis_tready      => sROL_Shl_Nts0_Tcp_Axis_tready,
-      -- Output AXI-Write Stream Interface ---------
-      piSHL_Rol_Nts0_Tcp_Axis_tready      => sSHL_Rol_Nts0_Tcp_Axis_tready,
-      poROL_Shl_Nts0_Tcp_Axis_tdata       => sROL_Shl_Nts0_Tcp_Axis_tdata,
-      poROL_Shl_Nts0_Tcp_Axis_tkeep       => sROL_Shl_Nts0_Tcp_Axis_tkeep,
-      poROL_Shl_Nts0_Tcp_Axis_tlast       => sROL_Shl_Nts0_Tcp_Axis_tlast,
-      poROL_Shl_Nts0_Tcp_Axis_tvalid      => sROL_Shl_Nts0_Tcp_Axis_tvalid,
-      
+      ---- Input TCP Data (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpData_Axis_tdata   => sSHL_Rol_Nts0_TcpData_Axis_tdata,
+      piSHL_Rol_Nts0_TcpData_Axis_tkeep   => sSHL_Rol_Nts0_TcpData_Axis_tkeep,
+      piSHL_Rol_Nts0_TcpData_Axis_tlast   => sSHL_Rol_Nts0_TcpData_Axis_tlast,
+      piSHL_Rol_Nts0_TcpData_Axis_tvalid  => sSHL_Rol_Nts0_TcpData_Axis_tvalid,
+      poROL_Shl_Nts0_TcpData_Axis_tready  => sROL_Shl_Nts0_TcpData_Axis_tready,
+      ---- Input TCP Meta (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpMeta_Axis_tdata   => sSHL_Rol_Nts0_TcpMeta_Axis_tdata,
+      piSHL_Rol_Nts0_TcpMeta_Axis_tvalid  => sSHL_Rol_Nts0_TcpMeta_Axis_tvalid,
+      poROL_Shl_Nts0_TcpMeta_Axis_tready  => sROL_Shl_Nts0_TcpMeta_Axis_tready,
+      -- Output TCP Data (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpData_Axis_tready  => sSHL_Rol_Nts0_TcpData_Axis_tready,
+      poROL_Shl_Nts0_TcpData_Axis_tdata   => sROL_Shl_Nts0_TcpData_Axis_tdata,
+      poROL_Shl_Nts0_TcpData_Axis_tkeep   => sROL_Shl_Nts0_TcpData_Axis_tkeep,
+      poROL_Shl_Nts0_TcpData_Axis_tlast   => sROL_Shl_Nts0_TcpData_Axis_tlast,
+      poROL_Shl_Nts0_TcpData_Axis_tvalid  => sROL_Shl_Nts0_TcpData_Axis_tvalid,
+      -- Output TCP MetData (AXI4S) ------------------
+      piSHL_Rol_Nts0_TcpMeta_Axis_tready  => sSHL_Rol_Nts0_TcpMeta_Axis_tready,
+      poROL_Shl_Nts0_TcpMeta_Axis_tdata   => sROL_Shl_Nts0_TcpMeta_Axis_tdata,
+      poROL_Shl_Nts0_TcpMeta_Axis_tvalid  => sROL_Shl_Nts0_TcpMeta_Axis_tvalid,
+                
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp0 Interface
       ------------------------------------------------------
