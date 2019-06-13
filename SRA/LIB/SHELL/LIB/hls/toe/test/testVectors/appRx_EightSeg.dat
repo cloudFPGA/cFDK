@@ -9,12 +9,16 @@
 #   A global parameter, a testbench command or a comment line must start with a
 #    single character (G|>|#) followed by a space character.
 #   Examples:
-#    G PARAM SimCycles     <NUM>         --> Request a minimum of <NUM> simulation cycles.
-#    G PARAM LocalSocket   <ADDR> <PORT> --> Request to setup a local socket for the TOE. 
-#    G PARAM ForeignSocket <ADDR> <PORT> --> Request to setup a foreign socket.
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
 #    # This is a comment
-#    > SET   ForeignSocket <ADDR> <PORT> --> Request to add foreign socket.
-#    > IDLE  <NUM>                       --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
 # 
 # ######################################################################################## 
 
@@ -23,7 +27,7 @@ G PARAM SimCycles 2000
 > IDLE 200
 
 # TCP DATA SEGMENT [01] ========================
-> SET ForeignSocket 0x01010101 0x8001
+> SET HostServerSocket 0x01010101 0x81
 0101010101010101 0 FF
 0101010101010101 0 FF
 0101010101010101 0 FF
@@ -31,7 +35,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [02] ========================
-> SET ForeignSocket 0x02020202 0x8002
+> SET  HostServerSocket 0x03030303 0x83
 0303030303030303 0 FF
 0303030303030303 0 FF
 0303030303030303 0 FF
@@ -52,7 +56,7 @@ G PARAM SimCycles 2000
 > IDLE 136
 
 # TCP DATA SEGMENT [03] ========================
-> SET ForeignSocket 0x03030303 0x8003
+> SET  HostServerSocket 0x07070707 0x87
 0707070707070707 0 FF
 0707070707070707 0 FF
 0707070707070707 0 FF
@@ -77,7 +81,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [04] ========================
-> SET ForeignSocket 0x04040404 0x8004
+> SET  HostServerSocket 0x0f0f0f0f 0x8f
 0F0F0F0F0F0F0F0F 0 FF
 0F0F0F0F0F0F0F0F 0 FF
 0F0F0F0F0F0F0F0F 0 FF
@@ -88,7 +92,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [05] ========================
-> SET ForeignSocket 0x05050505 0x8005
+> SET  HostServerSocket 0x05050505 0x8005
 1F1F1F1F1F1F1F1F 0 FF
 1F1F1F1F1F1F1F1F 0 FF
 1F1F1F1F1F1F1F1F 0 FF
@@ -100,7 +104,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [06] ========================
-> SET ForeignSocket 0x06060606 0x8006
+> SET HostServerSocket 0x06060606 0x8006
 3F3F3F3F3F3F3F3F 0 FF
 3F3F3F3F3F3F3F3F 0 FF
 3F3F3F3F3F3F3F3F 0 FF
@@ -113,7 +117,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [07] ========================
-> SET ForeignSocket 0x07070707 0x8007
+> SET HostServerSocket 0x07070707 0x8007
 7F7F7F7F7F7F7F7F 0 FF
 7F7F7F7F7F7F7F7F 0 FF
 7F7F7F7F7F7F7F7F 0 FF
@@ -127,7 +131,7 @@ G PARAM SimCycles 2000
 > IDLE 100
 
 # TCP DATA SEGMENT [08] ========================
-> SET ForeignSocket 0x08080808 0x8008
+> SET HostServerSocket 0x08080808 0x8008
 FFFFFFFFFFFFFFFF 0 FF
 FFFFFFFFFFFFFFFF 0 FF
 FFFFFFFFFFFFFFFF 0 FF

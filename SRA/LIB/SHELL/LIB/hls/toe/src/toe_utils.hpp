@@ -15,11 +15,14 @@
 #define TOE_UTILS_H_
 
 #include <stdio.h>
+#include <string>
 
-#include "toe.hpp"
+using namespace std;
 
-// Forward declarations
-//-----------------------
+
+/******************************************************************************
+ * FORWARD DECLARATIONS
+ ******************************************************************************/
 class SockAddr;
 class SocketPair;
 class AxiSockAddr;
@@ -28,83 +31,72 @@ class AxiWord;
 class DmCmd;
 class Ip4overAxi;
 
+///******************************************************************************
+// * HELPERS FOR THE DEBUGGING TRACES
+// *  FYI: The global variable 'gTraceEvent' is set
+// *        whenever a trace call is done.
+// ******************************************************************************/
+//#ifndef __SYNTHESIS__
+//  extern bool gTraceEvent;
+//#endif
 
-/************************************************
- * HELPERS FOR THE DEBUGGING TRACES
- *  FYI: The global variable 'gTraceEvent' is set
- *        whenever a trace call is done.
- ************************************************/
-#ifndef __SYNTHESIS__
-  extern bool gTraceEvent;
-#endif
+///******************************************************************************
+// * MACRO DEFINITIONS
+// ******************************************************************************/
+//// Concatenate two char constants
+//#define concat2(firstCharConst, secondCharConst) firstCharConst secondCharConst
+//// Concatenate three char constants
+//#define concat3(firstCharConst, secondCharConst, thirdCharConst) firstCharConst secondCharConst thirdCharConst
 
+///**********************************************************
+// * @brief A macro to print an information message.
+// * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+// * @param[in] message,      the message to print.
+// **********************************************************/
+//#ifndef __SYNTHESIS__
+//  #define printInfo(callerName , format, ...) \
+//    do { gTraceEvent = true; printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
+//#else
+//  #define printInfo(callerName , format, ...) \
+//    do {} while (0);
+//#endif
+//
+///**********************************************************
+// * @brief A macro to print a warning message.
+// * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+// * @param[in] message,      the message to print.
+// **********************************************************/
+//#ifndef __SYNTHESIS__
+//  #define printWarn(callerName , format, ...) \
+//    do { gTraceEvent = true; printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
+//#else
+//  #define printWarn(callerName , format, ...) \
+//    do {} while (0);
+//#endif
+//
+///**********************************************************
+// * @brief A macro to print an error message.
+// * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+// * @param[in] message,      the message to print.
+// **********************************************************/
+//#ifndef __SYNTHESIS__
+//  #define printError(callerName , format, ...) \
+//    do { gTraceEvent = true; printf("[%s] ERROR - " format, callerName, ##__VA_ARGS__); } while (0)
+//#else
+//  #define printError(callerName , format, ...) \
+//    do {} while (0);
+//#endif
 
-/*************************************************************************
- * MACRO DEFINITIONS
- *************************************************************************/
-// Concatenate two char constants
-#define concat2(firstCharConst, secondCharConst) firstCharConst secondCharConst
-// Concatenate three char constants
-#define concat3(firstCharConst, secondCharConst, thirdCharConst) firstCharConst secondCharConst thirdCharConst
-
-/*****************************************************************************
- * @brief A macro to print an information message.
- * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
- * @param[in] message,      the message to print.
- *****************************************************************************/
-#ifndef __SYNTHESIS__
-  #define printInfo(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
-#else
-  #define printInfo(callerName , format, ...) \
-    do {} while (0);
-#endif
-
-/*****************************************************************************
- * @brief A macro to print a warning message.
- * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
- * @param[in] message,      the message to print.
- *****************************************************************************/
-#ifndef __SYNTHESIS__
-  #define printWarn(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
-#else
-  #define printWarn(callerName , format, ...) \
-    do {} while (0);
-#endif
-
-/*****************************************************************************
- * @brief A macro to print an error message.
- * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
- * @param[in] message,      the message to print.
- *****************************************************************************/
-#ifndef __SYNTHESIS__
-  #define printError(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] ERROR - " format, callerName, ##__VA_ARGS__); } while (0)
-#else
-  #define printError(callerName , format, ...) \
-    do {} while (0);
-#endif
-
-/*************************************************************************
+/******************************************************************************
  * PROTOTYPE DEFINITIONS
- *************************************************************************/
-void printAxiWord    (const char *callerName, AxiWord       chunk);
-void printDmCmd      (const char *callerName, DmCmd         dmCmd);
-void printSockAddr   (const char *callerName, SockAddr      sockAddr);
-void printSockPair   (const char *callerName, SocketPair    sockPair);
-void printAxiSockAddr(const char *callerName, AxiSockAddr   sockAddr);
-void printAxiSockPair(const char *callerName, AxiSocketPair sockPair);
+ *******************************************************************************/
+ap_uint<16> swapWord   (ap_uint<16> inpWord);       // [FIXME - To be replaced w/ byteSwap16]
+ap_uint<16> byteSwap16 (ap_uint<16> inputVector);
+ap_uint<32> swapDWord  (ap_uint<32> inpDWord);      // [FIXME - To be replaced w/ byteSwap32]
+ap_uint<32> byteSwap32 (ap_uint<32> inputVector);
 
-ap_uint<16> swapWord  (ap_uint<16> inpWord);        // [FIXME - To be replaced w/ byteSwap16]
-ap_uint<16> byteSwap16(ap_uint<16> inputVector);
-
-ap_uint<32> swapDWord (ap_uint<32> inpDWord);      // [FIXME - To be replaced w/ byteSwap32]
-ap_uint<32> byteSwap32(ap_uint<32> inputVector);
-
-ap_uint<8>  lenToKeep (ap_uint<4> noValidBytes);
-ap_uint<8>  returnKeep(ap_uint<4> length);
-
+ap_uint<8>  lenToKeep  (ap_uint<4> noValidBytes);
+ap_uint<8>  returnKeep (ap_uint<4> length);
 ap_uint<4>  keepToLen  (ap_uint<8> keepValue);
 ap_uint<4>  keepMapping(ap_uint<8> keepValue);
 

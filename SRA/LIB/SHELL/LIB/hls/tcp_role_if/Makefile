@@ -32,21 +32,21 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch ../../.ip_guard
 
 
+clean: ## Cleans the current project
+	${RM} -rf ${ipName}_prj
+	${RM} vivado*.log
+
 csim: ## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 csynth: ## Runs the HLS C synthesis
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 cosim: ## Runs the HLS C/RTL cosimulation
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 project: ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl	
-
-clean:
-	${RM} -rf ${ipName}_prj
-	${RM} vivado*.log
 
 help: ## Shows this help message
     # This target is for self documentation of the Makefile. 
@@ -58,4 +58,3 @@ help: ## Shows this help message
 	@echo 'Targets:'
 	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
 	@echo
-	

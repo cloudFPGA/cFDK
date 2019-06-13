@@ -1,9 +1,9 @@
 /*****************************************************************************
  * @file       : test_tcp_app_flash.cpp
- * @brief      : Testbench for TCP Application Flash (UAF).
+ * @brief      : Testbench for TCP Application Flash (TAF).
  *
  * System:     : cloudFPGA
- * Component   : Role
+ * Component   : RoleFlash
  * Language    : Vivado HLS
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
@@ -18,7 +18,6 @@
 
 using namespace std;
 
-
 #define OK          true
 #define KO          false
 #define VALID       true
@@ -28,54 +27,77 @@ using namespace std;
 #define ENABLED     (ap_uint<1>)1
 #define DISABLED    (ap_uint<1>)0
 
-//------------------------------------------------------
-//-- DUT INTERFACES AS GLOBAL VARIABLES
-//------------------------------------------------------
+#define DEFAULT_SESS_ID         42
 
-//-- SHELL / Taf / Mmio / Config Interfaces
-ap_uint<2>          piSHL_This_MmioEchoCtrl;
-ap_uint<1>          piSHL_This_MmioPostPktEn;
-ap_uint<1>          piSHL_This_MmioCaptPktEn;
 
-//-- SHELL / Taf / Tcp Interfaces
-stream<TcpWord>		sSHL_Taf_Data	("sSHL_Taf_Data");
-stream<TcpWord>     sTAF_Shl_Data  	("sTAF_Shl_Data");
+//------------------------------------------------------
+//-- DUT INTERFACES DEFINED AS GLOBAL VARIABLES
+//------------------------------------------------------
+//-- SHELL / MMIO/ Configuration Interfaces
+ap_uint<2>          piSHL_MmioEchoCtrl;
+ap_uint<1>          piSHL_MmioPostSegEn;
+ap_uint<1>          piSHL_MmioCaptSegEn;
+
+//-- SHELL / TCP Rx Data Interfaces
+stream<AppData>     sSHL_Data    ("sSHL_Data");
+stream<AppMeta>     sSHL_SessId  ("sSHL_SessId");
+
+//-- TCP APPLICATION FLASH / TCP Tx Data Interfaces
+stream<AppData>     sTAF_Data    ("sTAF_Data");
+stream<AppMeta>     sTAF_SessId  ("sTAF_SessId");
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-int         simCnt;
+int     gSimCnt;
 
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
  * @ingroup tcp_app_flash
+ *
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
     tcp_app_flash(
-    		piSHL_This_MmioEchoCtrl,
-			//[TODO] piSHL_This_MmioPostPktEn,
-			//[TODO] piSHL_This_MmioCaptPktEn,
-			sSHL_Taf_Data, sTAF_Shl_Data);
-    simCnt++;
-    printf("[%4.4d] STEP DUT \n", simCnt);
+            piSHL_MmioEchoCtrl,
+            //[TODO] piSHL_MmioPostSegEn,
+            //[TODO] piSHL_MmioCaptSegEn,
+            sSHL_Data,
+            sSHL_SessId,
+            sTAF_Data,
+            sTAF_SessId);
+    gSimCnt++;
+    printf("[%4.4d] STEP DUT \n", gSimCnt);
 }
 
 /*****************************************************************************
- * @brief Initialize an input data stream from a file.
+ * @brief Initialize the input data streams from a file.
  * @ingroup tcp_app_flash
  *
- * @param[in] sDataStream, the input data stream to set.
- * @param[in] dataStreamName, the name of the data stream.
- * @param[in] inpFileName, the name of the input file to read from.
- * @return OK if successful, otherwise KO.
+ * @param[in/out] sDataStream,    the input data stream to set.
+ * @param[in/out] sMetaStream,    the input meta stream to set.
+ * @param[in]     dataStreamName, the name of the data stream.
+ * @param[in]     metaStreamName, the name of the meta stream.
+ * @param[in]     inpFileName,    the name of the input file to read from.
+ * @param[out]    nrSegments,     a ref to the counter of generated segments.
+ *
+ * @return OK if successful,  otherwise KO.
  ******************************************************************************/
-bool setInputDataStream(stream<TcpWord> &sDataStream, const string dataStreamName, const string inpFileName) {
+bool setInputDataStreams(
+        stream<AxiWord>    &sDataStream,
+        stream<TcpSessId>  &sMetaStream,
+        const string        dataStreamName,
+        const string        metaStreamName,
+        const string        inpFileName,
+        int                &nrSegments)
+{
     string      strLine;
     ifstream    inpFileStream;
     string      datFile = "../../../../test/" + inpFileName;
-    TcpWord     tcpWord;
+    AxiWord     tcpWord;
+    TcpSessId   tcpSessId = DEFAULT_SESS_ID;
+    bool        startOfTcpSeg;
 
     //-- STEP-1 : OPEN FILE
     inpFileStream.open(datFile.c_str());
@@ -84,25 +106,44 @@ bool setInputDataStream(stream<TcpWord> &sDataStream, const string dataStreamNam
         return(KO);
     }
 
-    //-- STEP-2 : SET DATA STREAM
+    //-- STEP-2 : SET DATA AND META STREAMS
+    startOfTcpSeg = true;
     while (inpFileStream) {
-
         if (!inpFileStream.eof()) {
-
             getline(inpFileStream, strLine);
-            if (strLine.empty()) continue;
+            if (strLine.empty())
+                continue;
             sscanf(strLine.c_str(), "%llx %x %d", &tcpWord.tdata, &tcpWord.tkeep, &tcpWord.tlast);
-
+            // Write to sMetaStream
+            if (startOfTcpSeg) {
+                if (!sMetaStream.full()) {
+                    sMetaStream.write(tcpSessId);
+                    startOfTcpSeg = false;
+                    nrSegments += 1;
+                }
+                else {
+                    printf("### ERROR : Cannot write stream \'%s\'. Stream is full.\n",
+                            metaStreamName.c_str());
+                    return(KO);
+                }
+            }
             // Write to sDataStream
             if (sDataStream.full()) {
-                printf("### ERROR : Stream is full. Cannot write stream with data from file \"%s\".\n", inpFileName.c_str());
+                printf("### ERROR : Cannot write stream \'%s\'. Stream is full.\n",
+                        dataStreamName.c_str());
                 return(KO);
-            } else {
+            }
+            else {
                 sDataStream.write(tcpWord);
                 // Print Data to console
                 printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                        simCnt, dataStreamName.c_str(),
+                        gSimCnt, dataStreamName.c_str(),
                         tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
+                // Increment the TCP session Id
+                if (tcpWord.tlast) {
+                    tcpSessId++;
+                    startOfTcpSeg = true;
+                }
             }
         }
     }
@@ -136,11 +177,12 @@ bool readDataStream(stream <TcpWord> &sDataStream, TcpWord *tcpWord) {
  * @brief Dump a data word to a file.
  * @ingroup tcp_app_flash
  *
- * @param[in] tcpWord,      a pointer to the data word to dump.
- * @param[in] outFileStream,the output file stream to write to.
+ * @param[in] tcpWord,       a pointer to the data word to dump.
+ * @param[in] outFileStream, the output file stream to write to.
+ *
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool dumpDataToFile(TcpWord *tcpWord, ofstream &outFileStream) {
+bool dumpDataToFile(AxiWord *tcpWord, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printf("### ERROR : Output file stream is not open. \n");
         return(KO);
@@ -155,23 +197,35 @@ bool dumpDataToFile(TcpWord *tcpWord, ofstream &outFileStream) {
 
 
 /*****************************************************************************
- * @brief Fill an output file with data from an output stream.
+ * @brief Fill an output file with data from an output streams.
  * @ingroup tcp_app_flash
  *
- * @param[in] sDataStream,    the output data stream to set.
+ * @param[in] sDataStream,    the output data stream to read from.
+ * @param[in] sMetaStream,    the output meta stream to read from.
  * @param[in] dataStreamName, the name of the data stream.
+ * @param[in] metaStreamName, the name of the meta stream.
  * @param[in] outFileName,    the name of the output file to write to.
+ * @param[in] nrTxSegs,       a ref to the counter of generated segments.
+ *
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool getOutputDataStream(stream<TcpWord> &sDataStream,
-                         const string    dataStreamName, const string   outFileName)
+bool getOutputDataStreams(
+        stream<AxiWord>   &sDataStream,
+        stream<TcpSessId> &sMetaStream,
+        const string       dataStreamName,
+        const string       metaStreamName,
+        const string       outFileName,
+        int               &nrTxSegs)
 {
     string      strLine;
     ofstream    outFileStream;
     string      datFile = "../../../../test/" + outFileName;
-    TcpWord     tcpWord;
+    AxiWord     tcpWord;
+    TcpSessId   tcpSessId;
+    TcpSessId   expectedSessId = DEFAULT_SESS_ID;
+    bool        startOfTcpSeg;
     bool        rc = OK;
-
+    int         nrRxSegs = 0;
     //-- STEP-1 : OPEN FILE
     outFileStream.open(datFile.c_str());
     if ( !outFileStream ) {
@@ -179,13 +233,35 @@ bool getOutputDataStream(stream<TcpWord> &sDataStream,
         return(KO);
     }
 
-    //-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
-    while (!sDataStream.empty()) {
-        if (readDataStream(sDataStream, &tcpWord) == VALID) {
-            // Print DUT/Data to console
-            printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
-                    simCnt, dataStreamName.c_str(),
+    //-- STEP-2 : EMPTY STREAMS AND DUMP DATA TO FILE
+    startOfTcpSeg = true;
+    while (!sDataStream.empty() or !sMetaStream.empty()) {
+        // Read and drain sMetaStream
+        if (startOfTcpSeg) {
+            if (!sMetaStream.empty()) {
+                sMetaStream.read(tcpSessId);
+                if (tcpSessId == expectedSessId)
+                    printf("### [TB/Rx] Received TCP session Id = %d.\n", tcpSessId.to_int());
+                else {
+                    printf("### ERROR : Received TCP session Id = %d but expected %d.\n",
+                            tcpSessId.to_int(), expectedSessId.to_int());
+                    rc = KO;
+                }
+                startOfTcpSeg = false;
+            }
+        }
+        // Read and drain sDataStream
+        if (!sDataStream.empty()) {
+            sDataStream.read(tcpWord);
+            printf("[%4.4d] TB is draining output stream \'%s\' - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+                    gSimCnt, dataStreamName.c_str(),
                     tcpWord.tdata.to_long(), tcpWord.tkeep.to_int(), tcpWord.tlast.to_int());
+            if (tcpWord.tlast) {
+                startOfTcpSeg = true;
+                nrRxSegs++;
+                if (nrRxSegs < nrTxSegs)
+                    expectedSessId++;
+            }
             if (!dumpDataToFile(&tcpWord, outFileStream)) {
                 rc = KO;
                 break;
@@ -199,27 +275,32 @@ bool getOutputDataStream(stream<TcpWord> &sDataStream,
     return(rc);
 }
 
-
+/******************************************************************************
+ * @brief Main function.
+ *
+ * @ingroup test_tcp_app_flash
+ ******************************************************************************/
 int main() {
+
+    gSimCnt = 0;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
-    int         nrErr = 0;
+    int nrErr  = 0;
+    int segCnt = 0;
 
     printf("#####################################################\n");
     printf("## TESTBENCH STARTS HERE                           ##\n");
     printf("#####################################################\n");
 
-    simCnt = 0;
-    nrErr  = 0;
-
     //------------------------------------------------------
     //-- STEP-1.1 : CREATE TRAFFIC AS INPUT STREAMS
     //------------------------------------------------------
     if (nrErr == 0) {
-        if (!setInputDataStream(sSHL_Taf_Data, "sSHL_Taf_Data", "ifsSHL_Taf_Data.dat")) {
-            printf("### ERROR : Failed to set input data stream \"sSHL_Taf_Data\". \n");
+        if (!setInputDataStreams(sSHL_Data, sSHL_SessId,
+                "sSHL_Data", "sSHL_SessId", "ifsSHL_Taf_Data.dat", segCnt)) {
+            printf("### ERROR : Failed to set input data stream. \n");
             nrErr++;
         }
     }
@@ -227,19 +308,19 @@ int main() {
     //------------------------------------------------------
     //-- STEP-1.2 : SET THE PASS-THROUGH MODE
     //------------------------------------------------------
-    piSHL_This_MmioEchoCtrl.write(ECHO_PATH_THRU);
-    //[TODO] piSHL_This_MmioPostPktEn.write(DISABLED);
-    //[TODO] piSHL_This_MmioCaptPktEn.write(DISABLED);
+    piSHL_MmioEchoCtrl.write(ECHO_PATH_THRU);
+    //[TODO] piSHL_MmioPostPktEn.write(DISABLED);
+    //[TODO] piSHL_MmioCaptPktEn.write(DISABLED);
 
     //------------------------------------------------------
     //-- STEP-2 : MAIN TRAFFIC LOOP
     //------------------------------------------------------
     while (!nrErr) {
 
-        if (simCnt < 25)
+        if (gSimCnt < 25)
             stepDut();
         else {
-            printf("## End of simulation at cycle=%3d. \n", simCnt);
+            printf("## End of simulation at cycle=%3d. \n", gSimCnt);
             break;
         }
 
@@ -249,7 +330,8 @@ int main() {
     //-- STEP-3 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- TAF-->SHELL ----
-    if (!getOutputDataStream(sTAF_Shl_Data, "sTAF_Shl_Data", "ofsTAF_Shl_Data.dat"))
+    if (!getOutputDataStreams(sTAF_Data, sTAF_SessId,
+            "sTAF_Data", "sTAF_SessId", "ofsTAF_Shl_Data.dat", segCnt))
         nrErr++;
 
     //------------------------------------------------------

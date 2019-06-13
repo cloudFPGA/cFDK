@@ -16,13 +16,17 @@ using namespace hls;
 
 
 /*****************************************************************************
- * @brief Tx Application Status Handler (Tas).
+ * @brief Tx Application Status Handler (Tas).  [FIXME - Move this process in tc_app_interface.cpp]
  *
- * @param[in]  siTRIF_OpnReq,       Open connection request from TCP Role I/F (TRIF).
+ * @param[in]  siTRIF_OpnReq,        Open connection request from TCP Role I/F (TRIF).
  * @param[]
- * @param[]
- * @param[out] soSLc_SessLookupReq, Request a session lookup to [SessionLookupController].
- * @param[out] soTAi_GetFreePortReq,Request to get a free port to [TxAppInterface]. *
+ * @param[in]  siSLc_SessLookupRep,  Reply from [SLc]
+ * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
+ * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
+ * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[in]  siRXe_SessOpnSts,     Session open status from [RXe].
+ * @param[out] soTRIF_SessOpnSts,    Session open status to [TRIF].
+ * @param
  *
  * @details
  *  This interface exposes the creation and tear down of connections to the
@@ -40,13 +44,13 @@ using namespace hls;
 void tx_app_if(
         stream<AxiSockAddr>         &siTRIF_OpnReq,
         stream<ap_uint<16> >        &closeConnReq,
-        stream<sessionLookupReply>  &sLookup2txApp_rsp,
-        stream<ap_uint<16> >        &portTable2txApp_port_rsp,
+        stream<sessionLookupReply>  &siSLc_SessLookupRep,
+        stream<TcpPort>             &siPRt_ActPortStateRep,
         stream<sessionState>        &stateTable2txApp_upd_rsp,
-        stream<OpenStatus>          &conEstablishedIn, //alter
-        stream<OpenStatus>          &appOpenConnRsp,
+        stream<OpenStatus>          &siRXe_SessOpnSts,
+        stream<OpenStatus>          &soTRIF_SessOpnSts,
         stream<AxiSocketPair>       &soSLc_SessLookupReq,
-        stream<ReqBit>              &soTAi_GetFreePortReq,
+        stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<stateQuery>          &txApp2stateTable_upd_req,
         stream<event>               &txApp2eventEng_setEvent,
         stream<OpenStatus>          &rtTimer2txApp_notification,
@@ -61,43 +65,55 @@ void tx_app_if(
     static stream<AxiSockAddr>  localFifo ("localFifo");
     #pragma HLS stream variable=localFifo depth=4
 
-    static enum FsmState {IDLE=0, CLOSE_CONN} tai_fsmState = IDLE;
+    //OBSSOLETE static enum FsmState {IDLE=0, CLOSE_CONN} tai_fsmState = IDLE;
+    static enum TasFsmStates {TAS_IDLE=0, TAS_GET_FREE_PORT, TAS_CLOSE_CONN } tasFsmState = TAS_IDLE;
 
-    switch (tai_fsmState) {
+    switch (tasFsmState) {
 
-    case IDLE:
-        if (!siTRIF_OpnReq.empty() && !soTAi_GetFreePortReq.full()) {
+    case TAS_IDLE:
+        if (!siTRIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
             localFifo.write(siTRIF_OpnReq.read());
-            soTAi_GetFreePortReq.write(true);
+            soPRt_GetFreePortReq.write(true);
+            tasFsmState = TAS_GET_FREE_PORT;
         }
-        else if (!sLookup2txApp_rsp.empty())    {
-            sessionLookupReply session = sLookup2txApp_rsp.read();                          // Read session
-            if (session.hit) {                                                              // Get session state
+        else if (!siSLc_SessLookupRep.empty()) {
+            // Read the session and check its state
+            sessionLookupReply session = siSLc_SessLookupRep.read();
+            if (session.hit) {
                 txApp2eventEng_setEvent.write(event(SYN, session.sessionID));
                 txApp2stateTable_upd_req.write(stateQuery(session.sessionID, SYN_SENT, 1));
             }
-            else
-                appOpenConnRsp.write(OpenStatus(0, false));
+            else {
+                // Tell the APP that the open connection failed
+                soTRIF_SessOpnSts.write(OpenStatus(0, false));
+            }
         }
-        else if (!conEstablishedIn.empty())
-            appOpenConnRsp.write(conEstablishedIn.read());  //Maybe check if we are actually waiting for this one
+        else if (!siRXe_SessOpnSts.empty())
+            soTRIF_SessOpnSts.write(siRXe_SessOpnSts.read());  //Maybe check if we are actually waiting for this one
         else if (!rtTimer2txApp_notification.empty())
-            appOpenConnRsp.write(rtTimer2txApp_notification.read());
+            soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
         else if(!closeConnReq.empty()) {    // Close Request
             closeConnReq.read(tai_closeSessionID);
             txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID));
-            tai_fsmState = CLOSE_CONN;
-        }
-        else if (!portTable2txApp_port_rsp.empty() && !soSLc_SessLookupReq.full()) {
-            ap_uint<16> freePort    = portTable2txApp_port_rsp.read() + 32768;
-            AxiSockAddr axiServerAddr = localFifo.read();
-            //OBSOLETE-20181218 soSLc_SessLookupReq.write(fourTuple(regIpAddress, byteSwap32(server_addr.ip_address), byteSwap16(freePort), byteSwap16(server_addr.ip_port))); // Implicit creationAllowed <= true
-            soSLc_SessLookupReq.write(AxiSocketPair(AxiSockAddr(regIpAddress,       byteSwap16(freePort)),
-                                                    AxiSockAddr(axiServerAddr.addr, axiServerAddr.port)));
+            tasFsmState = TAS_CLOSE_CONN;
         }
         break;
 
-    case CLOSE_CONN:
+    case TAS_GET_FREE_PORT:
+        if (!siPRt_ActPortStateRep.empty() && !soSLc_SessLookupReq.full()) {
+            //OBSOLETE-20190521 ap_uint<16> freePort = siPRt_ActPortStateRep.read() + 32768; // 0x8000 is already added by PRt
+            TcpPort     freePort      = siPRt_ActPortStateRep.read();
+            AxiSockAddr axiServerAddr = localFifo.read();
+            //OBSOLETE-20181218 soSLc_SessLookupReq.write(
+            //        fourTuple(regIpAddress, byteSwap32(server_addr.ip_address),
+            //        byteSwap16(freePort), byteSwap16(server_addr.ip_port)));
+            soSLc_SessLookupReq.write(AxiSocketPair(AxiSockAddr(regIpAddress,       byteSwap16(freePort)),
+                                                    AxiSockAddr(axiServerAddr.addr, axiServerAddr.port)));
+            tasFsmState = TAS_IDLE;
+        }
+        break;
+
+    case TAS_CLOSE_CONN:
         if (!stateTable2txApp_upd_rsp.empty()) {
             sessionState state = stateTable2txApp_upd_rsp.read();
             //TODO might add CLOSE_WAIT here???
@@ -107,7 +123,7 @@ void tx_app_if(
             }
             else
                 txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID, state, 1)); // Have to release lock
-            tai_fsmState = IDLE;
+            tasFsmState = TAS_IDLE;
         }
         break;
     }

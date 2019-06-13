@@ -21,7 +21,8 @@
  *
  *****************************************************************************/
 
-#include "tx_engine.hpp"
+#include "../../src/tx_engine/tx_engine.hpp"
+#include "../../test/test_toe_utils.hpp"
 
 #include <algorithm>
 

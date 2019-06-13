@@ -19,6 +19,7 @@ struct eventMeta
                 :sessionID(id), address(addr), length(len) {}
 };
 
+/*** OBSOLETE-20190611 ******
 struct pkgPushMeta
 {
     ap_uint<16> sessionID;
@@ -31,14 +32,31 @@ struct pkgPushMeta
     pkgPushMeta(ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len)
                     :sessionID(id), address(addr), length(len), drop(false) {}
 };
+***********************************/
+
+/***********************************************
+ * Metadata for storing a segment in memory
+ ***********************************************/
+class SegMemMeta {
+  public:
+    TcpSessId    sessId;
+    ap_uint<16>  addr;
+    ap_uint<16>  len;
+    bool         drop;
+    SegMemMeta() {}
+    SegMemMeta(bool drop) :
+        sessId(0), addr(0), len(0), drop(drop) {}
+    SegMemMeta(TcpSessId sessId, ap_uint<16> addr, ap_uint<16> len) :
+        sessId(sessId), addr(addr), len(len), drop(false) {}
+};
 
 
 /** @defgroup tx_app_stream_if TX Application Stream Interface
  *  @ingroup app_if
  */
 void tx_app_stream_if(
-        stream<ap_uint<16> >       &appTxDataReqMetaData,
         stream<AxiWord>            &appTxDataReq,
+        stream<ap_uint<16> >       &appTxDataReqMetaData,
         stream<sessionState>       &stateTable2txApp_rsp,
         stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
         stream<ap_int<17> >        &appTxDataRsp,

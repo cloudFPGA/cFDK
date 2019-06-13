@@ -25,14 +25,21 @@ module ToeCamWrap
     UpdateValue
 );
 
-// parameters
-localparam K = 97;    // number of key bits
+//----------------------------------------------------------
+// Parameters
+//----------------------------------------------------------
+//OBSOLETE-20190514 localparam K = 97;    // number of key bits
+localparam K = 96;    // number of key bits
 localparam V = 14;    // number of value bits
 localparam A = 14;    // number of bram address bits
-localparam D = 115;    // number of bram data bits
-localparam C = 3; // number of cam address bits
+//OBSOLETE-20190514 localparam D = 115;   // number of bram data bits
+localparam D = 112;   // number of bram data bits
+localparam C = 3;     // number of cam address bits
 localparam U = 10;    // number of used bits
-// system interface
+
+//------------------------------------------------
+// System interface
+//------------------------------------------------
 input               Rst;
 input               Clk;
 
@@ -42,7 +49,9 @@ input   [31:0]      AgingTime; // cycles/location, at @ 200Mhz max value = 21 se
 output  [A:0]       Size;
 output  [C-1:0]     CamSize;
 
-// lookup interface
+//------------------------------------------------
+// Lookup interface
+//------------------------------------------------
 input               LookupReqValid;
 input   [K-1:0]     LookupReqKey;
 output              LookupRespValid;
@@ -50,7 +59,9 @@ output              LookupRespHit;
 output  [K-1:0]     LookupRespKey;
 output  [V-1:0]     LookupRespValue;
 
-// update interface
+//------------------------------------------------
+// Update interface
+//------------------------------------------------
 output              UpdateReady;
 input               UpdateValid;
 input               UpdateOp;   // 0=insert, 1=delete
@@ -59,6 +70,7 @@ input               UpdateStatic;
 input   [V-1:0]     UpdateValue;
 
 // ****************************************************************************
+
 wire    [U-1:0]     AgingTimestamp;
 wire                RamReqValid;
 wire                RamReqOp;
@@ -73,6 +85,7 @@ ToeCam_Lookup LKP
     .Rst                (Rst),                         
     .Clk                (Clk),                  
     .AgingTimestamp     (AgingTimestamp),
+    
     .LookupReqValid     (LookupReqValid),                    
     .LookupReqKey       (LookupReqKey),            
     .LookupRespValid    (LookupRespValid),           
@@ -110,8 +123,8 @@ ToeCam_Update UPDT
     .UpdateValue        (UpdateValue),            
 
     .RamReqValid        (RamReqValid),            
-    .RamReqOp           (RamReqOp),            
-    .RamRwAddr          (RamRwAddr),            
+    .RamReqOp           (RamReqOp),       // 0=read, 1=write         
+    .RamRwAddr          (RamRwAddr),      // MSB: 0=BRAM, 1=CAM            
     .RamWrUsed          (RamWrUsed),            
     .RamRdUsed          (RamRdUsed), 
     .RamWrData          (RamWrData),            

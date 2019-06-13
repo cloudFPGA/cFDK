@@ -14,7 +14,7 @@
 #ifndef MEM_H_
 #define MEM_H_
 
-#include "../toe.hpp"
+#include "../../src/toe.hpp"
 
 #include <map>
 

@@ -12,9 +12,11 @@
  *****************************************************************************/
 
 #include <queue>
+#include <string>
 
-#include "toe_utils.hpp"
+#include "../src/toe.hpp"
 
+using namespace std;
 
 
 /*****************************************************************************
@@ -100,7 +102,6 @@ ap_uint<8> lenToKeep(ap_uint<4> noValidBytes) {
     return keep;
 }
 
-
 /*****************************************************************************
  * @brief A function to set a number of 1s in an 8-bit value.
  *         [FIXME - To replace by lenToKeep]
@@ -119,81 +120,6 @@ ap_uint<8> returnKeep(ap_uint<4> count) {
         case 8: keep = 0xFF; break;
     }
     return keep;
-}
-
-
-/*****************************************************************************
- * @brief Prints one chunk of a data stream (used for debugging).
- *
- * @param[in] callerName,   the name of the caller process (e.g. "Tle").
- * @param[in] chunk,        the data stream chunk to display.
- *****************************************************************************/
-void printAxiWord(const char *callerName, AxiWord chunk)
-{
-    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
-}
-
-/*****************************************************************************
- * @brief Prints the details of a Data Mover Command (used for debugging).
- *
- * @param[in] callerName,   the name of the caller process (e.g. "Mwr").
- * @param[in] dmCmd,        the data mover command to display.
- *****************************************************************************/
-void printDmCmd(const char *callerName, DmCmd dmCmd)
-{
-    printInfo(callerName, "DmCmd = {BBT=0x%6.6X, TYPE=0x%1.1X DSA=0x%2.2X, EOF=0x%1.1X, DRR=0x%1.1X, SADDR=0x%8.8X, TAG=0x%1.1X} \n",
-              dmCmd.bbt.to_uint(), dmCmd.type.to_uint(), dmCmd.dsa.to_uint(), dmCmd.eof.to_uint(), dmCmd.drr.to_uint(), dmCmd.saddr.to_uint(), dmCmd.tag.to_uint());
-}
-
-/*****************************************************************************
- * @brief Print a socket pair association encoded in LITTLE-ENDIAN order.
- *
- * @param[in] callerName, the name of the caller process (e.g. "Mdh").
- * @param[in] sockPair,   the socket pair to display (in LITTLE-ENDIAN order).
- *****************************************************************************/
-void printAxiSockPair(const char *callerName, AxiSocketPair sockPair)
-{
-    printInfo(callerName, "MacSocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
-        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
-        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
-}
-
-/*****************************************************************************
- * @brief Print a socket pair association encoded in NETWORK-BYTE order.
- *
- * @param[in] callerName, the name of the caller process (e.g. "Mdh").
- * @param[in] sockPair,   the socket pair to display (in NETWORK-BYTE order).
- *****************************************************************************/
-void printSockPair(const char *callerName, SocketPair sockPair)
-{
-    printInfo(callerName, "SocketPair {Src,Dst} = {{0x%8.8X,0x%4.4X},{0x%8.8X,0x%4.4X}} \n",
-        sockPair.src.addr.to_uint(), sockPair.src.port.to_uint(),
-        sockPair.dst.addr.to_uint(), sockPair.dst.port.to_uint());
-}
-
-/*****************************************************************************
- * @brief Print a socket address encoded in LITTLE_ENDIAN order.
- *
- * @param[in] callerName, the name of the caller process (e.g. "Mdh").
- * @param[in] sockAddr,   the socket address to display (in LITTLE-ENDIAN order).
- *****************************************************************************/
-void printAxiSockAddr(const char *callerName, AxiSockAddr sockAddr)
-{
-    printInfo(callerName, "MacSocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
-        sockAddr.addr.to_uint(), sockAddr.port.to_uint());
-}
-
-/*****************************************************************************
- * @brief Print a socket address encoded in NETWORK-BYTE order.
- *
- * @param[in] callerName, the name of the caller process (e.g. "Mdh").
- * @param[in] sockAddr,   the socket address to display (in NETWORK-BYTE order).
- *****************************************************************************/
-void printSockAddr(const char *callerName, SockAddr sockAddr)
-{
-    printInfo(callerName, "SocketAddr {IpAddr,TcpPort} = {0x%8.8X,0x%4.4X} \n",
-        sockAddr.addr.to_uint(), sockAddr.port.to_uint());
 }
 
 

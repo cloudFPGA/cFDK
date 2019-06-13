@@ -39,11 +39,9 @@
 #include <stdint.h>
 #include <vector>
 
-#include "toe_utils.hpp"
+//#include "../test/test_toe_utils.hpp"
 
 static const uint16_t MAX_SESSIONS = 32;
-
-//OBSOLETE #include "session_lookup_controller/session_lookup_controller.hpp"
 
 #define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
 
@@ -126,9 +124,12 @@ using namespace hls;
 
 #define BROADCASTCHANNELS 2
 
+
+// WARNING ABOUT ENUMERATIONS:
+//   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
+//   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
+
 enum eventType {TX, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY};
-
-
 
 /*
  * There is no explicit LISTEN state
@@ -136,7 +137,7 @@ enum eventType {TX, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY};
  * FIN_WAIT_2 is also unused
  * LISTEN is merged into CLOSED
  */
-enum sessionState {CLOSED, SYN_SENT, SYN_RECEIVED, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSING, TIME_WAIT, LAST_ACK};
+
 enum notificationType {PKG, CLOSE, TIME_OUT, RESET};
 enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4 };
 
@@ -438,7 +439,7 @@ struct axiWord {
 
 
 /***********************************************
- * Open Status
+ * Open Status [TODO - Rename to OpenReply]
  *  Reports if a session is opened or closed.
  ***********************************************/
 class OpenStatus
@@ -463,53 +464,58 @@ struct openStatus
 ****************************/
 
 
-
-
-
-
-
-
-
-
-
-
-
 /********************************************
  * Session Lookup Controller (SLc)
  ********************************************/
-
-
-
 typedef SessionId   TcpSessId;  // TCP Session ID
+
 //OBSOLETE typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID  [FIXME - Needed?]
 
 struct sessionLookupQuery
 {
     AxiSocketPair  tuple;
-    bool        allowCreation;
+    bool           allowCreation;
     sessionLookupQuery() {}
     sessionLookupQuery(AxiSocketPair tuple, bool allowCreation) :
         tuple(tuple), allowCreation(allowCreation) {}
 };
 
+typedef bool HitState;
+enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
+
 struct sessionLookupReply
 {
-	SessionId   sessionID;
-    bool        hit;
+    SessionId   sessionID;
+    HitState    hit;
     sessionLookupReply() {}
-    sessionLookupReply(SessionId id, bool hit) :
+    sessionLookupReply(SessionId id, HitState hit) :
         sessionID(id), hit(hit) {}
 };
+/*** [TODO] ***
+class SessionLookupReply
+{
+
+    enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
+    typedef bool HitState;
+  public:
+    SessionId   sessionID;
+    HitState    hitState;
+    SessionLookupReply() {}
+    SessionLookupReply(SessionId id, HitState hit) :
+        sessionID(id), hitState(hit) {}
+};
+***/
 
 /********************************************
- * Port Table (PRt)
+ * State Table (STt)
  ********************************************/
+enum sessionState {CLOSED, SYN_SENT, SYN_RECEIVED, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSING, TIME_WAIT, LAST_ACK};
 #define QUERY_RD  0
 #define QUERY_WR  1
 
 struct stateQuery
 {
-	SessionId       sessionID;
+    SessionId       sessionID;
     sessionState    state;
     ap_uint<1>      write;
     stateQuery() {}
@@ -518,6 +524,16 @@ struct stateQuery
     stateQuery(SessionId id, sessionState state, ap_uint<1> write) :
         sessionID(id), state(state), write(write) {}
 };
+
+
+/********************************************
+ * Port Table (PRt)
+ ********************************************/
+typedef bool PortState;
+enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
+
+typedef bool PortRange;
+enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 
 
 /********************************************
@@ -601,6 +617,7 @@ struct txSarEntry
     bool        finSent;
 };
 
+// Tx-SAR / Receive Path Interface
 struct rxTxSarQuery
 {
 	SessionId   sessionID;
@@ -617,6 +634,20 @@ struct rxTxSarQuery
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
+// Tx-SAR / Receive Path Interface
+struct rxTxSarReply
+{
+    TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
+    TcpAckNum       nextByte;    //OBSOLETE-20181126 ap_uint<32>     nextByte;
+    TcpWindow       cong_window; //OBSOLETE-20181126  ap_uint<16>    cong_window;
+    ap_uint<16>     slowstart_threshold;
+    ap_uint<2>      count;
+    rxTxSarReply() {}
+    rxTxSarReply(TcpAckNum ack, TcpAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
+        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
+};
+
+// Tx-SAR / Transmit Path Interface
 struct txTxSarQuery
 {
 	SessionId   sessionID;
@@ -641,6 +672,21 @@ struct txTxSarQuery
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
+// Tx-SAR / Transmit Path Interface
+struct txTxSarReply
+{
+    TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
+    TcpAckNum       not_ackd;   //OBSOLETE ap_uint<32>  not_ackd;
+    TcpWindow       min_window; //OBSOLETE ap_uint<16>  min_window;
+    ap_uint<16>     app;
+    bool            finReady;
+    bool            finSent;
+    txTxSarReply() {}
+    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
+        ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
+};
+
+// [TODO - Naming]
 struct txTxSarRtQuery : public txTxSarQuery
 {
     txTxSarRtQuery() {}
@@ -653,7 +699,7 @@ struct txTxSarRtQuery : public txTxSarQuery
     }
 };
 
-
+// [TODO - Naming]
 struct txAppTxSarQuery
 {
     SessionId   sessionID;
@@ -666,23 +712,7 @@ struct txAppTxSarQuery
             :sessionID(id), mempt(pt), write(true) {}
 };
 
-/********************************************
- * Rx SAR Table (RSt) Reply
- ********************************************/
-struct rxTxSarReply
-{
-    TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
-    TcpAckNum       nextByte;    //OBSOLETE-20181126 ap_uint<32>     nextByte;
-    TcpWindow       cong_window; //OBSOLETE-20181126  ap_uint<16>     cong_window;
-    ap_uint<16>     slowstart_threshold;
-    ap_uint<2>      count;
-    rxTxSarReply() {}
-    rxTxSarReply(ap_uint<32> ack, ap_uint<32> next, ap_uint<16> cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
-        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
-};
-
-
-
+// [TODO - Naming]
 struct txAppTxSarReply
 {
 	SessionId   sessionID;
@@ -693,6 +723,7 @@ struct txAppTxSarReply
         sessionID(id), ackd(ackd), mempt(pt) {}
 };
 
+// [TODO - Naming]
 struct txAppTxSarPush
 {
 	SessionId   sessionID;
@@ -702,6 +733,7 @@ struct txAppTxSarPush
          sessionID(id), app(app) {}
 };
 
+// [TODO - Naming]
 struct txSarAckPush
 {
 	SessionId   sessionID;
@@ -714,21 +746,6 @@ struct txSarAckPush
         sessionID(id), ackd(ackd), init(init) {}
 };
 
-/********************************************
- * Tx SAR Table (TSt) Reply
- ********************************************/
-struct txTxSarReply
-{
-	TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
-	TcpAckNum       not_ackd;   //OBSOLETE ap_uint<32>  not_ackd;
-    TcpWindow       min_window; //OBSOLETE ap_uint<16>  min_window;
-    ap_uint<16>     app;
-    bool            finReady;
-    bool            finSent;
-    txTxSarReply() {}
-    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
-        ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
-};
 
 /********************************************
  * Timers (TIm)
@@ -1151,10 +1168,10 @@ typedef TcpSessId   AppMeta;
  *  The socket address that the application
  *  wants to open.
  ***********************************************/
-typedef AxiSockAddr AppOpnReq;
+typedef AxiSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
 
 /***********************************************
- * Application Open Status
+ * Application Open Status [TODO - Rename to Reply]
  *  Information returned by TOE after an open
  *  connection request.
  ***********************************************/

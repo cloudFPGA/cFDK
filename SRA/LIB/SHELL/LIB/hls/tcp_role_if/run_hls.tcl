@@ -52,13 +52,17 @@ set_top       ${projectName}
 
 # Add files
 #-------------------------------------------------
-add_files     ${srcDir}/${projectName}.cpp
-add_files     ${srcDir}/${projectName}.hpp
+add_files     ${currDir}/src/${projectName}.cpp
+add_files     ${currDir}/src/${projectName}.hpp
+add_files     ${currDir}/../toe/test/test_toe_utils.cpp
+add_files     ${currDir}/../toe/test/test_toe_utils.hpp
+
+add_files -tb ${currDir}/test/test_${projectName}.cpp
 
 add_files     ${currDir}/../toe/src/toe_utils.cpp
 add_files     ${currDir}/../toe/src/toe_utils.hpp
 
-add_files -tb ${testDir}/test_${projectName}.cpp
+
 
 # Create a solution
 #-------------------------------------------------

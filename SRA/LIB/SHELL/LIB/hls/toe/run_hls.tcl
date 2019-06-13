@@ -1,3 +1,4 @@
+
 # *****************************************************************************
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
@@ -7,7 +8,6 @@
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the TCP offload 
 # *   engine used by the shell of the cloudFPGA module.
-# *   project.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -52,21 +52,23 @@ set_top       ${projectName}
 
 # Add files
 #-------------------------------------------------
-add_files     ${srcDir}/${projectName}.cpp
-add_files     ${srcDir}/${projectName}.hpp
-add_files -tb ${testDir}/test_${projectName}.cpp
-add_files -tb ${testDir}/test_${projectName}.hpp
+add_files     ${currDir}/src/${projectName}.cpp
+add_files     ${currDir}/src/${projectName}_utils.cpp
+add_files     ${currDir}/test/test_${projectName}_utils.cpp
+
+add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
+add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
+add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
 add_files ${srcDir}/close_timer/close_timer.cpp
-add_files ${srcDir}/dummy_memory/dummy_memory.cpp
 add_files ${srcDir}/event_engine/event_engine.cpp
 add_files ${srcDir}/port_table/port_table.cpp
 add_files ${srcDir}/probe_timer/probe_timer.cpp
 add_files ${srcDir}/retransmit_timer/retransmit_timer.cpp
 add_files ${srcDir}/rx_app_if/rx_app_if.cpp
 add_files ${srcDir}/rx_app_stream_if/rx_app_stream_if.cpp
-add_files ${srcDir}/rx_engine/rx_engine.cpp
+add_files ${srcDir}/rx_engine/src/rx_engine.cpp
 add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files ${srcDir}/state_table/state_table.cpp
@@ -84,6 +86,9 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
+# Request any static or global variable to be reset to its initialized value
+# config_rtl -reset state
+
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
@@ -99,18 +104,52 @@ if { $hlsCSim} {
     csim_design -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_OnePkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_TwoPkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_ThreePkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_FourPkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_FivePkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF C SIMULATION             ####"
+    puts "####                                                     ####"
+    puts "#############################################################"    
 }
 
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} { 
     csynth_design
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF SYNTHESIS                ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
 
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level all
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_FourPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_FivePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
+    puts "#### [FIXME] YOU HAVE LINES THAT MUST BE UNCOMMENTED HERE!!! ####"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
+
 }
 
 # Export RTL (refer to UG902)
@@ -118,6 +157,12 @@ if { $hlsCoSim } {
 #-------------------------------------------------
 if { $hlsRtl } {
     export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
+
 }
 
 # Exit Vivado HLS

@@ -12,6 +12,7 @@
  *****************************************************************************/
 
 #include "event_engine.hpp"
+#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 

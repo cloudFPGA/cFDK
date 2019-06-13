@@ -128,53 +128,57 @@ void tx_app_table(
 /*****************************************************************************
  * @brief The tx_app_interface (TAi) is front-end of the TCP Role I/F (TRIF).
  *
- * @param[]
- * @param[]
- * @param[]
+ * @param[in]  siTRIF_Data,           TCP data stream from TRIF.
+ * @param[in]  siTRIF_Meta,           TCP metadata stream from TRIF.
+ * @param[in]  siSTt_SessionStateRep, Session state rply from [STt].
  * @param[]
  * @param[]
  * @param[in]  siTRIF_OpnReq, Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[]
+ * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
+ * @param[]
+ * @param[in]  siRXe_SessOpnSts, Session open status from [RXe].
+ * @param[]
+ * @param[out] soSTt_SessStateReq,    State request to StateTable (STt).
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[out] soTRIF_SessOpnSts,     Open status to [TRIF].
+ * @param[out] soSLc_SessLookupReq,   Session lookup request to Session Lookup Controller(SLc).
+ * @param[out] soPRt_ActPortStateReq  Request to get a free port to Port Table (PRt).
  * @param[]
  * @param[]
  * @param[]
  * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[out] soSLc_SessLookupReq, Session lookup request to Session Lookup Controller(SLc).
- * @param[out] soTAi_GetFreePortReq,Request to get a free port to [TxAppInterface].
  *
  * @details
  *
  * @ingroup tx_app_interface
  ******************************************************************************/
 void tx_app_interface(
-        stream<ap_uint<16> >           &appTxDataReqMetadata,
-        stream<AxiWord>                &appTxDataReq,
-        stream<sessionState>           &stateTable2txApp_rsp,
+        stream<AppData>                &siTRIF_Data,
+        stream<AppMeta>                &siTRIF_Meta,
+        stream<sessionState>           &siSTt_SessStateRep,
         stream<txSarAckPush>           &txSar2txApp_ack_push,
         stream<DmSts>                  &txBufferWriteStatus,
 
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
-        stream<sessionLookupReply>     &sLookup2txApp_rsp,
-        stream<ap_uint<16> >           &portTable2txApp_port_rsp,
+        stream<sessionLookupReply>     &siSLc_SessLookupRep,
+        stream<ap_uint<16> >           &siPRt_ActPortStateRep,
         stream<sessionState>           &stateTable2txApp_upd_rsp,
-        stream<OpenStatus>             &conEstablishedFifo,
+        stream<OpenStatus>             &siRXe_SessOpnSts,
 
         stream<ap_int<17> >            &appTxDataRsp,
-        stream<ap_uint<16> >           &txApp2stateTable_req,
+        stream<TcpSessId>              &soSTt_SessStateReq,
         stream<DmCmd>                  &txBufferWriteCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<txAppTxSarPush>         &txApp2txSar_push,
 
-        stream<OpenStatus>             &appOpenConnRsp,
+        stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
-        stream<ReqBit>                 &soTAi_GetFreePortReq,
+        stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<stateQuery>             &txApp2stateTable_upd_req,
         stream<event>                  &txApp2eventEng_setEvent,
         stream<OpenStatus>             &rtTimer2txApp_notification,
@@ -216,12 +220,12 @@ void tx_app_interface(
 
     // TX application Stream Interface
     tx_app_stream_if(
-            appTxDataReqMetadata,
-            appTxDataReq,
-            stateTable2txApp_rsp,
+            siTRIF_Data,
+            siTRIF_Meta,
+            siSTt_SessStateRep,
             txSar2txApp_upd_rsp,
             appTxDataRsp,
-            txApp2stateTable_req,
+            soSTt_SessStateReq,
             txApp2txSar_upd_req,
             txBufferWriteCmd,
             soMEM_TxP_Data,
@@ -231,13 +235,13 @@ void tx_app_interface(
     tx_app_if(
             siTRIF_OpnReq,
             appCloseConnReq,
-            sLookup2txApp_rsp,
-            portTable2txApp_port_rsp,
+            siSLc_SessLookupRep,
+            siPRt_ActPortStateRep,
             stateTable2txApp_upd_rsp,
-            conEstablishedFifo,
-            appOpenConnRsp,
+            siRXe_SessOpnSts,
+            soTRIF_SessOpnSts,
             soSLc_SessLookupReq,
-            soTAi_GetFreePortReq,
+            soPRt_GetFreePortReq,
             txApp2stateTable_upd_req,
             txApp2eventEng_mergeEvent,
             rtTimer2txApp_notification,

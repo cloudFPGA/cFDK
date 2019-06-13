@@ -19,10 +19,10 @@
 -- * Description : Vhdl wrapper for the Verilog version of the CAM for the TCP
 -- *
 -- * Generics:
--- *  keyLength   : Sets the lenght of the CAM key. 
--- *    [ 32 (Default) ]
--- *  valueLength : Sets the length of the CAM value.
--- *    [ 48 (Default) ]
+-- *  gKeyLen : Sets the lenght of the CAM key. 
+-- *     [ 96 : Default for {IP_SA, IP_DA, TCP_DP, TCP_SP} ]
+-- *  gValLen : Sets the length of the CAM value.
+-- *     [ 14 : Default for up to 16,384 connections ]
 -- *
 -- *-----------------------------------------------------------------------------
 -- *
@@ -50,38 +50,55 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --**  ENTITY 
 --*************************************************************************  
 entity ToeCam is
+  generic ( 
+    gKeyLen : integer := 96;  -- [ 96 = Default for {IP_SA, IP_DA, TCP_DP, TCP_SP} ] 
+    gValLen : integer := 14;  -- [ 14 = Default for 16,384 connections ]
+    gSrcLen : integer :=  1;  -- [  1 = Default for RXe or TAi ]
+    gHitLen : integer :=  1;  -- [  1 = Default for Hit or NoHit ]
+    gOprLen : integer :=  1   -- [  1 = 
+  );
   port (
-    led1           : out std_logic;
-	  led0           : out std_logic;
-	  rst            : in  std_logic;
-	  clk            : in  std_logic;
-	  cam_ready      : out std_logic;
+  
+    piClk               : in  std_logic;
+    piRst_n             : in  std_logic;
+	 
+    poCamReady          : out std_logic;
 	
-    lup_req_valid  : in  std_logic;
-    lup_req_ready  : out std_logic;
-    lup_req_din    : in  std_logic_vector(97 downto 0);
-  
-    lup_rsp_valid  : out std_logic;
-    lup_rsp_ready  : in  std_logic;
-    lup_rsp_dout   : out std_logic_vector(15 downto 0);
-    
-    upd_req_valid  : in  std_logic;	
-    upd_req_ready  : out std_logic;	
-    upd_req_din    : in  std_logic_vector(112 downto 0);
-  
-    upd_rsp_valid  : out std_logic;	
-    upd_rsp_ready  : in  std_logic;	
-    upd_rsp_dout   : out std_logic_vector(15 downto 0);
-  
-    --new_id_valid   : in std_logic;
-    --new_id_ready   : out std_logic;
-    --new_id_din     : in std_logic_vector(13 downto 0);
-    
-    --fin_id_valid   : out std_logic;
-    --fin_id_ready   : in std_logic;
-    --fin_id_dout    : out std_logic_vector(13 downto 0);
-    
-    debug     : out std_logic_vector(255 downto 0)
+     --------------------------------------------------------
+    -- From TOE -  Lookup Request / Axis
+    --------------------------------------------------------
+    piTOE_LkpReq_tdata  : in  std_logic_vector((gSrcLen+gKeyLen-1) downto 0);
+    piTOE_LkpReq_tvalid : in  std_logic;
+    poTOE_LkpReq_tready : out std_logic;
+
+    --------------------------------------------------------
+    -- To TOE   -  Lookup Reply   / Axis
+    --------------------------------------------------------
+    poTOE_LkpRep_tdata  : out std_logic_vector(gHitLen+gSrcLen+gValLen-1 downto 0);
+    poTOE_LkpRep_tvalid : out std_logic;
+    piTOE_LkpRep_tready : in  std_logic;
+
+    -- -----------------------------------------------------
+    -- From TOE - Update Request / Axis
+    -- -----------------------------------------------------
+    piTOE_UpdReq_tdata  : in  std_logic_vector(gOprLen+gSrcLen+gValLen+gKeyLen-1 downto 0);
+    piTOE_UpdReq_tvalid : in  std_logic;
+    poTOE_UpdReq_tready : out std_logic;
+      
+    --------------------------------------------------------
+    -- To TOE Interfaces
+    --------------------------------------------------------
+    poTOE_UpdRep_tdata  : out std_logic_vector(gOprLen+gSrcLen+gValLen-1 downto 0);
+    poTOE_UpdRep_tvalid : out std_logic;	
+    piTOE_UpdRep_tready : in  std_logic;	
+
+    -- -----------------------------------------------------
+    -- LED & Debug Interfaces
+    -- -----------------------------------------------------
+    poLed0              : out std_logic;
+    poLed1              : out std_logic;
+    poDebug             : out std_logic_vector(255 downto 0)
+	  
   ); 
 end ToeCam;
 
@@ -93,108 +110,339 @@ architecture Behavioral of ToeCam is
 
   -----------------------------------------------------------------
   -- COMPONENT DECLARATIONS
-  -----------------------------------------------------------------  
-  component clk_gen_2
-    port (
-      CLK_IN1    : in   std_logic;
-      CLK_OUT1   : out  std_logic;
-      RESET      : in   std_logic;
-      LOCKED     : out  std_logic
-    );
-  end component;
-
-  component BUFG
-    port (
-      I   : in  std_logic;
-      O   : out std_logic
-    );
-  end component;
-
-  component ToeCamWrap
+  -----------------------------------------------------------------
+  
+  component ToeCamWrap -- [TODO - Rename into Cam]
     port (
       Rst               : in   std_logic;
       Clk               : in   std_logic;
+      
       InitEnb           : in   std_logic;
       InitDone          : out  std_logic;
+      
       AgingTime         : in   std_logic_vector(31 downto 0);
       Size              : out  std_logic_vector(14 downto 0);
-      CamSize           : out  std_logic_vector(2 downto 0);
+      CamSize           : out  std_logic_vector( 2 downto 0);
+      -- Lookup Request/Reply ----------
       LookupReqValid    : in   std_logic;
-      LookupReqKey      : in   std_logic_vector(96 downto 0);
+      LookupReqKey      : in   std_logic_vector(gKeyLen-1 downto 0);
       LookupRespValid   : out  std_logic;
       LookupRespHit     : out  std_logic;
-      LookupRespKey     : out  std_logic_vector(96 downto 0);
-      LookupRespValue   : out  std_logic_vector(13 downto 0);
+      LookupRespKey     : out  std_logic_vector(gKeyLen-1 downto 0);
+      LookupRespValue   : out  std_logic_vector(gValLen-1 downto 0);
+      -- Update Request ---------------- 
       UpdateReady       : out  std_logic;
       UpdateValid       : in   std_logic;
       UpdateOp          : in   std_logic;
-      UpdateKey         : in   std_logic_vector(96 downto 0);
+      UpdateKey         : in   std_logic_vector(gKeyLen-1 downto 0);
       UpdateStatic      : in   std_logic;
-      UpdateValue       : in   std_logic_vector(13 downto 0)
+      UpdateValue       : in   std_logic_vector(gValLen-1 downto 0)
     );
   end component;
-
-  
+ 
+  -----------------------------------------------------------------
+  -- CONSTANT DECLARATIONS
+  -----------------------------------------------------------------
+  constant cOP_INSERT : std_logic := '0';   -- Insert operation
+  constant cOP_DELETE : std_logic := '1';   -- Delete operation
+ 
   -----------------------------------------------------------------
   -- SIGNAL DECLARATIONS
   -----------------------------------------------------------------
-  signal InitEnb        : std_logic := '0';
-  signal AgingTime      : std_logic_vector(31 downto 0) := (others => '1');
-  signal LookupReqValid : std_logic := '0';
-  signal LookupReqKey   : std_logic_vector(96 downto 0) := (others => '0');
-  signal UpdateValid    : std_logic := '0';
-  signal UpdateOp       : std_logic := '0';
-  signal UpdateKey      : std_logic_vector(96 downto 0) := (others => '0');
+
+  -- CAM Input Signals
+  signal sInitEnable     : std_logic := '0';
+  signal sAgingTime      : std_logic_vector(31 downto 0) := (others => '1');
+
+  signal sLookupReqValid : std_logic := '0';
+  signal sLookupReqKey   : std_logic_vector(gKeyLen-1 downto 0) := (others => '0');
+
+  signal sUpdateValid   : std_logic := '0';
+  signal sUpdateOp      : std_logic := '0';
+
+  signal UpdateKey      : std_logic_vector(95 downto 0) := (others => '0');
   signal UpdateStatic   : std_logic := '0';
   signal UpdateValue    : std_logic_vector(13 downto 0) := (others => '0');
 
-  --Outputs
-  signal InitDone       : std_logic;
+  -- CAM Output Signals
+  signal sCAM_InitDone  : std_logic;
   signal Size           : std_logic_vector(14 downto 0);
-  signal CamSize        : std_logic_vector(2 downto 0);
-  signal LookupRespValid: std_logic;
-  signal LookupRespHit  : std_logic;
-  signal LookupRespKey  : std_logic_vector(96 downto 0);
-  signal LookupRespValue: std_logic_vector(13 downto 0);
+  signal CamSize        : std_logic_vector( 2 downto 0);
+  signal LookupRepValid : std_logic;
+  signal LookupRepHit   : std_logic;
+  --OBSOLETE-20190514 signal LookupRepKey   : std_logic_vector(96 downto 0);
+  signal LookupRepKey   : std_logic_vector(95 downto 0);
+  signal LookupRepValue : std_logic_vector(13 downto 0);
   signal UpdateReady    : std_logic;
-
-  signal ctl_fsm        : std_logic_vector(7 downto 0);
   signal valid_happened : std_logic;
 
   signal cnt1s          : std_logic_vector(27 downto 0);
   signal count          : std_logic := '0';
 
-  signal clk_int, rst_int : std_logic;
-  signal locked           : std_logic;
-  signal help_updval      : std_logic;
+  --OBSOLETE-20190515 signal clk_int        : std_logic;
+  --OBSOLETE-20190515 signal rst_int        : std_logic;
+  signal sRst           : std_logic;
+  signal locked         : std_logic;
+  signal help_updval    : std_logic;
+  
+  signal ctl_fsm        : std_logic_vector( 7 downto 0);
+  -- [TODO] type   tFsmStates is (idle, r1, r2, r3, r4, c, p1, p2);
+  -- [TODO] signal fsmStateReg : tFsmStates;
 
 begin
  
-  cam_ready <= InitDone;
+  poCamReady <= sCAM_InitDone;
  
+  sRst <= not piRst_n;
 
---	clk_u : clk_gen_2 port map ( 
---		  CLK_IN1    => clk,
---		  CLK_OUT1   => clk_int,
---		  RESET      => rst,
---		  LOCKED     => locked
---	);
---	rst_int <= (not locked) or rst;
+  -----------------------------------------------------------------
+  -- INST: CONTENT ADDRESSABLE MEMORY
+  -----------------------------------------------------------------
+  WRAP: ToeCamWrap port map (
+    Rst             => sRst,
+    Clk             => piClk,
+    InitEnb         => sInitEnable,
+    InitDone        => sCAM_InitDone,
+    AgingTime       => sAgingTime,
+    Size            => Size,
+    CamSize         => CamSize,
+    -- Lookup Request/Reply ----------
+    LookupReqValid  => sLookupReqValid,
+    LookupReqKey    => sLookupReqKey,
+    LookupRespValid => LookupRepValid,
+    LookupRespHit   => LookupRepHit,
+    LookupRespKey   => LookupRepKey,
+    LookupRespValue => LookupRepValue,
+    -- Update Request ---------------- 
+    UpdateReady     => UpdateReady,
+    UpdateValid     => help_updval, --UpdateValid,
+    UpdateOp        => sUpdateOp,
+    UpdateKey       => UpdateKey,
+    UpdateStatic    => UpdateStatic,
+    UpdateValue     => UpdateValue
+  );
+	
+  sAgingTime   <= (others => '1');		
+  help_updval  <= sUpdateValid or (ctl_fsm(6) and not UpdateReady);
 
---  clk_u: BUFG port map (
---     I  => clk,
---     O  => clk_int
---  );
-
-  rst_int <= rst;
-  clk_int <= clk;
-
-  -- LED heartbeat  [TODO-Remove these unused pins]
-  led1 <= count;
-  led0 <= not count;
-  heartbeat : process(clk_int)
+  -----------------------------------------------------------------
+  -- PROC: CAM Control
+  -----------------------------------------------------------------
+  pCamCtl: process (piClk, sRst)
+    -----------------------------------------------------------------
+    -- ALIAS DECLARATIONS
+    -----------------------------------------------------------------
+    alias piLkpReqKey : std_logic_vector(gKeyLen-1 downto 0) is piTOE_LkpReq_tdata(gKeyLen        -1 downto 0);
+    alias piLkpReqSrc : std_logic                            is piTOE_LkpReq_tdata(gKeyLen+gSrcLen-1); -- lookupSource bit
+  
+    alias poLkpRepVal : std_logic_vector(gValLen-1 downto 0) is poTOE_LkpRep_tdata(gValLen                -1 downto 0);
+    alias poLkpRepSrc : std_logic                            is poTOE_LkpRep_tdata(gValLen+gSrcLen        -1); -- lookupSource bit
+    alias poLkpRepHit : std_logic                            is poTOE_LkpRep_tdata(gValLen+gSrcLen+gHitLen-1); -- lookupHit bit
+    
+    alias piUpdReqKey : std_logic_vector(gKeyLen-1 downto 0) is piTOE_UpdReq_tdata(gKeyLen                        -1 downto 0); -- lookupKey
+    alias piUpdReqVal : std_logic_vector(gValLen-1 downto 0) is piTOE_UpdReq_tdata(gKeyLen+gValLen                -1 downto 0); -- lookupValue
+    alias piUpdReqSrc : std_logic                            is piTOE_UpdReq_tdata(gKeyLen+gValLen+gSrcLen        -1);  -- lookupSource bit
+    alias piUpdReqOpr : std_logic                            is piTOE_UpdReq_tdata(gKeyLen+gValLen+gSrcLen+gOprLen-1); -- lookupOperation bit   
+   
+    alias poUpdRepVal : std_logic_vector(gValLen-1 downto 0) is poTOE_UpdRep_tdata(gValLen                -1 downto 0); -- lookupValue
+    alias poUpdRepSrc : std_logic                            is poTOE_UpdRep_tdata(gValLen+gSrcLen        -1);
+    alis  poUpdRepOpr : std_logic                            is poTOE_UpdRep_tdata(gValLen+gSrcLen+gOprLen-1);
   begin
-    if (clk_int'event and clk_int='1') then
+
+    if (sRst = '1') then
+      sLookupReqValid       <= '0';
+      sLookupReqKey         <= (others => '0');
+      sUpdateValid          <= '0';
+      sUpdateOp             <= '0';
+      UpdateKey             <= (others => '0');
+      UpdateStatic          <= '1';
+      UpdateValue           <= (others => '0');
+      ctl_fsm               <= x"00";
+      poTOE_LkpReq_tready   <= '0';
+      poTOE_UpdReq_tready   <= '0';
+      poTOE_LkpRep_tvalid   <= '0';
+      poTOE_UpdRep_tvalid   <= '0';
+      sInitEnable           <= not sCAM_InitDone;
+      
+    elsif (piClk'event and piClk = '1') then
+      sUpdateValid          <= '0';
+      sInitEnable           <= not sCAM_InitDone;
+      poTOE_LkpReq_tready   <= '0';
+      poTOE_UpdReq_tready   <= '0';
+      poTOE_LkpRep_tvalid   <= '0';
+      poTOE_UpdRep_tvalid   <= '0';				
+      sLookupReqValid       <= '0';
+      
+      if (sCAM_InitDone = '1' or ctl_fsm > x"00") then
+
+        case ctl_fsm is
+          
+          --================================================
+          --  IDLE STATE
+          --================================================
+          when x"00" =>
+            -- Lookup ----------------------------
+            if (piTOE_LkpReq_tvalid = '1') then
+              sLookupReqValid     <= '1';
+              sLookupReqKey       <= piLkpReqKey; -- OBSOLETE piTOE_LkpReq_tdata(gKeyLen-1 downto 1);
+              poLkpRepSrc         <= piLkpReqSrc; -- lookupSource bit--OBSOLETE poTOE_LkpRep_tdata(gKeyLen-1+gSrcLen) <= piTOE_LkpReq_tdata(gKeyLen-1+gSrcLen); -- lookupSource bit
+              poTOE_LkpReq_tready <= '1';
+              ctl_fsm             <= x"10";
+
+            -- Update = Insert -------------------
+            elsif (piTOE_UpdReq_tvalid = '1' and piTOE_UpdReq_tdata(1) = cOP_INSERT) then
+              sUpdateValid        <= '1';
+              UpdateKey           <= piUpdReqKey;   -- OBSOLETE piTOE_UpdReq_tdata(111 downto 16);
+              UpdateValue         <= piUpdReqVal;   -- OBSOLETE piTOE_UpdReq_tdata( 15 downto  2);	
+              sUpdateOp           <= piUpdReqOpr;   -- OBSOLETE piTOE_UpdReq_tdata(1);
+              poUpdRepSrc         <= piUpdReqSrc;   -- OBSOLETE poTOE_UpdRep_tdata(0) <= piTOE_UpdReq_tdata(0); -- updateSource
+              poTOE_UpdReq_tready <= '1';
+              ctl_fsm             <= x"50";
+
+            -- Update = Delete -------------------
+            elsif (piTOE_UpdReq_tvalid='1' and piTOE_UpdReq_tdata(1) = cOP_DELETE) then
+              sUpdateValid          <= '1';
+              UpdateKey             <= piTOE_UpdReq_tdata(111 downto 16);
+              UpdateValue           <= piTOE_UpdReq_tdata( 15 downto  2);	
+              sUpdateOp             <= piTOE_UpdReq_tdata(1);
+              poTOE_UpdRep_tdata(0) <= piTOE_UpdReq_tdata(0); -- updateSource
+              poTOE_UpdReq_tready   <= '1';
+              ctl_fsm               <= x"40";
+            else
+              ctl_fsm               <= x"00";
+            end if;
+
+          --================================================           
+          --  END-OF-LOOKUP STATE
+          --================================================
+          when x"10" =>
+            sLookupReqValid          <= '0';
+            valid_happened          <= '0';
+            ctl_fsm                 <= x"11";
+
+          --================================================           
+          --  LOOKUP-REPLY STATE
+          --================================================            
+          when x"11" =>
+            if (LookupRepValid = '1') then
+              -- Prepare the reply for TOE -------
+              poTOE_LkpRep_tdata(15)          <= LookupRepHit;
+              poTOE_LkpRep_tdata(14 downto 1) <= LookupRepValue(13 downto 0);
+            end if;
+            if (piTOE_LkpRep_tready = '0') then
+              if (LookupRepValid = '1') then
+                valid_happened      <= '1';
+              end if;	
+              ctl_fsm <= ctl_fsm;
+            else
+              if (LookupRepValid = '1' or valid_happened = '1') then
+                -- Send reply back to TOE --------
+                poTOE_LkpRep_tvalid <= '1';
+                ctl_fsm             <= x"00";
+              end if;
+            end if;
+
+          --================================================           
+          --  END-OF-INSERT STATE
+          --================================================
+          when x"50" =>
+            sUpdateValid            <= '1';				
+            ctl_fsm                 <= x"51";
+  
+          --================================================           
+          --  WAIT-FOR-INSERT-REPLY STATE
+          --================================================          
+          when x"51" =>
+            if (UpdateReady = '1') then
+              -- Prepare the reply for TOE -------
+              sUpdateValid          <= '0'; -- clear the update request
+              sUpdateOp             <= '0';
+              UpdateKey             <= (others => '0');
+              UpdateValue           <= (others => '0');
+              poTOE_UpdRep_tdata(15 downto 2) <= UpdateValue; -- SessId
+              poTOE_UpdRep_tdata(1) <= sUpdateOp;              -- Operation
+              ctl_fsm               <= x"52";
+            else
+              -- Hold-on until the CAM is ready --
+              sUpdateValid          <= '0';
+              ctl_fsm               <= x"51";							
+            end if;
+
+          --================================================           
+          --  SEND-INSERT-REPLY STATE
+          --================================================                     
+          when x"52" =>
+            if (piTOE_UpdRep_tready = '0') then
+              -- Wait until TOE is ready ---------
+              ctl_fsm               <= ctl_fsm;
+            else
+              -- Send reply back to TOE ----------
+              poTOE_UpdRep_tvalid   <= '1';
+              ctl_fsm               <= x"00";
+            end if;
+ 
+          --================================================           
+          --  END-OF-DELETE STATE
+          --================================================           
+          when x"40" =>
+            sUpdateValid            <= '1';
+            ctl_fsm                 <= x"41";
+
+          --================================================           
+          --  WAIT-FOR-DELETE-REPLY STATE
+          --================================================                   
+          when x"41" =>
+            --OBSOLETE-20190613 upd_rsp_dout(15 downto 2) <= UpdateValue;
+            --OBSOLETE-20190613 upd_rsp_dout(1)           <= UpdateOp; -- ops
+            if (UpdateReady='1') then
+              -- Prepare the reply for TOE -------
+              sUpdateValid          <= '0'; -- clear the update request
+              sUpdateOp             <= '0';
+              UpdateKey             <= (others => '0');
+              UpdateValue           <= (others => '0');
+              poTOE_UpdRep_tdata(15 downto 2) <= UpdateValue; -- SessId
+              poTOE_UpdRep_tdata(1) <= sUpdateOp;              -- Operation
+              ctl_fsm               <= x"42";
+            else
+              -- Hold-on until the CAM is ready --
+              sUpdateValid          <= '0';	
+              ctl_fsm               <= x"41";							
+            end if;
+           
+          --================================================           
+          --  SEND-DELETE-REPLY STATE
+          --================================================      
+          when x"42" =>
+            if (piTOE_UpdRep_tready = '0') then
+              -- Wait until TOE is ready ---------
+              ctl_fsm               <= ctl_fsm;
+            else
+              -- Send reply back to TOE ----------
+              poTOE_UpdRep_tvalid   <= '1';
+              ctl_fsm               <= x"00"; 
+            end if;
+         
+          --================================================           
+          --  DEFAULT STATE
+          --================================================      
+          when others =>
+            ctl_fsm <= ctl_fsm + 1;
+            
+        end case;
+
+      end if;  -- End; if (sCAM_InitDone = '1' or ctl_fsm > x"00") then
+
+    end if;  -- End of:  elsif (piClk'event and piClk = '1') then
+
+  end process;  -- End of: pCamCtl
+
+
+  -----------------------------------------------------------------
+  -- PROC: pHeartBeat
+  -----------------------------------------------------------------
+  pHeartBeat : process(piClk)
+  begin
+    if (piClk'event and piClk='1') then
       if (cnt1s < x"5F5E0FF") then
         cnt1s <= cnt1s + 1;
       else
@@ -203,222 +451,34 @@ begin
       end if;
     end if;
   end process;
-
-
-  -----------------------------------------------------------------
-  -- INST: CONTENT ADDRESSABLE MEMORY
-  -----------------------------------------------------------------
-  WRAP: ToeCamWrap port map (
-    Rst             => rst_int,
-    Clk             => clk_int,
-    InitEnb         => InitEnb,
-    InitDone        => InitDone,
-    AgingTime       => AgingTime,
-    Size            => Size,
-    CamSize         => CamSize,
-    LookupReqValid  => LookupReqValid,
-    LookupReqKey    => LookupReqKey,
-    LookupRespValid => LookupRespValid,
-    LookupRespHit   => LookupRespHit,
-    LookupRespKey   => LookupRespKey,
-    LookupRespValue => LookupRespValue,
-    UpdateReady     => UpdateReady,
-    UpdateValid     => help_updval, --UpdateValid,
-    UpdateOp        => UpdateOp,
-    UpdateKey       => UpdateKey,
-    UpdateStatic    => UpdateStatic,
-    UpdateValue     => UpdateValue
-  );
-	
-  --	InitEnb <= not InitDone;
-	
-  AgingTime   <= (others => '1');		
-  help_updval <= UpdateValid or (ctl_fsm(6) and not UpdateReady);
-
-  -----------------------------------------------------------------
-  -- PROC: Cam Control
-  -----------------------------------------------------------------
-  pCamCtl: process (clk_int, rst_int) 
-  begin			
-    if (rst_int = '1') then	
-      LookupReqValid <= '0';
-      LookupReqKey   <= (others => '0');
-      UpdateValid    <= '0';
-      UpdateOp       <= '0';
-      UpdateKey      <= (others => '0');
-      UpdateStatic   <= '1';
-      UpdateValue    <= (others => '0');
-      ctl_fsm        <= x"00";
-      lup_req_ready  <= '0';
-      upd_req_ready  <= '0';
-      --new_id_ready <= '0';
-      --fin_id_valid <= '0';
-      lup_rsp_valid  <= '0';
-      upd_rsp_valid  <= '0';
-      InitEnb        <= not InitDone;
-    elsif (clk_int'event and clk_int = '1') then
-      InitEnb <= not InitDone;
-      lup_req_ready  <= '0';
-      upd_req_ready  <= '0';
-      --new_id_ready <= '0';
-      --fin_id_valid <= '0';
-      lup_rsp_valid  <= '0';
-      upd_rsp_valid  <= '0';				
-      LookupReqValid <= '0';
-      UpdateValid    <= '0';
-      if (InitDone = '1' or ctl_fsm > x"00") then
-        case ctl_fsm is
-          -- idle state--
-          when x"00" => 
-            --lookup
-            if (lup_req_valid = '1') then
-              lup_req_ready   <= '1';
-              LookupReqValid  <= '1';
-              LookupReqKey    <= lup_req_din(97 downto 1);	
-              lup_rsp_dout(0) <= lup_req_din(0); --rx bit
-              ctl_fsm         <= x"10";	
-              -- insert
-              --elsif (upd_req_valid = '1' and upd_req_din(1) = '0' and new_id_valid = '1') then
-            elsif (upd_req_valid = '1' and upd_req_din(1) = '0') then
-              upd_req_ready <= '1';
-              --new_id_ready <= '1';
-              UpdateValid     <= '1';
-              UpdateOp        <= upd_req_din(1);
-              UpdateKey       <= upd_req_din(112 downto 16);
-              UpdateValue     <= upd_req_din(15 downto 2);	
-              upd_rsp_dout(0) <= upd_req_din(0); -- rx bit;							
-              ctl_fsm         <= x"50";
-              -- delete
-            elsif (upd_req_valid='1' and upd_req_din(1)='1') then
-              upd_req_ready   <= '1';
-              UpdateValid     <= '1';
-              UpdateOp        <= upd_req_din(1);
-              UpdateKey       <= upd_req_din(112 downto 16);
-              UpdateValue     <= upd_req_din(15 downto 2);	
-              upd_rsp_dout(0) <= upd_req_din(0); -- rx bit;							
-              ctl_fsm         <= x"40";
-            else
-              ctl_fsm         <= x"00";
-            end if;
-          -- lup state--
-          when x"10" =>
-            LookupReqValid    <= '0';
-            valid_happened    <= '0';
-            ctl_fsm           <= x"11";
-          when x"11" =>
-            if (LookupRespValid = '1') then
-              lup_rsp_dout(15)          <= LookupRespHit;
-              lup_rsp_dout(14 downto 1) <= LookupRespValue(13 downto 0);
-            end if;
-            if (lup_rsp_ready = '0') then
-              if (LookupRespValid = '1') then
-                valid_happened <= '1';
-              end if;	
-              ctl_fsm <= ctl_fsm;
-            else
-              if (LookupRespValid = '1' or valid_happened = '1') then
-                lup_rsp_valid <= '1';
-                ctl_fsm       <= x"00";
-              end if;
-            end if;
-          -- insert
-          when x"50" =>
-            UpdateValid  <= '1';				
-            ctl_fsm      <= x"51";
-          when x"51" =>
-            if (UpdateReady = '1') then
-              -- reset
-              UpdateValid  <= '0';
-              UpdateOp  <= '0';
-              upd_rsp_dout(15 downto 2) <= UpdateValue;
-              upd_rsp_dout(1) <= UpdateOp; -- ops
-              UpdateKey       <= (others => '0');
-              UpdateValue     <= (others => '0');									
-              ctl_fsm         <= x"52";
-            else -- hold everything
-              UpdateValid <= '0';
-              ctl_fsm     <= x"51";							
-            end if;		
-          when x"52" =>
-            if (upd_rsp_ready = '0') then
-              ctl_fsm <= ctl_fsm;
-            else
-              upd_rsp_valid <= '1';
-              ctl_fsm       <= x"00";
-            end if;
-            -- delete
-          when x"40" =>
-            UpdateValid  <= '1';
-            ctl_fsm      <= x"41";
-          when x"41" =>
-            --fin_id_dout <= UpdateValue(13 downto 0);
-            upd_rsp_dout(15 downto 2) <= UpdateValue;
-            upd_rsp_dout(1)           <= UpdateOp; -- ops
-            if (UpdateReady='1') then
-              -- reset
-              UpdateValid  <= '0';
-              UpdateOp    <= '0';
-              UpdateKey   <= (others => '0');
-              UpdateValue <= (others => '0');									
-              ctl_fsm     <= x"42";
-            else -- hold everything
-              UpdateValid <= '0';	
-              ctl_fsm     <= x"41";							
-            end if;
-            -- send response
-          when x"42" =>
-            if (upd_rsp_ready = '1') then
-              upd_rsp_valid <= '1';
-              --ctl_fsm <= x"43";
-              ctl_fsm <= x"00";
-            else
-              ctl_fsm <= ctl_fsm;
-            end if;	
-            -- free id
---			   	when x"43" =>
---					if (fin_id_ready = '1') then
---						fin_id_valid <= '1';
---						ctl_fsm <= x"00";
---					else
---						ctl_fsm <= ctl_fsm;
---					end if;
-          when others =>
-            ctl_fsm <= ctl_fsm + 1;
-        end case;
---		    else
---			InitEnb <= '1';
-
-      end if;  -- End; if (InitDone = '1' or ctl_fsm > x"00") then
-
-    end if;  -- End of:  elsif (clk_int'event and clk_int = '1') then
-
-  end process;  -- End of: pCamCtl
-
+  -- Output Assignments --
+  poLed1 <= count;
+  poLed0 <= not count;
 
   -----------------------------------------------------------------
   -- PROC: Debug
   -----------------------------------------------------------------
-  pDebug: process (clk_int)
-  begin
-    if (clk_int'event and clk_int='1') then
-      debug(0)                <= InitEnb;
-      debug(1)               <= InitDone;  
-      debug(2)               <= LookupReqValid; 
-      debug(99 downto 3)     <= LookupReqKey; 	
-      debug(100)             <= LookupRespValid; 	
-      debug(101)             <= LookupRespHit;
-      debug(198 downto 102)  <= LookupRespKey;
-      debug(212 downto  199) <= LookupRespValue;
-      debug(213)             <= UpdateReady;
-      debug(214)             <= help_updval;
-      debug(215)             <= UpdateOp;
-      debug(223 downto 216)  <= UpdateKey(7 downto 0);
-      debug(224)             <= UpdateStatic;
-      debug(238 downto 225)  <= UpdateValue(13 downto 0);		
-      debug(246 downto 239)  <= ctl_fsm;
-      debug(247)             <= rst_int;
-    end if;   
-  end process;  -- End of: pDebug
-
+  -- [TODO]
+--  pDebug: process (piClk)
+--  begin
+--    if (piClk'event and piClk='1') then
+--      poDebug(0)               <= sInitEnable;
+--      poDebug(1)               <= sCAM_InitDone;  
+--      poDebug(2)               <= sLookupReqValid; 
+--      poDebug(99 downto 3)     <= sLookupReqKey; 	
+--      poDebug(100)             <= LookupRepValid; 	
+--      poDebug(101)             <= LookupRepHit;
+--      poDebug(198 downto 102)  <= LookupRepKey;
+--      poDebug(212 downto  199) <= LookupRepValue;
+--      poDebug(213)             <= UpdateReady;
+--      poDebug(214)             <= help_updval;
+--      poDebug(215)             <= UpdateOp;
+--      poDebug(223 downto 216)  <= UpdateKey(7 downto 0);
+--      poDebug(224)             <= UpdateStatic;
+--      poDebug(238 downto 225)  <= UpdateValue(13 downto 0);		
+--      poDebug(246 downto 239)  <= ctl_fsm;
+--      poDebug(247)             <= sRst;
+--    end if;   
+--  end process;  -- End of: pDebug
 
 end;  -- End of: architecture

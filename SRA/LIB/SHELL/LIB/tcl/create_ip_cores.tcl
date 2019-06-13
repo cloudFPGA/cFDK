@@ -348,6 +348,34 @@ my_puts ""
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_16"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {2} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+ 
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice 
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
 #    [8]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
 #    [Yes] : Enable TKEEP
@@ -831,6 +859,20 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Content-Addressable Memory 
+#------------------------------------------------------------------------------
+set ipModName "ContentAddressableMemory"
+set ipName    "cam"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : Dynamic Host Configuration Proces 
@@ -951,6 +993,26 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Role Interface
+#------------------------------------------------------------------------------
+set ipModName "UdpRoleInterface"
+set ipName    "udp_role_if"
+
+if { $useMPI } { 
+  set ipModName "UdpRoleInterface2"
+  set ipName    "udp_role_if"
+}
+
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : SMC "Castor" IP

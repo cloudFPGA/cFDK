@@ -86,6 +86,7 @@ module MmioClient_A8_D8 #(
   output          poMMIO_Eth0_MacAddrSwapEn,
   
   //-- NTS0 : Status inputs and Control Outputs --
+  input           piNTS0_Mmio_CamReady,
   output  [47:0]  poMMIO_Nts0_MacAddress,
   output  [31:0]  poMMIO_Nts0_IpAddress,
   output  [31:0]  poMMIO_Nts0_SubNetMask,
@@ -500,7 +501,7 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*PHY_STAT+1]  = piMEM_Mmio_Mc1InitCalComplete;  // RO
   assign sStatusVec[cEDW*PHY_STAT+2]  = piETH0_Mmio_CoreReady;          // RO
   assign sStatusVec[cEDW*PHY_STAT+3]  = piETH0_Mmio_QpllLock;           // RO
-  assign sStatusVec[cEDW*PHY_STAT+4]  = 1'b0;                           // RO
+  assign sStatusVec[cEDW*PHY_STAT+4]  = piNTS0_Mmio_CamReady;           // RO
   assign sStatusVec[cEDW*PHY_STAT+5]  = 1'b0;                           // RO
   assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                           // RO
   assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                           // RO

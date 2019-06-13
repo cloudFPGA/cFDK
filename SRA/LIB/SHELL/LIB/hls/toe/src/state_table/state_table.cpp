@@ -17,14 +17,16 @@ using namespace hls;
  *  @param[out]     stateTable2txApp_rsp
  *  @param[out]     stateTable2sLookup_releaseSession
  */
-void state_table(   stream<stateQuery>&         rxEng2stateTable_upd_req,
-                    stream<stateQuery>&         txApp2stateTable_upd_req,
-                    stream<ap_uint<16> >&       txApp2stateTable_req,
-                    stream<ap_uint<16> >&       timer2stateTable_releaseState,
-                    stream<sessionState>&       stateTable2rxEng_upd_rsp,
-                    stream<sessionState>&       stateTable2TxApp_upd_rsp,
-                    stream<sessionState>&       stateTable2txApp_rsp,
-                    stream<ap_uint<16> >&       stateTable2sLookup_releaseSession) {
+void state_table(
+        stream<stateQuery>&         rxEng2stateTable_upd_req,
+        stream<stateQuery>&         txApp2stateTable_upd_req,
+        stream<ap_uint<16> >&       txApp2stateTable_req,
+        stream<ap_uint<16> >&       timer2stateTable_releaseState,
+        stream<sessionState>&       stateTable2rxEng_upd_rsp,
+        stream<sessionState>&       stateTable2TxApp_upd_rsp,
+        stream<sessionState>&       stateTable2txApp_rsp,
+        stream<ap_uint<16> >&       stateTable2sLookup_releaseSession)
+{
 #pragma HLS PIPELINE II=1
 
     static sessionState state_table[MAX_SESSIONS];

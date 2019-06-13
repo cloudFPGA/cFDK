@@ -29,8 +29,9 @@ struct txAppTableEntry
 };
 
 void tx_app_interface(
-        stream<ap_uint<16> >           &appTxDataReqMetadata,
-        stream<AxiWord>                &appTxDataReq,
+        stream<AppData>                &siTRIF_Data,
+        stream<AppMeta>                &siTRIF_Meta,
+
         stream<sessionState>           &stateTable2txApp_rsp,
         stream<txSarAckPush>           &txSar2txApp_ack_push,
         stream<DmSts>                  &txBufferWriteStatus,

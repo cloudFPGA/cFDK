@@ -159,18 +159,26 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------
   //-- ROLE / Nts0 / Tcp Interfaces
   //------------------------------------------------------
-  //-- Input AXI-Write Stream Interface ----------
-  input [ 63:0]  piROL_Nts0_Tcp_Axis_tdata,
-  input [  7:0]  piROL_Nts0_Tcp_Axis_tkeep,
-  input          piROL_Nts0_Tcp_Axis_tvalid,
-  input          piROL_Nts0_Tcp_Axis_tlast,
-  output         poNTS0_Rol_Tcp_Axis_tready,
-  //-- Output AXI-Write Stream Interface ---------
-  input          piROL_Nts0_Tcp_Axis_tready,
-  output [ 63:0] poNTS0_Rol_Tcp_Axis_tdata,
-  output [  7:0] poNTS0_Rol_Tcp_Axis_tkeep,
-  output         poNTS0_Rol_Tcp_Axis_tvalid,
-  output         poNTS0_Rol_Tcp_Axis_tlast,
+  //---- Input TCP Data (AXI4S) ------------------
+  input [ 63:0]  piROL_Nts0_TcpData_Axis_tdata,
+  input [  7:0]  piROL_Nts0_TcpData_Axis_tkeep,
+  input          piROL_Nts0_TcpData_Axis_tvalid,
+  input          piROL_Nts0_TcpData_Axis_tlast,
+  output         poNTS0_Rol_TcpData_Axis_tready,
+  //---- Input TCP Session Id (AXI4S) ------------
+  input [ 15:0]  piROL_Nts0_TcpMeta_Axis_tdata,
+  input          piROL_Nts0_TcpMeta_Axis_tvalid,
+  output         poNTS0_Rol_TcpMeta_Axis_tready,
+  //-- Output TCP Data (AXI4S) -------------------
+  input          piROL_Nts0_TcpData_Axis_tready,
+  output [ 63:0] poNTS0_Rol_TcpData_Axis_tdata,
+  output [  7:0] poNTS0_Rol_TcpData_Axis_tkeep,
+  output         poNTS0_Rol_TcpData_Axis_tvalid,
+  output         poNTS0_Rol_TcpData_Axis_tlast,
+  //-- Output TCP Data (AXI4S) -------------------
+  input          piROL_Nts0_TcpMeta_Axis_tready,
+  output [ 15:0] poNTS0_Rol_TcpMeta_Axis_tdata,
+  output         poNTS0_Rol_TcpMeta_Axis_tvalid,
   
   //------------------------------------------------------
   //-- MMIO / Nts0 / Interfaces
@@ -178,7 +186,8 @@ module NetworkTransportSession_TcpIp (
   input  [ 47:0] piMMIO_Nts0_MacAddress,
   input  [ 31:0] piMMIO_Nts0_IpAddress,
   input  [ 31:0] piMMIO_Nts0_SubNetMask,
-  input  [ 31:0] piMMIO_Nts0_GatewayAddr,   
+  input  [ 31:0] piMMIO_Nts0_GatewayAddr,
+  output         poNTS0_Mmio_CamReady,
   
   output         poVoid
   
@@ -416,12 +425,16 @@ module NetworkTransportSession_TcpIp (
   wire  [15:0]  sTRIF_Toe_ClsReq_Axis_tdata;
   wire          sTRIF_Toe_ClsReq_Axis_tvalid;
   wire          sTOE_Trif_ClsReq_Axis_tready;
-  //-- TRIF ==> ROLE / Axis ----------------------
-  wire  [63:0]  sTRIF_Rol_Axis_tdata;
-  wire  [ 7:0]  sTRIF_Rol_Axis_tkeep;
-  wire          sTRIF_Rol_Axis_tlast;
-  wire          sTRIF_Rol_Axis_tvalid;
-  wire          sROL_Trif_Axis_treadyReg;
+  //-- TRIF ==> [ARS4] ==> ROLE / TcpData / Axis ---------
+  wire  [63:0]  sTRIF_Rol_TcpData_Axis_tdata;
+  wire  [ 7:0]  sTRIF_Rol_TcpData_Axis_tkeep;
+  wire          sTRIF_Rol_TcpData_Axis_tlast;
+  wire          sTRIF_Rol_TcpData_Axis_tvalid;
+  wire          sROL_Trif_TcpData_Axis_treadyReg;
+  //-- TRIF ==> [ARS4] ==> ROLE / TcpMeta / Axis ---------
+  wire  [15:0]  sTRIF_Rol_TcpMeta_Axis_tdata;
+  wire          sTRIF_Rol_TcpMeta_Axis_tvalid;
+  wire          sROL_Trif_TcpMeta_Axis_treadyReg;
 
   //------------------------------------------------------------------
   //-- TOE = TCP-OFFLOAD-ENGINE
@@ -440,10 +453,10 @@ module NetworkTransportSession_TcpIp (
   wire  [23:0]  sTOE_Trif_DSts_Axis_tdata;
   wire          sTOE_Trif_DSts_Axis_tvalid;
   wire          sTRIF_Toe_DSts_Axis_tready;
-  //-- TOE ==> TRIF / OpenConnectionResponse / Axis
-  wire  [23:0]  sTOE_Trif_OpnSts_Axis_tdata;
-  wire          sTOE_Trif_OpnSts_Axis_tvalid;
-  wire          sTRIF_Toe_OpnSts_Axis_tready;
+  //-- TOE ==> TRIF / OpenConnectionReply / Axis
+  wire  [23:0]  sTOE_Trif_OpnRep_Axis_tdata;
+  wire          sTOE_Trif_OpnRep_Axis_tvalid;
+  wire          sTRIF_Toe_OpnRep_Axis_tready;
   //-- TOE ==> TRIF / ListenPortResponse / Axis
   wire  [7:0]   sTOE_Trif_LsnAck_Axis_tdata;
   wire          sTOE_Trif_LsnAck_Axis_tvalid;
@@ -466,7 +479,7 @@ module NetworkTransportSession_TcpIp (
   wire          sTOE_L3mux_Axix_tvalidReg;
   wire          sL3MUX_Toe_Axix_tready;
   //-- TOE ==> CAM / LookupRequest / Axis
-  wire  [97:0]  sTOE_Cam_LkpReq_Axis_tdata;  // [FIXME: should be 96, also wrong in SmartCam]
+  wire  [96:0]  sTOE_Cam_LkpReq_Axis_tdata;  //( 1 + 96) - 1 = 96
   wire          sTOE_Cam_LkpReq_Axis_tvalid;
   wire          sCAM_Toe_LkpReq_Axis_tready;
   //-- TOE ==> CAM / UpdateRequest / Axis
@@ -542,14 +555,19 @@ module NetworkTransportSession_TcpIp (
   //-- ROLE = USER-LOGIC
   //------------------------------------------------------------------
   //-- ROLE ==> [ARS5] ==> TRIF ------------------
-  //---- ROLE ==> [ARS5] (see piROL_Nts0_Tcp_Axis_t*)
+  //---- ROLE ==> [ARS5] (see piROL_Nts0_TcpData_Axis_t*)
   //----          [ARS5] ==> TRIF ----------------
-  wire  [63:0]  sROL_Nts0_Tcp_Axis_tdataReg;
-  wire  [ 7:0]  sROL_Nts0_Tcp_Axis_tkeepReg;
-  wire          sROL_Nts0_Tcp_Axis_tlastReg;
-  wire          sROL_Nts0_Tcp_Axis_tvalidReg;
-  wire          sTRIF_Rol_Axis_tready;
-  
+  wire  [63:0]  sROL_Nts0_TcpData_Axis_tdataReg;
+  wire  [ 7:0]  sROL_Nts0_TcpData_Axis_tkeepReg;
+  wire          sROL_Nts0_TcpData_Axis_tlastReg;
+  wire          sROL_Nts0_TcpData_Axis_tvalidReg;
+  wire          sTRIF_Rol_TcpData_Axis_tready;
+  //---- ROLE ==> [ARS5] (see piROL_Nts0_TcpMeta_Axis_t*)
+  //----          [ARS5] ==> TRIF ----------------
+  wire  [15:0]  sROL_Nts0_TcpMeta_Axis_tdataReg;
+  wire          sROL_Nts0_TcpMeta_Axis_tvalidReg;
+  wire          sTRIF_Rol_TcpMeta_Axis_tready;
+    
   //-- ROLE ==> [ARS7] ==> URIF ------------------
   //---- ROLE ==> [ARS7] (see piROL_Nts0_Udp_Axis_t*)
   //----          [ARS7] ==> URIF ----------------
@@ -957,10 +975,10 @@ module NetworkTransportSession_TcpIp (
     .siTRIF_OpnReq_TDATA       (sTRIF_Toe_OpnReq_Axis_tdata),
     .siTRIF_OpnReq_TVALID      (sTRIF_Toe_OpnReq_Axis_tvalid),
     .siTRIF_OpnReq_TREADY      (sTOE_Trif_OpnReq_Axis_tready),
-    //-- THIS / Trif / Tx Open Connection Status / Axis
-    .soTRIF_OpnSts_TREADY      (sTRIF_Toe_OpnSts_Axis_tready),
-    .soTRIF_OpnSts_TDATA       (sTOE_Trif_OpnSts_Axis_tdata),
-    .soTRIF_OpnSts_TVALID      (sTOE_Trif_OpnSts_Axis_tvalid),
+    //-- THIS / Trif / Tx Open Connection Reply / Axis
+    .soTRIF_OpnSts_TREADY      (sTRIF_Toe_OpnRep_Axis_tready),
+    .soTRIF_OpnSts_TDATA       (sTOE_Trif_OpnRep_Axis_tdata),
+    .soTRIF_OpnSts_TVALID      (sTOE_Trif_OpnRep_Axis_tvalid),
 
     //------------------------------------------------------
     //-- To TRIF / ROLE Tx Ctrl Interfaces
@@ -1220,45 +1238,98 @@ module NetworkTransportSession_TcpIp (
 //  );  // End of TCP
  -----/\----- [OBSOLETE] -----/\----- */
 
+
   //============================================================================
   //  INST: TOE-CAM-MODULE
-  //============================================================================
+  //============================================================================  
+`define USE_FAKE_CAM
+
+`ifndef USE_FAKE_CAM
+ 
   ToeCam CAM (
   
-    .clk                          (piShlClk),
-    .rst                          (~piShlRst),
+   .piClk                        (piShlClk),
+   .piRst_n                      (~piShlRst),
+   
+   .poCamReady                   (poNTS0_Mmio_CamReady),
+
+   //------------------------------------------------------
+   //-- From TOE - Lookup Request / Axis 
+   //------------------------------------------------------
+   .piTOE_LkpReq_tdata           (sTOE_Cam_LkpReq_Axis_tdata),
+   .piTOE_LkpReq_tvalid          (sTOE_Cam_LkpReq_Axis_tvalid),
+   .poTOE_LkpReq_tready          (sCAM_Toe_LkpReq_Axis_tready), 
+   
+   //------------------------------------------------------
+   //-- To TOE   - Lookup Reply   / Axis
+   //------------------------------------------------------
+   .poTOE_LkpRep_tdata           (sCAM_Toe_LkpRep_Axis_tdata),
+   .poTOE_LkpRep_tvalid          (sCAM_Toe_LkpRep_Axis_tvalid),
+   .piTOE_LkpRep_tready          (sTOE_Cam_LkpRep_Axis_tready),
+
+   //------------------------------------------------------
+   //-- From TOE - Update Request / Axis
+   //------------------------------------------------------
+   .piTOE_UpdReq_tdata           (sTOE_Cam_UpdReq_Axis_tdata),
+   .piTOE_UpdReq_tvalid          (sTOE_Cam_UpdReq_Axis_tvalid),
+   .poTOE_UpdReq_tready          (sCAM_Toe_UpdReq_Axis_tready),
+
+   //------------------------------------------------------
+   //-- To TOE   - Update Reply   / Axis
+   //------------------------------------------------------
+   .poTOE_UpdRep_tdata           (sCAM_Toe_UpdRpl_Axis_tdata),
+   .poTOE_UpdRep_tvalid          (sCAM_Toe_UpdRpl_Axis_tvalid),
+   .piTOE_UpdRep_tready          (sTOE_Cam_UpdRpl_Axis_tready),
+
+   //------------------------------------------------------
+   //-- LED & Debug Interfaces
+   //------------------------------------------------------
+   .poLed0                       (),
+   .poLed1                       (),
+   .poDebug                      ()
+  
+  );
+  
+`else
+ 
+  ContentAddressableMemory CAM (
+    
+    .aclk                         (piShlClk),
+    .aresetn                      (~piShlRst), // HLS modules are active low by default!
+     
+    .poMMIO_CamReady_V            (poNTS0_Mmio_CamReady),
 
     //------------------------------------------------------
-    //-- From TOE Interfaces
+    //-- From TOE - Lookup Request / Axis 
     //------------------------------------------------------
-    //-- TOE / This / LookupRequest / Axis
-    .lup_req_din                  (sTOE_Cam_LkpReq_Axis_tdata),
-    .lup_req_valid                (sTOE_Cam_LkpReq_Axis_tvalid),
-    .lup_req_ready                (sCAM_Toe_LkpReq_Axis_tready),
-    //-- TOE / This / UpdateRequest / Axis
-    .upd_req_din                  (sTOE_Cam_UpdReq_Axis_tdata),
-    .upd_req_valid                (sTOE_Cam_UpdReq_Axis_tvalid),
-    .upd_req_ready                (sCAM_Toe_UpdReq_Axis_tready),
+    .siTOE_SssLkpReq_TDATA        (sTOE_Cam_LkpReq_Axis_tdata),
+    .siTOE_SssLkpReq_TVALID       (sTOE_Cam_LkpReq_Axis_tvalid),
+    .siTOE_SssLkpReq_TREADY       (sCAM_Toe_LkpReq_Axis_tready),
     
     //------------------------------------------------------
-    //-- To TOE Interfaces
+    //-- To TOE   - Lookup Reply   / Axis
     //------------------------------------------------------
-    //-- THIS / Toe / LookupReply / Axis
-    .lup_rsp_ready                (sTOE_Cam_LkpRep_Axis_tready),
-    .lup_rsp_dout                 (sCAM_Toe_LkpRep_Axis_tdata),
-    .lup_rsp_valid                (sCAM_Toe_LkpRep_Axis_tvalid),
-    //-- THIS / Toe / UpdateReply / Axis
-    .upd_rsp_ready                (sTOE_Cam_UpdRpl_Axis_tready),
-    .upd_rsp_dout                 (sCAM_Toe_UpdRpl_Axis_tdata),
-    .upd_rsp_valid                (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .soTOE_SssLkpRep_TDATA        (sCAM_Toe_LkpRep_Axis_tdata),
+    .soTOE_SssLkpRep_TVALID       (sCAM_Toe_LkpRep_Axis_tvalid),
+    .soTOE_SssLkpRep_TREADY       (sTOE_Cam_LkpRep_Axis_tready),
 
-    .led0                         (),
-    .led1                         (),
-    .cam_ready                    (),
+    //------------------------------------------------------
+    //-- From TOE - Update Request / Axis
+    //------------------------------------------------------
+    .siTOE_SssUpdReq_TDATA        (sTOE_Cam_UpdReq_Axis_tdata),
+    .siTOE_SssUpdReq_TVALID       (sTOE_Cam_UpdReq_Axis_tvalid),
+    .siTOE_SssUpdReq_TREADY       (sCAM_Toe_UpdReq_Axis_tready),
 
-    .debug()
+    //------------------------------------------------------
+    //-- To TOE   - Update Reply   / Axis
+    //------------------------------------------------------
+    .soTOE_SssUpdRep_TDATA        (sCAM_Toe_UpdRpl_Axis_tdata),
+    .soTOE_SssUpdRep_TVALID       (sCAM_Toe_UpdRpl_Axis_tvalid),
+    .soTOE_SssUpdRep_TREADY       (sTOE_Cam_UpdRpl_Axis_tready)
 
   );
+
+`endif
   
 /* -----\/----- [OBSOLETE] -----\/-----
 //  SmartCamCtl CAM (
@@ -1373,31 +1444,32 @@ module NetworkTransportSession_TcpIp (
   
     .aclk                        (piShlClk),
     .aresetn                     (~piShlRst),
-  
+    
     //------------------------------------------------------
-    //-- SHELL / System Reset
+    //-- From ROLE / Rx Data & SessId Interfaces
     //------------------------------------------------------
-    .piSHL_SysRst_n_V            (~piShlRst),
-  
+    .siROL_Data_TDATA            (sROL_Nts0_TcpData_Axis_tdataReg),
+    .siROL_Data_TKEEP            (sROL_Nts0_TcpData_Axis_tkeepReg),
+    .siROL_Data_TLAST            (sROL_Nts0_TcpData_Axis_tlastReg),
+    .siROL_Data_TVALID           (sROL_Nts0_TcpData_Axis_tvalidReg),
+    .siROL_Data_TREADY           (sTRIF_Rol_TcpData_Axis_tready),
+    //--
+    .siROL_SessId_TDATA          (sROL_Nts0_TcpMeta_Axis_tdataReg),
+    .siROL_SessId_TVALID         (sROL_Nts0_TcpMeta_Axis_tvalidReg),
+    .siROL_SessId_TREADY         (sTRIF_Rol_TcpMeta_Axis_tready),
+    
     //------------------------------------------------------
-    //-- From ROLE / Rx Data Interface
+    //-- To ROLE / Tx Data Interface & SessId Interfaces
     //------------------------------------------------------
-    //-- ROLE / This / Tcp / Axis
-    .siROL_Data_TDATA            (sROL_Nts0_Tcp_Axis_tdataReg),
-    .siROL_Data_TKEEP            (sROL_Nts0_Tcp_Axis_tkeepReg),
-    .siROL_Data_TLAST            (sROL_Nts0_Tcp_Axis_tlastReg),
-    .siROL_Data_TVALID           (sROL_Nts0_Tcp_Axis_tvalidReg),
-    .siROL_Data_TREADY           (sTRIF_Rol_Axis_tready),
-
-    //------------------------------------------------------
-    //-- To ROLE / Tx Data Interface
-    //------------------------------------------------------
-    //-- THIS / Role / Tcp / Axis
-    .soROL_Data_TREADY           (sROL_Trif_Axis_treadyReg),
-    .soROL_Data_TDATA            (sTRIF_Rol_Axis_tdata),
-    .soROL_Data_TKEEP            (sTRIF_Rol_Axis_tkeep),
-    .soROL_Data_TLAST            (sTRIF_Rol_Axis_tlast),
-    .soROL_Data_TVALID           (sTRIF_Rol_Axis_tvalid),
+    .soROL_Data_TREADY           (sROL_Trif_TcpData_Axis_treadyReg),
+    .soROL_Data_TDATA            (sTRIF_Rol_TcpData_Axis_tdata),
+    .soROL_Data_TKEEP            (sTRIF_Rol_TcpData_Axis_tkeep),
+    .soROL_Data_TLAST            (sTRIF_Rol_TcpData_Axis_tlast),
+    .soROL_Data_TVALID           (sTRIF_Rol_TcpData_Axis_tvalid),
+    //--
+    .soROL_SessId_TREADY         (sROL_Trif_TcpMeta_Axis_treadyReg),
+    .soROL_SessId_TDATA          (sTRIF_Rol_TcpMeta_Axis_tdata),
+    .soROL_SessId_TVALID         (sTRIF_Rol_TcpMeta_Axis_tvalid),
   
     //------------------------------------------------------
     //-- From TOE / Rx Data Interfaces
@@ -1413,9 +1485,9 @@ module NetworkTransportSession_TcpIp (
     .siTOE_Data_TVALID           (sTOE_Trif_Data_Axis_tvalid),
     .siTOE_Data_TREADY           (sTRIF_Toe_Data_Axis_tready),
     //-- TOE / This / Rx MetaData / Axis
-    .siTOE_Meta_TDATA            (sTOE_Trif_Meta_Axis_tdata),
-    .siTOE_Meta_TVALID           (sTOE_Trif_Meta_Axis_tvalid),
-    .siTOE_Meta_TREADY           (sTRIF_Toe_Meta_Axis_tready),
+    .siTOE_SessId_TDATA          (sTOE_Trif_Meta_Axis_tdata),
+    .siTOE_SessId_TVALID         (sTOE_Trif_Meta_Axis_tvalid),
+    .siTOE_SessId_TREADY         (sTRIF_Toe_Meta_Axis_tready),
 
     //------------------------------------------------------
     //-- To TOE / Rx Data Interfaces
@@ -1450,7 +1522,7 @@ module NetworkTransportSession_TcpIp (
     .siTOE_DSts_TREADY           (sTRIF_Toe_DSts_Axis_tready),
 
     //------------------------------------------------------
-    //-- To TOE / Tx Data Interfaces
+    //-- To TOE / Tx Data & SessId Interfaces
     //------------------------------------------------------
     //-- THIS / Toe / Tx Data / Axis 
     .soTOE_Data_TREADY           (sTOE_Trif_Data_Axis_tready),
@@ -1459,17 +1531,17 @@ module NetworkTransportSession_TcpIp (
     .soTOE_Data_TLAST            (sTRIF_Toe_Data_Axis_tlast),
     .soTOE_Data_TVALID           (sTRIF_Toe_Data_Axis_tvalid),
     //-- THIS / Toe / MetaData / Axis
-    .soTOE_Meta_TREADY           (sTOE_Trif_Meta_Axis_tready),
-    .soTOE_Meta_TDATA            (sTRIF_Toe_Meta_Axis_tdata),
-    .soTOE_Meta_TVALID           (sTRIF_Toe_Meta_Axis_tvalid),
+    .soTOE_SessId_TREADY         (sTOE_Trif_Meta_Axis_tready),
+    .soTOE_SessId_TDATA          (sTRIF_Toe_Meta_Axis_tdata),
+    .soTOE_SessId_TVALID         (sTRIF_Toe_Meta_Axis_tvalid),
 
     //------------------------------------------------------
     //-- From TOE / Tx Ctrl Interfaces
     //------------------------------------------------------
-    //-- TOE / This / Tx Open Status / Axis  
-    .siTOE_OpnSts_TDATA          (sTOE_Trif_OpnSts_Axis_tdata),
-    .siTOE_OpnSts_TVALID         (sTOE_Trif_OpnSts_Axis_tvalid),
-    .siTOE_OpnSts_TREADY         (sTRIF_Toe_OpnSts_Axis_tready),
+    //-- TOE / This / Tx Open Reply / Axis  
+    .siTOE_OpnRep_TDATA          (sTOE_Trif_OpnRep_Axis_tdata),
+    .siTOE_OpnRep_TVALID         (sTOE_Trif_OpnRep_Axis_tvalid),
+    .siTOE_OpnRep_TREADY         (sTRIF_Toe_OpnRep_Axis_tready),
 
     //------------------------------------------------------
     //-- To TOE / This / Tx Ctrl Interfaces
@@ -1561,24 +1633,23 @@ module NetworkTransportSession_TcpIp (
  -----/\----- [OBSOLETE] -----/\----- */
   
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (TRIF ==> NTS0/Role/Tcp)
+  //  INST: AXI4-STREAM REGISTER SLICE (TRIF ==> NTS0/Role/TcpData)
   //============================================================================
-  AxisRegisterSlice_64 ARS4 ( 
+  AxisRegisterSlice_64 ARS4_TcpData ( 
     .aclk           (piShlClk),
     .aresetn        (~piShlRst),
-    //-- From TRIF / Role / Tcp / Axis 
-    .s_axis_tvalid  (sTRIF_Rol_Axis_tvalid),
-    .s_axis_tdata   (sTRIF_Rol_Axis_tdata),
-    .s_axis_tkeep   (sTRIF_Rol_Axis_tkeep),
-    .s_axis_tlast   (sTRIF_Rol_Axis_tlast),
-    .s_axis_tready  (sROL_Trif_Axis_treadyReg),
-
-    //-- To NTS0 / Role / Tcp / Axis
-    .m_axis_tready  (piROL_Nts0_Tcp_Axis_tready),
-    .m_axis_tdata   (poNTS0_Rol_Tcp_Axis_tdata),
-    .m_axis_tkeep   (poNTS0_Rol_Tcp_Axis_tkeep),
-    .m_axis_tlast   (poNTS0_Rol_Tcp_Axis_tlast),
-    .m_axis_tvalid  (poNTS0_Rol_Tcp_Axis_tvalid)
+    //-- From TRIF / Role / TcpData / Axis
+    .s_axis_tdata   (sTRIF_Rol_TcpData_Axis_tdata),
+    .s_axis_tvalid  (sTRIF_Rol_TcpData_Axis_tvalid),
+    .s_axis_tkeep   (sTRIF_Rol_TcpData_Axis_tkeep),
+    .s_axis_tlast   (sTRIF_Rol_TcpData_Axis_tlast),
+    .s_axis_tready  (sROL_Trif_TcpData_Axis_treadyReg),
+    //-- To   NTS0 / Role / TcpData / Axis
+    .m_axis_tready  (piROL_Nts0_TcpData_Axis_tready),
+    .m_axis_tdata   (poNTS0_Rol_TcpData_Axis_tdata),
+    .m_axis_tkeep   (poNTS0_Rol_TcpData_Axis_tkeep),
+    .m_axis_tlast   (poNTS0_Rol_TcpData_Axis_tlast),
+    .m_axis_tvalid  (poNTS0_Rol_TcpData_Axis_tvalid)
   );
   
 /* -----\/----- [OBSOLETE] -----\/-----
@@ -1601,23 +1672,39 @@ module NetworkTransportSession_TcpIp (
  -----/\----- [OBSOLETE] -----/\----- */
 
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/Tcp ==> TRIF)
+  //  INST: AXI4-STREAM REGISTER SLICE (TRIF ==> NTS0/Role/TcpMeta)
   //============================================================================
-  AxisRegisterSlice_64 ARS5 (
+  AxisRegisterSlice_16 ARS4_TcpMeta ( 
+    .aclk           (piShlClk),
+    .aresetn        (~piShlRst),
+    //-- From TRIF / Role / TcpMeta / Axis 
+    .s_axis_tdata   (sTRIF_Rol_TcpMeta_Axis_tdata),
+    .s_axis_tvalid  (sTRIF_Rol_TcpMeta_Axis_tvalid),
+    .s_axis_tready  (sROL_Trif_TcpMeta_Axis_treadyReg),
+    //-- To   NTS0 / Role / TcpMeta / Axis
+    .m_axis_tready  (piROL_Nts0_TcpMeta_Axis_tready),
+    .m_axis_tdata   (poNTS0_Rol_TcpMeta_Axis_tdata),
+    .m_axis_tvalid  (poNTS0_Rol_TcpMeta_Axis_tvalid)
+  );
+
+  //============================================================================
+  //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/TcpData ==> TRIF)
+  //============================================================================
+  AxisRegisterSlice_64 ARS5_TcpData (
     .aclk           (piShlClk),
     .aresetn        (~piShlRst),
     //-- From ROLE / Nts0 / Tcp / Axis -----------
-    .s_axis_tdata   (piROL_Nts0_Tcp_Axis_tdata),
-    .s_axis_tkeep   (piROL_Nts0_Tcp_Axis_tkeep),
-    .s_axis_tlast   (piROL_Nts0_Tcp_Axis_tlast),
-    .s_axis_tvalid  (piROL_Nts0_Tcp_Axis_tvalid),    
-    .s_axis_tready  (poNTS0_Rol_Tcp_Axis_tready),
-    //-- To TRFI / Role / Axis ------------------- 
-    .m_axis_tready  (sTRIF_Rol_Axis_tready),   
-    .m_axis_tdata   (sROL_Nts0_Tcp_Axis_tdataReg),
-    .m_axis_tkeep   (sROL_Nts0_Tcp_Axis_tkeepReg),
-    .m_axis_tlast   (sROL_Nts0_Tcp_Axis_tlastReg),
-    .m_axis_tvalid  (sROL_Nts0_Tcp_Axis_tvalidReg)
+    .s_axis_tdata   (piROL_Nts0_TcpData_Axis_tdata),  
+    .s_axis_tkeep   (piROL_Nts0_TcpData_Axis_tkeep),
+    .s_axis_tlast   (piROL_Nts0_TcpData_Axis_tlast),
+    .s_axis_tvalid  (piROL_Nts0_TcpData_Axis_tvalid),  
+    .s_axis_tready  (poNTS0_Rol_TcpData_Axis_tready),
+    //-- To TRIF   / Role / Axis ------------------- 
+    .m_axis_tready  (sTRIF_Rol_TcpData_Axis_tready),   
+    .m_axis_tdata   (sROL_Nts0_TcpData_Axis_tdataReg),
+    .m_axis_tkeep   (sROL_Nts0_TcpData_Axis_tkeepReg),
+    .m_axis_tlast   (sROL_Nts0_TcpData_Axis_tlastReg),
+    .m_axis_tvalid  (sROL_Nts0_TcpData_Axis_tvalidReg)
   );
   
 /* -----\/----- [OBSOLETE] -----\/-----
@@ -1639,6 +1726,22 @@ module NetworkTransportSession_TcpIp (
 //  );
  -----/\----- [OBSOLETE] -----/\----- */
    
+ //============================================================================
+ //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Nts0/TcpMeta ==> TRIF)
+ //============================================================================
+ AxisRegisterSlice_16 ARS5_TcpMeta (
+   .aclk           (piShlClk),
+   .aresetn        (~piShlRst),
+   //-- From ROLE / Nts0 / Tcp / Axis -----------
+   .s_axis_tdata   (piROL_Nts0_TcpMeta_Axis_tdata),
+   .s_axis_tvalid  (piROL_Nts0_TcpMeta_Axis_tvalid),  
+   .s_axis_tready  (poNTS0_Rol_TcpMeta_Axis_tready),
+   //-- To   TRIF / Role / Axis ------------------- 
+   .m_axis_tready  (sTRIF_Rol_TcpMeta_Axis_tready),   
+   .m_axis_tdata   (sROL_Nts0_TcpMeta_Axis_tdataReg),
+   .m_axis_tvalid  (sROL_Nts0_TcpMeta_Axis_tvalidReg)
+ );
+
   //============================================================================
   //  INST: UDP-CORE-MODULE
   //============================================================================
@@ -2820,7 +2923,7 @@ module NetworkTransportSession_TcpIp (
     .S02_AXIS_TKEEP     (sTOE_L3mux_Axix_tkeepReg),
     .S02_AXIS_TLAST     (sTOE_L3mux_Axix_tlastReg),
     .S02_AXIS_TVALID    (sTOE_L3mux_Axix_tvalidReg),
-     .S02_AXIS_TREADY    (sL3MUX_Toe_Axix_tready),
+    .S02_AXIS_TREADY    (sL3MUX_Toe_Axix_tready),
          
              
     .M00_AXIS_ACLK      (piShlClk),        

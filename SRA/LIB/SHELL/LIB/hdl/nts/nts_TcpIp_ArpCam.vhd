@@ -19,10 +19,10 @@
 -- * Description : Behavioral implementation of a CAM for the ARP server.
 -- *
 -- * Generics:
--- *  keyLength   : Sets the lenght of the CAM key. 
--- *    [ 32 (Default) ]
--- *  valueLength : Sets the length of the CAM value.
--- *    [ 48 (Default) ]
+-- *  gKeyLen : Sets the lenght of the CAM key. 
+-- *     [ 32 : Default for the IPv4 address ]
+-- *  gValLen : Sets the length of the CAM value.
+-- *     [ 48 : Default for the MAC address ]
 -- *
 -- *-----------------------------------------------------------------------------
 -- *

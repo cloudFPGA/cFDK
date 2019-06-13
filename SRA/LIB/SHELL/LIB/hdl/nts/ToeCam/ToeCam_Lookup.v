@@ -21,14 +21,18 @@ module ToeCam_Lookup
     RamRdData
 );
 
-// parameters
-localparam K = 97;    // number of key bits
+//----------------------------------------------------------
+// Parameters
+//----------------------------------------------------------
+//OBSOLETE-20190514 localparam K = 97;    // number of key bits
+localparam K = 96;    // number of key bits
 localparam V = 14;    // number of value bits
 localparam A = 14;    // number of bram address bits
-localparam D = 115;    // number of bram data bits
+//OBSOLETE-20190514 localparam D = 115;   // number of bram data bits
+localparam D = 112;   // number of bram data bits
 localparam H = 12;    // number of hash bits
 localparam R = 12;    // number of hash bits
-localparam C = 2;    // number of cam address bits
+localparam C = 2;     // number of cam address bits
 localparam U = 10;    // number of used bits
 localparam X = 1024'hX;
 
@@ -55,6 +59,7 @@ input   [D-1:0]     RamWrData;
 output  [D-1:0]     RamRdData;
 input   [U-1:0]     RamWrUsed;
 output  [U-1:0]     RamRdUsed;
+
 // ****************************************************************************
 
 // pipeline delay valid/key

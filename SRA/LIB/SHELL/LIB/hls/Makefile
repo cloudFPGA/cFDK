@@ -11,10 +11,9 @@
 # ******************************************************************************
 
 
-.PHONY: all clean arp_server dhcp_client echo_app icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc mpe udp_role_if_2 nrc
+.PHONY: all clean arp_server cam dhcp_client echo_app icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc mpe udp_role_if_2
 
-# udp_role_if_2  mpe
-all: arp_server dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc nrc
+all: arp_server cam dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if toe udp udp_mux udp_role_if smc mpe udp_role_if_2
 
 
 *:
@@ -23,4 +22,6 @@ all: arp_server dhcp_client icmp_server iprx_handler iptx_handler tcp_role_if to
 
 clean:
 	rm -rf ./*/*_prj
+	rm -rf ./*/*/*_prj
+	rm -rf ./*/*/*/*_prj
 

@@ -12,6 +12,7 @@
  *****************************************************************************/
 
 #include "retransmit_timer.hpp"
+#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 

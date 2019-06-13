@@ -3,7 +3,7 @@
  * @brief      : TCP Application Flash (TAF)
  *
  * System:     : cloudFPGA
- * Component   : Role
+ * Component   : RoleFlash
  * Language    : Vivado HLS
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
@@ -15,11 +15,7 @@
  *  functions which are embedded into the Flash of the cloudFPGA role.
  *
  * @note       : For the time being, we continue designing with the DEPRECATED
- *				  directives because the new PRAGMAs do not work for us.
- * @remark     :
- * @warning    :
- *
- * @see        :
+ *  directives because the new PRAGMAs do not work for us.
  *
  *****************************************************************************/
 
@@ -27,213 +23,283 @@
 
 #define USE_DEPRECATED_DIRECTIVES
 
-#define MTU		1500	// Maximum Transmission Unit in bytes [TODO:Move to a common place]
-
-
 /*****************************************************************************
- * @brief Echo loopback between the Rx and Tx ports of the TCP connection.
- *         The echo is said to operate in "pass-through" mode because every
- *         received packet is sent back without being stored by this process.
+ * @brief Echo loopback with store and forward in DDR4.
  * @ingroup tcp_app_flash
  *
- * @param[in]  siRxp_Data,	data from pRXPath
- * @param[in]  soTxp_Data,	data to pTXPath.
+ * @param[in]  siRXp_Data,   data from pRXPath (RXp)
+ * @param[in]  siRXp_SessId, session Id from [RXp]
+ * @param[out] soTXp_Data,   data to pTXPath (TXp).
+ * @param[out] soTXp_SessId, session Id to [TXp].
+ *
+ * @details
+ *  Loopback between the Rx and Tx ports of the TCP connection. The echo is
+ *  said to operate in "store-and-forward" mode because every received segment
+ *  is stored into the DDR4 memory before being read again and and sent back.
  *
  * @return Nothing.
  ******************************************************************************/
-/*** OBSOLETE ***
-void pEchoPassThrough(
-		stream<TcpWord>		&siRxp_Data,
-		stream<TcpWord>     &soTxp_Data)
+void pEchoStoreAndForward( // [TODO - Implement this process as a real store-and-forward]
+        stream<AxiWord>     &siRXp_Data,
+        stream<TcpSessId>   &siRXp_SessId,
+        stream<AxiWord>     &soTXp_Data,
+        stream<TcpSessId>   &soTXp_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS DATAFLOW interval=1
+    #pragma HLS DATAFLOW
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-	static stream<TcpWord>	sFifo ("sFifo");
-	#pragma HLS stream      variable=sFifo depth=MTU
+    static stream<AxiWord>      sDataFifo ("sDataFifo");
+    #pragma HLS stream variable=sDataFifo depth=2048
+    static stream<TcpSessId>    sMetaFifo ("sMetaFifo");
+    #pragma HLS stream variable=sDataFifo depth=64
 
-	//-- FiFo Push
-	if ( !siRxp_Data.empty() && !sFifo.full() )
-		sFifo.write(siRxp_Data.read());
+    //-- FiFo Push ----------
+    if ( !siRXp_Data.empty() && !sDataFifo.full() )
+        sDataFifo.write(siRXp_Data.read());
+    if ( !siRXp_SessId.empty() && !sMetaFifo.full() )
+        sMetaFifo.write(siRXp_SessId.read());
 
-	//-- FiFo Pop
-	if ( !sFifo.empty() && !soTxp_Data.full() )
-		soTxp_Data.write(sFifo.read());
-}
-*****/
-
-
-/*****************************************************************************
- * @brief Echo loopback between the Rx and Tx ports of the TCP connection.
- *         The echo is said to operate in "store-and-forward" mode because
- *         every received packet is stored into the DDR4 memory before being
- *         read again and and sent back.
- * @ingroup tcp_app_flash
- *
- * @param[in]  siRxp_Data,	data from pRXPath
- * @param[in]  soTxp_Data,	data to pTXPath.
- *
- * @return Nothing.
- ******************************************************************************/
-void pEchoStoreAndForward( // [TODO - Implement this process as store-and-forward]
-		stream<TcpWord>		&siRxp_Data,
-		stream<TcpWord>     &soTxp_Data)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
-
-    //-- LOCAL VARIABLES ------------------------------------------------------
-	static stream<TcpWord>	sFifo ("sFifo");
-	#pragma HLS stream      variable=sFifo depth=8
-
-	//-- FiFo Push
-	if ( !siRxp_Data.empty() && !sFifo.full() )
-		sFifo.write(siRxp_Data.read());
-
-	//-- FiFo Pop
-	if ( !sFifo.empty() && !soTxp_Data.full() )
-		soTxp_Data.write(sFifo.read());
+    //-- FiFo Pop -----------
+    if ( !sDataFifo.empty() && !soTXp_Data.full() )
+        soTXp_Data.write(sDataFifo.read());
+    if ( !sMetaFifo.empty() && !soTXp_SessId.full() )
+        soTXp_SessId.write(sMetaFifo.read());
 }
 
 
 /*****************************************************************************
- * @brief Transmit Path - From THIS to SHELL.
+ * @brief Transmit Path (.i.e Data and metadata to SHELL.
  * @ingroup tcp_app_flash
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
- * @param[in]  siEpt_Data,         data from pEchoPassTrough.
- * @param[in]  siEsf_Data,         data from pEchoStoreAndForward.
- * @param[out] soSHL_Data,         data to SHELL.
+ * @param[in]  siEPt_Data,         data from EchoPassTrough (EPt).
+ * @param[in]  siEPt_SessId,       metadata from [EPt].
+ * @param[in]  siESf_Data,         data from EchoStoreAndForward (ESf).
+ * @param[in]  siESf_SessId,       metadata from [ESf].
+ * @param[out] soSHL_Data,         data to SHELL (SHL).
+ * @param[out] soSHL_SessId,       metadata to [SHL].
  *
  * @return Nothing.
  *****************************************************************************/
 void pTXPath(
-		ap_uint<2>           piSHL_MmioEchoCtrl,
-        stream<TcpWord>     &siEpt_Data,
-		stream<TcpWord>     &siEsf_Data,
-		stream<TcpWord>     &soSHL_Data)
+        ap_uint<2>           piSHL_MmioEchoCtrl,
+        stream<AxiWord>     &siEPt_Data,
+        stream<TcpSessId>   &siEPt_SessId,
+        stream<AxiWord>     &siESf_Data,
+        stream<TcpSessId>   &siESf_SessId,
+        stream<AxiWord>     &soSHL_Data,
+        stream<TcpSessId>   &soSHL_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+    #pragma HLS DATAFLOW
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-	TcpWord	tcpWord;
+    AxiWord     tcpWord;
+    TcpSessId   tcpSessId;
 
-   	//-- Forward incoming chunk to SHELL
-    switch(piSHL_MmioEchoCtrl) {
+    static enum TxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } txpFsmState = START_OF_SEGMENT;
+    #pragma HLS reset variable=txpFsmState
 
-        case ECHO_PATH_THRU:
-        	// Read data chunk from pEchoPassThrough
-        	if ( !siEpt_Data.empty() ) {
-        		tcpWord = siEpt_Data.read();
-        	}
-        	else
-        		return;
-        	break;
-
-        case ECHO_STORE_FWD:
-        	// Read data chunk from pEchoStoreAndForward
-        	if ( !siEsf_Data.empty() )
-        		tcpWord = siEsf_Data.read();
-        	break;
-
-        case ECHO_OFF:
-        	// Read data chunk from TBD
+    switch (txpFsmState ) {
+      case START_OF_SEGMENT:
+        switch(piSHL_MmioEchoCtrl) {
+          case ECHO_PATH_THRU:
+            // Read session Id from pEchoPassThrough
+            if ( !siEPt_SessId.empty() and !soSHL_SessId.full()) {
+                siEPt_SessId.read(tcpSessId);
+                soSHL_SessId.write(tcpSessId);
+                txpFsmState = CONTINUATION_OF_SEGMENT;
+            }
             break;
-
-        default:
-        	// Reserved configuration ==> Do nothing
+          case ECHO_STORE_FWD:
+            //-- Read session Id from pEchoStoreAndForward
+            if ( !siESf_SessId.empty() and !soSHL_SessId.full()) {
+                siESf_SessId.read(tcpSessId);
+                soSHL_SessId.write(tcpSessId);
+                txpFsmState = CONTINUATION_OF_SEGMENT;
+            }
             break;
-    }
-
-    //-- Forward data chunk to SHELL
-    if ( !soSHL_Data.full() )
-        soSHL_Data.write(tcpWord);
+          case ECHO_OFF:
+          default:
+            // Drain and drop the session Id
+            if ( !siEPt_SessId.empty() )
+                siEPt_SessId.read();
+            else if ( !siESf_SessId.empty() )
+                siESf_SessId.read();
+            txpFsmState = CONTINUATION_OF_SEGMENT;
+            break;
+        }  // End-of: switch(piSHL_MmioEchoCtrl) {
+        break;
+      case CONTINUATION_OF_SEGMENT:
+        switch(piSHL_MmioEchoCtrl) {
+          case ECHO_PATH_THRU:
+            //-- Read incoming data from pEchoPathThrough
+            if ( !siEPt_Data.empty() and !soSHL_Data.full()) {
+                siEPt_Data.read(tcpWord);
+                soSHL_Data.write(tcpWord);
+                // Update FSM state
+                if (tcpWord.tlast)
+                    txpFsmState = START_OF_SEGMENT;
+            }
+            break;
+          case ECHO_STORE_FWD:
+            //-- Read incoming data from pEchoStoreAndForward
+            if ( !siESf_Data.empty() and !soSHL_Data.full()) {
+                siESf_Data.read(tcpWord);
+                soSHL_Data.write(tcpWord);
+                // Update FSM state
+                if (tcpWord.tlast)
+                    txpFsmState = START_OF_SEGMENT;
+            }
+            break;
+          case ECHO_OFF:
+          default:
+            // Drain and drop the segments
+            if ( !siEPt_Data.empty() )
+                siEPt_Data.read(tcpWord);
+            else if ( !siESf_Data.empty() )
+                siESf_Data.read(tcpWord);
+            // Always alternate between START and CONTINUATION to drain all streams
+            txpFsmState = START_OF_SEGMENT;
+            break;
+        }  // End-of: switch(piSHL_MmioEchoCtrl) {
+        break;
+    }  // End-of: switch (rxpFsmState ) {
 }
 
 
 /*****************************************************************************
- * @brief Receive Path - From SHELL to THIS.
+ * @brief Receive Path (.i.e Data and metadata from SHELL).
  * @ingroup tcp_app_flash
  *
  * @param[in]  piSHL_MmioEchoCtrl, configuration of the echo function.
- * @param[in]  siSHL_Data,         data from SHELL.
- * @param[out] soEpt_Data,         data to pEchoPassTrough.
- * @param[out] soEsf_Data,         data to pEchoStoreAndForward.
+ * @param[in]  siSHL_Data,         data from SHELL (SHL).
+ * @param[in]  siSHL_SessId,       metadata from [SHL].
+ * @param[out] soEPt_Data,         data to EchoPassTrough (EPt).
+ * @param[out] soEPt_SessId,       metadata to [EPt].
+ * @param[out] soESf_Data,         data to EchoStoreAndForward (ESf).
+ * @param[out] soESF_SessId,       metadata to [ESf].
  *
  * @return Nothing.
  ******************************************************************************/
 void pRXPath(
         ap_uint<2>            piSHL_MmioEchoCtrl,
-        stream<TcpWord>      &siSHL_Data,
-        stream<TcpWord>      &soEpt_Data,
-		stream<TcpWord>      &soEsf_Data)
+        stream<AxiWord>      &siSHL_Data,
+        stream<TcpSessId>    &siSHL_SessId,
+        stream<AxiWord>      &soEPt_Data,
+        stream<TcpSessId>    &soEPt_SessId,
+        stream<AxiWord>      &soESf_Data,
+        stream<TcpSessId>    &soESf_SessId)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+    #pragma HLS DATAFLOW
 
     //-- LOCAL VARIABLES ------------------------------------------------------
-	TcpWord	tcpWord;
+    AxiWord     tcpWord;
+    TcpSessId   tcpSessId;
 
-    //-- Read incoming data chunk
-    if ( !siSHL_Data.empty() )
-    	tcpWord = siSHL_Data.read();
-    else
-    	return;
+    static enum RxpFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } rxpFsmState = START_OF_SEGMENT;
+    #pragma HLS reset variable=rxpFsmState
 
-   	// Forward data chunk to Echo function
-    switch(piSHL_MmioEchoCtrl) {
-
-        case ECHO_PATH_THRU:
-        	// Forward data chunk to pEchoPathThrough
-        	if ( !soEpt_Data.full() )
-        		soEpt_Data.write(tcpWord);
+    switch (rxpFsmState ) {
+      case START_OF_SEGMENT:
+        switch(piSHL_MmioEchoCtrl) {
+          case ECHO_PATH_THRU:
+            //-- Read incoming session Id and forward to pEchoPathThrough
+            if ( !siSHL_SessId.empty() and !soEPt_SessId.full()) {
+                siSHL_SessId.read(tcpSessId);
+                soEPt_SessId.write(tcpSessId);
+                rxpFsmState = CONTINUATION_OF_SEGMENT;
+            }
             break;
-
-        case ECHO_STORE_FWD:
-        	// Forward data chunk to pEchoStoreAndForward
-        	if ( !soEsf_Data.full() )
-        		soEsf_Data.write(tcpWord);
-        	break;
-
-        case ECHO_OFF:
-        	// Drop the packet
+          case ECHO_STORE_FWD:
+            //-- Read incoming session Id and forward to pEchoStoreAndForward
+            if ( !siSHL_SessId.empty() and !soESf_SessId.full()) {
+                siSHL_SessId.read(tcpSessId);
+                soESf_SessId.write(tcpSessId);
+                rxpFsmState = CONTINUATION_OF_SEGMENT;
+            }
             break;
-
-        default:
-        	// Drop the packet
+          case ECHO_OFF:
+          default:
+            // Drain and drop the segment
+            if ( !siSHL_SessId.empty() ) {
+                siSHL_SessId.read(tcpSessId);
+                rxpFsmState = CONTINUATION_OF_SEGMENT;
+            }
             break;
-    }
+        }  // End-of: switch(piSHL_MmioEchoCtrl) {
+        break;
+      case CONTINUATION_OF_SEGMENT:
+        switch(piSHL_MmioEchoCtrl) {
+          case ECHO_PATH_THRU:
+            //-- Read incoming data and forward to pEchoPathThrough
+            if ( !siSHL_Data.empty() and !soEPt_Data.full()) {
+                siSHL_Data.read(tcpWord);
+                soEPt_Data.write(tcpWord);
+                // Update FSM state
+                if (tcpWord.tlast)
+                    rxpFsmState = START_OF_SEGMENT;
+            }
+            break;
+          case ECHO_STORE_FWD:
+            //-- Read incoming data and forward to pEchoStoreAndForward
+            if ( !siSHL_Data.empty() and !soESf_Data.full()) {
+                siSHL_Data.read(tcpWord);
+                soESf_Data.write(tcpWord);
+                // Update FSM state
+                if (tcpWord.tlast)
+                    rxpFsmState = START_OF_SEGMENT;
+            }
+            break;
+          case ECHO_OFF:
+          default:
+            // Drain and drop the segment
+            if ( !siSHL_Data.empty() ) {
+                siSHL_Data.read(tcpWord);
+            }
+            // Always alternate between START and CONTINUATION to drain all streams
+            rxpFsmState = START_OF_SEGMENT;
+            break;
+        }  // End-of: switch(piSHL_MmioEchoCtrl) {
+        break;
+    }  // End-of: switch (rxpFsmState ) {
 }
 
-
 /*****************************************************************************
- * @brief   Main process of the UDP Application Flash
+ * @brief   Main process of the TCP Application Flash
  * @ingroup tcp_app_flash
  *
- * @param[in]  piSHL_This_MmioEchoCtrl,  configures the echo function.
- * @param[in]  piSHL_This_MmioPostPktEn, enables posting of UDP packets.
- * @param[in]  piSHL_This_MmioCaptPktEn, enables capture of UDP packets.
- * @param[in]  siSHL_This_Data           UDP data stream from the SHELL.
- * @param[out] soTHIS_Shl_Data           UDP data stream to the SHELL.
+ * @param[in]  piSHL_MmioEchoCtrl,  configures the echo function.
+ * @param[in]  piSHL_MmioPostSegEn, enables posting of a TCP segment by [MMIO].
+ * @param[in]  piSHL_MmioCaptSegEn, enables capture of a TCP segment by [MMIO].
+ * @param[in]  siSHL_Data,          TCP data stream from the SHELL [SHL].
+ * @param[in]  siSHL_SessId,        TCP session Id from [SHL].
+ * @param[out] soSHL_Data           TCP data stream to [SHL].
  *
  * @return Nothing.
  *****************************************************************************/
 void tcp_app_flash (
 
         //------------------------------------------------------
-        //-- SHELL / This / Mmio / Config Interfaces
+        //-- SHELL / MMIO / Configuration Interfaces
         //------------------------------------------------------
-        ap_uint<2>          piSHL_This_MmioEchoCtrl,
-        //[TODO] ap_uint<1> piSHL_This_MmioPostPktEn,
-        //[TODO] ap_uint<1> piSHL_This_MmioCaptPktEn,
+        ap_uint<2>          piSHL_MmioEchoCtrl,
+        //[TODO] ap_uint<1> piSHL_MmioPostSegEn,
+        //[TODO] ap_uint<1> piSHL_MmioCaptSegEn,
 
         //------------------------------------------------------
-        //-- SHELL / This / Udp Interfaces
+        //-- SHELL / TCP Rx Data Interface
         //------------------------------------------------------
-        stream<TcpWord>     &siSHL_This_Data,
-        stream<TcpWord>     &soTHIS_Shl_Data)
+        stream<AppData>     &siSHL_Data,
+        stream<AppMeta>     &siSHL_SessId,
+
+        //------------------------------------------------------
+        //-- SHELL / TCP Tx Data Interface
+        //------------------------------------------------------
+        stream<AppData>     &soSHL_Data,
+        stream<AppMeta>     &soSHL_SessId)
 {
 
     /*********************************************************************/
@@ -243,60 +309,85 @@ void tcp_app_flash (
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
 
-	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-	#pragma HLS INTERFACE ap_ctrl_none port=return
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable 	 port=piSHL_This_MmioEchoCtrl
-    //[TODO] #pragma HLS INTERFACE ap_stable 	 port=piSHL_This_MmioPostPktEn
-	//[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioCaptPktEn
+    #pragma HLS INTERFACE ap_stable    port=piSHL_MmioEchoCtrl
+    //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioPostSegEn
+    //[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_MmioCaptSegEn
 
-    #pragma HLS resource core=AXI4Stream variable=siSHL_This_Data metadata="-bus_bundle siSHL_This_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTHIS_Shl_Data metadata="-bus_bundle soTHIS_Shl_Data"
+    #pragma HLS resource core=AXI4Stream variable=siSHL_Data   metadata="-bus_bundle siSHL_Data"
+    #pragma HLS resource core=AXI4Stream variable=siSHL_SessId metadata="-bus_bundle siSHL_SessId"
+    #pragma HLS resource core=AXI4Stream variable=soSHL_Data   metadata="-bus_bundle soSHL_Data"
+    #pragma HLS resource core=AXI4Stream variable=soSHL_SessId metadata="-bus_bundle soSHL_SessId"
 
 #else
 
-	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-	#pragma HLS INTERFACE ap_ctrl_none port=return
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioEchoCtrl
-	//[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioPostPktEn
-	//[TODO] #pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioCaptPktEn
+    #pragma HLS INTERFACE ap_stable          port=piSHL_MmioEchoCtrl
+    //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioPostSegEn
+    //[TODO] #pragma HLS INTERFACE ap_stable port=piSHL_MmioCapSegtEn
 
-	// [INFO] Always add "register off" because (default value is "both")
-    #pragma HLS INTERFACE axis register off port=siSHL_This_Data
-    #pragma HLS INTERFACE axis register off port=soTHIS_Shl_Data
+    // [INFO] Always add "register off" because (default value is "both")
+    #pragma HLS INTERFACE axis register off port=siSHL_Data
+    #pragma HLS INTERFACE axis register off port=siSHL_SessId
+    #pragma HLS INTERFACE axis register off port=soSHL_Data
+    #pragma HLS INTERFACE axis register off port=soSHL_SessId
 
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+    #pragma HLS DATAFLOW
 
-    //-- LOCAL STREAMS --------------------------------------------------------
-    //OBSOLETE-20180918 static stream<TcpWord>      sRxpToEpt_Data("sRxpToEpt_Data");
-	//OBSOLETE-20180918 static stream<TcpWord>      sEptToTxp_Data("sEptToTxp_Data");
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
 
-	static stream<TcpWord>      sRxpToTxp_Data("sRxpToTxP_Data");
+    //-------------------------------------------------------------------------
+    //-- Rx Path (RXp)
+    //-------------------------------------------------------------------------
+    static stream<AxiWord>      sRXpToTXp_Data    ("sRXpToTXp_Data");
+    #pragma HLS STREAM variable=sRXpToTXp_Data    depth=2048
+    static stream<TcpSessId>    sRXpToTXp_SessId  ("sRXpToTXp_SessId");
+    #pragma HLS STREAM variable=sRXpToTXp_SessId  depth=64
 
-    static stream<TcpWord>      sRxpToEsf_Data("sRxpToEsf_Data");
-    static stream<TcpWord>      sEsfToTxp_Data("sEsfToTxp_Data");
+    static stream<AxiWord>      sRXpToESf_Data    ("sRXpToESf_Data");
+    #pragma HLS STREAM variable=sRXpToESf_Data    depth=2
+    static stream<TcpSessId>    sRXpToESf_SessId  ("sRXpToESf_SessId");
+    #pragma HLS STREAM variable=sRXpToESf_SessId  depth=2
 
-    //OBSOLETE-20180918 #pragma HLS STREAM    variable=sRxpToEpt_Data depth=512
-    //OBSOLETE-20180918 #pragma HLS STREAM    variable=sEptToTxp_Data depth=512
-
-    #pragma HLS STREAM variable=sRxpToTxp_Data off depth=1500
-	#pragma HLS STREAM variable=sRxpToEsf_Data depth=2
-    #pragma HLS STREAM variable=sEsfToTxp_Data depth=2
+    //-------------------------------------------------------------------------
+    //-- Echo Store and Forward (ESf)
+    //-------------------------------------------------------------------------
+    static stream<AxiWord>      sESfToTXp_Data    ("sESfToTXp_Data");
+    #pragma HLS STREAM variable=sESfToTXp_Data    depth=2
+    static stream<TcpSessId>    sESfToTXp_SessId  ("sESfToTXp_SessId");
+    #pragma HLS STREAM variable=sESfToTXp_SessId  depth=2
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
-    pRXPath(piSHL_This_MmioEchoCtrl,
-            siSHL_This_Data, sRxpToTxp_Data, sRxpToEsf_Data);
+    pRXPath(
+            piSHL_MmioEchoCtrl,
+            siSHL_Data,
+            siSHL_SessId,
+            sRXpToTXp_Data,
+            sRXpToTXp_SessId,
+            sRXpToESf_Data,
+            sRXpToESf_SessId);
 
-    //OBSOLETE-20180918 pEchoPassThrough(sRxpToEpt_Data, sEptToTxp_Data);
+    pEchoStoreAndForward(
+            sRXpToESf_Data,
+            sRXpToESf_SessId,
+            sESfToTXp_Data,
+            sESfToTXp_SessId);
 
-    pEchoStoreAndForward(sRxpToEsf_Data, sEsfToTxp_Data);
-
-    pTXPath(piSHL_This_MmioEchoCtrl,
-    		sRxpToTxp_Data, sEsfToTxp_Data, soTHIS_Shl_Data);
+    pTXPath(
+            piSHL_MmioEchoCtrl,
+            sRXpToTXp_Data,
+            sRXpToTXp_SessId,
+            sESfToTXp_Data,
+            sESfToTXp_SessId,
+            soSHL_Data,
+            soSHL_SessId);
 
 }
 

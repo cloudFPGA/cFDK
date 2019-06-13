@@ -3,7 +3,7 @@
  * @brief      : TCP Role Interface.
  *
  * System:     : cloudFPGA
- * Component   : Interface with Network Transport Session (NTS) of the SHELL.
+ * Component   : Interface with Network Transport Stack (NTS) of the SHELL.
  * Language    : Vivado HLS
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
@@ -67,19 +67,16 @@ class SessionIdCam {
 void tcp_role_if(
 
         //------------------------------------------------------
-        //-- SHELL / System Reset
-        //------------------------------------------------------
-        ap_uint<1>           piSHL_SysRst,
-
-        //------------------------------------------------------
         //-- ROLE / Rx Data Interface
         //------------------------------------------------------
         stream<AppData>     &siROL_Data,
+        stream<AppMeta>     &siROL_SessId,
 
         //------------------------------------------------------
         //-- ROLE / Tx Data Interface
         //------------------------------------------------------
         stream<AppData>     &soROL_Data,
+        stream<AppMeta>     &soROL_SessId,
 
         //------------------------------------------------------
         //-- TOE / Rx Data Interfaces
@@ -87,7 +84,7 @@ void tcp_role_if(
         stream<AppNotif>    &siTOE_Notif,
         stream<AppRdReq>    &soTOE_DReq,
         stream<AppData>     &siTOE_Data,
-        stream<AppMeta>     &siTOE_Meta,
+        stream<AppMeta>     &siTOE_SessId,
 
         //------------------------------------------------------
         //-- TOE / Listen Interfaces
@@ -99,14 +96,14 @@ void tcp_role_if(
         //-- TOE / Tx Data Interfaces
         //------------------------------------------------------
         stream<AppData>     &soTOE_Data,
-        stream<AppMeta>     &soTOE_Meta,
+        stream<AppMeta>     &soTOE_SessId,
         stream<AppWrSts>    &siTOE_DSts,
 
         //------------------------------------------------------
         //-- TOE / Open Interfaces
         //------------------------------------------------------
         stream<AppOpnReq>   &soTOE_OpnReq,
-        stream<AppOpnSts>   &siTOE_OpnSts,
+        stream<AppOpnSts>   &siTOE_OpnRep,
 
         //------------------------------------------------------
         //-- TOE / Close Interfaces

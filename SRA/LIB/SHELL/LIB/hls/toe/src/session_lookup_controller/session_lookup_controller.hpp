@@ -12,16 +12,22 @@
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
- *               TCP Session Lookup Controller.
+ *               TCP Session Lookup Controller (SLc).
  *
  *****************************************************************************/
+
+#ifndef SLC_H_
+#define SLC_H_
 
 #include "../toe.hpp"
 
 using namespace hls;
 
 
-enum lookupSource {RX, TX_APP};
+//enum lookupSource {FROM_RXe, FROM_TAi};
+typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
+#define FROM_RXe   0
+#define FROM_TAi   1
 
 enum lookupOp {INSERT, DELETE};
 
@@ -34,14 +40,16 @@ struct slupRouting
             :isUpdate(isUpdate), source(src) {}
 };
 
-/*
- *  This struct defines the internal storage format of the IP tuple.
- *  This struct uses the terms 'my' and 'their' instead of 'dest' and 'source'.
- *  When a tuple is sent or received from the tx/rx path it is mapped to the
- *  fourTuple struct.
- *  The operator '<' is necessary here for the c++ dummy memory implementation
- *  which uses an std::map.
- */
+/********************************************************************
+ * Session Lookup Controller / Internal Four Tuple Structure
+ *  This struct defines the internal storage used by [SLc] to store
+ *   a 4-tuple. The struct uses the terms 'my' and 'their' instead of
+ *   'dest' and 'source'.
+ *  When a socket pair is sent or received from the Tx/Rx path, it is
+ *   mapped by [SLc] to this fourTuple struct.
+ *  The operator '<' is necessary here for the c++ dummy memory
+ *   implementation which uses an std::map.
+ ********************************************************************/
 struct fourTupleInternal
 {
     ap_uint<32> myIp;
@@ -76,9 +84,9 @@ struct fourTupleInternal
     }
 };
 
-/* @ingroup session_lookup_controller
- *
- */
+/**********************************************************
+ * Session Lookup Controller / Internal Query Structure
+ **********************************************************/
 struct sessionLookupQueryInternal
 {
     fourTupleInternal   tuple;
@@ -89,47 +97,46 @@ struct sessionLookupQueryInternal
             :tuple(tuple), allowCreation(allowCreation), source(src) {}
 };
 
-/** @ingroup session_lookup_controller
+/**********************************************************
+ * Smart CAM interface (CAM)
  *
- */
-struct rtlSessionLookupRequest
+ *  [FIXME - MOVE THIS SECTION INTO TOE.HPP]
+ *
+ * Warning:
+ *   Don't change the order of the fields in the session-
+ *   lookup-request, session-lookup-reply, session-update-
+ *   request and session-update-reply as these structures
+ *   end up being mapped to a physical Axi4-Stream interface
+ *   between the TOE and the CAM.
+ * Info: The member elements of the struct are placed into
+ *   the physical vector interface in the order the appear
+ *   in the C code: the first element of the struct is alig-
+ *   ned on the LSB of the vector and the final element of
+ *   the struct is aligned with the MSB of the vector. 
+ **********************************************************/
+typedef ap_uint<14> RtlSessId;
+
+/********************************************
+ * CAM / Session Lookup Request
+ ********************************************/
+struct rtlSessionLookupRequest     // [FIXME - Rename ]
 {
-    lookupSource        source;
-    fourTupleInternal   key;
+    fourTupleInternal   key;       // 96 bits 
+    lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+
     rtlSessionLookupRequest() {}
     rtlSessionLookupRequest(fourTupleInternal tuple, lookupSource src)
-                :key(tuple), source(src) {}
+                : key(tuple), source(src) {}
 };
 
-/*************************************************************************
- * RTL Session Type Definitions
- *************************************************************************/
-typedef ap_uint<14> RtlSessId;  // [FIXME - Align size with log2(MAX_SESSIONS)]
-
 /********************************************
- * Rtl Session Update Request
- ********************************************/
-struct rtlSessionUpdateRequest
-{
-    lookupSource        source;
-    lookupOp            op;
-    RtlSessId           value;
-    fourTupleInternal   key;
-
-    rtlSessionUpdateRequest() {}
-    rtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
-        key(key), value(value), op(op), source(src) {}
-};
-
-
-/********************************************
- * Rtl Session Lookup Reply
+ * CAM / Session Lookup Reply
  *********************************************/
-struct rtlSessionLookupReply
+struct rtlSessionLookupReply       // [FIXME - Rename ]
 {
-    lookupSource        source;
-    RtlSessId           sessionID;
-    bool                hit;
+    RtlSessId           sessionID; // 14 bits
+    lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+    bool                hit;       //  1 bit
 
     rtlSessionLookupReply() {}
     rtlSessionLookupReply(bool hit, lookupSource src) :
@@ -139,13 +146,28 @@ struct rtlSessionLookupReply
 };
 
 /********************************************
- * Rtl Session Update Reply
- *********************************************/
-struct rtlSessionUpdateReply
+ * CAM / Session Update Request
+ ********************************************/
+struct rtlSessionUpdateRequest     // [FIXME - Rename ]
 {
-    lookupSource        source;
-    lookupOp            op;
-    RtlSessId           sessionID;
+    fourTupleInternal   key;       // 96 bits
+    RtlSessId           value;     // 14 bits
+    lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
+
+    rtlSessionUpdateRequest() {}
+    rtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
+        key(key), value(value), op(op), source(src) {}
+};
+
+/********************************************
+ * CAM / Session Update Reply
+ *********************************************/
+struct rtlSessionUpdateReply       // [FIXME - Rename ]
+{
+    RtlSessId           sessionID; // 14 bits
+    lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
 
     rtlSessionUpdateReply() {}
     rtlSessionUpdateReply(lookupOp op, lookupSource src) :
@@ -187,3 +209,6 @@ void session_lookup_controller(
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt
 );
+
+#endif
+
