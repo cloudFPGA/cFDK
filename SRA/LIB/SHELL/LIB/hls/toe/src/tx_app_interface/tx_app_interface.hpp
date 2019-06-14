@@ -15,7 +15,7 @@
 
 #include "../toe.hpp"
 #include "../tx_app_if/tx_app_if.hpp"
-#include "../tx_app_stream_if/tx_app_stream_if.hpp"
+#include "../tx_app_stream/tx_app_stream.hpp"
 
 using namespace hls;
 

@@ -1,3 +1,17 @@
+/*****************************************************************************
+ * @file       : tx_app_stream.hpp
+ * @brief      : Tx Application Stream (Tas) management
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *****************************************************************************/
+
+
+
 #include "../toe.hpp"
 #include "../toe_utils.hpp"
 
@@ -51,16 +65,17 @@ class SegMemMeta {
 };
 
 
-/** @defgroup tx_app_stream_if TX Application Stream Interface
- *  @ingroup app_if
- */
-void tx_app_stream_if(
-        stream<AxiWord>            &appTxDataReq,
-        stream<ap_uint<16> >       &appTxDataReqMetaData,
-        stream<sessionState>       &stateTable2txApp_rsp,
+/*****************************************************************************
+ * @brief   Main process of the Tx Application Stream (Tas).
+ *
+ *****************************************************************************/
+void tx_app_stream(
+        stream<AppData>            &siTRIF_Data,
+        stream<AppMeta>            &siTRIF_Meta,
+        stream<sessionState>       &siSTt_SessStateRep,
         stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
         stream<ap_int<17> >        &appTxDataRsp,
-        stream<ap_uint<16> >       &txApp2stateTable_req,
+        stream<TcpSessId>          &soSTt_SessStateReq,
         stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
         stream<DmCmd>              &txBufferWriteCmd,
         stream<AxiWord>            &soMEM_TxP_Data,

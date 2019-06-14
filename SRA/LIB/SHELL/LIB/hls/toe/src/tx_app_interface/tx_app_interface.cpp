@@ -218,8 +218,8 @@ void tx_app_interface(
         txApp2txSar_push,
         txApp2eventEng_setEvent);
 
-    // TX application Stream Interface
-    tx_app_stream_if(
+    // TX application Stream management
+    tx_app_stream(
             siTRIF_Data,
             siTRIF_Meta,
             siSTt_SessStateRep,
@@ -231,7 +231,7 @@ void tx_app_interface(
             soMEM_TxP_Data,
             txAppStream2event_mergeEvent);
 
-    // TX Application Interface
+    // TX Application Status
     tx_app_if(
             siTRIF_OpnReq,
             appCloseConnReq,

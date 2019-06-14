@@ -1,6 +1,6 @@
 /*****************************************************************************
- * @file       : tx_app_stream_if.cpp
- * @brief      : Tx Application Stream Interface (Tas) // [FIXME - Need a better name]
+ * @file       : tx_app_stream.cpp
+ * @brief      : Tx Application Stream (Tas) management
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -10,9 +10,28 @@
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *****************************************************************************/
 
-#include "tx_app_stream_if.hpp"
+#include "tx_app_stream.hpp"
 
 using namespace hls;
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TAS_TRACE | TAS_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TOE/TAi/Tas"
+
+#define TRACE_OFF  0x0000
+#define TRACE_MDL 1 <<  1
+#define TRACE_SLG 1 <<  2
+#define TRACE_SMW 1 <<  3
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
 
 /*******************************************************************************
  * @brief Segment Length Generator (Slg)
@@ -339,7 +358,7 @@ void pSegmentMemoryWriter(
  *  of success the length of the write is returned, otherwise -1;
  *
  ******************************************************************************/
-void tx_app_stream_if(
+void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
         stream<sessionState>       &siSTt_SessStateRep,
