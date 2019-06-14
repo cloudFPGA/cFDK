@@ -17,11 +17,26 @@ This transition typically occurs when instantiating specific IP cores or generic
 
 ## Signals
 
-### Process I/Os
+## Process I/Os
 Inputs and outputsstreams and ports.
 
-### Inter-process connections
+## Inter-process connections
 
+### DataFlow vs CtrlFlow
 
- 
+Use "noun" for data-flows (.e.g Data, Meta, Length, ...)
+
+Use "verbs' for control-flows (.e.g Request, Reply, Command, Get, Set, Clear, ...)
+
+[TODO] - GIVE A DEFINITION OF THE MORE GENERICS AND MOST USED ACTIONS
+- AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+- CmdBit;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+- QryBit;  // Query      : Indicates a demand for an answer (.e.g stateQry).
+- ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+- RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+- RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
+- SigBit;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+- StsBit;  // Status bit : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus..
+- ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
+
 
