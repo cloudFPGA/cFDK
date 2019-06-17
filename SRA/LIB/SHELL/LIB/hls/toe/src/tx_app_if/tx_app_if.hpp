@@ -18,7 +18,7 @@
 
 using namespace hls;
 
-void tx_app_if(
+void tx_app_accept(
         stream<AxiSockAddr>         &siTRIF_OpnReq,
         stream<ap_uint<16> >        &closeConnReq,
         stream<sessionLookupReply>  &sLookup2txApp_rsp,

@@ -1025,8 +1025,8 @@ void pFiniteStateMachine(
                         if ( (fsm_meta.meta.seqNumb == rxSar.recvd) &&
                              (free_space > fsm_meta.meta.length) ) {
                             soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, newRecvd, 1));
-                            // Build memory address for this segment
-                            ap_uint<32> memSegAddr;
+                            // Build memory address for this segment in the lower 2GB
+                            ap_uint<32> memSegAddr;   // [TODO-Typedef]
                             memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_meta.sessionId(13, 0);
                             memSegAddr(15,  0) = fsm_meta.meta.seqNumb.range(15, 0);

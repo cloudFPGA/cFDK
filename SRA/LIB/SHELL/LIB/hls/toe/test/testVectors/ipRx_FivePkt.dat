@@ -80,6 +80,9 @@ G PARAM FpgaLsnPort 8803
 > IDLE 100
 
 # == STEP-1: TCP DATA TRANSFER [1] =======================================
+
+# [FIXME - Continue populating file with real frames captured with WireShark] 
+
 # 0000000051000045 0 FF
 # 0A0A0A0A000006FF 0 FF
 # 5700890001C80C0A 0 FF

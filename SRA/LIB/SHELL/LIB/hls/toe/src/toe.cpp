@@ -443,7 +443,7 @@ void rx_app_interface(
  * @warning:   Not-Used,         Tx memory read status from MEM.
  * @param[out] soMEM_TxP_RdCmd,  Tx memory read command to MEM.
  * @param[in]  siMEM_TxP_Data,   Tx memory data from MEM.
- * @param[out] siMEM_TxP_WrSts,  Tx memory write status from MEM.
+ * @param[in]  siMEM_TxP_WrSts,  Tx memory write status from MEM.
  * @param[out] soMEM_TxP_WrCmd,  Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,   Tx memory data to MEM.
  * -- CAM / This / Session Lookup & Update Interfaces
@@ -753,9 +753,9 @@ void toe(
     #pragma HLS stream         variable=sTAiToEVe_Event           depth=4
     #pragma HLS DATA_PACK      variable=sTAiToEVe_Event
 
-    static stream<txAppTxSarPush>       txApp2txSar_push          ("txApp2txSar_push");
-    #pragma HLS stream         variable=txApp2txSar_push          depth=2
-    #pragma HLS DATA_PACK      variable=txApp2txSar_push
+    static stream<TxSarTableAppPush>    sTAiToTSt_AppPush         ("sTAiToTSt_AppPush");
+    #pragma HLS stream         variable=sTAiToTSt_AppPush         depth=2
+    #pragma HLS DATA_PACK      variable=sTAiToTSt_AppPush
 
     static stream<stateQuery>           txApp2stateTable_upd_req  ("txApp2stateTable_upd_req");
     #pragma HLS stream         variable=txApp2stateTable_upd_req  depth=2
@@ -816,9 +816,9 @@ void toe(
     #pragma HLS stream         variable=sTStToTXe_TxSarUpdRep     depth=2
     #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarUpdRep
 
-    static stream<txSarAckPush>         txSar2txApp_ack_push      ("txSar2txApp_ack_push");
-    #pragma HLS stream         variable=txSar2txApp_ack_push      depth=2
-    #pragma HLS DATA_PACK      variable=txSar2txApp_ack_push
+    static stream<txSarAckPush>         sTStToTAi_AckPush         ("sTStToTAi_AckPush");
+    #pragma HLS stream         variable=sTStToTAi_AckPush         depth=2
+    #pragma HLS DATA_PACK      variable=sTStToTAi_AckPush
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -882,11 +882,11 @@ void toe(
             sRXeToTSt_TxSarUpdReq,
             //txApp2txSar_upd_req,
             sTXeToTSt_TxSarUpdReq,
-            txApp2txSar_push,
+            sTAiToTSt_AppPush,
             sTStToRXe_SessTxSarRep,
             //txSar2txApp_upd_rsp,
             sTStToTXe_TxSarUpdRep,
-            txSar2txApp_ack_push);
+            sTStToTAi_AckPush);
 
     //-- Port Table (PRt) --------------------------------------------------
     port_table(
@@ -997,8 +997,9 @@ void toe(
     tx_app_interface(
             siTRIF_Data,
             siTRIF_Meta,
+            sTAiToSTt_SessStateReq,
             sSTtToTAi_SessStateRep,
-            txSar2txApp_ack_push,
+            sTStToTAi_AckPush,
             siMEM_TxP_WrSts,
             siTRIF_OpnReq,
             siTRIF_ClsReq,
@@ -1007,10 +1008,9 @@ void toe(
             stateTable2txApp_upd_rsp,
             sRXeToTAi_SessOpnSts,
             soTRIF_DSts,
-            sTAiToSTt_SessStateReq,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
-            txApp2txSar_push,
+            sTAiToTSt_AppPush,
             soTRIF_OpnSts,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,

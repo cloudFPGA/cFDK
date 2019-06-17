@@ -16,64 +16,66 @@ using namespace hls;
 
 
 /*****************************************************************************
- * @brief Tx Application Status Handler (Tas).
+ * @brief Tx Application Status Handler (Tash).
  *
- * @param[]
- * @param[]
- * @param[]
+ * @param[in]  siMEM_TxP_WrSts, Tx memory write status from [MEM].
+ * @param[in]  siEmx_Event,     Event from the event multiplexer (Emx).
+ * @param[out] soTSt_Push,      Push the pointer to be released to TxSarTable (TSt).
+ * @param[out] soEVe_Event,     Event to EventEngine (EVe).
  *
  * @details
  *
  * @ingroup tx_app_interface
  ******************************************************************************/
-void txAppStatusHandler(
-        stream<DmSts>           &txBufferWriteStatus,
-        stream<event>           &tasi_eventCacheFifo,
-        stream<txAppTxSarPush>  &txApp2txSar_app_push,
-        stream<event>           &txAppStream2eventEng_setEvent)
+void pTxAppStatusHandler(
+        stream<DmSts>             &siMEM_TxP_WrSts,
+        stream<event>             &siEmx_Event,
+        stream<TxSarTableAppPush> &soTSt_Push,
+        stream<event>             &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
 
-    static ap_uint<2> tash_state = 0;
-    static event ev;
-    static ap_uint<1> wrStatusCounter = 0;
+    //OBSOLETE-20190617 static ap_uint<2> tash_state = 0;
+    static event      ev;
 
-    switch (tash_state) {
+    static enum TashFsmStates { S0, S1, S2 } tashFsmState = S0;
+
+    switch (tashFsmState) {
     case 0:
-        if (!tasi_eventCacheFifo.empty()) {
-            wrStatusCounter = 0;
-            tasi_eventCacheFifo.read(ev);
+        if (!siEmx_Event.empty()) {
+            siEmx_Event.read(ev);
             if (ev.type == TX)
-                tash_state = 1;
+                tashFsmState = S1;
             else
-                txAppStream2eventEng_setEvent.write(ev);
+                soEVe_Event.write(ev);
         }
         break;
     case 1:
-        if (!txBufferWriteStatus.empty()) {
-            DmSts status = txBufferWriteStatus.read();
+        if (!siMEM_TxP_WrSts.empty()) {
+            DmSts status = siMEM_TxP_WrSts.read();
             ap_uint<17> tempLength = ev.address + ev.length;
             if (tempLength <= 0x10000) {
                 if (status.okay) {
-                    txApp2txSar_app_push.write(txAppTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
-                    txAppStream2eventEng_setEvent.write(ev);
+                    soTSt_Push.write(TxSarTableAppPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
+                    soEVe_Event.write(ev);
                 }
-                tash_state = 0;
+                tashFsmState = S0;
             }
             else
-                tash_state = 2;
+                tashFsmState = S2;
         }
         break;
     case 2:
-        if (!txBufferWriteStatus.empty()) {
-            DmSts status = txBufferWriteStatus.read();
+        if (!siMEM_TxP_WrSts.empty()) {
+            DmSts status = siMEM_TxP_WrSts.read();
             ap_uint<17> tempLength = (ev.address + ev.length);
             if (status.okay) {
-                txApp2txSar_app_push.write(txAppTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
-                txAppStream2eventEng_setEvent.write(ev);
+               // App pointer update, pointer is released
+                soTSt_Push.write(TxSarTableAppPush(ev.sessionID, tempLength.range(15, 0)));
+                soEVe_Event.write(ev);
             }
-            tash_state = 0;
+            tashFsmState = S0;
         }
         break;
     } //switch
@@ -81,45 +83,47 @@ void txAppStatusHandler(
 
 
 /*****************************************************************************
- * @brief Tx Application Table (Tab).
+ * @brief Tx Application Table (Tat).
  *
- * @param[]
- * @param[]
- * @param[]
+ * @param[in]  siTSt_AckPush,  The push of an AckNum by the TxSarTable (TSt).
+ * @param[in]  siTas_AcessReq, Access request from TxAppStream (Tas).
+ * @param[out] soTAs_AcessRep, Access reply to [Tas].
  *
  * @details
+ *  This table keeps tack of the Tx ACK numbers and Tx memory pointers.
  *
  * @ingroup tx_app_interface
  ******************************************************************************/
-void tx_app_table(
-        stream<txSarAckPush>&       txSar2txApp_ack_push,
-        stream<txAppTxSarQuery>&    txApp_upd_req,
-        stream<txAppTxSarReply>&    txApp_upd_rsp)
+void pTxAppTable(
+        stream<txSarAckPush>      &siTSt_AckPush,
+        stream<TxAppTableRequest> &siTas_AcessReq,
+        stream<TxAppTableReply>   &siTas_AcessRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static txAppTableEntry app_table[MAX_SESSIONS];
-    #pragma HLS DEPENDENCE variable=app_table inter false
-    txSarAckPush    ackPush;
-    txAppTxSarQuery txAppUpdate;
+    static TxAppTableEntry          TX_APP_TABLE[MAX_SESSIONS];
+    #pragma HLS DEPENDENCE variable=TX_APP_TABLE inter false
 
-    if (!txSar2txApp_ack_push.empty()) {
-        txSar2txApp_ack_push.read(ackPush);
+    txSarAckPush      ackPush;
+    TxAppTableRequest txAppUpdate;
+
+    if (!siTSt_AckPush.empty()) {
+        siTSt_AckPush.read(ackPush);
         if (ackPush.init) { // At init this is actually not_ackd
-            app_table[ackPush.sessionID].ackd = ackPush.ackd-1;
-            app_table[ackPush.sessionID].mempt = ackPush.ackd;
+            TX_APP_TABLE[ackPush.sessionID].ackd = ackPush.ackd-1;
+            TX_APP_TABLE[ackPush.sessionID].mempt = ackPush.ackd;
         }
         else
-            app_table[ackPush.sessionID].ackd = ackPush.ackd;
+            TX_APP_TABLE[ackPush.sessionID].ackd = ackPush.ackd;
     }
-    else if (!txApp_upd_req.empty()) {
-        txApp_upd_req.read(txAppUpdate);
+    else if (!siTas_AcessReq.empty()) {
+        siTas_AcessReq.read(txAppUpdate);
 
         if(txAppUpdate.write) // Write
-            app_table[txAppUpdate.sessionID].mempt = txAppUpdate.mempt;
+            TX_APP_TABLE[txAppUpdate.sessId].mempt = txAppUpdate.mempt;
         else // Read
-            txApp_upd_rsp.write(txAppTxSarReply(txAppUpdate.sessionID, app_table[txAppUpdate.sessionID].ackd, app_table[txAppUpdate.sessionID].mempt));
+            siTas_AcessRep.write(TxAppTableReply(txAppUpdate.sessId, TX_APP_TABLE[txAppUpdate.sessId].ackd, TX_APP_TABLE[txAppUpdate.sessId].mempt));
     }
 
 }
@@ -131,9 +135,10 @@ void tx_app_table(
  * @param[in]  siTRIF_Data,           TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,           TCP metadata stream from TRIF.
  * @param[in]  siSTt_SessionStateRep, Session state rply from [STt].
+ * @param[in]  siTSt_AckPush,         The push of an AckNum onto the ACK table of [TAi].
  * @param[]
- * @param[]
- * @param[in]  siTRIF_OpnReq, Open connection request from TCP Role I/F (TRIF).
+ * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
+ * @param[in]  siTRIF_OpnReq,         Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[]
  * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
@@ -145,12 +150,21 @@ void tx_app_table(
  * @param[]
  * @param[]
  * @param[out] soTRIF_SessOpnSts,     Open status to [TRIF].
+ * @param[out] soTRIF_DSts,           TCP data status to TRIF.
  * @param[out] soSLc_SessLookupReq,   Session lookup request to Session Lookup Controller(SLc).
  * @param[out] soPRt_ActPortStateReq  Request to get a free port to Port Table (PRt).
  * @param[]
  * @param[]
  * @param[]
  * @param[]
+ * @param[out] soMEM_TxP_WrCmd,       Tx memory write command to MEM.
+ * @param[out] soMEM_TxP_Data,        Tx memory data to MEM.
+ * @param[out] soTSt_Push,            Push to TxSarTable (TSt).
+ * @param
+ * @parm
+ * @param[out] soEVe_Event,           Event to EventEngine (EVe).
+ * @parm
+ * @parm
  *
  * @details
  *
@@ -159,9 +173,10 @@ void tx_app_table(
 void tx_app_interface(
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
+        stream<TcpSessId>              &soSTt_SessStateReq,
         stream<sessionState>           &siSTt_SessStateRep,
-        stream<txSarAckPush>           &txSar2txApp_ack_push,
-        stream<DmSts>                  &txBufferWriteStatus,
+        stream<txSarAckPush>           &siTSt_AckPush,
+        stream<DmSts>                  &siMEM_TxP_WrSts,
 
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
@@ -170,69 +185,74 @@ void tx_app_interface(
         stream<sessionState>           &stateTable2txApp_upd_rsp,
         stream<OpenStatus>             &siRXe_SessOpnSts,
 
-        stream<ap_int<17> >            &appTxDataRsp,
-        stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<DmCmd>                  &txBufferWriteCmd,
+        stream<ap_int<17> >            &soTRIF_DSts,
+        stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
-        stream<txAppTxSarPush>         &txApp2txSar_push,
+        stream<TxSarTableAppPush>      &soTSt_AppPush,
 
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<stateQuery>             &txApp2stateTable_upd_req,
-        stream<event>                  &txApp2eventEng_setEvent,
+        stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         ap_uint<32>                     regIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
 
-    // Fifos
-    static stream<event> txApp2eventEng_mergeEvent("txApp2eventEng_mergeEvent");
-    static stream<event> txAppStream2event_mergeEvent("txAppStream2event_mergeEvent");
-    #pragma HLS stream variable=txApp2eventEng_mergeEvent       depth=2
-    #pragma HLS stream variable=txAppStream2event_mergeEvent    depth=2
-    #pragma HLS DATA_PACK variable=txApp2eventEng_mergeEvent
-    #pragma HLS DATA_PACK variable=txAppStream2event_mergeEvent
+    //-- Event Multiplexer (Emx) -----------------------------------------
+    static stream<event>                sEmxToTash_Event    ("sEmxToTash_Event");
+    #pragma HLS stream         variable=sEmxToTash_Event    depth=2
+    #pragma HLS DATA_PACK      variable=sEmxToTash_Event
 
-    static stream<event> txApp_eventCache("txApp_eventCache");
-    #pragma HLS stream variable=txApp_eventCache    depth=2
-    #pragma HLS DATA_PACK variable=txApp_eventCache
+    //-- Tx App Accept (Taa)----------------------------------------------
+    static stream<event>                sTaaToEmx_Event     ("sTaaToEmx_Event");
+    #pragma HLS stream         variable=sTaaToEmx_Event     depth=2
+    #pragma HLS DATA_PACK      variable=sTaaToEmx_Event
 
-    static stream<txAppTxSarQuery>      txApp2txSar_upd_req("txApp2txSar_upd_req");
-    static stream<txAppTxSarReply>      txSar2txApp_upd_rsp("txSar2txApp_upd_rsp");
-    #pragma HLS stream variable=txApp2txSar_upd_req     depth=2
-    #pragma HLS stream variable=txSar2txApp_upd_rsp     depth=2
-    #pragma HLS DATA_PACK variable=txApp2txSar_upd_req
-    #pragma HLS DATA_PACK variable=txSar2txApp_upd_rsp
+    //-- Tx App Stream (Tas)----------------------------------------------
+    static stream<TxAppTableRequest>    sTasToApt_AcessReq  ("sTasToApt_AcessReq");
+    #pragma HLS stream         variable=sTasToApt_AcessReq  depth=2
+    #pragma HLS DATA_PACK      variable=sTasToApt_AcessReq
 
-    // Multiplex Events
+    static stream<event>                sTasToEmx_Event     ("sTasToEmx_Event");
+    #pragma HLS stream         variable=sTasToEmx_Event     depth=2
+    #pragma HLS DATA_PACK      variable=sTasToEmx_Event
+
+    //-- Tx App Table (Tat)-----------------------------------------------
+    static stream<TxAppTableReply>      sTatToTas_AcessRep  ("sTatToTas_AcessRep");
+    #pragma HLS stream         variable=sTatToTas_AcessRep  depth=2
+    #pragma HLS DATA_PACK      variable=sTatToTas_AcessRep
+
+    // Event Multiplexer (Emx)
     pStreamMux(
-        txApp2eventEng_mergeEvent,
-        txAppStream2event_mergeEvent,
-        txApp_eventCache);
+        sTaaToEmx_Event,
+        sTasToEmx_Event,
+        sEmxToTash_Event);
 
-    txAppStatusHandler(
-        txBufferWriteStatus,
-        txApp_eventCache,
-        txApp2txSar_push,
-        txApp2eventEng_setEvent);
+    // Tx Application Status Handler (Tash)
+    pTxAppStatusHandler(
+        siMEM_TxP_WrSts,
+        sEmxToTash_Event,
+        soTSt_AppPush,
+        soEVe_Event);
 
-    // TX application Stream management
+    // Tx Application Stream (Tas)
     tx_app_stream(
             siTRIF_Data,
             siTRIF_Meta,
-            siSTt_SessStateRep,
-            txSar2txApp_upd_rsp,
-            appTxDataRsp,
             soSTt_SessStateReq,
-            txApp2txSar_upd_req,
-            txBufferWriteCmd,
+            siSTt_SessStateRep,
+            sTasToApt_AcessReq,
+            sTatToTas_AcessRep,
+            soTRIF_DSts,
+            soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
-            txAppStream2event_mergeEvent);
+            sTasToEmx_Event);
 
-    // TX Application Status
-    tx_app_if(
+    // Tx Application Connect (Taa)
+    tx_app_accept(
             siTRIF_OpnReq,
             appCloseConnReq,
             siSLc_SessLookupRep,
@@ -243,13 +263,13 @@ void tx_app_interface(
             soSLc_SessLookupReq,
             soPRt_GetFreePortReq,
             txApp2stateTable_upd_req,
-            txApp2eventEng_mergeEvent,
+            sTaaToEmx_Event,
             rtTimer2txApp_notification,
             regIpAddress);
 
-    // TX App Meta Table
-    tx_app_table(
-            txSar2txApp_ack_push,
-            txApp2txSar_upd_req,
-            txSar2txApp_upd_rsp);
+    // Tx Application Table (Tat)
+    pTxAppTable(
+            siTSt_AckPush,
+            sTasToApt_AcessReq,
+            sTatToTas_AcessRep);
 }
