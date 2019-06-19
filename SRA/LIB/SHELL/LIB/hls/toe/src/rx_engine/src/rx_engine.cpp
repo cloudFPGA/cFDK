@@ -542,6 +542,8 @@ void pCheckSumAccumulator(
             csa_wordCount = 0;
             csa_wasLast = !sendWord.tlast;
             csa_doCSumVerif = true;
+            if (DEBUG_LEVEL & TRACE_CSA)
+                printAxiWord(myName, currWord);
         }
 
     } // End of: if (!siIph_Data.empty() && !csa_doCSumVerif)
@@ -592,6 +594,9 @@ void pCheckSumAccumulator(
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
                         soTid_DataVal.write(true);
+                        if (DEBUG_LEVEL & TRACE_CSA) {
+                            printInfo(myName, "Received end-of-packet. Checksum is correct.\n");
+                        }
                     }
                     // Request state of TCP_DP
                     soPRt_GetState.write(byteSwap16(csa_axiTcpDstPort));
@@ -605,9 +610,10 @@ void pCheckSumAccumulator(
                         printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
                                     csa_axiTcpCSum.to_uint(),
                                     byteSwap16(~csa_tcp_sums[0](15, 0) & 0xFFFF).to_uint());
-                        printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
-                                csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
-                                csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
+                        printSockPair(myName, csa_sessTuple);
+                        //printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
+                        //        csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
+                        //        csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
                     }
                 }
                 csa_doCSumVerif = false;
@@ -708,7 +714,8 @@ void pTcpInvalidDropper(
             soTsd_Data.write(currWord);
             if (currWord.tlast)
                 tid_fsmState = GET_VALID;
-            if (DEBUG_LEVEL & TRACE_TID) printAxiWord(myName, currWord);
+            if (DEBUG_LEVEL & TRACE_TID)
+                printAxiWord(myName, currWord);
         }
         break;
 
@@ -908,7 +915,6 @@ void pFiniteStateMachine(
         stream<stateQuery>                  &soSTt_SessStateReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
         stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
-        //OBSOLETE-20190118 stream<rxRetransmitTimerUpdate>     &soTIm_ReTxTimerCmd,
         stream<ReTxTimerCmd>                &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
@@ -934,7 +940,7 @@ void pFiniteStateMachine(
     rxSarEntry      rxSar;
     rxTxSarReply    txSar;
 
-    static enum FsmState {LOAD=0, TRANSITION} fsmState=LOAD;
+    static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
 
     switch(fsmState) {
 
@@ -978,8 +984,6 @@ void pFiniteStateMachine(
                 siSTt_SessStateRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
-                //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
-                //OBSOLETE-20190181                                                 (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionId,
                                                      (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
@@ -1038,10 +1042,10 @@ void pFiniteStateMachine(
                         }
                         else {
                             soTsd_DropCmd.write(DROP_CMD);
+                            if (fsm_meta.meta.seqNumb != rxSar.recvd)
+                                printWarn(myName, "The received sequence number (%d) is not the expected one (%d).\n",
+                                        fsm_meta.meta.seqNumb.to_uint(), rxSar.recvd.to_uint());
                         }
-
-                        // OBSOLETE-Sent ACK
-                        // OBSOLETE-soSetEvent.write(event(ACK, fsm_meta.sessionID));
                     }
                     if (txSar.count == 3) {
                         soEVe_Event.write(event(RT, fsm_meta.sessionId));
