@@ -43,36 +43,20 @@ The name of a *DataFlow* connection should be specified and terminated with a **
 ```
 
 #### CtrlFlow Names
-The name of a *CtrlFlow* connection should be specified and terminated with a **'verb'** that gives a general indication about the action to be performed (.e.g., Request, Command, Query Get, Set, Clear, ...) or the information being carried as a result of a previous action (.e.g, Reply, Response, ...).
+The name of a *CtrlFlow* connection should be specified and terminated with an **'action noun' or a 'verb'** that gives a general indication about the action to be performed (.e.g., Request, Command, Query, Get, Set, Clear, ...) or the information being carried as a result of a previous action (.e.g, Reply, Response, ...).
  
-| Ctr Action | Short | Description                         |  Example            | 
-| ---------- |:-----:| ----------------------------------- | ------------------- | 
-| Request    | Req   | Call for an action or an information. Always expects a *Reply* or and *Acknowledment*. | sRXeToSLc_SessLkpReq    
-
+| Action     | Short | Description                           |  Example            |
+| ---------- | ----- | ------------------------------------- | ------------------- |
+| Request    | Req   | Calls for a single-action or -information. <br> Always expects the same *Reply* or *Acknowledment* from the recepient of the request. | sRXeToSLc_SessLkpReq |
+| Reply      | Rep   | Replies to a request. <br> The type of the reply is unique and must always go back to the requester process.                      |  sRXeToSLc_SessLkpRep   |
+| Query      | Qry   | Calls for a more elaborated request that must be performed on the recepient's data structure (.e.g 'Read\|  Write\|Update\|Clear'). <br> According to the request type (.e.g 'Read'), a query may expect a *Reply* from the recepient.     | sTAiToSTt_SessStateQry  |
+| Command    | Cmd   | Calls for a single-action to be performed by the recepient. <br> This actions does not expect a return from the recepient.  | sFsmToTsd_DropCmd |
+| Response   | Rsp   | Responses to a request for action or information. <br> The type of response is unique, but as opposed to a *Reply*, it is forwarded to another process than the requester. |
+| Acknowledge| Ack   | Acknowledgment to a request for action. <br> This is typically a single-bit of *Reply* information that must always go back to the requester. | soAppToRai_LsnAck |
+| Status     | Sts   | Returns a requested information. <br> This is typically a single-bit of in *Response* information that is forwarded to another process than the requester. |  (TODO) |    
+| Signal     | Sig   | Signals the occurence of an event on the transmitter side. <br> Does not expect a return from recepient. | (TODO) |
 
 
 A C++ class or type definition should then be used to futher qualify such a control-flow object as for example:   
-
-
-
-
-
-
-
-
-
-
-
-
-[TODO] - GIVE A DEFINITION OF THE MORE GENERICS AND MOST USED ACTIONS
-- AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-- CmdBit;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-- QryBit;  // Query      : Indicates a demand for an answer (.e.g stateQry).
-- ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-- RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-- RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-- SigBit;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-- StsBit;  // Status bit : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus..
-- ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
 
