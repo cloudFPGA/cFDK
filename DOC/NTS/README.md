@@ -34,11 +34,10 @@ Please consider reading the following HLS naming conventions document before div
 | [udp_mux](./udp_mux)          | **UDMX**  | UDP Multiplexer.                                      |
 | [udp_role_if](./udp_role_if)  | **URIF**  | UDP Role Interface.                                   | 
 
+<br>
+<br>
 
-
-
-
-###<a name="toe"></a>TCP Offload Engine (TOE)
+### <a name="toe"></a>TCP Offload Engine (TOE)
 
 The structure of the TOE is as follows:
 
