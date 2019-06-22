@@ -29,14 +29,16 @@ Please consider reading the following HLS naming conventions document before div
 | [mpe](./mpe)                  | **MPE**   |                                                       |
 | [smc](./smc)                  | **SMC**   |                                                       |
 | [tcp_role_if](./tcp_role_if)  | **TRIF**  | TCP Role Interface.                                   |
-| [toe](toe)                    | **TOE**   | TCP Offload Engine.                                   |
+| [toe](#toe)                   | **TOE**   | TCP Offload Engine.                                   |
 | [udp](./udp)                  | **UDP**   | UDP engine.                                           |
 | [udp_mux](./udp_mux)          | **UDMX**  | UDP Multiplexer.                                      |
 | [udp_role_if](./udp_role_if)  | **URIF**  | UDP Role Interface.                                   | 
 
 
 
-### <a name="toe"></a>TCP Offload Engine (TOE)
+
+
+###<a name="toe"></a>TCP Offload Engine (TOE)
 
 The structure of the TOE is as follows:
 
