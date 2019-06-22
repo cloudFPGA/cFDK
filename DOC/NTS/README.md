@@ -19,20 +19,20 @@ Please consider reading the following HLS naming conventions document before div
 
 ## List of HLS Components
 
-| Name         |  Acronym       | Description                                                       |
-|:------------ |:---------------|:------------------------------------------------------------------|
-| [arp_server](./arp_server)    | **ARS**  | Address Resolution Protocol (ARP) Server.              |
-| [dhcp_client](./dhcp_client)  | **DHCP**  | Dynamic Host Configuration Protocol (DHCP) client.    |
-| [icmp_server](./icmp_server)  | **ICMP**  | Internet Control Message Protocol (ICMP) server.      |
-| [iprx_handler](./iprx_handler)| **IPRX**  | IP Receiver frame handler (IPRX).                     |
-| [iptx_handler](./iptx_handler)| **IPTX**  | IP Transmit frame handler (IPTX).                     |
-| [mpe](./mpe)                  | **MPE**   |                                                       |
-| [smc](./smc)                  | **SMC**   |                                                       |
-| [tcp_role_if](./tcp_role_if)  | **TRIF**  | TCP Role Interface.                                   |
-| [toe](#toe)                   | **TOE**   | TCP Offload Engine.                                   |
-| [udp](./udp)                  | **UDP**   | UDP engine.                                           |
-| [udp_mux](./udp_mux)          | **UDMX**  | UDP Multiplexer.                                      |
-| [udp_role_if](./udp_role_if)  | **URIF**  | UDP Role Interface.                                   | 
+| Acronym         | Description                                           | Filename
+|:----------------|:------------------------------------------------------|:--------------
+| **ARS**         | Address Resolution Protocol (ARP) Server.             | arp_server
+| **DHCP**        | Dynamic Host Configuration Protocol (DHCP) client.    | dhcp_client
+| **ICMP**        | Internet Control Message Protocol (ICMP) server.      | icmp_server
+| **IPRX**        | IP Receiver frame handler (IPRX).                     | iprx_handler
+| **IPTX**        | IP Transmit frame handler (IPTX).                     | iptx_handler
+| **MPE**         |                                                       | mpe
+| **SMC**         |                                                       | smc
+| **TRIF**        | TCP Role Interface.                                   | tcp_role_if
+| **[TOE](#toe)** | TCP Offload Engine.                                   | toe
+| **UDP**         | UDP engine.                                           | udp
+| **UDMX**        | UDP Multiplexer.                                      | udp_mux
+| **URIF**        | UDP Role Interface.                                   | udp_role_if
 
 <br>
 <br>
