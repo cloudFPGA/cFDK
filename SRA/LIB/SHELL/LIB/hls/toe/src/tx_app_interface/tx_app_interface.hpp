@@ -45,18 +45,17 @@ void tx_app_interface(
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
         stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<sessionState>           &siSTt_SessStateRep,
+        stream<SessionState>           &siSTt_SessStateRep,
         stream<txSarAckPush>           &siTSt_AckPush,
-        stream<DmSts>                  &txBufferWriteStatus,
-
+        stream<DmSts>                  &siMEM_TxP_WrSts,
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
-        stream<sessionState>           &stateTable2txApp_upd_rsp,
+
         stream<OpenStatus>             &siRXe_SessOpnSts,
 
-        stream<ap_int<17> >            &appTxDataRsp,
+        stream<ap_int<17> >            &soTRIF_DSts,
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<TxSarTableAppPush>      &soTSt_AppPush,
@@ -64,8 +63,9 @@ void tx_app_interface(
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
-        stream<stateQuery>             &txApp2stateTable_upd_req,
-        stream<event>                  &txApp2eventEng_setEvent,
+        stream<StateQuery>             &soSTt_Taa_SessStateQry,
+        stream<SessionState>           &siSTt_Taa_SessStateRep,
+        stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         ap_uint<32>                     regIpAddress
 );

@@ -2528,7 +2528,7 @@ int main(int argc, char *argv[]) {
         printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
         printError(THIS_NAME, "###########################################################\n\n");
 
-        printInfo(THIS_NAME, "FYI - You may want to check for \"WARNING\" alarms in the LOG file...\n\n");
+        printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
     }
         else {
         printInfo(THIS_NAME, "#############################################################\n");

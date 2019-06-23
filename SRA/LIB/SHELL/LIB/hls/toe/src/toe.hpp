@@ -35,9 +35,10 @@
 #include <string>
 #include <math.h>
 #include <hls_stream.h>
-#include "ap_int.h"
 #include <stdint.h>
 #include <vector>
+
+#include "ap_int.h"
 
 //#include "../test/test_toe_utils.hpp"
 
@@ -508,10 +509,35 @@ class SessionLookupReply
 /********************************************
  * State Table (STt)
  ********************************************/
-enum sessionState {CLOSED, SYN_SENT, SYN_RECEIVED, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSING, TIME_WAIT, LAST_ACK};
+enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                    LAST_ACK };
+
+#ifndef __SYNTHESIS__
+    const std::string  SessionStateString[] = {
+                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+                   "LAST_ACK" };
+#endif
+
+
 #define QUERY_RD  0
 #define QUERY_WR  1
 
+// Session State Query
+class StateQuery {
+  public:
+    SessionId       sessionID;
+    SessionState    state;
+    ap_uint<1>      write;
+    StateQuery() {}
+    StateQuery(SessionId id) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, SessionState state, ap_uint<1> write) :
+        sessionID(id), state(state), write(write) {}
+};
+
+/*** OBSOLETE-20190621 **********
 struct stateQuery
 {
     SessionId       sessionID;
@@ -523,6 +549,8 @@ struct stateQuery
     stateQuery(SessionId id, sessionState state, ap_uint<1> write) :
         sessionID(id), state(state), write(write) {}
 };
+**********************************/
+
 
 
 /********************************************

@@ -21,15 +21,15 @@ using namespace hls;
 void tx_app_accept(
         stream<AxiSockAddr>         &siTRIF_OpnReq,
         stream<ap_uint<16> >        &closeConnReq,
-        stream<sessionLookupReply>  &sLookup2txApp_rsp,
-        stream<ap_uint<16> >        &portTable2txApp_port_rsp,
-        stream<sessionState>        &stateTable2txApp_upd_rsp,
-        stream<OpenStatus>          &conEstablishedIn, //alter
-        stream<OpenStatus>          &appOpenConnRsp,
+        stream<sessionLookupReply>  &siSLc_SessLookupRep,
+        stream<TcpPort>             &siPRt_ActPortStateRep,
+        stream<OpenStatus>          &siRXe_SessOpnSts,
+        stream<OpenStatus>          &soTRIF_SessOpnSts,
         stream<AxiSocketPair>       &soSLc_SessLookupReq,
-        stream<ReqBit>              &soTAi_GetFreePortReq,
-        stream<stateQuery>          &txApp2stateTable_upd_req,
-        stream<event>               &txApp2eventEng_setEvent,
+        stream<ReqBit>              &soPRt_GetFreePortReq,
+        stream<StateQuery>          &soSTt_SessStateQry,
+        stream<SessionState>        &siSTt_SessStateRep,
+        stream<event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
         AxiIp4Address                regIpAddress
 );

@@ -42,7 +42,7 @@ void pTxAppStatusHandler(
     static enum TashFsmStates { S0, S1, S2 } tashFsmState = S0;
 
     switch (tashFsmState) {
-    case 0:
+    case S0:
         if (!siEmx_Event.empty()) {
             siEmx_Event.read(ev);
             if (ev.type == TX)
@@ -51,7 +51,7 @@ void pTxAppStatusHandler(
                 soEVe_Event.write(ev);
         }
         break;
-    case 1:
+    case S1:
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
             ap_uint<17> tempLength = ev.address + ev.length;
@@ -66,7 +66,7 @@ void pTxAppStatusHandler(
                 tashFsmState = S2;
         }
         break;
-    case 2:
+    case S2:
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
             ap_uint<17> tempLength = (ev.address + ev.length);
@@ -134,7 +134,8 @@ void pTxAppTable(
  *
  * @param[in]  siTRIF_Data,           TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,           TCP metadata stream from TRIF.
- * @param[in]  siSTt_SessionStateRep, Session state rply from [STt].
+ * @param[out] soSTt_Tas_SessStateReq,Session sate request to StateTable (STt).
+ * @param[in]  siSTt_Tas_SessStateRep,Session state reply from [STt].
  * @param[in]  siTSt_AckPush,         The push of an AckNum onto the ACK table of [TAi].
  * @param[]
  * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
@@ -161,7 +162,8 @@ void pTxAppTable(
  * @param[out] soMEM_TxP_Data,        Tx memory data to MEM.
  * @param[out] soTSt_Push,            Push to TxSarTable (TSt).
  * @param
- * @parm
+ * @param[out] soSTt_Taa_SessStateQry,Session state query to [STt].
+ * @param[in]  siSTt_Taa_SessStateRep,Session state reply from [STt].
  * @param[out] soEVe_Event,           Event to EventEngine (EVe).
  * @parm
  * @parm
@@ -173,16 +175,15 @@ void pTxAppTable(
 void tx_app_interface(
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
-        stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<sessionState>           &siSTt_SessStateRep,
+        stream<TcpSessId>              &soSTt_Tas_SessStateReq,
+        stream<SessionState>           &siSTt_Tas_SessStateRep,
         stream<txSarAckPush>           &siTSt_AckPush,
         stream<DmSts>                  &siMEM_TxP_WrSts,
-
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
-        stream<sessionState>           &stateTable2txApp_upd_rsp,
+
         stream<OpenStatus>             &siRXe_SessOpnSts,
 
         stream<ap_int<17> >            &soTRIF_DSts,
@@ -193,7 +194,8 @@ void tx_app_interface(
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
-        stream<stateQuery>             &txApp2stateTable_upd_req,
+        stream<StateQuery>             &soSTt_Taa_SessStateQry,
+        stream<SessionState>           &siSTt_Taa_SessStateRep,
         stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         ap_uint<32>                     regIpAddress)
@@ -242,8 +244,8 @@ void tx_app_interface(
     tx_app_stream(
             siTRIF_Data,
             siTRIF_Meta,
-            soSTt_SessStateReq,
-            siSTt_SessStateRep,
+            soSTt_Tas_SessStateReq,
+            siSTt_Tas_SessStateRep,
             sTasToApt_AcessReq,
             sTatToTas_AcessRep,
             soTRIF_DSts,
@@ -251,18 +253,18 @@ void tx_app_interface(
             soMEM_TxP_Data,
             sTasToEmx_Event);
 
-    // Tx Application Connect (Taa)
+    // Tx Application Accept (Taa)
     tx_app_accept(
             siTRIF_OpnReq,
             appCloseConnReq,
             siSLc_SessLookupRep,
             siPRt_ActPortStateRep,
-            stateTable2txApp_upd_rsp,
             siRXe_SessOpnSts,
             soTRIF_SessOpnSts,
             soSLc_SessLookupReq,
             soPRt_GetFreePortReq,
-            txApp2stateTable_upd_req,
+            soSTt_Taa_SessStateQry,
+            siSTt_Taa_SessStateRep,
             sTaaToEmx_Event,
             rtTimer2txApp_notification,
             regIpAddress);

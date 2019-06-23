@@ -98,7 +98,7 @@ void pSegmentLengthGenerator(
 void pMetaDataLoader(
         stream<AppMeta>             &siTRIF_Meta,
         stream<TcpSessId>           &soSTt_SessStateReq,
-        stream<sessionState>        &siSTt_SessStateRep,
+        stream<SessionState>        &siSTt_SessStateRep,
         stream<TxAppTableRequest>   &soTat_AccessReq,
         stream<TxAppTableReply>     &siTat_AccessRep,
         stream<TcpSegLen>           &siSlg_SegLen,
@@ -116,7 +116,7 @@ void pMetaDataLoader(
     static TcpSessId       tcpSessId;
     static TxAppTableReply txAppTableReply;
 
-    sessionState           sessState;
+    SessionState           sessState;
     TcpSegLen              segLen = 0;
 
     switch(mdlFsmState) {
@@ -154,9 +154,13 @@ void pMetaDataLoader(
                 sMdlToSmw_SegMeta.write(SegMemMeta(true));
                 // Notify App about the fail
                 soTRIF_DSts.write(ERROR_NOCONNCECTION);
+                printError(myName, "Session %d is not established. Current session state is %d.\n", \
+                           tcpSessId.to_uint(), sessState);
+
                 // HERE MAJOR DIFF
                 // appTxDataRsp.write(appTxRsp(tasi_writeMeta.length, maxWriteLength, ERROR_NOCONNCECTION));
                 // tai_state = READ_REQUEST;
+
             }
             else if(segLen > maxWriteLength) { // || usableWindow < tasi_writeMeta.length)
                 sMdlToSmw_SegMeta.write(SegMemMeta(true));
@@ -373,7 +377,7 @@ void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
         stream<TcpSessId>          &soSTt_SessStateReq,
-        stream<sessionState>       &siSTt_SessStateRep,
+        stream<SessionState>       &siSTt_SessStateRep,
         stream<TxAppTableRequest>  &soTat_AcessReq,
         stream<TxAppTableReply>    &siTat_AcessRep,
         stream<ap_int<17> >        &soTRIF_DSts,

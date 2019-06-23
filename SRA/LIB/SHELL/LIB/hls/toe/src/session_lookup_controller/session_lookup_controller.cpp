@@ -271,51 +271,51 @@ void pUpdateReplyHandler(
  * @brief Reverse Lookup Table (Rlt)
  *
  *  @param[in]  sLrh_ReverseLkpRsp,   Reverse lookup response from Lookup Reply HAndler (Lrh).
- *  @param[in]  siSTt_SessReleaseReq, Session release request from State Table (STt).
+ *  @param[in]  siSTt_SessReleaseCmd, Session release command from State Table (STt).
  *  @param[in[  siTXe_ReverseLkpReq,  Reverse lookup request from Tx Engine (TXe).
  *  @param[out] soTXe_ReverseLkpRep,  Reverse lookup reply to Tx Engine (TXe).
  *  @param[out] soPRt_ClosePortCmd,   Command to close a port for the Port Table (PRt).
  *  @param[out] soUrs_SessDeleteReq,  Request to delete session to Update Request Sender (Urs).
- * @ingroup session_lookup_controller
  *
  *****************************************************************************/
 void pReverseLookupTable(
         stream<revLupInsert>    &siLrh_ReverseLkpRsp,
-        stream<ap_uint<16> >    &siSTt_SessReleaseReq,
-        stream<ap_uint<16> >    &siTXe_ReverseLkpReq,
+        stream<SessionId>       &siSTt_SessReleaseCmd,
+        stream<SessionId>       &siTXe_ReverseLkpReq,
         stream<fourTuple>       &soTXe_ReverseLkpRep,
-        stream<ap_uint<16> >    &soPRt_ClosePortCmd,
+        stream<TcpPort>         &soPRt_ClosePortCmd,
         stream<rtlSessionUpdateRequest> &soUrs_SessDeleteReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    static fourTupleInternal reverseLookupTable[MAX_SESSIONS];
-    #pragma HLS RESOURCE variable=reverseLookupTable core=RAM_T2P_BRAM
-    #pragma HLS DEPENDENCE variable=reverseLookupTable inter false
-    static bool tupleValid[MAX_SESSIONS];
-    #pragma HLS DEPENDENCE variable=tupleValid inter false
+    static fourTupleInternal        REVERSE_LOOKUP_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=REVERSE_LOOKUP_TABLE core=RAM_T2P_BRAM
+    #pragma HLS DEPENDENCE variable=REVERSE_LOOKUP_TABLE inter false
+
+    static bool                     TUPLE_VALID_TABLE[MAX_SESSIONS];
+    #pragma HLS DEPENDENCE variable=TUPLE_VALID_TABLE inter false
 
     fourTuple           toeTuple;
 
     if (!siLrh_ReverseLkpRsp.empty()) {
         revLupInsert        insert = siLrh_ReverseLkpRsp.read();
-        reverseLookupTable[insert.key] = insert.value;
-        tupleValid[insert.key] = true;
+        REVERSE_LOOKUP_TABLE[insert.key] = insert.value;
+        TUPLE_VALID_TABLE[insert.key] = true;
     }
-    else if (!siSTt_SessReleaseReq.empty()) { // TODO check if else if necessary
-        ap_uint<16> sessionID = siSTt_SessReleaseReq.read();
-        fourTupleInternal releaseTuple = reverseLookupTable[sessionID];
-        if (tupleValid[sessionID]) { // if valid
+    else if (!siSTt_SessReleaseCmd.empty()) { // TODO check if else if necessary
+        SessionId sessionId = siSTt_SessReleaseCmd.read();
+        fourTupleInternal releaseTuple = REVERSE_LOOKUP_TABLE[sessionId];
+        if (TUPLE_VALID_TABLE[sessionId]) { // if valid
             soPRt_ClosePortCmd.write(releaseTuple.myPort);
-            soUrs_SessDeleteReq.write(rtlSessionUpdateRequest(releaseTuple, sessionID, DELETE, FROM_RXe));
+            soUrs_SessDeleteReq.write(rtlSessionUpdateRequest(releaseTuple, sessionId, DELETE, FROM_RXe));
         }
-        tupleValid[sessionID] = false;
+        TUPLE_VALID_TABLE[sessionId] = false;
     }
     else if (!siTXe_ReverseLkpReq.empty()) {
-        ap_uint<16> sessionID = siTXe_ReverseLkpReq.read();
-        soTXe_ReverseLkpRep.write(fourTuple(reverseLookupTable[sessionID].myIp, reverseLookupTable[sessionID].theirIp, reverseLookupTable[sessionID].myPort, reverseLookupTable[sessionID].theirPort));
+        SessionId sessionId = siTXe_ReverseLkpReq.read();
+        soTXe_ReverseLkpRep.write(fourTuple(REVERSE_LOOKUP_TABLE[sessionId].myIp, REVERSE_LOOKUP_TABLE[sessionId].theirIp, REVERSE_LOOKUP_TABLE[sessionId].myPort, REVERSE_LOOKUP_TABLE[sessionId].theirPort));
     }
 }
 
@@ -324,7 +324,7 @@ void pReverseLookupTable(
  *
  * @param[in]  siRXe_SessLookupReq,  Session lookup request from Rx Engine (RXe).
  * @param[out] soRXe_SessLookupRep,  Session lookup reply to [RXe].
- * @param[in]  siSTt_SessReleaseReq, Session release request from State Table (STt).
+ * @param[in]  siSTt_SessReleaseCmd, Session release command from State Table (STt).
  * @param[out] soPRt_ClosePortCmd,   Command to close a port for the Port Table (PRt).
  * @param[in]  siTAi_SessLookupReq,  Session lookup request from Tx App. I/F (TAi).
  * @param[out] soTAi_SessLookupReq,  Session lookup reply to [TAi].
@@ -354,11 +354,11 @@ void pReverseLookupTable(
 void session_lookup_controller(
         stream<sessionLookupQuery>         &siRXe_SessLookupReq,
         stream<sessionLookupReply>         &soRXe_SessLookupRep,
-        stream<ap_uint<16> >               &siSTt_SessReleaseReq,
-        stream<ap_uint<16> >               &soPRt_ClosePortCmd,
+        stream<SessionId>                  &siSTt_SessReleaseCmd,
+        stream<TcpPort>                    &soPRt_ClosePortCmd,
         stream<AxiSocketPair>              &siTAi_SessLookupReq,
         stream<sessionLookupReply>         &soTAi_SessLookupRep,
-        stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
+        stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,
         stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
         stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
@@ -435,7 +435,7 @@ void session_lookup_controller(
 
     pReverseLookupTable(
             sLrhToRlt_ReverseLkpRsp,
-            siSTt_SessReleaseReq,
+            siSTt_SessReleaseCmd,
             siTXe_ReverseLkpReq,
             soTXe_ReverseLkpRep,
             soPRt_ClosePortCmd,

@@ -44,15 +44,6 @@
 //#include "tx_app_if/tx_app_if.hpp"
 //#include "tx_app_stream_if/tx_app_stream_if.hpp"
 
-//OBSOLETE-20181120 ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
-//OBSOLETE-20181120     return (inputVector.range(7,0), inputVector(15, 8));
-//OBSOLETE-20181120 }
-
-//OBSOLETE-20181120 ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
-//OBSOLETE-20181120     return (inputVector.range( 7, 0), inputVector(15,  8),
-//OBSOLETE-20181120         inputVector.range(23,16), inputVector(31, 24));
-//OBSOLETE-20181120 }
-
 
 /*****************************************************************************
  * @brief A 2-to-1 Stream multiplexer.
@@ -82,7 +73,7 @@ template<typename T> void pStreamMux(
  * @param[in]  siTXe_SetProbeTimer, Set probe timer from [TXe].
  * @param[in]  siRXe_CloseTimer,    Close timer from [RXe].
  * @param[out] soEVe_Event,         Event to [EventEngine].
- * @param[out] soSTt_ReleaseState,  Release state to [StateTable].
+ * @param[out] soSTt_SessCloseCmd,  Close session command to StateTable (STt).
  * @param[out] soTAi_Notif,         Notification to [TxApplicationInterface].
    @param[out] soRAi_Notif,         Notification to [RxApplicationInterface].
  *
@@ -98,7 +89,7 @@ void pTimers(
         stream<ap_uint<16> >      &siRXe_ClrProbeTimer,
         stream<ap_uint<16> >      &siTXe_SetProbeTimer,
         stream<ap_uint<16> >      &siRXe_CloseTimer,
-        stream<ap_uint<16> >      &soSTt_ReleaseState,
+        stream<SessionId>         &soSTt_SessCloseCmd,
         stream<event>             &soEVe_Event,
         stream<OpenStatus>        &soTAi_Notif,
         stream<AppNotif>          &soRAi_Notif)
@@ -109,8 +100,8 @@ void pTimers(
     static stream<ap_uint<16> > sCloseTimer2Mux_ReleaseState ("sCloseTimer2Mux_ReleaseState");
     #pragma HLS stream variable=sCloseTimer2Mux_ReleaseState depth=2
 
-    static stream<ap_uint<16> > sRttToSmx_ReleaseState       ("sRttToSmx_ReleaseState");
-    #pragma HLS stream variable=sRttToSmx_ReleaseState       depth=2
+    static stream<ap_uint<16> > sRttToSmx_SessCloseCmd       ("sRttToSmx_SessCloseCmd");
+    #pragma HLS stream variable=sRttToSmx_SessCloseCmd       depth=2
 
     static stream<event>        sRttToEmx_Event              ("sRttToEmx_Event");
     #pragma HLS stream variable=sRttToEmx_Event              depth=2
@@ -130,7 +121,7 @@ void pTimers(
             siRXe_ReTxTimerCmd,
             siTXe_ReTxTimerevent,
             sRttToEmx_Event,
-            sRttToSmx_ReleaseState,
+            sRttToSmx_SessCloseCmd,
             soTAi_Notif,
             soRAi_Notif);
 
@@ -147,15 +138,9 @@ void pTimers(
     // State table release Mux (Smx) based on template stream Mux
     pStreamMux(
             sCloseTimer2Mux_ReleaseState,
-            sRttToSmx_ReleaseState,
-            soSTt_ReleaseState);
+            sRttToSmx_SessCloseCmd,
+            soSTt_SessCloseCmd);
 
-    /***
-    timerCloseMerger(
-           closeTimer2stateTable_releaseState,
-           rtTimer2stateTable_releaseState,
-           soSTt_ReleaseState);
-    ***/
 }
 
 void rxAppMemAccessBreakdown(
@@ -659,9 +644,9 @@ void toe(
     static stream<TcpPort>              sRXeToPRt_PortStateReq    ("sRXeToPRt_PortStateReq");
     #pragma HLS stream         variable=sRXeToPRt_PortStateReq    depth=4
 
-    static stream<stateQuery>           sRXeToSTt_SessStateReq    ("sRXeToSTt_SessStateReq");
-    #pragma HLS stream         variable=sRXeToSTt_SessStateReq    depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToSTt_SessStateReq
+    static stream<StateQuery>           sRXeToSTt_SessStateQry    ("sRXeToSTt_SessStateQry");
+    #pragma HLS stream         variable=sRXeToSTt_SessStateQry    depth=2
+    #pragma HLS DATA_PACK      variable=sRXeToSTt_SessStateQry
 
     static stream<rxSarRecvd>           sRXeToRSt_RxSarUpdReq     ("sRXeToRSt_RxSarUpdReq");
     #pragma HLS stream         variable=sRXeToRSt_RxSarUpdReq     depth=2
@@ -727,17 +712,17 @@ void toe(
     //-------------------------------------------------------------------------
     //-- State Table (STt)
     //-------------------------------------------------------------------------
-    static stream<sessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
+    static stream<SessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
     #pragma HLS stream         variable=sSTtToRXe_SessStateRep    depth=2
 
-    static stream<sessionState>         stateTable2txApp_upd_rsp  ("stateTable2txApp_upd_rsp");
-    #pragma HLS stream         variable=stateTable2txApp_upd_rsp  depth=2
+    static stream<SessionState>         sSTtToTAi_Taa_StateRep    ("sSTtToTAi_Taa_StateRep");
+    #pragma HLS stream         variable=sSTtToTAi_Taa_StateRep    depth=2
 
-    static stream<sessionState>         sSTtToTAi_SessStateRep    ("sSTtToTAi_SessStateRep");
-    #pragma HLS stream         variable=sSTtToTAi_SessStateRep    depth=2
+    static stream<SessionState>         sSTtToTAi_Tas_StateRep    ("sSTtToTAi_Tas_StateRep");
+    #pragma HLS stream         variable=sSTtToTAi_Tas_StateRep    depth=2
 
-    static stream<ap_uint<16> >         sSTtToSLc_SessReleaseReq  ("sSTtToSLc_SessReleaseReq");
-    #pragma HLS stream         variable=sSTtToSLc_SessReleaseReq  depth=2
+    static stream<SessionId>            sSTtToSLc_SessReleaseCmd  ("sSTtToSLc_SessReleaseCmd");
+    #pragma HLS stream         variable=sSTtToSLc_SessReleaseCmd  depth=2
 
     //-------------------------------------------------------------------------
     //-- Tx Application Interface (TAi)
@@ -757,12 +742,12 @@ void toe(
     #pragma HLS stream         variable=sTAiToTSt_AppPush         depth=2
     #pragma HLS DATA_PACK      variable=sTAiToTSt_AppPush
 
-    static stream<stateQuery>           txApp2stateTable_upd_req  ("txApp2stateTable_upd_req");
-    #pragma HLS stream         variable=txApp2stateTable_upd_req  depth=2
-    #pragma HLS DATA_PACK      variable=txApp2stateTable_upd_req
+    static stream<StateQuery>           sTAiToSTt_Taa_StateQry    ("sTAiToSTt_Taa_StateQry");
+    #pragma HLS stream         variable=sTAiToSTt_Taa_StateQry    depth=2
+    #pragma HLS DATA_PACK      variable=sTAiToSTt_Taa_StateQry
 
-    static stream<TcpSessId>            sTAiToSTt_SessStateReq    ("sTAiToSTt_SessStateReq");
-    #pragma HLS stream         variable=sTAiToSTt_SessStateReq    depth=2
+    static stream<TcpSessId>            sTAiToSTt_Tas_StateReq    ("sTAiToSTt_Tas_StateReq");
+    #pragma HLS stream         variable=sTAiToSTt_Tas_StateReq    depth=2
 
     //-------------------------------------------------------------------------
     //-- Timers (TIm)
@@ -771,8 +756,8 @@ void toe(
     #pragma HLS stream         variable=sTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
     #pragma HLS DATA_PACK      variable=sTImToEVe_Event
 
-    static stream<ap_uint<16> >         sTImToSTt_ReleaseState    ("sTImToSTt_ReleaseState");
-    #pragma HLS stream         variable=sTImToSTt_ReleaseState    depth=2
+    static stream<SessionId>            sTImToSTt_SessCloseCmd    ("sTImToSTt_SessCloseCmd");
+    #pragma HLS stream         variable=sTImToSTt_SessCloseCmd    depth=2
 
     static stream<OpenStatus>           sTImToTAi_Notif           ("sTImToTAi_Notif");
     #pragma HLS stream         variable=sTImToTAi_Notif           depth=4
@@ -844,7 +829,7 @@ void toe(
     session_lookup_controller(
             sRXeToSLc_SessLkpReq,
             sSLcToRXe_SessLkpRep,
-            sSTtToSLc_SessReleaseReq,
+            sSTtToSLc_SessReleaseCmd,
             sSLcToPRt_ReleasePort,
             sTAiToSLc_SessLookupReq,
             sSLcToTAi_SessLookupRep,
@@ -859,14 +844,14 @@ void toe(
 
     //-- State Table (STt) -------------------------------------------------
     state_table(
-            sRXeToSTt_SessStateReq,
-            txApp2stateTable_upd_req,
-            sTAiToSTt_SessStateReq,
-            sTImToSTt_ReleaseState,
+            sRXeToSTt_SessStateQry,
             sSTtToRXe_SessStateRep,
-            stateTable2txApp_upd_rsp,
-            sSTtToTAi_SessStateRep,
-            sSTtToSLc_SessReleaseReq);
+            sTAiToSTt_Taa_StateQry,
+            sSTtToTAi_Taa_StateRep,
+            sTAiToSTt_Tas_StateReq,
+            sSTtToTAi_Tas_StateRep,
+            sTImToSTt_SessCloseCmd,
+            sSTtToSLc_SessReleaseCmd);
 
     //-- RX SAR Table (RSt) ------------------------------------------------
     rx_sar_table(
@@ -905,7 +890,7 @@ void toe(
             sRXeToTIm_ClrProbeTimer,
             sTXeToTIm_SetProbeTimer,
             sRXeToTIm_CloseTimer,
-            sTImToSTt_ReleaseState,
+            sTImToSTt_SessCloseCmd,
             sTImToEVe_Event,
             sTImToTAi_Notif,
             sTImToRAi_Notif);
@@ -937,7 +922,7 @@ void toe(
             siIPRX_Data,
             sRXeToSLc_SessLkpReq,
             sSLcToRXe_SessLkpRep,
-            sRXeToSTt_SessStateReq,
+            sRXeToSTt_SessStateQry,
             sSTtToRXe_SessStateRep,
             sRXeToPRt_PortStateReq,
             sPRtToRXe_PortStateRep,
@@ -997,15 +982,14 @@ void toe(
     tx_app_interface(
             siTRIF_Data,
             siTRIF_Meta,
-            sTAiToSTt_SessStateReq,
-            sSTtToTAi_SessStateRep,
+            sTAiToSTt_Tas_StateReq,
+            sSTtToTAi_Tas_StateRep,
             sTStToTAi_AckPush,
             siMEM_TxP_WrSts,
             siTRIF_OpnReq,
             siTRIF_ClsReq,
             sSLcToTAi_SessLookupRep,
             sPRtToTAi_ActPortStateRep,
-            stateTable2txApp_upd_rsp,
             sRXeToTAi_SessOpnSts,
             soTRIF_DSts,
             soMEM_TxP_WrCmd,
@@ -1014,7 +998,8 @@ void toe(
             soTRIF_OpnSts,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,
-            txApp2stateTable_upd_req,
+            sTAiToSTt_Taa_StateQry,
+            sSTtToTAi_Taa_StateRep,
             sTAiToEVe_Event,
             sTImToTAi_Notif,
             piMMIO_IpAddr);

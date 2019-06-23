@@ -73,7 +73,7 @@ void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
         stream<TcpSessId>          &soSTt_SessStateReq,
-        stream<sessionState>       &siSTt_SessStateRep,
+        stream<SessionState>       &siSTt_SessStateRep,
         stream<TxAppTableRequest>  &soTat_AcessReq,
         stream<TxAppTableReply>    &siTat_AcessRep,
         stream<ap_int<17> >        &appTxDataRsp,

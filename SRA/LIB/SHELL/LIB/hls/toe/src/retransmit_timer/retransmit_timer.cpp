@@ -37,7 +37,7 @@ extern bool gTraceEvent;
  * @param[in]      siRXe_ReTxTimerCmd,   Retransmit timer command from [RxEngine].
  * @param[in]      siTXe_ReTxTimerEvent, Retransmit timer event from [TxEngine].
  * @param[out]     soEmx_Event,          Event to Event Multiplexer (Emx).
- * @param[out]     soSmx_ReleaseState,   Set event to StateTable Mux (Smx).
+ * @param[out]     soSMx_CloseSessCmd,   Close command to StateTable Mux (Smx).
  * @param[out]     soTAi_Notif,          Notification to Tx Application I/F (TAi).
  * @param[out]     soRAi_Notif,          Notification to Rx Application I/F (RAi).
  *
@@ -59,7 +59,7 @@ void pRetransmitTimer(
         stream<ReTxTimerCmd>             &siRXe_ReTxTimerCmd,
         stream<ReTxTimerEvent>           &siTXe_ReTxTimerEvent,
         stream<event>                    &soEmx_Event,
-        stream<ap_uint<16> >             &soSmx_ReleaseState,
+        stream<SessionId>                &soSMx_CloseSessCmd,
         stream<OpenStatus>               &soTAi_Notif,
         stream<AppNotif>                 &soRAi_Notif)
 {
@@ -68,7 +68,7 @@ void pRetransmitTimer(
     //#pragma HLS INLINE
 
     #pragma HLS DATA_PACK variable=soEmx_Event
-    #pragma HLS DATA_PACK variable=soSmx_ReleaseState
+    #pragma HLS DATA_PACK variable=soSMx_CloseSessCmd
 
     static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM
@@ -182,7 +182,7 @@ void pRetransmitTimer(
                     }
                     else {
                         currEntry.retries = 0;
-                        soSmx_ReleaseState.write(currID);
+                        soSMx_CloseSessCmd.write(currID);
                         if (currEntry.type == SYN_EVENT)
                             soTAi_Notif.write(OpenStatus(currID, false));
                         else

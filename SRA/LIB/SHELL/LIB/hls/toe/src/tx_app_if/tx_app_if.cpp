@@ -22,13 +22,13 @@ using namespace hls;
  * @param[in]  siTRIF_OpnReq,        Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[in]  siSLc_SessLookupRep,  Reply from [SLc]
- * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
- * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
- * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[out] siPRt_ActPortStateRep,Active port state reply from [PRt].
  * @param[in]  siRXe_SessOpnSts,     Session open status from [RXe].
  * @param[out] soTRIF_SessOpnSts,    Session open status to [TRIF].
- * @param
- * @param
+ * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
+ * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[out  soSTt_SessStateQry,   Session state query to StateTable (STt).
+ * @param[in]  siSTt_SessStateRep,   Session state reply from [STt].
  * @param[out] soEVe_Event,          Event to EventEngine (EVe).
  * @param
  * @param
@@ -57,12 +57,12 @@ void tx_app_accept(
         stream<ap_uint<16> >        &closeConnReq,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<TcpPort>             &siPRt_ActPortStateRep,
-        stream<sessionState>        &stateTable2txApp_upd_rsp,
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<OpenStatus>          &soTRIF_SessOpnSts,
         stream<AxiSocketPair>       &soSLc_SessLookupReq,
         stream<ReqBit>              &soPRt_GetFreePortReq,
-        stream<stateQuery>          &txApp2stateTable_upd_req,
+        stream<StateQuery>          &soSTt_SessStateQry,
+        stream<SessionState>        &siSTt_SessStateRep,
         stream<event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
         AxiIp4Address                regIpAddress)
@@ -92,7 +92,7 @@ void tx_app_accept(
             sessionLookupReply session = siSLc_SessLookupRep.read();
             if (session.hit) {
                 soEVe_Event.write(event(SYN, session.sessionID));
-                txApp2stateTable_upd_req.write(stateQuery(session.sessionID, SYN_SENT, 1));
+                soSTt_SessStateQry.write(StateQuery(session.sessionID, SYN_SENT, 1));
             }
             else {
                 // Tell the APP that the open connection failed
@@ -105,7 +105,7 @@ void tx_app_accept(
             soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
         else if(!closeConnReq.empty()) {    // Close Request
             closeConnReq.read(tai_closeSessionID);
-            txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID));
+            soSTt_SessStateQry.write(StateQuery(tai_closeSessionID));
             tasFsmState = TAS_CLOSE_CONN;
         }
         break;
@@ -125,15 +125,15 @@ void tx_app_accept(
         break;
 
     case TAS_CLOSE_CONN:
-        if (!stateTable2txApp_upd_rsp.empty()) {
-            sessionState state = stateTable2txApp_upd_rsp.read();
+        if (!siSTt_SessStateRep.empty()) {
+            SessionState state = siSTt_SessStateRep.read();
             //TODO might add CLOSE_WAIT here???
             if ((state == ESTABLISHED) || (state == FIN_WAIT_2) || (state == FIN_WAIT_1)) { //TODO Why if FIN already SENT
-                txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
                 soEVe_Event.write(event(FIN, tai_closeSessionID));
             }
             else
-                txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID, state, 1)); // Have to release lock
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, state, 1)); // Have to release lock
             tasFsmState = TAS_IDLE;
         }
         break;
