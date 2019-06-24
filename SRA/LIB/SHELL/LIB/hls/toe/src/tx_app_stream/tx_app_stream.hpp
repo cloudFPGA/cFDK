@@ -72,12 +72,12 @@ class SegMemMeta {
 void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
-        stream<sessionState>       &siSTt_SessStateRep,
-        stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
-        stream<ap_int<17> >        &appTxDataRsp,
         stream<TcpSessId>          &soSTt_SessStateReq,
-        stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
-        stream<DmCmd>              &txBufferWriteCmd,
+        stream<SessionState>       &siSTt_SessStateRep,
+        stream<TxAppTableRequest>  &soTat_AcessReq,
+        stream<TxAppTableReply>    &siTat_AcessRep,
+        stream<ap_int<17> >        &appTxDataRsp,
+        stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
         stream<event>              &txAppStream2eventEng_setEvent
 );

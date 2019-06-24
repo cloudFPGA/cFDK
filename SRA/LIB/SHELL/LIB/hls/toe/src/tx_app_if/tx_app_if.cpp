@@ -16,45 +16,56 @@ using namespace hls;
 
 
 /*****************************************************************************
- * @brief Tx Application Status Handler (Tas).  [FIXME - Move this process in tc_app_interface.cpp]
+ * @brief Tx Application Accept (Taa).
+ *   [FIXME - Rename file or move this process in tc_app_interface.cpp]
  *
  * @param[in]  siTRIF_OpnReq,        Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[in]  siSLc_SessLookupRep,  Reply from [SLc]
- * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
- * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
- * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[out] siPRt_ActPortStateRep,Active port state reply from [PRt].
  * @param[in]  siRXe_SessOpnSts,     Session open status from [RXe].
  * @param[out] soTRIF_SessOpnSts,    Session open status to [TRIF].
+ * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
+ * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[out  soSTt_SessStateQry,   Session state query to StateTable (STt).
+ * @param[in]  siSTt_SessStateRep,   Session state reply from [STt].
+ * @param[out] soEVe_Event,          Event to EventEngine (EVe).
+ * @param
  * @param
  *
  * @details
- *  This interface exposes the creation and tear down of connections to the
- *   application. The IP tuple for a new connection is read from 'appOpenConIn'
+ *  This process performs the creation and tear down of the active connections.
+ *   Active connections are the ones opened by the FPGA as client and they make
+ *   use of dynamically assigned or ephemeral ports in the range 32,768 to
+ *   65,535. The operations performed here are somehow similar to the 'accept'
+ *   and 'close' system calls.
+ *  The IP tuple of the new connection to open is read from 'siTRIF_OpnReq'.
+ *
+ *  [TODO]
  *   and then requests a free port number from 'port_table' and fires a SYN
  *   event. Once the connection is established it notifies the application
  *   through 'appOpenConOut' and delivers the Session-ID belonging to the new
- *   connection.
+ *   connection. (Client connection to remote HOST or FPGA socket (COn).)
  *  If opening of the connection is not successful this is also indicated
  *   through the 'appOpenConOut'. By sending the Session-ID through 'closeConIn'
  *   the application can initiate the teardown of the connection.
  *
  * @ingroup tx_app_if
  ******************************************************************************/
-void tx_app_if(
+void tx_app_accept(
         stream<AxiSockAddr>         &siTRIF_OpnReq,
         stream<ap_uint<16> >        &closeConnReq,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<TcpPort>             &siPRt_ActPortStateRep,
-        stream<sessionState>        &stateTable2txApp_upd_rsp,
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<OpenStatus>          &soTRIF_SessOpnSts,
         stream<AxiSocketPair>       &soSLc_SessLookupReq,
         stream<ReqBit>              &soPRt_GetFreePortReq,
-        stream<stateQuery>          &txApp2stateTable_upd_req,
-        stream<event>               &txApp2eventEng_setEvent,
+        stream<StateQuery>          &soSTt_SessStateQry,
+        stream<SessionState>        &siSTt_SessStateRep,
+        stream<event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
-		AxiIp4Address                regIpAddress)
+        AxiIp4Address                regIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -80,8 +91,8 @@ void tx_app_if(
             // Read the session and check its state
             sessionLookupReply session = siSLc_SessLookupRep.read();
             if (session.hit) {
-                txApp2eventEng_setEvent.write(event(SYN, session.sessionID));
-                txApp2stateTable_upd_req.write(stateQuery(session.sessionID, SYN_SENT, 1));
+                soEVe_Event.write(event(SYN, session.sessionID));
+                soSTt_SessStateQry.write(StateQuery(session.sessionID, SYN_SENT, 1));
             }
             else {
                 // Tell the APP that the open connection failed
@@ -94,7 +105,7 @@ void tx_app_if(
             soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
         else if(!closeConnReq.empty()) {    // Close Request
             closeConnReq.read(tai_closeSessionID);
-            txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID));
+            soSTt_SessStateQry.write(StateQuery(tai_closeSessionID));
             tasFsmState = TAS_CLOSE_CONN;
         }
         break;
@@ -114,15 +125,15 @@ void tx_app_if(
         break;
 
     case TAS_CLOSE_CONN:
-        if (!stateTable2txApp_upd_rsp.empty()) {
-            sessionState state = stateTable2txApp_upd_rsp.read();
+        if (!siSTt_SessStateRep.empty()) {
+            SessionState state = siSTt_SessStateRep.read();
             //TODO might add CLOSE_WAIT here???
             if ((state == ESTABLISHED) || (state == FIN_WAIT_2) || (state == FIN_WAIT_1)) { //TODO Why if FIN already SENT
-                txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
-                txApp2eventEng_setEvent.write(event(FIN, tai_closeSessionID));
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
+                soEVe_Event.write(event(FIN, tai_closeSessionID));
             }
             else
-                txApp2stateTable_upd_req.write(stateQuery(tai_closeSessionID, state, 1)); // Have to release lock
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, state, 1)); // Have to release lock
             tasFsmState = TAS_IDLE;
         }
         break;

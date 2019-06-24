@@ -35,9 +35,10 @@
 #include <string>
 #include <math.h>
 #include <hls_stream.h>
-#include "ap_int.h"
 #include <stdint.h>
 #include <vector>
+
+#include "ap_int.h"
 
 //#include "../test/test_toe_utils.hpp"
 
@@ -463,7 +464,6 @@ struct openStatus
 };
 ****************************/
 
-
 /********************************************
  * Session Lookup Controller (SLc)
  ********************************************/
@@ -509,10 +509,35 @@ class SessionLookupReply
 /********************************************
  * State Table (STt)
  ********************************************/
-enum sessionState {CLOSED, SYN_SENT, SYN_RECEIVED, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSING, TIME_WAIT, LAST_ACK};
+enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                    LAST_ACK };
+
+#ifndef __SYNTHESIS__
+    const std::string  SessionStateString[] = {
+                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+                   "LAST_ACK" };
+#endif
+
+
 #define QUERY_RD  0
 #define QUERY_WR  1
 
+// Session State Query
+class StateQuery {
+  public:
+    SessionId       sessionID;
+    SessionState    state;
+    ap_uint<1>      write;
+    StateQuery() {}
+    StateQuery(SessionId id) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, SessionState state, ap_uint<1> write) :
+        sessionID(id), state(state), write(write) {}
+};
+
+/*** OBSOLETE-20190621 **********
 struct stateQuery
 {
     SessionId       sessionID;
@@ -524,6 +549,8 @@ struct stateQuery
     stateQuery(SessionId id, sessionState state, ap_uint<1> write) :
         sessionID(id), state(state), write(write) {}
 };
+**********************************/
+
 
 
 /********************************************
@@ -573,34 +600,6 @@ struct rxSarAppd
         sessionID(id), appd(appd), write(1) {}
 };
 
-
-/*struct rxSarOffset
-{
-    ap_uint<16> sessionID;
-    ap_uint<16> offset[OOO_N];
-    rxSarOffset() {}
-    rxSarOffset(ap_uint<16> id, ap_uint<4> index, ap_uint<16> offset)
-            :sessionID(id), {}
-
-
-};
-
-// Original rxSarRecvd, before OOO change
-struct rxSarRecvd
-{
-    ap_uint<16> sessionID;
-    ap_uint<32> recvd;
-    ap_uint<1> write;
-    ap_uint<1> init;
-    rxSarRecvd() {}
-    rxSarRecvd(ap_uint<16> id)
-            :sessionID(id), recvd(0), write(0), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write)
-            :sessionID(id), recvd(recvd), write(write), init(0) {}
-    rxSarRecvd(ap_uint<16> id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init)
-            :sessionID(id), recvd(recvd), write(write), init(init) {}
-};*/
-
 /********************************************
  * Tx SAR Table (TSt)
  ********************************************/
@@ -617,7 +616,7 @@ struct txSarEntry
     bool        finSent;
 };
 
-// Tx-SAR / Receive Path Interface
+// TSt / Receive Path Interface
 struct rxTxSarQuery
 {
 	SessionId   sessionID;
@@ -634,7 +633,7 @@ struct rxTxSarQuery
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
-// Tx-SAR / Receive Path Interface
+// TSt / Receive Path Interface
 struct rxTxSarReply
 {
     TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
@@ -647,7 +646,7 @@ struct rxTxSarReply
         prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
 };
 
-// Tx-SAR / Transmit Path Interface
+// TSt / Transmit Path Interface
 struct txTxSarQuery
 {
 	SessionId   sessionID;
@@ -672,7 +671,7 @@ struct txTxSarQuery
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
-// Tx-SAR / Transmit Path Interface
+// TSt / Transmit Path Interface
 struct txTxSarReply
 {
     TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
@@ -699,7 +698,34 @@ struct txTxSarRtQuery : public txTxSarQuery
     }
 };
 
-// [TODO - Naming]
+// TSt / Tx Application Interface
+/*** OBSOLETE-20160617 ***********
+struct txAppTxSarPush
+{
+    SessionId   sessionID;
+    ap_uint<16> app;
+    txAppTxSarPush() {}
+    txAppTxSarPush(SessionId id, ap_uint<16> app) :
+         sessionID(id), app(app) {}
+};
+**********************************/
+class TxSarTableAppPush {
+  public:
+    SessionId      sessionID;
+    ap_uint<16>    app;
+    TxSarTableAppPush() {}
+    TxSarTableAppPush(SessionId id, ap_uint<16> app) :
+         sessionID(id), app(app) {}
+};
+
+
+
+/********************************************
+ * Tx Application Interface (TAi)
+ ********************************************/
+
+//-- TAI / Tx Application Table (Tat) Request
+/*** OBSOLETE-20190616 ************
 struct txAppTxSarQuery
 {
     SessionId   sessionID;
@@ -711,8 +737,21 @@ struct txAppTxSarQuery
     txAppTxSarQuery(SessionId id, ap_uint<16> pt)
             :sessionID(id), mempt(pt), write(true) {}
 };
+***********************************/
+class TxAppTableRequest {
+  public:
+    SessionId   sessId;
+    ap_uint<16> mempt;
+    bool        write;
+    TxAppTableRequest() {}
+    TxAppTableRequest(SessionId id) :
+        sessId(id), mempt(0), write(false) {}
+    TxAppTableRequest(SessionId id, ap_uint<16> pt) :
+        sessId(id), mempt(pt), write(true) {}
+};
 
-// [TODO - Naming]
+//-- TAI / Tx Application Table (Tat) Reply
+/*** OBSOLETE-20190616 ******
 struct txAppTxSarReply
 {
 	SessionId   sessionID;
@@ -722,16 +761,17 @@ struct txAppTxSarReply
     txAppTxSarReply(SessionId id, ap_uint<16> ackd, ap_uint<16> pt) :
         sessionID(id), ackd(ackd), mempt(pt) {}
 };
-
-// [TODO - Naming]
-struct txAppTxSarPush
-{
-	SessionId   sessionID;
-    ap_uint<16> app;
-    txAppTxSarPush() {}
-    txAppTxSarPush(SessionId id, ap_uint<16> app) :
-         sessionID(id), app(app) {}
+*******************************/
+class TxAppTableReply {
+  public:
+    SessionId   sessId;
+    TcpAckNum   ackd;
+    ap_uint<16> mempt;
+    TxAppTableReply() {}
+    TxAppTableReply(SessionId id, TcpAckNum ackd, ap_uint<16> pt) :
+        sessId(id), ackd(ackd), mempt(pt) {}
 };
+
 
 // [TODO - Naming]
 struct txSarAckPush

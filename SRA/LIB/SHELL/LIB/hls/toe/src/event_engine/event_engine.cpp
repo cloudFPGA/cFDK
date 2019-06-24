@@ -38,13 +38,13 @@ using namespace hls;
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
  *         them event to the Tx Engine (TXe).
  *
- * @param[in]  siTAi_Event,      Event from [TxApplicationInterface].
- * @param[in]  siRXe_Event,      Event from [RxEngine].
- * @param[in]  siTIm_Event,      Event from [Timers].
- * @param[out] soAKd_Event,      Event to   [AckDelayer].
- * @param[in]  siAKd_RxEventSig, The ACK Delayer (AKd) just received an event.
- * @param[in]  siAKd_TxEventSig, The ACK Delayer (AKd) just forwarded an event.
-*  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe)   just received an event.
+ * @param[in]  siTAi_Event,      Event from TxApplicationInterface (TAi).
+ * @param[in]  siRXe_Event,      Event from RxEngine (RXe).
+ * @param[in]  siTIm_Event,      Event from Timers (TIm).
+ * @param[out] soAKd_Event,      Event to   AckDelayer (AKd).
+ * @param[in]  siAKd_RxEventSig, The ACK Delayer just received an event.
+ * @param[in]  siAKd_TxEventSig, The ACK Delayer just forwarded an event.
+*  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe)  just received an event.
  *
  * @details
  *
@@ -111,13 +111,15 @@ void event_engine(
             eve_eveTxEventCnt++;
             if (DEBUG_LEVEL & TRACE_EVE) {
                 if (ev.type == RT)
-                    printInfo(myName, "Received RT event from [Timers].\n");
+                    printInfo(myName, "Received RT event from [TIm].\n");
             }
         }
         else if (!siTAi_Event.empty()) {
             siTAi_Event.read(ev);
             soAKd_Event.write(ev);
             eve_eveTxEventCnt++;
+            if (DEBUG_LEVEL & TRACE_EVE)
+                printInfo(myName, "Received TX event from [TAi].\n");
         }
     }
 

@@ -11,6 +11,7 @@
  *****************************************************************************/
 
 #include "tx_app_stream.hpp"
+#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 
@@ -34,15 +35,15 @@ using namespace hls;
 
 
 /*******************************************************************************
- * @brief Segment Length Generator (Slg)
+ * @brief Segment Length Generator (slg)
  *
  * @param[in]  siTRIF_Data,      TCP data stream from TRIF.
- * @param[out] soSmw_Data,       TCP data stream to SegmentMemoryWriter (Smw).
- * @param[out] soMdl_SegLen,     The length of the TCP segment to MetaDataLoader (Mdl);
+ * @param[out] soSmw_Data,       TCP data stream to SegmentMemoryWriter (smw).
+ * @param[out] soMdl_SegLen,     The length of the TCP segment to MetaDataLoader (mdl);
  *
  * @details
  *   Generates the length of the TCP segment received from the [APP] while
- *   forwarding that same data stream to the Segment Memory Writer (Smw).
+ *   forwarding that same data stream to the Segment Memory Writer (smw).
  *******************************************************************************/
 void pSegmentLengthGenerator(
         stream<AppData>           &siTRIF_Data,
@@ -51,6 +52,8 @@ void pSegmentLengthGenerator(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
+
+	const char *myName  = concat3(THIS_NAME, "/", "slg");
 
     static TcpSegLen   tcpSegLen = 0;
 
@@ -63,6 +66,9 @@ void pSegmentLengthGenerator(
         tcpSegLen += keepMapping(currWord.tkeep);
         if (currWord.tlast) {
             soMdl_SegLen.write(tcpSegLen);
+            if (DEBUG_LEVEL & TRACE_SLG) {
+                printInfo(myName, "Received end-of-segment. SegLen=%d\n",  tcpSegLen.to_int());
+            }
             tcpSegLen = 0;
         }
     }
@@ -72,48 +78,47 @@ void pSegmentLengthGenerator(
  * @brief Meta Data Loader (Mdl)
  *
  * @param[in]  siTRIF_Meta,        The TCP session Id this segment belongs to.
- * @param[in]  siSTt_SessStateRep, Session state reply from StateTable (STt).
- * @
- * @param[in]  siSlg_SegLen,       The TCP segment length from SegmentLengthGenerator (Slg).
- * @
  * @param[out] soSTt_SessStateReq, Session state request to StateTable (STt).
- * @
- * @param[out] soSmw_SegMeta,      Segment memory metadata to SegmentMemoryWriter (Smw).
- *
+ * @param[in]  siSTt_SessStateRep, Session state reply from StateTable (STt).
+ * @param[out] soTat_AccessReq,    Access request to TxAppTable (Tat).
+ * @parma[in]  siTat_AccessRep,    Access reply from [Tat]
+ * @param[in]  siSlg_SegLen,       The TCP segment length from SegmentLengthGenerator (slg).
+ * @param[out] soTRIF_DSts,        TCP data status to TRIF.
+ * @param[out] soSmw_SegMeta,      Segment memory metadata to SegmentMemoryWriter (smw).
+ * @param[out] soEVe_Event,        Event to EventEngine (EVe).
  *
  * @details
- *  Reads the request from the application and loads the necessary metadata,
- *  the FSM decides if the packet is written to the TX buffer or discarded.
+ *  Reads the request from the application and loads the necessary metadata for
+ *  transmitting this segment.
+ *  The FSM decides if the segment is written to the TX buffer or is discarded.
  *
  *  [FIXME-TODO: Implement TCP_NODELAY]
  *
  ******************************************************************************/
 void pMetaDataLoader(
         stream<AppMeta>             &siTRIF_Meta,
-        stream<sessionState>        &siSTt_SessStateRep,
-        stream<txAppTxSarReply>     &txSar2txApp_upd_rsp,
-        stream<TcpSegLen>           &siSlg_SegLen,
-        stream<ap_int<17> >         &appTxDataRsp,
         stream<TcpSessId>           &soSTt_SessStateReq,
-        stream<txAppTxSarQuery>     &txApp2txSar_upd_req,
+        stream<SessionState>        &siSTt_SessStateRep,
+        stream<TxAppTableRequest>   &soTat_AccessReq,
+        stream<TxAppTableReply>     &siTat_AccessRep,
+        stream<TcpSegLen>           &siSlg_SegLen,
+        stream<ap_int<17> >         &soTRIF_DSts,
         stream<SegMemMeta>          &sMdlToSmw_SegMeta,
-        stream<event>               &txAppStream2eventEng_setEvent)
+        stream<event>               &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS pipeline II=1
 
-    //OBSOLETE-20190611 enum tai_states {READ_REQUEST, READ_META};
-    //OBSOLETE-20190611 static tai_states tai_state = READ_REQUEST;
+    const char *myName  = concat3(THIS_NAME, "/", "mdl");
+
     static enum MdlFsmStates { READ_REQUEST,  READ_META } mdlFsmState = READ_REQUEST;
 
     static TcpSessId       tcpSessId;
-    static ap_uint<16>     tasi_maxWriteLength = 0;
-    static txAppTxSarReply tasi_writeSar;
+    static TxAppTableReply txAppTableReply;
 
-    sessionState           sessState;
+    SessionState           sessState;
     TcpSegLen              segLen = 0;
 
-    // FSM requests metadata, decides if packet goes to buffer or not
     switch(mdlFsmState) {
     case READ_REQUEST:
         if (!siTRIF_Meta.empty()) {
@@ -121,17 +126,20 @@ void pMetaDataLoader(
             siTRIF_Meta.read(tcpSessId);
             // Request state of the session
             soSTt_SessStateReq.write(tcpSessId);
-            // Get Ack pointer
-            txApp2txSar_upd_req.write(txAppTxSarQuery(tcpSessId));
+            // Request the value of ACK and MemPtr from TxAppTable
+            soTat_AccessReq.write(TxAppTableRequest(tcpSessId));
+            if (DEBUG_LEVEL & TRACE_MDL) {
+                printInfo(myName, "Received new Tx request for session %d.\n", tcpSessId.to_int());
+            }
             mdlFsmState = READ_META;
         }
         break;
     case READ_META:
-        if (!txSar2txApp_upd_rsp.empty() && !siSTt_SessStateRep.empty() && !siSlg_SegLen.empty()) {
+        if (!siTat_AccessRep.empty() && !siSTt_SessStateRep.empty() && !siSlg_SegLen.empty()) {
             siSTt_SessStateRep.read(sessState);
-            txSar2txApp_upd_rsp.read(tasi_writeSar);
+            siTat_AccessRep.read(txAppTableReply);
             siSlg_SegLen.read(segLen);
-            tasi_maxWriteLength = (tasi_writeSar.ackd - tasi_writeSar.mempt) - 1;
+            TcpSegLen maxWriteLength = (txAppTableReply.ackd - txAppTableReply.mempt) - 1;
             /*** [TODO - TCP_NODELAY] ******************
             #if (TCP_NODELAY)
                 //tasi_writeSar.mempt and txSar.not_ackd are supposed to be equal (with a few cycles delay)
@@ -144,23 +152,30 @@ void pMetaDataLoader(
             *******************************************/
             if (sessState != ESTABLISHED) {
                 sMdlToSmw_SegMeta.write(SegMemMeta(true));
-                // Notify app about fail
-                appTxDataRsp.write(ERROR_NOCONNCECTION);
+                // Notify App about the fail
+                soTRIF_DSts.write(ERROR_NOCONNCECTION);
+                printError(myName, "Session %d is not established. Current session state is %d.\n", \
+                           tcpSessId.to_uint(), sessState);
+
+                // HERE MAJOR DIFF
+                // appTxDataRsp.write(appTxRsp(tasi_writeMeta.length, maxWriteLength, ERROR_NOCONNCECTION));
+                // tai_state = READ_REQUEST;
+
             }
-            else if(segLen > tasi_maxWriteLength)
-            {
+            else if(segLen > maxWriteLength) { // || usableWindow < tasi_writeMeta.length)
                 sMdlToSmw_SegMeta.write(SegMemMeta(true));
                 // Notify app about fail
-                appTxDataRsp.write(ERROR_NOSPACE);
+                soTRIF_DSts.write(ERROR_NOSPACE);
             }
-            else //if (sessState == ESTABLISHED && pkgLen <= tasi_maxWriteLength)
-            {
+            else {
+                // Here --> (sessState == ESTABLISHED && pkgLen <= maxWriteLength)
                 // TODO there seems some redundancy
-                sMdlToSmw_SegMeta.write(SegMemMeta(tcpSessId, tasi_writeSar.mempt, segLen));
-                appTxDataRsp.write(segLen);
+                sMdlToSmw_SegMeta.write(SegMemMeta(tcpSessId, txAppTableReply.mempt, segLen));
+                soTRIF_DSts.write(segLen);
                 //tasi_eventCacheFifo.write(eventMeta(tasi_writeSessionID, tasi_writeSar.mempt, segLen));
-                txAppStream2eventEng_setEvent.write(event(TX, tcpSessId, tasi_writeSar.mempt, segLen));
-                txApp2txSar_upd_req.write(txAppTxSarQuery(tcpSessId, tasi_writeSar.mempt + segLen));
+                soEVe_Event.write(event(TX, tcpSessId, txAppTableReply.mempt, segLen));
+                // Write new MemPtr in the TxAppTable
+                soTat_AccessReq.write(TxAppTableRequest(tcpSessId, txAppTableReply.mempt + segLen));
             }
             mdlFsmState = READ_REQUEST;
         }
@@ -171,204 +186,204 @@ void pMetaDataLoader(
 /*******************************************************************************
  * @brief Segment Memory Writer (Smw)
  *
- * @param[in]  siSlg_Data,     TCP data stream from SegmentLengthGenerator (Slg).
- * @param[in] siMdl_SegMeta,   Segment memory metadata from MetaDataLoader (Mdl).
- *
+ * @param[in]  siSlg_Data,      TCP data stream from SegmentLengthGenerator (slg).
+ * @param[in]  siMdl_SegMeta,   Segment memory metadata from MetaDataLoader (mdl).
+ * @param[out] soMEM_TxP_WrCmd, Tx memory write command to MEM.
+ * @param[out] soMEM_TxP_Data,  Tx memory data to MEM.
  *
  * @details
  *   Writes the incoming TCP segment into the external DRAM, unless the state
- *   machine of the MetaDataLoader (Mdl) decides to drop the segment.
+ *   machine of the MetaDataLoader (mdl) decides to drop the segment.
  *
  *******************************************************************************/
 void pSegmentMemoryWriter(
-        stream<AxiWord>         &tasi_pkgBuffer,
+        stream<AxiWord>         &siSlg_Data,
         stream<SegMemMeta>      &siMdl_SegMeta,
-        stream<DmCmd>           &txBufferWriteCmd,
+        stream<DmCmd>           &soMEM_TxP_WrCmd,
         stream<AxiWord>         &soMEM_TxP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1 enable_flush
     #pragma HLS INLINE off
 
-    static ap_uint<3>    tasiPkgPushState = 0;
-    static SegMemMeta    tasi_pushMeta;
-    static DmCmd         txAppTempCmd = DmCmd(0, 0);
-    static ap_uint<16>   txAppBreakTemp = 0;
-    static uint8_t       lengthBuffer = 0;
-    static ap_uint<3>    accessResidue = 0;
-    static bool          txAppBreakdown = false;
-    static AxiWord       pushWord = AxiWord(0, 0xFF, 0);
+	const char *myName  = concat3(THIS_NAME, "/", "smw");
 
-    static uint16_t txAppPktCounter = 0;
+    //OBSOLETE-20190614 static ap_uint<3>    tasiPkgPushState = 0;
+    static enum SmwFsmStates { S0, S1, S2, S3, S4, S5 } smwFsmState = S0;
+
+    static SegMemMeta    segMemMeta;
+    static DmCmd         dmCmd = DmCmd(0, 0);
+    static ap_uint<16>   breakLen = 0;
+    static bool          segIsSplitted = false;
+    static AxiWord       pushWord = AxiWord(0, 0xFF, 0);
+    static uint8_t       lengthBuffer  = 0;
+    static ap_uint<3>    accessResidue = 0;
+
+    //OBSOLETE-20190614 static uint16_t txAppPktCounter  = 0;
     static uint32_t txAppWordCounter = 0;
 
-    switch (tasiPkgPushState) {
-    case 0:
-        if (!siMdl_SegMeta.empty() && !txBufferWriteCmd.full()) {
-            siMdl_SegMeta.read(tasi_pushMeta);
-            if (!tasi_pushMeta.drop) {
-                ap_uint<32> pkgAddr = 0x40000000;
-                pkgAddr(29, 16) = tasi_pushMeta.sessId(13, 0);
-                pkgAddr(15, 0) = tasi_pushMeta.addr;
-                txAppTempCmd = DmCmd(pkgAddr, tasi_pushMeta.len);
-                DmCmd tempCmd = txAppTempCmd;
-                if ((txAppTempCmd.saddr.range(15, 0) + txAppTempCmd.bbt) > 65536) {
-                    txAppBreakTemp = 65536 - txAppTempCmd.saddr;
-                    txAppTempCmd.bbt -= txAppBreakTemp;
-                    tempCmd = DmCmd(txAppTempCmd.saddr, txAppBreakTemp);
-                    txAppBreakdown = true;
+    switch (smwFsmState) {
+    case S0:
+        if (!siMdl_SegMeta.empty() && !soMEM_TxP_WrCmd.full()) {
+            siMdl_SegMeta.read(segMemMeta);
+            if (!segMemMeta.drop) {
+                // Build memory address for this segment in the upper 2GB
+                ap_uint<32> memSegAddr; // [TODO-typedef]
+                memSegAddr(31, 30) = 0x01;
+                memSegAddr(29, 16) = segMemMeta.sessId(13, 0);
+                memSegAddr(15,  0) = segMemMeta.addr;
+                dmCmd = DmCmd(memSegAddr, segMemMeta.len);
+                DmCmd tempDmCmd = dmCmd;
+                if ((dmCmd.saddr.range(15, 0) + dmCmd.bbt) > 65536) {
+                    breakLen = 65536 - dmCmd.saddr;
+                    dmCmd.bbt -= breakLen;
+                    tempDmCmd = DmCmd(dmCmd.saddr, breakLen);
+                    segIsSplitted = true;
                 }
-                else
-                    txAppBreakTemp = txAppTempCmd.bbt;
-                txBufferWriteCmd.write(tempCmd);
-                //txAppPktCounter++;
-                //std::cerr <<  "1st Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << tempCmd.saddr << " - " << tempCmd.bbt << std::endl;
+                else {
+                    breakLen = dmCmd.bbt;
+                }
+                soMEM_TxP_WrCmd.write(tempDmCmd);
             }
-            tasiPkgPushState = 1;
+            smwFsmState = S1;
         }
         break;
-    case 1:
-        if (!tasi_pkgBuffer.empty()) {
-            tasi_pkgBuffer.read(pushWord);
+    case S1:
+        if (!siSlg_Data.empty()) {
+            siSlg_Data.read(pushWord);
             AxiWord outputWord = pushWord;
             ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
-            if (!tasi_pushMeta.drop) {
-                if (txAppBreakTemp > 8)
-                    txAppBreakTemp -= 8;
+            if (!segMemMeta.drop) {
+                if (breakLen > 8)
+                    breakLen -= 8;
                 else {
-                    if (txAppBreakdown == true) {               /// Changes are to go in here
-                        if (txAppTempCmd.saddr.range(15, 0) % 8 != 0) // If the word is not perfectly alligned then there is some magic to be worked.
-                            outputWord.tkeep = returnKeep(txAppBreakTemp);
+                    if (segIsSplitted == true) {
+                        if (dmCmd.saddr.range(15, 0) % 8 != 0) {
+                            // If the word is not perfectly aligned then there is some magic to be worked.
+                            outputWord.tkeep = lenToKeep(breakLen);
+                        }
                         outputWord.tlast = 1;
-                        tasiPkgPushState = 2;
-                        accessResidue = byteCount - txAppBreakTemp;
-                        lengthBuffer = txAppBreakTemp;  // Buffer the number of bits consumed.
+                        smwFsmState = S2;
+                        accessResidue = byteCount - breakLen;
+                        lengthBuffer = breakLen;  // Buffer the number of bits consumed.
                     }
-                    else
-                        tasiPkgPushState = 0;
+                    else {
+                        smwFsmState = S0;
+                    }
                 }
                 txAppWordCounter++;
-                //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                AxiWord FixMe = outputWord;
-                soMEM_TxP_Data.write(FixMe);
+                soMEM_TxP_Data.write(outputWord);
             }
             else {
                 if (pushWord.tlast == 1)
-                    tasiPkgPushState = 0;
+                    smwFsmState = S0;
             }
         }
         break;
-    case 2:
-        if (!txBufferWriteCmd.full()) {
-            if (txAppTempCmd.saddr.range(15, 0) % 8 == 0)
-                tasiPkgPushState = 3;
+    case S2:
+        if (!soMEM_TxP_WrCmd.full()) {
+            if (dmCmd.saddr.range(15, 0) % 8 == 0)
+                smwFsmState = S3;
             //else if (txAppTempCmd.bbt +  accessResidue > 8 || accessResidue > 0)
-            else if (txAppTempCmd.bbt - accessResidue > 0)
-                tasiPkgPushState = 4;
+            else if (dmCmd.bbt - accessResidue > 0)
+                smwFsmState = S4;
             else
-                tasiPkgPushState = 5;
-            txAppTempCmd.saddr.range(15, 0) = 0;
-            txAppBreakTemp = txAppTempCmd.bbt;
-            txBufferWriteCmd.write(DmCmd(txAppTempCmd.saddr, txAppBreakTemp));
-            //std::cerr <<  "2nd Cmd: " << std::dec << txAppPktCounter << " - " << std::hex << txAppTempCmd.saddr << " - " << txAppTempCmd.bbt << std::endl;
-            txAppBreakdown = false;
-
+                smwFsmState = S5;
+            dmCmd.saddr.range(15, 0) = 0;
+            breakLen = dmCmd.bbt;
+            soMEM_TxP_WrCmd.write(DmCmd(dmCmd.saddr, breakLen));
+            segIsSplitted = false;
         }
         break;
-    case 3: // This is the non-realignment state
-        if (!tasi_pkgBuffer.empty() & !soMEM_TxP_Data.full()) {
-            tasi_pkgBuffer.read(pushWord);
-            if (!tasi_pushMeta.drop) {
+    case S3: // This is the non-realignment state
+        if (!siSlg_Data.empty() & !soMEM_TxP_Data.full()) {
+            siSlg_Data.read(pushWord);
+            if (!segMemMeta.drop) {
                 txAppWordCounter++;
-                //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << pushWord.data << " - " << pushWord.keep << " - " << pushWord.last << std::endl;
-                AxiWord FixMe = pushWord;
-                soMEM_TxP_Data.write(FixMe);
+                soMEM_TxP_Data.write(pushWord);
             }
             if (pushWord.tlast == 1)
-                tasiPkgPushState = 0;
+                smwFsmState = S0;
         }
         break;
-    case 4: // We go into this state when we need to realign things
-        if (!tasi_pkgBuffer.empty() && !soMEM_TxP_Data.full()) {
+    case S4: // We go into this state when we need to realign things
+        if (!siSlg_Data.empty() && !soMEM_TxP_Data.full()) {
             AxiWord outputWord = AxiWord(0, 0xFF, 0);
             outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
-            pushWord = tasi_pkgBuffer.read();
+            pushWord = siSlg_Data.read();
             outputWord.tdata.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
 
-            if (!tasi_pushMeta.drop) {
+            if (!segMemMeta.drop) {
                 if (pushWord.tlast == 1) {
-                    if (txAppBreakTemp - accessResidue > lengthBuffer)  { // In this case there's residue to be handled
-                        txAppBreakTemp -=8;
-                        tasiPkgPushState = 5;
+                    if (breakLen - accessResidue > lengthBuffer)  {
+                        // In this case there's residue to be handled
+                        breakLen -=8;
+                        smwFsmState = S5;
                     }
                     else {
-                        tasiPkgPushState = 0;
-                        outputWord.tkeep = returnKeep(txAppBreakTemp);
+                        smwFsmState = S0;
+                        outputWord.tkeep = lenToKeep(breakLen);
                         outputWord.tlast = 1;
                     }
                 }
                 else
-                    txAppBreakTemp -= 8;
-                //txAppWordCounter++;
-                //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                AxiWord FixMe = outputWord;
-                soMEM_TxP_Data.write(FixMe);
+                    breakLen -= 8;
+                soMEM_TxP_Data.write(outputWord);
             }
             else {
                 if (pushWord.tlast == 1)
-                    tasiPkgPushState = 0;
+                    smwFsmState = S0;
             }
         }
         break;
-    case 5:
+    case S5:
         if (!soMEM_TxP_Data.full()) {
-            if (!tasi_pushMeta.drop) {
-                AxiWord outputWord = AxiWord(0, returnKeep(txAppBreakTemp), 1);
+            if (!segMemMeta.drop) {
+                AxiWord outputWord = AxiWord(0, lenToKeep(breakLen), 1);
                 outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
-                //txAppWordCounter++;
-                //std::cerr <<  std::dec << cycleCounter << " - " << txAppWordCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-                AxiWord FixMe = outputWord;
-                soMEM_TxP_Data.write(FixMe);
-                tasiPkgPushState = 0;
+                soMEM_TxP_Data.write(outputWord);
+                smwFsmState = S0;
             }
         }
         break;
-    } //switch
+    } // End-of switch
 }
 
 /*******************************************************************************
- * @brief [TODO]
- *  This application interface is used to transmit data streams of established connections.
+ * @brief Tx App Stream (Tas)
  *
  * @param[in]  siTRIF_Data,        TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,        TCP metadata stream from TRIF.
- * @param[in]  siSTt_SessStateRep, Session state reply from StateTable (STt).
- * @param[in]      txSar2txApp_upd_rsp
- * @param[out]     appTxDataRsp
  * @param[out] soSTt_SessStateReq, Session state request to StateTable (STt).
- * @param[out]     txApp2txSar_upd_req
- * @param[out]     txBufferWriteCmd
- * @param[out]     txBufferWriteData
- * @param[out]     txAppStream2eventEng_setEvent
+ * @param[in]  siSTt_SessStateRep, Session state reply from [STt].
+ * @param[out] soTat_AcessReq,     Access request to TxAppTable (Tat).
+ * @param[in]  siTat_AcessRep,     Access reply from [Tat].
+ * @param[out] soTRIF_DSts,        TCP data status to TRIF.
+ * @param[out] soMEM_TxP_WrCmd,    Tx memory write command to MEM.
+ * @param[out] soMEM_TxP_Data,     Tx memory data to MEM.
+ * @param[out] soEVe_Event,        Event to EventEngine (EVe).
  *
- *  The application sends the Session-ID on through @p writeMetaDataIn and the data stream
- *  on @p writeDataIn. The interface checks then the state of the connection and loads the
- *  application pointer into the memory. It then writes the data into the memory. The application
- *  is notified through @p writeReturnStatusOut if the write to the buffer succeeded. In case
+ * @details
+ *  This process transmits the data streams of established connections.
+ *   After data and metadata are received from [TRIF], the state of the
+ *  connection is checked and the segment memory pointer is loaded into the
+ *  ACK pointer table.
+ *   The data It then written into the DDR4 buffer memory. The application is
+ *  notified through [TODO] if the write to the buffer succeeded. In case
  *  of success the length of the write is returned, otherwise -1;
  *
  ******************************************************************************/
 void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
-        stream<sessionState>       &siSTt_SessStateRep,
-        stream<txAppTxSarReply>    &txSar2txApp_upd_rsp, //TODO rename
-        stream<ap_int<17> >        &appTxDataRsp,
         stream<TcpSessId>          &soSTt_SessStateReq,
-        stream<txAppTxSarQuery>    &txApp2txSar_upd_req, //TODO rename
-        stream<DmCmd>              &txBufferWriteCmd,
+        stream<SessionState>       &siSTt_SessStateRep,
+        stream<TxAppTableRequest>  &soTat_AcessReq,
+        stream<TxAppTableReply>    &siTat_AcessRep,
+        stream<ap_int<17> >        &soTRIF_DSts,
+        stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
-        stream<event>              &txAppStream2eventEng_setEvent)
+        stream<event>              &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -397,19 +412,19 @@ void tx_app_stream(
 
     pMetaDataLoader(
             siTRIF_Meta,
-            siSTt_SessStateRep,
-            txSar2txApp_upd_rsp,
-            sSlgToMdl_SegLen,
-            appTxDataRsp,
             soSTt_SessStateReq,
-            txApp2txSar_upd_req,
+            siSTt_SessStateRep,
+            soTat_AcessReq,
+            siTat_AcessRep,
+            sSlgToMdl_SegLen,
+            soTRIF_DSts,
             sMdlToSmw_SegMeta,
-            txAppStream2eventEng_setEvent);
+            soEVe_Event);
 
     pSegmentMemoryWriter(
             sSlgToSmw_Data,
             sMdlToSmw_SegMeta,
-            txBufferWriteCmd,
+            soMEM_TxP_WrCmd,
             soMEM_TxP_Data);
 
 }

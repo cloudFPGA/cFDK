@@ -705,7 +705,7 @@ else
  *            number field of the current packet.
  *
  * @param[in]   ipRxPacket,  a ref to an IP packet.
- * @param[in]   sessionList, a ref to an associative container which holds
+ * @param[in]   sessAckList, a ref to an associative container which holds
  *                            the sessions as socket pair associations.
  * @return 0 or 1 if success, otherwise -1.
  *
@@ -713,7 +713,7 @@ else
  ******************************************************************************/
 int pIPRX_InjectAckNumber(
         IpPacket                       &ipRxPacket,
-        map<SocketPair, TcpAckNum>     &sessionList)
+        map<SocketPair, TcpAckNum>     &sessAckList)
 {
     const char *myName  = concat3(THIS_NAME, "/", "IPRX/InjectAck");
 
@@ -726,8 +726,8 @@ int pIPRX_InjectAckNumber(
     if (ipRxPacket.isSYN()) {
 
         // This packet is a SYN and there's no need to inject anything
-        if (sessionList.find(newSockPair) != sessionList.end()) {
-            printWarn(myName, "Trying to open an existing session (%d)!\n", (sessionList.find(newSockPair)->second).to_uint());
+        if (sessAckList.find(newSockPair) != sessAckList.end()) {
+            printWarn(myName, "Trying to open an existing session (%d)!\n", (sessAckList.find(newSockPair)->second).to_uint());
             printSockPair(myName, newSockPair);
             return -1;
         }
@@ -742,8 +742,8 @@ int pIPRX_InjectAckNumber(
             }
             else {
                 // Create a new entry (with TcpAckNum=0) in the session table
-                sessionList[newSockPair] = 0;
-                printInfo(myName, "Successfully opened a new session (%d) for connection:\n", (sessionList.find(newSockPair)->second).to_uint());
+                sessAckList[newSockPair] = 0;
+                printInfo(myName, "Successfully opened a new session (%d) for connection:\n", (sessAckList.find(newSockPair)->second).to_uint());
                 printSockPair(myName, newSockPair);
                 return 0;
             }
@@ -751,9 +751,9 @@ int pIPRX_InjectAckNumber(
     }
     else if (ipRxPacket.isACK()) {
         // This packet is an ACK and we must update the its acknowledgment number
-        if (sessionList.find(newSockPair) != sessionList.end()) {
+        if (sessAckList.find(newSockPair) != sessAckList.end()) {
             // Inject the oldest acknowledgment number in the ACK number field
-            TcpAckNum newAckNum = sessionList[newSockPair];
+            TcpAckNum newAckNum = sessAckList[newSockPair];
             ipRxPacket.setTcpAcknowledgeNumber(newAckNum);
 
             if (DEBUG_LEVEL & TRACE_IPRX)
@@ -789,7 +789,7 @@ int pIPRX_InjectAckNumber(
  * @param[i/o] ipRxPktCounter, a ref to the IP Rx packet counter.
  *                              (counts all kinds and from all sessions).
  * @param[out] soTOE_Data,     A reference to the data stream to TOE.
- * @param[in]  sessionList,    a ref to an associative container that
+ * @param[in]  sessAckList,    a ref to an associative container that
  *                              holds the sessions as socket pair associations.
  *
  * @details:
@@ -803,13 +803,15 @@ void pIPRX_FeedTOE(
         deque<IpPacket>             &ipRxPacketizer,
         int                         &ipRxPktCounter,
         stream<Ip4overAxi>          &soTOE_Data,
-        map<SocketPair, TcpAckNum>  &sessionList)
+        map<SocketPair, TcpAckNum>  &sessAckList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
 
     if (ipRxPacketizer.size() != 0) {
         // Insert proper ACK Number in packet at the head of the queue
-        pIPRX_InjectAckNumber(ipRxPacketizer[0], sessionList);
+        pIPRX_InjectAckNumber(ipRxPacketizer[0], sessAckList);
+        // Assert proper SEQ Number in packet
+        // [TODO]
         if (DEBUG_LEVEL & TRACE_IPRX) {
             ipRxPacketizer[0].printHdr(myName);
         }
@@ -842,7 +844,7 @@ void pIPRX_FeedTOE(
  *                               on the IP Rx interface.
  *                              (counts all kinds and from all sessions).
  * @param[i/o] ipRxPacketizer, A ref to the RxPacketizer (double-ended queue).
- * @param[in]  sessionList,    A ref to an associative container which holds
+ * @param[in]  sessAckList,    A ref to an associative container which holds
  *                               the sessions as socket pair associations.
  * @param[out] soTOE_Data,     A reference to the data stream to TOE.
  *
@@ -864,19 +866,13 @@ void pIPRX(
         int                         &ipRxPktCounter,
         int                         &ipRx_TcpBytCntr,
         deque<IpPacket>             &ipRxPacketizer,
-        map<SocketPair, TcpAckNum>  &sessionList,
+        map<SocketPair, TcpAckNum>  &sessAckList,
         stream<Ip4overAxi>          &soTOE_Data)
 {
     static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
     static unsigned int ipRxIdleCycReq = 0;     // The requested number of idle cycles
     static unsigned int ipRxIdleCycCnt = 0;     // The count of idle cycles
-
-    /*** OBSOLETE-20190522 ***
-    // Keep track of the current active local socket
-    static SockAddr   currLocalSocket(DEFAULT_FPGA_IP4_ADDR,
-                                      DEFAULT_FPGA_TCP_PORT);
-    **************************/
 
     string              rxStringBuffer;
     vector<string>      stringVector;
@@ -917,7 +913,7 @@ void pIPRX(
     //  process which emulates the Layer-3 Multiplexer (.i.e, L3Mux).
     //  Therefore, we start by flushing these packets (if any) before reading a
     //  new packet from the IP Rx input file.
-    pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList);
+    pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList);
 
     //-------------------------------------------------------------------------
     //-- STEP-3: QUIT HERE IF RX TEST MODE IS DISABLED OR EOF IS REACHED
@@ -1015,7 +1011,7 @@ void pIPRX(
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
-            pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessionList); // [FIXME-Can be removed?]
+            pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList); // [FIXME-Can be removed?]
 
             return;
         }
@@ -1029,7 +1025,7 @@ void pIPRX(
  * @brief Parse the TCP/IP packets generated by the TOE.
  *
  * @param[in]  ipTxPacket,     a ref to the packet received from the TOE.
- * @param[in]  sessionList,    a ref to an associative container which holds
+ * @param[in]  sessAckList,    a ref to an associative container which holds
  *                               the sessions as socket pair associations.
  * @param[out] ipRxPacketizer, a ref to dequeue w/ packets for IPRX.
  *
@@ -1044,7 +1040,7 @@ void pIPRX(
  ******************************************************************************/
 bool pL3MUX_Parse(
         IpPacket                    &ipTxPacket,
-        map<SocketPair, TcpAckNum>  &sessionList,
+        map<SocketPair, TcpAckNum>  &sessAckList,
         deque<IpPacket>             &ipRxPacketizer)
 {
     bool        returnValue    = false;
@@ -1110,7 +1106,7 @@ bool pL3MUX_Parse(
         }
 
         // Erase the socket pair for this session from the map.
-        sessionList.erase(sockPair);
+        sessAckList.erase(sockPair);
 
     }
 
@@ -1159,7 +1155,7 @@ bool pL3MUX_Parse(
         }
 
         // Update the Session List with the new sequence number
-        sessionList[sockPair] = nextAckNum;
+        sessAckList[sockPair] = nextAckNum;
 
         if (ipTxPacket.isFIN()) {
             //------------------------------------------------
@@ -1170,7 +1166,7 @@ bool pL3MUX_Parse(
                 printInfo(myName, "Got an ACK+FIN from TOE.\n");
 
             // Erase this session from the list
-            int itemsErased = sessionList.erase(sockPair);
+            int itemsErased = sessAckList.erase(sockPair);
             if (itemsErased != 1) {
                 printError(myName, "Received a ACK+FIN segment for a non-existing session. \n");
                 printSockPair(myName, sockPair);
@@ -1184,7 +1180,9 @@ bool pL3MUX_Parse(
             }
         } // End of: isFIN
 
-        if (ip4PktLen > 0 || isFinAck == true) {
+        //OBSOLETE-201906019 if (ip4PktLen > 0 || isFinAck == true) {
+        if (ip4PktLen > 0 && !isFinAck) {
+
             //--------------------------------------------------------
             // The ACK segment contains more data (.e.g, TCP options),
             // and/or the segment is a FIN+ACK segment.
@@ -1235,7 +1233,7 @@ bool pL3MUX_Parse(
  * @param[in]  siTOE_Data,      A reference to the data stream from TOE.
  * @param[in]  ipTxFile1,       The output file to write.
  * @param[in]  ipTxFile2,       The output file to write.
- * @param[in]  sessionList,     A ref to an associative container which holds
+ * @param[in]  sessAckList,     A ref to an associative container which holds
  *                               the sessions as socket pair associations.
  * @param[i/o] ipTx_PktCounter, A ref to the packet counter on the IP Tx I/F.
  *                               (counts all kinds and from all sessions).
@@ -1256,7 +1254,7 @@ void pL3MUX(
         stream<Ip4overAxi>          &siTOE_Data,
         ofstream                    &ipTxFile1,
         ofstream                    &ipTxFile2,
-        map<SocketPair, TcpAckNum>  &sessionList,
+        map<SocketPair, TcpAckNum>  &sessAckList,
         int                         &ipTx_PktCounter,
         int                         &ipTx_TcpBytCntr,
         deque<IpPacket>             &ipRxPacketizer)
@@ -1282,7 +1280,7 @@ void pL3MUX(
         //-- STEP-3 : Parse the received packet------------
         if (ipTxWord.tlast == 1) {
             // The whole packet is now into the deque.
-            if (pL3MUX_Parse(ipTxPacket, sessionList, ipRxPacketizer) == true) {
+            if (pL3MUX_Parse(ipTxPacket, sessAckList, ipRxPacketizer) == true) {
                 // Found an ACK
                 ipTx_PktCounter++;
                 int tcpPayloadSize = ipTxPacket.sizeOfTcpData();
@@ -2187,7 +2185,8 @@ int main(int argc, char *argv[]) {
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
 
-    map<SocketPair, TcpAckNum>    sessionList;
+    map<SocketPair, TcpAckNum>    sessAckList;
+    map<SocketPair, TcpSeqNum>    sessSeqList;
 
     //-- Double-ended queue of packets --------------------
     deque<IpPacket>   ipRxPacketizer; // Packets intended for the IPRX interface of TOE
@@ -2337,7 +2336,7 @@ int main(int argc, char *argv[]) {
         if (simCycCnt > STARTUP_DELAY) {
             pIPRX(ipRxFile,       appTxGold,
                   testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
-                  ipRxPacketizer, sessionList,     sIPRX_Toe_Data);
+                  ipRxPacketizer, sessAckList,     sIPRX_Toe_Data);
         }
 
         //-------------------------------------------------
@@ -2402,7 +2401,7 @@ int main(int argc, char *argv[]) {
             pL3MUX(
                 sTOE_L3mux_Data,
                 ipTxFile1,       ipTxFile2,
-                sessionList,
+                sessAckList,
                 ipTx_PktCounter, ipTx_TcpBytCntr,
                 ipRxPacketizer);
         }
@@ -2527,7 +2526,9 @@ int main(int argc, char *argv[]) {
     if (nrErr) {
         printError(THIS_NAME, "###########################################################\n");
         printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
-        printError(THIS_NAME, "###########################################################\n");
+        printError(THIS_NAME, "###########################################################\n\n");
+
+        printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
     }
         else {
         printInfo(THIS_NAME, "#############################################################\n");

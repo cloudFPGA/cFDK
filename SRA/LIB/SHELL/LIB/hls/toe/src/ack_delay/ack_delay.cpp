@@ -60,7 +60,7 @@ void ack_delay(
         soEVe_RxEventSig.write(true);
         // Check if there is a delayed ACK
         if (ev.type == ACK && ACK_TABLE[ev.sessionID] == 0) {
-            ACK_TABLE[ev.sessionID] = TIME_100ms;
+            ACK_TABLE[ev.sessionID] = TIME_100ms;  // [FIXME TIME_64us ??]
         }
         else {
             // Assumption no SYN/RST

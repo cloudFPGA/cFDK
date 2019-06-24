@@ -11,8 +11,8 @@
  *
  *****************************************************************************/
 
-#ifndef MEM_H_
-#define MEM_H_
+#ifndef DUMMY_MEMORY_H_
+#define DUMMY_MEMORY_H_
 
 #include "../../src/toe.hpp"
 

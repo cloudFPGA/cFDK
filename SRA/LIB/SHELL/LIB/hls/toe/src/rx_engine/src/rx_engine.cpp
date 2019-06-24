@@ -542,6 +542,8 @@ void pCheckSumAccumulator(
             csa_wordCount = 0;
             csa_wasLast = !sendWord.tlast;
             csa_doCSumVerif = true;
+            if (DEBUG_LEVEL & TRACE_CSA)
+                printAxiWord(myName, currWord);
         }
 
     } // End of: if (!siIph_Data.empty() && !csa_doCSumVerif)
@@ -592,6 +594,9 @@ void pCheckSumAccumulator(
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
                         soTid_DataVal.write(true);
+                        if (DEBUG_LEVEL & TRACE_CSA) {
+                            printInfo(myName, "Received end-of-packet. Checksum is correct.\n");
+                        }
                     }
                     // Request state of TCP_DP
                     soPRt_GetState.write(byteSwap16(csa_axiTcpDstPort));
@@ -605,9 +610,10 @@ void pCheckSumAccumulator(
                         printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
                                     csa_axiTcpCSum.to_uint(),
                                     byteSwap16(~csa_tcp_sums[0](15, 0) & 0xFFFF).to_uint());
-                        printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
-                                csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
-                                csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
+                        printSockPair(myName, csa_sessTuple);
+                        //printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
+                        //        csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
+                        //        csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
                     }
                 }
                 csa_doCSumVerif = false;
@@ -708,7 +714,8 @@ void pTcpInvalidDropper(
             soTsd_Data.write(currWord);
             if (currWord.tlast)
                 tid_fsmState = GET_VALID;
-            if (DEBUG_LEVEL & TRACE_TID) printAxiWord(myName, currWord);
+            if (DEBUG_LEVEL & TRACE_TID)
+                printAxiWord(myName, currWord);
         }
         break;
 
@@ -877,10 +884,10 @@ void pMetaDataHandler(
  * @brief Finite State machine (Fsm)
  *
  * @param[in]  siMdh_Meta,        Metadata from [MetDataHandler].
- * @param[in]  siSTt_SessStateRep,Session state reply from [StateTable].
+ * @param[in]  siSTt_AccessRep,   Access reply from [STt].
  * @param[in]  siRSt_RxSarUpdRep, Update reply from [RxSarTable].
  * @param[in]  siTSt_TxSarRdRep,  Read reply from [TxSarTable].
- * @param[out] soSTt_SessStateReq,Request to read the session state to [StateTable]].
+ * @param[out] soSTt_AccessReq,   Access request to StateTable [STt].
  * @param[out] soRSt_RxSarUpdReq, Request to update the session Rx SAR to [RxSarTable].
  * @param[out] soTSt_TxSarRdReq,  Request to read the session Tx SAR to [TxSarTable].
  * @param[out] soTIm_ReTxTimerCmd,Command for a retransmit timer of [Timers].
@@ -902,13 +909,12 @@ void pMetaDataHandler(
  *****************************************************************************/
 void pFiniteStateMachine(
         stream<rxFsmMetaData>               &siMdh_Meta,
-        stream<sessionState>                &siSTt_SessStateRep,
+        stream<SessionState>                &siSTt_AccessRep,
         stream<rxSarEntry>                  &siRSt_RxSarUpdRep,
         stream<rxTxSarReply>                &siTSt_TxSarRdRep,
-        stream<stateQuery>                  &soSTt_SessStateReq,
+        stream<StateQuery>                  &soSTt_AccessReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
         stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
-        //OBSOLETE-20190118 stream<rxRetransmitTimerUpdate>     &soTIm_ReTxTimerCmd,
         stream<ReTxTimerCmd>                &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
@@ -930,11 +936,11 @@ void pFiniteStateMachine(
     static uint16_t rxEngSynCounter = 0;
 
     ap_uint<4>      control_bits = 0;
-    sessionState    tcpState;
+    SessionState    tcpState;
     rxSarEntry      rxSar;
     rxTxSarReply    txSar;
 
-    static enum FsmState {LOAD=0, TRANSITION} fsmState=LOAD;
+    static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
 
     switch(fsmState) {
 
@@ -942,7 +948,7 @@ void pFiniteStateMachine(
         if (!siMdh_Meta.empty()) {
             siMdh_Meta.read(fsm_meta);
             // Request the current state of the session
-            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId));
+            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId));
             // Always request the rxSar, even though not required for SYN-ACK
             soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId));
 
@@ -957,7 +963,7 @@ void pFiniteStateMachine(
 
     case TRANSITION:
         // Check if transition to LOAD occurs
-        if (!siSTt_SessStateRep.empty() && !siRSt_RxSarUpdRep.empty() &&
+        if (!siSTt_AccessRep.empty() && !siRSt_RxSarUpdRep.empty() &&
             !(fsm_txSarRequest && siTSt_TxSarRdRep.empty())) {
             fsmState = LOAD;
             fsm_txSarRequest = false;
@@ -975,11 +981,9 @@ void pFiniteStateMachine(
             //-- ACK
             //--------------------------------------
             if (fsmState == LOAD) {
-                siSTt_SessStateRep.read(tcpState);
+                siSTt_AccessRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
-                //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
-                //OBSOLETE-20190181                                                 (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionId,
                                                      (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
@@ -1025,8 +1029,8 @@ void pFiniteStateMachine(
                         if ( (fsm_meta.meta.seqNumb == rxSar.recvd) &&
                              (free_space > fsm_meta.meta.length) ) {
                             soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, newRecvd, 1));
-                            // Build memory address for this segment
-                            ap_uint<32> memSegAddr;
+                            // Build memory address for this segment in the lower 2GB
+                            ap_uint<32> memSegAddr;   // [TODO-Typedef]
                             memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_meta.sessionId(13, 0);
                             memSegAddr(15,  0) = fsm_meta.meta.seqNumb.range(15, 0);
@@ -1038,10 +1042,10 @@ void pFiniteStateMachine(
                         }
                         else {
                             soTsd_DropCmd.write(DROP_CMD);
+                            if (fsm_meta.meta.seqNumb != rxSar.recvd)
+                                printWarn(myName, "The received sequence number (%d) is not the expected one (%d).\n",
+                                        fsm_meta.meta.seqNumb.to_uint(), rxSar.recvd.to_uint());
                         }
-
-                        // OBSOLETE-Sent ACK
-                        // OBSOLETE-soSetEvent.write(event(ACK, fsm_meta.sessionID));
                     }
                     if (txSar.count == 3) {
                         soEVe_Event.write(event(RT, fsm_meta.sessionId));
@@ -1055,24 +1059,24 @@ void pFiniteStateMachine(
                     if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                         switch (tcpState) {
                         case SYN_RECEIVED:  //TODO MAYBE REARRANGE
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, ESTABLISHED, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, ESTABLISHED, 1));
                             break;
                         case CLOSING:
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, TIME_WAIT, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, TIME_WAIT, 1));
                             soTIm_CloseTimer.write(fsm_meta.sessionId);
                             break;
                         case LAST_ACK:
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSED, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSED, 1));
                             break;
                         default:
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                             break;
                         }
                     }
                     else { // we have to release the lock
                         // reset rtTimer
                         // OBSOLETE rtTimer.write(rxRetransmitTimerUpdate(fsm_meta.sessionID));
-                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1)); // or ESTABLISHED
+                        soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1)); // or ESTABLISHED
                     }
                 } // End of : if ( (tcpState...
 
@@ -1084,7 +1088,7 @@ void pFiniteStateMachine(
                     if (fsm_meta.meta.length != 0) {
                         soTsd_DropCmd.write(DROP_CMD);
                     }
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, QUERY_WR));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, QUERY_WR));
                 }
                 //fsmState = LOAD;
             }
@@ -1095,11 +1099,11 @@ void pFiniteStateMachine(
             //-- SYN
             //--------------------------------------
             if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Segment is SYN.\n");
-            // OBBSOLETE if (!siSTt_SessStateRep.empty())
+            // OBBSOLETE if (!siSTt_AccessRep.empty())
             if (fsmState == LOAD) {
                 rxEngSynCounter++;
                 //std::cerr << "SYN Counter: " << rxEngSynCounter << std::endl;
-                siSTt_SessStateRep.read(tcpState);
+                siSTt_AccessRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 if (tcpState == CLOSED || tcpState == SYN_SENT) {
                     // Actually this is LISTEN || SYN_SENT
@@ -1112,18 +1116,18 @@ void pFiniteStateMachine(
                     soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionId));
                     if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_meta.sessionId.to_uint());
                     // Change State to SYN_RECEIVED
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, SYN_RECEIVED, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, SYN_RECEIVED, 1));
                 }
                 else if (tcpState == SYN_RECEIVED) { // && mdh_meta.seqNumb+1 == rxSar.recvd) // Maybe Check for seq
                     // If it is the same SYN, we resent SYN-ACK, almost like quick RT, we could also wait for RT timer
                     if (fsm_meta.meta.seqNumb+1 == rxSar.recvd) {
                         // Retransmit SYN_ACK
                         soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionId, 1));
-                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                        soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                     }
                     else { // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
                         soEVe_Event.write(rstEvent(fsm_meta.sessionId, fsm_meta.meta.seqNumb+1)); //length == 0
-                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSED, 1));
+                        soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSED, 1));
                     }
                 }
                 else { // Any synchronized state
@@ -1132,7 +1136,7 @@ void pFiniteStateMachine(
                     // TODo send RST, has no ACK??
                     // Respond with RST, no ACK, seq ==
                     //eventEngine.write(rstEvent(mdh_meta.seqNumb, mh_meta.length, true));
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                 }
             }
             break;
@@ -1141,9 +1145,9 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- SYN_ACK
             //--------------------------------------
-            //OBSOLETE if (!siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
+            //OBSOLETE if (!siSTt_AccessRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
-                siSTt_SessStateRep.read(tcpState);
+                siSTt_AccessRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
                 //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
@@ -1161,19 +1165,19 @@ void pFiniteStateMachine(
                     // Set ACK event
                     soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionId));
 
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, ESTABLISHED, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, ESTABLISHED, 1));
                     soTAi_SessOpnSts.write(OpenStatus(fsm_meta.sessionId, true));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
                     // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
                     soEVe_Event.write(rstEvent(fsm_meta.sessionId,
                                               fsm_meta.meta.seqNumb+fsm_meta.meta.length+1));
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSED, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSED, 1));
                 }
                 else {
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
                     soEVe_Event.write(event(ACK_NODELAY, fsm_meta.sessionId));
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                 }
             }
             break;
@@ -1182,9 +1186,9 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            //OBSOLETE if (!siRSt_RxSarUpdRep.empty() && !siSTt_SessStateRep.empty() && !siTSt_TxSarRdRep.empty())
+            //OBSOLETE if (!siRSt_RxSarUpdRep.empty() && !siSTt_AccessRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
-                siSTt_SessStateRep.read(tcpState);
+                siSTt_AccessRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
                 //OBSOLETE-20190118 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
@@ -1225,23 +1229,23 @@ void pFiniteStateMachine(
                     // Update state
                     if (tcpState == ESTABLISHED) {
                         soEVe_Event.write(event(FIN, fsm_meta.sessionId));
-                        soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, LAST_ACK, 1));
+                        soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, LAST_ACK, 1));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // check if final FIN is ACK'd -> LAST_ACK
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, TIME_WAIT, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, TIME_WAIT, 1));
                             soTIm_CloseTimer.write(fsm_meta.sessionId);
                         }
                         else {
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSING, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSING, 1));
                         }
                         soEVe_Event.write(event(ACK, fsm_meta.sessionId));
                     }
                 }
                 else { // NOT (ESTABLISHED || FIN_WAIT_1 || FIN_WAIT_2)
                     soEVe_Event.write(event(ACK, fsm_meta.sessionId));
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                     // If there is payload we need to drop it
                     if (fsm_meta.meta.length != 0) {
                         soTsd_DropCmd.write(DROP_CMD);
@@ -1255,7 +1259,7 @@ void pFiniteStateMachine(
             // If there is an ACK we read txSar
             // We always read rxSar
             if (fsmState == LOAD) {
-                siSTt_SessStateRep.read(tcpState);
+                siSTt_AccessRep.read(tcpState);
                 siRSt_RxSarUpdRep.read(rxSar); //TODO not sure nb works
                 siTSt_TxSarRdRep.read_nb(txSar);
             }
@@ -1268,14 +1272,14 @@ void pFiniteStateMachine(
                         if (fsm_meta.meta.ackNumb == txSar.nextByte) {
                             // Tell application, could not open connection
                             soTAi_SessOpnSts.write(OpenStatus(fsm_meta.sessionId, false));
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSED, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSED, 1));
                             //OBSOLETE-20180118 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                             soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionId,
                                                                   STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                         }
                     }
                     else {
@@ -1283,14 +1287,14 @@ void pFiniteStateMachine(
                         if (fsm_meta.meta.seqNumb == rxSar.recvd) {
                             // Tell application, RST occurred, abort
                             soRan_RxNotif.write(AppNotif(fsm_meta.sessionId, fsm_meta.ip4SrcAddr, fsm_meta.tcpDstPort, true)); //RESET
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, CLOSED, 1)); //TODO maybe some TIME_WAIT state
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, CLOSED, 1)); //TODO maybe some TIME_WAIT state
                             //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID, true));
                             soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionId,
                                                                   STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching window
-                            soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                            soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                         }
                     }
                 }
@@ -1298,7 +1302,7 @@ void pFiniteStateMachine(
                     //TODO maybe sent RST ourselves, or simply ignore
                     // For now ignore, sent ACK??
                     //eventsOut.write(rstEvent(mh_meta.seqNumb, 0, true));
-                    soSTt_SessStateReq.write(stateQuery(fsm_meta.sessionId, tcpState, 1));
+                    soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId, tcpState, 1));
                 } // End of: if (fsm_meta.meta.rst)
             } // if fsm_stat
             break;
@@ -1695,8 +1699,8 @@ void pDebug(
  * @param[in]  siIPRX_Data,         IP4 data stream form IPRX.
  * @param[out] soSLc_SessLookupReq, Session lookup request to SessionLookupController (SLc).
  * @param[in]  siSLc_SessLookupRep, Session lookup reply from [SLc].
- * @param[out] soSTt_SessStateReq,  Session state request to StateTable (STt).
- * @param[in]  siSTt_SessStateRep,  Session state reply from [STt].
+ * @param[out] soSTt_AccessReq,     Access request to StateTable (STt).
+ * @param[in]  siSTt_AccessRep,     Access reply from [STt].
  * @param[out] soPRt_PortStateReq,  Port state request to PortTable (PRt).
  * @param[in]  siPRt_PortStateRep,  Port state reply from [PRt].
  * @param[out] soRSt_RxSarUpdReq,   Rx session SAR update request to RxSarTable (RSt).
@@ -1729,8 +1733,8 @@ void rx_engine(
         stream<Ip4overAxi>              &siIPRX_Pkt,
         stream<sessionLookupQuery>      &soSLc_SessLookupReq,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
-        stream<stateQuery>              &soSTt_SessStateReq,
-        stream<sessionState>            &siSTt_SessStateRep,
+        stream<StateQuery>              &soSTt_AccessReq,
+        stream<SessionState>            &siSTt_AccessRep,
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<StsBit>                  &siPRt_PortStateRep,
         stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
@@ -1871,10 +1875,10 @@ void rx_engine(
 
     pFiniteStateMachine(
             sMdhToFsm_Meta,
-            siSTt_SessStateRep,
+            siSTt_AccessRep,
             siRSt_RxSarUpdRep,
             siTSt_TxSarRdRep,
-            soSTt_SessStateReq,
+            soSTt_AccessReq,
             soRSt_RxSarUpdReq,
             soTSt_TxSarRdReq,
             soTIm_ReTxTimerCmd,

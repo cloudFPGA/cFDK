@@ -19,6 +19,7 @@
 
 using namespace hls;
 
+/*** OBSOLETE-20190614 ********
 struct txAppTableEntry
 {
     ap_uint<16>     ackd;
@@ -27,33 +28,44 @@ struct txAppTableEntry
     txAppTableEntry(ap_uint<16> ackd, ap_uint<16> mempt)
             :ackd(ackd), mempt(mempt) {}
 };
+*******************************/
+
+class TxAppTableEntry
+{
+  public:
+    TcpAckNum       ackd;
+    ap_uint<16>     mempt;
+    TxAppTableEntry() {}
+    TxAppTableEntry(TcpAckNum ackd, ap_uint<16> mempt) :
+        ackd(ackd), mempt(mempt) {}
+};
+
 
 void tx_app_interface(
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
-
-        stream<sessionState>           &stateTable2txApp_rsp,
-        stream<txSarAckPush>           &txSar2txApp_ack_push,
-        stream<DmSts>                  &txBufferWriteStatus,
-
+        stream<TcpSessId>              &soSTt_SessStateReq,
+        stream<SessionState>           &siSTt_SessStateRep,
+        stream<txSarAckPush>           &siTSt_AckPush,
+        stream<DmSts>                  &siMEM_TxP_WrSts,
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
-        stream<sessionLookupReply>     &sLookup2txApp_rsp,
-        stream<ap_uint<16> >           &portTable2txApp_port_rsp,
-        stream<sessionState>           &stateTable2txApp_upd_rsp,
-        stream<OpenStatus>             &conEstablishedFifo,
+        stream<sessionLookupReply>     &siSLc_SessLookupRep,
+        stream<ap_uint<16> >           &siPRt_ActPortStateRep,
 
-        stream<ap_int<17> >            &appTxDataRsp,
-        stream<ap_uint<16> >           &txApp2stateTable_req,
-        stream<DmCmd>                  &txBufferWriteCmd,
+        stream<OpenStatus>             &siRXe_SessOpnSts,
+
+        stream<ap_int<17> >            &soTRIF_DSts,
+        stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
-        stream<txAppTxSarPush>         &txApp2txSar_push,
+        stream<TxSarTableAppPush>      &soTSt_AppPush,
 
-        stream<OpenStatus>             &appOpenConnRsp,
+        stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
-        stream<ReqBit>                 &soTAi_GetFreePortReq,
-        stream<stateQuery>             &txApp2stateTable_upd_req,
-        stream<event>                  &txApp2eventEng_setEvent,
+        stream<ReqBit>                 &soPRt_GetFreePortReq,
+        stream<StateQuery>             &soSTt_Taa_SessStateQry,
+        stream<SessionState>           &siSTt_Taa_SessStateRep,
+        stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         ap_uint<32>                     regIpAddress
 );

@@ -1,15 +1,30 @@
+/******************************************************************************
+ * @file       : state_table.hpp
+ * @brief      : State Table (STt)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ ******************************************************************************/
+
 #include "../toe.hpp"
 
 using namespace hls;
 
-/** @defgroup state_table State Table
- *  @ingroup tcp_module
- */
-void state_table(   stream<stateQuery>&         rxEng2stateTable_upd_req,
-                    stream<stateQuery>&         txApp2stateTable_upd_req,
-                    stream<ap_uint<16> >&       txApp2stateTable_req,
-                    stream<ap_uint<16> >&       timer2stateTable_releaseState,
-                    stream<sessionState>&       stateTable2rxEng_upd_rsp,
-                    stream<sessionState>&       stateTable2TxApp_upd_rsp,
-                    stream<sessionState>&       stateTable2txApp_rsp,
-                    stream<ap_uint<16> >&       stateTable2sLookup_releaseSession);
+/*****************************************************************************
+ * @brief   Main process of the State Table (STt).
+ *
+ *****************************************************************************/
+void state_table(
+        stream<StateQuery>         &siRXe_SessStateQry,
+        stream<SessionState>       &soRXe_SessStateRep,
+        stream<StateQuery>         &siTAi_Taa_StateQry,
+        stream<SessionState>       &soTAi_Taa_StateRep,
+        stream<SessionId>          &siTAi_Tas_StateReq,
+        stream<SessionState>       &soTAi_Tas_StateRep,
+        stream<SessionId>          &soSLc_SessCloseCmd,
+        stream<SessionId>          &soSLc_SessReleaseCmd
+);

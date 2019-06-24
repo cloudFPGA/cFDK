@@ -50,7 +50,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*****************************************************************************
@@ -107,7 +107,9 @@ void pMetaDataLoader(
 
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
-    static ap_uint<1>     mdl_FsmState = 0;
+    //OBSOLETE-20190620 static ap_uint<1>     mdl_FsmState = 0;
+    static enum FsmStates { S0, S1 } fsmState=S0;
+
     static bool           mdl_sarLoaded = false;
     static extendedEvent  mdl_curEvent;
     static ap_uint<32>    mdl_randomValue= 0x562301af; //Random seed initialization
@@ -124,9 +126,9 @@ void pMetaDataLoader(
 
     static uint16_t       txEngCounter = 0;
 
-    switch (mdl_FsmState) {
+    switch (fsmState) {
 
-    case 0:
+    case S0:
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
             soEVe_RxEventSig.write(true);
@@ -155,18 +157,20 @@ void pMetaDataLoader(
             default:
                 break;
             }
-            mdl_FsmState = 1;
+            fsmState = S1;
             mdl_randomValue++; //make sure it doesn't become zero TODO move this out of if, but breaks my testsuite
         }
         mdl_segmentCount = 0;
         break;
 
-    case 1:
+    case S1:
         switch(mdl_curEvent.type) {
 
         // When Nagle's algorithm disabled; Can bypass DDR
         #if (TCP_NODELAY)
         case TX:
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event TX.\n");
             if ((!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
                 if (!ml_sarLoaded) {
                     rxSar2txEng_rsp.read(rxSar);
@@ -212,6 +216,8 @@ void pMetaDataLoader(
             break;
         #else
         case TX:
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event TX.\n");
             // Sends everything between txSar.not_ackd and txSar.app
             if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
@@ -257,7 +263,7 @@ void pMetaDataLoader(
                         if (txSar.finReady && (txSar.ackd == txSar.not_ackd || currLength == 0)) // If we sent all data, there might be a fin we have to sent too
                             mdl_curEvent.type = FIN;
                         else
-                            mdl_FsmState = 0;
+                            fsmState = S0;
 
                         // Check if small segment and if unacknowledged data in pipe (Nagle)
                         if (txSar.ackd == txSar.not_ackd) {
@@ -289,7 +295,7 @@ void pMetaDataLoader(
                         // Set probe Timer to try again later
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
                         soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
-                        mdl_FsmState = 0;
+                        fsmState = S0;
                     }
                 }
 
@@ -314,6 +320,8 @@ void pMetaDataLoader(
         #endif
 
         case RT:
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event RT.\n");
             if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRdRep.read(rxSar);
@@ -360,7 +368,7 @@ void pMetaDataLoader(
                     if (mdl_segmentCount == 3) {
                         // Should set a probe or sth??
                         //txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, txSar.not_ackd, 1));
-                        mdl_FsmState = 0;
+                        fsmState = S0;
                     }
                     mdl_segmentCount++;
                 }
@@ -369,7 +377,7 @@ void pMetaDataLoader(
                     if (txSar.finSent)
                         mdl_curEvent.type = FIN;
                     else
-                        mdl_FsmState = 0;
+                        fsmState = S0;
                 }
 
                 // Only send a packet if there is data
@@ -394,6 +402,8 @@ void pMetaDataLoader(
 
         case ACK:
         case ACK_NODELAY:
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event ACK.\n");
             if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) {
                 siRSt_RxSarRdRep.read(rxSar);
                 siTSt_TxSarUpdRep.read(txSar);
@@ -411,11 +421,13 @@ void pMetaDataLoader(
                 soIhc_TxeMeta.write(txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             break;
 
         case SYN:
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event SYN.\n");
             if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarUpdRep.empty()) || (mdl_curEvent.rt_count == 0)) {
                 if (mdl_curEvent.rt_count != 0) {
                     siTSt_TxSarUpdRep.read(txSar);
@@ -444,12 +456,13 @@ void pMetaDataLoader(
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 // Set retransmit timer
                 soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID, SYN_EVENT));
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             break;
 
         case SYN_ACK:
-            if (DEBUG_LEVEL & TRACE_MDL) printInfo(myName, "Got event SYN_ACK.\n");
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event SYN_ACK.\n");
 
             if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) {
                 siRSt_RxSarRdRep.read(rxSar);
@@ -482,12 +495,13 @@ void pMetaDataLoader(
 
                 // Set retransmit timer
                 soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID, SYN_ACK_EVENT));
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             break;
 
         case FIN:
-            if (DEBUG_LEVEL & TRACE_MDL) printInfo(myName, "Got event FIN.\n");
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event FIN.\n");
 
             if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
@@ -528,12 +542,13 @@ void pMetaDataLoader(
                     // Set retransmit timer
                     soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID));
                 }
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             break;
 
         case RST:
-            if (DEBUG_LEVEL & TRACE_MDL) printInfo(myName, "Got event FIN.\n");
+            if (DEBUG_LEVEL & TRACE_MDL)
+                printInfo(myName, "Got event RST.\n");
 
             // Assumption RST length == 0
             resetEvent = mdl_curEvent;
@@ -542,7 +557,7 @@ void pMetaDataLoader(
                 soIhc_TxeMeta.write(tx_engine_meta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 soSps_IsLookup.write(false);
                 soSps_RstSockPair.write(mdl_curEvent.tuple);
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             else if (!siTSt_TxSarUpdRep.empty()) {
                 siTSt_TxSarUpdRep.read(txSar);
@@ -550,7 +565,7 @@ void pMetaDataLoader(
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(resetEvent.sessionID); //there is no sessionID??
                 soIhc_TxeMeta.write(tx_engine_meta(txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
-                mdl_FsmState = 0;
+                fsmState = S0;
             }
             break;
 
@@ -567,7 +582,7 @@ void pMetaDataLoader(
  * @param[in]  siSLc_ReverseLkpRep, Reverse lookup reply from Session Lookup Controller (SLc).
  * @param[in]  siMdl_RstSockPair,   The socket pair to reset from Meta Data Loader (Mdh).
  * @param[in]  txEng_isLookUpFifoIn
- * @param[out] soIhc_IpAddrPair,    IP_SA and IP_DA to Ip Header Condtructor (Ihc).
+ * @param[out] soIhc_IpAddrPair,    IP_SA and IP_DA to Ip Header Constructor (Ihc).
  * @param[out] soPhc_SocketPair,    The socket pair to Pseudo Header Constructor (Phc).
  *
  * @details
@@ -591,7 +606,7 @@ void pSocketPairSplitter(
 	static bool ts_getMeta = true;
     static bool ts_isLookUp;
 
-    fourTuple   tuple;	// [FIXME - Update to SocketPair]
+    fourTuple      tuple;  // [FIXME - Update to SocketPair]
     AxiSocketPair  sockPair;
 
     if (ts_getMeta) {
@@ -607,7 +622,8 @@ void pSocketPairSplitter(
                                         AxiSockAddr(tuple.dstIp, tuple.dstPort));
             if (DEBUG_LEVEL & TRACE_SPS) {
                printInfo(myName, "Received the following socket-pair from [SLc]: \n");
-               printAxiSockPair(myName, axiSocketPair);
+               //OBSOLETE-20190620 printAxiSockPair(myName, axiSocketPair);
+               printSockPair(myName, axiSocketPair);
             }
             soIhc_IpAddrPair.write(IpAddrPair(axiSocketPair.src.addr, axiSocketPair.dst.addr));
             soPhc_SocketPair.write(axiSocketPair);
