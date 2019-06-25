@@ -32,7 +32,7 @@ Please consider reading the following HLS naming conventions document before div
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
 | **RXe**         | Rx Engine.                                            | rx_engine
-| **TXe**         | Tx Engine.                                            | tx_engine/dataL/fab/cloudFPGA/cFp_Flash/cFDK/SRA/LIB/SHELL/LIB/hls/toe
+| **TXe**         | Tx Engine.                                            | tx_engine
 | **RAi**         | Rx Application Interface.                             | rx_app_if
 | **TAi**         | Tx Application Interface.                             | tx_app_interface
 | **RSt**         | Rx Sar Table.                                         | rx_sar_table
@@ -41,8 +41,8 @@ Please consider reading the following HLS naming conventions document before div
 | **AKd(Evd)**    | Ack Delayer(Event Delayer).                           | ack_delay
 | **TIm**         | Timers.                                               | 
 | **STt**         | State Table.                                          | state_table
-| **PRt**         | Port Table.                                           | port_table
-| **SLc**         | Session Lookup Controller.                            | session_lookup_controller
+| **[PRt](#prt)**         | Port Table.                                           | port_table
+| **[SLc](#slc)**         | Session Lookup Controller.                            | session_lookup_controller
 
 <br>
 
@@ -54,4 +54,14 @@ The structure of the PRt is as follows:
 - **pTodo1** | Process 1
 - **pTodo2** | Process 2
 
+### <a name="slc"></a>Session Lookup Controller (SLc)
+
+The structure of the SLc is as follows:
+
+- **SLc** | Session Lookup Controller
+  - **Sim** | Session Id Manager
+  - **Lrh** | Lookup Reply Handler
+  - **Urs** | Update Request Sender
+  - **Urh** | Update Reply Handler
+  - **Rlt** | Reverse Lookup Table
 
