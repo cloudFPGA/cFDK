@@ -1,107 +1,135 @@
+/*****************************************************************************
+ * @file       : tx_sar_table.cpp
+ * @brief      : Tx Segmentation And Re-assembly Table (TSt).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
+ * Copyright 2015-2018 - IBM Research - All Rights Reserved.
+ *
+ *****************************************************************************/
+
 #include "tx_sar_table.hpp"
 
 using namespace hls;
 
+#define THIS_NAME "TOE/TSt"
+
+
 /*******************************************************************************
- * @brief Tx Sar Table (TSt)
+ * @brief Tx Sar Table (TSt) - Stores the data structures for managing the
+ *         TCP Tx buffer and Tx sliding window.
+ *
+ * @param[in]  rxEng2txSar_upd_req
+ * @param[in]  siTXe_TxSarQry,       Tx SAR query from TxEngine (TXe).
+ * @param[out] soTXe_TxSarRep,       Tx SAR reply to [TXe].
+ * @param[in]  siTAi_AppPush,        Push 'app' from TxAppInterface (TAi).
+ * @param[out] txSar2rxEng_upd_rsp
+ * @param[out] soTAi_AckPush,       Pushes an AckNum onto the ACK table of [TAi].
  *
  * @details
- *  This data structure stores the information to manage the Tx sliding window.
- *  It is accessed by the RxEngine (RXe), the TxAppInterface (TAi) and the
- *  TxEngine (TXe).
+ *  This process is accessed by the RxEngine (RXe), the TxAppInterface (TAi) and
+ *   the TxEngine (TXe).
  *
- *  @TODO check if locking is actually required, especially for rxOut
- *  @param[in] rxEng2txSar_upd_req
- *  @param[in] txEng2txSar_upd_req
- *  @param[in] siTAi_AppPush,        Push 'app' from TxAppInterface (TAi).
- *  @param[out] txSar2rxEng_upd_rsp
- *  @param[out] txSar2txEng_upd_rsp
- *  @param[out] soTAi_AckPush,       Pushes an AckNum onto the ACK table of [TAi].
+ * @TODO check if locking is actually required, especially for rxOut
+ *
  *******************************************************************************/
 void tx_sar_table(
         stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
-        stream<txTxSarQuery>       &txEng2txSar_upd_req,
+        stream<txTxSarQuery>       &siTXe_TxSarQry,
+        stream<txTxSarReply>       &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
         stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,
-        stream<txTxSarReply>       &txSar2txEng_upd_rsp,
         stream<txSarAckPush>       &soTAi_AckPush)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static txSarEntry               TX_TABLE[MAX_SESSIONS];
-    #pragma HLS DEPENDENCE variable=TX_TABLE inter false
-    #pragma HLS RESOURCE   variable=TX_TABLE core=RAM_T2P_BRAM
+    static TxSarEntry               TX_SAR_TABLE[MAX_SESSIONS];
+    #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
+    #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
 
-    txTxSarQuery      tst_txEngUpdate;
+    txTxSarQuery      sTXeQry;
     txTxSarRtQuery    txEngRtUpdate;
     rxTxSarQuery      tst_rxEngUpdate;
     TxSarTableAppPush appPush;
 
-    if (!txEng2txSar_upd_req.empty()) { // TX Engine
-        txEng2txSar_upd_req.read(tst_txEngUpdate);
-        if (tst_txEngUpdate.write) {
-            if (!tst_txEngUpdate.isRtQuery) {
-                TX_TABLE[tst_txEngUpdate.sessionID].not_ackd = tst_txEngUpdate.not_ackd;
-                if (tst_txEngUpdate.init) {
-                    TX_TABLE[tst_txEngUpdate.sessionID].app = tst_txEngUpdate.not_ackd;
-                    TX_TABLE[tst_txEngUpdate.sessionID].ackd = tst_txEngUpdate.not_ackd-1;
-                    TX_TABLE[tst_txEngUpdate.sessionID].cong_window = 0x3908; // 10 x 1460(MSS)
-                    TX_TABLE[tst_txEngUpdate.sessionID].slowstart_threshold = 0xFFFF;
-                    soTAi_AckPush.write(txSarAckPush(tst_txEngUpdate.sessionID,
-                                                     tst_txEngUpdate.not_ackd, 1)); // Init ACK to txAppInterface
+    if (!siTXe_TxSarQry.empty()) {
+        //----------------------------------------
+        //-- Query from TX Engine
+        //----------------------------------------
+        siTXe_TxSarQry.read(sTXeQry);
+        if (sTXeQry.write) {
+            if (!sTXeQry.isRtQuery) {
+                TX_SAR_TABLE[sTXeQry.sessionID].not_ackd = sTXeQry.not_ackd;
+                if (sTXeQry.init) {
+                    TX_SAR_TABLE[sTXeQry.sessionID].app         = sTXeQry.not_ackd;
+                    TX_SAR_TABLE[sTXeQry.sessionID].ackd        = sTXeQry.not_ackd-1;
+                    TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS)
+                    TX_SAR_TABLE[sTXeQry.sessionID].slowstart_threshold = 0xFFFF;
+                    // Init ACK to txAppInterface
+                    soTAi_AckPush.write(txSarAckPush(sTXeQry.sessionID,
+                                                     sTXeQry.not_ackd, 1));
                 }
-                if (tst_txEngUpdate.finReady)
-                    TX_TABLE[tst_txEngUpdate.sessionID].finReady = tst_txEngUpdate.finReady;
-                if (tst_txEngUpdate.finSent)
-                    TX_TABLE[tst_txEngUpdate.sessionID].finSent = tst_txEngUpdate.finSent;
+                if (sTXeQry.finReady)
+                    TX_SAR_TABLE[sTXeQry.sessionID].finReady = sTXeQry.finReady;
+                if (sTXeQry.finSent)
+                    TX_SAR_TABLE[sTXeQry.sessionID].finSent  = sTXeQry.finSent;
             }
             else {
-                txEngRtUpdate = tst_txEngUpdate;
-                TX_TABLE[tst_txEngUpdate.sessionID].slowstart_threshold = txEngRtUpdate.getThreshold();
-                TX_TABLE[tst_txEngUpdate.sessionID].cong_window = 0x3908; // 10 x 1460(MSS) TODO is this correct or less, eg. 1/2 * MSS
+                txEngRtUpdate = sTXeQry;
+                TX_SAR_TABLE[sTXeQry.sessionID].slowstart_threshold = txEngRtUpdate.getThreshold();
+                TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS) TODO is this correct or less, eg. 1/2 * MSS
             }
         }
-        else { // Read
-            ap_uint<16> minWindow;
-            if (TX_TABLE[tst_txEngUpdate.sessionID].cong_window < TX_TABLE[tst_txEngUpdate.sessionID].recv_window)
-                minWindow = TX_TABLE[tst_txEngUpdate.sessionID].cong_window;
+        else {
+            //-- Read -----------------
+            TcpWindow   minWindow;
+            if (TX_SAR_TABLE[sTXeQry.sessionID].cong_window < TX_SAR_TABLE[sTXeQry.sessionID].recv_window)
+                minWindow = TX_SAR_TABLE[sTXeQry.sessionID].cong_window;
             else
-                minWindow = TX_TABLE[tst_txEngUpdate.sessionID].recv_window;
-            txSar2txEng_upd_rsp.write(txTxSarReply( TX_TABLE[tst_txEngUpdate.sessionID].ackd,
-                                                    TX_TABLE[tst_txEngUpdate.sessionID].not_ackd,
-                                                    minWindow,
-                                                    TX_TABLE[tst_txEngUpdate.sessionID].app,
-                                                    TX_TABLE[tst_txEngUpdate.sessionID].finReady,
-                                                    TX_TABLE[tst_txEngUpdate.sessionID].finSent));
+                minWindow = TX_SAR_TABLE[sTXeQry.sessionID].recv_window;
+            soTXe_TxSarRep.write(txTxSarReply( TX_SAR_TABLE[sTXeQry.sessionID].ackd,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].not_ackd,
+                                               minWindow,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].app,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].finReady,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].finSent));
         }
     }
 
     else if (!siTAi_AppPush.empty()) {
-        // Push app pointer
+        //---------------------------------------
+        //-- Push app pointer
+        //---------------------------------------
         siTAi_AppPush.read(appPush);
-        TX_TABLE[appPush.sessionID].app = appPush.app;
+        TX_SAR_TABLE[appPush.sessionID].app = appPush.app;
     }
-    else if (!rxEng2txSar_upd_req.empty()) { // RX Engine
+    else if (!rxEng2txSar_upd_req.empty()) {
+        //---------------------------------------
+        //-- RX Engine
+        //---------------------------------------
         rxEng2txSar_upd_req.read(tst_rxEngUpdate);
         if (tst_rxEngUpdate.write) {
-            TX_TABLE[tst_rxEngUpdate.sessionID].ackd = tst_rxEngUpdate.ackd;
-            TX_TABLE[tst_rxEngUpdate.sessionID].recv_window = tst_rxEngUpdate.recv_window;
-            TX_TABLE[tst_rxEngUpdate.sessionID].cong_window = tst_rxEngUpdate.cong_window;
-            TX_TABLE[tst_rxEngUpdate.sessionID].count = tst_rxEngUpdate.count;
+            TX_SAR_TABLE[tst_rxEngUpdate.sessionID].ackd        = tst_rxEngUpdate.ackd;
+            TX_SAR_TABLE[tst_rxEngUpdate.sessionID].recv_window = tst_rxEngUpdate.recv_window;
+            TX_SAR_TABLE[tst_rxEngUpdate.sessionID].cong_window = tst_rxEngUpdate.cong_window;
+            TX_SAR_TABLE[tst_rxEngUpdate.sessionID].count       = tst_rxEngUpdate.count;
             if (tst_rxEngUpdate.init == 1) {
-                TX_TABLE[tst_rxEngUpdate.sessionID].finReady = false;
-                TX_TABLE[tst_rxEngUpdate.sessionID].finSent = false;
+                TX_SAR_TABLE[tst_rxEngUpdate.sessionID].finReady = false;
+                TX_SAR_TABLE[tst_rxEngUpdate.sessionID].finSent = false;
             }
             // Push ACK to txAppInterface
             soTAi_AckPush.write(txSarAckPush(tst_rxEngUpdate.sessionID, tst_rxEngUpdate.ackd));
         }
         else {
-            txSar2rxEng_upd_rsp.write(rxTxSarReply( TX_TABLE[tst_rxEngUpdate.sessionID].ackd,
-                                                    TX_TABLE[tst_rxEngUpdate.sessionID].not_ackd,
-                                                    TX_TABLE[tst_rxEngUpdate.sessionID].cong_window,
-                                                    TX_TABLE[tst_rxEngUpdate.sessionID].slowstart_threshold,
-                                                    TX_TABLE[tst_rxEngUpdate.sessionID].count));
+            txSar2rxEng_upd_rsp.write(rxTxSarReply( TX_SAR_TABLE[tst_rxEngUpdate.sessionID].ackd,
+                                                    TX_SAR_TABLE[tst_rxEngUpdate.sessionID].not_ackd,
+                                                    TX_SAR_TABLE[tst_rxEngUpdate.sessionID].cong_window,
+                                                    TX_SAR_TABLE[tst_rxEngUpdate.sessionID].slowstart_threshold,
+                                                    TX_SAR_TABLE[tst_rxEngUpdate.sessionID].count));
         }
     }
 }

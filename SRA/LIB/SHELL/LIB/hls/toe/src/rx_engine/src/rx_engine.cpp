@@ -910,7 +910,7 @@ void pMetaDataHandler(
 void pFiniteStateMachine(
         stream<rxFsmMetaData>               &siMdh_Meta,
         stream<SessionState>                &siSTt_AccessRep,
-        stream<rxSarEntry>                  &siRSt_RxSarUpdRep,
+        stream<RxSarEntry>                  &siRSt_RxSarUpdRep,
         stream<rxTxSarReply>                &siTSt_TxSarRdRep,
         stream<StateQuery>                  &soSTt_AccessReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
@@ -937,7 +937,7 @@ void pFiniteStateMachine(
 
     ap_uint<4>      control_bits = 0;
     SessionState    tcpState;
-    rxSarEntry      rxSar;
+    RxSarEntry      rxSar;
     rxTxSarReply    txSar;
 
     static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
@@ -1738,11 +1738,10 @@ void rx_engine(
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<StsBit>                  &siPRt_PortStateRep,
         stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
-        stream<rxSarEntry>              &siRSt_RxSarUpdRep,
+        stream<RxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
         stream<rxTxSarReply>            &siTSt_TxSarRdRep,
         stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
-		//OBSOLETE-20190118 stream<rxRetransmitTimerUpdate> &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,

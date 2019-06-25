@@ -67,7 +67,7 @@ void rx_engine(
         stream<AxiTcpPort>              &soPRt_GetPortState,
         stream<StsBit>                  &siPRt_PortSts,
         stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
-        stream<rxSarEntry>              &siRSt_RxSarUpdRep,
+        stream<RxSarEntry>              &siRSt_RxSarUpdRep,
         stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
         stream<rxTxSarReply>            &siTSt_TxSarRdRep,
         stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
