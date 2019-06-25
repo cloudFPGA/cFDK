@@ -25,23 +25,23 @@ using namespace hls;
 /********************************************
  * TXe - MetaData Interface
  ********************************************/
-struct tx_engine_meta // [FIXME -same as rxEngineMetaData, therefore consider renaming
-{                     //         the same way .i.e, 'txEngineMetaData'
-    TcpSeqNum   seqNumb;    // TCP Sequence Number        //OBSOLETE-20181126 ap_uint<32> seqNumb;
-    TcpAckNum   ackNumb;    // TCP Acknowledgment Number  //OBSOLETE-20181126 ap_uint<32> ackNumb;
-    TcpWindow   winSize;    // TCP Window Size            //OBSOLETE-20181126 ap_uint<16> window_size;
-    TcpSegLen   length;     // TCP Segment Length         //OBSOLETE-20181126 ap_uint<16> length;
+class TXeMeta {
+  public:
+    TcpSeqNum   seqNumb;
+    TcpAckNum   ackNumb;
+    TcpWindow   winSize;
+    TcpSegLen   length;
     ap_uint<1>  ack;
     ap_uint<1>  rst;
     ap_uint<1>  syn;
     ap_uint<1>  fin;
-    tx_engine_meta() {}
-    tx_engine_meta(ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
-            : seqNumb(0), ackNumb(0), winSize(0), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
-    tx_engine_meta(ap_uint<32> seqNumb, ap_uint<32> ackNumb, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
-            : seqNumb(seqNumb), ackNumb(ackNumb), winSize(0), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
-    tx_engine_meta(ap_uint<32> seqNumb, ap_uint<32> ackNumb, ap_uint<16> winSize, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
-            : seqNumb(seqNumb), ackNumb(ackNumb), winSize(winSize), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
+    TXeMeta() {}
+    TXeMeta(ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
+        : seqNumb(0), ackNumb(0), winSize(0), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
+    TXeMeta(TcpSeqNum seqNumb, TcpAckNum ackNumb, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
+        : seqNumb(seqNumb), ackNumb(ackNumb), winSize(0), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
+    TXeMeta(TcpSeqNum seqNumb, TcpAckNum ackNumb, TcpWindow winSize, ap_uint<1> ack, ap_uint<1> rst, ap_uint<1> syn, ap_uint<1> fin)
+        : seqNumb(seqNumb), ackNumb(ackNumb), winSize(winSize), length(0), ack(ack), rst(rst), syn(syn), fin(fin) {}
 };
 
 
@@ -83,7 +83,7 @@ struct IpAddrPair
 void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<rxSarEntry>              &siRSt_RxSarRdRep,
+        stream<RxSarEntry>              &siRSt_RxSarRdRep,
         stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
         stream<txTxSarReply>            &siTSt_TxSarUpdRep,
         stream<AxiWord>                 &siMEM_TxP_Data,

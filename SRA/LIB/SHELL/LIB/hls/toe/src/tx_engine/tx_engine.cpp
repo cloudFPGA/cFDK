@@ -8,17 +8,7 @@
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
+
  *****************************************************************************/
 
 #include "../../src/tx_engine/tx_engine.hpp"
@@ -59,8 +49,8 @@ using namespace hls;
  * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
  * @param[out] soRSt_RxSarRdReq,   Request to read to Rx SAR Table (RSt).
  * @param[in]  siRSt_RxSarRdRep,   Read reply from Rx SAR Table (RSt).
- * @param[out] soTSt_TxSarUpdReq,  Request to update the Tx SAR Table (TSt).
- * @param[in]  siTSt_TxSarUpdRep,  Update reply from Tx SAR Table (TSt).
+ * @param[out] soTSt_TxSarQry,     TxSar query to Tx SAR Table (TSt).
+ * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set the probe timer to Timers (TIm).
  * @param[out] soMai_BufferRdCmd,  Buffer read command to Memory Access Interface (MAi).
@@ -88,13 +78,13 @@ using namespace hls;
 void pMetaDataLoader(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<rxSarEntry>              &siRSt_RxSarRdRep,
-        stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
-        stream<txTxSarReply>            &siTSt_TxSarUpdRep,
+        stream<RxSarEntry>              &siRSt_RxSarRdRep,
+        stream<txTxSarQuery>            &soTSt_TxSarQry,
+        stream<txTxSarReply>            &siTSt_TxSarRep,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
-        stream<tx_engine_meta>          &soIhc_TxeMeta,
+        stream<TXeMeta>                 &soIhc_TxeMeta,
         stream<DmCmd>                   &soMai_BufferRdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
@@ -107,21 +97,21 @@ void pMetaDataLoader(
 
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
-    //OBSOLETE-20190620 static ap_uint<1>     mdl_FsmState = 0;
     static enum FsmStates { S0, S1 } fsmState=S0;
 
     static bool           mdl_sarLoaded = false;
     static extendedEvent  mdl_curEvent;
     static ap_uint<32>    mdl_randomValue= 0x562301af; //Random seed initialization
     static ap_uint<2>     mdl_segmentCount = 0;
-    static rxSarEntry     rxSar;
+    static RxSarEntry     rxSar;
     static txTxSarReply   txSar;
+    static TXeMeta        txeMeta;
 
     TcpWindow             windowSize;
-    ap_uint<16>           currLength;
-    ap_uint<16>           usableWindow;
+    TcpWindow             usableWindow;
+    TcpSegLen             currLength;
     ap_uint<16>           slowstart_threshold;
-    static tx_engine_meta txeMeta;
+
     rstEvent              resetEvent;
 
     static uint16_t       txEngCounter = 0;
@@ -142,17 +132,17 @@ void pMetaDataLoader(
             case ACK:
             case ACK_NODELAY:
                 soRSt_RxSarRdReq.write(mdl_curEvent.sessionID);
-                soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID));
+                soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case RST:
                 // Get txSar for SEQ numb
                 resetEvent = mdl_curEvent;
                 if (resetEvent.hasSessionID())
-                    soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID));
+                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case SYN:
                 if (mdl_curEvent.rt_count != 0)
-                    soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID));
+                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
                 break;
             default:
                 break;
@@ -219,10 +209,10 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event TX.\n");
             // Sends everything between txSar.not_ackd and txSar.app
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRdRep.read(rxSar);
-                    siTSt_TxSarUpdRep.read(txSar);
+                    siTSt_TxSarRep.read(txSar);
                 }
 
                 //Compute our space, Advertise at least a quarter/half, otherwise 0
@@ -247,10 +237,10 @@ void pMetaDataLoader(
                 }
 
                 // Construct address before modifying txSar.not_ackd
-                ap_uint<32> pkgAddr;  // 0x40000000
-                pkgAddr(31, 30) = 0x01;
-                pkgAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
-                pkgAddr(15,  0) = txSar.not_ackd(15, 0); //ml_curEvent.address;
+                RxMemPtr segAddr;  // 0x40000000
+                segAddr(31, 30) = 0x01;
+                segAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
+                segAddr(15,  0) = txSar.not_ackd(15, 0); //ml_curEvent.address;
 
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
@@ -275,7 +265,7 @@ void pMetaDataLoader(
                         }
 
                         // Write back txSar not_ackd pointer
-                        soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
 
                     }
                 }
@@ -294,13 +284,13 @@ void pMetaDataLoader(
                         }
                         // Set probe Timer to try again later
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
                         fsmState = S0;
                     }
                 }
 
                 if (txeMeta.length != 0)
-                    soMai_BufferRdCmd.write(DmCmd(pkgAddr, txeMeta.length));
+                    soMai_BufferRdCmd.write(DmCmd(segAddr, txeMeta.length));
 
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
@@ -322,10 +312,10 @@ void pMetaDataLoader(
         case RT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event RT.\n");
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRdRep.read(rxSar);
-                    siTSt_TxSarUpdRep.read(txSar);
+                    siTSt_TxSarRep.read(txSar);
                 }
 
                 // Compute our window size
@@ -354,7 +344,7 @@ void pMetaDataLoader(
                         slowstart_threshold = currLength/2;
                     else
                         slowstart_threshold = (2 * MMS);
-                    soTSt_TxSarUpdReq.write(txTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
+                    soTSt_TxSarQry.write(txTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
 
                 // Since we are retransmitting from txSar.ackd to txSar.not_ackd, this data is already inside the usableWindow
@@ -404,9 +394,9 @@ void pMetaDataLoader(
         case ACK_NODELAY:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event ACK.\n");
-            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) {
+            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRdRep.read(rxSar);
-                siTSt_TxSarUpdRep.read(txSar);
+                siTSt_TxSarRep.read(txSar);
                 windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1;
                 //OBSOLETE20181130 txeMeta = tx_engine_meta(txSar.not_ackd, rxSar.recvd, windowSize, 1, 0, 0, 0);
                 txeMeta.ackNumb = rxSar.recvd;
@@ -428,16 +418,16 @@ void pMetaDataLoader(
         case SYN:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event SYN.\n");
-            if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarUpdRep.empty()) || (mdl_curEvent.rt_count == 0)) {
+            if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarRep.empty()) || (mdl_curEvent.rt_count == 0)) {
                 if (mdl_curEvent.rt_count != 0) {
-                    siTSt_TxSarUpdRep.read(txSar);
+                    siTSt_TxSarRep.read(txSar);
                     txeMeta.seqNumb = txSar.ackd;
                 }
                 else {
                     txSar.not_ackd = mdl_randomValue; // FIXME better rand()
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
                     txeMeta.seqNumb = txSar.not_ackd;
-                    soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
+                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
                 }
 
                 //OBSOLETE-20181130 txeMeta = tx_engine_meta(0, 0, 0xFFFF, 0, 0, 1, 0);
@@ -464,9 +454,9 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event SYN_ACK.\n");
 
-            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) {
+            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRdRep.read(rxSar);
-                siTSt_TxSarUpdRep.read(txSar);
+                siTSt_TxSarRep.read(txSar);
 
                 // Construct SYN_ACK message
                 //OBSOLETE-20181126 txeMeta = tx_engine_meta(0, rxSar.recvd, 0xFFFF, 1, 0, 1, 0);
@@ -484,7 +474,7 @@ void pMetaDataLoader(
                     txSar.not_ackd = mdl_randomValue; // FIXME better rand();
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
                     txeMeta.seqNumb = txSar.not_ackd;
-                    soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID,
+                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID,
                                             txSar.not_ackd+1, 1, 1));
                 }
 
@@ -503,10 +493,10 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event FIN.\n");
 
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarUpdRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRdRep.read(rxSar);
-                    siTSt_TxSarUpdRep.read(txSar);
+                    siTSt_TxSarRep.read(txSar);
                 }
                 // Construct FIN message
                 windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1;
@@ -528,9 +518,9 @@ void pMetaDataLoader(
                     // Check if all data is sent, otherwise we have to delay FIN message
                     // Set fin flag, such that probeTimer is informed
                     if (txSar.app == txSar.not_ackd(15, 0))
-                        soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
+                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
                     else
-                        soTSt_TxSarUpdReq.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
+                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
                 }
 
                 // Check if there is a FIN to be sent //TODO maybe restrict this
@@ -554,17 +544,17 @@ void pMetaDataLoader(
             resetEvent = mdl_curEvent;
             if (!resetEvent.hasSessionID()) {
                 soIhc_TcpSegLen.write(0);
-                soIhc_TxeMeta.write(tx_engine_meta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
+                soIhc_TxeMeta.write(TXeMeta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 soSps_IsLookup.write(false);
                 soSps_RstSockPair.write(mdl_curEvent.tuple);
                 fsmState = S0;
             }
-            else if (!siTSt_TxSarUpdRep.empty()) {
-                siTSt_TxSarUpdRep.read(txSar);
+            else if (!siTSt_TxSarRep.empty()) {
+                siTSt_TxSarRep.read(txSar);
                 soIhc_TcpSegLen.write(0);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(resetEvent.sessionID); //there is no sessionID??
-                soIhc_TxeMeta.write(tx_engine_meta(txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
+                soIhc_TxeMeta.write(TXeMeta(txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 fsmState = S0;
             }
             break;
@@ -770,7 +760,7 @@ void pIpHeaderConstructor(
  * @ingroup tx_engine
  *****************************************************************************/
 void pPseudoHeaderConstructor(
-        stream<tx_engine_meta>      &siMdl_TxeMeta,
+        stream<TXeMeta>             &siMdl_TxeMeta,
         stream<AxiSocketPair>       &siSps_SockPair,
         stream<AxiWord>             &soTss_TcpWord)
 {
@@ -782,9 +772,8 @@ void pPseudoHeaderConstructor(
 
     static uint16_t       phc_wordCount = 0;
     TcpWord               sendWord;
-    static tx_engine_meta phc_meta;
+    static TXeMeta        phc_meta;
     static AxiSocketPair  phc_sockPair;
-    //OBSOLETE-20181130 static bool           phc_done = true;
     TcpSegLen             pseudoHdrLen = 0;
 
     //OBSOLETE-20181130 if (phc_done && !siMdl_TxeMeta.empty()) {
@@ -1553,8 +1542,8 @@ void pMemoryAccessInterface(
  * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
  * @param[out] soRSt_RxSarRdReq,   Request to read the session from Rx SAR Table (RSt).
  * @param[in]  siRSt_RxSarRdRep,   Read reply from Rx SAR Table (RSt).
- * @param[out] soTSt_TxSarUpdReq,  Request to update the Tx SAR Table (TSt).
- * @param[in]  siTSt_TxSarUpdRep,  Update reply from Tx SAR Table (TSt).
+ * @param[out] soTSt_TxSarQry,     TxSar query to Tx SAR Table (TSt).
+ * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[in]  siMEM_TxP_Data,     Data payload from the DRAM Memory (MEM).
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set probe timer to Timers (TIm).
@@ -1578,9 +1567,9 @@ void pMemoryAccessInterface(
 void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<rxSarEntry>              &siRSt_RxSarRdRep,
-        stream<txTxSarQuery>            &soTSt_TxSarUpdReq,
-        stream<txTxSarReply>            &siTSt_TxSarUpdRep,
+        stream<RxSarEntry>              &siRSt_RxSarRdRep,
+        stream<txTxSarQuery>            &soTSt_TxSarQry,
+        stream<txTxSarReply>            &siTSt_TxSarRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
@@ -1606,7 +1595,7 @@ void tx_engine(
     static stream<TcpSegLen>            sMdlToIhc_TcpSegLen     ("sMdlToIhc_TcpSegLen");
     #pragma HLS stream         variable=sMdlToIhc_TcpSegLen     depth=16
 
-    static stream<tx_engine_meta>       sMdlToPhc_TxeMeta       ("sMdlToPhc_TxeMeta");
+    static stream<TXeMeta>              sMdlToPhc_TxeMeta       ("sMdlToPhc_TxeMeta");
     #pragma HLS stream         variable=sMdlToPhc_TxeMeta       depth=16
     #pragma HLS DATA_PACK      variable=sMdlToPhc_TxeMeta
 
@@ -1700,8 +1689,8 @@ void tx_engine(
             siAKd_Event,
             soRSt_RxSarRdReq,
             siRSt_RxSarRdRep,
-            soTSt_TxSarUpdReq,
-            siTSt_TxSarUpdRep,
+            soTSt_TxSarQry,
+            siTSt_TxSarRep,
             soTIm_ReTxTimerEvent,
             soTIm_SetProbeTimer,
             sMdlToIhc_TcpSegLen,

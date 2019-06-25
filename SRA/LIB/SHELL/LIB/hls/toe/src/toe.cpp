@@ -652,9 +652,9 @@ void toe(
     #pragma HLS stream         variable=sRXeToRSt_RxSarUpdReq     depth=2
     #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarUpdReq
 
-    static stream<rxTxSarQuery>         sRXeToTSt_TxSarUpdReq     ("sRXeToTSt_TxSarUpdReq");
-    #pragma HLS stream         variable=sRXeToTSt_TxSarUpdReq     depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarUpdReq
+    static stream<rxTxSarQuery>         sRXeToTSt_TxSarQry        ("sRXeToTSt_TxSarQry");
+    #pragma HLS stream         variable=sRXeToTSt_TxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarQry
 
     static stream<ReTxTimerCmd>         sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
     #pragma HLS stream         variable=sRXeToTIm_ReTxTimerCmd    depth=2
@@ -679,7 +679,7 @@ void toe(
     #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<rxSarEntry>           sRStToRXe_RxSarUpdRep     ("sRStToRXe_RxSarUpdRep");
+    static stream<RxSarEntry>           sRStToRXe_RxSarUpdRep     ("sRStToRXe_RxSarUpdRep");
     #pragma HLS stream         variable=sRStToRXe_RxSarUpdRep     depth=2
     #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarUpdRep
 
@@ -687,7 +687,7 @@ void toe(
     #pragma HLS stream         variable=sRStToRAi_RxSarUpdRep     depth=2
     #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarUpdRep
 
-    static stream<rxSarEntry>           sRStToTXe_RxSarRdRep      ("sRStToTXe_RxSarRdRep");
+    static stream<RxSarEntry>           sRStToTXe_RxSarRdRep      ("sRStToTXe_RxSarRdRep");
     #pragma HLS stream         variable=sRStToTXe_RxSarRdRep      depth=2
     #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRdRep
 
@@ -776,9 +776,9 @@ void toe(
     static stream<ap_uint<16> >         sTXeToRSt_RxSarRdReq      ("sTXeToRSt_RxSarRdReq");
     #pragma HLS stream         variable=sTXeToRSt_RxSarRdReq      depth=2
 
-    static stream<txTxSarQuery>         sTXeToTSt_TxSarUpdReq     ("sTXeToTSt_TxSarUpdReq");
-    #pragma HLS stream         variable=sTXeToTSt_TxSarUpdReq     depth=2
-    #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarUpdReq
+    static stream<txTxSarQuery>         sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
+    #pragma HLS stream         variable=sTXeToTSt_TxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarQry
 
     static stream<ap_uint<16> >         sTXeToSLc_ReverseLkpReq   ("sTXeToSLc_ReverseLkpReq");
     #pragma HLS stream         variable=sTXeToSLc_ReverseLkpReq   depth=4
@@ -797,9 +797,9 @@ void toe(
     #pragma HLS stream         variable=sTStToRXe_SessTxSarRep    depth=2
     #pragma HLS DATA_PACK      variable=sTStToRXe_SessTxSarRep
 
-    static stream<txTxSarReply>         sTStToTXe_TxSarUpdRep     ("sTStToTXe_TxSarUpdRep");
-    #pragma HLS stream         variable=sTStToTXe_TxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarUpdRep
+    static stream<txTxSarReply>         sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
+    #pragma HLS stream         variable=sTStToTXe_TxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarRep
 
     static stream<txSarAckPush>         sTStToTAi_AckPush         ("sTStToTAi_AckPush");
     #pragma HLS stream         variable=sTStToTAi_AckPush         depth=2
@@ -864,13 +864,13 @@ void toe(
 
     //-- TX SAR Table (TSt) ------------------------------------------------
     tx_sar_table(
-            sRXeToTSt_TxSarUpdReq,
+            sRXeToTSt_TxSarQry,
             //txApp2txSar_upd_req,
-            sTXeToTSt_TxSarUpdReq,
+            sTXeToTSt_TxSarQry,
+            sTStToTXe_TxSarRep,
             sTAiToTSt_AppPush,
             sTStToRXe_SessTxSarRep,
             //txSar2txApp_upd_rsp,
-            sTStToTXe_TxSarUpdRep,
             sTStToTAi_AckPush);
 
     //-- Port Table (PRt) --------------------------------------------------
@@ -928,7 +928,7 @@ void toe(
             sPRtToRXe_PortStateRep,
             sRXeToRSt_RxSarUpdReq,
             sRStToRXe_RxSarUpdRep,
-            sRXeToTSt_TxSarUpdReq,
+            sRXeToTSt_TxSarQry,
             sTStToRXe_SessTxSarRep,
             sRXeToTIm_ReTxTimerCmd,
             sRXeToTIm_ClrProbeTimer,
@@ -945,8 +945,8 @@ void toe(
             sAKdToTXe_Event,
             sTXeToRSt_RxSarRdReq,
             sRStToTXe_RxSarRdRep,
-            sTXeToTSt_TxSarUpdReq,
-            sTStToTXe_TxSarUpdRep,
+            sTXeToTSt_TxSarQry,
+            sTStToTXe_TxSarRep,
             siMEM_TxP_Data,
             sTXeToTIm_SetReTxTimer,
             sTXeToTIm_SetProbeTimer,

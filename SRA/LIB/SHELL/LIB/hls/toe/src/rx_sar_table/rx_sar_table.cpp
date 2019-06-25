@@ -1,6 +1,6 @@
 /*****************************************************************************
  * @file       : rx_sar_table.cpp
- * @brief      : Rx Segment And reassemble Table (RSt) of the TCP Offload Engine (TOE)
+ * @brief      : Rx Segmentation And Re-assembly Table (RSt).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -13,16 +13,14 @@
 
 #include "rx_sar_table.hpp"
 
-#define THIS_NAME "TOE/RSt"
-
 using namespace hls;
 
-#define DEBUG_LEVEL 1
+#define THIS_NAME "TOE/RSt"
 
 
 /*****************************************************************************
- * @brief The Rx SAR Table (RSt) stores the This data structure stores the Rx
- *         sliding window information.
+ * @brief Rx SAR Table (RSt) - Stores the data structures for managing the
+ *         TCP Rx buffer and the Rx sliding window.
  *
  * @param[in]  siRXe_RxSarUpdReq, Update request from Rx Engine (RXe).
  * @param[in]  siRAi_RxSarUpdReq, Update request from Rx App. I/F (RAi).
@@ -36,22 +34,21 @@ using namespace hls;
  *   Application Interface (RAi) and the Tx Engine (TXe).
  *  The access by the TXe id read-only.
  *  
- * @ingroup rx_sar_table
  *****************************************************************************/
 void rx_sar_table(
         stream<rxSarRecvd>         &siRXe_RxSarUpdReq,
         stream<rxSarAppd>          &siRAi_RxSarUpdReq,
         stream<ap_uint<16> >       &siTXe_RxSarRdReq, // Read only
-        stream<rxSarEntry>         &soRXe_RxSarUpdRep,
+        stream<RxSarEntry>         &soRXe_RxSarUpdRep,
         stream<rxSarAppd>          &soRAi_RxSarUpdReq,
-        stream<rxSarEntry>         &soTxe_RxSarRdRep)
+        stream<RxSarEntry>         &soTxe_RxSarRdRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static rxSarEntry               rx_table[MAX_SESSIONS];
-    #pragma HLS RESOURCE   variable=rx_table core=RAM_1P_BRAM
-    #pragma HLS DEPENDENCE variable=rx_table inter false
+    static RxSarEntry               RX_SAR_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
+    #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
 
     ap_uint<16>         addr;
     rxSarRecvd          in_recvd;
@@ -60,25 +57,25 @@ void rx_sar_table(
     if(!siTXe_RxSarRdReq.empty()) {
         // Read only access from the Tx Engine
         siTXe_RxSarRdReq.read(addr);
-        soTxe_RxSarRdRep.write(rx_table[addr]);
+        soTxe_RxSarRdRep.write(RX_SAR_TABLE[addr]);
     }
     else if(!siRAi_RxSarUpdReq.empty()) {
         // Read or Write access from the Rx App I/F to update the application pointer
         siRAi_RxSarUpdReq.read(in_appd);
         if(in_appd.write)
-            rx_table[in_appd.sessionID].appd = in_appd.appd;
+            RX_SAR_TABLE[in_appd.sessionID].appd = in_appd.appd;
         else
-            soRAi_RxSarUpdReq.write(rxSarAppd(in_appd.sessionID, rx_table[in_appd.sessionID].appd));
+            soRAi_RxSarUpdReq.write(rxSarAppd(in_appd.sessionID, RX_SAR_TABLE[in_appd.sessionID].appd));
     }
     else if(!siRXe_RxSarUpdReq.empty()) {
         // Read or Write access from the Rx Engine
         siRXe_RxSarUpdReq.read(in_recvd);
         if (in_recvd.write) {
-            rx_table[in_recvd.sessionID].recvd = in_recvd.recvd;
+            RX_SAR_TABLE[in_recvd.sessionID].recvd = in_recvd.recvd;
             if (in_recvd.init)
-                rx_table[in_recvd.sessionID].appd = in_recvd.recvd;
+                RX_SAR_TABLE[in_recvd.sessionID].appd = in_recvd.recvd;
         }
         else
-            soRXe_RxSarUpdRep.write(rx_table[in_recvd.sessionID]);
+            soRXe_RxSarUpdRep.write(RX_SAR_TABLE[in_recvd.sessionID]);
     }
 }

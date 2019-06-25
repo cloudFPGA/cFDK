@@ -537,21 +537,6 @@ class StateQuery {
         sessionID(id), state(state), write(write) {}
 };
 
-/*** OBSOLETE-20190621 **********
-struct stateQuery
-{
-    SessionId       sessionID;
-    sessionState    state;
-    ap_uint<1>      write;
-    stateQuery() {}
-    stateQuery(SessionId id) :
-        sessionID(id), state(CLOSED), write(0) {}
-    stateQuery(SessionId id, sessionState state, ap_uint<1> write) :
-        sessionID(id), state(state), write(write) {}
-};
-**********************************/
-
-
 
 /********************************************
  * Port Table (PRt)
@@ -566,11 +551,16 @@ enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 /********************************************
  * Rx SAR Table (SRt)
  ********************************************/
-struct rxSarEntry
-{
-    ap_uint<32> recvd;
+
+typedef ap_uint<32> RxMemPtr;  // A pointer to RXMEMBUF
+
+class RxSarEntry {
+  public:
+    RxMemPtr    recvd;  // Received data and acknowledged
     ap_uint<16> appd;
+    RxSarEntry() {}
 };
+
 
 struct rxSarRecvd
 {
@@ -603,8 +593,8 @@ struct rxSarAppd
 /********************************************
  * Tx SAR Table (TSt)
  ********************************************/
-struct txSarEntry
-{
+class TxSarEntry {
+  public:
     ap_uint<32> ackd;
     ap_uint<32> not_ackd;
     ap_uint<16> recv_window;
@@ -614,9 +604,10 @@ struct txSarEntry
     ap_uint<2>  count;
     bool        finReady;
     bool        finSent;
+    TxSarEntry() {};
 };
 
-// TSt / Receive Path Interface
+// TSt / Query from RXe
 struct rxTxSarQuery
 {
 	SessionId   sessionID;
@@ -633,7 +624,7 @@ struct rxTxSarQuery
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
-// TSt / Receive Path Interface
+// TSt / Reply to RXe
 struct rxTxSarReply
 {
     TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
@@ -646,7 +637,7 @@ struct rxTxSarReply
         prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
 };
 
-// TSt / Transmit Path Interface
+// TSt / Query from TXe
 struct txTxSarQuery
 {
 	SessionId   sessionID;
@@ -671,7 +662,7 @@ struct txTxSarQuery
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
-// TSt / Transmit Path Interface
+// TSt / Reply to TXe
 struct txTxSarReply
 {
     TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
@@ -685,7 +676,7 @@ struct txTxSarReply
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
-// [TODO - Naming]
+// TSt / Re-transmission Query TXe
 struct txTxSarRtQuery : public txTxSarQuery
 {
     txTxSarRtQuery() {}
@@ -717,7 +708,6 @@ class TxSarTableAppPush {
     TxSarTableAppPush(SessionId id, ap_uint<16> app) :
          sessionID(id), app(app) {}
 };
-
 
 
 /********************************************

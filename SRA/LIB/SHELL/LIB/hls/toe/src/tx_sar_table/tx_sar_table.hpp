@@ -16,15 +16,14 @@ using namespace hls;
 
 
 /******************************************************************************
- * @brief   Main process of the Tx SAR TAble (TSt).
+ * @brief   Main process of the Tx SAR Table (TSt).
  *
- * @ingroup rx_sar_table
  ******************************************************************************/
 void tx_sar_table(
         stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
-        stream<txTxSarQuery>       &txEng2txSar_upd_req,
+        stream<txTxSarQuery>       &siTXe_TxSarQry,
+        stream<txTxSarReply>       &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
         stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,
-        stream<txTxSarReply>       &txSar2txEng_upd_rsp,
         stream<txSarAckPush>       &soTAi_AckPush
 );

@@ -154,8 +154,8 @@ void pMetaDataLoader(
                 sMdlToSmw_SegMeta.write(SegMemMeta(true));
                 // Notify App about the fail
                 soTRIF_DSts.write(ERROR_NOCONNCECTION);
-                printError(myName, "Session %d is not established. Current session state is %d.\n", \
-                           tcpSessId.to_uint(), sessState);
+                printError(myName, "Session %d is not established. Current session state is \'%s\'.\n", \
+                           tcpSessId.to_uint(), SessionStateString[sessState].c_str());
 
                 // HERE MAJOR DIFF
                 // appTxDataRsp.write(appTxRsp(tasi_writeMeta.length, maxWriteLength, ERROR_NOCONNCECTION));
