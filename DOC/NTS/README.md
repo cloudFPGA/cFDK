@@ -14,8 +14,18 @@ A block diagram of the *NTS* is depicted in Figure 1. It features a *User Datagr
 Please consider reading the following HLS naming conventions document before diving or contributing to this part of the cloudFPGA project: [TODO - Link to a MD file] 
 
 
-
 <br>
+
+## List of Interfaces
+
+| Acronym         | Description                                           | Filename
+|:----------------|:------------------------------------------------------|:--------------
+| **CAM**         | Content Addessable Memory interface.                  | [TODO]
+| **IPRX**        | IP Rx Interface.                                      | [TODO]
+| **L3MUX**       | Layer-3 Multiplexer interface.                        | [TODO]
+| **MEM**         | Memory sub-system (data-mover to DDR4).               | [TODO]
+| **TRIF**        | TCP Role Interface (alias APP).                       | tcp_role_interface
+
 
 ## List of HLS Components
 
@@ -29,7 +39,7 @@ Please consider reading the following HLS naming conventions document before div
 | **MPE**         |                                                       | mpe
 | **SMC**         |                                                       | smc
 | **TRIF**        | TCP Role Interface.                                   | tcp_role_if
-| **[TOE](#toe)** | TCP Offload Engine.                                   | toe
+| **[TOE](./TOE.md)** | TCP Offload Engine.                                   | toe
 | **UDP**         | UDP engine.                                           | udp
 | **UDMX**        | UDP Multiplexer.                                      | udp_mux
 | **URIF**        | UDP Role Interface.                                   | udp_role_if
@@ -37,17 +47,5 @@ Please consider reading the following HLS naming conventions document before div
 <br>
 <br>
 
-### <a name="toe"></a>TCP Offload Engine (TOE)
-
-The structure of the TOE is as follows:
-
-**TOE**
-- **SLc** | Session Lookup Controller
-  - **Sim** | Session Id Manager
-  - **Lrh** | Lookup Reply Handler
-  - **Urs** | Update Request Sender
-  - **Urh** | Update Reply Handler
-  - **Rlt** | Reverse Lookup Table
-- **PRt** | Port Table
 
 
