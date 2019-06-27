@@ -21,9 +21,9 @@ using namespace hls;
  *         the application.
  *
  * @param[in]      appRxDataReq
- * @param[in]      rxSar2rxApp_upd_rsp
  * @param[out]     appRxDataRspMetadata
- * @param[out]     rxApp2rxSar_upd_req
+ * @param[out]     soRSt_RxSarQry
+ * @param[in]      siRSt_RxSarRep
  * @param[out]     rxBufferReadCmd
  *
  * @detail
@@ -37,9 +37,9 @@ using namespace hls;
  *****************************************************************************/
 void rx_app_stream_if(
         stream<AppRdReq>            &siTRIF_DataReq,
-        stream<rxSarAppd>           &rxSar2rxApp_upd_rsp,
         stream<SessionId>           &appRxDataRspMetadata,
-        stream<rxSarAppd>           &rxApp2rxSar_upd_req,
+        stream<RAiRxSarQuery>         &soRSt_RxSarQry,
+        stream<RAiRxSarReply>         &siRSt_RxSarRep,
         stream<DmCmd>               &rxBufferReadCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -52,11 +52,11 @@ void rx_app_stream_if(
 
     switch (rasi_fsmState) {
         case 0:
-            if (!siTRIF_DataReq.empty() && !rxApp2rxSar_upd_req.full()) {
+            if (!siTRIF_DataReq.empty() && !soRSt_RxSarQry.full()) {
                 AppRdReq  appReadRequest = siTRIF_DataReq.read();
                 if (appReadRequest.length != 0) {
                     // Make sure length is not 0, otherwise Data Mover will hang up
-                    rxApp2rxSar_upd_req.write(rxSarAppd(appReadRequest.sessionID));
+                    soRSt_RxSarQry.write(RAiRxSarQuery(appReadRequest.sessionID));
                     // Get app pointer
                     rasi_readLength = appReadRequest.length;
                     rasi_fsmState = 1;
@@ -65,9 +65,9 @@ void rx_app_stream_if(
             break;
 
         case 1:
-            if (!rxSar2rxApp_upd_rsp.empty() && !appRxDataRspMetadata.full() &&
-                !rxBufferReadCmd.full() && !rxApp2rxSar_upd_req.full()) {
-                rxSarAppd   rxSar = rxSar2rxApp_upd_rsp.read();
+            if (!siRSt_RxSarRep.empty() && !appRxDataRspMetadata.full() &&
+                !rxBufferReadCmd.full() && !soRSt_RxSarQry.full()) {
+                RAiRxSarReply rxSar = siRSt_RxSarRep.read();
                 ap_uint<32> pkgAddr = 0;
                 pkgAddr(29, 16) = rxSar.sessionID(13, 0);
                 pkgAddr(15,  0) = rxSar.appd;
@@ -75,7 +75,7 @@ void rx_app_stream_if(
                 rxRdCounter++;
                 DmCmd rxAppTempCmd = DmCmd(pkgAddr, rasi_readLength);
                 rxBufferReadCmd.write(rxAppTempCmd);
-                rxApp2rxSar_upd_req.write(rxSarAppd(rxSar.sessionID, rxSar.appd+rasi_readLength)); // Update app read pointer
+                soRSt_RxSarQry.write(RAiRxSarQuery(rxSar.sessionID, rxSar.appd+rasi_readLength)); // Update app read pointer
                 rasi_fsmState = 0;
             }
             break;

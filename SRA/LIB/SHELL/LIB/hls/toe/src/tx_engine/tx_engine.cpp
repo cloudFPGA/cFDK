@@ -47,8 +47,8 @@ using namespace hls;
  * @brief Meta Data Loader (Mdl)
  *
  * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
- * @param[out] soRSt_RxSarRdReq,   Request to read to Rx SAR Table (RSt).
- * @param[in]  siRSt_RxSarRdRep,   Read reply from Rx SAR Table (RSt).
+ * @param[out] soRSt_RxSarReq,     Read request to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep,     Read reply from [RSt].
  * @param[out] soTSt_TxSarQry,     TxSar query to Tx SAR Table (TSt).
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
@@ -77,8 +77,8 @@ using namespace hls;
  *****************************************************************************/
 void pMetaDataLoader(
         stream<extendedEvent>           &siAKd_Event,
-        stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<RxSarEntry>              &siRSt_RxSarRdRep,
+        stream<ap_uint<16> >            &soRSt_RxSarReq,
+        stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
@@ -131,7 +131,7 @@ void pMetaDataLoader(
             case FIN:
             case ACK:
             case ACK_NODELAY:
-                soRSt_RxSarRdReq.write(mdl_curEvent.sessionID);
+                soRSt_RxSarReq.write(mdl_curEvent.sessionID);
                 soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case RST:
@@ -209,9 +209,9 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event TX.\n");
             // Sends everything between txSar.not_ackd and txSar.app
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
-                    siRSt_RxSarRdRep.read(rxSar);
+                    siRSt_RxSarRep.read(rxSar);
                     siTSt_TxSarRep.read(txSar);
                 }
 
@@ -312,9 +312,9 @@ void pMetaDataLoader(
         case RT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event RT.\n");
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
-                    siRSt_RxSarRdRep.read(rxSar);
+                    siRSt_RxSarRep.read(rxSar);
                     siTSt_TxSarRep.read(txSar);
                 }
 
@@ -394,8 +394,8 @@ void pMetaDataLoader(
         case ACK_NODELAY:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event ACK.\n");
-            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) {
-                siRSt_RxSarRdRep.read(rxSar);
+            if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
+                siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
                 windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1;
                 //OBSOLETE20181130 txeMeta = tx_engine_meta(txSar.not_ackd, rxSar.recvd, windowSize, 1, 0, 0, 0);
@@ -454,8 +454,8 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event SYN_ACK.\n");
 
-            if (!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) {
-                siRSt_RxSarRdRep.read(rxSar);
+            if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
+                siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
 
                 // Construct SYN_ACK message
@@ -493,9 +493,9 @@ void pMetaDataLoader(
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got event FIN.\n");
 
-            if ((!siRSt_RxSarRdRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
-                    siRSt_RxSarRdRep.read(rxSar);
+                    siRSt_RxSarRep.read(rxSar);
                     siTSt_TxSarRep.read(txSar);
                 }
                 // Construct FIN message
@@ -1540,9 +1540,9 @@ void pMemoryAccessInterface(
  * @brief The tx_engine (TXe) builds the IPv4 packets to be sent to L3MUX.
  *
  * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
- * @param[out] soRSt_RxSarRdReq,   Request to read the session from Rx SAR Table (RSt).
- * @param[in]  siRSt_RxSarRdRep,   Read reply from Rx SAR Table (RSt).
- * @param[out] soTSt_TxSarQry,     TxSar query to Tx SAR Table (TSt).
+ * @param[out] soRSt_RxSarReq,     Read request to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep,     Read reply from [RSt].
+ * @param[out] soTSt_TxSarQry,     TxSar query to TxSarTable (TSt).
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[in]  siMEM_TxP_Data,     Data payload from the DRAM Memory (MEM).
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
@@ -1566,8 +1566,8 @@ void pMemoryAccessInterface(
  ******************************************************************************/
 void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
-        stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<RxSarEntry>              &siRSt_RxSarRdRep,
+        stream<ap_uint<16> >            &soRSt_RxSarReq,
+        stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
@@ -1687,8 +1687,8 @@ void tx_engine(
 
     pMetaDataLoader(
             siAKd_Event,
-            soRSt_RxSarRdReq,
-            siRSt_RxSarRdRep,
+            soRSt_RxSarReq,
+            siRSt_RxSarRep,
             soTSt_TxSarQry,
             siTSt_TxSarRep,
             soTIm_ReTxTimerEvent,

@@ -885,10 +885,10 @@ void pMetaDataHandler(
  *
  * @param[in]  siMdh_Meta,        Metadata from [MetDataHandler].
  * @param[in]  siSTt_AccessRep,   Access reply from [STt].
- * @param[in]  siRSt_RxSarUpdRep, Update reply from [RxSarTable].
  * @param[in]  siTSt_TxSarRdRep,  Read reply from [TxSarTable].
  * @param[out] soSTt_AccessReq,   Access request to StateTable [STt].
- * @param[out] soRSt_RxSarUpdReq, Request to update the session Rx SAR to [RxSarTable].
+ * @param[out] soRSt_RxSarQry,    Query to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep,    Reply from [RSt].
  * @param[out] soTSt_TxSarRdReq,  Request to read the session Tx SAR to [TxSarTable].
  * @param[out] soTIm_ReTxTimerCmd,Command for a retransmit timer of [Timers].
  * @param[out] soTIm_ClearProbeTimer,Clear the probing timer to [Timers].
@@ -910,10 +910,10 @@ void pMetaDataHandler(
 void pFiniteStateMachine(
         stream<rxFsmMetaData>               &siMdh_Meta,
         stream<SessionState>                &siSTt_AccessRep,
-        stream<RxSarEntry>                  &siRSt_RxSarUpdRep,
         stream<RXeTxSarReply>               &siTSt_TxSarRdRep,
         stream<StateQuery>                  &soSTt_AccessReq,
-        stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
+        stream<RXeRxSarQuery>                 &soRSt_RxSarQry,
+        stream<RxSarEntry>                  &siRSt_RxSarRep,
         stream<RXeTxSarQuery>               &soTSt_TxSarRdReq,
         stream<ReTxTimerCmd>                &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
@@ -950,7 +950,7 @@ void pFiniteStateMachine(
             // Request the current state of the session
             soSTt_AccessReq.write(StateQuery(fsm_meta.sessionId));
             // Always request the rxSar, even though not required for SYN-ACK
-            soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId));
+            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_meta.sessionId));
 
             if (fsm_meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
@@ -963,7 +963,7 @@ void pFiniteStateMachine(
 
     case TRANSITION:
         // Check if transition to LOAD occurs
-        if (!siSTt_AccessRep.empty() && !siRSt_RxSarUpdRep.empty() &&
+        if (!siSTt_AccessRep.empty() && !siRSt_RxSarRep.empty() &&
             !(fsm_txSarRequest && siTSt_TxSarRdRep.empty())) {
             fsmState = LOAD;
             fsm_txSarRequest = false;
@@ -982,7 +982,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             if (fsmState == LOAD) {
                 siSTt_AccessRep.read(tcpState);
-                siRSt_RxSarUpdRep.read(rxSar);
+                siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
                 soTIm_ReTxTimerCmd.write(ReTxTimerCmd(fsm_meta.sessionId,
                                                      (fsm_meta.meta.ackNumb == txSar.nextByte)));
@@ -1028,7 +1028,7 @@ void pFiniteStateMachine(
                         // Check if segment in order and if enough free space is available
                         if ( (fsm_meta.meta.seqNumb == rxSar.recvd) &&
                              (free_space > fsm_meta.meta.length) ) {
-                            soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, newRecvd, 1));
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_meta.sessionId, newRecvd, 1));
                             // Build memory address for this segment in the lower 2GB
                             ap_uint<32> memSegAddr;   // [TODO-Typedef]
                             memSegAddr(31, 30) = 0x0;
@@ -1104,11 +1104,11 @@ void pFiniteStateMachine(
                 rxEngSynCounter++;
                 //std::cerr << "SYN Counter: " << rxEngSynCounter << std::endl;
                 siSTt_AccessRep.read(tcpState);
-                siRSt_RxSarUpdRep.read(rxSar);
+                siRSt_RxSarRep.read(rxSar);
                 if (tcpState == CLOSED || tcpState == SYN_SENT) {
                     // Actually this is LISTEN || SYN_SENT
                     // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
-                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, fsm_meta.meta.seqNumb + 1, 1, 1));
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_meta.sessionId, fsm_meta.meta.seqNumb + 1, 1, 1));
                     // Initialize receive window
                     soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId, 0, fsm_meta.meta.winSize,
                                               txSar.cong_window, 0, 1))); //TODO maybe include count check
@@ -1148,7 +1148,7 @@ void pFiniteStateMachine(
             //OBSOLETE if (!siSTt_AccessRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_AccessRep.read(tcpState);
-                siRSt_RxSarUpdRep.read(rxSar);
+                siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
                 //OBSOLETE-20190181 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                 //OBSOLETE-20190181                                                (fsm_meta.meta.ackNumb == txSar.nextByte)));
@@ -1156,7 +1156,7 @@ void pFiniteStateMachine(
                                                      (fsm_meta.meta.ackNumb == txSar.nextByte)));
                 if ( (tcpState == SYN_SENT) && (fsm_meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
                     //initialize rx_sar, SEQ + phantom byte, last '1' for appd init
-                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId,
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_meta.sessionId,
                                                     fsm_meta.meta.seqNumb + 1, 1, 1));
                     soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId,
                                                            fsm_meta.meta.ackNumb,
@@ -1186,10 +1186,10 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            //OBSOLETE if (!siRSt_RxSarUpdRep.empty() && !siSTt_AccessRep.empty() && !siTSt_TxSarRdRep.empty())
+            //OBSOLETE if (!siRSt_RxSarRep.empty() && !siSTt_AccessRep.empty() && !siTSt_TxSarRdRep.empty())
             if (fsmState == LOAD) {
                 siSTt_AccessRep.read(tcpState);
-                siRSt_RxSarUpdRep.read(rxSar);
+                siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRdRep.read(txSar);
                 //OBSOLETE-20190118 soTIm_ReTxTimerCmd.write(rxRetransmitTimerUpdate(fsm_meta.sessionID,
                 //OBSOLETE-20190118                         (fsm_meta.meta.ackNumb == txSar.nextByte)));
@@ -1203,7 +1203,7 @@ void pFiniteStateMachine(
                                               txSar.cong_window, txSar.count, 0))); //TODO include count check
 
                     // +1 for phantom byte, there might be data too
-                    soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, fsm_meta.meta.seqNumb+fsm_meta.meta.length+1, 1)); //diff to ACK
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_meta.sessionId, fsm_meta.meta.seqNumb+fsm_meta.meta.length+1, 1)); //diff to ACK
 
                     // Clear the probe timer
                     soTIm_ClearProbeTimer.write(fsm_meta.sessionId);
@@ -1260,7 +1260,7 @@ void pFiniteStateMachine(
             // We always read rxSar
             if (fsmState == LOAD) {
                 siSTt_AccessRep.read(tcpState);
-                siRSt_RxSarUpdRep.read(rxSar); //TODO not sure nb works
+                siRSt_RxSarRep.read(rxSar); //TODO not sure nb works
                 siTSt_TxSarRdRep.read_nb(txSar);
             }
             if (fsmState == LOAD) {
@@ -1703,8 +1703,8 @@ void pDebug(
  * @param[in]  siSTt_AccessRep,     Access reply from [STt].
  * @param[out] soPRt_PortStateReq,  Port state request to PortTable (PRt).
  * @param[in]  siPRt_PortStateRep,  Port state reply from [PRt].
- * @param[out] soRSt_RxSarUpdReq,   Rx session SAR update request to RxSarTable (RSt).
- * @param[in]  siRSt_RxSarUpdRep    Rx session SAR update reply from [RSt].
+ * @param[out] soRSt_RxSarQry,      Query to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep       Reply from [RSt].
  * @param[out] soTSt_TxSarRdReq,    Tx session SAR read request to TxSarTable (TSt).
  * @param[in]  siTSt_TxSarRdRep     Tx session SAR read peply from [TSt].
  * @param[out] soTIm_ReTxTimerCmd,  Command for a retransmit timer to Timers (TIm).
@@ -1737,8 +1737,8 @@ void rx_engine(
         stream<SessionState>            &siSTt_AccessRep,
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<StsBit>                  &siPRt_PortStateRep,
-        stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
-        stream<RxSarEntry>              &siRSt_RxSarUpdRep,
+        stream<RXeRxSarQuery>             &soRSt_RxSarQry,
+        stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<RXeTxSarQuery>           &soTSt_TxSarRdReq,
         stream<RXeTxSarReply>           &siTSt_TxSarRdRep,
         stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
@@ -1875,10 +1875,10 @@ void rx_engine(
     pFiniteStateMachine(
             sMdhToFsm_Meta,
             siSTt_AccessRep,
-            siRSt_RxSarUpdRep,
             siTSt_TxSarRdRep,
             soSTt_AccessReq,
-            soRSt_RxSarUpdReq,
+            soRSt_RxSarQry,
+            siRSt_RxSarRep,
             soTSt_TxSarRdReq,
             soTIm_ReTxTimerCmd,
             soTIm_ClearProbeTimer,

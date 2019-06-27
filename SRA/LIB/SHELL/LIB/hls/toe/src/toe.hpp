@@ -548,46 +548,56 @@ typedef bool PortRange;
 enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 
 
-/********************************************
- * Rx SAR Table (SRt)
- ********************************************/
-
 typedef ap_uint<32> RxMemPtr;  // A pointer to RXMEMBUF
 
+/********************************************
+ * Rx SAR Table (RSt)
+ ********************************************/
 class RxSarEntry {
   public:
-    RxMemPtr    recvd;  // Received data and acknowledged
-    ap_uint<16> appd;
+    RxMemPtr    recvd;  // Received and ACK'ed octets
+    ap_uint<16> appd;   // Octets written by APP
     RxSarEntry() {}
 };
 
-
-struct rxSarRecvd
-{
-	SessionId       sessionID;
-    ap_uint<32>     recvd;
+// RSt / Query from RXe
+//----------------------
+class RXeRxSarQuery {    // OBSOLETE struct rxSarRecvd
+  public:
+    SessionId       sessionID;
+    ap_uint<32>     recvd;  // Received and ACK'ed but not yet consumed
     ap_uint<1>      write;
     ap_uint<1>      init;
-    rxSarRecvd() {}
-    rxSarRecvd(SessionId id) :
+    RXeRxSarQuery() {}
+    RXeRxSarQuery(SessionId id) :
         sessionID(id), recvd(0), write(0), init(0) {}
-    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write) :
+    RXeRxSarQuery(SessionId id, ap_uint<32> recvd, ap_uint<1> write) :
         sessionID(id), recvd(recvd), write(write), init(0) {}
-    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
+    RXeRxSarQuery(SessionId id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
         sessionID(id), recvd(recvd), write(write), init(init) {}
 };
 
-struct rxSarAppd
-{
-	SessionId       sessionID;
-    ap_uint<16>     appd;
-    // ap_uint<32> recvd; // for comparison with application data request - ensure appd + length < recvd
+// RSt / Query from RAi
+//----------------------
+class RAiRxSarQuery {
+  public:
+    SessionId       sessionID;
+    ap_uint<16>     appd; // Read by APP
     ap_uint<1>  write;
-    rxSarAppd() {}
-    rxSarAppd(SessionId id) :
+    RAiRxSarQuery() {}
+    RAiRxSarQuery(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    rxSarAppd(SessionId id, ap_uint<16> appd) :
+    RAiRxSarQuery(SessionId id, ap_uint<16> appd) :
         sessionID(id), appd(appd), write(1) {}
+};
+
+class RAiRxSarReply {
+  public:
+    SessionId       sessionID;
+    ap_uint<16>     appd; // Read by APP
+    RAiRxSarReply() {}
+    RAiRxSarReply(SessionId id, ap_uint<16> appd) :
+        sessionID(id), appd(appd) {}
 };
 
 /********************************************

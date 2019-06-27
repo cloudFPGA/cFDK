@@ -27,9 +27,9 @@ using namespace hls;
  *****************************************************************************/
 
 void rx_app_stream_if(
-        stream<AppRdReq>         &appRxDataReq,
-        stream<rxSarAppd>        &rxSar2rxApp_upd_rsp,
-        stream<SessionId>        &appRxDataRspMetadata,
-        stream<rxSarAppd>        &rxApp2rxSar_upd_req,
-        stream<DmCmd>            &rxBufferReadCmd
+        stream<AppRdReq>            &siTRIF_DataReq,
+        stream<SessionId>           &appRxDataRspMetadata,
+        stream<RAiRxSarQuery>         &soRSt_RxSarQry,
+        stream<RAiRxSarReply>         &siRSt_RxSarRep,
+        stream<DmCmd>               &rxBufferReadCmd
 );

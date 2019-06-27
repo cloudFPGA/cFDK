@@ -332,7 +332,6 @@ void rxAppMemDataRead(
  ******************************************************************************/
 void rx_app_interface(
         stream<AppRdReq>            &siTRIF_DataReq,
-        stream<rxSarAppd>           &siRSt_RxSarUpdRep,
         stream<AppLsnReq>           &siTRIF_ListenPortReq,
         stream<RepBit>              &soTRIF_ListenPortRep,
         stream<TcpPort>             &soPRt_LsnPortStateReq,
@@ -340,7 +339,8 @@ void rx_app_interface(
         stream<AppNotif>            &siRXe_Notif,
         stream<AppNotif>            &siTIm_Notif,
         stream<SessionId>           &appRxDataRspMetadata,
-        stream<rxSarAppd>           &soRSt_RxSarUpdRep,
+        stream<RAiRxSarQuery>         &soRSt_RxSarReq,
+        stream<RAiRxSarReply>         &siRSt_RxSarRep,
         stream<DmCmd>               &rxBufferReadCmd,
         stream<AppNotif>            &soAPP_Notif,
         stream<AxiWord>             &rxBufferReadData,
@@ -357,9 +357,9 @@ void rx_app_interface(
     // RX Application Stream Interface
     rx_app_stream_if(
             siTRIF_DataReq,
-            siRSt_RxSarUpdRep,
             appRxDataRspMetadata,
-            soRSt_RxSarUpdRep,
+            soRSt_RxSarReq,
+            siRSt_RxSarRep,
             rxAppStreamIf2memAccessBreakdown);
 
     rxAppMemAccessBreakdown(
@@ -630,9 +630,9 @@ void toe(
     static stream<TcpPort>              sRAiToPRt_OpnLsnPortReq   ("sRAiToPRt_OpnLsnPortReq");
     #pragma HLS stream         variable=sRAiToPRt_OpnLsnPortReq   depth=4
 
-    static stream<rxSarAppd>            sRAiToRSt_RxSarUpdRep     ("sRAiToRSt_RxSarUpdRep");
-    #pragma HLS stream         variable=sRAiToRSt_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRAiToRSt_RxSarUpdRep
+    static stream<RAiRxSarQuery>          sRAiToRSt_RxSarQry        ("sRAiToRSt_RxSarQry");
+    #pragma HLS stream         variable=sRAiToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sRAiToRSt_RxSarQry
 
     //-------------------------------------------------------------------------
     //-- Rx Engine (RXe)
@@ -648,9 +648,9 @@ void toe(
     #pragma HLS stream         variable=sRXeToSTt_SessStateQry    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToSTt_SessStateQry
 
-    static stream<rxSarRecvd>           sRXeToRSt_RxSarUpdReq     ("sRXeToRSt_RxSarUpdReq");
-    #pragma HLS stream         variable=sRXeToRSt_RxSarUpdReq     depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarUpdReq
+    static stream<RXeRxSarQuery>          sRXeToRSt_RxSarQry        ("sRXeToRSt_RxSarQry");
+    #pragma HLS stream         variable=sRXeToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarQry
 
     static stream<RXeTxSarQuery>        sRXeToTSt_TxSarQry        ("sRXeToTSt_TxSarQry");
     #pragma HLS stream         variable=sRXeToTSt_TxSarQry        depth=2
@@ -679,17 +679,17 @@ void toe(
     #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<RxSarEntry>           sRStToRXe_RxSarUpdRep     ("sRStToRXe_RxSarUpdRep");
-    #pragma HLS stream         variable=sRStToRXe_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarUpdRep
+    static stream<RxSarEntry>           sRStToRXe_RxSarRep        ("sRStToRXe_RxSarRep");
+    #pragma HLS stream         variable=sRStToRXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarRep
 
-    static stream<rxSarAppd>            sRStToRAi_RxSarUpdRep     ("sRStToRAi_RxSarUpdRep");
-    #pragma HLS stream         variable=sRStToRAi_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarUpdRep
+    static stream<RAiRxSarReply>          sRStToRAi_RxSarRep        ("sRStToRAi_RxSarRep");
+    #pragma HLS stream         variable=sRStToRAi_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarRep
 
-    static stream<RxSarEntry>           sRStToTXe_RxSarRdRep      ("sRStToTXe_RxSarRdRep");
-    #pragma HLS stream         variable=sRStToTXe_RxSarRdRep      depth=2
-    #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRdRep
+    static stream<RxSarEntry>           sRStToTXe_RxSarRep        ("sRStToTXe_RxSarRep");
+    #pragma HLS stream         variable=sRStToTXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRep
 
     //-------------------------------------------------------------------------
     //-- Session Lookup Controller (SLc)
@@ -773,8 +773,8 @@ void toe(
     static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
-    static stream<ap_uint<16> >         sTXeToRSt_RxSarRdReq      ("sTXeToRSt_RxSarRdReq");
-    #pragma HLS stream         variable=sTXeToRSt_RxSarRdReq      depth=2
+    static stream<ap_uint<16> >         sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
+    #pragma HLS stream         variable=sTXeToRSt_RxSarReq        depth=2
 
     static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
     #pragma HLS stream         variable=sTXeToTSt_TxSarQry        depth=2
@@ -855,12 +855,12 @@ void toe(
 
     //-- RX SAR Table (RSt) ------------------------------------------------
     rx_sar_table(
-            sRXeToRSt_RxSarUpdReq,
-            sRAiToRSt_RxSarUpdRep,
-            sTXeToRSt_RxSarRdReq,
-            sRStToRXe_RxSarUpdRep,
-            sRStToRAi_RxSarUpdRep,
-            sRStToTXe_RxSarRdRep);
+            sRXeToRSt_RxSarQry,
+            sRStToRXe_RxSarRep,
+            sRAiToRSt_RxSarQry,
+            sRStToRAi_RxSarRep,
+            sTXeToRSt_RxSarReq,
+            sRStToTXe_RxSarRep);
 
     //-- TX SAR Table (TSt) ------------------------------------------------
     tx_sar_table(
@@ -926,8 +926,8 @@ void toe(
             sSTtToRXe_SessStateRep,
             sRXeToPRt_PortStateReq,
             sPRtToRXe_PortStateRep,
-            sRXeToRSt_RxSarUpdReq,
-            sRStToRXe_RxSarUpdRep,
+            sRXeToRSt_RxSarQry,
+            sRStToRXe_RxSarRep,
             sRXeToTSt_TxSarQry,
             sTStToRXe_SessTxSarRep,
             sRXeToTIm_ReTxTimerCmd,
@@ -943,8 +943,8 @@ void toe(
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
             sAKdToTXe_Event,
-            sTXeToRSt_RxSarRdReq,
-            sRStToTXe_RxSarRdRep,
+            sTXeToRSt_RxSarReq,
+            sRStToTXe_RxSarRep,
             sTXeToTSt_TxSarQry,
             sTStToTXe_TxSarRep,
             siMEM_TxP_Data,
@@ -964,7 +964,6 @@ void toe(
     //-- Rx Application Interface (RAi) -----------------------------------
      rx_app_interface(
              siTRIF_DReq,
-             sRStToRAi_RxSarUpdRep,
              siTRIF_LsnReq,
              soTRIF_LsnAck,
              sRAiToPRt_OpnLsnPortReq,
@@ -972,7 +971,8 @@ void toe(
              sRXeToRAi_Notif,
              sTImToRAi_Notif,
              soTRIF_Meta,
-             sRAiToRSt_RxSarUpdRep,
+             sRAiToRSt_RxSarQry,
+             sRStToRAi_RxSarRep,
              soMEM_RxP_RdCmd,
              soTRIF_Notif,
              siMEM_RxP_Data,
