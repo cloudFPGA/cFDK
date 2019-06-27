@@ -797,7 +797,7 @@ void toe(
     #pragma HLS stream         variable=sTStToRXe_SessTxSarRep    depth=2
     #pragma HLS DATA_PACK      variable=sTStToRXe_SessTxSarRep
 
-    static stream<txTxSarReply>         sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
+    static stream<TXeTxSarReply>        sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
     #pragma HLS stream         variable=sTStToTXe_TxSarRep        depth=2
     #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarRep
 

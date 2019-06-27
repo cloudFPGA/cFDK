@@ -661,16 +661,16 @@ class TXeTxSarQuery {
 };
 
 // TSt / Reply to TXe
-struct txTxSarReply
-{
-    TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
-    TcpAckNum       not_ackd;   //OBSOLETE ap_uint<32>  not_ackd;
-    TcpWindow       min_window; //OBSOLETE ap_uint<16>  min_window;
-    ap_uint<16>     app;
+class TXeTxSarReply {
+  public:
+    TcpAckNum       ackd;       // ACK'ed
+    TcpAckNum       not_ackd;   // TX'ed but not ACK'ed
+    TcpWindow       min_window; // Usable window ???
+    ap_uint<16>     app;        // Written by APP
     bool            finReady;
     bool            finSent;
-    txTxSarReply() {}
-    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
+    TXeTxSarReply() {}
+    TXeTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 

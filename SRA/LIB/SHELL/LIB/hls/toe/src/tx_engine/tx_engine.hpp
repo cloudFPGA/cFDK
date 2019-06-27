@@ -85,7 +85,7 @@ void tx_engine(
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
         stream<RxSarEntry>              &siRSt_RxSarRdRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarUpdReq,
-        stream<txTxSarReply>            &siTSt_TxSarUpdRep,
+        stream<TXeTxSarReply>           &siTSt_TxSarUpdRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,

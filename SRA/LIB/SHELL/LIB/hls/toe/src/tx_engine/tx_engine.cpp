@@ -80,7 +80,7 @@ void pMetaDataLoader(
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
         stream<RxSarEntry>              &siRSt_RxSarRdRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
-        stream<txTxSarReply>            &siTSt_TxSarRep,
+        stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
@@ -104,7 +104,7 @@ void pMetaDataLoader(
     static ap_uint<32>    mdl_randomValue= 0x562301af; //Random seed initialization
     static ap_uint<2>     mdl_segmentCount = 0;
     static RxSarEntry     rxSar;
-    static txTxSarReply   txSar;
+    static TXeTxSarReply  txSar;
     static TXeMeta        txeMeta;
 
     TcpWindow             windowSize;
@@ -1569,7 +1569,7 @@ void tx_engine(
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
         stream<RxSarEntry>              &siRSt_RxSarRdRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
-        stream<txTxSarReply>            &siTSt_TxSarRep,
+        stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,

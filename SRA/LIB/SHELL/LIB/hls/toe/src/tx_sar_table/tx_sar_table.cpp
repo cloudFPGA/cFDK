@@ -39,7 +39,7 @@ using namespace hls;
 void tx_sar_table(
         stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
         stream<TXeTxSarQuery>      &siTXe_TxSarQry,
-        stream<txTxSarReply>       &soTXe_TxSarRep,
+        stream<TXeTxSarReply>      &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
         stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,
         stream<txSarAckPush>       &soTAi_AckPush)
@@ -91,12 +91,12 @@ void tx_sar_table(
                 minWindow = TX_SAR_TABLE[sTXeQry.sessionID].cong_window;
             else
                 minWindow = TX_SAR_TABLE[sTXeQry.sessionID].recv_window;
-            soTXe_TxSarRep.write(txTxSarReply( TX_SAR_TABLE[sTXeQry.sessionID].ackd,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].not_ackd,
-                                               minWindow,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].app,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].finReady,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].finSent));
+            soTXe_TxSarRep.write(TXeTxSarReply( TX_SAR_TABLE[sTXeQry.sessionID].ackd,
+                                                TX_SAR_TABLE[sTXeQry.sessionID].not_ackd,
+                                                minWindow,
+                                                TX_SAR_TABLE[sTXeQry.sessionID].app,
+                                                TX_SAR_TABLE[sTXeQry.sessionID].finReady,
+                                                TX_SAR_TABLE[sTXeQry.sessionID].finSent));
         }
     }
 
