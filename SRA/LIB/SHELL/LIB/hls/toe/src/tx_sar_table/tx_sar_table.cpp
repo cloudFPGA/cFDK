@@ -38,7 +38,7 @@ using namespace hls;
  *******************************************************************************/
 void tx_sar_table(
         stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
-        stream<txTxSarQuery>       &siTXe_TxSarQry,
+        stream<TXeTxSarQuery>      &siTXe_TxSarQry,
         stream<txTxSarReply>       &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
         stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,
@@ -51,8 +51,8 @@ void tx_sar_table(
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
     #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
 
-    txTxSarQuery      sTXeQry;
-    txTxSarRtQuery    txEngRtUpdate;
+    TXeTxSarQuery     sTXeQry;
+    TXeTxSarRtQuery   txEngRtUpdate;
     rxTxSarQuery      tst_rxEngUpdate;
     TxSarTableAppPush appPush;
 

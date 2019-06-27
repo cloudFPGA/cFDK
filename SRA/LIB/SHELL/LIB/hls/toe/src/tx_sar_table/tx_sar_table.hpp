@@ -21,7 +21,7 @@ using namespace hls;
  ******************************************************************************/
 void tx_sar_table(
         stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
-        stream<txTxSarQuery>       &siTXe_TxSarQry,
+        stream<TXeTxSarQuery>      &siTXe_TxSarQry,
         stream<txTxSarReply>       &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
         stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,

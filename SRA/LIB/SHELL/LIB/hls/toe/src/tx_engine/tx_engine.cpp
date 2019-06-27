@@ -79,7 +79,7 @@ void pMetaDataLoader(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
         stream<RxSarEntry>              &siRSt_RxSarRdRep,
-        stream<txTxSarQuery>            &soTSt_TxSarQry,
+        stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<txTxSarReply>            &siTSt_TxSarRep,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
@@ -132,17 +132,17 @@ void pMetaDataLoader(
             case ACK:
             case ACK_NODELAY:
                 soRSt_RxSarRdReq.write(mdl_curEvent.sessionID);
-                soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
+                soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case RST:
                 // Get txSar for SEQ numb
                 resetEvent = mdl_curEvent;
                 if (resetEvent.hasSessionID())
-                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case SYN:
                 if (mdl_curEvent.rt_count != 0)
-                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID));
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
             default:
                 break;
@@ -265,7 +265,7 @@ void pMetaDataLoader(
                         }
 
                         // Write back txSar not_ackd pointer
-                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
 
                     }
                 }
@@ -284,7 +284,7 @@ void pMetaDataLoader(
                         }
                         // Set probe Timer to try again later
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
                         fsmState = S0;
                     }
                 }
@@ -344,7 +344,7 @@ void pMetaDataLoader(
                         slowstart_threshold = currLength/2;
                     else
                         slowstart_threshold = (2 * MMS);
-                    soTSt_TxSarQry.write(txTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
+                    soTSt_TxSarQry.write(TXeTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
 
                 // Since we are retransmitting from txSar.ackd to txSar.not_ackd, this data is already inside the usableWindow
@@ -427,7 +427,7 @@ void pMetaDataLoader(
                     txSar.not_ackd = mdl_randomValue; // FIXME better rand()
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
                     txeMeta.seqNumb = txSar.not_ackd;
-                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 1));
                 }
 
                 //OBSOLETE-20181130 txeMeta = tx_engine_meta(0, 0, 0xFFFF, 0, 0, 1, 0);
@@ -474,8 +474,8 @@ void pMetaDataLoader(
                     txSar.not_ackd = mdl_randomValue; // FIXME better rand();
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
                     txeMeta.seqNumb = txSar.not_ackd;
-                    soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID,
-                                            txSar.not_ackd+1, 1, 1));
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
+                                         txSar.not_ackd+1, 1, 1));
                 }
 
                 soIhc_TcpSegLen.write(txeMeta.length); //OBSOLETE-20181126 soIhc_TcpSegLen.write(0);
@@ -518,9 +518,9 @@ void pMetaDataLoader(
                     // Check if all data is sent, otherwise we have to delay FIN message
                     // Set fin flag, such that probeTimer is informed
                     if (txSar.app == txSar.not_ackd(15, 0))
-                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, 1, 0, true, true));
                     else
-                        soTSt_TxSarQry.write(txTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1, 0, true, false));
                 }
 
                 // Check if there is a FIN to be sent //TODO maybe restrict this
@@ -1568,7 +1568,7 @@ void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
         stream<ap_uint<16> >            &soRSt_RxSarRdReq,
         stream<RxSarEntry>              &siRSt_RxSarRdRep,
-        stream<txTxSarQuery>            &soTSt_TxSarQry,
+        stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<txTxSarReply>            &siTSt_TxSarRep,
         stream<AxiWord>                 &siMEM_TxP_Data,
         stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,

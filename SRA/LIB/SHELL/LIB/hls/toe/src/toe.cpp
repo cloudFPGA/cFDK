@@ -776,7 +776,7 @@ void toe(
     static stream<ap_uint<16> >         sTXeToRSt_RxSarRdReq      ("sTXeToRSt_RxSarRdReq");
     #pragma HLS stream         variable=sTXeToRSt_RxSarRdReq      depth=2
 
-    static stream<txTxSarQuery>         sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
+    static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
     #pragma HLS stream         variable=sTXeToTSt_TxSarQry        depth=2
     #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarQry
 

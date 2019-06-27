@@ -638,27 +638,25 @@ struct rxTxSarReply
 };
 
 // TSt / Query from TXe
-struct txTxSarQuery
-{
-	SessionId   sessionID;
-    ap_uint<32> not_ackd;
-    ap_uint<1>  write;
-    ap_uint<1>  init;
-    bool        finReady;
-    bool        finSent;
-    bool        isRtQuery;
-    txTxSarQuery() {}
-    txTxSarQuery(SessionId id) :
+class TXeTxSarQuery {
+  public:
+    SessionId       sessionID;
+    TcpAckNum       not_ackd;   // Transmitted but not ACK'ed [TDOO ???]
+    ap_uint<1>      write;
+    ap_uint<1>      init;
+    bool            finReady;
+    bool            finSent;
+    bool            isRtQuery;
+    TXeTxSarQuery() {}
+    TXeTxSarQuery(SessionId id) :
         sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    //txTxSarQuery(ap_uint<16> id, ap_uint<1> lock)
-    //          :sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write) :
+    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write) :
         sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
+    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
+    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
+    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
@@ -676,16 +674,17 @@ struct txTxSarReply
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
-// TSt / Re-transmission Query TXe
-struct txTxSarRtQuery : public txTxSarQuery
+// TSt / Re-transmission Query from TXe
+class TXeTxSarRtQuery : public TXeTxSarQuery
 {
-    txTxSarRtQuery() {}
-    txTxSarRtQuery(const txTxSarQuery& q) :
-        txTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
-    txTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
-         txTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
+  public:
+    TXeTxSarRtQuery() {}
+    TXeTxSarRtQuery(const TXeTxSarQuery& q) :
+        TXeTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
+    TXeTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
+        TXeTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
     ap_uint<16> getThreshold() {
-    	return not_ackd(15, 0);
+        return not_ackd(15, 0);
     }
 };
 
