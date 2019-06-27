@@ -595,53 +595,56 @@ struct rxSarAppd
  ********************************************/
 class TxSarEntry {
   public:
-    ap_uint<32> ackd;
-    ap_uint<32> not_ackd;
-    ap_uint<16> recv_window;
-    ap_uint<16> cong_window;
-    ap_uint<16> slowstart_threshold;
-    ap_uint<16> app;
-    ap_uint<2>  count;
-    bool        finReady;
-    bool        finSent;
+    TcpAckNum       ackd;        // ACK'ed octets
+    TcpAckNum       not_ackd;    // TX'ed but not ACK'ed octets
+    TcpWindow       recv_window; // Remote receiver's buffer size
+    TcpWindow       cong_window;
+    TcpWindow       slowstart_threshold;
+    ap_uint<16>     app;
+    ap_uint<2>      count;
+    bool            finReady;
+    bool            finSent;
     TxSarEntry() {};
 };
 
 // TSt / Query from RXe
-struct rxTxSarQuery
-{
-	SessionId   sessionID;
-    ap_uint<32> ackd;
-    ap_uint<16> recv_window;
-    ap_uint<16> cong_window;
-    ap_uint<2>  count;
-    ap_uint<1>  write;
-    ap_uint<1>  init;
-    rxTxSarQuery () {}
-    rxTxSarQuery(SessionId id) :
+//----------------------
+class RXeTxSarQuery {
+  public:
+    SessionId       sessionID;
+    TcpAckNum       ackd;        // ACK'ed
+    TcpWindow       recv_window;  // Remote receiver's buffer size
+    TcpWindow       cong_window;
+    ap_uint<2>      count;
+    ap_uint<1>      write;
+    ap_uint<1>      init;
+    RXeTxSarQuery () {}
+    RXeTxSarQuery(SessionId id) :
         sessionID(id), ackd(0), recv_window(0), count(0), write(0) {}
-    rxTxSarQuery(SessionId id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
+    RXeTxSarQuery(SessionId id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
 };
 
 // TSt / Reply to RXe
-struct rxTxSarReply
-{
-    TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
-    TcpAckNum       nextByte;    //OBSOLETE-20181126 ap_uint<32>     nextByte;
-    TcpWindow       cong_window; //OBSOLETE-20181126  ap_uint<16>    cong_window;
+//--------------------
+class RXeTxSarReply {
+  public:
+    TcpAckNum       prevAck;
+    TcpAckNum       nextByte;
+    TcpWindow       cong_window;
     ap_uint<16>     slowstart_threshold;
     ap_uint<2>      count;
-    rxTxSarReply() {}
-    rxTxSarReply(TcpAckNum ack, TcpAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
+    RXeTxSarReply() {}
+    RXeTxSarReply(TcpAckNum ack, TcpAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
         prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
 };
 
 // TSt / Query from TXe
+//----------------------
 class TXeTxSarQuery {
   public:
     SessionId       sessionID;
-    TcpAckNum       not_ackd;   // Transmitted but not ACK'ed [TDOO ???]
+    TcpAckNum       not_ackd;   // TX'ed but not ACK'ed
     ap_uint<1>      write;
     ap_uint<1>      init;
     bool            finReady;
@@ -661,6 +664,7 @@ class TXeTxSarQuery {
 };
 
 // TSt / Reply to TXe
+//--------------------
 class TXeTxSarReply {
   public:
     TcpAckNum       ackd;       // ACK'ed
@@ -675,6 +679,7 @@ class TXeTxSarReply {
 };
 
 // TSt / Re-transmission Query from TXe
+//--------------------------------------
 class TXeTxSarRtQuery : public TXeTxSarQuery
 {
   public:
@@ -689,16 +694,7 @@ class TXeTxSarRtQuery : public TXeTxSarQuery
 };
 
 // TSt / Tx Application Interface
-/*** OBSOLETE-20160617 ***********
-struct txAppTxSarPush
-{
-    SessionId   sessionID;
-    ap_uint<16> app;
-    txAppTxSarPush() {}
-    txAppTxSarPush(SessionId id, ap_uint<16> app) :
-         sessionID(id), app(app) {}
-};
-**********************************/
+//--------------------------------
 class TxSarTableAppPush {
   public:
     SessionId      sessionID;

@@ -37,11 +37,11 @@ using namespace hls;
  *
  *******************************************************************************/
 void tx_sar_table(
-        stream<rxTxSarQuery>       &rxEng2txSar_upd_req,
+        stream<RXeTxSarQuery>      &rxEng2txSar_upd_req,
         stream<TXeTxSarQuery>      &siTXe_TxSarQry,
         stream<TXeTxSarReply>      &soTXe_TxSarRep,
         stream<TxSarTableAppPush>  &siTAi_AppPush,
-        stream<rxTxSarReply>       &txSar2rxEng_upd_rsp,
+        stream<RXeTxSarReply>      &txSar2rxEng_upd_rsp,
         stream<txSarAckPush>       &soTAi_AckPush)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -53,7 +53,7 @@ void tx_sar_table(
 
     TXeTxSarQuery     sTXeQry;
     TXeTxSarRtQuery   txEngRtUpdate;
-    rxTxSarQuery      tst_rxEngUpdate;
+    RXeTxSarQuery     tst_rxEngUpdate;
     TxSarTableAppPush appPush;
 
     if (!siTXe_TxSarQry.empty()) {
@@ -125,7 +125,7 @@ void tx_sar_table(
             soTAi_AckPush.write(txSarAckPush(tst_rxEngUpdate.sessionID, tst_rxEngUpdate.ackd));
         }
         else {
-            txSar2rxEng_upd_rsp.write(rxTxSarReply( TX_SAR_TABLE[tst_rxEngUpdate.sessionID].ackd,
+            txSar2rxEng_upd_rsp.write(RXeTxSarReply(TX_SAR_TABLE[tst_rxEngUpdate.sessionID].ackd,
                                                     TX_SAR_TABLE[tst_rxEngUpdate.sessionID].not_ackd,
                                                     TX_SAR_TABLE[tst_rxEngUpdate.sessionID].cong_window,
                                                     TX_SAR_TABLE[tst_rxEngUpdate.sessionID].slowstart_threshold,

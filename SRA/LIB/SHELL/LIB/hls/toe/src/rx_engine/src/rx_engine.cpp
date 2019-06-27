@@ -911,10 +911,10 @@ void pFiniteStateMachine(
         stream<rxFsmMetaData>               &siMdh_Meta,
         stream<SessionState>                &siSTt_AccessRep,
         stream<RxSarEntry>                  &siRSt_RxSarUpdRep,
-        stream<rxTxSarReply>                &siTSt_TxSarRdRep,
+        stream<RXeTxSarReply>               &siTSt_TxSarRdRep,
         stream<StateQuery>                  &soSTt_AccessReq,
         stream<rxSarRecvd>                  &soRSt_RxSarUpdReq,
-        stream<rxTxSarQuery>                &soTSt_TxSarRdReq,
+        stream<RXeTxSarQuery>               &soTSt_TxSarRdReq,
         stream<ReTxTimerCmd>                &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
@@ -938,7 +938,7 @@ void pFiniteStateMachine(
     ap_uint<4>      control_bits = 0;
     SessionState    tcpState;
     RxSarEntry      rxSar;
-    rxTxSarReply    txSar;
+    RXeTxSarReply   txSar;
 
     static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
 
@@ -954,7 +954,7 @@ void pFiniteStateMachine(
 
             if (fsm_meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
-                soTSt_TxSarRdReq.write(rxTxSarQuery(fsm_meta.sessionId));
+                soTSt_TxSarRdReq.write(RXeTxSarQuery(fsm_meta.sessionId));
                 fsm_txSarRequest = true;
             }
             fsmState = TRANSITION;
@@ -1012,7 +1012,7 @@ void pFiniteStateMachine(
                     // TX SAR (TODO-CheckDiff)
                     if ( (  (txSar.prevAck <= fsm_meta.meta.ackNumb) && (fsm_meta.meta.ackNumb <= txSar.nextByte) ) ||
                          ( ((txSar.prevAck <= fsm_meta.meta.ackNumb) || (fsm_meta.meta.ackNumb <= txSar.nextByte) ) && (txSar.nextByte < txSar.prevAck) ) ) {
-                        soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionId,
+                        soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId,
                                                  fsm_meta.meta.ackNumb,
                                                  fsm_meta.meta.winSize,
                                                  txSar.cong_window,
@@ -1110,7 +1110,7 @@ void pFiniteStateMachine(
                     // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
                     soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId, fsm_meta.meta.seqNumb + 1, 1, 1));
                     // Initialize receive window
-                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionId, 0, fsm_meta.meta.winSize,
+                    soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId, 0, fsm_meta.meta.winSize,
                                               txSar.cong_window, 0, 1))); //TODO maybe include count check
                     // Set SYN_ACK event
                     soEVe_Event.write(event(SYN_ACK, fsm_meta.sessionId));
@@ -1158,7 +1158,7 @@ void pFiniteStateMachine(
                     //initialize rx_sar, SEQ + phantom byte, last '1' for appd init
                     soRSt_RxSarUpdReq.write(rxSarRecvd(fsm_meta.sessionId,
                                                     fsm_meta.meta.seqNumb + 1, 1, 1));
-                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionId,
+                    soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId,
                                                            fsm_meta.meta.ackNumb,
                                                            fsm_meta.meta.winSize,
                                                            txSar.cong_window, 0, 1))); //CHANGE this was added //TODO maybe include count check
@@ -1198,7 +1198,7 @@ void pFiniteStateMachine(
                 // Check state and if FIN in order, Current out of order FINs are not accepted
                 if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
                       tcpState == FIN_WAIT_2) && (rxSar.recvd == fsm_meta.meta.seqNumb) ) {
-                    soTSt_TxSarRdReq.write((rxTxSarQuery(fsm_meta.sessionId,
+                    soTSt_TxSarRdReq.write((RXeTxSarQuery(fsm_meta.sessionId,
                                               fsm_meta.meta.ackNumb, fsm_meta.meta.winSize,
                                               txSar.cong_window, txSar.count, 0))); //TODO include count check
 
@@ -1739,8 +1739,8 @@ void rx_engine(
         stream<StsBit>                  &siPRt_PortStateRep,
         stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
         stream<RxSarEntry>              &siRSt_RxSarUpdRep,
-        stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
-        stream<rxTxSarReply>            &siTSt_TxSarRdRep,
+        stream<RXeTxSarQuery>           &soTSt_TxSarRdReq,
+        stream<RXeTxSarReply>           &siTSt_TxSarRdRep,
         stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
