@@ -87,6 +87,7 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 //---------------------------------------------------------
 bool            gTraceEvent     = false;
 bool            gFatalError     = false;
+unsigned int    gSimCycCnt      = 0;
 unsigned int    gMaxSimCycles = 1000;
 Ip4Addr         gFpgaIp4Addr  = DEFAULT_FPGA_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port
@@ -2435,6 +2436,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-6 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         simCycCnt++;
+        gSimCycCnt = simCycCnt.to_uint();
         if (gTraceEvent || ((simCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
             gTraceEvent = false;
@@ -2448,7 +2450,7 @@ int main(int argc, char *argv[]) {
               (gFatalError) or
               (nrErr > 10) );
 
-    printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
+    printf("(@%5.5d) --------------------------------------\n", simCycCnt.to_uint());
     printf("############################################################################\n");
     printf("## TESTBENCH ENDS HERE                                                    ##\n");
     printf("############################################################################\n");
