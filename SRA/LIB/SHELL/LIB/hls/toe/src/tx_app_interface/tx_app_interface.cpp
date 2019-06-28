@@ -20,7 +20,7 @@ using namespace hls;
  *
  * @param[in]  siMEM_TxP_WrSts, Tx memory write status from [MEM].
  * @param[in]  siEmx_Event,     Event from the event multiplexer (Emx).
- * @param[out] soTSt_Push,      Push the pointer to be released to TxSarTable (TSt).
+ * @param[out] soTSt_PushCmd,   Push command to TxSarTable (TSt).
  * @param[out] soEVe_Event,     Event to EventEngine (EVe).
  *
  * @details
@@ -30,7 +30,7 @@ using namespace hls;
 void pTxAppStatusHandler(
         stream<DmSts>             &siMEM_TxP_WrSts,
         stream<event>             &siEmx_Event,
-        stream<TxSarTableAppPush> &soTSt_Push,
+        stream<TAiTxSarPush>      &soTSt_PushCmd,
         stream<event>             &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -57,7 +57,7 @@ void pTxAppStatusHandler(
             ap_uint<17> tempLength = ev.address + ev.length;
             if (tempLength <= 0x10000) {
                 if (status.okay) {
-                    soTSt_Push.write(TxSarTableAppPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
+                    soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
                     soEVe_Event.write(ev);
                 }
                 tashFsmState = S0;
@@ -72,7 +72,7 @@ void pTxAppStatusHandler(
             ap_uint<17> tempLength = (ev.address + ev.length);
             if (status.okay) {
                // App pointer update, pointer is released
-                soTSt_Push.write(TxSarTableAppPush(ev.sessionID, tempLength.range(15, 0)));
+                soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, tempLength.range(15, 0)));
                 soEVe_Event.write(ev);
             }
             tashFsmState = S0;
@@ -85,7 +85,7 @@ void pTxAppStatusHandler(
 /*****************************************************************************
  * @brief Tx Application Table (Tat).
  *
- * @param[in]  siTSt_AckPush,  The push of an AckNum by the TxSarTable (TSt).
+ * @param[in]  siTSt_PushCmd,  Push command from TxSarTable (TSt).
  * @param[in]  siTas_AcessReq, Access request from TxAppStream (Tas).
  * @param[out] soTAs_AcessRep, Access reply to [Tas].
  *
@@ -95,7 +95,7 @@ void pTxAppStatusHandler(
  * @ingroup tx_app_interface
  ******************************************************************************/
 void pTxAppTable(
-        stream<txSarAckPush>      &siTSt_AckPush,
+        stream<TStTxSarPush>      &siTSt_PushCmd,
         stream<TxAppTableRequest> &siTas_AcessReq,
         stream<TxAppTableReply>   &siTas_AcessRep)
 {
@@ -105,11 +105,11 @@ void pTxAppTable(
     static TxAppTableEntry          TX_APP_TABLE[MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_APP_TABLE inter false
 
-    txSarAckPush      ackPush;
+    TStTxSarPush      ackPush;
     TxAppTableRequest txAppUpdate;
 
-    if (!siTSt_AckPush.empty()) {
-        siTSt_AckPush.read(ackPush);
+    if (!siTSt_PushCmd.empty()) {
+        siTSt_PushCmd.read(ackPush);
         if (ackPush.init) { // At init this is actually not_ackd
             TX_APP_TABLE[ackPush.sessionID].ackd = ackPush.ackd-1;
             TX_APP_TABLE[ackPush.sessionID].mempt = ackPush.ackd;
@@ -160,7 +160,7 @@ void pTxAppTable(
  * @param[]
  * @param[out] soMEM_TxP_WrCmd,       Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,        Tx memory data to MEM.
- * @param[out] soTSt_Push,            Push to TxSarTable (TSt).
+ * @param[out] soTSt_PushCmd,         Push command to TxSarTable (TSt).
  * @param
  * @param[out] soSTt_Taa_SessStateQry,Session state query to [STt].
  * @param[in]  siSTt_Taa_SessStateRep,Session state reply from [STt].
@@ -177,7 +177,7 @@ void tx_app_interface(
         stream<AppMeta>                &siTRIF_Meta,
         stream<TcpSessId>              &soSTt_Tas_SessStateReq,
         stream<SessionState>           &siSTt_Tas_SessStateRep,
-        stream<txSarAckPush>           &siTSt_AckPush,
+        stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<DmSts>                  &siMEM_TxP_WrSts,
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
@@ -189,7 +189,7 @@ void tx_app_interface(
         stream<ap_int<17> >            &soTRIF_DSts,
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
-        stream<TxSarTableAppPush>      &soTSt_AppPush,
+        stream<TAiTxSarPush>           &soTSt_PushCmd,
 
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
@@ -237,7 +237,7 @@ void tx_app_interface(
     pTxAppStatusHandler(
         siMEM_TxP_WrSts,
         sEmxToTash_Event,
-        soTSt_AppPush,
+        soTSt_PushCmd,
         soEVe_Event);
 
     // Tx Application Stream (Tas)
@@ -271,7 +271,7 @@ void tx_app_interface(
 
     // Tx Application Table (Tat)
     pTxAppTable(
-            siTSt_AckPush,
+            siTSt_PushCmd,
             sTasToApt_AcessReq,
             sTatToTas_AcessRep);
 }

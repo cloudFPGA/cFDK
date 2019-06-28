@@ -40,13 +40,16 @@ class TxAppTableEntry
         ackd(ackd), mempt(mempt) {}
 };
 
-
+/*****************************************************************************
+ * @brief   Main process of the Tx Application Interface (TAi).
+ *
+ *****************************************************************************/
 void tx_app_interface(
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
         stream<TcpSessId>              &soSTt_SessStateReq,
         stream<SessionState>           &siSTt_SessStateRep,
-        stream<txSarAckPush>           &siTSt_AckPush,
+        stream<TStTxSarPush>           &siTSt_AckPush,
         stream<DmSts>                  &siMEM_TxP_WrSts,
         stream<AxiSockAddr>            &siTRIF_OpnReq,
         stream<ap_uint<16> >           &appCloseConnReq,
@@ -58,7 +61,7 @@ void tx_app_interface(
         stream<ap_int<17> >            &soTRIF_DSts,
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
-        stream<TxSarTableAppPush>      &soTSt_AppPush,
+        stream<TAiTxSarPush>           &soTSt_AppPush,
 
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         stream<AxiSocketPair>          &soSLc_SessLookupReq,

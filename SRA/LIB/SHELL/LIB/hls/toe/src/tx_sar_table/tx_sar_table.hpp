@@ -20,10 +20,10 @@ using namespace hls;
  *
  ******************************************************************************/
 void tx_sar_table(
-        stream<RXeTxSarQuery>      &rxEng2txSar_upd_req,
+        stream<RXeTxSarQuery>      &siRXe_TxSarQry,
+        stream<RXeTxSarReply>      &soRXe_TxSarRep,
         stream<TXeTxSarQuery>      &siTXe_TxSarQry,
         stream<TXeTxSarReply>      &soTXe_TxSarRep,
-        stream<TxSarTableAppPush>  &siTAi_AppPush,
-        stream<RXeTxSarReply>      &txSar2rxEng_upd_rsp,
-        stream<txSarAckPush>       &soTAi_AckPush
+        stream<TAiTxSarPush>       &siTAi_AppPush,
+        stream<TStTxSarPush>       &soTAi_AckPush
 );

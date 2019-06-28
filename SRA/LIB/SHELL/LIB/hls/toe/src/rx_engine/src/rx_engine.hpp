@@ -56,7 +56,6 @@ struct rxFsmMetaData
 /*****************************************************************************
  * @brief   Main process of the TCP Rx Engine (RXe).
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void rx_engine(
         stream<Ip4overAxi>              &siIPRX_Pkt,

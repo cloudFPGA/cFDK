@@ -244,10 +244,10 @@ void pMetaDataLoader(
 
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
-                    if (currLength >= MMS) {    //TODO change to >= MSS, use maxSegmentCount
+                    if (currLength >= MSS) {    //TODO change to >= MSS, use maxSegmentCount
                         // We stay in this state and sent immediately another packet
-                        txSar.not_ackd += MMS;
-                        txeMeta.length = MMS;
+                        txSar.not_ackd += MSS;
+                        txeMeta.length = MSS;
                     }
                     else {
                         if (txSar.finReady && (txSar.ackd == txSar.not_ackd || currLength == 0)) // If we sent all data, there might be a fin we have to sent too
@@ -271,10 +271,10 @@ void pMetaDataLoader(
                 }
                 else {
                     // Code duplication, but better timing..
-                    if (usableWindow >= MMS) {
+                    if (usableWindow >= MSS) {
                         // We stay in this state and sent immediately another packet
-                        txSar.not_ackd += MMS;
-                        txeMeta.length = MMS;
+                        txSar.not_ackd += MSS;
+                        txeMeta.length = MSS;
                     }
                     else {
                         // Check if we sent >= MSS data
@@ -340,20 +340,20 @@ void pMetaDataLoader(
 
                 // Decrease Slow Start Threshold, only on first RT from retransmitTimer
                 if (!mdl_sarLoaded && (mdl_curEvent.rt_count == 1)) {
-                    if (currLength > (4*MMS)) // max( FlightSize/2, 2*MSS) RFC:5681
+                    if (currLength > (4*MSS)) // max( FlightSize/2, 2*MSS) RFC:5681
                         slowstart_threshold = currLength/2;
                     else
-                        slowstart_threshold = (2 * MMS);
+                        slowstart_threshold = (2 * MSS);
                     soTSt_TxSarQry.write(TXeTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
 
                 // Since we are retransmitting from txSar.ackd to txSar.not_ackd, this data is already inside the usableWindow
                 //  => No check is required
                 // Only check if length is bigger than MMS
-                if (currLength > MMS) {
+                if (currLength > MSS) {
                     // We stay in this state and sent immediately another packet
-                    txeMeta.length = MMS;
-                    txSar.ackd    += MMS;
+                    txeMeta.length = MSS;
+                    txSar.ackd    += MSS;
                     // TODO replace with dynamic count, remove this
                     if (mdl_segmentCount == 3) {
                         // Should set a probe or sth??

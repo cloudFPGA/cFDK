@@ -50,9 +50,9 @@ void rx_sar_table(
     #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
     #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
 
-    SessionId           sessId;
-    RXeRxSarQuery         in_recvd;
-    RAiRxSarQuery         in_appd;
+    SessionId       sessId;
+    RXeRxSarQuery   RXeQry;
+    RAiRxSarQuery   RAiQry;
 
     if(!siTXe_RxSarReq.empty()) {
         // Read only access from the Tx Engine
@@ -61,21 +61,21 @@ void rx_sar_table(
     }
     else if(!siRAi_RxSarQry.empty()) {
         // Read or Write access from the Rx App I/F to update the application pointer
-        siRAi_RxSarQry.read(in_appd);
-        if(in_appd.write)
-            RX_SAR_TABLE[in_appd.sessionID].appd = in_appd.appd;
+        siRAi_RxSarQry.read(RAiQry);
+        if(RAiQry.write)
+            RX_SAR_TABLE[RAiQry.sessionID].appd = RAiQry.appd;
         else
-            soRAi_RxSarRep.write(RAiRxSarReply(in_appd.sessionID, RX_SAR_TABLE[in_appd.sessionID].appd));
+            soRAi_RxSarRep.write(RAiRxSarReply(RAiQry.sessionID, RX_SAR_TABLE[RAiQry.sessionID].appd));
     }
     else if(!siRXe_RxSarQry.empty()) {
         // Read or Write access from the RxEngine
-        siRXe_RxSarQry.read(in_recvd);
-        if (in_recvd.write) {
-            RX_SAR_TABLE[in_recvd.sessionID].recvd = in_recvd.recvd;
-            if (in_recvd.init)
-                RX_SAR_TABLE[in_recvd.sessionID].appd = in_recvd.recvd;
+        siRXe_RxSarQry.read(RXeQry);
+        if (RXeQry.write) {
+            RX_SAR_TABLE[RXeQry.sessionID].recvd = RXeQry.recvd;
+            if (RXeQry.init)
+                RX_SAR_TABLE[RXeQry.sessionID].appd = RXeQry.recvd;
         }
         else
-            soRXe_RxSarRep.write(RX_SAR_TABLE[in_recvd.sessionID]);
+            soRXe_RxSarRep.write(RX_SAR_TABLE[RXeQry.sessionID]);
     }
 }
