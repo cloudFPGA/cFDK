@@ -41,7 +41,7 @@ struct rxEngineMetaData
 /********************************************
  * RXe - FsmMetaData Interface
  ********************************************/
-struct rxFsmMetaData
+struct rxFsmMetaData  // [TODO - Rename]
 {
     SessionId           sessionId;
     Ip4SrcAddr          ip4SrcAddr;

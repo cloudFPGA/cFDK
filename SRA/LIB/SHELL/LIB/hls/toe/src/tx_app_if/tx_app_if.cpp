@@ -99,8 +99,12 @@ void tx_app_accept(
                 soTRIF_SessOpnSts.write(OpenStatus(0, false));
             }
         }
-        else if (!siRXe_SessOpnSts.empty())
-            soTRIF_SessOpnSts.write(siRXe_SessOpnSts.read());  //Maybe check if we are actually waiting for this one
+        else if (!siRXe_SessOpnSts.empty()) {
+            // Read the status but do not forward to TRIF because it is actually
+            // not waiting for this one
+            siRXe_SessOpnSts.read();
+            //OBSOLETE-20190705 soTRIF_SessOpnSts.write(siRXe_SessOpnSts.read());
+        }
         else if (!rtTimer2txApp_notification.empty())
             soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
         else if(!closeConnReq.empty()) {    // Close Request

@@ -81,7 +81,7 @@ void pMetaDataLoader(
         stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
-        stream<ReTxTimerEvent>          &soTIm_ReTxTimerEvent,
+        stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
         stream<TXeMeta>                 &soIhc_TxeMeta,
@@ -244,13 +244,14 @@ void pMetaDataLoader(
 
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
-                    if (currLength >= MSS) {    //TODO change to >= MSS, use maxSegmentCount
+                    if (currLength >= MSS) {
                         // We stay in this state and sent immediately another packet
                         txSar.not_ackd += MSS;
                         txeMeta.length = MSS;
                     }
                     else {
-                        if (txSar.finReady && (txSar.ackd == txSar.not_ackd || currLength == 0)) // If we sent all data, there might be a fin we have to sent too
+                        // If we sent all data, there might be a fin we have to sent too
+                        if (txSar.finReady && (txSar.ackd == txSar.not_ackd || currLength == 0))
                             mdl_curEvent.type = FIN;
                         else
                             fsmState = S0;
@@ -265,7 +266,7 @@ void pMetaDataLoader(
                         }
 
                         // Write back txSar not_ackd pointer
-                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, QUERY_WR));
 
                     }
                 }
@@ -284,14 +285,14 @@ void pMetaDataLoader(
                         }
                         // Set probe Timer to try again later
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, 1));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, QUERY_WR));
                         fsmState = S0;
                     }
                 }
 
-                if (txeMeta.length != 0)
+                if (txeMeta.length != 0) {
                     soMai_BufferRdCmd.write(DmCmd(segAddr, txeMeta.length));
-
+                }
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
                     soIhc_TcpSegLen.write(txeMeta.length);
@@ -302,8 +303,6 @@ void pMetaDataLoader(
                     // [TODO - Only set if we change state and sent sth]
                     soTIm_ReTxTimerEvent.write(ReTxTimerEvent(mdl_curEvent.sessionID));
                 } // [TODO - if probe send msg length 1]
-
-
                 mdl_sarLoaded = true;
             }
             break;
