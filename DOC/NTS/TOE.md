@@ -1,8 +1,10 @@
 # TCP Offload Engine (TOE)
 This document describes the design of the **TCP Offload Engine (TOE)** used by the *cloudFPGA* platform.
 
-## Preliminary
-This code was initialy developed by *Xilinx Dublin Labs, Ireland* who kindly acepted to share it with the *cloudFPGA project* via the *GitHub* repository: https://github.com/Xilinx/HLx_Examples/tree/master/Acceleration/tcp_ip. In 2018, the code was ported and adapted for the needs and specificities of the *cloudFPGA* platform.
+## Preliminary and Acknowledgments
+This code was initialy developed by **Xilinx Dublin Labs, Ireland** who kindly acepted to share it with the *cloudFPGA project* via the *GitHub* repository: https://github.com/Xilinx/HLx_Examples/tree/master/Acceleration/tcp_ip. In 2018, the code was ported and adapted for the needs and specificities of the *cloudFPGA* platform.
+
+FYI - An enhanced branch of the initial *Xilinx* code is maitained by the **Systems Group @ ETH Zurich** and can be found [here](https://github.com/fpgasystems/fpga-network-stack).    
 
 ## Overview
 A block diagram of the *TOE* is depicted in Figure 1. It features a *Rx Engine (RXe)*, a *Tx Engine (TXe)*, and a ... [TODO] ....
@@ -11,7 +13,7 @@ A block diagram of the *TOE* is depicted in Figure 1. It features a *Rx Engine (
 <br>
 
 ## HLS Coding Style and Naming Conventions 
-Please consider reading the following HLS naming conventions document before diving or contributing to this part of the cloudFPGA project: [TODO - Link to a MD file] 
+Please consider reading the [HLS naming conventions document](/hls-naming-conventions.md) before diving or contributing to this part of the cloudFPGA project. 
 
 <br>
 
