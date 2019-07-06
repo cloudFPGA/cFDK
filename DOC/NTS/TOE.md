@@ -13,7 +13,7 @@ A block diagram of the *TOE* is depicted in Figure 1. It features a *Rx Engine (
 <br>
 
 ## HLS Coding Style and Naming Conventions 
-Please consider reading the [HLS naming conventions document](/hls-naming-conventions.md) before diving or contributing to this part of the cloudFPGA project. 
+Please consider reading the [HLS naming conventions document](./hls-naming-conventions.md) before diving or contributing to this part of the cloudFPGA project. 
 
 <br>
 
