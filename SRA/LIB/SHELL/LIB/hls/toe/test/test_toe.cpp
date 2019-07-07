@@ -2450,9 +2450,9 @@ int main(int argc, char *argv[]) {
     if ((mode == TX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
         // Tx side testing only
         appRxFile.close();
-        ipTxFile1.close();
-        ipTxFile2.close();
-        ipTxGold2.close();
+        ipTxFile1 << endl; ipTxFile1.close();
+        ipTxFile2 << endl; ipTxFile2.close();
+        ipTxGold2 << endl; ipTxGold2.close();
     }
 
     printf("(@%5.5d) --------------------------------------\n", simCycCnt.to_uint());

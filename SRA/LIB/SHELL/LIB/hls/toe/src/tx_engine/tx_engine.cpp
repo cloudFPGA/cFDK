@@ -53,19 +53,19 @@ using namespace hls;
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set the probe timer to Timers (TIm).
- * @param[out] soMai_BufferRdCmd,  Buffer read command to Memory Access Interface (MAi).
  * @param[out] soIhc_TcpSegLen,    TCP segment length to Ip Header Constructor(Ihc).
- * @param[out] soIhc_TxeMeta,      Tx Engine metadata to Ip Header Constructor(Ihc).
+ * @param[out] soPhc_TxeMeta,      Tx Engine metadata to Pseudo Header Constructor(Phc).
+ * @param[out] soMai_BufferRdCmd,  Buffer read command to Memory Access Interface (MAi).
  * @param[out] soSLc_ReverseLkpReq,Reverse lookup request to Session Lookup Controller (SLc).
- * @param[out] soSps_IsLookup,     Tells the Socket Pair Splitter (Sps) that a
- *                                  reverse lookup is to be expected.
- * @prama[out] soSps_RstSockPair,  Tells the Sps about the socket pair to reset.
+ * @param[out] soSps_IsLookup,     Tells the Socket Pair Splitter (Sps) that a reverse lookup is to be expected.
+ * @param[out] soTODO_IsDdrBypass, [TODO]
+ * @param[out] soSps_RstSockPair,  Tells the Sps about the socket pair to reset.
  * @param[out] soEVe_RxEventSig,   Signals the reception of an event to {EventEngine].
  *
  * @details
  *  The meta data loader reads the events from the Event Engine (EVe) and loads
- *   the necessary data from the meta data structures (RX & TX Sar Table).
- *  Depending on the event type, it generates the necessary meta data for the
+ *   the necessary data from the metadata structures (RX & TX Sar Tables).
+ *  Depending on the event type, it generates the necessary metadata for the
  *   'pIpHeaderConstruction' and the 'pPseudoHeaderConstruction'.
  * Additionally it requests the IP tuples from Session Lookup Controller (SLc).
  * In some special cases the IP tuple is delivered directly from the Rx Engine
@@ -73,7 +73,6 @@ using namespace hls;
  *  indicates this special cases.
  * Depending on the Event Type the retransmit or/and probe Timer is set.
  *
- * @ingroup tx_engine
  *****************************************************************************/
 void pMetaDataLoader(
         stream<extendedEvent>           &siAKd_Event,
@@ -84,7 +83,7 @@ void pMetaDataLoader(
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
-        stream<TXeMeta>                 &soIhc_TxeMeta,
+        stream<TXeMeta>                 &soPhc_TxeMeta,
         stream<DmCmd>                   &soMai_BufferRdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
@@ -227,7 +226,7 @@ void pMetaDataLoader(
                 txeMeta.rst = 0;
                 txeMeta.syn = 0;
                 txeMeta.fin = 0;
-                txeMeta.length = 0;
+                //OBSOLETE-20190707 txeMeta.length = 0;
 
                 currLength = (txSar.app - ((TxBufPtr)txSar.not_ackd));
                 TxBufPtr usedLength = ((TxBufPtr)txSar.not_ackd - txSar.ackd);
@@ -248,37 +247,43 @@ void pMetaDataLoader(
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
                     if (currLength >= MSS) {
-                        // We stay in this state and sent immediately another packet
+                        //-- Start IP Fragmentation ----------------------------
+                        //--  We stay in this state
                         txSar.not_ackd += MSS;
-                        txeMeta.length = MSS;
+                        txeMeta.length  = MSS;
                     }
                     else {
-                        // If we sent all data, there might be a Fin we have to sent too
+                        //-- No IP Fragmentation or End of Fragmentation -------
+                        //--  If we sent all data, we might also need to send a FIN
                         if (txSar.finReady && (txSar.ackd == txSar.not_ackd || currLength == 0))
                             mdl_curEvent.type = FIN;
-                        else
-                            fsmState = S0;
-
-                        // Check if small segment and if unacknowledged data in pipe (Nagle)
-                        if (txSar.ackd == txSar.not_ackd) {
-                            txSar.not_ackd += currLength;
-                            txeMeta.length = currLength;
-                        }
                         else {
-                            soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
+                            txSar.not_ackd += currLength;
+                            txeMeta.length  = currLength;
+                            fsmState = S0;
                         }
 
-                        // Write back 'txSar.not_ackd' pointer
+                        //OBSOLETE-20190707 // Check if small segment and if unacknowledged data in pipe (Nagle)
+                        //OBSOLETE-20190707 if (txSar.ackd == txSar.not_ackd) {
+                        //OBSOLETE-20190707     txSar.not_ackd += currLength;
+                        //OBSOLETE-20190707     txeMeta.length = currLength;
+                        //OBSOLETE-20190707 }
+                        //OBSOLETE-20190707 else {
+                        //OBSOLETE-20190707     soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
+                        //OBSOLETE-20190707 }
+
+                        // Update the 'txSar.not_ackd' pointer
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, QUERY_WR));
 
                     }
                 }
                 else {
-                    // Code duplication, but better timing..
+                    // Code duplication, but better timing.
                     if (usableWindow >= MSS) {
-                        // We stay in this state and sent immediately another packet
+                        //-- Start IP Fragmentation ----------------------------
+                        //--  We stay in this state
                         txSar.not_ackd += MSS;
-                        txeMeta.length = MSS;
+                        txeMeta.length  = MSS;
                     }
                     else {
                         // Check if we sent >= MSS data
@@ -299,7 +304,7 @@ void pMetaDataLoader(
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
                     soIhc_TcpSegLen.write(txeMeta.length);
-                    soIhc_TxeMeta.write(txeMeta);
+                    soPhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                     // Only set RT timer if we actually send sth,
@@ -377,7 +382,7 @@ void pMetaDataLoader(
                 if (txeMeta.length != 0) {
                     soMai_BufferRdCmd.write(DmCmd(memSegAddr, txeMeta.length));
                     soIhc_TcpSegLen.write(txeMeta.length);
-                    soIhc_TxeMeta.write(txeMeta);
+                    soPhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
 
 #if (TCP_NODELAY)
@@ -411,7 +416,7 @@ void pMetaDataLoader(
                 txeMeta.syn = 0;
                 txeMeta.fin = 0;
                 soIhc_TcpSegLen.write(txeMeta.length);
-                soIhc_TxeMeta.write(txeMeta);
+                soPhc_TxeMeta.write(txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 fsmState = S0;
@@ -443,7 +448,7 @@ void pMetaDataLoader(
                 txeMeta.fin = 0;
 
                 soIhc_TcpSegLen.write(4);  // For MSS Option, 4 bytes
-                soIhc_TxeMeta.write(txeMeta);
+                soPhc_TxeMeta.write(txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 // Set retransmit timer
@@ -480,7 +485,7 @@ void pMetaDataLoader(
                 }
 
                 soIhc_TcpSegLen.write(txeMeta.length);
-                soIhc_TxeMeta.write(txeMeta);
+                soPhc_TxeMeta.write(txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
 
@@ -528,7 +533,7 @@ void pMetaDataLoader(
                 // Check if there is a FIN to be sent // [TODO - maybe restrict this]
                 if (txeMeta.seqNumb(15, 0) == txSar.app) {
                     soIhc_TcpSegLen.write(txeMeta.length);
-                    soIhc_TxeMeta.write(txeMeta);
+                    soPhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                     // Set retransmit timer
@@ -546,7 +551,7 @@ void pMetaDataLoader(
             resetEvent = mdl_curEvent;
             if (!resetEvent.hasSessionID()) {
                 soIhc_TcpSegLen.write(0);
-                soIhc_TxeMeta.write(TXeMeta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
+                soPhc_TxeMeta.write(TXeMeta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 soSps_IsLookup.write(false);
                 soSps_RstSockPair.write(mdl_curEvent.tuple);
                 fsmState = S0;
@@ -556,7 +561,7 @@ void pMetaDataLoader(
                 soIhc_TcpSegLen.write(0);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(resetEvent.sessionID); //there is no sessionID??
-                soIhc_TxeMeta.write(TXeMeta(txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
+                soPhc_TxeMeta.write(TXeMeta(txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
 
                 fsmState = S0;
             }
