@@ -504,27 +504,27 @@ void printTcpPort(TcpPort tcpPort)
      * @ingroup test_toe_utils
      ******************************************************************************/
     int writeTcpWordToFile(ofstream    &outFile,
-						   AxiWord     &tcpWord) {
-						   string tdataToFile = "";
-						   int writtenBytes = 0;
+                           AxiWord     &tcpWord) {
+                           string       tdataToFile = "";
+                           int          writtenBytes = 0;
 
-	    for (int bytNum=0; bytNum<8; bytNum++) {
-	        if (tcpWord.tkeep.bit(bytNum)) {
-	            int hi = ((bytNum*8) + 7);
-	            int lo = ((bytNum*8) + 0);
-	            ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
-	            tdataToFile += myUint8ToStrHex(octet);
-	            writtenBytes++;
-	        }
-	    }
+        for (int bytNum=0; bytNum<8; bytNum++) {
+            if (tcpWord.tkeep.bit(bytNum)) {
+                int hi = ((bytNum*8) + 7);
+                int lo = ((bytNum*8) + 0);
+                ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
+                tdataToFile += myUint8ToStrHex(octet);
+                writtenBytes++;
+            }
+        }
 
-	    if (tcpWord.tlast == 1)
-	        outFile << tdataToFile << endl;
-	    else
-	        outFile << tdataToFile;
+        if (tcpWord.tlast == 1)
+            outFile << tdataToFile; // OBSOLETE-20190706 << endl;
+        else
+            outFile << tdataToFile;
 
-	    return writtenBytes;
-	}
+        return writtenBytes;
+    }
 #endif
 
 /*****************************************************************************
@@ -536,13 +536,13 @@ void printTcpPort(TcpPort tcpPort)
  * @ingroup test_toe
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-	void writeTcpDataToFile(ofstream &outFile, IpPacket &ipPacket) {
-	    if(ipPacket.sizeOfTcpData() > 0) {
-	        string tcpData = ipPacket.getTcpData();
-	        if (tcpData.size() > 0)
-	            outFile << tcpData << endl;
-	    }
-	}
+    void writeTcpDataToFile(ofstream &outFile, IpPacket &ipPacket) {
+        if(ipPacket.sizeOfTcpData() > 0) {
+            string tcpData = ipPacket.getTcpData();
+            if (tcpData.size() > 0)
+                outFile << tcpData;
+        }
+    }
 #endif
 
 

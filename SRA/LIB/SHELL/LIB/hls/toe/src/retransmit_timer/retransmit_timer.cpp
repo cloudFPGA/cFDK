@@ -184,9 +184,9 @@ void pRetransmitTimer(
                         currEntry.retries = 0;
                         soSMx_CloseSessCmd.write(currID);
                         if (currEntry.type == SYN_EVENT)
-                            soTAi_Notif.write(OpenStatus(currID, false));
+                            soTAi_Notif.write(OpenStatus(currID, FAILED_TO_OPEN_SESS));
                         else
-                            soRAi_Notif.write(AppNotif(currID, true)); //TIME_OUT
+                            soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED)); // TIME_OUT??
                     }
                 }
             }

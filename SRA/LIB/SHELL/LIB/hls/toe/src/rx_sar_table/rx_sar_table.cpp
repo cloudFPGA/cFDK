@@ -71,9 +71,9 @@ void rx_sar_table(
         // Read or Write access from the RxEngine
         siRXe_RxSarQry.read(RXeQry);
         if (RXeQry.write) {
-            RX_SAR_TABLE[RXeQry.sessionID].recvd = RXeQry.recvd;
+            RX_SAR_TABLE[RXeQry.sessionID].rcvd = RXeQry.rcvd;
             if (RXeQry.init)
-                RX_SAR_TABLE[RXeQry.sessionID].appd = RXeQry.recvd;
+                RX_SAR_TABLE[RXeQry.sessionID].appd = RXeQry.rcvd;
         }
         else
             soRXe_RxSarRep.write(RX_SAR_TABLE[RXeQry.sessionID]);

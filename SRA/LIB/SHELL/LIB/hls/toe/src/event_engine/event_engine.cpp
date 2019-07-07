@@ -55,9 +55,9 @@ void event_engine(
         stream<extendedEvent>   &siRXe_Event,
         stream<event>           &siTIm_Event,
         stream<extendedEvent>   &soAKd_Event,
-        stream<SigBit>          &siAKd_RxEventSig,
-        stream<SigBit>          &siAKd_TxEventSig,
-        stream<SigBit>          &siTXe_RxEventSig)
+        stream<SigBool>         &siAKd_RxEventSig,
+        stream<SigBool>         &siAKd_TxEventSig,
+        stream<SigBool>         &siTXe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1

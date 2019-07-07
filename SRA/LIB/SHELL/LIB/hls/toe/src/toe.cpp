@@ -84,15 +84,15 @@ template<typename T> void pStreamMux(
  * @ingroup toe
  *****************************************************************************/
 void pTimers(
-        stream<ReTxTimerCmd>      &siRXe_ReTxTimerCmd,
-        stream<ReTxTimerEvent>    &siTXe_ReTxTimerevent,
-        stream<ap_uint<16> >      &siRXe_ClrProbeTimer,
-        stream<ap_uint<16> >      &siTXe_SetProbeTimer,
-        stream<ap_uint<16> >      &siRXe_CloseTimer,
-        stream<SessionId>         &soSTt_SessCloseCmd,
-        stream<event>             &soEVe_Event,
-        stream<OpenStatus>        &soTAi_Notif,
-        stream<AppNotif>          &soRAi_Notif)
+        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
+        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
+        stream<ap_uint<16> >       &siRXe_CloseTimer,
+        stream<SessionId>          &soSTt_SessCloseCmd,
+        stream<event>              &soEVe_Event,
+        stream<OpenStatus>         &soTAi_Notif,
+        stream<AppNotif>           &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -624,10 +624,10 @@ void toe(
     #pragma HLS stream         variable=sAKdToTXe_Event           depth=16
     #pragma HLS DATA_PACK      variable=sAKdToTXe_Event
 
-    static stream<SigBit>               sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
+    static stream<SigBool>              sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_RxEventSig      depth=2
 
-    static stream<SigBit>               sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
+    static stream<SigBool>              sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_TxEventSig      depth=2
 
     //-------------------------------------------------------------------------
@@ -679,7 +679,7 @@ void toe(
     #pragma HLS stream         variable=sRXeToTSt_TxSarQry        depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarQry
 
-    static stream<ReTxTimerCmd>         sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
+    static stream<RXeReTransTimerCmd>   sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
     #pragma HLS stream         variable=sRXeToTIm_ReTxTimerCmd    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTIm_ReTxTimerCmd
 
@@ -793,7 +793,7 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
-    static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
+    static stream<SigBool>              sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
     static stream<ap_uint<16> >         sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
@@ -806,7 +806,7 @@ void toe(
     static stream<ap_uint<16> >         sTXeToSLc_ReverseLkpReq   ("sTXeToSLc_ReverseLkpReq");
     #pragma HLS stream         variable=sTXeToSLc_ReverseLkpReq   depth=4
 
-    static stream<ReTxTimerEvent>       sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
+    static stream<TXeReTransTimerCmd>   sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
     #pragma HLS stream         variable=sTXeToTIm_SetReTxTimer    depth=2
     #pragma HLS DATA_PACK      variable=sTXeToTIm_SetReTxTimer
 

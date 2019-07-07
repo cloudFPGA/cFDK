@@ -146,7 +146,7 @@ typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). D
 typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
 typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
 typedef bool RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef bool SigBit;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
@@ -457,7 +457,7 @@ struct axiWord {
  * Open Session Status
  *  Reports if a session is opened or closed.
  ***********************************************/
-enum SessOpnSts { SESS_IS_CLOSED=false, SESS_IS_OPENED=true };
+enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
 
 class OpenStatus
 {
@@ -572,13 +572,14 @@ typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)
 typedef ap_uint<16> RxBufPtr;  // A pointer to RxSessBuf (64KB)
 typedef ap_uint<16> TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
-/********************************************
+/************************************************
  * Rx SAR Table (RSt)
- ********************************************/
+ *  Structure to manage the FPGA Receive Window
+ ************************************************/
 class RxSarEntry {
   public:
     RxSeqNum        rcvd;  // Octest RCV'ed and ACK'ed octets (Receive Next)
-    RxBufPtr        appd;  // Ptr in circular app data buffer (64KB)
+    RxBufPtr        appd;  // Ptr in circular APP data buffer (64KB)
     RxSarEntry() {}
 };
 
@@ -687,13 +688,13 @@ class TXeTxSarQuery {
     TXeTxSarQuery() {}
     TXeTxSarQuery(SessionId id) :
         sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, RdWrBit write) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write) :
         sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, RdWrBit write, CmdBit init) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
-    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
-    TXeTxSarQuery(SessionId id, ap_uint<32> not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent, bool isRt) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent, bool isRt) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
@@ -703,7 +704,7 @@ class TXeTxSarReply {
   public:
 	TxAckNum        ackd;       // ACK'ed
 	TxAckNum        not_ackd;   // TX'ed but not ACK'ed
-    TcpWindow       min_window; // Usable window ???
+    TcpWindow       min_window; // Min(cong_window, recv_window)
     TxBufPtr        app;        // Written by APP
     bool            finReady;
     bool            finSent;
@@ -1149,9 +1150,8 @@ struct mm_ibtt_status
  *  Indicates that data are available for the
  *  application in the TCP Rx buffer.
  *
- * [FIXME: The 'AppNotif' class should include the
- *  source socket address in order for the APP to
- *  open the right port.]
+ * [FIXME: consider using member 'opened' instead
+ *   of 'closed'.]
  * [FIXME: AppNotif should contain a sub-class
  *  'AppRdReq' and a sub-class "SocketPair'.]
  ***********************************************/

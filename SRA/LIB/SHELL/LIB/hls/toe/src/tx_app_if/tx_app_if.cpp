@@ -76,7 +76,8 @@ void tx_app_accept(
     static stream<AxiSockAddr>  localFifo ("localFifo");
     #pragma HLS stream variable=localFifo depth=4
 
-    //OBSSOLETE static enum FsmState {IDLE=0, CLOSE_CONN} tai_fsmState = IDLE;
+    OpenStatus  openSessStatus;
+
     static enum TasFsmStates {TAS_IDLE=0, TAS_GET_FREE_PORT, TAS_CLOSE_CONN } tasFsmState = TAS_IDLE;
 
     switch (tasFsmState) {
@@ -96,14 +97,14 @@ void tx_app_accept(
             }
             else {
                 // Tell the APP that the open connection failed
-                soTRIF_SessOpnSts.write(OpenStatus(0, false));
+                soTRIF_SessOpnSts.write(OpenStatus(0, FAILED_TO_OPEN_SESS));
             }
         }
         else if (!siRXe_SessOpnSts.empty()) {
             // Read the status but do not forward to TRIF because it is actually
             // not waiting for this one
-            siRXe_SessOpnSts.read();
-            //OBSOLETE-20190705 soTRIF_SessOpnSts.write(siRXe_SessOpnSts.read());
+            siRXe_SessOpnSts.read(openSessStatus);
+            soTRIF_SessOpnSts.write(openSessStatus);
         }
         else if (!rtTimer2txApp_notification.empty())
             soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
