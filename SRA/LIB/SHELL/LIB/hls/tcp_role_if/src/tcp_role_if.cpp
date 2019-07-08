@@ -69,7 +69,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 #define DEFAULT_FPGA_IP4_ADDR   0x0A0CC813  // TOE's  IP Address      = 10.12.200.13
 #define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
-#define DEFAULT_HOST_LSN_PORT   8803        // HOST   listens on port = 8803
+#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
 /*****************************************************************************
