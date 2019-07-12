@@ -41,12 +41,13 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
-# VIVADO-IP : Decouple IP 
+# VIVADO-IP : Partial Reconfiguration Decoupler IP 
 #------------------------------------------------------------------------------ 
-#get current port Descriptions 
+
+# Define the ports of the PR-Decoupler IP
 source ./decouple_ip_type.tcl 
 
-set ipModName "Decoupler"
+set ipModName "Partial Reconfiguration Decoupler"
 set ipName    "pr_decoupler"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"

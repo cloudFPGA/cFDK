@@ -1,4 +1,13 @@
-
+#
+# Definition of the PR-Decoupler IP ports
+#
+# The Partial Reconfiguration (PR) Decoupler IP provides logical isolation capabilities for PR
+# designs.  A PR Decoupler is used to make the interface between a Reconfigurable Partition (RP)
+# and the static logic safe from unpredictable activity while partial reconfiguration is occurring.
+# When active, user-selected signals crossing between the RP and the static logic are driven to
+# user configurable values. When inactive, signals are passed unaltered (see PG227). 
+#
+#
 
 set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INTF { ROLE {ID 0 SIGNALS { \
         Nts0_Udp_Axis_tready      {DIRECTION out} \
