@@ -268,11 +268,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------------------------------------------------------
   //-- MMIO / CTRL_2 Register ----------------
   output  [ 1:0]  poSHL_Rol_Mmio_UdpEchoCtrl,
-  output          poSHL_Rol_Mmio_UdpPostPktEn,
-  output          poSHL_Rol_Mmio_UdpCaptPktEn,
+  output          poSHL_Rol_Mmio_UdpPostDgmEn,
+  output          poSHL_Rol_Mmio_UdpCaptDgmEn,
   output  [ 1:0]  poSHL_Rol_Mmio_TcpEchoCtrl,
-  output          poSHL_Rol_Mmio_TcpPostPktEn,
-  output          poSHL_Rol_Mmio_TcpCaptPktEn,
+  output          poSHL_Rol_Mmio_TcpPostSegEn,
+  output          poSHL_Rol_Mmio_TcpCaptSegEn,
 
   //----------------------------------------------------
   // ROLE / Shl/ EMIF Registers 
@@ -705,11 +705,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
     //-- ROLE : Status inputs and Control Outputs --
     .poMMIO_Role_UdpEchoCtrl        (poSHL_Rol_Mmio_UdpEchoCtrl),
-    .poMMIO_Role_UdpPostPktEn       (poSHL_Rol_Mmio_UdpPostPktEn),
-    .poMMIO_Role_UdpCaptPktEn       (poSHL_Rol_Mmio_UdpCaptPktEn),
+    .poMMIO_Role_UdpPostDgmEn       (poSHL_Rol_Mmio_UdpPostDgmEn),
+    .poMMIO_Role_UdpCaptDgmEn       (poSHL_Rol_Mmio_UdpCaptDgmEn),
     .poMMIO_Role_TcpEchoCtrl        (poSHL_Rol_Mmio_TcpEchoCtrl),
-    .poMMIO_Role_TcpPostPktEn       (poSHL_Rol_Mmio_TcpPostPktEn),
-    .poMMIO_Role_TcpCaptPktEn       (poSHL_Rol_Mmio_TcpCaptPktEn),
+    .poMMIO_Role_TcpPostSegEn       (poSHL_Rol_Mmio_TcpPostSegEn),
+    .poMMIO_Role_TcpCaptSegEn       (poSHL_Rol_Mmio_TcpCaptSegEn),
 
     // ROLE EMIF Registers 
     .poMMIO_ROLE_2B_Reg             (poSHL_ROL_EMIF_2B_Reg),

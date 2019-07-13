@@ -19,9 +19,10 @@ using namespace hls;
  *
  *****************************************************************************/
 void rx_sar_table(
-        stream<rxSarRecvd>     &rxEng2rxSar_upd_req,
-        stream<rxSarAppd>      &rxApp2rxSar_upd_req,
-        stream<ap_uint<16> >   &txEng2rxSar_req, //read only
-        stream<RxSarEntry>     &rxSar2rxEng_upd_rsp,
-        stream<rxSarAppd>      &rxSar2rxApp_upd_rsp,
-        stream<RxSarEntry>     &rxSar2txEng_rsp);
+        stream<RXeRxSarQuery>        &siRXe_RxSarQry,
+        stream<RxSarEntry>         &soRXe_RxSarRep,
+        stream<RAiRxSarQuery>        &siRAi_RxSarQry,
+        stream<RAiRxSarReply>        &soRAi_RxSarRep,
+        stream<SessionId>          &siTXe_RxSarReq, // Read only
+        stream<RxSarEntry>         &soTxe_RxSarRep
+);

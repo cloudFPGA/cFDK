@@ -41,7 +41,7 @@ struct rxEngineMetaData
 /********************************************
  * RXe - FsmMetaData Interface
  ********************************************/
-struct rxFsmMetaData
+struct rxFsmMetaData  // [TODO - Rename]
 {
     SessionId           sessionId;
     Ip4SrcAddr          ip4SrcAddr;
@@ -56,7 +56,6 @@ struct rxFsmMetaData
 /*****************************************************************************
  * @brief   Main process of the TCP Rx Engine (RXe).
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void rx_engine(
         stream<Ip4overAxi>              &siIPRX_Pkt,
@@ -65,12 +64,12 @@ void rx_engine(
         stream<StateQuery>              &soSTt_SessStateReq,
         stream<SessionState>            &siSTt_SessStateRep,
         stream<AxiTcpPort>              &soPRt_GetPortState,
-        stream<StsBit>                  &siPRt_PortSts,
-        stream<rxSarRecvd>              &soRSt_RxSarUpdReq,
+        stream<StsBool>                 &siPRt_PortSts,
+        stream<RXeRxSarQuery>           &soRSt_RxSarUpdReq,
         stream<RxSarEntry>              &siRSt_RxSarUpdRep,
-        stream<rxTxSarQuery>            &soTSt_TxSarRdReq,
-        stream<rxTxSarReply>            &siTSt_TxSarRdRep,
-        stream<ReTxTimerCmd>            &soTIm_ReTxTimerCmd,
+        stream<RXeTxSarQuery>           &soTSt_TxSarRdReq,
+        stream<RXeTxSarReply>           &siTSt_TxSarRdRep,
+        stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
         stream<extendedEvent>           &soEVe_SetEvent,

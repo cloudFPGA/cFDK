@@ -94,11 +94,11 @@ module MmioClient_A8_D8 #(
   
   //-- ROLE : Status inputs and Control Outputs --
   output  [ 1:0]  poMMIO_Role_UdpEchoCtrl,
-  output          poMMIO_Role_UdpPostPktEn,
-  output          poMMIO_Role_UdpCaptPktEn,
+  output          poMMIO_Role_UdpPostDgmEn,
+  output          poMMIO_Role_UdpCaptDgmEn,
   output  [ 1:0]  poMMIO_Role_TcpEchoCtrl,
-  output          poMMIO_Role_TcpPostPktEn,
-  output          poMMIO_Role_TcpCaptPktEn,
+  output          poMMIO_Role_TcpPostSegEn,
+  output          poMMIO_Role_TcpCaptSegEn,
   
   // ROLE EMIF Register 
   output  [15:0]  poMMIO_ROLE_2B_Reg,
@@ -730,11 +730,11 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*DIAG_STAT_1+7:cEDW*DIAG_STAT_1+0] = piMMIO_DIAG_STAT_1; //RO
   //---- DIAG_CTRL_2 ---------------
   assign poMMIO_Role_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
-  assign poMMIO_Role_UdpPostPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
-  assign poMMIO_Role_UdpCaptPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+3];                    // RW
+  assign poMMIO_Role_UdpPostDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
+  assign poMMIO_Role_UdpCaptDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+3];                    // RW
   assign poMMIO_Role_TcpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+5:cEDW*DIAG_CTRL_2+4]; // RW
-  assign poMMIO_Role_TcpPostPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+6];                    // RW
-  assign poMMIO_Role_TcpCaptPktEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+7];                    // RW
+  assign poMMIO_Role_TcpPostSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+6];                    // RW
+  assign poMMIO_Role_TcpCaptSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+7];                    // RW
   
   //--------------------------------------------------------  
   //-- PAGE REGISTER

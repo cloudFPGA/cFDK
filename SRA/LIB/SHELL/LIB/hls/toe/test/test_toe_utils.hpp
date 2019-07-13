@@ -59,8 +59,9 @@ void printTcpPort      (                        TcpPort       tcpPort);
  *        whenever a trace call is done.
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-  extern bool gTraceEvent;
-  extern bool gFatalError;
+  extern bool         gTraceEvent;
+  extern bool         gFatalError;
+  extern unsigned int gSimCycCnt;
 #endif
 
 /******************************************************************************
@@ -78,7 +79,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  **********************************************************/
 #ifndef __SYNTHESIS__
   #define printInfo(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] INFO - " format, callerName, ##__VA_ARGS__); } while (0)
+    do { gTraceEvent = true; printf("(@%5.5d) [%s] INFO - " format, gSimCycCnt, callerName, ##__VA_ARGS__); } while (0)
 #else
   #define printInfo(callerName , format, ...) \
     do {} while (0);
@@ -91,7 +92,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  **********************************************************/
 #ifndef __SYNTHESIS__
   #define printWarn(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] WARNING - " format, callerName, ##__VA_ARGS__); } while (0)
+    do { gTraceEvent = true; printf("(@%5.5d) [%s] WARNING - " format, gSimCycCnt, callerName, ##__VA_ARGS__); } while (0)
 #else
   #define printWarn(callerName , format, ...) \
     do {} while (0);
@@ -104,7 +105,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  **********************************************************/
 #ifndef __SYNTHESIS__
   #define printError(callerName , format, ...) \
-    do { gTraceEvent = true; printf("[%s] ERROR - " format, callerName, ##__VA_ARGS__); } while (0)
+    do { gTraceEvent = true; printf("(@%5.5d) [%s] ERROR - " format, gSimCycCnt, callerName, ##__VA_ARGS__); } while (0)
 #else
   #define printError(callerName , format, ...) \
     do {} while (0);
@@ -117,7 +118,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  **********************************************************/
 #ifndef __SYNTHESIS__
   #define printFatal(callerName , format, ...) \
-    do { gTraceEvent = true; gFatalError = true; printf("[%s] FATAL - " format, callerName, ##__VA_ARGS__); exit(99); } while (0)
+    do { gTraceEvent = true; gFatalError = true; printf("(@%5.5d) [%s] FATAL - " format, gSimCycCnt, callerName, ##__VA_ARGS__); exit(99); } while (0)
 #else
   #define printFatal(callerName , format, ...) \
     do {} while (0);

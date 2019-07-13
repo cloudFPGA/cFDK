@@ -69,7 +69,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 #define DEFAULT_FPGA_IP4_ADDR   0x0A0CC813  // TOE's  IP Address      = 10.12.200.13
 #define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
 #define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
-#define DEFAULT_HOST_LSN_PORT   0x50        // HOST   listens on port = 80
+#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
 /*****************************************************************************
@@ -79,11 +79,13 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
  * @param[in]  siTOE_OpnRep,  open connection reply from TOE.
  * @param[out] soTOE_ClsReq,  close connection request to TOE.
  *
- *  *
- * @return Nothing.
+ * @details
+ *  For testing purposes, this connect process opens a single connection to a
+ *   'hard-code' remote HOST IP address (10.12.200.50) and port 8803.
  *
- * @note  This code is not executed. It is added here to terminate every HLS
- *          stream of the module.
+ * @note ([FIXME - Remove this note)
+ *  This code is not executed. It is added here to terminate every HLS
+ *   stream of the module.
  ******************************************************************************/
 void pConnect(
         stream<AppOpnReq>   &soTOE_OpnReq,
@@ -93,7 +95,7 @@ void pConnect(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    const char *myName  = concat3(THIS_NAME, "/", "CCn");
+    const char *myName  = concat3(THIS_NAME, "/", "COn");
 
     static AppOpnReq     macHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
     static AppOpnSts     newConn;
@@ -128,9 +130,10 @@ void pConnect(
             if (!siTOE_OpnRep.empty()) {
                 // Drain any potential status data
                 siTOE_OpnRep.read();
-                opnFsmState = OPN_REQ;
             }
         }
+        else
+            opnFsmState = OPN_REQ;
         break;
 
     case OPN_REQ:

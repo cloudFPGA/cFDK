@@ -87,6 +87,7 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 //---------------------------------------------------------
 bool            gTraceEvent     = false;
 bool            gFatalError     = false;
+unsigned int    gSimCycCnt      = 0;
 unsigned int    gMaxSimCycles = 1000;
 Ip4Addr         gFpgaIp4Addr  = DEFAULT_FPGA_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port
@@ -1860,8 +1861,9 @@ void pTRIF_Send(
             //------------------------------------------------------
             if (stringVector[0] == "#") {
                 // This is a comment line.
-                for (int t=0; t<stringVector.size(); t++)
+                for (int t=0; t<stringVector.size(); t++) {
                     printf("%s ", stringVector[t].c_str());
+                }
                 printf("\n");
                 continue;
             }
@@ -1940,28 +1942,6 @@ void pTRIF_Send(
                     else if (stringVector[2] == "ForeignSocket") {  // DEPRECATED
                         printError(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
                         exit(1);
-                        /*** OBSOLETE-20190522 ********************************
-                        // Command = Set a new foreign socket.
-                        char *pEnd;
-                        // Retrieve the current foreign IPv4 address to set
-                        unsigned int ip4Addr;
-                        if (isDottedDecimal(stringVector[3]))
-                            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
-                        else if (isHexString(stringVector[3]))
-                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
-                        else
-                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
-                        currForeignSocket.addr = ip4Addr;
-                        // Retrieve the current foreign TCP-Port to set
-                        unsigned int tcpPort;
-                        if (isHexString(stringVector[4]))
-                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 16);
-                        else
-                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 10);
-                        currForeignSocket.port = tcpPort;
-                        printInfo(myName, "Setting foreign socket to <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
-                        return;
-                        ******************************************************/
                     }
                 }
             }
@@ -1984,6 +1964,15 @@ void pTRIF_Send(
                 if (firstWordFlag == false) {
                     getline(appRxFile, rxStringBuffer);
                     stringVector = myTokenizer(rxStringBuffer, ' ');
+                    // Capture lines that might be commented out
+                    if (stringVector[0] == "#") {
+                        // This is a comment line.
+                        for (int t=0; t<stringVector.size(); t++) {
+                            printf("%s ", stringVector[t].c_str());
+                        }
+                        printf("\n");
+                        continue;
+                    }
                 }
                 else {
                     // A Tx data request (i.e. a metadata) must be sent by TRIF to TOE
@@ -2435,6 +2424,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-6 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         simCycCnt++;
+        gSimCycCnt = simCycCnt.to_uint();
         if (gTraceEvent || ((simCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
             gTraceEvent = false;
@@ -2444,11 +2434,28 @@ int main(int argc, char *argv[]) {
         //-- STEP-7 : EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
 
-    } while ( (simCycCnt < (gMaxSimCycles + STARTUP_DELAY)) or
-              (gFatalError) or
-              (nrErr > 10) );
+    } while ( (simCycCnt < (gMaxSimCycles + STARTUP_DELAY)) and
+              (not gFatalError) and (nrErr < 10) );
 
-    printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
+    //---------------------------------
+    //-- CLOSING OPEN FILES
+    //---------------------------------
+    if ((mode == RX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
+        // Rx side testing only
+        ipRxFile.close();
+        appTxFile.close();
+        appTxGold.close();
+    }
+
+    if ((mode == TX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
+        // Tx side testing only
+        appRxFile.close();
+        ipTxFile1 << endl; ipTxFile1.close();
+        ipTxFile2 << endl; ipTxFile2.close();
+        ipTxGold2 << endl; ipTxGold2.close();
+    }
+
+    printf("(@%5.5d) --------------------------------------\n", simCycCnt.to_uint());
     printf("############################################################################\n");
     printf("## TESTBENCH ENDS HERE                                                    ##\n");
     printf("############################################################################\n");
@@ -2506,21 +2513,6 @@ int main(int argc, char *argv[]) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ipTxFileName2, ipTxGoldName2);
             nrErr++;
         }
-    }
-
-    if ((mode == RX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
-        // Rx side testing only
-        ipRxFile.close();
-        appTxFile.close();
-        appTxGold.close();
-    }
-
-    if ((mode == TX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
-        // Tx side testing only
-        appRxFile.close();
-        ipTxFile1.close();
-        ipTxFile2.close();
-        ipTxGold2.close();
     }
 
     if (nrErr) {

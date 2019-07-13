@@ -56,8 +56,8 @@ extern bool gTraceEvent;
  * @ingroup retransmit_timer
  *******************************************************************************/
 void pRetransmitTimer(
-        stream<ReTxTimerCmd>             &siRXe_ReTxTimerCmd,
-        stream<ReTxTimerEvent>           &siTXe_ReTxTimerEvent,
+        stream<RXeReTransTimerCmd>       &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerEvent,
         stream<event>                    &soEmx_Event,
         stream<SessionId>                &soSMx_CloseSessCmd,
         stream<OpenStatus>               &soTAi_Notif,
@@ -79,12 +79,12 @@ void pRetransmitTimer(
     static bool                     rtt_waitForWrite = false;
     static SessionId                rtt_position     = 0;
     static SessionId                rtt_prevPosition = 0;
-    static ReTxTimerCmd             rtt_cmd;
+    static RXeReTransTimerCmd       rtt_cmd;
 
-    ReTxTimerEntry  currEntry;
-    ReTxTimerEvent  txEvent;
-    ap_uint<1>      operationSwitch = 0;
-    SessionId       currID;
+    ReTxTimerEntry     currEntry;
+    TXeReTransTimerCmd txEvent;
+    ap_uint<1>         operationSwitch = 0;
+    SessionId          currID;
 
     if (rtt_waitForWrite && rtt_cmd.sessionID != rtt_prevPosition) {
         // [TODO - maybe prevprev too]
@@ -184,9 +184,9 @@ void pRetransmitTimer(
                         currEntry.retries = 0;
                         soSMx_CloseSessCmd.write(currID);
                         if (currEntry.type == SYN_EVENT)
-                            soTAi_Notif.write(OpenStatus(currID, false));
+                            soTAi_Notif.write(OpenStatus(currID, FAILED_TO_OPEN_SESS));
                         else
-                            soRAi_Notif.write(AppNotif(currID, true)); //TIME_OUT
+                            soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED)); // TIME_OUT??
                     }
                 }
             }

@@ -66,8 +66,8 @@ struct mergedInput
  * @ingroup retransmit_timer
  *****************************************************************************/
 void pRetransmitTimer(
-        stream<ReTxTimerCmd>       &siRXe_ReTxTimerCmd,
-        stream<ReTxTimerEvent>     &siTXe_SetReTxTimer,
+        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd> &siTXe_SetReTxTimer,
         stream<event>              &soEmx_SetEvent,
         stream<ap_uint<16> >       &soSmx_ReleaseState,
         stream<OpenStatus>         &soTAi_Notif,

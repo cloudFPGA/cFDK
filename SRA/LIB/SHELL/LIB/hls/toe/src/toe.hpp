@@ -62,9 +62,10 @@ struct rtlSessionLookupRequest;
 #define OOO_N 4     // number of OOO blocks accepted
 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
 
-//usually tcp segment size is 1460. Here, we use 1456 to support tcp options
-static const ap_uint<16> MMS = 1456; //536;
-static const ap_uint<16> MY_MSS = 576;
+// Usually TCP Maximum Segment Size is 1460. Here, we use 1456 to support TCP options.
+static const ap_uint<16> MTU = 1500;
+static const ap_uint<16> MSS = 1456;  // MTU-IP-Hdr-TCP-Hdr=1500-20-20
+//OBSOLETE static const ap_uint<16> MY_MSS = 576;
 
 // OOO Parameters
 //static const int OOO_N = 4;       // number of OOO blocks accepted
@@ -125,6 +126,34 @@ using namespace hls;
 
 #define BROADCASTCHANNELS 2
 
+// SOME QUERY AND COMMAND DEFINITIONS
+#define QUERY_RD              0
+#define QUERY_WR              1
+#define QUERY_INIT            1
+
+#define QUERY_FAST_RETRANSMIT true
+
+#define CMD_INIT  1
+
+/********************************************
+ * SINGLE BIT DEFINITIONS
+ ********************************************/
+typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+
+typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
+typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
+
+
+/********************************************
+ * GENERAL ENUMERATIONS
+ ********************************************/
 
 // WARNING ABOUT ENUMERATIONS:
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
@@ -158,21 +187,6 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
     return (ap_int<32>)(seq1-seq2) < 0;
 }
 #define after(seq2, seq1)       before(seq1, seq2)
-
-
-/********************************************
- * SINGLE BIT DEFINITIONS
- ********************************************/
-typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef bool CmdBit;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool QryBit;  // Query      : Indicates a demand for an answer (.e.g stateQry).
-typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef bool SigBit;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBit;  // Status bit : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus..
-typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
-
 
 
 /*************************************************************************
@@ -440,16 +454,18 @@ struct axiWord {
 
 
 /***********************************************
- * Open Status [TODO - Rename to OpenReply]
+ * Open Session Status
  *  Reports if a session is opened or closed.
  ***********************************************/
+enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
+
 class OpenStatus
 {
   public:
-    SessionId   sessionID;
-    bool        success;
+    SessionId    sessionID;
+    SessOpnSts   success;          // [FIXME - rename this member]
     OpenStatus() {}
-    OpenStatus(SessionId sessId, bool success) :
+    OpenStatus(SessionId sessId, SessOpnSts success) :
         sessionID(sessId), success(success) {}
 };
 
@@ -520,20 +536,16 @@ enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
                    "LAST_ACK" };
 #endif
 
-
-#define QUERY_RD  0
-#define QUERY_WR  1
-
 // Session State Query
 class StateQuery {
   public:
     SessionId       sessionID;
     SessionState    state;
-    ap_uint<1>      write;
+    RdWrBit         write;
     StateQuery() {}
     StateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(QUERY_RD) {}
-    StateQuery(SessionId id, SessionState state, ap_uint<1> write) :
+    StateQuery(SessionId id, SessionState state, RdWrBit write) :
         sessionID(id), state(state), write(write) {}
 };
 
@@ -541,53 +553,74 @@ class StateQuery {
 /********************************************
  * Port Table (PRt)
  ********************************************/
-typedef bool PortState;
-enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
+// NotUsed typedef bool PortState;
+// NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
 
-typedef bool PortRange;
-enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
-
+// NotUsed typedef bool PortRange;
+// NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 
 /********************************************
- * Rx SAR Table (SRt)
+ * Some Rx & Tx SAR Types
  ********************************************/
+typedef TcpSeqNum   RxSeqNum;   // A received sequence number [TODO - Replace Rx with Rcv]
+typedef TcpWindow   RcvWinSize; // A received window size
+typedef TcpAckNum   TxAckNum;   // An acknowledgement number [TODO - Replace Tx with Snd]
+typedef TcpWindow   SndWinSize; // A sending  window size
 
-typedef ap_uint<32> RxMemPtr;  // A pointer to RXMEMBUF
+typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)
+typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)
+typedef ap_uint<16> RxBufPtr;  // A pointer to RxSessBuf (64KB)
+typedef ap_uint<16> TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
+/************************************************
+ * Rx SAR Table (RSt)
+ *  Structure to manage the FPGA Receive Window
+ ************************************************/
 class RxSarEntry {
   public:
-    RxMemPtr    recvd;  // Received data and acknowledged
-    ap_uint<16> appd;
+    RxSeqNum        rcvd;  // Octest RCV'ed and ACK'ed octets (Receive Next)
+    RxBufPtr        appd;  // Ptr in circular APP data buffer (64KB)
     RxSarEntry() {}
 };
 
-
-struct rxSarRecvd
-{
-	SessionId       sessionID;
-    ap_uint<32>     recvd;
-    ap_uint<1>      write;
-    ap_uint<1>      init;
-    rxSarRecvd() {}
-    rxSarRecvd(SessionId id) :
-        sessionID(id), recvd(0), write(0), init(0) {}
-    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write) :
-        sessionID(id), recvd(recvd), write(write), init(0) {}
-    rxSarRecvd(SessionId id, ap_uint<32> recvd, ap_uint<1> write, ap_uint<1> init) :
-        sessionID(id), recvd(recvd), write(write), init(init) {}
+// RSt / Query from RXe
+//----------------------
+class RXeRxSarQuery {
+  public:
+    SessionId       sessionID;
+    RxSeqNum        rcvd;  // Expected SeqNum of the next byte from remote device.
+    RdWrBit         write;
+    CmdBit          init;
+    RXeRxSarQuery() {}
+    RXeRxSarQuery(SessionId id) : // Read query
+        sessionID(id), rcvd(0),     write(0),     init(0) {}
+    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write) :
+        sessionID(id), rcvd(recvd), write(write), init(0) {}
+    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write, CmdBit init) :
+        sessionID(id), rcvd(recvd), write(write), init(init) {}
 };
 
-struct rxSarAppd
-{
-	SessionId       sessionID;
-    ap_uint<16>     appd;
-    // ap_uint<32> recvd; // for comparison with application data request - ensure appd + length < recvd
-    ap_uint<1>  write;
-    rxSarAppd() {}
-    rxSarAppd(SessionId id) :
+// RSt / Query from RAi
+//----------------------
+class RAiRxSarQuery {
+  public:
+    SessionId       sessionID;
+    RxBufPtr        appd; // APP data read ptr
+    RdWrBit         write;
+    RAiRxSarQuery() {}
+    RAiRxSarQuery(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    rxSarAppd(SessionId id, ap_uint<16> appd) :
+    RAiRxSarQuery(SessionId id, ap_uint<16> appd) :
         sessionID(id), appd(appd), write(1) {}
+};
+
+class RAiRxSarReply {
+  public:
+    SessionId       sessionID;
+    RxBufPtr        appd; // Read by APP
+    RAiRxSarReply() {}
+    RAiRxSarReply(SessionId id, ap_uint<16> appd) :
+        sessionID(id), appd(appd) {}
 };
 
 /********************************************
@@ -595,118 +628,139 @@ struct rxSarAppd
  ********************************************/
 class TxSarEntry {
   public:
-    ap_uint<32> ackd;
-    ap_uint<32> not_ackd;
-    ap_uint<16> recv_window;
-    ap_uint<16> cong_window;
-    ap_uint<16> slowstart_threshold;
-    ap_uint<16> app;
-    ap_uint<2>  count;
-    bool        finReady;
-    bool        finSent;
+    TxAckNum        ackd;        // Octets TX'ed and ACK'ed
+    TxAckNum        not_ackd;    // Octets TX'ed but not ACK'ed
+    RcvWinSize      recv_window; // Remote receiver's buffer size (their)
+    SndWinSize      cong_window; // Local receiver's buffer size  (my)
+    TcpWindow       slowstart_threshold;
+    TxBufPtr        app;
+    ap_uint<2>      count;
+    bool            fastRetransmitted;
+    bool            finReady;
+    bool            finSent;
     TxSarEntry() {};
 };
 
 // TSt / Query from RXe
-struct rxTxSarQuery
-{
-	SessionId   sessionID;
-    ap_uint<32> ackd;
-    ap_uint<16> recv_window;
-    ap_uint<16> cong_window;
-    ap_uint<2>  count;
-    ap_uint<1>  write;
-    ap_uint<1>  init;
-    rxTxSarQuery () {}
-    rxTxSarQuery(SessionId id) :
-        sessionID(id), ackd(0), recv_window(0), count(0), write(0) {}
-    rxTxSarQuery(SessionId id, ap_uint<32> ackd, ap_uint<16> recv_win, ap_uint<16> cong_win, ap_uint<2> count, ap_uint<1> init) :
-        sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), write(1), init(init) {}
+//----------------------
+class RXeTxSarQuery {
+  public:
+    SessionId       sessionID;
+    TxAckNum        ackd;         // TX'ed and ACK'ed
+    RcvWinSize      recv_window;  // Remote receiver's buffer size (their)
+    SndWinSize      cong_window;  // Local receiver's buffer size  (my)
+    ap_uint<2>      count;
+    CmdBool         fastRetransmitted;
+    RdWrBit         write;
+    RXeTxSarQuery () {}
+    RXeTxSarQuery(SessionId id) : // Read Query
+        sessionID(id), ackd(0), recv_window(0), count(0), fastRetransmitted(false), write(0) {}
+    RXeTxSarQuery(SessionId id, TxAckNum ackd, RcvWinSize recv_win, SndWinSize cong_win, ap_uint<2> count, CmdBool fastRetransmitted) : // Write Query
+        sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), fastRetransmitted(fastRetransmitted), write(1) {}
 };
 
 // TSt / Reply to RXe
-struct rxTxSarReply
-{
-    TcpAckNum       prevAck;     //OBSOLETE-20181126 ap_uint<32>     prevAck;
-    TcpAckNum       nextByte;    //OBSOLETE-20181126 ap_uint<32>     nextByte;
-    TcpWindow       cong_window; //OBSOLETE-20181126  ap_uint<16>    cong_window;
+//--------------------
+class RXeTxSarReply {
+  public:
+    TxAckNum        prevAck;
+    TxAckNum        nextByte;
+    TcpWindow       cong_window;
     ap_uint<16>     slowstart_threshold;
     ap_uint<2>      count;
-    rxTxSarReply() {}
-    rxTxSarReply(TcpAckNum ack, TcpAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count) :
-        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count) {}
+    CmdBool         fastRetransmitted;
+    RXeTxSarReply() {}
+    RXeTxSarReply(TxAckNum ack, TxAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count, CmdBool fastRetransmitted) :
+        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
 };
 
 // TSt / Query from TXe
-struct txTxSarQuery
-{
-	SessionId   sessionID;
-    ap_uint<32> not_ackd;
-    ap_uint<1>  write;
-    ap_uint<1>  init;
-    bool        finReady;
-    bool        finSent;
-    bool        isRtQuery;
-    txTxSarQuery() {}
-    txTxSarQuery(SessionId id) :
+//----------------------
+class TXeTxSarQuery {
+  public:
+    SessionId       sessionID;
+    TxAckNum        not_ackd;   // TX'ed but not ACK'ed
+    RdWrBit         write;
+    CmdBit          init;
+    bool            finReady;
+    bool            finSent;
+    bool            isRtQuery;
+    TXeTxSarQuery() {}
+    TXeTxSarQuery(SessionId id) :
         sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    //txTxSarQuery(ap_uint<16> id, ap_uint<1> lock)
-    //          :sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write) :
         sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
-    txTxSarQuery(SessionId id, ap_uint<32> not_ackd, ap_uint<1> write, ap_uint<1> init, bool finReady, bool finSent, bool isRt) :
+    TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent, bool isRt) :
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
 // TSt / Reply to TXe
-struct txTxSarReply
-{
-    TcpAckNum       ackd;       //OBSOLETE ap_uint<32>  ackd;
-    TcpAckNum       not_ackd;   //OBSOLETE ap_uint<32>  not_ackd;
-    TcpWindow       min_window; //OBSOLETE ap_uint<16>  min_window;
-    ap_uint<16>     app;
+//--------------------
+class TXeTxSarReply {
+  public:
+	TxAckNum        ackd;       // ACK'ed
+	TxAckNum        not_ackd;   // TX'ed but not ACK'ed
+    TcpWindow       min_window; // Min(cong_window, recv_window)
+    TxBufPtr        app;        // Written by APP
     bool            finReady;
     bool            finSent;
-    txTxSarReply() {}
-    txTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
+    TXeTxSarReply() {}
+    TXeTxSarReply(ap_uint<32> ack, ap_uint<32> nack, ap_uint<16> min_window, ap_uint<16> app, bool finReady, bool finSent) :
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
-// TSt / Re-transmission Query TXe
-struct txTxSarRtQuery : public txTxSarQuery
+// TSt / Re-transmission Query from TXe
+//--------------------------------------
+class TXeTxSarRtQuery : public TXeTxSarQuery
 {
-    txTxSarRtQuery() {}
-    txTxSarRtQuery(const txTxSarQuery& q) :
-        txTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
-    txTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
-         txTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
+  public:
+    TXeTxSarRtQuery() {}
+    TXeTxSarRtQuery(const TXeTxSarQuery& q) :
+        TXeTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
+    TXeTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
+        TXeTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
     ap_uint<16> getThreshold() {
-    	return not_ackd(15, 0);
+        return not_ackd(15, 0);
     }
 };
 
 // TSt / Tx Application Interface
-/*** OBSOLETE-20160617 ***********
-struct txAppTxSarPush
-{
-    SessionId   sessionID;
-    ap_uint<16> app;
-    txAppTxSarPush() {}
-    txAppTxSarPush(SessionId id, ap_uint<16> app) :
+//--------------------------------
+class TAiTxSarPush {
+  public:
+    SessionId       sessionID;
+    TxBufPtr        app;
+    TAiTxSarPush() {}
+    TAiTxSarPush(SessionId id, TxBufPtr app) :
          sessionID(id), app(app) {}
 };
-**********************************/
-class TxSarTableAppPush {
+
+// TSt / Command from TSt
+//------------------------
+class TStTxSarPush {
   public:
-    SessionId      sessionID;
-    ap_uint<16>    app;
-    TxSarTableAppPush() {}
-    TxSarTableAppPush(SessionId id, ap_uint<16> app) :
-         sessionID(id), app(app) {}
+    SessionId       sessionID;
+    ap_uint<16>     ackd;
+#if (TCP_NODELAY)
+    ap_uint<16> min_window;
+#endif
+    CmdBit          init;
+    TStTxSarPush() {}
+#if !(TCP_NODELAY)
+    TStTxSarPush(SessionId id, ap_uint<16> ackd) :
+        sessionID(id), ackd(ackd), init(0) {}
+    TStTxSarPush(SessionId id, ap_uint<16> ackd, CmdBit init) :
+        sessionID(id), ackd(ackd), init(init) {}
+#else
+    TStTxSarPush(SessionId id, ap_uint<16> ackd, ap_uint<16> min_window) :
+        sessionID(id), ackd(ackd), min_window(min_window), init(0) {}
+    TStTxSarPush(SessionId id, ap_uint<16> ackd, ap_uint<16> min_window, CmdBit init) :
+        sessionID(id), ackd(ackd), min_window(min_window), init(init) {}
+#endif
 };
 
 
@@ -755,25 +809,19 @@ struct txAppTxSarReply
 class TxAppTableReply {
   public:
     SessionId   sessId;
-    TcpAckNum   ackd;
-    ap_uint<16> mempt;
-    TxAppTableReply() {}
-    TxAppTableReply(SessionId id, TcpAckNum ackd, ap_uint<16> pt) :
-        sessId(id), ackd(ackd), mempt(pt) {}
-};
-
-
-// [TODO - Naming]
-struct txSarAckPush
-{
-	SessionId   sessionID;
     ap_uint<16> ackd;
-    ap_uint<1>  init;
-    txSarAckPush() {}
-    txSarAckPush(SessionId id, ap_uint<16> ackd) :
-        sessionID(id), ackd(ackd), init(0) {}
-    txSarAckPush(SessionId id, ap_uint<16> ackd, ap_uint<1> init) :
-        sessionID(id), ackd(ackd), init(init) {}
+    TxBufPtr    mempt;
+    #if (TCP_NODELAY)
+      ap_uint<16> min_window;
+    #endif
+    TxAppTableReply() {}
+    #if !(TCP_NODELAY)
+      TxAppTableReply(SessionId id, ap_uint<16> ackd, TxBufPtr pt) :
+           sessId(id), ackd(ackd), mempt(pt) {}
+    #else
+      TxAppTableReply(SessionId id, ap_uint<16> ackd, TxBufPtr pt, ap_uint<16> min_window) :
+          sessionID(id), ackd(ackd), mempt(pt), min_window(min_window) {}
+    #endif
 };
 
 
@@ -783,68 +831,46 @@ struct txSarAckPush
 enum TimerCmd {LOAD_TIMER = false,
                STOP_TIMER = true};
 
-/*** OBSOLETE-20190181 ***
-struct rxRetransmitTimerUpdate {
-    SessionId   sessionID;
-    bool        stop;
-    rxRetransmitTimerUpdate() {}
-    rxRetransmitTimerUpdate(SessionId id) :
-         sessionID(id), stop(0) {}
-    rxRetransmitTimerUpdate(ap_uint<16> id, bool stop) :
-        sessionID(id), stop(stop) {}
-};
-***************************/
-
-class ReTxTimerCmd {  // ReTransmit Timer Command
+// TIm / ReTransmit Timer Command from RXe
+//-----------------------------------------
+class RXeReTransTimerCmd {
   public:
     SessionId   sessionID;
-    CmdBit      command;  // {LOAD=false; STOP=true
-    ReTxTimerCmd() {}
-    ReTxTimerCmd(SessionId id) :
+    TimerCmd    command;  // { LOAD=false; STOP=true}
+    RXeReTransTimerCmd() {}
+    RXeReTransTimerCmd(SessionId id) :
         sessionID(id), command(STOP_TIMER) {}
-    ReTxTimerCmd(SessionId id, CmdBit cmd) :
+    RXeReTransTimerCmd(SessionId id, TimerCmd cmd) :
         sessionID(id), command(cmd) {}
 };
-
-/*** OBSOLETE-20190118 ***
-struct txRetransmitTimerSet {
-	SessionId   sessionID;
-    eventType   type;
-    txRetransmitTimerSet() {}
-    txRetransmitTimerSet(SessionId id) :
-        sessionID(id), type(RT) {} //FIXME??
-    txRetransmitTimerSet(SessionId id, eventType type) :
-        sessionID(id), type(type) {}
-};
-**************************/
 
 enum EventType {TX_EVENT, RT_EVENT, ACK_EVENT, SYN_EVENT,
                 SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT};
 
-class ReTxTimerEvent {  // ReTransmit Timer Event
-public:
+// TIm / ReTransmit Timer Command form TXe
+//-----------------------------------------
+class TXeReTransTimerCmd {
+  public:
     SessionId   sessionID;
     EventType   type;
-    ReTxTimerEvent() {}
-    ReTxTimerEvent(SessionId id) :
+    TXeReTransTimerCmd() {}
+    TXeReTransTimerCmd(SessionId id) :
         sessionID(id), type(RT_EVENT) {} // [FIXME - Why RT??]
-    ReTxTimerEvent(SessionId id, EventType type) :
+    TXeReTransTimerCmd(SessionId id, EventType type) :
         sessionID(id), type(type) {}
 };
 
 /********************************************
  * Event Engine
  ********************************************/
-struct event
+struct event  // [TODO - Rename]
 {
     eventType       type;
     SessionId       sessionID;
     ap_uint<16>     address;
     ap_uint<16>     length;
-    ap_uint<3>      rt_count;
-    //bool          retransmit;
+    ap_uint<3>      rt_count;  // [FIXME - Make this type configurable]
     event() {}
-    //event(const event&) {}
     event(eventType type, SessionId id) :
         type(type), sessionID(id), address(0), length(0), rt_count(0) {}
     event(eventType type, SessionId id, ap_uint<3> rt_count) :
@@ -870,14 +896,14 @@ struct rstEvent : public event
     rstEvent() {}
     rstEvent(const event& ev) :
         event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    rstEvent(ap_uint<32> seq) :                         //:event(RST, 0, false), seq(seq) {}
+    rstEvent(RxSeqNum  seq) :                         //:event(RST, 0, false), seq(seq) {}
         event(RST, 0, seq(31, 16), seq(15, 0), 0) {}
-    rstEvent(SessionId id, ap_uint<32> seq) :
+    rstEvent(SessionId id, RxSeqNum seq) :
         event(RST, id, seq(31, 16), seq(15, 0), 1) {}   //:event(RST, id, true), seq(seq) {}
-    rstEvent(SessionId id, ap_uint<32> seq, bool hasSessionID) :
+    rstEvent(SessionId id, RxSeqNum seq, bool hasSessionID) :
         event(RST, id, seq(31, 16), seq(15, 0), hasSessionID) {}  //:event(RST, id, hasSessionID), seq(seq) {}
-    ap_uint<32> getAckNumb() {
-        ap_uint<32> seq;
+    TxAckNum getAckNumb() {
+        RxSeqNum seq;
         seq(31, 16) = address;
         seq(15, 0) = length;
         return seq;
@@ -1124,9 +1150,8 @@ struct mm_ibtt_status
  *  Indicates that data are available for the
  *  application in the TCP Rx buffer.
  *
- * [FIXME: The 'AppNotif' class should include the
- *  source socket address in order for the APP to
- *  open the right port.]
+ * [FIXME: consider using member 'opened' instead
+ *   of 'closed'.]
  * [FIXME: AppNotif should contain a sub-class
  *  'AppRdReq' and a sub-class "SocketPair'.]
  ***********************************************/

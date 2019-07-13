@@ -20,11 +20,11 @@ using namespace hls;
  *         established connection from the buffer memory and forwards it to
  *         the application.
  *
- * @param[in]      appRxDataReq
- * @param[in]      rxSar2rxApp_upd_rsp
- * @param[out]     appRxDataRspMetadata
- * @param[out]     rxApp2rxSar_upd_req
- * @param[out]     rxBufferReadCmd
+ * @param[in]  siTRIF_DataReq,   Data request from TcpRoleInterface (TRIF).
+ * @param[out] soTRIF_Meta,      Metadata to TRIF.
+ * @param[out] soRSt_RxSarQry,   Query to RxSarTable (RSt)
+ * @param[in]  siRSt_RxSarRep,   Reply from [RSt].
+ * @param[out] soMEM_RxP_RdCmd,  Rx memory read command to MEM.
  *
  * @detail
  *  This application interface is used to receive data streams of established
@@ -33,50 +33,51 @@ using namespace hls;
  *  read request to the memory. After processing the request the MetaData
  *  containing the Session-ID is also written back.
  *
- * @ingroup rx_app_stream_if
  *****************************************************************************/
 void rx_app_stream_if(
         stream<AppRdReq>            &siTRIF_DataReq,
-        stream<rxSarAppd>           &rxSar2rxApp_upd_rsp,
-        stream<SessionId>           &appRxDataRspMetadata,
-        stream<rxSarAppd>           &rxApp2rxSar_upd_req,
-        stream<DmCmd>               &rxBufferReadCmd)
+        stream<SessionId>           &soTRIF_Meta,
+        stream<RAiRxSarQuery>       &soRSt_RxSarQry,
+        stream<RAiRxSarReply>       &siRSt_RxSarRep,
+        stream<DmCmd>               &soMEM_RxP_RdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
 
-    static ap_uint<16>              rasi_readLength;
-    static ap_uint<2>               rasi_fsmState   = 0;
-    static uint16_t                 rxAppBreakTemp  = 0;
-    static uint16_t                 rxRdCounter = 0;
+    static ap_uint<16>    rasi_readLength;
+    static uint16_t       rxAppBreakTemp  = 0;
+    static uint16_t       rxRdCounter = 0; // For Debug
 
-    switch (rasi_fsmState) {
-        case 0:
-            if (!siTRIF_DataReq.empty() && !rxApp2rxSar_upd_req.full()) {
+    static enum FsmStates { S0=0, S1 } fsmState=S0;
+
+    switch (fsmState) {
+        case S0:
+            if (!siTRIF_DataReq.empty() && !soRSt_RxSarQry.full()) {
                 AppRdReq  appReadRequest = siTRIF_DataReq.read();
                 if (appReadRequest.length != 0) {
                     // Make sure length is not 0, otherwise Data Mover will hang up
-                    rxApp2rxSar_upd_req.write(rxSarAppd(appReadRequest.sessionID));
+                    soRSt_RxSarQry.write(RAiRxSarQuery(appReadRequest.sessionID));
                     // Get app pointer
                     rasi_readLength = appReadRequest.length;
-                    rasi_fsmState = 1;
+                    fsmState = S1;
                 }
             }
             break;
 
-        case 1:
-            if (!rxSar2rxApp_upd_rsp.empty() && !appRxDataRspMetadata.full() &&
-                !rxBufferReadCmd.full() && !rxApp2rxSar_upd_req.full()) {
-                rxSarAppd   rxSar = rxSar2rxApp_upd_rsp.read();
-                ap_uint<32> pkgAddr = 0;
-                pkgAddr(29, 16) = rxSar.sessionID(13, 0);
-                pkgAddr(15,  0) = rxSar.appd;
-                appRxDataRspMetadata.write(rxSar.sessionID);
+        case S1:
+            if (!siRSt_RxSarRep.empty() && !soTRIF_Meta.full() &&
+                !soMEM_RxP_RdCmd.full() && !soRSt_RxSarQry.full()) {
+                RAiRxSarReply rxSar = siRSt_RxSarRep.read();
+                RxMemPtr      rxMemAddr = 0;
+                rxMemAddr(29, 16) = rxSar.sessionID(13, 0);
+                rxMemAddr(15,  0) = rxSar.appd;
+                soTRIF_Meta.write(rxSar.sessionID);
                 rxRdCounter++;
-                DmCmd rxAppTempCmd = DmCmd(pkgAddr, rasi_readLength);
-                rxBufferReadCmd.write(rxAppTempCmd);
-                rxApp2rxSar_upd_req.write(rxSarAppd(rxSar.sessionID, rxSar.appd+rasi_readLength)); // Update app read pointer
-                rasi_fsmState = 0;
+                DmCmd rxAppTempCmd = DmCmd(rxMemAddr, rasi_readLength);
+                soMEM_RxP_RdCmd.write(rxAppTempCmd);
+                // Update the APP read pointer
+                soRSt_RxSarQry.write(RAiRxSarQuery(rxSar.sessionID, rxSar.appd+rasi_readLength));
+                fsmState = S0;
             }
             break;
     }

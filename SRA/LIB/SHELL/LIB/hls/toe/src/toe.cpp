@@ -84,15 +84,15 @@ template<typename T> void pStreamMux(
  * @ingroup toe
  *****************************************************************************/
 void pTimers(
-        stream<ReTxTimerCmd>      &siRXe_ReTxTimerCmd,
-        stream<ReTxTimerEvent>    &siTXe_ReTxTimerevent,
-        stream<ap_uint<16> >      &siRXe_ClrProbeTimer,
-        stream<ap_uint<16> >      &siTXe_SetProbeTimer,
-        stream<ap_uint<16> >      &siRXe_CloseTimer,
-        stream<SessionId>         &soSTt_SessCloseCmd,
-        stream<event>             &soEVe_Event,
-        stream<OpenStatus>        &soTAi_Notif,
-        stream<AppNotif>          &soRAi_Notif)
+        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
+        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
+        stream<ap_uint<16> >       &siRXe_CloseTimer,
+        stream<SessionId>          &soSTt_SessCloseCmd,
+        stream<event>              &soEVe_Event,
+        stream<OpenStatus>         &soTAi_Notif,
+        stream<AppNotif>           &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -143,9 +143,17 @@ void pTimers(
 
 }
 
+/******************************************************************************
+ * * @brief [TODO]
+ *
+ * @param[in]
+ * @param[out] soMEM_RxP_RdCmd,       Rx memory read command to MEM.
+ * @param[in]
+ *
+ ******************************************************************************/
 void rxAppMemAccessBreakdown(
         stream<DmCmd>        &inputMemAccess,
-        stream<DmCmd>        &outputMemAccess,
+        stream<DmCmd>        &soMEM_RxP_RdCmd,
         stream<ap_uint<1> >  &rxAppDoubleAccess)
 {
 #pragma HLS PIPELINE II=1 enable_flush
@@ -156,54 +164,63 @@ void rxAppMemAccessBreakdown(
     static ap_uint<16> rxAppAccLength = 0;
 
     if (rxAppBreakdown == false) {
-        if (!inputMemAccess.empty() && !outputMemAccess.full()) {
+        if (!inputMemAccess.empty() && !soMEM_RxP_RdCmd.full()) {
             rxAppTempCmd = inputMemAccess.read();
             if ((rxAppTempCmd.saddr.range(15, 0) + rxAppTempCmd.bbt) > 65536) {
                 rxAppAccLength = 65536 - rxAppTempCmd.saddr;
-                outputMemAccess.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
+                soMEM_RxP_RdCmd.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
                 rxAppBreakdown = true;
             }
             else
-                outputMemAccess.write(rxAppTempCmd);
+                soMEM_RxP_RdCmd.write(rxAppTempCmd);
             //std::cerr << "Mem.Cmd: " << std::hex << rxAppTempCmd.saddr << " - " << rxAppTempCmd.bbt << std::endl;
             rxAppDoubleAccess.write(rxAppBreakdown);
         }
     }
     else if (rxAppBreakdown == true) {
-        if (!outputMemAccess.full()) {
+        if (!soMEM_RxP_RdCmd.full()) {
             rxAppTempCmd.saddr.range(15, 0) = 0;
             rxAppAccLength = rxAppTempCmd.bbt - rxAppAccLength;
-            outputMemAccess.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
+            soMEM_RxP_RdCmd.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
             //std::cerr << "Mem.Cmd: " << std::hex << rxAppTempCmd.saddr << " - " << rxAppTempCmd.bbt - (65536 - rxAppTempCmd.saddr) << std::endl;
             rxAppBreakdown = false;
         }
     }
 }
 
+/******************************************************************************
+ * * @brief [TODO]
+ *
+ * @param[in]  siMEM_RxP_Data,  Rx memory data from MEM.
+ * @param[out] soTRIF_Data,     TCP data stream to TRIF.
+ *
+ ******************************************************************************/
 void rxAppMemDataRead(
-        stream<AxiWord>     &rxBufferReadData,
-        stream<AxiWord>     &rxDataRsp,
+        stream<AxiWord>     &siMEM_RxP_Data,
+        stream<AxiWord>     &soTRIF_Data,
         stream<ap_uint<1> > &rxAppDoubleAccess)
 {
-#pragma HLS PIPELINE II=1 enable_flush
-#pragma HLS INLINE off
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS INLINE off
 
     static AxiWord rxAppMemRdRxWord = AxiWord(0, 0, 0);
     static ap_uint<1> rxAppDoubleAccessFlag = 0;
     static enum rAstate {RXAPP_IDLE = 0, RXAPP_STREAM, RXAPP_JOIN, RXAPP_STREAMMERGED, RXAPP_STREAMUNMERGED, RXAPP_RESIDUE} rxAppState;
     static ap_uint<4> rxAppMemRdOffset = 0;
     static ap_uint<8> rxAppOffsetBuffer = 0;
+
     switch(rxAppState) {
     case RXAPP_IDLE:
-        if (!rxAppDoubleAccess.empty() && !rxBufferReadData.empty() && !rxDataRsp.full()) {
+        if (!rxAppDoubleAccess.empty() && !siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
             //rxAppMemRdOffset = 0;
             rxAppDoubleAccessFlag = rxAppDoubleAccess.read();
-            rxBufferReadData.read(rxAppMemRdRxWord);
+            siMEM_RxP_Data.read(rxAppMemRdRxWord);
             rxAppMemRdOffset = keepMapping(rxAppMemRdRxWord.tkeep);                      // Count the number of valid bytes in this data word
             if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 1) {         // If this is the last word and this access was broken down
                 rxAppMemRdRxWord.tlast = ~rxAppDoubleAccessFlag;                     // Negate the last flag inn the axiWord and determine if there's an offset
                 if (rxAppMemRdOffset == 8) {                                    // No need to offset anything
-                    rxDataRsp.write(rxAppMemRdRxWord);                          // Output the word directly
+                    soTRIF_Data.write(rxAppMemRdRxWord);                          // Output the word directly
                     //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
                     rxAppState = RXAPP_STREAMUNMERGED;                          // Jump to stream merged since there's no joining to be performed.
                 }
@@ -212,25 +229,25 @@ void rxAppMemDataRead(
                 }
             }
             else if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 0)  { // If this is the 1st and last data word of this segment and no mem. access breakdown occured,
-                rxDataRsp.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
+                soTRIF_Data.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
                 //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
             }
             else {                                                              // Finally if there are more words in this memory access,
                 rxAppState = RXAPP_STREAM;                                      // then go to RXAPP_STREAM to read them
-                rxDataRsp.write(rxAppMemRdRxWord);                              // and output the current word
+                soTRIF_Data.write(rxAppMemRdRxWord);                              // and output the current word
                 //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
             }
 
         }
         break;
     case RXAPP_STREAM:                                                          // This state outputs the all the data words in the 1st memory access of a segment but the 1st one.
-        if (!rxBufferReadData.empty() && !rxDataRsp.full()) {                   // Verify that there's data in the input and space in the output
-            rxBufferReadData.read(rxAppMemRdRxWord);                            // Read the data word in
+        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // Verify that there's data in the input and space in the output
+            siMEM_RxP_Data.read(rxAppMemRdRxWord);                            // Read the data word in
             rxAppMemRdOffset = keepMapping(rxAppMemRdRxWord.tkeep);                      // Count the number of valid bytes in this data word
             if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 1) {         // If this is the last word and this access was broken down
                 rxAppMemRdRxWord.tlast = ~rxAppDoubleAccessFlag;                     // Negate the last flag inn the axiWord and determine if there's an offset
                 if (rxAppMemRdOffset == 8) {                                    // No need to offset anything
-                    rxDataRsp.write(rxAppMemRdRxWord);                          // Output the word directly
+                    soTRIF_Data.write(rxAppMemRdRxWord);                          // Output the word directly
                     //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
                     rxAppState = RXAPP_STREAMUNMERGED;                          // Jump to stream merged since there's no joining to be performed.
                 }
@@ -239,30 +256,30 @@ void rxAppMemDataRead(
                 }
             }
             else if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 0) {// If this is the 1st and last data word of this segment and no mem. access breakdown occured,
-                rxDataRsp.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
+                soTRIF_Data.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
                 //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
                 rxAppState = RXAPP_IDLE;                                        // and go back to the idle state
             }
             else {                                                              // If the segment data hasn't finished yet
-                rxDataRsp.write(rxAppMemRdRxWord);                              // output them and stay in this state
+                soTRIF_Data.write(rxAppMemRdRxWord);                              // output them and stay in this state
                 //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
             }
         }
         break;
     case RXAPP_STREAMUNMERGED:                                                  // This state handles 2nd mem.access data when no realignment is required
-        if (!rxBufferReadData.empty() && !rxDataRsp.full()) {                   // First determine that there's data to input and space in the output
-            AxiWord temp = rxBufferReadData.read();                                 // If so read the data in a tempVariable
+        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // First determine that there's data to input and space in the output
+            AxiWord temp = siMEM_RxP_Data.read();                                 // If so read the data in a tempVariable
             if (temp.tlast == 1)                                                     // If this is the last data word...
                 rxAppState = RXAPP_IDLE;                                        // Go back to the output state. Everything else is perfectly fine as is
-            rxDataRsp.write(temp);                                              // Finally, output the data word before changing states
+            soTRIF_Data.write(temp);                                              // Finally, output the data word before changing states
             std::cerr << "Mem.Data: " << std::hex << temp.tdata << " - " << temp.tkeep << " - " << temp.tlast << std::endl;
         }
         break;
     case RXAPP_JOIN:                                                            // This state performs the hand over from the 1st to the 2nd mem. access for this segment if a mem. access has occured
-        if (!rxBufferReadData.empty() && !rxDataRsp.full()) {                   // First determine that there's data to input and space in the output
+        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // First determine that there's data to input and space in the output
             AxiWord temp = AxiWord(0, 0xFF, 0);
             temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(((rxAppMemRdOffset.to_uint64() * 8) - 1), 0);    // In any case, insert the data of the new data word in the old one. Here we don't pay attention to the exact number of bytes in the new data word. In case they don't fill the entire remaining gap, there will be garbage in the output but it doesn't matter since the KEEP signal indicates which bytes are valid.
-            rxAppMemRdRxWord = rxBufferReadData.read();
+            rxAppMemRdRxWord = siMEM_RxP_Data.read();
             temp.tdata.range(63, (rxAppMemRdOffset * 8)) = rxAppMemRdRxWord.tdata.range(((8 - rxAppMemRdOffset.to_uint64()) * 8) - 1, 0);                 // Buffer & realign temp into rxAppmemRdRxWord (which is a static variable)
             ap_uint<4> tempCounter = keepMapping(rxAppMemRdRxWord.tkeep);                    // Determine how any bytes are valid in the new data word. It might be that this is the only data word of the 2nd segment
             rxAppOffsetBuffer = tempCounter - (8 - rxAppMemRdOffset);               // Calculate the number of bytes to go into the next & final data word
@@ -277,15 +294,15 @@ void rxAppMemDataRead(
             }
             else
                 rxAppState = RXAPP_STREAMMERGED;                                    // then go to the RXAPP_STREAMMERGED to output the remaining data words
-            rxDataRsp.write(temp);                                              // Finally, write the data word to the output
+            soTRIF_Data.write(temp);                                              // Finally, write the data word to the output
             //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
         }
         break;
     case RXAPP_STREAMMERGED:                                                    // This state outputs all of the remaining, realigned data words of the 2nd mem.access, which resulted from a data word
-        if (!rxBufferReadData.empty() && !rxDataRsp.full()) {                   // Verify that there's data at the input and that the output is ready to receive data
+        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // Verify that there's data at the input and that the output is ready to receive data
             AxiWord temp = AxiWord(0, 0xFF, 0);
             temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(63, ((8 - rxAppMemRdOffset.to_uint64()) * 8));
-            rxAppMemRdRxWord = rxBufferReadData.read();                             // Read the new data word in
+            rxAppMemRdRxWord = siMEM_RxP_Data.read();                             // Read the new data word in
             temp.tdata.range(63, (rxAppMemRdOffset * 8)) = rxAppMemRdRxWord.tdata.range(((8 - rxAppMemRdOffset.to_uint64()) * 8) - 1, 0);
             ap_uint<4> tempCounter = keepMapping(rxAppMemRdRxWord.tkeep);            // Determine how any bytes are valid in the new data word. It might be that this is the only data word of the 2nd segment
             rxAppOffsetBuffer = tempCounter - (8 - rxAppMemRdOffset);               // Calculate the number of bytes to go into the next & final data word
@@ -298,15 +315,15 @@ void rxAppMemDataRead(
                 else                                                                // If this not the last word, because it doesn't fit in the available space in this data word
                     rxAppState = RXAPP_RESIDUE;                                         // then go to the RXAPP_RESIDUE to output the remainder of this data word
             }
-            rxDataRsp.write(temp);                                              // Finally, write the data word to the output
+            soTRIF_Data.write(temp);                                              // Finally, write the data word to the output
             //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
         }
         break;
     case RXAPP_RESIDUE:
-        if (!rxDataRsp.full()) {
+        if (!soTRIF_Data.full()) {
             AxiWord temp = AxiWord(0, returnKeep(rxAppOffsetBuffer), 1);
             temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(63, ((8 - rxAppMemRdOffset.to_uint64()) * 8));
-            rxDataRsp.write(temp);                                              // And finally write the data word to the output
+            soTRIF_Data.write(temp);                                              // And finally write the data word to the output
             //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
             rxAppState = RXAPP_IDLE;                                            // And go back to the idle stage
         }
@@ -316,36 +333,42 @@ void rxAppMemDataRead(
 
 
 /*****************************************************************************
- * @brief Rc Application Interface (RAi).
+ * @brief Rx Application Interface (RAi).
  *          [TODO - Consider merging with rx_app_if]
  *
- *  @param[in]  siTRIF_DataReq,        Data request from [TcpRoleInterface].
- *  @param[in]
- *  @param[in]
- *  @param[out] soPRt_LsnPortStateReq, Port state request to [PortTable].
- *  @param[in]  siPRt_LsnPortStateRep, Port state reply from [PRt].
- *  @param[in]  siRXe_Notif,           Notification from [RXe].
- *  @param[in]@
- *  @
+ * @param[out] soTRIF_Notif,          Tells the APP that data are available in the TCP Rx buffer.
+ * @param[in]  siTRIF_DataReq,        Data request from TcpRoleInterface (TRIF).
+ * @param[out] soTRIF_Data,           TCP data stream to TRIF.
+ * @param[out] soTRIF_Meta,           Metadata to TRIF.
+ * @param[in]
+ * @param[in]
+ * @param[out] soPRt_LsnPortStateReq, Port state request to [PortTable].
+ * @param[in]  siPRt_LsnPortStateRep, Port state reply from [PRt].
+ * @param[in]  siRXe_Notif,           Notification from [RXe].
+ * @param
+ * @param
+ * @param
+ * @param[out] soMEM_RxP_RdCmd,       Rx memory read command to MEM.
+ * @param[in]  siMEM_RxP_Data,        Rx memory data from MEM.
  *
- * @ingroup rx_app_interface
  ******************************************************************************/
 void rx_app_interface(
+        stream<AppNotif>            &soTRIF_Notif,
         stream<AppRdReq>            &siTRIF_DataReq,
-        stream<rxSarAppd>           &siRSt_RxSarUpdRep,
+        stream<AxiWord>             &soTRIF_Data,
+        stream<SessionId>           &soTRIF_Meta,
         stream<AppLsnReq>           &siTRIF_ListenPortReq,
         stream<RepBit>              &soTRIF_ListenPortRep,
         stream<TcpPort>             &soPRt_LsnPortStateReq,
         stream<RepBit>              &siPRt_LsnPortStateRep,
         stream<AppNotif>            &siRXe_Notif,
         stream<AppNotif>            &siTIm_Notif,
-        stream<SessionId>           &appRxDataRspMetadata,
-        stream<rxSarAppd>           &soRSt_RxSarUpdRep,
-        stream<DmCmd>               &rxBufferReadCmd,
-        stream<AppNotif>            &soAPP_Notif,
-        stream<AxiWord>             &rxBufferReadData,
-        stream<AxiWord>             &rxDataRsp)
+        stream<RAiRxSarQuery>       &soRSt_RxSarReq,
+        stream<RAiRxSarReply>       &siRSt_RxSarRep,
+        stream<DmCmd>               &soMEM_RxP_RdCmd,
+        stream<AxiWord>             &siMEM_RxP_Data)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
 
     static stream<DmCmd>        rxAppStreamIf2memAccessBreakdown ("rxAppStreamIf2memAccessBreakdown");
@@ -357,19 +380,19 @@ void rx_app_interface(
     // RX Application Stream Interface
     rx_app_stream_if(
             siTRIF_DataReq,
-            siRSt_RxSarUpdRep,
-            appRxDataRspMetadata,
-            soRSt_RxSarUpdRep,
+            soTRIF_Meta,
+            soRSt_RxSarReq,
+            siRSt_RxSarRep,
             rxAppStreamIf2memAccessBreakdown);
 
     rxAppMemAccessBreakdown(
             rxAppStreamIf2memAccessBreakdown,
-            rxBufferReadCmd,
+            soMEM_RxP_RdCmd,
             rxAppDoubleAccess);
 
     rxAppMemDataRead(
-            rxBufferReadData,
-            rxDataRsp,
+            siMEM_RxP_Data,
+            soTRIF_Data,
             rxAppDoubleAccess);
 
     // RX Application Interface
@@ -384,7 +407,7 @@ void rx_app_interface(
     pStreamMux(
             siRXe_Notif,
             siTIm_Notif,
-            soAPP_Notif);
+            soTRIF_Notif);
 }
 
 
@@ -601,10 +624,10 @@ void toe(
     #pragma HLS stream         variable=sAKdToTXe_Event           depth=16
     #pragma HLS DATA_PACK      variable=sAKdToTXe_Event
 
-    static stream<SigBit>               sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
+    static stream<SigBool>              sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_RxEventSig      depth=2
 
-    static stream<SigBit>               sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
+    static stream<SigBool>              sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_TxEventSig      depth=2
 
     //-------------------------------------------------------------------------
@@ -630,9 +653,9 @@ void toe(
     static stream<TcpPort>              sRAiToPRt_OpnLsnPortReq   ("sRAiToPRt_OpnLsnPortReq");
     #pragma HLS stream         variable=sRAiToPRt_OpnLsnPortReq   depth=4
 
-    static stream<rxSarAppd>            sRAiToRSt_RxSarUpdRep     ("sRAiToRSt_RxSarUpdRep");
-    #pragma HLS stream         variable=sRAiToRSt_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRAiToRSt_RxSarUpdRep
+    static stream<RAiRxSarQuery>          sRAiToRSt_RxSarQry        ("sRAiToRSt_RxSarQry");
+    #pragma HLS stream         variable=sRAiToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sRAiToRSt_RxSarQry
 
     //-------------------------------------------------------------------------
     //-- Rx Engine (RXe)
@@ -648,15 +671,15 @@ void toe(
     #pragma HLS stream         variable=sRXeToSTt_SessStateQry    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToSTt_SessStateQry
 
-    static stream<rxSarRecvd>           sRXeToRSt_RxSarUpdReq     ("sRXeToRSt_RxSarUpdReq");
-    #pragma HLS stream         variable=sRXeToRSt_RxSarUpdReq     depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarUpdReq
+    static stream<RXeRxSarQuery>          sRXeToRSt_RxSarQry        ("sRXeToRSt_RxSarQry");
+    #pragma HLS stream         variable=sRXeToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarQry
 
-    static stream<rxTxSarQuery>         sRXeToTSt_TxSarQry        ("sRXeToTSt_TxSarQry");
+    static stream<RXeTxSarQuery>        sRXeToTSt_TxSarQry        ("sRXeToTSt_TxSarQry");
     #pragma HLS stream         variable=sRXeToTSt_TxSarQry        depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarQry
 
-    static stream<ReTxTimerCmd>         sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
+    static stream<RXeReTransTimerCmd>   sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
     #pragma HLS stream         variable=sRXeToTIm_ReTxTimerCmd    depth=2
     #pragma HLS DATA_PACK      variable=sRXeToTIm_ReTxTimerCmd
 
@@ -679,17 +702,17 @@ void toe(
     #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<RxSarEntry>           sRStToRXe_RxSarUpdRep     ("sRStToRXe_RxSarUpdRep");
-    #pragma HLS stream         variable=sRStToRXe_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarUpdRep
+    static stream<RxSarEntry>           sRStToRXe_RxSarRep        ("sRStToRXe_RxSarRep");
+    #pragma HLS stream         variable=sRStToRXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarRep
 
-    static stream<rxSarAppd>            sRStToRAi_RxSarUpdRep     ("sRStToRAi_RxSarUpdRep");
-    #pragma HLS stream         variable=sRStToRAi_RxSarUpdRep     depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarUpdRep
+    static stream<RAiRxSarReply>          sRStToRAi_RxSarRep        ("sRStToRAi_RxSarRep");
+    #pragma HLS stream         variable=sRStToRAi_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarRep
 
-    static stream<RxSarEntry>           sRStToTXe_RxSarRdRep      ("sRStToTXe_RxSarRdRep");
-    #pragma HLS stream         variable=sRStToTXe_RxSarRdRep      depth=2
-    #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRdRep
+    static stream<RxSarEntry>           sRStToTXe_RxSarRep        ("sRStToTXe_RxSarRep");
+    #pragma HLS stream         variable=sRStToTXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRep
 
     //-------------------------------------------------------------------------
     //-- Session Lookup Controller (SLc)
@@ -738,9 +761,9 @@ void toe(
     #pragma HLS stream         variable=sTAiToEVe_Event           depth=4
     #pragma HLS DATA_PACK      variable=sTAiToEVe_Event
 
-    static stream<TxSarTableAppPush>    sTAiToTSt_AppPush         ("sTAiToTSt_AppPush");
-    #pragma HLS stream         variable=sTAiToTSt_AppPush         depth=2
-    #pragma HLS DATA_PACK      variable=sTAiToTSt_AppPush
+    static stream<TAiTxSarPush>         sTAiToTSt_PushCmd         ("sTAiToTSt_PushCmd");
+    #pragma HLS stream         variable=sTAiToTSt_PushCmd         depth=2
+    #pragma HLS DATA_PACK      variable=sTAiToTSt_PushCmd
 
     static stream<StateQuery>           sTAiToSTt_Taa_StateQry    ("sTAiToSTt_Taa_StateQry");
     #pragma HLS stream         variable=sTAiToSTt_Taa_StateQry    depth=2
@@ -770,20 +793,20 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
-    static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
+    static stream<SigBool>              sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
-    static stream<ap_uint<16> >         sTXeToRSt_RxSarRdReq      ("sTXeToRSt_RxSarRdReq");
-    #pragma HLS stream         variable=sTXeToRSt_RxSarRdReq      depth=2
+    static stream<ap_uint<16> >         sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
+    #pragma HLS stream         variable=sTXeToRSt_RxSarReq        depth=2
 
-    static stream<txTxSarQuery>         sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
+    static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
     #pragma HLS stream         variable=sTXeToTSt_TxSarQry        depth=2
     #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarQry
 
     static stream<ap_uint<16> >         sTXeToSLc_ReverseLkpReq   ("sTXeToSLc_ReverseLkpReq");
     #pragma HLS stream         variable=sTXeToSLc_ReverseLkpReq   depth=4
 
-    static stream<ReTxTimerEvent>       sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
+    static stream<TXeReTransTimerCmd>   sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
     #pragma HLS stream         variable=sTXeToTIm_SetReTxTimer    depth=2
     #pragma HLS DATA_PACK      variable=sTXeToTIm_SetReTxTimer
 
@@ -793,17 +816,17 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx SAR Table (TSt)
     //-------------------------------------------------------------------------
-    static stream<rxTxSarReply>         sTStToRXe_SessTxSarRep    ("sTStToRXe_SessTxSarRep");
-    #pragma HLS stream         variable=sTStToRXe_SessTxSarRep    depth=2
-    #pragma HLS DATA_PACK      variable=sTStToRXe_SessTxSarRep
+    static stream<RXeTxSarReply>        sTStToRXe_TxSarRep        ("sTStToRXe_TxSarRep");
+    #pragma HLS stream         variable=sTStToRXe_TxSarRep        depth=2
+    #pragma HLS DATA_PACK      variable=sTStToRXe_TxSarRep
 
-    static stream<txTxSarReply>         sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
+    static stream<TXeTxSarReply>        sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
     #pragma HLS stream         variable=sTStToTXe_TxSarRep        depth=2
     #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarRep
 
-    static stream<txSarAckPush>         sTStToTAi_AckPush         ("sTStToTAi_AckPush");
-    #pragma HLS stream         variable=sTStToTAi_AckPush         depth=2
-    #pragma HLS DATA_PACK      variable=sTStToTAi_AckPush
+    static stream<TStTxSarPush>         sTStToTAi_PushCmd         ("sTStToTAi_PushCmd");
+    #pragma HLS stream         variable=sTStToTAi_PushCmd         depth=2
+    #pragma HLS DATA_PACK      variable=sTStToTAi_PushCmd
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -855,23 +878,21 @@ void toe(
 
     //-- RX SAR Table (RSt) ------------------------------------------------
     rx_sar_table(
-            sRXeToRSt_RxSarUpdReq,
-            sRAiToRSt_RxSarUpdRep,
-            sTXeToRSt_RxSarRdReq,
-            sRStToRXe_RxSarUpdRep,
-            sRStToRAi_RxSarUpdRep,
-            sRStToTXe_RxSarRdRep);
+            sRXeToRSt_RxSarQry,
+            sRStToRXe_RxSarRep,
+            sRAiToRSt_RxSarQry,
+            sRStToRAi_RxSarRep,
+            sTXeToRSt_RxSarReq,
+            sRStToTXe_RxSarRep);
 
     //-- TX SAR Table (TSt) ------------------------------------------------
     tx_sar_table(
             sRXeToTSt_TxSarQry,
-            //txApp2txSar_upd_req,
+            sTStToRXe_TxSarRep,
             sTXeToTSt_TxSarQry,
             sTStToTXe_TxSarRep,
-            sTAiToTSt_AppPush,
-            sTStToRXe_SessTxSarRep,
-            //txSar2txApp_upd_rsp,
-            sTStToTAi_AckPush);
+            sTAiToTSt_PushCmd,
+            sTStToTAi_PushCmd);
 
     //-- Port Table (PRt) --------------------------------------------------
     port_table(
@@ -926,10 +947,10 @@ void toe(
             sSTtToRXe_SessStateRep,
             sRXeToPRt_PortStateReq,
             sPRtToRXe_PortStateRep,
-            sRXeToRSt_RxSarUpdReq,
-            sRStToRXe_RxSarUpdRep,
+            sRXeToRSt_RxSarQry,
+            sRStToRXe_RxSarRep,
             sRXeToTSt_TxSarQry,
-            sTStToRXe_SessTxSarRep,
+            sTStToRXe_TxSarRep,
             sRXeToTIm_ReTxTimerCmd,
             sRXeToTIm_ClrProbeTimer,
             sRXeToTIm_CloseTimer,
@@ -943,8 +964,8 @@ void toe(
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
             sAKdToTXe_Event,
-            sTXeToRSt_RxSarRdReq,
-            sRStToTXe_RxSarRdRep,
+            sTXeToRSt_RxSarReq,
+            sRStToTXe_RxSarRep,
             sTXeToTSt_TxSarQry,
             sTStToTXe_TxSarRep,
             siMEM_TxP_Data,
@@ -963,20 +984,20 @@ void toe(
 
     //-- Rx Application Interface (RAi) -----------------------------------
      rx_app_interface(
+             soTRIF_Notif,
              siTRIF_DReq,
-             sRStToRAi_RxSarUpdRep,
+             soTRIF_Data,
+             soTRIF_Meta,
              siTRIF_LsnReq,
              soTRIF_LsnAck,
              sRAiToPRt_OpnLsnPortReq,
              sPRtToRAi_OpnLsnPortRep,
              sRXeToRAi_Notif,
              sTImToRAi_Notif,
-             soTRIF_Meta,
-             sRAiToRSt_RxSarUpdRep,
+             sRAiToRSt_RxSarQry,
+             sRStToRAi_RxSarRep,
              soMEM_RxP_RdCmd,
-             soTRIF_Notif,
-             siMEM_RxP_Data,
-             soTRIF_Data);
+             siMEM_RxP_Data);
 
     //-- Tx Application Interface (TAi) ------------------------------------
     tx_app_interface(
@@ -984,7 +1005,7 @@ void toe(
             siTRIF_Meta,
             sTAiToSTt_Tas_StateReq,
             sSTtToTAi_Tas_StateRep,
-            sTStToTAi_AckPush,
+            sTStToTAi_PushCmd,
             siMEM_TxP_WrSts,
             siTRIF_OpnReq,
             siTRIF_ClsReq,
@@ -994,7 +1015,7 @@ void toe(
             soTRIF_DSts,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
-            sTAiToTSt_AppPush,
+            sTAiToTSt_PushCmd,
             soTRIF_OpnSts,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,
