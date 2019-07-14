@@ -80,7 +80,7 @@ with
 
 ## Combining Signals, Ports and Instance Names
 This section shows an example that combines the above listed convention names.
-![HDL interconnection example](Fig-hdl-naming-conventions.png#center)
+![HDL interconnection example](./imgs/Fig-hdl-naming-conventions.png#center)
 <br>
 
 ## Secondary Conventions
