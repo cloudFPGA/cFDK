@@ -52,73 +52,93 @@ module MmioClient_A8_D8 #(
   
 ) (
 
-  //-- Global Clock used by the entire SHELL -----
-  input           piShlClk,
- 
-  //-- Global Reset used by the entire TOP -------
-  input           piTopRst,
+  //----------------------------------------------
+  //-- Global Clock & Reset
+  //----------------------------------------------
+  input           piSHL_Clk,
+  input           piTOP_Rst,
   
-  //-- Bitstream Identification ------------------
+  //----------------------------------------------
+  //-- Bitstream Identification
+  //----------------------------------------------
   input   [31:0]  piTOP_Timestamp,
  
-  //-- PSOC : Emif Bus Interface -----------------
-  input           piPSOC_Mmio_Clk,
-  input           piPSOC_Mmio_Cs_n,
-  input           piPSOC_Mmio_We_n,
-  input           piPSOC_Mmio_AdS_n,
-  input           piPSOC_Mmio_Oe_n,
-  input   [ 7:0]  piPSOC_Mmio_Addr,
-  input   [ 7:0]  pioPSOC_Mmio_Data,
+  //----------------------------------------------
+  //-- PSOC : Emif Bus Interface
+  //----------------------------------------------
+  input           piPSOC_Emif_Clk,
+  input           piPSOC_Emif_Cs_n,
+  input           piPSOC_Emif_We_n,
+  input           piPSOC_Emif_AdS_n,
+  input           piPSOC_Emif_Oe_n,
+  input   [ 7:0]  piPSOC_Emif_Addr,
+  input   [ 7:0]  pioPSOC_Emif_Data,
 
-  //-- MEM : Status inputs and Control outputs ---
-  input           piMEM_Mmio_Mc0InitCalComplete,
-  input           piMEM_Mmio_Mc1InitCalComplete,
+  //----------------------------------------------
+  //-- MEM : Status inputs and Control outputs
+  //----------------------------------------------
+  input           piMEM_Mc0InitCalComplete,
+  input           piMEM_Mc1InitCalComplete,
 
-  //-- ETH0 : Status inputs and Control outputs -- 
-  input           piETH0_Mmio_CoreReady,
-  input           piETH0_Mmio_QpllLock,
-  output          poMMIO_Eth0_RxEqualizerMode,
-  output  [ 3:0]  poMMIO_Eth0_TxDriverSwing,
-  output  [ 4:0]  poMMIO_Eth0_TxPreCursor,
-  output  [ 4:0]  poMMIO_Eth0_TxPostCursor,
-  output          poMMIO_Eth0_PcsLoopbackEn,
-  output          poMMIO_Eth0_MacLoopbackEn,
-  output          poMMIO_Eth0_MacAddrSwapEn,
+  //----------------------------------------------
+  //-- ETH0 : Status inputs and Control outputs
+  //----------------------------------------------
+  input           piETH0_CoreReady,
+  input           piETH0_QpllLock,
+  output          poETH0_RxEqualizerMode,
+  output  [ 3:0]  poETH0_TxDriverSwing,
+  output  [ 4:0]  poETH0_TxPreCursor,
+  output  [ 4:0]  poETH0_TxPostCursor,
+  output          poETH0_PcsLoopbackEn,
+  output          poETH0_MacLoopbackEn,
+  output          poETH0_MacAddrSwapEn,
   
-  //-- NTS0 : Status inputs and Control Outputs --
-  input           piNTS0_Mmio_CamReady,
-  output  [47:0]  poMMIO_Nts0_MacAddress,
-  output  [31:0]  poMMIO_Nts0_IpAddress,
-  output  [31:0]  poMMIO_Nts0_SubNetMask,
-  output  [31:0]  poMMIO_Nts0_GatewayAddr,
+  //----------------------------------------------
+  //-- NTS0 : Status inputs and Control Outputs
+  //----------------------------------------------
+  input           piNTS0_CamReady,
+  output  [47:0]  poNTS0_MacAddress,
+  output  [31:0]  poNTS0_IpAddress,
+  output  [31:0]  poNTS0_SubNetMask,
+  output  [31:0]  poNTS0_GatewayAddr,
   
-  //-- ROLE : Status inputs and Control Outputs --
+  //----------------------------------------------
+  //-- ROLE : Status inputs and Control Outputs
+  //----------------------------------------------
+  //---- DIAG_CTRL_1 -----------------
+  output  [ 1:0]  poROLE_Mc1_MemTestCtrl,
+  //---- DIAG_STAT_1 -----------------
+  input   [ 1:0]  piROLE_Mc1_MemTestStat,
+  //---- DIAG_CTRL_2 -----------------
   output  [ 1:0]  poMMIO_Role_UdpEchoCtrl,
   output          poMMIO_Role_UdpPostDgmEn,
   output          poMMIO_Role_UdpCaptDgmEn,
   output  [ 1:0]  poMMIO_Role_TcpEchoCtrl,
   output          poMMIO_Role_TcpPostSegEn,
   output          poMMIO_Role_TcpCaptSegEn,
+  //---- APP_RDROL -------------------
+  input   [15:0]  piROLE_RdReg,
+   //---- APP_WRROL ------------------
+  output  [15:0]  poROLE_WrReg,
   
-  // ROLE EMIF Register 
-  output  [15:0]  poMMIO_ROLE_2B_Reg,
-  input   [15:0]  piMMIO_ROLE_2B_Reg,
+  //----------------------------------------------
+  //-- FMC : Registers and Extended Memory
+  //----------------------------------------------
+  //---- APP_RDFMC -----------------
+  input   [31:0]  piFMC_RdReg,
+  //---- APP_WRFMC -----------------
+  output  [31:0]  poFMC_WrReg,
+
+  //----------------------------------------------
+  //-- EMIF Extended Memory Port B
+  //--  'XXX' might be FMC|ROL|YouNameIt
+  //----------------------------------------------
+  input           piXXX_XMem_en,
+  input           piXXX_XMem_Wren,
+  input  [31:0]   piXXX_XMem_WrData,
+  output [31:0]   poXXX_XMem_RData,
+  input  [ 8:0]   piXXX_XMemAddr,
   
-  // SMC Registers
-  input   [31:0]  piMMIO_SMC_4B_Reg,
-  input   [31:0]  poMMIO_SMC_4B_Reg,
-
-  // MemTest DiagRegisters
-  output [1:0] poMMIO_Mc1_MemTestCtrl,
-  input  [7:0] piMMIO_DIAG_STAT_1,
-
-  //XMem Port B
-  input           piSMC_MMIO_XMEM_en,
-  input           piSMC_MMIO_XMEM_Wren,
-  input  [31:0]   piSMC_MMIO_XMEM_WrData,
-  output [31:0]   poSMC_MMIO_XMEM_RData,
-  input  [8:0]    piSMC_MMIO_XMEM_Addr,
-
   output          poVoid
 
 );  // End of PortList
@@ -155,7 +175,7 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam ROLE_REG_BASE  = 8'h40;  // ROLE          Registers
+  localparam APP_REG_BASE  = 8'h40;  // ROLE          Registers
   localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
   localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
@@ -214,20 +234,24 @@ module MmioClient_A8_D8 #(
   localparam LY3_GTW2       = LY3_REG_BASE  + 14;
   localparam LY3_GTW3       = LY3_REG_BASE  + 15;
   
-  //-- Burkhard's Playground ---------------------------------------------------------------
-  localparam NGL_FROM_ROLE0 = ROLE_REG_BASE + 0;
-  localparam NGL_FROM_ROLE1 = ROLE_REG_BASE + 1;
-  localparam NGL_TO_ROLE0   = ROLE_REG_BASE + 2;
-  localparam NGL_TO_ROLE1   = ROLE_REG_BASE + 3;
-  localparam NGL_FROM_SMC0  = ROLE_REG_BASE + 4;
-  localparam NGL_FROM_SMC1  = ROLE_REG_BASE + 5;
-  localparam NGL_FROM_SMC2  = ROLE_REG_BASE + 6;
-  localparam NGL_FROM_SMC3  = ROLE_REG_BASE + 7;
-  localparam NGL_TO_SMC0    = ROLE_REG_BASE + 8;
-  localparam NGL_TO_SMC1    = ROLE_REG_BASE + 9;
-  localparam NGL_TO_SMC2    = ROLE_REG_BASE + 10;
-  localparam NGL_TO_SMC3    = ROLE_REG_BASE + 11;
-  
+  //-- APP_REGS ----------------------------------------------------------------
+  //---- OBSOLETE-20190710 - This is former Burkhard's Playground
+  // Role Read Register
+  localparam APP_RDROL0     = APP_REG_BASE +  0;
+  localparam APP_RDROL1     = APP_REG_BASE +  1;
+  // Role Write register
+  localparam APP_WRROL0     = APP_REG_BASE +  2;
+  localparam APP_WRROL1     = APP_REG_BASE +  3;
+  // FMC Read Register 
+  localparam APP_RDFMC0     = APP_REG_BASE +  4;
+  localparam APP_RDFMC1     = APP_REG_BASE +  5;
+  localparam APP_RDFMC2     = APP_REG_BASE +  6;
+  localparam APP_RDFMC3     = APP_REG_BASE +  7;
+  // FMC Write Register
+  localparam APP_WRFMC0     = APP_REG_BASE +  8;
+  localparam APP_WRFMC1     = APP_REG_BASE +  9;
+  localparam APP_WRFMC2     = APP_REG_BASE + 10;
+  localparam APP_WRFMC3     = APP_REG_BASE + 11;
   
   //-- RES_REGS ---------------------------------------------------------------
   
@@ -319,9 +343,9 @@ module MmioClient_A8_D8 #(
   localparam cDefReg3D = 8'h0C;  // LY3_GTW1
   localparam cDefReg3E = 8'h00;  // LY3_GTW2
   localparam cDefReg3F = 8'h01;  // LY3_GTW3
-  //-- Burkhard's Playground
-  localparam cDefReg40 = 8'h00;
-  localparam cDefReg41 = 8'h00;
+  //-- ROLE_REGS (also Burkhard's Playground) 
+  localparam cDefReg40 = 8'h00;  // APP_RDROL0
+  localparam cDefReg41 = 8'h00;  // APP_RDROL1
   localparam cDefReg42 = 8'h00;
   localparam cDefReg43 = 8'h00;
   localparam cDefReg44 = 8'h00;
@@ -436,7 +460,7 @@ module MmioClient_A8_D8 #(
   genvar id;
   
   //-- EMIF ADDRESS BUS
-  assign sEmifAddr = piPSOC_Mmio_Addr[cLog2PageSize-1:0];
+  assign sEmifAddr = piPSOC_Emif_Addr[cLog2PageSize-1:0];
   
   //--------------------------------------------------------  
   //-- CONFIGURATION REGISTERS
@@ -497,14 +521,14 @@ module MmioClient_A8_D8 #(
   //-- PHYSICAL REGISTERS
   //--------------------------------------------------------
   //---- PHY_STATUS --------------------
-  assign sStatusVec[cEDW*PHY_STAT+0]  = piMEM_Mmio_Mc0InitCalComplete;  // RO
-  assign sStatusVec[cEDW*PHY_STAT+1]  = piMEM_Mmio_Mc1InitCalComplete;  // RO
-  assign sStatusVec[cEDW*PHY_STAT+2]  = piETH0_Mmio_CoreReady;          // RO
-  assign sStatusVec[cEDW*PHY_STAT+3]  = piETH0_Mmio_QpllLock;           // RO
-  assign sStatusVec[cEDW*PHY_STAT+4]  = piNTS0_Mmio_CamReady;           // RO
-  assign sStatusVec[cEDW*PHY_STAT+5]  = 1'b0;                           // RO
-  assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                           // RO
-  assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                           // RO
+  assign sStatusVec[cEDW*PHY_STAT+0]  = piMEM_Mc0InitCalComplete;  // RO
+  assign sStatusVec[cEDW*PHY_STAT+1]  = piMEM_Mc1InitCalComplete;  // RO
+  assign sStatusVec[cEDW*PHY_STAT+2]  = piETH0_CoreReady;          // RO
+  assign sStatusVec[cEDW*PHY_STAT+3]  = piETH0_QpllLock;           // RO
+  assign sStatusVec[cEDW*PHY_STAT+4]  = piNTS0_CamReady;           // RO
+  assign sStatusVec[cEDW*PHY_STAT+5]  = 1'b0;                      // RO
+  assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                      // RO
+  assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                      // RO
   //---- PHY_ETH0 ----------------------
   generate
   for (id=0; id<3*8; id=id+1)
@@ -569,47 +593,54 @@ module MmioClient_A8_D8 #(
   //---- Not Implemented ---------------
  
   //-------------------------------------------------------- 
-  //-- NGL REGISTERS
+  //-- APP REGISTERS
   //--------------------------------------------------------
-  //---- TO ROLE 
+  //---- APP_RDROL[0:1] ----------------
+  assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg; // RO
+  //---- APP_WRROL0 ---------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_ROLE0
-      assign sStatusVec[cEDW*NGL_TO_ROLE0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE0+id]; // RW   
+    begin: gen_APP_WRROL0
+      assign sStatusVec[cEDW*APP_WRROL0+id]  = sEMIF_Ctrl[cEDW*APP_WRROL0+id]; // RW   
     end
   endgenerate
+  //---- APP_WRROL1 ---------------------
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_ROLE1
-      assign sStatusVec[cEDW*NGL_TO_ROLE1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+id]; // RW   
+    begin: gen_APP_WRROL1
+      assign sStatusVec[cEDW*APP_WRROL1+id]  = sEMIF_Ctrl[cEDW*APP_WRROL1+id]; // RW   
     end
   endgenerate
-  //---- TO SMC
+  //---- APP_RDFMC[0:31] ----------------
+  assign sStatusVec[cEDW*APP_RDFMC3+7:cEDW*APP_RDFMC0+0] = piFMC_RdReg;
+  //---- APP_WRFMC0 --------------------- 
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_SMC0
-      assign sStatusVec[cEDW*NGL_TO_SMC0+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC0+id]; // RW   
+    begin: gen_APP_WRFMC0
+      assign sStatusVec[cEDW*APP_WRFMC0+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC0+id]; // RW   
     end
   endgenerate
+   //---- APP_WRFMC1 --------------------- 
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_SMC1
-      assign sStatusVec[cEDW*NGL_TO_SMC1+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC1+id]; // RW   
+    begin: gen_APP_WRFMC1
+      assign sStatusVec[cEDW*APP_WRFMC1+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC1+id]; // RW   
     end
   endgenerate
+  //---- APP_WRFMC2 --------------------- 
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_SMC2
-      assign sStatusVec[cEDW*NGL_TO_SMC2+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC2+id]; // RW   
+    begin: gen_APP_WRFMC2
+      assign sStatusVec[cEDW*APP_WRFMC2+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC2+id]; // RW   
     end
   endgenerate
+  //---- APP_WRFMC3 --------------------- 
   generate
   for (id=0; id<8; id=id+1)
-    begin: gen_NGL_TO_SMC3
-      assign sStatusVec[cEDW*NGL_TO_SMC3+id]  = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+id]; // RW   
+    begin: gen_APP_WRFMC3
+      assign sStatusVec[cEDW*APP_WRFMC3+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC3+id]; // RW   
     end
   endgenerate
-
 
   //-------------------------------------------------------- 
   //-- DIAGNOSTIC REGISTERS
@@ -629,12 +660,14 @@ module MmioClient_A8_D8 #(
     end
   endgenerate
   ////---- DIAG_STAT_1 -------------------
-  //generate
-  //for (id=0; id<cEDW; id=id+1)
-  //  begin: gen_DIAG_STAT_1
-  //    assign sStatusVec[cEDW*DIAG_STAT_1+id]  = sEMIF_Ctrl[cEDW*DIAG_STAT_1+id]; // RW   
-  //  end
-  //endgenerate
+  assign sStatusVec[cEDW*DIAG_STAT_1+0] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+1] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+2] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+3] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+4] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+5] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+6] = piROLE_Mc1_MemTestStat[0]; // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+7] = piROLE_Mc1_MemTestStat[1]; // RO
   //---- DIAG_CTRL_2 -------------------
   generate
   for (id=0; id<cEDW; id=id+1)
@@ -672,10 +705,10 @@ module MmioClient_A8_D8 #(
   //---- PHY_STATUS --------------------
   //------ No Outputs to the Fabric
   //---- PHY_ETH0 ----------------------
-  assign poMMIO_Eth0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_ETH0+0];                   // RW
-  assign poMMIO_Eth0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_ETH0+7 :cEDW*PHY_ETH0+4];  // RW
-  assign poMMIO_Eth0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_ETH0+12:cEDW*PHY_ETH0+8];  // RW
-  assign poMMIO_Eth0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_ETH0+20:cEDW*PHY_ETH0+16]; // RW
+  assign poETH0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_ETH0+0];                   // RW
+  assign poETH0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_ETH0+7 :cEDW*PHY_ETH0+4];  // RW
+  assign poETH0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_ETH0+12:cEDW*PHY_ETH0+8];  // RW
+  assign poETH0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_ETH0+20:cEDW*PHY_ETH0+16]; // RW
   
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
@@ -685,12 +718,12 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  assign poMMIO_Nts0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
-  assign poMMIO_Nts0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
-  assign poMMIO_Nts0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
-  assign poMMIO_Nts0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
-  assign poMMIO_Nts0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
-  assign poMMIO_Nts0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
+  assign poNTS0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
+  assign poNTS0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
+  assign poNTS0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
+  assign poNTS0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
+  assign poNTS0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
+  assign poNTS0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
   
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
@@ -700,20 +733,31 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poMMIO_Nts0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
-  assign poMMIO_Nts0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
-  assign poMMIO_Nts0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
-  assign poMMIO_Nts0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
+  assign poNTS0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
+  assign poNTS0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
+  assign poNTS0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
+  assign poNTS0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
   //---- LY3_SUBNET[0:3] -------------------
-  assign poMMIO_Nts0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
-  assign poMMIO_Nts0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
-  assign poMMIO_Nts0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
-  assign poMMIO_Nts0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
+  assign poNTS0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
+  assign poNTS0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
+  assign poNTS0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
+  assign poNTS0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
   //---- LY3_GATEWAY[0:3] -------------------
-  assign poMMIO_Nts0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW3+0]; // RW
-  assign poMMIO_Nts0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
-  assign poMMIO_Nts0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
-  assign poMMIO_Nts0_GatewayAddr[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
+  assign poNTS0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW3+0]; // RW
+  assign poNTS0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
+  assign poNTS0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
+  assign poNTS0_GatewayAddr[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
+
+  //--------------------------------------------------------
+  //-- APP REGISTERS
+  //--------------------------------------------------------
+  //---- Read Role Register-------------
+  //------ No Outputs to the Fabric (RO)
+  //---- Write Role Register -----------
+  assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW
+  //---- Read FMC Register-------------
+  //------ No Outputs to the Fabric (RO)
+  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*APP_WRFMC3+7:cEDW*APP_WRFMC0+0];
   
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS
@@ -721,13 +765,13 @@ module MmioClient_A8_D8 #(
   //---- DIAG_SCRATCH[0:3] -------------  
   //------ No Outputs to the Fabric
   //---- DIAG_CTRL_1 ---------------
-  assign poMMIO_Eth0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+0]; // RW
-  assign poMMIO_Eth0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+1]; // RW
-  assign poMMIO_Eth0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+2]; // RW
-  // [TODO] poMMIO_Mc0_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+5:cEDW*DIAG_CTRL_1+4]; // RW
-  assign poMMIO_Mc1_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+7:cEDW*DIAG_CTRL_1+6]; // RW
+  assign poETH0_PcsLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+0]; // RW
+  assign poETH0_MacLoopbackEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+1]; // RW
+  assign poETH0_MacAddrSwapEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+2]; // RW
+  // [TODO] poROLE_Mc0_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+5:cEDW*DIAG_CTRL_1+4]; // RW
+  assign poROLE_Mc1_MemTestCtrl = sEMIF_Ctrl[cEDW*DIAG_CTRL_1+7:cEDW*DIAG_CTRL_1+6]; // RW
   //---- DIAG_STAT_1 ---------------
-  assign sStatusVec[cEDW*DIAG_STAT_1+7:cEDW*DIAG_STAT_1+0] = piMMIO_DIAG_STAT_1; //RO
+  //------ No Outputs to the Fabric (RO)
   //---- DIAG_CTRL_2 ---------------
   assign poMMIO_Role_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
   assign poMMIO_Role_UdpPostDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
@@ -742,22 +786,11 @@ module MmioClient_A8_D8 #(
   //---- PAGE_SEL ----------------------
   assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
   
-  //============================================================================
-  // NGL REGISTERS
-  //============================================================================
-  
-  //FROM and TO ROLE
-  assign sStatusVec[cEDW*NGL_FROM_ROLE1+7:cEDW*NGL_FROM_ROLE0+0] = piMMIO_ROLE_2B_Reg;
-  assign poMMIO_ROLE_2B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_ROLE1+7:cEDW*NGL_TO_ROLE0+0];
-  //FROM and TO SMC 
-  assign sStatusVec[cEDW*NGL_FROM_SMC3+7:cEDW*NGL_FROM_SMC0+0] = piMMIO_SMC_4B_Reg;
-  assign poMMIO_SMC_4B_Reg = sEMIF_Ctrl[cEDW*NGL_TO_SMC3+7:cEDW*NGL_TO_SMC0+0];
-  
 
   //============================================================================
   //  COMB: DECODE MMIO ACCESS
   //============================================================================
-  assign sEmifCs_n = !(!piPSOC_Mmio_Cs_n & !piPSOC_Mmio_Addr[7]);
+  assign sEmifCs_n = !(!piPSOC_Emif_Cs_n & !piPSOC_Emif_Addr[7]);
   
   //============================================================================
   //  INST: PSOC EXTERNAL MEMORY INTERFACE
@@ -771,18 +804,18 @@ module MmioClient_A8_D8 #(
   ) EMIF (
   
     //-- TOP : Global Resets input ---------------
-    .piRst        (piTopRst),
+    .piRst        (piTOP_Rst),
     
     //-- PSOC : CPU/DMA Bus Interface ------------
-    .piBus_Clk    (piPSOC_Mmio_Clk),
+    .piBus_Clk    (piPSOC_Emif_Clk),
     .piBus_Cs_n   (sEmifCs_n),
-    .piBus_We_n   (piPSOC_Mmio_We_n),
+    .piBus_We_n   (piPSOC_Emif_We_n),
     .piBus_Addr   (sEmifAddr),
     .piBus_Data   (sPSOC_Emif_Data),
     .poBus_Data   (sEMIF_Data),
 
     //-- SHELL : Internal Fabric Interface -------
-    .piFab_Clk    (piShlClk),
+    .piFab_Clk    (piSHL_Clk),
     .piFab_Data   (sStatusVec),
     .poFab_Data   (sEMIF_Ctrl)
     
@@ -798,10 +831,10 @@ module MmioClient_A8_D8 #(
       for (iobIndex=0; iobIndex<cEDW; iobIndex=iobIndex+1) begin: genUserIOB
         //-- GENERATE AN IOBUF PRIMITIVE
         IOBUF DIO (
-          .IO (pioPSOC_Mmio_Data[iobIndex]),
+          .IO (pioPSOC_Emif_Data[iobIndex]),
           .I  (sEMIF_Data[iobIndex]),
           .O  (sPSOC_Emif_Data[iobIndex]),
-          .T  (piPSOC_Mmio_Oe_n)
+          .T  (piPSOC_Emif_Oe_n)
         );
       end
     end
@@ -828,18 +861,16 @@ module MmioClient_A8_D8 #(
       wire                     sCsDpRamA;         // Chip select Ddual-port RAM
 
       wire [       cEDW-1:0]   sMUXO_Data;
-      wire                    sPSOC_Emif_Oe_n; 
+      wire                     sPSOC_Emif_Oe_n; 
 
-      //wire [cAddrBWidth-1:0]  sDpram_PortB_Addr;
       wire [log2(cRamSize/cRatio)-1:0]  sDpram_PortB_Addr;
-      //wire [cDataBWidth-1:0]  sDpram_PortB_Data;
   
       //-- SPECIFIC SIGNAL DECLARATIONS ----------------------
       assign sDpramAddrA = {sPageSel, sEmifAddr};  // this gets truncated to [cAddrAwidth-1:0]
-      assign sCsDpRamA   = !piPSOC_Mmio_Cs_n &  piPSOC_Mmio_Addr[7];    
+      assign sCsDpRamA   = !piPSOC_Emif_Cs_n &  piPSOC_Emif_Addr[7];    
  
-      assign sDpram_PortB_Addr = piSMC_MMIO_XMEM_Addr; //will be extended accordingly
-
+      assign sDpram_PortB_Addr = piXXX_XMemAddr; //will be extended accordingly
+            
       //========================================================================
       //  INST: TRUE DUAL PORT ASYMMETRIC RAM
       //========================================================================
@@ -856,19 +887,19 @@ module MmioClient_A8_D8 #(
       ) DPRAM (
         
         //-- Port A = PSOC Side ----------------------
-        .piClkA       (piPSOC_Mmio_Clk),
+        .piClkA       (piPSOC_Emif_Clk),
         .piEnA        (sCsDpRamA),
-        .piWenA       (!piPSOC_Mmio_We_n),
+        .piWenA       (!piPSOC_Emif_We_n),
         .piAddrA      (sDpramAddrA),
         .piDataA      (sPSOC_Emif_Data),
         .poDataA      (sDPRAM_PortA_Data),
         //-- Port B = FABRIC Side --------------------
-        .piClkB       (piShlClk),
-        .piEnB        (piSMC_MMIO_XMEM_en), 
-        .piWenB       (piSMC_MMIO_XMEM_Wren),
+        .piClkB       (piSHL_Clk),
+        .piEnB        (piXXX_XMem_en),
+        .piWenB       (piXXX_XMem_Wren),
         .piAddrB      (sDpram_PortB_Addr),
-        .piDataB      (piSMC_MMIO_XMEM_WrData),
-        .poDataB      (poSMC_MMIO_XMEM_RData)
+        .piDataB      (piXXX_XMem_WrData),
+        .poDataB      (poXXX_XMem_RData)
        
       );  // End of SuperCfg:DPRAM
 
@@ -876,14 +907,14 @@ module MmioClient_A8_D8 #(
       //========================================================================
       //  COMB: CONTINUOUS OUTPUT MUX PORT ASSIGNMENTS
       //========================================================================
-      assign sMUXO_Data = ( piPSOC_Mmio_Addr[7] == 0 ) ? sEMIF_Data : sDPRAM_PortA_Data;
+      assign sMUXO_Data = ( piPSOC_Emif_Addr[7] == 0 ) ? sEMIF_Data : sDPRAM_PortA_Data;
 
       //========================================================================
       // INST: SPECIFIC IBUF
       //========================================================================
       IBUF IBUFOE (
         .O (sPSOC_Emif_Oe_n),
-        .I (piPSOC_Mmio_Oe_n)      
+        .I (piPSOC_Emif_Oe_n)      
       );
 
       //========================================================================
@@ -892,7 +923,7 @@ module MmioClient_A8_D8 #(
       for (iobIndex=0; iobIndex<cEDW; iobIndex=iobIndex+1) begin: genSuperIOB
         //-- GENERATE AN IOBUF PRIMITIVE
         IOBUF DIO (
-          .IO (pioPSOC_Mmio_Data[iobIndex]),
+          .IO (pioPSOC_Emif_Data[iobIndex]),
           .I  (sMUXO_Data[iobIndex]),
           .O  (sPSOC_Emif_Data[iobIndex]),
           .T  (sPSOC_Emif_Oe_n)

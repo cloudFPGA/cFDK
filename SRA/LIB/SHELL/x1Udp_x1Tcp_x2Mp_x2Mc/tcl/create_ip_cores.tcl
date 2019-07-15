@@ -40,26 +40,26 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-#------------------------------------------------------------------------------  
-# VIVADO-IP : Partial Reconfiguration Decoupler IP 
-#------------------------------------------------------------------------------ 
+#OBSOLETE-20190712 #------------------------------------------------------------------------------  
+#OBSOLETE-20190712 # VIVADO-IP : Partial Reconfiguration Decoupler IP 
+#OBSOLETE-20190712 #------------------------------------------------------------------------------ 
 
-# Define the ports of the PR-Decoupler IP
-source ./decouple_ip_type.tcl 
+#OBSOLETE-20190712 # Define the ports of the PR-Decoupler IP
+#OBSOLETE-20190712 source ./decouple_ip_type.tcl 
 
-set ipModName "Partial Reconfiguration Decoupler"
-set ipName    "pr_decoupler"
-set ipVendor  "xilinx.com"
-set ipLibrary "ip"
-set ipVersion "1.0"
-set ipCfgList ${DecouplerType}
+#OBSOLETE-20190712 set ipModName "Partial Reconfiguration Decoupler"
+#OBSOLETE-20190712 set ipName    "pr_decoupler"
+#OBSOLETE-20190712 set ipVendor  "xilinx.com"
+#OBSOLETE-20190712 set ipLibrary "ip"
+#OBSOLETE-20190712 set ipVersion "1.0"
+#OBSOLETE-20190712 set ipCfgList ${DecouplerType}
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#OBSOLETE-20190712 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#OBSOLETE-20190712 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-#now, execute the finish
+# Now, execute the finish
 source ../../LIB/tcl/create_ip_cores_running_finish.tcl
 
 
