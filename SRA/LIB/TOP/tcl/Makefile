@@ -117,6 +117,16 @@ monofinalcmd:
 
 monolithic: monobasecmd $(MONO_LOCK) monofinalcmd
 
+monolithic_proj: basecmd 
+	@/bin/echo -e "-forceWithoutBB  -create \\" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
+	@bash .vivado_basecmd.sh
+	@rm .vivado_basecmd.sh
+	
+
 monolithic_incr: monobasecmd $(MONO_LOCK) incrcmd monofinalcmd
 
 #monolithic_mpi: monobasecmd $(MONO_LOCK) mpicmd monofinalcmd

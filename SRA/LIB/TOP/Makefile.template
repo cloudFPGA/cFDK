@@ -7,8 +7,10 @@
 #  *
 #  *     Description:
 #  *       Makefile to build a cloudFPGA-project (cFp)
-#  *
-
+#  * 
+#  *     Synopsis:
+#  *       make [target]  (use 'make help' to list the targets)
+#  * 
 
 # NO HEADING OR TRAILING SPACES!!
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
@@ -98,24 +100,26 @@ ip_based:
 	$(error NOT YET IMPLEMENTED)
 
 #no ROLE, because Role is synthezied with sources!
-monolithic: ensureMonolithic ShellSrc RoleIp | xpr
+monolithic: ensureMonolithic ShellSrc RoleIp | xpr  ## Default build when PR is not used.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
 	$(MAKE) -C ./TOP/tcl/ monolithic
 
 #no ROLE, because Role is synthezied with sources!
-monolithic_incr: ensureMonolithic ShellSrc RoleIp | xpr 
+monolithic_incr: ensureMonolithic ShellSrc RoleIp | xpr  ## Default incremental build.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_incr 
 
-monolithic_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr
+monolithic_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr   ## Default build to include a debug probe.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_debug
 
-monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr
+monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr   ## Default incremental build to include a debug probe..
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_incr_debug
 
+monolithic_proj: ensureMonolithic | xpr ## Only creates a new Vivado project (only works after a clean; does not take dependencies into account)
+	$(MAKE) -C ./TOP/tcl/ monolithic_proj
 
 ##no ROLE, because Role is synthezied with sources!
 #monolithic_mpi: ensureMonolithic ShellSrcMPI RoleMPItypeSrc | xpr 
@@ -127,7 +131,7 @@ monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr
 #	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 #	export usedRole=$(USED_MPI_ROLE); $(MAKE) -C ./TOP/tcl/ monolithic_incr_mpi 
 
-save_mono_incr: ensureMonolithic 
+save_mono_incr: ensureMonolithic  ## Saves the current monolithic for use in further incremental builds.
 	export usedRole=$(USED_ROLE); $(MAKE) -C ./TOP/tcl/ save_mono_incr
 
 #save_mono_mpi_incr: ensureMonolithic 
@@ -151,19 +155,30 @@ ensureDebugNets: assert_env
 	@test `tail -n 1 ./TOP/xdc/.DEBUG_SWITCH` = YES || (echo "Please define debug nets in ./TOP/xdc/debug.xdc and answer the question in ./TOP/xdc/.DEBUG_SWITCH" && exit 1)
 
 
-clean: 
+clean: ## Cleans the current cFp project (.i.e this TOP)
 	$(MAKE) -C ./TOP/tcl/ clean 
 	rm -rf $(CLEAN_TYPES)
 	rm -rf ./xpr/ ./hd_visual/
 	rm -rf ./dcps/
 	# rm -rf ./xdc/.DEBUG_SWITCH
 
-
-full_clean: clean 
+full_clean: clean ## Cleans the entire cFp structure (.i.e TOP, SHELL and ROLE).
 	$(MAKE) -C $(SHELL_DIR) clean 
 	$(MAKE) -C $(ROLE_DIR) clean 
 	$(MAKE) -C $(ROLE2_DIR) clean
 	rm -rf ./TOP/xdc/.DEBUG_SWITCH
 
 
+print-%: ## A little make receipt to print a variable (usage example --> 'make print-SHELL_DIR')
+	@echo $* = $($*)
 
+help: ## Shows this help message
+    # This target is for self documentation of the Makefile. 
+    # Every text starting with '##' and placed after a target will be considered as helper text.
+	@echo
+	@echo 'Usage:'
+	@echo '    make [target]'
+	@echo	
+	@echo 'Targets:'
+	@cat ${MAKEFILE_LIST}  | egrep '^(.+)\:(.+)##\ (.+)' |  column -s ':#' |  sed 's/:.*#/||/' |  column -s '||' -t | sed -e 's/^/    /' 
+	@echo
