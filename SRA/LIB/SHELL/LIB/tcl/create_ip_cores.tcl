@@ -998,7 +998,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : SMC "Castor" IP
 #------------------------------------------------------------------------------
 set ipModName "FpgaManagementCore"
-set ipName    "fmc_main"
+set ipName    "fmc"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
