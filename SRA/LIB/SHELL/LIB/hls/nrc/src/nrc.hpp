@@ -76,7 +76,7 @@
 
 //HLS DEFINITONS END
 
-#include "../../smc/src/smc.hpp"
+#include "../../fmc/src/fmc.hpp"
 
 #include "../../../../../hls/network_utils.hpp"
 
