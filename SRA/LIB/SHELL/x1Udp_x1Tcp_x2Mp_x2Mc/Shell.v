@@ -1329,7 +1329,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //.poSMC_to_ROLE_size_V                (poROL_Fmc_Size)
   );
 
-  // Temporary assignment (until MPE module is back)
+  // == Temporary assignment (until NRC module is back) ==
   assign ssFMC_NRC_ctrlLink_Axi_AWREADY = 0;
   assign ssFMC_NRC_ctrlLink_Axi_WREADY  = 0;
   //assign ssFMC_NRC_ctrlLink_Axi_BID     = 0;
@@ -1343,6 +1343,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //assign ssFMC_NRC_ctrlLink_Axi_RLAST   = 0;
   //assign ssFMC_NRC_ctrlLink_Axi_RUSER   = 0;
   assign ssFMC_NRC_ctrlLink_Axi_RVALID  = 0;
+  
+  // == Temporary assignment (until Decoupeling module is back) == 
+  assign sDECOUP_FMC_status = 0;
+
+
 
   //===========================================================================
   //==  INST: METASTABILITY HARDENED BLOCK FOR THE SHELL RESET (Active high)
