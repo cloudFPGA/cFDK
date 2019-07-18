@@ -224,11 +224,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input          siROL_Nts_Tcp_OpnReq_tvalid,
   output         siROL_Nts_Tcp_OpnReq_tready,
   //---- Stream TCP Open Session Status 
-  output [ 47:0] soROL_Nts_Tcp_OpnSts_tdata,
-  output         soROL_Nts_Tcp_OpnSts_tvalid,
-  input          soROL_Nts_Tcp_OpnSts_tready,
+  output [ 23:0] soROL_Nts_Tcp_OpnRep_tdata,
+  output         soROL_Nts_Tcp_OpnRep_tvalid,
+  input          soROL_Nts_Tcp_OpnRep_tready,
   //---- Stream TCP Close Request ------
-  input [ 47:0]  siROL_Nts_Tcp_ClsReq_tdata,
+  input [ 15:0]  siROL_Nts_Tcp_ClsReq_tdata,
   input          siROL_Nts_Tcp_ClsReq_tvalid,
   output         siROL_Nts_Tcp_ClsReq_tready,
 
@@ -241,7 +241,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input          siROL_Nts_Tcp_LsnReq_tvalid,
   output         siROL_Nts_Tcp_LsnReq_tready,
   //---- Stream TCP Listen Status ------
-  output [ 47:0] soROL_Nts_Tcp_LsnAck_tdata,
+  output [  7:0] soROL_Nts_Tcp_LsnAck_tdata,
   output         soROL_Nts_Tcp_LsnAck_tvalid,
   input          soROL_Nts_Tcp_LsnAck_tready,
 
@@ -561,12 +561,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire  [ 1:0]  sROL_MMIO_Mc1_MemTestStat;
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
-  wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
-  wire          sMMIO_ROL_UdpPostDgmEn;
-  wire          sMMIO_ROL_UdpCaptDgmEn;
-  wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
-  wire          sMMIO_ROL_TcpPostSegEn;
-  wire          sMMIO_ROL_TcpCaptSegEn; 
+  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpPostDgmEn;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpCaptDgmEn;
+  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpPostSegEn;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpCaptSegEn; 
  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -637,12 +637,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //---- DIAG_STAT_1 ---------------
     .piROLE_Mc1_MemTestStat         (sROL_MMIO_Mc1_MemTestStat),
     //---- DIAG_CTRL_2 ---------------  
-    .poMMIO_Role_UdpEchoCtrl        (sMMIO_ROL_UdpEchoCtrl),
-    .poMMIO_Role_UdpPostDgmEn       (sMMIO_ROL_UdpPostDgmEn),
-    .poMMIO_Role_UdpCaptDgmEn       (sMMIO_ROL_UdpCaptDgmEn),
-    .poMMIO_Role_TcpEchoCtrl        (sMMIO_ROL_TcpEchoCtrl),
-    .poMMIO_Role_TcpPostSegEn       (sMMIO_ROL_TcpPostSegEn),
-    .poMMIO_Role_TcpCaptSegEn       (sMMIO_ROL_TcpCaptSegEn),
+    .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),
+    .poROLE_UdpPostDgmEn            (poROL_Mmio_UdpPostDgmEn),
+    .poROLE_UdpCaptDgmEn            (poROL_Mmio_UdpCaptDgmEn),
+    .poROLE_TcpEchoCtrl             (poROL_Mmio_TcpEchoCtrl),
+    .poROLE_TcpPostSegEn            (poROL_Mmio_TcpPostSegEn),
+    .poROLE_TcpCaptSegEn            (poROL_Mmio_TcpCaptSegEn),
      //---- APP_RDROL ----------------
     .piROLE_RdReg                   (piROL_Mmio_RdReg),
      //---- APP_WRROL -----------------
@@ -937,9 +937,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siROL_Tcp_OpnReq_tvalid          (siROL_Nts_Tcp_OpnReq_tvalid),
     .siROL_Tcp_OpnReq_tready          (siROL_Nts_Tcp_OpnReq_tready),
     //---- Stream TCP Open Session Status ------
-    .soROL_Tcp_OpnSts_tdata           (soROL_Nts_Tcp_OpnSts_tdata),
-    .soROL_Tcp_OpnSts_tvalid          (soROL_Nts_Tcp_OpnSts_tvalid),
-    .soROL_Tcp_OpnSts_tready          (soROL_Nts_Tcp_OpnSts_tready),
+    .soROL_Tcp_OpnRep_tdata           (soROL_Nts_Tcp_OpnRep_tdata),
+    .soROL_Tcp_OpnRep_tvalid          (soROL_Nts_Tcp_OpnRep_tvalid),
+    .soROL_Tcp_OpnRep_tready          (soROL_Nts_Tcp_OpnRep_tready),
     //---- Stream TCP Close Request ------------
     .siROL_Tcp_ClsReq_tdata           (siROL_Nts_Tcp_ClsReq_tdata),
     .siROL_Tcp_ClsReq_tvalid          (siROL_Nts_Tcp_ClsReq_tvalid),

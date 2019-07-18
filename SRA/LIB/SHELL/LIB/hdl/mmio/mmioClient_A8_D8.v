@@ -110,12 +110,12 @@ module MmioClient_A8_D8 #(
   //---- DIAG_STAT_1 -----------------
   input   [ 1:0]  piROLE_Mc1_MemTestStat,
   //---- DIAG_CTRL_2 -----------------
-  output  [ 1:0]  poMMIO_Role_UdpEchoCtrl,
-  output          poMMIO_Role_UdpPostDgmEn,
-  output          poMMIO_Role_UdpCaptDgmEn,
-  output  [ 1:0]  poMMIO_Role_TcpEchoCtrl,
-  output          poMMIO_Role_TcpPostSegEn,
-  output          poMMIO_Role_TcpCaptSegEn,
+  output  [ 1:0]  poROLE_UdpEchoCtrl,
+  output          poROLE_UdpPostDgmEn,
+  output          poROLE_UdpCaptDgmEn,
+  output  [ 1:0]  poROLE_TcpEchoCtrl,
+  output          poROLE_TcpPostSegEn,
+  output          poROLE_TcpCaptSegEn,
   //---- APP_RDROL -------------------
   input   [15:0]  piROLE_RdReg,
    //---- APP_WRROL ------------------
@@ -175,7 +175,7 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam APP_REG_BASE  = 8'h40;  // ROLE          Registers
+  localparam APP_REG_BASE  =  8'h40;  // ROLE          Registers
   localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
   localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
@@ -773,12 +773,12 @@ module MmioClient_A8_D8 #(
   //---- DIAG_STAT_1 ---------------
   //------ No Outputs to the Fabric (RO)
   //---- DIAG_CTRL_2 ---------------
-  assign poMMIO_Role_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
-  assign poMMIO_Role_UdpPostDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
-  assign poMMIO_Role_UdpCaptDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+3];                    // RW
-  assign poMMIO_Role_TcpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+5:cEDW*DIAG_CTRL_2+4]; // RW
-  assign poMMIO_Role_TcpPostSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+6];                    // RW
-  assign poMMIO_Role_TcpCaptSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+7];                    // RW
+  assign poROLE_UdpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+1:cEDW*DIAG_CTRL_2+0]; // RW
+  assign poROLE_UdpPostDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+2];                    // RW
+  assign poROLE_UdpCaptDgmEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+3];                    // RW
+  assign poROLE_TcpEchoCtrl  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+5:cEDW*DIAG_CTRL_2+4]; // RW
+  assign poROLE_TcpPostSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+6];                    // RW
+  assign poROLE_TcpCaptSegEn = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+7];                    // RW
   
   //--------------------------------------------------------  
   //-- PAGE REGISTER
