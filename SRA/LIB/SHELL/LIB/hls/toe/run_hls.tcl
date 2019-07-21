@@ -94,6 +94,7 @@ create_clock -period 6.4 -name default
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
@@ -101,16 +102,21 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/ipRx_FivePkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_Ramp64.dat"
     csim_design -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+
     csim_design -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_OnePkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_TwoPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_ThreePkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_FourPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_FivePkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/ipRx_Ramp64.dat"
     csim_design -argv "3 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
 
     puts "#############################################################"

@@ -1959,6 +1959,7 @@ void pTRIF_Send(
             //-------------------------------------
             AxiWord appRxData;
             bool    firstWordFlag = true; // AXI-word is first data chunk of segment
+            int     writtenBytes = 0;
 
             do {
                 if (firstWordFlag == false) {
@@ -1986,7 +1987,8 @@ void pTRIF_Send(
                 soTOE_Data.write(appRxData);
 
                 // Write current word to the gold file
-                apRx_TcpBytCntr += writeTcpWordToFile(ipTxGoldFile, appRxData);
+                writtenBytes = writeTcpWordToFile(ipTxGoldFile, appRxData);
+                apRx_TcpBytCntr += writtenBytes;
 
             } while (appRxData.tlast != 1);
 
