@@ -519,7 +519,7 @@ void printTcpPort(TcpPort tcpPort)
         }
 
         if (tcpWord.tlast == 1)
-            outFile << tdataToFile; // OBSOLETE-20190706 << endl;
+            outFile << tdataToFile << endl ; // OBSOLETE-20190706 << endl;
         else
             outFile << tdataToFile;
 
@@ -539,8 +539,9 @@ void printTcpPort(TcpPort tcpPort)
     void writeTcpDataToFile(ofstream &outFile, IpPacket &ipPacket) {
         if(ipPacket.sizeOfTcpData() > 0) {
             string tcpData = ipPacket.getTcpData();
-            if (tcpData.size() > 0)
-                outFile << tcpData;
+            if (tcpData.size() > 0) {
+                outFile << tcpData << endl;
+            }
         }
     }
 #endif
