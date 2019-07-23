@@ -44,6 +44,7 @@ void tx_sar_table(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static TxSarEntry               TX_SAR_TABLE[MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false

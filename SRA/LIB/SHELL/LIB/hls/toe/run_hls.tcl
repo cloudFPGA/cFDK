@@ -89,6 +89,9 @@ create_clock -period 6.4 -name default
 # Request any static or global variable to be reset to its initialized value
 # config_rtl -reset state
 
+# Request to not rename functions and variables longer that 60 chars
+config_compile -name_max_length 60 -pipeline_loops 0
+
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
