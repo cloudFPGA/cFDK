@@ -38,6 +38,7 @@ csim: ## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 csynth: ## Runs the HLS C synthesis
+	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 cosim: ## Runs the HLS C/RTL cosimulation

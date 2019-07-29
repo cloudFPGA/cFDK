@@ -45,6 +45,7 @@ void rx_sar_table(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static RxSarEntry               RX_SAR_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM

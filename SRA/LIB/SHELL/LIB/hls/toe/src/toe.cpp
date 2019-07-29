@@ -1,3 +1,31 @@
+/************************************************
+Copyright (c) 2015, Xilinx, Inc.
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
+
+
 /*****************************************************************************
  * @file       : toe.cpp
  * @brief      : TCP Offload Engine (TOE)
@@ -410,6 +438,12 @@ void rx_app_interface(
             soTRIF_Notif);
 }
 
+void my_SimCountIncrementer(
+    ap_uint<32>     piSimCycCount,
+    ap_uint<32>    &poSimCycCount)
+{
+    poSimCycCount = piSimCycCount +  1;
+}
 
 /*****************************************************************************
  * @brief   Main process of the TCP Offload Engine.
@@ -471,12 +505,12 @@ void toe(
         AxiIp4Addr                           piMMIO_IpAddr,
 
         //------------------------------------------------------
-        //-- IPRX / This / IP Rx / Data Interface
+        //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
         stream<Ip4overAxi>                  &siIPRX_Data,
 
         //------------------------------------------------------
-        //-- L3MUX / This / IP Tx / Data Interface
+        //-- L3MUX / IP Tx / Data Interface
         //------------------------------------------------------
         stream<Ip4overAxi>                  &soL3MUX_Data,
 
@@ -514,7 +548,7 @@ void toe(
         //-- Not USed                       &soTRIF_ClsSts,
 
         //------------------------------------------------------
-        //-- MEM / This / Rx PATH / S2MM Interface
+        //-- MEM / Rx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                       &siMEM_RxP_RdSts,
         stream<DmCmd>                       &soMEM_RxP_RdCmd,
@@ -524,7 +558,7 @@ void toe(
         stream<AxiWord>                     &soMEM_RxP_Data,
 
         //------------------------------------------------------
-        //-- MEM / This / Tx PATH / S2MM Interface
+        //-- MEM / Tx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                       &siMEM_TxP_RdSts,
         stream<DmCmd>                       &soMEM_TxP_RdCmd,
@@ -534,7 +568,7 @@ void toe(
         stream<AxiWord>                     &soMEM_TxP_Data,
 
         //------------------------------------------------------
-        //-- CAM / This / Session Lookup & Update Interfaces
+        //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
         stream<rtlSessionLookupRequest>     &soCAM_SssLkpReq,
         stream<rtlSessionLookupReply>       &siCAM_SssLkpRep,
@@ -542,10 +576,13 @@ void toe(
         stream<rtlSessionUpdateReply>       &siCAM_SssUpdRep,
 
         //------------------------------------------------------
-        //-- To DEBUG / Session Statistics Interfaces
+        //-- DEBUG Interfaces
         //------------------------------------------------------
         ap_uint<16>                         &poDBG_SssRelCnt,
-        ap_uint<16>                         &poDBG_SssRegCnt)
+        ap_uint<16>                         &poDBG_SssRegCnt,
+        //--
+        ap_uint<32>                         &piSimCycCount,
+        ap_uint<32>                         &poSimCycCount)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -606,12 +643,12 @@ void toe(
     //-- DEBUG / Session Statistics Interfaces
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
+    //-- DEBUG / Simulation Counter Interfaces
+    #pragma HLS INTERFACE ap_stable        port=piSimCycCount
+    #pragma HLS INTERFACE ap_none register port=poSimCycCount
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
-    //OBSOLETE-20181002 #pragma HLS PIPELINE II=1
-    //OBSOLETE-20181002 #pragma HLS INLINE off
-
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -691,7 +728,7 @@ void toe(
 
     static stream<AppNotif>             sRXeToRAi_Notif           ("sRXeToRAi_Notif");
     #pragma HLS stream         variable=sRXeToRAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notif
+    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notifmy_SimCountIncrementer
 
     static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
@@ -1024,6 +1061,13 @@ void toe(
             sTAiToEVe_Event,
             sTImToTAi_Notif,
             piMMIO_IpAddr);
+
+    /**********************************************************************
+     * DEBUG INTERFACES
+     **********************************************************************/
+    my_SimCountIncrementer(
+        piSimCycCount,
+        poSimCycCount);
 
 }
 

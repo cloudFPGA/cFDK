@@ -224,11 +224,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input          siROL_Nts_Tcp_OpnReq_tvalid,
   output         siROL_Nts_Tcp_OpnReq_tready,
   //---- Stream TCP Open Session Status 
-  output [ 47:0] soROL_Nts_Tcp_OpnSts_tdata,
-  output         soROL_Nts_Tcp_OpnSts_tvalid,
-  input          soROL_Nts_Tcp_OpnSts_tready,
+  output [ 23:0] soROL_Nts_Tcp_OpnRep_tdata,
+  output         soROL_Nts_Tcp_OpnRep_tvalid,
+  input          soROL_Nts_Tcp_OpnRep_tready,
   //---- Stream TCP Close Request ------
-  input [ 47:0]  siROL_Nts_Tcp_ClsReq_tdata,
+  input [ 15:0]  siROL_Nts_Tcp_ClsReq_tdata,
   input          siROL_Nts_Tcp_ClsReq_tvalid,
   output         siROL_Nts_Tcp_ClsReq_tready,
 
@@ -241,7 +241,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   input          siROL_Nts_Tcp_LsnReq_tvalid,
   output         siROL_Nts_Tcp_LsnReq_tready,
   //---- Stream TCP Listen Status ------
-  output [ 47:0] soROL_Nts_Tcp_LsnAck_tdata,
+  output [  7:0] soROL_Nts_Tcp_LsnAck_tdata,
   output         soROL_Nts_Tcp_LsnAck_tvalid,
   input          soROL_Nts_Tcp_LsnAck_tready,
 
@@ -561,12 +561,67 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire  [ 1:0]  sROL_MMIO_Mc1_MemTestStat;
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
-  wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
-  wire          sMMIO_ROL_UdpPostDgmEn;
-  wire          sMMIO_ROL_UdpCaptDgmEn;
-  wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
-  wire          sMMIO_ROL_TcpPostSegEn;
-  wire          sMMIO_ROL_TcpCaptSegEn; 
+  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpPostDgmEn;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpCaptDgmEn;
+  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpPostSegEn;
+  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpCaptSegEn; 
+  
+  
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : HWICAPC 
+  //--------------------------------------------------------
+  wire [ 8:0] ssFMC_HWICAP_Axi_awaddr;
+  wire        ssFMC_HWICAP_Axi_awvalid;
+  wire        ssFMC_HWICAP_Axi_awready;
+  wire [31:0] ssFMC_HWICAP_Axi_wdata;
+  wire        ssFMC_HWICAP_Axi_wstrb;
+  wire        ssFMC_HWICAP_Axi_wvalid;
+  wire        ssFMC_HWICAP_Axi_wready;
+  wire [ 1:0] ssFMC_HWICAP_Axi_bresp;
+  wire        ssFMC_HWICAP_Axi_bvalid;
+  wire        ssFMC_HWICAP_Axi_bready;
+  wire [ 8:0] ssFMC_HWICAP_Axi_araddr;
+  wire        ssFMC_HWICAP_Axi_arvalid; 
+  wire        ssFMC_HWICAP_Axi_arready;
+  wire [31:0] ssFMC_HWICAP_Axi_rdata;
+  wire [ 1:0] ssFMC_HWICAP_Axi_rresp;
+  wire        ssFMC_HWICAP_Axi_rvalid;
+  wire        ssFMC_HWICAP_Axi_rready;
+  wire        ssFMC_HWICAP_ip2intc_irpt;
+
+  //--------------------------------------------------------
+  //-- SIGNAL DECLARATIONS : FPGA Management Core
+  //--------------------------------------------------------
+  //wire [31:0] sFMC_MMIO_4B_Reg;
+  //wire [31:0] sMMIO_FMC_4B_Reg;
+  wire        sDECOUP_FMC_status;
+  wire        sFMC_DECOUP_activate;
+  wire [8:0]  sbFMC_MMIO_Xmem_Addr;
+  wire [31:0] sbFMC_MMIO_Xmem_RData;
+  wire        sbFMC_MMIO_Xmem_cen; //Chip-enable
+  wire        sbFMC_MMIO_Xmem_wren; //Write-enable
+  wire [31:0] sbFMC_MMIO_Xmem_WData;
+  // FMC <==> NRC ctrlLink
+  wire        ssFMC_NRC_ctrlLink_Axi_AWVALID;
+  wire        ssFMC_NRC_ctrlLink_Axi_AWREADY;
+  wire [13:0] ssFMC_NRC_ctrlLink_Axi_AWADDR;
+  wire        ssFMC_NRC_ctrlLink_Axi_WVALID;
+  wire        ssFMC_NRC_ctrlLink_Axi_WREADY;
+  wire [31:0] ssFMC_NRC_ctrlLink_Axi_WDATA;
+  wire [ 3:0] ssFMC_NRC_ctrlLink_Axi_WSTRB;
+  wire        ssFMC_NRC_ctrlLink_Axi_ARVALID;
+  wire        ssFMC_NRC_ctrlLink_Axi_ARREADY;
+  wire [13:0] ssFMC_NRC_ctrlLink_Axi_ARADDR;
+  wire        ssFMC_NRC_ctrlLink_Axi_RVALID;
+  wire        ssFMC_NRC_ctrlLink_Axi_RREADY;
+  wire [31:0] ssFMC_NRC_ctrlLink_Axi_RDATA;
+  wire [ 1:0] ssFMC_NRC_ctrlLink_Axi_RRESP;
+  wire        ssFMC_NRC_ctrlLink_Axi_BVALID;
+  wire        ssFMC_NRC_ctrlLink_Axi_BREADY;
+  wire [ 1:0] ssFMC_NRC_ctrlLink_Axi_BRESP;
+
  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -637,12 +692,12 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //---- DIAG_STAT_1 ---------------
     .piROLE_Mc1_MemTestStat         (sROL_MMIO_Mc1_MemTestStat),
     //---- DIAG_CTRL_2 ---------------  
-    .poMMIO_Role_UdpEchoCtrl        (sMMIO_ROL_UdpEchoCtrl),
-    .poMMIO_Role_UdpPostDgmEn       (sMMIO_ROL_UdpPostDgmEn),
-    .poMMIO_Role_UdpCaptDgmEn       (sMMIO_ROL_UdpCaptDgmEn),
-    .poMMIO_Role_TcpEchoCtrl        (sMMIO_ROL_TcpEchoCtrl),
-    .poMMIO_Role_TcpPostSegEn       (sMMIO_ROL_TcpPostSegEn),
-    .poMMIO_Role_TcpCaptSegEn       (sMMIO_ROL_TcpCaptSegEn),
+    .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),
+    .poROLE_UdpPostDgmEn            (poROL_Mmio_UdpPostDgmEn),
+    .poROLE_UdpCaptDgmEn            (poROL_Mmio_UdpCaptDgmEn),
+    .poROLE_TcpEchoCtrl             (poROL_Mmio_TcpEchoCtrl),
+    .poROLE_TcpPostSegEn            (poROL_Mmio_TcpPostSegEn),
+    .poROLE_TcpCaptSegEn            (poROL_Mmio_TcpCaptSegEn),
      //---- APP_RDROL ----------------
     .piROLE_RdReg                   (piROL_Mmio_RdReg),
      //---- APP_WRROL -----------------
@@ -659,11 +714,11 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //----------------------------------------------
     //-- EMIF Extended Memory Port B
     //----------------------------------------------
-    .piXXX_XMem_en                  ( 1'b0), // (OBSOLETE-20190710 sFMC_MMIO_XMem_cen),
-    .piXXX_XMem_Wren                ( 1'b0), // (OBSOLETE-20190710 sFMC_MMIO_XMem_wren),
-    .piXXX_XMem_WrData              (32'd0), // (OBSOLETE-20190710 sFMC_MMIO_XMem_WData),
-    .poXXX_XMem_RData               (),      // (OBSOLETE-20190710 sMMIO_FMC_XMem_RData),
-    .piXXX_XMemAddr                 ( 8'd0), // (OBSOLETE-20190710 sFMC_MMIO_XMem_Addr),
+    .piXXX_XMem_en                 (sbFMC_MMIO_Xmem_cen),
+    .piXXX_XMem_Wren               (sbFMC_MMIO_Xmem_wren),
+    .piXXX_XMem_WrData             (sbFMC_MMIO_Xmem_WData),
+    .poXXX_XMem_RData              (sbFMC_MMIO_Xmem_RData),
+    .piXXX_XMemAddr                (sbFMC_MMIO_Xmem_Addr),
     
     .poVoid                         ()
 
@@ -937,9 +992,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siROL_Tcp_OpnReq_tvalid          (siROL_Nts_Tcp_OpnReq_tvalid),
     .siROL_Tcp_OpnReq_tready          (siROL_Nts_Tcp_OpnReq_tready),
     //---- Stream TCP Open Session Status ------
-    .soROL_Tcp_OpnSts_tdata           (soROL_Nts_Tcp_OpnSts_tdata),
-    .soROL_Tcp_OpnSts_tvalid          (soROL_Nts_Tcp_OpnSts_tvalid),
-    .soROL_Tcp_OpnSts_tready          (soROL_Nts_Tcp_OpnSts_tready),
+    .soROL_Tcp_OpnRep_tdata           (soROL_Nts_Tcp_OpnRep_tdata),
+    .soROL_Tcp_OpnRep_tvalid          (soROL_Nts_Tcp_OpnRep_tvalid),
+    .soROL_Tcp_OpnRep_tready          (soROL_Nts_Tcp_OpnRep_tready),
     //---- Stream TCP Close Request ------------
     .siROL_Tcp_ClsReq_tdata           (siROL_Nts_Tcp_ClsReq_tdata),
     .siROL_Tcp_ClsReq_tvalid          (siROL_Nts_Tcp_ClsReq_tvalid),
@@ -1186,6 +1241,112 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .poVoid                           ()
 
   );  // End of MEM
+
+
+  HWICAPC HWICAP (
+    .icap_clk       (sETH0_ShlClk),
+    .eos_in         (1),
+    //.s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
+    .s_axi_aclk     (sETH0_ShlClk),
+    //.s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),
+    .s_axi_aresetn  (~ piTOP_156_25Rst),
+    .s_axi_awaddr   (ssFMC_HWICAP_Axi_awaddr),
+    .s_axi_awvalid  (ssFMC_HWICAP_Axi_awvalid),
+    .s_axi_awready  (ssFMC_HWICAP_Axi_awready),
+    .s_axi_wdata    (ssFMC_HWICAP_Axi_wdata),
+    .s_axi_wstrb    (ssFMC_HWICAP_Axi_wstrb),
+    .s_axi_wvalid   (ssFMC_HWICAP_Axi_wvalid),
+    .s_axi_wready   (ssFMC_HWICAP_Axi_wready),
+    .s_axi_bresp    (ssFMC_HWICAP_Axi_bresp),
+    .s_axi_bvalid   (ssFMC_HWICAP_Axi_bvalid),
+    .s_axi_bready   (ssFMC_HWICAP_Axi_bready),
+    .s_axi_araddr   (ssFMC_HWICAP_Axi_araddr),
+    .s_axi_arvalid  (ssFMC_HWICAP_Axi_arvalid), 
+    .s_axi_arready  (ssFMC_HWICAP_Axi_arready),
+    .s_axi_rdata    (ssFMC_HWICAP_Axi_rdata),
+    .s_axi_rresp    (ssFMC_HWICAP_Axi_rresp),
+    .s_axi_rvalid   (ssFMC_HWICAP_Axi_rvalid),
+    .s_axi_rready   (ssFMC_HWICAP_Axi_rready),
+    .ip2intc_irpt   (ssFMC_HWICAP_ip2intc_irpt)
+  );
+
+
+  FpgaManagementCore FMC (
+    //-- Global Clock used by the entire SHELL -------------
+    .ap_clk                 (sETH0_ShlClk),
+    //-- Global Reset used by the entire SHELL -------------
+    .ap_rst_n               (~ piTOP_156_25Rst),
+    //core should start immediately 
+    .ap_start               (1),
+    //.piSysReset_V           (piSHL_156_25Rst_delayed),
+    //.piSysReset_V_ap_vld   (1),
+    .poMMIO_V              (sFMC_MMIO_RdFmcReg),
+    //.poMMIO_V_ap_vld     ( ),
+    .piMMIO_V              (sMMIO_FMC_WrFmcReg),
+    .piMMIO_V_ap_vld        (1),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_AWREADY  (ssFMC_HWICAP_Axi_awready),
+    .m_axi_poSMC_to_HWICAP_AXIM_WDATA    (ssFMC_HWICAP_Axi_wdata),
+    .m_axi_poSMC_to_HWICAP_AXIM_WSTRB    (ssFMC_HWICAP_Axi_wstrb),
+    .m_axi_poSMC_to_HWICAP_AXIM_WVALID   (ssFMC_HWICAP_Axi_wvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_WREADY   (ssFMC_HWICAP_Axi_wready),
+    .m_axi_poSMC_to_HWICAP_AXIM_BRESP    (ssFMC_HWICAP_Axi_bresp),
+    .m_axi_poSMC_to_HWICAP_AXIM_BVALID   (ssFMC_HWICAP_Axi_bvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_BREADY   (ssFMC_HWICAP_Axi_bready),
+    .m_axi_poSMC_to_HWICAP_AXIM_ARADDR   (ssFMC_HWICAP_Axi_araddr),
+    .m_axi_poSMC_to_HWICAP_AXIM_ARVALID  (ssFMC_HWICAP_Axi_arvalid), 
+    .m_axi_poSMC_to_HWICAP_AXIM_ARREADY  (ssFMC_HWICAP_Axi_arready),
+    .m_axi_poSMC_to_HWICAP_AXIM_RDATA    (ssFMC_HWICAP_Axi_rdata),
+    .m_axi_poSMC_to_HWICAP_AXIM_RRESP    (ssFMC_HWICAP_Axi_rresp),
+    .m_axi_poSMC_to_HWICAP_AXIM_RVALID   (ssFMC_HWICAP_Axi_rvalid),
+    .m_axi_poSMC_to_HWICAP_AXIM_RREADY   (ssFMC_HWICAP_Axi_rready),
+    .piDECOUP_SMC_status_V               (sDECOUP_FMC_status),
+    .poSMC_DECOUP_activate_V             (sFMC_DECOUP_activate),
+    .xmem_V_Address0                     (sbFMC_MMIO_Xmem_Addr),
+    .xmem_V_ce0                          (sbFMC_MMIO_Xmem_cen), 
+    .xmem_V_we0                          (sbFMC_MMIO_Xmem_wren),
+    .xmem_V_d0                           (sbFMC_MMIO_Xmem_WData),
+    .xmem_V_q0                           (sbFMC_MMIO_Xmem_RData),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWVALID       (ssFMC_NRC_ctrlLink_Axi_AWVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWREADY       (ssFMC_NRC_ctrlLink_Axi_AWREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_AWADDR        (ssFMC_NRC_ctrlLink_Axi_AWADDR),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WVALID        (ssFMC_NRC_ctrlLink_Axi_WVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WREADY        (ssFMC_NRC_ctrlLink_Axi_WREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WDATA         (ssFMC_NRC_ctrlLink_Axi_WDATA),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_WSTRB         (ssFMC_NRC_ctrlLink_Axi_WSTRB),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARVALID       (ssFMC_NRC_ctrlLink_Axi_ARVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARREADY       (ssFMC_NRC_ctrlLink_Axi_ARREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_ARADDR        (ssFMC_NRC_ctrlLink_Axi_ARADDR),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RVALID        (ssFMC_NRC_ctrlLink_Axi_RVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RREADY        (ssFMC_NRC_ctrlLink_Axi_RREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RDATA         (ssFMC_NRC_ctrlLink_Axi_RDATA),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_RRESP         (ssFMC_NRC_ctrlLink_Axi_RRESP),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BVALID        (ssFMC_NRC_ctrlLink_Axi_BVALID),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BREADY        (ssFMC_NRC_ctrlLink_Axi_BREADY),
+    .m_axi_poSMC_NRC_ctrlLink_AXI_BRESP         (ssFMC_NRC_ctrlLink_Axi_BRESP)//,
+    //.poSMC_to_ROLE_rank_V                (poROL_Fmc_Rank),
+    //.poSMC_to_ROLE_size_V                (poROL_Fmc_Size)
+  );
+
+  // == Temporary assignment (until NRC module is back) ==
+  assign ssFMC_NRC_ctrlLink_Axi_AWREADY = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_WREADY  = 0;
+  //assign ssFMC_NRC_ctrlLink_Axi_BID     = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_BRESP   = 0;
+  //assign ssFMC_NRC_ctrlLink_Axi_BUSER   = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_BVALID  = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_ARREADY = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_BREADY  = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_RDATA   = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_RRESP   = 0;
+  //assign ssFMC_NRC_ctrlLink_Axi_RLAST   = 0;
+  //assign ssFMC_NRC_ctrlLink_Axi_RUSER   = 0;
+  assign ssFMC_NRC_ctrlLink_Axi_RVALID  = 0;
+  
+  // == Temporary assignment (until Decoupeling module is back) == 
+  assign sDECOUP_FMC_status = 0;
+
 
 
   //===========================================================================

@@ -27,6 +27,7 @@ void rx_app_if(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static bool                rai_wait = false;
     #pragma HLS reset variable=rai_wait

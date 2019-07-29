@@ -368,7 +368,7 @@ void session_lookup_controller(
         ap_uint<16>                        &poSssRegCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE    //OBSOLETE  #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)

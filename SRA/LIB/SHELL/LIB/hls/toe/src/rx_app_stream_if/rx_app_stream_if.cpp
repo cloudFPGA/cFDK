@@ -43,6 +43,7 @@ void rx_app_stream_if(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static ap_uint<16>    rasi_readLength;
     static uint16_t       rxAppBreakTemp  = 0;

@@ -505,23 +505,34 @@ void printTcpPort(TcpPort tcpPort)
      ******************************************************************************/
     int writeTcpWordToFile(ofstream    &outFile,
                            AxiWord     &tcpWord) {
-                           string       tdataToFile = "";
-                           int          writtenBytes = 0;
+        //OBSOLETE-20190718 string  tdataToFile = "";
+        int     writtenBytes = 0;
+
+        static int mssCounter = 0;
 
         for (int bytNum=0; bytNum<8; bytNum++) {
             if (tcpWord.tkeep.bit(bytNum)) {
                 int hi = ((bytNum*8) + 7);
                 int lo = ((bytNum*8) + 0);
                 ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
-                tdataToFile += myUint8ToStrHex(octet);
+                //OBSOLETE-20190718 tdataToFile += myUint8ToStrHex(octet);
+                // Write byte to file
+                outFile << myUint8ToStrHex(octet);
                 writtenBytes++;
+                mssCounter++;
+                if (mssCounter == MSS) {
+                    // Emulate the IP segmentation behavior when writing this
+                    //  file by appending a newline when mssCounter == MMS
+                    outFile << endl;
+                    mssCounter = 0;
+                }
             }
         }
 
-        if (tcpWord.tlast == 1)
-            outFile << tdataToFile; // OBSOLETE-20190706 << endl;
-        else
-            outFile << tdataToFile;
+        if ((tcpWord.tlast == 1) && (mssCounter != 0)) {
+            outFile << endl;
+            mssCounter = 0;
+        }
 
         return writtenBytes;
     }
@@ -539,8 +550,9 @@ void printTcpPort(TcpPort tcpPort)
     void writeTcpDataToFile(ofstream &outFile, IpPacket &ipPacket) {
         if(ipPacket.sizeOfTcpData() > 0) {
             string tcpData = ipPacket.getTcpData();
-            if (tcpData.size() > 0)
-                outFile << tcpData;
+            if (tcpData.size() > 0) {
+                outFile << tcpData << endl;
+            }
         }
     }
 #endif
