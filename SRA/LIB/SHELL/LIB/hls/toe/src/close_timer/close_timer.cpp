@@ -11,7 +11,8 @@ using namespace hls;
 void close_timer(   stream<ap_uint<16> >&       rxEng2timer_setCloseTimer,
                     stream<ap_uint<16> >&       closeTimer2stateTable_releaseState)
 {
-#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
 #pragma HLS DATA_PACK variable=rxEng2timer_setCloseTimer
 #pragma HLS DATA_PACK variable=closeTimer2stateTable_releaseState

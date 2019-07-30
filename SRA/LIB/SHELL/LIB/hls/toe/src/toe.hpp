@@ -1349,10 +1349,14 @@ void toe(
         stream<rtlSessionUpdateReply>           &siCAM_SssUpdRpl,
 
         //------------------------------------------------------
-        //-- DEBUG / Session Statistics Interfaces
+        //-- DEBUG / Interfaces
         //------------------------------------------------------
+        //-- DEBUG / Session Statistics Interfaces
         ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        ap_uint<16>                             &poDBG_SssRegCnt,
+        //-- DEBUG / SimCycCounter
+        ap_uint<32>                         &piSimCycCount,
+        ap_uint<32>                         &poSimCycCount
 );
 
 #endif

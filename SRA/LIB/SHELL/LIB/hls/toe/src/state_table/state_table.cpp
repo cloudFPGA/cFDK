@@ -63,6 +63,7 @@ void state_table(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static SessionState             SESS_STATE_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=SESS_STATE_TABLE core=RAM_2P_BRAM

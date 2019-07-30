@@ -51,7 +51,6 @@
 G PARAM SimCycles 500
 G PARAM FpgaIp4Addr 10.12.200.19
 G PARAM FpgaLsnPort 8803
-G PARAM HostServerSocket 10.12.200.50  80
 
 > IDLE 20
 # 70 b3 d5 70 8f f7 3c fd fe 9f 59 78 08 00 45 00

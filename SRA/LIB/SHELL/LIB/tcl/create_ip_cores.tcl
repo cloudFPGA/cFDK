@@ -933,20 +933,22 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+if { 0 } {  # OBSOLETE-20190721
 
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : TCP Role Interface 
-#------------------------------------------------------------------------------
-set ipModName "TcpRoleInterface"
-set ipName    "tcp_role_if"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
+    #------------------------------------------------------------------------------  
+    # IBM-HSL-IP : TCP Role Interface 
+    #------------------------------------------------------------------------------
+    set ipModName "TcpRoleInterface"
+    set ipName    "tcp_role_if"
+    set ipVendor  "IBM"
+    set ipLibrary "hls"
+    set ipVersion "1.0"
+    set ipCfgList  [ list ]
 
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+    set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+    if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+}
 
 
 #------------------------------------------------------------------------------  

@@ -65,10 +65,10 @@ void pRetransmitTimer(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
-    //#pragma HLS INLINE
+    #pragma HLS INLINE off
 
     #pragma HLS DATA_PACK variable=soEmx_Event
-    #pragma HLS DATA_PACK variable=soSMx_CloseSessCmd
+    // NOT NEEDED #pragma HLS DATA_PACK variable=soSMx_CloseSessCmd
 
     static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM

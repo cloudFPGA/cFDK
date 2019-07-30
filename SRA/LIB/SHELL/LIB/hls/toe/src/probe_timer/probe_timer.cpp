@@ -12,10 +12,12 @@ using namespace hls;
 void probe_timer(   stream<ap_uint<16> >&       rxEng2timer_clearProbeTimer,
                     stream<ap_uint<16> >&       txEng2timer_setProbeTimer,
                     stream<event>&              probeTimer2eventEng_setEvent) {
+
 #pragma HLS DATA_PACK variable=txEng2timer_setProbeTimer
 #pragma HLS DATA_PACK variable=probeTimer2eventEng_setEvent
 
-#pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
     static probe_timer_entry probeTimerTable[MAX_SESSIONS];
     #pragma HLS RESOURCE variable=probeTimerTable core=RAM_T2P_BRAM

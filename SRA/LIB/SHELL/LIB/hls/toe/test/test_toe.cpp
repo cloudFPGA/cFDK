@@ -65,6 +65,7 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 //--   Use numbers >= to those of the 'Cosimulation Report'
 #define MAX_TOE_LATENCY    25
 #define MAX_TOE_INTERVAL   25
+#define RTT_LINK           10
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
@@ -1262,12 +1263,19 @@ void pL3MUX(
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
 
-    static IpPacket ipTxPacket;
-
     Ip4overAxi  ipTxWord;  // An IP4 chunk
     uint16_t    ipTxWordCounter = 0;
 
+    static IpPacket ipTxPacket;
+    static int  rttSim = RTT_LINK;
+
     if (!siTOE_Data.empty()) {
+
+        //-- Emulate the link RTT -------------------------
+        if (rttSim) {
+            rttSim--;
+            return;
+        }
 
         //-- STEP-1 : Drain the TOE -----------------------
         siTOE_Data.read(ipTxWord);
@@ -1294,6 +1302,8 @@ void pL3MUX(
             // Clear the word counter and the received IP packet
             ipTxWordCounter = 0;
             ipTxPacket.clear();
+            // Re-initialize the RTT counter
+            rttSim = RTT_LINK;
         }
         else
             ipTxWordCounter++;
@@ -1959,6 +1969,7 @@ void pTRIF_Send(
             //-------------------------------------
             AxiWord appRxData;
             bool    firstWordFlag = true; // AXI-word is first data chunk of segment
+            int     writtenBytes = 0;
 
             do {
                 if (firstWordFlag == false) {
@@ -1986,7 +1997,8 @@ void pTRIF_Send(
                 soTOE_Data.write(appRxData);
 
                 // Write current word to the gold file
-                apRx_TcpBytCntr += writeTcpWordToFile(ipTxGoldFile, appRxData);
+                writtenBytes = writeTcpWordToFile(ipTxGoldFile, appRxData);
+                apRx_TcpBytCntr += writtenBytes;
 
             } while (appRxData.tlast != 1);
 
@@ -2163,6 +2175,8 @@ int main(int argc, char *argv[]) {
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
     ap_uint<32>     simCycCnt      = 0;
+    ap_uint<32>     sTB_TOE_SimCycCnt;
+    ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
     Ip4Word         ipRxData;    // An IP4 chunk
@@ -2357,7 +2371,9 @@ int main(int argc, char *argv[]) {
                 sTOE_Cam_SssLkpReq, sCAM_Toe_SssLkpRep,
                 sTOE_Cam_SssUpdReq, sCAM_Toe_SssUpdRep,
                 //-- DEBUG / Session Statistics Interfaces
-                clsSessionCount, opnSessionCount);
+                clsSessionCount, opnSessionCount,
+                //-- DEBUG / SimCycCounter
+				simCycCnt, sTOE_TB_SimCycCnt);
         }
 
         //-------------------------------------------------
@@ -2429,7 +2445,9 @@ int main(int argc, char *argv[]) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
             gTraceEvent = false;
         }
-
+//#ifdef __SYNTHESIS__
+        printf("------------------- [@%d] ------------\n", sTOE_TB_SimCycCnt.to_uint());
+//#endif
         //------------------------------------------------------
         //-- STEP-7 : EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
