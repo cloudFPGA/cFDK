@@ -63,7 +63,8 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
 | `OP_FW_TCP_HWICAP              ` |                             |                  |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
-| `OP_BUFFER_TO_PYROLINK         ` |                             |                  |
+| `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; |
+| `OP_PYROLINK_TO_OUTBUFFER`       |    |     |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
 | `OP_SEND_BUFFER_TCP            ` |                             |                  |
 | `OP_SEND_BUFFER_XMEM           ` | Initiates bufferOut transfer to XMEM  | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
@@ -89,9 +90,9 @@ All global variables are marked as `#pragma HLS reset`.
 
 | Variable           |  affected by or affects OP-code(s)     |    Description     |
 |:-------------------|:----------------------------|:-------------------|
-| `flag_check_xmem_pattern`  |   `OP_ENABLE_XMEM_CHECK_PATTERN`, `OP_DISABLE_XMEM_CHECK_PATTERN`, `OP_XMEM_COPY_DATA` |   set pattern check mode | 
+| `flag_check_xmem_pattern`  |   `OP_ENABLE_XMEM_CHECK_PATTERN`, `OP_DISABLE_XMEM_CHECK_PATTERN`, `OP_XMEM_COPY_DATA` |   set pattern check mode (and consequently ignore the `lastPageCnt`) | 
 | `flag_silent_skip`  |  `OP_ENABLE_SILENT_SKIP`, `OP_DISABLE_SILENT_SKIP`, general program loop | does not alter RV if skipping |
-| `flag_last_page_received` | `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP` | is set if the Xmem marked a last page (i.e. if `OP_XMEM_COPY_DATA` returns `OPRV_DONE`) |
+| `last_page_received_persistent` | `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_PYROLINK` | is set if the Xmem marked a last page (i.e. if `OP_XMEM_COPY_DATA` returns `OPRV_DONE`) |
 | `globalOperationDone_persistent`  | no opcodes, but *all global states*   | causes the state to not run again, until environment changed | 
 | `bufferInPtrWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Address in the InBuffer *where to write next*| 
 | `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (i.e. afterwards no valid data) | 
@@ -106,6 +107,7 @@ All global variables are marked as `#pragma HLS reset`.
 | `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging | 
 | `lastResponsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Bytes in the last Page |
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
+| `receiver_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV` | Is set if the buffer still contains data which we weren't able to transmit |
 
 
 
