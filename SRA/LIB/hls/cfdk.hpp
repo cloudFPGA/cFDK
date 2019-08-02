@@ -9,8 +9,8 @@
 //  *        The current cFDK Version and other version dependent information
 //  *
 
-#ifndef _CF_VERSIONS_
-#define _CF_VERSIONS_
+#ifndef _CFDK_HEADER_
+#define _CFDK_HEADER_
 
 #define CFDK_VERSION_STRING "0.2"
 #define CFDK_VERSION_FLOAT  0.2
