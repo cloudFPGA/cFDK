@@ -621,6 +621,18 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        ssFMC_NRC_ctrlLink_Axi_BVALID;
   wire        ssFMC_NRC_ctrlLink_Axi_BREADY;
   wire [ 1:0] ssFMC_NRC_ctrlLink_Axi_BRESP;
+  // FMC <==> CoreToDebug PYROLINK 
+  wire [ 7:0] ssFMC_CoreToDebug_Pyrolink_TDATA;
+  wire        ssFMC_CoreToDebug_Pyrolink_TVALID;
+  wire        ssFMC_CoreToDebug_Pyrolink_TREADY;
+  wire        ssFMC_CoreToDebug_Pyrolink_TKEEP;
+  wire        ssFMC_CoreToDebug_Pyrolink_TLAST;
+  wire [ 7:0] ssCoreToDebug_FMC_Pyrolink_TDATA;
+  wire        ssCoreToDebug_FMC_Pyrolink_TVALID;
+  wire        ssCoreToDebug_FMC_Pyrolink_TREADY;
+  wire        ssCoreToDebug_FMC_Pyrolink_TKEEP;
+  wire        ssCoreToDebug_FMC_Pyrolink_TLAST;
+
 
  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
@@ -1325,8 +1337,20 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .m_axi_poFMC_NRC_ctrlLink_AXI_BVALID        (ssFMC_NRC_ctrlLink_Axi_BVALID),
     .m_axi_poFMC_NRC_ctrlLink_AXI_BREADY        (ssFMC_NRC_ctrlLink_Axi_BREADY),
     .m_axi_poFMC_NRC_ctrlLink_AXI_BRESP         (ssFMC_NRC_ctrlLink_Axi_BRESP),
-    .piDisableCtrlLink_V                        (1),
-    .piDisableCtrlLink_V_ap_vld                 (1)//,
+    .piDisableCtrlLink_V                        (1),//TODO: SET to 0 IF NRC IS PRESENT
+    .piDisableCtrlLink_V_ap_vld                 (1),
+    .soPYROLINK_TDATA                           (ssFMC_CoreToDebug_Pyrolink_TDATA),
+    .soPYROLINK_TVALID                          (ssFMC_CoreToDebug_Pyrolink_TVALID),
+    .soPYROLINK_TREADY                          (ssFMC_CoreToDebug_Pyrolink_TREADY),
+    .soPYROLINK_TKEEP                           (ssFMC_CoreToDebug_Pyrolink_TKEEP),
+    .soPYROLINK_TLAST                           (ssFMC_CoreToDebug_Pyrolink_TLAST),
+    .siPYROLINK_TDATA                           (ssCoreToDebug_FMC_Pyrolink_TDATA),
+    .siPYROLINK_TVALID                          (ssCoreToDebug_FMC_Pyrolink_TVALID),
+    .siPYROLINK_TREADY                          (ssCoreToDebug_FMC_Pyrolink_TREADY),
+    .siPYROLINK_TKEEP                           (ssCoreToDebug_FMC_Pyrolink_TKEEP),
+    .siPYROLINK_TLAST                           (ssCoreToDebug_FMC_Pyrolink_TLAST),
+    .piDisablePyroLink_V                        (1),//TODO: SET to 0 IF PYROLINK SHOULD BE USED
+    .piDisablePyroLink_V_ap_vld                 (1)//,
 
     //.poFMC_to_ROLE_rank_V                (poROL_Fmc_Rank),
     //.poFMC_to_ROLE_size_V                (poROL_Fmc_Size)
