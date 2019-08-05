@@ -63,8 +63,8 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
 | `OP_FW_TCP_HWICAP              ` |                             |                  |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
-| `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; |
-| `OP_PYROLINK_TO_OUTBUFFER`       |    |     |
+| `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
+| `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
 | `OP_SEND_BUFFER_TCP            ` |                             |                  |
 | `OP_SEND_BUFFER_XMEM           ` | Initiates bufferOut transfer to XMEM  | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
@@ -92,10 +92,10 @@ All global variables are marked as `#pragma HLS reset`.
 |:-------------------|:----------------------------|:-------------------|
 | `flag_check_xmem_pattern`  |   `OP_ENABLE_XMEM_CHECK_PATTERN`, `OP_DISABLE_XMEM_CHECK_PATTERN`, `OP_XMEM_COPY_DATA` |   set pattern check mode (and consequently ignore the `lastPageCnt`) | 
 | `flag_silent_skip`  |  `OP_ENABLE_SILENT_SKIP`, `OP_DISABLE_SILENT_SKIP`, general program loop | does not alter RV if skipping |
-| `last_page_received_persistent` | `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_PYROLINK` | is set if the Xmem marked a last page (i.e. if `OP_XMEM_COPY_DATA` returns `OPRV_DONE`) |
+| `last_xmem_page_received_persistent` | `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_PYROLINK` | is set if the Xmem marked a last page (i.e. if `OP_XMEM_COPY_DATA` returns `OPRV_DONE`) |
 | `globalOperationDone_persistent`  | no opcodes, but *all global states*   | causes the state to not run again, until environment changed | 
 | `bufferInPtrWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Address in the InBuffer *where to write next*| 
-| `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (i.e. afterwards no valid data) | 
+| `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (**including**, i.e. afterwards no valid data (--> ` for... i <= bufferInPtrMaxWrite`) | 
 | `bufferInPtrNextRead`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  | Address in the inBuffer that was *net yet* read | 
 | `bufferOutPtrWrite`  | `OP_CLEAR_OUT_BUFFER`, `OP_HANDLE_HTTP` |   Address in OutBuffer *where to write next* |
 | `transferError_persistent`| `OP_ABORT_HWICAP`, also *all global states* | markes a terminating error during transfer --> halt until reset|
@@ -107,7 +107,8 @@ All global variables are marked as `#pragma HLS reset`.
 | `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging | 
 | `lastResponsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Bytes in the last Page |
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
-| `receiver_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV` | Is set if the buffer still contains data which we weren't able to transmit |
+| `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
+| `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles | 
 
 
 
@@ -121,6 +122,22 @@ All global variables are marked as `#pragma HLS reset`.
 | `PUT_RANK     `| `0x08` |    |
 | `PUT_SIZE     `| `0x10` |    |
 | `POST_ROUTING `| `0x20` |    |
+
+
+### `msg` field
+
+| `msg` field content    |   Description  |
+|:-----------------------|:---------------|
+| `NOC`    | the Pyrolink sender didn't send any data | 
+| `ERR`    | some fatal transfer error occurred --> reset required | 
+| `IDL`    | initial value | 
+| `BOR`    | `...ING`! The FMC has nothing to do |
+| `UTD`    | Up To Date; I.e. during a xmem transfer, the current page was already processed |
+| `INV`    | Invalid; During a Xmem transfer, the page isn't a valid page (we are in the middle of a transfer) |
+| `CMM`    | Counter mismatch; During a Xmem transfer, the current valid page dosn't match the expected counter (i.e. we missed one complete page) |
+| `COR`    | Corrupt pattern during check pattern mode | 
+| `SUC`    | Last xmem page received successfully | 
+| ` OK`    | a new valid and expected xmem page received, but not the last one | 
 
 
 
