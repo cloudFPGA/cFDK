@@ -27,9 +27,9 @@ For all IP core iterations, the following steps are executed:
 
 The program to be executed in phase 4 consists of a *maximum of 64 instructions, each 2 Bytes long*:
 
-| *Bits:* | 15 -- 8 | 7 -- 0 |
+| Bits: | 15 -- 8 | 7 -- 0 |
 |:---------|:-------:|:-------:|
-| *Description:* | conditional **Mask** | **Opcode** |
+| Description: | conditional **Mask** | **Opcode** |
 
 *The ***Opcode*** in program line N is only executed if the ***bitwise and*** between the ***Mask*** in line N and the ***return value*** of line N-1 is ***greater then 0***!*
 
@@ -37,7 +37,7 @@ The program to be executed in phase 4 consists of a *maximum of 64 instructions,
 
 One Example:
 * Return value of line N-1 is `OPRV_NOT_COMPLETE`
-* Program line N is `Mask: OPRV_NOT_COMPLETE | OPRV_DONE; Opcode: OP_SEND_BUFFER_XMEM;` (Read: *Execute `OP_SEND_BUFFER_XMEM` if the last return value was `OPRV_NOT_COMPLETE or `OPRV_OK`*)
+* Program line N is `Mask: OPRV_NOT_COMPLETE | OPRV_DONE; Opcode: OP_SEND_BUFFER_XMEM;` (Read: *Execute `OP_SEND_BUFFER_XMEM` if the last return value was `OPRV_NOT_COMPLETE` or `OPRV_OK`*)
 * Then the opcode `OP_SEND_BUFFER_XMEM` will be executed, because `OPRV_NOT_COMPLETE & (OPRV_NOT_COMPLETE | OPRV_OK)` greater then 0
 
 When an opcode is skipped, because the `(mask & lastReturnValue) == 0`, `lastReturnValue` will be set to `OPRV_SKIPPED`, if not `flag_enable_silent_skip` was activated.
@@ -57,7 +57,7 @@ Afterwards, the EMIF connection (External Memory InterFace) to the PSoC is docum
 The Global Operations Type stores the current Operation between IP core calls (so it is persistent). 
 
 |   Name         |  Value |  Description | 
-|:--------------:|:------:|:------------:|
+|:---------------|:------:|:------------:|
 | `GLOBAL_IDLE`  |  `0`   | Default state |
 | `GLOBAL_XMEM_CHECK_PATTERN` |`1` |   |
 | `GLOBAL_XMEM_TO_HWICAP`| `2`  |   |
@@ -73,10 +73,10 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 
 ### Internal Return values
 
-**One hot encoded!!**
+**One hot encoded!**
 
 |   Name         |  Value |  Description | 
-|:--------------:|:------:|:------------:|
+|:---------------|:------:|:------------:|
 | `OPRV_OK`       | ` 0x1` |  |
 | `OPRV_FAIL`      |   `0x2`  |  | 
 | `OPRV_SKIPPED`  | `0x4`   |   | 
@@ -118,7 +118,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 
 *Flags are reset before every program run*, so not persistent.
 The initial `lastReturnValue` is always `OPRV_OK`.
-
+To execute an opcode always, the mask `MASK_ALWAYS` can be used.
 
 ### Global Variables 
 
@@ -150,6 +150,8 @@ All global variables are marked as `#pragma HLS reset`.
 
 ### RequestType
 
+It is necessary that the FMC ISA can perform conditional jumps based on the received HTTP Request. Hence, the `OP_COPY_REQTYPE_TO_RETURN` was implemented and the `ReqType` encoded as follows:
+
 | ReqType     |   Value  | Description  |
 |:------------|:---------|:-------------|
 | `REQ_INVALID  `| `0x01` |    |
@@ -161,6 +163,8 @@ All global variables are marked as `#pragma HLS reset`.
 
 
 ### `msg` field
+
+The FMC Read Register (see below) contains a `msg` field, with the following meaning: 
 
 | `msg` field content    |   Description  |
 |:-----------------------|:---------------|
