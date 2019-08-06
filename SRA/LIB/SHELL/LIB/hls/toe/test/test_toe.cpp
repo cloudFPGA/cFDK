@@ -192,9 +192,6 @@ void pEmulateCam(
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session update request from %d for socket pair: \n",
                                   request.source.to_int());
-                //OBSOLETE-20190524 AxiSocketPair axiSocketPair(AxiSockAddr(request.key.theirIp, request.key.theirPort),
-                //OBSOLETE-20190524                             AxiSockAddr(request.key.myIp,    request.key.myPort));
-                //OBSOLETE-20190524 printAxiSockPair(myName, axiSocketPair);
                 printSockPair(myName, request.source.to_int(), request.key);
             }
             camFsmState = CAM_WAIT_4_REQ;
@@ -203,47 +200,6 @@ void pEmulateCam(
 
     } // End-of: switch()
 
-    /*** OBSOLETE-20190504 *****************
-    if (!siTOE_SssLkpReq.empty()) {
-        siTOE_SssLkpReq.read(request);
-        findPos = lookupTable.find(request.key);
-        if (findPos != lookupTable.end()) //hit
-            soTOE_SssLkpRep.write(rtlSessionLookupReply(true, findPos->second, request.source));
-        else
-            soTOE_SssLkpRep.write(rtlSessionLookupReply(false, request.source));
-
-        if (DEBUG_LEVEL & TRACE_CAM) {
-            printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
-                      request.source);
-            SocketPair socketPair(SockAddr(request.key.theirIp, request.key.theirPort),
-                                  SockAddr(request.key.myIp,    request.key.myPort));
-            printSockPair(myName, socketPair);
-        }
-    }
-    else if (!siTOE_SssUpdReq.empty()) {     //TODO what if element does not exist
-        siTOE_SssUpdReq.read(update);
-        if (update.op == INSERT) {  //Is there a check if it already exists?
-            // Read free id
-            //new_id.read(update.value);
-            lookupTable[update.key] = update.value;
-            soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, INSERT, update.source));
-
-        }
-        else {  // DELETE
-            //fin_id.write(update.value);
-            lookupTable.erase(update.key);
-            soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, DELETE, update.source));
-        }
-
-        if (DEBUG_LEVEL & TRACE_CAM) {
-            printInfo(myName, "Received a session update request from %d for socket pair: \n",
-                              request.source);
-            SocketPair socketPair(SockAddr(request.key.theirIp, request.key.theirPort),
-                                  SockAddr(request.key.myIp,    request.key.myPort));
-            printSockPair(myName, socketPair);
-        }
-    }
-    **********************/
 } // End-of: pEmulateCam()
 
 /*****************************************************************************
@@ -388,52 +344,6 @@ void pEmulateRxBufMem(
 
     } // End-of: switch()
 
-    /*** OBSOLETE-20190504 ***************************
-    if (!siTOE_RxP_WrCmd.empty() && !stx_write) {
-        // Memory Write Command
-        siTOE_RxP_WrCmd.read(dmCmd);
-        memory->setWriteCmd(dmCmd);
-        noBytesToWrite = dmCmd.bbt;
-        stx_write = true;
-    }
-    else if (!siTOE_RxP_Data.empty() && stx_write) {
-        // Data Memory Write Transfer
-        siTOE_RxP_Data.read(tmpInWord);
-        inWord = tmpInWord;
-        //cerr << dec << rxMemCounter << " - " << hex << inWord.data << " " << inWord.keep << " " << inWord.last << endl;
-        //rxMemCounter++;;
-        memory->writeWord(inWord);
-        if (noBytesToWrite < 9) {
-            // We are done
-            stx_write  = false;
-            dmSts.okay = 1;
-            soTOE_RxP_WrSts.write(dmSts);
-        }
-        else
-            noBytesToWrite -= 8;
-    }
-
-    if (!siTOE_RxP_RdCmd.empty() && !stx_read) {
-        // Memory Read Command
-        siTOE_RxP_RdCmd.read(dmCmd);
-        memory->setReadCmd(dmCmd);
-        noBytesToRead = dmCmd.bbt;
-        stx_read      = true;
-    }
-    else if(stx_read) {
-        // Data Memory Read Transfer
-        memory->readWord(outWord);
-        tmpOutWord = outWord;
-        soTOE_RxP_Data.write(tmpOutWord);
-        //cerr << dec << rxMemCounterRd << " - " << hex << outWord.data << " " << outWord.keep << " " << outWord.last << endl;
-        rxMemCounterRd++;
-        if (noBytesToRead < 9)
-            stx_read = false;
-        else
-            noBytesToRead -= 8;
-    }
-    ******************************************/
-
 } // End of: pEmulateRxBufMem
 
 /*****************************************************************************
@@ -545,7 +455,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                 if (stringVector[2] == "SimCycles") {
                     // The test vector file is specifying a minimum number of simulation cycles.
                     int noSimCycles = atoi(stringVector[3].c_str());
-                    noSimCycles += startupDelay; // OBSOLETE-20190816 STARTUP_DELAY;
+                    noSimCycles += startupDelay;
                     if (noSimCycles > gMaxSimCycles)
                         gMaxSimCycles = noSimCycles;
                     printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
@@ -605,26 +515,6 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                 else if (stringVector[2] == "FpgaServerSocket") {  // DEPRECATED
                     printError(myName, "The global parameter \'FpgaServerSockett\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
                     exit(1);
-                    /*** OBSOLETE-20190522 ***
-                    char * ptr;
-                    // Retrieve the IPv4 address to set
-                    unsigned int ip4Addr;
-                    if (isDottedDecimal(stringVector[3]))
-                        ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
-                    else if (isHexString(stringVector[3]))
-                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
-                    else
-                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
-                    gFpgaServerSocket.addr = ip4Addr;
-                    // Retrieve the TCP-Port to set
-                    unsigned int tcpPort;
-                    if (isHexString(stringVector[4]))
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
-                    else
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
-                    gLocalSocket.port = tcpPort;
-                    printInfo(myName, "Redefining the default FPGA socket to be <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
-                    **************************/
                 }
                 else if (stringVector[2] == "ForeignSocket") {     // DEPRECATED
                     printError(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
@@ -1164,7 +1054,6 @@ bool pL3MUX_Parse(
             }
         } // End of: isFIN
 
-        //OBSOLETE-201906019 if (ip4PktLen > 0 || isFinAck == true) {
         if (ip4PktLen > 0 && !isFinAck) {
 
             //--------------------------------------------------------
@@ -1609,10 +1498,6 @@ void pTRIF_Recv(
         if (listenStatus == false) {
             return;
         }
-        // OBSOLETE-20190806 else {
-        //    // Add this port # to the set of opened ports
-        //    listeningPorts.insert(gFpgaLsnPort);
-        // }
     }
 
     //------------------------------------------------
@@ -2140,44 +2025,44 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
-    stream<Ip4overAxi>                  sIPRX_Toe_Data      ("sIPRX_Toe_Data");
+    stream<Ip4overAxi>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
 
-    stream<Ip4overAxi>                  sTOE_L3mux_Data     ("sTOE_L3mux_Data");
+    stream<Ip4overAxi>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
 
-    stream<AppData>                     sTRIF_Toe_Data      ("sTRIF_Toe_Data");
-    stream<AppMeta>                     sTRIF_Toe_Meta      ("sTRIF_Toe_Meta");
-    stream<AppWrSts>                    sTOE_Trif_DSts      ("sTOE_Trif_DSts");
+    stream<AppData>                     ssTRIF_TOE_Data      ("ssTRIF_TOE_Data");
+    stream<AppMeta>                     ssTRIF_TOE_Meta      ("ssTRIF_TOE_Meta");
+    stream<AppWrSts>                    ssTOE_TRIF_DSts      ("ssTOE_TRIF_DSts");
 
-    stream<AppRdReq>                    sTRIF_Toe_DReq      ("sTRIF_Toe_DReq");
-    stream<AppData>                     sTOE_Trif_Data      ("sTOE_Trif_Data");
-    stream<AppMeta>                     sTOE_Trif_Meta      ("sTOE_Trif_Meta");
+    stream<AppRdReq>                    ssTRIF_TOE_DReq      ("ssTRIF_TOE_DReq");
+    stream<AppData>                     ssTOE_TRIF_Data      ("ssTOE_TRIF_Data");
+    stream<AppMeta>                     ssTOE_TRIF_Meta      ("ssTOE_TRIF_Meta");
 
-    stream<AppLsnReq>                   sTRIF_Toe_LsnReq    ("sTRIF_Toe_LsnReq");
-    stream<AppLsnAck>                   sTOE_Trif_LsnAck    ("sTOE_Trif_LsnAck");
+    stream<AppLsnReq>                   ssTRIF_TOE_LsnReq    ("ssTRIF_TOE_LsnReq");
+    stream<AppLsnAck>                   ssTOE_TRIF_LsnAck    ("ssTOE_TRIF_LsnAck");
 
-    stream<AppOpnReq>                   sTRIF_Toe_OpnReq    ("sTRIF_Toe_OpnReq");
-    stream<AppOpnSts>                   sTOE_Trif_OpnSts    ("sTOE_Trif_OpnSts");
+    stream<AppOpnReq>                   ssTRIF_TOE_OpnReq    ("ssTRIF_TOE_OpnReq");
+    stream<AppOpnSts>                   ssTOE_TRIF_OpnSts    ("ssTOE_TRIF_OpnSts");
 
-    stream<AppNotif>                    sTOE_Trif_Notif     ("sTOE_Trif_Notif");
+    stream<AppNotif>                    ssTOE_TRIF_Notif     ("ssTOE_TRIF_Notif");
 
-    stream<AppClsReq>                   sTRIF_Toe_ClsReq    ("sTRIF_Toe_ClsReq");
+    stream<AppClsReq>                   ssTRIF_TOE_ClsReq    ("ssTRIF_TOE_ClsReq");
 
-    stream<DmCmd>                       sTOE_Mem_RxP_RdCmd  ("sTOE_Mem_RxP_RdCmd");
-    stream<AxiWord>                     sMEM_Toe_RxP_Data   ("sMEM_Toe_RxP_Data");
-    stream<DmSts>                       sMEM_Toe_RxP_WrSts  ("sMEM_Toe_RxP_WrSts");
-    stream<DmCmd>                       sTOE_Mem_RxP_WrCmd  ("sTOE_Mem_RxP_WrCmd");
-    stream<AxiWord>                     sTOE_Mem_RxP_Data   ("sTOE_Mem_RxP_Data");
+    stream<DmCmd>                       ssTOE_MEM_RxP_RdCmd  ("ssTOE_MEM_RxP_RdCmd");
+    stream<AxiWord>                     ssMEM_TOE_RxP_Data   ("ssMEM_TOE_RxP_Data");
+    stream<DmSts>                       ssMEM_TOE_RxP_WrSts  ("ssMEM_TOE_RxP_WrSts");
+    stream<DmCmd>                       ssTOE_MEM_RxP_WrCmd  ("ssTOE_MEM_RxP_WrCmd");
+    stream<AxiWord>                     ssTOE_MEM_RxP_Data   ("ssTOE_MEM_RxP_Data");
 
-    stream<DmCmd>                       sTOE_Mem_TxP_RdCmd  ("sTOE_Mem_TxP_RdCmd");
-    stream<AxiWord>                     sMEM_Toe_TxP_Data   ("sMEM_Toe_TxP_Data");
-    stream<DmSts>                       sMEM_Toe_TxP_WrSts  ("sMEM_Toe_TxP_WrSts");
-    stream<DmCmd>                       sTOE_Mem_TxP_WrCmd  ("sTOE_Mem_TxP_WrCmd");
-    stream<AxiWord>                     sTOE_Mem_TxP_Data   ("sTOE_Mem_TxP_Data");
+    stream<DmCmd>                       ssTOE_MEM_TxP_RdCmd  ("ssTOE_MEM_TxP_RdCmd");
+    stream<AxiWord>                     ssMEM_TOE_TxP_Data   ("ssMEM_TOE_TxP_Data");
+    stream<DmSts>                       ssMEM_TOE_TxP_WrSts  ("ssMEM_TOE_TxP_WrSts");
+    stream<DmCmd>                       ssTOE_MEM_TxP_WrCmd  ("ssTOE_MEM_TxP_WrCmd");
+    stream<AxiWord>                     ssTOE_MEM_TxP_Data   ("ssTOE_MEM_TxP_Data");
 
-    stream<rtlSessionLookupRequest>     sTOE_Cam_SssLkpReq  ("sTOE_Cam_SssLkpReq");
-    stream<rtlSessionLookupReply>       sCAM_Toe_SssLkpRep  ("sCAM_Toe_SssLkpRep");
-    stream<rtlSessionUpdateRequest>     sTOE_Cam_SssUpdReq  ("sTOE_Cam_SssUpdReq");
-    stream<rtlSessionUpdateReply>       sCAM_Toe_SssUpdRep  ("sCAM_Toe_SssUpdRep");
+    stream<rtlSessionLookupRequest>     ssTOE_CAM_SssLkpReq  ("ssTOE_CAM_SssLkpReq");
+    stream<rtlSessionLookupReply>       ssCAM_TOE_SssLkpRep  ("ssCAM_TOE_SssLkpRep");
+    stream<rtlSessionUpdateRequest>     ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
+    stream<rtlSessionUpdateReply>       ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
@@ -2335,8 +2220,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // OBSOLETE-20190806 printInfo(THIS_NAME, "This run executes with a STARTUP_DELAY = %d \n", STARTUP_DELAY);
-
     //-----------------------------------------------------
     //-- MAIN LOOP
     //-----------------------------------------------------
@@ -2344,12 +2227,10 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-1 : Emulate the IPv4 Rx Path
         //-------------------------------------------------
-        // OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
-            pIPRX(ipRxFile,       appTxGold,
-                  testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
-                  ipRxPacketizer, sessAckList,
-                  sTOE_Ready,     sIPRX_Toe_Data);
-        // OBSOLETE-20190806 if }
+        pIPRX(ipRxFile,       appTxGold,
+              testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
+              ipRxPacketizer, sessAckList,
+              sTOE_Ready,     ssIPRX_TOE_Data);
 
         //-------------------------------------------------
         //-- STEP-2 : RUN DUT
@@ -2360,25 +2241,25 @@ int main(int argc, char *argv[]) {
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces
-            sIPRX_Toe_Data,   sTOE_L3mux_Data,
+            ssIPRX_TOE_Data,   ssTOE_L3MUX_Data,
             //-- TRIF / Tx Data Interfaces
-            sTOE_Trif_Notif,  sTRIF_Toe_DReq,
-            sTOE_Trif_Data,   sTOE_Trif_Meta,
+            ssTOE_TRIF_Notif,  ssTRIF_TOE_DReq,
+            ssTOE_TRIF_Data,   ssTOE_TRIF_Meta,
             //-- TRIF / Listen Interfaces
-            sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
+            ssTRIF_TOE_LsnReq, ssTOE_TRIF_LsnAck,
             //-- TRIF / Rx Data Interfaces
-            sTRIF_Toe_Data,   sTRIF_Toe_Meta,
-            sTOE_Trif_DSts,
+            ssTRIF_TOE_Data,   ssTRIF_TOE_Meta,
+            ssTOE_TRIF_DSts,
             //-- TRIF / Open Interfaces
-            sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
+            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnSts,
             //-- TRIF / Close Interfaces
-            sTRIF_Toe_ClsReq,
+            ssTRIF_TOE_ClsReq,
             //-- MEM / Rx PATH / S2MM Interface
-            sTOE_Mem_RxP_RdCmd, sMEM_Toe_RxP_Data, sMEM_Toe_RxP_WrSts, sTOE_Mem_RxP_WrCmd, sTOE_Mem_RxP_Data,
-            sTOE_Mem_TxP_RdCmd, sMEM_Toe_TxP_Data, sMEM_Toe_TxP_WrSts, sTOE_Mem_TxP_WrCmd, sTOE_Mem_TxP_Data,
+            ssTOE_MEM_RxP_RdCmd, ssMEM_TOE_RxP_Data, ssMEM_TOE_RxP_WrSts, ssTOE_MEM_RxP_WrCmd, ssTOE_MEM_RxP_Data,
+            ssTOE_MEM_TxP_RdCmd, ssMEM_TOE_TxP_Data, ssMEM_TOE_TxP_WrSts, ssTOE_MEM_TxP_WrCmd, ssTOE_MEM_TxP_Data,
             //-- CAM / This / Session Lookup & Update Interfaces
-            sTOE_Cam_SssLkpReq, sCAM_Toe_SssLkpRep,
-            sTOE_Cam_SssUpdReq, sCAM_Toe_SssUpdRep,
+            ssTOE_CAM_SssLkpReq, ssCAM_TOE_SssLkpRep,
+            ssTOE_CAM_SssUpdReq, ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
             clsSessionCount, opnSessionCount,
             //-- DEBUG / SimCycCounter
@@ -2388,21 +2269,20 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
         //-------------------------------------------------
-        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
         if (sTOE_Ready) {
             pEmulateRxBufMem(
                 &rxMemory,          nrErr,
-                sTOE_Mem_RxP_WrCmd, sMEM_Toe_RxP_WrSts,
-                sTOE_Mem_RxP_RdCmd, sTOE_Mem_RxP_Data, sMEM_Toe_RxP_Data);
+                ssTOE_MEM_RxP_WrCmd, ssMEM_TOE_RxP_WrSts,
+                ssTOE_MEM_RxP_RdCmd, ssTOE_MEM_RxP_Data, ssMEM_TOE_RxP_Data);
 
             pEmulateTxBufMem(
                 &txMemory,
-                sTOE_Mem_TxP_WrCmd, sMEM_Toe_TxP_WrSts,
-                sTOE_Mem_TxP_RdCmd, sTOE_Mem_TxP_Data, sMEM_Toe_TxP_Data);
+                ssTOE_MEM_TxP_WrCmd, ssMEM_TOE_TxP_WrSts,
+                ssTOE_MEM_TxP_RdCmd, ssTOE_MEM_TxP_Data, ssMEM_TOE_TxP_Data);
 
             pEmulateCam(
-                sTOE_Cam_SssLkpReq, sCAM_Toe_SssLkpRep,
-                sTOE_Cam_SssUpdReq, sCAM_Toe_SssUpdRep);
+                ssTOE_CAM_SssLkpReq, ssCAM_TOE_SssLkpRep,
+                ssTOE_CAM_SssUpdReq, ssCAM_TOE_SssUpdRep);
         }
 
         //------------------------------------------------------
@@ -2412,38 +2292,34 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-4.0 : Emulate Layer-3 Multiplexer
         //-------------------------------------------------
-        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
-            pL3MUX(
-                sTOE_Ready,
-                sTOE_L3mux_Data,
-                ipTxFile1,       ipTxFile2,
-                sessAckList,
-                ipTx_PktCounter, ipTx_TcpBytCntr,
-                ipRxPacketizer);
-        //OBSOLETE-20190806 }
+        pL3MUX(
+            sTOE_Ready,
+            ssTOE_L3MUX_Data,
+            ipTxFile1,       ipTxFile2,
+            sessAckList,
+            ipTx_PktCounter, ipTx_TcpBytCntr,
+            ipRxPacketizer);
 
         //-------------------------------------------------
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
-        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
-            pTRIF(
-                testTxPath,       mode,
-                nrErr,
-                gFpgaIp4Addr,     appRxFile,
-                appTxFile,        ipTxGold2,
-                apRx_TcpBytCntr,  apTx_TcpBytCntr,
-                sTOE_Ready,
-                sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
-                sTOE_Trif_Notif,  sTRIF_Toe_DReq,
-                sTOE_Trif_Meta,   sTOE_Trif_Data,
-                sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
-                sTRIF_Toe_Meta,   sTRIF_Toe_Data,
-                sTRIF_Toe_ClsReq);
-            //OBSOLETE-20190806 }
+        pTRIF(
+            testTxPath,       mode,
+            nrErr,
+            gFpgaIp4Addr,     appRxFile,
+            appTxFile,        ipTxGold2,
+            apRx_TcpBytCntr,  apTx_TcpBytCntr,
+            sTOE_Ready,
+            ssTRIF_TOE_LsnReq, ssTOE_TRIF_LsnAck,
+            ssTOE_TRIF_Notif,  ssTRIF_TOE_DReq,
+            ssTOE_TRIF_Meta,   ssTOE_TRIF_Data,
+            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnSts,
+            ssTRIF_TOE_Meta,   ssTRIF_TOE_Data,
+            ssTRIF_TOE_ClsReq);
 
         // TODO
-        if (!sTOE_Trif_DSts.empty()) {
-            ap_uint<17> tempResp = sTOE_Trif_DSts.read();
+        if (!ssTOE_TRIF_DSts.empty()) {
+            ap_uint<17> tempResp = ssTOE_TRIF_DSts.read();
             if (tempResp == -1 || tempResp == -2)
                 cerr << endl << "Warning: Attempt to write data into the Tx App I/F of the TOE was unsuccessful. Returned error code: " << tempResp << endl;
         }
