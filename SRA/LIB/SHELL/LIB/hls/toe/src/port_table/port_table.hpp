@@ -20,32 +20,12 @@
 
 using namespace hls;
 
-// OBSOLETE-2018-11-23 /********************************************
-// OBSOLETE-2018-11-23  * PRt - Structure of the Port Table
-// OBSOLETE-2018-11-23  ********************************************/
-// OBSOLETE-2018-11-23 struct portTableEntry
-// OBSOLETE-2018-11-23 {
-// OBSOLETE-2018-11-23    bool listening;
-// OBSOLETE-2018-11-23    bool used;
-// OBSOLETE-2018-11-23 };
-
 
 /*****************************************************************************
  * @brief   Main process of the TCP Port Table (PRt).
- *
- * @ingroup port_table
  *****************************************************************************/
-//void port_table(
-//        stream<AxiTcpPort>         &siRXe_PortStateReq,
-//        stream<bool>               &soPortStateRep,
-//        stream<TcpPort>            &siRAi_LsnPortStateReq,
-//        stream<bool>               &soLsnPortStateRep,
-//        stream<ap_uint<1> >        &siTAi_ActPortStateReq,
-//        stream<ap_uint<16> >       &soActPortStateRep,
-//        stream<ap_uint<16> >       &siSLc_ReleasePort
-//);
-
 void port_table(
+        StsBool                 &poTOE_Ready,
         stream<AxiTcpPort>      &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
         stream<TcpPort>         &siRAi_OpenPortReq,

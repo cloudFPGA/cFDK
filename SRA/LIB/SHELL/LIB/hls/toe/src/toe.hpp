@@ -138,8 +138,9 @@ using namespace hls;
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/
-typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 
 typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
@@ -1254,15 +1255,13 @@ typedef AckBit      AppLsnAck;
 typedef SessionId   AppClsReq;
 
 
-
-
-
+/***********************************************
+ * A 2-to-1 Stream multiplexer.
+ ***********************************************/
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so);
-
-
 
 
 /*************************************************************************
@@ -1276,6 +1275,11 @@ void toe(
         //-- MMIO Interfaces
         //------------------------------------------------------
         AxiIp4Addr                               piMMIO_IpAddr,
+
+        //------------------------------------------------------
+        //-- NTS Interfaces
+        //------------------------------------------------------
+        StsBit                                  &poNTS_Ready,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -1355,8 +1359,8 @@ void toe(
         ap_uint<16>                             &poDBG_SssRelCnt,
         ap_uint<16>                             &poDBG_SssRegCnt,
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                         &piSimCycCount,
-        ap_uint<32>                         &poSimCycCount
+        ap_uint<32>                             &piSimCycCount,
+        ap_uint<32>                             &poSimCycCount
 );
 
 #endif

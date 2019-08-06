@@ -14,22 +14,20 @@
  * @details
  *  The TCP port table keeps track of the TCP port numbers which are in use.
  *  The PRt maintains two port ranges based on two tables of 32768 x 1-bit:
- *   One for static ports (0 to 32,767) which are used for listening ports,
- *   One for dynamically assigned or ephemeral ports (32,768 to 65,535) which
- *    are used for active connections.
+ *   - One for static ports (0 to 32,767) which are used for listening ports,
+ *   - One for dynamically assigned or ephemeral ports (32,768 to 65,535) which
+ *     are used for active connections.
  *
  *****************************************************************************/
 
 #include "port_table.hpp"
 #include "../../test/test_toe_utils.hpp"
 
-#define THIS_NAME "TOE/PRt"
-
 using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ *  .e.g: DEBUG_LEVEL = (TRACE_ORM | TRACE_FPT)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -41,10 +39,11 @@ using namespace hls;
 #define TRACE_IRR 1 <<  1
 #define TRACE_ORM 1 <<  2
 #define TRACE_LPT 1 <<  3
-#define TRACE_APT 1 <<  4
+#define TRACE_FPT 1 <<  4
+#define TRACE_RDY 1 <<  5
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 // Warning: Avoid using 'enum' here because scoped enums are only available with -std=c++
 //   enum PortState : bool {CLOSED_PORT = false, OPENED_PORT    = true};
@@ -59,10 +58,46 @@ using namespace hls;
 #define LISTEN_PORT   true
 #define PortRange     bool
 
+/******************************************************************************
+ * @brief A two input AND gate.
+ * ****************************************************************************/
+template<class T> void pAnd2(
+        T  &pi1,
+        T  &pi2,
+        T  &po) {
+     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
 
-/*****************************************************************************
+    po = pi1 & pi2;
+}
+
+/******************************************************************************
+ * @brief The Ready (Rdy) process generates the ready signal of the PRt.
+ *
+ *  @param[in]  piPRt_Ready, The ready signal from PortTable (PRt).
+ *  @param[in]  piTBD_Ready, The ready signal from TBD.
+ *  @param[out] poNTS_Ready, The ready signal of the TOE.
+ *
+ ******************************************************************************/
+void pReady(
+    StsBool    &piLpt_Ready,
+    StsBool    &piFpt_Ready,
+    StsBool    &poTOE_Ready)
+{
+    const char *myName = concat3(THIS_NAME, "/", "Rdy");
+
+    poTOE_Ready = piLpt_Ready and piFpt_Ready;
+
+    if (DEBUG_LEVEL & TRACE_RDY) {
+        if (poTOE_Ready)
+            printInfo(myName, "Process [PRt] is ready.\n");
+    }
+}
+
+/******************************************************************************
  * @brief The Listening Port Table (Lpt) keeps track of the listening ports.
  *
+ *  @param[out] poPRt_LptReady,        Ready signal for this process.
  *  @param[in]  siRAi_OpenPortReq,     Request to open a port from RxAppInterface (RAi).
  *  @param[out] soRAi_OpenPortRep,     Reply   to [RAi].
  *  @param[in]  siIrr_GetPortStateCmd, Request port state from InputRequestRouter (Irr).
@@ -81,6 +116,7 @@ using namespace hls;
  * @ingroup port_table
  ******************************************************************************/
 void pListeningPortTable(
+        StsBool              &poPRt_LptReady,
         stream<TcpPort>      &siRAi_OpenPortReq,
         stream<RepBit>       &soRAi_OpenPortRep,
         stream<TcpStaPort>   &siIrr_GetPortStateCmd,
@@ -141,11 +177,15 @@ void pListeningPortTable(
                 printInfo(myName, "[RXe] is querying the state of listen port #%d \n", staticPortNum.to_uint());
         }
     }
+
+    // ALWAYS
+    poPRt_LptReady = isInit;
 }
 
 /*****************************************************************************
- * @brief The Active Port Table (Apt) keeps track of the opened source ports.
+ * @brief The Free Port Table (Fpt) keeps track of the opened source ports.
  *
+ * @param[out] poPRt_FptReady,        Ready signal for this process.
  * @param[in]  siSLc_CloseActPortCmd, Command to release a port from SessionLookupController (SLc).
  * @param[in]  siIrr_GetPortStateCmd, Command to get state of port from InputRequestRouter (Irr).
  * @param[out] soOrm_GetPortStateRsp, Response to get state of port to OutputReplyMux (Orm).
@@ -165,7 +205,8 @@ void pListeningPortTable(
  *
  * @ingroup port_table
  ******************************************************************************/
-void pActivePortTable(
+void pFreePortTable(
+        StsBool              &poPRt_FptReady,
         stream<TcpPort>      &siSLc_CloseActPortCmd,
         stream<TcpDynPort>   &siIrr_GetPortStateCmd,
         stream<RspBit>       &soOrm_GetPortStateRsp,
@@ -177,7 +218,7 @@ void pActivePortTable(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName = concat3(THIS_NAME, "/", "Apt");
+    const char *myName = concat3(THIS_NAME, "/", "Fpt");
 
     static PortRange                ACTIVE_PORT_TABLE[0x8000];
     #pragma HLS RESOURCE   variable=ACTIVE_PORT_TABLE core=RAM_T2P_BRAM
@@ -198,7 +239,7 @@ void pActivePortTable(
         dynPortNum -= 1;
         if (dynPortNum == 0) {
             isInit = true;
-            if (DEBUG_LEVEL & TRACE_APT) {
+            if (DEBUG_LEVEL & TRACE_FPT) {
                 printInfo(myName, "Done with initialization of ACTIVE_PORT_TABLE.\n");
             }
         }
@@ -251,7 +292,10 @@ void pActivePortTable(
         }
     }
 
+    // ALWAYS
+    poPRt_FptReady = isInit;
 }
+
 
 /*****************************************************************************
  * @brief The Input Request Router (Irr) process checks the range of the port
@@ -259,7 +303,7 @@ void pActivePortTable(
  *
  *  @param[in]  siRXe_GetPortStateCmd,    Get state of a port from RxEngine (RXe).
  *  @param[out] soLpt_GetLsnPortStateCmd, Get state of a listen port to ListenPortTable (LPt).
- *  @param[out] soApt_GetActPortStateCmd, Get state of an active port to ActivePortTable (Apt).
+ *  @param[out] soFpt_GetActPortStateCmd, Get state of an active port to FreePortTable (Fpt).
  *  @param[out] soOrm_QueryRange,         Range of the forwarded query to OutputReplyMux (Orm).
  *
  * @details
@@ -272,7 +316,7 @@ void pActivePortTable(
 void pInputRequestRouter(
         stream<TcpPort>           &siRXe_GetPortStateCmd,
         stream<TcpStaPort>        &soLpt_GetLsnPortStateCmd,
-        stream<TcpDynPort>        &soApt_GetActPortStateCmd,
+        stream<TcpDynPort>        &soFpt_GetActPortStateCmd,
         stream<PortRange>         &soOrm_QueryRange)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -294,11 +338,12 @@ void pInputRequestRouter(
         }
         else {
             // Active ports are in the range [0x8000..0xFFFF]
-            soApt_GetActPortStateCmd.write(portToCheck.range(14, 0));
+            soFpt_GetActPortStateCmd.write(portToCheck.range(14, 0));
             soOrm_QueryRange.write(ACTIVE_PORT);
         }
     }
 }
+
 
 /*****************************************************************************
  * @brief The Output Reply Multiplexer (Orm) orders the lookup replies before
@@ -306,7 +351,7 @@ void pInputRequestRouter(
  *
  *  @param[in]  siIrr_QueryRange,         Range of the query from InputRequestRouter (Irr).
  *  @param[in]  siLpt_GetLsnPortStateRsp, Listen port state response from ListenPortTable (LPt).
- *  @param[in]  siApt_GetActPortStateRsp, Active port state response from ActivePortTable (Act).
+ *  @param[in]  siFpt_GetActPortStateRsp, Active port state response from FreePortTable (Fpt).
  *  @param[out] soRXe_GetPortStateRsp,    Port state response to RxEngine (RXe).
  *
  * @ingroup port_table
@@ -314,7 +359,7 @@ void pInputRequestRouter(
 void pOutputReplyMultiplexer(
         stream<PortRange> &siIrr_QueryRange,
         stream<RspBit>    &siLpt_GetLsnPortStateRsp,
-        stream<RspBit>    &siApt_GetActPortStateRsp,
+        stream<RspBit>    &siFpt_GetActPortStateRsp,
         stream<RspBit>    &soRXe_GetPortStateRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -347,18 +392,21 @@ void pOutputReplyMultiplexer(
         break;
 
     case FORWARD_ACT_PORT_STATE_RSP:
-        if (!siApt_GetActPortStateRsp.empty() and !soRXe_GetPortStateRsp.full()) {
-            soRXe_GetPortStateRsp.write(siApt_GetActPortStateRsp.read());
+        if (!siFpt_GetActPortStateRsp.empty() and !soRXe_GetPortStateRsp.full()) {
+            soRXe_GetPortStateRsp.write(siFpt_GetActPortStateRsp.read());
             ormFsmState = WAIT_FOR_QUERY_FROM_Irr;
         }
         break;
     }
 }
 
+
+
 /*****************************************************************************
  * @brief The port_table (PRt) keeps track of the TCP port numbers which are
  *         in use and therefore opened.
  *
+ *  @param[out] poTOE_Ready,           PRt's ready signal.
  *  @param[in]  siRXe_GetPortStateReq, Request to get state of a port from RxEngine (RXe).
  *  @param[out] soRXe_GetPortStateRep, Reply   to siRXe_GetPortStateReq.
  *  @param[in]  siRAi_OpenPortReq,     Request to open a port from RxAppInterface (RAi).
@@ -383,6 +431,7 @@ void pOutputReplyMultiplexer(
  * @ingroup port_table
  ******************************************************************************/
 void port_table(
+        StsBool                 &poTOE_Ready,
         stream<TcpPort>         &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
         stream<TcpPort>         &siRAi_OpenPortReq,
@@ -396,26 +445,29 @@ void port_table(
     #pragma HLS INLINE
 
     //-------------------------------------------------------------------------
-    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //-- LOCAL SIGNALS AND STREAMS
+    //--    (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
     //-- Input Request Router (Irr)
-    static stream<TcpStaPort>   sIrrToLpt_GetLsnPortStateCmd ("sIrrToLpt_GetLsnPortStateCmd");
-    #pragma HLS STREAM variable=sIrrToLpt_GetLsnPortStateCmd depth=2
+    static stream<TcpStaPort>   ssIrrToLpt_GetLsnPortStateCmd ("ssIrrToLpt_GetLsnPortStateCmd");
+    #pragma HLS STREAM variable=ssIrrToLpt_GetLsnPortStateCmd depth=2
 
-    static stream<TcpDynPort>   sIrrToApt_GetActPortStateCmd ("sIrrToApt_GetActPortStateCmd");
-    #pragma HLS STREAM variable=sIrrToApt_GetActPortStateCmd depth=2
+    static stream<TcpDynPort>   ssIrrToFpt_GetActPortStateCmd ("ssIrrToFpt_GetActPortStateCmd");
+    #pragma HLS STREAM variable=ssIrrToFpt_GetActPortStateCmd depth=2
 
-    static stream<bool>         sIrrToOrm_QueryRange         ("sIrrToOrm_QueryRange");
-    #pragma HLS STREAM variable=sIrrToOrm_QueryRange         depth=4
+    static stream<bool>         ssIrrToOrm_QueryRange         ("ssIrrToOrm_QueryRange");
+    #pragma HLS STREAM variable=ssIrrToOrm_QueryRange         depth=4
 
     //-- Listening Port Table (Lpt)
-    static stream<RspBit>       sLptToOrm_GetLsnPortStateRsp ("sLptToOrm_GetLsnPortStateRsp");
-    #pragma HLS STREAM variable=sLptToOrm_GetLsnPortStateRsp depth=2
+    StsBool                      sLptToAnd2_Ready;
+    static stream<RspBit>       ssLptToOrm_GetLsnPortStateRsp ("ssLptToOrm_GetLsnPortStateRsp");
+    #pragma HLS STREAM variable=ssLptToOrm_GetLsnPortStateRsp depth=2
 
     //-- Free Port Table (Fpt)
-    static stream<RspBit>       sAptToOrm_GetActPortStateRsp ("sAptToOrm_GetActPortStateRsp");
-    #pragma HLS STREAM variable=sAptToOrm_GetActPortStateRsp depth=2
+    StsBool                      sFptToAnd2_Ready;
+    static stream<RspBit>       ssFptToOrm_GetActPortStateRsp ("ssFptToOrm_GetActPortStateRsp");
+    #pragma HLS STREAM variable=ssFptToOrm_GetActPortStateRsp depth=2
 
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS
@@ -423,31 +475,39 @@ void port_table(
 
     // Listening PortTable
     pListeningPortTable(
+            sLptToAnd2_Ready,
             siRAi_OpenPortReq,
             soRAi_OpenPortRep,
-            sIrrToLpt_GetLsnPortStateCmd,
-            sLptToOrm_GetLsnPortStateRsp);
+            ssIrrToLpt_GetLsnPortStateCmd,
+            ssLptToOrm_GetLsnPortStateRsp);
 
     // Free PortTable
-    pActivePortTable(
+    pFreePortTable(
+            sFptToAnd2_Ready,
             siSLc_CloseActPortCmd,
-            sIrrToApt_GetActPortStateCmd,
-            sAptToOrm_GetActPortStateRsp,
+            ssIrrToFpt_GetActPortStateCmd,
+            ssFptToOrm_GetActPortStateRsp,
             siTAi_GetFreePortReq,
             soTAi_GetFreePortRep);
 
     // Routes the input requests
     pInputRequestRouter(
             siRXe_GetPortStateReq,
-            sIrrToLpt_GetLsnPortStateCmd,
-            sIrrToApt_GetActPortStateCmd,
-            sIrrToOrm_QueryRange);
+            ssIrrToLpt_GetLsnPortStateCmd,
+            ssIrrToFpt_GetActPortStateCmd,
+            ssIrrToOrm_QueryRange);
 
     // Multiplexes the output replies
     pOutputReplyMultiplexer(
-            sIrrToOrm_QueryRange,
-            sLptToOrm_GetLsnPortStateRsp,
-            sAptToOrm_GetActPortStateRsp,
+            ssIrrToOrm_QueryRange,
+            ssLptToOrm_GetLsnPortStateRsp,
+            ssFptToOrm_GetActPortStateRsp,
             soRXe_GetPortStateRep);
+
+    // Bitwise AND of the two local ready signals
+    pReady(
+            sLptToAnd2_Ready,
+            sFptToAnd2_Ready,
+            poTOE_Ready);
 
 }

@@ -54,9 +54,8 @@ using namespace std;
 //-- TESTBENCH GLOBAL DEFINES
 //    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
 //---------------------------------------------------------
-#define MAX_SIM_CYCLES 2500000
-#define TB_GRACE_TIME        0
-#define STARTUP_DELAY  (SIZEOF_LISTEN_PORT_TABLE)
+#define MAX_SIM_CYCLES     2500000
+#define MIN_STARTUP_DELAY  (SIZEOF_LISTEN_PORT_TABLE)
 
 //-- TESTBENCH MODES OF OPERATION ---------------------
 enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
@@ -89,21 +88,12 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 bool            gTraceEvent     = false;
 bool            gFatalError     = false;
 unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles = 1000;
+unsigned int    gMaxSimCycles = MIN_STARTUP_DELAY + 1000;
 Ip4Addr         gFpgaIp4Addr  = DEFAULT_FPGA_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port
 TcpPort         gFpgaSndPort  = FISRT_EPHEMERAL_PORT_NUM; // TCP source port
 Ip4Addr         gHostIp4Addr  = DEFAULT_HOST_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gHostLsnPort  = DEFAULT_HOST_LSN_PORT;  // TCP  listen port
-
-
-//SockAddr        gFpgaServerSocket(DEFAULT_FPGA_IP4_ADDR, DEFAULT_FPGA_LSN_PORT);
-//SockAddr        gFpgaClientSocket(DEFAULT_FPGA_IP4_ADDR, DEFAULT_FPGA_SND_PORT);
-//SockAddr        gHostServerSocket(DEFAULT_HOST_IP4_ADDR, DEFAULT_HOST_LSN_PORT);
-//SockAddr        gHostClientSocket(DEFAULT_HOST_IP4_ADDR, DEFAULT_HOST_SND_PORT);
-
-
-
 
 
 /*****************************************************************************
@@ -517,6 +507,7 @@ void pEmulateTxBufMem(
  * @brief Parse the input test file and set the global parameters of the TB.
  *
  * @param[in]  callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in]  startupDelay, the time it takes for TOE to be ready.
  * @param[in]  inputFile,    A ref to the input file to parse.
  *
  * @details:
@@ -531,7 +522,7 @@ void pEmulateTxBufMem(
  *
  * @ingroup toe
  ******************************************************************************/
-bool setGlobalParameters(const char *callerName, ifstream &inputFile)
+bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifstream &inputFile)
 {
     char myName[120];
     strcpy(myName, callerName);
@@ -554,7 +545,7 @@ bool setGlobalParameters(const char *callerName, ifstream &inputFile)
                 if (stringVector[2] == "SimCycles") {
                     // The test vector file is specifying a minimum number of simulation cycles.
                     int noSimCycles = atoi(stringVector[3].c_str());
-                    noSimCycles += STARTUP_DELAY;
+                    noSimCycles += startupDelay; // OBSOLETE-20190816 STARTUP_DELAY;
                     if (noSimCycles > gMaxSimCycles)
                         gMaxSimCycles = noSimCycles;
                     printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
@@ -638,26 +629,6 @@ bool setGlobalParameters(const char *callerName, ifstream &inputFile)
                 else if (stringVector[2] == "ForeignSocket") {     // DEPRECATED
                     printError(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
                     exit(1);
-                    /*** OBSOLETE-20190522 ************************************
-                    char * ptr;
-                    // Retrieve the IPv4 address to set
-                    unsigned int ip4Addr;
-                    if (isDottedDecimal(stringVector[3]))
-                        ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
-                    else if (isHexString(stringVector[3]))
-                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
-                    else
-                        ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
-                    gForeignSocket.addr = ip4Addr;
-                    // Retrieve the TCP-Port to set
-                    unsigned int tcpPort;
-                    if (isHexString(stringVector[4]))
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
-                    else
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
-                    gForeignSocket.port = tcpPort;
-                    printInfo(myName, "Redefining the default HOST socket to be <0x%8.8X, 0x%4.4X>.\n", ip4Addr, tcpPort);
-                    **********************************************************/
                 }
                 else if (stringVector[2] == "LocalSocket") {       // DEPRECATED
                     printError(myName, "The global parameter \'LocalSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TESTVECTOR FILE ACCORDINGLY.\n");
@@ -848,6 +819,7 @@ void pIPRX_FeedTOE(
  * @param[i/o] ipRxPacketizer, A ref to the RxPacketizer (double-ended queue).
  * @param[in]  sessAckList,    A ref to an associative container which holds
  *                               the sessions as socket pair associations.
+ * @param[in]  piTOE_Ready,    A reference to the ready signal of TOE.
  * @param[out] soTOE_Data,     A reference to the data stream to TOE.
  *
  * @details
@@ -869,24 +841,34 @@ void pIPRX(
         int                         &ipRx_TcpBytCntr,
         deque<IpPacket>             &ipRxPacketizer,
         map<SocketPair, TcpAckNum>  &sessAckList,
+        StsBit                      &piTOE_Ready,
         stream<Ip4overAxi>          &soTOE_Data)
 {
     static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
     static unsigned int ipRxIdleCycReq = 0;     // The requested number of idle cycles
     static unsigned int ipRxIdleCycCnt = 0;     // The count of idle cycles
+    static unsigned int toeReadyDelay  = 0;     // The time it takes for TOE to be ready
 
     string              rxStringBuffer;
     vector<string>      stringVector;
 
     const char *myName  = concat3(THIS_NAME, "/", "IPRX");
 
+    //---------------------------------------
+    //-- STEP-0 : RETURN IF TOE IS NOT READY
+    //---------------------------------------
+    if (piTOE_Ready == 0) {
+        toeReadyDelay++;
+        return;
+    }
+
     //-------------------------------------------------------------------------
-    //-- STEP-0: PARSE THE APP RX FILE.
+    //-- STEP-1: PARSE THE APP RX FILE.
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
     //-------------------------------------------------------------------------
     if (!globParseDone) {
-        globParseDone = setGlobalParameters(myName, ipRxFile);
+        globParseDone = setGlobalParameters(myName, toeReadyDelay, ipRxFile);
         if (globParseDone == false) {
             printInfo(myName, "Aborting testbench (check for previous error).\n");
             exit(1);
@@ -894,9 +876,9 @@ void pIPRX(
         return;
     }
 
-    //-----------------------------------------------------
-    //-- STEP-1 : RETURN IF IDLING IS REQUESTED
-    //-----------------------------------------------------
+    //------------------------------------------
+    //-- STEP-2 : RETURN IF IDLING IS REQUESTED
+    //------------------------------------------
     if (ipRxIdlingReq == true) {
         if (ipRxIdleCycCnt >= ipRxIdleCycReq) {
             ipRxIdleCycCnt = 0;
@@ -909,7 +891,7 @@ void pIPRX(
     }
 
     //-----------------------------------------------------
-    //-- STEP-2 : ALWAYS FEED the IP Rx INTERFACE
+    //-- STEP-3 : ALWAYS FEED the IP Rx INTERFACE
     //-----------------------------------------------------
     // Note: The IPv4 RxPacketizer may contain an ACK packet generated by the
     //  process which emulates the Layer-3 Multiplexer (.i.e, L3Mux).
@@ -918,7 +900,7 @@ void pIPRX(
     pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList);
 
     //-------------------------------------------------------------------------
-    //-- STEP-3: QUIT HERE IF RX TEST MODE IS DISABLED OR EOF IS REACHED
+    //-- STEP-4: QUIT HERE IF RX TEST MODE IS DISABLED OR EOF IS REACHED
     //-------------------------------------------------------------------------
     if ((not testRxPath) || (ipRxFile.eof()))
         return;
@@ -932,7 +914,7 @@ void pIPRX(
     //     return;
 
     //-----------------------------------------------------
-    //-- STEP-4 : READ THE IP RX FILE
+    //-- STEP-5 : READ THE IP RX FILE
     //-----------------------------------------------------
     do {
         //-- READ A LINE FROM IPRX INPUT FILE -------------
@@ -1232,6 +1214,7 @@ bool pL3MUX_Parse(
 /*****************************************************************************
  * @brief Emulate the behavior of the Layer-3 Multiplexer (L3MUX).
  *
+ * @param[in]  piTOE_Ready,     A reference to the ready signal of TOE.
  * @param[in]  siTOE_Data,      A reference to the data stream from TOE.
  * @param[in]  ipTxFile1,       The output file to write.
  * @param[in]  ipTxFile2,       The output file to write.
@@ -1253,6 +1236,7 @@ bool pL3MUX_Parse(
  * @ingroup toe
  ******************************************************************************/
 void pL3MUX(
+        StsBit                      &piTOE_Ready,
         stream<Ip4overAxi>          &siTOE_Data,
         ofstream                    &ipTxFile1,
         ofstream                    &ipTxFile2,
@@ -1269,6 +1253,13 @@ void pL3MUX(
     static IpPacket ipTxPacket;
     static int  rttSim = RTT_LINK;
 
+    //---------------------------------------
+    //-- STEP-0 : RETURN IF TOE IS NOT READY
+    //---------------------------------------
+    if (piTOE_Ready == 0) {
+        return;
+    }
+
     if (!siTOE_Data.empty()) {
 
         //-- Emulate the link RTT -------------------------
@@ -1277,16 +1268,22 @@ void pL3MUX(
             return;
         }
 
-        //-- STEP-1 : Drain the TOE -----------------------
+        //--------------------------
+        //-- STEP-1 : Drain the TOE
+        //--------------------------
         siTOE_Data.read(ipTxWord);
         if (DEBUG_LEVEL & TRACE_L3MUX) {
             printAxiWord(myName, ipTxWord);
         }
 
-        //-- STEP-2 : Write to packet --------------------
+        //----------------------------
+        //-- STEP-2 : Write to packet
+        //----------------------------
         ipTxPacket.push_back(ipTxWord);
 
-        //-- STEP-3 : Parse the received packet------------
+        //--------------------------------------
+        //-- STEP-3 : Parse the received packet
+        //--------------------------------------
         if (ipTxWord.tlast == 1) {
             // The whole packet is now into the deque.
             if (pL3MUX_Parse(ipTxPacket, sessAckList, ipRxPacketizer) == true) {
@@ -1308,7 +1305,9 @@ void pL3MUX(
         else
             ipTxWordCounter++;
 
-        //-- STEP-4 : Write to file ------------- ---------
+        //--------------------------
+        //-- STEP-4 : Write to file
+        //--------------------------
         string dataOutput = myUint64ToStrHex(ipTxWord.tdata);
         string keepOutput = myUint8ToStrHex(ipTxWord.tkeep);
         ipTxFile1 << dataOutput << " " << ipTxWord.tlast << " " << keepOutput << endl;
@@ -1319,7 +1318,8 @@ void pL3MUX(
 /*****************************************************************************
  * @brief Request the TOE to open a new port in listening mode.
  *
- * @param[in]  portNum,      The port # to listen to.
+ * @param[in]  lsnPortNum,   The port # to listen to.
+ * @param[in]  openedPorts;  A ref to the set of ports opened in listening mode.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  *
@@ -1328,21 +1328,21 @@ void pL3MUX(
  * @ingroup test_toe
  ******************************************************************************/
 bool pTRIF_Recv_Listen(
-        TcpPort            portNum,
+        TcpPort             lsnPortNum,
+        set<TcpPort>       &openedPorts,
         stream<AppLsnReq>  &soTOE_LsnReq,
         stream<AppLsnAck>  &siTOE_LsnAck)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Recv/Listen()");
 
     static ap_uint<1> listenFsm     =   0;
+    static TcpPort    portNum;
     static int        watchDogTimer = 100;
-
-    //OBSOLETE-20180522 TcpPort portNum = gLocalSocket.port;  // The port # to listen to.
-    //OBSOLETE-20190522 bool              listenDone  = false;
     bool              rc = false;
 
     switch (listenFsm) {
     case 0:
+        portNum = lsnPortNum;
         soTOE_LsnReq.write(portNum);
         if (DEBUG_LEVEL & TRACE_TRIF) {
             printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
@@ -1357,6 +1357,8 @@ bool pTRIF_Recv_Listen(
         if (!siTOE_LsnAck.empty()) {
             siTOE_LsnAck.read(rc);
             if (rc) {
+                // Add the current port # to the set of opened ports
+                openedPorts.insert(portNum);
                 printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
                           portNum.to_uint(), portNum.to_uint());
             }
@@ -1410,21 +1412,6 @@ bool pTRIF_Send_Connect(
     // Prepare to open a new connection
     AxiSockAddr axiHostServerSocket(AxiSockAddr(byteSwap32(aSocketPair.dst.addr),
                                                 byteSwap16(aSocketPair.dst.port)));
-
-    /*** OBSOLETE-20190522 ****************************************************
-    // Check if a session exists for this socket-pair
-    if (openSessList.find(aSocketPair) != openSessList.end()) {
-        // A session exists;
-        return true;
-    }
-
-    // Check maximum number of opened sessions
-    if (noOpenSess >= NO_TX_SESSIONS) {
-        printError(myName, "Trying to open too many sessions. Max. is %d.\n", NO_TX_SESSIONS);
-        nrError += 1;
-        return false;
-    }
-    ***************************************************************************/
     static int openFsm = 0;
 
     switch (openFsm) {
@@ -1553,6 +1540,7 @@ void pTRIF_Send_Echo(
  * @param[in]  testMode,     Indicates the test mode of operation (0|1|2|3).
  * @param[in]  appTxFile,    A ref to the output Tx application file to write.
  * @param[i/o] apTx_TcpBytCntr, A ref to the counter of bytes on the APP Tx I/F.
+ * @param[in]  piTOE_Ready,  A reference to the ready signal of TOE.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  * @param[in]  siTOE_Notif,  TCP notification from TOE.
@@ -1571,6 +1559,7 @@ void pTRIF_Recv(
         char                    &testMode,
         ofstream                &appTxFile,
         int                     &apTx_TcpBytCntr,
+        StsBit                  &piTOE_Ready,
         stream<AppLsnReq>       &soTOE_LsnReq,
         stream<AppLsnAck>       &siTOE_LsnAck,
         stream<AppNotif>        &siTOE_Notif,
@@ -1589,7 +1578,7 @@ void pTRIF_Recv(
     static unsigned int appRxIdleCycCnt = 0;     // The count of idle cycles
 
     static vector<SessionId> txSessIdVector;     // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
-    static int          startupDelay = TB_GRACE_TIME;
+    static int          startupDelay = 0;
     static bool         dualTest   = false;
     static int          appRspIdle = 0;
     static ap_uint<32>  mAmount    = 0;
@@ -1604,11 +1593,10 @@ void pTRIF_Recv(
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF_Recv");
 
-    //---------------------------------------------------------------
-    //-- STEP-0 : Give this process some grace time before starting.
-    //---------------------------------------------------------------
-    if (startupDelay) {
-        startupDelay--;
+    //---------------------------------------
+    //-- STEP-0 : RETURN IF TOE IS NOT READY
+    //---------------------------------------
+    if (piTOE_Ready == 0) {
         return;
     }
 
@@ -1617,14 +1605,14 @@ void pTRIF_Recv(
     //------------------------------------------------
     // Check if a port is already opened
     if (listeningPorts.find(gFpgaLsnPort) == listeningPorts.end()) {
-        bool listenStatus = pTRIF_Recv_Listen(gFpgaLsnPort, soTOE_LsnReq, siTOE_LsnAck);
+        bool listenStatus = pTRIF_Recv_Listen(gFpgaLsnPort, listeningPorts, soTOE_LsnReq, siTOE_LsnAck);
         if (listenStatus == false) {
             return;
         }
-        else {
-            // Add this port # to the set of opened ports
-            listeningPorts.insert(gFpgaLsnPort);
-        }
+        // OBSOLETE-20190806 else {
+        //    // Add this port # to the set of opened ports
+        //    listeningPorts.insert(gFpgaLsnPort);
+        // }
     }
 
     //------------------------------------------------
@@ -1737,6 +1725,7 @@ void pTRIF_Recv(
  * @param[in]  appRxFile,    A ref to the input Rx application file to read.
  * @param[in]  ipTxGoldFile, A ref to the output IP Tx gold file to write.
  * @param[i/o] apRx_TcpBytCntr, A ref to the counter of bytes on the APP Rx I/F.
+ * @param[in]  piTOE_Ready,  A reference to the ready signal of TOE.
  * @param[out] soTOE_OpnReq, TCP open port request to TOE.
  * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
  * @param[out] soTOE_Meta,   TCP metadata stream to TOE.
@@ -1758,6 +1747,7 @@ void pTRIF_Send(
         ifstream                &appRxFile,
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
+        StsBit                  &piTOE_Ready,
         stream<AxiSockAddr>     &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnSts,
         stream<SessionId>       &soTOE_Meta,
@@ -1770,6 +1760,7 @@ void pTRIF_Send(
     static bool              appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
     static unsigned int      appRxIdleCycReq = 0;     // The requested number of idle cycles
     static unsigned int      appRxIdleCycCnt = 0;     // The count of idle cycles
+    static unsigned int      toeReadyDelay   = 0;     // The time it takes for TOE to be ready
     static vector<SessionId> txSessIdVector;  // A vector containing the Tx session IDs to be send from TRIF/Meta to TOE/Meta
 
     // Keep track of the sessions opened by the TOE
@@ -1783,15 +1774,23 @@ void pTRIF_Send(
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF_Send");
 
-    //-------------------------------------------------------------------------
-    //-- STEP-0 : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
-    //-------------------------------------------------------------------------
+    //-------------------------------------------------------------
+    //-- STEP-0a : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
+    //-------------------------------------------------------------
     if (not testTxPath)
         return;
 
-    //-------------------------------------------------------------------------
+    //----------------------------------------
+    //-- STEP-0b : RETURN IF TOE IS NOT READY
+    //----------------------------------------
+    if (piTOE_Ready == 0) {
+        toeReadyDelay++;
+        return;
+    }
+
+    //----------------------------------------------------------------
     //-- STEP-1a : SHORT EXECUTION PATH WHEN TestingMode == ECHO_MODE
-                //--------------------------------------------------------------
+    //----------------------------------------------------------------
     if (testMode == ECHO_MODE) {
         pTRIF_Send_Echo(nrError, ipTxGoldFile, apRx_TcpBytCntr,
                         soTOE_Data, soTOE_Meta,
@@ -1799,12 +1798,12 @@ void pTRIF_Send(
         return;
     }
 
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------
     //-- STEP-1b : PARSE THE APP RX FILE.
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------
     if (!globParseDone) {
-        globParseDone = setGlobalParameters(myName, appRxFile);
+        globParseDone = setGlobalParameters(myName, toeReadyDelay, appRxFile);
         if (globParseDone == false) {
             printFatal(myName, "Aborting testbench (check for previous error).\n");
             exit(1);
@@ -2022,6 +2021,7 @@ void pTRIF_Send(
  * @param[in]  ipTxGoldFile, A ref to the output IP Tx gold file to write.
  * @param[i/o] apRx_TcpBytCntr, A ref to the counter of bytes on the APP Rx I/F.
  * @param[i/o] apTx_TcpBytCntr, A ref to the counter of bytes on the APP Tx I/F.
+ * @param[in]  piTOE_Ready,  A reference to the ready signal of TOE.
  * @param[out] soTOE_LsnReq, TCP listen port request to TOE.
  * @param[in]  siTOE_LsnAck, TCP listen port acknowledge from TOE.
  * @param[in]  siTOE_Notif,  TCP notification from TOE.
@@ -2044,7 +2044,6 @@ void pTRIF_Send(
  *   TOE. Instead, it is pushed into a vector that is used by the main process
  *   when it feeds the input data flows [FIXME].
  *
- * @ingroup toe
  ******************************************************************************/
 void pTRIF(
         bool                    &testTxPath,
@@ -2056,6 +2055,7 @@ void pTRIF(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         int                     &apTx_TcpBytCntr,
+        StsBit                  &piTOE_Ready,
         stream<AppLsnReq>       &soTOE_LsnReq,
         stream<AppLsnAck>       &siTOE_LsnAck,
         stream<AppNotif>        &siTOE_Notif,
@@ -2082,6 +2082,7 @@ void pTRIF(
     pTRIF_Recv(
             nrError,        testMode,
             appTxFile,      apTx_TcpBytCntr,
+            piTOE_Ready,
             soTOE_LsnReq,   siTOE_LsnAck,
             siTOE_Notif,    soTOE_DReq,
             siTOE_Meta,     siTOE_Data,
@@ -2095,7 +2096,9 @@ void pTRIF(
             appRxFile,
             ipTxGoldFile,
             apRx_TcpBytCntr,
-            soTOE_OpnReq, siTOE_OpnSts,
+            piTOE_Ready,
+            soTOE_OpnReq,
+            siTOE_OpnSts,
             soTOE_Meta,
             soTOE_Data,
             soTOE_ClsReq,
@@ -2127,6 +2130,11 @@ void pTRIF(
  * @ingroup test_toe
  ******************************************************************************/
 int main(int argc, char *argv[]) {
+
+    //------------------------------------------------------
+    //-- DUT SIGNAL INTERFACES
+    //------------------------------------------------------
+    StsBit                              sTOE_Ready;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
@@ -2176,7 +2184,7 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     ap_uint<32>     simCycCnt      = 0;
     ap_uint<32>     sTB_TOE_SimCycCnt;
-    ap_uint<32>     sTOE_TB_SimCycCnt;
+    ap_uint<32>     sTOE_TB_SimCycCnt = 0;
     int             nrErr;
 
     Ip4Word         ipRxData;    // An IP4 chunk
@@ -2327,7 +2335,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printInfo(THIS_NAME, "This run executes with a STARTUP_DELAY = %d \n", STARTUP_DELAY);
+    // OBSOLETE-20190806 printInfo(THIS_NAME, "This run executes with a STARTUP_DELAY = %d \n", STARTUP_DELAY);
 
     //-----------------------------------------------------
     //-- MAIN LOOP
@@ -2336,50 +2344,52 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-1 : Emulate the IPv4 Rx Path
         //-------------------------------------------------
-        if (simCycCnt > STARTUP_DELAY) {
+        // OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
             pIPRX(ipRxFile,       appTxGold,
                   testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
-                  ipRxPacketizer, sessAckList,     sIPRX_Toe_Data);
-        }
+                  ipRxPacketizer, sessAckList,
+                  sTOE_Ready,     sIPRX_Toe_Data);
+        // OBSOLETE-20190806 if }
 
         //-------------------------------------------------
         //-- STEP-2 : RUN DUT
         //-------------------------------------------------
-        if (simCycCnt > TB_GRACE_TIME) {
-            // Give the TB some grace time to do some of the required initializations
-            toe(
-                //-- From MMIO Interfaces
-                (AxiIp4Addr)(byteSwap32(gFpgaIp4Addr)),
-                //-- IPv4 / Rx & Tx Interfaces
-                sIPRX_Toe_Data,   sTOE_L3mux_Data,
-                //-- TRIF / Tx Data Interfaces
-                sTOE_Trif_Notif,  sTRIF_Toe_DReq,
-                sTOE_Trif_Data,   sTOE_Trif_Meta,
-                //-- TRIF / Listen Interfaces
-                sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
-                //-- TRIF / Rx Data Interfaces
-                sTRIF_Toe_Data,   sTRIF_Toe_Meta,
-                sTOE_Trif_DSts,
-                //-- TRIF / Open Interfaces
-                sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
-                //-- TRIF / Close Interfaces
-                sTRIF_Toe_ClsReq,
-                //-- MEM / Rx PATH / S2MM Interface
-                sTOE_Mem_RxP_RdCmd, sMEM_Toe_RxP_Data, sMEM_Toe_RxP_WrSts, sTOE_Mem_RxP_WrCmd, sTOE_Mem_RxP_Data,
-                sTOE_Mem_TxP_RdCmd, sMEM_Toe_TxP_Data, sMEM_Toe_TxP_WrSts, sTOE_Mem_TxP_WrCmd, sTOE_Mem_TxP_Data,
-                //-- CAM / This / Session Lookup & Update Interfaces
-                sTOE_Cam_SssLkpReq, sCAM_Toe_SssLkpRep,
-                sTOE_Cam_SssUpdReq, sCAM_Toe_SssUpdRep,
-                //-- DEBUG / Session Statistics Interfaces
-                clsSessionCount, opnSessionCount,
-                //-- DEBUG / SimCycCounter
-				simCycCnt, sTOE_TB_SimCycCnt);
-        }
+        toe(
+            //-- MMIO Interfaces
+            (AxiIp4Addr)(byteSwap32(gFpgaIp4Addr)),
+            //-- NTS Interfaces
+            sTOE_Ready,
+            //-- IPv4 / Rx & Tx Interfaces
+            sIPRX_Toe_Data,   sTOE_L3mux_Data,
+            //-- TRIF / Tx Data Interfaces
+            sTOE_Trif_Notif,  sTRIF_Toe_DReq,
+            sTOE_Trif_Data,   sTOE_Trif_Meta,
+            //-- TRIF / Listen Interfaces
+            sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
+            //-- TRIF / Rx Data Interfaces
+            sTRIF_Toe_Data,   sTRIF_Toe_Meta,
+            sTOE_Trif_DSts,
+            //-- TRIF / Open Interfaces
+            sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
+            //-- TRIF / Close Interfaces
+            sTRIF_Toe_ClsReq,
+            //-- MEM / Rx PATH / S2MM Interface
+            sTOE_Mem_RxP_RdCmd, sMEM_Toe_RxP_Data, sMEM_Toe_RxP_WrSts, sTOE_Mem_RxP_WrCmd, sTOE_Mem_RxP_Data,
+            sTOE_Mem_TxP_RdCmd, sMEM_Toe_TxP_Data, sMEM_Toe_TxP_WrSts, sTOE_Mem_TxP_WrCmd, sTOE_Mem_TxP_Data,
+            //-- CAM / This / Session Lookup & Update Interfaces
+            sTOE_Cam_SssLkpReq, sCAM_Toe_SssLkpRep,
+            sTOE_Cam_SssUpdReq, sCAM_Toe_SssUpdRep,
+            //-- DEBUG / Session Statistics Interfaces
+            clsSessionCount, opnSessionCount,
+            //-- DEBUG / SimCycCounter
+            simCycCnt, sTOE_TB_SimCycCnt);
+
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
         //-------------------------------------------------
-        if (simCycCnt > STARTUP_DELAY) {
+        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
+        if (sTOE_Ready) {
             pEmulateRxBufMem(
                 &rxMemory,          nrErr,
                 sTOE_Mem_RxP_WrCmd, sMEM_Toe_RxP_WrSts,
@@ -2402,32 +2412,34 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-4.0 : Emulate Layer-3 Multiplexer
         //-------------------------------------------------
-        if (simCycCnt > STARTUP_DELAY) {
+        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
             pL3MUX(
+                sTOE_Ready,
                 sTOE_L3mux_Data,
                 ipTxFile1,       ipTxFile2,
                 sessAckList,
                 ipTx_PktCounter, ipTx_TcpBytCntr,
                 ipRxPacketizer);
-        }
+        //OBSOLETE-20190806 }
 
         //-------------------------------------------------
         //-- STEP-4.1 : Emulate TCP Role Interface
         //-------------------------------------------------
-        if (simCycCnt > STARTUP_DELAY) {
+        //OBSOLETE-20190806 if (simCycCnt > STARTUP_DELAY) {
             pTRIF(
                 testTxPath,       mode,
                 nrErr,
                 gFpgaIp4Addr,     appRxFile,
                 appTxFile,        ipTxGold2,
                 apRx_TcpBytCntr,  apTx_TcpBytCntr,
+                sTOE_Ready,
                 sTRIF_Toe_LsnReq, sTOE_Trif_LsnAck,
                 sTOE_Trif_Notif,  sTRIF_Toe_DReq,
                 sTOE_Trif_Meta,   sTOE_Trif_Data,
                 sTRIF_Toe_OpnReq, sTOE_Trif_OpnSts,
                 sTRIF_Toe_Meta,   sTRIF_Toe_Data,
                 sTRIF_Toe_ClsReq);
-        }
+            //OBSOLETE-20190806 }
 
         // TODO
         if (!sTOE_Trif_DSts.empty()) {
@@ -2445,15 +2457,15 @@ int main(int argc, char *argv[]) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
             gTraceEvent = false;
         }
-//#ifdef __SYNTHESIS__
+#ifdef __SYNTHESIS__
         printf("------------------- [@%d] ------------\n", sTOE_TB_SimCycCnt.to_uint());
-//#endif
+#endif
         //------------------------------------------------------
         //-- STEP-7 : EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
 
-    } while ( (simCycCnt < (gMaxSimCycles + STARTUP_DELAY)) and
-              (not gFatalError) and (nrErr < 10) );
+    } while (  (sTOE_Ready == 0) or
+              ((simCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10)) );
 
     //---------------------------------
     //-- CLOSING OPEN FILES
