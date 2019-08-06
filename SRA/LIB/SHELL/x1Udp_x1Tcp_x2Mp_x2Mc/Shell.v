@@ -621,6 +621,18 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire        ssFMC_NRC_ctrlLink_Axi_BVALID;
   wire        ssFMC_NRC_ctrlLink_Axi_BREADY;
   wire [ 1:0] ssFMC_NRC_ctrlLink_Axi_BRESP;
+  // FMC <==> CoreToDebug PYROLINK 
+  wire [ 7:0] ssFMC_CoreToDebug_Pyrolink_TDATA;
+  wire        ssFMC_CoreToDebug_Pyrolink_TVALID;
+  wire        ssFMC_CoreToDebug_Pyrolink_TREADY;
+  wire        ssFMC_CoreToDebug_Pyrolink_TKEEP;
+  wire        ssFMC_CoreToDebug_Pyrolink_TLAST;
+  wire [ 7:0] ssCoreToDebug_FMC_Pyrolink_TDATA;
+  wire        ssCoreToDebug_FMC_Pyrolink_TVALID;
+  wire        ssCoreToDebug_FMC_Pyrolink_TREADY;
+  wire        ssCoreToDebug_FMC_Pyrolink_TKEEP;
+  wire        ssCoreToDebug_FMC_Pyrolink_TLAST;
+
 
  
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
@@ -1284,23 +1296,23 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //.poMMIO_V_ap_vld     ( ),
     .piMMIO_V              (sMMIO_FMC_WrFmcReg),
     .piMMIO_V_ap_vld        (1),
-    .m_axi_poSMC_to_HWICAP_AXIM_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
-    .m_axi_poSMC_to_HWICAP_AXIM_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
-    .m_axi_poSMC_to_HWICAP_AXIM_AWREADY  (ssFMC_HWICAP_Axi_awready),
-    .m_axi_poSMC_to_HWICAP_AXIM_WDATA    (ssFMC_HWICAP_Axi_wdata),
-    .m_axi_poSMC_to_HWICAP_AXIM_WSTRB    (ssFMC_HWICAP_Axi_wstrb),
-    .m_axi_poSMC_to_HWICAP_AXIM_WVALID   (ssFMC_HWICAP_Axi_wvalid),
-    .m_axi_poSMC_to_HWICAP_AXIM_WREADY   (ssFMC_HWICAP_Axi_wready),
-    .m_axi_poSMC_to_HWICAP_AXIM_BRESP    (ssFMC_HWICAP_Axi_bresp),
-    .m_axi_poSMC_to_HWICAP_AXIM_BVALID   (ssFMC_HWICAP_Axi_bvalid),
-    .m_axi_poSMC_to_HWICAP_AXIM_BREADY   (ssFMC_HWICAP_Axi_bready),
-    .m_axi_poSMC_to_HWICAP_AXIM_ARADDR   (ssFMC_HWICAP_Axi_araddr),
-    .m_axi_poSMC_to_HWICAP_AXIM_ARVALID  (ssFMC_HWICAP_Axi_arvalid), 
-    .m_axi_poSMC_to_HWICAP_AXIM_ARREADY  (ssFMC_HWICAP_Axi_arready),
-    .m_axi_poSMC_to_HWICAP_AXIM_RDATA    (ssFMC_HWICAP_Axi_rdata),
-    .m_axi_poSMC_to_HWICAP_AXIM_RRESP    (ssFMC_HWICAP_Axi_rresp),
-    .m_axi_poSMC_to_HWICAP_AXIM_RVALID   (ssFMC_HWICAP_Axi_rvalid),
-    .m_axi_poSMC_to_HWICAP_AXIM_RREADY   (ssFMC_HWICAP_Axi_rready),
+    .m_axi_poFMC_to_HWICAP_AXIM_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
+    .m_axi_poFMC_to_HWICAP_AXIM_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
+    .m_axi_poFMC_to_HWICAP_AXIM_AWREADY  (ssFMC_HWICAP_Axi_awready),
+    .m_axi_poFMC_to_HWICAP_AXIM_WDATA    (ssFMC_HWICAP_Axi_wdata),
+    .m_axi_poFMC_to_HWICAP_AXIM_WSTRB    (ssFMC_HWICAP_Axi_wstrb),
+    .m_axi_poFMC_to_HWICAP_AXIM_WVALID   (ssFMC_HWICAP_Axi_wvalid),
+    .m_axi_poFMC_to_HWICAP_AXIM_WREADY   (ssFMC_HWICAP_Axi_wready),
+    .m_axi_poFMC_to_HWICAP_AXIM_BRESP    (ssFMC_HWICAP_Axi_bresp),
+    .m_axi_poFMC_to_HWICAP_AXIM_BVALID   (ssFMC_HWICAP_Axi_bvalid),
+    .m_axi_poFMC_to_HWICAP_AXIM_BREADY   (ssFMC_HWICAP_Axi_bready),
+    .m_axi_poFMC_to_HWICAP_AXIM_ARADDR   (ssFMC_HWICAP_Axi_araddr),
+    .m_axi_poFMC_to_HWICAP_AXIM_ARVALID  (ssFMC_HWICAP_Axi_arvalid), 
+    .m_axi_poFMC_to_HWICAP_AXIM_ARREADY  (ssFMC_HWICAP_Axi_arready),
+    .m_axi_poFMC_to_HWICAP_AXIM_RDATA    (ssFMC_HWICAP_Axi_rdata),
+    .m_axi_poFMC_to_HWICAP_AXIM_RRESP    (ssFMC_HWICAP_Axi_rresp),
+    .m_axi_poFMC_to_HWICAP_AXIM_RVALID   (ssFMC_HWICAP_Axi_rvalid),
+    .m_axi_poFMC_to_HWICAP_AXIM_RREADY   (ssFMC_HWICAP_Axi_rready),
     .piDECOUP_SMC_status_V               (sDECOUP_FMC_status),
     .poSMC_DECOUP_activate_V             (sFMC_DECOUP_activate),
     .xmem_V_Address0                     (sbFMC_MMIO_Xmem_Addr),
@@ -1308,25 +1320,40 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .xmem_V_we0                          (sbFMC_MMIO_Xmem_wren),
     .xmem_V_d0                           (sbFMC_MMIO_Xmem_WData),
     .xmem_V_q0                           (sbFMC_MMIO_Xmem_RData),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_AWVALID       (ssFMC_NRC_ctrlLink_Axi_AWVALID),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_AWREADY       (ssFMC_NRC_ctrlLink_Axi_AWREADY),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_AWADDR        (ssFMC_NRC_ctrlLink_Axi_AWADDR),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_WVALID        (ssFMC_NRC_ctrlLink_Axi_WVALID),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_WREADY        (ssFMC_NRC_ctrlLink_Axi_WREADY),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_WDATA         (ssFMC_NRC_ctrlLink_Axi_WDATA),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_WSTRB         (ssFMC_NRC_ctrlLink_Axi_WSTRB),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_ARVALID       (ssFMC_NRC_ctrlLink_Axi_ARVALID),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_ARREADY       (ssFMC_NRC_ctrlLink_Axi_ARREADY),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_ARADDR        (ssFMC_NRC_ctrlLink_Axi_ARADDR),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_RVALID        (ssFMC_NRC_ctrlLink_Axi_RVALID),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_RREADY        (ssFMC_NRC_ctrlLink_Axi_RREADY),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_RDATA         (ssFMC_NRC_ctrlLink_Axi_RDATA),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_RRESP         (ssFMC_NRC_ctrlLink_Axi_RRESP),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_BVALID        (ssFMC_NRC_ctrlLink_Axi_BVALID),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_BREADY        (ssFMC_NRC_ctrlLink_Axi_BREADY),
-    .m_axi_poSMC_NRC_ctrlLink_AXI_BRESP         (ssFMC_NRC_ctrlLink_Axi_BRESP)//,
-    //.poSMC_to_ROLE_rank_V                (poROL_Fmc_Rank),
-    //.poSMC_to_ROLE_size_V                (poROL_Fmc_Size)
+    .m_axi_poFMC_NRC_ctrlLink_AXI_AWVALID       (ssFMC_NRC_ctrlLink_Axi_AWVALID),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_AWREADY       (ssFMC_NRC_ctrlLink_Axi_AWREADY),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_AWADDR        (ssFMC_NRC_ctrlLink_Axi_AWADDR),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_WVALID        (ssFMC_NRC_ctrlLink_Axi_WVALID),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_WREADY        (ssFMC_NRC_ctrlLink_Axi_WREADY),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_WDATA         (ssFMC_NRC_ctrlLink_Axi_WDATA),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_WSTRB         (ssFMC_NRC_ctrlLink_Axi_WSTRB),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_ARVALID       (ssFMC_NRC_ctrlLink_Axi_ARVALID),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_ARREADY       (ssFMC_NRC_ctrlLink_Axi_ARREADY),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_ARADDR        (ssFMC_NRC_ctrlLink_Axi_ARADDR),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_RVALID        (ssFMC_NRC_ctrlLink_Axi_RVALID),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_RREADY        (ssFMC_NRC_ctrlLink_Axi_RREADY),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_RDATA         (ssFMC_NRC_ctrlLink_Axi_RDATA),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_RRESP         (ssFMC_NRC_ctrlLink_Axi_RRESP),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_BVALID        (ssFMC_NRC_ctrlLink_Axi_BVALID),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_BREADY        (ssFMC_NRC_ctrlLink_Axi_BREADY),
+    .m_axi_poFMC_NRC_ctrlLink_AXI_BRESP         (ssFMC_NRC_ctrlLink_Axi_BRESP),
+    .piDisableCtrlLink_V                        (1),//TODO: SET to 0 IF NRC IS PRESENT
+    .piDisableCtrlLink_V_ap_vld                 (1),
+    .soPYROLINK_TDATA                           (ssFMC_CoreToDebug_Pyrolink_TDATA),
+    .soPYROLINK_TVALID                          (ssFMC_CoreToDebug_Pyrolink_TVALID),
+    .soPYROLINK_TREADY                          (ssFMC_CoreToDebug_Pyrolink_TREADY),
+    .soPYROLINK_TKEEP                           (ssFMC_CoreToDebug_Pyrolink_TKEEP),
+    .soPYROLINK_TLAST                           (ssFMC_CoreToDebug_Pyrolink_TLAST),
+    .siPYROLINK_TDATA                           (ssCoreToDebug_FMC_Pyrolink_TDATA),
+    .siPYROLINK_TVALID                          (ssCoreToDebug_FMC_Pyrolink_TVALID),
+    .siPYROLINK_TREADY                          (ssCoreToDebug_FMC_Pyrolink_TREADY),
+    .siPYROLINK_TKEEP                           (ssCoreToDebug_FMC_Pyrolink_TKEEP),
+    .siPYROLINK_TLAST                           (ssCoreToDebug_FMC_Pyrolink_TLAST),
+    .piDisablePyroLink_V                        (1),//TODO: SET to 0 IF PYROLINK SHOULD BE USED
+    .piDisablePyroLink_V_ap_vld                 (1)//,
+
+    //.poFMC_to_ROLE_rank_V                (poROL_Fmc_Rank),
+    //.poFMC_to_ROLE_size_V                (poROL_Fmc_Size)
   );
 
   // == Temporary assignment (until NRC module is back) ==
