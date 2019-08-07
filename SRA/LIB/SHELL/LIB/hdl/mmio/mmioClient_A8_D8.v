@@ -97,6 +97,7 @@ module MmioClient_A8_D8 #(
   //-- NTS0 : Status inputs and Control Outputs
   //----------------------------------------------
   input           piNTS0_CamReady,
+  input           piNTS0_ToeReady,
   output  [47:0]  poNTS0_MacAddress,
   output  [31:0]  poNTS0_IpAddress,
   output  [31:0]  poNTS0_SubNetMask,
@@ -526,7 +527,7 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*PHY_STAT+2]  = piETH0_CoreReady;          // RO
   assign sStatusVec[cEDW*PHY_STAT+3]  = piETH0_QpllLock;           // RO
   assign sStatusVec[cEDW*PHY_STAT+4]  = piNTS0_CamReady;           // RO
-  assign sStatusVec[cEDW*PHY_STAT+5]  = 1'b0;                      // RO
+  assign sStatusVec[cEDW*PHY_STAT+5]  = piNTS0_ToeReady;           // RO
   assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                      // RO
   assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                      // RO
   //---- PHY_ETH0 ----------------------
@@ -588,11 +589,6 @@ module MmioClient_A8_D8 #(
   endgenerate
   
   //-------------------------------------------------------- 
-  //-- PCIE REGISTERS
-  //--------------------------------------------------------
-  //---- Not Implemented ---------------
- 
-  //-------------------------------------------------------- 
   //-- APP REGISTERS
   //--------------------------------------------------------
   //---- APP_RDROL[0:1] ----------------
@@ -641,6 +637,16 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*APP_WRFMC3+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC3+id]; // RW   
     end
   endgenerate
+
+  //-------------------------------------------------------- 
+  //-- RES1 REGISTERS
+  //--------------------------------------------------------
+  //---- Not Implemented ---------------
+
+  //-------------------------------------------------------- 
+  //-- RES2 REGISTERS
+  //--------------------------------------------------------
+  //---- Not Implemented ---------------
 
   //-------------------------------------------------------- 
   //-- DIAGNOSTIC REGISTERS
@@ -758,6 +764,16 @@ module MmioClient_A8_D8 #(
   //---- Read FMC Register-------------
   //------ No Outputs to the Fabric (RO)
   assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*APP_WRFMC3+7:cEDW*APP_WRFMC0+0];
+  
+  //-------------------------------------------------------- 
+  //-- RES1 REGISTERS
+  //--------------------------------------------------------
+  //---- Not Implemented ---------------
+  
+  //-------------------------------------------------------- 
+  //-- RES2 REGISTERS
+  //--------------------------------------------------------
+  //---- Not Implemented ---------------
   
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS
