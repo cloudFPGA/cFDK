@@ -626,7 +626,8 @@ void toe(
 
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
-    #pragma HLS INTERFACE ap_none register   port=poSimCycCount
+    //-- NTS Interfaces
+    #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
     //-- L3MUX / IP Tx Data Interface -----------------------------------------
@@ -769,7 +770,7 @@ void toe(
 
     static stream<AppNotif>             sRXeToRAi_Notif           ("sRXeToRAi_Notif");
     #pragma HLS stream         variable=sRXeToRAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notifmy_SimCountIncrementer
+    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notif
 
     static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
