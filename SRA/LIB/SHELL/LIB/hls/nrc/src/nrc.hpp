@@ -6,7 +6,8 @@
 //  *     Authors: FAB, WEI, NGL
 //  *
 //  *     Description:
-//  *        A interface between the UDP stack and the NRC (mainly a buffer).
+//  *        The Network Routing Core manages the NTS Stack and maps the network streams to the 
+//  *        user's ROLE or the FMC.
 //  *
 
 #ifndef _NRC_H_
@@ -79,12 +80,14 @@
 #include "../../fmc/src/fmc.hpp"
 
 #include "../../../../../hls/network_utils.hpp"
+#include "../../../../../hls/memory_utils.hpp"
+#include "../../../../../hls/simulation_utils.hpp"
 
 
 using namespace hls;
 
-#define UDP_RX_MIN_PORT 2718
-#define UDP_RX_MAX_PORT 2749
+#define NRC_RX_MIN_PORT 2718
+#define NRC_RX_MAX_PORT 2749
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
@@ -99,7 +102,7 @@ using namespace hls;
 #define FSM_LAST_ACC 5
 #define FSM_W8FORMETA 6
 #define FSM_WRITE_META 7
-#define FsmState uint8_t
+#define FsmStateUdp uint8_t
 
 
 //#define WRITE_IDLE 0
@@ -139,7 +142,9 @@ using namespace hls;
 #define NRC_CONFIG_OWN_RANK 0
 
 //#define NRC_STATUS_WRITE_ERROR_CNT 4
+#define NRC_STATUS_UNUSED_1 4
 //#define NRC_STATUS_READ_ERROR_CNT 5
+#define NRC_STATUS_UNUSED_2 5
 #define NRC_STATUS_SEND_STATE 6
 #define NRC_STATUS_RECEIVE_STATE 7
 #define NRC_STATUS_GLOBAL_STATE 8
@@ -154,20 +159,21 @@ using namespace hls;
 
 
 void nrc_main(
-    // ----- system reset ---
-    ap_uint<1> sys_reset,
-    // ----- link to SMC -----
+    // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    // ----- link to MMIO ----
+    ap_uint<16> *piMMIO_FmcLsnPort,
+    ap_uint<32> *piMMIO_CfrmIp4Addr,
 
     //-- ROLE / This / Network Interfaces
-    ap_uint<32>              *pi_udp_rx_ports,
-    stream<UdpWord>          &siUdp_data,
-    stream<UdpWord>          &soUdp_data,
-    stream<NrcMetaStream>    &siNrc_meta,
-    //stream<NrcMeta>          &siNrc_meta,
-    stream<NrcMetaStream>    &soNrc_meta,
-    //stream<NrcMeta>          &soNrc_meta,
-    ap_uint<32>              *myIpAddress,
+    ap_uint<32>                 *pi_udp_rx_ports,
+    stream<UdpWord>             &siUdp_data,
+    stream<UdpWord>             &soUdp_data,
+    stream<NetworkMetaStream>   &siUdp_meta,
+    //stream<NetworkMeta>          &siUdp_meta,
+    stream<NetworkMetaStream>   &soUdp_meta,
+    //stream<NetworkMeta>          &soUdp_meta,
+    ap_uint<32>                 *myIpAddress,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,

@@ -155,26 +155,30 @@ typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
 #define MAX_CF_NODE_ID 128
 
-struct NrcMeta {
+typedef ap_uint<32>    NetworkDataLength;
+
+struct NetworkMeta {
   NodeId  dst_rank; //ATTENTION: don't use 'id' in a struct...will be ignored by axis directive and lead to segfaults...
   NrcPort dst_port;
   NodeId  src_rank;
   NrcPort src_port;
+  NetworkDataLength len;
+
   //ap_uint<16> padding;
-  NrcMeta() {}
+  NetworkMeta() {}
   //"alphabetical order"
-  NrcMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port) :
-    dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port) {}
+  NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, NetworkDataLength length) :
+    dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(length) {}
  };
 
-//ATTENTION: split between NrcMeta and NrcMetaStream is necessary, due to flaws in Vivados hls::stream library
-struct NrcMetaStream {
-  NrcMeta tdata; 
-  //ap_uint<(sizeof(NrcMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
-  ap_uint<6> tkeep; //TODO: set value in constructor correct based on the length
+//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to flaws in Vivados hls::stream library
+struct NetworkMetaStream {
+  NetworkMeta tdata; 
+  //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
+  ap_uint<10> tkeep; //TODO: set value in constructor correct based on the length
   ap_uint<1> tlast;
-  NrcMetaStream() {}
-  NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(0xFF), tlast(1) {}
+  NetworkMetaStream() {}
+  NetworkMetaStream(NetworkMeta single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}
 };
 
 
