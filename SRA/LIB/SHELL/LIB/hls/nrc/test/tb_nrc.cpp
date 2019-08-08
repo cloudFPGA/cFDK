@@ -45,11 +45,13 @@ stream<UdpPLen>         sURIF_Udmx_PLen     ("sURIF_Udmx_PLen");
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
 ap_uint<32>             pi_udp_rx_ports = 0x1;
-stream<NrcMetaStream>   siNrc_meta          ("siNrc_meta");
-//stream<NrcMeta>          &siNrc_meta,
-stream<NrcMetaStream>   soNrc_meta          ("soNrc_meta");
-//stream<NrcMeta>          &soNrc_meta,
+stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
+//stream<NetworkMeta>          &siUdp_meta,
+stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
+//stream<NetworkMeta>          &soUdp_meta,
 ap_uint<32>             myIpAddress;
+ap_uint<16>             piMMIO_FmcLsnPort  = 0;
+ap_uint<32>             piMMIO_CfrmIp4Addr = 0;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -64,11 +66,11 @@ int         simCnt;
  ******************************************************************************/
 void stepDut() {
     nrc_main(
-        0,
         ctrlLink,
+        &piMMIO_FmcLsnPort, &piMMIO_CfrmIp4Addr,
         &pi_udp_rx_ports,
             sROLE_Urif_Data,    sURIF_Role_Data,
-            siNrc_meta,         soNrc_meta,
+            siUdp_meta,         soUdp_meta,
             &sIpAddress,
             sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
             sUDMX_Urif_Data,    sUDMX_Urif_Meta,
@@ -489,9 +491,9 @@ int main() {
         }
         
         //there are 2 streams from the ROLE to UDMX
-        NrcMeta tmp_meta = NrcMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT);
-        siNrc_meta.write(NrcMetaStream(tmp_meta));
-        siNrc_meta.write(NrcMetaStream(tmp_meta));
+        NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT,0);
+        siUdp_meta.write(NetworkMetaStream(tmp_meta));
+        siUdp_meta.write(NetworkMetaStream(tmp_meta));
 
         if (!setInputDataStream(sUDMX_Urif_Data, "sUDMX_Urif_Data", "ifsUDMX_Urif_Data.dat")) {
             printf("### ERROR : Failed to set input data stream \"sUDMX_DataStream\". \n");
@@ -522,9 +524,9 @@ int main() {
         {
             stepDut();
 
-            if( !soNrc_meta.empty())
+            if( !soUdp_meta.empty())
             {
-              NrcMetaStream tmp_meta = soNrc_meta.read();
+              NetworkMetaStream tmp_meta = soUdp_meta.read();
               printf("Role received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
             }
 

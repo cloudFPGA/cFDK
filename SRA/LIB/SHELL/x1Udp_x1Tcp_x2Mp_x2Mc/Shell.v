@@ -1386,6 +1386,13 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //assign ssFMC_NRC_ctrlLink_Axi_RLAST   = 0;
   //assign ssFMC_NRC_ctrlLink_Axi_RUSER   = 0;
   assign ssFMC_NRC_ctrlLink_Axi_RVALID  = 0;
+
+  // == propagate constants as long as PYROLINK isn't in use
+  assign ssFMC_CoreToDebug_Pyrolink_TREADY   = 0;
+  assign ssCoreToDebug_FMC_Pyrolink_TDATA    = 0;
+  assign ssCoreToDebug_FMC_Pyrolink_TVALID   = 0;
+  assign ssCoreToDebug_FMC_Pyrolink_TKEEP    = 0;
+  assign ssCoreToDebug_FMC_Pyrolink_TLAST    = 0;
   
   // == Temporary assignment (until Decoupeling module is back) == 
   assign sDECOUP_FMC_status = 0;
