@@ -1356,8 +1356,8 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siPYROLINK_TLAST                    (ssCoreToDebug_FMC_Pyrolink_TLAST),
     .piDisablePyroLink_V                 (1),//TODO: SET to 0 IF PYROLINK SHOULD BE USED
     .piDisablePyroLink_V_ap_vld          (1),
-    .poFMC_to_ROLE_rank_V                (poROL_Fmc_Rank),
-    .poFMC_to_ROLE_size_V                (poROL_Fmc_Size)
+    .poROLE_rank_V                       (poROL_Fmc_Rank),
+    .poROLE_size_V                       (poROL_Fmc_Size)
   );
 
   // == Temporary assignment (until NRC module is back) ==
