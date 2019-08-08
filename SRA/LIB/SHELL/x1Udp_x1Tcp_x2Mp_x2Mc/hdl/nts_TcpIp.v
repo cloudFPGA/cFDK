@@ -70,7 +70,7 @@ module NetworkTransportSession_TcpIp (
   input          soETH_Data_tready,
  
   //------------------------------------------------------
-  //-- MEM / Nts / TxP Interfaces
+  //-- MEM / TxP Interfaces
   //------------------------------------------------------
   //-- FPGA Transmit Path / S2MM-AXIS --------------------
   //---- Stream Read Command -------------------
@@ -103,7 +103,7 @@ module NetworkTransportSession_TcpIp (
   input          soMEM_TxP_Data_tready,
 
   //------------------------------------------------------
-  //-- MEM / Nts / RxP Interfaces
+  //-- MEM / RxP Interfaces
   //------------------------------------------------------
   //-- FPGA Receive Path / S2MM-AXIS -------------
   //---- Stream Read Command -----------------
@@ -136,7 +136,7 @@ module NetworkTransportSession_TcpIp (
   input          soMEM_RxP_Data_tready, 
   
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+  //-- ROLE / Tcp / TxP Data Flow Interfaces
   //------------------------------------------------------
   //-- FPGA Transmit Path (ROLE-->SHELL) ---------
   //---- Stream TCP Data ---------------------
@@ -155,7 +155,7 @@ module NetworkTransportSession_TcpIp (
   input          soROL_Tcp_DSts_tready,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / RxP Data Flow Interfaces
+  //-- ROLE / Tcp / RxP Data Flow Interfaces
   //------------------------------------------------------
   //-- FPGA Receive Path (SHELL-->ROLE) ----------
   //-- Stream TCP Data -----------------------
@@ -178,7 +178,7 @@ module NetworkTransportSession_TcpIp (
   output         siROL_Tcp_DReq_tready,
   
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / TxP Ctlr Flow Interfaces
+  //-- ROLE / Tcp / TxP Ctlr Flow Interfaces
   //------------------------------------------------------
   //-- FPGA Transmit Path (ROLE-->SHELL) ---------
   //---- Stream TCP Open Session Request -----
@@ -195,7 +195,7 @@ module NetworkTransportSession_TcpIp (
   output         siROL_Tcp_ClsReq_tready,
   
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / RxP Ctlr Flow Interfaces
+  //-- ROLE / Tcp / RxP Ctlr Flow Interfaces
   //------------------------------------------------------
   //-- FPGA Receive Path (SHELL-->ROLE) ----------
   //---- Stream TCP Listen Request -----------
@@ -208,7 +208,7 @@ module NetworkTransportSession_TcpIp (
   input          soROL_Tcp_LsnAck_tready,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Udp Interfaces
+  //-- ROLE / Udp Interfaces
   //------------------------------------------------------
   //-- FPGA Receive Path (SHELL-->ROLE) ----------
   //-- Stream UDP Data -----------------------
@@ -226,13 +226,14 @@ module NetworkTransportSession_TcpIp (
   input          soROL_Udp_Data_tready,
  
   //------------------------------------------------------
-  //-- MMIO / Nts / Interfaces
+  //-- MMIO / Interfaces
   //------------------------------------------------------
   input  [ 47:0] piMMIO_MacAddress,
   input  [ 31:0] piMMIO_IpAddress,
   input  [ 31:0] piMMIO_SubNetMask,
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
+  output         poMMIO_ToeReady,
   
   output         poVoid
   
@@ -742,7 +743,7 @@ module NetworkTransportSession_TcpIp (
   ); // End of ARP
   
   //============================================================================
-  //  INST: TCP-OFFLOAD-MODULE
+  //  INST: TCP-OFFLOAD-ENGINE
   //============================================================================
   TcpOffloadEngine TOE (
   
@@ -753,6 +754,11 @@ module NetworkTransportSession_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_IpAddr_V           (piMMIO_IpAddress),
+    
+    //------------------------------------------------------
+    //-- NTS Interfaces
+    //------------------------------------------------------    
+    .poNTS_Ready_V             (poMMIO_ToeReady),
                         
     //------------------------------------------------------
     //-- IPRX / IP Rx Data Interface
@@ -908,13 +914,13 @@ module NetworkTransportSession_TcpIp (
     //-- CAM / Session Lookup Interfaces
     //------------------------------------------------------
     //-- To   CAM / TCP Session Lookup Request
-    .soCAM_SssLkpReq_TDATA      (ssTOE_CAM_LkpReq_tdata),
-    .soCAM_SssLkpReq_TVALID     (ssTOE_CAM_LkpReq_tvalid),
-    .soCAM_SssLkpReq_TREADY     (ssTOE_CAM_LkpReq_tready),
+    .soCAM_SssLkpReq_TDATA     (ssTOE_CAM_LkpReq_tdata),
+    .soCAM_SssLkpReq_TVALID    (ssTOE_CAM_LkpReq_tvalid),
+    .soCAM_SssLkpReq_TREADY    (ssTOE_CAM_LkpReq_tready),
     //-- From CAM / TCP Session Lookup Reply
-    .siCAM_SssLkpRep_TDATA      (ssCAM_TOE_LkpRep_tdata),
-    .siCAM_SssLkpRep_TVALID     (ssCAM_TOE_LkpRep_tvalid),
-    .siCAM_SssLkpRep_TREADY     (ssCAM_TOE_LkpRep_tready),
+    .siCAM_SssLkpRep_TDATA     (ssCAM_TOE_LkpRep_tdata),
+    .siCAM_SssLkpRep_TVALID    (ssCAM_TOE_LkpRep_tvalid),
+    .siCAM_SssLkpRep_TREADY    (ssCAM_TOE_LkpRep_tready),
     
     //------------------------------------------------------
     //-- CAM / Session Update Interfaces
@@ -932,7 +938,13 @@ module NetworkTransportSession_TcpIp (
     //-- To DEBUG / Session Statistics Interfaces
     //------------------------------------------------------
     .poDBG_SssRelCnt_V         (),
-    .poDBG_SssRegCnt_V         ()
+    .poDBG_SssRegCnt_V         (),
+    
+    //------------------------------------------------------
+    //-- To DEBUG / Simulation Counter Interfaces
+    //------------------------------------------------------
+    .piSimCycCount_V           (),
+    .poSimCycCount_V           ()
 
   );  // End of TOE
   

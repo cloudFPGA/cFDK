@@ -25,31 +25,21 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 
-
 /*****************************************************************************
  * @file       : toe.cpp
  * @brief      : TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
  *****************************************************************************/
 
 #include "toe.hpp"
+#include "../test/test_toe_utils.hpp"
 
 #include "session_lookup_controller/session_lookup_controller.hpp"
 #include "state_table/state_table.hpp"
@@ -69,8 +59,17 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rx_app_stream_if/rx_app_stream_if.hpp"
 #include "tx_app_interface/tx_app_interface.hpp"
 
-//#include "tx_app_if/tx_app_if.hpp"
-//#include "tx_app_stream_if/tx_app_stream_if.hpp"
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TRACE_OFF | TRACE_RDY)
+ ************************************************/
+#define THIS_NAME "TOE"
+
+#define TRACE_OFF  0x0000
+#define TRACE_RDY 1 <<  1
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*****************************************************************************
@@ -109,7 +108,6 @@ template<typename T> void pStreamMux(
  *
  * @todo [TODO - Consider creating a dedicated file.]
  *
- * @ingroup toe
  *****************************************************************************/
 void pTimers(
         stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
@@ -172,7 +170,7 @@ void pTimers(
 }
 
 /******************************************************************************
- * * @brief [TODO]
+ * @brief [TODO]
  *
  * @param[in]
  * @param[out] soMEM_RxP_RdCmd,       Rx memory read command to MEM.
@@ -217,7 +215,7 @@ void rxAppMemAccessBreakdown(
 }
 
 /******************************************************************************
- * * @brief [TODO]
+ * @brief [TODO]
  *
  * @param[in]  siMEM_RxP_Data,  Rx memory data from MEM.
  * @param[out] soTRIF_Data,     TCP data stream to TRIF.
@@ -438,23 +436,54 @@ void rx_app_interface(
             soTRIF_Notif);
 }
 
-void my_SimCountIncrementer(
+/******************************************************************************
+ * @brief The Ready (Rdy) process generates the ready signal of the TOE.
+ *
+ *  @param[in]  piPRt_Ready, The ready signal from PortTable (PRt).
+ *  @param[in]  piTBD_Ready, The ready signal from TBD.
+ *  @param[out] poNTS_Ready, The ready signal of the TOE.
+ *
+ ******************************************************************************/
+void pReady(
+    StsBool     &piPRt_Ready,
+    StsBit      &poNTS_Ready)
+{
+    const char *myName = concat3(THIS_NAME, "/", "Rdy");
+
+    poNTS_Ready = (piPRt_Ready == true) ? 1 : 0;
+
+    if (DEBUG_LEVEL & TRACE_RDY) {
+        if (poNTS_Ready)
+            printInfo(myName, "Process [TOE] is ready.\n");
+    }
+}
+
+
+/******************************************************************************
+ * @brief Increments the simulation counter of the testbench (for debugging).
+ *
+ *  @param[in]  piSimCycCount, The simulation counter provided by the testbench.
+ *  @param[out] poSimCycCount, The incremented simulation counter.
+ *
+ ******************************************************************************/
+void pTbSimCount(
     ap_uint<32>     piSimCycCount,
     ap_uint<32>    &poSimCycCount)
 {
     poSimCycCount = piSimCycCount +  1;
 }
 
+
 /*****************************************************************************
  * @brief   Main process of the TCP Offload Engine.
  *
- * @ingroup toe
- *
  * -- MMIO Interfaces
  * @param[in]  piMMIO_IpAddr,    IP4 Address from MMIO.
- * -- IPRX / This / IP Rx / Data Interface
+ * -- NTS Interfaces
+ * @param[out] poNTS_Ready,      Ready signal of the TOE.
+ * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data,      IP4 data stream from IPRX.
- * -- L3MUX / This / IP Tx / Data Interface
+ * -- L3MUX / IP Tx / Data Interface
  * @param[out] soL3MUX_Data,     IP4 data stream to L3MUX.
  * -- TRIF / Tx Data Interfaces
  * @param[out] soTRIF_Notif,     TCP notification to TRIF.
@@ -474,21 +503,21 @@ void my_SimCountIncrementer(
  * -- TRIF / Close Interfaces
  * @param[in]  siTRIF_ClsReq,    TCP close connection request from TRIF.
  * @warning:   Not-Used,         TCP close connection status to TRIF.
- * -- MEM / This / Rx PATH / S2MM Interface
+ * -- MEM / Rx PATH / S2MM Interface
  * @warning:   Not-Used,         Rx memory read status from MEM.
  * @param[out] soMEM_RxP_RdCmd,  Rx memory read command to MEM.
  * @param[in]  siMEM_RxP_Data,   Rx memory data from MEM.
  * @param[in]  siMEM_RxP_WrSts,  Rx memory write status from MEM.
  * @param[out] soMEM_RxP_WrCmd,  Rx memory write command to MEM.
  * @param[out] soMEM_RxP_Data,   Rx memory data to MEM.
- * -- MEM / This / Tx PATH / S2MM Interface
+ * -- MEM / Tx PATH / S2MM Interface
  * @warning:   Not-Used,         Tx memory read status from MEM.
  * @param[out] soMEM_TxP_RdCmd,  Tx memory read command to MEM.
  * @param[in]  siMEM_TxP_Data,   Tx memory data from MEM.
  * @param[in]  siMEM_TxP_WrSts,  Tx memory write status from MEM.
  * @param[out] soMEM_TxP_WrCmd,  Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,   Tx memory data to MEM.
- * -- CAM / This / Session Lookup & Update Interfaces
+ * -- CAM / Session Lookup & Update Interfaces
  * @param[in]  siCAM_SssLkpRep,  Session lookup reply from CAM.
  * @param[in]  siCAM_SssUpdRep,  Session update reply from CAM.
  * @param[out] soCAM_SssLkpReq,  Session lookup request to CAM.
@@ -496,6 +525,9 @@ void my_SimCountIncrementer(
  * -- DEBUG / Session Statistics Interfaces
  * @param[out] poDBG_SssRelCnt,  Session release count to DEBUG.
  * @param[out] poDBG_SssRegCnt,  Session register count to DEBUG.
+ * -- DEBUG / SimCycCounter
+ * @param[in]  piSimCycCount,    Cycle simulation counter from testbench (TB).
+ * @param[out] poSimCycCount,    Cycle simulation counter to   testbench.
  ******************************************************************************/
 void toe(
 
@@ -503,6 +535,11 @@ void toe(
         //-- MMIO Interfaces
         //------------------------------------------------------
         AxiIp4Addr                           piMMIO_IpAddr,
+
+        //------------------------------------------------------
+        //-- NTS Interfaces
+        //------------------------------------------------------
+        StsBit                              &poNTS_Ready,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -588,7 +625,9 @@ void toe(
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- MMIO Interfaces
-    #pragma HLS INTERFACE ap_stable port=piMMIO_IpAddr
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
+    //-- NTS Interfaces
+    #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
     //-- L3MUX / IP Tx Data Interface -----------------------------------------
@@ -651,7 +690,8 @@ void toe(
     #pragma HLS DATAFLOW
 
     //-------------------------------------------------------------------------
-    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //-- LOCAL STREAMS AND SIGNALS
+    //--   (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
     //-------------------------------------------------------------------------
@@ -677,6 +717,8 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Port Table (PRt)
     //-------------------------------------------------------------------------
+    StsBool                             sPRtToRdy_Ready;
+
     static stream<RepBit>               sPRtToRXe_PortStateRep    ("sPRtToRXe_PortStateRep");
     #pragma HLS stream         variable=sPRtToRXe_PortStateRep    depth=4
 
@@ -728,7 +770,7 @@ void toe(
 
     static stream<AppNotif>             sRXeToRAi_Notif           ("sRXeToRAi_Notif");
     #pragma HLS stream         variable=sRXeToRAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notifmy_SimCountIncrementer
+    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notif
 
     static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
@@ -882,7 +924,7 @@ void toe(
     //OBSOLETE static stream<event>                  retransmitEventFifo("retransmitEventFifo");
 
     /**********************************************************************
-     * DATA STRUCTURES
+     * TCP DATA STRUCTURES
      **********************************************************************/
 
     //-- Session Lookup Controller (SLc) -----------------------------------
@@ -933,6 +975,7 @@ void toe(
 
     //-- Port Table (PRt) --------------------------------------------------
     port_table(
+            sPRtToRdy_Ready,
             sRXeToPRt_PortStateReq,
             sPRtToRXe_PortStateRep,
             sRAiToPRt_OpnLsnPortReq,
@@ -1063,9 +1106,16 @@ void toe(
             piMMIO_IpAddr);
 
     /**********************************************************************
-     * DEBUG INTERFACES
+     * CONTROL AND DEBUG INTERFACES
      **********************************************************************/
-    my_SimCountIncrementer(
+
+    //-- Ready signal generator -------------------------------------------
+    pReady(
+            sPRtToRdy_Ready,
+            poNTS_Ready);
+
+    //-- Testbench counter incrementer (for debugging) --------------------
+    pTbSimCount(
         piSimCycCount,
         poSimCycCount);
 

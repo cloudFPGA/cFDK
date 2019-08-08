@@ -525,6 +525,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   wire          sETH0_MMIO_CoreReady;
   wire          sETH0_MMIO_QpllLock;
   wire          sNTS0_MMIO_CamReady;
+  wire          sNTS0_MMIO_ToeReady;
   //------ [PHY_ETH0] ------------------
   wire          sMMIO_ETH0_RxEqualizerMode;
   wire  [ 3:0]  sMMIO_ETH0_TxDriverSwing;
@@ -692,6 +693,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //-- NTS[0]: Status inputs and Control outputs
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
+    .piNTS0_ToeReady                (sNTS0_MMIO_ToeReady),
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
@@ -887,7 +889,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soETH_Data_tready                (ssNTS0_ETH0_Data_tready),  
 
     //------------------------------------------------------
-    //-- MEM / Nts / TxP Interfaces
+    //-- MEM / TxP Interfaces
     //------------------------------------------------------
     //-- FPGA Transmit Path / S2MM-AXIS --------------------
     //---- Stream Read Command -------------------
@@ -922,7 +924,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
  
     //------------------------------------------------------
-    //-- MEM / Nts / RxP Interfaces
+    //-- MEM / RxP Interfaces
     //------------------------------------------------------
     //-- FPGA Receive Path / S2MM-AXIS -------------
     //---- Stream Read Command -----------------
@@ -955,7 +957,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soMEM_RxP_Data_tready            (ssNTS0_MEM_RxP_Write_tready),
 
     //------------------------------------------------------
-    //-- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+    //-- ROLE / Tcp / TxP Data Flow Interfaces
     //------------------------------------------------------
     //-- FPGA Transmit Path (ROLE-->NTS) -----------
     //---- Stream TCP Data ---------------------
@@ -974,7 +976,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soROL_Tcp_DSts_tready            (soROL_Nts_Tcp_DSts_tready),
 
     //---------------------------------------------------
-    //-- ROLE / Nts / Tcp / RxP Data Flow Interfaces    
+    //-- ROLE / Tcp / RxP Data Flow Interfaces    
     //---------------------------------------------------
     //-- FPGA Receive Path (NTS-->ROLE) -------------    
     //-- Stream TCP Data -----------------------         
@@ -997,7 +999,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siROL_Tcp_DReq_tready            (siROL_Nts_Tcp_DReq_tready),
     
     //------------------------------------------------------
-    //-- ROLE / Nts / Tcp / TxP Ctlr Flow Interfaces
+    //-- ROLE / Tcp / TxP Ctlr Flow Interfaces
     //------------------------------------------------------
     //-- FPGA Transmit Path (ROLE-->ETH) -----------
     //---- Stream TCP Open Session Request -----
@@ -1014,7 +1016,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siROL_Tcp_ClsReq_tready          (siROL_Nts_Tcp_ClsReq_tready),
     
     //------------------------------------------------------
-    //-- ROLE / Nts / Tcp / RxP Ctlr Flow Interfaces
+    //-- ROLE / Tcp / RxP Ctlr Flow Interfaces
     //------------------------------------------------------
     //-- FPGA Receive Path (ETH-->ROLE) ------------
     //---- Stream TCP Listen Request -----------
@@ -1027,7 +1029,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soROL_Tcp_LsnAck_tready          (soROL_Nts_Tcp_LsnAck_tready),
     
     //------------------------------------------------------
-    //-- ROLE / Nts / Udp Interfaces
+    //-- ROLE / Udp Interfaces
     //------------------------------------------------------
     //-- FPGA Receive Path (NTS-->ROLE) -------------
     //-- Stream UDP Data -----------------------
@@ -1044,13 +1046,14 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soROL_Udp_Data_tready            (soROL_Nts_Udp_Data_tready),
         
     //------------------------------------------------------
-    //-- MMIO / Nts0 / Interfaces
+    //-- MMIO / Interfaces
     //------------------------------------------------------
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
     .piMMIO_IpAddress                 (sMMIO_NTS0_IpAddress),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),
+    .poMMIO_ToeReady                  (sNTS0_MMIO_ToeReady),
 
     .poVoid                           ()
 
@@ -1235,7 +1238,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1
-    //------------------------------------------------------
+    //------------------------------------------------------dst_ran
     .pioDDR_Mem_Mc1_DmDbi_n           (pioDDR4_Mem_Mc1_DmDbi_n),
     .pioDDR_Mem_Mc1_Dq                (pioDDR4_Mem_Mc1_Dq),
     .pioDDR_Mem_Mc1_Dqs_n             (pioDDR4_Mem_Mc1_Dqs_n),
@@ -1261,7 +1264,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .eos_in         (1),
     //.s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
     .s_axi_aclk     (sETH0_ShlClk),
-    //.s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),
+    //.s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),dst_ran
     .s_axi_aresetn  (~ piTOP_156_25Rst),
     .s_axi_awaddr   (ssFMC_HWICAP_Axi_awaddr),
     .s_axi_awvalid  (ssFMC_HWICAP_Axi_awvalid),
