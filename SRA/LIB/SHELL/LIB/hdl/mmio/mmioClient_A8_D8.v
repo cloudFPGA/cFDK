@@ -123,11 +123,19 @@ module MmioClient_A8_D8 #(
   output  [15:0]  poROLE_WrReg,
   
   //----------------------------------------------
-  //-- FMC : Registers and Extended Memory
+  //-- NRC :  Control Registers
   //----------------------------------------------
-  //---- APP_RDFMC -----------------
+  //---- MNGT_RMIP -------------------
+  output  [31:0]  poNRC_RmIpAddress,
+  //---- MNGT_TCPLSN -----------------
+  output  [15:0]  poNRC_TcpLsnPort,
+  
+  //----------------------------------------------
+  //-- FMC : Control Registers and Extended Memory
+  //----------------------------------------------
+  //---- MNGT_RDFMC ------------------
   input   [31:0]  piFMC_RdReg,
-  //---- APP_WRFMC -----------------
+  //---- MNGT_WRFMC ------------------
   output  [31:0]  poFMC_WrReg,
 
   //----------------------------------------------
@@ -176,9 +184,9 @@ module MmioClient_A8_D8 #(
   localparam PHY_REG_BASE   = 8'h10;  // Physical      Registers
   localparam LY2_REG_BASE   = 8'h20;  // Layer-2       Registers      
   localparam LY3_REG_BASE   = 8'h30;  // Layer-3       Registers
-  localparam APP_REG_BASE  =  8'h40;  // ROLE          Registers
-  localparam RES1_REG_BASE  = 8'h50;  // Spare         Registers
-  localparam RES2_REG_BASE  = 8'h60;  // Spare         Registers
+  localparam MNGT_REG_BASE  = 8'h40;  // Management    Registers 
+  localparam APP_REG_BASE   = 8'h50;  // ROLE          Registers
+  localparam RES_REG_BASE   = 8'h60;  // Spare         Registers
   localparam DIAG_REG_BASE  = 8'h70;  // Diagnostic    Registers
   localparam PAGE_REG_BASE  = 8'h7F;  // Page Select   Register
     
@@ -196,8 +204,10 @@ module MmioClient_A8_D8 #(
   //-- PHY_REGS ---------------------------------------------------------------
   // Status of the Physical Interfaces
   localparam PHY_STAT       = PHY_REG_BASE  +  0;
-  // Configuration and Tuning of GTH0 
-  localparam PHY_ETH0       = PHY_REG_BASE  +  1; 
+  // Configuration and Tuning of GTH[0:2] 
+  localparam PHY_GTH0       = PHY_REG_BASE  +  1;
+  localparam PHY_GTH1       = PHY_REG_BASE  +  2;
+  localparam PHY_GTH2       = PHY_REG_BASE  +  3;
   
   //-- LY2_REGS ---------------------------------------------------------------
   // Control of the Layer-2 Interfaces
@@ -235,25 +245,36 @@ module MmioClient_A8_D8 #(
   localparam LY3_GTW2       = LY3_REG_BASE  + 14;
   localparam LY3_GTW3       = LY3_REG_BASE  + 15;
   
+  //-- MNGT_REGS ---------------------------------------------------------------
+  // Resource Manager IP Address Register  
+  localparam MNGT_RMIP0     = MNGT_REG_BASE +  0;
+  localparam MNGT_RMIP1     = MNGT_REG_BASE +  1;
+  localparam MNGT_RMIP2     = MNGT_REG_BASE +  2;
+  localparam MNGT_RMIP3     = MNGT_REG_BASE +  3;
+  // FMC Read Register 
+  localparam MNGT_RDFMC0    = MNGT_REG_BASE +  4;
+  localparam MNGT_RDFMC1    = MNGT_REG_BASE +  5;
+  localparam MNGT_RDFMC2    = MNGT_REG_BASE +  6;
+  localparam MNGT_RDFMC3    = MNGT_REG_BASE +  7;
+  // FMC Write Register
+  localparam MNGT_WRFMC0    = MNGT_REG_BASE +  8;
+  localparam MNGT_WRFMC1    = MNGT_REG_BASE +  9;
+  localparam MNGT_WRFMC2    = MNGT_REG_BASE + 10;
+  localparam MNGT_WRFMC3    = MNGT_REG_BASE + 11;
+  // TCP Listen Port Register
+  localparam MNGT_TCPLSN0   = MNGT_REG_BASE + 12;
+  localparam MNGT_TCPLSN1   = MNGT_REG_BASE + 13;
+  // Control of the Managements Registers
+  localparam MNGT_CTRL      = MNGT_REG_BASE + 14;
+    
   //-- APP_REGS ----------------------------------------------------------------
-  //---- OBSOLETE-20190710 - This is former Burkhard's Playground
   // Role Read Register
   localparam APP_RDROL0     = APP_REG_BASE +  0;
   localparam APP_RDROL1     = APP_REG_BASE +  1;
   // Role Write register
   localparam APP_WRROL0     = APP_REG_BASE +  2;
   localparam APP_WRROL1     = APP_REG_BASE +  3;
-  // FMC Read Register 
-  localparam APP_RDFMC0     = APP_REG_BASE +  4;
-  localparam APP_RDFMC1     = APP_REG_BASE +  5;
-  localparam APP_RDFMC2     = APP_REG_BASE +  6;
-  localparam APP_RDFMC3     = APP_REG_BASE +  7;
-  // FMC Write Register
-  localparam APP_WRFMC0     = APP_REG_BASE +  8;
-  localparam APP_WRFMC1     = APP_REG_BASE +  9;
-  localparam APP_WRFMC2     = APP_REG_BASE + 10;
-  localparam APP_WRFMC3     = APP_REG_BASE + 11;
-  
+    
   //-- RES_REGS ---------------------------------------------------------------
   
   //-- DIAG_REGS --------------------------------------------------------------
@@ -328,11 +349,11 @@ module MmioClient_A8_D8 #(
   localparam cDefReg2E = 8'h00;
   localparam cDefReg2F = 8'h00;
   //-- LY3_REGS ---------------
-  localparam cDefReg30 = 8'h00;  // LY3_CONTROL_0
-  localparam cDefReg31 = 8'h00;  // LY3_CONTROL_1
-  localparam cDefReg32 = 8'h00;  // LY3_STATUS_0
-  localparam cDefReg33 = 8'h00;  // LY3_STATUS_1
-  localparam cDefReg34 = 8'h0A;  // LY3_IP0 (.i.e, 10.12.200.19) [FIXME]
+  localparam cDefReg30 = 8'h00;  // LY3_CONTROL0
+  localparam cDefReg31 = 8'h00;  // LY3_CONTROL1
+  localparam cDefReg32 = 8'h00;  // LY3_STATUS0
+  localparam cDefReg33 = 8'h00;  // LY3_STATUS1
+  localparam cDefReg34 = 8'h0A;  // LY3_IP0 (.i.e, 10.12.200.19) [FIXME-This is temporary]
   localparam cDefReg35 = 8'h0C;  // LY3_IP1  
   localparam cDefReg36 = 8'hC8;  // LY3_IP2
   localparam cDefReg37 = 8'h13;  // LY3_IP3
@@ -344,28 +365,28 @@ module MmioClient_A8_D8 #(
   localparam cDefReg3D = 8'h0C;  // LY3_GTW1
   localparam cDefReg3E = 8'h00;  // LY3_GTW2
   localparam cDefReg3F = 8'h01;  // LY3_GTW3
-  //-- ROLE_REGS (also Burkhard's Playground) 
-  localparam cDefReg40 = 8'h00;  // APP_RDROL0
-  localparam cDefReg41 = 8'h00;  // APP_RDROL1
-  localparam cDefReg42 = 8'h00;
-  localparam cDefReg43 = 8'h00;
-  localparam cDefReg44 = 8'h00;
-  localparam cDefReg45 = 8'h00;
-  localparam cDefReg46 = 8'h00;
-  localparam cDefReg47 = 8'h00;
-  localparam cDefReg48 = 8'h00;
-  localparam cDefReg49 = 8'h00;
-  localparam cDefReg4A = 8'h00;
-  localparam cDefReg4B = 8'h00;
-  localparam cDefReg4C = 8'h00;
-  localparam cDefReg4D = 8'h00;
-  localparam cDefReg4E = 8'h13;
-  localparam cDefReg4F = 8'h37;
-  //-- RES_REGS ---------------
-  localparam cDefReg50 = 8'h00;
-  localparam cDefReg51 = 8'h00;     
-  localparam cDefReg52 = 8'h00;
-  localparam cDefReg53 = 8'h00;
+  //-- MNGT_REGS --------------
+  localparam cDefReg40 = 8'h00;  // MNGT_RMIP0
+  localparam cDefReg41 = 8'h00;  // MNGT_RMIP1
+  localparam cDefReg42 = 8'h00;  // MNGT_RMIP2
+  localparam cDefReg43 = 8'h00;  // MNGT_RMIP3
+  localparam cDefReg44 = 8'h00;  // MNGT_RDFMC0
+  localparam cDefReg45 = 8'h00;  // MNGT_RDFMC1
+  localparam cDefReg46 = 8'h00;  // MNGT_RDFMC2
+  localparam cDefReg47 = 8'h00;  // MNGT_RDFMC3
+  localparam cDefReg48 = 8'h00;  // MNGT_WRFMC0
+  localparam cDefReg49 = 8'h00;  // MNGT_WRFMC1
+  localparam cDefReg4A = 8'h00;  // MNGT_WRFMC2
+  localparam cDefReg4B = 8'h00;  // MNGT_WRFMC3
+  localparam cDefReg4C = 8'h00;  // MNGT_TCPLSN0
+  localparam cDefReg4D = 8'h00;  // MNGT_TCPLSN1
+  localparam cDefReg4E = 8'h00;  // MNGT_CTRL
+  localparam cDefReg4F = 8'h00;
+  //-- APP_REGS ---------------
+  localparam cDefReg50 = 8'h00;  // APP_RDROL0
+  localparam cDefReg51 = 8'h00;  // APP_RDROL1
+  localparam cDefReg52 = 8'h00;  // APP_WRROL0
+  localparam cDefReg53 = 8'h00;  // APP_WRROL1
   localparam cDefReg54 = 8'h00;
   localparam cDefReg55 = 8'h00;
   localparam cDefReg56 = 8'h00;
@@ -530,11 +551,11 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*PHY_STAT+5]  = piNTS0_ToeReady;           // RO
   assign sStatusVec[cEDW*PHY_STAT+6]  = 1'b0;                      // RO
   assign sStatusVec[cEDW*PHY_STAT+7]  = 1'b0;                      // RO
-  //---- PHY_ETH0 ----------------------
+  //---- PHY_GTH[0:2] ------------------
   generate
   for (id=0; id<3*8; id=id+1)
-    begin: gen_PHY_ETH0
-      assign sStatusVec[cEDW*PHY_ETH0+id]  = sEMIF_Ctrl[cEDW*PHY_ETH0+id];    // RW
+    begin: gen_PHY_GTH0
+      assign sStatusVec[cEDW*PHY_GTH0+id]  = sEMIF_Ctrl[cEDW*PHY_GTH0+id]; // RW
     end
   endgenerate
     
@@ -548,7 +569,7 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*LY2_CTRL+id]  = sEMIF_Ctrl[cEDW*LY2_CTRL+id]; // RW   
     end
   endgenerate
-  //---- LY2_MAC -----------------------
+  //---- LY2_MAC[0:5] ------------------
   generate
   for (id=0; id<48; id=id+1)
     begin: gen_LY2_MAC_ADDR
@@ -559,28 +580,28 @@ module MmioClient_A8_D8 #(
   //-------------------------------------------------------- 
   //-- LAYER-3 REGISTERS
   //--------------------------------------------------------
-  //---- LY3_CONTROL --------------------
+  //---- LY3_CONTROL[0:1] --------------
   generate
   for (id=0; id<16; id=id+1)
     begin: gen_LY3_CTRL
       assign sStatusVec[cEDW*LY3_CTRL0+id] = sEMIF_Ctrl[cEDW*LY3_CTRL0+id]; // RW   
     end
   endgenerate
-  //---- LY3_IP -------------------------
+  //---- LY3_IP[0:3] --------------------
   generate
   for (id=0; id<32; id=id+1)
     begin: gen_LY3_IP_ADDR
-      assign sStatusVec[cEDW*LY3_IP0+id] = sEMIF_Ctrl[cEDW*LY3_IP0+id]; // RW   
+      assign sStatusVec[cEDW*LY3_IP0+id] = sEMIF_Ctrl[cEDW*LY3_IP0+id];   // RW   
     end
   endgenerate
-  //---- LY3_SUBNET --------------------
+  //---- LY3_SUBNET[0:3] ---------------
   generate
   for (id=0; id<32; id=id+1)
     begin: gen_LY3_SUBNET
       assign sStatusVec[cEDW*LY3_SNM0+id] = sEMIF_Ctrl[cEDW*LY3_SNM0+id]; // RW   
     end
   endgenerate
-  //---- LY3_IP -------------------------
+  //---- LY3_IP[0:3] -------------------
   generate
   for (id=0; id<32; id=id+1)
     begin: gen_LY3_GATEWAY
@@ -589,62 +610,54 @@ module MmioClient_A8_D8 #(
   endgenerate
   
   //-------------------------------------------------------- 
+  //-- MNGT REGISTERS
+  //--------------------------------------------------------
+  //---- MNGT_RMIP[0:3] ----------------
+  generate
+  for (id=0; id<32; id=id+1)
+    begin: gen_MNGT_RMIP_ADDR
+      assign sStatusVec[cEDW*MNGT_RMIP0+id] = sEMIF_Ctrl[cEDW*MNGT_RMIP0+id];     // RW
+    end
+  endgenerate
+  //---- MNGT_RDFMC[0:3] ---------------
+  assign sStatusVec[cEDW*MNGT_RDFMC3+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg;         // RO
+  //---- MNGT_WRFMC[0:3] ---------------
+  generate
+  for (id=0; id<32; id=id+1)
+    begin: gen_APP_WRFMC
+      assign sStatusVec[cEDW*MNGT_WRFMC0+id] = sEMIF_Ctrl[cEDW*MNGT_WRFMC0+id];   // RW   
+    end
+  endgenerate
+  //---- MNGT_RMIP[0:1] ----------------
+  generate
+  for (id=0; id<16; id=id+1)
+    begin: gen_MNGT_TCPLSN_PORT
+      assign sStatusVec[cEDW*MNGT_TCPLSN0+id] = sEMIF_Ctrl[cEDW*MNGT_TCPLSN0+id]; // RW
+    end
+  endgenerate
+  //---- MNGT_CONTROL ------------------
+  generate
+  for (id=0; id<8; id=id+1)
+    begin: gen_MNGT_CTRL
+      assign sStatusVec[cEDW*MNGT_CTRL+id] = sEMIF_Ctrl[cEDW*MNGT_CTRL+id];       // RW   
+    end
+  endgenerate
+  
+  //-------------------------------------------------------- 
   //-- APP REGISTERS
   //--------------------------------------------------------
   //---- APP_RDROL[0:1] ----------------
-  assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg; // RO
-  //---- APP_WRROL0 ---------------------
+  assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg;       // RO
+  //---- APP_WRROL[0:1] ----------------
   generate
-  for (id=0; id<8; id=id+1)
+  for (id=0; id<16; id=id+1)
     begin: gen_APP_WRROL0
       assign sStatusVec[cEDW*APP_WRROL0+id]  = sEMIF_Ctrl[cEDW*APP_WRROL0+id]; // RW   
     end
   endgenerate
-  //---- APP_WRROL1 ---------------------
-  generate
-  for (id=0; id<8; id=id+1)
-    begin: gen_APP_WRROL1
-      assign sStatusVec[cEDW*APP_WRROL1+id]  = sEMIF_Ctrl[cEDW*APP_WRROL1+id]; // RW   
-    end
-  endgenerate
-  //---- APP_RDFMC[0:31] ----------------
-  assign sStatusVec[cEDW*APP_RDFMC3+7:cEDW*APP_RDFMC0+0] = piFMC_RdReg;
-  //---- APP_WRFMC0 --------------------- 
-  generate
-  for (id=0; id<8; id=id+1)
-    begin: gen_APP_WRFMC0
-      assign sStatusVec[cEDW*APP_WRFMC0+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC0+id]; // RW   
-    end
-  endgenerate
-   //---- APP_WRFMC1 --------------------- 
-  generate
-  for (id=0; id<8; id=id+1)
-    begin: gen_APP_WRFMC1
-      assign sStatusVec[cEDW*APP_WRFMC1+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC1+id]; // RW   
-    end
-  endgenerate
-  //---- APP_WRFMC2 --------------------- 
-  generate
-  for (id=0; id<8; id=id+1)
-    begin: gen_APP_WRFMC2
-      assign sStatusVec[cEDW*APP_WRFMC2+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC2+id]; // RW   
-    end
-  endgenerate
-  //---- APP_WRFMC3 --------------------- 
-  generate
-  for (id=0; id<8; id=id+1)
-    begin: gen_APP_WRFMC3
-      assign sStatusVec[cEDW*APP_WRFMC3+id]  = sEMIF_Ctrl[cEDW*APP_WRFMC3+id]; // RW   
-    end
-  endgenerate
-
+  
   //-------------------------------------------------------- 
-  //-- RES1 REGISTERS
-  //--------------------------------------------------------
-  //---- Not Implemented ---------------
-
-  //-------------------------------------------------------- 
-  //-- RES2 REGISTERS
+  //-- RES REGISTERS
   //--------------------------------------------------------
   //---- Not Implemented ---------------
 
@@ -710,11 +723,11 @@ module MmioClient_A8_D8 #(
   //--------------------------------------------------------  
   //---- PHY_STATUS --------------------
   //------ No Outputs to the Fabric
-  //---- PHY_ETH0 ----------------------
-  assign poETH0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_ETH0+0];                   // RW
-  assign poETH0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_ETH0+7 :cEDW*PHY_ETH0+4];  // RW
-  assign poETH0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_ETH0+12:cEDW*PHY_ETH0+8];  // RW
-  assign poETH0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_ETH0+20:cEDW*PHY_ETH0+16]; // RW
+  //---- PHY_GTH[0:2] ------------------
+  assign poETH0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_GTH0+0];                  // RW
+  assign poETH0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_GTH0+7 :cEDW*PHY_GTH0+4]; // RW
+  assign poETH0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_GTH1+4 :cEDW*PHY_GTH1+0]; // RW
+  assign poETH0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_GTH2+4 :cEDW*PHY_GTH2+0]; // RW
   
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
@@ -724,12 +737,7 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  assign poNTS0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
-  assign poNTS0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
-  assign poNTS0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
-  assign poNTS0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
-  assign poNTS0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
-  assign poNTS0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
+  assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW
   
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
@@ -739,20 +747,25 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poNTS0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
-  assign poNTS0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
-  assign poNTS0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
-  assign poNTS0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
+  assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW
   //---- LY3_SUBNET[0:3] -------------------
-  assign poNTS0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
-  assign poNTS0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
-  assign poNTS0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
-  assign poNTS0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
+  assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW
   //---- LY3_GATEWAY[0:3] -------------------
-  assign poNTS0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW3+0]; // RW
-  assign poNTS0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
-  assign poNTS0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
-  assign poNTS0_GatewayAddr[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
+  assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW
+  
+  //--------------------------------------------------------
+  //-- MNGT REGISTERS
+  //--------------------------------------------------------
+  //---- MNGT_RMIP[0:3] ----------------
+  assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW
+  //---- MNGT_RDFMC[0:3] ---------------
+  //------ No Outputs to the Fabric (RO)
+  //---- MNGT_WRFMC[0:3] ---------------
+  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW
+  //---- MNGT_TCPLSN[0:1] --------------
+  assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW
+  //---- MNGT_CTRL ---------------------
+  //------ No Outputs to the Fabric
 
   //--------------------------------------------------------
   //-- APP REGISTERS
@@ -761,20 +774,12 @@ module MmioClient_A8_D8 #(
   //------ No Outputs to the Fabric (RO)
   //---- Write Role Register -----------
   assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW
-  //---- Read FMC Register-------------
-  //------ No Outputs to the Fabric (RO)
-  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*APP_WRFMC3+7:cEDW*APP_WRFMC0+0];
-  
+
   //-------------------------------------------------------- 
-  //-- RES1 REGISTERS
+  //-- RES REGISTERS
   //--------------------------------------------------------
   //---- Not Implemented ---------------
-  
-  //-------------------------------------------------------- 
-  //-- RES2 REGISTERS
-  //--------------------------------------------------------
-  //---- Not Implemented ---------------
-  
+    
   //--------------------------------------------------------  
   //-- DIAGNOSTIC REGISTERS
   //--------------------------------------------------------
