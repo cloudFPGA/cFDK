@@ -19,7 +19,7 @@ stream<UdpWord>        sFifo_Udp_Data("sFifo_Udp_Data");
 stream<NetworkMetaStream>  sFifo_Udp_Meta("sFifo_Udp_Meta");
 
 ap_uint<8>   openPortWaitTime = 10;
-static bool metaWritten = false;
+static bool Udp_RX_metaWritten = false;
 
 static FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 
@@ -176,7 +176,7 @@ void nrc_main(
   //=================================================================================================
   // Reset global variables 
 
-#pragma HLS reset variable=metaWritten
+#pragma HLS reset variable=Udp_RX_metaWritten
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTXenq_Udp
 #pragma HLS reset variable=fsmStateTXdeq_Udp
@@ -214,7 +214,6 @@ void nrc_main(
   //MRT data are after possible config DATA
   for(int i = 0; i < MAX_MRT_SIZE; i++)
   {
-    //localMRT[i] = MRT[i];
     localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
   }
   for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
@@ -273,25 +272,17 @@ void nrc_main(
     need_udp_port_req = false;
   }
 
-  //-- PROCESS FUNCTIONS ----------------------------------------------------
-  //pTxP(siUdp_data,  siIP,
-  //     soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
   //=================================================================================================
-  // TX 
+  // TX UDP
 
-
-  //-- PROCESS FUNCTIONS ----------------------------------------------------
-  //pTxP_Enqueue(siUdp_data,
-  //             sFifo_Udp_Data, sPLen_Udp);
   //-------------------------------------------------------------------------------------------------
-  // TX Enqueue
+  // TX UDP Enqueue
 
   switch(fsmStateTXenq_Udp) {
 
     default:
     case FSM_RESET:
       pldLen_Udp = 0;
-      //fsmStateTXenq_Udp = FSM_ACC;
       fsmStateTXenq_Udp = FSM_W8FORMETA;
       udpTX_packet_length = 0;
       udpTX_current_packet_length = 0;
@@ -343,7 +334,6 @@ void nrc_main(
         // Reset the payload length
         pldLen_Udp = 0;
         // Start over
-        //fsmStateTXenq_Udp = FSM_ACC;
         fsmStateTXenq_Udp = FSM_W8FORMETA;
       }
 
@@ -368,7 +358,6 @@ void nrc_main(
 
       // The very first time, wait until the Rx path provides us with the
       // socketPair information before continuing
-      //if ( !siUdp_meta.empty() ) {
       if ( !sFifo_Udp_Meta.empty() ) {
         out_meta_udp  = sFifo_Udp_Meta.read();
         fsmStateTXdeq_Udp = FSM_FIRST_ACC;
@@ -440,7 +429,6 @@ void nrc_main(
           // Until LAST bit is set
           if (aWord.tlast) 
           {
-            //fsmStateTXdeq_Udp = FSM_FIRST_ACC;
             fsmStateTXdeq_Udp = FSM_W8FORMETA;
           }
         }
@@ -448,14 +436,8 @@ void nrc_main(
         break;
       }
 
-      //---- From UDMX to ROLE
-      //pRxP(siUDMX_This_Data,  siUDMX_This_Meta,
-      //    soTHIS_Udmx_OpnReq, siUDMX_This_OpnAck,
-      //    soUdp_data,    soIP);
       //=================================================================================================
-      // RX 
-
-
+      // RX UDP
 
       switch(fsmStateRX_Udp) {
 
@@ -469,7 +451,6 @@ void nrc_main(
           if(openPortWaitTime == 0) { 
             if ( !soTHIS_Udmx_OpnReq.full() && need_udp_port_req) {
               ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_udp;
-              //soTHIS_Udmx_OpnReq.write(DEFAULT_RX_PORT);
               soTHIS_Udmx_OpnReq.write(new_absolute_port);
               fsmStateRX_Udp = FSM_W8FORPORT;
             } else if(udp_rx_ports_processed > 0)
@@ -511,11 +492,10 @@ void nrc_main(
               NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
               in_meta_udp = NetworkMetaStream(tmp_meta);
 
-              metaWritten = false; //don't put the meta stream in the critical path
+              Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
               if (!udpWord.tlast) {
                 fsmStateRX_Udp = FSM_ACC;
               } else { 
-                //fsmStateRX_Udp = FSM_FIRST_ACC; //wait for next packet = stay here
                 fsmStateRX_Udp = FSM_WRITE_META; 
               }
             } 
@@ -540,11 +520,11 @@ void nrc_main(
           }
           //no break!
         case FSM_WRITE_META:
-          if ( !metaWritten && !soUdp_meta.full() )
+          if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
           {
             soUdp_meta.write(in_meta_udp);
             packet_count_RX++;
-            metaWritten = true;
+            Udp_RX_metaWritten = true;
             if ( fsmStateRX_Udp == FSM_WRITE_META)
             {//was a small packet
               fsmStateRX_Udp = FSM_FIRST_ACC;

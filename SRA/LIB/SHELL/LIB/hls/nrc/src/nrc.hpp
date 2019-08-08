@@ -170,9 +170,7 @@ void nrc_main(
     stream<UdpWord>             &siUdp_data,
     stream<UdpWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
-    //stream<NetworkMeta>          &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
-    //stream<NetworkMeta>          &soUdp_meta,
     ap_uint<32>                 *myIpAddress,
 
     //-- UDMX / This / Open-Port Interfaces
