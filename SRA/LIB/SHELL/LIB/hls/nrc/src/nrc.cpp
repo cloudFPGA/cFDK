@@ -10,7 +10,10 @@
 //  *
 
 #include "nrc.hpp"
-#include "../../../../../hls/network_utils.hpp"
+//#include "../../../../../hls/network_utils.hpp"
+//#include "../../../../../hls/memory_utils.hpp"
+//#include "../../../../../hls/simulation_utils.hpp"
+
 //#include "hls_math.h"
 //#include "ap_fixed.h"
 
@@ -19,39 +22,97 @@ stream<UdpWord>        sFifo_Udp_Data("sFifo_Udp_Data");
 stream<NetworkMetaStream>  sFifo_Udp_Meta("sFifo_Udp_Meta");
 
 ap_uint<8>   openPortWaitTime = 10;
-static bool Udp_RX_metaWritten = false;
+bool Udp_RX_metaWritten = false;
 
-static FsmStateUdp fsmStateRX_Udp = FSM_RESET;
+FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 
-static UdpPLen    pldLen_Udp = 0;
-static FsmStateUdp fsmStateTXenq_Udp = FSM_RESET;
+UdpPLen    pldLen_Udp = 0;
+FsmStateUdp fsmStateTXenq_Udp = FSM_RESET;
 
-static FsmStateUdp fsmStateTXdeq_Udp = FSM_RESET;
+FsmStateUdp fsmStateTXdeq_Udp = FSM_RESET;
 
-static ap_uint<32> localMRT[MAX_MRT_SIZE];
+ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-static ap_uint<32> udp_rx_ports_processed = 0;
-static bool need_udp_port_req = false;
-static ap_uint<16> new_relative_port_to_req_udp = 0;
+ap_uint<32> udp_rx_ports_processed = 0;
+bool need_udp_port_req = false;
+ap_uint<16> new_relative_port_to_req_udp = 0;
 
-static NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
-static NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
+NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
+NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 
-static ap_uint<32> node_id_missmatch_RX_cnt = 0;
-static NodeId last_rx_node_id = 0;
-static NrcPort last_rx_port = 0;
-static ap_uint<32> node_id_missmatch_TX_cnt = 0;
-static NodeId last_tx_node_id = 0;
-static NrcPort last_tx_port = 0;
-static ap_uint<32> port_corrections_TX_cnt = 0;
+ap_uint<32> node_id_missmatch_RX_cnt = 0;
+NodeId last_rx_node_id = 0;
+NrcPort last_rx_port = 0;
+ap_uint<32> node_id_missmatch_TX_cnt = 0;
+NodeId last_tx_node_id = 0;
+NrcPort last_tx_port = 0;
+ap_uint<32> port_corrections_TX_cnt = 0;
 
-static ap_uint<32> packet_count_RX = 0;
-static ap_uint<32> packet_count_TX = 0;
+ap_uint<32> packet_count_RX = 0;
+ap_uint<32> packet_count_TX = 0;
 
 NetworkDataLength udpTX_packet_length = 0;
 NetworkDataLength udpTX_current_packet_length = 0;
+
+
+//FROM TCP
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TRIF"
+
+#define TRACE_OFF  0x0000
+#define TRACE_RDP 1 <<  1
+#define TRACE_WRP 1 <<  2
+#define TRACE_SAM 1 <<  3
+#define TRACE_LSN 1 <<  4
+#define TRACE_CON 1 <<  5
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
+enum DropCmd {KEEP_CMD=false, DROP_CMD};
+
+//---------------------------------------------------------
+//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
+//--  By default, the following sockets will be used by the
+//--  TCP Role Interface, unless the user specifies new ones
+//--  via TBD.
+//--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
+//---------------------------------------------------------
+#define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
+#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
+#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
+
+
+AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+AppOpnSts     newConn;
+ap_uint< 12>  watchDogTimer;
+
+// Set a startup delay long enough to account for the initialization
+// of TOE's listen port table which takes 32,768 cycles after reset.
+//  [FIXME - StartupDelay must be replaced by a piSHELL_Reday signal]
+ap_uint<16>         startupDelay = 0x8000;
+OpnFsmStates opnFsmState=OPN_IDLE;
+
+LsnFsmStates lsnFsmState = LSN_IDLE;
+
+RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
+AppNotif notif;
+
+RdpFsmStates rdpFsmState = RDP_WAIT_META;
+
+WrpFsmStates wrpFsmState = WRP_WAIT_META;
+
+
 
 
 /*****************************************************************************
@@ -117,14 +178,28 @@ void nrc_main(
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
+    // -- my IP address 
+    ap_uint<32>                 *myIpAddress,
 
-    //-- ROLE / This / Network Interfaces
+    //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
     stream<UdpWord>             &siUdp_data,
     stream<UdpWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
-    ap_uint<32>                 *myIpAddress,
+    
+    // -- ROLE TCP connection
+    ap_uint<32>                 *pi_tcp_rx_ports,
+    stream<TcpWord>             &siTcp_data,
+    stream<NetworkMetaStream>   &siTcp_meta,
+    stream<TcpWord>             &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta,
+
+    // -- FMC TCP connection
+    stream<TcpWord>             &siFMC_Tcp_data,
+    stream<NetworkMetaStream>   &siFMC_Tcp_meta,
+    stream<TcpWord>             &soFMC_Tcp_data,
+    stream<NetworkMetaStream>   &soFMC_Tcp_meta,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -135,11 +210,28 @@ void nrc_main(
     stream<UdpMeta>     &siUDMX_This_Meta,
     stream<UdpWord>     &soTHIS_Udmx_Data,
     stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen
-    )
+    stream<UdpPLen>     &soTHIS_Udmx_PLen, 
+
+    //-- TOE / Rx Data Interfaces
+    stream<AppNotif>    &siTOE_Notif,
+    stream<AppRdReq>    &soTOE_DReq,
+    stream<AppData>     &siTOE_Data,
+    stream<AppMeta>     &siTOE_SessId,
+    //-- TOE / Listen Interfaces
+    stream<AppLsnReq>   &soTOE_LsnReq,
+    stream<AppLsnAck>   &siTOE_LsnAck,
+    //-- TOE / Tx Data Interfaces
+    stream<AppData>     &soTOE_Data,
+    stream<AppMeta>     &soTOE_SessId,
+    stream<AppWrSts>    &siTOE_DSts,
+    //-- TOE / Open Interfaces
+    stream<AppOpnReq>   &soTOE_OpnReq,
+    stream<AppOpnSts>   &siTOE_OpnRep,
+    //-- TOE / Close Interfaces
+    stream<AppClsReq>   &soTOE_ClsReq
+  )
 {
 
-  //-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
 #pragma HLS INTERFACE axis register both port=siUdp_data
 #pragma HLS INTERFACE axis register both port=soUdp_data
 
@@ -159,15 +251,49 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=soUdp_meta
 
 #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
-#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_NRC_Udp_Rx_ports
+#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_Udp_Rx_ports
+#pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
+#pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
 #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piSMC_NRC_ctrlLink_AXI
 #pragma HLS INTERFACE s_axilite port=return bundle=piSMC_NRC_ctrlLink_AXI
 
+#pragma HLS INTERFACE axis register both port=siTcp_data
+#pragma HLS INTERFACE axis register both port=siTcp_data
+#pragma HLS INTERFACE axis register both port=soTcp_meta
+#pragma HLS INTERFACE axis register both port=soTcp_meta
+#pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
+
+#pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
+#pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
+#pragma HLS INTERFACE axis register both port=soFMC_Tcp_meta
+#pragma HLS INTERFACE axis register both port=soFMC_Tcp_meta
 
 
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INTERFACE axis register both port=siTOE_Notif
+#pragma HLS DATA_PACK                variable=siTOE_Notif
+#pragma HLS INTERFACE axis register both port=soTOE_DReq
+#pragma HLS DATA_PACK                variable=soTOE_DReq
+#pragma HLS INTERFACE axis register both port=siTOE_Data
+#pragma HLS INTERFACE axis register both port=siTOE_SessId
+
+#pragma HLS INTERFACE axis register both port=soTOE_LsnReq
+#pragma HLS INTERFACE axis register both port=siTOE_LsnAck
+
+#pragma HLS INTERFACE axis register both port=soTOE_Data
+#pragma HLS INTERFACE axis register both port=soTOE_SessId
+#pragma HLS INTERFACE axis register both port=siTOE_DSts
+
+#pragma HLS INTERFACE axis register both port=soTOE_OpnReq
+#pragma HLS DATA_PACK                variable=soTOE_OpnReq
+#pragma HLS INTERFACE axis register both port=siTOE_OpnRep
+#pragma HLS DATA_PACK                variable=siTOE_OpnRep
+
+#pragma HLS INTERFACE axis register both port=soTOE_ClsReq
+
+// Pragmas for internal variables
   //#pragma HLS DATAFLOW interval=1
+  //#pragma HLS PIPELINE II=1 TODO/FIXME: is this necessary??
 #pragma HLS STREAM variable=sPLen_Udp depth=1
 #pragma HLS STREAM variable=sFifo_Udp_Meta depth=1
 #pragma HLS STREAM variable=sFifo_Udp_Data depth=2048    // Must be able to contain MTU
@@ -205,6 +331,12 @@ void nrc_main(
   //#pragma HLS reset variable=status --> I think to reset an array is hard, it is also uninitalized in C itself...
   // the status array is anyhow written every IP core iteration and the inputs are reset --> so not necessary
 
+#pragma HLS reset variable=startupDelay
+#pragma HLS reset variable=opnFsmState
+#pragma HLS reset variable=lsnFsmState
+#pragma HLS reset variable=rrhFsmState
+#pragma HLS reset variable=rdpFsmState
+#pragma HLS reset variable=wrpFsmState
 
 
   //===========================================================

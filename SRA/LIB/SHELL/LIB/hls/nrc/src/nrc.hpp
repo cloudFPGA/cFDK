@@ -119,6 +119,33 @@ using namespace hls;
 //#define READ_STANDBY 4
 //#define receiveState uint8_t
 
+
+#define OpnFsmStates uint8_t
+#define OPN_IDLE 0
+#define OPN_REQ 1
+#define OPN_REP 2
+#define OPN_DONE 3
+
+#define LsnFsmStates uint8_t
+#define LSN_IDLE 0
+#define LSN_SEND_REQ 1
+#define LSN_WAIT_ACK 2
+#define LSN_DONE 3
+
+#define RrhFsmStates uint8_t
+#define RRH_WAIT_NOTIF 0
+#define RRH_SEND_DREQ 1
+
+#define RdpFsmStates uint8_t 
+#define RDP_WAIT_META 0
+#define RDP_STREAM 1
+
+#define WrpFsmStates uint8_t
+#define WRP_WAIT_META 0
+#define WRP_STREAM 1
+
+
+
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
@@ -164,14 +191,28 @@ void nrc_main(
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
+    // -- my IP address 
+    ap_uint<32>                 *myIpAddress,
 
-    //-- ROLE / This / Network Interfaces
+    //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
     stream<UdpWord>             &siUdp_data,
     stream<UdpWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
-    ap_uint<32>                 *myIpAddress,
+    
+    // -- ROLE TCP connection
+    ap_uint<32>                 *pi_tcp_rx_ports,
+    stream<TcpWord>             &siTcp_data,
+    stream<NetworkMetaStream>   &siTcp_meta,
+    stream<TcpWord>             &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta,
+
+    // -- FMC TCP connection
+    stream<TcpWord>             &siFMC_Tcp_data,
+    stream<NetworkMetaStream>   &siFMC_Tcp_meta,
+    stream<TcpWord>             &soFMC_Tcp_data,
+    stream<NetworkMetaStream>   &soFMC_Tcp_meta,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -182,7 +223,25 @@ void nrc_main(
     stream<UdpMeta>     &siUDMX_This_Meta,
     stream<UdpWord>     &soTHIS_Udmx_Data,
     stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_Len
+    stream<UdpPLen>     &soTHIS_Udmx_PLen, 
+
+    //-- TOE / Rx Data Interfaces
+    stream<AppNotif>    &siTOE_Notif,
+    stream<AppRdReq>    &soTOE_DReq,
+    stream<AppData>     &siTOE_Data,
+    stream<AppMeta>     &siTOE_SessId,
+    //-- TOE / Listen Interfaces
+    stream<AppLsnReq>   &soTOE_LsnReq,
+    stream<AppLsnAck>   &siTOE_LsnAck,
+    //-- TOE / Tx Data Interfaces
+    stream<AppData>     &soTOE_Data,
+    stream<AppMeta>     &soTOE_SessId,
+    stream<AppWrSts>    &siTOE_DSts,
+    //-- TOE / Open Interfaces
+    stream<AppOpnReq>   &soTOE_OpnReq,
+    stream<AppOpnSts>   &siTOE_OpnRep,
+    //-- TOE / Close Interfaces
+    stream<AppClsReq>   &soTOE_ClsReq
 );
 
 #endif

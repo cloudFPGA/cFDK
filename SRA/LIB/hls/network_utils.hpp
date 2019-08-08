@@ -139,6 +139,7 @@ struct NetworkWord {
  ********************************************/
 
 typedef NetworkWord UdpWord;
+typedef NetworkWord TcpWord;
 
 struct UdpMeta {            // UDP Socket Pair Association
     SocketAddr      src;    // Source socket address
@@ -496,7 +497,7 @@ public:
 // Sub-types of the generic AXI4-Stream Interface
 //------------------------------------------------
 typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
-typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
+//typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
 
 
 //OBSOLETE struct axiWord {
