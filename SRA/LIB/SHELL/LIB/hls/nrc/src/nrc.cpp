@@ -95,7 +95,8 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 AppOpnSts     newConn;
-ap_uint< 12>  watchDogTimer;
+ap_uint<12>  watchDogTimer;
+ap_uint<8>   watchDogTimer_plisten = 0;
 
 // Set a startup delay long enough to account for the initialization
 // of TOE's listen port table which takes 32,768 cycles after reset.
@@ -106,12 +107,15 @@ OpnFsmStates opnFsmState=OPN_IDLE;
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
 RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
-AppNotif notif;
+AppNotif notif_pRrh;
 
 RdpFsmStates rdpFsmState = RDP_WAIT_META;
 
 WrpFsmStates wrpFsmState = WRP_WAIT_META;
 
+ap_uint<32> tcp_rx_ports_processed = 0;
+bool need_tcp_port_req = false;
+ap_uint<16> new_relative_port_to_req_tcp = 0;
 
 
 
@@ -337,6 +341,9 @@ void nrc_main(
 #pragma HLS reset variable=rrhFsmState
 #pragma HLS reset variable=rdpFsmState
 #pragma HLS reset variable=wrpFsmState
+#pragma HLS reset variable=tcp_rx_ports_processed
+#pragma HLS reset variable=need_tcp_port_req
+#pragma HLS reset variable=new_relative_port_to_req_tcp
 
 
   //===========================================================
@@ -394,7 +401,7 @@ void nrc_main(
     ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
     //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
     //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
-    printf("port diff: %#04x\n",(int) diff);
+    printf("UDP port diff: %#04x\n",(int) diff);
     if(diff != 0)
     {//we have to open new ports, one after another
       new_relative_port_to_req_udp = getRightmostBitPos(diff);
@@ -402,6 +409,23 @@ void nrc_main(
     }
   } else {
     need_udp_port_req = false;
+  }
+  
+  if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
+  {
+    //we can't close, so only look for newly opened
+    ap_uint<32> tmp = tcp_rx_ports_processed | *tcp_udp_rx_ports;
+    ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
+    //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
+    //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
+    printf("TCP port diff: %#04x\n",(int) diff);
+    if(diff != 0)
+    {//we have to open new ports, one after another
+      new_relative_port_to_req_tcp = getRightmostBitPos(diff);
+      need_tcp_port_req = true;
+    }
+  } else {
+    need_tcp_port_req = false;
   }
 
   //=================================================================================================
@@ -472,12 +496,8 @@ void nrc_main(
       break;
   }
 
-
-
-  //pTxP_Dequeue(sFifo_Udp_Data,  siIP,  sPLen_Udp,
-  //             soTHIS_Udmx_Data, soTHIS_Udmx_Meta, soTHIS_Udmx_PLen, myIpAddress);
   //-------------------------------------------------------------------------------------------------
-  // TX Dequeue
+  // TX UDP Dequeue
 
 
   switch(fsmStateTXdeq_Udp) {
@@ -664,6 +684,131 @@ void nrc_main(
           }
           break;
       }
+
+    //=================================================================================================
+    // TCP pListen
+      /*****************************************************************************
+       * @brief Request the TOE to start listening (LSn) for incoming connections
+       *  on a specific port (.i.e open connection for reception mode).
+       *
+       * @param[out] soTOE_LsnReq,   listen port request to TOE.
+       * @param[in]  siTOE_LsnAck,   listen port acknowledge from TOE.
+       *
+       * @warning
+       *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
+       *   32,767) which are used for listening ports, and one for dynamically
+       *   assigned or ephemeral ports (32,768 to 65,535) which are used for active
+       *   connections. Therefore, listening port numbers must be in the range 0
+       *   to 32,767.
+       ******************************************************************************/
+    
+    char   *myName  = concat3(THIS_NAME, "/", "LSn");
+
+    switch (lsnFsmState) {
+
+    case LSN_IDLE:
+        if (startupDelay > 0)
+        {
+            startupDelay--;
+        } else {
+          if(need_tcp_port_req == true)
+          {
+            lsnFsmState = LSN_SEND_REQ;
+          } else {
+            lsnFsmState = LSN_DONE;
+          }
+        }
+        break;
+
+    case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
+        if (!soTOE_LsnReq.full()) {
+            ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+            AppLsnReq    tcpListenPort = new_absolute_port;
+            soTOE_LsnReq.write(tcpListenPort);
+            if (DEBUG_LEVEL & TRACE_LSN) {
+                printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
+                          new_absolute_port, new_absolute_port);
+            #ifndef __SYNTHESIS__
+                watchDogTimer_plisten = 10;
+            #else
+                watchDogTimer_plisten = 100;
+            #endif
+            lsnFsmState = LSN_WAIT_ACK;
+            }
+        }
+        else {
+            printWarn(myName, "Cannot send a listen port request to [TOE] because stream is full!\n");
+        }
+        break;
+
+    case LSN_WAIT_ACK:
+        watchDogTimer_plisten--;
+        if (!siTOE_LsnAck.empty()) {
+            bool    listenDone;
+            siTOE_LsnAck.read(listenDone);
+            if (listenDone) {
+                printInfo(myName, "Received listen acknowledgment from [TOE].\n");
+                lsnFsmState = LSN_DONE;
+                
+                need_tcp_port_req = false;
+                tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
+                printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
+            }
+            else {
+                ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
+                          new_absolute_port, new_absolute_port);
+                lsnFsmState = LSN_SEND_REQ;
+            }
+        }
+        else {
+            if (watchDogTimer_plisten == 0) {
+                ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+                           new_absolute_port, new_absolute_port);
+                lsnFsmState = LSN_SEND_REQ;
+            }
+        }
+        break;
+
+    case LSN_DONE:
+        if(need_tcp_port_req == true)
+        {
+          lsnFsmState = LSN_SEND_REQ;
+        }
+        break;
+    } 
+
+  /*****************************************************************************
+   * @brief ReadRequestHandler (RRh).
+   *  Waits for a notification indicating the availability of new data for
+   *  the ROLE. If the TCP segment length is greater than 0, the notification
+   *  is accepted.
+   *
+   * @param[in]  siTOE_Notif, a new Rx data notification from TOE.
+   * @param[out] soTOE_DReq,  a Rx data request to TOE.
+   *
+   ******************************************************************************/
+    //update myName
+    myName  = concat3(THIS_NAME, "/", "RRh");
+
+    switch(rrhFsmState) {
+    case RRH_WAIT_NOTIF:
+        if (!siTOE_Notif.empty()) {
+            siTOE_Notif.read(notif_pRrh);
+            if (notif_pRrh.tcpSegLen != 0) {
+                // Always request the data segment to be received
+                rrhFsmState = RRH_SEND_DREQ;
+            }
+        }
+        break;
+    case RRH_SEND_DREQ:
+        if (!soTOE_DReq.full()) {
+            soTOE_DReq.write(AppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpSegLen));
+            rrhFsmState = RRH_WAIT_NOTIF;
+        }
+        break;
+    }
 
 
   }
