@@ -55,8 +55,12 @@ set_top       ${projectName}_main
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
-add_files     ${srcDir}/../../../../../hls/network_utils.cpp
-add_files     ${srcDir}/../../../../../hls/network_utils.hpp
+add_files     ${srcDir}/../../../../../hls/network.hpp
+add_files     ${srcDir}/../../network_utils.hpp
+add_files     ${srcDir}/../../network_utils.cpp
+add_files     ${srcDir}/../../simulation_utils.hpp
+add_files     ${srcDir}/../../simulation_utils.cpp
+add_files     ${srcDir}/../../memory_utils.hpp
 
 add_files -tb ${testDir}/tb_${projectName}.cpp
 

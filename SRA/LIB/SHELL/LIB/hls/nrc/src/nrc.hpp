@@ -148,7 +148,10 @@ using namespace hls;
 
 #define WrpFsmStates uint8_t
 #define WRP_WAIT_META 0
-#define WRP_STREAM 1
+#define WRP_STREAM_FMC 1
+#define WRP_WAIT_CONNECTION 2
+#define WRP_STREAM_ROLE 3
+#define WRP_DROP_PACKET 4
 
 
 

@@ -23,6 +23,8 @@
 #include <vector>
 
 #include "ap_int.h"
+#include "network_utils.hpp"
+#include "memory_utils.hpp"
 
 using namespace hls;
 using namespace std;
