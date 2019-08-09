@@ -1102,26 +1102,32 @@ class Ip4overAxi: public AxiWord {
  *
  * [FIXME: consider using member 'opened' instead
  *   of 'closed'.]
- * [FIXME: AppNotif should contain a sub-class
+ * [FIXME: AppNotif could contain a sub-class
  *  'AppRdReq' and a sub-class "SocketPair'.]
  ***********************************************/
 class AppNotif
 {
   public:
-    SessionId          sessionID;
-    TcpSegLen          tcpSegLen;
-    Ip4SrcAddr         ip4SrcAddr;
-    TcpDstPort         tcpDstPort;
-    bool               closed;
+    SessionId   sessionID;
+    TcpSegLen   tcpSegLen;
+    Ip4Addr     ip4SrcAddr
+    Ip4Addr     ip4DstAddr;
+    TcpPort     tcpSrcPort;
+    TcpPort     tcpDstPort;
+    bool        closed;
+
     AppNotif() {}
-    AppNotif(SessionId sessId,  TcpSegLen len,  Ip4SrcAddr addr,  TcpDstPort port) :
-             sessionID(sessId), tcpSegLen(len), ip4SrcAddr(addr), tcpDstPort(port), closed(false) {}
+    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     TcpPort dp) :
+             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), tcpDstPort(dp), closed(false) {}
     AppNotif(SessionId sessId,  bool closed) :
-             sessionID(sessId), tcpSegLen(0),   ip4SrcAddr(0),    tcpDstPort(0),    closed(closed) {}
-    AppNotif(SessionId sessId,                  Ip4SrcAddr addr,  TcpDstPort port,  bool closed) :
-             sessionID(sessId), tcpSegLen(0),   ip4SrcAddr(addr), tcpDstPort(port), closed(closed) {}
-    AppNotif(SessionId sessId,  TcpSegLen len,  Ip4SrcAddr addr,  TcpDstPort port,  bool closed) :
-             sessionID(sessId), tcpSegLen(len), ip4SrcAddr(addr), tcpDstPort(port), closed(closed) {}
+    AppNotif(SessionId sessId,                     Ip4Addr sa,     TcpDstPort port,  bool closed) :
+             sessionID(sessId), tcpSegLen(0),      ip4SrcAddr(sa), tcpDstPort(port), closed(closed) {}
+    AppNotif(SessionId sessId,  TcpSegLen len,     Ip4Addr sa,     TcpDstPort port,  bool closed) :
+             sessionID(sessId), tcpSegLen(len),    ip4SrcAddr(sa), tcpDstPort(port), closed(closed) {}
+    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     Ip4Addr da,
+                                                   TcpPort sp,     TcpPort dp) :
+             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), ip4DstAddr(da),
+                                                   tcpSrcPort(sp), tcpDstPort(dp), closed(false) {}
 };
 
 /***********************************************
