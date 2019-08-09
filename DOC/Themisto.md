@@ -10,8 +10,8 @@ node2node communication
 
 The management of the **listen ports** is silently done in the background, **but only the following port range is allowed, currently**:
 ```C
-#define MIN_PORT 2718
-#define MAX_PORT 2749
+#define NRC_RX_MIN_PORT 2718
+#define NRC_RX_MAX_PORT 2749
 ```
 
 The registers `poNRC_Udp_RX_ports` and `poNRC_Tcp_RX_ports` indicates on which ports the Role wants to listen (separated for UDP and TCP).
@@ -103,6 +103,19 @@ a `"connection time out"` has occurred.
 
 If the `len` field in the Meta-Stream is set, there is no need for the `tlast` for data streams from the ROLE to the SHELL.
 *The SHELL will always set the `tlast` bit*, and the `len` field only if it is known in advance.
+
+### Error handling 
+
+TODO: See `/flight_recorder`
+
+RX path: 
+If the packet comes from an unknown IP address, the packet will be dropped (and the corresponding `node_id_missmatch_RX` counter in the "Flight data" will be increased).
+TODO: set a bit to not do this?
+
+TX path: 
+If the user tries to send to an unknown node-id, the packet will be dropped (and the corresponding `node_id_missmatch_TX` counter in the "Flight data" will be increased).
+
+TODO: out of sessions?
 
 
 SRA interface
