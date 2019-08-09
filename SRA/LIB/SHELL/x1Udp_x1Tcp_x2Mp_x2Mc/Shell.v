@@ -333,9 +333,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //----------------------------------------------------
   // -- ROLE / Fmc / Management Interface 
   //----------------------------------------------------
-  // NOT_USED_BY_THIS_SHELL output [ 31:0]  poROL_Fmc_Rank,
-  // NOT_USED_BY_THIS_SHELL output [ 31:0]  poROL_Fmc_Size,
-  
+  output [ 31:0]  poROL_Fmc_Rank,
+  output [ 31:0]  poROL_Fmc_Size,
+ 
   output          poVoid
   
 );  // End of PortList
@@ -717,6 +717,14 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .piROLE_RdReg                   (piROL_Mmio_RdReg),
      //---- APP_WRROL -----------------
     .poROLE_WrReg                   (poROL_Mmio_WrReg),
+    
+    //----------------------------------------------
+    //-- NRC :  Control Registers
+    //----------------------------------------------
+    //---- MNGT_RMIP -------------------
+    .poNRC_RmIpAddress              (),  // [TODO - Not yet used by this SHELL]
+    //---- MNGT_TCPLSN -----------------
+    .poNRC_TcpLsnPort               (),  // [TODO - Not yet used by this SHELL]
 
     //----------------------------------------------
     //-- FMC : Registers and Extended Memory
@@ -1258,7 +1266,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
   );  // End of MEM
 
-
+  //============================================================================
+  //  INST: AXI HARDWARE INTERNAL CONFIGURATION ACCESS PORT
+  //============================================================================
   HWICAPC HWICAP (
     .icap_clk       (sETH0_ShlClk),
     .eos_in         (1),
@@ -1286,7 +1296,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .ip2intc_irpt   (ssFMC_HWICAP_ip2intc_irpt)
   );
 
-
+  //============================================================================
+  //  INST: FPGA MANAGEMENT CORE
+  //============================================================================
   FpgaManagementCore FMC (
     //-- Global Clock used by the entire SHELL -------------
     .ap_clk                 (sETH0_ShlClk),
