@@ -138,9 +138,13 @@ using namespace hls;
 #define RRH_WAIT_NOTIF 0
 #define RRH_SEND_DREQ 1
 
-#define RdpFsmStates uint8_t 
+#define RdpFsmStates uint8_t
 #define RDP_WAIT_META 0
-#define RDP_STREAM 1
+#define RDP_STREAM_ROLE 1
+#define RDP_STREAM_FMC 2
+#define RDP_WRITE_META_ROLE 3
+#define RDP_WRITE_META_FMC 4
+#define RDP_DROP_PACKET 5
 
 #define WrpFsmStates uint8_t
 #define WRP_WAIT_META 0
@@ -171,7 +175,8 @@ using namespace hls;
 #define NRC_CONFIG_OWN_RANK 0
 
 //#define NRC_STATUS_WRITE_ERROR_CNT 4
-#define NRC_STATUS_UNUSED_1 4
+//#define NRC_STATUS_UNUSED_1 4
+#define NRC_UNAUTHORIZED_ACCESS 4
 //#define NRC_STATUS_READ_ERROR_CNT 5
 #define NRC_STATUS_UNUSED_2 5
 #define NRC_STATUS_SEND_STATE 6
@@ -212,9 +217,9 @@ void nrc_main(
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<NetworkMetaStream>   &siFMC_Tcp_meta,
+    stream<AppMeta>             &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<NetworkMetaStream>   &soFMC_Tcp_meta,
+    stream<AppMeta>             &soFMC_Tcp_SessId,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -230,13 +235,13 @@ void nrc_main(
     //-- TOE / Rx Data Interfaces
     stream<AppNotif>    &siTOE_Notif,
     stream<AppRdReq>    &soTOE_DReq,
-    stream<AppData>     &siTOE_Data,
+    stream<NetworkWord> &siTOE_Data,
     stream<AppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
     stream<AppLsnReq>   &soTOE_LsnReq,
     stream<AppLsnAck>   &siTOE_LsnAck,
     //-- TOE / Tx Data Interfaces
-    stream<AppData>     &soTOE_Data,
+    stream<NetworkWord> &soTOE_Data,
     stream<AppMeta>     &soTOE_SessId,
     stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
