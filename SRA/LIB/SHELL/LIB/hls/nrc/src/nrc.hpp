@@ -79,9 +79,10 @@
 
 #include "../../fmc/src/fmc.hpp"
 
-#include "../../../../../hls/network_utils.hpp"
-#include "../../../../../hls/memory_utils.hpp"
-#include "../../../../../hls/simulation_utils.hpp"
+#include "../../../../../hls/network.hpp"
+#include "../../network_utils.hpp"
+#include "../../memory_utils.hpp"
+#include "../../simulation_utils.hpp"
 
 
 using namespace hls;
@@ -102,6 +103,7 @@ using namespace hls;
 #define FSM_LAST_ACC 5
 #define FSM_W8FORMETA 6
 #define FSM_WRITE_META 7
+#define FSM_DROP_PACKET 8
 #define FsmStateUdp uint8_t
 
 

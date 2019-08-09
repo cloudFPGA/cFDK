@@ -122,24 +122,9 @@ typedef bool AxisAck;       // Acknowledgment over Axi4-Stream I/F
 
 
 /********************************************
- * Generic Network Streaming Interfaces.
- ********************************************/
-
-struct NetworkWord { 
-    ap_uint<64>    tdata;
-    ap_uint<8>     tkeep;
-    ap_uint<1>     tlast;
-    NetworkWord()      {}
-    NetworkWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-                   tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
-
-/********************************************
  * UDP Specific Streaming Interfaces.
  ********************************************/
 
-typedef NetworkWord UdpWord;
-typedef NetworkWord TcpWord;
 
 struct UdpMeta {            // UDP Socket Pair Association
     SocketAddr      src;    // Source socket address
@@ -150,37 +135,6 @@ struct UdpMeta {            // UDP Socket Pair Association
 typedef ap_uint<16>     UdpPLen; // UDP Payload Length
 
 typedef ap_uint<16>     UdpPort; // UDP Port Number
-
-
-typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
-typedef ap_uint<8>      NodeId;  // Cluster Node Id
-#define MAX_CF_NODE_ID 128
-
-typedef ap_uint<32>    NetworkDataLength;
-
-struct NetworkMeta {
-  NodeId  dst_rank; //ATTENTION: don't use 'id' in a struct...will be ignored by axis directive and lead to segfaults...
-  NrcPort dst_port;
-  NodeId  src_rank;
-  NrcPort src_port;
-  NetworkDataLength len;
-
-  //ap_uint<16> padding;
-  NetworkMeta() {}
-  //"alphabetical order"
-  NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, NetworkDataLength length) :
-    dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(length) {}
- };
-
-//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to flaws in Vivados hls::stream library
-struct NetworkMetaStream {
-  NetworkMeta tdata; 
-  //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
-  ap_uint<10> tkeep; //TODO: set value in constructor correct based on the length
-  ap_uint<1> tlast;
-  NetworkMetaStream() {}
-  NetworkMetaStream(NetworkMeta single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}
-};
 
 
 #define BROADCASTCHANNELS 2
@@ -1110,7 +1064,7 @@ class AppNotif
   public:
     SessionId   sessionID;
     TcpSegLen   tcpSegLen;
-    Ip4Addr     ip4SrcAddr
+    Ip4Addr     ip4SrcAddr;
     Ip4Addr     ip4DstAddr;
     TcpPort     tcpSrcPort;
     TcpPort     tcpDstPort;
@@ -1120,6 +1074,7 @@ class AppNotif
     AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     TcpPort dp) :
              sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), tcpDstPort(dp), closed(false) {}
     AppNotif(SessionId sessId,  bool closed) :
+             sessionID(sessId), tcpSegLen(0),   ip4SrcAddr(0),    tcpDstPort(0),    closed(closed) {}
     AppNotif(SessionId sessId,                     Ip4Addr sa,     TcpDstPort port,  bool closed) :
              sessionID(sessId), tcpSegLen(0),      ip4SrcAddr(sa), tcpDstPort(port), closed(closed) {}
     AppNotif(SessionId sessId,  TcpSegLen len,     Ip4Addr sa,     TcpDstPort port,  bool closed) :

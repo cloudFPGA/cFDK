@@ -384,6 +384,15 @@ void nrc_main(
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
 
+  
+  //===========================================================
+  //  core wide variables (for one iteration)
+
+  ap_uint<32> ipAddrLE = 0;
+  ipAddrLE  = (*myIpAddress >> 24) & 0xFF;
+  ipAddrLE |= (*myIpAddress >> 8) & 0xFF00;
+  ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
+  ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
 
   //===========================================================
   //  update status
@@ -414,7 +423,7 @@ void nrc_main(
   if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
   {
     //we can't close, so only look for newly opened
-    ap_uint<32> tmp = tcp_rx_ports_processed | *tcp_udp_rx_ports;
+    ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
     ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
     //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
     //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
@@ -522,26 +531,28 @@ void nrc_main(
       // Send out the first data together with the metadata and payload length information
       if ( !sFifo_Udp_Data.empty() && !sPLen_Udp.empty() ) {
         if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) {
-          // Forward data chunk, metadata and payload length
-          UdpWord    aWord = sFifo_Udp_Data.read();
-          //if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
-          soTHIS_Udmx_Data.write(aWord);
-
-
-          ap_uint<32> ipAddrLE = 0;
-          ipAddrLE  = (*myIpAddress >> 24) & 0xFF;
-          ipAddrLE |= (*myIpAddress >> 8) & 0xFF00;
-          ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
-          ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
+          
           //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
-
           NodeId dst_rank = out_meta_udp.tdata.dst_rank;
           if(dst_rank > MAX_CF_NODE_ID)
           {
             node_id_missmatch_TX_cnt++;
-            dst_rank = 0;
+            //dst_rank = 0;
+            //SINK packet
+            sPLen_Udp.read();
+            fsmStateTXdeq_Udp = FSM_DROP_PACKET;
+            break;
           }
           ap_uint<32> dst_ip_addr = localMRT[dst_rank];
+          if(dst_ip_addr == 0)
+          {
+            node_id_missmatch_TX_cnt++;
+            //dst_ip_addr = localMRT[0];
+            //SINK packet
+            sPLen_Udp.read();
+            fsmStateTXdeq_Udp = FSM_DROP_PACKET;
+            break;
+          }
           last_tx_node_id = dst_rank;
           NrcPort src_port = out_meta_udp.tdata.src_port; //TODO: DEBUG
           if (src_port == 0)
@@ -559,6 +570,11 @@ void nrc_main(
           UdpMeta txMeta = {{src_port, ipAddrLE}, {dst_port, dst_ip_addr}};
           soTHIS_Udmx_Meta.write(txMeta);
           packet_count_TX++;
+          
+          // Forward data chunk, metadata and payload length
+          UdpWord    aWord = sFifo_Udp_Data.read();
+          //if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
+          soTHIS_Udmx_Data.write(aWord);
 
           soTHIS_Udmx_PLen.write(sPLen_Udp.read());
           if (aWord.tlast == 1) { 
@@ -572,20 +588,32 @@ void nrc_main(
         break;
 
         case FSM_ACC:
-
-        // Default stream handling
-        if ( !sFifo_Udp_Data.empty() && !soTHIS_Udmx_Data.full() ) {
-          // Forward data chunk
-          UdpWord    aWord = sFifo_Udp_Data.read();
-          soTHIS_Udmx_Data.write(aWord);
-          // Until LAST bit is set
-          if (aWord.tlast) 
-          {
-            fsmStateTXdeq_Udp = FSM_W8FORMETA;
+          // Default stream handling
+          if ( !sFifo_Udp_Data.empty() && !soTHIS_Udmx_Data.full() ) {
+            // Forward data chunk
+            UdpWord    aWord = sFifo_Udp_Data.read();
+            soTHIS_Udmx_Data.write(aWord);
+            // Until LAST bit is set
+            if (aWord.tlast == 1) 
+            {
+              fsmStateTXdeq_Udp = FSM_W8FORMETA;
+            }
           }
-        }
-
         break;
+
+        case FSM_DROP_PACKET:
+          if ( !sFifo_Udp_Data.empty()) {
+            // Forward data chunk
+            UdpWord    aWord = sFifo_Udp_Data.read();
+            // Until LAST bit is set
+            if (aWord.tlast == 1) 
+            {
+              fsmStateTXdeq_Udp = FSM_W8FORMETA;
+            }
+          }
+        break;
+
+
       }
 
       //=================================================================================================
@@ -632,17 +660,23 @@ void nrc_main(
           // Wait until both the first data chunk and the first metadata are received from UDP
           if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
             if ( !soUdp_data.full() ) {
-              // Forward data chunk to ROLE
-              UdpWord    udpWord = siUDMX_This_Data.read();
-              soUdp_data.write(udpWord);
 
               //extrac src ip address
               UdpMeta udpRxMeta = siUDMX_This_Meta.read();
               NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+              if(src_id == 0xFFFF)
+              {
+                //SINK packet
+                fsmStateRX_Udp = FSM_DROP_PACKET;
+                break;
+              }
               last_rx_node_id = src_id;
               last_rx_port = udpRxMeta.dst.port;
               NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
               in_meta_udp = NetworkMetaStream(tmp_meta);
+              // Forward data chunk to ROLE
+              UdpWord    udpWord = siUDMX_This_Data.read();
+              soUdp_data.write(udpWord);
 
               Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
               if (!udpWord.tlast) {
@@ -679,6 +713,18 @@ void nrc_main(
             Udp_RX_metaWritten = true;
             if ( fsmStateRX_Udp == FSM_WRITE_META)
             {//was a small packet
+              fsmStateRX_Udp = FSM_FIRST_ACC;
+            }
+          }
+          break;
+
+        case FSM_DROP_PACKET:
+          if( !siUDMX_This_Data.empty() )
+          {
+            UdpWord    udpWord = siUDMX_This_Data.read();
+            // Until LAST bit is set
+            if (udpWord.tlast)
+            {
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
           }

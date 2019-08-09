@@ -14,12 +14,29 @@
 #define _CF_MEMORY_UTILS_
 
 #include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <math.h>
+#include <hls_stream.h>
 #include <stdint.h>
+#include <vector>
 
 #include "ap_int.h"
 
 using namespace hls;
 
+
+/*************************************************************************
+ * DDR MEMORY SUB-SYSTEM INTERFACES
+ *************************************************************************
+ * Terminology & Conventions (see Xilinx LogiCORE PG022).
+ *  [DM]  stands for AXI Data Mover
+ *  [DRE] stands for Data Realignment Engine.
+ *************************************************************************/
+
+#define RXMEMBUF    65536   // 64KB = 2^16
+#define TXMEMBUF    65536   // 64KB = 2^16
 
 /***********************************************
  * Data Mover Command Interface (c.f PG022)
