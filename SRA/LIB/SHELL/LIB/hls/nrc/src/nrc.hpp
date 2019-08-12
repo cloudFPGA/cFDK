@@ -87,8 +87,6 @@
 
 using namespace hls;
 
-#define NRC_RX_MIN_PORT 2718
-#define NRC_RX_MAX_PORT 2749
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 

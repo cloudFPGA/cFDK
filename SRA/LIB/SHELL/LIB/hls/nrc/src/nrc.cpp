@@ -69,7 +69,7 @@ bool tables_initalized = false;
   extern bool gTraceEvent;
 #endif
 
-#define THIS_NAME "TRIF"
+#define THIS_NAME "NRC"
 
 #define TRACE_OFF  0x0000
 #define TRACE_RDP 1 <<  1
@@ -236,6 +236,7 @@ ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
 
 SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 {
+  printf("Searching for tripple: %llu\n", (unsigned long long) tripple);
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
@@ -540,10 +541,10 @@ void nrc_main(
   //  core wide variables (for one iteration)
 
   ap_uint<32> ipAddrLE = 0;
-  ipAddrLE  = (*myIpAddress >> 24) & 0xFF;
-  ipAddrLE |= (*myIpAddress >> 8) & 0xFF00;
-  ipAddrLE |= (*myIpAddress << 8) & 0xFF0000;
-  ipAddrLE |= (*myIpAddress << 24) & 0xFF000000;
+  ipAddrLE  = (ap_uint<32>) ((*myIpAddress >> 24) & 0xFF);
+  ipAddrLE |= (ap_uint<32>) ((*myIpAddress >> 8) & 0xFF00);
+  ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 8) & 0xFF0000);
+  ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
 
   //===========================================================
   //  update status
@@ -569,7 +570,7 @@ void nrc_main(
     ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
     //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
     //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
-    printf("UDP port diff: %#04x\n",(int) diff);
+    printf("UDP port diff: %#04x\n",(unsigned int) diff);
     if(diff != 0)
     {//we have to open new ports, one after another
       new_relative_port_to_req_udp = getRightmostBitPos(diff);
@@ -583,7 +584,7 @@ void nrc_main(
   {
     fmc_port_opened = false;
     need_tcp_port_req = true;
-    printf("Need FMC port request: %#02x\n",(int) *piMMIO_FmcLsnPort);
+    printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
 
   } else if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
   {
@@ -1102,9 +1103,8 @@ void nrc_main(
             }
           }
           //no we think this is valid...
-          //NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
-          NodeId src_id = 1;
-
+          NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+          printf("TO ROLE: src_rank: %d\n", (int) src_id);
           //Role packet
           if(src_id == 0xFFFF)
           {
@@ -1130,6 +1130,7 @@ void nrc_main(
           //  printAxiWord(myName, (AxiWord) currWord);
           //}
           soTcp_data.write(currWord);
+          printf("writing to ROLE...\n\n");
           if (currWord.tlast == 1)
           {
             rdpFsmState  = RDP_WAIT_META;
@@ -1220,7 +1221,7 @@ void nrc_main(
           tcpTX_packet_length = out_meta_tcp.tdata.len;
           tcpTX_current_packet_length = 0;
 
-          NodeId dst_rank = out_meta_udp.tdata.dst_rank;
+          NodeId dst_rank = out_meta_tcp.tdata.dst_rank;
           if(dst_rank > MAX_CF_NODE_ID)
           {
             node_id_missmatch_TX_cnt++;
@@ -1252,6 +1253,7 @@ void nrc_main(
 
           //check if session is present
           ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
+          printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
           SessionId sessId = getSessionIdFromTripple(new_tripple);
           if(sessId == UNUSED_TABLE_ENTRY_VALUE)
           {//we need to create one first

@@ -126,7 +126,7 @@ unsigned int    gMaxSimCycles = 200;
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-int         simCnt;
+unsigned int         simCnt;
 
 
 /*****************************************************************************
@@ -593,11 +593,11 @@ void pROLE(
         if (!siTRIF_meta.empty() && !soTRIF_meta.full()) {
             siTRIF_meta.read(meta_stream_in);
             meta_stream_out = NetworkMetaStream();
+            meta_stream_out.tkeep = 0xFFFF;
+            meta_stream_out.tlast = 1;
             meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
             meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
             meta_stream_out.tdata.src_port = NRC_RX_MIN_PORT;
-            meta_stream_out.tkeep = 0xFFFFFFFF;
-            meta_stream_out.tlast = 1;
             printf("ROLE received stream from Node %d:%d (recv. port %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port);
             soTRIF_meta.write(meta_stream_out);
             rxFsmState  = RX_STREAM;
@@ -629,7 +629,7 @@ void pROLE(
  * @param[out] soTRIF_LsnAck, Listen port acknowledge to [TRIF].
  *
  ******************************************************************************/
-Ip4Addr hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+Ip4Addr hostIp4Addr = 0;
 TcpPort fpgaLsnPort = -1;
 int     loop        = 1;
 
@@ -695,7 +695,7 @@ void pTOE(
     case LSN_SEND_ACK: // SEND ACK BACK TO [TRIF]
         if (!soTRIF_LsnAck.full()) {
             soTRIF_LsnAck.write(true);
-            fpgaLsnPort = appLsnPortReq.to_int();
+            //fpgaLsnPort = appLsnPortReq.to_int();
             lsnState = LSN_WAIT_REQ;
         }
         else {
@@ -743,7 +743,7 @@ void pTOE(
     if (!rxpStartupDelay) {
         switch (rxpState) {
         case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TRIF]
-            printf("Send packet to %d\n", (int) fpgaLsnPort);
+            printf("Send packet from %4.4x to FPGA:%d\n",(int) hostIp4Addr, (int) fpgaLsnPort);
             if (!soTRIF_Notif.full()) {
                 soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
                                             hostIp4Addr, 80, fpgaLsnPort));
@@ -799,7 +799,7 @@ void pTOE(
             }
             else {
                 segCnt++;
-                if (segCnt == nrSegToSend) {
+                if (segCnt >= nrSegToSend) {
                     rxpState = RXP_DONE;
                 } else {
                     rxpState = RXP_SEND_NOTIF;
@@ -808,6 +808,9 @@ void pTOE(
             break;
         case RXP_DONE: // END OF THE RX PATH SEQUENCE
             // ALL SEGMENTS HAVE BEEN SENT
+            // Reset for next run
+            byteCnt = 0;
+            segCnt = 0;
             break;
         }  // End-of: switch())
     }
@@ -930,7 +933,7 @@ int main() {
     //-- STEP-3 : MAIN TRAFFIC LOOP
     //------------------------------------------------------
     bool sof = true;
-    gSimCycCnt = 0; // Simulation cycle counter as a global variable
+    gSimCycCnt = simCnt; // Simulation cycle counter as a global variable
     nrErr      = 0; // Total number of testbench errors
     
     printf("#####################################################\n");
@@ -1012,11 +1015,12 @@ int main() {
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
+        fflush(stdout);
+        fflush(stderr);
         gSimCycCnt++;
         if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
-            //flush(stdout);
         }
         if(simCnt == 152)
         {
