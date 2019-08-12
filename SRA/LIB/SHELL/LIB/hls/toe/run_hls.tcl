@@ -86,10 +86,19 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Request any static or global variable to be reset to its initialized value
-# config_rtl -reset state
+# Controlling the Reset Behavior (see UG902)
+#  - control: This is the default and ensures all control registers are reset. Control registers 
+#             are those used in state machines and to generate I/O protocol signals. This setting 
+#             ensures the design can immediately start its operation state.
+#  - state  : This option adds a reset to control registers (as in the control setting) plus any 
+#             registers or memories derived from static and global variables in the C code. This 
+#             setting ensures static and global variable initialized in the C code are reset to their 
+#             initialized value after the reset is applied.
+#-------------------------------------------------
+config_rtl -reset control
 
 # Request to not rename functions and variables longer that 60 chars
+#--------------------------------------------------------------------
 config_compile -name_max_length 60 -pipeline_loops 0
 
 # Run C Simulation (refer to UG902)

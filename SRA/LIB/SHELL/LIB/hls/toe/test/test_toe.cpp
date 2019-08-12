@@ -38,6 +38,7 @@ using namespace std;
 #define TRACE_CAM    1 <<  4
 #define TRACE_TXMEM  1 <<  5
 #define TRACE_RXMEM  1 <<  6
+#define TRACE_MAIN   1 <<  7
 #define TRACE_ALL    0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
@@ -61,10 +62,11 @@ using namespace std;
 enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 
 //-- C/RTL LATENCY AND INITIAL INTERVAL
-//--   Use numbers >= to those of the 'Cosimulation Report'
+//--   Use numbers >= to those of the 'CoSimulation Report'
 #define MAX_TOE_LATENCY    25
 #define MAX_TOE_INTERVAL   25
-#define RTT_LINK           10
+#define TB_GRACE_TIME      25
+#define RTT_LINK            0
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
@@ -2064,6 +2066,11 @@ int main(int argc, char *argv[]) {
     stream<rtlSessionUpdateRequest>     ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<rtlSessionUpdateReply>       ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    //------------------------------------------------------
+    //-- TB SIGNALS
+    //------------------------------------------------------
+    StsBit                              sTOE_ReadyDly;
+
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
@@ -2120,6 +2127,8 @@ int main(int argc, char *argv[]) {
     bool            testRxPath      = false; // Indicates if the Rx path is to be tested.
     bool            testTxPath      = false; // Indicates if the Tx path is to be tested.
 
+    int             startUpDelay    = TB_GRACE_TIME;
+
     char            mode            = *argv[1];
     char            cCurrPath[FILENAME_MAX];
 
@@ -2130,6 +2139,7 @@ int main(int argc, char *argv[]) {
     printf("############################################################################\n");
     simCycCnt = 0;     // Simulation cycle counter as a global variable
     nrErr     = 0;     // Total number of testbench errors
+    sTOE_ReadyDly = 0;
 
     //------------------------------------------------------
     //-- PARSING TESBENCH ARGUMENTS
@@ -2230,7 +2240,7 @@ int main(int argc, char *argv[]) {
         pIPRX(ipRxFile,       appTxGold,
               testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
               ipRxPacketizer, sessAckList,
-              sTOE_Ready,     ssIPRX_TOE_Data);
+              sTOE_ReadyDly,  ssIPRX_TOE_Data);
 
         //-------------------------------------------------
         //-- STEP-2 : RUN DUT
@@ -2269,7 +2279,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
         //-------------------------------------------------
-        if (sTOE_Ready) {
+        if (sTOE_ReadyDly) {
             pEmulateRxBufMem(
                 &rxMemory,          nrErr,
                 ssTOE_MEM_RxP_WrCmd, ssMEM_TOE_RxP_WrSts,
@@ -2293,7 +2303,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-4.0 : Emulate Layer-3 Multiplexer
         //-------------------------------------------------
         pL3MUX(
-            sTOE_Ready,
+            sTOE_ReadyDly,
             ssTOE_L3MUX_Data,
             ipTxFile1,       ipTxFile2,
             sessAckList,
@@ -2309,7 +2319,7 @@ int main(int argc, char *argv[]) {
             gFpgaIp4Addr,     appRxFile,
             appTxFile,        ipTxGold2,
             apRx_TcpBytCntr,  apTx_TcpBytCntr,
-            sTOE_Ready,
+            sTOE_ReadyDly,
             ssTRIF_TOE_LsnReq, ssTOE_TRIF_LsnAck,
             ssTOE_TRIF_Notif,  ssTRIF_TOE_DReq,
             ssTOE_TRIF_Meta,   ssTOE_TRIF_Data,
@@ -2325,7 +2335,24 @@ int main(int argc, char *argv[]) {
         }
 
         //------------------------------------------------------
-        //-- STEP-6 : INCREMENT SIMULATION COUNTER
+        //-- STEP-6 : GENERATE THE 'ReadyDly' SIGNAL
+        //------------------------------------------------------
+        if (sTOE_Ready == 1) {
+            if (startUpDelay > 0) {
+                startUpDelay--;
+                if (DEBUG_LEVEL & TRACE_MAIN) {
+                    if (startUpDelay == 0) {
+                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
+                    }
+                }
+            }
+            else {
+                sTOE_ReadyDly = sTOE_Ready;
+            }
+        }
+
+        //------------------------------------------------------
+        //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         simCycCnt++;
         gSimCycCnt = simCycCnt.to_uint();
@@ -2333,11 +2360,10 @@ int main(int argc, char *argv[]) {
             printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
             gTraceEvent = false;
         }
-#ifdef __SYNTHESIS__
-        printf("------------------- [@%d] ------------\n", sTOE_TB_SimCycCnt.to_uint());
-#endif
+        //printf("------------------- [@%d] ------------\n", sTOE_TB_SimCycCnt.to_uint());
+
         //------------------------------------------------------
-        //-- STEP-7 : EXIT UPON FATAL ERROR OR TOO MANY ERRORS
+        //-- EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
 
     } while (  (sTOE_Ready == 0) or
