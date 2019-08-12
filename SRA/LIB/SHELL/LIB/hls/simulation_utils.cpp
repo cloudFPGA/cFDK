@@ -26,6 +26,35 @@
 
 using namespace hls;
 using namespace std;
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
+#define THIS_NAME "TB"
+
+#define TRACE_OFF     0x0000
+#define TRACE_TOE    1 <<  1
+#define TRACE_ROLE   1 <<  2
+#define TRACE_ALL     0xFFFF
+
+#define DEBUG_LEVEL (TRACE_TOE | TRACE_ROLE)
+
+//------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//------------------------------------------------------
+#define MAX_SIM_CYCLES   500
+
+
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//--  These variables might be updated/overwritten by the
+//--  content of a test-vector file.
+//---------------------------------------------------------
+//unsigned int    gSimCycCnt    = 0;
+//bool            gTraceEvent   = false;
+//bool            gFatalError   = false;
+//unsigned int    gMaxSimCycles = 0x8000 + 200;
+
 
 /*****************************************************************************
  * @brief Prints one chunk of a data stream (used for debugging).
@@ -34,6 +63,11 @@ using namespace std;
  * @param[in] chunk,        the data stream chunk to display.
  *****************************************************************************/
 void printAxiWord(const char *callerName, AxiWord chunk)
+{
+    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+              chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+}
+void printAxiWord(const char *callerName, NetworkWord chunk)
 {
     printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
               chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());

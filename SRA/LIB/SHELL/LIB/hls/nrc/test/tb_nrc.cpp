@@ -25,6 +25,38 @@ using namespace std;
 #define UNVALID     false
 #define DEBUG_TRACE true
 
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
+#define THIS_NAME "TB"
+
+#define TRACE_OFF     0x0000
+#define TRACE_TOE    1 <<  1
+#define TRACE_ROLE   1 <<  2
+#define TRACE_ALL     0xFFFF
+
+#define DEBUG_LEVEL (TRACE_TOE | TRACE_ROLE)
+
+//------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//------------------------------------------------------
+#define MAX_SIM_CYCLES   500
+//---------------------------------------------------------
+//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
+//--  By default, the following sockets will be used by the
+//--  testbench, unless the user specifies new ones via one
+//--  of the test vector files.
+//---------------------------------------------------------
+#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC801  // TOE's local IP Address  = 10.12.200.01
+#define DEFAULT_FPGA_LSN_PORT   0x0057      // TOE listens on port     = 87 (static  ports must be     0..32767)
+#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
+#define DEFAULT_HOST_LSN_PORT   0x80        // TB listens on port      = 128
+
+#define DEFAULT_SESSION_ID      42
+#define DEFAULT_SESSION_LEN     32
+
+
 
 //------------------------------------------------------
 //-- DUT INTERFACES AS GLOBAL VARIABLES
@@ -41,17 +73,55 @@ stream<UdpMeta>         sUDMX_Urif_Meta     ("sUDMX_Urif_Meta");
 stream<UdpWord>         sURIF_Udmx_Data     ("sURIF_Udmx_Data");
 stream<UdpMeta>         sURIF_Udmx_Meta     ("sURIF_Udmx_Meta");
 stream<UdpPLen>         sURIF_Udmx_PLen     ("sURIF_Udmx_PLen");
+//-- TCP / ROLE IF
+stream<TcpWord>             sROLE_Nrc_Tcp_data  ("sROLE_Nrc_Tcp_data");
+stream<NetworkMetaStream>   sROLE_Nrc_Tcp_meta  ("sROLE_Nrc_Tcp_meta");
+stream<TcpWord>             sNRC_Role_Tcp_data  ("sNRC_Role_Tcp_data");
+stream<NetworkMetaStream>   sNRC_Role_Tcp_meta  ("sNRC_Role_Tcp_meta");
+//--FMC TCP connection
+stream<TcpWord>             sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
+stream<AppMeta>             sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
+stream<TcpWord>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
+stream<AppMeta>             sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
+//--TOE connection
+stream<AppNotif>            sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
+stream<AppRdReq>            sNRC_Toe_DReq   ("sNrc_TOE_DReq");
+stream<NetworkWord>         sTOE_Nrc_Data   ("sTOE_Nrc_Data");
+stream<AppMeta>             sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
+stream<AppLsnReq>           sNRC_Toe_LsnReq ("sNRC_TOE_LsnReq");
+stream<AppLsnAck>           sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
+stream<NetworkWord>         sNRC_Toe_Data   ("sNRC_TOE_Data");
+stream<AppMeta>             sNRC_Toe_SessId ("sNRC_TOE_SessId");
+stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
+stream<AppOpnReq>           sNRC_Toe_OpnReq ("sNRC_TOE_OpnReq");
+stream<AppOpnSts>           sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
+stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
+
+ap_uint<1>              sNTS_Nrc_ready = 0b1;
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-ap_uint<32>             pi_udp_rx_ports = 0x1;
+ap_uint<32>             s_udp_rx_ports = 0x1;
+ap_uint<32>             s_tcp_rx_ports = 0x0;
 stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
 //stream<NetworkMeta>          &siUdp_meta,
 stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
 //stream<NetworkMeta>          &soUdp_meta,
 ap_uint<32>             myIpAddress;
-ap_uint<16>             piMMIO_FmcLsnPort  = 0;
-ap_uint<32>             piMMIO_CfrmIp4Addr = 0;
+ap_uint<16>             sMMIO_FmcLsnPort  = 8803;
+//ap_uint<32>             sMMIO_CfrmIp4Addr = 0x0A0CC884;
+ap_uint<32>             sMMIO_CfrmIp4Addr = DEFAULT_HOST_IP4_ADDR;
+
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//--  These variables might be updated/overwritten by the
+//--  content of a test-vector file.
+//---------------------------------------------------------
+unsigned int    gSimCycCnt    = 0;
+bool            gTraceEvent   = false;
+bool            gFatalError   = false;
+//unsigned int    gMaxSimCycles = 0x8000 + 200;
+unsigned int    gMaxSimCycles = 200;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -67,14 +137,26 @@ int         simCnt;
 void stepDut() {
     nrc_main(
         ctrlLink,
-        &piMMIO_FmcLsnPort, &piMMIO_CfrmIp4Addr,
-        &pi_udp_rx_ports,
-            sROLE_Urif_Data,    sURIF_Role_Data,
-            siUdp_meta,         soUdp_meta,
-            &sIpAddress,
-            sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
-            sUDMX_Urif_Data,    sUDMX_Urif_Meta,
-            sURIF_Udmx_Data,    sURIF_Udmx_Meta,    sURIF_Udmx_PLen);
+        sNTS_Nrc_ready,
+        &sMMIO_FmcLsnPort, &sMMIO_CfrmIp4Addr,
+        &sIpAddress,
+        &s_udp_rx_ports,
+        sROLE_Urif_Data,    sURIF_Role_Data,
+        siUdp_meta,         soUdp_meta,
+        &s_tcp_rx_ports,
+        sROLE_Nrc_Tcp_data, sROLE_Nrc_Tcp_meta,
+        sNRC_Role_Tcp_data, sNRC_Role_Tcp_meta,
+        sFMC_Nrc_Tcp_data, sFMC_Nrc_Tcp_sessId,
+        sNRC_FMC_Tcp_data, sNRC_FMC_Tcp_sessId,
+        sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
+        sUDMX_Urif_Data,    sUDMX_Urif_Meta,
+        sURIF_Udmx_Data,    sURIF_Udmx_Meta,    sURIF_Udmx_PLen,
+        sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
+        sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
+        sNRC_Toe_Data, sNRC_Toe_SessId, sTOE_Nrc_DSts,
+        sNRC_Toe_OpnReq, sTOE_Nrc_OpnRep,
+        sNRC_Toe_ClsReq
+        );
     simCnt++;
     printf("[%4.4d] STEP DUT \n", simCnt);
 }
@@ -438,6 +520,292 @@ bool getOutputPLenStream(stream<UdpPLen> &sPLenStream,
     return(rc);
 }
 
+/*****************************************************************************
+ * @brief Emulate the behavior of the FMC.
+ *
+ * @param[in]  siTRIF_Data,   Data to TcpRoleInterface (TRIF).
+ * @param[in]  siTRIF_SessId, Session ID to [TRIF].
+ * @param[out] soROLE_Data,   Data stream to [TRIF].
+ * @param[out] soROLE_SessId  SessionID to [TRFI].
+ * @details
+ *
+ * @ingroup test_tcp_role_if
+ ******************************************************************************/
+enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
+void pFMC(
+        //-- TRIF / Rx Data Interface
+        stream<NetworkWord>     &siTRIF_Data,
+        stream<AppMeta>     &siTRIF_SessId,
+        //-- TRIF / Tx Data Interface
+        stream<NetworkWord>     &soTRIF_Data,
+        stream<AppMeta>     &soTRIF_SessId)
+{
+    NetworkWord currWord;
+    AppMeta     tcpSessId;
+
+    const char *myRxName  = concat3(THIS_NAME, "/", "FMC-Rx");
+    const char *myTxName  = concat3(THIS_NAME, "/", "FMC-Tx");
+
+    switch (rxFsmState ) {
+    case RX_WAIT_META:
+        if (!siTRIF_SessId.empty() and !soTRIF_SessId.full()) {
+            siTRIF_SessId.read(tcpSessId);
+            soTRIF_SessId.write(tcpSessId);
+            rxFsmState  = RX_STREAM;
+        }
+        break;
+    case RX_STREAM:
+        if (!siTRIF_Data.empty() && !soTRIF_Data.full()) {
+            siTRIF_Data.read(currWord);
+            if (DEBUG_LEVEL & TRACE_ROLE) {
+                 printAxiWord(myRxName, currWord);
+            }
+            soTRIF_Data.write(currWord);
+            if (currWord.tlast)
+                rxFsmState  = RX_WAIT_META;
+        }
+        break;
+    }
+
+}
+/*****************************************************************************
+ * @brief Emulate the behavior of the TCP Offload Engine (TOE).
+ *
+ * @param[in]  nrErr,         A ref to the error counter of main.
+ * @param[out] soTRIF_Notif,  Notification to TcpRoleInterface (TRIF).
+ * @param[in]  siTRIF_DReq,   Data read request from [TRIF}.
+ * @param[out] soTRIF_Data,   Data to [TRIF].
+ * @param[out] soTRIF_SessId, Session Id to [TRIF].
+ * @param[in]  siTRIF_LsnReq, Listen port request from [TRIF].
+ * @param[out] soTRIF_LsnAck, Listen port acknowledge to [TRIF].
+ *
+ ******************************************************************************/
+Ip4Addr hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+TcpPort fpgaLsnPort = -1;
+int     loop        = 1;
+
+enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_ACK}  lsnState = LSN_WAIT_REQ;
+enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP}  opnState = OPN_WAIT_REQ;
+enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ, RXP_SEND_META, RXP_SEND_DATA, RXP_DONE} rxpState = RXP_SEND_NOTIF;
+enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} txpState = TXP_WAIT_META;
+
+int opnStartupDelay =  0;
+//int rxpStartupDelay =  0x8000 + 100;
+int rxpStartupDelay =  100;
+int txpStartupDelay =  0;
+
+AppRdReq    appRdReq;
+AppMeta     sessionId;
+int         byteCnt = 0;
+int         segCnt  = 0;
+int         nrSegToSend = 3;
+ap_uint<64> data=0;
+TcpSegLen  tcpSegLen  = 32;
+
+const char *myLsnName = concat3(THIS_NAME, "/", "TOE/Listen");
+const char *myOpnName = concat3(THIS_NAME, "/", "TOE/OpnCon");
+const char *myRxpName = concat3(THIS_NAME, "/", "TOE/RxPath");
+const char *myTxpName = concat3(THIS_NAME, "/", "TOE/TxPath");
+
+void pTOE(
+        int                 &nrErr,
+        //-- TOE / Tx Data Interfaces
+        stream<AppNotif>    &soTRIF_Notif,
+        stream<AppRdReq>    &siTRIF_DReq,
+        stream<NetworkWord>     &soTRIF_Data,
+        stream<AppMeta>     &soTRIF_SessId,
+        //-- TOE / Listen Interfaces
+        stream<AppLsnReq>   &siTRIF_LsnReq,
+        stream<AppLsnAck>   &soTRIF_LsnAck,
+        //-- TOE / Rx Data Interfaces
+        stream<NetworkWord>     &siTRIF_Data,
+        stream<AppMeta>     &siTRIF_SessId,
+        stream<AppWrSts>    &soTRIF_DSts,
+        //-- TOE / Open Interfaces
+        stream<AppOpnReq>   &siTRIF_OpnReq,
+        stream<AppOpnSts>   &soTRIF_OpnRep)
+{
+
+    //------------------------------------------------------
+    //-- FSM #1 - LISTENING
+    //------------------------------------------------------
+    static AppLsnReq appLsnPortReq;
+
+    switch (lsnState) {
+    case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
+        if (!siTRIF_LsnReq.empty()) {
+            siTRIF_LsnReq.read(appLsnPortReq);
+            printInfo(myLsnName, "Received a listen port request #%d from [TRIF].\n",
+                      appLsnPortReq.to_int());
+            lsnState = LSN_SEND_ACK;
+        }
+        //else {
+        //    printWarn(myLsnName, "Waiting for listen port request.\n");
+        //}
+        break;
+    case LSN_SEND_ACK: // SEND ACK BACK TO [TRIF]
+        if (!soTRIF_LsnAck.full()) {
+            soTRIF_LsnAck.write(true);
+            fpgaLsnPort = appLsnPortReq.to_int();
+            lsnState = LSN_WAIT_REQ;
+        }
+        else {
+            printWarn(myLsnName, "Cannot send listen reply back to [TRIF] because stream is full.\n");
+        }
+        break;
+    }  // End-of: switch (lsnState) {
+
+    //------------------------------------------------------
+    //-- FSM #2 - OPEN CONNECTION
+    //------------------------------------------------------
+    AppOpnReq   leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
+                               byteSwap16(DEFAULT_HOST_LSN_PORT));
+
+    OpenStatus  opnReply(DEFAULT_SESSION_ID, SESS_IS_OPENED);
+    if (!opnStartupDelay) {
+        switch(opnState) {
+        case OPN_WAIT_REQ:
+            if (!siTRIF_OpnReq.empty()) {
+                siTRIF_OpnReq.read(leHostSockAddr);
+                printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
+                printSockAddr(myOpnName, leHostSockAddr);
+                opnState = OPN_SEND_REP;
+            }
+            break;
+        case OPN_SEND_REP:
+            if (!soTRIF_OpnRep.full()) {
+                soTRIF_OpnRep.write(opnReply);
+                opnState = OPN_WAIT_REQ;
+            }
+            else {
+                printWarn(myOpnName, "Cannot send open connection reply back to [TRIF] because stream is full.\n");
+            }
+            break;
+        }  // End-of: switch (opnState) {
+    }
+    else
+        opnStartupDelay--;
+
+    //------------------------------------------------------
+    //-- FSM #3 - RX DATA PATH
+    //------------------------------------------------------
+    ap_uint< 8>        keep;
+    ap_uint< 1>        last;
+    if (!rxpStartupDelay) {
+        switch (rxpState) {
+        case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TRIF]
+            sessionId   = DEFAULT_SESSION_ID;
+            tcpSegLen   = DEFAULT_SESSION_LEN;
+            hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+            fpgaLsnPort = 8803;
+            printf("Send packet to %d\n", (int) fpgaLsnPort);
+            if (!soTRIF_Notif.full()) {
+                soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
+                                            hostIp4Addr, 80, fpgaLsnPort));
+                printInfo(myRxpName, "Sending notification #%d to [TRIF] (sessId=%d, segLen=%d).\n",
+                          segCnt, sessionId.to_int(), tcpSegLen.to_int());
+                rxpState = RXP_WAIT_DREQ;
+            }
+            break;
+        case RXP_WAIT_DREQ: // WAIT FOR A DATA REQUEST FROM [TRIF]
+            if (!siTRIF_DReq.empty()) {
+                siTRIF_DReq.read(appRdReq);
+                printInfo(myRxpName, "Received a data read request from [TRIF] (sessId=%d, segLen=%d).\n",
+                          appRdReq.sessionID.to_int(), appRdReq.length.to_int());
+                byteCnt = 0;
+                //rxpState = RXP_SEND_DATA;
+                //rxpState = RXP_DONE;
+                rxpState = RXP_SEND_META;
+           }
+           break;
+        case RXP_SEND_META:
+                if (!soTRIF_SessId.full()) {
+                    soTRIF_SessId.write(sessionId);
+                    rxpState = RXP_SEND_DATA;
+                    //rxpState = RXP_DONE;
+                }
+                break;
+        case RXP_SEND_DATA: // FORWARD DATA AND METADATA TO [TRIF]
+            // Note: We always assume 'tcpSegLen' is multiple of 8B.
+            keep = 0xFF;
+            last = (byteCnt==tcpSegLen) ? 1 : 0;
+            if (byteCnt == 0) {
+                //if (!soTRIF_SessId.full() && !soTRIF_Data.full()) {
+                if (!soTRIF_Data.full()) {
+                    soTRIF_Data.write(NetworkWord(data, keep, last));
+                    if (DEBUG_LEVEL & TRACE_TOE)
+                        printAxiWord(myRxpName, NetworkWord(data, keep, last));
+                    byteCnt += 8;
+                    data += 8;
+                }
+                else {
+                  printf("NRC not ready to receive TCP data.\n");
+                  break;
+                }
+            }
+            else if (byteCnt <= (tcpSegLen)) {
+                if (!soTRIF_Data.full()) {
+                    soTRIF_Data.write(NetworkWord(data, keep, last));
+                    if (DEBUG_LEVEL & TRACE_TOE)
+                        printAxiWord(myRxpName, NetworkWord(data, keep, last));
+                    byteCnt += 8;
+                    data += 8;
+                }
+            }
+            else {
+                segCnt++;
+                if (segCnt == nrSegToSend) {
+                    rxpState = RXP_DONE;
+                } else {
+                    rxpState = RXP_SEND_NOTIF;
+                }
+            }
+            break;
+        case RXP_DONE: // END OF THE RX PATH SEQUENCE
+            // ALL SEGMENTS HAVE BEEN SENT
+            break;
+        }  // End-of: switch())
+    }
+    else
+      rxpStartupDelay--;
+
+    //------------------------------------------------------
+    //-- FSM #4 - TX DATA PATH
+    //--    (Always drain the data coming from [TRIF])
+    //------------------------------------------------------
+    if (!txpStartupDelay) {
+        switch (txpState) {
+        case TXP_WAIT_META:
+            if (!siTRIF_SessId.empty() && !siTRIF_Data.empty()) {
+                NetworkWord appData;
+                AppMeta     sessId;
+                siTRIF_SessId.read(sessId);
+                siTRIF_Data.read(appData);
+                if (DEBUG_LEVEL & TRACE_TOE) {
+                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_int());
+                    printAxiWord(myTxpName, appData);
+                }
+                if (!appData.tlast)
+                    txpState = TXP_RECV_DATA;
+            }
+            break;
+        case TXP_RECV_DATA:
+            if (!siTRIF_Data.empty()) {
+                NetworkWord appData;
+                siTRIF_Data.read(appData);
+                if (DEBUG_LEVEL & TRACE_TOE)
+                    printAxiWord(myTxpName, appData);
+                if (appData.tlast)
+                    txpState = TXP_WAIT_META;
+            }
+            break;
+        }
+    }
+    else
+        txpStartupDelay--;
+}
+
+
 int main() {
 
     //------------------------------------------------------
@@ -517,11 +885,44 @@ int main() {
     //-- STEP-3 : MAIN TRAFFIC LOOP
     //------------------------------------------------------
     bool sof = true;
+    gSimCycCnt = 0; // Simulation cycle counter as a global variable
+    nrErr      = 0; // Total number of testbench errors
+    
+    printf("#####################################################\n");
+    printf("## MAIN LOOP STARTS HERE                           ##\n");
+    printf("#####################################################\n");
+
 
     while (!nrErr) {
 
-        if (simCnt < 42)
+        //if (simCnt < 42)
+        if (gSimCycCnt < gMaxSimCycles)
         {
+        //-------------------------------------------------
+        //-- EMULATE TOE
+        //-------------------------------------------------
+        pTOE(
+            nrErr,
+            //-- TOE / Tx Data Interfaces
+            sTOE_Nrc_Notif,
+            sNRC_Toe_DReq,
+            sTOE_Nrc_Data,
+            sTOE_Nrc_SessId,
+            //-- TOE / Listen Interfaces
+            sNRC_Toe_LsnReq,
+            sTOE_Nrc_LsnAck,
+            //-- TOE / Tx Data Interfaces
+            sNRC_Toe_Data,
+            sNRC_Toe_SessId,
+            sTOE_Nrc_DSts,
+            //-- TOE / Open Interfaces
+            sNRC_Toe_OpnReq,
+            sTOE_Nrc_OpnRep
+            );
+
+        //-------------------------------------------------
+        //-- RUN DUT
+        //-------------------------------------------------
             stepDut();
 
             if( !soUdp_meta.empty())
@@ -534,6 +935,31 @@ int main() {
            // if( !sURIF_Udmx_Meta.empty() )
            // {
            // }
+        //-------------------------------------------------
+        //-- EMULATE APP 1 (FMC)
+        //-------------------------------------------------
+        pFMC(
+            //-- TRIF / Rx Data Interface
+            sNRC_FMC_Tcp_data,
+            sNRC_FMC_Tcp_sessId,
+            //-- TRIF / Tx Data Interface
+            sFMC_Nrc_Tcp_data,
+            sFMC_Nrc_Tcp_sessId);
+        
+        //TODO: emulate ROLE
+
+        //------------------------------------------------------
+        //-- INCREMENT SIMULATION COUNTER
+        //------------------------------------------------------
+        gSimCycCnt++;
+        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+            printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+            gTraceEvent = false;
+        }
+        
+        
+        //TODO:
+        //open other ports later?
 
         } else {
             printf("## End of simulation at cycle=%3d. \n", simCnt);
@@ -541,6 +967,11 @@ int main() {
         }
 
     }  // End: while()
+    printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+    printf("############################################################################\n");
+    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("############################################################################\n\n");
+
 
     //-------------------------------------------------------
     //-- STEP-4 : DRAIN AND WRITE OUTPUT FILE STREAMS

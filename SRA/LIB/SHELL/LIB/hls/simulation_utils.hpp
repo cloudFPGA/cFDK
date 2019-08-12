@@ -25,9 +25,14 @@
 #include "ap_int.h"
 #include "network_utils.hpp"
 #include "memory_utils.hpp"
+#include "../../../hls/network.hpp"
 
 using namespace hls;
 using namespace std;
+
+extern uint32_t      packetCounter;
+extern uint32_t      idleCycCnt;
+extern unsigned int  gSimCycCnt;
 
 
 #ifndef __SYNTHESIS__
@@ -94,6 +99,7 @@ struct fourTupleInternal;
  * PRINT PROTOTYPE DEFINITIONS
  *******************************************************************************/
 void printAxiWord      (const char *callerName, AxiWord       chunk);
+void printAxiWord      (const char *callerName, NetworkWord   chunk);
 void printDmCmd        (const char *callerName, DmCmd         dmCmd);
 void printSockAddr     (const char *callerName, SockAddr      sockAddr);
 void printSockAddr     (const char *callerName, LeSockAddr   leSockAddr);

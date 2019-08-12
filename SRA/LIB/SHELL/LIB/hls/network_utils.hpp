@@ -48,10 +48,6 @@ static const uint16_t MAX_SESSIONS = 32;
 
 #define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
 
-extern uint32_t      packetCounter;
-extern uint32_t      idleCycCnt;
-extern unsigned int  gSimCycCnt;
-
 // Forward declarations.
 struct rtlSessionUpdateRequest;
 struct rtlSessionUpdateReply;
@@ -1082,6 +1078,10 @@ class AppNotif
     AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     Ip4Addr da,
                                                    TcpPort sp,     TcpPort dp) :
              sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), ip4DstAddr(da),
+                                                   tcpSrcPort(sp), tcpDstPort(dp), closed(false) {}
+    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa, 
+                                                   TcpPort sp,     TcpPort dp) :
+             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), ip4DstAddr(0),
                                                    tcpSrcPort(sp), tcpDstPort(dp), closed(false) {}
 };
 

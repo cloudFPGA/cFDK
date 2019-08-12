@@ -52,10 +52,11 @@ NetworkDataLength udpTX_packet_length = 0;
 NetworkDataLength udpTX_current_packet_length = 0;
 
 
-ap_uint<64> tripleList[MAX_SESSIONS];
-ap_uint<17> sessionIdList[MAX_SESSIONS];
+ap_uint<64> tripleList[MAX_NRC_SESSIONS];
+ap_uint<17> sessionIdList[MAX_NRC_SESSIONS];
+ap_uint<1>  usedRows[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
-#define UNUSED_TABLE_ENTRY_VALUE 0x10000
+#define UNUSED_TABLE_ENTRY_VALUE 0x111000
 
 
 //FROM TCP
@@ -102,7 +103,11 @@ ap_uint<8>   watchDogTimer_plisten = 0;
 // Set a startup delay long enough to account for the initialization
 // of TOE's listen port table which takes 32,768 cycles after reset.
 //  [FIXME - StartupDelay must be replaced by a piSHELL_Reday signal]
+#ifdef __SYNTHESIS_
 ap_uint<16>         startupDelay = 0x8000;
+#else 
+ap_uint<16>         startupDelay = 30;
+#endif
 OpnFsmStates opnFsmState=OPN_IDLE;
 
 LsnFsmStates lsnFsmState = LSN_IDLE;
@@ -211,47 +216,28 @@ TcpPort getLocalPortFromTripple(ap_uint<64> tripple)
   return (TcpPort) ret;
 }
 
-
-void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
-{
-  uint32_t i = 0;
-  for(i = 0; i < MAX_SESSIONS; i++)
-  {
-    if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
-    {//next free one, tables stay in sync
-      sessionIdList[i] = sessionID;
-      tripleList[i] = new_entry;
-      break;
-    }
-  }
-  //we run out of sessions...TODO
-}
-
-void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
-{
-    ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
-    addnewSessionToTableWithTripple(sessionID, new_entry);
-}
-
-
 ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
 {
+  printf("searching for session: %d\n", (int) sessionID);
   uint32_t i = 0;
-  for(i = 0; i < MAX_SESSIONS; i++)
+  for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
     if(sessionIdList[i] == sessionID)
     {
-      return tripleList[i];
+      ap_uint<64> ret = tripleList[i];
+      printf("found tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
+      return ret;
     }
   }
-  //unkown session TODO 
+  //unkown session TODO
+  printf("ERROR: unkown session\n");
   return (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
 }
 
 SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 {
   uint32_t i = 0;
-  for(i = 0; i < MAX_SESSIONS; i++)
+  for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
     if(tripleList[i] == tripple)
     {
@@ -259,7 +245,43 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
     }
   }
   //there is (not yet) a connection
+  printf("ERROR: unkown tripple\n");
   return (SessionId) UNUSED_TABLE_ENTRY_VALUE;
+}
+
+
+void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
+{
+  printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
+  //first check for duplicates!
+  ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
+  if(test_tripple == new_entry)
+  {
+    printf("session/tripple already known, skipping. \n");
+    return;
+  }
+  
+  uint32_t i = 0;
+  for(i = 0; i < MAX_NRC_SESSIONS; i++)
+  {
+    //if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
+    if(usedRows[i] == 0)
+    {//next free one, tables stay in sync
+      sessionIdList[i] = sessionID;
+      tripleList[i] = new_entry;
+      usedRows[i] = 1;
+      printf("stored tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
+      return;
+    }
+  }
+  //we run out of sessions...TODO
+  printf("ERROR: no free space in table left!\n");
+}
+
+void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
+{
+    ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
+    addnewSessionToTableWithTripple(sessionID, new_entry);
 }
 
 
@@ -270,6 +292,8 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    // ready signal from NTS
+    ap_uint<1>  piNTS_ready,
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
@@ -421,9 +445,13 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
 
-  //DO NOT reset MRT and config. This should be done explicitly by the SMC
+  //DO NOT reset MRT and config. This should be done explicitly by the FMC
 #pragma HLS reset variable=localMRT off
 #pragma HLS reset variable=config off
+//Disable ARRAY reset...just to be sure, and the init will be reset anyhow
+#pragma HLS reset variable=tripleList off
+#pragma HLS reset variable=sessionIdList off
+#pragma HLS reset variable=usedRows off
   //#pragma HLS reset variable=status --> I think to reset an array is hard, it is also uninitalized in C itself...
   // the status array is anyhow written every IP core iteration and the inputs are reset --> so not necessary
 
@@ -491,12 +519,20 @@ void nrc_main(
 
   if (!tables_initalized)
   {
-    for(int i = 0; i<MAX_SESSIONS; i++)
+    printf("init tables...\n");
+    for(int i = 0; i<MAX_NRC_SESSIONS; i++)
     {
-      sessionIdList[i] = (ap_uint<17>) UNUSED_TABLE_ENTRY_VALUE;
-      tripleList[i] = (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
+      //sessionIdList[i] = UNUSED_TABLE_ENTRY_VALUE;
+      sessionIdList[i] = 0;
+      tripleList[i] = 0;
+      usedRows[i]  =  0;
     }
     tables_initalized = true;
+    //printf("Table layout:\n");
+    //for(int i = 0; i<MAX_NRC_SESSIONS; i++)
+    //{
+    //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
+    //}
   }
 
   
@@ -515,6 +551,14 @@ void nrc_main(
   {
     ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
   }
+
+//DON'T DO ANYTHING WITH NTS BEFORE IT'S NOT READY
+  
+  if(piNTS_ready != 1)
+  {
+    return;
+  }
+
 
   //===========================================================
   //  port requests
@@ -548,7 +592,7 @@ void nrc_main(
     ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
     //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
     //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
-    printf("TCP port diff: %#04x\n",(int) diff);
+    printf("TCP port diff: %#04x\n",(unsigned int) diff);
     if(diff != 0)
     {//we have to open new ports, one after another
       new_relative_port_to_req_tcp = getRightmostBitPos(diff);
@@ -905,7 +949,7 @@ void nrc_main(
             soTOE_LsnReq.write(tcpListenPort);
             if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
-                          new_absolute_port, new_absolute_port);
+                          (int) new_absolute_port, (int) new_absolute_port);
             #ifndef __SYNTHESIS__
                 watchDogTimer_plisten = 10;
             #else
@@ -948,7 +992,7 @@ void nrc_main(
                   new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
                 }
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
-                          new_absolute_port, new_absolute_port);
+                          (int) new_absolute_port, (int) new_absolute_port);
                 lsnFsmState = LSN_SEND_REQ;
             }
         }
@@ -963,7 +1007,7 @@ void nrc_main(
                 new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
               }
               printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                         new_absolute_port, new_absolute_port);
+                        (int)  new_absolute_port, (int) new_absolute_port);
               lsnFsmState = LSN_SEND_REQ;
             }
         }
@@ -1035,19 +1079,21 @@ void nrc_main(
           siTOE_SessId.read(sessId);
 
           ap_uint<64> tripple_in = getTrippleFromSessionId(sessId);
+          printf("tripple_in: %llu\n",(unsigned long long) tripple_in);
           Ip4Addr remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
-          NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
           TcpPort dstPort = getLocalPortFromTripple(tripple_in);
           TcpPort srcPort = getRemotePortFromTripple(tripple_in);
+          printf("remote Addr: %d; dstPort: %d; srcPort %d\n", (int) remoteAddr, (int) dstPort, (int) srcPort);
 
           if(dstPort == processed_FMC_listen_port) //take processed...just to be sure
           {
             if(remoteAddr == *piMMIO_CfrmIp4Addr)
             {//valid connection to FMC
-             Tcp_RX_metaWritten = false;
-             session_toFMC = sessId;
-             rdpFsmState = RDP_STREAM_FMC;
-
+              printf("found valid FMC connection.\n");
+              Tcp_RX_metaWritten = false;
+              session_toFMC = sessId;
+              rdpFsmState = RDP_STREAM_FMC;
+              break;
             } else {
               unauthorized_access_cnt++;
               printf("unauthorized access to FMC!\n");
@@ -1055,6 +1101,8 @@ void nrc_main(
               break;
             }
           }
+          //no we think this is valid...
+          NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
 
           //Role packet
           if(src_id == 0xFFFF)
