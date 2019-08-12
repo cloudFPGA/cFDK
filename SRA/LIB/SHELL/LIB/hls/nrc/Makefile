@@ -43,7 +43,7 @@ cosim:
 	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
 
 cosim_view:
-	@/bin/echo -e "current_fileset\nopen_wave_database $(ipName).wdb\n" > ./$(ipName)_prj/solution1/sim/verilog/open_wave.tcl
+	@/bin/echo -e "current_fileset\nopen_wave_database $(ipName)$(top_suffix).wdb\n" > ./$(ipName)_prj/solution1/sim/verilog/open_wave.tcl
 	cd ./$(ipName)_prj/solution1/sim/verilog/; vivado -source open_wave.tcl
 
 clean:

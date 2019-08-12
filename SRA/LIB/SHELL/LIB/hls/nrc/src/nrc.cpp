@@ -1102,7 +1102,8 @@ void nrc_main(
             }
           }
           //no we think this is valid...
-          NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+          //NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+          NodeId src_id = 1;
 
           //Role packet
           if(src_id == 0xFFFF)

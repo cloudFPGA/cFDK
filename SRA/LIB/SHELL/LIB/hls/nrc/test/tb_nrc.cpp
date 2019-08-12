@@ -102,7 +102,7 @@ ap_uint<1>              sNTS_Nrc_ready = 0b1;
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
 ap_uint<32>             s_udp_rx_ports = 0x1;
-ap_uint<32>             s_tcp_rx_ports = 0x0;
+ap_uint<32>             s_tcp_rx_ports = 0x1;
 stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
 //stream<NetworkMeta>          &siUdp_meta,
 stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
@@ -569,6 +569,55 @@ void pFMC(
 
 }
 /*****************************************************************************
+ * @brief Emulate the behavior of the ROLE
+ *
+ ******************************************************************************/
+enum RoleFsmStates { ROLE_WAIT_META=0, ROLE_STREAM } roleFsmState = ROLE_WAIT_META;
+void pROLE(
+        //-- TRIF / Rx Data Interface
+        stream<NetworkWord>     &siTRIF_Data,
+        stream<NetworkMetaStream>     &siTRIF_meta,
+        //-- TRIF / Tx Data Interface
+        stream<NetworkWord>     &soTRIF_Data,
+        stream<NetworkMetaStream>     &soTRIF_meta)
+{
+    NetworkWord currWord;
+    NetworkMetaStream meta_stream_in;
+    NetworkMetaStream meta_stream_out;
+
+    const char *myRxName  = concat3(THIS_NAME, "/", "ROLE-Rx");
+    const char *myTxName  = concat3(THIS_NAME, "/", "ROLE-Tx");
+
+    switch (roleFsmState ) {
+    case ROLE_WAIT_META:
+        if (!siTRIF_meta.empty() && !soTRIF_meta.full()) {
+            siTRIF_meta.read(meta_stream_in);
+            meta_stream_out = NetworkMetaStream();
+            meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
+            meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
+            meta_stream_out.tdata.src_port = NRC_RX_MIN_PORT;
+            meta_stream_out.tkeep = 0xFFFFFFFF;
+            meta_stream_out.tlast = 1;
+            printf("ROLE received stream from Node %d:%d (recv. port %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port);
+            soTRIF_meta.write(meta_stream_out);
+            rxFsmState  = RX_STREAM;
+        }
+        break;
+    case ROLE_STREAM:
+        if (!siTRIF_Data.empty() && !soTRIF_Data.full()) {
+            siTRIF_Data.read(currWord);
+            if (DEBUG_LEVEL & TRACE_ROLE) {
+                 printAxiWord(myRxName, currWord);
+            }
+            soTRIF_Data.write(currWord);
+            if (currWord.tlast)
+                rxFsmState  = RX_WAIT_META;
+        }
+        break;
+    }
+
+}
+/*****************************************************************************
  * @brief Emulate the behavior of the TCP Offload Engine (TOE).
  *
  * @param[in]  nrErr,         A ref to the error counter of main.
@@ -694,10 +743,6 @@ void pTOE(
     if (!rxpStartupDelay) {
         switch (rxpState) {
         case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TRIF]
-            sessionId   = DEFAULT_SESSION_ID;
-            tcpSegLen   = DEFAULT_SESSION_LEN;
-            hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
-            fpgaLsnPort = 8803;
             printf("Send packet to %d\n", (int) fpgaLsnPort);
             if (!soTRIF_Notif.full()) {
                 soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
@@ -891,6 +936,12 @@ int main() {
     printf("#####################################################\n");
     printf("## MAIN LOOP STARTS HERE                           ##\n");
     printf("#####################################################\n");
+    
+    //Test FMC first
+    sessionId   = DEFAULT_SESSION_ID;
+    tcpSegLen   = DEFAULT_SESSION_LEN;
+    hostIp4Addr = DEFAULT_HOST_IP4_ADDR;
+    fpgaLsnPort = 8803;
 
 
     while (!nrErr) {
@@ -946,7 +997,17 @@ int main() {
             sFMC_Nrc_Tcp_data,
             sFMC_Nrc_Tcp_sessId);
         
-        //TODO: emulate ROLE
+        //-------------------------------------------------
+        //-- EMULATE APP 2 (ROLE)
+        //-------------------------------------------------
+        pROLE(
+            //-- TRIF / Rx Data Interface
+            sNRC_Role_Tcp_data,
+            sNRC_Role_Tcp_meta,
+            //-- TRIF / Tx Data Interface
+            sROLE_Nrc_Tcp_data,
+            sROLE_Nrc_Tcp_meta);
+        
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
@@ -955,6 +1016,16 @@ int main() {
         if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
+            //flush(stdout);
+        }
+        if(simCnt == 152)
+        {
+        //Test FMC first
+        sessionId   = DEFAULT_SESSION_ID + 1;
+        tcpSegLen   = DEFAULT_SESSION_LEN;
+        hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0];
+        fpgaLsnPort = 2718;
+        rxpState = RXP_SEND_NOTIF;
         }
         
         
