@@ -14,9 +14,7 @@
 .PHONY: all clean arp_server cam dhcp_client echo_app icmp_server iprx_handler iptx_handler toe udp udp_mux udp_role_if fmc mpe nrc udp_role_if_2
 
 # mpe udp_role_if_2
-#all: arp_server cam dhcp_client icmp_server iprx_handler iptx_handler fmc toe udp udp_mux nrc udp_role_if 
-# FOR NRC DEVELOPMENT
-all: arp_server cam dhcp_client icmp_server iprx_handler iptx_handler fmc toe udp udp_mux udp_role_if 
+all: arp_server cam dhcp_client icmp_server iprx_handler iptx_handler fmc toe udp udp_mux nrc udp_role_if 
 
 
 *:

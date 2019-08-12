@@ -10,12 +10,6 @@
 //  *
 
 #include "nrc.hpp"
-//#include "../../../../../hls/network_utils.hpp"
-//#include "../../../../../hls/memory_utils.hpp"
-//#include "../../../../../hls/simulation_utils.hpp"
-
-//#include "hls_math.h"
-//#include "ap_fixed.h"
 
 stream<UdpPLen>        sPLen_Udp     ("sPLen_Udp");
 stream<UdpWord>        sFifo_Udp_Data("sFifo_Udp_Data");
@@ -49,12 +43,19 @@ ap_uint<32> node_id_missmatch_TX_cnt = 0;
 NodeId last_tx_node_id = 0;
 NrcPort last_tx_port = 0;
 ap_uint<32> port_corrections_TX_cnt = 0;
+ap_uint<32> unauthorized_access_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
 
 NetworkDataLength udpTX_packet_length = 0;
 NetworkDataLength udpTX_current_packet_length = 0;
+
+
+ap_uint<64> tripleList[MAX_SESSIONS];
+ap_uint<17> sessionIdList[MAX_SESSIONS];
+bool tables_initalized = false;
+#define UNUSED_TABLE_ENTRY_VALUE 0x10000
 
 
 //FROM TCP
@@ -88,14 +89,14 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 //--  via TBD.
 //--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
 //---------------------------------------------------------
-#define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
-#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
+//#define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
+//#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
+//#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
 AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 AppOpnSts     newConn;
-ap_uint<12>  watchDogTimer;
+ap_uint<12>  watchDogTimer_pcon = 0;
 ap_uint<8>   watchDogTimer_plisten = 0;
 
 // Set a startup delay long enough to account for the initialization
@@ -117,7 +118,21 @@ ap_uint<32> tcp_rx_ports_processed = 0;
 bool need_tcp_port_req = false;
 ap_uint<16> new_relative_port_to_req_tcp = 0;
 
+ap_uint<16> processed_FMC_listen_port = 0;
+bool fmc_port_opened = false;
 
+NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
+NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
+bool Tcp_RX_metaWritten = false;
+ap_uint<64>  tripple_for_new_connection = 0;
+bool tcp_need_new_connection_request = false;
+bool tcp_new_connection_failure = false;
+
+SessionId session_toFMC = 0;
+SessionId session_fromFMC = 0;
+
+NetworkDataLength tcpTX_packet_length = 0;
+NetworkDataLength tcpTX_current_packet_length = 0;
 
 /*****************************************************************************
  * @brief Update the payload length based on the setting of the 'tkeep' bits.
@@ -172,6 +187,82 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
   return 0xFFFF;
 }
 
+ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
+{
+      ap_uint<64> new_entry = (((ap_uint<64>) ipRemoteAddres) << 32) | (((ap_uint<32>) tcpRemotePort) << 16) | tcpLocalPort;
+      return new_entry;
+}
+
+Ip4Addr getRemoteIpAddrFromTripple(ap_uint<64> tripple)
+{
+  ap_uint<32> ret = ((ap_uint<32>) (tripple >> 32)) & 0xFFFFFFFF;
+  return (Ip4Addr) ret;
+}
+
+TcpPort getRemotePortFromTripple(ap_uint<64> tripple)
+{
+  ap_uint<16> ret = ((ap_uint<16>) (tripple >> 16)) & 0xFFFF;
+  return (TcpPort) ret;
+}
+
+TcpPort getLocalPortFromTripple(ap_uint<64> tripple)
+{
+  ap_uint<16> ret = (ap_uint<16>) (tripple & 0xFFFF);
+  return (TcpPort) ret;
+}
+
+
+void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
+{
+  uint32_t i = 0;
+  for(i = 0; i < MAX_SESSIONS; i++)
+  {
+    if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
+    {//next free one, tables stay in sync
+      sessionIdList[i] = sessionID;
+      tripleList[i] = new_entry;
+      break;
+    }
+  }
+  //we run out of sessions...TODO
+}
+
+void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
+{
+    ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
+    addnewSessionToTableWithTripple(sessionID, new_entry);
+}
+
+
+ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
+{
+  uint32_t i = 0;
+  for(i = 0; i < MAX_SESSIONS; i++)
+  {
+    if(sessionIdList[i] == sessionID)
+    {
+      return tripleList[i];
+    }
+  }
+  //unkown session TODO 
+  return (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
+}
+
+SessionId getSessionIdFromTripple(ap_uint<64> tripple)
+{
+  uint32_t i = 0;
+  for(i = 0; i < MAX_SESSIONS; i++)
+  {
+    if(tripleList[i] == tripple)
+    {
+      return sessionIdList[i];
+    }
+  }
+  //there is (not yet) a connection
+  return (SessionId) UNUSED_TABLE_ENTRY_VALUE;
+}
+
+
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
  *
@@ -201,9 +292,9 @@ void nrc_main(
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<NetworkMetaStream>   &siFMC_Tcp_meta,
+    stream<AppMeta>             &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<NetworkMetaStream>   &soFMC_Tcp_meta,
+    stream<AppMeta>             &soFMC_Tcp_SessId,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -219,13 +310,13 @@ void nrc_main(
     //-- TOE / Rx Data Interfaces
     stream<AppNotif>    &siTOE_Notif,
     stream<AppRdReq>    &soTOE_DReq,
-    stream<AppData>     &siTOE_Data,
+    stream<NetworkWord> &siTOE_Data,
     stream<AppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
     stream<AppLsnReq>   &soTOE_LsnReq,
     stream<AppLsnAck>   &siTOE_LsnAck,
     //-- TOE / Tx Data Interfaces
-    stream<AppData>     &soTOE_Data,
+    stream<NetworkWord> &soTOE_Data,
     stream<AppMeta>     &soTOE_SessId,
     stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
@@ -263,15 +354,15 @@ void nrc_main(
 #pragma HLS INTERFACE s_axilite port=return bundle=piSMC_NRC_ctrlLink_AXI
 
 #pragma HLS INTERFACE axis register both port=siTcp_data
-#pragma HLS INTERFACE axis register both port=siTcp_data
-#pragma HLS INTERFACE axis register both port=soTcp_meta
+#pragma HLS INTERFACE axis register both port=soTcp_data
+#pragma HLS INTERFACE axis register both port=siTcp_meta
 #pragma HLS INTERFACE axis register both port=soTcp_meta
 #pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
 
 #pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_meta
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_meta
+#pragma HLS INTERFACE axis register both port=soFMC_Tcp_data
+#pragma HLS INTERFACE axis register both port=siFMC_Tcp_SessId
+#pragma HLS INTERFACE axis register both port=soFMC_Tcp_SessId
 
 
 #pragma HLS INTERFACE axis register both port=siTOE_Notif
@@ -328,6 +419,7 @@ void nrc_main(
 #pragma HLS reset variable=in_meta_udp
 #pragma HLS reset variable=udpTX_packet_length
 #pragma HLS reset variable=udpTX_current_packet_length
+#pragma HLS reset variable=unauthorized_access_cnt
 
   //DO NOT reset MRT and config. This should be done explicitly by the SMC
 #pragma HLS reset variable=localMRT off
@@ -344,6 +436,19 @@ void nrc_main(
 #pragma HLS reset variable=tcp_rx_ports_processed
 #pragma HLS reset variable=need_tcp_port_req
 #pragma HLS reset variable=new_relative_port_to_req_tcp
+#pragma HLS reset variable=processed_FMC_listen_port
+#pragma HLS reset variable=fmc_port_opened
+#pragma HLS reset variable=tables_initalized
+#pragma HLS reset variable=out_meta_tcp
+#pragma HLS reset variable=in_meta_tcp
+#pragma HLS reset variable=session_toFMC
+#pragma HLS reset variable=session_fromFMC
+#pragma HLS reset variable=Tcp_RX_metaWritten
+#pragma HLS reset variable=tcpTX_packet_length
+#pragma HLS reset variable=tcpTX_current_packet_length
+#pragma HLS reset variable=tripple_for_new_connection
+#pragma HLS reset variable=tcp_need_new_connection_request
+#pragma HLS reset variable=tcp_new_connection_failure
 
 
   //===========================================================
@@ -379,10 +484,20 @@ void nrc_main(
   status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
   status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
-  status[NRC_STATUS_UNUSED_1] = 0x0;
+  status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
   status[NRC_STATUS_UNUSED_2] = 0x0;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
+
+  if (!tables_initalized)
+  {
+    for(int i = 0; i<MAX_SESSIONS; i++)
+    {
+      sessionIdList[i] = (ap_uint<17>) UNUSED_TABLE_ENTRY_VALUE;
+      tripleList[i] = (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
+    }
+    tables_initalized = true;
+  }
 
   
   //===========================================================
@@ -419,8 +534,14 @@ void nrc_main(
   } else {
     need_udp_port_req = false;
   }
-  
-  if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
+ 
+  if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+  {
+    fmc_port_opened = false;
+    need_tcp_port_req = true;
+    printf("Need FMC port request: %#02x\n",(int) *piMMIO_FmcLsnPort);
+
+  } else if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
   {
     //we can't close, so only look for newly opened
     ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
@@ -460,6 +581,7 @@ void nrc_main(
         NetworkMetaStream tmp_meta_in = siUdp_meta.read();
         sFifo_Udp_Meta.write(tmp_meta_in);
         udpTX_packet_length = tmp_meta_in.tdata.len;
+        udpTX_current_packet_length = 0;
         fsmStateTXenq_Udp = FSM_ACC;
       }
       //printf("waiting for NetworkMeta.\n");
@@ -508,7 +630,6 @@ void nrc_main(
   //-------------------------------------------------------------------------------------------------
   // TX UDP Dequeue
 
-
   switch(fsmStateTXdeq_Udp) {
 
     default:
@@ -529,8 +650,10 @@ void nrc_main(
     case FSM_FIRST_ACC:
 
       // Send out the first data together with the metadata and payload length information
-      if ( !sFifo_Udp_Data.empty() && !sPLen_Udp.empty() ) {
-        if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) {
+      if ( !sFifo_Udp_Data.empty() && !sPLen_Udp.empty() ) 
+      {
+        if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) 
+        {
           
           //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
           NodeId dst_rank = out_meta_udp.tdata.dst_rank;
@@ -583,7 +706,7 @@ void nrc_main(
             fsmStateTXdeq_Udp = FSM_ACC;
           }
         }
-        }
+      }
 
         break;
 
@@ -667,6 +790,7 @@ void nrc_main(
               if(src_id == 0xFFFF)
               {
                 //SINK packet
+                node_id_missmatch_RX_cnt++;
                 fsmStateRX_Udp = FSM_DROP_PACKET;
                 break;
               }
@@ -768,7 +892,15 @@ void nrc_main(
 
     case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
         if (!soTOE_LsnReq.full()) {
-            ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+            ap_uint<16> new_absolute_port = 0;
+            //always process FMC first
+            if(fmc_port_opened == false)
+            {
+              new_absolute_port = *piMMIO_FmcLsnPort;
+            } else {
+              new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+            }
+
             AppLsnReq    tcpListenPort = new_absolute_port;
             soTOE_LsnReq.write(tcpListenPort);
             if (DEBUG_LEVEL & TRACE_LSN) {
@@ -797,11 +929,24 @@ void nrc_main(
                 lsnFsmState = LSN_DONE;
                 
                 need_tcp_port_req = false;
-                tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
-                printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
+                if(fmc_port_opened == false)
+                {
+                  fmc_port_opened = true;
+                  processed_FMC_listen_port = *piMMIO_FmcLsnPort;
+                } else {
+                  tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
+                  printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
+                }
             }
             else {
-                ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                ap_uint<16> new_absolute_port = 0;
+                //always process FMC first
+                if(fmc_port_opened == false)
+                {
+                  new_absolute_port = *piMMIO_FmcLsnPort;
+                } else {
+                  new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                }
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
                           new_absolute_port, new_absolute_port);
                 lsnFsmState = LSN_SEND_REQ;
@@ -809,10 +954,17 @@ void nrc_main(
         }
         else {
             if (watchDogTimer_plisten == 0) {
-                ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
-                printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                           new_absolute_port, new_absolute_port);
-                lsnFsmState = LSN_SEND_REQ;
+              ap_uint<16> new_absolute_port = 0;
+              //always process FMC first
+              if(fmc_port_opened == false)
+              {
+                new_absolute_port = *piMMIO_FmcLsnPort;
+              } else {
+                new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+              }
+              printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+                         new_absolute_port, new_absolute_port);
+              lsnFsmState = LSN_SEND_REQ;
             }
         }
         break;
@@ -845,6 +997,8 @@ void nrc_main(
             if (notif_pRrh.tcpSegLen != 0) {
                 // Always request the data segment to be received
                 rrhFsmState = RRH_SEND_DREQ;
+                //remember the session ID
+                addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
             }
         }
         break;
@@ -856,6 +1010,400 @@ void nrc_main(
         break;
     }
 
+  /*****************************************************************************
+   * @brief Read Path (RDp) - From TOE to ROLE.
+   *  Process waits for a new data segment to read and forwards it to the ROLE.
+   *
+   * @param[in]  siTOE_Data,   Data from [TOE].
+   * @param[in]  siTOE_SessId, Session Id from [TOE].
+   * @param[out] soTcp_data,   Data to [ROLE].
+   * @param[out] soTcp_meta,   Meta Data to [ROLE].
+   *
+   *****************************************************************************/
+    //update myName
+    myName  = concat3(THIS_NAME, "/", "RDp");
 
-  }
+    //"local" variables
+    NetworkWord currWord;
+    AppMeta     sessId;
 
+    switch (rdpFsmState ) {
+
+      default:
+      case RDP_WAIT_META:
+        if (!siTOE_SessId.empty()) {
+          siTOE_SessId.read(sessId);
+
+          ap_uint<64> tripple_in = getTrippleFromSessionId(sessId);
+          Ip4Addr remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
+          NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+          TcpPort dstPort = getLocalPortFromTripple(tripple_in);
+          TcpPort srcPort = getRemotePortFromTripple(tripple_in);
+
+          if(dstPort == processed_FMC_listen_port) //take processed...just to be sure
+          {
+            if(remoteAddr == *piMMIO_CfrmIp4Addr)
+            {//valid connection to FMC
+             Tcp_RX_metaWritten = false;
+             session_toFMC = sessId;
+             rdpFsmState = RDP_STREAM_FMC;
+
+            } else {
+              unauthorized_access_cnt++;
+              printf("unauthorized access to FMC!\n");
+              rdpFsmState = RDP_DROP_PACKET;
+              break;
+            }
+          }
+
+          //Role packet
+          if(src_id == 0xFFFF)
+          {
+            //SINK packet
+            node_id_missmatch_RX_cnt++;
+            rdpFsmState = RDP_DROP_PACKET;
+            break;
+          }
+          last_rx_node_id = src_id;
+          last_rx_port = dstPort;
+          NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], dstPort, src_id, srcPort, 0);
+          in_meta_tcp = NetworkMetaStream(tmp_meta);
+          Tcp_RX_metaWritten = false;
+          rdpFsmState  = RDP_STREAM_ROLE;
+        }
+        break;
+
+      case RDP_STREAM_ROLE:
+        if (!siTOE_Data.empty() && !soTcp_data.full()) 
+        {
+          siTOE_Data.read(currWord);
+          //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
+          //  printAxiWord(myName, (AxiWord) currWord);
+          //}
+          soTcp_data.write(currWord);
+          if (currWord.tlast == 1)
+          {
+            rdpFsmState  = RDP_WAIT_META;
+          }
+        }
+        // NO break;
+      case RDP_WRITE_META_ROLE:
+        if( !Tcp_RX_metaWritten && !soTcp_meta.full())
+        {
+          soTcp_meta.write(in_meta_tcp);
+          packet_count_RX++;
+          Tcp_RX_metaWritten = true;
+        }
+        break;
+
+      case RDP_STREAM_FMC:
+        if (!siTOE_Data.empty() && !soFMC_Tcp_data.full()) 
+        {
+          siTOE_Data.read(currWord);
+          //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
+          //  printAxiWord(myName, (AxiWord) currWord);
+          //}
+          soFMC_Tcp_data.write(currWord);
+          if (currWord.tlast == 1)
+          {
+            rdpFsmState  = RDP_WAIT_META;
+          }
+        }
+        // NO break;
+      case RDP_WRITE_META_FMC:
+        if( !Tcp_RX_metaWritten && !soFMC_Tcp_SessId.full())
+        {
+          soFMC_Tcp_SessId.write(session_toFMC);
+          //TODO: is tlast set?
+          //TODO: count incoming FMC packets?
+          Tcp_RX_metaWritten = true;
+        }
+        break;
+
+      case RDP_DROP_PACKET:
+        if( !siTOE_Data.empty())
+        {
+          siTOE_Data.read(currWord);
+          if (currWord.tlast == 1)
+          {
+            rdpFsmState  = RDP_WAIT_META;
+          }
+        }
+        break;
+    }
+
+ /*****************************************************************************
+ * @brief Write Path (WRp) - From ROLE to TOE.
+ *  Process waits for a new data segment to write and forwards it to TOE.
+ *
+ * @param[in]  siROL_Data,   Tx data from [ROLE].
+ * @param[in]  siROL_SessId, the session Id from [ROLE].
+ * @param[out] soTOE_Data,   Tx data to [TOE].
+ * @param[out] soTOE_SessId, Tx session Id to to [TOE].
+ * @param[in]  siTOE_DSts,   Tx data write status from [TOE].
+ *
+ ******************************************************************************/
+    //update myName
+    myName  = concat3(THIS_NAME, "/", "WRp");
+
+    //"local" variables
+    AppMeta       tcpSessId;
+    NetworkWord   currWordIn;
+    NetworkWord   currWordOut;
+
+    switch (wrpFsmState) {
+    case WRP_WAIT_META:
+        //FMC must come first
+        if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full()) {
+            siFMC_Tcp_SessId.read(tcpSessId);
+            soTOE_SessId.write(tcpSessId);
+            if (DEBUG_LEVEL & TRACE_WRP) {
+                printInfo(myName, "Received new session ID #%d from [FMC].\n",
+                          tcpSessId.to_uint());
+            }
+            wrpFsmState = WRP_STREAM_FMC;
+            break;
+        }
+        //now ask the ROLE 
+        if (!siTcp_meta.empty() && !soTOE_SessId.full()) 
+        {
+          out_meta_tcp = siTcp_meta.read();
+          tcpTX_packet_length = out_meta_tcp.tdata.len;
+          tcpTX_current_packet_length = 0;
+
+          NodeId dst_rank = out_meta_udp.tdata.dst_rank;
+          if(dst_rank > MAX_CF_NODE_ID)
+          {
+            node_id_missmatch_TX_cnt++;
+            //dst_rank = 0;
+            //SINK packet
+            wrpFsmState = WRP_DROP_PACKET;
+            break;
+          }
+          Ip4Addr dst_ip_addr = localMRT[dst_rank];
+          if(dst_ip_addr == 0)
+          {
+            node_id_missmatch_TX_cnt++;
+            //dst_ip_addr = localMRT[0];
+            //SINK packet
+            wrpFsmState = WRP_DROP_PACKET;
+            break;
+          }
+          NrcPort src_port = out_meta_tcp.tdata.src_port; //TODO: DEBUG
+          if (src_port == 0)
+          {
+            src_port = DEFAULT_RX_PORT;
+          }
+          NrcPort dst_port = out_meta_tcp.tdata.dst_port; //TODO: DEBUG
+          if (dst_port == 0)
+          {
+            dst_port = DEFAULT_RX_PORT;
+            port_corrections_TX_cnt++;
+          }
+
+          //check if session is present
+          ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
+          SessionId sessId = getSessionIdFromTripple(new_tripple);
+          if(sessId == UNUSED_TABLE_ENTRY_VALUE)
+          {//we need to create one first
+            tripple_for_new_connection = new_tripple;
+            tcp_need_new_connection_request = true;
+            tcp_new_connection_failure = false;
+            wrpFsmState = WRP_WAIT_CONNECTION;
+            break;
+          }
+          last_tx_port = dst_port;
+          last_tx_node_id = dst_rank;
+          packet_count_TX++;
+
+          soTOE_SessId.write(sessId);
+          if (DEBUG_LEVEL & TRACE_WRP) {
+              printInfo(myName, "Received new session ID #%d from [ROLE].\n",
+                        sessId.to_uint());
+          }
+          wrpFsmState = WRP_STREAM_ROLE;
+        }
+        break;
+
+    case WRP_WAIT_CONNECTION:
+        if( !tcp_need_new_connection_request && !soTOE_SessId.full() && !tcp_new_connection_failure )
+        {
+          SessionId sessId = getSessionIdFromTripple(tripple_for_new_connection);
+          
+          last_tx_port = getRemotePortFromTripple(tripple_for_new_connection);
+          last_tx_node_id = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(tripple_for_new_connection));
+          packet_count_TX++;
+
+          soTOE_SessId.write(sessId);
+          if (DEBUG_LEVEL & TRACE_WRP) {
+              printInfo(myName, "Received new session ID #%d from [ROLE].\n",
+                        sessId.to_uint());
+          }
+          wrpFsmState = WRP_STREAM_ROLE;
+
+        } else if (tcp_new_connection_failure)
+        {
+          //TODO sink packet? request_failure_cnt? 
+          //TODO notify role?
+        }
+        break;
+
+    case WRP_STREAM_FMC:
+        if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
+            siFMC_Tcp_data.read(currWordIn);
+            //if (DEBUG_LEVEL & TRACE_WRP) {
+            //     printAxiWord(myName, currWordIn);
+            //}
+            soTOE_Data.write(currWordIn);
+            if(currWordIn.tlast == 1) {
+                wrpFsmState = WRP_WAIT_META;
+            }
+        }
+        break;
+
+    case WRP_STREAM_ROLE:
+        if (!siTcp_data.empty() && !soTOE_Data.full()) {
+            siTcp_data.read(currWordIn);
+            tcpTX_current_packet_length++;
+            //if (DEBUG_LEVEL & TRACE_WRP) {
+            //     printAxiWord(myName, currWordIn);
+            //}
+            if(tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+            {
+              currWordIn.tlast = 1;
+            }
+            soTOE_Data.write(currWordIn);
+            if(currWordIn.tlast == 1) {
+                wrpFsmState = WRP_WAIT_META;
+            }
+        }
+        break;
+
+    case WRP_DROP_PACKET: 
+        if( !siTcp_data.empty()) 
+        {
+            siTcp_data.read(currWordIn);
+            tcpTX_current_packet_length++;
+            //until Tlast or length
+            if(tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+            {
+              currWordIn.tlast = 1;
+            }
+            if(currWordIn.tlast == 1) {
+                wrpFsmState = WRP_WAIT_META;
+            }
+        }
+        break;
+    }
+
+    //-- ALWAYS -----------------------
+    if (!siTOE_DSts.empty()) {
+        siTOE_DSts.read();  // [TODO] Checking.
+    }
+
+/*****************************************************************************
+ * @brief Client connection to remote HOST or FPGA socket (COn).
+ *
+ * @param[out] soTOE_OpnReq,  open connection request to TOE.
+ * @param[in]  siTOE_OpnRep,  open connection reply from TOE.
+ * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ *
+ ******************************************************************************/
+    //update myName
+    myName  = concat3(THIS_NAME, "/", "COn");
+
+    switch (opnFsmState) {
+
+    case OPN_IDLE:
+        if (startupDelay > 0) {
+            startupDelay--;
+            if (!siTOE_OpnRep.empty()) {
+                // Drain any potential status data
+                siTOE_OpnRep.read(newConn);
+                printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
+                soTOE_ClsReq.write(newConn.sessionID);
+            }
+        }
+        else {
+          if(tcp_need_new_connection_request)
+          {
+            opnFsmState = OPN_REQ;
+          } else { 
+            opnFsmState = OPN_DONE;
+          }
+        }
+        break;
+
+    case OPN_REQ:
+        if (tcp_need_new_connection_request && !soTOE_OpnReq.full()) {
+            Ip4Addr remoteIp = getRemoteIpAddrFromTripple(tripple_for_new_connection);
+            TcpPort remotePort = getRemotePortFromTripple(tripple_for_new_connection);
+
+            SockAddr    hostSockAddr(remoteIp, remotePort);
+            leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
+            leHostSockAddr.port = byteSwap16(hostSockAddr.port);
+            soTOE_OpnReq.write(leHostSockAddr);
+            if (DEBUG_LEVEL & TRACE_CON) {
+                printInfo(myName, "Client is requesting to connect to remote socket:\n");
+                printSockAddr(myName, leHostSockAddr);
+            }
+            #ifndef __SYNTHESIS__
+                watchDogTimer_pcon = 250;
+            #else
+                watchDogTimer_pcon = 10000;
+            #endif
+            opnFsmState = OPN_REP;
+        }
+        break;
+
+    case OPN_REP:
+        watchDogTimer_pcon--;
+        if (!siTOE_OpnRep.empty()) {
+            // Read the reply stream
+            siTOE_OpnRep.read(newConn);
+            if (newConn.success) {
+                if (DEBUG_LEVEL & TRACE_CON) {
+                    printInfo(myName, "Client successfully connected to remote socket:\n");
+                    printSockAddr(myName, leHostSockAddr);
+                }
+                addnewSessionToTableWithTripple(newConn.sessionID, tripple_for_new_connection);
+                opnFsmState = OPN_DONE;
+                tcp_need_new_connection_request = false;
+                tcp_new_connection_failure = false;
+            }
+            else {
+                 printError(myName, "Client failed to connect to remote socket:\n");
+                 printSockAddr(myName, leHostSockAddr);
+                 opnFsmState = OPN_DONE;
+                tcp_need_new_connection_request = false;
+                tcp_new_connection_failure = true;
+            }
+        }
+        else {
+            if (watchDogTimer_pcon == 0) {
+                if (DEBUG_LEVEL & TRACE_CON) {
+                    printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
+                    printSockAddr(myName, leHostSockAddr);
+                }
+                #ifndef __SYNTHESIS__
+                  watchDogTimer_pcon = 250;
+                #else
+                  watchDogTimer_pcon = 10000;
+                #endif
+                tcp_need_new_connection_request = false;
+                tcp_new_connection_failure = true;
+            }
+
+        }
+        break;
+    case OPN_DONE:
+        //if(tcp_need_new_connection_request)
+        //{ 
+        //No neccisarity to wait...
+          opnFsmState = OPN_REQ;
+        //}
+        break;
+    }
+
+
+}
