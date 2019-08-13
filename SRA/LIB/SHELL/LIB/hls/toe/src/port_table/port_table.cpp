@@ -132,17 +132,17 @@ void pListeningPortTable(
     #pragma HLS RESOURCE   variable=LISTEN_PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=LISTEN_PORT_TABLE inter false
 
-    static bool                isInit = false;
-    #pragma HLS reset variable=isInit
+    static bool                isLPtInit = false;
+    #pragma HLS reset variable=isLPtInit
     static TcpPort             lsnPortNum = 0;
     #pragma HLS reset variable=lsnPortNum
 
     // The table must be cleared upon reset
-    if (!isInit) {
+    if (!isLPtInit) {
         LISTEN_PORT_TABLE[lsnPortNum(14, 0)] = LSN_CLOS_PORT;
         lsnPortNum += 1;
         if (lsnPortNum == 0x8000) {
-          isInit = true;
+          isLPtInit = true;
           if (DEBUG_LEVEL & TRACE_LPT) {
               printInfo(myName, "Done with initialization of LISTEN_PORT_TABLE.\n");
           }
@@ -179,7 +179,7 @@ void pListeningPortTable(
     }
 
     // ALWAYS
-    poPRt_LptReady = isInit;
+    poPRt_LptReady = isLPtInit;
 }
 
 /*****************************************************************************
@@ -228,17 +228,17 @@ void pFreePortTable(
     static bool               eval = false;
     static bool          portState = ACT_USED_PORT;
     #pragma HLS DEPENDENCE variable=portState inter false
-    static bool             isInit = false;
-    #pragma HLS reset      variable=isInit
+    static bool          isFPtInit = false;
+    #pragma HLS reset      variable=isFPtInit
     static TcpDynPort               dynPortNum = 0x7FFF;
     #pragma HLS reset      variable=dynPortNum
 
     // The table is a free list that must be initialized upon reset
-    if (!isInit) {
+    if (!isFPtInit) {
         ACTIVE_PORT_TABLE[dynPortNum] = ACT_FREE_PORT;
         dynPortNum -= 1;
         if (dynPortNum == 0) {
-            isInit = true;
+            isFPtInit = true;
             if (DEBUG_LEVEL & TRACE_FPT) {
                 printInfo(myName, "Done with initialization of ACTIVE_PORT_TABLE.\n");
             }
@@ -293,7 +293,7 @@ void pFreePortTable(
     }
 
     // ALWAYS
-    poPRt_FptReady = isInit;
+    poPRt_FptReady = isFPtInit;
 }
 
 

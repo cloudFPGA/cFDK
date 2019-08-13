@@ -73,7 +73,6 @@ add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files ${srcDir}/state_table/state_table.cpp
 add_files ${srcDir}/toe_utils.cpp
-add_files ${srcDir}/tx_app_if/tx_app_if.cpp
 add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files ${srcDir}/tx_app_stream/tx_app_stream.cpp
 add_files ${srcDir}/tx_engine/tx_engine.cpp
@@ -86,10 +85,19 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-# Request any static or global variable to be reset to its initialized value
-# config_rtl -reset state
+# Controlling the Reset Behavior (see UG902)
+#  - control: This is the default and ensures all control registers are reset. Control registers 
+#             are those used in state machines and to generate I/O protocol signals. This setting 
+#             ensures the design can immediately start its operation state.
+#  - state  : This option adds a reset to control registers (as in the control setting) plus any 
+#             registers or memories derived from static and global variables in the C code. This 
+#             setting ensures static and global variable initialized in the C code are reset to their 
+#             initialized value after the reset is applied.
+#-------------------------------------------------
+config_rtl -reset control
 
 # Request to not rename functions and variables longer that 60 chars
+#--------------------------------------------------------------------
 config_compile -name_max_length 60 -pipeline_loops 0
 
 # Run C Simulation (refer to UG902)

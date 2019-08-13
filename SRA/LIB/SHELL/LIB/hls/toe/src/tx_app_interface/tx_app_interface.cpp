@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016, Xilinx, Inc.
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : tx_app_interface.cpp
  * @brief      : Tx Application Interface (TAi)
@@ -13,6 +39,136 @@
 #include "tx_app_interface.hpp"
 
 using namespace hls;
+
+
+/*****************************************************************************
+ * @brief Tx Application Accept (Taa).
+ *
+ * @param[in]  siTRIF_OpnReq,        Open connection request from TCP Role I/F (TRIF).
+ * @param[]
+ * @param[in]  siSLc_SessLookupRep,  Reply from [SLc]
+ * @param[out] siPRt_ActPortStateRep,Active port state reply from [PRt].
+ * @param[in]  siRXe_SessOpnSts,     Session open status from [RXe].
+ * @param[out] soTRIF_SessOpnSts,    Session open status to [TRIF].
+ * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
+ * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
+ * @param[out  soSTt_SessStateQry,   Session state query to StateTable (STt).
+ * @param[in]  siSTt_SessStateRep,   Session state reply from [STt].
+ * @param[out] soEVe_Event,          Event to EventEngine (EVe).
+ * @param
+ * @param
+ *
+ * @details
+ *  This process performs the creation and tear down of the active connections.
+ *   Active connections are the ones opened by the FPGA as client and they make
+ *   use of dynamically assigned or ephemeral ports in the range 32,768 to
+ *   65,535. The operations performed here are somehow similar to the 'accept'
+ *   and 'close' system calls.
+ *  The IP tuple of the new connection to open is read from 'siTRIF_OpnReq'.
+ *
+ *  [TODO]
+ *   and then requests a free port number from 'port_table' and fires a SYN
+ *   event. Once the connection is established it notifies the application
+ *   through 'appOpenConOut' and delivers the Session-ID belonging to the new
+ *   connection. (Client connection to remote HOST or FPGA socket (COn).)
+ *  If opening of the connection is not successful this is also indicated
+ *   through the 'appOpenConOut'. By sending the Session-ID through 'closeConIn'
+ *   the application can initiate the teardown of the connection.
+ *
+ * @ingroup tx_app_if
+ ******************************************************************************/
+void pTxAppAccept(
+        stream<AxiSockAddr>         &siTRIF_OpnReq,
+        stream<ap_uint<16> >        &closeConnReq,
+        stream<sessionLookupReply>  &siSLc_SessLookupRep,
+        stream<TcpPort>             &siPRt_ActPortStateRep,
+        stream<OpenStatus>          &siRXe_SessOpnSts,
+        stream<OpenStatus>          &soTRIF_SessOpnSts,
+        stream<AxiSocketPair>       &soSLc_SessLookupReq,
+        stream<ReqBit>              &soPRt_GetFreePortReq,
+        stream<StateQuery>          &soSTt_SessStateQry,
+        stream<SessionState>        &siSTt_SessStateRep,
+        stream<event>               &soEVe_Event,
+        stream<OpenStatus>          &rtTimer2txApp_notification,
+        AxiIp4Address                regIpAddress)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
+
+    static ap_uint<16> tai_closeSessionID;
+
+    static stream<AxiSockAddr>  localFifo ("localFifo");
+    #pragma HLS stream variable=localFifo depth=4
+
+    OpenStatus  openSessStatus;
+
+    static enum TasFsmStates {TAS_IDLE=0, TAS_GET_FREE_PORT, TAS_CLOSE_CONN } tasFsmState = TAS_IDLE;
+
+    switch (tasFsmState) {
+
+    case TAS_IDLE:
+        if (!siTRIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
+            localFifo.write(siTRIF_OpnReq.read());
+            soPRt_GetFreePortReq.write(true);
+            tasFsmState = TAS_GET_FREE_PORT;
+        }
+        else if (!siSLc_SessLookupRep.empty()) {
+            // Read the session and check its state
+            sessionLookupReply session = siSLc_SessLookupRep.read();
+            if (session.hit) {
+                soEVe_Event.write(event(SYN, session.sessionID));
+                soSTt_SessStateQry.write(StateQuery(session.sessionID, SYN_SENT, 1));
+            }
+            else {
+                // Tell the APP that the open connection failed
+                soTRIF_SessOpnSts.write(OpenStatus(0, FAILED_TO_OPEN_SESS));
+            }
+        }
+        else if (!siRXe_SessOpnSts.empty()) {
+            // Read the status but do not forward to TRIF because it is actually
+            // not waiting for this one
+            siRXe_SessOpnSts.read(openSessStatus);
+            soTRIF_SessOpnSts.write(openSessStatus);
+        }
+        else if (!rtTimer2txApp_notification.empty())
+            soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
+        else if(!closeConnReq.empty()) {    // Close Request
+            closeConnReq.read(tai_closeSessionID);
+            soSTt_SessStateQry.write(StateQuery(tai_closeSessionID));
+            tasFsmState = TAS_CLOSE_CONN;
+        }
+        break;
+
+    case TAS_GET_FREE_PORT:
+        if (!siPRt_ActPortStateRep.empty() && !soSLc_SessLookupReq.full()) {
+            //OBSOLETE-20190521 ap_uint<16> freePort = siPRt_ActPortStateRep.read() + 32768; // 0x8000 is already added by PRt
+            TcpPort     freePort      = siPRt_ActPortStateRep.read();
+            AxiSockAddr axiServerAddr = localFifo.read();
+            //OBSOLETE-20181218 soSLc_SessLookupReq.write(
+            //        fourTuple(regIpAddress, byteSwap32(server_addr.ip_address),
+            //        byteSwap16(freePort), byteSwap16(server_addr.ip_port)));
+            soSLc_SessLookupReq.write(AxiSocketPair(AxiSockAddr(regIpAddress,       byteSwap16(freePort)),
+                                                    AxiSockAddr(axiServerAddr.addr, axiServerAddr.port)));
+            tasFsmState = TAS_IDLE;
+        }
+        break;
+
+    case TAS_CLOSE_CONN:
+        if (!siSTt_SessStateRep.empty()) {
+            SessionState state = siSTt_SessStateRep.read();
+            //TODO might add CLOSE_WAIT here???
+            if ((state == ESTABLISHED) || (state == FIN_WAIT_2) || (state == FIN_WAIT_1)) { //TODO Why if FIN already SENT
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
+                soEVe_Event.write(event(FIN, tai_closeSessionID));
+            }
+            else
+                soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, state, 1)); // Have to release lock
+            tasFsmState = TAS_IDLE;
+        }
+        break;
+    }
+}
 
 
 /*****************************************************************************
@@ -254,7 +410,7 @@ void tx_app_interface(
             sTasToEmx_Event);
 
     // Tx Application Accept (Taa)
-    tx_app_accept(
+    pTxAppAccept(
             siTRIF_OpnReq,
             appCloseConnReq,
             siSLc_SessLookupRep,
