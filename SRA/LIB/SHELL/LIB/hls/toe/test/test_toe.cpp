@@ -138,11 +138,21 @@ void pEmulateCam(
             siTOE_SssLkpReq.read(request);
             camIdleCnt = MAX_TOE_LATENCY;
             camFsmState = CAM_LOOKUP_REP;
+            if (DEBUG_LEVEL & TRACE_CAM) {
+                printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
+                                  request.source.to_int());
+                printSockPair(myName, request.source.to_int(), request.key);
+            }
         }
         else if (!siTOE_SssUpdReq.empty()) {
             siTOE_SssUpdReq.read(update);
             camIdleCnt = MAX_TOE_LATENCY;
             camFsmState = CAM_UPDATE_REP;
+            if (DEBUG_LEVEL & TRACE_CAM) {
+                 printInfo(myName, "Received a session update request from %d for socket pair: \n",
+                                   update.source.to_int());
+                 printSockPair(myName, update.source.to_int(), update.key);
+            }
         }
         break;
 
@@ -152,11 +162,6 @@ void pEmulateCam(
             camIdleCnt--;
         }
         else {
-            if (DEBUG_LEVEL & TRACE_CAM) {
-                printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
-                           request.source.to_int());
-                printSockPair(myName, request.source.to_int(), request.key);
-            }
             findPos = lookupTable.find(request.key);
             if (findPos != lookupTable.end()) { // hit
                 soTOE_SssLkpRep.write(rtlSessionLookupReply(true, findPos->second, request.source));
@@ -189,12 +194,6 @@ void pEmulateCam(
             else {  // DELETE
                 lookupTable.erase(update.key);
                 soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, DELETE, update.source));
-            }
-
-            if (DEBUG_LEVEL & TRACE_CAM) {
-                printInfo(myName, "Received a session update request from %d for socket pair: \n",
-                                  request.source.to_int());
-                printSockPair(myName, request.source.to_int(), request.key);
             }
             camFsmState = CAM_WAIT_4_REQ;
         }

@@ -73,7 +73,6 @@ add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files ${srcDir}/state_table/state_table.cpp
 add_files ${srcDir}/toe_utils.cpp
-add_files ${srcDir}/tx_app_if/tx_app_if.cpp
 add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files ${srcDir}/tx_app_stream/tx_app_stream.cpp
 add_files ${srcDir}/tx_engine/tx_engine.cpp
