@@ -42,7 +42,7 @@ NrcPort last_rx_port = 0;
 ap_uint<32> node_id_missmatch_TX_cnt = 0;
 NodeId last_tx_node_id = 0;
 NrcPort last_tx_port = 0;
-ap_uint<32> port_corrections_TX_cnt = 0;
+ap_uint<16> port_corrections_TX_cnt = 0;
 ap_uint<32> unauthorized_access_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
@@ -132,6 +132,7 @@ bool Tcp_RX_metaWritten = false;
 ap_uint<64>  tripple_for_new_connection = 0;
 bool tcp_need_new_connection_request = false;
 bool tcp_new_connection_failure = false;
+ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
 SessionId session_toFMC = 0;
 SessionId session_fromFMC = 0;
@@ -478,6 +479,7 @@ void nrc_main(
 #pragma HLS reset variable=tripple_for_new_connection
 #pragma HLS reset variable=tcp_need_new_connection_request
 #pragma HLS reset variable=tcp_new_connection_failure
+#pragma HLS reset variable=tcp_new_connection_failure_cnt
 
 
   //===========================================================
@@ -509,7 +511,7 @@ void nrc_main(
   status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
   status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
   status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (ap_uint<32>) port_corrections_TX_cnt;
+  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
   status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
   status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
@@ -1099,18 +1101,20 @@ void nrc_main(
               unauthorized_access_cnt++;
               printf("unauthorized access to FMC!\n");
               rdpFsmState = RDP_DROP_PACKET;
+              printf("NRC drops the packet...\n");
               break;
             }
           }
           //no we think this is valid...
           NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
-          printf("TO ROLE: src_rank: %d\n", (int) src_id);
+          //printf("TO ROLE: src_rank: %d\n", (int) src_id);
           //Role packet
           if(src_id == 0xFFFF)
           {
             //SINK packet
             node_id_missmatch_RX_cnt++;
             rdpFsmState = RDP_DROP_PACKET;
+            printf("NRC drops the packet...\n");
             break;
           }
           last_rx_node_id = src_id;
@@ -1130,7 +1134,7 @@ void nrc_main(
           //  printAxiWord(myName, (AxiWord) currWord);
           //}
           soTcp_data.write(currWord);
-          printf("writing to ROLE...\n\n");
+          //printf("writing to ROLE...\n\n");
           if (currWord.tlast == 1)
           {
             rdpFsmState  = RDP_WAIT_META;
@@ -1228,6 +1232,7 @@ void nrc_main(
             //dst_rank = 0;
             //SINK packet
             wrpFsmState = WRP_DROP_PACKET;
+            printf("NRC drops the packet...\n");
             break;
           }
           Ip4Addr dst_ip_addr = localMRT[dst_rank];
@@ -1237,6 +1242,7 @@ void nrc_main(
             //dst_ip_addr = localMRT[0];
             //SINK packet
             wrpFsmState = WRP_DROP_PACKET;
+            printf("NRC drops the packet...\n");
             break;
           }
           NrcPort src_port = out_meta_tcp.tdata.src_port; //TODO: DEBUG
@@ -1255,12 +1261,14 @@ void nrc_main(
           ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
           printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
           SessionId sessId = getSessionIdFromTripple(new_tripple);
-          if(sessId == UNUSED_TABLE_ENTRY_VALUE)
+          printf("session id found: %d\n", (int) sessId);
+          if(sessId == (SessionId) UNUSED_TABLE_ENTRY_VALUE)
           {//we need to create one first
             tripple_for_new_connection = new_tripple;
             tcp_need_new_connection_request = true;
             tcp_new_connection_failure = false;
             wrpFsmState = WRP_WAIT_CONNECTION;
+            printf("requesting new connection.\n");
             break;
           }
           last_tx_port = dst_port;
@@ -1294,8 +1302,12 @@ void nrc_main(
 
         } else if (tcp_new_connection_failure)
         {
-          //TODO sink packet? request_failure_cnt? 
-          //TODO notify role?
+          tcp_new_connection_failure_cnt++;
+          // we sink the packet, because otherwise the design will hang 
+          // and the user is notified with the flight recorder status
+          wrpFsmState = WRP_DROP_PACKET;
+          printf("NRC drops the packet...\n");
+          break;
         }
         break;
 
@@ -1319,6 +1331,7 @@ void nrc_main(
             //if (DEBUG_LEVEL & TRACE_WRP) {
             //     printAxiWord(myName, currWordIn);
             //}
+            printf("streaming from ROLE to TOE: tcpTX_packet_length: %d, tcpTX_current_packet_length: %d \n", (int) tcpTX_packet_length, (int) tcpTX_current_packet_length);
             if(tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
             {
               currWordIn.tlast = 1;
@@ -1327,6 +1340,8 @@ void nrc_main(
             if(currWordIn.tlast == 1) {
                 wrpFsmState = WRP_WAIT_META;
             }
+        } else {
+          printf("ERROR: can't stream to TOE!\n");
         }
         break;
 
@@ -1399,7 +1414,7 @@ void nrc_main(
                 printSockAddr(myName, leHostSockAddr);
             }
             #ifndef __SYNTHESIS__
-                watchDogTimer_pcon = 250;
+                watchDogTimer_pcon = 10;
             #else
                 watchDogTimer_pcon = 10000;
             #endif
@@ -1437,12 +1452,14 @@ void nrc_main(
                     printSockAddr(myName, leHostSockAddr);
                 }
                 #ifndef __SYNTHESIS__
-                  watchDogTimer_pcon = 250;
+                  watchDogTimer_pcon = 10;
                 #else
                   watchDogTimer_pcon = 10000;
                 #endif
                 tcp_need_new_connection_request = false;
                 tcp_new_connection_failure = true;
+                //the packet will be dropped, so we are done
+                opnFsmState = OPN_DONE;
             }
 
         }

@@ -121,13 +121,16 @@ unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 //unsigned int    gMaxSimCycles = 0x8000 + 200;
-unsigned int    gMaxSimCycles = 200;
+unsigned int    gMaxSimCycles = 320;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
 unsigned int         simCnt;
 
+int tcp_packets_send = 0;
+int tcp_packets_recv = 0;
+int tcp_packets_expected_timeout = 0;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
@@ -598,9 +601,10 @@ void pROLE(
             meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
             meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
             meta_stream_out.tdata.src_port = NRC_RX_MIN_PORT;
+            meta_stream_out.tdata.len = 0;
             printf("ROLE received stream from Node %d:%d (recv. port %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port);
             soTRIF_meta.write(meta_stream_out);
-            rxFsmState  = RX_STREAM;
+            roleFsmState  = ROLE_STREAM;
         }
         break;
     case ROLE_STREAM:
@@ -611,7 +615,9 @@ void pROLE(
             }
             soTRIF_Data.write(currWord);
             if (currWord.tlast)
-                rxFsmState  = RX_WAIT_META;
+                roleFsmState  = ROLE_WAIT_META;
+        } else {
+          printf("[%4.4d] \tERROR: pROLE cant write to NRC.\n", simCnt);
         }
         break;
     }
@@ -631,10 +637,11 @@ void pROLE(
  ******************************************************************************/
 Ip4Addr hostIp4Addr = 0;
 TcpPort fpgaLsnPort = -1;
+TcpPort hostSrcPort = 80;
 int     loop        = 1;
 
 enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_ACK}  lsnState = LSN_WAIT_REQ;
-enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP}  opnState = OPN_WAIT_REQ;
+enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP, OPN_TIMEOUT}  opnState = OPN_WAIT_REQ;
 enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ, RXP_SEND_META, RXP_SEND_DATA, RXP_DONE} rxpState = RXP_SEND_NOTIF;
 enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} txpState = TXP_WAIT_META;
 
@@ -644,7 +651,8 @@ int rxpStartupDelay =  100;
 int txpStartupDelay =  0;
 
 AppRdReq    appRdReq;
-AppMeta     sessionId;
+AppMeta     sessionId = DEFAULT_SESSION_ID;
+AppMeta     sessionId_reply = DEFAULT_SESSION_ID;
 int         byteCnt = 0;
 int         segCnt  = 0;
 int         nrSegToSend = 3;
@@ -710,7 +718,7 @@ void pTOE(
     AppOpnReq   leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
                                byteSwap16(DEFAULT_HOST_LSN_PORT));
 
-    OpenStatus  opnReply(DEFAULT_SESSION_ID, SESS_IS_OPENED);
+    OpenStatus  opnReply(sessionId_reply, SESS_IS_OPENED);
     if (!opnStartupDelay) {
         switch(opnState) {
         case OPN_WAIT_REQ:
@@ -730,6 +738,8 @@ void pTOE(
                 printWarn(myOpnName, "Cannot send open connection reply back to [TRIF] because stream is full.\n");
             }
             break;
+        default: //Timeout etc.
+            break;
         }  // End-of: switch (opnState) {
     }
     else
@@ -746,7 +756,7 @@ void pTOE(
             printf("Send packet from %4.4x to FPGA:%d\n",(int) hostIp4Addr, (int) fpgaLsnPort);
             if (!soTRIF_Notif.full()) {
                 soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
-                                            hostIp4Addr, 80, fpgaLsnPort));
+                                            hostIp4Addr,hostSrcPort , fpgaLsnPort));
                 printInfo(myRxpName, "Sending notification #%d to [TRIF] (sessId=%d, segLen=%d).\n",
                           segCnt, sessionId.to_int(), tcpSegLen.to_int());
                 rxpState = RXP_WAIT_DREQ;
@@ -799,6 +809,7 @@ void pTOE(
             }
             else {
                 segCnt++;
+                tcp_packets_send++;
                 if (segCnt >= nrSegToSend) {
                     rxpState = RXP_DONE;
                 } else {
@@ -816,6 +827,8 @@ void pTOE(
     }
     else
       rxpStartupDelay--;
+    
+    //printInfo(myRxpName, "POST FSM state %d\n", (int) rxpState); 
 
     //------------------------------------------------------
     //-- FSM #4 - TX DATA PATH
@@ -843,14 +856,19 @@ void pTOE(
                 siTRIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE)
                     printAxiWord(myTxpName, appData);
-                if (appData.tlast)
+                if (appData.tlast) {
                     txpState = TXP_WAIT_META;
+                    tcp_packets_recv++;
+                }
             }
             break;
         }
     }
-    else
+    else { 
         txpStartupDelay--;
+    }
+    
+    //printInfo(myTxpName, "POST FSM state %d\n", (int) txpState); 
 }
 
 
@@ -1022,14 +1040,44 @@ int main() {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
         }
-        if(simCnt == 152)
+        if(simCnt == 160)
         {
-        //Test FMC first
+        //now test ROLE
         sessionId   = DEFAULT_SESSION_ID + 1;
         tcpSegLen   = DEFAULT_SESSION_LEN;
         hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0];
         fpgaLsnPort = 2718;
         rxpState = RXP_SEND_NOTIF;
+        }
+        if(simCnt == 190)
+        {
+          s_tcp_rx_ports = 0b101;
+        }
+        if(simCnt == 203)
+        {
+          sessionId   = DEFAULT_SESSION_ID + 2;
+          sessionId_reply   = DEFAULT_SESSION_ID + 3;
+          tcpSegLen   = DEFAULT_SESSION_LEN;
+          hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2];
+          fpgaLsnPort = 2720;
+          rxpState = RXP_SEND_NOTIF;
+        }
+        
+        //if(simCnt == 243)
+        //{
+        //  s_tcp_rx_ports = 0b1101;
+        //}
+        if(simCnt == 249)
+        { //test again, but this time with connection timeout
+          sessionId   = DEFAULT_SESSION_ID + 4;
+          sessionId_reply   = DEFAULT_SESSION_ID + 5;
+          tcpSegLen   = DEFAULT_SESSION_LEN;
+          hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0];
+          fpgaLsnPort = 2720;
+          hostSrcPort = 8443;
+          rxpState = RXP_SEND_NOTIF;
+          opnState = OPN_TIMEOUT;
+          tcp_packets_expected_timeout = 3;
         }
         
         
@@ -1045,8 +1093,15 @@ int main() {
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
     printf("## TESTBENCH ENDS HERE                                                    ##\n");
-    printf("############################################################################\n\n");
 
+    nrErr += (tcp_packets_send - (tcp_packets_recv+ tcp_packets_expected_timeout));
+    if(tcp_packets_send != (tcp_packets_recv + tcp_packets_expected_timeout))
+    {
+      printf("\tERROR: some packets are lost: send %d TCP packets, received %d (expected timeout for packets %d)!\n", tcp_packets_send, tcp_packets_recv, tcp_packets_expected_timeout);
+    } else {
+      printf("\tSummary: Send %d TCP packets, Received %d TCP packets (Expected Timout packets %d).\n",tcp_packets_send, tcp_packets_recv, tcp_packets_expected_timeout);
+    }
+    printf("############################################################################\n\n");
 
     //-------------------------------------------------------
     //-- STEP-4 : DRAIN AND WRITE OUTPUT FILE STREAMS
