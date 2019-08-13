@@ -26,6 +26,8 @@ G PARAM SimCycles     350
 # G PARAM FpgaIp4Addr 0x0A0CC802 
 # G PARAM FPGALsnPort 0x0050
 
+> IDLE 50
+
 # STEP-1: TCP DATA SEGMENT TRANSFER ========================
 
 0101010101010101 0 FF
