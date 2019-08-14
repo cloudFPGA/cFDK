@@ -87,8 +87,6 @@
 
 using namespace hls;
 
-#define NRC_RX_MIN_PORT 2718
-#define NRC_RX_MAX_PORT 2749
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
@@ -153,7 +151,7 @@ using namespace hls;
 #define WRP_STREAM_ROLE 3
 #define WRP_DROP_PACKET 4
 
-
+#define MAX_NRC_SESSIONS 32
 
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
@@ -198,6 +196,8 @@ using namespace hls;
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    // ready signal from NTS
+    ap_uint<1>  piNTS_ready,
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
