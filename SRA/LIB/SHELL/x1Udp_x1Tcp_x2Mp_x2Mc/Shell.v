@@ -513,6 +513,57 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //wire [  7:0]  sNTS0_Rol_Udp_Axis_tkeep;
   //wire          sNTS0_Rol_Udp_Axis_tlast;
   //wire          sNTS0_Rol_Udp_Axis_tvalid;  
+  //------------------------------------------------------------------
+  //-- URIF = USER-ROLE-INTERFACE
+  //------------------------------------------------------------------
+  //-- URIF ==> UDMX / OpenPortRequest -
+  wire  [15:0]  ssURIF_UDMX_OpnReq_tdata;
+  wire          ssURIF_UDMX_OpnReq_tvalid;
+  wire          ssURIF_UDMX_OpnReq_tready;
+  //-- UDMX ==> URIF / Open Port Acknowledge -----
+  wire  [ 7:0]  ssUDMX_URIF_OpnAck_tdata;
+  wire          ssUDMX_URIF_OpnAck_tvalid;
+  wire          ssUDMX_URIF_OpnAck_tready;
+  //-- URIF ==> UDMX / Data ------------
+  wire  [63:0]  ssURIF_UDMX_Data_tdata;
+  wire  [ 7:0]  ssURIF_UDMX_Data_tkeep;
+  wire          ssURIF_UDMX_Data_tlast;
+  wire          ssURIF_UDMX_Data_tvalid;
+  wire          ssURIF_UDMX_Data_tready;
+  //-- URIF ==> UDMX / Meta ------------
+  wire  [95:0]  ssURIF_UDMX_Meta_tdata;
+  wire          ssURIF_UDMX_Meta_tvalid;
+  wire          ssURIF_UDMX_Meta_tready;
+  //-- URIF ==> UDMX / TxLen -----------
+  wire  [15:0]  ssURIF_UDMX_PLen_tdata;
+  wire          ssURIF_UDMX_PLen_tvalid;
+  wire          ssURIF_UDMX_PLen_tready;
+  //-- URIF ==>[ARS6]==> ROLE / Data -------------
+  //-- URIF ==>[ARS6]
+  wire  [63:0]  ssURIF_ARS6_Data_tdata;
+  wire  [ 7:0]  ssURIF_ARS6_Data_tkeep;
+  wire          ssURIF_ARS6_Data_tlast;
+  wire          ssURIF_ARS6_Data_tvalid;
+  wire          ssURIF_ARS6_Data_tready;
+  //-- UDMX ==> URIF / Data ----------------------
+  wire  [63:0]  ssUDMX_URIF_Data_tdata;
+  wire  [ 7:0]  ssUDMX_URIF_Data_tkeep;
+  wire          ssUDMX_URIF_Data_tlast;
+  wire          ssUDMX_URIF_Data_tvalid;
+  wire          ssUDMX_URIF_Data_tready;
+  //-- UDMX ==> URIF / Meta ----------------------
+  wire  [95:0]  ssUDMX_URIF_Meta_tdata;
+  wire          ssUDMX_URIF_Meta_tvalid;
+  wire          ssUDMX_URIF_Meta_tready;
+  //-- ROLE ==>[ARS7]=> URIF --------------------
+  //---- ROLE ==> [ARS7] (see siROL_Udp_Data_t*)
+  //----          [ARS7]==> URIF -------
+  wire  [63:0]  ssARS7_URIF_Data_tdata;
+  wire  [ 7:0]  ssARS7_URIF_Data_tkeep;
+  wire          ssARS7_URIF_Data_tlast;
+  wire          ssARS7_URIF_Data_tvalid;
+  wire          ssARS7_URIF_Data_tready;
+
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MMIO <--> ETH|NTS|MEM|ROL|FMC 
@@ -964,6 +1015,43 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soMEM_RxP_Data_tvalid            (ssNTS0_MEM_RxP_Write_tvalid),
     .soMEM_RxP_Data_tready            (ssNTS0_MEM_RxP_Write_tready),
 
+
+    //------------------------------------------------------
+    //-- NRC/Role / Nts0 / Udp Interfaces
+    //------------------------------------------------------
+    //-- UDMX ==> URIF / Open Port Acknowledge -----
+    .soROL_Udp_OpnAck_tdata         (ssUDMX_URIF_OpnAck_tdata),
+    .soROL_Udp_OpnAck_tvalid        (ssUDMX_URIF_OpnAck_tvalid),
+    .soROL_Udp_OpnAck_tready        (ssUDMX_URIF_OpnAck_tready),
+    //-- UDMX ==> URIF / Data ----------------------
+    .soROL_Udp_Data_tdata           (ssUDMX_URIF_Data_tdata),
+    .soROL_Udp_Data_tkeep           (ssUDMX_URIF_Data_tkeep),
+    .soROL_Udp_Data_tlast           (ssUDMX_URIF_Data_tlast),
+    .soROL_Udp_Data_tvalid          (ssUDMX_URIF_Data_tvalid),
+    .soROL_Udp_Data_tready          (ssUDMX_URIF_Data_tready),
+    //-- UDMX ==> URIF / Meta ----------------------
+    .soROL_Udp_Meta_tdata           (ssUDMX_URIF_Meta_tdata),
+    .soROL_Udp_Meta_tvalid          (ssUDMX_URIF_Meta_tvalid),
+    .soROL_Udp_Meta_tready          (ssUDMX_URIF_Meta_tready),
+    //-- URIF ==> UDMX / OpenPortRequest / Axis ----
+    .siROL_Udp_OpnReq_tdata         (ssURIF_UDMX_OpnReq_tdata),
+    .siROL_Udp_OpnReq_tvalid        (ssURIF_UDMX_OpnReq_tvalid),
+    .siROL_Udp_OpnReq_tready        (ssURIF_UDMX_OpnReq_tready),
+    //-- URIF ==> UDMX / Data / Axis ---------------
+    .siROL_Udp_Data_tdata           (ssURIF_UDMX_Data_tdata),
+    .siROL_Udp_Data_tkeep           (ssURIF_UDMX_Data_tkeep),
+    .siROL_Udp_Data_tlast           (ssURIF_UDMX_Data_tlast),
+    .siROL_Udp_Data_tvalid          (ssURIF_UDMX_Data_tvalid),
+    .siROL_Udp_Data_tready          (ssURIF_UDMX_Data_tready),
+    //-- URIF ==> UDMX / Meta / Axis ---------------
+    .siROL_Udp_Meta_tdata           (ssURIF_UDMX_Meta_tdata),
+    .siROL_Udp_Meta_tvalid          (ssURIF_UDMX_Meta_tvalid),
+    .siROL_Udp_Meta_tready          (ssURIF_UDMX_Meta_tready),
+    //-- URIF ==> UDMX / TxLen / Axis --------------
+    .siROL_Udp_PLen_tdata           (ssURIF_UDMX_PLen_tdata),
+    .siROL_Udp_PLen_tvalid          (ssURIF_UDMX_PLen_tvalid),
+    .siROL_Udp_PLen_tready          (ssURIF_UDMX_PLen_tready),
+
     //------------------------------------------------------
     //-- ROLE / Tcp / TxP Data Flow Interfaces
     //------------------------------------------------------
@@ -1036,23 +1124,6 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .soROL_Tcp_LsnAck_tvalid          (soROL_Nts_Tcp_LsnAck_tvalid),
     .soROL_Tcp_LsnAck_tready          (soROL_Nts_Tcp_LsnAck_tready),
     
-    //------------------------------------------------------
-    //-- ROLE / Udp Interfaces
-    //------------------------------------------------------
-    //-- FPGA Receive Path (NTS-->ROLE) -------------
-    //-- Stream UDP Data -----------------------
-    .siROL_Udp_Data_tdata             (siROL_Nts_Udp_Data_tdata),
-    .siROL_Udp_Data_tkeep             (siROL_Nts_Udp_Data_tkeep),
-    .siROL_Udp_Data_tlast             (siROL_Nts_Udp_Data_tlast),
-    .siROL_Udp_Data_tvalid            (siROL_Nts_Udp_Data_tvalid),
-    .siROL_Udp_Data_tready            (siROL_Nts_Udp_Data_tready),
-    //-- Output AXI-Write Stream Interface ---------
-    .soROL_Udp_Data_tdata             (soROL_Nts_Udp_Data_tdata),
-    .soROL_Udp_Data_tkeep             (soROL_Nts_Udp_Data_tkeep),
-    .soROL_Udp_Data_tlast             (soROL_Nts_Udp_Data_tlast),
-    .soROL_Udp_Data_tvalid            (soROL_Nts_Udp_Data_tvalid),
-    .soROL_Udp_Data_tready            (soROL_Nts_Udp_Data_tready),
-        
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
@@ -1397,6 +1468,194 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   // == Temporary assignment (until Decoupeling module is back) == 
   assign sDECOUP_FMC_status = 0;
 
+
+  //============================================================================
+  //  INST: AXI4-STREAM REGISTER SLICE (URIF ==>[ARS6]==> ROLE/Udp/Data)
+  //============================================================================
+  AxisRegisterSlice_64 ARS6 (
+    .aclk          (sETH0_ShlClk),
+    .aresetn       (~piTOP_156_25Rst),
+    // From URIF / Data ---------------
+    .s_axis_tdata  (ssURIF_ARS6_Data_tdata),
+    .s_axis_tkeep  (ssURIF_ARS6_Data_tkeep),
+    .s_axis_tlast  (ssURIF_ARS6_Data_tlast),
+    .s_axis_tvalid (ssURIF_ARS6_Data_tvalid),
+    .s_axis_tready (ssURIF_ARS6_Data_tready),     
+    //-- To ROLE / Udp / Data --------
+    .m_axis_tdata  (soROL_Nts_Udp_Data_tdata),
+    .m_axis_tkeep  (soROL_Nts_Udp_Data_tkeep),
+    .m_axis_tlast  (soROL_Nts_Udp_Data_tlast),
+    .m_axis_tvalid (soROL_Nts_Udp_Data_tvalid),
+    .m_axis_tready (soROL_Nts_Udp_Data_tready)
+  );
+  
+  //============================================================================
+  //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Udp/Data ==>[ARS7]==> URIF)
+  //============================================================================
+  AxisRegisterSlice_64 ARS7 (
+    .aclk          (sETH0_ShlClk),
+    .aresetn       (~piTOP_156_25Rst),
+    //-- From ROLE / Udp / Data -------
+    .s_axis_tdata   (siROL_Nts_Udp_Data_tdata),
+    .s_axis_tkeep   (siROL_Nts_Udp_Data_tkeep),
+    .s_axis_tlast   (siROL_Nts_Udp_Data_tlast),
+    .s_axis_tvalid  (siROL_Nts_Udp_Data_tvalid),
+    .s_axis_tready  (soROL_Nts_Udp_Data_tready),
+    //-- To ARS7 / Data ----------------
+    .m_axis_tdata   (ssARS7_URIF_Data_tdata),
+    .m_axis_tkeep   (ssARS7_URIF_Data_tkeep),
+    .m_axis_tlast   (ssARS7_URIF_Data_tlast),
+    .m_axis_tvalid  (ssARS7_URIF_Data_tvalid),
+    .m_axis_tready  (ssARS7_URIF_Data_tready)
+  );
+  
+  //============================================================================
+  //  INST: UDP-ROLE-INTERFACE
+  //============================================================================
+//`ifdef USE_DEPRECATED_DIRECTIVES TODO: fix different pragma versions
+//  
+  UdpRoleInterface URIF (
+
+  .aclk                           (sETH0_ShlClk),
+  .aresetn                        (~piTOP_156_25Rst),
+  
+  //------------------------------------------------------
+  //-- ROLE / Udp / TxP Data Flow Interfaces
+  //------------------------------------------------------
+  //-- From ROLE / Udp ==>[ARS7] / Data
+  .siROL_This_Data_TDATA          (ssARS7_URIF_Data_tdata),
+  .siROL_This_Data_TKEEP          (ssARS7_URIF_Data_tkeep),
+  .siROL_This_Data_TLAST          (ssARS7_URIF_Data_tlast),
+  .siROL_This_Data_TVALID         (ssARS7_URIF_Data_tvalid),
+  .siROL_This_Data_TREADY         (ssARS7_URIF_Data_tready),
+  //-- To   ROLE ==[ARS6] / Udp / Data
+  .soTHIS_Rol_Data_TDATA          (ssURIF_ARS6_Data_tdata),
+  .soTHIS_Rol_Data_TKEEP          (ssURIF_ARS6_Data_tkeep),
+  .soTHIS_Rol_Data_TLAST          (ssURIF_ARS6_Data_tlast),
+  .soTHIS_Rol_Data_TVALID         (ssURIF_ARS6_Data_tvalid),
+  .soTHIS_Rol_Data_TREADY         (ssURIF_ARS6_Data_tready),
+
+  //------------------------------------------------------
+  //-- UDMX / Ctrl Flow Interfaces
+  //------------------------------------------------------
+  //-- To   UDM / Open Port Request ----
+  .soTHIS_Udmx_OpnReq_TDATA       (ssURIF_UDMX_OpnReq_tdata),
+  .soTHIS_Udmx_OpnReq_TVALID      (ssURIF_UDMX_OpnReq_tvalid),
+  .soTHIS_Udmx_OpnReq_TREADY      (ssURIF_UDMX_OpnReq_tready),
+  //-- From UDMX / Open Port Acknowledgment
+  .siUDMX_This_OpnAck_TDATA       (ssUDMX_URIF_OpnAck_tdata),
+  .siUDMX_This_OpnAck_TVALID      (ssUDMX_URIF_OpnAck_tvalid),
+  .siUDMX_This_OpnAck_TREADY      (ssUDMX_URIF_OpnAck_tready),
+
+  //------------------------------------------------------
+  //-- UDMX / UDP Data & MetaData Interfaces
+  //------------------------------------------------------
+  //-- From UDMX / Data ----------------
+  .siUDMX_This_Data_TDATA         (ssUDMX_URIF_Data_tdata),
+  .siUDMX_This_Data_TKEEP         (ssUDMX_URIF_Data_tkeep),
+  .siUDMX_This_Data_TLAST         (ssUDMX_URIF_Data_tlast),
+  .siUDMX_This_Data_TVALID        (ssUDMX_URIF_Data_tvalid),
+  .siUDMX_This_Data_TREADY        (ssUDMX_URIF_Data_tready),
+   //-- From / MetaData ----------------
+  .siUDMX_This_Meta_TDATA         (ssUDMX_URIF_Meta_tdata),
+  .siUDMX_This_Meta_TVALID        (ssUDMX_URIF_Meta_tvalid),
+  .siUDMX_This_Meta_TREADY        (ssUDMX_URIF_Meta_tready),
+   //-- To   UDMX / Data ---------------  
+  .soTHIS_Udmx_Data_TDATA         (ssURIF_UDMX_Data_tdata),
+  .soTHIS_Udmx_Data_TKEEP         (ssURIF_UDMX_Data_tkeep),
+  .soTHIS_Udmx_Data_TLAST         (ssURIF_UDMX_Data_tlast),
+  .soTHIS_Udmx_Data_TVALID        (ssURIF_UDMX_Data_tvalid),
+  .soTHIS_Udmx_Data_TREADY        (ssURIF_UDMX_Data_tready),
+  //-- To   UDMX / MetaData ------------
+  .soTHIS_Udmx_Meta_TDATA         (ssURIF_UDMX_Meta_tdata),
+  .soTHIS_Udmx_Meta_TVALID        (ssURIF_UDMX_Meta_tvalid),
+  .soTHIS_Udmx_Meta_TREADY        (ssURIF_UDMX_Meta_tready),
+  //-- To   UDMX / Length --------------
+  .soTHIS_Udmx_PLen_TDATA         (ssURIF_UDMX_PLen_tdata),
+  .soTHIS_Udmx_PLen_TVALID        (ssURIF_UDMX_PLen_tvalid),
+  .soTHIS_Udmx_PLen_TREADY        (ssURIF_UDMX_PLen_tready)
+
+);
+
+//`else // !`ifdef USE_DEPRECATED_DIRECTIVES
+// 
+//  UdpRoleInterface URIF (
+//  
+//    .ap_clk                         (piShlClk),                      
+//    .ap_rst_n                       (~piShlRst),
+//    
+//    //------------------------------------------------------
+//    //-- From ROLE Interfaces
+//    //------------------------------------------------------
+//    //-- ROLE / This / Udp / Axis
+//    .siROL_This_Data_TDATA          (sROL_Nts0_Udp_Axis_tdataReg),
+//    .siROL_This_Data_TKEEP          (sROL_Nts0_Udp_Axis_tkeepReg),
+//    .siROL_This_Data_TLAST          (sROL_Nts0_Udp_Axis_tlastReg),
+//    .siROL_This_Data_TVALID         (sROL_Nts0_Udp_Axis_tvalidReg),
+//    .siROL_This_Data_TREADY         (sURIF_Rol_Axis_tready),
+//    
+//    //------------------------------------------------------
+//    //-- To ROLE Interfaces
+//    //------------------------------------------------------
+//    //-- THIS / Role / Udp / Axis Output Interface
+//    .soTHIS_Rol_Data_TREADY         (sROL_Urif_Axis_treadyReg),
+//    .soTHIS_Rol_Data_TDATA          (sURIF_Rol_Axis_tdata),
+//    .soTHIS_Rol_Data_TKEEP          (sURIF_Rol_Axis_tkeep),
+//    .soTHIS_Rol_Data_TLAST          (sURIF_Rol_Axis_tlast),
+//    .soTHIS_Rol_Data_TVALID         (sURIF_Rol_Axis_tvalid),
+//
+//    //------------------------------------------------------
+//    //-- From UDMX / Open-Port Interfaces
+//    //------------------------------------------------------
+//    //-- UDMX / This / OpenPortAcknowledge / Axis
+//    .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Urif_OpnAck_Axis_tdata),
+//    .siUDMX_This_OpnAck_V_TVALID    (sUDMX_Urif_OpnAck_Axis_tvalid),
+//    .siUDMX_This_OpnAck_V_TREADY    (sURIF_Udmx_OpnAck_Axis_tready),
+//
+//    //------------------------------------------------------
+//    //-- To UDMX / Open-Port Interfaces
+//    //------------------------------------------------------
+//    //-- THIS / Udmx / OpenPortRequest / Axis
+//    .soTHIS_Udmx_OpnReq_V_V_TREADY  (sUDMX_Urif_OpnReq_Axis_tready),
+//    .soTHIS_Udmx_OpnReq_V_V_TDATA   (sURIF_Udmx_OpnReq_Axis_tdata),
+//    .soTHIS_Udmx_OpnReq_V_V_TVALID  (sURIF_Udmx_OpnReq_Axis_tvalid),
+//
+//    //------------------------------------------------------
+//    //-- From UDMX / Data & MetaData Interfaces
+//    //------------------------------------------------------
+//    //-- UDMX / This / Data / Axis
+//    .siUDMX_This_Data_TDATA         (sUDMX_Urif_Data_Axis_tdata),
+//    .siUDMX_This_Data_TKEEP         (sUDMX_Urif_Data_Axis_tkeep),
+//    .siUDMX_This_Data_TLAST         (sUDMX_Urif_Data_Axis_tlast),
+//    .siUDMX_This_Data_TVALID        (sUDMX_Urif_Data_Axis_tvalid),
+//    .siUDMX_This_Data_TREADY        (sURIF_Udmx_Data_Axis_tready),
+//     //-- UDMX / This / MetaData / Axis
+//    .siUDMX_This_Meta_TDATA         (sUDMX_Urif_Meta_Axis_tdata),
+//    .siUDMX_This_Meta_TVALID        (sUDMX_Urif_Meta_Axis_tvalid),
+//    .siUDMX_This_Meta_TREADY        (sURIF_Udmx_Meta_Axis_tready),
+//    
+//    //------------------------------------------------------
+//    //-- To UDMX / Data & MetaData Interfaces
+//    //------------------------------------------------------
+//    //-- THIS / Udmx / Data / Axis  
+//    .soTHIS_Udmx_Data_TREADY        (sUDMX_Urif_Data_Axis_tready),    
+//    .soTHIS_Udmx_Data_TDATA         (sURIF_Udmx_Data_Axis_tdata),   
+//    .soTHIS_Udmx_Data_TKEEP         (sURIF_Udmx_Data_Axis_tkeep),
+//    .soTHIS_Udmx_Data_TLAST         (sURIF_Udmx_Data_Axis_tlast),
+//    .soTHIS_Udmx_Data_TVALID        (sURIF_Udmx_Data_Axis_tvalid),
+//    //-- THIS / Udmx / MetaData / Axis
+//    .soTHIS_Udmx_Meta_TREADY        (sUDMX_Urif_Meta_Axis_tready),
+//    .soTHIS_Udmx_Meta_TDATA         (sURIF_Udmx_Meta_Axis_tdata),
+//    .soTHIS_Udmx_Meta_TVALID        (sURIF_Udmx_Meta_Axis_tvalid),
+//    //-- THIS / Udmx / Tx Length / Axis
+//    .soTHIS_Udmx_PLen_V_V_TREADY    (sUDMX_Urif_PLen_Axis_tready),
+//    .soTHIS_Udmx_PLen_V_V_TDATA     (sURIF_Udmx_PLen_Axis_tdata),
+//    .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_Axis_tvalid)
+//
+//  );
+//   
+//`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
+   
 
 
   //===========================================================================
