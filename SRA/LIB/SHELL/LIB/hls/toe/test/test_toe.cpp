@@ -800,7 +800,7 @@ void pIPRX(
     //-- STEP-? : [TODO] CHECK IF CURRENT LOCAL SOCKET IS LISTENING
     //------------------------------------------------------
     // SocketPair  currSocketPair(gLocalSocket, currForeignSocket);
-    // isOpen = pTRIF_Send_OpenSess(currSocketPair, openSessList, soTOE_OpnReq, siTOE_OpnSts);
+    // isOpen = pTRIF_Send_OpenSess(currSocketPair, openSessList, soTOE_OpnReq, siTOE_OpnRep);
     // if (!isOpen)
     //     return;
 
@@ -1278,7 +1278,7 @@ bool pTRIF_Recv_Listen(
  * @param[in]  openSessList,  A ref to an associative container that holds the
  *                             IDs of the opened sessions.
  * @param[out] soTOE_OpnReq,  TCP open connection request to TOE.
- * @param[in]  siTOE_OpnSts,  TCP open connection status from TOE.
+ * @param[in]  siTOE_OpnRep,  TCP open connection reply from TOE.
  *
  * @return true if the connection was successfully, otherwise false.
  *
@@ -1289,7 +1289,7 @@ bool pTRIF_Send_Connect(
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
         stream<AxiSockAddr>         &soTOE_OpnReq,
-        stream<OpenStatus>          &siTOE_OpnSts)
+        stream<OpenStatus>          &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send/Connect()");
 
@@ -1331,8 +1331,8 @@ bool pTRIF_Send_Connect(
 
     case 1:
         watchDogTimer--;
-        if (!siTOE_OpnSts.empty()) {
-            OpenStatus openConStatus = siTOE_OpnSts.read();
+        if (!siTOE_OpnRep.empty()) {
+            OpenStatus openConStatus = siTOE_OpnRep.read();
             if(openConStatus.success) {
                 // Create a new entry in the list of opened sessions
                 openSessList[aSocketPair] = openConStatus.sessionID;
@@ -1613,8 +1613,7 @@ void pTRIF_Recv(
  * @param[i/o] apRx_TcpBytCntr, A ref to the counter of bytes on the APP Rx I/F.
  * @param[in]  piTOE_Ready,  A reference to the ready signal of TOE.
  * @param[out] soTOE_OpnReq, TCP open port request to TOE.
- * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
- * @param[out] soTOE_Meta,   TCP metadata stream to TOE.
+ * @param[in]  siTOE_OpnRep, TCP open port reply to TOE.
  * @param[out] soTOE_Data,   TCP data stream to TOE.
  * @param[out] soTOE_ClsReq, TCP close connection request to TOE.
  * @param[in]  siRcv_Data,   TCP data stream from TRIF_Recv (Rcv) process.
@@ -1635,7 +1634,7 @@ void pTRIF_Send(
         int                     &apRx_TcpBytCntr,
         StsBit                  &piTOE_Ready,
         stream<AxiSockAddr>     &soTOE_OpnReq,
-        stream<OpenStatus>      &siTOE_OpnSts,
+        stream<OpenStatus>      &siTOE_OpnRep,
         stream<SessionId>       &soTOE_Meta,
         stream<AxiWord>         &soTOE_Data,
         stream<ap_uint<16> >    &soTOE_ClsReq,
@@ -1730,7 +1729,7 @@ void pTRIF_Send(
 
          // Let's open a new session
         done = pTRIF_Send_Connect(nrError, currSocketPair, openSessList,
-                                   soTOE_OpnReq, siTOE_OpnSts);
+                                   soTOE_OpnReq, siTOE_OpnRep);
         if (!done) {
             // The open session is not yet completed
             return;
@@ -1915,7 +1914,7 @@ void pTRIF_Send(
  * @param[in]  siTOE_Meta,   TCP metadata stream from TOE.
  * @param[in]  siTOE_Data,   TCP data stream from TOE.
  * @param[out] soTOE_OpnReq, TCP open port request to TOE.
- * @param[in]  siTOE_OpnSts, TCP open port status from TOE.
+ * @param[in]  siTOE_OpnRep, TCP open port reply from TOE.
  * @param[out] soTOE_Meta,   TCP metadata stream to TOE.
  * @param[out] soTOE_Data,   TCP data stream to TOE.
  * @param[out] soTOE_ClsReq, TCP close connection request to TOE.
@@ -1949,7 +1948,7 @@ void pTRIF(
         stream<AppMeta>         &siTOE_Meta,
         stream<AppData>         &siTOE_Data,
         stream<AppOpnReq>       &soTOE_OpnReq,
-        stream<AppOpnSts>       &siTOE_OpnSts,
+        stream<AppOpnRep>       &siTOE_OpnRep,
         stream<AppMeta>         &soTOE_Meta,
         stream<AppData>         &soTOE_Data,
         stream<AppClsReq>       &soTOE_ClsReq)
@@ -1984,7 +1983,7 @@ void pTRIF(
             apRx_TcpBytCntr,
             piTOE_Ready,
             soTOE_OpnReq,
-            siTOE_OpnSts,
+            siTOE_OpnRep,
             soTOE_Meta,
             soTOE_Data,
             soTOE_ClsReq,
@@ -2042,7 +2041,7 @@ int main(int argc, char *argv[]) {
     stream<AppLsnAck>                   ssTOE_TRIF_LsnAck    ("ssTOE_TRIF_LsnAck");
 
     stream<AppOpnReq>                   ssTRIF_TOE_OpnReq    ("ssTRIF_TOE_OpnReq");
-    stream<AppOpnSts>                   ssTOE_TRIF_OpnSts    ("ssTOE_TRIF_OpnSts");
+    stream<AppOpnRep>                   ssTOE_TRIF_OpnRep    ("ssTOE_TRIF_OpnRep");
 
     stream<AppNotif>                    ssTOE_TRIF_Notif     ("ssTOE_TRIF_Notif");
 
@@ -2260,7 +2259,7 @@ int main(int argc, char *argv[]) {
             ssTRIF_TOE_Data,   ssTRIF_TOE_Meta,
             ssTOE_TRIF_DSts,
             //-- TRIF / Open Interfaces
-            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnSts,
+            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnRep,
             //-- TRIF / Close Interfaces
             ssTRIF_TOE_ClsReq,
             //-- MEM / Rx PATH / S2MM Interface
@@ -2322,7 +2321,7 @@ int main(int argc, char *argv[]) {
             ssTRIF_TOE_LsnReq, ssTOE_TRIF_LsnAck,
             ssTOE_TRIF_Notif,  ssTRIF_TOE_DReq,
             ssTOE_TRIF_Meta,   ssTOE_TRIF_Data,
-            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnSts,
+            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnRep,
             ssTRIF_TOE_Meta,   ssTRIF_TOE_Data,
             ssTRIF_TOE_ClsReq);
 

@@ -32,13 +32,30 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *****************************************************************************/
 
 #include "tx_app_interface.hpp"
 
 using namespace hls;
+
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TAA_TRACE | TAS_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "TOE/TAi"
+
+#define TRACE_OFF  0x0000
+#define TRACE_TAA 1 <<  1
+#define TRACE_TAS 1 <<  2
+#define TRACE_TAT 1 <<  3
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*****************************************************************************
@@ -288,14 +305,17 @@ void pTxAppTable(
 /*****************************************************************************
  * @brief The tx_app_interface (TAi) is front-end of the TCP Role I/F (TRIF).
  *
+ * @param[in]  siTRIF_OpnReq,         Open connection request from TCP Role I/F (TRIF).
+ * @param[out] soTRIF_SessOpnSts,     Open status to [TRIF].
  * @param[in]  siTRIF_Data,           TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,           TCP metadata stream from TRIF.
+ * @param[out] soTRIF_DSts,           TCP data status to TRIF.
+ *
  * @param[out] soSTt_Tas_SessStateReq,Session sate request to StateTable (STt).
  * @param[in]  siSTt_Tas_SessStateRep,Session state reply from [STt].
  * @param[in]  siTSt_AckPush,         The push of an AckNum onto the ACK table of [TAi].
  * @param[]
  * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
- * @param[in]  siTRIF_OpnReq,         Open connection request from TCP Role I/F (TRIF).
  * @param[]
  * @param[]
  * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
@@ -306,8 +326,8 @@ void pTxAppTable(
  * @param[]
  * @param[]
  * @param[]
- * @param[out] soTRIF_SessOpnSts,     Open status to [TRIF].
- * @param[out] soTRIF_DSts,           TCP data status to TRIF.
+
+
  * @param[out] soSLc_SessLookupReq,   Session lookup request to Session Lookup Controller(SLc).
  * @param[out] soPRt_ActPortStateReq  Request to get a free port to Port Table (PRt).
  * @param[]
@@ -329,25 +349,31 @@ void pTxAppTable(
  * @ingroup tx_app_interface
  ******************************************************************************/
 void tx_app_interface(
+        //-- TRIF / Open Interfaces
+        stream<AxiSockAddr>            &siTRIF_OpnReq,
+        stream<OpenStatus>             &soTRIF_SessOpnSts,
+        //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
+        stream<AppWrSts>               &soTRIF_DSts,
+        //--
         stream<TcpSessId>              &soSTt_Tas_SessStateReq,
         stream<SessionState>           &siSTt_Tas_SessStateRep,
         stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<DmSts>                  &siMEM_TxP_WrSts,
-        stream<AxiSockAddr>            &siTRIF_OpnReq,
+
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
 
         stream<OpenStatus>             &siRXe_SessOpnSts,
 
-        stream<ap_int<17> >            &soTRIF_DSts,
+
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<TAiTxSarPush>           &soTSt_PushCmd,
 
-        stream<OpenStatus>             &soTRIF_SessOpnSts,
+
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,

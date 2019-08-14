@@ -499,7 +499,7 @@ void pTbSimCount(
  * @param[out] soTRIF_DSts,      TCP data status to TRIF.
  * -- TRIF / Open Interfaces
  * @param[in]  siTRIF_OpnReq,    TCP open port request from TRIF.
- * @param[out] soTRIF_OpnSts,    TCP open port status to TRIF.
+ * @param[out] soTRIF_OpnRep,    TCP open port reply to TRIF.
  * -- TRIF / Close Interfaces
  * @param[in]  siTRIF_ClsReq,    TCP close connection request from TRIF.
  * @warning:   Not-Used,         TCP close connection status to TRIF.
@@ -576,7 +576,7 @@ void toe(
         //-- TRIF / Open Interfaces
         //------------------------------------------------------
         stream<AppOpnReq>                   &siTRIF_OpnReq,
-        stream<AppOpnSts>                   &soTRIF_OpnSts,
+        stream<AppOpnRep>                   &soTRIF_OpnRep,
 
         //------------------------------------------------------
         //-- TRIF / Close Interfaces
@@ -649,8 +649,8 @@ void toe(
     //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_OpnReq   metadata="-bus_bundle siTRIF_OpnReq"
     #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_OpnSts   metadata="-bus_bundle soTRIF_OpnSts"
-    #pragma HLS DATA_PACK                variable=soTRIF_OpnSts
+    #pragma HLS resource core=AXI4Stream variable=soTRIF_OpnRep   metadata="-bus_bundle soTRIF_OpnRep"
+    #pragma HLS DATA_PACK                variable=soTRIF_OpnRep
     #pragma HLS resource core=AXI4Stream variable=siTRIF_ClsReq   metadata="-bus_bundle siTRIF_ClsReq"
     //-- MEM / Nts0 / RxP Interface -------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_RdCmd metadata="-bus_bundle soMEM_RxP_RdCmd"
@@ -1081,22 +1081,24 @@ void toe(
 
     //-- Tx Application Interface (TAi) ------------------------------------
     tx_app_interface(
+            siTRIF_OpnReq,
+            soTRIF_OpnRep,
             siTRIF_Data,
             siTRIF_Meta,
+            soTRIF_DSts,
+
             sTAiToSTt_Tas_StateReq,
             sSTtToTAi_Tas_StateRep,
             sTStToTAi_PushCmd,
             siMEM_TxP_WrSts,
-            siTRIF_OpnReq,
             siTRIF_ClsReq,
             sSLcToTAi_SessLookupRep,
             sPRtToTAi_ActPortStateRep,
             sRXeToTAi_SessOpnSts,
-            soTRIF_DSts,
+
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             sTAiToTSt_PushCmd,
-            soTRIF_OpnSts,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,
             sTAiToSTt_Taa_StateQry,

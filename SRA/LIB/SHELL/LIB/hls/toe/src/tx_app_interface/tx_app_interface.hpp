@@ -14,7 +14,6 @@
  *****************************************************************************/
 
 #include "../toe.hpp"
-#include "../tx_app_if/tx_app_if.hpp"
 #include "../tx_app_stream/tx_app_stream.hpp"
 
 using namespace hls;
@@ -45,25 +44,31 @@ class TxAppTableEntry
  *
  *****************************************************************************/
 void tx_app_interface(
+        //-- TRIF / Open Interfaces
+        stream<AxiSockAddr>            &siTRIF_OpnReq,
+        stream<OpenStatus>             &soTRIF_OpnRep,
+        //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
+        stream<AppWrSts>               &soTRIF_DSts,
+
         stream<TcpSessId>              &soSTt_SessStateReq,
         stream<SessionState>           &siSTt_SessStateRep,
         stream<TStTxSarPush>           &siTSt_AckPush,
         stream<DmSts>                  &siMEM_TxP_WrSts,
-        stream<AxiSockAddr>            &siTRIF_OpnReq,
+
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
 
         stream<OpenStatus>             &siRXe_SessOpnSts,
 
-        stream<ap_int<17> >            &soTRIF_DSts,
+
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<TAiTxSarPush>           &soTSt_AppPush,
 
-        stream<OpenStatus>             &soTRIF_SessOpnSts,
+
         stream<AxiSocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,

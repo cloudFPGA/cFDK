@@ -837,10 +837,10 @@ module NetworkTransportSession_TcpIp (
     .siTRIF_OpnReq_TDATA       (siROL_Tcp_OpnReq_tdata),
     .siTRIF_OpnReq_TVALID      (siROL_Tcp_OpnReq_tvalid),
     .siTRIF_OpnReq_TREADY      (siROL_Tcp_OpnReq_tready),
-    //-- To   ROLE / TCP Open Session Status
-    .soTRIF_OpnSts_TREADY      (soROL_Tcp_OpnRep_tready),
-    .soTRIF_OpnSts_TDATA       (soROL_Tcp_OpnRep_tdata),
-    .soTRIF_OpnSts_TVALID      (soROL_Tcp_OpnRep_tvalid),
+    //-- To   ROLE / TCP Open Session Reply
+    .soTRIF_OpnRep_TREADY      (soROL_Tcp_OpnRep_tready),
+    .soTRIF_OpnRep_TDATA       (soROL_Tcp_OpnRep_tdata),
+    .soTRIF_OpnRep_TVALID      (soROL_Tcp_OpnRep_tvalid),
     //-- From ROLE / TCP Close Session Request
     .siTRIF_ClsReq_TDATA       (siROL_Tcp_ClsReq_tdata),
     .siTRIF_ClsReq_TVALID      (siROL_Tcp_ClsReq_tvalid),

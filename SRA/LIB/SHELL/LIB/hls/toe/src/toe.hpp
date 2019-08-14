@@ -455,7 +455,7 @@ struct axiWord {
 
 
 /***********************************************
- * Open Session Status
+ * Open Session Status [FIXME - Can we rename this to OpenReply ?
  *  Reports if a session is opened or closed.
  ***********************************************/
 enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
@@ -1233,11 +1233,11 @@ typedef TcpSessId   AppMeta;
 typedef AxiSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
 
 /***********************************************
- * Application Open Status [TODO - Rename to Reply]
+ * Application Open Reply
  *  Information returned by TOE after an open
  *  connection request.
  ***********************************************/
-typedef OpenStatus  AppOpnSts;
+typedef OpenStatus  AppOpnRep;
 
 /***********************************************
  * Application Listen Request
@@ -1322,7 +1322,7 @@ void toe(
         //-- TRIF / Open Interfaces
         //------------------------------------------------------
         stream<AppOpnReq>                       &siTRIF_OpnReq,
-        stream<AppOpnSts>                       &soTRIF_OpnSts,
+        stream<AppOpnRep>                       &soTRIF_OpnRep,
 
         //------------------------------------------------------
         //-- TRIF / Close Interfaces
