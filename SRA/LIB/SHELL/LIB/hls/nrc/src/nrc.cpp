@@ -353,6 +353,8 @@ void nrc_main(
   )
 {
 
+#pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
+
 #pragma HLS INTERFACE axis register both port=siUdp_data
 #pragma HLS INTERFACE axis register both port=soUdp_data
 
@@ -376,8 +378,8 @@ void nrc_main(
 #pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
 #pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
-#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piSMC_NRC_ctrlLink_AXI
-#pragma HLS INTERFACE s_axilite port=return bundle=piSMC_NRC_ctrlLink_AXI
+#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NRC_ctrlLink_AXI
+#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NRC_ctrlLink_AXI
 
 #pragma HLS INTERFACE axis register both port=siTcp_data
 #pragma HLS INTERFACE axis register both port=soTcp_data

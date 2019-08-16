@@ -5,7 +5,7 @@
 // 
 // ==============================================================
 
-// piSMC_NRC_ctrlLink_AXI
+// piFMC_NRC_ctrlLink_AXI
 // 0x0000 : Control signals
 //          bit 0  - ap_start (Read/Write/COH)
 //          bit 1  - ap_done (Read/COR)
@@ -29,12 +29,12 @@
 //          Word n : bit [31:0] - ctrlLink_V[n]
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
 
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_AP_CTRL         0x0000
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_GIE             0x0004
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_IER             0x0008
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_ISR             0x000c
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
-#define XNRC_MAIN_PISMC_NRC_CTRLLINK_AXI_DEPTH_CTRLLINK_V     1056
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_AP_CTRL         0x0000
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_GIE             0x0004
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_IER             0x0008
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_ISR             0x000c
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
+#define XNRC_MAIN_PIFMC_NRC_CTRLLINK_AXI_DEPTH_CTRLLINK_V     1056
 
