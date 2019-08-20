@@ -1426,7 +1426,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .m_axi_boNRC_ctrlLink_BREADY         (ssFMC_NRC_ctrlLink_Axi_BREADY),
     .m_axi_boNRC_ctrlLink_BRESP          (ssFMC_NRC_ctrlLink_Axi_BRESP),
     .piDisableCtrlLink_V                 (1),//TODO: SET to 0 IF NRC IS PRESENT
-    .piDisableCtrlLink_V_ap_vld          (1),
+    //.piDisableCtrlLink_V_ap_vld          (1),
     .soPYROLINK_TDATA                    (ssFMC_CoreToDebug_Pyrolink_TDATA),
     .soPYROLINK_TVALID                   (ssFMC_CoreToDebug_Pyrolink_TVALID),
     .soPYROLINK_TREADY                   (ssFMC_CoreToDebug_Pyrolink_TREADY),
@@ -1438,7 +1438,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .siPYROLINK_TKEEP                    (ssCoreToDebug_FMC_Pyrolink_TKEEP),
     .siPYROLINK_TLAST                    (ssCoreToDebug_FMC_Pyrolink_TLAST),
     .piDisablePyroLink_V                 (1),//TODO: SET to 0 IF PYROLINK SHOULD BE USED
-    .piDisablePyroLink_V_ap_vld          (1),
+    //.piDisablePyroLink_V_ap_vld          (1),
     .poROLE_rank_V                       (poROL_Fmc_Rank),
     .poROLE_size_V                       (poROL_Fmc_Size)
   );
