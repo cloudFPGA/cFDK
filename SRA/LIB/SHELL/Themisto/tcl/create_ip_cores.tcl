@@ -30,18 +30,19 @@ cd $savedDir
 # VIVADO-IP : Decouple IP 
 #------------------------------------------------------------------------------ 
 #get current port Descriptions 
-source ./decouple_ip_type.tcl 
-
-set ipModName "Decoupler"
-set ipName    "pr_decoupler"
-set ipVendor  "xilinx.com"
-set ipLibrary "ip"
-set ipVersion "1.0"
-set ipCfgList ${DecouplerType}
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+# TODO: update Decoupling if interface is fixed
+#source ./decouple_ip_type.tcl 
+#
+#set ipModName "Decoupler"
+#set ipName    "pr_decoupler"
+#set ipVendor  "xilinx.com"
+#set ipLibrary "ip"
+#set ipVersion "1.0"
+#set ipCfgList ${DecouplerType}
+#
+#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#
+#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : NRC IP
