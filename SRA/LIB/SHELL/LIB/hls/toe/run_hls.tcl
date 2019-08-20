@@ -91,14 +91,18 @@ create_clock -period 6.4 -name default
 #             ensures the design can immediately start its operation state.
 #  - state  : This option adds a reset to control registers (as in the control setting) plus any 
 #             registers or memories derived from static and global variables in the C code. This 
-#             setting ensures static and global variable initialized in the C code are reset to their 
-#             initialized value after the reset is applied.
+#             setting ensures static and global variable initialized in the C code are reset to
+#             their initialized value after the reset is applied.
 #-------------------------------------------------
 config_rtl -reset control
 
-# Request to not rename functions and variables longer that 60 chars
-#--------------------------------------------------------------------
-config_compile -name_max_length 60 -pipeline_loops 0
+# Configuring the behavior of the front-end compiler.
+#  -name_max_length: Specify the maximum length of the function names. If the length of one name
+#                    is over the threshold, the last part of the name will be truncated.
+#  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
+#                    default is '0' for no automatic loop pipelining. 
+#------------------------------------------------------------------------------------------------
+config_compile -name_max_length 128 -pipeline_loops 0
 
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
@@ -185,7 +189,7 @@ if { $hlsCoSim } {
 #   -format ( sysgen | ip_catalog | syn_dcp )
 #-------------------------------------------------
 if { $hlsRtl } {
-    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
