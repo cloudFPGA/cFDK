@@ -246,7 +246,7 @@ begin
    
     alias poUpdRepVal : std_logic_vector(gValLen-1 downto 0) is poTOE_UpdRep_tdata(gValLen                -1 downto 0); -- lookupValue
     alias poUpdRepSrc : std_logic                            is poTOE_UpdRep_tdata(gValLen+gSrcLen        -1);
-    alis  poUpdRepOpr : std_logic                            is poTOE_UpdRep_tdata(gValLen+gSrcLen+gOprLen-1);
+    alias poUpdRepOpr : std_logic                            is poTOE_UpdRep_tdata(gValLen+gSrcLen+gOprLen-1);
   begin
 
     if (sRst = '1') then
