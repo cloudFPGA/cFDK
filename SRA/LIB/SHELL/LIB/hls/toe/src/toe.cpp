@@ -60,6 +60,14 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tx_app_interface/tx_app_interface.hpp"
 
 /************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ *  For the time being, we continue designing
+ *  with the DEPRECATED directives because the
+ *  new PRAGMAs do not work for us.
+ ************************************************/
+#define USE_DEPRECATED_DIRECTIVES
+
+/************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (TRACE_OFF | TRACE_RDY)
  ************************************************/
@@ -70,7 +78,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TRACE_ALL  0xFFFF
 
 #define DEBUG_LEVEL (TRACE_OFF)
-
 
 /*****************************************************************************
  * @brief A 2-to-1 Stream multiplexer.
@@ -621,8 +628,11 @@ void toe(
         ap_uint<32>                         &piSimCycCount,
         ap_uint<32>                         &poSimCycCount)
 {
+
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
+
+#if defined(USE_DEPRECATED_DIRECTIVES)
 
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
@@ -685,6 +695,72 @@ void toe(
     //-- DEBUG / Simulation Counter Interfaces
     #pragma HLS INTERFACE ap_stable        port=piSimCycCount
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
+
+#else
+
+    //-- MMIO Interfaces
+    #pragma HLS INTERFACE ap_vld  register   port=piMMIO_IpAddr   name=piMMIO_IpAddr
+    //-- NTS Interfaces
+    #pragma HLS INTERFACE ap_ovld register   port=poNTS_Ready     name=poNTS_Ready
+    //-- IPRX / IP Rx Data Interface ------------------------------------------
+    #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
+    //-- L3MUX / IP Tx Data Interface -----------------------------------------
+    #pragma HLS INTERFACE axis off           port=soL3MUX_Data    name=soL3MUX_Data
+    //-- TRIF / ROLE Rx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTRIF_DReq     name=siTRIF_DReq
+    #pragma HLS DATA_PACK                variable=siTRIF_DReq
+    #pragma HLS INTERFACE axis off           port=soTRIF_Notif    name=soTRIF_Notif
+    #pragma HLS DATA_PACK                variable=soTRIF_Notif
+    #pragma HLS INTERFACE axis off           port=soTRIF_Data     name=soTRIF_Data
+    #pragma HLS INTERFACE axis off           port=soTRIF_Meta     name=soTRIF_Meta
+    //-- TRIF / ROLE Rx Listen Interface -------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTRIF_LsnReq   name=siTRIF_LsnReq
+    #pragma HLS INTERFACE axis off           port=soTRIF_LsnAck   name=soTRIF_LsnAck
+    //-- TRIF / ROLE Tx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTRIF_Data     name=siTRIF_Data
+    #pragma HLS INTERFACE axis off           port=siTRIF_Meta     name=siTRIF_Meta
+    #pragma HLS INTERFACE axis off           port=soTRIF_DSts     name=soTRIF_DSts
+    //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTRIF_OpnReq   name=siTRIF_OpnReq
+    #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
+    #pragma HLS INTERFACE axis off           port=soTRIF_OpnRep   name=soTRIF_OpnRep
+    #pragma HLS DATA_PACK                variable=soTRIF_OpnRep
+    #pragma HLS INTERFACE axis off           port=siTRIF_ClsReq   name=siTRIF_ClsReq
+    //-- MEM / Nts0 / RxP Interface -------------------------------------------
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_RdCmd name=soMEM_RxP_RdCmd
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
+    #pragma HLS INTERFACE axis off           port=siMEM_RxP_Data  name=siMEM_RxP_Data
+    #pragma HLS INTERFACE axis off           port=siMEM_RxP_WrSts name=siMEM_RxP_WrSts
+    #pragma HLS DATA_PACK                variable=siMEM_RxP_WrSts
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_WrCmd name=soMEM_RxP_WrCmd
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_Data  name=soMEM_RxP_Data
+    //-- MEM / Nts0 / TxP Interface -------------------------------------------
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_RdCmd name=soMEM_TxP_RdCmd
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
+    #pragma HLS INTERFACE axis off           port=siMEM_TxP_Data  name=siMEM_TxP_Data
+    #pragma HLS INTERFACE axis off           port=siMEM_TxP_WrSts name=siMEM_TxP_WrSts
+    #pragma HLS DATA_PACK                variable=siMEM_TxP_WrSts
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_WrCmd name=soMEM_TxP_WrCmd
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_Data  name=soMEM_TxP_Data
+    //-- CAM / Session Lookup & Update Interfaces -----------------------------
+    #pragma HLS INTERFACE axis off           port=siCAM_SssLkpRep name=siCAM_SssLkpRep
+    #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
+    #pragma HLS INTERFACE axis off           port=siCAM_SssUpdRep name=siCAM_SssUpdRep
+    #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
+    #pragma HLS INTERFACE axis off           port=soCAM_SssLkpReq name=soCAM_SssLkpReq
+    #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
+    #pragma HLS INTERFACE axis off           port=soCAM_SssUpdReq name=soCAM_SssUpdReq
+    #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
+    //-- DEBUG / Session Statistics Interfaces
+    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
+    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
+    //-- DEBUG / Simulation Counter Interfaces
+    #pragma HLS INTERFACE ap_vld  register   port=piSimCycCount   name=piSimCycCount
+    #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
+
+#endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
