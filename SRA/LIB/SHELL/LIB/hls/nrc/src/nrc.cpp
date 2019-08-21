@@ -295,7 +295,7 @@ void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     // ready signal from NTS
-    ap_uint<1>  piNTS_ready,
+    ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
@@ -559,7 +559,7 @@ void nrc_main(
 
 //DON'T DO ANYTHING WITH NTS BEFORE IT'S NOT READY
   
-  if(piNTS_ready != 1)
+  if(*piNTS_ready != 1)
   {
     return;
   }

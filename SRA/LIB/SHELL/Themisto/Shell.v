@@ -1555,7 +1555,7 @@ module Shell_Themisto # (
     .ap_rst_n               (~ piTOP_156_25Rst),
     //.piNTS_ready_V          (sNTS0_MMIO_ToeReady),
     .piNTS_ready_V          (1), //TODO
-    .piNTS_ready_V_ap_vld   (1), 
+    .piNTS_ready_V_ap_vld   (1),
     .piMMIO_FmcLsnPort_V    (sMMIO_NRC_FmcLsnPort),
     .piMMIO_FmcLsnPort_V_ap_vld (1),
     .piMMIO_CfrmIp4Addr_V   (sMMIO_NRC_CfrmIp4Addr),

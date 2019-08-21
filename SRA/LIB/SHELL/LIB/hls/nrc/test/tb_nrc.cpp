@@ -140,7 +140,7 @@ int tcp_packets_expected_timeout = 0;
 void stepDut() {
     nrc_main(
         ctrlLink,
-        sNTS_Nrc_ready,
+        &sNTS_Nrc_ready,
         &sMMIO_FmcLsnPort, &sMMIO_CfrmIp4Addr,
         &sIpAddress,
         &s_udp_rx_ports,
