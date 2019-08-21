@@ -25,7 +25,12 @@ The Role can **send** to any valid port (but other FPGAs may only receive in the
 The addressing between the ROLEs (on different FPGA nodes) is done **based on node-id**s.
 The node-ids are mapped to IP addresses by the *Network Routing Core (NRC)*.
 The routing tables are configured during the cluster setup.
+
+
+### Known limitations
+
 Currently, only *node-ids smaller than 128* are supported.
+For TCP, *only 32 connections per FPGA* are possible (i.e. connections in the sense of different TCP-sessions). 
 
 ### HLS structs 
 
@@ -36,41 +41,43 @@ Respectively, the following definitons for the *Meta streams* are important:
 ```C
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
+typedef ap_uint<32>     NetworkDataLength;
 
-struct NrcMeta {
+struct NetworkMeta {
   NodeId  dst_rank;   // The node-id where the data goest to (the FPGA itself if receiving)
   NrcPort dst_port;   // The receiving port
   NodeId  src_rank;   // The origin node-id (the FPGA itself if sending)
   NrcPort src_port;   // The origin port
-  ap_uint<32> len;    // The length of this data Chunk/packet (optional)
+  NetworkDataLength len;    // The length of this data Chunk/packet (optional)
 
-  NrcMeta() {}
+  NetworkMeta() {}
 
-  NrcMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, ap_uint<32> lenght) :
+  NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, ap_uint<32> lenght) :
     dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(lenght) {}
  };
 
-//ATTENTION: split between NrcMeta and NrcMetaStream is necessary, due to bugs in Vivados hls::stream library
-struct NrcMetaStream {
-  NrcMeta tdata; 
-  
+//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to bugs in Vivados hls::stream library
+struct NetworkMetaStream {
+  NetworkMeta tdata; 
   ap_uint<6> tkeep;
   ap_uint<1> tlast;
-  NrcMetaStream() {}
-  NrcMetaStream(NrcMeta single_data) : tdata(single_data), tkeep(1), tlast(1) {}
+
+  NetworkMetaStream() {}
+  NetworkMetaStream(NetworkMeta single_data) : tdata(single_data), tkeep(1), tlast(1) {}
 };
 ```
 The term *rank* instead of *node_id* is used, because it seems that Vivado HLS ignores names with *id* in it.
 
 The *`len` field can be 0*, if the data stream sets `tlast` accordingly. If no `tlast` will be set, the length must be specified in advance!.
+(*The Shell will always set `tlast`*).
 
-
+### Example
 
 As an example, to send a packet to node 3, port 2723 from node 1, port 2718, the following code should be used:
 ```C
 
-NrcMeta new_meta = NrcMeta(3,2723,1,2718,0);   //len is 0, so we must set the tlast in the data stream
-meta_out_stream.write(NrcMetaStream(new_meta));
+NetworkMeta new_meta = NetworkMeta(3,2723,1,2718,0);   //len is 0, so we must set the tlast in the data stream
+meta_out_stream.write(NetworkMetaStream(new_meta));
 
 ```
 
@@ -106,16 +113,16 @@ If the `len` field in the Meta-Stream is set, there is no need for the `tlast` f
 
 ### Error handling 
 
-TODO: See `/flight_recorder`
+Some Counters and date from the last processed packet can be requested through the `GET /instances/{instance_id}/flight_recorder_data` or `GET /clusters/{cluster_id}/flight_recorder_data` calls from the CloudFPGA Resource Manager API.
+
 
 RX path: 
 If the packet comes from an unknown IP address, the packet will be dropped (and the corresponding `node_id_missmatch_RX` counter in the "Flight data" will be increased).
-TODO: set a bit to not do this?
+
 
 TX path: 
 If the user tries to send to an unknown node-id, the packet will be dropped (and the corresponding `node_id_missmatch_TX` counter in the "Flight data" will be increased).
 
-TODO: out of sessions?
 
 
 SRA interface
@@ -123,177 +130,176 @@ SRA interface
 
 The vhdl interface *to the ROLE* looks like follows:
 ```vhdl
-component Role_Themisto
-    port (
-      
-      ------------------------------------------------------
-      -- SHELL / Global Input Clock and Reset Interface
-      ------------------------------------------------------
-      piSHL_156_25Clk                     : in    std_ulogic;
-      piSHL_156_25Rst                     : in    std_ulogic;
-      piSHL_156_25Rst_delayed             : in    std_ulogic;
-      
-      ------------------------------------------------------
-      -- SHELL / Role / NRC / Udp Interface
-      ------------------------------------------------------
-      ---- Input AXI-Write Stream Interface ----------
-      siNRC_Udp_Data_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-      siNRC_Udp_Data_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-      siNRC_Udp_Data_Axis_tvalid      : in    std_ulogic;
-      siNRC_Udp_Data_Axis_tlast       : in    std_ulogic;
-      siNRC_Udp_Data_Axis_tready      : out   std_ulogic;
-      ---- Output AXI-Write Stream Interface ---------
-      soNRC_Udp_Data_Axis_tready      : in    std_ulogic;
-      soNRC_Udp_Data_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-      soNRC_Udp_Data_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-      soNRC_Udp_Data_Axis_tvalid      : out   std_ulogic;
-      soNRC_Udp_Data_Axis_tlast       : out   std_ulogic;
-      -- Open Port vector
-      poNRC_Udp_Rx_ports              : out    std_ulogic_vector( 31 downto 0);
-      -- ROLE <-> NRC Meta Interface
-      soNRC_Udp_Meta_TDATA               : out   std_ulogic_vector( 79 downto 0);
-      soNRC_Udp_Meta_TVALID              : out   std_ulogic;
-      soNRC_Udp_Meta_TREADY              : in    std_ulogic;
-      soNRC_Udp_Meta_TKEEP               : out   std_ulogic_vector(  5 downto 0);
-      soNRC_Udp_Meta_TLAST               : out   std_ulogic;
-      siNRC_Udp_Meta_TDATA               : in    std_ulogic_vector( 79 downto 0);
-      siNRC_Udp_Meta_TVALID              : in    std_ulogic;
-      siNRC_Udp_Meta_TREADY              : out   std_ulogic;
-      siNRC_Udp_Meta_TKEEP               : in    std_ulogic_vector(  5 downto 0);
-      siNRC_Udp_Meta_TLAST               : in    std_ulogic;
-      
-      ------------------------------------------------------
-      -- SHELL / Role / NRC / Tcp Interface
-      ------------------------------------------------------
-      ---- Input AXI-Write Stream Interface ----------
-      siNRC_Tcp_Data_Axis_tdata       : in    std_ulogic_vector( 63 downto 0);
-      siNRC_Tcp_Data_Axis_tkeep       : in    std_ulogic_vector(  7 downto 0);
-      siNRC_Tcp_Data_Axis_tvalid      : in    std_ulogic;
-      siNRC_Tcp_Data_Axis_tlast       : in    std_ulogic;
-      siNRC_Tcp_Data_Axis_tready      : out   std_ulogic;
-      ---- Output AXI-Write Stream Interface ---------
-      soNRC_Tcp_Data_Axis_tready      : in    std_ulogic;
-      soNRC_Tcp_Data_Axis_tdata       : out   std_ulogic_vector( 63 downto 0);
-      soNRC_Tcp_Data_Axis_tkeep       : out   std_ulogic_vector(  7 downto 0);
-      soNRC_Tcp_Data_Axis_tvalid      : out   std_ulogic;
-      soNRC_Tcp_Data_Axis_tlast       : out   std_ulogic;
-      -- Open Port vector
-      poNRC_Tcp_Rx_ports              : out    std_ulogic_vector( 31 downto 0);
-      -- ROLE <-> NRC Meta Interface
-      soNRC_Tcp_Meta_TDATA               : out   std_ulogic_vector( 79 downto 0);
-      soNRC_Tcp_Meta_TVALID              : out   std_ulogic;
-      soNRC_Tcp_Meta_TREADY              : in    std_ulogic;
-      soNRC_Tcp_Meta_TKEEP               : out   std_ulogic_vector(  5 downto 0);
-      soNRC_Tcp_Meta_TLAST               : out   std_ulogic;
-      siNRC_Tcp_Meta_TDATA               : in    std_ulogic_vector( 79 downto 0);
-      siNRC_Tcp_Meta_TVALID              : in    std_ulogic;
-      siNRC_Tcp_Meta_TREADY              : out   std_ulogic;
-      siNRC_Tcp_Meta_TKEEP               : in    std_ulogic_vector(  5 downto 0);
-      siNRC_Tcp_Meta_TLAST               : in    std_ulogic;
-      
+entity Role_Themisto is
+  port (
 
-      ------------------------------------------------------
-      -- SHELL / Role / Mem / Mp0 Interface
-      ------------------------------------------------------
-      ---- Memory Port #0 / S2MM-AXIS ------------------   
-      ------ Stream Read Command -----------------
-      piSHL_Rol_Mem_Mp0_Axis_RdCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-      poROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid : out   std_ulogic;
-      ------ Stream Read Status ------------------
-      piSHL_Rol_Mem_Mp0_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-      piSHL_Rol_Mem_Mp0_Axis_RdSts_tvalid : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_RdSts_tready : out   std_ulogic;
-      ------ Stream Data Input Channel -----------
-      piSHL_Rol_Mem_Mp0_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-      piSHL_Rol_Mem_Mp0_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-      piSHL_Rol_Mem_Mp0_Axis_Read_tlast   : in    std_ulogic;
-      piSHL_Rol_Mem_Mp0_Axis_Read_tvalid  : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_Read_tready  : out   std_ulogic;
-      ------ Stream Write Command ----------------
-      piSHL_Rol_Mem_Mp0_Axis_WrCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-      poROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid : out   std_ulogic;
-      ------ Stream Write Status -----------------
-      piSHL_Rol_Mem_Mp0_Axis_WrSts_tvalid : in    std_ulogic;
-      piSHL_Rol_Mem_Mp0_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-      poROL_Shl_Mem_Mp0_Axis_WrSts_tready : out   std_ulogic;
-      ------ Stream Data Output Channel ----------
-      piSHL_Rol_Mem_Mp0_Axis_Write_tready : in    std_ulogic; 
-      poROL_Shl_Mem_Mp0_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-      poROL_Shl_Mem_Mp0_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-      poROL_Shl_Mem_Mp0_Axis_Write_tlast  : out   std_ulogic;
-      poROL_Shl_Mem_Mp0_Axis_Write_tvalid : out   std_ulogic;
+    --------------------------------------------------------
+    -- SHELL / Global Input Clock and Reset Interface
+    --------------------------------------------------------
+    piSHL_156_25Clk                     : in    std_ulogic;
+    piSHL_156_25Rst                     : in    std_ulogic;
+    piTOP_156_25Rst_delayed             : in    std_ulogic;
+
+    ------------------------------------------------------
+    -- SHELL / Role / Nts0 / Udp Interface
+    ------------------------------------------------------
+    ---- Input AXI-Write Stream Interface ----------
+    siNRC_Udp_Data_tdata       : in    std_ulogic_vector( 63 downto 0);
+    siNRC_Udp_Data_tkeep       : in    std_ulogic_vector(  7 downto 0);
+    siNRC_Udp_Data_tvalid      : in    std_ulogic;
+    siNRC_Udp_Data_tlast       : in    std_ulogic;
+    siNRC_Udp_Data_tready      : out   std_ulogic;
+    ---- Output AXI-Write Stream Interface ---------
+    soNRC_Udp_Data_tdata       : out   std_ulogic_vector( 63 downto 0);
+    soNRC_Udp_Data_tkeep       : out   std_ulogic_vector(  7 downto 0);
+    soNRC_Udp_Data_tvalid      : out   std_ulogic;
+    soNRC_Udp_Data_tlast       : out   std_ulogic;
+    soNRC_Udp_Data_tready      : in    std_ulogic;
+    -- Open Port vector
+    poROL_Nrc_Udp_Rx_ports     : out    std_ulogic_vector( 31 downto 0);
+    -- ROLE <-> NRC Meta Interface
+    soROLE_Nrc_Udp_Meta_TDATA   : out   std_ulogic_vector( 79 downto 0);
+    soROLE_Nrc_Udp_Meta_TVALID  : out   std_ulogic;
+    soROLE_Nrc_Udp_Meta_TREADY  : in    std_ulogic;
+    soROLE_Nrc_Udp_Meta_TKEEP   : out   std_ulogic_vector(  9 downto 0);
+    soROLE_Nrc_Udp_Meta_TLAST   : out   std_ulogic;
+    siNRC_Role_Udp_Meta_TDATA   : in    std_ulogic_vector( 79 downto 0);
+    siNRC_Role_Udp_Meta_TVALID  : in    std_ulogic;
+    siNRC_Role_Udp_Meta_TREADY  : out   std_ulogic;
+    siNRC_Role_Udp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
+    siNRC_Role_Udp_Meta_TLAST   : in    std_ulogic;
       
-      ------------------------------------------------------
-      -- SHELL / Role / Mem / Mp1 Interface
-      ------------------------------------------------------
-      ---- Memory Port #1 / S2MM-AXIS ------------------   
-      ------ Stream Read Command -----------------
-      piSHL_Rol_Mem_Mp1_Axis_RdCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_RdCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-      poROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid : out   std_ulogic;
-      ------ Stream Read Status ------------------
-      piSHL_Rol_Mem_Mp1_Axis_RdSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-      piSHL_Rol_Mem_Mp1_Axis_RdSts_tvalid : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_RdSts_tready : out   std_ulogic;
-      ------ Stream Data Input Channel -----------
-      piSHL_Rol_Mem_Mp1_Axis_Read_tdata   : in    std_ulogic_vector(511 downto 0);
-      piSHL_Rol_Mem_Mp1_Axis_Read_tkeep   : in    std_ulogic_vector( 63 downto 0);
-      piSHL_Rol_Mem_Mp1_Axis_Read_tlast   : in    std_ulogic;
-      piSHL_Rol_Mem_Mp1_Axis_Read_tvalid  : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_Read_tready  : out   std_ulogic;
-      ------ Stream Write Command ----------------
-      piSHL_Rol_Mem_Mp1_Axis_WrCmd_tready : in    std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_WrCmd_tdata  : out   std_ulogic_vector( 79 downto 0);
-      poROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid : out   std_ulogic;
-      ------ Stream Write Status -----------------
-      piSHL_Rol_Mem_Mp1_Axis_WrSts_tvalid : in    std_ulogic;
-      piSHL_Rol_Mem_Mp1_Axis_WrSts_tdata  : in    std_ulogic_vector(  7 downto 0);
-      poROL_Shl_Mem_Mp1_Axis_WrSts_tready : out   std_ulogic;
-      ------ Stream Data Output Channel ----------
-      piSHL_Rol_Mem_Mp1_Axis_Write_tready : in    std_ulogic; 
-      poROL_Shl_Mem_Mp1_Axis_Write_tdata  : out   std_ulogic_vector(511 downto 0);
-      poROL_Shl_Mem_Mp1_Axis_Write_tkeep  : out   std_ulogic_vector( 63 downto 0);
-      poROL_Shl_Mem_Mp1_Axis_Write_tlast  : out   std_ulogic;
-      poROL_Shl_Mem_Mp1_Axis_Write_tvalid : out   std_ulogic; 
-      
-      ------------------------------------------------------
-      -- SHELL / Role / Mmio / Flash Debug Interface
-      ------------------------------------------------------
-      -- MMIO / CTRL_2 Register ----------------
-      piSHL_Rol_Mmio_UdpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_UdpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_UdpCaptPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_TcpEchoCtrl          : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Rol_Mmio_TcpPostPktEn         : in    std_ulogic;
-      piSHL_Rol_Mmio_TcpCaptPktEn         : in    std_ulogic;
-             
-      ------------------------------------------------------
-      -- ROLE EMIF Registers
-      ------------------------------------------------------
-      poROL_SHL_EMIF_2B_Reg               : out   std_logic_vector( 15 downto 0);
-      piSHL_ROL_EMIF_2B_Reg               : in    std_logic_vector( 15 downto 0);
-      --------------------------------------------------------
-      -- DIAG Registers for MemTest
-      --------------------------------------------------------
-      piDIAG_CTRL                         : in    std_logic_vector(1 downto 0);
-      poDIAG_STAT                         : out   std_logic_vector(1 downto 0);
-      
-      ------------------------------------------------------
-      ---- TOP : Secondary Clock (Asynchronous)
-      ------------------------------------------------------
-      piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+    ------------------------------------------------------
+    -- SHELL / Role / Nts0 / Tcp Interface
+    ------------------------------------------------------
+    ---- Input AXI-Write Stream Interface ----------
+    siNRC_Tcp_Data_tdata       : in    std_ulogic_vector( 63 downto 0);
+    siNRC_Tcp_Data_tkeep       : in    std_ulogic_vector(  7 downto 0);
+    siNRC_Tcp_Data_tvalid      : in    std_ulogic;
+    siNRC_Tcp_Data_tlast       : in    std_ulogic;
+    siNRC_Tcp_Data_tready      : out   std_ulogic;
+    ---- Output AXI-Write Stream Interface ---------
+    soNRC_Tcp_Data_tdata       : out   std_ulogic_vector( 63 downto 0);
+    soNRC_Tcp_Data_tkeep       : out   std_ulogic_vector(  7 downto 0);
+    soNRC_Tcp_Data_tvalid      : out   std_ulogic;
+    soNRC_Tcp_Data_tlast       : out   std_ulogic;
+    soNRC_Tcp_Data_tready      : in    std_ulogic;
+    -- Open Port vector
+    poROL_Nrc_Tcp_Rx_ports     : out    std_ulogic_vector( 31 downto 0);
+    -- ROLE <-> NRC Meta Interface
+    soROLE_Nrc_Tcp_Meta_TDATA   : out   std_ulogic_vector( 79 downto 0);
+    soROLE_Nrc_Tcp_Meta_TVALID  : out   std_ulogic;
+    soROLE_Nrc_Tcp_Meta_TREADY  : in    std_ulogic;
+    soROLE_Nrc_Tcp_Meta_TKEEP   : out   std_ulogic_vector(  9 downto 0);
+    soROLE_Nrc_Tcp_Meta_TLAST   : out   std_ulogic;
+    siNRC_Role_Tcp_Meta_TDATA   : in    std_ulogic_vector( 79 downto 0);
+    siNRC_Role_Tcp_Meta_TVALID  : in    std_ulogic;
+    siNRC_Role_Tcp_Meta_TREADY  : out   std_ulogic;
+    siNRC_Role_Tcp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
+    siNRC_Role_Tcp_Meta_TLAST   : in    std_ulogic;
     
-      ------------------------------------------------
-      -- SMC Interface
-      ------------------------------------------------ 
-      piSMC_ROLE_rank                     : in    std_logic_vector(31 downto 0);
-      piSMC_ROLE_size                     : in    std_logic_vector(31 downto 0);
-          
-      poVoid                              : out   std_ulogic          
-      );
-    end component Role_Themisto;
+    
+    --------------------------------------------------------
+    -- SHELL / Mem / Mp0 Interface
+    --------------------------------------------------------
+    ---- Memory Port #0 / S2MM-AXIS ----------------   
+    ------ Stream Read Command ---------
+    soSHL_Mem_Mp0_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp0_RdCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_RdCmd_tready          : in    std_ulogic;
+    ------ Stream Read Status ----------
+    siSHL_Mem_Mp0_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp0_RdSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp0_RdSts_tready          : out   std_ulogic;
+    ------ Stream Data Input Channel ---
+    siSHL_Mem_Mp0_Read_tdata            : in    std_ulogic_vector(511 downto 0);
+    siSHL_Mem_Mp0_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Mem_Mp0_Read_tlast            : in    std_ulogic;
+    siSHL_Mem_Mp0_Read_tvalid           : in    std_ulogic;
+    siSHL_Mem_Mp0_Read_tready           : out   std_ulogic;
+    ------ Stream Write Command --------
+    soSHL_Mem_Mp0_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp0_WrCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_WrCmd_tready          : in    std_ulogic;
+    ------ Stream Write Status ---------
+    siSHL_Mem_Mp0_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp0_WrSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp0_WrSts_tready          : out   std_ulogic;
+    ------ Stream Data Output Channel --
+    soSHL_Mem_Mp0_Write_tdata           : out   std_ulogic_vector(511 downto 0);
+    soSHL_Mem_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
+    soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
+    
+    --------------------------------------------------------
+    -- SHELL / Mem / Mp1 Interface
+    --------------------------------------------------------
+    ---- Memory Port #1 / S2MM-AXIS ------------------   
+    ------ Stream Read Command ---------
+    soSHL_Mem_Mp1_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp1_RdCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_RdCmd_tready          : in    std_ulogic;
+    ------ Stream Read Status ----------
+    siSHL_Mem_Mp1_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp1_RdSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp1_RdSts_tready          : out   std_ulogic;
+    ------ Stream Data Input Channel ---
+    siSHL_Mem_Mp1_Read_tdata            : in    std_ulogic_vector(511 downto 0);
+    siSHL_Mem_Mp1_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
+    siSHL_Mem_Mp1_Read_tlast            : in    std_ulogic;
+    siSHL_Mem_Mp1_Read_tvalid           : in    std_ulogic;
+    siSHL_Mem_Mp1_Read_tready           : out   std_ulogic;
+    ------ Stream Write Command --------
+    soSHL_Mem_Mp1_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+    soSHL_Mem_Mp1_WrCmd_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_WrCmd_tready          : in    std_ulogic;
+    ------ Stream Write Status ---------
+    siSHL_Mem_Mp1_WrSts_tvalid          : in    std_ulogic;
+    siSHL_Mem_Mp1_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+    siSHL_Mem_Mp1_WrSts_tready          : out   std_ulogic;
+    ------ Stream Data Output Channel --
+    soSHL_Mem_Mp1_Write_tdata           : out   std_ulogic_vector(511 downto 0);
+    soSHL_Mem_Mp1_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
+    soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
+    soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
+    soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
+    
+    --------------------------------------------------------
+    -- SHELL / Mmio / AppFlash Interface
+    --------------------------------------------------------
+    ---- [DIAG_CTRL_1] -----------------
+    piSHL_Mmio_Mc1_MemTestCtrl          : in    std_ulogic_vector(1 downto 0);
+    ---- [DIAG_STAT_1] -----------------
+    poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(1 downto 0);
+    ---- [DIAG_CTRL_2] -----------------
+    piSHL_Mmio_UdpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Mmio_UdpPostDgmEn             : in    std_ulogic;
+    piSHL_Mmio_UdpCaptDgmEn             : in    std_ulogic;
+    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
+    piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
+    piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
+    ---- [APP_RDROL] -------------------
+    poSHL_Mmio_RdReg                    : out  std_logic_vector( 15 downto 0);
+    --- [APP_WRROL] --------------------
+    piSHL_Mmio_WrReg                    : in   std_logic_vector( 15 downto 0);
+
+    --------------------------------------------------------
+    -- TOP : Secondary Clock (Asynchronous)
+    --------------------------------------------------------
+    piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
+    
+    ------------------------------------------------
+    -- SMC Interface
+    ------------------------------------------------ 
+    piFMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
+    piFMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
+    
+    poVoid                              : out   std_ulogic
+
+  );
+  
+end Role_Themisto;
 ```
 
 
