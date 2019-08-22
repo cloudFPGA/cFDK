@@ -1058,31 +1058,24 @@ class Ip4overAxi: public AxiWord {
 class AppNotif
 {
   public:
-    SessionId   sessionID;
-    TcpSegLen   tcpSegLen;
-    Ip4Addr     ip4SrcAddr;
-    Ip4Addr     ip4DstAddr;
-    TcpPort     tcpSrcPort;
-    TcpPort     tcpDstPort;
-    bool        closed;
-
+    SessionId          sessionID;
+    TcpSegLen          tcpSegLen;
+    Ip4Addr            ip4SrcAddr;
+    TcpPort            tcpSrcPort;
+    TcpPort            tcpDstPort;
+    bool               closed;
     AppNotif() {}
-    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     TcpPort dp) :
-             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), tcpDstPort(dp), closed(false) {}
-    AppNotif(SessionId sessId,  bool closed) :
-             sessionID(sessId), tcpSegLen(0),   ip4SrcAddr(0),    tcpDstPort(0),    closed(closed) {}
-    AppNotif(SessionId sessId,                     Ip4Addr sa,     TcpDstPort port,  bool closed) :
-             sessionID(sessId), tcpSegLen(0),      ip4SrcAddr(sa), tcpDstPort(port), closed(closed) {}
-    AppNotif(SessionId sessId,  TcpSegLen len,     Ip4Addr sa,     TcpDstPort port,  bool closed) :
-             sessionID(sessId), tcpSegLen(len),    ip4SrcAddr(sa), tcpDstPort(port), closed(closed) {}
-    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     Ip4Addr da,
-                                                   TcpPort sp,     TcpPort dp) :
-             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), ip4DstAddr(da),
-                                                   tcpSrcPort(sp), tcpDstPort(dp), closed(false) {}
-    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa, 
-                                                   TcpPort sp,     TcpPort dp) :
-             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), ip4DstAddr(0),
-                                                   tcpSrcPort(sp), tcpDstPort(dp), closed(false) {}
+    AppNotif(SessionId  sessId,                      bool       closed) :
+             sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+             tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
+    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
+             TcpPort    sp,      TcpPort    dp) :
+             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
+    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
+             TcpPort    sp,      TcpPort    dp,      bool       closed) :
+             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
 };
 
 /***********************************************

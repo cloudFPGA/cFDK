@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, Xilinx, Inc.
+Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
 
 All rights reserved.
@@ -23,7 +23,6 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
-
 
 /*****************************************************************************
  * @file       : rx_engine.cpp
@@ -431,7 +430,7 @@ void pCheckSumAccumulator(
         stream<TcpWord>           &siIph_TcpSeg,
         stream<AxiWord>           &soTid_Data,
         stream<ValBit>            &soTid_DataVal,
-        stream<rxEngineMetaData>  &soMdh_Meta,
+        stream<RXeMeta>           &soMdh_Meta,
         stream<AxiSocketPair>     &soMdh_SockPair,
         stream<TcpPort>           &soPRt_GetState)
 {
@@ -448,7 +447,7 @@ void pCheckSumAccumulator(
     static ap_uint<36>      halfWord;
     TcpWord                 currWord;
     TcpWord                 sendWord;
-    static rxEngineMetaData csa_meta;
+    static RXeMeta          csa_meta;
     static AxiTcpDstPort    csa_axiTcpDstPort;
     static AxiTcpChecksum   csa_axiTcpCSum;
 
@@ -781,17 +780,16 @@ void pTcpInvalidDropper(
  *    event requesting a RST+ACK message to be sent back to the initiating
  *    host.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pMetaDataHandler(
-        stream<rxEngineMetaData>    &siCsa_Meta,
+        stream<RXeMeta>             &siCsa_Meta,
         stream<AxiSocketPair>       &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBool>             &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSLc_SessLkpReq,
         stream<extendedEvent>       &soEVe_Event,
         stream<CmdBool>             &soTsd_DropCmd,
-        stream<rxFsmMetaData>       &soFsm_Meta)
+        stream<RXeFsmMeta>          &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -799,15 +797,19 @@ void pMetaDataHandler(
 
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
 
-    static rxEngineMetaData     mdh_meta;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmState {META=0, LOOKUP} mdh_fsmState;
+    #pragma HLS reset            variable=mdh_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static RXeMeta              mdh_meta;
     static sessionLookupReply   mdh_sessLookupReply;
     static Ip4Address           mdh_ip4SrcAddr;
+    static TcpPort              mdh_tcpSrcPort;
     static TcpPort              mdh_tcpDstPort;
 
     AxiSocketPair tuple;
     StsBool       dstPortStatus;
-
-    static enum FsmState {META=0, LOOKUP} mdh_fsmState;
 
     switch (mdh_fsmState) {
 
@@ -821,6 +823,7 @@ void pMetaDataHandler(
                 siCsa_SockPair.read(tuple);
 
                 mdh_ip4SrcAddr = byteSwap32(tuple.src.addr);
+                mdh_tcpSrcPort = byteSwap16(tuple.src.port);
                 mdh_tcpDstPort = byteSwap16(tuple.dst.port);
 
                 if (dstPortStatus == false) {
@@ -880,10 +883,9 @@ void pMetaDataHandler(
             siSLc_SessLookupRep.read(mdh_sessLookupReply);
             if (mdh_sessLookupReply.hit) {
                 // Forward metadata to the TCP Finite State Machine
-                soFsm_Meta.write(rxFsmMetaData(mdh_sessLookupReply.sessionID,
-                                               mdh_ip4SrcAddr,
-                                               mdh_tcpDstPort,
-                                               mdh_meta));
+                soFsm_Meta.write(RXeFsmMeta(mdh_sessLookupReply.sessionID,
+                                            mdh_ip4SrcAddr,  mdh_tcpSrcPort,
+                                            mdh_tcpDstPort,  mdh_meta));
                 if (DEBUG_LEVEL & TRACE_MDH)
                     printInfo(myName, "Successful session lookup. \n");
             }
@@ -907,23 +909,22 @@ void pMetaDataHandler(
 /*****************************************************************************
  * @brief Finite State machine (Fsm)
  *
- * @param[in]  siMdh_Meta,        Metadata from [MetDataHandler].
+ * @param[in]  siMdh_FsmMeta,     FSM metadata from MetaDataHandler (Mdh).
  * @param[out] soSTt_StateQry,    State query to StateTable (STt).
  * @param[in]  siSTt_StateRep,    State reply from [STt].
  * @param[out] soRSt_RxSarQry,    Query to RxSarTable (RSt).
  * @param[in]  siRSt_RxSarRep,    Reply from [RSt].
  * @param[out] soTSt_TxSarQry,    Query to TxSarTable (TSt).
  * @param[in]  siTSt_TxSarRep,    Reply from [TSt].
-
  *
- * @param[out] soTIm_ReTxTimerCmd,Command for a retransmit timer of [Timers].
- * @param[out] soTIm_ClearProbeTimer,Clear the probing timer to [Timers].
- * @param[out] soTIm_CloseTimer,  Close session timer to [Timers].
- * @param[out] soTAi_SessOpnSts,  Open status of the session to [TxAppInterface].
- * @param[out] soEVe_Event,       Event to [EventEngine].
- * @param[out] soTsd_DropCmd,     Drop command to [TcpSegmentDropper].
- * @param[out] soMwr_WrCmd,       Memory write command to [MemoryWriter].
- * @param[out] soRan_RxNotif,     Rx data notification to [RxAppNotifier].
+ * @param[out] soTIm_ReTxTimerCmd,Command for a retransmit timer to Timers (TIm).
+ * @param[out] soTIm_ClearProbeTimer,Clear the probing timer to [TIm].
+ * @param[out] soTIm_CloseTimer,  Close session timer to [TIm].
+ * @param[out] soTAi_SessOpnSts,  Open status of the session to TxAppInterface (TAi).
+ * @param[out] soEVe_Event,       Event to EventEngine (EVe).
+ * @param[out] soTsd_DropCmd,     Drop command to TcpSegmentDropper (Tsd).
+ * @param[out] soMwr_WrCmd,       Memory write command to MemoryWriter (Mwr).
+ * @param[out] soRan_RxNotif,     Rx data notification to RxAppNotifier (Ran).
  *
  * @details
  *  This process implements the typical TCP state and metadata management. It
@@ -931,10 +932,9 @@ void pMetaDataHandler(
  *   events related to the reception of segments and their handshaking. This is
  *   the key central part of the Rx engine.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pFiniteStateMachine(
-        stream<rxFsmMetaData>               &siMdh_Meta,
+        stream<RXeFsmMeta>                  &siMdh_FsmMeta,
         stream<StateQuery>                  &soSTt_StateQry,
         stream<SessionState>                &siSTt_StateRep,
         stream<RXeRxSarQuery>               &soRSt_RxSarQry,
@@ -956,8 +956,12 @@ void pFiniteStateMachine(
 
     const char *myName  = concat3(THIS_NAME, "/", "Fsm");
 
-    static rxFsmMetaData fsmMeta;
-    static bool          fsm_txSarRequest = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                fsm_txSarRequest = false;
+    #pragma HLS reset variable=fsm_txSarRequest
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static RXeFsmMeta fsmMeta;
 
     ap_uint<4>      control_bits = 0;
     SessionState    tcpState;
@@ -969,8 +973,8 @@ void pFiniteStateMachine(
     switch(fsmState) {
 
     case LOAD:
-        if (!siMdh_Meta.empty()) {
-            siMdh_Meta.read(fsmMeta);
+        if (!siMdh_FsmMeta.empty()) {
+            siMdh_FsmMeta.read(fsmMeta);
             // Request the current state of the session
             soSTt_StateQry.write(StateQuery(fsmMeta.sessionId));
             // Always request the RxSarTable, even though not required for SYN-ACK
@@ -1073,8 +1077,8 @@ void pFiniteStateMachine(
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsmMeta.meta.length));
 #endif
                             // Only notify about new data available
-                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length,
-                                                         fsmMeta.ip4SrcAddr, fsmMeta.tcpDstPort));
+                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length, fsmMeta.ip4SrcAddr,
+                                                         fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort));
                             soTsd_DropCmd.write(KEEP_CMD);
                         }
                         else {
@@ -1260,14 +1264,14 @@ void pFiniteStateMachine(
                         soMwr_WrCmd.write(DmCmd(memSegAddr, fsmMeta.meta.length));
 #endif
                         // Tell Application new data is available and connection got closed
-                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length,
-                                                     fsmMeta.ip4SrcAddr, fsmMeta.tcpDstPort, true)); //CLOSE
+                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length, fsmMeta.ip4SrcAddr,
+                                                     fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort,  true)); //CLOSE
                         soTsd_DropCmd.write(KEEP_CMD);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
-                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.ip4SrcAddr,
-                                                     fsmMeta.tcpDstPort, true)); //CLOSE
+                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  0,                   fsmMeta.ip4SrcAddr,
+                                                     fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort,  true)); //CLOSE
                     }
 
                     // Update state
@@ -1328,8 +1332,8 @@ void pFiniteStateMachine(
                         // Check if in window
                         if (fsmMeta.meta.seqNumb == rxSar.rcvd) {
                             // Tell application, RST occurred, abort
-                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId, fsmMeta.ip4SrcAddr,
-                                                         fsmMeta.tcpDstPort, true)); // RESET-CLOSED
+                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId, 0, fsmMeta.ip4SrcAddr,
+                                                         fsmMeta.tcpSrcPort,   fsmMeta.tcpDstPort, true)); // RESET-CLOSED
                             soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR)); //TODO maybe some TIME_WAIT state
                             soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, STOP_TIMER));
                         }
@@ -1438,7 +1442,7 @@ void pTcpSegmentDropper(
  *
  * @param[in]  siMEM_WrSts,    The memory write status from memory data mover [MEM].
  * @param[in]  siFsm_Notif,    Rx data notification from [FiniteStateMachine].
- * @param[out] soRxNotif,      Outgoing Rx notification for the application.
+ * @param[out] soRAi_RxNotif,  Rx data notification to RxApplicationInterface (RAi).
  * @param[in]  siMwr_SplitSeg, This TCP data segment is split in two Rx memory buffers.
  *
  * @details
@@ -1448,12 +1452,11 @@ void pTcpSegmentDropper(
  * @todo
  *  Handle unsuccessful write to memory.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pRxAppNotifier(
         stream<DmSts>         &siMEM_WrSts,
         stream<AppNotif>      &siFsm_Notif,
-        stream<AppNotif>      &soRxNotif,
+        stream<AppNotif>      &soRAi_RxNotif,
         stream<ap_uint<1> >   &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1463,21 +1466,26 @@ void pRxAppNotifier(
     const char *myName  = concat3(THIS_NAME, "/", "Ran");
 
     //-- LOCAL STREAMS
-    static stream<AppNotif>        sRxNotifFifo("sRxNotifFifo");
-    #pragma HLS STREAM    variable=sRxNotifFifo depth=32 // Depends on memory delay
-    #pragma HLS DATA_PACK variable=sRxNotifFifo
+    static stream<AppNotif>        ssRxNotifFifo("ssRxNotifFifo");
+    #pragma HLS STREAM    variable=ssRxNotifFifo depth=32 // WARNING: Depends on the memory delay !!!
+    #pragma HLS DATA_PACK variable=ssRxNotifFifo
 
-    static ap_uint<1>       rxAppNotificationDoubleAccessFlag = false;
-    static ap_uint<5>       rand_fifoCount = 0;
+    //-- STATIC CONTROL VARIABLES (with RESET)
+    static ap_uint<1>          rxAppNotificationDoubleAccessFlag = false;
+    #pragma HLS reset variable=rxAppNotificationDoubleAccessFlag
+    static ap_uint<5>          ran_fifoCount = 0;
+    #pragma HLS reset variable=ran_fifoCount
+
+    //-- STATIC DATAFLOW VARIABLES
     static DmSts            rxAppNotificationStatus1, rxAppNotificationStatus2;
     static AppNotif         rxAppNotification;
 
     if (rxAppNotificationDoubleAccessFlag == true) {
         if(!siMEM_WrSts.empty()) {
             siMEM_WrSts.read(rxAppNotificationStatus2);
-            rand_fifoCount--;
+            ran_fifoCount--;
             if (rxAppNotificationStatus1.okay && rxAppNotificationStatus2.okay)
-                soRxNotif.write(rxAppNotification);
+                soRAi_RxNotif.write(rxAppNotification);
             rxAppNotificationDoubleAccessFlag = false;
             if (DEBUG_LEVEL & TRACE_RAN) {
                 printInfo(myName, "Reading memory write status: (DoubleAccess=1; OK=%d).\n",
@@ -1486,9 +1494,9 @@ void pRxAppNotifier(
         }
     }
     else {  // if (rxAppNotificationDoubleAccessFlag == false) {
-        if(!siMEM_WrSts.empty() && !sRxNotifFifo.empty() && !siMwr_SplitSeg.empty()) {
+        if(!siMEM_WrSts.empty() && !ssRxNotifFifo.empty() && !siMwr_SplitSeg.empty()) {
             siMEM_WrSts.read(rxAppNotificationStatus1);
-            sRxNotifFifo.read(rxAppNotification);
+            ssRxNotifFifo.read(rxAppNotification);
             if (DEBUG_LEVEL & TRACE_RAN) {
                 printInfo(myName, "Reading memory write status: (DoubleAccess=0; OK=%d).\n",
                                    rxAppNotificationStatus1.okay.to_int());
@@ -1497,22 +1505,22 @@ void pRxAppNotifier(
             rxAppNotificationDoubleAccessFlag = siMwr_SplitSeg.read();
             if (rxAppNotificationDoubleAccessFlag == 0) {
                 // The memory access was not broken down in two for this segment
-                rand_fifoCount--;
+                ran_fifoCount--;
                 if (rxAppNotificationStatus1.okay) {
                     // Output the notification
-                    soRxNotif.write(rxAppNotification);
+                    soRAi_RxNotif.write(rxAppNotification);
                 }
             }
             //TODO else, we are screwed since the ACK is already sent
         }
-        else if (!siFsm_Notif.empty() && (rand_fifoCount < 31)) {
+        else if (!siFsm_Notif.empty() && (ran_fifoCount < 31)) {
             siFsm_Notif.read(rxAppNotification);
             if (rxAppNotification.tcpSegLen != 0) {
-                sRxNotifFifo.write(rxAppNotification);
-                rand_fifoCount++;
+                ssRxNotifFifo.write(rxAppNotification);
+                ran_fifoCount++;
             }
             else
-                soRxNotif.write(rxAppNotification);
+                soRAi_RxNotif.write(rxAppNotification);
         }
     }
 }
@@ -1767,9 +1775,6 @@ void pDebug(
  *   valid payload, it is stored in external DDR4 memory and the application is
  *   notified about the arrival of new data.
  *
- * @return Nothing.
- *
- * @ingroup rx_engine
  ******************************************************************************/
 void rx_engine(
         stream<Ip4overAxi>              &siIPRX_Pkt,
@@ -1826,7 +1831,7 @@ void rx_engine(
     static stream<bool>             sCsaToTid_DataValid    ("sCsaToTid_DataValid");
     #pragma HLS stream     variable=sCsaToTid_DataValid    depth=2
 
-    static stream<rxEngineMetaData> sCsaToMdh_Meta         ("sCsaToTid_Meta");
+    static stream<RXeMeta>          sCsaToMdh_Meta         ("sCsaToTid_Meta");
     #pragma HLS stream     variable=sCsaToMdh_Meta         depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_Meta
 
@@ -1851,9 +1856,9 @@ void rx_engine(
     static stream<CmdBool>          sMdhToTsd_DropCmd      ("sMdhToTsd_DropCmd");
     #pragma HLS stream     variable=sMdhToTsd_DropCmd      depth=2
 
-    static stream<rxFsmMetaData>    sMdhToFsm_Meta         ("sMdhToFsm_Meta");
-    #pragma HLS stream     variable=sMdhToFsm_Meta         depth=2
-    #pragma HLS DATA_PACK  variable=sMdhToFsm_Meta
+    static stream<RXeFsmMeta>       ssMdhToFsm_Meta        ("ssMdhToFsm_Meta");
+    #pragma HLS stream     variable=ssMdhToFsm_Meta        depth=2
+    #pragma HLS DATA_PACK  variable=ssMdhToFsm_Meta
 
     //-- Finite State Machine (Fsm) -------------------------------------------
     static stream<CmdBool>          sFsmToTsd_DropCmd      ("sFsmToTsd_DropCmd");
@@ -1882,7 +1887,7 @@ void rx_engine(
     pTcpLengthExtract(
             siIPRX_Pkt,
             sTleToIph_TcpSeg,
-            sTleToIph_TcpSegLen);
+            sTleToIph_TcpSegLen);        // [TODO - RENAME ALL INTERNAL STREAMS]
 
     pInsertPseudoHeader(
             sTleToIph_TcpSeg,
@@ -1910,10 +1915,10 @@ void rx_engine(
             soSLc_SessLookupReq,
             sMdhToEvm_Event,
             sMdhToTsd_DropCmd,
-            sMdhToFsm_Meta);
+            ssMdhToFsm_Meta);
 
     pFiniteStateMachine(
-            sMdhToFsm_Meta,
+            ssMdhToFsm_Meta,
             soSTt_StateQry,
             siSTt_StateRep,
             soRSt_RxSarQry,

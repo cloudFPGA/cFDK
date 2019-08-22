@@ -941,9 +941,9 @@ void toe(
     #pragma HLS stream         variable=sTImToTAi_Notif           depth=4
     #pragma HLS DATA_PACK      variable=sTImToTAi_Notif
 
-    static stream<AppNotif>             sTImToRAi_Notif           ("sTImToRAi_Notif");
-    #pragma HLS stream         variable=sTImToRAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sTImToRAi_Notif
+    static stream<AppNotif>             ssTImToRAi_Notif          ("ssTImToRAi_Notif");
+    #pragma HLS stream         variable=ssTImToRAi_Notif          depth=4
+    #pragma HLS DATA_PACK      variable=ssTImToRAi_Notif
 
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
@@ -1070,7 +1070,7 @@ void toe(
             sTImToSTt_SessCloseCmd,
             sTImToEVe_Event,
             sTImToTAi_Notif,
-            sTImToRAi_Notif);
+            ssTImToRAi_Notif);
 
     //-- Event Engine (EVe) ------------------------------------------------
     event_engine(
@@ -1149,7 +1149,7 @@ void toe(
              sRAiToPRt_OpnLsnPortReq,
              sPRtToRAi_OpnLsnPortRep,
              sRXeToRAi_Notif,
-             sTImToRAi_Notif,
+             ssTImToRAi_Notif,
              sRAiToRSt_RxSarQry,
              sRStToRAi_RxSarRep,
              soMEM_RxP_RdCmd,
