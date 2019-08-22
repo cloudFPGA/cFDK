@@ -17,6 +17,7 @@ SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
 ROLE_DIR =$(usedRoleDir)
 ROLE2_DIR =$(usedRole2Dir)
 
+
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
@@ -30,6 +31,12 @@ all: pr
 # assert ENVIRONMENT
 assert_env: 
 	./cFDK/SRA/LIB/bash/assert_envs.sh
+
+# next line until including (end of cFa placeholder) MUST STAY UNCHANGED
+#cFa addtional targets
+
+
+# (end of cFa placeholder)
 
 Role: assert_env
 	$(MAKE) -C $(ROLE_DIR)
