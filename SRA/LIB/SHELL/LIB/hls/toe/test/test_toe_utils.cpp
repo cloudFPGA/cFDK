@@ -425,6 +425,23 @@ void printTcpPort(TcpPort tcpPort)
 #endif
 
 /*****************************************************************************
+ * @brief Converts an event type ENUM into a string.
+ *
+ * @param[in]   ev, the event type ENUM.
+ * @return      corresponding string.
+ *
+ * @ingroup test_toe
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    const char* eventTypeStrings[] = {
+             "TX", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
+
+    const char *myEventTypeToString(eventType ev) {
+        return eventTypeStrings[ev];
+    }
+#endif
+
+/*****************************************************************************
  * @brief Converts a string of 16 HEX characters into an UINT64.
  *
  * @param[in]   inputNumber, the string to convert.

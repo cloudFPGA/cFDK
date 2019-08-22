@@ -137,6 +137,7 @@ string         myUint64ToStrHex(ap_uint<64> inputNumber);
 string         myUint8ToStrHex (ap_uint<8>  inputNumber);
 ap_uint<64>    myStrHexToUint64(string      dataString);
 ap_uint<8>     myStrHexToUint8 (string      keepString);
+const char    *myEventTypeToString(eventType ev);
 
 
 /*****************************************************************************

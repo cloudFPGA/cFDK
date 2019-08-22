@@ -42,9 +42,12 @@
 
 //#include "../test/test_toe_utils.hpp"
 
+//*** [FIXME] MOVE MAX_SESSION into a CFG FILE ***
 static const uint16_t MAX_SESSIONS = 32;
 
+//*** [FIXME] NO_TX_SESSIONS into a CFG FILE ***
 #define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
+
 
 extern uint32_t      packetCounter;
 extern uint32_t      idleCycCnt;
@@ -89,7 +92,13 @@ using namespace hls;
   //   and/or your segment is too long, you may experience retransmission events
   //   (RT) which will break the test. You may want to use 'appRx_OneSeg.dat' or
   //   'appRx_TwoSeg.dat' to tune this parameter.
-  static const ap_uint<32> TIME_1s        =   25;
+  static const ap_uint<32> TIME_1s        =   250;
+
+  static const ap_uint<32> TIME_1us       = (((ap_uint<32>)(TIME_1s/1000000) > 1) ? (ap_uint<32>)(TIME_1s/1000000) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_64us      = (((ap_uint<32>)(TIME_1s/  15625) > 1) ? (ap_uint<32>)(TIME_1s/  15625) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_128us     = (((ap_uint<32>)(TIME_1s/  31250) > 1) ? (ap_uint<32>)(TIME_1s/  31250) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
+  static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
 
   static const ap_uint<32> TIME_1ms       = (((ap_uint<32>)(TIME_1s/1000) > 1) ? (ap_uint<32>)(TIME_1s/1000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_5ms       = (((ap_uint<32>)(TIME_1s/ 200) > 1) ? (ap_uint<32>)(TIME_1s/ 200) : (ap_uint<32>)1);
@@ -107,21 +116,28 @@ using namespace hls;
   static const ap_uint<32> TIME_60s       = ( 60*TIME_1s);
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
-  static const ap_uint<32> TIME_1ms       = (  0.001/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_5ms       = (  0.005/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_25ms      = (  0.025/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_50ms      = (  0.050/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_100ms     = (  0.100/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_250ms     = (  0.250/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_1s        = (  1.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_5s        = (  5.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_7s        = (  7.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_10s       = ( 10.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_15s       = ( 15.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_20s       = ( 20.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_30s       = ( 30.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_60s       = ( 60.000/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_120s      = (120.000/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_1us       = (  1.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_128us     = (128.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_256us     = (256.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_512us     = (512.0/0.0064/MAX_SESSIONS) + 1;
+
+  static const ap_uint<32> TIME_1ms       = (  1.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5ms       = (  5.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_25ms      = ( 25.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_50ms      = ( 50.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_100ms     = (100.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_250ms     = (250.0/0.0000064/MAX_SESSIONS) + 1;
+
+  static const ap_uint<32> TIME_1s        = (  1.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5s        = (  5.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_7s        = (  7.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_10s       = ( 10.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_15s       = ( 15.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_20s       = ( 20.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_30s       = ( 30.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_60s       = ( 60.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/MAX_SESSIONS) + 1;
 #endif
 
 #define BROADCASTCHANNELS 2
@@ -160,7 +176,11 @@ typedef bool ValBit;  // Valid bit  : Must go along with something to validate/i
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
 //   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
 
-enum eventType {TX, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY};
+enum        eventType {TX=0, RT,   ACK,   SYN,   SYN_ACK,   FIN,   RST,   ACK_NODELAY };
+//const char* eventTypeStrings[] = {
+//                      "TX", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
+
+
 
 /*
  * There is no explicit LISTEN state
