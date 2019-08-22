@@ -19,6 +19,7 @@ ipName = nrc
 top_suffix =_main
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
+SRC_DEPS += ../network_utils.hpp ../network_utils.cpp
 
 .PHONY: all clean sim cosim cosim_view
 
