@@ -205,7 +205,7 @@ module NetworkTransportSession_TcpIp (
   output         soROL_Tcp_Meta_tvalid,
   input          soROL_Tcp_Meta_tready,
   //-- Stream TCP Data Notification ----------
-  output [ 87:0] soROL_Tcp_Notif_tdata,
+  output [103:0] soROL_Tcp_Notif_tdata,
   output         soROL_Tcp_Notif_tvalid,
   input          soROL_Tcp_Notif_tready,
   //-- Stream TCP Data Request ---------------

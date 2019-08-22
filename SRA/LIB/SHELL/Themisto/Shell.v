@@ -648,7 +648,7 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_Meta_tvalid;
   wire          ssTOE_NRC_Tcp_Meta_tready;
   //-- Stream TCP Data Notification ----------
-  wire  [135:0] ssTOE_NRC_Tcp_Notif_tdata;
+  wire  [103:0] ssTOE_NRC_Tcp_Notif_tdata;
   wire          ssTOE_NRC_Tcp_Notif_tvalid;
   wire          ssTOE_NRC_Tcp_Notif_tready;
   //---- Stream TCP Open Session Status ------
