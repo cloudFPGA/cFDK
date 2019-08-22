@@ -908,7 +908,6 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- To DEBUG / Simulation Counter Interfaces
     //------------------------------------------------------
-    .piSimCycCount_V           (),
     .poSimCycCount_V           ()
 
   );  // End of TOE

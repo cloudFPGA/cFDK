@@ -2072,9 +2072,9 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
-    ap_uint<32>     simCycCnt      = 0;
-    ap_uint<32>     sTB_TOE_SimCycCnt;
-    ap_uint<32>     sTOE_TB_SimCycCnt = 0;
+    //OBSOLETE-20190822 ap_uint<32>     simCycCnt      = 0;
+    //OBSOLETE-20190822 ap_uint<32>     sTB_TOE_SimCycCnt;
+    ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
     Ip4Word         ipRxData;    // An IP4 chunk
@@ -2135,8 +2135,8 @@ int main(int argc, char *argv[]) {
     printf("############################################################################\n");
     printf("## TESTBENCH STARTS HERE                                                  ##\n");
     printf("############################################################################\n");
-    simCycCnt = 0;     // Simulation cycle counter as a global variable
-    nrErr     = 0;     // Total number of testbench errors
+    gSimCycCnt = 0;    // Simulation cycle counter as a global variable
+    nrErr      = 0;     // Total number of testbench errors
     sTOE_ReadyDly = 0;
 
     //------------------------------------------------------
@@ -2271,7 +2271,7 @@ int main(int argc, char *argv[]) {
             //-- DEBUG / Session Statistics Interfaces
             clsSessionCount, opnSessionCount,
             //-- DEBUG / SimCycCounter
-            simCycCnt, sTOE_TB_SimCycCnt);
+            sTOE_TB_SimCycCnt);
 
 
         //-------------------------------------------------
@@ -2352,10 +2352,11 @@ int main(int argc, char *argv[]) {
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
-        simCycCnt++;
-        gSimCycCnt = simCycCnt.to_uint();
-        if (gTraceEvent || ((simCycCnt % 1000) == 0)) {
-            printf("-- [@%4.4d] -----------------------------\n", simCycCnt.to_uint());
+        //OBSOLETE-20190822 simCycCnt++;
+        //OBSOLETE-20190822 gSimCycCnt = simCycCnt.to_uint();  sTOE_TB_SimCycCnt
+        gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
+        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+            printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
         }
         //printf("------------------- [@%d] ------------\n", sTOE_TB_SimCycCnt.to_uint());
@@ -2365,7 +2366,7 @@ int main(int argc, char *argv[]) {
         //------------------------------------------------------
 
     } while (  (sTOE_Ready == 0) or
-              ((simCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10)) );
+              ((gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10)) );
 
     //---------------------------------
     //-- CLOSING OPEN FILES
@@ -2385,7 +2386,7 @@ int main(int argc, char *argv[]) {
         ipTxGold2 << endl; ipTxGold2.close();
     }
 
-    printf("(@%5.5d) --------------------------------------\n", simCycCnt.to_uint());
+    printf("(@%5.5d) --------------------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
     printf("## TESTBENCH ENDS HERE                                                    ##\n");
     printf("############################################################################\n");
