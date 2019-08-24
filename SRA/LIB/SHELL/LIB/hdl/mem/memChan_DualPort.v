@@ -10,9 +10,9 @@
 // * File    : memChan_DualPort.v
 // *
 // * Created : Dec. 2017
-// * Authors : Jagath Weerasinghe
-// *           Francois Abel <fab@zurich.ibm.com>
-// *
+// * Authors : Francois Abel <fab@zurich.ibm.com>
+// *           Burkhard Ringlein
+// *   
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2016.4 (64-bit)
 // * Depends : None
@@ -28,15 +28,15 @@
 // *
 // *        +------------------------------+
 // *        |   +-----+                    | 
-// *        +-->|     |--------------------+-------------------> [poMp0]     
+// *        +-->|     |--------------------+-------------------> [soMp0]     
 // *            | DM0 |       +---------+  |
-// * [piMP0]--->|     |------>|         |--+    +-----+
+// * [siMP0]--->|     |------>|         |--+    +-----+
 // *            +-----+       |         |       |     |<-------> [pioDDR4]
 // *                      +-->|   ICT   |------>| MCC | 
 // *            +-----+   |   |         |       |     |--+
-// * [piMP1]--->|     |---+-->|         |--+    +-----+  |
+// * [siMP1]--->|     |---+-->|         |--+    +-----+  |
 // *            | DM1 |   |   +---------+  |             |
-// *        +-->|     |---+----------------+-------------+-----> [poUp]
+// *        +-->|     |---+----------------+-------------+-----> [soUp]
 // *        |   +-----+   |                |             |
 // *        +-------------+----------------+             |
 // *                      |                              |
@@ -89,73 +89,73 @@ module MemoryChannel_DualPort #(
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
   //---- Stream Read Command -----------------
-  input  [79:0]   piMP0_Mc_Axis_RdCmd_tdata,
-  input           piMP0_Mc_Axis_RdCmd_tvalid,
-  output          poMC_Mp0_Axis_RdCmd_tready,
+  input  [79:0]   siMP0_Mc_RdCmd_tdata,
+  input           siMP0_Mc_RdCmd_tvalid,
+  output          siMP0_Mc_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piMP0_Mc_Axis_RdSts_tready,
-  output [7:0]    poMC_Mp0_Axis_RdSts_tdata,
-  output          poMC_Mp0_Axis_RdSts_tvalid,
+  output [7:0]    soMC_Mp0_RdSts_tdata,
+  output          soMC_Mp0_RdSts_tvalid,
+  input           soMC_Mp0_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piMP0_Mc_Axis_Read_tready,
   output [gUserDataChanWidth-1:0]
-                  poMC_Mp0_Axis_Read_tdata,
+                  soMC_Mp0_Read_tdata,
   output [(gUserDataChanWidth/8)-1:0]
-                  poMC_Mp0_Axis_Read_tkeep,
-  output          poMC_Mp0_Axis_Read_tlast,
-  output          poMC_Mp0_Axis_Read_tvalid,
+                  soMC_Mp0_Read_tkeep,
+  output          soMC_Mp0_Read_tlast,
+  output          soMC_Mp0_Read_tvalid,
+  input           soMC_Mp0_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piMP0_Mc_Axis_WrCmd_tdata,
-  input           piMP0_Mc_Axis_WrCmd_tvalid,
-  output          poMC_Mp0_Axis_WrCmd_tready,
+  input  [79:0]   siMP0_Mc_WrCmd_tdata,
+  input           siMP0_Mc_WrCmd_tvalid,
+  output          siMP0_Mc_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piMP0_Mc_Axis_WrSts_tready,
-  output          poMC_Mp0_Axis_WrSts_tvalid,
-  output [7:0]    poMC_Mp0_Axis_WrSts_tdata,
+  output          soMC_Mp0_WrSts_tvalid,
+  output [7:0]    soMC_Mp0_WrSts_tdata,
+  input           soMC_Mp0_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]
-                  piMP0_Mc_Axis_Write_tdata,
+                  siMP0_Mc_Write_tdata,
   input  [(gUserDataChanWidth/8)-1:0]
-                  piMP0_Mc_Axis_Write_tkeep,
-  input           piMP0_Mc_Axis_Write_tlast,
-  input           piMP0_Mc_Axis_Write_tvalid,
-  output          poMC_Mp0_Axis_Write_tready,
+                  siMP0_Mc_Write_tkeep,
+  input           siMP0_Mc_Write_tlast,
+  input           siMP0_Mc_Write_tvalid,
+  output          siMP0_Mc_Write_tready,
     
   //----------------------------------------------
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------  
   //---- Stream Read Command -----------------
-  input  [79:0]   piMP1_Mc_Axis_RdCmd_tdata,
-  input           piMP1_Mc_Axis_RdCmd_tvalid,
-  output          poMC_Mp1_Axis_RdCmd_tready,
+  input  [79:0]   siMP1_Mc_RdCmd_tdata,
+  input           siMP1_Mc_RdCmd_tvalid,
+  output          siMP1_Mc_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piMP1_Mc_Axis_RdSts_tready,
-  output [7:0]    poMC_Mp1_Axis_RdSts_tdata,
-  output          poMC_Mp1_Axis_RdSts_tvalid,
+  output [7:0]    soMC_Mp1_RdSts_tdata,
+  output          soMC_Mp1_RdSts_tvalid,
+  input           soMC_Mp1_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piMP1_Mc_Axis_Read_tready,
   output [gUserDataChanWidth-1:0]
-                  poMC_Mp1_Axis_Read_tdata,
+                  soMC_Mp1_Read_tdata,
   output [(gUserDataChanWidth/8)-1:0]
-                  poMC_Mp1_Axis_Read_tkeep,
-  output          poMC_Mp1_Axis_Read_tlast,
-  output          poMC_Mp1_Axis_Read_tvalid,
+                  soMC_Mp1_Read_tkeep,
+  output          soMC_Mp1_Read_tlast,
+  output          soMC_Mp1_Read_tvalid,
+  input           soMC_Mp1_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piMP1_Mc_Axis_WrCmd_tdata,
-  input           piMP1_Mc_Axis_WrCmd_tvalid,
-  output          poMC_Mp1_Axis_WrCmd_tready,
+  input  [79:0]   siMP1_Mc_WrCmd_tdata,
+  input           siMP1_Mc_WrCmd_tvalid,
+  output          siMP1_Mc_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piMP1_Mc_Axis_WrSts_tready,
-  output          poMC_Mp1_Axis_WrSts_tvalid,
-  output [7:0]    poMC_Mp1_Axis_WrSts_tdata,
+  output          soMC_Mp1_WrSts_tvalid,
+  output [7:0]    soMC_Mp1_WrSts_tdata,
+  input           soMC_Mp1_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]
-                  piMP1_Mc_Axis_Write_tdata,
+                  siMP1_Mc_Write_tdata,
   input  [(gUserDataChanWidth/8)-1:0]
-                  piMP1_Mc_Axis_Write_tkeep,
-  input           piMP1_Mc_Axis_Write_tlast,
-  input           piMP1_Mc_Axis_Write_tvalid,
-  output          poMC_Mp1_Axis_Write_tready,    
+                  siMP1_Mc_Write_tkeep,
+  input           siMP1_Mc_Write_tlast,
+  input           siMP1_Mc_Write_tvalid,
+  output          siMP1_Mc_Write_tready,    
  
   //----------------------------------------------
   // -- DDR4 Physical Interface
@@ -307,28 +307,28 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*po*/),   //left open
+        .mm2s_err                   (/*so*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (piMP0_Mc_Axis_RdCmd_tdata),  
-        .s_axis_mm2s_cmd_tvalid     (piMP0_Mc_Axis_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (poMC_Mp0_Axis_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP0_Mc_RdCmd_tdata),  
+        .s_axis_mm2s_cmd_tvalid     (siMP0_Mc_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP0_Mc_RdCmd_tready),
         //-- S_MM2S : Master Stream Read Status ---------------- 
-        .m_axis_mm2s_sts_tready     (piMP0_Mc_Axis_RdSts_tready),
-        .m_axis_mm2s_sts_tdata      (poMC_Mp0_Axis_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (poMC_Mp0_Axis_RdSts_tvalid),
-        .m_axis_mm2s_sts_tkeep      (/*po*/),
-        .m_axis_mm2s_sts_tlast      (/*po*/),     
+        .m_axis_mm2s_sts_tdata      (soMC_Mp0_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMC_Mp0_RdSts_tvalid),
+        .m_axis_mm2s_sts_tkeep      (/*so*/),
+        .m_axis_mm2s_sts_tlast      (/*so*/),     
+        .m_axis_mm2s_sts_tready     (soMC_Mp0_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
-        .m_axi_mm2s_arready         (sICT_S00_Axi_RdAdd_Ready),
         .m_axi_mm2s_arid            (sDM0_Axi_RdAdd_Id_x),
         .m_axi_mm2s_araddr          (sDM0_Axi_RdAdd_Addr),
         .m_axi_mm2s_arlen           (sDM0_Axi_RdAdd_Len),
         .m_axi_mm2s_arsize          (sDM0_Axi_RdAdd_Size),
         .m_axi_mm2s_arburst         (sDM0_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*po*/),   //left open
-        .m_axi_mm2s_arcache         (/*po*/),   //left open
-        .m_axi_mm2s_aruser          (/*po*/),   //left open   
+        .m_axi_mm2s_arprot          (/*bo*/),   //left open
+        .m_axi_mm2s_arcache         (/*bo*/),   //left open
+        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
         .m_axi_mm2s_arvalid         (sDM0_Axi_RdAdd_Valid),
+        .m_axi_mm2s_arready         (sICT_S00_Axi_RdAdd_Ready),
         //-- M_MM2S : Master Read Data Channel -----------------
         .m_axi_mm2s_rdata           (sICT_S00_Axi_Read_Data),
         .m_axi_mm2s_rresp           (sICT_S00_Axi_Read_Resp),
@@ -336,11 +336,11 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_rvalid          (sICT_S00_Axi_Read_Valid),
         .m_axi_mm2s_rready          (sDM0_Axi_Read_Ready),
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tready         (piMP0_Mc_Axis_Read_tready),
-        .m_axis_mm2s_tdata          (poMC_Mp0_Axis_Read_tdata),
-        .m_axis_mm2s_tkeep          (poMC_Mp0_Axis_Read_tkeep),
-        .m_axis_mm2s_tlast          (poMC_Mp0_Axis_Read_tlast),
-        .m_axis_mm2s_tvalid         (poMC_Mp0_Axis_Read_tvalid),          
+        .m_axis_mm2s_tdata          (soMC_Mp0_Read_tdata),
+        .m_axis_mm2s_tkeep          (soMC_Mp0_Read_tkeep),
+        .m_axis_mm2s_tlast          (soMC_Mp0_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMC_Mp0_Read_tvalid),          
+        .m_axis_mm2s_tready         (soMC_Mp0_Read_tready),
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -349,26 +349,26 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (piMP0_Mc_Axis_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (piMP0_Mc_Axis_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (poMC_Mp0_Axis_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP0_Mc_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP0_Mc_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP0_Mc_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tready     (piMP0_Mc_Axis_WrSts_tready),
-        .m_axis_s2mm_sts_tdata      (poMC_Mp0_Axis_WrSts_tdata),
-        .m_axis_s2mm_sts_tvalid     (poMC_Mp0_Axis_WrSts_tvalid),    
-        .m_axis_s2mm_sts_tkeep      (/*po*/),   //left open
-        .m_axis_s2mm_sts_tlast      (/*po*/),   //left open
+        .m_axis_s2mm_sts_tdata      (soMC_Mp0_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMC_Mp0_WrSts_tvalid),    
+        .m_axis_s2mm_sts_tkeep      (/*so*/),   //left open
+        .m_axis_s2mm_sts_tlast      (/*so*/),   //left open
+        .m_axis_s2mm_sts_tready     (soMC_Mp0_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
         .m_axi_s2mm_awid            (sDM0_Axi_WrAdd_Id_x),
         .m_axi_s2mm_awaddr          (sDM0_Axi_WrAdd_Addr),
         .m_axi_s2mm_awlen           (sDM0_Axi_WrAdd_Len),
         .m_axi_s2mm_awsize          (sDM0_Axi_WrAdd_Size),
         .m_axi_s2mm_awburst         (sDM0_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*po*/),   //left open
-        .m_axi_s2mm_awcache         (/*po*/),   //left open
-        .m_axi_s2mm_awuser          (/*po*/),   //left open
+        .m_axi_s2mm_awprot          (/*bo*/),   //left open
+        .m_axi_s2mm_awcache         (/*bo*/),   //left open
+        .m_axi_s2mm_awuser          (/*bo*/),   //left open
         .m_axi_s2mm_awvalid         (sDM0_Axi_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
         .m_axi_s2mm_wready          (sICT_S00_Axi_Write_Ready),
         .m_axi_s2mm_wdata           (sDM0_Axi_Write_Data), 
@@ -380,11 +380,11 @@ module MemoryChannel_DualPort #(
         .m_axi_s2mm_bvalid          (sICT_S00_Axi_WrRes_Valid), 
         .m_axi_s2mm_bready          (sDM0_Axi_WrRes_Ready),
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (piMP0_Mc_Axis_Write_tdata),
-        .s_axis_s2mm_tkeep          (piMP0_Mc_Axis_Write_tkeep),
-        .s_axis_s2mm_tlast          (piMP0_Mc_Axis_Write_tlast),
-        .s_axis_s2mm_tvalid         (piMP0_Mc_Axis_Write_tvalid),
-        .s_axis_s2mm_tready         (poMC_Mp0_Axis_Write_tready)
+        .s_axis_s2mm_tdata          (siMP0_Mc_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP0_Mc_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP0_Mc_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP0_Mc_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP0_Mc_Write_tready)
         
       );  // End: AxiDataMover_M512_S64_B16  DM0
       
@@ -399,17 +399,17 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*po*/),   //left open
+        .mm2s_err                   (/*so*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (piMP1_Mc_Axis_RdCmd_tdata),
-        .s_axis_mm2s_cmd_tvalid     (piMP1_Mc_Axis_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (poMC_Mp1_Axis_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP1_Mc_RdCmd_tdata),
+        .s_axis_mm2s_cmd_tvalid     (siMP1_Mc_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP1_Mc_RdCmd_tready),
         //-- M_MM2S : Master Stream Read Status ----------------
-        .m_axis_mm2s_sts_tready     (piMP1_Mc_Axis_RdSts_tready),
-        .m_axis_mm2s_sts_tdata      (poMC_Mp1_Axis_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (poMC_Mp1_Axis_RdSts_tvalid),
-        .m_axis_mm2s_sts_tkeep      (/*po*/),
-        .m_axis_mm2s_sts_tlast      (/*po*/), 
+        .m_axis_mm2s_sts_tdata      (soMC_Mp1_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMC_Mp1_RdSts_tvalid),
+        .m_axis_mm2s_sts_tkeep      (/*so*/),
+        .m_axis_mm2s_sts_tlast      (/*so*/), 
+        .m_axis_mm2s_sts_tready     (soMC_Mp1_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
         .m_axi_mm2s_arready         (sICT_S01_Axi_RdAdd_Ready),
         .m_axi_mm2s_arid            (sDM1_Axi_RdAdd_Id_x),
@@ -417,9 +417,9 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_arlen           (sDM1_Axi_RdAdd_Len),
         .m_axi_mm2s_arsize          (sDM1_Axi_RdAdd_Size),
         .m_axi_mm2s_arburst         (sDM1_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*po*/),   //left open
-        .m_axi_mm2s_arcache         (/*po*/),   //left open
-        .m_axi_mm2s_aruser          (/*po*/),   //left open   
+        .m_axi_mm2s_arprot          (/*bo*/),   //left open
+        .m_axi_mm2s_arcache         (/*bo*/),   //left open
+        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
         .m_axi_mm2s_arvalid         (sDM1_Axi_RdAdd_Valid),
         //-- M_MM2S : Master Read Data Channel -----------------
         .m_axi_mm2s_rdata           (sICT_S01_Axi_Read_Data),
@@ -428,11 +428,11 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_rvalid          (sICT_S01_Axi_Read_Valid),
         .m_axi_mm2s_rready          (sDM1_Axi_Read_Ready),    
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tready         (piMP1_Mc_Axis_Read_tready), 
-        .m_axis_mm2s_tdata          (poMC_Mp1_Axis_Read_tdata), 
-        .m_axis_mm2s_tkeep          (poMC_Mp1_Axis_Read_tkeep), 
-        .m_axis_mm2s_tlast          (poMC_Mp1_Axis_Read_tlast),
-        .m_axis_mm2s_tvalid         (poMC_Mp1_Axis_Read_tvalid), 
+        .m_axis_mm2s_tdata          (soMC_Mp1_Read_tdata), 
+        .m_axis_mm2s_tkeep          (soMC_Mp1_Read_tkeep), 
+        .m_axis_mm2s_tlast          (soMC_Mp1_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMC_Mp1_Read_tvalid), 
+        .m_axis_mm2s_tready         (soMC_Mp1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -441,26 +441,26 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (piMP1_Mc_Axis_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (piMP1_Mc_Axis_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (poMC_Mp1_Axis_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP1_Mc_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP1_Mc_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP1_Mc_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tready     (piMP1_Mc_Axis_WrSts_tready),
-        .m_axis_s2mm_sts_tvalid     (poMC_Mp1_Axis_WrSts_tvalid),
-        .m_axis_s2mm_sts_tdata      (poMC_Mp1_Axis_WrSts_tdata),
-        .m_axis_s2mm_sts_tkeep      (/*po*/), //left open
-        .m_axis_s2mm_sts_tlast      (/*po*/), //left open
-        //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
+        .m_axis_s2mm_sts_tvalid     (soMC_Mp1_WrSts_tvalid),
+        .m_axis_s2mm_sts_tdata      (soMC_Mp1_WrSts_tdata),
+        .m_axis_s2mm_sts_tkeep      (/*so*/), //left open
+        .m_axis_s2mm_sts_tlast      (/*so*/), //left open
+        .m_axis_s2mm_sts_tready     (soMC_Mp1_WrSts_tready),
+        //-- M_S2MM : Master Write Address Channel -------------       
         .m_axi_s2mm_awid            (sDM1_Axi_WrAdd_Id_x),
         .m_axi_s2mm_awaddr          (sDM1_Axi_WrAdd_Addr),
         .m_axi_s2mm_awlen           (sDM1_Axi_WrAdd_Len),
         .m_axi_s2mm_awsize          (sDM1_Axi_WrAdd_Size),
         .m_axi_s2mm_awburst         (sDM1_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*po*/),   //left open
-        .m_axi_s2mm_awcache         (/*po*/),   //left open
-        .m_axi_s2mm_awuser          (/*po*/),   //left open    
+        .m_axi_s2mm_awprot          (/*bo*/),   //left open
+        .m_axi_s2mm_awcache         (/*bo*/),   //left open
+        .m_axi_s2mm_awuser          (/*bo*/),   //left open    
         .m_axi_s2mm_awvalid         (sDM1_Axi_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
         .m_axi_s2mm_wready          (sICT_S01_Axi_Write_Ready),
         .m_axi_s2mm_wdata           (sDM1_Axi_Write_Data), 
@@ -472,11 +472,11 @@ module MemoryChannel_DualPort #(
         .m_axi_s2mm_bvalid          (sICT_S01_Axi_WrRes_Valid), 
         .m_axi_s2mm_bready          (sDM1_Axi_WrRes_Ready), 
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (piMP1_Mc_Axis_Write_tdata),
-        .s_axis_s2mm_tkeep          (piMP1_Mc_Axis_Write_tkeep),
-        .s_axis_s2mm_tlast          (piMP1_Mc_Axis_Write_tlast),
-        .s_axis_s2mm_tvalid         (piMP1_Mc_Axis_Write_tvalid),
-        .s_axis_s2mm_tready         (poMC_Mp1_Axis_Write_tready)
+        .s_axis_s2mm_tdata          (siMP1_Mc_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP1_Mc_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP1_Mc_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP1_Mc_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP1_Mc_Write_tready)
         
       );  // End: AxiDataMover_M512_S64_B16  DM1
       
@@ -495,17 +495,17 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*po*/),   //left open
+        .mm2s_err                   (/*so*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (piMP0_Mc_Axis_RdCmd_tdata),  
-        .s_axis_mm2s_cmd_tvalid     (piMP0_Mc_Axis_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (poMC_Mp0_Axis_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP0_Mc_RdCmd_tdata),  
+        .s_axis_mm2s_cmd_tvalid     (siMP0_Mc_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP0_Mc_RdCmd_tready),
         //-- S_MM2S : Master Stream Read Status ---------------- 
-        .m_axis_mm2s_sts_tready     (piMP0_Mc_Axis_RdSts_tready),
-        .m_axis_mm2s_sts_tdata      (poMC_Mp0_Axis_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (poMC_Mp0_Axis_RdSts_tvalid),
-        .m_axis_mm2s_sts_tkeep      (/*po*/),
-        .m_axis_mm2s_sts_tlast      (/*po*/),     
+        .m_axis_mm2s_sts_tdata      (soMC_Mp0_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMC_Mp0_RdSts_tvalid),
+        .m_axis_mm2s_sts_tkeep      (/*so*/),
+        .m_axis_mm2s_sts_tlast      (/*so*/),     
+        .m_axis_mm2s_sts_tready     (soMC_Mp0_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
         .m_axi_mm2s_arready         (sICT_S00_Axi_RdAdd_Ready),
         .m_axi_mm2s_arid            (sDM0_Axi_RdAdd_Id_x),
@@ -513,9 +513,9 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_arlen           (sDM0_Axi_RdAdd_Len),
         .m_axi_mm2s_arsize          (sDM0_Axi_RdAdd_Size),
         .m_axi_mm2s_arburst         (sDM0_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*po*/),   //left open
-        .m_axi_mm2s_arcache         (/*po*/),   //left open
-        .m_axi_mm2s_aruser          (/*po*/),   //left open   
+        .m_axi_mm2s_arprot          (/*bo*/),   //left open
+        .m_axi_mm2s_arcache         (/*bo*/),   //left open
+        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
         .m_axi_mm2s_arvalid         (sDM0_Axi_RdAdd_Valid),
         //-- M_MM2S : Master Read Data Channel -----------------
         .m_axi_mm2s_rdata           (sICT_S00_Axi_Read_Data),
@@ -524,11 +524,11 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_rvalid          (sICT_S00_Axi_Read_Valid),
         .m_axi_mm2s_rready          (sDM0_Axi_Read_Ready),
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tready         (piMP0_Mc_Axis_Read_tready),
-        .m_axis_mm2s_tdata          (poMC_Mp0_Axis_Read_tdata),
-        .m_axis_mm2s_tkeep          (poMC_Mp0_Axis_Read_tkeep),
-        .m_axis_mm2s_tlast          (poMC_Mp0_Axis_Read_tlast),
-        .m_axis_mm2s_tvalid         (poMC_Mp0_Axis_Read_tvalid),          
+        .m_axis_mm2s_tdata          (soMC_Mp0_Read_tdata),
+        .m_axis_mm2s_tkeep          (soMC_Mp0_Read_tkeep),
+        .m_axis_mm2s_tlast          (soMC_Mp0_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMC_Mp0_Read_tvalid),          
+        .m_axis_mm2s_tready         (soMC_Mp0_Read_tready),
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -537,26 +537,26 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (piMP0_Mc_Axis_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (piMP0_Mc_Axis_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (poMC_Mp0_Axis_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP0_Mc_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP0_Mc_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP0_Mc_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tready     (piMP0_Mc_Axis_WrSts_tready),
-        .m_axis_s2mm_sts_tdata      (poMC_Mp0_Axis_WrSts_tdata),
-        .m_axis_s2mm_sts_tvalid     (poMC_Mp0_Axis_WrSts_tvalid),    
-        .m_axis_s2mm_sts_tkeep      (/*po*/),   //left open
-        .m_axis_s2mm_sts_tlast      (/*po*/),   //left open
+        .m_axis_s2mm_sts_tdata      (soMC_Mp0_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMC_Mp0_WrSts_tvalid),    
+        .m_axis_s2mm_sts_tkeep      (/*so*/),   //left open
+        .m_axis_s2mm_sts_tlast      (/*so*/),   //left open
+        .m_axis_s2mm_sts_tready     (soMC_Mp0_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
         .m_axi_s2mm_awid            (sDM0_Axi_WrAdd_Id_x),
         .m_axi_s2mm_awaddr          (sDM0_Axi_WrAdd_Addr),
         .m_axi_s2mm_awlen           (sDM0_Axi_WrAdd_Len),
         .m_axi_s2mm_awsize          (sDM0_Axi_WrAdd_Size),
         .m_axi_s2mm_awburst         (sDM0_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*po*/),   //left open
-        .m_axi_s2mm_awcache         (/*po*/),   //left open
-        .m_axi_s2mm_awuser          (/*po*/),   //left open
+        .m_axi_s2mm_awprot          (/*bo*/),   //left open
+        .m_axi_s2mm_awcache         (/*bo*/),   //left open
+        .m_axi_s2mm_awuser          (/*bo*/),   //left open
         .m_axi_s2mm_awvalid         (sDM0_Axi_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
         .m_axi_s2mm_wready          (sICT_S00_Axi_Write_Ready),
         .m_axi_s2mm_wdata           (sDM0_Axi_Write_Data), 
@@ -568,11 +568,11 @@ module MemoryChannel_DualPort #(
         .m_axi_s2mm_bvalid          (sICT_S00_Axi_WrRes_Valid), 
         .m_axi_s2mm_bready          (sDM0_Axi_WrRes_Ready),
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (piMP0_Mc_Axis_Write_tdata),
-        .s_axis_s2mm_tkeep          (piMP0_Mc_Axis_Write_tkeep),
-        .s_axis_s2mm_tlast          (piMP0_Mc_Axis_Write_tlast),
-        .s_axis_s2mm_tvalid         (piMP0_Mc_Axis_Write_tvalid),
-        .s_axis_s2mm_tready         (poMC_Mp0_Axis_Write_tready)
+        .s_axis_s2mm_tdata          (siMP0_Mc_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP0_Mc_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP0_Mc_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP0_Mc_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP0_Mc_Write_tready)
         
       );  // End: AxiDataMover_M512_S512_B16  DM0
       
@@ -587,17 +587,17 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*po*/),   //left open
+        .mm2s_err                   (/*so*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (piMP1_Mc_Axis_RdCmd_tdata),
-        .s_axis_mm2s_cmd_tvalid     (piMP1_Mc_Axis_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (poMC_Mp1_Axis_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP1_Mc_RdCmd_tdata),
+        .s_axis_mm2s_cmd_tvalid     (siMP1_Mc_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP1_Mc_RdCmd_tready),
         //-- M_MM2S : Master Stream Read Status ----------------
-        .m_axis_mm2s_sts_tready     (piMP1_Mc_Axis_RdSts_tready),
-        .m_axis_mm2s_sts_tdata      (poMC_Mp1_Axis_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (poMC_Mp1_Axis_RdSts_tvalid),
-        .m_axis_mm2s_sts_tkeep      (/*po*/),
-        .m_axis_mm2s_sts_tlast      (/*po*/), 
+        .m_axis_mm2s_sts_tdata      (soMC_Mp1_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMC_Mp1_RdSts_tvalid),
+        .m_axis_mm2s_sts_tkeep      (/*so*/),
+        .m_axis_mm2s_sts_tlast      (/*so*/), 
+        .m_axis_mm2s_sts_tready     (soMC_Mp1_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
         .m_axi_mm2s_arready         (sICT_S01_Axi_RdAdd_Ready),
         .m_axi_mm2s_arid            (sDM1_Axi_RdAdd_Id_x),
@@ -605,9 +605,9 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_arlen           (sDM1_Axi_RdAdd_Len),
         .m_axi_mm2s_arsize          (sDM1_Axi_RdAdd_Size),
         .m_axi_mm2s_arburst         (sDM1_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*po*/),   //left open
-        .m_axi_mm2s_arcache         (/*po*/),   //left open
-        .m_axi_mm2s_aruser          (/*po*/),   //left open   
+        .m_axi_mm2s_arprot          (/*bo*/),   //left open
+        .m_axi_mm2s_arcache         (/*bo*/),   //left open
+        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
         .m_axi_mm2s_arvalid         (sDM1_Axi_RdAdd_Valid),
         //-- M_MM2S : Master Read Data Channel -----------------
         .m_axi_mm2s_rdata           (sICT_S01_Axi_Read_Data),
@@ -616,11 +616,11 @@ module MemoryChannel_DualPort #(
         .m_axi_mm2s_rvalid          (sICT_S01_Axi_Read_Valid),
         .m_axi_mm2s_rready          (sDM1_Axi_Read_Ready),    
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tready         (piMP1_Mc_Axis_Read_tready), 
-        .m_axis_mm2s_tdata          (poMC_Mp1_Axis_Read_tdata), 
-        .m_axis_mm2s_tkeep          (poMC_Mp1_Axis_Read_tkeep), 
-        .m_axis_mm2s_tlast          (poMC_Mp1_Axis_Read_tlast),
-        .m_axis_mm2s_tvalid         (poMC_Mp1_Axis_Read_tvalid), 
+        .m_axis_mm2s_tdata          (soMC_Mp1_Read_tdata), 
+        .m_axis_mm2s_tkeep          (soMC_Mp1_Read_tkeep), 
+        .m_axis_mm2s_tlast          (soMC_Mp1_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMC_Mp1_Read_tvalid), 
+        .m_axis_mm2s_tready         (soMC_Mp1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -629,26 +629,26 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (piMP1_Mc_Axis_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (piMP1_Mc_Axis_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (poMC_Mp1_Axis_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP1_Mc_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP1_Mc_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP1_Mc_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tready     (piMP1_Mc_Axis_WrSts_tready),
-        .m_axis_s2mm_sts_tvalid     (poMC_Mp1_Axis_WrSts_tvalid),
-        .m_axis_s2mm_sts_tdata      (poMC_Mp1_Axis_WrSts_tdata),
-        .m_axis_s2mm_sts_tkeep      (/*po*/), //left open
-        .m_axis_s2mm_sts_tlast      (/*po*/), //left open
+        .m_axis_s2mm_sts_tvalid     (soMC_Mp1_WrSts_tvalid),
+        .m_axis_s2mm_sts_tdata      (soMC_Mp1_WrSts_tdata),
+        .m_axis_s2mm_sts_tkeep      (/*so*/), //left open
+        .m_axis_s2mm_sts_tlast      (/*so*/), //left open
+        .m_axis_s2mm_sts_tready     (soMC_Mp1_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
         .m_axi_s2mm_awid            (sDM1_Axi_WrAdd_Id_x),
         .m_axi_s2mm_awaddr          (sDM1_Axi_WrAdd_Addr),
         .m_axi_s2mm_awlen           (sDM1_Axi_WrAdd_Len),
         .m_axi_s2mm_awsize          (sDM1_Axi_WrAdd_Size),
         .m_axi_s2mm_awburst         (sDM1_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*po*/),   //left open
-        .m_axi_s2mm_awcache         (/*po*/),   //left open
-        .m_axi_s2mm_awuser          (/*po*/),   //left open    
+        .m_axi_s2mm_awprot          (/*bo*/),   //left open
+        .m_axi_s2mm_awcache         (/*bo*/),   //left open
+        .m_axi_s2mm_awuser          (/*bo*/),   //left open    
         .m_axi_s2mm_awvalid         (sDM1_Axi_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
         .m_axi_s2mm_wready          (sICT_S01_Axi_Write_Ready),
         .m_axi_s2mm_wdata           (sDM1_Axi_Write_Data), 
@@ -660,11 +660,11 @@ module MemoryChannel_DualPort #(
         .m_axi_s2mm_bvalid          (sICT_S01_Axi_WrRes_Valid), 
         .m_axi_s2mm_bready          (sDM1_Axi_WrRes_Ready), 
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (piMP1_Mc_Axis_Write_tdata),
-        .s_axis_s2mm_tkeep          (piMP1_Mc_Axis_Write_tkeep),
-        .s_axis_s2mm_tlast          (piMP1_Mc_Axis_Write_tlast),
-        .s_axis_s2mm_tvalid         (piMP1_Mc_Axis_Write_tvalid),
-        .s_axis_s2mm_tready         (poMC_Mp1_Axis_Write_tready)
+        .s_axis_s2mm_tdata          (siMP1_Mc_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP1_Mc_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP1_Mc_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP1_Mc_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP1_Mc_Write_tready)
         
       );  // End: AxiDataMover_M512_S512_B16  DM1    
   
@@ -785,7 +785,6 @@ module MemoryChannel_DualPort #(
     .M00_AXI_ARESET_OUT_N (/*po)*/),    //left open
     .M00_AXI_ACLK         (sMCC_Ui_clk),
     //-- Master Write Address Channel ------------
-    .M00_AXI_AWREADY      (sMCC_Axi_WrAdd_Ready),
     .M00_AXI_AWID         (sICT_M00_Axi_WrAdd_Wid),
     .M00_AXI_AWADDR       (sICT_M00_Axi_WrAdd_Addr),
     .M00_AXI_AWLEN        (sICT_M00_Axi_WrAdd_Len),
@@ -795,7 +794,8 @@ module MemoryChannel_DualPort #(
     .M00_AXI_AWCACHE      (/*po*/),   //left open
     .M00_AXI_AWPROT       (/*po*/),   //left open
     .M00_AXI_AWQOS        (/*po*/),   //left open
-    .M00_AXI_AWVALID      (sICT_M00_Axi_WrAdd_Valid),  
+    .M00_AXI_AWVALID      (sICT_M00_Axi_WrAdd_Valid),
+    .M00_AXI_AWREADY      (sMCC_Axi_WrAdd_Ready),
     //-- Master Write Data Channel ---------------
     .M00_AXI_WREADY       (sMCC_Axi_Write_Ready),
     .M00_AXI_WDATA        (sICT_M00_Axi_Write_Data),
