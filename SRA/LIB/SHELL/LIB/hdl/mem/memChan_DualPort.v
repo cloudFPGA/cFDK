@@ -28,7 +28,7 @@
 // *
 // *        +------------------------------+
 // *        |   +-----+                    | 
-// *        +-->|     |--------------------+-------------------> [soMp0]     
+// *        +-->|     |--------------------+-------------------> [soMP0]     
 // *            | DM0 |       +---------+  |
 // * [siMP0]--->|     |------>|         |--+    +-----+
 // *            +-----+       |         |       |     |<-------> [pioDDR4]
@@ -36,7 +36,7 @@
 // *            +-----+   |   |         |       |     |--+
 // * [siMP1]--->|     |---+-->|         |--+    +-----+  |
 // *            | DM1 |   |   +---------+  |             |
-// *        +-->|     |---+----------------+-------------+-----> [soUp]
+// *        +-->|     |---+----------------+-------------+-----> [soMP1]
 // *        |   +-----+   |                |             |
 // *        +-------------+----------------+             |
 // *                      |                              |
@@ -89,73 +89,73 @@ module MemoryChannel_DualPort #(
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
   //---- Stream Read Command -----------------
-  input  [79:0]   siMP0_Mc_RdCmd_tdata,
-  input           siMP0_Mc_RdCmd_tvalid,
-  output          siMP0_Mc_RdCmd_tready,
+  input  [79:0]   siMP0_RdCmd_tdata,
+  input           siMP0_RdCmd_tvalid,
+  output          siMP0_RdCmd_tready,
   //---- Stream Read Status ------------------
-  output [7:0]    soMC_Mp0_RdSts_tdata,
-  output          soMC_Mp0_RdSts_tvalid,
-  input           soMC_Mp0_RdSts_tready,
+  output [7:0]    soMP0_RdSts_tdata,
+  output          soMP0_RdSts_tvalid,
+  input           soMP0_RdSts_tready,
   //---- Stream Data Output Channel ----------
   output [gUserDataChanWidth-1:0]
-                  soMC_Mp0_Read_tdata,
+                  soMP0_Read_tdata,
   output [(gUserDataChanWidth/8)-1:0]
-                  soMC_Mp0_Read_tkeep,
-  output          soMC_Mp0_Read_tlast,
-  output          soMC_Mp0_Read_tvalid,
-  input           soMC_Mp0_Read_tready,
+                  soMP0_Read_tkeep,
+  output          soMP0_Read_tlast,
+  output          soMP0_Read_tvalid,
+  input           soMP0_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   siMP0_Mc_WrCmd_tdata,
-  input           siMP0_Mc_WrCmd_tvalid,
-  output          siMP0_Mc_WrCmd_tready,
+  input  [79:0]   siMP0_WrCmd_tdata,
+  input           siMP0_WrCmd_tvalid,
+  output          siMP0_WrCmd_tready,
   //---- Stream Write Status -----------------
-  output          soMC_Mp0_WrSts_tvalid,
-  output [7:0]    soMC_Mp0_WrSts_tdata,
-  input           soMC_Mp0_WrSts_tready,
+  output          soMP0_WrSts_tvalid,
+  output [7:0]    soMP0_WrSts_tdata,
+  input           soMP0_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]
-                  siMP0_Mc_Write_tdata,
+                  siMP0_Write_tdata,
   input  [(gUserDataChanWidth/8)-1:0]
-                  siMP0_Mc_Write_tkeep,
-  input           siMP0_Mc_Write_tlast,
-  input           siMP0_Mc_Write_tvalid,
-  output          siMP0_Mc_Write_tready,
+                  siMP0_Write_tkeep,
+  input           siMP0_Write_tlast,
+  input           siMP0_Write_tvalid,
+  output          siMP0_Write_tready,
     
   //----------------------------------------------
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------  
   //---- Stream Read Command -----------------
-  input  [79:0]   siMP1_Mc_RdCmd_tdata,
-  input           siMP1_Mc_RdCmd_tvalid,
-  output          siMP1_Mc_RdCmd_tready,
+  input  [79:0]   siMP1_RdCmd_tdata,
+  input           siMP1_RdCmd_tvalid,
+  output          siMP1_RdCmd_tready,
   //---- Stream Read Status ------------------
-  output [7:0]    soMC_Mp1_RdSts_tdata,
-  output          soMC_Mp1_RdSts_tvalid,
-  input           soMC_Mp1_RdSts_tready,
+  output [7:0]    soMP1_RdSts_tdata,
+  output          soMP1_RdSts_tvalid,
+  input           soMP1_RdSts_tready,
   //---- Stream Data Output Channel ----------
   output [gUserDataChanWidth-1:0]
-                  soMC_Mp1_Read_tdata,
+                  soMP1_Read_tdata,
   output [(gUserDataChanWidth/8)-1:0]
-                  soMC_Mp1_Read_tkeep,
-  output          soMC_Mp1_Read_tlast,
-  output          soMC_Mp1_Read_tvalid,
-  input           soMC_Mp1_Read_tready,
+                  soMP1_Read_tkeep,
+  output          soMP1_Read_tlast,
+  output          soMP1_Read_tvalid,
+  input           soMP1_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   siMP1_Mc_WrCmd_tdata,
-  input           siMP1_Mc_WrCmd_tvalid,
-  output          siMP1_Mc_WrCmd_tready,
+  input  [79:0]   siMP1_WrCmd_tdata,
+  input           siMP1_WrCmd_tvalid,
+  output          siMP1_WrCmd_tready,
   //---- Stream Write Status -----------------
-  output          soMC_Mp1_WrSts_tvalid,
-  output [7:0]    soMC_Mp1_WrSts_tdata,
-  input           soMC_Mp1_WrSts_tready,
+  output          soMP1_WrSts_tvalid,
+  output [7:0]    soMP1_WrSts_tdata,
+  input           soMP1_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]
-                  siMP1_Mc_Write_tdata,
+                  siMP1_Write_tdata,
   input  [(gUserDataChanWidth/8)-1:0]
-                  siMP1_Mc_Write_tkeep,
-  input           siMP1_Mc_Write_tlast,
-  input           siMP1_Mc_Write_tvalid,
-  output          siMP1_Mc_Write_tready,    
+                  siMP1_Write_tkeep,
+  input           siMP1_Write_tlast,
+  input           siMP1_Write_tvalid,
+  output          siMP1_Write_tready,    
  
   //----------------------------------------------
   // -- DDR4 Physical Interface
@@ -164,16 +164,16 @@ module MemoryChannel_DualPort #(
   inout  [71:0]   pioDDR4_Dq,
   inout   [8:0]   pioDDR4_Dqs_n,
   inout   [8:0]   pioDDR4_Dqs_p,  
-  output          poDdr4_Act_n,
-  output [16:0]   poDdr4_Adr,
-  output  [1:0]   poDdr4_Ba,
-  output  [1:0]   poDdr4_Bg,
-  output  [0:0]   poDdr4_Cke,
-  output  [0:0]   poDdr4_Odt,
-  output  [0:0]   poDdr4_Cs_n,
-  output  [0:0]   poDdr4_Ck_n,
-  output  [0:0]   poDdr4_Ck_p,
-  output          poDdr4_Reset_n,
+  output          poDDR4_Act_n,
+  output [16:0]   poDDR4_Adr,
+  output  [1:0]   poDDR4_Ba,
+  output  [1:0]   poDDR4_Bg,
+  output  [0:0]   poDDR4_Cke,
+  output  [0:0]   poDDR4_Odt,
+  output  [0:0]   poDDR4_Cs_n,
+  output  [0:0]   poDDR4_Ck_n,
+  output  [0:0]   poDDR4_Ck_p,
+  output          poDDR4_Reset_n,
  
   output          poVoid
 
@@ -185,109 +185,140 @@ module MemoryChannel_DualPort #(
   // Local Parameters
   localparam C_MCC_S_AXI_ADDR_WIDTH  = 33;
   localparam C_MCC_S_AXI_DATA_WIDTH  = 512;
-  localparam cMCC_S_AXI_ID_WIDTH    = 4;
+  localparam cMCC_S_AXI_ID_WIDTH     = 4;
    
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
-    
-  //-- SIGNAL DECLARATIONS : DATA MOVER #0 AND #1 ----------
-  wire [0:0]   sDM0_Axi_WrAdd_Id,        sDM1_Axi_WrAdd_Id;
-  wire [32:0]  sDM0_Axi_WrAdd_Addr,      sDM1_Axi_WrAdd_Addr;
-  wire [7:0]   sDM0_Axi_WrAdd_Len,       sDM1_Axi_WrAdd_Len;
-  wire [2:0]   sDM0_Axi_WrAdd_Size,      sDM1_Axi_WrAdd_Size;
-  wire [1:0]   sDM0_Axi_WrAdd_Burst,     sDM1_Axi_WrAdd_Burst;
-  wire         sDM0_Axi_WrAdd_Valid,     sDM1_Axi_WrAdd_Valid;
-  
-  wire [511:0] sDM0_Axi_Write_Data,      sDM1_Axi_Write_Data;
-  wire [63:0]  sDM0_Axi_Write_Strb,      sDM1_Axi_Write_Strb;
-  wire         sDM0_Axi_Write_Last,      sDM1_Axi_Write_Last;
-  wire         sDM0_Axi_Write_Valid,     sDM1_Axi_Write_Valid;  
- 
-  wire         sDM0_Axi_WrRes_Ready,     sDM1_Axi_WrRes_Ready;
 
-  wire [0:0]   sDM0_Axi_RdAdd_Id,        sDM1_Axi_RdAdd_Id;
-  wire [32:0]  sDM0_Axi_RdAdd_Addr,      sDM1_Axi_RdAdd_Addr;  
-  wire [7:0]   sDM0_Axi_RdAdd_Len,       sDM1_Axi_RdAdd_Len;
-  wire [2:0]   sDM0_Axi_RdAdd_Size,      sDM1_Axi_RdAdd_Size;
-  wire [1:0]   sDM0_Axi_RdAdd_Burst,     sDM1_Axi_RdAdd_Burst;
-  wire         sDM0_Axi_RdAdd_Valid,     sDM1_Axi_RdAdd_Valid;
-
-  wire         sDM0_Axi_Read_Ready,      sDM1_Axi_Read_Ready;
-
-  wire [3:0]   sDM0_Axi_RdAdd_Id_x,      sDM1_Axi_RdAdd_Id_x;
-  wire [3:0]   sDM0_Axi_WrAdd_Id_x,      sDM1_Axi_WrAdd_Id_x;  
-  
-  //-- SIGNAL DECLARATIONS : AXI INTERCONNECT --------------
-  wire         sICT_S00_Axi_WrAdd_Ready, sICT_S01_Axi_WrAdd_Ready;
-  
-  wire         sICT_S00_Axi_Write_Ready, sICT_S01_Axi_Write_Ready;
-  
-  wire [0:0]   sICT_S00_Axi_WrRes_Id,    sICT_S01_Axi_WrRes_Id;
-  wire [1:0]   sICT_S00_Axi_WrRes_Resp,  sICT_S01_Axi_WrRes_Resp;
-  wire         sICT_S00_Axi_WrRes_Valid, sICT_S01_Axi_WrRes_Valid;
-  
-  wire [0:0]   sICT_S00_Axi_Read_Id,     sICT_S01_Axi_Read_Id;
-  wire [511:0] sICT_S00_Axi_Read_Data,   sICT_S01_Axi_Read_Data;
-  wire [1:0]   sICT_S00_Axi_Read_Resp,   sICT_S01_Axi_Read_Resp;
-  wire         sICT_S00_Axi_Read_Last,   sICT_S01_Axi_Read_Last;
-  wire         sICT_S00_Axi_Read_Valid,  sICT_S01_Axi_Read_Valid;
-    
-  wire         sICT_S00_Axi_RdAdd_Ready, sICT_S01_Axi_RdAdd_Ready;
-
-  wire [3:0]                            sICT_M00_Axi_WrAdd_Wid;
-  wire [32:0]                           sICT_M00_Axi_WrAdd_Addr;
-  wire [7:0]                            sICT_M00_Axi_WrAdd_Len;
-  wire [2:0]                            sICT_M00_Axi_WrAdd_Size;
-  wire [1:0]                            sICT_M00_Axi_WrAdd_Burst;
-  wire                                  sICT_M00_Axi_WrAdd_Valid;
+  //--------------------------------------------------------  
+  //-- DATA MOVER #0 : Signal Declarations
+  //--------------------------------------------------------
+  //---- Master Read Address Channel -----------------------
+  wire [3:0]   sbDM0_ICT_RdAdd_Id;
+  wire [32:0]  sbDM0_ICT_RdAdd_Addr;
+  wire [7:0]   sbDM0_ICT_RdAdd_Len;
+  wire [2:0]   sbDM0_ICT_RdAdd_Size;
+  wire [1:0]   sbDM0_ICT_RdAdd_Burst;
+  wire         sbDM0_ICT_RdAdd_Valid;
+  wire         sbDM0_ICT_RdAdd_Ready;
+  //---- Master Write Address Channel ----------------------
+  wire [3:0]   sbDM0_ICT_WrAdd_Id;
+  wire [32:0]  sbDM0_ICT_WrAdd_Addr;
+  wire [7:0]   sbDM0_ICT_WrAdd_Len;
+  wire [2:0]   sbDM0_ICT_WrAdd_Size;
+  wire [1:0]   sbDM0_ICT_WrAdd_Burst;
+  wire         sbDM0_ICT_WrAdd_Valid;
+  wire         sbDM0_ICT_WrAdd_Ready;
+  //---- Master Write Data Channel -------------------------
+  wire [511:0] sbDM0_ICT_Write_Data;
+  wire [63:0]  sbDM0_ICT_Write_Strb;
+  wire         sbDM0_ICT_Write_Last;
+  wire         sbDM0_ICT_Write_Valid; 
+  wire         sbDM0_ICT_Write_Ready;
    
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sICT_M00_Axi_Write_Data;
-  wire [(C_MCC_S_AXI_DATA_WIDTH/8)-1:0] sICT_M00_Axi_Write_Strb;
-  wire                                  sICT_M00_Axi_Write_Last;
-  wire                                  sICT_M00_Axi_Write_Valid;
+  //--------------------------------------------------------  
+  //-- DATA MOVER #1 : Signal Declarations
+  //--------------------------------------------------------
+  //---- Master Read Address Channel -----------------------
+  wire [3:0]   sbDM1_ICT_RdAdd_Id;
+  wire [32:0]  sbDM1_ICT_RdAdd_Addr;  
+  wire [7:0]   sbDM1_ICT_RdAdd_Len;
+  wire [2:0]   sbDM1_ICT_RdAdd_Size;
+  wire [1:0]   sbDM1_ICT_RdAdd_Burst;
+  wire         sbDM1_ICT_RdAdd_Valid;  
+  wire         sbDM1_ICT_RdAdd_Ready;
+  //---- Master Write Address Channel ----------------------
+  wire [3:0]   sbDM1_ICT_WrAdd_Id;
+  wire [32:0]  sbDM1_ICT_WrAdd_Addr;
+  wire [7:0]   sbDM1_ICT_WrAdd_Len;
+  wire [2:0]   sbDM1_ICT_WrAdd_Size;
+  wire [1:0]   sbDM1_ICT_WrAdd_Burst;
+  wire         sbDM1_ICT_WrAdd_Valid;
+  wire         sbDM1_ICT_WrAdd_Ready;
+  //---- Master Write Data Channel -------------------------
+  wire [511:0] sbDM1_ICT_Write_Data;
+  wire [63:0]  sbDM1_ICT_Write_Strb;
+  wire         sbDM1_ICT_Write_Last;
+  wire         sbDM1_ICT_Write_Valid; 
+  wire         sbDM1_ICT_Write_Ready;
   
-  wire                                  sICT_M00_Axi_WrRes_Ready;
+    
+  //--------------------------------------------------------  
+  //-- AXI INTERCONNECT : Signal Declarations
+  //--------------------------------------------------------
+  //---- Slave Read Data Channel #0 ------------------------
+  wire [0:0]   sbICT_DM0_Read_Id;
+  wire [511:0] sbICT_DM0_Read_Data;
+  wire [1:0]   sbICT_DM0_Read_Resp;
+  wire         sbICT_DM0_Read_Last;
+  wire         sbICT_DM0_Read_Valid;
+  wire         sbICT_DM0_Read_Ready;
+  //-- Master Write Response Channel #0 --------------------
+  wire [0:0]   sbICT_DM0_WrRes_Id;
+  wire [1:0]   sbICT_DM0_WrRes_Resp;
+  wire         sbICT_DM0_WrRes_Valid;
+  wire         sbICT_DM0_WrRes_Ready;
+  //---- Slave Read Data Channel #1 ------------------------
+  wire [0:0]   sbICT_DM1_Read_Id;
+  wire [511:0] sbICT_DM1_Read_Data;
+  wire [1:0]   sbICT_DM1_Read_Resp;
+  wire         sbICT_DM1_Read_Last;
+  wire         sbICT_DM1_Read_Valid;
+  wire         sbICT_DM1_Read_Ready;
+  //---- Master Write Response Channel #1 ------------------
+  wire [0:0]   sbICT_DM1_WrRes_Id;
+  wire [1:0]   sbICT_DM1_WrRes_Resp;
+  wire         sbICT_DM1_WrRes_Valid;
+  wire         sbICT_DM1_WrRes_Ready;
+  //---- Master Write Address Channel ----------------------
+  wire [3:0]   sbICT_MCC_WrAdd_Wid;
+  wire [32:0]  sbICT_MCC_WrAdd_Addr;
+  wire [7:0]   sbICT_MCC_WrAdd_Len;
+  wire [2:0]   sbICT_MCC_WrAdd_Size;
+  wire [1:0]   sbICT_MCC_WrAdd_Burst;
+  wire         sbICT_MCC_WrAdd_Valid;
+  wire         sbICT_MCC_WrAdd_Ready;
+  //---- Master Write Data Channel ------------------------- 
+  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbICT_MCC_Write_Data;
+  wire [(C_MCC_S_AXI_DATA_WIDTH/8)-1:0] sbICT_MCC_Write_Strb;
+  wire                                  sbICT_MCC_Write_Last;
+  wire                                  sbICT_MCC_Write_Valid;
+  wire                                  sbICT_MCC_Write_Ready;
+  //---- Master Write Response Channel ---------------------
+  wire [cMCC_S_AXI_ID_WIDTH-1:0]        sbMCC_ICT_WrRes_Id;
+  wire [1:0]                            sbMCC_ICT_WrRes_Resp;
+  wire                                  sbMCC_ICT_WrRes_Valid;
+  wire                                  sbMCC_ICT_WrRes_Ready;
+  //-- Master Read Address Channel -------------------------              
+  wire [3:0]   sbICT_MCC_RdAdd_Id;      
+  wire [32:0]  sbICT_MCC_RdAdd_Addr;    
+  wire [7:0]   sbICT_MCC_RdAdd_Len;     
+  wire [2:0]   sbICT_MCC_RdAdd_Size;    
+  wire [1:0]   sbICT_MCC_RdAdd_Burst;   
+  wire         sbICT_MCC_RdAdd_Valid;                                          
+  wire         sbICT_MCC_RdAdd_Ready;
   
-  wire [3:0]                            sICT_M00_Axi_RdAdd_Id;
-  wire [32:0]                           sICT_M00_Axi_RdAdd_Addr;
-  wire [7:0]                            sICT_M00_Axi_RdAdd_Len;
-  wire [2:0]                            sICT_M00_Axi_RdAdd_Size;
-  wire [1:0]                            sICT_M00_Axi_RdAdd_Burst; 
-  wire                                  sICT_M00_Axi_RdAdd_Valid;
-  
-  wire                                  sICT_M00_Axi_Read_Ready;
-  
-  wire [3:0]                            sICT_M00_Axi_RdAdd_Id_x;
-  
-  //-- SIGNAL DECLARATIONS : MEMORY CHANNEL CONTROLLER
+  //--------------------------------------------------------  
+  //-- MEMORY CHANNEL CONTROLLER : Signal Declarations
+  //--------------------------------------------------------
+  //---- User Interface ------------------------------------
   wire                                  sMCC_Ui_clk;
   wire                                  sMCC_Ui_SyncRst;
+  //---- Master Read Data Channel --------------------------
+  wire [3:0]                            sbMCC_ICT_Read_Id;
+  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbMCC_ICT_Read_Data;
+  wire [1:0]                            sbMCC_ICT_Read_Resp;
+  wire                                  sbMCC_ICT_Read_Last;
+  wire                                  sbMCC_ICT_Read_Valid;
+  wire                                  sbMCC_ICT_Read_Ready;
   
-  wire                                  sMCC_Axi_WrAdd_Ready;
-  wire                                  sMCC_Axi_Write_Ready;
-  wire [cMCC_S_AXI_ID_WIDTH-1:0]        sMCC_Axi_WrRes_Id;
-  wire [1:0]                            sMCC_Axi_WrRes_Resp;
-  wire                                  sMCC_Axi_WrRes_Valid;
-  wire                                  sMCC_Axi_RdAdd_Ready;
-  wire [3:0]                            sMCC_Axi_Read_Id;
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sMCC_Axi_Read_Data;
-  wire [1:0]                            sMCC_Axi_Read_Resp;
-  wire                                  sMCC_Axi_Read_Last;
-  wire                                  sMCC_Axi_Read_Valid;
+  //--------------------------------------------------------  
+  //-- LOCALY GERANERATED : Signal Declarations
+  //--------------------------------------------------------
+  reg                                   sMCC_Ui_SyncRst_n;
   
-  //- SIGNAL DECLARATIONS : LOCALY GERANERATED
-  reg                                   sAxiReset_n;
-  
-  //============================================================================
-  //  COMB: CONTINIOUS ASSIGNMENTS
-  //============================================================================
-  assign sDM0_Axi_RdAdd_Id     = sDM0_Axi_RdAdd_Id_x[0];
-  assign sDM0_Axi_WrAdd_Id     = sDM0_Axi_WrAdd_Id_x[0];
-  assign sDM1_Axi_RdAdd_Id     = sDM1_Axi_RdAdd_Id_x[0];
-  assign sDM1_Axi_WrAdd_Id     = sDM1_Axi_WrAdd_Id_x[0];
-  assign sICT_M00_Axi_RdAdd_Id = sICT_M00_Axi_RdAdd_Id_x[0];
-  
+   
   //============================================================================
   //  CONDITIONAL INSTANTIATION OF THE DATA MOVERS.
   //    Depending on the value of the data user channel width.
@@ -307,40 +338,40 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*so*/),   //left open
+        .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (siMP0_Mc_RdCmd_tdata),  
-        .s_axis_mm2s_cmd_tvalid     (siMP0_Mc_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (siMP0_Mc_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP0_RdCmd_tdata),
+        .s_axis_mm2s_cmd_tvalid     (siMP0_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP0_RdCmd_tready),
         //-- S_MM2S : Master Stream Read Status ---------------- 
-        .m_axis_mm2s_sts_tdata      (soMC_Mp0_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (soMC_Mp0_RdSts_tvalid),
+        .m_axis_mm2s_sts_tdata      (soMP0_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMP0_RdSts_tvalid),
         .m_axis_mm2s_sts_tkeep      (/*so*/),
         .m_axis_mm2s_sts_tlast      (/*so*/),     
-        .m_axis_mm2s_sts_tready     (soMC_Mp0_RdSts_tready),
+        .m_axis_mm2s_sts_tready     (soMP0_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
-        .m_axi_mm2s_arid            (sDM0_Axi_RdAdd_Id_x),
-        .m_axi_mm2s_araddr          (sDM0_Axi_RdAdd_Addr),
-        .m_axi_mm2s_arlen           (sDM0_Axi_RdAdd_Len),
-        .m_axi_mm2s_arsize          (sDM0_Axi_RdAdd_Size),
-        .m_axi_mm2s_arburst         (sDM0_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*bo*/),   //left open
-        .m_axi_mm2s_arcache         (/*bo*/),   //left open
-        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
-        .m_axi_mm2s_arvalid         (sDM0_Axi_RdAdd_Valid),
-        .m_axi_mm2s_arready         (sICT_S00_Axi_RdAdd_Ready),
+        .m_axi_mm2s_arid            (sbDM0_ICT_RdAdd_Id),
+        .m_axi_mm2s_araddr          (sbDM0_ICT_RdAdd_Addr),
+        .m_axi_mm2s_arlen           (sbDM0_ICT_RdAdd_Len),
+        .m_axi_mm2s_arsize          (sbDM0_ICT_RdAdd_Size),
+        .m_axi_mm2s_arburst         (sbDM0_ICT_RdAdd_Burst),
+        .m_axi_mm2s_arprot          (/*sb*/),   //left open
+        .m_axi_mm2s_arcache         (/*sb*/),   //left open
+        .m_axi_mm2s_aruser          (/*sb*/),   //left open   
+        .m_axi_mm2s_arvalid         (sbDM0_ICT_RdAdd_Valid),
+        .m_axi_mm2s_arready         (sbDM0_ICT_RdAdd_Ready),
         //-- M_MM2S : Master Read Data Channel -----------------
-        .m_axi_mm2s_rdata           (sICT_S00_Axi_Read_Data),
-        .m_axi_mm2s_rresp           (sICT_S00_Axi_Read_Resp),
-        .m_axi_mm2s_rlast           (sICT_S00_Axi_Read_Last),
-        .m_axi_mm2s_rvalid          (sICT_S00_Axi_Read_Valid),
-        .m_axi_mm2s_rready          (sDM0_Axi_Read_Ready),
+        .m_axi_mm2s_rdata           (sbICT_DM0_Read_Data),
+        .m_axi_mm2s_rresp           (sbICT_DM0_Read_Resp),
+        .m_axi_mm2s_rlast           (sbICT_DM0_Read_Last),
+        .m_axi_mm2s_rvalid          (sbICT_DM0_Read_Valid),
+        .m_axi_mm2s_rready          (sbICT_DM0_Read_Ready),
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tdata          (soMC_Mp0_Read_tdata),
-        .m_axis_mm2s_tkeep          (soMC_Mp0_Read_tkeep),
-        .m_axis_mm2s_tlast          (soMC_Mp0_Read_tlast),
-        .m_axis_mm2s_tvalid         (soMC_Mp0_Read_tvalid),          
-        .m_axis_mm2s_tready         (soMC_Mp0_Read_tready),
+        .m_axis_mm2s_tdata          (soMP0_Read_tdata),
+        .m_axis_mm2s_tkeep          (soMP0_Read_tkeep),
+        .m_axis_mm2s_tlast          (soMP0_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMP0_Read_tvalid),          
+        .m_axis_mm2s_tready         (soMP0_Read_tready),        
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -349,42 +380,42 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (siMP0_Mc_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (siMP0_Mc_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (siMP0_Mc_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP0_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP0_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP0_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tdata      (soMC_Mp0_WrSts_tdata),
-        .m_axis_s2mm_sts_tvalid     (soMC_Mp0_WrSts_tvalid),    
+        .m_axis_s2mm_sts_tdata      (soMP0_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMP0_WrSts_tvalid),    
         .m_axis_s2mm_sts_tkeep      (/*so*/),   //left open
         .m_axis_s2mm_sts_tlast      (/*so*/),   //left open
-        .m_axis_s2mm_sts_tready     (soMC_Mp0_WrSts_tready),
+        .m_axis_s2mm_sts_tready     (soMP0_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awid            (sDM0_Axi_WrAdd_Id_x),
-        .m_axi_s2mm_awaddr          (sDM0_Axi_WrAdd_Addr),
-        .m_axi_s2mm_awlen           (sDM0_Axi_WrAdd_Len),
-        .m_axi_s2mm_awsize          (sDM0_Axi_WrAdd_Size),
-        .m_axi_s2mm_awburst         (sDM0_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*bo*/),   //left open
-        .m_axi_s2mm_awcache         (/*bo*/),   //left open
-        .m_axi_s2mm_awuser          (/*bo*/),   //left open
-        .m_axi_s2mm_awvalid         (sDM0_Axi_WrAdd_Valid),
-        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
+        .m_axi_s2mm_awid            (sbDM0_ICT_WrAdd_Id),
+        .m_axi_s2mm_awaddr          (sbDM0_ICT_WrAdd_Addr),
+        .m_axi_s2mm_awlen           (sbDM0_ICT_WrAdd_Len),
+        .m_axi_s2mm_awsize          (sbDM0_ICT_WrAdd_Size),
+        .m_axi_s2mm_awburst         (sbDM0_ICT_WrAdd_Burst),
+        .m_axi_s2mm_awprot          (/*sb*/),   //left open
+        .m_axi_s2mm_awcache         (/*sb*/),   //left open
+        .m_axi_s2mm_awuser          (/*sb*/),   //left open
+        .m_axi_s2mm_awvalid         (sbDM0_ICT_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sbDM0_ICT_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
-        .m_axi_s2mm_wready          (sICT_S00_Axi_Write_Ready),
-        .m_axi_s2mm_wdata           (sDM0_Axi_Write_Data), 
-        .m_axi_s2mm_wstrb           (sDM0_Axi_Write_Strb), 
-        .m_axi_s2mm_wlast           (sDM0_Axi_Write_Last), 
-        .m_axi_s2mm_wvalid          (sDM0_Axi_Write_Valid),     
+        .m_axi_s2mm_wdata           (sbDM0_ICT_Write_Data),
+        .m_axi_s2mm_wstrb           (sbDM0_ICT_Write_Strb),
+        .m_axi_s2mm_wlast           (sbDM0_ICT_Write_Last),
+        .m_axi_s2mm_wvalid          (sbDM0_ICT_Write_Valid),
+        .m_axi_s2mm_wready          (sbDM0_ICT_Write_Ready),
         //-- M_S2MM : Master Write Response Channel ------------
-        .m_axi_s2mm_bresp           (sICT_S00_Axi_WrRes_Resp), 
-        .m_axi_s2mm_bvalid          (sICT_S00_Axi_WrRes_Valid), 
-        .m_axi_s2mm_bready          (sDM0_Axi_WrRes_Ready),
+        .m_axi_s2mm_bresp           (sbICT_DM0_WrRes_Resp), 
+        .m_axi_s2mm_bvalid          (sbICT_DM0_WrRes_Valid), 
+        .m_axi_s2mm_bready          (sbICT_DM0_WrRes_Ready),
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (siMP0_Mc_Write_tdata),
-        .s_axis_s2mm_tkeep          (siMP0_Mc_Write_tkeep),
-        .s_axis_s2mm_tlast          (siMP0_Mc_Write_tlast),
-        .s_axis_s2mm_tvalid         (siMP0_Mc_Write_tvalid),
-        .s_axis_s2mm_tready         (siMP0_Mc_Write_tready)
+        .s_axis_s2mm_tdata          (siMP0_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP0_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP0_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP0_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP0_Write_tready)
         
       );  // End: AxiDataMover_M512_S64_B16  DM0
       
@@ -399,40 +430,40 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*so*/),   //left open
+        .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (siMP1_Mc_RdCmd_tdata),
-        .s_axis_mm2s_cmd_tvalid     (siMP1_Mc_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (siMP1_Mc_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP1_RdCmd_tdata),
+        .s_axis_mm2s_cmd_tvalid     (siMP1_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP1_RdCmd_tready),
         //-- M_MM2S : Master Stream Read Status ----------------
-        .m_axis_mm2s_sts_tdata      (soMC_Mp1_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (soMC_Mp1_RdSts_tvalid),
+        .m_axis_mm2s_sts_tdata      (soMP1_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMP1_RdSts_tvalid),
         .m_axis_mm2s_sts_tkeep      (/*so*/),
         .m_axis_mm2s_sts_tlast      (/*so*/), 
-        .m_axis_mm2s_sts_tready     (soMC_Mp1_RdSts_tready),
+        .m_axis_mm2s_sts_tready     (soMP1_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
-        .m_axi_mm2s_arready         (sICT_S01_Axi_RdAdd_Ready),
-        .m_axi_mm2s_arid            (sDM1_Axi_RdAdd_Id_x),
-        .m_axi_mm2s_araddr          (sDM1_Axi_RdAdd_Addr),
-        .m_axi_mm2s_arlen           (sDM1_Axi_RdAdd_Len),
-        .m_axi_mm2s_arsize          (sDM1_Axi_RdAdd_Size),
-        .m_axi_mm2s_arburst         (sDM1_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*bo*/),   //left open
-        .m_axi_mm2s_arcache         (/*bo*/),   //left open
-        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
-        .m_axi_mm2s_arvalid         (sDM1_Axi_RdAdd_Valid),
+        .m_axi_mm2s_arid            (sbDM1_ICT_RdAdd_Id),
+        .m_axi_mm2s_araddr          (sbDM1_ICT_RdAdd_Addr),
+        .m_axi_mm2s_arlen           (sbDM1_ICT_RdAdd_Len),
+        .m_axi_mm2s_arsize          (sbDM1_ICT_RdAdd_Size),
+        .m_axi_mm2s_arburst         (sbDM1_ICT_RdAdd_Burst),
+        .m_axi_mm2s_arprot          (/*sb*/),   //left open
+        .m_axi_mm2s_arcache         (/*sb*/),   //left open
+        .m_axi_mm2s_aruser          (/*sb*/),   //left open   
+        .m_axi_mm2s_arvalid         (sbDM1_ICT_RdAdd_Valid),
+        .m_axi_mm2s_arready         (sbDM1_ICT_RdAdd_Ready),    
         //-- M_MM2S : Master Read Data Channel -----------------
-        .m_axi_mm2s_rdata           (sICT_S01_Axi_Read_Data),
-        .m_axi_mm2s_rresp           (sICT_S01_Axi_Read_Resp),
-        .m_axi_mm2s_rlast           (sICT_S01_Axi_Read_Last),
-        .m_axi_mm2s_rvalid          (sICT_S01_Axi_Read_Valid),
-        .m_axi_mm2s_rready          (sDM1_Axi_Read_Ready),    
+        .m_axi_mm2s_rdata           (sbICT_DM1_Read_Data),
+        .m_axi_mm2s_rresp           (sbICT_DM1_Read_Resp),
+        .m_axi_mm2s_rlast           (sbICT_DM1_Read_Last),
+        .m_axi_mm2s_rvalid          (sbICT_DM1_Read_Valid),
+        .m_axi_mm2s_rready          (sbICT_DM1_Read_Ready),    
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tdata          (soMC_Mp1_Read_tdata), 
-        .m_axis_mm2s_tkeep          (soMC_Mp1_Read_tkeep), 
-        .m_axis_mm2s_tlast          (soMC_Mp1_Read_tlast),
-        .m_axis_mm2s_tvalid         (soMC_Mp1_Read_tvalid), 
-        .m_axis_mm2s_tready         (soMC_Mp1_Read_tready), 
+        .m_axis_mm2s_tdata          (soMP1_Read_tdata), 
+        .m_axis_mm2s_tkeep          (soMP1_Read_tkeep), 
+        .m_axis_mm2s_tlast          (soMP1_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMP1_Read_tvalid), 
+        .m_axis_mm2s_tready         (soMP1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -441,42 +472,42 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (siMP1_Mc_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (siMP1_Mc_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (siMP1_Mc_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP1_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP1_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP1_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tvalid     (soMC_Mp1_WrSts_tvalid),
-        .m_axis_s2mm_sts_tdata      (soMC_Mp1_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMP1_WrSts_tvalid),
+        .m_axis_s2mm_sts_tdata      (soMP1_WrSts_tdata),
         .m_axis_s2mm_sts_tkeep      (/*so*/), //left open
         .m_axis_s2mm_sts_tlast      (/*so*/), //left open
-        .m_axis_s2mm_sts_tready     (soMC_Mp1_WrSts_tready),
+        .m_axis_s2mm_sts_tready     (soMP1_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------       
-        .m_axi_s2mm_awid            (sDM1_Axi_WrAdd_Id_x),
-        .m_axi_s2mm_awaddr          (sDM1_Axi_WrAdd_Addr),
-        .m_axi_s2mm_awlen           (sDM1_Axi_WrAdd_Len),
-        .m_axi_s2mm_awsize          (sDM1_Axi_WrAdd_Size),
-        .m_axi_s2mm_awburst         (sDM1_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*bo*/),   //left open
-        .m_axi_s2mm_awcache         (/*bo*/),   //left open
-        .m_axi_s2mm_awuser          (/*bo*/),   //left open    
-        .m_axi_s2mm_awvalid         (sDM1_Axi_WrAdd_Valid),
-        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
+        .m_axi_s2mm_awid            (sbDM1_ICT_WrAdd_Id),
+        .m_axi_s2mm_awaddr          (sbDM1_ICT_WrAdd_Addr),
+        .m_axi_s2mm_awlen           (sbDM1_ICT_WrAdd_Len),
+        .m_axi_s2mm_awsize          (sbDM1_ICT_WrAdd_Size),
+        .m_axi_s2mm_awburst         (sbDM1_ICT_WrAdd_Burst),
+        .m_axi_s2mm_awprot          (/*sb*/),   //left open
+        .m_axi_s2mm_awcache         (/*sb*/),   //left open
+        .m_axi_s2mm_awuser          (/*sb*/),   //left open    
+        .m_axi_s2mm_awvalid         (sbDM1_ICT_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sbDM1_ICT_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
-        .m_axi_s2mm_wready          (sICT_S01_Axi_Write_Ready),
-        .m_axi_s2mm_wdata           (sDM1_Axi_Write_Data), 
-        .m_axi_s2mm_wstrb           (sDM1_Axi_Write_Strb), 
-        .m_axi_s2mm_wlast           (sDM1_Axi_Write_Last), 
-        .m_axi_s2mm_wvalid          (sDM1_Axi_Write_Valid), 
+        .m_axi_s2mm_wdata           (sbDM1_ICT_Write_Data), 
+        .m_axi_s2mm_wstrb           (sbDM1_ICT_Write_Strb), 
+        .m_axi_s2mm_wlast           (sbDM1_ICT_Write_Last), 
+        .m_axi_s2mm_wvalid          (sbDM1_ICT_Write_Valid),
+        .m_axi_s2mm_wready          (sbDM1_ICT_Write_Ready),
         //-- M_S2MM : Master Write Response Channel ------------
-        .m_axi_s2mm_bresp           (sICT_S01_Axi_WrRes_Resp), 
-        .m_axi_s2mm_bvalid          (sICT_S01_Axi_WrRes_Valid), 
-        .m_axi_s2mm_bready          (sDM1_Axi_WrRes_Ready), 
+        .m_axi_s2mm_bresp           (sbICT_DM1_WrRes_Resp), 
+        .m_axi_s2mm_bvalid          (sbICT_DM1_WrRes_Valid),
+        .m_axi_s2mm_bready          (sbICT_DM1_WrRes_Ready), 
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (siMP1_Mc_Write_tdata),
-        .s_axis_s2mm_tkeep          (siMP1_Mc_Write_tkeep),
-        .s_axis_s2mm_tlast          (siMP1_Mc_Write_tlast),
-        .s_axis_s2mm_tvalid         (siMP1_Mc_Write_tvalid),
-        .s_axis_s2mm_tready         (siMP1_Mc_Write_tready)
+        .s_axis_s2mm_tdata          (siMP1_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP1_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP1_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP1_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP1_Write_tready)
         
       );  // End: AxiDataMover_M512_S64_B16  DM1
       
@@ -495,40 +526,40 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*so*/),   //left open
+        .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (siMP0_Mc_RdCmd_tdata),  
-        .s_axis_mm2s_cmd_tvalid     (siMP0_Mc_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (siMP0_Mc_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP0_RdCmd_tdata),  
+        .s_axis_mm2s_cmd_tvalid     (siMP0_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP0_RdCmd_tready),
         //-- S_MM2S : Master Stream Read Status ---------------- 
-        .m_axis_mm2s_sts_tdata      (soMC_Mp0_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (soMC_Mp0_RdSts_tvalid),
+        .m_axis_mm2s_sts_tdata      (soMP0_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMP0_RdSts_tvalid),
         .m_axis_mm2s_sts_tkeep      (/*so*/),
         .m_axis_mm2s_sts_tlast      (/*so*/),     
-        .m_axis_mm2s_sts_tready     (soMC_Mp0_RdSts_tready),
+        .m_axis_mm2s_sts_tready     (soMP0_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
-        .m_axi_mm2s_arready         (sICT_S00_Axi_RdAdd_Ready),
-        .m_axi_mm2s_arid            (sDM0_Axi_RdAdd_Id_x),
-        .m_axi_mm2s_araddr          (sDM0_Axi_RdAdd_Addr),
-        .m_axi_mm2s_arlen           (sDM0_Axi_RdAdd_Len),
-        .m_axi_mm2s_arsize          (sDM0_Axi_RdAdd_Size),
-        .m_axi_mm2s_arburst         (sDM0_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*bo*/),   //left open
-        .m_axi_mm2s_arcache         (/*bo*/),   //left open
-        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
-        .m_axi_mm2s_arvalid         (sDM0_Axi_RdAdd_Valid),
+        .m_axi_mm2s_arid            (sbDM0_ICT_RdAdd_Id),
+        .m_axi_mm2s_araddr          (sbDM0_ICT_RdAdd_Addr),
+        .m_axi_mm2s_arlen           (sbDM0_ICT_RdAdd_Len),
+        .m_axi_mm2s_arsize          (sbDM0_ICT_RdAdd_Size),
+        .m_axi_mm2s_arburst         (sbDM0_ICT_RdAdd_Burst),
+        .m_axi_mm2s_arprot          (/*sb*/),   //left open
+        .m_axi_mm2s_arcache         (/*sb*/),   //left open
+        .m_axi_mm2s_aruser          (/*sb*/),   //left open   
+        .m_axi_mm2s_arvalid         (sbDM0_ICT_RdAdd_Valid),
+        .m_axi_mm2s_arready         (sbDM0_ICT_RdAdd_Ready),     
         //-- M_MM2S : Master Read Data Channel -----------------
-        .m_axi_mm2s_rdata           (sICT_S00_Axi_Read_Data),
-        .m_axi_mm2s_rresp           (sICT_S00_Axi_Read_Resp),
-        .m_axi_mm2s_rlast           (sICT_S00_Axi_Read_Last),
-        .m_axi_mm2s_rvalid          (sICT_S00_Axi_Read_Valid),
-        .m_axi_mm2s_rready          (sDM0_Axi_Read_Ready),
+        .m_axi_mm2s_rdata           (sbICT_DM0_Read_Data),
+        .m_axi_mm2s_rresp           (sbICT_DM0_Read_Resp),
+        .m_axi_mm2s_rlast           (sbICT_DM0_Read_Last),
+        .m_axi_mm2s_rvalid          (sbICT_DM0_Read_Valid),
+        .m_axi_mm2s_rready          (sbICT_DM0_Read_Ready),
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tdata          (soMC_Mp0_Read_tdata),
-        .m_axis_mm2s_tkeep          (soMC_Mp0_Read_tkeep),
-        .m_axis_mm2s_tlast          (soMC_Mp0_Read_tlast),
-        .m_axis_mm2s_tvalid         (soMC_Mp0_Read_tvalid),          
-        .m_axis_mm2s_tready         (soMC_Mp0_Read_tready),
+        .m_axis_mm2s_tdata          (soMP0_Read_tdata),
+        .m_axis_mm2s_tkeep          (soMP0_Read_tkeep),
+        .m_axis_mm2s_tlast          (soMP0_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMP0_Read_tvalid),          
+        .m_axis_mm2s_tready         (soMP0_Read_tready),
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -537,42 +568,42 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (siMP0_Mc_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (siMP0_Mc_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (siMP0_Mc_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP0_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP0_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP0_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tdata      (soMC_Mp0_WrSts_tdata),
-        .m_axis_s2mm_sts_tvalid     (soMC_Mp0_WrSts_tvalid),    
+        .m_axis_s2mm_sts_tdata      (soMP0_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMP0_WrSts_tvalid),    
         .m_axis_s2mm_sts_tkeep      (/*so*/),   //left open
         .m_axis_s2mm_sts_tlast      (/*so*/),   //left open
-        .m_axis_s2mm_sts_tready     (soMC_Mp0_WrSts_tready),
+        .m_axis_s2mm_sts_tready     (soMP0_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awid            (sDM0_Axi_WrAdd_Id_x),
-        .m_axi_s2mm_awaddr          (sDM0_Axi_WrAdd_Addr),
-        .m_axi_s2mm_awlen           (sDM0_Axi_WrAdd_Len),
-        .m_axi_s2mm_awsize          (sDM0_Axi_WrAdd_Size),
-        .m_axi_s2mm_awburst         (sDM0_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*bo*/),   //left open
-        .m_axi_s2mm_awcache         (/*bo*/),   //left open
-        .m_axi_s2mm_awuser          (/*bo*/),   //left open
-        .m_axi_s2mm_awvalid         (sDM0_Axi_WrAdd_Valid),
-        .m_axi_s2mm_awready         (sICT_S00_Axi_WrAdd_Ready),
+        .m_axi_s2mm_awid            (sbDM0_ICT_WrAdd_Id),
+        .m_axi_s2mm_awaddr          (sbDM0_ICT_WrAdd_Addr),
+        .m_axi_s2mm_awlen           (sbDM0_ICT_WrAdd_Len),
+        .m_axi_s2mm_awsize          (sbDM0_ICT_WrAdd_Size),
+        .m_axi_s2mm_awburst         (sbDM0_ICT_WrAdd_Burst),
+        .m_axi_s2mm_awprot          (/*sb*/),   //left open
+        .m_axi_s2mm_awcache         (/*sb*/),   //left open
+        .m_axi_s2mm_awuser          (/*sb*/),   //left open
+        .m_axi_s2mm_awvalid         (sbDM0_ICT_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sbDM0_ICT_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
-        .m_axi_s2mm_wready          (sICT_S00_Axi_Write_Ready),
-        .m_axi_s2mm_wdata           (sDM0_Axi_Write_Data), 
-        .m_axi_s2mm_wstrb           (sDM0_Axi_Write_Strb), 
-        .m_axi_s2mm_wlast           (sDM0_Axi_Write_Last), 
-        .m_axi_s2mm_wvalid          (sDM0_Axi_Write_Valid),     
+        .m_axi_s2mm_wdata           (sbDM0_ICT_Write_Data),
+        .m_axi_s2mm_wstrb           (sbDM0_ICT_Write_Strb),
+        .m_axi_s2mm_wlast           (sbDM0_ICT_Write_Last),
+        .m_axi_s2mm_wvalid          (sbDM0_ICT_Write_Valid),
+        .m_axi_s2mm_wready          (sbDM0_ICT_Write_Ready),
         //-- M_S2MM : Master Write Response Channel ------------
-        .m_axi_s2mm_bresp           (sICT_S00_Axi_WrRes_Resp), 
-        .m_axi_s2mm_bvalid          (sICT_S00_Axi_WrRes_Valid), 
-        .m_axi_s2mm_bready          (sDM0_Axi_WrRes_Ready),
+        .m_axi_s2mm_bresp           (sbICT_DM0_WrRes_Resp), 
+        .m_axi_s2mm_bvalid          (sbICT_DM0_WrRes_Valid), 
+        .m_axi_s2mm_bready          (sbICT_DM0_WrRes_Ready),
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (siMP0_Mc_Write_tdata),
-        .s_axis_s2mm_tkeep          (siMP0_Mc_Write_tkeep),
-        .s_axis_s2mm_tlast          (siMP0_Mc_Write_tlast),
-        .s_axis_s2mm_tvalid         (siMP0_Mc_Write_tvalid),
-        .s_axis_s2mm_tready         (siMP0_Mc_Write_tready)
+        .s_axis_s2mm_tdata          (siMP0_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP0_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP0_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP0_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP0_Write_tready)
         
       );  // End: AxiDataMover_M512_S512_B16  DM0
       
@@ -587,40 +618,40 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
         .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
         //-- MM2S : Status and Errors outputs ------------------
-        .mm2s_err                   (/*so*/),   //left open
+        .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
-        .s_axis_mm2s_cmd_tdata      (siMP1_Mc_RdCmd_tdata),
-        .s_axis_mm2s_cmd_tvalid     (siMP1_Mc_RdCmd_tvalid),
-        .s_axis_mm2s_cmd_tready     (siMP1_Mc_RdCmd_tready),
+        .s_axis_mm2s_cmd_tdata      (siMP1_RdCmd_tdata),
+        .s_axis_mm2s_cmd_tvalid     (siMP1_RdCmd_tvalid),
+        .s_axis_mm2s_cmd_tready     (siMP1_RdCmd_tready),
         //-- M_MM2S : Master Stream Read Status ----------------
-        .m_axis_mm2s_sts_tdata      (soMC_Mp1_RdSts_tdata),
-        .m_axis_mm2s_sts_tvalid     (soMC_Mp1_RdSts_tvalid),
+        .m_axis_mm2s_sts_tdata      (soMP1_RdSts_tdata),
+        .m_axis_mm2s_sts_tvalid     (soMP1_RdSts_tvalid),
         .m_axis_mm2s_sts_tkeep      (/*so*/),
         .m_axis_mm2s_sts_tlast      (/*so*/), 
-        .m_axis_mm2s_sts_tready     (soMC_Mp1_RdSts_tready),
+        .m_axis_mm2s_sts_tready     (soMP1_RdSts_tready),
         //-- M_MM2S : Master Read Address Channel --------------
-        .m_axi_mm2s_arready         (sICT_S01_Axi_RdAdd_Ready),
-        .m_axi_mm2s_arid            (sDM1_Axi_RdAdd_Id_x),
-        .m_axi_mm2s_araddr          (sDM1_Axi_RdAdd_Addr),
-        .m_axi_mm2s_arlen           (sDM1_Axi_RdAdd_Len),
-        .m_axi_mm2s_arsize          (sDM1_Axi_RdAdd_Size),
-        .m_axi_mm2s_arburst         (sDM1_Axi_RdAdd_Burst),
-        .m_axi_mm2s_arprot          (/*bo*/),   //left open
-        .m_axi_mm2s_arcache         (/*bo*/),   //left open
-        .m_axi_mm2s_aruser          (/*bo*/),   //left open   
-        .m_axi_mm2s_arvalid         (sDM1_Axi_RdAdd_Valid),
+        .m_axi_mm2s_arid            (sbDM1_ICT_RdAdd_Id),
+        .m_axi_mm2s_araddr          (sbDM1_ICT_RdAdd_Addr),
+        .m_axi_mm2s_arlen           (sbDM1_ICT_RdAdd_Len),
+        .m_axi_mm2s_arsize          (sbDM1_ICT_RdAdd_Size),
+        .m_axi_mm2s_arburst         (sbDM1_ICT_RdAdd_Burst),
+        .m_axi_mm2s_arprot          (/*sb*/),   //left open
+        .m_axi_mm2s_arcache         (/*sb*/),   //left open
+        .m_axi_mm2s_aruser          (/*sb*/),   //left open   
+        .m_axi_mm2s_arvalid         (sbDM1_ICT_RdAdd_Valid),
+        .m_axi_mm2s_arready         (sbDM1_ICT_RdAdd_Ready),    
         //-- M_MM2S : Master Read Data Channel -----------------
-        .m_axi_mm2s_rdata           (sICT_S01_Axi_Read_Data),
-        .m_axi_mm2s_rresp           (sICT_S01_Axi_Read_Resp),
-        .m_axi_mm2s_rlast           (sICT_S01_Axi_Read_Last),
-        .m_axi_mm2s_rvalid          (sICT_S01_Axi_Read_Valid),
-        .m_axi_mm2s_rready          (sDM1_Axi_Read_Ready),    
+        .m_axi_mm2s_rdata           (sbICT_DM1_Read_Data),
+        .m_axi_mm2s_rresp           (sbICT_DM1_Read_Resp),
+        .m_axi_mm2s_rlast           (sbICT_DM1_Read_Last),
+        .m_axi_mm2s_rvalid          (sbICT_DM1_Read_Valid),
+        .m_axi_mm2s_rready          (sbICT_DM1_Read_Ready),    
         //--M_MM2S : Master Stream Output ----------------------
-        .m_axis_mm2s_tdata          (soMC_Mp1_Read_tdata), 
-        .m_axis_mm2s_tkeep          (soMC_Mp1_Read_tkeep), 
-        .m_axis_mm2s_tlast          (soMC_Mp1_Read_tlast),
-        .m_axis_mm2s_tvalid         (soMC_Mp1_Read_tvalid), 
-        .m_axis_mm2s_tready         (soMC_Mp1_Read_tready), 
+        .m_axis_mm2s_tdata          (soMP1_Read_tdata), 
+        .m_axis_mm2s_tkeep          (soMP1_Read_tkeep), 
+        .m_axis_mm2s_tlast          (soMP1_Read_tlast),
+        .m_axis_mm2s_tvalid         (soMP1_Read_tvalid), 
+        .m_axis_mm2s_tready         (soMP1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
         .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
@@ -629,42 +660,42 @@ module MemoryChannel_DualPort #(
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
-        .s_axis_s2mm_cmd_tdata      (siMP1_Mc_WrCmd_tdata),
-        .s_axis_s2mm_cmd_tvalid     (siMP1_Mc_WrCmd_tvalid),
-        .s_axis_s2mm_cmd_tready     (siMP1_Mc_WrCmd_tready),
+        .s_axis_s2mm_cmd_tdata      (siMP1_WrCmd_tdata),
+        .s_axis_s2mm_cmd_tvalid     (siMP1_WrCmd_tvalid),
+        .s_axis_s2mm_cmd_tready     (siMP1_WrCmd_tready),
         //-- M_S2MM : Master Stream Write Status ---------------
-        .m_axis_s2mm_sts_tvalid     (soMC_Mp1_WrSts_tvalid),
-        .m_axis_s2mm_sts_tdata      (soMC_Mp1_WrSts_tdata),
+        .m_axis_s2mm_sts_tvalid     (soMP1_WrSts_tvalid),
+        .m_axis_s2mm_sts_tdata      (soMP1_WrSts_tdata),
         .m_axis_s2mm_sts_tkeep      (/*so*/), //left open
         .m_axis_s2mm_sts_tlast      (/*so*/), //left open
-        .m_axis_s2mm_sts_tready     (soMC_Mp1_WrSts_tready),
+        .m_axis_s2mm_sts_tready     (soMP1_WrSts_tready),
         //-- M_S2MM : Master Write Address Channel -------------
-        .m_axi_s2mm_awid            (sDM1_Axi_WrAdd_Id_x),
-        .m_axi_s2mm_awaddr          (sDM1_Axi_WrAdd_Addr),
-        .m_axi_s2mm_awlen           (sDM1_Axi_WrAdd_Len),
-        .m_axi_s2mm_awsize          (sDM1_Axi_WrAdd_Size),
-        .m_axi_s2mm_awburst         (sDM1_Axi_WrAdd_Burst),
-        .m_axi_s2mm_awprot          (/*bo*/),   //left open
-        .m_axi_s2mm_awcache         (/*bo*/),   //left open
-        .m_axi_s2mm_awuser          (/*bo*/),   //left open    
-        .m_axi_s2mm_awvalid         (sDM1_Axi_WrAdd_Valid),
-        .m_axi_s2mm_awready         (sICT_S01_Axi_WrAdd_Ready),
+        .m_axi_s2mm_awid            (sbDM1_ICT_WrAdd_Id),
+        .m_axi_s2mm_awaddr          (sbDM1_ICT_WrAdd_Addr),
+        .m_axi_s2mm_awlen           (sbDM1_ICT_WrAdd_Len),
+        .m_axi_s2mm_awsize          (sbDM1_ICT_WrAdd_Size),
+        .m_axi_s2mm_awburst         (sbDM1_ICT_WrAdd_Burst),
+        .m_axi_s2mm_awprot          (/*sb*/),   //left open
+        .m_axi_s2mm_awcache         (/*sb*/),   //left open
+        .m_axi_s2mm_awuser          (/*sb*/),   //left open    
+        .m_axi_s2mm_awvalid         (sbDM1_ICT_WrAdd_Valid),
+        .m_axi_s2mm_awready         (sbDM1_ICT_WrAdd_Ready),
         //-- M_S2MM : Master Write Data Channel ----------------
-        .m_axi_s2mm_wready          (sICT_S01_Axi_Write_Ready),
-        .m_axi_s2mm_wdata           (sDM1_Axi_Write_Data), 
-        .m_axi_s2mm_wstrb           (sDM1_Axi_Write_Strb), 
-        .m_axi_s2mm_wlast           (sDM1_Axi_Write_Last), 
-        .m_axi_s2mm_wvalid          (sDM1_Axi_Write_Valid), 
+        .m_axi_s2mm_wdata           (sbDM1_ICT_Write_Data), 
+        .m_axi_s2mm_wstrb           (sbDM1_ICT_Write_Strb), 
+        .m_axi_s2mm_wlast           (sbDM1_ICT_Write_Last), 
+        .m_axi_s2mm_wvalid          (sbDM1_ICT_Write_Valid),
+        .m_axi_s2mm_wready          (sbDM1_ICT_Write_Ready), 
         //-- M_S2MM : Master Write Response Channel ------------
-        .m_axi_s2mm_bresp           (sICT_S01_Axi_WrRes_Resp), 
-        .m_axi_s2mm_bvalid          (sICT_S01_Axi_WrRes_Valid), 
-        .m_axi_s2mm_bready          (sDM1_Axi_WrRes_Ready), 
+        .m_axi_s2mm_bresp           (sbICT_DM1_WrRes_Resp), 
+        .m_axi_s2mm_bvalid          (sbICT_DM1_WrRes_Valid), 
+        .m_axi_s2mm_bready          (sbICT_DM1_WrRes_Ready), 
         //-- S_S2MM : Slave Stream Input -----------------------
-        .s_axis_s2mm_tdata          (siMP1_Mc_Write_tdata),
-        .s_axis_s2mm_tkeep          (siMP1_Mc_Write_tkeep),
-        .s_axis_s2mm_tlast          (siMP1_Mc_Write_tlast),
-        .s_axis_s2mm_tvalid         (siMP1_Mc_Write_tvalid),
-        .s_axis_s2mm_tready         (siMP1_Mc_Write_tready)
+        .s_axis_s2mm_tdata          (siMP1_Write_tdata),
+        .s_axis_s2mm_tkeep          (siMP1_Write_tkeep),
+        .s_axis_s2mm_tlast          (siMP1_Write_tlast),
+        .s_axis_s2mm_tvalid         (siMP1_Write_tvalid),
+        .s_axis_s2mm_tready         (siMP1_Write_tready)
         
       );  // End: AxiDataMover_M512_S512_B16  DM1    
   
@@ -689,47 +720,47 @@ module MemoryChannel_DualPort #(
     .S00_AXI_ARESET_OUT_N (/*po*/),   //left open
     .S00_AXI_ACLK         (piShlClk),
     //-- Slave Write Address Channel #00 ---------
-    .S00_AXI_AWID         (sDM0_Axi_WrAdd_Id),
-    .S00_AXI_AWADDR       (sDM0_Axi_WrAdd_Addr),
-    .S00_AXI_AWLEN        (sDM0_Axi_WrAdd_Len),
-    .S00_AXI_AWSIZE       (sDM0_Axi_WrAdd_Size),
-    .S00_AXI_AWBURST      (sDM0_Axi_WrAdd_Burst),
+    .S00_AXI_AWID         (sbDM0_ICT_WrAdd_Id[0]),
+    .S00_AXI_AWADDR       (sbDM0_ICT_WrAdd_Addr),
+    .S00_AXI_AWLEN        (sbDM0_ICT_WrAdd_Len),
+    .S00_AXI_AWSIZE       (sbDM0_ICT_WrAdd_Size),
+    .S00_AXI_AWBURST      (sbDM0_ICT_WrAdd_Burst),
     .S00_AXI_AWLOCK       (1'b0),
     .S00_AXI_AWCACHE      (4'b0),
     .S00_AXI_AWPROT       (3'b0),
     .S00_AXI_AWQOS        (4'b0),
-    .S00_AXI_AWVALID      (sDM0_Axi_WrAdd_Valid),
-    .S00_AXI_AWREADY      (sICT_S00_Axi_WrAdd_Ready),
+    .S00_AXI_AWVALID      (sbDM0_ICT_WrAdd_Valid),
+    .S00_AXI_AWREADY      (sbDM0_ICT_WrAdd_Ready),
     //-- Slave Write Data Channel #00 ------------
-    .S00_AXI_WDATA        (sDM0_Axi_Write_Data),
-    .S00_AXI_WSTRB        (sDM0_Axi_Write_Strb),
-    .S00_AXI_WLAST        (sDM0_Axi_Write_Last),
-    .S00_AXI_WVALID       (sDM0_Axi_Write_Valid),
-    .S00_AXI_WREADY       (sICT_S00_Axi_Write_Ready),    
+    .S00_AXI_WDATA        (sbDM0_ICT_Write_Data),
+    .S00_AXI_WSTRB        (sbDM0_ICT_Write_Strb),
+    .S00_AXI_WLAST        (sbDM0_ICT_Write_Last),
+    .S00_AXI_WVALID       (sbDM0_ICT_Write_Valid),
+    .S00_AXI_WREADY       (sbDM0_ICT_Write_Ready),    
     //-- Slave Write Response Data Channel #00 ---
-    .S00_AXI_BREADY       (sDM0_Axi_WrRes_Ready),
-    .S00_AXI_BID          (sICT_S00_Axi_WrRes_Id),
-    .S00_AXI_BRESP        (sICT_S00_Axi_WrRes_Resp),
-    .S00_AXI_BVALID       (sICT_S00_Axi_WrRes_Valid),
+    .S00_AXI_BID          (sbICT_DM0_WrRes_Id),   // Not connected 
+    .S00_AXI_BRESP        (sbICT_DM0_WrRes_Resp),
+    .S00_AXI_BVALID       (sbICT_DM0_WrRes_Valid),
+    .S00_AXI_BREADY       (sbICT_DM0_WrRes_Ready),
     //-- Slave Read Address Channel #00 ----------
-    .S00_AXI_ARID         (sDM0_Axi_RdAdd_Id),
-    .S00_AXI_ARADDR       (sDM0_Axi_RdAdd_Addr),
-    .S00_AXI_ARLEN        (sDM0_Axi_RdAdd_Len),
-    .S00_AXI_ARSIZE       (sDM0_Axi_RdAdd_Size),
-    .S00_AXI_ARBURST      (sDM0_Axi_RdAdd_Burst),
+    .S00_AXI_ARID         (sbDM0_ICT_RdAdd_Id[0]),
+    .S00_AXI_ARADDR       (sbDM0_ICT_RdAdd_Addr),
+    .S00_AXI_ARLEN        (sbDM0_ICT_RdAdd_Len),
+    .S00_AXI_ARSIZE       (sbDM0_ICT_RdAdd_Size),
+    .S00_AXI_ARBURST      (sbDM0_ICT_RdAdd_Burst),
     .S00_AXI_ARLOCK       (1'b0),
     .S00_AXI_ARCACHE      (4'b0),
     .S00_AXI_ARPROT       (3'b0),
     .S00_AXI_ARQOS        (4'b0),
-    .S00_AXI_ARVALID      (sDM0_Axi_RdAdd_Valid),
-    .S00_AXI_ARREADY      (sICT_S00_Axi_RdAdd_Ready),
+    .S00_AXI_ARVALID      (sbDM0_ICT_RdAdd_Valid),
+    .S00_AXI_ARREADY      (sbDM0_ICT_RdAdd_Ready),
     //-- Slave Read Data Channel #00 -------------
-    .S00_AXI_RREADY       (sDM0_Axi_Read_Ready),
-    .S00_AXI_RID          (sICT_S00_Axi_Read_Id),    // Not connected
-    .S00_AXI_RDATA        (sICT_S00_Axi_Read_Data),
-    .S00_AXI_RRESP        (sICT_S00_Axi_Read_Resp),
-    .S00_AXI_RLAST        (sICT_S00_Axi_Read_Last),
-    .S00_AXI_RVALID       (sICT_S00_Axi_Read_Valid),
+    .S00_AXI_RID          (sbICT_DM0_Read_Id),    // Not connected
+    .S00_AXI_RDATA        (sbICT_DM0_Read_Data),
+    .S00_AXI_RRESP        (sbICT_DM0_Read_Resp),
+    .S00_AXI_RLAST        (sbICT_DM0_Read_Last),
+    .S00_AXI_RVALID       (sbICT_DM0_Read_Valid),
+    .S00_AXI_RREADY       (sbICT_DM0_Read_Ready),
     //--------------------------------------------
     //-- SLAVE INTERFACE #01
     //--------------------------------------------
@@ -737,95 +768,95 @@ module MemoryChannel_DualPort #(
     .S01_AXI_ARESET_OUT_N (/*po*/),   //left open
     .S01_AXI_ACLK         (piShlClk),
     //-- Slave Write Address Channel #01 ---------
-    .S01_AXI_AWID         (sDM1_Axi_WrAdd_Id),
-    .S01_AXI_AWADDR       (sDM1_Axi_WrAdd_Addr),
-    .S01_AXI_AWLEN        (sDM1_Axi_WrAdd_Len),
-    .S01_AXI_AWSIZE       (sDM1_Axi_WrAdd_Size),
-    .S01_AXI_AWBURST      (sDM1_Axi_WrAdd_Burst),
+    .S01_AXI_AWID         (sbDM1_ICT_WrAdd_Id[0]),
+    .S01_AXI_AWADDR       (sbDM1_ICT_WrAdd_Addr),
+    .S01_AXI_AWLEN        (sbDM1_ICT_WrAdd_Len),
+    .S01_AXI_AWSIZE       (sbDM1_ICT_WrAdd_Size),
+    .S01_AXI_AWBURST      (sbDM1_ICT_WrAdd_Burst),
     .S01_AXI_AWLOCK       (1'b0),
     .S01_AXI_AWCACHE      (4'b0),
     .S01_AXI_AWPROT       (3'b0),
     .S01_AXI_AWQOS        (4'b0),
-    .S01_AXI_AWVALID      (sDM1_Axi_WrAdd_Valid),
-    .S01_AXI_AWREADY      (sICT_S01_Axi_WrAdd_Ready),
+    .S01_AXI_AWVALID      (sbDM1_ICT_WrAdd_Valid),
+    .S01_AXI_AWREADY      (sbDM1_ICT_WrAdd_Ready),
     //-- Slave Write Data Channel #01 ------------
-    .S01_AXI_WDATA        (sDM1_Axi_Write_Data),
-    .S01_AXI_WSTRB        (sDM1_Axi_Write_Strb),
-    .S01_AXI_WLAST        (sDM1_Axi_Write_Last),
-    .S01_AXI_WVALID       (sDM1_Axi_Write_Valid),
-    .S01_AXI_WREADY       (sICT_S01_Axi_Write_Ready),
+    .S01_AXI_WDATA        (sbDM1_ICT_Write_Data),
+    .S01_AXI_WSTRB        (sbDM1_ICT_Write_Strb),
+    .S01_AXI_WLAST        (sbDM1_ICT_Write_Last),
+    .S01_AXI_WVALID       (sbDM1_ICT_Write_Valid),
+    .S01_AXI_WREADY       (sbDM1_ICT_Write_Ready),
     //-- Slave Write Response Data Channel #01 ---
-    .S01_AXI_BREADY       (sDM1_Axi_WrRes_Ready),
-    .S01_AXI_BID          (sICT_S01_Axi_WrRes_Id),
-    .S01_AXI_BRESP        (sICT_S01_Axi_WrRes_Resp),
-    .S01_AXI_BVALID       (sICT_S01_Axi_WrRes_Valid),    
+    .S01_AXI_BID          (sbICT_DM1_WrRes_Id),   // Not connected
+    .S01_AXI_BRESP        (sbICT_DM1_WrRes_Resp),
+    .S01_AXI_BVALID       (sbICT_DM1_WrRes_Valid),   
+    .S01_AXI_BREADY       (sbICT_DM1_WrRes_Ready),
     //-- Slave Read Address Channel #01 ----------
-    .S01_AXI_ARID         (sDM1_Axi_RdAdd_Id),
-    .S01_AXI_ARADDR       (sDM1_Axi_RdAdd_Addr),
-    .S01_AXI_ARLEN        (sDM1_Axi_RdAdd_Len),
-    .S01_AXI_ARSIZE       (sDM1_Axi_RdAdd_Size),
-    .S01_AXI_ARBURST      (sDM1_Axi_RdAdd_Burst),
+    .S01_AXI_ARID         (sbDM1_ICT_RdAdd_Id[0]),
+    .S01_AXI_ARADDR       (sbDM1_ICT_RdAdd_Addr),
+    .S01_AXI_ARLEN        (sbDM1_ICT_RdAdd_Len),
+    .S01_AXI_ARSIZE       (sbDM1_ICT_RdAdd_Size),
+    .S01_AXI_ARBURST      (sbDM1_ICT_RdAdd_Burst),
     .S01_AXI_ARLOCK       (1'b0),
     .S01_AXI_ARCACHE      (4'b0),
     .S01_AXI_ARPROT       (3'b0),
     .S01_AXI_ARQOS        (4'b0),
-    .S01_AXI_ARVALID      (sDM1_Axi_RdAdd_Valid),
-    .S01_AXI_ARREADY      (sICT_S01_Axi_RdAdd_Ready),    
+    .S01_AXI_ARVALID      (sbDM1_ICT_RdAdd_Valid),
+    .S01_AXI_ARREADY      (sbDM1_ICT_RdAdd_Ready),    
     //-- Slave Read Data Channel #01
-    .S01_AXI_RREADY       (sDM1_Axi_Read_Ready),
-    .S01_AXI_RID          (sICT_S01_Axi_Read_Id),    // Not connected
-    .S01_AXI_RDATA        (sICT_S01_Axi_Read_Data),
-    .S01_AXI_RRESP        (sICT_S01_Axi_Read_Resp),
-    .S01_AXI_RLAST        (sICT_S01_Axi_Read_Last),
-    .S01_AXI_RVALID       (sICT_S01_Axi_Read_Valid),    
+    .S01_AXI_RID          (sbICT_DM1_Read_Id),    // Not connected
+    .S01_AXI_RDATA        (sbICT_DM1_Read_Data),
+    .S01_AXI_RRESP        (sbICT_DM1_Read_Resp),
+    .S01_AXI_RLAST        (sbICT_DM1_Read_Last),
+    .S01_AXI_RVALID       (sbICT_DM1_Read_Valid),
+    .S01_AXI_RREADY       (sbICT_DM1_Read_Ready),    
     //--------------------------------------------
     //-- MASTER INTERFACE #00
     //--------------------------------------------
-    //-- Master Clocks and Resets Inputs ---------
-    .M00_AXI_ARESET_OUT_N (/*po)*/),    //left open
+    //-- Master Clock Input and Reset Output -----
     .M00_AXI_ACLK         (sMCC_Ui_clk),
+    .M00_AXI_ARESET_OUT_N (/*po)*/),    //left open
     //-- Master Write Address Channel ------------
-    .M00_AXI_AWID         (sICT_M00_Axi_WrAdd_Wid),
-    .M00_AXI_AWADDR       (sICT_M00_Axi_WrAdd_Addr),
-    .M00_AXI_AWLEN        (sICT_M00_Axi_WrAdd_Len),
-    .M00_AXI_AWSIZE       (sICT_M00_Axi_WrAdd_Size),
-    .M00_AXI_AWBURST      (sICT_M00_Axi_WrAdd_Burst),
-    .M00_AXI_AWLOCK       (/*po*/),   //left open
-    .M00_AXI_AWCACHE      (/*po*/),   //left open
-    .M00_AXI_AWPROT       (/*po*/),   //left open
-    .M00_AXI_AWQOS        (/*po*/),   //left open
-    .M00_AXI_AWVALID      (sICT_M00_Axi_WrAdd_Valid),
-    .M00_AXI_AWREADY      (sMCC_Axi_WrAdd_Ready),
+    .M00_AXI_AWID         (sbICT_MCC_WrAdd_Wid),
+    .M00_AXI_AWADDR       (sbICT_MCC_WrAdd_Addr),
+    .M00_AXI_AWLEN        (sbICT_MCC_WrAdd_Len),
+    .M00_AXI_AWSIZE       (sbICT_MCC_WrAdd_Size),
+    .M00_AXI_AWBURST      (sbICT_MCC_WrAdd_Burst),
+    .M00_AXI_AWLOCK       (/*sb*/),   //left open
+    .M00_AXI_AWCACHE      (/*sb*/),   //left open
+    .M00_AXI_AWPROT       (/*sb*/),   //left open
+    .M00_AXI_AWQOS        (/*sb*/),   //left open
+    .M00_AXI_AWVALID      (sbICT_MCC_WrAdd_Valid),
+    .M00_AXI_AWREADY      (sbICT_MCC_WrAdd_Ready),
     //-- Master Write Data Channel ---------------
-    .M00_AXI_WREADY       (sMCC_Axi_Write_Ready),
-    .M00_AXI_WDATA        (sICT_M00_Axi_Write_Data),
-    .M00_AXI_WSTRB        (sICT_M00_Axi_Write_Strb),
-    .M00_AXI_WLAST        (sICT_M00_Axi_Write_Last),
-    .M00_AXI_WVALID       (sICT_M00_Axi_Write_Valid),
+    .M00_AXI_WDATA        (sbICT_MCC_Write_Data),
+    .M00_AXI_WSTRB        (sbICT_MCC_Write_Strb),
+    .M00_AXI_WLAST        (sbICT_MCC_Write_Last),
+    .M00_AXI_WVALID       (sbICT_MCC_Write_Valid),
+    .M00_AXI_WREADY       (sbICT_MCC_Write_Ready),
     //-- Master Write Response Channel ----------- 
-    .M00_AXI_BID          (sMCC_Axi_WrRes_Id),
-    .M00_AXI_BRESP        (sMCC_Axi_WrRes_Resp),
-    .M00_AXI_BVALID       (sMCC_Axi_WrRes_Valid),
-    .M00_AXI_BREADY       (sICT_M00_Axi_WrRes_Ready),
+    .M00_AXI_BID          (sbMCC_ICT_WrRes_Id),
+    .M00_AXI_BRESP        (sbMCC_ICT_WrRes_Resp),
+    .M00_AXI_BVALID       (sbMCC_ICT_WrRes_Valid),
+    .M00_AXI_BREADY       (sbMCC_ICT_WrRes_Ready),
     //-- Master Read Address Channel -------------
-    .M00_AXI_ARREADY      (sMCC_Axi_RdAdd_Ready),
-    .M00_AXI_ARID         (sICT_M00_Axi_RdAdd_Id_x),
-    .M00_AXI_ARADDR       (sICT_M00_Axi_RdAdd_Addr),
-    .M00_AXI_ARLEN        (sICT_M00_Axi_RdAdd_Len),
-    .M00_AXI_ARSIZE       (sICT_M00_Axi_RdAdd_Size),
-    .M00_AXI_ARBURST      (sICT_M00_Axi_RdAdd_Burst),
-    .M00_AXI_ARLOCK       (/*po*/),   // left open
-    .M00_AXI_ARCACHE      (/*po*/),   // left open
-    .M00_AXI_ARPROT       (/*po*/),   // left open
-    .M00_AXI_ARQOS        (/*po*/),   // left open 
-    .M00_AXI_ARVALID      (sICT_M00_Axi_RdAdd_Valid),
+    .M00_AXI_ARID         (sbICT_MCC_RdAdd_Id),
+    .M00_AXI_ARADDR       (sbICT_MCC_RdAdd_Addr),
+    .M00_AXI_ARLEN        (sbICT_MCC_RdAdd_Len),
+    .M00_AXI_ARSIZE       (sbICT_MCC_RdAdd_Size),
+    .M00_AXI_ARBURST      (sbICT_MCC_RdAdd_Burst),
+    .M00_AXI_ARLOCK       (/*sb*/),   // left open
+    .M00_AXI_ARCACHE      (/*sb*/),   // left open
+    .M00_AXI_ARPROT       (/*sb*/),   // left open
+    .M00_AXI_ARQOS        (/*sb*/),   // left open 
+    .M00_AXI_ARVALID      (sbICT_MCC_RdAdd_Valid),
+    .M00_AXI_ARREADY      (sbICT_MCC_RdAdd_Ready),
     //-- Master Read Data Channel ---------------- 
-    .M00_AXI_RID          (sMCC_Axi_Read_Id),
-    .M00_AXI_RDATA        (sMCC_Axi_Read_Data),
-    .M00_AXI_RRESP        (sMCC_Axi_Read_Resp),
-    .M00_AXI_RLAST        (sMCC_Axi_Read_Last),
-    .M00_AXI_RVALID       (sMCC_Axi_Read_Valid),
-    .M00_AXI_RREADY       (sICT_M00_Axi_Read_Ready)
+    .M00_AXI_RID          (sbMCC_ICT_Read_Id),
+    .M00_AXI_RDATA        (sbMCC_ICT_Read_Data),
+    .M00_AXI_RRESP        (sbMCC_ICT_Read_Resp),
+    .M00_AXI_RLAST        (sbMCC_ICT_Read_Last),
+    .M00_AXI_RVALID       (sbMCC_ICT_Read_Valid),
+    .M00_AXI_RREADY       (sbMCC_ICT_Read_Ready)
 
   );  // End: AxiInterconnect_1M2S_A32_D512 ICT 
 
@@ -843,16 +874,16 @@ module MemoryChannel_DualPort #(
     .c0_sys_clk_n               (piCLKT_MemClk_n),
     .c0_sys_clk_p               (piCLKT_MemClk_p),
     //-- Physical IO Pins ------------------------
-    .c0_ddr4_act_n              (poDdr4_Act_n),
-    .c0_ddr4_adr                (poDdr4_Adr),
-    .c0_ddr4_ba                 (poDdr4_Ba),
-    .c0_ddr4_bg                 (poDdr4_Bg),
-    .c0_ddr4_cke                (poDdr4_Cke),
-    .c0_ddr4_odt                (poDdr4_Odt),
-    .c0_ddr4_cs_n               (poDdr4_Cs_n),
-    .c0_ddr4_ck_c               (poDdr4_Ck_n),
-    .c0_ddr4_ck_t               (poDdr4_Ck_p),
-    .c0_ddr4_reset_n            (poDdr4_Reset_n),
+    .c0_ddr4_act_n              (poDDR4_Act_n),
+    .c0_ddr4_adr                (poDDR4_Adr),
+    .c0_ddr4_ba                 (poDDR4_Ba),
+    .c0_ddr4_bg                 (poDDR4_Bg),
+    .c0_ddr4_cke                (poDDR4_Cke),
+    .c0_ddr4_odt                (poDDR4_Odt),
+    .c0_ddr4_cs_n               (poDDR4_Cs_n),
+    .c0_ddr4_ck_c               (poDDR4_Ck_n),
+    .c0_ddr4_ck_t               (poDDR4_Ck_p),
+    .c0_ddr4_reset_n            (poDDR4_Reset_n),
     .c0_ddr4_dm_dbi_n           (pioDDR4_DmDbi_n),
     .c0_ddr4_dq                 (pioDDR4_Dq),
     .c0_ddr4_dqs_c              (pioDDR4_Dqs_n),
@@ -864,7 +895,7 @@ module MemoryChannel_DualPort #(
     .c0_ddr4_ui_clk_sync_rst    (sMCC_Ui_SyncRst),
     .dbg_clk                    (/*po*/),   // left open
     //-- AXI4 Reset ------------------------------
-    .c0_ddr4_aresetn            (sAxiReset_n),
+    .c0_ddr4_aresetn            (sMCC_Ui_SyncRst_n),
      //-- AXI4 Slave EccCtrl Write Address Ports -
     .c0_ddr4_s_axi_ctrl_awvalid (0),
     .c0_ddr4_s_axi_ctrl_awready (/*po*/),   // left open
@@ -889,57 +920,57 @@ module MemoryChannel_DualPort #(
     //-- Interrupt output ------------------------
     .c0_ddr4_interrupt          (/*po*/),   // left open
     //-- AXI4 Slave Write Address Channel --------
-    .c0_ddr4_s_axi_awid         (sICT_M00_Axi_WrAdd_Wid),
-    .c0_ddr4_s_axi_awaddr       (sICT_M00_Axi_WrAdd_Addr),
-    .c0_ddr4_s_axi_awlen        (sICT_M00_Axi_WrAdd_Len),
-    .c0_ddr4_s_axi_awsize       (sICT_M00_Axi_WrAdd_Size),
-    .c0_ddr4_s_axi_awburst      (sICT_M00_Axi_WrAdd_Burst),
+    .c0_ddr4_s_axi_awid         (sbICT_MCC_WrAdd_Wid),
+    .c0_ddr4_s_axi_awaddr       (sbICT_MCC_WrAdd_Addr),
+    .c0_ddr4_s_axi_awlen        (sbICT_MCC_WrAdd_Len),
+    .c0_ddr4_s_axi_awsize       (sbICT_MCC_WrAdd_Size),
+    .c0_ddr4_s_axi_awburst      (sbICT_MCC_WrAdd_Burst),
     .c0_ddr4_s_axi_awlock       (0),
     .c0_ddr4_s_axi_awcache      (0),
     .c0_ddr4_s_axi_awprot       (0),
     .c0_ddr4_s_axi_awqos        (0),
-    .c0_ddr4_s_axi_awvalid      (sICT_M00_Axi_WrAdd_Valid),
-    .c0_ddr4_s_axi_awready      (sMCC_Axi_WrAdd_Ready),
+    .c0_ddr4_s_axi_awvalid      (sbICT_MCC_WrAdd_Valid),
+    .c0_ddr4_s_axi_awready      (sbICT_MCC_WrAdd_Ready),
     //-- AXI4 Slave Write Channel ----------------
-    .c0_ddr4_s_axi_wdata        (sICT_M00_Axi_Write_Data),
-    .c0_ddr4_s_axi_wstrb        (sICT_M00_Axi_Write_Strb),
-    .c0_ddr4_s_axi_wlast        (sICT_M00_Axi_Write_Last),
-    .c0_ddr4_s_axi_wvalid       (sICT_M00_Axi_Write_Valid),
-    .c0_ddr4_s_axi_wready       (sMCC_Axi_Write_Ready),
+    .c0_ddr4_s_axi_wdata        (sbICT_MCC_Write_Data),
+    .c0_ddr4_s_axi_wstrb        (sbICT_MCC_Write_Strb),
+    .c0_ddr4_s_axi_wlast        (sbICT_MCC_Write_Last),
+    .c0_ddr4_s_axi_wvalid       (sbICT_MCC_Write_Valid),
+    .c0_ddr4_s_axi_wready       (sbICT_MCC_Write_Ready),
     //-- AXI4 Slave Write Response Channel -------
-    .c0_ddr4_s_axi_bready       (sICT_M00_Axi_WrRes_Ready),
-    .c0_ddr4_s_axi_bid          (sMCC_Axi_WrRes_Id),
-    .c0_ddr4_s_axi_bresp        (sMCC_Axi_WrRes_Resp),
-    .c0_ddr4_s_axi_bvalid       (sMCC_Axi_WrRes_Valid),
+    .c0_ddr4_s_axi_bid          (sbMCC_ICT_WrRes_Id),
+    .c0_ddr4_s_axi_bresp        (sbMCC_ICT_WrRes_Resp),
+    .c0_ddr4_s_axi_bvalid       (sbMCC_ICT_WrRes_Valid),
+    .c0_ddr4_s_axi_bready       (sbMCC_ICT_WrRes_Ready),
     //-- AXI4 Slave Read Address Channel ---------
-    .c0_ddr4_s_axi_arid         (sICT_M00_Axi_RdAdd_Id),
-    .c0_ddr4_s_axi_araddr       (sICT_M00_Axi_RdAdd_Addr),
-    .c0_ddr4_s_axi_arlen        (sICT_M00_Axi_RdAdd_Len),
-    .c0_ddr4_s_axi_arsize       (sICT_M00_Axi_RdAdd_Size),
-    .c0_ddr4_s_axi_arburst      (sICT_M00_Axi_RdAdd_Burst),
+    .c0_ddr4_s_axi_arid         (sbICT_MCC_RdAdd_Id),
+    .c0_ddr4_s_axi_araddr       (sbICT_MCC_RdAdd_Addr),
+    .c0_ddr4_s_axi_arlen        (sbICT_MCC_RdAdd_Len),
+    .c0_ddr4_s_axi_arsize       (sbICT_MCC_RdAdd_Size),
+    .c0_ddr4_s_axi_arburst      (sbICT_MCC_RdAdd_Burst),
     .c0_ddr4_s_axi_arlock       (0),
     .c0_ddr4_s_axi_arcache      (0),
     .c0_ddr4_s_axi_arprot       (0),
     .c0_ddr4_s_axi_arqos        (0),
-    .c0_ddr4_s_axi_arvalid      (sICT_M00_Axi_RdAdd_Valid),
-    .c0_ddr4_s_axi_arready      (sMCC_Axi_RdAdd_Ready),
+    .c0_ddr4_s_axi_arvalid      (sbICT_MCC_RdAdd_Valid),
+    .c0_ddr4_s_axi_arready      (sbICT_MCC_RdAdd_Ready),
      //-- AXI4 Slave Read Data Channel -----------
-    .c0_ddr4_s_axi_rready       (sICT_M00_Axi_Read_Ready),
-    .c0_ddr4_s_axi_rid          (sMCC_Axi_Read_Id),
-    .c0_ddr4_s_axi_rdata        (sMCC_Axi_Read_Data),
-    .c0_ddr4_s_axi_rresp        (sMCC_Axi_Read_Resp),
-    .c0_ddr4_s_axi_rlast        (sMCC_Axi_Read_Last),
-    .c0_ddr4_s_axi_rvalid       (sMCC_Axi_Read_Valid),
+    .c0_ddr4_s_axi_rid          (sbMCC_ICT_Read_Id),
+    .c0_ddr4_s_axi_rdata        (sbMCC_ICT_Read_Data),
+    .c0_ddr4_s_axi_rresp        (sbMCC_ICT_Read_Resp),
+    .c0_ddr4_s_axi_rlast        (sbMCC_ICT_Read_Last),
+    .c0_ddr4_s_axi_rvalid       (sbMCC_ICT_Read_Valid),
+    .c0_ddr4_s_axi_rready       (sbMCC_ICT_Read_Ready),
      //-- Debug Port -----------------------------
     .dbg_bus                    (/*po*/)    // left open
     
   );  // End: MemoryChannelController MCC
 
   //============================================================================
-  //  PROC: SYNCHRONOUS RESET FOR MCC/AXI4
+  //  PROC: SYNCHRONOUS & ACTIVE LOW RESET FOR MCC/AXI4
   //============================================================================
   always @(posedge sMCC_Ui_clk)
-    sAxiReset_n <= ~sMCC_Ui_SyncRst;
+    sMCC_Ui_SyncRst_n <= ~sMCC_Ui_SyncRst;
 
 
 
