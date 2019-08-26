@@ -1,15 +1,13 @@
-/*****************************************************************************
+/******************************************************************************
  * @file       : cam.cpp
- * @brief      : Content-Addressable Memory (CAM)
+ * @brief      : Content-Addressable Memory (CAM). Fake implementation of a CAM
+ *                for debugging purposes.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *****************************************************************************/
+ ******************************************************************************/
 
 #include "cam.hpp"
 
@@ -96,9 +94,16 @@ void camDelete(fourTupleInternal key)
  * -- Session Lookup Interfaces
  * @param[in]  siTOE_SssLkpReq,  Session update request from TOE.
  * @param[out] soTOE_SssLkpRep,  Session lookup reply   to   TOE.
- *  * -- Session Update Interfaces
+ * -- Session Update Interfaces
  * @param[in]  siTOE_SssUpdReq,  Session update request from TOE.
  * @param[out] soTOE_SssLkpRep,  Session lookup reply   to   TOE.
+ *
+ * @warning    About data structure packing: The bit alignment of a packed
+ *              wide-word is inferred from the declaration order of the struct
+ *              fields. The first field takes the least significant sector of
+ *              the word and so forth until all fields are mapped.
+ *             Also, note that the DATA_PACK optimization does not support
+ *              packing structs which contain other structs.
  *
  ******************************************************************************/
 void cam(

@@ -39,8 +39,11 @@ using namespace std;
 //--  These variables might be updated/overwritten by the
 //--  content of a test-vector file.
 //---------------------------------------------------------
-unsigned int    gMaxSimCycles   = 200;
 bool            gTraceEvent     = false;
+bool            gFatalError     = false;
+unsigned int    gSimCycCnt      = 0;
+unsigned int    gMaxSimCycles   = 200;
+
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
