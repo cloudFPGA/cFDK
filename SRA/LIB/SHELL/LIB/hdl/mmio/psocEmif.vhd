@@ -108,12 +108,13 @@ begin  -- architecture rtl
   -----------------------------------------------------------------
   pInpBusReg: process (piBus_Clk, piRst) is
   begin
-    if (piRst = '1') then
-      sBus_Cs_n  <= '1' after cTREG;
-      sBus_We_n  <= '1' after cTREG;
-      sBus_Data  <= (others => '0') after cTREG;
-      sBus_Addr  <= (others => '0') after cTREG;
-    elsif rising_edge(piBus_Clk) then
+    --OBSOLETE-20190827 if (piRst = '1') then
+    --OBSOLETE-20190827   sBus_Cs_n  <= '1' after cTREG;
+    --OBSOLETE-20190827   sBus_We_n  <= '1' after cTREG;
+    --OBSOLETE-20190827   sBus_Data  <= (others => '0') after cTREG;
+    --OBSOLETE-20190827   sBus_Addr  <= (others => '0') after cTREG;
+    --OBSOLETE-20190827 elsif rising_edge(piBus_Clk) then
+    if rising_edge(piBus_Clk) then
       sBus_Cs_n  <= piBus_Cs_n  after cTREG;
       sBus_We_n  <= piBus_We_n  after cTREG;
       sBus_Data  <= piBus_Data  after cTREG;
