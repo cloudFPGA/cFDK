@@ -66,6 +66,7 @@ The Global Operations Type stores the current Operation between IP core calls (s
 | `GLOBAL_PYROLINK_RECV` | `5` | |
 | `GLOBAL_PYROLINK_TRANS` | `6` |  |
 | `GLOBAL_MANUAL_DECOUPLING` | `7` |  |
+| `GLOBAL_TCP_TO_HWICAP` | `8` | Mainly for Debugging TCP |
 
 All operations involving the XMEM should be sensible to `reset_from_psoc`.
 A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* when the operation is finished.
@@ -93,11 +94,11 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_ENABLE_XMEM_CHECK_PATTERN  ` |  set the XMEM check pattern flag |   `OPRV_OK` | 
 | `OP_DISABLE_XMEM_CHECK_PATTERN ` | unset the XMEM check pattern flag (*default*) | `OPRV_OK` |
 | `OP_XMEM_COPY_DATA             ` | tries to copy data from XMEM; sensitive to check pattern flag; *sets `flag_last_xmem_page_received`;* | `OPRV_NOT_COMPLETE` or `OPRV_PARTIAL_COMPLETE` if not yet a complete page was received; `OPRV_FAIL` if there is a terminating error for this transfer; `OPRV_OK` if a complete page was received (not the last page); `OPRV_DONE` if a complete last page was received; | 
-| `OP_FILL_BUFFER_TCP            ` |                             |                  |
+| `OP_FILL_BUFFER_TCP            ` |  it reads the TCP data stream and writes it into the internal buffer| `OPRV_OK` if some data was received or the buffer is full, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received |
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
 | `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing |  `OPRV_OK`                |
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
-| `OP_FW_TCP_HWICAP              ` |                             |                  |
+| `OP_FW_TCP_HWICAP              ` |  it reads the TCP data stream and writes it into the internal buffer and stays in this opperation as long as data are available until tlast occured | `OPRV_OK` if some data was received, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received, `OPRV_FAIL` if HWICAP is not ready  |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
 | `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
@@ -114,7 +115,9 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_ABORT_HWICAP`                | causes the operation of HWICAP to abort | `OPRV_OK` |
 | `OP_EXIT`                        | ends the program, irrelevant to the program length | *unchanged* | 
 | `OP_ENABLE_SILENT_SKIP`          | set the silent skip flag | (not changed) |
-| `OP_DISABLE_SILENT_SKIP`         | unset the silent skip flag | (not changed) | 
+| `OP_DISABLE_SILENT_SKIP`         | unset the silent skip flag | (not changed) |
+| `OP_WAIT_FOR_TCP_SESS`           | updates `currentTcpSessId` once | `OPRV_OK` if a sessionId was received or was already updated, `OPRV_NOT_COMPLETE` otherwise |
+| `OP_SEND_TCP_SESS`               | sends the `currentTcpSessId` once | `OPRV_OK` if the sessionId was sent, `OPRV_NOT_COMPLETE` otherwise |
 
 *Flags are reset before every program run*, so not persistent.
 The initial `lastReturnValue` is always `OPRV_OK`.
@@ -134,6 +137,7 @@ All global variables are marked as `#pragma HLS reset`.
 | `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (**including**, i.e. afterwards no valid data (--> ` for... i <= bufferInPtrMaxWrite`) | 
 | `bufferInPtrNextRead`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  | Address in the inBuffer that was *net yet* read | 
 | `bufferOutPtrWrite`  | `OP_CLEAR_OUT_BUFFER`, `OP_HANDLE_HTTP` |   Address in OutBuffer *where to write next* |
+| `bufferOutPtrNextRead` |  | |
 | `transferError_persistent`| `OP_ABORT_HWICAP`, also *all global states* | markes a terminating error during transfer --> halt until reset|
 | `httpState`  | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`  | current state of HTTP request processing | 
 | `bufferOutContentLength` | `OP_HANDLE_HTTP`, `OP_CLEAR_OUT_BUFFER`, `OP_SEND_BUFFER_XMEM`  | Content in BufferOut in *Bytes* |
@@ -145,7 +149,8 @@ All global variables are marked as `#pragma HLS reset`.
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
 | `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
 | `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles | 
-
+| `currentTcpSessId`| | |
+| `TcpSessId_updated_persistent` |  | |
 
 
 ### RequestType
