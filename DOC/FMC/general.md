@@ -103,7 +103,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
 | `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
-| `OP_SEND_BUFFER_TCP            ` |                             |                  |
+| `OP_SEND_BUFFER_TCP            ` |  Writes `bufferOutContentLength` bytes from bufferOut to TCP, if the stream is not full  | `OPRV_OK` if some portion of the data could be read (`bufferOutPtrNextRead` is set accordingly); `OPRV_DONE` if everything could be sent; `OPRV_NOT_COMPLETE` if the stream is not ready to write.  |
 | `OP_SEND_BUFFER_XMEM           ` | Initiates bufferOut transfer to XMEM  | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
 | `OP_CLEAR_IN_BUFFER            ` |   empty inBuffer            |  `OPRV_OK`       |
 | `OP_CLEAR_OUT_BUFFER           ` |   empty outBuffer           |  `OPRV_OK`       |
@@ -137,7 +137,7 @@ All global variables are marked as `#pragma HLS reset`.
 | `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (**including**, i.e. afterwards no valid data (--> ` for... i <= bufferInPtrMaxWrite`) | 
 | `bufferInPtrNextRead`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  | Address in the inBuffer that was *net yet* read | 
 | `bufferOutPtrWrite`  | `OP_CLEAR_OUT_BUFFER`, `OP_HANDLE_HTTP` |   Address in OutBuffer *where to write next* |
-| `bufferOutPtrNextRead` |  | |
+| `bufferOutPtrNextRead` | `OP_SEND_BUFFER_TCP`|   |
 | `transferError_persistent`| `OP_ABORT_HWICAP`, also *all global states* | markes a terminating error during transfer --> halt until reset|
 | `httpState`  | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`  | current state of HTTP request processing | 
 | `bufferOutContentLength` | `OP_HANDLE_HTTP`, `OP_CLEAR_OUT_BUFFER`, `OP_SEND_BUFFER_XMEM`  | Content in BufferOut in *Bytes* |
@@ -149,9 +149,9 @@ All global variables are marked as `#pragma HLS reset`.
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
 | `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
 | `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles | 
-| `currentTcpSessId`| | |
-| `TcpSessId_updated_persistent` |  | |
+| `TcpSessId_updated_persistent` | `GLOBAL_TCP_HTTP`, `GLOBAL_TCP_TO_HWICAP` | stores if the Tcp SessionId for this iteration was already read. |
 
+(internal FIFOs and Arrays are not marked as reset and not listed in this table)
 
 ### RequestType
 
