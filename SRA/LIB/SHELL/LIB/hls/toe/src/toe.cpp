@@ -469,19 +469,16 @@ void pReady(
 /******************************************************************************
  * @brief Increments the simulation counter of the testbench (for debugging).
  *
- *  //OBSOLETE-20190822 @param[in]  piSimCycCount, The simulation counter provided by the testbench.
  *  @param[out] poSimCycCount, The incremented simulation counter.
  *
  ******************************************************************************/
 void pTbSimCount(
-    //OBSOLETE-20190822 ap_uint<32>     piSimCycCount,
     ap_uint<32>    &poSimCycCount)
 {
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static ap_uint<32>         sCounter;
     #pragma HLS reset variable=sCounter
 
-    //OBSOLETE-20190822 poSimCycCount = piSimCycCount +  1;
     sCounter += 1;
     poSimCycCount = sCounter;
 }
@@ -631,7 +628,6 @@ void toe(
         ap_uint<16>                         &poDBG_SssRelCnt,
         ap_uint<16>                         &poDBG_SssRegCnt,
         //--
-        //OBSOLETE-20190822 ap_uint<32>                         &piSimCycCount,
         ap_uint<32>                         &poSimCycCount)
 {
 
@@ -699,7 +695,6 @@ void toe(
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
-    //OBSOLETE-20190822 #pragma HLS INTERFACE ap_stable        port=piSimCycCount
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
 
 #else
@@ -763,7 +758,6 @@ void toe(
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
-    //OBSOLETE-20190822 #pragma HLS INTERFACE ap_vld  register   port=piSimCycCount   name=piSimCycCount
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
 
 #endif
@@ -1200,7 +1194,6 @@ void toe(
 
     //-- Testbench counter incrementer (for debugging) --------------------
     pTbSimCount(
-        //OBSOLETE-20190822 piSimCycCount,
         poSimCycCount);
 
 }
