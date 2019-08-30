@@ -59,7 +59,7 @@ using namespace hls;
 #define TRACE_IHC 1 << 2
 #define TRACE_SPS 1 << 3
 #define TRACE_PHC 1 << 4
-#define TRACE_MAI 1 << 5
+#define TRACE_MRD 1 << 5
 #define TRACE_TSS 1 << 6
 #define TRACE_SCA 1 << 7
 #define TRACE_TCA 1 << 8
@@ -1516,56 +1516,70 @@ void pIpPktStitcher(
 
 
 /*****************************************************************************
- * @brief Memory Access Interface (Mai)
+ * @brief Memory Reader (Mrd)
  *
  * @param[in]  siMdl_BufferRdCmd, Buffer read command from Meta Data Loader (Mdl).
  * @param[out] soMEM_Txp_RdCmd,   Memory read command to the DRAM Memory (MEM).
  * @param[out] soTss_SplitMemAcc, Splitted memory access to Tcp Segment Stitcher (Tss).
  *
  * @details
- *  Front end interface to the AXI4 Data Mover core.
- *  Receives a transfer read command and forwards it to the AXI4 Data Mover.
- *   This command might be split in two memory accesses if the address of the
- *   data buffer to read wraps in the external memory.
- *  A split memory access is indicated by the signal 'soTss_SplitMemAcc'.
+ *  Front end memory controller for reading data from the external DRAM.
+ *  This process receives a transfer read command and forwards it to the AXI4
+ *   Data Mover. This command might be split in two memory accesses if the
+ *   address of the data buffer to read wraps in the external memory. Such a
+ *   split memory access is indicated by the signal 'soTss_SplitMemAcc'.
  *
  * @ingroup tx_engine
  *****************************************************************************/
-void pMemoryAccessInterface(
+void pMemoryReader(
         stream<DmCmd>       &siMdl_BufferRdCmd,
         stream<DmCmd>       &soMEM_Txp_RdCmd,
-        stream<ap_uint<1> > &soTss_SplitMemAcc)
+        stream<StsBit>      &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
     #pragma HLS INLINE off
 
-    static bool     txEngBreakdown = false;
-    static DmCmd    txEngTempCmd;
-    static uint16_t txEngBreakTemp = 0;
-    static uint16_t txPktCounter = 0;
+    const char *myName  = concat3(THIS_NAME, "/", "Mrd");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                   txEngBreakdown = false;
+    #pragma HLS reset    variable=txEngBreakdown;
+    static uint16_t               txPktCounter = 0;
+    #pragma HLS reset    variable=txPktCounter;
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static DmCmd    txMemReaderCmd;
+    static uint16_t txEngBreakTemp;
 
     if (txEngBreakdown == false) {
-        if (!siMdl_BufferRdCmd.empty() && !soMEM_Txp_RdCmd.full()) {
-            txEngTempCmd = siMdl_BufferRdCmd.read();
-            DmCmd tempCmd = txEngTempCmd;
-            if ((txEngTempCmd.saddr.range(15, 0) + txEngTempCmd.bbt) > 65536) {
-                txEngBreakTemp = 65536 - txEngTempCmd.saddr;
-                tempCmd = DmCmd(txEngTempCmd.saddr, txEngBreakTemp);
+        if (!siMdl_BufferRdCmd.empty() && !soMEM_Txp_RdCmd.full() && soTss_SplitMemAcc.empty()) {
+            txMemReaderCmd = siMdl_BufferRdCmd.read();
+            DmCmd tempCmd = txMemReaderCmd;
+            if ((txMemReaderCmd.saddr.range(15, 0) + txMemReaderCmd.bbt) > 65536) {
+                // This segment is broken in two memory accesses because TCP Tx memory buffer wraps around
+                txEngBreakTemp = 65536 - txMemReaderCmd.saddr;
+                tempCmd = DmCmd(txMemReaderCmd.saddr, txEngBreakTemp);
                 txEngBreakdown = true;
             }
             soMEM_Txp_RdCmd.write(tempCmd);
             soTss_SplitMemAcc.write(txEngBreakdown);
             txPktCounter++;
-            //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << txPktCounter << " - " << std::hex << " - " << tempCmd.saddr << " - " << tempCmd.bbt << std::endl;
+            if (DEBUG_LEVEL & TRACE_MRD) {
+                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%x - BBT=0x%x\n",
+                          txPktCounter, tempCmd.saddr.to_uint(), tempCmd.bbt.to_uint());
+            }
         }
     }
     else if (txEngBreakdown == true) {
         if (!soMEM_Txp_RdCmd.full()) {
-            txEngTempCmd.saddr.range(15, 0) = 0;
-            //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << std::hex << " - " << txEngTempCmd.saddr << " - " << txEngTempCmd.bbt - txEngBreakTemp << std::endl;
-            soMEM_Txp_RdCmd.write(DmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
+            txMemReaderCmd.saddr.range(15, 0) = 0;
+            soMEM_Txp_RdCmd.write(DmCmd(txMemReaderCmd.saddr, txMemReaderCmd.bbt - txEngBreakTemp));
             txEngBreakdown = false;
+            if (DEBUG_LEVEL & TRACE_MRD) {
+                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%x - BBT=0x%x\n",
+                          txPktCounter, txMemReaderCmd.saddr.to_uint(), txMemReaderCmd.bbt.to_uint());
+            }
         }
     }
 }
@@ -1637,9 +1651,9 @@ void tx_engine(
     static stream<bool>                 sMdlToSpS_IsLookup      ("sMdlToSpS_IsLookup");
     #pragma HLS stream         variable=sMdlToSpS_IsLookup      depth=4
 
-    static stream<DmCmd>                sMdlToMai_BufferRdCmd   ("sMdlToMai_BufferRdCmd");
-    #pragma HLS stream         variable=sMdlToMai_BufferRdCmd   depth=32
-    #pragma HLS DATA_PACK      variable=sMdlToMai_BufferRdCmd
+    static stream<DmCmd>                sMdlToMrd_BufferRdCmd   ("sMdlToMrd_BufferRdCmd");
+    #pragma HLS stream         variable=sMdlToMrd_BufferRdCmd   depth=32
+    #pragma HLS DATA_PACK      variable=sMdlToMrd_BufferRdCmd
 
     static stream<AxiSocketPair>        sMdlToSps_RstSockPair   ("sMdlToSps_RstSockPair");
     #pragma HLS stream         variable=sMdlToSps_RstSockPair   depth=2
@@ -1696,10 +1710,10 @@ void tx_engine(
     #pragma HLS DATA_PACK      variable=sScaToTca_FourSubCsums
 
     //------------------------------------------------------------------------
-    //-- Memory Access Interface (Mai)
+    //-- Memory Reader (Mrd)
     //------------------------------------------------------------------------
-    static stream<ap_uint<1> >          sMaiToTss_SplitMemAcc   ("sMaiToTss_SplitMemAcc");
-    #pragma HLS stream         variable=sMaiToTss_SplitMemAcc   depth=32
+    static stream<StsBit>               sMrdToTss_SplitMemAcc   ("sMrdToTss_SplitMemAcc");
+    #pragma HLS stream         variable=sMrdToTss_SplitMemAcc   depth=32
 
 
 
@@ -1730,16 +1744,16 @@ void tx_engine(
             soTIm_SetProbeTimer,
             sMdlToIhc_TcpSegLen,
             sMdlToPhc_TxeMeta,
-            sMdlToMai_BufferRdCmd,
+            sMdlToMrd_BufferRdCmd,
             soSLc_ReverseLkpReq,
             sMdlToSpS_IsLookup,
             sMdlToSps_RstSockPair,
             soEVe_RxEventSig);
     
-    pMemoryAccessInterface(
-            sMdlToMai_BufferRdCmd,
+    pMemoryReader(
+            sMdlToMrd_BufferRdCmd,
             soMEM_Txp_RdCmd,
-            sMaiToTss_SplitMemAcc);
+            sMrdToTss_SplitMemAcc);
 
     pSocketPairSplitter(
             siSLc_ReverseLkpRep,
@@ -1768,7 +1782,7 @@ void tx_engine(
             sPhcToTss_TcpWord,
             siMEM_TxP_Data,
             sTssToSca_TcpWord,
-            sMaiToTss_SplitMemAcc);
+            sMrdToTss_SplitMemAcc);
 
     pSubChecksumAccumulators(
             sTssToSca_TcpWord,
