@@ -777,7 +777,7 @@ void toe(
     #pragma HLS stream         variable=sAKdToTXe_Event           depth=16
     #pragma HLS DATA_PACK      variable=sAKdToTXe_Event
 
-    static stream<SigBool>              sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
+    static stream<SigBit>               sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_RxEventSig      depth=2
 
     static stream<SigBool>              sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
@@ -948,10 +948,10 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
-    static stream<SigBool>              sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
+    static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
-    static stream<ap_uint<16> >         sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
+    static stream<SessionId>            sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
     #pragma HLS stream         variable=sTXeToRSt_RxSarReq        depth=2
 
     static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");

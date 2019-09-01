@@ -49,7 +49,7 @@ using namespace hls;
 void ack_delay(
         stream<extendedEvent>   &siEVe_Event,
         stream<extendedEvent>   &soTXe_Event,
-        stream<SigBool>         &soEVe_RxEventSig,
+        stream<SigBit>          &soEVe_RxEventSig,
         stream<SigBool>         &soEVe_TxEventSig
 );
 

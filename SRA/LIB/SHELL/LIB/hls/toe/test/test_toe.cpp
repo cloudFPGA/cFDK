@@ -66,7 +66,7 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 #define MAX_TOE_LATENCY    25
 #define MAX_TOE_INTERVAL   25
 #define TB_GRACE_TIME      25
-#define RTT_LINK            0
+#define RTT_LINK           25
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
@@ -139,8 +139,8 @@ void pEmulateCam(
             camIdleCnt = MAX_TOE_LATENCY;
             camFsmState = CAM_LOOKUP_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
-                printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
-                                  request.source.to_int());
+                printInfo(myName, "Received a session lookup request from [%s] for socket pair: \n",
+                          myCamAccessToString(request.source.to_int()));
                 printSockPair(myName, request.source.to_int(), request.key);
             }
         }
@@ -149,8 +149,8 @@ void pEmulateCam(
             camIdleCnt = MAX_TOE_LATENCY;
             camFsmState = CAM_UPDATE_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
-                 printInfo(myName, "Received a session update request from %d for socket pair: \n",
-                                   update.source.to_int());
+                 printInfo(myName, "Received a session update request from [%s] for socket pair: \n",
+                           myCamAccessToString(update.source.to_int()));
                  printSockPair(myName, update.source.to_int(), update.key);
             }
         }
@@ -755,7 +755,7 @@ void pIPRX(
     }
 
     //-------------------------------------------------------------------------
-    //-- STEP-1: PARSE THE APP RX FILE.
+    //-- STEP-1: PARSE THE IP RX FILE.
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
     //-------------------------------------------------------------------------
     if (!globParseDone) {
@@ -1956,6 +1956,9 @@ void pTRIF(
 
     const char *myName  = concat3(THIS_NAME, "/", "TRIF");
 
+    static bool         globParseDone  = false;
+    static unsigned int toeReadyDelay  = 0; // The time it takes for TOE to be ready
+
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS
     //-------------------------------------------------------------------------
@@ -1963,6 +1966,27 @@ void pTRIF(
     #pragma HLS STREAM variable=sRcvToSnd_Data depth=2048
     static stream<TcpSessId>    sRcvToSnd_Meta ("sRcvToSnd_Meta");
     #pragma HLS STREAM variable=sRcvToSnd_Meta depth=64
+
+    //---------------------------------------
+    //-- STEP-0 : RETURN IF TOE IS NOT READY
+    //---------------------------------------
+    if (piTOE_Ready == 0) {
+        toeReadyDelay++;
+        return;
+    }
+
+    //-------------------------------------------------------------------------
+    //-- STEP-1: PARSE THE APP RX FILE.
+    //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
+    //-------------------------------------------------------------------------
+    if (!globParseDone) {
+        globParseDone = setGlobalParameters(myName, toeReadyDelay, appRxFile);
+        if (globParseDone == false) {
+            printInfo(myName, "Aborting testbench (check for previous error).\n");
+            exit(1);
+        }
+        return;
+    }
 
     pTRIF_Recv(
             nrError,        testMode,

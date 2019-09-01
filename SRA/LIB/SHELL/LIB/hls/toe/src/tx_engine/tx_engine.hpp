@@ -32,9 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
@@ -118,6 +115,6 @@ void tx_engine(
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
-        stream<SigBool>                 &soEVe_RxEventSig,
+        stream<SigBit>                  &soEVe_RxEventSig,
         stream<Ip4overAxi>              &soL3MUX_Data
 );

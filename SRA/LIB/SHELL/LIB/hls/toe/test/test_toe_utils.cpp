@@ -442,6 +442,22 @@ void printTcpPort(TcpPort tcpPort)
 #endif
 
 /*****************************************************************************
+ * @brief Converts an access CAM initiator into a string.
+ *
+ * @param[in] initiator, the ID of the CAM accessor.
+ * @return    the corresponding string.
+ *
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    const char    *camAccessorStrings[] = { "RXe", "TAi" };
+
+    const char *myCamAccessToString(int initiator) {
+        return camAccessorStrings[initiator];
+    }
+#endif
+
+
+/*****************************************************************************
  * @brief Converts a string of 16 HEX characters into an UINT64.
  *
  * @param[in]   inputNumber, the string to convert.
