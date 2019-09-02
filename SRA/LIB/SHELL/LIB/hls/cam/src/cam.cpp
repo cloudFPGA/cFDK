@@ -37,11 +37,11 @@
 #define MAX_CAM_LATENCY    0
 
   /************************************************
-   * GLOBAL VARIABLES
+   * GLOBAL VARIABLES & DEFINES
    ************************************************/
-  // [TODO] #define CAM_ARRAY_SIZE  4
-  // [TOOD] static KeyValuePair CamArray[CAM_ARRAY_SIZE];
-  static KeyValuePair CamArray;
+  #define CAM_ARRAY_SIZE  2
+  static KeyValuePair CamArray0;
+  static KeyValuePair CamArray1;
 
 
 /*****************************************************************************
@@ -54,37 +54,71 @@
  ******************************************************************************/
 bool camLookup(fourTupleInternal key, RtlSessId &value)
 {
-    #pragma HLS RESET variable=CamArray
+    #pragma HLS RESET variable=CamArray0
+    #pragma HLS RESET variable=CamArray1
 
-    if ((CamArray.key == key) && (CamArray.valid == true)) {
-        value = CamArray.value;
+    //#pragma HLS UNROLL  factor=2
+    #pragma HLS pipeline II=1
+
+    if ((CamArray0.key == key) && (CamArray0.valid == true)) {
+        value = CamArray0.value;
         return true;
     }
-    else {
-        return false;
+    else if ((CamArray1.key == key) && (CamArray1.valid == true)) {
+        value = CamArray1.value;
+        return true;
     }
+    else
+        return false;
 }
 
 /*****************************************************************************
  * @brief Insert a new key-value pair in the CAM array.
  *
  * @param[in]  KeyValuePair,  the key-value pair to insert.
-  ******************************************************************************/
-void camInsert(KeyValuePair kVP)
+ *
+ * @return true if the the key was inserted.
+ ******************************************************************************/
+bool camInsert(KeyValuePair kVP)
 {
-    CamArray = kVP;
+    //#pragma HLS UNROLL  factor=2
+    #pragma HLS pipeline II=1
+
+    if (CamArray0.valid == false) {
+        CamArray0 = kVP;
+        return true;
+    }
+    else if (CamArray1.valid == false) {
+        CamArray1 = kVP;
+        return true;
+    }
+    else
+        return false;
 }
 
 /*****************************************************************************
  * @brief Remove a key-value pair from the CAM array.
  *
  * @param[in]  key,  the key of the entry to be removed.
+ *
+ * @return true if the the key was deleted.
   ******************************************************************************/
-void camDelete(fourTupleInternal key)
+bool camDelete(fourTupleInternal key)
 {
-    CamArray.valid = false;
-}
+    //#pragma HLS UNROLL  factor=2
+    #pragma HLS pipeline II=1
 
+    if ((CamArray0.key == key) && (CamArray0.valid == true)) {
+        CamArray0.valid = false;
+        return true;
+    }
+    else if ((CamArray1.key == key) && (CamArray1.valid == true)) {
+        CamArray1.valid = false;
+        return true;
+    }
+    else
+        return false;
+}
 
 /******************************************************************************
  * @brief   Main process of the Content-Addressable Memory (CAM).
@@ -104,6 +138,8 @@ void camDelete(fourTupleInternal key)
  *              the word and so forth until all fields are mapped.
  *             Also, note that the DATA_PACK optimization does not support
  *              packing structs which contain other structs.
+ *             Finally, make sure to acheive II=1, otherwise co-simulation will
+ *              not work.
  *
  ******************************************************************************/
 void cam(
@@ -138,8 +174,6 @@ void cam(
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
-    //OBSOLETE #pragma HLS PIPELINE II=1 (cannot be set together with DATAFLOW)
-
 
     /**************************************************************************
      * FAKE CAM PROCESS
@@ -206,7 +240,7 @@ void cam(
                           request.source.to_int());
                 AxiSocketPair axiSocketPair(AxiSockAddr(request.key.theirIp, request.key.theirPort),
                 AxiSockAddr(request.key.myIp,    request.key.myPort));
-                printAxiSockPair(myName, axiSocketPair);
+                printSockPair(myName, axiSocketPair);
             }
             camFsmState = CAM_WAIT_4_REQ;
         }
@@ -233,8 +267,8 @@ void cam(
                 printInfo(myName, "Received a session update request (%d) from %d for socket pair: \n",
                           update.op, update.source.to_int());
                 AxiSocketPair axiSocketPair(AxiSockAddr(request.key.theirIp, request.key.theirPort),
-                  AxiSockAddr(request.key.myIp,    request.key.myPort));
-                printAxiSockPair(myName, axiSocketPair);
+                AxiSockAddr(request.key.myIp,    request.key.myPort));
+                printSockPair(myName, axiSocketPair);
             }
             camFsmState = CAM_WAIT_4_REQ;
         }
