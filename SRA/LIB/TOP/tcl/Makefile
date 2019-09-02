@@ -161,7 +161,7 @@ $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDi
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 ##with pr: 
-$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
+$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 

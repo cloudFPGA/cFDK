@@ -841,7 +841,7 @@ if { $pr_grey_impl } {
   
   update_design -cell ROLE -buffer_ports
   
-  source ${tclDir}/fix_things.tcl
+  source ${tcpTopDir}/fix_things.tcl 
   
   my_puts "################################################################################"
   my_puts "##"
@@ -937,8 +937,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         if { $bitGen1 } { 
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
           
-          #source ${tclDir}/fix_things.tcl 
-          source ./fix_things.tcl 
+          source ${tcpTopDir}/fix_things.tcl 
+          #source ./fix_things.tcl 
           if { $only_pr_bitgen } {
             write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
             # no file extenstions .bit/.bin here!
@@ -951,8 +951,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
-        #source ${tclDir}/fix_things.tcl 
-        source ./fix_things.tcl 
+        source ${tcpTopDir}/fix_things.tcl 
+        #source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       }
@@ -962,8 +962,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
         
-        source ./fix_things.tcl 
-        #source ${tclDir}/fix_things.tcl 
+        #source ./fix_things.tcl 
+        source ${tcpTopDir}/fix_things.tcl 
         if { $only_pr_bitgen } {
           write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
           # no file extenstions .bit/.bin here!
@@ -977,8 +977,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"
         
-        #source ${tclDir}/fix_things.tcl 
-        source ./fix_things.tcl 
+        source ${tcpTopDir}/fix_things.tcl 
+        # source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       } 
