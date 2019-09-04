@@ -36,23 +36,27 @@
 
 module NetworkTransportSession_TcpIp (
 
-  //-- Global Clock used by the entire SHELL -------------
-  //--   (This is typically 'sETH0_ShlClk' and we use it all over the place) 
+  //------------------------------------------------------
+  //-- Global Clock used by the entire SHELL
+  //--   (This is typically 'sETH0_ShlClk' and we use it all over the place)
+  //------------------------------------------------------ 
   input          piShlClk,
   
-  //-- Global Reset used by the entire SHELL -------------
-  //--   (This is typically 'sETH0_ShlRst'. If the module is created by HLS,
-  //--    we use it as the default startup reset of the module.) 
+  //------------------------------------------------------
+  //-- Global Reset used by the entire SHELL
+  //--  This is typically 'sETH0_ShlRst'. If the module is created by HLS,
+  //--   we use it as the default startup reset of the module.)
+  //------------------------------------------------------ 
   input          piShlRst,
+   
+  // OBSOLETE-20190826 //-- System Reset --------------------------------------
+  // OBSOLETE-20190826 //--   (This is a delayed version of the global reset. We use it when we
+  // OBSOLETE-20190826 //--    specifically want to control the re-initialization of a HLS variable.
+  // OBSOLETE-20190826 //--    We recommended to leave the "config_rtl" configuration to its default
+  // OBSOLETE-20190826 //--    "control" setting and to use this signal to provide finer grain reset
+  // OBSOLETE-20190826 //--    functionnality. See "Controlling the Reset Behavior" in UG902).
+  // OBSOLETE-20190826 input          piShlRstDly,
   
-  //-- System Reset --------------------------------------
-  //--   (This is a delayed version of the global reset. We use it when we
-  //--    specifically want to control the re-initialization of a HLS variable.
-  //--    We recommended to leave the "config_rtl" configuration to its default
-  //--    "control" setting and to use this signal to provide finer grain reset
-  //--    functionnality. See "Controlling the Reset Behavior" in UG902).
-  input          piShlRstDly,
-     
   //------------------------------------------------------
   //-- ETH / Ethernet Layer-2 Interfaces
   //------------------------------------------------------
@@ -246,6 +250,8 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------
   //-- MMIO / Interfaces
   //------------------------------------------------------
+  input          piMMIO_Layer3Rst,
+  input          piMMIO_Layer4Rst,
   input  [ 47:0] piMMIO_MacAddress,
   input  [ 31:0] piMMIO_IpAddress,
   input  [ 31:0] piMMIO_SubNetMask,
@@ -555,7 +561,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
-    .aresetn                  (~piShlRst),
+    .aresetn                  (~(piShlRst | piMMIO_Layer3Rst)),
 
     //------------------------------------------------------
     //-- From MMIO Interfaces
@@ -668,7 +674,7 @@ module NetworkTransportSession_TcpIp (
   AddressResolutionProcess ARP (
   
     .aclk                           (piShlClk),
-    .aresetn                        (~piShlRst),
+    .aresetn                        (~(piShlRst | piMMIO_Layer3Rst)),
   
     //------------------------------------------------------
     //-- IPRX Interfaces (via ARS0)
@@ -713,7 +719,7 @@ module NetworkTransportSession_TcpIp (
   TcpOffloadEngine TOE (
   
     .aclk                      (piShlClk),
-    .aresetn                   (~piShlRst),
+    .aresetn                   (~(piShlRst | piMMIO_Layer4Rst)),
 
     //------------------------------------------------------
     //-- MMIO Interfaces
@@ -922,7 +928,7 @@ module NetworkTransportSession_TcpIp (
   ToeCam CAM (
   
    .piClk                        (piShlClk),
-   .piRst_n                      (~piShlRst),
+   .piRst_n                      (~(piShlRst | piMMIO_Layer4Rst)),
    
    .poCamReady                   (poMMIO_CamReady),
 
@@ -960,7 +966,7 @@ module NetworkTransportSession_TcpIp (
   ContentAddressableMemory CAM (
     
     .aclk                         (piShlClk),
-    .aresetn                      (~piShlRst), // HLS modules are active low by default!
+    .aresetn                      (~(piShlRst | piMMIO_Layer4Rst)),
      
     .poMMIO_CamReady_V            (poMMIO_CamReady),
 
@@ -1106,7 +1112,7 @@ module NetworkTransportSession_TcpIp (
   UdpCore UDP (
   
     .aclk                             (piShlClk),
-    .aresetn                          (~piShlRst),
+    .aresetn                          (~(piShlRst | piMMIO_Layer4Rst)),
 
     //------------------------------------------------------
     //-- UDMX / UDP TxP Ctrl Flow Interfaces
@@ -1197,7 +1203,7 @@ module NetworkTransportSession_TcpIp (
   UdpMultiplexer UDMX (  // Deprecated version
     
     .aclk                         (piShlClk),                                                  
-    .aresetn                      (~piShlRst),
+    .aresetn                      (~(piShlRst | piMMIO_Layer4Rst)),
 
     //------------------------------------------------------
     //-- DHCP / UDP Ctrl Interfaces
@@ -1325,7 +1331,7 @@ module NetworkTransportSession_TcpIp (
     UdpMultiplexer UDMX (
     
     .ap_clk                       (piShlClk),
-    .ap_rst_n                     (~piShlRst),
+    .ap_rst_n                     (~(piShlRst | piMMIO_Layer3Rst)),
 
     //------------------------------------------------------
     //-- From DHCP / Open-Port Interfaces
@@ -1615,7 +1621,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
-    .aresetn                  (~piShlRst),
+    .aresetn                  (~(piShlRst | piMMIO_Layer3Rst)),
 
     //------------------------------------------------------
     //-- From MMIO Interfaces
@@ -1669,7 +1675,7 @@ module NetworkTransportSession_TcpIp (
   AxisInterconnectRtl_3S1M_D8 L3MUX (
    
     .ACLK               (piShlClk),                         
-    .ARESETN            (~piShlRst),                 
+    .ARESETN            (~piShlRst),           
  
     .S00_AXIS_ACLK      (piShlClk),
     .S01_AXIS_ACLK      (piShlClk),            

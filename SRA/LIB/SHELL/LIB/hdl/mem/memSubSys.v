@@ -70,19 +70,32 @@ module MemorySubSystem # (
 
 ) (
 
-  //-- Global Clock used by the entire SHELL -------
-  input           piShlClk,
+  //------------------------------------------------------
+  //-- Global Clock used by the entire SHELL
+  //------------------------------------------------------
+  input           piSHL_Clk,
 
-  //-- Global Reset used by the entire SHELL -------
+  //------------------------------------------------------
+  //-- Global Reset used by the entire SHELL
+  //------------------------------------------------------
   input           piTOP_156_25Rst,   // [FIXME-Is-this-a-SyncReset]
+  
+  //----------------------------------------------
+  //-- Alternate System Reset
+  //----------------------------------------------
+  input           piMMIO_Rst,
 
-  //-- DDR4 Reference Memory Clocks ----------------------
+  //------------------------------------------------------
+  //-- DDR4 Reference Memory Clocks
+  //------------------------------------------------------
   input           piCLKT_Mem0Clk_n,
   input           piCLKT_Mem0Clk_p,
   input           piCLKT_Mem1Clk_n,
   input           piCLKT_Mem1Clk_p,
   
-  //-- Control Inputs and Status Ouputs ----------
+  //------------------------------------------------------ 
+  //-- MMIO / Status Interface
+  //------------------------------------------------------
   output          poMmio_Mc0_InitCalComplete,
   output          poMmio_Mc1_InitCalComplete,
   

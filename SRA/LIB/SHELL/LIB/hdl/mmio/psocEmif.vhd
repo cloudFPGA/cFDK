@@ -96,7 +96,8 @@ architecture Behavioral of  PsocExtMemItf is
   signal sBus_Addr    : std_logic_vector(gAddrWidth - 1 downto 0);
   signal sBus_Data    : std_logic_vector(gDataWidth - 1 downto 0);
 
-  signal sDataReg     : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
+  signal sEmifReg     : std_logic_vector(cDEPTH - 1 downto 0);
+  --OBSOLETE signal sEmifInit    : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
   
   -- Fpga Fabric Interface
   signal sFab_Data    : std_logic_vector(cDEPTH - 1 downto 0);
@@ -140,7 +141,9 @@ begin  -- architecture rtl
   pMmioWrReg : process (piFab_Clk) is
     variable vAddr : integer := 0;
   begin
-    if rising_edge(piFab_Clk) then
+    if (piRst = '1') then
+      sEmifReg <= gDefRegVal;
+    elsif rising_edge(piFab_Clk) then
       sBus_ClkRegReg <= sBus_ClkReg after cTREG;
       -- On rising edge of the Bus clcok
       if (sBus_ClkRegReg = '1' and sBus_ClkReg = '0') then 
@@ -148,7 +151,7 @@ begin  -- architecture rtl
           -- Write cycle accesss
           vAddr := to_integer(unsigned(sBus_Addr));
           vAddr := vAddr * gDataWidth;
-          sDataReg(vAddr + 7 downto vAddr) <= sBus_Data;
+          sEmifReg(vAddr + 7 downto vAddr) <= sBus_Data;
         end if;
       end if;
     end if;
@@ -178,6 +181,6 @@ begin  -- architecture rtl
   ----------------------------------------------------------
   -- Output Ports Assignment
   ---------------------------------------------------------- 
-  poFab_Data <= sDataReg;
+  poFab_Data <= sEmifReg;
     
 end Behavioral;
