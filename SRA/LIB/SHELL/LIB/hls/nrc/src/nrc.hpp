@@ -220,9 +220,9 @@ void nrc_main(
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<AppMeta>             &siFMC_Tcp_SessId,
+    stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<AppMeta>             &soFMC_Tcp_SessId,
+    stream<Axis<16> >           &soFMC_Tcp_SessId,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
