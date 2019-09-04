@@ -661,47 +661,67 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_LsnAck_tready;
   
   // ===== NRC <-> FMC TCP connection =====
-  wire [ 63:0]  ssNRC_SliceFMC_Tcp_Data_tdata;
-  wire [  7:0]  ssNRC_SliceFMC_Tcp_Data_tkeep;
-  wire          ssNRC_SliceFMC_Tcp_Data_tvalid;
-  wire          ssNRC_SliceFMC_Tcp_Data_tlast;
-  wire          ssNRC_SliceFMC_Tcp_Data_tready;
-  wire [ 15:0]  ssNRC_SliceFMC_Tcp_SessId_tdata;
-  wire          ssNRC_SliceFMC_Tcp_SessId_tvalid;
-  wire          ssNRC_SliceFMC_Tcp_SessId_tready;
-  wire [ 1:0]   ssNRC_SliceFMC_Tcp_SessId_tkeep;
-  wire          ssNRC_SliceFMC_Tcp_SessId_tlast;
-  wire [ 63:0]  ssNRCSlice_FMC_Tcp_Data_tdata;
-  wire [  7:0]  ssNRCSlice_FMC_Tcp_Data_tkeep;
-  wire          ssNRCSlice_FMC_Tcp_Data_tvalid;
-  wire          ssNRCSlice_FMC_Tcp_Data_tlast;
-  wire          ssNRCSlice_FMC_Tcp_Data_tready;
-  wire [ 15:0]  ssNRCSlice_FMC_Tcp_SessId_tdata;
-  wire          ssNRCSlice_FMC_Tcp_SessId_tvalid;
-  wire          ssNRCSlice_FMC_Tcp_SessId_tready;
-  wire [ 1:0]   ssNRCSlice_FMC_Tcp_SessId_tkeep;
-  wire          ssNRCSlice_FMC_Tcp_SessId_tlast;
+  wire [ 63:0]  ssNRC_FMC_Tcp_Data_tdata;
+  wire [  7:0]  ssNRC_FMC_Tcp_Data_tkeep;
+  wire          ssNRC_FMC_Tcp_Data_tvalid;
+  wire          ssNRC_FMC_Tcp_Data_tlast;
+  wire          ssNRC_FMC_Tcp_Data_tready;
+  wire [ 15:0]  ssNRC_FMC_Tcp_SessId_tdata;
+  wire          ssNRC_FMC_Tcp_SessId_tvalid;
+  wire          ssNRC_FMC_Tcp_SessId_tready;
+  wire [ 1:0]   ssNRC_FMC_Tcp_SessId_tkeep;
+  wire          ssNRC_FMC_Tcp_SessId_tlast;
+  //wire [ 63:0]  ssNRC_SliceFMC_Tcp_Data_tdata;
+  //wire [  7:0]  ssNRC_SliceFMC_Tcp_Data_tkeep;
+  //wire          ssNRC_SliceFMC_Tcp_Data_tvalid;
+  //wire          ssNRC_SliceFMC_Tcp_Data_tlast;
+  //wire          ssNRC_SliceFMC_Tcp_Data_tready;
+  //wire [ 15:0]  ssNRC_SliceFMC_Tcp_SessId_tdata;
+  //wire          ssNRC_SliceFMC_Tcp_SessId_tvalid;
+  //wire          ssNRC_SliceFMC_Tcp_SessId_tready;
+  //wire [ 1:0]   ssNRC_SliceFMC_Tcp_SessId_tkeep;
+  //wire          ssNRC_SliceFMC_Tcp_SessId_tlast;
+  //wire [ 63:0]  ssNRCSlice_FMC_Tcp_Data_tdata;
+  //wire [  7:0]  ssNRCSlice_FMC_Tcp_Data_tkeep;
+  //wire          ssNRCSlice_FMC_Tcp_Data_tvalid;
+  //wire          ssNRCSlice_FMC_Tcp_Data_tlast;
+  //wire          ssNRCSlice_FMC_Tcp_Data_tready;
+  //wire [ 15:0]  ssNRCSlice_FMC_Tcp_SessId_tdata;
+  //wire          ssNRCSlice_FMC_Tcp_SessId_tvalid;
+  //wire          ssNRCSlice_FMC_Tcp_SessId_tready;
+  //wire [ 1:0]   ssNRCSlice_FMC_Tcp_SessId_tkeep;
+  //wire          ssNRCSlice_FMC_Tcp_SessId_tlast;
   
-  wire [ 63:0]  ssFMC_SliceNRC_Tcp_Data_tdata;
-  wire [  7:0]  ssFMC_SliceNRC_Tcp_Data_tkeep;
-  wire          ssFMC_SliceNRC_Tcp_Data_tvalid;
-  wire          ssFMC_SliceNRC_Tcp_Data_tlast;
-  wire          ssFMC_SliceNRC_Tcp_Data_tready;
-  wire [ 15:0]  ssFMC_SliceNRC_Tcp_SessId_tdata;
-  wire          ssFMC_SliceNRC_Tcp_SessId_tvalid;
-  wire          ssFMC_SliceNRC_Tcp_SessId_tready;
-  wire [ 1:0]   ssFMC_SliceNRC_Tcp_SessId_tkeep;
-  wire          ssFMC_SliceNRC_Tcp_SessId_tlast;
-  wire [ 63:0]  ssFMCSlice_NRC_Tcp_Data_tdata;
-  wire [  7:0]  ssFMCSlice_NRC_Tcp_Data_tkeep;
-  wire          ssFMCSlice_NRC_Tcp_Data_tvalid;
-  wire          ssFMCSlice_NRC_Tcp_Data_tlast;
-  wire          ssFMCSlice_NRC_Tcp_Data_tready;
-  wire [ 15:0]  ssFMCSlice_NRC_Tcp_SessId_tdata;
-  wire          ssFMCSlice_NRC_Tcp_SessId_tvalid;
-  wire          ssFMCSlice_NRC_Tcp_SessId_tready;
-  wire [ 1:0]   ssFMCSlice_NRC_Tcp_SessId_tkeep;
-  wire          ssFMCSlice_NRC_Tcp_SessId_tlast;
+  wire [ 63:0]  ssFMC_NRC_Tcp_Data_tdata;
+  wire [  7:0]  ssFMC_NRC_Tcp_Data_tkeep;
+  wire          ssFMC_NRC_Tcp_Data_tvalid;
+  wire          ssFMC_NRC_Tcp_Data_tlast;
+  wire          ssFMC_NRC_Tcp_Data_tready;
+  wire [ 15:0]  ssFMC_NRC_Tcp_SessId_tdata;
+  wire          ssFMC_NRC_Tcp_SessId_tvalid;
+  wire          ssFMC_NRC_Tcp_SessId_tready;
+  wire [ 1:0]   ssFMC_NRC_Tcp_SessId_tkeep;
+  wire          ssFMC_NRC_Tcp_SessId_tlast;
+ // wire [ 63:0]  ssFMC_SliceNRC_Tcp_Data_tdata;
+ // wire [  7:0]  ssFMC_SliceNRC_Tcp_Data_tkeep;
+ // wire          ssFMC_SliceNRC_Tcp_Data_tvalid;
+ // wire          ssFMC_SliceNRC_Tcp_Data_tlast;
+ // wire          ssFMC_SliceNRC_Tcp_Data_tready;
+ // wire [ 15:0]  ssFMC_SliceNRC_Tcp_SessId_tdata;
+ // wire          ssFMC_SliceNRC_Tcp_SessId_tvalid;
+ // wire          ssFMC_SliceNRC_Tcp_SessId_tready;
+ // wire [ 1:0]   ssFMC_SliceNRC_Tcp_SessId_tkeep;
+ // wire          ssFMC_SliceNRC_Tcp_SessId_tlast;
+ // wire [ 63:0]  ssFMCSlice_NRC_Tcp_Data_tdata;
+ // wire [  7:0]  ssFMCSlice_NRC_Tcp_Data_tkeep;
+ // wire          ssFMCSlice_NRC_Tcp_Data_tvalid;
+ // wire          ssFMCSlice_NRC_Tcp_Data_tlast;
+ // wire          ssFMCSlice_NRC_Tcp_Data_tready;
+ // wire [ 15:0]  ssFMCSlice_NRC_Tcp_SessId_tdata;
+ // wire          ssFMCSlice_NRC_Tcp_SessId_tvalid;
+ // wire          ssFMCSlice_NRC_Tcp_SessId_tready;
+ // wire [ 1:0]   ssFMCSlice_NRC_Tcp_SessId_tkeep;
+ // wire          ssFMCSlice_NRC_Tcp_SessId_tlast;
 
   //-- ROLE <-> NRC Meta Interface
   //wire  [47:0] siROLE_Nrc_Meta_TDATA;
@@ -1555,26 +1575,46 @@ module Shell_Themisto # (
     .m_axi_boNRC_ctrlLink_BREADY         (ssFMC_NRC_ctrlLink_Axi_BREADY),
     .m_axi_boNRC_ctrlLink_BRESP          (ssFMC_NRC_ctrlLink_Axi_BRESP),
     .piDisableCtrlLink_V                 (0),
-    .siNRC_Tcp_data_TDATA         (ssNRCSlice_FMC_Tcp_Data_tdata   ),
-    .siNRC_Tcp_data_TVALID        (ssNRCSlice_FMC_Tcp_Data_tvalid ),
-    .siNRC_Tcp_data_TREADY        (ssNRCSlice_FMC_Tcp_Data_tready  ),
-    .siNRC_Tcp_data_TKEEP         (ssNRCSlice_FMC_Tcp_Data_tkeep  ),
-    .siNRC_Tcp_data_TLAST         (ssNRCSlice_FMC_Tcp_Data_tlast  ),
-    .siNRC_Tcp_SessId_TDATA       (ssNRCSlice_FMC_Tcp_SessId_tdata ),
-    .siNRC_Tcp_SessId_TVALID      (ssNRCSlice_FMC_Tcp_SessId_tvalid),
-    .siNRC_Tcp_SessId_TREADY      (ssNRCSlice_FMC_Tcp_SessId_tready),
-    .siNRC_Tcp_SessId_TKEEP       (ssNRCSlice_FMC_Tcp_SessId_tkeep),
-    .siNRC_Tcp_SessId_TLAST       (ssNRCSlice_FMC_Tcp_SessId_tlast),
-    .soNRC_Tcp_data_TDATA         (ssFMC_SliceNRC_Tcp_Data_tdata   ),
-    .soNRC_Tcp_data_TVALID        (ssFMC_SliceNRC_Tcp_Data_tvalid ),
-    .soNRC_Tcp_data_TREADY        (ssFMC_SliceNRC_Tcp_Data_tready  ),
-    .soNRC_Tcp_data_TKEEP         (ssFMC_SliceNRC_Tcp_Data_tkeep ),
-    .soNRC_Tcp_data_TLAST         (ssFMC_SliceNRC_Tcp_Data_tlast  ),
-    .soNRC_Tcp_SessId_TDATA       (ssFMC_SliceNRC_Tcp_SessId_tdata ),
-    .soNRC_Tcp_SessId_TVALID      (ssFMC_SliceNRC_Tcp_SessId_tvalid),
-    .soNRC_Tcp_SessId_TREADY      (ssFMC_SliceNRC_Tcp_SessId_tready),
-    .soNRC_Tcp_SessId_TKEEP       (ssFMC_SliceNRC_Tcp_SessId_tkeep),
-    .soNRC_Tcp_SessId_TLAST       (ssFMC_SliceNRC_Tcp_SessId_tlast),
+    //.siNRC_Tcp_data_TDATA         (ssNRCSlice_FMC_Tcp_Data_tdata   ),
+    //.siNRC_Tcp_data_TVALID        (ssNRCSlice_FMC_Tcp_Data_tvalid ),
+    //.siNRC_Tcp_data_TREADY        (ssNRCSlice_FMC_Tcp_Data_tready  ),
+    //.siNRC_Tcp_data_TKEEP         (ssNRCSlice_FMC_Tcp_Data_tkeep  ),
+    //.siNRC_Tcp_data_TLAST         (ssNRCSlice_FMC_Tcp_Data_tlast  ),
+    //.siNRC_Tcp_SessId_TDATA       (ssNRCSlice_FMC_Tcp_SessId_tdata ),
+    //.siNRC_Tcp_SessId_TVALID      (ssNRCSlice_FMC_Tcp_SessId_tvalid),
+    //.siNRC_Tcp_SessId_TREADY      (ssNRCSlice_FMC_Tcp_SessId_tready),
+    //.siNRC_Tcp_SessId_TKEEP       (ssNRCSlice_FMC_Tcp_SessId_tkeep),
+    //.siNRC_Tcp_SessId_TLAST       (ssNRCSlice_FMC_Tcp_SessId_tlast),
+    //.soNRC_Tcp_data_TDATA         (ssFMC_SliceNRC_Tcp_Data_tdata   ),
+    //.soNRC_Tcp_data_TVALID        (ssFMC_SliceNRC_Tcp_Data_tvalid ),
+    //.soNRC_Tcp_data_TREADY        (ssFMC_SliceNRC_Tcp_Data_tready  ),
+    //.soNRC_Tcp_data_TKEEP         (ssFMC_SliceNRC_Tcp_Data_tkeep ),
+    //.soNRC_Tcp_data_TLAST         (ssFMC_SliceNRC_Tcp_Data_tlast  ),
+    //.soNRC_Tcp_SessId_TDATA       (ssFMC_SliceNRC_Tcp_SessId_tdata ),
+    //.soNRC_Tcp_SessId_TVALID      (ssFMC_SliceNRC_Tcp_SessId_tvalid),
+    //.soNRC_Tcp_SessId_TREADY      (ssFMC_SliceNRC_Tcp_SessId_tready),
+    //.soNRC_Tcp_SessId_TKEEP       (ssFMC_SliceNRC_Tcp_SessId_tkeep),
+    //.soNRC_Tcp_SessId_TLAST       (ssFMC_SliceNRC_Tcp_SessId_tlast),
+    .siNRC_Tcp_data_TDATA         (ssNRC_FMC_Tcp_Data_tdata   ),
+    .siNRC_Tcp_data_TVALID        (ssNRC_FMC_Tcp_Data_tvalid ),
+    .siNRC_Tcp_data_TREADY        (ssNRC_FMC_Tcp_Data_tready  ),
+    .siNRC_Tcp_data_TKEEP         (ssNRC_FMC_Tcp_Data_tkeep  ),
+    .siNRC_Tcp_data_TLAST         (ssNRC_FMC_Tcp_Data_tlast  ),
+    .siNRC_Tcp_SessId_TDATA       (ssNRC_FMC_Tcp_SessId_tdata ),
+    .siNRC_Tcp_SessId_TVALID      (ssNRC_FMC_Tcp_SessId_tvalid),
+    .siNRC_Tcp_SessId_TREADY      (ssNRC_FMC_Tcp_SessId_tready),
+    .siNRC_Tcp_SessId_TKEEP       (ssNRC_FMC_Tcp_SessId_tkeep),
+    .siNRC_Tcp_SessId_TLAST       (ssNRC_FMC_Tcp_SessId_tlast),
+    .soNRC_Tcp_data_TDATA         (ssFMC_NRC_Tcp_Data_tdata   ),
+    .soNRC_Tcp_data_TVALID        (ssFMC_NRC_Tcp_Data_tvalid ),
+    .soNRC_Tcp_data_TREADY        (ssFMC_NRC_Tcp_Data_tready  ),
+    .soNRC_Tcp_data_TKEEP         (ssFMC_NRC_Tcp_Data_tkeep ),
+    .soNRC_Tcp_data_TLAST         (ssFMC_NRC_Tcp_Data_tlast  ),
+    .soNRC_Tcp_SessId_TDATA       (ssFMC_NRC_Tcp_SessId_tdata ),
+    .soNRC_Tcp_SessId_TVALID      (ssFMC_NRC_Tcp_SessId_tvalid),
+    .soNRC_Tcp_SessId_TREADY      (ssFMC_NRC_Tcp_SessId_tready),
+    .soNRC_Tcp_SessId_TKEEP       (ssFMC_NRC_Tcp_SessId_tkeep),
+    .soNRC_Tcp_SessId_TLAST       (ssFMC_NRC_Tcp_SessId_tlast),
     //.piDisableCtrlLink_V_ap_vld          (1),
     .soPYROLINK_TDATA                    (ssFMC_CoreToDebug_Pyrolink_TDATA),
     .soPYROLINK_TVALID                   (ssFMC_CoreToDebug_Pyrolink_TVALID),
@@ -1651,26 +1691,46 @@ module Shell_Themisto # (
     .soTcp_meta_TREADY        (slcOutNrc_Tcp_meta_TREADY) ,
     .soTcp_meta_TKEEP         (slcOutNrc_Tcp_meta_TKEEP ) ,
     .soTcp_meta_TLAST         (slcOutNrc_Tcp_meta_TLAST ) ,
-    .siFMC_Tcp_data_TDATA         (ssFMCSlice_NRC_Tcp_Data_tdata   ),
-    .siFMC_Tcp_data_TVALID        (ssFMCSlice_NRC_Tcp_Data_tvalid ),
-    .siFMC_Tcp_data_TREADY        (ssFMCSlice_NRC_Tcp_Data_tready  ),
-    .siFMC_Tcp_data_TKEEP         (ssFMCSlice_NRC_Tcp_Data_tkeep ),
-    .siFMC_Tcp_data_TLAST         (ssFMCSlice_NRC_Tcp_Data_tlast  ),
-    .siFMC_Tcp_SessId_TDATA       (ssFMCSlice_NRC_Tcp_SessId_tdata ),
-    .siFMC_Tcp_SessId_TVALID      (ssFMCSlice_NRC_Tcp_SessId_tvalid),
-    .siFMC_Tcp_SessId_TREADY      (ssFMCSlice_NRC_Tcp_SessId_tready),
-    .siFMC_Tcp_SessId_TKEEP       (ssFMCSlice_NRC_Tcp_SessId_tkeep),
-    .siFMC_Tcp_SessId_TLAST       (ssFMCSlice_NRC_Tcp_SessId_tlast),
-    .soFMC_Tcp_data_TDATA         (ssNRC_SliceFMC_Tcp_Data_tdata   ),
-    .soFMC_Tcp_data_TVALID        (ssNRC_SliceFMC_Tcp_Data_tvalid ),
-    .soFMC_Tcp_data_TREADY        (ssNRC_SliceFMC_Tcp_Data_tready  ),
-    .soFMC_Tcp_data_TKEEP         (ssNRC_SliceFMC_Tcp_Data_tkeep  ),
-    .soFMC_Tcp_data_TLAST         (ssNRC_SliceFMC_Tcp_Data_tlast  ),
-    .soFMC_Tcp_SessId_TDATA       (ssNRC_SliceFMC_Tcp_SessId_tdata ),
-    .soFMC_Tcp_SessId_TVALID      (ssNRC_SliceFMC_Tcp_SessId_tvalid),
-    .soFMC_Tcp_SessId_TREADY      (ssNRC_SliceFMC_Tcp_SessId_tready),
-    .soFMC_Tcp_SessId_TKEEP       (ssNRC_SliceFMC_Tcp_SessId_tkeep),
-    .soFMC_Tcp_SessId_TLAST       (ssNRC_SliceFMC_Tcp_SessId_tlast),
+    //.siFMC_Tcp_data_TDATA         (ssFMCSlice_NRC_Tcp_Data_tdata   ),
+    //.siFMC_Tcp_data_TVALID        (ssFMCSlice_NRC_Tcp_Data_tvalid ),
+    //.siFMC_Tcp_data_TREADY        (ssFMCSlice_NRC_Tcp_Data_tready  ),
+    //.siFMC_Tcp_data_TKEEP         (ssFMCSlice_NRC_Tcp_Data_tkeep ),
+    //.siFMC_Tcp_data_TLAST         (ssFMCSlice_NRC_Tcp_Data_tlast  ),
+    //.siFMC_Tcp_SessId_TDATA       (ssFMCSlice_NRC_Tcp_SessId_tdata ),
+    //.siFMC_Tcp_SessId_TVALID      (ssFMCSlice_NRC_Tcp_SessId_tvalid),
+    //.siFMC_Tcp_SessId_TREADY      (ssFMCSlice_NRC_Tcp_SessId_tready),
+    //.siFMC_Tcp_SessId_TKEEP       (ssFMCSlice_NRC_Tcp_SessId_tkeep),
+    //.siFMC_Tcp_SessId_TLAST       (ssFMCSlice_NRC_Tcp_SessId_tlast),
+    //.soFMC_Tcp_data_TDATA         (ssNRC_SliceFMC_Tcp_Data_tdata   ),
+    //.soFMC_Tcp_data_TVALID        (ssNRC_SliceFMC_Tcp_Data_tvalid ),
+    //.soFMC_Tcp_data_TREADY        (ssNRC_SliceFMC_Tcp_Data_tready  ),
+    //.soFMC_Tcp_data_TKEEP         (ssNRC_SliceFMC_Tcp_Data_tkeep  ),
+    //.soFMC_Tcp_data_TLAST         (ssNRC_SliceFMC_Tcp_Data_tlast  ),
+    //.soFMC_Tcp_SessId_TDATA       (ssNRC_SliceFMC_Tcp_SessId_tdata ),
+    //.soFMC_Tcp_SessId_TVALID      (ssNRC_SliceFMC_Tcp_SessId_tvalid),
+    //.soFMC_Tcp_SessId_TREADY      (ssNRC_SliceFMC_Tcp_SessId_tready),
+    //.soFMC_Tcp_SessId_TKEEP       (ssNRC_SliceFMC_Tcp_SessId_tkeep),
+    //.soFMC_Tcp_SessId_TLAST       (ssNRC_SliceFMC_Tcp_SessId_tlast),
+    .siFMC_Tcp_data_TDATA         (ssFMC_NRC_Tcp_Data_tdata   ),
+    .siFMC_Tcp_data_TVALID        (ssFMC_NRC_Tcp_Data_tvalid ),
+    .siFMC_Tcp_data_TREADY        (ssFMC_NRC_Tcp_Data_tready  ),
+    .siFMC_Tcp_data_TKEEP         (ssFMC_NRC_Tcp_Data_tkeep ),
+    .siFMC_Tcp_data_TLAST         (ssFMC_NRC_Tcp_Data_tlast  ),
+    .siFMC_Tcp_SessId_TDATA       (ssFMC_NRC_Tcp_SessId_tdata ),
+    .siFMC_Tcp_SessId_TVALID      (ssFMC_NRC_Tcp_SessId_tvalid),
+    .siFMC_Tcp_SessId_TREADY      (ssFMC_NRC_Tcp_SessId_tready),
+    .siFMC_Tcp_SessId_TKEEP       (ssFMC_NRC_Tcp_SessId_tkeep),
+    .siFMC_Tcp_SessId_TLAST       (ssFMC_NRC_Tcp_SessId_tlast),
+    .soFMC_Tcp_data_TDATA         (ssNRC_FMC_Tcp_Data_tdata   ),
+    .soFMC_Tcp_data_TVALID        (ssNRC_FMC_Tcp_Data_tvalid ),
+    .soFMC_Tcp_data_TREADY        (ssNRC_FMC_Tcp_Data_tready  ),
+    .soFMC_Tcp_data_TKEEP         (ssNRC_FMC_Tcp_Data_tkeep  ),
+    .soFMC_Tcp_data_TLAST         (ssNRC_FMC_Tcp_Data_tlast  ),
+    .soFMC_Tcp_SessId_TDATA       (ssNRC_FMC_Tcp_SessId_tdata ),
+    .soFMC_Tcp_SessId_TVALID      (ssNRC_FMC_Tcp_SessId_tvalid),
+    .soFMC_Tcp_SessId_TREADY      (ssNRC_FMC_Tcp_SessId_tready),
+    .soFMC_Tcp_SessId_TKEEP       (ssNRC_FMC_Tcp_SessId_tkeep),
+    .soFMC_Tcp_SessId_TLAST       (ssNRC_FMC_Tcp_SessId_tlast),
     .siUDMX_This_OpnAck_V_TDATA     (ssUDMX_URIF_OpnAck_tdata),
     .siUDMX_This_OpnAck_V_TVALID    (ssUDMX_URIF_OpnAck_tvalid),
     .siUDMX_This_OpnAck_V_TREADY    (ssUDMX_URIF_OpnAck_tready),
@@ -1913,73 +1973,73 @@ module Shell_Themisto # (
     .m_axis_tlast   (soNRC_Role_Tcp_Meta_TLAST)
   );
   
-  AxisRegisterSlice_64 SARS8 (
-    .aclk           (sETH0_ShlClk),
-    .aresetn        (~piTOP_156_25Rst),
-    //-- From NRC
-    .s_axis_tdata   (ssNRC_SliceFMC_Tcp_Data_tdata ) ,
-    .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_Data_tvalid) ,
-    .s_axis_tready  (ssNRC_SliceFMC_Tcp_Data_tready) ,
-    .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_Data_tkeep ) ,
-    .s_axis_tlast   (ssNRC_SliceFMC_Tcp_Data_tlast ) ,
-    //-- To FMC
-    .m_axis_tdata   (ssNRCSlice_FMC_Tcp_Data_tdata ),
-    .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_Data_tvalid),
-    .m_axis_tready  (ssNRCSlice_FMC_Tcp_Data_tready),
-    .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_Data_tkeep ),
-    .m_axis_tlast   (ssNRCSlice_FMC_Tcp_Data_tlast )
-  );
-  
-  AxisRegisterSlice_64 SARS9 (
-    .aclk           (sETH0_ShlClk),
-    .aresetn        (~piTOP_156_25Rst),
-    //-- From NRC
-    .s_axis_tdata   (ssNRC_SliceFMC_Tcp_SessId_tdata ) ,
-    .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_SessId_tvalid) ,
-    .s_axis_tready  (ssNRC_SliceFMC_Tcp_SessId_tready) ,
-    .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_SessId_tkeep ) ,
-    .s_axis_tlast   (ssNRC_SliceFMC_Tcp_SessId_tlast ) ,
-    //-- To FMC
-    .m_axis_tdata   (ssNRCSlice_FMC_Tcp_SessId_tdata ),
-    .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_SessId_tvalid),
-    .m_axis_tready  (ssNRCSlice_FMC_Tcp_SessId_tready),
-    .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_SessId_tkeep ),
-    .m_axis_tlast   (ssNRCSlice_FMC_Tcp_SessId_tlast )
-  );
-  
-  AxisRegisterSlice_64 SARS10 (
-    .aclk           (sETH0_ShlClk),
-    .aresetn        (~piTOP_156_25Rst),
-    //-- From FMC
-    .s_axis_tdata   (ssFMC_SliceNRC_Tcp_Data_tdata ) ,
-    .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_Data_tvalid) ,
-    .s_axis_tready  (ssFMC_SliceNRC_Tcp_Data_tready) ,
-    .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_Data_tkeep ) ,
-    .s_axis_tlast   (ssFMC_SliceNRC_Tcp_Data_tlast ) ,
-    //-- To NRC
-    .m_axis_tdata   (ssFMCSlice_NRC_Tcp_Data_tdata ),
-    .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_Data_tvalid),
-    .m_axis_tready  (ssFMCSlice_NRC_Tcp_Data_tready),
-    .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_Data_tkeep ),
-    .m_axis_tlast   (ssFMCSlice_NRC_Tcp_Data_tlast )
-  );
-  
-  AxisRegisterSlice_64 SARS11 (
-    .aclk           (sETH0_ShlClk),
-    .aresetn        (~piTOP_156_25Rst),
-    //-- From FMC
-    .s_axis_tdata   (ssFMC_SliceNRC_Tcp_SessId_tdata ) ,
-    .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_SessId_tvalid) ,
-    .s_axis_tready  (ssFMC_SliceNRC_Tcp_SessId_tready) ,
-    .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_SessId_tkeep ) ,
-    .s_axis_tlast   (ssFMC_SliceNRC_Tcp_SessId_tlast ) ,
-    //-- To NRC
-    .m_axis_tdata   (ssFMCSlice_NRC_Tcp_SessId_tdata ),
-    .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_SessId_tvalid),
-    .m_axis_tready  (ssFMCSlice_NRC_Tcp_SessId_tready),
-    .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_SessId_tkeep ),
-    .m_axis_tlast   (ssFMCSlice_NRC_Tcp_SessId_tlast )
-  );
+  //AxisRegisterSlice_64 SARS8 (
+  //  .aclk           (sETH0_ShlClk),
+  //  .aresetn        (~piTOP_156_25Rst),
+  //  //-- From NRC
+  //  .s_axis_tdata   (ssNRC_SliceFMC_Tcp_Data_tdata ) ,
+  //  .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_Data_tvalid) ,
+  //  .s_axis_tready  (ssNRC_SliceFMC_Tcp_Data_tready) ,
+  //  .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_Data_tkeep ) ,
+  //  .s_axis_tlast   (ssNRC_SliceFMC_Tcp_Data_tlast ) ,
+  //  //-- To FMC
+  //  .m_axis_tdata   (ssNRCSlice_FMC_Tcp_Data_tdata ),
+  //  .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_Data_tvalid),
+  //  .m_axis_tready  (ssNRCSlice_FMC_Tcp_Data_tready),
+  //  .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_Data_tkeep ),
+  //  .m_axis_tlast   (ssNRCSlice_FMC_Tcp_Data_tlast )
+  //);
+  //
+  //AxisRegisterSlice_64 SARS9 (
+  //  .aclk           (sETH0_ShlClk),
+  //  .aresetn        (~piTOP_156_25Rst),
+  //  //-- From NRC
+  //  .s_axis_tdata   (ssNRC_SliceFMC_Tcp_SessId_tdata ) ,
+  //  .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_SessId_tvalid) ,
+  //  .s_axis_tready  (ssNRC_SliceFMC_Tcp_SessId_tready) ,
+  //  .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_SessId_tkeep ) ,
+  //  .s_axis_tlast   (ssNRC_SliceFMC_Tcp_SessId_tlast ) ,
+  //  //-- To FMC
+  //  .m_axis_tdata   (ssNRCSlice_FMC_Tcp_SessId_tdata ),
+  //  .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_SessId_tvalid),
+  //  .m_axis_tready  (ssNRCSlice_FMC_Tcp_SessId_tready),
+  //  .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_SessId_tkeep ),
+  //  .m_axis_tlast   (ssNRCSlice_FMC_Tcp_SessId_tlast )
+  //);
+  //
+  //AxisRegisterSlice_64 SARS10 (
+  //  .aclk           (sETH0_ShlClk),
+  //  .aresetn        (~piTOP_156_25Rst),
+  //  //-- From FMC
+  //  .s_axis_tdata   (ssFMC_SliceNRC_Tcp_Data_tdata ) ,
+  //  .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_Data_tvalid) ,
+  //  .s_axis_tready  (ssFMC_SliceNRC_Tcp_Data_tready) ,
+  //  .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_Data_tkeep ) ,
+  //  .s_axis_tlast   (ssFMC_SliceNRC_Tcp_Data_tlast ) ,
+  //  //-- To NRC
+  //  .m_axis_tdata   (ssFMCSlice_NRC_Tcp_Data_tdata ),
+  //  .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_Data_tvalid),
+  //  .m_axis_tready  (ssFMCSlice_NRC_Tcp_Data_tready),
+  //  .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_Data_tkeep ),
+  //  .m_axis_tlast   (ssFMCSlice_NRC_Tcp_Data_tlast )
+  //);
+  //
+  //AxisRegisterSlice_64 SARS11 (
+  //  .aclk           (sETH0_ShlClk),
+  //  .aresetn        (~piTOP_156_25Rst),
+  //  //-- From FMC
+  //  .s_axis_tdata   (ssFMC_SliceNRC_Tcp_SessId_tdata ) ,
+  //  .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_SessId_tvalid) ,
+  //  .s_axis_tready  (ssFMC_SliceNRC_Tcp_SessId_tready) ,
+  //  .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_SessId_tkeep ) ,
+  //  .s_axis_tlast   (ssFMC_SliceNRC_Tcp_SessId_tlast ) ,
+  //  //-- To NRC
+  //  .m_axis_tdata   (ssFMCSlice_NRC_Tcp_SessId_tdata ),
+  //  .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_SessId_tvalid),
+  //  .m_axis_tready  (ssFMCSlice_NRC_Tcp_SessId_tready),
+  //  .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_SessId_tkeep ),
+  //  .m_axis_tlast   (ssFMCSlice_NRC_Tcp_SessId_tlast )
+  //);
 
 
  // Decoupler DECOUP (
