@@ -217,6 +217,10 @@ if {$pr || $link} {
 if {$pr && $impl1 && $synth} {
   set link 1
 }
+if {$only_pr_bitgen} {
+  # to deal with https://www.xilinx.com/support/answers/70708.html
+  set pr_verify 0
+}
 # -----------------------------------------------------
 
 if { ${create} } {

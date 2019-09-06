@@ -44,6 +44,7 @@ NodeId last_tx_node_id = 0;
 NrcPort last_tx_port = 0;
 ap_uint<16> port_corrections_TX_cnt = 0;
 ap_uint<32> unauthorized_access_cnt = 0;
+ap_uint<32> authorized_access_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
@@ -448,6 +449,7 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_packet_length
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
+#pragma HLS reset variable=authorized_access_cnt
 
   //DO NOT reset MRT and config. This should be done explicitly by the FMC
 #pragma HLS reset variable=localMRT off
@@ -518,7 +520,7 @@ void nrc_main(
   status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
   status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-  status[NRC_STATUS_UNUSED_2] = 0x0;
+  status[NRC_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
 
@@ -1098,6 +1100,7 @@ void nrc_main(
               Tcp_RX_metaWritten = false;
               session_toFMC = sessId;
               rdpFsmState = RDP_STREAM_FMC;
+              authorized_access_cnt++;
               break;
             } else {
               unauthorized_access_cnt++;
