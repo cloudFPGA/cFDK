@@ -18,7 +18,7 @@ The `GET /status` function of the FMC also contains 16 lines of the NRC: The pos
 ```
 //Lines 1-3 are the copy of the local MRT table
 #define NRC_UNAUTHORIZED_ACCESS 4
-#define NRC_STATUS_UNUSED_2 5
+#define NRC_AUTHORIZED_ACCESS 5
 #define NRC_STATUS_SEND_STATE 6
 #define NRC_STATUS_RECEIVE_STATE 7
 #define NRC_STATUS_GLOBAL_STATE 8
@@ -80,6 +80,7 @@ All global variables in the following table are marked as `#pragma HLS reset`.
 | `fmc_port_openend`                   |    |
 | `tables_initalized`                  |  Stores if the tables `tripleList`,`sessionIdList`, and `usedRows` where initialized with the `UNUSED_TABLE_ENTRY_VALUE` or `0`. |
 | `unauthorized_access_cnt`            |  Counts the packets that want to reach the FMC, but came from the wrong IP Address (see EMIF documentation for `CfrmIp4Addr`) | 
+| `authorized_access_cnt`            |  Counts the packets that want to reach the FMC and came from the right IP Address (see EMIF documentation for `CfrmIp4Addr`) | 
 | `out_meta_tcp`                       |    |
 | `in_meta_tcp `                       |    |
 | `session_toFMC`                      |    |

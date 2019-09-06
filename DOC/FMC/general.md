@@ -98,12 +98,12 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
 | `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing |  `OPRV_OK`                |
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
-| `OP_FW_TCP_HWICAP              ` |  it reads the TCP data stream and writes it into the internal buffer and stays in this opperation as long as data are available until tlast occured | `OPRV_OK` if some data was received, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received, `OPRV_FAIL` if HWICAP is not ready  |
+| `OP_FW_TCP_HWICAP              ` |  it reads the TCP data stream and writes it into the internal buffer and stays in this opperation as long as data are available until tlast occured | `OPRV_OK` if we are within transmission, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received, `OPRV_FAIL` if HWICAP is not ready , `OPRV_USER` if another Opcode uses the TCP RX FSM |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
 | `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
-| `OP_SEND_BUFFER_TCP            ` |  Writes `bufferOutContentLength` bytes from bufferOut to TCP, if the stream is not full  | `OPRV_OK` if some portion of the data could be read (`bufferOutPtrNextRead` is set accordingly); `OPRV_DONE` if everything could be sent; `OPRV_NOT_COMPLETE` if the stream is not ready to write.  |
+| `OP_SEND_BUFFER_TCP            ` |  Writes `bufferOutContentLength` bytes from bufferOut to TCP, if the stream is not full  | `OPRV_OK` if some portion of the data could be read (`bufferOutPtrNextRead` is set accordingly); `OPRV_DONE` if everything could be sent; `OPRV_NOT_COMPLETE` if the stream is not ready to write. *if lRV is `OPRV_DONE` it won't touch it.* |
 | `OP_SEND_BUFFER_XMEM           ` | Initiates bufferOut transfer to XMEM  | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
 | `OP_CLEAR_IN_BUFFER            ` |   empty inBuffer            |  `OPRV_OK`       |
 | `OP_CLEAR_OUT_BUFFER           ` |   empty outBuffer           |  `OPRV_OK`       |
@@ -117,7 +117,11 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_ENABLE_SILENT_SKIP`          | set the silent skip flag | (not changed) |
 | `OP_DISABLE_SILENT_SKIP`         | unset the silent skip flag | (not changed) |
 | `OP_WAIT_FOR_TCP_SESS`           | updates `currentTcpSessId` once | `OPRV_OK` if a sessionId was received or was already updated, `OPRV_NOT_COMPLETE` otherwise |
-| `OP_SEND_TCP_SESS`               | sends the `currentTcpSessId` once | `OPRV_OK` if the sessionId was sent, `OPRV_NOT_COMPLETE` otherwise |
+| `OP_SEND_TCP_SESS`               | sends the `currentTcpSessId` once | `OPRV_OK` if the sessionId was sent, `OPRV_NOT_COMPLETE` otherwise, *if lRV is `OPRV_DONE` it won't touch it.*|
+| `OP_SET_NOT_TO_SWAP`             | Activates the `notToSwap` bit (same bit like MMIO, will overwrite MMIO input) |  (not changed) |
+| `OP_UNSET_NOT_TO_SWAP`           | Deactivates the `notToSwap` bit (same bit like MMIO, will overwrite MMIO input)  |  (not changed) |
+
+
 
 *Flags are reset before every program run*, so not persistent.
 The initial `lastReturnValue` is always `OPRV_OK`.
@@ -144,12 +148,19 @@ All global variables are marked as `#pragma HLS reset`.
 | `invalidPayload_persistent` | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`, `OP_BUFFER_TO_ROUTING` | marks an invalid Payload |
 | `toDecoup_persistent`  | `OP_ACTIVATE_DECOUP`, `OP_DEACTIVATE_DECOUP` | stores the Decoupling State |
 | `xmem_page_trans_cnt` | `OP_XMEM_COPY_DATA` | stores the counter for the next expected xmem page |
-| `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging | 
+| `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging (*no reset, for better debugging*)| 
 | `lastResponsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Bytes in the last Page |
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
 | `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
 | `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles | 
 | `TcpSessId_updated_persistent` | `GLOBAL_TCP_HTTP`, `GLOBAL_TCP_TO_HWICAP` | stores if the Tcp SessionId for this iteration was already read. |
+| `fsmTcpSessId_RX`   |    |   |
+| `fsmTcpSessId_TX`  |    |   |
+| `fsmTcpData_RX`     |    |   |
+| `fsmTcpData_TX`    |    |   |
+| `lastSeenBufferInPtrMaxWrite` |    |    |
+| `lastSeenBufferOutPtrMaxRead` |    |    |
+
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
 
