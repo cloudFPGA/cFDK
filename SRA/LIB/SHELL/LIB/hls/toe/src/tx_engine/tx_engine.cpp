@@ -111,7 +111,7 @@ void pMetaDataLoader(
         stream<TcpSegLen>               &soIhc_TcpSegLen,
         stream<TXeMeta>                 &soPhc_TxeMeta,
         stream<DmCmd>                   &soMrd_BufferRdCmd,
-        stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
+        stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
 #if (TCP_NODELAY)
         stream<bool>                    &soTODO_IsDdrBypass,
@@ -130,26 +130,22 @@ void pMetaDataLoader(
     #pragma HLS reset       variable=fsmState
     static bool                      mdl_sarLoaded = false;
     #pragma HLS reset       variable=mdl_sarLoaded
+    static ap_uint<2>                mdl_segmentCount = 0;  // [FIXME - Too small for re-transmit?]
+    #pragma HLS reset       variable=mdl_segmentCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static extendedEvent  mdl_curEvent;
     static RxSarEntry     rxSar;
     static TXeTxSarReply  txSar;
-
-    // [FIXME - Add a random Initial Sequence Number in EMIF]
-    static ap_uint<32>    mdl_randomValue= 0x562301af;
-
-    static ap_uint<2>     mdl_segmentCount = 0;
+    static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
     static TXeMeta        txeMeta;
 
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
     TcpWindow             windowSize;
     TcpWindow             usableWindow;
     TcpSegLen             currLength;
     ap_uint<16>           slowstart_threshold;
-
     rstEvent              resetEvent;
-
-    static uint16_t       txEngCounter = 0;
 
     switch (fsmState) {
 
@@ -159,10 +155,8 @@ void pMetaDataLoader(
             mdl_sarLoaded = false;
 
             assessFull(myName, soEVe_RxEventSig, "soEVe_RxEventSig");
-            //OBSOLETE-20190901 if (soEVe_RxEventSig.full())
-            //OBSOLETE-20190901     printFatal(myName, "Trying to write stream \'soEVe_RxEventSig\' while it is full.");
-            //OBSOLETE-20190901 else
             soEVe_RxEventSig.write(1);
+
             // NOT necessary for SYN/SYN_ACK only needs one
             switch(mdl_curEvent.type) {
             case RT:
@@ -194,7 +188,7 @@ void pMetaDataLoader(
                 break;
             }
             fsmState = S1;
-            // [FIXME - Add a random Initial Sequence Number in EMIF and move thsi out of here]
+            // [FIXME - Add a random Initial Sequence Number in EMIF and move this out of here]
             mdl_randomValue++;
         }
         mdl_segmentCount = 0;
@@ -253,8 +247,10 @@ void pMetaDataLoader(
             break;
 #else
         case TX:
-            if (DEBUG_LEVEL & TRACE_MDL)
+            if (DEBUG_LEVEL & TRACE_MDL) {
                 printInfo(myName, "Got TX event.\n");
+            }
+
             // Send everything between txSar.not_ackd and txSar.app
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
@@ -271,7 +267,7 @@ void pMetaDataLoader(
                 txeMeta.rst = 0;
                 txeMeta.syn = 0;
                 txeMeta.fin = 0;
-                //OBSOLETE-20190707 txeMeta.length = 0;
+                txeMeta.length = 0;
 
                 currLength = (txSar.app - ((TxBufPtr)txSar.not_ackd));
                 TxBufPtr usedLength = ((TxBufPtr)txSar.not_ackd - txSar.ackd);
@@ -284,8 +280,11 @@ void pMetaDataLoader(
                 }
 
                 // Construct address before modifying txSar.not_ackd
-                TxMemPtr memSegAddr;  // 0x40000000
+                //  FYI - The size of the DDR4 memory of the FMKU60 is 8GB.
+                //        The tx path uses the upper 4GB.
+                TxMemPtr memSegAddr;  // OBSOLETE-0x40000000
                 memSegAddr(31, 30) = 0x01;
+                // [TODO-TODO] memSegAddr(32, 30) = 0x4;  // [FIXME- Must be configurable]
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = txSar.not_ackd(15, 0); //ml_curEvent.address;
 
@@ -719,12 +718,17 @@ void pIpHeaderConstructor(
 
     const char *myName  = concat3(THIS_NAME, "/", "Ihc");
 
-    static ap_uint<2>   ihc_wordCounter = 0;
-    static IpAddrPair   ihc_ipAddrPair;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static ap_uint<2>          ihc_wordCounter = 0;
+    #pragma HLS reset variable=ihc_wordCounter
 
-    Ip4Word             ip4HdrWord;
-    Ip4TotalLen         ip4TotLen = 0;
-    TcpSegLen           tcpSegLen;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static IpAddrPair          ihc_ipAddrPair;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    Ip4Word                    ip4HdrWord;
+    Ip4TotalLen                ip4TotLen = 0;
+    TcpSegLen                  tcpSegLen;
 
     switch(ihc_wordCounter) {
 
@@ -824,123 +828,136 @@ void pPseudoHeaderConstructor(
 
     const char *myName  = concat3(THIS_NAME, "/", "Phc");
 
-    static uint16_t       phc_wordCount = 0;
-    TcpWord               sendWord;
-    static TXeMeta        phc_meta;
-    static AxiSocketPair  phc_sockPair;
-    TcpSegLen             pseudoHdrLen = 0;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static ap_uint<3>          phc_wordCount = 0;
+    #pragma HLS reset variable=phc_wordCount
 
-    //OBSOLETE-20181130 if (phc_done && !siMdl_TxeMeta.empty()) {
-    //OBSOLETE-20181130     siMdl_TxeMeta.read(phc_meta);
-    //OBSOLETE-20181130     phc_done = false;
-    //OBSOLETE-20181130 }
-    //OBSOLETE-20181130 else if (!phc_done) {
-        switch(phc_wordCount) {
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static TXeMeta             phc_meta;
+    static AxiSocketPair       phc_sockPair;
 
-        case WORD_0:
-            if (!siSps_SockPair.empty() && !siMdl_TxeMeta.empty()) {
-                siSps_SockPair.read(phc_sockPair);
-                siMdl_TxeMeta.read(phc_meta);
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    TcpWord                    sendWord;
+    TcpSegLen                  pseudoHdrLen = 0;
 
-                sendWord.tdata.range(31,  0) = phc_sockPair.src.addr;  // IP4 Source Address
-                sendWord.tdata.range(63, 32) = phc_sockPair.dst.addr;  // IP4 Destination Addr
-                sendWord.tkeep = 0xFF;
-                sendWord.tlast = 0;
+	switch(phc_wordCount) {
 
-                soTss_TcpWord.write(sendWord);
-                if (DEBUG_LEVEL & TRACE_PHC) printAxiWord(myName, sendWord);
-                phc_wordCount++;
-            }
-            break;
+	case WORD_0:
+		if (!siSps_SockPair.empty() && !siMdl_TxeMeta.empty()) {
+			siSps_SockPair.read(phc_sockPair);
+			siMdl_TxeMeta.read(phc_meta);
 
-        case WORD_1:
-            sendWord.tdata.range( 7, 0) = 0x00;     // TCP Time to Live
-            sendWord.tdata.range(15, 8) = 0x06;     // TCP Protocol
-            pseudoHdrLen = phc_meta.length + 0x14;  // Add 20 bytes for the TCP header
+			sendWord.tdata.range(31,  0) = phc_sockPair.src.addr;  // IP4 Source Address
+			sendWord.tdata.range(63, 32) = phc_sockPair.dst.addr;  // IP4 Destination Addr
+			sendWord.tkeep = 0xFF;
+			sendWord.tlast = 0;
 
-            sendWord.tdata.range(31,16) = byteSwap16(pseudoHdrLen);  //OBSOLETE-20181128 sendWord.data.range(23, 16) = length(15, 8);
-                                                                     //OBSOLETE-20181128 sendWord.data.range(31, 24) = length(7, 0);
-            sendWord.tdata.range(47, 32) = phc_sockPair.src.port;   // Source Port
-            sendWord.tdata.range(63, 48) = phc_sockPair.dst.port;   // Destination Port
-            sendWord.tkeep = 0xFF;
-            sendWord.tlast = 0;
+			assessFull(myName, soTss_TcpWord, "soTss_TcpWord");
+			soTss_TcpWord.write(sendWord);
+			if (DEBUG_LEVEL & TRACE_PHC) {
+				printInfo(myName, "Sending word #0 to [Tss]:\n");
+				printAxiWord(myName, sendWord);
+			}
+			phc_wordCount++;
+		}
+		break;
 
-            soTss_TcpWord.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_PHC) printAxiWord(myName, sendWord);
-            phc_wordCount++;
-            break;
+	case WORD_1:
+		sendWord.tdata.range( 7, 0) = 0x00;     // TCP Time to Live
+		sendWord.tdata.range(15, 8) = 0x06;     // TCP Protocol
+		pseudoHdrLen = phc_meta.length + 0x14;  // Add 20 bytes for the TCP header
 
-        case WORD_2:
-            // Insert SEQ number
-        	//OBSOLETE-20181128 sendWord.data(7, 0)   = phc_meta.seqNumb(31, 24);
-        	//OBSOLETE-20181128 sendWord.data(15, 8)  = phc_meta.seqNumb(23, 16);
-        	//OBSOLETE-20181128 sendWord.data(23, 16) = phc_meta.seqNumb(15, 8);
-        	//OBSOLETE-20181128 sendWord.data(31, 24) = phc_meta.seqNumb(7, 0);
-            sendWord.tdata(31,  0) = byteSwap32(phc_meta.seqNumb);
-            // Insert ACK number
-            //OBSOLETE-20181128 sendWord.data(39, 32) = phc_meta.ackNumb(31, 24);
-            //OBSOLETE-20181128 sendWord.data(47, 40) = phc_meta.ackNumb(23, 16);
-            //OBSOLETE-20181128 sendWord.data(55, 48) = phc_meta.ackNumb(15, 8);
-            //OBSOLETE-20181128 sendWord.data(63, 56) = phc_meta.ackNumb(7, 0);
-            sendWord.tdata(63, 32) = byteSwap32(phc_meta.ackNumb);
-            sendWord.tkeep = 0xFF;
-            sendWord.tlast = 0;
+		sendWord.tdata.range(31, 16) = byteSwap16(pseudoHdrLen);
+		sendWord.tdata.range(47, 32) = phc_sockPair.src.port;   // Source Port
+		sendWord.tdata.range(63, 48) = phc_sockPair.dst.port;   // Destination Port
+		sendWord.tkeep = 0xFF;
+		sendWord.tlast = 0;
 
-            soTss_TcpWord.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_PHC) printAxiWord(myName, sendWord);
-            phc_wordCount++;
-            break;
+		assessFull(myName, soTss_TcpWord, "soTss_TcpWord");
+		soTss_TcpWord.write(sendWord);
+		if (DEBUG_LEVEL & TRACE_PHC) {
+			printInfo(myName, "Sending word #1 to [Tss]:\n");
+			printAxiWord(myName, sendWord);
+		}
+		phc_wordCount++;
+		break;
 
-        case WORD_3:
-            sendWord.tdata(3, 1) = 0; // Reserved
-            sendWord.tdata(7, 4) = (0x5 + phc_meta.syn); // Data Offset (+1 for MSS)
-            /* Control bits:
-             * [ 8] == FIN
-             * [ 9] == SYN
-             * [10] == RST
-             * [11] == PSH
-             * [12] == ACK
-             * [13] == URG
-             */
-            sendWord.tdata[8]  = phc_meta.fin;  // Control bits
-            sendWord.tdata[9]  = phc_meta.syn;
-            sendWord.tdata[10] = phc_meta.rst;
-            sendWord.tdata[11] = 0;
-            sendWord.tdata[12] = phc_meta.ack;
-            sendWord.tdata(15, 13) = 0;
-            //OBSOLETE-20181128 sendWord.data.range(23, 16) = phc_meta.winSize(15, 8);
-            //OBSOLETE-20181128 sendWord.data.range(31, 24) = phc_meta.winSize( 7, 0);
-            sendWord.tdata.range(31, 16) = byteSwap16(phc_meta.winSize);
-            sendWord.tdata.range(63, 32) = 0; // Urgent pointer & Checksum
-            sendWord.tkeep = 0xFF;
-            sendWord.tlast = (phc_meta.length == 0);
+	case WORD_2:
+		// Insert SEQ number
+		sendWord.tdata(31,  0) = byteSwap32(phc_meta.seqNumb);
+		// Insert ACK number
+		sendWord.tdata(63, 32) = byteSwap32(phc_meta.ackNumb);
+		sendWord.tkeep = 0xFF;
+		sendWord.tlast = 0;
 
-            soTss_TcpWord.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_PHC) printAxiWord(myName, sendWord);
+		assessFull(myName, soTss_TcpWord, "soTss_TcpWord");
+		soTss_TcpWord.write(sendWord);
+		if (DEBUG_LEVEL & TRACE_PHC) {
+			printInfo(myName, "Sending word #2 to [Tss]:\n");
+			printAxiWord(myName, sendWord);
+		}
+		phc_wordCount++;
+		break;
 
-            if (!phc_meta.syn)
-                phc_wordCount = 0;
-            else
-                phc_wordCount++;
-            //OBSOLETE-20181130 phc_done = true;
-            break;
+	case WORD_3:
+		sendWord.tdata(3, 1) = 0; // Reserved
+		sendWord.tdata(7, 4) = (0x5 + phc_meta.syn); // Data Offset (+1 for MSS)
+		/* Control bits:
+		 * [ 0] == NS
+		 * [ 8] == FIN
+		 * [ 9] == SYN
+		 * [10] == RST
+		 * [11] == PSH
+		 * [12] == ACK
+		 * [13] == URG
+		 */
+		sendWord.tdata[0]  = 0;  // Nonce-Sum (reserved for Robust ECN)
+		sendWord.tdata[8]  = phc_meta.fin;
+		sendWord.tdata[9]  = phc_meta.syn;
+		sendWord.tdata[10] = phc_meta.rst;
+		sendWord.tdata[11] = 0;
+		sendWord.tdata[12] = phc_meta.ack;
+		sendWord.tdata(15, 13) = 0;
+		sendWord.tdata.range(31, 16) = byteSwap16(phc_meta.winSize);
+		sendWord.tdata.range(63, 32) = 0; // Urgent pointer & Checksum
+		sendWord.tkeep = 0xFF;
+		sendWord.tlast = (phc_meta.length == 0);
 
-        case WORD_4: // Only used for SYN and MSS negotiation
-            sendWord.tdata( 7,  0) = 0x02;   // Option Kind = Maximum Segment Size
-            sendWord.tdata(15,  8) = 0x04;   // Option length
-            sendWord.tdata(31, 16) = 0xB405; // 0x05B4 = 1460
-            sendWord.tdata(63, 32) = 0;
-            sendWord.tkeep = 0x0F;
-            sendWord.tlast = 1; // (phc_meta.length == 0x04); // OR JUST SET TO 1
+		assessFull(myName, soTss_TcpWord, "soTss_TcpWord");
+		soTss_TcpWord.write(sendWord);
+		if (DEBUG_LEVEL & TRACE_PHC) {
+			printInfo(myName, "Sending word #3 to [Tss]:\n");
+			printAxiWord(myName, sendWord);
+		}
 
-            soTss_TcpWord.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_PHC) printAxiWord(myName, sendWord);
-            phc_wordCount = 0;
-        break;
+		if (!phc_meta.syn) {
+			phc_wordCount = 0;
+		}
+		else {
+			phc_wordCount++;
+		}
+		break;
 
-        } // End of: switch
-        //OBSOLETE-20181130    }
-} // End of: pPseudoHeaderConstructor
+	case WORD_4: // Only used for SYN and MSS negotiation
+		sendWord.tdata( 7,  0) = 0x02;   // Option Kind = Maximum Segment Size
+		sendWord.tdata(15,  8) = 0x04;   // Option length
+		sendWord.tdata(31, 16) = 0xB405; // 0x05B4 = 1460
+		sendWord.tdata(63, 32) = 0;
+		sendWord.tkeep         = 0x0F;
+		sendWord.tlast         = 1;
+
+		assessFull(myName, soTss_TcpWord, "soTss_TcpWord");
+		soTss_TcpWord.write(sendWord);
+		if (DEBUG_LEVEL & TRACE_PHC) {
+			printInfo(myName, "Sending word #4 to [Tss]:\n");
+			printAxiWord(myName, sendWord);
+		}
+		phc_wordCount = 0;
+	break;
+
+	} // End of: switch
+
+} // End of: pPseudoHeaderConstructor (Phc)
 
 
 /*****************************************************************************
@@ -1642,7 +1659,7 @@ void tx_engine(
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
-        stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
+        stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         stream<SigBit>                  &soEVe_RxEventSig,
         stream<Ip4overAxi>              &soL3MUX_Data)

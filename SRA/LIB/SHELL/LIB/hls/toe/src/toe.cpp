@@ -476,7 +476,11 @@ void pTbSimCount(
     ap_uint<32>    &poSimCycCount)
 {
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<32>         sCounter;
+    #ifdef __SYNTHESIS__
+        static ap_uint<32>         sCounter = 14;
+    #else
+        static ap_uint<32>         sCounter =  0;
+    #endif
     #pragma HLS reset variable=sCounter
 
     sCounter += 1;

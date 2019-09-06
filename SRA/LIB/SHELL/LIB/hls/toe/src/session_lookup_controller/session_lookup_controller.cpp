@@ -270,13 +270,16 @@ void pUpdateReplyHandler(
 /*****************************************************************************
  * @brief Reverse Lookup Table (Rlt)
  *
- *  @param[in]  sLrh_ReverseLkpRsp,   Reverse lookup response from Lookup Reply HAndler (Lrh).
+ *  @param[in]  sLrh_ReverseLkpRsp,   Reverse lookup response from Lookup Reply Handler (Lrh).
  *  @param[in]  siSTt_SessReleaseCmd, Session release command from State Table (STt).
  *  @param[in[  siTXe_ReverseLkpReq,  Reverse lookup request from Tx Engine (TXe).
  *  @param[out] soTXe_ReverseLkpRep,  Reverse lookup reply to Tx Engine (TXe).
  *  @param[out] soPRt_ClosePortCmd,   Command to close a port for the Port Table (PRt).
  *  @param[out] soUrs_SessDeleteReq,  Request to delete session to Update Request Sender (Urs).
  *
+ * @details
+ *  The REVERSE_LOOKUP_TABLE stores a four-tuple piece of information at memory
+ *   address indexed by the 'SessionId' of that 4-tuple.
  *****************************************************************************/
 void pReverseLookupTable(
         stream<revLupInsert>    &siLrh_ReverseLkpRsp,
@@ -299,6 +302,7 @@ void pReverseLookupTable(
 
     fourTuple           toeTuple;
 
+    // [FIXME - Must clear the TUPLE_VALID_TABLE upon reset]
     if (!siLrh_ReverseLkpRsp.empty()) {
         revLupInsert        insert = siLrh_ReverseLkpRsp.read();
         REVERSE_LOOKUP_TABLE[insert.key] = insert.value;
@@ -315,7 +319,8 @@ void pReverseLookupTable(
     }
     else if (!siTXe_ReverseLkpReq.empty()) {
         SessionId sessionId = siTXe_ReverseLkpReq.read();
-        soTXe_ReverseLkpRep.write(fourTuple(REVERSE_LOOKUP_TABLE[sessionId].myIp, REVERSE_LOOKUP_TABLE[sessionId].theirIp, REVERSE_LOOKUP_TABLE[sessionId].myPort, REVERSE_LOOKUP_TABLE[sessionId].theirPort));
+        soTXe_ReverseLkpRep.write(fourTuple(REVERSE_LOOKUP_TABLE[sessionId].myIp,   REVERSE_LOOKUP_TABLE[sessionId].theirIp,
+                                            REVERSE_LOOKUP_TABLE[sessionId].myPort, REVERSE_LOOKUP_TABLE[sessionId].theirPort));
     }
 }
 

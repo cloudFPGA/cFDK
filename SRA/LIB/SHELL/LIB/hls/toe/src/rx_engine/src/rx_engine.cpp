@@ -1068,7 +1068,7 @@ void pFiniteStateMachine(
                              (rxbuffer_max_data_count - rxbuffer_data_count) > 375) { // [FIXME - Why 375?]
 #endif
                             soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId, rcvNext, QUERY_WR));
-                            // Build memory address for this segment in the lower 2GB
+                            // Build memory address for this segment in the lower 4GB
                             RxMemPtr memSegAddr;
                             memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsmMeta.sessionId(13, 0);

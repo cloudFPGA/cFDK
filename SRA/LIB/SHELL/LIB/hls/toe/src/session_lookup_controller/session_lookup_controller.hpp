@@ -179,7 +179,7 @@ struct rtlSessionUpdateReply       // [FIXME - Rename ]
 
 struct revLupInsert
 {
-    ap_uint<16>         key;
+    SessionId           key;
     fourTupleInternal   value;
     revLupInsert() {};
     revLupInsert(ap_uint<16> key, fourTupleInternal value)
