@@ -110,7 +110,8 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-config_rt -disable_start_propagation
+# [TODO - Check vivado_hls version and only enable this command if >= 2018]
+# config_rtl -disable_start_propagation
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
