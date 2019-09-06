@@ -118,9 +118,23 @@ void printTcpPort      (                        TcpPort       tcpPort);
  **********************************************************/
 #ifndef __SYNTHESIS__
   #define printFatal(callerName , format, ...) \
-    do { gTraceEvent = true; gFatalError = true; printf("(@%5.5d) [%s] FATAL - " format, gSimCycCnt, callerName, ##__VA_ARGS__); exit(99); } while (0)
+    do { gTraceEvent = true; gFatalError = true; printf("\n(@%5.5d) [%s] FATAL - " format, gSimCycCnt, callerName, ##__VA_ARGS__); printf("\n\n"); exit(99); } while (0)
 #else
   #define printFatal(callerName , format, ...) \
+    do {} while (0);
+#endif
+
+/**********************************************************
+ * @brief A macro that checks if a stream is full.
+ * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in] stream        the stream to test.
+ * @param[in] streamName,   the name of the stream (e.g. "soEVe_RxEventSig").
+ **********************************************************/
+#ifndef __SYNTHESIS__
+  #define assessFull(callerName , stream , streamName) \
+    do { if (stream.full()) printFatal(callerName, "Stream \'%s\' is full: Cannot write.", streamName); } while (0)
+#else
+  #define assessFull(callerName , stream, streamName) \
     do {} while (0);
 #endif
 
@@ -132,12 +146,13 @@ bool isDottedDecimal   (string ipStr);
 bool isHexString       (string str);
 
 ap_uint<32>    myDottedDecimalIpToUint32(string ipStr);
-vector<string> myTokenizer     (string      strBuff, char delimiter);
-string         myUint64ToStrHex(ap_uint<64> inputNumber);
-string         myUint8ToStrHex (ap_uint<8>  inputNumber);
-ap_uint<64>    myStrHexToUint64(string      dataString);
-ap_uint<8>     myStrHexToUint8 (string      keepString);
+vector<string> myTokenizer     (string       strBuff, char delimiter);
+string         myUint64ToStrHex(ap_uint<64>  inputNumber);
+string         myUint8ToStrHex (ap_uint<8>   inputNumber);
+ap_uint<64>    myStrHexToUint64(string       dataString);
+ap_uint<8>     myStrHexToUint8 (string       keepString);
 const char    *myEventTypeToString(eventType ev);
+const char    *myCamAccessToString(int       initiator);
 
 
 /*****************************************************************************

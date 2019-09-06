@@ -27,6 +27,9 @@ using namespace hls;
  * Generic Network Streaming Interfaces.
  ********************************************/
 
+#define NETWORK_WORD_BYTE_WIDTH 8
+#define NETWORK_WORD_BIT_WIDTH 64
+
 struct NetworkWord { 
     ap_uint<64>    tdata;
     ap_uint<8>     tkeep;

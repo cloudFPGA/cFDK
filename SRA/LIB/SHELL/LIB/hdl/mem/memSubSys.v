@@ -10,8 +10,8 @@
 // * File    : memSubSys.v
 // *
 // * Created : Nov. 2017
-// * Authors : Jagath Weerasinghe, 
-// *           Francois Abel <fab@zurich.ibm.com>
+// * Authors : Francois Abel <fab@zurich.ibm.com>
+// *           Burkhard Ringlein
 // *
 // * Devices : xcku060-ffva1156-2-i
 // * Tools   : Vivado v2016.4 (64-bit)
@@ -25,19 +25,19 @@
 // *    is reserved for the user application.
 // *
 // *                        +-----+                     
-// *    [piNTS0_Mem_TxP]--->|     |--------> [poMEM_Nts0_TxP]
+// *     [siNTS_Mem_TxP]--->|     |--------> [soMEM_Nts0_TxP]
 // *                        |     |
 // *                        | MC0 |<-------> [pioDDR_Mem_Mc0]
 // *                        |     |
-// *    [piNTS0_Mem_RxP]--->|     |--------> [poMEM_Nts0_RxP]
-// *                        +-----+
+// *    [siNTS0_Mem_RxP]--->|     |--------> [soMEM_Nts0_RxP]
+// *                       +-----+
 // *
 // *                        +-----+
-// *     [piROL_Mem_Mp0]--->|     |--------> [poMEM_Rol_Mp0]
+// *     [siROL_Mem_Mp0]--->|     |--------> [soMEM_Rol_Mp0]
 // *                        |     |
 // *                        | MC1 |<-------> [pioDDR_Mem_Mc1]
 // *                        |     |
-// *     [piROL_Mem_Mp1]--->|     |--------> [poMEM_Rol_Mp1]
+// *     [siROL_Mem_Mp1]--->|     |--------> [soMEM_Rol_Mp1]
 // *                        +-----+
 // *
 // *    The interfaces exposed to the SHELL are:
@@ -70,87 +70,100 @@ module MemorySubSystem # (
 
 ) (
 
-  //-- Global Clock used by the entire SHELL -------
-  input           piShlClk,
+  //------------------------------------------------------
+  //-- Global Clock used by the entire SHELL
+  //------------------------------------------------------
+  input           piSHL_Clk,
 
-  //-- Global Reset used by the entire SHELL -------
+  //------------------------------------------------------
+  //-- Global Reset used by the entire SHELL
+  //------------------------------------------------------
   input           piTOP_156_25Rst,   // [FIXME-Is-this-a-SyncReset]
+  
+  //----------------------------------------------
+  //-- Alternate System Reset
+  //----------------------------------------------
+  input           piMMIO_Rst,
 
-  //-- DDR4 Reference Memory Clocks ----------------------
+  //------------------------------------------------------
+  //-- DDR4 Reference Memory Clocks
+  //------------------------------------------------------
   input           piCLKT_Mem0Clk_n,
   input           piCLKT_Mem0Clk_p,
   input           piCLKT_Mem1Clk_n,
   input           piCLKT_Mem1Clk_p,
   
-  //-- Control Inputs and Status Ouputs ----------
+  //------------------------------------------------------ 
+  //-- MMIO / Status Interface
+  //------------------------------------------------------
   output          poMmio_Mc0_InitCalComplete,
   output          poMmio_Mc1_InitCalComplete,
   
   //----------------------------------------------
-  //-- NTS0 / Mem / TxP Interface
+  //-- NTS / Mem / TxP Interface
   //----------------------------------------------
   //-- Transmit Path / S2MM-AXIS -----------------
   //---- Stream Read Command -----------------
-  input  [79:0]   piNTS0_Mem_TxP_Axis_RdCmd_tdata,
-  input           piNTS0_Mem_TxP_Axis_RdCmd_tvalid,
-  output          poMEM_Nts0_TxP_Axis_RdCmd_tready,
+  input  [79:0]   siNTS_Mem_TxP_RdCmd_tdata,
+  input           siNTS_Mem_TxP_RdCmd_tvalid,
+  output          siNTS_Mem_TxP_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piNTS0_Mem_TxP_Axis_RdSts_tready,
-  output  [7:0]   poMEM_Nts0_TxP_Axis_RdSts_tdata,
-  output          poMEM_Nts0_TxP_Axis_RdSts_tvalid,
+  output  [7:0]   soMEM_Nts_TxP_RdSts_tdata,
+  output          soMEM_Nts_TxP_RdSts_tvalid,
+  input           soMEM_Nts_TxP_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piNTS0_Mem_TxP_Axis_Read_tready,
-  output [63:0]   poMEM_Nts0_TxP_Axis_Read_tdata,
-  output  [7:0]   poMEM_Nts0_TxP_Axis_Read_tkeep,
-  output          poMEM_Nts0_TxP_Axis_Read_tlast,
-  output          poMEM_Nts0_TxP_Axis_Read_tvalid,
+  output [63:0]   soMEM_Nts_TxP_Read_tdata,
+  output  [7:0]   soMEM_Nts_TxP_Read_tkeep,
+  output          soMEM_Nts_TxP_Read_tlast,
+  output          soMEM_Nts_TxP_Read_tvalid,
+  input           soMEM_Nts_TxP_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piNTS0_Mem_TxP_Axis_WrCmd_tdata,
-  input           piNTS0_Mem_TxP_Axis_WrCmd_tvalid,
-  output          poMEM_Nts0_TxP_Axis_WrCmd_tready,
+  input  [79:0]   siNTS_Mem_TxP_WrCmd_tdata,
+  input           siNTS_Mem_TxP_WrCmd_tvalid,
+  output          siNTS_Mem_TxP_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piNTS0_Mem_TxP_Axis_WrSts_tready,
-  output  [7:0]   poMEM_Nts0_TxP_Axis_WrSts_tdata,
-  output          poMEM_Nts0_TxP_Axis_WrSts_tvalid,
+  output  [7:0]   soMEM_Nts_TxP_WrSts_tdata,
+  output          soMEM_Nts_TxP_WrSts_tvalid,
+  input           soMEM_Nts_TxP_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input  [63:0]   piNTS0_Mem_TxP_Axis_Write_tdata,
-  input   [7:0]   piNTS0_Mem_TxP_Axis_Write_tkeep,
-  input           piNTS0_Mem_TxP_Axis_Write_tlast,
-  input           piNTS0_Mem_TxP_Axis_Write_tvalid,
-  output          poMEM_Nts0_TxP_Axis_Write_tready,
+  input  [63:0]   siNTS_Mem_TxP_Write_tdata,
+  input   [7:0]   siNTS_Mem_TxP_Write_tkeep,
+  input           siNTS_Mem_TxP_Write_tlast,
+  input           siNTS_Mem_TxP_Write_tvalid,
+  output          siNTS_Mem_TxP_Write_tready,
   
   //----------------------------------------------
-  //-- NTS0 / Mem / Rx Interface
+  //-- NTS / Mem / Rx Interface
   //----------------------------------------------
   //-- Receive Path  / S2MM-AXIS -----------------
   //---- Stream Read Command -----------------
-  input  [79:0]   piNTS0_Mem_RxP_Axis_RdCmd_tdata,
-  input           piNTS0_Mem_RxP_Axis_RdCmd_tvalid,
-  output          poMEM_Nts0_RxP_Axis_RdCmd_tready,
+  input  [79:0]   siNTS_Mem_RxP_RdCmd_tdata,
+  input           siNTS_Mem_RxP_RdCmd_tvalid,
+  output          siNTS_Mem_RxP_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piNTS0_Mem_RxP_Axis_RdSts_tready,
-  output  [7:0]   poMEM_Nts0_RxP_Axis_RdSts_tdata,
-  output          poMEM_Nts0_RxP_Axis_RdSts_tvalid,
+  output  [7:0]   soMEM_Nts_RxP_RdSts_tdata,
+  output          soMEM_Nts_RxP_RdSts_tvalid,
+  input           soMEM_Nts_RxP_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piNTS0_Mem_RxP_Axis_Read_tready,
-  output [63:0]   poMEM_Nts0_RxP_Axis_Read_tdata,
-  output  [7:0]   poMEM_Nts0_RxP_Axis_Read_tkeep,
-  output          poMEM_Nts0_RxP_Axis_Read_tlast,
-  output          poMEM_Nts0_RxP_Axis_Read_tvalid,
+  output [63:0]   soMEM_Nts_RxP_Read_tdata,
+  output  [7:0]   soMEM_Nts_RxP_Read_tkeep,
+  output          soMEM_Nts_RxP_Read_tlast,
+  output          soMEM_Nts_RxP_Read_tvalid,
+  input           soMEM_Nts_RxP_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piNTS0_Mem_RxP_Axis_WrCmd_tdata,
-  input           piNTS0_Mem_RxP_Axis_WrCmd_tvalid,
-  output          poMEM_Nts0_RxP_Axis_WrCmd_tready,
+  input  [79:0]   siNTS_Mem_RxP_WrCmd_tdata,
+  input           siNTS_Mem_RxP_WrCmd_tvalid,
+  output          siNTS_Mem_RxP_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piNTS0_Mem_RxP_Axis_WrSts_tready,
-  output  [7:0]   poMEM_Nts0_RxP_Axis_WrSts_tdata,
-  output          poMEM_Nts0_RxP_Axis_WrSts_tvalid,
+  output  [7:0]   soMEM_Nts_RxP_WrSts_tdata,
+  output          soMEM_Nts_RxP_WrSts_tvalid,
+  input           soMEM_Nts_RxP_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input  [63:0]   piNTS0_Mem_RxP_Axis_Write_tdata,
-  input   [7:0]   piNTS0_Mem_RxP_Axis_Write_tkeep,
-  input           piNTS0_Mem_RxP_Axis_Write_tlast,
-  input           piNTS0_Mem_RxP_Axis_Write_tvalid,
-  output          poMEM_Nts0_RxP_Axis_Write_tready,  
+  input  [63:0]   siNTS_Mem_RxP_Write_tdata,
+  input   [7:0]   siNTS_Mem_RxP_Write_tkeep,
+  input           siNTS_Mem_RxP_Write_tlast,
+  input           siNTS_Mem_RxP_Write_tvalid,
+  output          siNTS_Mem_RxP_Write_tready,  
     
   //----------------------------------------------
   // -- Physical DDR4 Interface #0
@@ -159,82 +172,82 @@ module MemorySubSystem # (
   inout  [71:0]   pioDDR_Mem_Mc0_Dq,
   inout  [8:0]    pioDDR_Mem_Mc0_Dqs_n,
   inout  [8:0]    pioDDR_Mem_Mc0_Dqs_p,  
-  output          poMEM_Ddr4_Mc0_Act_n,
-  output [16:0]   poMEM_Ddr4_Mc0_Adr,
-  output [1:0]    poMEM_Ddr4_Mc0_Ba,
-  output [1:0]    poMEM_Ddr4_Mc0_Bg,
-  output [0:0]    poMEM_Ddr4_Mc0_Cke,
-  output [0:0]    poMEM_Ddr4_Mc0_Odt,
-  output [0:0]    poMEM_Ddr4_Mc0_Cs_n,
-  output [0:0]    poMEM_Ddr4_Mc0_Ck_n,
-  output [0:0]    poMEM_Ddr4_Mc0_Ck_p,
-  output          poMEM_Ddr4_Mc0_Reset_n,
+  output          poDDR4_Mem_Mc0_Act_n,
+  output [16:0]   poDDR4_Mem_Mc0_Adr,
+  output [1:0]    poDDR4_Mem_Mc0_Ba,
+  output [1:0]    poDDR4_Mem_Mc0_Bg,
+  output [0:0]    poDDR4_Mem_Mc0_Cke,
+  output [0:0]    poDDR4_Mem_Mc0_Odt,
+  output [0:0]    poDDR4_Mem_Mc0_Cs_n,
+  output [0:0]    poDDR4_Mem_Mc0_Ck_n,
+  output [0:0]    poDDR4_Mem_Mc0_Ck_p,
+  output          poDDR4_Mem_Mc0_Reset_n,
   
   //----------------------------------------------
   //-- ROLE / Mem / Mp0 Interface
   //----------------------------------------------
   //-- Memory Port #0 / S2MM-AXIS ------------------   
   //---- Stream Read Command -----------------
-  input  [79:0]   piROL_Mem_Mp0_Axis_RdCmd_tdata,
-  input           piROL_Mem_Mp0_Axis_RdCmd_tvalid,
-  output          poMEM_Rol_Mp0_Axis_RdCmd_tready,
+  input  [79:0]   siROL_Mem_Mp0_RdCmd_tdata,
+  input           siROL_Mem_Mp0_RdCmd_tvalid,
+  output          siROL_Mem_Mp0_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piROL_Mem_Mp0_Axis_RdSts_tready,
-  output  [7:0]   poMEM_Rol_Mp0_Axis_RdSts_tdata,
-  output          poMEM_Rol_Mp0_Axis_RdSts_tvalid,
+  output  [7:0]   soMEM_Rol_Mp0_RdSts_tdata,
+  output          soMEM_Rol_Mp0_RdSts_tvalid,
+  input           soMEM_Rol_Mp0_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piROL_Mem_Mp0_Axis_Read_tready,
-  output [511:0]  poMEM_Rol_Mp0_Axis_Read_tdata,
-  output  [63:0]  poMEM_Rol_Mp0_Axis_Read_tkeep,
-  output          poMEM_Rol_Mp0_Axis_Read_tlast,
-  output          poMEM_Rol_Mp0_Axis_Read_tvalid,
+  output [511:0]  soMEM_Rol_Mp0_Read_tdata,
+  output  [63:0]  soMEM_Rol_Mp0_Read_tkeep,
+  output          soMEM_Rol_Mp0_Read_tlast,
+  output          soMEM_Rol_Mp0_Read_tvalid,
+  input           soMEM_Rol_Mp0_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piROL_Mem_Mp0_Axis_WrCmd_tdata,
-  input           piROL_Mem_Mp0_Axis_WrCmd_tvalid,
-  output          poMEM_Rol_Mp0_Axis_WrCmd_tready,
+  input  [79:0]   siROL_Mem_Mp0_WrCmd_tdata,
+  input           siROL_Mem_Mp0_WrCmd_tvalid,
+  output          siROL_Mem_Mp0_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piROL_Mem_Mp0_Axis_WrSts_tready,
-  output          poMEM_Rol_Mp0_Axis_WrSts_tvalid,
-  output  [7:0]   poMEM_Rol_Mp0_Axis_WrSts_tdata,
+  output          soMEM_Rol_Mp0_WrSts_tvalid,
+  output  [7:0]   soMEM_Rol_Mp0_WrSts_tdata,
+  input           soMEM_Rol_Mp0_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input  [511:0]  piROL_Mem_Mp0_Axis_Write_tdata,
-  input   [63:0]  piROL_Mem_Mp0_Axis_Write_tkeep,
-  input           piROL_Mem_Mp0_Axis_Write_tlast,
-  input           piROL_Mem_Mp0_Axis_Write_tvalid,
-  output          poMEM_Rol_Mp0_Axis_Write_tready, 
+  input  [511:0]  siROL_Mem_Mp0_Write_tdata,
+  input   [63:0]  siROL_Mem_Mp0_Write_tkeep,
+  input           siROL_Mem_Mp0_Write_tlast,
+  input           siROL_Mem_Mp0_Write_tvalid,
+  output          siROL_Mem_Mp0_Write_tready, 
   
   //----------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //----------------------------------------------
   //-- Memory Port #1 / S2MM-AXIS ------------------
   //---- Stream Read Command -----------------
-  input  [79:0]   piROL_Mem_Mp1_Axis_RdCmd_tdata,
-  input           piROL_Mem_Mp1_Axis_RdCmd_tvalid,
-  output          poMEM_Rol_Mp1_Axis_RdCmd_tready,
+  input  [79:0]   siROL_Mem_Mp1_RdCmd_tdata,
+  input           siROL_Mem_Mp1_RdCmd_tvalid,
+  output          siROL_Mem_Mp1_RdCmd_tready,
   //---- Stream Read Status ------------------
-  input           piROL_Mem_Mp1_Axis_RdSts_tready,
-  output  [7:0]   poMEM_Rol_Mp1_Axis_RdSts_tdata,
-  output          poMEM_Rol_Mp1_Axis_RdSts_tvalid,
+  output  [7:0]   soMEM_Rol_Mp1_RdSts_tdata,
+  output          soMEM_Rol_Mp1_RdSts_tvalid,
+  input           soMEM_Rol_Mp1_RdSts_tready,
   //---- Stream Data Output Channel ----------
-  input           piROL_Mem_Mp1_Axis_Read_tready,
-  output [511:0]  poMEM_Rol_Mp1_Axis_Read_tdata,
-  output  [63:0]  poMEM_Rol_Mp1_Axis_Read_tkeep,
-  output          poMEM_Rol_Mp1_Axis_Read_tlast,
-  output          poMEM_Rol_Mp1_Axis_Read_tvalid,
+  output [511:0]  soMEM_Rol_Mp1_Read_tdata,
+  output  [63:0]  soMEM_Rol_Mp1_Read_tkeep,
+  output          soMEM_Rol_Mp1_Read_tlast,
+  output          soMEM_Rol_Mp1_Read_tvalid,
+  input           soMEM_Rol_Mp1_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   piROL_Mem_Mp1_Axis_WrCmd_tdata,
-  input           piROL_Mem_Mp1_Axis_WrCmd_tvalid,
-  output          poMEM_Rol_Mp1_Axis_WrCmd_tready,
+  input  [79:0]   siROL_Mem_Mp1_WrCmd_tdata,
+  input           siROL_Mem_Mp1_WrCmd_tvalid,
+  output          siROL_Mem_Mp1_WrCmd_tready,
   //---- Stream Write Status -----------------
-  input           piROL_Mem_Mp1_Axis_WrSts_tready,
-  output          poMEM_Rol_Mp1_Axis_WrSts_tvalid,
-  output  [7:0]   poMEM_Rol_Mp1_Axis_WrSts_tdata,
+  output          soMEM_Rol_Mp1_WrSts_tvalid,
+  output  [7:0]   soMEM_Rol_Mp1_WrSts_tdata,
+  input           soMEM_Rol_Mp1_WrSts_tready,
   //---- Stream Data Input Channel -----------
-  input  [511:0]  piROL_Mem_Mp1_Axis_Write_tdata,
-  input   [63:0]  piROL_Mem_Mp1_Axis_Write_tkeep,
-  input           piROL_Mem_Mp1_Axis_Write_tlast,
-  input           piROL_Mem_Mp1_Axis_Write_tvalid,
-  output          poMEM_Rol_Mp1_Axis_Write_tready,
+  input  [511:0]  siROL_Mem_Mp1_Write_tdata,
+  input   [63:0]  siROL_Mem_Mp1_Write_tkeep,
+  input           siROL_Mem_Mp1_Write_tlast,
+  input           siROL_Mem_Mp1_Write_tvalid,
+  output          siROL_Mem_Mp1_Write_tready,
   
   //----------------------------------------------
   // -- Physical DDR4 Interface #1
@@ -243,16 +256,16 @@ module MemorySubSystem # (
   inout  [71:0]   pioDDR_Mem_Mc1_Dq,
   inout  [8:0]    pioDDR_Mem_Mc1_Dqs_n,
   inout  [8:0]    pioDDR_Mem_Mc1_Dqs_p,  
-  output          poMEM_Ddr4_Mc1_Act_n,
-  output [16:0]   poMEM_Ddr4_Mc1_Adr,
-  output [1:0]    poMEM_Ddr4_Mc1_Ba,
-  output [1:0]    poMEM_Ddr4_Mc1_Bg,
-  output [0:0]    poMEM_Ddr4_Mc1_Cke,
-  output [0:0]    poMEM_Ddr4_Mc1_Odt,
-  output [0:0]    poMEM_Ddr4_Mc1_Cs_n,
-  output [0:0]    poMEM_Ddr4_Mc1_Ck_n,
-  output [0:0]    poMEM_Ddr4_Mc1_Ck_p,
-  output          poMEM_Ddr4_Mc1_Reset_n,
+  output          poDDR4_Mem_Mc1_Act_n,
+  output [16:0]   poDDR4_Mem_Mc1_Adr,
+  output [1:0]    poDDR4_Mem_Mc1_Ba,
+  output [1:0]    poDDR4_Mem_Mc1_Bg,
+  output [0:0]    poDDR4_Mem_Mc1_Cke,
+  output [0:0]    poDDR4_Mem_Mc1_Odt,
+  output [0:0]    poDDR4_Mem_Mc1_Cs_n,
+  output [0:0]    poDDR4_Mem_Mc1_Ck_n,
+  output [0:0]    poDDR4_Mem_Mc1_Ck_p,
+  output          poDDR4_Mem_Mc1_Reset_n,
   
   output          poVoid
 
@@ -290,100 +303,101 @@ module MemorySubSystem # (
   ) MC0 (
    
     //-- Global Clock used by the entire SHELL ------
-    .piShlClk                 (piShlClk),
+    .piShlClk              (piShlClk),
 
     //-- Global Reset used by the entire SHELL ------
-    .piTOP_156_25Rst          (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
+    .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
     
     //-- DDR4 Reference Memory Clock ----------------
-    .piCLKT_MemClk_n         (piCLKT_Mem0Clk_n),
-    .piCLKT_MemClk_p         (piCLKT_Mem0Clk_p),
+    .piCLKT_MemClk_n       (piCLKT_Mem0Clk_n),
+    .piCLKT_MemClk_p       (piCLKT_Mem0Clk_p),
      
     //-- Control Inputs and Status Ouputs -----------
-    .poMmio_InitCalComplete  (poMmio_Mc0_InitCalComplete),
+    .poMmio_InitCalComplete(poMmio_Mc0_InitCalComplete),
    
     //-----------------------------------------------
     //-- MP0 / Memory Port Interface #0
     //-----------------------------------------------   
     //---- Stream Read Command -----------------
-    .piMP0_Mc_Axis_RdCmd_tdata   (piNTS0_Mem_TxP_Axis_RdCmd_tdata),
-    .piMP0_Mc_Axis_RdCmd_tvalid  (piNTS0_Mem_TxP_Axis_RdCmd_tvalid),
-    .poMC_Mp0_Axis_RdCmd_tready  (poMEM_Nts0_TxP_Axis_RdCmd_tready),
+    .siMP0_RdCmd_tdata     (siNTS_Mem_TxP_RdCmd_tdata),
+    .siMP0_RdCmd_tvalid    (siNTS_Mem_TxP_RdCmd_tvalid),
+    .siMP0_RdCmd_tready    (siNTS_Mem_TxP_RdCmd_tready),
     //---- Stream Read Status ------------------
-    .piMP0_Mc_Axis_RdSts_tready  (piNTS0_Mem_TxP_Axis_RdSts_tready),
-    .poMC_Mp0_Axis_RdSts_tdata   (poMEM_Nts0_TxP_Axis_RdSts_tdata),
-    .poMC_Mp0_Axis_RdSts_tvalid  (poMEM_Nts0_TxP_Axis_RdSts_tvalid),
+    .soMP0_RdSts_tdata     (soMEM_Nts_TxP_RdSts_tdata),
+    .soMP0_RdSts_tvalid    (soMEM_Nts_TxP_RdSts_tvalid),
+    .soMP0_RdSts_tready    (soMEM_Nts_TxP_RdSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMP0_Mc_Axis_Read_tready   (piNTS0_Mem_TxP_Axis_Read_tready),
-    .poMC_Mp0_Axis_Read_tdata    (poMEM_Nts0_TxP_Axis_Read_tdata),
-    .poMC_Mp0_Axis_Read_tkeep    (poMEM_Nts0_TxP_Axis_Read_tkeep),
-    .poMC_Mp0_Axis_Read_tlast    (poMEM_Nts0_TxP_Axis_Read_tlast),
-    .poMC_Mp0_Axis_Read_tvalid   (poMEM_Nts0_TxP_Axis_Read_tvalid),
+    .soMP0_Read_tdata      (soMEM_Nts_TxP_Read_tdata),
+    .soMP0_Read_tkeep      (soMEM_Nts_TxP_Read_tkeep),
+    .soMP0_Read_tlast      (soMEM_Nts_TxP_Read_tlast),
+    .soMP0_Read_tvalid     (soMEM_Nts_TxP_Read_tvalid),
+    .soMP0_Read_tready     (soMEM_Nts_TxP_Read_tready),
     //---- Stream Write Command ----------------
-    .piMP0_Mc_Axis_WrCmd_tdata   (piNTS0_Mem_TxP_Axis_WrCmd_tdata),
-    .piMP0_Mc_Axis_WrCmd_tvalid  (piNTS0_Mem_TxP_Axis_WrCmd_tvalid),
-    .poMC_Mp0_Axis_WrCmd_tready  (poMEM_Nts0_TxP_Axis_WrCmd_tready),
+    .siMP0_WrCmd_tdata     (siNTS_Mem_TxP_WrCmd_tdata),
+    .siMP0_WrCmd_tvalid    (siNTS_Mem_TxP_WrCmd_tvalid),
+    .siMP0_WrCmd_tready    (siNTS_Mem_TxP_WrCmd_tready),
     //---- Stream Write Status -----------------
-    .piMP0_Mc_Axis_WrSts_tready  (piNTS0_Mem_TxP_Axis_WrSts_tready),
-    .poMC_Mp0_Axis_WrSts_tvalid  (poMEM_Nts0_TxP_Axis_WrSts_tvalid),
-    .poMC_Mp0_Axis_WrSts_tdata   (poMEM_Nts0_TxP_Axis_WrSts_tdata),
+    .soMP0_WrSts_tvalid    (soMEM_Nts_TxP_WrSts_tvalid),
+    .soMP0_WrSts_tdata     (soMEM_Nts_TxP_WrSts_tdata),
+    .soMP0_WrSts_tready    (soMEM_Nts_TxP_WrSts_tready),
     //---- Stream Data Input Channel -----------
-    .piMP0_Mc_Axis_Write_tdata   (piNTS0_Mem_TxP_Axis_Write_tdata),
-    .piMP0_Mc_Axis_Write_tkeep   (piNTS0_Mem_TxP_Axis_Write_tkeep),
-    .piMP0_Mc_Axis_Write_tlast   (piNTS0_Mem_TxP_Axis_Write_tlast),
-    .piMP0_Mc_Axis_Write_tvalid  (piNTS0_Mem_TxP_Axis_Write_tvalid),
-    .poMC_Mp0_Axis_Write_tready  (poMEM_Nts0_TxP_Axis_Write_tready),
+    .siMP0_Write_tdata     (siNTS_Mem_TxP_Write_tdata),
+    .siMP0_Write_tkeep     (siNTS_Mem_TxP_Write_tkeep),
+    .siMP0_Write_tlast     (siNTS_Mem_TxP_Write_tlast),
+    .siMP0_Write_tvalid    (siNTS_Mem_TxP_Write_tvalid),
+    .siMP0_Write_tready    (siNTS_Mem_TxP_Write_tready),
 
     //----------------------------------------------
     //-- MP1 / Memory Port Interface #1
     //----------------------------------------------   
     //---- Stream Read Command -----------------
-    .piMP1_Mc_Axis_RdCmd_tdata   (piNTS0_Mem_RxP_Axis_RdCmd_tdata),
-    .piMP1_Mc_Axis_RdCmd_tvalid  (piNTS0_Mem_RxP_Axis_RdCmd_tvalid),
-    .poMC_Mp1_Axis_RdCmd_tready  (poMEM_Nts0_RxP_Axis_RdCmd_tready),
+    .siMP1_RdCmd_tdata     (siNTS_Mem_RxP_RdCmd_tdata),
+    .siMP1_RdCmd_tvalid    (siNTS_Mem_RxP_RdCmd_tvalid),
+    .siMP1_RdCmd_tready    (siNTS_Mem_RxP_RdCmd_tready),
     //---- Stream Read Status ------------------
-    .piMP1_Mc_Axis_RdSts_tready  (piNTS0_Mem_RxP_Axis_RdSts_tready),
-    .poMC_Mp1_Axis_RdSts_tdata   (poMEM_Nts0_RxP_Axis_RdSts_tdata),
-    .poMC_Mp1_Axis_RdSts_tvalid  (poMEM_Nts0_RxP_Axis_RdSts_tvalid),
+    .soMP1_RdSts_tdata     (soMEM_Nts_RxP_RdSts_tdata),
+    .soMP1_RdSts_tvalid    (soMEM_Nts_RxP_RdSts_tvalid),
+    .soMP1_RdSts_tready    (soMEM_Nts_RxP_RdSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMP1_Mc_Axis_Read_tready   (piNTS0_Mem_RxP_Axis_Read_tready),
-    .poMC_Mp1_Axis_Read_tdata    (poMEM_Nts0_RxP_Axis_Read_tdata),
-    .poMC_Mp1_Axis_Read_tkeep    (poMEM_Nts0_RxP_Axis_Read_tkeep),
-    .poMC_Mp1_Axis_Read_tlast    (poMEM_Nts0_RxP_Axis_Read_tlast),
-    .poMC_Mp1_Axis_Read_tvalid   (poMEM_Nts0_RxP_Axis_Read_tvalid),
+    .soMP1_Read_tdata      (soMEM_Nts_RxP_Read_tdata),
+    .soMP1_Read_tkeep      (soMEM_Nts_RxP_Read_tkeep),
+    .soMP1_Read_tlast      (soMEM_Nts_RxP_Read_tlast),
+    .soMP1_Read_tvalid     (soMEM_Nts_RxP_Read_tvalid),
+    .soMP1_Read_tready     (soMEM_Nts_RxP_Read_tready),
     //---- Stream Write Command ----------------
-    .piMP1_Mc_Axis_WrCmd_tdata   (piNTS0_Mem_RxP_Axis_WrCmd_tdata),
-    .piMP1_Mc_Axis_WrCmd_tvalid  (piNTS0_Mem_RxP_Axis_WrCmd_tvalid),
-    .poMC_Mp1_Axis_WrCmd_tready  (poMEM_Nts0_RxP_Axis_WrCmd_tready),
+    .siMP1_WrCmd_tdata     (siNTS_Mem_RxP_WrCmd_tdata),
+    .siMP1_WrCmd_tvalid    (siNTS_Mem_RxP_WrCmd_tvalid),
+    .siMP1_WrCmd_tready    (siNTS_Mem_RxP_WrCmd_tready),
     //---- Stream Write Status -----------------
-    .piMP1_Mc_Axis_WrSts_tready  (piNTS0_Mem_RxP_Axis_WrSts_tready),
-    .poMC_Mp1_Axis_WrSts_tvalid  (poMEM_Nts0_RxP_Axis_WrSts_tvalid),
-    .poMC_Mp1_Axis_WrSts_tdata   (poMEM_Nts0_RxP_Axis_WrSts_tdata),
+    .soMP1_WrSts_tvalid    (soMEM_Nts_RxP_WrSts_tvalid),
+    .soMP1_WrSts_tdata     (soMEM_Nts_RxP_WrSts_tdata),
+    .soMP1_WrSts_tready    (soMEM_Nts_RxP_WrSts_tready),
     //---- Stream Data Input Channel -----------
-    .piMP1_Mc_Axis_Write_tdata   (piNTS0_Mem_RxP_Axis_Write_tdata),
-    .piMP1_Mc_Axis_Write_tkeep   (piNTS0_Mem_RxP_Axis_Write_tkeep),
-    .piMP1_Mc_Axis_Write_tlast   (piNTS0_Mem_RxP_Axis_Write_tlast),
-    .piMP1_Mc_Axis_Write_tvalid  (piNTS0_Mem_RxP_Axis_Write_tvalid),
-    .poMC_Mp1_Axis_Write_tready  (poMEM_Nts0_RxP_Axis_Write_tready),     
+    .siMP1_Write_tdata     (siNTS_Mem_RxP_Write_tdata),
+    .siMP1_Write_tkeep     (siNTS_Mem_RxP_Write_tkeep),
+    .siMP1_Write_tlast     (siNTS_Mem_RxP_Write_tlast),
+    .siMP1_Write_tvalid    (siNTS_Mem_RxP_Write_tvalid),
+    .siMP1_Write_tready    (siNTS_Mem_RxP_Write_tready),     
 
     //----------------------------------------------
     // -- DDR4 Physical Interface
     //----------------------------------------------
-    .pioDDR4_DmDbi_n          (pioDDR_Mem_Mc0_DmDbi_n),
-    .pioDDR4_Dq               (pioDDR_Mem_Mc0_Dq),
-    .pioDDR4_Dqs_n            (pioDDR_Mem_Mc0_Dqs_n),
-    .pioDDR4_Dqs_p            (pioDDR_Mem_Mc0_Dqs_p),  
-    .poDdr4_Act_n             (poMEM_Ddr4_Mc0_Act_n),
-    .poDdr4_Adr               (poMEM_Ddr4_Mc0_Adr),
-    .poDdr4_Ba                (poMEM_Ddr4_Mc0_Ba),
-    .poDdr4_Bg                (poMEM_Ddr4_Mc0_Bg),
-    .poDdr4_Cke               (poMEM_Ddr4_Mc0_Cke),
-    .poDdr4_Odt               (poMEM_Ddr4_Mc0_Odt),
-    .poDdr4_Cs_n              (poMEM_Ddr4_Mc0_Cs_n),
-    .poDdr4_Ck_n              (poMEM_Ddr4_Mc0_Ck_n),
-    .poDdr4_Ck_p              (poMEM_Ddr4_Mc0_Ck_p),
-    .poDdr4_Reset_n           (poMEM_Ddr4_Mc0_Reset_n),
-    .poVoid                   ()
+    .pioDDR4_DmDbi_n       (pioDDR_Mem_Mc0_DmDbi_n),
+    .pioDDR4_Dq            (pioDDR_Mem_Mc0_Dq),
+    .pioDDR4_Dqs_n         (pioDDR_Mem_Mc0_Dqs_n),
+    .pioDDR4_Dqs_p         (pioDDR_Mem_Mc0_Dqs_p),  
+    .poDDR4_Act_n          (poDDR4_Mem_Mc0_Act_n),
+    .poDDR4_Adr            (poDDR4_Mem_Mc0_Adr),
+    .poDDR4_Ba             (poDDR4_Mem_Mc0_Ba),
+    .poDDR4_Bg             (poDDR4_Mem_Mc0_Bg),
+    .poDDR4_Cke            (poDDR4_Mem_Mc0_Cke),
+    .poDDR4_Odt            (poDDR4_Mem_Mc0_Odt),
+    .poDDR4_Cs_n           (poDDR4_Mem_Mc0_Cs_n),
+    .poDDR4_Ck_n           (poDDR4_Mem_Mc0_Ck_n),
+    .poDDR4_Ck_p           (poDDR4_Mem_Mc0_Ck_p),
+    .poDDR4_Reset_n        (poDDR4_Mem_Mc0_Reset_n),
+   
+    .poVoid                ()
    
   );  // End of MC0
 
@@ -399,101 +413,101 @@ module MemorySubSystem # (
   ) MC1 (
   
     //-- Global Clock used by the entire SHELL ------
-    .piShlClk                 (piShlClk),
+    .piShlClk              (piShlClk),
 
     //-- Global Reset used by the entire SHELL ------
-    .piTOP_156_25Rst          (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
+    .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
   
     //-- DDR4 Reference Memory Clock ----------------
-    .piCLKT_MemClk_n          (piCLKT_Mem1Clk_n),
-    .piCLKT_MemClk_p          (piCLKT_Mem1Clk_p),
+    .piCLKT_MemClk_n       (piCLKT_Mem1Clk_n),
+    .piCLKT_MemClk_p       (piCLKT_Mem1Clk_p),
     
     //-- Control Inputs and Status Ouputs ----------
-    .poMmio_InitCalComplete   (poMmio_Mc1_InitCalComplete),
+    .poMmio_InitCalComplete(poMmio_Mc1_InitCalComplete),
   
     //----------------------------------------------
     //-- Data Mover Interface #0
     //----------------------------------------------   
     //---- Stream Read Command -----------------
-    .piMP0_Mc_Axis_RdCmd_tdata   (piROL_Mem_Mp0_Axis_RdCmd_tdata),
-    .piMP0_Mc_Axis_RdCmd_tvalid  (piROL_Mem_Mp0_Axis_RdCmd_tvalid),
-    .poMC_Mp0_Axis_RdCmd_tready  (poMEM_Rol_Mp0_Axis_RdCmd_tready),
+    .siMP0_RdCmd_tdata     (siROL_Mem_Mp0_RdCmd_tdata),
+    .siMP0_RdCmd_tvalid    (siROL_Mem_Mp0_RdCmd_tvalid),
+    .siMP0_RdCmd_tready    (siROL_Mem_Mp0_RdCmd_tready),
     //---- Stream Read Status ------------------
-    .piMP0_Mc_Axis_RdSts_tready  (piROL_Mem_Mp0_Axis_RdSts_tready),
-    .poMC_Mp0_Axis_RdSts_tdata   (poMEM_Rol_Mp0_Axis_RdSts_tdata),
-    .poMC_Mp0_Axis_RdSts_tvalid  (poMEM_Rol_Mp0_Axis_RdSts_tvalid),
+    .soMP0_RdSts_tdata     (soMEM_Rol_Mp0_RdSts_tdata),
+    .soMP0_RdSts_tvalid    (soMEM_Rol_Mp0_RdSts_tvalid),
+    .soMP0_RdSts_tready    (soMEM_Rol_Mp0_RdSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMP0_Mc_Axis_Read_tready   (piROL_Mem_Mp0_Axis_Read_tready),
-    .poMC_Mp0_Axis_Read_tdata    (poMEM_Rol_Mp0_Axis_Read_tdata),
-    .poMC_Mp0_Axis_Read_tkeep    (poMEM_Rol_Mp0_Axis_Read_tkeep),
-    .poMC_Mp0_Axis_Read_tlast    (poMEM_Rol_Mp0_Axis_Read_tlast),
-    .poMC_Mp0_Axis_Read_tvalid   (poMEM_Rol_Mp0_Axis_Read_tvalid),
+    .soMP0_Read_tdata      (soMEM_Rol_Mp0_Read_tdata),
+    .soMP0_Read_tkeep      (soMEM_Rol_Mp0_Read_tkeep),
+    .soMP0_Read_tlast      (soMEM_Rol_Mp0_Read_tlast),
+    .soMP0_Read_tvalid     (soMEM_Rol_Mp0_Read_tvalid),
+    .soMP0_Read_tready     (soMEM_Rol_Mp0_Read_tready),
     //---- Stream Write Command ----------------
-    .piMP0_Mc_Axis_WrCmd_tdata   (piROL_Mem_Mp0_Axis_WrCmd_tdata),
-    .piMP0_Mc_Axis_WrCmd_tvalid  (piROL_Mem_Mp0_Axis_WrCmd_tvalid),
-    .poMC_Mp0_Axis_WrCmd_tready  (poMEM_Rol_Mp0_Axis_WrCmd_tready),
+    .siMP0_WrCmd_tdata     (siROL_Mem_Mp0_WrCmd_tdata),
+    .siMP0_WrCmd_tvalid    (siROL_Mem_Mp0_WrCmd_tvalid),
+    .siMP0_WrCmd_tready    (siROL_Mem_Mp0_WrCmd_tready),
     //---- Stream Write Status -----------------
-    .piMP0_Mc_Axis_WrSts_tready  (piROL_Mem_Mp0_Axis_WrSts_tready),
-    .poMC_Mp0_Axis_WrSts_tdata   (poMEM_Rol_Mp0_Axis_WrSts_tdata),
-    .poMC_Mp0_Axis_WrSts_tvalid  (poMEM_Rol_Mp0_Axis_WrSts_tvalid),
+    .soMP0_WrSts_tdata     (soMEM_Rol_Mp0_WrSts_tdata),
+    .soMP0_WrSts_tvalid    (soMEM_Rol_Mp0_WrSts_tvalid),
+    .soMP0_WrSts_tready    (soMEM_Rol_Mp0_WrSts_tready),
     //---- Stream Data Input Channel -----------
-    .piMP0_Mc_Axis_Write_tdata   (piROL_Mem_Mp0_Axis_Write_tdata),
-    .piMP0_Mc_Axis_Write_tkeep   (piROL_Mem_Mp0_Axis_Write_tkeep),
-    .piMP0_Mc_Axis_Write_tlast   (piROL_Mem_Mp0_Axis_Write_tlast),
-    .piMP0_Mc_Axis_Write_tvalid  (piROL_Mem_Mp0_Axis_Write_tvalid),
-    .poMC_Mp0_Axis_Write_tready  (poMEM_Rol_Mp0_Axis_Write_tready),
+    .siMP0_Write_tdata     (siROL_Mem_Mp0_Write_tdata),
+    .siMP0_Write_tkeep     (siROL_Mem_Mp0_Write_tkeep),
+    .siMP0_Write_tlast     (siROL_Mem_Mp0_Write_tlast),
+    .siMP0_Write_tvalid    (siROL_Mem_Mp0_Write_tvalid),
+    .siMP0_Write_tready    (siROL_Mem_Mp0_Write_tready),
       
     //----------------------------------------------
     //-- Data Mover Interface #1
     //----------------------------------------------
     //---- Stream Read Command -----------------
-    .piMP1_Mc_Axis_RdCmd_tdata   (piROL_Mem_Mp1_Axis_RdCmd_tdata),
-    .piMP1_Mc_Axis_RdCmd_tvalid  (piROL_Mem_Mp1_Axis_RdCmd_tvalid),
-    .poMC_Mp1_Axis_RdCmd_tready  (poMEM_Rol_Mp1_Axis_RdCmd_tready),
+    .siMP1_RdCmd_tdata     (siROL_Mem_Mp1_RdCmd_tdata),
+    .siMP1_RdCmd_tvalid    (siROL_Mem_Mp1_RdCmd_tvalid),
+    .siMP1_RdCmd_tready    (siROL_Mem_Mp1_RdCmd_tready),
     //---- Stream Read Status ------------------
-    .piMP1_Mc_Axis_RdSts_tready  (piROL_Mem_Mp1_Axis_RdSts_tready),
-    .poMC_Mp1_Axis_RdSts_tdata   (poMEM_Rol_Mp1_Axis_RdSts_tdata),
-    .poMC_Mp1_Axis_RdSts_tvalid  (poMEM_Rol_Mp1_Axis_RdSts_tvalid),
+    .soMP1_RdSts_tdata     (soMEM_Rol_Mp1_RdSts_tdata),
+    .soMP1_RdSts_tvalid    (soMEM_Rol_Mp1_RdSts_tvalid),
+    .soMP1_RdSts_tready    (soMEM_Rol_Mp1_RdSts_tready),
     //---- Stream Data Output Channel ----------
-    .piMP1_Mc_Axis_Read_tready   (piROL_Mem_Mp1_Axis_Read_tready),
-    .poMC_Mp1_Axis_Read_tdata    (poMEM_Rol_Mp1_Axis_Read_tdata),
-    .poMC_Mp1_Axis_Read_tkeep    (poMEM_Rol_Mp1_Axis_Read_tkeep),
-    .poMC_Mp1_Axis_Read_tlast    (poMEM_Rol_Mp1_Axis_Read_tlast),
-    .poMC_Mp1_Axis_Read_tvalid   (poMEM_Rol_Mp1_Axis_Read_tvalid),
+    .soMP1_Read_tdata      (soMEM_Rol_Mp1_Read_tdata),
+    .soMP1_Read_tkeep      (soMEM_Rol_Mp1_Read_tkeep),
+    .soMP1_Read_tlast      (soMEM_Rol_Mp1_Read_tlast),
+    .soMP1_Read_tvalid     (soMEM_Rol_Mp1_Read_tvalid),
+    .soMP1_Read_tready     (soMEM_Rol_Mp1_Read_tready),
     //---- Stream Write Command ----------------
-    .piMP1_Mc_Axis_WrCmd_tdata   (piROL_Mem_Mp1_Axis_WrCmd_tdata),
-    .piMP1_Mc_Axis_WrCmd_tvalid  (piROL_Mem_Mp1_Axis_WrCmd_tvalid),
-    .poMC_Mp1_Axis_WrCmd_tready  (poMEM_Rol_Mp1_Axis_WrCmd_tready),
+    .siMP1_WrCmd_tdata     (siROL_Mem_Mp1_WrCmd_tdata),
+    .siMP1_WrCmd_tvalid    (siROL_Mem_Mp1_WrCmd_tvalid),
+    .siMP1_WrCmd_tready    (siROL_Mem_Mp1_WrCmd_tready),
     //---- Stream Write Status -----------------
-    .piMP1_Mc_Axis_WrSts_tready  (piROL_Mem_Mp1_Axis_WrSts_tready),
-    .poMC_Mp1_Axis_WrSts_tdata   (poMEM_Rol_Mp1_Axis_WrSts_tdata),
-    .poMC_Mp1_Axis_WrSts_tvalid  (poMEM_Rol_Mp1_Axis_WrSts_tvalid),
+    .soMP1_WrSts_tdata     (soMEM_Rol_Mp1_WrSts_tdata),
+    .soMP1_WrSts_tvalid    (soMEM_Rol_Mp1_WrSts_tvalid),
+    
     //---- Stream Data Input Channel -----------
-    .piMP1_Mc_Axis_Write_tdata   (piROL_Mem_Mp1_Axis_Write_tdata),
-    .piMP1_Mc_Axis_Write_tkeep   (piROL_Mem_Mp1_Axis_Write_tkeep),
-    .piMP1_Mc_Axis_Write_tlast   (piROL_Mem_Mp1_Axis_Write_tlast),
-    .piMP1_Mc_Axis_Write_tvalid  (piROL_Mem_Mp1_Axis_Write_tvalid),
-    .poMC_Mp1_Axis_Write_tready  (poMEM_Rol_Mp1_Axis_Write_tready),
+    .siMP1_Write_tdata     (siROL_Mem_Mp1_Write_tdata),
+    .siMP1_Write_tkeep     (siROL_Mem_Mp1_Write_tkeep),
+    .siMP1_Write_tlast     (siROL_Mem_Mp1_Write_tlast),
+    .siMP1_Write_tvalid    (siROL_Mem_Mp1_Write_tvalid),
+    .siMP1_Write_tready    (siROL_Mem_Mp1_Write_tready),
   
     //----------------------------------------------
     // -- DDR4 Physical Interface
     //----------------------------------------------
-    .pioDDR4_DmDbi_n          (pioDDR_Mem_Mc1_DmDbi_n),
-    .pioDDR4_Dq               (pioDDR_Mem_Mc1_Dq),
-    .pioDDR4_Dqs_n            (pioDDR_Mem_Mc1_Dqs_n),
-    .pioDDR4_Dqs_p            (pioDDR_Mem_Mc1_Dqs_p),  
-    .poDdr4_Act_n             (poMEM_Ddr4_Mc1_Act_n),
-    .poDdr4_Adr               (poMEM_Ddr4_Mc1_Adr),
-    .poDdr4_Ba                (poMEM_Ddr4_Mc1_Ba),
-    .poDdr4_Bg                (poMEM_Ddr4_Mc1_Bg),
-    .poDdr4_Cke               (poMEM_Ddr4_Mc1_Cke),
-    .poDdr4_Odt               (poMEM_Ddr4_Mc1_Odt),
-    .poDdr4_Cs_n              (poMEM_Ddr4_Mc1_Cs_n),
-    .poDdr4_Ck_n              (poMEM_Ddr4_Mc1_Ck_n),
-    .poDdr4_Ck_p              (poMEM_Ddr4_Mc1_Ck_p),
-    .poDdr4_Reset_n           (poMEM_Ddr4_Mc1_Reset_n),
-   
-    .poVoid                   ()
+    .pioDDR4_DmDbi_n       (pioDDR_Mem_Mc1_DmDbi_n),
+    .pioDDR4_Dq            (pioDDR_Mem_Mc1_Dq),
+    .pioDDR4_Dqs_n         (pioDDR_Mem_Mc1_Dqs_n),
+    .pioDDR4_Dqs_p         (pioDDR_Mem_Mc1_Dqs_p),  
+    .poDDR4_Act_n          (poDDR4_Mem_Mc1_Act_n),
+    .poDDR4_Adr            (poDDR4_Mem_Mc1_Adr),
+    .poDDR4_Ba             (poDDR4_Mem_Mc1_Ba),
+    .poDDR4_Bg             (poDDR4_Mem_Mc1_Bg),
+    .poDDR4_Cke            (poDDR4_Mem_Mc1_Cke),
+    .poDDR4_Odt            (poDDR4_Mem_Mc1_Odt),
+    .poDDR4_Cs_n           (poDDR4_Mem_Mc1_Cs_n),
+    .poDDR4_Ck_n           (poDDR4_Mem_Mc1_Ck_n),
+    .poDDR4_Ck_p           (poDDR4_Mem_Mc1_Ck_p),
+    .poDDR4_Reset_n        (poDDR4_Mem_Mc1_Reset_n),
+  
+    .poVoid                ()
   
   );  // End of MC1
 

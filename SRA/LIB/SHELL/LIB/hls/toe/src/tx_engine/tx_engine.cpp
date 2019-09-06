@@ -59,7 +59,7 @@ using namespace hls;
 #define TRACE_IHC 1 << 2
 #define TRACE_SPS 1 << 3
 #define TRACE_PHC 1 << 4
-#define TRACE_MAI 1 << 5
+#define TRACE_MRD 1 << 5
 #define TRACE_TSS 1 << 6
 #define TRACE_SCA 1 << 7
 #define TRACE_TCA 1 << 8
@@ -77,16 +77,16 @@ using namespace hls;
  * @param[in]  siRSt_RxSarRep,     Read reply from [RSt].
  * @param[out] soTSt_TxSarQry,     TxSar query to Tx SAR Table (TSt).
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
- * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
- * @param[out] soTIm_SetProbeTimer,Set the probe timer to Timers (TIm).
+ * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to Timers (TIm).
+ * @param[out] soTIm_SetProbeTimer,Set the probe timer to [TIm].
  * @param[out] soIhc_TcpSegLen,    TCP segment length to Ip Header Constructor(Ihc).
  * @param[out] soPhc_TxeMeta,      Tx Engine metadata to Pseudo Header Constructor(Phc).
- * @param[out] soMai_BufferRdCmd,  Buffer read command to Memory Access Interface (MAi).
+ * @param[out] soMrd_BufferRdCmd,  Buffer read command to Memory Reader (Mrd).
  * @param[out] soSLc_ReverseLkpReq,Reverse lookup request to Session Lookup Controller (SLc).
  * @param[out] soSps_IsLookup,     Tells the Socket Pair Splitter (Sps) that a reverse lookup is to be expected.
  * @param[out] soTODO_IsDdrBypass, [TODO]
- * @param[out] soSps_RstSockPair,  Tells the Sps about the socket pair to reset.
- * @param[out] soEVe_RxEventSig,   Signals the reception of an event to {EventEngine].
+ * @param[out] soSps_RstSockPair,  Tells the [Sps] about the socket pair to reset.
+ * @param[out] soEVe_RxEventSig,   Signals the reception of an event to EventEngine (EVe).
  *
  * @details
  *  The meta data loader reads the events from the Event Engine (EVe) and loads
@@ -102,7 +102,7 @@ using namespace hls;
  *****************************************************************************/
 void pMetaDataLoader(
         stream<extendedEvent>           &siAKd_Event,
-        stream<ap_uint<16> >            &soRSt_RxSarReq,
+        stream<SessionId>               &soRSt_RxSarReq,
         stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
@@ -110,14 +110,14 @@ void pMetaDataLoader(
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
         stream<TcpSegLen>               &soIhc_TcpSegLen,
         stream<TXeMeta>                 &soPhc_TxeMeta,
-        stream<DmCmd>                   &soMai_BufferRdCmd,
+        stream<DmCmd>                   &soMrd_BufferRdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<bool>                    &soSps_IsLookup,
 #if (TCP_NODELAY)
         stream<bool>                    &soTODO_IsDdrBypass,
 #endif
         stream<AxiSocketPair>           &soSps_RstSockPair,
-        stream<SigBool>                 &soEVe_RxEventSig)
+        stream<SigBit>                  &soEVe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -125,14 +125,21 @@ void pMetaDataLoader(
 
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { S0, S1 } fsmState=S0;
+    #pragma HLS reset       variable=fsmState
+    static bool                      mdl_sarLoaded = false;
+    #pragma HLS reset       variable=mdl_sarLoaded
 
-    static bool           mdl_sarLoaded = false;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static extendedEvent  mdl_curEvent;
-    static ap_uint<32>    mdl_randomValue= 0x562301af; //Random seed initialization
-    static ap_uint<2>     mdl_segmentCount = 0;
     static RxSarEntry     rxSar;
     static TXeTxSarReply  txSar;
+
+    // [FIXME - Add a random Initial Sequence Number in EMIF]
+    static ap_uint<32>    mdl_randomValue= 0x562301af;
+
+    static ap_uint<2>     mdl_segmentCount = 0;
     static TXeMeta        txeMeta;
 
     TcpWindow             windowSize;
@@ -149,8 +156,13 @@ void pMetaDataLoader(
     case S0:
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
-            soEVe_RxEventSig.write(true);
             mdl_sarLoaded = false;
+
+            assessFull(myName, soEVe_RxEventSig, "soEVe_RxEventSig");
+            //OBSOLETE-20190901 if (soEVe_RxEventSig.full())
+            //OBSOLETE-20190901     printFatal(myName, "Trying to write stream \'soEVe_RxEventSig\' while it is full.");
+            //OBSOLETE-20190901 else
+            soEVe_RxEventSig.write(1);
             // NOT necessary for SYN/SYN_ACK only needs one
             switch(mdl_curEvent.type) {
             case RT:
@@ -159,24 +171,31 @@ void pMetaDataLoader(
             case FIN:
             case ACK:
             case ACK_NODELAY:
+                assessFull(myName, soRSt_RxSarReq, "soRSt_RxSarReq");
                 soRSt_RxSarReq.write(mdl_curEvent.sessionID);
+                assessFull(myName, soTSt_TxSarQry, "soTSt_TxSarQry");
                 soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
             case RST:
                 // Get txSar for SEQ numb
                 resetEvent = mdl_curEvent;
-                if (resetEvent.hasSessionID())
+                if (resetEvent.hasSessionID()) {
+                    assessFull(myName, soTSt_TxSarQry, "soTSt_TxSarQry");
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
+                }
                 break;
             case SYN:
-                if (mdl_curEvent.rt_count != 0)
+                if (mdl_curEvent.rt_count != 0) {
+                    assessFull(myName, soTSt_TxSarQry, "soTSt_TxSarQry");
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
+                }
                 break;
             default:
                 break;
             }
             fsmState = S1;
-            mdl_randomValue++; //make sure it doesn't become zero TODO move this out of if, but breaks my testsuite
+            // [FIXME - Add a random Initial Sequence Number in EMIF and move thsi out of here]
+            mdl_randomValue++;
         }
         mdl_segmentCount = 0;
         break;
@@ -188,7 +207,7 @@ void pMetaDataLoader(
 #if (TCP_NODELAY)
         case TX:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event TX.\n");
+                printInfo(myName, "Got TX event.\n");
             if ((!rxSar2txEng_rsp.empty() && !txSar2txEng_upd_rsp.empty()) || ml_sarLoaded) {
                 if (!ml_sarLoaded) {
                     rxSar2txEng_rsp.read(rxSar);
@@ -235,8 +254,8 @@ void pMetaDataLoader(
 #else
         case TX:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event TX.\n");
-            // Sends everything between txSar.not_ackd and txSar.app
+                printInfo(myName, "Got TX event.\n");
+            // Send everything between txSar.not_ackd and txSar.app
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRep.read(rxSar);
@@ -325,7 +344,7 @@ void pMetaDataLoader(
                 }
 
                 if (txeMeta.length != 0) {
-                    soMai_BufferRdCmd.write(DmCmd(memSegAddr, txeMeta.length));
+                    soMrd_BufferRdCmd.write(DmCmd(memSegAddr, txeMeta.length));
                 }
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
@@ -344,7 +363,7 @@ void pMetaDataLoader(
 
         case RT:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event RT.\n");
+                printInfo(myName, "Got RT event.\n");
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRep.read(rxSar);
@@ -406,7 +425,7 @@ void pMetaDataLoader(
 
                 // Only send a packet if there is data
                 if (txeMeta.length != 0) {
-                    soMai_BufferRdCmd.write(DmCmd(memSegAddr, txeMeta.length));
+                    soMrd_BufferRdCmd.write(DmCmd(memSegAddr, txeMeta.length));
                     soIhc_TcpSegLen.write(txeMeta.length);
                     soPhc_TxeMeta.write(txeMeta);
                     soSps_IsLookup.write(true);
@@ -427,7 +446,7 @@ void pMetaDataLoader(
         case ACK:
         case ACK_NODELAY:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event ACK.\n");
+                printInfo(myName, "Got ACK event.\n");
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
@@ -451,14 +470,14 @@ void pMetaDataLoader(
 
         case SYN:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event SYN.\n");
+                printInfo(myName, "Got SYN event.\n");
             if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarRep.empty()) || (mdl_curEvent.rt_count == 0)) {
                 if (mdl_curEvent.rt_count != 0) {
                     siTSt_TxSarRep.read(txSar);
                     txeMeta.seqNumb = txSar.ackd;
                 }
                 else {
-                    txSar.not_ackd = mdl_randomValue; // FIXME better rand()
+                    txSar.not_ackd = mdl_randomValue; // [FIXME - Use a register from EMIF]
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
                     txeMeta.seqNumb = txSar.not_ackd;
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
@@ -485,7 +504,7 @@ void pMetaDataLoader(
 
         case SYN_ACK:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event SYN_ACK.\n");
+                printInfo(myName, "Got SYN_ACK event.\n");
 
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(rxSar);
@@ -523,7 +542,7 @@ void pMetaDataLoader(
 
         case FIN:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event FIN.\n");
+                printInfo(myName, "Got FIN event.\n");
 
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
@@ -571,7 +590,7 @@ void pMetaDataLoader(
 
         case RST:
             if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got event RST.\n");
+                printInfo(myName, "Got RST event.\n");
 
             // Assumption RST length == 0
             resetEvent = mdl_curEvent;
@@ -930,7 +949,7 @@ void pPseudoHeaderConstructor(
  * @param[in]  siPhc_TcpWord,  Incoming TCP word from Pseudo Header Constructor (Phc).
  * @param[in]  siMEM_TxP_Data, TCP data payload from DRAM Memory (MEM).
  * @param[out] soSca_TcpWord,  Outgoing TCP word to Sub Checksum Accumulator (Sca).
- * @param[in]  siMai_SplitSegSts, Indicates that the current segment has been
+ * @param[in]  siMrd_SplitSegSts, Indicates that the current segment has been
  *                              splitted and stored in 2 memory buffers.
  * @details
  *  Reads in the TCP pseudo header stream and appends the corresponding
@@ -949,7 +968,7 @@ void pTcpSegStitcher(
         stream<axiWord>         &txApp2txEng_data_stream,
         #endif
         stream<AxiWord>         &soSca_TcpWord,
-        stream<ap_uint<1> >     &siMai_SplitSegSts)
+        stream<ap_uint<1> >     &siMrd_SplitSegSts)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -1019,11 +1038,11 @@ void pTcpSegStitcher(
     case 2: // Read the 1st memory segment unit
         if (!siMEM_TxP_Data.empty() && !soSca_TcpWord.full() &&
             ((didRdSplitSegSts == true) ||
-             (didRdSplitSegSts == false && !siMai_SplitSegSts.empty()))) {
+             (didRdSplitSegSts == false && !siMrd_SplitSegSts.empty()))) {
             if (didRdSplitSegSts == false) {
                 // Read the Split Segment Status information
                 //  If 'true', the TCP segment was splitted and stored as 2 memory buffers.
-                tss_splitSegSts = siMai_SplitSegSts.read();
+                tss_splitSegSts = siMrd_SplitSegSts.read();
                 didRdSplitSegSts = true;
             }
             siMEM_TxP_Data.read(currWord);
@@ -1148,7 +1167,7 @@ void pTcpSegStitcher(
         stream<TcpWord>         &siPhc_TcpWord,
         stream<AxiWord>         &siMEM_TxP_Data,
         stream<AxiWord>         &soSca_TcpWord,
-        stream<ap_uint<1> >     &siMai_SplitBuf)
+        stream<ap_uint<1> >     &siMrd_SplitBuf)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -1182,11 +1201,11 @@ void pTcpSegStitcher(
     }
     else if (tss_wordCount == 4) {
         if (!siMEM_TxP_Data.empty() && !soSca_TcpWord.full() &&
-            (hasReadAccBreakdown == true || (hasReadAccBreakdown == false && !siMai_SplitBuf.empty()))) {
+            (hasReadAccBreakdown == true || (hasReadAccBreakdown == false && !siMrd_SplitBuf.empty()))) {
             // Always read the first part of the buffer
             siMEM_TxP_Data.read(currWord);
             if (hasReadAccBreakdown == false) {
-                accBreakdownSts = siMai_SplitBuf.read();
+                accBreakdownSts = siMrd_SplitBuf.read();
                 hasReadAccBreakdown = true;
             }
             if (currWord.tlast) {
@@ -1516,56 +1535,70 @@ void pIpPktStitcher(
 
 
 /*****************************************************************************
- * @brief Memory Access Interface (Mai)
+ * @brief Memory Reader (Mrd)
  *
  * @param[in]  siMdl_BufferRdCmd, Buffer read command from Meta Data Loader (Mdl).
  * @param[out] soMEM_Txp_RdCmd,   Memory read command to the DRAM Memory (MEM).
  * @param[out] soTss_SplitMemAcc, Splitted memory access to Tcp Segment Stitcher (Tss).
  *
  * @details
- *  Front end interface to the AXI4 Data Mover core.
- *  Receives a transfer read command and forwards it to the AXI4 Data Mover.
- *   This command might be split in two memory accesses if the address of the
- *   data buffer to read wraps in the external memory.
- *  A split memory access is indicated by the signal 'soTss_SplitMemAcc'.
+ *  Front end memory controller for reading data from the external DRAM.
+ *  This process receives a transfer read command and forwards it to the AXI4
+ *   Data Mover. This command might be split in two memory accesses if the
+ *   address of the data buffer to read wraps in the external memory. Such a
+ *   split memory access is indicated by the signal 'soTss_SplitMemAcc'.
  *
  * @ingroup tx_engine
  *****************************************************************************/
-void pMemoryAccessInterface(
+void pMemoryReader(
         stream<DmCmd>       &siMdl_BufferRdCmd,
         stream<DmCmd>       &soMEM_Txp_RdCmd,
-        stream<ap_uint<1> > &soTss_SplitMemAcc)
+        stream<StsBit>      &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
     #pragma HLS INLINE off
 
-    static bool     txEngBreakdown = false;
-    static DmCmd    txEngTempCmd;
-    static uint16_t txEngBreakTemp = 0;
-    static uint16_t txPktCounter = 0;
+    const char *myName  = concat3(THIS_NAME, "/", "Mrd");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                   txEngBreakdown = false;
+    #pragma HLS reset    variable=txEngBreakdown
+    static uint16_t               txPktCounter = 0;
+    #pragma HLS reset    variable=txPktCounter
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static DmCmd    txMemReaderCmd;
+    static uint16_t txEngBreakTemp;
 
     if (txEngBreakdown == false) {
-        if (!siMdl_BufferRdCmd.empty() && !soMEM_Txp_RdCmd.full()) {
-            txEngTempCmd = siMdl_BufferRdCmd.read();
-            DmCmd tempCmd = txEngTempCmd;
-            if ((txEngTempCmd.saddr.range(15, 0) + txEngTempCmd.bbt) > 65536) {
-                txEngBreakTemp = 65536 - txEngTempCmd.saddr;
-                tempCmd = DmCmd(txEngTempCmd.saddr, txEngBreakTemp);
+        if (!siMdl_BufferRdCmd.empty() && !soMEM_Txp_RdCmd.full() && soTss_SplitMemAcc.empty()) {
+            txMemReaderCmd = siMdl_BufferRdCmd.read();
+            DmCmd tempCmd = txMemReaderCmd;
+            if ((txMemReaderCmd.saddr.range(15, 0) + txMemReaderCmd.bbt) > 65536) {
+                // This segment is broken in two memory accesses because TCP Tx memory buffer wraps around
+                txEngBreakTemp = 65536 - txMemReaderCmd.saddr;
+                tempCmd = DmCmd(txMemReaderCmd.saddr, txEngBreakTemp);
                 txEngBreakdown = true;
             }
             soMEM_Txp_RdCmd.write(tempCmd);
             soTss_SplitMemAcc.write(txEngBreakdown);
             txPktCounter++;
-            //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << txPktCounter << " - " << std::hex << " - " << tempCmd.saddr << " - " << tempCmd.bbt << std::endl;
+            if (DEBUG_LEVEL & TRACE_MRD) {
+                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%x - BBT=0x%x\n",
+                          txPktCounter, tempCmd.saddr.to_uint(), tempCmd.bbt.to_uint());
+            }
         }
     }
     else if (txEngBreakdown == true) {
         if (!soMEM_Txp_RdCmd.full()) {
-            txEngTempCmd.saddr.range(15, 0) = 0;
-            //std::cerr << std::dec << "MemCmd: " << cycleCounter << " - " << std::hex << " - " << txEngTempCmd.saddr << " - " << txEngTempCmd.bbt - txEngBreakTemp << std::endl;
-            soMEM_Txp_RdCmd.write(DmCmd(txEngTempCmd.saddr, txEngTempCmd.bbt - txEngBreakTemp));
+            txMemReaderCmd.saddr.range(15, 0) = 0;
+            soMEM_Txp_RdCmd.write(DmCmd(txMemReaderCmd.saddr, txMemReaderCmd.bbt - txEngBreakTemp));
             txEngBreakdown = false;
+            if (DEBUG_LEVEL & TRACE_MRD) {
+                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%x - BBT=0x%x\n",
+                          txPktCounter, txMemReaderCmd.saddr.to_uint(), txMemReaderCmd.bbt.to_uint());
+            }
         }
     }
 }
@@ -1601,7 +1634,7 @@ void pMemoryAccessInterface(
  ******************************************************************************/
 void tx_engine(
         stream<extendedEvent>           &siAKd_Event,
-        stream<ap_uint<16> >            &soRSt_RxSarReq,
+        stream<SessionId>               &soRSt_RxSarReq,
         stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
@@ -1611,7 +1644,7 @@ void tx_engine(
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
-        stream<SigBool>                 &soEVe_RxEventSig,
+        stream<SigBit>                  &soEVe_RxEventSig,
         stream<Ip4overAxi>              &soL3MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1637,9 +1670,9 @@ void tx_engine(
     static stream<bool>                 sMdlToSpS_IsLookup      ("sMdlToSpS_IsLookup");
     #pragma HLS stream         variable=sMdlToSpS_IsLookup      depth=4
 
-    static stream<DmCmd>                sMdlToMai_BufferRdCmd   ("sMdlToMai_BufferRdCmd");
-    #pragma HLS stream         variable=sMdlToMai_BufferRdCmd   depth=32
-    #pragma HLS DATA_PACK      variable=sMdlToMai_BufferRdCmd
+    static stream<DmCmd>                sMdlToMrd_BufferRdCmd   ("sMdlToMrd_BufferRdCmd");
+    #pragma HLS stream         variable=sMdlToMrd_BufferRdCmd   depth=32
+    #pragma HLS DATA_PACK      variable=sMdlToMrd_BufferRdCmd
 
     static stream<AxiSocketPair>        sMdlToSps_RstSockPair   ("sMdlToSps_RstSockPair");
     #pragma HLS stream         variable=sMdlToSps_RstSockPair   depth=2
@@ -1696,10 +1729,10 @@ void tx_engine(
     #pragma HLS DATA_PACK      variable=sScaToTca_FourSubCsums
 
     //------------------------------------------------------------------------
-    //-- Memory Access Interface (Mai)
+    //-- Memory Reader (Mrd)
     //------------------------------------------------------------------------
-    static stream<ap_uint<1> >          sMaiToTss_SplitMemAcc   ("sMaiToTss_SplitMemAcc");
-    #pragma HLS stream         variable=sMaiToTss_SplitMemAcc   depth=32
+    static stream<StsBit>               sMrdToTss_SplitMemAcc   ("sMrdToTss_SplitMemAcc");
+    #pragma HLS stream         variable=sMrdToTss_SplitMemAcc   depth=32
 
 
 
@@ -1730,16 +1763,16 @@ void tx_engine(
             soTIm_SetProbeTimer,
             sMdlToIhc_TcpSegLen,
             sMdlToPhc_TxeMeta,
-            sMdlToMai_BufferRdCmd,
+            sMdlToMrd_BufferRdCmd,
             soSLc_ReverseLkpReq,
             sMdlToSpS_IsLookup,
             sMdlToSps_RstSockPair,
             soEVe_RxEventSig);
     
-    pMemoryAccessInterface(
-            sMdlToMai_BufferRdCmd,
+    pMemoryReader(
+            sMdlToMrd_BufferRdCmd,
             soMEM_Txp_RdCmd,
-            sMaiToTss_SplitMemAcc);
+            sMrdToTss_SplitMemAcc);
 
     pSocketPairSplitter(
             siSLc_ReverseLkpRep,
@@ -1768,7 +1801,7 @@ void tx_engine(
             sPhcToTss_TcpWord,
             siMEM_TxP_Data,
             sTssToSca_TcpWord,
-            sMaiToTss_SplitMemAcc);
+            sMrdToTss_SplitMemAcc);
 
     pSubChecksumAccumulators(
             sTssToSca_TcpWord,

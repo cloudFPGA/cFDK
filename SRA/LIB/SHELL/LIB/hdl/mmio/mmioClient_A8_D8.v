@@ -53,11 +53,11 @@ module MmioClient_A8_D8 #(
 ) (
 
   //----------------------------------------------
-  //-- Global Clock & Reset
+  //-- Global Clock & Reset Inputs
   //----------------------------------------------
   input           piSHL_Clk,
   input           piTOP_Rst,
-  
+   
   //----------------------------------------------
   //-- Bitstream Identification
   //----------------------------------------------
@@ -106,6 +106,10 @@ module MmioClient_A8_D8 #(
   //----------------------------------------------
   //-- ROLE : Status inputs and Control Outputs
   //----------------------------------------------
+  //---- [PHY_RESET] -------------
+  output  [ 7:0]  poSHL_ResetLayer,
+  //---- [PHY_ENABLE] ------------
+  output  [ 7:0]  poSHL_EnableLayer,
   //---- DIAG_CTRL_1 -----------------
   output  [ 1:0]  poROLE_Mc1_MemTestCtrl,
   //---- DIAG_STAT_1 -----------------
@@ -208,7 +212,11 @@ module MmioClient_A8_D8 #(
   localparam PHY_GTH0       = PHY_REG_BASE  +  1;
   localparam PHY_GTH1       = PHY_REG_BASE  +  2;
   localparam PHY_GTH2       = PHY_REG_BASE  +  3;
-  
+  // Soft Reset Layer Interfaces
+  localparam PHY_RESET      = PHY_REG_BASE  +  8;
+  // Enable Soft Reset Layer Interfaces
+  localparam PHY_ENABLE     = PHY_REG_BASE  +  9;
+    
   //-- LY2_REGS ---------------------------------------------------------------
   // Control of the Layer-2 Interfaces
   localparam LY2_CTRL       = LY2_REG_BASE  +  0;
@@ -303,28 +311,28 @@ module MmioClient_A8_D8 #(
   localparam cDefReg03 = 8'h33;  // Reserved
   localparam cDefReg04 = ((gBitstreamUsage == "user")  && (gSecurityPriviledges == "user"))  ? 8'h81 :
                          ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) ? 8'h01 : 8'hFF; // CFG_TOP_ID
-  localparam cDefReg05 = 8'h00;  // CFG_TOP_YEAR   
-  localparam cDefReg06 = 8'h00;  // CFG_TOP_MONTH   
-  localparam cDefReg07 = 8'h00;  // CFG_TOP_DAY
-  localparam cDefReg08 = 8'h00;
+  localparam cDefReg05 = 8'h00;  // CFG_TOP_YEAR    : Will be populated by the USR_ACCESSE2 primitive   
+  localparam cDefReg06 = 8'h00;  // CFG_TOP_MONTH   : Will be populated by the USR_ACCESSE2 primitive 
+  localparam cDefReg07 = 8'h00;  // CFG_TOP_DAY     : Will be populated by the USR_ACCESSE2 primitive   
+  localparam cDefReg08 = 8'h00;  // CFG_SHELL
   localparam cDefReg09 = 8'h00;
   localparam cDefReg0A = 8'h00;
   localparam cDefReg0B = 8'h00;
-  localparam cDefReg0C = 8'h00;
+  localparam cDefReg0C = 8'h00;  // CFG_ROLE
   localparam cDefReg0D = 8'h00;
   localparam cDefReg0E = 8'h00;
   localparam cDefReg0F = 8'h00;
   //-- PHY_REGS ---------------
   localparam cDefReg10 = 8'h00;  // PHY_STATUS
-  localparam cDefReg11 = 8'h41;  // PHY_ETH0[0]
-  localparam cDefReg12 = 8'h05;  // PHY_ETH0[1]
-  localparam cDefReg13 = 8'h05;  // PHY_ETH0[2]
+  localparam cDefReg11 = 8'h41;  // PHY_GTH0[0]
+  localparam cDefReg12 = 8'h05;  // PHY_GTH0[1]
+  localparam cDefReg13 = 8'h05;  // PHY_GTH0[2]
   localparam cDefReg14 = 8'h00;
   localparam cDefReg15 = 8'h00;
   localparam cDefReg16 = 8'h00;
   localparam cDefReg17 = 8'h00;
-  localparam cDefReg18 = 8'h00;  
-  localparam cDefReg19 = 8'h00;
+  localparam cDefReg18 = 8'hFF;  // PHY_RESET  
+  localparam cDefReg19 = 8'h00;  // PHY_ENABLE
   localparam cDefReg1A = 8'h00;
   localparam cDefReg1B = 8'h00;
   localparam cDefReg1C = 8'h00;
@@ -353,15 +361,15 @@ module MmioClient_A8_D8 #(
   localparam cDefReg31 = 8'h00;  // LY3_CONTROL1
   localparam cDefReg32 = 8'h00;  // LY3_STATUS0
   localparam cDefReg33 = 8'h00;  // LY3_STATUS1
-  localparam cDefReg34 = 8'h0A;  // LY3_IP0 (.i.e, 10.12.200.19) [FIXME-This is temporary]
-  localparam cDefReg35 = 8'h0C;  // LY3_IP1  
-  localparam cDefReg36 = 8'hC8;  // LY3_IP2
-  localparam cDefReg37 = 8'h13;  // LY3_IP3
-  localparam cDefReg38 = 8'hFF;  // LY3_SNM0 (.i.e, 255.255.0.0)
+  localparam cDefReg34 = 8'h00;  // LY3_IP0 (.e.g, 10.12.200.19)
+  localparam cDefReg35 = 8'h00;  // LY3_IP1  
+  localparam cDefReg36 = 8'h00;  // LY3_IP2
+  localparam cDefReg37 = 8'h00;  // LY3_IP3
+  localparam cDefReg38 = 8'hFF;  // LY3_SNM0 (Default: 255.255.0.0)
   localparam cDefReg39 = 8'hFF;  // LY3_SNM1
   localparam cDefReg3A = 8'h00;  // LY3_SNM2
   localparam cDefReg3B = 8'h00;  // LY3_SNM3
-  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (.i.e, 10.12.0.1)
+  localparam cDefReg3C = 8'h0A;  // LY3_GTW0 (Deafult: 10.12.0.1)
   localparam cDefReg3D = 8'h0C;  // LY3_GTW1
   localparam cDefReg3E = 8'h00;  // LY3_GTW2
   localparam cDefReg3F = 8'h01;  // LY3_GTW3
@@ -558,6 +566,20 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*PHY_GTH0+id]  = sEMIF_Ctrl[cEDW*PHY_GTH0+id]; // RW
     end
   endgenerate
+  //---- PHY_RESET --------------------
+  generate
+  for (id=0; id<1*8; id=id+1)
+    begin: gen_PHY_RESET
+      assign sStatusVec[cEDW*PHY_RESET+id]  = sEMIF_Ctrl[cEDW*PHY_RESET+id]; // RW
+    end
+  endgenerate
+    //---- PHY_ENABLE ------------------
+  generate
+  for (id=0; id<1*8; id=id+1)
+    begin: gen_PHY_ENABLE
+      assign sStatusVec[cEDW*PHY_ENABLE+id]  = sEMIF_Ctrl[cEDW*PHY_ENABLE+id]; // RW
+    end
+  endgenerate
     
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
@@ -724,11 +746,15 @@ module MmioClient_A8_D8 #(
   //---- PHY_STATUS --------------------
   //------ No Outputs to the Fabric
   //---- PHY_GTH[0:2] ------------------
-  assign poETH0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_GTH0+0];                  // RW
-  assign poETH0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_GTH0+7 :cEDW*PHY_GTH0+4]; // RW
-  assign poETH0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_GTH1+4 :cEDW*PHY_GTH1+0]; // RW
-  assign poETH0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_GTH2+4 :cEDW*PHY_GTH2+0]; // RW
-  
+  assign poETH0_RxEqualizerMode      = sEMIF_Ctrl[cEDW*PHY_GTH0+0];                     // RW
+  assign poETH0_TxDriverSwing[ 3: 0] = sEMIF_Ctrl[cEDW*PHY_GTH0+7  :cEDW*PHY_GTH0+4];   // RW
+  assign poETH0_TxPreCursor[ 4: 0]   = sEMIF_Ctrl[cEDW*PHY_GTH1+4  :cEDW*PHY_GTH1+0];   // RW
+  assign poETH0_TxPostCursor[ 4: 0]  = sEMIF_Ctrl[cEDW*PHY_GTH2+4  :cEDW*PHY_GTH2+0];   // RW
+  //---- PHY_RESET ---------------------
+  assign poSHL_ResetLayer[ 7: 0]     = sEMIF_Ctrl[cEDW*PHY_RESET+7 :cEDW*PHY_RESET+0];  // RW
+  //---- PHY_ENABLE ---------------------
+  assign poSHL_EnableLayer[ 7: 0]    = sEMIF_Ctrl[cEDW*PHY_ENABLE+7:cEDW*PHY_ENABLE+0]; // RW
+   
   //--------------------------------------------------------
   //-- LAYER-2 REGISTERS
   //--------------------------------------------------------
@@ -805,7 +831,7 @@ module MmioClient_A8_D8 #(
   //-- PAGE REGISTER
   //--------------------------------------------------------
   //---- PAGE_SEL ----------------------
-  assign sPageSel[cEDW-1:0]        = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
+  assign sPageSel[cEDW-1:0]  = sEMIF_Ctrl[cEDW*PAGE_SEL+7:cEDW*PAGE_SEL+0];  // RW
   
 
   //============================================================================

@@ -85,7 +85,9 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
+#-------------------------------------------
 # Controlling the Reset Behavior (see UG902)
+#--------------------------------------------
 #  - control: This is the default and ensures all control registers are reset. Control registers 
 #             are those used in state machines and to generate I/O protocol signals. This setting 
 #             ensures the design can immediately start its operation state.
@@ -93,10 +95,12 @@ create_clock -period 6.4 -name default
 #             registers or memories derived from static and global variables in the C code. This 
 #             setting ensures static and global variable initialized in the C code are reset to
 #             their initialized value after the reset is applied.
-#-------------------------------------------------
+#------------------------------------------------------------------------------------------------
 config_rtl -reset control
 
-# Configuring the behavior of the front-end compiler.
+#----------------------------------------------------
+# Configuring the behavior of the front-end compiler
+#----------------------------------------------------
 #  -name_max_length: Specify the maximum length of the function names. If the length of one name
 #                    is over the threshold, the last part of the name will be truncated.
 #  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
@@ -185,11 +189,32 @@ if { $hlsCoSim } {
 
 }
 
+#-----------------------------
 # Export RTL (refer to UG902)
-#   -format ( sysgen | ip_catalog | syn_dcp )
-#-------------------------------------------------
+#-----------------------------
+#
+# -description <string>
+#    Provides a description for the generated IP Catalog IP.
+# -display_name <string>
+#    Provides a display name for the generated IP.
+# -flow (syn|impl)
+#    Obtains more accurate timing  and utilization data for the specified HDL using RTL synthesis.
+# -format (ip_catalog|sysgen|syn_dcp)
+#    Specifies the format to package the IP.
+# -ip_name <string>
+#    Provides an IP name for the generated IP.
+# -library <string>
+#    Specifies  the library name for the generated IP catalog IP.
+# -rtl (verilog|vhdl)
+#    Selects which HDL is used when the '-flow' option is executed. If not specified, verilog is
+#    the default language.
+# -vendor <string>
+#    Specifies the vendor string for the generated IP catalog IP.
+# -version <string>
+#    Specifies the version string for the generated IP catalog.
+#---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"

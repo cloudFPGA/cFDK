@@ -179,7 +179,8 @@ using namespace hls;
 //#define NRC_STATUS_UNUSED_1 4
 #define NRC_UNAUTHORIZED_ACCESS 4
 //#define NRC_STATUS_READ_ERROR_CNT 5
-#define NRC_STATUS_UNUSED_2 5
+#define NRC_AUTHORIZED_ACCESS 5
+//#define NRC_STATUS_UNUSED_2 5
 #define NRC_STATUS_SEND_STATE 6
 #define NRC_STATUS_RECEIVE_STATE 7
 #define NRC_STATUS_GLOBAL_STATE 8
@@ -220,9 +221,9 @@ void nrc_main(
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<AppMeta>             &siFMC_Tcp_SessId,
+    stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<AppMeta>             &soFMC_Tcp_SessId,
+    stream<Axis<16> >           &soFMC_Tcp_SessId,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,

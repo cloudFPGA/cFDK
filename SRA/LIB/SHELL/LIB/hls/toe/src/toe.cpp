@@ -469,15 +469,18 @@ void pReady(
 /******************************************************************************
  * @brief Increments the simulation counter of the testbench (for debugging).
  *
- *  @param[in]  piSimCycCount, The simulation counter provided by the testbench.
  *  @param[out] poSimCycCount, The incremented simulation counter.
  *
  ******************************************************************************/
 void pTbSimCount(
-    ap_uint<32>     piSimCycCount,
     ap_uint<32>    &poSimCycCount)
 {
-    poSimCycCount = piSimCycCount +  1;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static ap_uint<32>         sCounter;
+    #pragma HLS reset variable=sCounter
+
+    sCounter += 1;
+    poSimCycCount = sCounter;
 }
 
 
@@ -625,7 +628,6 @@ void toe(
         ap_uint<16>                         &poDBG_SssRelCnt,
         ap_uint<16>                         &poDBG_SssRegCnt,
         //--
-        ap_uint<32>                         &piSimCycCount,
         ap_uint<32>                         &poSimCycCount)
 {
 
@@ -693,7 +695,6 @@ void toe(
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
-    #pragma HLS INTERFACE ap_stable        port=piSimCycCount
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
 
 #else
@@ -757,7 +758,6 @@ void toe(
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
-    #pragma HLS INTERFACE ap_vld  register   port=piSimCycCount   name=piSimCycCount
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
 
 #endif
@@ -777,7 +777,7 @@ void toe(
     #pragma HLS stream         variable=sAKdToTXe_Event           depth=16
     #pragma HLS DATA_PACK      variable=sAKdToTXe_Event
 
-    static stream<SigBool>              sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
+    static stream<SigBit>               sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
     #pragma HLS stream         variable=sAKdToEVe_RxEventSig      depth=2
 
     static stream<SigBool>              sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
@@ -948,10 +948,10 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
-    static stream<SigBool>              sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
+    static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
     #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
 
-    static stream<ap_uint<16> >         sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
+    static stream<SessionId>            sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
     #pragma HLS stream         variable=sTXeToRSt_RxSarReq        depth=2
 
     static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
@@ -1194,7 +1194,6 @@ void toe(
 
     //-- Testbench counter incrementer (for debugging) --------------------
     pTbSimCount(
-        piSimCycCount,
         poSimCycCount);
 
 }

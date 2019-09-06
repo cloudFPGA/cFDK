@@ -44,6 +44,7 @@ NodeId last_tx_node_id = 0;
 NrcPort last_tx_port = 0;
 ap_uint<16> port_corrections_TX_cnt = 0;
 ap_uint<32> unauthorized_access_cnt = 0;
+ap_uint<32> authorized_access_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
@@ -318,9 +319,9 @@ void nrc_main(
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<AppMeta>             &siFMC_Tcp_SessId,
+    stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<AppMeta>             &soFMC_Tcp_SessId,
+    stream<Axis<16> >           &soFMC_Tcp_SessId,
 
     //-- UDMX / This / Open-Port Interfaces
     stream<AxisAck>     &siUDMX_This_OpnAck,
@@ -448,6 +449,7 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_packet_length
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
+#pragma HLS reset variable=authorized_access_cnt
 
   //DO NOT reset MRT and config. This should be done explicitly by the FMC
 #pragma HLS reset variable=localMRT off
@@ -518,7 +520,7 @@ void nrc_main(
   status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
   status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-  status[NRC_STATUS_UNUSED_2] = 0x0;
+  status[NRC_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
 
@@ -1098,6 +1100,7 @@ void nrc_main(
               Tcp_RX_metaWritten = false;
               session_toFMC = sessId;
               rdpFsmState = RDP_STREAM_FMC;
+              authorized_access_cnt++;
               break;
             } else {
               unauthorized_access_cnt++;
@@ -1211,7 +1214,7 @@ void nrc_main(
     case WRP_WAIT_META:
         //FMC must come first
         if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full()) {
-            siFMC_Tcp_SessId.read(tcpSessId);
+            tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
             soTOE_SessId.write(tcpSessId);
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received new session ID #%d from [FMC].\n",

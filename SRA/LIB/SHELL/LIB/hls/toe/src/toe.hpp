@@ -123,6 +123,7 @@ using namespace hls;
 
   static const ap_uint<32> TIME_1us       = (((ap_uint<32>)(TIME_1s/1000000) > 1) ? (ap_uint<32>)(TIME_1s/1000000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_64us      = (((ap_uint<32>)(TIME_1s/  15625) > 1) ? (ap_uint<32>)(TIME_1s/  15625) : (ap_uint<32>)1);
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_128us     = (((ap_uint<32>)(TIME_1s/  31250) > 1) ? (ap_uint<32>)(TIME_1s/  31250) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
@@ -144,7 +145,7 @@ using namespace hls;
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
   static const ap_uint<32> TIME_1us       = (  1.0/0.0064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_128us     = (128.0/0.0064/MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_256us     = (256.0/0.0064/MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_512us     = (512.0/0.0064/MAX_SESSIONS) + 1;
@@ -183,6 +184,7 @@ using namespace hls;
  ********************************************/
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
 typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 
 typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
@@ -1209,21 +1211,13 @@ class AppNotif
     SessionId          sessionID;
     TcpSegLen          tcpSegLen;
     Ip4Addr            ip4SrcAddr;
-    //OBSOLETE-20190822 Ip4Addr            ip4DstAddr;
     TcpPort            tcpSrcPort;
     TcpPort            tcpDstPort;
     bool               closed;
     AppNotif() {}
-//    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     TcpPort dp) :
-//             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), tcpDstPort(dp),   closed(false) {}
     AppNotif(SessionId  sessId,                      bool       closed) :
              sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
              tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
-//    AppNotif(SessionId sessId,                     Ip4Addr sa,     TcpDstPort dp,    bool closed) :
-//             sessionID(sessId), tcpSegLen(0),      ip4SrcAddr(sa), tcpDstPort(dp),   closed(closed) {}
-//    AppNotif(SessionId sessId,  TcpSegLen segLen,  Ip4Addr sa,     TcpDstPort dp,    bool closed) :
-//             sessionID(sessId), tcpSegLen(segLen), ip4SrcAddr(sa), tcpDstPort(dp),   closed(closed) {}
-
     AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
              TcpPort    sp,      TcpPort    dp) :
              sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
@@ -1418,7 +1412,7 @@ void toe(
         ap_uint<16>                             &poDBG_SssRelCnt,
         ap_uint<16>                             &poDBG_SssRegCnt,
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                             &piSimCycCount,
+        //OBSOLETE-20190822 ap_uint<32>                             &piSimCycCount,
         ap_uint<32>                             &poSimCycCount
 );
 
