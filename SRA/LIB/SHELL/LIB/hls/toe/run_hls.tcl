@@ -85,7 +85,7 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
-#-------------------------------------------
+#--------------------------------------------
 # Controlling the Reset Behavior (see UG902)
 #--------------------------------------------
 #  - control: This is the default and ensures all control registers are reset. Control registers 
@@ -97,6 +97,20 @@ create_clock -period 6.4 -name default
 #             their initialized value after the reset is applied.
 #------------------------------------------------------------------------------------------------
 config_rtl -reset control
+
+#--------------------------------------------
+# Specifying Compiler-FIFO Depth (see UG902)
+#--------------------------------------------
+# Start Propagation 
+#  - disable: : The compiler might automatically create a start FIFO to propagate a start token
+#               to an internal process. Such FIFOs can sometimes be a bottleneck for performance,
+#               in which case you can increase the default size (fixed to 2). However, if an
+#               unbounded slack between producer and consumer is needed, and internal processes
+#               can run forever, fully and safely driven by their inputs or outputs (FIFOs or
+#               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
+#               dataflow region.
+#------------------------------------------------------------------------------------------------
+config_rt -disable_start_propagation
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
