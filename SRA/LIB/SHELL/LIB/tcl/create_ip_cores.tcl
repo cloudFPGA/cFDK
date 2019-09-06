@@ -476,18 +476,18 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : MM2S Control Signals
 #    [DISABLE]     : S2MM Control Signals
-#    [32]          : Address Width
+#    [33]          : Address Width
 #
 #  Advanced Options
 #    MM2S Interface
 #      [DISABLE]   : Asynchronous Clocks
-#      [DISABLE]   : Allow Unaligned Transfer
+#      [ENABLE]    : Allow Unaligned Transfer
 #      [DISABLE]   : Store Forward
 #      [4]         : ID Width
 #      [0]         : ID Value        
 #    S2MM Interface
 #      [DISABLE]   : Asynchronous Clocks
-#      [DISABLE]   : Allow Unaligned Transfer
+#      [ENABLE]    : Allow Unaligned Transfer
 #      [DISABLE]   : Indeterinate BTT Mode      
 #      [DISABLE]   : Store Forward
 #      [4]         : ID Width
@@ -505,6 +505,8 @@ set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {64} \
                       CONFIG.c_s2mm_burst_size {16} \
                       CONFIG.c_addr_width {33} \
+                      CONFIG.c_include_mm2s_dre {true} \
+                      CONFIG.c_include_s2mm_dre {true} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
 
@@ -538,7 +540,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : MM2S Control Signals
 #    [DISABLE]     : S2MM Control Signals
-#    [32]          : Address Width
+#    [33]          : Address Width
 #
 #  Advanced Options
 #    MM2S Interface

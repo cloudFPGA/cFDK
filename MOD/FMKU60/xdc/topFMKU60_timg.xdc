@@ -279,7 +279,7 @@ set_output_delay -clock piPSOC_Emif_Clk -min 67.500 [get_ports {pioPSOC_Emif_Dat
 #---------------------------------------------------------------------
 set_input_delay -clock piCLKT_10GeClk_p -max -12.800 [get_ports {pioPSOC_Emif_Data[*]}]
 set_input_delay -clock piCLKT_10GeClk_p -min 12.800 [get_ports {pioPSOC_Emif_Data[*]}]
-set_false_path -from [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -to [get_pins {SHELL/MMIO/EMIF/sDataReg_reg[*]/D}]
+set_false_path -from [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -to [get_pins {SHELL/MMIO/EMIF/sEmifReg_reg[*]/D}]
 
 
 #=====================================================================

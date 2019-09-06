@@ -33,9 +33,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *****************************************************************************/
 
 #include "ack_delay.hpp"
@@ -78,7 +75,7 @@ using namespace hls;
 void ack_delay(
         stream<extendedEvent>   &siEVe_Event,
         stream<extendedEvent>   &soTXe_Event,
-        stream<SigBool>         &soEVe_RxEventSig,
+        stream<SigBit>          &soEVe_RxEventSig,
         stream<SigBool>         &soEVe_TxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -102,11 +99,17 @@ void ack_delay(
 
     if (!siEVe_Event.empty()) {
         siEVe_Event.read(ev);
+
         // Tell the [EventEngine] that we just received an event
-        soEVe_RxEventSig.write(true);
+        #ifndef __SYNTHESIS__
+            if (soEVe_RxEventSig.full())
+                printFatal(myName, "Trying to write stream \'soEVe_RxEventSig\' while it is full.");
+        #endif
+        soEVe_RxEventSig.write(1);
         if (DEBUG_LEVEL & TRACE_AKD) {
             printInfo(myName, "Received event of type \'%s\' for session #%d.\n", myEventTypeToString(ev.type), ev.sessionID.to_int());
         }
+
         // Check if there is a delayed ACK
         if (ev.type == ACK && ACK_TABLE[ev.sessionID] == 0) {
             ACK_TABLE[ev.sessionID] = ACKD_64us;
