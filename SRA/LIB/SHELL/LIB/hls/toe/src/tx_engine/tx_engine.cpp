@@ -126,12 +126,12 @@ void pMetaDataLoader(
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { S0, S1 } fsmState=S0;
-    #pragma HLS reset       variable=fsmState
-    static bool                      mdl_sarLoaded = false;
-    #pragma HLS reset       variable=mdl_sarLoaded
-    static ap_uint<2>                mdl_segmentCount = 0;  // [FIXME - Too small for re-transmit?]
-    #pragma HLS reset       variable=mdl_segmentCount
+    static enum FsmStates { S0=0, S1 } fsmState=S0;
+    #pragma HLS reset         variable=fsmState
+    static bool                        mdl_sarLoaded = false;
+    #pragma HLS reset         variable=mdl_sarLoaded
+    static ap_uint<2>                  mdl_segmentCount = 0;  // [FIXME - Too small for re-transmit?]
+    #pragma HLS reset         variable=mdl_segmentCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static extendedEvent  mdl_curEvent;
@@ -306,15 +306,6 @@ void pMetaDataLoader(
                             txeMeta.length  = currLength;
                             fsmState = S0;
                         }
-
-                        //OBSOLETE-20190707 // Check if small segment and if unacknowledged data in pipe (Nagle)
-                        //OBSOLETE-20190707 if (txSar.ackd == txSar.not_ackd) {
-                        //OBSOLETE-20190707     txSar.not_ackd += currLength;
-                        //OBSOLETE-20190707     txeMeta.length = currLength;
-                        //OBSOLETE-20190707 }
-                        //OBSOLETE-20190707 else {
-                        //OBSOLETE-20190707     soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        //OBSOLETE-20190707 }
 
                         // Update the 'txSar.not_ackd' pointer
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, txSar.not_ackd, QUERY_WR));
@@ -665,7 +656,6 @@ void pSocketPairSplitter(
                                         AxiSockAddr(tuple.dstIp, tuple.dstPort));
             if (DEBUG_LEVEL & TRACE_SPS) {
                printInfo(myName, "Received the following socket-pair from [SLc]: \n");
-               //OBSOLETE-20190620 printAxiSockPair(myName, axiSocketPair);
                printSockPair(myName, axiSocketPair);
             }
             soIhc_IpAddrPair.write(IpAddrPair(axiSocketPair.src.addr, axiSocketPair.dst.addr));
@@ -739,7 +729,7 @@ void pIpHeaderConstructor(
             ip4HdrWord.tdata.range( 7,  0) = 0x45;    // Version+IHL
             ip4HdrWord.tdata.range(15,  8) = 0;       // ToS
             ip4TotLen = tcpSegLen + 40;
-            ip4HdrWord.tdata.range(31, 16) = byteSwap16(ip4TotLen); // Total Length //OBSOLETE-20181127 ip4HdrWord.data.range(23, 16) = ip4TotLen(15, 8); //OBSOLETE-20181127 ip4HdrWord.data.range(31, 24) = ip4TotLen( 7, 0);
+            ip4HdrWord.tdata.range(31, 16) = byteSwap16(ip4TotLen); // Total Length
             ip4HdrWord.tdata.range(47, 32) = 0;       // Identification
             ip4HdrWord.tdata.range(50, 48) = 0;       //Flags
             ip4HdrWord.tdata.range(63, 51) = 0x0;     //Fragment Offset
@@ -1179,130 +1169,6 @@ void pTcpSegStitcher(
 } // End of: pTcpSegStitcher
 
 
-/*** OBSOLETE-pTcpSegStitcher-20181129 ****************************************
-void pTcpSegStitcher(
-        stream<TcpWord>         &siPhc_TcpWord,
-        stream<AxiWord>         &siMEM_TxP_Data,
-        stream<AxiWord>         &soSca_TcpWord,
-        stream<ap_uint<1> >     &siMrd_SplitBuf)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
-    #pragma HLS pipeline II=1
-
-    const char *myName  = concat3(THIS_NAME, "/", "Tss");
-
-    static ap_uint<3>   tss_wordCount = 0;
-    static AxiWord      currWord = AxiWord(0, 0, 0);
-    static ap_uint<1>   accBreakdownSts = 0;
-    static ap_uint<4>   shiftBuffer = 0;
-    static bool         hasReadAccBreakdown = false;
-
-    if (tss_wordCount == 0) {
-        if (!siPhc_TcpWord.empty()) {
-            soSca_TcpWord.write(siPhc_TcpWord.read());
-            // A segment will always consists of more than a single TcpWord
-            hasReadAccBreakdown = false;
-            tss_wordCount++;
-        }
-    }
-    else if (tss_wordCount < 4) {
-        if (!siPhc_TcpWord.empty() && !soSca_TcpWord.full()) {
-            siPhc_TcpWord.read(currWord);
-            soSca_TcpWord.write(currWord);
-            if (currWord.tlast)
-                tss_wordCount = 0;
-            else
-                tss_wordCount++;
-        }
-    }
-    else if (tss_wordCount == 4) {
-        if (!siMEM_TxP_Data.empty() && !soSca_TcpWord.full() &&
-            (hasReadAccBreakdown == true || (hasReadAccBreakdown == false && !siMrd_SplitBuf.empty()))) {
-            // Always read the first part of the buffer
-            siMEM_TxP_Data.read(currWord);
-            if (hasReadAccBreakdown == false) {
-                accBreakdownSts = siMrd_SplitBuf.read();
-                hasReadAccBreakdown = true;
-            }
-            if (currWord.tlast) {
-                // This this mem. access is finished
-                if (accBreakdownSts == 0) {
-                    // Check if it was broken down in two. If not...
-                    // go back to the init state and wait for the next segment.
-                    tss_wordCount = 0;
-                    soSca_TcpWord.write(currWord);
-                }
-                else if (accBreakdownSts == 1) {
-                    // If yes, several options present themselves:
-                    shiftBuffer = keepMapping(currWord.tkeep);
-                    accBreakdownSts = 0;
-                    currWord.tlast = 0;
-                    if (currWord.tkeep != 0xFF)         // If the last word is complete, this means that the data are aligned correctly & nothing else needs to be done. If not we need to align them.
-                        tss_wordCount = 5;              // Go to the next state to do just that
-                    else
-                        soSca_TcpWord.write(currWord);
-                }
-            }
-            else
-                soSca_TcpWord.write(currWord);
-        }
-    }
-    else if (tss_wordCount == 5) { // 0x8F908348249AB4F8
-        if (!siMEM_TxP_Data.empty() && !soSca_TcpWord.full()) {
-            // Read the first word of a non_aligned second mem. access
-            AxiWord outputWord = AxiWord(currWord.tdata, 0xFF, 0);
-            currWord = siMEM_TxP_Data.read();
-            outputWord.tdata.range(63, (shiftBuffer * 8)) = currWord.tdata.range(((8 - shiftBuffer.to_uint()) * 8) - 1, 0);
-            ap_uint<4> keepCounter = keepMapping(currWord.tkeep);
-            if (keepCounter < 8 - shiftBuffer) {
-                // The entirety of the 2nd mem. access fits in this data word.
-                outputWord.tkeep = returnKeep(keepCounter + shiftBuffer);
-                outputWord.tlast = 1;
-                tss_wordCount = 0;   // then go back to idle
-            }
-            else if (currWord.tlast == 1)
-                tss_wordCount = 7;
-            else
-                tss_wordCount = 6;
-            soSca_TcpWord.write(outputWord);
-            //std::cerr <<  std::dec << cycleCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-        }
-    }
-    else if (tss_wordCount == 6) {
-        if (!siMEM_TxP_Data.empty() && !soSca_TcpWord.full()) {
-            // Read the first word of a non_aligned second mem. access
-            AxiWord outputWord = AxiWord(0, 0xFF, 0);
-            outputWord.tdata.range((shiftBuffer.to_uint() * 8) - 1, 0) = currWord.tdata.range(63, (8 - shiftBuffer.to_uint()) * 8);
-            currWord = siMEM_TxP_Data.read();
-            outputWord.tdata.range(63, (8 * shiftBuffer)) = currWord.tdata.range(((8 - shiftBuffer.to_uint()) * 8) - 1, 0);
-            ap_uint<4> keepCounter = keepMapping(currWord.tkeep);
-            if (keepCounter < 8 - shiftBuffer) {
-                // The entirety of the 2nd mem. access fits in this data word..
-                outputWord.tkeep = returnKeep(keepCounter + shiftBuffer);
-                outputWord.tlast = 1;
-                tss_wordCount = 0;   // then go back to idle
-            }
-            else if (currWord.tlast == 1)
-                tss_wordCount = 7;
-            soSca_TcpWord.write(outputWord);
-            //std::cerr <<  std::dec << cycleCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-        }
-    }
-    else if (tss_wordCount == 7) {
-        if (!soSca_TcpWord.full()) {
-            ap_uint<4> keepCounter = keepMapping(currWord.tkeep) - (8 - shiftBuffer);                            // This is how many bits are valid in this word
-            AxiWord outputWord = AxiWord(0, returnKeep(keepCounter), 1);
-            outputWord.tdata.range((shiftBuffer.to_uint() * 8) - 1, 0) = currWord.tdata.range(63, (8 - shiftBuffer.to_uint()) * 8);
-            soSca_TcpWord.write(outputWord);
-            //std::cerr <<  std::dec << cycleCounter << " - " << std::hex << outputWord.data << " - " << outputWord.keep << " - " << outputWord.last << std::endl;
-            tss_wordCount = 0;
-        }
-    }
-}
-******************************************************************************/
-
-
 /*****************************************************************************
  * @brief Sub-Checksum Accumulator (Sca)
  *
@@ -1519,9 +1385,6 @@ void pIpPktStitcher(
             sendWord = Ip4overAxi(tcpDatWord.tdata, tcpDatWord.tkeep, tcpDatWord.tlast);
             // Now overwrite TCP checksum
             sendWord.setTcpChecksum(tcpCsum);
-            //OBSOLETE-20181202 sendWord.tdata(47, 32) = byteSwap16(tcpCsum);
-            //OBSOLETE-20181128 sendWord.tdata(39, 32) = tcpCsum(15,  8);
-            //OBSOLETE-20181128 sendWord.tdata(47, 40) = tcpCsum( 7,  0);
 
             soL3MUX_Data.write(sendWord);
             ps_wordCount++;
@@ -1751,21 +1614,6 @@ void tx_engine(
     static stream<StsBit>               sMrdToTss_SplitMemAcc   ("sMrdToTss_SplitMemAcc");
     #pragma HLS stream         variable=sMrdToTss_SplitMemAcc   depth=32
 
-
-
-    //OBSOLETE-20181127 #pragma HLS DATA_PACK variable=txBufferReadData
-    //OBSOLETE-20181125 #pragma HLS DATA_PACK variable=soRSt_RxSarRdReq
-    //OBSOLETE-20181126 #pragma HLS DATA_PACK variable=soSLc_ReverseLkpReq
-
-    //OBSOLETE 20181128 #pragma HLS resource core=AXI4Stream variable=soL3MUX_Data metadata="-bus_bundle m_axis_tcp_data"
-    //OBSOLETE 20181128 #pragma HLS DATA_PACK variable=soL3MUX_Data
-
-    // NOT-USED Memory Read delay around 76 cycles, 10 cycles/packet, so keep meta of at least 8 packets
-    // NOT-USED static stream<tx_engine_meta>       txEng_metaDataFifo("txEng_metaDataFifo");
-    // NOT-USED #pragma HLS stream variable=txEng_metaDataFifo depth=16
-    // NOT-USED #pragma HLS DATA_PACK variable=txEng_metaDataFifo
-
-    
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS
     //-------------------------------------------------------------------------
