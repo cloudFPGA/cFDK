@@ -53,7 +53,7 @@ void pSegmentLengthGenerator(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
 
-	const char *myName  = concat3(THIS_NAME, "/", "slg");
+    const char *myName  = concat3(THIS_NAME, "/", "slg");
 
     static TcpSegLen   tcpSegLen = 0;
 
@@ -186,14 +186,14 @@ void pMetaDataLoader(
 /*******************************************************************************
  * @brief Segment Memory Writer (Smw)
  *
- * @param[in]  siSlg_Data,      TCP data stream from SegmentLengthGenerator (slg).
- * @param[in]  siMdl_SegMeta,   Segment memory metadata from MetaDataLoader (mdl).
- * @param[out] soMEM_TxP_WrCmd, Tx memory write command to MEM.
- * @param[out] soMEM_TxP_Data,  Tx memory data to MEM.
+ * @param[in]  siSlg_Data,      TCP data stream from SegmentLengthGenerator (Slg).
+ * @param[in]  siMdl_SegMeta,   Segment memory metadata from MetaDataLoader (Mdl).
+ * @param[out] soMEM_TxP_WrCmd, Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data,  Tx memory data to [MEM].
  *
  * @details
  *   Writes the incoming TCP segment into the external DRAM, unless the state
- *   machine of the MetaDataLoader (mdl) decides to drop the segment.
+ *   machine of the MetaDataLoader (Mdl) decides to drop the segment.
  *
  *******************************************************************************/
 void pSegmentMemoryWriter(
@@ -203,51 +203,77 @@ void pSegmentMemoryWriter(
         stream<AxiWord>         &soMEM_TxP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1 enable_flush
     #pragma HLS INLINE off
+    #pragma HLS pipeline II=1 enable_flush
 
-	const char *myName  = concat3(THIS_NAME, "/", "smw");
+    const char *myName  = concat3(THIS_NAME, "/", "smw");
 
-    //OBSOLETE-20190614 static ap_uint<3>    tasiPkgPushState = 0;
-    static enum SmwFsmStates { S0, S1, S2, S3, S4, S5 } smwFsmState = S0;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { S0=0, S0bis, S1, S2, S3, S4, S5 } smwState = S0;
+    #pragma HLS reset                              variable = smwState
 
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static SegMemMeta    segMemMeta;
-    static DmCmd         dmCmd = DmCmd(0, 0);
-    static ap_uint<16>   breakLen = 0;
-    static bool          segIsSplitted = false;
-    static AxiWord       pushWord = AxiWord(0, 0xFF, 0);
-    static uint8_t       lengthBuffer  = 0;
-    static ap_uint<3>    accessResidue = 0;
+    static ap_uint<16>   breakLen;  // [TODO-typedef]
+    static DmCmd         dmCmd;     // OBSOLETE-20190907 = DmCmd(0, 0);
+    static bool          segIsSplitted;
+    static AxiWord       pushWord;         // OBSOLETE-20190907 = AxiWord(0, 0xFF, 0);
+    static uint8_t       lengthBuffer;     // OBSOLETE-20190907  = 0;
+    static ap_uint<3>    accessResidue;    // OBSOLETE-20190907 = 0;
+    static uint32_t      txAppWordCounter; // OBSOLETE-20190907 = 0;
 
-    //OBSOLETE-20190614 static uint16_t txAppPktCounter  = 0;
-    static uint32_t txAppWordCounter = 0;
-
-    switch (smwFsmState) {
+    switch (smwState) {
     case S0:
         if (!siMdl_SegMeta.empty() && !soMEM_TxP_WrCmd.full()) {
             siMdl_SegMeta.read(segMemMeta);
+
             if (!segMemMeta.drop) {
-                // Build memory address for this segment in the upper 2GB
-                ap_uint<32> memSegAddr; // [TODO-typedef]
+                // Build memory address for this segment in the upper 2GB [FIXME-Must be configurable]
+                ap_uint<32> memSegAddr; // [TODO-typedef+33-bits]
                 memSegAddr(31, 30) = 0x01;
                 memSegAddr(29, 16) = segMemMeta.sessId(13, 0);
                 memSegAddr(15,  0) = segMemMeta.addr;
+
                 dmCmd = DmCmd(memSegAddr, segMemMeta.len);
-                DmCmd tempDmCmd = dmCmd;
+                //OBSOLETE-20190907 DmCmd tempDmCmd = dmCmd;
                 if ((dmCmd.saddr.range(15, 0) + dmCmd.bbt) > 65536) {
+                    /*** OBSOLETE-20190907 ****************
+                    // was moved to S0bis because of timing issues
                     breakLen = 65536 - dmCmd.saddr;
                     dmCmd.bbt -= breakLen;
                     tempDmCmd = DmCmd(dmCmd.saddr, breakLen);
                     segIsSplitted = true;
+                    ****************************************/
+                    segIsSplitted = true;
+                    smwState = S0bis;
+                    break;
                 }
                 else {
+                    segIsSplitted = false;
                     breakLen = dmCmd.bbt;
+                    //OBSOLETE-20190907 soMEM_TxP_WrCmd.write(tempDmCmd);
+                    soMEM_TxP_WrCmd.write(dmCmd);
+                    smwState = S1;
+                    if (DEBUG_LEVEL & TRACE_SMW) {
+                        printDmCmd(myName, dmCmd);
+                    }
+                    break;
                 }
-                soMEM_TxP_WrCmd.write(tempDmCmd);
             }
-            smwFsmState = S1;
+            smwState = S1;
         }
         break;
+
+    case S0bis:
+        breakLen   = 65536 - dmCmd.saddr;
+        dmCmd.bbt -= breakLen;
+        soMEM_TxP_WrCmd.write(DmCmd(dmCmd.saddr, breakLen));
+        smwState = S1;
+        if (DEBUG_LEVEL & TRACE_SMW) {
+            printDmCmd(myName, dmCmd);
+        }
+        break;
+
     case S1:
         if (!siSlg_Data.empty()) {
             siSlg_Data.read(pushWord);
@@ -263,12 +289,12 @@ void pSegmentMemoryWriter(
                             outputWord.tkeep = lenToKeep(breakLen);
                         }
                         outputWord.tlast = 1;
-                        smwFsmState = S2;
+                        smwState = S2;
                         accessResidue = byteCount - breakLen;
                         lengthBuffer = breakLen;  // Buffer the number of bits consumed.
                     }
                     else {
-                        smwFsmState = S0;
+                        smwState = S0;
                     }
                 }
                 txAppWordCounter++;
@@ -276,19 +302,19 @@ void pSegmentMemoryWriter(
             }
             else {
                 if (pushWord.tlast == 1)
-                    smwFsmState = S0;
+                    smwState = S0;
             }
         }
         break;
     case S2:
         if (!soMEM_TxP_WrCmd.full()) {
             if (dmCmd.saddr.range(15, 0) % 8 == 0)
-                smwFsmState = S3;
+                smwState = S3;
             //else if (txAppTempCmd.bbt +  accessResidue > 8 || accessResidue > 0)
             else if (dmCmd.bbt - accessResidue > 0)
-                smwFsmState = S4;
+                smwState = S4;
             else
-                smwFsmState = S5;
+                smwState = S5;
             dmCmd.saddr.range(15, 0) = 0;
             breakLen = dmCmd.bbt;
             soMEM_TxP_WrCmd.write(DmCmd(dmCmd.saddr, breakLen));
@@ -303,7 +329,7 @@ void pSegmentMemoryWriter(
                 soMEM_TxP_Data.write(pushWord);
             }
             if (pushWord.tlast == 1)
-                smwFsmState = S0;
+                smwState = S0;
         }
         break;
     case S4: // We go into this state when we need to realign things
@@ -318,10 +344,10 @@ void pSegmentMemoryWriter(
                     if (breakLen - accessResidue > lengthBuffer)  {
                         // In this case there's residue to be handled
                         breakLen -=8;
-                        smwFsmState = S5;
+                        smwState = S5;
                     }
                     else {
-                        smwFsmState = S0;
+                        smwState = S0;
                         outputWord.tkeep = lenToKeep(breakLen);
                         outputWord.tlast = 1;
                     }
@@ -332,7 +358,7 @@ void pSegmentMemoryWriter(
             }
             else {
                 if (pushWord.tlast == 1)
-                    smwFsmState = S0;
+                    smwState = S0;
             }
         }
         break;
@@ -342,7 +368,7 @@ void pSegmentMemoryWriter(
                 AxiWord outputWord = AxiWord(0, lenToKeep(breakLen), 1);
                 outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
                 soMEM_TxP_Data.write(outputWord);
-                smwFsmState = S0;
+                smwState = S0;
             }
         }
         break;
@@ -393,22 +419,22 @@ void tx_app_stream(
     //-------------------------------------------------------------------------
 
     //-- Segment Length Generator (Slg) ---------------------------------------
-    static stream<AxiWord>         sSlgToSmw_Data    ("sSlgToSmw_Data");
-    #pragma HLS stream    variable=sSlgToSmw_Data    depth=256
-    #pragma HLS DATA_PACK variable=sSlgToSmw_Data
+    static stream<AxiWord>         ssSlgToSmw_Data    ("ssSlgToSmw_Data");
+    #pragma HLS stream    variable=ssSlgToSmw_Data    depth=256
+    #pragma HLS DATA_PACK variable=ssSlgToSmw_Data
 
-    static stream<TcpSegLen>       sSlgToMdl_SegLen  ("sSlgToMdl_SegLen");
-    #pragma HLS stream    variable=sSlgToMdl_SegLen  depth=32
+    static stream<TcpSegLen>       ssSlgToMdl_SegLen  ("ssSlgToMdl_SegLen");
+    #pragma HLS stream    variable=ssSlgToMdl_SegLen  depth=32
 
     //-- Meta Data Loader (Mdl) -----------------------------------------------
-    static stream<SegMemMeta>      sMdlToSmw_SegMeta ("sMdlToSmw_SegMeta");
-    #pragma HLS stream    variable=sMdlToSmw_SegMeta depth=128
-    #pragma HLS DATA_PACK variable=sMdlToSmw_SegMeta
+    static stream<SegMemMeta>      ssMdlToSmw_SegMeta ("ssMdlToSmw_SegMeta");
+    #pragma HLS stream    variable=ssMdlToSmw_SegMeta depth=128
+    #pragma HLS DATA_PACK variable=ssMdlToSmw_SegMeta
 
     pSegmentLengthGenerator(
             siTRIF_Data,
-            sSlgToSmw_Data,
-            sSlgToMdl_SegLen);
+            ssSlgToSmw_Data,
+            ssSlgToMdl_SegLen);
 
     pMetaDataLoader(
             siTRIF_Meta,
@@ -416,14 +442,14 @@ void tx_app_stream(
             siSTt_SessStateRep,
             soTat_AcessReq,
             siTat_AcessRep,
-            sSlgToMdl_SegLen,
+            ssSlgToMdl_SegLen,
             soTRIF_DSts,
-            sMdlToSmw_SegMeta,
+            ssMdlToSmw_SegMeta,
             soEVe_Event);
 
     pSegmentMemoryWriter(
-            sSlgToSmw_Data,
-            sMdlToSmw_SegMeta,
+            ssSlgToSmw_Data,
+            ssMdlToSmw_SegMeta,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data);
 
