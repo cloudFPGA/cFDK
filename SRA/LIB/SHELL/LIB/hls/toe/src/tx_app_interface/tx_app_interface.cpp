@@ -110,7 +110,7 @@ void pTxAppAccept(
         AxiIp4Address                regIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
+    //OBSOLETE-20190907 #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
     static ap_uint<16> tai_closeSessionID;
@@ -209,7 +209,6 @@ void pTxAppStatusHandler(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
 
-    //OBSOLETE-20190617 static ap_uint<2> tash_state = 0;
     static event      ev;
 
     static enum TashFsmStates { S0, S1, S2 } tashFsmState = S0;
