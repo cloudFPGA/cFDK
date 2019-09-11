@@ -64,7 +64,8 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 //-- C/RTL LATENCY AND INITIAL INTERVAL
 //--   Use numbers >= to those of the 'CoSimulation Report'
 #define MAX_TOE_LATENCY    25
-#define MAX_TOE_INTERVAL   25
+#define MAX_MEM_LATENCY    10
+#define MAX_CAM_LATENCY    10
 #define TB_GRACE_TIME      25
 #define RTT_LINK           25
 
@@ -136,7 +137,7 @@ void pEmulateCam(
     case CAM_WAIT_4_REQ:
         if (!siTOE_SssLkpReq.empty()) {
             siTOE_SssLkpReq.read(request);
-            camIdleCnt = MAX_TOE_LATENCY;
+            camIdleCnt = MAX_CAM_LATENCY;
             camFsmState = CAM_LOOKUP_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from [%s] for socket pair: \n",
@@ -146,7 +147,7 @@ void pEmulateCam(
         }
         else if (!siTOE_SssUpdReq.empty()) {
             siTOE_SssUpdReq.read(update);
-            camIdleCnt = MAX_TOE_LATENCY;
+            camIdleCnt = MAX_CAM_LATENCY;
             camFsmState = CAM_UPDATE_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
                  printInfo(myName, "Received a session update request from [%s] for socket pair: \n",
@@ -190,10 +191,18 @@ void pEmulateCam(
                 //Is there a check if it already exists?
                 lookupTable[update.key] = update.value;
                 soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, INSERT, update.source));
+                if (DEBUG_LEVEL & TRACE_CAM) {
+                    printInfo(myName, "Successful insertion of session ID #%d for [%s].\n", update.value.to_int(),
+                              myCamAccessToString(update.source.to_int()));
+                }
             }
             else {  // DELETE
                 lookupTable.erase(update.key);
                 soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, DELETE, update.source));
+                if (DEBUG_LEVEL & TRACE_CAM) {
+                     printInfo(myName, "Successful deletion of session ID #%d for [%s].\n", update.value.to_int(),
+                               myCamAccessToString(update.source.to_int()));
+                 }
             }
             camFsmState = CAM_WAIT_4_REQ;
         }
@@ -273,7 +282,7 @@ void pEmulateRxBufMem(
             memory->setReadCmd(dmCmd);
             noBytesToRead = dmCmd.bbt.to_int();
             rxMemRdCounter = 0;
-            memIdleCnt     = MAX_TOE_LATENCY;
+            memIdleCnt     = MAX_MEM_LATENCY;
             memFsmState    = MRD_DATA;
             }
         }
@@ -290,7 +299,7 @@ void pEmulateRxBufMem(
             memory->writeWord(inWord);
             rxMemWrCounter += keepToLen(inWord.tkeep);
             if ((inWord.tlast) || (rxMemWrCounter == noBytesToWrite)) {
-                memIdleCnt  = MAX_TOE_LATENCY;
+                memIdleCnt  = MAX_MEM_LATENCY;
                 memFsmState = MWR_STS;
             }
         }
@@ -351,6 +360,7 @@ void pEmulateRxBufMem(
  * @brief Emulate the behavior of the Transmit DDR4 Buffer Memory (TXMEM).
  *
  * @param[in/out] *memory,         A pointer to a dummy model of the DDR4 memory.
+ * @param[in]     nrError,         A reference to the error counter of the [TB].
  * @param[in]     siTOE_TxP_WrCmd, A ref to the write command stream from TOE.
  * @param[out]    soTOE_TxP_WrSts, A ref to the write status stream to TOE.
  * @param[in]     siTOE_TxP_RdCmd, A ref to the read command stream from TOE.
@@ -363,23 +373,142 @@ void pEmulateRxBufMem(
  ******************************************************************************/
 void pEmulateTxBufMem(
         DummyMemory         *memory,
+        int                 &nrError,
         stream<DmCmd>       &siTOE_TxP_WrCmd,
         stream<DmSts>       &soTOE_TxP_WrSts,
         stream<DmCmd>       &siTOE_TxP_RdCmd,
         stream<AxiWord>     &siTOE_TxP_Data,
         stream<AxiWord>     &soTOE_TxP_Data)
 {
+    const char *myName  = concat3(THIS_NAME, "/", "TXMEM");
+
+    static int   txMemWrCounter = 0;
+    static int   txMemRdCounter = 0;
+    static int   noBytesToWrite = 0;
+    static int   noBytesToRead  = 0;
+    static int   memIdleCnt     = 0;
+    static DmCmd dmCmd;     // Data Mover Command
+    static enum  MemFsmStates {MEM_WAIT_4_CMD, MWR_DATA, MWR_STS,
+                                               MRD_DATA, MRD_STS} memFsmState;
+
+    DmSts    dmSts;     // Data Mover Status
+
+    AxiWord  tmpInWord  = AxiWord(0, 0, 0);
+    AxiWord  inWord     = AxiWord(0, 0, 0);
+    AxiWord  outWord    = AxiWord(0, 0, 0);
+    AxiWord  tmpOutWord = AxiWord(0, 0, 0);
+
+    //-----------------------------------------------------
+    //-- MEMORY WRITE & READ PROCESSES
+    //--   Note: We assume that Wr has priority over Rd.
+    //-----------------------------------------------------
+    switch (memFsmState) {
+
+    case MEM_WAIT_4_CMD:
+        if (!siTOE_TxP_WrCmd.empty()) {
+            // Memory Write Command
+            siTOE_TxP_WrCmd.read(dmCmd);
+            if (DEBUG_LEVEL & TRACE_TXMEM) {
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%x, bbt=%d).\n",
+                          dmCmd.saddr.to_uint64(), dmCmd.bbt.to_uint());
+            }
+            memory->setWriteCmd(dmCmd);
+            noBytesToWrite = dmCmd.bbt.to_int();
+            txMemWrCounter = 0;
+            memIdleCnt     = 0;
+            memFsmState    = MWR_DATA;
+        }
+        else if (!siTOE_TxP_RdCmd.empty()) {
+            // Memory Read Command
+            siTOE_TxP_RdCmd.read(dmCmd);
+            if (DEBUG_LEVEL & TRACE_TXMEM) {
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%x, bbt=%d).\n",
+                           dmCmd.saddr.to_uint64(), dmCmd.bbt.to_uint());
+            memory->setReadCmd(dmCmd);
+            noBytesToRead = dmCmd.bbt.to_int();
+            txMemRdCounter = 0;
+            memIdleCnt     = MAX_MEM_LATENCY;
+            memFsmState    = MRD_DATA;
+            }
+        }
+        break;
+
+    case MWR_DATA:
+        //-- Wait some cycles to match the co-simulation --
+        if (memIdleCnt > 0)
+            memIdleCnt--;
+        else if (!siTOE_TxP_Data.empty()) {
+            //-- Data Memory Write Transfer ---------------
+            siTOE_TxP_Data.read(tmpInWord);
+            inWord = tmpInWord;
+            memory->writeWord(inWord);
+            txMemWrCounter += keepToLen(inWord.tkeep);
+            if ((inWord.tlast) || (txMemWrCounter == noBytesToWrite)) {
+                memIdleCnt  = MAX_MEM_LATENCY;
+                memFsmState = MWR_STS;
+            }
+        }
+        break;
+
+    case MWR_STS:
+        //-- Wait some cycles to match the co-simulation --
+        if (memIdleCnt > 0)
+            memIdleCnt--;
+        else if (!soTOE_TxP_WrSts.full()) {
+            //-- Data Memory Write Status -----------------
+            if (noBytesToWrite != txMemWrCounter) {
+                printError(myName, "The number of bytes received from TOE (%d) does not match the expected number specified by the command (%d)!\n",
+                           txMemWrCounter, noBytesToWrite);
+                nrError += 1;
+                dmSts.okay = 0;
+            }
+            else {
+                dmSts.okay = 1;
+            }
+            soTOE_TxP_WrSts.write(dmSts);
+
+            if (DEBUG_LEVEL & TRACE_TXMEM) {
+                printInfo(myName, "Sending memory status back to TOE: (OK=%d).\n",
+                          dmSts.okay.to_int());
+            }
+            memFsmState = MEM_WAIT_4_CMD;
+        }
+        break;
+
+    case MRD_DATA:
+        //-- Wait some cycles to match the co-simulation --
+        if (memIdleCnt > 0)
+            memIdleCnt--;
+        else if (!soTOE_TxP_Data.full()) {
+            // Data Memory Read Transfer
+            memory->readWord(tmpOutWord);
+            outWord = tmpOutWord;
+            txMemRdCounter += keepToLen(outWord.tkeep);
+            soTOE_TxP_Data.write(outWord);
+            if ((outWord.tlast) || (txMemRdCounter == noBytesToRead)) {
+                memIdleCnt  = 2;
+                memFsmState = MRD_STS;
+            }
+        }
+        break;
+
+    case MRD_STS:
+        //-- [TOE] won't send a status back to us
+        memFsmState = MEM_WAIT_4_CMD;
+        break;
+
+    } // End-of: switch()
+
+
+#if OBSOLETE_20190911
+    static bool stx_write = false;
+    static bool stx_read  = false;
+    static bool stx_readCmd = false;
+
     DmCmd    dmCmd;     // Data Mover Command
     DmSts    dmSts;     // Data Mover Status
     AxiWord  inWord;
     AxiWord  outWord;
-
-    static bool stx_write = false;
-    static bool stx_read  = false;
-
-    static bool stx_readCmd = false;
-
-    const char *myName  = concat3(THIS_NAME, "/", "TXMEM");
 
     if (!siTOE_TxP_WrCmd.empty() && !stx_write) {
         // Memory Write Command
@@ -411,6 +540,8 @@ void pEmulateTxBufMem(
         if (outWord.tlast)
             stx_read = false;
     }
+#endif
+
 } // End of: pEmulateTxBufMem
 
 
@@ -2308,7 +2439,7 @@ int main(int argc, char *argv[]) {
                 ssTOE_MEM_RxP_RdCmd, ssTOE_MEM_RxP_Data, ssMEM_TOE_RxP_Data);
 
             pEmulateTxBufMem(
-                &txMemory,
+                &txMemory,           nrErr,
                 ssTOE_MEM_TxP_WrCmd, ssMEM_TOE_TxP_WrSts,
                 ssTOE_MEM_TxP_RdCmd, ssTOE_MEM_TxP_Data, ssMEM_TOE_TxP_Data);
 
