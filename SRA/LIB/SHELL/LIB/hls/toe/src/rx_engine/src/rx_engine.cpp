@@ -1804,7 +1804,7 @@ void rx_engine(
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INLINE
+    #pragma HLS INLINE recursive
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
