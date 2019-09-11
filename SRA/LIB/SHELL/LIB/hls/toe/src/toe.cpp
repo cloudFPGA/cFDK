@@ -477,9 +477,9 @@ void pTbSimCount(
 {
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     #ifdef __SYNTHESIS__
-        static ap_uint<32>         sCounter = 14;
+        static ap_uint<32>         sCounter = 0xFFFFFFF9;
     #else
-        static ap_uint<32>         sCounter =  0;
+        static ap_uint<32>         sCounter = 0x00000000;
     #endif
     #pragma HLS reset variable=sCounter
 
