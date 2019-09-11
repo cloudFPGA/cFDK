@@ -63,9 +63,19 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 
 //-- C/RTL LATENCY AND INITIAL INTERVAL
 //--   Use numbers >= to those of the 'CoSimulation Report'
-#define MAX_TOE_LATENCY    25
-#define MAX_MEM_LATENCY    10
-#define MAX_CAM_LATENCY    10
+#define APP_RSP_LATENCY    10  // [FIXME - "ipRx_TwentyPkt.dat" will fail if latency goes down to 5.
+
+#define MEM_RD_CMD_LATENCY 10
+#define MEM_RD_DAT_LATENCY 10
+#define MEM_RD_STS_LATENCY 10
+
+#define MEM_WR_CMD_LATENCY 10
+#define MEM_WR_DAT_LATENCY 10
+#define MEM_WR_STS_LATENCY 10
+
+#define CAM_LOOKUP_LATENCY 10
+#define CAM_UPDATE_LATENCY 10
+
 #define TB_GRACE_TIME      25
 #define RTT_LINK           25
 
@@ -126,7 +136,8 @@ void pEmulateCam(
 
     static rtlSessionLookupRequest request;
     static rtlSessionUpdateRequest update;
-    static int                     camIdleCnt = 0;
+    static int                     camUpdateIdleCnt = 0;
+    static int                     camLookupIdleCnt = 0;
     map<fourTupleInternal, ap_uint<14> >::const_iterator findPos;
 
     //-----------------------------------------------------
@@ -137,7 +148,7 @@ void pEmulateCam(
     case CAM_WAIT_4_REQ:
         if (!siTOE_SssLkpReq.empty()) {
             siTOE_SssLkpReq.read(request);
-            camIdleCnt = MAX_CAM_LATENCY;
+            camLookupIdleCnt = CAM_LOOKUP_LATENCY;
             camFsmState = CAM_LOOKUP_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from [%s] for socket pair: \n",
@@ -147,7 +158,7 @@ void pEmulateCam(
         }
         else if (!siTOE_SssUpdReq.empty()) {
             siTOE_SssUpdReq.read(update);
-            camIdleCnt = MAX_CAM_LATENCY;
+            camUpdateIdleCnt = CAM_UPDATE_LATENCY;
             camFsmState = CAM_UPDATE_REP;
             if (DEBUG_LEVEL & TRACE_CAM) {
                  printInfo(myName, "Received a session update request from [%s] for socket pair: \n",
@@ -159,8 +170,8 @@ void pEmulateCam(
 
     case CAM_LOOKUP_REP:
         //-- Wait some cycles to match the co-simulation --
-        if (camIdleCnt > 0) {
-            camIdleCnt--;
+        if (camLookupIdleCnt > 0) {
+            camLookupIdleCnt--;
         }
         else {
             findPos = lookupTable.find(request.key);
@@ -182,8 +193,8 @@ void pEmulateCam(
 
     case CAM_UPDATE_REP:
         //-- Wait some cycles to match the co-simulation --
-        if (camIdleCnt > 0) {
-            camIdleCnt--;
+        if (camUpdateIdleCnt > 0) {
+            camUpdateIdleCnt--;
         }
         else {
             // [TODO - What if element does not exist]
@@ -240,7 +251,8 @@ void pEmulateRxBufMem(
     static int          rxMemRdCounter = 0;
     static int          noBytesToWrite = 0;
     static int          noBytesToRead  = 0;
-    static int          memIdleCnt     = 0;
+    static int          memRdIdleCnt   = 0;
+    static int          memWrIdleCnt   = 0;
     static DmCmd        dmCmd;     // Data Mover Command
 
     static enum MemFsmStates {MEM_WAIT_4_CMD, MWR_DATA, MWR_STS,
@@ -270,7 +282,7 @@ void pEmulateRxBufMem(
             memory->setWriteCmd(dmCmd);
             noBytesToWrite = dmCmd.bbt.to_int();
             rxMemWrCounter = 0;
-            memIdleCnt     = 0;
+            memWrIdleCnt   = MEM_WR_CMD_LATENCY;
             memFsmState    = MWR_DATA;
         }
         else if (!siTOE_RxP_RdCmd.empty()) {
@@ -282,7 +294,7 @@ void pEmulateRxBufMem(
             memory->setReadCmd(dmCmd);
             noBytesToRead = dmCmd.bbt.to_int();
             rxMemRdCounter = 0;
-            memIdleCnt     = MAX_MEM_LATENCY;
+            memRdIdleCnt   = MEM_RD_CMD_LATENCY;
             memFsmState    = MRD_DATA;
             }
         }
@@ -290,8 +302,8 @@ void pEmulateRxBufMem(
 
     case MWR_DATA:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memWrIdleCnt > 0)
+            memWrIdleCnt--;
         else if (!siTOE_RxP_Data.empty()) {
             //-- Data Memory Write Transfer ---------------
             siTOE_RxP_Data.read(tmpInWord);
@@ -299,7 +311,7 @@ void pEmulateRxBufMem(
             memory->writeWord(inWord);
             rxMemWrCounter += keepToLen(inWord.tkeep);
             if ((inWord.tlast) || (rxMemWrCounter == noBytesToWrite)) {
-                memIdleCnt  = MAX_MEM_LATENCY;
+                memWrIdleCnt  = MEM_WR_STS_LATENCY;
                 memFsmState = MWR_STS;
             }
         }
@@ -307,8 +319,8 @@ void pEmulateRxBufMem(
 
     case MWR_STS:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memWrIdleCnt > 0)
+            memWrIdleCnt--;
         else if (!soTOE_RxP_WrSts.full()) {
             //-- Data Memory Write Status -----------------
             if (noBytesToWrite != rxMemWrCounter) {
@@ -332,8 +344,8 @@ void pEmulateRxBufMem(
 
     case MRD_DATA:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memRdIdleCnt > 0)
+            memRdIdleCnt--;
         else if (!soTOE_RxP_Data.full()) {
             // Data Memory Read Transfer
             memory->readWord(tmpOutWord);
@@ -341,13 +353,16 @@ void pEmulateRxBufMem(
             rxMemRdCounter += keepToLen(outWord.tkeep);
             soTOE_RxP_Data.write(outWord);
             if ((outWord.tlast) || (rxMemRdCounter == noBytesToRead)) {
-                memIdleCnt  = 2;
+                memRdIdleCnt  = MEM_RD_STS_LATENCY;
                 memFsmState = MRD_STS;
             }
         }
         break;
 
     case MRD_STS:
+        //-- Wait some cycles to match the co-simulation --
+        if (memWrIdleCnt > 0)
+            memWrIdleCnt--;
         //-- [TOE] won't send a status back to us
         memFsmState = MEM_WAIT_4_CMD;
         break;
@@ -386,7 +401,8 @@ void pEmulateTxBufMem(
     static int   txMemRdCounter = 0;
     static int   noBytesToWrite = 0;
     static int   noBytesToRead  = 0;
-    static int   memIdleCnt     = 0;
+    static int   memWrIdleCnt   = 0;
+    static int   memRdIdleCnt   = 0;
     static DmCmd dmCmd;     // Data Mover Command
     static enum  MemFsmStates {MEM_WAIT_4_CMD, MWR_DATA, MWR_STS,
                                                MRD_DATA, MRD_STS} memFsmState;
@@ -415,7 +431,7 @@ void pEmulateTxBufMem(
             memory->setWriteCmd(dmCmd);
             noBytesToWrite = dmCmd.bbt.to_int();
             txMemWrCounter = 0;
-            memIdleCnt     = 0;
+            memWrIdleCnt   = MEM_WR_CMD_LATENCY;
             memFsmState    = MWR_DATA;
         }
         else if (!siTOE_TxP_RdCmd.empty()) {
@@ -427,7 +443,7 @@ void pEmulateTxBufMem(
             memory->setReadCmd(dmCmd);
             noBytesToRead = dmCmd.bbt.to_int();
             txMemRdCounter = 0;
-            memIdleCnt     = MAX_MEM_LATENCY;
+            memRdIdleCnt   = MEM_RD_CMD_LATENCY;
             memFsmState    = MRD_DATA;
             }
         }
@@ -435,8 +451,8 @@ void pEmulateTxBufMem(
 
     case MWR_DATA:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memWrIdleCnt > 0)
+            memWrIdleCnt--;
         else if (!siTOE_TxP_Data.empty()) {
             //-- Data Memory Write Transfer ---------------
             siTOE_TxP_Data.read(tmpInWord);
@@ -444,7 +460,7 @@ void pEmulateTxBufMem(
             memory->writeWord(inWord);
             txMemWrCounter += keepToLen(inWord.tkeep);
             if ((inWord.tlast) || (txMemWrCounter == noBytesToWrite)) {
-                memIdleCnt  = MAX_MEM_LATENCY;
+                memWrIdleCnt  = MEM_WR_STS_LATENCY;
                 memFsmState = MWR_STS;
             }
         }
@@ -452,8 +468,8 @@ void pEmulateTxBufMem(
 
     case MWR_STS:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memWrIdleCnt > 0)
+            memWrIdleCnt--;
         else if (!soTOE_TxP_WrSts.full()) {
             //-- Data Memory Write Status -----------------
             if (noBytesToWrite != txMemWrCounter) {
@@ -477,8 +493,8 @@ void pEmulateTxBufMem(
 
     case MRD_DATA:
         //-- Wait some cycles to match the co-simulation --
-        if (memIdleCnt > 0)
-            memIdleCnt--;
+        if (memRdIdleCnt > 0)
+            memRdIdleCnt--;
         else if (!soTOE_TxP_Data.full()) {
             // Data Memory Read Transfer
             memory->readWord(tmpOutWord);
@@ -486,13 +502,16 @@ void pEmulateTxBufMem(
             txMemRdCounter += keepToLen(outWord.tkeep);
             soTOE_TxP_Data.write(outWord);
             if ((outWord.tlast) || (txMemRdCounter == noBytesToRead)) {
-                memIdleCnt  = 2;
+                memRdIdleCnt  = MEM_RD_STS_LATENCY;
                 memFsmState = MRD_STS;
             }
         }
         break;
 
     case MRD_STS:
+        //-- Wait some cycles to match the co-simulation --
+        if (memRdIdleCnt > 0)
+            memRdIdleCnt--;
         //-- [TOE] won't send a status back to us
         memFsmState = MEM_WAIT_4_CMD;
         break;
@@ -754,7 +773,6 @@ int pIPRX_InjectAckNumber(
             if (DEBUG_LEVEL & TRACE_IPRX)
                 printInfo(myName, "Setting the TCP Acknowledge of this segment to: %u (0x%8.8X) \n",
                           newAckNum.to_uint(), byteSwap32(newAckNum).to_uint());
-
 
             // Recalculate and update the checksum
             int oldCsum = ipRxPacket.getTcpChecksum();
@@ -1655,7 +1673,7 @@ void pTRIF_Recv(
                           notification.sessionID.to_int(), notification.tcpSegLen.to_int());
                 printSockAddr(myName, SockAddr(notification.ip4SrcAddr, notification.tcpDstPort));
             }
-            appRspIdle = MAX_TOE_LATENCY;
+            appRspIdle = APP_RSP_LATENCY;
             fsmState   = SEND_DREQ;
         }
         break;
