@@ -434,7 +434,7 @@ void printTcpPort(TcpPort tcpPort)
  ******************************************************************************/
 #ifndef __SYNTHESIS__
     const char* eventTypeStrings[] = {
-             "TX", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
+             "TX", "TXbis", "RT", "RTbis", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
 
     const char *myEventTypeToString(eventType ev) {
         return eventTypeStrings[ev];
