@@ -205,9 +205,9 @@ typedef bool ValBit;  // Valid bit  : Must go along with something to validate/i
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
 //   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
 
-enum        eventType {TX=0, RT,   ACK,   SYN,   SYN_ACK,   FIN,   RST,   ACK_NODELAY };
+enum        eventType {TX=0, TXbis, RT, RTbis, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
 //const char* eventTypeStrings[] = {
-//                      "TX", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
+//                      "TX", "TXbis", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
 
 
 
