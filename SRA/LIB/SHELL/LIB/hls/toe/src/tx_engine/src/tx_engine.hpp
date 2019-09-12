@@ -39,8 +39,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
 
-#include "../toe.hpp"
-#include "../toe_utils.hpp"
+#include "../../toe.hpp"
+#include "../../toe_utils.hpp"
 
 using namespace hls;
 

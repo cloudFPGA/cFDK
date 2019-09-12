@@ -53,7 +53,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "port_table/port_table.hpp"
 
 #include "rx_engine/src/rx_engine.hpp"
-#include "tx_engine/tx_engine.hpp"
+#include "tx_engine/src/tx_engine.hpp"
 
 #include "rx_app_if/rx_app_if.hpp"
 #include "rx_app_stream_if/rx_app_stream_if.hpp"
@@ -473,7 +473,7 @@ void pReady(
  *
  ******************************************************************************/
 void pTbSimCount(
-    ap_uint<32>    &poSimCycCount)
+    volatile ap_uint<32>    &poSimCycCount)
 {
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     #ifdef __SYNTHESIS__

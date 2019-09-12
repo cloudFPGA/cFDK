@@ -37,8 +37,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  *****************************************************************************/
 
-#include "../../src/tx_engine/tx_engine.hpp"
-#include "../../test/test_toe_utils.hpp"
+#include "tx_engine.hpp"
+#include "../../../test/test_toe_utils.hpp"
 
 #include <algorithm>
 
