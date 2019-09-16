@@ -1,0 +1,39 @@
+# ########################################################################################
+#  @file  : appRx_OneSeg.dat
+#  @brief : A unique TCP segment for the Rx Application I/F of TOE.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    # This is a comment
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
+
+G PARAM SimCycles     350
+G PARAM FpgaIp4Addr   10.12.200.7
+G PARAM FpgaLsnPort   8803
+> IDLE 50
+
+# STEP-1: TCP DATA SEGMENT TRANSFER ========================
+
+0101010101010101 0 FF
+0202020202020202 0 FF
+0303030303030303 0 FF
+0404040404040404 0 FF
+0505050505050505 1 FF
+
+> IDLE 100
+
