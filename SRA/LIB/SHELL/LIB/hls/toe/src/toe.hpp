@@ -1412,7 +1412,6 @@ void toe(
         ap_uint<16>                             &poDBG_SssRelCnt,
         ap_uint<16>                             &poDBG_SssRegCnt,
         //-- DEBUG / SimCycCounter
-        //OBSOLETE-20190822 ap_uint<32>                             &piSimCycCount,
         ap_uint<32>                             &poSimCycCount
 );
 

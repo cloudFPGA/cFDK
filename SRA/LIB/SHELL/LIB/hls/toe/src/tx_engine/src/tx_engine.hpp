@@ -104,17 +104,24 @@ struct IpAddrPair
  * @ingroup tx_engine
  *****************************************************************************/
 void tx_engine(
+        //-- Ack Delayer & Event Engine Interfaces
         stream<extendedEvent>           &siAKd_Event,
-        stream<ap_uint<16> >            &soRSt_RxSarRdReq,
-        stream<RxSarEntry>              &siRSt_RxSarRdRep,
-        stream<TXeTxSarQuery>           &soTSt_TxSarUpdReq,
-        stream<TXeTxSarReply>           &siTSt_TxSarUpdRep,
+        stream<SigBit>                  &soEVe_RxEventSig,
+        //-- Rx SAR Table Interface
+        stream<SessionId>               &soRSt_RxSarReq,
+        stream<RxSarEntry>              &siRSt_RxSarRep,
+        //-- Tx SAR Table Interface
+        stream<TXeTxSarQuery>           &soTSt_TxSarQry,
+        stream<TXeTxSarReply>           &siTSt_TxSarRep,
+        //-- MEM / Tx Read Path Interface
+        stream<DmCmd>                   &soMEM_Txp_RdCmd,
         stream<AxiWord>                 &siMEM_TxP_Data,
+        //-- Timers Interface
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
-        stream<DmCmd>                   &soMEM_Txp_RdCmd,
-        stream<ap_uint<16> >            &soSLc_ReverseLkpReq,
+        //-- Session Lookup Controller Interface
+        stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
-        stream<SigBit>                  &soEVe_RxEventSig,
+        //-- IP Tx Interface
         stream<Ip4overAxi>              &soL3MUX_Data
 );

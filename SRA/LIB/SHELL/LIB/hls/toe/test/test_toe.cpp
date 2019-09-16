@@ -2549,7 +2549,10 @@ int main(int argc, char *argv[]) {
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
     if ((mode == RX_MODE) or (mode == ECHO_MODE)) {
-        printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Rx file = %s.\n", mode, argv[2]);
+
+        if (mode != ECHO_MODE) {
+            printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Rx file = %s.\n", mode, argv[2]);
+        }
 
         if (ipRx_TcpBytCntr != apTx_TcpBytCntr) {
             printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TRIF interface (%d). \n", ipRx_TcpBytCntr, apTx_TcpBytCntr);
@@ -2570,9 +2573,8 @@ int main(int argc, char *argv[]) {
 
     if ((mode == TX_MODE)  or (mode == ECHO_MODE)) {
 
-        if (mode != ECHO_MODE) {
-            printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Tx file = %s.\n", mode, argv[2]);
-        }
+        printf("\n");
+        printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Tx file = %s.\n", mode, argv[2]);
 
         if (ipTx_TcpBytCntr != apRx_TcpBytCntr) {
             printError(THIS_NAME, "The number of TCP bytes forwarded by TOE on its IP interface (%d) does not match the number TCP bytes received by TOE from the application over its TRIF interface (%d). \n", ipTx_TcpBytCntr, apRx_TcpBytCntr);

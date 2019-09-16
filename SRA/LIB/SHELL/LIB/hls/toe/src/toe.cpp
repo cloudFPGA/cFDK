@@ -540,7 +540,6 @@ void pTbSimCount(
  * @param[out] poDBG_SssRelCnt,  Session release count to DEBUG.
  * @param[out] poDBG_SssRegCnt,  Session register count to DEBUG.
  * -- DEBUG / SimCycCounter
- * @param[in]  piSimCycCount,    Cycle simulation counter from testbench (TB).
  * @param[out] poSimCycCount,    Cycle simulation counter to   testbench.
  ******************************************************************************/
 void toe(
@@ -1124,17 +1123,17 @@ void toe(
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
             sAKdToTXe_Event,
+            sTXeToEVe_RxEventSig,
             sTXeToRSt_RxSarReq,
             sRStToTXe_RxSarRep,
             sTXeToTSt_TxSarQry,
             sTStToTXe_TxSarRep,
+            soMEM_TxP_RdCmd,
             siMEM_TxP_Data,
             sTXeToTIm_SetReTxTimer,
             sTXeToTIm_SetProbeTimer,
-            soMEM_TxP_RdCmd,
             sTXeToSLc_ReverseLkpReq,
             sSLcToTXe_ReverseLkpRep,
-            sTXeToEVe_RxEventSig,
             soL3MUX_Data);
 
 
