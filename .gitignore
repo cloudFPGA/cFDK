@@ -1,4 +1,5 @@
-# Compiled source 
+# Compiled source
+#-----------------
 *.com
 *.class
 *.o
@@ -8,31 +9,50 @@
 tags
 
 # Executables
+#-------------
 *.out
 *.hex
 
-#Vivado
+# Vivado
+#--------
 *.log
 *.jou
 *_prj/
 *.Xil/
+vivado*.str
 
-#vim 
+# Vivado_hls
+#------------
+*.pref
+*.dat
+*.dat.*
+*.gold
+*.strm
+
+# Vim
+#----- 
 *.swp
 
-# backup
+# Emacs
+#-------
+*~
+\#*\#
+
+# Backup
+#--------
 *.bak
 *.sav
 
-
-#Folders 
-
+# Folders
+#---------
 build/
 ip/
 xpr/
+workspace/
 
 
-#cFDK specific files 
+# cFDK specific files
+#---------------------
 .ip_guard
 *.date
 *.vivado*
