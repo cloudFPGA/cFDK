@@ -101,10 +101,7 @@ void ack_delay(
         siEVe_Event.read(ev);
 
         // Tell the [EventEngine] that we just received an event
-        #ifndef __SYNTHESIS__
-            if (soEVe_RxEventSig.full())
-                printFatal(myName, "Trying to write stream \'soEVe_RxEventSig\' while it is full.");
-        #endif
+        assessFull(myName, soEVe_RxEventSig, "soEVe_RxEventSig");
         soEVe_RxEventSig.write(1);
         if (DEBUG_LEVEL & TRACE_AKD) {
             printInfo(myName, "Received event of type \'%s\' for session #%d.\n", myEventTypeToString(ev.type), ev.sessionID.to_int());
@@ -122,10 +119,13 @@ void ack_delay(
             ACK_TABLE[ev.sessionID] = 0;
             if (DEBUG_LEVEL & TRACE_AKD) {
                 printInfo(myName, "Removing any pending delayed ACK for session #%d.\n", ev.sessionID.to_int());
+                printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", myEventTypeToString(ev.type));
             }
             // Forward event to [TxEngine]
+            assessFull(myName, soTXe_Event, "soTXe_Event");
             soTXe_Event.write(ev);
             // Tell the [EventEngine] that we just forwarded an event to TXe
+            assessFull(myName, soEVe_TxEventSig, "soEVe_TxEventSig");
             soEVe_TxEventSig.write(true);
         }
     }
@@ -137,6 +137,7 @@ void ack_delay(
                     printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akdPtr.to_int());
                 }
                 // Tell the [EventEngine] that we just forwarded an event to TXe
+                assessFull(myName, soEVe_TxEventSig, "soEVe_TxEventSig");
                 soEVe_TxEventSig.write(true);
             }
             // [FIXME - Shall we not move the decrement outside of the 'full()' condition ?]
