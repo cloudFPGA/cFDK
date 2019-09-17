@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2015, Xilinx, Inc.
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
 *  @file       : test_tx_engine.cpp
  * @brief      : Testbench for the TX Engine (TXe) of the TCP Offload Engine (TOE).
@@ -10,8 +36,13 @@
  *
  *****************************************************************************/
 
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+#include <unistd.h>
+
 #include "../../../../toe/test/test_toe_utils.hpp"
-//NOT needed #include "../../../../toe/test/test_toe.hpp"
 #include "../../../../toe/test/dummy_memory/dummy_memory.hpp"
 
 //-- Emulate behavior of TOE with the following files
@@ -33,11 +64,6 @@
 #include "../../../../toe/src/rx_app_stream_if/rx_app_stream_if.hpp"
 #include "../../../../toe/src/tx_app_interface/tx_app_interface.hpp"
 
-#include <iostream>
-#include <map>
-#include <set>
-#include <string>
-#include <unistd.h>
 
 using namespace std;
 
@@ -692,24 +718,6 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
     return true;
 
 } // End of: setGlopbalParameters
-
-/************ OBSOLETE ***
-string tdataToFile = decodeApUint64(tcpWord.tdata);
-string tkeepToFile = decodeApUint8 (tcpWord.tkeep);
-
-for (int i = 0; i<8; ++i) {
-    // Delete the data not to be kept by "keep" - for Golden comparison
-    if(tcpWord.tkeep[7-i] == 0) {
-        tdataToFile.replace(i*2, 2, "00");
-    }
-    apTx_TcpBytCntr++;
-}
-
-if (tcpWord.tlast == 1)
-    appTxFile << tdataToFile << endl;
-else
-    appTxFile << tdataToFile;
-***************/
 
 /*****************************************************************************
  * @brief Take the ACK number of a session and inject it into the sequence
@@ -2177,7 +2185,6 @@ void pTRIF(
  *   Example (see also file '../run_hls.tcl'):
  *    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
  *
- * @ingroup test_toe
  ******************************************************************************/
 int main(int argc, char *argv[]) {
 
