@@ -28,55 +28,6 @@
 // *
 // *****************************************************************************
 
-// ----------------------------------------------------------------------------
-// (c) Copyright 2014 Xilinx, Inc. All rights reserved.
-//
-// This file contains confidential and proprietary information
-// of Xilinx, Inc. and is protected under U.S. and
-// international copyright and other intellectual property
-// laws.
-//
-// DISCLAIMER
-// This disclaimer is not a license and does not grant any
-// rights to the materials distributed herewith. Except as
-// otherwise provided in a valid license issued to you by
-// Xilinx, and to the maximum extent permitted by applicable
-// law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
-// WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
-// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
-// BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
-// INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
-// (2) Xilinx shall not be liable (whether in contract or tort,
-// including negligence, or under any other theory of
-// liability) for any loss or damage of any kind or nature
-// related to, arising under or in connection with these
-// materials, including for any direct, or any indirect,
-// special, incidental, or consequential loss or damage
-// (including loss of data, profits, goodwill, or any type of
-// loss or damage suffered as a result of any action brought
-// by a third party) even if such damage or loss was
-// reasonably foreseeable or Xilinx had been advised of the
-// possibility of the same.
-//
-// CRITICAL APPLICATIONS
-// Xilinx products are not designed or intended to be fail-
-// safe, or for use in any application requiring fail-safe
-// performance, such as life-support or safety devices or
-// systems, Class III medical devices, nuclear facilities,
-// applications related to the deployment of airbags, or any
-// other applications that could lead to death, personal
-// injury, or severe property or environmental damage
-// (individually and collectively, "Critical
-// Applications"). Customer assumes the sole risk and
-// liability of any use of Xilinx products in Critical
-// Applications, subject only to applicable laws and
-// regulations governing limitations on product liability.
-//
-// THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
-// PART OF THIS FILE AT ALL TIMES.
-// ----------------------------------------------------------------------------
-
-
 `timescale 1ps / 1ps
 
 (* DowngradeIPIdentifiedWarnings = "yes" *)
@@ -94,37 +45,39 @@ module TenGigEth (
   input             piTOP_Reset,
 
   //-- Clocks and Resets outputs -----------------
-  output            poETH0_CoreClk,
-  output            poETH0_CoreResetDone,
+  output            poSHL_CoreClk,
+  output            poSHL_CoreResetDone,
 
   //-- MMIO : Ctrl inputs and Status outputs -----
-  input             piMMIO_Eth0_RxEqualizerMode,
-  input  [ 3:0]     piMMIO_Eth0_TxDriverSwing,
-  input  [ 4:0]     piMMIO_Eth0_TxPreCursor,
-  input  [ 4:0]     piMMIO_Eth0_TxPostCursor,
-  input             piMMIO_Eth0_PcsLoopbackEn,
-  output            poETH0_Mmio_CoreReady,
-  output            poETH0_Mmio_QpllLock,
+  input             piMMIO_RxEqualizerMode,
+  input  [ 3:0]     piMMIO_TxDriverSwing,
+  input  [ 4:0]     piMMIO_TxPreCursor,
+  input  [ 4:0]     piMMIO_TxPostCursor,
+  input             piMMIO_PcsLoopbackEn,
+  //OBSOLETE input             piMMIO_MacLoopbackEn,
+  //OBSOLETE input             piMMIO_MacAddrSwapEn,
+  output            poMMIO_CoreReady,
+  output            poMMIO_QpllLock,
   
   //-- ECON : Gigabit Transceivers ---------------
-  input             piECON_Eth0_Gt_n,
-  input             piECON_Eth0_Gt_p,
-  output            poETH0_Econ_Gt_n,
-  output            poETH0_Econ_Gt_p,
+  input             piECON_Gt_n,
+  input             piECON_Gt_p,
+  output            poECON_Gt_n,
+  output            poECON_Gt_p,
    
-  //-- LY3: Layer-3 Interface --------------------
-  //---- Input AXI-Write Stream Interface ------
-  input     [63:0]  piLY3_Eth0_Axis_tdata,
-  input     [7:0]   piLY3_Eth0_Axis_tkeep,
-  input             piLY3_Eth0_Axis_tlast,
-  input             piLY3_Eth0_Axis_tvalid,
-  output            poETH0_Ly3_Axis_tready,
-  //---- Output AXI-Write Stream Interface ------
-  input             piLY3_Eth0_Axis_tready,
-  output     [63:0] poETH0_Ly3_Axis_tdata,
-  output     [7:0]  poETH0_Ly3_Axis_tkeep,
-  output            poETH0_Ly3_Axis_tlast,
-  output            poETH0_Ly3_Axis_tvalid
+  //-- LY3 : Layer-3 Input Interface -------------
+  input     [63:0]  siLY3_Data_tdata,
+  input     [7:0]   siLY3_Data_tkeep,
+  input             siLY3_Data_tlast,
+  input             siLY3_Data_tvalid,
+  output            siLY3_Data_tready,
+  
+  //-- LY3 : Layer-3 Output Interface ------------
+  output     [63:0] soLY3_Data_tdata,
+  output     [7:0]  soLY3_Data_tkeep,
+  output            soLY3_Data_tlast,
+  output            soLY3_Data_tvalid,
+   input            soLY3_Data_tready
   
   ); // End of PortList
    
@@ -202,15 +155,15 @@ module TenGigEth (
   assign sSerializedStats = sTxStatBit || sRxStatBit;
   
   // Output Ports Assignments
-  assign poETH0_CoreClk        = sCORE_Clk;
-  assign poETH0_Mmio_CoreReady = sBlockLock && sNoRemoteAndLocalFaults;
+  assign poSHL_CoreClk    = sCORE_Clk;
+  assign poMMIO_CoreReady = sBlockLock && sNoRemoteAndLocalFaults;
  
  
   //============================================================================
   //  INST: ANTI-METASTABILITY BLOCKS
   //============================================================================
   TenGigEth_SyncBlock META0 (
-    .data_in     (piMMIO_Eth0_PcsLoopbackEn),
+    .data_in     (piMMIO_PcsLoopbackEn),
     .clk         (sCORE_Clk),
     .data_out    (sMETA0_PcsLoopbackEn)
   );
@@ -237,37 +190,37 @@ module TenGigEth (
     .resetdone_out                    (sCORE_ResetDone),
     .coreclk_out                      (sCORE_Clk),
     .rxrecclk_out                     (/* sCORE_GtRxClk */),
-    .qplllock_out                     (poETH0_Mmio_QpllLock),
+    .qplllock_out                     (poMMIO_QpllLock),
 
     //-- AXI4 Input Stream Interface -------------  
     .tx_axis_mac_aresetn              (sReset_n),
     .tx_axis_fifo_aresetn             (sReset_n),
-    .tx_axis_fifo_tdata               (piLY3_Eth0_Axis_tdata),
-    .tx_axis_fifo_tkeep               (piLY3_Eth0_Axis_tkeep),
-    .tx_axis_fifo_tvalid              (piLY3_Eth0_Axis_tvalid),
-    .tx_axis_fifo_tlast               (piLY3_Eth0_Axis_tlast),
-    .tx_axis_fifo_tready              (poETH0_Ly3_Axis_tready),
+    .tx_axis_fifo_tdata               (siLY3_Data_tdata),
+    .tx_axis_fifo_tkeep               (siLY3_Data_tkeep),
+    .tx_axis_fifo_tvalid              (siLY3_Data_tvalid),
+    .tx_axis_fifo_tlast               (siLY3_Data_tlast),
+    .tx_axis_fifo_tready              (siLY3_Data_tready),
 
     //-- AXI4 Output Stream Interface ------------
     .rx_axis_fifo_aresetn             (sReset_n),
     .rx_axis_mac_aresetn              (sReset_n),
-    .rx_axis_fifo_tdata               (poETH0_Ly3_Axis_tdata),
-    .rx_axis_fifo_tkeep               (poETH0_Ly3_Axis_tkeep),
-    .rx_axis_fifo_tvalid              (poETH0_Ly3_Axis_tvalid),
-    .rx_axis_fifo_tlast               (poETH0_Ly3_Axis_tlast),
-    .rx_axis_fifo_tready              (piLY3_Eth0_Axis_tready),
+    .rx_axis_fifo_tdata               (soLY3_Data_tdata),
+    .rx_axis_fifo_tkeep               (soLY3_Data_tkeep),
+    .rx_axis_fifo_tvalid              (soLY3_Data_tvalid),
+    .rx_axis_fifo_tlast               (soLY3_Data_tlast),
+    .rx_axis_fifo_tready              (soLY3_Data_tready),
     
     //-- ECON : Gigabit Transceivers -------------
-    .txp                              (poETH0_Econ_Gt_p),
-    .txn                              (poETH0_Econ_Gt_n),
-    .rxp                              (piECON_Eth0_Gt_p),
-    .rxn                              (piECON_Eth0_Gt_n),
+    .txp                              (poECON_Gt_p),
+    .txn                              (poECON_Gt_n),
+    .rxp                              (piECON_Gt_p),
+    .rxn                              (piECON_Gt_n),
     
     //---- GT Configuration and Status Signals
-    .transceiver_debug_gt_rxlpmen     (piMMIO_Eth0_RxEqualizerMode),  // 0:DFE or 1:LPM
-    .transceiver_debug_gt_txdiffctrl  (piMMIO_Eth0_TxDriverSwing),    // c.f. UG576
-    .transceiver_debug_gt_txprecursor (piMMIO_Eth0_TxPreCursor),      // c.f. UG576
-    .transceiver_debug_gt_txpostcursor(piMMIO_Eth0_TxPostCursor),     // c.f. UG576
+    .transceiver_debug_gt_rxlpmen     (piMMIO_RxEqualizerMode),  // 0:DFE or 1:LPM
+    .transceiver_debug_gt_txdiffctrl  (piMMIO_TxDriverSwing),    // c.f. UG576
+    .transceiver_debug_gt_txprecursor (piMMIO_TxPreCursor),      // c.f. UG576
+    .transceiver_debug_gt_txpostcursor(piMMIO_TxPostCursor),     // c.f. UG576
     
     //-- PCS/PMA Configuration and Status Signals 
     .pcs_pma_configuration_vector     (sPcsPmaConfigurationVector),
@@ -347,7 +300,7 @@ module TenGigEth (
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poETH0_CoreResetDone = sCORE_ResetDone;
+  assign poSHL_CoreResetDone = sCORE_ResetDone;
   //OBSOLETE-20180517 assign poETH0_Mmio_ResetDone = sCORE_ResetDone;
 
 endmodule

@@ -11,55 +11,6 @@
 //              When 'MacAddrSwapEn' is not enabled this module is transparent.
 //------------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// (c) Copyright 2014 Xilinx, Inc. All rights reserved.
-//
-// This file contains confidential and proprietary information
-// of Xilinx, Inc. and is protected under U.S. and
-// international copyright and other intellectual property
-// laws.
-//
-// DISCLAIMER
-// This disclaimer is not a license and does not grant any
-// rights to the materials distributed herewith. Except as
-// otherwise provided in a valid license issued to you by
-// Xilinx, and to the maximum extent permitted by applicable
-// law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
-// WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
-// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
-// BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
-// INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
-// (2) Xilinx shall not be liable (whether in contract or tort,
-// including negligence, or under any other theory of
-// liability) for any loss or damage of any kind or nature
-// related to, arising under or in connection with these
-// materials, including for any direct, or any indirect,
-// special, incidental, or consequential loss or damage
-// (including loss of data, profits, goodwill, or any type of
-// loss or damage suffered as a result of any action brought
-// by a third party) even if such damage or loss was
-// reasonably foreseeable or Xilinx had been advised of the
-// possibility of the same.
-//
-// CRITICAL APPLICATIONS
-// Xilinx products are not designed or intended to be fail-
-// safe, or for use in any application requiring fail-safe
-// performance, such as life-support or safety devices or
-// systems, Class III medical devices, nuclear facilities,
-// applications related to the deployment of airbags, or any
-// other applications that could lead to death, personal
-// injury, or severe property or environmental damage
-// (individually and collectively, "Critical
-// Applications"). Customer assumes the sole risk and
-// liability of any use of Xilinx products in Critical
-// Applications, subject only to applicable laws and
-// regulations governing limitations on product liability.
-//
-// THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
-// PART OF THIS FILE AT ALL TIMES.
-// ----------------------------------------------------------------------------
-
-
 `timescale 1ps / 1ps
 
 // *****************************************************************************
@@ -76,23 +27,22 @@ module TenGigEth_Loop_AddrSwap (
   input              piSwapEn,
   
   //-- MUX : Input AXI-Write Stream Interface ----
-  input       [63:0] piMUX_Swap_Axis_tdata,
-  input       [7:0]  piMUX_Swap_Axis_tkeep,
-  input              piMUX_Swap_Axis_tlast,
-  input              piMUX_Swap_Axis_tvalid,
-  output             poSWAP_Mux_Axis_tready,
+  input       [63:0] siMUX_Data_tdata,
+  input       [7:0]  siMUX_Data_tkeep,
+  input              siMUX_Data_tlast,
+  input              siMUX_Data_tvalid,
+  output             siMUX_Data_tready,
   
   //-- LY2 : Output AXI-Write Stream Interface ---
-  input              piLY2_Swap_Axis_tready,
-  output      [63:0] poSWAP_Ly2_Axis_tdata,
-  output      [7:0]  poSWAP_Ly2_Axis_tkeep,
-  output             poSWAP_Ly2_Axis_tlast,
-  output             poSWAP_Ly2_Axis_tvalid
+  output      [63:0] soLY2_Data_tdata,
+  output      [7:0]  soLY2_Data_tkeep,
+  output             soLY2_Data_tlast,
+  output             soLY2_Data_tvalid,
+  input              soLY2_Data_tready
  
  );
  
 // ***************************************************************************** 
-
 
   localparam  IDLE        = 0,
               PREAMBLE    = 1,
@@ -131,7 +81,7 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   //  COMB: CONTINUOUS INTERNAL ASSIGNMENTS
   //============================================================================
-  assign sAxisDataBeat = piMUX_Swap_Axis_tvalid & piLY2_Swap_Axis_tready;
+  assign sAxisDataBeat = siMUX_Data_tvalid & soLY2_Data_tready;
 
 
   //============================================================================
@@ -145,43 +95,23 @@ module TenGigEth_Loop_AddrSwap (
     end
     else begin
       case (sStateReg)
+      
         IDLE : begin
-          //OBSOLETE-20171127 if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & enable_custom_preamble & piLY2_Swap_Axis_tready) begin
-          //OBSOLETE-20171127   sStateReg <= PREAMBLE;
-          //OBSOLETE-20171127 end
-          //OBSOLETE-20171127 else if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & !enable_custom_preamble & piLY2_Swap_Axis_tready) begin
-          //OBSOLETE-20171127   sRxSofReg_n <= 1;
-          //OBSOLETE-20171127   sStateReg <= ADDR;
-          //OBSOLETE-20171127 end
-          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
+          if (siMUX_Data_tvalid & siMUX_Data_tkeep != 0 & soLY2_Data_tready) begin
             sRxSofReg_n <= 1;
             sStateReg   <= ADDR;
           end
         end
         
-        //OBSOLETE-20171127 PREAMBLE : begin
-        //OBSOLETE-20171127   if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
-        //OBSOLETE-20171127     sRxSofReg_n <= 1;
-        //OBSOLETE-20171127   end
-        //OBSOLETE-20171127   sStateReg <= ADDR;
-        //OBSOLETE-20171127 end
-        
         ADDR : begin
           sRxSofReg_n <= 0;
-          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tlast & piLY2_Swap_Axis_tready) begin
+          if (siMUX_Data_tvalid & siMUX_Data_tlast & soLY2_Data_tready) begin
             sStateReg <= TLAST_SEEN;
           end
         end
         
         TLAST_SEEN : begin
-          //OBSOLETE-20171127 if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & enable_custom_preamble & piLY2_Swap_Axis_tready) begin
-          //OBSOLETE-20171127   sStateReg <= PREAMBLE;
-          //OBSOLETE-20171127 end
-          //OBSOLETE-20171127 else if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & !enable_custom_preamble & piLY2_Swap_Axis_tready) begin
-          //OBSOLETE-20171127   sRxSofReg_n <= 1;
-          //OBSOLETE-20171127   sStateReg <= ADDR;
-          //OBSOLETE-20171127 end
-          if (piMUX_Swap_Axis_tvalid & piMUX_Swap_Axis_tkeep != 0 & piLY2_Swap_Axis_tready) begin
+          if (siMUX_Data_tvalid & siMUX_Data_tkeep != 0 & soLY2_Data_tready) begin
             sRxSofReg_n <= 1;
             sStateReg   <= ADDR;
           end
@@ -201,20 +131,20 @@ module TenGigEth_Loop_AddrSwap (
        sRx_AxisDataReg    <= 64'b0;
        sRx_AxisDataRegReg <= 32'b0;
        sRx_AxisKeepReg    <= 8'b0;
-       sRxSofRegReg_n    <= 1'b0;
+       sRxSofRegReg_n     <= 1'b0;
        sRx_AxisLastReg    <= 1'b0;
-       
+
        data_stored_n             <= 1'b0;
     end
     else begin
        sRx_AxisLastReg  <= 1'b0;
        if (sAxisDataBeat) begin
-          data_stored_n     <= 1'b1;
-          sRx_AxisDataReg    <= piMUX_Swap_Axis_tdata;
+          data_stored_n      <= 1'b1;
+          sRx_AxisDataReg    <= siMUX_Data_tdata;
           sRx_AxisDataRegReg <= sRx_AxisDataReg[47:16];
-          sRx_AxisKeepReg    <= piMUX_Swap_Axis_tkeep;
-          sRxSofRegReg_n    <= sRxSofReg_n;
-          sRx_AxisLastReg    <= piMUX_Swap_Axis_tlast;
+          sRx_AxisKeepReg    <= siMUX_Data_tkeep;
+          sRxSofRegReg_n     <= sRxSofReg_n;
+          sRx_AxisLastReg    <= siMUX_Data_tlast;
  
        end
        else if (!sAxisDataBeat && sRx_AxisLastReg) begin
@@ -229,11 +159,11 @@ module TenGigEth_Loop_AddrSwap (
   //  COMB: SWAP MAC ADDRESSES (Only when SofReg or SofRegReg)
   //============================================================================
   always @(sRxSofReg_n or sRxSofRegReg_n or
-           piMUX_Swap_Axis_tdata or sRx_AxisDataReg or sRx_AxisDataRegReg)
+           siMUX_Data_tdata or sRx_AxisDataReg or sRx_AxisDataRegReg)
   begin
     if (sRxSofReg_n)
       sTx_AxisData <= {sRx_AxisDataReg[15:0],
-                     piMUX_Swap_Axis_tdata[31:0],
+                     siMUX_Data_tdata[31:0],
                      sRx_AxisDataReg[63:48]};
     else if (sRxSofRegReg_n)
       sTx_AxisData <= {sRx_AxisDataReg[63:32],
@@ -255,7 +185,7 @@ module TenGigEth_Loop_AddrSwap (
       sTx_AxisLastReg  <= 1'b0;
     end
     else begin
-      if (piLY2_Swap_Axis_tready) begin
+      if (soLY2_Data_tready) begin
         sTx_AxisDataReg  <= sTx_AxisData;
         sTx_AxisKeepReg  <= sRx_AxisKeepReg;
         sAxisDataBeatReg <= sAxisDataBeat;
@@ -269,11 +199,11 @@ module TenGigEth_Loop_AddrSwap (
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poSWAP_Ly2_Axis_tdata  = (piSwapEn) ? sTx_AxisDataReg  : piMUX_Swap_Axis_tdata;
-  assign poSWAP_Ly2_Axis_tkeep  = (piSwapEn) ? sTx_AxisKeepReg  : piMUX_Swap_Axis_tkeep;
-  assign poSWAP_Ly2_Axis_tlast  = (piSwapEn) ? (sTx_AxisLastReg & piLY2_Swap_Axis_tready & sTx_AxisValidReg) : piMUX_Swap_Axis_tlast;
-  assign poSWAP_Ly2_Axis_tvalid = (piSwapEn) ? sTx_AxisValidReg : piMUX_Swap_Axis_tvalid;
+  assign soLY2_Data_tdata  = (piSwapEn) ?  sTx_AxisDataReg  : siMUX_Data_tdata;
+  assign soLY2_Data_tkeep  = (piSwapEn) ?  sTx_AxisKeepReg  : siMUX_Data_tkeep;
+  assign soLY2_Data_tlast  = (piSwapEn) ? (sTx_AxisLastReg & soLY2_Data_tready & sTx_AxisValidReg) : siMUX_Data_tlast;
+  assign soLY2_Data_tvalid = (piSwapEn) ?  sTx_AxisValidReg : siMUX_Data_tvalid;
   
-  assign poSWAP_Mux_Axis_tready = piLY2_Swap_Axis_tready;
+  assign siMUX_Data_tready = soLY2_Data_tready;
 
 endmodule

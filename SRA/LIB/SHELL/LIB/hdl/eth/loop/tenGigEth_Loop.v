@@ -17,36 +17,30 @@
 // * Depends : None
 // *
 // * Description : The SHELL of the cloudFPGA can be configured to integrate a 
-// *    loopback turn between the network layers L2 and L3 of the ETH0 interface.
+// *    loopback turn between the network layers L2 and L3 of the ETH interface.
 // *    When this loopback is enabled, the data output by the AXI4-S interface
-// *    of ETH0 are passed back to the AXI4-S input of the same ETH0. Otherwise,
-// *    this module is neutral and data pass through it untouched.  
-// * 
-// * Parameters:
-// *    gSecurityPriviledges: Sets the level of the security privileges.
-// *      [ "user" (Default) | "super" ]
-// *    gBitstreamUsage: defines the usage of the bitstream to generate.
-// *      [ "user" (Default) | "flash" ]
+// *    of ETH are passed back to the AXI4-S input of the same ETH. Otherwise,
+// *    this module is neutral and data pass through it untouched.
 // *
 // *----------------------------------------------------------------------------
-// * 
-// *                     | Ly3
-// *     +---------------|-------+
-// *     | ELP           |       |
-// *     |               |       |
-// *     |  +-------+    |       |  
-// *     |  |       |    |       |
-// *     |  |    +--V----V--+    |
-// *     |  |    |   MUX    |    |
-// *     |  |    +----+-----+    |
-// *     |  |         |          |
-// *     |  |    +----V-----+    |
-// *     |  |    |   SWAP   |    |
-// *     |  |    +----+-----+    |
-// *     |  |         |          |
-// *     +--|---------|----------+  
-// *        |         | 
-// *        |   Ly2   V
+// *                     
+// *             |    LY3   | 
+// *     +-------|----------|-------+
+// *     | ELP   |          |       |
+// *     |       |          |       |
+// *     |       +-----+    |       |  
+// *     |       |     |    |       |
+// *     |       |  +--V----V--+    |
+// *     |       |  |   MUX    |    |
+// *     |       |  +----+-----+    |
+// *     |       |       |          |
+// *     |       |  +----V-----+    |
+// *     |       |  |   SWAP   |    |
+// *     |       |  +----+-----+    |
+// *     |       |       |          |
+// *     +-------|-------|----------+  
+// *             |       | 
+// *             | LY2   V
 // *
 // *
 // *****************************************************************************
@@ -60,62 +54,58 @@
 module TenGigEth_Loop (
 
   //-- Clocks and Resets inputs ------------------
-  input         piETH0_CoreClk,
-  input         piETH0_CoreResetDone,  
+  input         piETH_CoreClk,
+  input         piETH_CoreResetDone,  
 
   // -- MMIO : Control Inputs and Status Ouputs --
   input         piMMIO_LoopbackEn,
   input         piMMIO_AddrSwapEn,
    
   //-- LY2 : Input AXI-Write Stream Interface ----
-  input  [63:0] piLY2_Elp_Axis_tdata, 
-  input  [ 7:0] piLY2_Elp_Axis_tkeep,
-  input         piLY2_Elp_Axis_tlast,
-  input         piLY2_Elp_Axis_tvalid,
-  output        poELP_Ly2_Axis_tready,
+  input  [63:0] siLY2_Data_tdata, 
+  input  [ 7:0] siLY2_Data_tkeep,
+  input         siLY2_Data_tlast,
+  input         siLY2_Data_tvalid,
+  output        siLY2_Data_tready,
         
    // LY2 : Output AXI-Write Stream Interface ------
-  input         piLY2_Elp_Axis_tready,
-  output [63:0] poELP_Ly2_Axis_tdata,
-  output [ 7:0] poELP_Ly2_Axis_tkeep,
-  output        poELP_Ly2_Axis_tlast,
-  output        poELP_Ly2_Axis_tvalid,
+  output [63:0] soLY2_Data_tdata,
+  output [ 7:0] soLY2_Data_tkeep,
+  output        soLY2_Data_tlast,
+  output        soLY2_Data_tvalid,
+  input         soLY2_Data_tready,
        
   //-- LY3 : Input AXI-Write Stream Interface ----
-  input  [63:0] piLY3_Elp_Axis_tdata,
-  input  [ 7:0] piLY3_Elp_Axis_tkeep,
-  input         piLY3_Elp_Axis_tlast,
-  input         piLY3_Elp_Axis_tvalid,
-  output        poELP_Ly3_Axis_tready,
+  input  [63:0] siLY3_Data_tdata,
+  input  [ 7:0] siLY3_Data_tkeep,
+  input         siLY3_Data_tlast,
+  input         siLY3_Data_tvalid,
+  output        siLY3_Data_tready,
         
   // LY3 : Output AXI-Write Stream Interface ------
-  input         piLY3_Elp_Axis_tready,
-  output [63:0] poELP_Ly3_Axis_tdata,
-  output [ 7:0] poELP_Ly3_Axis_tkeep,
-  output        poELP_Ly3_Axis_tlast,
-  output        poELP_Ly3_Axis_tvalid
+  output [63:0] soLY3_Data_tdata,
+  output [ 7:0] soLY3_Data_tkeep,
+  output        soLY3_Data_tlast,
+  output        soLY3_Data_tvalid,
+  input         soLY3_Data_tready
 
-);  // End of PortList
+); // End of PortList
 
-  // Parameters
-  parameter gSecurityPriviledges = "user";  // "user" or "super"
-  parameter gBitstreamUsage      = "user";  // "user" or "flash"
-  
+ 
 // *****************************************************************************
-
 
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
 
   //-- AXI4 Stream MUX -> SWP --------------------
-  wire   [63:0] sMUX_Swap_Axis_tdata;
-  wire   [ 7:0] sMUX_Swap_Axis_tkeep;
-  wire          sMUX_Swap_Axis_tlast;
-  wire          sMUX_Swap_Axis_tvalid;
+  wire   [63:0] ssMUX_SWAP_Data_tdata;
+  wire   [ 7:0] ssMUX_SWAP_Data_tkeep;
+  wire          ssMUX_SWAP_Data_tlast;
+  wire          ssMUX_SWAP_Data_tvalid;
+  wire          ssMUX_SWAP_Data_tready;
   
-  wire          sMUX_Swap_Axis_tready;
-  wire          sSWAP_Mux_Axis_tready;
+  wire          sMUX_LY2_Data_tready;
  
   // Metastable signals
   wire          sMETA0_LoopbackEn;
@@ -126,7 +116,7 @@ module TenGigEth_Loop (
   //  INST META0: ANTI-METASTABILITY BLOCKS
   //============================================================================
   TenGigEth_SyncBlock META0 (
-    .clk        (piETH0_CoreClk),
+    .clk        (piETH_CoreClk),
     .data_in    (piMMIO_LoopbackEn), 
     .data_out   (sMETA0_LoopbackEn)
   );
@@ -136,7 +126,7 @@ module TenGigEth_Loop (
   //  INST META1: ANTI-METASTABILITY BLOCKS
   //============================================================================
   TenGigEth_SyncBlock META1 (
-    .clk        (piETH0_CoreClk),
+    .clk        (piETH_CoreClk),
     .data_in    (piMMIO_AddrSwapEn), 
     .data_out   (sMETA1_AddrSwapEn)
   );
@@ -151,27 +141,26 @@ module TenGigEth_Loop (
     .mux_select       (sMETA0_LoopbackEn),
 
     //-- LY3 : Input AXI-Write Stream Interface ----
-    .tdata0           (piLY3_Elp_Axis_tdata),
-    .tkeep0           (piLY3_Elp_Axis_tkeep),
-    .tlast0           (piLY3_Elp_Axis_tlast),
-    .tvalid0          (piLY3_Elp_Axis_tvalid),
-    .tready0          (poELP_Ly3_Axis_tready),
+    .tdata0           (siLY3_Data_tdata),
+    .tkeep0           (siLY3_Data_tkeep),
+    .tlast0           (siLY3_Data_tlast),
+    .tvalid0          (siLY3_Data_tvalid),
+    .tready0          (siLY3_Data_tready),
     
     //-- LY2 : Input AXI-Write Stream Interface ----
-    .tdata1           (piLY2_Elp_Axis_tdata),
-    .tkeep1           (piLY2_Elp_Axis_tkeep),
-    .tlast1           (piLY2_Elp_Axis_tlast),
-    .tvalid1          (piLY2_Elp_Axis_tvalid),
-    .tready1          (sMUX_Swap_Axis_tready),
+    .tdata1           (siLY2_Data_tdata),
+    .tkeep1           (siLY2_Data_tkeep),
+    .tlast1           (siLY2_Data_tlast),
+    .tvalid1          (siLY2_Data_tvalid),
+    .tready1          (sMUX_LY2_Data_tready),
     
     //-- SWAP : Output AXI-Write Stream Interface --
-    .tdata            (sMUX_Swap_Axis_tdata),
-    .tkeep            (sMUX_Swap_Axis_tkeep),
-    .tlast            (sMUX_Swap_Axis_tlast),
-    .tvalid           (sMUX_Swap_Axis_tvalid),
-    .tready           (sSWAP_Mux_Axis_tready)
+    .tdata            (ssMUX_SWAP_Data_tdata),
+    .tkeep            (ssMUX_SWAP_Data_tkeep),
+    .tlast            (ssMUX_SWAP_Data_tlast),
+    .tvalid           (ssMUX_SWAP_Data_tvalid),
+    .tready           (ssMUX_SWAP_Data_tready)
   );
-
 
   //============================================================================
   //  INST SWAP: ETHERNET MAC ADDRESS SWAPPER
@@ -179,36 +168,36 @@ module TenGigEth_Loop (
   TenGigEth_Loop_AddrSwap SWAP (
   
     //-- Clocks and Resets inputs ------------------
-    .piEthCoreClk           (piETH0_CoreClk),
-    .piEthCoreResetDone     (piETH0_CoreResetDone),
+    .piEthCoreClk           (piETH_CoreClk),
+    .piEthCoreResetDone     (piETH_CoreResetDone),
     
     // -- SWAP Enable ------------------------------
     .piSwapEn               (sMETA1_AddrSwapEn),
     
     //-- MUX : Input AXI-Write Stream Interface ----
-    .piMUX_Swap_Axis_tdata  (sMUX_Swap_Axis_tdata),
-    .piMUX_Swap_Axis_tkeep  (sMUX_Swap_Axis_tkeep),
-    .piMUX_Swap_Axis_tlast  (sMUX_Swap_Axis_tlast),
-    .piMUX_Swap_Axis_tvalid (sMUX_Swap_Axis_tvalid),
-    .poSWAP_Mux_Axis_tready (sSWAP_Mux_Axis_tready),
+    .siMUX_Data_tdata  (ssMUX_SWAP_Data_tdata),
+    .siMUX_Data_tkeep  (ssMUX_SWAP_Data_tkeep),
+    .siMUX_Data_tlast  (ssMUX_SWAP_Data_tlast),
+    .siMUX_Data_tvalid (ssMUX_SWAP_Data_tvalid),
+    .siMUX_Data_tready (ssMUX_SWAP_Data_tready),
      
     //-- LY2 : Output AXI-Write Stream Interface ---
-    .piLY2_Swap_Axis_tready (piLY2_Elp_Axis_tready),  
-    .poSWAP_Ly2_Axis_tdata  (poELP_Ly2_Axis_tdata),
-    .poSWAP_Ly2_Axis_tkeep  (poELP_Ly2_Axis_tkeep),
-    .poSWAP_Ly2_Axis_tlast  (poELP_Ly2_Axis_tlast),
-    .poSWAP_Ly2_Axis_tvalid (poELP_Ly2_Axis_tvalid)
+    .soLY2_Data_tdata  (soLY2_Data_tdata),
+    .soLY2_Data_tkeep  (soLY2_Data_tkeep),
+    .soLY2_Data_tlast  (soLY2_Data_tlast),
+    .soLY2_Data_tvalid (soLY2_Data_tvalid),
+    .soLY2_Data_tready (soLY2_Data_tready)
   );
   
   
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poELP_Ly3_Axis_tdata  = piLY2_Elp_Axis_tdata;
-  assign poELP_Ly3_Axis_tkeep  = piLY2_Elp_Axis_tkeep;
-  assign poELP_Ly3_Axis_tlast  = piLY2_Elp_Axis_tlast;
-  assign poELP_Ly3_Axis_tvalid = piLY2_Elp_Axis_tvalid;
-  
-  assign poELP_Ly2_Axis_tready = (sMETA0_LoopbackEn) ? sMUX_Swap_Axis_tready : piLY3_Elp_Axis_tready;  
+  assign soLY3_Data_tdata  = siLY2_Data_tdata;
+  assign soLY3_Data_tkeep  = siLY2_Data_tkeep;
+  assign soLY3_Data_tlast  = siLY2_Data_tlast;
+  assign soLY3_Data_tvalid = siLY2_Data_tvalid;
+   
+  assign siLY2_Data_tready = (sMETA0_LoopbackEn) ? sMUX_LY2_Data_tready : soLY3_Data_tready;  
  
 endmodule

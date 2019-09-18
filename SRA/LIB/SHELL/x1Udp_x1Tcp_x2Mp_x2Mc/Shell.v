@@ -60,8 +60,8 @@
 
 module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
 
-  parameter gSecurityPriviledges = "user",  // "user" or "super"
-  parameter gBitstreamUsage      = "user",  // "user" or "flash"
+  parameter gSecurityPriviledges = "super", // "user" or "super"
+  parameter gBitstreamUsage      = "flash", // "user" or "flash"
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
 
@@ -768,39 +768,39 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
       .piTOP_Reset                  (piTOP_156_25Rst),
 
       //-- Clocks and Resets outputs ---------------
-      .poETH0_CoreClk               (sETH0_ShlClk),
-      .poETH0_CoreResetDone         (sETH0_CoreResetDone),
+      .poSHL_CoreClk                (sETH0_ShlClk),
+      .poSHL_CoreResetDone          (sETH0_CoreResetDone),
 
       //-- MMIO : Control inputs and Status outputs
-      .piMMIO_Eth0_RxEqualizerMode  (sMMIO_ETH0_RxEqualizerMode),
-      .piMMIO_Eth0_TxDriverSwing    (sMMIO_ETH0_TxDriverSwing),
-      .piMMIO_Eth0_TxPreCursor      (sMMIO_ETH0_TxPreCursor),
-      .piMMIO_Eth0_TxPostCursor     (sMMIO_ETH0_TxPostCursor),
-      .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_ETH0_PcsLoopbackEn),
-      .piMMIO_Eth0_MacLoopbackEn    (sMMIO_ETH0_MacLoopbackEn),
-      .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
-      .poETH0_Mmio_CoreReady        (sETH0_MMIO_CoreReady),
-      .poETH0_Mmio_QpllLock         (sETH0_MMIO_QpllLock),
+      .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
+      .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
+      .piMMIO_TxPreCursor           (sMMIO_ETH0_TxPreCursor),
+      .piMMIO_TxPostCursor          (sMMIO_ETH0_TxPostCursor),
+      .piMMIO_PcsLoopbackEn         (sMMIO_ETH0_PcsLoopbackEn),
+      //OBSOLETE .piMMIO_MacLoopbackEn         (sMMIO_ETH0_MacLoopbackEn),
+      //OBSOLETE .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
+      .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
+      .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
 
       //-- ECON : Gigabit Transceivers -------------
-      .piECON_Eth0_Gt_n             (piECON_Eth_10Ge0_n),
-      .piECON_Eth0_Gt_p             (piECON_Eth_10Ge0_p),
-      .poETH0_Econ_Gt_n             (poECON_Eth_10Ge0_n),
-      .poETH0_Econ_Gt_p             (poECON_Eth_10Ge0_p),
+      .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
+      .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
+      .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
+      .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
 
-      //-- NTS0: Network-Transport-Session ---------
+      //-- NTS0 : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
-      .piLY3_Eth0_Axis_tdata        (ssNTS0_ETH0_Data_tdata),
-      .piLY3_Eth0_Axis_tkeep        (ssNTS0_ETH0_Data_tkeep),
-      .piLY3_Eth0_Axis_tvalid       (ssNTS0_ETH0_Data_tvalid),
-      .piLY3_Eth0_Axis_tlast        (ssNTS0_ETH0_Data_tlast),
-      .poETH0_Ly3_Axis_tready       (ssNTS0_ETH0_Data_tready),
+      .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
+      .siLY3_Data_tkeep             (ssNTS0_ETH0_Data_tkeep),
+      .siLY3_Data_tvalid            (ssNTS0_ETH0_Data_tvalid),
+      .siLY3_Data_tlast             (ssNTS0_ETH0_Data_tlast),
+      .siLY3_Data_tready            (ssNTS0_ETH0_Data_tready),
       //---- Output AXI-Write Stream Interface -----
-      .poETH0_Ly3_Axis_tdata        (ssETH0_NTS0_Data_tdata),
-      .poETH0_Ly3_Axis_tkeep        (ssETH0_NTS0_Data_tkeep),
-      .poETH0_Ly3_Axis_tvalid       (ssETH0_NTS0_Data_tvalid),
-      .poETH0_Ly3_Axis_tlast        (ssETH0_NTS0_Data_tlast),
-      .piLY3_Eth0_Axis_tready       (ssETH0_NTS0_Data_tready)
+      .soLY3_Data_tdata             (ssETH0_NTS0_Data_tdata),
+      .soLY3_Data_tkeep             (ssETH0_NTS0_Data_tkeep),
+      .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
+      .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
+      .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
 
     );  // End of UserCfg.ETH0
 
@@ -820,36 +820,39 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
       .piTOP_Reset                  (piTOP_156_25Rst),
 
       //-- Clocks and Resets outputs ---------------
-      .poETH0_CoreClk               (sETH0_ShlClk),
-      .poETH0_CoreResetDone         (sETH0_CoreResetDone),
+      .poSHL_CoreClk                (sETH0_ShlClk),
+      .poSHL_CoreResetDone          (sETH0_CoreResetDone),
 
-      //-- MMIO : Control inputs and Status outputs 
-      .piMMIO_Eth0_RxEqualizerMode  (sMMIO_ETH0_RxEqualizerMode),
-      .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_ETH0_PcsLoopbackEn),
-      .piMMIO_Eth0_MacLoopbackEn    (sMMIO_ETH0_MacLoopbackEn),
-      .piMMIO_Eth0_MacAddrSwapEn    (sMMIO_ETH0_MacAddrSwapEn),
-      .poETH0_Mmio_CoreReady        (sETH0_MMIO_CoreReady),
-      .poETH0_Mmio_QpllLock         (sETH0_MMIO_QpllLock),
+      //-- MMIO : Control inputs and Status outputs
+      .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
+      .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
+      .piMMIO_TxPreCursor           (sMMIO_ETH0_TxPreCursor),
+      .piMMIO_TxPostCursor          (sMMIO_ETH0_TxPostCursor),
+      .piMMIO_PcsLoopbackEn         (sMMIO_ETH0_PcsLoopbackEn),
+      .piMMIO_MacLoopbackEn         (sMMIO_ETH0_MacLoopbackEn),
+      .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
+      .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
+      .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
 
       //-- ECON : Gigabit Transceivers -------------
-      .piECON_Eth0_Gt_n             (piECON_Eth_10Ge0_n),
-      .piECON_Eth0_Gt_p             (piECON_Eth_10Ge0_p),
-      .poETH0_Econ_Gt_n             (poECON_Eth_10Ge0_n),
-      .poETH0_Econ_Gt_p             (poECON_Eth_10Ge0_p),
+      .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
+      .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
+      .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
+      .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
 
-      //-- NTS0 : Network-Transport-Session ---------
+      //-- NTS : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
-      .piLY3_Eth0_Axis_tdata        (ssNTS0_ETH0_Data_tdata),
-      .piLY3_Eth0_Axis_tkeep        (ssNTS0_ETH0_Data_tkeep),
-      .piLY3_Eth0_Axis_tvalid       (ssNTS0_ETH0_Data_tvalid),
-      .piLY3_Eth0_Axis_tlast        (ssNTS0_ETH0_Data_tlast),
-      .poETH0_Ly3_Axis_tready       (ssNTS0_ETH0_Data_tready),
+      .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
+      .siLY3_Data_tkeep             (ssNTS0_ETH0_Data_tkeep),
+      .siLY3_Data_tvalid            (ssNTS0_ETH0_Data_tvalid),
+      .siLY3_Data_tlast             (ssNTS0_ETH0_Data_tlast),
+      .siLY3_Data_tready            (ssNTS0_ETH0_Data_tready),
       //---- Output AXI-Write Stream Interface -----
-      .poETH0_Ly3_Axis_tdata        (ssETH0_NTS0_Data_tdata),
-      .poETH0_Ly3_Axis_tkeep        (ssETH0_NTS0_Data_tkeep),
-      .poETH0_Ly3_Axis_tvalid       (ssETH0_NTS0_Data_tvalid),
-      .poETH0_Ly3_Axis_tlast        (ssETH0_NTS0_Data_tlast),
-      .piLY3_Eth0_Axis_tready       (ssETH0_NTS0_Data_tready)
+      .soLY3_Data_tdata             (ssETH0_NTS0_Data_tdata),
+      .soLY3_Data_tkeep             (ssETH0_NTS0_Data_tkeep),
+      .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
+      .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
+      .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
 
     );  // End of SuperCfg.ETH0 
 
