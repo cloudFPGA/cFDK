@@ -425,11 +425,11 @@ void tx_app_interface(
     tx_app_stream(
             siTRIF_Data,
             siTRIF_Meta,
+            soTRIF_DSts,
             soSTt_Tas_SessStateReq,
             siSTt_Tas_SessStateRep,
             sTasToApt_AcessReq,
             sTatToTas_AcessRep,
-            soTRIF_DSts,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             sTasToEmx_Event);

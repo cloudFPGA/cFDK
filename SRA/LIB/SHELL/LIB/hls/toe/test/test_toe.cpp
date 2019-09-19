@@ -15,6 +15,7 @@
 #include "../../toe/test/test_toe.hpp"
 #include "../../toe/test/dummy_memory/dummy_memory.hpp"
 #include "../../toe/src/session_lookup_controller/session_lookup_controller.hpp"
+#include "../../toe/src/tx_app_stream/tx_app_stream.hpp"
 
 #include <iostream>
 #include <map>
@@ -2464,9 +2465,23 @@ int main(int argc, char *argv[]) {
 
         // TODO
         if (!ssTOE_TRIF_DSts.empty()) {
-            ap_uint<17> tempResp = ssTOE_TRIF_DSts.read();
-            if (tempResp == -1 || tempResp == -2)
-                cerr << endl << "Warning: Attempt to write data into the Tx App I/F of the TOE was unsuccessful. Returned error code: " << tempResp << endl;
+            AppWrSts wrStatus = ssTOE_TRIF_DSts.read();
+            if (wrStatus.status != STS_OK) {
+                switch (wrStatus.segLen) {
+                case ERROR_NOCONNCECTION:
+                    printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
+                    nrErr++;
+                    break;
+                case ERROR_NOSPACE:
+                    printError(THIS_NAME, "Attempt to write data for a session which Tx buffer id full.\n");
+                    nrErr++;
+                    break;
+                default:
+                    printError(THIS_NAME, "Received unknown TCP write status from [TOE].\n");
+                    nrErr++;
+                    break;
+                }
+            }
         }
 
         //------------------------------------------------------

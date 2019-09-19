@@ -17,8 +17,11 @@
 
 using namespace hls;
 
-static const ap_uint<17> ERROR_NOSPACE              = -1;
-static const ap_uint<17> ERROR_NOCONNCECTION        = -2;
+//OBSOLETE_20190919 static const ap_uint<17> ERROR_NOSPACE              = -1;
+//OBSOLETE_20190919 static const ap_uint<17> ERROR_NOCONNCECTION        = -2;
+
+#define ERROR_NOSPACE        1
+#define ERROR_NOCONNCECTION  2
 
 /** @ingroup tx_app_stream_if
  *
@@ -72,11 +75,11 @@ class SegMemMeta {
 void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
+        stream<AppWrSts>           &soTRIF_DSts,
         stream<TcpSessId>          &soSTt_SessStateReq,
         stream<SessionState>       &siSTt_SessStateRep,
         stream<TxAppTableRequest>  &soTat_AcessReq,
         stream<TxAppTableReply>    &siTat_AcessRep,
-        stream<ap_int<17> >        &appTxDataRsp,
         stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
         stream<event>              &txAppStream2eventEng_setEvent

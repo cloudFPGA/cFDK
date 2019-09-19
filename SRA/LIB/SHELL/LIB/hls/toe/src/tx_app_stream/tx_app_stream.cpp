@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2015, Xilinx, Inc.
+Copyright (c) 2016-2019, IBM Research.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : tx_app_stream.cpp
  * @brief      : Tx Application Stream (Tas) management
@@ -6,8 +32,6 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *****************************************************************************/
 
 #include "tx_app_stream.hpp"
@@ -78,12 +102,12 @@ void pSegmentLengthGenerator(
  * @brief Meta Data Loader (Mdl)
  *
  * @param[in]  siTRIF_Meta,        The TCP session Id this segment belongs to.
+ * @param[out] soTRIF_DSts,        The TCP write transfer status to TRIF.
  * @param[out] soSTt_SessStateReq, Session state request to StateTable (STt).
  * @param[in]  siSTt_SessStateRep, Session state reply from StateTable (STt).
  * @param[out] soTat_AccessReq,    Access request to TxAppTable (Tat).
  * @parma[in]  siTat_AccessRep,    Access reply from [Tat]
  * @param[in]  siSlg_SegLen,       The TCP segment length from SegmentLengthGenerator (slg).
- * @param[out] soTRIF_DSts,        TCP data status to TRIF.
  * @param[out] soSmw_SegMeta,      Segment memory metadata to SegmentMemoryWriter (smw).
  * @param[out] soEVe_Event,        Event to EventEngine (EVe).
  *
@@ -97,12 +121,12 @@ void pSegmentLengthGenerator(
  ******************************************************************************/
 void pMetaDataLoader(
         stream<AppMeta>             &siTRIF_Meta,
+        stream<AppWrSts>            &soTRIF_DSts,
         stream<TcpSessId>           &soSTt_SessStateReq,
         stream<SessionState>        &siSTt_SessStateRep,
         stream<TxAppTableRequest>   &soTat_AccessReq,
         stream<TxAppTableReply>     &siTat_AccessRep,
         stream<TcpSegLen>           &siSlg_SegLen,
-        stream<ap_int<17> >         &soTRIF_DSts,
         stream<SegMemMeta>          &sMdlToSmw_SegMeta,
         stream<event>               &soEVe_Event)
 {
@@ -111,35 +135,44 @@ void pMetaDataLoader(
 
     const char *myName  = concat3(THIS_NAME, "/", "mdl");
 
-    static enum MdlFsmStates { READ_REQUEST,  READ_META } mdlFsmState = READ_REQUEST;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { READ_REQUEST=0,  READ_META } fsmState = READ_REQUEST;
+    #pragma HLS reset                         variable = fsmState
 
-    static TcpSessId       tcpSessId;
-    static TxAppTableReply txAppTableReply;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static TcpSessId tcpSessId;
 
-    SessionState           sessState;
-    TcpSegLen              segLen = 0;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    TxAppTableReply  txAppTableReply;
+    SessionState     sessState;
+    TcpSegLen        segLen;
 
-    switch(mdlFsmState) {
+    switch(fsmState) {
+
     case READ_REQUEST:
         if (!siTRIF_Meta.empty()) {
             // Read the session ID
             siTRIF_Meta.read(tcpSessId);
             // Request state of the session
+            assessFull(myName, soSTt_SessStateReq, "soSTt_SessStateReq");  // [FIXME-]
             soSTt_SessStateReq.write(tcpSessId);
             // Request the value of ACK and MemPtr from TxAppTable
+            assessFull(myName, soTat_AccessReq, "soTat_AccessReq");  // [FIXME-]
             soTat_AccessReq.write(TxAppTableRequest(tcpSessId));
             if (DEBUG_LEVEL & TRACE_MDL) {
                 printInfo(myName, "Received new Tx request for session %d.\n", tcpSessId.to_int());
             }
-            mdlFsmState = READ_META;
+            fsmState = READ_META;
         }
         break;
+
     case READ_META:
         if (!siTat_AccessRep.empty() && !siSTt_SessStateRep.empty() && !siSlg_SegLen.empty()) {
             siSTt_SessStateRep.read(sessState);
             siTat_AccessRep.read(txAppTableReply);
             siSlg_SegLen.read(segLen);
             TcpSegLen maxWriteLength = (txAppTableReply.ackd - txAppTableReply.mempt) - 1;
+
             /*** [TODO - TCP_NODELAY] ******************
             #if (TCP_NODELAY)
                 //tasi_writeSar.mempt and txSar.not_ackd are supposed to be equal (with a few cycles delay)
@@ -150,34 +183,31 @@ void pMetaDataLoader(
                 }
             #endif
             *******************************************/
+
             if (sessState != ESTABLISHED) {
-                sMdlToSmw_SegMeta.write(SegMemMeta(true));
+                sMdlToSmw_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify App about the fail
-                soTRIF_DSts.write(ERROR_NOCONNCECTION);
-                printError(myName, "Session %d is not established. Current session state is \'%s\'.\n", \
+                soTRIF_DSts.write(AppWrSts(STS_KO, ERROR_NOCONNCECTION));
+                printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
                            tcpSessId.to_uint(), SessionStateString[sessState].c_str());
-
-                // HERE MAJOR DIFF
-                // appTxDataRsp.write(appTxRsp(tasi_writeMeta.length, maxWriteLength, ERROR_NOCONNCECTION));
-                // tai_state = READ_REQUEST;
-
             }
-            else if(segLen > maxWriteLength) { // || usableWindow < tasi_writeMeta.length)
-                sMdlToSmw_SegMeta.write(SegMemMeta(true));
+            else if (segLen > maxWriteLength) {
+                sMdlToSmw_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify app about fail
-                soTRIF_DSts.write(ERROR_NOSPACE);
+                soTRIF_DSts.write(AppWrSts(STS_KO, ERROR_NOSPACE));
+                printError(myName, "There is no TxBuf memory space available for session %d.\n",
+                           tcpSessId.to_uint());
             }
             else {
                 // Here --> (sessState == ESTABLISHED && pkgLen <= maxWriteLength)
                 // TODO there seems some redundancy
                 sMdlToSmw_SegMeta.write(SegMemMeta(tcpSessId, txAppTableReply.mempt, segLen));
-                soTRIF_DSts.write(segLen);
-                //tasi_eventCacheFifo.write(eventMeta(tasi_writeSessionID, tasi_writeSar.mempt, segLen));
+                soTRIF_DSts.write(AppWrSts(STS_OK, segLen));
                 soEVe_Event.write(event(TX, tcpSessId, txAppTableReply.mempt, segLen));
                 // Write new MemPtr in the TxAppTable
                 soTat_AccessReq.write(TxAppTableRequest(tcpSessId, txAppTableReply.mempt + segLen));
             }
-            mdlFsmState = READ_REQUEST;
+            fsmState = READ_REQUEST;
         }
         break;
     } //switch
@@ -380,11 +410,11 @@ void pSegmentMemoryWriter(
  *
  * @param[in]  siTRIF_Data,        TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,        TCP metadata stream from TRIF.
+ * @param[out] soTRIF_DSts,        TCP data status to TRIF.
  * @param[out] soSTt_SessStateReq, Session state request to StateTable (STt).
  * @param[in]  siSTt_SessStateRep, Session state reply from [STt].
  * @param[out] soTat_AcessReq,     Access request to TxAppTable (Tat).
  * @param[in]  siTat_AcessRep,     Access reply from [Tat].
- * @param[out] soTRIF_DSts,        TCP data status to TRIF.
  * @param[out] soMEM_TxP_WrCmd,    Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,     Tx memory data to MEM.
  * @param[out] soEVe_Event,        Event to EventEngine (EVe).
@@ -402,11 +432,11 @@ void pSegmentMemoryWriter(
 void tx_app_stream(
         stream<AppData>            &siTRIF_Data,
         stream<AppMeta>            &siTRIF_Meta,
+        stream<AppWrSts>           &soTRIF_DSts,
         stream<TcpSessId>          &soSTt_SessStateReq,
         stream<SessionState>       &siSTt_SessStateRep,
         stream<TxAppTableRequest>  &soTat_AcessReq,
         stream<TxAppTableReply>    &siTat_AcessRep,
-        stream<ap_int<17> >        &soTRIF_DSts,
         stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
         stream<event>              &soEVe_Event)
@@ -438,12 +468,12 @@ void tx_app_stream(
 
     pMetaDataLoader(
             siTRIF_Meta,
+            soTRIF_DSts,
             soSTt_SessStateReq,
             siSTt_SessStateRep,
             soTat_AcessReq,
             siTat_AcessRep,
             ssSlgToMdl_SegLen,
-            soTRIF_DSts,
             ssMdlToSmw_SegMeta,
             soEVe_Event);
 

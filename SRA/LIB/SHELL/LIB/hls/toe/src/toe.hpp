@@ -69,6 +69,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#include "../test/test_toe_utils.hpp"
 
+using namespace hls;
+
 //*** [FIXME] MOVE MAX_SESSION into a CFG FILE ***
 static const uint16_t MAX_SESSIONS = 32;
 
@@ -111,7 +113,7 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 
 
 
-using namespace hls;
+
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -170,14 +172,22 @@ using namespace hls;
 
 #define BROADCASTCHANNELS 2
 
-// SOME QUERY AND COMMAND DEFINITIONS
+/*********************************************
+/* SOME QUERY, STATUS AND COMMAND DEFINITIONS
+ *********************************************/
+#define OK        1
+#define KO        0
+
+#define CMD_INIT  1
+#define CMD_DROP  true
+
 #define QUERY_RD              0
 #define QUERY_WR              1
 #define QUERY_INIT            1
-
 #define QUERY_FAST_RETRANSMIT true
 
-#define CMD_INIT  1
+#define STS_OK    OK
+#define STS_KO    KO
 
 /********************************************
  * SINGLE BIT DEFINITIONS
@@ -1254,13 +1264,6 @@ struct appReadRequest
 };
 
 /***********************************************
- * Application Write Status
- *  The status returned by TOE after a write
- *  data transfer.
- ***********************************************/
-typedef ap_int<17>  AppWrSts;
-
-/***********************************************
  * Application Data
  *  Data transfered between TOE and APP.
  ***********************************************/
@@ -1271,6 +1274,22 @@ typedef AxiWord     AppData;
  *  Meta-data transfered between TOE and APP.
  ***********************************************/
 typedef TcpSessId   AppMeta;
+
+/***********************************************
+ * Application Write Status
+ *  The status returned by TOE after a write
+ *  data transfer.
+ ***********************************************/
+class AppWrSts
+{
+  public:
+    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+    StsBit       status;  // OK=1
+    AppWrSts() {}
+    AppWrSts(StsBit sts, TcpSegLen len) :
+        status(sts), segLen(len) {}
+};
+//OBSOLETE_20190919 typedef ap_int<17>  AppWrSts;
 
 /***********************************************
  * Application Open Request
