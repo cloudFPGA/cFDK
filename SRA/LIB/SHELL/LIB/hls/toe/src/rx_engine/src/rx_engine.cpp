@@ -136,8 +136,8 @@ void pTcpLengthExtract(
         stream<TcpSegLen>      &soTcpSegLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tle");
 
@@ -308,8 +308,8 @@ void pInsertPseudoHeader(
         stream<TcpWord>     &soTcpSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     static bool         iph_wasLast = false;
     static ap_uint<2>   iph_wordCount = 0;
@@ -435,8 +435,8 @@ void pCheckSumAccumulator(
         stream<TcpPort>           &soPRt_GetState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Csa");
 
@@ -671,8 +671,8 @@ void pTcpInvalidDropper(
         stream<AxiWord>     &soTsd_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tid");
 
@@ -792,8 +792,8 @@ void pMetaDataHandler(
         stream<RXeFsmMeta>          &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
 
@@ -951,8 +951,9 @@ void pFiniteStateMachine(
         stream<AppNotif>                    &soRan_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
+
 
     const char *myName  = concat3(THIS_NAME, "/", "Fsm");
 
@@ -1381,8 +1382,8 @@ void pTcpSegmentDropper(
         stream<AxiWord>     &soMwr_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tsd");
 
@@ -1460,8 +1461,8 @@ void pRxAppNotifier(
         stream<ap_uint<1> >   &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Ran");
 
@@ -1546,7 +1547,7 @@ void pEventMultiplexer(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
-    #pragma HLS INLINE
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Evm");
 
@@ -1721,29 +1722,6 @@ void pMemWriter(
 }
 
 /*****************************************************************************
- * @brief Debug process that keeps track an internal counter.
- *
- * @param[out]  poDBG_CycCnt, a reference to RXe's cycle counter.
- *
- * @ingroup rx_engine
- *****************************************************************************/
-/*** OBSOLETE-20190505 ******
-void pDebug(
-        ap_uint<32>     &poDBG_CycCnt)
-{
-    static ap_uint<32> rxeCycCnt = 0;
-
-    if (DEBUG_LEVEL) {
-        if ((rxeCycCnt % 100) == 0) {
-            printInfo(THIS_NAME, "-- [@%4.4u] -----------------------------\n", rxeCycCnt.to_uint());
-        }
-    }
-    rxeCycCnt++;
-    //OBSOLETE-20190506 poDBG_CycCnt = rxeCycCnt;
-}
-*****************************/
-
-/*****************************************************************************
  * @brief The rx_engine (RXe) processes the data packets received from IPRX.
  *
  * @param[in]  siIPRX_Data,         IP4 data stream form IPRX.
@@ -1800,11 +1778,11 @@ void rx_engine(
 {
 
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
+    //OBSOLETE_20190920 #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW
-    #pragma HLS INLINE recursive
+    //OBSOLETE_20190920 #pragma HLS DATAFLOW
+    #pragma HLS INLINE
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
