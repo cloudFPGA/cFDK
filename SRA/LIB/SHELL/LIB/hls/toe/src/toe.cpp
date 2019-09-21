@@ -661,6 +661,7 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=siTRIF_Data     metadata="-bus_bundle siTRIF_Data"
     #pragma HLS resource core=AXI4Stream variable=siTRIF_Meta     metadata="-bus_bundle siTRIF_Meta"
     #pragma HLS resource core=AXI4Stream variable=soTRIF_DSts     metadata="-bus_bundle soTRIF_DSts"
+    #pragma HLS DATA_PACK                variable=soTRIF_DSts
     //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTRIF_OpnReq   metadata="-bus_bundle siTRIF_OpnReq"
     #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
@@ -724,6 +725,7 @@ void toe(
     #pragma HLS INTERFACE axis off           port=siTRIF_Data     name=siTRIF_Data
     #pragma HLS INTERFACE axis off           port=siTRIF_Meta     name=siTRIF_Meta
     #pragma HLS INTERFACE axis off           port=soTRIF_DSts     name=soTRIF_DSts
+    #pragma HLS DATA_PACK                variable=soTRIF_DSts
     //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS INTERFACE axis off           port=siTRIF_OpnReq   name=siTRIF_OpnReq
     #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
