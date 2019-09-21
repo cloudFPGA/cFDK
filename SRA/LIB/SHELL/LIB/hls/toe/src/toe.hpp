@@ -173,7 +173,7 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 #define BROADCASTCHANNELS 2
 
 /*********************************************
-/* SOME QUERY, STATUS AND COMMAND DEFINITIONS
+ * SOME QUERY, STATUS AND COMMAND DEFINITIONS
  *********************************************/
 #define OK        1
 #define KO        0
