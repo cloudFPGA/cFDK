@@ -2067,9 +2067,8 @@ void tx_engine(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
-    #pragma HLS INTERFACE ap_ctrl_none port=return  // [FIXME - No needed here?]
-   //#pragma HLS PIPELINE II=1
-    #pragma HLS INLINE //off
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+    #pragma HLS INLINE
 
     //=========================================================================
     //== LOCAL STREAMS (Sorted by the name of the modules which generate them)

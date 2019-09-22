@@ -92,13 +92,13 @@ config_rtl -reset control
 # Specifying Compiler-FIFO Depth (see UG902)
 #--------------------------------------------
 # Start Propagation 
-#  - disable: : The compiler might automatically create a start FIFO to propagate a start token
-#               to an internal process. Such FIFOs can sometimes be a bottleneck for performance,
-#               in which case you can increase the default size (fixed to 2). However, if an
-#               unbounded slack between producer and consumer is needed, and internal processes
-#               can run forever, fully and safely driven by their inputs or outputs (FIFOs or
-#               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
-#               dataflow region.
+#  - disable: The compiler might automatically create a start FIFO to propagate a start token
+#             to an internal process. Such FIFOs can sometimes be a bottleneck for performance,
+#             in which case you can increase the default size (fixed to 2). However, if an
+#             unbounded slack between producer and consumer is needed, and internal processes
+#              can run forever, fully and safely driven by their inputs or outputs (FIFOs or
+#             PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
+#             dataflow region.
 #------------------------------------------------------------------------------------------------
 # [TODO - Check vivado_hls version and only enable this command if >= 2018]
 # config_rtl -disable_start_propagation
@@ -112,6 +112,16 @@ config_rtl -reset control
 #                    default is '0' for no automatic loop pipelining. 
 #------------------------------------------------------------------------------------------------
 config_compile -name_max_length 128 -pipeline_loops 0
+
+#------------------------------------------
+# Set Dataflow Checking Level (see UG9020)
+#------------------------------------------
+# - error  : Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
+#            is in the recommended canonical form.
+# - warning: By default this checker is set to warning.
+# -off     : To disable the checker.
+#------------------------------------------------------------------------------------------------
+config_dataflow -strict_mode error
 
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
@@ -151,11 +161,11 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
+    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
+    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
+    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
+    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
