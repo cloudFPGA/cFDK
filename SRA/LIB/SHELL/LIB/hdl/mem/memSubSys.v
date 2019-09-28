@@ -303,7 +303,7 @@ module MemorySubSystem # (
   ) MC0 (
    
     //-- Global Clock used by the entire SHELL ------
-    .piShlClk              (piShlClk),
+    .piShlClk              (piSHL_Clk),
 
     //-- Global Reset used by the entire SHELL ------
     .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
@@ -413,7 +413,7 @@ module MemorySubSystem # (
   ) MC1 (
   
     //-- Global Clock used by the entire SHELL ------
-    .piShlClk              (piShlClk),
+    .piShlClk              (piSHL_Clk),
 
     //-- Global Reset used by the entire SHELL ------
     .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
