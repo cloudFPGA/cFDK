@@ -213,7 +213,7 @@ if { $hlsCoSim } {
 # -display_name <string>
 #    Provides a display name for the generated IP.
 # -flow (syn|impl)
-#    Obtains more accurate timing  and utilization data for the specified HDL using RTL synthesis.
+#    Obtains more accurate timing and utilization data for the specified HDL using RTL synthesis.
 # -format (ip_catalog|sysgen|syn_dcp)
 #    Specifies the format to package the IP.
 # -ip_name <string>
@@ -227,9 +227,27 @@ if { $hlsCoSim } {
 #    Specifies the vendor string for the generated IP catalog IP.
 # -version <string>
 #    Specifies the version string for the generated IP catalog.
+# -vivado_synth_design_args {args...}
+#    Specifies the value to pass to 'synth_design' within the export_design -evaluate Vivado synthesis run.
+# -vivado_report_level <value>
+#    Specifies the utilization and timing report options.
 #---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    switch $hlsRtl {
+        1 {
+            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        2 {
+            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        3 {
+            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        default { 
+            puts "####  INVALID VALUE ($hlsRtl) ####"
+            exit 1
+        }
+    }
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
