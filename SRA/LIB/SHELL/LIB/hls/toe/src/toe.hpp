@@ -97,7 +97,6 @@ struct rtlSessionLookupRequest;
 // Usually TCP Maximum Segment Size is 1460. Here, we use 1456 to support TCP options.
 static const ap_uint<16> MTU = 1500;
 static const ap_uint<16> MSS = 1456;  // MTU-IP-Hdr-TCP-Hdr=1500-20-20
-//OBSOLETE static const ap_uint<16> MY_MSS = 576;
 
 // OOO Parameters
 //static const int OOO_N = 4;       // number of OOO blocks accepted
@@ -307,7 +306,7 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
  * IPv4 HEADER FIELDS TRANSMITTED BY THE MAC
  *  Type Definitions in AXI4-Stream Order (Little-Endian)
  *********************************************************/
-// [TODO - Rename ALL the "Axi*" into "Mac*"
+// [TODO - Rename ALL the "Axi*" into "Le*"
 typedef ap_uint< 4> AxiIp4Version;     // IPv4 Version over Axi
 typedef ap_uint< 4> AxiIp4HdrLen;      // IPv4 Internet Header Length over Axi
 typedef ap_uint< 8> AxiIp4ToS;         // IPv4 Type of Service over Axi
@@ -322,7 +321,7 @@ typedef ap_uint<64> AxiIpData;         // IPv4 Data stream
  * TCP HEADER FIELDS TRANSMITTED BY THE MAC
  *  Type Definitions in AXI4-Stream Order (Little-Endian)
  *********************************************************/
-// [TODO - Rename ALL the "Axi*" into "Mac*"
+// [TODO - Rename ALL the "Axi*" into "LeMac*"
 typedef ap_uint<16> AxiTcpSrcPort;     // TCP Source Port over Axi
 typedef ap_uint<16> AxiTcpDstPort;     // TCP Destination Port over Axi
 typedef ap_uint<16> AxiTcpPort;        // TCP Source or Destination Port over Axi
@@ -414,8 +413,10 @@ typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
  * - .
  *************************************************************************/
 
+/***********************************************
+ * TCP SESSION IDENTIFIER
+ ***********************************************/
 typedef ap_uint<16> SessionId;
-
 
 /***********************************************
  * SOCKET ADDRESS (alias ipTuple)
@@ -539,23 +540,10 @@ class OpenStatus
         sessionID(sessId), success(success) {}
 };
 
-/*** OBSOLETE-20181219 *****
-struct openStatus
-{
-	SessionId   sessionID;
-    bool        success;
-    openStatus() {}
-    openStatus(SessionId id, bool success) :
-        sessionID(id), success(success) {}
-};
-****************************/
-
 /********************************************
  * Session Lookup Controller (SLc)
  ********************************************/
 typedef SessionId   TcpSessId;  // TCP Session ID
-
-//OBSOLETE typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID  [FIXME - Needed?]
 
 struct sessionLookupQuery
 {
@@ -839,19 +827,6 @@ class TStTxSarPush {
  ********************************************/
 
 //-- TAI / Tx Application Table (Tat) Request
-/*** OBSOLETE-20190616 ************
-struct txAppTxSarQuery
-{
-    SessionId   sessionID;
-    ap_uint<16> mempt;
-    bool        write;
-    txAppTxSarQuery() {}
-    txAppTxSarQuery(SessionId id)
-            :sessionID(id), mempt(0), write(false) {}
-    txAppTxSarQuery(SessionId id, ap_uint<16> pt)
-            :sessionID(id), mempt(pt), write(true) {}
-};
-***********************************/
 class TxAppTableRequest {
   public:
     SessionId   sessId;
@@ -865,17 +840,6 @@ class TxAppTableRequest {
 };
 
 //-- TAI / Tx Application Table (Tat) Reply
-/*** OBSOLETE-20190616 ******
-struct txAppTxSarReply
-{
-	SessionId   sessionID;
-    ap_uint<16> ackd;
-    ap_uint<16> mempt;
-    txAppTxSarReply() {}
-    txAppTxSarReply(SessionId id, ap_uint<16> ackd, ap_uint<16> pt) :
-        sessionID(id), ackd(ackd), mempt(pt) {}
-};
-*******************************/
 class TxAppTableReply {
   public:
     SessionId   sessId;
@@ -1009,7 +973,6 @@ class Ip4overAxi: public AxiWord {
     // Set the IP4 Total Length
     void        setIp4TotalLen(Ip4TotalLen len) {                  tdata.range(31, 16) = swapWord(len);   }
     Ip4TotalLen getIp4TotalLen()                { return swapWord (tdata.range(31, 16));                  }
-    //OBSOLETE AxiIp4TotalLen getIp4TotLen() { return swapWord(tdata.range(31, 16)); }
 
     // Set the IP4 Identification
     void setIp4Ident(Ip4Ident id)               {                  tdata.range(47, 32) = swapWord(id);    }
@@ -1088,10 +1051,6 @@ class Ip4overAxi: public AxiWord {
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
-
-    //OBSOLETE Copy Assignment from an AxiWord
-    //OBSOLETE Ip4overAxi& operator= (const Ip4overAxi&);
-    //OBSOLETE Ip4overAxi& operator= (const TcpWord&);
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)
@@ -1299,12 +1258,14 @@ class AppWrSts
     AppWrSts(StsBit sts, TcpSegLen len) :
         status(sts), segLen(len) {}
 };
-//OBSOLETE_20190919 typedef ap_int<17>  AppWrSts;
 
 /***********************************************
  * Application Open Request
  *  The socket address that the application
  *  wants to open.
+ *  [FIXME - Must switch to NETWORK ORDER]
+ *  [FYI] - The 1st element appearing in the class
+ *  is aligned on the LSB of the Axis vector.
  ***********************************************/
 typedef AxiSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
 
@@ -1313,7 +1274,7 @@ typedef AxiSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
  *  Information returned by TOE after an open
  *  connection request.
  ***********************************************/
-typedef OpenStatus  AppOpnRep;
+typedef OpenStatus  AppOpnRep; // [TODO - Rename to Reply]
 
 /***********************************************
  * Application Listen Request
