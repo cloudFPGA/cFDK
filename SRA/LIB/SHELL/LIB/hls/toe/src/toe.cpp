@@ -373,10 +373,10 @@ void rxAppMemDataRead(
  * @param[in]  siTRIF_DataReq,        Data request from TcpRoleInterface (TRIF).
  * @param[out] soTRIF_Data,           TCP data stream to TRIF.
  * @param[out] soTRIF_Meta,           Metadata to TRIF.
- * @param[in]
- * @param[in]
- * @param[out] soPRt_LsnPortStateReq, Port state request to [PortTable].
- * @param[in]  siPRt_LsnPortStateRep, Port state reply from [PRt].
+ * @param[in]  siTRIF_LsnReq,         TCP listen port request from [TRIF].
+ * @param[out] soTRIF_LsnAck,         TCP listen port acknowledge to [TRIF].
+ * @param[out] soPRt_LsnReq,          TCP listen port acknowledge from [PRt].
+ * @param[in]  siPRt_LsnAck,          Port state reply from [PRt].
  * @param[in]  siRXe_Notif,           Notification from [RXe].
  * @param
  * @param
@@ -390,10 +390,10 @@ void rx_app_interface(
         stream<AppRdReq>            &siTRIF_DataReq,
         stream<AxiWord>             &soTRIF_Data,
         stream<SessionId>           &soTRIF_Meta,
-        stream<AppLsnReq>           &siTRIF_ListenPortReq,
-        stream<RepBit>              &soTRIF_ListenPortRep,
-        stream<TcpPort>             &soPRt_LsnPortStateReq,
-        stream<RepBit>              &siPRt_LsnPortStateRep,
+        stream<AppLsnReq>           &siTRIF_LsnReq,
+        stream<AppLsnAck>           &soTRIF_LsnAck,
+        stream<TcpPort>             &soPRt_LsnReq,
+        stream<AckBit>              &siPRt_LsnAck,
         stream<AppNotif>            &siRXe_Notif,
         stream<AppNotif>            &siTIm_Notif,
         stream<RAiRxSarQuery>       &soRSt_RxSarReq,
@@ -430,11 +430,10 @@ void rx_app_interface(
 
     // RX Application Interface
     rx_app_if(
-            siTRIF_ListenPortReq,
-            soTRIF_ListenPortRep,
-            soPRt_LsnPortStateReq,
-            siPRt_LsnPortStateRep
-);
+            siTRIF_LsnReq,
+            soTRIF_LsnAck,
+            soPRt_LsnReq,
+            siPRt_LsnAck);
 
     // Multiplex the notifications
     pStreamMux(
@@ -803,8 +802,8 @@ void toe(
     static stream<RepBit>               sPRtToRXe_PortStateRep    ("sPRtToRXe_PortStateRep");
     #pragma HLS stream         variable=sPRtToRXe_PortStateRep    depth=4
 
-    static stream<RepBit>               sPRtToRAi_OpnLsnPortRep   ("sPRtToRAi_OpnLsnPortRep");
-    #pragma HLS stream         variable=sPRtToRAi_OpnLsnPortRep   depth=4
+    static stream<AckBit>               sPRtToRAi_OpnLsnPortAck   ("sPRtToRAi_OpnLsnPortAck");
+    #pragma HLS stream         variable=sPRtToRAi_OpnLsnPortAck   depth=4
 
     static stream<TcpPort>              sPRtToTAi_ActPortStateRep ("sPRtToTAi_ActPortStateRep");
     #pragma HLS stream         variable=sPRtToTAi_ActPortStateRep depth=4
@@ -1060,7 +1059,7 @@ void toe(
             sRXeToPRt_PortStateReq,
             sPRtToRXe_PortStateRep,
             sRAiToPRt_OpnLsnPortReq,
-            sPRtToRAi_OpnLsnPortRep,
+            sPRtToRAi_OpnLsnPortAck,
             sTAiToPRt_ActPortStateReq,
             sPRtToTAi_ActPortStateRep,
             sSLcToPRt_ReleasePort);
@@ -1152,7 +1151,7 @@ void toe(
              siTRIF_LsnReq,
              soTRIF_LsnAck,
              sRAiToPRt_OpnLsnPortReq,
-             sPRtToRAi_OpnLsnPortRep,
+             sPRtToRAi_OpnLsnPortAck,
              sRXeToRAi_Notif,
              ssTImToRAi_Notif,
              sRAiToRSt_RxSarQry,

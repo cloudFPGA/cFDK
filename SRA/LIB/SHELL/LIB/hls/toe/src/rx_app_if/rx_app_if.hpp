@@ -28,8 +28,8 @@ using namespace hls;
  *
  *************************************************************************/
 void rx_app_if(
-        stream<TcpPort>                    &siTRIF_ListenPortReq,
-        stream<RepBit>                     &soTRIF_ListenPortRep,
-        stream<TcpPort>                    &soPRt_ListenReq,
-        stream<RepBit>                     &siPRt_ListenRep
+        stream<TcpPort>                    &siTRIF_LsnReq,
+        stream<AckBit>                     &soTRIF_LsnAck,
+        stream<TcpPort>                    &soPRt_LsnReq,
+        stream<AckBit>                     &siPRt_LsnAck
 );

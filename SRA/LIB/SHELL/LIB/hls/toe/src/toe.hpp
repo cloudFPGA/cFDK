@@ -186,25 +186,35 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 #define QUERY_INIT            1
 #define QUERY_FAST_RETRANSMIT true
 
-#define STS_OK    OK
-#define STS_KO    KO
+#define STS_OK      1
+#define STS_KO      0
+#define STS_OPENED  1
+#define STS_CLOSED  0
+
+#define ACK_ON      1
+#define NO_ACK      0
 
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/
+typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
 typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
-typedef bool AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool AckBool; // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
+typedef bool ReqBool; // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBool; // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBool; // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
+typedef bool ValBool;  // Valid bit  : Must go along with something to validate/invalidate.
 
 
 /********************************************

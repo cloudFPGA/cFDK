@@ -127,7 +127,7 @@ void pTxAppAccept(
     case TAS_IDLE:
         if (!siTRIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
             localFifo.write(siTRIF_OpnReq.read());
-            soPRt_GetFreePortReq.write(true);
+            soPRt_GetFreePortReq.write(1);
             tasFsmState = TAS_GET_FREE_PORT;
         }
         else if (!siSLc_SessLookupRep.empty()) {

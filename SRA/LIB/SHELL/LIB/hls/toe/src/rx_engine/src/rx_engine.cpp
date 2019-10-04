@@ -616,7 +616,7 @@ void pCheckSumAccumulator(
                     soMdh_SockPair.write(csa_sessTuple);
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
-                        soTid_DataVal.write(true);
+                        soTid_DataVal.write(OK);
                         if (DEBUG_LEVEL & TRACE_CSA) {
                             printInfo(myName, "Received end-of-packet. Checksum is correct.\n");
                         }
@@ -627,7 +627,7 @@ void pCheckSumAccumulator(
                 else {
                     if(csa_meta.length != 0) {
                         // Packet has some TCP payload
-                        soTid_DataVal.write(false);
+                        soTid_DataVal.write(KO);
                     }
                     if (DEBUG_LEVEL & TRACE_CSA) {
                         printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
@@ -714,14 +714,14 @@ void pTcpInvalidDropper(
     static enum FsmState {GET_VALID=0, FWD, DROP} tid_fsmState=GET_VALID;
 
     AxiWord currWord;
-    bool    isValid;
+    ValBit  validBit;
 
     switch (tid_fsmState) {
 
     case GET_VALID:
         if (!siCsa_DataVal.empty()) {
-            siCsa_DataVal.read(isValid);
-            if (isValid) {
+            siCsa_DataVal.read(validBit);
+            if (validBit == OK) {
                 tid_fsmState = FWD;
             }
             else {
@@ -785,7 +785,7 @@ void pMetaDataHandler(
         stream<RXeMeta>             &siCsa_Meta,
         stream<AxiSocketPair>       &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
-        stream<StsBool>             &siPRt_PortSts,
+        stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSLc_SessLkpReq,
         stream<extendedEvent>       &soEVe_Event,
         stream<CmdBool>             &soTsd_DropCmd,
@@ -809,7 +809,7 @@ void pMetaDataHandler(
     static TcpPort              mdh_tcpDstPort;
 
     AxiSocketPair tuple;
-    StsBool       dstPortStatus;
+    StsBit        dstPortStatus;
 
     switch (mdh_fsmState) {
 
@@ -1761,7 +1761,7 @@ void rx_engine(
         stream<StateQuery>              &soSTt_StateQry,
         stream<SessionState>            &siSTt_StateRep,
         stream<TcpPort>                 &soPRt_PortStateReq,
-        stream<StsBool>                 &siPRt_PortStateRep,
+        stream<RepBit>                  &siPRt_PortStateRep,
         stream<RXeRxSarQuery>           &soRSt_RxSarQry,
         stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
@@ -1806,7 +1806,7 @@ void rx_engine(
     #pragma HLS stream     variable=sCsaToTid_Data         depth=256 //critical, tcp checksum computation
     #pragma HLS DATA_PACK  variable=sCsaToTid_Data
 
-    static stream<bool>             sCsaToTid_DataValid    ("sCsaToTid_DataValid");
+    static stream<ValBit>           sCsaToTid_DataValid    ("sCsaToTid_DataValid");
     #pragma HLS stream     variable=sCsaToTid_DataValid    depth=2
 
     static stream<RXeMeta>          sCsaToMdh_Meta         ("sCsaToTid_Meta");

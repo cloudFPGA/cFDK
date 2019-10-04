@@ -75,11 +75,12 @@ using namespace hls;
 // Warning: Avoid using 'enum' here because scoped enums are only available with -std=c++
 //   enum PortState : bool {CLOSED_PORT = false, OPENED_PORT    = true};
 //   enum PortRange : bool {ACTIVE_PORT = false, LISTENING_PORT = true};
-#define LSN_CLOS_PORT false
-#define LSN_OPEN_PORT true
+
+typedef AckBit PortState;       //OBSOLETE-20191003 #define PortState     bool
+//#define LSN_PORT_IS_CLOSED   0  //OBSOLETE-20191003 #define LSN_CLOS_PORT false
+//#define LSN_PORT_IS_OPENED   1  //OBSOLETE-20191003#define LSN_OPEN_PORT true
 #define ACT_FREE_PORT false
 #define ACT_USED_PORT true
-#define PortState     bool
 
 #define ACTIVE_PORT   false
 #define LISTEN_PORT   true
@@ -125,8 +126,8 @@ void pReady(
  * @brief The Listening Port Table (Lpt) keeps track of the listening ports.
  *
  *  @param[out] poPRt_LptReady,        Ready signal for this process.
- *  @param[in]  siRAi_OpenPortReq,     Request to open a port from RxAppInterface (RAi).
- *  @param[out] soRAi_OpenPortRep,     Reply   to [RAi].
+ *  @param[in]  siRAi_OpenLsnPortReq,  Request to open a port from RxAppInterface (RAi).
+ *  @param[out] soRAi_OpenLsnPortAck,  TCP listen port acknowledge to [RAi].
  *  @param[in]  siIrr_GetPortStateCmd, Request port state from InputRequestRouter (Irr).
  *  @param[out] soOrm_GetPortStateRsp  Port state response to OutputReplyMultiplexer (Orm).
  *
@@ -144,8 +145,8 @@ void pReady(
  ******************************************************************************/
 void pListeningPortTable(
         StsBool              &poPRt_LptReady,
-        stream<TcpPort>      &siRAi_OpenPortReq,
-        stream<RepBit>       &soRAi_OpenPortRep,
+        stream<TcpPort>      &siRAi_OpenLsnPortReq,
+        stream<AckBit>       &soRAi_OpenLsnPortAck,
         stream<TcpStaPort>   &siIrr_GetPortStateCmd,
         stream<RspBit>       &soOrm_GetPortStateRsp)
 {
@@ -155,10 +156,12 @@ void pListeningPortTable(
 
     const char *myName = concat3(THIS_NAME, "/", "Lpt");
 
+    //-- STATIC ARRAYS --------------------------------------------------------
     static PortState                LISTEN_PORT_TABLE[0x8000];
     #pragma HLS RESOURCE   variable=LISTEN_PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=LISTEN_PORT_TABLE inter false
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static bool                isLPtInit = false;
     #pragma HLS reset variable=isLPtInit
     static TcpPort             lsnPortNum = 0;
@@ -166,7 +169,7 @@ void pListeningPortTable(
 
     // The table must be cleared upon reset
     if (!isLPtInit) {
-        LISTEN_PORT_TABLE[lsnPortNum(14, 0)] = LSN_CLOS_PORT;
+        LISTEN_PORT_TABLE[lsnPortNum(14, 0)] = STS_CLOSED;
         lsnPortNum += 1;
         if (lsnPortNum == 0x8000) {
           isLPtInit = true;
@@ -176,22 +179,20 @@ void pListeningPortTable(
         }
     }
     else {
-        if (!siRAi_OpenPortReq.empty() and !soRAi_OpenPortRep.full()) {
-            siRAi_OpenPortReq.read(lsnPortNum);
+        if (!siRAi_OpenLsnPortReq.empty() and !soRAi_OpenLsnPortAck.full()) {
+            siRAi_OpenLsnPortReq.read(lsnPortNum);
             // [TODO] Let's add a specific bit to specifically open/close a port.
-            // [TODO] The meaning of the reply bit should be SUCCESS/FAILL OK/KO
             if (lsnPortNum < 0x8000) {
                 // Listening port number falls in the range [0..32,767]
                 // We can set the listening port table entry to true
-                LISTEN_PORT_TABLE[lsnPortNum] = LSN_OPEN_PORT;
+                LISTEN_PORT_TABLE[lsnPortNum] = STS_OPENED;
                 // Sent reply to RAi
-                soRAi_OpenPortRep.write(LSN_OPEN_PORT);
+                soRAi_OpenLsnPortAck.write(STS_OPENED);
                 if (DEBUG_LEVEL & TRACE_LPT)
                 printInfo(myName, "[RAi] is requesting to open port #%d in listen mode.\n", lsnPortNum.to_uint());
             }
             else {
-                // [TODO] The meaning of the reply bit should be SUCCESS/FAILL OK/KO
-                soRAi_OpenPortRep.write(LSN_CLOS_PORT);
+                soRAi_OpenLsnPortAck.write(STS_CLOSED);
             } 
         }
         else if (!siIrr_GetPortStateCmd.empty()) {
@@ -436,8 +437,8 @@ void pOutputReplyMultiplexer(
  *  @param[out] poTOE_Ready,           PRt's ready signal.
  *  @param[in]  siRXe_GetPortStateReq, Request to get state of a port from RxEngine (RXe).
  *  @param[out] soRXe_GetPortStateRep, Reply   to siRXe_GetPortStateReq.
- *  @param[in]  siRAi_OpenPortReq,     Request to open a port from RxAppInterface (RAi).
- *  @param[out] soRAi_OpenPortRep,     Reply   to siRAi_OpenPortReq.
+ *  @param[in]  siRAi_OpenLsnPortReq,  Request to open a port from RxAppInterface (RAi).
+ *  @param[out] soRAi_OpenLsnPortAck,  TCP listen port acknowledge to [RAi].
  *  @param[in]  siTAi_GetFreePortReq,  Request to get a free port from TxAppInterface (TAi).
  *  @param[out] soTAi_GetFreePortRep,  Reply   to siTAi_GetFreePortReq.
  *  @param[in]  siSLc_CloseActPortCmd, Command to close an active port from SessionLookupController (SLc).
@@ -461,8 +462,8 @@ void port_table(
         StsBool                 &poTOE_Ready,
         stream<TcpPort>         &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
-        stream<TcpPort>         &siRAi_OpenPortReq,
-        stream<RepBit>          &soRAi_OpenPortRep,
+        stream<TcpPort>         &siRAi_OpenLsnPortReq,
+        stream<AckBit>          &soRAi_OpenLsnPortAck,
         stream<ReqBit>          &siTAi_GetFreePortReq,
         stream<TcpPort>         &soTAi_GetFreePortRep,
         stream<TcpPort>         &siSLc_CloseActPortCmd)
@@ -503,8 +504,8 @@ void port_table(
     // Listening PortTable
     pListeningPortTable(
             sLptToAnd2_Ready,
-            siRAi_OpenPortReq,
-            soRAi_OpenPortRep,
+            siRAi_OpenLsnPortReq,
+            soRAi_OpenLsnPortAck,
             ssIrrToLpt_GetLsnPortStateCmd,
             ssLptToOrm_GetLsnPortStateRsp);
 

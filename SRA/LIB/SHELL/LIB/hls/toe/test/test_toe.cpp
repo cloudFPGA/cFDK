@@ -1342,7 +1342,7 @@ bool pTRIF_Recv_Listen(
     static ap_uint<1> listenFsm     =   0;
     static TcpPort    portNum;
     static int        watchDogTimer = 100;
-    bool              rc = false;
+    AckBit            rc = NO_ACK;
 
     switch (listenFsm) {
     case 0:

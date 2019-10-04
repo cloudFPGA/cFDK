@@ -54,8 +54,8 @@ void port_table(
         StsBool                 &poTOE_Ready,
         stream<AxiTcpPort>      &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
-        stream<TcpPort>         &siRAi_OpenPortReq,
-        stream<RepBit>          &soRAi_OpenPortRep,
+        stream<TcpPort>         &siRAi_OpenLsnPortReq,
+        stream<AckBit>          &soRAi_OpenLsnPortAck,
         stream<ReqBit>          &siTAi_GetFreePortReq,
         stream<TcpPort>         &siTAi_GetFreePortRep,
         stream<TcpPort>         &siSLc_ClosePortCmd
