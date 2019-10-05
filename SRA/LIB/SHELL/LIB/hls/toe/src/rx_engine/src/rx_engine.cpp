@@ -72,7 +72,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
  * @brief TCP length extraction (Tle).
  *
  * @param[in]  siIPRX_Pkt,    IP4 packet stream form IPRX.
- * @param[out] soTcpSeg,      A pseudo TCP segment (.i.e, IP-SA + IP-DA + TCP)
+ * @param[out] soPseudoPkt,   A pseudo TCP/IP packet (.i.e, IP-SA + IP-DA + TCP)
  * @param[out] soTcpSegLen,   The length of the pseudo TCP segment.
  *
  * @details
@@ -131,8 +131,8 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
  * @ingroup rx_engine
  ******************************************************************************/
 void pTcpLengthExtract(
-        stream<Ip4overAxi>     &siIPRX_Pkt,
-        stream<TcpWord>        &soTcpSeg,
+        stream<Ip4overMac>     &siIPRX_Pkt,
+        stream<Ip4overMac>     &soPseudoPkt,
         stream<TcpSegLen>      &soTcpSegLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -141,24 +141,37 @@ void pTcpLengthExtract(
 
     const char *myName  = concat3(THIS_NAME, "/", "Tle");
 
-    static Ip4HdrLen        tle_ip4HdrLen   = 0;
-    static Ip4TotalLen      tle_ip4TotalLen = 0;
-    static Ip4DatLen        tle_ipDataLen   = 0;
-    static ap_uint<4>       tle_wordCount   = 0;
-    static bool             tle_insertWord  = false;
-    static bool             tle_wasLast     = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static ap_uint<4>          tle_wordCount   = 0;
+    #pragma HLS reset variable=tle_wordCount
+    static bool                tle_insertWord  = false;
+    #pragma HLS reset variable=tle_insertWord
+    static bool                tle_wasLast     = false;
+    #pragma HLS reset variable=tle_wasLast
     static bool             tle_shift       = true;
-    static Ip4Word          tle_prevWord;
-    TcpWord                 sendWord;
+    #pragma HLS reset variable=tle_shift
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static Ip4HdrLen        tle_ip4HdrLen;
+    static Ip4TotalLen      tle_ip4TotalLen;
+    static Ip4DatLen        tle_ipDataLen;
+    static Ip4overMac       tle_prevWord;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    Ip4overMac              sendWord;
 
     if (tle_insertWord) {
-        sendWord = TcpWord(0, 0xFF, 0);
-        soTcpSeg.write(sendWord);
+        sendWord = Ip4overMac(0, 0xFF, 0);
+        soPseudoPkt.write(sendWord);
         tle_insertWord = false;
-        if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_TLE) {
+            printAxiWord(myName, sendWord);
+        }
     }
     else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
-        Ip4Word currWord = siIPRX_Pkt.read();
+        Ip4overMac currWord = siIPRX_Pkt.read();
+
+        // [TODO - Use the methods of class Ip4overMac]
         switch (tle_wordCount) {
         case 0:
             tle_ip4HdrLen   = currWord.tdata(3, 0);
@@ -177,10 +190,10 @@ void pTcpLengthExtract(
         case 2:
             // Forward destination IP address
             // Warning, half of this address is now in 'prevWord'
-            sendWord = TcpWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                               (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                               (currWord.tkeep[4] == 0));
-            soTcpSeg.write(sendWord);
+            sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+                                  (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+                                  (currWord.tkeep[4] == 0));
+            soPseudoPkt.write(sendWord);
             tle_ip4HdrLen -= 1;  // We just processed the last 8 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
@@ -189,18 +202,18 @@ void pTcpLengthExtract(
         case 3:
             switch (tle_ip4HdrLen) {
             case 0: // Half of prevWord contains valuable data and currWord is full of valuable
-                sendWord = TcpWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                                   (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                                   (currWord.tkeep[4] == 0));
-                soTcpSeg.write(sendWord);
+                sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+                                      (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+                                      (currWord.tkeep[4] == 0));
+                soPseudoPkt.write(sendWord);
                 tle_shift = true;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
                 if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
-                sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
-                soTcpSeg.write(sendWord);
+                sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
+                soPseudoPkt.write(sendWord);
                 tle_shift = false;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
@@ -214,15 +227,15 @@ void pTcpLengthExtract(
             break;
         default:
             if (tle_shift) {
-                sendWord = TcpWord((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                                   (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                                   (currWord.tkeep[4] == 0));
-                soTcpSeg.write(sendWord);
+                sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
+                                      (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
+                                      (currWord.tkeep[4] == 0));
+                soPseudoPkt.write(sendWord);
                 if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
             }
             else {
-                sendWord = TcpWord(currWord.tdata, currWord.tkeep, currWord.tlast);
-                soTcpSeg.write(sendWord);
+                sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
+                soPseudoPkt.write(sendWord);
                 if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
             }
             break;
@@ -239,10 +252,10 @@ void pTcpLengthExtract(
 
     else if (tle_wasLast) { //Assumption has to be shift
         // Send remaining data
-        TcpWord sendWord = TcpWord(0, 0, 1);
+    	Ip4overMac sendWord = Ip4overMac(0, 0, 1);
         sendWord.tdata(31, 0) = tle_prevWord.tdata(63, 32);
         sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
-        soTcpSeg.write(sendWord);
+        soPseudoPkt.write(sendWord);
         tle_wasLast = false;
         if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
     }
@@ -303,69 +316,77 @@ void pTcpLengthExtract(
  * @ingroup rx_engine
  ******************************************************************************/
 void pInsertPseudoHeader(
-        stream<TcpWord>     &siTle_TcpSeg,
+        stream<Ip4overMac>  &siTle_PseudoPkt,
         stream<TcpSegLen>   &siTle_TcpSegLen,
-        stream<TcpWord>     &soTcpSeg)
+        stream<Ip4overMac>  &soCsa_PseudoPkt)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
     #pragma HLS INLINE off
 
-    static bool         iph_wasLast = false;
-    static ap_uint<2>   iph_wordCount = 0;
-    ap_uint<1>          valid;
-    TcpSegLen           tcpSegLen;
-    TcpWord             currWord;
-    TcpWord             sendWord;
-    static TcpWord      iph_prevWord;
-
     const char *myName  = concat3(THIS_NAME, "/", "Iph");
 
-    currWord.tlast = 0;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                iph_wasLast = false;
+    #pragma HLS reset variable=iph_wasLast
+    static ap_uint<2>          iph_wordCount = 0;
+    #pragma HLS reset variable=iph_wordCount
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static Ip4overMac   iph_prevWord;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    ValBit              valid;
+    TcpSegLen           tcpSegLen;
+    Ip4overMac          currWord;
+    Ip4overMac          sendWord;
 
     if (iph_wasLast) {
         sendWord.tdata(31, 0) = iph_prevWord.tdata(63,32);
         sendWord.tkeep( 3, 0) = iph_prevWord.tkeep( 7, 4);
         sendWord.tkeep( 7, 4) = 0x0;
         sendWord.tlast        = 0x1;
-        soTcpSeg.write(sendWord);
+        soCsa_PseudoPkt.write(sendWord);
         iph_wasLast = false;
-        if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_IPH) {
+            printAxiWord(myName, sendWord);
+        }
     }
-    else if(!siTle_TcpSeg.empty()) {
+    else if(!siTle_PseudoPkt.empty()) {
         switch (iph_wordCount) {
         case 0:
-            siTle_TcpSeg.read(currWord);
+            siTle_PseudoPkt.read(currWord);
             iph_wordCount++;
             break;
         case 1:
-            siTle_TcpSeg.read(currWord);
+            siTle_PseudoPkt.read(currWord);
             sendWord = iph_prevWord;
             // Forward IP-DA & IP-SA
-            soTcpSeg.write(sendWord);
+            soCsa_PseudoPkt.write(sendWord);
             iph_wordCount++;
-            if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL & TRACE_IPH) {
+                printAxiWord(myName, sendWord);
+            }
             break;
         case 2:
+            // [TODO - Use the Ip4overMac methods here]
             if (!siTle_TcpSegLen.empty()) {
-                siTle_TcpSeg.read(currWord);
+                siTle_PseudoPkt.read(currWord);
                 siTle_TcpSegLen.read(tcpSegLen);
                 // Forward Protocol and Segment length
                 sendWord.tdata(15,  0) = 0x0600;        // 06 is for TCP
-                //OBSOLETE-20181120 sendWord.tdata(23, 16) = tcpSegLen(15, 8);
-                //OBSOLETE-20181120 sendWord.tdata(31, 24) = tcpSegLen( 7, 0);
                 sendWord.tdata(31, 16) = byteSwap16(tcpSegLen);
                 // Forward TCP-SP & TCP-DP
                 sendWord.tdata(63, 32) = currWord.tdata(31, 0);
                 sendWord.tkeep         = 0xFF;
                 sendWord.tlast         = 0;
-                soTcpSeg.write(sendWord);
+                soCsa_PseudoPkt.write(sendWord);
                 iph_wordCount++;
                 if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
             }
             break;
         default:
-            siTle_TcpSeg.read(currWord);
+            siTle_PseudoPkt.read(currWord);
             // Forward { Sequence Number, Acknowledgment Number } or
             //         { Flags, Window, Checksum, UrgentPointer } or
             //         { Data }
@@ -374,7 +395,7 @@ void pInsertPseudoHeader(
             sendWord.tkeep.range( 3,  0) = iph_prevWord.tkeep.range(7, 4);
             sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
             sendWord.tlast               = (currWord.tkeep[4] == 0); // see format of the incoming segment
-            soTcpSeg.write(sendWord);
+            soCsa_PseudoPkt.write(sendWord);
             if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
             break;
         }
@@ -385,7 +406,6 @@ void pInsertPseudoHeader(
         }
     }
 }
-
 
 /*****************************************************************************
  * @brief TCP checksum accumulator (csa).
@@ -427,11 +447,11 @@ void pInsertPseudoHeader(
  * @ingroup rx_engine
  ******************************************************************************/
 void pCheckSumAccumulator(
-        stream<TcpWord>           &siIph_TcpSeg,
+        stream<Ip4overMac>        &siCsa_PseudoPkt,
         stream<AxiWord>           &soTid_Data,
         stream<ValBit>            &soTid_DataVal,
         stream<RXeMeta>           &soMdh_Meta,
-        stream<AxiSocketPair>     &soMdh_SockPair,
+        stream<LE_SocketPair>     &soMdh_SockPair,
         stream<TcpPort>           &soPRt_GetState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -440,43 +460,52 @@ void pCheckSumAccumulator(
 
     const char *myName  = concat3(THIS_NAME, "/", "Csa");
 
-    static ap_uint<17>      csa_tcp_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8>       csa_dataOffset = 0xFF; // [FIXME-Why not make it of type AxiTcpDataOff]
-    static ap_uint<16>      csa_wordCount = 0;
-    static AxiSocketPair    csa_sessTuple;
-    static ap_uint<36>      halfWord;
-    TcpWord                 currWord;
-    TcpWord                 sendWord;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                csa_doCSumVerif = false;
+    #pragma HLS reset variable=csa_doCSumVerif
+    static ap_uint<16>         csa_wordCount   = 0;
+    #pragma HLS reset variable=csa_wordCount
+    static ap_uint<17>         csa_tcp_sums[4] = {0, 0, 0, 0};
+    #pragma HLS reset variable=csa_tcp_sums
+    static bool                csa_wasLast     = false;
+    #pragma HLS reset variable=csa_wasLast
+    static ap_uint<3>          csa_cc_state = 0;
+    #pragma HLS reset variable=csa_cc_state
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static ap_uint<8>       csa_dataOffset; // [FIXME-Why not make it of type AxiTcpDataOff]
+    static bool             csa_doShift;
+    static LE_SocketPair    csa_leSessTuple;
     static RXeMeta          csa_meta;
-    static AxiTcpDstPort    csa_axiTcpDstPort;
-    static AxiTcpChecksum   csa_axiTcpCSum;
+    static LE_TcpDstPort    csa_leTcpDstPort;
+    static LE_TcpChecksum   csa_leTcpCSum;
+    static ap_uint<36>      halfWord;
 
-    static bool             csa_doShift     = false;
-    static bool             csa_wasLast     = false;
-    static bool             csa_doCSumVerif = false;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    Ip4overMac              currWord;
+    Ip4overMac              sendWord;
 
-    static ap_uint<3>       csa_cc_state = 0;
-
-    if (!siIph_TcpSeg.empty() && !csa_doCSumVerif) {
-        siIph_TcpSeg.read(currWord);
+    if (!siCsa_PseudoPkt.empty() && !csa_doCSumVerif) {
+        siCsa_PseudoPkt.read(currWord);
         switch (csa_wordCount) {
+        // [TODO - Use the Ip4overMac methods here]
         case 0:
             csa_dataOffset = 0xFF;
             csa_doShift = false;
                 // Get IP-SA & IP-DA
                 //  Warning: Remember that IP addresses come in little-endian order
-                csa_sessTuple.src.addr = currWord.tdata(31,  0);
-                csa_sessTuple.dst.addr = currWord.tdata(63, 32);
-                sendWord.tlast         = currWord.tlast;
+                csa_leSessTuple.src.addr = currWord.tdata(31,  0);
+                csa_leSessTuple.dst.addr = currWord.tdata(63, 32);
+                sendWord.tlast           = currWord.tlast;
             break;
         case 1:
             // Get Segment length
             csa_meta.length = byteSwap16(currWord.tdata(31, 16));
             // Get TCP-SP & TCP-DP
             //  Warning: Remember that TCP ports come in little-endian order
-            csa_sessTuple.src.port = currWord.tdata(47, 32);
-            csa_sessTuple.dst.port = currWord.tdata(63, 48);
-            csa_axiTcpDstPort      = currWord.tdata(63, 48);
+            csa_leSessTuple.src.port = currWord.tdata(47, 32);
+            csa_leSessTuple.dst.port = currWord.tdata(63, 48);
+            csa_leTcpDstPort      = currWord.tdata(63, 48);
             sendWord.tlast         = currWord.tlast;
             break;
         case 2:
@@ -505,7 +534,7 @@ void pCheckSumAccumulator(
             // Get Window Size
             csa_meta.winSize = byteSwap16(currWord.tdata(31, 16));
             // Get the checksum of the pseudo-header (only for debug purposes)
-            csa_axiTcpCSum = currWord.tdata(47, 32);
+            csa_leTcpCSum  = currWord.tdata(47, 32);
             sendWord.tlast = currWord.tlast;
             break;
         default:
@@ -544,7 +573,7 @@ void pCheckSumAccumulator(
         // Accumulate TCP checksum
         for (int i = 0; i < 4; i++) {
             #pragma HLS UNROLL
-        	TcpCSum temp;
+            TcpCSum temp;
             if (currWord.tkeep.range(i*2+1, i*2) == 0x3) {
                 temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
                 temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16);
@@ -613,7 +642,7 @@ void pCheckSumAccumulator(
                     // The checksum is correct. TCP segment is valid.
                     // Forward to MetaDataHandler
                     soMdh_Meta.write(csa_meta);
-                    soMdh_SockPair.write(csa_sessTuple);
+                    soMdh_SockPair.write(csa_leSessTuple);
                     // Forward to TcpInvalidDropper
                     if (csa_meta.length != 0) {
                         soTid_DataVal.write(OK);
@@ -622,7 +651,7 @@ void pCheckSumAccumulator(
                         }
                     }
                     // Request state of TCP_DP
-                    soPRt_GetState.write(byteSwap16(csa_axiTcpDstPort));
+                    soPRt_GetState.write(byteSwap16(csa_leTcpDstPort));
                 }
                 else {
                     if(csa_meta.length != 0) {
@@ -631,9 +660,9 @@ void pCheckSumAccumulator(
                     }
                     if (DEBUG_LEVEL & TRACE_CSA) {
                         printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
-                                    csa_axiTcpCSum.to_uint(),
+                                    csa_leTcpCSum.to_uint(),
                                     byteSwap16(~csa_tcp_sums[0](15, 0) & 0xFFFF).to_uint());
-                        printSockPair(myName, csa_sessTuple);
+                        printSockPair(myName, csa_leSessTuple);
                         //printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
                         //        csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
                         //        csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
@@ -651,7 +680,6 @@ void pCheckSumAccumulator(
     }
 } // End of: pCheckSumAccumulator
 
-
 /*****************************************************************************
  * @brief TCP Invalid checksum Dropper (Tid)
  *
@@ -666,7 +694,7 @@ void pCheckSumAccumulator(
  * @ingroup rx_engine
  *****************************************************************************/
 void pTcpInvalidDropper(
-        stream<TcpWord>     &siCsa_Data,
+        stream<AxiWord>     &siCsa_Data,
         stream<ValBit>      &siCsa_DataVal,
         stream<AxiWord>     &soTsd_Data)
 {
@@ -676,45 +704,13 @@ void pTcpInvalidDropper(
 
     const char *myName  = concat3(THIS_NAME, "/", "Tid");
 
-    /*** OBSOLETE-20181212 ***********
-    static bool tid_isFirstWord = true;
-    static bool tid_doDrop      = false;
-
-    AxiWord currWord;
-    bool     isValid;
-
-    currWord.tlast = 0;
-
-    if (tid_doDrop) {
-        if(!siCsa_Data.empty())
-            siCsa_Data.read(currWord);
-    }
-    else if (tid_isFirstWord) {
-        if (!siCsa_DataVal.empty() && !siCsa_Data.empty()) {
-            siCsa_DataVal.read(isValid);
-            siCsa_Data.read(currWord);
-            if (!isValid)
-                tid_doDrop = true;
-            else
-                soTsd_Data.write(currWord);
-            tid_isFirstWord = false;
-        }
-    }
-    else if(!siCsa_Data.empty()) {
-        siCsa_Data.read(currWord);
-        soTsd_Data.write(currWord);
-    }
-
-    if (currWord.tlast == 1) {
-        tid_doDrop      = false;
-        tid_isFirstWord = true;
-    }
-    **********************************/
-
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmState {GET_VALID=0, FWD, DROP} tid_fsmState=GET_VALID;
+    #pragma HLS reset                    variable=tid_fsmState
 
-    AxiWord currWord;
-    ValBit  validBit;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AxiWord     currWord;
+    ValBit      validBit;
 
     switch (tid_fsmState) {
 
@@ -755,7 +751,6 @@ void pTcpInvalidDropper(
 
 } // End of: pTcpInvalidDropper
 
-
 /*****************************************************************************
  * @brief MetaData Handler (Mdh)
  *
@@ -783,7 +778,7 @@ void pTcpInvalidDropper(
  *****************************************************************************/
 void pMetaDataHandler(
         stream<RXeMeta>             &siCsa_Meta,
-        stream<AxiSocketPair>       &siCsa_SockPair,
+        stream<LE_SocketPair>       &siCsa_SockPair,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSLc_SessLkpReq,
@@ -808,8 +803,9 @@ void pMetaDataHandler(
     static TcpPort              mdh_tcpSrcPort;
     static TcpPort              mdh_tcpDstPort;
 
-    AxiSocketPair tuple;
-    StsBit        dstPortStatus;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    LE_SocketPair               tuple;
+    StsBit                      dstPortStatus;
 
     switch (mdh_fsmState) {
 
@@ -822,6 +818,7 @@ void pMetaDataHandler(
                 siCsa_Meta.read(mdh_meta);
                 siCsa_SockPair.read(tuple);
 
+                // [TODO - USe the Ip4overMac methods here]
                 mdh_ip4SrcAddr = byteSwap32(tuple.src.addr);
                 mdh_tcpSrcPort = byteSwap16(tuple.src.port);
                 mdh_tcpDstPort = byteSwap16(tuple.dst.port);
@@ -834,7 +831,7 @@ void pMetaDataHandler(
                     }
                     if (!mdh_meta.rst) {
                         // Reply with RST+ACK and send necessary socket-pair through event
-                        AxiSocketPair  switchedTuple;
+                        LE_SocketPair  switchedTuple;
                         switchedTuple.src.addr = tuple.dst.addr;
                         switchedTuple.dst.addr = tuple.src.addr;
                         switchedTuple.src.port = tuple.dst.port;
@@ -867,7 +864,6 @@ void pMetaDataHandler(
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Request the SLc to lookup the following session:\n");
-                        //OBSOLETE-20190524 printAxiSockPair(myName, tuple);
                         printSockPair(myName, tuple);
                     }
                     mdh_fsmState = LOOKUP;
@@ -958,18 +954,19 @@ void pFiniteStateMachine(
     const char *myName  = concat3(THIS_NAME, "/", "Fsm");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                fsm_txSarRequest = false;
-    #pragma HLS reset variable=fsm_txSarRequest
+    static bool                                  fsm_txSarRequest = false;
+    #pragma HLS reset                   variable=fsm_txSarRequest
+    static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
+    #pragma HLS reset                   variable=fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static RXeFsmMeta fsmMeta;
 
-    ap_uint<4>      control_bits = 0;
-    SessionState    tcpState;
-    RxSarEntry      rxSar;
-    RXeTxSarReply   txSar;
-
-    static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    ap_uint<4>        control_bits = 0;
+    SessionState      tcpState;
+    RxSarEntry        rxSar;
+    RXeTxSarReply     txSar;
 
     switch(fsmState) {
 
@@ -1387,7 +1384,9 @@ void pTcpSegmentDropper(
 
     const char *myName  = concat3(THIS_NAME, "/", "Tsd");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmState {FSM_RD_DROP_CMD1=0, FSM_RD_DROP_CMD2, FSM_FWD, FSM_DROP} tsd_fsmState = FSM_RD_DROP_CMD1;
+    #pragma HLS reset variable=tsd_fsmState
 
     static ap_uint<10>  rxBuffWrAccessLength = 0;
     static ap_uint<1>   rxBuffWriteDoubleAccess = 0;
@@ -1397,7 +1396,6 @@ void pTcpSegmentDropper(
     case FSM_RD_DROP_CMD1:
         if (!siMdh_DropCmd.empty()) {
             CmdBit dropCmd = siMdh_DropCmd.read();
-            //OBSOLETE-20190130 (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_RD_DROP_CMD2;
             if (dropCmd) {
                 tsd_fsmState = FSM_DROP;
                 printWarn(myName, "[Mdh] is requesting to drop this packet.\n");
@@ -1409,7 +1407,6 @@ void pTcpSegmentDropper(
     case FSM_RD_DROP_CMD2:
         if (!siFsm_DropCmd.empty()) {
             CmdBit dropCmd = siFsm_DropCmd.read();
-            //OBSOLETE-20190130 (dropCmd) ? tsd_fsmState = FSM_DROP : tsd_fsmState = FSM_FWD;
             if (dropCmd) {
                 tsd_fsmState = FSM_DROP;
                 printWarn(myName, "[Fsm] is requesting to drop this packet.\n");
@@ -1586,17 +1583,19 @@ void pMemWriter(
 
     const char *myName  = concat3(THIS_NAME, "/", "Mwr");
 
-    static DmCmd       rxMemWriterCmd = DmCmd(0, 0);
-    static ap_uint<16> rxEngBreakTemp = 0;
-    static uint8_t     lengthBuffer   = 0;
-    static ap_uint<3>  rxEngAccessResidue = 0;
-    static bool        txAppBreakdown = false;
-
-    static AxiWord     pushWord = AxiWord(0, 0xFF, 0);
-
-    static enum FsmState {IDLE,       WRFIRST,
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmState {IDLE=0,     WRFIRST,
                           EVALSECOND, WRSECONDSTR,
-                          ALIGNED,    RESIDUE} mwr_fsmState;
+                          ALIGNED,    RESIDUE} mwr_fsmState=IDLE;
+    #pragma HLS reset                 variable=mwr_fsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static DmCmd       rxMemWriterCmd;
+    static ap_uint<16> rxEngBreakTemp;
+    static uint8_t     lengthBuffer;
+    static ap_uint<3>  rxEngAccessResidue = 0; // [TODO - Double check initialization]
+    static bool        txAppBreakdown = false; // [TODO - Double check initialization]
+    static AxiWord     pushWord = AxiWord(0, 0xFF, 0);
 
     switch (mwr_fsmState) {
 
@@ -1628,7 +1627,6 @@ void pMemWriter(
         if (!siTsd_MemWrData.empty() && !soMEM_WrData.full()) {
             siTsd_MemWrData.read(pushWord);
             AxiWord outputWord = pushWord;
-            //OBSOLETE-20181213 ap_uint<4> byteCount = keepMapping(pushWord.tkeep);
             ap_uint<4> byteCount = keepToLen(pushWord.tkeep);
             if (rxEngBreakTemp > 8) {
                 rxEngBreakTemp -= 8;
@@ -1755,7 +1753,7 @@ void pMemWriter(
  *
  ******************************************************************************/
 void rx_engine(
-        stream<Ip4overAxi>              &siIPRX_Pkt,
+        stream<Ip4overMac>              &siIPRX_Pkt,
         stream<sessionLookupQuery>      &soSLc_SessLookupReq,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
         stream<StateQuery>              &soSTt_StateQry,
@@ -1789,7 +1787,7 @@ void rx_engine(
     //-------------------------------------------------------------------------
 
     //-- Tcp Length Extract (Tle) ---------------------------------------------
-    static stream<TcpWord>          sTleToIph_TcpSeg       ("sTleToIph_TcpSeg");
+    static stream<Ip4overMac>       sTleToIph_TcpSeg       ("sTleToIph_TcpSeg");
     #pragma HLS stream     variable=sTleToIph_TcpSeg       depth=8
     #pragma HLS DATA_PACK  variable=sTleToIph_TcpSeg
 
@@ -1797,12 +1795,12 @@ void rx_engine(
     #pragma HLS stream     variable=sTleToIph_TcpSegLen    depth=2
 
     //-- Insert Pseudo Header (Iph) -------------------------------------------
-    static stream<TcpWord>          sIphToCsa_TcpSeg       ("sIphToCsa_TcpSeg");
+    static stream<Ip4overMac>       sIphToCsa_TcpSeg       ("sIphToCsa_TcpSeg");
     #pragma    HLS stream  variable=sIphToCsa_TcpSeg       depth=8
     #pragma HLS DATA_PACK  variable=sIphToCsa_TcpSeg
 
     //-- CheckSum Accumulator (Csa) -------------------------------------------
-    static stream<TcpWord>          sCsaToTid_Data         ("sCsaToTid_Data");
+    static stream<AxiWord>          sCsaToTid_Data         ("sCsaToTid_Data");
     #pragma HLS stream     variable=sCsaToTid_Data         depth=256 //critical, tcp checksum computation
     #pragma HLS DATA_PACK  variable=sCsaToTid_Data
 
@@ -1813,7 +1811,7 @@ void rx_engine(
     #pragma HLS stream     variable=sCsaToMdh_Meta         depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_Meta
 
-    static stream<AxiSocketPair>    sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
+    static stream<LE_SocketPair>    sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
     #pragma HLS stream     variable=sCsaToMdh_SockPair     depth=2
     #pragma HLS DATA_PACK  variable=sCsaToMdh_SockPair
 

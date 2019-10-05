@@ -88,15 +88,14 @@ struct SubCSums
 /********************************************
  * TXe - Pair of {Src,Dst} IPv4 Addresses
  ********************************************/
-struct IpAddrPair
-{
-	AxiIp4Addr  src;
-	AxiIp4Addr  dst;
-    IpAddrPair() {}
-    IpAddrPair(AxiIp4Addr src, AxiIp4Addr dst) :
+class LE_IpAddrPair {  // OBSOLETE-20191004 struct IpAddrPair
+  public:
+    LE_Ip4Addr  src;
+    LE_Ip4Addr  dst;
+    LE_IpAddrPair() {}
+    LE_IpAddrPair(LE_Ip4Addr src, LE_Ip4Addr dst) :
         src(src), dst(dst) {}
 };
-
 
 /*****************************************************************************
  * @brief   Main process of the TCP Tx Engine (TXe).
@@ -123,5 +122,5 @@ void tx_engine(
         stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         //-- IP Tx Interface
-        stream<Ip4overAxi>              &soL3MUX_Data
+        stream<Ip4overMac>              &soL3MUX_Data
 );

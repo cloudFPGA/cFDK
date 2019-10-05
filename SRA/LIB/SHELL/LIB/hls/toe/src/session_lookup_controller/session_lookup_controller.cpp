@@ -101,7 +101,7 @@ void pLookupReplyHandler(
         stream<rtlSessionUpdateReply>       &siUrh_SessUpdateRsp,
         stream<sessionLookupQuery>          &siRXe_SessLookupReq,
         stream<sessionLookupReply>          &soRXe_SessLookupRep,
-        stream<AxiSocketPair>               &siTAi_SessLookupReq,
+        stream<LE_SocketPair>               &siTAi_SessLookupReq,
         stream<sessionLookupReply>          &soTAi_SessLookupRep,
         stream<RtlSessId>                   &siSim_FreeList,
         stream<rtlSessionUpdateRequest>     &soUrs_InsertSessReq,
@@ -126,7 +126,7 @@ void pLookupReplyHandler(
 
     case LRH_LKP_REQ:
         if (!siTAi_SessLookupReq.empty()) {
-            AxiSocketPair axiSockPair = siTAi_SessLookupReq.read();
+            LE_SocketPair axiSockPair = siTAi_SessLookupReq.read();
             fourTuple toeTuple = fourTuple(axiSockPair.src.addr, axiSockPair.dst.addr,
                                            axiSockPair.src.port, axiSockPair.dst.port);
             sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(
@@ -361,7 +361,7 @@ void session_lookup_controller(
         stream<sessionLookupReply>         &soRXe_SessLookupRep,
         stream<SessionId>                  &siSTt_SessReleaseCmd,
         stream<TcpPort>                    &soPRt_ClosePortCmd,
-        stream<AxiSocketPair>              &siTAi_SessLookupReq,
+        stream<LE_SocketPair>              &siTAi_SessLookupReq,
         stream<sessionLookupReply>         &soTAi_SessLookupRep,
         stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,

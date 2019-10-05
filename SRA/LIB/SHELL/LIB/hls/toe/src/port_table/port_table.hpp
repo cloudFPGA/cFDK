@@ -52,7 +52,7 @@ using namespace hls;
  *****************************************************************************/
 void port_table(
         StsBool                 &poTOE_Ready,
-        stream<AxiTcpPort>      &siRXe_GetPortStateReq,
+        stream<TcpPort>         &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
         stream<TcpPort>         &siRAi_OpenLsnPortReq,
         stream<AckBit>          &soRAi_OpenLsnPortAck,

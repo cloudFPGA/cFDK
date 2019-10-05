@@ -95,19 +95,19 @@ using namespace hls;
  * @ingroup tx_app_if
  ******************************************************************************/
 void pTxAppAccept(
-        stream<AxiSockAddr>         &siTRIF_OpnReq,
+        stream<LE_SockAddr>         &siTRIF_OpnReq,
         stream<ap_uint<16> >        &closeConnReq,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<TcpPort>             &siPRt_ActPortStateRep,
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<OpenStatus>          &soTRIF_SessOpnSts,
-        stream<AxiSocketPair>       &soSLc_SessLookupReq,
+        stream<LE_SocketPair>       &soSLc_SessLookupReq,
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<StateQuery>          &soSTt_SessStateQry,
         stream<SessionState>        &siSTt_SessStateRep,
         stream<event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
-        AxiIp4Address                regIpAddress)
+        LE_Ip4Address                regIpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     //OBSOLETE-20190907 #pragma HLS INLINE off
@@ -115,7 +115,7 @@ void pTxAppAccept(
 
     static ap_uint<16> tai_closeSessionID;
 
-    static stream<AxiSockAddr>  localFifo ("localFifo");
+    static stream<LE_SockAddr>  localFifo ("localFifo");
     #pragma HLS stream variable=localFifo depth=4
 
     OpenStatus  openSessStatus;
@@ -161,12 +161,12 @@ void pTxAppAccept(
         if (!siPRt_ActPortStateRep.empty() && !soSLc_SessLookupReq.full()) {
             //OBSOLETE-20190521 ap_uint<16> freePort = siPRt_ActPortStateRep.read() + 32768; // 0x8000 is already added by PRt
             TcpPort     freePort      = siPRt_ActPortStateRep.read();
-            AxiSockAddr axiServerAddr = localFifo.read();
+            LE_SockAddr leServerAddr = localFifo.read();
             //OBSOLETE-20181218 soSLc_SessLookupReq.write(
             //        fourTuple(regIpAddress, byteSwap32(server_addr.ip_address),
             //        byteSwap16(freePort), byteSwap16(server_addr.ip_port)));
-            soSLc_SessLookupReq.write(AxiSocketPair(AxiSockAddr(regIpAddress,       byteSwap16(freePort)),
-                                                    AxiSockAddr(axiServerAddr.addr, axiServerAddr.port)));
+            soSLc_SessLookupReq.write(LE_SocketPair(LE_SockAddr(regIpAddress,      byteSwap16(freePort)),
+                                                    LE_SockAddr(leServerAddr.addr, leServerAddr.port)));
             tasFsmState = TAS_IDLE;
         }
         break;
@@ -349,7 +349,7 @@ void pTxAppTable(
  ******************************************************************************/
 void tx_app_interface(
         //-- TRIF / Open Interfaces
-        stream<AxiSockAddr>            &siTRIF_OpnReq,
+        stream<LE_SockAddr>            &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_SessOpnSts,
         //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
@@ -373,7 +373,7 @@ void tx_app_interface(
         stream<TAiTxSarPush>           &soTSt_PushCmd,
 
 
-        stream<AxiSocketPair>          &soSLc_SessLookupReq,
+        stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
         stream<SessionState>           &siSTt_Taa_SessStateRep,

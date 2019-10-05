@@ -18,17 +18,6 @@
 
 using namespace hls;
 
-/*** OBSOLETE-20190614 ********
-struct txAppTableEntry
-{
-    ap_uint<16>     ackd;
-    ap_uint<16>     mempt;
-    txAppTableEntry() {}
-    txAppTableEntry(ap_uint<16> ackd, ap_uint<16> mempt)
-            :ackd(ackd), mempt(mempt) {}
-};
-*******************************/
-
 class TxAppTableEntry
 {
   public:
@@ -45,7 +34,7 @@ class TxAppTableEntry
  *****************************************************************************/
 void tx_app_interface(
         //-- TRIF / Open Interfaces
-        stream<AxiSockAddr>            &siTRIF_OpnReq,
+        stream<LE_SockAddr>            &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_OpnRep,
         //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
@@ -69,7 +58,7 @@ void tx_app_interface(
         stream<TAiTxSarPush>           &soTSt_AppPush,
 
 
-        stream<AxiSocketPair>          &soSLc_SessLookupReq,
+        stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
         stream<SessionState>           &siSTt_Taa_SessStateRep,

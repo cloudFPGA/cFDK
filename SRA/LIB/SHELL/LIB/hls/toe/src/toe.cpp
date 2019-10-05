@@ -539,14 +539,14 @@ void pTbSimCount(
  * @param[out] poDBG_SssRelCnt,  Session release count to DEBUG.
  * @param[out] poDBG_SssRegCnt,  Session register count to DEBUG.
  * -- DEBUG / SimCycCounter
- * @param[out] poSimCycCount,    Cycle simulation counter to   testbench.
+ * @param[out] poSimCycCount,    Cycle simulation counter to testbench.
  ******************************************************************************/
 void toe(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        AxiIp4Addr                           piMMIO_IpAddr,
+        LE_Ip4Addr                           piMMIO_IpAddr,
 
         //------------------------------------------------------
         //-- NTS Interfaces
@@ -556,12 +556,12 @@ void toe(
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overAxi>                  &siIPRX_Data,
+        stream<Ip4overMac>                  &siIPRX_Data,
 
         //------------------------------------------------------
         //-- L3MUX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overAxi>                  &soL3MUX_Data,
+        stream<Ip4overMac>                  &soL3MUX_Data,
 
         //------------------------------------------------------
         //-- TRIF / Tx Data Interfaces
@@ -912,7 +912,7 @@ void toe(
     static stream<ReqBit>               sTAiToPRt_ActPortStateReq ("sTAiToPRt_ActPortStateReq");
     #pragma HLS stream         variable=sTAiToPRt_ActPortStateReq depth=4
 
-    static stream<AxiSocketPair>        sTAiToSLc_SessLookupReq   ("sTAiToSLc_SessLookupReq");
+    static stream<LE_SocketPair>        sTAiToSLc_SessLookupReq   ("sTAiToSLc_SessLookupReq");
     #pragma HLS DATA_PACK      variable=sTAiToSLc_SessLookupReq
     #pragma HLS stream         variable=sTAiToSLc_SessLookupReq   depth=4
 

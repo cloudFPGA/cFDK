@@ -779,7 +779,7 @@ int pIPRX_InjectAckNumber(
 void pIPRX_FeedTOE(
         deque<IpPacket>             &ipRxPacketizer,
         int                         &ipRxPktCounter,
-        stream<Ip4overAxi>          &soTOE_Data,
+        stream<Ip4overMac>          &soTOE_Data,
         map<SocketPair, TcpAckNum>  &sessAckList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
@@ -796,12 +796,12 @@ void pIPRX_FeedTOE(
         int noPackets= ipRxPacketizer.size();
         for (int p=0; p<noPackets; p++) {
             IpPacket ipRxPacket = ipRxPacketizer.front();
-            Ip4overAxi axiWord;
+            Ip4overMac macWord;
             do {
-                axiWord = ipRxPacket.front();
-                soTOE_Data.write(axiWord);
+                macWord = ipRxPacket.front();
+                soTOE_Data.write(macWord);
                 ipRxPacket.pop_front();
-            } while (!axiWord.tlast);
+            } while (!macWord.tlast);
             ipRxPktCounter++;
             ipRxPacketizer.pop_front();
         }
@@ -846,7 +846,7 @@ void pIPRX(
         deque<IpPacket>             &ipRxPacketizer,
         map<SocketPair, TcpAckNum>  &sessAckList,
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &soTOE_Data)
+        stream<Ip4overMac>          &soTOE_Data)
 {
     static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
@@ -968,7 +968,7 @@ void pIPRX(
         else {
             // Build a new packet from data file
             IpPacket   ipRxPacket;
-            Ip4overAxi ipRxData;
+            Ip4overMac ipRxData;
             bool       firstWordFlag = true; // AXI-word is first chunk of packet
 
             do {
@@ -986,7 +986,7 @@ void pIPRX(
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
-                ipRxData = Ip4overAxi(myStrHexToUint64(stringVector[0]), \
+                ipRxData = Ip4overMac(myStrHexToUint64(stringVector[0]), \
                                       myStrHexToUint8(stringVector[2]),  \
                                       atoi(stringVector[1].c_str()));
                 ipRxPacket.push_back(ipRxData);
@@ -1241,7 +1241,7 @@ bool pL3MUX_Parse(
  ******************************************************************************/
 void pL3MUX(
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &siTOE_Data,
+        stream<Ip4overMac>          &siTOE_Data,
         ofstream                    &ipTxFile1,
         ofstream                    &ipTxFile2,
         map<SocketPair, TcpAckNum>  &sessAckList,
@@ -1251,7 +1251,7 @@ void pL3MUX(
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
 
-    Ip4overAxi  ipTxWord;  // An IP4 chunk
+    Ip4overMac  ipTxWord;  // An IP4 chunk
     uint16_t    ipTxWordCounter = 0;
 
     static IpPacket ipTxPacket;
@@ -1402,7 +1402,7 @@ bool pTRIF_Send_Connect(
         int                         &nrError,
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
-        stream<AxiSockAddr>         &soTOE_OpnReq,
+        stream<LE_SockAddr>         &soTOE_OpnReq,
         stream<OpenStatus>          &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send/Connect()");
@@ -1414,7 +1414,7 @@ bool pTRIF_Send_Connect(
 
     bool rc = false;
     // Prepare to open a new connection
-    AxiSockAddr axiHostServerSocket(AxiSockAddr(byteSwap32(aSocketPair.dst.addr),
+    LE_SockAddr axiHostServerSocket(LE_SockAddr(byteSwap32(aSocketPair.dst.addr),
                                                 byteSwap16(aSocketPair.dst.port)));
     static int openFsm = 0;
 
@@ -1747,7 +1747,7 @@ void pTRIF_Send(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<AxiSockAddr>     &soTOE_OpnReq,
+        stream<LE_SockAddr>     &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnRep,
         stream<SessionId>       &soTOE_Meta,
         stream<AxiWord>         &soTOE_Data,
@@ -2163,9 +2163,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
-    stream<Ip4overAxi>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
+    stream<Ip4overMac>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
 
-    stream<Ip4overAxi>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
+    stream<Ip4overMac>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
 
     stream<AppData>                     ssTRIF_TOE_Data      ("ssTRIF_TOE_Data");
     stream<AppMeta>                     ssTRIF_TOE_Meta      ("ssTRIF_TOE_Meta");
@@ -2210,12 +2210,10 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
-    //OBSOLETE-20190822 ap_uint<32>     simCycCnt      = 0;
-    //OBSOLETE-20190822 ap_uint<32>     sTB_TOE_SimCycCnt;
     ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
-    Ip4Word         ipRxData;    // An IP4 chunk
+    //OBSOLETE-20191004 Ip4Word         ipRxData;    // An IP4 chunk
     AxiWord         tcpTxData;   // A  TCP chunk
 
     ap_uint<16>     opnSessionCount;
@@ -2383,7 +2381,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         toe(
             //-- MMIO Interfaces
-            (AxiIp4Addr)(byteSwap32(gFpgaIp4Addr)),
+            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces

@@ -113,7 +113,7 @@ struct rxFsmMetaData  // [TODO - Rename]
  *
  *****************************************************************************/
 void rx_engine(
-        stream<Ip4overAxi>              &siIPRX_Pkt,
+        stream<Ip4overMac>              &siIPRX_Pkt,
         stream<sessionLookupQuery>      &soSLc_SessLookupReq,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
         stream<StateQuery>              &soSTt_SessStateReq,

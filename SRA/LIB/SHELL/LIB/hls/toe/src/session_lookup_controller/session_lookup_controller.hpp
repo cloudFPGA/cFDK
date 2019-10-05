@@ -196,7 +196,7 @@ void session_lookup_controller(
         stream<sessionLookupReply>         &soRXe_SessLookupRep,
         stream<ap_uint<16> >               &stateTable2sLookup_releaseSession,
         stream<ap_uint<16> >               &sLookup2portTable_releasePort,
-        stream<AxiSocketPair>              &siTAi_SessLookupReq,
+        stream<LE_SocketPair>              &siTAi_SessLookupReq,
         stream<sessionLookupReply>         &soTAi_SessLookupRep,
         stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &sLookup2txEng_rev_rsp,

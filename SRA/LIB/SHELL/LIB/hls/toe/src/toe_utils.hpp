@@ -25,8 +25,8 @@ using namespace std;
  ******************************************************************************/
 class SockAddr;
 class SocketPair;
-class AxiSockAddr;
-class AxiSocketPair;
+class LE_SockAddr;
+class LE_SocketPair;
 class AxiWord;
 class DmCmd;
 class Ip4overAxi;
