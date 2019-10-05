@@ -51,7 +51,7 @@ void cam(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        ap_uint<1>                          *poMMIO_CamReady,
+        StsBit                              *poMMIO_CamReady,
 
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces

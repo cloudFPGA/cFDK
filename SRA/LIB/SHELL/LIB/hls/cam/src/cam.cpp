@@ -238,9 +238,9 @@ void cam(
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
                           request.source.to_int());
-                AxiSocketPair axiSocketPair(AxiSockAddr(request.key.theirIp, request.key.theirPort),
-                AxiSockAddr(request.key.myIp,    request.key.myPort));
-                printSockPair(myName, axiSocketPair);
+                LE_SocketPair leSocketPair(LE_SockAddr(request.key.theirIp, request.key.theirPort),
+                LE_SockAddr(request.key.myIp,    request.key.myPort));
+                printSockPair(myName, leSocketPair);
             }
             camFsmState = CAM_WAIT_4_REQ;
         }
@@ -266,9 +266,9 @@ void cam(
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session update request (%d) from %d for socket pair: \n",
                           update.op, update.source.to_int());
-                AxiSocketPair axiSocketPair(AxiSockAddr(request.key.theirIp, request.key.theirPort),
-                AxiSockAddr(request.key.myIp,    request.key.myPort));
-                printSockPair(myName, axiSocketPair);
+                LE_SocketPair leSocketPair(LE_SockAddr(request.key.theirIp, request.key.theirPort),
+                LE_SockAddr(request.key.myIp,    request.key.myPort));
+                printSockPair(myName, leSocketPair);
             }
             camFsmState = CAM_WAIT_4_REQ;
         }
