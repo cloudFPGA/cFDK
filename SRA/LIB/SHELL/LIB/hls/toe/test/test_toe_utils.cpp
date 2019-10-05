@@ -13,6 +13,8 @@
 
 #include <queue>
 #include <string>
+#include <iostream>
+#include <iomanip>
 
 #include "../src/toe.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
@@ -525,17 +527,40 @@ void printTcpPort(TcpPort tcpPort)
 	}
 #endif
 
+/*****************************************************************************
+ * @brief Dump an Axi data word to a file.
+ *
+ * @param[in] tcpWord,       a pointer to the data word to dump.
+ * @param[in] outFileStream, the output file stream to write to.
+ *
+ * @return OK if successful, otherwise KO.
+ ******************************************************************************/
 #ifndef __SYNTHESIS_
-    /*****************************************************************************
-     * @brief Write a TCP AXI word into a file.
-     *
-     * @param[in]  outFile, a ref to the file to write.
-     * @param[in]  tcpWord, a ref to the AXI word to write.
-     *
-     * @return the number of bytes written into the file.
-     *
-     * @ingroup test_toe_utils
-     ******************************************************************************/
+	bool writeAxiWordToFile(AxiWord *tcpWord, ofstream &outFileStream) {
+	    if (!outFileStream.is_open()) {
+	        printf("### ERROR : Output file stream is not open. \n");
+	        return(KO);
+	    }
+	    outFileStream << hex << noshowbase << setfill('0') << setw(16) << tcpWord->tdata.to_uint64();
+	    outFileStream << " ";
+	    outFileStream << hex << noshowbase << setfill('0') << setw(2)  << tcpWord->tkeep.to_int();
+	    outFileStream << " ";
+	    outFileStream << setw(1) << tcpWord->tlast.to_int() << "\n";
+	    return(OK);
+	}
+#endif
+
+/*****************************************************************************
+ * @brief Write a TCP AXI word into a file.
+ *
+ * @param[in]  outFile, a ref to the file to write.
+ * @param[in]  tcpWord, a ref to the AXI word to write.
+ *
+ * @return the number of bytes written into the file.
+ *
+ * @ingroup test_toe_utils
+ ******************************************************************************/
+#ifndef __SYNTHESIS_
     int writeTcpWordToFile(ofstream    &outFile,
                            AxiWord     &tcpWord) {
         int     writtenBytes = 0;
@@ -547,7 +572,6 @@ void printTcpPort(TcpPort tcpPort)
                 int hi = ((bytNum*8) + 7);
                 int lo = ((bytNum*8) + 0);
                 ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
-                //OBSOLETE-20190718 tdataToFile += myUint8ToStrHex(octet);
                 // Write byte to file
                 outFile << myUint8ToStrHex(octet);
                 writtenBytes++;
@@ -567,6 +591,12 @@ void printTcpPort(TcpPort tcpPort)
         }
 
         return writtenBytes;
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+    int writeTcpWordToFile(AxiWord *tcpWord, ofstream &outFile) {
+        return writeTcpWordToFile(outFile, *tcpWord);
     }
 #endif
 

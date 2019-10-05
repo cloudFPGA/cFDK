@@ -491,9 +491,9 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
 
 
 /***********************************************
- * AXI4 STREAMING INTERFACES (alias AXIS)
+ * FIXED-SIZE (64) AXI4 STREAMING INTERFACE
  ************************************************/
-class AxiWord {    // AXI4-Streaming Chunk (i.e. 8 bytes)
+class AxiWord {  // AXI4-Streaming Chunk (i.e. 8 bytes)
 public:
     ap_uint<64>     tdata;
     ap_uint<8>      tkeep;
