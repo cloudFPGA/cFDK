@@ -225,12 +225,12 @@ module NetworkTransportSession_TcpIp (
   input [ 47:0]  siROL_Tcp_OpnReq_tdata,
   input          siROL_Tcp_OpnReq_tvalid,
   output         siROL_Tcp_OpnReq_tready,
-  //---- Stream TCP Open Session Status ------
-  output [ 47:0] soROL_Tcp_OpnRep_tdata,
+  //---- Stream TCP Open Session Reply -------
+  output [ 23:0] soROL_Tcp_OpnRep_tdata,
   output         soROL_Tcp_OpnRep_tvalid,
   input          soROL_Tcp_OpnRep_tready,
   //---- Stream TCP Close Request ------------
-  input [ 47:0]  siROL_Tcp_ClsReq_tdata,
+  input [ 15:0]  siROL_Tcp_ClsReq_tdata,
   input          siROL_Tcp_ClsReq_tvalid,
   output         siROL_Tcp_ClsReq_tready,
   
@@ -242,8 +242,8 @@ module NetworkTransportSession_TcpIp (
   input [ 15:0]  siROL_Tcp_LsnReq_tdata,
   input          siROL_Tcp_LsnReq_tvalid,
   output         siROL_Tcp_LsnReq_tready,
-  //---- Stream TCP Listen Status ------------
-  output [ 47:0] soROL_Tcp_LsnAck_tdata,
+  //---- Stream TCP Listen Ackknowledge ------
+  output [  7:0] soROL_Tcp_LsnAck_tdata,  // AckBit stream must be 8-bits boundary
   output         soROL_Tcp_LsnAck_tvalid,
   input          soROL_Tcp_LsnAck_tready,
  
@@ -449,7 +449,7 @@ module NetworkTransportSession_TcpIp (
   wire          ssARS3_L3MUX_Data_tvalid;
   wire          ssARS3_L3MUX_Data_tready;
   //-- TOE ==> CAM / LookupRequest -----
-  wire  [96:0]  ssTOE_CAM_LkpReq_tdata;  //( 1 + 96) - 1 = 96
+  wire [103:0]  ssTOE_CAM_LkpReq_tdata;  //( 1 + 96) - 1 = 96  but HLS aligns to the next 8-bit boundary 
   wire          ssTOE_CAM_LkpReq_tvalid;
   wire          ssTOE_CAM_LkpReq_tready;
   //-- TOE ==> CAM / UpdateRequest -----
@@ -919,7 +919,7 @@ module NetworkTransportSession_TcpIp (
   );  // End of TOE
   
   //============================================================================
-  //  INST: TOE-CAM-MODULE
+  //  INST: CONTENT ADDRESSABLE MEMORY
   //============================================================================  
 `define USE_FAKE_CAM
 

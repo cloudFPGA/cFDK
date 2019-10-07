@@ -67,9 +67,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ap_int.h"
 
-//#include "../test/test_toe_utils.hpp"
-
 using namespace hls;
+
+
 
 //*** [FIXME] MOVE MAX_SESSION into a CFG FILE ***
 static const uint16_t MAX_SESSIONS = 32;
@@ -87,8 +87,6 @@ struct rtlSessionUpdateRequest;
 struct rtlSessionUpdateReply;
 struct rtlSessionLookupReply;
 struct rtlSessionLookupRequest;
-
-
 
 
 #define OOO_N 4     // number of OOO blocks accepted
@@ -109,10 +107,6 @@ static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allo
 //static const int OOO_W_BITS = ceil(log10(OOO_W)  /log10(2));      // (13) bits required to represent OOO_W
 
 static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
-
-
-
-
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -170,6 +164,29 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 #endif
 
 #define BROADCASTCHANNELS 2
+
+
+
+
+/*************************************************************************
+ * GLOBAL DEFINES and GENERIC TYPES
+ *************************************************************************/
+#define cIP4_ADDR_WIDTH            32
+
+#define cTCP_PORT_WIDTH            16
+
+#define cSHL_TOE_SESS_ID_WIDTH     16   // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_ACK_WIDTH      1   // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
+#define cSHL_TOE_OPN_REQ_WIDTH    (cIP4_ADDR_WIDTH + cTCP_PORT_WIDTH)
+#define cSHL_TOE_CLS_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
+
+typedef ap_uint<cSHL_TOE_SESS_ID_WIDTH> SessionId;
+typedef ap_uint<cSHL_TOE_LSN_ACK_WIDTH> LsnAck;
+typedef ap_uint<cSHL_TOE_LSN_REQ_WIDTH> LsnReq;
+typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
+typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
+
 
 /*********************************************
  * SOME QUERY, STATUS AND COMMAND DEFINITIONS
@@ -256,6 +273,37 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
     return (ap_int<32>)(seq1-seq2) < 0;
 }
 #define after(seq2, seq1)       before(seq1, seq2)
+
+
+/**********************************************************
+ * GENERIC AXI4 STREAMING INTERFACES
+ **********************************************************/
+template<int D>
+   class Axis {
+     public:
+       ap_uint<D>       tdata;
+       ap_uint<(D+7)/8> tkeep;
+       ap_uint<1>       tlast;
+       Axis() {}
+       Axis(ap_uint<D> single_data) :
+           tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
+   };
+
+/***********************************************
+ * FIXED-SIZE (64) AXI4 STREAMING INTERFACE
+ ************************************************/
+class AxiWord {  // AXI4-Streaming Chunk (i.e. 8 bytes)
+public:
+    ap_uint<64>     tdata;
+    ap_uint<8>      tkeep;
+    ap_uint<1>      tlast;
+public:
+    AxiWord()       {}
+    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+};
+
+#define TLAST       1
 
 
 /*************************************************************************
@@ -488,24 +536,6 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr <  s2.dst.addr) ||
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
-
-
-/***********************************************
- * FIXED-SIZE (64) AXI4 STREAMING INTERFACE
- ************************************************/
-class AxiWord {  // AXI4-Streaming Chunk (i.e. 8 bytes)
-public:
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
-    ap_uint<1>      tlast;
-public:
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-};
-
-#define TLAST       1
-
 
 /***********************************************
  * Open Session Status [FIXME - Can we rename this to OpenReply ?
@@ -1210,6 +1240,14 @@ typedef AxiWord     AppData;
  ***********************************************/
 typedef TcpSessId   AppMeta;
 
+class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
+  public:
+    AppMetaAxis() {}
+    AppMetaAxis(AppMeta sessId) :
+        Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
+};
+
+
 /***********************************************
  * Application Write Status
  *  The status returned by TOE after a write
@@ -1249,12 +1287,26 @@ typedef OpenStatus  AppOpnRep; // [TODO - Rename to Reply]
  ***********************************************/
 typedef TcpPort     AppLsnReq;
 
+class AppLsnReqAxis : public Axis<cSHL_TOE_LSN_REQ_WIDTH> {
+  public:
+    AppLsnReqAxis() {}
+    AppLsnReqAxis(AppLsnReq req) :
+      Axis<cSHL_TOE_LSN_REQ_WIDTH>(req) {}
+};
+
 /***********************************************
  * Application Listen Acknowledgment
  *  Acknowledge bit returned by TOE after a
  *  TCP listening port request.
  ***********************************************/
 typedef AckBit      AppLsnAck;
+
+class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
+  public:
+    AppLsnAckAxis() {}
+    AppLsnAckAxis(AppLsnAck ack) :
+        Axis<cSHL_TOE_LSN_ACK_WIDTH>(ack) {}
+};
 
 /***********************************************
  * Application Close Request
@@ -1263,6 +1315,12 @@ typedef AckBit      AppLsnAck;
  ***********************************************/
 typedef SessionId   AppClsReq;
 
+class AppClsReqAxis : public Axis<cSHL_TOE_CLS_REQ_WIDTH> {
+  public:
+    AppClsReqAxis() {}
+    AppClsReqAxis(AppClsReq req) :
+        Axis<cSHL_TOE_CLS_REQ_WIDTH>(req) {}
+};
 
 /***********************************************
  * A 2-to-1 Stream multiplexer.

@@ -239,8 +239,8 @@ module MemorySubSystem # (
   input           siROL_Mem_Mp1_WrCmd_tvalid,
   output          siROL_Mem_Mp1_WrCmd_tready,
   //---- Stream Write Status -----------------
-  output          soMEM_Rol_Mp1_WrSts_tvalid,
   output  [7:0]   soMEM_Rol_Mp1_WrSts_tdata,
+  output          soMEM_Rol_Mp1_WrSts_tvalid,
   input           soMEM_Rol_Mp1_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [511:0]  siROL_Mem_Mp1_Write_tdata,
@@ -481,7 +481,7 @@ module MemorySubSystem # (
     //---- Stream Write Status -----------------
     .soMP1_WrSts_tdata     (soMEM_Rol_Mp1_WrSts_tdata),
     .soMP1_WrSts_tvalid    (soMEM_Rol_Mp1_WrSts_tvalid),
-    
+    .soMP1_WrSts_tready    (soMEM_Rol_Mp1_WrSts_tready),
     //---- Stream Data Input Channel -----------
     .siMP1_Write_tdata     (siROL_Mem_Mp1_Write_tdata),
     .siMP1_Write_tkeep     (siROL_Mem_Mp1_Write_tkeep),

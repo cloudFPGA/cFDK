@@ -145,8 +145,8 @@ module MemoryChannel_DualPort #(
   input           siMP1_WrCmd_tvalid,
   output          siMP1_WrCmd_tready,
   //---- Stream Write Status -----------------
-  output          soMP1_WrSts_tvalid,
   output [7:0]    soMP1_WrSts_tdata,
+  output          soMP1_WrSts_tvalid,
   input           soMP1_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]

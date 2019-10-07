@@ -207,7 +207,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   output          soROL_Nts_Tcp_Meta_tvalid,
   input           soROL_Nts_Tcp_Meta_tready,
   //---- Stream TCP Data Notification --
-  output [ 87:0]  soROL_Nts_Tcp_Notif_tdata,
+  output [103:0]  soROL_Nts_Tcp_Notif_tdata,  // 7+96
   output          soROL_Nts_Tcp_Notif_tvalid,
   input           soROL_Nts_Tcp_Notif_tready,
   //---- Stream TCP Data Request -------
@@ -553,21 +553,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
   //------ [DIAG_CTRL_1] ---------------
   wire          sMMIO_ETH0_PcsLoopbackEn;
   wire          sMMIO_ETH0_MacLoopbackEn;
-  wire          sMMIO_ETH0_MacAddrSwapEn; 
-  //---- DIAG_CTRL_1 ---------------
-  wire  [ 1:0]  sMMIO_ROL_Mc1_MemTestCtrl;
-  //---- DIAG_STAT_1 ---------------
-  wire  [ 1:0]  sROL_MMIO_Mc1_MemTestStat;
+  wire          sMMIO_ETH0_MacAddrSwapEn;  
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
-  /*** 
-  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpPostDgmEn;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpCaptDgmEn;
-  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpPostSegEn;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpCaptSegEn; 
-  ***/
   
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : HWICAPC 
@@ -703,9 +691,9 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     //---- [PHY_ENABLE] ------------
     .poSHL_EnableLayer              (sMMIO_LayerEn),
     //---- DIAG_CTRL_1 -------------
-    .poROLE_Mc1_MemTestCtrl         (sMMIO_ROL_Mc1_MemTestCtrl),
+    .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),
     //---- DIAG_STAT_1 -------------
-    .piROLE_Mc1_MemTestStat         (sROL_MMIO_Mc1_MemTestStat),
+    .piROLE_Mc1_MemTestStat         (piROL_Mmio_Mc1_MemTestStat),
     //---- DIAG_CTRL_2 -------------  
     .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),
     .poROLE_UdpPostDgmEn            (poROL_Mmio_UdpPostDgmEn),
@@ -1488,7 +1476,7 @@ module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
     .s_axis_tkeep   (siROL_Nts_Udp_Data_tkeep),
     .s_axis_tlast   (siROL_Nts_Udp_Data_tlast),
     .s_axis_tvalid  (siROL_Nts_Udp_Data_tvalid),
-    .s_axis_tready  (soROL_Nts_Udp_Data_tready),
+    .s_axis_tready  (siROL_Nts_Udp_Data_tready),
     //-- To ARS7 / Data ----------------
     .m_axis_tdata   (ssARS7_URIF_Data_tdata),
     .m_axis_tkeep   (ssARS7_URIF_Data_tkeep),
