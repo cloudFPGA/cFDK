@@ -22,6 +22,14 @@ set projectName    "tx_engine"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
+set ipName         ${projectName}
+set ipDisplayName  "TCP/TXe"
+set ipDescription  "Tx Engine"
+set ipVendor       "IBM"
+set ipLibrary      "hls"
+set ipVersion      "1.0"
+set ipPkgFormat    "ip_catalog"
+
 # Set Project Environment Variables  
 #-------------------------------------------------
 set currDir      [pwd]
@@ -33,6 +41,7 @@ set testDir      ${currDir}/test
 set hlsCSim      $::env(hlsCSim)
 set hlsCSynth    $::env(hlsCSynth)
 set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
 
 # Open and Setup Project
 #-------------------------------------------------
@@ -171,6 +180,58 @@ if { $hlsCoSim } {
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
     puts "####                                                     ####"
     puts "#############################################################"
+}
+
+#-----------------------------
+# Export RTL (refer to UG902)
+#-----------------------------
+#
+# -description <string>
+#    Provides a description for the generated IP Catalog IP.
+# -display_name <string>
+#    Provides a display name for the generated IP.
+# -flow (syn|impl)
+#    Obtains more accurate timing and utilization data for the specified HDL using RTL synthesis.
+# -format (ip_catalog|sysgen|syn_dcp)
+#    Specifies the format to package the IP.
+# -ip_name <string>
+#    Provides an IP name for the generated IP.
+# -library <string>
+#    Specifies  the library name for the generated IP catalog IP.
+# -rtl (verilog|vhdl)
+#    Selects which HDL is used when the '-flow' option is executed. If not specified, verilog is
+#    the default language.
+# -vendor <string>
+#    Specifies the vendor string for the generated IP catalog IP.
+# -version <string>
+#    Specifies the version string for the generated IP catalog.
+# -vivado_synth_design_args {args...}
+#    Specifies the value to pass to 'synth_design' within the export_design -evaluate Vivado synthesis run.
+# -vivado_report_level <value>
+#    Specifies the utilization and timing report options.
+#---------------------------------------------------------------------------------------------------
+if { $hlsRtl } {
+    switch $hlsRtl {
+        1 {
+            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        2 {
+            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        3 {
+            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        default { 
+            puts "####  INVALID VALUE ($hlsRtl) ####"
+            exit 1
+        }
+    }
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
+
 }
 
 # Exit Vivado HLS
