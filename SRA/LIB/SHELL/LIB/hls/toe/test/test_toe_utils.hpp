@@ -137,6 +137,21 @@ void printTcpPort      (                        TcpPort       tcpPort);
     do {} while (0);
 #endif
 
+/**********************************************************
+ * @brief A macro that checks if a stream is full.
+ * @param[in] callerName,   the name of the caller process (e.g. "TB/IPRX").
+ * @param[in] stream        the stream to test.
+ * @param[in] streamName,   the name of the stream (e.g. "soEVe_RxEventSig").
+ * @param[in] depth,        the depth of the implemented FIFO.
+ **********************************************************/
+#ifndef __SYNTHESIS__
+  #define assessSize(callerName , stream , streamName, depth) \
+    do { if (stream.size() >= depth) printFatal(callerName, "Stream \'%s\' is full: Cannot write.", streamName); } while (0)
+#else
+  #define assessSize(callerName , stream, streamName, depth) \
+    do {} while (0);
+#endif
+
 
 /******************************************************************************
  * HELPER PROTOTYPE DEFINITIONS
