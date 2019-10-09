@@ -83,25 +83,27 @@ void ack_delay(
 
     const char *myName = THIS_NAME;
 
+    //-- STATIC ARRAYS --------------------------------------------------------
     // [FIXME - The type of 'ACK_TABLE' must be configured as a functions of 'TIME_XXX']
     // [FIXME - TIME_64us  = ( 64.000/0.0064/MAX_SESSIONS) + 1 = 10.000/32 = 0x139 ( 9-bits)
     // [FIXME - TIME_128us = (128.000/0.0064/MAX_SESSIONS) + 1 = 20.000/32 = 0x271 (10-bits)
     static ap_uint<12>              ACK_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
+    #pragma HLS reset      variable=ACK_TABLE
 
     // [FIXME - The type of 'akdPtr' could be configured as a functions of 'MAX_SESSIONS']
     // [FIXME - static const int NR_BITS = ceil(log10(MAX_SESSIONS)/log10(2));
-    static SessionId           akdPtr = 0;
+    static SessionId           akdPtr;
     #pragma HLS reset variable=akdPtr
 
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
     extendedEvent ev;
 
     if (!siEVe_Event.empty()) {
         siEVe_Event.read(ev);
-
         // Tell the [EventEngine] that we just received an event
-        assessFull(myName, soEVe_RxEventSig, "soEVe_RxEventSig");
+        assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", 2); // [FIXME-Use constant for the length]
         soEVe_RxEventSig.write(1);
         if (DEBUG_LEVEL & TRACE_AKD) {
             printInfo(myName, "Received event of type \'%s\' for session #%d.\n", myEventTypeToString(ev.type), ev.sessionID.to_int());
@@ -122,10 +124,10 @@ void ack_delay(
                 printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", myEventTypeToString(ev.type));
             }
             // Forward event to [TxEngine]
-            assessFull(myName, soTXe_Event, "soTXe_Event");
+            assessSize(myName, soTXe_Event, "soTXe_Event", 16);  // [FIXME-Use constant for the length]
             soTXe_Event.write(ev);
             // Tell the [EventEngine] that we just forwarded an event to TXe
-            assessFull(myName, soEVe_TxEventSig, "soEVe_TxEventSig");
+            assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);
             soEVe_TxEventSig.write(true);
         }
     }
@@ -137,7 +139,7 @@ void ack_delay(
                     printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akdPtr.to_int());
                 }
                 // Tell the [EventEngine] that we just forwarded an event to TXe
-                assessFull(myName, soEVe_TxEventSig, "soEVe_TxEventSig");
+                assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);  // [FIXME-Use constant for the length]
                 soEVe_TxEventSig.write(true);
             }
             // [FIXME - Shall we not move the decrement outside of the 'full()' condition ?]
