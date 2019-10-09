@@ -112,9 +112,9 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 #define MEM_RD_DAT_LATENCY 10
 #define MEM_RD_STS_LATENCY 10
 
-#define MEM_WR_CMD_LATENCY 10
-#define MEM_WR_DAT_LATENCY 10
-#define MEM_WR_STS_LATENCY 10
+#define MEM_WR_CMD_LATENCY  0
+#define MEM_WR_DAT_LATENCY  0
+#define MEM_WR_STS_LATENCY  0
 
 #define CAM_LOOKUP_LATENCY  1
 #define CAM_UPDATE_LATENCY 10
@@ -819,7 +819,7 @@ int pIPRX_InjectAckNumber(
 void pIPRX_FeedTOE(
         deque<IpPacket>             &ipRxPacketizer,
         int                         &ipRxPktCounter,
-        stream<Ip4overAxi>          &soTOE_Data,
+        stream<Ip4overMac>          &soTOE_Data,
         map<SocketPair, TcpAckNum>  &sessAckList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
@@ -836,12 +836,12 @@ void pIPRX_FeedTOE(
         int noPackets= ipRxPacketizer.size();
         for (int p=0; p<noPackets; p++) {
             IpPacket ipRxPacket = ipRxPacketizer.front();
-            Ip4overAxi axiWord;
+            Ip4overMac ip4Word;
             do {
-                axiWord = ipRxPacket.front();
-                soTOE_Data.write(axiWord);
+                ip4Word = ipRxPacket.front();
+                soTOE_Data.write(ip4Word);
                 ipRxPacket.pop_front();
-            } while (!axiWord.tlast);
+            } while (!ip4Word.tlast);
             ipRxPktCounter++;
             ipRxPacketizer.pop_front();
         }
@@ -885,7 +885,7 @@ void pIPRX(
         deque<IpPacket>             &ipRxPacketizer,
         map<SocketPair, TcpAckNum>  &sessAckList,
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &soTOE_Data)
+        stream<Ip4overMac>          &soTOE_Data)
 {
     static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
@@ -1007,7 +1007,7 @@ void pIPRX(
         else {
             // Build a new packet from data file
             IpPacket   ipRxPacket;
-            Ip4overAxi ipRxData;
+            Ip4overMac ipRxData;
             bool       firstWordFlag = true; // AXI-word is first chunk of packet
 
             do {
@@ -1025,7 +1025,7 @@ void pIPRX(
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
-                ipRxData = Ip4overAxi(myStrHexToUint64(stringVector[0]), \
+                ipRxData = Ip4overMac(myStrHexToUint64(stringVector[0]), \
                                       myStrHexToUint8(stringVector[2]),  \
                                       atoi(stringVector[1].c_str()));
                 ipRxPacket.push_back(ipRxData);
@@ -1278,7 +1278,7 @@ bool pL3MUX_Parse(
  ******************************************************************************/
 void pL3MUX(
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &siTOE_Data,
+        stream<Ip4overMac>          &siTOE_Data,
         ofstream                    &ipTxFile1,
         ofstream                    &ipTxFile2,
         map<SocketPair, TcpAckNum>  &sessAckList,
@@ -1288,7 +1288,7 @@ void pL3MUX(
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
 
-    Ip4overAxi  ipTxWord;  // An IP4 chunk
+    Ip4overMac  ipTxWord;  // An IP4 chunk
     uint16_t    ipTxWordCounter = 0;
 
     static IpPacket ipTxPacket;
@@ -1379,7 +1379,7 @@ bool pTRIF_Recv_Listen(
     static ap_uint<1> listenFsm     =   0;
     static TcpPort    portNum;
     static int        watchDogTimer = 100;
-    bool              rc = false;
+    AckBit            ackBit = 0;
 
     switch (listenFsm) {
     case 0:
@@ -1396,8 +1396,8 @@ bool pTRIF_Recv_Listen(
     case 1:
         watchDogTimer--;
         if (!siTOE_LsnAck.empty()) {
-            siTOE_LsnAck.read(rc);
-            if (rc) {
+            siTOE_LsnAck.read(ackBit);
+            if (ackBit) {
                 // Add the current port # to the set of opened ports
                 openedPorts.insert(portNum);
                 printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
@@ -1418,7 +1418,7 @@ bool pTRIF_Recv_Listen(
         }
         break;
     }
-    return rc;
+    return (ackBit ? true : false);
 }
 
 /*****************************************************************************
@@ -1439,7 +1439,7 @@ bool pTRIF_Send_Connect(
         int                         &nrError,
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
-        stream<AxiSockAddr>         &soTOE_OpnReq,
+        stream<LE_SockAddr>         &soTOE_OpnReq,
         stream<OpenStatus>          &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send/Connect()");
@@ -1451,7 +1451,7 @@ bool pTRIF_Send_Connect(
 
     bool rc = false;
     // Prepare to open a new connection
-    AxiSockAddr axiHostServerSocket(AxiSockAddr(byteSwap32(aSocketPair.dst.addr),
+    LE_SockAddr le_HostServerSocket(LE_SockAddr(byteSwap32(aSocketPair.dst.addr),
                                                 byteSwap16(aSocketPair.dst.port)));
     static int openFsm = 0;
 
@@ -1470,10 +1470,10 @@ bool pTRIF_Send_Connect(
             } while(dynamicPorts.find(aSocketPair.src.port) != dynamicPorts.end());
         }
 
-        soTOE_OpnReq.write(axiHostServerSocket);
+        soTOE_OpnReq.write(le_HostServerSocket);
         if (DEBUG_LEVEL & TRACE_TRIF) {
             printInfo(myName, "The FPGA client is requesting to connect to the following HOST socket: \n");
-            printSockAddr(myName, axiHostServerSocket);
+            printSockAddr(myName, le_HostServerSocket);
         }
         watchDogTimer = FPGA_CLIENT_CONNECT_TIMEOUT;
         openFsm++;
@@ -1784,7 +1784,7 @@ void pTRIF_Send(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<AxiSockAddr>     &soTOE_OpnReq,
+        stream<LE_SockAddr>     &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnRep,
         stream<SessionId>       &soTOE_Meta,
         stream<AxiWord>         &soTOE_Data,
@@ -2197,9 +2197,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
-    stream<Ip4overAxi>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
+    stream<Ip4overMac>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
 
-    stream<Ip4overAxi>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
+    stream<Ip4overMac>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
 
     stream<AppData>                     ssTRIF_TOE_Data      ("ssTRIF_TOE_Data");
     stream<AppMeta>                     ssTRIF_TOE_Meta      ("ssTRIF_TOE_Meta");
@@ -2247,7 +2247,7 @@ int main(int argc, char *argv[]) {
     ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
-    Ip4Word         ipRxData;    // An IP4 chunk
+    AxiWord         ipRxData;    // An IP4 chunk
     AxiWord         tcpTxData;   // A  TCP chunk
 
     ap_uint<16>     opnSessionCount;
@@ -2417,7 +2417,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         toe(
             //-- MMIO Interfaces
-            (AxiIp4Addr)(byteSwap32(gFpgaIp4Addr)),
+            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces
@@ -2539,7 +2539,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        if (1) {  // (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
         }

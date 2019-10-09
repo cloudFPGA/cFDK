@@ -1867,7 +1867,7 @@ void pIpPktStitcher(
         stream<Ip4overMac>      &soL3MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //#pragma HLS INLINE off
+    #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "Ips");
@@ -1995,8 +1995,8 @@ void pMemoryReader(
         stream<StsBit>      &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
     #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "Mrd");
 
@@ -2097,7 +2097,6 @@ void tx_engine(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
     #pragma HLS INTERFACE ap_ctrl_none port=return
-    #pragma HLS INLINE
 
     //=========================================================================
     //== LOCAL STREAMS (Sorted by the name of the modules which generate them)
