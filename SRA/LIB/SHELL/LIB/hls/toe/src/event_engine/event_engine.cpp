@@ -59,7 +59,7 @@ using namespace hls;
 
 /*****************************************************************************
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
- *         them event to the Tx Engine (TXe).
+ *         them to the Tx Engine (TXe).
  *
  * @param[in]  siTAi_Event,      Event from TxApplicationInterface (TAi).
  * @param[in]  siRXe_Event,      Event from RxEngine (RXe).
@@ -87,35 +87,19 @@ void event_engine(
 
     const char *myName  = THIS_NAME;
 
-    static ap_uint<1> eventEnginePriority = 0;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //---- Warning: the following counters depend on the FiFo depth between EVe and AKd
+    static ap_uint<8>            eveTxEventCnt; // Keeps track of the #events forwarded to [AckDelayer]
+    #pragma HLS reset variable = eveTxEventCnt
+    static ap_uint<8>            akdRxEventCnt; // Keeps track of the #events received  by [AckDelayer]
+    #pragma HLS reset variable = akdRxEventCnt
+    static ap_uint<8>            akdTxEventCnt; // Keeps track of the #events forwarded to [TxEngine] by [AckDelayer]
+    #pragma HLS reset variable = akdTxEventCnt
+    static ap_uint<8>            txeRxEventCnt; // Keeps track of the #events received  by [TxEngine]
+    #pragma HLS reset variable = txeRxEventCnt
 
-    // Warning: the following counters depend on the FiFo depth between EVe and AKd
-    static ap_uint<8> eve_eveTxEventCnt = 0; // Keeps track of the #events forwarded to [AckDelayer]
-    static ap_uint<8> eve_akdRxEventCnt = 0; // Keeps track of the #events received  by [AckDelayer]
-    static ap_uint<8> eve_akdTxEventCnt = 0; // Keeps track of the #events forwarded to [TxEngine] by [AckDelayer]
-    static ap_uint<8> eve_txeRxEventCnt = 0; // Keeps track of the #events received  by [TxEngine]
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
     extendedEvent ev;
-
-    /*switch (eventEnginePriority)
-    {
-    case 0:
-        if (!txApp2eventEng_setEvent.empty())
-        {
-            txApp2eventEng_setEvent.read(ev);
-            soAKd_Event.write(ev);
-        }
-        else if (!siRXe_Event.empty())
-        {
-            siRXe_Event.read(ev);
-            soAKd_Event.write(ev);
-        }
-        else if (!timer2eventEng_setEvent.empty())
-        {
-            siTIm_Event.read(ev);
-            soAKd_Event.write(ev);
-        }
-        break;
-    case 1:*/
 
     //------------------------------------------
     // Handle input from [RxEngine]
@@ -123,10 +107,10 @@ void event_engine(
     if (!siRXe_Event.empty() && !soAKd_Event.full()) {
         siRXe_Event.read(ev);
         soAKd_Event.write(ev);
-        eve_eveTxEventCnt++;
+        eveTxEventCnt++;
     }
-    else if (eve_eveTxEventCnt == eve_akdRxEventCnt &&
-             eve_akdTxEventCnt == eve_txeRxEventCnt) {
+    else if (eveTxEventCnt == akdRxEventCnt &&
+             akdTxEventCnt == txeRxEventCnt) {
         //------------------------------------------
         // Handle input from [Timers]
         //------------------------------------------
@@ -134,7 +118,7 @@ void event_engine(
         if (!siTIm_Event.empty()) {
             siTIm_Event.read(ev);
             soAKd_Event.write(ev);
-            eve_eveTxEventCnt++;
+            eveTxEventCnt++;
             if (DEBUG_LEVEL & TRACE_EVE) {
                 if (ev.type == RT)
                     printInfo(myName, "Received RT event from [TIm].\n");
@@ -145,18 +129,13 @@ void event_engine(
         //--------------------------------------------
         else if (!siTAi_Event.empty()) {
             siTAi_Event.read(ev);
-
-            assessFull(myName, soAKd_Event, "soAKd_Event");
+            assessSize(myName, soAKd_Event, "soAKd_Event", 4);
             soAKd_Event.write(ev);
-            eve_eveTxEventCnt++;
+            eveTxEventCnt++;
             if (DEBUG_LEVEL & TRACE_EVE)
                 printInfo(myName, "Received TX event from [TAi].\n");
         }
     }
-
-        //break;
-    //} //switch
-    //eventEnginePriority++;
 
     //------------------------------------------
     // Handle input from [AckDelayer]
@@ -164,13 +143,13 @@ void event_engine(
     if (!siAKd_RxEventSig.empty()) {
         // Remote [AckDelayer] just received an event from [EventEngine]
         siAKd_RxEventSig.read();
-        eve_akdRxEventCnt++;
+        akdRxEventCnt++;
     }
 
     if (!siAKd_TxEventSig.empty()) {
         // Remote [AckDelayer] just forwarded an event to [TxEngine]
         siAKd_TxEventSig.read();
-        eve_akdTxEventCnt++;
+        akdTxEventCnt++;
     }
 
     //------------------------------------------
@@ -178,6 +157,6 @@ void event_engine(
     //------------------------------------------
     if (!siTXe_RxEventSig.empty()) {
         siTXe_RxEventSig.read();
-        eve_txeRxEventCnt++;
+        txeRxEventCnt++;
     }
 }

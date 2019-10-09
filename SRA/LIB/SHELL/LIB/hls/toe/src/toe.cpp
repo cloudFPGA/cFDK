@@ -777,22 +777,22 @@ void toe(
     //-------------------------------------------------------------------------
     //-- ACK Delayer (AKd)
     //-------------------------------------------------------------------------
-    static stream<extendedEvent>        sAKdToTXe_Event           ("sAKdToTXe_Event");
-    #pragma HLS stream         variable=sAKdToTXe_Event           depth=16
-    #pragma HLS DATA_PACK      variable=sAKdToTXe_Event
+    static stream<extendedEvent>        ssAKdToTXe_Event          ("ssAKdToTXe_Event");
+    #pragma HLS stream         variable=ssAKdToTXe_Event          depth=16
+    #pragma HLS DATA_PACK      variable=ssAKdToTXe_Event
 
-    static stream<SigBit>               sAKdToEVe_RxEventSig      ("sAKdToEVe_RxEventSig");
-    #pragma HLS stream         variable=sAKdToEVe_RxEventSig      depth=2
+    static stream<SigBit>               ssAKdToEVe_RxEventSig     ("ssAKdToEVe_RxEventSig");
+    #pragma HLS stream         variable=ssAKdToEVe_RxEventSig     depth=2
 
-    static stream<SigBool>              sAKdToEVe_TxEventSig      ("sAKdToEVe_TxEventSig");
-    #pragma HLS stream         variable=sAKdToEVe_TxEventSig      depth=2
+    static stream<SigBool>              ssAKdToEVe_TxEventSig     ("ssAKdToEVe_TxEventSig");
+    #pragma HLS stream         variable=ssAKdToEVe_TxEventSig     depth=2
 
     //-------------------------------------------------------------------------
     //-- Event Engine (EVe)
     //-------------------------------------------------------------------------
-    static stream<extendedEvent>        sEVeToAKd_Event           ("sEVeToAKd_Event");
-    #pragma HLS stream         variable=sEVeToAKd_Event           depth=4
-    #pragma HLS DATA_PACK      variable=sEVeToAKd_Event
+    static stream<extendedEvent>        ssEVeToAKd_Event          ("ssEVeToAKd_Event");
+    #pragma HLS stream         variable=ssEVeToAKd_Event          depth=4
+    #pragma HLS DATA_PACK      variable=ssEVeToAKd_Event
 
     //-------------------------------------------------------------------------
     //-- Port Table (PRt)
@@ -1081,17 +1081,17 @@ void toe(
             sTAiToEVe_Event,
             sRXeToEVe_Event,
             sTImToEVe_Event,
-            sEVeToAKd_Event,
-            sAKdToEVe_RxEventSig,
-            sAKdToEVe_TxEventSig,
+            ssEVeToAKd_Event,
+            ssAKdToEVe_RxEventSig,
+            ssAKdToEVe_TxEventSig,
             sTXeToEVe_RxEventSig);
 
     //-- Ack Delayer (AKd)) ----------------------------------------------
      ack_delay(
-            sEVeToAKd_Event,
-            sAKdToTXe_Event,
-            sAKdToEVe_RxEventSig,
-            sAKdToEVe_TxEventSig);
+            ssEVeToAKd_Event,
+            ssAKdToTXe_Event,
+            ssAKdToEVe_RxEventSig,
+            ssAKdToEVe_TxEventSig);
 
 
     /**********************************************************************
@@ -1123,7 +1123,7 @@ void toe(
 
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
-            sAKdToTXe_Event,
+            ssAKdToTXe_Event,
             sTXeToEVe_RxEventSig,
             sTXeToRSt_RxSarReq,
             sRStToTXe_RxSarRep,
@@ -1170,7 +1170,6 @@ void toe(
             sTAiToSTt_Tas_StateReq,
             sSTtToTAi_Tas_StateRep,
             sTStToTAi_PushCmd,
-            siMEM_TxP_WrSts,
             siTRIF_ClsReq,
             sSLcToTAi_SessLookupRep,
             sPRtToTAi_ActPortStateRep,
@@ -1178,6 +1177,8 @@ void toe(
 
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
+            siMEM_TxP_WrSts,
+
             sTAiToTSt_PushCmd,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,

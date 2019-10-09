@@ -44,20 +44,18 @@ void tx_app_interface(
         stream<TcpSessId>              &soSTt_SessStateReq,
         stream<SessionState>           &siSTt_SessStateRep,
         stream<TStTxSarPush>           &siTSt_AckPush,
-        stream<DmSts>                  &siMEM_TxP_WrSts,
 
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
 
         stream<OpenStatus>             &siRXe_SessOpnSts,
-
-
+        //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
+        stream<DmSts>                  &siMEM_TxP_WrSts,
+
         stream<TAiTxSarPush>           &soTSt_AppPush,
-
-
         stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,

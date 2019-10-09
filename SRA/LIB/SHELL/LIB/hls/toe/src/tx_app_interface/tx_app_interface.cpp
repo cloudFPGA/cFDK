@@ -1,6 +1,7 @@
 /************************************************
-Copyright (c) 2016, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -35,6 +36,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include "tx_app_interface.hpp"
+#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 
@@ -49,10 +51,11 @@ using namespace hls;
 
 #define THIS_NAME "TOE/TAi"
 
-#define TRACE_OFF  0x0000
-#define TRACE_TAA 1 <<  1
-#define TRACE_TAS 1 <<  2
-#define TRACE_TAT 1 <<  3
+#define TRACE_OFF   0x0000
+#define TRACE_TAA  1 <<  1
+#define TRACE_TAS  1 <<  2
+#define TRACE_TAT  1 <<  3
+#define TRACE_TASH 1 <<  4
 #define TRACE_ALL  0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
@@ -209,20 +212,30 @@ void pTxAppStatusHandler(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
 
-    static event      ev;
+    const char *myName  = concat3(THIS_NAME, "/", "Tash");
 
-    static enum TashFsmStates { S0, S1, S2 } tashFsmState = S0;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum TashFsmStates { S0=0, S1, S2 } tashFsmState = S0;
+    #pragma HLS reset                 variable=tashFsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static event      ev;
 
     switch (tashFsmState) {
     case S0:
         if (!siEmx_Event.empty()) {
             siEmx_Event.read(ev);
-            if (ev.type == TX)
+            if (ev.type == TX) {
+                if (DEBUG_LEVEL & TRACE_TASH) {
+                    printInfo(myName, "Received \'TX\' event from [TAI].\n");
+                }
                 tashFsmState = S1;
+            }
             else
                 soEVe_Event.write(ev);
         }
         break;
+
     case S1:
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
@@ -232,25 +245,34 @@ void pTxAppStatusHandler(
                     soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
                     soEVe_Event.write(ev);
                 }
+                if (DEBUG_LEVEL & TRACE_TASH) {
+                    printInfo(myName, "Received 1st TXMEM write status = %d.\n", status.okay.to_int());
+                }
                 tashFsmState = S0;
             }
-            else
+            else {
                 tashFsmState = S2;
+            }
         }
         break;
+
     case S2:
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
             ap_uint<17> tempLength = (ev.address + ev.length);
             if (status.okay) {
-               // App pointer update, pointer is released
+                // App pointer update, pointer is released
                 soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, tempLength.range(15, 0)));
                 soEVe_Event.write(ev);
+            }
+            if (DEBUG_LEVEL & TRACE_TASH) {
+                printInfo(myName, "Received 2nd TXMEM write status = %d.\n", status.okay.to_int());
             }
             tashFsmState = S0;
         }
         break;
-    } //switch
+
+    } // End of: switch
 }
 
 
@@ -314,7 +336,6 @@ void pTxAppTable(
  * @param[in]  siSTt_Tas_SessStateRep,Session state reply from [STt].
  * @param[in]  siTSt_AckPush,         The push of an AckNum onto the ACK table of [TAi].
  * @param[]
- * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
  * @param[]
  * @param[]
  * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
@@ -335,6 +356,7 @@ void pTxAppTable(
  * @param[]
  * @param[out] soMEM_TxP_WrCmd,       Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,        Tx memory data to MEM.
+ * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
  * @param[out] soTSt_PushCmd,         Push command to TxSarTable (TSt).
  * @param
  * @param[out] soSTt_Taa_SessStateQry,Session state query to [STt].
@@ -359,20 +381,16 @@ void tx_app_interface(
         stream<TcpSessId>              &soSTt_Tas_SessStateReq,
         stream<SessionState>           &siSTt_Tas_SessStateRep,
         stream<TStTxSarPush>           &siTSt_PushCmd,
-        stream<DmSts>                  &siMEM_TxP_WrSts,
-
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
-
         stream<OpenStatus>             &siRXe_SessOpnSts,
-
-
+        //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
+        stream<DmSts>                  &siMEM_TxP_WrSts,
+
         stream<TAiTxSarPush>           &soTSt_PushCmd,
-
-
         stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
