@@ -65,18 +65,19 @@ using namespace hls;
  * @brief Tx Application Accept (Taa).
  *
  * @param[in]  siTRIF_OpnReq,        Open connection request from TCP Role I/F (TRIF).
+ * @param[out] soTRIF_OpnRep,        Open connection reply to [TRIF].
  * @param[]
  * @param[in]  siSLc_SessLookupRep,  Reply from [SLc]
  * @param[out] siPRt_ActPortStateRep,Active port state reply from [PRt].
  * @param[in]  siRXe_SessOpnSts,     Session open status from [RXe].
- * @param[out] soTRIF_SessOpnSts,    Session open status to [TRIF].
+
  * @param[out] soSLc_SessLookupReq,  Request a session lookup to Session Lookup Controller (SLc).
  * @param[out] soPRt_GetFreePortReq, Request to get a free port to Port Table {PRt).
  * @param[out  soSTt_SessStateQry,   Session state query to StateTable (STt).
  * @param[in]  siSTt_SessStateRep,   Session state reply from [STt].
  * @param[out] soEVe_Event,          Event to EventEngine (EVe).
- * @param
- * @param
+ * @param[todo]rtTimer2txApp_notification
+ * @param[in]  piMMIO_IpAddr         IP4 Address from MMIO.
  *
  * @details
  *  This process performs the creation and tear down of the active connections.
@@ -99,39 +100,45 @@ using namespace hls;
  ******************************************************************************/
 void pTxAppAccept(
         stream<LE_SockAddr>         &siTRIF_OpnReq,
+        stream<OpenStatus>          &soTRIF_OpnRep,
         stream<ap_uint<16> >        &closeConnReq,
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<TcpPort>             &siPRt_ActPortStateRep,
         stream<OpenStatus>          &siRXe_SessOpnSts,
-        stream<OpenStatus>          &soTRIF_SessOpnSts,
         stream<LE_SocketPair>       &soSLc_SessLookupReq,
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<StateQuery>          &soSTt_SessStateQry,
         stream<SessionState>        &siSTt_SessStateRep,
         stream<event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
-        LE_Ip4Address                regIpAddress)
+        LE_Ip4Address                piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE-20190907 #pragma HLS INLINE off
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
-    static ap_uint<16> tai_closeSessionID;
+    const char *myName  = concat3(THIS_NAME, "/", "Taa");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates {TAA_IDLE=0, TAA_GET_FREE_PORT, TAA_CLOSE_CONN } taaFsmState = TAA_IDLE;
+    #pragma HLS reset                                             variable=taaFsmState
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static SessionId            tai_closeSessionID;
+
+    //-- LOCAL STREAMS --------------------------------------------------------
     static stream<LE_SockAddr>  localFifo ("localFifo");
     #pragma HLS stream variable=localFifo depth=4
 
     OpenStatus  openSessStatus;
 
-    static enum TasFsmStates {TAS_IDLE=0, TAS_GET_FREE_PORT, TAS_CLOSE_CONN } tasFsmState = TAS_IDLE;
+    switch (taaFsmState) {
 
-    switch (tasFsmState) {
-
-    case TAS_IDLE:
+    case TAA_IDLE:
         if (!siTRIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
             localFifo.write(siTRIF_OpnReq.read());
             soPRt_GetFreePortReq.write(1);
-            tasFsmState = TAS_GET_FREE_PORT;
+            taaFsmState = TAA_GET_FREE_PORT;
         }
         else if (!siSLc_SessLookupRep.empty()) {
             // Read the session and check its state
@@ -142,39 +149,35 @@ void pTxAppAccept(
             }
             else {
                 // Tell the APP that the open connection failed
-                soTRIF_SessOpnSts.write(OpenStatus(0, FAILED_TO_OPEN_SESS));
+                soTRIF_OpnRep.write(OpenStatus(0, FAILED_TO_OPEN_SESS));
             }
         }
         else if (!siRXe_SessOpnSts.empty()) {
             // Read the status but do not forward to TRIF because it is actually
             // not waiting for this one
             siRXe_SessOpnSts.read(openSessStatus);
-            soTRIF_SessOpnSts.write(openSessStatus);
+            soTRIF_OpnRep.write(openSessStatus);
         }
         else if (!rtTimer2txApp_notification.empty())
-            soTRIF_SessOpnSts.write(rtTimer2txApp_notification.read());
+            soTRIF_OpnRep.write(rtTimer2txApp_notification.read());
         else if(!closeConnReq.empty()) {    // Close Request
             closeConnReq.read(tai_closeSessionID);
             soSTt_SessStateQry.write(StateQuery(tai_closeSessionID));
-            tasFsmState = TAS_CLOSE_CONN;
+            taaFsmState = TAA_CLOSE_CONN;
         }
         break;
 
-    case TAS_GET_FREE_PORT:
+    case TAA_GET_FREE_PORT:
         if (!siPRt_ActPortStateRep.empty() && !soSLc_SessLookupReq.full()) {
-            //OBSOLETE-20190521 ap_uint<16> freePort = siPRt_ActPortStateRep.read() + 32768; // 0x8000 is already added by PRt
             TcpPort     freePort      = siPRt_ActPortStateRep.read();
             LE_SockAddr leServerAddr = localFifo.read();
-            //OBSOLETE-20181218 soSLc_SessLookupReq.write(
-            //        fourTuple(regIpAddress, byteSwap32(server_addr.ip_address),
-            //        byteSwap16(freePort), byteSwap16(server_addr.ip_port)));
-            soSLc_SessLookupReq.write(LE_SocketPair(LE_SockAddr(regIpAddress,      byteSwap16(freePort)),
+            soSLc_SessLookupReq.write(LE_SocketPair(LE_SockAddr(piMMIO_IpAddr,     byteSwap16(freePort)),
                                                     LE_SockAddr(leServerAddr.addr, leServerAddr.port)));
-            tasFsmState = TAS_IDLE;
+            taaFsmState = TAA_IDLE;
         }
         break;
 
-    case TAS_CLOSE_CONN:
+    case TAA_CLOSE_CONN:
         if (!siSTt_SessStateRep.empty()) {
             SessionState state = siSTt_SessStateRep.read();
             //TODO might add CLOSE_WAIT here???
@@ -184,7 +187,7 @@ void pTxAppAccept(
             }
             else
                 soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, state, 1)); // Have to release lock
-            tasFsmState = TAS_IDLE;
+            taaFsmState = TAA_IDLE;
         }
         break;
     }
@@ -211,6 +214,7 @@ void pTxAppStatusHandler(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
+    #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tash");
 
@@ -295,10 +299,16 @@ void pTxAppTable(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE off
 
+    const char *myName  = concat3(THIS_NAME, "/", "Tat");
+
+    //-- STATIC ARRAYS --------------------------------------------------------
     static TxAppTableEntry          TX_APP_TABLE[MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_APP_TABLE inter false
+    #pragma HLS reset      variable=TX_APP_TABLE
 
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
     TStTxSarPush      ackPush;
     TxAppTableRequest txAppUpdate;
 
@@ -308,18 +318,19 @@ void pTxAppTable(
             TX_APP_TABLE[ackPush.sessionID].ackd = ackPush.ackd-1;
             TX_APP_TABLE[ackPush.sessionID].mempt = ackPush.ackd;
         }
-        else
+        else {
             TX_APP_TABLE[ackPush.sessionID].ackd = ackPush.ackd;
+        }
     }
     else if (!siTas_AcessReq.empty()) {
         siTas_AcessReq.read(txAppUpdate);
-
-        if(txAppUpdate.write) // Write
+        if(txAppUpdate.write) { // Write
             TX_APP_TABLE[txAppUpdate.sessId].mempt = txAppUpdate.mempt;
-        else // Read
+        }
+        else { // Read
             siTas_AcessRep.write(TxAppTableReply(txAppUpdate.sessId, TX_APP_TABLE[txAppUpdate.sessId].ackd, TX_APP_TABLE[txAppUpdate.sessId].mempt));
+        }
     }
-
 }
 
 
@@ -327,43 +338,28 @@ void pTxAppTable(
  * @brief The tx_app_interface (TAi) is front-end of the TCP Role I/F (TRIF).
  *
  * @param[in]  siTRIF_OpnReq,         Open connection request from TCP Role I/F (TRIF).
- * @param[out] soTRIF_SessOpnSts,     Open status to [TRIF].
+ * @param[out] soTRIF_OpnRep,         Open connection reply to [TRIF].
  * @param[in]  siTRIF_Data,           TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,           TCP metadata stream from TRIF.
  * @param[out] soTRIF_DSts,           TCP data status to TRIF.
- *
  * @param[out] soSTt_Tas_SessStateReq,Session sate request to StateTable (STt).
  * @param[in]  siSTt_Tas_SessStateRep,Session state reply from [STt].
  * @param[in]  siTSt_AckPush,         The push of an AckNum onto the ACK table of [TAi].
- * @param[]
- * @param[]
- * @param[]
- * @param[out] siPRt_ActPortStateRep, Active port state reply from [PRt].
- * @param[]
+ * @param[in]  appCloseConnReq
+ * @param[in]  siSLc_SessLookupRep
+ * @param[in]  siPRt_ActPortStateRep, Active port state reply from [PRt].
  * @param[in]  siRXe_SessOpnSts, Session open status from [RXe].
- * @param[]
- * @param[out] soSTt_SessStateReq,    State request to StateTable (STt).
- * @param[]
- * @param[]
- * @param[]
-
-
- * @param[out] soSLc_SessLookupReq,   Session lookup request to Session Lookup Controller(SLc).
- * @param[out] soPRt_ActPortStateReq  Request to get a free port to Port Table (PRt).
- * @param[]
- * @param[]
- * @param[]
- * @param[]
  * @param[out] soMEM_TxP_WrCmd,       Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data,        Tx memory data to MEM.
  * @param[in]  siMEM_TxP_WrSts,       Tx memory write status from MEM.
  * @param[out] soTSt_PushCmd,         Push command to TxSarTable (TSt).
- * @param
+ * @param[out] soSLc_SessLookupReq,   Session lookup request to Session Lookup Controller(SLc).
+ * @param[out] soPRt_GetFreePortReq,  Request to get a free port to Port Table (PRt).
  * @param[out] soSTt_Taa_SessStateQry,Session state query to [STt].
  * @param[in]  siSTt_Taa_SessStateRep,Session state reply from [STt].
  * @param[out] soEVe_Event,           Event to EventEngine (EVe).
- * @parm
- * @parm
+ * @param[]    rtTimer2txApp_notification
+ * @param[in]  regIpAddress
  *
  * @details
  *
@@ -372,7 +368,7 @@ void pTxAppTable(
 void tx_app_interface(
         //-- TRIF / Open Interfaces
         stream<LE_SockAddr>            &siTRIF_OpnReq,
-        stream<OpenStatus>             &soTRIF_SessOpnSts,
+        stream<OpenStatus>             &soTRIF_OpnRep,
         //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
@@ -381,6 +377,7 @@ void tx_app_interface(
         stream<TcpSessId>              &soSTt_Tas_SessStateReq,
         stream<SessionState>           &siSTt_Tas_SessStateRep,
         stream<TStTxSarPush>           &siTSt_PushCmd,
+
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
@@ -397,10 +394,12 @@ void tx_app_interface(
         stream<SessionState>           &siSTt_Taa_SessStateRep,
         stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
-        ap_uint<32>                     regIpAddress)
+        LE_Ip4Addr                      piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE
+    //OBSOLETE_20191009 #pragma HLS INLINE
+    #pragma HLS DATAFLOW
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- Event Multiplexer (Emx) -----------------------------------------
     static stream<event>                sEmxToTash_Event    ("sEmxToTash_Event");
@@ -455,18 +454,18 @@ void tx_app_interface(
     // Tx Application Accept (Taa)
     pTxAppAccept(
             siTRIF_OpnReq,
+            soTRIF_OpnRep,
             appCloseConnReq,
             siSLc_SessLookupRep,
             siPRt_ActPortStateRep,
             siRXe_SessOpnSts,
-            soTRIF_SessOpnSts,
             soSLc_SessLookupReq,
             soPRt_GetFreePortReq,
             soSTt_Taa_SessStateQry,
             siSTt_Taa_SessStateRep,
             sTaaToEmx_Event,
             rtTimer2txApp_notification,
-            regIpAddress);
+            piMMIO_IpAddr);
 
     // Tx Application Table (Tat)
     pTxAppTable(

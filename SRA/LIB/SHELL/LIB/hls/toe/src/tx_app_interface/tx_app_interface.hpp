@@ -48,19 +48,19 @@ void tx_app_interface(
         stream<ap_uint<16> >           &appCloseConnReq,
         stream<sessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
-
         stream<OpenStatus>             &siRXe_SessOpnSts,
+
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<DmSts>                  &siMEM_TxP_WrSts,
 
-        stream<TAiTxSarPush>           &soTSt_AppPush,
+        stream<TAiTxSarPush>           &soTSt_PushCmd,
         stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
         stream<SessionState>           &siSTt_Taa_SessStateRep,
         stream<event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
-        ap_uint<32>                     regIpAddress
+        LE_Ip4Addr                      piMMIO_IpAddr
 );
