@@ -1,0 +1,377 @@
+# ###################################################################################################################################
+#
+#  @file  : siETH_Data_IpRamp.dat
+#
+#  @brief : A serie of ETHERNET frames, each with an IPv4 packet of increasingly size.
+#
+#  @details : 
+#    * MAC_DA    = 01:02:03:04:05:06
+#    * MAC_SA    = 0A:0B:0C:0D:0E:0F
+#    * EtherType = 0x0800
+#    * IP-SA     = 0x0A0A0A0A = 10.10.10.10
+#    * IP-DA     = 0x01010101 =  1. 1. 1. 1
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an ETHERNET frame onto the AXI4-Stream interface of the 10GbE MAC is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |     SA[1]     |     SA[0]     |     DA[5]     |     DA[4]     |     DA[3]     |     DA[2]     |     DA[1]     |     DA[0]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |     Data      |     Data      |         Length/Type           |     SA[5]     |     SA[4]     |     SA[3]     |     SA[2]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |     Data      |     Data      |     Data      |     Data      |      Data     |     Data      |     Data      |     Data      |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+#  And the mapping of an IPv4 packet into the data payload of an ETHERNET frame is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |    Protocol   |  Time to Live | Frag. Offset  |Flags|         |         Identification        |          Total Length         |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |   Destination Address (1/2)   |                       Source Address                          |         Header Checksum       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |          Padding              |                            Options                            |   Destination Address (1/2)   |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003500 0 FF
+01010A0A0A0AADA5 0 FF
+2100800056000101 0 FF
+000001000080BE07 0 FF
+0000010000000000 0 FF
+0000000000000000 0 FF
+0000000000610000 1 07
+
+# IP TotalLength = 20
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001400 0 FF
+01010A0A0A0Acea5 0 FF
+deaddeaddead0101 1 03
+
+# IP TotalLength = 21
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001500 0 FF
+01010A0A0A0Acda5 0 FF
+deaddeadde150101 1 07
+
+# IP TotalLength = 22
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001600 0 FF
+01010A0A0A0Acca5 0 FF
+deaddead16150101 1 0F
+
+# IP TotalLength = 23
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001700 0 FF
+01010A0A0A0Acba5 0 FF
+deadde1716150101 1 1F
+
+# IP TotalLength = 24
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001800 0 FF
+01010A0A0A0Acaa5 0 FF
+dead181716150101 1 3F
+
+# IP TotalLength = 25
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001900 0 FF
+01010A0A0A0Ac9a5 0 FF
+de19181716150101 1 7F
+
+# IP TotalLength = 26
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001a00 0 FF
+01010A0A0A0Ac8a5 0 FF
+1a19181716150101 1 FF
+
+# IP TotalLength = 27
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001b00 0 FF
+01010A0A0A0Ac7a5 0 FF
+1a19181716150101 0 FF
+deaddeaddeadde1b 1 01
+
+# IP TotalLength = 28
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001c00 0 FF
+01010A0A0A0Ac6a5 0 FF
+1a19181716150101 0 FF
+deaddeaddead1c1b 1 03
+
+# IP TotalLength = 29
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001d00 0 FF
+01010A0A0A0Ac5a5 0 FF
+1a19181716150101 0 FF
+deaddeadde1d1c1b 1 07
+
+# IP TotalLength = 30
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001e00 0 FF
+01010A0A0A0Ac4a5 0 FF
+1a19181716150101 0 FF
+deaddead1e1d1c1b 1 0F
+
+# IP TotalLength = 31
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000001f00 0 FF
+01010A0A0A0Ac3a5 0 FF
+1a19181716150101 0 FF
+deadde1f1e1d1c1b 1 1F
+
+# IP TotalLength = 32
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002000 0 FF
+01010A0A0A0Ac2a5 0 FF
+1a19181716150101 0 FF
+dead201f1e1d1c1b 1 3F
+
+# IP TotalLength = 33
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002100 0 FF
+01010A0A0A0Ac1a5 0 FF
+1a19181716150101 0 FF
+de21201f1e1d1c1b 1 7F
+
+# IP TotalLength = 34
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002200 0 FF
+01010A0A0A0Ac0a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 1 FF
+
+# IP TotalLength = 35
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002300 0 FF
+01010A0A0A0Abfa5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+deaddeaddeadde23 1 01
+
+# IP TotalLength = 36
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002400 0 FF
+01010A0A0A0Abea5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+deaddeaddead2423 1 03
+
+# IP TotalLength = 37
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002500 0 FF
+01010A0A0A0Abda5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+deaddeadde252423 1 07
+
+# IP TotalLength = 38
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002600 0 FF
+01010A0A0A0Abca5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+deaddead26252423 1 0F
+
+# IP TotalLength = 39
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002700 0 FF
+01010A0A0A0Abba5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+deadde2726252423 1 1F
+
+# IP TotalLength = 40
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002800 0 FF
+01010A0A0A0Abaa5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+dead282726252423 1 3F
+
+# IP TotalLength = 41
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002900 0 FF
+01010A0A0A0Ab9a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+de29282726252423 1 7F
+
+# IP TotalLength = 42
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002a00 0 FF
+01010A0A0A0Ab8a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 1 FF
+
+# IP TotalLength = 43
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002b00 0 FF
+01010A0A0A0Ab7a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+deaddeaddeadde2b 1 01
+
+# IP TotalLength = 44
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002c00 0 FF
+01010A0A0A0Ab6a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+deaddeaddead2c2b 1 03
+
+# IP TotalLength = 45
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002d00 0 FF
+01010A0A0A0Ab5a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+deaddeadde2d2c2b 1 07
+
+# IP TotalLength = 46
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002e00 0 FF
+01010A0A0A0Ab4a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+deaddead2e2d2c2b 1 0F
+
+# IP TotalLength = 47
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000002f00 0 FF
+01010A0A0A0Ab3a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+deadde2f2e2d2c2b 1 1F
+
+# IP TotalLength = 48
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003000 0 FF
+01010A0A0A0Ab2a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+dead302f2e2d2c2b 1 3F
+
+# IP TotalLength = 49
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003100 0 FF
+01010A0A0A0Ab1a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+de31302f2e2d2c2b 1 7F
+
+# IP TotalLength = 50
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003200 0 FF
+01010A0A0A0Ab0a5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+3231302f2e2d2c2b 1 FF
+
+# IP TotalLength = 51
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003300 0 FF
+01010A0A0A0Aafa5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+3231302f2e2d2c2b 0 FF
+deaddeaddeadde33 1 01
+
+# IP TotalLength = 52
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003400 0 FF
+01010A0A0A0Aaea5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+3231302f2e2d2c2b 0 FF
+deaddeaddead3433 1 03
+
+# IP TotalLength = 53
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003500 0 FF
+01010A0A0A0Aada5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+3231302f2e2d2c2b 0 FF
+deaddeadde353433 1 07
+
+# IP TotalLength = 54
+0B0A060504030201 0 FF
+004500080F0E0D0C 0 FF
+06FF000000003600 0 FF
+01010A0A0A0Aaca5 0 FF
+1a19181716150101 0 FF
+2221201f1e1d1c1b 0 FF
+2a29282726252423 0 FF
+3231302f2e2d2c2b 0 FF
+deaddead36353433 1 0F

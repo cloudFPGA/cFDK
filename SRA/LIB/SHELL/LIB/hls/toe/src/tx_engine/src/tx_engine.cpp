@@ -43,7 +43,7 @@ using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (MDL_TRACE | TRACE_IPS)
+ *  .e.g: DEBUG_LEVEL = (TRACE_PHC | TRACE_MDL)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;

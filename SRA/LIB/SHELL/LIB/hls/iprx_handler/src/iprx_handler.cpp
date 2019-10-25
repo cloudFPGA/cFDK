@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : iprx_handler.cpp
  * @brief      : IP receiver frame handler (IPRX).
@@ -9,1714 +35,986 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
- *----------------------------------------------------------------------------
+ *-----------------------------------------------------------------------------
  *
- * @details    : This process connects to the Ethernet MAC core. It extracts
- *  the IP frame from the Ethernet packet and forwards that frame to the
- *  TCP-offload-engine (TOE), the Internet Control Message Protocol (ICMP)
- *  engine, the UDP engine or the Address Resolution Protocol (ARP) server.
+ * @details    : This process connects to the Rx side of the Ethernet MAC core.
+ *               It extracts the IPv4 and ARP packets from the Ethernet frame
+ *               and forwards them the TCP-offload-engine (TOE), the Internet
+ *               Control Message Protocol (ICMP) engine, the UDP engine (UDP)
+ *               or the Address Resolution Protocol (ARP) server.
  *
- * @note       :
- * @remark     : { remark text }
- * @warning    :
- * @todo       : Why do we need an IP input buffer? Can we get ride of it?
- *
- * @see        : https://www.stack.nl/~dimitri/doxygen/manual/commands.html
+ * @[TODO]     - Re-align the internal flow of IPv4 packets in order to re-use
+ *               the methods of the class 'Ip4overMac'.
+ *             - Why do we need an IP input buffer? Can we get ride of it?
  *
  *****************************************************************************/
 
 #include "iprx_handler.hpp"
+#include "../../toe/test/test_toe_utils.hpp"
 
 using namespace hls;
 
 #define USE_DEPRECATED_DIRECTIVES
 
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TRACE_MPd | TRACE_IBUF)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+#define THIS_NAME "IPRX"
 
-ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
-    return (inputVector.range(7,0), inputVector(15, 8));
-}
+#define TRACE_OFF  0x0000
+#define TRACE_IBUF 1 << 1
+#define TRACE_MPD  1 << 2
+#define TRACE_ILC  1 << 3
+#define TRACE_ICA  1 << 4
+#define TRACE_ICC  1 << 5
+#define TRACE_IID  1 << 6
+#define TRACE_ICL  1 << 7
+#define TRACE_IPR  1 << 8
+#define TRACE_ALL  0xFFFF
 
-ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
-    return (inputVector.range(7,0), inputVector(15, 8), inputVector.range(23,16), inputVector(31, 24));
-}
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
-
-ap_uint<8> returnKeep(ap_uint<4> length)
+/*****************************************************************************
+ * Input Buffer (IBuf)
+ *
+ * @param[in]  siETH_Data,	Data steam from the ETHeernet interface.
+ * @param[out] soMPd_Data,	Data stream to Mac Protocol Detector (MPd).
+ *
+ * @details
+ *  This process enqueues the incoming data traffic into FiFo.
+ *    [FIXME - Do we really need this?].
+ *
+ *****************************************************************************/
+void pInputBuffer(
+        stream<AxiWord>     &siETH_Data,
+        stream<AxiWord>     &soMPd_Data)
 {
-    ap_uint<8> keep = 0;
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
-    switch(length){
-            case 1: keep = 0x01; break;
-            case 2: keep = 0x03; break;
-            case 3: keep = 0x07; break;
-            case 4: keep = 0x0F; break;
-            case 5: keep = 0x1F; break;
-            case 6: keep = 0x3F; break;
-            case 7: keep = 0x7F; break;
-            case 8: keep = 0xFF; break;
-        }
+    const char *myName  = concat3(THIS_NAME, "/", "IBuf");
 
-    return keep;
-}
-
-ap_uint<4> keepMapping(ap_uint<8> keepValue)        // This function counts the number of 1s in an 8-bit value
-{
-    ap_uint<4> counter = 0;
-
-    switch(keepValue){
-        case 0x01: counter = 1; break;
-        case 0x03: counter = 2; break;
-        case 0x07: counter = 3; break;
-        case 0x0F: counter = 4; break;
-        case 0x1F: counter = 5; break;
-        case 0x3F: counter = 6; break;
-        case 0x7F: counter = 7; break;
-        case 0xFF: counter = 8; break;
+    if(!siETH_Data.empty() && !soMPd_Data.full()){
+        soMPd_Data.write(siETH_Data.read());
     }
-    return counter;
 }
 
-
-
-void detect_mac_protocol(     stream<axiWord> &dataIn,
-                            stream<axiWord> &ARPdataOut,
-                            stream<axiWord> &IPdataOut,
-                            ap_uint<48> myMacAddress)
+/*****************************************************************************
+ * Mac Protocol Detector (MPd)
+ *
+ * @param[in]  siIBuf_Data, Data steam from the Input Buffer (IBuf).
+ * @param[out] soARP_Data,  Data stream to ARP.
+ * @param[out] soILc_Data,  Data stream to the IPv4 Length Checket (ILc).
+ * @param[in]  piMMIO_MacAddr, The MAC address from MMIO.
+ *
+ * @details
+ *  This process parses the Ethernet header to detect ARP and IPv4 frames.
+ *  These two types of frames are forwarded accordingly, while other types of
+ *  frames are dropped.
+ *****************************************************************************/
+void pMacProtocolDetector(
+        LE_EthAddr           piMMIO_MacAddr,
+        stream<AxiWord>     &siIBuf_Data,
+        stream<AxiWord>     &soARP_Data,
+        stream<AxiWord>     &soILc_Data)
 {
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
-    static ap_uint<1> dmp_fsmState = 0;
-    static ap_uint<2> dmp_wordCount = 0;
-    static ap_uint<16> dmp_macType;
-    static axiWord dmp_prevWord;
-    axiWord currWord;
+    const char *myName  = concat3(THIS_NAME, "/", "MPd");
 
-    switch (dmp_fsmState) {
-    case 0:
-        if (!dataIn.empty() && !ARPdataOut.full() && !IPdataOut.full()) {
-            dataIn.read(currWord);
-            switch (dmp_wordCount) {
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { S0=0, S1 } fsmState=S0;
+    #pragma HLS reset         variable=fsmState
+    static ap_uint<2>                  wordCount=0;
+    #pragma HLS reset         variable=wordCount
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static EtherType    etherType;
+    static AxiWord      prevWord;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    EthoverMac          currWord;
+
+    switch (fsmState) {
+    case S0:
+        if (!siIBuf_Data.empty() && !soARP_Data.full() && !soILc_Data.full()) {
+            siIBuf_Data.read(currWord);
+            switch (wordCount) {
             case 0:
-                if (currWord.data.range(47, 0) != myMacAddress && currWord.data.range(47, 0) !=0xFFFFFFFFFFFF) // Verify that this node is the destination of this Ethenet frame
-                    dmp_macType = DROP;
-                else
-                    dmp_macType = FORWARD;
-
-                dmp_wordCount++;
-            break;
-            default:
-                if (dmp_wordCount == 1) {
-                    if (dmp_macType != DROP)
-                        dmp_macType = byteSwap16(currWord.data(47, 32));
-                    dmp_wordCount++;
+                // Compare MAC_DA with our MMIO_MacAddress and with BROADCAST
+                //  [TODO - Is this really needed given ARP ?]
+                //OBSOLETE-20191015 if (currWord.tdata.range(47, 0) != piMMIO_MacAddr &&
+                //OBSOLETE-20191015     currWord.tdata.range(47, 0) !=0xFFFFFFFFFFFF) {
+                if (currWord.getLE_EthDstAddr() != piMMIO_MacAddr &&
+                    currWord.getLE_EthDstAddr() != 0xFFFFFFFFFFFF) {
+                    etherType = DROP;
+                    printInfo(myName, "Requesting current frame with MAC destination address = 0x%16.16lX (0x%16.16lX) to be dropped\n",
+                                      currWord.getEthDstAddr().to_long(), currWord.getLE_EthDstAddr().to_long());
                 }
-                if (dmp_macType == ARP)
-                    ARPdataOut.write(dmp_prevWord);
-                else if (dmp_macType == IPv4)
-                    IPdataOut.write(dmp_prevWord);
+                else {
+                    etherType = FORWARD;
+                }
+                wordCount++;
+                break;
+            default:
+                if (wordCount == 1) {
+                    if (etherType != DROP) {
+                        //OBSOLETE-2191015 macType = byteSwap16(currWord.tdata(47, 32));
+                        etherType = currWord.getEtherType();
+                    }
+                    wordCount++;
+                }
+                if (etherType == ARP) {
+                    soARP_Data.write(prevWord);
+                }
+                else if (etherType == IPv4) {
+                    soILc_Data.write(prevWord);
+                }
                 break;
             }
-            dmp_prevWord = currWord;
-            if (currWord.last) {
-                dmp_wordCount = 0;
-                dmp_fsmState = 1;
+            prevWord = currWord;
+            if (currWord.tlast) {
+                wordCount = 0;
+                fsmState = S1;
             }
         }
-    break;
+        break;
     case 1:
-        if( !ARPdataOut.full() && !IPdataOut.full()){
-            if (dmp_macType == ARP)
-                ARPdataOut.write(dmp_prevWord);
-            else if (dmp_macType == IPv4)
-                IPdataOut.write(dmp_prevWord);
-            dmp_fsmState = 0;
-        }
-    break;
-    } //switch
-}
-
-
-
-
-void length_check(stream<axiWord> &lengthCheckIn, stream<axiWord> &ipDataFifo)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-   static enum lcState {LC_IDLE = 0, LC_SIZECHECK, LC_STREAM} lengthCheckState;
-   static ap_uint<2> dip_wordCount      = 0;
-   static ap_uint<2> dip_leftToWrite    = 0;
-   static ap_uint<1> filterPacket   = 0;
-   static ap_shift_reg<axiWord, 2> wordBuffer;
-   axiWord temp;
-
-   if (dip_leftToWrite == 0) {
-            if (!lengthCheckIn.empty() && !ipDataFifo.full()) {
-                axiWord currWord = lengthCheckIn.read();
-            switch (lengthCheckState) {
-                case LC_IDLE:
-                    wordBuffer.shift(currWord);
-                    if (dip_wordCount == 1)
-                        lengthCheckState = LC_SIZECHECK;
-                    dip_wordCount++;
-                    break;
-                case LC_SIZECHECK:
-                    byteSwap16(currWord.data.range(15, 0)) > MaxDatagramSize ? filterPacket = 1 : filterPacket = 0;
-                    temp = wordBuffer.shift(currWord);
-                    if (filterPacket == 0)
-                        ipDataFifo.write(temp);
-                    lengthCheckState = LC_STREAM;
-                    break;
-                case LC_STREAM:
-                    temp = wordBuffer.shift(currWord);
-                    if (filterPacket == 0)
-                        ipDataFifo.write(temp);
-                    break;
-             }
-             if (currWord.last) {
-                dip_wordCount   = 0;
-                dip_leftToWrite = 2;
-                lengthCheckState    = LC_IDLE;
-             }
+        if( !soARP_Data.full() && !soILc_Data.full()){
+            if (etherType == ARP) {
+                soARP_Data.write(prevWord);
             }
-   } else if (dip_leftToWrite != 0 && !ipDataFifo.full() ) {
-      //axiWord nullAxiWord = {0, 0, 0};
-      temp = wordBuffer.shift(axiWord(0, 0, 0));
-      if (filterPacket == 0)
-          ipDataFifo.write(temp);
-      dip_leftToWrite--;
-   }
+            else if (etherType == IPv4) {
+                soILc_Data.write(prevWord);
+            }
+            fsmState = S0;
+        }
+        break;
+
+    } // End of: switch
 }
 
-
-
-
-
-void check_ip_checksum( stream<axiWord>&      dataIn,
-                        ap_uint<32>                 myIpAddress,
-                        stream<axiWord>&        dataOut,
-                        stream<subSums>&        iph_subSumsFifoIn,
-                        stream<ap_uint<1> >&    ipValidFifoVersionNo,
-                        stream<ap_uint<1> >&    ipFragmentDrop)
+/*****************************************************************************
+ * IP Length Checker (ILc) - [FIXME:Consider removing this process]
+ *
+ * @param[in]  siMPd_Data,  Data steam from the MAC Protocol Detector (MPd).
+ * @param[out] soICa_Data,  Data stream to IP Checksum Accumulator (ICa).
+ *
+ * @details
+ *  This process parses the checks the IPv4/TotalLength field.
+ *
+ *****************************************************************************/
+void pIpLengthChecker(
+        stream<AxiWord>     &siMPd_Data,
+        stream<AxiWord>     &soICa_Data)
 {
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
-    static ap_uint<17> cics_ip_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8> cics_ipHeaderLen = 0;
-    static axiWord cics_prevWord;
-    static bool cics_wasLast = false;
-    static ap_uint<3> cics_wordCount = 0;
-    static ap_uint<32> cics_dstIpAddress = 0;
+    const char *myName  = concat3(THIS_NAME, "/", "ILc");
 
-    axiWord currWord;
-    axiWord sendWord;
-    ap_uint<16> temp;
-    bool ipMatch    = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static ap_uint<2>          leftToWrite=0;
+    #pragma HLS reset variable=leftToWrite
+    static enum FsmStates {FSM_IDLE=0, FSM_SIZECHECK, FSM_STREAM} fsmState=FSM_IDLE;
+    #pragma HLS reset variable=fsmState
+    static ap_uint<2>          wordCount=0;
+    #pragma HLS reset variable=wordCount
+    static ap_uint<1>          filterPacket=0;
+    #pragma HLS reset variable=filterPacket
 
-    currWord.last = 0;
-    if (!dataIn.empty() && !cics_wasLast && !ipValidFifoVersionNo.full() && !ipFragmentDrop.full() && !iph_subSumsFifoIn.full() && !dataOut.full()) {
-        dataIn.read(currWord);
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static ap_shift_reg<AxiWord, 2> wordBuffer;
 
-        switch (cics_wordCount) {
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AxiWord     tempWord;
+    Ip4TotalLen ip4TotLen;
+
+    if (leftToWrite == 0) {
+        if (!siMPd_Data.empty() && !soICa_Data.full()) {
+            AxiWord currWord = siMPd_Data.read();
+            switch (fsmState) {
+            case FSM_IDLE:
+                wordBuffer.shift(currWord);
+                if (wordCount == 1) {
+                    fsmState = FSM_SIZECHECK;
+                }
+                wordCount++;
+                break;
+            case FSM_SIZECHECK:
+                // Check the IPv4/TotalLength filed ([FIXME - Consider removing])
+                ip4TotLen = byteSwap16(currWord.tdata.range(15, 0));
+                //OBSOLETE-20191025 byteSwap16(currWord.tdata.range(15, 0)) > MaxDatagramSize ? filterPacket = 1 : filterPacket = 0;
+                if (ip4TotLen > MaxDatagramSize) {
+                    filterPacket = 1;
+                    printWarn(myName, "Current frame will be discarded because frame is too long!\n");
+                }
+                else {
+                    filterPacket = 0;
+                    if (DEBUG_LEVEL & TRACE_ILC) {
+                        printInfo(myName, "Start of IPv4 packet - Total length = %d bytes.\n", ip4TotLen.to_int());
+                    }
+                }
+                tempWord = wordBuffer.shift(currWord);
+                if (filterPacket == 0) {
+                    soICa_Data.write(tempWord);
+                }
+                fsmState = FSM_STREAM;
+                break;
+           case FSM_STREAM:
+                tempWord = wordBuffer.shift(currWord);
+                if (filterPacket == 0) {
+                    soICa_Data.write(tempWord);
+                }
+                break;
+            } // End of: switch
+
+            if (currWord.tlast) {
+                wordCount   = 0;
+                leftToWrite = 2;
+                fsmState    = FSM_IDLE;
+            }
+       }
+    }
+    else if (leftToWrite != 0 && !soICa_Data.full() ) {
+        tempWord = wordBuffer.shift(AxiWord(0, 0, 0));
+        if (filterPacket == 0) {
+            soICa_Data.write(tempWord);
+        }
+        leftToWrite--;
+    }
+
+//   if (leftToWrite == 0) {
+//            if (!siMPd_Data.empty() && !ipDataFifo.full()) {
+//                AxiWord currWord = siMPd_Data.read();
+//            switch (lengthCheckState) {
+//                case LC_IDLE:
+//                    wordBuffer.shift(currWord);
+//                    if (dip_wordCount == 1)
+//                        lengthCheckState = LC_SIZECHECK;
+//                    dip_wordCount++;
+//                    break;
+//                case LC_SIZECHECK:
+//                    byteSwap16(currWord.tdata.range(15, 0)) > MaxDatagramSize ? filterPacket = 1 : filterPacket = 0;
+//                    temp = wordBuffer.shift(currWord);
+//                    if (filterPacket == 0)
+//                        ipDataFifo.write(temp);
+//                    lengthCheckState = LC_STREAM;
+//                    break;
+//                case LC_STREAM:
+//                    temp = wordBuffer.shift(currWord);
+//                    if (filterPacket == 0)
+//                        ipDataFifo.write(temp);
+//                    break;
+//             }
+//             if (currWord.tlast) {
+//                dip_wordCount   = 0;
+//                leftToWrite = 2;
+//                lengthCheckState    = LC_IDLE;
+//             }
+//            }
+//   } else if (leftToWrite != 0 && !ipDataFifo.full() ) {
+//      //AxiWord nullAxiWord = {0, 0, 0};
+//      temp = wordBuffer.shift(AxiWord(0, 0, 0));
+//      if (filterPacket == 0)
+//          ipDataFifo.write(temp);
+//      leftToWrite--;
+//   }
+
+}
+
+/*****************************************************************************
+ * IP Checksum Checker (ICa)
+ *
+ * @param[in]  piMMIO_Ip4Address, the IPv4 address from MMIO (in network order). [FIXME - Not yet]
+ * @param[in]  siILc_Data,        Data stream from IpLengthChecker (ILc).
+ * @param[out] soIId_Data,        Data stream to IpInvalidDropper (IId).
+ * @param[out] soIId_IpVer,       The IP version to [IId].
+ * @param[out] soIId_DropFrag,    Tell [IId] to drop this IP fragment.
+ * @param[out] soICc_SubSums,     Four sub-checksums to IpChecksumChecker (ICc).
+
+
+ * @details
+ *  This process computes four sub-sums to assess the IPv4 header checksum.
+ *
+ *****************************************************************************/
+void pIpChecksumAccumulator(
+        LE_Ip4Addr            piMMIO_Ip4Address,
+        stream<AxiWord>      &siILc_Data,
+        stream<AxiWord>      &soIId_Data,
+        stream<Ip4Version>   &soIId_IpVer,
+        stream<CmdBit>       &soIId_DropFrag,
+        stream<SubSums>      &soICc_SubSums)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "ICa");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                wasLastWord=false;
+    #pragma HLS reset variable=wasLastWord
+    static ap_uint<3>          wordCount=0;
+    #pragma HLS reset variable=wordCount
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static ap_uint<17> ipHdrSums[4];
+    static ap_uint<8>  ipHdrLen;
+    static LE_Ip4Addr  dstIpAddress;
+    static AxiWord     prevWord;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AxiWord     currWord;
+    AxiWord     sendWord;
+    ap_uint<16> ip4FlagsAndFragOff;
+    bool        ipAddrMatch;
+
+    currWord.tlast = 0;
+    if (!siILc_Data.empty() && !wasLastWord && !soIId_IpVer.full() &&
+        !soIId_DropFrag.full() && !soICc_SubSums.full() && !soIId_Data.full()) {
+        siILc_Data.read(currWord);
+
+        switch (wordCount) {
         case 0:
-            // This is MAC only we throw it out
-            for (uint8_t i=0;i<4;++i)
-                cics_ip_sums[i] = 0;
-            cics_wordCount++;
-            break;
-        case 1:
-            if (currWord.data.range(55, 52) != 4)   // Verify that the IP protocol version number is what it should be
-                ipValidFifoVersionNo.write(0);      // If not, drop the packet
-            else
-                ipValidFifoVersionNo.write(1);
-
-            cics_ip_sums[3] += byteSwap16(currWord.data.range(63, 48));
-            cics_ip_sums[3] = (cics_ip_sums[3] + (cics_ip_sums[3] >> 16)) & 0xFFFF;
-            cics_ipHeaderLen = currWord.data.range(51, 48);
-
-            cics_wordCount++;
-            break;
-        case 2: // Check for fragmentation in this cycle. Need to check the MF flag. If that's set then drop. If it's not set then check the fragment offset and if its non-zero then drop.
-        {
-            ap_uint<16> temp = byteSwap16(currWord.data.range(47, 32));
-
-            if (temp.range(12, 0) != 0 || temp.bit(13) != 0)
-                ipFragmentDrop.write(0);
-            else
-                ipFragmentDrop.write(1);
-
-            for (int i = 0; i < 4; i++)     {
-            #pragma HLS unroll
-                cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
+            // Skip because word contains MAC_SA[1:0] | MAC_DA[5:0]
+            for (uint8_t i=0; i<4 ;++i) {
+                ipHdrSums[i] = 0;
             }
-            cics_ipHeaderLen -= 2;
-            cics_wordCount++;
+            wordCount++;
             break;
-        }
-        case 3: //maybe merge with WORD_2
-            //cics_srcMacIpTuple.ipAddress = currWord.data(47, 16);
-            cics_dstIpAddress.range(15, 0) = currWord.data.range(63, 48);
+
+        case 1:
+            // Retrieve the IP version field
+            soIId_IpVer.write(currWord.tdata.range(55, 52));
+            // Retrieve the Internet Header Length
+            ipHdrLen = currWord.tdata.range(51, 48);
+            // Retrieve the first two octets of the IPv4 header
+            ipHdrSums[3] += byteSwap16(currWord.tdata.range(63, 48));
+            ipHdrSums[3] = (ipHdrSums[3] + (ipHdrSums[3] >> 16)) & 0xFFFF;
+            wordCount++;
+            break;
+
+        case 2:
+            // Check for fragmentation in this cycle. Need to check the MF flag.
+            // If set, then drop. If not set, then check the fragment offset and
+            // if it is non-zero then drop.
+            ip4FlagsAndFragOff = byteSwap16(currWord.tdata.range(47, 32));
+
+            if (ip4FlagsAndFragOff.range(12, 0) != 0 || ip4FlagsAndFragOff.bit(13) != 0) {
+                soIId_DropFrag.write(CMD_DROP);
+                if (ip4FlagsAndFragOff.bit(13) != 0) {
+                    printWarn(myName, "The More Fragments (MF) is set but IP fragmentation is not supported (yet).\n");
+                }
+                if (ip4FlagsAndFragOff.range(12, 0) != 0) {
+                    printWarn(myName, "Fragment offset is set but not supported (yet) !!!\n");
+                }
+            }
+            else {
+                soIId_DropFrag.write(CMD_KEEP);
+            }
 
             for (int i = 0; i < 4; i++) {
-            #pragma HLS unroll
-                cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
+              #pragma HLS unroll
+                ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
             }
-
-            // write tcp len out
-            cics_ipHeaderLen -= 2;
-            cics_wordCount++;
+            ipHdrLen -= 2;
+            wordCount++;
             break;
-        default:
-            if (cics_wordCount == 4)
-                cics_dstIpAddress(31, 16) = currWord.data(15, 0);
 
-            switch (cics_ipHeaderLen) {
+        case 3:
+            dstIpAddress.range(15, 0) = currWord.tdata.range(63, 48);
+            for (int i = 0; i < 4; i++) {
+              #pragma HLS unroll
+                ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
+            }
+            ipHdrLen -= 2;
+            wordCount++;
+            break;
+
+        default:
+            if (wordCount == 4)
+                dstIpAddress(31, 16) = currWord.tdata(15, 0);
+
+            switch (ipHdrLen) {
             case 0:
                 break;
             case 1:
                 // Sum up part0
-                cics_ip_sums[0] += byteSwap16(currWord.data.range(15, 0));
-                cics_ip_sums[0] = (cics_ip_sums[0] + (cics_ip_sums[0] >> 16)) & 0xFFFF;
-                cics_ipHeaderLen = 0;
-
-                if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                    ipMatch = true;
-
-                iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
+                ipHdrSums[0] += byteSwap16(currWord.tdata.range(15, 0));
+                ipHdrSums[0] = (ipHdrSums[0] + (ipHdrSums[0] >> 16)) & 0xFFFF;
+                ipHdrLen = 0;
+                // Assess destination IP address
+                if (dstIpAddress == piMMIO_Ip4Address || dstIpAddress == 0xFFFFFFFF) {
+                    ipAddrMatch = true;
+                }
+                else {
+                    ipAddrMatch = false;
+                }
+                soICc_SubSums.write(SubSums(ipHdrSums, ipAddrMatch));
                 break;
             case 2:
                 // Sum up part 0-2
                 for (int i = 0; i < 4; i++) {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
+                  #pragma HLS unroll
+                    ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                    ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
                 }
-                cics_ipHeaderLen = 0;
+                ipHdrLen = 0;
 
-                if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                    ipMatch = true;
-
-                iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
+                if (dstIpAddress == piMMIO_Ip4Address || dstIpAddress == 0xFFFFFFFF) {
+                    ipAddrMatch = true;
+                }
+                else {
+                    ipAddrMatch = false;
+                }
+                soICc_SubSums.write(SubSums(ipHdrSums, ipAddrMatch));
                 break;
             default:
                 // Sum up everything
                 for (int i = 0; i < 4; i++) {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
+                  #pragma HLS unroll
+                    ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                    ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
                 }
-                cics_ipHeaderLen -= 2;
+                ipHdrLen -= 2;
                 break;
             }
             break;
-        } // switch WORD_N
 
-        if (cics_wordCount > 2) {
-            // Send Word
-            sendWord = axiWord((currWord.data(47, 0), cics_prevWord.data(63, 48)), (currWord.keep(5, 0), cics_prevWord.keep(7,6)), (currWord.keep[6] == 0));
-            dataOut.write(sendWord);
+        } // End of: switch(wordCount)
+
+        if (wordCount > 2) {
+            // Send AxiWords while re-aligning the outgoing chunks
+            sendWord = AxiWord((currWord.tdata(47, 0), prevWord.tdata(63, 48)),
+                               (currWord.tkeep( 5, 0), prevWord.tkeep( 7,  6)),
+                               (currWord.tkeep[6] == 0));
+            soIId_Data.write(sendWord);
         }
 
-        cics_prevWord = currWord;
-        if (currWord.last) {
-            cics_wordCount = 0;
-            cics_wasLast = !sendWord.last;
-            //cics_wasLast = true;
+        prevWord = currWord;
+        if (currWord.tlast) {
+            wordCount = 0;
+            wasLastWord = !sendWord.tlast;
         }
-    } else if(cics_wasLast && !dataOut.full()) {
+    }
+    else if(wasLastWord && !soIId_Data.full()) {
         // Send remaining Word;
-        sendWord = axiWord(cics_prevWord.data.range(63, 48), cics_prevWord.keep.range(7, 6), 1);
-        dataOut.write(sendWord);
-        cics_wasLast = false;
+        sendWord = AxiWord(prevWord.tdata.range(63, 48), prevWord.tkeep.range(7, 6), 1);
+        soIId_Data.write(sendWord);
+        wasLastWord = false;
     }
 }
 
-
-void check_ip_checksum_2(   stream<axiWord>&        dataIn,
-                            ap_uint<32>                 myIpAddress,
-                            stream<axiWord>&        dataOut,
-                            stream<subSums>&        iph_subSumsFifoIn,
-                            stream<ap_uint<1> >&    ipValidFifoVersionNo,
-                            stream<ap_uint<1> >&    ipFragmentDrop)
+/******************************************************************************
+ * IP Invalid Dropper (IId)
+ *
+ * @param[in]  siICa_Data,      Data stream from IpChecksumAccumulator (ICa).
+ * @param[in]  siICa_IpVer,     The IP version from [ICa].
+ * @param[in]  siICa_DropFrag,  Drop this IP fragment from [ICA].
+ * @param[out] siICc_CsumValid, Checksum is valid from IpChecksumChecker (ICc).
+ * @param[out] soICl_Data,      Data stream to IP Cut Length (ICl).
+ *
+ * @details
+ *  Drops an IP packet when its version is not '4' (siICa_IpVer), when it is a
+ *   fragmented packet (siICa_DropFrag) or when its IP header checksum is not
+ *   valid (siICc_CsumValid). Otherwise, the IPv4 packet is passed on.
+ *
+ *****************************************************************************/
+void pIpInvalidDropper(
+        stream<AxiWord>      &siICa_Data,
+        stream<Ip4Version>   &siICa_IpVer,
+        stream<ValBit>       &siICa_DropFrag,
+        stream<ValBit>       &siICc_CsumValid,
+        stream<AxiWord>      &soICl_Data)
 {
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
-    static ap_uint<17> cics_ip_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8> cics_ipHeaderLen = 0;
-    static axiWord cics_prevWord;
-    static bool cics_wasLast = false;
-    static ap_uint<3> cics_wordCount = 0;
-    static ap_uint<32> cics_dstIpAddress = 0;
+    const char *myName  = concat3(THIS_NAME, "/", "IId");
 
-    axiWord currWord;
-    axiWord sendWord;
-    ap_uint<16> temp;
-    bool ipMatch    = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates {FSM_IDLE=0, FSM_FWD, FSM_DROP} fsmState=FSM_IDLE;
+    #pragma HLS reset                           variable=fsmState
 
-    static enum check_ip_checksum_engine {CICES_IDLE = 0, CICES_WORD_1, CICES_WORD_2, CICES_WORD_3, CICES_WORD_DEF, CICES_LAST} check_ip_checksum_engine_state;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AxiWord currWord = AxiWord(0, 0, 0);
 
-    switch (check_ip_checksum_engine_state) {
-        case CICES_IDLE:
-            if (!dataIn.empty()) {
-                dataIn.read(currWord);
-                cics_prevWord = currWord;
-                cics_ip_sums[0] = cics_ip_sums[1] = cics_ip_sums[2] = cics_ip_sums[3] = 0;
-                cics_wordCount++;
-                check_ip_checksum_engine_state = CICES_WORD_1;
+    switch(fsmState) {
+    case FSM_IDLE:
+        if (!siICc_CsumValid.empty() && !siICa_IpVer.empty() && !siICa_DropFrag.empty() &&
+            !siICa_Data.empty() && !soICl_Data.full()) {
+            siICa_Data.read(currWord);
+            // Assess validity of the current IPv4 packet
+            //OBSOLETE-20191021 ap_uint<2> valid = siICc_CsumValid.read() + ipValidFifoVersionNo.read() + siICa_DropFrag.read(); // Check the fragment drop queue
+            ValBit csumValid = (siICc_CsumValid.read() == 1);        // CSUM is valid
+            ValBit isIpv4Pkt = (siICa_IpVer.read()     == 4);        // IP Version is 4
+            ValBit doKeepPkt = (siICa_DropFrag.read()  == CMD_KEEP); // Do not drop
+
+            ap_uint<2> valid = (csumValid + isIpv4Pkt + doKeepPkt);
+            if (valid != 3) {
+                fsmState = FSM_DROP;
+                printWarn(myName, "The current IP packet will be dropped because:\n");
+                printWarn(myName, "  csumValid=%d | isIpv4Pkt=%d | doKeepPkt=%d\n",
+                          csumValid.to_int(), isIpv4Pkt.to_int(), doKeepPkt.to_int());
+                // [FIXME]  printAxiWord(myName, "Dropping:", currWord);
             }
-        break;
-        case CICES_WORD_1:
-            if (!dataIn.empty() && !ipValidFifoVersionNo.full()) {
-                dataIn.read(currWord);
-                cics_prevWord = currWord;
-
-                if (currWord.data.range(55, 52) != 4)   // Verify that the IP protocol version number is what it should be
-                    ipValidFifoVersionNo.write(0);      // If not, drop the packet
-                else
-                    ipValidFifoVersionNo.write(1);
-
-                cics_ip_sums[3]    += byteSwap16(currWord.data.range(63, 48));
-                cics_ip_sums[3]     = (cics_ip_sums[3] + (cics_ip_sums[3] >> 16)) & 0xFFFF;
-                cics_ipHeaderLen    = currWord.data.range(51, 48);
-                cics_wordCount++;
-
-                check_ip_checksum_engine_state = CICES_WORD_2;
-            }
-        break;
-        case CICES_WORD_2:
-            if (!dataIn.empty() && !ipFragmentDrop.full()) {
-                dataIn.read(currWord);
-                cics_prevWord = currWord;
-
-                ap_uint<16> temp = byteSwap16(currWord.data.range(47, 32));
-                if (temp.range(12, 0) != 0 || temp.bit(13) != 0)
-                    ipFragmentDrop.write(0);
-                else
-                    ipFragmentDrop.write(1);
-
-                for (int i = 0; i < 4; i++)     {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                }
-                cics_ipHeaderLen -= 2;
-                cics_wordCount++;
-
-                check_ip_checksum_engine_state = CICES_WORD_3;
-            }
-        break;
-        case CICES_WORD_3:
-            if (!dataIn.empty() && !dataOut.full()) {
-                dataIn.read(currWord);
-                cics_prevWord = currWord;
-
-                cics_dstIpAddress.range(15, 0) = currWord.data.range(63, 48);
-
-                for (int i = 0; i < 4; i++) {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                }
-                // write tcp len out
-                cics_ipHeaderLen -= 2;
-
-                if(cics_wordCount > 2){
-                    sendWord = axiWord((currWord.data(47, 0), cics_prevWord.data(63, 48)), (currWord.keep(5, 0), cics_prevWord.keep(7,6)), (currWord.keep[6] == 0));
-                    dataOut.write(sendWord);
-                }
-
-                if (currWord.last) {
-                    //cics_wordCount = 0;
-
-                    cics_wasLast = !sendWord.last;
-                    if(cics_wasLast)
-                        check_ip_checksum_engine_state = CICES_LAST;
-                }
-
-
-                cics_wordCount++;
-
-                check_ip_checksum_engine_state = CICES_WORD_DEF;
-            }
-        break;
-        case CICES_WORD_DEF:
-            if (!dataIn.empty() && !dataOut.full() && !iph_subSumsFifoIn.full()) {
-                dataIn.read(currWord);
-                cics_prevWord = currWord;
-
-                if (cics_wordCount == 4)
-                    cics_dstIpAddress(31, 16) = currWord.data(15, 0);
-
-                    switch (cics_ipHeaderLen) {
-                    case 0:
-                        break;
-                    case 1:
-                    // Sum up part0
-                        cics_ip_sums[0] += byteSwap16(currWord.data.range(15, 0));
-                        cics_ip_sums[0] = (cics_ip_sums[0] + (cics_ip_sums[0] >> 16)) & 0xFFFF;
-                        cics_ipHeaderLen = 0;
-
-                        if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                            ipMatch = true;
-                        iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
-                    break;
-                    case 2:
-                        // Sum up part 0-2
-                        for (int i = 0; i < 4; i++) {
-                        #pragma HLS unroll
-                            cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                            cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                        }
-
-                        cics_ipHeaderLen = 0;
-
-                        if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                            ipMatch = true;
-
-                        iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
-                    break;
-                    default:
-                        // Sum up everything
-                        for (int i = 0; i < 4; i++) {
-                        #pragma HLS unroll
-                            cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                            cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                        }
-                        cics_ipHeaderLen -= 2;
-                    break;
-                }
-
-                if(cics_wordCount > 2){
-                    sendWord = axiWord((currWord.data(47, 0), cics_prevWord.data(63, 48)), (currWord.keep(5, 0), cics_prevWord.keep(7,6)), (currWord.keep[6] == 0));
-                    dataOut.write(sendWord);
-                }
-
-                if (currWord.last) {
-                    //cics_wordCount = 0;
-
-                    cics_wasLast = !sendWord.last;
-                    if(cics_wasLast)
-                        check_ip_checksum_engine_state = CICES_LAST;
-                }
-            }
-        break;
-        case CICES_LAST:
-            if (!dataOut.full()) {
-                sendWord = axiWord(cics_prevWord.data.range(63, 48), cics_prevWord.keep.range(7, 6), 1);
-                dataOut.write(sendWord);
-                cics_wasLast = false;
-                check_ip_checksum_engine_state = CICES_IDLE;
-                cics_wordCount = 0;
-            }
-        break;
-
-    }
-}
-
-
-
-
-
-void ip_invalid_dropper(  stream<axiWord>&        dataIn,
-                            stream<ap_uint<1> >&    ipValidFifoIn,
-                            // Add a stream here for fragment drop
-                            stream<ap_uint<1> >         &ipValidFifoVersionNo,
-                            stream<ap_uint<1> >         &ipFragmentDrop,
-                            stream<axiWord>&        dataOut)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static bool iid_firstWord = true;
-    static bool iid_drop = false;
-
-    static enum ip_invalid_dropper_engine {IIDES_IDLE = 0, IIDES_FWD, IIDES_DROP} ip_invalid_dropper_engine_state;
-
-    axiWord currWord = axiWord(0, 0, 0);
-
-
-    switch(ip_invalid_dropper_engine_state) {
-    case IIDES_IDLE:
-        if (!ipValidFifoIn.empty() && !ipValidFifoVersionNo.empty() && !ipFragmentDrop.empty() && !dataIn.empty() && !dataOut.full()) {
-            ap_uint<2> valid = ipValidFifoIn.read() + ipValidFifoVersionNo.read() + ipFragmentDrop.read(); // Check the fragment drop queue
-            dataIn.read(currWord);
-
-            if (valid != 3)
-                ip_invalid_dropper_engine_state = IIDES_DROP;
             else {
-                dataOut.write(currWord);
-                ip_invalid_dropper_engine_state = IIDES_FWD;
+                soICl_Data.write(currWord);
+                fsmState = FSM_FWD;
             }
         }
-    break;
-    case IIDES_FWD:
-        if(!dataIn.empty() && !dataOut.full()) {
-            dataIn.read(currWord);
-            dataOut.write(currWord);
-
-            if (currWord.last == 1)
-                ip_invalid_dropper_engine_state = IIDES_IDLE;
+        break;
+    case FSM_FWD:
+        if(!siICa_Data.empty() && !soICl_Data.full()) {
+            siICa_Data.read(currWord);
+            soICl_Data.write(currWord);
+            if (currWord.tlast == 1) {
+                fsmState = FSM_IDLE;
+            }
         }
-    break;
-    case IIDES_DROP:
-        if(!dataIn.empty()){
-            dataIn.read(currWord);
-            if (currWord.last == 1)
-                ip_invalid_dropper_engine_state = IIDES_IDLE;
+        break;
+    case FSM_DROP:
+        if(!siICa_Data.empty()){
+            siICa_Data.read(currWord);
+            // [FIXME] printAxiWord(myName, "Dropping:", currWord);
+            if (currWord.tlast == 1) {
+                fsmState = FSM_IDLE;
+            }
         }
-    break;
+        break;
     }
 }
 
-
-
-
-void cut_length(  stream<axiWord> &dataIn,
-                    stream<axiWord> &dataOut)
+/******************************************************************************
+ * IPv4 Cut Length (ICl)
+ *
+ * @param[in]  siIId_Data,  Data stream from IpInvalidDropper (IId).
+ * @param[out] soIPr_Data,  Data stream to Ip PAcket Router (IPr).
+ *
+ * @details
+ *  This process intercepts and drops packets which are longer than the
+ *   announced 'Ip4TotalLenght' field.
+ *
+ *****************************************************************************/
+void pIpCutLength(
+        stream<AxiWord>  &siIId_Data,
+        stream<AxiWord>  &soIPr_Data)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
 
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
+    const char *myName  = concat3(THIS_NAME, "/", "ICl");
 
-    static enum cut_length_engine {CLES_IDLE = 0, CLES_LAST} cut_length_engine_state;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates {FSM_FWD=0, FSM_DROP} fsmState=FSM_FWD;
+    #pragma HLS reset                 variable=fsmState
+    static ap_uint<13>                         wordCount=0; // Ip4TotalLen/8
+    #pragma HLS reset                 variable=wordCount
 
-    static ap_uint<16> cl_wordCount = 0;
-    static ap_uint<16> cl_totalLength = 0;
-    static bool cl_drop = false;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static Ip4TotalLen  ip4TotalLength;
 
-    switch(cut_length_engine_state){
-    case CLES_IDLE:
-        if (!dataIn.empty() && !dataOut.full()) {
-                axiWord currWord = dataIn.read();
-                switch (cl_wordCount) {
-                case 0:
-                    cl_totalLength = byteSwap16(currWord.data(31, 16));
-                    break;
-                default:
-                    if (((cl_wordCount+1)*8) >= cl_totalLength) {   //last real world
-                        if (currWord.last == 0)
-                            cut_length_engine_state = CLES_LAST;
-                            //cl_drop = true;
-                        currWord.last = 1;
-                        ap_uint<4> leftLength = cl_totalLength - (cl_wordCount*8);
-                        currWord.keep = returnKeep(leftLength);
+    switch(fsmState){
+    case FSM_FWD:
+        if (!siIId_Data.empty() && !soIPr_Data.full()) {
+            AxiWord currWord = siIId_Data.read();
+            switch (wordCount) {
+            case 0:
+                ip4TotalLength = byteSwap16(currWord.tdata(31, 16)); // why not (15:0)???
+                break;
+            default:
+                if (((wordCount+1)*8) >= ip4TotalLength) {
+                    if (currWord.tlast == 0) {
+                        fsmState = FSM_DROP;
                     }
-                    break;
+                    currWord.tlast = 1;
+                    ap_uint<4> leftLength = ip4TotalLength - (wordCount*8);
+                    currWord.tkeep = returnKeep(leftLength);
                 }
-                dataOut.write(currWord);
-                cl_wordCount++;
-                if (currWord.last)
-                    cl_wordCount = 0;
+                break;
+            } // End of: switch(wordCount)
+
+            soIPr_Data.write(currWord);
+            wordCount++;
+            if (currWord.tlast) {
+                wordCount = 0;
             }
-    break;
-    case CLES_LAST:
-        if (!dataIn.empty()) {
-            axiWord currWord = dataIn.read();
-            if (currWord.last)
-                cut_length_engine_state = CLES_IDLE;
-                //cl_drop = false;
         }
-    break;
+        break;
 
+    case FSM_DROP:
+        if (!siIId_Data.empty()) {
+            AxiWord currWord = siIId_Data.read();
+            if (currWord.tlast) {
+                fsmState = FSM_FWD;
+            }
+        }
+        break;
+
+    } // End of: switch(fsmState)
+}
+
+/******************************************************************************
+ * IPv4 Checksum Checker (ICc)
+ *
+ * @param[in]  siICa_SubSums,   Four sub-checksums from IpChecksumAccumulator (ICa).
+ * @param[out] soIId_CsumValid, Checksum valid information.
+ *
+ * @details
+ *  This process .........
+ *
+ *****************************************************************************/
+void pIpChecksumChecker(
+        stream<SubSums>   &siICa_SubSums,
+        stream<ValBit>    &soIId_CsumValid)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HlS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/", "ICc");
+
+    if (!siICa_SubSums.empty() && !soIId_CsumValid.full()) {
+        SubSums ipHdrSums = siICa_SubSums.read();
+
+        ipHdrSums.sum0 += ipHdrSums.sum2;
+        ipHdrSums.sum1 += ipHdrSums.sum3;
+        ipHdrSums.sum0 = (ipHdrSums.sum0 + (ipHdrSums.sum0 >> 16)) & 0xFFFF;
+        ipHdrSums.sum1 = (ipHdrSums.sum1 + (ipHdrSums.sum1 >> 16)) & 0xFFFF;
+        ipHdrSums.sum0 += ipHdrSums.sum1;
+        ipHdrSums.sum0 = (ipHdrSums.sum0 + (ipHdrSums.sum0 >> 16)) & 0xFFFF;
+        ipHdrSums.sum0 = ~ipHdrSums.sum0;
+        if (ipHdrSums.sum0(15, 0) != 0x0000) {
+            printError(myName, "Bad IP header checksum: Expected 0x0000 - Computed 0x%4.4X\n", ipHdrSums.sum0(15, 0).to_int());
+        }
+        soIId_CsumValid.write((ipHdrSums.sum0(15, 0) == 0x0000) && ipHdrSums.ipMatch);
     }
 }
 
-
-void iph_check_ip_checksum(     stream<subSums>&        iph_subSumsFifoOut,
-                            stream<ap_uint<1> >&    iph_validFifoOut)
+/******************************************************************************
+ * IPv4 Packet Router (IPr)
+ *
+ * @param[in]  siICl_Data,  Data stream from IpCutLength (ICl).
+ * @param[out] soICMP_Data, Data stream to ICMP.
+ * @param[out] soICMP_Derr, Data error stream(**) to ICMP.
+ * @param[out] soUDP_Data,  Data stream to UDP engine.
+ * @param[out] soTCP_Data,  Data stream to TCP offload engine.
+ *
+ * @details
+ *  This process routes the IPv4 packets to one of the 3 following engines:
+ *  ICMP, TCP or UDP.
+ *
+ *****************************************************************************/
+void pIpPacketRouter(
+		stream<AxiWord>  &siICl_Data,
+		stream<AxiWord>  &soICMP_Data,
+		stream<AxiWord>  &soICMP_Derr,
+		stream<AxiWord>  &soUDP_Data,
+		stream<AxiWord>  &soTCP_Data)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS PIPELINE II=1 enable_flush
 
-#pragma HlS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
+    const char *myName  = concat3(THIS_NAME, "/", "IPr");
 
-    if (!iph_subSumsFifoOut.empty() && !iph_validFifoOut.full()) {
-        subSums icic_ip_sums = iph_subSumsFifoOut.read();
-        icic_ip_sums.sum0 += icic_ip_sums.sum2;
-        icic_ip_sums.sum1 += icic_ip_sums.sum3;
-        icic_ip_sums.sum0 = (icic_ip_sums.sum0 + (icic_ip_sums.sum0 >> 16)) & 0xFFFF;
-        icic_ip_sums.sum1 = (icic_ip_sums.sum1 + (icic_ip_sums.sum1 >> 16)) & 0xFFFF;
-        icic_ip_sums.sum0 += icic_ip_sums.sum1;
-        icic_ip_sums.sum0 = (icic_ip_sums.sum0 + (icic_ip_sums.sum0 >> 16)) & 0xFFFF;
-        icic_ip_sums.sum0 = ~icic_ip_sums.sum0;
-        iph_validFifoOut.write((icic_ip_sums.sum0(15, 0) == 0x0000) && icic_ip_sums.ipMatch);
-    }
-}
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { FSM_IDLE=0, FSM_LAST} fsmState=FSM_IDLE;
+	#pragma HLS reset                    variable=fsmState
+    static ap_uint<2>                             wordCount=0;
+    #pragma HLS reset                    variable=wordCount
+    static bool                                   leftToWrite=false;
+    #pragma HLS reset                    variable=leftToWrite
 
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static StsBit		ttlExpired;
+    static Ip4Prot		ipProtocol;
+    static Ip4overMac	prevWord;
 
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    Ip4overMac			currWord;
 
-
-
-void detect_ip_protocol_1(stream<axiWord>&      dataIn,
-                          stream<axiWord>&      ICMPdataOut,
-                          stream<axiWord>&      ICMPexpDataOut,
-                          stream<axiWord>&      UDPdataOut,
-                          stream<axiWord>&      TCPdataOut)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<8>   dip_ipProtocol  = 0;
-    static ap_uint<2>   dip_wordCount   = 0;
-    static ap_uint<1>   dip_ttlExpired  = 0;
-    static axiWord      dip_prevWord;
-    static bool         dip_leftToWrite = false;
-    axiWord             currWord;
-
-     static enum detect_ip_protocol_engine {DIPES_IDLE = 0, DIPES_LAST} detect_ip_protocol_engine_state;
-
-     switch (detect_ip_protocol_engine_state) {
-     case DIPES_IDLE:
-         if (!dataIn.empty() && !ICMPexpDataOut.full() && !ICMPdataOut.full() && !UDPdataOut.full() && !TCPdataOut.full()) {
-             dataIn.read(currWord);
-                switch (dip_wordCount) {
+     switch (fsmState) {
+     case FSM_IDLE:
+         if (!siICl_Data.empty() &&
+        	 !soICMP_Derr.full() && !soICMP_Data.full() &&
+			 !soUDP_Data.full()  && !soTCP_Data.full()) {
+             siICl_Data.read(currWord);
+             switch (wordCount) {
                 case 0:
-                    dip_wordCount++;
+                    wordCount++;
                     break;
                 default:
-                    if (dip_wordCount == 1) {
-                        if (currWord.data.range(7, 0) == 1)
-                            dip_ttlExpired = 1;
-                        else
-                            dip_ttlExpired = 0;
-                        dip_ipProtocol = currWord.data.range(15, 8);
-                        dip_wordCount++;
+                    if (wordCount == 1) {
+                        //OBSOLETE-20191025 if (currWord.tdata.range(7, 0) == 1)
+                        if (currWord.getIp4Ttl() == 1) {
+                            ttlExpired = 1;
+                        }
+                        else {
+                            ttlExpired = 0;
+                        }
+                        //OBSOLETE-20191025 dip_ipProtocol = currWord.tdata.range(15, 8);
+                        ipProtocol = currWord.getIp4Prot();
+                        wordCount++;
                     }
-                    // There is not default, if package does not match any case it is automatically dropped
-                    if (dip_ttlExpired == 1) {
-                        ICMPexpDataOut.write(dip_prevWord);
-                    } else {
-                        switch (dip_ipProtocol) {
+                    if (ttlExpired == 1) {
+                        soICMP_Derr.write(prevWord);
+                    }
+                    else {
+                        switch (ipProtocol) {
+                        // FYI - There is not default case. If the current packet
+                        //  does not match any case, it is automatically dropped.
                         case ICMP:
-                            ICMPdataOut.write(dip_prevWord);
+                            soICMP_Data.write(prevWord);
                             break;
                         case UDP:
-                            UDPdataOut.write(dip_prevWord);
+                            soUDP_Data.write(prevWord);
                             break;
                         case TCP:
-                            TCPdataOut.write(dip_prevWord);
+                            soTCP_Data.write(prevWord);
                             break;
                         }
                     }
                     break;
                 }
-                dip_prevWord = currWord;
-                if (currWord.last) {
-                    dip_wordCount = 0;
-                    dip_leftToWrite = true;
-                    detect_ip_protocol_engine_state = DIPES_LAST;
+                prevWord = currWord;
+                if (currWord.tlast) {
+                    wordCount = 0;
+                    leftToWrite = true;
+                    fsmState = FSM_LAST;
                 }
             }
      break;
-     case DIPES_LAST:
-         if (!ICMPexpDataOut.full() && !ICMPdataOut.full() && !UDPdataOut.full() && !TCPdataOut.full() ) {
-                uint8_t bitCounter = 0;
-                bitCounter = keepMapping(dip_prevWord.keep);
-                /*for (uint8_t i=0;i<8;++i) {
-                    if (dip_prevWord.keep.bit(i) == 1)
-                        bitCounter++;
-                }*/
-                if (dip_prevWord.keep != 0xFF)
-                    dip_prevWord.data.range(63, 64-((8-bitCounter)*8)) = 0;
 
-                if (dip_ttlExpired == 1) {
-                    ICMPexpDataOut.write(dip_prevWord);
-                } else {
-                    switch (dip_ipProtocol) {
-                    case ICMP:
-                        ICMPdataOut.write(dip_prevWord);
-                        break;
-                    case UDP:
-                        UDPdataOut.write(dip_prevWord);
-                        break;
-                    case TCP:
-                        TCPdataOut.write(dip_prevWord);
-                        break;
-                    }
-                }
-                //dip_leftToWrite = false;
-                detect_ip_protocol_engine_state = DIPES_IDLE;
+     case FSM_LAST:
+         if (!soICMP_Derr.full() &&
+        	 !soICMP_Data.full() && !soUDP_Data.full() && !soTCP_Data.full() ) {
+        	 uint8_t bitCounter = 0;
+        	 bitCounter = keepMapping(prevWord.tkeep);
+        	 if (prevWord.tkeep != 0xFF) {
+        		 prevWord.tdata.range(63, 64-((8-bitCounter)*8)) = 0;
+        	 }
+        	 if (ttlExpired == 1) {
+        		 soICMP_Derr.write(prevWord);
+        	}
+        	else {
+        		switch (ipProtocol) {
+        		case ICMP:
+        			soICMP_Data.write(prevWord);
+        			break;
+        		 case UDP:
+        			soUDP_Data.write(prevWord);
+        			break;
+        		 case TCP:
+        			soTCP_Data.write(prevWord);
+        			break;
+        		}
+        	}
+            leftToWrite = false;
+            fsmState = FSM_IDLE;
          }
-     break;
+         break;
      }
 }
 
-
-
-
-
-
-
-void ip_buffering(stream<axiWord>&      dataIn,
-                  stream<axiWord>&      dataOut     )
-{
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    if(!dataIn.empty() && !dataOut.full()){
-        dataOut.write(dataIn.read());
-    }
-
-
-}
-
-/*added buffering layer to the refactored version*/
-
 /*****************************************************************************
- * @brief   Main process of the IP Receiver HAndler.
- * @ingroup iprx_handler
+ * @brief   Main process of the IP Receiver Handler.
  *
- * @param[in]  piMMIO_This_MacAddress, MAC address from MMIO.
- * @param[in]  piMMIO_This_IpAddress,  IPv4 address from MMIO.
- * @param[in]  siETH_This_Data,        Data stream from ETH MAC layer.
- * @param[out] soTHIS_Arp_Data,        Data stream to ARP server.
- * @param[out] soTHIS_Icmp_Data,	   Data stream to ICMP.
- * @param[out] soTHIS_Icmp_Derr,       Data error** stream to ICMP.
+ * @param[in]  piMMIO_MacAddress, the MAC address from MMIO (in network order). [FIXME - Not yet]
+ * @param[in]  piMMIO_Ip4Address, the IPv4 address from MMIO (in network order). [FIXME - Not yet]
+ * @param[in]  siETH_Data,        Data stream from ETHernet MAC layer.
+ * @param[out] soARP_Data,        Data stream to ARP server.
+ * @param[out] soICMP_Data,       Data stream to ICMP.
+ * @param[out] soICMP_Derr,       Data error stream(**) to ICMP.
+ * @param[out] soUDP_Data,        Data stream to UDP engine.
+ * @param[out] soTCP_Data,        Data stream to TCP offload engine.
  *
  * @note:
- *  ** This data-error stream is used instead of the data stream when the TTL
- *     field of the incoming IPv4 frame is found the be zero. In such a case,
- *     the erroneous frame is forwarded to the ICMP module over the data-error
+ *  ** The data-error stream is used instead of the data stream when the TTL
+ *     field of the incoming IPv4 packet is found the be zero. In such a case,
+ *     the erroneous packet is forwarded to the ICMP module over the data-error
  *     stream. The ICMP module uses this information to build an ICMP error
  *     datagram (of type #11 --Time Exceeded) that is sent back to the sender.
  *
- * @return Nothing.
  *****************************************************************************/
 void iprx_handler(
 
-	    //------------------------------------------------------
-	    //-- MMIO Interfaces
-	    //------------------------------------------------------
-		ap_uint<48>          piMMIO_This_MacAddress,
-        ap_uint<32>          piMMIO_This_Ip4Address,
-
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        LE_EthAddr           piMMIO_MacAddress,
+        LE_Ip4Addr           piMMIO_Ip4Address,
 
         //------------------------------------------------------
-        //-- ETH0 / This / Interface
+        //-- ETHernet MAC Layer Interface
         //------------------------------------------------------
-        stream<axiWord>		&siETH_This_Data,
+        stream<AxiWord>     &siETH_Data,
 
-		//------------------------------------------------------
-		//-- ARP Interface
-		//------------------------------------------------------
-		stream<axiWord>		&soTHIS_Arp_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soARP_Data,
 
-	    //------------------------------------------------------
-	    //-- ICMP Interfaces
-	    //------------------------------------------------------
-        stream<axiWord>		&soTHIS_Icmp_Data,
-        stream<axiWord>		&soTHIS_Icmp_Derr,
+        //------------------------------------------------------
+        //-- ICMP Interfaces
+        //------------------------------------------------------
+        stream<AxiWord>     &soICMP_Data,
+        stream<AxiWord>     &soICMP_Derr,
 
-	    //------------------------------------------------------
-	    //-- UDP Interface
-	    //------------------------------------------------------
-        stream<axiWord>		&soTHIS_Udp_Data,
+        //------------------------------------------------------
+        //-- UDP Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soUDP_Data,
 
-		//------------------------------------------------------
-		//-- TOE Interface
-		//------------------------------------------------------
-        stream<axiWord>		&soTHIS_Tcp_Data)
+        //------------------------------------------------------
+        //-- TOE Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soTCP_Data)
 
 {
-
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-	#pragma HLS INTERFACE ap_ctrl_none port=return
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+#if defined(USE_DEPRECATED_DIRECTIVES)
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
 
-	#pragma HLS INTERFACE ap_stable port=piMMIO_This_MacAddress name=piMMIO_This_MacAddress
-	#pragma HLS INTERFACE ap_stable port=piMMIO_This_Ip4Address name=piMMIO_This_Ip4Address
+    #pragma  HLS resource core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
 
-    #pragma  HLS resource core=AXI4Stream variable=siETH_This_Data  metadata="-bus_bundle siETH_This_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
 
-	#pragma  HLS resource core=AXI4Stream variable=soTHIS_Arp_Data  metadata="-bus_bundle soTHIS_Arp_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
 
-	#pragma  HLS resource core=AXI4Stream variable=soTHIS_Icmp_Data metadata="-bus_bundle soTHIS_Icmp_Data"
-	#pragma  HLS resource core=AXI4Stream variable=soTHIS_Icmp_Derr metadata="-bus_bundle soTHIS_Icmp_Derr"
-
-	#pragma  HLS resource core=AXI4Stream variable=soTHIS_Udp_Data  metadata="-bus_bundle soTHIS_Udp_Data"
-	#pragma  HLS resource core=AXI4Stream variable=soTHIS_Tcp_Data  metadata="-bus_bundle soTHIS_Tcp_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soUDP_Data  metadata="-bus_bundle soUDP_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soTCP_Data  metadata="-bus_bundle soTCP_Data"
 
 #else
 
-	#pragma HLS INTERFACE ap_none register port=piMMIO_This_MacAddress name=piMMIO_This_MacAddress
-	#pragma HLS INTERFACE ap_none register port=piMMIO_This_Ip4Address name=piMMIO_This_Ip4Address
+    #pragma HLS INTERFACE ap_stable port=piMMIO_MacAddress     name=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable port=piMMIO_Ip4Address     name=piMMIO_Ip4Address
 
-	#pragma HLS INTERFACE port=siETH_This_Data	axis
+    #pragma HLS INTERFACE axis      port=siETH_Data            name=siETH_Data
 
-	#pragma HLS INTERFACE port=soTHIS_Arp_Data	axis
+    #pragma HLS INTERFACE axis      port=soARP_Data            name=soARP_Data
 
-	#pragma HLS INTERFACE port=soTHIS_Icmp_Data axis
-	#pragma HLS INTERFACE port=soTHIS_Icmp_Derr axis
+    #pragma HLS INTERFACE axis      port=soICMP_Data           name=soICMP_Data
+    #pragma HLS INTERFACE axis      port=soICMP_Derr           name=soICMP_Data
 
-	#pragma HLS INTERFACE port=soTHIS_Udp_Data  axis
-	#pragma HLS INTERFACE port=soTHIS_Tcp_Data  axis
+    #pragma HLS INTERFACE axis      port=soUDP_Data            name=soUDP_Data
+    #pragma HLS INTERFACE axis      port=soTCP_Data            name=soTCP_Data
 
 #endif
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS DATAFLOW //interval=1
+    #pragma HLS DATAFLOW
 
-	//-- LOCAL STREAMS --------------------------------------------------------
-    static stream<axiWord>          lengthCheckIn	("lengthCheckIn");
-    #pragma HLS STREAM     variable=lengthCheckIn   depth=32
+    //-------------------------------------------------------------------------
+    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //-------------------------------------------------------------------------
 
-    static stream<axiWord>          ipDataFifo		("ipDataFifo");
-    #pragma HLS DATA_PACK  variable=ipDataFifo
-    #pragma HLS STREAM     variable=ipDataFifo      depth=32
+    //-- Input Buffer (IBuf)
+    static stream<AxiWord>          ssIBufToMPd_Data    ("ssIBufToMPd_Data");
+    #pragma HLS STREAM     variable=ssIBufToMPd_Data    depth=8000
 
-    static stream<axiWord>      	ipDataCheckFifo	("ipDataCheckFifo");
-    #pragma HLS DATA_PACK  variable=ipDataCheckFifo
-    #pragma HLS STREAM 	   variable=ipDataCheckFifo depth=1024 //must hold IP header for checksum checking
+    //-- MAC Protocol Detector (MPd)
+    static stream<AxiWord>          ssMPdToILc_Data     ("ssMPdToILc_Data");
+    #pragma HLS STREAM     variable=ssMPdToILc_Data     depth=32
 
-    static stream<axiWord>      	ipDataDropFifo	("ipDataDropFifo");
-    #pragma HLS DATA_PACK  variable=ipDataDropFifo
-    #pragma HLS STREAM 	   variable=ipDataDropFifo  depth=32
+    //-- IPv4 Length Checker (ILc)
+    static stream<AxiWord>          ssILcToICa_Data     ("ssILcToICa_Data");
+    #pragma HLS STREAM     variable=ssILcToICa_Data     depth=32
 
-    static stream<axiWord>      	ipDataCutFifo	("ipDataCutFifo");
-    #pragma HLS DATA_PACK  variable=ipDataCutFifo
-    #pragma HLS STREAM 	   variable=ipDataCutFifo	depth=32
+    //-- IPv4 Checksum Accumulator (ICa)
+    static stream<AxiWord>          ssICaToIId_Data     ("ssICaToIId_Data");
+    #pragma HLS STREAM     variable=ssICaToIId_Data     depth=1024 // Must hold IP header for checksum checking
+    static stream<Ip4Version>       ssICaToIId_IpVer    ("ssICaToIId_IpVer");
+    #pragma HLS STREAM     variable=ssICaToIId_IpVer    depth=32
+    static stream<CmdBit>           ssICaToIId_DropFrag ("ssICaToIId_DropFrag");
+    #pragma HLS STREAM     variable=ssICaToIId_DropFrag depth=32
+    static stream<SubSums>          ssICaToICc_SubSums  ("ssICaToICc_SubSums");
+    #pragma HLS DATA_PACK  variable=ssICaToICc_SubSums
+    #pragma HLS STREAM     variable=ssICaToICc_SubSums  depth=32
 
-    static stream<subSums>      	iph_subSumsFifoOut("iph_subSumsFifoOut");
-    #pragma HLS DATA_PACK  variable=iph_subSumsFifoOut
-    #pragma HLS STREAM     variable=iph_subSumsFifoOut	depth=32
+    //-- IPv4 Invalid Dropper (IId)
+    static stream<AxiWord>          ssIIdToICl_Data     ("ssIIdToICl_Data");
+    #pragma HLS DATA_PACK  variable=ssIIdToICl_Data
+    #pragma HLS STREAM     variable=ssIIdToICl_Data     depth=32
 
-    static stream<ap_uint<1> >		ipValidFifo		("ipValidFifo");
-    #pragma HLS STREAM     variable=ipValidFifo     depth=32
+    //-- IPv4 Cut Length (ICl)
+    static stream<AxiWord>          ssIClToIPr_Data     ("ssIClToIPr_Data");
+    #pragma HLS DATA_PACK  variable=ssIClToIPr_Data
+    #pragma HLS STREAM     variable=ssIClToIPr_Data     depth=32
 
-    static stream<ap_uint<1> >     ipValidFifoVersionNo("ipValidFifoVersionNo");
-    #pragma HLS STREAM     variable=ipValidFifoVersionNo	depth=32
-
-    static stream<ap_uint<1> >      ipFragmentDrop("ipFragmentDrop");
-    #pragma HLS STREAM     variable=ipFragmentDrop	depth=32
-
-    static stream<axiWord> 			dataToDetectMac("dataToDetectMac");
-    #pragma HLS STREAM     variable=dataToDetectMac	depth=8000
+    //-- IPv4 Checksum Checker
+    static stream<ValBit>           ssICcToIId_CsumVal  ("ssICcToIId_CsumVal");
+    #pragma HLS STREAM     variable=ssICcToIId_CsumVal  depth=32
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
 
-    ip_buffering(
-    			siETH_This_Data,  dataToDetectMac);
+    pInputBuffer(
+            siETH_Data,
+            ssIBufToMPd_Data);
 
-    detect_mac_protocol(
-    			dataToDetectMac, soTHIS_Arp_Data, lengthCheckIn, piMMIO_This_MacAddress);
+    pMacProtocolDetector(
+            piMMIO_MacAddress,
+            ssIBufToMPd_Data,
+            soARP_Data,
+            ssMPdToILc_Data);
 
-    length_check(
-    			lengthCheckIn, ipDataFifo);
+    pIpLengthChecker(
+            ssMPdToILc_Data,
+            ssILcToICa_Data);
 
-    check_ip_checksum(
-    			ipDataFifo, piMMIO_This_Ip4Address, ipDataCheckFifo, iph_subSumsFifoOut, ipValidFifoVersionNo, ipFragmentDrop);
+    pIpChecksumAccumulator(
+            piMMIO_Ip4Address,
+            ssILcToICa_Data,
+            ssICaToIId_Data,
+            ssICaToIId_IpVer,
+            ssICaToIId_DropFrag,
+            ssICaToICc_SubSums);
 
-    iph_check_ip_checksum(
-    			iph_subSumsFifoOut, ipValidFifo);
+    pIpChecksumChecker(
+            ssICaToICc_SubSums,
+            ssICcToIId_CsumVal);
 
-    ip_invalid_dropper(
-    			ipDataCheckFifo, ipValidFifo, ipValidFifoVersionNo, ipFragmentDrop, ipDataDropFifo);
+    pIpInvalidDropper(
+            ssICaToIId_Data,
+            ssICaToIId_IpVer,
+            ssICaToIId_DropFrag,
+            ssICcToIId_CsumVal,
+            ssIIdToICl_Data);
 
-    cut_length(
-    		ipDataDropFifo, ipDataCutFifo);
+    pIpCutLength(
+            ssIIdToICl_Data,
+            ssIClToIPr_Data);
 
-    detect_ip_protocol_1(
-    		ipDataCutFifo, soTHIS_Icmp_Data, soTHIS_Icmp_Derr, soTHIS_Udp_Data, soTHIS_Tcp_Data);
+    pIpPacketRouter(
+            ssIClToIPr_Data,
+            soICMP_Data,
+            soICMP_Derr,
+            soUDP_Data,
+            soTCP_Data);
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*********************************************************************************
- *
- * [TODO - REMOVE EVERYTHING BELOW HERE. THIS IS ALL OBSOLETE STUFF FROM JAGATH.
- *
- **********************************************************************************/
-
-#if 0
-ap_uint<8> returnKeep(ap_uint<4> length) {
-    ap_uint<8> keep = 0;
-    for (uint8_t i=0;i<8;++i) {
-        if (i < length)
-            keep.bit(i) = 1;
-    }
-    return keep;
-}
-#endif
-
-
-#if 0
-void iph_check_ip_checksum_0(   stream<subSums>&        iph_subSumsFifoOut,
-                                stream<ap_uint<1> >&    iph_validFifoOut)
-{
-
-#pragma HlS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<32> csum = 0;
-    static subSums icic_ip_sums;
-    ap_uint<16> temp_csum = 0;
-
-    static enum iph_check_ip_checksum_engine {ICICES_IDLE = 0, ICICES_CSUM} iph_check_ip_checksum_engine_state;
-
-    switch (iph_check_ip_checksum_engine_state) {
-        case ICICES_IDLE:
-            if (!iph_subSumsFifoOut.empty()) {
-                icic_ip_sums = iph_subSumsFifoOut.read();
-                csum = icic_ip_sums.sum0 + icic_ip_sums.sum1 + icic_ip_sums.sum2 + icic_ip_sums.sum3;
-                iph_check_ip_checksum_engine_state = ICICES_CSUM;
-            }
-        break;
-        case ICICES_CSUM:
-            if (!iph_validFifoOut.full()){
-                if(csum(31,16) > 0){
-                    csum = csum(31,16) + csum(15,0);
-                } else {
-                    temp_csum = ~csum(15,0);
-                    iph_validFifoOut.write((temp_csum == 0x0000) && icic_ip_sums.ipMatch);
-                    iph_check_ip_checksum_engine_state = ICICES_IDLE;
-                }
-            }
-        break;
-    }
-}
-#endif
-
-
-#if 0
-/** @ingroup iprx_handler
- *  Detects the MAC protocol in the header of the packet, ARP and IP packets are forwared accordingly,
- *  packets of other protocols are discarded
- *  @param[in]      dataIn
- *  @param[out]         ARPdataOut
- *  @param[out]         IPdataOut
- */
-void detect_mac_protocol_0(   stream<axiWord> &dataIn,
-                            stream<axiWord> &ARPdataOut,
-                            stream<axiWord> &IPdataOut,
-                            ap_uint<48> myMacAddress)
-{
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<1> dmp_fsmState = 0;
-    static ap_uint<2> dmp_wordCount = 0;
-    static ap_uint<16> dmp_macType;
-    static axiWord dmp_prevWord;
-    axiWord currWord;
-
-    switch (dmp_fsmState) {
-    case 0:
-        if (!dataIn.empty()) {
-            dataIn.read(currWord);
-            switch (dmp_wordCount) {
-            case 0:
-                if (currWord.data.range(47, 0) != myMacAddress && currWord.data.range(47, 0) !=0xFFFFFFFFFFFF) // Verify that this node is the destination of this Ethenet frame
-                    dmp_macType = DROP;
-                else
-                    dmp_macType = FORWARD;
-
-                dmp_wordCount++;
-            break;
-            default:
-                if (dmp_wordCount == 1) {
-                    if (dmp_macType != DROP)
-                        dmp_macType = byteSwap16(currWord.data(47, 32));
-                    dmp_wordCount++;
-                }
-                if (dmp_macType == ARP)
-                    ARPdataOut.write(dmp_prevWord);
-                else if (dmp_macType == IPv4)
-                    IPdataOut.write(dmp_prevWord);
-                break;
-            }
-            dmp_prevWord = currWord;
-            if (currWord.last) {
-                dmp_wordCount = 0;
-                dmp_fsmState = 1;
-            }
-        }
-    break;
-    case 1:
-        if (dmp_macType == ARP)
-            ARPdataOut.write(dmp_prevWord);
-        else if (dmp_macType == IPv4)
-            IPdataOut.write(dmp_prevWord);
-        dmp_fsmState = 0;
-    break;
-    } //switch
-}
-#endif
-
-
-#if 0
-/** @ingroup iprx_handler
- *  Checks IP checksum and removes MAC wrapper, writes valid into @param ipValidBuffer
- *  @param[in]      dataIn, incoming data stream
- *  @param[in]      myIpAddress, our IP address which is set externally
- *  @param[out]         dataOut, outgoing data stream
- *  @param[out]         ipValidFifoOut
- */
-void check_ip_checksum_0( stream<axiWord>&        dataIn,
-                        ap_uint<32>                 myIpAddress,
-                        stream<axiWord>&        dataOut,
-                        stream<subSums>&        iph_subSumsFifoIn,
-                        stream<ap_uint<1> >&    ipValidFifoVersionNo,
-                        stream<ap_uint<1> >&    ipFragmentDrop)
-{
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<17> cics_ip_sums[4] = {0, 0, 0, 0};
-    static ap_uint<8> cics_ipHeaderLen = 0;
-    static axiWord cics_prevWord;
-    static bool cics_wasLast = false;
-    static ap_uint<3> cics_wordCount = 0;
-    static ap_uint<32> cics_dstIpAddress = 0;
-
-    axiWord currWord;
-    axiWord sendWord;
-    ap_uint<16> temp;
-    bool ipMatch    = false;
-
-    currWord.last = 0;
-    if (!dataIn.empty() && !cics_wasLast) {
-        dataIn.read(currWord);
-        switch (cics_wordCount) {
-        case 0:
-            // This is MAC only we throw it out
-            for (uint8_t i=0;i<4;++i)
-                cics_ip_sums[i] = 0;
-            cics_wordCount++;
-            break;
-        case 1:
-            if (currWord.data.range(55, 52) != 4)   // Verify that the IP protocol version number is what it should be
-                ipValidFifoVersionNo.write(0);      // If not, drop the packet
-            else
-                ipValidFifoVersionNo.write(1);
-            cics_ip_sums[3] += byteSwap16(currWord.data.range(63, 48));
-            cics_ip_sums[3] = (cics_ip_sums[3] + (cics_ip_sums[3] >> 16)) & 0xFFFF;
-            cics_ipHeaderLen = currWord.data.range(51, 48);
-            cics_wordCount++;
-            break;
-        case 2: // Check for fragmentation in this cycle. Need to check the MF flag. If that's set then drop. If it's not set then check the fragment offset and if its non-zero then drop.
-        {
-            ap_uint<16> temp = byteSwap16(currWord.data.range(47, 32));
-            if (temp.range(12, 0) != 0 || temp.bit(13) != 0)
-                ipFragmentDrop.write(0);
-            else
-                ipFragmentDrop.write(1);
-            for (int i = 0; i < 4; i++)     {
-            #pragma HLS unroll
-                cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-            }
-            cics_ipHeaderLen -= 2;
-            cics_wordCount++;
-            break;
-        }
-        case 3: //maybe merge with WORD_2
-            //cics_srcMacIpTuple.ipAddress = currWord.data(47, 16);
-            cics_dstIpAddress.range(15, 0) = currWord.data.range(63, 48);
-            for (int i = 0; i < 4; i++) {
-            #pragma HLS unroll
-                cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-            }
-            // write tcp len out
-            cics_ipHeaderLen -= 2;
-            cics_wordCount++;
-            break;
-        default:
-            if (cics_wordCount == 4)
-                cics_dstIpAddress(31, 16) = currWord.data(15, 0);
-            switch (cics_ipHeaderLen) {
-            case 0:
-                break;
-            case 1:
-                // Sum up part0
-                cics_ip_sums[0] += byteSwap16(currWord.data.range(15, 0));
-                cics_ip_sums[0] = (cics_ip_sums[0] + (cics_ip_sums[0] >> 16)) & 0xFFFF;
-                cics_ipHeaderLen = 0;
-                if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                    ipMatch = true;
-                iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
-                break;
-            case 2:
-                // Sum up part 0-2
-                for (int i = 0; i < 4; i++) {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                }
-                cics_ipHeaderLen = 0;
-                if (cics_dstIpAddress == myIpAddress || cics_dstIpAddress == 0xFFFFFFFF)
-                    ipMatch = true;
-                iph_subSumsFifoIn.write(subSums(cics_ip_sums, ipMatch));
-                break;
-            default:
-                // Sum up everything
-                for (int i = 0; i < 4; i++) {
-                #pragma HLS unroll
-                    cics_ip_sums[i] += byteSwap16(currWord.data.range(i*16+15, i*16));
-                    cics_ip_sums[i] = (cics_ip_sums[i] + (cics_ip_sums[i] >> 16)) & 0xFFFF;
-                }
-                cics_ipHeaderLen -= 2;
-                break;
-            }
-            break;
-        } // switch WORD_N
-
-        if (cics_wordCount > 2) {
-            // Send Word
-            sendWord = axiWord((currWord.data(47, 0), cics_prevWord.data(63, 48)), (currWord.keep(5, 0), cics_prevWord.keep(7,6)), (currWord.keep[6] == 0));
-            dataOut.write(sendWord);
-        }
-
-        cics_prevWord = currWord;
-        if (currWord.last) {
-            cics_wordCount = 0;
-            cics_wasLast = !sendWord.last;
-            //cics_wasLast = true;
-        }
-    } else if(cics_wasLast) {
-        // Send remaining Word;
-        sendWord = axiWord(cics_prevWord.data.range(63, 48), cics_prevWord.keep.range(7, 6), 1);
-        dataOut.write(sendWord);
-        cics_wasLast = false;
-    }
-}
-#endif
-
-
-#if 0
-void length_check_0(stream<axiWord> &lengthCheckIn, stream<axiWord> &ipDataFifo)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-   static enum lcState {LC_IDLE = 0, LC_SIZECHECK, LC_STREAM} lengthCheckState;
-   static ap_uint<2> dip_wordCount      = 0;
-   static ap_uint<2> dip_leftToWrite    = 0;
-   static ap_uint<1> filterPacket   = 0;
-   static ap_shift_reg<axiWord, 2> wordBuffer;
-   axiWord temp;
-
-   if (dip_leftToWrite == 0) {
-            if (!lengthCheckIn.empty()) {
-                axiWord currWord = lengthCheckIn.read();
-            switch (lengthCheckState) {
-                case LC_IDLE:
-                    wordBuffer.shift(currWord);
-                    if (dip_wordCount == 1)
-                        lengthCheckState = LC_SIZECHECK;
-                    dip_wordCount++;
-                    break;
-                case LC_SIZECHECK:
-                    byteSwap16(currWord.data.range(15, 0)) > MaxDatagramSize ? filterPacket = 1 : filterPacket = 0;
-                    temp = wordBuffer.shift(currWord);
-                    if (filterPacket == 0)
-                        ipDataFifo.write(temp);
-                    lengthCheckState = LC_STREAM;
-                    break;
-                case LC_STREAM:
-                    temp = wordBuffer.shift(currWord);
-                    if (filterPacket == 0)
-                        ipDataFifo.write(temp);
-                    break;
-             }
-             if (currWord.last) {
-                dip_wordCount   = 0;
-                dip_leftToWrite = 2;
-                lengthCheckState    = LC_IDLE;
-             }
-            }
-   } else if (dip_leftToWrite != 0) {
-      //axiWord nullAxiWord = {0, 0, 0};
-      temp = wordBuffer.shift(axiWord(0, 0, 0));
-      if (filterPacket == 0)
-          ipDataFifo.write(temp);
-      dip_leftToWrite--;
-   }
-}
-#endif
-
-
-#if 0
-/** @ingroup iprx_handler
- *  Reads a packed and its valid flag in, if the packet is valid it is forwarded,
- *  otherwise it is dropped
- *  @param[in]      inData, incoming data stream
- *  @param[in]      ipValidFifoIn, FIFO containing valid flag to indicate if packet is valid,
- *  @param[out]         outData, outgoing data stream
- */
-void ip_invalid_dropper_0(stream<axiWord>&        dataIn,
-                        stream<ap_uint<1> >&    ipValidFifoIn,
-                        // Add a stream here for fragment drop
-                        stream<ap_uint<1> >         &ipValidFifoVersionNo,
-                        stream<ap_uint<1> >         &ipFragmentDrop,
-                        stream<axiWord>&        dataOut)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static bool iid_firstWord = true;
-    static bool iid_drop = false;
-
-    axiWord currWord = axiWord(0, 0, 0);
-
-    if (iid_drop) {
-        if(!dataIn.empty())
-            dataIn.read(currWord);
-    }
-    else if (iid_firstWord) {
-        if (!ipValidFifoIn.empty() && !ipValidFifoVersionNo.empty() && !ipFragmentDrop.empty() && !dataIn.empty()) {
-            ap_uint<2> valid = ipValidFifoIn.read() + ipValidFifoVersionNo.read() + ipFragmentDrop.read(); // Check the fragment drop queue
-            dataIn.read(currWord);
-            if (valid != 3)
-                iid_drop = true;
-            else
-                dataOut.write(currWord);
-            iid_firstWord = false;
-        }
-    }
-    else if(!dataIn.empty()) {
-        dataIn.read(currWord);
-        dataOut.write(currWord);
-    }
-    if (currWord.last == 1) {
-        iid_drop = false;
-        iid_firstWord = true;
-    }
-}
-#endif
-
-
-#if 0
-/** @ingroup ip_hanlder
- *
- */
-void cut_length_0(stream<axiWord> &dataIn, stream<axiWord> &dataOut)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<16> cl_wordCount = 0;
-    static ap_uint<16> cl_totalLength = 0;
-    static bool cl_drop = false;
-    if (cl_drop) {
-        if (!dataIn.empty()) {
-            axiWord currWord = dataIn.read();
-            if (currWord.last)
-                cl_drop = false;
-        }
-    }
-    else if (!dataIn.empty() && !dataOut.full()) {
-        axiWord currWord = dataIn.read();
-        switch (cl_wordCount) {
-        case 0:
-            cl_totalLength = byteSwap16(currWord.data(31, 16));
-            break;
-        default:
-            if (((cl_wordCount+1)*8) >= cl_totalLength) {   //last real world
-                if (currWord.last == 0)
-                    cl_drop = true;
-                currWord.last = 1;
-                ap_uint<4> leftLength = cl_totalLength - (cl_wordCount*8);
-                currWord.keep = returnKeep(leftLength);
-            }
-            break;
-        }
-        dataOut.write(currWord);
-        cl_wordCount++;
-        if (currWord.last)
-            cl_wordCount = 0;
-    }
-}
-#endif
-
-#if 0
-/** @ingroup iprx_handler
- *  Detects IP protocol in the packet. ICMP, UDP and TCP packets are forwarded, packets of other IP protocols are discarded.
- *  @param[in]      dataIn, incoming data stream
- *  @param[out]         ICMPdataOut, outgoing ICMP (Ping) data stream
- *  @param[out]         UDPdataOut, outgoing UDP data stream
- *  @param[out]         TCPdataOut, outgoing TCP data stream
- */
-void detect_ip_protocol_0(stream<axiWord> &dataIn,
-                        stream<axiWord> &ICMPdataOut,
-                        stream<axiWord>     &ICMPexpDataOut,
-                        stream<axiWord> &UDPdataOut,
-                        stream<axiWord> &TCPdataOut)
-{
-
-#pragma HLS INLINE off
-#pragma HLS PIPELINE II=1 enable_flush
-
-    static ap_uint<8>   dip_ipProtocol  = 0;
-    static ap_uint<2>   dip_wordCount   = 0;
-    static ap_uint<1>   dip_ttlExpired  = 0;
-    static axiWord          dip_prevWord;
-    static bool         dip_leftToWrite = false;
-
-    axiWord currWord;
-
-    if (dip_leftToWrite) {
-        uint8_t bitCounter = 0;
-        for (uint8_t i=0;i<8;++i) {
-            if (dip_prevWord.keep.bit(i) == 1)
-                bitCounter++;
-        }
-        if (dip_prevWord.keep != 0xFF)
-            dip_prevWord.data.range(63, 64-((8-bitCounter)*8)) = 0;
-        if (dip_ttlExpired == 1) {
-            ICMPexpDataOut.write(dip_prevWord);
-        }
-        else {
-            switch (dip_ipProtocol) {
-            case ICMP:
-                ICMPdataOut.write(dip_prevWord);
-                break;
-            case UDP:
-                UDPdataOut.write(dip_prevWord);
-                break;
-            case TCP:
-                TCPdataOut.write(dip_prevWord);
-                break;
-            }
-        }
-        dip_leftToWrite = false;
-    }
-    else if (!dataIn.empty()) {
-        dataIn.read(currWord);
-        switch (dip_wordCount) {
-        case 0:
-            dip_wordCount++;
-            break;
-        default:
-            if (dip_wordCount == 1) {
-                if (currWord.data.range(7, 0) == 1)
-                    dip_ttlExpired = 1;
-                else
-                    dip_ttlExpired = 0;
-                dip_ipProtocol = currWord.data.range(15, 8);
-                dip_wordCount++;
-            }
-            // There is not default, if package does not match any case it is automatically dropped
-            if (dip_ttlExpired == 1) {
-                ICMPexpDataOut.write(dip_prevWord);
-            }
-            else {
-                switch (dip_ipProtocol) {
-                case ICMP:
-                    ICMPdataOut.write(dip_prevWord);
-                    break;
-                case UDP:
-                    UDPdataOut.write(dip_prevWord);
-                    break;
-                case TCP:
-                    TCPdataOut.write(dip_prevWord);
-                    break;
-                }
-            }
-            break;
-        }
-        dip_prevWord = currWord;
-        if (currWord.last) {
-            dip_wordCount = 0;
-            dip_leftToWrite = true;
-        }
-    }
-}
-#endif
-
-
-#if 0
-/** @ingroup iprx_handler
- *  @param[in]      dataIn, incoming data stream
- *  @param[in]      regIpAddress, our IP address
- *  @param[out]         ARPdataOut, outgoing ARP data stream
- *  @param[out]         ICMPdataOut, outgoing ICMP (Ping) data stream
- *  @param[out]         UDPdataOut, outgoing UDP data stream
- *  @param[out]         TCPdataOut, outgoing TCP data stream
- */
-/******************************************************************************/
-void iprx_handler_0(
-        stream<axiWord>     &dataIn,
-        stream<axiWord>     &ARPdataOut,
-        stream<axiWord>     &ICMPdataOut,
-        stream<axiWord>     &ICMPexpDataOut,
-        stream<axiWord>     &UDPdataOut,
-        stream<axiWord>     &TCPdataOut,
-        ap_uint<32>         regIpAddress,
-        ap_uint<48>         myMacAddress)
-{
-#pragma HLS DATAFLOW
-#pragma HLS INTERFACE ap_ctrl_none port=return
-
-//#pragma HLS INTERFACE port=dataIn             axis
-//#pragma HLS INTERFACE port=ARPdataOut         register axis
-//#pragma HLS INTERFACE port=ICMPdataOut        register axis
-//#pragma HLS INTERFACE port=ICMPexpDataOut     register axis
-//#pragma HLS INTERFACE port=UDPdataOut         register axis
-//#pragma HLS INTERFACE port=TCPdataOut         register axis
-
-    #pragma  HLS resource core=AXI4Stream variable=dataIn           metadata="-bus_bundle s_dataIn"
-    #pragma  HLS resource core=AXI4Stream variable=ARPdataOut       metadata="-bus_bundle m_ARPdataOut"
-    #pragma  HLS resource core=AXI4Stream variable=ICMPdataOut          metadata="-bus_bundle m_ICMPdataOut"
-    #pragma  HLS resource core=AXI4Stream variable=ICMPexpDataOut   metadata="-bus_bundle m_ICMPexpDataOut"
-    #pragma  HLS resource core=AXI4Stream variable=UDPdataOut       metadata="-bus_bundle m_UDPdataOut"
-    #pragma  HLS resource core=AXI4Stream variable=TCPdataOut       metadata="-bus_bundle m_TCPdataOut"
-
-    //If you need to run co-sim exchange the ap_none pragma for the ap_stable one in the 2 lines below. This will allow co-sim to go through ad
-    //does ot affect co-sim functionality as the IP adddress is anyhow fixed in the TB.
-    //#pragma HLS INTERFACE ap_stable port=regIpAddress
-
-    #pragma HLS INTERFACE ap_none register port=regIpAddress
-    #pragma HLS INTERFACE ap_stable port=myMacAddress
-
-    static stream<axiWord>              lengthCheckIn("lengthCheckIn");
-    #pragma HLS STREAM variable=lengthCheckIn           depth=4
-
-    static stream<axiWord>              ipDataFifo("ipDataFifo");
-    #pragma HLS DATA_PACK variable=ipDataFifo
-    #pragma HLS STREAM variable=ipDataFifo                  depth=4
-
-    static stream<axiWord>              ipDataCheckFifo("ipDataCheckFifo");
-    #pragma HLS DATA_PACK variable=ipDataCheckFifo
-    #pragma HLS STREAM variable=ipDataCheckFifo         depth=128 //must hold IP header for checksum checking
-
-    static stream<axiWord>              ipDataDropFifo("ipDataDropFifo");
-    #pragma HLS DATA_PACK variable=ipDataDropFifo
-    #pragma HLS STREAM variable=ipDataDropFifo              depth=4
-
-    static stream<axiWord>              ipDataCutFifo("ipDataCutFifo");
-    #pragma HLS DATA_PACK variable=ipDataCutFifo
-    #pragma HLS STREAM variable=ipDataCutFifo           depth=4
-
-    static stream<subSums>              iph_subSumsFifoOut("iph_subSumsFifoOut");
-    #pragma HLS DATA_PACK variable=iph_subSumsFifoOut
-    #pragma HLS STREAM variable=iph_subSumsFifoOut          depth=4
-
-    static stream<ap_uint<1> >          ipValidFifo("ipValidFifo");
-    #pragma HLS STREAM variable=ipValidFifo             depth=4
-
-    static stream<ap_uint<1> >          ipValidFifoVersionNo("ipValidFifoVersionNo");
-    #pragma HLS STREAM variable=ipValidFifoVersionNo    depth=4
-
-    static stream<ap_uint<1> >          ipFragmentDrop("ipFragmentDrop");
-    #pragma HLS STREAM variable=ipFragmentDrop              depth=4
-
-    detect_mac_protocol(dataIn, ARPdataOut, lengthCheckIn, myMacAddress);
-    length_check(lengthCheckIn, ipDataFifo);
-    check_ip_checksum(ipDataFifo, regIpAddress, ipDataCheckFifo, iph_subSumsFifoOut, ipValidFifoVersionNo, ipFragmentDrop);
-    iph_check_ip_checksum(iph_subSumsFifoOut, ipValidFifo);
-    ip_invalid_dropper(ipDataCheckFifo, ipValidFifo, ipValidFifoVersionNo, ipFragmentDrop, ipDataDropFifo);
-    cut_length(ipDataDropFifo, ipDataCutFifo);
-    detect_ip_protocol(ipDataCutFifo, ICMPdataOut, ICMPexpDataOut, UDPdataOut, TCPdataOut);
-}
-#endif
-
-
-#if 0
-/** @ingroup iprx_handler
- *  @param[in]      dataIn, incoming data stream
- *  @param[in]      regIpAddress, our IP address
- *  @param[out]         ARPdataOut, outgoing ARP data stream
- *  @param[out]         ICMPdataOut, outgoing ICMP (Ping) data stream
- *  @param[out]         UDPdataOut, outgoing UDP data stream
- *  @param[out]         TCPdataOut, outgoing TCP data stream
- */
-void iprx_handler_0(stream<axiWord>&        dataIn,
-                stream<axiWord>&        ARPdataOut,
-                stream<axiWord>&        ICMPdataOut,
-                stream<axiWord>&        ICMPexpDataOut,
-                stream<axiWord>&        UDPdataOut,
-                stream<axiWord>&        TCPdataOut,
-                ap_uint<32>                 regIpAddress,
-                ap_uint<48>                 myMacAddress)
-{
-#pragma HLS DATAFLOW interval=1
-#pragma HLS INTERFACE ap_ctrl_none port=return
-
-#pragma HLS INTERFACE port=dataIn           axis
-#pragma HLS INTERFACE port=ARPdataOut       register axis
-#pragma HLS INTERFACE port=ICMPdataOut          register axis
-#pragma HLS INTERFACE port=ICMPexpDataOut   register axis
-#pragma HLS INTERFACE port=UDPdataOut       register axis
-#pragma HLS INTERFACE port=TCPdataOut       register axis
-
-    /*#pragma  HLS resource core=AXI4Stream variable=dataIn metadata="-bus_bundle s_axis_raw"
-    #pragma  HLS resource core=AXI4Stream variable=ARPdataOut metadata="-bus_bundle m_axis_ARP"
-    #pragma  HLS resource core=AXI4Stream variable=ICMPdataOut metadata="-bus_bundle m_axis_ICMP"
-    #pragma  HLS resource core=AXI4Stream variable=ICMPexpDataOut metadata="-bus_bundle m_axis_ICMPexp"
-    #pragma  HLS resource core=AXI4Stream variable=UDPdataOut metadata="-bus_bundle m_axis_UDP"
-    #pragma  HLS resource core=AXI4Stream variable=TCPdataOut metadata="-bus_bundle m_axis_TCP"*/
-
-    //If you need to run co-sim exchange the ap_none pragma for the ap_stable one in the 2 lines below. This will allow co-sim to go through ad
-    //does ot affect co-sim functionality as the IP adddress is anyhow fixed in the TB.
-    //#pragma HLS INTERFACE ap_stable port=regIpAddress
-
-    #pragma HLS INTERFACE ap_none register port=regIpAddress
-    #pragma HLS INTERFACE ap_stable port=myMacAddress
-
-    static stream<axiWord>              lengthCheckIn("lengthCheckIn");
-    #pragma HLS STREAM variable=lengthCheckIn           depth=4
-
-    static stream<axiWord>              ipDataFifo("ipDataFifo");
-    #pragma HLS DATA_PACK variable=ipDataFifo
-    #pragma HLS STREAM variable=ipDataFifo                  depth=4
-
-    static stream<axiWord>              ipDataCheckFifo("ipDataCheckFifo");
-    #pragma HLS DATA_PACK variable=ipDataCheckFifo
-    #pragma HLS STREAM variable=ipDataCheckFifo         depth=128 //must hold IP header for checksum checking
-
-    static stream<axiWord>              ipDataDropFifo("ipDataDropFifo");
-    #pragma HLS DATA_PACK variable=ipDataDropFifo
-    #pragma HLS STREAM variable=ipDataDropFifo              depth=4
-
-    static stream<axiWord>              ipDataCutFifo("ipDataCutFifo");
-    #pragma HLS DATA_PACK variable=ipDataCutFifo
-    #pragma HLS STREAM variable=ipDataCutFifo           depth=4
-
-    static stream<subSums>              iph_subSumsFifoOut("iph_subSumsFifoOut");
-    #pragma HLS DATA_PACK variable=iph_subSumsFifoOut
-    #pragma HLS STREAM variable=iph_subSumsFifoOut          depth=4
-
-    static stream<ap_uint<1> >          ipValidFifo("ipValidFifo");
-    #pragma HLS STREAM variable=ipValidFifo             depth=4
-
-    static stream<ap_uint<1> >          ipValidFifoVersionNo("ipValidFifoVersionNo");
-    #pragma HLS STREAM variable=ipValidFifoVersionNo    depth=4
-
-    static stream<ap_uint<1> >          ipFragmentDrop("ipFragmentDrop");
-    #pragma HLS STREAM variable=ipFragmentDrop              depth=4
-
-    detect_mac_protocol(dataIn, ARPdataOut, lengthCheckIn, myMacAddress);
-    length_check(lengthCheckIn, ipDataFifo);
-    check_ip_checksum(ipDataFifo, regIpAddress, ipDataCheckFifo, iph_subSumsFifoOut, ipValidFifoVersionNo, ipFragmentDrop);
-    iph_check_ip_checksum(iph_subSumsFifoOut, ipValidFifo);
-    ip_invalid_dropper(ipDataCheckFifo, ipValidFifo, ipValidFifoVersionNo, ipFragmentDrop, ipDataDropFifo);
-    cut_length(ipDataDropFifo, ipDataCutFifo);
-    detect_ip_protocol_0(ipDataCutFifo, ICMPdataOut, ICMPexpDataOut, UDPdataOut, TCPdataOut);
-}
-
-#endif
-
-/*refactored version*/
-/******************************************************************************
-void iprx_handler_1(stream<axiWord>&        dataIn,
-                stream<axiWord>&        ARPdataOut,
-                stream<axiWord>&        ICMPdataOut,
-                stream<axiWord>&        ICMPexpDataOut,
-                stream<axiWord>&        UDPdataOut,
-                stream<axiWord>&        TCPdataOut,
-                ap_uint<32>                 regIpAddress,
-                ap_uint<48>                 myMacAddress)
-{
-#pragma HLS DATAFLOW //interval=1
-#pragma HLS INTERFACE ap_ctrl_none port=return
-
-#pragma HLS INTERFACE port=dataIn           axis
-#pragma HLS INTERFACE port=ARPdataOut       axis
-#pragma HLS INTERFACE port=ICMPdataOut          axis
-#pragma HLS INTERFACE port=ICMPexpDataOut   axis
-#pragma HLS INTERFACE port=UDPdataOut       axis
-#pragma HLS INTERFACE port=TCPdataOut       axis
-
-    #pragma HLS INTERFACE ap_none register port=regIpAddress
-    #pragma HLS INTERFACE ap_none register port=myMacAddress
-
-    //#pragma HLS INTERFACE port=regIpAddress axis
-    //#pragma HLS INTERFACE port=myMacAddress axis
-
-    //#pragma HLS INTERFACE ap_stable port=myMacAddress
-
-    static stream<axiWord>              lengthCheckIn("lengthCheckIn");
-    #pragma HLS STREAM variable=lengthCheckIn           depth=4
-
-    static stream<axiWord>              ipDataFifo("ipDataFifo");
-    #pragma HLS DATA_PACK variable=ipDataFifo
-    #pragma HLS STREAM variable=ipDataFifo                  depth=4
-
-    static stream<axiWord>              ipDataCheckFifo("ipDataCheckFifo");
-    #pragma HLS DATA_PACK variable=ipDataCheckFifo
-    #pragma HLS STREAM variable=ipDataCheckFifo         depth=128 //must hold IP header for checksum checking
-
-    static stream<axiWord>              ipDataDropFifo("ipDataDropFifo");
-    #pragma HLS DATA_PACK variable=ipDataDropFifo
-    #pragma HLS STREAM variable=ipDataDropFifo              depth=4
-
-    static stream<axiWord>              ipDataCutFifo("ipDataCutFifo");
-    #pragma HLS DATA_PACK variable=ipDataCutFifo
-    #pragma HLS STREAM variable=ipDataCutFifo           depth=4
-
-    static stream<subSums>              iph_subSumsFifoOut("iph_subSumsFifoOut");
-    #pragma HLS DATA_PACK variable=iph_subSumsFifoOut
-    #pragma HLS STREAM variable=iph_subSumsFifoOut          depth=4
-
-    static stream<ap_uint<1> >          ipValidFifo("ipValidFifo");
-    #pragma HLS STREAM variable=ipValidFifo             depth=4
-
-    static stream<ap_uint<1> >          ipValidFifoVersionNo("ipValidFifoVersionNo");
-    #pragma HLS STREAM variable=ipValidFifoVersionNo    depth=4
-
-    static stream<ap_uint<1> >          ipFragmentDrop("ipFragmentDrop");
-    #pragma HLS STREAM variable=ipFragmentDrop              depth=4
-
-    detect_mac_protocol(dataIn, ARPdataOut, lengthCheckIn, myMacAddress);
-    length_check(lengthCheckIn, ipDataFifo);
-    check_ip_checksum(ipDataFifo, regIpAddress, ipDataCheckFifo, iph_subSumsFifoOut, ipValidFifoVersionNo, ipFragmentDrop);
-    //check_ip_checksum_1(ipDataFifo, regIpAddress, ipDataCheckFifo, iph_subSumsFifoOut, ipValidFifoVersionNo, ipFragmentDrop);
-    //iph_check_ip_checksum(iph_subSumsFifoOut, ipValidFifo);
-    iph_check_ip_checksum_1(iph_subSumsFifoOut, ipValidFifo);
-    //ip_invalid_dropper(ipDataCheckFifo, ipValidFifo, ipValidFifoVersionNo, ipFragmentDrop, ipDataDropFifo);
-    ip_invalid_dropper_1(ipDataCheckFifo, ipValidFifo, ipValidFifoVersionNo, ipFragmentDrop, ipDataDropFifo);
-    //cut_length(ipDataDropFifo, ipDataCutFifo);
-    cut_length_1(ipDataDropFifo, ipDataCutFifo);
-    //detect_ip_protocol(ipDataCutFifo, ICMPdataOut, ICMPexpDataOut, UDPdataOut, TCPdataOut);
-    detect_ip_protocol_1(ipDataCutFifo, ICMPdataOut, ICMPexpDataOut, UDPdataOut, TCPdataOut);
-    //detect_ip_protocol_2(ipDataCutFifo, ICMPdataOut, ICMPexpDataOut, UDPdataOut, TCPdataOut);
-}
-******************************************************************************/

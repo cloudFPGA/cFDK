@@ -763,7 +763,7 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW
+  assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW  [FIXME-Change the byte order]
   
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
@@ -773,23 +773,23 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW
+  assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW  [FIXME-Change the byte order]
   //---- LY3_SUBNET[0:3] -------------------
-  assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW
+  assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW  [FIXME-Change the byte order]
   //---- LY3_GATEWAY[0:3] -------------------
-  assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW
+  assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW  [FIXME-Change the byte order]
   
   //--------------------------------------------------------
   //-- MNGT REGISTERS
   //--------------------------------------------------------
   //---- MNGT_RMIP[0:3] ----------------
-  assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW
+  assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW  [FIXME-Change the byte order]
   //---- MNGT_RDFMC[0:3] ---------------
   //------ No Outputs to the Fabric (RO)
   //---- MNGT_WRFMC[0:3] ---------------
-  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW
+  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW [FIXME-Agree on byte order w/ NGL]
   //---- MNGT_TCPLSN[0:1] --------------
-  assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW
+  assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW  [FIXME-Change the byte order]
   //---- MNGT_CTRL ---------------------
   //------ No Outputs to the Fabric
 
@@ -799,7 +799,7 @@ module MmioClient_A8_D8 #(
   //---- Read Role Register-------------
   //------ No Outputs to the Fabric (RO)
   //---- Write Role Register -----------
-  assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW
+  assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW   // RW [FIXME-Agree on byte order w/ NGL]
 
   //-------------------------------------------------------- 
   //-- RES REGISTERS

@@ -18,7 +18,7 @@
 
 using namespace std;
 
-#define MTU 1500	// Maximum Transfer Unit (1518 - 14 (DLL) - 4 (FCS))
+#define MTU 1500   // Maximum Transfer Unit (1518 - 14 (DLL) - 4 (FCS))
 
 
 /******************************************************************************
@@ -38,6 +38,8 @@ struct fourTupleInternal;
  * PRINT PROTOTYPE DEFINITIONS
  *******************************************************************************/
 void printAxiWord      (const char *callerName, AxiWord       chunk);
+void printAxiWord      (const char *callerName, \
+                        const char *message,    AxiWord       chunk);
 void printDmCmd        (const char *callerName, DmCmd         dmCmd);
 void printSockAddr     (const char *callerName, SockAddr      sockAddr);
 void printSockAddr     (const char *callerName, LE_SockAddr   leSockAddr);
@@ -158,6 +160,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  *******************************************************************************/
 bool isDottedDecimal   (string ipStr);
 bool isHexString       (string str);
+bool isDatFile         (string fileName);
 
 ap_uint<32>    myDottedDecimalIpToUint32(string ipStr);
 vector<string> myTokenizer     (string       strBuff, char delimiter);
@@ -167,7 +170,6 @@ ap_uint<64>    myStrHexToUint64(string       dataString);
 ap_uint<8>     myStrHexToUint8 (string       keepString);
 const char    *myEventTypeToString(eventType ev);
 const char    *myCamAccessToString(int       initiator);
-
 
 /*****************************************************************************
  * @brief Class IP Packet.
@@ -181,409 +183,619 @@ const char    *myCamAccessToString(int       initiator);
  *
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-	class IpPacket {
-		int len;
-		std::deque<Ip4overMac> macWordQueue;  // A double-ended queue to store IP chunks.
-		/**************************************************************************
-		 * @brief A function to recompute the TCP checksum of the packet after it was
-		 *           modified.
-		 *
-		 * @param[in]  pseudoHeader,  a double-ended queue w/ one pseudo header.
+    class IpPacket {
+        int len;  // In bytes
+        std::deque<Ip4overMac> macWordQueue;  // A double-ended queue to store IP chunks.
+        /**************************************************************************
+         * @brief A function to recompute the TCP checksum of the packet after it was
+         *           modified.
+         *
+         * @param[in]  pseudoHeader,  a double-ended queue w/ one pseudo header.
+         * @return the new checksum.
+         ***************************************************************************/
+        int checksumComputation(deque<Ip4overMac>  pseudoHeader) {
+            ap_uint<32> tcpChecksum = 0;
 
-		 * @return the new checksum.
-		 ***************************************************************************/
-		int checksumComputation(deque<Ip4overMac>  pseudoHeader) {
-			ap_uint<32> tcpChecksum = 0;
+            for (uint8_t i=0;i<pseudoHeader.size();++i) {
+                ap_uint<64> tempInput = (pseudoHeader[i].tdata.range( 7,  0),
+                                         pseudoHeader[i].tdata.range(15,  8),
+                                         pseudoHeader[i].tdata.range(23, 16),
+                                         pseudoHeader[i].tdata.range(31, 24),
+                                         pseudoHeader[i].tdata.range(39, 32),
+                                         pseudoHeader[i].tdata.range(47, 40),
+                                         pseudoHeader[i].tdata.range(55, 48),
+                                         pseudoHeader[i].tdata.range(63, 56));
+                //cerr << hex << tempInput << " " << pseudoHeader[i].data << endl;
+                tcpChecksum = ((((tcpChecksum +
+                                tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+                                tempInput.range(31, 16)) + tempInput.range(15, 0));
+                tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
+                tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
+            }
+            // Reverse the bits of the result
+            tcpChecksum = ~tcpChecksum;
+            return tcpChecksum.range(15, 0).to_int();
+        }
+        // Set the length of the IPv4 packet (in bytes)
+        void setLen(int pktLen) { this->len = pktLen; }
+      public:
+        // Default Constructor
+        IpPacket() {
+            this->len = 0;
+        }
+        // Construct a packet of length 'pktLen'
+        IpPacket(int pktLen) {
+            if (pktLen > 0 && pktLen <= MTU)
+                setLen(pktLen);
+            int noBytes = pktLen;
+            while(noBytes > 8) {
+                Ip4overMac newMacWord(0x0000000000000000, 0xFF, 0);
+                macWordQueue.push_back(newMacWord);
+                noBytes -= 8;
+            }
+            Ip4overMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
+            macWordQueue.push_back(newMacWord);
+            // Set all the default IP packet fields.
+            setIpInternetHeaderLength(5);
+            setIpVersion(4);
+            setIpTypeOfService(0);
+            setIpTotalLength(pktLen);
+            setIpIdentification(0);
+            setIpFragmentOffset(0);
+            setIpFlags(0);
+            setIpTimeToLive(255);
+            setIpProtocol(6);
+            setIpHeaderChecksum(0);
+            // Set all the default TCP segment fields
+            setTcpDataOffset(5);
+        }
 
-			for (uint8_t i=0;i<pseudoHeader.size();++i) {
-				ap_uint<64> tempInput = (pseudoHeader[i].tdata.range( 7,  0),
-										 pseudoHeader[i].tdata.range(15,  8),
-										 pseudoHeader[i].tdata.range(23, 16),
-										 pseudoHeader[i].tdata.range(31, 24),
-										 pseudoHeader[i].tdata.range(39, 32),
-										 pseudoHeader[i].tdata.range(47, 40),
-										 pseudoHeader[i].tdata.range(55, 48),
-										 pseudoHeader[i].tdata.range(63, 56));
-				//cerr << hex << tempInput << " " << pseudoHeader[i].data << endl;
-				tcpChecksum = ((((tcpChecksum +
-								tempInput.range(63, 48)) + tempInput.range(47, 32)) +
-								tempInput.range(31, 16)) + tempInput.range(15, 0));
-				tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
-				tcpChecksum = (tcpChecksum & 0xFFFF) + (tcpChecksum >> 16);
+        // Return the front chunk element of the MAC word queue but does not remove it from the queue
+        Ip4overMac front()                               { return this->macWordQueue.front();            }
+        // Clear the content of the MAC word queue
+        void clear()                                     {        this->macWordQueue.clear();            }
+        // Remove the first chunk element of the MAC word queue
+        void pop_front()                                 {        this->macWordQueue.pop_front();        }
+
+        // Add an element at the end of the MAC word queue
+        void push_back(Ip4overMac ipChunk)               {        this->macWordQueue.push_back(ipChunk);
+                                                                  this->len += keepToLen(ipChunk.tkeep); }
+        // Return the length of the IPv4 packet (in bytes)
+        int length()                                     { return this->len;                             }
+
+        // Set-Get the IP Version field
+        void setIpVersion(int version)                   {        macWordQueue[0].setIp4Version(version);}
+        int  getIpVersion()                              { return macWordQueue[0].getIp4Version();       }
+        // Set-Get the IP Internet Header Length field
+        void setIpInternetHeaderLength(int ihl)          {        macWordQueue[0].setIp4HdrLen(ihl);     }
+        int  getIpInternetHeaderLength()                 { return macWordQueue[0].getIp4HdrLen();        }
+        // Set the IP Type of Service field
+        void setIpTypeOfService(int tos)                 {        macWordQueue[0].setIp4ToS(tos);        }
+        // Set-Get the IP Total Length field
+        void setIpTotalLength(int totLen)                {        macWordQueue[0].setIp4TotalLen(totLen);}
+        int  getIpTotalLength()                          { return macWordQueue[0].getIp4TotalLen();      }
+        // Set the IP Identification field
+        void setIpIdentification(int id)                 {        macWordQueue[0].setIp4Ident(id);       }
+        // Set the IP Fragment Offset field
+        void setIpFragmentOffset(int offset)             {        macWordQueue[0].setIp4FragOff(offset); }
+        // Set the IP Flags field
+        void setIpFlags(int flags)                       {        macWordQueue[0].setIp4Flags(flags);    }
+        // Set the IP Time To Live field
+        void setIpTimeToLive(int ttl)                    {        macWordQueue[1].setIp4TtL(ttl);        }
+        // Set-Get the IP Protocol field
+        void          setIpProtocol(int prot)            {        macWordQueue[1].setIp4Prot(prot);      }
+        Ip4Prot       getIpProtocol()                    { return macWordQueue[1].getIp4Prot();          }
+        // Set the IP Header Checksum field
+        void setIpHeaderChecksum(int csum)               {        macWordQueue[1].setIp4HdrCsum(csum);   }
+        // Set-Get the IP Source Address field
+        void          setIpSourceAddress(int addr)       {        macWordQueue[1].setIp4SrcAddr(addr);   }
+        int           getIpSourceAddress()               { return macWordQueue[1].getIp4SrcAddr();       }
+        LE_Ip4Addr getLE_IpSourceAddress()               { return macWordQueue[1].getLE_Ip4SrcAddr();    }
+        // Set-Get the IP Destination Address field
+        void          setIpDestinationAddress(int addr)  {        macWordQueue[2].setIp4DstAddr(addr);   }
+        int           getIpDestinationAddress()          { return macWordQueue[2].getIp4DstAddr();       }
+        LE_Ip4Addr getLE_IpDestinationAddress()          { return macWordQueue[2].getLE_Ip4DstAddr();    }
+        // Set-Get the TCP Source Port field
+        void          setTcpSourcePort(int port)         {        macWordQueue[2].setTcpSrcPort(port);   }
+        int           getTcpSourcePort()                 { return macWordQueue[2].getTcpSrcPort();       }
+        LE_TcpPort getLE_TcpSourcePort()                 { return macWordQueue[2].getLE_TcpSrcPort();    }
+        // Set-Get the TCP Destination Port field
+        void          setTcpDestinationPort(int port)    {        macWordQueue[2].setTcpDstPort(port);   }
+        int           getTcpDestinationPort()            { return macWordQueue[2].getTcpDstPort();       }
+        LE_TcpPort getLE_TcpDestinationPort()            { return macWordQueue[2].getLE_TcpDstPort();    }
+        // Set-Get the TCP Sequence Number field
+        void       setTcpSequenceNumber(TcpSeqNum num)   {        macWordQueue[3].setTcpSeqNum(num);     }
+        TcpSeqNum  getTcpSequenceNumber()                { return macWordQueue[3].getTcpSeqNum();        }
+        // Set the TCP Acknowledgment Number
+        void       setTcpAcknowledgeNumber(TcpAckNum num){        macWordQueue[3].setTcpAckNum(num);     }
+        TcpAckNum  getTcpAcknowledgeNumber()             { return macWordQueue[3].getTcpAckNum();        }
+        // Set-Get the TCP Data Offset field
+        void setTcpDataOffset(int offset)                {        macWordQueue[4].setTcpDataOff(offset); }
+        int  getTcpDataOffset()                          { return macWordQueue[4].getTcpDataOff();       }
+        // Set-Get the TCP Control Bits
+        void       setTcpControlFin(int bit)             {        macWordQueue[4].setTcpCtrlFin(bit);    }
+        TcpCtrlBit getTcpControlFin()                    { return macWordQueue[4].getTcpCtrlFin();       }
+        void       setTcpControlSyn(int bit)             {        macWordQueue[4].setTcpCtrlSyn(bit);    }
+        TcpCtrlBit getTcpControlSyn()                    { return macWordQueue[4].getTcpCtrlSyn();       }
+        void       setTcpControlRst(int bit)             {        macWordQueue[4].setTcpCtrlRst(bit);    }
+        TcpCtrlBit getTcpControlRst()                    { return macWordQueue[4].getTcpCtrlRst();       }
+        void       setTcpControlPsh(int bit)             {        macWordQueue[4].setTcpCtrlPsh(bit);    }
+        TcpCtrlBit getTcpControlPsh()                    { return macWordQueue[4].getTcpCtrlPsh();       }
+        void       setTcpControlAck(int bit)             {        macWordQueue[4].setTcpCtrlAck(bit);    }
+        TcpCtrlBit getTcpControlAck()                    { return macWordQueue[4].getTcpCtrlAck();       }
+        void       setTcpControlUrg(int bit)             {        macWordQueue[4].setTcpCtrlUrg(bit);    }
+        TcpCtrlBit getTcpControlUrg()                    { return macWordQueue[4].getTcpCtrlUrg();       }
+        // Set-Get the TCP Window field
+        void setTcpWindow(int win)                       {        macWordQueue[4].setTcpWindow(win);     }
+        int  getTcpWindow()                              { return macWordQueue[4].getTcpWindow();        }
+        // Set-Get the TCP Checksum field
+        void setTcpChecksum(int csum)                    {        macWordQueue[4].setTcpChecksum(csum);  }
+        int  getTcpChecksum()                            { return macWordQueue[4].getTcpChecksum();      }
+        // Set-Get the TCP Urgent Pointer field
+        void setTcpUrgentPointer(int ptr)                {        macWordQueue[4].setTcpUrgPtr(ptr);     }
+        int  getTcpUrgentPointer()                       { return macWordQueue[4].getTcpUrgPtr();        }
+        // Set-Get the TCP Option fields
+        void setTcpOptionKind(int val)                   {        macWordQueue[5].setTcpOptKind(val);    }
+        int  getTcpOptionKind()                          { return macWordQueue[5].getTcpOptKind();       }
+        void setTcpOptionMss(int val)                    {        macWordQueue[5].setTcpOptMss(val);     }
+        int  getTcpOptionMss()                           { return macWordQueue[5].getTcpOptMss();        }
+        // Additional Debug and Utilities Procedures
+        /**************************************************************************
+         * @brief Clone an IP packet.
+         *
+         * @param[in] ipPkt, a reference to the packet to clone.
+         **************************************************************************/
+        void clone(IpPacket &ipPkt)
+        {
+            Ip4overMac newMacWord;
+            for (int i=0; i<ipPkt.macWordQueue.size(); i++) {
+                newMacWord = ipPkt.macWordQueue[i];
+                this->macWordQueue.push_back(newMacWord);
+            }
+        }
+        /***************************************************************************
+         * @brief Get TCP data the IP packet.
+         *
+         * @returns a string.
+         ***************************************************************************/
+        string getTcpData()
+        {
+            string  tcpDataStr = "";
+            int     tcpDataSize = this->sizeOfTcpData();
+
+            if(tcpDataSize > 0) {
+                int     ip4DataOffset = (4 * this->getIpInternetHeaderLength());
+                int     tcpDataOffset = ip4DataOffset + (4 * this->getTcpDataOffset());
+                AxiWord axiWord;
+                int     bytCnt = 0;
+
+                for (int chunkNum=0; chunkNum<this->macWordQueue.size(); chunkNum++) {
+                    for (int bytNum=0; bytNum<8; bytNum++) {
+                        if ((bytCnt >= tcpDataOffset) & (bytCnt < (tcpDataOffset + tcpDataSize))) {
+                            if (this->macWordQueue[chunkNum].tkeep.bit(bytNum)) {
+                                int hi = ((bytNum*8) + 7);
+                                int lo = ((bytNum*8) + 0);
+                                ap_uint<8>  octet = this->macWordQueue[chunkNum].tdata.range(hi, lo);
+                                tcpDataStr += myUint8ToStrHex(octet);
+                            }
+                        }
+                        bytCnt++;
+                    }
+                }
+            }
+            return tcpDataStr;
+        }
+        /***********************************************************************
+         * @brief Returns true if packet is a FIN.
+         ***********************************************************************/
+        bool isFIN()
+        {
+            if (this->getTcpControlFin())
+                return true;
+            else
+                return false;
+        }
+        /***********************************************************************
+         * @brief Returns true if packet is a SYN.
+         ***********************************************************************/
+        bool isSYN()
+        {
+            if (this->getTcpControlSyn())
+                return true;
+            else
+                return false;
+        }
+        /***********************************************************************
+         * @brief Returns true if packet is an ACK.
+         ***********************************************************************/
+        bool isACK()
+        {
+            if (this->getTcpControlAck())
+                return true;
+            else
+                return false;
+        }
+
+        //OBSOLETE bool   isRST();
+        //OBSOLETE bool   isPSH();
+        //OBSOLETE bool   isURG();
+
+        /***********************************************************************
+         * @brief Print the header details of an IP packet.
+         *
+         * @param[in] callerName, the name of the calling function or process.
+         *
+         * @ingroup test_toe
+         ***********************************************************************/
+        void printHdr(const char *callerName)
+        {
+            LE_Ip4TotalLen   leIp4TotalLen = byteSwap16(this->getIpTotalLength());
+            LE_Ip4SrcAddr    leIp4SrcAddr  = byteSwap32(this->getIpSourceAddress());
+            LE_Ip4DstAddr    leIp4DstAddr  = byteSwap32(this->getIpDestinationAddress());
+
+            LE_TcpSrcPort    leTcpSrcPort  = byteSwap16(this->getTcpSourcePort());
+            LE_TcpDstPort    leTcpDstPort  = byteSwap16(this->getTcpDestinationPort());
+            LE_TcpSeqNum     leTcpSeqNum   = byteSwap32(this->getTcpSequenceNumber());
+            LE_TcpAckNum     leTcpAckNum   = byteSwap32(this->getTcpAcknowledgeNumber());
+
+            LE_TcpWindow     leTcpWindow   = byteSwap16(this->getTcpWindow());
+            LE_TcpChecksum   leTcpCSum     = byteSwap16(this->getTcpChecksum());
+            LE_TcpUrgPtr     leTcpUrgPtr   = byteSwap16(this->getTcpUrgentPointer());
+
+            printInfo(callerName, "IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n");
+            printf("[%s] IP4 Total Length        = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getIpTotalLength(), leIp4TotalLen.to_uint());
+            printf("[%s] IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
+                    (std::string(callerName)).c_str(),
+                    (this->getIpSourceAddress() & 0xFF000000) >> 24,
+                    (this->getIpSourceAddress() & 0x00FF0000) >> 16,
+                    (this->getIpSourceAddress() & 0x0000FF00) >>  8,
+                    (this->getIpSourceAddress() & 0x000000FF) >>  0,
+                    leIp4SrcAddr.to_uint());
+            printf("[%s] IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
+                    (std::string(callerName)).c_str(),
+                    (this->getIpDestinationAddress() & 0xFF000000) >> 24,
+                    (this->getIpDestinationAddress() & 0x00FF0000) >> 16,
+                    (this->getIpDestinationAddress() & 0x0000FF00) >>  8,
+                    (this->getIpDestinationAddress() & 0x000000FF) >>  0,
+                    leIp4DstAddr.to_uint());
+            printf("[%s] TCP Source Port         = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpSourcePort(), leTcpSrcPort.to_uint());
+            printf("[%s] TCP Destination Port    = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpDestinationPort(), leTcpDstPort.to_uint());
+            printf("[%s] TCP Sequence Number     = %15u (0x%8.8X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpSequenceNumber().to_uint(), leTcpSeqNum.to_uint());
+            printf("[%s] TCP Acknowledge Number  = %15u (0x%8.8X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpAcknowledgeNumber().to_uint(), leTcpAckNum.to_uint());
+            printf("[%s] TCP Data Offset         = %15d (0x%1.1X)  \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpDataOffset(), this->getTcpDataOffset());
+
+            printf("[%s] TCP Control Bits        = ",
+                    (std::string(callerName)).c_str());
+            printf("%s", this->getTcpControlFin() ? "FIN |" : "");
+            printf("%s", this->getTcpControlSyn() ? "SYN |" : "");
+            printf("%s", this->getTcpControlRst() ? "RST |" : "");
+            printf("%s", this->getTcpControlPsh() ? "PSH |" : "");
+            printf("%s", this->getTcpControlAck() ? "ACK |" : "");
+            printf("%s", this->getTcpControlUrg() ? "URG |" : "");
+            printf("\n");
+
+            printf("[%s] TCP Window              = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpWindow(),        leTcpWindow.to_uint());
+            printf("[%s] TCP Checksum            = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpChecksum(),      leTcpCSum.to_uint());
+            printf("[%s] TCP Urgent Pointer      = %15u (0x%4.4X) \n",
+                    (std::string(callerName)).c_str(),
+                    this->getTcpUrgentPointer(), leTcpUrgPtr.to_uint());
+
+            if (this->getTcpDataOffset() == 6) {
+                printf("[%s] TCP Option:\n",
+                        (std::string(callerName)).c_str());
+                switch (this->getTcpOptionKind()) {
+                case 0x02:
+                    printf("[%s]    Maximum Segment Size = %15u \n",
+                            (std::string(callerName)).c_str(),
+                            this->getTcpOptionMss());
+                }
+            }
+
+            printf("[%s] TCP Data Length         = %15u \n",
+                    (std::string(callerName)).c_str(),
+                    this->sizeOfTcpData());
+        }
+        /***********************************************************************
+         * @brief Raw print of an IP packet (.i.e, as AXI4 chunks).
+         *
+         * @param[in] callerName, the name of the calling function or process.
+         *
+         * @ingroup test_toe
+         ***********************************************************************/
+        void printRaw(const char *callerName)
+        {
+            printInfo(callerName, "Current packet is : \n");
+            for (int c=0; c<this->macWordQueue.size(); c++)
+                printf("\t\t%16.16LX %2.2X %d \n",
+                       this->macWordQueue[c].tdata.to_ulong(),
+                       this->macWordQueue[c].tkeep.to_uint(),
+                       this->macWordQueue[c].tlast.to_uint());
+        }
+        /***********************************************************************
+         * @brief Recalculate the TCP checksum of the packet after it was modified.
+         *
+         * @return the new checksum.
+         ***********************************************************************/
+        int recalculateChecksum()
+
+        {
+            int               newChecksum = 0;
+            deque<Ip4overMac> pseudoHeader;
+            Ip4overMac        macWord;
+
+            int  ipPktLen   = this->getIpTotalLength();
+            int  tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
+
+            // Create the pseudo-header
+            //---------------------------
+            // [0] IP_SA and IP_DA
+            macWord.tdata    = (this->macWordQueue[1].tdata.range(63, 32), this->macWordQueue[2].tdata.range(31,  0));
+            pseudoHeader.push_back(macWord);
+            // [1] TCP Protocol and TCP Length & TC_SP & TCP_DP
+            macWord.tdata.range(15,  0)  = 0x0600;
+            macWord.tdata.range(31, 16) = byteSwap16(tcpDataLen);
+            macWord.tdata.range(63, 32) = this->macWordQueue[2].tdata.range(63, 32);
+            pseudoHeader.push_back(macWord);
+            // Clear the Checksum of the current packet before continuing building the pseudo header
+            this->macWordQueue[4].tdata.range(47, 32) = 0x0000;
+
+            for (int i=2; i<macWordQueue.size()-1; ++i) {
+                macWord = this->macWordQueue[i+1];
+                pseudoHeader.push_back(macWord);
+            }
+
+            // Compute the pseudo pseudo-header checksum
+            int pseudoHeaderCsum = checksumComputation(pseudoHeader);
+
+            /// Overwrite the former checksum
+            this->setTcpChecksum(pseudoHeaderCsum);
+
+            return pseudoHeaderCsum;
+        }
+        /***********************************************************************
+         * @brief Return the size of the TCP data payload in octets.
+         ***********************************************************************/
+        int sizeOfTcpData()
+        {
+            int ipDataLen  = this->getIpTotalLength() - (4 * this->getIpInternetHeaderLength());
+            int tcpDatalen = ipDataLen - (4 * this->getTcpDataOffset());
+            return tcpDatalen;
+        }
+        /***********************************************************************
+         *  @brief Dump an AxiWord to a file.
+         *
+         * @param[in] axiWord,       a pointer to the AXI word to write.
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writeAxiWordToFile(AxiWord *axiWord, ofstream &outFileStream) {
+            if (!outFileStream.is_open()) {
+                printError("IpPacket", "File is not opened.\n");
+                return false;
+            }
+            outFileStream << std::uppercase;
+            outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
+            outFileStream << " ";
+            outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
+            outFileStream << " ";
+            outFileStream << setw(1) << axiWord->tlast.to_int() << "\n";
+            if ( axiWord->tlast.to_int()) {
+                outFileStream << "\n";
+            }
+            return(true);
+        }
+        /***********************************************************************
+         * @brief Dump this IP packet as raw AXI words into a file
+         *
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writeToDatFile(ofstream  &outFileStream) {
+        	int i = 0;
+			while (i<this->len) {
+				AxiWord axiWord = this->front();
+				i += axiWord.keepToLen();
+				if (not this->writeAxiWordToFile(&axiWord, outFileStream))
+					return false;
+				this->pop_front();
 			}
-			// Reverse the bits of the result
-			tcpChecksum = ~tcpChecksum;
-			return tcpChecksum.range(15, 0).to_int();
-		}
-		void setLen(int pktLen) { this->len = pktLen; }
+			return true;
+        }
+
+    }; // End of: IpPacket
+#endif
+
+#ifndef __SYNTHESIS__
+    /*****************************************************************************
+     * @brief Class ETHERNET Frame.
+     *
+     * @details
+     *  This class defines an ETHERNET frame as a set of 'EthoverMac' words. These
+     *   words are 64-bit chunks that can are received or transmitted by the 10 Gbit
+     *   Ethernet MAC core over its AXI4-Stream interface.
+     *  Every frame consist of a double-ended queue that is used to accumulate all
+     *   these data chunks.
+     *
+     ******************************************************************************/
+    class EthFrame {
+    	int len;  // Length of the frame in bytes
+		std::deque<EthoverMac> macWordQueue;  // A double-ended queue to store ETHernet chunks.
+		void setLen(int frmLen) { this->len = frmLen; }
+		int  getLen() { return    this->len;          }
 	  public:
 		// Default Constructor
-		IpPacket() {
+		EthFrame() {
 			this->len = 0;
 		}
 		// Construct a packet of length 'pktLen'
-		IpPacket(int pktLen) {
-			if (pktLen > 0 && pktLen <= MTU)
-				setLen(pktLen);
-			int noBytes = pktLen;
-			while(noBytes > 8) {
-				Ip4overMac newMacWord(0x0000000000000000, 0xFF, 0);
-				macWordQueue.push_back(newMacWord);
-				noBytes -= 8;
+		EthFrame(int frmLen) {
+			if (frmLen > 0 && frmLen <= MTU) {
+				setLen(frmLen);
+			    int noBytes = frmLen;
+			    while(noBytes > 8) {
+				    EthoverMac newEthWord(0x0000000000000000, 0xFF, 0);
+				    macWordQueue.push_back(newEthWord);
+				    noBytes -= 8;
+			    }
+		    	EthoverMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
+			    macWordQueue.push_back(newMacWord);
 			}
-			Ip4overMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
-			macWordQueue.push_back(newMacWord);
-			// Set all the default IP packet fields.
-			setIpInternetHeaderLength(5);
-			setIpVersion(4);
-			setIpTypeOfService(0);
-			setIpTotalLength(pktLen);
-			setIpIdentification(0);
-			setIpFragmentOffset(0);
-			setIpFlags(0);
-			setIpTimeToLive(255);
-			setIpProtocol(6);
-			setIpHeaderChecksum(0);
-			// Set all the default TCP segment fields
-			setTcpDataOffset(5);
 		}
 
 		// Return the front chunk element of the MAC word queue
-		Ip4overMac front()                               { return this->macWordQueue.front();            }
+		EthoverMac front()                               { return this->macWordQueue.front();            }
 		// Clear the content of the MAC word queue
 		void clear()                                     {        this->macWordQueue.clear();            }
 		// Remove the first chunk element of the MAC word queue
 		void pop_front()                                 {        this->macWordQueue.pop_front();        }
 		// Add an element at the end of the MAC word queue
-		void push_back(Ip4overMac ipChunk)               {        this->macWordQueue.push_back(ipChunk);
-																  this->len += keepToLen(ipChunk.tkeep); }
-		// Return the length of the IPv4 packet
+		void push_back(EthoverMac ethChunk)              {        this->macWordQueue.push_back(ethChunk);
+		                                                          this->len += keepToLen(ethChunk.tkeep);}
+		// Return the length of the ETH frame in bytes
 		int length()                                     { return this->len;                             }
+		// Set-Get the MAC Destination Address field
+		void       setMacDestinAddress(EthAddr addr)     {        macWordQueue[0].setEthDstAddr(addr);   }
+		EthAddr    getMacDestinAddress()                 { return macWordQueue[0].getEthDstAddr();       }
+		LE_EthAddr getLE_MacDestinAddress()              { return macWordQueue[1].getLE_EthDstAddr();    }
+		// Set-Get the MAC Source Address field
+		void       setMacSourceAddress(EthAddr addr)     {        macWordQueue[0].setEthSrcAddrLo(addr);
+																  macWordQueue[1].setEthSrcAddrHi(addr); }
+		EthAddr    getMacSourceAddress()                 { return(macWordQueue[1].getEthSrcAddrHi() << 48) &
+																 (macWordQueue[0].getEthSrcAddrLo());    }
+		// Set-Get the Ethertype/Length field
+		void       setTypeLength(EthTypeLen typLen)      {        macWordQueue[1].setEthTypeLen(typLen); }
+		EthTypeLen getTypeLength()                       { return macWordQueue[1].getEthTypelen();       }
 
-		// Set-Get the IP Version field
-		void setIpVersion(int version)                   {        macWordQueue[0].setIp4Version(version);}
-		int  getIpVersion()                              { return macWordQueue[0].getIp4Version();       }
-		// Set-Get the IP Internet Header Length field
-		void setIpInternetHeaderLength(int ihl)          {        macWordQueue[0].setIp4HdrLen(ihl);     }
-		int  getIpInternetHeaderLength()                 { return macWordQueue[0].getIp4HdrLen();        }
-		// Set the IP Type of Service field
-		void setIpTypeOfService(int tos)                 {        macWordQueue[0].setIp4ToS(tos);        }
-		// Set-Get the IP Total Length field
-		void setIpTotalLength(int totLen)                {        macWordQueue[0].setIp4TotalLen(totLen);}
-		int  getIpTotalLength()                          { return macWordQueue[0].getIp4TotalLen();      }
-		// Set the IP Identification field
-		void setIpIdentification(int id)                 {        macWordQueue[0].setIp4Ident(id);       }
-		// Set the IP Fragment Offset field
-		void setIpFragmentOffset(int offset)             {        macWordQueue[0].setIp4FragOff(offset); }
-		// Set the IP Flags field
-		void setIpFlags(int flags)                       {        macWordQueue[0].setIp4Flags(flags);    }
-		// Set the IP Time To Live field
-		void setIpTimeToLive(int ttl)                    {        macWordQueue[1].setIp4TtL(ttl);        }
-		// Set the IP Protocol field
-		void setIpProtocol(int prot)                     {        macWordQueue[1].setIp4Prot(prot);      }
-		// Set the IP Header Checksum field
-		void setIpHeaderChecksum(int csum)               {        macWordQueue[1].setIp4HdrCsum(csum);   }
-		// Set-Get the IP Source Address field
-		void          setIpSourceAddress(int addr)       {        macWordQueue[1].setIp4SrcAddr(addr);   }
-		int           getIpSourceAddress()               { return macWordQueue[1].getIp4SrcAddr();       }
-		LE_Ip4Addr getLE_IpSourceAddress()               { return macWordQueue[1].getLE_Ip4SrcAddr();    }
-		// Set-Get the IP Destination Address field
-		void          setIpDestinationAddress(int addr)  {        macWordQueue[2].setIp4DstAddr(addr);   }
-		int           getIpDestinationAddress()          { return macWordQueue[2].getIp4DstAddr();       }
-		LE_Ip4Addr getLE_IpDestinationAddress()          { return macWordQueue[2].getLE_Ip4DstAddr();    }
-		// Set-Get the TCP Source Port field
-		void          setTcpSourcePort(int port)         {        macWordQueue[2].setTcpSrcPort(port);   }
-		int           getTcpSourcePort()                 { return macWordQueue[2].getTcpSrcPort();       }
-		LE_TcpPort getLE_TcpSourcePort()                 { return macWordQueue[2].getLE_TcpSrcPort();    }
-		// Set-Get the TCP Destination Port field
-		void          setTcpDestinationPort(int port)    {        macWordQueue[2].setTcpDstPort(port);   }
-		int           getTcpDestinationPort()            { return macWordQueue[2].getTcpDstPort();       }
-		LE_TcpPort getLE_TcpDestinationPort()            { return macWordQueue[2].getLE_TcpDstPort();    }
-		// Set-Get the TCP Sequence Number field
-		void       setTcpSequenceNumber(TcpSeqNum num)   {        macWordQueue[3].setTcpSeqNum(num);     }
-		TcpSeqNum  getTcpSequenceNumber()                { return macWordQueue[3].getTcpSeqNum();        }
-		// Set the TCP Acknowledgment Number
-		void       setTcpAcknowledgeNumber(TcpAckNum num){        macWordQueue[3].setTcpAckNum(num);     }
-		TcpAckNum  getTcpAcknowledgeNumber()             { return macWordQueue[3].getTcpAckNum();        }
-		// Set-Get the TCP Data Offset field
-		void setTcpDataOffset(int offset)                {        macWordQueue[4].setTcpDataOff(offset); }
-		int  getTcpDataOffset()                          { return macWordQueue[4].getTcpDataOff();       }
-		// Set-Get the TCP Control Bits
-		void       setTcpControlFin(int bit)             {        macWordQueue[4].setTcpCtrlFin(bit);    }
-		TcpCtrlBit getTcpControlFin()                    { return macWordQueue[4].getTcpCtrlFin();       }
-		void       setTcpControlSyn(int bit)             {        macWordQueue[4].setTcpCtrlSyn(bit);    }
-		TcpCtrlBit getTcpControlSyn()                    { return macWordQueue[4].getTcpCtrlSyn();       }
-		void       setTcpControlRst(int bit)             {        macWordQueue[4].setTcpCtrlRst(bit);    }
-		TcpCtrlBit getTcpControlRst()                    { return macWordQueue[4].getTcpCtrlRst();       }
-		void       setTcpControlPsh(int bit)             {        macWordQueue[4].setTcpCtrlPsh(bit);    }
-		TcpCtrlBit getTcpControlPsh()                    { return macWordQueue[4].getTcpCtrlPsh();       }
-		void       setTcpControlAck(int bit)             {        macWordQueue[4].setTcpCtrlAck(bit);    }
-		TcpCtrlBit getTcpControlAck()                    { return macWordQueue[4].getTcpCtrlAck();       }
-		void       setTcpControlUrg(int bit)             {        macWordQueue[4].setTcpCtrlUrg(bit);    }
-		TcpCtrlBit getTcpControlUrg()                    { return macWordQueue[4].getTcpCtrlUrg();       }
-		// Set-Get the TCP Window field
-		void setTcpWindow(int win)                       {        macWordQueue[4].setTcpWindow(win);     }
-		int  getTcpWindow()                              { return macWordQueue[4].getTcpWindow();        }
-		// Set-Get the TCP Checksum field
-		void setTcpChecksum(int csum)                    {        macWordQueue[4].setTcpChecksum(csum);  }
-		int  getTcpChecksum()                            { return macWordQueue[4].getTcpChecksum();      }
-		// Set-Get the TCP Urgent Pointer field
-		void setTcpUrgentPointer(int ptr)                {        macWordQueue[4].setTcpUrgPtr(ptr);     }
-		int  getTcpUrgentPointer()                       { return macWordQueue[4].getTcpUrgPtr();        }
-		// Set-Get the TCP Option fields
-		void setTcpOptionKind(int val)                   {        macWordQueue[5].setTcpOptKind(val);    }
-		int  getTcpOptionKind()                          { return macWordQueue[5].getTcpOptKind();       }
-		void setTcpOptionMss(int val)                    {        macWordQueue[5].setTcpOptMss(val);     }
-		int  getTcpOptionMss()                           { return macWordQueue[5].getTcpOptMss();        }
-		// Additional Debug and Utilities Procedures
-		/**************************************************************************
-		 * @brief Clone an IP packet.
-		 *
-		 * @param[in] ipPkt, a reference to the packet to clone.
-		 **************************************************************************/
-		void clone(IpPacket &ipPkt)
-		{
-			Ip4overMac newMacWord;
-			for (int i=0; i<ipPkt.macWordQueue.size(); i++) {
-				newMacWord = ipPkt.macWordQueue[i];
-				this->macWordQueue.push_back(newMacWord);
+		// Return the size of the ETH data payload in octets
+		int sizeOfPayload() {
+			int ethTypLen  = this->getTypeLength();
+			if (ethTypLen < 0x0600) {  // 1536
+				return ethTypLen;
+			}
+			else {
+				// Retrieve the payload length from the deque
+				return (this->length());
 			}
 		}
-		/***************************************************************************
-		 * @brief Get TCP data the IP packet.
-		 *
-		 * @returns a string.
-		 ***************************************************************************/
-		string getTcpData()
-		{
-			string  tcpDataStr = "";
-			int     tcpDataSize = this->sizeOfTcpData();
-
-			if(tcpDataSize > 0) {
-				int     ip4DataOffset = (4 * this->getIpInternetHeaderLength());
-				int     tcpDataOffset = ip4DataOffset + (4 * this->getTcpDataOffset());
-				AxiWord axiWord;
-				int     bytCnt = 0;
-
-				for (int chunkNum=0; chunkNum<this->macWordQueue.size(); chunkNum++) {
-					for (int bytNum=0; bytNum<8; bytNum++) {
-						if ((bytCnt >= tcpDataOffset) & (bytCnt < (tcpDataOffset + tcpDataSize))) {
-							if (this->macWordQueue[chunkNum].tkeep.bit(bytNum)) {
-								int hi = ((bytNum*8) + 7);
-								int lo = ((bytNum*8) + 0);
-								ap_uint<8>  octet = this->macWordQueue[chunkNum].tdata.range(hi, lo);
-								tcpDataStr += myUint8ToStrHex(octet);
-							}
-						}
-						bytCnt++;
+		// Return the ETH data payload as an IpPacket
+		IpPacket getIpPacket() {
+			int pldSize = this->sizeOfPayload();
+			IpPacket ipPacket;
+			AxiWord axiWord(0, 0, 0);
+			int wordOutCnt = 0;
+			int wordInpCnt = 1; // Skip the 1st word because it contains MAC_SA [1:0] | MAC_DA[5:0]
+			bool alternate = true;
+			while (wordInpCnt < this->macWordQueue.size()) {
+				if (alternate) {
+					axiWord.tdata = 0;
+					axiWord.tkeep = 0;
+					axiWord.tlast = 0;
+				    if (this->macWordQueue[wordInpCnt].tkeep.And(0x40)) {
+						axiWord.tdata.range( 7,  0) = this->macWordQueue[wordInpCnt].tdata.range(55, 48);
+						axiWord.tkeep = axiWord.tkeep.Or(0x01);
 					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x80)) {
+						axiWord.tdata.range(15,  8) = this->macWordQueue[wordInpCnt].tdata.range(63, 56);
+						axiWord.tkeep = axiWord.tkeep.Or(0x02);
+					}
+					if (this->macWordQueue[wordInpCnt].tlast) {
+						axiWord.tlast = 1;
+						ipPacket.push_back(axiWord);
+					}
+					alternate = !alternate;
+					wordInpCnt++;
+				}
+				else {
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x01)) {
+						axiWord.tdata.range(23, 16) = this->macWordQueue[wordInpCnt].tdata.range( 7,  0);
+						axiWord.tkeep = axiWord.tkeep.Or(0x04);
+					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x02)) {
+						axiWord.tdata.range(31, 24) = this->macWordQueue[wordInpCnt].tdata.range(15,  8);
+						axiWord.tkeep = axiWord.tkeep.Or(0x08);
+					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x04)) {
+						axiWord.tdata.range(39, 32) = this->macWordQueue[wordInpCnt].tdata.range(23, 16);
+						axiWord.tkeep = axiWord.tkeep.Or(0x10);
+					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x08)) {
+						axiWord.tdata.range(47, 40) = this->macWordQueue[wordInpCnt].tdata.range(31, 24);
+						axiWord.tkeep = axiWord.tkeep.Or(0x20);
+					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x10)) {
+						axiWord.tdata.range(55, 48) = this->macWordQueue[wordInpCnt].tdata.range(39, 32);
+						axiWord.tkeep = axiWord.tkeep.Or(0x40);
+					}
+					if (this->macWordQueue[wordInpCnt].tkeep.And(0x20)) {
+						axiWord.tdata.range(63, 56) = this->macWordQueue[wordInpCnt].tdata.range(47, 40);
+						axiWord.tkeep = axiWord.tkeep.Or(0x80);
+					}
+					if (this->macWordQueue[wordInpCnt].tlast && (not (this->macWordQueue[wordInpCnt].tkeep.And(0xC0)))) {
+						axiWord.tlast = 1;
+					}
+					alternate = !alternate;
+                    wordOutCnt++;
+
+                    ipPacket.push_back(axiWord);
 				}
 			}
-			return tcpDataStr;
+			return ipPacket;
 		}
-		/**************************************************************************
-		 * @brief Returns true if packet is a FIN.
-		 **************************************************************************/
-		bool isFIN()
-		{
-			if (this->getTcpControlFin())
-				return true;
-			else
-				return false;
-		}
-		/**************************************************************************
-		 * @brief Returns true if packet is a SYN.
-		 **************************************************************************/
-		bool isSYN()
-		{
-			if (this->getTcpControlSyn())
-				return true;
-			else
-				return false;
-		}
-		/**************************************************************************
-		 * @brief Returns true if packet is an ACK.
-		 **************************************************************************/
-		bool isACK()
-		{
-			if (this->getTcpControlAck())
-				return true;
-			else
-				return false;
-		}
+        //  Dump an AxiWord to a file.
+        bool writeAxiWordToFile(AxiWord *axiWord, ofstream &outFileStream) {
+            if (!outFileStream.is_open()) {
+                printError("EthFrame", "File is not opened.\n");
+                return false;
+            }
+            outFileStream << std::uppercase;
+            outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
+            outFileStream << " ";
+            outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
+            outFileStream << " ";
+            outFileStream << setw(1) << axiWord->tlast.to_int() << "\n";
+            return(true);
+        }
 
-		//OBSOLETE bool   isRST();
-		//OBSOLETE bool   isPSH();
-		//OBSOLETE bool   isURG();
+    }; // End of: EthFrame
 
-		/*****************************************************************************
-		 * @brief Print the header details of an IP packet.
-		 *
-		 * @param[in] callerName, the name of the calling function or process.
-		 *
-		 * @ingroup test_toe
-		 *****************************************************************************/
-		void printHdr(const char *callerName)
-		{
-			LE_Ip4TotalLen   leIp4TotalLen = byteSwap16(this->getIpTotalLength());
-			LE_Ip4SrcAddr    leIp4SrcAddr  = byteSwap32(this->getIpSourceAddress());
-			LE_Ip4DstAddr    leIp4DstAddr  = byteSwap32(this->getIpDestinationAddress());
-
-			LE_TcpSrcPort    leTcpSrcPort  = byteSwap16(this->getTcpSourcePort());
-			LE_TcpDstPort    leTcpDstPort  = byteSwap16(this->getTcpDestinationPort());
-			LE_TcpSeqNum     leTcpSeqNum   = byteSwap32(this->getTcpSequenceNumber());
-			LE_TcpAckNum     leTcpAckNum   = byteSwap32(this->getTcpAcknowledgeNumber());
-
-			LE_TcpWindow     leTcpWindow   = byteSwap16(this->getTcpWindow());
-			LE_TcpChecksum   leTcpCSum     = byteSwap16(this->getTcpChecksum());
-			LE_TcpUrgPtr     leTcpUrgPtr   = byteSwap16(this->getTcpUrgentPointer());
-
-			printInfo(callerName, "IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n");
-			printf("[%s] IP4 Total Length        = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getIpTotalLength(), leIp4TotalLen.to_uint());
-			printf("[%s] IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
-					(std::string(callerName)).c_str(),
-					(this->getIpSourceAddress() & 0xFF000000) >> 24,
-					(this->getIpSourceAddress() & 0x00FF0000) >> 16,
-					(this->getIpSourceAddress() & 0x0000FF00) >>  8,
-					(this->getIpSourceAddress() & 0x000000FF) >>  0,
-					leIp4SrcAddr.to_uint());
-			printf("[%s] IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
-					(std::string(callerName)).c_str(),
-					(this->getIpDestinationAddress() & 0xFF000000) >> 24,
-					(this->getIpDestinationAddress() & 0x00FF0000) >> 16,
-					(this->getIpDestinationAddress() & 0x0000FF00) >>  8,
-					(this->getIpDestinationAddress() & 0x000000FF) >>  0,
-					leIp4DstAddr.to_uint());
-			printf("[%s] TCP Source Port         = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpSourcePort(), leTcpSrcPort.to_uint());
-			printf("[%s] TCP Destination Port    = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpDestinationPort(), leTcpDstPort.to_uint());
-			printf("[%s] TCP Sequence Number     = %15u (0x%8.8X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpSequenceNumber().to_uint(), leTcpSeqNum.to_uint());
-			printf("[%s] TCP Acknowledge Number  = %15u (0x%8.8X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpAcknowledgeNumber().to_uint(), leTcpAckNum.to_uint());
-			printf("[%s] TCP Data Offset         = %15d (0x%1.1X)  \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpDataOffset(), this->getTcpDataOffset());
-
-			printf("[%s] TCP Control Bits        = ",
-					(std::string(callerName)).c_str());
-			printf("%s", this->getTcpControlFin() ? "FIN |" : "");
-			printf("%s", this->getTcpControlSyn() ? "SYN |" : "");
-			printf("%s", this->getTcpControlRst() ? "RST |" : "");
-			printf("%s", this->getTcpControlPsh() ? "PSH |" : "");
-			printf("%s", this->getTcpControlAck() ? "ACK |" : "");
-			printf("%s", this->getTcpControlUrg() ? "URG |" : "");
-			printf("\n");
-
-			printf("[%s] TCP Window              = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpWindow(),        leTcpWindow.to_uint());
-			printf("[%s] TCP Checksum            = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpChecksum(),      leTcpCSum.to_uint());
-			printf("[%s] TCP Urgent Pointer      = %15u (0x%4.4X) \n",
-					(std::string(callerName)).c_str(),
-					this->getTcpUrgentPointer(), leTcpUrgPtr.to_uint());
-
-			if (this->getTcpDataOffset() == 6) {
-				printf("[%s] TCP Option:\n",
-						(std::string(callerName)).c_str());
-				switch (this->getTcpOptionKind()) {
-				case 0x02:
-					printf("[%s]    Maximum Segment Size = %15u \n",
-							(std::string(callerName)).c_str(),
-							this->getTcpOptionMss());
-				}
-			}
-
-			printf("[%s] TCP Data Length         = %15u \n",
-					(std::string(callerName)).c_str(),
-					this->sizeOfTcpData());
-		}
-		/**************************************************************************
-		 * @brief Raw print of an IP packet (.i.e, as AXI4 chunks).
-		 *
-		 * @param[in] callerName, the name of the calling function or process.
-		 *
-		 * @ingroup test_toe
-		 **************************************************************************/
-		void printRaw(const char *callerName)
-		{
-			printInfo(callerName, "Current packet is : \n");
-			for (int c=0; c<this->macWordQueue.size(); c++)
-				printf("\t\t%16.16LX %2.2X %d \n",
-					   this->macWordQueue[c].tdata.to_ulong(),
-					   this->macWordQueue[c].tkeep.to_uint(),
-					   this->macWordQueue[c].tlast.to_uint());
-		}
-		/**************************************************************************
-		 * @brief Recalculate the TCP checksum of the packet after it was modified.
-		 *
-		 * @return the new checksum.
-		 ***************************************************************************/
-		int recalculateChecksum()
-
-		{
-			int               newChecksum = 0;
-			deque<Ip4overMac> pseudoHeader;
-			Ip4overMac        macWord;
-
-			int  ipPktLen   = this->getIpTotalLength();
-			int  tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
-
-			// Create the pseudo-header
-			//---------------------------
-			// [0] IP_SA and IP_DA
-			macWord.tdata    = (this->macWordQueue[1].tdata.range(63, 32), this->macWordQueue[2].tdata.range(31,  0));
-			pseudoHeader.push_back(macWord);
-			// [1] TCP Protocol and TCP Length & TC_SP & TCP_DP
-			macWord.tdata.range(15,  0)  = 0x0600;
-			macWord.tdata.range(31, 16) = byteSwap16(tcpDataLen);
-			macWord.tdata.range(63, 32) = this->macWordQueue[2].tdata.range(63, 32);
-			pseudoHeader.push_back(macWord);
-			// Clear the Checksum of the current packet before continuing building the pseudo header
-			this->macWordQueue[4].tdata.range(47, 32) = 0x0000;
-
-			for (int i=2; i<macWordQueue.size()-1; ++i) {
-				macWord = this->macWordQueue[i+1];
-				pseudoHeader.push_back(macWord);
-			}
-
-			// Compute the pseudo pseudo-header checksum
-			int pseudoHeaderCsum = checksumComputation(pseudoHeader);
-
-			/// Overwrite the former checksum
-			this->setTcpChecksum(pseudoHeaderCsum);
-
-			return pseudoHeaderCsum;
-		}
-		/**************************************************************************
-		 * @brief Return the size of the TCP data payload in octets.
-		 ***************************************************************************/
-		int sizeOfTcpData()
-		{
-			int ipDataLen  = this->getIpTotalLength() - (4 * this->getIpInternetHeaderLength());
-			int tcpDatalen = ipDataLen - (4 * this->getTcpDataOffset());
-			return tcpDatalen;
-		}
+#endif
 
 
-	}; // End of: IpPacket
+/******************************************************************************
+ * FILE WRITER HELPERS - PROTOTYPE DEFINITIONS
+ *******************************************************************************/
+#ifndef __SYNTHESIS__
+  bool readAxiWordFromFile(AxiWord  *axiWord, ifstream  &inpFileStream);
+  int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord);
+  void writeTcpDataToFile(ofstream  &outFile, IpPacket  &ipPacket);
 #endif
 
 /******************************************************************************
- * FILE WRITER HELPER PROTOTYPE DEFINITIONS
+ * STREAM WRITER HELPERS - PROTOTYPE DEFINITIONS
  *******************************************************************************/
 #ifndef __SYNTHESIS__
-  int  writeTcpWordToFile(ofstream   &outFile,    AxiWord       &tcpWord);
-  void writeTcpDataToFile(ofstream   &outFile,    IpPacket      &ipPacket);
+  bool feedAxiWordStreamFromFile(stream<AxiWord> &ss, const string ssName,
+                                 string      datFile, int       &nrChunks,
+                                 int       &nrFrames, int        &nrBytes);
+  bool drainAxiWordStreamToFile (stream<AxiWord> &ss, const string ssName,
+                                 string      datFile, int       &nrChunks,
+                                 int       &nrFrames, int        &nrBytes);
 #endif
 
 

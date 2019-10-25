@@ -566,63 +566,63 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
-    .piMMIO_This_MacAddress_V (piMMIO_MacAddress),
-    .piMMIO_This_Ip4Address_V (piMMIO_IpAddress),
+    .piMMIO_MacAddress_V      (piMMIO_MacAddress),
+    .piMMIO_Ip4Address_V      (piMMIO_IpAddress),
                       
     //------------------------------------------------------
-    //-- From ETH Interfaces
+    //-- From ETH Interface
     //------------------------------------------------------
-    .siETH_This_Data_TDATA    (siETH_Data_tdata),
-    .siETH_This_Data_TKEEP    (siETH_Data_tkeep),
-    .siETH_This_Data_TLAST    (siETH_Data_tlast),
-    .siETH_This_Data_TVALID   (siETH_Data_tvalid),
-    .siETH_This_Data_TREADY   (siETH_Data_tready),
+    .siETH_Data_TDATA         (siETH_Data_tdata),
+    .siETH_Data_TKEEP         (siETH_Data_tkeep),
+    .siETH_Data_TLAST         (siETH_Data_tlast),
+    .siETH_Data_TVALID        (siETH_Data_tvalid),
+    .siETH_Data_TREADY        (siETH_Data_tready),
     
     //------------------------------------------------------
-    //-- ARP Interfaces (via [ARS0])
+    //-- ARP Interface (via [ARS0])
     //------------------------------------------------------
     //-- To  ARP / Data ----------------
-    .soTHIS_Arp_Data_TDATA    (ssIPRX_ARS0_Data_tdata),       
-    .soTHIS_Arp_Data_TKEEP    (ssIPRX_ARS0_Data_tkeep),      
-    .soTHIS_Arp_Data_TLAST    (ssIPRX_ARS0_Data_tlast),   
-    .soTHIS_Arp_Data_TVALID   (ssIPRX_ARS0_Data_tvalid),
-    .soTHIS_Arp_Data_TREADY   (ssIPRX_ARS0_Data_tready),      
+    .soARP_Data_TDATA         (ssIPRX_ARS0_Data_tdata),       
+    .soARP_Data_TKEEP         (ssIPRX_ARS0_Data_tkeep),      
+    .soARP_Data_TLAST         (ssIPRX_ARS0_Data_tlast),   
+    .soARP_Data_TVALID        (ssIPRX_ARS0_Data_tvalid),
+    .soARP_Data_TREADY        (ssIPRX_ARS0_Data_tready),      
    
     //------------------------------------------------------
-    //-- ICMP Interfaces (via ARS1)
+    //-- ICMP Interface (via ARS1)
     //------------------------------------------------------
     //-- To ICMP / Data ----------------
-    .soTHIS_Icmp_Data_TDATA   (ssIPRX_ARS1_Data_tdata),
-    .soTHIS_Icmp_Data_TKEEP   (ssIPRX_ARS1_Data_tkeep),
-    .soTHIS_Icmp_Data_TLAST   (ssIPRX_ARS1_Data_tlast),
-    .soTHIS_Icmp_Data_TVALID  (ssIPRX_ARS1_Data_tvalid),
-    .soTHIS_Icmp_Data_TREADY  (ssIPRX_ARS1_Data_tready),
+    .soICMP_Data_TDATA        (ssIPRX_ARS1_Data_tdata),
+    .soICMP_Data_TKEEP        (ssIPRX_ARS1_Data_tkeep),
+    .soICMP_Data_TLAST        (ssIPRX_ARS1_Data_tlast),
+    .soICMP_Data_TVALID       (ssIPRX_ARS1_Data_tvalid),
+    .soICMP_Data_TREADY       (ssIPRX_ARS1_Data_tready),
     //-- To ICMP / Ttl -----------------
-    .soTHIS_Icmp_Derr_TDATA   (ssIPRX_ICMP_Ttl_tdata),
-    .soTHIS_Icmp_Derr_TKEEP   (ssIPRX_ICMP_Ttl_tkeep),
-    .soTHIS_Icmp_Derr_TLAST   (ssIPRX_ICMP_Ttl_tlast),
-    .soTHIS_Icmp_Derr_TVALID  (ssIPRX_ICMP_Ttl_tvalid),
-    .soTHIS_Icmp_Derr_TREADY  (ssIPRX_ICMP_Ttl_tready),
+    .soICMP_Derr_TDATA        (ssIPRX_ICMP_Ttl_tdata),
+    .soICMP_Derr_TKEEP        (ssIPRX_ICMP_Ttl_tkeep),
+    .soICMP_Derr_TLAST        (ssIPRX_ICMP_Ttl_tlast),
+    .soICMP_Derr_TVALID       (ssIPRX_ICMP_Ttl_tvalid),
+    .soICMP_Derr_TREADY       (ssIPRX_ICMP_Ttl_tready),
 
     //------------------------------------------------------
-    //-- UDP Interfaces
+    //-- UDP Interface
     //------------------------------------------------------
     //-- To UDP / Data -----------------
-    .soTHIS_Udp_Data_TDATA    (ssIPRX_UDP_Data_tdata),
-    .soTHIS_Udp_Data_TKEEP    (ssIPRX_UDP_Data_tkeep),
-    .soTHIS_Udp_Data_TLAST    (ssIPRX_UDP_Data_tlast),
-    .soTHIS_Udp_Data_TVALID   (ssIPRX_UDP_Data_tvalid),
-    .soTHIS_Udp_Data_TREADY   (ssIPRX_UDP_Data_tready),
+    .soUDP_Data_TDATA         (ssIPRX_UDP_Data_tdata),
+    .soUDP_Data_TKEEP         (ssIPRX_UDP_Data_tkeep),
+    .soUDP_Data_TLAST         (ssIPRX_UDP_Data_tlast),
+    .soUDP_Data_TVALID        (ssIPRX_UDP_Data_tvalid),
+    .soUDP_Data_TREADY        (ssIPRX_UDP_Data_tready),
  
     //------------------------------------------------------
-    //-- TOE Interfaces (via ARS2)
+    //-- TOE Interface (via ARS2)
     //------------------------------------------------------
     //-- To TOE / Data -----------------
-    .soTHIS_Tcp_Data_TDATA    (ssIPRX_ARS2_Data_tdata),
-    .soTHIS_Tcp_Data_TKEEP    (ssIPRX_ARS2_Data_tkeep),
-    .soTHIS_Tcp_Data_TLAST    (ssIPRX_ARS2_Data_tlast),
-    .soTHIS_Tcp_Data_TVALID   (ssIPRX_ARS2_Data_tvalid),
-    .soTHIS_Tcp_Data_TREADY   (ssIPRX_ARS2_Data_tready)
+    .soTCP_Data_TDATA         (ssIPRX_ARS2_Data_tdata),
+    .soTCP_Data_TKEEP         (ssIPRX_ARS2_Data_tkeep),
+    .soTCP_Data_TLAST         (ssIPRX_ARS2_Data_tlast),
+    .soTCP_Data_TVALID        (ssIPRX_ARS2_Data_tvalid),
+    .soTCP_Data_TREADY        (ssIPRX_ARS2_Data_tready)
 
   ); // End of IPRX
 

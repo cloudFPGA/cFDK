@@ -985,7 +985,7 @@ void pIPRX(
                     continue;
                 }
                 firstWordFlag = false;
-                string tempString = "0000000000000000";
+                //OBSOLETE-20191024 string tempString = "0000000000000000";
                 ipRxData = Ip4overMac(myStrHexToUint64(stringVector[0]), \
                                       myStrHexToUint8(stringVector[2]),  \
                                       atoi(stringVector[1].c_str()));

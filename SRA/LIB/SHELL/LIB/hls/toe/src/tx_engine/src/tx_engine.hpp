@@ -44,7 +44,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-
 /********************************************
  * TXe - MetaData Interface
  ********************************************/

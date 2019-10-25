@@ -15,6 +15,8 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "../src/toe.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
@@ -23,6 +25,10 @@
 using namespace std;
 using namespace hls;
 
+//---------------------------------------------------------
+// HELPER FOR THE DEBUGGING TRACES
+//---------------------------------------------------------
+#define THIS_NAME "TestToeUtils"
 
 /*****************************************************************************
  * @brief Prints one chunk of a data stream (used for debugging).
@@ -34,6 +40,19 @@ void printAxiWord(const char *callerName, AxiWord chunk)
 {
     printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
               chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+}
+
+/*****************************************************************************
+ * @brief Print an AxiWord prepended by a message (used for debugging).
+ *
+ * @param[in] callerName,   the name of the caller process (e.g. "Tle").
+ * @param[in] message,      the message to prepend.
+ * @param[in] chunk,        the data stream chunk to display.
+ *****************************************************************************/
+void printAxiWord(const char *callerName, string message, AxiWord chunk)
+{
+    printInfo(callerName, "%s AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+              message.c_str(), chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
 }
 
 /*****************************************************************************
@@ -255,65 +274,78 @@ void printTcpPort(TcpPort tcpPort)
     printf("0x%4.4X = %5.5d\n", tcpPort.to_uint(), tcpPort.to_uint());
 }
 
-
-/*****************************************************************************
- * @brief Checks if a string contains an IP address represented in dot-decimal
- *        notation.
- *
- * @param[in]   ipAddStr, the string to assess.
- * @return      True/False.
- *
- ******************************************************************************/
 #ifndef __SYNTHESIS__
-	bool isDottedDecimal(string ipStr) {
-		vector<string>  stringVector;
+	/***************************************************************************
+	 * @brief Checks if a string contains an IP address represented in dot-decimal
+	 *        notation.
+	 *
+	 * @param[in]   ipAddStr, the string to assess.
+	 * @return      True/False.
+	 ***************************************************************************/
+    bool isDottedDecimal(string ipStr) {
+        vector<string>  stringVector;
 
-		stringVector = myTokenizer(ipStr, '.');
-		if (stringVector.size() == 4)
-			return true;
-		else
-			return false;
-	}
+        stringVector = myTokenizer(ipStr, '.');
+        if (stringVector.size() == 4)
+            return true;
+        else
+            return false;
+    }
 #endif
 
-/*****************************************************************************
- * @brief Checks if a string contains a hexadecimal number.
- *
- * @param[in]   str, the string to assess.
- * @return      True/False.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
-	bool isHexString(string str) {
-		char     *pEnd;
-		long int  res;
+    /***************************************************************************
+     * @brief Checks if a string contains a hexadecimal number.
+     *
+     * @param[in]   str, the string to assess.
+     * @return      True/False.
+     ***************************************************************************/
+    bool isHexString(string str) {
+        char     *pEnd;
+        long int  res;
 
-		if (str == "")
-			return false;
-		res = strtol(str.c_str(), &pEnd, 16);
-		//  If string is not '\0' and *pEnd is '\0' on return, the entire string is valid.
-		if (*pEnd == '\0') {
-			if ((str.find("0x") != string::npos) || (str.find("0X") != string::npos))
-				return true;
-			else
-				return false;
-		}
-		else
-			return false;
-	}
+        if (str == "")
+            return false;
+        res = strtol(str.c_str(), &pEnd, 16);
+        //  If string is not '\0' and *pEnd is '\0' on return, the entire string is valid.
+        if (*pEnd == '\0') {
+            if ((str.find("0x") != string::npos) || (str.find("0X") != string::npos))
+                return true;
+            else
+                return false;
+        }
+        else
+            return false;
+    }
 #endif
 
-/*****************************************************************************
- * @brief Converts an IPv4 address represented with a dotted-decimal string
- *        into an UINT32.
- *
- * @param[in]   inputNumber, the string to convert.
- * @return      an UINT64.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+    /***************************************************************************
+     * @brief Checks if a file has a ".dat" extension.
+     *
+     * @param[in]   fileName,    the name of the file to assess.
+     * @return      True/False.
+     ***************************************************************************/
+    bool isDatFile(string fileName) {
+        if (fileName.find_last_of ( '.' ) != string::npos) {
+            string extension (fileName.substr(fileName.find_last_of ( '.' ) + 1 ) );
+            if (extension != "dat")
+                return false;
+            else
+                return true;
+        }
+        return false;
+    }
+#endif
+
+#ifndef __SYNTHESIS__
+    /***************************************************************************
+     * @brief Converts an IPv4 address represented with a dotted-decimal string
+     *        into an UINT32.
+     *
+     * @param[in]   inputNumber, the string to convert.
+     * @return      ap_uint<32>.
+     ***************************************************************************/
 	ap_uint<32> myDottedDecimalIpToUint32(string ipStr) {
 		vector<string>  stringVector;
 		ap_uint<32>     ip4Uint = 0x00000000;
@@ -329,22 +361,21 @@ void printTcpPort(TcpPort tcpPort)
 }
 #endif
 
-/*****************************************************************************
- * @brief Brakes a string into tokens by using the 'delimiter' character.
- *
- * @param[in]  stringBuffer, the string to tokenize.
- * @param[in]  delimiter,    the delimiter character to use.
- *
- * @return a vector of strings.
- *
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+	/***************************************************************************
+	 * @brief Brakes a string into tokens by using the 'delimiter' character.
+	 *
+	 * @param[in]  stringBuffer, the string to tokenize.
+	 * @param[in]  delimiter,    the delimiter character to use.
+	 *
+	 * @return a vector of strings.
+	 *
+	 ***************************************************************************/
 	vector<string> myTokenizer(string strBuff, char delimiter) {
 		vector<string>   tmpBuff;
 		int              tokenCounter = 0;
 		bool             found = false;
-
-		if (strBuff.empty()) {
+			if (strBuff.empty()) {
 			tmpBuff.push_back(strBuff);
 			return tmpBuff;
 		}
@@ -353,8 +384,7 @@ void printTcpPort(TcpPort tcpPort)
 			if (strBuff[strBuff.size() - 1] == '\r')
 				strBuff.erase(strBuff.size() - 1);
 		}
-
-		// Search for 'delimiter' characters between the different data words
+			// Search for 'delimiter' characters between the different data words
 		while (strBuff.find(delimiter) != string::npos) {
 			// Split the string in two parts
 			string temp = strBuff.substr(0, strBuff.find(delimiter));
@@ -371,18 +401,18 @@ void printTcpPort(TcpPort tcpPort)
 		// Push the final part of the string into the vector when no more spaces are present.
 		tmpBuff.push_back(strBuff);
 		return tmpBuff;
-}
+	}
 #endif
 
-/*****************************************************************************
- * @brief Converts an UINT64 into a string of 16 HEX characters.
- *
- * @param[in]   inputNumber, the UINT64 to convert.
- * @return      a string of 16 HEX characters.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+	/***************************************************************************
+	 * @brief Converts an UINT64 into a string of 16 HEX characters.
+	 *
+	 * @param[in]   inputNumber, the UINT64 to convert.
+	 * @return      a string of 16 HEX characters.
+	 *
+	 * @ingroup test_toe
+	 ***************************************************************************/
 	string myUint64ToStrHex(ap_uint<64> inputNumber) {
 		string                    outputString    = "0000000000000000";
 		unsigned short int        tempValue       = 16;
@@ -400,15 +430,15 @@ void printTcpPort(TcpPort tcpPort)
 	}
 #endif
 
-/*****************************************************************************
- * @brief Converts an UINT8 into a string of 2 HEX characters.
- *
- * @param[in]   inputNumber, the UINT8 to convert.
- * @return      a string of 2 HEX characters.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+	/***************************************************************************
+	 * @brief Converts an UINT8 into a string of 2 HEX characters.
+	 *
+	 * @param[in]   inputNumber, the UINT8 to convert.
+	 * @return      a string of 2 HEX characters.
+	 *
+	 * @ingroup test_toe
+	 ***************************************************************************/
 	string myUint8ToStrHex(ap_uint<8> inputNumber) {
 		string                      outputString    = "00";
 		unsigned short int          tempValue       = 16;
@@ -426,48 +456,42 @@ void printTcpPort(TcpPort tcpPort)
 	}
 #endif
 
-/*****************************************************************************
- * @brief Converts an event type ENUM into a string.
- *
- * @param[in]   ev, the event type ENUM.
- * @return      corresponding string.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
     const char* eventTypeStrings[] = {
              "TX", "TXbis", "RT", "RTbis", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
-
+	/***************************************************************************
+	 * @brief Converts an event type ENUM into a string.
+	 *
+	 * @param[in]   ev, the event type ENUM.
+	 * @return      corresponding string.
+	 *
+	 * @ingroup test_toe
+	 ***************************************************************************/
     const char *myEventTypeToString(eventType ev) {
         return eventTypeStrings[ev];
     }
 #endif
 
-/*****************************************************************************
- * @brief Converts an access CAM initiator into a string.
- *
- * @param[in] initiator, the ID of the CAM accessor.
- * @return    the corresponding string.
- *
- ******************************************************************************/
 #ifndef __SYNTHESIS__
     const char    *camAccessorStrings[] = { "RXe", "TAi" };
-
+    /***************************************************************************
+     * @brief Converts an access CAM initiator into a string.
+     *
+     * @param[in] initiator, the ID of the CAM accessor.
+     * @return    the corresponding string.
+     ***************************************************************************/
     const char *myCamAccessToString(int initiator) {
         return camAccessorStrings[initiator];
     }
 #endif
 
-
-/*****************************************************************************
- * @brief Converts a string of 16 HEX characters into an UINT64.
- *
- * @param[in]   inputNumber, the string to convert.
- * @return      an UINT64.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+    /***************************************************************************
+     * @brief Converts a string of 16 HEX characters into an UINT64.
+     *
+     * @param[in]   inputNumber, the string to convert.
+     * @return      ap_uint<64>.
+     ***************************************************************************/
 	ap_uint<64> myStrHexToUint64(string dataString) {
 		ap_uint<64> tempOutput          = 0;
 		unsigned short int  tempValue   = 16;
@@ -493,15 +517,13 @@ void printTcpPort(TcpPort tcpPort)
 	}
 #endif
 
-/*****************************************************************************
- * @brief Converts a string of 2 HEX characters into an UINT8.
- *
- * @param[in]   inputNumber, the string to convert.
- * @return      an UINT8.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+	/***************************************************************************
+	 * @brief Converts a string of 2 HEX characters into an UINT8.
+	 *
+	 * @param[in]   inputNumber, the string to convert.
+	 * @return      ap_uint<8>.
+	 ***************************************************************************/
 	ap_uint<8> myStrHexToUint8(string keepString) {
 		ap_uint<8>               tempOutput = 0;
 		unsigned short int       tempValue  = 16;
@@ -527,42 +549,83 @@ void printTcpPort(TcpPort tcpPort)
 	}
 #endif
 
-/*****************************************************************************
- * @brief Dump an Axi data word to a file.
- *
- * @param[in] tcpWord,       a pointer to the data word to dump.
- * @param[in] outFileStream, the output file stream to write to.
- *
- * @return OK if successful, otherwise KO.
- ******************************************************************************/
 #ifndef __SYNTHESIS_
-	bool writeAxiWordToFile(AxiWord *tcpWord, ofstream &outFileStream) {
-	    if (!outFileStream.is_open()) {
-	        printf("### ERROR : Output file stream is not open. \n");
-	        return(KO);
-	    }
-	    outFileStream << hex << noshowbase << setfill('0') << setw(16) << tcpWord->tdata.to_uint64();
-	    outFileStream << " ";
-	    outFileStream << hex << noshowbase << setfill('0') << setw(2)  << tcpWord->tkeep.to_int();
-	    outFileStream << " ";
-	    outFileStream << setw(1) << tcpWord->tlast.to_int() << "\n";
-	    return(OK);
+	/***************************************************************************
+	 * @brief Dump an Axi data word to a file.
+	 *
+	 * @param[in] axiWord,       a pointer to the data word to dump.
+	 * @param[in] outFileStream, the output file stream to write to.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+	bool writeAxiWordToFile(AxiWord *axiWord, ofstream &outFileStream) {
+        if (!outFileStream.is_open()) {
+            printError(THIS_NAME, "File is not opened.\n");
+            return false;
+        }
+        outFileStream << std::uppercase;
+        outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
+        outFileStream << " ";
+        outFileStream << setw(1) << axiWord->tlast.to_int() << "\n";
+        outFileStream << " ";
+        outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
+        return true;
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Retrieve an Axi data word form a file.
+	 *
+	 * @param[in] axiWord,       a pointer for the data word to retrieve.
+	 * @param[in] inpFileStream, the input file stream to read from.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+	bool readAxiWordFromFile(AxiWord *axiWord, ifstream &inpFileStream) {
+		string  		stringBuffer;
+		vector<string>	stringVector;
+		bool rc = false;
+
+		if (!inpFileStream.is_open()) {
+			printError(THIS_NAME, "File is not opened.\n");
+			return false;
+		}
+
+		while (inpFileStream.peek() != EOF) {
+			getline(inpFileStream, stringBuffer);
+			stringVector = myTokenizer(stringBuffer, ' ');
+			if (stringVector[0] == "") {
+				continue;
+			}
+			else if (stringVector[0].length() == 1) {
+				// Skip this line as it is either a comment of a command
+				continue;
+			}
+			else if (stringVector.size() == 3) {
+                axiWord->tdata = myStrHexToUint64(stringVector[0]);
+                axiWord->tlast = atoi(            stringVector[1].c_str());
+                axiWord->tkeep = myStrHexToUint8( stringVector[2]);
+                rc = true;
+                break;
+			}
+			else
+				break;
+		}
+		return rc;
 	}
 #endif
 
-/*****************************************************************************
- * @brief Write a TCP AXI word into a file.
- *
- * @param[in]  outFile, a ref to the file to write.
- * @param[in]  tcpWord, a ref to the AXI word to write.
- *
- * @return the number of bytes written into the file.
- *
- * @ingroup test_toe_utils
- ******************************************************************************/
 #ifndef __SYNTHESIS_
-    int writeTcpWordToFile(ofstream    &outFile,
-                           AxiWord     &tcpWord) {
+	/***************************************************************************
+	 * @brief Write a TCP AXI word into a file.
+	 *
+	 * @param[in]  outFile, a ref to the file to write.
+	 * @param[in]  tcpWord, a ref to the AXI word to write.
+	 *
+	 * @return the number of bytes written into the file.
+	 ***************************************************************************/
+    int writeTcpWordToFile(ofstream &outFile, AxiWord &tcpWord) {
         int     writtenBytes = 0;
 
         static int mssCounter = 0;
@@ -595,20 +658,26 @@ void printTcpPort(TcpPort tcpPort)
 #endif
 
 #ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Write a TCP AXI word into a file.
+	 *
+	 * @param[in]  tcpWord, a pointer to the AXI word to write.
+	 * @param[in]  outFile, a ref to the file to write.
+	 *
+	 * @return the number of bytes written into the file.
+	 ***************************************************************************/
     int writeTcpWordToFile(AxiWord *tcpWord, ofstream &outFile) {
         return writeTcpWordToFile(outFile, *tcpWord);
     }
 #endif
 
-/*****************************************************************************
- * @brief Write the TCP data part of an IP packet into a file.
- *
- * @param[in]   outFile,  a ref to the gold file to write.
- * @param[in]   ipPacket, a ref to an IP RX packet.
- *
- * @ingroup test_toe
- ******************************************************************************/
 #ifndef __SYNTHESIS__
+    /***************************************************************************
+     * @brief Write the TCP payload into a file. Data is written as a string.
+     *
+     * @param[in]   outFile,  a ref to the gold file to write.
+     * @param[in]   ipPacket, a ref to an IP RX packet.
+     ***************************************************************************/
     void writeTcpDataToFile(ofstream &outFile, IpPacket &ipPacket) {
         if(ipPacket.sizeOfTcpData() > 0) {
             string tcpData = ipPacket.getTcpData();
@@ -619,4 +688,140 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+#ifndef __SYNTHESIS__
+    /***************************************************************************
+     * @brief Initialize an AxiWord stream from a DAT file.
+     *
+     * @param[in/out] ss,       a ref to the AxiWord stream to set.
+     * @param[in]     ssName,   the name of the AxiWord stream to set.
+     * @param[in]     fileName, the DAT file to read from.
+     * @param[out     nrChunks, a ref to the number of written AxiWords.
+     * @param[out]    nrFrames, a ref to the number of written Axi4 streams.
+     * @param[out]    nrBytes,  a ref to the number of written bytes.
+     *
+     * @return true successful,  otherwise false.
+     ***************************************************************************/
+    bool feedAxiWordStreamFromFile(stream<AxiWord> &ss, string ssName,
+            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+        ifstream    inpFileStream;
+        char        currPath[FILENAME_MAX];
+        string      strLine;
+        int         lineCnt=0;
+        AxiWord     axiWord;
+        bool        rc=false;
 
+        //-- STEP-1 : OPEN FILE
+        inpFileStream.open(datFile.c_str());
+        if (!inpFileStream) {
+            getcwd(currPath, sizeof(currPath));
+            printError(THIS_NAME, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", datFile.c_str(), currPath);
+            return(NTS_KO);
+        }
+        // Assess that file has ".dat" extension
+        if ( datFile.find_last_of ( '.' ) != string::npos ) {
+            string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+            if (extension != "dat") {
+                printError("TB", "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+                inpFileStream.close();
+                return(NTS_KO);
+            }
+        }
+
+        //-- STEP-2 : READ FROM FILE AND WRITE TO STREAM
+        while (!inpFileStream.eof()) {
+			if (not readAxiWordFromFile(&axiWord, inpFileStream)) {
+				break;
+			}
+			// Write to stream
+			if (ss.full()) {
+				printError(THIS_NAME, "Cannot write stream \'%s\'. Stream is full.\n",
+						   ssName.c_str());
+				return(rc);
+			}
+			else {
+				ss.write(axiWord);
+				nrChunks++;
+				nrFrames += axiWord.tlast.to_int();
+				nrBytes  += axiWord.keepToLen();
+				lineCnt++;
+				rc = true;
+			}
+		}
+
+        //-- STEP-3: CLOSE FILE
+        inpFileStream.close();
+
+        return(rc);
+    }
+#endif
+
+#ifndef __SYNTHESIS__
+    /*****************************************************************************
+     * @brief Empty an AxiWord stream to a DAT file.
+     *
+     * @param[in/out] ss,       a ref to the AxiWord stream to drain.
+     * @param[in]     ssName,   the name of the AxiWord stream to drain.
+     * @param[in]     fileName, the DAT file to write to.
+     * @param[out     nrChunks, a ref to the number of written AxiWords.
+     * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
+     * @param[out]    nrBytes,  a ref to the number of written bytes.
+     *
+     * @return NTS_OK if successful,  otherwise NTS_KO.
+     ******************************************************************************/
+    bool drainAxiWordStreamToFile(stream<AxiWord> &ss, string ssName,
+            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+        ofstream    outFileStream;
+        char        currPath[FILENAME_MAX];
+        string      strLine;
+        int         lineCnt=0;
+        AxiWord     axiWord;
+
+        //-- REMOVE PREVIOUS FILE
+        remove(ssName.c_str());
+
+        //-- OPEN FILE
+        if (!outFileStream.is_open()) {
+            outFileStream.open(datFile.c_str(), ofstream::out);
+            if (!outFileStream) {
+                printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+                return(NTS_KO);
+            }
+        }
+
+        // Assess that file has ".dat" extension
+        if ( datFile.find_last_of ( '.' ) != string::npos ) {
+            string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+            if (extension != "dat") {
+                printError(THIS_NAME, "Cannot dump AxiWord stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+                outFileStream.close();
+                return(NTS_KO);
+            }
+        }
+
+        //-- READ FROM STREAM AND WRITE TO FILE
+        outFileStream << std::hex << std::noshowbase;
+        outFileStream << std::setfill('0');
+        outFileStream << std::uppercase;
+        while (!(ss.empty())) {
+            ss.read(axiWord);
+            outFileStream << std::setw(8) << ((uint32_t) axiWord.tdata(63, 32));
+            outFileStream << std::setw(8) << ((uint32_t) axiWord.tdata(31,  0));
+            outFileStream << " ";
+            outFileStream << std::setw(2) << ((uint32_t) axiWord.tkeep);
+            outFileStream << " ";
+            outFileStream << std::setw(1) << ((uint32_t) axiWord.tlast);
+            outFileStream << std::endl;
+            nrChunks++;
+            nrBytes  += axiWord.keepToLen();
+            if (axiWord.tlast) {
+                nrFrames ++;
+                outFileStream << std::endl;
+            }
+        }
+
+        //-- CLOSE FILE
+        outFileStream.close();
+
+        return(NTS_OK);
+    }
+#endif

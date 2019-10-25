@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : iprx_handler.hpp
  * @brief      : IP receiver frame handler (IPRX).
@@ -6,9 +32,6 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *----------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
@@ -16,37 +39,35 @@
  *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
+#ifndef IPRX_H_
+#define IPRX_H_
+
+//OBSOLETE #include <stdio.h>
+//OBSOLETE #include <iostream>
+//OBSOLETE #include <fstream>
+//OBSOLETE #include <string>
+//OBSOLETE #include <math.h>
 #include <hls_stream.h>
 #include <ap_int.h>
-#include <stdint.h>
+//OBSOLETE #include <stdint.h>
 #include <ap_shift_reg.h>
+
+#include "../../toe/src/toe.hpp"
+#include "../../toe/src/toe_utils.hpp"
 
 using namespace hls;
 
-const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes
-const uint16_t ARP          = 0x0806;
-const uint16_t IPv4     = 0x0800;
-const uint16_t DROP     = 0x0000;
-const uint16_t FORWARD      = 0x0001;
+const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
+const uint16_t ARP             = 0x0806;
+const uint16_t IPv4            = 0x0800;
+const uint16_t DROP            = 0x0000;
+const uint16_t FORWARD         = 0x0001;
 
-const uint8_t ICMP = 0x01;
-const uint8_t UDP = 0x11;
-const uint8_t TCP = 0x06;
+const uint8_t  ICMP = 0x01;
+const uint8_t  UDP  = 0x11;
+const uint8_t  TCP  = 0x06;
 
-struct axiWord {
-    ap_uint<64> data;
-    ap_uint<8>  keep;
-    ap_uint<1>  last;
-    axiWord() {}
-    axiWord(ap_uint<64> data, ap_uint<8> keep, ap_uint<1> last)
-    : data(data), keep(keep), last(last) {}
-};
-
+/*** OBSOLETE **********
 struct subSums
 {
     ap_uint<17>         sum0;
@@ -60,87 +81,57 @@ struct subSums
     subSums(ap_uint<17> s0, ap_uint<17> s1, ap_uint<17> s2, ap_uint<17> s3, bool match)
         :sum0(s0), sum1(s1), sum2(s2), sum3(s3), ipMatch(match) {}
 };
+************************/
 
+class SubSums {
+  public:
+    ap_uint<17>         sum0;
+    ap_uint<17>         sum1;
+    ap_uint<17>         sum2;
+    ap_uint<17>         sum3;
+    bool                ipMatch;
+    SubSums() {}
+    SubSums(ap_uint<17> sums[4], bool match) :
+        sum0(sums[0]), sum1(sums[1]), sum2(sums[2]), sum3(sums[3]), ipMatch(match) {}
+    SubSums(ap_uint<17> s0, ap_uint<17> s1, ap_uint<17> s2, ap_uint<17> s3, bool match) :
+        sum0(s0), sum1(s1), sum2(s2), sum3(s3), ipMatch(match) {}
+};
 
 
 void iprx_handler(
 
-	    //------------------------------------------------------
-	    //-- MMIO Interfaces
-	    //------------------------------------------------------
-		ap_uint<48>          piMMIO_This_MacAddress,
-        ap_uint<32>          piMMIO_This_Ip4Address,
-
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        ap_uint<48>          piMMIO_MacAddress,
+        LE_Ip4Addr           piMMIO_Ip4Address,
 
         //------------------------------------------------------
-        //-- ETH0 / This / Interface
+        //-- ETHernet MAC Layer Interface
         //------------------------------------------------------
-        stream<axiWord>		&siETH_This_Data,
+        stream<AxiWord>     &siETH_Data,
 
-		//------------------------------------------------------
-		//-- ARP Interface
-		//------------------------------------------------------
-		stream<axiWord>		&soTHIS_Arp_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soARP_Data,
 
-	    //------------------------------------------------------
-	    //-- ICMP Interfaces
-	    //------------------------------------------------------
-        stream<axiWord>		&soTHIS_Icmp_Data,
-        stream<axiWord>		&soTHIS_Icmp_Derr,
+        //------------------------------------------------------
+        //-- ICMP Interfaces
+        //------------------------------------------------------
+        stream<AxiWord>     &soICMP_Data,
+        stream<AxiWord>     &soICMP_Derr,
 
-	    //------------------------------------------------------
-	    //-- UDP Interface
-	    //------------------------------------------------------
-        stream<axiWord>		&soTHIS_Udp_Data,
+        //------------------------------------------------------
+        //-- UDP Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soUDP_Data,
 
-		//------------------------------------------------------
-		//-- TOE Interface
-		//------------------------------------------------------
-        stream<axiWord>		&soTHIS_Tcp_Data
+        //------------------------------------------------------
+        //-- TOE Interface
+        //------------------------------------------------------
+        stream<AxiWord>     &soTCP_Data
 
 );
 
-
-
-
-
-//OBSOLETE-20180903 void iprx_handler(stream<axiWord>&      dataIn,
-//OBSOLETE-20180903                 stream<axiWord>&        ARPdataOut,
-//OBSOLETE-20180903                 stream<axiWord>&        ICMPdataOut,
-//OBSOLETE-20180903                 stream<axiWord>&        ICMPexpDataOut,
-//OBSOLETE-20180903                 stream<axiWord>&        UDPdataOut,
-//OBSOLETE-20180903                 stream<axiWord>&        TCPdataOut,
-//OBSOLETE-20180903                 ap_uint<32>             regIpAddress,
-//OBSOLETE-20180903                 ap_uint<48>             myMacAddress);
-
-
-/*** OBSOLETE-20180309 *********************************************************
-void iprx_handler_0(stream<axiWord>&        dataIn,
-                stream<axiWord>&        ARPdataOut,
-                stream<axiWord>&        ICMPdataOut,
-                stream<axiWord>&        ICMPexpDataOut,
-                stream<axiWord>&        UDPdataOut,
-                stream<axiWord>&        TCPdataOut,
-                ap_uint<32>                 regIpAddress,
-                ap_uint<48>                 myMacAddress);
-
-void iprx_handler_1(stream<axiWord>&        dataIn,
-                stream<axiWord>&        ARPdataOut,
-                stream<axiWord>&        ICMPdataOut,
-                stream<axiWord>&        ICMPexpDataOut,
-                stream<axiWord>&        UDPdataOut,
-                stream<axiWord>&        TCPdataOut,
-                ap_uint<32>                 regIpAddress,
-                ap_uint<48>                 myMacAddress);
-
-*******************************************************************************/
-
-
-
-
-
-
-
-
-
-
+#endif
