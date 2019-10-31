@@ -130,7 +130,7 @@ config_compile -name_max_length 128 -pipeline_loops 0
 # - warning: By default this checker is set to warning.
 # -off     : To disable the checker.
 #------------------------------------------------------------------------------------------------
-config_dataflow -strict_mode error
+#config_dataflow -strict_mode error
 
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
