@@ -170,11 +170,16 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
-    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
-    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
-    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
-    cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
+    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
+    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
+    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
+    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
