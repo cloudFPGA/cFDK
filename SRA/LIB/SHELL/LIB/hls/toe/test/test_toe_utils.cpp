@@ -49,10 +49,10 @@ void printAxiWord(const char *callerName, AxiWord chunk)
  * @param[in] message,      the message to prepend.
  * @param[in] chunk,        the data stream chunk to display.
  *****************************************************************************/
-void printAxiWord(const char *callerName, string message, AxiWord chunk)
+void printAxiWord(const char *callerName, const char *message, AxiWord chunk)
 {
     printInfo(callerName, "%s AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              message.c_str(), chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+              message, chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
 }
 
 /*****************************************************************************

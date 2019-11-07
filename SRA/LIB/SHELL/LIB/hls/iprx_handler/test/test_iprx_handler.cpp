@@ -28,7 +28,7 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF    0x0000
-// [TOTO] #define TRACE_IPRX   1 <<  1
+#define TRACE_CGF   1 <<  1
 // [TOTO] #define TRACE_L3MUX  1 <<  2
 // [TOTO] #define TRACE_TRIF   1 <<  3
 // [TOTO] #define TRACE_CAM    1 <<  4
@@ -45,7 +45,7 @@ using namespace std;
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES     250000
 #define TB_STARTUP_DELAY           0
-#define TB_GRACE_TIME            100  // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -60,17 +60,19 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 /*****************************************************************************
  * @brief Create the golden reference files from an input test file.
  *
+ * @param[in] myMacAddress,     the MAC address of the FPGA.
  * @param[in] inpDAT_FileName,  the input DAT file to generate from.
- * @param[in] outARP_GoldName,  the ARP gold file to create
- * @param[in] outICMP_GoldName, the ICMP gold file
- * @param[in] outTOE_GoldName,  the TOE gold file
- * @param[in] outUDP_GoldName,  the UDP gold file
+ * @param[in] outARP_GoldName,  the ARP gold file to create.
+ * @param[in] outICMP_GoldName, the ICMP gold file.
+ * @param[in] outTOE_GoldName,  the TOE gold file.
+ * @param[in] outUDP_GoldName,  the UDP gold file.
  *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-int createGoldenFiles(string inpDAT_FileName,
-                      string outARP_GoldName, string outICMP_GoldName,
-                      string outTOE_GoldName, string outUDP_GoldName) {
+int createGoldenFiles(LE_EthAddr myMacAddress,
+					  string  inpDAT_FileName,
+                      string  outARP_GoldName, string outICMP_GoldName,
+                      string  outTOE_GoldName, string outUDP_GoldName) {
 
     ifstream	ifsDAT;
     string      ofNameArray[4] = { outARP_GoldName, outICMP_GoldName, \
@@ -84,7 +86,9 @@ int createGoldenFiles(string inpDAT_FileName,
     string          rxStringBuffer;
     vector<string>  stringVector;
     int             ret = NTS_OK;
-    int             frameCnt=0;
+    int             inpChunks=0, arpChunks=0, icmpChunks=0, tcpChunks=0, udpChunks=0, outChunks=0;
+    int             inpFrames=0, arpFrames=0, icmpFrames=0, tcpFrames=0, udpFrames=0, outFrames=0;
+    int             inpBytes=0,  arpBytes=0,  icmpBytes=0,  tcpBytes=0,  udpBytes=0,  outBytes=0;
 
     //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
     ifsDAT.open(inpDAT_FileName.c_str());
@@ -111,7 +115,6 @@ int createGoldenFiles(string inpDAT_FileName,
     }
 
     //-- STEP-3 : READ AND PARSE THE INPUT ETHERNET FILE
-
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
 		EthFrame   ethFrame;
 		EthoverMac ethRxData;
@@ -121,39 +124,74 @@ int createGoldenFiles(string inpDAT_FileName,
         while ((ifsDAT.peek() != EOF) && (!endOfFrame)) {
             rc = readAxiWordFromFile(&ethRxData, ifsDAT);
             if (rc) {
-                ethFrame.push_back(ethRxData);
-                if (ethRxData.tlast == 1) {
-                    endOfFrame = true;
-                }
+            	if (ethRxData.isValid()) {
+            		ethFrame.push_back(ethRxData);
+                	if (ethRxData.tlast == 1) {
+                		inpFrames++;
+                		endOfFrame = true;
+                	}
+            	}
+            	else {
+            		// We always abort the stream as this point by asserting
+            		// 'tlast' and de-asserting 'tkeep'.
+            		ethFrame.push_back(AxiWord(ethRxData.tdata, 0x00, 1));
+            		inpFrames++;
+            		endOfFrame = true;
+            	}
+            	inpChunks++;
+            	inpBytes += ethRxData.keepToLen();
             }
         }
 
         if (endOfFrame) {
-			//Parse this frame and generate corresponding golden file(s)
-			EtherType etherType = ethFrame.getTypeLength();
-			if (etherType.to_uint() >= 0x0600) {
-				switch (etherType.to_uint()) {
-				case ARP:
-					printInfo(THIS_NAME, "Frame #%d is an ARP frame.\n", frameCnt);
-					break;
-				case IPv4:
-					printInfo(THIS_NAME, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
-							  frameCnt, etherType.to_uint());
-					if (ethFrame.sizeOfPayload() > 0) {
-						IpPacket ipPacket = ethFrame.getIpPacket();
-						if (ipPacket.writeToDatFile(ofsArray[2]) == false) {
-							printError(THIS_NAME, "Failed to write IPv4 packet to DAT file.\n");
-							rc = NTS_KO;
-						}
+        	// Assess MAC_DA is valid
+        	LE_EthAddr  macDA = ethFrame.getLE_MacDestinAddress();
+        	if(macDA != myMacAddress) {
+       			printWarn(THIS_NAME, "Frame #%d is dropped because MAC_DA does not match.\n", inpFrames);
+        	}
+       		else {
+				// Parse this frame and generate corresponding golden file(s)
+				EtherType etherType = ethFrame.getTypeLength();
+				IpPacket ipPacket;
+				if (etherType.to_uint() >= 0x0600) {
+					ipPacket = ethFrame.getIpPacket();
+					if (ipPacket.getIpVersion() != 4) {
+		       			printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
+		       			continue;
 					}
-					break;
-				default:
-					printError(THIS_NAME, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
-					rc = NTS_KO;
-					break;
+					switch (etherType.to_uint()) {
+					case ARP:
+						if (DEBUG_LEVEL & TRACE_CGF) {
+							printInfo(THIS_NAME, "Frame #%d is an ARP frame.\n", inpFrames);
+						}
+						break;
+					case IPv4:
+						if (DEBUG_LEVEL & TRACE_CGF) {
+							printInfo(THIS_NAME, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
+									inpFrames, etherType.to_uint());
+						}
+			        	if (ipPacket.verifyIpHeaderChecksum()) {
+			        		if (ethFrame.sizeOfPayload() > 0) {
+			        			if (ipPacket.writeToDatFile(ofsArray[2]) == false) {
+			        				printError(THIS_NAME, "Failed to write IPv4 packet to DAT file.\n");
+			        				rc = NTS_KO;
+			        			}
+			        		}
+			        		tcpFrames += 1;
+			        		tcpChunks += ipPacket.size();
+			        		tcpBytes  += ipPacket.length();
+			        	}
+			        	else {
+			       			printWarn(THIS_NAME, "Frame #%d is dropped because IPv4 header checksum does not match.\n", inpFrames);
+			        	}
+						break;
+					default:
+						printError(THIS_NAME, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
+						rc = NTS_KO;
+						break;
+					}
 				}
-			}
-			frameCnt++;
+       		}
         }
     }
 
@@ -162,6 +200,24 @@ int createGoldenFiles(string inpDAT_FileName,
     for (int i=0; i<4; i++) {
         ofsArray[i].close();
     }
+
+    //-- STEP-4: PRINT RESULTS
+	outFrames = arpFrames + icmpFrames + tcpFrames + udpFrames;
+	outChunks = arpChunks + icmpChunks + tcpChunks + udpChunks;
+	outBytes  = arpBytes  + icmpBytes  + tcpBytes  + udpBytes;
+	printInfo(THIS_NAME, "Done with the creation of the golden files.\n");
+	printInfo(THIS_NAME, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
+									      inpChunks, inpFrames, inpBytes);
+	printInfo(THIS_NAME, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+									      outChunks, outFrames, outBytes);
+	printInfo(THIS_NAME, "\tARP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+							      arpChunks, arpFrames, arpBytes);
+	printInfo(THIS_NAME, "\tICMP : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+							      icmpChunks, icmpFrames, icmpBytes);
+	printInfo(THIS_NAME, "\tTCP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+							      tcpChunks, tcpFrames, tcpBytes);
+	printInfo(THIS_NAME, "\tUDP  : %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+							      udpChunks, udpFrames, udpBytes);
 
     return(ret);
 }
@@ -242,8 +298,13 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     //-- CREATE DUT INPUT TRAFFIC AS STREAMS
     //------------------------------------------------------
-    if (not feedAxiWordStreamFromFile(ssETH_IPRX_Data, "ssETH_IPRX_Data", string(argv[1]),
+    if (feedAxiWordStreamFromFile(ssETH_IPRX_Data, "ssETH_IPRX_Data", string(argv[1]),
             nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes)) {
+    	printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
+    	printInfo(THIS_NAME, "\tGenerated %d chunks in %d frames, for a total of %d bytes.\n\n",
+    							nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes);
+    }
+    else {
         printError(THIS_NAME, "Failed to create traffic as input stream. \n");
         nrErr++;
     }
@@ -251,9 +312,9 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     //-- CREATE OUTPUT GOLD TRAFFIC
     //------------------------------------------------------
-    if (not createGoldenFiles(string(argv[1]),
-                              ofsARP_Gold_FileName, ofsICMP_Gold_FileName,
-                              ofsTOE_Gold_FileName, ofsUDP_Gold_FileName)) {
+    if (not createGoldenFiles(myMacAddress, string(argv[1]),
+                    		  ofsARP_Gold_FileName, ofsICMP_Gold_FileName,
+							  ofsTOE_Gold_FileName, ofsUDP_Gold_FileName)) {
         printError(THIS_NAME, "Failed to create golden files. \n");
         nrErr++;
     }
@@ -297,6 +358,7 @@ int main(int argc, char* argv[]) {
         printError(THIS_NAME, "Failed to drain TOE traffic from DUT. \n");
         nrErr++;
     }
+
     if (not drainAxiWordStreamToFile(ssIPRX_UDP_Data, "ssIPRX_UDP_Data", ofsUDP_Data_FileName,
             nrIPRX_UDP_Chunks, nrIPRX_UDP_Frames, nrIPRX_UDP_Bytes)) {
         printError(THIS_NAME, "Failed to drain UDP traffic from DUT. \n");

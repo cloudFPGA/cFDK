@@ -86,7 +86,7 @@ using namespace hls;
  * @param[out] soMPd_Data,	Data stream to Mac Protocol Detector (MPd).
  *
  * @details
- *  This process enqueues the incoming data traffic into FiFo.
+ *  This process enqueues the incoming data traffic into a FiFo.
  *    [FIXME - Do we really need this?].
  *
  *****************************************************************************/
@@ -100,8 +100,20 @@ void pInputBuffer(
 
     const char *myName  = concat3(THIS_NAME, "/", "IBuf");
 
-    if(!siETH_Data.empty() && !soMPd_Data.full()){
-        soMPd_Data.write(siETH_Data.read());
+    if (!siETH_Data.empty() && !soMPd_Data.full()) {
+    	EthoverMac  axisWord;
+    	siETH_Data.read(axisWord);
+    	// OBSOLETE-20191106 if ( (axisWord.tlast == 0) && (axisWord.tkeep != 0xFF)) {
+    	if (not axisWord.isValid()) {
+    		 if (DEBUG_LEVEL & TRACE_IBUF) {
+    			 printWarn(myName, "Received an AxisWord with an unexpected \'tkeep\' or \'tlast\' value.\n");
+    			 printAxiWord(myName, "Aborting the frame after: ", axisWord);
+    			 soMPd_Data.write(AxiWord(axisWord.tdata, 0x00, 1));
+    		 }
+    	}
+    	else {
+    		soMPd_Data.write(axisWord);
+    	}
     }
 }
 

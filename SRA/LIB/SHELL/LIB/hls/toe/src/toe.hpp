@@ -318,11 +318,17 @@ public:
             case 0x7F: return 7; break;
             case 0xFF: return 8; break;
         }
-        return -1;
+        return 0;
+    }
+    // Assess the consistency of 'tkeep' and 'tlast'
+    bool isValid() {
+    	if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
+    	    ((this->tlast == 1) and (this->keepToLen() == 0))) {
+    		return false;
+    	}
+    	return true;
     }
 };
-
-
 
 
 /******************************************************************************
@@ -482,6 +488,7 @@ typedef ap_uint< 4> LE_Ip4Version;     // IPv4 Version from the MAC
 typedef ap_uint< 4> LE_Ip4HdrLen;      // IPv4 Internet Header Length from the MAC
 typedef ap_uint< 8> LE_Ip4ToS;         // IPv4 Type of Service from the MAC
 typedef ap_uint<16> LE_Ip4TotalLen;    // IPv4 Total Length from the MAC
+typedef ap_uint<16> LE_Ip4HdrCsum;     // IPv4 Header Checksum from the MAC.
 typedef ap_uint<32> LE_Ip4SrcAddr;     // IPv4 Source Address from the MAC
 typedef ap_uint<32> LE_Ip4DstAddr;     // IPv4 Destination Address from the MAC
 typedef ap_uint<32> LE_Ip4Address;     // IPv4 Source or Destination Address from the MAC
@@ -580,7 +587,7 @@ class Ip4overMac: public AxiWord {
       AxiWord(tdata, tkeep, tlast) {}
 
     // Set-Get the IP4 Version
-    void setIp4Version(Ip4Version ver)          {                  tdata.range( 7,  4) = ver;             }
+    void       setIp4Version(Ip4Version ver)    {                  tdata.range( 7,  4) = ver;             }
     Ip4Version getIp4Version()                  {           return tdata.range( 7,  4);                   }
 
     // Set-Get the IP4 Internet Header Length
@@ -607,9 +614,9 @@ class Ip4overMac: public AxiWord {
     // Set-Get the IP4 Protocol
     void    setIp4Prot(Ip4Prot prot)            {                  tdata.range(15,  8) = prot;            }
     Ip4Prot getIp4Prot()                        {           return tdata.range(15,  8);                   }
-    // Set the IP4 Header Checksum
-    void setIp4HdrCsum(Ip4HdrCsum csum)         {                  tdata.range(31, 16) = csum;            }
-
+    // Set-Get the IP4 Header Checksum
+    void       setIp4HdrCsum(Ip4HdrCsum csum)   {                  tdata.range(31, 16) = csum;            }
+    Ip4HdrCsum getIp4HdrCsum()                  { return swapWord (tdata.range(31, 16));                  }
     // Set-Get the IP4 Source Address
     void          setIp4SrcAddr(Ip4Addr addr)   {                  tdata.range(63, 32) = swapDWord(addr); }
     Ip4Addr       getIp4SrcAddr()               { return swapDWord(tdata.range(63, 32));                  }

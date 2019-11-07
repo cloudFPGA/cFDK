@@ -54,6 +54,7 @@ workspace/
 # cFDK specific files
 #---------------------
 .ip_guard
+.synth_guard
 *.date
 *.vivado*
 *.dat

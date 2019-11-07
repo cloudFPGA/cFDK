@@ -45,6 +45,7 @@ ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
 /*****************************************************************************
  * @brief Returns the number of valid bytes in an AxiWord.
  * @param[in] The 'tkeep' field of the AxiWord.
+ * [FIXME - To replace be replaced by keepToLen of class AxiWord]
  *****************************************************************************/
 ap_uint<4> keepToLen(ap_uint<8> keepValue) {
     ap_uint<4> count = 0;
@@ -67,7 +68,6 @@ ap_uint<4> keepToLen(ap_uint<8> keepValue) {
  *****************************************************************************/
 ap_uint<4> keepMapping(ap_uint<8> keepValue) {
     ap_uint<4> counter = 0;
-
     switch(keepValue){
         case 0x01: counter = 1; break;
         case 0x03: counter = 2; break;

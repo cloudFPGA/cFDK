@@ -32,34 +32,38 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 	@touch ../../.ip_guard
 
-clean: ## Cleans the current project
+clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
+	@${RM} .synth_guard
 
-csim: ## Runs the HLS C simulation
+csim:                    ## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-csynth: ## Runs the HLS C synthesis
+csynth: .synth_guard     ## Runs the HLS C synthesis
+
+.synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	@touch $@
 
-cosim: ## Runs the HLS C/RTL cosimulation
+cosim: .synth_guard      ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-project: ## Creates the HLS project
+project:                 ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-rtlSyn: ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
+rtlSyn:                  ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
 
-rtlImpl: ## Performs both RTL synthesis and implementation including detailed palce and route
+rtlImpl:                 ## Performs both RTL synthesis and implementation including detailed palce and route
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
 
-test: ## Runs HLS csim, csynth and cosim in sequence
+regression: .synth_guard ## Runs HLS csim, csynth and cosim in sequence
 	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 
-help: ## Shows this help message
+help:                    ## Shows this help message
     # This target is for self documentation of the Makefile. 
     # Every text starting with '##' and placed after a target will be considered as helper text.
 	@echo
@@ -67,5 +71,5 @@ help: ## Shows this help message
 	@echo '    make [target]'
 	@echo	
 	@echo 'Targets:'
-	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([:alphanum:]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
