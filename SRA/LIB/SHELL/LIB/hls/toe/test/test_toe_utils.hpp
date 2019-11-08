@@ -278,7 +278,8 @@ const char    *myCamAccessToString(int       initiator);
         // Return the front chunk element of the MAC word queue but does not remove it from the queue
         Ip4overMac front()                               { return this->axisWordQueue.front();            }
         // Clear the content of the MAC word queue
-        void clear()                                     {        this->axisWordQueue.clear();            }
+        void clear()                                     {        this->axisWordQueue.clear();
+                                                                  this->len = 0;                          }
         // Remove the first chunk element of the MAC word queue
         void pop_front()                                 {        this->axisWordQueue.pop_front();        }
 
@@ -843,6 +844,7 @@ const char    *myCamAccessToString(int       initiator);
 #ifndef __SYNTHESIS__
   bool readAxiWordFromFile(AxiWord  *axiWord, ifstream  &inpFileStream);
   int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord);
+  int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord, int &wrCount);
   void writeTcpDataToFile(ofstream  &outFile, IpPacket  &ipPacket);
 #endif
 

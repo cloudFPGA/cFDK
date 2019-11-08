@@ -626,10 +626,7 @@ void printTcpPort(TcpPort tcpPort)
 	 * @return the number of bytes written into the file.
 	 ***************************************************************************/
     int writeTcpWordToFile(ofstream &outFile, AxiWord &tcpWord) {
-        int     writtenBytes = 0;
-
-        static int mssCounter = 0;
-
+        int writtenBytes = 0;
         for (int bytNum=0; bytNum<8; bytNum++) {
             if (tcpWord.tkeep.bit(bytNum)) {
                 int hi = ((bytNum*8) + 7);
@@ -638,21 +635,49 @@ void printTcpPort(TcpPort tcpPort)
                 // Write byte to file
                 outFile << myUint8ToStrHex(octet);
                 writtenBytes++;
-                mssCounter++;
-                if (mssCounter == MSS) {
+            }
+        }
+        if (tcpWord.tlast == 1) {
+            outFile << endl;
+        }
+        return writtenBytes;
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Write a TCP AXI word into a file. This specific version appends
+	 *   a newline if a write-counter reaches Maximum Segment Size (.i.e MSS).
+	 *
+	 * @param[in]  outFile, a ref to the file to write.
+	 * @param[in]  tcpWord, a ref to the AXI word to write.
+	 * @param[in]  wrCount  a ref to a segment write counter.
+	 *
+	 * @return the number of bytes written into the file.
+	 ***************************************************************************/
+    int writeTcpWordToFile(ofstream &outFile, AxiWord &tcpWord, int &wrCount) {
+        int writtenBytes = 0;
+        for (int bytNum=0; bytNum<8; bytNum++) {
+            if (tcpWord.tkeep.bit(bytNum)) {
+                int hi = ((bytNum*8) + 7);
+                int lo = ((bytNum*8) + 0);
+                ap_uint<8>  octet = tcpWord.tdata.range(hi, lo);
+                // Write byte to file
+                outFile << myUint8ToStrHex(octet);
+                writtenBytes++;
+                wrCount++;
+                if (wrCount == MSS) {
                     // Emulate the IP segmentation behavior when writing this
                     //  file by appending a newline when mssCounter == MMS
                     outFile << endl;
-                    mssCounter = 0;
+                    wrCount = 0;
                 }
             }
         }
-
-        if ((tcpWord.tlast == 1) && (mssCounter != 0)) {
+        if ((tcpWord.tlast == 1) && (wrCount != 0)) {
             outFile << endl;
-            mssCounter = 0;
+            wrCount = 0;
         }
-
         return writtenBytes;
     }
 #endif

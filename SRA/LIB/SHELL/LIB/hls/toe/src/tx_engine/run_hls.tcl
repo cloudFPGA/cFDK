@@ -136,14 +136,32 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    # [TODO] csim_design -argv "../../../../test/testVectors/ipRx_OneSynPkt.dat"
-    # [TODO] csim_design -argv "../../../../test/testVectors/ipRx_OnePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_Ramp64.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/ipRx_ThousandPkt.dat"
 
     csim_design -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_Ramp64.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
 
     puts "#############################################################"
     puts "####                                                     ####"
@@ -170,16 +188,27 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
-    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
-    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
-    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
-    #cosim_design -tool xsim -rtl verilog -disable_deadlock_detection -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_OneSynPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/ipRx_ThousandPkt.dat"
+
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_OneSeg.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_TwoSeg.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_ThreeSeg.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_FourLongSeg.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/appRx_EightSeg.dat"
+
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

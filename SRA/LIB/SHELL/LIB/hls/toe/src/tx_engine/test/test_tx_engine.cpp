@@ -25,14 +25,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*****************************************************************************
-*  @file       : test_tx_engine.cpp
+ *  @file       : test_tx_engine.cpp
  * @brief      : Testbench for the TX Engine (TXe) of the TCP Offload Engine (TOE).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *****************************************************************************/
 
@@ -1379,7 +1377,7 @@ bool pTRIF_Recv_Listen(
     static ap_uint<1> listenFsm     =   0;
     static TcpPort    portNum;
     static int        watchDogTimer = 100;
-    AckBit            ackBit = 0;
+    AckBit            rc = NO_ACK;
 
     switch (listenFsm) {
     case 0:
@@ -1396,8 +1394,8 @@ bool pTRIF_Recv_Listen(
     case 1:
         watchDogTimer--;
         if (!siTOE_LsnAck.empty()) {
-            siTOE_LsnAck.read(ackBit);
-            if (ackBit) {
+            siTOE_LsnAck.read(rc);
+            if (rc) {
                 // Add the current port # to the set of opened ports
                 openedPorts.insert(portNum);
                 printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
@@ -1418,7 +1416,7 @@ bool pTRIF_Recv_Listen(
         }
         break;
     }
-    return (ackBit ? true : false);
+    return rc;
 }
 
 /*****************************************************************************
@@ -1550,6 +1548,7 @@ void pTRIF_Send_Echo(
     TcpSessId   tcpSessId;
 
     static enum EchoFsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } echoFsmState = START_OF_SEGMENT;
+    static int  mssCounter = 0; // Maximum Segment Size counter
 
     switch (echoFsmState) {
     case START_OF_SEGMENT:
@@ -1565,8 +1564,7 @@ void pTRIF_Send_Echo(
         if ( !siRcv_Data.empty() and !soTOE_Data.full()) {
             siRcv_Data.read(tcpWord);
             soTOE_Data.write(tcpWord);
-            // Write current word to the gold file
-            apRx_TcpBytCntr += writeTcpWordToFile(ipTxGoldFile, tcpWord);
+            apRx_TcpBytCntr += writeTcpWordToFile(ipTxGoldFile, tcpWord, mssCounter);
             if (tcpWord.tlast)
                 echoFsmState = START_OF_SEGMENT;
         }
@@ -2475,7 +2473,8 @@ int main(int argc, char *argv[]) {
         pL3MUX(
             sTOE_ReadyDly,
             ssTOE_L3MUX_Data,
-            ipTxFile1,       ipTxFile2,
+            ipTxFile1,
+	    ipTxFile2,
             sessAckList,
             ipTx_PktCounter, ipTx_TcpBytCntr,
             ipRxPacketizer);
@@ -2539,7 +2538,7 @@ int main(int argc, char *argv[]) {
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
-        if (1) {  // (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
         }
@@ -2596,7 +2595,10 @@ int main(int argc, char *argv[]) {
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
     if ((mode == RX_MODE) or (mode == ECHO_MODE)) {
-        printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Rx file = %s.\n", mode, argv[2]);
+
+        if (mode != ECHO_MODE) {
+            printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Rx file = %s.\n", mode, argv[2]);
+        }
 
         if (ipRx_TcpBytCntr != apTx_TcpBytCntr) {
             printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TRIF interface (%d). \n", ipRx_TcpBytCntr, apTx_TcpBytCntr);
@@ -2616,6 +2618,7 @@ int main(int argc, char *argv[]) {
     }
 
     if ((mode == TX_MODE)  or (mode == ECHO_MODE)) {
+        printf("\n");
         printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with IP Tx file = %s.\n", mode, argv[2]);
 
         if (ipTx_TcpBytCntr != apRx_TcpBytCntr) {
@@ -2623,9 +2626,14 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
-        int ipTx_TcpDataCompare = system(("diff --brief -w " + std::string(ipTxFileName2) + " " + std::string(ipTxGoldName2) + " ").c_str());
+        string mergedIpTxFileName2 = std::string(ipTxFileName2) + ".merged";
+        string mergedIpTxGoldName2 = std::string(ipTxGoldName2) + ".merged";
+        int mergeCmd1 = system(("paste -sd \"\" "+ std::string(ipTxFileName2) + " > " + mergedIpTxFileName2 + " ").c_str());
+        int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ipTxGoldName2) + " > " + mergedIpTxGoldName2 + " ").c_str());
+        //OBSOLETE-20191108 int ipTx_TcpDataCompare = system(("diff --brief -w " + std::string(ipTxFileName2) + ".merged " + std::string(ipTxGoldName2) + ".merged ").c_str());
+        int ipTx_TcpDataCompare = system(("diff --brief -w " + mergedIpTxFileName2 + " " + mergedIpTxGoldName2 + " ").c_str());
         if (ipTx_TcpDataCompare != 0) {
-            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ipTxFileName2, ipTxGoldName2);
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedIpTxFileName2.c_str(), mergedIpTxGoldName2.c_str());
             nrErr++;
         }
     }
