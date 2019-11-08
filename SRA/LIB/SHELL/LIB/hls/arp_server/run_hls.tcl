@@ -62,31 +62,130 @@ open_solution ${solutionName}
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
+#--------------------------------------------
+# Controlling the Reset Behavior (see UG902)
+#--------------------------------------------
+#  - control: This is the default and ensures all control registers are reset. Control registers 
+#             are those used in state machines and to generate I/O protocol signals. This setting 
+#             ensures the design can immediately start its operation state.
+#  - state  : This option adds a reset to control registers (as in the control setting) plus any 
+#             registers or memories derived from static and global variables in the C code. This 
+#             setting ensures static and global variable initialized in the C code are reset to
+#             their initialized value after the reset is applied.
+#------------------------------------------------------------------------------------------------
+config_rtl -reset control
+
+#--------------------------------------------
+# Specifying Compiler-FIFO Depth (see UG902)
+#--------------------------------------------
+# Start Propagation 
+#  - disable: : The compiler might automatically create a start FIFO to propagate a start token
+#               to an internal process. Such FIFOs can sometimes be a bottleneck for performance,
+#               in which case you can increase the default size (fixed to 2). However, if an
+#               unbounded slack between producer and consumer is needed, and internal processes
+#               can run forever, fully and safely driven by their inputs or outputs (FIFOs or
+#               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
+#               dataflow region.
+#------------------------------------------------------------------------------------------------
+# [TODO - Check vivado_hls version and only enable this command if >= 2018]
+# config_rtl -disable_start_propagation
+
+#----------------------------------------------------
+# Configuring the behavior of the front-end compiler
+#----------------------------------------------------
+#  -name_max_length: Specify the maximum length of the function names. If the length of one name
+#                    is over the threshold, the last part of the name will be truncated.
+#  -pipeline_loops : Specify the lower threshold used during pipelining loops automatically. The
+#                    default is '0' for no automatic loop pipelining. 
+#------------------------------------------------------------------------------------------------
+config_compile -name_max_length 128 -pipeline_loops 0
+
+
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    # [FIXME] - Missing input test vectors
     csim_design
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF C SIMULATION             ####"
+    puts "####   [FIXME] - Missing input test vectors - [FIXME]    ####"
+    puts "####                                                     ####"
+    puts "#############################################################" 
 }
 
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { $hlsCSynth} { 
+if { $hlsCSynth} {
     csynth_design
-}
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF SYNTHESIS                ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level all
+    # [FIXME] cosim_design -tool xsim -rtl verilog -trace_level all
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+    puts "####   [FIXME] - Missing input test vectors - [FIXME]    ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
 
+#-----------------------------
 # Export RTL (refer to UG902)
-#   -format ( sysgen | ip_catalog | syn_dcp )
-#-------------------------------------------------
+#-----------------------------
+#
+# -description <string>
+#    Provides a description for the generated IP Catalog IP.
+# -display_name <string>
+#    Provides a display name for the generated IP.
+# -flow (syn|impl)
+#    Obtains more accurate timing and utilization data for the specified HDL using RTL synthesis.
+# -format (ip_catalog|sysgen|syn_dcp)
+#    Specifies the format to package the IP.
+# -ip_name <string>
+#    Provides an IP name for the generated IP.
+# -library <string>
+#    Specifies  the library name for the generated IP catalog IP.
+# -rtl (verilog|vhdl)
+#    Selects which HDL is used when the '-flow' option is executed. If not specified, verilog is
+#    the default language.
+# -vendor <string>
+#    Specifies the vendor string for the generated IP catalog IP.
+# -version <string>
+#    Specifies the version string for the generated IP catalog.
+# -vivado_synth_design_args {args...}
+#    Specifies the value to pass to 'synth_design' within the export_design -evaluate Vivado synthesis run.
+# -vivado_report_level <value>
+#    Specifies the utilization and timing report options.
+#---------------------------------------------------------------------------------------------------
 if { $hlsRtl } {
-    export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+    switch $hlsRtl {
+        1 {
+            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        2 {
+            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        3 {
+            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+        }
+        default { 
+            puts "####  INVALID VALUE ($hlsRtl) ####"
+            exit 1
+        }
+    }
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
 }
 
 # Exit Vivado HLS

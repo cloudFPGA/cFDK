@@ -22,7 +22,7 @@ ipName = iprx_handler
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean  help csim csynth cosim project test
+.PHONY: all clean  help csim csynth cosim project regression
  
 all: ${ipName}_prj/solution1/impl/ip
 
@@ -32,6 +32,12 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 	@touch ../../.ip_guard
 
+.synth_guard: $(SRC_DEPS)
+	$(MAKE) clean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	@touch $@
+
+# Targets
 clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
@@ -41,11 +47,6 @@ csim:                    ## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 csynth: .synth_guard     ## Runs the HLS C synthesis
-
-.synth_guard: $(SRC_DEPS)
-	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
-	@touch $@
 
 cosim: .synth_guard      ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
@@ -60,8 +61,7 @@ rtlImpl:                 ## Performs both RTL synthesis and implementation inclu
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
 
 regression: .synth_guard ## Runs HLS csim, csynth and cosim in sequence
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
-
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 help:                    ## Shows this help message
     # This target is for self documentation of the Makefile. 

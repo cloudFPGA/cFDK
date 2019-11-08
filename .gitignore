@@ -20,14 +20,16 @@ tags
 *_prj/
 *.Xil/
 vivado*.str
+*.wcfg
+
 
 # Vivado_hls
 #------------
 *.pref
 *.dat
 *.dat.*
-*.gold
-*.strm
+*.gold*
+*.strm*
 
 # Vim
 #----- 
@@ -50,7 +52,6 @@ ip/
 xpr/
 workspace/
 
-
 # cFDK specific files
 #---------------------
 .ip_guard
@@ -60,4 +61,3 @@ workspace/
 *.dat
 env/
 dcps/
-

@@ -13,20 +13,31 @@
 
 .PHONY: all clean arp_server cam dhcp_client echo_app icmp_server iprx_handler iptx_handler toe udp udp_mux udp_role_if fmc nrc udp_role_if_2
 
-# udp_role_if_2
-all: arp_server cam dhcp_client icmp_server iprx_handler iptx_handler fmc nrc toe udp udp_mux udp_role_if 
+all:   iprx_handler       toe       arp_server   cam dhcp_client icmp_server iprx_handler iptx_handler fmc nrc toe udp udp_mux udp_role_if 
 
+csim:  iprx_handler.csim  toe.csim  ## Runs HLS C simulation on all sub-directories
+
+cosim: iprx_handler.cosim toe.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $@
 
-clean: ## Cleans all the generated HLS projects
+clean:                     ## Cleans all the local HLS projects
 	rm -rf ./*/*_prj
 	rm -rf ./*/*/*_prj
 	rm -rf ./*/*/*/*_prj
 
-help: ## Shows this help message
+%.csim: 
+	@echo ---- Building [ $@ ] ---------------------------- 
+	@$(MAKE) -C $* csim
+
+%.cosim: 
+	@echo ---- Building [ $@ ] ---------------------------- 
+	@$(MAKE) -C $* cosim
+
+
+help:                      ## Shows this help message
     # This target is for self documentation of the Makefile. 
     # Every text starting with '##' and placed after a target will be considered as helper text.
 	@echo
@@ -34,5 +45,6 @@ help: ## Shows this help message
 	@echo '    make [target]'
 	@echo	
 	@echo 'Targets:'
-	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
+#OBSOLETE-20191105	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /'
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([:alphanum:]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /'
 	@echo
