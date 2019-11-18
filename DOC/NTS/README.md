@@ -8,14 +8,14 @@ FYI - An enhanced branch of the initial *Xilinx* code is maintained by the **Sys
 
 ## Overview
 A block diagram of the *NTS* is depicted in Figure 1. It features a *User Datagram Protocol (UDP)* engine , a *Transmission Control Protocol Offload Engine (TOE)*, an *Internet Control Message Protocol (ICMP)* server and an *Address Resolution Protocol (ARP) Server*.
-![Block diagram of the NTS](../internal/shell/images/Fig-NTS0-Structure.bmp#center)
+![Block diagram of the NTS](../images/Fig-NTS0-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the of the Network Transport Stack</b></p>  
 <br>
 
 ## HLS Coding Style and Naming Conventions
-Please consider reading the following HLS naming conventions document before diving or contributing to this part of the cloudFPGA project: [TODO - Link to a MD file] 
-
-
+Please consider reading the following two documents before diving or contributing to this part of the cloudFPGA project.
+  1) [**HDL Naming Conventions**](../hdl-name-conventions.md), 
+  2) [**HLS Naming Conventions**](./hls-naming-conventions.md)
 <br>
 
 ## List of Interfaces
