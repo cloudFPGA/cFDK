@@ -124,6 +124,7 @@ if { $hlsCSynth} {
     puts "####          SUCCESSFUL END OF SYNTHESIS                ####"
     puts "####                                                     ####"
     puts "#############################################################"
+}
 
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
