@@ -467,6 +467,8 @@ void pCheckSumAccumulator(
     #pragma HLS reset variable=csa_wordCount
     static ap_uint<17>         csa_tcp_sums[4] = {0, 0, 0, 0};
     #pragma HLS reset variable=csa_tcp_sums
+    #pragma HLS ARRAY_PARTITION variable=csa_tcp_sums complete dim=1
+
     static bool                csa_wasLast     = false;
     #pragma HLS reset variable=csa_wasLast
     static ap_uint<3>          csa_cc_state = 0;
@@ -611,7 +613,7 @@ void pCheckSumAccumulator(
         }
         csa_wasLast = false;
     }
-    
+
     else if (csa_doCSumVerif) {
         switch (csa_cc_state) {
             case 0:
