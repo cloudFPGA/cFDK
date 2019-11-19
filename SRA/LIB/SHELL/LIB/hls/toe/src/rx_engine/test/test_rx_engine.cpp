@@ -32,8 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *****************************************************************************/
 
 #include <iostream>
@@ -819,7 +817,7 @@ int pIPRX_InjectAckNumber(
 void pIPRX_FeedTOE(
         deque<IpPacket>             &ipRxPacketizer,
         int                         &ipRxPktCounter,
-        stream<Ip4overAxi>          &soTOE_Data,
+        stream<Ip4overMac>          &soTOE_Data,
         map<SocketPair, TcpAckNum>  &sessAckList)
 {
     const char *myName = concat3(THIS_NAME, "/", "IPRX/FeedToe");
@@ -836,7 +834,7 @@ void pIPRX_FeedTOE(
         int noPackets= ipRxPacketizer.size();
         for (int p=0; p<noPackets; p++) {
             IpPacket ipRxPacket = ipRxPacketizer.front();
-            Ip4overAxi axiWord;
+            Ip4overMac axiWord;
             do {
                 axiWord = ipRxPacket.front();
                 soTOE_Data.write(axiWord);
@@ -885,7 +883,7 @@ void pIPRX(
         deque<IpPacket>             &ipRxPacketizer,
         map<SocketPair, TcpAckNum>  &sessAckList,
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &soTOE_Data)
+        stream<Ip4overMac>          &soTOE_Data)
 {
     static bool         globParseDone  = false;
     static bool         ipRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
@@ -1007,7 +1005,7 @@ void pIPRX(
         else {
             // Build a new packet from data file
             IpPacket   ipRxPacket;
-            Ip4overAxi ipRxData;
+            Ip4overMac ipRxData;
             bool       firstWordFlag = true; // AXI-word is first chunk of packet
 
             do {
@@ -1025,7 +1023,7 @@ void pIPRX(
                 }
                 firstWordFlag = false;
                 string tempString = "0000000000000000";
-                ipRxData = Ip4overAxi(myStrHexToUint64(stringVector[0]), \
+                ipRxData = Ip4overMac(myStrHexToUint64(stringVector[0]), \
                                       myStrHexToUint8(stringVector[2]),  \
                                       atoi(stringVector[1].c_str()));
                 ipRxPacket.push_back(ipRxData);
@@ -1278,7 +1276,7 @@ bool pL3MUX_Parse(
  ******************************************************************************/
 void pL3MUX(
         StsBit                      &piTOE_Ready,
-        stream<Ip4overAxi>          &siTOE_Data,
+        stream<Ip4overMac>          &siTOE_Data,
         ofstream                    &ipTxFile1,
         ofstream                    &ipTxFile2,
         map<SocketPair, TcpAckNum>  &sessAckList,
@@ -1288,7 +1286,7 @@ void pL3MUX(
 {
     const char *myName  = concat3(THIS_NAME, "/", "L3MUX");
 
-    Ip4overAxi  ipTxWord;  // An IP4 chunk
+    Ip4overMac  ipTxWord;  // An IP4 chunk
     uint16_t    ipTxWordCounter = 0;
 
     static IpPacket ipTxPacket;
@@ -1379,7 +1377,7 @@ bool pTRIF_Recv_Listen(
     static ap_uint<1> listenFsm     =   0;
     static TcpPort    portNum;
     static int        watchDogTimer = 100;
-    bool              rc = false;
+    AckBit            rc = 0;
 
     switch (listenFsm) {
     case 0:
@@ -1439,7 +1437,7 @@ bool pTRIF_Send_Connect(
         int                         &nrError,
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
-        stream<AxiSockAddr>         &soTOE_OpnReq,
+        stream<LE_SockAddr>         &soTOE_OpnReq,
         stream<OpenStatus>          &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send/Connect()");
@@ -1451,7 +1449,7 @@ bool pTRIF_Send_Connect(
 
     bool rc = false;
     // Prepare to open a new connection
-    AxiSockAddr axiHostServerSocket(AxiSockAddr(byteSwap32(aSocketPair.dst.addr),
+    LE_SockAddr axiHostServerSocket(LE_SockAddr(byteSwap32(aSocketPair.dst.addr),
                                                 byteSwap16(aSocketPair.dst.port)));
     static int openFsm = 0;
 
@@ -1784,7 +1782,7 @@ void pTRIF_Send(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<AxiSockAddr>     &soTOE_OpnReq,
+        stream<LE_SockAddr>     &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnRep,
         stream<SessionId>       &soTOE_Meta,
         stream<AxiWord>         &soTOE_Data,
@@ -2197,9 +2195,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
 
-    stream<Ip4overAxi>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
+    stream<Ip4overMac>                  ssIPRX_TOE_Data      ("ssIPRX_TOE_Data");
 
-    stream<Ip4overAxi>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
+    stream<Ip4overMac>                  ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
 
     stream<AppData>                     ssTRIF_TOE_Data      ("ssTRIF_TOE_Data");
     stream<AppMeta>                     ssTRIF_TOE_Meta      ("ssTRIF_TOE_Meta");
@@ -2247,7 +2245,7 @@ int main(int argc, char *argv[]) {
     ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
-    Ip4Word         ipRxData;    // An IP4 chunk
+    Ip4overMac         ipRxData;    // An IP4 chunk
     AxiWord         tcpTxData;   // A  TCP chunk
 
     ap_uint<16>     opnSessionCount;
@@ -2417,7 +2415,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         toe(
             //-- MMIO Interfaces
-            (AxiIp4Addr)(byteSwap32(gFpgaIp4Addr)),
+            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces
@@ -2497,11 +2495,32 @@ int main(int argc, char *argv[]) {
             ssTRIF_TOE_Meta,   ssTRIF_TOE_Data,
             ssTRIF_TOE_ClsReq);
 
-        // TODO
+        /*** OBSOLETE-20191115 *********
         if (!ssTOE_TRIF_DSts.empty()) {
             ap_uint<17> tempResp = ssTOE_TRIF_DSts.read();
             if (tempResp == -1 || tempResp == -2)
                 cerr << endl << "Warning: Attempt to write data into the Tx App I/F of the TOE was unsuccessful. Returned error code: " << tempResp << endl;
+        }
+        *******************************/
+        // TODO
+        if (!ssTOE_TRIF_DSts.empty()) {
+            AppWrSts wrStatus = ssTOE_TRIF_DSts.read();
+            if (wrStatus.status != STS_OK) {
+                switch (wrStatus.segLen) {
+                case ERROR_NOCONNCECTION:
+                    printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
+                    nrErr++;
+                    break;
+                case ERROR_NOSPACE:
+                    printError(THIS_NAME, "Attempt to write data for a session which Tx buffer id full.\n");
+                    nrErr++;
+                    break;
+                default:
+                    printError(THIS_NAME, "Received unknown TCP write status from [TOE].\n");
+                    nrErr++;
+                    break;
+                }
+            }
         }
 
         //------------------------------------------------------
@@ -2609,9 +2628,20 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
+        /*** OBSOLETE-20191115 ********
         int ipTx_TcpDataCompare = system(("diff --brief -w " + std::string(ipTxFileName2) + " " + std::string(ipTxGoldName2) + " ").c_str());
         if (ipTx_TcpDataCompare != 0) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ipTxFileName2, ipTxGoldName2);
+            nrErr++;
+        }
+        ********************************/
+        string mergedIpTxFileName2 = std::string(ipTxFileName2) + ".merged";
+        string mergedIpTxGoldName2 = std::string(ipTxGoldName2) + ".merged";
+        int mergeCmd1 = system(("paste -sd \"\" "+ std::string(ipTxFileName2) + " > " + mergedIpTxFileName2 + " ").c_str());
+        int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ipTxGoldName2) + " > " + mergedIpTxGoldName2 + " ").c_str());
+        int ipTx_TcpDataCompare = system(("diff --brief -w " + mergedIpTxFileName2 + " " + mergedIpTxGoldName2 + " ").c_str());
+        if (ipTx_TcpDataCompare != 0) {
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedIpTxFileName2.c_str(), mergedIpTxGoldName2.c_str());
             nrErr++;
         }
     }

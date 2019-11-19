@@ -127,8 +127,6 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
  *  |                               NU                              |    Data 7     |    Data 6     |    Data 5     |    Data 4     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- *
- * @ingroup rx_engine
  ******************************************************************************/
 void pTcpLengthExtract(
         stream<Ip4overMac>     &siIPRX_Pkt,
@@ -136,29 +134,28 @@ void pTcpLengthExtract(
         stream<TcpSegLen>      &soTcpSegLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Tle");
+    const char *myName = concat3(THIS_NAME, "/", "Tle");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<4>          tle_wordCount   = 0;
-    #pragma HLS reset variable=tle_wordCount
-    static bool                tle_insertWord  = false;
-    #pragma HLS reset variable=tle_insertWord
-    static bool                tle_wasLast     = false;
-    #pragma HLS reset variable=tle_wasLast
-    static bool             tle_shift       = true;
-    #pragma HLS reset variable=tle_shift
+    static ap_uint<4>          tle_wordCount=0;
+    #pragma HLS RESET variable=tle_wordCount
+    static bool                tle_insertWord=false;
+    #pragma HLS RESET variable=tle_insertWord
+    static bool                tle_wasLast=false;
+    #pragma HLS RESET variable=tle_wasLast
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static Ip4HdrLen        tle_ip4HdrLen;
-    static Ip4TotalLen      tle_ip4TotalLen;
-    static Ip4DatLen        tle_ipDataLen;
-    static Ip4overMac       tle_prevWord;
+    static bool         tle_shift;
+    static Ip4HdrLen    tle_ip4HdrLen;
+    static Ip4TotalLen  tle_ip4TotalLen;
+    static Ip4DatLen    tle_ipDataLen;
+    static Ip4overMac   tle_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    Ip4overMac              sendWord;
+    Ip4overMac          sendWord;
 
     if (tle_insertWord) {
         sendWord = Ip4overMac(0, 0xFF, 0);
@@ -171,35 +168,37 @@ void pTcpLengthExtract(
     else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
         Ip4overMac currWord = siIPRX_Pkt.read();
 
-        // [TODO - Use the methods of class Ip4overMac]
         switch (tle_wordCount) {
-        case 0:
-            tle_ip4HdrLen   = currWord.tdata(3, 0);
-            tle_ip4TotalLen = byteSwap16(currWord.tdata(31, 16));
+        case WORD_0:
+            tle_ip4HdrLen  = currWord.tdata(3, 0);
+            //OBSOLETE_20191118 tle_ip4TotalLen = byteSwap16(currWord.tdata(31, 16));
+            tle_ip4TotalLen = currWord.getIp4TotalLen();
             // Compute length of IPv4 data (.i.e. the TCP segment length)
             tle_ipDataLen  = tle_ip4TotalLen - (tle_ip4HdrLen * 4);
             tle_ip4HdrLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
-        case 1:
+        case WORD_1:
             // Forward length of IPv4 data
             soTcpSegLen.write(tle_ipDataLen);
             tle_ip4HdrLen -= 2; // We just processed 8 bytes
             tle_wordCount++;
             break;
-        case 2:
+        case WORD_2:
             // Forward destination IP address
             // Warning, half of this address is now in 'prevWord'
             sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
                                   (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                   (currWord.tkeep[4] == 0));
             soPseudoPkt.write(sendWord);
-            tle_ip4HdrLen -= 1;  // We just processed the last 8 bytes of the IP header
+            tle_ip4HdrLen -= 1;  // We just processed the last 4 bytes of the IP header
             tle_insertWord = true;
             tle_wordCount++;
-            if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+            if (DEBUG_LEVEL & TRACE_TLE) {
+                printAxiWord(myName, sendWord);
+            }
             break;
-        case 3:
+        case WORD_3:
             switch (tle_ip4HdrLen) {
             case 0: // Half of prevWord contains valuable data and currWord is full of valuable
                 sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
@@ -209,7 +208,9 @@ void pTcpLengthExtract(
                 tle_shift = true;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) {
+                	printAxiWord(myName, sendWord);
+                }
                 break;
             case 1: // The prevWord contains garbage data, but currWord is valuable
                 sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
@@ -217,10 +218,12 @@ void pTcpLengthExtract(
                 tle_shift = false;
                 tle_ip4HdrLen = 0;
                 tle_wordCount++;
-                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) {
+                	printAxiWord(myName, sendWord);
+                }
                 break;
             default: // The prevWord contains garbage data, currWord at least half garbage
-                //Drop this shit
+                // Drop everything else
                 tle_ip4HdrLen -= 2;
                 break;
             }
@@ -231,12 +234,16 @@ void pTcpLengthExtract(
                                       (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
                                       (currWord.tkeep[4] == 0));
                 soPseudoPkt.write(sendWord);
-                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) {
+                	printAxiWord(myName, sendWord);
+                }
             }
             else {
                 sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
                 soPseudoPkt.write(sendWord);
-                if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+                if (DEBUG_LEVEL & TRACE_TLE) {
+                	printAxiWord(myName, sendWord);
+                }
             }
             break;
 
@@ -249,15 +256,16 @@ void pTcpLengthExtract(
         }
 
     } // End of: else if (!siIPRX_Data.empty() && !tle_wasLast) {
-
-    else if (tle_wasLast) { //Assumption has to be shift
+    else if (tle_wasLast) { // Assumption has to be shift
         // Send remaining data
-    	Ip4overMac sendWord = Ip4overMac(0, 0, 1);
+        Ip4overMac sendWord = Ip4overMac(0, 0, 1);
         sendWord.tdata(31, 0) = tle_prevWord.tdata(63, 32);
         sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
         soPseudoPkt.write(sendWord);
         tle_wasLast = false;
-        if (DEBUG_LEVEL & TRACE_TLE) printAxiWord(myName, sendWord);
+        if (DEBUG_LEVEL & TRACE_TLE) {
+        	printAxiWord(myName, sendWord);
+        }
     }
 }
 
@@ -313,7 +321,6 @@ void pTcpLengthExtract(
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- * @ingroup rx_engine
  ******************************************************************************/
 void pInsertPseudoHeader(
         stream<Ip4overMac>  &siTle_PseudoPkt,
@@ -321,16 +328,16 @@ void pInsertPseudoHeader(
         stream<Ip4overMac>  &soCsa_PseudoPkt)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Iph");
+    const char *myName = concat3(THIS_NAME, "/", "Iph");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                iph_wasLast = false;
-    #pragma HLS reset variable=iph_wasLast
-    static ap_uint<2>          iph_wordCount = 0;
-    #pragma HLS reset variable=iph_wordCount
+    static bool                iph_wasLast=false;
+    #pragma HLS RESET variable=iph_wasLast
+    static ap_uint<2>          iph_wordCount=0;
+    #pragma HLS RESET variable=iph_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static Ip4overMac   iph_prevWord;
@@ -354,11 +361,11 @@ void pInsertPseudoHeader(
     }
     else if(!siTle_PseudoPkt.empty()) {
         switch (iph_wordCount) {
-        case 0:
+        case WORD_0:
             siTle_PseudoPkt.read(currWord);
             iph_wordCount++;
             break;
-        case 1:
+        case WORD_1:
             siTle_PseudoPkt.read(currWord);
             sendWord = iph_prevWord;
             // Forward IP-DA & IP-SA
@@ -368,7 +375,7 @@ void pInsertPseudoHeader(
                 printAxiWord(myName, sendWord);
             }
             break;
-        case 2:
+        case WORD_2:
             // [TODO - Use the Ip4overMac methods here]
             if (!siTle_TcpSegLen.empty()) {
                 siTle_PseudoPkt.read(currWord);
@@ -418,8 +425,8 @@ void pInsertPseudoHeader(
  * @param[out] soPRt_GetState, Req state of TCP_DP to PortTable (PRt).
  *
  * @details
- *  This process extracts the data (i.e. text octets) from the incoming segment
- *   and forwards them to the TCP Invalid Dropper (Tid) together with a valid
+ *  This process extracts the data section from the incoming segment and
+ *   forwards them to the TCP Invalid Dropper (Tid) together with a valid
  *   bit indicating the result of the checksum validation.
  *  It also extracts the socket pair information and some metadata information
  *   from the TCP segment and forwards them to the MetaData Handler (Mdh).
@@ -444,7 +451,6 @@ void pInsertPseudoHeader(
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ *
  *
- * @ingroup rx_engine
  ******************************************************************************/
 void pCheckSumAccumulator(
         stream<Ip4overMac>        &siCsa_PseudoPkt,
@@ -455,31 +461,34 @@ void pCheckSumAccumulator(
         stream<TcpPort>           &soPRt_GetState)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Csa");
+    const char *myName = concat3(THIS_NAME, "/", "Csa");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                csa_doCSumVerif = false;
-    #pragma HLS reset variable=csa_doCSumVerif
-    static ap_uint<16>         csa_wordCount   = 0;
-    #pragma HLS reset variable=csa_wordCount
-    static ap_uint<17>         csa_tcp_sums[4] = {0, 0, 0, 0};
-    #pragma HLS reset variable=csa_tcp_sums
-    static bool                csa_wasLast     = false;
-    #pragma HLS reset variable=csa_wasLast
-    static ap_uint<3>          csa_cc_state = 0;
-    #pragma HLS reset variable=csa_cc_state
+    //OBSOLETE_20191118 static ap_uint<16>           csa_wordCount   = 0;
+    static ap_uint<3>			csa_wordCount=0;
+    #pragma HLS RESET  variable=csa_wordCount
+    static bool                 csa_doCSumVerif=false;
+    #pragma HLS RESET  variable=csa_doCSumVerif
+    static bool                 csa_wasLast=false;
+    #pragma HLS RESET  variable=csa_wasLast
+    static ap_uint<3>           csa_cc_state=0;
+    #pragma HLS RESET  variable=csa_cc_state
+    static ap_uint<17>          csa_tcp_sums[4]={0, 0, 0, 0};
+	#pragma HLS RESET  variable=csa_tcp_sums
+	#pragma HLS ARRAY_PARTITION \
+					   variable=csa_tcp_sums complete dim=1
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<8>       csa_dataOffset; // [FIXME-Why not make it of type AxiTcpDataOff]
+    static TcpDataOff       csa_dataOffset;
     static bool             csa_doShift;
     static LE_SocketPair    csa_leSessTuple;
     static RXeMeta          csa_meta;
     static LE_TcpDstPort    csa_leTcpDstPort;
     static LE_TcpChecksum   csa_leTcpCSum;
-    static ap_uint<36>      halfWord;
+    static ap_uint<36>      csa_halfWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     Ip4overMac              currWord;
@@ -489,16 +498,17 @@ void pCheckSumAccumulator(
         siCsa_PseudoPkt.read(currWord);
         switch (csa_wordCount) {
         // [TODO - Use the Ip4overMac methods here]
-        case 0:
-            csa_dataOffset = 0xFF;
+        case WORD_0:
+            csa_dataOffset = 0xF;
             csa_doShift = false;
-                // Get IP-SA & IP-DA
-                //  Warning: Remember that IP addresses come in little-endian order
-                csa_leSessTuple.src.addr = currWord.tdata(31,  0);
-                csa_leSessTuple.dst.addr = currWord.tdata(63, 32);
-                sendWord.tlast           = currWord.tlast;
+            // Get IP-SA & IP-DA
+            //  Warning: Remember that IP addresses come in little-endian order
+            csa_leSessTuple.src.addr = currWord.tdata(31,  0);
+            csa_leSessTuple.dst.addr = currWord.tdata(63, 32);
+            sendWord.tlast           = currWord.tlast;
+            csa_wordCount++;
             break;
-        case 1:
+        case WORD_1:
             // Get Segment length
             csa_meta.length = byteSwap16(currWord.tdata(31, 16));
             // Get TCP-SP & TCP-DP
@@ -507,18 +517,19 @@ void pCheckSumAccumulator(
             csa_leSessTuple.dst.port = currWord.tdata(63, 48);
             csa_leTcpDstPort      = currWord.tdata(63, 48);
             sendWord.tlast         = currWord.tlast;
+            csa_wordCount++;
             break;
-        case 2:
+        case WORD_2:
             // Get Sequence and Acknowledgment Numbers
             csa_meta.seqNumb = byteSwap32(currWord.tdata(31, 0));
             csa_meta.ackNumb = byteSwap32(currWord.tdata(63, 32));
             sendWord.tlast   = currWord.tlast;
+            csa_wordCount++;
             break;
-        case 3:
+        case WORD_3:
             // Get Data Offset
             csa_dataOffset   = currWord.tdata.range(7, 4);
             csa_meta.length -= (csa_dataOffset * 4);
-            //OBSOLETE-20190511 csa_dataOffset -= 5; //FIXME, do -5
             // Get Control Bits
             /*  [ 8] == FIN
              *  [ 9] == SYN
@@ -536,6 +547,7 @@ void pCheckSumAccumulator(
             // Get the checksum of the pseudo-header (only for debug purposes)
             csa_leTcpCSum  = currWord.tdata(47, 32);
             sendWord.tlast = currWord.tlast;
+            csa_wordCount++;
             break;
         default:
             if (csa_dataOffset > 6) {
@@ -547,8 +559,8 @@ void pCheckSumAccumulator(
                 // Get the first four Data bytes
                 csa_dataOffset = 5;
                 csa_doShift = true;
-                halfWord.range(31,  0) = currWord.tdata.range(63, 32);
-                halfWord.range(35, 32) = currWord.tkeep.range( 7,  4);
+                csa_halfWord.range(31,  0) = currWord.tdata.range(63, 32);
+                csa_halfWord.range(35, 32) = currWord.tkeep.range( 7,  4);
                 sendWord.tlast = (currWord.tkeep[4] == 0);
             }
             else {    // csa_dataOffset == 5 (or less)
@@ -557,14 +569,14 @@ void pCheckSumAccumulator(
                     soTid_Data.write(sendWord);
                 }
                 else {
-                    sendWord.tdata.range(31,  0) = halfWord.range(31, 0);
+                    sendWord.tdata.range(31,  0) = csa_halfWord.range(31, 0);
                     sendWord.tdata.range(63, 32) = currWord.tdata.range(31, 0);
-                    sendWord.tkeep.range( 3,  0) = halfWord.range(35, 32);
+                    sendWord.tkeep.range( 3,  0) = csa_halfWord.range(35, 32);
                     sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
                     sendWord.tlast = (currWord.tkeep[4] == 0);
                     soTid_Data.write(sendWord);
-                    halfWord.range(31,  0) = currWord.tdata.range(63, 32);
-                    halfWord.range(35, 32) = currWord.tkeep.range(7, 4);
+                    csa_halfWord.range(31,  0) = currWord.tdata.range(63, 32);
+                    csa_halfWord.range(35, 32) = currWord.tkeep.range(7, 4);
                 }
             }
             break;
@@ -588,7 +600,7 @@ void pCheckSumAccumulator(
             }
         }
 
-        csa_wordCount++;
+        //OBSOLETE_20191118 csa_wordCount++;
 
         if(currWord.tlast == 1) {
             csa_wordCount = 0;
@@ -602,9 +614,9 @@ void pCheckSumAccumulator(
 
     else if(csa_wasLast) {
         if (csa_meta.length != 0) {
-            sendWord.tdata.range(31,  0) = halfWord.range(31,  0);
+            sendWord.tdata.range(31,  0) = csa_halfWord.range(31,  0);
             sendWord.tdata.range(63, 32) = 0;
-            sendWord.tkeep.range( 3,  0) = halfWord.range(35, 32);
+            sendWord.tkeep.range( 3,  0) = csa_halfWord.range(35, 32);
             sendWord.tkeep.range( 7,  4) = 0;
             sendWord.tlast               = 1;
             soTid_Data.write(sendWord);
@@ -691,7 +703,6 @@ void pCheckSumAccumulator(
  *  Drops the TCP data when they are flagged with an invalid checksum by
  *   'siDataValid'. Otherwise, the TCP data is passed on.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pTcpInvalidDropper(
         stream<AxiWord>     &siCsa_Data,
@@ -699,14 +710,14 @@ void pTcpInvalidDropper(
         stream<AxiWord>     &soTsd_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Tid");
+    const char *myName = concat3(THIS_NAME, "/", "Tid");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmState {GET_VALID=0, FWD, DROP} tid_fsmState=GET_VALID;
-    #pragma HLS reset                    variable=tid_fsmState
+    #pragma HLS RESET                    variable=tid_fsmState
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     AxiWord     currWord;
@@ -787,14 +798,14 @@ void pMetaDataHandler(
         stream<RXeFsmMeta>          &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmState {META=0, LOOKUP} mdh_fsmState;
-    #pragma HLS reset            variable=mdh_fsmState
+    #pragma HLS RESET            variable=mdh_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static RXeMeta              mdh_meta;
@@ -818,12 +829,11 @@ void pMetaDataHandler(
                 siCsa_Meta.read(mdh_meta);
                 siCsa_SockPair.read(tuple);
 
-                // [TODO - USe the Ip4overMac methods here]
                 mdh_ip4SrcAddr = byteSwap32(tuple.src.addr);
                 mdh_tcpSrcPort = byteSwap16(tuple.src.port);
                 mdh_tcpDstPort = byteSwap16(tuple.dst.port);
 
-                if (dstPortStatus == false) {
+                if (dstPortStatus == STS_CLOSED) {
                     // The destination port is closed
                     if (DEBUG_LEVEL & TRACE_MDH) {
                         printWarn(myName, "Port 0x%4.4X (%d) is not open.\n",
@@ -947,43 +957,42 @@ void pFiniteStateMachine(
         stream<AppNotif>                    &soRan_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-
-    const char *myName  = concat3(THIS_NAME, "/", "Fsm");
+    const char *myName = concat3(THIS_NAME, "/", "Fsm");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                                  fsm_txSarRequest = false;
-    #pragma HLS reset                   variable=fsm_txSarRequest
-    static enum FsmStates { LOAD=0, TRANSITION } fsmState=LOAD;
-    #pragma HLS reset                   variable=fsmState
+    static enum FsmStates { LOAD=0, TRANSITION } \
+								 fsm_fsmState=LOAD;
+    #pragma HLS RESET   variable=fsm_fsmState
+    static bool                  fsm_txSarRequest=false;
+    #pragma HLS RESET	variable=fsm_txSarRequest
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static RXeFsmMeta fsmMeta;
+    static RXeFsmMeta	fsm_Meta;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    ap_uint<4>        control_bits = 0;
-    SessionState      tcpState;
-    RxSarEntry        rxSar;
-    RXeTxSarReply     txSar;
+    ap_uint<4>			control_bits;
+    SessionState		tcpState;
+    RxSarEntry          rxSar;
+    RXeTxSarReply       txSar;
 
-    switch(fsmState) {
+    switch(fsm_fsmState) {
 
     case LOAD:
         if (!siMdh_FsmMeta.empty()) {
-            siMdh_FsmMeta.read(fsmMeta);
+            siMdh_FsmMeta.read(fsm_Meta);
             // Request the current state of the session
-            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId));
+            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId));
             // Always request the RxSarTable, even though not required for SYN-ACK
-            soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId));
-
-            if (fsmMeta.meta.ack) {
+            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId));
+            if (fsm_Meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
-                soTSt_TxSarQry.write(RXeTxSarQuery(fsmMeta.sessionId));
+                soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId));
                 fsm_txSarRequest = true;
             }
-            fsmState = TRANSITION;
+            fsm_fsmState = TRANSITION;
         }
         break;
 
@@ -991,14 +1000,14 @@ void pFiniteStateMachine(
         // Check if transition to LOAD occurs
         if (!siSTt_StateRep.empty() && !siRSt_RxSarRep.empty() &&
             !(fsm_txSarRequest && siTSt_TxSarRep.empty())) {
-            fsmState = LOAD;
+            fsm_fsmState = LOAD;
             fsm_txSarRequest = false;
         }
 
-        control_bits[0] = fsmMeta.meta.ack;
-        control_bits[1] = fsmMeta.meta.syn;
-        control_bits[2] = fsmMeta.meta.fin;
-        control_bits[3] = fsmMeta.meta.rst;
+        control_bits[0] = fsm_Meta.meta.ack;
+        control_bits[1] = fsm_Meta.meta.syn;
+        control_bits[2] = fsm_Meta.meta.fin;
+        control_bits[3] = fsm_Meta.meta.rst;
 
         switch (control_bits) {
 
@@ -1006,27 +1015,27 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- ACK
             //--------------------------------------
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
 
-                TimerCmd timerCmd = (fsmMeta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
-                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, timerCmd));
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
                      (tcpState == LAST_ACK) ) {
                     // Check if new ACK arrived
-                    if ( (fsmMeta.meta.ackNumb == txSar.prevAck) &&
+                    if ( (fsm_Meta.meta.ackNumb == txSar.prevAck) &&
                          (txSar.prevAck != txSar.nextByte) ) {
                         // Not new ACK; increase counter but only if it does not contain data
-                        if (fsmMeta.meta.length == 0) {
+                        if (fsm_Meta.meta.length == 0) {
                             txSar.count++;
                         }
                     }
                     else {
                         // Notify probeTimer about new ACK
-                        soTIm_ClearProbeTimer.write(fsmMeta.sessionId);
+                        soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);
 
                         // Check for SlowStart & Increase Congestion Window
                         if (txSar.cong_window <= (txSar.slowstart_threshold-MSS)) {
@@ -1041,51 +1050,51 @@ void pFiniteStateMachine(
 
                     // Update TxSarTable (only if count or retransmit)
                     //  [FIXME - 'txSar.count' must be compared to a DEFINE constant]
-                    if ( (  (txSar.prevAck <= fsmMeta.meta.ackNumb) && (fsmMeta.meta.ackNumb <= txSar.nextByte) ) ||
-                         ( ((txSar.prevAck <= fsmMeta.meta.ackNumb) || (fsmMeta.meta.ackNumb <= txSar.nextByte) ) &&
+                    if ( (  (txSar.prevAck <= fsm_Meta.meta.ackNumb) && (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) ||
+                         ( ((txSar.prevAck <= fsm_Meta.meta.ackNumb) || (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) &&
                             (txSar.nextByte < txSar.prevAck) ) ) {
-                        soTSt_TxSarQry.write((RXeTxSarQuery(fsmMeta.sessionId,
-                                                            fsmMeta.meta.ackNumb,
-                                                            fsmMeta.meta.winSize,
+                        soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
+                                                            fsm_Meta.meta.ackNumb,
+                                                            fsm_Meta.meta.winSize,
                                                             txSar.cong_window,
                                                             txSar.count,
                                                           ((txSar.count == 3) || txSar.fastRetransmitted))));
                     }
 
                     // Check if packet contains payload
-                    if (fsmMeta.meta.length != 0) {
-                        RxSeqNum rcvNext = fsmMeta.meta.seqNumb + fsmMeta.meta.length;
+                    if (fsm_Meta.meta.length != 0) {
+                        RxSeqNum rcvNext = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
                         // Second part makes sure that 'appd' pointer is not overtaken
 #if !(RX_DDR_BYPASS)
                         RxBufPtr free_space = ((rxSar.appd - rxSar.rcvd(15, 0)) - 1);
                         // Check if segment in order and if enough free space is available
-                        if ( (fsmMeta.meta.seqNumb == rxSar.rcvd) &&
-                             (free_space > fsmMeta.meta.length) ) {
+                        if ( (fsm_Meta.meta.seqNumb == rxSar.rcvd) &&
+                             (free_space > fsm_Meta.meta.length) ) {
 #else
                         if ( (fsm_meta.meta.seqNumb == rxSar.rcvd) &&
                              (rxbuffer_max_data_count - rxbuffer_data_count) > 375) { // [FIXME - Why 375?]
 #endif
-                            soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId, rcvNext, QUERY_WR));
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, rcvNext, QUERY_WR));
                             // Build memory address for this segment in the lower 4GB
                             RxMemPtr memSegAddr;
                             memSegAddr(31, 30) = 0x0;
-                            memSegAddr(29, 16) = fsmMeta.sessionId(13, 0);
-                            memSegAddr(15,  0) = fsmMeta.meta.seqNumb.range(15, 0);
+                            memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
+                            memSegAddr(15,  0) = fsm_Meta.meta.seqNumb.range(15, 0);
 #if !(RX_DDR_BYPASS)
-                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsmMeta.meta.length));
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
 #endif
                             // Only notify about new data available
-                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length, fsmMeta.ip4SrcAddr,
-                                                         fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort));
+                            soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
+                                                         fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
                             soTsd_DropCmd.write(KEEP_CMD);
                         }
                         else {
                             soTsd_DropCmd.write(DROP_CMD);
-                            if (fsmMeta.meta.seqNumb != rxSar.rcvd) {
+                            if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
                                 printWarn(myName, "The received sequence number (%d) is not the expected one (%d).\n",
-                                        fsmMeta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
+                                        fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
                             }
-                            else if (free_space < fsmMeta.meta.length) {
+                            else if (free_space < fsm_Meta.meta.length) {
                                 printWarn(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
                             }
                         }
@@ -1093,49 +1102,49 @@ void pFiniteStateMachine(
 
 # if FAST_RETRANSMIT
                     if (txSar.count == 3 && !txSar.fastRetransmitted) {  // [FIXME - Use a constant here]
-                        soEVe_Event.write(event(RT, fsmMeta.sessionId));
+                        soEVe_Event.write(event(RT, fsm_Meta.sessionId));
                     }
                     else if (fsm_meta.meta.length != 0) {
 #else
                     // OBSOLETE-20190705 if (txSar.count == 3 && !txSar.fastRetransmitted) {
-                    if (fsmMeta.meta.length != 0) {
+                    if (fsm_Meta.meta.length != 0) {
 #endif
-                        soEVe_Event.write(event(ACK, fsmMeta.sessionId));
+                        soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
                     }
 
                     // Reset Retransmit Timer
-                    if (fsmMeta.meta.ackNumb == txSar.nextByte) {
+                    if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
                         switch (tcpState) {
                         case SYN_RECEIVED:  //TODO MAYBE REARRANGE
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, ESTABLISHED, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
                             break;
                         case CLOSING:
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, TIME_WAIT, QUERY_WR));
-                            soTIm_CloseTimer.write(fsmMeta.sessionId); // [TDOD - rename]
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, TIME_WAIT, QUERY_WR));
+                            soTIm_CloseTimer.write(fsm_Meta.sessionId); // [TDOD - rename]
                             break;
                         case LAST_ACK:
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
                             break;
                         default:
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                             break;
                         }
                     }
                     else { // we have to release the lock
                         // Reset rtTimer
-                        soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR)); // or ESTABLISHED
+                        soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR)); // or ESTABLISHED
                     }
                 } // End of : if ( (tcpState == ...
 
                 // TODO if timewait just send ACK, can it be time wait??
                 else { // state == (CLOSED || SYN_SENT || CLOSE_WAIT || FIN_WAIT_2 || TIME_WAIT)
                     // SENT RST, RFC 793: fig.11
-                    soEVe_Event.write(rstEvent(fsmMeta.sessionId, fsmMeta.meta.seqNumb+fsmMeta.meta.length)); // noACK ?
+                    soEVe_Event.write(rstEvent(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+fsm_Meta.meta.length)); // noACK ?
                     // if data is in the pipe it needs to be droppped
-                    if (fsmMeta.meta.length != 0) {
+                    if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(DROP_CMD);
                     }
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
 
             } // End of: if (fsmState == LOAD) {
@@ -1146,41 +1155,41 @@ void pFiniteStateMachine(
             //-- SYN
             //--------------------------------------
             if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Segment is SYN.\n");
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 if (tcpState == CLOSED || tcpState == SYN_SENT) {
                     // Actually this is LISTEN || SYN_SENT
                     // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId, fsmMeta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
                     // Initialize receive window ([TODO - maybe include count check])
-                    soTSt_TxSarQry.write((RXeTxSarQuery(fsmMeta.sessionId, 0, fsmMeta.meta.winSize, txSar.cong_window, 0, false)));
+                    soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize, txSar.cong_window, 0, false)));
                     // Set SYN_ACK event
-                    soEVe_Event.write(event(SYN_ACK, fsmMeta.sessionId));
-                    if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsmMeta.sessionId.to_uint());
+                    soEVe_Event.write(event(SYN_ACK, fsm_Meta.sessionId));
+                    if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_Meta.sessionId.to_uint());
                     // Change State to SYN_RECEIVED
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, SYN_RECEIVED, QUERY_WR));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, SYN_RECEIVED, QUERY_WR));
                 }
                 else if (tcpState == SYN_RECEIVED) { // && mdh_meta.seqNumb+1 == rxSar.recvd) // Maybe Check for seq
                     // If it is the same SYN, we resent SYN-ACK, almost like quick RT, we could also wait for RT timer
-                    if (fsmMeta.meta.seqNumb+1 == rxSar.rcvd) {
+                    if (fsm_Meta.meta.seqNumb+1 == rxSar.rcvd) {
                         // Retransmit SYN_ACK
                         ap_uint<3> rtCount = 1;
-                        soEVe_Event.write(event(SYN_ACK, fsmMeta.sessionId, rtCount));
-                        soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                        soEVe_Event.write(event(SYN_ACK, fsm_Meta.sessionId, rtCount));
+                        soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                     }
                     else { // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
-                        soEVe_Event.write(rstEvent(fsmMeta.sessionId, fsmMeta.meta.seqNumb+1)); //length == 0
-                        soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR));
+                        soEVe_Event.write(rstEvent(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1)); //length == 0
+                        soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
                     }
                 }
                 else { // Any synchronized state
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soEVe_Event.write(event(ACK_NODELAY, fsmMeta.sessionId));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
                     // TODo send RST, has no ACK??
                     // Respond with RST, no ACK, seq ==
                     //eventEngine.write(rstEvent(mdh_meta.seqNumb, mh_meta.length, true));
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
             }
             break;
@@ -1189,38 +1198,38 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- SYN_ACK
             //--------------------------------------
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
 
-                TimerCmd timerCmd = (fsmMeta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
-                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, timerCmd));
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
 
-                if ( (tcpState == SYN_SENT) && (fsmMeta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
+                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
                     // Initialize rx_sar, SEQ + phantom byte, last '1' for appd init
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId,
-                                                       fsmMeta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
-                    soTSt_TxSarQry.write(RXeTxSarQuery(fsmMeta.sessionId,
-                                                       fsmMeta.meta.ackNumb,
-                                                       fsmMeta.meta.winSize,
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
+                                                       fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                    soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId,
+                                                       fsm_Meta.meta.ackNumb,
+                                                       fsm_Meta.meta.winSize,
                                                        txSar.cong_window, 0, false)); // [TODO - maybe include count check]
                     // Set ACK event
-                    soEVe_Event.write(event(ACK_NODELAY, fsmMeta.sessionId));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
 
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, ESTABLISHED, QUERY_WR));
-                    soTAi_SessOpnSts.write(OpenStatus(fsmMeta.sessionId, SESS_IS_OPENED));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
+                    soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, SESS_IS_OPENED));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
                     // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
-                    soEVe_Event.write(rstEvent(fsmMeta.sessionId,
-                                               fsmMeta.meta.seqNumb+fsmMeta.meta.length+1));
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR));
+                    soEVe_Event.write(rstEvent(fsm_Meta.sessionId,
+                                               fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
                 }
                 else {
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soEVe_Event.write(event(ACK_NODELAY, fsmMeta.sessionId));
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
             }
             break;
@@ -1229,71 +1238,71 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
 
-                TimerCmd timerCmd = (fsmMeta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
-                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, timerCmd));
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
                 if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
-                      tcpState == FIN_WAIT_2) && (rxSar.rcvd == fsmMeta.meta.seqNumb) ) {
-                    soTSt_TxSarQry.write((RXeTxSarQuery(fsmMeta.sessionId,
-                                          fsmMeta.meta.ackNumb, fsmMeta.meta.winSize,
+                      tcpState == FIN_WAIT_2) && (rxSar.rcvd == fsm_Meta.meta.seqNumb) ) {
+                    soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
+                                          fsm_Meta.meta.ackNumb, fsm_Meta.meta.winSize,
                                           txSar.cong_window, txSar.count,
                                           ~QUERY_FAST_RETRANSMIT))); //TODO include count check
 
                     // +1 for phantom byte, there might be data too
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsmMeta.sessionId,
-                                         fsmMeta.meta.seqNumb+fsmMeta.meta.length+1,
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
+                                         fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1,
                                          QUERY_WR)); // diff to ACK
 
                     // Clear the probe timer
-                    soTIm_ClearProbeTimer.write(fsmMeta.sessionId);
+                    soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);
 
                     // Check if there is payload
-                    if (fsmMeta.meta.length != 0) {
+                    if (fsm_Meta.meta.length != 0) {
                         RxMemPtr    memSegAddr;
                         memSegAddr(31, 30) = 0x0;
-                        memSegAddr(29, 16) = fsmMeta.sessionId(13, 0);
-                        memSegAddr(15,  0) = fsmMeta.meta.seqNumb(15, 0);
+                        memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
+                        memSegAddr(15,  0) = fsm_Meta.meta.seqNumb(15, 0);
 #if !(RX_DDR_BYPASS)
-                        soMwr_WrCmd.write(DmCmd(memSegAddr, fsmMeta.meta.length));
+                        soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
 #endif
                         // Tell Application new data is available and connection got closed
-                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  fsmMeta.meta.length, fsmMeta.ip4SrcAddr,
-                                                     fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort,  true)); //CLOSE
+                        soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
+                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  true)); //CLOSE
                         soTsd_DropCmd.write(KEEP_CMD);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
-                        soRan_RxNotif.write(AppNotif(fsmMeta.sessionId,  0,                   fsmMeta.ip4SrcAddr,
-                                                     fsmMeta.tcpSrcPort, fsmMeta.tcpDstPort,  true)); //CLOSE
+                        soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  0,                   fsm_Meta.ip4SrcAddr,
+                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  true)); //CLOSE
                     }
 
                     // Update state
                     if (tcpState == ESTABLISHED) {
-                        soEVe_Event.write(event(FIN, fsmMeta.sessionId));
-                        soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, LAST_ACK, QUERY_WR));
+                        soEVe_Event.write(event(FIN, fsm_Meta.sessionId));
+                        soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, LAST_ACK, QUERY_WR));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
-                        if (fsmMeta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
                             // Check if final FIN is ACK'd -> LAST_ACK
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, TIME_WAIT, QUERY_WR));
-                            soTIm_CloseTimer.write(fsmMeta.sessionId);
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, TIME_WAIT, QUERY_WR));
+                            soTIm_CloseTimer.write(fsm_Meta.sessionId);
                         }
                         else {
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSING, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSING, QUERY_WR));
                         }
-                        soEVe_Event.write(event(ACK, fsmMeta.sessionId));
+                        soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
                     }
                 }
                 else { // NOT (ESTABLISHED || FIN_WAIT_1 || FIN_WAIT_2)
-                    soEVe_Event.write(event(ACK, fsmMeta.sessionId));
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                    soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                     // If there is payload we need to drop it
-                    if (fsmMeta.meta.length != 0) {
+                    if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(DROP_CMD);
                     }
                 }
@@ -1304,40 +1313,40 @@ void pFiniteStateMachine(
             // stateTable is locked, make sure it is released in at the end
             // If there is an ACK we read txSar
             // We always read rxSar
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar); //TODO not sure nb works
                 siTSt_TxSarRep.read_nb(txSar);
             }
-            if (fsmState == LOAD) {
+            if (fsm_fsmState == LOAD) {
                 // Handle if RST
-                if (fsmMeta.meta.rst) {
+                if (fsm_Meta.meta.rst) {
                     if (tcpState == SYN_SENT) {
                         // [TODO this would be a RST,ACK i think]
                         // Check if matching SYN
-                        if (fsmMeta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
                             // Tell application, could not open connection
-                            soTAi_SessOpnSts.write(OpenStatus(fsmMeta.sessionId, FAILED_TO_OPEN_SESS));
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR));
-                            soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, STOP_TIMER));
+                            soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, FAILED_TO_OPEN_SESS));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
+                            soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                         }
                     }
                     else {
                         // Check if in window
-                        if (fsmMeta.meta.seqNumb == rxSar.rcvd) {
+                        if (fsm_Meta.meta.seqNumb == rxSar.rcvd) {
                             // Tell application, RST occurred, abort
-                            soRan_RxNotif.write(AppNotif(fsmMeta.sessionId, 0, fsmMeta.ip4SrcAddr,
-                                                         fsmMeta.tcpSrcPort,   fsmMeta.tcpDstPort, true)); // RESET-CLOSED
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, CLOSED, QUERY_WR)); //TODO maybe some TIME_WAIT state
-                            soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsmMeta.sessionId, STOP_TIMER));
+                            soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId, 0, fsm_Meta.ip4SrcAddr,
+                                                         fsm_Meta.tcpSrcPort,   fsm_Meta.tcpDstPort, true)); // RESET-CLOSED
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR)); //TODO maybe some TIME_WAIT state
+                            soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, STOP_TIMER));
                         }
                         else {
                             // Ignore since not matching window
-                            soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                         }
                     }
                 }
@@ -1345,7 +1354,7 @@ void pFiniteStateMachine(
                     //TODO maybe sent RST ourselves, or simply ignore
                     // For now ignore, sent ACK??
                     //eventsOut.write(rstEvent(mh_meta.seqNumb, 0, true));
-                    soSTt_StateQry.write(StateQuery(fsmMeta.sessionId, tcpState, QUERY_WR));
+                    soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 } // End of: if (fsm_meta.meta.rst)
             } // if fsm_stat
             break;
@@ -1358,7 +1367,6 @@ void pFiniteStateMachine(
 
 } // End of: pFiniteStateMachine(
 
-
 /*****************************************************************************
  * @brief TCP Segment Dropper (Tsd)
  *
@@ -1370,7 +1378,6 @@ void pFiniteStateMachine(
  * @details
  *  Drops TCP segments when their metadata did not match and/or is invalid.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pTcpSegmentDropper(
         stream<AxiWord>     &siTid_Data,
@@ -1379,20 +1386,18 @@ void pTcpSegmentDropper(
         stream<AxiWord>     &soMwr_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Tsd");
+    const char *myName = concat3(THIS_NAME, "/", "Tsd");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmState {FSM_RD_DROP_CMD1=0, FSM_RD_DROP_CMD2, FSM_FWD, FSM_DROP} tsd_fsmState = FSM_RD_DROP_CMD1;
-    #pragma HLS reset variable=tsd_fsmState
+    static enum FsmState {FSM_RD_DROP_CMD1=0, FSM_RD_DROP_CMD2, FSM_FWD, FSM_DROP} \
+	                           tsd_fsmState=FSM_RD_DROP_CMD1;
+    #pragma HLS RESET variable=tsd_fsmState
 
-    static ap_uint<10>  rxBuffWrAccessLength = 0;
-    static ap_uint<1>   rxBuffWriteDoubleAccess = 0;
 
     switch (tsd_fsmState) {
-
     case FSM_RD_DROP_CMD1:
         if (!siMdh_DropCmd.empty()) {
             CmdBit dropCmd = siMdh_DropCmd.read();
@@ -1400,8 +1405,9 @@ void pTcpSegmentDropper(
                 tsd_fsmState = FSM_DROP;
                 printWarn(myName, "[Mdh] is requesting to drop this packet.\n");
             }
-            else
+            else {
                 tsd_fsmState = FSM_RD_DROP_CMD2;
+            }
         }
         break;
     case FSM_RD_DROP_CMD2:
@@ -1411,23 +1417,26 @@ void pTcpSegmentDropper(
                 tsd_fsmState = FSM_DROP;
                 printWarn(myName, "[Fsm] is requesting to drop this packet.\n");
             }
-            else
+            else {
                 tsd_fsmState = FSM_FWD;
+            }
         }
         break;
     case FSM_FWD:
         if(!siTid_Data.empty() && !soMwr_Data.full()) {
             AxiWord currWord = siTid_Data.read();
-            if (currWord.tlast)
+            if (currWord.tlast) {
                 tsd_fsmState = FSM_RD_DROP_CMD1;
+            }
             soMwr_Data.write(currWord);
         }
         break;
     case FSM_DROP:
         if(!siTid_Data.empty()) {
             AxiWord currWord = siTid_Data.read();
-            if (currWord.tlast)
+            if (currWord.tlast) {
                 tsd_fsmState = FSM_RD_DROP_CMD1;
+            }
         }
         break;
 
@@ -1455,13 +1464,13 @@ void pRxAppNotifier(
         stream<DmSts>         &siMEM_WrSts,
         stream<AppNotif>      &siFsm_Notif,
         stream<AppNotif>      &soRAi_RxNotif,
-        stream<ap_uint<1> >   &siMwr_SplitSeg)
+        stream<StsBit>        &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Ran");
+    const char *myName = concat3(THIS_NAME, "/", "Ran");
 
     //-- LOCAL STREAMS
     static stream<AppNotif>        ssRxNotifFifo("ssRxNotifFifo");
@@ -1469,56 +1478,73 @@ void pRxAppNotifier(
     #pragma HLS DATA_PACK variable=ssRxNotifFifo
 
     //-- STATIC CONTROL VARIABLES (with RESET)
-    static ap_uint<1>          rxAppNotificationDoubleAccessFlag = false;
-    #pragma HLS reset variable=rxAppNotificationDoubleAccessFlag
-    static ap_uint<5>          ran_fifoCount = 0;
-    #pragma HLS reset variable=ran_fifoCount
+    static FlagBit             ran_doubleAccessFlag=FLAG_OFF;
+    #pragma HLS RESET variable=ran_doubleAccessFlag
+    //OBSOLETE_20191118 static ap_uint<5>          ran_fifoCount = 0;
+    //OBSOLETE_20191118 #pragma HLS RESET variable=ran_fifoCount
 
     //-- STATIC DATAFLOW VARIABLES
-    static DmSts            rxAppNotificationStatus1, rxAppNotificationStatus2;
-    static AppNotif         rxAppNotification;
+    static DmSts        ran_dmStatus1;
+    static DmSts		ran_dmStatus2;
+    static AppNotif     ran_appNotification;
 
-    if (rxAppNotificationDoubleAccessFlag == true) {
+    if (ran_doubleAccessFlag == FLAG_ON) {
+        // The segment was splitted and notification will only go out now
         if(!siMEM_WrSts.empty()) {
-            siMEM_WrSts.read(rxAppNotificationStatus2);
-            ran_fifoCount--;
-            if (rxAppNotificationStatus1.okay && rxAppNotificationStatus2.okay)
-                soRAi_RxNotif.write(rxAppNotification);
-            rxAppNotificationDoubleAccessFlag = false;
-            if (DEBUG_LEVEL & TRACE_RAN) {
-                printInfo(myName, "Reading memory write status: (DoubleAccess=1; OK=%d).\n",
-                                   rxAppNotificationStatus2.okay.to_int());
-            }
-        }
-    }
-    else {  // if (rxAppNotificationDoubleAccessFlag == false) {
-        if(!siMEM_WrSts.empty() && !ssRxNotifFifo.empty() && !siMwr_SplitSeg.empty()) {
-            siMEM_WrSts.read(rxAppNotificationStatus1);
-            ssRxNotifFifo.read(rxAppNotification);
-            if (DEBUG_LEVEL & TRACE_RAN) {
-                printInfo(myName, "Reading memory write status: (DoubleAccess=0; OK=%d).\n",
-                                   rxAppNotificationStatus1.okay.to_int());
-            }
-            // Read the double notification flag. If one then go and w8 for the second status
-            rxAppNotificationDoubleAccessFlag = siMwr_SplitSeg.read();
-            if (rxAppNotificationDoubleAccessFlag == 0) {
-                // The memory access was not broken down in two for this segment
-                ran_fifoCount--;
-                if (rxAppNotificationStatus1.okay) {
-                    // Output the notification
-                    soRAi_RxNotif.write(rxAppNotification);
+            siMEM_WrSts.read(ran_dmStatus2);
+            //OBSOLETE_20191118 ran_fifoCount--;
+            if (ran_dmStatus1.okay && ran_dmStatus2.okay) {
+                soRAi_RxNotif.write(ran_appNotification);
+                if (DEBUG_LEVEL & TRACE_RAN) {
+                    printInfo(myName, "Sending APP notification to [RAi]. This was a double access.\n");
                 }
             }
-            //TODO else, we are screwed since the ACK is already sent
-        }
-        else if (!siFsm_Notif.empty() && (ran_fifoCount < 31)) {
-            siFsm_Notif.read(rxAppNotification);
-            if (rxAppNotification.tcpSegLen != 0) {
-                ssRxNotifFifo.write(rxAppNotification);
-                ran_fifoCount++;
+            else {
+                if (DEBUG_LEVEL & TRACE_RAN) {
+                    printError(myName, "The previous splitted mem-write command failed (OKAY=0).\n");
+                }
             }
-            else
-                soRAi_RxNotif.write(rxAppNotification);
+            ran_doubleAccessFlag = FLAG_OFF;
+        }
+    }
+    else {
+        //-- We don't know yet about a possible double memory access
+        if(!siMEM_WrSts.empty() && !siMwr_SplitSeg.empty() && !ssRxNotifFifo.empty()) {
+            siMEM_WrSts.read(ran_dmStatus1);
+            siMwr_SplitSeg.read(ran_doubleAccessFlag);
+            ssRxNotifFifo.read(ran_appNotification);
+            if (ran_doubleAccessFlag == FLAG_OFF) {
+                // This segment consists of a single memory access
+            	//OBSOLETE_20191118 ran_fifoCount--;
+                if (ran_dmStatus1.okay) {
+                    // Output the notification now
+                    soRAi_RxNotif.write(ran_appNotification);
+                    if (DEBUG_LEVEL & TRACE_RAN) {
+                        printInfo(myName, "Sending APP notification to [RAi].\n");
+                    }
+                }
+                else {
+                    if (DEBUG_LEVEL & TRACE_RAN) {
+                        printError(myName, "The previous memory write command failed (OKAY=0).\n");
+                    }
+                }
+            }
+            else {
+                if (DEBUG_LEVEL & TRACE_RAN) {
+                    printInfo(myName, "The memory access was broken down in two parts.\n");
+                }
+            }
+        }
+        //OBSOLETE_20191118 else if (!siFsm_Notif.empty() && (ran_fifoCount < 31)) {
+        else if (!siFsm_Notif.empty() && !ssRxNotifFifo.full()) {
+            siFsm_Notif.read(ran_appNotification);
+            if (ran_appNotification.tcpSegLen != 0) {
+                ssRxNotifFifo.write(ran_appNotification);
+                //OBSOLETE_20191118 ran_fifoCount++;
+            }
+            else {
+                soRAi_RxNotif.write(ran_appNotification);
+            }
         }
     }
 }
@@ -1534,8 +1560,6 @@ void pRxAppNotifier(
  *  Takes two events as inputs and muxes them on a single output. Note
  *   that the first input has priority over the second one.
  *
- *
- * @ingroup rx_engine
  *****************************************************************************/
 void pEventMultiplexer(
         stream<extendedEvent>    &siMdh_Event,
@@ -1546,7 +1570,7 @@ void pEventMultiplexer(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Evm");
+    const char *myName = concat3(THIS_NAME, "/", "Evm");
 
     if (!siMdh_Event.empty()) {
         soEVe_Event.write(siMdh_Event.read());
@@ -1568,80 +1592,81 @@ void pEventMultiplexer(
  * @details
  *  Front memory controller process for writing data into the external DRAM.
  *
- * @ingroup rx_engine
  *****************************************************************************/
 void pMemWriter(
         stream<AxiWord>     &siTsd_MemWrData,
         stream<DmCmd>       &siFsm_MemWrCmd,
         stream<DmCmd>       &soMEM_WrCmd,
         stream<AxiWord>     &soMEM_WrData,
-        stream<ap_uint<1> > &soRan_SplitSeg)
+        stream<StsBit>      &soRan_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    const char *myName  = concat3(THIS_NAME, "/", "Mwr");
+    const char *myName = concat3(THIS_NAME, "/", "Mwr");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmState {IDLE=0,     WRFIRST,
-                          EVALSECOND, WRSECONDSTR,
-                          ALIGNED,    RESIDUE} mwr_fsmState=IDLE;
-    #pragma HLS reset                 variable=mwr_fsmState
+    static enum FsmState {IDLE=0, WRFIRST, EVALSECOND, WRSECONDSTR, ALIGNED, RESIDUE} \
+								mwr_fsmState=IDLE;
+    #pragma HLS RESET  variable=mwr_fsmState
+    static ap_uint<3>			mwr_residueLen=0;
+    #pragma HLS RESET  variable=mwr_residueLen
+    static bool                 mwr_accessBreakdown=false;
+    #pragma HLS RESET  variable=mwr_accessBreakdown
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static DmCmd       rxMemWriterCmd;
-    static ap_uint<16> rxEngBreakTemp;
-    static uint8_t     lengthBuffer;
-    static ap_uint<3>  rxEngAccessResidue = 0; // [TODO - Double check initialization]
-    static bool        txAppBreakdown = false; // [TODO - Double check initialization]
-    static AxiWord     pushWord = AxiWord(0, 0xFF, 0);
+    static DmCmd       mwr_memWrCmd;
+    static RxBufPtr    mwr_curAccLen;  //OBSOLETE_20191118 rxEngBreakTemp;
+    static uint8_t     mwr_bufferLen;  //OBSOLETE_20191118 lengthBuffer;
+    static AxiWord     mwr_pushWord;   //OBSOLETE_20191118 = AxiWord(0, 0xFF, 0);
 
     switch (mwr_fsmState) {
 
     case IDLE:
         if (!siFsm_MemWrCmd.empty() && !soMEM_WrCmd.full() && !soRan_SplitSeg.full()) {
-            rxMemWriterCmd = siFsm_MemWrCmd.read();
-            DmCmd tempCmd = rxMemWriterCmd;
-            if ((rxMemWriterCmd.saddr.range(15, 0) + rxMemWriterCmd.bbt) > RXMEMBUF) {
+            mwr_memWrCmd = siFsm_MemWrCmd.read();
+            DmCmd memWrCmd = mwr_memWrCmd;
+            if ((mwr_memWrCmd.saddr.range(15, 0) + mwr_memWrCmd.bbt) > RXMEMBUF) {
                 // Break this segment in two memory accesses because TCP Rx memory buffer wraps around
-                rxEngBreakTemp = RXMEMBUF - rxMemWriterCmd.saddr;
-                rxMemWriterCmd.bbt -= rxEngBreakTemp;
-                tempCmd = DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
-                txAppBreakdown = true;
+                mwr_curAccLen = RXMEMBUF - mwr_memWrCmd.saddr;
+                mwr_memWrCmd.bbt -= mwr_curAccLen;
+                memWrCmd = DmCmd(mwr_memWrCmd.saddr, mwr_curAccLen);
+                mwr_accessBreakdown = true;
                 if (DEBUG_LEVEL & TRACE_MWR)
                     printInfo(myName, "TCP memory buffer wraps around: This segment will be broken in two memory buffers.\n");
             }
             else {
-                rxEngBreakTemp = rxMemWriterCmd.bbt;
+                mwr_curAccLen = mwr_memWrCmd.bbt;
             }
-            soMEM_WrCmd.write(tempCmd);
-            soRan_SplitSeg.write(txAppBreakdown);
+            soMEM_WrCmd.write(memWrCmd);
+            soRan_SplitSeg.write(mwr_accessBreakdown);
             if (DEBUG_LEVEL & TRACE_MWR)
-                printDmCmd(myName, tempCmd);
+                printDmCmd(myName, memWrCmd);
             mwr_fsmState = WRFIRST;
         }
         break;
 
     case WRFIRST:
         if (!siTsd_MemWrData.empty() && !soMEM_WrData.full()) {
-            siTsd_MemWrData.read(pushWord);
-            AxiWord outputWord = pushWord;
-            ap_uint<4> byteCount = keepToLen(pushWord.tkeep);
-            if (rxEngBreakTemp > 8) {
-                rxEngBreakTemp -= 8;
+            siTsd_MemWrData.read(mwr_pushWord);
+            AxiWord outputWord = mwr_pushWord;
+            ap_uint<4> byteCount = keepToLen(mwr_pushWord.tkeep);
+            if (mwr_curAccLen > 8) {
+                mwr_curAccLen -= 8;
             }
             else {
-                if (txAppBreakdown == true) {
+                if (mwr_accessBreakdown == true) {
                     // Changes are to go in here
                     // If the word is not perfectly aligned then there is some magic to be worked.
-                    if (rxMemWriterCmd.saddr.range(15, 0) % 8 != 0) {
-                        outputWord.tkeep = lenToKeep(rxEngBreakTemp);
+                    if (mwr_memWrCmd.saddr.range(15, 0) % 8 != 0) {
+                        outputWord.tkeep = lenToKeep(mwr_curAccLen);
                     }
                     outputWord.tlast = 1;
+                    mwr_residueLen = byteCount - mwr_curAccLen;
+                    // Buffer the number of consumed bytes
+                    mwr_bufferLen = mwr_curAccLen;
                     mwr_fsmState = EVALSECOND;
-                    rxEngAccessResidue = byteCount - rxEngBreakTemp;
-                    lengthBuffer = rxEngBreakTemp;  // Buffer the number of bits consumed.
                 }
                 else {
                     mwr_fsmState = IDLE;
@@ -1654,28 +1679,28 @@ void pMemWriter(
 
     case EVALSECOND:
         if (!soMEM_WrCmd.full()) {
-            if (rxMemWriterCmd.saddr.range(15, 0) % 8 == 0)
+            if (mwr_memWrCmd.saddr.range(15, 0) % 8 == 0)
                 mwr_fsmState = ALIGNED;
             //else if (rxMemWriterCmd.bbt + rxEngAccessResidue > 8 || rxEngAccessResidue > 0)
-            else if (rxMemWriterCmd.bbt - rxEngAccessResidue > 0)
+            else if (mwr_memWrCmd.bbt - mwr_residueLen > 0)
                 mwr_fsmState = WRSECONDSTR;
             else
                 mwr_fsmState = RESIDUE;
-            rxMemWriterCmd.saddr.range(15, 0) = 0;
-            rxEngBreakTemp = rxMemWriterCmd.bbt;
-            DmCmd tempCmd = DmCmd(rxMemWriterCmd.saddr, rxEngBreakTemp);
-            soMEM_WrCmd.write(tempCmd);
-            if (DEBUG_LEVEL & TRACE_MWR) printDmCmd(myName, tempCmd);
-            txAppBreakdown = false;
+            mwr_memWrCmd.saddr.range(15, 0) = 0;
+            mwr_curAccLen = mwr_memWrCmd.bbt;
+            DmCmd memWrCmd = DmCmd(mwr_memWrCmd.saddr, mwr_curAccLen);
+            soMEM_WrCmd.write(memWrCmd);
+            if (DEBUG_LEVEL & TRACE_MWR) printDmCmd(myName, memWrCmd);
+            mwr_accessBreakdown = false;
         }
         break;
 
     case ALIGNED:   // This is the non-realignment state
         if (!siTsd_MemWrData.empty() & !soMEM_WrData.full()) {
-            siTsd_MemWrData.read(pushWord);
-            soMEM_WrData.write(pushWord);
-            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, pushWord);
-            if (pushWord.tlast == 1)
+            siTsd_MemWrData.read(mwr_pushWord);
+            soMEM_WrData.write(mwr_pushWord);
+            if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, mwr_pushWord);
+            if (mwr_pushWord.tlast == 1)
                 mwr_fsmState = IDLE;
         }
         break;
@@ -1683,24 +1708,25 @@ void pMemWriter(
     case WRSECONDSTR: // We go into this state when we need to realign things
         if (!siTsd_MemWrData.empty() && !soMEM_WrData.full()) {
             AxiWord outputWord = AxiWord(0, 0xFF, 0);
-            outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
-            pushWord = siTsd_MemWrData.read();
-            outputWord.tdata.range(63, (8-lengthBuffer)*8) = pushWord.tdata.range((lengthBuffer * 8), 0 );
+            outputWord.tdata.range(((8-mwr_bufferLen)*8) - 1, 0) = mwr_pushWord.tdata.range(63, mwr_bufferLen*8);
+            mwr_pushWord = siTsd_MemWrData.read();
+            outputWord.tdata.range(63, (8-mwr_bufferLen)*8) = mwr_pushWord.tdata.range((mwr_bufferLen * 8), 0 );
 
-            if (pushWord.tlast == 1) {
-                if (rxEngBreakTemp - rxEngAccessResidue > lengthBuffer) {
+            if (mwr_pushWord.tlast == 1) {
+                if (mwr_curAccLen - mwr_residueLen > mwr_bufferLen) {
                     // In this case there's residue to be handled
-                    rxEngBreakTemp -= 8;
+                    mwr_curAccLen -= 8;
                     mwr_fsmState = RESIDUE;
                 }
                 else {
-                    outputWord.tkeep = returnKeep(rxEngBreakTemp);
+                    outputWord.tkeep = returnKeep(mwr_curAccLen);
                     outputWord.tlast = 1;
                     mwr_fsmState = IDLE;
                 }
             }
-            else
-                rxEngBreakTemp -= 8;
+            else {
+                mwr_curAccLen -= 8;
+            }
             soMEM_WrData.write(outputWord);
             if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, outputWord);
         }
@@ -1708,8 +1734,8 @@ void pMemWriter(
 
     case RESIDUE:
         if (!soMEM_WrData.full()) {
-            AxiWord outputWord = AxiWord(0, returnKeep(rxEngBreakTemp), 1);
-            outputWord.tdata.range(((8-lengthBuffer)*8) - 1, 0) = pushWord.tdata.range(63, lengthBuffer*8);
+            AxiWord outputWord = AxiWord(0, returnKeep(mwr_curAccLen), 1);
+            outputWord.tdata.range(((8-mwr_bufferLen)*8) - 1, 0) = mwr_pushWord.tdata.range(63, mwr_bufferLen*8);
             soMEM_WrData.write(outputWord);
             if (DEBUG_LEVEL & TRACE_MWR) printAxiWord(myName, outputWord);
             mwr_fsmState = IDLE;
@@ -1753,108 +1779,115 @@ void pMemWriter(
  *
  ******************************************************************************/
 void rx_engine(
+		// IP Rx Interface
         stream<Ip4overMac>              &siIPRX_Pkt,
-        stream<sessionLookupQuery>      &soSLc_SessLookupReq,
+		//-- Session Lookup Controller Interface
+		stream<sessionLookupQuery>      &soSLc_SessLookupReq,
         stream<sessionLookupReply>      &siSLc_SessLookupRep,
-        stream<StateQuery>              &soSTt_StateQry,
+        //-- State Table Interface
+		stream<StateQuery>              &soSTt_StateQry,
         stream<SessionState>            &siSTt_StateRep,
+		//-- Port Table Interface
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<RepBit>                  &siPRt_PortStateRep,
+		//-- Rx SAR Table Interface
         stream<RXeRxSarQuery>           &soRSt_RxSarQry,
         stream<RxSarEntry>              &siRSt_RxSarRep,
+		//-- Tx SAR Table Interface
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
         stream<RXeTxSarReply>           &siTSt_TxSarRep,
+		//-- Timers Interface
         stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
+		//-- Event Engine Interface
         stream<extendedEvent>           &soEVe_SetEvent,
+		//-- Tx Application Interface
         stream<OpenStatus>              &soTAi_SessOpnSts,
+		//-- Rx Application Interface
         stream<AppNotif>                &soRAi_RxNotif,
+		//-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxiWord>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts)
 {
-
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    //OBSOLETE_20190920 #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE_20190920 #pragma HLS DATAFLOW
-    #pragma HLS INLINE
+	#pragma HLS DATAFLOW
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
     //-------------------------------------------------------------------------
 
     //-- Tcp Length Extract (Tle) ---------------------------------------------
-    static stream<Ip4overMac>       sTleToIph_TcpSeg       ("sTleToIph_TcpSeg");
-    #pragma HLS stream     variable=sTleToIph_TcpSeg       depth=8
-    #pragma HLS DATA_PACK  variable=sTleToIph_TcpSeg
+    static stream<Ip4overMac>       ssTleToIph_TcpSeg       ("ssTleToIph_TcpSeg");
+    #pragma HLS stream     variable=ssTleToIph_TcpSeg       depth=8
+    #pragma HLS DATA_PACK  variable=ssTleToIph_TcpSeg
 
-    static stream<TcpSegLen>        sTleToIph_TcpSegLen    ("sTleToIph_TcpSegLen");
-    #pragma HLS stream     variable=sTleToIph_TcpSegLen    depth=2
+    static stream<TcpSegLen>        ssTleToIph_TcpSegLen    ("ssTleToIph_TcpSegLen");
+    #pragma HLS stream     variable=ssTleToIph_TcpSegLen    depth=2
 
     //-- Insert Pseudo Header (Iph) -------------------------------------------
-    static stream<Ip4overMac>       sIphToCsa_TcpSeg       ("sIphToCsa_TcpSeg");
-    #pragma    HLS stream  variable=sIphToCsa_TcpSeg       depth=8
-    #pragma HLS DATA_PACK  variable=sIphToCsa_TcpSeg
+    static stream<Ip4overMac>       ssIphToCsa_TcpSeg       ("ssIphToCsa_TcpSeg");
+    #pragma    HLS stream  variable=ssIphToCsa_TcpSeg       depth=8
+    #pragma HLS DATA_PACK  variable=ssIphToCsa_TcpSeg
 
     //-- CheckSum Accumulator (Csa) -------------------------------------------
-    static stream<AxiWord>          sCsaToTid_Data         ("sCsaToTid_Data");
-    #pragma HLS stream     variable=sCsaToTid_Data         depth=256 //critical, tcp checksum computation
-    #pragma HLS DATA_PACK  variable=sCsaToTid_Data
+    static stream<AxiWord>          ssCsaToTid_Data         ("ssCsaToTid_Data");
+    #pragma HLS stream     variable=ssCsaToTid_Data         depth=256 //critical, tcp checksum computation
+    #pragma HLS DATA_PACK  variable=ssCsaToTid_Data
 
-    static stream<ValBit>           sCsaToTid_DataValid    ("sCsaToTid_DataValid");
-    #pragma HLS stream     variable=sCsaToTid_DataValid    depth=2
+    static stream<ValBit>           ssCsaToTid_DataValid	("ssCsaToTid_DataValid");
+    #pragma HLS stream     variable=ssCsaToTid_DataValid	depth=2
 
-    static stream<RXeMeta>          sCsaToMdh_Meta         ("sCsaToTid_Meta");
-    #pragma HLS stream     variable=sCsaToMdh_Meta         depth=2
-    #pragma HLS DATA_PACK  variable=sCsaToMdh_Meta
+    static stream<RXeMeta>          ssCsaToMdh_Meta         ("ssCsaToMdh_Meta");
+    #pragma HLS stream     variable=ssCsaToMdh_Meta         depth=2
+    #pragma HLS DATA_PACK  variable=ssCsaToMdh_Meta
 
-    static stream<LE_SocketPair>    sCsaToMdh_SockPair     ("sCsaToMdh_SockPair");
-    #pragma HLS stream     variable=sCsaToMdh_SockPair     depth=2
-    #pragma HLS DATA_PACK  variable=sCsaToMdh_SockPair
+    static stream<LE_SocketPair>    ssCsaToMdh_SockPair     ("ssCsaToMdh_SockPair");
+    #pragma HLS stream     variable=ssCsaToMdh_SockPair     depth=2
+    #pragma HLS DATA_PACK  variable=ssCsaToMdh_SockPair
 
-    static stream<AxiWord>          sTidToTsd_Data         ("sTidToTsd_Data");
-    #pragma HLS stream     variable=sTidToTsd_Data         depth=8
-    #pragma HLS DATA_PACK  variable=sTidToTsd_Data
+    static stream<AxiWord>          ssTidToTsd_Data         ("ssTidToTsd_Data");
+    #pragma HLS stream     variable=ssTidToTsd_Data         depth=8
+    #pragma HLS DATA_PACK  variable=ssTidToTsd_Data
 
     //-- Tcp Invalid dropper (Tid) --------------------------------------------
-    static stream<AxiWord>          sTsdToMwr_Data         ("sTsdToMwr_Data");
-    #pragma HLS stream     variable=sTsdToMwr_Data         depth=16
-    #pragma HLS DATA_PACK  variable=sTsdToMwr_Data
+    static stream<AxiWord>          ssTsdToMwr_Data         ("ssTsdToMwr_Data");
+    #pragma HLS stream     variable=ssTsdToMwr_Data         depth=16
+    #pragma HLS DATA_PACK  variable=ssTsdToMwr_Data
 
     //-- MetaData Handler (Mdh) -----------------------------------------------
-    static stream<extendedEvent>    sMdhToEvm_Event        ("sMdhToEvm_Event");
-    #pragma HLS stream     variable=sMdhToEvm_Event        depth=2
-    #pragma HLS DATA_PACK  variable=sMdhToEvm_Event
+    static stream<extendedEvent>    ssMdhToEvm_Event        ("ssMdhToEvm_Event");
+    #pragma HLS stream     variable=ssMdhToEvm_Event        depth=2
+    #pragma HLS DATA_PACK  variable=ssMdhToEvm_Event
 
-    static stream<CmdBool>          sMdhToTsd_DropCmd      ("sMdhToTsd_DropCmd");
-    #pragma HLS stream     variable=sMdhToTsd_DropCmd      depth=2
+    static stream<CmdBool>          ssMdhToTsd_DropCmd      ("ssMdhToTsd_DropCmd");
+    #pragma HLS stream     variable=ssMdhToTsd_DropCmd      depth=2
 
-    static stream<RXeFsmMeta>       ssMdhToFsm_Meta        ("ssMdhToFsm_Meta");
-    #pragma HLS stream     variable=ssMdhToFsm_Meta        depth=2
+    static stream<RXeFsmMeta>       ssMdhToFsm_Meta			("ssMdhToFsm_Meta");
+    #pragma HLS stream     variable=ssMdhToFsm_Meta			depth=2
     #pragma HLS DATA_PACK  variable=ssMdhToFsm_Meta
 
     //-- Finite State Machine (Fsm) -------------------------------------------
-    static stream<CmdBool>          sFsmToTsd_DropCmd      ("sFsmToTsd_DropCmd");
-    #pragma HLS stream     variable=sFsmToTsd_DropCmd      depth=2
+    static stream<CmdBool>          ssFsmToTsd_DropCmd      ("ssFsmToTsd_DropCmd");
+    #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=2
 
-    static stream<AppNotif>         sFsmToRan_Notif        ("sFsmToRan_Notif");
-    #pragma HLS stream     variable=sFsmToRan_Notif        depth=8  // This depends on the memory delay
-    #pragma HLS DATA_PACK  variable=sFsmToRan_Notif
+    static stream<AppNotif>         ssFsmToRan_Notif        ("ssFsmToRan_Notif");
+    #pragma HLS stream     variable=ssFsmToRan_Notif        depth=8  // This depends on the memory delay
+    #pragma HLS DATA_PACK  variable=ssFsmToRan_Notif
 
-    static stream<event>            sFsmToEvm_Event        ("sFsmToEvm_Event");
-    #pragma HLS stream     variable=sFsmToEvm_Event        depth=2
-    #pragma HLS DATA_PACK  variable=sFsmToEvm_Event
+    static stream<event>            ssFsmToEvm_Event        ("ssFsmToEvm_Event");
+    #pragma HLS stream     variable=ssFsmToEvm_Event        depth=2
+    #pragma HLS DATA_PACK  variable=ssFsmToEvm_Event
 
-    static stream<DmCmd>            sFsmToMwr_WrCmd        ("sFsmToMwr_WrCmd");
-    #pragma HLS stream     variable=sFsmToMwr_WrCmd        depth=8
-    #pragma HLS DATA_PACK  variable=sFsmToMwr_WrCmd
+    static stream<DmCmd>            ssFsmToMwr_WrCmd        ("ssFsmToMwr_WrCmd");
+    #pragma HLS stream     variable=ssFsmToMwr_WrCmd        depth=8
+    #pragma HLS DATA_PACK  variable=ssFsmToMwr_WrCmd
 
     //-- Memory Writer (Mwr) --------------------------------------------------
-    static stream<ap_uint<1> >      sMwrToRan_SplitSeg     ("sMwrToRan_SplitSeg");
-    #pragma HLS stream     variable=sMwrToRan_SplitSeg     depth=8
+    static stream<ap_uint<1> >      ssMwrToRan_SplitSeg     ("ssMwrToRan_SplitSeg");
+    #pragma HLS stream     variable=ssMwrToRan_SplitSeg     depth=8
 
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS
@@ -1862,35 +1895,35 @@ void rx_engine(
 
     pTcpLengthExtract(
             siIPRX_Pkt,
-            sTleToIph_TcpSeg,
-            sTleToIph_TcpSegLen);        // [TODO - RENAME ALL INTERNAL STREAMS]
+            ssTleToIph_TcpSeg,
+            ssTleToIph_TcpSegLen);
 
     pInsertPseudoHeader(
-            sTleToIph_TcpSeg,
-            sTleToIph_TcpSegLen,
-            sIphToCsa_TcpSeg);
+            ssTleToIph_TcpSeg,
+            ssTleToIph_TcpSegLen,
+            ssIphToCsa_TcpSeg);
 
     pCheckSumAccumulator(
-            sIphToCsa_TcpSeg,
-            sCsaToTid_Data,
-            sCsaToTid_DataValid,
-            sCsaToMdh_Meta,
-            sCsaToMdh_SockPair,
+            ssIphToCsa_TcpSeg,
+            ssCsaToTid_Data,
+            ssCsaToTid_DataValid,
+            ssCsaToMdh_Meta,
+            ssCsaToMdh_SockPair,
             soPRt_PortStateReq);
 
     pTcpInvalidDropper(
-            sCsaToTid_Data,
-            sCsaToTid_DataValid,
-            sTidToTsd_Data);
+            ssCsaToTid_Data,
+            ssCsaToTid_DataValid,
+            ssTidToTsd_Data);
 
     pMetaDataHandler(
-            sCsaToMdh_Meta,
-            sCsaToMdh_SockPair,
+            ssCsaToMdh_Meta,
+            ssCsaToMdh_SockPair,
             siSLc_SessLookupRep,
             siPRt_PortStateRep,
             soSLc_SessLookupReq,
-            sMdhToEvm_Event,
-            sMdhToTsd_DropCmd,
+            ssMdhToEvm_Event,
+            ssMdhToTsd_DropCmd,
             ssMdhToFsm_Meta);
 
     pFiniteStateMachine(
@@ -1905,33 +1938,33 @@ void rx_engine(
             soTIm_ClearProbeTimer,
             soTIm_CloseTimer,
             soTAi_SessOpnSts,
-            sFsmToEvm_Event,
-            sFsmToTsd_DropCmd,
-            sFsmToMwr_WrCmd,
-            sFsmToRan_Notif);
+            ssFsmToEvm_Event,
+            ssFsmToTsd_DropCmd,
+            ssFsmToMwr_WrCmd,
+            ssFsmToRan_Notif);
 
     pTcpSegmentDropper(
-            sTidToTsd_Data,
-            sMdhToTsd_DropCmd,
-            sFsmToTsd_DropCmd,
-            sTsdToMwr_Data);
+            ssTidToTsd_Data,
+            ssMdhToTsd_DropCmd,
+            ssFsmToTsd_DropCmd,
+            ssTsdToMwr_Data);
 
     pMemWriter(
-            sTsdToMwr_Data,
-            sFsmToMwr_WrCmd,
+            ssTsdToMwr_Data,
+            ssFsmToMwr_WrCmd,
             soMEM_WrCmd,
             soMEM_WrData,
-            sMwrToRan_SplitSeg);
+            ssMwrToRan_SplitSeg);
 
     pRxAppNotifier(
             siMEM_WrSts,
-            sFsmToRan_Notif,
+            ssFsmToRan_Notif,
             soRAi_RxNotif,
-            sMwrToRan_SplitSeg);
+            ssMwrToRan_SplitSeg);
 
     pEventMultiplexer(
-            sMdhToEvm_Event,
-            sFsmToEvm_Event,
+            ssMdhToEvm_Event,
+            ssFsmToEvm_Event,
             soEVe_SetEvent);
 
 }

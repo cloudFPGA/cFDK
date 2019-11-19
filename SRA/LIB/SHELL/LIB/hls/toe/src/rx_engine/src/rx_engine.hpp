@@ -57,27 +57,12 @@ class RXeMeta {
     TcpAckNum   ackNumb;    // TCP Acknowledgment Number
     TcpWindow   winSize;    // TCP Window Size
     TcpSegLen   length;     // TCP Segment Length
-    ap_uint<1>  ack;
-    ap_uint<1>  rst;
-    ap_uint<1>  syn;
-    ap_uint<1>  fin;
+    TcpCtrlBit  ack;
+    TcpCtrlBit  rst;
+    TcpCtrlBit  syn;
+    TcpCtrlBit  fin;
     RXeMeta() {}
 };
-
-/*** OBSOLETE-20190822
-struct rxEngineMetaData
-{
-    TcpSeqNum   seqNumb;    // TCP Sequence Number
-    TcpAckNum   ackNumb;    // TCP Acknowledgment Number
-    TcpWindow   winSize;    // TCP Window Size
-    TcpSegLen   length;     // TCP Segment Length
-    ap_uint<1>  ack;
-    ap_uint<1>  rst;
-    ap_uint<1>  syn;
-    ap_uint<1>  fin;
-    //ap_uint<16> dstPort;
-};
-***/
 
 /********************************************
  * RXe - FsmMetaData Interface
@@ -93,20 +78,6 @@ class RXeFsmMeta {
     RXeFsmMeta(SessionId sessId,  Ip4SrcAddr ipSA,  TcpSrcPort tcpSP,  TcpDstPort tcpDP,  RXeMeta rxeMeta) :
                sessionId(sessId), ip4SrcAddr(ipSA), tcpSrcPort(tcpSP), tcpDstPort(tcpDP),    meta(rxeMeta) {}
 };
-
-/*** OBSOLETE-20190822
-struct rxFsmMetaData  // [TODO - Rename]
-{
-    SessionId           sessionId;
-    Ip4SrcAddr          ip4SrcAddr;
-    TcpDstPort          tcpDstPort;
-    //OBSOLETE-20190822 rxEngineMetaData    meta; //check if all needed
-    RXeMeta             meta;
-    rxFsmMetaData() {}
-    rxFsmMetaData(SessionId id, Ip4SrcAddr ipAddr, TcpDstPort tcpPort, RXeMeta meta) :
-        sessionId(id), ip4SrcAddr(ipAddr), tcpDstPort(tcpPort), meta(meta) {}
-};
-***/
 
 /*****************************************************************************
  * @brief   Main process of the TCP Rx Engine (RXe).
