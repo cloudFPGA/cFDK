@@ -29,7 +29,7 @@ class LE_SockAddr;
 class LE_SocketPair;
 class AxiWord;
 class DmCmd;
-class Ip4overAxi;
+//class Ip4overMac;
 
 /******************************************************************************
  * PROTOTYPE DEFINITIONS

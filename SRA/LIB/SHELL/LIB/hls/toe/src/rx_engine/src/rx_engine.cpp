@@ -623,7 +623,7 @@ void pCheckSumAccumulator(
         }
         csa_wasLast = false;
     }
-    
+
     else if (csa_doCSumVerif) {
         switch (csa_cc_state) {
             case 0:
@@ -1398,7 +1398,6 @@ void pTcpSegmentDropper(
 
 
     switch (tsd_fsmState) {
-
     case FSM_RD_DROP_CMD1:
         if (!siMdh_DropCmd.empty()) {
             CmdBit dropCmd = siMdh_DropCmd.read();
