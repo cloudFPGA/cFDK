@@ -128,7 +128,8 @@ void pTimers(
         stream<AppNotif>           &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE
+    //OBSOLETE-20191111 #pragma HLS INLINE
+    #pragma HLS INLINE // off
 
     static stream<ap_uint<16> > sCloseTimer2Mux_ReleaseState ("sCloseTimer2Mux_ReleaseState");
     #pragma HLS stream variable=sCloseTimer2Mux_ReleaseState depth=2
@@ -189,10 +190,15 @@ void rxAppMemAccessBreakdown(
         stream<DmCmd>        &soMEM_RxP_RdCmd,
         stream<ap_uint<1> >  &rxAppDoubleAccess)
 {
-#pragma HLS PIPELINE II=1 enable_flush
-#pragma HLS INLINE off
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS INLINE off
 
-    static bool rxAppBreakdown = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                rxAppBreakdown = false;
+    #pragma HLS reset variable=rxAppBreakdown
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static DmCmd rxAppTempCmd;
     static ap_uint<16> rxAppAccLength = 0;
 
@@ -204,8 +210,9 @@ void rxAppMemAccessBreakdown(
                 soMEM_RxP_RdCmd.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
                 rxAppBreakdown = true;
             }
-            else
+            else {
                 soMEM_RxP_RdCmd.write(rxAppTempCmd);
+            }
             //std::cerr << "Mem.Cmd: " << std::hex << rxAppTempCmd.saddr << " - " << rxAppTempCmd.bbt << std::endl;
             rxAppDoubleAccess.write(rxAppBreakdown);
         }
@@ -402,7 +409,8 @@ void rx_app_interface(
         stream<AxiWord>             &siMEM_RxP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS INLINE
+	//OBSOLETE-2019111 #pragma HLS INLINE
+    #pragma HLS INLINE // off
 
     static stream<DmCmd>        rxAppStreamIf2memAccessBreakdown ("rxAppStreamIf2memAccessBreakdown");
     #pragma HLS stream variable=rxAppStreamIf2memAccessBreakdown depth=16

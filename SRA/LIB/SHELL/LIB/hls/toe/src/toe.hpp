@@ -205,6 +205,9 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 #define QUERY_INIT            1
 #define QUERY_FAST_RETRANSMIT true
 
+#define FLAG_OFF    0
+#define FLAG_ON     1
+
 #define STS_OK      1
 #define STS_KO      0
 #define STS_OPENED  1
@@ -218,6 +221,7 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
  ********************************************/
 typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
 typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
@@ -693,18 +697,6 @@ class Ip4overMac: public AxiWord {
     }
 
 }; // End of: Ip4overMac
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1218,11 +1210,6 @@ struct rstEvent : public event
 };
 
 
-
-
-
-
-
 /*************************************************************************
  * DDR MEMORY SUB-SYSTEM INTERFACES
  *************************************************************************
@@ -1249,7 +1236,7 @@ class DmCmd
     ap_uint<4>      tag;    // Command Tag
     ap_uint<4>      rsvd;   // Reserved
     DmCmd() {}
-    DmCmd(ap_uint<40> addr, ap_uint<16> len) :
+    DmCmd(ap_uint<40> addr, RxBufPtr len) :
         bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
