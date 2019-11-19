@@ -23,7 +23,7 @@ make csim
 cd $root/SRA/LIB/SHELL/LIB/hls
 make clean
 make csim
-reval=$? # saving return value
+retval=$? # saving return value
 echo "======== END of STEP-1 ========"
 
 
