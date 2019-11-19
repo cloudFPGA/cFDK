@@ -27,12 +27,13 @@ reval=$? # saving return value
 echo "======== END of STEP-1 ========"
 
 
+
 # check if previous step passed
 if [ $retval -ne 0 ]; then
+  echo "last return value was $retval"
   echo "main.sh regression FAILED"
   exit $retval
 fi
-
 
 # STEP-2: Run CoSim
 echo "======== START of STEP-2 ========"
