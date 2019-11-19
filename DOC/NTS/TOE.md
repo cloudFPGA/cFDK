@@ -8,13 +8,14 @@ FYI - An enhanced branch of the initial *Xilinx* code is maintained by the **Sys
 
 ## Overview
 A block diagram of the *TOE* is depicted in Figure 1. It features a *Rx Engine (RXe)*, a *Tx Engine (TXe)*, and a ... [TODO] ....
-![Block diagram of the TOE](../internal/shell/images/Fig-TOE-Structure.bmp#center)
+![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the of the TCP Offload Engine</b></p>
 <br>
 
-## HLS Coding Style and Naming Conventions 
-Please consider reading the [HLS naming conventions document](./hls-naming-conventions.md) before diving or contributing to this part of the cloudFPGA project. 
-
+## HLS Coding Style and Naming Conventions
+Please consider reading the following two documents before diving or contributing to this part of the cloudFPGA project.
+  1) [**HDL Naming Conventions**](../../hdl-naming-conventions.md), 
+  2) [**HLS Naming Conventions**](../hls-naming-conventions.md)
 <br>
 
 ## List of Interfaces
@@ -33,7 +34,7 @@ Please consider reading the [HLS naming conventions document](./hls-naming-conve
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **RXe**         | Rx Engine.                                            | rx_engine
+| **[RXe](./RXe.md)**   | Rx Engine.                                            | rx_engine
 | **TXe**         | Tx Engine.                                            | tx_engine
 | **RAi**         | Rx Application Interface.                             | rx_app_if
 | **TAi**         | Tx Application Interface.                             | tx_app_interface
@@ -43,8 +44,8 @@ Please consider reading the [HLS naming conventions document](./hls-naming-conve
 | **AKd(Evd)**    | Ack Delayer(Event Delayer).                           | ack_delay
 | **TIm**         | Timers.                                               | 
 | **STt**         | State Table.                                          | state_table
-| **[PRt](#prt)**         | Port Table.                                           | port_table
-| **[SLc](#slc)**         | Session Lookup Controller.                            | session_lookup_controller
+| **[PRt](#prt)**       | Port Table.                                           | port_table
+| **[SLc](#slc)**       | Session Lookup Controller.                            | session_lookup_controller
 
 <br>
 

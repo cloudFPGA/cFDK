@@ -8,7 +8,7 @@ Their IPv4 and TCP headers are parsed and their TCP checksum are checked.
 Next, if the TCP destination port of the incoming TCP segment is opened and if that segment contains valid payload, 
 it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**) is notified about this arrival of new data.
 
-![Block diagram of the TOE/RXe](../internal/shell/images/Fig-TOE-RXe-Structure.bmp#center)
+![Block diagram of the TOE/RXe](./images/Fig-TOE-RXe-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the of the Rx Engine</b></p>
 <br>
 

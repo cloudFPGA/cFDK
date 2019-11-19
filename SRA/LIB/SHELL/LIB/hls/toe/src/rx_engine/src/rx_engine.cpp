@@ -1398,6 +1398,7 @@ void pTcpSegmentDropper(
 
 
     switch (tsd_fsmState) {
+
     case FSM_RD_DROP_CMD1:
         if (!siMdh_DropCmd.empty()) {
             CmdBit dropCmd = siMdh_DropCmd.read();
