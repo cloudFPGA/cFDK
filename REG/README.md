@@ -1,25 +1,29 @@
 cFDK Regression
 ====================
 
-In order to achieve a certain level of stability and quality of code, cFDK relies on regression builds.
-To manage them easily, this folder contains a `main.sh` script that is called by e.g. Jenkins. 
+A regression is a suite of functional verification tests executed against the cFDK. 
+Such a regression is typically called by a Jenkins server during the software development process.     
 
-**The `main.sh` script expects that all environments are set!**
-This means, e.g.:
-* The Xilinx environments are sourced
-* `$root` is set.
+Different types of regressions can be executed by calling one of the following shell scripts:
+  - `run_csim_reg.sh ` performs a HSL/C-SIMULATION of the HLS-based IP cores. 
+  - `run_cosim_reg.sh` performs a RTL/CO-SIMULATION of the HLS-based IP cores.
+  - `run_main_reg.sh ` sequentially calls `run_csim_reg.sh` and `run_cosim_reg.sh`.
 
-So, the build script **should be called as follows:**
+
+**Warning**  
+  All the above scripts must be executed from the cFDK root directory which must be defined ahead with the **$cFdkRootDir** variable. Any other environment variable must also be sourced beforehand.
+
+**Example**  
+The main cFDK regression script can be called as follows:
 ```
 source /tools/Xilinx/Vivado/2017.4/settings64.sh
 
 echo $PWD
-export root=$PWD
+export cFdkRootDir=$PWD
 
-$root/REG/main.sh
+$cFdkRootDir/REG/run_main_reg.sh
 ```
-(e.g. as Jenkins build command).
 
-If there are other scripts then the `main.sh` script present in this folder, it is expected that *they are called by `main.sh`*.
+
 
 
