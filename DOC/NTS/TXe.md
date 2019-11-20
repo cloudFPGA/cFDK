@@ -17,16 +17,14 @@ The complete packet is then streamed out over the **L3MUX** interface of the TOE
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **EVe**         | Event Engine interface.                               | event_engine
-| **IPRX**        | IP Rx Interface.                                      | iprx_handler
-| **MEM**         | Memory sub-system (data-mover to DDR4).               | [TODO]
-| **PRt**         | Port Table interface.                                 | port_table
-| **RSt**         | Rx SAR Table interface.                               | rx_sar_table
-| **SLc**         | Session Lookup Controller interface.                  | session_lookup_controller
-| **STt**         | State Table interface.                                | state_table
-| **TRIF**        | TCP Role Interface (alias APP).                       | tcp_role_interface
-| **TIm**         | Timers interface.                                     | [TODO]
-| **TSt**         | Tx SAR Table interface.                               | tx_sar_table
+| **AKd**         | Ack Delayer interface                                 | ack_delay
+| **EVe**         | Event Engine interface                                | event_engine
+| **L3MUX**       | IP Tx Interface                                       | iptx_handler
+| **MEM**         | Memory sub-system (data-mover to DDR4)                | memSubSys
+| **RSt**         | Rx SAR Table interface                                | rx_sar_table
+| **SLc**         | Session Lookup Controller interface                   | session_lookup_controller
+| **TIm**         | Timers interface                                      | [TODO]
+| **TSt**         | Tx SAR Table interface                                | tx_sar_table
 
 <br>
 
@@ -34,15 +32,14 @@ The complete packet is then streamed out over the **L3MUX** interface of the TOE
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Csa**         | Check-Sum Accumulator process.                        | rx_engine
-| **Evm**         | Event Muxer process.                                  | rx_engine
-| **Fsm**         | Finite State Machine process.                         | rx_engine
-| **Iph**         | Insert Pseudo Header process.                         | rx_engine
-| **Mdh**         | Meta Data Handler process.                            | rx_engine
-| **Mwr**         | Memory WRiter process.                                | rx_engine
-| **Ran**         | Rx Application Notifier process.                      | rx_engine
-| **Tid**         | Tcp Invalid Dropper process.                          | rx_engine
-| **Tle**         | Tcp Length Extractor process.                         | rx_engine
-| **Tsd**         | Tcp Segment Dropper process.                          | rx_engine
+| **Ihc**         | IP Header Constructor process                         | tx_engine
+| **Ips**         | IP Packet Stitcher process                            | tx_engine
+| **Mdl**         | Meta Data Loader process                              | tx_engine
+| **Mrd**         | Memory Reader process                                 | tx_engine
+| **Phc**         | PseudoHeaderConstructor process                       | tx_engine
+| **Sca**         | Sub Checksum Accumulator process                      | tx_engine
+| **Sps**         | Socket Pair Splitter process                          | tx_engine
+| **Tca**         | TCP Checksum Accumulator process                      | tx_engine
+| **Tss**         | TCP Segment Stitcher                                  | tx_engine
 
 <br>
