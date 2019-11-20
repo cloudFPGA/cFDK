@@ -35,7 +35,7 @@ Please consider reading the following two documents before diving or contributin
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
 | **[RXe](./RXe.md)**   | Rx Engine.                                            | rx_engine
-| **TXe**         | Tx Engine.                                            | tx_engine
+| **[TXe](./TXe.md)**   | Tx Engine.                                            | tx_engine
 | **RAi**         | Rx Application Interface.                             | rx_app_if
 | **TAi**         | Tx Application Interface.                             | tx_app_interface
 | **RSt**         | Rx Sar Table.                                         | rx_sar_table
