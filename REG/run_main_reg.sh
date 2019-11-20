@@ -7,14 +7,14 @@
 #  *     Authors: FAB, WEI, NGL, POL
 #  *
 #  *     Description:
-#  *        Main regressions script. This script is called by e.g. the Jenkins server.
+#  *        Main cFDK regressions script.
 #  *
-
-# ATTENTION: 
-#   This script EXPECTS THAT IT IS EXECUTED FROM THE REPOSITORY ROOT AND ALL NECESSARY
-#    ENVIROMENT IS SOURCED!
-#   And $root should bet set externally.
-
+#  *     Details:
+#  *       - This script is typically called the Jenkins server.
+#  *       - It expects to be executed from the cFDK root directory.
+#  *       - The '$cFdkRootDir' variable must be set externally. 
+#  *       - All environment variables must be sourced beforehand.
+#  *
 
 
 # @brief A function to check if previous step passed.
@@ -28,40 +28,15 @@ function exit_on_error {
 }
 
 
-echo "======== START of STEP-1: CSim ========"
-cd $root/SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine
-make clean
-make csim
+echo "================================================================"
+echo "===   START OF REGRESSION: $0"
+echo "================================================================"
+
+sh $cFdkRootDir/run_csim_reg.sh
 exit_on_error $? 
 
-cd $root/SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine
-make clean
-make csim
+sh $cFdkRootDir/run_cosim_reg.sh
 exit_on_error $? 
-
-cd $root/SRA/LIB/SHELL/LIB/hls
-make clean
-make csim
-exit_on_error $? 
-echo "======== END of STEP-1: CSim ========"
-
-
-
-echo "======== START of STEP-2: CoSim ========"
-cd $root/SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine
-make cosim
-exit_on_error $? 
-
-cd $root/SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine
-make cosim
-exit_on_error $? 
-
-cd $root/SRA/LIB/SHELL/LIB/hls
-echo ">>>>>>>> [FIXME-TODO] Must enable make cosim <<<<<<<"
-exit_on_error $? 
-
-echo "======== END of STEP-2: CoSim ========"
-
 
 exit 0
 
