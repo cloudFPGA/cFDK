@@ -314,9 +314,9 @@ void pTcpLengthExtract(
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |    Ack (LL)   |    Ack (L)    |    Ack (H)    |   Ack (HH)    |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *  |               |               |               |               |               |               |   |U|A|P|R|S|F|  Data |       |
- *  |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |    Win (L)    |    Win (H)    |Res|R|C|S|S|Y|I| Offset| Res   |
- *  |               |               |               |               |               |               |   |G|K|H|T|N|N|       |       |
+ *  |               |               |               |               |               |               |C|E|U|A|P|R|S|F|  Data |     |N|
+ *  |  UrgPtr(L)    |  UrgPtr(H)    |   CSum (L)    |  CSum (H)     |    Win (L)    |    Win (H)    |W|C|R|C|S|S|Y|I| Offset| Res |S|
+ *  |               |               |               |               |               |               |R|E|G|K|H|T|N|N|       |     | |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1633,8 +1633,9 @@ void pMemWriter(
                 mwr_memWrCmd.bbt -= mwr_curAccLen;
                 memWrCmd = DmCmd(mwr_memWrCmd.saddr, mwr_curAccLen);
                 mwr_accessBreakdown = true;
-                if (DEBUG_LEVEL & TRACE_MWR)
-                    printInfo(myName, "TCP memory buffer wraps around: This segment will be broken in two memory buffers.\n");
+                if (DEBUG_LEVEL & TRACE_MWR) {
+                    printInfo(myName, "TCP Rx memory buffer wraps around: This segment will be broken in two memory buffers.\n");
+                }
             }
             else {
                 mwr_curAccLen = mwr_memWrCmd.bbt;

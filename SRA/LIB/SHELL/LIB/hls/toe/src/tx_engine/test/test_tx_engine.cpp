@@ -25,7 +25,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*****************************************************************************
- *  @file       : test_tx_engine.cpp
+ * @file       : test_tx_engine.cpp
  * @brief      : Testbench for the TX Engine (TXe) of the TCP Offload Engine (TOE).
  *
  * System:     : cloudFPGA

@@ -248,11 +248,7 @@ typedef bool ValBool;  // Valid bit  : Must go along with something to validate/
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
 //   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
 
-enum        eventType {TX=0, TXbis, RT, RTbis, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
-//const char* eventTypeStrings[] = {
-//                      "TX", "TXbis", "RT", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
-
-
+enum        eventType {TX=0, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
 
 /*
  * There is no explicit LISTEN state
@@ -579,7 +575,7 @@ typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
- *  As Encoded by IPRX (.i.e in Little-Endian order).
+ *  As Encoded by IPRX and L3MUX (.i.e in Little-Endian order).
  *********************************************************/
 class Ip4overMac: public AxiWord {
 
@@ -591,36 +587,33 @@ class Ip4overMac: public AxiWord {
       AxiWord(tdata, tkeep, tlast) {}
 
     // Set-Get the IP4 Version
-    void       setIp4Version(Ip4Version ver)    {                  tdata.range( 7,  4) = ver;             }
-    Ip4Version getIp4Version()                  {           return tdata.range( 7,  4);                   }
-
+    void        setIp4Version(Ip4Version ver)   {                  tdata.range( 7,  4) = ver;             }
+    Ip4Version  getIp4Version()                 {           return tdata.range( 7,  4);                   }
     // Set-Get the IP4 Internet Header Length
-    void      setIp4HdrLen(Ip4HdrLen ihl)       {                  tdata.range( 3,  0) = ihl;             }
-    Ip4HdrLen getIp4HdrLen()                    {           return tdata.range( 3,  0);                   }
+    void        setIp4HdrLen(Ip4HdrLen ihl)     {                  tdata.range( 3,  0) = ihl;             }
+    Ip4HdrLen   getIp4HdrLen()                  {           return tdata.range( 3,  0);                   }
     // Set-Get the IP4 Type of Service
-    void setIp4ToS(Ip4ToS tos)                  {                  tdata.range(15,  8) = tos;             }
-    Ip4ToS    getIp4Tos()                       {           return tdata.range(15,  8);                   }
-
+    void        setIp4ToS(Ip4ToS tos)           {                  tdata.range(15,  8) = tos;             }
+    Ip4ToS      getIp4Tos()                     {           return tdata.range(15,  8);                   }
     // Set the IP4 Total Length
     void        setIp4TotalLen(Ip4TotalLen len) {                  tdata.range(31, 16) = swapWord(len);   }
     Ip4TotalLen getIp4TotalLen()                { return swapWord (tdata.range(31, 16));                  }
-
     // Set the IP4 Identification
-    void setIp4Ident(Ip4Ident id)               {                  tdata.range(47, 32) = swapWord(id);    }
+    void        setIp4Ident(Ip4Ident id)        {                  tdata.range(47, 32) = swapWord(id);    }
     // Set the IP4 Fragment Offset
-    void setIp4FragOff(Ip4FragOff offset)       {                  tdata.range(63, 56) = offset( 7, 0);
+    void        setIp4FragOff(Ip4FragOff offset){                  tdata.range(63, 56) = offset( 7, 0);
                                                                    tdata.range(52, 48) = offset(12, 8);   }
     // Set the IP4 Flags
-    void setIp4Flags(Ip4Flags flags)            {                  tdata.range(55, 53) = flags;           }
+    void        setIp4Flags(Ip4Flags flags)     {                  tdata.range(55, 53) = flags;           }
     // Set-Get the IP4 Time to Live
-    void    setIp4TtL(Ip4TtL ttl)               {                  tdata.range( 7,  0) = ttl;             }
-    Ip4TtL  getIp4Ttl()                         {           return tdata.range( 7,  0);                   }
+    void        setIp4TtL(Ip4TtL ttl)           {                  tdata.range( 7,  0) = ttl;             }
+    Ip4TtL      getIp4Ttl()                     {           return tdata.range( 7,  0);                   }
     // Set-Get the IP4 Protocol
-    void    setIp4Prot(Ip4Prot prot)            {                  tdata.range(15,  8) = prot;            }
-    Ip4Prot getIp4Prot()                        {           return tdata.range(15,  8);                   }
+    void        setIp4Prot(Ip4Prot prot)        {                  tdata.range(15,  8) = prot;            }
+    Ip4Prot     getIp4Prot()                    {           return tdata.range(15,  8);                   }
     // Set-Get the IP4 Header Checksum
-    void       setIp4HdrCsum(Ip4HdrCsum csum)   {                  tdata.range(31, 16) = csum;            }
-    Ip4HdrCsum getIp4HdrCsum()                  { return swapWord (tdata.range(31, 16));                  }
+    void        setIp4HdrCsum(Ip4HdrCsum csum)  {                  tdata.range(31, 16) = swapWord(csum);  }
+    Ip4HdrCsum  getIp4HdrCsum()                 { return swapWord (tdata.range(31, 16));                  }
     // Set-Get the IP4 Source Address
     void          setIp4SrcAddr(Ip4Addr addr)   {                  tdata.range(63, 32) = swapDWord(addr); }
     Ip4Addr       getIp4SrcAddr()               { return swapDWord(tdata.range(63, 32));                  }

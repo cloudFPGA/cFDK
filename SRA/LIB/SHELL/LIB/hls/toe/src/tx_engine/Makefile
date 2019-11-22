@@ -52,10 +52,10 @@ cosim: .synth_guard     ## Runs the HLS C/RTL cosimulation
 project:                ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
-rtlSyn:                 ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
+rtlSyn: .synth_guard    ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
 
-rtlImpl:                ## Performs both RTL synthesis and implementation including detailed palce and route
+rtlImpl: .synth_guard   ## Performs both RTL synthesis and implementation including detailed palce and route
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
 
 regression:             ## Runs HLS csim, csynth and cosim in sequence

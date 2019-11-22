@@ -131,6 +131,7 @@ void printTcpPort      (                        TcpPort       tcpPort);
  * @param[in] stream        the stream to test.
  * @param[in] streamName,   the name of the stream (e.g. "soEVe_RxEventSig").
  **********************************************************/
+/*** [FIXME - MUST BE REMOVED] ********/
 #ifndef __SYNTHESIS__
   #define assessFull(callerName , stream , streamName) \
     do { if (stream.full()) printFatal(callerName, "Stream \'%s\' is full: Cannot write.", streamName); } while (0)
