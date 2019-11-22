@@ -17,7 +17,7 @@ all:   iprx_handler       toe       arp_server   cam dhcp_client icmp_server ipr
 
 csim:  iprx_handler.csim  toe.csim  ## Runs HLS C simulation on all sub-directories
 
-cosim: iprx_handler.cosim toe.cosim ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: iprx_handler.cosim           ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
