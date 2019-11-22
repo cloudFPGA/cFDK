@@ -822,7 +822,13 @@ void pIPRX_FeedTOE(
             Ip4overMac ip4Word;
             do {
                 ip4Word = ipRxPacket.front();
-                soTOE_Data.write(ip4Word);
+                if (not soTOE_Data.full()) {
+                    soTOE_Data.write(ip4Word);
+                }
+                else {
+                    printFatal(myName, "Cannot write \'soTOE_Data\'. Stream is full!\n");
+                }
+
                 ipRxPacket.pop_front();
             } while (!ip4Word.tlast);
             ipRxPktCounter++;
