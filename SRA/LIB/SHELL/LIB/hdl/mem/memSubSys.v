@@ -96,8 +96,8 @@ module MemorySubSystem # (
   //------------------------------------------------------ 
   //-- MMIO / Status Interface
   //------------------------------------------------------
-  output          poMmio_Mc0_InitCalComplete,
-  output          poMmio_Mc1_InitCalComplete,
+  output          poMMIO_Mc0_InitCalComplete,
+  output          poMMIO_Mc1_InitCalComplete,
   
   //----------------------------------------------
   //-- NTS / Mem / TxP Interface
@@ -313,7 +313,7 @@ module MemorySubSystem # (
     .piCLKT_MemClk_p       (piCLKT_Mem0Clk_p),
      
     //-- Control Inputs and Status Ouputs -----------
-    .poMmio_InitCalComplete(poMmio_Mc0_InitCalComplete),
+    .poMMIO_InitCalComplete(poMMIO_Mc0_InitCalComplete),
    
     //-----------------------------------------------
     //-- MP0 / Memory Port Interface #0
@@ -423,7 +423,7 @@ module MemorySubSystem # (
     .piCLKT_MemClk_p       (piCLKT_Mem1Clk_p),
     
     //-- Control Inputs and Status Ouputs ----------
-    .poMmio_InitCalComplete(poMmio_Mc1_InitCalComplete),
+    .poMMIO_InitCalComplete(poMMIO_Mc1_InitCalComplete),
   
     //----------------------------------------------
     //-- Data Mover Interface #0

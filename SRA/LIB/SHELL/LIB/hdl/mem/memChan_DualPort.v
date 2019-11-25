@@ -83,7 +83,7 @@ module MemoryChannel_DualPort #(
   input           piCLKT_MemClk_p,
   
   //-- Control Inputs and Status Ouputs ----------
-  output          poMmio_InitCalComplete,
+  output          poMMIO_InitCalComplete,
   
   //----------------------------------------------
   //-- MP0 / Memory Port Interface #0
@@ -889,7 +889,7 @@ module MemoryChannel_DualPort #(
     .c0_ddr4_dqs_c              (pioDDR4_Dqs_n),
     .c0_ddr4_dqs_t              (pioDDR4_Dqs_p),
     //-- Calibration & Test Status ---------------
-    .c0_init_calib_complete     (poMmio_InitCalComplete),
+    .c0_init_calib_complete     (poMMIO_InitCalComplete),
     //-- User Interface --------------------------
     .c0_ddr4_ui_clk             (sMCC_Ui_clk),
     .c0_ddr4_ui_clk_sync_rst    (sMCC_Ui_SyncRst),

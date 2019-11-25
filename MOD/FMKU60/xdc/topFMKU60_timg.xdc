@@ -160,22 +160,22 @@ set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins SHELL/Su
 
 # DDR4 / Memory Channel #0  / Reset
 #OBSOLETE-20180504 set myMmcmClkOut0_0 [ get_clocks -of_objects [ get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0 ] ]
-#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_0} -max [ expr 2.0 * ${cMem0ClkPeriod} ] [ get_ports {poTOP_Ddr4_Mc0_Reset_n} ]
-#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_0} -min [ expr 1.0 * ${cMem0ClkPeriod} ] [ get_ports {poTOP_Ddr4_Mc0_Reset_n} ]
+#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_0} -max [ expr 2.0 * ${cMem0ClkPeriod} ] [ get_ports {poDDR4_Mem_Mc0_Reset_n} ]
+#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_0} -min [ expr 1.0 * ${cMem0ClkPeriod} ] [ get_ports {poDDR4_Mem_Mc0_Reset_n} ]
 
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -max 6.667 [get_ports poTOP_Ddr4_Mc0_Reset_n]
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -min 3.333 [get_ports poTOP_Ddr4_Mc0_Reset_n]
-set_multicycle_path -setup -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poTOP_Ddr4_Mc0_Reset_n] 5
-set_multicycle_path -hold -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poTOP_Ddr4_Mc0_Reset_n] 4
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -max 6.667 [get_ports poDDR4_Mem_Mc0_Reset_n]
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -min 3.333 [get_ports poDDR4_Mem_Mc0_Reset_n]
+set_multicycle_path -setup -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 5
+set_multicycle_path -hold -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 4
 
 # DDR4 / Memory Channel #0  / Slew & DataRate
-set_property SLEW FAST [get_ports poTOP_Ddr4_Mc0_Cs_n]
+set_property SLEW FAST [get_ports poDDR4_Mem_Mc0_Cs_n]
 
 ####################################################################################
 # Constraints from file : 'topFMKU60_Flash_pins.xdc'
 ####################################################################################
 
-set_property DATA_RATE SDR [get_ports poTOP_Ddr4_Mc0_Cs_n]
+set_property DATA_RATE SDR [get_ports poDDR4_Mem_Mc0_Cs_n]
 
 
 #=====================================================================
@@ -185,23 +185,23 @@ set_property DATA_RATE SDR [get_ports poTOP_Ddr4_Mc0_Cs_n]
 
 # DDR4 / Memory Channel #1  / Reset
 #OBSOLETE-20180504 set myMmcmClkOut0_1 [ get_clocks -of_objects [ get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0 ] ]
-#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_1} -max [ expr 2.0 * ${cMem1ClkPeriod} ] [ get_ports {poTOP_Ddr4_Mc1_Reset_n} ]
-#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_1} -min [ expr 1.0 * ${cMem1ClkPeriod} ] [ get_ports {poTOP_Ddr4_Mc1_Reset_n} ]
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -max 6.667 [get_ports poTOP_Ddr4_Mc1_Reset_n]
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -min 3.333 [get_ports poTOP_Ddr4_Mc1_Reset_n]
+#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_1} -max [ expr 2.0 * ${cMem1ClkPeriod} ] [ get_ports {poDDR4_Mem_Mc1_Reset_n} ]
+#OBSOLETE-20180504 set_output_delay -clock ${myMmcmClkOut0_1} -min [ expr 1.0 * ${cMem1ClkPeriod} ] [ get_ports {poDDR4_Mem_Mc1_Reset_n} ]
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -max 6.667 [get_ports poDDR4_Mem_Mc1_Reset_n]
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]] -min 3.333 [get_ports poDDR4_Mem_Mc1_Reset_n]
 
-set_multicycle_path -setup -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poTOP_Ddr4_Mc1_Reset_n] 5
-set_multicycle_path -hold -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poTOP_Ddr4_Mc1_Reset_n] 4
-#OBSOLETE-20180503 set_false_path -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.app_rd_data_ns_reg[0]/C}] -to [get_ports poTOP_Ddr4_Mc0_Reset_n]
+set_multicycle_path -setup -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 5
+set_multicycle_path -hold -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 4
+#OBSOLETE-20180503 set_false_path -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_ui/u_ddr_ui_rd_data/not_strict_mode.rd_buf.app_rd_data_ns_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n]
 
 # DDR4 / Memory Channel #1  / Slew & DataRate
-set_property SLEW FAST [get_ports poTOP_Ddr4_Mc1_Cs_n]
+set_property SLEW FAST [get_ports poDDR4_Mem_Mc1_Cs_n]
 
 ####################################################################################
 # Constraints from file : 'topFMKU60_Flash_pins.xdc'
 ####################################################################################
 
-set_property DATA_RATE SDR [get_ports poTOP_Ddr4_Mc1_Cs_n]
+set_property DATA_RATE SDR [get_ports poDDR4_Mem_Mc1_Cs_n]
 
 
 #=====================================================================
@@ -285,22 +285,20 @@ set_false_path -from [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/C
 #=====================================================================
 # Constraints related to the Heart Beat LED
 #=====================================================================
-#OBSOLETE-20180504 set_output_delay -clock ${myShellClk} -max ${cShellClockPeriod} [ get_ports {poTOP_Led_HeartBeat_n} ]
-#OBSOLETE-20180504 set_output_delay -clock ${myShellClk} -min ${cShellClockPeriod} [ get_ports {poTOP_Led_HeartBeat_n} ]
-
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -max 6.400 [get_ports poTOP_Led_HeartBeat_n]
-set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -min 6.400 [get_ports poTOP_Led_HeartBeat_n]
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -max 6.400 [get_ports poLED_HeartBeat_n]
+set_output_delay -clock [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]] -min 6.400 [get_ports poLED_HeartBeat_n]
 
 ####################################################################################
 # Constraints from file : 'AxiInterconnect_1M2S_A32_D512_impl_clocks.xdc'
 ####################################################################################
 
-set_false_path -from [get_pins SHELL/sLed_HeartBeat_reg_inv/C] -to [get_ports poTOP_Led_HeartBeat_n]
+set_false_path -from [get_pins SHELL/sLed_HeartBeat_reg_inv/C] -to [get_ports poLED_HeartBeat_n]
 
 
 #=====================================================================
 # DEBUG_HUB Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
 
 
 
