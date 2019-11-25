@@ -161,10 +161,10 @@ TcpPort         gHostLsnPort  = DEFAULT_HOST_LSN_PORT;  // TCP  listen port
  * @ingroup test_toe
  ******************************************************************************/
 void pEmulateCam(
-        stream<rtlSessionLookupRequest>  &siTOE_SssLkpReq,
-        stream<rtlSessionLookupReply>    &soTOE_SssLkpRep,
-        stream<rtlSessionUpdateRequest>  &siTOE_SssUpdReq,
-        stream<rtlSessionUpdateReply>    &soTOE_SssUpdRep)
+        stream<RtlSessionLookupRequest>  &siTOE_SssLkpReq,
+        stream<RtlSessionLookupReply>    &soTOE_SssLkpRep,
+        stream<RtlSessionUpdateRequest>  &siTOE_SssUpdReq,
+        stream<RtlSessionUpdateReply>    &soTOE_SssUpdRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
@@ -175,8 +175,8 @@ void pEmulateCam(
                                CAM_LOOKUP_REP,
                                CAM_UPDATE_REP } camFsmState;
 
-    static rtlSessionLookupRequest request;
-    static rtlSessionUpdateRequest update;
+    static RtlSessionLookupRequest request;
+    static RtlSessionUpdateRequest update;
     static int                     camUpdateIdleCnt = 0;
     volatile static int            camLookupIdleCnt = 0;
     map<fourTupleInternal, ap_uint<14> >::const_iterator findPos;
@@ -217,13 +217,13 @@ void pEmulateCam(
         else {
             findPos = lookupTable.find(request.key);
             if (findPos != lookupTable.end()) { // hit
-                soTOE_SssLkpRep.write(rtlSessionLookupReply(true, findPos->second, request.source));
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(true, findPos->second, request.source));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                     printInfo(myName, "Result of session lookup = HIT \n");
                 }
             }
             else {
-                soTOE_SssLkpRep.write(rtlSessionLookupReply(false, request.source));
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(false, request.source));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                     printInfo(myName, "Result of session lookup = NO-HIT\n");
                 }
@@ -242,7 +242,7 @@ void pEmulateCam(
             if (update.op == INSERT) {
                 //Is there a check if it already exists?
                 lookupTable[update.key] = update.value;
-                soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, INSERT, update.source));
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, INSERT, update.source));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                     printInfo(myName, "Successful insertion of session ID #%d for [%s].\n", update.value.to_int(),
                               myCamAccessToString(update.source.to_int()));
@@ -250,7 +250,7 @@ void pEmulateCam(
             }
             else {  // DELETE
                 lookupTable.erase(update.key);
-                soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, DELETE, update.source));
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, DELETE, update.source));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                      printInfo(myName, "Successful deletion of session ID #%d for [%s].\n", update.value.to_int(),
                                myCamAccessToString(update.source.to_int()));
@@ -2229,10 +2229,10 @@ int main(int argc, char *argv[]) {
     stream<DmCmd>                       ssTOE_MEM_TxP_WrCmd  ("ssTOE_MEM_TxP_WrCmd");
     stream<AxiWord>                     ssTOE_MEM_TxP_Data   ("ssTOE_MEM_TxP_Data");
 
-    stream<rtlSessionLookupRequest>     ssTOE_CAM_SssLkpReq  ("ssTOE_CAM_SssLkpReq");
-    stream<rtlSessionLookupReply>       ssCAM_TOE_SssLkpRep  ("ssCAM_TOE_SssLkpRep");
-    stream<rtlSessionUpdateRequest>     ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
-    stream<rtlSessionUpdateReply>       ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
+    stream<RtlSessionLookupRequest>     ssTOE_CAM_SssLkpReq  ("ssTOE_CAM_SssLkpReq");
+    stream<RtlSessionLookupReply>       ssCAM_TOE_SssLkpRep  ("ssCAM_TOE_SssLkpRep");
+    stream<RtlSessionUpdateRequest>     ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
+    stream<RtlSessionUpdateReply>       ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
     //------------------------------------------------------
     //-- TB SIGNALS
