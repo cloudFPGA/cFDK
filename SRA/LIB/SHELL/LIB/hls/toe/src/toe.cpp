@@ -24,7 +24,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-
 /*****************************************************************************
  * @file       : toe.cpp
  * @brief      : TCP Offload Engine (TOE)
@@ -624,10 +623,10 @@ void toe(
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupRequest>     &soCAM_SssLkpReq,
-        stream<rtlSessionLookupReply>       &siCAM_SssLkpRep,
-        stream<rtlSessionUpdateRequest>     &soCAM_SssUpdReq,
-        stream<rtlSessionUpdateReply>       &siCAM_SssUpdRep,
+        stream<RtlSessionLookupRequest>     &soCAM_SssLkpReq,
+        stream<RtlSessionLookupReply>       &siCAM_SssLkpRep,
+        stream<RtlSessionUpdateRequest>     &soCAM_SssUpdReq,
+        stream<RtlSessionUpdateReply>       &siCAM_SssUpdRep,
 
         //------------------------------------------------------
         //-- DEBUG Interfaces
@@ -824,7 +823,7 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Rx Engine (RXe)
     //-------------------------------------------------------------------------
-    static stream<sessionLookupQuery>   sRXeToSLc_SessLkpReq      ("sRXeToSLc_SessLkpReq");
+    static stream<SessionLookupQuery>   sRXeToSLc_SessLkpReq      ("sRXeToSLc_SessLkpReq");
     #pragma HLS stream         variable=sRXeToSLc_SessLkpReq      depth=4
     #pragma HLS DATA_PACK      variable=sRXeToSLc_SessLkpReq
 
@@ -881,11 +880,11 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Session Lookup Controller (SLc)
     //-------------------------------------------------------------------------
-    static stream<sessionLookupReply>   sSLcToRXe_SessLkpRep      ("sSLcToRXe_SessLkpRep");
+    static stream<SessionLookupReply>   sSLcToRXe_SessLkpRep      ("sSLcToRXe_SessLkpRep");
     #pragma HLS stream         variable=sSLcToRXe_SessLkpRep      depth=4
     #pragma HLS DATA_PACK      variable=sSLcToRXe_SessLkpRep
 
-    static stream<sessionLookupReply>   sSLcToTAi_SessLookupRep   ("sSLcToTAi_SessLookupRep");
+    static stream<SessionLookupReply>   sSLcToTAi_SessLookupRep   ("sSLcToTAi_SessLookupRep");
     #pragma HLS stream         variable=sSLcToTAi_SessLookupRep   depth=4
     #pragma HLS DATA_PACK      variable=sSLcToTAi_SessLookupRep
 

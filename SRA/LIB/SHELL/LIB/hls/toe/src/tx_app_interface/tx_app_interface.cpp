@@ -102,7 +102,7 @@ void pTxAppAccept(
         stream<LE_SockAddr>         &siTRIF_OpnReq,
         stream<OpenStatus>          &soTRIF_OpnRep,
         stream<ap_uint<16> >        &closeConnReq,
-        stream<sessionLookupReply>  &siSLc_SessLookupRep,
+        stream<SessionLookupReply>  &siSLc_SessLookupRep,
         stream<TcpPort>             &siPRt_ActPortStateRep,
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<LE_SocketPair>       &soSLc_SessLookupReq,
@@ -142,7 +142,7 @@ void pTxAppAccept(
         }
         else if (!siSLc_SessLookupRep.empty()) {
             // Read the session and check its state
-            sessionLookupReply session = siSLc_SessLookupRep.read();
+            SessionLookupReply session = siSLc_SessLookupRep.read();
             if (session.hit) {
                 soEVe_Event.write(Event(SYN_EVENT, session.sessionID));
                 soSTt_SessStateQry.write(StateQuery(session.sessionID, SYN_SENT, 1));
@@ -379,7 +379,7 @@ void tx_app_interface(
         stream<TStTxSarPush>           &siTSt_PushCmd,
 
         stream<ap_uint<16> >           &appCloseConnReq,
-        stream<sessionLookupReply>     &siSLc_SessLookupRep,
+        stream<SessionLookupReply>     &siSLc_SessLookupRep,
         stream<ap_uint<16> >           &siPRt_ActPortStateRep,
         stream<OpenStatus>             &siRXe_SessOpnSts,
         //-- MEM / Tx PATH Interface

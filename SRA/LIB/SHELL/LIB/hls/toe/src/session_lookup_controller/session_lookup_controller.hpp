@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : session_lookup.hpp
  * @brief      : Session Lookup Controller (SLc) of TCP Offload Engine (TOE).
@@ -5,9 +31,6 @@
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
@@ -23,8 +46,6 @@
 
 using namespace hls;
 
-
-//enum lookupSource {FROM_RXe, FROM_TAi};
 typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
 #define FROM_RXe   0
 #define FROM_TAi   1
@@ -119,60 +140,64 @@ typedef ap_uint<14> RtlSessId;
 /********************************************
  * CAM / Session Lookup Request
  ********************************************/
-struct rtlSessionLookupRequest     // [FIXME - Rename ]
+class RtlSessionLookupRequest
 {
+  public:
     fourTupleInternal   key;       // 96 bits 
     lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
 
-    rtlSessionLookupRequest() {}
-    rtlSessionLookupRequest(fourTupleInternal tuple, lookupSource src)
+    RtlSessionLookupRequest() {}
+    RtlSessionLookupRequest(fourTupleInternal tuple, lookupSource src)
                 : key(tuple), source(src) {}
 };
 
 /********************************************
  * CAM / Session Lookup Reply
  *********************************************/
-struct rtlSessionLookupReply       // [FIXME - Rename ]
+class RtlSessionLookupReply
 {
+  public:
     RtlSessId           sessionID; // 14 bits
     lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
     bool                hit;       //  1 bit
 
-    rtlSessionLookupReply() {}
-    rtlSessionLookupReply(bool hit, lookupSource src) :
+    RtlSessionLookupReply() {}
+    RtlSessionLookupReply(bool hit, lookupSource src) :
         hit(hit), sessionID(0), source(src) {}
-    rtlSessionLookupReply(bool hit, RtlSessId id, lookupSource src) :
+    RtlSessionLookupReply(bool hit, RtlSessId id, lookupSource src) :
         hit(hit), sessionID(id), source(src) {}
 };
 
 /********************************************
  * CAM / Session Update Request
  ********************************************/
-struct rtlSessionUpdateRequest     // [FIXME - Rename ]
+class RtlSessionUpdateRequest
 {
+  public:
     fourTupleInternal   key;       // 96 bits
     RtlSessId           value;     // 14 bits
     lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
     lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
 
-    rtlSessionUpdateRequest() {}
-    rtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
+    RtlSessionUpdateRequest() {}
+    RtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
         key(key), value(value), op(op), source(src) {}
 };
 
 /********************************************
  * CAM / Session Update Reply
  *********************************************/
-struct rtlSessionUpdateReply       // [FIXME - Rename ]
+class RtlSessionUpdateReply
 {
+  public:
     RtlSessId           sessionID; // 14 bits
     lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
     lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
 
-    rtlSessionUpdateReply() {}
-    rtlSessionUpdateReply(lookupOp op, lookupSource src) :
+    RtlSessionUpdateReply() {}
+    RtlSessionUpdateReply(lookupOp op, lookupSource src) :
         op(op), source(src) {}
-    rtlSessionUpdateReply(RtlSessId id, lookupOp op, lookupSource src) :
+    RtlSessionUpdateReply(RtlSessId id, lookupOp op, lookupSource src) :
         sessionID(id), op(op), source(src) {}
 };
 
@@ -192,20 +217,20 @@ struct revLupInsert
  * @ingroup session_lookup_controller
  *****************************************************************************/
 void session_lookup_controller(
-        stream<sessionLookupQuery>         &siRXe_SessLookupReq,
-        stream<sessionLookupReply>         &soRXe_SessLookupRep,
+        stream<SessionLookupQuery>         &siRXe_SessLookupReq,
+        stream<SessionLookupReply>         &soRXe_SessLookupRep,
         stream<ap_uint<16> >               &stateTable2sLookup_releaseSession,
         stream<ap_uint<16> >               &sLookup2portTable_releasePort,
         stream<LE_SocketPair>              &siTAi_SessLookupReq,
-        stream<sessionLookupReply>         &soTAi_SessLookupRep,
+        stream<SessionLookupReply>         &soTAi_SessLookupRep,
         stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &sLookup2txEng_rev_rsp,
-        stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
-        stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
-        stream<rtlSessionUpdateRequest>    &sessionUpdate_req,
+        stream<RtlSessionLookupRequest>    &soCAM_SessLookupReq,
+        stream<RtlSessionLookupReply>      &siCAM_SessLookupRep,
+        stream<RtlSessionUpdateRequest>    &sessionUpdate_req,
         //stream<rtlSessionUpdateRequest>  &sessionInsert_req,
         //stream<rtlSessionUpdateRequest>  &sessionDelete_req,
-        stream<rtlSessionUpdateReply>      &sessionUpdate_rsp,
+        stream<RtlSessionUpdateReply>      &sessionUpdate_rsp,
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt
 );

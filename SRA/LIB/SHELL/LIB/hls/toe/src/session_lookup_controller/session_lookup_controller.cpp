@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : session_lookup_controller.cpp
  * @brief      : Session Lookup Controller (SLc) of TCP Offload Engine (TOE)
@@ -5,19 +31,6 @@
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
  *
  *****************************************************************************/
 
@@ -39,7 +52,6 @@ using namespace hls;
  * @details
  *  Implements the free list of session IDs as a FiFo stream.
  *
- * @ingroup session_lookup_controller
  *****************************************************************************/
 void pSessionIdManager(
         stream<RtlSessId>    &siUrs_FreeId,
@@ -88,23 +100,21 @@ void pSessionIdManager(
  *  If there was no hit, it checks if the request is allowed to create a new
  *   sessionID and does so. If there is a hit, the reply is forwarded to the
  *   corresponding source.
- *  It also handles the replies of the Session Updates [Inserts/Deletes], in
+ *  [FIXME] It also handles the replies of the Session Updates [Inserts/Deletes], in
  *   case of insert the response with the new sessionID is replied to the
  *   request source.
  *
- * @ingroup session_lookup_controller
- *
  *****************************************************************************/
 void pLookupReplyHandler(
-        stream<rtlSessionLookupRequest>     &soCAM_SessLookupReq,
-        stream<rtlSessionLookupReply>       &siCAM_SessLookupRep,
-        stream<rtlSessionUpdateReply>       &siUrh_SessUpdateRsp,
-        stream<sessionLookupQuery>          &siRXe_SessLookupReq,
-        stream<sessionLookupReply>          &soRXe_SessLookupRep,
+        stream<RtlSessionLookupRequest>     &soCAM_SessLookupReq,
+        stream<RtlSessionLookupReply>       &siCAM_SessLookupRep,
+        stream<RtlSessionUpdateReply>       &siUrh_SessUpdateRsp,
+        stream<SessionLookupQuery>          &siRXe_SessLookupReq,
+        stream<SessionLookupReply>          &soRXe_SessLookupRep,
         stream<LE_SocketPair>               &siTAi_SessLookupReq,
-        stream<sessionLookupReply>          &soTAi_SessLookupRep,
+        stream<SessionLookupReply>          &soTAi_SessLookupRep,
         stream<RtlSessId>                   &siSim_FreeList,
-        stream<rtlSessionUpdateRequest>     &soUrs_InsertSessReq,
+        stream<RtlSessionUpdateRequest>     &soUrs_InsertSessReq,
         stream<revLupInsert>                &soRlt_ReverseLkpRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -132,12 +142,12 @@ void pLookupReplyHandler(
             sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(
                     toeTuple.srcIp,   toeTuple.dstIp,
                     toeTuple.srcPort, toeTuple.dstPort), true, FROM_TAi);
-            soCAM_SessLookupReq.write(rtlSessionLookupRequest(intQuery.tuple, intQuery.source));
+            soCAM_SessLookupReq.write(RtlSessionLookupRequest(intQuery.tuple, intQuery.source));
             sQueryCache.write(intQuery);
             lrhFsmState = LRH_LKP_RSP;
         }
         else if (!siRXe_SessLookupReq.empty()) {
-            sessionLookupQuery query = siRXe_SessLookupReq.read();
+            SessionLookupQuery query = siRXe_SessLookupReq.read();
             /*** OBSOLETE-20181120
             sessionLookupQueryInternal intQuery = sessionLookupQueryInternal(fourTupleInternal(
                     query.tuple.dstIp,    query.tuple.srcIp,
@@ -147,7 +157,7 @@ void pLookupReplyHandler(
                     query.tuple.dst.addr, query.tuple.src.addr,
                     query.tuple.dst.port, query.tuple.src.port),
                     query.allowCreation, FROM_RXe);
-            soCAM_SessLookupReq.write(rtlSessionLookupRequest(intQuery.tuple, intQuery.source));
+            soCAM_SessLookupReq.write(RtlSessionLookupRequest(intQuery.tuple, intQuery.source));
             sQueryCache.write(intQuery);
             lrhFsmState = LRH_LKP_RSP;
         }
@@ -155,19 +165,19 @@ void pLookupReplyHandler(
 
     case LRH_LKP_RSP:
         if(!siCAM_SessLookupRep.empty() && !sQueryCache.empty()) {
-            rtlSessionLookupReply lupReply = siCAM_SessLookupRep.read();
+            RtlSessionLookupReply lupReply = siCAM_SessLookupRep.read();
             sessionLookupQueryInternal intQuery = sQueryCache.read();
             if (!lupReply.hit && intQuery.allowCreation && !siSim_FreeList.empty()) {
                 RtlSessId freeID = siSim_FreeList.read();
-                soUrs_InsertSessReq.write(rtlSessionUpdateRequest(intQuery.tuple, freeID, INSERT, lupReply.source));
+                soUrs_InsertSessReq.write(RtlSessionUpdateRequest(intQuery.tuple, freeID, INSERT, lupReply.source));
                 sInsertTuples.write(intQuery.tuple);
                 lrhFsmState = LRH_UPD_RSP;
             }
             else {
                 if (lupReply.source == FROM_RXe)
-                    soRXe_SessLookupRep.write(sessionLookupReply(lupReply.sessionID, lupReply.hit));
+                    soRXe_SessLookupRep.write(SessionLookupReply(lupReply.sessionID, lupReply.hit));
                 else
-                    soTAi_SessLookupRep.write(sessionLookupReply(lupReply.sessionID, lupReply.hit));
+                    soTAi_SessLookupRep.write(SessionLookupReply(lupReply.sessionID, lupReply.hit));
                 lrhFsmState = LRH_LKP_REQ;
             }
         }
@@ -175,12 +185,12 @@ void pLookupReplyHandler(
 
     case LRH_UPD_RSP:
         if (!siUrh_SessUpdateRsp.empty() && !sInsertTuples.empty()) {
-            rtlSessionUpdateReply insertReply = siUrh_SessUpdateRsp.read();
+            RtlSessionUpdateReply insertReply = siUrh_SessUpdateRsp.read();
             fourTupleInternal tuple = sInsertTuples.read();
             if (insertReply.source == FROM_RXe)
-                soRXe_SessLookupRep.write(sessionLookupReply(insertReply.sessionID, true));
+                soRXe_SessLookupRep.write(SessionLookupReply(insertReply.sessionID, true));
             else
-                soTAi_SessLookupRep.write(sessionLookupReply(insertReply.sessionID, true));
+                soTAi_SessLookupRep.write(SessionLookupReply(insertReply.sessionID, true));
             soRlt_ReverseLkpRsp.write(revLupInsert(insertReply.sessionID, tuple));
             lrhFsmState = LRH_LKP_REQ;
         }
@@ -206,9 +216,9 @@ void pLookupReplyHandler(
  *
  *****************************************************************************/
 void pUpdateRequestSender(
-        stream<rtlSessionUpdateRequest>     &siLrh_InsertSessReq,
-        stream<rtlSessionUpdateRequest>     &siRlt_SessDeleteReq,
-        stream<rtlSessionUpdateRequest>     &soCAM_SessUpdateReq,
+        stream<RtlSessionUpdateRequest>     &siLrh_InsertSessReq,
+        stream<RtlSessionUpdateRequest>     &siRlt_SessDeleteReq,
+        stream<RtlSessionUpdateRequest>     &soCAM_SessUpdateReq,
         stream<RtlSessId>                   &soSim_FreeId,
         ap_uint<16>                         &poSssRelCnt,
         ap_uint<16>                         &poSssRegCnt)
@@ -220,7 +230,7 @@ void pUpdateRequestSender(
     static ap_uint<16> usedSessionIDs     = 0;
     static ap_uint<16> releasedSessionIDs = 0;
 
-    rtlSessionUpdateRequest request;
+    RtlSessionUpdateRequest request;
 
     if (!siLrh_InsertSessReq.empty()) {
         soCAM_SessUpdateReq.write(siLrh_InsertSessReq.read());
@@ -249,14 +259,14 @@ void pUpdateRequestSender(
  *
  *****************************************************************************/
 void pUpdateReplyHandler(
-        stream<rtlSessionUpdateReply>   &siCAM_SessUpdateRep,
-        stream<rtlSessionUpdateReply>   &soLrh_SessUpdateRsp)
+        stream<RtlSessionUpdateReply>   &siCAM_SessUpdateRep,
+        stream<RtlSessionUpdateReply>   &soLrh_SessUpdateRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    rtlSessionUpdateReply upReply;
+    RtlSessionUpdateReply upReply;
     fourTupleInternal     tuple;
 
     if (!siCAM_SessUpdateRep.empty()) {
@@ -287,7 +297,7 @@ void pReverseLookupTable(
         stream<SessionId>       &siTXe_ReverseLkpReq,
         stream<fourTuple>       &soTXe_ReverseLkpRep,
         stream<TcpPort>         &soPRt_ClosePortCmd,
-        stream<rtlSessionUpdateRequest> &soUrs_SessDeleteReq)
+        stream<RtlSessionUpdateRequest> &soUrs_SessDeleteReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -313,7 +323,7 @@ void pReverseLookupTable(
         fourTupleInternal releaseTuple = REVERSE_LOOKUP_TABLE[sessionId];
         if (TUPLE_VALID_TABLE[sessionId]) { // if valid
             soPRt_ClosePortCmd.write(releaseTuple.myPort);
-            soUrs_SessDeleteReq.write(rtlSessionUpdateRequest(releaseTuple, sessionId, DELETE, FROM_RXe));
+            soUrs_SessDeleteReq.write(RtlSessionUpdateRequest(releaseTuple, sessionId, DELETE, FROM_RXe));
         }
         TUPLE_VALID_TABLE[sessionId] = false;
     }
@@ -353,22 +363,20 @@ void pReverseLookupTable(
  *  It also includes the wrapper for the sessionID free list which keeps track
  *   of the free SessionID.
  *
- * @ingroup session_lookup_controller
- *
  *****************************************************************************/
 void session_lookup_controller(
-        stream<sessionLookupQuery>         &siRXe_SessLookupReq,
-        stream<sessionLookupReply>         &soRXe_SessLookupRep,
+        stream<SessionLookupQuery>         &siRXe_SessLookupReq,
+        stream<SessionLookupReply>         &soRXe_SessLookupRep,
         stream<SessionId>                  &siSTt_SessReleaseCmd,
         stream<TcpPort>                    &soPRt_ClosePortCmd,
         stream<LE_SocketPair>              &siTAi_SessLookupReq,
-        stream<sessionLookupReply>         &soTAi_SessLookupRep,
+        stream<SessionLookupReply>         &soTAi_SessLookupRep,
         stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,
-        stream<rtlSessionLookupRequest>    &soCAM_SessLookupReq,
-        stream<rtlSessionLookupReply>      &siCAM_SessLookupRep,
-        stream<rtlSessionUpdateRequest>    &soCAM_SessUpdateReq,
-        stream<rtlSessionUpdateReply>      &siCAM_SessUpdateRep,
+        stream<RtlSessionLookupRequest>    &soCAM_SessLookupReq,
+        stream<RtlSessionLookupReply>      &siCAM_SessLookupRep,
+        stream<RtlSessionUpdateRequest>    &soCAM_SessUpdateReq,
+        stream<RtlSessionUpdateReply>      &siCAM_SessUpdateRep,
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt)
 {
@@ -387,18 +395,18 @@ void session_lookup_controller(
     static stream<RtlSessId>               sUrsToSim_FreeId        ("sUrsToSim_FreeId");
     #pragma HLS stream            variable=sUrsToSim_FreeId        depth=2
 
-    static stream<rtlSessionUpdateRequest> sLrhToUrs_InsertSessReq ("sLrhToUrs_InsertSessReq");
+    static stream<RtlSessionUpdateRequest> sLrhToUrs_InsertSessReq ("sLrhToUrs_InsertSessReq");
     #pragma HLS STREAM            variable=sLrhToUrs_InsertSessReq depth=4
 
     static stream<revLupInsert>            sLrhToRlt_ReverseLkpRsp ("sLrhToRlt_ReverseLkpRsp");
     #pragma HLS STREAM            variable=sLrhToRlt_ReverseLkpRsp depth=4
 
     // Update Reply Handler
-    static stream<rtlSessionUpdateReply>   sUrhToLrh_SessUpdateRsp ("sUrhToLrh_SessUpdateRsp");
+    static stream<RtlSessionUpdateReply>   sUrhToLrh_SessUpdateRsp ("sUrhToLrh_SessUpdateRsp");
     #pragma HLS STREAM            variable=sUrhToLrh_SessUpdateRsp depth=4
 
     // Reverse Lookup Table (Rlt) ---------------------------------------------
-    static stream<rtlSessionUpdateRequest> sRltToUrs_SessDeleteReq ("sRltToUrs_SessDeleteReq");
+    static stream<RtlSessionUpdateRequest> sRltToUrs_SessDeleteReq ("sRltToUrs_SessDeleteReq");
     #pragma HLS STREAM            variable=sRltToUrs_SessDeleteReq depth=4
 
     //OBSOLETE-20190512 static stream<sessionLookupQueryInternal> slc_lookups("slc_lookups");

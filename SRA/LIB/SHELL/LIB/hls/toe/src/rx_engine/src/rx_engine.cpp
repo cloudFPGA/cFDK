@@ -790,9 +790,9 @@ void pTcpInvalidDropper(
 void pMetaDataHandler(
         stream<RXeMeta>             &siCsa_Meta,
         stream<LE_SocketPair>       &siCsa_SockPair,
-        stream<sessionLookupReply>  &siSLc_SessLookupRep,
+        stream<SessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
-        stream<sessionLookupQuery>  &soSLc_SessLkpReq,
+        stream<SessionLookupQuery>  &soSLc_SessLkpReq,
         stream<ExtendedEvent>       &soEVe_Event,
         stream<CmdBool>             &soTsd_DropCmd,
         stream<RXeFsmMeta>          &soFsm_Meta)
@@ -809,7 +809,7 @@ void pMetaDataHandler(
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static RXeMeta              mdh_meta;
-    static sessionLookupReply   mdh_sessLookupReply;
+    static SessionLookupReply   mdh_sessLookupReply;
     static Ip4Address           mdh_ip4SrcAddr;
     static TcpPort              mdh_tcpSrcPort;
     static TcpPort              mdh_tcpDstPort;
@@ -870,7 +870,7 @@ void pMetaDataHandler(
                                   mdh_tcpDstPort.to_uint(), mdh_tcpDstPort.to_uint());
                     }
                     // Query a session lookup. Only allow creation of a new entry when SYN or SYN_ACK
-                    soSLc_SessLkpReq.write(sessionLookupQuery(tuple,
+                    soSLc_SessLkpReq.write(SessionLookupQuery(tuple,
                                           (mdh_meta.syn && !mdh_meta.rst && !mdh_meta.fin)));
                     if (DEBUG_LEVEL & TRACE_MDH) {
                         printInfo(myName, "Request the SLc to lookup the following session:\n");
@@ -1783,8 +1783,8 @@ void rx_engine(
 		// IP Rx Interface
         stream<Ip4overMac>              &siIPRX_Pkt,
 		//-- Session Lookup Controller Interface
-		stream<sessionLookupQuery>      &soSLc_SessLookupReq,
-        stream<sessionLookupReply>      &siSLc_SessLookupRep,
+		stream<SessionLookupQuery>      &soSLc_SessLookupReq,
+        stream<SessionLookupReply>      &siSLc_SessLookupRep,
         //-- State Table Interface
 		stream<StateQuery>              &soSTt_StateQry,
         stream<SessionState>            &siSTt_StateRep,

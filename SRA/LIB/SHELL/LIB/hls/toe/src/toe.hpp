@@ -80,10 +80,10 @@ extern uint32_t      idleCycCnt;
 extern unsigned int  gSimCycCnt;
 
 // Forward declarations.
-struct rtlSessionUpdateRequest;
-struct rtlSessionUpdateReply;
-struct rtlSessionLookupReply;
-struct rtlSessionLookupRequest;
+class RtlSessionUpdateRequest;
+class RtlSessionUpdateReply;
+class RtlSessionLookupReply;
+class RtlSessionLookupRequest;
 
 
 #define OOO_N 4     // number of OOO blocks accepted
@@ -715,7 +715,10 @@ class LE_SockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
         addr(addr), port(port) {}
 };
 
-struct ipTuple
+/***********************************************
+ * SOCKET ADDRESS (alias ipTuple)
+ ***********************************************/
+struct ipTuple // [TODO] - Replace w/ SockAddr
 {
     ap_uint<32>     ip_address;
     ap_uint<16>     ip_port;
@@ -729,7 +732,6 @@ class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
     SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
         addr(ip4Addr), port(tcpPort) {}
 };
-
 
 /***********************************************
  * SOCKET PAIR ASSOCIATION (alias FourTuple)
@@ -748,7 +750,7 @@ inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
-struct fourTuple {
+struct fourTuple {  // [TODO] - Replace w/ LE_SocketPair
     ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
     ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
     ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
@@ -797,40 +799,28 @@ class OpenStatus
  ********************************************/
 typedef SessionId   TcpSessId;  // TCP Session ID
 
-struct sessionLookupQuery
+class SessionLookupQuery
 {
+  public:
     LE_SocketPair  tuple;
     bool           allowCreation;
-    sessionLookupQuery() {}
-    sessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
+    SessionLookupQuery() {}
+    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
         tuple(tuple), allowCreation(allowCreation) {}
 };
 
 typedef bool HitState;
 enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
 
-struct sessionLookupReply
-{
-    SessionId   sessionID;
-    HitState    hit;
-    sessionLookupReply() {}
-    sessionLookupReply(SessionId id, HitState hit) :
-        sessionID(id), hit(hit) {}
-};
-/*** [TODO] ***
 class SessionLookupReply
 {
-
-    enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
-    typedef bool HitState;
   public:
     SessionId   sessionID;
-    HitState    hitState;
+    HitState    hit;
     SessionLookupReply() {}
     SessionLookupReply(SessionId id, HitState hit) :
-        sessionID(id), hitState(hit) {}
+        sessionID(id), hit(hit) {}
 };
-***/
 
 /********************************************
  * State Table (STt)
@@ -1535,10 +1525,10 @@ void toe(
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupRequest>         &soCAM_SssLkpReq,
-        stream<rtlSessionLookupReply>           &siCAM_SssLkpRpl,
-        stream<rtlSessionUpdateRequest>         &soCAM_SssUpdReq,
-        stream<rtlSessionUpdateReply>           &siCAM_SssUpdRpl,
+        stream<RtlSessionLookupRequest>         &soCAM_SssLkpReq,
+        stream<RtlSessionLookupReply>           &siCAM_SssLkpRpl,
+        stream<RtlSessionUpdateRequest>         &soCAM_SssUpdReq,
+        stream<RtlSessionUpdateReply>           &siCAM_SssUpdRpl,
 
         //------------------------------------------------------
         //-- DEBUG / Interfaces
