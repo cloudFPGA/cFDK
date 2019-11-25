@@ -1,6 +1,7 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -84,7 +85,7 @@ extern bool gTraceEvent;
 void pRetransmitTimer(
         stream<RXeReTransTimerCmd>       &siRXe_ReTxTimerCmd,
         stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerEvent,
-        stream<event>                    &soEmx_Event,
+        stream<Event>                    &soEmx_Event,
         stream<SessionId>                &soSMx_CloseSessCmd,
         stream<OpenStatus>               &soTAi_Notif,
         stream<AppNotif>                 &soRAi_Notif)
@@ -198,7 +199,7 @@ void pRetransmitTimer(
                     //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].active = currEntry.active;
                     if (currEntry.retries < 4) {
                         currEntry.retries++;
-                        soEmx_Event.write(event((eventType)currEntry.type,
+                        soEmx_Event.write(Event((EventType)currEntry.type,
                                           currID,
                                           currEntry.retries));
                         if (DEBUG_LEVEL & TRACE_RTT) {

@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -33,9 +33,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *****************************************************************************/
 #include "../toe.hpp"
 
@@ -47,8 +44,8 @@ using namespace hls;
  * @ingroup event_engine
  *****************************************************************************/
 void ack_delay(
-        stream<extendedEvent>   &siEVe_Event,
-        stream<extendedEvent>   &soTXe_Event,
+        stream<ExtendedEvent>   &siEVe_Event,
+        stream<ExtendedEvent>   &soTXe_Event,
         stream<SigBit>          &soEVe_RxEventSig,
         stream<SigBool>         &soEVe_TxEventSig
 );

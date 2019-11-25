@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -73,8 +73,8 @@ using namespace hls;
  *
  *****************************************************************************/
 void ack_delay(
-        stream<extendedEvent>   &siEVe_Event,
-        stream<extendedEvent>   &soTXe_Event,
+        stream<ExtendedEvent>   &siEVe_Event,
+        stream<ExtendedEvent>   &soTXe_Event,
         stream<SigBit>          &soEVe_RxEventSig,
         stream<SigBool>         &soEVe_TxEventSig)
 {
@@ -98,7 +98,7 @@ void ack_delay(
     #pragma HLS reset variable=akdPtr
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    extendedEvent ev;
+    ExtendedEvent ev;
 
     if (!siEVe_Event.empty()) {
         siEVe_Event.read(ev);
@@ -110,7 +110,7 @@ void ack_delay(
         }
 
         // Check if there is a delayed ACK
-        if (ev.type == ACK && ACK_TABLE[ev.sessionID] == 0) {
+        if (ev.type == ACK_EVENT && ACK_TABLE[ev.sessionID] == 0) {
             ACK_TABLE[ev.sessionID] = ACKD_64us;
             if (DEBUG_LEVEL & TRACE_AKD) {
                 printInfo(myName, "Creating a delayed ACK for session #%d.\n", ev.sessionID.to_int());
@@ -134,7 +134,7 @@ void ack_delay(
     else {
         if (ACK_TABLE[akdPtr] > 0 && !soTXe_Event.full()) {
             if (ACK_TABLE[akdPtr] == 1) {
-                soTXe_Event.write(event(ACK, akdPtr)); // [FIXME - Stream name could be soTXe_GenAckReq]
+                soTXe_Event.write(Event(ACK_EVENT, akdPtr)); // [FIXME - Stream name could be soTXe_GenAckReq]
                 if (DEBUG_LEVEL & TRACE_AKD) {
                     printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akdPtr.to_int());
                 }

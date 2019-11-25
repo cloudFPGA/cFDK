@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -98,7 +98,7 @@ void rx_engine(
         stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
-        stream<extendedEvent>           &soEVe_SetEvent,
+        stream<ExtendedEvent>           &soEVe_SetEvent,
         stream<OpenStatus>              &soTAi_SessOpnSts,
         stream<AppNotif>                &soRAi_RxNotif,
         stream<DmCmd>                   &soMEM_WrCmd,

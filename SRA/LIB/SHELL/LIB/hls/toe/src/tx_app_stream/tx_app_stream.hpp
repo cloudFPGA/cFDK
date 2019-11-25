@@ -10,15 +10,10 @@
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *****************************************************************************/
 
-
-
 #include "../toe.hpp"
 #include "../toe_utils.hpp"
 
 using namespace hls;
-
-//OBSOLETE_20190919 static const ap_uint<17> ERROR_NOSPACE              = -1;
-//OBSOLETE_20190919 static const ap_uint<17> ERROR_NOCONNCECTION        = -2;
 
 #define ERROR_NOSPACE        1
 #define ERROR_NOCONNCECTION  2
@@ -82,5 +77,5 @@ void tx_app_stream(
         stream<TxAppTableReply>    &siTat_AcessRep,
         stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
-        stream<event>              &txAppStream2eventEng_setEvent
+        stream<Event>              &txAppStream2eventEng_setEvent
 );

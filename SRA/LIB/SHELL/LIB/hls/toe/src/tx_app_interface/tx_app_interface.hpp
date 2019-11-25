@@ -60,7 +60,7 @@ void tx_app_interface(
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
         stream<SessionState>           &siSTt_Taa_SessStateRep,
-        stream<event>                  &soEVe_Event,
+        stream<Event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         LE_Ip4Addr                      piMMIO_IpAddr
 );

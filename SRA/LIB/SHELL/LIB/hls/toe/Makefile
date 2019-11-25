@@ -22,7 +22,13 @@ SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
 .PHONY: all clean help csim csynth cosim project regression
 
-all: ${ipName}_prj/solution1/impl/ip
+all: ${ipName}_prj/solution1/impl/ip src/tx_engine src/rx_engine
+
+src/tx_engine: $(SRC_DEPS)
+	@$(MAKE) -C src/tx_engine
+
+src/rx_engine: $(SRC_DEPS)
+	@$(MAKE) -C src/rx_engine
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean

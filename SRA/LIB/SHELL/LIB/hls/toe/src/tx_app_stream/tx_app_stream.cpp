@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -128,7 +128,7 @@ void pMetaDataLoader(
         stream<TxAppTableReply>     &siTat_AccessRep,
         stream<TcpSegLen>           &siSlg_SegLen,
         stream<SegMemMeta>          &sMdlToSmw_SegMeta,
-        stream<event>               &soEVe_Event)
+        stream<Event>               &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS pipeline II=1
@@ -203,7 +203,7 @@ void pMetaDataLoader(
                 // TODO there seems some redundancy
                 sMdlToSmw_SegMeta.write(SegMemMeta(tcpSessId, txAppTableReply.mempt, segLen));
                 soTRIF_DSts.write(AppWrSts(STS_OK, segLen));
-                soEVe_Event.write(event(TX, tcpSessId, txAppTableReply.mempt, segLen));
+                soEVe_Event.write(Event(TX_EVENT, tcpSessId, txAppTableReply.mempt, segLen));
                 // Write new MemPtr in the TxAppTable
                 soTat_AccessReq.write(TxAppTableRequest(tcpSessId, txAppTableReply.mempt + segLen));
             }
@@ -439,7 +439,7 @@ void tx_app_stream(
         stream<TxAppTableReply>    &siTat_AcessRep,
         stream<DmCmd>              &soMEM_TxP_WrCmd,
         stream<AxiWord>            &soMEM_TxP_Data,
-        stream<event>              &soEVe_Event)
+        stream<Event>              &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE

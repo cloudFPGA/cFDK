@@ -99,7 +99,7 @@ using namespace hls;
  *
  *****************************************************************************/
 void pMetaDataLoader(
-        stream<extendedEvent>           &siAKd_Event,
+        stream<ExtendedEvent>           &siAKd_Event,
         stream<SessionId>               &soRSt_RxSarReq,
         stream<RxSarEntry>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
@@ -133,7 +133,7 @@ void pMetaDataLoader(
     #pragma HLS RESET   variable=mdl_segmentCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static extendedEvent  mdl_curEvent;
+    static ExtendedEvent  mdl_curEvent;
     static RxSarEntry     mdl_rxSar;
     static TXeTxSarReply  mdl_txSar;
     static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
@@ -158,18 +158,18 @@ void pMetaDataLoader(
 
             // NOT necessary for SYN/SYN_ACK only needs one
             switch(mdl_curEvent.type) {
-            case RT:
-            case TX:
-            case SYN_ACK:
-            case FIN:
-            case ACK:
-            case ACK_NODELAY:
+            case RT_EVENT:
+            case TX_EVENT:
+            case SYN_ACK_EVENT:
+            case FIN_EVENT:
+            case ACK_EVENT:
+            case ACK_NODELAY_EVENT:
                 assessSize(myName, soRSt_RxSarReq, "soRSt_RxSarReq", 2); // [FIXME-Use constant for the length]
                 soRSt_RxSarReq.write(mdl_curEvent.sessionID);
                 assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", 2); // [FIXME-Use constant for the length]
                 soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 break;
-            case RST:
+            case RST_EVENT:
                 // Get txSar for SEQ numb
                 resetEvent = mdl_curEvent;
                 if (resetEvent.hasSessionID()) {
@@ -177,7 +177,7 @@ void pMetaDataLoader(
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
                 }
                 break;
-            case SYN:
+            case SYN_EVENT:
                 if (mdl_curEvent.rt_count != 0) {
                     assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", 2); // [FIXME-Use constant for the length]
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
@@ -245,7 +245,7 @@ void pMetaDataLoader(
             }
             break;
 #else
-        case TX:
+        case TX_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) {
                 printInfo(myName, "Got TX event.\n");
             }
@@ -299,7 +299,7 @@ void pMetaDataLoader(
                         //-- No IP Fragmentation or End of Fragmentation -------
                         //--  If we sent all data, we might also need to send a FIN
                         if (mdl_txSar.finReady && (mdl_txSar.ackd == mdl_txSar.not_ackd || currLength == 0))
-                            mdl_curEvent.type = FIN;
+                            mdl_curEvent.type = FIN_EVENT;
                         else {
                             mdl_txSar.not_ackd += currLength;
                             mdl_txeMeta.length  = currLength;
@@ -350,7 +350,7 @@ void pMetaDataLoader(
             break;
 #endif
 
-        case RT:
+        case RT_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got RT event.\n");
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
@@ -407,7 +407,7 @@ void pMetaDataLoader(
                 else {
                     mdl_txeMeta.length = currLength;
                     if (mdl_txSar.finSent)
-                        mdl_curEvent.type = FIN;
+                        mdl_curEvent.type = FIN_EVENT;
                     else
                         mdl_fsmState = S0;
                 }
@@ -432,8 +432,8 @@ void pMetaDataLoader(
             }
             break;
 
-        case ACK:
-        case ACK_NODELAY:
+        case ACK_EVENT:
+        case ACK_NODELAY_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got ACK event.\n");
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
@@ -457,7 +457,7 @@ void pMetaDataLoader(
             }
             break;
 
-        case SYN:
+        case SYN_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got SYN event.\n");
             if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarRep.empty()) || (mdl_curEvent.rt_count == 0)) {
@@ -491,7 +491,7 @@ void pMetaDataLoader(
             }
             break;
 
-        case SYN_ACK:
+        case SYN_ACK_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got SYN_ACK event.\n");
 
@@ -529,7 +529,7 @@ void pMetaDataLoader(
             }
             break;
 
-        case FIN:
+        case FIN_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got FIN event.\n");
 
@@ -577,7 +577,7 @@ void pMetaDataLoader(
             }
             break;
 
-        case RST:
+        case RST_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got RST event.\n");
 
@@ -1508,7 +1508,7 @@ void pMemoryReader(
  ******************************************************************************/
 void tx_engine(
         //-- Ack Delayer & Event Engine Interfaces
-        stream<extendedEvent>           &siAKd_Event,
+        stream<ExtendedEvent>           &siAKd_Event,
         stream<SigBit>                  &soEVe_RxEventSig,
         //-- Rx SAR Table Interface
         stream<SessionId>               &soRSt_RxSarReq,

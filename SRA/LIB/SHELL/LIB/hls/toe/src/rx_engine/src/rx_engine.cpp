@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -793,7 +793,7 @@ void pMetaDataHandler(
         stream<sessionLookupReply>  &siSLc_SessLookupRep,
         stream<StsBit>              &siPRt_PortSts,
         stream<sessionLookupQuery>  &soSLc_SessLkpReq,
-        stream<extendedEvent>       &soEVe_Event,
+        stream<ExtendedEvent>       &soEVe_Event,
         stream<CmdBool>             &soTsd_DropCmd,
         stream<RXeFsmMeta>          &soFsm_Meta)
 {
@@ -847,11 +847,11 @@ void pMetaDataHandler(
                         switchedTuple.src.port = tuple.dst.port;
                         switchedTuple.dst.port = tuple.src.port;
                         if (mdh_meta.syn || mdh_meta.fin) {
-                            soEVe_Event.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length+1),
+                            soEVe_Event.write(ExtendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length+1),
                                                            switchedTuple)); //always 0
                         }
                         else {
-                            soEVe_Event.write(extendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length),
+                            soEVe_Event.write(ExtendedEvent(rstEvent(mdh_meta.seqNumb+mdh_meta.length),
                                                            switchedTuple));
                         }
                     }
@@ -951,7 +951,7 @@ void pFiniteStateMachine(
         stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >                &soTIm_CloseTimer,
         stream<OpenStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
-        stream<event>                       &soEVe_Event,
+        stream<Event>                       &soEVe_Event,
         stream<CmdBool>                     &soTsd_DropCmd,
         stream<DmCmd>                       &soMwr_WrCmd,
         stream<AppNotif>                    &soRan_RxNotif)
@@ -1109,7 +1109,7 @@ void pFiniteStateMachine(
                     // OBSOLETE-20190705 if (txSar.count == 3 && !txSar.fastRetransmitted) {
                     if (fsm_Meta.meta.length != 0) {
 #endif
-                        soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
+                        soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                     }
 
                     // Reset Retransmit Timer
@@ -1165,7 +1165,7 @@ void pFiniteStateMachine(
                     // Initialize receive window ([TODO - maybe include count check])
                     soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize, txSar.cong_window, 0, false)));
                     // Set SYN_ACK event
-                    soEVe_Event.write(event(SYN_ACK, fsm_Meta.sessionId));
+                    soEVe_Event.write(Event(SYN_ACK_EVENT, fsm_Meta.sessionId));
                     if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Set event SYN_ACK for sessionID %d.\n", fsm_Meta.sessionId.to_uint());
                     // Change State to SYN_RECEIVED
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, SYN_RECEIVED, QUERY_WR));
@@ -1175,7 +1175,7 @@ void pFiniteStateMachine(
                     if (fsm_Meta.meta.seqNumb+1 == rxSar.rcvd) {
                         // Retransmit SYN_ACK
                         ap_uint<3> rtCount = 1;
-                        soEVe_Event.write(event(SYN_ACK, fsm_Meta.sessionId, rtCount));
+                        soEVe_Event.write(Event(SYN_ACK_EVENT, fsm_Meta.sessionId, rtCount));
                         soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                     }
                     else { // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
@@ -1185,7 +1185,7 @@ void pFiniteStateMachine(
                 }
                 else { // Any synchronized state
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
+                    soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
                     // TODo send RST, has no ACK??
                     // Respond with RST, no ACK, seq ==
                     //eventEngine.write(rstEvent(mdh_meta.seqNumb, mh_meta.length, true));
@@ -1215,7 +1215,7 @@ void pFiniteStateMachine(
                                                        fsm_Meta.meta.winSize,
                                                        txSar.cong_window, 0, false)); // [TODO - maybe include count check]
                     // Set ACK event
-                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
+                    soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
 
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
                     soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, SESS_IS_OPENED));
@@ -1228,7 +1228,7 @@ void pFiniteStateMachine(
                 }
                 else {
                     // Unexpected SYN arrived, reply with normal ACK, RFC 793: fig.10
-                    soEVe_Event.write(event(ACK_NODELAY, fsm_Meta.sessionId));
+                    soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
             }
@@ -1283,7 +1283,7 @@ void pFiniteStateMachine(
 
                     // Update state
                     if (tcpState == ESTABLISHED) {
-                        soEVe_Event.write(event(FIN, fsm_Meta.sessionId));
+                        soEVe_Event.write(Event(FIN_EVENT, fsm_Meta.sessionId));
                         soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, LAST_ACK, QUERY_WR));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
@@ -1295,11 +1295,11 @@ void pFiniteStateMachine(
                         else {
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSING, QUERY_WR));
                         }
-                        soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
+                        soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                     }
                 }
                 else { // NOT (ESTABLISHED || FIN_WAIT_1 || FIN_WAIT_2)
-                    soEVe_Event.write(event(ACK, fsm_Meta.sessionId));
+                    soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                     // If there is payload we need to drop it
                     if (fsm_Meta.meta.length != 0) {
@@ -1562,9 +1562,9 @@ void pRxAppNotifier(
  *
  *****************************************************************************/
 void pEventMultiplexer(
-        stream<extendedEvent>    &siMdh_Event,
-        stream<event>            &siFsm_Event,
-        stream<extendedEvent>    &soEVe_Event)
+        stream<ExtendedEvent>    &siMdh_Event,
+        stream<Event>            &siFsm_Event,
+        stream<ExtendedEvent>    &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -1802,7 +1802,7 @@ void rx_engine(
         stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
         stream<ap_uint<16> >            &soTIm_CloseTimer,
 		//-- Event Engine Interface
-        stream<extendedEvent>           &soEVe_SetEvent,
+        stream<ExtendedEvent>           &soEVe_SetEvent,
 		//-- Tx Application Interface
         stream<OpenStatus>              &soTAi_SessOpnSts,
 		//-- Rx Application Interface
@@ -1859,7 +1859,7 @@ void rx_engine(
     #pragma HLS DATA_PACK  variable=ssTsdToMwr_Data
 
     //-- MetaData Handler (Mdh) -----------------------------------------------
-    static stream<extendedEvent>    ssMdhToEvm_Event        ("ssMdhToEvm_Event");
+    static stream<ExtendedEvent>    ssMdhToEvm_Event        ("ssMdhToEvm_Event");
     #pragma HLS stream     variable=ssMdhToEvm_Event        depth=2
     #pragma HLS DATA_PACK  variable=ssMdhToEvm_Event
 
@@ -1878,7 +1878,7 @@ void rx_engine(
     #pragma HLS stream     variable=ssFsmToRan_Notif        depth=8  // This depends on the memory delay
     #pragma HLS DATA_PACK  variable=ssFsmToRan_Notif
 
-    static stream<event>            ssFsmToEvm_Event        ("ssFsmToEvm_Event");
+    static stream<Event>            ssFsmToEvm_Event        ("ssFsmToEvm_Event");
     #pragma HLS stream     variable=ssFsmToEvm_Event        depth=2
     #pragma HLS DATA_PACK  variable=ssFsmToEvm_Event
 

@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -32,9 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
@@ -248,7 +245,7 @@ typedef bool ValBool;  // Valid bit  : Must go along with something to validate/
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
 //   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
 
-enum        eventType {TX=0, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
+//OBSOLETE-20191125 enum EventType {TX=0, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
 
 /*
  * There is no explicit LISTEN state
@@ -1152,45 +1149,47 @@ class TXeReTransTimerCmd {
 /********************************************
  * Event Engine
  ********************************************/
-struct event  // [TODO - Rename]
+class Event
 {
-    eventType       type;
+  public:
+    EventType       type;
     SessionId       sessionID;
     ap_uint<16>     address;
     ap_uint<16>     length;
     ap_uint<3>      rt_count;  // [FIXME - Make this type configurable]
-    event() {}
-    event(eventType type, SessionId id) :
+    Event() {}
+    Event(EventType type, SessionId id) :
         type(type), sessionID(id), address(0), length(0), rt_count(0) {}
-    event(eventType type, SessionId id, ap_uint<3> rt_count) :
+    Event(EventType type, SessionId id, ap_uint<3> rt_count) :
         type(type), sessionID(id), address(0), length(0), rt_count(rt_count) {}
-    event(eventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len) :
+    Event(EventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len) :
         type(type), sessionID(id), address(addr), length(len), rt_count(0) {}
-    event(eventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count) :
+    Event(EventType type, SessionId id, ap_uint<16> addr, ap_uint<16> len, ap_uint<3> rt_count) :
         type(type), sessionID(id), address(addr), length(len), rt_count(rt_count) {}
 };
 
-struct extendedEvent : public event
+class ExtendedEvent : public Event
 {
+  public:
     LE_SocketPair  tuple;    // [FIXME - Consider renaming]
-    extendedEvent() {}
-    extendedEvent(const event& ev) :
-        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    extendedEvent(const event& ev, LE_SocketPair tuple) :
-        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
+    ExtendedEvent() {}
+    ExtendedEvent(const Event& ev) :
+        Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
+    ExtendedEvent(const Event& ev, LE_SocketPair tuple) :
+        Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
-struct rstEvent : public event
+struct rstEvent : public Event
 {
     rstEvent() {}
-    rstEvent(const event& ev) :
-        event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
-    rstEvent(RxSeqNum  seq) :                         //:event(RST, 0, false), seq(seq) {}
-        event(RST, 0, seq(31, 16), seq(15, 0), 0) {}
+    rstEvent(const Event& ev) :
+        Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
+    rstEvent(RxSeqNum  seq) :              //:Event(RST, 0, false), seq(seq) {}
+        Event(RST_EVENT, 0, seq(31, 16), seq(15, 0), 0) {}
     rstEvent(SessionId id, RxSeqNum seq) :
-        event(RST, id, seq(31, 16), seq(15, 0), 1) {}   //:event(RST, id, true), seq(seq) {}
+        Event(RST_EVENT, id, seq(31, 16), seq(15, 0), 1) {}   //:Event(RST, id, true), seq(seq) {}
     rstEvent(SessionId id, RxSeqNum seq, bool hasSessionID) :
-        event(RST, id, seq(31, 16), seq(15, 0), hasSessionID) {}  //:event(RST, id, hasSessionID), seq(seq) {}
+        Event(RST_EVENT, id, seq(31, 16), seq(15, 0), hasSessionID) {}  //:Event(RST, id, hasSessionID), seq(seq) {}
     TxAckNum getAckNumb() {
         RxSeqNum seq;
         seq(31, 16) = address;

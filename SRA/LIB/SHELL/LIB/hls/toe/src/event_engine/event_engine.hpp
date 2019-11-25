@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -44,10 +44,10 @@ using namespace hls;
  * @ingroup event_engine
  *****************************************************************************/
 void event_engine(
-        stream<event>           &siTAi_Event,
-        stream<extendedEvent>   &siRXe_Event,
-        stream<event>           &siTIm_Event,
-        stream<extendedEvent>   &soAKd_Event,
+        stream<Event>           &siTAi_Event,
+        stream<ExtendedEvent>   &siRXe_Event,
+        stream<Event>           &siTIm_Event,
+        stream<ExtendedEvent>   &soAKd_Event,
         stream<SigBit>          &siAKd_RxEventSig,
         stream<SigBool>         &siAKd_TxEventSig,
         stream<SigBit>          &siTXe_RxEventSig

@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -32,9 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * System:     : cloudFPGA
  * Component   : Network Transport Stack (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *****************************************************************************/
 
@@ -123,7 +120,7 @@ void pTimers(
         stream<ap_uint<16> >       &siTXe_SetProbeTimer,
         stream<ap_uint<16> >       &siRXe_CloseTimer,
         stream<SessionId>          &soSTt_SessCloseCmd,
-        stream<event>              &soEVe_Event,
+        stream<Event>              &soEVe_Event,
         stream<OpenStatus>         &soTAi_Notif,
         stream<AppNotif>           &soRAi_Notif)
 {
@@ -137,10 +134,10 @@ void pTimers(
     static stream<ap_uint<16> > sRttToSmx_SessCloseCmd       ("sRttToSmx_SessCloseCmd");
     #pragma HLS stream variable=sRttToSmx_SessCloseCmd       depth=2
 
-    static stream<event>        sRttToEmx_Event              ("sRttToEmx_Event");
+    static stream<Event>        sRttToEmx_Event              ("sRttToEmx_Event");
     #pragma HLS stream variable=sRttToEmx_Event              depth=2
 
-    static stream<event>        sPbToEmx_Event               ("sPbToEmx_Event");
+    static stream<Event>        sPbToEmx_Event               ("sPbToEmx_Event");
     #pragma HLS stream variable=sPbToEmx_Event               depth=2
 
     // Event Mux (Emx) based on template stream Mux
@@ -785,7 +782,7 @@ void toe(
     //-------------------------------------------------------------------------
     //-- ACK Delayer (AKd)
     //-------------------------------------------------------------------------
-    static stream<extendedEvent>        ssAKdToTXe_Event          ("ssAKdToTXe_Event");
+    static stream<ExtendedEvent>        ssAKdToTXe_Event          ("ssAKdToTXe_Event");
     #pragma HLS stream         variable=ssAKdToTXe_Event          depth=16
     #pragma HLS DATA_PACK      variable=ssAKdToTXe_Event
 
@@ -798,7 +795,7 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Event Engine (EVe)
     //-------------------------------------------------------------------------
-    static stream<extendedEvent>        ssEVeToAKd_Event          ("ssEVeToAKd_Event");
+    static stream<ExtendedEvent>        ssEVeToAKd_Event          ("ssEVeToAKd_Event");
     #pragma HLS stream         variable=ssEVeToAKd_Event          depth=4
     #pragma HLS DATA_PACK      variable=ssEVeToAKd_Event
 
@@ -864,7 +861,7 @@ void toe(
     #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
     #pragma HLS DATA_PACK      variable=sRXeToTAi_SessOpnSts
 
-    static stream<extendedEvent>        sRXeToEVe_Event           ("sRXeToEVe_Event");
+    static stream<ExtendedEvent>        sRXeToEVe_Event           ("sRXeToEVe_Event");
     #pragma HLS stream         variable=sRXeToEVe_Event           depth=512
     #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
 
@@ -924,7 +921,7 @@ void toe(
     #pragma HLS DATA_PACK      variable=sTAiToSLc_SessLookupReq
     #pragma HLS stream         variable=sTAiToSLc_SessLookupReq   depth=4
 
-    static stream<event>                sTAiToEVe_Event           ("sTAiToEVe_Event");
+    static stream<Event>                sTAiToEVe_Event           ("sTAiToEVe_Event");
     #pragma HLS stream         variable=sTAiToEVe_Event           depth=4
     #pragma HLS DATA_PACK      variable=sTAiToEVe_Event
 
@@ -942,7 +939,7 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Timers (TIm)
     //-------------------------------------------------------------------------
-    static stream<event>                sTImToEVe_Event           ("sTImToEVe_Event");
+    static stream<Event>                sTImToEVe_Event           ("sTImToEVe_Event");
     #pragma HLS stream         variable=sTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
     #pragma HLS DATA_PACK      variable=sTImToEVe_Event
 

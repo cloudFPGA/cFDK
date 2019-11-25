@@ -109,7 +109,7 @@ void pTxAppAccept(
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<StateQuery>          &soSTt_SessStateQry,
         stream<SessionState>        &siSTt_SessStateRep,
-        stream<event>               &soEVe_Event,
+        stream<Event>               &soEVe_Event,
         stream<OpenStatus>          &rtTimer2txApp_notification,
         LE_Ip4Address                piMMIO_IpAddr)
 {
@@ -144,7 +144,7 @@ void pTxAppAccept(
             // Read the session and check its state
             sessionLookupReply session = siSLc_SessLookupRep.read();
             if (session.hit) {
-                soEVe_Event.write(event(SYN, session.sessionID));
+                soEVe_Event.write(Event(SYN_EVENT, session.sessionID));
                 soSTt_SessStateQry.write(StateQuery(session.sessionID, SYN_SENT, 1));
             }
             else {
@@ -183,7 +183,7 @@ void pTxAppAccept(
             //TODO might add CLOSE_WAIT here???
             if ((state == ESTABLISHED) || (state == FIN_WAIT_2) || (state == FIN_WAIT_1)) { //TODO Why if FIN already SENT
                 soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, FIN_WAIT_1, 1));
-                soEVe_Event.write(event(FIN, tai_closeSessionID));
+                soEVe_Event.write(Event(FIN_EVENT, tai_closeSessionID));
             }
             else
                 soSTt_SessStateQry.write(StateQuery(tai_closeSessionID, state, 1)); // Have to release lock
@@ -208,9 +208,9 @@ void pTxAppAccept(
  ******************************************************************************/
 void pTxAppStatusHandler(
         stream<DmSts>             &siMEM_TxP_WrSts,
-        stream<event>             &siEmx_Event,
+        stream<Event>             &siEmx_Event,
         stream<TAiTxSarPush>      &soTSt_PushCmd,
-        stream<event>             &soEVe_Event)
+        stream<Event>             &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
@@ -223,13 +223,13 @@ void pTxAppStatusHandler(
     #pragma HLS reset                 variable=tashFsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static event      ev;
+    static Event      ev;
 
     switch (tashFsmState) {
     case S0:
         if (!siEmx_Event.empty()) {
             siEmx_Event.read(ev);
-            if (ev.type == TX) {
+            if (ev.type == TX_EVENT) {
                 if (DEBUG_LEVEL & TRACE_TASH) {
                     printInfo(myName, "Received \'TX\' event from [TAI].\n");
                 }
@@ -392,7 +392,7 @@ void tx_app_interface(
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<StateQuery>             &soSTt_Taa_SessStateQry,
         stream<SessionState>           &siSTt_Taa_SessStateRep,
-        stream<event>                  &soEVe_Event,
+        stream<Event>                  &soEVe_Event,
         stream<OpenStatus>             &rtTimer2txApp_notification,
         LE_Ip4Addr                      piMMIO_IpAddr)
 {
@@ -402,12 +402,12 @@ void tx_app_interface(
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- Event Multiplexer (Emx) -----------------------------------------
-    static stream<event>                sEmxToTash_Event    ("sEmxToTash_Event");
+    static stream<Event>                sEmxToTash_Event    ("sEmxToTash_Event");
     #pragma HLS stream         variable=sEmxToTash_Event    depth=2
     #pragma HLS DATA_PACK      variable=sEmxToTash_Event
 
     //-- Tx App Accept (Taa)----------------------------------------------
-    static stream<event>                sTaaToEmx_Event     ("sTaaToEmx_Event");
+    static stream<Event>                sTaaToEmx_Event     ("sTaaToEmx_Event");
     #pragma HLS stream         variable=sTaaToEmx_Event     depth=2
     #pragma HLS DATA_PACK      variable=sTaaToEmx_Event
 
@@ -416,7 +416,7 @@ void tx_app_interface(
     #pragma HLS stream         variable=sTasToApt_AcessReq  depth=2
     #pragma HLS DATA_PACK      variable=sTasToApt_AcessReq
 
-    static stream<event>                sTasToEmx_Event     ("sTasToEmx_Event");
+    static stream<Event>                sTasToEmx_Event     ("sTasToEmx_Event");
     #pragma HLS stream         variable=sTasToEmx_Event     depth=2
     #pragma HLS DATA_PACK      variable=sTasToEmx_Event
 
