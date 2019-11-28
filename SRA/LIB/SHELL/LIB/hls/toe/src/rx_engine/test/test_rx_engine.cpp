@@ -169,7 +169,7 @@ void pEmulateCam(
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
     //stream<ap_uint<14> >& new_id, stream<ap_uint<14> >& fin_id)
-    static map<fourTupleInternal, ap_uint<14> > lookupTable;
+    static map<SLcFourTuple, ap_uint<14> > lookupTable;
 
     static enum CamFsmStates { CAM_WAIT_4_REQ=0, CAM_IDLE1,
                                CAM_LOOKUP_REP,
@@ -179,7 +179,7 @@ void pEmulateCam(
     static RtlSessionUpdateRequest update;
     static int                     camUpdateIdleCnt = 0;
     volatile static int            camLookupIdleCnt = 0;
-    map<fourTupleInternal, ap_uint<14> >::const_iterator findPos;
+    map<SLcFourTuple, ap_uint<14> >::const_iterator findPos;
 
     //-----------------------------------------------------
     //-- CONTENT ADDRESSABLE MEMORY PROCESS
