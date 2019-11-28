@@ -55,7 +55,7 @@ class LE_SocketPair;
 class AxiWord;
 class DmCmd;
 class Ip4overMac;
-struct fourTupleInternal;
+class SLcFourTuple;
 
 
 /******************************************************************************
@@ -70,7 +70,7 @@ void printSockAddr     (const char *callerName, LE_SockAddr   leSockAddr);
 void printSockAddr     (                        SockAddr      sockAddr);
 void printSockPair     (const char *callerName, SocketPair    sockPair);
 void printSockPair     (const char *callerName, LE_SocketPair leSockPair);
-void printSockPair     (const char *callerName, int  src,     fourTupleInternal fourTuple);
+void printSockPair     (const char *callerName, int  src,     SLcFourTuple fourTuple);
 void printLE_SockAddr  (const char *callerName, LE_SockAddr   leSockAddr);
 void printLE_SockPair  (const char *callerName, LE_SocketPair leSockPair);
 void printIp4Addr      (const char *callerName, Ip4Addr       ip4Addr);

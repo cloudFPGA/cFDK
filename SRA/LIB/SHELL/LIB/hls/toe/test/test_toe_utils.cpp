@@ -160,7 +160,7 @@ void printSockPair(const char *callerName, LE_SocketPair leSockPair)
  * @param[in] source,     the source of the internal 4-tuple information.
  * @param[in] fourTuple,  the internal 4-tuple encoding of the socket pair.
  *****************************************************************************/
-void printSockPair(const char *callerName, int src, fourTupleInternal fourTuple)
+void printSockPair(const char *callerName, int src, SLcFourTuple fourTuple)
 {
     SocketPair socketPair;
 

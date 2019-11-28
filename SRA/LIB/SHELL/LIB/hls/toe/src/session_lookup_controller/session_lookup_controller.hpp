@@ -52,6 +52,7 @@ typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or up
 
 enum lookupOp {INSERT, DELETE};
 
+/*** OBSOLETE_20191128 ************
 struct slupRouting
 {
     bool            isUpdate;
@@ -60,29 +61,29 @@ struct slupRouting
     slupRouting(bool isUpdate, lookupSource src)
             :isUpdate(isUpdate), source(src) {}
 };
+***********************************/
 
 /********************************************************************
- * Session Lookup Controller / Internal Four Tuple Structure
- *  This struct defines the internal storage used by [SLc] to store
- *   a 4-tuple. The struct uses the terms 'my' and 'their' instead of
- *   'dest' and 'source'.
+ * SLc / Internal Four Tuple Structure
+ *  This class defines the internal storage used by [SLc] for the
+ *   SocketPair (alias 4-tuple). The class uses the terms 'my' and
+ *   'their' instead of 'dest' and 'src'.
  *  When a socket pair is sent or received from the Tx/Rx path, it is
- *   mapped by [SLc] to this fourTuple struct.
+ *   mapped by [SLc] to this FourTuple structure.
  *  The operator '<' is necessary here for the c++ dummy memory
  *   implementation which uses an std::map.
  ********************************************************************/
-struct fourTupleInternal
-{
-    ap_uint<32> myIp;
-    ap_uint<32> theirIp;
-    ap_uint<16> myPort;
-    ap_uint<16> theirPort;
-    fourTupleInternal() {}
-    fourTupleInternal(ap_uint<32> myIp, ap_uint<32> theirIp, ap_uint<16> myPort, ap_uint<16> theirPort)
-    : myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
+class SLcFourTuple {
+  public:
+	LE_Ip4Addr	myIp;
+	LE_Ip4Addr	theirIp;
+	LE_TcpPort	myPort;
+	LE_TcpPort	theirPort;
+    SLcFourTuple() {}
+    SLcFourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
+        myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
 
-    bool operator<(const fourTupleInternal& other) const
-    {
+    bool operator<(const SLcFourTuple& other) const {
         if (myIp < other.myIp) {
             return true;
         }
@@ -106,16 +107,16 @@ struct fourTupleInternal
 };
 
 /**********************************************************
- * Session Lookup Controller / Internal Query Structure
+ * SLc / Internal Session Lookup Query
  **********************************************************/
-struct sessionLookupQueryInternal
-{
-    fourTupleInternal   tuple;
-    bool                allowCreation;
-    lookupSource        source;
-    sessionLookupQueryInternal() {}
-    sessionLookupQueryInternal(fourTupleInternal tuple, bool allowCreation, lookupSource src)
-            :tuple(tuple), allowCreation(allowCreation), source(src) {}
+class SLcQuery {
+  public:
+    SLcFourTuple	tuple;
+    bool            allowCreation;
+    lookupSource    source;
+    SLcQuery() {}
+    SLcQuery(SLcFourTuple tuple, bool allowCreation, lookupSource src) :
+        tuple(tuple), allowCreation(allowCreation), source(src) {}
 };
 
 /**********************************************************
@@ -143,11 +144,11 @@ typedef ap_uint<14> RtlSessId;
 class RtlSessionLookupRequest
 {
   public:
-    fourTupleInternal   key;       // 96 bits 
-    lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+    SLcFourTuple   key;       // 96 bits
+    lookupSource   source;    //  1 bit : '0' is [RXe], '1' is [TAi]
 
     RtlSessionLookupRequest() {}
-    RtlSessionLookupRequest(fourTupleInternal tuple, lookupSource src)
+    RtlSessionLookupRequest(SLcFourTuple tuple, lookupSource src)
                 : key(tuple), source(src) {}
 };
 
@@ -174,13 +175,13 @@ class RtlSessionLookupReply
 class RtlSessionUpdateRequest
 {
   public:
-    fourTupleInternal   key;       // 96 bits
+    SLcFourTuple        key;       // 96 bits
     RtlSessId           value;     // 14 bits
     lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
     lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
 
     RtlSessionUpdateRequest() {}
-    RtlSessionUpdateRequest(fourTupleInternal key, RtlSessId value, lookupOp op, lookupSource src) :
+    RtlSessionUpdateRequest(SLcFourTuple key, RtlSessId value, lookupOp op, lookupSource src) :
         key(key), value(value), op(op), source(src) {}
 };
 
@@ -201,36 +202,36 @@ class RtlSessionUpdateReply
         sessionID(id), op(op), source(src) {}
 };
 
-
-struct revLupInsert
+/************************************************
+ * SLc / Internal Reverse Lookup structure
+ ************************************************/
+class SLcReverseLkp
 {
+  public:
     SessionId           key;
-    fourTupleInternal   value;
-    revLupInsert() {};
-    revLupInsert(ap_uint<16> key, fourTupleInternal value)
-            :key(key), value(value) {}
+    SLcFourTuple        value;
+    SLcReverseLkp() {}
+    SLcReverseLkp(SessionId key, SLcFourTuple value) :
+        key(key), value(value) {}
 };
 
 /*****************************************************************************
  * @brief   Main process of the TCP Session Lookup Controller (SLc).
  *
- * @ingroup session_lookup_controller
  *****************************************************************************/
 void session_lookup_controller(
         stream<SessionLookupQuery>         &siRXe_SessLookupReq,
         stream<SessionLookupReply>         &soRXe_SessLookupRep,
-        stream<ap_uint<16> >               &stateTable2sLookup_releaseSession,
-        stream<ap_uint<16> >               &sLookup2portTable_releasePort,
+        stream<SessionId>                  &siSTt_SessReleaseCmd,
+        stream<TcpPort>                    &soPRt_ClosePortCmd,
         stream<LE_SocketPair>              &siTAi_SessLookupReq,
         stream<SessionLookupReply>         &soTAi_SessLookupRep,
-        stream<ap_uint<16> >               &siTXe_ReverseLkpReq,
-        stream<fourTuple>                  &sLookup2txEng_rev_rsp,
+        stream<SessionId>                  &siTXe_ReverseLkpReq,
+        stream<fourTuple>                  &soTXe_ReverseLkpRep,
         stream<RtlSessionLookupRequest>    &soCAM_SessLookupReq,
         stream<RtlSessionLookupReply>      &siCAM_SessLookupRep,
-        stream<RtlSessionUpdateRequest>    &sessionUpdate_req,
-        //stream<rtlSessionUpdateRequest>  &sessionInsert_req,
-        //stream<rtlSessionUpdateRequest>  &sessionDelete_req,
-        stream<RtlSessionUpdateReply>      &sessionUpdate_rsp,
+        stream<RtlSessionUpdateRequest>    &soCAM_SessUpdateReq,
+        stream<RtlSessionUpdateReply>      &siCAM_SessUpdateRep,
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt
 );
