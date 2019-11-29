@@ -7,26 +7,26 @@ This code was initialy developed by **Xilinx Dublin Labs, Ireland** who kindly a
 FYI - An enhanced branch of the initial *Xilinx* code is maintained by the **Systems Group @ ETH Zurich** and can be found [here](https://github.com/fpgasystems/fpga-network-stack).    
 
 ## Overview
-A block diagram of the *TOE* is depicted in Figure 1. It features a *Rx Engine (RXe)*, a *Tx Engine (TXe)*, and a ... [TODO] ....
+A block diagram of the *TOE* is depicted in Figure 1. It features an *Rx Engine (RXe)* for handling the incoming data path from the IP layer, a *Tx Engine (TXe)* for handling the outgoing data path to the IP layer, and a set of TCP state- and data-keeping engines. 
 ![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
-<p align="center"><b>Figure-1: Block diagram of the of the TCP Offload Engine</b></p>
+<p align="center"><b>Figure-1: Block diagram of the TCP Offload Engine</b></p>
 <br>
 
 ## HLS Coding Style and Naming Conventions
 Please consider reading the following two documents before diving or contributing to this part of the cloudFPGA project.
-  1) [**HDL Naming Conventions**](../../hdl-naming-conventions.md), 
-  2) [**HLS Naming Conventions**](../hls-naming-conventions.md)
+  1) [**HDL Naming Conventions**](../hdl-naming-conventions.md), 
+  2) [**HLS Naming Conventions**](./hls-naming-conventions.md)
 <br>
 
 ## List of Interfaces
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **CAM**         | Content Addessable Memory interface.                  | [TODO]
-| **IPRX**        | IP Rx Interface.                                      | [TODO]
-| **L3MUX**       | Layer-3 Multiplexer interface.                        | [TODO]
-| **MEM**         | Memory sub-system (data-mover to DDR4).               | [TODO]
-| **TRIF**        | TCP Role Interface (alias APP).                       | tcp_role_interface
+| **CAM**         | Content Addessable Memory interface                   | [ToeCam](../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
+| **IPRX**        | IP RX interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
+| **L3MUX**       | Layer-3 MUltipleXer interface                         | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
+| **MEM**         | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **TRIF**        | Tcp Role InterFace (alias APP)                        | tcp_role_interface
 
 <br>
 
@@ -34,37 +34,23 @@ Please consider reading the following two documents before diving or contributin
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **[RXe](./RXe.md)**   | Rx Engine.                                            | rx_engine
-| **[TXe](./TXe.md)**   | Tx Engine.                                            | tx_engine
-| **RAi**         | Rx Application Interface.                             | rx_app_if
-| **TAi**         | Tx Application Interface.                             | tx_app_interface
-| **RSt**         | Rx Sar Table.                                         | rx_sar_table
-| **TSt**         | Tx Sar Table.                                         | tx_sar_table
-| **EVe**         | Event Engine.                                         | event_engine
-| **AKd(Evd)**    | Ack Delayer(Event Delayer).                           | ack_delay
-| **TIm**         | Timers.                                               | 
-| **STt**         | State Table.                                          | state_table
-| **[PRt](#prt)**       | Port Table.                                           | port_table
-| **[SLc](#slc)**       | Session Lookup Controller.                            | session_lookup_controller
+| **[RXe](./RXe.md)**   | RX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
+| **[TXe](./TXe.md)**   | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
+| **RAi**         | Rx Application interface                              | rx_app_if
+| **TAi**         | Tx Application interface                              | tx_app_interface
+| **RSt**         | Rx Sar table                                          | rx_sar_table
+| **TSt**         | Tx Sar table                                          | tx_sar_table
+| **EVe**         | EVent engine                                          | event_engine
+| **AKd(Evd)**    | AcK delayer                                           | ack_delay
+| **TIm**         | TImers                                                | 
+| **STt**         | STate table                                           | state_table
+| **[PRt](./PRt.md)**       | PoRt table                                            | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
+| **[SLc](./SLc.md)**       | Session Lookup controller                             | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 
 <br>
 
-### <a name="prt"></a>Port Table (PRt)
 
-The structure of the PRt is as follows:
 
-**PRt**
-- **pTodo1** | Process 1
-- **pTodo2** | Process 2
 
-### <a name="slc"></a>Session Lookup Controller (SLc)
 
-The structure of the SLc is as follows:
-
-- **SLc** | Session Lookup Controller
-  - **Sim** | Session Id Manager
-  - **Lrh** | Lookup Reply Handler
-  - **Urs** | Update Request Sender
-  - **Urh** | Update Reply Handler
-  - **Rlt** | Reverse Lookup Table
 
