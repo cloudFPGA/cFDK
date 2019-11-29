@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -24,7 +24,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-
 /*****************************************************************************
  * @file       : port_table.cpp
  * @brief      : TCP Port Table (PRt) management for TCP Offload Engine (TOE)
@@ -32,9 +31,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
@@ -76,9 +72,7 @@ using namespace hls;
 //   enum PortState : bool {CLOSED_PORT = false, OPENED_PORT    = true};
 //   enum PortRange : bool {ACTIVE_PORT = false, LISTENING_PORT = true};
 
-typedef AckBit PortState;       //OBSOLETE-20191003 #define PortState     bool
-//#define LSN_PORT_IS_CLOSED   0  //OBSOLETE-20191003 #define LSN_CLOS_PORT false
-//#define LSN_PORT_IS_OPENED   1  //OBSOLETE-20191003#define LSN_OPEN_PORT true
+typedef AckBit PortState;
 #define ACT_FREE_PORT false
 #define ACT_USED_PORT true
 
@@ -141,7 +135,6 @@ void pReady(
  *  (.i.e the opening of the port) takes precedence over the read operation (.i.e,
  *  the request of the listening port state).
  *
- * @ingroup port_table
  ******************************************************************************/
 void pListeningPortTable(
         StsBool              &poPRt_LptReady,
@@ -162,17 +155,17 @@ void pListeningPortTable(
     #pragma HLS DEPENDENCE variable=LISTEN_PORT_TABLE inter false
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                isLPtInit = false;
-    #pragma HLS reset variable=isLPtInit
-    static TcpPort             lsnPortNum = 0;
-    #pragma HLS reset variable=lsnPortNum
+    static bool                lpt_isLPtInit=false;
+    #pragma HLS reset variable=lpt_isLPtInit
+    static TcpPort             lpt_lsnPortNum=0;
+    #pragma HLS reset variable=lpt_lsnPortNum
 
     // The table must be cleared upon reset
-    if (!isLPtInit) {
-        LISTEN_PORT_TABLE[lsnPortNum(14, 0)] = STS_CLOSED;
-        lsnPortNum += 1;
-        if (lsnPortNum == 0x8000) {
-          isLPtInit = true;
+    if (!lpt_isLPtInit) {
+        LISTEN_PORT_TABLE[lpt_lsnPortNum(14, 0)] = STS_CLOSED;
+        lpt_lsnPortNum += 1;
+        if (lpt_lsnPortNum == 0x8000) {
+          lpt_isLPtInit = true;
           if (DEBUG_LEVEL & TRACE_LPT) {
               printInfo(myName, "Done with initialization of LISTEN_PORT_TABLE.\n");
           }
@@ -180,16 +173,17 @@ void pListeningPortTable(
     }
     else {
         if (!siRAi_OpenLsnPortReq.empty() and !soRAi_OpenLsnPortAck.full()) {
-            siRAi_OpenLsnPortReq.read(lsnPortNum);
+            siRAi_OpenLsnPortReq.read(lpt_lsnPortNum);
             // [TODO] Let's add a specific bit to specifically open/close a port.
-            if (lsnPortNum < 0x8000) {
+            if (lpt_lsnPortNum < 0x8000) {
                 // Listening port number falls in the range [0..32,767]
                 // We can set the listening port table entry to true
-                LISTEN_PORT_TABLE[lsnPortNum] = STS_OPENED;
+                LISTEN_PORT_TABLE[lpt_lsnPortNum] = STS_OPENED;
                 // Sent reply to RAi
                 soRAi_OpenLsnPortAck.write(STS_OPENED);
                 if (DEBUG_LEVEL & TRACE_LPT)
-                printInfo(myName, "[RAi] is requesting to open port #%d in listen mode.\n", lsnPortNum.to_uint());
+                printInfo(myName, "[RAi] is requesting to open port #%d in listen mode.\n",
+                		  lpt_lsnPortNum.to_uint());
             }
             else {
                 soRAi_OpenLsnPortAck.write(STS_CLOSED);
@@ -202,12 +196,13 @@ void pListeningPortTable(
             // Sent status of that portNum to Orm
             soOrm_GetPortStateRsp.write(LISTEN_PORT_TABLE[staticPortNum]);
             if (DEBUG_LEVEL & TRACE_LPT)
-                printInfo(myName, "[RXe] is querying the state of listen port #%d \n", staticPortNum.to_uint());
+                printInfo(myName, "[RXe] is querying the state of listen port #%d \n",
+                		  staticPortNum.to_uint());
         }
     }
 
     // ALWAYS
-    poPRt_LptReady = isLPtInit;
+    poPRt_LptReady = lpt_isLPtInit;
 }
 
 /*****************************************************************************
@@ -231,7 +226,6 @@ void pListeningPortTable(
  *  The initial design point assumed a maximum of 10K sessions, which is much
  *  less than the possible 32K active ports.
  *
- * @ingroup port_table
  ******************************************************************************/
 void pFreePortTable(
         StsBool              &poPRt_FptReady,
@@ -248,52 +242,60 @@ void pFreePortTable(
 
     const char *myName = concat3(THIS_NAME, "/", "Fpt");
 
+    //-- STATIC ARRAYS --------------------------------------------------------
     static PortRange                ACTIVE_PORT_TABLE[0x8000];
     #pragma HLS RESOURCE   variable=ACTIVE_PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACTIVE_PORT_TABLE inter false
 
-    static bool          searching = false;
-    static bool               eval = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                     fpt_isFPtInit=false;
+    #pragma HLS reset      variable=fpt_isFPtInit
+    static bool                     fpt_searching=false;
+    #pragma HLS reset      variable=fpt_searching
+    static bool                     fpt_eval=false;
+    #pragma HLS reset      variable=fpt_eval
+    static TcpDynPort               fpt_dynPortNum=0x7FFF;
+    #pragma HLS reset      variable=fpt_dynPortNum
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static bool          portState = ACT_USED_PORT;
     #pragma HLS DEPENDENCE variable=portState inter false
-    static bool          isFPtInit = false;
-    #pragma HLS reset      variable=isFPtInit
-    static TcpDynPort               dynPortNum = 0x7FFF;
-    #pragma HLS reset      variable=dynPortNum
+
+
 
     // The table is a free list that must be initialized upon reset
-    if (!isFPtInit) {
-        ACTIVE_PORT_TABLE[dynPortNum] = ACT_FREE_PORT;
-        dynPortNum -= 1;
-        if (dynPortNum == 0) {
-            isFPtInit = true;
+    if (!fpt_isFPtInit) {
+        ACTIVE_PORT_TABLE[fpt_dynPortNum] = ACT_FREE_PORT;
+        fpt_dynPortNum -= 1;
+        if (fpt_dynPortNum == 0) {
+            fpt_isFPtInit = true;
             if (DEBUG_LEVEL & TRACE_FPT) {
                 printInfo(myName, "Done with initialization of ACTIVE_PORT_TABLE.\n");
             }
         }
     }
     else {
-        if (searching) {
-            portState = ACTIVE_PORT_TABLE[dynPortNum];
-            searching = false;
-            eval      = true;
+        if (fpt_searching) {
+            portState = ACTIVE_PORT_TABLE[fpt_dynPortNum];
+            fpt_searching = false;
+            fpt_eval      = true;
         }
-        else if (eval) {
+        else if (fpt_eval) {
             if (portState == ACT_FREE_PORT) {
                 // Found a free entry port in the table
                 if (!soTAi_GetFreePortRep.full()) {
                     // Stop evaluating. Set port number to USED and forward to [TAi]
-                    eval = false;
-                    ACTIVE_PORT_TABLE[dynPortNum] = ACT_USED_PORT;
+                    fpt_eval = false;
+                    ACTIVE_PORT_TABLE[fpt_dynPortNum] = ACT_USED_PORT;
                     // Add 0x8000 before sending back
-                    soTAi_GetFreePortRep.write(0x8000 + dynPortNum);
+                    soTAi_GetFreePortRep.write(0x8000 + fpt_dynPortNum);
                 }
             }
             else {
                 // Continue searching
-                searching = true;
+            	fpt_searching = true;
             }
-            dynPortNum++;
+            fpt_dynPortNum++;
         }
         else if (!siIrr_GetPortStateCmd.empty()) {
             // Warning: Cannot add "and !soOrm_GetPortStateRsp.full()" here because
@@ -303,7 +305,7 @@ void pFreePortTable(
         }
         else if (!siTAi_GetFreePortReq.empty()) {
             siTAi_GetFreePortReq.read();
-            searching = true;
+            fpt_searching = true;
         }
         else if (!siSLc_CloseActPortCmd.empty()) {
             TcpPort tcpPort = siSLc_CloseActPortCmd.read();
@@ -321,7 +323,7 @@ void pFreePortTable(
     }
 
     // ALWAYS
-    poPRt_FptReady = isFPtInit;
+    poPRt_FptReady = fpt_isFPtInit;
 }
 
 
@@ -339,7 +341,6 @@ void pFreePortTable(
  *   are used for listening ports, and one for dynamically assigned or
  *   ephemeral ports (32,768 to 65,535) which are used for active connections.
  *
- * @ingroup port_table
  ******************************************************************************/
 void pInputRequestRouter(
         stream<TcpPort>           &siRXe_GetPortStateCmd,
@@ -382,7 +383,6 @@ void pInputRequestRouter(
  *  @param[in]  siFpt_GetActPortStateRsp, Active port state response from FreePortTable (Fpt).
  *  @param[out] soRXe_GetPortStateRsp,    Port state response to RxEngine (RXe).
  *
- * @ingroup port_table
  ******************************************************************************/
 void pOutputReplyMultiplexer(
         stream<PortRange> &siIrr_QueryRange,
@@ -394,41 +394,39 @@ void pOutputReplyMultiplexer(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    static PortRange qryType;
-
-    static enum OrmFsmStates { WAIT_FOR_QUERY_FROM_Irr=0, FORWARD_LSN_PORT_STATE_RSP,
-                               FORWARD_ACT_PORT_STATE_RSP } ormFsmState=WAIT_FOR_QUERY_FROM_Irr;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static enum FsmStates { WAIT_FOR_QUERY_FROM_Irr=0,
+                            FORWARD_LSN_PORT_STATE_RSP,
+                            FORWARD_ACT_PORT_STATE_RSP } orm_fsmState=WAIT_FOR_QUERY_FROM_Irr;
 
     // Read out responses from tables in order and merge them
-    switch (ormFsmState) {
+    switch (orm_fsmState) {
 
     case WAIT_FOR_QUERY_FROM_Irr:
         if (!siIrr_QueryRange.empty()) {
-            qryType = siIrr_QueryRange.read();
+            PortRange qryType = siIrr_QueryRange.read();
             if (qryType == LISTEN_PORT)
-                ormFsmState = FORWARD_LSN_PORT_STATE_RSP;
+                orm_fsmState = FORWARD_LSN_PORT_STATE_RSP;
             else
-                ormFsmState = FORWARD_ACT_PORT_STATE_RSP;
+                orm_fsmState = FORWARD_ACT_PORT_STATE_RSP;
         }
         break;
 
     case FORWARD_LSN_PORT_STATE_RSP:
         if (!siLpt_GetLsnPortStateRsp.empty() and !soRXe_GetPortStateRsp.full()) {
             soRXe_GetPortStateRsp.write(siLpt_GetLsnPortStateRsp.read());
-            ormFsmState = WAIT_FOR_QUERY_FROM_Irr;
+            orm_fsmState = WAIT_FOR_QUERY_FROM_Irr;
         }
         break;
 
     case FORWARD_ACT_PORT_STATE_RSP:
         if (!siFpt_GetActPortStateRsp.empty() and !soRXe_GetPortStateRsp.full()) {
             soRXe_GetPortStateRsp.write(siFpt_GetActPortStateRsp.read());
-            ormFsmState = WAIT_FOR_QUERY_FROM_Irr;
+            orm_fsmState = WAIT_FOR_QUERY_FROM_Irr;
         }
         break;
     }
 }
-
-
 
 /*****************************************************************************
  * @brief The port_table (PRt) keeps track of the TCP port numbers which are
@@ -456,7 +454,6 @@ void pOutputReplyMultiplexer(
  *   2) requests to check if a given port is open from the Rx Engine (RXe),
  *   3) requests for a free port from the Tx Application Interface (TAi).
  *
- * @ingroup port_table
  ******************************************************************************/
 void port_table(
         StsBool                 &poTOE_Ready,

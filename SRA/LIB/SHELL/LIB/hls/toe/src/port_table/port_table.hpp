@@ -1,6 +1,6 @@
 /************************************************
-Copyright (c) 2015, Xilinx, Inc.
 Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
 Redistribution and use in source and binary forms, with or without modification,
@@ -31,9 +31,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *----------------------------------------------------------------------------
  *
