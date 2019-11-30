@@ -7,7 +7,9 @@ This code was initialy developed by **Xilinx Dublin Labs, Ireland** who kindly a
 FYI - An enhanced branch of the initial *Xilinx* code is maintained by the **Systems Group @ ETH Zurich** and can be found [here](https://github.com/fpgasystems/fpga-network-stack).    
 
 ## Overview
-A block diagram of the *TOE* is depicted in Figure 1. It features an *Rx Engine (RXe)* to handle the incoming data path from the IP layer, a *Tx Engine (TXe)* to assemble outgoing data packets for the IP layer, and a set of TCP state- and data-keeping engines. 
+A block diagram of the *TOE* is depicted in Figure 1. It features an *Rx Engine (RXe)* to handle the incoming data path from the IP layer, a *Tx Engine (TXe)* to assemble outgoing data packets for the IP layer, and a set of TCP state- and data-keeping engines.
+
+
 ![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the TCP Offload Engine</b></p>
 <br>
