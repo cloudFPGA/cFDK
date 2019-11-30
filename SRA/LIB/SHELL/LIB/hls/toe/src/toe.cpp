@@ -901,11 +901,11 @@ void toe(
     static stream<SessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
     #pragma HLS stream         variable=sSTtToRXe_SessStateRep    depth=2
 
-    static stream<SessionState>         sSTtToTAi_Taa_StateRep    ("sSTtToTAi_Taa_StateRep");
-    #pragma HLS stream         variable=sSTtToTAi_Taa_StateRep    depth=2
+    static stream<SessionState>         sSTtToTAi_AcceptStateRep  ("sSTtToTAi_AcceptStateRep");
+    #pragma HLS stream         variable=sSTtToTAi_AcceptStateRep  depth=2
 
-    static stream<SessionState>         sSTtToTAi_Tas_StateRep    ("sSTtToTAi_Tas_StateRep");
-    #pragma HLS stream         variable=sSTtToTAi_Tas_StateRep    depth=2
+    static stream<SessionState>         sSTtToTAi_StreamStateRep  ("sSTtToTAi_StreamStateRep");
+    #pragma HLS stream         variable=sSTtToTAi_StreamStateRep  depth=2
 
     static stream<SessionId>            sSTtToSLc_SessReleaseCmd  ("sSTtToSLc_SessReleaseCmd");
     #pragma HLS stream         variable=sSTtToSLc_SessReleaseCmd  depth=2
@@ -928,12 +928,12 @@ void toe(
     #pragma HLS stream         variable=sTAiToTSt_PushCmd         depth=2
     #pragma HLS DATA_PACK      variable=sTAiToTSt_PushCmd
 
-    static stream<StateQuery>           sTAiToSTt_Taa_StateQry    ("sTAiToSTt_Taa_StateQry");
-    #pragma HLS stream         variable=sTAiToSTt_Taa_StateQry    depth=2
-    #pragma HLS DATA_PACK      variable=sTAiToSTt_Taa_StateQry
+    static stream<StateQuery>           sTAiToSTt_AcceptStateQry  ("sTAiToSTt_AcceptStateQry");
+    #pragma HLS stream         variable=sTAiToSTt_AcceptStateQry  depth=2
+    #pragma HLS DATA_PACK      variable=sTAiToSTt_AcceptStateQry
 
-    static stream<TcpSessId>            sTAiToSTt_Tas_StateReq    ("sTAiToSTt_Tas_StateReq");
-    #pragma HLS stream         variable=sTAiToSTt_Tas_StateReq    depth=2
+    static stream<TcpSessId>            sTAiToSTt_StreamStateReq  ("sTAiToSTt_StreamStateReq");
+    #pragma HLS stream         variable=sTAiToSTt_StreamStateReq  depth=2
 
     //-------------------------------------------------------------------------
     //-- Timers (TIm)
@@ -1032,10 +1032,10 @@ void toe(
     state_table(
             sRXeToSTt_SessStateQry,
             sSTtToRXe_SessStateRep,
-            sTAiToSTt_Taa_StateQry,
-            sSTtToTAi_Taa_StateRep,
-            sTAiToSTt_Tas_StateReq,
-            sSTtToTAi_Tas_StateRep,
+            sTAiToSTt_AcceptStateQry,
+            sSTtToTAi_AcceptStateRep,
+            sTAiToSTt_StreamStateReq,
+            sSTtToTAi_StreamStateRep,
             sTImToSTt_SessCloseCmd,
             sSTtToSLc_SessReleaseCmd);
 
@@ -1172,8 +1172,8 @@ void toe(
             siTRIF_Meta,
             soTRIF_DSts,
 
-            sTAiToSTt_Tas_StateReq,
-            sSTtToTAi_Tas_StateRep,
+            sTAiToSTt_StreamStateReq,
+            sSTtToTAi_StreamStateRep,
             sTStToTAi_PushCmd,
             siTRIF_ClsReq,
             sSLcToTAi_SessLookupRep,
@@ -1187,8 +1187,8 @@ void toe(
             sTAiToTSt_PushCmd,
             sTAiToSLc_SessLookupReq,
             sTAiToPRt_ActPortStateReq,
-            sTAiToSTt_Taa_StateQry,
-            sSTtToTAi_Taa_StateRep,
+            sTAiToSTt_AcceptStateQry,
+            sSTtToTAi_AcceptStateRep,
             sTAiToEVe_Event,
             sTImToTAi_Notif,
             piMMIO_IpAddr);
