@@ -34,22 +34,21 @@ Please consider reading the following two documents before diving or contributin
 
 ## List of HLS Components
 
-| Acronym         | Description                                           | Filename
-|:----------------|:------------------------------------------------------|:--------------
-| **[RXe](./RXe.md)**   | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **[TXe](./TXe.md)**   | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-| **RAi**         | Rx Application interface                              | rx_app_if
-| **TAi**         | Tx Application interface                              | tx_app_interface
-| **RSt**         | Rx Sar table                                          | rx_sar_table
-| **TSt**         | Tx Sar table                                          | tx_sar_table
-| **EVe**         | EVent engine                                          | event_engine
-| **AKd(Evd)**    | AcK delayer                                           | ack_delay
-| **TIm**         | TImers                                                | 
-| **[STt](./STt.md)**       | STate table                                           | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
-| **[PRt](./PRt.md)**       | PoRt table                                            | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-| **[SLc](./SLc.md)**       | Session Lookup controller                             | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| Acronym                   | Description                | Filename
+|:--------------------------|:---------------------------|:--------------
+| **AKd**                   | AcK delayer                | ack_delay
+| **EVe**                   | EVent engine               | event_engine
+| **[PRt](./PRt.md)**       | PoRt table                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
+| **RAi**                   | Rx Application interface   | rx_app_if
+| **RSt**                   | Rx Sar table               | rx_sar_table
+| **[RXe](./RXe.md)**       | RX engine                  | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
+| **[SLc](./SLc.md)**       | Session Lookup controller  | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **[STt](./STt.md)**       | STate table                | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
+| **TAi**                   | Tx Application interface   | tx_app_interface
+| **TIm**                   | TImers                     | 
+| **TSt**                   | Tx Sar table               | tx_sar_table
+| **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
 
-<br>
 
 
 
