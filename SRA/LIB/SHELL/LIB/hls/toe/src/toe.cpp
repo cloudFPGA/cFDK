@@ -781,246 +781,230 @@ void toe(
     //-------------------------------------------------------------------------
     //-- ACK Delayer (AKd)
     //-------------------------------------------------------------------------
-    static stream<ExtendedEvent>        ssAKdToTXe_Event          ("ssAKdToTXe_Event");
-    #pragma HLS stream         variable=ssAKdToTXe_Event          depth=16
-    #pragma HLS DATA_PACK      variable=ssAKdToTXe_Event
+    static stream<ExtendedEvent>      ssAKdToTXe_Event           ("ssAKdToTXe_Event");
+    #pragma HLS stream       variable=ssAKdToTXe_Event           depth=16
+    #pragma HLS DATA_PACK    variable=ssAKdToTXe_Event
 
-    static stream<SigBit>               ssAKdToEVe_RxEventSig     ("ssAKdToEVe_RxEventSig");
-    #pragma HLS stream         variable=ssAKdToEVe_RxEventSig     depth=2
+    static stream<SigBit>             ssAKdToEVe_RxEventSig      ("ssAKdToEVe_RxEventSig");
+    #pragma HLS stream       variable=ssAKdToEVe_RxEventSig      depth=2
 
-    static stream<SigBool>              ssAKdToEVe_TxEventSig     ("ssAKdToEVe_TxEventSig");
-    #pragma HLS stream         variable=ssAKdToEVe_TxEventSig     depth=2
+    static stream<SigBool>            ssAKdToEVe_TxEventSig      ("ssAKdToEVe_TxEventSig");
+    #pragma HLS stream       variable=ssAKdToEVe_TxEventSig      depth=2
 
     //-------------------------------------------------------------------------
     //-- Event Engine (EVe)
     //-------------------------------------------------------------------------
-    static stream<ExtendedEvent>        ssEVeToAKd_Event          ("ssEVeToAKd_Event");
-    #pragma HLS stream         variable=ssEVeToAKd_Event          depth=4
-    #pragma HLS DATA_PACK      variable=ssEVeToAKd_Event
+    static stream<ExtendedEvent>      ssEVeToAKd_Event           ("ssEVeToAKd_Event");
+    #pragma HLS stream       variable=ssEVeToAKd_Event           depth=4
+    #pragma HLS DATA_PACK    variable=ssEVeToAKd_Event
 
     //-------------------------------------------------------------------------
     //-- Port Table (PRt)
     //-------------------------------------------------------------------------
-    StsBool                             sPRtToRdy_Ready;
+    StsBool                           sPRtToRdy_Ready;
 
-    static stream<RepBit>               sPRtToRXe_PortStateRep    ("sPRtToRXe_PortStateRep");
-    #pragma HLS stream         variable=sPRtToRXe_PortStateRep    depth=4
+    static stream<RepBit>             ssPRtToRXe_PortStateRep    ("ssPRtToRXe_PortStateRep");
+    #pragma HLS stream       variable=ssPRtToRXe_PortStateRep    depth=4
 
-    static stream<AckBit>               sPRtToRAi_OpnLsnPortAck   ("sPRtToRAi_OpnLsnPortAck");
-    #pragma HLS stream         variable=sPRtToRAi_OpnLsnPortAck   depth=4
+    static stream<AckBit>             ssPRtToRAi_OpnLsnPortAck   ("ssPRtToRAi_OpnLsnPortAck");
+    #pragma HLS stream       variable=ssPRtToRAi_OpnLsnPortAck   depth=4
 
-    static stream<TcpPort>              sPRtToTAi_ActPortStateRep ("sPRtToTAi_ActPortStateRep");
-    #pragma HLS stream         variable=sPRtToTAi_ActPortStateRep depth=4
+    static stream<TcpPort>            ssPRtToTAi_ActPortStateRep ("ssPRtToTAi_ActPortStateRep");
+    #pragma HLS stream       variable=ssPRtToTAi_ActPortStateRep depth=4
 
     //-- Rx Application Interface (RAi) ---------------------------------------
-    static stream<TcpPort>              sRAiToPRt_OpnLsnPortReq   ("sRAiToPRt_OpnLsnPortReq");
-    #pragma HLS stream         variable=sRAiToPRt_OpnLsnPortReq   depth=4
+    static stream<TcpPort>            ssRAiToPRt_OpnLsnPortReq   ("ssRAiToPRt_OpnLsnPortReq");
+    #pragma HLS stream       variable=ssRAiToPRt_OpnLsnPortReq   depth=4
 
-    static stream<RAiRxSarQuery>          sRAiToRSt_RxSarQry        ("sRAiToRSt_RxSarQry");
-    #pragma HLS stream         variable=sRAiToRSt_RxSarQry        depth=2
-    #pragma HLS DATA_PACK      variable=sRAiToRSt_RxSarQry
+    static stream<RAiRxSarQuery>      ssRAiToRSt_RxSarQry        ("ssRAiToRSt_RxSarQry");
+    #pragma HLS stream       variable=ssRAiToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK    variable=ssRAiToRSt_RxSarQry
 
     //-------------------------------------------------------------------------
     //-- Rx Engine (RXe)
     //-------------------------------------------------------------------------
-    static stream<SessionLookupQuery>   sRXeToSLc_SessLkpReq      ("sRXeToSLc_SessLkpReq");
-    #pragma HLS stream         variable=sRXeToSLc_SessLkpReq      depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToSLc_SessLkpReq
+    static stream<SessionLookupQuery> ssRXeToSLc_SessLkpReq      ("ssRXeToSLc_SessLkpReq");
+    #pragma HLS stream       variable=ssRXeToSLc_SessLkpReq      depth=4
+    #pragma HLS DATA_PACK    variable=ssRXeToSLc_SessLkpReq
 
-    static stream<TcpPort>              sRXeToPRt_PortStateReq    ("sRXeToPRt_PortStateReq");
-    #pragma HLS stream         variable=sRXeToPRt_PortStateReq    depth=4
+    static stream<TcpPort>            ssRXeToPRt_PortStateReq    ("ssRXeToPRt_PortStateReq");
+    #pragma HLS stream       variable=ssRXeToPRt_PortStateReq    depth=4
 
-    static stream<StateQuery>           sRXeToSTt_SessStateQry    ("sRXeToSTt_SessStateQry");
-    #pragma HLS stream         variable=sRXeToSTt_SessStateQry    depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToSTt_SessStateQry
+    static stream<StateQuery>         ssRXeToSTt_SessStateQry    ("ssRXeToSTt_SessStateQry");
+    #pragma HLS stream       variable=ssRXeToSTt_SessStateQry    depth=2
+    #pragma HLS DATA_PACK    variable=ssRXeToSTt_SessStateQry
 
-    static stream<RXeRxSarQuery>          sRXeToRSt_RxSarQry        ("sRXeToRSt_RxSarQry");
-    #pragma HLS stream         variable=sRXeToRSt_RxSarQry        depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToRSt_RxSarQry
+    static stream<RXeRxSarQuery>      ssRXeToRSt_RxSarQry        ("ssRXeToRSt_RxSarQry");
+    #pragma HLS stream       variable=ssRXeToRSt_RxSarQry        depth=2
+    #pragma HLS DATA_PACK    variable=ssRXeToRSt_RxSarQry
 
-    static stream<RXeTxSarQuery>        sRXeToTSt_TxSarQry        ("sRXeToTSt_TxSarQry");
-    #pragma HLS stream         variable=sRXeToTSt_TxSarQry        depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToTSt_TxSarQry
+    static stream<RXeTxSarQuery>      ssRXeToTSt_TxSarQry        ("ssRXeToTSt_TxSarQry");
+    #pragma HLS stream       variable=ssRXeToTSt_TxSarQry        depth=2
+    #pragma HLS DATA_PACK    variable=ssRXeToTSt_TxSarQry
 
-    static stream<RXeReTransTimerCmd>   sRXeToTIm_ReTxTimerCmd    ("sRXeToTIm_ReTxTimerCmd");
-    #pragma HLS stream         variable=sRXeToTIm_ReTxTimerCmd    depth=2
-    #pragma HLS DATA_PACK      variable=sRXeToTIm_ReTxTimerCmd
+    static stream<RXeReTransTimerCmd> ssRXeToTIm_ReTxTimerCmd    ("ssRXeToTIm_ReTxTimerCmd");
+    #pragma HLS stream       variable=ssRXeToTIm_ReTxTimerCmd    depth=2
+    #pragma HLS DATA_PACK    variable=ssRXeToTIm_ReTxTimerCmd
 
-    static stream<ap_uint<16> >         sRXeToTIm_CloseTimer      ("sRXeToTIm_CloseTimer");
-    #pragma HLS stream         variable=sRXeToTIm_CloseTimer      depth=2
+    static stream<ap_uint<16> >       ssRXeToTIm_CloseTimer      ("ssRXeToTIm_CloseTimer");
+    #pragma HLS stream       variable=ssRXeToTIm_CloseTimer      depth=2
 
-    static stream<ap_uint<16> >         sRXeToTIm_ClrProbeTimer   ("sRXeToTIm_ClrProbeTimer");
+    static stream<ap_uint<16> >       ssRXeToTIm_ClrProbeTimer   ("ssRXeToTIm_ClrProbeTimer");
     // FIXME - No depth for this stream ?
 
-    static stream<AppNotif>             sRXeToRAi_Notif           ("sRXeToRAi_Notif");
-    #pragma HLS stream         variable=sRXeToRAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToRAi_Notif
+    static stream<AppNotif>           ssRXeToRAi_Notif           ("ssRXeToRAi_Notif");
+    #pragma HLS stream       variable=ssRXeToRAi_Notif           depth=4
+    #pragma HLS DATA_PACK    variable=ssRXeToRAi_Notif
 
-    static stream<OpenStatus>           sRXeToTAi_SessOpnSts      ("sRXeToTAi_SessOpnSts");
-    #pragma HLS stream         variable=sRXeToTAi_SessOpnSts      depth=4
-    #pragma HLS DATA_PACK      variable=sRXeToTAi_SessOpnSts
+    static stream<OpenStatus>         ssRXeToTAi_SessOpnSts      ("ssRXeToTAi_SessOpnSts");
+    #pragma HLS stream       variable=ssRXeToTAi_SessOpnSts      depth=4
+    #pragma HLS DATA_PACK    variable=ssRXeToTAi_SessOpnSts
 
-    static stream<ExtendedEvent>        sRXeToEVe_Event           ("sRXeToEVe_Event");
-    #pragma HLS stream         variable=sRXeToEVe_Event           depth=512
-    #pragma HLS DATA_PACK      variable=sRXeToEVe_Event
+    static stream<ExtendedEvent>      ssRXeToEVe_Event           ("ssRXeToEVe_Event");
+    #pragma HLS stream       variable=ssRXeToEVe_Event           depth=512
+    #pragma HLS DATA_PACK    variable=ssRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<RxSarEntry>           sRStToRXe_RxSarRep        ("sRStToRXe_RxSarRep");
-    #pragma HLS stream         variable=sRStToRXe_RxSarRep        depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRXe_RxSarRep
+    static stream<RxSarEntry>         ssRStToRXe_RxSarRep        ("ssRStToRXe_RxSarRep");
+    #pragma HLS stream       variable=ssRStToRXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK    variable=ssRStToRXe_RxSarRep
 
-    static stream<RAiRxSarReply>          sRStToRAi_RxSarRep        ("sRStToRAi_RxSarRep");
-    #pragma HLS stream         variable=sRStToRAi_RxSarRep        depth=2
-    #pragma HLS DATA_PACK      variable=sRStToRAi_RxSarRep
+    static stream<RAiRxSarReply>      ssRStToRAi_RxSarRep        ("ssRStToRAi_RxSarRep");
+    #pragma HLS stream       variable=ssRStToRAi_RxSarRep        depth=2
+    #pragma HLS DATA_PACK    variable=ssRStToRAi_RxSarRep
 
-    static stream<RxSarEntry>           sRStToTXe_RxSarRep        ("sRStToTXe_RxSarRep");
-    #pragma HLS stream         variable=sRStToTXe_RxSarRep        depth=2
-    #pragma HLS DATA_PACK      variable=sRStToTXe_RxSarRep
+    static stream<RxSarEntry>         ssRStToTXe_RxSarRep        ("ssRStToTXe_RxSarRep");
+    #pragma HLS stream       variable=ssRStToTXe_RxSarRep        depth=2
+    #pragma HLS DATA_PACK    variable=ssRStToTXe_RxSarRep
 
     //-------------------------------------------------------------------------
     //-- Session Lookup Controller (SLc)
     //-------------------------------------------------------------------------
-    static stream<SessionLookupReply>   sSLcToRXe_SessLkpRep      ("sSLcToRXe_SessLkpRep");
-    #pragma HLS stream         variable=sSLcToRXe_SessLkpRep      depth=4
-    #pragma HLS DATA_PACK      variable=sSLcToRXe_SessLkpRep
+    static stream<SessionLookupReply> ssSLcToRXe_SessLkpRep      ("ssSLcToRXe_SessLkpRep");
+    #pragma HLS stream       variable=ssSLcToRXe_SessLkpRep      depth=4
+    #pragma HLS DATA_PACK    variable=ssSLcToRXe_SessLkpRep
 
-    static stream<SessionLookupReply>   sSLcToTAi_SessLookupRep   ("sSLcToTAi_SessLookupRep");
-    #pragma HLS stream         variable=sSLcToTAi_SessLookupRep   depth=4
-    #pragma HLS DATA_PACK      variable=sSLcToTAi_SessLookupRep
+    static stream<SessionLookupReply> ssSLcToTAi_SessLookupRep   ("ssSLcToTAi_SessLookupRep");
+    #pragma HLS stream       variable=ssSLcToTAi_SessLookupRep   depth=4
+    #pragma HLS DATA_PACK    variable=ssSLcToTAi_SessLookupRep
 
-    static stream<ap_uint<16> >         sSLcToPRt_ReleasePort     ("sSLcToPRt_ReleasePort");
-    #pragma HLS stream         variable=sSLcToPRt_ReleasePort     depth=4
+    static stream<TcpPort>            ssSLcToPRt_ReleasePort     ("ssSLcToPRt_ReleasePort");
+    #pragma HLS stream       variable=ssSLcToPRt_ReleasePort     depth=4
 
-    static stream<fourTuple>            sSLcToTXe_ReverseLkpRep   ("sSLcToTXe_ReverseLkpRep");
-    #pragma HLS stream         variable=sSLcToTXe_ReverseLkpRep   depth=4
-    #pragma HLS DATA_PACK      variable=sSLcToTXe_ReverseLkpRep
+    static stream<fourTuple>          ssSLcToTXe_ReverseLkpRep   ("ssSLcToTXe_ReverseLkpRep");
+    #pragma HLS stream       variable=ssSLcToTXe_ReverseLkpRep   depth=4
+    #pragma HLS DATA_PACK    variable=ssSLcToTXe_ReverseLkpRep
 
     //-------------------------------------------------------------------------
     //-- State Table (STt)
     //-------------------------------------------------------------------------
-    static stream<SessionState>         sSTtToRXe_SessStateRep    ("sSTtToRXe_SessStateRep");
-    #pragma HLS stream         variable=sSTtToRXe_SessStateRep    depth=2
+    static stream<SessionState>       ssSTtToRXe_SessStateRep    ("ssSTtToRXe_SessStateRep");
+    #pragma HLS stream       variable=ssSTtToRXe_SessStateRep    depth=2
 
-    static stream<SessionState>         sSTtToTAi_AcceptStateRep  ("sSTtToTAi_AcceptStateRep");
-    #pragma HLS stream         variable=sSTtToTAi_AcceptStateRep  depth=2
+    static stream<SessionState>       ssSTtToTAi_AcceptStateRep  ("ssSTtToTAi_AcceptStateRep");
+    #pragma HLS stream       variable=ssSTtToTAi_AcceptStateRep  depth=2
 
-    static stream<SessionState>         sSTtToTAi_StreamStateRep  ("sSTtToTAi_StreamStateRep");
-    #pragma HLS stream         variable=sSTtToTAi_StreamStateRep  depth=2
+    static stream<SessionState>       ssSTtToTAi_StreamStateRep  ("ssSTtToTAi_StreamStateRep");
+    #pragma HLS stream       variable=ssSTtToTAi_StreamStateRep  depth=2
 
-    static stream<SessionId>            sSTtToSLc_SessReleaseCmd  ("sSTtToSLc_SessReleaseCmd");
-    #pragma HLS stream         variable=sSTtToSLc_SessReleaseCmd  depth=2
+    static stream<SessionId>          ssSTtToSLc_SessReleaseCmd  ("ssSTtToSLc_SessReleaseCmd");
+    #pragma HLS stream       variable=ssSTtToSLc_SessReleaseCmd  depth=2
 
     //-------------------------------------------------------------------------
     //-- Tx Application Interface (TAi)
     //-------------------------------------------------------------------------
-    static stream<ReqBit>               sTAiToPRt_ActPortStateReq ("sTAiToPRt_ActPortStateReq");
-    #pragma HLS stream         variable=sTAiToPRt_ActPortStateReq depth=4
+    static stream<ReqBit>             ssTAiToPRt_ActPortStateReq ("ssTAiToPRt_ActPortStateReq");
+    #pragma HLS stream       variable=ssTAiToPRt_ActPortStateReq depth=4
 
-    static stream<LE_SocketPair>        sTAiToSLc_SessLookupReq   ("sTAiToSLc_SessLookupReq");
-    #pragma HLS DATA_PACK      variable=sTAiToSLc_SessLookupReq
-    #pragma HLS stream         variable=sTAiToSLc_SessLookupReq   depth=4
+    static stream<LE_SocketPair>      ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
+    #pragma HLS DATA_PACK    variable=ssTAiToSLc_SessLookupReq
+    #pragma HLS stream       variable=ssTAiToSLc_SessLookupReq   depth=4
 
-    static stream<Event>                sTAiToEVe_Event           ("sTAiToEVe_Event");
-    #pragma HLS stream         variable=sTAiToEVe_Event           depth=4
-    #pragma HLS DATA_PACK      variable=sTAiToEVe_Event
+    static stream<Event>              ssTAiToEVe_Event           ("ssTAiToEVe_Event");
+    #pragma HLS stream       variable=ssTAiToEVe_Event           depth=4
+    #pragma HLS DATA_PACK    variable=ssTAiToEVe_Event
 
-    static stream<TAiTxSarPush>         sTAiToTSt_PushCmd         ("sTAiToTSt_PushCmd");
-    #pragma HLS stream         variable=sTAiToTSt_PushCmd         depth=2
-    #pragma HLS DATA_PACK      variable=sTAiToTSt_PushCmd
+    static stream<TAiTxSarPush>       ssTAiToTSt_PushCmd         ("ssTAiToTSt_PushCmd");
+    #pragma HLS stream       variable=ssTAiToTSt_PushCmd         depth=2
+    #pragma HLS DATA_PACK    variable=ssTAiToTSt_PushCmd
 
-    static stream<StateQuery>           sTAiToSTt_AcceptStateQry  ("sTAiToSTt_AcceptStateQry");
-    #pragma HLS stream         variable=sTAiToSTt_AcceptStateQry  depth=2
-    #pragma HLS DATA_PACK      variable=sTAiToSTt_AcceptStateQry
+    static stream<StateQuery>         ssTAiToSTt_AcceptStateQry  ("ssTAiToSTt_AcceptStateQry");
+    #pragma HLS stream       variable=ssTAiToSTt_AcceptStateQry  depth=2
+    #pragma HLS DATA_PACK    variable=ssTAiToSTt_AcceptStateQry
 
-    static stream<TcpSessId>            sTAiToSTt_StreamStateReq  ("sTAiToSTt_StreamStateReq");
-    #pragma HLS stream         variable=sTAiToSTt_StreamStateReq  depth=2
+    static stream<TcpSessId>          ssTAiToSTt_StreamStateReq  ("ssTAiToSTt_StreamStateReq");
+    #pragma HLS stream       variable=ssTAiToSTt_StreamStateReq  depth=2
 
     //-------------------------------------------------------------------------
     //-- Timers (TIm)
     //-------------------------------------------------------------------------
-    static stream<Event>                sTImToEVe_Event           ("sTImToEVe_Event");
-    #pragma HLS stream         variable=sTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
-    #pragma HLS DATA_PACK      variable=sTImToEVe_Event
+    static stream<Event>              ssTImToEVe_Event           ("ssTImToEVe_Event");
+    #pragma HLS stream       variable=ssTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
+    #pragma HLS DATA_PACK    variable=ssTImToEVe_Event
 
-    static stream<SessionId>            sTImToSTt_SessCloseCmd    ("sTImToSTt_SessCloseCmd");
-    #pragma HLS stream         variable=sTImToSTt_SessCloseCmd    depth=2
+    static stream<SessionId>          ssTImToSTt_SessCloseCmd    ("ssTImToSTt_SessCloseCmd");
+    #pragma HLS stream       variable=ssTImToSTt_SessCloseCmd    depth=2
 
-    static stream<OpenStatus>           sTImToTAi_Notif           ("sTImToTAi_Notif");
-    #pragma HLS stream         variable=sTImToTAi_Notif           depth=4
-    #pragma HLS DATA_PACK      variable=sTImToTAi_Notif
+    static stream<OpenStatus>         ssTImToTAi_Notif           ("ssTImToTAi_Notif");
+    #pragma HLS stream       variable=ssTImToTAi_Notif           depth=4
+    #pragma HLS DATA_PACK    variable=ssTImToTAi_Notif
 
-    static stream<AppNotif>             ssTImToRAi_Notif          ("ssTImToRAi_Notif");
-    #pragma HLS stream         variable=ssTImToRAi_Notif          depth=4
-    #pragma HLS DATA_PACK      variable=ssTImToRAi_Notif
+    static stream<AppNotif>           ssTImToRAi_Notif           ("ssTImToRAi_Notif");
+    #pragma HLS stream       variable=ssTImToRAi_Notif           depth=4
+    #pragma HLS DATA_PACK    variable=ssTImToRAi_Notif
 
     //-------------------------------------------------------------------------
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
-    static stream<SigBit>               sTXeToEVe_RxEventSig      ("sTXeToEVe_RxEventSig");
-    #pragma HLS stream         variable=sTXeToEVe_RxEventSig      depth=2
+    static stream<SigBit>             ssTXeToEVe_RxEventSig      ("ssTXeToEVe_RxEventSig");
+    #pragma HLS stream       variable=ssTXeToEVe_RxEventSig      depth=2
 
-    static stream<SessionId>            sTXeToRSt_RxSarReq        ("sTXeToRSt_RxSarReq");
-    #pragma HLS stream         variable=sTXeToRSt_RxSarReq        depth=2
+    static stream<SessionId>          ssTXeToRSt_RxSarReq        ("ssTXeToRSt_RxSarReq");
+    #pragma HLS stream       variable=ssTXeToRSt_RxSarReq        depth=2
 
-    static stream<TXeTxSarQuery>        sTXeToTSt_TxSarQry        ("sTXeToTSt_TxSarQry");
-    #pragma HLS stream         variable=sTXeToTSt_TxSarQry        depth=2
-    #pragma HLS DATA_PACK      variable=sTXeToTSt_TxSarQry
+    static stream<TXeTxSarQuery>      ssTXeToTSt_TxSarQry        ("ssTXeToTSt_TxSarQry");
+    #pragma HLS stream       variable=ssTXeToTSt_TxSarQry        depth=2
+    #pragma HLS DATA_PACK    variable=ssTXeToTSt_TxSarQry
 
-    static stream<ap_uint<16> >         sTXeToSLc_ReverseLkpReq   ("sTXeToSLc_ReverseLkpReq");
-    #pragma HLS stream         variable=sTXeToSLc_ReverseLkpReq   depth=4
+    static stream<SessionId>          ssTXeToSLc_ReverseLkpReq   ("ssTXeToSLc_ReverseLkpReq");
+    #pragma HLS stream       variable=ssTXeToSLc_ReverseLkpReq   depth=4
 
-    static stream<TXeReTransTimerCmd>   sTXeToTIm_SetReTxTimer    ("sTXeToTIm_SetReTxTimer");
-    #pragma HLS stream         variable=sTXeToTIm_SetReTxTimer    depth=2
-    #pragma HLS DATA_PACK      variable=sTXeToTIm_SetReTxTimer
+    static stream<TXeReTransTimerCmd> ssTXeToTIm_SetReTxTimer    ("ssTXeToTIm_SetReTxTimer");
+    #pragma HLS stream       variable=ssTXeToTIm_SetReTxTimer    depth=2
+    #pragma HLS DATA_PACK    variable=ssTXeToTIm_SetReTxTimer
 
-    static stream<ap_uint<16> >         sTXeToTIm_SetProbeTimer   ("sTXeToTIm_SetProbeTimer");
-    #pragma HLS stream         variable=sTXeToTIm_SetProbeTimer   depth=2
+    static stream<ap_uint<16> >       ssTXeToTIm_SetProbeTimer   ("ssTXeToTIm_SetProbeTimer");
+    #pragma HLS stream       variable=ssTXeToTIm_SetProbeTimer   depth=2
 
     //-------------------------------------------------------------------------
     //-- Tx SAR Table (TSt)
     //-------------------------------------------------------------------------
-    static stream<RXeTxSarReply>        sTStToRXe_TxSarRep        ("sTStToRXe_TxSarRep");
-    #pragma HLS stream         variable=sTStToRXe_TxSarRep        depth=2
-    #pragma HLS DATA_PACK      variable=sTStToRXe_TxSarRep
+    static stream<RXeTxSarReply>      ssTStToRXe_TxSarRep        ("ssTStToRXe_TxSarRep");
+    #pragma HLS stream       variable=ssTStToRXe_TxSarRep        depth=2
+    #pragma HLS DATA_PACK    variable=ssTStToRXe_TxSarRep
 
-    static stream<TXeTxSarReply>        sTStToTXe_TxSarRep        ("sTStToTXe_TxSarRep");
-    #pragma HLS stream         variable=sTStToTXe_TxSarRep        depth=2
-    #pragma HLS DATA_PACK      variable=sTStToTXe_TxSarRep
+    static stream<TXeTxSarReply>      ssTStToTXe_TxSarRep        ("ssTStToTXe_TxSarRep");
+    #pragma HLS stream       variable=ssTStToTXe_TxSarRep        depth=2
+    #pragma HLS DATA_PACK    variable=ssTStToTXe_TxSarRep
 
-    static stream<TStTxSarPush>         sTStToTAi_PushCmd         ("sTStToTAi_PushCmd");
-    #pragma HLS stream         variable=sTStToTAi_PushCmd         depth=2
-    #pragma HLS DATA_PACK      variable=sTStToTAi_PushCmd
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-    //OBSOLETE static stream<txAppTxSarQuery>        txApp2txSar_upd_req("txApp2txSar_upd_req");
-    //OBSOLETE static stream<txAppTxSarReply>        txSar2txApp_upd_rsp("txSar2txApp_upd_rsp");
-
-    //OBSOLETE #pragma HLS stream variable=txApp2txSar_upd_req       depth=2
-    //OBSOLETE #pragma HLS stream variable=txSar2txApp_upd_rsp       depth=2
-
-    //OBSOLETE #pragma HLS DATA_PACK variable=txApp2txSar_upd_req
-    //OBSOLETE #pragma HLS DATA_PACK variable=txSar2txApp_upd_rsp
-
-    //OBSOLETE static stream<event>                  appStreamEventFifo("appStreamEventFifo");
-    //OBSOLETE static stream<event>                  retransmitEventFifo("retransmitEventFifo");
+    static stream<TStTxSarPush>       ssTStToTAi_PushCmd         ("ssTStToTAi_PushCmd");
+    #pragma HLS stream       variable=ssTStToTAi_PushCmd         depth=2
+    #pragma HLS DATA_PACK    variable=ssTStToTAi_PushCmd
 
     /**********************************************************************
-     * TCP DATA STRUCTURES
+     * PROCESSES: TCP STATE-KEEPING DATA STRUCTURE
      **********************************************************************/
 
     //-- Session Lookup Controller (SLc) -----------------------------------
     session_lookup_controller(
-            sRXeToSLc_SessLkpReq,
-            sSLcToRXe_SessLkpRep,
-            sSTtToSLc_SessReleaseCmd,
-            sSLcToPRt_ReleasePort,
-            sTAiToSLc_SessLookupReq,
-            sSLcToTAi_SessLookupRep,
-            sTXeToSLc_ReverseLkpReq,
-            sSLcToTXe_ReverseLkpRep,
+            ssRXeToSLc_SessLkpReq,
+            ssSLcToRXe_SessLkpRep,
+            ssSTtToSLc_SessReleaseCmd,
+            ssSLcToPRt_ReleasePort,
+            ssTAiToSLc_SessLookupReq,
+            ssSLcToTAi_SessLookupRep,
+            ssTXeToSLc_ReverseLkpReq,
+            ssSLcToTXe_ReverseLkpRep,
             soCAM_SssLkpReq,
             siCAM_SssLkpRep,
             soCAM_SssUpdReq,
@@ -1030,65 +1014,65 @@ void toe(
 
     //-- State Table (STt) -------------------------------------------------
     state_table(
-            sRXeToSTt_SessStateQry,
-            sSTtToRXe_SessStateRep,
-            sTAiToSTt_AcceptStateQry,
-            sSTtToTAi_AcceptStateRep,
-            sTAiToSTt_StreamStateReq,
-            sSTtToTAi_StreamStateRep,
-            sTImToSTt_SessCloseCmd,
-            sSTtToSLc_SessReleaseCmd);
+            ssRXeToSTt_SessStateQry,
+            ssSTtToRXe_SessStateRep,
+            ssTAiToSTt_AcceptStateQry,
+            ssSTtToTAi_AcceptStateRep,
+            ssTAiToSTt_StreamStateReq,
+            ssSTtToTAi_StreamStateRep,
+            ssTImToSTt_SessCloseCmd,
+            ssSTtToSLc_SessReleaseCmd);
 
     //-- RX SAR Table (RSt) ------------------------------------------------
     rx_sar_table(
-            sRXeToRSt_RxSarQry,
-            sRStToRXe_RxSarRep,
-            sRAiToRSt_RxSarQry,
-            sRStToRAi_RxSarRep,
-            sTXeToRSt_RxSarReq,
-            sRStToTXe_RxSarRep);
+            ssRXeToRSt_RxSarQry,
+            ssRStToRXe_RxSarRep,
+            ssRAiToRSt_RxSarQry,
+            ssRStToRAi_RxSarRep,
+            ssTXeToRSt_RxSarReq,
+            ssRStToTXe_RxSarRep);
 
     //-- TX SAR Table (TSt) ------------------------------------------------
     tx_sar_table(
-            sRXeToTSt_TxSarQry,
-            sTStToRXe_TxSarRep,
-            sTXeToTSt_TxSarQry,
-            sTStToTXe_TxSarRep,
-            sTAiToTSt_PushCmd,
-            sTStToTAi_PushCmd);
+            ssRXeToTSt_TxSarQry,
+            ssTStToRXe_TxSarRep,
+            ssTXeToTSt_TxSarQry,
+            ssTStToTXe_TxSarRep,
+            ssTAiToTSt_PushCmd,
+            ssTStToTAi_PushCmd);
 
     //-- Port Table (PRt) --------------------------------------------------
     port_table(
             sPRtToRdy_Ready,
-            sRXeToPRt_PortStateReq,
-            sPRtToRXe_PortStateRep,
-            sRAiToPRt_OpnLsnPortReq,
-            sPRtToRAi_OpnLsnPortAck,
-            sTAiToPRt_ActPortStateReq,
-            sPRtToTAi_ActPortStateRep,
-            sSLcToPRt_ReleasePort);
+            ssRXeToPRt_PortStateReq,
+            ssPRtToRXe_PortStateRep,
+            ssRAiToPRt_OpnLsnPortReq,
+            ssPRtToRAi_OpnLsnPortAck,
+            ssTAiToPRt_ActPortStateReq,
+            ssPRtToTAi_ActPortStateRep,
+            ssSLcToPRt_ReleasePort);
 
     //-- Timers (TIm) ------------------------------------------------------
     pTimers(
-            sRXeToTIm_ReTxTimerCmd,
-            sTXeToTIm_SetReTxTimer,
-            sRXeToTIm_ClrProbeTimer,
-            sTXeToTIm_SetProbeTimer,
-            sRXeToTIm_CloseTimer,
-            sTImToSTt_SessCloseCmd,
-            sTImToEVe_Event,
-            sTImToTAi_Notif,
+            ssRXeToTIm_ReTxTimerCmd,
+            ssTXeToTIm_SetReTxTimer,
+            ssRXeToTIm_ClrProbeTimer,
+            ssTXeToTIm_SetProbeTimer,
+            ssRXeToTIm_CloseTimer,
+            ssTImToSTt_SessCloseCmd,
+            ssTImToEVe_Event,
+            ssTImToTAi_Notif,
             ssTImToRAi_Notif);
 
     //-- Event Engine (EVe) ------------------------------------------------
     event_engine(
-            sTAiToEVe_Event,
-            sRXeToEVe_Event,
-            sTImToEVe_Event,
+            ssTAiToEVe_Event,
+            ssRXeToEVe_Event,
+            ssTImToEVe_Event,
             ssEVeToAKd_Event,
             ssAKdToEVe_RxEventSig,
             ssAKdToEVe_TxEventSig,
-            sTXeToEVe_RxEventSig);
+            ssTXeToEVe_RxEventSig);
 
     //-- Ack Delayer (AKd)) ----------------------------------------------
      ack_delay(
@@ -1105,22 +1089,22 @@ void toe(
     //-- RX Engine (RXe) --------------------------------------------------
     rx_engine(
             siIPRX_Data,
-            sRXeToSLc_SessLkpReq,
-            sSLcToRXe_SessLkpRep,
-            sRXeToSTt_SessStateQry,
-            sSTtToRXe_SessStateRep,
-            sRXeToPRt_PortStateReq,
-            sPRtToRXe_PortStateRep,
-            sRXeToRSt_RxSarQry,
-            sRStToRXe_RxSarRep,
-            sRXeToTSt_TxSarQry,
-            sTStToRXe_TxSarRep,
-            sRXeToTIm_ReTxTimerCmd,
-            sRXeToTIm_ClrProbeTimer,
-            sRXeToTIm_CloseTimer,
-            sRXeToEVe_Event,
-            sRXeToTAi_SessOpnSts,
-            sRXeToRAi_Notif,
+            ssRXeToSLc_SessLkpReq,
+            ssSLcToRXe_SessLkpRep,
+            ssRXeToSTt_SessStateQry,
+            ssSTtToRXe_SessStateRep,
+            ssRXeToPRt_PortStateReq,
+            ssPRtToRXe_PortStateRep,
+            ssRXeToRSt_RxSarQry,
+            ssRStToRXe_RxSarRep,
+            ssRXeToTSt_TxSarQry,
+            ssTStToRXe_TxSarRep,
+            ssRXeToTIm_ReTxTimerCmd,
+            ssRXeToTIm_ClrProbeTimer,
+            ssRXeToTIm_CloseTimer,
+            ssRXeToEVe_Event,
+            ssRXeToTAi_SessOpnSts,
+            ssRXeToRAi_Notif,
             soMEM_RxP_WrCmd,
             soMEM_RxP_Data,
             siMEM_RxP_WrSts);
@@ -1128,17 +1112,17 @@ void toe(
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
             ssAKdToTXe_Event,
-            sTXeToEVe_RxEventSig,
-            sTXeToRSt_RxSarReq,
-            sRStToTXe_RxSarRep,
-            sTXeToTSt_TxSarQry,
-            sTStToTXe_TxSarRep,
+            ssTXeToEVe_RxEventSig,
+            ssTXeToRSt_RxSarReq,
+            ssRStToTXe_RxSarRep,
+            ssTXeToTSt_TxSarQry,
+            ssTStToTXe_TxSarRep,
             soMEM_TxP_RdCmd,
             siMEM_TxP_Data,
-            sTXeToTIm_SetReTxTimer,
-            sTXeToTIm_SetProbeTimer,
-            sTXeToSLc_ReverseLkpReq,
-            sSLcToTXe_ReverseLkpRep,
+            ssTXeToTIm_SetReTxTimer,
+            ssTXeToTIm_SetProbeTimer,
+            ssTXeToSLc_ReverseLkpReq,
+            ssSLcToTXe_ReverseLkpRep,
             soL3MUX_Data);
 
 
@@ -1154,12 +1138,12 @@ void toe(
              soTRIF_Meta,
              siTRIF_LsnReq,
              soTRIF_LsnAck,
-             sRAiToPRt_OpnLsnPortReq,
-             sPRtToRAi_OpnLsnPortAck,
-             sRXeToRAi_Notif,
+             ssRAiToPRt_OpnLsnPortReq,
+             ssPRtToRAi_OpnLsnPortAck,
+             ssRXeToRAi_Notif,
              ssTImToRAi_Notif,
-             sRAiToRSt_RxSarQry,
-             sRStToRAi_RxSarRep,
+             ssRAiToRSt_RxSarQry,
+             ssRStToRAi_RxSarRep,
              soMEM_RxP_RdCmd,
              siMEM_RxP_Data);
 
@@ -1172,25 +1156,25 @@ void toe(
             siTRIF_Meta,
             soTRIF_DSts,
 
-            sTAiToSTt_StreamStateReq,
-            sSTtToTAi_StreamStateRep,
-            sTStToTAi_PushCmd,
+            ssTAiToSTt_StreamStateReq,
+            ssSTtToTAi_StreamStateRep,
+            ssTStToTAi_PushCmd,
             siTRIF_ClsReq,
-            sSLcToTAi_SessLookupRep,
-            sPRtToTAi_ActPortStateRep,
-            sRXeToTAi_SessOpnSts,
+            ssSLcToTAi_SessLookupRep,
+            ssPRtToTAi_ActPortStateRep,
+            ssRXeToTAi_SessOpnSts,
 
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             siMEM_TxP_WrSts,
 
-            sTAiToTSt_PushCmd,
-            sTAiToSLc_SessLookupReq,
-            sTAiToPRt_ActPortStateReq,
-            sTAiToSTt_AcceptStateQry,
-            sSTtToTAi_AcceptStateRep,
-            sTAiToEVe_Event,
-            sTImToTAi_Notif,
+            ssTAiToTSt_PushCmd,
+            ssTAiToSLc_SessLookupReq,
+            ssTAiToPRt_ActPortStateReq,
+            ssTAiToSTt_AcceptStateQry,
+            ssSTtToTAi_AcceptStateRep,
+            ssTAiToEVe_Event,
+            ssTImToTAi_Notif,
             piMMIO_IpAddr);
 
     /**********************************************************************
