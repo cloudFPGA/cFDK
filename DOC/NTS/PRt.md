@@ -1,5 +1,5 @@
 # Port Table (PRt)
-TCP port table management for the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform. 
+TCP port table management for the **TCP Offload engine (TOE)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The port table of the **TCP Offload engibe (TOE)** keeps track of the TCP port numbers which are in use. It maintains two port ranges based on two tables of 32768 x 1-bit:
@@ -18,8 +18,7 @@ The port table of the **TCP Offload engibe (TOE)** keeps track of the TCP port n
 |  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
 |  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 |  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
-|  **TOE**        | TCP Offload Engine                                    | [TOE](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
-
+|  **TOE**        | TCP Offload Engine                                    | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
 <br>
 
 ## List of HLS Components
