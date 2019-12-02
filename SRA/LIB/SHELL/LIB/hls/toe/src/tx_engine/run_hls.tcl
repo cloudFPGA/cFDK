@@ -61,9 +61,10 @@ add_files -tb ${currDir}/../../../toe/src/state_table/state_table.cpp
 add_files -tb ${currDir}/../../../toe/src/session_lookup_controller/session_lookup_controller.cpp
 add_files -tb ${currDir}/../../../toe/src/rx_sar_table/rx_sar_table.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_sar_table/tx_sar_table.cpp
-add_files -tb ${currDir}/../../../toe/src/retransmit_timer/retransmit_timer.cpp
-add_files -tb ${currDir}/../../../toe/src/probe_timer/probe_timer.cpp
-add_files -tb ${currDir}/../../../toe/src/close_timer/close_timer.cpp
+#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/retransmit_timer/retransmit_timer.cpp
+#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/probe_timer/probe_timer.cpp
+#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/close_timer/close_timer.cpp
+add_files -tb ${currDir}/../../../toe/src/timers/timers.cpp
 add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
 add_files -tb ${currDir}/../../../toe/src/port_table/port_table.cpp

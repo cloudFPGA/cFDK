@@ -41,9 +41,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "state_table/state_table.hpp"
 #include "rx_sar_table/rx_sar_table.hpp"
 #include "tx_sar_table/tx_sar_table.hpp"
-#include "retransmit_timer/retransmit_timer.hpp"
-#include "probe_timer/probe_timer.hpp"
-#include "close_timer/close_timer.hpp"
+//OBSOLETE_20191202 #include "retransmit_timer/retransmit_timer.hpp"
+//OBSOLETE_20191202 #include "probe_timer/probe_timer.hpp"
+//OBSOLETE_20191202 #include "close_timer/close_timer.hpp"
+#include "timers/timers.hpp"
 #include "event_engine/event_engine.hpp"
 #include "ack_delay/ack_delay.hpp"
 #include "port_table/port_table.hpp"
@@ -112,6 +113,8 @@ template<typename T> void pStreamMux(
  * @todo [TODO - Consider creating a dedicated file.]
  *
  *****************************************************************************/
+
+/*** OBSOLETE_20191202 *******************
 void pTimers(
         stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
         stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
@@ -170,8 +173,8 @@ void pTimers(
             sCloseTimer2Mux_ReleaseState,
             sRttToSmx_SessCloseCmd,
             soSTt_SessCloseCmd);
-
 }
+***************************************/
 
 /******************************************************************************
  * @brief [TODO]
@@ -1053,7 +1056,8 @@ void toe(
             ssSLcToPRt_ReleasePort);
 
     //-- Timers (TIm) ------------------------------------------------------
-    pTimers(
+    //OBSOLETE_20191202 pTimers(
+    timers(
             ssRXeToTIm_ReTxTimerCmd,
             ssTXeToTIm_SetReTxTimer,
             ssRXeToTIm_ClrProbeTimer,

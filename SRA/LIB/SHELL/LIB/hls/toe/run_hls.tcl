@@ -61,17 +61,18 @@ add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
 add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
-add_files ${srcDir}/close_timer/close_timer.cpp
+#OBSOLETE_20191202 add_files ${srcDir}/close_timer/close_timer.cpp
 add_files ${srcDir}/event_engine/event_engine.cpp
 add_files ${srcDir}/port_table/port_table.cpp
-add_files ${srcDir}/probe_timer/probe_timer.cpp
-add_files ${srcDir}/retransmit_timer/retransmit_timer.cpp
+#OBSOLETE_20191202 add_files ${srcDir}/probe_timer/probe_timer.cpp
+#OBSOLETE_20191202 add_files ${srcDir}/retransmit_timer/retransmit_timer.cpp
 add_files ${srcDir}/rx_app_if/rx_app_if.cpp
 add_files ${srcDir}/rx_app_stream_if/rx_app_stream_if.cpp
 add_files ${srcDir}/rx_engine/src/rx_engine.cpp
 add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files ${srcDir}/state_table/state_table.cpp
+add_files ${srcDir}/timers/timers.cpp
 add_files ${srcDir}/toe_utils.cpp
 add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files ${srcDir}/tx_app_stream/tx_app_stream.cpp
