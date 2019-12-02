@@ -31,6 +31,8 @@ set CYAN       6
 set WHITE      7
 
 
+set VERIFY_RETVAL 47
+
 #-------------------------------------------------------------------------------
 # proc my_puts { text {fg -1} }
 #  A procedure that adds a specific prompt and that changes the color of the 
