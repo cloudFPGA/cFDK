@@ -28,16 +28,16 @@
 class KeyValuePair
 {
   public:
-    fourTupleInternal   key;       // 96 bits
+    SLcFourTuple        key;       // 96 bits
     RtlSessId           value;     // 14 bits
     bool                valid;
     KeyValuePair() {}
-    KeyValuePair(fourTupleInternal key, RtlSessId value, bool valid) :
+    KeyValuePair(SLcFourTuple key, RtlSessId value, bool valid) :
         key(key), value(value), valid(valid) {}
 
 };
 
-inline bool operator == (fourTupleInternal const &s1, fourTupleInternal const &s2) {
+inline bool operator == (SLcFourTuple const &s1, SLcFourTuple const &s2) {
             return ((s1.myIp    == s2.myIp)    && (s1.myPort    == s2.myPort)    &&
                     (s1.theirIp == s2.theirIp) && (s1.theirPort == s2.theirPort));
     }
@@ -56,10 +56,10 @@ void cam(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupRequest>     &siTOE_SssLkpReq,
-        stream<rtlSessionLookupReply>       &soTOE_SssLkpRep,
-        stream<rtlSessionUpdateRequest>     &siTOE_SssUpdReq,
-        stream<rtlSessionUpdateReply>       &soTOE_SssUpdRep
+        stream<RtlSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<RtlSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep
 
 );
 

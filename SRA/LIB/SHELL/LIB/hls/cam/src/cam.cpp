@@ -52,7 +52,7 @@
  *
  * @return true if the the key was found.
  ******************************************************************************/
-bool camLookup(fourTupleInternal key, RtlSessId &value)
+bool camLookup(SLcFourTuple key, RtlSessId &value)
 {
     #pragma HLS RESET variable=CamArray0
     #pragma HLS RESET variable=CamArray1
@@ -103,7 +103,7 @@ bool camInsert(KeyValuePair kVP)
  *
  * @return true if the the key was deleted.
   ******************************************************************************/
-bool camDelete(fourTupleInternal key)
+bool camDelete(SLcFourTuple key)
 {
     //#pragma HLS UNROLL  factor=2
     #pragma HLS pipeline II=1
@@ -152,10 +152,10 @@ void cam(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<rtlSessionLookupRequest>     &siTOE_SssLkpReq,
-        stream<rtlSessionLookupReply>       &soTOE_SssLkpRep,
-        stream<rtlSessionUpdateRequest>     &siTOE_SssUpdReq,
-        stream<rtlSessionUpdateReply>       &soTOE_SssUpdRep)
+        stream<RtlSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<RtlSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -181,8 +181,8 @@ void cam(
 
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
-    static rtlSessionLookupRequest request;
-    static rtlSessionUpdateRequest update;
+    static RtlSessionLookupRequest request;
+    static RtlSessionUpdateRequest update;
     static int                     camIdleCnt =   0;
 
     static enum CamFsmStates { CAM_WAIT_4_REQ=0, CAM_LOOKUP_REP, CAM_UPDATE_REP } \
@@ -231,9 +231,9 @@ void cam(
             bool hit = camLookup(request.key, value);
 
             if (hit)
-                soTOE_SssLkpRep.write(rtlSessionLookupReply(true, value, request.source));
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(true, value, request.source));
             else
-                soTOE_SssLkpRep.write(rtlSessionLookupReply(false, request.source));
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(false, request.source));
 
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
@@ -256,11 +256,11 @@ void cam(
             if (update.op == INSERT) {
                 //Is there a check if it already exists?
                 camInsert(KeyValuePair(update.key, update.value, true));
-                soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, INSERT, update.source));
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, INSERT, update.source));
             }
             else {  // DELETE
                 camDelete(update.key);
-                soTOE_SssUpdRep.write(rtlSessionUpdateReply(update.value, DELETE, update.source));
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, DELETE, update.source));
             }
 
             if (DEBUG_LEVEL & TRACE_CAM) {

@@ -75,10 +75,10 @@ unsigned int    gMaxSimCycles   = 200;
 void pTOE(
         int                                 &nrErr,
         //-- Session Lookup & Update Interfaces
-        stream<rtlSessionLookupRequest>     &soCAM_SssLkpReq,
-        stream<rtlSessionLookupReply>       &siCAM_SssLkpRep,
-        stream<rtlSessionUpdateRequest>     &soCAM_SssUpdReq,
-        stream<rtlSessionUpdateReply>       &siCAM_SssUpdRep)
+        stream<RtlSessionLookupRequest>     &soCAM_SssLkpReq,
+        stream<RtlSessionLookupReply>       &siCAM_SssLkpRep,
+        stream<RtlSessionUpdateRequest>     &soCAM_SssUpdReq,
+        stream<RtlSessionUpdateReply>       &siCAM_SssUpdRep)
 {
     const char *myName = concat3(THIS_NAME, "/", "TOE");
 
@@ -98,10 +98,10 @@ void pTOE(
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssLkpReq.full()) {
 				// Build a new request
-				fourTupleInternal key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
 									  DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
 				lookupSource      src = FROM_RXe;
-				rtlSessionLookupRequest lkpRequest(key, src);
+				RtlSessionLookupRequest lkpRequest(key, src);
 				// Send the new request
 				soCAM_SssLkpReq.write(lkpRequest);
 				printInfo(myName, "Sending LOOKUP request[%d] to [CAM].\n", i);
@@ -120,7 +120,7 @@ void pTOE(
     case LOOKUP_REP: // WAIT FOR LOOKUP REPLY FROM [CAM]
         while (rdCnt < CAM_SIZE) {
 			if (!siCAM_SssLkpRep.empty()) {
-				rtlSessionLookupReply lkpReply;
+				RtlSessionLookupReply lkpReply;
 				siCAM_SssLkpRep.read(lkpReply);
 				if (DEBUG_LEVEL & TRACE_TOE) {
 					printInfo(myName, "Received a lookup reply from [CAM]. \n");
@@ -141,11 +141,11 @@ void pTOE(
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssUpdReq.full()) {
 				// Build a new request
-				fourTupleInternal key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
-									  DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
+				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+								 DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
 				lookupSource      src = FROM_RXe;
 				RtlSessId       value = DEFAULT_SESSION_ID+i;
-				rtlSessionUpdateRequest updRequest(key, value, INSERT, src);
+				RtlSessionUpdateRequest updRequest(key, value, INSERT, src);
 				// Send the new request
 				soCAM_SssUpdReq.write(updRequest);
 				printInfo(myName, "Sending UPDATE request[%d] to [CAM].\n", i);
@@ -164,7 +164,7 @@ void pTOE(
     case INSERT_REP: // WAIT FOR INSERT REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
             if (!siCAM_SssUpdRep.empty()) {
-				rtlSessionUpdateReply updReply;
+				RtlSessionUpdateReply updReply;
 				siCAM_SssUpdRep.read(updReply);
 				if (DEBUG_LEVEL & TRACE_TOE) {
 					printInfo(myName, "Received an insert reply from [CAM]. \n");
@@ -192,11 +192,11 @@ void pTOE(
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssUpdReq.full()) {
 				// Build a new request
-				fourTupleInternal key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
-									  DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
+				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+								 DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
 				lookupSource      src = FROM_RXe;
 				RtlSessId       value = DEFAULT_SESSION_ID+i;
-				rtlSessionUpdateRequest updRequest(key, value, DELETE, src);
+				RtlSessionUpdateRequest updRequest(key, value, DELETE, src);
 				// Send the new request
 				soCAM_SssUpdReq.write(updRequest);
 				printInfo(myName, "Sending DELETE request[%d] to [CAM].\n", i);
@@ -215,7 +215,7 @@ void pTOE(
     case DELETE_REP: // WAIT FOR DELETE REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
         	if (!siCAM_SssUpdRep.empty()) {
-				rtlSessionUpdateReply updReply;
+				RtlSessionUpdateReply updReply;
 				siCAM_SssUpdRep.read(updReply);
 				if (DEBUG_LEVEL & TRACE_TOE) {
 					printInfo(myName, "Received a delete reply from [CAM]. \n");
@@ -268,10 +268,10 @@ int main()
     ap_uint<1>                       wMMIO_CamReady("wMMIO_CamReady");
 
     //-- CAM / This / Session Lookup & Update Interfaces
-    stream<rtlSessionLookupRequest>  sTOE_TO_CAM_SssLkpReq("sTOE_TO_CAM_SssLkpReq");
-    stream<rtlSessionLookupReply>    sCAM_TO_TOE_SssLkpRep("sCAM_TO_TOE_SssLkpRep");
-    stream<rtlSessionUpdateRequest>  sTOE_TO_CAM_SssUpdReq("sTOE_TO_CAM_SssUpdReq");
-    stream<rtlSessionUpdateReply>    sCAM_TO_TOE_SssUpdRep("sCAM_TO_TOE_SssUpdRep");
+    stream<RtlSessionLookupRequest>  sTOE_TO_CAM_SssLkpReq("sTOE_TO_CAM_SssLkpReq");
+    stream<RtlSessionLookupReply>    sCAM_TO_TOE_SssLkpRep("sCAM_TO_TOE_SssLkpRep");
+    stream<RtlSessionUpdateRequest>  sTOE_TO_CAM_SssUpdReq("sTOE_TO_CAM_SssUpdReq");
+    stream<RtlSessionUpdateReply>    sCAM_TO_TOE_SssUpdRep("sCAM_TO_TOE_SssUpdRep");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
