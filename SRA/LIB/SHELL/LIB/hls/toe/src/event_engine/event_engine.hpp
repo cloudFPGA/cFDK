@@ -41,7 +41,6 @@ using namespace hls;
 /*****************************************************************************
  * @brief   Main process of the Event Engine (EVe).
  *
- * @ingroup event_engine
  *****************************************************************************/
 void event_engine(
         stream<Event>           &siTAi_Event,

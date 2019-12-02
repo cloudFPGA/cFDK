@@ -24,7 +24,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-
 /*****************************************************************************
  * @file       : ack_delay.cpp
  * @brief      : ACK Delayer (AKd) of the TCP Offload Engine (TOE)
@@ -90,12 +89,12 @@ void ack_delay(
     static ap_uint<12>              ACK_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
-    #pragma HLS reset      variable=ACK_TABLE
+    #pragma HLS RESET      variable=ACK_TABLE
 
     // [FIXME - The type of 'akdPtr' could be configured as a functions of 'MAX_SESSIONS']
     // [FIXME - static const int NR_BITS = ceil(log10(MAX_SESSIONS)/log10(2));
     static SessionId           akdPtr;
-    #pragma HLS reset variable=akdPtr
+    #pragma HLS RESET variable=akdPtr
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ExtendedEvent ev;

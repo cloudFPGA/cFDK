@@ -41,7 +41,6 @@ using namespace hls;
 /*****************************************************************************
  * @brief   Main process of the ACK Delayer (AKd).
  *
- * @ingroup event_engine
  *****************************************************************************/
 void ack_delay(
         stream<ExtendedEvent>   &siEVe_Event,

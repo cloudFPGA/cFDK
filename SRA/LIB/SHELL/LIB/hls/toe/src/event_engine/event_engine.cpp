@@ -39,7 +39,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
@@ -69,9 +68,6 @@ using namespace hls;
  * @param[in]  siAKd_TxEventSig, The ACK Delayer just forwarded an event.
 *  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe)  just received an event.
  *
- * @details
- *
- * @ingroup event_engine
  *****************************************************************************/
 void event_engine(
         stream<Event>           &siTAi_Event,
@@ -90,13 +86,13 @@ void event_engine(
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     //---- Warning: the following counters depend on the FiFo depth between EVe and AKd
     static ap_uint<8>            eveTxEventCnt; // Keeps track of the #events forwarded to [AckDelayer]
-    #pragma HLS reset variable = eveTxEventCnt
+    #pragma HLS RESET variable = eveTxEventCnt
     static ap_uint<8>            akdRxEventCnt; // Keeps track of the #events received  by [AckDelayer]
-    #pragma HLS reset variable = akdRxEventCnt
+    #pragma HLS RESET variable = akdRxEventCnt
     static ap_uint<8>            akdTxEventCnt; // Keeps track of the #events forwarded to [TxEngine] by [AckDelayer]
-    #pragma HLS reset variable = akdTxEventCnt
+    #pragma HLS RESET variable = akdTxEventCnt
     static ap_uint<8>            txeRxEventCnt; // Keeps track of the #events received  by [TxEngine]
-    #pragma HLS reset variable = txeRxEventCnt
+    #pragma HLS RESET variable = txeRxEventCnt
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ExtendedEvent ev;
@@ -120,8 +116,9 @@ void event_engine(
             soAKd_Event.write(ev);
             eveTxEventCnt++;
             if (DEBUG_LEVEL & TRACE_EVE) {
-                if (ev.type == RT_EVENT)
+                if (ev.type == RT_EVENT) {
                     printInfo(myName, "Received RT event from [TIm].\n");
+                }
             }
         }
         //--------------------------------------------
@@ -132,8 +129,9 @@ void event_engine(
             assessSize(myName, soAKd_Event, "soAKd_Event", 4);
             soAKd_Event.write(ev);
             eveTxEventCnt++;
-            if (DEBUG_LEVEL & TRACE_EVE)
+            if (DEBUG_LEVEL & TRACE_EVE) {
                 printInfo(myName, "Received TX event from [TAi].\n");
+            }
         }
     }
 
