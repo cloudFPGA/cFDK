@@ -24,7 +24,7 @@ The internal shell-role pins are depicted with linear gradient _blue_ arrows in 
   - two Memory ports (Mp0 and Mp1) interfaces (based on the S2MM AXI4-Stream interfaces).
  
 
-The Verilog definition of the _Kale_ module is shown below. Please consider reading the [HDL naming conventions document](./hld-naming-conventions.md) if you intend to deploy this SHELL or want to contribute to this part of the cloudFPGA project. 
+The Verilog definition of the _Kale_ module is shown below. Please consider reading the [HDL naming conventions document](./hdl-naming-conventions.md) if you intend to deploy this SHELL or want to contribute to this part of the cloudFPGA project. 
 <br>
 
 ```Verilog
