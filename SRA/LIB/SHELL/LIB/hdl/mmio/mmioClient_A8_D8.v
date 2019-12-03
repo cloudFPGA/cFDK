@@ -324,9 +324,9 @@ module MmioClient_A8_D8 #(
   localparam cDefReg0F = 8'h00;
   //-- PHY_REGS ---------------
   localparam cDefReg10 = 8'h00;  // PHY_STATUS
-  localparam cDefReg11 = 8'h41;  // PHY_GTH0[0]
-  localparam cDefReg12 = 8'h05;  // PHY_GTH0[1]
-  localparam cDefReg13 = 8'h05;  // PHY_GTH0[2]
+  localparam cDefReg11 = 8'hC1;  // PHY_GTH0[0]
+  localparam cDefReg12 = 8'h00;  // PHY_GTH0[1]
+  localparam cDefReg13 = 8'h00;  // PHY_GTH0[2]
   localparam cDefReg14 = 8'h00;
   localparam cDefReg15 = 8'h00;
   localparam cDefReg16 = 8'h00;
