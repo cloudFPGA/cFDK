@@ -59,7 +59,7 @@
 // **  MODULE - SHELL FOR FMKU60
 // *****************************************************************************
 
-module Shell_x1Udp_x1Tcp_x2Mp_x2Mc # (
+module Shell_Kale # (
 
   parameter gSecurityPriviledges = "super", // "user" or "super"
   parameter gBitstreamUsage      = "flash", // "user" or "flash"

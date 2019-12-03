@@ -1,4 +1,4 @@
-The x1Udp_x1Tcp_x2Mp_x2Mc SRA
+The Kale SRA
 ================================
 
 This SRA defines a static version of the SHELL aimed at the HW test and bring-up of an FPGA module. 
@@ -12,7 +12,7 @@ The VHDL interface to the ROLE is shown below. Please consider reading the [HDL 
 <br>
 
 ```vhdl
-  component Role_x1Udp_x1Tcp_x2Mp
+  component Role_Kale
     port (
       
       ------------------------------------------------------
@@ -154,6 +154,12 @@ The VHDL interface to the ROLE is shown below. Please consider reading the [HDL 
          
       poVoid                              : out   std_ulogic          
     );
-    end component Role_x1Udp_x1Tcp_x2Mp;
+    end component Role_Kale;
     
 ```
+
+
+---
+**Trivia**: The [moon Kale](https://en.wikipedia.org/wiki/Kale_(moon))
+
+
