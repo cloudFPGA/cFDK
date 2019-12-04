@@ -59,7 +59,7 @@
 # LED Interface (Heart beat)
 #---------------------------------------------------------------------
 set_property PACKAGE_PIN J24     [get_ports poLED_HeartBeat_n]
-set_property IOSTANDARD LVCMOS18 [get_ports poLED_Led_HeartBeat_n]
+set_property IOSTANDARD LVCMOS18 [get_ports poLED_HeartBeat_n]
 
 #---------------------------------------------------------------------
 # Constraints related to the Clock Tree (CLKT)
