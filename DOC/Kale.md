@@ -1,16 +1,35 @@
-The Kale SHELL
-================================
+# The Kale Shell
+This document describes the design of the **_Kale_** shell used of the cloudFPGA platform.
 
-This version of SHELL is used for the testing and the bring-up of a cloudFPGA (cF) module.    
+## Overview
+This version of the cF shell is used for the testing and the bring-up of a cloudFPGA (cF) module.
 As shown in Figure 1, the **_Kale_** shell implements the following IP cores:
   - one 10G Ethernet subsystem (ETH) as described in PG157,
   - a dual 8GB DDR4 memory subsystem (MEM) as described in PG150,
-  - one network, transport ad and session (NTS) core based on the TCP/IP protocol,
+  - one network, transport and session (NTS) core based on the TCP/IP protocol,
   - one register file core with memory mapped IOs (MMIO).
 
 ![Block diagram of Kale](./imgs/Fig-SHELL-Kale.png#center)
 <p align="center"><b>Figure-1: Block diagram of the Kale shell</b></p>
 <br>
+
+## HDL Coding Style and Naming Conventions
+Please consider reading the [**HDL Naming Conventions**](../hdl-naming-conventions.md) document if you intend to deploy this SHELL or want to contribute to this part of the cloudFPGA project.
+<br>
+
+## List of Interfaces
+
+| Acronym         | Description                                           | Filename
+|:----------------|:------------------------------------------------------|:--------------
+| **CLKT**        | CLocK Tree interface                                  | [Kale](../SRA/LIB/SHELL/Kale/Shell.v)
+| **DDR4**        | Double Data Rate 4 memory interface                   | [Kale](../SRA/LIB/SHELL/Kale/Shell.v)
+| **ECON**        | Edge CONnnector interface                             | [Kale](../SRA/LIB/SHELL/Kale/Shell.v)
+| **PSOC**        | Programmable System-On-Chip interface                 | [Kale](../SRA/LIB/SHELL/Kale/Shell.v)
+| **ROLE**        | Test and bring-up application interface               | [Kale](../SRA/LIB/SHELL/Kale/Shell.v)
+
+## List of HLS Components
+
+
 
 The physical I/O pins of the shell are depicted as _white_ arrows in Figure 1. They consist of:
   - one bidirectional 10GbE Ethernet interface to the edge connector (ECON) of the module,
