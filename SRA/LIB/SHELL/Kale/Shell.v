@@ -1,6 +1,4 @@
 //                              -*- Mode: Verilog -*-
-// Filename        : Shell_x1Udp_x1Tcp_x2Mc.v
-// Description     : 
 // *****************************************************************************
 // *
 // *                             cloudFPGA
@@ -8,9 +6,9 @@
 // *
 // *----------------------------------------------------------------------------
 // *
-// * Title : Shell for the BRING-UP TEST of the FMKU2595 module.
+// * Title : Shell for the BRING-UP TEST of the FMKU2595 module (a.k.a "Kale").
 // *
-// * File    : Shell.v
+// * File    : Kale/Shell.v
 // *
 // * Created : Nov. 2017
 // * Authors : Francois Abel <fab@zurich.ibm.com>
@@ -23,8 +21,8 @@
 // *    FPGA module and to expose a unified interface for the user to integrate 
 // *    its application, referred to as 'ROLE'. 
 // * 
-// *    This shell is a limited version of the cloudFPGA Shell. It solely used 
-// *    for bring-up purposes and it implements the following interfaces: 
+// *    This shell is referred to as "Kale". It is a limited version of a typical cF shell
+// *    because it is solely used for bring-up purposes. Kale implements the following interfaces: 
 // *      - one UDP port interface (based on the AXI4-Stream interface), 
 // *      - one TCP port interface (based on the AXI4-Stream interface),
 // *      - two Memory Port interfaces (based on the MM2S and S2MM AXI4-Stream interfaces)
