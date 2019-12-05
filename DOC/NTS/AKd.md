@@ -1,5 +1,5 @@
 # ACK Delay (AKd)
-Acknowlegment delayer for the **TCP Offload engine (TOE)** used by the *cloudFPGA* platform.
+Acknowlegment delayer for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform.
 
 ## Overview
 Upon reception of an ACK event from the Event Engine (EVe), the counter associated to the corresponding session is initialized to (100ms/MAX_SESSIONS). Next, this counter is decremented every (MAX_SESSIONS) until it reaches zero. At that time, a request to generate an ACK for that session is forwarded to the TxEngine (TXe).
