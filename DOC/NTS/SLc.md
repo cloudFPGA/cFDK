@@ -1,5 +1,5 @@
 # Session Lookup Controller (SLc)
-This document describes the process which provides a front-end interfaces to the Content Addessable Memory (CAM) of the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform. 
+This document describes the process which provides a front-end interfaces to the Content Addessable Memory (CAM) of the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 Every TCP connection is identified by a SessionId and an associated 4-tuple {IP_DA,TCP_DP,IP_SA,TCP_SP} structure. These data are stored in the CAM which content is accessed and managed by the SLc. A block diagram of the **SLc** is depicted in Figure 1.
