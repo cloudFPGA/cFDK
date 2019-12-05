@@ -25,8 +25,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*****************************************************************************
- * @file       : event_engine.cpp
- * @brief      : Event Engine (EVe) of the TCP Offload Engine (TOE)
+ * @file       : timers.cpp
+ * @brief      : Timers (TIm) for the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
