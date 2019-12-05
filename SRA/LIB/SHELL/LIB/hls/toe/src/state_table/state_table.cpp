@@ -183,7 +183,7 @@ void state_table(
     }
     else if (!siTIm_SessCloseCmd.empty() && !stt_closeWait) {
         //-------------------------------------------------
-        //-- REquest to close connection from Timers
+        //-- Request to close connection from Timers
         //-------------------------------------------------
         siTIm_SessCloseCmd.read(stt_closeSessionID);
         if (((stt_closeSessionID == stt_rxSessionID) && stt_rxSessionLocked) || \

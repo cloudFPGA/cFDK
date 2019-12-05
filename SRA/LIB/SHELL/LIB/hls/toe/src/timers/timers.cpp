@@ -54,10 +54,12 @@ using namespace hls;
 #define THIS_NAME "TOE/TIm"
 
 #define TRACE_OFF  0x0000
-#define TRACE_RTT  1 <<  1
+#define TRACE_CLT  1 <<  1
+#define TRACE_PBT  1 <<  2
+#define TRACE_RTT  1 <<  3
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF | TRACE_RTT)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*****************************************************************************
@@ -66,7 +68,8 @@ using namespace hls;
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
-        stream<T>  &so) {
+        stream<T>  &so)
+{
 
 	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -81,23 +84,24 @@ template<typename T> void pStreamMux(
 /*****************************************************************************
  * @brief ReTransmit Timer (Rtt) process.
  *
- * @param[in]      siRXe_ReTxTimerCmd,   Retransmit timer command from [RxEngine].
+ * @param[in]      siRXe_ReTxTimerCmd,   Retransmit timer command from Rx Engine (RXe).
  * @param[in]      siTXe_ReTxTimerEvent, Retransmit timer event from [TxEngine].
  * @param[out]     soEmx_Event,          Event to Event Multiplexer (Emx).
- * @param[out]     soSMx_CloseSessCmd,   Close command to StateTable Mux (Smx).
+ * @param[out]     soSmx_SessCloseCmd,   Close command to State table Mux (Smx).
  * @param[out]     soTAi_Notif,          Notification to Tx Application I/F (TAi).
  * @param[out]     soRAi_Notif,          Notification to Rx Application I/F (RAi).
  *
  * @details
- *  This process receives a session-id and event-type from [TxEngine]. If the
+ *  This process receives a session-id and an event-type from [TXe]. If the
  *   retransmit timer corresponding to this session-id is not active, then it
  *   is activated and its time-out interval is set depending on how often the
- *   session already time-outed. Next, an event is fired back to [TxEnghine],
- *   whenever a timer times-out.
- *  The process also receives a command from [RxEngine] specifying if the timer
- *   of a session must be stopped or loaded with a default time-out value.
+ *   session already time-outed. Next, an event is fired back to [TXe], whenever
+ *   a timer times-out.
+ *  The process also receives a retransmission command from [RXe] specifying if
+ *   the timer of a session must be stopped or loaded with a default time-out
+ *   value.
  *  If a session times-out more than 4 times in a row, it is aborted. A release
- *   command is then sent to [StateTable] and the application is notified
+ *   command is then sent to [STt] and the application is notified.
  *   [FIXME - the application is notified through @param timerNotificationFifoOut].
  *
  *******************************************************************************/
@@ -105,7 +109,7 @@ void pRetransmitTimer(
         stream<RXeReTransTimerCmd>       &siRXe_ReTxTimerCmd,
         stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerEvent,
         stream<Event>                    &soEmx_Event,
-        stream<SessionId>                &soSMx_CloseSessCmd,
+        stream<SessionId>                &soSmx_SessCloseCmd,
         stream<OpenStatus>               &soTAi_Notif,
         stream<AppNotif>                 &soRAi_Notif)
 {
@@ -113,63 +117,73 @@ void pRetransmitTimer(
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    #pragma HLS DATA_PACK variable=soEmx_Event
-    // NOT NEEDED #pragma HLS DATA_PACK variable=soSMx_CloseSessCmd
+    const char *myName = concat3(THIS_NAME, "/", "Rtt");
 
+    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=soEmx_Event  // [TODO - Why do we need this pragma here]
+
+    //-- STATIC ARRAYs --------------------------------------------------------
     static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=RETRANSMIT_TIMER_TABLE inter false
+    #pragma HLS RESET      variable=RETRANSMIT_TIMER_TABLE
 
-    const char *myName  = THIS_NAME;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                rtt_waitForWrite=false;
+    #pragma HLS RESET variable=rtt_waitForWrite
+    static SessionId           rtt_prevPosition=0;
+    #pragma HLS RESET variable=rtt_prevPosition
+    static SessionId           rtt_position=0;
+    #pragma HLS RESET variable=rtt_position
 
-    static bool                     rtt_waitForWrite = false;
-    static SessionId                rtt_position     = 0;
-    static SessionId                rtt_prevPosition = 0;
-    static RXeReTransTimerCmd       rtt_cmd;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static RXeReTransTimerCmd  rtt_rxeCmd;
 
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
     ReTxTimerEntry     currEntry;
     TXeReTransTimerCmd txEvent;
     ap_uint<1>         operationSwitch = 0;
     SessionId          currID;
 
-    if (rtt_waitForWrite && rtt_cmd.sessionID != rtt_prevPosition) {
+    if (rtt_waitForWrite && rtt_rxeCmd.sessionID != rtt_prevPosition) {
         // [TODO - maybe prevprev too]
-        //OBSOLETE-20190181 if (!rtt_cmd.stop)
-        if (rtt_cmd.command == LOAD_TIMER)
-            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].time = TIME_1s;
-        else {
-            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].time   = 0;
-            RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].active = false;
+        if (rtt_rxeCmd.command == LOAD_TIMER) {
+            RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time = TIME_1s;
         }
-        RETRANSMIT_TIMER_TABLE[rtt_cmd.sessionID].retries = 0;
+        else {  //-- STOP the timer
+            RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time   = 0;
+            RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].active = false;
+        }
+        RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].retries = 0;
         rtt_waitForWrite = false;
     }
     //------------------------------------------------
-    // Handle the input streams from [RxEngine]
+    // Handle the input streams from RxEngine
     //------------------------------------------------
     else if (!siRXe_ReTxTimerCmd.empty() && !rtt_waitForWrite) {
         // INFO: Rx path has priority over Tx path
-        siRXe_ReTxTimerCmd.read(rtt_cmd);
+        siRXe_ReTxTimerCmd.read(rtt_rxeCmd);
         rtt_waitForWrite = true;
     }
     else {
         currID = rtt_position;
         //------------------------------------------------
-        // Handle the input streams from [TxEngine]
+        // Handle the input streams from TxEngine
         //------------------------------------------------
         if (!siTXe_ReTxTimerEvent.empty()) {
             siTXe_ReTxTimerEvent.read(txEvent);
             currID = txEvent.sessionID;
             operationSwitch = 1;
             if ( (txEvent.sessionID-3 <  rtt_position) &&
-                 (rtt_position    <= txEvent.sessionID) )
+                 (rtt_position    <= txEvent.sessionID) ) {
                 rtt_position += 5;
+            }
         }
         else {
             // Increment position
             rtt_position++;
-            if (rtt_position >= MAX_SESSIONS)
+            if (rtt_position >= MAX_SESSIONS) {
                 rtt_position = 0;
+            }
             operationSwitch = 0;
         }
 
@@ -177,7 +191,6 @@ void pRetransmitTimer(
         currEntry = RETRANSMIT_TIMER_TABLE[currID];
 
         switch (operationSwitch) {
-
         case 1: // Got an event from [TxEngine]
             currEntry.type = txEvent.type;
             if (!currEntry.active) {
@@ -200,44 +213,49 @@ void pRetransmitTimer(
                 }
             }
             currEntry.active = true;
-            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].active = currEntry.active;
-            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].time   = currEntry.time;
-            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].type   = currEntry.type;
             break;
-
         case 0:
             if (currEntry.active) {
-                if (currEntry.time > 0)
+                if (currEntry.time > 0) {
                     currEntry.time--;
+                }
                 // We need to check if we can generate another event, otherwise we might
-                // end up in a Deadlock since the [TxEngine] will not be able to set new
+                // end up in a Deadlock since the [TXe] will not be able to set new
                 // retransmit timers.
                 else if (!soEmx_Event.full()) {
                     currEntry.time   = 0;
                     currEntry.active = false;
-                    //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].active = currEntry.active;
                     if (currEntry.retries < 4) {
                         currEntry.retries++;
+                        //-- Send timeout event to [TXe]
                         soEmx_Event.write(Event((EventType)currEntry.type,
                                           currID,
                                           currEntry.retries));
                         if (DEBUG_LEVEL & TRACE_RTT) {
-                            if (currEntry.type == RT_EVENT)
-                                printInfo(myName, "Forwarding RT event to [EventEngine].\n");
-                            }
+                        	printInfo(myName, "Forwarding event \'%s\' to [EVe].\n",
+                        			  myEventTypeToString(currEntry.type));
+	                    }
                     }
                     else {
                         currEntry.retries = 0;
-                        soSMx_CloseSessCmd.write(currID);
-                        if (currEntry.type == SYN_EVENT)
+                        soSmx_SessCloseCmd.write(currID);
+                        if (currEntry.type == SYN_EVENT) {
                             soTAi_Notif.write(OpenStatus(currID, FAILED_TO_OPEN_SESS));
-                        else
-                            soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED)); // TIME_OUT??
+                            if (DEBUG_LEVEL & TRACE_RTT) {
+                                printWarn(myName, "Notifying [TAi] - Failed to open session %d (event=\'%s\').\n",
+                                          currID.to_int(), myEventTypeToString(currEntry.type));
+                            }
+                        }
+                        else {
+                            soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED));
+                            if (DEBUG_LEVEL & TRACE_RTT) {
+                                printWarn(myName, "Notifying [RAi] - Session %d timeout (event=\'%s\').\n",
+                                          currID.to_int(), myEventTypeToString(currEntry.type));
+                            }
+                        }
                     }
                 }
             }
-            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].time    = currEntry.time;
-            //OBSOLETE-20190181 RETRANSMIT_TIMER_TABLE[currID].retries = currEntry.retries;
             break;
 
         } // End of: switch
@@ -248,135 +266,182 @@ void pRetransmitTimer(
     }
 }
 
-/*
- *  Reads in the Session-ID and activates. a timer with an interval of 5 seconds. When the timer times out
- *  a RT Event is fired to the @ref tx_engine. In case of a zero-window (or too small window) an RT Event
- *  will generate a packet without payload which is the same as a probing packet.
- *  @param[in]      txEng2timer_setProbeTimer
- *  @param[out]     probeTimer2eventEng_setEvent
- */
+/*******************************************************************************
+ * @brief Probe Timer (Prb) process.
+ *
+ * @param[in]  siRXe_ClrProbeTimer, Clear probe timer command from RxEngine (RXe).
+ * @param[in]  siTXe_SetProbeTimer, Set probe timer from TxEngine (TXe).
+ * @param[out] soEmx_Event,         Event to Event Multiplexer (Emx).
+ *
+ * @details
+ *   This process reads in 'set-' and 'clear-session-id' commands from [RXe]
+ *    and [TXe]. Upon set request, a timer is initialized with an interval of
+ *    of 50ms. When the timer expires, an RT_EVENT is fired to the EventEngine
+ *    via [Emx].
+ *   In case of a zero-window (or too small window) an RT Event will generate
+ *    a packet without payload which is the same as a probing packet.
+ *
+ ******************************************************************************/
 void pProbeTimer(
-		stream<ap_uint<16> >    &rxEng2timer_clearProbeTimer,
-        stream<ap_uint<16> >    &txEng2timer_setProbeTimer,
-        stream<Event>           &probeTimer2eventEng_setEvent)
+        stream<SessionId>    &siRXe_ClrProbeTimer,
+        stream<SessionId>    &siTXe_SetProbeTimer,
+        stream<Event>        &soEmx_Event)
 {
-
-    #pragma HLS DATA_PACK variable=txEng2timer_setProbeTimer
-    #pragma HLS DATA_PACK variable=probeTimer2eventEng_setEvent
-
-    #pragma HLS PIPELINE II=1
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
 
-    static ProbeTimerEntry	probeTimerTable[MAX_SESSIONS];
-    #pragma HLS RESOURCE variable=probeTimerTable core=RAM_T2P_BRAM
-    #pragma HLS DATA_PACK variable=probeTimerTable
-    #pragma HLS DEPENDENCE variable=probeTimerTable inter false
+	//OBSOLETE_20191204 #pragma HLS DATA_PACK variable=txEng2timer_setProbeTimer
+    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=probeTimer2eventEng_setEvent
 
-    static ap_uint<16>      pt_currSessionID = 0;
-    static ap_uint<16>      pt_updSessionID = 0;
-    static ap_uint<16>      pt_prevSessionID = 0;
-    static bool             pt_WaitForWrite = false;
+    const char *myName  = concat3(THIS_NAME, "/", "Pbt");
 
-    ap_uint<16> checkID;
-    bool        fastResume = false;
+    //-- STATIC ARRAYS --------------------------------------------------------
+    static ProbeTimerEntry          PROBE_TIMER_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=PROBE_TIMER_TABLE core=RAM_T2P_BRAM
+    #pragma HLS DATA_PACK  variable=PROBE_TIMER_TABLE
+    #pragma HLS DEPENDENCE variable=PROBE_TIMER_TABLE inter false
 
-    if (pt_WaitForWrite) {
-        if (pt_updSessionID != pt_prevSessionID) {
-            probeTimerTable[pt_updSessionID].time = TIME_50ms;
-            probeTimerTable[pt_updSessionID].active = true;
-            pt_WaitForWrite = false;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                pbt_WaitForWrite=false;
+    #pragma HLS RESET variable=pbt_WaitForWrite
+    static SessionId           pbt_currSessId=0;
+    #pragma HLS RESET variable=pbt_currSessId
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static SessionId    pbt_sessIdToSet;
+    static SessionId    pbt_prevSessId;
+
+    if (pbt_WaitForWrite) {
+        //-- Update the table
+        if (pbt_sessIdToSet != pbt_prevSessId) {
+            PROBE_TIMER_TABLE[pbt_sessIdToSet].time = TIME_50ms;
+            PROBE_TIMER_TABLE[pbt_sessIdToSet].active = true;
+            pbt_WaitForWrite = false;
         }
-        pt_prevSessionID--;
+        pbt_prevSessId--;
     }
-    else if (!txEng2timer_setProbeTimer.empty()) {
-        txEng2timer_setProbeTimer.read(pt_updSessionID);
-        pt_WaitForWrite = true;
+    else if (!siTXe_SetProbeTimer.empty()) {
+        //-- Read the Session-Id to set
+        siTXe_SetProbeTimer.read(pbt_sessIdToSet);
+        pbt_WaitForWrite = true;
     }
-    else { // if (!probeTimer2eventEng_setEvent.full()) this leads to II=2
-        if (!rxEng2timer_clearProbeTimer.empty()) {
-            rxEng2timer_clearProbeTimer.read(checkID);
+    else { // if (!soEmx_Event.full()) this leads to II=2
+        SessionId sessIdToProcess;
+        bool      fastResume = false;
+
+        if (!siRXe_ClrProbeTimer.empty()) {
+            //-- Read the Session-Id to clear
+            siRXe_ClrProbeTimer.read(sessIdToProcess);
             fastResume = true;
         }
         else {
-            (pt_currSessionID == MAX_SESSIONS) ? pt_currSessionID = 0 : pt_currSessionID++;
-            checkID = pt_currSessionID;
-        }
-        // Check if 0, otherwise decrement
-        if (probeTimerTable[checkID].active) {
-            if (fastResume) {
-                probeTimerTable[checkID].active = false;
-                //fastResume = false;
+            sessIdToProcess = pbt_currSessId;
+            if (pbt_currSessId == MAX_SESSIONS) {
+                pbt_currSessId = 0;
             }
-            //if (probeTimerTable[checkID].time == 0 || fastResume) {
-            else if (probeTimerTable[checkID].time == 0 && !probeTimer2eventEng_setEvent.full()) {
-                //probeTimerTable[checkID].time = 0;
-                probeTimerTable[checkID].active = false;
-                probeTimer2eventEng_setEvent.write(Event(TX_EVENT, checkID)); // It's not an RT, we want to resume TX
+            else {
+                pbt_currSessId++;
             }
-            else
-                probeTimerTable[checkID].time -= 1;
         }
-        pt_prevSessionID = checkID;
+
+        if (PROBE_TIMER_TABLE[sessIdToProcess].active && !soEmx_Event.full()) {
+            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 || fastResume) {
+                //-- Clear (de-activate) the current session-ID
+                PROBE_TIMER_TABLE[sessIdToProcess].active = false;
+                #if !(TCP_NODELAY)
+                    soEmx_Event.write(Event(TX_EVENT, sessIdToProcess));
+                #else
+                    soEmx_Event.write(Event(RT_EVENT, sessIdToCheck));
+                #endif
+                fastResume = false;
+            }
+            else {
+                PROBE_TIMER_TABLE[sessIdToProcess].time -= 1;
+            }
+        }
+        pbt_prevSessId = sessIdToProcess;
     }
 }
 
-/*
- *  Reads in Session-IDs, the corresponding is kept in the TIME-WAIT state for 60s before
- *  it gets closed by writing its ID into the closeTimerReleaseFifo.
- *  @param[in]      timer2closeTimer_setTimer, FIFO containing Session-ID of the sessions which are in the TIME-WAIT state
- *  @param[out]     timer2stateTable_releaseState, write Sessions which are closed into this FIFO
- */
+/*******************************************************************************
+ * @brief Close Timer (Clt) process.
+ *
+ * @param[in]  siRXe_CloseTimer,   The session-id that is closing from [RXe].
+ * @param[out] soSmx_SessCloseCmd, Close command to State table Mux (Smx).
+ *
+ * @details
+ *  This process reads in the session-id that is currently closing. This sessId
+ *   is kept in the TIME-WAIT state for an additional 60s before it gets closed.
+ *
+ ******************************************************************************/
 void pCloseTimer(
-		stream<ap_uint<16> >	&rxEng2timer_setCloseTimer,
-		stream<ap_uint<16> >	&closeTimer2stateTable_releaseState)
+		stream<SessionId>    &siRXe_CloseTimer,
+		stream<SessionId>    &soSmx_SessCloseCmd)
 {
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    #pragma HLS DATA_PACK variable=rxEng2timer_setCloseTimer
-    #pragma HLS DATA_PACK variable=closeTimer2stateTable_releaseState
+    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=siRXe_CloseTimer
+	//OBSOLETE_20191204#pragma HLS DATA_PACK variable=soSmx_SessCloseCmd
 
-    static CloseTimerEntry	closeTimerTable[MAX_SESSIONS];
-    #pragma HLS RESOURCE variable=closeTimerTable core=RAM_T2P_BRAM
-    #pragma HLS DATA_PACK variable=closeTimerTable
-    #pragma HLS DEPENDENCE variable=closeTimerTable inter false
+    //-- STATIC ARRAYS --------------------------------------------------------
+    static CloseTimerEntry          CLOSE_TIMER_TABLE[MAX_SESSIONS];
+    #pragma HLS RESOURCE   variable=CLOSE_TIMER_TABLE core=RAM_T2P_BRAM
+    #pragma HLS DATA_PACK  variable=CLOSE_TIMER_TABLE
+    #pragma HLS DEPENDENCE variable=CLOSE_TIMER_TABLE inter false
+    #pragma HLS RESET      variable=CLOSE_TIMER_TABLE
 
-    static ap_uint<16>  ct_currSessionID = 0;
-    static ap_uint<16>  ct_setSessionID = 0;
-    static ap_uint<16>  ct_prevSessionID = 0;
-    static bool         ct_waitForWrite = false;
-    //ap_uint<16> sessionID;
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    static bool                clt_waitForWrite=false;
+    #pragma HLS RESET variable=clt_waitForWrite
+    static SessionId           clt_currSessId=0;
+    #pragma HLS RESET variable=clt_currSessId
+    static SessionId           clt_prevSessId=0;
+    #pragma HLS RESET variable=clt_prevSessId
 
-    if (ct_waitForWrite) {
-        if (ct_setSessionID != ct_prevSessionID) {
-            closeTimerTable[ct_setSessionID].time = TIME_60s;
-            closeTimerTable[ct_setSessionID].active = true;
-            ct_waitForWrite = false;
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static SessionId           clt_sessIdToSet;
+
+    if (clt_waitForWrite) {
+        //-- Update the table
+        if (clt_sessIdToSet != clt_prevSessId) {
+            CLOSE_TIMER_TABLE[clt_sessIdToSet].time = TIME_60s;
+            CLOSE_TIMER_TABLE[clt_sessIdToSet].active = true;
+            clt_waitForWrite = false;
         }
-        ct_prevSessionID--;
+        clt_prevSessId--;
     }
-    else if (!rxEng2timer_setCloseTimer.empty()) {
-        rxEng2timer_setCloseTimer.read(ct_setSessionID);
-        ct_waitForWrite = true;
+    else if (!siRXe_CloseTimer.empty()) {
+        //-- Read the Session-Id to set
+        siRXe_CloseTimer.read(clt_sessIdToSet);
+        clt_waitForWrite = true;
     }
     else {
-        ct_prevSessionID = ct_currSessionID;
-
-        if (closeTimerTable[ct_currSessionID].active) { // Check if 0, otherwise decrement
-            if (closeTimerTable[ct_currSessionID].time > 0)
-                closeTimerTable[ct_currSessionID].time -= 1;
+        clt_prevSessId = clt_currSessId;
+        // Check if timer is 0, otherwise decrement
+        if (CLOSE_TIMER_TABLE[clt_currSessId].active) {
+            if (CLOSE_TIMER_TABLE[clt_currSessId].time > 0) {
+                CLOSE_TIMER_TABLE[clt_currSessId].time -= 1;
+            }
             else {
-                closeTimerTable[ct_currSessionID].time = 0;
-                closeTimerTable[ct_currSessionID].active = false;
-                closeTimer2stateTable_releaseState.write(ct_currSessionID);
+                CLOSE_TIMER_TABLE[clt_currSessId].time = 0;
+                CLOSE_TIMER_TABLE[clt_currSessId].active = false;
+                soSmx_SessCloseCmd.write(clt_currSessId);
             }
         }
-        (ct_currSessionID == MAX_SESSIONS) ? ct_currSessionID = 0 : ct_currSessionID++;
+
+        if (clt_currSessId == MAX_SESSIONS) {
+            clt_currSessId = 0;
+        }
+        else {
+            clt_currSessId++;
+        }
     }
 }
 
-
-/*****************************************************************************
+/******************************************************************************
 * @brief The Timers (TIm) includes all the timer-based processes .
 *
 * @param[in]  siRXe_ReTxTimerCmd,  Retransmission timer command from Rx Engine (RXe).
@@ -387,49 +452,50 @@ void pCloseTimer(
 * @param[out] soEVe_Event,         Event to EventEngine (EVe).
 * @param[out] soSTt_SessCloseCmd,  Close session command to State Table (STt).
 * @param[out] soTAi_Notif,         Notification to Tx Application Interface (TAi).
-* @param[out] soRAi_Notif,         Notification to Rx Application Interface (TAi).
+* @param[out] soRAi_Notif,         Notification to Rx Application Interface (RAi).
 *
-*****************************************************************************/
+*******************************************************************************/
 void timers(
 		stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
 		stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
-		stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
-		stream<ap_uint<16> >       &siTXe_SetProbeTimer,
-		stream<ap_uint<16> >       &siRXe_CloseTimer,
+		stream<SessionId>          &siRXe_ClrProbeTimer,
+		stream<SessionId>          &siTXe_SetProbeTimer,
+		stream<SessionId>          &siRXe_CloseTimer,
 		stream<SessionId>          &soSTt_SessCloseCmd,
 		stream<Event>              &soEVe_Event,
 		stream<OpenStatus>         &soTAi_Notif,
 		stream<AppNotif>           &soRAi_Notif)
 {
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-  //OBSOLETE-20191111 #pragma HLS INLINE
-  #pragma HLS INLINE // off
+  //-- DIRECTIVES FOR THIS PROCESS ---------------------------------------------
+  #pragma HLS INLINE
 
-  static stream<ap_uint<16> > sCloseTimer2Mux_ReleaseState ("sCloseTimer2Mux_ReleaseState");
-  #pragma HLS stream variable=sCloseTimer2Mux_ReleaseState depth=2
+  static stream<SessionId>       ssClsToSmx_SessCloseCmd   ("ssClsToSmx_SessCloseCmd");
+  #pragma HLS stream    variable=ssClsToSmx_SessCloseCmd   depth=2
 
-  static stream<ap_uint<16> > sRttToSmx_SessCloseCmd       ("sRttToSmx_SessCloseCmd");
-  #pragma HLS stream variable=sRttToSmx_SessCloseCmd       depth=2
+  static stream<SessionId>       ssRttToSmx_SessCloseCmd   ("ssRttToSmx_SessCloseCmd");
+  #pragma HLS stream    variable=ssRttToSmx_SessCloseCmd   depth=2
 
-  static stream<Event>        sRttToEmx_Event              ("sRttToEmx_Event");
-  #pragma HLS stream variable=sRttToEmx_Event              depth=2
+  static stream<Event>           ssRttToEmx_Event          ("ssRttToEmx_Event");
+  #pragma HLS stream    variable=ssRttToEmx_Event          depth=2
+  #pragma HLS DATA_PACK variable=ssRttToEmx_Event
 
-  static stream<Event>        sPbToEmx_Event               ("sPbToEmx_Event");
-  #pragma HLS stream variable=sPbToEmx_Event               depth=2
+  static stream<Event>           ssPbtToEmx_Event          ("ssPbtToEmx_Event");
+  #pragma HLS stream    variable=ssPbtToEmx_Event          depth=2
+  #pragma HLS DATA_PACK variable=ssPbtToEmx_Event
 
   // Event Mux (Emx) based on template stream Mux
   //  Notice order --> RetransmitTimer comes before ProbeTimer
   pStreamMux(
-		  sRttToEmx_Event,
-		  sPbToEmx_Event,
+		  ssRttToEmx_Event,
+		  ssPbtToEmx_Event,
 		  soEVe_Event);
 
   // ReTransmit  Timer (Rtt)
   pRetransmitTimer(
 		  siRXe_ReTxTimerCmd,
 		  siTXe_ReTxTimerevent,
-		  sRttToEmx_Event,
-		  sRttToSmx_SessCloseCmd,
+		  ssRttToEmx_Event,
+		  ssRttToSmx_SessCloseCmd,
 		  soTAi_Notif,
 		  soRAi_Notif);
 
@@ -437,16 +503,16 @@ void timers(
   pProbeTimer(
 		  siRXe_ClrProbeTimer,
 		  siTXe_SetProbeTimer,
-		  sPbToEmx_Event);
+		  ssPbtToEmx_Event);
 
   pCloseTimer(
 		  siRXe_CloseTimer,
-		  sCloseTimer2Mux_ReleaseState);
+		  ssClsToSmx_SessCloseCmd);
 
   // State table release Mux (Smx) based on template stream Mux
   pStreamMux(
-		  sCloseTimer2Mux_ReleaseState,
-		  sRttToSmx_SessCloseCmd,
+		  ssClsToSmx_SessCloseCmd,
+		  ssRttToSmx_SessCloseCmd,
 		  soSTt_SessCloseCmd);
 
 }

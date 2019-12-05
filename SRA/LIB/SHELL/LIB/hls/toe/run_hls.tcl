@@ -50,15 +50,11 @@ set hlsRtl       $::env(hlsRtl)
 open_project  ${projectName}_prj
 set_top       ${projectName}
 
-# Add files
+# Add project files
 #-------------------------------------------------
-add_files     ${currDir}/src/${projectName}.cpp
-add_files     ${currDir}/src/${projectName}_utils.cpp
-add_files     ${currDir}/test/test_${projectName}_utils.cpp
-
-add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
-add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
-add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
+add_files ${currDir}/src/${projectName}.cpp
+add_files ${currDir}/src/${projectName}_utils.cpp
+add_files ${currDir}/test/test_${projectName}_utils.cpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
 #OBSOLETE_20191202 add_files ${srcDir}/close_timer/close_timer.cpp
@@ -78,6 +74,12 @@ add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files ${srcDir}/tx_app_stream/tx_app_stream.cpp
 add_files ${srcDir}/tx_engine/src/tx_engine.cpp
 add_files ${srcDir}/tx_sar_table/tx_sar_table.cpp
+
+# Add testbench files
+#-------------------------------------------------
+add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
+add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
+add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 # Create a solution
 #-------------------------------------------------

@@ -948,8 +948,8 @@ void pFiniteStateMachine(
         stream<RXeTxSarQuery>               &soTSt_TxSarQry,
         stream<RXeTxSarReply>               &siTSt_TxSarRep,
         stream<RXeReTransTimerCmd>          &soTIm_ReTxTimerCmd,
-        stream<ap_uint<16> >                &soTIm_ClearProbeTimer,
-        stream<ap_uint<16> >                &soTIm_CloseTimer,
+        stream<SessionId>                   &soTIm_ClearProbeTimer,
+        stream<SessionId>                   &soTIm_CloseTimer,
         stream<OpenStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
         stream<Event>                       &soEVe_Event,
         stream<CmdBool>                     &soTsd_DropCmd,
@@ -1799,8 +1799,8 @@ void rx_engine(
         stream<RXeTxSarReply>           &siTSt_TxSarRep,
 		//-- Timers Interface
         stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
-        stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
-        stream<ap_uint<16> >            &soTIm_CloseTimer,
+        stream<SessionId>               &soTIm_ClearProbeTimer,
+        stream<SessionId>               &soTIm_CloseTimer,
 		//-- Event Engine Interface
         stream<ExtendedEvent>           &soEVe_SetEvent,
 		//-- Tx Application Interface

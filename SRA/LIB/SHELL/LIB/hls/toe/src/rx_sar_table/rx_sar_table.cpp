@@ -90,10 +90,6 @@ void rx_sar_table(
     #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
     #pragma HLS RESET      variable=RX_SAR_TABLE
 
-
-
-
-
     if(!siTXe_RxSarReq.empty()) {
         SessionId sessId;
         // Read only access from the Tx Engine

@@ -849,11 +849,11 @@ void toe(
     #pragma HLS stream       variable=ssRXeToTIm_ReTxTimerCmd    depth=2
     #pragma HLS DATA_PACK    variable=ssRXeToTIm_ReTxTimerCmd
 
-    static stream<ap_uint<16> >       ssRXeToTIm_CloseTimer      ("ssRXeToTIm_CloseTimer");
+    static stream<SessionId>          ssRXeToTIm_CloseTimer      ("ssRXeToTIm_CloseTimer");
     #pragma HLS stream       variable=ssRXeToTIm_CloseTimer      depth=2
 
-    static stream<ap_uint<16> >       ssRXeToTIm_ClrProbeTimer   ("ssRXeToTIm_ClrProbeTimer");
-    // FIXME - No depth for this stream ?
+    static stream<SessionId>          ssRXeToTIm_ClrProbeTimer   ("ssRXeToTIm_ClrProbeTimer");
+    #pragma HLS stream       variable=ssRXeToTIm_ClrProbeTimer   depth=2
 
     static stream<AppNotif>           ssRXeToRAi_Notif           ("ssRXeToRAi_Notif");
     #pragma HLS stream       variable=ssRXeToRAi_Notif           depth=4
@@ -976,7 +976,7 @@ void toe(
     #pragma HLS stream       variable=ssTXeToTIm_SetReTxTimer    depth=2
     #pragma HLS DATA_PACK    variable=ssTXeToTIm_SetReTxTimer
 
-    static stream<ap_uint<16> >       ssTXeToTIm_SetProbeTimer   ("ssTXeToTIm_SetProbeTimer");
+    static stream<SessionId>          ssTXeToTIm_SetProbeTimer   ("ssTXeToTIm_SetProbeTimer");
     #pragma HLS stream       variable=ssTXeToTIm_SetProbeTimer   depth=2
 
     //-------------------------------------------------------------------------
