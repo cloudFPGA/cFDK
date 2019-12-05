@@ -1,5 +1,5 @@
 # Event Engine (EVe)
-Event engine for the **TCP Offload engine (TOE)** used by the *cloudFPGA* platform.
+Event engine for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform.
 
 ## Overview
 The event engine arbitrates the incoming events and forwards them to the Tx Engine (TXe).
