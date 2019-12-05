@@ -1,5 +1,5 @@
 # Rx Engine (RXe)
-This document describes the receive data path of the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform.
+This document describes the receive data path of the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform.
  
 ## Overview
 A block diagram of the **RXe** is depicted in Figure 1.
