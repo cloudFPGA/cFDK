@@ -1,5 +1,5 @@
 # Tx Sar Table (TSt)
-Tx segmentation and re-assembly table for the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform. 
+Tx segmentation and re-assembly table for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The table stores the data structures for managing the TCP Tx buffer and the Tx sliding window.
