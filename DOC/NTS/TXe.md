@@ -1,5 +1,5 @@
 # Tx Engine (TXe)
-This document describes the transmit data path of the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform.
+This document describes the transmit data path of the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform.
  
 ## Overview  
 The Tx Engine (TXe) is responsible for the generation and transmission of IPv4 packets with embedded TCP payload.
