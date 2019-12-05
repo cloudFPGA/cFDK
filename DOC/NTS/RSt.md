@@ -1,5 +1,5 @@
 # Rx Sar Table (RSt)
-Rx segmentation and re-assembly table for the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform. 
+Rx segmentation and re-assembly table for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The table stores the data structures for managing the TCP Rx buffer and the Rx sliding window.
