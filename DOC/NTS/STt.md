@@ -1,5 +1,5 @@
 # State Table (STt)
-TCP state table management for the **TCP Offload engibe (TOE)** used by the *cloudFPGA* platform. 
+TCP state table management for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The state table of the **TCP Offload engibe (TOE)** stores the connection state of each session during its lifetime. 
