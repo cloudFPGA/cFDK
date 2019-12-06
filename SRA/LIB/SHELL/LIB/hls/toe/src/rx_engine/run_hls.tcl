@@ -69,8 +69,9 @@ add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
 add_files -tb ${currDir}/../../../toe/src/port_table/port_table.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_engine/src/tx_engine.cpp
-add_files -tb ${currDir}/../../../toe/src/rx_app_if/rx_app_if.cpp
-add_files -tb ${currDir}/../../../toe/src/rx_app_stream_if/rx_app_stream_if.cpp
+#OBSOLETE_20191206 add_files -tb ${currDir}/../../../toe/src/rx_app_if/rx_app_if.cpp
+#OBSOLETE_20191206 add_files -tb ${currDir}/../../../toe/src/rx_app_stream_if/rx_app_stream_if.cpp
+add_files -tb ${currDir}/../../../toe/src/rx_app_interface/rx_app_interface.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_app_interface/tx_app_interface.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_app_stream/tx_app_stream.cpp
 

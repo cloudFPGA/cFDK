@@ -51,9 +51,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rx_engine/src/rx_engine.hpp"
 #include "tx_engine/src/tx_engine.hpp"
-
-#include "rx_app_if/rx_app_if.hpp"
-#include "rx_app_stream_if/rx_app_stream_if.hpp"
+//OBSOLETE_20191206 #include "rx_app_if/rx_app_if.hpp"
+//OBSOLETE_20191206 #include "rx_app_stream_if/rx_app_stream_if.hpp"
+#include "rx_app_interface/rx_app_interface.hpp"
 #include "tx_app_interface/tx_app_interface.hpp"
 
 /************************************************
@@ -93,88 +93,6 @@ template<typename T> void pStreamMux(
     else if (!si2.empty())
         so.write(si2.read());
 }
-
-
-/*****************************************************************************
- * @brief This a wrapper for the timer processes (TIm).
- *
- * @param[in]  siRXe_ReTxTimerCmd,  Retransmission timer command from [RxEngine].
- * @param[in]  siTXe_ReTxTimerevent,Retransmission timer event from [TxEngine].
- * @param[in]  siRXe_ClrProbeTimer, Clear probe timer from [RXe].
- * @param[in]  siTXe_SetProbeTimer, Set probe timer from [TXe].
- * @param[in]  siRXe_CloseTimer,    Close timer from [RXe].
- * @param[out] soEVe_Event,         Event to [EventEngine].
- * @param[out] soSTt_SessCloseCmd,  Close session command to StateTable (STt).
- * @param[out] soTAi_Notif,         Notification to [TxApplicationInterface].
-   @param[out] soRAi_Notif,         Notification to [RxApplicationInterface].
- *
- * @details
- *
- * @todo [TODO - Consider creating a dedicated file.]
- *
- *****************************************************************************/
-
-/*** OBSOLETE_20191202 *******************
-void pTimers(
-        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
-        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
-        stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
-        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
-        stream<ap_uint<16> >       &siRXe_CloseTimer,
-        stream<SessionId>          &soSTt_SessCloseCmd,
-        stream<Event>              &soEVe_Event,
-        stream<OpenStatus>         &soTAi_Notif,
-        stream<AppNotif>           &soRAi_Notif)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE-20191111 #pragma HLS INLINE
-    #pragma HLS INLINE // off
-
-    static stream<ap_uint<16> > sCloseTimer2Mux_ReleaseState ("sCloseTimer2Mux_ReleaseState");
-    #pragma HLS stream variable=sCloseTimer2Mux_ReleaseState depth=2
-
-    static stream<ap_uint<16> > sRttToSmx_SessCloseCmd       ("sRttToSmx_SessCloseCmd");
-    #pragma HLS stream variable=sRttToSmx_SessCloseCmd       depth=2
-
-    static stream<Event>        sRttToEmx_Event              ("sRttToEmx_Event");
-    #pragma HLS stream variable=sRttToEmx_Event              depth=2
-
-    static stream<Event>        sPbToEmx_Event               ("sPbToEmx_Event");
-    #pragma HLS stream variable=sPbToEmx_Event               depth=2
-
-    // Event Mux (Emx) based on template stream Mux
-    //  Notice order --> RetransmitTimer comes before ProbeTimer
-    pStreamMux(
-            sRttToEmx_Event,
-            sPbToEmx_Event,
-            soEVe_Event);
-
-    // ReTransmit  Timer (Rtt)
-    pRetransmitTimer(
-            siRXe_ReTxTimerCmd,
-            siTXe_ReTxTimerevent,
-            sRttToEmx_Event,
-            sRttToSmx_SessCloseCmd,
-            soTAi_Notif,
-            soRAi_Notif);
-
-    // Probe Timer (Pbt)
-    probe_timer(
-            siRXe_ClrProbeTimer,
-            siTXe_SetProbeTimer,
-            sPbToEmx_Event);
-
-    close_timer(
-            siRXe_CloseTimer,
-            sCloseTimer2Mux_ReleaseState);
-
-    // State table release Mux (Smx) based on template stream Mux
-    pStreamMux(
-            sCloseTimer2Mux_ReleaseState,
-            sRttToSmx_SessCloseCmd,
-            soSTt_SessCloseCmd);
-}
-***************************************/
 
 /******************************************************************************
  * @brief [TODO]
@@ -391,6 +309,8 @@ void rxAppMemDataRead(
  * @param[in]  siMEM_RxP_Data,        Rx memory data from MEM.
  *
  ******************************************************************************/
+
+/*** OBSOLETE_20191202 *******************
 void rx_app_interface(
         stream<AppNotif>            &soTRIF_Notif,
         stream<AppRdReq>            &siTRIF_DataReq,
@@ -448,6 +368,7 @@ void rx_app_interface(
             siTIm_Notif,
             soTRIF_Notif);
 }
+*****************************************/
 
 /******************************************************************************
  * @brief The Ready (Rdy) process generates the ready signal of the TOE.

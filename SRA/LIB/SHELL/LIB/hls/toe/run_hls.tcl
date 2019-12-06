@@ -62,8 +62,9 @@ add_files ${srcDir}/event_engine/event_engine.cpp
 add_files ${srcDir}/port_table/port_table.cpp
 #OBSOLETE_20191202 add_files ${srcDir}/probe_timer/probe_timer.cpp
 #OBSOLETE_20191202 add_files ${srcDir}/retransmit_timer/retransmit_timer.cpp
-add_files ${srcDir}/rx_app_if/rx_app_if.cpp
-add_files ${srcDir}/rx_app_stream_if/rx_app_stream_if.cpp
+add_files ${srcDir}/rx_app_interface/rx_app_interface.cpp
+#OBSOLETE_20191206 add_files ${srcDir}/rx_app_if/rx_app_if.cpp
+#OBSOLETE_20191206 add_files ${srcDir}/rx_app_stream_if/rx_app_stream_if.cpp
 add_files ${srcDir}/rx_engine/src/rx_engine.cpp
 add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
