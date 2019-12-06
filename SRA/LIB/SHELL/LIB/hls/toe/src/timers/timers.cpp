@@ -291,9 +291,6 @@ void pProbeTimer(
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
-	//OBSOLETE_20191204 #pragma HLS DATA_PACK variable=txEng2timer_setProbeTimer
-    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=probeTimer2eventEng_setEvent
-
     const char *myName  = concat3(THIS_NAME, "/", "Pbt");
 
     //-- STATIC ARRAYS --------------------------------------------------------
@@ -301,34 +298,37 @@ void pProbeTimer(
     #pragma HLS RESOURCE   variable=PROBE_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DATA_PACK  variable=PROBE_TIMER_TABLE
     #pragma HLS DEPENDENCE variable=PROBE_TIMER_TABLE inter false
+    #pragma HLS RESET      variable=PROBE_TIMER_TABLE
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static bool                pbt_WaitForWrite=false;
     #pragma HLS RESET variable=pbt_WaitForWrite
     static SessionId           pbt_currSessId=0;
     #pragma HLS RESET variable=pbt_currSessId
+    static SessionId           pbt_updtSessId=0;
+    #pragma HLS RESET variable=pbt_updtSessId
+    static SessionId           pbt_prevSessId=0;
+    #pragma HLS RESET variable=pbt_prevSessId
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static SessionId    pbt_sessIdToSet;
-    static SessionId    pbt_prevSessId;
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    bool      fastResume = false;
 
     if (pbt_WaitForWrite) {
         //-- Update the table
-        if (pbt_sessIdToSet != pbt_prevSessId) {
-            PROBE_TIMER_TABLE[pbt_sessIdToSet].time = TIME_50ms;
-            PROBE_TIMER_TABLE[pbt_sessIdToSet].active = true;
+        if (pbt_updtSessId != pbt_prevSessId) {
+            PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_50ms;
+            PROBE_TIMER_TABLE[pbt_updtSessId].active = true;
             pbt_WaitForWrite = false;
         }
         pbt_prevSessId--;
     }
     else if (!siTXe_SetProbeTimer.empty()) {
         //-- Read the Session-Id to set
-        siTXe_SetProbeTimer.read(pbt_sessIdToSet);
+        siTXe_SetProbeTimer.read(pbt_updtSessId);
         pbt_WaitForWrite = true;
     }
     else { // if (!soEmx_Event.full()) this leads to II=2
-        SessionId sessIdToProcess;
-        bool      fastResume = false;
+        SessionId sessIdToProcess = pbt_currSessId;
 
         if (!siRXe_ClrProbeTimer.empty()) {
             //-- Read the Session-Id to clear
@@ -336,12 +336,9 @@ void pProbeTimer(
             fastResume = true;
         }
         else {
-            sessIdToProcess = pbt_currSessId;
+            pbt_currSessId++;
             if (pbt_currSessId == MAX_SESSIONS) {
                 pbt_currSessId = 0;
-            }
-            else {
-                pbt_currSessId++;
             }
         }
 
@@ -352,7 +349,7 @@ void pProbeTimer(
                 #if !(TCP_NODELAY)
                     soEmx_Event.write(Event(TX_EVENT, sessIdToProcess));
                 #else
-                    soEmx_Event.write(Event(RT_EVENT, sessIdToCheck));
+                    soEmx_Event.write(Event(RT_EVENT, sessIdToProcess));
                 #endif
                 fastResume = false;
             }
@@ -382,9 +379,6 @@ void pCloseTimer(
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
-
-    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=siRXe_CloseTimer
-	//OBSOLETE_20191204#pragma HLS DATA_PACK variable=soSmx_SessCloseCmd
 
     //-- STATIC ARRAYS --------------------------------------------------------
     static CloseTimerEntry          CLOSE_TIMER_TABLE[MAX_SESSIONS];
