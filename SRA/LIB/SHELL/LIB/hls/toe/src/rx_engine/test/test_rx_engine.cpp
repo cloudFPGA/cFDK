@@ -59,8 +59,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../../../toe/src/tx_engine/src/tx_engine.hpp"
 
-#include "../../../../toe/src/rx_app_if/rx_app_if.hpp"
-#include "../../../../toe/src/rx_app_stream_if/rx_app_stream_if.hpp"
+//OBSOLETE_20191207 #include "../../../../toe/src/rx_app_if/rx_app_if.hpp"
+//OBSOLETE_20191207 #include "../../../../toe/src/rx_app_stream_if/rx_app_stream_if.hpp"
 #include "../../../../toe/src/tx_app_interface/tx_app_interface.hpp"
 
 
