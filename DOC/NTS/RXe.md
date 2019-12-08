@@ -19,7 +19,7 @@ it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**
 | **IPRX**        | IP RX Interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp) 
 | **MEM**         | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
 | **PRt**         | Port Table interface.                                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)  
-| **RAi**         | Rx Application interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_if/rx_app_if.cpp)
+| **RAi**         | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
 | **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
 | **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 | **STt**         | State Table interface                                 | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)  
