@@ -14,7 +14,7 @@ The port table of the **TCP Offload engibe (TOE)** keeps track of the TCP port n
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **RAi**        | Rx Application interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_if/rx_app_if.cpp)
+|  **RAi**        | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
 |  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
 |  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 |  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
