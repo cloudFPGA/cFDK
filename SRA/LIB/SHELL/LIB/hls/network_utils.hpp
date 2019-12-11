@@ -144,9 +144,30 @@ typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 #define CMD_INIT  1
 
+/*************************************************************************
+ * GLOBAL DEFINES and GENERIC TYPES
+ *************************************************************************/
+#define cIP4_ADDR_WIDTH            32
+
+#define cTCP_PORT_WIDTH            16
+
+#define cSHL_TOE_SESS_ID_WIDTH     16   // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_ACK_WIDTH      1   // [TODO - Move into a CFG file.]
+#define cSHL_TOE_LSN_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
+#define cSHL_TOE_OPN_REQ_WIDTH    (cIP4_ADDR_WIDTH + cTCP_PORT_WIDTH)
+#define cSHL_TOE_CLS_REQ_WIDTH     cSHL_TOE_SESS_ID_WIDTH
+
+typedef ap_uint<cSHL_TOE_SESS_ID_WIDTH> SessionId;
+typedef ap_uint<cSHL_TOE_LSN_ACK_WIDTH> LsnAck;
+typedef ap_uint<cSHL_TOE_LSN_REQ_WIDTH> LsnReq;
+typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
+typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
+
+
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/
+
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 
@@ -158,6 +179,28 @@ typedef bool RspBit;  // Response   : Used when a reply does not go back to the 
 typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
+
+//TODO: fix paralell declaration
+//typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+//typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+//typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+//typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
+//typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+//typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+//typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
+//typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
+typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+//typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
+//
+//typedef bool AckBool; // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+//typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+//typedef bool ReqBool; // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+//typedef bool RepBool; // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+//typedef bool RspBool; // Response   : Used when a reply does not go back to the source of the stimulus.
+//typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+//typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+//typedef bool ValBool;  // Valid bit  : Must go along with something to validate/invalidate.
+
 
 
 /********************************************
@@ -1109,6 +1152,16 @@ struct appReadRequest
  *  data transfer.
  ***********************************************/
 typedef ap_int<17>  AppWrSts;
+//TODO: this definiton creates two streams...
+//class AppWrSts
+//{
+//  public:
+//    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+//    StsBit       status;  // OK=1
+//    AppWrSts() {}
+//    AppWrSts(StsBit sts, TcpSegLen len) :
+//        status(sts), segLen(len) {}
+//};
 
 /***********************************************
  * Application Data
@@ -1149,6 +1202,14 @@ typedef TcpPort     AppLsnReq;
  *  TCP listening port request.
  ***********************************************/
 typedef AckBit      AppLsnAck;
+
+////TODO fix parallel declaration
+//class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
+//  public:
+//    AppLsnAckAxis() {}
+//    AppLsnAckAxis(AppLsnAck ack) :
+//        Axis<cSHL_TOE_LSN_ACK_WIDTH>(ack) {}
+//};
 
 /***********************************************
  * Application Close Request
