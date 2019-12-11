@@ -415,7 +415,7 @@ void pInsertPseudoHeader(
 }
 
 /*****************************************************************************
- * @brief TCP checksum accumulator (csa).
+ * @brief TCP checksum accumulator (Csa).
  *
  * @param[in]  siIph_TcpSeg,   A pseudo TCP segment from InsertPseudoHeader (Iph).
  * @param[out] soTid_Data,     TCP data stream to TcpInvalidDropper (Tid).

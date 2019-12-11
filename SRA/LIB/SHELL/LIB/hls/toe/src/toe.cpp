@@ -94,14 +94,7 @@ template<typename T> void pStreamMux(
         so.write(si2.read());
 }
 
-/******************************************************************************
- * @brief [TODO]
- *
- * @param[in]
- * @param[out] soMEM_RxP_RdCmd,       Rx memory read command to MEM.
- * @param[in]
- *
- ******************************************************************************/
+/*** OBSOLETE_20191209 ****************
 void rxAppMemAccessBreakdown(
         stream<DmCmd>        &inputMemAccess,
         stream<DmCmd>        &soMEM_RxP_RdCmd,
@@ -144,14 +137,9 @@ void rxAppMemAccessBreakdown(
         }
     }
 }
+*****************************/
 
-/******************************************************************************
- * @brief [TODO]
- *
- * @param[in]  siMEM_RxP_Data,  Rx memory data from MEM.
- * @param[out] soTRIF_Data,     TCP data stream to TRIF.
- *
- ******************************************************************************/
+/*** OBSOLETE_20191209 ****************
 void rxAppMemDataRead(
         stream<AxiWord>     &siMEM_RxP_Data,
         stream<AxiWord>     &soTRIF_Data,
@@ -287,28 +275,7 @@ void rxAppMemDataRead(
         break;
     }
 }
-
-
-/*****************************************************************************
- * @brief Rx Application Interface (RAi).
- *          [TODO - Consider merging with rx_app_if]
- *
- * @param[out] soTRIF_Notif,          Tells the APP that data are available in the TCP Rx buffer.
- * @param[in]  siTRIF_DataReq,        Data request from TcpRoleInterface (TRIF).
- * @param[out] soTRIF_Data,           TCP data stream to TRIF.
- * @param[out] soTRIF_Meta,           Metadata to TRIF.
- * @param[in]  siTRIF_LsnReq,         TCP listen port request from [TRIF].
- * @param[out] soTRIF_LsnAck,         TCP listen port acknowledge to [TRIF].
- * @param[out] soPRt_LsnReq,          TCP listen port acknowledge from [PRt].
- * @param[in]  siPRt_LsnAck,          Port state reply from [PRt].
- * @param[in]  siRXe_Notif,           Notification from [RXe].
- * @param
- * @param
- * @param
- * @param[out] soMEM_RxP_RdCmd,       Rx memory read command to MEM.
- * @param[in]  siMEM_RxP_Data,        Rx memory data from MEM.
- *
- ******************************************************************************/
+*** OBSOLETE_20191209 ****************/
 
 /*** OBSOLETE_20191202 *******************
 void rx_app_interface(

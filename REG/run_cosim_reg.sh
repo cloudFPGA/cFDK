@@ -57,6 +57,7 @@ make cosim
 exit_on_error $? 
 
 cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine
+make clean
 make cosim
 exit_on_error $? 
 

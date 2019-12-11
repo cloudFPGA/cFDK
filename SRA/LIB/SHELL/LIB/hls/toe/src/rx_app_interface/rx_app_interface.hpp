@@ -46,7 +46,7 @@ using namespace hls;
  *
  *****************************************************************************/
 void rx_app_interface(
-        //-- TRIF / Notification Interfaces
+        //-- TRIF / Handshake Interfaces
         stream<AppNotif>            &soTRIF_Notif,
         stream<AppRdReq>            &siTRIF_DataReq,
         //-- TRIF / Data Stream Interfaces
