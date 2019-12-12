@@ -538,10 +538,10 @@ enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
 void pFMC(
         //-- TRIF / Rx Data Interface
         stream<NetworkWord>     &siTRIF_Data,
-        stream<AppMeta>     &siTRIF_SessId,
+        stream<Axis<16> >     &siTRIF_SessId,
         //-- TRIF / Tx Data Interface
         stream<NetworkWord>     &soTRIF_Data,
-        stream<AppMeta>     &soTRIF_SessId)
+        stream<Axis<16> >     &soTRIF_SessId)
 {
     NetworkWord currWord;
     AppMeta     tcpSessId;
@@ -552,7 +552,7 @@ void pFMC(
     switch (rxFsmState ) {
     case RX_WAIT_META:
         if (!siTRIF_SessId.empty() and !soTRIF_SessId.full()) {
-            siTRIF_SessId.read(tcpSessId);
+            tcpSessId = siTRIF_SessId.read().tdata;
             soTRIF_SessId.write(tcpSessId);
             rxFsmState  = RX_STREAM;
         }
