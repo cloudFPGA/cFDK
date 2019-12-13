@@ -23,7 +23,7 @@ SRC_DEPS += ../network_utils.hpp ../network_utils.cpp
 
 REF_DEPS = $(shell find ./ref/ -type f)
 
-.PHONY: all clean sim cosim cosim_view
+.PHONY: all clean csim cosim cosim_view
 
 all: ${ipName}_prj/solution1/impl/ip
 
@@ -40,7 +40,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS) $(REF_DEPS)
 
 
 
-sim: clean
+csim: clean
 	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
 
 
