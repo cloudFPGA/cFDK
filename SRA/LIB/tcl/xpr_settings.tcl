@@ -42,7 +42,7 @@ set ipDir        ${cFpIpDir}
 set tcpTopDir    ${cFpRootDir}/TOP/tcl/
 #set xdcDir       ${rootDir}/xdc
 #set xdcDir       ../../../MOD/${cFpMOD}/xdc/
-set xdcDir       ${cFpRootDir}cFDK/MOD/${cFpMOD}/xdc/
+set xdcDir       ${cFpRootDir}/cFDK/MOD/${cFpMOD}/xdc/
 #set xprDir       ${rootDir}/xpr 
 set xprDir       ${cFpXprDir}
 #set dcpDir       ${rootDir}/dcps
