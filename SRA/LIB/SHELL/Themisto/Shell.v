@@ -19,8 +19,8 @@
 
 module Shell_Themisto # (
 
-  parameter gSecurityPriviledges = "user",  // "user" or "super"
-  parameter gBitstreamUsage      = "user",  // "user" or "flash"
+  parameter gSecurityPriviledges = "super", // "user" or "super"
+  parameter gBitstreamUsage      = "flash", // "user" or "flash"
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
 
@@ -63,7 +63,7 @@ module Shell_Themisto # (
   //------------------------------------------------------
   //-- LED / Heart Beat Interface (Yellow LED)
   //------------------------------------------------------
-  output          poTOP_Led_HeartBeat_n,
+  output          poLED_HeartBeat_n,
 
   //------------------------------------------------------
   // -- DDR4 / Memory Channel 0 Interface (Mc0)
@@ -112,7 +112,6 @@ module Shell_Themisto # (
   //------------------------------------------------------
   //-- ROLE / Reset and Clock Interfaces
   //------------------------------------------------------
-  input           piTOP_156_25Rst_delayed,  // Soft Reset
   output          poROL_156_25Clk,
   output          poROL_156_25Rst,
 
@@ -246,6 +245,10 @@ module Shell_Themisto # (
   //--------------------------------------------------------
   //-- ROLE / Mmio / AppFlash Interface
   //--------------------------------------------------------
+  //---- [PHY_RESET] -------------------
+  output          poROL_Mmio_Ly7Rst,
+  //---- [PHY_ENABLE] ------------------
+  output          poROL_Mmio_Ly7En,
   //---- [DIAG_CTRL_1] -----------------
   output [ 1: 0]  poROL_Mmio_Mc1_MemTestCtrl,
   //---- [DIAG_STAT_1] -----------------
@@ -289,6 +292,10 @@ module Shell_Themisto # (
   (* keep="true" *)
   wire          sETH0_ShlRst;
   wire          sETH0_CoreResetDone;  
+   
+  //-- SoftReset & SoftEnable Signals ---------------------
+  wire  [ 7:0]  sMMIO_LayerRst;
+  wire  [ 7:0]  sMMIO_LayerEn;  
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ETH[0] <--> NTS[0] 
@@ -367,68 +374,6 @@ module Shell_Themisto # (
   wire          ssNTS0_MEM_RxP_Write_tlast;
   wire          ssNTS0_MEM_RxP_Write_tvalid;
   wire          ssNTS0_MEM_RxP_Write_tready;
-
-  //--------------------------------------------------------
-  //-- SIGNAL DECLARATIONS : ROLE <--> MEM
-  //--------------------------------------------------------
-  //-- Memory Port #0 ------------------------------
-  //------  Stream Read Command --------
-//  wire [ 79:0]  ssROL_MEM_Mp0_RdCmd_tdata;
-//  wire          ssROL_MEM_Mp0_RdCmd_tvalid;
-//  wire          ssROL_MEM_Mp0_RdCmd_tready;
-//  //------ Stream Read Status ----------
-//  wire [  7:0]  sMEM_Rol_Mp0_RdSts_tdata;
-//  wire          sMEM_Rol_Mp0_RdSts_tvalid;
-//  wire          sROL_Mem_Mp0_RdSts_tready;
-//  //------ Stream Data Output Channel --
-//  wire [511:0]  sMEM_Rol_Mp0_Read_tdata;
-//  wire [ 63:0]  sMEM_Rol_Mp0_Read_tkeep;
-//  wire          sMEM_Rol_Mp0_Read_tlast;
-//  wire          sMEM_Rol_Mp0_Read_tvalid;
-//  wire          sROL_Mem_Mp0_Read_tready;
-//  //------ Stream Write Command --------
-//  wire [ 79:0]  ssROL_MEM_Mp0_WrCmd_tdata;
-//  wire          ssROL_MEM_Mp0_WrCmd_tvalid;
-//  wire          ssROL_MEM_Mp0_WrCmd_tready;
-//  //------ Stream Write Status ---------
-//  wire [  7:0]  sMEM_Rol_Mp0_WrSts_tdata;
-//  wire          sMEM_Rol_Mp0_WrSts_tvalid;
-//  wire          sROL_Mem_Mp0_WrSts_tready;
-//  //------ Stream Data Input Channel ---
-//  wire [511:0]  ssROL_MEM_Mp0_Write_tdata;
-//  wire [ 63:0]  ssROL_MEM_Mp0_Write_tkeep;
-//  wire          ssROL_MEM_Mp0_Write_tlast;
-//  wire          ssROL_MEM_Mp0_Write_tvalid;
-//  wire          ssROL_MEM_Mp0_Write_tready;
-//  //---- Receive Path ----------------------------
-//  //------ Stream Read Command ---------
-//  wire [ 79:0]  ssROL_MEM_Mp1_RdCmd_tdata;
-//  wire          ssROL_MEM_Mp1_RdCmd_tvalid;
-//  wire          ssROL_MEM_Mp1_RdCmd_tready;
-//  //------ Stream Read Status ----------
-//  wire [  7:0]  sMEM_Rol_Mp1_RdSts_tdata;
-//  wire          sMEM_Rol_Mp1_RdSts_tvalid;
-//  wire          sROL_Mem_Mp1_RdSts_tready;
-//  //------ Stream Data Output Channel --
-//  wire [511:0]  sMEM_Rol_Mp1_Read_tdata;
-//  wire [ 63:0]  sMEM_Rol_Mp1_Read_tkeep;
-//  wire          sMEM_Rol_Mp1_Read_tlast;
-//  wire          sMEM_Rol_Mp1_Read_tvalid;
-//  wire          sROL_Mem_Mp1_Read_tready;
-//  //------ Stream Write Command --------
-//  wire [ 79:0]  ssROL_MEM_Mp1_WrCmd_tdata;
-//  wire          ssROL_MEM_Mp1_WrCmd_tvalid;
-//  wire          ssROL_MEM_Mp1_WrCmd_tready;
-//  //------ Stream Write Status ---------
-//  wire [  7:0]  sMEM_Rol_Mp1_WrSts_tdata;
-//  wire          sMEM_Rol_Mp1_WrSts_tvalid;
-//  wire          sROL_Mem_Mp1_WrSts_tready;
-//  //------ Stream Data Input Channel ---
-//  wire [511:0]  ssROL_MEM_Mp1_Write_tdata;
-//  wire [ 63:0]  ssROL_MEM_Mp1_Write_tkeep;
-//  wire          ssROL_MEM_Mp1_Write_tlast;
-//  wire          ssROL_MEM_Mp1_Write_tvalid;
-//  wire          ssROL_MEM_Mp1_Write_tready;
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ROLE <--> NTS0
@@ -513,7 +458,7 @@ module Shell_Themisto # (
   wire        ssFMC_HWICAP_Axi_awvalid;
   wire        ssFMC_HWICAP_Axi_awready;
   wire [31:0] ssFMC_HWICAP_Axi_wdata;
-  wire        ssFMC_HWICAP_Axi_wstrb;
+  wire [ 3:0] ssFMC_HWICAP_Axi_wstrb;
   wire        ssFMC_HWICAP_Axi_wvalid;
   wire        ssFMC_HWICAP_Axi_wready;
   wire [ 1:0] ssFMC_HWICAP_Axi_bresp;
@@ -626,7 +571,7 @@ module Shell_Themisto # (
   wire          ssNRC_TOE_Tcp_OpnReq_tvalid;
   wire          ssNRC_TOE_Tcp_OpnReq_tready;
   //---- Stream TCP Close Request ------------
-  wire [ 47:0]  ssNRC_TOE_Tcp_ClsReq_tdata;
+  wire [ 15:0]  ssNRC_TOE_Tcp_ClsReq_tdata;
   wire          ssNRC_TOE_Tcp_ClsReq_tvalid;
   wire          ssNRC_TOE_Tcp_ClsReq_tready;
   //---- Stream TCP Listen Request -----------
@@ -652,11 +597,11 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_Notif_tvalid;
   wire          ssTOE_NRC_Tcp_Notif_tready;
   //---- Stream TCP Open Session Status ------
-  wire  [ 47:0] ssTOE_NRC_Tcp_OpnRep_tdata;
+  wire  [ 23:0] ssTOE_NRC_Tcp_OpnRep_tdata;
   wire          ssTOE_NRC_Tcp_OpnRep_tvalid;
   wire          ssTOE_NRC_Tcp_OpnRep_tready;
   //---- Stream TCP Listen Status ------------
-  wire  [ 47:0] ssTOE_NRC_Tcp_LsnAck_tdata;
+  wire  [  7:0] ssTOE_NRC_Tcp_LsnAck_tdata;
   wire          ssTOE_NRC_Tcp_LsnAck_tvalid;
   wire          ssTOE_NRC_Tcp_LsnAck_tready;
   
@@ -850,7 +795,7 @@ module Shell_Themisto # (
   ) MMIO (
 
     //----------------------------------------------
-    //-- Global Clock & Reset
+    //-- Global Clock & Reset Inputs
     //----------------------------------------------
     .piSHL_Clk                      (sETH0_ShlClk),
     .piTOP_Rst                      (piTOP_156_25Rst),
@@ -903,6 +848,10 @@ module Shell_Themisto # (
     //----------------------------------------------
     //-- ROLE : Status input and Control Outputs
     //----------------------------------------------
+    //---- [PHY_RESET] -------------
+    .poSHL_ResetLayer               (sMMIO_LayerRst),
+    //---- [PHY_ENABLE] ------------
+    .poSHL_EnableLayer              (sMMIO_LayerEn),
     //---- DIAG_CTRL_1 ---------------
     .poROLE_Mc1_MemTestCtrl         (sMMIO_ROL_Mc1_MemTestCtrl),
     //---- DIAG_STAT_1 ---------------
@@ -969,39 +918,37 @@ module Shell_Themisto # (
       .piTOP_Reset                  (piTOP_156_25Rst),
 
       //-- Clocks and Resets outputs ---------------
-      .poETH0_CoreClk               (sETH0_ShlClk),
-      .poETH0_CoreResetDone         (sETH0_CoreResetDone),
+      .poSHL_CoreClk                (sETH0_ShlClk),
+      .poSHL_CoreResetDone          (sETH0_CoreResetDone),
 
       //-- MMIO : Control inputs and Status outputs
-      .piMMIO_Eth0_RxEqualizerMode  (sMMIO_ETH0_RxEqualizerMode),
-      .piMMIO_Eth0_TxDriverSwing    (sMMIO_ETH0_TxDriverSwing),
-      .piMMIO_Eth0_TxPreCursor      (sMMIO_ETH0_TxPreCursor),
-      .piMMIO_Eth0_TxPostCursor     (sMMIO_ETH0_TxPostCursor),
-      .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_ETH0_PcsLoopbackEn),
-      .piMMIO_Eth0_MacLoopbackEn    (sMMIO_ETH0_MacLoopbackEn),
-      .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
-      .poETH0_Mmio_CoreReady        (sETH0_MMIO_CoreReady),
-      .poETH0_Mmio_QpllLock         (sETH0_MMIO_QpllLock),
+      .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
+      .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
+      .piMMIO_TxPreCursor           (sMMIO_ETH0_TxPreCursor),
+      .piMMIO_TxPostCursor          (sMMIO_ETH0_TxPostCursor),
+      .piMMIO_PcsLoopbackEn         (sMMIO_ETH0_PcsLoopbackEn),
+      .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
+      .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
 
       //-- ECON : Gigabit Transceivers -------------
-      .piECON_Eth0_Gt_n             (piECON_Eth_10Ge0_n),
-      .piECON_Eth0_Gt_p             (piECON_Eth_10Ge0_p),
-      .poETH0_Econ_Gt_n             (poECON_Eth_10Ge0_n),
-      .poETH0_Econ_Gt_p             (poECON_Eth_10Ge0_p),
+      .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
+      .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
+      .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
+      .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
 
-      //-- NTS0: Network-Transport-Session ---------
+      //-- NTS0 : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
-      .piLY3_Eth0_Axis_tdata        (ssNTS0_ETH0_Data_tdata),
-      .piLY3_Eth0_Axis_tkeep        (ssNTS0_ETH0_Data_tkeep),
-      .piLY3_Eth0_Axis_tvalid       (ssNTS0_ETH0_Data_tvalid),
-      .piLY3_Eth0_Axis_tlast        (ssNTS0_ETH0_Data_tlast),
-      .poETH0_Ly3_Axis_tready       (ssNTS0_ETH0_Data_tready),
+      .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
+      .siLY3_Data_tkeep             (ssNTS0_ETH0_Data_tkeep),
+      .siLY3_Data_tvalid            (ssNTS0_ETH0_Data_tvalid),
+      .siLY3_Data_tlast             (ssNTS0_ETH0_Data_tlast),
+      .siLY3_Data_tready            (ssNTS0_ETH0_Data_tready),
       //---- Output AXI-Write Stream Interface -----
-      .poETH0_Ly3_Axis_tdata        (ssETH0_NTS0_Data_tdata),
-      .poETH0_Ly3_Axis_tkeep        (ssETH0_NTS0_Data_tkeep),
-      .poETH0_Ly3_Axis_tvalid       (ssETH0_NTS0_Data_tvalid),
-      .poETH0_Ly3_Axis_tlast        (ssETH0_NTS0_Data_tlast),
-      .piLY3_Eth0_Axis_tready       (ssETH0_NTS0_Data_tready)
+      .soLY3_Data_tdata             (ssETH0_NTS0_Data_tdata),
+      .soLY3_Data_tkeep             (ssETH0_NTS0_Data_tkeep),
+      .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
+      .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
+      .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
 
     );  // End of UserCfg.ETH0
 
@@ -1010,7 +957,7 @@ module Shell_Themisto # (
   else if ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super")) begin: SuperCfg
 
     //========================================================================
-    //  INST: 10G ETHERNET SUBSYSTEM W/ LOOPBACK SUPPORT
+    //  INST: 10G ETHERNET SUBSYSTEM (OSI Network Layers 1+2)
     //========================================================================
     TenGigEth_Flash ETH0 (
 
@@ -1021,36 +968,39 @@ module Shell_Themisto # (
       .piTOP_Reset                  (piTOP_156_25Rst),
 
       //-- Clocks and Resets outputs ---------------
-      .poETH0_CoreClk               (sETH0_ShlClk),
-      .poETH0_CoreResetDone         (sETH0_CoreResetDone),
+      .poSHL_CoreClk                (sETH0_ShlClk),
+      .poSHL_CoreResetDone          (sETH0_CoreResetDone),
 
-      //-- MMIO : Control inputs and Status outputs 
-      .piMMIO_Eth0_RxEqualizerMode  (sMMIO_ETH0_RxEqualizerMode),
-      .piMMIO_Eth0_PcsLoopbackEn    (sMMIO_ETH0_PcsLoopbackEn),
-      .piMMIO_Eth0_MacLoopbackEn    (sMMIO_ETH0_MacLoopbackEn),
-      .piMMIO_Eth0_MacAddrSwapEn    (sMMIO_ETH0_MacAddrSwapEn),
-      .poETH0_Mmio_CoreReady        (sETH0_MMIO_CoreReady),
-      .poETH0_Mmio_QpllLock         (sETH0_MMIO_QpllLock),
+      //-- MMIO : Control inputs and Status outputs
+      .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
+      .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
+      .piMMIO_TxPreCursor           (sMMIO_ETH0_TxPreCursor),
+      .piMMIO_TxPostCursor          (sMMIO_ETH0_TxPostCursor),
+      .piMMIO_PcsLoopbackEn         (sMMIO_ETH0_PcsLoopbackEn),
+      .piMMIO_MacLoopbackEn         (sMMIO_ETH0_MacLoopbackEn),
+      .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
+      .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
+      .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
 
       //-- ECON : Gigabit Transceivers -------------
-      .piECON_Eth0_Gt_n             (piECON_Eth_10Ge0_n),
-      .piECON_Eth0_Gt_p             (piECON_Eth_10Ge0_p),
-      .poETH0_Econ_Gt_n             (poECON_Eth_10Ge0_n),
-      .poETH0_Econ_Gt_p             (poECON_Eth_10Ge0_p),
+      .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
+      .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
+      .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
+      .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
 
-      //-- NTS0 : Network-Transport-Session ---------
+      //-- NTS : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
-      .piLY3_Eth0_Axis_tdata        (ssNTS0_ETH0_Data_tdata),
-      .piLY3_Eth0_Axis_tkeep        (ssNTS0_ETH0_Data_tkeep),
-      .piLY3_Eth0_Axis_tvalid       (ssNTS0_ETH0_Data_tvalid),
-      .piLY3_Eth0_Axis_tlast        (ssNTS0_ETH0_Data_tlast),
-      .poETH0_Ly3_Axis_tready       (ssNTS0_ETH0_Data_tready),
+      .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
+      .siLY3_Data_tkeep             (ssNTS0_ETH0_Data_tkeep),
+      .siLY3_Data_tvalid            (ssNTS0_ETH0_Data_tvalid),
+      .siLY3_Data_tlast             (ssNTS0_ETH0_Data_tlast),
+      .siLY3_Data_tready            (ssNTS0_ETH0_Data_tready),
       //---- Output AXI-Write Stream Interface -----
-      .poETH0_Ly3_Axis_tdata        (ssETH0_NTS0_Data_tdata),
-      .poETH0_Ly3_Axis_tkeep        (ssETH0_NTS0_Data_tkeep),
-      .poETH0_Ly3_Axis_tvalid       (ssETH0_NTS0_Data_tvalid),
-      .poETH0_Ly3_Axis_tlast        (ssETH0_NTS0_Data_tlast),
-      .piLY3_Eth0_Axis_tready       (ssETH0_NTS0_Data_tready)
+      .soLY3_Data_tdata             (ssETH0_NTS0_Data_tdata),
+      .soLY3_Data_tkeep             (ssETH0_NTS0_Data_tkeep),
+      .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
+      .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
+      .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
 
     );  // End of SuperCfg.ETH0 
 
@@ -1072,14 +1022,6 @@ module Shell_Themisto # (
     //--   (This is typically 'sETH0_ShlRst'. If the module is created by HLS,
     //--    we use it as the default startup reset of the module.) 
     .piShlRst                         (sETH0_ShlRst),
-    
-    //-- System Reset --------------------------------------
-    //--   (This is a delayed version of the global reset. We use it when we
-    //--    specifically want to control the re-initialization of a HLS variable.
-    //--    We recommended to leave the "config_rtl" configuration to its default
-    //--    "control" setting and to use this signal to provide finer grain reset
-    //--    functionnality. See "Controlling the Reset Behavior" in UG902).
-    .piShlRstDly                      (piTOP_156_25Rst_delayed),
     
     //------------------------------------------------------
     //-- ETH / Ethernet Layer-2 Interfaces
@@ -1276,6 +1218,8 @@ module Shell_Themisto # (
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
+    .piMMIO_Layer3Rst                 (sMMIO_LayerRst[3]),
+    .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]), 
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
     .piMMIO_IpAddress                 (sMMIO_NTS0_IpAddress),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
@@ -1298,21 +1242,34 @@ module Shell_Themisto # (
 
   ) MEM (
 
-    //-- Global Clock used by the entire SHELL -------------
-    .piShlClk                         (sETH0_ShlClk),
+    //------------------------------------------------------
+    //-- Global Clock used by the entire SHELL
+    //------------------------------------------------------
+    .piSHL_Clk                        (sETH0_ShlClk),
 
-    //-- Global Reset used by the entire SHELL -------------
+    //------------------------------------------------------
+    //-- Global Reset used by the entire SHELL
+    //------------------------------------------------------
     .piTOP_156_25Rst                  (piTOP_156_25Rst),
 
-    //-- DDR4 Reference Memory Clocks ----------------------
+    //------------------------------------------------------
+    //-- Alternate System Reset
+    //------------------------------------------------------
+    .piMMIO_Rst                       (sMMIO_LayerRst[0]),
+
+    //------------------------------------------------------
+    //-- DDR4 Reference Memory Clocks
+    //------------------------------------------------------
     .piCLKT_Mem0Clk_n                 (piCLKT_Mem0Clk_n),
     .piCLKT_Mem0Clk_p                 (piCLKT_Mem0Clk_p),
     .piCLKT_Mem1Clk_n                 (piCLKT_Mem1Clk_n),
     .piCLKT_Mem1Clk_p                 (piCLKT_Mem1Clk_p),
 
-    //-- Control Inputs and Status Ouputs ------------------
-    .poMmio_Mc0_InitCalComplete       (sMEM_MMIO_Mc0InitCalComplete),
-    .poMmio_Mc1_InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
+    //------------------------------------------------------ 
+    //-- MMIO / Status Interface
+    //------------------------------------------------------
+    .poMMIO_Mc0_InitCalComplete       (sMEM_MMIO_Mc0InitCalComplete),
+    .poMMIO_Mc1_InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
 
     //------------------------------------------------------
     //-- NTS0 / Mem / TxP Interface
@@ -1383,90 +1340,90 @@ module Shell_Themisto # (
     //------------------------------------------------------
     // -- Physical DDR4 Interface #0
     //------------------------------------------------------
-    .pioDDR_Mem_Mc0_DmDbi_n          (pioDDR4_Mem_Mc0_DmDbi_n),
-    .pioDDR_Mem_Mc0_Dq               (pioDDR4_Mem_Mc0_Dq),
-    .pioDDR_Mem_Mc0_Dqs_n            (pioDDR4_Mem_Mc0_Dqs_n),
-    .pioDDR_Mem_Mc0_Dqs_p            (pioDDR4_Mem_Mc0_Dqs_p),    
-    .poDDR4_Mem_Mc0_Act_n            (poDDR4_Mem_Mc0_Act_n),
-    .poDDR4_Mem_Mc0_Adr              (poDDR4_Mem_Mc0_Adr),
-    .poDDR4_Mem_Mc0_Ba               (poDDR4_Mem_Mc0_Ba),
-    .poDDR4_Mem_Mc0_Bg               (poDDR4_Mem_Mc0_Bg),
-    .poDDR4_Mem_Mc0_Cke              (poDDR4_Mem_Mc0_Cke),
-    .poDDR4_Mem_Mc0_Odt              (poDDR4_Mem_Mc0_Odt),
-    .poDDR4_Mem_Mc0_Cs_n             (poDDR4_Mem_Mc0_Cs_n),
-    .poDDR4_Mem_Mc0_Ck_n             (poDDR4_Mem_Mc0_Ck_n),
-    .poDDR4_Mem_Mc0_Ck_p             (poDDR4_Mem_Mc0_Ck_p),
-    .poDDR4_Mem_Mc0_Reset_n          (poDDR4_Mem_Mc0_Reset_n),
+    .pioDDR_Mem_Mc0_DmDbi_n           (pioDDR4_Mem_Mc0_DmDbi_n),
+    .pioDDR_Mem_Mc0_Dq                (pioDDR4_Mem_Mc0_Dq),
+    .pioDDR_Mem_Mc0_Dqs_n             (pioDDR4_Mem_Mc0_Dqs_n),
+    .pioDDR_Mem_Mc0_Dqs_p             (pioDDR4_Mem_Mc0_Dqs_p),    
+    .poDDR4_Mem_Mc0_Act_n             (poDDR4_Mem_Mc0_Act_n),
+    .poDDR4_Mem_Mc0_Adr               (poDDR4_Mem_Mc0_Adr),
+    .poDDR4_Mem_Mc0_Ba                (poDDR4_Mem_Mc0_Ba),
+    .poDDR4_Mem_Mc0_Bg                (poDDR4_Mem_Mc0_Bg),
+    .poDDR4_Mem_Mc0_Cke               (poDDR4_Mem_Mc0_Cke),
+    .poDDR4_Mem_Mc0_Odt               (poDDR4_Mem_Mc0_Odt),
+    .poDDR4_Mem_Mc0_Cs_n              (poDDR4_Mem_Mc0_Cs_n),
+    .poDDR4_Mem_Mc0_Ck_n              (poDDR4_Mem_Mc0_Ck_n),
+    .poDDR4_Mem_Mc0_Ck_p              (poDDR4_Mem_Mc0_Ck_p),
+    .poDDR4_Mem_Mc0_Reset_n           (poDDR4_Mem_Mc0_Reset_n),
 
     //------------------------------------------------------
     //-- ROLE / Mem / Mp0 Interface
     //------------------------------------------------------
     //-- Memory Port #0 / S2MM-AXIS ------------------   
     //---- Stream Read Command ---------------
-    .siROL_Mem_Mp0_RdCmd_tdata   (siROL_Mem_Mp0_RdCmd_tdata),
-    .siROL_Mem_Mp0_RdCmd_tvalid  (siROL_Mem_Mp0_RdCmd_tvalid),
-    .siROL_Mem_Mp0_RdCmd_tready  (siROL_Mem_Mp0_RdCmd_tready),
+    .siROL_Mem_Mp0_RdCmd_tdata        (siROL_Mem_Mp0_RdCmd_tdata),
+    .siROL_Mem_Mp0_RdCmd_tvalid       (siROL_Mem_Mp0_RdCmd_tvalid),
+    .siROL_Mem_Mp0_RdCmd_tready       (siROL_Mem_Mp0_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp0_RdSts_tdata   (soROL_Mem_Mp0_RdSts_tdata),
-    .soMEM_Rol_Mp0_RdSts_tvalid  (soROL_Mem_Mp0_RdSts_tvalid),
-    .soMEM_Rol_Mp0_RdSts_tready  (soROL_Mem_Mp0_RdSts_tready),
+    .soMEM_Rol_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
+    .soMEM_Rol_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
+    .soMEM_Rol_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp0_Read_tdata    (soROL_Mem_Mp0_Read_tdata),
-    .soMEM_Rol_Mp0_Read_tkeep    (soROL_Mem_Mp0_Read_tkeep),
-    .soMEM_Rol_Mp0_Read_tlast    (soROL_Mem_Mp0_Read_tlast),
-    .soMEM_Rol_Mp0_Read_tvalid   (soROL_Mem_Mp0_Read_tvalid),
-    .soMEM_Rol_Mp0_Read_tready   (soROL_Mem_Mp0_Read_tready),
+    .soMEM_Rol_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
+    .soMEM_Rol_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
+    .soMEM_Rol_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
+    .soMEM_Rol_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
+    .soMEM_Rol_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
     //---- Stream Write Command --------------
-    .siROL_Mem_Mp0_WrCmd_tdata   (siROL_Mem_Mp0_WrCmd_tdata),
-    .siROL_Mem_Mp0_WrCmd_tvalid  (siROL_Mem_Mp0_WrCmd_tvalid),
-    .siROL_Mem_Mp0_WrCmd_tready  (siROL_Mem_Mp0_WrCmd_tready),
+    .siROL_Mem_Mp0_WrCmd_tdata        (siROL_Mem_Mp0_WrCmd_tdata),
+    .siROL_Mem_Mp0_WrCmd_tvalid       (siROL_Mem_Mp0_WrCmd_tvalid),
+    .siROL_Mem_Mp0_WrCmd_tready       (siROL_Mem_Mp0_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp0_WrSts_tdata   (soROL_Mem_Mp0_WrSts_tdata),
-    .soMEM_Rol_Mp0_WrSts_tvalid  (soROL_Mem_Mp0_WrSts_tvalid),
-    .soMEM_Rol_Mp0_WrSts_tready  (soROL_Mem_Mp0_WrSts_tready),
+    .soMEM_Rol_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
+    .soMEM_Rol_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
+    .soMEM_Rol_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
     //---- Stream Data Input Channel ---------
-    .siROL_Mem_Mp0_Write_tdata   (siROL_Mem_Mp0_Write_tdata),
-    .siROL_Mem_Mp0_Write_tkeep   (siROL_Mem_Mp0_Write_tkeep),
-    .siROL_Mem_Mp0_Write_tlast   (siROL_Mem_Mp0_Write_tlast),
-    .siROL_Mem_Mp0_Write_tvalid  (siROL_Mem_Mp0_Write_tvalid),
-    .siROL_Mem_Mp0_Write_tready  (siROL_Mem_Mp0_Write_tready),
+    .siROL_Mem_Mp0_Write_tdata        (siROL_Mem_Mp0_Write_tdata),
+    .siROL_Mem_Mp0_Write_tkeep        (siROL_Mem_Mp0_Write_tkeep),
+    .siROL_Mem_Mp0_Write_tlast        (siROL_Mem_Mp0_Write_tlast),
+    .siROL_Mem_Mp0_Write_tvalid       (siROL_Mem_Mp0_Write_tvalid),
+    .siROL_Mem_Mp0_Write_tready       (siROL_Mem_Mp0_Write_tready),
 
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
     //-- Memory Port #1 / S2MM-AXIS ------------------   
     //---- Stream Read Command ---------------
-    .siROL_Mem_Mp1_RdCmd_tdata   (siROL_Mem_Mp1_RdCmd_tdata),
-    .siROL_Mem_Mp1_RdCmd_tvalid  (siROL_Mem_Mp1_RdCmd_tvalid),
-    .siROL_Mem_Mp1_RdCmd_tready  (siROL_Mem_Mp1_RdCmd_tready),
+    .siROL_Mem_Mp1_RdCmd_tdata        (siROL_Mem_Mp1_RdCmd_tdata),
+    .siROL_Mem_Mp1_RdCmd_tvalid       (siROL_Mem_Mp1_RdCmd_tvalid),
+    .siROL_Mem_Mp1_RdCmd_tready       (siROL_Mem_Mp1_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp1_RdSts_tdata   (soROL_Mem_Mp1_RdSts_tdata),
-    .soMEM_Rol_Mp1_RdSts_tvalid  (soROL_Mem_Mp1_RdSts_tvalid),
-    .soMEM_Rol_Mp1_RdSts_tready  (soROL_Mem_Mp1_RdSts_tready),
+    .soMEM_Rol_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
+    .soMEM_Rol_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
+    .soMEM_Rol_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp1_Read_tdata    (soROL_Mem_Mp1_Read_tdata),
-    .soMEM_Rol_Mp1_Read_tkeep    (soROL_Mem_Mp1_Read_tkeep),
-    .soMEM_Rol_Mp1_Read_tlast    (soROL_Mem_Mp1_Read_tlast),
-    .soMEM_Rol_Mp1_Read_tvalid   (soROL_Mem_Mp1_Read_tvalid),
-    .soMEM_Rol_Mp1_Read_tready   (soROL_Mem_Mp1_Read_tready),
+    .soMEM_Rol_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
+    .soMEM_Rol_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
+    .soMEM_Rol_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
+    .soMEM_Rol_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
+    .soMEM_Rol_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
     //---- Stream Write Command --------------
-    .siROL_Mem_Mp1_WrCmd_tdata   (siROL_Mem_Mp1_WrCmd_tdata),
-    .siROL_Mem_Mp1_WrCmd_tvalid  (siROL_Mem_Mp1_WrCmd_tvalid),
-    .siROL_Mem_Mp1_WrCmd_tready  (siROL_Mem_Mp1_WrCmd_tready),
+    .siROL_Mem_Mp1_WrCmd_tdata        (siROL_Mem_Mp1_WrCmd_tdata),
+    .siROL_Mem_Mp1_WrCmd_tvalid       (siROL_Mem_Mp1_WrCmd_tvalid),
+    .siROL_Mem_Mp1_WrCmd_tready       (siROL_Mem_Mp1_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp1_WrSts_tdata   (soROL_Mem_Mp1_WrSts_tdata),
-    .soMEM_Rol_Mp1_WrSts_tvalid  (soROL_Mem_Mp1_WrSts_tvalid),
-    .soMEM_Rol_Mp1_WrSts_tready  (soROL_Mem_Mp1_WrSts_tready),
+    .soMEM_Rol_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
+    .soMEM_Rol_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
+    .soMEM_Rol_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
     //---- Stream Data Input Channel ---------
-    .siROL_Mem_Mp1_Write_tdata   (siROL_Mem_Mp1_Write_tdata),
-    .siROL_Mem_Mp1_Write_tkeep   (siROL_Mem_Mp1_Write_tkeep),
-    .siROL_Mem_Mp1_Write_tlast   (siROL_Mem_Mp1_Write_tlast),
-    .siROL_Mem_Mp1_Write_tvalid  (siROL_Mem_Mp1_Write_tvalid),
-    .siROL_Mem_Mp1_Write_tready  (siROL_Mem_Mp1_Write_tready),
+    .siROL_Mem_Mp1_Write_tdata        (siROL_Mem_Mp1_Write_tdata),
+    .siROL_Mem_Mp1_Write_tkeep        (siROL_Mem_Mp1_Write_tkeep),
+    .siROL_Mem_Mp1_Write_tlast        (siROL_Mem_Mp1_Write_tlast),
+    .siROL_Mem_Mp1_Write_tvalid       (siROL_Mem_Mp1_Write_tvalid),
+    .siROL_Mem_Mp1_Write_tready       (siROL_Mem_Mp1_Write_tready),
 
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1
-    //------------------------------------------------------dst_ran
+    //------------------------------------------------------
     .pioDDR_Mem_Mc1_DmDbi_n           (pioDDR4_Mem_Mc1_DmDbi_n),
     .pioDDR_Mem_Mc1_Dq                (pioDDR4_Mem_Mc1_Dq),
     .pioDDR_Mem_Mc1_Dqs_n             (pioDDR4_Mem_Mc1_Dqs_n),
@@ -1523,9 +1480,11 @@ module Shell_Themisto # (
     //-- Global Clock used by the entire SHELL -------------
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
-    .ap_rst_n               (~ piTOP_156_25Rst),
+    //.ap_rst_n               (~ piTOP_156_25Rst),
+    .ap_rst_n               (~ sMMIO_LayerRst[5]),
     //core should start immediately 
-    .ap_start               (1),
+    //.ap_start               (1),
+    .ap_start                 (sMMIO_LayerEn[5]), 
     //.piSysReset_V           (piSHL_156_25Rst_delayed),
     //.piSysReset_V_ap_vld   (1),
     //.poMMIO_V_ap_vld     ( ),
@@ -1636,7 +1595,8 @@ module Shell_Themisto # (
     //-- Global Clock used by the entire SHELL -------------
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
-    .ap_rst_n               (~ piTOP_156_25Rst),
+    //.ap_rst_n               (~ piTOP_156_25Rst),
+    .ap_rst_n               (~ sMMIO_LayerRst[5]),
     //.piNTS_ready_V          (sNTS0_MMIO_ToeReady),
     .piNTS_ready_V          (1), //TODO
     .piNTS_ready_V_ap_vld   (1),
@@ -1870,7 +1830,7 @@ module Shell_Themisto # (
     .m_axis_tlast   (soROL_Nts_Udp_Data_tlast)
   );
   
-  AxisRegisterSlice_64 SARS2 (
+  AxisRegisterSlice_80 SARS2 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
@@ -1887,7 +1847,7 @@ module Shell_Themisto # (
     .m_axis_tlast   (slcInNrc_Udp_meta_TLAST )
   );
   
-  AxisRegisterSlice_64 SARS3 (
+  AxisRegisterSlice_80 SARS3 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From NRC
@@ -1939,7 +1899,7 @@ module Shell_Themisto # (
     .m_axis_tlast   (soROL_Nts_Tcp_Data_tlast)
   );
   
-  AxisRegisterSlice_64 SARS6 (
+  AxisRegisterSlice_80 SARS6 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
@@ -1956,7 +1916,7 @@ module Shell_Themisto # (
     .m_axis_tlast   (slcInNrc_Tcp_meta_TLAST )
   );
   
-  AxisRegisterSlice_64 SARS7 (
+  AxisRegisterSlice_80 SARS7 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From NRC
@@ -2173,14 +2133,16 @@ module Shell_Themisto # (
                       (!sBinCnt[29] &&  sBinCnt[28] &&  sBinCnt[27] && sBinCnt[26] & sMc1_Ready)  ||  // Memory channel 1
                       ( sBinCnt[29] && !sBinCnt[28] && !sBinCnt[27] && sBinCnt[26] & sETH0_Ready);    // Ethernet MAC 0
 
-  assign poTOP_Led_HeartBeat_n = ~sLed_HeartBeat; // LED is active low  
+  assign poLED_HeartBeat_n = ~sLed_HeartBeat; // LED is active low  
 
 
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poROL_156_25Clk = sETH0_ShlClk;
-  assign poROL_156_25Rst = sETH0_ShlRst;
+  assign poROL_156_25Clk   = sETH0_ShlClk;
+  assign poROL_156_25Rst   = sETH0_ShlRst;
+  assign poROL_Mmio_Ly7Rst = sMMIO_LayerRst[7];
+  assign poROL_Mmio_Ly7En  = sMMIO_LayerEn[7];
 
   //============================================================================
   //  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING

@@ -3,10 +3,10 @@ cFDK
 **cloudFPGA Development Kit (cFDK)**
 
 
-cFDK provides all design files that are necessary to create a new cloudFPGA application, also called *cloudFPGA project (cFp)*. 
+The cFDK provides all the design files that are necessary to create a new cloudFPGA application, also called *cloudFPGA project (cFp)*. 
 
-On cloudFPGA, there are different types of *Shell-Role-Architectures (SRA)* and *FPGA Modules (MOD)* available. 
-Before creating a new cFp, the designer must decide for a SRA and a MOD, both are explained in the documentation section.
+cloudFPGA is design to support different types of *Shells (SHELL or SHL)* and *FPGA Modules (MOD)*. 
+Before creating a new cFp, a designer must decide for a SHELL and a MOD, both are explained in the documentation section.
 
 To set up a new cFp properly, the *cloudFPGA Build Framework* (cFBuild) is highly recommended!
 
@@ -18,9 +18,9 @@ Documentation
 To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA).
 ![SRA concept](./DOC/imgs/sra_flow.png)
 
-Currently, the following SRAs are available:
-* [Kale](./DOC/Kale.md) This SRA has one AXI-Stream for UDP and TCP each, as well as two stream-based memory ports.
-* [Themisto](./DOC/Themisto.md) This SRA type enables node-to-node communication between multiple FPGA modules. 
+Currently, the following SHELLs are available:
+* [Kale](./DOC/Kale.md) This SHELL has one AXI-Stream for UDP and TCP each, as well as two stream-based memory ports.
+* [Themisto](./DOC/Themisto.md) This SHELL enables node-to-node communication between multiple FPGA modules. 
 
 Details for the interfaces can be found in the linked documents.
 

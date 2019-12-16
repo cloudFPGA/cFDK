@@ -18,7 +18,8 @@
 ipName = toe
 
 # Dependencies
-SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
+#SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
+SRC_DEPS := $(shell find ./src/ -type f | grep -Ev "(prj)|(obsolete)|\ " | grep -E "\.[h|c]pp")
 
 .PHONY: all clean help csim csynth cosim project regression
 

@@ -1156,7 +1156,8 @@ void nrc_main(
         break;
 
       case RDP_STREAM_FMC:
-        if (!siTOE_Data.empty() && !soFMC_Tcp_data.full()) 
+        //if (!siTOE_Data.empty() && !soFMC_Tcp_data.full()) 
+        if (!siTOE_Data.empty() ) //&& !soFMC_Tcp_data.full()) 
         {
           siTOE_Data.read(currWord);
           //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
@@ -1170,7 +1171,8 @@ void nrc_main(
         }
         // NO break;
       case RDP_WRITE_META_FMC:
-        if( !Tcp_RX_metaWritten && !soFMC_Tcp_SessId.full())
+        //if( !Tcp_RX_metaWritten && !soFMC_Tcp_SessId.full())
+        if( !Tcp_RX_metaWritten )
         {
           soFMC_Tcp_SessId.write(session_toFMC);
           //TODO: is tlast set?
