@@ -153,7 +153,7 @@ void tx_sar_table(
     else if (!siTAi_PushCmd.empty()) {
         TAiTxSarPush sTAiCmd;
         //---------------------------------------
-        //-- Push an new 'txAppPtr' in the table
+        //-- Update the 'txAppPtr' in the table
         //---------------------------------------
         siTAi_PushCmd.read(sTAiCmd);
         TX_SAR_TABLE[sTAiCmd.sessionID].app = sTAiCmd.app;

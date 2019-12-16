@@ -64,10 +64,10 @@ using namespace hls;
 /*****************************************************************************
  * @brief A 2-to-1 Stream multiplexer.
  * ***************************************************************************/
-  template<typename T> void pStreamMux(
-          stream<T>  &si1,
-          stream<T>  &si2,
-          stream<T>  &so)
+template<typename T> void pStreamMux(
+        stream<T>  &si1,
+        stream<T>  &si2,
+        stream<T>  &so)
 {
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------

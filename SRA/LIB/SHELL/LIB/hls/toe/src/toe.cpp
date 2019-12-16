@@ -700,8 +700,8 @@ void toe(
     static stream<AckBit>             ssPRtToRAi_OpnLsnPortAck   ("ssPRtToRAi_OpnLsnPortAck");
     #pragma HLS stream       variable=ssPRtToRAi_OpnLsnPortAck   depth=4
 
-    static stream<TcpPort>            ssPRtToTAi_ActPortStateRep ("ssPRtToTAi_ActPortStateRep");
-    #pragma HLS stream       variable=ssPRtToTAi_ActPortStateRep depth=4
+    static stream<TcpPort>            ssPRtToTAi_GetFreePortRep  ("ssPRtToTAi_GetFreePortRep");
+    #pragma HLS stream       variable=ssPRtToTAi_GetFreePortRep  depth=4
 
     //-- Rx Application Interface (RAi) ---------------------------------------
     static stream<TcpPort>            ssRAiToPRt_OpnLsnPortReq   ("ssRAiToPRt_OpnLsnPortReq");
@@ -795,8 +795,8 @@ void toe(
     static stream<SessionState>       ssSTtToTAi_AcceptStateRep  ("ssSTtToTAi_AcceptStateRep");
     #pragma HLS stream       variable=ssSTtToTAi_AcceptStateRep  depth=2
 
-    static stream<SessionState>       ssSTtToTAi_StreamStateRep  ("ssSTtToTAi_StreamStateRep");
-    #pragma HLS stream       variable=ssSTtToTAi_StreamStateRep  depth=2
+    static stream<SessionState>       ssSTtToTAi_SessStateRep    ("ssSTtToTAi_SessStateRep");
+    #pragma HLS stream       variable=ssSTtToTAi_SessStateRep    depth=2
 
     static stream<SessionId>          ssSTtToSLc_SessReleaseCmd  ("ssSTtToSLc_SessReleaseCmd");
     #pragma HLS stream       variable=ssSTtToSLc_SessReleaseCmd  depth=2
@@ -804,8 +804,8 @@ void toe(
     //-------------------------------------------------------------------------
     //-- Tx Application Interface (TAi)
     //-------------------------------------------------------------------------
-    static stream<ReqBit>             ssTAiToPRt_ActPortStateReq ("ssTAiToPRt_ActPortStateReq");
-    #pragma HLS stream       variable=ssTAiToPRt_ActPortStateReq depth=4
+    static stream<ReqBit>             ssTAiToPRt_GetFeePortReq   ("ssTAiToPRt_GetFeePortReq");
+    #pragma HLS stream       variable=ssTAiToPRt_GetFeePortReq   depth=4
 
     static stream<LE_SocketPair>      ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
     #pragma HLS DATA_PACK    variable=ssTAiToSLc_SessLookupReq
@@ -823,8 +823,8 @@ void toe(
     #pragma HLS stream       variable=ssTAiToSTt_AcceptStateQry  depth=2
     #pragma HLS DATA_PACK    variable=ssTAiToSTt_AcceptStateQry
 
-    static stream<TcpSessId>          ssTAiToSTt_StreamStateReq  ("ssTAiToSTt_StreamStateReq");
-    #pragma HLS stream       variable=ssTAiToSTt_StreamStateReq  depth=2
+    static stream<TcpSessId>          ssTAiToSTt_SessStateReq    ("ssTAiToSTt_SessStateReq");
+    #pragma HLS stream       variable=ssTAiToSTt_SessStateReq    depth=2
 
     //-------------------------------------------------------------------------
     //-- Timers (TIm)
@@ -909,8 +909,8 @@ void toe(
             ssSTtToRXe_SessStateRep,
             ssTAiToSTt_AcceptStateQry,
             ssSTtToTAi_AcceptStateRep,
-            ssTAiToSTt_StreamStateReq,
-            ssSTtToTAi_StreamStateRep,
+            ssTAiToSTt_SessStateReq,
+            ssSTtToTAi_SessStateRep,
             ssTImToSTt_SessCloseCmd,
             ssSTtToSLc_SessReleaseCmd);
 
@@ -939,8 +939,8 @@ void toe(
             ssPRtToRXe_PortStateRep,
             ssRAiToPRt_OpnLsnPortReq,
             ssPRtToRAi_OpnLsnPortAck,
-            ssTAiToPRt_ActPortStateReq,
-            ssPRtToTAi_ActPortStateRep,
+            ssTAiToPRt_GetFeePortReq,
+            ssPRtToTAi_GetFreePortRep,
             ssSLcToPRt_ReleasePort);
 
     //-- Timers (TIm) ------------------------------------------------------
@@ -1043,30 +1043,30 @@ void toe(
     tx_app_interface(
             siTRIF_OpnReq,
             soTRIF_OpnRep,
-
+            siTRIF_ClsReq,
             siTRIF_Data,
             siTRIF_Meta,
             soTRIF_DSts,
-
-            ssTAiToSTt_StreamStateReq,
-            ssSTtToTAi_StreamStateRep,
-            ssTStToTAi_PushCmd,
-            siTRIF_ClsReq,
-            ssSLcToTAi_SessLookupRep,
-            ssPRtToTAi_ActPortStateRep,
-            ssRXeToTAi_SessOpnSts,
-
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             siMEM_TxP_WrSts,
-
-            ssTAiToTSt_PushCmd,
-            ssTAiToSLc_SessLookupReq,
-            ssTAiToPRt_ActPortStateReq,
+            ssTAiToSTt_SessStateReq,
+            ssSTtToTAi_SessStateRep,
             ssTAiToSTt_AcceptStateQry,
             ssSTtToTAi_AcceptStateRep,
+            ssTAiToSLc_SessLookupReq,
+            ssSLcToTAi_SessLookupRep,
+            ssTAiToPRt_GetFeePortReq,
+            ssPRtToTAi_GetFreePortRep,
+            ssTStToTAi_PushCmd,
+            ssTAiToTSt_PushCmd,
+            ssRXeToTAi_SessOpnSts,
             ssTAiToEVe_Event,
             ssTImToTAi_Notif,
+
+
+
+
             piMMIO_IpAddr);
 
     /**********************************************************************

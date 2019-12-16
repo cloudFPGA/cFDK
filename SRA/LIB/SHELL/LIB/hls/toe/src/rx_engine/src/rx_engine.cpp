@@ -1218,6 +1218,7 @@ void pFiniteStateMachine(
                     soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
 
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
+                    // Signal [TAi] that the active port was successfully opened
                     soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, SESS_IS_OPENED));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
