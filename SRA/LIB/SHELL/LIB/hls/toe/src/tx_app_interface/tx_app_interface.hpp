@@ -38,18 +38,42 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include "../toe.hpp"
-#include "../tx_app_stream/tx_app_stream.hpp"
 
 using namespace hls;
 
+
+#define ERROR_NOSPACE        1
+#define ERROR_NOCONNCECTION  2
+
+
+/************************************************
+ * Tx Application Table (Tat)
+ *  Structure to manage the FPGA Send Window
+ ************************************************/
 class TxAppTableEntry
 {
   public:
     TcpAckNum       ackd;
-    ap_uint<16>     mempt;
+    TxBufPtr        mempt;
     TxAppTableEntry() {}
     TxAppTableEntry(TcpAckNum ackd, ap_uint<16> mempt) :
         ackd(ackd), mempt(mempt) {}
+};
+
+/***********************************************
+ * Metadata for storing a segment in memory
+ ***********************************************/
+class SegMemMeta {
+  public:
+    TcpSessId    sessId;
+    TcpBufAdr    addr;
+    TcpSegLen    len;
+    bool         drop;
+    SegMemMeta() {}
+    SegMemMeta(bool drop) :
+        sessId(0), addr(0), len(0), drop(drop) {}
+    SegMemMeta(TcpSessId sessId, TcpBufAdr addr, TcpSegLen len) :
+        sessId(sessId), addr(addr), len(len), drop(false) {}
 };
 
 /*****************************************************************************
