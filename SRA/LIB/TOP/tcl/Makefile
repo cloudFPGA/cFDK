@@ -23,8 +23,6 @@ MONO_LOCK =$(cFpXprDir)/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-VEIRFY_RETVAL=47
-
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr 
 .PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd
 #.PHONY: full_src_pr_all_mpi monolithic_mpi monolithic_incr_mpi full_src_pr_only_mpi full_src_pr_2_only_mpi mpicmd
@@ -47,7 +45,7 @@ basecmd:
 
 finalcmd:
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VEIRFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date\nexit $$retVal' >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -110,10 +108,10 @@ monobasecmd: basecmd
 
 monofinalcmd: 
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VEIRFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date' >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\n\n\n\n\n\n\nfi\ndate > end.date" >> .vivado_basecmd.sh
+	@/bin/echo -e "\n\ndate > end.date" >> .vivado_basecmd.sh
 	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
-	@/bin/echo -e 'exit $$retVal' >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -137,7 +135,7 @@ monolithic_incr: monobasecmd $(MONO_LOCK) incrcmd monofinalcmd
 #
 #monolithic_incr_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
 
-monolithic_debug: basecmd debugcmd $(MONO_LOCK) monofinalcmd
+monolithic_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
@@ -163,7 +161,7 @@ $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDi
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 
 ##with pr: 
-$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
+$(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
