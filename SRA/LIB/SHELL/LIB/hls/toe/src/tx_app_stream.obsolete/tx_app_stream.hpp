@@ -55,20 +55,6 @@ struct eventMeta
                 :sessionID(id), address(addr), length(len) {}
 };
 
-/*** OBSOLETE-20190611 ******
-struct pkgPushMeta
-{
-    ap_uint<16> sessionID;
-    ap_uint<16> address;
-    ap_uint<16> length;
-    bool        drop;
-    pkgPushMeta() {}
-    pkgPushMeta(bool drop)
-                        :sessionID(0), address(0), length(0), drop(drop) {}
-    pkgPushMeta(ap_uint<16> id, ap_uint<16> addr, ap_uint<16> len)
-                    :sessionID(id), address(addr), length(len), drop(false) {}
-};
-***********************************/
 
 /***********************************************
  * Metadata for storing a segment in memory
@@ -76,13 +62,13 @@ struct pkgPushMeta
 class SegMemMeta {
   public:
     TcpSessId    sessId;
-    ap_uint<16>  addr;
-    ap_uint<16>  len;
+    TcpBufAdr    addr;
+    TcpSegLen    len;
     bool         drop;
     SegMemMeta() {}
     SegMemMeta(bool drop) :
         sessId(0), addr(0), len(0), drop(drop) {}
-    SegMemMeta(TcpSessId sessId, ap_uint<16> addr, ap_uint<16> len) :
+    SegMemMeta(TcpSessId sessId, TcpBufAdr addr, TcpSegLen len) :
         sessId(sessId), addr(addr), len(len), drop(false) {}
 };
 
@@ -92,14 +78,13 @@ class SegMemMeta {
  *
  *****************************************************************************/
 void tx_app_stream(
-        stream<AppData>            &siTRIF_Data,
-        stream<AppMeta>            &siTRIF_Meta,
-        stream<AppWrSts>           &soTRIF_DSts,
-        stream<TcpSessId>          &soSTt_SessStateReq,
-        stream<SessionState>       &siSTt_SessStateRep,
-        stream<TxAppTableRequest>  &soTat_AcessReq,
-        stream<TxAppTableReply>    &siTat_AcessRep,
-        stream<DmCmd>              &soMEM_TxP_WrCmd,
-        stream<AxiWord>            &soMEM_TxP_Data,
-        stream<Event>              &txAppStream2eventEng_setEvent
+        stream<AppMeta>             &siTRIF_Meta,
+        stream<AppWrSts>            &soTRIF_DSts,
+        stream<TcpSessId>           &soSTt_SessStateReq,
+        stream<SessionState>        &siSTt_SessStateRep,
+        stream<TxAppTableQuery>     &soTat_AccessReq,
+        stream<TxAppTableReply>     &siTat_AccessRep,
+        stream<TcpSegLen>           &siSlg_SegLen,
+        stream<SegMemMeta>          &sSmlToSmw_SegMeta,
+        stream<Event>               &soEVe_Event
 );

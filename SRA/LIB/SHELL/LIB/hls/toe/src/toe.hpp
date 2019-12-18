@@ -869,8 +869,9 @@ typedef TcpWindow   SndWinSize; // A sending  window size
 
 typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)
 typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)
-typedef ap_uint<16> RxBufPtr;  // A pointer to RxSessBuf (64KB)
-typedef ap_uint<16> TxBufPtr;  // A pointer to TxSessBuf (64KB)
+typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
+typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
+typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
 /************************************************
  * Rx SAR Table (RSt)
@@ -1069,15 +1070,15 @@ class TStTxSarPush {
  ********************************************/
 
 //-- TAI / Tx Application Table (Tat) Request
-class TxAppTableRequest {
+class TxAppTableQuery {
   public:
     SessionId   sessId;
-    ap_uint<16> mempt;
+    TxBufPtr    mempt;
     bool        write;
-    TxAppTableRequest() {}
-    TxAppTableRequest(SessionId id) :
+    TxAppTableQuery() {}
+    TxAppTableQuery(SessionId id) :
         sessId(id), mempt(0), write(false) {}
-    TxAppTableRequest(SessionId id, ap_uint<16> pt) :
+    TxAppTableQuery(SessionId id, ap_uint<16> pt) :
         sessId(id), mempt(pt), write(true) {}
 };
 
@@ -1144,8 +1145,8 @@ class Event
   public:
     EventType       type;
     SessionId       sessionID;
-    ap_uint<16>     address;
-    ap_uint<16>     length;
+    TcpBufAdr       address;
+    TcpSegLen       length;
     ap_uint<3>      rt_count;  // [FIXME - Make this type configurable]
     Event() {}
     Event(EventType type, SessionId id) :

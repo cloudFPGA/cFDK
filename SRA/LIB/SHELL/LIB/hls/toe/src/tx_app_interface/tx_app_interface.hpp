@@ -38,18 +38,42 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include "../toe.hpp"
-#include "../tx_app_stream/tx_app_stream.hpp"
 
 using namespace hls;
 
+
+#define ERROR_NOSPACE        1
+#define ERROR_NOCONNCECTION  2
+
+
+/************************************************
+ * Tx Application Table (Tat)
+ *  Structure to manage the FPGA Send Window
+ ************************************************/
 class TxAppTableEntry
 {
   public:
     TcpAckNum       ackd;
-    ap_uint<16>     mempt;
+    TxBufPtr        mempt;
     TxAppTableEntry() {}
     TxAppTableEntry(TcpAckNum ackd, ap_uint<16> mempt) :
         ackd(ackd), mempt(mempt) {}
+};
+
+/***********************************************
+ * Metadata for storing a segment in memory
+ ***********************************************/
+class SegMemMeta {
+  public:
+    TcpSessId    sessId;
+    TcpBufAdr    addr;
+    TcpSegLen    len;
+    bool         drop;
+    SegMemMeta() {}
+    SegMemMeta(bool drop) :
+        sessId(0), addr(0), len(0), drop(drop) {}
+    SegMemMeta(TcpSessId sessId, TcpBufAdr addr, TcpSegLen len) :
+        sessId(sessId), addr(addr), len(len), drop(false) {}
 };
 
 /*****************************************************************************
@@ -57,34 +81,38 @@ class TxAppTableEntry
  *
  *****************************************************************************/
 void tx_app_interface(
-        //-- TRIF / Open Interfaces
+        //-- TRIF / Open-Close Interfaces
         stream<LE_SockAddr>            &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_OpnRep,
+        stream<AppClsReq>              &siTRIF_ClsReq,
         //-- TRIF / Data Stream Interfaces
         stream<AppData>                &siTRIF_Data,
         stream<AppMeta>                &siTRIF_Meta,
         stream<AppWrSts>               &soTRIF_DSts,
-
-        stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<SessionState>           &siSTt_SessStateRep,
-        stream<TStTxSarPush>           &siTSt_AckPush,
-
-        stream<ap_uint<16> >           &appCloseConnReq,
-        stream<SessionLookupReply>     &siSLc_SessLookupRep,
-        stream<ap_uint<16> >           &siPRt_ActPortStateRep,
-        stream<OpenStatus>             &siRXe_SessOpnSts,
-
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxiWord>                &soMEM_TxP_Data,
         stream<DmSts>                  &siMEM_TxP_WrSts,
-
-        stream<TAiTxSarPush>           &soTSt_PushCmd,
+        //-- State Table Interfaces
+        stream<TcpSessId>              &soSTt_SessStateReq,
+        stream<SessionState>           &siSTt_SessStateRep,
+        stream<StateQuery>             &soSTt_AcceptStateQry,
+        stream<SessionState>           &siSTt_AcceptStateRep,
+		//-- Session Lookup Controller Interface
         stream<LE_SocketPair>          &soSLc_SessLookupReq,
+        stream<SessionLookupReply>     &siSLc_SessLookupRep,
+		//-- Port Table Interfaces
         stream<ReqBit>                 &soPRt_GetFreePortReq,
-        stream<StateQuery>             &soSTt_Taa_SessStateQry,
-        stream<SessionState>           &siSTt_Taa_SessStateRep,
+        stream<TcpPort>                &siPRt_GetFreePortRep,
+		//-- Tx SAR TAble Interfaces
+        stream<TStTxSarPush>           &siTSt_PushCmd,
+        stream<TAiTxSarPush>           &soTSt_PushCmd,
+		//-- Rx Engine Interface
+        stream<OpenStatus>             &siRXe_SessOpnSts,
+		//-- Event Engine Interface
         stream<Event>                  &soEVe_Event,
-        stream<OpenStatus>             &rtTimer2txApp_notification,
+		//-- Timers Interface
+        stream<OpenStatus>             &siTIm_Notif,
+		//-- MMIO / IPv4 Address
         LE_Ip4Addr                      piMMIO_IpAddr
 );

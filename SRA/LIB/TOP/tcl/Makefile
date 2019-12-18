@@ -139,7 +139,7 @@ monolithic_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
 
 save_mono_incr: 
 	@# no dependencies, vivado should better fail on itslef 
-	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs  -forceWithoutBB -save_incr 
+	vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs  -forceWithoutBB -save_incr && [ $? -eq 47 ]
 
 
 #without pr 

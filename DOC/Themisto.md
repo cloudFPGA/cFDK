@@ -30,7 +30,7 @@ The routing tables are configured during the cluster setup.
 ### Known limitations
 
 Currently, only *node-ids smaller than 128* are supported.
-For TCP, *only 32 connections per FPGA* are possible (i.e. connections in the sense of different TCP-sessions). 
+For TCP, *only 32 connections per FPGA* are possible for the time being (i.e. connections in the sense of different TCP-sessions). 
 
 ### HLS structs 
 
@@ -132,13 +132,15 @@ The vhdl interface *to the ROLE* looks like follows:
 ```vhdl
 entity Role_Themisto is
   port (
-
+    
     --------------------------------------------------------
     -- SHELL / Global Input Clock and Reset Interface
     --------------------------------------------------------
     piSHL_156_25Clk                     : in    std_ulogic;
     piSHL_156_25Rst                     : in    std_ulogic;
-    piTOP_156_25Rst_delayed             : in    std_ulogic;
+    -- LY7 Enable and Reset
+    piMMIO_Ly7_Rst                      : in    std_ulogic;
+    piMMIO_Ly7_En                       : in    std_ulogic;
 
     ------------------------------------------------------
     -- SHELL / Role / Nts0 / Udp Interface
@@ -296,6 +298,7 @@ entity Role_Themisto is
     piFMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
     
     poVoid                              : out   std_ulogic
+
 
   );
   
