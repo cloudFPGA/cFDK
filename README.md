@@ -15,7 +15,7 @@ Documentation
 
 ### Shell-Role-Architectures
 
-To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (*SRA*).
+To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (**SRA**).
 ![SRA concept](./DOC/imgs/sra_flow.png)
 
 Currently, the following SHELLs are available:
@@ -26,7 +26,7 @@ Details for the interfaces can be found in the linked documents.
 
 ### cloudFPGA Modules
 
-The cloudFPGA service provides different types of FPGAs and module cards (*MOD*).
+The cloudFPGA service provides different types of FPGAs and module cards (**MOD**).
 
 The module looks like follows:
 ![FMKU60 module](./DOC/imgs/fmku60.png)
@@ -36,7 +36,7 @@ Currently, the following MODs are available:
 
 ### cloudFPGA example applications
 
-To demonstrate the usage of this Development Kit and to provide some code for learning, example applications (*APP*) are provided.
+To demonstrate the usage of this Development Kit and to provide some code for learning, example applications (**APP**) are provided.
 
 Currently, the cFDK includes the following example APPs:
 
