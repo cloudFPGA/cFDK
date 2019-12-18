@@ -73,7 +73,7 @@ add_files -tb ${currDir}/../../../toe/src/tx_engine/src/tx_engine.cpp
 #OBSOLETE_20191206 add_files -tb ${currDir}/../../../toe/src/rx_app_stream_if/rx_app_stream_if.cpp
 add_files -tb ${currDir}/../../../toe/src/rx_app_interface/rx_app_interface.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_app_interface/tx_app_interface.cpp
-add_files -tb ${currDir}/../../../toe/src/tx_app_stream/tx_app_stream.cpp
+#OBSOLETE_20191216 add_files -tb ${currDir}/../../../toe/src/tx_app_stream/tx_app_stream.cpp
 
 add_files -tb ${currDir}/../../../toe/test/dummy_memory/dummy_memory.cpp
 

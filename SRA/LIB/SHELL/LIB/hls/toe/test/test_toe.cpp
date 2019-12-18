@@ -44,7 +44,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../toe/test/test_toe.hpp"
 #include "../../toe/test/dummy_memory/dummy_memory.hpp"
 #include "../../toe/src/session_lookup_controller/session_lookup_controller.hpp"
-#include "../../toe/src/tx_app_stream/tx_app_stream.hpp"
+#include "../../toe/src/tx_app_interface/tx_app_interface.hpp"
 
 using namespace std;
 
