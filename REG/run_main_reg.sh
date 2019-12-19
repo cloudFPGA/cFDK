@@ -32,10 +32,10 @@ echo "================================================================"
 echo "===   START OF REGRESSION: $0"
 echo "================================================================"
 
-sh $cFdkRootDir/run_csim_reg.sh
+sh $cFdkRootDir/REG/run_csim_reg.sh
 exit_on_error $? 
 
-sh $cFdkRootDir/run_cosim_reg.sh
+sh $cFdkRootDir/REG/run_cosim_reg.sh
 exit_on_error $? 
 
 exit 0
