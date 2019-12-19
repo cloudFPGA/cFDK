@@ -589,9 +589,10 @@ void printTcpPort(TcpPort tcpPort)
         outFileStream << std::uppercase;
         outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
         outFileStream << " ";
-        outFileStream << setw(1) << axiWord->tlast.to_int() << "\n";
+        outFileStream << setw(1) << axiWord->tlast.to_int();
         outFileStream << " ";
         outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
+        outFileStream << "\n";
         return true;
     }
 #endif
