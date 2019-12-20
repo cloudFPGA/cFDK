@@ -78,7 +78,7 @@ module MemorySubSystem # (
   //------------------------------------------------------
   //-- Global Reset used by the entire SHELL
   //------------------------------------------------------
-  input           piTOP_156_25Rst,   // [FIXME-Is-this-a-SyncReset]
+  input           piSHL_Rst,
   
   //----------------------------------------------
   //-- Alternate System Reset
@@ -306,7 +306,7 @@ module MemorySubSystem # (
     .piShlClk              (piSHL_Clk),
 
     //-- Global Reset used by the entire SHELL ------
-    .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
+    .piSHL_Rst             (piSHL_Rst),
     
     //-- DDR4 Reference Memory Clock ----------------
     .piCLKT_MemClk_n       (piCLKT_Mem0Clk_n),
@@ -416,7 +416,7 @@ module MemorySubSystem # (
     .piShlClk              (piSHL_Clk),
 
     //-- Global Reset used by the entire SHELL ------
-    .piTOP_156_25Rst       (piTOP_156_25Rst), // [FIXME-Is-this-a-SyncReset]
+    .piSHL_Rst             (piSHL_Rst),
   
     //-- DDR4 Reference Memory Clock ----------------
     .piCLKT_MemClk_n       (piCLKT_Mem1Clk_n),

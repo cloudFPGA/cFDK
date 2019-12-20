@@ -76,7 +76,7 @@ module MemoryChannel_DualPort #(
   input           piShlClk,
 
   //-- Global Reset used by the entire SHELL ------
-  input           piTOP_156_25Rst,  // [FIXME-Is-this-a-SyncReset]
+  input           piSHL_Rst,
     
   //-- DDR4 Reference Memory Clock ----------------
   input           piCLKT_MemClk_n,
@@ -334,9 +334,9 @@ module MemoryChannel_DualPort #(
           
         //-- M_MM2S : Master Clocks and Resets inputs ----------
         .m_axi_mm2s_aclk            (piShlClk),
-        .m_axi_mm2s_aresetn         (~piTOP_156_25Rst),
+        .m_axi_mm2s_aresetn         (~piSHL_Rst),
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
-        .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_mm2s_cmdsts_aresetn (~piSHL_Rst),
         //-- MM2S : Status and Errors outputs ------------------
         .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
@@ -374,9 +374,9 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_tready         (soMP0_Read_tready),        
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
-        .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
+        .m_axi_s2mm_aresetn         (~piSHL_Rst),
         .m_axis_s2mm_cmdsts_awclk   (piShlClk),
-        .m_axis_s2mm_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_s2mm_cmdsts_aresetn (~piSHL_Rst),
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
@@ -426,9 +426,9 @@ module MemoryChannel_DualPort #(
           
         //-- M_MM2S : Master Clocks and Resets inputs -------
         .m_axi_mm2s_aclk            (piShlClk),
-        .m_axi_mm2s_aresetn         (~piTOP_156_25Rst),
+        .m_axi_mm2s_aresetn         (~piSHL_Rst),
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
-        .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
+        .m_axis_mm2s_cmdsts_aresetn (~piSHL_Rst),
         //-- MM2S : Status and Errors outputs ------------------
         .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
@@ -466,9 +466,9 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_tready         (soMP1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
-        .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
+        .m_axi_s2mm_aresetn         (~piSHL_Rst),
         .m_axis_s2mm_cmdsts_awclk   (piShlClk),
-        .m_axis_s2mm_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_s2mm_cmdsts_aresetn (~piSHL_Rst),
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
@@ -522,9 +522,9 @@ module MemoryChannel_DualPort #(
           
         //-- M_MM2S : Master Clocks and Resets inputs ----------
         .m_axi_mm2s_aclk            (piShlClk),
-        .m_axi_mm2s_aresetn         (~piTOP_156_25Rst),
+        .m_axi_mm2s_aresetn         (~piSHL_Rst),
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
-        .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_mm2s_cmdsts_aresetn (~piSHL_Rst),
         //-- MM2S : Status and Errors outputs ------------------
         .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
@@ -562,9 +562,9 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_tready         (soMP0_Read_tready),
         //-- M_S2MM : Master Clocks and Resets inputs ----------      
         .m_axi_s2mm_aclk            (piShlClk),
-        .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
+        .m_axi_s2mm_aresetn         (~piSHL_Rst),
         .m_axis_s2mm_cmdsts_awclk   (piShlClk),
-        .m_axis_s2mm_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_s2mm_cmdsts_aresetn (~piSHL_Rst),
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
@@ -614,9 +614,9 @@ module MemoryChannel_DualPort #(
           
         //-- M_MM2S : Master Clocks and Resets inputs -------
         .m_axi_mm2s_aclk            (piShlClk),
-        .m_axi_mm2s_aresetn         (~piTOP_156_25Rst),
+        .m_axi_mm2s_aresetn         (~piSHL_Rst),
         .m_axis_mm2s_cmdsts_aclk    (piShlClk),
-        .m_axis_mm2s_cmdsts_aresetn (~piTOP_156_25Rst),    
+        .m_axis_mm2s_cmdsts_aresetn (~piSHL_Rst),    
         //-- MM2S : Status and Errors outputs ------------------
         .mm2s_err                   (/*po*/),   //left open
         //-- S_MM2S : Slave Stream Read Command ----------------
@@ -654,9 +654,9 @@ module MemoryChannel_DualPort #(
         .m_axis_mm2s_tready         (soMP1_Read_tready), 
         //-- M_S2MM : Master Clocks and Resets inputs ----------
         .m_axi_s2mm_aclk            (piShlClk),
-        .m_axi_s2mm_aresetn         (~piTOP_156_25Rst),   
+        .m_axi_s2mm_aresetn         (~piSHL_Rst),   
         .m_axis_s2mm_cmdsts_awclk   (piShlClk),
-        .m_axis_s2mm_cmdsts_aresetn (~piTOP_156_25Rst),
+        .m_axis_s2mm_cmdsts_aresetn (~piSHL_Rst),
         //-- S2MM : Status and Errors outputs ------------------
         .s2mm_err                   (/*po*/),   //left open
         //-- S_S2MM : Slave Stream Write Command ---------------
@@ -711,7 +711,7 @@ module MemoryChannel_DualPort #(
   
     //-- Global Interconnect Ports ---------------
     .INTERCONNECT_ACLK    (piShlClk),
-    .INTERCONNECT_ARESETN (~piTOP_156_25Rst),
+    .INTERCONNECT_ARESETN (~piSHL_Rst),
     
     //--------------------------------------------
     //-- SLAVE INTERFACE #00
@@ -870,7 +870,7 @@ module MemoryChannel_DualPort #(
   MemoryChannelController MCC (
   
     //-- Reset and Clocks ------------------------
-    .sys_rst                    (piTOP_156_25Rst),
+    .sys_rst                    (piSHL_Rst),
     .c0_sys_clk_n               (piCLKT_MemClk_n),
     .c0_sys_clk_p               (piCLKT_MemClk_p),
     //-- Physical IO Pins ------------------------
