@@ -20,6 +20,11 @@ Please consider reading the following two documents before diving or contributin
   2) [**HLS Naming Conventions**](./hls-naming-conventions.md)
 <br>
 
+## List of Files
+  * [**toe.cpp**](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
+  * [**toe.hpp**](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp)
+
+
 ## List of Interfaces
 
 | Acronym                                           | Description                                           | Filename
@@ -29,10 +34,6 @@ Please consider reading the following two documents before diving or contributin
 | **L3MUX**                                         | Layer-3 MUltipleXer interface                         | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
 | **MEM**                                           | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
 | **[TRIF](#markdown-header-tcp-role-interface)**   | Tcp Role InterFace (alias APP)                        | tcp_role_interface
-
-[Some text]
-
-<br>
 
 ## List of HLS Components
 
@@ -50,7 +51,6 @@ Please consider reading the following two documents before diving or contributin
 | **[TIm](./TIm.md)**       | TImers                     | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
 | **[TSt](./TSt.md)**       | Tx Sar table               | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_sar_table/tx_sar_table.cpp)
 | **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-
 
 ## Description of the interfaces [TODO]
 
