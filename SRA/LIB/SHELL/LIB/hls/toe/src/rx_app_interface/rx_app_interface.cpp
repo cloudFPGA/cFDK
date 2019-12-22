@@ -185,13 +185,22 @@ void pRxMemAccess(
     if (rma_doubleAccessFlag == FLAG_OFF) {
         if (!siRas_MemRdCmd.empty() && !soMEM_RxP_RdCmd.full()) {
             rma_memRdCmd = siRas_MemRdCmd.read();
-            if ((rma_memRdCmd.saddr.range(15, 0) + rma_memRdCmd.bbt) > 65536) {
-                rma_memRdLen = 65536 - rma_memRdCmd.saddr;
-                soMEM_RxP_RdCmd.write(DmCmd(rma_memRdCmd.saddr, rma_memRdLen));
+            if ((rma_memRdCmd.saddr.range(15, 0) + rma_memRdCmd.bbt) > RXMEMBUF) {
+                // Break this memory access in two because TCP Rx memory buffer wraps around
+                rma_memRdLen = RXMEMBUF - rma_memRdCmd.saddr;
+                DmCmd memRdCmd = DmCmd(rma_memRdCmd.saddr, rma_memRdLen);
+                soMEM_RxP_RdCmd.write(memRdCmd);
                 rma_doubleAccessFlag = FLAG_ON;
+                if (DEBUG_LEVEL & TRACE_RMA) {
+                    printInfo(myName, "TCP Rx memory buffer wraps around: This is the 1st memory access.\n");
+                    printDmCmd(myName, memRdCmd);
+                }
             }
             else {
                 soMEM_RxP_RdCmd.write(rma_memRdCmd);
+                if (DEBUG_LEVEL & TRACE_RMA) {
+                    printDmCmd(myName, rma_memRdCmd);
+                }
             }
             soMrd_SplitSeg.write(rma_doubleAccessFlag);
         }
@@ -200,8 +209,13 @@ void pRxMemAccess(
         if (!soMEM_RxP_RdCmd.full()) {
             rma_memRdCmd.saddr.range(15, 0) = 0;
             rma_memRdLen = rma_memRdCmd.bbt - rma_memRdLen;
-            soMEM_RxP_RdCmd.write(DmCmd(rma_memRdCmd.saddr, rma_memRdLen));
+            DmCmd memRdCmd = DmCmd(rma_memRdCmd.saddr, rma_memRdLen);
+            soMEM_RxP_RdCmd.write(memRdCmd);
             rma_doubleAccessFlag = FLAG_OFF;
+            if (DEBUG_LEVEL & TRACE_RMA) {
+                printInfo(myName, "TCP Rx memory buffer wraps around: This is the 2nd memory access.\n");
+                printDmCmd(myName, memRdCmd);
+            }
         }
     }
 }
