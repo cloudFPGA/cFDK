@@ -49,14 +49,6 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------ 
   input          piShlRst,
    
-  // OBSOLETE-20190826 //-- System Reset --------------------------------------
-  // OBSOLETE-20190826 //--   (This is a delayed version of the global reset. We use it when we
-  // OBSOLETE-20190826 //--    specifically want to control the re-initialization of a HLS variable.
-  // OBSOLETE-20190826 //--    We recommended to leave the "config_rtl" configuration to its default
-  // OBSOLETE-20190826 //--    "control" setting and to use this signal to provide finer grain reset
-  // OBSOLETE-20190826 //--    functionnality. See "Controlling the Reset Behavior" in UG902).
-  // OBSOLETE-20190826 input          piShlRstDly,
-  
   //------------------------------------------------------
   //-- ETH / Ethernet Layer-2 Interfaces
   //------------------------------------------------------
@@ -272,6 +264,7 @@ module NetworkTransportSession_TcpIp (
   //  SIGNAL DECLARATIONS
   //============================================================================
   wire          sTODO_1b0  =  1'b0;
+  wire          sTODO_1b1  =  1'b1;
 
   //------------------------------------------------------
   //-- IPRX = IP-RX-HANDLER
@@ -546,6 +539,9 @@ module NetworkTransportSession_TcpIp (
   //  COMB: CONTINIOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================ 
   assign poVoid = sTODO_1b0;
+  
+  assign siMEM_TxP_RdSts_tready = sTODO_1b1; // [FIXME - Add TxP_RdSts to TOE]
+  assign siMEM_RxP_RdSts_tready = sTODO_1b1; // [FIXME - Add RxP_RdSts to TOE]
 
 
   //============================================================================

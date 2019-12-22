@@ -332,12 +332,6 @@ module Shell_Kale # (
   //---- [APP_WRROL] -------------------
   output  [15:0]  poROL_Mmio_WrReg,
   
-  //OBSOLETE-20191125 //----------------------------------------------------
-  //OBSOLETE-20191125 // -- ROLE / Fmc / Management Interface 
-  //OBSOLETE-20191125 //----------------------------------------------------
-  //OBSOLETE-20191125 output [ 31:0]  poROL_Fmc_Rank,
-  //OBSOLETE-20191125 output [ 31:0]  poROL_Fmc_Size,
- 
   output          poVoid
   
 );  // End of PortList
@@ -555,69 +549,6 @@ module Shell_Kale # (
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
   
-  //OBSOLETE-20191125 //--------------------------------------------------------
-  //OBSOLETE-20191125 //-- SIGNAL DECLARATIONS : HWICAPC 
-  //OBSOLETE-20191125 //--------------------------------------------------------
-  //OBSOLETE-20191125 wire  [ 8:0]  ssFMC_HWICAP_Axi_awaddr;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_awvalid;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_awready;
-  //OBSOLETE-20191125 wire  [31:0]  ssFMC_HWICAP_Axi_wdata;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_wstrb;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_wvalid;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_wready;
-  //OBSOLETE-20191125 wire  [ 1:0]  ssFMC_HWICAP_Axi_bresp;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_bvalid;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_bready;
-  //OBSOLETE-20191125 wire  [ 8:0]  ssFMC_HWICAP_Axi_araddr;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_arvalid; 
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_arready;
-  //OBSOLETE-20191125 wire  [31:0]  ssFMC_HWICAP_Axi_rdata;
-  //OBSOLETE-20191125 wire  [ 1:0]  ssFMC_HWICAP_Axi_rresp;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_rvalid;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_Axi_rready;
-  //OBSOLETE-20191125 wire          ssFMC_HWICAP_ip2intc_irpt;
-
-  //OBSOLETE-20191125 //--------------------------------------------------------
-  //OBSOLETE-20191125 //-- SIGNAL DECLARATIONS : FPGA Management Core
-  //OBSOLETE-20191125 //--------------------------------------------------------
-  //OBSOLETE-20191125 wire          sDECOUP_FMC_status;
-  //OBSOLETE-20191125 wire          sFMC_DECOUP_activate;
-  //OBSOLETE-20191125 wire          sFMC_ROLE_soft_reset;
-  //OBSOLETE-20191125 wire  [ 8:0]  sbFMC_MMIO_Xmem_Addr;
-  //OBSOLETE-20191125 wire  [31:0]  sbFMC_MMIO_Xmem_RData;
-  //OBSOLETE-20191125 wire          sbFMC_MMIO_Xmem_cen; //Chip-enable
-  //OBSOLETE-20191125 wire          sbFMC_MMIO_Xmem_wren; //Write-enable
-  //OBSOLETE-20191125 wire  [31:0]  sbFMC_MMIO_Xmem_WData;
-  //OBSOLETE-20191125 // FMC <==> NRC ctrlLink
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_AWVALID;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_AWREADY;
-  //OBSOLETE-20191125 wire  [13:0]  ssFMC_NRC_ctrlLink_Axi_AWADDR;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_WVALID;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_WREADY;
-  //OBSOLETE-20191125 wire  [31:0]  ssFMC_NRC_ctrlLink_Axi_WDATA;
-  //OBSOLETE-20191125 wire  [ 3:0]  ssFMC_NRC_ctrlLink_Axi_WSTRB;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_ARVALID;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_ARREADY;
-  //OBSOLETE-20191125 wire  [13:0]  ssFMC_NRC_ctrlLink_Axi_ARADDR;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_RVALID;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_RREADY;
-  //OBSOLETE-20191125 wire  [31:0]  ssFMC_NRC_ctrlLink_Axi_RDATA;
-  //OBSOLETE-20191125 wire  [ 1:0]  ssFMC_NRC_ctrlLink_Axi_RRESP;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_BVALID;
-  //OBSOLETE-20191125 wire          ssFMC_NRC_ctrlLink_Axi_BREADY;
-  //OBSOLETE-20191125 wire  [ 1:0]  ssFMC_NRC_ctrlLink_Axi_BRESP;
-  //OBSOLETE-20191125 // FMC <==> CoreToDebug PYROLINK 
-  //OBSOLETE-20191125 wire  [ 7:0]  ssFMC_CoreToDebug_Pyrolink_TDATA;
-  //OBSOLETE-20191125 wire          ssFMC_CoreToDebug_Pyrolink_TVALID;
-  //OBSOLETE-20191125 wire          ssFMC_CoreToDebug_Pyrolink_TREADY;
-  //OBSOLETE-20191125 wire          ssFMC_CoreToDebug_Pyrolink_TKEEP;
-  //OBSOLETE-20191125 wire          ssFMC_CoreToDebug_Pyrolink_TLAST;
-  //OBSOLETE-20191125 wire  [ 7:0]  ssCoreToDebug_FMC_Pyrolink_TDATA;
-  //OBSOLETE-20191125 wire          ssCoreToDebug_FMC_Pyrolink_TVALID;
-  //OBSOLETE-20191125 wire          ssCoreToDebug_FMC_Pyrolink_TREADY;
-  //OBSOLETE-20191125 wire          ssCoreToDebug_FMC_Pyrolink_TKEEP;
-  //OBSOLETE-20191125 wire          ssCoreToDebug_FMC_Pyrolink_TLAST;
-
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
   //============================================================================
@@ -882,8 +813,7 @@ module Shell_Kale # (
     //-- MEM / TxP Interfaces
     //------------------------------------------------------
     //-- FPGA Transmit Path / S2MM-AXIS --------------------
-    //---- Stream Read Command -------------------
-    //---- Stream Read Command -------------------
+    //---- Stream Read Command -----------------
     .soMEM_TxP_RdCmd_tdata            (ssNTS0_MEM_TxP_RdCmd_tdata),
     .soMEM_TxP_RdCmd_tvalid           (ssNTS0_MEM_TxP_RdCmd_tvalid),
     .soMEM_TxP_RdCmd_tready           (ssNTS0_MEM_TxP_RdCmd_tready),
@@ -924,7 +854,7 @@ module Shell_Kale # (
     .siMEM_RxP_RdSts_tdata            (ssMEM_NTS0_RxP_RdSts_tdata),
     .siMEM_RxP_RdSts_tvalid           (ssMEM_NTS0_RxP_RdSts_tvalid),
     .siMEM_RxP_RdSts_tready           (ssMEM_NTS0_RxP_RdSts_tready),
-    //---- Stream Data Input Channel ----------
+    //---- Stream Data Input Channel -----------
     .siMEM_RxP_Data_tdata             (ssMEM_NTS0_RxP_Read_tdata),
     .siMEM_RxP_Data_tkeep             (ssMEM_NTS0_RxP_Read_tkeep),
     .siMEM_RxP_Data_tlast             (ssMEM_NTS0_RxP_Read_tlast),
@@ -1110,7 +1040,7 @@ module Shell_Kale # (
     .poMMIO_Mc1_InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
 
     //------------------------------------------------------
-    //-- NTS0 / Mem / TxP Interface
+    //-- NTS / Mem / TxP Interface
     //------------------------------------------------------
     //-- Transmit Path / S2MM-AXIS ---------------
     //---- Stream Read Command ---------------
@@ -1118,23 +1048,23 @@ module Shell_Kale # (
     .siNTS_Mem_TxP_RdCmd_tvalid       (ssNTS0_MEM_TxP_RdCmd_tvalid),
     .siNTS_Mem_TxP_RdCmd_tready       (ssNTS0_MEM_TxP_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Nts_TxP_RdSts_tdata        (ssMEM_NTS0_TxP_RdSts_tdata),
-    .soMEM_Nts_TxP_RdSts_tvalid       (ssMEM_NTS0_TxP_RdSts_tvalid),
-    .soMEM_Nts_TxP_RdSts_tready       (ssMEM_NTS0_TxP_RdSts_tready),
+    .soNTS_Mem_TxP_RdSts_tdata        (ssMEM_NTS0_TxP_RdSts_tdata),
+    .soNTS_Mem_TxP_RdSts_tvalid       (ssMEM_NTS0_TxP_RdSts_tvalid),
+    .soNTS_Mem_TxP_RdSts_tready       (ssMEM_NTS0_TxP_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Nts_TxP_Read_tdata         (ssMEM_NTS0_TxP_Read_tdata),
-    .soMEM_Nts_TxP_Read_tkeep         (ssMEM_NTS0_TxP_Read_tkeep),
-    .soMEM_Nts_TxP_Read_tlast         (ssMEM_NTS0_TxP_Read_tlast),
-    .soMEM_Nts_TxP_Read_tvalid        (ssMEM_NTS0_TxP_Read_tvalid),
-    .soMEM_Nts_TxP_Read_tready        (ssMEM_NTS0_TxP_Read_tready),
+    .soNTS_Mem_TxP_Read_tdata         (ssMEM_NTS0_TxP_Read_tdata),
+    .soNTS_Mem_TxP_Read_tkeep         (ssMEM_NTS0_TxP_Read_tkeep),
+    .soNTS_Mem_TxP_Read_tlast         (ssMEM_NTS0_TxP_Read_tlast),
+    .soNTS_Mem_TxP_Read_tvalid        (ssMEM_NTS0_TxP_Read_tvalid),
+    .soNTS_Mem_TxP_Read_tready        (ssMEM_NTS0_TxP_Read_tready),
     //---- Stream Write Command --------------
     .siNTS_Mem_TxP_WrCmd_tdata        (ssNTS0_MEM_TxP_WrCmd_tdata),
     .siNTS_Mem_TxP_WrCmd_tvalid       (ssNTS0_MEM_TxP_WrCmd_tvalid),
     .siNTS_Mem_TxP_WrCmd_tready       (ssNTS0_MEM_TxP_WrCmd_tready),
     //---- Stream Write Status --------------
-    .soMEM_Nts_TxP_WrSts_tdata        (ssMEM_NTS0_TxP_WrSts_tdata),
-    .soMEM_Nts_TxP_WrSts_tvalid       (ssMEM_NTS0_TxP_WrSts_tvalid),
-    .soMEM_Nts_TxP_WrSts_tready       (ssMEM_NTS0_TxP_WrSts_tready),
+    .soNTS_Mem_TxP_WrSts_tdata        (ssMEM_NTS0_TxP_WrSts_tdata),
+    .soNTS_Mem_TxP_WrSts_tvalid       (ssMEM_NTS0_TxP_WrSts_tvalid),
+    .soNTS_Mem_TxP_WrSts_tready       (ssMEM_NTS0_TxP_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siNTS_Mem_TxP_Write_tdata        (ssNTS0_MEM_TxP_Write_tdata),
     .siNTS_Mem_TxP_Write_tkeep        (ssNTS0_MEM_TxP_Write_tkeep),
@@ -1143,7 +1073,7 @@ module Shell_Kale # (
     .siNTS_Mem_TxP_Write_tready       (ssNTS0_MEM_TxP_Write_tready),
 
     //------------------------------------------------------
-    //-- NTS0 / Mem / Rx Interface
+    //-- NTS / Mem / Rx Interface
     //------------------------------------------------------
     //-- Receive Path  / S2MM-AXIS -----------------
     //---- Stream Read Command ---------------
@@ -1151,23 +1081,23 @@ module Shell_Kale # (
     .siNTS_Mem_RxP_RdCmd_tvalid       (ssNTS0_MEM_RxP_RdCmd_tvalid),
     .siNTS_Mem_RxP_RdCmd_tready       (ssNTS0_MEM_RxP_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Nts_RxP_RdSts_tdata        (ssMEM_NTS0_RxP_RdSts_tdata),
-    .soMEM_Nts_RxP_RdSts_tvalid       (ssMEM_NTS0_RxP_RdSts_tvalid),
-    .soMEM_Nts_RxP_RdSts_tready       (ssMEM_NTS0_RxP_RdSts_tready),
+    .soNTS_Mem_RxP_RdSts_tdata        (ssMEM_NTS0_RxP_RdSts_tdata),
+    .soNTS_Mem_RxP_RdSts_tvalid       (ssMEM_NTS0_RxP_RdSts_tvalid),
+    .soNTS_Mem_RxP_RdSts_tready       (ssMEM_NTS0_RxP_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Nts_RxP_Read_tdata         (ssMEM_NTS0_RxP_Read_tdata),
-    .soMEM_Nts_RxP_Read_tkeep         (ssMEM_NTS0_RxP_Read_tkeep),
-    .soMEM_Nts_RxP_Read_tlast         (ssMEM_NTS0_RxP_Read_tlast),
-    .soMEM_Nts_RxP_Read_tvalid        (ssMEM_NTS0_RxP_Read_tvalid),
-    .soMEM_Nts_RxP_Read_tready        (ssMEM_NTS0_RxP_Read_tready),
+    .soNTS_Mem_RxP_Read_tdata         (ssMEM_NTS0_RxP_Read_tdata),
+    .soNTS_Mem_RxP_Read_tkeep         (ssMEM_NTS0_RxP_Read_tkeep),
+    .soNTS_Mem_RxP_Read_tlast         (ssMEM_NTS0_RxP_Read_tlast),
+    .soNTS_Mem_RxP_Read_tvalid        (ssMEM_NTS0_RxP_Read_tvalid),
+    .soNTS_Mem_RxP_Read_tready        (ssMEM_NTS0_RxP_Read_tready),
     //---- Stream Write Command --------------
     .siNTS_Mem_RxP_WrCmd_tdata        (ssNTS0_MEM_RxP_WrCmd_tdata),
     .siNTS_Mem_RxP_WrCmd_tvalid       (ssNTS0_MEM_RxP_WrCmd_tvalid),
     .siNTS_Mem_RxP_WrCmd_tready       (ssNTS0_MEM_RxP_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Nts_RxP_WrSts_tdata        (ssMEM_NTS0_RxP_WrSts_tdata),
-    .soMEM_Nts_RxP_WrSts_tvalid       (ssMEM_NTS0_RxP_WrSts_tvalid),
-    .soMEM_Nts_RxP_WrSts_tready       (ssMEM_NTS0_RxP_WrSts_tready),
+    .soNTS_Mem_RxP_WrSts_tdata        (ssMEM_NTS0_RxP_WrSts_tdata),
+    .soNTS_Mem_RxP_WrSts_tvalid       (ssMEM_NTS0_RxP_WrSts_tvalid),
+    .soNTS_Mem_RxP_WrSts_tready       (ssMEM_NTS0_RxP_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siNTS_Mem_RxP_Write_tdata        (ssNTS0_MEM_RxP_Write_tdata),
     .siNTS_Mem_RxP_Write_tkeep        (ssNTS0_MEM_RxP_Write_tkeep),
@@ -1202,23 +1132,23 @@ module Shell_Kale # (
     .siROL_Mem_Mp0_RdCmd_tvalid       (siROL_Mem_Mp0_RdCmd_tvalid),
     .siROL_Mem_Mp0_RdCmd_tready       (siROL_Mem_Mp0_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
-    .soMEM_Rol_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
-    .soMEM_Rol_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
+    .soROL_Mem_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
+    .soROL_Mem_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
+    .soROL_Mem_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
-    .soMEM_Rol_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
-    .soMEM_Rol_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
-    .soMEM_Rol_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
-    .soMEM_Rol_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
+    .soROL_Mem_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
+    .soROL_Mem_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
+    .soROL_Mem_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
+    .soROL_Mem_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
+    .soROL_Mem_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
     //---- Stream Write Command --------------
     .siROL_Mem_Mp0_WrCmd_tdata        (siROL_Mem_Mp0_WrCmd_tdata),
     .siROL_Mem_Mp0_WrCmd_tvalid       (siROL_Mem_Mp0_WrCmd_tvalid),
     .siROL_Mem_Mp0_WrCmd_tready       (siROL_Mem_Mp0_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
-    .soMEM_Rol_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
-    .soMEM_Rol_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
+    .soROL_Mem_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
+    .soROL_Mem_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
+    .soROL_Mem_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siROL_Mem_Mp0_Write_tdata        (siROL_Mem_Mp0_Write_tdata),
     .siROL_Mem_Mp0_Write_tkeep        (siROL_Mem_Mp0_Write_tkeep),
@@ -1235,23 +1165,23 @@ module Shell_Kale # (
     .siROL_Mem_Mp1_RdCmd_tvalid       (siROL_Mem_Mp1_RdCmd_tvalid),
     .siROL_Mem_Mp1_RdCmd_tready       (siROL_Mem_Mp1_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
-    .soMEM_Rol_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
-    .soMEM_Rol_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
+    .soROL_Mem_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
+    .soROL_Mem_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
+    .soROL_Mem_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
-    .soMEM_Rol_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
-    .soMEM_Rol_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
-    .soMEM_Rol_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
-    .soMEM_Rol_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
+    .soROL_Mem_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
+    .soROL_Mem_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
+    .soROL_Mem_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
+    .soROL_Mem_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
+    .soROL_Mem_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
     //---- Stream Write Command --------------
     .siROL_Mem_Mp1_WrCmd_tdata        (siROL_Mem_Mp1_WrCmd_tdata),
     .siROL_Mem_Mp1_WrCmd_tvalid       (siROL_Mem_Mp1_WrCmd_tvalid),
     .siROL_Mem_Mp1_WrCmd_tready       (siROL_Mem_Mp1_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
-    .soMEM_Rol_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
-    .soMEM_Rol_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
+    .soROL_Mem_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
+    .soROL_Mem_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
+    .soROL_Mem_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siROL_Mem_Mp1_Write_tdata        (siROL_Mem_Mp1_Write_tdata),
     .siROL_Mem_Mp1_Write_tkeep        (siROL_Mem_Mp1_Write_tkeep),
@@ -1540,33 +1470,5 @@ module Shell_Kale # (
   assign poROL_156_25Rst   = sETH0_ShlRst;
   assign poROL_Mmio_Ly7Rst = sMMIO_LayerRst[7];
   assign poROL_Mmio_Ly7En  = sMMIO_LayerEn[7];
-
-  //============================================================================
-  //  LIST OF HDL PORTS TO BE MARKED FOR DEBUGING
-  //============================================================================
-
-  //-- ETH0 ==> NTS0 / AXIS Interface ---------------------------- 
-  //(* mark_debug = "true" *)  wire  [ 63:0]  sETH0_Nts0_tdata;
-  //(* mark_debug = "true" *)  wire  [ 7:0]   sETH0_Nts0_tkeep;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_tlast;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_tvalid;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_tready;
-  //-- ETHERNET / Nts0 / Output AXIS Interface ---------------------- 
-  //(* mark_debug = "true" *)  wire  [ 63:0]  sNTS0_Eth0_tdata;
-  //(* mark_debug = "true" *)  wire  [  7:0]  sNTS0_Eth0_tkeep;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_tlast;
-  //(* mark_debug = "true" *)  wire           sNTS0_Eth0_tvalid;
-  //(* mark_debug = "true" *)  wire           sETH0_Nts0_tready;
-
-  //============================================================================
-  //  VIO FOR HARDWARE BRING-UP AND DEBUG
-  //============================================================================
-  //  VirtualInputOutput_IP_0 VIO0 (
-  //    .clk        (sSD4MI_Ui_Clk),
-  //    .probe_in0  (piPSOC_Fcfg_Rst_n),                
-  //    .probe_in1  (sMC0_InitCalibComplete),
-  //    .probe_in2  (sDataCompareError),
-  //    .probe_in3  (poSHL_Led_HeartBeat_n)
-  //  );
 
 endmodule
