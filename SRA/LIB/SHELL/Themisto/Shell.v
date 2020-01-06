@@ -852,11 +852,11 @@ module Shell_Themisto # (
     .poSHL_ResetLayer               (sMMIO_LayerRst),
     //---- [PHY_ENABLE] ------------
     .poSHL_EnableLayer              (sMMIO_LayerEn),
-    //---- DIAG_CTRL_1 ---------------
-    .poROLE_Mc1_MemTestCtrl         (sMMIO_ROL_Mc1_MemTestCtrl),
-    //---- DIAG_STAT_1 ---------------
-    .piROLE_Mc1_MemTestStat         (sROL_MMIO_Mc1_MemTestStat),
-    //---- DIAG_CTRL_2 ---------------  
+    //---- DIAG_CTRL_1 -------------
+    .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),
+    //---- DIAG_STAT_1 -------------
+    .piROLE_Mc1_MemTestStat         (piROL_Mmio_Mc1_MemTestStat),
+    //---- DIAG_CTRL_2 -------------  
     .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),
     .poROLE_UdpPostDgmEn            (poROL_Mmio_UdpPostDgmEn),
     .poROLE_UdpCaptDgmEn            (poROL_Mmio_UdpCaptDgmEn),
@@ -895,7 +895,7 @@ module Shell_Themisto # (
     
     .poVoid                         ()
 
-  );  // End of MMMIO
+  );  // End of MMIO
 
 
   //============================================================================
@@ -1250,7 +1250,7 @@ module Shell_Themisto # (
     //------------------------------------------------------
     //-- Global Reset used by the entire SHELL
     //------------------------------------------------------
-    .piTOP_156_25Rst                  (piTOP_156_25Rst),
+    .piSHL_Rst                        (sETH0_ShlRst),
 
     //------------------------------------------------------
     //-- Alternate System Reset
@@ -1272,7 +1272,7 @@ module Shell_Themisto # (
     .poMMIO_Mc1_InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
 
     //------------------------------------------------------
-    //-- NTS0 / Mem / TxP Interface
+    //-- NTS / Mem / TxP Interface
     //------------------------------------------------------
     //-- Transmit Path / S2MM-AXIS ---------------
     //---- Stream Read Command ---------------
@@ -1280,23 +1280,23 @@ module Shell_Themisto # (
     .siNTS_Mem_TxP_RdCmd_tvalid       (ssNTS0_MEM_TxP_RdCmd_tvalid),
     .siNTS_Mem_TxP_RdCmd_tready       (ssNTS0_MEM_TxP_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Nts_TxP_RdSts_tdata        (ssMEM_NTS0_TxP_RdSts_tdata),
-    .soMEM_Nts_TxP_RdSts_tvalid       (ssMEM_NTS0_TxP_RdSts_tvalid),
-    .soMEM_Nts_TxP_RdSts_tready       (ssMEM_NTS0_TxP_RdSts_tready),
+    .soNTS_Mem_TxP_RdSts_tdata        (ssMEM_NTS0_TxP_RdSts_tdata),
+    .soNTS_Mem_TxP_RdSts_tvalid       (ssMEM_NTS0_TxP_RdSts_tvalid),
+    .soNTS_Mem_TxP_RdSts_tready       (ssMEM_NTS0_TxP_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Nts_TxP_Read_tdata         (ssMEM_NTS0_TxP_Read_tdata),
-    .soMEM_Nts_TxP_Read_tkeep         (ssMEM_NTS0_TxP_Read_tkeep),
-    .soMEM_Nts_TxP_Read_tlast         (ssMEM_NTS0_TxP_Read_tlast),
-    .soMEM_Nts_TxP_Read_tvalid        (ssMEM_NTS0_TxP_Read_tvalid),
-    .soMEM_Nts_TxP_Read_tready        (ssMEM_NTS0_TxP_Read_tready),
+    .soNTS_Mem_TxP_Read_tdata         (ssMEM_NTS0_TxP_Read_tdata),
+    .soNTS_Mem_TxP_Read_tkeep         (ssMEM_NTS0_TxP_Read_tkeep),
+    .soNTS_Mem_TxP_Read_tlast         (ssMEM_NTS0_TxP_Read_tlast),
+    .soNTS_Mem_TxP_Read_tvalid        (ssMEM_NTS0_TxP_Read_tvalid),
+    .soNTS_Mem_TxP_Read_tready        (ssMEM_NTS0_TxP_Read_tready),
     //---- Stream Write Command --------------
     .siNTS_Mem_TxP_WrCmd_tdata        (ssNTS0_MEM_TxP_WrCmd_tdata),
     .siNTS_Mem_TxP_WrCmd_tvalid       (ssNTS0_MEM_TxP_WrCmd_tvalid),
     .siNTS_Mem_TxP_WrCmd_tready       (ssNTS0_MEM_TxP_WrCmd_tready),
     //---- Stream Write Status --------------
-    .soMEM_Nts_TxP_WrSts_tdata        (ssMEM_NTS0_TxP_WrSts_tdata),
-    .soMEM_Nts_TxP_WrSts_tvalid       (ssMEM_NTS0_TxP_WrSts_tvalid),
-    .soMEM_Nts_TxP_WrSts_tready       (ssMEM_NTS0_TxP_WrSts_tready),
+    .soNTS_Mem_TxP_WrSts_tdata        (ssMEM_NTS0_TxP_WrSts_tdata),
+    .soNTS_Mem_TxP_WrSts_tvalid       (ssMEM_NTS0_TxP_WrSts_tvalid),
+    .soNTS_Mem_TxP_WrSts_tready       (ssMEM_NTS0_TxP_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siNTS_Mem_TxP_Write_tdata        (ssNTS0_MEM_TxP_Write_tdata),
     .siNTS_Mem_TxP_Write_tkeep        (ssNTS0_MEM_TxP_Write_tkeep),
@@ -1305,7 +1305,7 @@ module Shell_Themisto # (
     .siNTS_Mem_TxP_Write_tready       (ssNTS0_MEM_TxP_Write_tready),
 
     //------------------------------------------------------
-    //-- NTS0 / Mem / Rx Interface
+    //-- NTS / Mem / Rx Interface
     //------------------------------------------------------
     //-- Receive Path  / S2MM-AXIS -----------------
     //---- Stream Read Command ---------------
@@ -1313,23 +1313,23 @@ module Shell_Themisto # (
     .siNTS_Mem_RxP_RdCmd_tvalid       (ssNTS0_MEM_RxP_RdCmd_tvalid),
     .siNTS_Mem_RxP_RdCmd_tready       (ssNTS0_MEM_RxP_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Nts_RxP_RdSts_tdata        (ssMEM_NTS0_RxP_RdSts_tdata),
-    .soMEM_Nts_RxP_RdSts_tvalid       (ssMEM_NTS0_RxP_RdSts_tvalid),
-    .soMEM_Nts_RxP_RdSts_tready       (ssMEM_NTS0_RxP_RdSts_tready),
+    .soNTS_Mem_RxP_RdSts_tdata        (ssMEM_NTS0_RxP_RdSts_tdata),
+    .soNTS_Mem_RxP_RdSts_tvalid       (ssMEM_NTS0_RxP_RdSts_tvalid),
+    .soNTS_Mem_RxP_RdSts_tready       (ssMEM_NTS0_RxP_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Nts_RxP_Read_tdata         (ssMEM_NTS0_RxP_Read_tdata),
-    .soMEM_Nts_RxP_Read_tkeep         (ssMEM_NTS0_RxP_Read_tkeep),
-    .soMEM_Nts_RxP_Read_tlast         (ssMEM_NTS0_RxP_Read_tlast),
-    .soMEM_Nts_RxP_Read_tvalid        (ssMEM_NTS0_RxP_Read_tvalid),
-    .soMEM_Nts_RxP_Read_tready        (ssMEM_NTS0_RxP_Read_tready),
+    .soNTS_Mem_RxP_Read_tdata         (ssMEM_NTS0_RxP_Read_tdata),
+    .soNTS_Mem_RxP_Read_tkeep         (ssMEM_NTS0_RxP_Read_tkeep),
+    .soNTS_Mem_RxP_Read_tlast         (ssMEM_NTS0_RxP_Read_tlast),
+    .soNTS_Mem_RxP_Read_tvalid        (ssMEM_NTS0_RxP_Read_tvalid),
+    .soNTS_Mem_RxP_Read_tready        (ssMEM_NTS0_RxP_Read_tready),
     //---- Stream Write Command --------------
     .siNTS_Mem_RxP_WrCmd_tdata        (ssNTS0_MEM_RxP_WrCmd_tdata),
     .siNTS_Mem_RxP_WrCmd_tvalid       (ssNTS0_MEM_RxP_WrCmd_tvalid),
     .siNTS_Mem_RxP_WrCmd_tready       (ssNTS0_MEM_RxP_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Nts_RxP_WrSts_tdata        (ssMEM_NTS0_RxP_WrSts_tdata),
-    .soMEM_Nts_RxP_WrSts_tvalid       (ssMEM_NTS0_RxP_WrSts_tvalid),
-    .soMEM_Nts_RxP_WrSts_tready       (ssMEM_NTS0_RxP_WrSts_tready),
+    .soNTS_Mem_RxP_WrSts_tdata        (ssMEM_NTS0_RxP_WrSts_tdata),
+    .soNTS_Mem_RxP_WrSts_tvalid       (ssMEM_NTS0_RxP_WrSts_tvalid),
+    .soNTS_Mem_RxP_WrSts_tready       (ssMEM_NTS0_RxP_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siNTS_Mem_RxP_Write_tdata        (ssNTS0_MEM_RxP_Write_tdata),
     .siNTS_Mem_RxP_Write_tkeep        (ssNTS0_MEM_RxP_Write_tkeep),
@@ -1364,23 +1364,23 @@ module Shell_Themisto # (
     .siROL_Mem_Mp0_RdCmd_tvalid       (siROL_Mem_Mp0_RdCmd_tvalid),
     .siROL_Mem_Mp0_RdCmd_tready       (siROL_Mem_Mp0_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
-    .soMEM_Rol_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
-    .soMEM_Rol_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
+    .soROL_Mem_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
+    .soROL_Mem_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
+    .soROL_Mem_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
-    .soMEM_Rol_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
-    .soMEM_Rol_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
-    .soMEM_Rol_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
-    .soMEM_Rol_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
+    .soROL_Mem_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
+    .soROL_Mem_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
+    .soROL_Mem_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
+    .soROL_Mem_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
+    .soROL_Mem_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
     //---- Stream Write Command --------------
     .siROL_Mem_Mp0_WrCmd_tdata        (siROL_Mem_Mp0_WrCmd_tdata),
     .siROL_Mem_Mp0_WrCmd_tvalid       (siROL_Mem_Mp0_WrCmd_tvalid),
     .siROL_Mem_Mp0_WrCmd_tready       (siROL_Mem_Mp0_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
-    .soMEM_Rol_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
-    .soMEM_Rol_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
+    .soROL_Mem_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
+    .soROL_Mem_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
+    .soROL_Mem_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siROL_Mem_Mp0_Write_tdata        (siROL_Mem_Mp0_Write_tdata),
     .siROL_Mem_Mp0_Write_tkeep        (siROL_Mem_Mp0_Write_tkeep),
@@ -1397,23 +1397,23 @@ module Shell_Themisto # (
     .siROL_Mem_Mp1_RdCmd_tvalid       (siROL_Mem_Mp1_RdCmd_tvalid),
     .siROL_Mem_Mp1_RdCmd_tready       (siROL_Mem_Mp1_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soMEM_Rol_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
-    .soMEM_Rol_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
-    .soMEM_Rol_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
+    .soROL_Mem_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
+    .soROL_Mem_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
+    .soROL_Mem_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soMEM_Rol_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
-    .soMEM_Rol_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
-    .soMEM_Rol_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
-    .soMEM_Rol_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
-    .soMEM_Rol_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
+    .soROL_Mem_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
+    .soROL_Mem_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
+    .soROL_Mem_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
+    .soROL_Mem_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
+    .soROL_Mem_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
     //---- Stream Write Command --------------
     .siROL_Mem_Mp1_WrCmd_tdata        (siROL_Mem_Mp1_WrCmd_tdata),
     .siROL_Mem_Mp1_WrCmd_tvalid       (siROL_Mem_Mp1_WrCmd_tvalid),
     .siROL_Mem_Mp1_WrCmd_tready       (siROL_Mem_Mp1_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soMEM_Rol_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
-    .soMEM_Rol_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
-    .soMEM_Rol_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
+    .soROL_Mem_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
+    .soROL_Mem_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
+    .soROL_Mem_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
     //---- Stream Data Input Channel ---------
     .siROL_Mem_Mp1_Write_tdata        (siROL_Mem_Mp1_Write_tdata),
     .siROL_Mem_Mp1_Write_tkeep        (siROL_Mem_Mp1_Write_tkeep),
