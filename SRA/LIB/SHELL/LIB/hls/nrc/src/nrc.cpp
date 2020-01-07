@@ -15,6 +15,9 @@ stream<UdpPLen>        sPLen_Udp     ("sPLen_Udp");
 stream<UdpWord>        sFifo_Udp_Data("sFifo_Udp_Data");
 stream<NetworkMetaStream>  sFifo_Udp_Meta("sFifo_Udp_Meta");
 
+uint16_t tableCopyVariable = 0;
+
+
 ap_uint<8>   openPortWaitTime = 10;
 bool Udp_RX_metaWritten = false;
 
@@ -380,7 +383,8 @@ void nrc_main(
 #pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
 #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NRC_ctrlLink_AXI
-#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NRC_ctrlLink_AXI
+//#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NRC_ctrlLink_AXI
+#pragma HLS INTERFACE ap_ctrl_none port=return
 
 #pragma HLS INTERFACE axis register both port=siTcp_data
 #pragma HLS INTERFACE axis register both port=soTcp_data
@@ -416,8 +420,9 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=soTOE_ClsReq
 
 // Pragmas for internal variables
-  //#pragma HLS DATAFLOW interval=1
-  //#pragma HLS PIPELINE II=1 TODO/FIXME: is this necessary??
+#pragma HLS DATAFLOW interval=1
+//#pragma HLS PIPELINE II=1 //TODO/FIXME: is this necessary??
+
 #pragma HLS STREAM variable=sPLen_Udp depth=1
 #pragma HLS STREAM variable=sFifo_Udp_Meta depth=1
 #pragma HLS STREAM variable=sFifo_Udp_Data depth=2048    // Must be able to contain MTU
@@ -485,20 +490,23 @@ void nrc_main(
 #pragma HLS reset variable=tcp_new_connection_failure
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 
+#pragma HLS reset variable=tableCopyVariable
+
 
   //===========================================================
   // MRT
 
   //copy MRT axi Interface
   //MRT data are after possible config DATA
-  for(int i = 0; i < MAX_MRT_SIZE; i++)
-  {
-    localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-  }
-  for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-  {
-    config[i] = ctrlLink[i];
-  }
+  //for(int i = 0; i < MAX_MRT_SIZE; i++)
+  //{
+  //  localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+  //}
+  //for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+  //{
+  //  config[i] = ctrlLink[i];
+  //}
+  
 
   //DEBUG
   //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
@@ -553,11 +561,34 @@ void nrc_main(
   ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
 
   //===========================================================
-  //  update status
-  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  //  update status, config, MRT
+
+  //TODO: necessary?
+  if(tableCopyVariable < NUMBER_CONFIG_WORDS)
   {
-    ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
+    config[tableCopyVariable] = ctrlLink[tableCopyVariable];
   }
+  if(tableCopyVariable < MAX_MRT_SIZE)
+  {
+    localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+  }
+
+  if(tableCopyVariable < NUMBER_STATUS_WORDS)
+  {
+    ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+  }
+
+  if(tableCopyVariable >= MAX_MRT_SIZE)
+  {
+    tableCopyVariable = 0;
+  }  else {
+    tableCopyVariable++;
+  }
+
+  //for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  //{
+  //  ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
+  //}
 
 //DON'T DO ANYTHING WITH NTS BEFORE IT'S NOT READY
   
