@@ -494,41 +494,7 @@ void nrc_main(
 
 
   //===========================================================
-  // MRT
-
-  //copy MRT axi Interface
-  //MRT data are after possible config DATA
-  //for(int i = 0; i < MAX_MRT_SIZE; i++)
-  //{
-  //  localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-  //}
-  //for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-  //{
-  //  config[i] = ctrlLink[i];
-  //}
-  
-
-  //DEBUG
-  //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
-
-  //copy routing nodes 0 - 2 FOR DEBUG
-  status[0] = localMRT[0];
-  status[1] = localMRT[1];
-  status[2] = localMRT[2];
-
-  status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-  status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-  status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
-  status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
-  status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-  status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
-  status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-  status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-  status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
-
-  status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-  status[NRC_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+  // MRT init
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
 
@@ -550,6 +516,7 @@ void nrc_main(
     //}
   }
 
+  //remaining MRT handling moved to the bottom
   
   //===========================================================
   //  core wide variables (for one iteration)
@@ -559,36 +526,6 @@ void nrc_main(
   ipAddrLE |= (ap_uint<32>) ((*myIpAddress >> 8) & 0xFF00);
   ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 8) & 0xFF0000);
   ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
-
-  //===========================================================
-  //  update status, config, MRT
-
-  //TODO: necessary?
-  if(tableCopyVariable < NUMBER_CONFIG_WORDS)
-  {
-    config[tableCopyVariable] = ctrlLink[tableCopyVariable];
-  }
-  if(tableCopyVariable < MAX_MRT_SIZE)
-  {
-    localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-  }
-
-  if(tableCopyVariable < NUMBER_STATUS_WORDS)
-  {
-    ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-  }
-
-  if(tableCopyVariable >= MAX_MRT_SIZE)
-  {
-    tableCopyVariable = 0;
-  }  else {
-    tableCopyVariable++;
-  }
-
-  //for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-  //{
-  //  ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
-  //}
 
 //DON'T DO ANYTHING WITH NTS BEFORE IT'S NOT READY
   
@@ -1511,5 +1448,78 @@ void nrc_main(
         break;
     }
 
+  //===========================================================
+  // MRT init
+
+  //copy MRT axi Interface
+  //MRT data are after possible config DATA
+  //for(int i = 0; i < MAX_MRT_SIZE; i++)
+  //{
+  //  localMRT[i] = ctrlLink[i + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+  //}
+  //for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+  //{
+  //  config[i] = ctrlLink[i];
+  //}
+  
+
+  //DEBUG
+  //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
+
+  //copy routing nodes 0 - 2 FOR DEBUG
+  status[0] = localMRT[0];
+  status[1] = localMRT[1];
+  status[2] = localMRT[2];
+
+  status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+  status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+  status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+  status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+  status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+  status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+  status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+  status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+  status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+
+  status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+  status[NRC_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+  
+  //for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  //{
+  //  ctrlLink[NUMBER_CONFIG_WORDS + i] = status[i];
+  //}
+
+ //===========================================================
+ //  update status, config, MRT
+
+
+  if( fsmStateTXenq_Udp != FSM_ACC && fsmStateTXdeq_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC && 
+      rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
+      wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
+  { //so we are not in a critical data path
+
+    //TODO: necessary?
+    if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+    {
+      config[tableCopyVariable] = ctrlLink[tableCopyVariable];
+    }
+    if(tableCopyVariable < MAX_MRT_SIZE)
+    {
+      localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+    }
+
+    if(tableCopyVariable < NUMBER_STATUS_WORDS)
+    {
+      ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+    }
+
+    if(tableCopyVariable >= MAX_MRT_SIZE)
+    {
+      tableCopyVariable = 0;
+    }  else {
+      tableCopyVariable++;
+    }
+  }
 
 }
