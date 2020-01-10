@@ -22,6 +22,13 @@ DEPS := $(shell find ./src/ -type f)
 .PHONY: all sim cosim cosim_view
 all: ${ipName}_prj/solution1/impl/ip
 
+
+# assert ENVIRONMENT
+assert_env: 
+	@echo "This HLS IP Core needs the cFp environment activated....checking..."
+	@#We need to match the case with and without PR
+	@( [ -f ../../../../cFDK/SRA/LIB/bash/assert_envs.sh ] && ../../../../cFDK/SRA/LIB/bash/assert_envs.sh ) || ../../../cFDK/SRA/LIB/bash/assert_envs.sh
+
 ${ipName}_prj/solution1/impl/ip: $(DEPS)
 	@#rm -rf $@
 	rm -rf ${ipName}_prj
