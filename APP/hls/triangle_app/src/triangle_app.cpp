@@ -41,7 +41,7 @@ void triangle_app(
 {
 
   //-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-  //TODO? #pragma HLS INTERFACE ap_ctrl_none port=return
+ #pragma HLS INTERFACE ap_ctrl_none port=return
 
   //#pragma HLS INTERFACE ap_stable     port=piSHL_This_MmioEchoCtrl
 
