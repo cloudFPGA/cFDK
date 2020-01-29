@@ -1,0 +1,66 @@
+# ########################################################################################
+#  @file  : siTOE_OnePkt.dat
+#  @brief : An single IPv4 packet issued by TOE but preceeded by a [SYN,ACK] and [ACK].
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    # This is a comment
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ########################################################################################
+#
+#  The mapping of the IPv4 packet onto the AXI4-Stream interface is as follows:
+#
+#        6                   5                   4                   3                   2                   1                   0
+#  3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# | Frag Ofst (L) |Flags|  FO(H)  |   Ident (L)   |   Ident (H)   | Total Len (L) | Total Len (H) |Type of Service|Version|  IHL  |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    | Hd Chksum (L) | Hd Chksum (H) |    Protocol   |  Time to Live |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# |                            Options                            |     DA (LL)   |     DA (L)    |     DA (H)    |    DA (HH)    |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ########################################################################################
+
+G PARAM SimCycles     350
+G PARAM FpgaIp4Addr   10.12.200.7
+> IDLE 50
+
+# STEP-1: [SYN,ACK] PACKET =======================
+
+000000002C000045 0 FF
+07C80C0A00000640 0 FF
+5800008032C80C0A 0 FF
+00000000B0012356 0 FF
+0000A91BFFFF0260 0 FF
+00000000B4050402 1 0F
+
+# STEP-2: [ACK] PACKET ===========================
+
+0000000028000045 0 FF
+07C80C0A00000640 0 FF
+5800008032C80C0A 0 FF
+01000000B1012356 0 FF
+00005533FFFF1050 1 FF
+
+# STEP-3: [TCP] PACKET ===========================
+
+0000000050000045 0 FF
+07C80C0A00000640 0 FF
+5800008032C80C0A 0 FF
+01000000B1012356 0 FF
+0000F0F6FFFF1050 0 FF
+0101010101010101 0 FF
+0202020202020202 0 FF
+0303030303030303 0 FF
+0404040404040404 0 FF
+0505050505050505 1 FF
