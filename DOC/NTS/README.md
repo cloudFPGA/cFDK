@@ -22,29 +22,20 @@ Please consider reading the following two documents before diving or contributin
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **CAM**         | Content Addessable Memory interface.                  | [TODO]
-| **IPRX**        | IP Rx Interface.                                      | [TODO]
-| **L3MUX**       | Layer-3 Multiplexer interface.                        | [TODO]
-| **MEM**         | Memory sub-system (data-mover to DDR4).               | [TODO]
-| **TRIF**        | TCP Role Interface (alias APP).                       | tcp_role_interface
-
+| **ETH**         | 10G Ethernet interface.                               | [tenGigEth](../../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
+| **MEM**         | Memory sub-system (data-mover to DDR4).               | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **ROLE**        | Role Interface (alias APP).                           | [TODO]
 
 ## List of HLS Components
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
 | **ARS**         | Address Resolution Protocol (ARP) Server.             | arp_server
-| **DHCP**        | Dynamic Host Configuration Protocol (DHCP) client.    | dhcp_client
 | **ICMP**        | Internet Control Message Protocol (ICMP) server.      | icmp_server
-| **IPRX**        | IP Receiver frame handler (IPRX).                     | iprx_handler
-| **IPTX**        | IP Transmit frame handler (IPTX).                     | iptx_handler
-| **MPE**         |                                                       | mpe
-| **SMC**         |                                                       | smc
-| **TRIF**        | TCP Role Interface.                                   | tcp_role_if
-| **[TOE](./TOE.md)** | TCP Offload Engine.                                   | toe
+| **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
+| **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
+| **[TOE](./TOE.md)** | TCP Offload Engine.                               | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
 | **UDP**         | UDP engine.                                           | udp
-| **UDMX**        | UDP Multiplexer.                                      | udp_mux
-| **URIF**        | UDP Role Interface.                                   | udp_role_if
 
 <br>
 <br>
