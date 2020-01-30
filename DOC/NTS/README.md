@@ -33,7 +33,7 @@ Please consider reading the following two documents before diving or contributin
 | **ARS**         | Address Resolution Protocol (ARP) Server.             | arp_server
 | **ICMP**        | Internet Control Message Protocol (ICMP) server.      | icmp_server
 | **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
+| **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
 | **[TOE](./TOE.md)** | TCP Offload Engine.                               | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
 | **UDP**         | UDP engine.                                           | udp
 
