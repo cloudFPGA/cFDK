@@ -73,6 +73,8 @@ void printSockPair     (const char *callerName, LE_SocketPair leSockPair);
 void printSockPair     (const char *callerName, int  src,     SLcFourTuple fourTuple);
 void printLE_SockAddr  (const char *callerName, LE_SockAddr   leSockAddr);
 void printLE_SockPair  (const char *callerName, LE_SocketPair leSockPair);
+void printIp4Addr      (const char *callerName, \
+                        const char *message,    Ip4Addr       ip4Addr);
 void printIp4Addr      (const char *callerName, Ip4Addr       ip4Addr);
 void printIp4Addr      (                        Ip4Addr       ip4Addr);
 void printTcpPort      (const char *callerName, TcpPort       tcpPort);
@@ -237,6 +239,44 @@ const char    *myCamAccessToString(int       initiator);
 			leIp4HdrCsum = ~csum;
 			return byteSwap16(leIp4HdrCsum);
         }
+
+        /***********************************************************************
+         * @brief Assembles a deque that is ready for TCP checksum calculation.
+         *
+         * @param tcpBuffer, a dequee buffer to hold the TCP pseudo header and
+         *                    the TCP segment.
+         *
+         * @info : The TCP checksum field is cleared as expected before by the
+         *          TCP computation algorithm.
+         ***********************************************************************/
+        void assemblePseudoHeaderAndTcpData(deque<Ip4overMac> &tcpBuffer) {
+            Ip4overMac        macWord;
+
+            int  ipPktLen   = this->getIpTotalLength();
+            int  tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
+
+            // Create the pseudo-header
+            //---------------------------
+            // [0] IP_SA and IP_DA
+            macWord.tdata    = (this->axisWordQueue[1].tdata.range(63, 32), this->axisWordQueue[2].tdata.range(31,  0));
+            tcpBuffer.push_back(macWord);
+            // [1] TCP Protocol and TCP Length & TC_SP & TCP_DP
+            macWord.tdata.range(15,  0)  = 0x0600;
+            macWord.tdata.range(31, 16) = byteSwap16(tcpDataLen);
+            macWord.tdata.range(63, 32) = this->axisWordQueue[2].tdata.range(63, 32);
+            tcpBuffer.push_back(macWord);
+            // Clear the Checksum of the current packet before continuing building the pseudo header
+            this->axisWordQueue[4].tdata.range(47, 32) = 0x0000;
+
+            // Now, append the content of the TCP segment
+            //--------------------------------------------
+            for (int i=2; i<axisWordQueue.size()-1; ++i) {
+                macWord = this->axisWordQueue[i+1];
+                tcpBuffer.push_back(macWord);
+            }
+
+        }
+
         /**************************************************************************
          * @brief Compute the TCP checksum of the packet.
          *
@@ -244,9 +284,11 @@ const char    *myCamAccessToString(int       initiator);
          * @return the new checksum.
          ***************************************************************************/
         int checksumComputation(deque<Ip4overMac>  pseudoHeader) {
+            // [TODO - Consider renaming into claculateTcpChecksum]
             ap_uint<32> tcpChecksum = 0;
 
             for (uint8_t i=0;i<pseudoHeader.size();++i) {
+                // [FIXME-TODO: Do not add the bytes for which tkeep is zero]
                 ap_uint<64> tempInput = (pseudoHeader[i].tdata.range( 7,  0),
                                          pseudoHeader[i].tdata.range(15,  8),
                                          pseudoHeader[i].tdata.range(23, 16),
@@ -255,7 +297,6 @@ const char    *myCamAccessToString(int       initiator);
                                          pseudoHeader[i].tdata.range(47, 40),
                                          pseudoHeader[i].tdata.range(55, 48),
                                          pseudoHeader[i].tdata.range(63, 56));
-                //cerr << hex << tempInput << " " << pseudoHeader[i].data << endl;
                 tcpChecksum = ((((tcpChecksum +
                                 tempInput.range(63, 48)) + tempInput.range(47, 32)) +
                                 tempInput.range(31, 16)) + tempInput.range(15, 0));
@@ -266,8 +307,10 @@ const char    *myCamAccessToString(int       initiator);
             tcpChecksum = ~tcpChecksum;
             return tcpChecksum.range(15, 0).to_int();
         }
+
         // Set the length of the IPv4 packet (in bytes)
         void setLen(int pktLen) { this->len = pktLen; }
+
       public:
         // Default Constructor
         IpPacket() {
@@ -582,44 +625,63 @@ const char    *myCamAccessToString(int       initiator);
                        this->axisWordQueue[c].tkeep.to_uint(),
                        this->axisWordQueue[c].tlast.to_uint());
         }
+
+        /**************************************************************************
+         * @brief Recalculate the IPv4 header checksum of a packet.
+         *        - This will also overwrite the former IP header checksum.
+         *        - You typically use this method if the packet was modified
+         *          or when the header checksum has not yet been calculated.
+         *
+         * @return the computed checksum.
+         ***************************************************************************/
+        Ip4HdrCsum reCalculateIpHeaderChecksum() {
+        	LE_Ip4HdrCsum  leIp4HdrCsum;
+        	ap_uint<20> csum = 0;
+        	csum += this->axisWordQueue[0].tdata.range(15,  0);  // [ToS|VerIhl]
+        	csum += this->axisWordQueue[0].tdata.range(31, 16);  // [TotalLength]
+        	csum += this->axisWordQueue[0].tdata.range(47, 32);  // [Identification]
+        	csum += this->axisWordQueue[0].tdata.range(63, 48);  // [FragOff|Flags]]
+        	csum += this->axisWordQueue[1].tdata.range(15,  0);  // [Protocol|TTL]
+        	// Skip this->axisWordQueue[1].tdata.range(31, 16);  // [Header Checksum]
+			csum += this->axisWordQueue[1].tdata.range(47, 32);  // [SourceAddrLow]
+			csum += this->axisWordQueue[1].tdata.range(63, 48);  // [SourceAddrHigh]
+			csum += this->axisWordQueue[2].tdata.range(15,  0);  // [DestinAddrLow]
+			csum += this->axisWordQueue[2].tdata.range(31, 16);  // [DestinAddrHigh]
+
+			while (csum > 0xFFFF) {
+				csum = csum.range(15, 0) + (csum >> 16);
+			}
+			leIp4HdrCsum = ~csum;
+
+            // Overwrite the former IP header checksum
+            this->setIpHeaderChecksum(byteSwap16(leIp4HdrCsum));
+
+			return (byteSwap16(leIp4HdrCsum));
+        }
+
         /***********************************************************************
-         * @brief Recalculate the TCP checksum of the packet after it was modified.
+         * @brief Recalculate the checksum of a TCP segment after it was modified.
+         *        - This will also overwrite the former TCP checksum.
+         *        - You typically use this method if the packet was modified
+         *          or when the TCP pseudo checksum has not yet been calculated.
          *
          * @return the new checksum.
          ***********************************************************************/
-        int recalculateChecksum() {		// [TODO - Re-factor into PseudoChecksum]
+        int recalculateChecksum() {
+            // [TODO - Re-factor into PseudoChecksum]
             int               newChecksum = 0;
-            deque<Ip4overMac> pseudoHeader;
-            Ip4overMac        macWord;
+            deque<Ip4overMac> tcpBuffer;
 
-            int  ipPktLen   = this->getIpTotalLength();
-            int  tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
+            // Assemble a TCP buffer with pseudo header and TCP data
+            assemblePseudoHeaderAndTcpData(tcpBuffer);
 
-            // Create the pseudo-header
-            //---------------------------
-            // [0] IP_SA and IP_DA
-            macWord.tdata    = (this->axisWordQueue[1].tdata.range(63, 32), this->axisWordQueue[2].tdata.range(31,  0));
-            pseudoHeader.push_back(macWord);
-            // [1] TCP Protocol and TCP Length & TC_SP & TCP_DP
-            macWord.tdata.range(15,  0)  = 0x0600;
-            macWord.tdata.range(31, 16) = byteSwap16(tcpDataLen);
-            macWord.tdata.range(63, 32) = this->axisWordQueue[2].tdata.range(63, 32);
-            pseudoHeader.push_back(macWord);
-            // Clear the Checksum of the current packet before continuing building the pseudo header
-            this->axisWordQueue[4].tdata.range(47, 32) = 0x0000;
-
-            for (int i=2; i<axisWordQueue.size()-1; ++i) {
-                macWord = this->axisWordQueue[i+1];
-                pseudoHeader.push_back(macWord);
-            }
-
-            // Compute the pseudo pseudo-header checksum
-            int pseudoHeaderCsum = checksumComputation(pseudoHeader);
+            // Compute the TCP checksum
+            int tcpCsum = checksumComputation(tcpBuffer);
 
             /// Overwrite the former checksum
-            this->setTcpChecksum(pseudoHeaderCsum);
+            this->setTcpChecksum(tcpCsum);
 
-            return pseudoHeaderCsum;
+            return tcpCsum;
         }
         /***********************************************************************
          * @brief Return the size of the TCP data payload in octets.
@@ -637,15 +699,34 @@ const char    *myCamAccessToString(int       initiator);
          * @return true/false.
          ***********************************************************************/
         bool verifyIpHeaderChecksum() {
-        	Ip4HdrCsum comutedCsum = this->calculateIpHeaderChecksum();
+        	Ip4HdrCsum computedCsum = this->calculateIpHeaderChecksum();
         	Ip4HdrCsum packetCsum =  this->getIpHeaderChecksum();
-        	if (comutedCsum == packetCsum) {
+        	if (computedCsum == packetCsum) {
         		return true;
         	}
         	else {
         		return false;
         	}
         }
+        /***********************************************************************
+         * @brief Recalculate the TCP checksum and compare it with the
+         *   one embedded into the segment.
+         *
+         * @return true/false.
+         ***********************************************************************/
+        bool verifyTcpChecksum() {
+            TcpChecksum tcpChecksum  = this->getTcpChecksum();
+            TcpChecksum computedCsum = this->recalculateChecksum();
+            if (computedCsum == tcpChecksum) {
+                return true;
+            }
+            else {
+                printWarn("IpPacket", "  Embedded TCP checksum = 0x%8.8X \n", tcpChecksum.to_uint());
+                printWarn("IpPacket", "  Computed TCP checksum = 0x%8.8X \n", computedCsum.to_uint());
+                return false;
+            }
+        }
+
         /***********************************************************************
          *  @brief Dump an AxiWord to a file.
          *
@@ -676,16 +757,6 @@ const char    *myCamAccessToString(int       initiator);
          * @return true upon success, otherwise false.
          ***********************************************************************/
         bool writeToDatFile(ofstream  &outFileStream) {
-        	/*** OBSOLETE-20191105 **************
-        	int writtenBytes = 0;
-     		while (writtenBytes < this->length()) {
-				AxiWord axiWord = this->front();
-				writtenBytes += axiWord.keepToLen();
-				if (not this->writeAxiWordToFile(&axiWord, outFileStream))
-					return false;
-				this->pop_front();
-			}
-			*************************************/
         	for (int i=0; i < this->size(); i++) {
         		AxiWord axiWord = this->axisWordQueue[i];
         		if (not this->writeAxiWordToFile(&axiWord, outFileStream)) {
@@ -703,36 +774,47 @@ const char    *myCamAccessToString(int       initiator);
      * @brief Class ETHERNET Frame.
      *
      * @details
-     *  This class defines an ETHERNET frame as a set of 'EthoverMac' words. These
-     *   words are 64-bit chunks that can are received or transmitted by the 10 Gbit
+     *  This class defines an ETHERNET frame as a set of 'EthoverMac' words.
+     *   These words are 64-bit chunks as received or transmitted by the 10 Gbit
      *   Ethernet MAC core over its AXI4-Stream interface.
-     *  Every frame consist of a double-ended queue that is used to accumulate all
-     *   these data chunks.
+     *  Every frame consist of a double-ended queue that is used to accumulate
+     *   all these data chunks.
+     *
+     *  Constructors:
+     *    EthFrame(int frmLen)
+     *      Constructs a frame consisting of 'frmLen' bytes.
+     *    EthFrame()
+     *      Constructs a frame of 12 bytes to hold the Ethernet header.
      *
      ******************************************************************************/
     class EthFrame {
-    	int len;  // Length of the frame in bytes
+    	int len;  // The length of the frame in bytes
 		std::deque<EthoverMac> axisWordQueue;  // A double-ended queue to store ETHernet chunks.
 		void setLen(int frmLen) { this->len = frmLen; }
-		int  getLen() { return    this->len;          }
-	  public:
-		// Default Constructor
-		EthFrame() {
-			this->len = 0;
+		int  getLen()           { return this->len;   }
+		// Add a chunk of bytes at the end of the double-ended queue.
+		void addChunk(EthoverMac ethWord) {
+		    this->axisWordQueue.push_back(ethWord);
+		    setLen(getLen() + keepToLen(ethWord.tkeep));
 		}
-		// Construct a packet of length 'pktLen'
+	  public:
+		// Default Constructor: Constructs a frame of 'frmLen' bytes.
 		EthFrame(int frmLen) {
+			setLen(0);
 			if (frmLen > 0 && frmLen <= MTU) {
-				setLen(frmLen);
 			    int noBytes = frmLen;
 			    while(noBytes > 8) {
-				    EthoverMac newEthWord(0x0000000000000000, 0xFF, 0);
-				    axisWordQueue.push_back(newEthWord);
+			    	addChunk(EthoverMac(0x0000000000000000, 0xFF, 0));
 				    noBytes -= 8;
 			    }
-		    	EthoverMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
-			    axisWordQueue.push_back(newMacWord);
+			    addChunk(EthoverMac(0x0000000000000000, lenToKeep(noBytes), TLAST));
 			}
+		}
+
+		EthFrame() {
+			setLen(0);
+			//OBSOLETE-20100130 addChunk(EthoverMac(0x0000000000000000, 0xFF, 0));
+			//OBSOLETE-20100130 addChunk(EthoverMac(0x0000000000000000, 0x3F, 0));
 		}
 
 		// Return the front chunk element of the MAC word queue
@@ -843,6 +925,87 @@ const char    *myCamAccessToString(int       initiator);
 			return ipPacket;
 		}
 
+        // Set the ETH data payload with an IpPacket
+        void     setIpPacket(IpPacket ipPkt) {
+            bool    alternate = true;
+            bool    endOfPkt  = false;
+            AxiWord ip4Word(0, 0, 0);
+            int     ip4WordCnt = 0;
+            int     ethWordCnt = 1; // Start with the 1st word which contains ETHER_TYP and MAC_SA [5:2]
+
+            // Read and pop the very first chunk from the packet
+            ip4Word = ipPkt.front();
+            ipPkt.pop_front();
+
+            while (!endOfPkt) {
+                if (alternate) {
+                    if (ip4Word.tkeep & 0x01) {
+                        this->axisWordQueue[ethWordCnt].tdata.range(55, 48) = ip4Word.tdata.range( 7, 0);
+                        this->axisWordQueue[ethWordCnt].tkeep = this->axisWordQueue[ethWordCnt].tkeep | (0x40);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (ip4Word.tkeep & 0x02) {
+                        this->axisWordQueue[ethWordCnt].tdata.range(63, 56) = ip4Word.tdata.range(15, 8);
+                        this->axisWordQueue[ethWordCnt].tkeep = this->axisWordQueue[ethWordCnt].tkeep | (0x80);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if ((ip4Word.tlast) && (ip4Word.tkeep <= 0x03)) {
+                        this->axisWordQueue[ethWordCnt].tlast = 1;
+                        endOfPkt = true;
+                    }
+                    else {
+                        this->axisWordQueue[ethWordCnt].tlast = 0;
+                    }
+                    alternate = !alternate;
+                }
+                else {
+                    // Build a new chunck and add it to the queue
+                    AxiWord newEthWord(0,0,0);
+                    if (ip4Word.tkeep & 0x04) {
+                        newEthWord.tdata.range( 7, 0) = ip4Word.tdata.range(23, 16);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x01);
+                    }
+                    if (ip4Word.tkeep & 0x08) {
+                        newEthWord.tdata.range(15, 8) = ip4Word.tdata.range(31, 24);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x02);
+                    }
+                    if (ip4Word.tkeep & 0x10) {
+                        newEthWord.tdata.range(23,16) = ip4Word.tdata.range(39, 32);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x04);
+                    }
+                    if (ip4Word.tkeep & 0x20) {
+                        newEthWord.tdata.range(31,24) = ip4Word.tdata.range(47, 40);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x08);
+                    }
+                    if (ip4Word.tkeep & 0x40) {
+                        newEthWord.tdata.range(39,32) = ip4Word.tdata.range(55, 48);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x10);
+                    }
+                    if (ip4Word.tkeep & 0x80) {
+                        newEthWord.tdata.range(47,40) = ip4Word.tdata.range(63, 56);
+                        newEthWord.tkeep = newEthWord.tkeep | (0x20);
+                    }
+                    // Done with the incoming IP word
+                    ip4WordCnt++;
+
+                    if (ip4Word.tlast) {
+                        newEthWord.tlast = 1;
+                        this->addChunk(newEthWord);
+                        endOfPkt = true;
+                    }
+                    else {
+                        newEthWord.tlast = 0;
+                        this->addChunk(newEthWord);
+                        ethWordCnt++;
+                        // Read and pop a new chunk from the packet
+                        ip4Word = ipPkt.front();
+                        ipPkt.pop_front();
+                    }
+                    alternate = !alternate;
+                }
+            } // End-of while(!endOfPkt)
+        }
+
         //  Dump an AxiWord to a file.
         bool writeAxiWordToFile(AxiWord *axiWord, ofstream &outFileStream) {
             if (!outFileStream.is_open()) {
@@ -858,16 +1021,34 @@ const char    *myCamAccessToString(int       initiator);
             return(true);
         }
 
+        /***********************************************************************
+         * @brief Dump this ETH frame as raw AXI words into a file.
+         *
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writeToDatFile(ofstream  &outFileStream) {
+            for (int i=0; i < this->size(); i++) {
+                AxiWord axiWord = this->axisWordQueue[i];
+                if (not this->writeAxiWordToFile(&axiWord, outFileStream)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
     }; // End of: EthFrame
 
 #endif
 
 
 /******************************************************************************
- * FILE WRITER HELPERS - PROTOTYPE DEFINITIONS
+ * FILE READ & WRITER HELPERS - PROTOTYPE DEFINITIONS
  *******************************************************************************/
 #ifndef __SYNTHESIS__
   bool readAxiWordFromFile(AxiWord  *axiWord, ifstream  &inpFileStream);
+  bool writeAxiWordToFile(AxiWord   *axiWord, ofstream  &outFileStream);
+  bool readTbParamFromDatFile(const string paramName, const string fileName, unsigned int &paramVal);
   int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord);
   int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord, int &wrCount);
   void writeTcpDataToFile(ofstream  &outFile, IpPacket  &ipPacket);

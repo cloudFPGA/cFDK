@@ -245,6 +245,24 @@ void printSockAddr(SockAddr sockAddr)
 }
 
 /*****************************************************************************
+ * @brief Print an IPv4 address prepended with a message (used for debugging).
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "RXe").
+ * @param[in] message,    the message to prepend.
+ * @param[in] Ip4Addr,    the IPv4 address to display (in NETWORK-BYTE order).
+ *****************************************************************************/
+void printIp4Addr(const char *callerName, const char *message, Ip4Addr ip4Addr)
+{
+    printInfo(callerName, "%s IPv4 Addr = 0x%8.8X = %3.3d.%3.3d.%3.3d.%3.3d\n",
+         message,
+         ip4Addr.to_uint(),
+        (ip4Addr.to_uint() & 0xFF000000) >> 24,
+        (ip4Addr.to_uint() & 0x00FF0000) >> 16,
+        (ip4Addr.to_uint() & 0x0000FF00) >>  8,
+        (ip4Addr.to_uint() & 0x000000FF) >>  0);
+}
+
+/*****************************************************************************
  * @brief Print an IPv4 address encoded in NETWORK-BYTE order.
  *
  * @param[in] callerName, the name of the caller process (e.g. "RXe").
@@ -589,9 +607,9 @@ void printTcpPort(TcpPort tcpPort)
         outFileStream << std::uppercase;
         outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
         outFileStream << " ";
-        outFileStream << setw(1) << axiWord->tlast.to_int();
-        outFileStream << " ";
         outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
+        outFileStream << " ";
+        outFileStream << setw(1) << axiWord->tlast.to_int();
         outFileStream << "\n";
         return true;
     }
@@ -638,6 +656,66 @@ void printTcpPort(TcpPort tcpPort)
 		}
 		return rc;
 	}
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Retrieve a testbench parameter from a DAT file.
+	 *
+	 * @param[in]  paramName,  the name of the parameter to read.
+	 * @param[in]  datFile,    the input file to read from.
+	 * @param[out] paramVal,   a ref to the parameter value.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+    bool readTbParamFromDatFile(const string paramName, const string datFile,
+                                unsigned int &paramVal) {
+        ifstream        inpFileStream;
+        char            currPath[FILENAME_MAX];
+        string          rxStringBuffer;
+        vector<string>  stringVector;
+
+        if (not isDatFile(datFile)) {
+            printError(THIS_NAME, "Input test vector file \'%s\' is not of type \'DAT\'.\n", datFile.c_str());
+            return(NTS_KO);
+        }
+
+        inpFileStream.open(datFile.c_str());
+        if (!inpFileStream) {
+            getcwd(currPath, sizeof(currPath));
+            printError(THIS_NAME, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", datFile.c_str(), currPath);
+            return(NTS_KO);
+        }
+
+        do {
+            //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
+            getline(inpFileStream, rxStringBuffer);
+            stringVector = myTokenizer(rxStringBuffer, ' ');
+
+            if (stringVector[0] == "") {
+                continue;
+            }
+            else if (stringVector[0].length() == 1) {
+                // By convention, a global parameter must start with a single 'G' character.
+                if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
+                    if (stringVector[2] == paramName) {
+                        char * ptr;
+                        if (isDottedDecimal(stringVector[3]))
+                            paramVal = myDottedDecimalIpToUint32(stringVector[3]);
+                        else if (isHexString(stringVector[3]))
+                            paramVal = strtoul(stringVector[3].c_str(), &ptr, 16);
+                        else
+                            paramVal = strtoul(stringVector[3].c_str(), &ptr, 10);
+                        inpFileStream.close();
+                        return NTS_OK;
+                    }
+                }
+            }
+        } while(!inpFileStream.eof());
+
+        inpFileStream.close();
+        return NTS_KO;
+    }
 #endif
 
 #ifndef __SYNTHESIS_
@@ -767,6 +845,7 @@ void printTcpPort(TcpPort tcpPort)
             return(NTS_KO);
         }
         // Assess that file has ".dat" extension
+        /*** OBSOLETE-20200128 ********
         if ( datFile.find_last_of ( '.' ) != string::npos ) {
             string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
             if (extension != "dat") {
@@ -774,6 +853,12 @@ void printTcpPort(TcpPort tcpPort)
                 inpFileStream.close();
                 return(NTS_KO);
             }
+        }
+        *******************************/
+        if (not isDatFile(datFile)) {
+            printError("TB", "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            inpFileStream.close();
+            return(NTS_KO);
         }
 
         //-- STEP-2 : READ FROM FILE AND WRITE TO STREAM

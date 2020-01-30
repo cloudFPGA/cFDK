@@ -436,12 +436,12 @@ class EthoverMac: public AxiWord {
     void        setEthDstAddr(EthAddr addr)     {                    tdata.range(47,  0) = swapMacAddr(addr); }
     EthAddr     getEthDstAddr()                 { return swapMacAddr(tdata.range(47,  0));                    }
     LE_EthAddr  getLE_EthDstAddr()              {             return tdata.range(47,  0);                     }
-    // Set-Get the 16-LSbits of the ETH Source Address
+    // Set-Get the 16-LSbits of the ETH Source Address  [TODO - Rename Lo into Hi]
     void        setEthSrcAddrLo(EthAddr addr)   {                    tdata.range(63, 48) = swapMacAddr(addr).range(15,  0); }
     ap_uint<16> getEthSrcAddrLo()               { return swapMacAddr(tdata.range(47,  0)).range(15,  0);                    }
-   // Set-Get the 32-MSbits of the ETH Source Address
-    void        setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(47,  0) = swapMacAddr(addr).range(63, 16); }
-    ap_uint<32> getEthSrcAddrHi()               { return swapMacAddr(tdata.range(47,  0)).range(31,  0);                    }
+   // Set-Get the 32-MSbits of the ETH Source Address [TODO - Rename Hi into Lo]
+    void        setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(31,  0) = swapMacAddr(addr).range(47, 16); }
+    ap_uint<32> getEthSrcAddrHi()               { return swapMacAddr(tdata.range(31,  0)).range(31,  0);                    }
     // Set-get the ETH Type/Length
     void        setEthTypeLen(EthTypeLen eTyLe) {                    tdata.range(47, 32) = swapWord(eTyLe);   }
     EthTypeLen  getEthTypelen()                 {    return swapWord(tdata.range(47, 32));                    }
