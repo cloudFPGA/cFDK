@@ -42,14 +42,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef IPRX_H_
 #define IPRX_H_
 
-//OBSOLETE #include <stdio.h>
-//OBSOLETE #include <iostream>
-//OBSOLETE #include <fstream>
-//OBSOLETE #include <string>
-//OBSOLETE #include <math.h>
 #include <hls_stream.h>
 #include <ap_int.h>
-//OBSOLETE #include <stdint.h>
 #include <ap_shift_reg.h>
 
 #include "../../toe/src/toe.hpp"
@@ -66,22 +60,6 @@ const uint16_t FORWARD         = 0x0001;
 const uint8_t  ICMP = 0x01;
 const uint8_t  UDP  = 0x11;
 const uint8_t  TCP  = 0x06;
-
-/*** OBSOLETE **********
-struct subSums
-{
-    ap_uint<17>         sum0;
-    ap_uint<17>         sum1;
-    ap_uint<17>         sum2;
-    ap_uint<17>         sum3;
-    bool            ipMatch;
-    subSums() {}
-    subSums(ap_uint<17> sums[4], bool match)
-        :sum0(sums[0]), sum1(sums[1]), sum2(sums[2]), sum3(sums[3]), ipMatch(match) {}
-    subSums(ap_uint<17> s0, ap_uint<17> s1, ap_uint<17> s2, ap_uint<17> s3, bool match)
-        :sum0(s0), sum1(s1), sum2(s2), sum3(s3), ipMatch(match) {}
-};
-************************/
 
 class SubSums {
   public:
@@ -103,8 +81,8 @@ void iprx_handler(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        ap_uint<48>          piMMIO_MacAddress,
-        LE_Ip4Addr           piMMIO_Ip4Address,
+        EthAddr              piMMIO_MacAddress,
+        Ip4Addr              piMMIO_Ip4Address,
 
         //------------------------------------------------------
         //-- ETHernet MAC Layer Interface

@@ -69,7 +69,7 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
  *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-int createGoldenFiles(LE_EthAddr myMacAddress,
+int createGoldenFiles(EthAddr myMacAddress,
 					  string  inpDAT_FileName,
                       string  outARP_GoldName, string outICMP_GoldName,
                       string  outTOE_GoldName, string outUDP_GoldName) {
@@ -145,7 +145,7 @@ int createGoldenFiles(LE_EthAddr myMacAddress,
 
         if (endOfFrame) {
         	// Assess MAC_DA is valid
-        	LE_EthAddr  macDA = ethFrame.getLE_MacDestinAddress();
+        	EthAddr  macDA = ethFrame.getMacDestinAddress();
         	if(macDA != myMacAddress) {
        			printWarn(THIS_NAME, "Frame #%d is dropped because MAC_DA does not match.\n", inpFrames);
         	}
@@ -257,36 +257,36 @@ int main(int argc, char* argv[]) {
     ifstream    goldenFile;
     ofstream    outputFile;
 
-    LE_Ip4Addr  myIp4Address = 0x01010101;
-    LE_EthAddr  myMacAddress = 0x60504030201;
+    Ip4Addr     myIp4Address = 0x01010101;
+    EthAddr     myMacAddress = 0x010203040506;
     int         errCount    = 0;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     //-- Incoming streams
-    stream<AxiWord>  ssETH_IPRX_Data  ("ssETH_IPRX_Data");
-    int              nrETH_IPRX_Chunks = 0;
-    int              nrETH_IPRX_Frames = 0;
-    int              nrETH_IPRX_Bytes  = 0;
+    stream<AxiWord> ssETH_IPRX_Data  ("ssETH_IPRX_Data");
+    int             nrETH_IPRX_Chunks = 0;
+    int             nrETH_IPRX_Frames = 0;
+    int             nrETH_IPRX_Bytes  = 0;
     //-- Outgoing streams
-    stream<AxiWord>  ssIPRX_ARP_Data  ("ssIPRX_ARP_Data");
-    int              nrIPRX_ARP_Chunks = 0;
-    int              nrIPRX_ARP_Frames = 0;
-    int              nrIPRX_ARP_Bytes  = 0;
-    stream<AxiWord>  ssIPRX_TOE_Data  ("ssIPRX_TOE_Data");
-    int              nrIPRX_TOE_Chunks = 0;
-    int              nrIPRX_TOE_Frames = 0;
-    int              nrIPRX_TOE_Bytes  = 0;
-    stream<AxiWord>  ssIPRX_UDP_Data  ("ssIPRX_UDP_Data");
-    int              nrIPRX_UDP_Chunks = 0;
-    int              nrIPRX_UDP_Frames = 0;
-    int              nrIPRX_UDP_Bytes  = 0;
-    stream<AxiWord>  ssIPRX_ICMP_Data ("ssIPRX_ICMP_Data");
-    int              nrIPRX_ICMP_Chunks = 0;
-    int              nrIPRX_ICMP_Frames = 0;
-    int              nrIPRX_ICMP_Bytes  = 0;
-    stream<AxiWord>  ssIPRX_ICMP_DErr ("ssIPRX_ICMP_DErr");
+    stream<AxiWord> ssIPRX_ARP_Data  ("ssIPRX_ARP_Data");
+    int             nrIPRX_ARP_Chunks = 0;
+    int             nrIPRX_ARP_Frames = 0;
+    int             nrIPRX_ARP_Bytes  = 0;
+    stream<AxiWord> ssIPRX_TOE_Data  ("ssIPRX_TOE_Data");
+    int             nrIPRX_TOE_Chunks = 0;
+    int             nrIPRX_TOE_Frames = 0;
+    int             nrIPRX_TOE_Bytes  = 0;
+    stream<AxiWord> ssIPRX_UDP_Data  ("ssIPRX_UDP_Data");
+    int             nrIPRX_UDP_Chunks = 0;
+    int             nrIPRX_UDP_Frames = 0;
+    int             nrIPRX_UDP_Bytes  = 0;
+    stream<AxiWord> ssIPRX_ICMP_Data ("ssIPRX_ICMP_Data");
+    int             nrIPRX_ICMP_Chunks = 0;
+    int             nrIPRX_ICMP_Frames = 0;
+    int             nrIPRX_ICMP_Bytes  = 0;
+    stream<AxiWord> ssIPRX_ICMP_DErr ("ssIPRX_ICMP_DErr");
 
     //------------------------------------------------------
     //-- OPEN INPUT TEST VECTOR FILE

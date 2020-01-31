@@ -1058,12 +1058,12 @@ const char    *myCamAccessToString(int       initiator);
  * STREAM WRITER HELPERS - PROTOTYPE DEFINITIONS
  *******************************************************************************/
 #ifndef __SYNTHESIS__
-  bool feedAxiWordStreamFromFile(stream<AxiWord> &ss, const string ssName,
-                                 string      datFile, int       &nrChunks,
-                                 int       &nrFrames, int        &nrBytes);
-  bool drainAxiWordStreamToFile (stream<AxiWord> &ss, const string ssName,
-                                 string      datFile, int       &nrChunks,
-                                 int       &nrFrames, int        &nrBytes);
+  bool feedAxiWordStreamFromFile(stream<AxiWord> &ss,    const string ssName,
+                                 string      datFile,    int       &nrChunks,
+                                 int       &nrFrames,    int        &nrBytes);
+  bool drainAxiWordStreamToFile (stream<AxiWord> &ss,    const string ssName,
+                                 string      datFile,    int       &nrChunks,
+                                 int       &nrFrames,    int        &nrBytes);
 #endif
 
 
