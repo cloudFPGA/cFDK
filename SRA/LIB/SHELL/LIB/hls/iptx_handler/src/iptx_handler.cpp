@@ -365,7 +365,7 @@ void pIp4AddressExtractor(
  * @param[in]  piMMIO_MacAddress,My Ethernet MAC address from [MMIO].
  *
  * @details
- *  This process inserts the the Ethernet MAC address corresponding to the IPv4
+ *  This process inserts the Ethernet MAC address corresponding to the IPv4
  *  destination address that was looked-up by the ARP server.
  *****************************************************************************/
 void pMacAddressInserter(

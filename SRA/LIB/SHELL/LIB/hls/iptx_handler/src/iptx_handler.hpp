@@ -88,7 +88,7 @@ void iptx_handler(
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<LE_Ip4Addr>      &soARP_LookupReq,
+        stream<Ip4Addr>         &soARP_LookupReq,
         stream<ArpLkpReply>     &siARP_LookupRep
 );
 
