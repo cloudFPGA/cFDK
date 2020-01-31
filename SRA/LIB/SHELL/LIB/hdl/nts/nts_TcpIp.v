@@ -482,9 +482,9 @@ module NetworkTransportSession_TcpIp (
   wire          ssARP_L2MUX_Data_tvalid;
   wire          ssARP_L2MUX_Data_tready;
   //-- ARP ==> IPTX / LkpRpl -----------
-  wire [55:0]   ssARP_IPTX_LkpRpl_tdata;
-  wire          ssARP_IPTX_LkpRpl_tvalid;
-  wire          ssARP_IPTX_LkpRpl_tready;
+  wire [55:0]   ssARP_IPTX_LkpRep_tdata;
+  wire          ssARP_IPTX_LkpRep_tvalid;
+  wire          ssARP_IPTX_LkpRep_tready;
   
   //------------------------------------------------------------------
   //-- IPTX = IP-TX-HANDLER
@@ -550,7 +550,6 @@ module NetworkTransportSession_TcpIp (
 `ifdef USE_DEPRECATED_DIRECTIVES
 
   IpRxHandler IPRX (
-
                     
     //------------------------------------------------------
     //-- From SHELL Interfaces
@@ -690,9 +689,9 @@ module NetworkTransportSession_TcpIp (
     .axis_arp_lookup_request_TVALID (ssIPTX_ARP_LkpReq_tvalid),
     .axis_arp_lookup_request_TREADY (ssIPTX_ARP_LkpReq_tready),
     //-- From IPTX / LoopkupReply ------
-    .axis_arp_lookup_reply_TDATA    (ssARP_IPTX_LkpRpl_tdata),
-    .axis_arp_lookup_reply_TVALID   (ssARP_IPTX_LkpRpl_tvalid),
-    .axis_arp_lookup_reply_TREADY   (ssARP_IPTX_LkpRpl_tready),
+    .axis_arp_lookup_reply_TDATA    (ssARP_IPTX_LkpRep_tdata),
+    .axis_arp_lookup_reply_TVALID   (ssARP_IPTX_LkpRep_tvalid),
+    .axis_arp_lookup_reply_TREADY   (ssARP_IPTX_LkpRep_tready),
     
     //------------------------------------------------------
     //-- L2MUX Interfaces
@@ -1738,37 +1737,37 @@ module NetworkTransportSession_TcpIp (
     //-- L3MUX Interfaces
     //------------------------------------------------------
     //-- From L3MUX / Data -------------
-    .s_dataIn_TDATA           (ssL3MUX_IPTX_Data_tdata),
-    .s_dataIn_TKEEP           (ssL3MUX_IPTX_Data_tkeep),
-    .s_dataIn_TLAST           (ssL3MUX_IPTX_Data_tlast),
-    .s_dataIn_TVALID          (ssL3MUX_IPTX_Data_tvalid),
-    .s_dataIn_TREADY          (ssL3MUX_IPTX_Data_tready),
+    .siL3MUX_Data_TDATA       (ssL3MUX_IPTX_Data_tdata),
+    .siL3MUX_Data_TKEEP       (ssL3MUX_IPTX_Data_tkeep),
+    .siL3MUX_Data_TLAST       (ssL3MUX_IPTX_Data_tlast),
+    .siL3MUX_Data_TVALID      (ssL3MUX_IPTX_Data_tvalid),
+    .siL3MUX_Data_TREADY      (ssL3MUX_IPTX_Data_tready),
   
     //------------------------------------------------------
     //-- ARP Interfaces
     //------------------------------------------------------
     //-- To   ARP / LookupRequest ------                 
-   .m_arpTableOut_TDATA       (ssIPTX_ARP_LkpReq_tdata), 
-   .m_arpTableOut_TVALID      (ssIPTX_ARP_LkpReq_tvalid),
-   .m_arpTableOut_TREADY      (ssIPTX_ARP_LkpReq_tready),
+   .soARP_LookupReq_TDATA     (ssIPTX_ARP_LkpReq_tdata), 
+   .soARP_LookupReq_TVALID    (ssIPTX_ARP_LkpReq_tvalid),
+   .soARP_LookupReq_TREADY    (ssIPTX_ARP_LkpReq_tready),
     //-- From ARP / LookupReply --------
-    .s_arpTableIn_TDATA       (ssARP_IPTX_LkpRpl_tdata),
-    .s_arpTableIn_TVALID      (ssARP_IPTX_LkpRpl_tvalid),
-    .s_arpTableIn_TREADY      (ssARP_IPTX_LkpRpl_tready),
+    .siARP_LookupRep_TDATA    (ssARP_IPTX_LkpRep_tdata),
+    .siARP_LookupRep_TVALID   (ssARP_IPTX_LkpRep_tvalid),
+    .siARP_LookupRep_TREADY   (ssARP_IPTX_LkpRep_tready),
   
     //------------------------------------------------------
     //-- L2MUX Interfaces
     //------------------------------------------------------
     //-- To L2MUX / Data
-    .m_dataOut_TDATA          (ssIPTX_L2MUX_Data_tdata),
-    .m_dataOut_TKEEP          (ssIPTX_L2MUX_Data_tkeep),
-    .m_dataOut_TLAST          (ssIPTX_L2MUX_Data_tlast),
-    .m_dataOut_TVALID         (ssIPTX_L2MUX_Data_tvalid),
-    .m_dataOut_TREADY         (ssIPTX_L2MUX_Data_tready),
+    .soL2MUX_Data_TDATA       (ssIPTX_L2MUX_Data_tdata),
+    .soL2MUX_Data_TKEEP       (ssIPTX_L2MUX_Data_tkeep),
+    .soL2MUX_Data_TLAST       (ssIPTX_L2MUX_Data_tlast),
+    .soL2MUX_Data_TVALID      (ssIPTX_L2MUX_Data_tvalid),
+    .soL2MUX_Data_TREADY      (ssIPTX_L2MUX_Data_tready),
   
-    .regSubNetMask_V          (piMMIO_SubNetMask), 
-    .regDefaultGateway_V      (piMMIO_GatewayAddr),
-    .myMacAddress_V           (piMMIO_MacAddress) 
+    .piMMIO_SubNetMask_V      (piMMIO_SubNetMask), 
+    .piMMIO_GatewayAddr_V     (piMMIO_GatewayAddr),
+    .piMMIO_MacAddress_V      (piMMIO_MacAddress)
     
   ); // End of IPTX
     
