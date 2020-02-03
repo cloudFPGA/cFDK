@@ -143,69 +143,69 @@ void pMacProtocolDetector(
     const char *myName  = concat3(THIS_NAME, "/", "MPd");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { S0=0, S1 } fsmState=S0;
-    #pragma HLS reset         variable=fsmState
-    static ap_uint<2>                  wordCount=0;
-    #pragma HLS reset         variable=wordCount
+    static enum FsmStates { S0=0, S1 } mpd_fsmState=S0;
+    #pragma HLS reset         variable=mpd_fsmState
+    static ap_uint<2>                  mpd_wordCount=0;
+    #pragma HLS reset         variable=mpd_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static EtherType    etherType;
-    static AxiWord      prevWord;
+    static EtherType    mpd_etherType;
+    static AxiWord      mpd_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     EthoverMac          currWord;
 
-    switch (fsmState) {
+    switch (mpd_fsmState) {
     case S0:
         if (!siIBuf_Data.empty() && !soARP_Data.full() && !soILc_Data.full()) {
             siIBuf_Data.read(currWord);
-            switch (wordCount) {
+            switch (mpd_wordCount) {
             case 0:
                 // Compare MAC_DA with our MMIO_MacAddress and with BROADCAST
                 //  [TODO - Is this really needed given ARP ?]
                 if (currWord.getEthDstAddr() != piMMIO_MacAddr &&
                     currWord.getEthDstAddr() != 0xFFFFFFFFFFFF) {
-                    etherType = DROP;
+                    mpd_etherType = DROP;
                     printInfo(myName, "Requesting current frame with MAC destination address = 0x%16.16lX (0x%16.16lX) to be dropped\n",
                                       currWord.getEthDstAddr().to_long(), currWord.getLE_EthDstAddr().to_long());
                 }
                 else {
-                    etherType = FORWARD;
+                    mpd_etherType = FORWARD;
                 }
-                wordCount++;
+                mpd_wordCount++;
                 break;
             default:
-                if (wordCount == 1) {
-                    if (etherType != DROP) {
+                if (mpd_wordCount == 1) {
+                    if (mpd_etherType != DROP) {
                         //OBSOLETE-2191015 macType = byteSwap16(currWord.tdata(47, 32));
-                        etherType = currWord.getEtherType();
+                        mpd_etherType = currWord.getEtherType();
                     }
-                    wordCount++;
+                    mpd_wordCount++;
                 }
-                if (etherType == ARP) {
-                    soARP_Data.write(prevWord);
+                if (mpd_etherType == ARP) {
+                    soARP_Data.write(mpd_prevWord);
                 }
-                else if (etherType == IPv4) {
-                    soILc_Data.write(prevWord);
+                else if (mpd_etherType == IPv4) {
+                    soILc_Data.write(mpd_prevWord);
                 }
                 break;
             }
-            prevWord = currWord;
+            mpd_prevWord = currWord;
             if (currWord.tlast) {
-                wordCount = 0;
-                fsmState = S1;
+                mpd_wordCount = 0;
+                mpd_fsmState = S1;
             }
         }
         break;
     case 1:
         if( !soARP_Data.full() && !soILc_Data.full()){
-            if (etherType == ARP) {
-                soARP_Data.write(prevWord);
+            if (mpd_etherType == ARP) {
+                soARP_Data.write(mpd_prevWord);
             }
-            else if (etherType == IPv4) {
-                soILc_Data.write(prevWord);
+            else if (mpd_etherType == IPv4) {
+                soILc_Data.write(mpd_prevWord);
             }
-            fsmState = S0;
+            mpd_fsmState = S0;
         }
         break;
 
@@ -233,14 +233,14 @@ void pIpLengthChecker(
     const char *myName  = concat3(THIS_NAME, "/", "ILc");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<2>          leftToWrite=0;
-    #pragma HLS reset variable=leftToWrite
-    static enum FsmStates {FSM_IDLE=0, FSM_SIZECHECK, FSM_STREAM} fsmState=FSM_IDLE;
-    #pragma HLS reset variable=fsmState
-    static ap_uint<2>          wordCount=0;
-    #pragma HLS reset variable=wordCount
-    static ap_uint<1>          filterPacket=0;
-    #pragma HLS reset variable=filterPacket
+    static ap_uint<2>          ilc_leftToWrite=0;
+    #pragma HLS reset variable=ilc_leftToWrite
+    static enum FsmStates {FSM_IDLE=0, FSM_SIZECHECK, FSM_STREAM} ilc_fsmState=FSM_IDLE;
+    #pragma HLS reset variable=ilc_fsmState
+    static ap_uint<2>          ilc_wordCount=0;
+    #pragma HLS reset variable=ilc_wordCount
+    static ap_uint<1>          ilc_filterPacket=0;
+    #pragma HLS reset variable=ilc_filterPacket
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_shift_reg<AxiWord, 2> wordBuffer;
@@ -249,58 +249,58 @@ void pIpLengthChecker(
     AxiWord     tempWord;
     Ip4TotalLen ip4TotLen;
 
-    if (leftToWrite == 0) {
+    if (ilc_leftToWrite == 0) {
         if (!siMPd_Data.empty() && !soICa_Data.full()) {
             AxiWord currWord = siMPd_Data.read();
-            switch (fsmState) {
+            switch (ilc_fsmState) {
             case FSM_IDLE:
                 wordBuffer.shift(currWord);
-                if (wordCount == 1) {
-                    fsmState = FSM_SIZECHECK;
+                if (ilc_wordCount == 1) {
+                    ilc_fsmState = FSM_SIZECHECK;
                 }
-                wordCount++;
+                ilc_wordCount++;
                 break;
             case FSM_SIZECHECK:
                 // Check the IPv4/TotalLength filed ([FIXME - Consider removing])
                 ip4TotLen = byteSwap16(currWord.tdata.range(15, 0));
-                //OBSOLETE-20191025 byteSwap16(currWord.tdata.range(15, 0)) > MaxDatagramSize ? filterPacket = 1 : filterPacket = 0;
+                //OBSOLETE-20191025 byteSwap16(currWord.tdata.range(15, 0)) > MaxDatagramSize ? ilc_filterPacket = 1 : ilc_filterPacket = 0;
                 if (ip4TotLen > MaxDatagramSize) {
-                    filterPacket = 1;
+                    ilc_filterPacket = 1;
                     printWarn(myName, "Current frame will be discarded because frame is too long!\n");
                 }
                 else {
-                    filterPacket = 0;
+                    ilc_filterPacket = 0;
                     if (DEBUG_LEVEL & TRACE_ILC) {
                         printInfo(myName, "Start of IPv4 packet - Total length = %d bytes.\n", ip4TotLen.to_int());
                     }
                 }
                 tempWord = wordBuffer.shift(currWord);
-                if (filterPacket == 0) {
+                if (ilc_filterPacket == 0) {
                     soICa_Data.write(tempWord);
                 }
-                fsmState = FSM_STREAM;
+                ilc_fsmState = FSM_STREAM;
                 break;
            case FSM_STREAM:
                 tempWord = wordBuffer.shift(currWord);
-                if (filterPacket == 0) {
+                if (ilc_filterPacket == 0) {
                     soICa_Data.write(tempWord);
                 }
                 break;
             } // End of: switch
 
             if (currWord.tlast) {
-                wordCount   = 0;
-                leftToWrite = 2;
-                fsmState    = FSM_IDLE;
+                ilc_wordCount   = 0;
+                ilc_leftToWrite = 2;
+                ilc_fsmState    = FSM_IDLE;
             }
        }
     }
-    else if (leftToWrite != 0 && !soICa_Data.full() ) {
+    else if (ilc_leftToWrite != 0 && !soICa_Data.full() ) {
         tempWord = wordBuffer.shift(AxiWord(0, 0, 0));
-        if (filterPacket == 0) {
+        if (ilc_filterPacket == 0) {
             soICa_Data.write(tempWord);
         }
-        leftToWrite--;
+        ilc_leftToWrite--;
     }
 
 //   if (leftToWrite == 0) {
@@ -372,16 +372,16 @@ void pIpChecksumAccumulator(
     const char *myName  = concat3(THIS_NAME, "/", "ICa");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                wasLastWord=false;
-    #pragma HLS reset variable=wasLastWord
-    static ap_uint<3>          wordCount=0;
-    #pragma HLS reset variable=wordCount
+    static bool                ica_wasLastWord=false;
+    #pragma HLS reset variable=ica_wasLastWord
+    static ap_uint<3>          ica_wordCount=0;
+    #pragma HLS reset variable=ica_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<17> ipHdrSums[4];
-    static ap_uint<8>  ipHdrLen;
-    static LE_Ip4Addr  dstIpAddress;
-    static AxiWord     prevWord;
+    static ap_uint<17> ica_ipHdrSums[4];
+    static ap_uint<8>  ica_ipHdrLen;
+    static LE_Ip4Addr  ica_dstIpAddress;
+    static AxiWord     ica_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     EthoverMac  currWord;
@@ -390,28 +390,28 @@ void pIpChecksumAccumulator(
     bool        ipAddrMatch;
 
     currWord.tlast = 0;
-    if (!siILc_Data.empty() && !wasLastWord && !soIId_IpVer.full() &&
+    if (!siILc_Data.empty() && !ica_wasLastWord && !soIId_IpVer.full() &&
         !soIId_DropFrag.full() && !soICc_SubSums.full() && !soIId_Data.full()) {
         siILc_Data.read(currWord);
 
-        switch (wordCount) {
+        switch (ica_wordCount) {
         case 0:
             // Skip because word contains MAC_SA[1:0] | MAC_DA[5:0]
             for (uint8_t i=0; i<4 ;++i) {
-                ipHdrSums[i] = 0;
+                ica_ipHdrSums[i] = 0;
             }
-            wordCount++;
+            ica_wordCount++;
             break;
 
         case 1:
             // Retrieve the IP version field
             soIId_IpVer.write(currWord.tdata.range(55, 52));
             // Retrieve the Internet Header Length
-            ipHdrLen = currWord.tdata.range(51, 48);
+            ica_ipHdrLen = currWord.tdata.range(51, 48);
             // Retrieve the first two octets of the IPv4 header
-            ipHdrSums[3] += byteSwap16(currWord.tdata.range(63, 48));
-            ipHdrSums[3] = (ipHdrSums[3] + (ipHdrSums[3] >> 16)) & 0xFFFF;
-            wordCount++;
+            ica_ipHdrSums[3] += byteSwap16(currWord.tdata.range(63, 48));
+            ica_ipHdrSums[3] = (ica_ipHdrSums[3] + (ica_ipHdrSums[3] >> 16)) & 0xFFFF;
+            ica_wordCount++;
             break;
 
         case 2:
@@ -435,97 +435,98 @@ void pIpChecksumAccumulator(
 
             for (int i = 0; i < 4; i++) {
               #pragma HLS unroll
-                ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
-                ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
+                ica_ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                ica_ipHdrSums[i] = (ica_ipHdrSums[i] + (ica_ipHdrSums[i] >> 16)) & 0xFFFF;
             }
-            ipHdrLen -= 2;
-            wordCount++;
+            ica_ipHdrLen -= 2;
+            ica_wordCount++;
             break;
 
         case 3:
-            dstIpAddress.range(15, 0) = currWord.tdata.range(63, 48);
+            ica_dstIpAddress.range(15, 0) = currWord.tdata.range(63, 48);
             for (int i = 0; i < 4; i++) {
               #pragma HLS unroll
-                ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
-                ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
+                ica_ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                ica_ipHdrSums[i] = (ica_ipHdrSums[i] + (ica_ipHdrSums[i] >> 16)) & 0xFFFF;
             }
-            ipHdrLen -= 2;
-            wordCount++;
+            ica_ipHdrLen -= 2;
+            ica_wordCount++;
             break;
 
         default:
-            if (wordCount == 4)
-                dstIpAddress(31, 16) = currWord.tdata(15, 0);
+            if (ica_wordCount == 4)
+                ica_dstIpAddress(31, 16) = currWord.tdata(15, 0);
 
-            switch (ipHdrLen) {
+            switch (ica_ipHdrLen) {
             case 0:
                 break;
             case 1:
                 // Sum up part0
-                ipHdrSums[0] += byteSwap16(currWord.tdata.range(15, 0));
-                ipHdrSums[0] = (ipHdrSums[0] + (ipHdrSums[0] >> 16)) & 0xFFFF;
-                ipHdrLen = 0;
+                ica_ipHdrSums[0] += byteSwap16(currWord.tdata.range(15, 0));
+                ica_ipHdrSums[0] = (ica_ipHdrSums[0] + (ica_ipHdrSums[0] >> 16)) & 0xFFFF;
+                ica_ipHdrLen = 0;
                 // Assess destination IP address
-                if (byteSwap32(dstIpAddress) == piMMIO_Ip4Address ||
-                    byteSwap32(dstIpAddress) == 0xFFFFFFFF) {
+                if (byteSwap32(ica_dstIpAddress) == piMMIO_Ip4Address ||
+                    byteSwap32(ica_dstIpAddress) == 0xFFFFFFFF) {
                     ipAddrMatch = true;
                 }
                 else {
                     ipAddrMatch = false;
                 }
-                soICc_SubSums.write(SubSums(ipHdrSums, ipAddrMatch));
+                soICc_SubSums.write(SubSums(ica_ipHdrSums, ipAddrMatch));
                 break;
             case 2:
                 // Sum up part 0-2
                 for (int i = 0; i < 4; i++) {
                   #pragma HLS unroll
-                    ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
-                    ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
+                    ica_ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                    ica_ipHdrSums[i] = (ica_ipHdrSums[i] + (ica_ipHdrSums[i] >> 16)) & 0xFFFF;
                 }
-                ipHdrLen = 0;
+                ica_ipHdrLen = 0;
 
-                if (byteSwap32(dstIpAddress) == piMMIO_Ip4Address ||
-                    byteSwap32(dstIpAddress) == 0xFFFFFFFF) {
+                if (byteSwap32(ica_dstIpAddress) == piMMIO_Ip4Address ||
+                    byteSwap32(ica_dstIpAddress) == 0xFFFFFFFF) {
                     ipAddrMatch = true;
                 }
                 else {
                     ipAddrMatch = false;
                 }
-                soICc_SubSums.write(SubSums(ipHdrSums, ipAddrMatch));
+                soICc_SubSums.write(SubSums(ica_ipHdrSums, ipAddrMatch));
                 break;
             default:
                 // Sum up everything
                 for (int i = 0; i < 4; i++) {
                   #pragma HLS unroll
-                    ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
-                    ipHdrSums[i] = (ipHdrSums[i] + (ipHdrSums[i] >> 16)) & 0xFFFF;
+                    ica_ipHdrSums[i] += byteSwap16(currWord.tdata.range(i*16+15, i*16));
+                    ica_ipHdrSums[i] = (ica_ipHdrSums[i] + (ica_ipHdrSums[i] >> 16)) & 0xFFFF;
                 }
-                ipHdrLen -= 2;
+                ica_ipHdrLen -= 2;
                 break;
             }
             break;
 
-        } // End of: switch(wordCount)
+        } // End of: switch(ica_wordCount)
 
-        if (wordCount > 2) {
+        if (ica_wordCount > 2) {
             // Send AxiWords while re-aligning the outgoing chunks
-            sendWord = Ip4overMac((currWord.tdata(47, 0), prevWord.tdata(63, 48)),
-                                  (currWord.tkeep( 5, 0), prevWord.tkeep( 7,  6)),
+            sendWord = Ip4overMac((currWord.tdata(47, 0), ica_prevWord.tdata(63, 48)),
+                                  (currWord.tkeep( 5, 0), ica_prevWord.tkeep( 7,  6)),
                                   (currWord.tkeep[6] == 0));
             soIId_Data.write(sendWord);
         }
 
-        prevWord = currWord;
+        ica_prevWord = currWord;
         if (currWord.tlast) {
-            wordCount = 0;
-            wasLastWord = !sendWord.tlast;
+            ica_wordCount = 0;
+            ica_wasLastWord = !sendWord.tlast;
         }
     }
-    else if(wasLastWord && !soIId_Data.full()) {
+    else if(ica_wasLastWord && !soIId_Data.full()) {
         // Send remaining Word;
-        sendWord = Ip4overMac(prevWord.tdata.range(63, 48), prevWord.tkeep.range(7, 6), 1);
+        sendWord = Ip4overMac(ica_prevWord.tdata.range(63, 48),
+                              ica_prevWord.tkeep.range(7, 6), 1);
         soIId_Data.write(sendWord);
-        wasLastWord = false;
+        ica_wasLastWord = false;
     }
 }
 
@@ -558,13 +559,13 @@ void pIpInvalidDropper(
     const char *myName  = concat3(THIS_NAME, "/", "IId");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates {FSM_IDLE=0, FSM_FWD, FSM_DROP} fsmState=FSM_IDLE;
-    #pragma HLS reset                           variable=fsmState
+    static enum FsmStates {FSM_IDLE=0, FSM_FWD, FSM_DROP} iid_fsmState=FSM_IDLE;
+    #pragma HLS reset                            variable=iid_fsmState
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     Ip4overMac currWord = Ip4overMac(0, 0, 0);
 
-    switch(fsmState) {
+    switch(iid_fsmState) {
     case FSM_IDLE:
         if (!siICc_CsumValid.empty() && !siICa_IpVer.empty() && !siICa_DropFrag.empty() &&
             !siICa_Data.empty() && !soICl_Data.full()) {
@@ -577,7 +578,7 @@ void pIpInvalidDropper(
 
             ap_uint<2> valid = (csumValid + isIpv4Pkt + doKeepPkt);
             if (valid != 3) {
-                fsmState = FSM_DROP;
+                iid_fsmState = FSM_DROP;
                 printWarn(myName, "The current IP packet will be dropped because:\n");
                 printWarn(myName, "  csumValid=%d | isIpv4Pkt=%d | doKeepPkt=%d\n",
                           csumValid.to_int(), isIpv4Pkt.to_int(), doKeepPkt.to_int());
@@ -585,7 +586,7 @@ void pIpInvalidDropper(
             }
             else {
                 soICl_Data.write(currWord);
-                fsmState = FSM_FWD;
+                iid_fsmState = FSM_FWD;
             }
         }
         break;
@@ -594,7 +595,7 @@ void pIpInvalidDropper(
             siICa_Data.read(currWord);
             soICl_Data.write(currWord);
             if (currWord.tlast == 1) {
-                fsmState = FSM_IDLE;
+                iid_fsmState = FSM_IDLE;
             }
         }
         break;
@@ -603,7 +604,7 @@ void pIpInvalidDropper(
             siICa_Data.read(currWord);
             // [FIXME] printAxiWord(myName, "Dropping:", currWord);
             if (currWord.tlast == 1) {
-                fsmState = FSM_IDLE;
+                iid_fsmState = FSM_IDLE;
             }
         }
         break;
@@ -632,38 +633,38 @@ void pIpCutLength(
     const char *myName  = concat3(THIS_NAME, "/", "ICl");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates {FSM_FWD=0, FSM_DROP} fsmState=FSM_FWD;
-    #pragma HLS reset                 variable=fsmState
-    static ap_uint<13>                         wordCount=0; // Ip4TotalLen/8
-    #pragma HLS reset                 variable=wordCount
+    static enum FsmStates {FSM_FWD=0, FSM_DROP} icl_fsmState=FSM_FWD;
+    #pragma HLS reset                  variable=icl_fsmState
+    static ap_uint<13>                          icl_wordCount=0; // Ip4TotalLen/8
+    #pragma HLS reset                  variable=icl_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static Ip4TotalLen  ip4TotalLength;
+    static Ip4TotalLen  icl_ip4TotalLength;
 
-    switch(fsmState){
+    switch(icl_fsmState){
     case FSM_FWD:
         if (!siIId_Data.empty() && !soIPr_Data.full()) {
             Ip4overMac currWord = siIId_Data.read();
-            switch (wordCount) {
+            switch (icl_wordCount) {
             case 0:
-                ip4TotalLength = byteSwap16(currWord.tdata(31, 16)); // why not (15:0)???
+                icl_ip4TotalLength = byteSwap16(currWord.tdata(31, 16)); // why not (15:0)???
                 break;
             default:
-                if (((wordCount+1)*8) >= ip4TotalLength) {
+                if (((icl_wordCount+1)*8) >= icl_ip4TotalLength) {
                     if (currWord.tlast == 0) {
-                        fsmState = FSM_DROP;
+                        icl_fsmState = FSM_DROP;
                     }
                     currWord.tlast = 1;
-                    ap_uint<4> leftLength = ip4TotalLength - (wordCount*8);
+                    ap_uint<4> leftLength = icl_ip4TotalLength - (icl_wordCount*8);
                     currWord.tkeep = returnKeep(leftLength);
                 }
                 break;
-            } // End of: switch(wordCount)
+            } // End of: switch(icl_wordCount)
 
             soIPr_Data.write(currWord);
-            wordCount++;
+            icl_wordCount++;
             if (currWord.tlast) {
-                wordCount = 0;
+                icl_wordCount = 0;
             }
         }
         break;
@@ -672,12 +673,12 @@ void pIpCutLength(
         if (!siIId_Data.empty()) {
             Ip4overMac currWord = siIId_Data.read();
             if (currWord.tlast) {
-                fsmState = FSM_FWD;
+                icl_fsmState = FSM_FWD;
             }
         }
         break;
 
-    } // End of: switch(fsmState)
+    } // End of: switch(icl_fsmState)
 }
 
 /******************************************************************************
@@ -745,69 +746,69 @@ void pIpPacketRouter(
     const char *myName  = concat3(THIS_NAME, "/", "IPr");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { FSM_IDLE=0, FSM_LAST} fsmState=FSM_IDLE;
-	#pragma HLS reset                    variable=fsmState
-    static ap_uint<2>                             wordCount=0;
-    #pragma HLS reset                    variable=wordCount
-    static bool                                   leftToWrite=false;
-    #pragma HLS reset                    variable=leftToWrite
+    static enum FsmStates { FSM_IDLE=0, FSM_LAST} ipr_fsmState=FSM_IDLE;
+	#pragma HLS reset                    variable=ipr_fsmState
+    static ap_uint<2>                             ipr_wordCount=0;
+    #pragma HLS reset                    variable=ipr_wordCount
+    static bool                                   ipr_leftToWrite=false;
+    #pragma HLS reset                    variable=ipr_leftToWrite
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static StsBit		ttlExpired;
-    static Ip4Prot		ipProtocol;
-    static Ip4overMac	prevWord;
+    static StsBit		ipr_ttlExpired;
+    static Ip4Prot		ipr_ipProtocol;
+    static Ip4overMac	ipr_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     Ip4overMac          currWord;
 
-     switch (fsmState) {
+     switch (ipr_fsmState) {
      case FSM_IDLE:
          if (!siICl_Data.empty() &&
              !soICMP_Derr.full() && !soICMP_Data.full() &&
              !soUDP_Data.full()  && !soTCP_Data.full()) {
              siICl_Data.read(currWord);
-             switch (wordCount) {
+             switch (ipr_wordCount) {
                 case 0:
-                    wordCount++;
+                    ipr_wordCount++;
                     break;
                 default:
-                    if (wordCount == 1) {
+                    if (ipr_wordCount == 1) {
                         //OBSOLETE-20191025 if (currWord.tdata.range(7, 0) == 1)
                         if (currWord.getIp4Ttl() == 1) {
-                            ttlExpired = 1;
+                            ipr_ttlExpired = 1;
                         }
                         else {
-                            ttlExpired = 0;
+                            ipr_ttlExpired = 0;
                         }
                         //OBSOLETE-20191025 dip_ipProtocol = currWord.tdata.range(15, 8);
-                        ipProtocol = currWord.getIp4Prot();
-                        wordCount++;
+                        ipr_ipProtocol = currWord.getIp4Prot();
+                        ipr_wordCount++;
                     }
-                    if (ttlExpired == 1) {
-                        soICMP_Derr.write(AxiWord(prevWord));
+                    if (ipr_ttlExpired == 1) {
+                        soICMP_Derr.write(AxiWord(ipr_prevWord));
                     }
                     else {
-                        switch (ipProtocol) {
+                        switch (ipr_ipProtocol) {
                         // FYI - There is not default case. If the current packet
                         //  does not match any case, it is automatically dropped.
                         case ICMP:
-                            soICMP_Data.write(AxiWord(prevWord));
+                            soICMP_Data.write(AxiWord(ipr_prevWord));
                             break;
                         case UDP:
-                            soUDP_Data.write(AxiWord(prevWord));
+                            soUDP_Data.write(AxiWord(ipr_prevWord));
                             break;
                         case TCP:
-                            soTCP_Data.write(AxiWord(prevWord));
+                            soTCP_Data.write(AxiWord(ipr_prevWord));
                             break;
                         }
                     }
                     break;
                 }
-                prevWord = currWord;
+                ipr_prevWord = currWord;
                 if (currWord.tlast) {
-                    wordCount = 0;
-                    leftToWrite = true;
-                    fsmState = FSM_LAST;
+                    ipr_wordCount = 0;
+                    ipr_leftToWrite = true;
+                    ipr_fsmState = FSM_LAST;
                 }
             }
      break;
@@ -816,28 +817,28 @@ void pIpPacketRouter(
          if (!soICMP_Derr.full() &&
         	 !soICMP_Data.full() && !soUDP_Data.full() && !soTCP_Data.full() ) {
         	 uint8_t bitCounter = 0;
-        	 bitCounter = keepMapping(prevWord.tkeep);
-        	 if (prevWord.tkeep != 0xFF) {
-        		 prevWord.tdata.range(63, 64-((8-bitCounter)*8)) = 0;
+        	 bitCounter = keepMapping(ipr_prevWord.tkeep);
+        	 if (ipr_prevWord.tkeep != 0xFF) {
+        		 ipr_prevWord.tdata.range(63, 64-((8-bitCounter)*8)) = 0;
         	 }
-        	 if (ttlExpired == 1) {
-        		 soICMP_Derr.write(AxiWord(prevWord));
+        	 if (ipr_ttlExpired == 1) {
+        		 soICMP_Derr.write(AxiWord(ipr_prevWord));
         	}
         	else {
-        		switch (ipProtocol) {
+        		switch (ipr_ipProtocol) {
         		case ICMP:
-        			soICMP_Data.write(AxiWord(prevWord));
+        			soICMP_Data.write(AxiWord(ipr_prevWord));
         			break;
         		 case UDP:
-        			soUDP_Data.write(AxiWord(prevWord));
+        			soUDP_Data.write(AxiWord(ipr_prevWord));
         			break;
         		 case TCP:
-        			soTCP_Data.write(AxiWord(prevWord));
+        			soTCP_Data.write(AxiWord(ipr_prevWord));
         			break;
         		}
         	}
-            leftToWrite = false;
-            fsmState = FSM_IDLE;
+            ipr_leftToWrite = false;
+            ipr_fsmState = FSM_IDLE;
          }
          break;
      }
