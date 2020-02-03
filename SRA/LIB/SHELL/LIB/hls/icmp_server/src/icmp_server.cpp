@@ -1,3 +1,29 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 /*****************************************************************************
  * @file       : icmp_server.cpp
  * @brief      : Internet Control Message Protocol server (ICMP)
@@ -6,43 +32,65 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *----------------------------------------------------------------------------
- *
- * @details    :
- * @note       :
- * @remark     :
- * @warning    :
- * @todo       :
- *
- * @see        :
- *
  *****************************************************************************/
 
 #include "icmp_server.hpp"
+#include "../../toe/test/test_toe_utils.hpp"
+
+using namespace hls;
 
 #define USE_DEPRECATED_DIRECTIVES
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (TRACE_MPd | TRACE_IBUF)
+ ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
+#define THIS_NAME "ICMP"
+
+#define TRACE_OFF  0x0000
+#define TRACE_TBD  1 << 1
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ON)
+
 
 ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
     return (inputVector.range(7,0), inputVector(15, 8));
 }
 
-/** @ingroup icmp_server
- *  No MAC Header, already shaved off
- *  Assumption no options in IP header
- *  @param[in]      dataIn
- *  @param[out]     dataOut
- *  @param[out]     icmpValidFifoOut
- *  @param[out]     checksumFifoOut
- */
-void check_icmp_checksum(   stream<axiWord>& dataIn,
-                            stream<axiWord>& dataOut,
-                            stream<bool>& ValidFifoOut,
-                            stream<ap_uint<16> >& checksumFifoOut) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
+/*****************************************************************************
+ * IP Header Checksum Accumulator and Checker
+ *     No MAC Header, already shaved off
+ *      Assumption no options in IP header
+ *
+ * @param[in]  siIPRX_Data, The data stream from the IP Rx handler (IPRX).
+ * @param[out]     dataOut
+ * @param[out]     icmpValidFifoOut
+ * @param[out]     checksumFifoOut
+ *
+ * @details
+ *  This process .....
+ *
+ *****************************************************************************/
+void check_icmp_checksum(
+        stream<axiWord>         &siIPRX_Data,
+        stream<axiWord>         &dataOut,
+        stream<bool>            &ValidFifoOut,
+        stream<ap_uint<16> >    &checksumFifoOut)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "TODO");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+
+
+
 
     static ap_uint<17> cics_sums[4] = {0, 0, 0, 0};
     static ap_uint<16> cics_wordCount = 0;
@@ -96,8 +144,8 @@ void check_icmp_checksum(   stream<axiWord>& dataIn,
         }
         cics_state++;
     }
-    else if (!dataIn.empty()) {
-        dataIn.read(currWord);
+    else if (!siIPRX_Data.empty()) {
+        siIPRX_Data.read(currWord);
         switch (cics_wordCount) {
         case WORD_0:
             cics_sums[0] = 0;
@@ -163,8 +211,26 @@ void check_icmp_checksum(   stream<axiWord>& dataIn,
     }
 }
 
-void udpPortUnreachable(stream<axiWord> &udpIn, stream<axiWord> &ttlIn, stream<axiWord> &udpPort2addIpHeader_data, 
-                        stream<ap_uint<64> > &udpPort2addIpHeader_header, stream<ap_uint<16> > &udpPort2insertChecksum_value) {
+/*****************************************************************************
+ * TODO (todo)
+ *
+ * @param[in] siUDP_Data, The data stream from the UDP offload engine (UDP).
+ * @param[in] siIPRX_Ttl, Todo
+ * @param[]
+ * @param[]
+ * @param[]
+ *
+ * @details
+ *  This process ...
+ *
+ *****************************************************************************/
+void udpPortUnreachable(
+        stream<axiWord>         &siUDP_Data,
+        stream<axiWord>         &siIPRX_Ttl,
+		stream<axiWord>         &udpPort2addIpHeader_data,
+		stream<ap_uint<64> >    &udpPort2addIpHeader_header,
+		stream<ap_uint<16> >    &udpPort2insertChecksum_value)
+{
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
     static enum uState{UDP_IDLE, UDP_IP, UDP_STREAM, UDP_CS} udpState;
@@ -174,8 +240,8 @@ void udpPortUnreachable(stream<axiWord> &udpIn, stream<axiWord> &ttlIn, stream<a
     ap_uint<1>          udpInEmpty      = 0;
     ap_uint<1>          ttlInEmpty      = 0;
     
-    udpInEmpty = udpIn.empty();
-    ttlInEmpty = ttlIn.empty();
+    udpInEmpty = siUDP_Data.empty();
+    ttlInEmpty = siIPRX_Ttl.empty();
     switch(udpState) {
         case UDP_IDLE:
             if ((udpInEmpty == 0 || ttlInEmpty == 0) && !udpPort2addIpHeader_data.full()) { // If there are data in the queue, don't read them in but start assembling the ICMP header
@@ -198,9 +264,9 @@ void udpPortUnreachable(stream<axiWord> &udpIn, stream<axiWord> &ttlIn, stream<a
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && ttlInEmpty == 0)) && !udpPort2addIpHeader_data.full() && !udpPort2addIpHeader_header.full()) { // If there are data in the queue start reading them
                 axiWord tempWord = {0, 0, 0};
                 if (streamSource == 0)
-                    tempWord = udpIn.read();
+                    tempWord = siUDP_Data.read();
                 else if (streamSource == 1)
-                    tempWord = ttlIn.read();
+                    tempWord = siIPRX_Ttl.read();
                 udpChecksum = (udpChecksum + ((tempWord.data.range(63, 48) + tempWord.data.range(47, 32)) + tempWord.data.range(31, 16) + tempWord.data.range(15, 0)));
                 udpPort2addIpHeader_data.write(tempWord);
                 udpPort2addIpHeader_header.write(tempWord.data);
@@ -214,9 +280,9 @@ void udpPortUnreachable(stream<axiWord> &udpIn, stream<axiWord> &ttlIn, stream<a
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && ttlInEmpty == 0)) && !udpPort2addIpHeader_data.full()) { // If there are data in the queue start reading them
                 axiWord tempWord = {0, 0, 0};
                 if (streamSource == 0)
-                    tempWord = udpIn.read();
+                    tempWord = siUDP_Data.read();
                 else if (streamSource == 1)
-                    tempWord = ttlIn.read();
+                    tempWord = siIPRX_Ttl.read();
                 udpChecksum = (udpChecksum + ((tempWord.data.range(63, 48) + tempWord.data.range(47, 32)) + tempWord.data.range(31, 16) + tempWord.data.range(15, 0)));
                 udpPort2addIpHeader_data.write(tempWord);
                 if (tempWord.last == 1)
@@ -239,7 +305,7 @@ void udpAddIpHeader(
         stream<axiWord>         &udpPort2addIpHeader_data,
         stream<ap_uint<64> >    &udpPort2addIpHeader_header,
         stream<axiWord>         &addIpHeader2insertChecksum,
-        ap_uint<32>             piMMIO_IpAddr)
+        LE_Ip4Addr               piMMIO_IpAddress)
 {
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
@@ -266,7 +332,7 @@ void udpAddIpHeader(
                 tempWord.data.range( 7, 0)  = 0x80;                              // Set the TTL to 128
                 tempWord.data.range(15, 8)  = 0x01;                              // Swap the protocol from whatever it was to ICMP
                 sourceIP                    = tempWord.data.range(63, 32); //OBSOLETE-20181112 tempWord.data.range(63, 32) =   0x01010101;
-                tempWord.data.range(63, 32) = piMMIO_IpAddr;
+                tempWord.data.range(63, 32) = piMMIO_IpAddress;
                 tempWord.keep               = 0xFF;
                 tempWord.last               = 0;
                 addIpHeader2insertChecksum.write(tempWord);
@@ -352,17 +418,33 @@ void dropper(stream<axiWord>& dataIn, stream<bool>& validFifoIn, stream<axiWord>
     }
 }
 
-/** @ingroup icmp_server
- *  Inserts IP & ICMP checksum at the correct position
- *  @param[in]      dataIn
- *  @param[in]      checksumFifoIn
- *  @param[out]     dataOut
- */
- 
- void insertChecksum(stream<axiWord> inputStreams[2], stream<ap_uint<16> > checksumStreams[2], stream<axiWord> &outputStream) {
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
- 
+/*****************************************************************************
+ * IP Checksum Inserter (ICi)
+ *
+ *  @param[in]  dataIn
+ *  @param[in]  checksumFifoIn
+ *  @param[out] soIPTX_Data,   The data stream to the IP Tx handler (IPTX).
+ *
+ * @details
+ *  This process inserts both the IP header checksum and the ICMP checksum in
+ *  the outgoing packet.
+ *
+ *****************************************************************************/
+void insertChecksum(
+        stream<axiWord>      inputStreams[2],
+		stream<ap_uint<16> > checksumStreams[2],
+		stream<axiWord>      &soIPTX_Data)
+{
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS pipeline II=1
+
+    const char *myName  = concat3(THIS_NAME, "/", "ICi");
+
+
+
+
+
     axiWord             inputWord       = {0, 0, 0};
     ap_uint<16>         icmpChecksum    = 0;
     static ap_uint<16>  ic_wordCount    = 0;
@@ -379,7 +461,7 @@ void dropper(stream<axiWord>& dataIn, stream<bool>& validFifoIn, stream<axiWord>
                 if(!stream_empty[i]) {
                     streamSource = i;
                     inputWord = inputStreams[i].read();
-                    outputStream.write(inputWord);
+                    soIPTX_Data.write(inputWord);
                     ic_wordCount++;
                     break;
                 }
@@ -390,14 +472,14 @@ void dropper(stream<axiWord>& dataIn, stream<bool>& validFifoIn, stream<axiWord>
                 inputStreams[streamSource].read(inputWord);
                 icmpChecksum = checksumStreams[streamSource].read();
                 inputWord.data(63, 48) = icmpChecksum;
-                outputStream.write(inputWord);
+                soIPTX_Data.write(inputWord);
                 ic_wordCount++;
             }
             break;
         default:
             if (!inputStreams[streamSource].empty()) {
                 inputStreams[streamSource].read(inputWord);
-                outputStream.write(inputWord);
+                soIPTX_Data.write(inputWord);
                 if (inputWord.last == 1)
                     ic_wordCount = 0;
                 else
@@ -411,45 +493,55 @@ void dropper(stream<axiWord>& dataIn, stream<bool>& validFifoIn, stream<axiWord>
  /*****************************************************************************
   * @brief   Main process of the ICMP server.
   *
-  * @param[in]  piMMIO_This_IpAddr,  IP4 Address from MMIO.
-  * @param[in]  TODO...
-  * @param[in]
-  * @param[out]
-  *
-  * @ingroup icmp_server
   *****************************************************************************/
  void icmp_server(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        ap_uint<32>         piMMIO_This_IpAddr,
+        LE_Ip4Addr           piMMIO_IpAddress,
 
-        stream<axiWord>     &dataIn,
-        stream<axiWord>     &udpIn,
-        stream<axiWord>     &ttlIn,
-        stream<axiWord>     &dataOut)
+        //------------------------------------------------------
+        //-- IPRX Interfaces
+        //------------------------------------------------------
+		stream<axiWord>     &siIPRX_Data,
+        stream<axiWord>     &siIPRX_Ttl,
+
+        //------------------------------------------------------
+        //-- UDP Interface
+        //------------------------------------------------------
+        stream<axiWord>     &siUDP_Data,
+
+        //------------------------------------------------------
+        //-- IPTX Interface
+        //------------------------------------------------------
+        stream<axiWord>     &soIPTX_Data)
 {
+        //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+        #pragma HLS INTERFACE ap_ctrl_none port=return
+
+#if defined(USE_DEPRECATED_DIRECTIVES)
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_IpAddress
 
-	//-- DIRECTIVES FOR THE BLOCK ---------------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
+    #pragma  HLS resource core=AXI4Stream variable=siIPRX_Data   metadata="-bus_bundle siIPRX_Data"
+    #pragma  HLS resource core=AXI4Stream variable=siIPRX_Ttl    metadata="-bus_bundle siIPRX_Ttl"
+    #pragma  HLS resource core=AXI4Stream variable=siUDP_Data    metadata="-bus_bundle siUDP_Data"
+    #pragma  HLS resource core=AXI4Stream variable=soIPTX_Data   metadata="-bus_bundle soIPTX_Data"
 
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+#else
 
-    //-- From MMIO Interfaces -------------------------------------------------
-    #pragma HLS INTERFACE ap_stable port=piMMIO_This_IpAddr
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_IpAddress
 
-    #pragma  HLS resource core=AXI4Stream variable=dataIn   metadata="-bus_bundle s_dataIn"
-    #pragma  HLS resource core=AXI4Stream variable=udpIn    metadata="-bus_bundle s_udpIn"
-    #pragma  HLS resource core=AXI4Stream variable=ttlIn    metadata="-bus_bundle s_ttlIn"
-    #pragma  HLS resource core=AXI4Stream variable=dataOut  metadata="-bus_bundle m_dataOut"
+    #pragma HLS INTERFACE axis                port=siIPRX_Data
+    #pragma HLS _NTERFACE axis                port=siUDP_Data
+    #pragma TODO
+    #pragma HLS INTERFACE axis                port=soIPTX_Data
 
 #endif
 
@@ -482,22 +574,33 @@ void dropper(stream<axiWord>& dataIn, stream<bool>& validFifoIn, stream<axiWord>
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     check_icmp_checksum(
-            dataIn, packageBuffer1, validFifo, checksumStreams[0]);
+            siIPRX_Data,
+			packageBuffer1,
+			validFifo,
+			checksumStreams[0]);
 
     udpPortUnreachable(
-            udpIn, ttlIn, udpPort2addIpHeader_data, udpPort2addIpHeader_header, checksumStreams[1]);
+            siUDP_Data,
+            siIPRX_Ttl,
+			udpPort2addIpHeader_data,
+			udpPort2addIpHeader_header,
+			checksumStreams[1]);
 
     udpAddIpHeader(
             udpPort2addIpHeader_data,
             udpPort2addIpHeader_header,
             dataStreams[1],
-            piMMIO_This_IpAddr);
+            piMMIO_IpAddress);
 
     dropper(
-            packageBuffer1, validFifo, dataStreams[0]);
+            packageBuffer1,
+			validFifo,
+			dataStreams[0]);
 
     insertChecksum(
-            dataStreams, checksumStreams, dataOut);
+            dataStreams,
+			checksumStreams,
+			soIPTX_Data);
 
 }
 

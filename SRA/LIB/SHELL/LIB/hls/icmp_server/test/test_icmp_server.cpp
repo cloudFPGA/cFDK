@@ -7,12 +7,13 @@ int main() {
 #pragma HLS inline region off
     axiWord inData;
     axiWord outData;
-    ap_uint<32>             piMMIO_IpAddr=0x01010101;  // 0x39000C0A;	// 10.12.0.57
+    LE_Ip4Addr              piMMIO_IpAddr=0x01010101;  // 0x39000C0A; // 57.0.12.10
 
-    stream<axiWord>         inFIFO("inFIFO");
-    stream<axiWord>         outFIFO("outFIFO");
-    stream<axiWord>         udpInFIFO("udpInFIFO");
-    stream<axiWord>         ttlInFIFO("ttlInFIFO");
+    stream<axiWord>         siIPRX_Data  ("siIPRX_Data");
+    stream<axiWord>         siIPRX_Ttl   ("siIPRX_Ttl");
+    stream<axiWord>         siUDP_Data   ("siUDP_Data");
+    stream<axiWord>         soIPTX_Data  ("soIPTX_Data");
+
     stream<ap_uint<16> >    checksumFIFO;
     int                     errCount                    = 0;
 
@@ -46,30 +47,36 @@ int main() {
         inData.data = dataTemp;
         inData.keep = keepTemp;
         inData.last = lastTemp;
-        inFIFO.write(inData);
+        siIPRX_Data.write(inData);
         count++;
     }
     while (count < 100) {
         icmp_server(
-                piMMIO_IpAddr,
-                inFIFO, udpInFIFO, ttlInFIFO, outFIFO);
+            piMMIO_IpAddr,
+			siIPRX_Data,
+			siIPRX_Ttl,
+			siUDP_Data,
+			soIPTX_Data);
         count++;
     }
     while (inputFile >> std::hex >> dataTemp >> keepTemp >> lastTemp) { 
         inData.data = dataTemp;
         inData.keep = keepTemp;
         inData.last = lastTemp;
-        ttlInFIFO.write(inData);
+        siIPRX_Ttl.write(inData);
         count++;
     }
     while (count < 200) {
         icmp_server(
                 piMMIO_IpAddr,
-                inFIFO, udpInFIFO, ttlInFIFO, outFIFO);
+                siIPRX_Data,
+				siIPRX_Ttl,
+				siUDP_Data,
+				soIPTX_Data);
         count++;
     }
-    while (!(outFIFO.empty())) {
-        outFIFO.read(outData);
+    while (!(soIPTX_Data.empty())) {
+        soIPTX_Data.read(outData);
         outputFile << std::hex << std::noshowbase;
         outputFile << std::setfill('0');
         outputFile << std::setw(8) << ((uint32_t) outData.data(63, 32));
