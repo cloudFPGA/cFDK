@@ -1596,7 +1596,7 @@ module Shell_Themisto # (
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
-    .ap_rst_n               (~ sMMIO_LayerRst[5]),
+    .ap_rst_n               (~ sMMIO_LayerRst[6]),
     //.piNTS_ready_V          (sNTS0_MMIO_ToeReady),
     .piNTS_ready_V          (1), //TODO
     .piNTS_ready_V_ap_vld   (1),
