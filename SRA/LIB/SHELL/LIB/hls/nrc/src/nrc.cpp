@@ -32,6 +32,9 @@ ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
+
+ap_uint<32> mrt_version_processed = 0;
+
 ap_uint<32> udp_rx_ports_processed = 0;
 bool need_udp_port_req = false;
 ap_uint<16> new_relative_port_to_req_udp = 0;
@@ -437,6 +440,7 @@ void nrc_main(
 #pragma HLS reset variable=fsmStateTXdeq_Udp
 #pragma HLS reset variable=pldLen_Udp
 #pragma HLS reset variable=openPortWaitTime
+#pragma HLS reset variable=mrt_version_processed
 #pragma HLS reset variable=udp_rx_ports_processed
 #pragma HLS reset variable=need_udp_port_req
 #pragma HLS reset variable=new_relative_port_to_req_udp
@@ -456,15 +460,11 @@ void nrc_main(
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
 
-  //DO NOT reset MRT and config. This should be done explicitly by the FMC
-#pragma HLS reset variable=localMRT off
-#pragma HLS reset variable=config off
-//Disable ARRAY reset...just to be sure, and the init will be reset anyhow
-#pragma HLS reset variable=tripleList off
-#pragma HLS reset variable=sessionIdList off
-#pragma HLS reset variable=usedRows off
-  //#pragma HLS reset variable=status --> I think to reset an array is hard, it is also uninitalized in C itself...
-  // the status array is anyhow written every IP core iteration and the inputs are reset --> so not necessary
+#pragma HLS reset variable=localMRT //off
+#pragma HLS reset variable=config //off
+#pragma HLS reset variable=tripleList //off
+#pragma HLS reset variable=sessionIdList //off
+#pragma HLS reset variable=usedRows //off
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -534,6 +534,23 @@ void nrc_main(
     return;
   }
 
+  //===========================================================
+  // restore saved states
+  // since we cannot close ports (up to now), the > should work...
+  if(config[NRC_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
+  {
+    processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
+  }
+
+  if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
+  {
+    udp_rx_ports_processed = config[NRC_CONFIG_SAVED_UDP_PORTS];
+  }
+
+  if(config[NRC_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
+  {
+    tcp_rx_ports_processed = config[NRC_CONFIG_SAVED_TCP_PORTS];
+  }
 
   //===========================================================
   //  port requests
@@ -1467,9 +1484,14 @@ void nrc_main(
   //ctrlLink[3 + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS] = 42;
 
   //copy routing nodes 0 - 2 FOR DEBUG
-  status[0] = localMRT[0];
-  status[1] = localMRT[1];
-  status[2] = localMRT[2];
+  //status[0] = localMRT[0];
+  //status[1] = localMRT[1];
+  //status[2] = localMRT[2];
+  status[NRC_STATUS_MRT_VERSION] = mrt_version_processed;
+  status[NRC_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
+  status[NRC_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
+  status[NRC_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
+  status[NRC_STATUS_OWN_RANK] = config[NRC_CONFIG_OWN_RANK]
 
   status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
   status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
@@ -1478,7 +1500,7 @@ void nrc_main(
   status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
   status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
   status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-  status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+  //status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
   status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
   status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
@@ -1517,6 +1539,8 @@ void nrc_main(
     if(tableCopyVariable >= MAX_MRT_SIZE)
     {
       tableCopyVariable = 0;
+      //acknowledge the processed version 
+      mrt_version_processed = config[NRC_CONFIG_MRT_VERSION];
     }  else {
       tableCopyVariable++;
     }
