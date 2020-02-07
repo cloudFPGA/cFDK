@@ -1491,7 +1491,7 @@ void nrc_main(
   status[NRC_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
   status[NRC_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
   status[NRC_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
-  status[NRC_STATUS_OWN_RANK] = config[NRC_CONFIG_OWN_RANK]
+  status[NRC_STATUS_OWN_RANK] = config[NRC_CONFIG_OWN_RANK];
 
   status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
   status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
