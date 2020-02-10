@@ -115,7 +115,8 @@ if { $hlsCSim} {
     csim_design -argv "../../../../test/testVectors/siETH_Data_IpRamp.dat"
     csim_design -argv "../../../../test/testVectors/siETH_Data_BadFrames.dat"
     csim_design -argv "../../../../test/testVectors/siETH_Data_1731.dat"
-
+    csim_design -argv "../../../../test/testVectors/siETH_Data_ArpFrame.dat"
+    csim_design -argv "../../../../test/testVectors/siETH_Data_ArpTwoFrames.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -141,7 +142,8 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_IpRamp.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_BadFrames.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_1731.dat"
-
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_ArpFrame.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_ArpTwoFrames.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

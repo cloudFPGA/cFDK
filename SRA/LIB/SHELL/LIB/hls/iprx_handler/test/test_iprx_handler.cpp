@@ -14,6 +14,7 @@
 #include "../src/iprx_handler.hpp"
 #include "../../toe/src/toe.hpp"
 #include "../../toe/test/test_toe_utils.hpp"
+#include "../../AxisArp.hpp"
 
 #include <stdio.h>
 #include <hls_stream.h>
@@ -70,13 +71,13 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 int createGoldenFiles(EthAddr myMacAddress,
-					  string  inpDAT_FileName,
+                      string  inpDAT_FileName,
                       string  outARP_GoldName, string outICMP_GoldName,
                       string  outTOE_GoldName, string outUDP_GoldName) {
 
     ifstream	ifsDAT;
     string      ofNameArray[4] = { outARP_GoldName, outICMP_GoldName, \
-    					           outTOE_GoldName, outUDP_GoldName };
+                                   outTOE_GoldName, outUDP_GoldName };
     ofstream    ofsArray[4]; // Stored in the same alphabetic same order
 
     string          strLine;
@@ -116,11 +117,11 @@ int createGoldenFiles(EthAddr myMacAddress,
 
     //-- STEP-3 : READ AND PARSE THE INPUT ETHERNET FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-		EthFrame   ethFrame;
-		EthoverMac ethRxData;
-		bool       endOfFrame=false;
-		bool       rc;
-    	// Build a new frame from data file
+        EthFrame   ethFrame;
+        EthoverMac ethRxData;
+        bool       endOfFrame=false;
+        bool       rc;
+        // Build a new frame from data file
         while ((ifsDAT.peek() != EOF) && (!endOfFrame)) {
             rc = readAxiWordFromFile(&ethRxData, ifsDAT);
             if (rc) {
@@ -144,54 +145,87 @@ int createGoldenFiles(EthAddr myMacAddress,
         }
 
         if (endOfFrame) {
-        	// Assess MAC_DA is valid
-        	EthAddr  macDA = ethFrame.getMacDestinAddress();
-        	if(macDA != myMacAddress) {
-       			printWarn(THIS_NAME, "Frame #%d is dropped because MAC_DA does not match.\n", inpFrames);
-        	}
-       		else {
-				// Parse this frame and generate corresponding golden file(s)
-				EtherType etherType = ethFrame.getTypeLength();
-				IpPacket ipPacket;
-				if (etherType.to_uint() >= 0x0600) {
-					ipPacket = ethFrame.getIpPacket();
-					if (ipPacket.getIpVersion() != 4) {
-		       			printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
-		       			continue;
-					}
-					switch (etherType.to_uint()) {
-					case ARP:
-						if (DEBUG_LEVEL & TRACE_CGF) {
-							printInfo(THIS_NAME, "Frame #%d is an ARP frame.\n", inpFrames);
-						}
-						break;
-					case IPv4:
-						if (DEBUG_LEVEL & TRACE_CGF) {
-							printInfo(THIS_NAME, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
-									inpFrames, etherType.to_uint());
-						}
-			        	if (ipPacket.verifyIpHeaderChecksum()) {
-			        		if (ethFrame.sizeOfPayload() > 0) {
-			        			if (ipPacket.writeToDatFile(ofsArray[2]) == false) {
-			        				printError(THIS_NAME, "Failed to write IPv4 packet to DAT file.\n");
-			        				rc = NTS_KO;
-			        			}
-			        		}
-			        		tcpFrames += 1;
-			        		tcpChunks += ipPacket.size();
-			        		tcpBytes  += ipPacket.length();
-			        	}
-			        	else {
-			       			printWarn(THIS_NAME, "Frame #%d is dropped because IPv4 header checksum does not match.\n", inpFrames);
-			        	}
-						break;
-					default:
-						printError(THIS_NAME, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
-						rc = NTS_KO;
-						break;
-					}
-				}
-       		}
+            // Assess MAC_DA is valid
+            EthAddr  macDA = ethFrame.getMacDestinAddress();
+            if((macDA != myMacAddress) and (macDA != 0xFFFFFFFFFFFF)) {
+                printWarn(THIS_NAME, "Frame #%d is dropped because MAC_DA does not match.\n", inpFrames);
+            }
+            else {
+                // Parse this frame and generate corresponding golden file(s)
+                EtherType etherType = ethFrame.getTypeLength();
+                IpPacket  ipPacket;
+                ArpPacket arpPacket;
+                if (etherType.to_uint() >= 0x0600) {
+                    switch (etherType.to_uint()) {
+                    case ARP:
+                        arpPacket = ethFrame.getArpPacket();
+                        if (DEBUG_LEVEL & TRACE_CGF) {
+                            printInfo(THIS_NAME, "Frame #%d is an ARP frame.\n", inpFrames);
+                        }
+                        if (ethFrame.sizeOfPayload() > 0) {
+                            if (ethFrame.writeToDatFile(ofsArray[0]) == false) {
+                                printError(THIS_NAME, "Failed to write ARP frame to DAT file.\n");
+                                rc = NTS_KO;
+                            }
+                            arpFrames += 1;
+                            arpChunks += arpPacket.size();
+                            arpBytes  += arpPacket.length();
+                        }
+                        else {
+                            printError(THIS_NAME, "This Ethernet frame has zero payload bytes!?\n");
+                            rc = NTS_KO;
+                        }
+                        break;
+                    case IPv4:
+                        ipPacket = ethFrame.getIpPacket();
+                        if (ipPacket.getIpVersion() != 4) {
+                            printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
+                            continue;
+                        }
+                        else if (DEBUG_LEVEL & TRACE_CGF) {
+                            printInfo(THIS_NAME, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
+                                      inpFrames, etherType.to_uint());
+                        }
+                        if (ipPacket.verifyIpHeaderChecksum()) {
+                            if (ethFrame.sizeOfPayload() > 0) {
+                                if (ipPacket.writeToDatFile(ofsArray[2]) == false) {
+                                    printError(THIS_NAME, "Failed to write IPv4 packet to DAT file.\n");
+                                    rc = NTS_KO;
+                                }
+                            }
+                            switch (ipPacket.getIpProtocol()) {
+                            case 1:  // ICMP
+                                icmpFrames += 1;
+                                icmpChunks += ipPacket.size();
+                                icmpBytes  += ipPacket.length();
+                                break;
+                            case 6:  // TCP
+                                tcpFrames += 1;
+                                tcpChunks += ipPacket.size();
+                                tcpBytes  += ipPacket.length();
+                                break;
+                            case 17: // UDP
+                                udpFrames += 1;
+                                udpChunks += ipPacket.size();
+                                udpBytes  += ipPacket.length();
+                                break;
+                            default:
+                                printError(THIS_NAME, "Unknown IP protocol #%d.\n",
+                                           ipPacket.getIpProtocol().to_int());
+                                rc = NTS_KO;
+                            }
+                        }
+                        else {
+                            printWarn(THIS_NAME, "Frame #%d is dropped because IPv4 header checksum does not match.\n", inpFrames);
+                        }
+                        break;
+                    default:
+                        printError(THIS_NAME, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
+                        rc = NTS_KO;
+                        break;
+                    }
+                }
+            }
         }
     }
 
