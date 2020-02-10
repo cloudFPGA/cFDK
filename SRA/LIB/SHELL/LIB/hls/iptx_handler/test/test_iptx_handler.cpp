@@ -63,37 +63,36 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
  * @param[out] soIPTX_LookupRep, ARP lookup reply to [IPTX].
  ******************************************************************************/
 void pEmulateArpCam(
-        stream<Ip4Addr>       &siIPTX_LookupReq,
+        stream<LE_Ip4Addr>    &siIPTX_LookupReq,
         stream<ArpLkpReply>   &soIPTX_LookupRep,
         EthAddr                piMacAddress,
         Ip4Addr                piIp4Address)
 {
     const char *myName  = concat3(THIS_NAME, "/", "ARP");
 
-    Ip4Addr ip4LkpReq;
+    LE_Ip4Addr leIp4LkpReq;
 
     if (!siIPTX_LookupReq.empty()) {
-        siIPTX_LookupReq.read(ip4LkpReq);
-        printIp4Addr(myName, "Received a lookup request from [IPTX] for", ip4LkpReq);
-        //OBSOLETE-20200124 printInfo(myName, "Received a lookup request from [IPTX] for IP address: 0x%8.8X\n", ip4LkpReq.to_uint());
-        if (ip4LkpReq == 0x0a010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(0x699a45dd6000, true));
+        siIPTX_LookupReq.read(leIp4LkpReq);
+        printIp4Addr(myName, "Received a lookup request from [IPTX] for", byteSwap32(leIp4LkpReq));
+        if (byteSwap32(leIp4LkpReq) == 0x0a010101) {
+            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(0xfedcba9876543210), true)); // [TODO]
             if (DEBUG_LEVEL & TRACE_ARP) {
                 printInfo(myName, "Result of IP lookup = HIT \n");
             }
         }
-        else if (ip4LkpReq == 0x01010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(0xab8967452301, true));
+        else if (byteSwap32(leIp4LkpReq) == 0x01010101) {
+            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(0xADDE0000EFBE), true));
             if (DEBUG_LEVEL & TRACE_ARP) {
                 printInfo(myName, "Result of IP lookup = HIT \n");
             }
         }
-        else if (ip4LkpReq & 0x0A0C0000) {
-            EthAddr  aComposedMacAddr = 0xCAFE00000000 | ip4LkpReq;
-            soIPTX_LookupRep.write(ArpLkpReply(aComposedMacAddr, true));
+        else if (byteSwap32(leIp4LkpReq) & 0x0A0C0000) {
+            EthAddr  aComposedMacAddr = 0xFECA00000000 | byteSwap32(leIp4LkpReq);
+            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(aComposedMacAddr), true));
             if (DEBUG_LEVEL & TRACE_ARP) {
                 printInfo(myName, "IP lookup = HIT - Replying with MAC = 0x%12.12lX\n",
-                          aComposedMacAddr.to_ulong());
+                          byteSwap48(aComposedMacAddr).to_ulong());
             }
         }
         else {
@@ -198,7 +197,7 @@ int createGoldenFile(
                 Ip4Addr ipDA = ipPacket.getIpDestinationAddress();
                 // Create MAC_DA from IP_DA (for testing purposes)
                 if ((ipDA & 0x0A0C0000) == 0x0A0C0000) {
-                    EthAddr macDaAddr = 0xCAFE00000000 | ipDA;
+                    EthAddr macDaAddr = 0xFECA00000000 | ipDA;
                     ethGoldFrame.setMacDestinAddress(macDaAddr);
                 }
                 else {
@@ -234,7 +233,7 @@ int createGoldenFile(
                     outChunks += ethGoldFrame.size();
                     outBytes  += ethGoldFrame.length();
                 }
-                ofsDAT << std::endl;
+                //OBSOLETE-20200210 ofsDAT << std::endl;
             }
         } // End-of if (endOfPacket)
 
@@ -292,7 +291,7 @@ int main(int argc, char* argv[]) {
     int                 nrIPTX_L2MUX_Bytes  = 0;
 
     //-- To/From ARP
-    stream<Ip4Addr>     ssIPTX_ARP_LookupReq ("ssIPTX_ARP_LookupReq");
+    stream<LE_Ip4Addr>  ssIPTX_ARP_LookupReq ("ssIPTX_ARP_LookupReq");
     stream<ArpLkpReply> ssARP_IPTX_LookupRep ("ssARP_IPTX_LookupRep");
 
     //------------------------------------------------------

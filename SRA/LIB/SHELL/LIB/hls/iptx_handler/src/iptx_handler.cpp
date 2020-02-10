@@ -313,7 +313,7 @@ void pIp4AddressExtractor(
         Ip4Addr              piMMIO_GatewayAddr,
         stream<AxiWord>     &siICi_Data,
         stream<AxiWord>     &soMAi_Data,
-        stream<Ip4Addr>     &soARP_LookupReq)
+        stream<LE_Ip4Addr>  &soARP_LookupReq)  // [TODO-Switch to network order]
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -335,10 +335,10 @@ void pIp4AddressExtractor(
             // OBSOLETE ipDestAddr = currWord.tdata.range(31, 0);
             if ((ipDestAddr & piMMIO_SubNetMask) == (piMMIO_GatewayAddr & piMMIO_SubNetMask)
               || (ipDestAddr == 0xFFFFFFFF)) {
-                soARP_LookupReq.write(ipDestAddr);
+                soARP_LookupReq.write(byteSwap32(ipDestAddr));
             }
             else {
-                soARP_LookupReq.write(piMMIO_GatewayAddr);
+                soARP_LookupReq.write(byteSwap32(piMMIO_GatewayAddr));
             }
             iae_wordCount++;
             break;
@@ -359,10 +359,10 @@ void pIp4AddressExtractor(
 /*****************************************************************************
  * MAC Address Inserter (MAi)
  *
+ * @param[in]  piMMIO_MacAddress,My Ethernet MAC address from [MMIO].
  * @param[in]  siIAe_Data,       The data stream from IpAddressExtractor (IAe).
  * @param[out] siARP_LookupRsp,  MAC address lookup from [ARP].
  * @param[in]  soL2MUX_Data,     The data stream to [L2MUX].
- * @param[in]  piMMIO_MacAddress,My Ethernet MAC address from [MMIO].
  *
  * @details
  *  This process inserts the Ethernet MAC address corresponding to the IPv4
@@ -392,15 +392,17 @@ void pMacAddressInserter(
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ArpLkpReply arpResponse;
+    EthAddr     macDstAddr;
 
     currWord.tlast = 0;
     switch (mai_fsmState) {
     case WAIT_LOOKUP:
         if (!siARP_LookupRsp.empty() && !soL2MUX_Data.full()) {
             siARP_LookupRsp.read(arpResponse);
+            macDstAddr = byteSwap48(arpResponse.macAddress);
             if (arpResponse.hit) {
-                sendWord.setEthDstAddr(arpResponse.macAddress);
-                sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
+                sendWord.setEthDstAddr(macDstAddr);
+                sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
                 sendWord.tkeep = 0xff;
                 sendWord.tlast = 0;
                 soL2MUX_Data.write(sendWord);
@@ -419,7 +421,7 @@ void pMacAddressInserter(
     case WRITE_FIRST:
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
             siIAe_Data.read(currWord);
-            sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
+            sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
             sendWord.setEthTypeLen(0x0800);
             sendWord.tdata(63, 48) = currWord.tdata(15, 0);
             sendWord.tkeep = 0xff;
@@ -502,7 +504,7 @@ void iptx_handler (
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<LE_Ip4Addr>      &soARP_LookupReq,  // [TODO-Switch to network order]
         stream<ArpLkpReply>     &siARP_LookupRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -523,7 +525,6 @@ void iptx_handler (
     #pragma HLS resource core=AXI4Stream variable=soL2MUX_Data    metadata="-bus_bundle soL2MUX_Data"
 
     #pragma HLS resource core=AXI4Stream variable=soARP_LookupReq metadata="-bus_bundle soARP_LookupReq"
-
     #pragma HLS resource core=AXI4Stream variable=siARP_LookupRep metadata="-bus_bundle siARP_LookupRep"
     #pragma HLS                DATA_PACK variable=siARP_LookupRep
 

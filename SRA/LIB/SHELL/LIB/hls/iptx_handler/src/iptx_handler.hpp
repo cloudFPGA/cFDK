@@ -59,10 +59,10 @@ using namespace hls;
 class ArpLkpReply
 {
   public:
-    EthAddr     macAddress;
+    LE_EthAddr  macAddress;  // [TODO-Switch to network order]
     HitState    hit;
     ArpLkpReply() {}
-    ArpLkpReply(EthAddr macAdd, HitState hit) :
+    ArpLkpReply(LE_EthAddr macAdd, HitState hit) :  // [TODO-Switch to network order]
         macAddress(macAdd), hit(hit) {}
 };
 
@@ -88,7 +88,7 @@ void iptx_handler(
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<LE_Ip4Addr>      &soARP_LookupReq,  // [TODO-Switch to network order]
         stream<ArpLkpReply>     &siARP_LookupRep
 );
 
