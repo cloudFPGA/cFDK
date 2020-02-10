@@ -39,6 +39,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../src/toe.hpp"
 #include "../src/toe_utils.hpp"
+#include "../../AxisArp.hpp"
 
 using namespace std;
 
@@ -769,24 +770,95 @@ const char    *myCamAccessToString(int       initiator);
     }; // End of: IpPacket
 #endif
 
+/*****************************************************************************
+ * @brief Class ARP Packet.
+ *
+ * @details
+ *  This class defines an ARP packet as a stream of 'AxisArp' data chunks.
+ *   Such an ARP packet consists of a double-ended queue that is used to
+ *    accumulate all these data chunks.
+ *   For the 10GbE MAC, the ARP chunks are 64 bits wide. ARP chunks are
+ *    received by the IPRX core and are transmitted by the ARP core.
+
+ ******************************************************************************/
 #ifndef __SYNTHESIS__
-    /*****************************************************************************
-     * @brief Class ETHERNET Frame.
-     *
-     * @details
-     *  This class defines an ETHERNET frame as a set of 'EthoverMac' words.
-     *   These words are 64-bit chunks as received or transmitted by the 10 Gbit
-     *   Ethernet MAC core over its AXI4-Stream interface.
-     *  Every frame consist of a double-ended queue that is used to accumulate
-     *   all these data chunks.
-     *
-     *  Constructors:
-     *    EthFrame(int frmLen)
-     *      Constructs a frame consisting of 'frmLen' bytes.
-     *    EthFrame()
-     *      Constructs a frame of 12 bytes to hold the Ethernet header.
-     *
-     ******************************************************************************/
+    class ArpPacket {
+        int len;  // In bytes
+        std::deque<AxisArp> axisWordQueue;  // A double-ended queue to store ARP chunks.
+
+      public:
+        // Default Constructor
+        ArpPacket() {
+            this->len = 28;
+        }
+
+        // Return the front chunk element of the MAC word queue but does not remove it from the queue
+        AxisArp front()                                  { return this->axisWordQueue.front();             }
+        // Clear the content of the MAC word queue
+        void clear()                                     {        this->axisWordQueue.clear();
+                                                                  this->len = 0;                           }
+        // Remove the first chunk element of the MAC word queue
+        void pop_front()                                 {        this->axisWordQueue.pop_front();         }
+        // Add an element at the end of the MAC word queue
+        void push_back(EthoverMac arpChunk)              {        this->axisWordQueue.push_back(arpChunk);
+                                                                  this->len += keepToLen(arpChunk.tkeep);  }
+        // Return the length of the ARP packet (in bytes)
+        int length()                                     { return this->len;                               }
+        // Return the number of chunks in the ARP packet (in axis-words)
+        int size()                                       { return this->axisWordQueue.size();              }
+
+        // Set-Get the Hardware Type (HTYPE) field
+        void setHardwareType(ArpHwType htype)            {        axisWordQueue[0].setHardwareType(htype); }
+        ArpHwType   getHardwareType()                    { return axisWordQueue[0].getHardwareType();      }
+        // Set-Get the Protocol type (PTYPE) field
+        void setProtocolType(ArpProtType ptype)          {        axisWordQueue[0].setProtocolType(ptype); }
+        ArpProtType getProtocolType()                    { return axisWordQueue[0].getProtocolType();      }
+        // Set the Hardware Address Length (HLEN) field
+        void        setHardwareLength(ArpHwLen hlen)     {        axisWordQueue[0].setHardwareLength(hlen);}
+        ArpHwLen    getHardwareLength()                  { return axisWordQueue[0].getHardwareLength();    }
+        // Set-Get Protocol Address length (PLEN) field
+        void        setProtocolLength(ArpProtLen plen)   {        axisWordQueue[0].setProtocolLength(plen);}
+        ArpProtLen  getProtocolLength()                  { return axisWordQueue[0].getProtocolLength();    }
+        // Set-Get the Operation code (OPER) field
+        void          setOperation(ArpOper oper)         {        axisWordQueue[0].setOperation(oper);     }
+        ArpProtType   getOperation()                     { return axisWordQueue[0].getOperation();         }
+        // Set-Get the Sender Hardware Address (SHA)
+        void          setSenderHwAddr(ArpSendHwAddr sha) {        axisWordQueue[1].setSenderHwAddr(sha);   }
+        ArpSendHwAddr getSenderHwAddr()                  { return axisWordQueue[1].getSenderHwAddr();      }
+        // Set-Get the 16-MSbits of the Sender Protocol Address (SPA)
+        void          setSenderProtAddrHi(ArpSendProtAddr spa) {  axisWordQueue[1].setSenderProtAddrHi(spa); }
+        ap_uint<16>   getSenderProtAddrHi()              { return axisWordQueue[1].getSenderProtAddrHi();    }
+        // Set-Get the 16-LSbits of the Sender Protocol Address (SPA)
+        void          setSenderProtAddrLo(ArpSendProtAddr spa) {  axisWordQueue[2].setSenderProtAddrLo(spa); }
+        ap_uint<32>   getSenderProtAddrLo()              { return axisWordQueue[2].getSenderProtAddrLo();    }
+        // Set-Get the Target Hardware Address (SHA)
+        void          setTargetHwAddr(ArpTargHwAddr tha) {        axisWordQueue[2].setTargetHwAddr(tha);   }
+        ArpTargHwAddr getTargetHwAddr()                  { return axisWordQueue[2].getTargetHwAddr();      }
+        // Set-Get the Target Protocol Address (TPA)
+        void            setTargetProtAddr(ArpTargProtAddr tpa) {  axisWordQueue[3].setTargetProtAddr(tpa); }
+        ArpTargProtAddr getTargetProtAddr()              { return axisWordQueue[3].getTargetProtAddr();    }
+
+    };  // End of: ArpPacket
+#endif
+
+/*****************************************************************************
+ * @brief Class ETHERNET Frame.
+ *
+ * @details
+ *  This class defines an ETHERNET frame as a set of 'EthoverMac' words.
+ *   These words are 64-bit chunks as received or transmitted by the 10 Gbit
+ *   Ethernet MAC core over its AXI4-Stream interface.
+ *  Every frame consist of a double-ended queue that is used to accumulate
+ *   all these data chunks.
+ *
+ *  Constructors:
+ *    EthFrame(int frmLen)
+ *      Constructs a frame consisting of 'frmLen' bytes.
+ *    EthFrame()
+ *      Constructs a frame of 12 bytes to hold the Ethernet header.
+ *
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
     class EthFrame {
     	int len;  // The length of the frame in bytes
 		std::deque<EthoverMac> axisWordQueue;  // A double-ended queue to store ETHernet chunks.
@@ -835,9 +907,9 @@ const char    *myCamAccessToString(int       initiator);
 		EthAddr    getMacDestinAddress()                 { return axisWordQueue[0].getEthDstAddr();       }
 		LE_EthAddr getLE_MacDestinAddress()              { return axisWordQueue[0].getLE_EthDstAddr();    }
 		// Set-Get the MAC Source Address field
-		void       setMacSourceAddress(EthAddr addr)     {        axisWordQueue[0].setEthSrcAddrLo(addr);
-																  axisWordQueue[1].setEthSrcAddrHi(addr); }
-		EthAddr    getMacSourceAddress()                 { return(axisWordQueue[1].getEthSrcAddrHi() << 48) &
+		void       setMacSourceAddress(EthAddr addr)     {        axisWordQueue[0].setEthSrcAddrHi(addr);
+																  axisWordQueue[1].setEthSrcAddrLo(addr); }
+		EthAddr    getMacSourceAddress()                 { return(axisWordQueue[1].getEthSrcAddrLo() << 48) &
 																 (axisWordQueue[0].getEthSrcAddrLo());    }
 		// Set-Get the Ethertype/Length field
 		void       setTypeLength(EthTypeLen typLen)      {        axisWordQueue[1].setEthTypeLen(typLen); }
@@ -924,6 +996,75 @@ const char    *myCamAccessToString(int       initiator);
 			}
 			return ipPacket;
 		}
+
+        // Return the ETH data payload as an ArpPacket
+        ArpPacket getArpPacket() {
+            ArpPacket   arpPacket;
+            AxiWord     axiWord(0, 0, 0);
+            int         wordOutCnt = 0;
+            int         wordInpCnt = 1; // Skip the 1st word with MAC_SA [1:0] and MAC_DA[5:0]
+            bool        alternate = true;
+            bool        endOfPkt  = false;
+            int         frameSize = this->size();
+            while (wordInpCnt < frameSize) {
+                if (endOfPkt)
+                    break;
+                else if (alternate) {
+                    axiWord.tdata = 0;
+                    axiWord.tkeep = 0;
+                    axiWord.tlast = 0;
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x40) {
+                        axiWord.tdata.range( 7,  0) = this->axisWordQueue[wordInpCnt].tdata.range(55, 48);
+                        axiWord.tkeep = axiWord.tkeep | (0x01);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x80) {
+                        axiWord.tdata.range(15,  8) = this->axisWordQueue[wordInpCnt].tdata.range(63, 56);
+                        axiWord.tkeep = axiWord.tkeep | (0x02);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast) {
+                        axiWord.tlast = 1;
+                        endOfPkt = true;
+                        arpPacket.push_back(axiWord);
+                    }
+                    alternate = !alternate;
+                    wordInpCnt++;
+                }
+                else {
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x01) {
+                        axiWord.tdata.range(23, 16) = this->axisWordQueue[wordInpCnt].tdata.range( 7,  0);
+                        axiWord.tkeep = axiWord.tkeep | (0x04);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x02) {
+                        axiWord.tdata.range(31, 24) = this->axisWordQueue[wordInpCnt].tdata.range(15,  8);
+                        axiWord.tkeep = axiWord.tkeep | (0x08);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x04) {
+                        axiWord.tdata.range(39, 32) = this->axisWordQueue[wordInpCnt].tdata.range(23, 16);
+                        axiWord.tkeep = axiWord.tkeep | (0x10);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x08) {
+                        axiWord.tdata.range(47, 40) = this->axisWordQueue[wordInpCnt].tdata.range(31, 24);
+                        axiWord.tkeep = axiWord.tkeep | (0x20);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x10) {
+                        axiWord.tdata.range(55, 48) = this->axisWordQueue[wordInpCnt].tdata.range(39, 32);
+                        axiWord.tkeep = axiWord.tkeep | (0x40);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x20) {
+                        axiWord.tdata.range(63, 56) = this->axisWordQueue[wordInpCnt].tdata.range(47, 40);
+                        axiWord.tkeep = axiWord.tkeep | (0x80);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast && (not (this->axisWordQueue[wordInpCnt].tkeep & 0xC0))) {
+                        axiWord.tlast = 1;
+                        endOfPkt = true;
+                    }
+                    alternate = !alternate;
+                    wordOutCnt++;
+                    arpPacket.push_back(axiWord);
+                }
+            }
+            return arpPacket;
+        }
 
         // Set the ETH data payload with an IpPacket
         void     setIpPacket(IpPacket ipPkt) {
@@ -1034,11 +1175,11 @@ const char    *myCamAccessToString(int       initiator);
                     return false;
                 }
             }
+            outFileStream << "\n";
             return true;
         }
 
     }; // End of: EthFrame
-
 #endif
 
 

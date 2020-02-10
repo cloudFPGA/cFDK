@@ -845,16 +845,6 @@ void printTcpPort(TcpPort tcpPort)
             return(NTS_KO);
         }
         // Assess that file has ".dat" extension
-        /*** OBSOLETE-20200128 ********
-        if ( datFile.find_last_of ( '.' ) != string::npos ) {
-            string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
-            if (extension != "dat") {
-                printError("TB", "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
-                inpFileStream.close();
-                return(NTS_KO);
-            }
-        }
-        *******************************/
         if (not isDatFile(datFile)) {
             printError("TB", "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
             inpFileStream.close();

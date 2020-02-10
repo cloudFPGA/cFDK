@@ -1063,10 +1063,6 @@ void toe(
             ssRXeToTAi_SessOpnSts,
             ssTAiToEVe_Event,
             ssTImToTAi_Notif,
-
-
-
-
             piMMIO_IpAddr);
 
     /**********************************************************************

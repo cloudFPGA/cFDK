@@ -43,6 +43,19 @@ ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
 }
 
 /*****************************************************************************
+ * @brief Swap the six bytes of a triple-word (.i.e, 48 bits).
+ *
+ * @param[in] inputVector, a 48-bit unsigned data.
+ *
+ * @return a 48-bit unsigned data.
+ *****************************************************************************/
+ap_uint<48> byteSwap48(ap_uint<48> inputVector) {
+    return (inputVector.range( 7,  0), inputVector.range(15,  8),
+    		inputVector.range(23, 16), inputVector.range(31, 24),
+			inputVector.range(39, 32), inputVector.range(47, 40));
+}
+
+/*****************************************************************************
  * @brief Returns the number of valid bytes in an AxiWord.
  * @param[in] The 'tkeep' field of the AxiWord.
  * [FIXME - To replace be replaced by keepToLen of class AxiWord]

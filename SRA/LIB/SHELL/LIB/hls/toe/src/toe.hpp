@@ -290,11 +290,14 @@ template<int D>
            tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
    };
 
-/***********************************************
- * FIXED-SIZE (64) AXI4 STREAMING INTERFACE
- *  [TODO - Consider renaming into AxisWord]
+/************************************************
+ * FIXED-SIZE (64-bits) AXI4 STREAMING INTERFACE
+ *  An AxiWord is logically divided into 8 bytes.
+ *  The validity of a givent byte is qualified by
+ *  the 'tkeep' field, while the assertion of the
+ *  'tlast' bit indicates the end of a stream.
  ************************************************/
-class AxiWord {  // AXI4-Streaming Chunk (i.e. 8 bytes)
+class AxiWord {  // [TODO - Consider renaming into AxisWord]
 public:
     ap_uint<64>     tdata;
     ap_uint<8>      tkeep;
@@ -423,7 +426,7 @@ typedef ap_uint<16> EtherLen;       // Ethernet Length field
  * ETHERNET - STREAMING CLASS DEFINITION
  *  As Encoded by the MAC (.i.e in Little-Endian order).
  *********************************************************/
-class EthoverMac: public AxiWord {
+class EthoverMac: public AxiWord {  // [FIXME-Rename into AxisEth]
 
   public:
     EthoverMac() {}
@@ -436,12 +439,12 @@ class EthoverMac: public AxiWord {
     void        setEthDstAddr(EthAddr addr)     {                    tdata.range(47,  0) = swapMacAddr(addr); }
     EthAddr     getEthDstAddr()                 { return swapMacAddr(tdata.range(47,  0));                    }
     LE_EthAddr  getLE_EthDstAddr()              {             return tdata.range(47,  0);                     }
-    // Set-Get the 16-LSbits of the ETH Source Address  [TODO - Rename Lo into Hi]
-    void        setEthSrcAddrLo(EthAddr addr)   {                    tdata.range(63, 48) = swapMacAddr(addr).range(15,  0); }
-    ap_uint<16> getEthSrcAddrLo()               { return swapMacAddr(tdata.range(47,  0)).range(15,  0);                    }
-   // Set-Get the 32-MSbits of the ETH Source Address [TODO - Rename Hi into Lo]
-    void        setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(31,  0) = swapMacAddr(addr).range(47, 16); }
-    ap_uint<32> getEthSrcAddrHi()               { return swapMacAddr(tdata.range(31,  0)).range(31,  0);                    }
+    // Set-Get the 16-MSbits of the ETH Source Address
+    void        setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(63, 48) = swapMacAddr(addr).range(15,  0); }
+    ap_uint<16> getEthSrcAddrHi()               { return swapMacAddr(tdata.range(47,  0)).range(15,  0);                    }
+   // Set-Get the 32-LSbits of the ETH Source Address
+    void        setEthSrcAddrLo(EthAddr addr)   {                    tdata.range(31,  0) = swapMacAddr(addr).range(47, 16); }
+    ap_uint<32> getEthSrcAddrLo()               { return swapMacAddr(tdata.range(31,  0)).range(31,  0);                    }
     // Set-get the ETH Type/Length
     void        setEthTypeLen(EthTypeLen eTyLe) {                    tdata.range(47, 32) = swapWord(eTyLe);   }
     EthTypeLen  getEthTypelen()                 {    return swapWord(tdata.range(47, 32));                    }

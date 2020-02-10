@@ -38,6 +38,7 @@ ap_uint<16> swapWord   (ap_uint<16> inpWord);       // [FIXME - To be replaced w
 ap_uint<16> byteSwap16 (ap_uint<16> inputVector);
 ap_uint<32> swapDWord  (ap_uint<32> inpDWord);      // [FIXME - To be replaced w/ byteSwap32]
 ap_uint<32> byteSwap32 (ap_uint<32> inputVector);
+ap_uint<48> byteSwap48 (ap_uint<48> inputVector);
 
 ap_uint<8>  lenToKeep  (ap_uint<4> noValidBytes);
 ap_uint<8>  returnKeep (ap_uint<4> length);
