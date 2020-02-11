@@ -1488,9 +1488,13 @@ module Shell_Themisto # (
     //.piSysReset_V           (piSHL_156_25Rst_delayed),
     //.piSysReset_V_ap_vld   (1),
     //.poMMIO_V_ap_vld     ( ),
-    .piMMIO_V              (sMMIO_FMC_WrFmcReg),
+    .piMMIO_V               (sMMIO_FMC_WrFmcReg),
     .piMMIO_V_ap_vld        (1),
-    .poMMIO_V              (sFMC_MMIO_RdFmcReg),
+    .poMMIO_V               (sFMC_MMIO_RdFmcReg),
+    .piLayer6enabled_V      (sMMIO_LayerEn[6] & (~ sMMIO_LayerRst[6])),
+    .piLayer6enabled_V_ap_vld (1),
+    .piLayer7enabled_V      (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
+    .piLayer7enabled_V_ap_vld (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
     .m_axi_boHWICAP_AWREADY  (ssFMC_HWICAP_Axi_awready),
@@ -1597,8 +1601,8 @@ module Shell_Themisto # (
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[6]),
-    //.piNTS_ready_V          (sNTS0_MMIO_ToeReady),
-    .piNTS_ready_V          (1), //TODO
+    .piNTS_ready_V          (sNTS0_MMIO_ToeReady),
+    //.piNTS_ready_V          (1), //TODO
     .piNTS_ready_V_ap_vld   (1),
     .piMMIO_FmcLsnPort_V    (sMMIO_NRC_FmcLsnPort),
     .piMMIO_FmcLsnPort_V_ap_vld (1),
