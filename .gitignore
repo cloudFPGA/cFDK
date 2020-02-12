@@ -34,6 +34,7 @@ vivado*.str
 # Vim
 #----- 
 *.swp
+*.swo
 
 # Emacs
 #-------

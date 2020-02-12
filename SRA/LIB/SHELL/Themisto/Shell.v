@@ -605,6 +605,12 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_LsnAck_tvalid;
   wire          ssTOE_NRC_Tcp_LsnAck_tready;
   
+  // ===== Timer Broadcast =====
+  wire [31:0]  sTIME_Broadcast_seconds;
+  wire [31:0]  sTIME_Broadcast_minutes;
+  wire [31:0]  sTIME_Broadcast_hours;
+  
+  
   // ===== NRC <-> FMC TCP connection =====
   wire [ 63:0]  ssNRC_FMC_Tcp_Data_tdata;
   wire [  7:0]  ssNRC_FMC_Tcp_Data_tkeep;
@@ -1473,6 +1479,19 @@ module Shell_Themisto # (
     .ip2intc_irpt   (ssFMC_HWICAP_ip2intc_irpt)
   );
 
+
+  smallTimer #(
+    .clockFrequencyHz(156250000)
+  ) TIME (
+    .piClk      (sETH0_ShlClk),
+    .piSyncRst  (sETH0_ShlRst),
+    .poSeconds  (sTIME_Broadcast_seconds),
+    .poMinutes  (sTIME_Broadcast_minutes),
+    .poHours    (sTIME_Broadcast_hours)
+  );
+
+
+
   //============================================================================
   //  INST: FPGA MANAGEMENT CORE
   //============================================================================
@@ -1488,13 +1507,19 @@ module Shell_Themisto # (
     //.piSysReset_V           (piSHL_156_25Rst_delayed),
     //.piSysReset_V_ap_vld   (1),
     //.poMMIO_V_ap_vld     ( ),
-    .piMMIO_V               (sMMIO_FMC_WrFmcReg),
-    .piMMIO_V_ap_vld        (1),
-    .poMMIO_V               (sFMC_MMIO_RdFmcReg),
-    .piLayer6enabled_V      (sMMIO_LayerEn[6] & (~ sMMIO_LayerRst[6])),
+    .piMMIO_V                 (sMMIO_FMC_WrFmcReg),
+    .piMMIO_V_ap_vld          (1),
+    .poMMIO_V                 (sFMC_MMIO_RdFmcReg),
+    .piLayer6enabled_V        (sMMIO_LayerEn[6] & (~ sMMIO_LayerRst[6])),
     .piLayer6enabled_V_ap_vld (1),
-    .piLayer7enabled_V      (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
+    .piLayer7enabled_V        (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
     .piLayer7enabled_V_ap_vld (1),
+    .piTime_seconds_V         (sTIME_Broadcast_seconds),
+    .piTime_seconds_V_ap_vld  (1),
+    .piTime_minutes_V         (sTIME_Broadcast_minutes),
+    .piTime_minutes_V_ap_vld  (1),
+    .piTime_hours_V           (sTIME_Broadcast_hours),
+    .piTime_hours_V_ap_vld    (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
     .m_axi_boHWICAP_AWREADY  (ssFMC_HWICAP_Axi_awready),
