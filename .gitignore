@@ -61,3 +61,5 @@ workspace/
 *.dat
 env/
 dcps/
+cfdk_dynamic.hpp
+
