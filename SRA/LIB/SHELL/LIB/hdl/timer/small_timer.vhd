@@ -27,7 +27,10 @@ end entity;
 architecture RTL of smallTimer is
 
     -- Signal for counting clock periods
-  signal Ticks : std_logic_vector(63 downto 0);
+  signal ticks    : std_ulogic_vector(63 downto 0);
+  signal seconds  : std_ulogic_vector(31 downto 0);
+  signal minutes  : std_ulogic_vector(31 downto 0);
+  signal hours    : std_ulogic_vector(31 downto 0);
 
 begin
 
@@ -35,44 +38,47 @@ begin
   begin
     if rising_edge(piClk) then
 
-            -- If the negative reset signal is active
       if piSyncRst = '1' then
-        Ticks   <= 0;
-        poSeconds <= 0;
-        poMinutes <= 0;
-        poHours   <= 0;
+        ticks   <= (others => '0');
+        seconds <= (others => '0');
+        minutes <= (others => '0');
+        hours   <= (others => '0');
       else
                 -- True once every second
-        if unsigned(Ticks) = ClockFrequencyHz - 1 then
-          Ticks <= 0;
+        if unsigned(ticks) = ClockFrequencyHz - 1 then
+          ticks <= (others => '0');
 
-          if poSeconds = 59 then
-            poSeconds <= 0;
+          if unsigned(seconds) = 59 then
+            seconds <= (others => '0');
 
-            if poMinutes = 59 then
-              poMinutes <= 0;
+            if unsigned(minutes) = 59 then
+              minutes <= (others => '0');
 
-              if poHours = 23 then
-                poHours <= 0;
+              if unsigned(hours) = 23 then
+                hours <= (others => '0');
               else
-                poHours <= poHours + 1;
+                hours <= std_ulogic_vector(unsigned(hours) + 1);
               end if;
 
             else
-              poMinutes <= poMinutes + 1;
+              minutes <= std_ulogic_vector(unsigned(minutes) + 1);
             end if;
 
           else
-            poSeconds <= poSeconds + 1;
+            seconds <= std_ulogic_vector(unsigned(seconds) + 1);
           end if;
 
         else
-          Ticks <= Ticks + 1;
+          ticks <= std_ulogic_vector(unsigned(ticks) + 1);
         end if;
 
       end if;
     end if;
   end process;
+
+  poSeconds <= seconds;
+  poMinutes <= minutes;
+  poHours <= hours;
 
 end architecture;
 
