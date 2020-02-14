@@ -301,6 +301,8 @@ void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort t
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    //state of the FPGA
+    ap_uint<1> *layer_4_enabled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
@@ -360,6 +362,7 @@ void nrc_main(
   )
 {
 
+#pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
 
 #pragma HLS INTERFACE axis register both port=siUdp_data
@@ -493,30 +496,6 @@ void nrc_main(
 #pragma HLS reset variable=tableCopyVariable
 
 
-  //===========================================================
-  // MRT init
-
-  //TODO: some consistency check for tables? (e.g. every IP address only once...)
-
-  if (!tables_initalized)
-  {
-    printf("init tables...\n");
-    for(int i = 0; i<MAX_NRC_SESSIONS; i++)
-    {
-      //sessionIdList[i] = UNUSED_TABLE_ENTRY_VALUE;
-      sessionIdList[i] = 0;
-      tripleList[i] = 0;
-      usedRows[i]  =  0;
-    }
-    tables_initalized = true;
-    //printf("Table layout:\n");
-    //for(int i = 0; i<MAX_NRC_SESSIONS; i++)
-    //{
-    //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
-    //}
-  }
-
-  //remaining MRT handling moved to the bottom
   
   //===========================================================
   //  core wide variables (for one iteration)
@@ -551,6 +530,41 @@ void nrc_main(
   {
     tcp_rx_ports_processed = config[NRC_CONFIG_SAVED_TCP_PORTS];
   }
+
+  //if layer 4 is reset, ports will be closed 
+  if(*layer_4_enabled == 0)
+  {
+    processed_FMC_listen_port = 0x0;
+    udp_rx_ports_processed = 0x0;
+    tcp_rx_ports_processed = 0x0;
+    //also, all sessions should be lost 
+    tables_initalized = false;
+  }
+  
+  //===========================================================
+  // MRT init
+
+  //TODO: some consistency check for tables? (e.g. every IP address only once...)
+
+  if (!tables_initalized)
+  {
+    printf("init tables...\n");
+    for(int i = 0; i<MAX_NRC_SESSIONS; i++)
+    {
+      //sessionIdList[i] = UNUSED_TABLE_ENTRY_VALUE;
+      sessionIdList[i] = 0;
+      tripleList[i] = 0;
+      usedRows[i]  =  0;
+    }
+    tables_initalized = true;
+    //printf("Table layout:\n");
+    //for(int i = 0; i<MAX_NRC_SESSIONS; i++)
+    //{
+    //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
+    //}
+  }
+
+  //remaining MRT handling moved to the bottom
 
   //===========================================================
   //  port requests

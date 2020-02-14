@@ -207,6 +207,8 @@ using namespace hls;
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    //state of the FPGA
+    ap_uint<1> *layer_4_enabled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
