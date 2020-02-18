@@ -1,0 +1,70 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_Data_ArpFrame_NoReply.dat#
+#  @brief : An ETHERNET frame with an embedded ARP-REQUEST message. This request must not initiate
+#            any ARP-REPLY because the requested TPA does not match the IP address of the core.
+#
+#  @details : 
+#    * MAC_DA    = FF:FF:FF:FF:FF:FF
+#    * MAC_SA    = 40:F2:E9:31:11:B6
+#    * EtherType = 0x0806
+#    * IP-SA     = 0x0A0C0001 = 10.12.  0.  1
+#    * IP-DA     = 0x0A0CC8EE = 10.12.200.238
+#    * ARP-TPPA  = 0xCAFEFADE
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an ARP message into an ETHERNET frame is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |     SA[1]     |     SA[0]     |     DA[5]     |     DA[4]     |     DA[3]     |     DA[2]     |     DA[1]     |     DA[0]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |          HTYPE=0x0001         |      EtherType=0x0806         |     SA[5]     |     SA[4]     |     SA[3]     |     SA[2]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |    SHA[1]     |    SHA[0]     |    OPER=0x0001 (or 0x0002)    |   PLEN=0x04   |   HLEN=0x06   |          PTYPE=0x0800         |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |    SPA[3]     |    SPA[2]     |    SPA[1]     |    SPA[0]     |    SHA[5]     |    SHA[4]     |    SHA[3]     |    SHA[2]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |    TPA[1]     |    TPA[0]     |    THA[5]     |    THA[4]     |    THA[3]     |    THA[2]     |    THA[1]     |    THA[0]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |               |               |               |               |                               |    TPA[3]     |    TPA[2]     |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+#   with:
+#     - OPER = Operation (0x0001 for ARP Request or 0x002 for ARP Reply).
+#     - SHA  = Sender Hardware Address.
+#     - SPA  = Sender Protocol Address.
+#     - THA  = Target Hardware Address.
+#     - TPA  - Target Protocol Address.
+#
+# ###################################################################################################################################
+
+G PARAM FpgaIp4Addr   10.12.200.238
+
+F240FFFFFFFFFFFF 0 FF
+01000608B61131E9 0 FF
+F240010004060008 0 FF
+01000C0AB61131E9 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+E8B3190700000000 1 0F
+
