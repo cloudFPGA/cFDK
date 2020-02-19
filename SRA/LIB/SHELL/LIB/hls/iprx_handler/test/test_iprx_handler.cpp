@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
     int         nrErr  = 0;
     //int         frmCnt = 0;
 
-    AxiWord     outData;
+    //OBSOLETE-20200213 AxiWord     outData;
 
     string      ofsARP_Data_FileName = "../../../../test/soARP_Data.dat";
     string      ofsTOE_Data_FileName = "../../../../test/soTOE_Data.dat";
@@ -288,8 +288,8 @@ int main(int argc, char* argv[]) {
     string      goldFileArray[4] = { ofsARP_Gold_FileName, ofsTOE_Gold_FileName, \
                                      ofsUDP_Gold_FileName, ofsICMP_Gold_FileName };
 
-    ifstream    goldenFile;
-    ofstream    outputFile;
+    //OBSOLETE-20200211 ifstream    goldenFile;
+    //OBSOLETE-20200211 ofstream    outputFile;
 
     Ip4Addr     myIp4Address = 0x01010101;
     EthAddr     myMacAddress = 0x010203040506;

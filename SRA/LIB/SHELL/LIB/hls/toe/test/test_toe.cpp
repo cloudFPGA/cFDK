@@ -2243,8 +2243,8 @@ int main(int argc, char *argv[]) {
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
 
-    map<SocketPair, TcpAckNum>    sessAckList;
-    map<SocketPair, TcpSeqNum>    sessSeqList;
+    map<SocketPair, TcpAckNum>    sessAckList; // [FIXME -Rename to Map]
+    map<SocketPair, TcpSeqNum>    sessSeqList; // [FIXME -Rename to Map]
 
     //-- Double-ended queue of packets --------------------
     deque<IpPacket>   ipRxPacketizer; // Packets intended for the IPRX interface of TOE
@@ -2293,7 +2293,7 @@ int main(int argc, char *argv[]) {
     printf("## TESTBENCH STARTS HERE                                                  ##\n");
     printf("############################################################################\n");
     gSimCycCnt = 0;    // Simulation cycle counter as a global variable
-    nrErr      = 0;     // Total number of testbench errors
+    nrErr      = 0;    // Total number of testbench errors
     sTOE_ReadyDly = 0;
 
     //------------------------------------------------------

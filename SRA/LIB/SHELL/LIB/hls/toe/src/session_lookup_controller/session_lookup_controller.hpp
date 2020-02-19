@@ -50,7 +50,7 @@ typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or up
 #define FROM_RXe   0
 #define FROM_TAi   1
 
-enum lookupOp {INSERT, DELETE};
+enum lookupOp {INSERT=0, DELETE};
 
 /*** OBSOLETE_20191128 ************
 struct slupRouting

@@ -63,9 +63,9 @@ using namespace hls;
 /*****************************************************************************
  * IPv4 Header Checksum Accumulator (HCa)
  *
- * @param[in]   siL3MUX_Data, Data steam from the L3 Multiplexer (L3MUX).
- * @param[out]  soICi_Data,   Data stream to the IpChecksumInserter (ICi).
- * @param[out]  soICi_Csum,   IP header checksum.
+ * @param[in]  siL3MUX_Data, Data stream from the L3 Multiplexer (L3MUX).
+ * @param[out] soICi_Data,   Data stream to the IpChecksumInserter (ICi).
+ * @param[out] soICi_Csum,   IP header checksum.
  *
  * @details
  *  This process computes the IPv4 header checksum and forwards it to the
@@ -388,9 +388,8 @@ void pMacAddressInserter(
     static EthoverMac mai_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    EthoverMac sendWord, currWord;
-
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    EthoverMac  sendWord;
+    EthoverMac  currWord;
     ArpLkpReply arpResponse;
     EthAddr     macDstAddr;
 
@@ -482,7 +481,7 @@ void pMacAddressInserter(
  * @brief   Main process of the IP Transmitter Handler.
  *
  ******************************************************************************/
-void iptx_handler (
+void iptx_handler(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
@@ -505,7 +504,7 @@ void iptx_handler (
         //-- ARP Interface
         //------------------------------------------------------
         stream<LE_Ip4Addr>      &soARP_LookupReq,  // [TODO-Switch to network order]
-        stream<ArpLkpReply>     &siARP_LookupRep)
+        stream<ArpLkpReply>     &siARP_LookupRep)  // [TODO-Rename Ip4LkpReq]
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return

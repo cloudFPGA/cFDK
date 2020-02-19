@@ -15,9 +15,9 @@
 
 all:   iprx_handler       toe       arp_server   cam dhcp_client icmp_server iprx_handler iptx_handler fmc nrc toe udp udp_mux udp_role_if 
 
-csim:  iptx_handler.csim iprx_handler.csim  toe.csim nrc.csim fmc.csim ## Runs HLS C simulation on all sub-directories
+csim:  arp_server iptx_handler.csim iprx_handler.csim  toe.csim nrc.csim fmc.csim ## Runs HLS C simulation on all sub-directories
 
-cosim: iptx_handler.csim iprx_handler.cosim nrc.cosim                  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: arp_server iptx_handler.csim iprx_handler.cosim nrc.cosim                  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

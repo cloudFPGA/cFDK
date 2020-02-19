@@ -1,6 +1,6 @@
 # ###################################################################################################################################
 #
-#  @file  : siETH_Data_ArpFrame.dat
+#  @file  : siIPRX_Data_ArpFrame.dat
 #
 #  @brief : An ETHERNET frame of length 42 bytes (w/o FCS which is not forwarded by the MAC). 
 #            The frame contains a unique ARP message of length 28 bytes.
@@ -57,9 +57,7 @@
 #
 # ###################################################################################################################################
 
-G PARAM SimCycles     350
 G PARAM FpgaIp4Addr   10.12.200.238
-> IDLE 50
 
 F240FFFFFFFFFFFF 0 FF
 01000608B61131E9 0 FF

@@ -53,7 +53,10 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
+add_files     ${currDir}/../toe/src/toe_utils.cpp
+
 add_files -tb ${testDir}/test_${projectName}.cpp
+add_files     ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------
@@ -106,11 +109,11 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design
+    csim_design -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame.dat"
+    csim_design -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame_NoReply.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
-    puts "####   [FIXME] - Missing input test vectors - [FIXME]    ####"
     puts "####                                                     ####"
     puts "#############################################################" 
 }
@@ -129,11 +132,11 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # [FIXME] cosim_design -tool xsim -rtl verilog -trace_level all
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame_NoReply.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
-    puts "####   [FIXME] - Missing input test vectors - [FIXME]    ####"
     puts "####                                                     ####"
     puts "#############################################################"
 }

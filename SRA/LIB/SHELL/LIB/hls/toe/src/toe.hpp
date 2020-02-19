@@ -234,7 +234,7 @@ typedef bool RepBool; // Reply      : Always has to go back to the source of the
 typedef bool RspBool; // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef bool ValBool;  // Valid bit  : Must go along with something to validate/invalidate.
+typedef bool ValBool; // Valid      : Must go along with something to validate/invalidate.
 
 
 /********************************************
@@ -255,7 +255,7 @@ typedef bool ValBool;  // Valid bit  : Must go along with something to validate/
  */
 
 enum notificationType {PKG, CLOSE, TIME_OUT, RESET};
-enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4 };
+enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4, WORD_5 };
 
 
 /* (adapted from Linux /net/tcp.h line 292)
@@ -441,10 +441,10 @@ class EthoverMac: public AxiWord {  // [FIXME-Rename into AxisEth]
     LE_EthAddr  getLE_EthDstAddr()              {             return tdata.range(47,  0);                     }
     // Set-Get the 16-MSbits of the ETH Source Address
     void        setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(63, 48) = swapMacAddr(addr).range(15,  0); }
-    ap_uint<16> getEthSrcAddrHi()               { return swapMacAddr(tdata.range(47,  0)).range(15,  0);                    }
+    ap_uint<16> getEthSrcAddrHi()               {    return swapWord(tdata.range(63, 48));                    }
    // Set-Get the 32-LSbits of the ETH Source Address
     void        setEthSrcAddrLo(EthAddr addr)   {                    tdata.range(31,  0) = swapMacAddr(addr).range(47, 16); }
-    ap_uint<32> getEthSrcAddrLo()               { return swapMacAddr(tdata.range(31,  0)).range(31,  0);                    }
+    ap_uint<32> getEthSrcAddrLo()               {   return swapDWord(tdata.range(31,  0));                    }
     // Set-get the ETH Type/Length
     void        setEthTypeLen(EthTypeLen eTyLe) {                    tdata.range(47, 32) = swapWord(eTyLe);   }
     EthTypeLen  getEthTypelen()                 {    return swapWord(tdata.range(47, 32));                    }

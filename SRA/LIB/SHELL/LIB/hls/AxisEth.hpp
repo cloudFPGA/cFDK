@@ -90,13 +90,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ETH - HEADER FIELDS IN LITTLE-ENDIAN (LE) ORDER.
  *   As received or transmitted by the 10GbE MAC.
  *********************************************************/
-typedef ap_uint<48> LE_EthSrcAddr;     // Ethernet Source Address
-typedef ap_uint<48> LE_EthDstAddr;     // Ethernet Destination Address
-typedef ap_uint<48> LE_EthAddress;     // Ethernet Source or Destination Address
-typedef ap_uint<48> LE_EthAddr;        // Ethernet Source or Destination Address (a shorter version)
-typedef ap_uint<16> LE_EthTypeLen;     // Ethernet Type or Length field
-typedef ap_uint<16> LE_EtherType;      // Ethernet Type field
-typedef ap_uint<16> LE_EtherLen;       // Ethernet Length field
+//typedef ap_uint<48> LE_EthSrcAddr;     // Ethernet Source Address
+//typedef ap_uint<48> LE_EthDstAddr;     // Ethernet Destination Address
+//typedef ap_uint<48> LE_EthAddress;     // Ethernet Source or Destination Address
+//typedef ap_uint<48> LE_EthAddr;        // Ethernet Source or Destination Address (a shorter version)
+//typedef ap_uint<16> LE_EthTypeLen;     // Ethernet Type or Length field
+//typedef ap_uint<16> LE_EtherType;      // Ethernet Type field
+//typedef ap_uint<16> LE_EtherLen;       // Ethernet Length field
 
 /*********************************************************
  * ETH - HEADER FIELDS IN NETWORK BYTE ORDER.
@@ -130,63 +130,72 @@ class AxisEth: public AxiWord {
     // Set-Get the ETH Destination Address
     void         setEthDstAddr(EthAddr addr)     {                    tdata.range(47,  0) = swapMacAddr(addr); }
     EthAddr      getEthDstAddr()                 { return swapMacAddr(tdata.range(47,  0));                    }
-    LE_EthAddr   getLE_EthDstAddr()              {             return tdata.range(47,  0);                     }
     // Set-Get the 16-MSbits of the ETH Source Address
     void         setEthSrcAddrHi(EthAddr addr)   {                    tdata.range(63, 48) = swapMacAddr(addr).range(15,  0); }
     ap_uint<16>  getEthSrcAddrHi()               {    return swapWord(tdata.range(63, 48));                    }
-    ap_uint<16>  getLE_EthSrcAddrHi()            {            return  tdata.range(63, 48);                     }
     // Set-Get the 32-LSbits of the ETH Source Address
     void         setEthSrcAddrLo(EthAddr addr)   {                    tdata.range(31,  0) = swapMacAddr(addr).range(47, 16); }
     ap_uint<32>  getEthSrcAddrLo()               {   return swapDWord(tdata.range(31,  0));                    }
-    ap_uint<32>  getLE_EthSrcAddrLo()            {            return  tdata.range(31,  0);                     }
     // Set-get the ETH Type/Length
     void         setEthTypeLen(EthTypeLen eTyLe) {                    tdata.range(47, 32) = swapWord(eTyLe);   }
     EthTypeLen   getEthTypelen()                 {    return swapWord(tdata.range(47, 32));                    }
     void         setEthertType(EtherType  eType) {                    tdata.range(47, 32) = swapWord(eType);   }
-    LE_EtherType getLE_EtherType()               {            return  tdata.range(47, 32);                     }
+    EtherType    getEtherType()                  {    return swapWord(tdata.range(47, 32));                    }
     void         setEtherLen(EtherLen   eLength) {                    tdata.range(47, 32) = swapWord(eLength); }
     EtherLen     getEtherLen()                   {    return swapWord(tdata.range(47, 32));                    }
+
+    LE_EthAddr   getLE_EthDstAddr()              {             return tdata.range(47,  0);                     }
+    ap_uint<16>  getLE_EthSrcAddrHi()            {            return  tdata.range(63, 48);                     }
+    ap_uint<32>  getLE_EthSrcAddrLo()            {            return  tdata.range(31,  0);                     }
+    LE_EtherType getLE_EtherType()               {            return  tdata.range(47, 32);                     }
+
 
     //-----------------------------------------------------
     //-- ENCAPSULATED ARP PACKET - Setters and Getters
     //-----------------------------------------------------
     // Set-Get the Hardware Type (HTYPE) field
-    void               setArpHwType(ArpHwType htype)     {                tdata.range(63, 48) = swapWord(htype); }
-    LE_ArpHwType       getLE_ArpHwType()                 {         return tdata.range(63, 48);                   }
+    void               setArpHwType(ArpHwType htype)     {                 tdata.range(63, 48) = swapWord(htype);   }
+    ArpHwType          getArpHwType()                    { return swapWord(tdata.range(63, 48));                    }
     // Set-Get the Protocol type (PTYPE) field
-    void               setArpProtType(ArpProtType ptype) {                tdata.range(15,  0) = swapWord(ptype); }
-    LE_ArpProtType     getLE_ArpProtType()               {         return tdata.range(15,  0);                   }
+    void               setArpProtType(ArpProtType ptype) {                 tdata.range(15,  0) = swapWord(ptype);   }
+    ArpProtType        getArpProtType()                  { return swapWord(tdata.range(15,  0));                    }
     // Set the Hardware Address Length (HLEN) field
-    void               setArpHwLen(ArpHwLen hlen)        {                tdata.range(23, 16) = hlen;            }
-    LE_ArpHwLen        getLE_ArpHwLen()                  {         return tdata.range(23, 16);                   }
+    void               setArpHwLen(ArpHwLen hlen)        {                 tdata.range(23, 16) = hlen;              }
+    ArpHwLen           getArpHwLen()                     {          return tdata.range(23, 16);                     }
     // Set-Get Protocol Address length (PLEN) field
-    void               setArpProtLen(ArpProtLen plen)    {                tdata.range(31, 24) = plen;            }
-    LE_ArpProtLen      getLE_ArpProtLen()                {         return tdata.range(31, 24);                   }
+    void               setArpProtLen(ArpProtLen plen)    {                 tdata.range(31, 24) = plen;              }
+    ArpProtLen         getArpProtLen()                   {          return tdata.range(31, 24);                     }
     // Set-Get the Operation code (OPER) field
-    void               setArpOper(ArpOper oper)          {                tdata.range(47, 32) = swapWord(oper);  }
-    LE_ArpOper         getLE_ArpOper()                   {         return tdata.range(47, 32);                   }
+    void               setArpOper(ArpOper oper)          {                 tdata.range(47, 32) = swapWord(oper);    }
+    ArpOper            getArpOper()                      { return swapWord(tdata.range(47, 32));                    }
     // Set-Get the 16-MSbits of the Sender Hardware Address (SHA)
-    void               setArpShaHi(ArpSendHwAddr sha)    {                tdata.range(63, 48) = swapMacAddr(sha).range(15,  0);}
-    LE_ArpShaHi        getLE_ArpShaHi()                  {         return tdata.range(63, 48);                                 }
+    void               setArpShaHi(ArpSendHwAddr sha)    {                 tdata.range(63, 48) = swapMacAddr(sha).range(15,  0);}
+    ArpShaHi           getArpShaHi()                     { return swapWord(tdata.range(63, 48));                    }
     // Set-Get the 32-LSbits of the Sender Hardware Address (SHA)
-    void               setArpShaLo(ArpSendHwAddr sha)    {                tdata.range(31,  0) = swapMacAddr(sha).range(47, 16);}
-    LE_ArpShaLo        getLE_ArpShaLo()                  {         return tdata.range(31,  0);                                 }
+    void               setArpShaLo(ArpSendHwAddr sha)    {                 tdata.range(31,  0) = swapMacAddr(sha).range(47, 16);}
+    ArpShaLo           getArpShaLo()                     {return swapDWord(tdata.range(31,  0));                    }
     // Set-Get the the Sender Protocol Address (SPA)
-    void               setArpSpa(ArpSendProtAddr spa)    {                tdata.range(63, 32) = swapDWord(spa);  }
-    LE_ArpSendProtAddr getLE_ArpSpa()                    {         return tdata.range(63, 32);                   }
+    void               setArpSpa(ArpSendProtAddr spa)    {                 tdata.range(63, 32) = swapDWord(spa);    }
+    ArpSendProtAddr    getArpSpa()                       {return swapDWord(tdata.range(63, 32));                    }
+    // Set-Get the Target Hardware Address (THA)
+    void               setArpTha(ArpTargHwAddr tha)      {                   tdata.range(47,  0) = swapMacAddr(tha);}
+    ArpTargHwAddr      getArpTha()                       {return swapMacAddr(tdata.range(47,  0));                  }
     // Set-Get the 16-MSbits of the Target Protocol Address (TPA)
-    void               setArpTpaHi(ArpTargProtAddr tpa)  {                tdata.range(63, 48) = swapDWord(tpa);  }
-    LE_ArpTpaHi        getLE_ArpTpaHi()                  {         return tdata.range(63, 48);                   }
+    void               setArpTpaHi(ArpTargProtAddr tpa)  {                 tdata.range(63, 48) = swapDWord(tpa).range(15,  0);  }
+    ArpTpaHi           getArpTpaHi()                     { return swapWord(tdata.range(63, 48));                    }
     // Set-Get the 16-LSbits of the Target Protocol Address (TPA)
-    void               setArpTpaLo(ArpTargProtAddr tpa)  {                tdata.range(15,  0) = swapDWord(tpa);  }
-    LE_ArpTpaLo        getLE_ArpTpaLo()                  {         return tdata.range(15,  0);                   }
+    void               setArpTpaLo(ArpTargProtAddr tpa)  {                 tdata.range(15,  0) = swapDWord(tpa).range(31, 16);  }
+    ArpTpaLo           getArpTpaLo()                     { return swapWord(tdata.range(15,  0));                    }
 
-
-
-
-
-
-
+    LE_ArpHwType       getLE_ArpHwType()                 { return tdata.range(63, 48); }
+    LE_ArpProtType     getLE_ArpProtType()               { return tdata.range(15,  0); }
+    LE_ArpOper         getLE_ArpOper()                   { return tdata.range(47, 32); }
+    LE_ArpShaHi        getLE_ArpShaHi()                  { return tdata.range(63, 48); }
+    LE_ArpShaLo        getLE_ArpShaLo()                  { return tdata.range(31,  0); }
+    LE_ArpSendProtAddr getLE_ArpSpa()                    { return tdata.range(63, 32); }
+    LE_ArpTargHwAddr   getLE_ArpTha()                    { return tdata.range(47,  0); }
+    LE_ArpTpaHi        getLE_ArpTpaHi()                  { return tdata.range(63, 48); }
+    LE_ArpTpaLo        getLE_ArpTpaLo()                  { return tdata.range(15,  0); }
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)

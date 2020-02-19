@@ -1,8 +1,8 @@
 # ###################################################################################################################################
 #
 #  @file  : siIPRX_Data_ArpFrame_NoReply.dat#
-#  @brief : An ETHERNET frame with an embedded ARP-REQUEST message. This request must not initiate
-#            any ARP-REPLY because the requested TPA does not match the IP address of the core.
+#  @brief : An few ETHERNET frames with an embedded ARP-REQUEST message. These requests should not initiate
+#            any ARP-REPLY because the requested TPA does not match the IP address of this ARS core.
 #
 #  @details : 
 #    * MAC_DA    = FF:FF:FF:FF:FF:FF
@@ -10,7 +10,7 @@
 #    * EtherType = 0x0806
 #    * IP-SA     = 0x0A0C0001 = 10.12.  0.  1
 #    * IP-DA     = 0x0A0CC8EE = 10.12.200.238
-#    * ARP-TPPA  = 0xCAFEFADE
+#    * ARP-TPA   = 0xCAFEFADE
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
 #          Conventions:
@@ -62,9 +62,62 @@ G PARAM FpgaIp4Addr   10.12.200.238
 F240FFFFFFFFFFFF 0 FF
 01000608B61131E9 0 FF
 F240010004060008 0 FF
-01000C0AB61131E9 0 FF
+02000C0AB61131E9 0 FF
 feca000000000000 0 FF
 000000000000defa 0 FF
 0000000000000000 0 FF
 E8B3190700000000 1 0F
 
+f340FFFFFFFFFFFF 0 FF
+01000608f3f3f3f3 0 FF
+f340010004060008 0 FF
+02000C0Af3f3f3f3 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F
+
+e440FFFFFFFFFFFF 0 FF
+01000608e4e4e4e4 0 FF
+e440010004060008 0 FF
+04000C0Ae4e4e4e4 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F
+
+d540FFFFFFFFFFFF 0 FF
+01000608d5d5d5d5 0 FF
+d540010004060008 0 FF
+05000C0Ad5d5d5d5 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F
+
+c640FFFFFFFFFFFF 0 FF
+01000608c6c6c6c6 0 FF
+c640010004060008 0 FF
+06000C0Ac6c6c6c6 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F
+
+b740FFFFFFFFFFFF 0 FF
+01000608b7b7b7b7 0 FF
+b740010004060008 0 FF
+07000C0Ab7b7b7b7 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F
+
+a840FFFFFFFFFFFF 0 FF
+01000608a8a8a8a8 0 FF
+a840010004060008 0 FF
+08000C0Aa8a8a8a8 0 FF
+feca000000000000 0 FF
+000000000000defa 0 FF
+0000000000000000 0 FF
+0000000000000000 1 0F

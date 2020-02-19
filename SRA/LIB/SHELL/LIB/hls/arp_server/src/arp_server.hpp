@@ -1,3 +1,47 @@
+/************************************************
+Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
+/*****************************************************************************
+ * @file       : arp_server.hpp
+ * @brief      : Address Resolution Server (ARS).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ *----------------------------------------------------------------------------
+ *
+ * @details    : Data structures, types and prototypes definitions for the
+ *                ARP server.
+ *
+ *****************************************************************************/
+
+#ifndef ARS_H_
+#define ARS_H_
+
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -7,24 +51,31 @@
 #include "ap_int.h"
 #include <stdint.h>
 
+#include "../../toe/src/toe.hpp"
+#include "../../toe/src/toe_utils.hpp"
+#include "../../AxisEth.hpp"
+
 using namespace hls;
 
-const uint16_t 		REQUEST 		= 0x0100;
-const uint16_t 		REPLY 			= 0x0200;
-const ap_uint<32>	replyTimeOut 	= 65536;
+const EthAddr     ETH_BROADCAST_MAC  = 0xFFFFFFFFFFFF; // Broadcast MAC Address
+const EtherType   ETH_ETHERTYPE_ARP  = 0x0806; // EtherType value ARP
 
-const ap_uint<48> MY_MAC_ADDR 	= 0xE59D02350A00; 	// LSB first, 00:0A:35:02:9D:E5
-const ap_uint<48> BROADCAST_MAC	= 0xFFFFFFFFFFFF;	// Broadcast MAC Address
-//const uint32_t 	  MY_IP_ADDR 		= 0x01010101;
+const ArpHwType   ARP_HTYPE_ETHERNET = 0x0001; //  Hardware type for Ethernet
+const ArpProtType ARP_PTYPE_IPV4     = 0x0800; // Protocol type for IPv4
+const ArpHwLen    ARP_HLEN_ETHERNET  =      6; // Hardware addr length for Ethernet
+const ArpProtLen  ARP_PLEN_IPV4      =      4; // Protocol addr length for IPv4
+const ArpOper     ARP_OPER_REQUEST   = 0x0001; // Operation is request
+const ArpOper     ARP_OPER_REPLY     = 0x0002; // Operation is reply
 
-const uint8_t 	noOfArpTableEntries	= 8;
+const Ip4Addr     IP4_BROADCAST_ADD  = 0xFFFFFFFF; // Broadcast IP4 Address
 
-struct axiWord {
-	ap_uint<64>		data;
-	ap_uint<8>		keep;
-	ap_uint<1>		last;
-};
+//OBSOLETE const ap_uint<32>	replyTimeOut 	= 65536;
+//OBSOLETE const uint8_t 	noOfArpTableEntries	= 8;
 
+typedef bool ArpLkpHit;
+enum         ArpLkpHitStates { NO_HIT=false, HIT=true };
+
+/*** OBSOLETE-20200218 ****************
 struct arpTableReply
 {
 	ap_uint<48> macAddress;
@@ -33,37 +84,65 @@ struct arpTableReply
 	arpTableReply(ap_uint<48> macAdd, bool hit)
 			:macAddress(macAdd), hit(hit) {}
 };
+***************************************/
 
-struct arpTableEntry {
-	ap_uint<48>	macAddress;
-	ap_uint<32> ipAddress;
-	ap_uint<1>	valid;
-	arpTableEntry() {}
-	arpTableEntry(ap_uint<48> newMac, ap_uint<32> newIp, ap_uint<1> newValid)
-				 : macAddress(newMac), ipAddress(newIp), valid(newValid) {}
-};
-
-struct arpReplyMeta
+/************************************************
+ * ARP LOOKUP REPLY
+ ************************************************/
+class ArpLkpReply
 {
-  ap_uint<48>   srcMac; //rename
-  ap_uint<16>   ethType;
-  ap_uint<16>   hwType;
-  ap_uint<16>   protoType;
-  ap_uint<8>    hwLen;
-  ap_uint<8>    protoLen;
-  ap_uint<48>   hwAddrSrc;
-  ap_uint<32>   protoAddrSrc;
-  arpReplyMeta() {}
+  public:
+    EthAddr     macAddress;
+    ArpLkpHit   hit;
+    ArpLkpReply() {}
+    ArpLkpReply(EthAddr macAdd, ArpLkpHit hit) :
+        macAddress(macAdd), hit(hit) {}
 };
 
-struct rtlMacLookupRequest {
-	ap_uint<1>			source;
-	ap_uint<32>			key;
-	rtlMacLookupRequest() {}
-	rtlMacLookupRequest(ap_uint<32> searchKey)
-				:key(searchKey), source(0) {}
+
+/************************************************
+ * ARP BINDING - {MAC,IPv4} ASSOCIATION
+ ************************************************/
+class ArpBinding {
+  public:
+    EthAddr  macAddr;
+    Ip4Addr  ip4Addr;
+    ArpBinding() {}
+    ArpBinding(EthAddr newMac, Ip4Addr newIp4) :
+        macAddr(newMac), ip4Addr(newIp4) {}
 };
 
+/*** OBSOLETE-20201214 ****************
+struct arpTableEntry {
+    LE_EthAddr       macAddress;
+    LE_Ip4Addr       ipAddress;
+    ValBit           valid;
+    arpTableEntry() {}
+    arpTableEntry(LE_EthAddr newMac, LE_Ip4Addr newIp, ValBit newValid) :
+        macAddress(newMac), ipAddress(newIp), valid(newValid) {}
+};
+***************************************/
+
+/************************************************
+ * ARP Metadata
+ *  Structure extracted from incoming ARP packet.
+ ************************************************/
+class ArpMeta  // ARP Metadata
+{
+  public:
+    EthAddr         remoteMacAddr;
+    EtherType       etherType;
+    ArpHwType       arpHwType;
+    ArpProtType     arpProtType;
+    ArpHwLen        arpHwLen;
+    ArpProtLen      arpProtLen;
+    ArpSendHwAddr   arpSendHwAddr;
+    ArpSendProtAddr arpSendProtAddr;
+    ArpMeta() {}
+};
+
+
+/*** OBSOLETE-20200218 ****************
 struct rtlMacUpdateRequest {
 	ap_uint<1>			source;
 	ap_uint<1>			op;
@@ -74,37 +153,95 @@ struct rtlMacUpdateRequest {
 	rtlMacUpdateRequest(ap_uint<32> key, ap_uint<48> value, ap_uint<1> op)
 			:key(key), value(value), op(op), source(0) {}
 };
+***************************************/
 
-struct rtlMacLookupReply {
+enum arpLkpOp  { ARP_INSERT=0, ARP_DELETE };
 
-	ap_uint<1>			hit;
-	ap_uint<48>			value;
-	rtlMacLookupReply() {}
-	rtlMacLookupReply(bool hit, ap_uint<48> returnValue)
-			:hit(hit), value(returnValue) {}
+
+/********************************************
+ * CAM / MAC Update Request
+ ********************************************/
+class RtlMacUpdateRequest {
+  public:
+    ap_uint<1>      source;
+    arpLkpOp        op;     //  1-bit : '0' is INSERT, '1' is DELETE
+    EthAddr         value;  // 48-bits
+    Ip4Addr         key;    // 32-bits
+
+    RtlMacUpdateRequest() {}
+    RtlMacUpdateRequest(Ip4Addr key, EthAddr value, arpLkpOp op) :
+        key(key), value(value), op(op), source(0) {}
 };
 
-struct rtlMacUpdateReply {
-	ap_uint<1>			source;
-	ap_uint<1>			op;
-	ap_uint<48>			value;
+/********************************************
+ * CAM / MAC Update Reply
+ ********************************************/
+class RtlMacUpdateReply {
+  public:
+    ap_uint<1>      source;
+    arpLkpOp        op;     //  1-bit : '0' is INSERT, '1' is DELETE
+    EthAddr         value;  // 48-bits
 
-	rtlMacUpdateReply() {}
-	rtlMacUpdateReply(ap_uint<1> op)
-			:op(op), source(0) {}
-	rtlMacUpdateReply(ap_uint<8> id, ap_uint<1> op)
-			:value(id), op(op), source(0) {}
+    RtlMacUpdateReply() {}
+    RtlMacUpdateReply(arpLkpOp op) :
+        op(op), source(0) {}
+    RtlMacUpdateReply(ap_uint<8> id, arpLkpOp op) : //[FIXME- Why 8 and not 48?]
+        value(id), op(op), source(0) {}
 };
+
+/********************************************
+ * CAM / MAC LookupR Request
+ ********************************************/
+class RtlMacLookupRequest {
+  public:
+    ap_uint<1>      source;
+    Ip4Addr         key;
+    RtlMacLookupRequest() {}
+    RtlMacLookupRequest(Ip4Addr searchKey) :
+        key(searchKey), source(0) {}
+};
+
+/********************************************
+ * CAM / MAC Lookup Reply
+ ********************************************/
+class RtlMacLookupReply {
+  public:
+    ArpLkpHit       hit;    //  8 bits
+    EthAddr         value;  // 48 bits
+    RtlMacLookupReply() {}
+    RtlMacLookupReply(ArpLkpHit hit, EthAddr value) :
+        hit(hit), value(value) {}
+};
+
+
+
 
 void arp_server(
-  stream  <axiWord>              &arpDataIn,
-  stream  <ap_uint<32> >         &macIpEncode_req,
-  stream  <axiWord>              &arpDataOut,
-  stream  <arpTableReply>        &macIpEncode_rsp,
-  stream  <rtlMacLookupRequest>  &macLookup_req,
-  stream  <rtlMacLookupReply>    &macLookup_resp,
-  stream  <rtlMacUpdateRequest>  &macUpdate_req,
-  stream  <rtlMacUpdateReply>    &macUpdate_resp,
-  ap_uint <32>	      	           regIpAddress,
-  ap_uint <48>					               myMacAddress
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                      piMMIO_MacAddress,
+        Ip4Addr                      piMMIO_IpAddress,
+        //------------------------------------------------------
+        //-- IPRX Interface
+        //------------------------------------------------------
+        stream<AxisEth>             &siIPRX_Data,
+        //------------------------------------------------------
+        //-- ETH Interface
+        //------------------------------------------------------
+        stream<AxisEth>             &soETH_Data,
+        //------------------------------------------------------
+        //-- IPTX Interfaces
+        //------------------------------------------------------
+        stream<Ip4Addr>             &siIPTX_MacLkpReq,
+        stream<ArpLkpReply>         &soIPTX_MacLkpRep,
+        //------------------------------------------------------
+        //-- CAM Interfaces
+        //------------------------------------------------------
+        stream<RtlMacLookupRequest> &soCAM_MacLkpReq,
+        stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
+        stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
+        stream<RtlMacUpdateReply>   &siCAM_MacUpdRep
 );
+
+#endif

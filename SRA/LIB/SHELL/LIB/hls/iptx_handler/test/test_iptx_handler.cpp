@@ -121,7 +121,7 @@ int createGoldenFile(
     ofstream    ofsDAT;
 
     char        currPath[FILENAME_MAX];
-    int         ret = NTS_OK;
+    int         ret=NTS_OK;
     int         inpChunks=0,  outChunks=0;
     int         inpPackets=0, outFrames=0;
     int         inpBytes=0,   outBytes=0;
@@ -141,7 +141,7 @@ int createGoldenFile(
         return(NTS_KO);
     }
 
-    //-- STEP-2 : OPEN THE OUTPUT GOLD FILES
+    //-- STEP-2 : OPEN THE OUTPUT GOLD FILE
     remove(outDAT_GoldName.c_str());
     if (!ofsDAT.is_open()) {
         ofsDAT.open (outDAT_GoldName.c_str(), ofstream::out);
@@ -244,7 +244,7 @@ int createGoldenFile(
     ofsDAT.close();
 
     //-- STEP-4: PRINT RESULTS
-    printInfo(THIS_NAME, "Done with the creation of the golden files.\n");
+    printInfo(THIS_NAME, "Done with the creation of the golden file.\n");
     printInfo(THIS_NAME, "\tProcessed %5d chunks in %4d packets, for a total of %6d bytes.\n",
               inpChunks, inpPackets, inpBytes);
     printInfo(THIS_NAME, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
@@ -303,6 +303,7 @@ int main(int argc, char* argv[]) {
     unsigned int param;
     if (readTbParamFromDatFile("FpgaIp4Addr", string(argv[1]), param)) {
         myIp4Address = param;
+        printIp4Addr(THIS_NAME, "The input test vector is setting the IP address of the FPGA to", myIp4Address);
     }
 
     //------------------------------------------------------
@@ -325,7 +326,8 @@ int main(int argc, char* argv[]) {
     ofstream    outFileStream;
 
     //-- Remove previous file
-    remove("ssIPTX_L2MUX_Data");
+    //OBSOLETE-20200211 remove("ssIPTX_L2MUX_Data");
+    remove(ofsL2MUX_Data_FileName.c_str());
     //-- Assess that file has ".dat" extension
     if (not isDatFile(ofsL2MUX_Data_FileName)) {
         printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsL2MUX_Data_FileName.c_str());

@@ -43,6 +43,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../src/toe.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
+//OBSOLETE #include "../../arp_server/src/arp_server.hpp"
 #include "test_toe_utils.hpp"
 
 using namespace std;
@@ -52,6 +53,7 @@ using namespace hls;
 // HELPER FOR THE DEBUGGING TRACES
 //---------------------------------------------------------
 #define THIS_NAME "TestToeUtils"
+
 
 /*****************************************************************************
  * @brief Prints one chunk of a data stream (used for debugging).
@@ -88,6 +90,29 @@ void printDmCmd(const char *callerName, DmCmd dmCmd)
 {
     printInfo(callerName, "DmCmd = {BBT=0x%6.6X, TYPE=0x%1.1X DSA=0x%2.2X, EOF=0x%1.1X, DRR=0x%1.1X, SADDR=0x%8.8X, TAG=0x%1.1X} \n",
               dmCmd.bbt.to_uint(), dmCmd.type.to_uint(), dmCmd.dsa.to_uint(), dmCmd.eof.to_uint(), dmCmd.drr.to_uint(), dmCmd.saddr.to_uint(), dmCmd.tag.to_uint());
+}
+
+/*****************************************************************************
+ * @brief Print an ARP binding pair association.
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "ACc").
+ * @param[in] arpBind,    the ARP binding pair to display.
+ *****************************************************************************/
+void printArpBindPair (const char *callerName, ArpBindPair arpBind)
+{
+    printInfo(callerName, "ArpBind {MAC,IP4} = {0x%12.12lX,0x%8.8X} = {%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X,%3.3d.%3.3d.%3.3d.%3.3d}\n",
+         arpBind.macAddr.to_ulong(),
+         arpBind.ip4Addr.to_uint(),
+        (arpBind.macAddr.to_ulong() & 0xFF0000000000) >> 40,
+        (arpBind.macAddr.to_ulong() & 0x00FF00000000) >> 32,
+        (arpBind.macAddr.to_ulong() & 0x0000FF000000) >> 24,
+        (arpBind.macAddr.to_ulong() & 0x000000FF0000) >> 16,
+        (arpBind.macAddr.to_ulong() & 0x00000000FF00) >>  8,
+        (arpBind.macAddr.to_ulong() & 0x0000000000FF) >>  0,
+        (arpBind.ip4Addr.to_uint() & 0xFF000000) >> 24,
+        (arpBind.ip4Addr.to_uint() & 0x00FF0000) >> 16,
+        (arpBind.ip4Addr.to_uint() & 0x0000FF00) >>  8,
+        (arpBind.ip4Addr.to_uint() & 0x000000FF) >>  0);
 }
 
 /*****************************************************************************
@@ -291,6 +316,39 @@ void printIp4Addr(Ip4Addr ip4Addr)
         (ip4Addr.to_uint() & 0x00FF0000) >> 16,
         (ip4Addr.to_uint() & 0x0000FF00) >>  8,
         (ip4Addr.to_uint() & 0x000000FF) >>  0);
+}
+
+/*****************************************************************************
+ * @brief Print an ETHERNET MAC address prepended with a message (for debug).
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "RXe").
+  * @param[in] message,    the message to prepend.
+ * @param[in] EthAddr,    the Ethernet MAC address to display
+ *****************************************************************************/
+void printEthAddr(const char *callerName, const char *message, EthAddr ethAddr)
+{
+    printInfo(callerName, "%s ETH Addr = 0x%12.12lX \n", message, ethAddr.to_ulong());
+}
+
+/*****************************************************************************
+ * @brief Print an ETHERNET MAC address in NETWORK-BYTE order.
+ *
+ * @param[in] callerName, the name of the caller process (e.g. "RXe").
+ * @param[in] EthAddr,    the Ethernet MAC address to display
+ *****************************************************************************/
+void printEthAddr(const char *callerName, EthAddr ethAddr)
+{
+    printInfo(callerName, "ETH Addr = 0x%12.12lX \n", ethAddr.to_ulong());
+}
+
+/*****************************************************************************
+ * @brief Print an ETHERNET MAC address (in NETWORK-BYTE order).
+ *
+ * @param[in] EthAddr,  the Ethernet MAC address to display
+ *****************************************************************************/
+void printEthAddr(EthAddr ethAddr)
+{
+    printf("0x%12.12lX = \n", ethAddr.to_ulong());
 }
 
 /*****************************************************************************
@@ -815,19 +873,19 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+/*******************************************************************************
+ * @brief Initialize an AxiWord stream from a DAT file.
+ *
+ * @param[in/out] ss,       a ref to the AxiWord stream to set.
+ * @param[in]     ssName,   the name of the AxiWord stream to set.
+ * @param[in]     fileName, the DAT file to read from.
+ * @param[out     nrChunks, a ref to the number of written AxiWords.
+ * @param[out]    nrFrames, a ref to the number of written Axi4 streams.
+ * @param[out]    nrBytes,  a ref to the number of written bytes.
+ *
+ * @return true successful,  otherwise false.
+ *******************************************************************************/
 #ifndef __SYNTHESIS__
-    /***************************************************************************
-     * @brief Initialize an AxiWord stream from a DAT file.
-     *
-     * @param[in/out] ss,       a ref to the AxiWord stream to set.
-     * @param[in]     ssName,   the name of the AxiWord stream to set.
-     * @param[in]     fileName, the DAT file to read from.
-     * @param[out     nrChunks, a ref to the number of written AxiWords.
-     * @param[out]    nrFrames, a ref to the number of written Axi4 streams.
-     * @param[out]    nrBytes,  a ref to the number of written bytes.
-     *
-     * @return true successful,  otherwise false.
-     ***************************************************************************/
     bool feedAxiWordStreamFromFile(stream<AxiWord> &ss, string ssName,
             string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
         ifstream    inpFileStream;
@@ -879,19 +937,83 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+/***************************************************************************
+ * @brief Initialize an Axi4-Stream (Axis) from a DAT file.
+ *
+ * @param[in/out] ss,       a ref to the Axis to set.
+ * @param[in]     ssName,   the name of the Axis to set.
+ * @param[in]     fileName, the DAT file to read from.
+ * @param[out     nrChunks, a ref to the number of written chunks.
+ * @param[out]    nrFrames, a ref to the number of written frames.
+ * @param[out]    nrBytes,  a ref to the number of written bytes.
+ *
+ * @return true successful,  otherwise false.
+ ***************************************************************************/
 #ifndef __SYNTHESIS__
-    /*****************************************************************************
-     * @brief Empty an AxiWord stream to a DAT file.
-     *
-     * @param[in/out] ss,       a ref to the AxiWord stream to drain.
-     * @param[in]     ssName,   the name of the AxiWord stream to drain.
-     * @param[in]     fileName, the DAT file to write to.
-     * @param[out     nrChunks, a ref to the number of written AxiWords.
-     * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
-     * @param[out]    nrBytes,  a ref to the number of written bytes.
-     *
-     * @return NTS_OK if successful,  otherwise NTS_KO.
-     ******************************************************************************/
+    template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string ssName,
+            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+        ifstream    inpFileStream;
+        char        currPath[FILENAME_MAX];
+        string      strLine;
+        int         lineCnt=0;
+        AxiWord     axiWord;
+        bool        rc=false;
+
+        //-- STEP-1 : OPEN FILE
+        inpFileStream.open(datFile.c_str());
+        if (!inpFileStream) {
+            getcwd(currPath, sizeof(currPath));
+            printError(THIS_NAME, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", datFile.c_str(), currPath);
+            return(NTS_KO);
+        }
+        // Assess that file has ".dat" extension
+        if (not isDatFile(datFile)) {
+            printError("TB", "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            inpFileStream.close();
+            return(NTS_KO);
+        }
+
+        //-- STEP-2 : READ FROM FILE AND WRITE TO STREAM
+        while (!inpFileStream.eof()) {
+			if (not readAxiWordFromFile(&axiWord, inpFileStream)) {
+				break;
+			}
+			// Write to stream
+			if (ss.full()) {
+				printError(THIS_NAME, "Cannot write stream \'%s\'. Stream is full.\n",
+						   ssName.c_str());
+				return(rc);
+			}
+			else {
+				ss.write(axiWord);
+				nrChunks++;
+				nrFrames += axiWord.tlast.to_int();
+				nrBytes  += axiWord.keepToLen();
+				lineCnt++;
+				rc = true;
+			}
+		}
+
+        //-- STEP-3: CLOSE FILE
+        inpFileStream.close();
+
+        return(rc);
+    }
+#endif
+
+/*****************************************************************************
+ * @brief Empty an AxiWord stream to a DAT file.
+ *
+ * @param[in/out] ss,       a ref to the AxiWord stream to drain.
+ * @param[in]     ssName,   the name of the AxiWord stream to drain.
+ * @param[in]     fileName, the DAT file to write to.
+ * @param[out     nrChunks, a ref to the number of written AxiWords.
+ * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes,  a ref to the number of written bytes.
+  *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
     bool drainAxiWordStreamToFile(stream<AxiWord> &ss, string ssName,
             string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
         ofstream    outFileStream;
@@ -950,3 +1072,111 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+/*******************************************************************************
+ * @brief Empty an Axi4-Stream (Axis) to a DAT file.
+ *
+ * @param[in/out] ss,       a ref to the Axis to drain.
+ * @param[in]     ssName,   the name of the Axis to drain.
+ * @param[in]     fileName, the DAT file to write to.
+ * @param[out     nrChunks, a ref to the number of written chuncks.
+ * @param[out]    nrFrames, a ref to the number of written frames.
+ * @param[out]    nrBytes,  a ref to the number of written bytes.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ *******************************************************************************/
+#ifndef __SYNTHESIS__
+    template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ssName,
+    		string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+    	ofstream    outFileStream;
+    	char        currPath[FILENAME_MAX];
+    	string      strLine;
+    	int         lineCnt=0;
+    	AXIS_T      axisWord;
+
+    	//-- REMOVE PREVIOUS FILE
+    	remove(ssName.c_str());
+
+    	//-- OPEN FILE
+    	if (!outFileStream.is_open()) {
+    		outFileStream.open(datFile.c_str(), ofstream::out);
+    		if (!outFileStream) {
+    			printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+    			return(NTS_KO);
+    		}
+    	}
+
+    	// Assess that file has ".dat" extension
+    	if ( datFile.find_last_of ( '.' ) != string::npos ) {
+    		string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+    		if (extension != "dat") {
+    			printError(THIS_NAME, "Cannot dump AxiWord stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+    			outFileStream.close();
+    			return(NTS_KO);
+    		}
+    	}
+
+    	//-- READ FROM STREAM AND WRITE TO FILE
+    	outFileStream << std::hex << std::noshowbase;
+    	outFileStream << std::setfill('0');
+    	outFileStream << std::uppercase;
+    	while (!(ss.empty())) {
+    		ss.read(axisWord);
+    		outFileStream << std::setw(8) << ((uint32_t) axisWord.tdata(63, 32));
+    		outFileStream << std::setw(8) << ((uint32_t) axisWord.tdata(31,  0));
+    		outFileStream << " ";
+    		outFileStream << std::setw(2) << ((uint32_t) axisWord.tkeep);
+    		outFileStream << " ";
+    		outFileStream << std::setw(1) << ((uint32_t) axisWord.tlast);
+    		outFileStream << std::endl;
+    		nrChunks++;
+    		nrBytes  += axisWord.keepToLen();
+    		if (axisWord.tlast) {
+    			nrFrames ++;
+    			outFileStream << std::endl;
+    		}
+    	}
+
+    	//-- CLOSE FILE
+    	outFileStream.close();
+
+    	return(NTS_OK);
+    }
+#endif
+
+/******************************************************************************
+ * @brief Create a bunch of fake local calls to functions as workaround to
+ *         link errors related to template classes.
+ *
+ * @details
+ *  - The common procedure in C++ is to put the class definition in a C++
+ *    header file and the implementation in a C++ source file. However, this
+ *    approach creates linking problems when template functions are used
+ *    because template functions are expected to be declared and defined in
+ *    the same file.
+ *  - Here we implement method #1 proposed by Febil Chacko Thanikal in [1].
+ *    The idea is to create a fake call to the template function in the current
+ *    file, in order for the compiler to compile the function with the
+ *    appropriate class/ This function will then become available at link time.
+ *  - There is no need to call these functions. They are just here to solve and
+ *    avoid link errors.
+ *
+ * @see
+ *  [1] https://www.codeproject.com/Articles/48575/How-to-define-a-template-class-in-a-h-file-and-imp
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    void _fakeCallTo_feedAxisArpFromFile() {
+        stream<AxisArp> ss;
+        int  nr1, nr2, nr3;
+        feedAxisFromFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_feedAxisEthFromFile() {
+        stream<AxisEth> ss;
+        int  nr1, nr2, nr3;
+        feedAxisFromFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_drainAxisEthToFile() {
+        stream<AxisEth> ss;
+        int  nr1, nr2, nr3;
+        drainAxisToFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+#endif

@@ -27,8 +27,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*****************************************************************************
 
  * @file       : AxisArp.hpp
- * @brief      : A class to access an ARP data chunk transmitted over an
- *                AXI4-Stream interface.
+ * @brief      : A class to access ARP header fields within data chunks
+ *               transmitted over an AXI4-Stream interface.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -48,8 +48,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  '0x01'. However, this field will end up being ordered in little-endian mode
  *  (.i.e, 0x0100) by the AXI4-Stream interface of the 10GbE MAC.
  *
- *  Therefore, the mapping of an ARP packet onto the 64-bits of an AXI4-Stream
- *  interface encoded in LITTLE-ENDIAN is as follows:
+ * @warning : This class is to be used when an ARP packet is aligned to a 64-bit
+ *  quadword. Refer to the methods of 'AxisEth.hpp' to access the fields of an
+ *  ARP packet that is embedded into an Ethernet frame.
+ *
+ * @info :
+ *  The format of an ARP packet transferred over an AXI4-Stream interface of
+ *  quadwords is done in LITTLE-ENDIAN and is mapped as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -81,6 +86,11 @@ typedef ap_uint<32> LE_ArpSendProtAddr; // ARP Sender Protocol Address (SPA)
 typedef ap_uint<48> LE_ArpTargHwAddr;   // ARP Target Hardware Address (THA)
 typedef ap_uint<32> LE_ArpTargProtAddr; // ARP Target Protocol Address (TPA)
 
+typedef ap_uint<16> LE_ArpShaHi;        // ARP SHA 16-MSbits (.i.e 47:32)
+typedef ap_uint<32> LE_ArpShaLo;        // ARP SHA 32-LSbits (.i.e 31: 0)
+typedef ap_uint<16> LE_ArpTpaHi;        // ARP TPA 16-MSbits (.i.e 47:32)
+typedef ap_uint<16> LE_ArpTpaLo;        // ARP TPA 16-LSbits (.i.e 31: 0)
+
 /*********************************************************
  * ARP - HEADER FIELDS IN NETWORK BYTE ORDER.
  *   Default Type Definitions (as used by HLS)
@@ -95,8 +105,26 @@ typedef ap_uint<32> ArpSendProtAddr;    // ARP Sender Protocol Address (SPA)
 typedef ap_uint<48> ArpTargHwAddr;      // ARP Target Hardware Address (THA)
 typedef ap_uint<32> ArpTargProtAddr;    // ARP Target Protocol Address (TPA)
 
+typedef ap_uint<16> ArpShaHi;           // ARP SHA 16-MSbits (.i.e 47:32)
+typedef ap_uint<32> ArpShaLo;           // ARP SHA 32-LSbits (.i.e 31: 0)
+typedef ap_uint<16> ArpTpaHi;           // ARP TPA 16-MSbits (.i.e 47:32)
+typedef ap_uint<16> ArpTpaLo;           // ARP TPA 16-LSbits (.i.e 31: 0)
+
+
+/************************************************
+ * ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
+ ************************************************/
+class ArpBindPair {
+  public:
+    EthAddr  macAddr;
+    Ip4Addr  ip4Addr;
+    ArpBindPair() {}
+    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
+        macAddr(newMac), ip4Addr(newIp4) {}
+};
+
 /*********************************************************
- * ARP over AXI4-STREAMING CLASS
+ * ARP Data over AXI4-STREAMING
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
  *********************************************************/
 class AxisArp: public AxiWord {
@@ -122,15 +150,15 @@ class AxisArp: public AxiWord {
     ArpProtLen    getProtocolLength()                {             return tdata.range(47, 40);                   }
     // Set-Get the Operation code (OPER) field
     void          setOperation(ArpOper oper)         {                    tdata.range(63, 48) = swapWord(oper);  }
-    ArpProtType   getOperation()                     {   return swapWord (tdata.range(63, 48));                  }
+    ArpOper       getOperation()                     {   return swapWord (tdata.range(63, 48));                  }
     // Set-Get the Sender Hardware Address (SHA)
     void          setSenderHwAddr(ArpSendHwAddr sha) {                    tdata.range(47,  0) = swapMacAddr(sha);}
     ArpSendHwAddr getSenderHwAddr()                  { return swapMacAddr(tdata.range(47,  0));                  }
     // Set-Get the 16-MSbits of the Sender Protocol Address (SPA)
-    void          setSenderProtAddrHi(ArpSendProtAddr spa) {              tdata.range(63, 48) = swapDWord(spa).range(15,  0); }
+    void          setSenderProtAddrHi(ArpSendProtAddr spa) {              tdata.range(63, 48) = swapDWord(spa).range(15, 0); }
     ap_uint<16>   getSenderProtAddrHi()              {    return swapWord(tdata.range(63, 48));                  }
     // Set-Get the 16-LSbits of the Sender Protocol Address (SPA)
-    void          setSenderProtAddrLo(ArpSendProtAddr spa) {              tdata.range(15,  0) = swapDWord(spa).range(31, 16); }
+    void          setSenderProtAddrLo(ArpSendProtAddr spa) {              tdata.range(15,  0) = swapDWord(spa).range(31,16); }
     ap_uint<32>   getSenderProtAddrLo()              {    return swapWord(tdata.range(15,  0));                  }
     // Set-Get the Target Hardware Address (SHA)
     void          setTargetHwAddr(ArpTargHwAddr tha) {                    tdata.range(63, 16) = swapMacAddr(tha);}
