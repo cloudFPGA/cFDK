@@ -482,17 +482,17 @@ module NetworkTransportSession_TcpIp (
   wire          ssARP_L2MUX_Data_tvalid;
   wire          ssARP_L2MUX_Data_tready;
   //-- ARP ==> IPTX / LkpRpl -----------
-  wire [55:0]   ssARP_IPTX_LkpRep_tdata;
-  wire          ssARP_IPTX_LkpRep_tvalid;
-  wire          ssARP_IPTX_LkpRep_tready;
+  wire [55:0]   ssARP_IPTX_MacLkpRep_tdata;
+  wire          ssARP_IPTX_MacLkpRep_tvalid;
+  wire          ssARP_IPTX_MacLkpRep_tready;
   
   //------------------------------------------------------------------
   //-- IPTX = IP-TX-HANDLER
   //------------------------------------------------------------------ 
   //-- IPTX ==> ARP / LookupRequest ----
-  wire  [31:0]  ssIPTX_ARP_LkpReq_tdata;
-  wire          ssIPTX_ARP_LkpReq_tvalid;
-  wire          ssIPTX_ARP_LkpReq_tready;
+  wire  [31:0]  ssIPTX_ARP_MacLkpReq_tdata;
+  wire          ssIPTX_ARP_MacLkpReq_tvalid;
+  wire          ssIPTX_ARP_MacLkpReq_tready;
   //-- IPTX ==> L2MUX / Data -----------
   wire  [63:0]  ssIPTX_L2MUX_Data_tdata;
   wire  [ 7:0]  ssIPTX_L2MUX_Data_tkeep;
@@ -528,12 +528,15 @@ module NetworkTransportSession_TcpIp (
   //-- ROLE ==>[ARS5]==> TOE ---------------------
   //---- ROLE ==>[ARS5] (see siROL_Tcp_Meta_t*)
   //----         [ARS5] ==> TOE -----------------
-   wire  [15:0]  ssARS5_TOE_Meta_tdata;
-   wire          ssARS5_TOE_Meta_tvalid;
-   wire          ssARS5_TOE_Meta_tready;
-
+  wire  [15:0]  ssARS5_TOE_Meta_tdata;
+  wire          ssARS5_TOE_Meta_tvalid;
+  wire          ssARS5_TOE_Meta_tready;
+   
+  //-- [FIXME] A BUNCH OF TEMPORAY SIGNALS THAT WE MUST GET RID OF 
+  wire  [47:0]  leMMIO_MacAddress;
+  wire  [31:0]  leMMIO_IpAddress;
+   
   //-- End of signal declarations ----------------------------------------------
-
  
   //============================================================================
   //  COMB: CONTINIOUS OUTPUT PORT ASSIGNMENTS
@@ -543,7 +546,19 @@ module NetworkTransportSession_TcpIp (
   assign siMEM_TxP_RdSts_tready = sTODO_1b1; // [FIXME - Add TxP_RdSts to TOE]
   assign siMEM_RxP_RdSts_tready = sTODO_1b1; // [FIXME - Add RxP_RdSts to TOE]
 
-
+  //-- [FIXME] A BUNCH OF ASSIGNMENTS THAT WE MUST GET RID OF
+  assign leMMIO_MacAddress = {{piMMIO_MacAddress[ 7: 0]},
+                              {piMMIO_MacAddress[15: 8]},
+                              {piMMIO_MacAddress[23:16]},
+                              {piMMIO_MacAddress[31:24]},
+                              {piMMIO_MacAddress[39:32]},
+                              {piMMIO_MacAddress[47:40]}};
+  
+  assign leMMIO_IpAddress = {{piMMIO_IpAddress[ 7: 0]},
+                             {piMMIO_IpAddress[15: 8]},
+                             {piMMIO_IpAddress[23:16]},
+                             {piMMIO_IpAddress[31:24]}};
+   
   //============================================================================
   //  INST: IP-RX-HANDLER
   //============================================================================
@@ -669,43 +684,45 @@ module NetworkTransportSession_TcpIp (
   AddressResolutionProcess ARP (
   
     .aclk                           (piShlClk),
-    .aresetn                        (~(piShlRst | piMMIO_Layer3Rst)),
-  
+    .aresetn                        (~(piShlRst | piMMIO_Layer3Rst)), // [TODO-Prefer Layer-2]
+
+    //------------------------------------------------------
+    //-- MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_MacAddress              (piMMIO_MacAddress),
+    .piMMIO_IpAddress               (piMMIO_IpAddress),
+      
     //------------------------------------------------------
     //-- IPRX Interfaces (via ARS0)
     //------------------------------------------------------
-    //-- IPRX ==> [ARS0] / Data --------
-    .axi_arp_slice_to_arp_tdata     (ssARS0_ARP_Data_tdata),
-    .axi_arp_slice_to_arp_tkeep     (ssARS0_ARP_Data_tkeep),
-    .axi_arp_slice_to_arp_tlast     (ssARS0_ARP_Data_tlast),
-    .axi_arp_slice_to_arp_tvalid    (ssARS0_ARP_Data_tvalid),
-    .axi_arp_slice_to_arp_tready    (ssARS0_ARP_Data_tready),
+    //-- IPRX ==> [ARS0] ==> ARP / Data
+    .siIPRX_Data_tdata              (ssARS0_ARP_Data_tdata),
+    .siIPRX_Data_tkeep              (ssARS0_ARP_Data_tkeep),
+    .siIPRX_Data_tlast              (ssARS0_ARP_Data_tlast),
+    .siIPRX_Data_tvalid             (ssARS0_ARP_Data_tvalid),
+    .siIPRX_Data_tready             (ssARS0_ARP_Data_tready),
    
+    //------------------------------------------------------
+    //-- ETH Interface (via L2MUX)
+    //------------------------------------------------------
+    //-- ARP ==> [L2MUX] ==> ETH / Data  
+    .soETH_Data_tdata               (ssARP_L2MUX_Data_tdata),
+    .soETH_Data_tkeep               (ssARP_L2MUX_Data_tkeep),
+    .soETH_Data_tlast               (ssARP_L2MUX_Data_tlast),
+    .soETH_Data_tvalid              (ssARP_L2MUX_Data_tvalid),
+    .soETH_Data_tready              (ssARP_L2MUX_Data_tready),
+    
     //------------------------------------------------------
     //-- IPTX Interfaces
     //------------------------------------------------------
-    //-- To   IPTX / LoopkupRequest ----
-    .axis_arp_lookup_request_TDATA  (ssIPTX_ARP_LkpReq_tdata),
-    .axis_arp_lookup_request_TVALID (ssIPTX_ARP_LkpReq_tvalid),
-    .axis_arp_lookup_request_TREADY (ssIPTX_ARP_LkpReq_tready),
-    //-- From IPTX / LoopkupReply ------
-    .axis_arp_lookup_reply_TDATA    (ssARP_IPTX_LkpRep_tdata),
-    .axis_arp_lookup_reply_TVALID   (ssARP_IPTX_LkpRep_tvalid),
-    .axis_arp_lookup_reply_TREADY   (ssARP_IPTX_LkpRep_tready),
+    .siIPTX_MacLkpReq_TDATA         (ssIPTX_ARP_MacLkpReq_tdata),
+    .siIPTX_MacLkpReq_TVALID        (ssIPTX_ARP_MacLkpReq_tvalid),
+    .siIPTX_MacLkpReq_TREADY        (ssIPTX_ARP_MacLkpReq_tready),
+    //--
+    .soIPTX_MacLkpRep_TDATA         (ssARP_IPTX_MacLkpRep_tdata),
+    .soIPTX_MacLkpRep_TVALID        (ssARP_IPTX_MacLkpRep_tvalid),
+    .soIPTX_MacLkpRep_TREADY        (ssARP_IPTX_MacLkpRep_tready)
     
-    //------------------------------------------------------
-    //-- L2MUX Interfaces
-    //------------------------------------------------------
-    //-- To   L2MUX / Data  
-    .axi_arp_to_arp_slice_tdata     (ssARP_L2MUX_Data_tdata),
-    .axi_arp_to_arp_slice_tkeep     (ssARP_L2MUX_Data_tkeep),
-    .axi_arp_to_arp_slice_tlast     (ssARP_L2MUX_Data_tlast),
-    .axi_arp_to_arp_slice_tvalid    (ssARP_L2MUX_Data_tvalid),
-    .axi_arp_to_arp_slice_tready    (ssARP_L2MUX_Data_tready),
-    
-    .myMacAddress                   (piMMIO_MacAddress),
-    .myIpAddress                    (piMMIO_IpAddress)
-
   ); // End of ARP
   
   //============================================================================
@@ -719,7 +736,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V           (piMMIO_IpAddress),
+    .piMMIO_IpAddr_V           (leMMIO_IpAddress),
     
     //------------------------------------------------------
     //-- NTS Interfaces
@@ -1489,7 +1506,7 @@ module NetworkTransportSession_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_This_Enable_V           (1'b0),
-    .piMMIO_This_MacAddress_V       (piMMIO_MacAddress),
+    .piMMIO_This_MacAddress_V       (leMMIO_MacAddress),
     
     //------------------------------------------------------
     //-- NTS IPv4 Interfaces
@@ -1621,43 +1638,43 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
-    .piMMIO_This_IpAddr_V (piMMIO_IpAddress),
+    .piMMIO_IpAddress_V (leMMIO_IpAddress),
   
     //------------------------------------------------------
     //-- IPRX Interfaces
     //------------------------------------------------------
     //-- From IPRX==>[ARS1] / Data -----
-    .s_dataIn_TDATA     (ssARS1_ICMP_Data_tdata),
-    .s_dataIn_TKEEP     (ssARS1_ICMP_Data_tkeep),
-    .s_dataIn_TLAST     (ssARS1_ICMP_Data_tlast),
-    .s_dataIn_TVALID    (ssARS1_ICMP_Data_tvalid),
-    .s_dataIn_TREADY    (ssARS1_ICMP_Data_tready),
+    .siIPRX_Data_TDATA  (ssARS1_ICMP_Data_tdata),
+    .siIPRX_Data_TKEEP  (ssARS1_ICMP_Data_tkeep),
+    .siIPRX_Data_TLAST  (ssARS1_ICMP_Data_tlast),
+    .siIPRX_Data_TVALID (ssARS1_ICMP_Data_tvalid),
+    .siIPRX_Data_TREADY (ssARS1_ICMP_Data_tready),
     //-- To   IPRX / Ttl --------------------
-    .s_ttlIn_TDATA      (ssIPRX_ICMP_Ttl_tdata),
-    .s_ttlIn_TKEEP      (ssIPRX_ICMP_Ttl_tkeep),
-    .s_ttlIn_TLAST      (ssIPRX_ICMP_Ttl_tlast),
-    .s_ttlIn_TVALID     (ssIPRX_ICMP_Ttl_tvalid),
-    .s_ttlIn_TREADY     (ssIPRX_ICMP_Ttl_tready),
+    .siIPRX_Ttl_TDATA   (ssIPRX_ICMP_Ttl_tdata),
+    .siIPRX_Ttl_TKEEP   (ssIPRX_ICMP_Ttl_tkeep),
+    .siIPRX_Ttl_TLAST   (ssIPRX_ICMP_Ttl_tlast),
+    .siIPRX_Ttl_TVALID  (ssIPRX_ICMP_Ttl_tvalid),
+    .siIPRX_Ttl_TREADY  (ssIPRX_ICMP_Ttl_tready),
     
     //------------------------------------------------------
     //-- UDP Interfaces
     //------------------------------------------------------
     //-- From UDP / Data   
-    .s_udpIn_TDATA      (ssUDP_ICMP_Data_tdata),
-    .s_udpIn_TKEEP      (ssUDP_ICMP_Data_tkeep),
-    .s_udpIn_TLAST      (ssUDP_ICMP_Data_tlast),
-    .s_udpIn_TVALID     (ssUDP_ICMP_Data_tvalid),
-    .s_udpIn_TREADY     (ssUDP_ICMP_Data_tready),
+    .siUDP_Data_TDATA   (ssUDP_ICMP_Data_tdata),
+    .siUDP_Data_TKEEP   (ssUDP_ICMP_Data_tkeep),
+    .siUDP_Data_TLAST   (ssUDP_ICMP_Data_tlast),
+    .siUDP_Data_TVALID  (ssUDP_ICMP_Data_tvalid),
+    .siUDP_Data_TREADY  (ssUDP_ICMP_Data_tready),
     
     //------------------------------------------------------
     //-- L3MUX Interfaces
     //------------------------------------------------------
     //-- To   L3MUX / Data -------------
-    .m_dataOut_TDATA    (ssICMP_L3MUX_Data_tdata),
-    .m_dataOut_TKEEP    (ssICMP_L3MUX_Data_tkeep),
-    .m_dataOut_TLAST    (ssICMP_L3MUX_Data_tlast),
-    .m_dataOut_TVALID   (ssICMP_L3MUX_Data_tvalid),
-    .m_dataOut_TREADY   (ssICMP_L3MUX_Data_tready)
+    .soIPTX_Data_TDATA  (ssICMP_L3MUX_Data_tdata),
+    .soIPTX_Data_TKEEP  (ssICMP_L3MUX_Data_tkeep),
+    .soIPTX_Data_TLAST  (ssICMP_L3MUX_Data_tlast),
+    .soIPTX_Data_TVALID (ssICMP_L3MUX_Data_tvalid),
+    .soIPTX_Data_TREADY (ssICMP_L3MUX_Data_tready)
 
   ); // End of ICMP
 
@@ -1747,13 +1764,13 @@ module NetworkTransportSession_TcpIp (
     //-- ARP Interfaces
     //------------------------------------------------------
     //-- To   ARP / LookupRequest ------                 
-   .soARP_LookupReq_TDATA     (ssIPTX_ARP_LkpReq_tdata), 
-   .soARP_LookupReq_TVALID    (ssIPTX_ARP_LkpReq_tvalid),
-   .soARP_LookupReq_TREADY    (ssIPTX_ARP_LkpReq_tready),
+   .soARP_LookupReq_TDATA     (ssIPTX_ARP_MacLkpReq_tdata),
+   .soARP_LookupReq_TVALID    (ssIPTX_ARP_MacLkpReq_tvalid),
+   .soARP_LookupReq_TREADY    (ssIPTX_ARP_MacLkpReq_tready),
     //-- From ARP / LookupReply --------
-    .siARP_LookupRep_TDATA    (ssARP_IPTX_LkpRep_tdata),
-    .siARP_LookupRep_TVALID   (ssARP_IPTX_LkpRep_tvalid),
-    .siARP_LookupRep_TREADY   (ssARP_IPTX_LkpRep_tready),
+    .siARP_LookupRep_TDATA    (ssARP_IPTX_MacLkpRep_tdata),
+    .siARP_LookupRep_TVALID   (ssARP_IPTX_MacLkpRep_tvalid),
+    .siARP_LookupRep_TREADY   (ssARP_IPTX_MacLkpRep_tready),
   
     //------------------------------------------------------
     //-- L2MUX Interfaces

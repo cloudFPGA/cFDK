@@ -763,7 +763,13 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW  [FIXME-Change the byte order]
+  //OBSOLETE-20200131 assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW  [FIXME-Change the byte order]
+  assign poNTS0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
+  assign poNTS0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
+  assign poNTS0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
+  assign poNTS0_MacAddress[23:16] = sEMIF_Ctrl[cEDW*LY2_MAC3+7:cEDW*LY2_MAC3+0];  // RW
+  assign poNTS0_MacAddress[15: 8] = sEMIF_Ctrl[cEDW*LY2_MAC4+7:cEDW*LY2_MAC4+0];  // RW
+  assign poNTS0_MacAddress[ 7: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC5+0];  // RW
   
   //--------------------------------------------------------
   //-- LAYER-3 REGISTERS
@@ -773,11 +779,23 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW  [FIXME-Change the byte order]
+  //OBSOLETE-20200131 assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW  [FIXME-Change the byte order]
+  assign poNTS0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
+  assign poNTS0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
+  assign poNTS0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
+  assign poNTS0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
   //---- LY3_SUBNET[0:3] -------------------
-  assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW  [FIXME-Change the byte order]
+  //OBSOLETE-20200131 assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW  [FIXME-Change the byte order]
+  assign poNTS0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
+  assign poNTS0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
+  assign poNTS0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
+  assign poNTS0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
   //---- LY3_GATEWAY[0:3] -------------------
-  assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW  [FIXME-Change the byte order]
+  //OBSOLETE-20200131 assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW  [FIXME-Change the byte order]
+  assign poNTS0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
+  assign poNTS0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
+  assign poNTS0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
+  assign poNTS0_GatewayAddr[ 7: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW3+0]; // RW
   
   //--------------------------------------------------------
   //-- MNGT REGISTERS

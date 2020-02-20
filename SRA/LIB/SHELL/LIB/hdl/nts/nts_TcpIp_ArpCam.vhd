@@ -10,7 +10,7 @@
 -- * File    : nts_TcpIp_ArpCam.vhd
 -- * 
 -- * Created : Jan. 2018
--- * Authors : Jagath Weerasinghe, Francois Abel
+-- * Authors : Francois Abel
 -- *
 -- * Devices : xcku060-ffva1156-2-i
 -- * Tools   : Vivado v2016.4 (64-bit)
@@ -50,8 +50,8 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --************************************************************************* 
 entity ArpCam is
   generic ( 
-    keyLength   : integer   := 32;
-    valueLength : integer   := 48
+    gKeyLength   : integer   := 32;
+    gValueLength : integer   := 48
   );
   port (
     led1          : out std_logic;
@@ -62,28 +62,20 @@ entity ArpCam is
     
     lup_req_valid : in  std_logic;
     lup_req_ready : out std_logic;
-    lup_req_din   : in  std_logic_vector(keyLength downto 0);
+    lup_req_din   : in  std_logic_vector(gKeyLength downto 0);
   
     lup_rsp_valid : out std_logic;
     lup_rsp_ready : in  std_logic;
-    lup_rsp_dout  : out std_logic_vector(valueLength downto 0);
+    lup_rsp_dout  : out std_logic_vector(gValueLength downto 0);
     
     upd_req_valid : in  std_logic;	
     upd_req_ready : out std_logic;	
-    upd_req_din   : in  std_logic_vector((keyLength + valueLength) + 1 downto 0); -- This will include the key, the value to be updated and one bit to indicate whether this is a delete op
+    upd_req_din   : in  std_logic_vector((gKeyLength + gValueLength) + 1 downto 0); -- This will include the key, the value to be updated and one bit to indicate whether this is a delete op
   
     upd_rsp_valid : out std_logic;	
     upd_rsp_ready : in  std_logic;	
-    upd_rsp_dout  : out std_logic_vector(valueLength + 1 downto 0);
-  
-    --new_id_valid : in std_logic;
-    --new_id_ready : out std_logic;
-    --new_id_din   : in std_logic_vector(13 downto 0);
-    
-    --fin_id_valid : out std_logic;
-    --fin_id_ready : in std_logic;
-    --fin_id_dout  : out std_logic_vector(13 downto 0);
-    
+    upd_rsp_dout  : out std_logic_vector(gValueLength + 1 downto 0);
+
     debug         : out std_logic_vector(255 downto 0)		
   );
 end ArpCam;
@@ -123,17 +115,17 @@ architecture Behavioral of ArpCam is
       Size               : OUT  std_logic_vector(14 downto 0);
       CamSize            : OUT  std_logic_vector(3 downto 0);
       LookupReqValid     : IN  std_logic;
-      LookupReqKey       : IN  std_logic_vector(keyLength - 1 downto 0);
+      LookupReqKey       : IN  std_logic_vector(gKeyLength - 1 downto 0);
       LookupRespValid    : OUT  std_logic;
       LookupRespHit      : OUT  std_logic;
-      LookupRespKey      : OUT  std_logic_vector(keyLength - 1 downto 0);
-      LookupRespValue    : OUT  std_logic_vector(valueLength - 1 downto 0);
+      LookupRespKey      : OUT  std_logic_vector(gKeyLength - 1 downto 0);
+      LookupRespValue    : OUT  std_logic_vector(gValueLength - 1 downto 0);
       UpdateAck          : OUT  std_logic;
       UpdateValid        : IN  std_logic;
       UpdateOp           : IN  std_logic;
-      UpdateKey          : IN  std_logic_vector(keyLength - 1  downto 0);
+      UpdateKey          : IN  std_logic_vector(gKeyLength - 1  downto 0);
       UpdateStatic       : IN  std_logic;
-      UpdateValue        : IN  std_logic_vector(valueLength - 1  downto 0)
+      UpdateValue        : IN  std_logic_vector(gValueLength - 1  downto 0)
     );
   end component;
 
@@ -143,12 +135,12 @@ architecture Behavioral of ArpCam is
   signal InitEnb           : std_logic := '0';
   signal AgingTime         : std_logic_vector(31 downto 0) := (others => '1');
   signal LookupReqValid    : std_logic := '0';
-  signal LookupReqKey      : std_logic_vector(keyLength - 1 downto 0) := (others => '0');
+  signal LookupReqKey      : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
   signal UpdateValid       : std_logic := '0';
   signal UpdateOp          : std_logic := '0';
-  signal UpdateKey         : std_logic_vector(keyLength - 1 downto 0) := (others => '0');
+  signal UpdateKey         : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
   signal UpdateStatic      : std_logic := '0';
-  signal UpdateValue       : std_logic_vector(valueLength - 1 downto 0) := (others => '0');
+  signal UpdateValue       : std_logic_vector(gValueLength - 1 downto 0) := (others => '0');
 
  	--Outputs
   signal InitDone          : std_logic;
@@ -156,8 +148,8 @@ architecture Behavioral of ArpCam is
   signal CamSize           : std_logic_vector(3 downto 0);
   signal LookupRespValid   : std_logic;
   signal LookupRespHit     : std_logic;
-  signal LookupRespKey     : std_logic_vector(keyLength - 1 downto 0);
-  signal LookupRespValue   : std_logic_vector(valueLength - 1 downto 0);
+  signal LookupRespKey     : std_logic_vector(gKeyLength - 1 downto 0);
+  signal LookupRespValue   : std_logic_vector(gValueLength - 1 downto 0);
   signal UpdateReady       : std_logic;
 
 	signal ctl_fsm           : std_logic_vector(7 downto 0);
@@ -274,7 +266,7 @@ begin
 					if (lup_req_valid='1') then
 						lup_req_ready     <= '1';
 						LookupReqValid    <= '1';
-						LookupReqKey      <= lup_req_din(keyLength downto 1);	
+						LookupReqKey      <= lup_req_din(gKeyLength downto 1);	
 						lup_rsp_dout(0)   <= lup_req_din(0); --rx bit
 						ctl_fsm <= x"10";	
 					-- insert
@@ -284,8 +276,8 @@ begin
 						--new_id_ready    <= '1';
 						UpdateValid       <= '1';
 						UpdateOp          <= upd_req_din(1);
-						UpdateKey         <= upd_req_din((valueLength + keyLength + 1) downto (valueLength + 2));
-						UpdateValue       <= upd_req_din(valueLength + 1 downto 2);	
+						UpdateKey         <= upd_req_din((gValueLength + gKeyLength + 1) downto (gValueLength + 2));
+						UpdateValue       <= upd_req_din(gValueLength + 1 downto 2);	
 						upd_rsp_dout(0)   <= upd_req_din(0); -- rx bit;							
 						ctl_fsm           <= x"50";
 					-- delete
@@ -293,8 +285,8 @@ begin
 						upd_req_ready        <= '1';
 						UpdateValid       <= '1';
 						UpdateOp          <= upd_req_din(1);
-						UpdateKey         <= upd_req_din((valueLength + keyLength + 1) downto (valueLength + 2));
-						UpdateValue       <= upd_req_din(valueLength + 1 downto 2);	
+						UpdateKey         <= upd_req_din((gValueLength + gKeyLength + 1) downto (gValueLength + 2));
+						UpdateValue       <= upd_req_din(gValueLength + 1 downto 2);	
 						upd_rsp_dout(0)   <= upd_req_din(0); -- rx bit;							
 						ctl_fsm <= x"40";
 					else
@@ -308,7 +300,7 @@ begin
 				when x"11" =>
 					if (LookupRespValid='1') then
 						lup_rsp_dout(0)      				<= LookupRespHit;
-						lup_rsp_dout(valueLength downto 1) 	<= LookupRespValue;
+						lup_rsp_dout(gValueLength downto 1) 	<= LookupRespValue;
 					end if;
 					if (lup_rsp_ready='0') then
 						if (LookupRespValid='1') then
@@ -330,7 +322,7 @@ begin
 						-- reset
 						UpdateValid                               <= '0';
 						UpdateOp                                  <= '0';
-						upd_rsp_dout(valueLength + 1 downto 2)    <= UpdateValue;
+						upd_rsp_dout(gValueLength + 1 downto 2)    <= UpdateValue;
 						upd_rsp_dout(1)                           <= UpdateOp; -- ops
 						UpdateKey                                 <= (others => '0');
 						UpdateValue                               <= (others => '0');									
@@ -352,7 +344,7 @@ begin
 					ctl_fsm        <= x"41";
 				when x"41" =>
 					--fin_id_dout <= UpdateValue(13 downto 0);
-					upd_rsp_dout(valueLength + 1 downto 2)  <= UpdateValue;
+					upd_rsp_dout(gValueLength + 1 downto 2)  <= UpdateValue;
 					upd_rsp_dout(1)            <= UpdateOp; -- ops
 					if (UpdateReady='1') then
 						-- reset
