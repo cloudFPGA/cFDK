@@ -63,40 +63,41 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
  * @param[out] soIPTX_LookupRep, ARP lookup reply to [IPTX].
  ******************************************************************************/
 void pEmulateArpCam(
-        stream<LE_Ip4Addr>    &siIPTX_LookupReq,
+        stream<Ip4Addr>       &siIPTX_LookupReq,
         stream<ArpLkpReply>   &soIPTX_LookupRep,
         EthAddr                piMacAddress,
         Ip4Addr                piIp4Address)
 {
     const char *myName  = concat3(THIS_NAME, "/", "ARP");
 
-    LE_Ip4Addr leIp4LkpReq;
+    Ip4Addr macLkpReq;
 
     if (!siIPTX_LookupReq.empty()) {
-        siIPTX_LookupReq.read(leIp4LkpReq);
-        printIp4Addr(myName, "Received a lookup request from [IPTX] for", byteSwap32(leIp4LkpReq));
-        if (byteSwap32(leIp4LkpReq) == 0x0a010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(0xfedcba9876543210), true)); // [TODO]
+        siIPTX_LookupReq.read(macLkpReq);
+        printIp4Addr(myName, "Received a lookup request from [IPTX] with key = ",
+                     macLkpReq);
+        if (macLkpReq == 0x0a010101) {
+            soIPTX_LookupRep.write(ArpLkpReply(0xfedcba9876543210, true));
             if (DEBUG_LEVEL & TRACE_ARP) {
-                printInfo(myName, "Result of IP lookup = HIT \n");
+                printInfo(myName, "Result of MAC lookup = HIT \n");
             }
         }
-        else if (byteSwap32(leIp4LkpReq) == 0x01010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(0xADDE0000EFBE), true));
+        else if (macLkpReq == 0x01010101) {
+            soIPTX_LookupRep.write(ArpLkpReply(0xADDE0000EFBE, true));
             if (DEBUG_LEVEL & TRACE_ARP) {
-                printInfo(myName, "Result of IP lookup = HIT \n");
+                printInfo(myName, "Result of MAC lookup = HIT \n");
             }
         }
-        else if (byteSwap32(leIp4LkpReq) & 0x0A0C0000) {
-            EthAddr  aComposedMacAddr = 0xFECA00000000 | byteSwap32(leIp4LkpReq);
-            soIPTX_LookupRep.write(ArpLkpReply(byteSwap48(aComposedMacAddr), true));
+        else if (macLkpReq & 0x0A0C0000) {
+            EthAddr  aComposedMacAddr = 0xFECA00000000 | macLkpReq;
+            soIPTX_LookupRep.write(ArpLkpReply(aComposedMacAddr, true));
             if (DEBUG_LEVEL & TRACE_ARP) {
-                printInfo(myName, "IP lookup = HIT - Replying with MAC = 0x%12.12lX\n",
-                          byteSwap48(aComposedMacAddr).to_ulong());
+                printInfo(myName, "MAC lookup = HIT - Replying with MAC = 0x%12.12lX\n",
+                          aComposedMacAddr.to_ulong());
             }
         }
         else {
-            printWarn(myName, "Result of IP lookup = NO-HIT \n");
+            printWarn(myName, "Result of MAC lookup = NO-HIT \n");
         }
     }
 }
@@ -291,7 +292,7 @@ int main(int argc, char* argv[]) {
     int                 nrIPTX_L2MUX_Bytes  = 0;
 
     //-- To/From ARP
-    stream<LE_Ip4Addr>  ssIPTX_ARP_LookupReq ("ssIPTX_ARP_LookupReq");
+    stream<Ip4Addr>     ssIPTX_ARP_LookupReq ("ssIPTX_ARP_LookupReq");
     stream<ArpLkpReply> ssARP_IPTX_LookupRep ("ssARP_IPTX_LookupRep");
 
     //------------------------------------------------------

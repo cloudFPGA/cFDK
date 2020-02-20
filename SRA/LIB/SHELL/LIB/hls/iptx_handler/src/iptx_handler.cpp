@@ -313,7 +313,7 @@ void pIp4AddressExtractor(
         Ip4Addr              piMMIO_GatewayAddr,
         stream<AxiWord>     &siICi_Data,
         stream<AxiWord>     &soMAi_Data,
-        stream<LE_Ip4Addr>  &soARP_LookupReq)  // [TODO-Switch to network order]
+        stream<Ip4Addr>     &soARP_LookupReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -335,10 +335,10 @@ void pIp4AddressExtractor(
             // OBSOLETE ipDestAddr = currWord.tdata.range(31, 0);
             if ((ipDestAddr & piMMIO_SubNetMask) == (piMMIO_GatewayAddr & piMMIO_SubNetMask)
               || (ipDestAddr == 0xFFFFFFFF)) {
-                soARP_LookupReq.write(byteSwap32(ipDestAddr));
+                soARP_LookupReq.write(ipDestAddr);
             }
             else {
-                soARP_LookupReq.write(byteSwap32(piMMIO_GatewayAddr));
+                soARP_LookupReq.write(piMMIO_GatewayAddr);
             }
             iae_wordCount++;
             break;
@@ -398,7 +398,7 @@ void pMacAddressInserter(
     case WAIT_LOOKUP:
         if (!siARP_LookupRsp.empty() && !soL2MUX_Data.full()) {
             siARP_LookupRsp.read(arpResponse);
-            macDstAddr = byteSwap48(arpResponse.macAddress);
+            macDstAddr = arpResponse.macAddress;
             if (arpResponse.hit) {
                 sendWord.setEthDstAddr(macDstAddr);
                 sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
@@ -503,8 +503,8 @@ void iptx_handler(
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<LE_Ip4Addr>      &soARP_LookupReq,  // [TODO-Switch to network order]
-        stream<ArpLkpReply>     &siARP_LookupRep)  // [TODO-Rename Ip4LkpReq]
+        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<ArpLkpReply>     &siARP_LookupRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
