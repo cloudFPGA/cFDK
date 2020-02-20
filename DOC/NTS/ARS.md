@@ -15,7 +15,7 @@ A block diagram of the *ARS* is depicted in Figure 1. It features:
 
 | Acronym                                           | Description                                           | Filename
 |:--------------------------------------------------|:------------------------------------------------------|:--------------
-| **CAM**                                           | Content-Addressable Memory                            | [ARP](../../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp_ArpCam.vhd)
+| **CAM**                                           | Content-Addressable Memory                            | [ArpCam](../../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp_ArpCam.vhd)
 | **ETH**                                           | 10G Ethernet interface (via L2MUX)                    | [tenGigEth](../../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
 | **IPRX**                                          | IP Receive frame handler (IPRX)                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
 | **IPTX**                                          | IP Transmit frame handler (IPTX).                     | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
