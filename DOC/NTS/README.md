@@ -30,7 +30,7 @@ Please consider reading the following two documents before diving or contributin
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **ARS**         | Address Resolution Protocol (ARP) Server.             | arp_server
+| **[ARS](ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](../../SRA/LIB/SHELL/LIB/hls/arp_server/src/arp_server.cpp)
 | **ICMP**        | Internet Control Message Protocol (ICMP) server.      | icmp_server
 | **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
 | **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
