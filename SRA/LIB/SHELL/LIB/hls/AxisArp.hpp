@@ -137,35 +137,35 @@ class AxisArp: public AxiWord {
       AxiWord(tdata, tkeep, tlast) {}
 
     // Set-Get the Hardware Type (HTYPE) field
-    void          setHardwareType(ArpHwType htype)   {                    tdata.range(15,  0) = swapWord(htype); }
-    ArpHwType     getHardwareType()                  {   return swapWord (tdata.range(15,  0));                  }
+    void            setArpHardwareType(ArpHwType htype)   {                    tdata.range(15,  0) = swapWord(htype); }
+    ArpHwType       getArpHardwareType()                  {   return swapWord (tdata.range(15,  0));                  }
     // Set-Get the Protocol type (PTYPE) field
-    void          setProtocolType(ArpProtType ptype) {                    tdata.range(31, 16) = swapWord(ptype); }
-    ArpProtType   getProtocolType()                  {   return swapWord (tdata.range(31, 16));                  }
+    void            setArpProtocolType(ArpProtType ptype) {                    tdata.range(31, 16) = swapWord(ptype); }
+    ArpProtType     getArpProtocolType()                  {   return swapWord (tdata.range(31, 16));                  }
     // Set the Hardware Address Length (HLEN) field
-    void          setHardwareLength(ArpHwLen hlen)   {                    tdata.range(39, 32) = hlen;            }
-    ArpHwLen      getHardwareLength()                {             return tdata.range(39, 32);                   }
+    void            setArpHardwareLength(ArpHwLen hlen)   {                    tdata.range(39, 32) = hlen;            }
+    ArpHwLen        getArpHardwareLength()                {             return tdata.range(39, 32);                   }
     // Set-Get Protocol Address length (PLEN) field
-    void          setProtocolLength(ArpProtLen plen) {                    tdata.range(47, 40) = plen;            }
-    ArpProtLen    getProtocolLength()                {             return tdata.range(47, 40);                   }
+    void            setArpProtocolLength(ArpProtLen plen) {                    tdata.range(47, 40) = plen;            }
+    ArpProtLen      getArpProtocolLength()                {             return tdata.range(47, 40);                   }
     // Set-Get the Operation code (OPER) field
-    void          setOperation(ArpOper oper)         {                    tdata.range(63, 48) = swapWord(oper);  }
-    ArpOper       getOperation()                     {   return swapWord (tdata.range(63, 48));                  }
+    void            setArpOperation(ArpOper oper)         {                    tdata.range(63, 48) = swapWord(oper);  }
+    ArpOper         getArpOperation()                     {   return swapWord (tdata.range(63, 48));                  }
     // Set-Get the Sender Hardware Address (SHA)
-    void          setSenderHwAddr(ArpSendHwAddr sha) {                    tdata.range(47,  0) = swapMacAddr(sha);}
-    ArpSendHwAddr getSenderHwAddr()                  { return swapMacAddr(tdata.range(47,  0));                  }
+    void            setArpSenderHwAddr(ArpSendHwAddr sha) {                    tdata.range(47,  0) = swapMacAddr(sha);}
+    ArpSendHwAddr   getArpSenderHwAddr()                  { return swapMacAddr(tdata.range(47,  0));                  }
     // Set-Get the 16-MSbits of the Sender Protocol Address (SPA)
-    void          setSenderProtAddrHi(ArpSendProtAddr spa) {              tdata.range(63, 48) = swapDWord(spa).range(15, 0); }
-    ap_uint<16>   getSenderProtAddrHi()              {    return swapWord(tdata.range(63, 48));                  }
+    void            setArpSenderProtAddrHi(ArpSendProtAddr spa) {              tdata.range(63, 48) = swapDWord(spa).range(15, 0); }
+    ap_uint<16>     getArpSenderProtAddrHi()              {    return swapWord(tdata.range(63, 48));                  }
     // Set-Get the 16-LSbits of the Sender Protocol Address (SPA)
-    void          setSenderProtAddrLo(ArpSendProtAddr spa) {              tdata.range(15,  0) = swapDWord(spa).range(31,16); }
-    ap_uint<32>   getSenderProtAddrLo()              {    return swapWord(tdata.range(15,  0));                  }
+    void            setArpSenderProtAddrLo(ArpSendProtAddr spa) {              tdata.range(15,  0) = swapDWord(spa).range(31,16); }
+    ap_uint<32>     getArpSenderProtAddrLo()              {    return swapWord(tdata.range(15,  0));                  }
     // Set-Get the Target Hardware Address (SHA)
-    void          setTargetHwAddr(ArpTargHwAddr tha) {                    tdata.range(63, 16) = swapMacAddr(tha);}
-    ArpTargHwAddr getTargetHwAddr()                  { return swapMacAddr(tdata.range(63, 16));                  }
+    void            setArpTargetHwAddr(ArpTargHwAddr tha) {                    tdata.range(63, 16) = swapMacAddr(tha);}
+    ArpTargHwAddr   getArpTargetHwAddr()                  { return swapMacAddr(tdata.range(63, 16));                  }
     // Set-Get the Target Protocol Address (TPA)
-    void            setTargetProtAddr(ArpTargProtAddr tpa)   {              tdata.range(31,  0) = swapDWord(tpa);}
-    ArpTargProtAddr getTargetProtAddr()              {     return swapDWord(tdata.range(31,  0));                }
+    void            setArpTargetProtAddr(ArpTargProtAddr tpa)   {              tdata.range(31,  0) = swapDWord(tpa);}
+    ArpTargProtAddr getArpTargetProtAddr()                {   return swapDWord(tdata.range(31,  0));                }
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)
