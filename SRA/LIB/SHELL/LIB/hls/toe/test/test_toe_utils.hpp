@@ -844,35 +844,35 @@ const char    *myCamAccessToString(int       initiator);
         int size()                                             { return this->axisWordQueue.size();              }
 
         // Set-Get the Hardware Type (HTYPE) field
-        void setHardwareType(ArpHwType htype)                  {        axisWordQueue[0].setHardwareType(htype); }
-        ArpHwType   getHardwareType()                          { return axisWordQueue[0].getHardwareType();      }
+        void setHardwareType(ArpHwType htype)                  {        axisWordQueue[0].setArpHardwareType(htype); }
+        ArpHwType   getHardwareType()                          { return axisWordQueue[0].getArpHardwareType();      }
         // Set-Get the Protocol type (PTYPE) field
-        void setProtocolType(ArpProtType ptype)                {        axisWordQueue[0].setProtocolType(ptype); }
-        ArpProtType getProtocolType()                          { return axisWordQueue[0].getProtocolType();      }
+        void setProtocolType(ArpProtType ptype)                {        axisWordQueue[0].setArpProtocolType(ptype); }
+        ArpProtType getProtocolType()                          { return axisWordQueue[0].getArpProtocolType();      }
         // Set the Hardware Address Length (HLEN) field
-        void        setHardwareLength(ArpHwLen hlen)           {        axisWordQueue[0].setHardwareLength(hlen);}
-        ArpHwLen    getHardwareLength()                        { return axisWordQueue[0].getHardwareLength();    }
+        void        setHardwareLength(ArpHwLen hlen)           {        axisWordQueue[0].setArpHardwareLength(hlen);}
+        ArpHwLen    getHardwareLength()                        { return axisWordQueue[0].getArpHardwareLength();    }
         // Set-Get Protocol Address length (PLEN) field
-        void        setProtocolLength(ArpProtLen plen)         {        axisWordQueue[0].setProtocolLength(plen);}
-        ArpProtLen  getProtocolLength()                        { return axisWordQueue[0].getProtocolLength();    }
+        void        setProtocolLength(ArpProtLen plen)         {        axisWordQueue[0].setArpProtocolLength(plen);}
+        ArpProtLen  getProtocolLength()                        { return axisWordQueue[0].getArpProtocolLength();    }
         // Set-Get the Operation code (OPER) field
-        void        setOperation(ArpOper oper)                 {        axisWordQueue[0].setOperation(oper);     }
-        ArpProtType getOperation()                             { return axisWordQueue[0].getOperation();         }
+        void        setOperation(ArpOper oper)                 {        axisWordQueue[0].setArpOperation(oper);     }
+        ArpProtType getOperation()                             { return axisWordQueue[0].getArpOperation();         }
         // Set-Get the Sender Hardware Address (SHA)
-        void            setSenderHwAddr(ArpSendHwAddr sha)     {        axisWordQueue[1].setSenderHwAddr(sha);   }
-        ArpSendHwAddr   getSenderHwAddr()                      { return axisWordQueue[1].getSenderHwAddr();      }
+        void            setSenderHwAddr(ArpSendHwAddr sha)     {        axisWordQueue[1].setArpSenderHwAddr(sha);   }
+        ArpSendHwAddr   getSenderHwAddr()                      { return axisWordQueue[1].getArpSenderHwAddr();      }
         // Set-Get the Sender Protocol Address (SPA)
-        void            setSenderProtAddr(ArpSendProtAddr spa) {        axisWordQueue[1].setSenderProtAddrHi(spa);
-                                                                        axisWordQueue[2].setSenderProtAddrLo(spa);}
-        ArpSendProtAddr getSenderProtAddr()                    { ArpSendProtAddr spaHi = ((ArpSendProtAddr)(axisWordQueue[1].getSenderProtAddrHi()) << 16);
-                                                                 ArpSendProtAddr spaLo = ((ArpSendProtAddr)(axisWordQueue[2].getSenderProtAddrLo()) <<  0);
+        void            setSenderProtAddr(ArpSendProtAddr spa) {        axisWordQueue[1].setArpSenderProtAddrHi(spa);
+                                                                        axisWordQueue[2].setArpSenderProtAddrLo(spa);}
+        ArpSendProtAddr getSenderProtAddr()                    { ArpSendProtAddr spaHi = ((ArpSendProtAddr)(axisWordQueue[1].getArpSenderProtAddrHi()) << 16);
+                                                                 ArpSendProtAddr spaLo = ((ArpSendProtAddr)(axisWordQueue[2].getArpSenderProtAddrLo()) <<  0);
                                                                  return(spaHi | spaLo);                          }
         // Set-Get the Target Hardware Address (SHA)
-        void            setTargetHwAddr(ArpTargHwAddr tha)     {        axisWordQueue[2].setTargetHwAddr(tha);   }
-        ArpTargHwAddr   getTargetHwAddr()                      { return axisWordQueue[2].getTargetHwAddr();      }
+        void            setTargetHwAddr(ArpTargHwAddr tha)     {        axisWordQueue[2].setArpTargetHwAddr(tha);   }
+        ArpTargHwAddr   getTargetHwAddr()                      { return axisWordQueue[2].getArpTargetHwAddr();      }
         // Set-Get the Target Protocol Address (TPA)
-        void            setTargetProtAddr(ArpTargProtAddr tpa) {        axisWordQueue[3].setTargetProtAddr(tpa); }
-        ArpTargProtAddr getTargetProtAddr()                    { return axisWordQueue[3].getTargetProtAddr();    }
+        void            setTargetProtAddr(ArpTargProtAddr tpa) {        axisWordQueue[3].setArpTargetProtAddr(tpa); }
+        ArpTargProtAddr getTargetProtAddr()                    { return axisWordQueue[3].getArpTargetProtAddr();    }
 
     };  // End of: ArpPacket
 #endif

@@ -38,6 +38,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                   IP-Tx handler.
  *
  *****************************************************************************/
+
 #ifndef ICMP_H_
 #define ICMP_H_
 
@@ -53,19 +54,24 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../toe/src/toe.hpp"
 #include "../../toe/src/toe_utils.hpp"
+#include "../../AxisEth.hpp"
 
 using namespace hls;
 
-const uint8_t ECHO_REQUEST = 0x08;
-const uint8_t ECHO_REPLY = 0x00;
-const uint8_t ICMP_PROTOCOL = 0x01;
+const IcmpType  ICMP_ECHO_REQUEST  = 0x08;  // Echo request (used to ping)
+const uint8_t   ICMP_ECHO_REPLY    = 0x00;
+const uint8_t   ICMP_PROTOCOL = 0x01;
 
-struct axiWord {
+typedef ap_uint<17> Sum17;    // 16-bit 1's complement sum with carry
+typedef ap_uint<17> LE_Sum17; // 16-bit 1's complement sum with carry
+
+/*** OBSOLETE-20200221 ****************
+ struct axiWord {
     ap_uint<64>     data;
     ap_uint<8>      keep;
     ap_uint<1>      last;
 };
-
+***************************************/
 //OBSOLETE_20200203 enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4, WORD_5 };
 
 
@@ -78,18 +84,18 @@ void icmp_server(
         //------------------------------------------------------
         //-- IPRX Interfaces
         //------------------------------------------------------
-        stream<axiWord>    &siIPRX_Data,
-        stream<axiWord>    &siIPRX_Ttl,
+        stream<AxisIp4>    &siIPRX_Data,
+        stream<AxiWord>    &siIPRX_Ttl,
 
         //------------------------------------------------------
         //-- UDP Interface
         //------------------------------------------------------
-        stream<axiWord>    &siUDP_Data,
+        stream<AxiWord>    &siUDP_Data,
 
         //------------------------------------------------------
         //-- IPTX Interface
         //------------------------------------------------------
-        stream<axiWord>    &soIPTX_Data
+        stream<AxiWord>    &soIPTX_Data
 
 );
 

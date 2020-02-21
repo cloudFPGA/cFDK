@@ -5,14 +5,14 @@ using namespace std;
 
 int main() {
 #pragma HLS inline region off
-    axiWord inData;
-    axiWord outData;
+    AxiWord inData;
+    AxiWord outData;
     LE_Ip4Addr              piMMIO_IpAddr=0x01010101;  // 0x39000C0A; // 57.0.12.10
 
-    stream<axiWord>         siIPRX_Data  ("siIPRX_Data");
-    stream<axiWord>         siIPRX_Ttl   ("siIPRX_Ttl");
-    stream<axiWord>         siUDP_Data   ("siUDP_Data");
-    stream<axiWord>         soIPTX_Data  ("soIPTX_Data");
+    stream<AxisIp4>         siIPRX_Data  ("siIPRX_Data");
+    stream<AxiWord>         siIPRX_Ttl   ("siIPRX_Ttl");
+    stream<AxiWord>         siUDP_Data   ("siUDP_Data");
+    stream<AxiWord>         soIPTX_Data  ("soIPTX_Data");
 
     stream<ap_uint<16> >    checksumFIFO;
     int                     errCount                    = 0;
@@ -44,9 +44,9 @@ int main() {
     int count2 = 0;
     while (count < 11) {
         inputFile >> std::hex >> dataTemp >> keepTemp >> lastTemp;
-        inData.data = dataTemp;
-        inData.keep = keepTemp;
-        inData.last = lastTemp;
+        inData.tdata = dataTemp;
+        inData.tkeep = keepTemp;
+        inData.tlast = lastTemp;
         siIPRX_Data.write(inData);
         count++;
     }
@@ -60,9 +60,9 @@ int main() {
         count++;
     }
     while (inputFile >> std::hex >> dataTemp >> keepTemp >> lastTemp) { 
-        inData.data = dataTemp;
-        inData.keep = keepTemp;
-        inData.last = lastTemp;
+        inData.tdata = dataTemp;
+        inData.tkeep = keepTemp;
+        inData.tlast = lastTemp;
         siIPRX_Ttl.write(inData);
         count++;
     }
@@ -79,14 +79,14 @@ int main() {
         soIPTX_Data.read(outData);
         outputFile << std::hex << std::noshowbase;
         outputFile << std::setfill('0');
-        outputFile << std::setw(8) << ((uint32_t) outData.data(63, 32));
-        outputFile << std::setw(8) << ((uint32_t) outData.data(31, 0));
-        outputFile << " " << std::setw(2) << ((uint32_t) outData.keep) << " ";
-        outputFile << std::setw(1) << ((uint32_t) outData.last) << std::endl;
+        outputFile << std::setw(8) << ((uint32_t) outData.tdata(63, 32));
+        outputFile << std::setw(8) << ((uint32_t) outData.tdata(31, 0));
+        outputFile << " " << std::setw(2) << ((uint32_t) outData.tkeep) << " ";
+        outputFile << std::setw(1) << ((uint32_t) outData.tlast) << std::endl;
         goldenFile >> std::hex >> dataTemp >> keepTemp >> lastTemp;
         // Compare results
-        if (outData.data != dataTemp || outData.keep != keepTemp ||
-            outData.last != lastTemp) {
+        if (outData.tdata != dataTemp || outData.tkeep != keepTemp ||
+            outData.tlast != lastTemp) {
             errCount++;
             cerr << "X";
         } else {

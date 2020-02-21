@@ -91,145 +91,160 @@ using namespace hls;
  *
  *****************************************************************************/
 void pIcmpChecksumChecker(
-        stream<axiWord>         &siIPRX_Data,
-        stream<axiWord>         &soIPd_Data,
-        stream<bool>            &soIPd_CsumValid,
-        stream<ap_uint<16> >    &soICi_Csum)
+        stream<AxisIp4>         &siIPRX_Data,
+        stream<AxisIp4>         &soIPd_Data,
+        stream<bool>            &soIPd_CsumValid,  // [TODO- VAlBit]
+        stream<IcmpCsum>        &soICi_Csum)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "ICc");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                icc_writeLastOne=false;
-    #pragma HLS RESET variable=icc_writeLastOne
-    static bool                icc_computeCs=false;
-    #pragma HLS RESET variable=icc_computeCs
-    static ap_uint<7>          icc_wordCount=0; // The max len of ICMP messages is 576 bytes
-    #pragma HLS RESET variable=icc_wordCount
-
+    static bool                                icc_writeLastOne=false;
+    #pragma HLS RESET                 variable=icc_writeLastOne
+    static bool                                icc_computeCs=false;
+    #pragma HLS RESET                 variable=icc_computeCs
+    static ap_uint<7>                          icc_wordCount=0; // The max len of ICMP messages is 576 bytes
+    #pragma HLS RESET                 variable=icc_wordCount
+    //OBSOLETE_20200221 static ap_uint<2>          icc_state=0;
+    static enum FsmStates { S0=0, S1, S2, S3 } icc_csumState=S0;
+    #pragma HLS RESET                 variable=icc_csumState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static axiWord     icc_prevWord;
-    static ap_uint<17> icc_sums[4];
-
-
-
-
-    static ap_uint<2> cics_state = 0;
-
-    static ap_uint<8>   newTTL = 0x40;
-    static ap_uint<17>  icmpChecksum = 0;
-    static ap_uint<8>   icmpType;
-    static ap_uint<8>   icmpCode;
+    static AxisIp4  icc_prevWord;
+    static Sum17    icc_subSums[4];
+    static Sum17    icc_sum;
+    static IcmpType icc_icmpType;
+    static IcmpCode icc_icmpCode;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    axiWord currWord;  // [TODO-AxisIp4]
-    axiWord sendWord;  // [TODO-AxisIp4]
+    //OBSOLETE_202200221 static ap_uint<8>   newTTL = 0x40;
+    //OBSOLETE_202020221 AxiWord currWord;
+    AxisIp4 currWord;
+    AxisIp4 sendWord;
 
-    currWord.last = 0;
+    currWord.tlast = 0;
 
     if (icc_writeLastOne) {
+        // Forward the very last AxiWord
         soIPd_Data.write(icc_prevWord);
         icc_writeLastOne = false;
     }
     else if (icc_computeCs) {
-        switch (cics_state) {
-        case 0:
-            icc_sums[0] += icc_sums[2];
-            icc_sums[0] = (icc_sums[0] + (icc_sums[0] >> 16)) & 0xFFFF;
-            icc_sums[1] += icc_sums[3];
-            icc_sums[1] = (icc_sums[1] + (icc_sums[1] >> 16)) & 0xFFFF;
-            icmpChecksum = ~icmpChecksum;
+        switch (icc_csumState) {
+        case S0:
+            icc_subSums[0] += icc_subSums[2];
+            icc_subSums[0] = (icc_subSums[0] + (icc_subSums[0] >> 16)) & 0xFFFF;
+            icc_subSums[1] += icc_subSums[3];
+            icc_subSums[1] = (icc_subSums[1] + (icc_subSums[1] >> 16)) & 0xFFFF;
+            icc_sum = ~icc_sum;
+            icc_csumState = S1;
             break;
-        case 1:
-            icc_sums[0] += icc_sums[1];
-            icc_sums[0] = (icc_sums[0] + (icc_sums[0] >> 16)) & 0xFFFF;
-            icmpChecksum -= ECHO_REQUEST;
-            icmpChecksum = (icmpChecksum - (icmpChecksum >> 16)) & 0xFFFF;
+        case S1:
+            icc_subSums[0] += icc_subSums[1];
+            icc_subSums[0] = (icc_subSums[0] + (icc_subSums[0] >> 16)) & 0xFFFF;
+            icc_sum -= ICMP_ECHO_REQUEST;
+            icc_sum = (icc_sum - (icc_sum >> 16)) & 0xFFFF;
+            icc_csumState = S2;
             break;
-        case 2:
-            icc_sums[0] = ~icc_sums[0];
-            icmpChecksum = ~icmpChecksum;
+        case S2:
+            icc_subSums[0] = ~icc_subSums[0];
+            icc_sum = ~icc_sum;
+            icc_csumState = S3;
             break;
-        case 3:
-            // Check for 0
-            if ((icc_sums[0](15, 0) == 0) && (icmpType == ECHO_REQUEST) && (icmpCode == 0)) {
+        case S3:
+            if ((icc_subSums[0](15, 0) == 0) &&         // Checksum valid
+                (icc_icmpType == ICMP_ECHO_REQUEST) &&  // Message type is Echo Request (used to ping)
+                (icc_icmpCode == 0)) {
                 soIPd_CsumValid.write(true);
-                soICi_Csum.write(icmpChecksum);
+                soICi_Csum.write(icc_sum.range(15, 0));
             }
             else
                 soIPd_CsumValid.write(false);
             icc_computeCs = false;
             break;
         }
-        cics_state++;
+        //OBSOLETE-20200221 icc_state++;
     }
     else if (!siIPRX_Data.empty()) {
         siIPRX_Data.read(currWord);
         switch (icc_wordCount) {
-        case WORD_0:
-            // The current word contains [ FO | Id | TotLen | ToS | IHL ]
-            icc_sums[0] = 0;
-            icc_sums[1] = 0;
-            icc_sums[2] = 0;
-            icc_sums[3] = 0;
+        case WORD_0: // The current word contains [ FO | Id | TotLen | ToS | IHL ]
+            icc_subSums[0] = 0;
+            icc_subSums[1] = 0;
+            icc_subSums[2] = 0;
+            icc_subSums[3] = 0;
             break;
-        case WORD_1:
-            // The current word contains [ SA | HdCsum | Prot | TTL ]
+        case WORD_1: // The current word contains [ SA | HdCsum | Prot | TTL ]
             sendWord = icc_prevWord;
             soIPd_Data.write(sendWord);
             break;
-        case WORD_2:
-            // The current word contains [ Csum | Code | Type | DA ]
-            sendWord.data(31,  0) = icc_prevWord.data(31, 0);
-            sendWord.data(63, 32) = currWord.data(31, 0);
-            icmpType = currWord.data(39, 32);
-            icmpCode = currWord.data(47, 40);
-            icmpChecksum(15, 0) = currWord.data(63, 48);
-            icmpChecksum[16] = 1;
-            sendWord.keep = 0xFF;
-            sendWord.last = 0;
+        case WORD_2: // The current word contains [ Csum | Code | Type | DA ]
+            //OBSOLETE-20200221 icc_icmpType        = currWord.tdata(39, 32);
+            //OBSOLETE-20200221 icc_icmpCode        = currWord.tdata(47, 40);
+            //OBSOLETE-20200221 icc_checksum(15, 0) = currWord.tdata(63, 48);
+
+            // Save ICMP Type, Code and Checksum
+            icc_icmpType   = currWord.getIcmpType();
+            icc_icmpCode   = currWord.getIcmpCode();
+            icc_sum(15, 0) = currWord.getLE_IcmpCsum(); // [FIXME - Why LE_?]
+            icc_sum[16] = 1;
+            // Forward data stream while swapping IP_SA & IP_DA
+            //OBSOLETE-20200221 sendWord.tdata(31,  0) = icc_prevWord.tdata(31, 0);
+            //OBSOLETE-20200221 sendWord.tdata(63, 32) = currWord.tdata(31, 0);
+            sendWord.setIp4TtL(icc_prevWord.getIp4Ttl());
+            sendWord.setIp4Prot(icc_prevWord.getIp4Prot());
+            sendWord.setIp4HdrCsum(icc_prevWord.getIp4HdrCsum());
+            sendWord.setIp4SrcAddr(currWord.getIp4DstAddr());
+            sendWord.tkeep = 0xFF;
+            sendWord.tlast = 0;
             soIPd_Data.write(sendWord);
-            for (int i = 2; i < 4; i++) {
+            // Accumulate [ Csum | Code | Type ]
+            for (int i=2; i<4; i++) {
               #pragma HLS UNROLL
                 ap_uint<16> temp;
-                    temp(7, 0) = currWord.data.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.data.range(i*16+7, i*16);
-                    icc_sums[i] += temp;
-                    icc_sums[i] = (icc_sums[i] + (icc_sums[i] >> 16)) & 0xFFFF;
+                temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
+                temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
+                icc_subSums[i] += temp;
+                icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
             }
-            currWord.data(31, 0) = icc_prevWord.data(63, 32);
-            currWord.data.range(39, 32) = ECHO_REPLY;
+            // Replace the IP_DA field with IP_SA
+            //OBSOLETE-20200221 currWord.tdata(31, 0) = icc_prevWord.tdata(63, 32);
+            currWord.setIp4DstAddr(icc_prevWord.getIp4SrcAddr());
+            // Replace ECHO_REQUEST field with ECHO_REPLY
+            //OBSOLETE-20200221 currWord.tdata.range(39, 32) = ECHO_REPLY;
+            currWord.setIcmpType(ICMP_ECHO_REPLY);
             break;
         default:
-            for (int i = 0; i < 4; i++) {
-    #pragma HLS UNROLL
+            // Accumulate quadword
+            for (int i=0; i<4; i++) {
+              #pragma HLS UNROLL
                 ap_uint<16> temp;
-                if (currWord.keep.range(i*2+1, i*2) == 0x3) {
-                    temp(7, 0) = currWord.data.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.data.range(i*16+7, i*16);
-                    icc_sums[i] += temp;
-                    icc_sums[i] = (icc_sums[i] + (icc_sums[i] >> 16)) & 0xFFFF;
+                if (currWord.tkeep.range(i*2+1, i*2) == 0x3) {
+                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
+                    temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
+                    icc_subSums[i] += temp;
+                    icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
                 }
-                else if (currWord.keep[i*2] == 0x1) {
-                    temp(7, 0) = 0;
-                    temp(15, 8) = currWord.data.range(i*16+7, i*16);
-                    icc_sums[i] += temp;
-                    icc_sums[i] = (icc_sums[i] + (icc_sums[i] >> 16)) & 0xFFFF;
+                else if (currWord.tkeep[i*2] == 0x1) {
+                    temp( 7, 0) = 0;
+                    temp(15, 8) = currWord.tdata.range(i*16+7, i*16);
+                    icc_subSums[i] += temp;
+                    icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
                 }
             }
             sendWord = icc_prevWord;
             soIPd_Data.write(sendWord);
             break;
-        } // switch
+        } // End-of: switch (icc_wordCount)
 
         icc_prevWord = currWord;
         icc_wordCount++;
 
-        if (currWord.last == 1) {
+        if (currWord.tlast == 1) {
             icc_wordCount = 0;
             icc_writeLastOne = true;
             icc_computeCs = true;
@@ -256,9 +271,9 @@ void pIcmpChecksumChecker(
  *
  *****************************************************************************/
 void pControlMessageBuilder(
-        stream<axiWord>         &siUDP_Data,
-        stream<axiWord>         &siIPRX_Derr,
-		stream<axiWord>         &soIHa_Data,
+        stream<AxiWord>         &siUDP_Data,
+        stream<AxiWord>         &siIPRX_Derr,
+		stream<AxiWord>         &soIHa_Data,
 		stream<ap_uint<64> >    &soIHa_Hdr,
 		stream<ap_uint<16> >    &soICi_Csum)
 {
@@ -291,30 +306,30 @@ void pControlMessageBuilder(
             if ((udpInEmpty == 0 || ttlInEmpty == 0) && !soIHa_Data.full()) {
                 // If there are data in the queue, don't read them in but start assembling the ICMP header
                 ipWordCounter = 0;
-                axiWord tempWord = {0, 0xFF, 0};
+                AxiWord tempWord(0, 0xFF, 0);
                 if (udpInEmpty == 0) {
-                    tempWord.data = 0x0000000000000303;
+                    tempWord.tdata = 0x0000000000000303;
                     streamSource = 0;
                 }
                 else if (ttlInEmpty == 0) {
-                    tempWord.data = 0x000000000000000B;
+                    tempWord.tdata = 0x000000000000000B;
                     streamSource = 1;
                 }
-                udpChecksum = (((tempWord.data.range(63, 48) + tempWord.data.range(47, 32)) + tempWord.data.range(31, 16)) + tempWord.data.range(15, 0));
+                udpChecksum = (((tempWord.tdata.range(63, 48) + tempWord.tdata.range(47, 32)) + tempWord.tdata.range(31, 16)) + tempWord.tdata.range(15, 0));
                 soIHa_Data.write(tempWord);
                 bcm_fsmState = BCM_IP;
             }
             break;
         case BCM_IP:
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && ttlInEmpty == 0)) && !soIHa_Data.full() && !soIHa_Hdr.full()) { // If there are data in the queue start reading them
-                axiWord tempWord = {0, 0, 0};
+                AxiWord tempWord(0, 0, 0);
                 if (streamSource == 0)
                     tempWord = siUDP_Data.read();
                 else if (streamSource == 1)
                     tempWord = siIPRX_Derr.read();
-                udpChecksum = (udpChecksum + ((tempWord.data.range(63, 48) + tempWord.data.range(47, 32)) + tempWord.data.range(31, 16) + tempWord.data.range(15, 0)));
+                udpChecksum = (udpChecksum + ((tempWord.tdata.range(63, 48) + tempWord.tdata.range(47, 32)) + tempWord.tdata.range(31, 16) + tempWord.tdata.range(15, 0)));
                 soIHa_Data.write(tempWord);
-                soIHa_Hdr.write(tempWord.data);
+                soIHa_Hdr.write(tempWord.tdata);
                 if (ipWordCounter == 2)
                     bcm_fsmState = BCM_STREAM;
                 else 
@@ -323,14 +338,14 @@ void pControlMessageBuilder(
             break;  
         case BCM_STREAM:
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && ttlInEmpty == 0)) && !soIHa_Data.full()) { // If there are data in the queue start reading them
-                axiWord tempWord = {0, 0, 0};
+                AxiWord tempWord(0, 0, 0);
                 if (streamSource == 0)
                     tempWord = siUDP_Data.read();
                 else if (streamSource == 1)
                     tempWord = siIPRX_Derr.read();
-                udpChecksum = (udpChecksum + ((tempWord.data.range(63, 48) + tempWord.data.range(47, 32)) + tempWord.data.range(31, 16) + tempWord.data.range(15, 0)));
+                udpChecksum = (udpChecksum + ((tempWord.tdata.range(63, 48) + tempWord.tdata.range(47, 32)) + tempWord.tdata.range(31, 16) + tempWord.tdata.range(15, 0)));
                 soIHa_Data.write(tempWord);
-                if (tempWord.last == 1)
+                if (tempWord.tlast == 1)
                     bcm_fsmState = BCM_CS;
             }
             break;
@@ -355,9 +370,9 @@ void pControlMessageBuilder(
  *
  *****************************************************************************/
 void pIpHeaderAppender(
-        stream<axiWord>         &siCMb_Data,
+        stream<AxiWord>         &siCMb_Data,
         stream<ap_uint<64> >    &soIHa_Hdr,
-        stream<axiWord>         &soICi_Data,
+        stream<AxiWord>         &soICi_Data,
         LE_Ip4Addr               piMMIO_IpAddress)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -371,30 +386,30 @@ void pIpHeaderAppender(
     #pragma HLS RESET                        variable=aih_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static axiWord tempWord     = {0, 0, 0};
+    static AxiWord tempWord(0, 0, 0);
     static ap_int<32> sourceIP  = 0;
 
     switch(aih_fsmState) {
         case AIH_IDLE:
             if (!soIHa_Hdr.empty() && !soICi_Data.full()) { // If there are data in the queue, don't read them in but start assembling the ICMP header
-                tempWord.data = soIHa_Hdr.read();
-                ap_uint<16> tempLength = byteSwap16(tempWord.data.range(31, 16));
-                tempWord.data.range(31, 16) = byteSwap16(tempLength + 28);
-                tempWord.keep = 0xFF;
-                tempWord.last = 0;
+                tempWord.tdata = soIHa_Hdr.read();
+                ap_uint<16> tempLength = byteSwap16(tempWord.tdata.range(31, 16));
+                tempWord.tdata.range(31, 16) = byteSwap16(tempLength + 28);
+                tempWord.tkeep = 0xFF;
+                tempWord.tlast = 0;
                 soICi_Data.write(tempWord);
                 aih_fsmState = AIH_IP;
             }
             break;
         case AIH_IP:
             if (!soIHa_Hdr.empty() && !soICi_Data.full()) { // If there are data in the queue, don't read them in but start assembling the ICMP header
-                tempWord.data               = soIHa_Hdr.read();
-                tempWord.data.range( 7, 0)  = 0x80;                              // Set the TTL to 128
-                tempWord.data.range(15, 8)  = 0x01;                              // Swap the protocol from whatever it was to ICMP
-                sourceIP                    = tempWord.data.range(63, 32); //OBSOLETE-20181112 tempWord.data.range(63, 32) =   0x01010101;
-                tempWord.data.range(63, 32) = piMMIO_IpAddress;
-                tempWord.keep               = 0xFF;
-                tempWord.last               = 0;
+                tempWord.tdata               = soIHa_Hdr.read();
+                tempWord.tdata.range( 7, 0)  = 0x80;                              // Set the TTL to 128
+                tempWord.tdata.range(15, 8)  = 0x01;                              // Swap the protocol from whatever it was to ICMP
+                sourceIP                    = tempWord.tdata.range(63, 32); //OBSOLETE-20181112 tempWord.tdata.range(63, 32) =   0x01010101;
+                tempWord.tdata.range(63, 32) = piMMIO_IpAddress;
+                tempWord.tkeep               = 0xFF;
+                tempWord.tlast               = 0;
                 soICi_Data.write(tempWord);
                 aih_fsmState = AIH_MERGE;
             }
@@ -404,23 +419,23 @@ void pIpHeaderAppender(
                 soIHa_Hdr.read();
                 ap_uint<64> tempData = sourceIP;
                 tempWord             = siCMb_Data.read();
-                axiWord outputWord   = {0, 0xFF, 0};
-                outputWord.data      = tempData;
-                outputWord.data.range(63, 32) = tempWord.data.range(31,  0);
+                AxiWord outputWord(0, 0xFF, 0);
+                outputWord.tdata      = tempData;
+                outputWord.tdata.range(63, 32) = tempWord.tdata.range(31,  0);
                 soICi_Data.write(outputWord);
                 aih_fsmState = AIH_STREAM;
             }
             break;
         case AIH_STREAM:
             if (!siCMb_Data.empty() && !soICi_Data.full()) {
-                axiWord outputWord = {0, 0xFF, 0};
-                outputWord.data.range(31, 0) = tempWord.data.range(63,  32);
+                AxiWord outputWord(0, 0xFF, 0);
+                outputWord.tdata.range(31, 0) = tempWord.tdata.range(63,  32);
                 tempWord = siCMb_Data.read();
-                outputWord.data.range(63, 32) = tempWord.data.range(31,  0);
-                if (tempWord.last == 1) {
-                    if (tempWord.keep.range(7, 4) == 0) {
-                        outputWord.last = 1;
-                        outputWord.keep.range(7, 4) = tempWord.keep.range(3,0);
+                outputWord.tdata.range(63, 32) = tempWord.tdata.range(31,  0);
+                if (tempWord.tlast == 1) {
+                    if (tempWord.tkeep.range(7, 4) == 0) {
+                        outputWord.tlast = 1;
+                        outputWord.tkeep.range(7, 4) = tempWord.tkeep.range(3,0);
                         aih_fsmState = AIH_IDLE;
                     }
                     else
@@ -431,9 +446,9 @@ void pIpHeaderAppender(
             break;
         case AIH_RESIDUE:
             if (!soICi_Data.full()) {
-                axiWord outputWord              = {0, 0, 1};
-                outputWord.data.range(31, 0)    = tempWord.data.range(63, 32);
-                outputWord.keep.range(3, 0)     = tempWord.keep.range(7, 4);
+                AxiWord outputWord(0, 0, 1);
+                outputWord.tdata.range(31, 0)    = tempWord.tdata.range(63, 32);
+                outputWord.tkeep.range(3, 0)     = tempWord.tkeep.range(7, 4);
                 soICi_Data.write(outputWord);
                 aih_fsmState = AIH_IDLE;
             }
@@ -453,14 +468,16 @@ void pIpHeaderAppender(
  *
  *****************************************************************************/
 void pInvalidPacketDropper(
-        stream<axiWord>     &siICc_Data,
+        stream<AxisIp4>     &siICc_Data,
         stream<bool>        &siICc_CsumValid,
-        stream<axiWord>     &soICi_Data)
+        stream<AxiWord>     &soICi_Data)
 {
     static bool d_isFirstWord   = true;
     static bool d_drop          = false;
     bool d_valid;
-    axiWord currWord;
+
+    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    AxisIp4  currWord;
 
     if (!siICc_Data.empty()) {
         if(d_isFirstWord) {
@@ -480,7 +497,7 @@ void pInvalidPacketDropper(
             siICc_Data.read(currWord);
             soICi_Data.write(currWord);
         }
-        if (currWord.last == 1) {
+        if (currWord.tlast == 1) {
             d_drop = false;
             d_isFirstWord = true;
         }
@@ -492,7 +509,7 @@ void pInvalidPacketDropper(
  *
  *  @param[in]  siXYz_Data,  Data stream array from IPd and IHa.
  *  @param[in]  siUVw_Csum,  ICMP checksum array from ICc and CMb.
- *  @param[out] soIPTX_Data, The data stream to the IP Tx handler (IPTX).
+ *  @param[out] soIPTX_Data, The data stream to the IpTxHandler (IPTX).
  *
  * @details
  *  This process inserts both the IP header checksum and the ICMP checksum in
@@ -500,9 +517,9 @@ void pInvalidPacketDropper(
  *
  *****************************************************************************/
 void pIcmpChecksumInserter(
-        stream<axiWord>      siXYz_Data[2],
+        stream<AxiWord>      siXYz_Data[2],
         stream<ap_uint<16> > siUVw_Csum[2],
-        stream<axiWord>      &soIPTX_Data)
+        stream<AxiWord>      &soIPTX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -515,10 +532,10 @@ void pIcmpChecksumInserter(
     #pragma HLS RESET variable=ici_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<1>   streamSource;
+    static ap_uint<1>   dataStreamSource;  // siIPd_Data or siIHa_Data
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    axiWord             inputWord    = {0, 0, 0};
+    AxiWord             inputWord(0, 0, 0);
     ap_uint<16>         icmpChecksum = 0;
 
     switch(ici_wordCount) {
@@ -529,7 +546,7 @@ void pIcmpChecksumInserter(
         }
         for (uint8_t i=0; i<2; ++i) {
             if(!streamEmptyStatus[i]) {
-                streamSource = i;
+                dataStreamSource = i;
                 inputWord = siXYz_Data[i].read();
                 soIPTX_Data.write(inputWord);
                 ici_wordCount++;
@@ -538,20 +555,20 @@ void pIcmpChecksumInserter(
         }
         break;
     case 2:
-        if (!siXYz_Data[streamSource].empty() &&
-            !siUVw_Csum[streamSource].empty()) {
-            siXYz_Data[streamSource].read(inputWord);
-            icmpChecksum = siUVw_Csum[streamSource].read();
-            inputWord.data(63, 48) = icmpChecksum;
+        if (!siXYz_Data[dataStreamSource].empty() &&
+            !siUVw_Csum[dataStreamSource].empty()) {
+            siXYz_Data[dataStreamSource].read(inputWord);
+            icmpChecksum = siUVw_Csum[dataStreamSource].read();
+            inputWord.tdata(63, 48) = icmpChecksum;
             soIPTX_Data.write(inputWord);
             ici_wordCount++;
         }
         break;
     default:
-        if (!siXYz_Data[streamSource].empty()) {
-            siXYz_Data[streamSource].read(inputWord);
+        if (!siXYz_Data[dataStreamSource].empty()) {
+            siXYz_Data[dataStreamSource].read(inputWord);
             soIPTX_Data.write(inputWord);
-            if (inputWord.last == 1) {
+            if (inputWord.tlast == 1) {
                 ici_wordCount = 0;
             }
             else {
@@ -577,18 +594,18 @@ void pIcmpChecksumInserter(
         //------------------------------------------------------
         //-- IPRX Interfaces
         //------------------------------------------------------
-		stream<axiWord>     &siIPRX_Data,
-        stream<axiWord>     &siIPRX_Derr,
+        stream<AxisIp4>     &siIPRX_Data,
+        stream<AxiWord>     &siIPRX_Derr,
 
         //------------------------------------------------------
         //-- UDP Interface
         //------------------------------------------------------
-        stream<axiWord>     &siUDP_Data,
+        stream<AxiWord>     &siUDP_Data,
 
         //------------------------------------------------------
         //-- IPTX Interface
         //------------------------------------------------------
-        stream<axiWord>     &soIPTX_Data)
+        stream<AxiWord>     &soIPTX_Data)
 {
         //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
         #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -625,7 +642,7 @@ void pIcmpChecksumInserter(
     //-------------------------------------------------------------------------
 
     //-- IP Checksum Checker (ICc)
-    static stream<axiWord>           ssICcToIPd_Data        ("ssICcToIPd_Data");
+    static stream<AxisIp4>           ssICcToIPd_Data        ("ssICcToIPd_Data");
     #pragma HLS stream      variable=ssICcToIPd_Data        depth=64
     #pragma HLS DATA_PACK   variable=ssICcToIPd_Data
 
@@ -633,13 +650,13 @@ void pIcmpChecksumInserter(
     #pragma HLS stream      variable=ssICcToIPd_CsumValid   depth=8
 
     //-- Control Message Builder (CMb)
-    static stream<axiWord>           ssCMbToIHa_Data         ("ssCMbToIHa_Data");
+    static stream<AxiWord>           ssCMbToIHa_Data         ("ssCMbToIHa_Data");
     #pragma HLS stream      variable=ssCMbToIHa_Data         depth=192
     static stream<ap_uint<64> >      ssCMbToIHa_Hdr          ("ssCMbToIHa_Hdr");
     #pragma HLS stream      variable=ssCMbToIHa_Hdr          depth=64
 
     //-- XYz = [InvalidPacketDropper (IPd)| IpHeaderAppender (IHa)]
-    static stream<axiWord>           ssToICi_Data[2];
+    static stream<AxiWord>           ssToICi_Data[2];
     #pragma HLS STREAM      variable=ssToICi_Data           depth=16
 
     //-- UVw = [ICc|CMb]

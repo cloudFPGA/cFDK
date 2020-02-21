@@ -32,9 +32,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
  *-----------------------------------------------------------------------------
  *
  * @details    : This process connects to the Rx side of the Ethernet MAC core.
@@ -144,9 +141,9 @@ void pMacProtocolDetector(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { S0=0, S1 } mpd_fsmState=S0;
-    #pragma HLS reset         variable=mpd_fsmState
+    #pragma HLS RESET         variable=mpd_fsmState
     static ap_uint<2>                  mpd_wordCount=0;
-    #pragma HLS reset         variable=mpd_wordCount
+    #pragma HLS RESET         variable=mpd_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static EtherType    mpd_etherType;
@@ -234,13 +231,13 @@ void pIpLengthChecker(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static ap_uint<2>          ilc_leftToWrite=0;
-    #pragma HLS reset variable=ilc_leftToWrite
+    #pragma HLS RESET variable=ilc_leftToWrite
     static enum FsmStates {FSM_IDLE=0, FSM_SIZECHECK, FSM_STREAM} ilc_fsmState=FSM_IDLE;
-    #pragma HLS reset variable=ilc_fsmState
+    #pragma HLS RESET variable=ilc_fsmState
     static ap_uint<2>          ilc_wordCount=0;
-    #pragma HLS reset variable=ilc_wordCount
+    #pragma HLS RESET variable=ilc_wordCount
     static ap_uint<1>          ilc_filterPacket=0;
-    #pragma HLS reset variable=ilc_filterPacket
+    #pragma HLS RESET variable=ilc_filterPacket
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_shift_reg<AxiWord, 2> wordBuffer;
@@ -303,6 +300,7 @@ void pIpLengthChecker(
         ilc_leftToWrite--;
     }
 
+//OBSOLETE
 //   if (leftToWrite == 0) {
 //            if (!siMPd_Data.empty() && !ipDataFifo.full()) {
 //                AxiWord currWord = siMPd_Data.read();
@@ -373,9 +371,9 @@ void pIpChecksumAccumulator(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static bool                ica_wasLastWord=false;
-    #pragma HLS reset variable=ica_wasLastWord
+    #pragma HLS RESET variable=ica_wasLastWord
     static ap_uint<3>          ica_wordCount=0;
-    #pragma HLS reset variable=ica_wordCount
+    #pragma HLS RESET variable=ica_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_uint<17> ica_ipHdrSums[4];
@@ -560,7 +558,7 @@ void pIpInvalidDropper(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates {FSM_IDLE=0, FSM_FWD, FSM_DROP} iid_fsmState=FSM_IDLE;
-    #pragma HLS reset                            variable=iid_fsmState
+    #pragma HLS RESET                            variable=iid_fsmState
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     Ip4overMac currWord = Ip4overMac(0, 0, 0);
@@ -634,9 +632,9 @@ void pIpCutLength(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates {FSM_FWD=0, FSM_DROP} icl_fsmState=FSM_FWD;
-    #pragma HLS reset                  variable=icl_fsmState
+    #pragma HLS RESET                  variable=icl_fsmState
     static ap_uint<13>                          icl_wordCount=0; // Ip4TotalLen/8
-    #pragma HLS reset                  variable=icl_wordCount
+    #pragma HLS RESET                  variable=icl_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static Ip4TotalLen  icl_ip4TotalLength;
@@ -722,18 +720,23 @@ void pIpChecksumChecker(
  * IPv4 Packet Router (IPr)
  *
  * @param[in]  siICl_Data,  Data stream from IpCutLength (ICl).
- * @param[out] soICMP_Data, Data stream to ICMP.
- * @param[out] soICMP_Derr, Data error stream(**) to ICMP.
- * @param[out] soUDP_Data,  Data stream to UDP engine.
- * @param[out] soTCP_Data,  Data stream to TCP offload engine.
+ * @param[out] soICMP_Data, ICMP/IP data stream to ICMP.
+ * @param[out] soICMP_Derr, Erroneous IP data stream to ICMP.
+ * @param[out] soUDP_Data,  UDP/IP data stream to UDP engine.
+ * @param[out] soTCP_Data,  TCP/IP data stream to TCP offload engine.
  *
  * @details
  *  This process routes the IPv4 packets to one of the 3 following engines:
  *  ICMP, TCP or UDP.
+ *  If the TTL of the incoming IPv4 packet has expired, the packet is routed
+ *  to the ICMP (over the 'soICMP_Derr' stream) in order for the ICMP engine
+ *  to build the error messages which data section must include a copy of the
+ *  erronous IPv4 header plus at least the first eight bytes of data from the
+ *  IPv4 packet that caused the error message.
  *
  *****************************************************************************/
 void pIpPacketRouter(
-		stream<Ip4overMac>  &siICl_Data,
+		stream<Ip4overMac>  &siICl_Data,    // [TODO-AxisIp4]
 		stream<AxiWord>     &soICMP_Data,
 		stream<AxiWord>     &soICMP_Derr,
 		stream<AxiWord>     &soUDP_Data,
@@ -747,11 +750,11 @@ void pIpPacketRouter(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { FSM_IDLE=0, FSM_LAST} ipr_fsmState=FSM_IDLE;
-	#pragma HLS reset                    variable=ipr_fsmState
+    #pragma HLS RESET                    variable=ipr_fsmState
     static ap_uint<2>                             ipr_wordCount=0;
-    #pragma HLS reset                    variable=ipr_wordCount
+    #pragma HLS RESET                    variable=ipr_wordCount
     static bool                                   ipr_leftToWrite=false;
-    #pragma HLS reset                    variable=ipr_leftToWrite
+    #pragma HLS RESET                    variable=ipr_leftToWrite
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static StsBit		ipr_ttlExpired;
@@ -764,7 +767,7 @@ void pIpPacketRouter(
      switch (ipr_fsmState) {
      case FSM_IDLE:
          if (!siICl_Data.empty() &&
-             !soICMP_Derr.full() && !soICMP_Data.full() &&
+             !soICMP_Derr.full() && !soICMP_Data.full() &&  // [FIXME - !soICMP_Derr.full() ]
              !soUDP_Data.full()  && !soTCP_Data.full()) {
              siICl_Data.read(currWord);
              switch (ipr_wordCount) {
@@ -785,6 +788,7 @@ void pIpPacketRouter(
                         ipr_wordCount++;
                     }
                     if (ipr_ttlExpired == 1) {
+                        // Forward the current IP packet to ICMP for building the error message
                         soICMP_Derr.write(AxiWord(ipr_prevWord));
                     }
                     else {
@@ -912,15 +916,15 @@ void iprx_handler(
     #pragma HLS INTERFACE ap_stable           port=piMMIO_MacAddress
     #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
 
-    #pragma  HLS resource core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
 
-    #pragma  HLS resource core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
 
-    #pragma  HLS resource core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
-    #pragma  HLS resource core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
 
-    #pragma  HLS resource core=AXI4Stream variable=soUDP_Data  metadata="-bus_bundle soUDP_Data"
-    #pragma  HLS resource core=AXI4Stream variable=soTCP_Data  metadata="-bus_bundle soTCP_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soUDP_Data  metadata="-bus_bundle soUDP_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soTCP_Data  metadata="-bus_bundle soTCP_Data"
 
 #else
 
