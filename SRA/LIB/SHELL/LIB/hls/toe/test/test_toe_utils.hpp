@@ -206,6 +206,175 @@ ap_uint<8>     myStrHexToUint8 (string       keepString);
 const char    *myEventTypeToString(EventType ev);
 const char    *myCamAccessToString(int       initiator);
 
+
+/*****************************************************************************
+ * @brief Class ICMP Packet.
+ *
+ * @details
+ *  This class defines an ICMP packet as a stream of 'AxisIcmp' data chunks.
+ *   Such an ICMP packet consists of a double-ended queue that is used to
+ *    accumulate all these data chunks.
+ *   For the 10GbE MAC, the ICMP chunks are 64 bits wide. ICMP chunks are
+ *    received by the IPRX core and are transmitted by the ICMP core.
+
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    class IcmpPacket {  // [FIXME- create a SimIcmpPacket class]
+        int len;  // In bytes
+        std::deque<AxisIcmp> axisWordQueue;  // A double-ended queue to store ICMP chunks.
+
+      private:
+        void setLen(int pktLen) { this->len = pktLen; }
+        int  getLen()           { return this->len;   }
+        // Add a chunk of bytes at the end of the double-ended queue
+        void addChunk(AxisIcmp icmpWord) {
+            if (this->size() > 0) {
+                // Always clear 'TLAST' bit of previous chunck
+                this->axisWordQueue[this->size()-1].tlast = 0;
+            }
+            this->axisWordQueue.push_back(icmpWord);
+            setLen(getLen() + keepToLen(icmpWord.tkeep));
+        }
+
+
+
+      public:
+
+        // Default Constructor: Constructs a packet of 'pktLen' bytes.
+        IcmpPacket(int pktLen) {
+            setLen(0);
+            if (pktLen > 0 && pktLen <= MTU) {
+                int noBytes = pktLen;
+                while(noBytes > 8) {
+                    addChunk(AxisIcmp(0x0000000000000000, 0xFF, 0));
+                    noBytes -= 8;
+                }
+                addChunk(AxisIcmp(0x0000000000000000, lenToKeep(noBytes), TLAST));
+            }
+        }
+
+        IcmpPacket() {
+            this->len = 0;
+        }
+
+        // Return the front chunk element of the ICMP word queue but does not remove it from the queue
+        AxisIcmp front()                                       { return this->axisWordQueue.front();             }
+        // Clear the content of the ICMP word queue
+        void clear()                                           {        this->axisWordQueue.clear();
+                                                                        this->len = 0;                           }
+        // Remove the first chunk element of the ICMP word queue
+        void pop_front()                                       {        this->axisWordQueue.pop_front();         }
+        // Add an element at the end of the ICMP word queue
+        void push_back(AxisIcmp icmpChunk)                     {        this->axisWordQueue.push_back(icmpChunk);
+                                                                        this->len += keepToLen(icmpChunk.tkeep); }
+        // Return the length of the ICMP packet (in bytes)
+        int length()                                           { return this->len;                               }
+        // Return the number of chunks in the ICMP packet (in axis-words)
+        int size()                                             { return this->axisWordQueue.size();              }
+
+        // Set-Get the Message Type field
+        void       setIcmpType(IcmpType type)                  {        axisWordQueue[0].setIcmpType(type);      }
+        IcmpType   getIcmpType()                               { return axisWordQueue[0].getIcmpType();          }
+        // Set-Get the Message Code field
+        void       setIcmpCode(IcmpCode code)                  {        axisWordQueue[0].setIcmpCode(code);      }
+        IcmpCode   getCode()                                   { return axisWordQueue[0].getIcmpCode();          }
+        // Set-Get the Message Checksum field
+        void       setIcmpChecksum(IcmpCsum csum)              {        axisWordQueue[0].setIcmpCsum(csum);      }
+        IcmpCsum   getIcmpChecksum()                           { return axisWordQueue[0].getIcmpCsum();          }
+        // Set-Get the Identifier field
+        void       setIcmpIdent(IcmpIdent id)                  {        axisWordQueue[0].setIcmpIdent(id);       }
+        IcmpIdent  getIcmpIdent()                              { return axisWordQueue[0].getIcmpIdent();         }
+        // Set-Get the Sequence Number field
+        void       setIcmpSeqNum(IcmpSeqNum num)               {        axisWordQueue[0].setIcmpSeqNum(num);     }
+        IcmpSeqNum getIcmpSeqNum()                             { return axisWordQueue[0].getIcmpSeqNum();        }
+
+        // Append data payload to an ICMP header
+        void addIcmpPayload(string pldStr) {
+            if (this->getLen() != ICMP_HEADER_SIZE) {
+                printFatal("IcmpPacket", "Empty packet is expected to be of length %d bytes (was found to be %d bytes).\n",
+                           ICMP_HEADER_SIZE, this->getLen());
+            }
+            int hdrLen = this->getLen();  // in bytes
+            int pldLen = pldStr.size();
+            int q = (hdrLen / 8);
+            int b = (hdrLen % 8);
+            int i = 0;
+            // At this point we are aligned on an 8-byte data chunk since all
+            // ICMP packets have an 8-byte header.
+            while (i < pldLen) {
+                unsigned long leQword = 0x0000000000000000;  // in LE order
+                unsigned char leKeep  = 0x00;
+                bool          leLast  = false;
+                while (b < 8) {
+                    unsigned char datByte = pldStr[i];
+                    leQword |= (datByte << b*8);
+                    leKeep  |= (1 << b);
+                    i++;
+                    b++;
+                    if (i == pldLen) {
+                        leLast = true;
+                        break;
+                    }
+                }
+                b = 0;
+                addChunk(AxisIcmp(leQword, leKeep, leLast));
+            }
+        }  // End-of: addIcmpPayload
+
+        // Calculate the ICMP checksum of the packet.
+        IcmpCsum calculateIcmpChecksum() {
+            ap_uint<32> csum = 0;
+            for (uint8_t i=0;i<this->size();++i) {
+                ap_uint<64> tempInput = 0x0000000000000000;
+                if (axisWordQueue[i].tkeep & 0x01)
+                    tempInput.range(  7, 0) = (axisWordQueue[i].tdata.range( 7, 0));
+                if (axisWordQueue[i].tkeep & 0x02)
+                     tempInput.range(15, 8) = (axisWordQueue[i].tdata.range(15, 8));
+                if (axisWordQueue[i].tkeep & 0x04)
+                     tempInput.range(23,16) = (axisWordQueue[i].tdata.range(23,16));
+                if (axisWordQueue[i].tkeep & 0x08)
+                     tempInput.range(31,24) = (axisWordQueue[i].tdata.range(31,24));
+                if (axisWordQueue[i].tkeep & 0x10)
+                     tempInput.range(39,32) = (axisWordQueue[i].tdata.range(39,32));
+                if (axisWordQueue[i].tkeep & 0x20)
+                     tempInput.range(47,40) = (axisWordQueue[i].tdata.range(47,40));
+                if (axisWordQueue[i].tkeep & 0x40)
+                     tempInput.range(55,48) = (axisWordQueue[i].tdata.range(55,48));
+                if (axisWordQueue[i].tkeep & 0x80)
+                     tempInput.range(63,56) = (axisWordQueue[i].tdata.range(63,56));
+
+                csum = ((((csum +
+                           tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+                           tempInput.range(31, 16)) + tempInput.range(15,  0));
+                csum = (csum & 0xFFFF) + (csum >> 16);
+                //OBSOLETE csum = (csum & 0xFFFF) + (csum >> 16);
+            }
+            // Reverse the bits of the result
+            IcmpCsum icmpCsum = csum;
+            icmpCsum = ~icmpCsum;
+            return byteSwap16(icmpCsum);
+        }
+
+        /**************************************************************************
+         * @brief Recalculate the ICMP checksum of a packet.
+         *        - This will also overwrite the former ICMP checksum.
+         *        - You typically use this method if the packet was modified
+         *          or when the checksum has not yet been calculated.
+         *
+         * @return the computed checksum.
+         ***************************************************************************/
+        IcmpCsum reCalculateIcmpChecksum() {
+            this->setIcmpChecksum(0x0000);
+            IcmpCsum newIcmpCsum = calculateIcmpChecksum();
+            // Overwrite the former ICMP checksum
+            this->setIcmpChecksum(newIcmpCsum);
+            return (newIcmpCsum);
+        }
+
+    };  // End-of: IcmpPacket
+#endif
+
+
 /*****************************************************************************
  * @brief Class IP Packet.
  *
@@ -222,11 +391,11 @@ const char    *myCamAccessToString(int       initiator);
         int len;  // In bytes
         std::deque<Ip4overMac> axisWordQueue;  // A double-ended queue to store IP chunks.
 
-        /**************************************************************************
+        /**********************************************************************
          * @brief Compute the IPv4 header checksum of the packet.
          *
          * @return the computed checksum.
-         ***************************************************************************/
+         **********************************************************************/
         Ip4HdrCsum calculateIpHeaderChecksum() {
         	LE_Ip4HdrCsum  leIp4HdrCsum;
         	ap_uint<20> csum = 0;
@@ -285,12 +454,12 @@ const char    *myCamAccessToString(int       initiator);
 
         }
 
-        /**************************************************************************
+        /**********************************************************************
          * @brief Compute the TCP checksum of the packet.
          *
          * @param[in]  pseudoHeader,  a double-ended queue w/ one pseudo header.
          * @return the new checksum.
-         ***************************************************************************/
+         **********************************************************************/
         int checksumComputation(deque<Ip4overMac>  pseudoHeader) {
             // [TODO - Consider renaming into claculateTcpChecksum]
             ap_uint<32> tcpChecksum = 0;
@@ -316,40 +485,53 @@ const char    *myCamAccessToString(int       initiator);
             return tcpChecksum.range(15, 0).to_int();
         }
 
-        // Set the length of the IPv4 packet (in bytes)
+        // Set-get the length of the IPv4 packet (in bytes)
         void setLen(int pktLen) { this->len = pktLen; }
+        int  getLen()           { return this->len;   }
+        // Add a chunk of bytes at the end of the double-ended queue
+        void addChunk(Ip4overMac ip4Word) {
+            this->axisWordQueue.push_back(ip4Word);
+            setLen(getLen() + keepToLen(ip4Word.tkeep));
+        }
 
       public:
-        // Default Constructor
         IpPacket() {
             this->len = 0;
         }
-        // Construct a packet of length 'pktLen'
+        // Construct a packet of length 'pktLen' (must be > 20)
         IpPacket(int pktLen) {
-            if (pktLen > 0 && pktLen <= MTU)
-                setLen(pktLen);
-            int noBytes = pktLen;
-            while(noBytes > 8) {
-                Ip4overMac newMacWord(0x0000000000000000, 0xFF, 0);
-                axisWordQueue.push_back(newMacWord);
-                noBytes -= 8;
+            setLen(0);
+            if (pktLen >= IP4_HEADER_SIZE && pktLen <= MTU) {
+                //OBSOLETE_20200227 setLen(pktLen);
+                int noBytes = pktLen;
+                while(noBytes > 8) {
+                    //OBSOLETE_20200227 Ip4overMac newMacWord(0x0000000000000000, 0xFF, 0);
+                    //OBSOLETE_20200227 axisWordQueue.push_back(newMacWord);
+                    addChunk(Ip4overMac(0x0000000000000000, 0xFF, 0));
+                    noBytes -= 8;
+                }
+                //OBSOLETE_20200227 Ip4overMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
+                //OBSOLETE_20200227 axisWordQueue.push_back(newMacWord);
+                addChunk(Ip4overMac(0x0000000000000000, lenToKeep(noBytes), TLAST));
+                // Set all the default IP packet fields.
+                setIpInternetHeaderLength(5);
+                setIpVersion(4);
+                setIpTypeOfService(0);
+                setIpTotalLength(pktLen);
+                setIpIdentification(0);
+                setIpFragmentOffset(0);
+                setIpFlags(0);
+                setIpTimeToLive(255);
+                setIpProtocol(6);
+                setIpHeaderChecksum(0);
+                // Set all the default TCP segment fields
+                setTcpDataOffset(5);
             }
-            Ip4overMac newMacWord(0x0000000000000000, lenToKeep(noBytes), TLAST);
-            axisWordQueue.push_back(newMacWord);
-            // Set all the default IP packet fields.
-            setIpInternetHeaderLength(5);
-            setIpVersion(4);
-            setIpTypeOfService(0);
-            setIpTotalLength(pktLen);
-            setIpIdentification(0);
-            setIpFragmentOffset(0);
-            setIpFlags(0);
-            setIpTimeToLive(255);
-            setIpProtocol(6);
-            setIpHeaderChecksum(0);
-            // Set all the default TCP segment fields
-            setTcpDataOffset(5);
+            else {
+                // [TODO-ThrowException]
+            }
         }
+        // Default Constructor
 
         // Return the front chunk element of the MAC word queue but does not remove it from the queue
         Ip4overMac front()                               { return this->axisWordQueue.front();            }
@@ -369,24 +551,27 @@ const char    *myCamAccessToString(int       initiator);
         int size()                                       { return this->axisWordQueue.size();             }
 
         // Set-Get the IP Version field
-        void setIpVersion(int version)                   {        axisWordQueue[0].setIp4Version(version);}
-        int  getIpVersion()                              { return axisWordQueue[0].getIp4Version();       }
+        void         setIpVersion(int version)           {        axisWordQueue[0].setIp4Version(version);}
+        int          getIpVersion()                      { return axisWordQueue[0].getIp4Version();       }
         // Set-Get the IP Internet Header Length field
-        void setIpInternetHeaderLength(int ihl)          {        axisWordQueue[0].setIp4HdrLen(ihl);     }
-        int  getIpInternetHeaderLength()                 { return axisWordQueue[0].getIp4HdrLen();        }
-        // Set the IP Type of Service field
-        void setIpTypeOfService(int tos)                 {        axisWordQueue[0].setIp4ToS(tos);        }
+        void         setIpInternetHeaderLength(int ihl)  {        axisWordQueue[0].setIp4HdrLen(ihl);     }
+        int          getIpInternetHeaderLength()         { return axisWordQueue[0].getIp4HdrLen();        }
+        // Set-Get the IP Type of Service field
+        void         setIpTypeOfService(int tos)         {        axisWordQueue[0].setIp4ToS(tos);        }
+        int          getIpTypeOfService()                { return axisWordQueue[0].getIp4ToS();           }
         // Set-Get the IP Total Length field
-        void setIpTotalLength(int totLen)                {        axisWordQueue[0].setIp4TotalLen(totLen);}
-        int  getIpTotalLength()                          { return axisWordQueue[0].getIp4TotalLen();      }
+        void         setIpTotalLength(int totLen)        {        axisWordQueue[0].setIp4TotalLen(totLen);}
+        int          getIpTotalLength()                  { return axisWordQueue[0].getIp4TotalLen();      }
         // Set the IP Identification field
-        void setIpIdentification(int id)                 {        axisWordQueue[0].setIp4Ident(id);       }
+        void         setIpIdentification(int id)         {        axisWordQueue[0].setIp4Ident(id);       }
+        int          getIpIdentification()               { return axisWordQueue[0].getIp4Ident();         }
         // Set the IP Fragment Offset field
-        void setIpFragmentOffset(int offset)             {        axisWordQueue[0].setIp4FragOff(offset); }
+        void         setIpFragmentOffset(int offset)     {        axisWordQueue[0].setIp4FragOff(offset); }
+        int          getIpFragmentOffset()               { return axisWordQueue[0].getIp4FragOff();       }
         // Set the IP Flags field
-        void setIpFlags(int flags)                       {        axisWordQueue[0].setIp4Flags(flags);    }
+        void         setIpFlags(int flags)               {        axisWordQueue[0].setIp4Flags(flags);    }
         // Set the IP Time To Live field
-        void setIpTimeToLive(int ttl)                    {        axisWordQueue[1].setIp4TtL(ttl);        }
+        void         setIpTimeToLive(int ttl)            {        axisWordQueue[1].setIp4TtL(ttl);        }
         // Set-Get the IP Protocol field
         void          setIpProtocol(int prot)            {        axisWordQueue[1].setIp4Prot(prot);      }
         Ip4Prot       getIpProtocol()                    { return axisWordQueue[1].getIp4Prot();          }
@@ -401,6 +586,320 @@ const char    *myCamAccessToString(int       initiator);
         void          setIpDestinationAddress(int addr)  {        axisWordQueue[2].setIp4DstAddr(addr);   }
         int           getIpDestinationAddress()          { return axisWordQueue[2].getIp4DstAddr();       }
         LE_Ip4Addr getLE_IpDestinationAddress()          { return axisWordQueue[2].getLE_Ip4DstAddr();    }
+
+
+        // Return the IP4 header as a string
+        string getIpHeader() {
+            int    q = 0;
+            string headerStr;
+            int hl = this->getIpInternetHeaderLength() * 4;  // in bytes
+            while (hl != 0) {
+                //OBSOLETE unsigned long quadword = axisWordQueue[q].tdata.to_ulong(); // in LE order
+                for (int b=0; b<8; b++) {
+                    unsigned char valByte = ((axisWordQueue[q].tkeep.to_uchar() >> (1*b)) & 0x01);
+                    unsigned char datByte = ((axisWordQueue[q].tdata.to_ulong() >> (8*b)) & 0xFF);
+                    if (valByte) {
+                        headerStr += datByte;
+                    }
+                    if (hl == 0) {
+                        break;
+                    }
+                    hl--;
+                }
+                q += 1;
+            }
+            return headerStr;
+        }
+
+        // Return the IP4 data payload as a string
+        string getIpPayload() {
+            string payloadStr;
+            int hdrLen = this->getIpInternetHeaderLength() * 4;  // in bytes
+            int totLen = this->getIpTotalLength();
+            int pldLen = totLen - hdrLen;
+            int q = (hdrLen / 8);
+            int b = (hdrLen % 8);
+            while (pldLen != 0) {
+                //OBSOLETE unsigned long quadword = axisWordQueue[q].tdata.to_ulong(); // in LE order
+                while (b <= 7) {
+                    unsigned char valByte = ((axisWordQueue[q].tkeep.to_uchar() >> (1*b)) & 0x01);
+                    unsigned char datByte = ((axisWordQueue[q].tdata.to_ulong() >> (8*b)) & 0xFF);
+                    if (valByte) {
+                        payloadStr += datByte;
+                        pldLen--;
+                        //OBSOLETE if (pldLen == 0) {
+                        //OBSOLETE     break;
+                        //OBSOLETE }
+                    }
+                    b++;
+                }
+                b = 0;
+                q += 1;
+            }
+            return payloadStr;
+        }
+
+        // Return the IP4 data payload as an IcmpPacket (assuming IP4 w/o options)
+        IcmpPacket getIcmpPacket() {
+            IcmpPacket  icmpPacket;
+            AxisIp4     axisIp4(0, 0, 0);
+            int         wordOutCnt = 0;
+            int         wordInpCnt = 2; // Skip the 1st two IP4 words
+            bool        alternate = true;
+            bool        endOfPkt  = false;
+            int         ip4PktSize = this->size();
+            while (wordInpCnt < ip4PktSize) {
+                if (endOfPkt)
+                    break;
+                else if (alternate) {
+                    axisIp4.tdata = 0;
+                    axisIp4.tkeep = 0;
+                    axisIp4.tlast = 0;
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x10) {
+                        axisIp4.tdata.range( 7,  0) = this->axisWordQueue[wordInpCnt].tdata.range(39, 32);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x01);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x20) {
+                        axisIp4.tdata.range(15,  8) = this->axisWordQueue[wordInpCnt].tdata.range(47, 40);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x02);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x40) {
+                        axisIp4.tdata.range(23, 16) = this->axisWordQueue[wordInpCnt].tdata.range(55, 48);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x04);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x80) {
+                        axisIp4.tdata.range(31, 24) = this->axisWordQueue[wordInpCnt].tdata.range(63, 56);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x08);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast) {
+                        axisIp4.tlast = 1;
+                        endOfPkt = true;
+                        icmpPacket.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
+                    }
+                    alternate = !alternate;
+                    wordInpCnt++;
+                }
+                else {
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x01) {
+                        axisIp4.tdata.range(39, 32) = this->axisWordQueue[wordInpCnt].tdata.range( 7,  0);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x10);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x02) {
+                        axisIp4.tdata.range(47, 40) = this->axisWordQueue[wordInpCnt].tdata.range(15,  8);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x20);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x04) {
+                        axisIp4.tdata.range(55, 48) = this->axisWordQueue[wordInpCnt].tdata.range(23, 16);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x40);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x08) {
+                        axisIp4.tdata.range(63, 56) = this->axisWordQueue[wordInpCnt].tdata.range(31, 24);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x80);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast && (not (this->axisWordQueue[wordInpCnt].tkeep & 0xC0))) {
+                        axisIp4.tlast = 1;
+                        endOfPkt = true;
+                    }
+                    alternate = !alternate;
+                    wordOutCnt++;
+                    icmpPacket.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
+                }
+            }
+            return icmpPacket;
+        }
+
+        /***********************************************************************
+         * @brief Append the data payload of this packet as an ICMP packet.
+         *
+         * @warning The IP4 packet object must be of length 20 bytes
+         *           (.i.e a default IP4 packet w/o options)
+         *
+         * @param[in] icmpPkt, the ICMP packet to use as IPv4 payload.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool addIpPayload(IcmpPacket icmpPkt) {
+            bool     alternate = true;
+            bool     endOfPkt  = false;
+            AxisIcmp icmpWord(0, 0, 0);
+            int      icmpWordCnt = 0;
+            int      ip4WordCnt = 2; // Start with the 2nd word which contains IP_DA
+
+            if (this->getLen() != IP4_HEADER_SIZE) {
+                printFatal("IpPacket", "Packet is expected to be of length %d bytes (was found to be %d bytes).\n",
+                           IP4_HEADER_SIZE, this->getLen());
+            }
+            // Read and pop the very first chunk from the packet
+            icmpWord = icmpPkt.front();
+            icmpPkt.pop_front();
+
+            while (!endOfPkt) {
+                if (alternate) {
+                    if (icmpWord.tkeep & 0x01) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(39,32) = icmpWord.tdata.range( 7, 0);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x10);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x02) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(47,40) = icmpWord.tdata.range(15, 8);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x20);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x04) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(55,48) = icmpWord.tdata.range(23,16);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x40);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x08) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(63,55) = icmpWord.tdata.range(31,24);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x80);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if ((icmpWord.tlast) && (icmpWord.tkeep <= 0x0F)) {
+                        this->axisWordQueue[ip4WordCnt].tlast = 1;
+                        endOfPkt = true;
+                    }
+                    else {
+                        this->axisWordQueue[ip4WordCnt].tlast = 0;
+                    }
+                    alternate = !alternate;
+                }
+                else {
+                    // Build a new chunck and add it to the queue
+                    Ip4overMac  newIp4Word(0,0,0);
+                    if (icmpWord.tkeep & 0x10) {
+                       newIp4Word.tdata.range( 7, 0) = icmpWord.tdata.range(39, 32);
+                       newIp4Word.tkeep = newIp4Word.tkeep | (0x01);
+                    }
+                    if (icmpWord.tkeep & 0x20) {
+                        newIp4Word.tdata.range(15, 8) = icmpWord.tdata.range(47, 40);
+                        newIp4Word.tkeep = newIp4Word.tkeep | (0x02);
+                    }
+                    if (icmpWord.tkeep & 0x40) {
+                        newIp4Word.tdata.range(23,16) = icmpWord.tdata.range(55, 48);
+                        newIp4Word.tkeep = newIp4Word.tkeep | (0x04);
+                    }
+                    if (icmpWord.tkeep & 0x80) {
+                        newIp4Word.tdata.range(31,24) = icmpWord.tdata.range(63, 56);
+                        newIp4Word.tkeep = newIp4Word.tkeep | (0x08);
+                    }
+                    // Done with the incoming ICMP word
+                    icmpWordCnt++;
+
+                    if (icmpWord.tlast) {
+                        newIp4Word.tlast = 1;
+                        this->addChunk(newIp4Word);
+                        endOfPkt = true;
+                    }
+                    else {
+                        newIp4Word.tlast = 0;
+                        this->addChunk(newIp4Word);
+                        ip4WordCnt++;
+                        // Read and pop a new chunk from the ICMP packet
+                        icmpWord = icmpPkt.front();
+                        icmpPkt.pop_front();
+                    }
+                    alternate = !alternate;
+                }
+            } // End-of while(!endOfPkt)
+            return true;
+        } // End-of: addIpPayload
+
+        /***********************************************************************
+         * @brief Set the data payload of this packet as an ICMP packet.
+         *
+         * @warning The IP4 packet object must be large enough to hold this
+         *          this payload.
+         *
+         * @param[in] icmpPkt, the ICMP packet to use as IPv4 payload.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool setIpPayload(IcmpPacket icmpPkt) {
+            bool     alternate = true;
+            bool     endOfPkt  = false;
+            AxisIcmp icmpWord(0, 0, 0);
+            int      icmpWordCnt = 0;
+            int      ip4WordCnt = 2; // Start with the 2nd word which contains IP_DA
+
+            if ((this->getLen() - IP4_HEADER_SIZE) < icmpPkt.length()) {
+                printFatal("IpPacket", "Packet length is expected to be larger than %d bytes (was found to be %d bytes).\n",
+                           (IP4_HEADER_SIZE+icmpPkt.length()), this->getLen());
+            }
+            // Read and pop the very first chunk from the ICMP packet
+            icmpWord = icmpPkt.front();
+            icmpPkt.pop_front();
+
+            while (!endOfPkt) {
+                if (alternate) {
+                    if (icmpWord.tkeep & 0x01) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(39,32) = icmpWord.tdata.range( 7, 0);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x10);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x02) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(47,40) = icmpWord.tdata.range(15, 8);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x20);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x04) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(55,48) = icmpWord.tdata.range(23,16);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x40);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if (icmpWord.tkeep & 0x08) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(63,56) = icmpWord.tdata.range(31,24);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x80);
+                        this->setLen(this->getLen() + 1);
+                    }
+                    if ((icmpWord.tlast) && (icmpWord.tkeep <= 0x0F)) {
+                        this->axisWordQueue[ip4WordCnt].tlast = 1;
+                        endOfPkt = true;
+                    }
+                    else {
+                        this->axisWordQueue[ip4WordCnt].tlast = 0;
+                    }
+                    alternate = !alternate;
+                    ip4WordCnt++;
+                }
+                else {
+                    if (icmpWord.tkeep & 0x10) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range( 7, 0) = icmpWord.tdata.range(39, 32);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x01);
+                    }
+                    if (icmpWord.tkeep & 0x20) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(15, 8) = icmpWord.tdata.range(47, 40);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x02);
+                    }
+                    if (icmpWord.tkeep & 0x40) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(23,16) = icmpWord.tdata.range(55, 48);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x04);
+                    }
+                    if (icmpWord.tkeep & 0x80) {
+                        this->axisWordQueue[ip4WordCnt].tdata.range(31,24) = icmpWord.tdata.range(63, 56);
+                        this->axisWordQueue[ip4WordCnt].tkeep = this->axisWordQueue[ip4WordCnt].tkeep | (0x08);
+                    }
+                    // Done with the incoming ICMP word
+                    icmpWordCnt++;
+
+                    if (icmpWord.tlast) {
+                        this->axisWordQueue[ip4WordCnt].tlast = 1;
+                        endOfPkt = true;
+                    }
+                    else {
+                        this->axisWordQueue[ip4WordCnt].tlast = 0;
+                        // Read and pop a new chunk from the ICMP packet
+                        icmpWord = icmpPkt.front();
+                        icmpPkt.pop_front();
+                    }
+                    alternate = !alternate;
+                }
+            } // End-of while(!endOfPkt)
+            return true;
+        } // End-of: setIpPayload
+
+        //*********************************************************
+        //** [TODO]-Return the IP4 data payload as a TcpSegment
+        //** [TODO] TcpSegment getTcpSegment() {}
+        //*********************************************************
         // Set-Get the TCP Source Port field
         void          setTcpSourcePort(int port)         {        axisWordQueue[2].setTcpSrcPort(port);   }
         int           getTcpSourcePort()                 { return axisWordQueue[2].getTcpSrcPort();       }
@@ -458,6 +957,7 @@ const char    *myCamAccessToString(int       initiator);
                 newMacWord = ipPkt.axisWordQueue[i];
                 this->axisWordQueue.push_back(newMacWord);
             }
+            this->setLen(ipPkt.getLen());
         }
         /***************************************************************************
          * @brief Get TCP data the IP packet.
@@ -522,9 +1022,9 @@ const char    *myCamAccessToString(int       initiator);
                 return false;
         }
 
-        //OBSOLETE bool   isRST();
-        //OBSOLETE bool   isPSH();
-        //OBSOLETE bool   isURG();
+        // [TODO] bool   isRST();
+        // [TODO] bool   isPSH();
+        // [TODO] bool   isURG();
 
         /***********************************************************************
          * @brief Print the header details of an IP packet.
@@ -643,6 +1143,7 @@ const char    *myCamAccessToString(int       initiator);
          * @return the computed checksum.
          ***************************************************************************/
         Ip4HdrCsum reCalculateIpHeaderChecksum() {
+        	/*** OBSOLETE_20200227 **************
         	LE_Ip4HdrCsum  leIp4HdrCsum;
         	ap_uint<20> csum = 0;
         	csum += this->axisWordQueue[0].tdata.range(15,  0);  // [ToS|VerIhl]
@@ -663,8 +1164,14 @@ const char    *myCamAccessToString(int       initiator);
 
             // Overwrite the former IP header checksum
             this->setIpHeaderChecksum(byteSwap16(leIp4HdrCsum));
+			*************************************/
 
-			return (byteSwap16(leIp4HdrCsum));
+            Ip4HdrCsum newIp4HdrCsum = calculateIpHeaderChecksum();
+
+            // Overwrite the former IP header checksum
+            this->setIpHeaderChecksum(newIp4HdrCsum);
+
+			return (newIp4HdrCsum);
         }
 
         /***********************************************************************
@@ -913,9 +1420,9 @@ const char    *myCamAccessToString(int       initiator);
 			    int noBytes = frmLen;
 			    while(noBytes > 8) {
 			    	addChunk(EthoverMac(0x0000000000000000, 0xFF, 0));
-				    noBytes -= 8;
+			    	noBytes -= 8;
 			    }
-			    addChunk(EthoverMac(0x0000000000000000, lenToKeep(noBytes), TLAST));
+                addChunk(EthoverMac(0x0000000000000000, lenToKeep(noBytes), TLAST));
 			}
 		}
 
@@ -1110,7 +1617,7 @@ const char    *myCamAccessToString(int       initiator);
          * @param[in] arpPkt, the ARP packet to use as Ethernet payload.
          * @return true upon success, otherwise false.
          ***********************************************************************/
-        bool setPayload(ArpPacket arpPkt) {
+        bool setPayload(ArpPacket arpPkt) {  // [FIXME-Must rename into addEthPayload()]
             bool    alternate = true;
             bool    endOfPkt  = false;
             AxiWord arpWord(0, 0, 0);
@@ -1204,7 +1711,7 @@ const char    *myCamAccessToString(int       initiator);
          * @param[in] ipPkt, the IPv4 packet to use as Ethernet payload.
          * @return true upon success, otherwise false.
          ***********************************************************************/
-        bool setIpPacket(IpPacket ipPkt) {  // [FIXME-Rename into setPayload()]
+        bool setIpPacket(IpPacket ipPkt) {  // [FIXME-Rename into addPayload()]
             bool    alternate = true;
             bool    endOfPkt  = false;
             AxiWord ip4Word(0, 0, 0);

@@ -194,7 +194,7 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 #define KO        NTS_KO
 
 #define CMD_INIT  1
-#define CMD_DROP  1    // OBSOLETE-20191021 true
+#define CMD_DROP  1
 #define CMD_KEEP  0
 
 #define QUERY_RD              0
@@ -244,8 +244,6 @@ typedef bool ValBool; // Valid      : Must go along with something to validate/i
 // WARNING ABOUT ENUMERATIONS:
 //   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
 //   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
-
-//OBSOLETE-20191125 enum EventType {TX=0, RT, ACK, SYN, SYN_ACK, FIN, RST, ACK_NODELAY };
 
 /*
  * There is no explicit LISTEN state
@@ -594,15 +592,18 @@ class Ip4overMac: public AxiWord {
     Ip4HdrLen   getIp4HdrLen()                  {           return tdata.range( 3,  0);                   }
     // Set-Get the IP4 Type of Service
     void        setIp4ToS(Ip4ToS tos)           {                  tdata.range(15,  8) = tos;             }
-    Ip4ToS      getIp4Tos()                     {           return tdata.range(15,  8);                   }
+    Ip4ToS      getIp4ToS()                     {           return tdata.range(15,  8);                   }
     // Set the IP4 Total Length
     void        setIp4TotalLen(Ip4TotalLen len) {                  tdata.range(31, 16) = swapWord(len);   }
     Ip4TotalLen getIp4TotalLen()                { return swapWord (tdata.range(31, 16));                  }
-    // Set the IP4 Identification
+    // Set-Get the IP4 Identification
     void        setIp4Ident(Ip4Ident id)        {                  tdata.range(47, 32) = swapWord(id);    }
-    // Set the IP4 Fragment Offset
+    Ip4Ident    getIp4Ident()                   { return swapWord (tdata.range(47, 32));                  }
+    // Set-Get the IP4 Fragment Offset
     void        setIp4FragOff(Ip4FragOff offset){                  tdata.range(63, 56) = offset( 7, 0);
                                                                    tdata.range(52, 48) = offset(12, 8);   }
+    Ip4FragOff  getIp4FragOff()                 {          return (tdata.range(52, 48) << 8 |
+                                                                   tdata.range(63, 56));                  }
     // Set the IP4 Flags
     void        setIp4Flags(Ip4Flags flags)     {                  tdata.range(55, 53) = flags;           }
     // Set-Get the IP4 Time to Live

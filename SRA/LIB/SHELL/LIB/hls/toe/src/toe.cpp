@@ -41,9 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "state_table/state_table.hpp"
 #include "rx_sar_table/rx_sar_table.hpp"
 #include "tx_sar_table/tx_sar_table.hpp"
-//OBSOLETE_20191202 #include "retransmit_timer/retransmit_timer.hpp"
-//OBSOLETE_20191202 #include "probe_timer/probe_timer.hpp"
-//OBSOLETE_20191202 #include "close_timer/close_timer.hpp"
 #include "timers/timers.hpp"
 #include "event_engine/event_engine.hpp"
 #include "ack_delay/ack_delay.hpp"
@@ -51,8 +48,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rx_engine/src/rx_engine.hpp"
 #include "tx_engine/src/tx_engine.hpp"
-//OBSOLETE_20191206 #include "rx_app_if/rx_app_if.hpp"
-//OBSOLETE_20191206 #include "rx_app_stream_if/rx_app_stream_if.hpp"
 #include "rx_app_interface/rx_app_interface.hpp"
 #include "tx_app_interface/tx_app_interface.hpp"
 
@@ -94,248 +89,6 @@ template<typename T> void pStreamMux(
         so.write(si2.read());
 }
 
-/*** OBSOLETE_20191209 ****************
-void rxAppMemAccessBreakdown(
-        stream<DmCmd>        &inputMemAccess,
-        stream<DmCmd>        &soMEM_RxP_RdCmd,
-        stream<ap_uint<1> >  &rxAppDoubleAccess)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
-    #pragma HLS INLINE off
-
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                rxAppBreakdown = false;
-    #pragma HLS reset variable=rxAppBreakdown
-
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static DmCmd rxAppTempCmd;
-    static ap_uint<16> rxAppAccLength = 0;
-
-    if (rxAppBreakdown == false) {
-        if (!inputMemAccess.empty() && !soMEM_RxP_RdCmd.full()) {
-            rxAppTempCmd = inputMemAccess.read();
-            if ((rxAppTempCmd.saddr.range(15, 0) + rxAppTempCmd.bbt) > 65536) {
-                rxAppAccLength = 65536 - rxAppTempCmd.saddr;
-                soMEM_RxP_RdCmd.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
-                rxAppBreakdown = true;
-            }
-            else {
-                soMEM_RxP_RdCmd.write(rxAppTempCmd);
-            }
-            //std::cerr << "Mem.Cmd: " << std::hex << rxAppTempCmd.saddr << " - " << rxAppTempCmd.bbt << std::endl;
-            rxAppDoubleAccess.write(rxAppBreakdown);
-        }
-    }
-    else if (rxAppBreakdown == true) {
-        if (!soMEM_RxP_RdCmd.full()) {
-            rxAppTempCmd.saddr.range(15, 0) = 0;
-            rxAppAccLength = rxAppTempCmd.bbt - rxAppAccLength;
-            soMEM_RxP_RdCmd.write(DmCmd(rxAppTempCmd.saddr, rxAppAccLength));
-            //std::cerr << "Mem.Cmd: " << std::hex << rxAppTempCmd.saddr << " - " << rxAppTempCmd.bbt - (65536 - rxAppTempCmd.saddr) << std::endl;
-            rxAppBreakdown = false;
-        }
-    }
-}
-*****************************/
-
-/*** OBSOLETE_20191209 ****************
-void rxAppMemDataRead(
-        stream<AxiWord>     &siMEM_RxP_Data,
-        stream<AxiWord>     &soTRIF_Data,
-        stream<ap_uint<1> > &rxAppDoubleAccess)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
-    #pragma HLS INLINE off
-
-    static AxiWord rxAppMemRdRxWord = AxiWord(0, 0, 0);
-    static ap_uint<1> rxAppDoubleAccessFlag = 0;
-    static enum rAstate {RXAPP_IDLE = 0, RXAPP_STREAM, RXAPP_JOIN, RXAPP_STREAMMERGED, RXAPP_STREAMUNMERGED, RXAPP_RESIDUE} rxAppState;
-    static ap_uint<4> rxAppMemRdOffset = 0;
-    static ap_uint<8> rxAppOffsetBuffer = 0;
-
-    switch(rxAppState) {
-    case RXAPP_IDLE:
-        if (!rxAppDoubleAccess.empty() && !siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
-            //rxAppMemRdOffset = 0;
-            rxAppDoubleAccessFlag = rxAppDoubleAccess.read();
-            siMEM_RxP_Data.read(rxAppMemRdRxWord);
-            rxAppMemRdOffset = keepMapping(rxAppMemRdRxWord.tkeep);                      // Count the number of valid bytes in this data word
-            if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 1) {         // If this is the last word and this access was broken down
-                rxAppMemRdRxWord.tlast = ~rxAppDoubleAccessFlag;                     // Negate the last flag inn the axiWord and determine if there's an offset
-                if (rxAppMemRdOffset == 8) {                                    // No need to offset anything
-                    soTRIF_Data.write(rxAppMemRdRxWord);                          // Output the word directly
-                    //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-                    rxAppState = RXAPP_STREAMUNMERGED;                          // Jump to stream merged since there's no joining to be performed.
-                }
-                else if (rxAppMemRdOffset < 8) {                                // If this data word is not full
-                    rxAppState = RXAPP_JOIN;                                    // Don't output anything and go to RXAPP_JOIN to fetch more data to fill in the data word
-                }
-            }
-            else if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 0)  { // If this is the 1st and last data word of this segment and no mem. access breakdown occured,
-                soTRIF_Data.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
-                //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-            }
-            else {                                                              // Finally if there are more words in this memory access,
-                rxAppState = RXAPP_STREAM;                                      // then go to RXAPP_STREAM to read them
-                soTRIF_Data.write(rxAppMemRdRxWord);                              // and output the current word
-                //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-            }
-
-        }
-        break;
-    case RXAPP_STREAM:                                                          // This state outputs the all the data words in the 1st memory access of a segment but the 1st one.
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // Verify that there's data in the input and space in the output
-            siMEM_RxP_Data.read(rxAppMemRdRxWord);                            // Read the data word in
-            rxAppMemRdOffset = keepMapping(rxAppMemRdRxWord.tkeep);                      // Count the number of valid bytes in this data word
-            if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 1) {         // If this is the last word and this access was broken down
-                rxAppMemRdRxWord.tlast = ~rxAppDoubleAccessFlag;                     // Negate the last flag inn the axiWord and determine if there's an offset
-                if (rxAppMemRdOffset == 8) {                                    // No need to offset anything
-                    soTRIF_Data.write(rxAppMemRdRxWord);                          // Output the word directly
-                    //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-                    rxAppState = RXAPP_STREAMUNMERGED;                          // Jump to stream merged since there's no joining to be performed.
-                }
-                else if (rxAppMemRdOffset < 8) {                                // If this data word is not full
-                    rxAppState = RXAPP_JOIN;                                    // Don't output anything and go to RXAPP_JOIN to fetch more data to fill in the data word
-                }
-            }
-            else if (rxAppMemRdRxWord.tlast == 1 && rxAppDoubleAccessFlag == 0) {// If this is the 1st and last data word of this segment and no mem. access breakdown occured,
-                soTRIF_Data.write(rxAppMemRdRxWord);                              // then output the data word and stay in this state to read the next segment data
-                //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-                rxAppState = RXAPP_IDLE;                                        // and go back to the idle state
-            }
-            else {                                                              // If the segment data hasn't finished yet
-                soTRIF_Data.write(rxAppMemRdRxWord);                              // output them and stay in this state
-                //std::cerr << "Mem.Data: " << std::hex << rxAppMemRdRxWord.data << " - " << rxAppMemRdRxWord.keep << " - " << rxAppMemRdRxWord.last << std::endl;
-            }
-        }
-        break;
-    case RXAPP_STREAMUNMERGED:                                                  // This state handles 2nd mem.access data when no realignment is required
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // First determine that there's data to input and space in the output
-            AxiWord temp = siMEM_RxP_Data.read();                                 // If so read the data in a tempVariable
-            if (temp.tlast == 1)                                                     // If this is the last data word...
-                rxAppState = RXAPP_IDLE;                                        // Go back to the output state. Everything else is perfectly fine as is
-            soTRIF_Data.write(temp);                                              // Finally, output the data word before changing states
-            std::cerr << "Mem.Data: " << std::hex << temp.tdata << " - " << temp.tkeep << " - " << temp.tlast << std::endl;
-        }
-        break;
-    case RXAPP_JOIN:                                                            // This state performs the hand over from the 1st to the 2nd mem. access for this segment if a mem. access has occured
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // First determine that there's data to input and space in the output
-            AxiWord temp = AxiWord(0, 0xFF, 0);
-            temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(((rxAppMemRdOffset.to_uint64() * 8) - 1), 0);    // In any case, insert the data of the new data word in the old one. Here we don't pay attention to the exact number of bytes in the new data word. In case they don't fill the entire remaining gap, there will be garbage in the output but it doesn't matter since the KEEP signal indicates which bytes are valid.
-            rxAppMemRdRxWord = siMEM_RxP_Data.read();
-            temp.tdata.range(63, (rxAppMemRdOffset * 8)) = rxAppMemRdRxWord.tdata.range(((8 - rxAppMemRdOffset.to_uint64()) * 8) - 1, 0);                 // Buffer & realign temp into rxAppmemRdRxWord (which is a static variable)
-            ap_uint<4> tempCounter = keepMapping(rxAppMemRdRxWord.tkeep);                    // Determine how any bytes are valid in the new data word. It might be that this is the only data word of the 2nd segment
-            rxAppOffsetBuffer = tempCounter - (8 - rxAppMemRdOffset);               // Calculate the number of bytes to go into the next & final data word
-            if (rxAppMemRdRxWord.tlast == 1) {
-                if ((tempCounter + rxAppMemRdOffset) <= 8) {                        // Check if the residue from the 1st segment and the data in the 1st data word of the 2nd segment fill this data word. If not...
-                    temp.tkeep = returnKeep(tempCounter + rxAppMemRdOffset);     // then set the KEEP value of the output to the sum of the 2 data word's bytes
-                    temp.tlast = 1;                                  // also set the LAST to 1, since this is going to be the final word of this segment
-                    rxAppState = RXAPP_IDLE;                                    // And go back to idle when finished with this state
-                }
-                else
-                    rxAppState = RXAPP_RESIDUE;                                     // then go to the RXAPP_RESIDUE to output the remaining data words
-            }
-            else
-                rxAppState = RXAPP_STREAMMERGED;                                    // then go to the RXAPP_STREAMMERGED to output the remaining data words
-            soTRIF_Data.write(temp);                                              // Finally, write the data word to the output
-            //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
-        }
-        break;
-    case RXAPP_STREAMMERGED:                                                    // This state outputs all of the remaining, realigned data words of the 2nd mem.access, which resulted from a data word
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {                   // Verify that there's data at the input and that the output is ready to receive data
-            AxiWord temp = AxiWord(0, 0xFF, 0);
-            temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(63, ((8 - rxAppMemRdOffset.to_uint64()) * 8));
-            rxAppMemRdRxWord = siMEM_RxP_Data.read();                             // Read the new data word in
-            temp.tdata.range(63, (rxAppMemRdOffset * 8)) = rxAppMemRdRxWord.tdata.range(((8 - rxAppMemRdOffset.to_uint64()) * 8) - 1, 0);
-            ap_uint<4> tempCounter = keepMapping(rxAppMemRdRxWord.tkeep);            // Determine how any bytes are valid in the new data word. It might be that this is the only data word of the 2nd segment
-            rxAppOffsetBuffer = tempCounter - (8 - rxAppMemRdOffset);               // Calculate the number of bytes to go into the next & final data word
-            if (rxAppMemRdRxWord.tlast == 1) {
-                if ((tempCounter + rxAppMemRdOffset) <= 8) {                            // Check if the residue from the 1st segment and the data in the 1st data word of the 2nd segment fill this data word. If not...
-                    temp.tkeep = returnKeep(tempCounter + rxAppMemRdOffset);             // then set the KEEP value of the output to the sum of the 2 data word's bytes
-                    temp.tlast = 1;                                                  // also set the LAST to 1, since this is going to be the final word of this segment
-                    rxAppState = RXAPP_IDLE;                                        // And go back to idle when finished with this state
-                }
-                else                                                                // If this not the last word, because it doesn't fit in the available space in this data word
-                    rxAppState = RXAPP_RESIDUE;                                         // then go to the RXAPP_RESIDUE to output the remainder of this data word
-            }
-            soTRIF_Data.write(temp);                                              // Finally, write the data word to the output
-            //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
-        }
-        break;
-    case RXAPP_RESIDUE:
-        if (!soTRIF_Data.full()) {
-            AxiWord temp = AxiWord(0, returnKeep(rxAppOffsetBuffer), 1);
-            temp.tdata.range((rxAppMemRdOffset.to_uint64() * 8) - 1, 0) = rxAppMemRdRxWord.tdata.range(63, ((8 - rxAppMemRdOffset.to_uint64()) * 8));
-            soTRIF_Data.write(temp);                                              // And finally write the data word to the output
-            //std::cerr << "Mem.Data: " << std::hex << temp.data << " - " << temp.keep << " - " << temp.last << std::endl;
-            rxAppState = RXAPP_IDLE;                                            // And go back to the idle stage
-        }
-        break;
-    }
-}
-*** OBSOLETE_20191209 ****************/
-
-/*** OBSOLETE_20191202 *******************
-void rx_app_interface(
-        stream<AppNotif>            &soTRIF_Notif,
-        stream<AppRdReq>            &siTRIF_DataReq,
-        stream<AxiWord>             &soTRIF_Data,
-        stream<SessionId>           &soTRIF_Meta,
-        stream<AppLsnReq>           &siTRIF_LsnReq,
-        stream<AppLsnAck>           &soTRIF_LsnAck,
-        stream<TcpPort>             &soPRt_LsnReq,
-        stream<AckBit>              &siPRt_LsnAck,
-        stream<AppNotif>            &siRXe_Notif,
-        stream<AppNotif>            &siTIm_Notif,
-        stream<RAiRxSarQuery>       &soRSt_RxSarReq,
-        stream<RAiRxSarReply>       &siRSt_RxSarRep,
-        stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxiWord>             &siMEM_RxP_Data)
-{
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	//OBSOLETE-2019111 #pragma HLS INLINE
-    #pragma HLS INLINE // off
-
-    static stream<DmCmd>        rxAppStreamIf2memAccessBreakdown ("rxAppStreamIf2memAccessBreakdown");
-    #pragma HLS stream variable=rxAppStreamIf2memAccessBreakdown depth=16
-
-    static stream<ap_uint<1> >  rxAppDoubleAccess                ("rxAppDoubleAccess");
-    #pragma HLS stream variable=rxAppDoubleAccess                depth=16
-
-    // RX Application Stream Interface
-    rx_app_stream_if(
-            siTRIF_DataReq,
-            soTRIF_Meta,
-            soRSt_RxSarReq,
-            siRSt_RxSarRep,
-            rxAppStreamIf2memAccessBreakdown);
-
-    rxAppMemAccessBreakdown(
-            rxAppStreamIf2memAccessBreakdown,
-            soMEM_RxP_RdCmd,
-            rxAppDoubleAccess);
-
-    rxAppMemDataRead(
-            siMEM_RxP_Data,
-            soTRIF_Data,
-            rxAppDoubleAccess);
-
-    // RX Application Interface
-    rx_app_if(
-            siTRIF_LsnReq,
-            soTRIF_LsnAck,
-            soPRt_LsnReq,
-            siPRt_LsnAck);
-
-    // Multiplex the notifications
-    pStreamMux(
-            siRXe_Notif,
-            siTIm_Notif,
-            soTRIF_Notif);
-}
-*****************************************/
 
 /******************************************************************************
  * @brief The Ready (Rdy) process generates the ready signal of the TOE.
@@ -944,7 +697,6 @@ void toe(
             ssSLcToPRt_ReleasePort);
 
     //-- Timers (TIm) ------------------------------------------------------
-    //OBSOLETE_20191202 pTimers(
     timers(
             ssRXeToTIm_ReTxTimerCmd,
             ssTXeToTIm_SetReTxTimer,

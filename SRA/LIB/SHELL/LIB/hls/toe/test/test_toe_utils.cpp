@@ -43,7 +43,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../src/toe.hpp"
 #include "../src/session_lookup_controller/session_lookup_controller.hpp"
-//OBSOLETE #include "../../arp_server/src/arp_server.hpp"
 #include "test_toe_utils.hpp"
 
 using namespace std;
@@ -1164,19 +1163,29 @@ void printTcpPort(TcpPort tcpPort)
  *  [1] https://www.codeproject.com/Articles/48575/How-to-define-a-template-class-in-a-h-file-and-imp
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-    void _fakeCallTo_feedAxisArpFromFile() {
-        stream<AxisArp> ss;
-        int  nr1, nr2, nr3;
-        feedAxisFromFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
-    }
     void _fakeCallTo_feedAxisEthFromFile() {
         stream<AxisEth> ss;
         int  nr1, nr2, nr3;
         feedAxisFromFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
+    void _fakeCallTo_feedAxisArpFromFile() {
+        stream<AxisArp> ss;
+        int  nr1, nr2, nr3;
+        feedAxisFromFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_feedAxisIp4FromFile() {
+        stream<AxisIp4> ss;
+        int  nr1, nr2, nr3;
+        feedAxisFromFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
     void _fakeCallTo_drainAxisEthToFile() {
         stream<AxisEth> ss;
         int  nr1, nr2, nr3;
         drainAxisToFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_drainAxisIp4ToFile() {
+        stream<AxisIp4> ss;
+        int  nr1, nr2, nr3;
+        drainAxisToFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
 #endif

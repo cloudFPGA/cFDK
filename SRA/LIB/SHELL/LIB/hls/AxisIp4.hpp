@@ -114,6 +114,14 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "./AxisIcmp.hpp"
 
 /*********************************************************
+ * IP4 - HEADER SIZE.
+ *  An IP4 packet has a default header size of 20 bytes.
+ *  This length may vary in the presence of option(s) and
+ *  is indicated by the field IHL>5.
+ *********************************************************/
+#define IP4_HEADER_SIZE     20      // In bytes
+
+/*********************************************************
  * IPv4 - HEADER FIELDS IN LITTLE-ENDIAN (LE) ORDER.
  *   As received or transmitted by the 10GbE MAC.
  *********************************************************/
@@ -183,8 +191,12 @@ class AxisIp4: public AxiWord {
     Ip4TotalLen getIp4TotalLen()                { return swapWord (tdata.range(31, 16));                  }
     // Set the IP4 Identification
     void        setIp4Ident(Ip4Ident id)        {                  tdata.range(47, 32) = swapWord(id);    }
-    // Set the IP4 Fragment Offset
-    void        setIp4FragOff(Ip4FragOff offset){                  tdata.range(63, 56) = offset( 7, 0);   }
+    Ip4Ident    getIp4Ident()                   { return swapWord (tdata.range(47, 32));                  }
+    // Set-get the IP4 Fragment Offset
+    void        setIp4FragOff(Ip4FragOff offset){                  tdata.range(63, 56) = offset( 7, 0);
+                                                                   tdata.range(52, 48) = offset(12, 8);   }
+    Ip4FragOff  getIp4FragOff()                 {          return (tdata.range(52, 48) << 8 |
+                                                                   tdata.range(63, 56));                  }
     // Set the IP4 Flags
     void        setIp4Flags(Ip4Flags flags)     {                  tdata.range(55, 53) = flags;           }
     // Set-Get the IP4 Time to Live

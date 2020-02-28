@@ -73,19 +73,30 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AXIS_ICMP_H_
 
 /*********************************************************
+ * ICMP - HEADER SIZE.
+ *  All ICMP packets have an 8-byte header and a variable-
+ *  sized data section.The first 4 bytes of the header
+ *  have fixed format, while the last 4 bytes depend on
+ *  the tye/code of the ICMP packet.
+ *********************************************************/
+#define ICMP_HEADER_SIZE    8       // In bytes
+
+/*********************************************************
  * ICMP - HEADER FIELDS IN LITTLE_ENDIAN (LE) ORDER.
  *********************************************************/
-typedef ap_uint< 8> LE_IcmpType;        // ICMP Type of control Message
-typedef ap_uint< 8> LE_IcmpCode;        // ICMP subtype of control Message
-typedef ap_uint<16> LE_IcmpCsum;        // ICMP header and data Checksum
+typedef ap_uint< 8> LE_IcmpType;    // ICMP Type of control Message
+typedef ap_uint< 8> LE_IcmpCode;    // ICMP subtype of control Message
+typedef ap_uint<16> LE_IcmpCsum;    // ICMP header and data Checksum
 
 /*********************************************************
  * ICMP - HEADER FIELDS IN NETWORK BYTE ORDER.
  *   Default Type Definitions (as used by HLS)
  *********************************************************/
-typedef ap_uint< 8> IcmpType;           // ICMP Type of control Message
-typedef ap_uint< 8> IcmpCode;           // ICMP subtype of control Message
-typedef ap_uint<16> IcmpCsum;           // ICMP  header and data Checksum
+typedef ap_uint< 8> IcmpType;       // ICMP Type of control Message
+typedef ap_uint< 8> IcmpCode;       // ICMP subtype of control Message
+typedef ap_uint<16> IcmpCsum;       // ICMP header and data Checksum
+typedef ap_uint<16> IcmpIdent;      // ICMP identifier
+typedef ap_uint<16> IcmpSeqNum;     // ICMP sequence number
 
 
 /*********************************************************
@@ -110,6 +121,12 @@ class AxisIcmp: public AxiWord {
     // Set-Get the Checksum field
     void          setIcmpCsum(IcmpCsum csum)         {                    tdata.range(31, 16) = swapWord(csum);  }
     IcmpCsum      getIcmpCsum()                      {   return swapWord (tdata.range(31, 16));                  }
+    // Set-Get the Identifier field
+    void          setIcmpIdent(IcmpIdent id)         {                    tdata.range(47, 32) = swapWord(id);    }
+    IcmpIdent     getIcmpIdent()                     {   return swapWord (tdata.range(47, 32));                  }
+    // Set-Get the Sequence Number field
+    void          setIcmpSeqNum(IcmpSeqNum num)      {                    tdata.range(63, 48) = swapWord(num);   }
+    IcmpSeqNum    getIcmpSeqNum()                    {   return swapWord (tdata.range(63, 48));                  }
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)

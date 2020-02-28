@@ -205,7 +205,7 @@ int createGoldenFile(
             ethGoldFrame.setTypeLength(ETH_ETHERTYPE_ARP);
             // Write the ARP packet as data payload of the ETHERNET frame.
             if (ethGoldFrame.setPayload(arpGoldPacket) == false) {
-                printError(THIS_NAME, "Failed set ARP packet as payload of an ETH frame.\n");
+                printError(THIS_NAME, "Failed to set ARP packet as payload of an ETH frame.\n");
                 ret = NTS_KO;
             }
             else if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
