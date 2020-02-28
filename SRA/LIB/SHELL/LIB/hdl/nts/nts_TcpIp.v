@@ -249,7 +249,7 @@ module NetworkTransportSession_TcpIp (
   input  [ 31:0] piMMIO_SubNetMask,
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
-  output         poMMIO_ToeReady,
+  output         poMMIO_NtsReady,
   
   output         poVoid
   
@@ -297,11 +297,11 @@ module NetworkTransportSession_TcpIp (
   wire          ssARS1_ICMP_Data_tready;
   
   //-- IPRX ==> ICMP/Ttl -------------------------
-  wire  [63:0]  ssIPRX_ICMP_Ttl_tdata;
-  wire  [ 7:0]  ssIPRX_ICMP_Ttl_tkeep;
-  wire          ssIPRX_ICMP_Ttl_tlast;
-  wire          ssIPRX_ICMP_Ttl_tvalid;
-  wire          ssIPRX_ICMP_Ttl_tready;
+  wire  [63:0]  ssIPRX_ICMP_Derr_tdata;
+  wire  [ 7:0]  ssIPRX_ICMP_Derr_tkeep;
+  wire          ssIPRX_ICMP_Derr_tlast;
+  wire          ssIPRX_ICMP_Derr_tvalid;
+  wire          ssIPRX_ICMP_Derr_tready;
     
   //-- IPRX ==> UDP ------------------------------
   wire  [63:0]  ssIPRX_UDP_Data_tdata;
@@ -608,11 +608,11 @@ module NetworkTransportSession_TcpIp (
     .soICMP_Data_TVALID       (ssIPRX_ARS1_Data_tvalid),
     .soICMP_Data_TREADY       (ssIPRX_ARS1_Data_tready),
     //-- To ICMP / Ttl -----------------
-    .soICMP_Derr_TDATA        (ssIPRX_ICMP_Ttl_tdata),
-    .soICMP_Derr_TKEEP        (ssIPRX_ICMP_Ttl_tkeep),
-    .soICMP_Derr_TLAST        (ssIPRX_ICMP_Ttl_tlast),
-    .soICMP_Derr_TVALID       (ssIPRX_ICMP_Ttl_tvalid),
-    .soICMP_Derr_TREADY       (ssIPRX_ICMP_Ttl_tready),
+    .soICMP_Derr_TDATA        (ssIPRX_ICMP_Derr_tdata),
+    .soICMP_Derr_TKEEP        (ssIPRX_ICMP_Derr_tkeep),
+    .soICMP_Derr_TLAST        (ssIPRX_ICMP_Derr_tlast),
+    .soICMP_Derr_TVALID       (ssIPRX_ICMP_Derr_tvalid),
+    .soICMP_Derr_TREADY       (ssIPRX_ICMP_Derr_tready),
 
     //------------------------------------------------------
     //-- UDP Interface
@@ -741,7 +741,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- NTS Interfaces
     //------------------------------------------------------    
-    .poNTS_Ready_V             (poMMIO_ToeReady),
+    .poNTS_Ready_V             (poMMIO_NtsReady),
                         
     //------------------------------------------------------
     //-- IPRX / IP Rx Data Interface
@@ -1506,7 +1506,7 @@ module NetworkTransportSession_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_This_Enable_V           (1'b0),
-    .piMMIO_This_MacAddress_V       (leMMIO_MacAddress),
+    .piMMIO_This_MacAddress_V       (piMMIO_MacAddress),
     
     //------------------------------------------------------
     //-- NTS IPv4 Interfaces
@@ -1638,7 +1638,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
-    .piMMIO_IpAddress_V (leMMIO_IpAddress),
+    .piMMIO_IpAddress_V (piMMIO_IpAddress),
   
     //------------------------------------------------------
     //-- IPRX Interfaces
@@ -1650,11 +1650,11 @@ module NetworkTransportSession_TcpIp (
     .siIPRX_Data_TVALID (ssARS1_ICMP_Data_tvalid),
     .siIPRX_Data_TREADY (ssARS1_ICMP_Data_tready),
     //-- To   IPRX / Ttl --------------------
-    .siIPRX_Ttl_TDATA   (ssIPRX_ICMP_Ttl_tdata),
-    .siIPRX_Ttl_TKEEP   (ssIPRX_ICMP_Ttl_tkeep),
-    .siIPRX_Ttl_TLAST   (ssIPRX_ICMP_Ttl_tlast),
-    .siIPRX_Ttl_TVALID  (ssIPRX_ICMP_Ttl_tvalid),
-    .siIPRX_Ttl_TREADY  (ssIPRX_ICMP_Ttl_tready),
+    .siIPRX_Derr_TDATA  (ssIPRX_ICMP_Derr_tdata),
+    .siIPRX_Derr_TKEEP  (ssIPRX_ICMP_Derr_tkeep),
+    .siIPRX_Derr_TLAST  (ssIPRX_ICMP_Derr_tlast),
+    .siIPRX_Derr_TVALID (ssIPRX_ICMP_Derr_tvalid),
+    .siIPRX_Derr_TREADY (ssIPRX_ICMP_Derr_tready),
     
     //------------------------------------------------------
     //-- UDP Interfaces

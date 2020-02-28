@@ -515,7 +515,7 @@ module Shell_Kale # (
   wire          sETH0_MMIO_CoreReady;
   wire          sETH0_MMIO_QpllLock;
   wire          sNTS0_MMIO_CamReady;
-  wire          sNTS0_MMIO_ToeReady;
+  wire          sNTS0_MMIO_NtsReady;
   //------ [PHY_ETH0] ------------------
   wire          sMMIO_ETH0_RxEqualizerMode;
   wire  [ 3:0]  sMMIO_ETH0_TxDriverSwing;
@@ -605,7 +605,7 @@ module Shell_Kale # (
     //-- NTS[0]: Status inputs and Control outputs
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
-    .piNTS0_ToeReady                (sNTS0_MMIO_ToeReady),
+    .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
@@ -731,7 +731,7 @@ module Shell_Kale # (
       .piTOP_156_25Clk              (piTOP_156_25Clk),    // Freerunning
       .piCLKT_Gt_RefClk_n           (piCLKT_10GeClk_n),
       .piCLKT_Gt_RefClk_p           (piCLKT_10GeClk_p),
-      .piTOP_Reset                  (piTOP_156_25Rst),
+      .piTOP_Reset                  (piTOP_156_25Rst),    // [TODO-Add piMMIO_Layer2Rst]
 
       //-- Clocks and Resets outputs ---------------
       .poSHL_CoreClk                (sETH0_ShlClk),
@@ -993,7 +993,7 @@ module Shell_Kale # (
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),
-    .poMMIO_ToeReady                  (sNTS0_MMIO_ToeReady),
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
 
     .poVoid                           ()
 
