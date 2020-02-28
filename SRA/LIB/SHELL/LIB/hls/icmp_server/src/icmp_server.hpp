@@ -58,44 +58,41 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-const IcmpType  ICMP_ECHO_REQUEST  = 0x08;  // Echo request (used to ping)
-const uint8_t   ICMP_ECHO_REPLY    = 0x00;
-const uint8_t   ICMP_PROTOCOL = 0x01;
+const IcmpType  ICMP_ECHO_REPLY              = 0x00; // Echo reply (used to ping)
+const IcmpType  ICMP_DESTINATION_UNREACHABLE = 0x03; //
+const IcmpType  ICMP_ECHO_REQUEST            = 0x08; // Echo request (used to ping)
+const IcmpType  ICMP_TIME_EXCEEDED           = 0x0B;
+
+const IcmpCode  ICMP_TTL_EXPIRED_IN_TRANSIT       = 0x00;
+const IcmpCode  ICMP_DESTINATION_PORT_UNREACHABLE = 0x03;
+
+const Ip4Prot   ICMP_PROTOCOL = 0x01; // IP protocol number for ICMP
 
 typedef ap_uint<17> Sum17;    // 16-bit 1's complement sum with carry
 typedef ap_uint<17> LE_Sum17; // 16-bit 1's complement sum with carry
-
-/*** OBSOLETE-20200221 ****************
- struct axiWord {
-    ap_uint<64>     data;
-    ap_uint<8>      keep;
-    ap_uint<1>      last;
-};
-***************************************/
-//OBSOLETE_20200203 enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4, WORD_5 };
 
 
 void icmp_server(
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
-        LE_Ip4Addr          piMMIO_IpAddress,
+        Ip4Addr             piMMIO_IpAddress,
 
         //------------------------------------------------------
         //-- IPRX Interfaces
         //------------------------------------------------------
         stream<AxisIp4>    &siIPRX_Data,
-        stream<AxiWord>    &siIPRX_Ttl,
+        stream<AxisIp4>    &siIPRX_Derr,
 
         //------------------------------------------------------
         //-- UDP Interface
         //------------------------------------------------------
-        stream<AxiWord>    &siUDP_Data,
+        stream<AxiWord>    &siUDP_Data,  // [TODO-AxisUdp]
 
         //------------------------------------------------------
         //-- IPTX Interface
         //------------------------------------------------------
-        stream<AxiWord>    &soIPTX_Data
+        stream<AxisIp4>    &soIPTX_Data
 
 );
 

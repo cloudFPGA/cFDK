@@ -1,0 +1,88 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_Data_OneIcmpPkt.dat
+#
+#  @brief : An ICMP packet-over-IPv4.
+#            The ICMP packet contains a unique ECHO Request message.
+#
+#  @details : 
+#    * IP-SA     = 0x0A0C0001 = 10. 2.  0.  3
+#    * IP-DA     = 0x0A0CC8EE = 10.12.200.238
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an ICMP message over an IPv4 packet (w/o options) is as follows:
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag Ofst (L) |Flags|  FO(H)  |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |           Checksum            |      Code     |     Type      |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                    Rest of Header (content varies based on the ICMP Type and Code)                            |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             Data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+
+# G PARAM FpgaIp4Addr   1.1.1.1
+
+
+# 0040000054000045 0 FF
+# 010101019D360140 0 FF
+# B7B800080A010101 0 FF
+# 51CD55B80100B463 0 FF
+# 000D188A00000000 0 FF
+# 1312111000000000 0 FF
+# 1B1A191817161514 0 FF
+# 232221201F1E1D1C 0 FF
+# 2B2A292827262524 0 FF
+# 333231302F2E2D2C 0 FF
+# 0000000037363534 1 0F
+
+G PARAM FpgaIp4Addr   10.12.200.238
+
+# Details of the ICMP Echo (ping) Request packet
+#  IP Source      = 10. 2.  0.  3
+#  IP Destination = 10.12.200.238
+#  Length         = 84 bytes
+#  Identification = 0x1403
+#  Sequence       = 1/256
+#  TTL            = 64
+#  Raw data       = 450000544b9c40004001120e0a0200030a0cc8ee0800f35a140300014ded575e000000008582070000000000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637
+#  Expected Reply = 450000544b9c40003e01140e0a0cc8ee0a0200030000fb5a140300014ded575e000000008582070000000000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637
+
+
+
+
+00409c4b54000045 0 FF
+0300020a0e120140 0 FF
+5af30008eec80c0a 0 FF
+5e57ed4d01000314 0 FF
+0007828500000000 0 FF
+1312111000000000 0 FF
+1b1a191817161514 0 FF
+232221201f1e1d1c 0 FF
+2b2a292827262524 0 FF
+333231302f2e2d2c 0 FF
+0000000037363534 1 0F
+

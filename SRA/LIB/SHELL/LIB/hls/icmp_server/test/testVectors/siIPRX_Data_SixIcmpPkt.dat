@@ -1,0 +1,129 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_Data_SixIcmpPkt.dat
+#
+#  @brief : Three ICMP packet-over-IPv4.
+#             - The 1st packet contains a valid Echo-Request message,
+#             - The 2nd packet contains an unsupported control message,
+#             - The 3rd packet contains an invalid checksum,
+#             - The 4th to 6th packets are valid Echo-Request messages.
+#
+#  @details : 
+#    * IP-SA     = 0x01010101 =  1. 1.  1.  1
+#    * IP-DA     = 0x0101010A =  1. 1.  1. 10
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an ICMP message over an IPv4 packet (w/o options) is as follows:
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag Ofst (L) |Flags|  FO(H)  |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |           Checksum            |      Code     |     Type      |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                    Rest of Header (content varies based on the ICMP Type and Code)                            |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             Data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+
+G PARAM FpgaIp4Addr   1.1.1.1
+
+0040000054000045 0 FF
+010101019D360140 0 FF
+B7B800080A010101 0 FF
+51CD55B80100B463 0 FF
+000D188A00000000 0 FF
+1312111000000000 0 FF
+1B1A191817161514 0 FF
+232221201F1E1D1C 0 FF
+2B2A292827262524 0 FF
+333231302F2E2D2C 0 FF
+0000000037363534 1 0F
+
+00406C3970000045 0 FF
+010101010ABD0180 0 FF
+FFF4000B14010101 0 FF
+5400004500000000 0 FF
+273C010100406C39 0 FF
+0101010114010101 0 FF
+02005A57EBCF0008 0 FF
+00000000545A61DD 0 FF
+0000000000092ED1 0 FF
+1716151413121110 0 FF
+1F1E1D1C1B1A1918 0 FF
+2726252423222120 0 FF
+2F2E2D2C2B2A2928 0 FF
+3736353433323130 1 FF
+
+00406C3970000045 0 FF
+010101010ABD0180 0 FF
+1234070314010101 0 FF
+5400004500000000 0 FF
+273C010100406C39 0 FF
+0101010114010101 0 FF
+02005A57EBCF0008 0 FF
+00000000545A61DD 0 FF
+0000000000092ED1 0 FF
+1716151413121110 0 FF
+1F1E1D1C1B1A1918 0 FF
+2726252423222120 0 FF
+2F2E2D2C2B2A2928 0 FF
+3736353433323130 1 FF
+
+0040974c54000045 0 FF
+0300020a13110140 0 FF
+571c0008eec80c0a 0 FF
+5e57ed4e02000314 0 FF
+0007855b00000000 0 FF
+1312111000000000 0 FF
+1b1a191817161514 0 FF
+232221201f1e1d1c 0 FF
+2b2a292827262524 0 FF
+333231302f2e2d2c 0 FF
+0000000037363534 1 0F
+
+00400c5054000045 0 FF
+0300020a9e0d0140 0 FF
+56150008eec80c0a 0 FF
+5e57ed4f03000314 0 FF
+0007856100000000 0 FF
+1312111000000000 0 FF
+1b1a191817161514 0 FF
+232221201f1e1d1c 0 FF
+2b2a292827262524 0 FF
+333231302f2e2d2c 0 FF
+0000000037363534 1 0F
+
+0040125154000045 0 FF
+0300020a980c0140 0 FF
+550f0008eec80c0a 0 FF
+5e57ed5004000314 0 FF
+0007856600000000 0 FF
+1312111000000000 0 FF
+1b1a191817161514 0 FF
+232221201f1e1d1c 0 FF
+2b2a292827262524 0 FF
+333231302f2e2d2c 0 FF
+0000000037363534 1 0F
+

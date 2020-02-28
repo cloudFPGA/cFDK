@@ -56,7 +56,7 @@ add_files     ${srcDir}/${projectName}.cpp
 add_files     ${currDir}/../toe/src/toe_utils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files     ${currDir}/../toe/test/test_toe_utils.cpp
+add_files -tb ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------
@@ -108,8 +108,8 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    # csim_design -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame.dat"
-    # csim_design -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame_NoReply.dat"
+    csim_design -argv "../../../../test/testVectors/siIPRX_Data_OneIcmpPkt.dat"
+    csim_design -argv "../../../../test/testVectors/siIPRX_Data_SixIcmpPkt.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -131,8 +131,8 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame.dat"
-    # cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_ArpFrame_NoReply.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_OneIcmpPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_SixIcmpPkt.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
