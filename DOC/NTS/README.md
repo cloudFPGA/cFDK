@@ -28,14 +28,14 @@ Please consider reading the following two documents before diving or contributin
 
 ## List of HLS Components
 
-| Acronym         | Description                                           | Filename
-|:----------------|:------------------------------------------------------|:--------------
+| Acronym             | Description                                       | Filename
+|:--------------------|:--------------------------------------------------|:--------------
 | **[ARS](ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](../../SRA/LIB/SHELL/LIB/hls/arp_server/src/arp_server.cpp)
-| **ICMP**        | Internet Control Message Protocol (ICMP) server.      | icmp_server
+| **[ICMP](ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/icmp_server/src/icmp_server.cpp)
 | **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
 | **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
 | **[TOE](./TOE.md)** | TCP Offload Engine.                               | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
-| **UDP**         | UDP engine.                                           | udp
+| **UDP**             | UDP engine.                                       | udp
 
 <br>
 <br>
