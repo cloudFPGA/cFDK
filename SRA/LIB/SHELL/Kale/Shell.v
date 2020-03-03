@@ -986,6 +986,7 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
+    .piMMIO_Layer2Rst                 (sMMIO_LayerRst[2]),
     .piMMIO_Layer3Rst                 (sMMIO_LayerRst[3]),
     .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]), 
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),

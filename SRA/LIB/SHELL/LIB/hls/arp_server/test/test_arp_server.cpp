@@ -354,7 +354,7 @@ void pEmulateCam(
             camUpdateIdleCnt--;
         }
         else {
-            if (macUpdReq.op == ARP_INSERT) {
+            if (macUpdReq.opcode == ARP_INSERT) {
                 // Overwrite value if 'key' already exists
                 LOOKUP_TABLE[macUpdReq.key] = macUpdReq.value;
                 soARS_MacUpdRep.write(RtlMacUpdateReply(ARP_INSERT));

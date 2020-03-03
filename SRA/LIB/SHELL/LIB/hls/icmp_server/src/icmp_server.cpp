@@ -291,7 +291,7 @@ void pIcmpChecksumChecker(
  * @param[out] soICi_Csum,  ICMP checksum to ICi.
  *
  * @details
- *  This process ...
+ *  [TODO-Not tested yet] This process ...
  *   *  If the TTL of the incoming IPv4 packet has expired, the packet is routed
  *  to the ICMP (over the 'soICMP_Derr' stream) in order for the ICMP engine
  *  to build the error messages which data section must include a copy of the

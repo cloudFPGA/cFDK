@@ -69,11 +69,15 @@ const ArpOper     ARP_OPER_REPLY     = 0x0002; // Operation is reply
 
 const Ip4Addr     IP4_BROADCAST_ADD  = 0xFFFFFFFF; // Broadcast IP4 Address
 
-//OBSOLETE const ap_uint<32>	replyTimeOut 	= 65536;
-//OBSOLETE const uint8_t 	noOfArpTableEntries	= 8;
 
-typedef bool ArpLkpHit;
-enum         ArpLkpHitStates { NO_HIT=false, HIT=true };
+typedef ap_uint<1> ArpLkpHit;
+enum               ArpLkpHitStates { NO_HIT=0, HIT=1 };
+
+typedef ap_uint<1> ArpLkpOp;
+enum               ArpLkpOpCodes   { ARP_INSERT=0, ARP_DELETE=1 };
+
+//OBSOLETE_20200301 typedef ap_uint<1> ArpLkpSrc;
+//OBSOLETE_20200301 enum               ArpLkpSources   { IPRX=0, OTHER=1 };
 
 /*** OBSOLETE-20200218 ****************
 struct arpTableReply
@@ -155,22 +159,22 @@ struct rtlMacUpdateRequest {
 };
 ***************************************/
 
-enum arpLkpOp  { ARP_INSERT=0, ARP_DELETE };
-
 
 /********************************************
  * CAM / MAC Update Request
  ********************************************/
 class RtlMacUpdateRequest {
   public:
-    ap_uint<1>      source;
-    arpLkpOp        op;     //  1-bit : '0' is INSERT, '1' is DELETE
     EthAddr         value;  // 48-bits
     Ip4Addr         key;    // 32-bits
+    //OBSOLETE_20200301 ap_uint<1>      source;
+    ArpLkpOp        opcode; //  1-bit : '0' is INSERT, '1' is DELETE
 
     RtlMacUpdateRequest() {}
-    RtlMacUpdateRequest(Ip4Addr key, EthAddr value, arpLkpOp op) :
-        key(key), value(value), op(op), source(0) {}
+    //OBSOLETE_20200301 RtlMacUpdateRequest(Ip4Addr key, EthAddr value, arpLkpOp op) :
+    //OBSOLETE_20200301     key(key), value(value), op(op), source(0) {}
+    RtlMacUpdateRequest(Ip4Addr key, EthAddr value, ArpLkpOp opcode) :
+            key(key), value(value), opcode(opcode) {}
 };
 
 /********************************************
@@ -178,15 +182,19 @@ class RtlMacUpdateRequest {
  ********************************************/
 class RtlMacUpdateReply {
   public:
-    ap_uint<1>      source;
-    arpLkpOp        op;     //  1-bit : '0' is INSERT, '1' is DELETE
     EthAddr         value;  // 48-bits
+    //OBSOLETE_20200301 ap_uint<1>      source;
+    ArpLkpOp        opcode; //  1-bit : '0' is INSERT, '1' is DELETE
 
     RtlMacUpdateReply() {}
-    RtlMacUpdateReply(arpLkpOp op) :
-        op(op), source(0) {}
-    RtlMacUpdateReply(ap_uint<8> id, arpLkpOp op) : //[FIXME- Why 8 and not 48?]
-        value(id), op(op), source(0) {}
+    //OBSOLETE_20200301 RtlMacUpdateReply(ArpLkpOp opcode) :
+    //OBSOLETE_20200301     opcode(opcode), source(0) {}
+    //OBSOLETE_20200301 RtlMacUpdateReply(EthAddr value, ArpLkpOp opcode) :
+    //OBSOLETE_20200301     value(value), opcode(opcode), source(0) {}
+    RtlMacUpdateReply(ArpLkpOp opcode) :
+        opcode(opcode) {}
+    RtlMacUpdateReply(EthAddr value, ArpLkpOp opcode) :
+        value(value), opcode(opcode) {}
 };
 
 /********************************************
@@ -194,11 +202,13 @@ class RtlMacUpdateReply {
  ********************************************/
 class RtlMacLookupRequest {
   public:
-    ap_uint<1>      source;
     Ip4Addr         key;
+    //OBSOLETE_20200301 ap_uint<1>      source;
     RtlMacLookupRequest() {}
+    //OBSOLETE_20200301 RtlMacLookupRequest(Ip4Addr searchKey) :
+    //OBSOLETE_20200301     key(searchKey), source(0) {}
     RtlMacLookupRequest(Ip4Addr searchKey) :
-        key(searchKey), source(0) {}
+        key(searchKey) {}
 };
 
 /********************************************
@@ -206,14 +216,12 @@ class RtlMacLookupRequest {
  ********************************************/
 class RtlMacLookupReply {
   public:
-    ArpLkpHit       hit;    //  8 bits
     EthAddr         value;  // 48 bits
+    ArpLkpHit       hit;    //  8 bits
     RtlMacLookupReply() {}
     RtlMacLookupReply(ArpLkpHit hit, EthAddr value) :
         hit(hit), value(value) {}
 };
-
-
 
 
 void arp_server(

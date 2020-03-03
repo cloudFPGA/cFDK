@@ -96,8 +96,8 @@ template<class T> void pAnd2(
 /******************************************************************************
  * @brief The Ready (Rdy) process generates the ready signal of the PRt.
  *
- *  @param[in]  piPRt_Ready, The ready signal from PortTable (PRt).
- *  @param[in]  piTBD_Ready, The ready signal from TBD.
+ *  @param[in]  piLpt_Ready, The ready signal from ListenPortTable (Lpt).
+ *  @param[in]  piFpt_Ready, The ready signal from FreePortTable (Fpt).
  *  @param[out] poNTS_Ready, The ready signal of the TOE.
  *
  ******************************************************************************/
