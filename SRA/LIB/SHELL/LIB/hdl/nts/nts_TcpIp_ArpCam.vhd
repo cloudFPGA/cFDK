@@ -148,7 +148,7 @@ architecture Behavioral of ArpCam is
   signal sCAM_LkpRepValue  : std_logic_vector(gValueLength - 1 downto 0);
   signal sCAM_UpdRepReady  : std_logic;
 
-	signal sFSM              : std_logic_vector(7 downto 0);
+	signal sCamCtrl_FSM      : std_logic_vector(7 downto 0);
 	signal sValidHappened    : std_logic;
 
 	-- OBSOLETE-20200302 signal cnt1s             : std_logic_vector(27 downto 0);
@@ -189,7 +189,7 @@ begin
   --	sInitEnb <= not InitDone;
 	
 	sAgingTime  <= (others => '1');		
-	sHelpUpdVal <= sUpdateValid or (sFSM(6) and not sCAM_UpdRepReady);
+	sHelpUpdVal <= sUpdateValid or (sCamCtrl_FSM(6) and not sCAM_UpdRepReady);
 	
   -----------------------------------------------------------------
   -- PROC: Cam Control
@@ -204,7 +204,7 @@ begin
 			sUpdateKey   <= (others => '0');
 			sUpdateStatic<= '1';
 			sUpdateValue <= (others => '0');
-			sFSM <= x"00";
+			sCamCtrl_FSM <= x"00";
 			poLkpReq_Ready <= '0';
 			poUpdReq_Ready <= '0';
 			poLkpRep_Valid <= '0';
@@ -218,8 +218,8 @@ begin
 			poUpdRep_Valid <= '0';				
 			sLkpReqValid   <= '0';
 			sUpdateValid   <= '0';
-			if (sCAM_InitDone = '1' or sFSM > x"00") then
-				case sFSM is
+			if (sCAM_InitDone = '1' or sCamCtrl_FSM > x"00") then
+				case sCamCtrl_FSM is
 				when x"00" => 
 				  --------------------------------
 				  -- IDLE-STATE                 --
@@ -232,7 +232,7 @@ begin
 						--OBSOLETE-20200302 lup_rsp_dout(0)   <= lup_req_din(0); --rx bit
 						sLkpReqKey           <= piLkpReq_Data.ipKey;	
             poLkpRep_Data.srcBit <= piLkpReq_Data.srcBit;
-            sFSM <= x"10";
+            sCamCtrl_FSM <= x"10";
 					--OBSOLETE_20200302 elsif (upd_req_valid='1' and upd_req_din(1)='0') then
 					elsif (piUpdReq_Valid='1' and piUpdReq_Data.opCode=cOPCODE_INSERT) then
 					  -- IDLE --> INSERT -------------------
@@ -246,7 +246,7 @@ begin
             sUpdateKey           <= piUpdReq_Data.ipKey;
             sUpdateValue         <= piUpdReq_Data.macVal;
             poUpdRep_Data.srcBit <= piUpdReq_Data.srcBit;
-						sFSM <= x"50";
+						sCamCtrl_FSM <= x"50";
 					--OBSOLETE_20200302 elsif (upd_req_valid='1' and upd_req_din(1)='1') then
 					elsif (piUpdReq_Valid='1' and piUpdReq_Data.opCode=cOPCODE_DELETE) then
 					  -- IDLE --> DELETE -------------------
@@ -260,10 +260,10 @@ begin
             sUpdateKey           <= piUpdReq_Data.ipKey;
             sUpdateValue         <= piUpdReq_Data.macval;  
             poUpdRep_Data.srcBit <= piUpdReq_Data.srcBit;              
-            sFSM <= x"40";
+            sCamCtrl_FSM <= x"40";
 					else
 					  -- IDLE --> IDLE ---------------------
-						sFSM <= x"00";
+						sCamCtrl_FSM <= x"00";
 					end if;
 						
 				when x"10" =>
@@ -272,7 +272,7 @@ begin
           --------------------------------
 					sLkpReqValid   <= '0';
 					sValidHappened <= '0';
-					sFSM <= x"11";
+					sCamCtrl_FSM <= x"11";
 					
 				when x"11" =>
 				  --------------------------------
@@ -288,11 +288,11 @@ begin
 						if (sCAM_LkpRepValid = '1') then
 							sValidHappened <= '1';
 						end if;	
-						sFSM <= sFSM;
+						sCamCtrl_FSM <= sCamCtrl_FSM;
 					else
 						if (sCAM_LkpRepValid = '1' or sValidHappened = '1') then
 							poLkpRep_Valid  <= '1';
-							sFSM            <= x"00";
+							sCamCtrl_FSM <= x"00";
 						end if;
 					end if;
 				
@@ -301,7 +301,7 @@ begin
           -- UPDATE-INSERT-REQUEST     --
           --------------------------------
 					sUpdateValid <= '1';				
-					sFSM         <= x"51";
+					sCamCtrl_FSM <= x"51";
 					
 				when x"51" =>
 				  --------------------------------
@@ -316,10 +316,10 @@ begin
             poUpdRep_Data.opCode <= sUpdateOp; -- ops
 						sUpdateKey           <= (others => '0');
 						sUpdateValue         <= (others => '0');									
-						sFSM <= x"52";
+						sCamCtrl_FSM <= x"52";
 					else -- hold everything
 						sUpdateValid <= '0';
-						sFSM <= x"51";							
+						sCamCtrl_FSM <= x"51";							
 					end if;
 							
 				when x"52" =>
@@ -327,10 +327,10 @@ begin
           -- SEND-INSERT-REPLY          --
           --------------------------------
 					if (piUpdRep_Ready = '0') then
-						sFSM <= sFSM;
+						sCamCtrl_FSM <= sCamCtrl_FSM;
 					else
 						poUpdRep_Valid <= '1';
-						sFSM <= x"00";
+						sCamCtrl_FSM <= x"00";
 					end if;
 
 				
@@ -339,7 +339,7 @@ begin
           -- UPDATE-DELETE-REQUEST      --
           --------------------------------
 					sUpdateValid    <= '1';
-					sFSM        <= x"41";
+					sCamCtrl_FSM <= x"41";
 
 				when x"41" =>
   			  --------------------------------
@@ -355,10 +355,10 @@ begin
 						sUpdateOp      <= '0';
 						sUpdateKey     <= (others => '0');
 						sUpdateValue   <= (others => '0');									
-						sFSM       <= x"42";
+						sCamCtrl_FSM   <= x"42";
 					else -- hold everything
 						sUpdateValid   <= '0';	
-						sFSM       <= x"41";							
+						sCamCtrl_FSM   <= x"41";							
 					end if;
 							
 				when x"42" =>
@@ -367,16 +367,16 @@ begin
           --------------------------------
 					if (piUpdRep_Ready = '1') then
 						poUpdRep_Valid <= '1';
-						sFSM <= x"00";
+						sCamCtrl_FSM <= x"00";
 					else
-						sFSM <= sFSM;
+						sCamCtrl_FSM <= sCamCtrl_FSM;
 					end if;
 						
 				when others =>
 				  --------------------------------
           -- DEFAULT-STATE              --
           --------------------------------
-					sFSM <= sFSM + 1;
+					sCamCtrl_FSM <= sCamCtrl_FSM + 1;
 				end case;
 			end if;
 		end if;
@@ -402,7 +402,7 @@ begin
       debug(127 downto 120)  <= sUpdateKey(7 downto 0);
       debug(128)             <= sUpdateStatic;
       debug(142 downto 129)  <= sUpdateValue(13 downto 0);		
-		  debug(150 downto 143)  <= sFSM;
+		  debug(150 downto 143)  <= sCamCtrl_FSM;
 		  debug(151)             <= piRst;
     end if;   
   end process;  -- pDebug

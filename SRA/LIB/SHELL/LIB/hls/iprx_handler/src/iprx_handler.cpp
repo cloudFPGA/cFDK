@@ -102,11 +102,11 @@ void pInputBuffer(
     	siETH_Data.read(axisWord);
     	// OBSOLETE-20191106 if ( (axisWord.tlast == 0) && (axisWord.tkeep != 0xFF)) {
     	if (not axisWord.isValid()) {
-    		 if (DEBUG_LEVEL & TRACE_IBUF) {
+    		if (DEBUG_LEVEL & TRACE_IBUF) {
     			 printWarn(myName, "Received an AxisWord with an unexpected \'tkeep\' or \'tlast\' value.\n");
     			 printAxiWord(myName, "Aborting the frame after: ", axisWord);
-    			 soMPd_Data.write(AxiWord(axisWord.tdata, 0x00, 1));
-    		 }
+    		}
+            soMPd_Data.write(AxiWord(axisWord.tdata, 0x00, 1));
     	}
     	else {
     		soMPd_Data.write(axisWord);
@@ -174,7 +174,6 @@ void pMacProtocolDetector(
             default:
                 if (mpd_wordCount == 1) {
                     if (mpd_etherType != DROP) {
-                        //OBSOLETE-2191015 macType = byteSwap16(currWord.tdata(47, 32));
                         mpd_etherType = currWord.getEtherType();
                     }
                     mpd_wordCount++;
@@ -194,7 +193,7 @@ void pMacProtocolDetector(
             }
         }
         break;
-    case 1:
+    case S1:
         if( !soARP_Data.full() && !soILc_Data.full()){
             if (mpd_etherType == ARP) {
                 soARP_Data.write(mpd_prevWord);
@@ -767,7 +766,7 @@ void pIpPacketRouter(
      switch (ipr_fsmState) {
      case FSM_IDLE:
          if (!siICl_Data.empty() &&
-             !soICMP_Derr.full() && !soICMP_Data.full() &&  // [FIXME - !soICMP_Derr.full() ]
+             !soICMP_Derr.full() && !soICMP_Data.full() &&
              !soUDP_Data.full()  && !soTCP_Data.full()) {
              siICl_Data.read(currWord);
              switch (ipr_wordCount) {
@@ -793,7 +792,7 @@ void pIpPacketRouter(
                     }
                     else {
                         switch (ipr_ipProtocol) {
-                        // FYI - There is not default case. If the current packet
+                        // FYI - There is no default case. If the current packet
                         //  does not match any case, it is automatically dropped.
                         case ICMP:
                             soICMP_Data.write(AxiWord(ipr_prevWord));
