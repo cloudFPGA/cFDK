@@ -156,7 +156,7 @@ module Shell_Kale # (
   output          poROL_156_25Rst,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Udp InterfacespoROL_156_25Clk
+  //-- ROLE / Nts / Udp Interfaces
   //------------------------------------------------------
   //---- Input UDP Data (AXI4S) --------
   input  [ 63:0]  siROL_Nts_Udp_Data_tdata,
@@ -1024,7 +1024,7 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- Alternate System Reset
     //------------------------------------------------------
-    .piMMIO_Rst                       (sMMIO_LayerRst[0]),
+    .piMMIO_Rst                       (sMMIO_LayerRst[1]),  // [FIXME]
 
     //------------------------------------------------------
     //-- DDR4 Reference Memory Clocks

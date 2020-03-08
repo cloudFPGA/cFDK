@@ -47,7 +47,7 @@ module NetworkTransportSession_TcpIp (
   //--  This is typically 'sETH0_ShlRst'. If the module is created by HLS,
   //--   we use it as the default startup reset of the module.)
   //------------------------------------------------------ 
-  input          piShlRst,  // [TODO-NotUsed-Can be removed]
+  input          piShlRst,
    
   //------------------------------------------------------
   //-- ETH / Ethernet Layer-2 Interfaces
@@ -572,7 +572,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
-    .aresetn                  (~piMMIO_Layer2Rst),
+    .aresetn                  (~piMMIO_Layer3Rst),
 
     //------------------------------------------------------
     //-- From MMIO Interfaces
@@ -644,7 +644,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   AxisRegisterSlice_64 ARS0 (
     .aclk           (piShlClk),
-    .aresetn        (~piMMIO_Layer2Rst),
+    .aresetn        (~piMMIO_Layer3Rst),
     //-- From IPRX / Data --------------
     .s_axis_tdata   (ssIPRX_ARS0_Data_tdata),
     .s_axis_tkeep   (ssIPRX_ARS0_Data_tkeep),
@@ -685,7 +685,7 @@ module NetworkTransportSession_TcpIp (
   AddressResolutionProcess ARP (
   
     .piShlClk                       (piShlClk),
-    .piMMIO_Rst                     (piMMIO_Layer2Rst),
+    .piMMIO_Rst                     (piMMIO_Layer3Rst), // Warning: This reset is active HIGH !!
 
     //------------------------------------------------------
     //-- MMIO Interfaces
@@ -1688,7 +1688,7 @@ module NetworkTransportSession_TcpIp (
   AxisInterconnectRtl_3S1M_D8 L3MUX (
    
     .ACLK               (piShlClk),                         
-    .ARESETN            (~piMMIO_Layer3Rst),           
+    .ARESETN            (~piMMIO_Layer3Rst),
  
     .S00_AXIS_ACLK      (piShlClk),
     .S01_AXIS_ACLK      (piShlClk),            
@@ -1748,8 +1748,8 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   IpTxHandler IPTX (
   
-    .aclk                     (piShlClk),         
-    .aresetn                  (~piMMIO_Layer3Rst),  
+    .aclk                     (piShlClk),
+    .aresetn                  (~piMMIO_Layer3Rst),
   
     //------------------------------------------------------
     //-- L3MUX Interfaces
@@ -1797,12 +1797,12 @@ module NetworkTransportSession_TcpIp (
   AxisInterconnectRtl_2S1M_D8 L2MUX (
     
     .ACLK                 (piShlClk), 
-    .ARESETN              (~piMMIO_Layer2Rst), 
+    .ARESETN              (~piMMIO_Layer3Rst),
  
     .S00_AXIS_ACLK        (piShlClk), 
     .S01_AXIS_ACLK        (piShlClk), 
-    .S00_AXIS_ARESETN     (~piMMIO_Layer2Rst), 
-    .S01_AXIS_ARESETN     (~piMMIO_Layer2Rst),
+    .S00_AXIS_ARESETN     (~piMMIO_Layer3Rst),
+    .S01_AXIS_ARESETN     (~piMMIO_Layer3Rst),
  
     //------------------------------------------------------
     //-- ARP Interfaces
@@ -1825,7 +1825,7 @@ module NetworkTransportSession_TcpIp (
     .S01_AXIS_TREADY      (ssIPTX_L2MUX_Data_tready),
  
     .M00_AXIS_ACLK        (piShlClk), 
-    .M00_AXIS_ARESETN     (~piMMIO_Layer2Rst), 
+    .M00_AXIS_ARESETN     (~piMMIO_Layer3Rst),
  
     //------------------------------------------------------
     //-- ETH / Ethernet Layer-2 Interface

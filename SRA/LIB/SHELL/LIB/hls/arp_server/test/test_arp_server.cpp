@@ -83,6 +83,8 @@ int createGoldenFile(
         Ip4Addr               myIp4Address,
         map<Ip4Addr, EthAddr> &hostMap)
 {
+    const char *myName  = concat3(THIS_NAME, "/", "CGF");
+
     ifstream    ifsDAT;
     ofstream    ofsDAT;
 
@@ -96,12 +98,12 @@ int createGoldenFile(
     ifsDAT.open(inpDAT_FileName.c_str());
     if (!ifsDAT) {
         getcwd(currPath, sizeof(currPath));
-        printError("TB", "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
+        printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
                    inpDAT_FileName.c_str(), currPath);
         return(NTS_KO);
     }
     if (not isDatFile(inpDAT_FileName)) {
-        printError("TB", "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n",
+        printError(myName, "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n",
                    inpDAT_FileName.c_str());
         ifsDAT.close();
         return(NTS_KO);
@@ -151,18 +153,18 @@ int createGoldenFile(
             // Assess MAC_DA = FF:FF:FF:FF:FF:FF
             EthAddr  macDA = ethDataFrame.getMacDestinAddress();
             if(macDA != ETH_BROADCAST_MAC) {
-                printWarn(THIS_NAME, "Frame #%d is dropped because it is not a broadcast frame.\n");
-                printEthAddr(THIS_NAME, "  Received", macDA);
-                printEthAddr(THIS_NAME, "  Expected", ETH_BROADCAST_MAC.to_ulong());
+                printWarn(myName, "Frame #%d is dropped because it is not a broadcast frame.\n");
+                printEthAddr(myName, "  Received", macDA);
+                printEthAddr(myName, "  Expected", ETH_BROADCAST_MAC.to_ulong());
                 continue;
             }
 
             // Assess EtherType is ARP
             EtherType etherType = ethDataFrame.getTypeLength();
             if (etherType != 0x0806) {
-                printWarn(THIS_NAME, "Frame #%d is dropped because it is not an ARP frame.\n");
-                printInfo(THIS_NAME, "  Received EtherType = 0x%4.4X\n", etherType.to_ushort());
-                printInfo(THIS_NAME, "  Expected EtherType = 0x%4.4X\n", ETH_ETHERTYPE_ARP.to_uint());
+                printWarn(myName, "Frame #%d is dropped because it is not an ARP frame.\n");
+                printInfo(myName, "  Received EtherType = 0x%4.4X\n", etherType.to_ushort());
+                printInfo(myName, "  Expected EtherType = 0x%4.4X\n", ETH_ETHERTYPE_ARP.to_uint());
                 continue;
             }
 
@@ -174,15 +176,15 @@ int createGoldenFile(
             ArpSendProtAddr spa = arpDataPacket.getSenderProtAddr();
             ArpSendHwAddr   sha = arpDataPacket.getSenderHwAddr();
             if (spa == RESERVED_SENDER_PROTOCOL_ADDRESS) {
-                printFatal(THIS_NAME, "A DAT file cannot use the Sender Protocol Address (0x%8.8X) because it is reserved for specific testing.\n", RESERVED_SENDER_PROTOCOL_ADDRESS.to_uint());
+                printFatal(myName, "A DAT file cannot use the Sender Protocol Address (0x%8.8X) because it is reserved for specific testing.\n", RESERVED_SENDER_PROTOCOL_ADDRESS.to_uint());
             }
             hostMap[spa] = sha;
 
             // Assess the Target Protocol Address
             if (arpDataPacket.getTargetProtAddr() != myIp4Address) {
-                printWarn(THIS_NAME, "Frame #%d is skipped because the Target Protocol Address (TPA) of the ARP-REQUEST does not match the IP address of this core.\n");
-                printIp4Addr(THIS_NAME, "  Received TPA", arpDataPacket.getTargetProtAddr());
-                printIp4Addr(THIS_NAME, "  Expected TPA", myIp4Address.to_uint());
+                printWarn(myName, "Frame #%d is skipped because the Target Protocol Address (TPA) of the ARP-REQUEST does not match the IP address of this core.\n");
+                printIp4Addr(myName, "  Received TPA", arpDataPacket.getTargetProtAddr());
+                printIp4Addr(myName, "  Expected TPA", myIp4Address.to_uint());
                 continue;
             }
 
@@ -205,11 +207,11 @@ int createGoldenFile(
             ethGoldFrame.setTypeLength(ETH_ETHERTYPE_ARP);
             // Write the ARP packet as data payload of the ETHERNET frame.
             if (ethGoldFrame.setPayload(arpGoldPacket) == false) {
-                printError(THIS_NAME, "Failed to set ARP packet as payload of an ETH frame.\n");
+                printError(myName, "Failed to set ARP packet as payload of an ETH frame.\n");
                 ret = NTS_KO;
             }
             else if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
-                printError(THIS_NAME, "Failed to write ETH frame to DAT file.\n");
+                printError(myName, "Failed to write ETH frame to DAT file.\n");
                 ret = NTS_KO;
             }
             else {
@@ -242,11 +244,11 @@ int createGoldenFile(
     ethGoldFrame.setTypeLength(ETH_ETHERTYPE_ARP);
     // Write the ARP packet as data payload of the ETHERNET frame.
     if (ethGoldFrame.setPayload(arpGoldPacket) == false) {
-        printError(THIS_NAME, "Failed set ARP packet as payload of an ETH frame.\n");
+        printError(myName, "Failed set ARP packet as payload of an ETH frame.\n");
         ret = NTS_KO;
     }
     else if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
-        printError(THIS_NAME, "Failed to write ETH frame to DAT file.\n");
+        printError(myName, "Failed to write ETH frame to DAT file.\n");
         ret = NTS_KO;
     }
     else {
@@ -260,12 +262,12 @@ int createGoldenFile(
     ofsDAT.close();
 
     //-- STEP-5: PRINT RESULTS
-    printInfo(THIS_NAME, "Done with the creation of the golden file.\n");
-    printInfo(THIS_NAME, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
+    printInfo(myName, "Done with the creation of the golden file.\n");
+    printInfo(myName, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
               inpChunks, inpFrames, inpBytes);
-    printInfo(THIS_NAME, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n",
+    printInfo(myName, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n",
               outChunks, outFrames, outBytes);
-    printInfo(THIS_NAME, "\tDetected a total of %4d sender host(s).\n\n",
+    printInfo(myName, "\tDetected a total of %4d sender host(s).\n\n",
               hostMap.size());
     return(ret);
 }
@@ -495,11 +497,12 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-1 STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH PART-1 STARTS HERE                                           ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
-    //-- MAIN LOOP-1 : Handle incoming ARP packets
+    //-- MAIN LOOP-1 : Handle incoming ARP packets generated
+    //--     from the input test vectors.
     //-----------------------------------------------------
     tbRun = (nrErr == 0) ? (nrIPRX_ARS_Chunks + TB_GRACE_TIME) : 0;
     while (tbRun) {
@@ -545,11 +548,64 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-2 STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH PART-2 STARTS HERE                                           ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
-    //-- MAIN LOOP-2 : Handle MAC lookup requests from IPRX
+    //-- MAIN LOOP-2 : Generate a single MAC lookup request
+    //--    that will not be found in the CAM. This will
+    //--    trigger the generation of an ARP-REQUEST packet.
+    //-----------------------------------------------------
+    tbRun = (nrErr == 0) ? (TB_GRACE_TIME) : 0;
+    ssIPTX_ARS_MacLkpReq.write(RESERVED_SENDER_PROTOCOL_ADDRESS);
+    while (tbRun) {
+        //== RUN DUT ==================
+        arp_server(
+            //-- MMIO Interfaces
+            myMacAddress,
+            myIp4Address,
+            //-- IPRX Interface
+            ssIPRX_ARS_Data,
+            //-- ETH Interface
+            ssARS_ETH_Data,
+            //-- IPTX Interfaces
+            ssIPTX_ARS_MacLkpReq,
+            ssARS_IPTX_MacLkpRep,
+            //-- CAM Interfaces
+            ssARS_CAM_MacLkpReq,
+            ssCAM_ARS_MacLkpRep,
+            ssARS_CAM_MacUpdReq,
+            ssCAM_ARS_MacUpdRep
+        );
+
+        //== EMULATE ARP-CAM ==========
+        pEmulateCam(
+            ssARS_CAM_MacLkpReq,
+            ssCAM_ARS_MacLkpRep,
+            ssARS_CAM_MacUpdReq,
+            ssCAM_ARS_MacUpdRep
+        );
+
+        tbRun--;
+
+        //-- INCREMENT GLOBAL SIMULATION COUNTER
+        gSimCycCnt++;
+        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+            gTraceEvent = false;
+        }
+        else if (0) {
+            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+        }
+    } // End of: while()
+
+    printf("\n\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH PART-3 STARTS HERE                                           ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+
+    //-----------------------------------------------------
+    //-- MAIN LOOP-3 : Handle MAC lookup requests from IPRX
     //-----------------------------------------------------
     tbRun = (nrErr == 0) ? (hostMap.size() * (CAM_LOOKUP_LATENCY + 10)) : 0;
     //-- Feed the MAC lookup requests issued by [IPTX]
@@ -599,58 +655,7 @@ int main(int argc, char* argv[])
         }
     } // End of: while()
 
-    printf("\n\n");
-    printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-3 STARTS HERE                                                  ##\n");
-    printInfo(THIS_NAME, "############################################################################\n");
 
-    //-----------------------------------------------------
-    //-- MAIN LOOP-3 : Generate a single MAC lookup request
-    //--    that will not be found in the CAM. This will
-    //--    trigger the generation of an ARP-REQUEST packet.
-    //-----------------------------------------------------
-    tbRun = (nrErr == 0) ? (TB_GRACE_TIME) : 0;
-    ssIPTX_ARS_MacLkpReq.write(RESERVED_SENDER_PROTOCOL_ADDRESS);
-    while (tbRun) {
-        //== RUN DUT ==================
-        arp_server(
-            //-- MMIO Interfaces
-            myMacAddress,
-            myIp4Address,
-            //-- IPRX Interface
-            ssIPRX_ARS_Data,
-            //-- ETH Interface
-            ssARS_ETH_Data,
-            //-- IPTX Interfaces
-            ssIPTX_ARS_MacLkpReq,
-            ssARS_IPTX_MacLkpRep,
-            //-- CAM Interfaces
-            ssARS_CAM_MacLkpReq,
-            ssCAM_ARS_MacLkpRep,
-            ssARS_CAM_MacUpdReq,
-            ssCAM_ARS_MacUpdRep
-        );
-
-        //== EMULATE ARP-CAM ==========
-        pEmulateCam(
-            ssARS_CAM_MacLkpReq,
-            ssCAM_ARS_MacLkpRep,
-            ssARS_CAM_MacUpdReq,
-            ssCAM_ARS_MacUpdRep
-        );
-
-        tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
-    } // End of: while()
 
     //---------------------------------------------------------------
     //-- DRAIN ARS-->ETH OUTPUT STREAM
@@ -664,11 +669,20 @@ int main(int argc, char* argv[])
 
     //---------------------------------------------------------------
     //-- DRAIN ARS-->IPTX OUTPUT STREAM
+    //--    With respect to MAIN-LOOP-2, expect the first MAC lookup
+    //--    to be a 'NOT-HIT'.
     //---------------------------------------------------------------
+    ArpLkpReply macLkpRep = ssARS_IPTX_MacLkpRep.read();
+    if (macLkpRep.hit != NO_HIT) {
+        // RESERVED_SENDER_PROTOCOL_ADDRESS;
+        printError(THIS_NAME, "Expecting the first MAC lookup of this testbench to be a \'NO_HIT\' flag.\n");
+        nrErr++;
+    }
     hostMapIter = hostMap.begin();
     while (hostMapIter != hostMap.end()) {
         ArpLkpReply macLkpRep = ssARS_IPTX_MacLkpRep.read();
         if (macLkpRep.hit == NO_HIT) {
+            // RESERVED_SENDER_PROTOCOL_ADDRESS;
             printError(THIS_NAME, "Receive a MAC lookup reply with a \'NO_HIT\' flag.\n");
             nrErr++;
         }

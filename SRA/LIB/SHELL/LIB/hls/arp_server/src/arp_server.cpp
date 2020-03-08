@@ -242,7 +242,7 @@ void pArpPacketSender(
     #pragma HLS RESET                                variable=aps_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<3> aps_sendCount; // ETH+ARP is only 44 bytes (.i.e 6 quadwords).
+    static uint8_t    aps_sendCount; // ETH+ARP is only 44 bytes (.i.e 6 quadwords).
     static ArpMeta    aps_aprMeta;
     static Ip4Addr    aps_tpaReq; // Target Protocol Address Request
 

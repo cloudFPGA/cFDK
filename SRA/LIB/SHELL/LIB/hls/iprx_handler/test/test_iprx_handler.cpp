@@ -71,7 +71,9 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 int createGoldenFiles(EthAddr myMacAddress,
                       string  inpDAT_FileName,
                       string  outARP_GoldName, string outICMP_GoldName,
-                      string  outTOE_GoldName, string outUDP_GoldName) {
+                      string  outTOE_GoldName, string outUDP_GoldName)
+{
+    const char *myName  = concat3(THIS_NAME, "/", "CGF");
 
     ifstream	ifsDAT;
     string      ofNameArray[4] = { outARP_GoldName, outICMP_GoldName, \
@@ -93,11 +95,11 @@ int createGoldenFiles(EthAddr myMacAddress,
     ifsDAT.open(inpDAT_FileName.c_str());
     if (!ifsDAT) {
         getcwd(currPath, sizeof(currPath));
-        printError("TB", "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", inpDAT_FileName.c_str(), currPath);
+        printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", inpDAT_FileName.c_str(), currPath);
         return(NTS_KO);
     }
     if (not isDatFile(inpDAT_FileName)) {
-        printError("TB", "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n", inpDAT_FileName.c_str());
+        printError(myName, "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n", inpDAT_FileName.c_str());
         ifsDAT.close();
         return(NTS_KO);
     }
@@ -158,11 +160,11 @@ int createGoldenFiles(EthAddr myMacAddress,
                     case ARP:
                         arpPacket = ethFrame.getArpPacket();
                         if (DEBUG_LEVEL & TRACE_CGF) {
-                            printInfo(THIS_NAME, "Frame #%d is an ARP frame.\n", inpFrames);
+                            printInfo(myName, "Frame #%d is an ARP frame.\n", inpFrames);
                         }
                         if (ethFrame.sizeOfPayload() > 0) {
                             if (ethFrame.writeToDatFile(ofsArray[0]) == false) {
-                                printError(THIS_NAME, "Failed to write ARP frame to DAT file.\n");
+                                printError(myName, "Failed to write ARP frame to DAT file.\n");
                                 rc = NTS_KO;
                             }
                             arpFrames += 1;
@@ -170,18 +172,18 @@ int createGoldenFiles(EthAddr myMacAddress,
                             arpBytes  += arpPacket.length();
                         }
                         else {
-                            printError(THIS_NAME, "This Ethernet frame has zero payload bytes!?\n");
+                            printError(myName, "This Ethernet frame has zero payload bytes!?\n");
                             rc = NTS_KO;
                         }
                         break;
                     case IPv4:
                         ipPacket = ethFrame.getIpPacket();
                         if (ipPacket.getIpVersion() != 4) {
-                            printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
+                            printWarn(myName, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
                             continue;
                         }
                         else if (DEBUG_LEVEL & TRACE_CGF) {
-                            printInfo(THIS_NAME, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
+                            printInfo(myName, "Frame #%d is an IPv4 frame (EtherType=0x%4.4X).\n",
                                       inpFrames, etherType.to_uint());
                         }
                         if (ipPacket.verifyIpHeaderChecksum()) {
@@ -208,17 +210,17 @@ int createGoldenFiles(EthAddr myMacAddress,
                                 udpBytes  += ipPacket.length();
                                 break;
                             default:
-                                printError(THIS_NAME, "Unknown IP protocol #%d.\n",
+                                printError(myName, "Unknown IP protocol #%d.\n",
                                            ipPacket.getIpProtocol().to_int());
                                 rc = NTS_KO;
                             }
                         }
                         else {
-                            printWarn(THIS_NAME, "Frame #%d is dropped because IPv4 header checksum does not match.\n", inpFrames);
+                            printWarn(myName, "Frame #%d is dropped because IPv4 header checksum does not match.\n", inpFrames);
                         }
                         break;
                     default:
-                        printError(THIS_NAME, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
+                        printError(myName, "Unsupported protocol 0x%4.4X.\n", etherType.to_ushort());
                         rc = NTS_KO;
                         break;
                     }
@@ -237,18 +239,18 @@ int createGoldenFiles(EthAddr myMacAddress,
 	outFrames = arpFrames + icmpFrames + tcpFrames + udpFrames;
 	outChunks = arpChunks + icmpChunks + tcpChunks + udpChunks;
 	outBytes  = arpBytes  + icmpBytes  + tcpBytes  + udpBytes;
-	printInfo(THIS_NAME, "Done with the creation of the golden files.\n");
-	printInfo(THIS_NAME, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
+	printInfo(myName, "Done with the creation of the golden files.\n");
+	printInfo(myName, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
 									      inpChunks, inpFrames, inpBytes);
-	printInfo(THIS_NAME, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+	printInfo(myName, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
 									      outChunks, outFrames, outBytes);
-	printInfo(THIS_NAME, "\tARP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+	printInfo(myName, "\tARP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
 							      arpChunks, arpFrames, arpBytes);
-	printInfo(THIS_NAME, "\tICMP : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+	printInfo(myName, "\tICMP : %5d chunks in %4d frames, for a total of %6d bytes.\n",
 							      icmpChunks, icmpFrames, icmpBytes);
-	printInfo(THIS_NAME, "\tTCP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+	printInfo(myName, "\tTCP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
 							      tcpChunks, tcpFrames, tcpBytes);
-	printInfo(THIS_NAME, "\tUDP  : %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+	printInfo(myName, "\tUDP  : %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
 							      udpChunks, udpFrames, udpBytes);
 
     return(ret);
