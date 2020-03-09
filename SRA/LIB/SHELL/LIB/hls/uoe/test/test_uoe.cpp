@@ -222,9 +222,12 @@ int main(int argc, char *argv[]) {
 	stream<axiWord>			soICMP_Data        ("soICMP_Data");
 
 	//OBSOLETE_20200306 stream<ipTuple> 		outIPaddressesFIFO("outIPaddressesFIFO");
+	//OBSOLETE_20200308 ipTuple					incomingPacketIPData		= ipTuple(0, 0);
+	//OBSOLETE_20200308 ipTuple					outputPathOutputIPAddresses = ipTuple(0, 0);
+	//OBSOLETE_20200308 // Source & Destination IP for Tx packet to be used by the lower layer
+	//OBSOLETE_20200308 ipTuple 				inputIP 					= ipTuple(0, 0);
 
 	axiWord					inputPathInputData 			= axiWord(0, 0, 0);
-	ipTuple					incomingPacketIPData		= ipTuple(0, 0);
 	metadata				inputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
 	axiWord					inputPathOutputData			= axiWord(0, 0, 0);
 	ap_uint<16>				openPortData				= 0;
@@ -234,13 +237,12 @@ int main(int argc, char *argv[]) {
 	axiWord					outputPathOutData			= axiWord(0, 0, 0);
 	ap_uint<16> 			outputPathInputLength		= 0;
 	metadata				outputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
-	ipTuple					outputPathOutputIPAddresses = ipTuple(0, 0);			// Source & Destination IP for Tx packet to be used by the lower layer
+
 	/// Input File Temp Variables ///
 	uint16_t				inputSourceIP				= 0;
 	uint16_t				inputDestinationIP			= 0;
 	//uint64_t 				dataString					= 0;
 	std::string 			dataString;
-	ipTuple 				inputIP 					= ipTuple(0, 0);
 	axiWord					inputData					= axiWord(0, 0, 0);
 	uint16_t				sop 						= 0;
 	uint16_t				eop							= 0;
@@ -299,7 +301,11 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 	std::cerr << "Input File: " << argv[1] << std::endl << std::endl;
-	// Test 1: Attempt to close a port that isn't open. Expected response is: Nothing
+
+    //---------------------------------------------------------------
+    //-- TEST-1: Attempt to close a port that isn't open.
+    //--    Expected response is: Nothing.
+    //---------------------------------------------------------------
 	ssURIF_UOE_ClsReq.write(0x1532);
 	for (short int i= 0;i<10;++i) {
 		uoe(
@@ -321,8 +327,12 @@ int main(int argc, char *argv[]) {
 			//-- ICMP / Message Data Interface
 			soICMP_Data);
 	}
-		//std::cerr << ".";
-	// Test 2: Atempt to open a new port. Expected response is: Port opened successfully
+
+
+    //---------------------------------------------------------------
+    //-- Test 2: Atempt to open a new port.
+    //--     Expected response is: Port opened successfully
+    //---------------------------------------------------------------
 	bool temp = 0;
 	ssURIF_UOE_OpnReq.write(0x80);
 	for (short int i= 0;i<3;++i)  {
@@ -355,7 +365,10 @@ int main(int argc, char *argv[]) {
 		std::cerr << "Error, port not opened successfully." << std::endl;
 		return -1;
 	}
-	//Test 3: Close an already open port
+
+    //---------------------------------------------------------------
+    //-- TEST-3: Close an already open port
+    //---------------------------------------------------------------
 	ssURIF_UOE_ClsReq.write(temp);
 	for (short int i= 0;i<10;++i)  {
 		uoe(
@@ -378,8 +391,10 @@ int main(int argc, char *argv[]) {
 			soICMP_Data);
 	}
 
-		//std::cerr << ".";
-	//Test 4: Read in the test input data for the Rx side without opening the port.
+    //---------------------------------------------------------------
+    //-- TEST-4: Read in the test input data for the Rx side without
+    //--         opening the port.
+    //---------------------------------------------------------------
 	uint32_t noOfLines = 0;
 
 	while (!rxInput.eof()) {
@@ -422,8 +437,12 @@ int main(int argc, char *argv[]) {
 	}
 	rxInput.close();
 	rxInput.open(argv[1]);
-	//Test 6: Read in the test input data for the Rx side. First re-open the port to which data is to be sent.
-	cerr << endl << "Test 4: Exercising the Rx Path" << endl;
+
+    //---------------------------------------------------------------
+    //-- TEST-5: Read in the test input data for the Rx side.
+    //--    First re-open the port to which data is to be sent.
+    //---------------------------------------------------------------
+	cerr << endl << "Test 5: Exercising the Rx Path" << endl;
 	ssURIF_UOE_OpnReq.write(0x80);
 	for (short int i= 0;i<3;++i) {
 		uoe(
