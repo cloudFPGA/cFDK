@@ -114,7 +114,7 @@ class AxisUdp: public AxiWord {
 
     // Set-Get the UDP Destination Port
     void          setUdpDstPort(UdpPort port)   {                  tdata.range(31, 16) = swapWord(port);  }
-    UdpPort       getUdpPort()                  { return swapWord (tdata.range(31, 16));                  }
+    UdpPort       getUdpDstPort()               { return swapWord (tdata.range(31, 16));                  }
     LE_UdpPort getLE_UdpDstPort()               {           return tdata.range(31, 16);                   }
 
     // Set-Get the UDP length field

@@ -51,7 +51,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 #include "../../toe/src/toe.hpp"
-//#include "../../toe/src/toe_utils.hpp"
+#include "../../toe/src/toe_utils.hpp"
 #include "../../AxisIp4.hpp"
 
 using namespace hls;
@@ -115,6 +115,14 @@ struct axiWord {
 					:data(data), keep(keep), last(last) {}
 };
 
+
+/***********************************************
+ * UDP Application Data
+ *  Data transfered between UOE and APP.
+ ***********************************************/
+typedef AxiWord      AppData;
+
+
 /*************************************************************************
  *
  * ENTITY - UDP OFFLOAD ENGINE (UOE)
@@ -125,7 +133,7 @@ void uoe(
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<axiWord>         &siIPRX_Data,
+        stream<AxisIp4>         &siIPRX_Data,
 
         //------------------------------------------------------
         //-- IPTX / IP Tx / Data Interface
@@ -135,18 +143,18 @@ void uoe(
         //------------------------------------------------------
         //-- URIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<ap_uint<16> >    &siURIF_OpnReq,
-        stream<bool>            &soURIF_OpnRep,
-        stream<ap_uint<16> >    &siURIF_ClsReq,
-
-        //------------------------------------------------------
-        //-- URIF / Tx Data Interfaces
-        //------------------------------------------------------
-        stream<axiWord>         &soURIF_Data,
-        stream<metadata>        &soURIF_Meta,
+        stream<UdpPort>         &siURIF_OpnReq,
+        stream<StsBool>         &soURIF_OpnRep,
+        stream<UdpPort>         &siURIF_ClsReq,
 
         //------------------------------------------------------
         //-- URIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<AppData>         &soURIF_Data,
+        stream<metadata>        &soURIF_Meta,
+
+        //------------------------------------------------------
+        //-- URIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<axiWord>         &siURIF_Data,
         stream<metadata>        &siURIF_Meta,
@@ -155,7 +163,7 @@ void uoe(
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
         //------------------------------------------------------
-        stream<axiWord>         &soICMP_Data
+        stream<AxiWord>         &soICMP_Data
 );
 
 #endif
