@@ -571,6 +571,15 @@ typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as Tcp
 typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
 typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
+/*********************************************************
+ * UDP - HEADER FIELDS IN NETWORK BYTE ORDER.
+ *   Default Type Definitions (as used by HLS)
+ *********************************************************/
+typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
+typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
+typedef ap_uint<16> UdpPort;        // UDP source or destination Port
+typedef ap_uint<16> UdpLen;         // UDP header and data Length
+typedef ap_uint<16> UdpCsum;        // UDP header and data Checksum
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
@@ -679,6 +688,15 @@ class Ip4overMac: public AxiWord {
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
+
+    // Set-Get the UDP Source Port
+    void          setUdpSrcPort(UdpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
+    UdpPort       getUdpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
+
+    // Set-Get the UDP Destination Port
+    void          setUdpDstPort(UdpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
+    UdpPort       getUdpDstPort()               { return swapWord (tdata.range(63, 48));                  }
+
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)

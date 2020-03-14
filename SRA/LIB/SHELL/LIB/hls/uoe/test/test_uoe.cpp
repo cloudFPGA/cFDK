@@ -373,7 +373,12 @@ int createGoldenRxFiles(
 
         // Build the UDP datagram and corresponding metada expected at the output of UOE
         if (endOfPkt) {
-
+            // Part-1: Metadata
+            SocketPair socketPair(SockAddr(ip4DataPkt.getIpSourceAddress(),
+                                           ip4DataPkt.getUdpSourcePort()),
+                                  SockAddr(ip4DataPkt.getIpDestinationAddress(),
+                                           ip4DataPkt.getUdpDestinationPort()));
+            writeSocketPairToFile(socketPair, ofsMetaGold);
         }
     }
 
@@ -764,7 +769,7 @@ int main(int argc, char *argv[]) {
         //-- CREATE OUTPUT GOLD TRAFFIC
         set<UdpPort> udpDstPorts;
 
-        if (not createGoldenRxFiles(string(argv[1]), ofsURIF_Gold_Data_FileName,
+        if (not createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
                                     ofsURIF_Gold_Meta_FileName, udpDstPorts)) {
             printError(THIS_NAME, "Failed to create golden Rx files. \n");
             nrErr++;
