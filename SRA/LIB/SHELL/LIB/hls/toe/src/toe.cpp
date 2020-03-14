@@ -194,7 +194,8 @@ void toe(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        LE_Ip4Addr                           piMMIO_IpAddr,
+        //OBSOLETE_20200314 LE_Ip4Addr                           piMMIO_IpAddr,
+        Ip4Addr                              piMMIO_IpAddr,
 
         //------------------------------------------------------
         //-- NTS Interfaces

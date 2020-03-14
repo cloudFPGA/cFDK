@@ -129,7 +129,8 @@ void pTxAppAccept(
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<Event>               &soEVe_Event,
         stream<OpenStatus>          &siTIm_Notif,
-        LE_Ip4Address                piMMIO_IpAddr)
+        //OBSOLETE_20200314 LE_Ip4Address                piMMIO_IpAddr)
+        Ip4Address                   piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1
@@ -193,9 +194,12 @@ void pTxAppAccept(
         if (!siPRt_GetFreePortRep.empty() && !soSLc_SessLookupReq.full()) {
             TcpPort     freePort     = siPRt_GetFreePortRep.read();
             LE_SockAddr leServerAddr = taa_localFifo.read();
+            //OBSOLETE_20200314 soSLc_SessLookupReq.write(LE_SocketPair(
+            //OBSOLETE_20200314               LE_SockAddr(piMMIO_IpAddr,     byteSwap16(freePort)),
+            //OBSOLETE_20200314               LE_SockAddr(leServerAddr.addr, leServerAddr.port)));
             soSLc_SessLookupReq.write(LE_SocketPair(
-                          LE_SockAddr(piMMIO_IpAddr,     byteSwap16(freePort)),
-                          LE_SockAddr(leServerAddr.addr, leServerAddr.port)));
+                          LE_SockAddr(byteSwap32(piMMIO_IpAddr), byteSwap16(freePort)),
+                          LE_SockAddr(leServerAddr.addr,         leServerAddr.port)));
             taa_fsmState = TAA_IDLE;
         }
         break;
@@ -877,23 +881,24 @@ void tx_app_interface(
         stream<SessionState>           &siSTt_SessStateRep,
         stream<StateQuery>             &soSTt_AcceptStateQry,
         stream<SessionState>           &siSTt_AcceptStateRep,
-		//-- Session Lookup Controller Interface
+        //-- Session Lookup Controller Interface
         stream<LE_SocketPair>          &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
-		//-- Port Table Interfaces
+        //-- Port Table Interfaces
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<TcpPort>                &siPRt_GetFreePortRep,
-		//-- Tx SAR TAble Interfaces
+        //-- Tx SAR TAble Interfaces
         stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<TAiTxSarPush>           &soTSt_PushCmd,
-		//-- Rx Engine Interface
+        //-- Rx Engine Interface
         stream<OpenStatus>             &siRXe_SessOpnSts,
-		//-- Event Engine Interface
+        //-- Event Engine Interface
         stream<Event>                  &soEVe_Event,
-		//-- Timers Interface
+        //-- Timers Interface
         stream<OpenStatus>             &siTIm_Notif,
-		//-- MMIO / IPv4 Address
-        LE_Ip4Addr                      piMMIO_IpAddr)
+        //-- MMIO / IPv4 Address
+        //OBSOLETE_20200314 LE_Ip4Addr                      piMMIO_IpAddr)
+        Ip4Addr                         piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS DATAFLOW
