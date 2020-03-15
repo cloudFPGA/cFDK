@@ -642,7 +642,11 @@ module MmioClient_A8_D8 #(
     end
   endgenerate
   //---- MNGT_RDFMC[0:3] ---------------
-  assign sStatusVec[cEDW*MNGT_RDFMC3+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg;         // RO
+  //OBSOLETE_20200315 assign sStatusVec[cEDW*MNGT_RDFMC3+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg;         // RO
+  assign sStatusVec[cEDW*MNGT_RDFMC0+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg[31:24];         // RO
+  assign sStatusVec[cEDW*MNGT_RDFMC1+7:cEDW*MNGT_RDFMC1+0] = piFMC_RdReg[23:16];         // RO
+  assign sStatusVec[cEDW*MNGT_RDFMC2+7:cEDW*MNGT_RDFMC2+0] = piFMC_RdReg[15: 8];         // RO
+  assign sStatusVec[cEDW*MNGT_RDFMC3+7:cEDW*MNGT_RDFMC3+0] = piFMC_RdReg[ 7: 0];         // RO
   //---- MNGT_WRFMC[0:3] ---------------
   generate
   for (id=0; id<32; id=id+1)
@@ -669,7 +673,9 @@ module MmioClient_A8_D8 #(
   //-- APP REGISTERS
   //--------------------------------------------------------
   //---- APP_RDROL[0:1] ----------------
-  assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg;       // RO
+  //OBSOLETE_20200315 assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg;       // RO
+  assign sStatusVec[cEDW*APP_RDROL0+7:cEDW*APP_RDROL0+0] = piROLE_RdReg[15: 8];
+  assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL1+0] = piROLE_RdReg[ 7: 0];       // RO
   //---- APP_WRROL[0:1] ----------------
   generate
   for (id=0; id<16; id=id+1)
@@ -801,13 +807,25 @@ module MmioClient_A8_D8 #(
   //-- MNGT REGISTERS
   //--------------------------------------------------------
   //---- MNGT_RMIP[0:3] ----------------
-  assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW  [FIXME-Change the byte order]
+  //OBSOLETE_20200315 assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW  [FIXME-Change the byte order]
+  assign poNRC_RmIpAddress[31:24]  = sEMIF_Ctrl[cEDW*MNGT_RMIP0+7:cEDW*MNGT_RMIP0+0];     // RW
+  assign poNRC_RmIpAddress[23:16]  = sEMIF_Ctrl[cEDW*MNGT_RMIP1+7:cEDW*MNGT_RMIP1+0];
+  assign poNRC_RmIpAddress[15: 8]  = sEMIF_Ctrl[cEDW*MNGT_RMIP2+7:cEDW*MNGT_RMIP2+0];
+  assign poNRC_RmIpAddress[ 7: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP3+0];
+
   //---- MNGT_RDFMC[0:3] ---------------
   //------ No Outputs to the Fabric (RO)
   //---- MNGT_WRFMC[0:3] ---------------
-  assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW [FIXME-Agree on byte order w/ NGL]
+  //OBSOLETE 20200315 assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW [FIXME-Agree on byte order w/ NGL]
+  assign poFMC_WrReg[31:24]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC0+7:cEDW*MNGT_WRFMC0+0];   // RW
+  assign poFMC_WrReg[23:16]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC1+7:cEDW*MNGT_WRFMC1+0];   // RW
+  assign poFMC_WrReg[15: 8]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC2+7:cEDW*MNGT_WRFMC2+0];   // RW
+  assign poFMC_WrReg[ 7: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC3+0];   // RW
   //---- MNGT_TCPLSN[0:1] --------------
-  assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW  [FIXME-Change the byte order]
+  //OBSOLETE_20200315 assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW  [FIXME-Change the byte order]
+  assign poNRC_TcpLsnPort[15: 8]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN0+7:cEDW*MNGT_TCPLSN0+0]; // RW
+  assign poNRC_TcpLsnPort[ 7: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN1+0]; // RW
+    
   //---- MNGT_CTRL ---------------------
   //------ No Outputs to the Fabric
 
@@ -817,7 +835,9 @@ module MmioClient_A8_D8 #(
   //---- Read Role Register-------------
   //------ No Outputs to the Fabric (RO)
   //---- Write Role Register -----------
-  assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW   // RW [FIXME-Agree on byte order w/ NGL]
+  //OBSOLETE_20200315 assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW   // RW [FIXME-Agree on byte order w/ NGL]
+  assign poROLE_WrReg[15: 8]       = sEMIF_Ctrl[cEDW*APP_WRROL0+7:cEDW*APP_WRROL0+0]; // RW
+  assign poROLE_WrReg[ 7: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL1+0]; // RW
 
   //-------------------------------------------------------- 
   //-- RES REGISTERS
