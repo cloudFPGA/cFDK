@@ -227,14 +227,15 @@ typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEve
 typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
-typedef bool AckBool; // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool ReqBool; // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBool; // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBool; // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef bool ValBool; // Valid      : Must go along with something to validate/invalidate.
+typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool CmdBool;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef bool FlagBool; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+typedef bool ReqBool;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
+typedef bool RepBool;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
+typedef bool RspBool;  // Response   : Used when a reply does not go back to the source of the stimulus.
+typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
+typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
 
 
 /********************************************
@@ -570,6 +571,15 @@ typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as Tcp
 typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
 typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
+/*********************************************************
+ * UDP - HEADER FIELDS IN NETWORK BYTE ORDER.
+ *   Default Type Definitions (as used by HLS)
+ *********************************************************/
+typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
+typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
+typedef ap_uint<16> UdpPort;        // UDP source or destination Port
+typedef ap_uint<16> UdpLen;         // UDP header and data Length
+typedef ap_uint<16> UdpCsum;        // UDP header and data Checksum
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
@@ -678,6 +688,15 @@ class Ip4overMac: public AxiWord {
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
+
+    // Set-Get the UDP Source Port
+    void          setUdpSrcPort(UdpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
+    UdpPort       getUdpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
+
+    // Set-Get the UDP Destination Port
+    void          setUdpDstPort(UdpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
+    UdpPort       getUdpDstPort()               { return swapWord (tdata.range(63, 48));                  }
+
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)

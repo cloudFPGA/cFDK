@@ -1,10 +1,86 @@
-#include "../src/uoe.hpp"
+/*****************************************************************************
+ * @file       : test_uoe.cpp
+ * @brief      : Testbench for the UDP Offload Engine (UOE).
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Session (NTS)
+ * Language    : Vivado HLS
+ *
+ *****************************************************************************/
 
+#include "../src/uoe.hpp"
+//#include "../../toe/src/toe.hpp"
+#include "../../toe/test/test_toe_utils.hpp"
+
+#include <set>
+#include <stdio.h>
+#include <hls_stream.h>
+
+using namespace hls;
 using namespace std;
+
+//---------------------------------------------------------
+// HELPERS FOR THE DEBUGGING TRACES
+//  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+//---------------------------------------------------------
+#define THIS_NAME "TB"
+
+#define TRACE_OFF    0x0000
+#define TRACE_CGF    1 << 1
+#define TRACE_ALL    0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL DEFINES
+//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
+//---------------------------------------------------------
+#define TB_MAX_SIM_CYCLES     250000
+#define TB_STARTUP_DELAY           0
+#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
+
+//---------------------------------------------------------
+//-- TESTBENCH GLOBAL VARIABLES
+//--  These variables might be updated/overwritten by the
+//--  content of a test-vector file.
+//---------------------------------------------------------
+bool            gTraceEvent     = false;
+bool            gFatalError     = false;
+unsigned int    gSimCycCnt      = 0;
+unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
+
+//---------------------------------------------------------
+//-- TESTBENCH MODES OF OPERATION
+//---------------------------------------------------------
+enum TestMode { RX_MODE='0',   TX_MODE='1', BIDIR_MODE='2',
+                ECHO_MODE='3', OPEN_MODE='4' };
+
+
+
+
+
+
+
+
 
 #define maxOverflowValue 2000
 
 uint32_t clockCounter = 0;
+
+/******************************************************************************
+ * @brief Increment the simulation counter
+ ******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
+
 
 ap_uint<64>	convertString(std::string stringToConvert) {
 	ap_uint<64>	tempOutput = 0;
@@ -203,38 +279,157 @@ ap_uint<16> encodeApUint16(string parseString){
 	return tempOutput;
 }
 
+/*****************************************************************************
+ * @brief Create the golden Rx reference files from an input test file.
+ *
+ * @param[in] inpData_FileName, the input data file to generate from.
+ * @param[in] outData_GoldName, the output data gold file to create.
+ * @param[in] outMeta_GoldName, the output meta gold file to create.
+ * @param[in] udpPortSet,       a ref to an associative container which holds
+ *                              the UDP destination ports.
+ *
+ * @return NTS_ OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+int createGoldenRxFiles(
+        string        inpData_FileName,
+        string        outData_GoldName,
+        string        outMeta_GoldName,
+        set<UdpPort> &udpPorts)
+{
+    const char *myName  = concat3(THIS_NAME, "/", "CGF");
+
+    ifstream    ifsData;
+    ofstream    ofsDataGold;
+    ofstream    ofsMetaGold;
+
+    char        currPath[FILENAME_MAX];
+    int         ret=NTS_OK;
+    int         inpChunks=0,  outChunks=0;
+    int         inpPackets=0, outPackets=0;
+    int         inpBytes=0,   outBytes=0;
+
+    //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
+    ifsData.open(inpData_FileName.c_str());
+    if (!ifsData) {
+        getcwd(currPath, sizeof(currPath));
+        printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
+                   inpData_FileName.c_str(), currPath);
+        return(NTS_KO);
+    }
+    if (not isDatFile(inpData_FileName)) {
+        printError(myName, "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n",
+                   inpData_FileName.c_str());
+        ifsData.close();
+        return(NTS_KO);
+    }
+
+    //-- STEP-2 : OPEN THE OUTPUT GOLD FILES
+    remove(outData_GoldName.c_str());
+    remove(outMeta_GoldName.c_str());
+    if (!ofsDataGold.is_open()) {
+        ofsDataGold.open (outData_GoldName.c_str(), ofstream::out);
+        if (!ofsDataGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outData_GoldName.c_str());
+        }
+    }
+    if (!ofsMetaGold.is_open()) {
+        ofsMetaGold.open (outMeta_GoldName.c_str(), ofstream::out);
+        if (!ofsMetaGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outMeta_GoldName.c_str());
+        }
+    }
+
+    //-- STEP-3 : READ AND PARSE THE INPUT UDP FILE
+    while ((ifsData.peek() != EOF) && (ret != NTS_KO)) {
+        IpPacket    ip4DataPkt; // [FIXME-create a SimIp4Packet class]
+        AxisIp4     ip4RxData;
+        bool        endOfPkt=false;
+        bool        rc;
+
+        // Read one packet at a time from input file
+        while ((ifsData.peek() != EOF) && (!endOfPkt)) {
+            rc = readAxiWordFromFile(&ip4RxData, ifsData);
+            if (rc) {
+                if (ip4RxData.isValid()) {
+                    ip4DataPkt.push_back(ip4RxData);
+                    if (ip4RxData.tlast == 1) {
+                        inpPackets++;
+                        endOfPkt = true;
+                    }
+                }
+                else {
+                    // We always abort the stream as this point by asserting
+                    // 'tlast' and de-asserting 'tkeep'.
+                    ip4DataPkt.push_back(AxiWord(ip4RxData.tdata, 0x00, 1));
+                    inpPackets++;
+                    endOfPkt = true;
+                }
+                inpChunks++;
+                inpBytes += ip4RxData.keepToLen();
+            }
+        } // End-of: while ((ifsData.peek() != EOF) && (!endOfPkt))
+
+        // Build the UDP datagram and corresponding metada expected at the output of UOE
+        if (endOfPkt) {
+            // Part-1: Metadata
+            SocketPair socketPair(SockAddr(ip4DataPkt.getIpSourceAddress(),
+                                           ip4DataPkt.getUdpSourcePort()),
+                                  SockAddr(ip4DataPkt.getIpDestinationAddress(),
+                                           ip4DataPkt.getUdpDestinationPort()));
+            writeSocketPairToFile(socketPair, ofsMetaGold);
+        }
+    }
+
+    return(OK);
+}
+
+/*****************************************************************************
+ * @brief Main function.
+ *
+ * @param[in]  mode,     The test mode (0=RX_MODE, 1=TX_MODE, 2=BIDIR_MODE).
+ * @param[in]  inpFile1, The pathname of the 1st input test vector file.
+ * @param[in]  inpFile2, The pathname of the 2nd input test vector file.
+ *
+ * @remark:
+ *  The number of input parameters is variable and depends on the testing mode.
+ *   Example (see also file '../run_hls.tcl'):
+ *    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
+ *   The possible options can be summarized as follows:
+ *       IF (mode==0)
+ *         inpFile1 = siIPRX_<FileName>.dat
+ *       ELSE-IF (mode == 1)
+ *         inpFile1 = siURIF_<Filename>.dat
+ *       ELSE-IF (mode == 2)
+ *         inpFile1 = siIPRX_<FileName>.dat
+ *         inpFile2 = siURIF_<Filename>.dat
+ *
+ ******************************************************************************/
 int main(int argc, char *argv[]) {
 
-	stream<axiWord> 		ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
-	stream<axiWord> 		ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
+    gSimCycCnt = 0;
 
-	stream<ap_uint<16> >	ssURIF_UOE_OpnReq  ("ssURIF_UOE_OpnReq");
-	stream<bool>		 	ssUOE_URIF_OpnRep  ("ssUOE_URIF_OpnRep");
-	stream<ap_uint<16> > 	ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
+    //------------------------------------------------------
+    //-- TESTBENCH LOCAL VARIABLES
+    //------------------------------------------------------
+    int         nrErr  = 0;        // Tb error counter.
+    char        tbMode = *argv[1]; // Indicates the TB testing mode.
 
-	stream<axiWord> 		ssURIF_UOE_Data    ("ssURIF_UOE_Data");
-	stream<metadata> 		ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
+    UdpPort     portToOpen;
+    StsBool     openReply;
 
-	stream<axiWord> 		ssUOE_URIF_Data    ("ssUOE_URIF_Data");
-	stream<metadata> 		ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
-	stream<ap_uint<16> > 	ssUOE_URIF_PLen    ("ssUOE_URIF_PLen");
 
-	stream<axiWord>			soICMP_Data        ("soICMP_Data");
 
-	//OBSOLETE_20200306 stream<ipTuple> 		outIPaddressesFIFO("outIPaddressesFIFO");
-	//OBSOLETE_20200308 ipTuple					incomingPacketIPData		= ipTuple(0, 0);
-	//OBSOLETE_20200308 ipTuple					outputPathOutputIPAddresses = ipTuple(0, 0);
-	//OBSOLETE_20200308 // Source & Destination IP for Tx packet to be used by the lower layer
-	//OBSOLETE_20200308 ipTuple 				inputIP 					= ipTuple(0, 0);
 
-	axiWord					inputPathInputData 			= axiWord(0, 0, 0);
+    AxisIp4                 inputPathInputData          = AxisIp4(0, 0, 0);
 	metadata				inputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
 	axiWord					inputPathOutputData			= axiWord(0, 0, 0);
 	ap_uint<16>				openPortData				= 0;
 	bool					portStatusData				= false;
 	metadata				inputPathOutputMetadata 	= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
-	axiWord					outputPathInData			= axiWord(0, 0, 0);
-	axiWord					outputPathOutData			= axiWord(0, 0, 0);
+    axiWord                 outputPathInData            = axiWord(0, 0, 0);
+    //OBSOLETE_20200310 	axiWord					outputPathOutData			= axiWord(0, 0, 0);
 	ap_uint<16> 			outputPathInputLength		= 0;
 	metadata				outputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
 
@@ -259,6 +454,56 @@ int main(int argc, char *argv[]) {
 	ifstream goldenOutputTx;
 
 	uint32_t				overflowCounter				= 0;
+
+    //------------------------------------------------------
+    //-- DUT STREAM INTERFACES and RELATED VARIABLEs
+    //------------------------------------------------------
+    stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
+    int                     nrIPRX_UOE_Chunks    = 0;
+    int                     nrIPRX_UOE_Datagrams = 0;
+    int                     nrIPRX_UOE_Bytes     = 0;
+    stream<axiWord>			ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
+
+    stream<UdpPort>         ssURIF_UOE_OpnReq  ("ssURIF_UOE_OpnReq");
+    stream<StsBool>         ssUOE_URIF_OpnRep  ("ssUOE_URIF_OpnRep");
+    stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
+
+    stream<AppData>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
+	stream<metadata> 		ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
+
+    stream<axiWord> 		ssURIF_UOE_Data    ("ssURIF_UOE_Data");
+	stream<metadata> 		ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
+	stream<ap_uint<16> > 	ssURIF_UOE_PLen    ("ssURIF-UOE_PLen");
+
+	stream<AxiWord>			soICMP_Data        ("soICMP_Data");
+
+    //------------------------------------------------------
+    //-- PARSING THE TESBENCH ARGUMENTS
+    //------------------------------------------------------
+    if (argc < 3) {
+        printFatal(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<Filename>.dat\n \t\t mode(1)   siURIF_<Filename>.dat\n \t\t mode(2)   siIPRX_<Filename>.dat siURIF_<Filename>.dat\n");
+    }
+    switch (tbMode=*argv[1]) {
+    case RX_MODE:
+        break;
+    case TX_MODE:
+        printFatal(THIS_NAME, "Not yet implemented...\n");
+        break;
+    case BIDIR_MODE:
+        printFatal(THIS_NAME, "Not yet implemented...\n");
+        break;
+    case ECHO_MODE:
+        printFatal(THIS_NAME, "Not yet implemented...\n");
+        break;
+    case OPEN_MODE:
+        printFatal(THIS_NAME, "Not yet implemented...\n");
+        break;
+    default:
+        printFatal(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<Filename>.dat\n \t\t mode(1)   siURIF_<Filename>.dat\n \t\t mode(2)   siIPRX_<Filename>.dat siURIF_<Filename>.dat\n");
+    }
+    printInfo(THIS_NAME, "This run executes in mode \'%c\'.\n", tbMode);
+
+/*** OBSOLETE-20200313 ****************
 	errCount = 0;
 	int counter = 0;
 	if (argc != 3) {
@@ -301,111 +546,285 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 	std::cerr << "Input File: " << argv[1] << std::endl << std::endl;
+	***********************************/
 
-    //---------------------------------------------------------------
-    //-- TEST-1: Attempt to close a port that isn't open.
-    //--    Expected response is: Nothing.
-    //---------------------------------------------------------------
-	ssURIF_UOE_ClsReq.write(0x1532);
-	for (short int i= 0;i<10;++i) {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-	}
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "############################################################################\n\n");
 
+    // [TODO] int tbRun = nrETH_IPRX_Chunks + TB_GRACE_TIME;
 
-    //---------------------------------------------------------------
-    //-- Test 2: Atempt to open a new port.
-    //--     Expected response is: Port opened successfully
-    //---------------------------------------------------------------
-	bool temp = 0;
-	ssURIF_UOE_OpnReq.write(0x80);
-	for (short int i= 0;i<3;++i)  {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-	}
+    if (tbMode == OPEN_MODE) {
+        //---------------------------------------------------------------
+        //-- OPEN_MODE: Attempt to close a port that isn't open.
+        //--    Expected response is: Nothing.
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== OPEN-TEST #1 : Request to close a port that isn't open.\n");
+        ssURIF_UOE_ClsReq.write(0x1532);
+        for (int i=0; i<10; ++i) {
+        uoe(
+            //-- IPRX / IP Rx / Data Interface
+            ssIPRX_UOE_Data,
+            //-- IPTX / IP Tx / Data Interface
+            ssUOE_IPTX_Data,
+            //-- URIF / Control Port Interfaces
+            ssURIF_UOE_OpnReq,
+            ssUOE_URIF_OpnRep,
+            ssURIF_UOE_ClsReq,
+            //-- URIF / Rx Data Interfaces
+            ssUOE_URIF_Data,
+            ssUOE_URIF_Meta,
+            //-- URIF / Tx Data Interfaces
+            ssURIF_UOE_Data,
+            ssURIF_UOE_Meta,
+            ssURIF_UOE_PLen,
+            //-- ICMP / Message Data Interface
+            soICMP_Data);
+        //-- INCREMENT GLOBAL SIMULATION COUNTER
+        stepSim();
+    }
+        printInfo(THIS_NAME, "== OPEN-TEST #1 : Done.\n\n");
 
-		//std::cerr << ".";
-	if (!ssUOE_URIF_OpnRep.empty()) {
-		temp = ssUOE_URIF_OpnRep.read();
-		std::cerr << "Port opened successfully!" << std::endl;
-	}
-	else {
-		std::cerr << "Error, port not opened successfully." << std::endl;
-		return -1;
-	}
+        //---------------------------------------------------------------
+        //-- OPEN_MODE: Atempt to open a new port.
+        //--     Expected response is: Port opened successfully
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== OPEN-TEST #2 : Request to open a port.\n");
+        portToOpen = 0x80;
+        printInfo(THIS_NAME, "Now - Trying to open port #%d.\n", portToOpen.to_int());
+        ssURIF_UOE_OpnReq.write(0x80);
+        for (int i=0; i<3; ++i) {
+            uoe(
+            //-- IPRX / IP Rx / Data Interface
+            ssIPRX_UOE_Data,
+            //-- IPTX / IP Tx / Data Interface
+            ssUOE_IPTX_Data,
+            //-- URIF / Control Port Interfaces
+            ssURIF_UOE_OpnReq,
+            ssUOE_URIF_OpnRep,
+            ssURIF_UOE_ClsReq,
+            //-- URIF / Rx Data Interfaces
+            ssUOE_URIF_Data,
+            ssUOE_URIF_Meta,
+            //-- URIF / Tx Data Interfaces
+            ssURIF_UOE_Data,
+            ssURIF_UOE_Meta,
+            ssURIF_UOE_PLen,
+            //-- ICMP / Message Data Interface
+            soICMP_Data);
+        //-- INCREMENT GLOBAL SIMULATION COUNTER
+        stepSim();
+    }
+        openReply = false;
+        if (!ssUOE_URIF_OpnRep.empty()) {
+        openReply = ssUOE_URIF_OpnRep.read();
+        if (openReply) {
+            printInfo(THIS_NAME, "OK - Port #%d was successfully opened.\n", portToOpen.to_int());
+        }
+        else {
+            printError(THIS_NAME, "KO - Failed to open port #%d.\n", portToOpen.to_int());
+            nrErr++;
+        }
+    }
+        else {
+        printError(THIS_NAME, "NoReply - Failed to open port #%d.\n", portToOpen.to_int());
+        nrErr++;
+    }
+        printInfo(THIS_NAME, "== OPEN-TEST #2 : Done.\n\n");
 
-    //---------------------------------------------------------------
-    //-- TEST-3: Close an already open port
-    //---------------------------------------------------------------
-	ssURIF_UOE_ClsReq.write(temp);
-	for (short int i= 0;i<10;++i)  {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-	}
+        //---------------------------------------------------------------
+        //-- OPEN_MODE: Close an already open port
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== OPEN-TEST #3 : Request to close an opened port.\n");
+        UdpPort portToClose = portToOpen;
+        printInfo(THIS_NAME, "Now - Trying to close port #%d.\n", portToOpen.to_int());
+        ssURIF_UOE_ClsReq.write(portToClose);
+        for (int i=0; i<10; ++i) {
+        uoe(
+            //-- IPRX / IP Rx / Data Interface
+            ssIPRX_UOE_Data,
+            //-- IPTX / IP Tx / Data Interface
+            ssUOE_IPTX_Data,
+            //-- URIF / Control Port Interfaces
+            ssURIF_UOE_OpnReq,
+            ssUOE_URIF_OpnRep,
+            ssURIF_UOE_ClsReq,
+            //-- URIF / Rx Data Interfaces
+            ssUOE_URIF_Data,
+            ssUOE_URIF_Meta,
+            //-- URIF / Tx Data Interfaces
+            ssURIF_UOE_Data,
+            ssURIF_UOE_Meta,
+            ssURIF_UOE_PLen,
+            //-- ICMP / Message Data Interface
+            soICMP_Data);
+        //-- INCREMENT GLOBAL SIMULATION COUNTER
+        stepSim();
+        }
+        printInfo(THIS_NAME, "== OPEN-TEST #3 : Done.\n\n");
 
-    //---------------------------------------------------------------
-    //-- TEST-4: Read in the test input data for the Rx side without
-    //--         opening the port.
-    //---------------------------------------------------------------
-	uint32_t noOfLines = 0;
+        //---------------------------------------------------------------
+        //-- OPEN_MODE: Read in the test input data for the Rx side
+        //--         without opening the port.
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== OPEN-TEST #4 : Send IPv4 traffic to a closed port.\n");
+        while (!rxInput.eof()) {
+    		std::string stringBuffer;
+    		getline(rxInput, stringBuffer);
+    		std::vector<std::string> stringVector = parseLine(stringBuffer);
+    		string dataString = stringVector[0];
+    		string keepString = stringVector[2];
+    		inputPathInputData.tdata = encodeApUint64(dataString);
+    		inputPathInputData.tkeep = encodeApUint8(keepString);
+    		inputPathInputData.tlast = atoi(stringVector[1].c_str());
+    		ssIPRX_UOE_Data.write(inputPathInputData);
+    		//noOfLines++;
+    	}
+        int tbRun = /*nrIPRX_UOE_Chunks*/ 1000 + TB_GRACE_TIME;
+        while (tbRun) {
+            uoe(
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_OpnReq,
+                ssUOE_URIF_OpnRep,
+                ssURIF_UOE_ClsReq,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_PLen,
+                //-- ICMP / Message Data Interface
+                soICMP_Data);
+            tbRun--;
+            stepSim();
+            if (!ssUOE_URIF_Data.empty()) {
+                AppData appData = ssUOE_URIF_Data.read();
+                printError(THIS_NAME, "Received unexpected data from [UOE]");
+                printAxiWord(THIS_NAME, appData);
+                nrErr++;
+            }
+        }
+        rxInput.close();
+        if (nrErr == 0) {
+            printInfo(THIS_NAME, "== OPEN-TEST #4 : Passed.\n\n");
+        }
+        else {
+            printError(THIS_NAME, "== OPEN-TEST #4 : Failed. \n\n");
+        }
+    } // End-of: if (tbMode == OPEN_MODE)
 
+    if (tbMode == RX_MODE) {
+        //---------------------------------------------------------------
+        //-- RX_MODE: Read in the test input data for the IPRX side.
+        //--    This run will start by opening all the required ports in
+        //--    listen mode.
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== RX-TEST : Send IPv4 traffic to an opened port.\n");
+
+        //-- CREATE DUT INPUT TRAFFIC AS STREAMS --------------------
+        if (feedAxisFromFile(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", string(argv[2]),
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Datagrams, nrIPRX_UOE_Bytes)) {
+            printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
+            printInfo(THIS_NAME, "\tGenerated %d chunks in %d datagrams, for a total of %d bytes.\n\n",
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Datagrams, nrIPRX_UOE_Bytes);
+        }
+        else {
+            printError(THIS_NAME, "Failed to create traffic as input stream. \n");
+            nrErr++;
+        }
+
+        //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
+        string           ofsURIF_Data_FileName = "../../../../test/soURIF_Data.dat";
+        string           ofsURIF_Meta_FileName = "../../../../test/soURIF_Meta.dat";
+        string           ofsURIF_Gold_Data_FileName = "../../../../test/soURIF_Gold_Data.dat";
+        string           ofsURIF_Gold_Meta_FileName = "../../../../test/soURIF_Gold_Meta.dat";
+        vector<string>   ofNames;
+        ofNames.push_back(ofsURIF_Data_FileName);
+        ofNames.push_back(ofsURIF_Meta_FileName);
+        ofstream         ofStreams[ofNames.size()]; // Stored in the same order
+
+        //-- Remove previous old files and open new files
+        for (int i = 0; i < ofNames.size(); i++) {
+            remove(ofNames[i].c_str());
+            if (not isDatFile(ofNames[i])) {
+                printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofNames[i].c_str());
+                nrErr++;
+                continue;
+            }
+            if (!ofStreams[i].is_open()) {
+                ofStreams[i].open(ofNames[i].c_str(), ofstream::out);
+                if (!ofStreams[i]) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofNames[i].c_str());
+                    nrErr++;
+                    continue;
+                }
+            }
+        }
+
+        //-- CREATE OUTPUT GOLD TRAFFIC
+        set<UdpPort> udpDstPorts;
+
+        if (not createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
+                                    ofsURIF_Gold_Meta_FileName, udpDstPorts)) {
+            printError(THIS_NAME, "Failed to create golden Rx files. \n");
+            nrErr++;
+        }
+
+        openReply = false;
+        portToOpen = 0x80;
+        ssURIF_UOE_OpnReq.write(portToOpen);
+
+        for (int i=0; i<3; ++i) {
+        uoe(
+            //-- IPRX / IP Rx / Data Interface
+            ssIPRX_UOE_Data,
+            //-- IPTX / IP Tx / Data Interface
+            ssUOE_IPTX_Data,
+            //-- URIF / Control Port Interfaces
+            ssURIF_UOE_OpnReq,
+            ssUOE_URIF_OpnRep,
+            ssURIF_UOE_ClsReq,
+            //-- URIF / Rx Data Interfaces
+            ssUOE_URIF_Data,
+            ssUOE_URIF_Meta,
+            //-- URIF / Tx Data Interfaces
+            ssURIF_UOE_Data,
+            ssURIF_UOE_Meta,
+            ssURIF_UOE_PLen,
+            //-- ICMP / Message Data Interface
+            soICMP_Data);
+
+        stepSim();
+    }
+
+        if (!ssUOE_URIF_OpnRep.empty()) {
+            openReply = ssUOE_URIF_OpnRep.read();
+            if (not openReply) {
+                printError(THIS_NAME, "KO - Failed to open port #%d.\n", portToOpen.to_int());
+            }
+        }
+        else {
+            printError(THIS_NAME, "NoReply - Failed to open port #%d.\n", portToOpen.to_int());
+            nrErr++;
+        }
+
+    //-- HERE WE GO AND SEND THE DATA ----------------------
+    rxInput.open(argv[1]);
 	while (!rxInput.eof()) {
 		std::string stringBuffer;
 		getline(rxInput, stringBuffer);
 		std::vector<std::string> stringVector = parseLine(stringBuffer);
 		string dataString = stringVector[0];
 		string keepString = stringVector[2];
-		inputPathInputData.data = encodeApUint64(dataString);
-		inputPathInputData.keep = encodeApUint8(keepString);
-		inputPathInputData.last = atoi(stringVector[1].c_str());
+		inputPathInputData.tdata = encodeApUint64(dataString);
+		inputPathInputData.tkeep = encodeApUint8(keepString);
+
+		inputPathInputData.tlast = atoi(stringVector[1].c_str());
 		ssIPRX_UOE_Data.write(inputPathInputData);
 		//noOfLines++;
 	}
@@ -420,92 +839,13 @@ int main(int argc, char *argv[]) {
 			ssURIF_UOE_OpnReq,
 			ssUOE_URIF_OpnRep,
 			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
 			//-- URIF / Rx Data Interfaces
 			ssUOE_URIF_Data,
 			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-
-		//std::cerr << ".";
-		//noOfLines++;
-		if (ssIPRX_UOE_Data.empty())
-			overflowCounter++;
-	}
-	rxInput.close();
-	rxInput.open(argv[1]);
-
-    //---------------------------------------------------------------
-    //-- TEST-5: Read in the test input data for the Rx side.
-    //--    First re-open the port to which data is to be sent.
-    //---------------------------------------------------------------
-	cerr << endl << "Test 5: Exercising the Rx Path" << endl;
-	ssURIF_UOE_OpnReq.write(0x80);
-	for (short int i= 0;i<3;++i) {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
 			//-- URIF / Tx Data Interfaces
 			ssURIF_UOE_Data,
 			ssURIF_UOE_Meta,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-	}
-		//std::cerr << ".";
-	if (!ssUOE_URIF_OpnRep.empty()) {
-		temp = ssUOE_URIF_OpnRep.read();
-		std::cerr << endl << "Port opened successfully!" << std::endl;
-	}
-	else {
-		std::cerr << endl << "Error, port not opened successfully." << std::endl;
-		return -1;
-	}
-	// And then send the data in
-	//uint32_t noOfLines = 0;
-	while (!rxInput.eof()) {
-		std::string stringBuffer;
-		getline(rxInput, stringBuffer);
-		std::vector<std::string> stringVector = parseLine(stringBuffer);
-		string dataString = stringVector[0];
-		string keepString = stringVector[2];
-		inputPathInputData.data = encodeApUint64(dataString);
-		inputPathInputData.keep = encodeApUint8(keepString);
-
-		inputPathInputData.last = atoi(stringVector[1].c_str());
-		ssIPRX_UOE_Data.write(inputPathInputData);
-		//noOfLines++;
-	}
-	//noOfLines = 0;
-	while (!ssIPRX_UOE_Data.empty() || overflowCounter < maxOverflowValue) {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
+			ssURIF_UOE_PLen,
 			//-- ICMP / Message Data Interface
 			soICMP_Data);
 
@@ -517,7 +857,27 @@ int main(int argc, char *argv[]) {
 	//noOfLines = 0;
 	cerr << endl << "Rx test complete." << endl;
 	overflowCounter = 0;
+
+    } // End-of: if (tbMode == RX_MODE)
+
+
+
+
+
+
+
+
+
+    printFatal(THIS_NAME, "AUTO-EXIT");
+
+
+
+
+
+
+
 	// Test 5: Tx path
+    uint32_t noOfLines = 0;
 	cerr << endl << "Test 5: Exercising the Tx Path" << endl;
 	noOfLines = 0;
 	overflowCounter = 0;
@@ -540,15 +900,15 @@ int main(int argc, char *argv[]) {
 		outputPathInputMetadata.destinationSocket.port	= encodeApUint16(destinationPort);
 		outputPathInputMetadata.destinationSocket.addr 	= encodeApUint32(destinationIP);
 		outputPathInputLength	= encodeApUint16(payloadLength);
-		ssUOE_URIF_Data.write(outputPathInData);
+		ssURIF_UOE_Data.write(outputPathInData);
 		if (outputPathInputLength != 0) {
-			ssUOE_URIF_Meta.write(outputPathInputMetadata);
-			ssUOE_URIF_PLen.write(outputPathInputLength);
+			ssURIF_UOE_Meta.write(outputPathInputMetadata);
+			ssURIF_UOE_PLen.write(outputPathInputLength);
 		}
 		noOfLines++;
 	}
 	noOfLines = 0;
-	while (!ssUOE_URIF_Data.empty() || overflowCounter < maxOverflowValue) {
+	while (!ssURIF_UOE_Data.empty() || overflowCounter < maxOverflowValue) {
 		uoe(
 			//-- IPRX / IP Rx / Data Interface
 			ssIPRX_UOE_Data,
@@ -558,19 +918,19 @@ int main(int argc, char *argv[]) {
 			ssURIF_UOE_OpnReq,
 			ssUOE_URIF_OpnRep,
 			ssURIF_UOE_ClsReq,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
 			//-- URIF / Rx Data Interfaces
 			ssUOE_URIF_Data,
 			ssUOE_URIF_Meta,
-			ssUOE_URIF_PLen,
+			//-- URIF / Tx Data Interfaces
+			ssURIF_UOE_Data,
+			ssURIF_UOE_Meta,
+			ssURIF_UOE_PLen,
 			//-- ICMP / Message Data Interface
 			soICMP_Data);
 
 		//std::cerr << ".";
 		noOfLines++;
-		if (ssUOE_URIF_Data.empty())
+		if (ssURIF_UOE_Data.empty())
 			overflowCounter++;
 	}
 	cerr << endl;

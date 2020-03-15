@@ -855,6 +855,34 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+#ifndef __SYNTHESIS_
+    /***************************************************************************
+     * @brief Dump a SocketPair to a file.
+     *
+     * @param[in] socketPair,    a reference to the SocketPair to dump.
+     * @param[in] outFileStream, the output file stream to write to.
+     *
+     * @return true if successful, otherwise false.
+     ***************************************************************************/
+    bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
+        if (!outFileStream.is_open()) {
+            printError(THIS_NAME, "File is not opened.\n");
+            return false;
+        }
+        outFileStream << std::uppercase;
+        outFileStream << hex << noshowbase << setfill('0') << setw(8) << socketPair.src.addr.to_uint();
+        outFileStream << " ";
+        outFileStream << hex << noshowbase << setfill('0') << setw(4) << socketPair.src.port.to_ushort();
+        outFileStream << " ";
+        outFileStream << hex << noshowbase << setfill('0') << setw(8) << socketPair.dst.addr.to_uint();
+        outFileStream << " ";
+        outFileStream << hex << noshowbase << setfill('0') << setw(4) << socketPair.dst.port.to_ushort();
+        outFileStream << "\n";
+        return true;
+    }
+#endif
+
+
 #ifndef __SYNTHESIS__
     /***************************************************************************
      * @brief Write the TCP payload into a file. Data is written as a string.

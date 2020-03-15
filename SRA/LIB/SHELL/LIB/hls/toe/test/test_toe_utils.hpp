@@ -550,6 +550,9 @@ const char    *myCamAccessToString(int       initiator);
         // Return the number of chunks in the IPv4 packet (in axis-words)
         int size()                                       { return this->axisWordQueue.size();             }
 
+        //*********************************************************
+        //** IPV4 PACKET FIELDS - SETTERS amnd GETTERS
+        //*********************************************************
         // Set-Get the IP Version field
         void         setIpVersion(int version)           {        axisWordQueue[0].setIp4Version(version);}
         int          getIpVersion()                      { return axisWordQueue[0].getIp4Version();       }
@@ -587,6 +590,64 @@ const char    *myCamAccessToString(int       initiator);
         int           getIpDestinationAddress()          { return axisWordQueue[2].getIp4DstAddr();       }
         LE_Ip4Addr getLE_IpDestinationAddress()          { return axisWordQueue[2].getLE_Ip4DstAddr();    }
 
+        //*********************************************************
+        //** TCP SEGMENT FIELDS - SETTERS amnd GETTERS
+        //*********************************************************
+        // Set-Get the TCP Source Port field
+        void          setTcpSourcePort(int port)         {        axisWordQueue[2].setTcpSrcPort(port);   }
+        int           getTcpSourcePort()                 { return axisWordQueue[2].getTcpSrcPort();       }
+        LE_TcpPort getLE_TcpSourcePort()                 { return axisWordQueue[2].getLE_TcpSrcPort();    }
+        // Set-Get the TCP Destination Port field
+        void          setTcpDestinationPort(int port)    {        axisWordQueue[2].setTcpDstPort(port);   }
+        int           getTcpDestinationPort()            { return axisWordQueue[2].getTcpDstPort();       }
+        LE_TcpPort getLE_TcpDestinationPort()            { return axisWordQueue[2].getLE_TcpDstPort();    }
+        // Set-Get the TCP Sequence Number field
+        void       setTcpSequenceNumber(TcpSeqNum num)   {        axisWordQueue[3].setTcpSeqNum(num);     }
+        TcpSeqNum  getTcpSequenceNumber()                { return axisWordQueue[3].getTcpSeqNum();        }
+        // Set the TCP Acknowledgment Number
+        void       setTcpAcknowledgeNumber(TcpAckNum num){        axisWordQueue[3].setTcpAckNum(num);     }
+        TcpAckNum  getTcpAcknowledgeNumber()             { return axisWordQueue[3].getTcpAckNum();        }
+        // Set-Get the TCP Data Offset field
+        void setTcpDataOffset(int offset)                {        axisWordQueue[4].setTcpDataOff(offset); }
+        int  getTcpDataOffset()                          { return axisWordQueue[4].getTcpDataOff();       }
+        // Set-Get the TCP Control Bits
+        void       setTcpControlFin(int bit)             {        axisWordQueue[4].setTcpCtrlFin(bit);    }
+        TcpCtrlBit getTcpControlFin()                    { return axisWordQueue[4].getTcpCtrlFin();       }
+        void       setTcpControlSyn(int bit)             {        axisWordQueue[4].setTcpCtrlSyn(bit);    }
+        TcpCtrlBit getTcpControlSyn()                    { return axisWordQueue[4].getTcpCtrlSyn();       }
+        void       setTcpControlRst(int bit)             {        axisWordQueue[4].setTcpCtrlRst(bit);    }
+        TcpCtrlBit getTcpControlRst()                    { return axisWordQueue[4].getTcpCtrlRst();       }
+        void       setTcpControlPsh(int bit)             {        axisWordQueue[4].setTcpCtrlPsh(bit);    }
+        TcpCtrlBit getTcpControlPsh()                    { return axisWordQueue[4].getTcpCtrlPsh();       }
+        void       setTcpControlAck(int bit)             {        axisWordQueue[4].setTcpCtrlAck(bit);    }
+        TcpCtrlBit getTcpControlAck()                    { return axisWordQueue[4].getTcpCtrlAck();       }
+        void       setTcpControlUrg(int bit)             {        axisWordQueue[4].setTcpCtrlUrg(bit);    }
+        TcpCtrlBit getTcpControlUrg()                    { return axisWordQueue[4].getTcpCtrlUrg();       }
+        // Set-Get the TCP Window field
+        void setTcpWindow(int win)                       {        axisWordQueue[4].setTcpWindow(win);     }
+        int  getTcpWindow()                              { return axisWordQueue[4].getTcpWindow();        }
+        // Set-Get the TCP Checksum field
+        void setTcpChecksum(int csum)                    {        axisWordQueue[4].setTcpChecksum(csum);  }
+        int  getTcpChecksum()                            { return axisWordQueue[4].getTcpChecksum();      }
+        // Set-Get the TCP Urgent Pointer field
+        void setTcpUrgentPointer(int ptr)                {        axisWordQueue[4].setTcpUrgPtr(ptr);     }
+        int  getTcpUrgentPointer()                       { return axisWordQueue[4].getTcpUrgPtr();        }
+        // Set-Get the TCP Option fields
+        void setTcpOptionKind(int val)                   {        axisWordQueue[5].setTcpOptKind(val);    }
+        int  getTcpOptionKind()                          { return axisWordQueue[5].getTcpOptKind();       }
+        void setTcpOptionMss(int val)                    {        axisWordQueue[5].setTcpOptMss(val);     }
+        int  getTcpOptionMss()                           { return axisWordQueue[5].getTcpOptMss();        }
+        // Additional Debug and Utilities Procedures
+
+        //*********************************************************
+        //** UDP DATAGRAM FIELDS - SETTERS amnd GETTERS
+        //*********************************************************
+        // Set-Get the UDP Source Port field
+        void          setUdpSourcePort(int port)         {        axisWordQueue[2].setUdpSrcPort(port);   }
+        int           getUdpSourcePort()                 { return axisWordQueue[2].getUdpSrcPort();       }
+        // Set-Get the UDP Destination Port field
+        void          setUdpDestinationPort(int port)    {        axisWordQueue[2].setUdpDstPort(port);   }
+        int           getUdpDestinationPort()            { return axisWordQueue[2].getUdpDstPort();       }
 
         // Return the IP4 header as a string
         string getIpHeader() {
@@ -896,55 +957,12 @@ const char    *myCamAccessToString(int       initiator);
             return true;
         } // End-of: setIpPayload
 
-        //*********************************************************
-        //** [TODO]-Return the IP4 data payload as a TcpSegment
-        //** [TODO] TcpSegment getTcpSegment() {}
-        //*********************************************************
-        // Set-Get the TCP Source Port field
-        void          setTcpSourcePort(int port)         {        axisWordQueue[2].setTcpSrcPort(port);   }
-        int           getTcpSourcePort()                 { return axisWordQueue[2].getTcpSrcPort();       }
-        LE_TcpPort getLE_TcpSourcePort()                 { return axisWordQueue[2].getLE_TcpSrcPort();    }
-        // Set-Get the TCP Destination Port field
-        void          setTcpDestinationPort(int port)    {        axisWordQueue[2].setTcpDstPort(port);   }
-        int           getTcpDestinationPort()            { return axisWordQueue[2].getTcpDstPort();       }
-        LE_TcpPort getLE_TcpDestinationPort()            { return axisWordQueue[2].getLE_TcpDstPort();    }
-        // Set-Get the TCP Sequence Number field
-        void       setTcpSequenceNumber(TcpSeqNum num)   {        axisWordQueue[3].setTcpSeqNum(num);     }
-        TcpSeqNum  getTcpSequenceNumber()                { return axisWordQueue[3].getTcpSeqNum();        }
-        // Set the TCP Acknowledgment Number
-        void       setTcpAcknowledgeNumber(TcpAckNum num){        axisWordQueue[3].setTcpAckNum(num);     }
-        TcpAckNum  getTcpAcknowledgeNumber()             { return axisWordQueue[3].getTcpAckNum();        }
-        // Set-Get the TCP Data Offset field
-        void setTcpDataOffset(int offset)                {        axisWordQueue[4].setTcpDataOff(offset); }
-        int  getTcpDataOffset()                          { return axisWordQueue[4].getTcpDataOff();       }
-        // Set-Get the TCP Control Bits
-        void       setTcpControlFin(int bit)             {        axisWordQueue[4].setTcpCtrlFin(bit);    }
-        TcpCtrlBit getTcpControlFin()                    { return axisWordQueue[4].getTcpCtrlFin();       }
-        void       setTcpControlSyn(int bit)             {        axisWordQueue[4].setTcpCtrlSyn(bit);    }
-        TcpCtrlBit getTcpControlSyn()                    { return axisWordQueue[4].getTcpCtrlSyn();       }
-        void       setTcpControlRst(int bit)             {        axisWordQueue[4].setTcpCtrlRst(bit);    }
-        TcpCtrlBit getTcpControlRst()                    { return axisWordQueue[4].getTcpCtrlRst();       }
-        void       setTcpControlPsh(int bit)             {        axisWordQueue[4].setTcpCtrlPsh(bit);    }
-        TcpCtrlBit getTcpControlPsh()                    { return axisWordQueue[4].getTcpCtrlPsh();       }
-        void       setTcpControlAck(int bit)             {        axisWordQueue[4].setTcpCtrlAck(bit);    }
-        TcpCtrlBit getTcpControlAck()                    { return axisWordQueue[4].getTcpCtrlAck();       }
-        void       setTcpControlUrg(int bit)             {        axisWordQueue[4].setTcpCtrlUrg(bit);    }
-        TcpCtrlBit getTcpControlUrg()                    { return axisWordQueue[4].getTcpCtrlUrg();       }
-        // Set-Get the TCP Window field
-        void setTcpWindow(int win)                       {        axisWordQueue[4].setTcpWindow(win);     }
-        int  getTcpWindow()                              { return axisWordQueue[4].getTcpWindow();        }
-        // Set-Get the TCP Checksum field
-        void setTcpChecksum(int csum)                    {        axisWordQueue[4].setTcpChecksum(csum);  }
-        int  getTcpChecksum()                            { return axisWordQueue[4].getTcpChecksum();      }
-        // Set-Get the TCP Urgent Pointer field
-        void setTcpUrgentPointer(int ptr)                {        axisWordQueue[4].setTcpUrgPtr(ptr);     }
-        int  getTcpUrgentPointer()                       { return axisWordQueue[4].getTcpUrgPtr();        }
-        // Set-Get the TCP Option fields
-        void setTcpOptionKind(int val)                   {        axisWordQueue[5].setTcpOptKind(val);    }
-        int  getTcpOptionKind()                          { return axisWordQueue[5].getTcpOptKind();       }
-        void setTcpOptionMss(int val)                    {        axisWordQueue[5].setTcpOptMss(val);     }
-        int  getTcpOptionMss()                           { return axisWordQueue[5].getTcpOptMss();        }
-        // Additional Debug and Utilities Procedures
+        // [TODO]-Return the IP4 data payload as a TcpSegment
+        //  [TODO] TcpSegment getTcpSegment() {}
+
+
+
+
         /**************************************************************************
          * @brief Clone an IP packet.
          *
@@ -1838,6 +1856,7 @@ const char    *myCamAccessToString(int       initiator);
 #ifndef __SYNTHESIS__
   bool readAxiWordFromFile(AxiWord  *axiWord, ifstream  &inpFileStream);
   bool writeAxiWordToFile(AxiWord   *axiWord, ofstream  &outFileStream);
+  bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream);
   bool readTbParamFromDatFile(const string paramName, const string fileName, unsigned int &paramVal);
   int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord);
   int  writeTcpWordToFile(ofstream  &outFile, AxiWord   &tcpWord, int &wrCount);

@@ -278,23 +278,36 @@ class AxisIp4: public AxiWord {
     //-----------------------------------------------------
     //-- [TODO] ENCAPSULATED UDP DATAGRAM - Setters and Getters
     //-----------------------------------------------------
+    // Set-Get the UDP Source Port
+    void        setUdpSrcPort(UdpPort port)     {                  tdata.range(47, 32) = swapWord(port);  }
+    UdpPort     getUdpSrcPort()                 { return swapWord (tdata.range(47, 32));                  }
+    // Set-Get the UDP Destination Port
+    void        setUdpDstPort(UdpPort port)     {                  tdata.range(63, 48) = swapWord(port);  }
+    UdpPort     getUdpDstPort()                 { return swapWord (tdata.range(63, 48));                  }
+
+    // Set-Get the UDP Length
+    void        setUdpLeng(UdpLen len)          {                  tdata.range(15,  0) = swapWord(len);   }
+    UdpLen      getUdpLeng()                    { return swapWord (tdata.range(15,  0));                  }
+    // Set-Get the UDP Checksum
+    void        setUdpCsum(UdpCsum csum)        {                  tdata.range(31, 16) = swapWord(csum);  }
+    TcpChecksum getUdpCsum()                    { return swapWord (tdata.range(31, 16));                  }
 
     //-----------------------------------------------------
     //-- ENCAPSULATED ICMP MESSAGE - Setters and Getters
     //-----------------------------------------------------
     // Set-Get the message Type field
-    void          setIcmpType(IcmpType type)         {                    tdata.range(32+ 7, 32+ 0) = type;            }
-    IcmpType      getIcmpType()                      {             return tdata.range(32+ 7, 32+ 0);                   }
+    void          setIcmpType(IcmpType type)    {                  tdata.range(32+ 7, 32+ 0) = type;            }
+    IcmpType      getIcmpType()                 {           return tdata.range(32+ 7, 32+ 0);                   }
     // Set-Get the message Code field
-    void          setIcmpCode(IcmpCode code)         {                    tdata.range(32+15, 32+ 8) = code;            }
-    IcmpCode      getIcmpCode()                      {             return tdata.range(32+15, 32+ 8);                   }
+    void          setIcmpCode(IcmpCode code)    {                  tdata.range(32+15, 32+ 8) = code;            }
+    IcmpCode      getIcmpCode()                 {           return tdata.range(32+15, 32+ 8);                   }
     // Set-Get the Checksum field
-    void          setIcmpCsum(IcmpCsum csum)         {                    tdata.range(32+31, 32+16) = swapWord(csum);  }
-    IcmpCsum      getIcmpCsum()                      {   return swapWord (tdata.range(32+31, 32+16));                  }
+    void          setIcmpCsum(IcmpCsum csum)    {                  tdata.range(32+31, 32+16) = swapWord(csum);  }
+    IcmpCsum      getIcmpCsum()                 { return swapWord (tdata.range(32+31, 32+16));                  }
 
-    LE_IcmpType   getLE_IcmpType()                   {             return tdata.range(32+ 7, 32+ 0);                   }
-    LE_IcmpCode   getLE_IcmpCode()                   {             return tdata.range(32+15, 32+ 8);                   }
-    LE_IcmpCsum   getLE_IcmpCsum()                   {             return tdata.range(32+31, 32+16);                   }
+    LE_IcmpType   getLE_IcmpType()              {             return tdata.range(32+ 7, 32+ 0);                   }
+    LE_IcmpCode   getLE_IcmpCode()              {             return tdata.range(32+15, 32+ 8);                   }
+    LE_IcmpCsum   getLE_IcmpCsum()              {             return tdata.range(32+31, 32+16);                   }
 
 
   private:
