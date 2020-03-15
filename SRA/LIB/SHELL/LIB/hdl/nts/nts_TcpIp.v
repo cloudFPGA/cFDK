@@ -532,11 +532,7 @@ module NetworkTransportSession_TcpIp (
   wire  [15:0]  ssARS5_TOE_Meta_tdata;
   wire          ssARS5_TOE_Meta_tvalid;
   wire          ssARS5_TOE_Meta_tready;
-   
-  //-- [FIXME] A BUNCH OF TEMPORAY SIGNALS THAT WE MUST GET RID OF 
-  wire  [47:0]  leMMIO_MacAddress;
-  wire  [31:0]  leMMIO_IpAddress;
-   
+  
   //-- End of signal declarations ----------------------------------------------
  
   //============================================================================
@@ -546,20 +542,7 @@ module NetworkTransportSession_TcpIp (
   
   assign siMEM_TxP_RdSts_tready = sTODO_1b1; // [FIXME - Add TxP_RdSts to TOE]
   assign siMEM_RxP_RdSts_tready = sTODO_1b1; // [FIXME - Add RxP_RdSts to TOE]
-
-  //-- [FIXME] A BUNCH OF ASSIGNMENTS THAT WE MUST GET RID OF
-  assign leMMIO_MacAddress = {{piMMIO_MacAddress[ 7: 0]},
-                              {piMMIO_MacAddress[15: 8]},
-                              {piMMIO_MacAddress[23:16]},
-                              {piMMIO_MacAddress[31:24]},
-                              {piMMIO_MacAddress[39:32]},
-                              {piMMIO_MacAddress[47:40]}};
   
-  assign leMMIO_IpAddress = {{piMMIO_IpAddress[ 7: 0]},
-                             {piMMIO_IpAddress[15: 8]},
-                             {piMMIO_IpAddress[23:16]},
-                             {piMMIO_IpAddress[31:24]}};
-   
   //============================================================================
   //  INST: IP-RX-HANDLER
   //============================================================================
@@ -737,7 +720,7 @@ module NetworkTransportSession_TcpIp (
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V           (leMMIO_IpAddress),
+    .piMMIO_IpAddr_V           (piMMIO_IpAddress),
     
     //------------------------------------------------------
     //-- NTS Interfaces
