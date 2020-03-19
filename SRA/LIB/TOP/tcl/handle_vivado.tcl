@@ -390,47 +390,88 @@ if { ${create} } {
         my_puts ""
         exit ${KO}
         #TODO: maybe import static netlist here?
-    }
+  }
 
-    if { $forceWithoutBB } {
-        # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
-        #---------------------------------------------------------------------------
-        add_files  ${usedRoleDir}/hdl/
-        set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
-        update_compile_order -fileset sources_1
-        my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
-    
-        # IP Cores ROLE
-        # Specify the IP Repository Path to make IPs available through the IP Catalog
-        #  (Must do this because IPs are stored outside of the current project) 
-        #----------------------------------------------------------------------------
-        set ipDirRole  ${usedRoleDir}/ip
-        set hlsDirRole ${usedRoleDir}/hls
-        set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-                                            ${ipDirRole} ${hlsDirRole} ] [current_project]
+  if { $forceWithoutBB } {
 
-        # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
-        #---------------------------------------------------------------------------
-        set ipList [ glob -nocomplain ${ipDirRole}/ip_user_files/ip/* ]
-        if { $ipList ne "" } {
-            foreach ip $ipList {
-                set ipName [file tail ${ip} ]
-                add_files ${ipDirRole}/${ipName}/${ipName}.xci
-                my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
-            }
+
+    set MdlHdlFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/Middleware.vhdl
+    # we don't know, if this Shell has a Middleware?
+    if { [ file exists ${MdlHdlFile} ] && ${midlwActive} } {
+      # Add HDL Source Files for the MIDDLEWARE and turn VHDL-2008 mode on
+      #---------------------------------------------------------------------------
+      add_files  ${MdlHdlFile}
+      set_property file_type {VHDL 2008} [ get_files  ${MdlHdlFile} ]
+      update_compile_order -fileset sources_1
+      my_dbg_trace "Finished adding the  HDL files of the MIDDLEWARE." ${dbgLvl_1}
+
+      #setting IP and HLS folder
+      #ipDirMidlw comes from xpr_settings!!
+      #general LIB  folder
+      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/LIB/hls/
+      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
+
+      #SRA specific dir
+      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/hls/
+      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
+
+
+      # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the MIDDLEWARE. 
+      #---------------------------------------------------------------------------
+      set ipList [ glob -nocomplain ${ipDirMidlw}/ip_user_files/ip/* ]
+      if { $ipList ne "" } {
+        foreach ip $ipList {
+          set ipName [file tail ${ip} ]
+          add_files ${ipDirMidlw}/${ipName}/${ipName}.xci
+          my_dbg_trace "Done with add_files for MIDDLEWARE: ${ipDir}/${ipName}/${ipName}.xci" 2
         }
+      }
 
-        update_ip_catalog
-        my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
-    
-        # Update Compile Order
-        #---------------------------------------------------------------------------
-        update_compile_order -fileset sources_1
+      update_ip_catalog
+      my_dbg_trace "Done with update_ip_catalog for the MIDDLEWARE" ${dbgLvl_1}
     }
 
 
+    # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
+    #---------------------------------------------------------------------------
+    add_files  ${usedRoleDir}/hdl/
+    set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
+    update_compile_order -fileset sources_1
+    my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
-    #===============================================================================
+    # IP Cores ROLE
+    # Specify the IP Repository Path to make IPs available through the IP Catalog
+    #  (Must do this because IPs are stored outside of the current project) 
+    #----------------------------------------------------------------------------
+    set ipDirRole  ${usedRoleDir}/ip
+    set hlsDirRole ${usedRoleDir}/hls
+    set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
+    ${ipDirRole} ${hlsDirRole} ] [current_project]
+
+    # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the ROLE. 
+    #---------------------------------------------------------------------------
+    set ipList [ glob -nocomplain ${ipDirRole}/ip_user_files/ip/* ]
+    if { $ipList ne "" } {
+      foreach ip $ipList {
+        set ipName [file tail ${ip} ]
+        add_files ${ipDirRole}/${ipName}/${ipName}.xci
+        my_dbg_trace "Done with add_files for ROLE: ${ipDir}/${ipName}/${ipName}.xci" 2
+          }
+      }
+
+      update_ip_catalog
+      my_dbg_trace "Done with update_ip_catalog for the ROLE" ${dbgLvl_1}
+
+      # Update Compile Order
+      #---------------------------------------------------------------------------
+      update_compile_order -fileset sources_1
+  }
+
+
+
+  #===============================================================================
     #
     # STEP-3 : Create and Specify CONSTRAINTS Settings
     #
