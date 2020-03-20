@@ -30,6 +30,8 @@ vivado*.str
 *.dat.*
 *.gold*
 *.strm*
+fsm_encoding.os
+
 
 # Vim
 #----- 
@@ -63,4 +65,7 @@ workspace/
 env/
 dcps/
 cfdk_dynamic.hpp
+
+*_OOC.dcp
+
 
