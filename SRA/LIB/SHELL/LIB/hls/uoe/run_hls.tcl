@@ -108,7 +108,9 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "../../../../test/testVectors/rxInput.short.dat ../../../../test/testVectors/txInput.short.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwoDatagrams.dat"
+    #OBSOLETE csim_design -argv "../../../../test/testVectors/rxInput.short.dat ../../../../test/testVectors/txInput.short.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -132,7 +134,8 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_OneIcmpPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_TwoDatagrams.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_SixIcmpPkt.dat"
     puts "#############################################################"
     puts "####                                                     ####"

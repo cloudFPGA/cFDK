@@ -286,8 +286,8 @@ class AxisIp4: public AxiWord {
     UdpPort     getUdpDstPort()                 { return swapWord (tdata.range(63, 48));                  }
 
     // Set-Get the UDP Length
-    void        setUdpLeng(UdpLen len)          {                  tdata.range(15,  0) = swapWord(len);   }
-    UdpLen      getUdpLeng()                    { return swapWord (tdata.range(15,  0));                  }
+    void        setUdpLen(UdpLen len)           {                  tdata.range(15,  0) = swapWord(len);   }
+    UdpLen      getUdpLen()                     { return swapWord (tdata.range(15,  0));                  }
     // Set-Get the UDP Checksum
     void        setUdpCsum(UdpCsum csum)        {                  tdata.range(31, 16) = swapWord(csum);  }
     TcpChecksum getUdpCsum()                    { return swapWord (tdata.range(31, 16));                  }

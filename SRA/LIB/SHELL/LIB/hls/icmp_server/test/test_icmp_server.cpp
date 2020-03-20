@@ -194,10 +194,9 @@ int createGoldenFile(
                           icmpDataPacket.getIcmpType().to_uint(), icmpDataPacket.getCode().to_uint());
             }
         } // End-of if (endOfPacket)
-
     } // End-of While ()
 
-        //-- STEP-4: CLOSE FILES
+    //-- STEP-4: CLOSE FILES
     ifsDAT.close();
     ofsDAT.close();
 

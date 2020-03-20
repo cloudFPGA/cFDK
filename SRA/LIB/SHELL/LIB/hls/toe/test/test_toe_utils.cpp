@@ -900,6 +900,7 @@ void printTcpPort(TcpPort tcpPort)
     }
 #endif
 
+
 /*******************************************************************************
  * @brief Initialize an AxiWord stream from a DAT file.
  *
@@ -1215,5 +1216,10 @@ void printTcpPort(TcpPort tcpPort)
         stream<AxisIp4> ss;
         int  nr1, nr2, nr3;
         drainAxisToFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_drainAxisArpToFile() {
+        stream<AxisArp> ss;
+        int  nr1, nr2, nr3;
+        drainAxisToFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
 #endif

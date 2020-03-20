@@ -26,7 +26,8 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF    0x0000
-#define TRACE_CGF    1 << 1
+#define TRACE_CGR    1 << 1
+#define TRACE_DUMTF  1 << 2
 #define TRACE_ALL    0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
@@ -279,6 +280,81 @@ ap_uint<16> encodeApUint16(string parseString){
 	return tempOutput;
 }
 
+
+/*****************************************************************************
+ * @brief Empty an UdpMeta stream to a DAT file.
+ *
+ * @param[in/out] ss,       a ref to the UDP metadata stream to drain.
+ * @param[in]     ssName,   the name of the UDP metadata stream to drain.
+ * @param[in]     fileName, the DAT file to write to.
+ * @param[out     nrChunks, a ref to the number of written chunks.
+ * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes,  a ref to the number of written bytes.
+  *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    bool drainUdpMetaStreamToFile(stream<metadata> &ss, string ssName,
+            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {  // [TODO - Rename UdpMeta]
+        ofstream    outFileStream;
+        char        currPath[FILENAME_MAX];
+        //string      strLine;
+        //int         lineCnt=0;
+        metadata      udpMeta;
+
+        const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
+
+        //-- REMOVE PREVIOUS FILE
+        remove(ssName.c_str());
+
+        //-- OPEN FILE
+        if (!outFileStream.is_open()) {
+            outFileStream.open(datFile.c_str(), ofstream::out);
+            if (!outFileStream) {
+                printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+                return(NTS_KO);
+            }
+        }
+
+        // Assess that file has ".dat" extension
+        if ( datFile.find_last_of ( '.' ) != string::npos ) {
+            string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+            if (extension != "dat") {
+                printError(THIS_NAME, "Cannot dump SocketPair stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+                outFileStream.close();
+                return(NTS_KO);
+            }
+        }
+
+        //-- READ FROM STREAM AND WRITE TO FILE
+        outFileStream << std::hex << std::noshowbase;
+        outFileStream << std::setfill('0');
+        outFileStream << std::uppercase;
+        while (!(ss.empty())) {
+            ss.read(udpMeta);
+            SocketPair socketPair(SockAddr(udpMeta.sourceSocket.addr,
+                                           udpMeta.sourceSocket.port),
+                                  SockAddr(udpMeta.destinationSocket.addr,
+                                           udpMeta.destinationSocket.port));
+            writeSocketPairToFile(socketPair, outFileStream);
+            nrChunks++;
+            nrBytes += 12;
+            nrFrames++;
+            if (DEBUG_LEVEL & TRACE_DUMTF) {
+                printInfo(myName, "Writing new socket-pair to file:\n");
+                printSockPair(myName, socketPair);
+            }
+        }
+
+        //-- CLOSE FILE
+        outFileStream.close();
+
+        return(NTS_OK);
+
+    }
+#endif
+
+
 /*****************************************************************************
  * @brief Create the golden Rx reference files from an input test file.
  *
@@ -347,7 +423,6 @@ int createGoldenRxFiles(
         AxisIp4     ip4RxData;
         bool        endOfPkt=false;
         bool        rc;
-
         // Read one packet at a time from input file
         while ((ifsData.peek() != EOF) && (!endOfPkt)) {
             rc = readAxiWordFromFile(&ip4RxData, ifsData);
@@ -370,19 +445,71 @@ int createGoldenRxFiles(
                 inpBytes += ip4RxData.keepToLen();
             }
         } // End-of: while ((ifsData.peek() != EOF) && (!endOfPkt))
-
         // Build the UDP datagram and corresponding metada expected at the output of UOE
         if (endOfPkt) {
-            // Part-1: Metadata
-            SocketPair socketPair(SockAddr(ip4DataPkt.getIpSourceAddress(),
-                                           ip4DataPkt.getUdpSourcePort()),
-                                  SockAddr(ip4DataPkt.getIpDestinationAddress(),
-                                           ip4DataPkt.getUdpDestinationPort()));
-            writeSocketPairToFile(socketPair, ofsMetaGold);
-        }
-    }
+            // Check that the incoming IPv4 packet is UDP
+            Ip4Prot ip4Prot = ip4DataPkt.getIpProtocol();
+            if (ip4Prot != UDP_PROTOCOL) {
+                printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n");
+                printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
+                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL.to_uint());
+                ret = NTS_KO;
+                continue;
+            }
+            // Retrieve the UDP datagram from the IPv4 Packet
+            UdpDatagram udpDatagram;  // [FIXME-create a class SimUdpDatagram]
+            udpDatagram = ip4DataPkt.getUdpDatagram();
+            // Assess the checksum is valid (or 0x0000)
+            UdpCsum udpHCsum = udpDatagram.getUdpChecksum();
+            UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum(ip4DataPkt.getIpSourceAddress(),
+                                                                  ip4DataPkt.getIpDestinationAddress(),
+                                                                  ip4DataPkt.getIpProtocol());
+            if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
+                // UDP datagram comes with an invalid checksum
+                printWarn(myName, "IP4 packet #%d contains an UDP datgram with an invalid checksum. It will be dropped by the UDP core.\n", inpPackets);
+                printWarn(myName, "\tFound checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                          udpHCsum.to_uint(), calcCsum.to_ushort());
+            }
+            else {
+                // Part-1: Metadata
+                SocketPair socketPair(SockAddr(ip4DataPkt.getIpSourceAddress(),
+                                               ip4DataPkt.getUdpSourcePort()),
+                                      SockAddr(ip4DataPkt.getIpDestinationAddress(),
+                                               ip4DataPkt.getUdpDestinationPort()));
+                writeSocketPairToFile(socketPair, ofsMetaGold);
+                if (DEBUG_LEVEL & TRACE_CGR) {
+                    printInfo(myName, "Writing new socket-pair to file:\n");
+                    printSockPair(myName, socketPair);
+                }
+                // Part-2: Update the UDP container set
+                udpPorts.insert(ip4DataPkt.getUdpDestinationPort());
+                // Part-3: Write UDP datagram payload to gold file
 
-    return(OK);
+                if (udpDatagram.writePayloadToDatFile(ofsDataGold) == false) {
+                    printError(myName, "Failed to write UDP payload to GOLD file.\n");
+                    ret = NTS_KO;
+                }
+                else {
+                    outPackets += 1;
+                    outChunks  += udpDatagram.size();
+                    outBytes   += udpDatagram.length();
+                }
+            }
+        } // End-of: if (endOfPkt)
+    } // End-of: while ((ifsData.peek() != EOF) && (ret != NTS_KO))
+
+    //-- STEP-4: CLOSE FILES
+    ifsData.close();
+    ofsDataGold.close();
+    ofsMetaGold.close();
+
+    //-- STEP-5: PRINT RESULTS
+    printInfo(myName, "Done with the creation of the golden files.\n");
+    printInfo(myName, "\tProcessed %5d chunks in %4d packets, for a total of %6d bytes.\n",
+              inpChunks, inpPackets, inpBytes);
+    printInfo(myName, "\tGenerated %5d chunks in %4d packets, for a total of %6d bytes.\n",
+              outChunks, outPackets, outBytes);
+    return(ret);
 }
 
 /*****************************************************************************
@@ -418,9 +545,6 @@ int main(int argc, char *argv[]) {
 
     UdpPort     portToOpen;
     StsBool     openReply;
-
-
-
 
     AxisIp4                 inputPathInputData          = AxisIp4(0, 0, 0);
 	metadata				inputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
@@ -459,9 +583,9 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
-    int                     nrIPRX_UOE_Chunks    = 0;
-    int                     nrIPRX_UOE_Datagrams = 0;
-    int                     nrIPRX_UOE_Bytes     = 0;
+    int                     nrIPRX_UOE_Chunks  = 0;
+    int                     nrIPRX_UOE_Packets = 0;
+    int                     nrIPRX_UOE_Bytes   = 0;
     stream<axiWord>			ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
 
     stream<UdpPort>         ssURIF_UOE_OpnReq  ("ssURIF_UOE_OpnReq");
@@ -469,7 +593,13 @@ int main(int argc, char *argv[]) {
     stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
 
     stream<AppData>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
-	stream<metadata> 		ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
+    int                     nrUOE_URIF_DataChunks = 0;
+    int                     nrUOE_URIF_DataGrams  = 0;
+    int                     nrUOE_URIF_DataBytes  = 0;
+    stream<metadata>        ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
+    int                     nrUOE_URIF_MetaChunks = 0;
+    int                     nrUOE_URIF_MetaGrams  = 0;
+    int                     nrUOE_URIF_MetaBytes  = 0;
 
     stream<axiWord> 		ssURIF_UOE_Data    ("ssURIF_UOE_Data");
 	stream<metadata> 		ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
@@ -728,10 +858,10 @@ int main(int argc, char *argv[]) {
 
         //-- CREATE DUT INPUT TRAFFIC AS STREAMS --------------------
         if (feedAxisFromFile(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", string(argv[2]),
-                nrIPRX_UOE_Chunks, nrIPRX_UOE_Datagrams, nrIPRX_UOE_Bytes)) {
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes)) {
             printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
             printInfo(THIS_NAME, "\tGenerated %d chunks in %d datagrams, for a total of %d bytes.\n\n",
-                nrIPRX_UOE_Chunks, nrIPRX_UOE_Datagrams, nrIPRX_UOE_Bytes);
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes);
         }
         else {
             printError(THIS_NAME, "Failed to create traffic as input stream. \n");
@@ -768,115 +898,145 @@ int main(int argc, char *argv[]) {
 
         //-- CREATE OUTPUT GOLD TRAFFIC
         set<UdpPort> udpDstPorts;
-
-        if (not createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
-                                    ofsURIF_Gold_Meta_FileName, udpDstPorts)) {
+        if (createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
+                ofsURIF_Gold_Meta_FileName, udpDstPorts) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Rx files. \n");
             nrErr++;
         }
 
-        openReply = false;
-        portToOpen = 0x80;
-        ssURIF_UOE_OpnReq.write(portToOpen);
-
-        for (int i=0; i<3; ++i) {
-        uoe(
-            //-- IPRX / IP Rx / Data Interface
-            ssIPRX_UOE_Data,
-            //-- IPTX / IP Tx / Data Interface
-            ssUOE_IPTX_Data,
-            //-- URIF / Control Port Interfaces
-            ssURIF_UOE_OpnReq,
-            ssUOE_URIF_OpnRep,
-            ssURIF_UOE_ClsReq,
-            //-- URIF / Rx Data Interfaces
-            ssUOE_URIF_Data,
-            ssUOE_URIF_Meta,
-            //-- URIF / Tx Data Interfaces
-            ssURIF_UOE_Data,
-            ssURIF_UOE_Meta,
-            ssURIF_UOE_PLen,
-            //-- ICMP / Message Data Interface
-            soICMP_Data);
-
-        stepSim();
-    }
-
-        if (!ssUOE_URIF_OpnRep.empty()) {
-            openReply = ssUOE_URIF_OpnRep.read();
-            if (not openReply) {
-                printError(THIS_NAME, "KO - Failed to open port #%d.\n", portToOpen.to_int());
+        // Request to open a set of UDP ports in listen mode
+        for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
+            portToOpen = *it;
+            ssURIF_UOE_OpnReq.write(portToOpen);
+            for (int i=0; i<1; ++i) {
+                uoe(
+                    //-- IPRX / IP Rx / Data Interface
+                    ssIPRX_UOE_Data,
+                    //-- IPTX / IP Tx / Data Interface
+                    ssUOE_IPTX_Data,
+                    //-- URIF / Control Port Interfaces
+                    ssURIF_UOE_OpnReq,
+                    ssUOE_URIF_OpnRep,
+                    ssURIF_UOE_ClsReq,
+                    //-- URIF / Rx Data Interfaces
+                    ssUOE_URIF_Data,
+                    ssUOE_URIF_Meta,
+                    //-- URIF / Tx Data Interfaces
+                    ssURIF_UOE_Data,
+                    ssURIF_UOE_Meta,
+                    ssURIF_UOE_PLen,
+                    //-- ICMP / Message Data Interface
+                    soICMP_Data);
+                stepSim();
             }
         }
-        else {
-            printError(THIS_NAME, "NoReply - Failed to open port #%d.\n", portToOpen.to_int());
+        // Check that port were successfully opened
+        for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
+            portToOpen = *it;
+            openReply = false;
+            if (!ssUOE_URIF_OpnRep.empty()) {
+                openReply = ssUOE_URIF_OpnRep.read();
+                if (not openReply) {
+                    printError(THIS_NAME, "KO - Failed to open port #%d.\n", portToOpen.to_int());
+                }
+            }
+            else {
+                printError(THIS_NAME, "NoReply - Failed to open port #%d.\n", portToOpen.to_int());
+                nrErr++;
+            }
+        }
+
+        //-- SEND THE IPv4 packets to [UOE]
+        int tbRun = (nrErr == 0) ? (nrIPRX_UOE_Chunks + TB_GRACE_TIME) : 0;
+        while (tbRun) {
+            uoe(
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_OpnReq,
+                ssUOE_URIF_OpnRep,
+                ssURIF_UOE_ClsReq,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_PLen,
+                //-- ICMP / Message Data Interface
+                soICMP_Data);
+            tbRun--;
+            stepSim();
+        }
+
+        //-- DRAIN UOE-->URIF DATA OUTPUT STREAM
+        if (not drainAxiWordStreamToFile(ssUOE_URIF_Data, "ssUOE_URIF_Data",
+                ofNames[0], nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-URIF dat traffic from DUT. \n");
+            nrErr++;
+        }
+        //-- DRAIN UOE-->URIF META OUTPUT STREAM
+        if (not drainUdpMetaStreamToFile(ssUOE_URIF_Meta, "ssUOE_URIF_Meta",
+                ofNames[1], nrUOE_URIF_MetaChunks, nrUOE_URIF_MetaGrams, nrUOE_URIF_MetaBytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-URIF meta traffic from DUT. \n");
             nrErr++;
         }
 
-    //-- HERE WE GO AND SEND THE DATA ----------------------
-    rxInput.open(argv[1]);
-	while (!rxInput.eof()) {
-		std::string stringBuffer;
-		getline(rxInput, stringBuffer);
-		std::vector<std::string> stringVector = parseLine(stringBuffer);
-		string dataString = stringVector[0];
-		string keepString = stringVector[2];
-		inputPathInputData.tdata = encodeApUint64(dataString);
-		inputPathInputData.tkeep = encodeApUint8(keepString);
+        printInfo(THIS_NAME, "############################################################################\n");
+        printInfo(THIS_NAME, "## TESTBENCH ENDS HERE                                                    ##\n");
+        printInfo(THIS_NAME, "############################################################################\n");
 
-		inputPathInputData.tlast = atoi(stringVector[1].c_str());
-		ssIPRX_UOE_Data.write(inputPathInputData);
-		//noOfLines++;
-	}
-	//noOfLines = 0;
-	while (!ssIPRX_UOE_Data.empty() || overflowCounter < maxOverflowValue) {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			ssURIF_UOE_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
-
-		//std::cerr << ".";
-		//noOfLines++;
-		if (ssIPRX_UOE_Data.empty())
-			overflowCounter++;
-	}
-	//noOfLines = 0;
-	cerr << endl << "Rx test complete." << endl;
-	overflowCounter = 0;
+        //---------------------------------------------------------------
+        //-- COMPARE OUTPUT DAT and GOLD STREAMS
+        //---------------------------------------------------------------
+        int res = system(("diff --brief -w " + \
+                           std::string(ofsURIF_Data_FileName) + " " + \
+                           std::string(ofsURIF_Gold_Data_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsURIF_Data_FileName.c_str(), ofsURIF_Gold_Data_FileName.c_str());
+            nrErr += 1;
+        }
+        res = system(("diff --brief -w " + \
+                       std::string(ofsURIF_Meta_FileName) + " " + \
+                       std::string(ofsURIF_Gold_Meta_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsURIF_Meta_FileName.c_str(), ofsURIF_Gold_Meta_FileName.c_str());
+            nrErr += 1;
+        }
 
     } // End-of: if (tbMode == RX_MODE)
 
+    //---------------------------------------------------------------
+    //-- PRINT TESTBENCH STATUS
+    //---------------------------------------------------------------
+    printf("\n\n");
+    printInfo(THIS_NAME, "This testbench was executed with the following parameters: \n");
+    printInfo(THIS_NAME, "\t==> TB Mode  = %c\n", *argv[1]);
+    for (int i=2; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+
+    if (nrErr) {
+        printError(THIS_NAME, "###########################################################\n");
+        printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
+        printError(THIS_NAME, "###########################################################\n\n");
+
+        printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
+    }
+    else {
+        printInfo(THIS_NAME, "#############################################################\n");
+        printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");
+        printInfo(THIS_NAME, "#############################################################\n");
+    }
+
+    return nrErr;
 
 
-
-
-
-
-
-
-    printFatal(THIS_NAME, "AUTO-EXIT");
-
-
-
-
-
-
-
-	// Test 5: Tx path
+	//** Test 5: Tx path **************************
     uint32_t noOfLines = 0;
 	cerr << endl << "Test 5: Exercising the Tx Path" << endl;
 	noOfLines = 0;

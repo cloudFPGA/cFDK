@@ -236,8 +236,6 @@ const char    *myCamAccessToString(int       initiator);
             setLen(getLen() + keepToLen(icmpWord.tkeep));
         }
 
-
-
       public:
 
         // Default Constructor: Constructs a packet of 'pktLen' bytes.
@@ -374,6 +372,239 @@ const char    *myCamAccessToString(int       initiator);
     };  // End-of: IcmpPacket
 #endif
 
+/*****************************************************************************
+ * @brief Class UDP Datagram.
+ *
+ * @details
+ *  This class defines an UDP datagram as a stream of 'AxisUdp' data chunks.
+ *   Such an UDP datagram consists of a double-ended queue that is used to
+ *    accumulate all these data chunks.
+ *   For the 10GbE MAC, the UDP chunks are 64 bits wide.
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+    class UdpDatagram {  // [FIXME- create a SimUdpDatagram class]
+        int len;  // In bytes
+        std::deque<AxisUdp> axisWordQueue;  // A double-ended queue to store UDP chunks.
+      private:
+        void setLen(int dgmLen) { this->len = dgmLen; }
+        int  getLen()           { return this->len;   }
+        // Add a chunk of bytes at the end of the double-ended queue
+        void addChunk(AxisUdp udpWord) {
+            if (this->size() > 0) {
+                // Always clear 'TLAST' bit of previous chunck
+                this->axisWordQueue[this->size()-1].tlast = 0;
+            }
+            this->axisWordQueue.push_back(udpWord);
+            setLen(getLen() + keepToLen(udpWord.tkeep));
+        }
+
+      public:
+        // Default Constructor: Constructs a datagram of 'dgmLen' bytes.
+        UdpDatagram(int dgmLen) {
+            setLen(0);
+            if (dgmLen > 0 && dgmLen <= MTU) {
+                int noBytes = dgmLen;
+                while(noBytes > 8) {
+                    addChunk(AxisUdp(0x0000000000000000, 0xFF, 0));
+                    noBytes -= 8;
+                 }
+                 addChunk(AxisUdp(0x0000000000000000, lenToKeep(noBytes), TLAST));
+            }
+        }
+        UdpDatagram() {
+            this->len = 0;
+        }
+
+        // Return the front chunk element of the UDP word queue but does not remove it from the queue
+        AxisUdp front()                                        { return this->axisWordQueue.front();            }
+        // Clear the content of the UDP word queue
+        void clear()                                           {        this->axisWordQueue.clear();
+                                                                        this->len = 0;                          }
+        // Remove the first chunk element of the UDP word queue
+        void pop_front()                                       {        this->axisWordQueue.pop_front();        }
+        // Add an element at the end of the UDP word queue
+        void push_back(AxisUdp udpChunk)                       {        this->axisWordQueue.push_back(udpChunk);
+                                                                        this->len += keepToLen(udpChunk.tkeep); }
+        // Return the length of the UDP datagram (in bytes)
+        int length()                                           { return this->len;                              }
+        // Return the number of chunks in the UDP datagram (in axis-words)
+        int size()                                             { return this->axisWordQueue.size();             }
+
+        // Set-Get the UDP Source Port field
+        void           setUdpSourcePort(int port)              {        axisWordQueue[0].setUdpSrcPort(port);   }
+        int            getUdpSourcePort()                      { return axisWordQueue[0].getUdpSrcPort();       }
+        // Set-Get the UDP Destination Port field
+        void           setUdpDestinationPort(int port)         {        axisWordQueue[0].setUdpDstPort(port);   }
+        int            getUdpDestinationPort()                 { return axisWordQueue[0].getUdpDstPort();       }
+        // Set-Get the UDP Length field
+        void           setUdpLength(UdpLen len)                {        axisWordQueue[0].setUdpLen(len);        }
+        UdpLen         getUdpLength()                          { return axisWordQueue[0].getUdpLen();           }
+        // Set-Get the UDP Checksum field
+        void           setUdpChecksum(UdpCsum csum)            {        axisWordQueue[0].setUdpCsum(csum);      }
+        IcmpCsum       getUdpChecksum()                        { return axisWordQueue[0].getUdpCsum();          }
+
+        // Append data payload to an UDP header
+        void addUdpPayload(string pldStr) {
+            if (this->getLen() != UDP_HEADER_SIZE) {
+                printFatal("UdpDatagram", "Empty datagram is expected to be of length %d bytes (was found to be %d bytes).\n",
+                           UDP_HEADER_SIZE, this->getLen());
+            }
+            int hdrLen = this->getLen();  // in bytes
+            int pldLen = pldStr.size();
+            int q = (hdrLen / 8);
+             int b = (hdrLen % 8);
+            int i = 0;
+            // At this point we are aligned on an 8-byte data chunk since all
+            // UDP packets have an 8-byte header.
+            while (i < pldLen) {
+                unsigned long leQword = 0x0000000000000000;  // in LE order
+                unsigned char leKeep  = 0x00;
+                bool          leLast  = false;
+                while (b < 8) {
+                    unsigned char datByte = pldStr[i];
+                    leQword |= (datByte << b*8);
+                    leKeep  |= (1 << b);
+                    i++;
+                    b++;
+                    if (i == pldLen) {
+                        leLast = true;
+                        break;
+                    }
+                }
+                b = 0;
+                addChunk(AxisUdp(leQword, leKeep, leLast));
+             }
+        }  // End-of: addIcmpPayload
+
+        /**********************************************************************
+         * @brief Calculate the UDP checksum of the datagram.
+         *  - This method computes the UDP checksum over the pseudo header, the
+         *    UDP header and UDP data. According to RFC768, the pseudo  header
+         *    consists of the IP-{SA,DA,Prot} fildss and the  UDP length field.
+         *         0      7 8     15 16    23 24    31
+         *        +--------+--------+--------+--------+
+         *        |          source address           |
+         *        +--------+--------+--------+--------+
+         *        |        destination address        |
+         *        +--------+--------+--------+--------+
+         *        |  zero  |protocol|   UDP length    |
+         *        +--------+--------+--------+--------+
+         *
+         * @Warning The checksum is computed on the double-ended queue which
+         *    holds the UDP chuncks in little-endian order (see AxisUdp) !
+         *
+         * @return the computed checksum.
+         **********************************************************************/
+        UdpCsum calculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+            ap_uint<32> csum = 0;
+            csum += byteSwap16(ipSa(31, 16));
+            csum += byteSwap16(ipSa(15,  0));
+            csum += byteSwap16(ipDa(31, 16));
+            csum += byteSwap16(ipDa(15,  0));
+            csum += byteSwap16(ap_uint<16>(ipProt));
+            csum += byteSwap16(this->getUdpLength());
+            for (int i=0; i<this->size(); ++i) {
+                ap_uint<64> tempInput = 0x0000000000000000;
+                if (axisWordQueue[i].tkeep & 0x01)
+                     tempInput.range(  7, 0) = (axisWordQueue[i].tdata.range( 7, 0));
+                if (axisWordQueue[i].tkeep & 0x02)
+                     tempInput.range(15, 8) = (axisWordQueue[i].tdata.range(15, 8));
+                if (axisWordQueue[i].tkeep & 0x04)
+                     tempInput.range(23,16) = (axisWordQueue[i].tdata.range(23,16));
+                 if (axisWordQueue[i].tkeep & 0x08)
+                     tempInput.range(31,24) = (axisWordQueue[i].tdata.range(31,24));
+                if (axisWordQueue[i].tkeep & 0x10)
+                     tempInput.range(39,32) = (axisWordQueue[i].tdata.range(39,32));
+                if (axisWordQueue[i].tkeep & 0x20)
+                     tempInput.range(47,40) = (axisWordQueue[i].tdata.range(47,40));
+                if (axisWordQueue[i].tkeep & 0x40)
+                     tempInput.range(55,48) = (axisWordQueue[i].tdata.range(55,48));
+                if (axisWordQueue[i].tkeep & 0x80)
+                     tempInput.range(63,56) = (axisWordQueue[i].tdata.range(63,56));
+                csum = ((((csum +
+                           tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+                           tempInput.range(31, 16)) + tempInput.range(15,  0));
+            }
+            while (csum >> 16) {
+                csum = (csum & 0xFFFF) + (csum >> 16);
+            }
+            // Reverse the bits of the result
+            UdpCsum udpCsum = csum;
+            udpCsum = ~udpCsum;
+            return byteSwap16(udpCsum);
+        }
+
+        /**********************************************************************
+         * @brief Recalculate the UDP checksum of a datagram.
+         *   - While re-computing the checksum, the checksum field itself is
+         *     replaced with zeros.
+         *   - This will also overwrite the former UDP checksum.
+         *   - You typically use this method if the datagram was modified or
+         *     when the checksum has not yet been calculated.
+         *
+         * @return the computed checksum.
+         **********************************************************************/
+        UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+            this->setUdpChecksum(0x0000);
+            UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa, ipProt);
+            // Overwrite the former UDP checksum
+            this->setUdpChecksum(newUdpCsum);
+            return (newUdpCsum);
+        }
+
+        /***********************************************************************
+         * @brief Dump this UDP datagram as raw AxisUdp words into a file.
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writeToDatFile(ofstream  &outFileStream) {
+            for (int i=0; i < this->size(); i++) {
+                AxisUdp axisWord = this->axisWordQueue[i];
+                if (not this->writeAxisWordToFile(&axisWord, outFileStream)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        /***********************************************************************
+         * @brief Dump the payload of this datagram as raw AxisUdp words into a file.
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writePayloadToDatFile(ofstream  &outFileStream) {
+            for (int i=1; i < this->size(); i++) {
+                AxisUdp axisWord = this->axisWordQueue[i];
+                if (not this->writeAxisWordToFile(&axisWord, outFileStream)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        /***********************************************************************
+         *  @brief Dump an AxisUdp word to a file.
+         * @param[in] axisWord,      a pointer to the Axis word to write.
+         * @param[in] outFileStream, a reference to the file stream to write.
+         * @return true upon success, otherwise false.
+         ***********************************************************************/
+        bool writeAxisWordToFile(AxisUdp *axisWord, ofstream &outFileStream) {
+            if (!outFileStream.is_open()) {
+                printError("UdpDatagram", "File is not opened.\n");
+                return false;
+            }
+            outFileStream << std::uppercase;
+            outFileStream << hex << noshowbase << setfill('0') << setw(16) << axisWord->tdata.to_uint64();
+            outFileStream << " ";
+            outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axisWord->tkeep.to_int();
+            outFileStream << " ";
+            outFileStream << setw(1) << axisWord->tlast.to_int() << "\n";
+            if ( axisWord->tlast.to_int()) {
+                outFileStream << "\n";
+            }
+            return(true);
+        }
+
+    };  // End-of: UdpDatagram
+#endif
 
 /*****************************************************************************
  * @brief Class IP Packet.
@@ -767,7 +998,91 @@ const char    *myCamAccessToString(int       initiator);
                 }
             }
             return icmpPacket;
-        }
+        } // End-of: getIcmpPacket()
+
+        // Return the IP4 data payload as an UdpPacket (assuming IP4 w/o options)
+        UdpDatagram getUdpDatagram() {
+            UdpDatagram  udpDatagram;
+            AxisIp4     axisIp4(0, 0, 0);
+            int         wordOutCnt = 0;
+            bool        alternate = true;
+            bool        endOfPkt  = false;
+            int         ip4PktSize = this->size();
+            int         ihl = this->getIpInternetHeaderLength();
+            int         wordInpCnt = ihl/2; // Skip the IP header words
+            bool        qwordAligned = (ihl % 2) ? false : true;
+            while (wordInpCnt < ip4PktSize) {
+                if (endOfPkt)
+                    break;
+                if (qwordAligned) {
+                    axisIp4.tdata = 0;
+                    axisIp4.tkeep = 0;
+                    axisIp4.tlast = 0;
+                    for (int i=0; i<8; i++) {
+                        if (this->axisWordQueue[wordInpCnt].tkeep & (0x01 << i)) {
+                            axisIp4.tdata.range((i*8)+7, (i*8)+0) =
+                                    this->axisWordQueue[wordInpCnt].tdata.range((i*8)+7, (i*8)+0);
+                            axisIp4.tkeep = axisIp4.tkeep | (0x01 << i);
+                        }
+                    }
+                }
+                else if (alternate) {
+                    axisIp4.tdata = 0;
+                    axisIp4.tkeep = 0;
+                    axisIp4.tlast = 0;
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x10) {
+                        axisIp4.tdata.range( 7,  0) = this->axisWordQueue[wordInpCnt].tdata.range(39, 32);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x01);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x20) {
+                        axisIp4.tdata.range(15,  8) = this->axisWordQueue[wordInpCnt].tdata.range(47, 40);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x02);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x40) {
+                        axisIp4.tdata.range(23, 16) = this->axisWordQueue[wordInpCnt].tdata.range(55, 48);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x04);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x80) {
+                        axisIp4.tdata.range(31, 24) = this->axisWordQueue[wordInpCnt].tdata.range(63, 56);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x08);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast) {
+                        axisIp4.tlast = 1;
+                        endOfPkt = true;
+                        udpDatagram.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
+                    }
+                    alternate = !alternate;
+                    wordInpCnt++;
+                }
+                else {
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x01) {
+                        axisIp4.tdata.range(39, 32) = this->axisWordQueue[wordInpCnt].tdata.range( 7,  0);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x10);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x02) {
+                        axisIp4.tdata.range(47, 40) = this->axisWordQueue[wordInpCnt].tdata.range(15,  8);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x20);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x04) {
+                        axisIp4.tdata.range(55, 48) = this->axisWordQueue[wordInpCnt].tdata.range(23, 16);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x40);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tkeep & 0x08) {
+                        axisIp4.tdata.range(63, 56) = this->axisWordQueue[wordInpCnt].tdata.range(31, 24);
+                        axisIp4.tkeep = axisIp4.tkeep | (0x80);
+                    }
+                    if (this->axisWordQueue[wordInpCnt].tlast &&
+                            (not (this->axisWordQueue[wordInpCnt].tkeep & 0xF0))) {
+                        axisIp4.tlast = 1;
+                        endOfPkt = true;
+                    }
+                    alternate = !alternate;
+                    wordOutCnt++;
+                    udpDatagram.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
+                }
+            }
+            return udpDatagram;
+        } // End-of: getUdpDatagram
 
         /***********************************************************************
          * @brief Append the data payload of this packet as an ICMP packet.
@@ -1882,6 +2197,5 @@ const char    *myCamAccessToString(int       initiator);
                                  string      datFile,    int       &nrChunks,
                                  int       &nrFrames,    int        &nrBytes);
 #endif
-
 
 #endif

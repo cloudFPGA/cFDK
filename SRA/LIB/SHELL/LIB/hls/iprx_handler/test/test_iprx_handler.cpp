@@ -387,23 +387,23 @@ int main(int argc, char* argv[]) {
     //---------------------------------------------------------------
     //-- DRAIN DUT OUTPUT STREAMS
     //---------------------------------------------------------------
-    if (not drainAxiWordStreamToFile(ssIPRX_TOE_Data, "ssIPRX_TOE_Data", ofsTOE_Data_FileName,
+    if (not drainAxisToFile<AxisIp4>(ssIPRX_TOE_Data, "ssIPRX_TOE_Data", ofsTOE_Data_FileName,
             nrIPRX_TOE_Chunks, nrIPRX_TOE_Frames, nrIPRX_TOE_Bytes)) {
         printError(THIS_NAME, "Failed to drain TOE traffic from DUT. \n");
         nrErr++;
     }
 
-    if (not drainAxiWordStreamToFile(ssIPRX_UDP_Data, "ssIPRX_UDP_Data", ofsUDP_Data_FileName,
+    if (not drainAxisToFile<AxisIp4>(ssIPRX_UDP_Data, "ssIPRX_UDP_Data", ofsUDP_Data_FileName,
             nrIPRX_UDP_Chunks, nrIPRX_UDP_Frames, nrIPRX_UDP_Bytes)) {
         printError(THIS_NAME, "Failed to drain UDP traffic from DUT. \n");
         nrErr++;
     }
-    if (not drainAxiWordStreamToFile(ssIPRX_ARP_Data, "ssIPRX_ARP_Data", ofsARP_Data_FileName,
+    if (not drainAxisToFile<AxisArp>(ssIPRX_ARP_Data, "ssIPRX_ARP_Data", ofsARP_Data_FileName,
             nrIPRX_ARP_Chunks, nrIPRX_ARP_Frames, nrIPRX_ARP_Bytes)) {
         printError(THIS_NAME, "Failed to drain ARP traffic from DUT. \n");
         nrErr++;
     }
-    if (not drainAxiWordStreamToFile(ssIPRX_ICMP_Data, "ssIPRX_ICMP_Data", ofsICMP_Data_FileName,
+    if (not drainAxisToFile<AxisIp4>(ssIPRX_ICMP_Data, "ssIPRX_ICMP_Data", ofsICMP_Data_FileName,
             nrIPRX_ICMP_Chunks, nrIPRX_ICMP_Frames, nrIPRX_ICMP_Bytes)) {
         printError(THIS_NAME, "Failed to drain ICMP traffic from DUT. \n");
         nrErr++;

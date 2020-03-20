@@ -56,6 +56,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
+const Ip4Prot   UDP_PROTOCOL = 17; // IP protocol number for UDP
+
 //OBSOLETE-20180619 #define myIP 0x0101010A
 
 //OBSOLETE_20200306 #define MTU	1500  // Maximum Transmission Unit in bytes
@@ -151,7 +153,7 @@ void uoe(
         //-- URIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<AppData>         &soURIF_Data,
-        stream<metadata>        &soURIF_Meta,
+        stream<metadata>        &soURIF_Meta, // [TODO - Rename UdpMeta]
 
         //------------------------------------------------------
         //-- URIF / Tx Data Interfaces
