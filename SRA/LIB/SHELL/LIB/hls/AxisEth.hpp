@@ -78,6 +78,24 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  |               |               |               |               |               |               |    TPA[3]     |    TPA[2]     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
+ *  And the format of an IPv4 packet over an ETHERNET frame is as follows:
+ *
+ *         6                   5                   4                   3                   2                   1                   0
+ *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |     SA[1]     |     SA[0]     |     DA[5]     |     DA[4]     |     DA[3]     |     DA[2]     |     DA[1]     |     DA[0]     |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |Type of Service|Version|  IHL  |         Length/Type           |     SA[5]     |     SA[4]     |     SA[3]     |     SA[2]     |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |    Protocol   |  Time to Live | Frag. Offset  |Flags|         |         Identification        |          Total Length         |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | Destination Address (Hi-Word) |                       Source Address                          |         Header Checksum       |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |              Data             |                Options (if IHL>5) or Data                     | Destination Address (Lo-Word) |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                             Data                                                              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
  *****************************************************************************/
 
 #ifndef AXIS_ETH_H_
@@ -110,6 +128,19 @@ typedef ap_uint<16> EthTypeLen;        // Ethernet Type or Length field
 typedef ap_uint<16> EtherType;         // Ethernet Type field
 typedef ap_uint<16> EtherLen;          // Ethernet Length field
 
+/*********************************************************
+ * IPv4 - UNALIGNED FIELDS IN LITTLE-ENDIAN (LE) ORDER.
+ *   As received or transmitted by the 10GbE MAC.
+ *********************************************************/
+typedef ap_uint<16> LE_Ip4DstAddrHi;   // IPv4 Destination Address 16-MSbits (.i.e 31:16)
+typedef ap_uint<16> LE_Ip4DstAddrLo;   // IPv4 Destination Address 16-LSbits (.i.e 15:00)
+
+/*********************************************************
+ * IPv4 - UNALIGNED FIELDS IN NETWORK BYTE ORDER.
+ *  Default Type Definitions (as used by HLS).
+ *********************************************************/
+typedef ap_uint<16> Ip4DstAddrHi;      // IPv4 Destination Address 16-MSbits (.i.e 31:16)
+typedef ap_uint<16> Ip4DstAddrLo;      // IPv4 Destination Address 16-LSbits (.i.e 15:00)
 
 /******************************************************************************
  * ETH Data over AXI4-STREAMING
@@ -148,7 +179,6 @@ class AxisEth: public AxiWord {
     ap_uint<16>        getLE_EthSrcAddrHi()              {             return tdata.range(63, 48);                     }
     ap_uint<32>        getLE_EthSrcAddrLo()              {             return tdata.range(31,  0);                     }
     LE_EtherType       getLE_EtherType()                 {             return tdata.range(47, 32);                     }
-
 
     //-----------------------------------------------------
     //-- ENCAPSULATED ARP PACKET - Setters and Getters
@@ -196,6 +226,54 @@ class AxisEth: public AxiWord {
     LE_ArpTargHwAddr   getLE_ArpTha()                    {          return tdata.range(47,  0);                        }
     LE_ArpTpaHi        getLE_ArpTpaHi()                  {          return tdata.range(63, 48);                        }
     LE_ArpTpaLo        getLE_ArpTpaLo()                  {          return tdata.range(15,  0);                        }
+
+    //-----------------------------------------------------
+    //-- ENCAPSULATED IP4 PACKET - Setters and Getters
+    //-----------------------------------------------------
+    // Set-Get the IP4 Version
+    void              setIp4Version(Ip4Version ver)      {                 tdata.range(55, 52) = ver;                  }
+    Ip4Version        getIp4Version()                    {          return tdata.range(55, 52);                        }
+    // Set-Get the IP4 Internet Header Length
+    void              setIp4HdrLen(Ip4HdrLen ihl)        {                 tdata.range(51, 48) = ihl;                  }
+    Ip4HdrLen         getIp4HdrLen()                     {          return tdata.range(51, 48);                        }
+    // Set-Get the IP4 Type of Service
+    void              setIp4ToS(Ip4ToS tos)              {                 tdata.range(63, 56) = tos;                  }
+    Ip4ToS            getIp4ToS()                        {          return tdata.range(63, 56);                        }
+    // Set the IP4 Total Length
+    void              setIp4TotalLen(Ip4TotalLen len)    {                 tdata.range(15,  0) = swapWord(len);        }
+    Ip4TotalLen       getIp4TotalLen()                   { return swapWord(tdata.range(15,  0));                       }
+    // Set-Get the IP4 Identification
+    void              setIp4Ident(Ip4Ident id)           {                 tdata.range(31, 16) = swapWord(id);         }
+    Ip4Ident          getIp4Ident()                      { return swapWord(tdata.range(31, 16));                       }
+    // Set-Get the IP4 Fragment Offset
+    void              setIp4FragOff(Ip4FragOff offset)   {                 tdata.range(47, 40) = offset( 7, 0);
+                                                                           tdata.range(36, 32) = offset(12, 8);        }
+    Ip4FragOff        getIp4FragOff()                    {         return (tdata.range(47, 40) << 8 |
+                                                                           tdata.range(36, 32));                       }
+    // Set the IP4 Flags
+    void              setIp4Flags(Ip4Flags flags)        {                 tdata.range(39, 37) = flags;                }
+    // Set-Get the IP4 Time to Live
+    void              setIp4TtL(Ip4TtL ttl)              {                 tdata.range(55, 48) = ttl;                  }
+    Ip4TtL            getIp4Ttl()                        {          return tdata.range(55, 48);                        }
+    // Set-Get the IP4 Protocol
+    void              setIp4Prot(Ip4Prot prot)           {                 tdata.range(63, 56) = prot;                 }
+    Ip4Prot           getIp4Prot()                       {          return tdata.range(63, 56);                        }
+    // Set-Get the IP4 Header Checksum
+    void              setIp4HdrCsum(Ip4HdrCsum csum)     {                 tdata.range(15,  0) = swapWord(csum);       }
+    Ip4HdrCsum        getIp4HdrCsum()                    {return  swapWord(tdata.range(15,  0));                       }
+    // Set-Get the IP4 Source Address
+    void              setIp4SrcAddr(Ip4Addr addr)        {                 tdata.range(47, 16) = swapDWord(addr);      }
+    Ip4Addr           getIp4SrcAddr()                    {return swapDWord(tdata.range(47, 16));                       }
+    // Set-Get the IP4 Destination Address
+    void              setIp4DstAddrHi(Ip4Addr addr)      {                 tdata.range(63, 48) = swapWord(addr).range(15, 0); }
+    Ip4DstAddrHi      getIp4DstAddrHi()                  { return swapWord(tdata.range(63, 48));                       }
+    void              setIp4DstAddrLo(Ip4Addr addr)      {                 tdata.range(15,  0) = swapWord(addr).range(31,16); }
+    Ip4DstAddrLo      getIp4DstAddrLo()                  { return swapWord(tdata.range(15,  0));                       }
+
+    LE_Ip4Addr        getLE_Ip4SrcAddr()                 {          return tdata.range(63, 32);                        }
+    LE_Ip4DstAddrHi   getLE_Ip4DstAddrHi()               {          return tdata.range(63, 48);                        }
+    LE_Ip4DstAddrLo   getLE_Ip4DstAddrLo()               {          return tdata.range(15,  0);                        }
+
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)
