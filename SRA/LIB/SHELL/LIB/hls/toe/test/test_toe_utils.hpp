@@ -41,6 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../src/toe_utils.hpp"
 #include "../../AxisArp.hpp"
 #include "../../AxisEth.hpp"
+#include "../../AxisIp4.hpp"
 
 using namespace std;
 

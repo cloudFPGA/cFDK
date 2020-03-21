@@ -48,6 +48,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../toe/src/toe.hpp"
 #include "../../toe/src/toe_utils.hpp"
+#include "../../AxisArp.hpp"
+#include "../../AxisEth.hpp"
+#include "../../AxisIp4.hpp"
 
 using namespace hls;
 
@@ -87,28 +90,28 @@ void iprx_handler(
         //------------------------------------------------------
         //-- ETHernet MAC Layer Interface
         //------------------------------------------------------
-        stream<AxiWord>     &siETH_Data,
+        stream<AxisEth>     &siETH_Data,
 
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soARP_Data,
+        stream<AxisArp>     &soARP_Data,
 
         //------------------------------------------------------
         //-- ICMP Interfaces
         //------------------------------------------------------
-        stream<AxiWord>     &soICMP_Data,
-        stream<AxiWord>     &soICMP_Derr,
+        stream<AxisIp4>     &soICMP_Data,
+        stream<AxisIp4>     &soICMP_Derr,
 
         //------------------------------------------------------
         //-- UDP Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soUDP_Data,
+        stream<AxisIp4>     &soUOE_Data,
 
         //------------------------------------------------------
         //-- TOE Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soTCP_Data
+        stream<AxisIp4>     &soTOE_Data
 
 );
 

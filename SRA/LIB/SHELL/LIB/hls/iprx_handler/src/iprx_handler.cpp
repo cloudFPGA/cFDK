@@ -88,8 +88,8 @@ using namespace hls;
  *
  *****************************************************************************/
 void pInputBuffer(
-        stream<AxiWord>     &siETH_Data,
-        stream<AxiWord>     &soMPd_Data)
+        stream<AxisEth>     &siETH_Data,
+        stream<AxisEth>     &soMPd_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
@@ -98,18 +98,17 @@ void pInputBuffer(
     const char *myName  = concat3(THIS_NAME, "/", "IBuf");
 
     if (!siETH_Data.empty() && !soMPd_Data.full()) {
-    	EthoverMac  axisWord;
-    	siETH_Data.read(axisWord);
-    	// OBSOLETE-20191106 if ( (axisWord.tlast == 0) && (axisWord.tkeep != 0xFF)) {
-    	if (not axisWord.isValid()) {
+    	AxisEth  axisEth;
+    	siETH_Data.read(axisEth);
+    	if (not axisEth.isValid()) {
     		if (DEBUG_LEVEL & TRACE_IBUF) {
     			 printWarn(myName, "Received an AxisWord with an unexpected \'tkeep\' or \'tlast\' value.\n");
-    			 printAxiWord(myName, "Aborting the frame after: ", axisWord);
+    			 printAxiWord(myName, "Aborting the frame after: ", axisEth);
     		}
-            soMPd_Data.write(AxiWord(axisWord.tdata, 0x00, 1));
+            soMPd_Data.write(AxiWord(axisEth.tdata, 0x00, 1));
     	}
     	else {
-    		soMPd_Data.write(axisWord);
+    		soMPd_Data.write(axisEth);
     	}
     }
 }
@@ -117,10 +116,10 @@ void pInputBuffer(
 /*****************************************************************************
  * Mac Protocol Detector (MPd)
  *
- * @param[in]  siIBuf_Data, Data steam from the Input Buffer (IBuf).
- * @param[out] soARP_Data,  Data stream to ARP.
- * @param[out] soILc_Data,  Data stream to the IPv4 Length Checket (ILc).
  * @param[in]  piMMIO_MacAddr, The MAC address from MMIO.
+ * @param[in]  siIBuf_Data,    Data steam from the Input Buffer (IBuf).
+ * @param[out] soARP_Data,     Data stream to ARP.
+ * @param[out] soILc_Data,     Data stream to the IPv4 Length Checket (ILc).
  *
  * @details
  *  This process parses the Ethernet header to detect ARP and IPv4 frames.
@@ -129,8 +128,8 @@ void pInputBuffer(
  *****************************************************************************/
 void pMacProtocolDetector(
         EthAddr              piMMIO_MacAddr,
-        stream<AxiWord>     &siIBuf_Data,
-        stream<AxiWord>     &soARP_Data,
+        stream<AxisEth>     &siIBuf_Data,
+        stream<AxisArp>     &soARP_Data,
         stream<AxiWord>     &soILc_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -150,7 +149,7 @@ void pMacProtocolDetector(
     static AxiWord      mpd_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    EthoverMac          currWord;
+    AxisEth    currWord;
 
     switch (mpd_fsmState) {
     case S0:
@@ -721,8 +720,8 @@ void pIpChecksumChecker(
  * @param[in]  siICl_Data,  Data stream from IpCutLength (ICl).
  * @param[out] soICMP_Data, ICMP/IP data stream to ICMP.
  * @param[out] soICMP_Derr, Erroneous IP data stream to ICMP.
- * @param[out] soUDP_Data,  UDP/IP data stream to UDP engine.
- * @param[out] soTCP_Data,  TCP/IP data stream to TCP offload engine.
+ * @param[out] soUOE_Data,  UDP/IP data stream to UDP offload engine (UOE).
+ * @param[out] soTOE_Data,  TCP/IP data stream to TCP offload engine (TOE).
  *
  * @details
  *  This process routes the IPv4 packets to one of the 3 following engines:
@@ -736,10 +735,10 @@ void pIpChecksumChecker(
  *****************************************************************************/
 void pIpPacketRouter(
 		stream<Ip4overMac>  &siICl_Data,    // [TODO-AxisIp4]
-		stream<AxiWord>     &soICMP_Data,
-		stream<AxiWord>     &soICMP_Derr,
-		stream<AxiWord>     &soUDP_Data,
-		stream<AxiWord>     &soTCP_Data)
+		stream<AxisIp4>     &soICMP_Data,
+		stream<AxisIp4>     &soICMP_Derr,
+		stream<AxisIp4>     &soUOE_Data,
+		stream<AxisIp4>     &soTOE_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 	#pragma HLS INLINE off
@@ -767,7 +766,7 @@ void pIpPacketRouter(
      case FSM_IDLE:
          if (!siICl_Data.empty() &&
              !soICMP_Derr.full() && !soICMP_Data.full() &&
-             !soUDP_Data.full()  && !soTCP_Data.full()) {
+             !soUOE_Data.full()  && !soTOE_Data.full()) {
              siICl_Data.read(currWord);
              switch (ipr_wordCount) {
                 case 0:
@@ -798,10 +797,10 @@ void pIpPacketRouter(
                             soICMP_Data.write(AxiWord(ipr_prevWord));
                             break;
                         case UDP:
-                            soUDP_Data.write(AxiWord(ipr_prevWord));
+                            soUOE_Data.write(AxiWord(ipr_prevWord));
                             break;
                         case TCP:
-                            soTCP_Data.write(AxiWord(ipr_prevWord));
+                            soTOE_Data.write(AxiWord(ipr_prevWord));
                             break;
                         }
                     }
@@ -818,7 +817,7 @@ void pIpPacketRouter(
 
      case FSM_LAST:
          if (!soICMP_Derr.full() &&
-        	 !soICMP_Data.full() && !soUDP_Data.full() && !soTCP_Data.full() ) {
+        	 !soICMP_Data.full() && !soUOE_Data.full() && !soTOE_Data.full() ) {
         	 uint8_t bitCounter = 0;
         	 bitCounter = keepMapping(ipr_prevWord.tkeep);
         	 if (ipr_prevWord.tkeep != 0xFF) {
@@ -833,10 +832,10 @@ void pIpPacketRouter(
         			soICMP_Data.write(AxiWord(ipr_prevWord));
         			break;
         		 case UDP:
-        			soUDP_Data.write(AxiWord(ipr_prevWord));
+        			soUOE_Data.write(AxiWord(ipr_prevWord));
         			break;
         		 case TCP:
-        			soTCP_Data.write(AxiWord(ipr_prevWord));
+        			soTOE_Data.write(AxiWord(ipr_prevWord));
         			break;
         		}
         	}
@@ -855,9 +854,9 @@ void pIpPacketRouter(
  * @param[in]  siETH_Data,        Data stream from ETHernet MAC layer.
  * @param[out] soARP_Data,        Data stream to ARP server.
  * @param[out] soICMP_Data,       Data stream to ICMP.
- * @param[out] soICMP_Derr,       Data error stream(**) to ICMP.
- * @param[out] soUDP_Data,        Data stream to UDP engine.
- * @param[out] soTCP_Data,        Data stream to TCP offload engine.
+ * @param[out] soICMP_Derr,       Data stream in error to ICMP.
+ * @param[out] soUOE_Data,        Data stream to UDP offload engine (UOE).
+ * @param[out] soTOE_Data,        Data stream to TCP offload engine (TOE).
  *
  * @note:
  *  ** The data-error stream is used instead of the data stream when the TTL
@@ -878,28 +877,28 @@ void iprx_handler(
         //------------------------------------------------------
         //-- ETHernet MAC Layer Interface
         //------------------------------------------------------
-        stream<AxiWord>     &siETH_Data,
+        stream<AxisEth>     &siETH_Data,
 
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soARP_Data,
+        stream<AxisArp>     &soARP_Data,
 
         //------------------------------------------------------
         //-- ICMP Interfaces
         //------------------------------------------------------
-        stream<AxiWord>     &soICMP_Data,
-        stream<AxiWord>     &soICMP_Derr,
+        stream<AxisIp4>     &soICMP_Data,
+        stream<AxisIp4>     &soICMP_Derr,
 
         //------------------------------------------------------
         //-- UDP Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soUDP_Data,
+        stream<AxisIp4>     &soUOE_Data,
 
         //------------------------------------------------------
         //-- TOE Interface
         //------------------------------------------------------
-        stream<AxiWord>     &soTCP_Data)
+        stream<AxisIp4>     &soTOE_Data)
 
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -922,8 +921,8 @@ void iprx_handler(
     #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
     #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
 
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soUDP_Data  metadata="-bus_bundle soUDP_Data"
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soTCP_Data  metadata="-bus_bundle soTCP_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soUOE_Data  metadata="-bus_bundle soUOE_Data"
+    #pragma  HLS RESOURCE core=AXI4Stream variable=soTOE_Data  metadata="-bus_bundle soTOE_Data"
 
 #else
 
@@ -937,8 +936,8 @@ void iprx_handler(
     #pragma HLS INTERFACE axis      port=soICMP_Data           name=soICMP_Data
     #pragma HLS INTERFACE axis      port=soICMP_Derr           name=soICMP_Data
 
-    #pragma HLS INTERFACE axis      port=soUDP_Data            name=soUDP_Data
-    #pragma HLS INTERFACE axis      port=soTCP_Data            name=soTCP_Data
+    #pragma HLS INTERFACE axis      port=soUOE_Data            name=soUOE_Data
+    #pragma HLS INTERFACE axis      port=soTOE_Data            name=soTOE_Data
 
 #endif
 
@@ -950,7 +949,7 @@ void iprx_handler(
     //-------------------------------------------------------------------------
 
     //-- Input Buffer (IBuf)
-    static stream<AxiWord>          ssIBufToMPd_Data    ("ssIBufToMPd_Data");
+    static stream<AxisEth>          ssIBufToMPd_Data    ("ssIBufToMPd_Data");
     #pragma HLS STREAM     variable=ssIBufToMPd_Data    depth=8000
 
     //-- MAC Protocol Detector (MPd)
@@ -1029,8 +1028,8 @@ void iprx_handler(
             ssIClToIPr_Data,
             soICMP_Data,
             soICMP_Derr,
-            soUDP_Data,
-            soTCP_Data);
+            soUOE_Data,
+            soTOE_Data);
 
 }
 

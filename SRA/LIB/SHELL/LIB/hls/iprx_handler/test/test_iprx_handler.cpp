@@ -9,13 +9,12 @@
  *
  *****************************************************************************/
 
+#include <stdio.h>
+#include <hls_stream.h>
+
 #include "../src/iprx_handler.hpp"
 #include "../../toe/src/toe.hpp"
 #include "../../toe/test/test_toe_utils.hpp"
-#include "../../AxisArp.hpp"
-
-#include <stdio.h>
-#include <hls_stream.h>
 
 using namespace hls;
 using namespace std;
@@ -64,20 +63,20 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
  * @param[in] outARP_GoldName,  the ARP gold file to create.
  * @param[in] outICMP_GoldName, the ICMP gold file.
  * @param[in] outTOE_GoldName,  the TOE gold file.
- * @param[in] outUDP_GoldName,  the UDP gold file.
+ * @param[in] outUOE_GoldName,  the UOE gold file.
  *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 int createGoldenFiles(EthAddr myMacAddress,
                       string  inpDAT_FileName,
                       string  outARP_GoldName, string outICMP_GoldName,
-                      string  outTOE_GoldName, string outUDP_GoldName)
+                      string  outTOE_GoldName, string outUOE_GoldName)
 {
     const char *myName  = concat3(THIS_NAME, "/", "CGF");
 
     ifstream	ifsDAT;
     string      ofNameArray[4] = { outARP_GoldName, outICMP_GoldName, \
-                                   outTOE_GoldName, outUDP_GoldName };
+                                   outTOE_GoldName, outUOE_GoldName };
     ofstream    ofsArray[4]; // Stored in the same alphabetic same order
 
     string          strLine;
@@ -276,17 +275,17 @@ int main(int argc, char* argv[]) {
 
     string      ofsARP_Data_FileName = "../../../../test/soARP_Data.dat";
     string      ofsTOE_Data_FileName = "../../../../test/soTOE_Data.dat";
-    string      ofsUDP_Data_FileName = "../../../../test/soUDP_Data.dat";
+    string      ofsUOE_Data_FileName = "../../../../test/soUOE_Data.dat";
     string      ofsICMP_Data_FileName= "../../../../test/soICMP_Data.dat";
     string      dataFileArray[4] = { ofsARP_Data_FileName, ofsTOE_Data_FileName, \
-                                     ofsUDP_Data_FileName, ofsICMP_Data_FileName };
+                                     ofsUOE_Data_FileName, ofsICMP_Data_FileName };
 
     string      ofsARP_Gold_FileName = "../../../../test/soARP_Gold.dat";
     string      ofsTOE_Gold_FileName = "../../../../test/soTOE_Gold.dat";
-    string      ofsUDP_Gold_FileName = "../../../../test/soUDP_Gold.dat";
+    string      ofsUOE_Gold_FileName = "../../../../test/soUOE_Gold.dat";
     string      ofsICMP_Gold_FileName= "../../../../test/soICMP_Gold.dat";
     string      goldFileArray[4] = { ofsARP_Gold_FileName, ofsTOE_Gold_FileName, \
-                                     ofsUDP_Gold_FileName, ofsICMP_Gold_FileName };
+                                     ofsUOE_Gold_FileName, ofsICMP_Gold_FileName };
 
     //OBSOLETE-20200211 ifstream    goldenFile;
     //OBSOLETE-20200211 ofstream    outputFile;
@@ -299,28 +298,28 @@ int main(int argc, char* argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     //-- Incoming streams
-    stream<AxiWord> ssETH_IPRX_Data  ("ssETH_IPRX_Data");
+    stream<AxisEth> ssETH_IPRX_Data  ("ssETH_IPRX_Data");
     int             nrETH_IPRX_Chunks = 0;
     int             nrETH_IPRX_Frames = 0;
     int             nrETH_IPRX_Bytes  = 0;
     //-- Outgoing streams
-    stream<AxiWord> ssIPRX_ARP_Data  ("ssIPRX_ARP_Data");
+    stream<AxisArp> ssIPRX_ARP_Data  ("ssIPRX_ARP_Data");
     int             nrIPRX_ARP_Chunks = 0;
     int             nrIPRX_ARP_Frames = 0;
     int             nrIPRX_ARP_Bytes  = 0;
-    stream<AxiWord> ssIPRX_TOE_Data  ("ssIPRX_TOE_Data");
+    stream<AxisIp4> ssIPRX_TOE_Data  ("ssIPRX_TOE_Data");
     int             nrIPRX_TOE_Chunks = 0;
     int             nrIPRX_TOE_Frames = 0;
     int             nrIPRX_TOE_Bytes  = 0;
-    stream<AxiWord> ssIPRX_UDP_Data  ("ssIPRX_UDP_Data");
-    int             nrIPRX_UDP_Chunks = 0;
-    int             nrIPRX_UDP_Frames = 0;
-    int             nrIPRX_UDP_Bytes  = 0;
-    stream<AxiWord> ssIPRX_ICMP_Data ("ssIPRX_ICMP_Data");
+    stream<AxisIp4> ssIPRX_UOE_Data  ("ssIPRX_UOE_Data");
+    int             nrIPRX_UOE_Chunks = 0;
+    int             nrIPRX_UOE_Frames = 0;
+    int             nrIPRX_UOE_Bytes  = 0;
+    stream<AxisIp4> ssIPRX_ICMP_Data ("ssIPRX_ICMP_Data");
     int             nrIPRX_ICMP_Chunks = 0;
     int             nrIPRX_ICMP_Frames = 0;
     int             nrIPRX_ICMP_Bytes  = 0;
-    stream<AxiWord> ssIPRX_ICMP_DErr ("ssIPRX_ICMP_DErr");
+    stream<AxisIp4> ssIPRX_ICMP_DErr ("ssIPRX_ICMP_DErr");
 
     //------------------------------------------------------
     //-- OPEN INPUT TEST VECTOR FILE
@@ -332,7 +331,7 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     //-- CREATE DUT INPUT TRAFFIC AS STREAMS
     //------------------------------------------------------
-    if (feedAxiWordStreamFromFile(ssETH_IPRX_Data, "ssETH_IPRX_Data", string(argv[1]),
+    if (feedAxisFromFile<AxisEth>(ssETH_IPRX_Data, "ssETH_IPRX_Data", string(argv[1]),
             nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes)) {
     	printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
     	printInfo(THIS_NAME, "\tGenerated %d chunks in %d frames, for a total of %d bytes.\n\n",
@@ -348,7 +347,7 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     if (not createGoldenFiles(myMacAddress, string(argv[1]),
                     		  ofsARP_Gold_FileName, ofsICMP_Gold_FileName,
-							  ofsTOE_Gold_FileName, ofsUDP_Gold_FileName)) {
+							  ofsTOE_Gold_FileName, ofsUOE_Gold_FileName)) {
         printError(THIS_NAME, "Failed to create golden files. \n");
         nrErr++;
     }
@@ -368,7 +367,7 @@ int main(int argc, char* argv[]) {
             ssIPRX_ARP_Data,
             ssIPRX_ICMP_Data,
             ssIPRX_ICMP_DErr,
-            ssIPRX_UDP_Data,
+            ssIPRX_UOE_Data,
             ssIPRX_TOE_Data);
 
         tbRun--;
@@ -393,8 +392,8 @@ int main(int argc, char* argv[]) {
         nrErr++;
     }
 
-    if (not drainAxisToFile<AxisIp4>(ssIPRX_UDP_Data, "ssIPRX_UDP_Data", ofsUDP_Data_FileName,
-            nrIPRX_UDP_Chunks, nrIPRX_UDP_Frames, nrIPRX_UDP_Bytes)) {
+    if (not drainAxisToFile<AxisIp4>(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", ofsUOE_Data_FileName,
+            nrIPRX_UOE_Chunks, nrIPRX_UOE_Frames, nrIPRX_UOE_Bytes)) {
         printError(THIS_NAME, "Failed to drain UDP traffic from DUT. \n");
         nrErr++;
     }
