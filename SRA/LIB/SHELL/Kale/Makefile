@@ -25,16 +25,18 @@ endif
 
 .PHONY: all hls_cores clean ip 
 
+all: ip          
 
-all: ip
 
-
-hls_cores: 
+hls_cores:
 	@$(MAKE) -C ../LIB/hls/ 
 
 ../LIB/hls: hls_cores
 
-ip: $(IP_DIR)
+
+# Targets
+
+ip: $(IP_DIR)   ## Build all the IP cores required by the cFDK.  
 
 # directory as dependency: not the best solution but here the most practical one 
 # We need ./.ip_guard to be touched by the hls ip core makefiles, because XCI_DEPS doesn't work. 
@@ -48,14 +50,22 @@ $(IP_DIR): ../LIB/hls ./tcl/create_ip_cores.tcl ./tcl/decouple_ip_type.tcl ../LI
 ../LIB/.ip_guard: 
 	@touch $@
 
-
 # Create IP directory if it does not exist
 $(IP_DIR)/ip_user_files:
 	mkdir -p $@
 
 
-clean: 
+clean:          ## Cleans the current project
 	rm -rf $(IP_DIR)
 	$(MAKE) -C ../LIB clean
 
-
+help: ## Shows this help message
+    # This target is for self documentation of the Makefile. 
+    # Every text starting with '##' and placed after a target will be considered as helper text.
+	@echo
+	@echo 'Usage:'
+	@echo '    make [target]'
+	@echo	
+	@echo 'Targets:'
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
+	@echo
