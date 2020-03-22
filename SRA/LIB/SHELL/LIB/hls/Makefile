@@ -11,13 +11,13 @@
 # ******************************************************************************
 
 
-.PHONY: all clean arp_server cam dhcp_client echo_app icmp_server iprx_handler iptx_handler toe udp udp_mux udp_role_if fmc nrc udp_role_if_2
+.PHONY: all clean arp_server cam dhcp_client echo_app fmc icmp_server iprx_handler iptx_handler nrc toe udp udp_mux udp_role_if udp_role_if_2 uoe
 
-all:   iprx_handler       toe       arp_server   cam dhcp_client icmp_server iprx_handler iptx_handler fmc nrc toe udp udp_mux udp_role_if 
+all:   arp_server icmp_server iprx_handler iptx_handler uoe toe cam fmc nrc udp_mux udp_role_if dhcp_client
 
-csim:  arp_server icmp_server iptx_handler.csim iprx_handler.csim  toe.csim nrc.csim fmc.csim ## Runs HLS C simulation on all sub-directories
+csim:  arp_server.csim icmp_server.csim iprx_handler.csim iptx_handler.csim uoe.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
-cosim: arp_server icmp_server iptx_handler.csim iprx_handler.cosim nrc.cosim                  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: arp_server.cosim icmp_server.cosim iprx_handler.cosim iptx_handler.cosim uoe.cosim toe.cosim cam.cosim fmc.cosim nrc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

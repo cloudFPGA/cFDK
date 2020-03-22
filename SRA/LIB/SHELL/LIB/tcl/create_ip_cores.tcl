@@ -5,9 +5,9 @@
 # * Created : Feb 7 2018
 # * Authors : Francois Abel
 # * 
-# * Description : A Tcl script that generates all the IP cores instanciated by 
-# *   the SHELL of the FMKU60 and which are specifically created from the  
-# *   Vivado repository of the Xilinx-IP catalog.
+# * Description : A Tcl script to generate the HLS-based IP cores instanciated 
+# *   by the SHELL of the FMKU60 as well as the cores created from the Vivado  
+# *   repository of the Xilinx-IP catalog.
 # * 
 # * Synopsis : vivado -mode batch -source <this_file> -notrace
 # *                             [ -log    <log_file_name>        ]
@@ -53,7 +53,6 @@ set nrErrors         0
 set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
-
 
 
 #-------------------------------------------------------------------------------
@@ -958,6 +957,21 @@ if { 0 } {  # OBSOLETE-20190721
 #------------------------------------------------------------------------------
 set ipModName "TcpOffloadEngine"
 set ipName    "toe"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Offload Engine
+#------------------------------------------------------------------------------
+set ipModName "UdpOffloadEngine"
+set ipName    "uoe"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

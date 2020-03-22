@@ -304,12 +304,12 @@ module NetworkTransportSession_TcpIp (
   wire          ssIPRX_ICMP_Derr_tvalid;
   wire          ssIPRX_ICMP_Derr_tready;
     
-  //-- IPRX ==> UDP ------------------------------
-  wire  [63:0]  ssIPRX_UDP_Data_tdata;
-  wire  [ 7:0]  ssIPRX_UDP_Data_tkeep;
-  wire          ssIPRX_UDP_Data_tlast;
-  wire          ssIPRX_UDP_Data_tvalid;
-  wire          ssIPRX_UDP_Data_tready;
+  //-- IPRX ==> UOE ------------------------------
+  wire  [63:0]  ssIPRX_UOE_Data_tdata;
+  wire  [ 7:0]  ssIPRX_UOE_Data_tkeep;
+  wire          ssIPRX_UOE_Data_tlast;
+  wire          ssIPRX_UOE_Data_tvalid;
+  wire          ssIPRX_UOE_Data_tready;
     
   //-- IPRX ==>[ARS2]==> TOE ---------------------
   //---- IPRX ==>[ARS2]
@@ -602,21 +602,21 @@ module NetworkTransportSession_TcpIp (
     //-- UDP Interface
     //------------------------------------------------------
     //-- To UDP / Data -----------------
-    .soUDP_Data_TDATA         (ssIPRX_UDP_Data_tdata),
-    .soUDP_Data_TKEEP         (ssIPRX_UDP_Data_tkeep),
-    .soUDP_Data_TLAST         (ssIPRX_UDP_Data_tlast),
-    .soUDP_Data_TVALID        (ssIPRX_UDP_Data_tvalid),
-    .soUDP_Data_TREADY        (ssIPRX_UDP_Data_tready),
+    .soUOE_Data_TDATA         (ssIPRX_UOE_Data_tdata),
+    .soUOE_Data_TKEEP         (ssIPRX_UOE_Data_tkeep),
+    .soUOE_Data_TLAST         (ssIPRX_UOE_Data_tlast),
+    .soUOE_Data_TVALID        (ssIPRX_UOE_Data_tvalid),
+    .soUOE_Data_TREADY        (ssIPRX_UOE_Data_tready),
  
     //------------------------------------------------------
     //-- TOE Interface (via ARS2)
     //------------------------------------------------------
     //-- To TOE / Data -----------------
-    .soTCP_Data_TDATA         (ssIPRX_ARS2_Data_tdata),
-    .soTCP_Data_TKEEP         (ssIPRX_ARS2_Data_tkeep),
-    .soTCP_Data_TLAST         (ssIPRX_ARS2_Data_tlast),
-    .soTCP_Data_TVALID        (ssIPRX_ARS2_Data_tvalid),
-    .soTCP_Data_TREADY        (ssIPRX_ARS2_Data_tready)
+    .soTOE_Data_TDATA         (ssIPRX_ARS2_Data_tdata),
+    .soTOE_Data_TKEEP         (ssIPRX_ARS2_Data_tkeep),
+    .soTOE_Data_TLAST         (ssIPRX_ARS2_Data_tlast),
+    .soTOE_Data_TVALID        (ssIPRX_ARS2_Data_tvalid),
+    .soTOE_Data_TREADY        (ssIPRX_ARS2_Data_tready)
 
   ); // End of IPRX
 
@@ -1126,11 +1126,11 @@ module NetworkTransportSession_TcpIp (
     //-- IPRX / UDP TxP Data Flow Interfaces
     //------------------------------------------------------
     //-- From IPRX / UDP Data Stream
-    .inputPathInData_TDATA            (ssIPRX_UDP_Data_tdata),
-    .inputPathInData_TKEEP            (ssIPRX_UDP_Data_tkeep),
-    .inputPathInData_TLAST            (ssIPRX_UDP_Data_tlast),
-    .inputPathInData_TVALID           (ssIPRX_UDP_Data_tvalid),
-    .inputPathInData_TREADY           (ssIPRX_UDP_Data_tready),
+    .inputPathInData_TDATA            (ssIPRX_UOE_Data_tdata),
+    .inputPathInData_TKEEP            (ssIPRX_UOE_Data_tkeep),
+    .inputPathInData_TLAST            (ssIPRX_UOE_Data_tlast),
+    .inputPathInData_TVALID           (ssIPRX_UOE_Data_tvalid),
+    .inputPathInData_TREADY           (ssIPRX_UOE_Data_tready),
      
      //------------------------------------------------------
      //-- UDMX / UDP TxP Data Flow Interfaces
