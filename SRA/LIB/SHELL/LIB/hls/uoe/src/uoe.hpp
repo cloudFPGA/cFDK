@@ -72,6 +72,7 @@ struct sockaddr_in {
     				: port(port), addr(addr) {}
 };
 
+/*** 20200324 **[TODO-MustDisappear]***/
 struct metadata {
 	sockaddr_in		sourceSocket;
 	sockaddr_in		destinationSocket;
@@ -79,6 +80,7 @@ struct metadata {
 	metadata(sockaddr_in sourceSocket, sockaddr_in destinationSocket)
 			 	 	: sourceSocket(sourceSocket), destinationSocket(destinationSocket) {}
 };
+/***************************************/
 
 /*** OBSOLETE_202020306 ***************
 struct ipTuple {
@@ -153,7 +155,7 @@ void uoe(
         //-- URIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<AppData>         &soURIF_Data,
-        stream<metadata>        &soURIF_Meta, // [TODO - Rename UdpMeta]
+        stream<SocketPair>      &soURIF_Meta, // [TODO - Rename UdpMeta]
 
         //------------------------------------------------------
         //-- URIF / Tx Data Interfaces

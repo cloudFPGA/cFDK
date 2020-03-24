@@ -294,13 +294,11 @@ ap_uint<16> encodeApUint16(string parseString){
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-    bool drainUdpMetaStreamToFile(stream<metadata> &ss, string ssName,
+    bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
             string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {  // [TODO - Rename UdpMeta]
         ofstream    outFileStream;
         char        currPath[FILENAME_MAX];
-        //string      strLine;
-        //int         lineCnt=0;
-        metadata      udpMeta;
+        SocketPair  udpMeta;
 
         const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
 
@@ -332,10 +330,10 @@ ap_uint<16> encodeApUint16(string parseString){
         outFileStream << std::uppercase;
         while (!(ss.empty())) {
             ss.read(udpMeta);
-            SocketPair socketPair(SockAddr(udpMeta.sourceSocket.addr,
-                                           udpMeta.sourceSocket.port),
-                                  SockAddr(udpMeta.destinationSocket.addr,
-                                           udpMeta.destinationSocket.port));
+            SocketPair socketPair(SockAddr(udpMeta.src.addr,
+                                           udpMeta.src.port),
+                                  SockAddr(udpMeta.dst.addr,
+                                           udpMeta.dst.port));
             writeSocketPairToFile(socketPair, outFileStream);
             nrChunks++;
             nrBytes += 12;
@@ -445,12 +443,19 @@ int createGoldenRxFiles(
                 inpBytes += ip4RxData.keepToLen();
             }
         } // End-of: while ((ifsData.peek() != EOF) && (!endOfPkt))
-        // Build the UDP datagram and corresponding metada expected at the output of UOE
+        // Check consistency of the read packet
+        if (endOfPkt and rc) {
+            if (not ip4DataPkt.isWellFormed(myName)) {
+                printError(myName, "IP packet #%d is dropped because it is malformed.\n", inpPackets);
+                endOfPkt=false;
+           }
+        }
+        // Build the UDP datagram and corresponding metadata expected at the output of UOE
         if (endOfPkt) {
             // Check that the incoming IPv4 packet is UDP
             Ip4Prot ip4Prot = ip4DataPkt.getIpProtocol();
             if (ip4Prot != UDP_PROTOCOL) {
-                printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n");
+                printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n", inpPackets);
                 printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
                 printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL.to_uint());
                 ret = NTS_KO;
@@ -466,7 +471,7 @@ int createGoldenRxFiles(
                                                                   ip4DataPkt.getIpProtocol());
             if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
                 // UDP datagram comes with an invalid checksum
-                printWarn(myName, "IP4 packet #%d contains an UDP datgram with an invalid checksum. It will be dropped by the UDP core.\n", inpPackets);
+                printWarn(myName, "IP4 packet #%d contains an UDP datagram with an invalid checksum. It will be dropped by the UDP core.\n", inpPackets);
                 printWarn(myName, "\tFound checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
                           udpHCsum.to_uint(), calcCsum.to_ushort());
             }
@@ -596,7 +601,7 @@ int main(int argc, char *argv[]) {
     int                     nrUOE_URIF_DataChunks = 0;
     int                     nrUOE_URIF_DataGrams  = 0;
     int                     nrUOE_URIF_DataBytes  = 0;
-    stream<metadata>        ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
+    stream<SocketPair>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
     int                     nrUOE_URIF_MetaChunks = 0;
     int                     nrUOE_URIF_MetaGrams  = 0;
     int                     nrUOE_URIF_MetaBytes  = 0;
@@ -681,8 +686,6 @@ int main(int argc, char *argv[]) {
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                                                  ##\n");
     printInfo(THIS_NAME, "############################################################################\n\n");
-
-    // [TODO] int tbRun = nrETH_IPRX_Chunks + TB_GRACE_TIME;
 
     if (tbMode == OPEN_MODE) {
         //---------------------------------------------------------------
@@ -974,8 +977,13 @@ int main(int argc, char *argv[]) {
         //-- DRAIN UOE-->URIF DATA OUTPUT STREAM
         if (not drainAxiWordStreamToFile(ssUOE_URIF_Data, "ssUOE_URIF_Data",
                 ofNames[0], nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes)) {
-            printError(THIS_NAME, "Failed to drain UOE-to-URIF dat traffic from DUT. \n");
+            printError(THIS_NAME, "Failed to drain UOE-to-URIF data traffic from DUT. \n");
             nrErr++;
+        }
+        else {
+            printInfo(THIS_NAME, "Done with the draining of the UOE-to-URIF data traffic:\n");
+            printInfo(THIS_NAME, "\tReceived %d chunks in %d datagrams, for a total of %d bytes.\n\n",
+                      nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes);
         }
         //-- DRAIN UOE-->URIF META OUTPUT STREAM
         if (not drainUdpMetaStreamToFile(ssUOE_URIF_Meta, "ssUOE_URIF_Meta",
