@@ -630,7 +630,7 @@ const char    *myCamAccessToString(int       initiator);
          **********************************************************************/
         Ip4HdrCsum calculateIpHeaderChecksum() {
         	LE_Ip4HdrCsum  leIp4HdrCsum;
-        	ap_uint<20> csum = 0;
+        	unsigned int csum = 0;
         	csum += this->axisWordQueue[0].tdata.range(15,  0);  // [ToS|VerIhl]
         	csum += this->axisWordQueue[0].tdata.range(31, 16);  // [TotalLength]
         	csum += this->axisWordQueue[0].tdata.range(47, 32);  // [Identification]
@@ -641,9 +641,9 @@ const char    *myCamAccessToString(int       initiator);
 			csum += this->axisWordQueue[1].tdata.range(63, 48);  // [SourceAddrHigh]
 			csum += this->axisWordQueue[2].tdata.range(15,  0);  // [DestinAddrLow]
 			csum += this->axisWordQueue[2].tdata.range(31, 16);  // [DestinAddrHigh]
-
+            // [FIXME - Add support for options]
 			while (csum > 0xFFFF) {
-				csum = csum.range(15, 0) + (csum >> 16);
+				csum = (csum & 0xFFFF) + (csum >> 16);
 			}
 			leIp4HdrCsum = ~csum;
 			return byteSwap16(leIp4HdrCsum);
@@ -1361,11 +1361,33 @@ const char    *myCamAccessToString(int       initiator);
         // [TODO] bool   isURG();
 
         /***********************************************************************
+         * @brief Returns true if the TotalLen and the HeaderChecksum are valid.
+         *
+         * @param[in] callerName, the name of the calling function or process.
+         ***********************************************************************/
+        bool isWellFormed(const char *callerName) {
+            bool rc = true;
+            // Assess the Total Length
+            if (this->getIpTotalLength() !=  this->getLen()) {
+                printWarn(callerName, "Malformed IPv4 packet: 'Total Length' field does not match the length of the packet.\n", callerName);
+                printWarn(callerName, "\tFound Total Length field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                          this->getIpTotalLength(), this->getLen());
+                rc = false;
+            }
+            // Assess the Header Checksum
+            if (this->getIpHeaderChecksum() != this->calculateIpHeaderChecksum()) {
+                printWarn(callerName, "Malformed IPv4 packet: 'Header Checksum' field does not match the computed header checksum.\n", callerName);
+                printWarn(callerName, "\tFound Header Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                          this->getIpHeaderChecksum().to_ushort(), this->calculateIpHeaderChecksum().to_ushort());
+                rc = false;
+            }
+            return rc;
+        }
+
+        /***********************************************************************
          * @brief Print the header details of an IP packet.
          *
          * @param[in] callerName, the name of the calling function or process.
-         *
-         * @ingroup test_toe
          ***********************************************************************/
         void printHdr(const char *callerName)
         {
@@ -1499,13 +1521,10 @@ const char    *myCamAccessToString(int       initiator);
             // Overwrite the former IP header checksum
             this->setIpHeaderChecksum(byteSwap16(leIp4HdrCsum));
 			*************************************/
-
             Ip4HdrCsum newIp4HdrCsum = calculateIpHeaderChecksum();
-
             // Overwrite the former IP header checksum
             this->setIpHeaderChecksum(newIp4HdrCsum);
-
-			return (newIp4HdrCsum);
+            return (newIp4HdrCsum);
         }
 
         /***********************************************************************
