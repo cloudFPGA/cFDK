@@ -353,7 +353,7 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' STARTS HERE                              ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     int tbRun = nrETH_IPRX_Chunks + TB_GRACE_TIME;
@@ -409,7 +409,7 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH ENDS HERE                                                    ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' ENDS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //---------------------------------------------------------------

@@ -383,7 +383,7 @@ int main() {
 
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH 'test_udp_mux' STARTS HERE            ##\n");
     printf("#####################################################\n");
 
     gSimCnt = 0;

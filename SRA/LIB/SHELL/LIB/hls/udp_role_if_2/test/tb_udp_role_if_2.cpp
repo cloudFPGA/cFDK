@@ -437,7 +437,7 @@ int main() {
     UdpMeta     socketPair;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH 'tb_udp_role_if_2' STARTS HERE        ##\n");
     printf("#####################################################\n");
 
     simCnt = 0;

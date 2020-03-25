@@ -2290,7 +2290,7 @@ int main(int argc, char *argv[]) {
 
     printf("\n\n\n\n");
     printf("############################################################################\n");
-    printf("## TESTBENCH STARTS HERE                                                  ##\n");
+    printf("## TESTBENCH 'test_toe' STARTS HERE                                       ##\n");
     printf("############################################################################\n");
     gSimCycCnt = 0;    // Simulation cycle counter as a global variable
     nrErr      = 0;    // Total number of testbench errors
@@ -2558,7 +2558,7 @@ int main(int argc, char *argv[]) {
 
     printf("(@%5.5d) --------------------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
-    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("## TESTBENCH 'test_toe' ENDS HERE                                         ##\n");
     printf("############################################################################\n");
 
     //---------------------------------------------------------------

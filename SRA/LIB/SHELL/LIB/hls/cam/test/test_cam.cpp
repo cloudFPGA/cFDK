@@ -280,7 +280,7 @@ int main()
     int             nrErr;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH 'test_cam' STARTS HERE                ##\n");
     printf("#####################################################\n");
     simCycCnt = 0;  // Simulation cycle counter as a global variable
     nrErr     = 0;  // Total number of testbench errors
@@ -331,7 +331,7 @@ int main()
 
     printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
     printf("############################################################################\n");
-    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("## TESTBENCH 'test_cam' ENDS HERE                                         ##\n");
     printf("############################################################################\n\n");
 
     if (nrErr) {

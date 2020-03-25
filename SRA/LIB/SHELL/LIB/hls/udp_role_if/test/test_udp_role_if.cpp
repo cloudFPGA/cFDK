@@ -429,7 +429,7 @@ int main() {
     UdpMeta     socketPair;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH 'test_udp_role_if' STARTS HERE        ##\n");
     printf("#####################################################\n");
 
     simCnt = 0;

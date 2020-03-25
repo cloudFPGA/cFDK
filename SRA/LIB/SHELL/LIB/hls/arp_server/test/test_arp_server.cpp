@@ -497,7 +497,7 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-1 STARTS HERE                                           ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-1 STARTS HERE                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -548,7 +548,7 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-2 STARTS HERE                                           ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-2 STARTS HERE                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -601,7 +601,7 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH PART-3 STARTS HERE                                           ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-3 STARTS HERE                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -696,7 +696,7 @@ int main(int argc, char* argv[])
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH ENDS HERE                                                    ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' ENDS HERE                                  ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //---------------------------------------------------------------

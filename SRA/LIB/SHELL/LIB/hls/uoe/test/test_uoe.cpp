@@ -684,7 +684,7 @@ int main(int argc, char *argv[]) {
 	***********************************/
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' STARTS HERE                                       ##\n");
     printInfo(THIS_NAME, "############################################################################\n\n");
 
     if (tbMode == OPEN_MODE) {
@@ -993,7 +993,7 @@ int main(int argc, char *argv[]) {
         }
 
         printInfo(THIS_NAME, "############################################################################\n");
-        printInfo(THIS_NAME, "## TESTBENCH ENDS HERE                                                    ##\n");
+        printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' ENDS HERE                                         ##\n");
         printInfo(THIS_NAME, "############################################################################\n");
 
         //---------------------------------------------------------------

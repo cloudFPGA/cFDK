@@ -358,7 +358,7 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH STARTS HERE                                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iptx_handler' STARTS HERE                              ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     tbRun = (nrErr == 0) ? (nrL3MUX_IPTX_Chunks + TB_GRACE_TIME) : 0;
@@ -425,7 +425,7 @@ int main(int argc, char* argv[]) {
     //OBSOLETE-20200129 }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH ENDS HERE                                                    ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'testiptx_handler' ENDS HERE                                 ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //---------------------------------------------------------------

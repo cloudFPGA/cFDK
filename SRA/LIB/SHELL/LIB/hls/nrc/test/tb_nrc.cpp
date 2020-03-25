@@ -1,6 +1,6 @@
 /*****************************************************************************
- * @file       : test_udp_role_if.cpp
- * @brief      : Testbench for the UDP role interface.
+ * @file       : tb_nrc.cpp
+ * @brief      : Testbench for the NRC.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
@@ -880,7 +880,7 @@ int main() {
     int         nrErr = 0;
 
     printf("#####################################################\n");
-    printf("## TESTBENCH STARTS HERE                           ##\n");
+    printf("## TESTBENCH 'tb_nrc' STARTS HERE                  ##\n");
     printf("#####################################################\n");
 
     simCnt = 0;
@@ -1093,7 +1093,7 @@ int main() {
     }  // End: while()
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
-    printf("## TESTBENCH ENDS HERE                                                    ##\n");
+    printf("## TESTBENCH 'tb_nrc' ENDS HERE                                           ##\n");
 
     nrErr += (tcp_packets_send - (tcp_packets_recv+ tcp_packets_expected_timeout));
     if(tcp_packets_send != (tcp_packets_recv + tcp_packets_expected_timeout))
