@@ -664,6 +664,16 @@ if { ${link} } {
 
   set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
+  if { $midlwActive } {
+    #TODO: select multiple middlewares
+    set mdlwDcpFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/MIDLW_${cFpSRAtype}_OOC.dcp
+    add_files ${mdlwDcpFile}
+    update_compile_order -fileset sources_1
+    my_dbg_trace "Added dcp of MIDDLEWARE ${mdlwDcpFile}." ${dbgLvl_1}
+
+    set_property SCOPED_TO_CELLS {MIDLW} [get_files ${mdlwDcpFile} ]
+  }
+
   open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
@@ -671,6 +681,7 @@ if { ${link} } {
   # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
   set_property needs_refresh false [get_runs synth_1]
   
+
 
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
@@ -685,6 +696,15 @@ if { ${link} } {
     my_puts "################################################################################"
     my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
+
+    if { $midlwActive } { 
+      set mdlwPrConstrFile "${xdcDir}/topFMKU60_midlw_pr.xdc"
+      add_files -fileset ${constrObj} ${mdlwPrConstrFile} 
+    
+      my_puts "################################################################################"
+      my_puts "## ADDED Partial Reconfiguration Constraint File: ${mdlwPrConstrFile}; PBLOCK CREATED;"
+      my_puts "################################################################################"
+    }
 
     write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
   } else {
@@ -792,6 +812,11 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     if { $pr } { 
       # now, black box 
       update_design -cell ROLE -black_box
+
+      #TODO right now, we support only one MIDLW...so better not
+      #if { $midlwActive } { 
+      #  update_design -cell MIDLW -black_box
+      #}
       
       lock_design -level routing 
       
