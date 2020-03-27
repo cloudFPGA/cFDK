@@ -30,6 +30,8 @@ vivado*.str
 *.dat.*
 *.gold*
 *.strm*
+fsm_encoding.os
+
 
 # Vim
 #----- 
@@ -52,6 +54,7 @@ build/
 ip/
 xpr/
 workspace/
+hd_visual/
 
 # cFDK specific files
 #---------------------
@@ -60,7 +63,12 @@ workspace/
 *.date
 *.vivado*
 *.dat
-env/
+#env/
 dcps/
+ip_midlw/
 cfdk_dynamic.hpp
+this_machine_env.sh
+
+*_OOC.dcp
+
 
