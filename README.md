@@ -21,6 +21,7 @@ To abstract the details of the hardware from the user and to assert certain leve
 Currently, the following SHELLs are available:
 * [Kale](./DOC/Kale.md) This SHELL has one AXI-Stream for UDP and TCP each, as well as two stream-based memory ports.
 * [Themisto](./DOC/Themisto.md) This SHELL enables node-to-node communication between multiple FPGA modules. 
+* [Adrastea](./DOC/Adrastea.md) This SRA enables Middlewares.
 
 Details for the interfaces can be found in the linked documents.
 

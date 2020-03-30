@@ -160,6 +160,10 @@ All global variables are marked as `#pragma HLS reset`.
 | `fsmTcpData_TX`    |    |   |
 | `lastSeenBufferInPtrMaxWrite` |    |    |
 | `lastSeenBufferOutPtrMaxRead` |    |    |
+| `need_to_update_nrc_config` |  | flag to store the state of the communication with the NRC |
+| `need_to_update_nrc_mrt`    |  | flag to store the state of the communication with the NRC |
+| `ctrl_link_last_check_seconds`|  | TODO |
+| `ctrl_link_transfer_ongoing` |   | TODO|
 
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
@@ -176,7 +180,7 @@ It is necessary that the FMC ISA can perform conditional jumps based on the rece
 | `PUT_RANK     `| `0x08` |    |
 | `PUT_SIZE     `| `0x10` |    |
 | `POST_ROUTING `| `0x20` |    |
-
+| `CUSTOM_API`   | `0x80` |    |
 
 ### `msg` field
 
