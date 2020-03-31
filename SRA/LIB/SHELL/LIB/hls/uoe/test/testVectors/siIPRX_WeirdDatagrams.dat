@@ -1,0 +1,163 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_WeirdDatagrams.dat
+#
+#  @brief : A set of IPv4 packets with unusual UDP datagrams (.e.g, bad checksum, malformed, no payload, options...)
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an IPV4 packet onto the AXI4-Stream interface of the 10GbE MAC is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#                                                                  |                    Destination Address                        |
+#                                                                  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+#  And the mapping of an UDP datagram into the data payload of an IPv4 packet is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |              Data             |              Data             |           Checksum            |           Length              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             Data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+# 
+#  @details : 
+#   The raw IPv4 packet as a stream of HEX bytes is:
+#     450000225a9f4000 401103db0a020007 0a0cc83cdfc02263 000efd8048656c6c 6f0a
+#      [IP4] Version         = 0x4 
+#      [IP4] Header length   = 0x5 for 5*4 = 20 bytes
+#      [IP4] DSCP/TOS        = 0x00
+#      [IP4] Total lengt     = 0x0022 = 34
+#      [IP4] Identification  = 0x5a9f = 23199 
+#      [IP4] Flags           = 0x02 (Don't Fragment)
+#      [IP4] Fragment offset = 0
+#      [IP4] Time to live    = 0x40 = 64
+#      [IP4] Protocol        = 0x11 = 17 (UDP)
+#      [IP4] Header checksum = 0x0x0xdb
+#      [IP4] Source Address  = 0x0A020007 = 10. 2.  0. 7
+#      [IP4] Destin Address  = 0x0a0cc83c = 10.12.200.60
+#      [UDP] Source port     = 0xdfc0 = 57280  
+#      [UDP] Destin port     = 0x2263 = 8803  
+#      [UDP] Length          = 0x000e = 14
+#      [UDP] Checksum        = 0xfd80
+#      [UDP] Data            = 0x48656c6c6f0a = Hello\n
+# 
+# ###################################################################################################################################
+
+
+# 00409f5a22000045 0 FF
+# 0700020adb031140 0 FF
+# 6322c0df3cc80c0a 0 FF
+# 6c6c654880fd0e00 0 FF
+# 0000000000000a6f 1 03
+
+# [1] UdpPayload=7 | UdpLen=0x000F | TotLen=0x0023 (20+8+7=35) | 
+00409f5a23000045 0 FF
+0700020aDA031140 0 FF
+6322c0df3cc80c0a 0 FF
+0302010052150F00 0 FF
+0000000000060504 1 07
+
+# [2] Invalid UDP Checksum - Same packet as [1]
+# ---------------------------------------------
+00409f5a23000045 0 FF
+0700020aDA031140 0 FF
+6322c0df3cc80c0a 0 FF
+03020100ADDE0F00 0 FF
+0000000000060504 1 07
+
+# [3] UdpPayload=144 | UdpLen=0x98 | TotLen=0x00AC (20+8+144=172)
+00409f5aAC000045 0 FF
+0a0a0a0a8AC71140 0 FF
+6323c0df02020202 0 FF
+03020100BD459800 0 FF
+0B0A090807060504 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+0000000004030201 1 0F
+
+# [4] Invalid UDP checksum - Same packet as [3]
+# ---------------------------------------------
+00409f5aAC000045 0 FF
+0a0a0a0a8AC71140 0 FF
+6323c0df02020202 0 FF
+03020100ADDE9800 0 FF
+0B0A090807060504 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+0000000004030201 1 0F
+
+# [5] UdpPayload=10 | UdpLen=0x0012 | TotLen=0x0026 (20+8+10=38)
+00409f5a26000045 0 FF
+0700020aD7031140 0 FF
+6322c0df3cc80c0a 0 FF
+030201003C0D1200 0 FF
+0000090807060504 1 3F
+
+# [6] Empty payload (UdpPayload=0 | UdpLen=0x0008 | TotLen=0x001C (20+8+0=28)
+# ---------------------------------------------------------------------------
+00409f5a1C000045 0 FF
+0700020aE1031140 0 FF
+6322c0df3cc80c0a 0 FF
+0000000069210800 1 0F
+
+# [7] UdpPayload=20 | UdpLen=0x001C | TotLen=0x0030 (20+8+20=48)
+00409f5a30000045 0 FF
+0700020aCD031140 0 FF
+6322c0df3cc80c0a 0 FF
+03020100634B1C00 0 

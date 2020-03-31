@@ -56,40 +56,55 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
 
 /*****************************************************************************
- * @brief Emulate the behavior of the Address Resolution Protocol (ARP)
- *         Content Addressable Memory (CAM).
+ * @brief Emulate the behavior of the Address Resolution Process (ARP).
  *
  * @param[in]  siIPTX_LookupReq, ARP lookup request from [IPTX].
  * @param[out] soIPTX_LookupRep, ARP lookup reply to [IPTX].
+ * @param[in]  piMacAddress,     The Ethernet MAC address of the FPGA.
+ * @param[in]  piIp4Address,     The IPv4 address of the FPGA.
+ * @param[in]  piSubNetMask,     The sub-network-mask from [MMIO].
+ * @param[in]  piGatewayAddr,    The default gateway address from [MMIO].
  ******************************************************************************/
-void pEmulateArpCam(
+void pEmulateArp(
         stream<Ip4Addr>       &siIPTX_LookupReq,
         stream<ArpLkpReply>   &soIPTX_LookupRep,
         EthAddr                piMacAddress,
-        Ip4Addr                piIp4Address)
+        Ip4Addr                piIp4Address,
+        Ip4Addr                piSubNetMask,
+        Ip4Addr                piGatewayAddr)
 {
     const char *myName  = concat3(THIS_NAME, "/", "ARP");
 
-    Ip4Addr macLkpReq;
+    static bool macAddrOfGatewayIsResolved = false;
+    Ip4Addr     ip4ToMacLkpReq;
 
     if (!siIPTX_LookupReq.empty()) {
-        siIPTX_LookupReq.read(macLkpReq);
+        siIPTX_LookupReq.read(ip4ToMacLkpReq);
         printIp4Addr(myName, "Received a lookup request from [IPTX] with key = ",
-                     macLkpReq);
-        if (macLkpReq == 0x0a010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(0xfedcba9876543210, true));
-            if (DEBUG_LEVEL & TRACE_ARP) {
-                printInfo(myName, "Result of MAC lookup = HIT \n");
+                     ip4ToMacLkpReq);
+        if (ip4ToMacLkpReq == piGatewayAddr) {
+            // The ARP replies with the MAC address of the default gateway.
+            if (macAddrOfGatewayIsResolved) {
+                EthAddr  aComposedMacAddr = 0xFECA00000000 | piGatewayAddr;
+                soIPTX_LookupRep.write(ArpLkpReply(aComposedMacAddr, true));
+                if (DEBUG_LEVEL & TRACE_ARP) {
+                    printInfo(myName, "MAC lookup = HIT - Replying with MAC = 0x%12.12lX\n",
+                              aComposedMacAddr.to_ulong());
+                }
+            }
+            else {
+                // For the very first occurrence of such an event, the ARP
+                // replies with a 'NO-HIT' while firing an ARP-Request in order
+                // to retrieve the MAC address of the default gateway.
+                EthAddr  aComposedMacAddr = 0xADDE00000000 | piGatewayAddr;
+                soIPTX_LookupRep.write(ArpLkpReply(aComposedMacAddr, false));
+                printWarn(myName, "Result of MAC lookup = NO-HIT \n");
+                macAddrOfGatewayIsResolved = true;
             }
         }
-        else if (macLkpReq == 0x01010101) {
-            soIPTX_LookupRep.write(ArpLkpReply(0xADDE0000EFBE, true));
-            if (DEBUG_LEVEL & TRACE_ARP) {
-                printInfo(myName, "Result of MAC lookup = HIT \n");
-            }
-        }
-        else if (macLkpReq & 0x0A0C0000) {
-            EthAddr  aComposedMacAddr = 0xFECA00000000 | macLkpReq;
+        else if ((ip4ToMacLkpReq & piSubNetMask) == (piGatewayAddr & piSubNetMask)) {
+            // The remote IPv4 address falls into our sub-network
+            EthAddr  aComposedMacAddr = 0xFECA00000000 | ip4ToMacLkpReq;
             soIPTX_LookupRep.write(ArpLkpReply(aComposedMacAddr, true));
             if (DEBUG_LEVEL & TRACE_ARP) {
                 printInfo(myName, "MAC lookup = HIT - Replying with MAC = 0x%12.12lX\n",
@@ -109,6 +124,8 @@ void pEmulateArpCam(
  * @param[in] outDAT_GoldName,  the output DAT gold file to create.
  * @param[in] myMacAddress,     the MAC address of the FPGA.
  * @param[in] myIp4Address,     the IPv4 address of the FPGA.
+ * @param[in] mySubNetMask,     The sub-network-mask.
+ * @param[in] myGatewayAddr,    The default gateway address.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -116,8 +133,12 @@ int createGoldenFile(
         string      inpDAT_FileName,
         string      outDAT_GoldName,
         EthAddr     myMacAddress,
-        Ip4Addr     myIp4Address)
+        Ip4Addr     myIp4Address,
+        Ip4Addr     mySubNetMask,
+        Ip4Addr     myGatewayAddr)
 {
+    const char *myName  = concat3(THIS_NAME, "/", "CGF");
+
     ifstream    ifsDAT;
     ofstream    ofsDAT;
 
@@ -126,6 +147,7 @@ int createGoldenFile(
     int         inpChunks=0,  outChunks=0;
     int         inpPackets=0, outFrames=0;
     int         inpBytes=0,   outBytes=0;
+    bool        macAddrOfGatewayIsResolved = false;
 
     //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
     ifsDAT.open(inpDAT_FileName.c_str());
@@ -182,13 +204,16 @@ int createGoldenFile(
         }
 
         if (endOfPacket) {
-            // Assess IP_SA is valid
             Ip4Addr  ipSA = ipPacket.getIpSourceAddress();
             if(ipSA != myIp4Address) {
                 printWarn(THIS_NAME, "Packet #%d is dropped because IP_SA does not match.\n",
                           inpPackets);
                 printIp4Addr(THIS_NAME, "  Received", ipSA);
                 printIp4Addr(THIS_NAME, "  Expected", myIp4Address);
+            }
+            else if (not ipPacket.isWellFormed(myName)) {
+                printError(myName, "IP packet #%d is dropped because it is malformed.\n", inpPackets);
+                endOfPacket=false;
             }
             else {
                 EthFrame    ethGoldFrame(14);
@@ -197,16 +222,41 @@ int createGoldenFile(
                 //-------------------------------
                 Ip4Addr ipDA = ipPacket.getIpDestinationAddress();
                 // Create MAC_DA from IP_DA (for testing purposes)
-                if ((ipDA & 0x0A0C0000) == 0x0A0C0000) {
-                    EthAddr macDaAddr = 0xFECA00000000 | ipDA;
+                //OBSOLETE_20200330 if ((ipDA & 0x0A0C0000) == 0x0A0C0000) {
+                //OBSOLETE_20200330     EthAddr macDaAddr = 0xFECA00000000 | ipDA;
+                //OBSOLETE_20200330     ethGoldFrame.setMacDestinAddress(macDaAddr);
+                //OBSOLETE_20200330 }
+                //OBSOLETE_20200330 else {
+                //OBSOLETE_20200330     printWarn(THIS_NAME, "Packet #%d is dropped because IP_DA does not match.\n",
+                //OBSOLETE_20200330               inpPackets);
+                //OBSOLETE_20200330     printIp4Addr(THIS_NAME, "  Received", ipDA);
+                //OBSOLETE_20200330     printInfo(   THIS_NAME, "  Expected IPv4 Addr = 0x0A0Cxxxx\n");
+                //OBSOLETE_20200330     return NTS_KO;
+                //OBSOLETE_20200330 }
+                if ((ipDA & mySubNetMask) == (myGatewayAddr & mySubNetMask)) {
+                    // The remote IPv4 address falls into our sub-network
+                    EthAddr  macDaAddr = 0xFECA00000000 | ipDA;
                     ethGoldFrame.setMacDestinAddress(macDaAddr);
                 }
                 else {
-                    printWarn(THIS_NAME, "Packet #%d is dropped because IP_DA does not match.\n",
-                              inpPackets);
-                    printIp4Addr(THIS_NAME, "  Received", ipDA);
-                    printInfo(   THIS_NAME, "  Expected IPv4 Addr = 0x0A0Cxxxx\n");
-                    return NTS_KO;
+                    // The remote IPv4 address falls out of our sub-network.
+                    // The ARP is assumed to reply with the MAC address of the default gateway.
+                    if (macAddrOfGatewayIsResolved) {
+                        EthAddr  aComposedMacAddr = 0xFECA00000000 | myGatewayAddr;
+                        if (DEBUG_LEVEL & TRACE_CGF) {
+                            printInfo(myName, "Packet with remote IPv4 address to fall out of our sub-network.\n");
+                            printInfo(myName, "\tThe IP address of this packet is binded with the MAC address of the default gateway.\n");
+                        }
+                    }
+                    else {
+                        printWarn(myName, "First packet with remote IPv4 address to fall out of our sub-network.\n");
+                        printIp4Addr(myName, "\tThis packet will be dropped. Remote", ipDA);
+                        // For the very first occurrence of such an event, the ARP
+                        // replies with a 'NO-HIT' while firing an ARP-Request in order to
+                        // retrieve the MAC address of the default gateway for the nest time.
+                        macAddrOfGatewayIsResolved = true;
+                        continue;
+                    }
                 }
                 ethGoldFrame.setMacSourceAddress(myMacAddress);
                 ethGoldFrame.setTypeLength(0x0800);
@@ -234,7 +284,6 @@ int createGoldenFile(
                     outChunks += ethGoldFrame.size();
                     outBytes  += ethGoldFrame.length();
                 }
-                //OBSOLETE-20200210 ofsDAT << std::endl;
             }
         } // End-of if (endOfPacket)
 
@@ -352,7 +401,7 @@ int main(int argc, char* argv[]) {
     //-- CREATE OUTPUT GOLD TRAFFIC
     //------------------------------------------------------
     if (not createGoldenFile(string(argv[1]), ofsL2MUX_Gold_FileName,
-                             myMacAddress, myIp4Address)) {
+                             myMacAddress, myIp4Address, mySubNetMask, myGatewayAddr)) {
         printError(THIS_NAME, "Failed to create golden file. \n");
         nrErr++;
     }
@@ -379,11 +428,13 @@ int main(int argc, char* argv[]) {
             ssARP_IPTX_LookupRep
         );
 
-        pEmulateArpCam(
+        pEmulateArp(
             ssIPTX_ARP_LookupReq,
             ssARP_IPTX_LookupRep,
             myMacAddress,
-            myIp4Address);
+            myIp4Address,
+            mySubNetMask,
+            myGatewayAddr);
 
         //-- READ FROM STREAM AND WRITE TO FILE
         AxiWord  axiWord;

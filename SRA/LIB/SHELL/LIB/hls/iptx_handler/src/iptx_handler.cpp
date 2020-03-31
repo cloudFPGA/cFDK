@@ -57,7 +57,7 @@ using namespace hls;
 #define TRACE_MAI  1 << 4
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*****************************************************************************
@@ -380,8 +380,9 @@ void pMacAddressInserter(
     const char *myName  = concat3(THIS_NAME, "/", "MAi");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates {WAIT_LOOKUP=0, DROP, WRITE_FIRST, WRITE, WRITE_LAST} \
-                               mai_fsmState=WAIT_LOOKUP;
+    static enum FsmStates {FSM_MAI_WAIT_LOOKUP=0, FSM_MAI_DROP, FSM_MAI_WRITE,
+                           FSM_MAI_WRITE_FIRST,   FSM_MAI_WRITE_LAST} \
+                               mai_fsmState=FSM_MAI_WAIT_LOOKUP;
     #pragma HLS RESET variable=mai_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
@@ -395,7 +396,7 @@ void pMacAddressInserter(
 
     currWord.tlast = 0;
     switch (mai_fsmState) {
-    case WAIT_LOOKUP:
+    case FSM_MAI_WAIT_LOOKUP:
         if (!siARP_LookupRsp.empty() && !soL2MUX_Data.full()) {
             siARP_LookupRsp.read(arpResponse);
             macDstAddr = arpResponse.macAddress;
@@ -405,19 +406,23 @@ void pMacAddressInserter(
                 sendWord.tkeep = 0xff;
                 sendWord.tlast = 0;
                 soL2MUX_Data.write(sendWord);
-                mai_fsmState = WRITE_FIRST;
+                mai_fsmState = FSM_MAI_WRITE_FIRST;
                 if (DEBUG_LEVEL & TRACE_MAI) {
-                    printInfo(myName, "IP lookup = HIT - Received MAC = 0x%12.12lX\n",
+                    printInfo(myName, "FSM_MAI_WAIT_LOOKUP - Lookup=HIT - Received MAC = 0x%12.12lX\n",
                               arpResponse.macAddress.to_ulong());
+                    printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
                 }
             }
             else {  // Drop it all, wait for RT
-                mai_fsmState = DROP;
-                printWarn(myName, "IP lookup = NO-HIT. \n");
+                mai_fsmState = FSM_MAI_DROP;
+                if (DEBUG_LEVEL & TRACE_MAI) {
+                    printInfo(myName, "FSM_MAI_WAIT_LOOKUP - Lookup=NO-HIT. \n");
+                }
             }
         }
         break;
-    case WRITE_FIRST:
+    case FSM_MAI_WRITE_FIRST:
+        if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_FIRST - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
             siIAe_Data.read(currWord);
             sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
@@ -427,10 +432,11 @@ void pMacAddressInserter(
             sendWord.tlast = 0;
             soL2MUX_Data.write(sendWord);
             mai_prevWord = currWord;
-            mai_fsmState = WRITE;
+            mai_fsmState = FSM_MAI_WRITE;
         }
         break;
-    case WRITE:
+    case FSM_MAI_WRITE:
+        if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
             siIAe_Data.read(currWord);
             sendWord.tdata(47,  0) = mai_prevWord.tdata(63, 16);
@@ -443,9 +449,21 @@ void pMacAddressInserter(
                 printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
             }
             mai_prevWord = currWord;
+            if (currWord.tlast) {
+                if (currWord.tkeep[2] == 0) {
+                    mai_fsmState = FSM_MAI_WAIT_LOOKUP;
+                }
+                else {
+                   mai_fsmState = FSM_MAI_WRITE_LAST;
+                }
+            }
+            else {
+                    mai_fsmState = FSM_MAI_WRITE;
+                }
         }
         break;
-    case WRITE_LAST:
+    case FSM_MAI_WRITE_LAST:
+        if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_LAST - \n"); }
         if (!soL2MUX_Data.full()) {
             sendWord.tdata(47,  0) = mai_prevWord.tdata(63, 16);
             sendWord.tdata(63, 48) = 0;
@@ -456,26 +474,33 @@ void pMacAddressInserter(
             if (DEBUG_LEVEL & TRACE_MAI) {
                 printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
             }
-            mai_fsmState = WAIT_LOOKUP;
+            mai_fsmState = FSM_MAI_WAIT_LOOKUP;
         }
         break;
-    case DROP:
+    case FSM_MAI_DROP:
+        if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_DROP - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
             siIAe_Data.read(currWord);
-            sendWord.tlast = 1;
+            //OBSOLETE-20200331 sendWord.tlast = 1;
+            if (currWord.tlast) {
+            	mai_fsmState = FSM_MAI_WAIT_LOOKUP;
+            }
         }
         break;
     } // End-of: switch()
 
+    /*** OBSOLETE-20200331 ************
     if (currWord.tlast) {
         if (currWord.tkeep[2] == 0) {
-              mai_fsmState = WAIT_LOOKUP;
+              mai_fsmState = FSM_MAI_WAIT_LOOKUP;
         }
         else {
-              mai_fsmState = WRITE_LAST;
+              mai_fsmState = FSM_MAI_WRITE_LAST;
         }
-    } // End-of: else
-}
+    }
+    ***********************************/
+
+} // End-of: pMacAddressInserter
 
 /*****************************************************************************
  * @brief   Main process of the IP Transmitter Handler.
@@ -493,12 +518,12 @@ void iptx_handler(
         //------------------------------------------------------
         //-- L3MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &siL3MUX_Data,
+        stream<AxiWord>         &siL3MUX_Data, // [TODO-AxisIp4]
 
         //------------------------------------------------------
         //-- L2MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &soL2MUX_Data,
+        stream<AxiWord>         &soL2MUX_Data, // [TODO-AxisEth]
 
         //------------------------------------------------------
         //-- ARP Interface
