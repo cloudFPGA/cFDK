@@ -631,17 +631,35 @@ const char    *myCamAccessToString(int       initiator);
         Ip4HdrCsum calculateIpHeaderChecksum() {
         	LE_Ip4HdrCsum  leIp4HdrCsum;
         	unsigned int csum = 0;
+        	int ihl = this->getIpInternetHeaderLength();
         	csum += this->axisWordQueue[0].tdata.range(15,  0);  // [ToS|VerIhl]
         	csum += this->axisWordQueue[0].tdata.range(31, 16);  // [TotalLength]
         	csum += this->axisWordQueue[0].tdata.range(47, 32);  // [Identification]
         	csum += this->axisWordQueue[0].tdata.range(63, 48);  // [FragOff|Flags]]
+            ihl -= 2;
         	csum += this->axisWordQueue[1].tdata.range(15,  0);  // [Protocol|TTL]
         	// Skip this->axisWordQueue[1].tdata.range(31, 16);  // [Header Checksum]
 			csum += this->axisWordQueue[1].tdata.range(47, 32);  // [SourceAddrLow]
 			csum += this->axisWordQueue[1].tdata.range(63, 48);  // [SourceAddrHigh]
+            ihl -= 2;
 			csum += this->axisWordQueue[2].tdata.range(15,  0);  // [DestinAddrLow]
 			csum += this->axisWordQueue[2].tdata.range(31, 16);  // [DestinAddrHigh]
-            // [FIXME - Add support for options]
+            ihl -= 1;
+			// Accumulates options dwords
+            int qw = 2;
+			while (ihl) {
+                if (ihl % 1) {
+                    csum += this->axisWordQueue[qw].tdata.range(15,  0);
+                    csum += this->axisWordQueue[qw].tdata.range(31, 16);
+                    ihl--;
+                }
+                else {
+                    csum += this->axisWordQueue[qw].tdata.range(47, 32);
+                    csum += this->axisWordQueue[qw].tdata.range(63, 48);
+                    qw++;
+                    ihl--;
+                }
+            }
 			while (csum > 0xFFFF) {
 				csum = (csum & 0xFFFF) + (csum >> 16);
 			}
@@ -649,6 +667,34 @@ const char    *myCamAccessToString(int       initiator);
 			return byteSwap16(leIp4HdrCsum);
         }
 
+        /**********************************************************************
+         * @brief Compute the checksum of a UDP or TCP pseudo-header+payload.
+         *
+         * @param[in]  pseudoPacket,  a double-ended queue w/ one pseudo packet.
+         * @return the new checksum.
+         **********************************************************************/
+        int checksumCalculation(deque<Ip4overMac>  pseudoPacket) {
+            ap_uint<32> ipChecksum = 0;
+            for (uint8_t i=0;i<pseudoPacket.size();++i) {
+                // [FIXME-TODO: Do not add the bytes for which tkeep is zero]
+                ap_uint<64> tempInput = (pseudoPacket[i].tdata.range( 7,  0),
+                                         pseudoPacket[i].tdata.range(15,  8),
+                                         pseudoPacket[i].tdata.range(23, 16),
+                                         pseudoPacket[i].tdata.range(31, 24),
+                                         pseudoPacket[i].tdata.range(39, 32),
+                                         pseudoPacket[i].tdata.range(47, 40),
+                                         pseudoPacket[i].tdata.range(55, 48),
+                                         pseudoPacket[i].tdata.range(63, 56));
+                ipChecksum = ((((ipChecksum +
+                                 tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+                                 tempInput.range(31, 16)) + tempInput.range(15, 0));
+                ipChecksum = (ipChecksum & 0xFFFF) + (ipChecksum >> 16);
+                ipChecksum = (ipChecksum & 0xFFFF) + (ipChecksum >> 16);
+            }
+            // Reverse the bits of the result
+            ipChecksum = ~ipChecksum;
+            return ipChecksum.range(15, 0).to_int();
+        }
         /***********************************************************************
          * @brief Assembles a deque that is ready for TCP checksum calculation.
          *
@@ -658,12 +704,10 @@ const char    *myCamAccessToString(int       initiator);
          * @info : The TCP checksum field is cleared as expected before by the
          *          TCP computation algorithm.
          ***********************************************************************/
-        void assemblePseudoHeaderAndTcpData(deque<Ip4overMac> &tcpBuffer) {
+        void tcpAssemblePseudoHeaderAndData(deque<Ip4overMac> &tcpBuffer) {
             Ip4overMac        macWord;
-
             int  ipPktLen   = this->getIpTotalLength();
             int  tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
-
             // Create the pseudo-header
             //---------------------------
             // [0] IP_SA and IP_DA
@@ -676,14 +720,12 @@ const char    *myCamAccessToString(int       initiator);
             tcpBuffer.push_back(macWord);
             // Clear the Checksum of the current packet before continuing building the pseudo header
             this->axisWordQueue[4].tdata.range(47, 32) = 0x0000;
-
             // Now, append the content of the TCP segment
             //--------------------------------------------
             for (int i=2; i<axisWordQueue.size()-1; ++i) {
                 macWord = this->axisWordQueue[i+1];
                 tcpBuffer.push_back(macWord);
             }
-
         }
 
         /**********************************************************************
@@ -692,10 +734,10 @@ const char    *myCamAccessToString(int       initiator);
          * @param[in]  pseudoHeader,  a double-ended queue w/ one pseudo header.
          * @return the new checksum.
          **********************************************************************/
-        int checksumComputation(deque<Ip4overMac>  pseudoHeader) {
+        /*** OBSOLETE_20200401 ***
+        int tcpChecksumComputation(deque<Ip4overMac>  pseudoHeader) {
             // [TODO - Consider renaming into claculateTcpChecksum]
             ap_uint<32> tcpChecksum = 0;
-
             for (uint8_t i=0;i<pseudoHeader.size();++i) {
                 // [FIXME-TODO: Do not add the bytes for which tkeep is zero]
                 ap_uint<64> tempInput = (pseudoHeader[i].tdata.range( 7,  0),
@@ -716,6 +758,7 @@ const char    *myCamAccessToString(int       initiator);
             tcpChecksum = ~tcpChecksum;
             return tcpChecksum.range(15, 0).to_int();
         }
+        *****************/
 
         // Set-get the length of the IPv4 packet (in bytes)
         void setLen(int pktLen) { this->len = pktLen; }
@@ -782,8 +825,16 @@ const char    *myCamAccessToString(int       initiator);
         // Return the number of chunks in the IPv4 packet (in axis-words)
         int size()                                       { return this->axisWordQueue.size();             }
 
+        //-----------------------------------------------------
+        //-- IP4 PACKET FIELDS - Constant Definitions
+        //-----------------------------------------------------
+        // IP protocol numbers
+        static const unsigned char  ICMP_PROTOCOL = 0x01;
+        static const unsigned char  TCP_PROTOCOL  = 0x06;
+        static const unsigned char  UDP_PROTOCOL  = 0x11;
+
         //*********************************************************
-        //** IPV4 PACKET FIELDS - SETTERS amnd GETTERS
+        //** IPV4 PACKET FIELDS - SETTERS and GETTERS
         //*********************************************************
         // Set-Get the IP Version field
         void         setIpVersion(int version)           {        axisWordQueue[0].setIp4Version(version);}
@@ -880,6 +931,12 @@ const char    *myCamAccessToString(int       initiator);
         // Set-Get the UDP Destination Port field
         void          setUdpDestinationPort(int port)    {        axisWordQueue[2].setUdpDstPort(port);   }
         int           getUdpDestinationPort()            { return axisWordQueue[2].getUdpDstPort();       }
+        // Set-Get the UDP Length field
+        void          setUdpLength(int len)              {        axisWordQueue[3].setUdpLen(len);        }
+        int           getUdpLength()                     { return axisWordQueue[3].getUdpLen();           }
+        // Set-Get the UDP Checksum field
+        void          setUdpChecksum(int csum)           {        axisWordQueue[3].setUdpChecksum(csum);  }
+        int           getUdpChecksum()                   { return axisWordQueue[3].getUdpChecksum();      }
 
         // Return the IP4 header as a string
         string getIpHeader() {
@@ -941,6 +998,9 @@ const char    *myCamAccessToString(int       initiator);
             bool        alternate = true;
             bool        endOfPkt  = false;
             int         ip4PktSize = this->size();
+            if (this->getIpInternetHeaderLength() != 5) {
+                printFatal("IpPacket-getIcmpPacket()", "IPv4 options are not supported yet (sorry)");
+            }
             while (wordInpCnt < ip4PktSize) {
                 if (endOfPkt)
                     break;
@@ -1001,7 +1061,7 @@ const char    *myCamAccessToString(int       initiator);
             return icmpPacket;
         } // End-of: getIcmpPacket()
 
-        // Return the IP4 data payload as an UdpPacket (assuming IP4 w/o options)
+        // Return the IP4 data payload as an UdpPacket
         UdpDatagram getUdpDatagram() {
             UdpDatagram  udpDatagram;
             AxisIp4     axisIp4(0, 0, 0);
@@ -1026,6 +1086,9 @@ const char    *myCamAccessToString(int       initiator);
                             axisIp4.tkeep = axisIp4.tkeep | (0x01 << i);
                         }
                     }
+                    wordInpCnt++;
+                    wordOutCnt++;
+                    udpDatagram.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
                 }
                 else if (alternate) {
                     axisIp4.tdata = 0;
@@ -1275,8 +1338,6 @@ const char    *myCamAccessToString(int       initiator);
 
         // [TODO]-Return the IP4 data payload as a TcpSegment
         //  [TODO] TcpSegment getTcpSegment() {}
-
-
 
 
         /**************************************************************************
@@ -1535,20 +1596,15 @@ const char    *myCamAccessToString(int       initiator);
          *
          * @return the new checksum.
          ***********************************************************************/
-        int recalculateChecksum() {
-            // [TODO - Re-factor into PseudoChecksum]
+        int tcpRecalculateChecksum() {
             int               newChecksum = 0;
             deque<Ip4overMac> tcpBuffer;
-
             // Assemble a TCP buffer with pseudo header and TCP data
-            assemblePseudoHeaderAndTcpData(tcpBuffer);
-
+            tcpAssemblePseudoHeaderAndData(tcpBuffer);
             // Compute the TCP checksum
-            int tcpCsum = checksumComputation(tcpBuffer);
-
+            int tcpCsum = checksumCalculation(tcpBuffer);
             /// Overwrite the former checksum
             this->setTcpChecksum(tcpCsum);
-
             return tcpCsum;
         }
         /***********************************************************************
@@ -1577,20 +1633,89 @@ const char    *myCamAccessToString(int       initiator);
         	}
         }
         /***********************************************************************
+         * @brief Assembles a deque that is ready for UDP checksum calculation.
+         *
+         * @param udpBuffer, a dequeue buffer to hold the UDP pseudo header and
+         *                    the UDP segment.
+         *
+         * @info : The UDP checksum field is cleared as expected before by the
+         *          UDP computation algorithm.
+         ***********************************************************************/
+        void udpAssemblePseudoHeaderAndData(deque<Ip4overMac> &udpBuffer) {
+            Ip4overMac        macWord;
+            int  udpLength  = this->getUdpLength();
+            // Create the pseudo-header [TODO - Create a pseudo header class]
+            //---------------------------
+            // [0] IP_SA and IP_DA
+            macWord.tdata    = (this->axisWordQueue[1].tdata.range(63, 32), this->axisWordQueue[2].tdata.range(31,  0));
+            udpBuffer.push_back(macWord);
+            // [1] IPv4 Protocol and UDP Length & UDP_SP & UDP_DP
+            macWord.tdata.range( 7,  0) = 0x00;
+            macWord.tdata.range(15,  8) = this->axisWordQueue[1].getIp4Prot();
+            macWord.tdata.range(31, 16) = byteSwap16(udpLength);
+            macWord.tdata.range(63, 32) = this->axisWordQueue[2].tdata.range(63, 32);
+            udpBuffer.push_back(macWord);
+            // Clear the current checksum before continuing building the pseudo header
+            this->setUdpChecksum(0x0000);
+            // Now, append the UDP_LEN & UDP_CSUM & UDP payload
+            //-------------------------------------------------
+            for (int i=2; i<axisWordQueue.size()-1; ++i) {
+                macWord = this->axisWordQueue[i+1];
+                udpBuffer.push_back(macWord);
+            }
+        }
+        /***********************************************************************
+         * @brief Recalculate the checksum of an UDP datagram after it was modified.
+         *        - This will also overwrite the former UDP checksum.
+         *        - You typically use this method if the packet was modified
+         *          or when the UDP pseudo checksum has not yet been calculated.
+         *
+         * @return the new checksum.
+         ***********************************************************************/
+        int udpRecalculateChecksum() {
+            int               newChecksum = 0;
+            deque<Ip4overMac> udpBuffer;
+            // Assemble an UDP buffer with pseudo header and UDP data
+            udpAssemblePseudoHeaderAndData(udpBuffer);
+            // Compute the UDP checksum
+            int udpCsum = checksumCalculation(udpBuffer);
+            /// Overwrite the former checksum
+            this->setUdpChecksum(udpCsum);
+            return udpCsum;
+        }
+        /***********************************************************************
          * @brief Recalculate the TCP checksum and compare it with the
          *   one embedded into the segment.
          *
          * @return true/false.
          ***********************************************************************/
-        bool verifyTcpChecksum() {
+        bool tcpVerifyChecksum() {
             TcpChecksum tcpChecksum  = this->getTcpChecksum();
-            TcpChecksum computedCsum = this->recalculateChecksum();
+            TcpChecksum computedCsum = this->tcpRecalculateChecksum();
             if (computedCsum == tcpChecksum) {
                 return true;
             }
             else {
                 printWarn("IpPacket", "  Embedded TCP checksum = 0x%8.8X \n", tcpChecksum.to_uint());
                 printWarn("IpPacket", "  Computed TCP checksum = 0x%8.8X \n", computedCsum.to_uint());
+                return false;
+            }
+        }
+        /***********************************************************************
+         * @brief Recalculate the UDP checksum and compare it with the
+         *   one embedded into the datagram.
+         *
+         * @return true/false.
+         ***********************************************************************/
+        bool udpVerifyChecksum() {
+            UdpChecksum udpChecksum  = this->getUdpChecksum();
+            UdpChecksum computedCsum = this->udpRecalculateChecksum();
+            if (computedCsum == udpChecksum) {
+                return true;
+            }
+            else {
+                printWarn("IpPacket", "  Embedded UDP checksum = 0x%8.8X \n", udpChecksum.to_uint());
+                printWarn("IpPacket", "  Computed UDP checksum = 0x%8.8X \n", computedCsum.to_uint());
                 return false;
             }
         }

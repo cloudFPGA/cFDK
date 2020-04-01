@@ -53,6 +53,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../toe/src/toe.hpp"
 #include "../../toe/src/toe_utils.hpp"
+#include "../../AxisEth.hpp"
+#include "../../AxisIp4.hpp"
 
 using namespace hls;
 
@@ -78,12 +80,12 @@ void iptx_handler(
         //------------------------------------------------------
         //-- L3MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &siL3MUX_Data,
+        stream<AxisIp4>         &siL3MUX_Data,
 
         //------------------------------------------------------
         //-- L2MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &soL2MUX_Data,
+        stream<AxisEth>         &soL2MUX_Data,
 
         //------------------------------------------------------
         //-- ARP Interface

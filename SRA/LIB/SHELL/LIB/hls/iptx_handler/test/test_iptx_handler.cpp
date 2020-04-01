@@ -33,7 +33,7 @@ using namespace std;
 #define TRACE_ARP   1 <<  2
 #define TRACE_ALL    0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 //---------------------------------------------------------
@@ -80,8 +80,10 @@ void pEmulateArp(
 
     if (!siIPTX_LookupReq.empty()) {
         siIPTX_LookupReq.read(ip4ToMacLkpReq);
-        printIp4Addr(myName, "Received a lookup request from [IPTX] with key = ",
-                     ip4ToMacLkpReq);
+        if (DEBUG_LEVEL & TRACE_ARP) {
+            printIp4Addr(myName, "Received a lookup request from [IPTX] with key = ",
+                         ip4ToMacLkpReq);
+        }
         if (ip4ToMacLkpReq == piGatewayAddr) {
             // The ARP replies with the MAC address of the default gateway.
             if (macAddrOfGatewayIsResolved) {
@@ -222,17 +224,6 @@ int createGoldenFile(
                 //-------------------------------
                 Ip4Addr ipDA = ipPacket.getIpDestinationAddress();
                 // Create MAC_DA from IP_DA (for testing purposes)
-                //OBSOLETE_20200330 if ((ipDA & 0x0A0C0000) == 0x0A0C0000) {
-                //OBSOLETE_20200330     EthAddr macDaAddr = 0xFECA00000000 | ipDA;
-                //OBSOLETE_20200330     ethGoldFrame.setMacDestinAddress(macDaAddr);
-                //OBSOLETE_20200330 }
-                //OBSOLETE_20200330 else {
-                //OBSOLETE_20200330     printWarn(THIS_NAME, "Packet #%d is dropped because IP_DA does not match.\n",
-                //OBSOLETE_20200330               inpPackets);
-                //OBSOLETE_20200330     printIp4Addr(THIS_NAME, "  Received", ipDA);
-                //OBSOLETE_20200330     printInfo(   THIS_NAME, "  Expected IPv4 Addr = 0x0A0Cxxxx\n");
-                //OBSOLETE_20200330     return NTS_KO;
-                //OBSOLETE_20200330 }
                 if ((ipDA & mySubNetMask) == (myGatewayAddr & mySubNetMask)) {
                     // The remote IPv4 address falls into our sub-network
                     EthAddr  macDaAddr = 0xFECA00000000 | ipDA;
@@ -261,20 +252,33 @@ int createGoldenFile(
                 ethGoldFrame.setMacSourceAddress(myMacAddress);
                 ethGoldFrame.setTypeLength(0x0800);
 
-                // Write the IP packet as data payload of the ETHERNET frame.
+                // Assess the IP version
                 if (ipPacket.getIpVersion() != 4) {
                     printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpPackets);
                     continue;
                 }
+                // Assess the IP header checksum
                 if (ipPacket.getIpHeaderChecksum() == 0) {
                     // Remember: The TOE delivers packets with the header checksum set to zero
                     Ip4HdrCsum reComputedHdCsum = ipPacket.reCalculateIpHeaderChecksum();
                 }
-                if (not ipPacket.verifyTcpChecksum()) {
-                    printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
+                // Assess the L3 checksum
+                switch (ipPacket.getIpProtocol()) {
+                case IpPacket::TCP_PROTOCOL:
+                    if (not ipPacket.tcpVerifyChecksum()) {
+                        printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
+                    }
+                    break;
+                case IpPacket::UDP_PROTOCOL:
+                    if (not ipPacket.udpVerifyChecksum()) {
+                        printWarn(THIS_NAME, "Failed to verify the UDP checksum of Frame #%d.\n", inpPackets);
+                    }
+                    break;
+                case IpPacket::ICMP_PROTOCOL:
+                    break;  // [TODO]
                 }
                 ethGoldFrame.setIpPacket(ipPacket);
-
+                // Write the IP packet as data payload of the ETHERNET frame.
                 if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
                     printError(THIS_NAME, "Failed to write ETH frame to DAT file.\n");
                     rc = NTS_KO;
@@ -329,13 +333,13 @@ int main(int argc, char* argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     //-- From L3MUX
-    stream<AxiWord>     ssL3MUX_IPTX_Data  ("ssL3MUX_IPTX_Data");
+    stream<AxisIp4>     ssL3MUX_IPTX_Data  ("ssL3MUX_IPTX_Data");
     int                 nrL3MUX_IPTX_Chunks = 0;
     int                 nrL3MUX_IPTX_Frames = 0;
     int                 nrL3MUX_IPTX_Bytes  = 0;
 
     //-- To L2MUX
-    stream<AxiWord>     ssIPTX_L2MUX_Data  ("ssIPTX_L2MUX_Data");
+    stream<AxisEth>     ssIPTX_L2MUX_Data  ("ssIPTX_L2MUX_Data");
     int                 nrIPTX_L2MUX_Chunks = 0;
     int                 nrIPTX_L2MUX_Frames = 0;
     int                 nrIPTX_L2MUX_Bytes  = 0;
@@ -359,7 +363,7 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     //-- CREATE DUT INPUT TRAFFIC AS STREAMS
     //------------------------------------------------------
-    if (feedAxiWordStreamFromFile(ssL3MUX_IPTX_Data, "ssL3MUX_IPTX_Data", string(argv[1]),
+    if (feedAxisFromFile<AxisIp4>(ssL3MUX_IPTX_Data, "ssL3MUX_IPTX_Data", string(argv[1]),
             nrL3MUX_IPTX_Chunks, nrL3MUX_IPTX_Frames, nrL3MUX_IPTX_Bytes)) {
         printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
         printInfo(THIS_NAME, "\tGenerated %d chunks in %d frames, for a total of %d bytes.\n\n",
@@ -376,7 +380,6 @@ int main(int argc, char* argv[]) {
     ofstream    outFileStream;
 
     //-- Remove previous file
-    //OBSOLETE-20200211 remove("ssIPTX_L2MUX_Data");
     remove(ofsL2MUX_Data_FileName.c_str());
     //-- Assess that file has ".dat" extension
     if (not isDatFile(ofsL2MUX_Data_FileName)) {
@@ -437,16 +440,16 @@ int main(int argc, char* argv[]) {
             myGatewayAddr);
 
         //-- READ FROM STREAM AND WRITE TO FILE
-        AxiWord  axiWord;
+        AxisEth  axisEthWord;
         if (!(ssIPTX_L2MUX_Data.empty())) {
-            ssIPTX_L2MUX_Data.read(axiWord);
-            if (not writeAxiWordToFile(&axiWord, outFileStream)) {
+            ssIPTX_L2MUX_Data.read(axisEthWord);
+            if (not writeAxiWordToFile(&axisEthWord, outFileStream)) {
                 nrErr++;
             }
             else {
                 nrIPTX_L2MUX_Chunks++;
-                nrIPTX_L2MUX_Bytes  += axiWord.keepToLen();
-                if (axiWord.tlast) {
+                nrIPTX_L2MUX_Bytes  += axisEthWord.keepToLen();
+                if (axisEthWord.tlast) {
                     nrIPTX_L2MUX_Frames++;
                     outFileStream << std::endl;
                 }
@@ -465,15 +468,6 @@ int main(int argc, char* argv[]) {
             printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
         }
     }
-
-    //---------------------------------------------------------------
-    //-- DRAIN DUT OUTPUT STREAMS
-    //---------------------------------------------------------------
-    //OBSOLETE-20200129 if (not drainAxiWordStreamToFile(ssIPTX_L2MUX_Data, "ssIPTX_L2MUX_Data", ofsL2MUX_Data_FileName,
-    //OBSOLETE-20200129         nrIPTX_L2MUX_Chunks, nrIPTX_L2MUX_Frames, nrIPTX_L2MUX_Bytes)) {
-    //OBSOLETE-20200129     printError(THIS_NAME, "Failed to drain the Ethernet frames traffic from DUT. \n");
-    //OBSOLETE-20200129     nrErr++;
-    //OBSOLETE-20200129 }
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'testiptx_handler' ENDS HERE                                 ##\n");

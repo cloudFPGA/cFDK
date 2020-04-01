@@ -57,7 +57,7 @@ using namespace hls;
 #define TRACE_MAI  1 << 4
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*****************************************************************************
@@ -88,8 +88,8 @@ using namespace hls;
  *
  *****************************************************************************/
 void pHeaderChecksumAccumulator(
-        stream<AxiWord>     &siL3MUX_Data,
-        stream<AxiWord>     &soICi_Data,
+        stream<AxisIp4>     &siL3MUX_Data,
+        stream<AxisIp4>     &soICi_Data,
         stream<Ip4HdrCsum>  &soICi_Csum)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -113,7 +113,7 @@ void pHeaderChecksumAccumulator(
     static ap_uint<4>                       hca_ipHdrLen;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxiWord     currWord;
+    AxisIp4     currWord;
     Ip4HdrCsum  temp;
 
     currWord.tlast = 0;
@@ -154,8 +154,9 @@ void pHeaderChecksumAccumulator(
         //  its default minimum value is 5.
         switch (hca_axiWordCount) {
         case 0:
-            hca_ipHdrLen = currWord.tdata.range(3, 0);
-            //-- Accumulate bytes [0:7] of the IPv4 header
+            //OBSOLETE-20200331 hca_ipHdrLen = currWord.tdata.range(3, 0);
+            hca_ipHdrLen = currWord.getIp4HdrLen();
+            //-- Accumulate 1st IPv4 header qword [Frag|Ident|TotLen|ToS|IHL]
             for (int i = 0; i < 4; i++) {
               #pragma HLS UNROLL
                 temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
@@ -168,7 +169,7 @@ void pHeaderChecksumAccumulator(
             hca_ipHdrLen -= 2;
             break;
         case 1:
-            //-- Accumulate bytes [8:15] of the IPv4 header.
+            //-- Accumulate 2nd IPv4 header qword [SA|HdCsum|Prot|TTL]
             for (int i = 0; i < 4; i++) {
               #pragma HLS UNROLL
                 if (i != 1) {
@@ -188,7 +189,8 @@ void pHeaderChecksumAccumulator(
                 //-- We are done with the checksum header processing
                 break;
             case 1:
-                //-- Process bytes [16:19] --> Handle 1 option max.
+                //-- Accumulate half of the 3rd IPv4 header qword [DA] or
+                //-- Accumulate the last IPv4 option dword
                 for (int i = 0; i < 2; i++) {
                   #pragma HLS UNROLL
                     temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
@@ -199,7 +201,8 @@ void pHeaderChecksumAccumulator(
                 hca_ipHdrLen = 0;
                 hca_csumWritten = false;
                 break;
-            case 4:
+            /*** OBSOLETE-20200331 ****
+            case 3:
                 for (int i = 0; i < 4; i++) {
                   #pragma HLS UNROLL
                     temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
@@ -207,9 +210,10 @@ void pHeaderChecksumAccumulator(
                     hca_ipHdrCsum[i] += temp;
                     hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
                 }
-                hca_ipHdrLen = 0;
+                hca_ipHdrLen -= 2;
                 hca_csumWritten = false;
                 break;
+            ***************************/
             default:
                 // Sum up everything
                 for (int i = 0; i < 4; i++) {
@@ -220,10 +224,11 @@ void pHeaderChecksumAccumulator(
                     hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
                 }
                 hca_ipHdrLen -= 2;
+                hca_csumWritten = false;
                 break;
-            } // switch ipHeaderLen
+            } // End-of: switch ipHeaderLen
             break;
-        } // End of switch(hca_axiWordCount)
+        } // End-of: switch(hca_axiWordCount)
         soICi_Data.write(currWord);
         if (currWord.tlast) {
             hca_axiWordCount = 0;
@@ -244,9 +249,9 @@ void pHeaderChecksumAccumulator(
  *
  *****************************************************************************/
 void pIpChecksumInsert(
-        stream<AxiWord>     &siHCa_Data,
+        stream<AxisIp4>     &siHCa_Data,
         stream<Ip4HdrCsum>  &siHCa_Csum,
-        stream<AxiWord>     &soIAe_Data)
+        stream<AxisIp4>     &soIAe_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -258,25 +263,26 @@ void pIpChecksumInsert(
     #pragma HLS RESET             variable=ici_fsmState
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxiWord     currWord;
+    AxisIp4     currWord;
     Ip4HdrCsum  ipHdrChecksum;
 
 	currWord.tlast = 0;
     switch (ici_fsmState) {
-    case 0:
+    case S0:
         if (!siHCa_Data.empty() && !soIAe_Data.full()) {
             siHCa_Data.read(currWord);
             soIAe_Data.write(currWord);
             ici_fsmState = S1;
         }
         break;
-    case 1:
+    case S1:
         if (!siHCa_Data.empty() && !siHCa_Csum.empty() && !soIAe_Data.full()) {
             siHCa_Data.read(currWord);
             siHCa_Csum.read(ipHdrChecksum);
             // Insert the computed ipHeaderChecksum in the incoming stream
-            currWord.tdata(23, 16) = ipHdrChecksum(15, 8);
-            currWord.tdata(31, 24) = ipHdrChecksum( 7, 0);
+            //OBSOLETE-20200331 currWord.tdata(23, 16) = ipHdrChecksum(15, 8);
+            //OBSOLETE-20200331 currWord.tdata(31, 24) = ipHdrChecksum( 7, 0);
+            currWord.setIp4HdrCsum(ipHdrChecksum);
             soIAe_Data.write(currWord);
             ici_fsmState = S2;
         }
@@ -311,8 +317,8 @@ void pIpChecksumInsert(
 void pIp4AddressExtractor(
         Ip4Addr              piMMIO_SubNetMask,
         Ip4Addr              piMMIO_GatewayAddr,
-        stream<AxiWord>     &siICi_Data,
-        stream<AxiWord>     &soMAi_Data,
+        stream<AxisIp4>     &siICi_Data,
+        stream<AxisIp4>     &soMAi_Data,
         stream<Ip4Addr>     &soARP_LookupReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -328,11 +334,10 @@ void pIp4AddressExtractor(
     Ip4Addr ipDestAddr;
 
     if (!siICi_Data.empty() && !soMAi_Data.full()) {
-        Ip4overMac currWord = siICi_Data.read();
+        AxisIp4 currWord = siICi_Data.read();
         switch (iae_wordCount) {
         case 2:  // Extract destination IP address
             ipDestAddr = currWord.getIp4DstAddr();
-            // OBSOLETE ipDestAddr = currWord.tdata.range(31, 0);
             if ((ipDestAddr & piMMIO_SubNetMask) == (piMMIO_GatewayAddr & piMMIO_SubNetMask)
               || (ipDestAddr == 0xFFFFFFFF)) {
                 soARP_LookupReq.write(ipDestAddr);
@@ -370,9 +375,9 @@ void pIp4AddressExtractor(
  *****************************************************************************/
 void pMacAddressInserter(
         EthAddr                  piMMIO_MacAddress,
-        stream<AxiWord>         &siIAe_Data,
+        stream<AxisIp4>         &siIAe_Data,
         stream<ArpLkpReply>     &siARP_LookupRsp,
-        stream<AxiWord>         &soL2MUX_Data)
+        stream<AxisEth>         &soL2MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -386,11 +391,11 @@ void pMacAddressInserter(
     #pragma HLS RESET variable=mai_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static EthoverMac mai_prevWord;
+    static AxisIp4  mai_prevWord;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    EthoverMac  sendWord;
-    EthoverMac  currWord;
+    AxisEth     sendWord;
+    AxisIp4     currWord;
     ArpLkpReply arpResponse;
     EthAddr     macDstAddr;
 
@@ -410,7 +415,7 @@ void pMacAddressInserter(
                 if (DEBUG_LEVEL & TRACE_MAI) {
                     printInfo(myName, "FSM_MAI_WAIT_LOOKUP - Lookup=HIT - Received MAC = 0x%12.12lX\n",
                               arpResponse.macAddress.to_ulong());
-                    printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
+                    printAxiWord(myName, "Forwarding AxisEthWord to [L2MUX]: ", sendWord);
                 }
             }
             else {  // Drop it all, wait for RT
@@ -427,7 +432,10 @@ void pMacAddressInserter(
             siIAe_Data.read(currWord);
             sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
             sendWord.setEthTypeLen(0x0800);
-            sendWord.tdata(63, 48) = currWord.tdata(15, 0);
+            //OBSOLETE-20200401 sendWord.tdata(63, 48) = currWord.tdata(15, 0);
+            sendWord.setIp4HdrLen(currWord.getIp4HdrLen());
+            sendWord.setIp4Version(currWord.getIp4Version());
+            sendWord.setIp4ToS(currWord.getIp4Tos());
             sendWord.tkeep = 0xff;
             sendWord.tlast = 0;
             soL2MUX_Data.write(sendWord);
@@ -481,24 +489,13 @@ void pMacAddressInserter(
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_DROP - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
             siIAe_Data.read(currWord);
-            //OBSOLETE-20200331 sendWord.tlast = 1;
             if (currWord.tlast) {
             	mai_fsmState = FSM_MAI_WAIT_LOOKUP;
             }
         }
         break;
-    } // End-of: switch()
 
-    /*** OBSOLETE-20200331 ************
-    if (currWord.tlast) {
-        if (currWord.tkeep[2] == 0) {
-              mai_fsmState = FSM_MAI_WAIT_LOOKUP;
-        }
-        else {
-              mai_fsmState = FSM_MAI_WRITE_LAST;
-        }
-    }
-    ***********************************/
+    } // End-of: switch()
 
 } // End-of: pMacAddressInserter
 
@@ -518,12 +515,12 @@ void iptx_handler(
         //------------------------------------------------------
         //-- L3MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &siL3MUX_Data, // [TODO-AxisIp4]
+        stream<AxisIp4>         &siL3MUX_Data,
 
         //------------------------------------------------------
         //-- L2MUX Interface
         //------------------------------------------------------
-        stream<AxiWord>         &soL2MUX_Data, // [TODO-AxisEth]
+        stream<AxisEth>         &soL2MUX_Data,
 
         //------------------------------------------------------
         //-- ARP Interface
@@ -575,7 +572,7 @@ void iptx_handler(
     //-------------------------------------------------------------------------
 
     //-- Header Checksum Accumulator (HCa)
-    static stream<AxiWord>         ssHCaToICi_Data    ("ssHCaToICi_Data");
+    static stream<AxisIp4>         ssHCaToICi_Data    ("ssHCaToICi_Data");
     #pragma HLS STREAM    variable=ssHCaToICi_Data    depth=1024 // Must hold one IP header for checksum computation
     #pragma HLS DATA_PACK variable=ssHCaToICi_Data               // [FIXME -We only need to store 20 to 24+ bytes]
 
@@ -583,12 +580,12 @@ void iptx_handler(
     #pragma HLS STREAM    variable=ssHCaToICi_Csum    depth=16
 
     //-- IP Checksum Inserter (ICi)
-    static stream<AxiWord>         ssICiToIAe_Data    ("ssICiToIAe_Data");
+    static stream<AxisIp4>         ssICiToIAe_Data    ("ssICiToIAe_Data");
     #pragma HLS STREAM    variable=ssICiToIAe_Data    depth=16
     #pragma HLS DATA_PACK variable=ssICiToIAe_Data
 
     //-- IP Address Extractor (IAe)
-    static stream<AxiWord>         ssIAeToMAi_Data    ("ssIAeToMAi_Data");
+    static stream<AxisIp4>         ssIAeToMAi_Data    ("ssIAeToMAi_Data");
     #pragma HLS STREAM    variable=ssIAeToMAi_Data    depth=16
     #pragma HLS DATA_PACK variable=ssIAeToMAi_Data
 

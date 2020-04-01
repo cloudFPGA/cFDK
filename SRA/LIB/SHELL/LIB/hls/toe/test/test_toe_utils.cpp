@@ -706,10 +706,16 @@ void printTcpPort(TcpPort tcpPort)
                 axiWord->tlast = atoi(            stringVector[1].c_str());
                 axiWord->tkeep = myStrHexToUint8( stringVector[2]);
                 rc = true;
-                break;
+                return rc;
+                //OBSOLETE_20200327 break;
 			}
-			else
+			else {
+				printError(THIS_NAME, "Failed to read AxiWord from file.\n");
+				printError(THIS_NAME, "\tThe line read from file is: \"%s\" \n", stringBuffer.c_str());
+				printFatal(THIS_NAME, "\tFYI - The file might be corrupted...\n");
+				rc = false;
 				break;
+			}
 		}
 		return rc;
 	}
@@ -1010,7 +1016,8 @@ void printTcpPort(TcpPort tcpPort)
 			if (ss.full()) {
 				printError(THIS_NAME, "Cannot write stream \'%s\'. Stream is full.\n",
 						   ssName.c_str());
-				return(rc);
+				rc = false;
+				break;
 			}
 			else {
 				ss.write(axiWord);

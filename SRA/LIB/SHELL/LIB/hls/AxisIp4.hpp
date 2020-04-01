@@ -180,11 +180,19 @@ class AxisIp4: public AxiWord {
       AxiWord(tdata, tkeep, tlast) {}
 
     //-----------------------------------------------------
+    //-- IP4 PACKET FIELDS - Constant Definitions
+    //-----------------------------------------------------
+    // IP protocol numbers
+    static const unsigned char  ICMP_PROTOCOL = 0x01;
+    static const unsigned char  TCP_PROTOCOL  = 0x06;
+    static const unsigned char  UDP_PROTOCOL  = 0x11;
+
+    //-----------------------------------------------------
     //-- IP4 PACKET HEADER - Setters and Getters
     //-----------------------------------------------------
     // Set-Get the IP4 Version
     void        setIp4Version(Ip4Version ver)   {                  tdata.range( 7,  4) = ver;             }
-    Ip4Version  geIp4tVersion()                 {           return tdata.range( 7,  4);                   }
+    Ip4Version  getIp4Version()                 {           return tdata.range( 7,  4);                   }
     // Set-Get the IP4 Internet Header Length
     void        setIp4HdrLen(Ip4HdrLen ihl)     {                  tdata.range( 3,  0) = ihl;             }
     Ip4HdrLen   getIp4HdrLen()                  {           return tdata.range( 3,  0);                   }

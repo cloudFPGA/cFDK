@@ -579,7 +579,8 @@ typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
 typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
 typedef ap_uint<16> UdpPort;        // UDP source or destination Port
 typedef ap_uint<16> UdpLen;         // UDP header and data Length
-typedef ap_uint<16> UdpCsum;        // UDP header and data Checksum
+typedef ap_uint<16> UdpChecksum;    // UDP Checksum header and data Checksum
+typedef ap_uint<16> UdpCsum;        // UDP Checksum (alias for UdpChecksum)
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
@@ -635,28 +636,24 @@ class Ip4overMac: public AxiWord {
     Ip4Addr       getIp4DstAddr()               { return swapDWord(tdata.range(31,  0));                  }
     LE_Ip4Addr getLE_Ip4DstAddr()               {           return tdata.range(31,  0);                   }
 
+    /*** TCP SEGMENT ***************************/
     // Set-Get the TCP Source Port
     void          setTcpSrcPort(TcpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
     TcpPort       getTcpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
     LE_TcpPort getLE_TcpSrcPort()               {           return tdata.range(47, 32) ;                  }
-
     // Set-Get the TCP Destination Port
     void          setTcpDstPort(TcpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
     TcpPort       getTcpDstPort()               { return swapWord (tdata.range(63, 48));                  }
     LE_TcpPort getLE_TcpDstPort()               {           return tdata.range(63, 48);                   }
-
     // Set-Get the TCP Sequence Number
     void       setTcpSeqNum(TcpSeqNum num)      {                  tdata.range(31,  0) = swapDWord(num);  }
     TcpSeqNum  getTcpSeqNum()                   { return swapDWord(tdata.range(31,  0));                  }
-
     // Set-Get the TCP Acknowledgment Number
     void       setTcpAckNum(TcpAckNum num)      {                  tdata.range(63, 32) = swapDWord(num);  }
     TcpAckNum  getTcpAckNum()                   { return swapDWord(tdata.range(63, 32));                  }
-
     // Set-Get the TCP Data Offset
     void       setTcpDataOff(TcpDataOff offset) {                  tdata.range( 7,  4) = offset;          }
     TcpDataOff getTcpDataOff()                  { return           tdata.range( 7,  4);                   }
-
     // Set-Get the TCP Control Bits
     void setTcpCtrlFin(TcpCtrlBit bit)          {                  tdata.bit( 8) = bit;                   }
     TcpCtrlBit getTcpCtrlFin()                  {           return tdata.bit( 8);                         }
@@ -670,32 +667,34 @@ class Ip4overMac: public AxiWord {
     TcpCtrlBit getTcpCtrlAck()                  {           return tdata.bit(12);                         }
     void setTcpCtrlUrg(TcpCtrlBit bit)          {                  tdata.bit(13) = bit;                   }
     TcpCtrlBit getTcpCtrlUrg()                  {           return tdata.bit(13);                         }
-
     // Set-Get the TCP Window
     void        setTcpWindow(TcpWindow win)     {                  tdata.range(31, 16) = swapWord(win);   }
     TcpWindow   getTcpWindow()                  { return swapWord (tdata.range(31, 16));                  }
-
     // Set-Get the TCP Checksum
     void        setTcpChecksum(TcpChecksum csum){                  tdata.range(47, 32) = swapWord(csum);                   }
     TcpChecksum getTcpChecksum()                { return swapWord (tdata.range(47, 32));                  }
-
     // Set-Get the TCP Urgent Pointer
     void        setTcpUrgPtr(TcpUrgPtr ptr)     {                  tdata.range(63, 48) = swapWord(ptr);   }
     TcpUrgPtr   getTcpUrgPtr()                  { return swapWord (tdata.range(63, 48));                  }
-
     // Set-Get the TCP Options
     void        setTcpOptKind(TcpOptKind val)   {                  tdata.range( 7,  0);                   }
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 
+    /*** UDP DATAGRAM **************************/
     // Set-Get the UDP Source Port
     void          setUdpSrcPort(UdpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
     UdpPort       getUdpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
-
     // Set-Get the UDP Destination Port
     void          setUdpDstPort(UdpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
     UdpPort       getUdpDstPort()               { return swapWord (tdata.range(63, 48));                  }
+    // Set-Get the UDP Length
+    void        setUdpLen(UdpLen len)           {                  tdata.range(15,  0) = swapWord(len);   }
+    UdpLen      getUdpLen()                     { return swapWord (tdata.range(15,  0));                  }
+    // Set-Get the UDP Checksum
+    void        setUdpChecksum(UdpCsum csum)    {                  tdata.range(31, 16) = swapWord(csum);                   }
+    UdpCsum     getUdpChecksum()                { return swapWord (tdata.range(31, 16));                  }
 
 
   private:
