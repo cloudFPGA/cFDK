@@ -1,0 +1,90 @@
+# ########################################################################################
+#  @file  : siL3_WrongSubNet.dat
+#  @brief : A set of IPv4 packets with a destination address that falls out of our 
+#           sub-network (10.12.X.X).
+#
+#  @info: The first packet is expected to be dropped because the ARP does not know which
+#         MAC addresse to bind to that IPv4 address. However, the ARP fires a request in
+#         order to retrieve the MAC address of the default gateway. Therefore, when such 
+#         a situation occurs a second time, the ARP will be able to reply with the MAC
+#         address of the default gateway.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    # This is a comment
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ########################################################################################
+#
+#  The mapping of the IPv4 packet onto the AXI4-Stream interface is as follows:
+#
+#        6                   5                   4                   3                   2                   1                   0
+#  3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# | Frag Ofst (L) |Flags|  FO(H)  |   Ident (L)   |   Ident (H)   | Total Len (L) | Total Len (H) |Type of Service|Version|  IHL  |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    | Hd Chksum (L) | Hd Chksum (H) |    Protocol   |  Time to Live |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# |                            Options                            |     DA (LL)   |     DA (L)    |     DA (H)    |    DA (HH)    |
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ########################################################################################
+
+G PARAM SimCycles     350
+G PARAM FpgaIp4Addr   10.12.200.7
+> IDLE 50
+
+# [1] This packet one will be dropped because ARP does not know about its MAC binding yet. 
+
+000000002C000045 0 FF
+07C80C0A1C0B0640 0 FF
+58000080EFBEADDE 0 FF
+00000000B0012356 0 FF
+00004A50FFFF0260 0 FF
+00000000B4050402 1 0F
+
+# [2] Same packet as [1]. This time we expect a packet that is forwarded to the default gateway. 
+
+# 000000002C000045 0 FF
+# 07C80C0A00000640 0 FF
+# 58000080EFBEADDE 0 FF
+# 00000000B0012356 0 FF
+# 00004A50FFFF0260 0 FF
+# 00000000B4050402 1 0F
+
+
+
+
+
+
+
+
+
+
+
+
+# STEP-2: [ACK] PACKET ===========================
+
+# 00000000028000045 0 FF
+# 007C80C0A00000640 0 FF
+# 05800008032C80C0A 0 FF
+# 001000000B1012356 0 FF
+# 000005533FFFF1050 1 FF
+
+# STEP-3: [TCP] PACKET ===========================
+
+# 0000000050000045 0 FF
+# 07C80C0A00000640 0 FF
+# 5800008032C80C0A 0 FF
+# 01000000B1012356 0 FF
+# 0000F0F6FFFF1050 0 FF
+# 0101010101010101 0 FF
+# 0202020202020202 0 FF
+# 0303030303030303 0 FF
+# 0404040404040404 0 FF
+# 0505050505050505 1 FF
