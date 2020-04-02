@@ -733,7 +733,7 @@ int pIPRX_InjectAckNumber(
         }
         else {
             // Let's check the pseudo-header checksum of the packet
-            int computedCsum = ipRxPacket.recalculateChecksum();
+            int computedCsum = ipRxPacket.tcpRecalculateChecksum();
             int embeddedCsum = ipRxPacket.getTcpChecksum();
             if (computedCsum != embeddedCsum) {
                 printError(myName, "WRONG PSEUDO-HEADER CHECKSUM (0x%4.4X) - Expected 0x%4.4X \n",
@@ -762,7 +762,7 @@ int pIPRX_InjectAckNumber(
 
             // Recalculate and update the checksum
             int oldCsum = ipRxPacket.getTcpChecksum();
-            int newCsum = ipRxPacket.recalculateChecksum();
+            int newCsum = ipRxPacket.tcpRecalculateChecksum();
             if (DEBUG_LEVEL & TRACE_IPRX)
                 printInfo(myName, "Updating the checksum of this packet from 0x%4.4X to 0x%4.4X\n",
                           oldCsum, newCsum);
@@ -1092,7 +1092,7 @@ bool pL3MUX_Parse(
 
         // Set the ACK bit and Recalculate the Checksum
         synAckPacket.setTcpControlAck(1);
-        int newTcpCsum = synAckPacket.recalculateChecksum();
+        int newTcpCsum = synAckPacket.tcpRecalculateChecksum();
         synAckPacket.setTcpChecksum(newTcpCsum);
 
         // Add the created SYN+ACK packet to the ipRxPacketizer
@@ -1225,7 +1225,7 @@ bool pL3MUX_Parse(
             ackPacket.setTcpWindow(7777);
 
             // Recalculate the Checksum
-            int newTcpCsum = ackPacket.recalculateChecksum();
+            int newTcpCsum = ackPacket.tcpRecalculateChecksum();
             ackPacket.setTcpChecksum(newTcpCsum);
 
             // Add the created ACK packet to the ipRxPacketizer

@@ -1078,7 +1078,6 @@ const char    *myCamAccessToString(int       initiator);
                 if (qwordAligned) {
                     axisIp4.tdata = 0;
                     axisIp4.tkeep = 0;
-                    axisIp4.tlast = 0;
                     for (int i=0; i<8; i++) {
                         if (this->axisWordQueue[wordInpCnt].tkeep & (0x01 << i)) {
                             axisIp4.tdata.range((i*8)+7, (i*8)+0) =
@@ -1086,6 +1085,7 @@ const char    *myCamAccessToString(int       initiator);
                             axisIp4.tkeep = axisIp4.tkeep | (0x01 << i);
                         }
                     }
+                    axisIp4.tlast = this->axisWordQueue[wordInpCnt].tlast;
                     wordInpCnt++;
                     wordOutCnt++;
                     udpDatagram.push_back(AxisIcmp(axisIp4.tdata, axisIp4.tkeep, axisIp4.tlast));
