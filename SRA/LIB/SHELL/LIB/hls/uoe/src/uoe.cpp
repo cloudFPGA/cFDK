@@ -204,11 +204,9 @@ void pRxPacketHandler(
     static AxisIp4      rph_1stIp4HdrWord;
     static AxisIp4      rph_2ndIp4HdrWord;
     static AxisUdp      rph_udpHeaderWord;
-    //OBSOLETE-20200323 static ap_uint<4>   rph_ipHdrCnt;
     static FlagBit      rph_emptyPayloadFlag;
     static FlagBool     rph_doneWithIpHdrStream;
 
-    //OBSOLETE-20200324 static metadata 	rph_udpMeta = metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
     static SocketPair   rph_udpMeta = SocketPair(SockAddr(0, 0), SockAddr(0, 0));
 
     switch(rph_fsmState) {
@@ -218,12 +216,16 @@ void pRxPacketHandler(
             rph_doneWithIpHdrStream = false;
             // Read the 1st IPv4 header word and retrieve the IHL
             siIHs_Ip4Hdr.read(rph_1stIp4HdrWord);
-            //OBSOLETE-20200323 rph_ipHdrCnt = rph_1stIp4HdrWord.getIp4HdrLen();
             // Read the the 1st datagram word
             siUCc_UdpDgrm.read(rph_udpHeaderWord);
-            // Check if payload of datagram empty
+            // Request the state of this port to UdpPortTable (UPt)
+            soUPt_PortStateReq.write(rph_udpHeaderWord.getUdpDstPort());
+            // Check if payload of datagram is empty
             if (rph_udpHeaderWord.getUdpLen() > 8) {
                 rph_emptyPayloadFlag = 0;
+                // Update the UDP metadata
+                rph_udpMeta.src.port = rph_udpHeaderWord.getUdpSrcPort();
+                rph_udpMeta.dst.port = rph_udpHeaderWord.getUdpDstPort();
             }
             else {
                 rph_emptyPayloadFlag = 1;
@@ -232,38 +234,22 @@ void pRxPacketHandler(
                 printInfo(myName, "FSM_RPH_IDLE - Receive new datagram (UdpLen=%d)\n",
                           rph_udpHeaderWord.getUdpLen().to_ushort());
             }
-            // Request the state of this port to UdpPortTable (UPt)
-            soUPt_PortStateReq.write(rph_udpHeaderWord.getUdpDstPort());
-            // Update the UDP metadata
-            //OBSOLETE_20200311 rph_udpMeta = metadata(sockaddr_in(byteSwap16(bufferWord.tdata.range(15, 0)), ipAddrPair.ipSa), sockaddr_in(byteSwap16(bufferWord.tdata.range(31, 16)), ipAddrPair.ipDa));
-            //OBSOLETE-20200324 rph_udpMeta.sourceSocket.port = rph_udpHeaderWord.getUdpSrcPort();
-            //OBSOLETE-20200324 rph_udpMeta.destinationSocket.port = rph_udpHeaderWord.getUdpDstPort();
-            rph_udpMeta.src.port = rph_udpHeaderWord.getUdpSrcPort();
-            rph_udpMeta.dst.port = rph_udpHeaderWord.getUdpDstPort();
-            //OBSOLETE-20200323 rph_ipHdrCnt -= 2;
             rph_fsmState = FSM_RPH_PORT_LOOKUP;
         }
         break;
     case FSM_RPH_PORT_LOOKUP:
         if (!siUPt_PortStateRep.empty() && !siUCc_CsumVal.empty() && !siIHs_Ip4Hdr.empty()) {
-            bool csumResult;
-            siUCc_CsumVal.read(csumResult);
-            bool portLkpRes;
-            siUPt_PortStateRep.read(portLkpRes);
+            bool csumResult = siUCc_CsumVal.read();
+            bool portLkpRes = siUPt_PortStateRep.read();
             // Read the 2nd IPv4 header word and update the metadata structure
             siIHs_Ip4Hdr.read(rph_2ndIp4HdrWord);
-            //OBSOLETE-20200323 rph_ipHdrCnt -= 2;
-            //OBSOLETE-20200324 rph_udpMeta.sourceSocket.addr = rph_2ndIp4HdrWord.getIp4SrcAddr();
             rph_udpMeta.src.addr = rph_2ndIp4HdrWord.getIp4SrcAddr();
             if (DEBUG_LEVEL & TRACE_RPH) {
-                printInfo(myName, "FSM_RPH_STREAM - CsumValid=%d and portLkpRes=%d.\n",
-                       csumResult, portLkpRes);
+                printInfo(myName, "FSM_RPH_PORT_LOOKUP - CsumValid=%d and portLkpRes=%d.\n",
+                          csumResult, portLkpRes);
             }
-            if(portLkpRes && csumResult && (rph_emptyPayloadFlag == 0)) {
+            if(portLkpRes && csumResult) {
                 rph_fsmState = FSM_RPH_STREAM_FIRST;
-            }
-            else if (rph_emptyPayloadFlag) {
-                rph_fsmState = FSM_RPH_DRAIN_IP4HDR_STREAM ;
             }
             else if (not csumResult) {
                 rph_fsmState = FSM_RPH_DRAIN_DATAGRAM_STREAM;
@@ -274,32 +260,28 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_STREAM_FIRST:
+        if (DEBUG_LEVEL & TRACE_RPH) { printInfo(myName, "FSM_RPH_STREAM_FIRST \n"); }
         if (!siUCc_UdpDgrm.empty() && !siIHs_Ip4Hdr.empty() &&
             !soURIF_Data.full()    && !soURIF_Meta.full()) {
-            // Read the 3rd IPv4 header word and update and forward the metadata
+            // Read the 3rd IPv4 header word, update and forward the metadata
             AxisIp4 thirdIp4HdrWord;
             siIHs_Ip4Hdr.read(thirdIp4HdrWord);
-            if (DEBUG_LEVEL & TRACE_RPH) {
-                printInfo(myName, "FSM_RPH_STREAM_FIRST - \n");
-            }
-            //OBSOLETE-20200324 ph_udpMeta.destinationSocket.addr = thirdIp4HdrWord.getIp4DstAddr();
             rph_udpMeta.dst.addr = thirdIp4HdrWord.getIp4DstAddr();
-            soURIF_Meta.write(rph_udpMeta);
             if (thirdIp4HdrWord.tlast) {
                 rph_doneWithIpHdrStream = true;
             }
-            //OBSOLETE-20200323 else {
-            //OBSOLETE-20200323     rph_ipHdrCnt -= 2;
-            //OBSOLETE-20200323 }
-            // Read the 1st datagram word and forward to [URIF]
-            AxisUdp dgrmWord;
-            siUCc_UdpDgrm.read(dgrmWord);
-            soURIF_Data.write(dgrmWord);
-            if (dgrmWord.tlast) {
+            AxisUdp dgrmWord(0, 0, 0);
+            if (not rph_emptyPayloadFlag) {
+                soURIF_Meta.write(rph_udpMeta);
+                // Read the 1st datagram word and forward to [URIF]
+                siUCc_UdpDgrm.read(dgrmWord);
+                soURIF_Data.write(dgrmWord);
+            }
+            if (dgrmWord.tlast or rph_emptyPayloadFlag) {
                 if (thirdIp4HdrWord.tlast) {
                     // Both incoming stream are empty. We are done.
                     rph_fsmState = FSM_RPH_IDLE;
-                }
+                 }
                 else {
                     // They were options words that remain to be drained
                     rph_fsmState = FSM_RPH_DRAIN_IP4HDR_STREAM;
@@ -317,7 +299,7 @@ void pRxPacketHandler(
             siUCc_UdpDgrm.read(dgrmWord);
             soURIF_Data.write(dgrmWord);
             if (DEBUG_LEVEL & TRACE_RPH) {
-                printInfo(myName, "FSM_RPH_STREAM -\n");
+                printInfo(myName, "FSM_RPH_STREAM\n");
             }
             if (dgrmWord.tlast) {
                 if (rph_doneWithIpHdrStream) {
@@ -411,12 +393,10 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_PORT_UNREACHABLE_LAST:
+        if (DEBUG_LEVEL & TRACE_RPH) { printInfo(myName, "FSM_RPH_PORT_UNREACHABLE_LAST -\n"); }
         if (!soICMP_Data.full()) {
             // Forward the first 8 bytes of the datagram (.i.i the UDP header)
             soICMP_Data.write(AxiWord(rph_udpHeaderWord.tdata, rph_udpHeaderWord.tkeep, TLAST));
-            if (DEBUG_LEVEL & TRACE_RPH) {
-                printInfo(myName, "FSM_RPH_PORT_UNREACHABLE_LAST -\n");
-            }
             rph_fsmState = FSM_RPH_DRAIN_DATAGRAM_STREAM;
         }
         break;
@@ -451,9 +431,10 @@ void pIpHeaderStripper(
     const char *myName  = concat3(THIS_NAME, "/", "IHs");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates {FSM_IHS_IPW0=0, FSM_IHS_IPW1,    FSM_IHS_IPW2, FSM_IHS_IPW3,
-                           FSM_IHS_OPT,    FSM_IHS_FORWARD, FSM_IHS_FORWARDALIGNED,
-                           FSM_IHS_RESIDUE,FSM_IHS_DROP } ihs_fsmState=FSM_IHS_IPW0;
+    static enum FsmStates {FSM_IHS_IPW0=0, FSM_IHS_IPW1, FSM_IHS_IPW2, FSM_IHS_OPT,
+                           FSM_IHS_UDP_HEADER, FSM_IHS_UDP_HEADER_ALIGNED,
+                           FSM_IHS_FORWARD,    FSM_IHS_FORWARD_ALIGNED,
+                           FSM_IHS_RESIDUE,    FSM_IHS_DROP } ihs_fsmState=FSM_IHS_IPW0;
     #pragma HLS RESET                            variable=ihs_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
@@ -464,23 +445,24 @@ void pIpHeaderStripper(
     static ap_uint<17>   ihs_psdHdrSum;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4     currWord;
+    AxisIp4     currIp4Word;
+    AxisUdp     currUdpWord;
 
     switch(ihs_fsmState) {
     case FSM_IHS_IPW0:
         if (!siIPRX_Data.empty() && !soRPh_Ip4Hdr.full()) {
             //-- READ 1st AXI-WORD (Frag|Flags|Id|TotLen|ToS|Ver|IHL) ---------
-            siIPRX_Data.read(currWord);
-            ihs_ip4HdrLen = currWord.getIp4HdrLen();
+            siIPRX_Data.read(currIp4Word);
+            ihs_ip4HdrLen = currIp4Word.getIp4HdrLen();
             if (ihs_ip4HdrLen < 5) {
-                printWarn(myName, "Received an IPv4 packet with invalid IHL. This packet will be dropped.\n");
+                printWarn(myName, "FSM_IHS_IPW0 - Received an IPv4 packet with invalid IHL. This packet will be dropped.\n");
                 ihs_fsmState  = FSM_IHS_DROP;
             }
             else {
-                soRPh_Ip4Hdr.write(currWord);
+                soRPh_Ip4Hdr.write(currIp4Word);
                 if (DEBUG_LEVEL & TRACE_IHS) {
-                    printInfo(myName, "Received a new IPv4 packet (IHL=%d|TotLen=%d)\n",
-                              ihs_ip4HdrLen.to_uint(), currWord.getIp4TotalLen().to_ushort());
+                    printInfo(myName, "FSM_IHS_IPW0 - Received a new IPv4 packet (IHL=%d|TotLen=%d)\n",
+                              ihs_ip4HdrLen.to_uint(), currIp4Word.getIp4TotalLen().to_ushort());
                 }
                 ihs_ip4HdrLen -= 2;
                 ihs_fsmState  = FSM_IHS_IPW1;
@@ -488,83 +470,89 @@ void pIpHeaderStripper(
         }
         break;
     case FSM_IHS_IPW1:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_IPW1 - \n"); }
         if (!siIPRX_Data.empty() && !soRPh_Ip4Hdr.full()) {
             //-- READ 2nd AXI_WORD (SA|HdrCsum|Prot|TTL)
-            siIPRX_Data.read(currWord);
-            soRPh_Ip4Hdr.write(currWord);
+            siIPRX_Data.read(currIp4Word);
+            soRPh_Ip4Hdr.write(currIp4Word);
             //-- Csum accumulate (SA+Prot)
-            ihs_psdHdrSum  = (0x00, currWord.getIp4Prot());
-            ihs_psdHdrSum += currWord.getIp4SrcAddr().range(31,16);
+            ihs_psdHdrSum  = (0x00, currIp4Word.getIp4Prot());
+            ihs_psdHdrSum += currIp4Word.getIp4SrcAddr().range(31,16);
             ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
-            ihs_psdHdrSum += currWord.getIp4SrcAddr().range(15, 0);
+            ihs_psdHdrSum += currIp4Word.getIp4SrcAddr().range(15, 0);
             ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
             ihs_ip4HdrLen -= 2;
             ihs_fsmState = FSM_IHS_IPW2;
         }
         break;
     case FSM_IHS_IPW2:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_IPW2 - \n"); }
         if (!siIPRX_Data.empty() && !soRPh_Ip4Hdr.full()) {
             //-- READ 3rd AXI-WORD (DP|SP|DA) or (Opt|DA)
-            siIPRX_Data.read(currWord);
+            siIPRX_Data.read(currIp4Word);
             //-- Csum accumulate (DA)
-            ihs_psdHdrSum += currWord.getIp4DstAddr().range(31,16);
+            ihs_psdHdrSum += currIp4Word.getIp4DstAddr().range(31,16);
             ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
-            ihs_psdHdrSum += currWord.getIp4DstAddr().range(15, 0);
+            ihs_psdHdrSum += currIp4Word.getIp4DstAddr().range(15, 0);
             ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
             if (ihs_ip4HdrLen == 1) {
                 // This a typical IPv4 header with a length of 20 bytes (5*4).
-                soRPh_Ip4Hdr.write(AxisIp4(currWord.getLE_Ip4DstAddr(), 0x0F, TLAST));
-                ihs_fsmState = FSM_IHS_IPW3;
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.getLE_Ip4DstAddr(), 0x0F, TLAST));
+                ihs_fsmState = FSM_IHS_UDP_HEADER;
             }
             else if (ihs_ip4HdrLen == 2 ) {
                 printWarn(myName, "This IPv4 packet contains 1 option word! FYI, IPV4 options are not supported.\n");
-                soRPh_Ip4Hdr.write(AxisIp4(currWord.tdata, currWord.tkeep, TLAST));
-                ihs_fsmState = FSM_IHS_FORWARDALIGNED;
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.tdata, currIp4Word.tkeep, TLAST));
+                ihs_fsmState = FSM_IHS_UDP_HEADER_ALIGNED;
             }
             else {  // ihs_ip4HdrLen > 2
                 printWarn(myName, "This IPv4 packet contains 2+ option words! FYI, IPV4 options are not supported.\n");
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.tdata, currIp4Word.tkeep, 0));
                 ihs_ip4HdrLen -= 2;
                 ihs_fsmState = FSM_IHS_OPT;
             }
         }
         break;
     case FSM_IHS_OPT:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_OPT - \n"); }
         if (!siIPRX_Data.empty() && !soRPh_Ip4Hdr.full()) {
             printWarn(myName, "This IPv4 packet contains options! FYI, IPV4 options are not supported and will be dropped.\n");
             //-- READ more Options (OPT|Opt) and/or Data (Data|Opt)
-            siIPRX_Data.read(currWord);
+            siIPRX_Data.read(currIp4Word);
             if (ihs_ip4HdrLen == 1) {
                 printWarn(myName, "This IPv4 packet contains 3 option words!\n");
-                soRPh_Ip4Hdr.write(AxisIp4(currWord.tdata(31, 0), 0x0F, TLAST));
-                ihs_fsmState = FSM_IHS_IPW3;
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.tdata(31, 0), 0x0F, TLAST));
+                ihs_fsmState = FSM_IHS_UDP_HEADER;
             }
             else if (ihs_ip4HdrLen == 2 ) {
                 printWarn(myName, "This IPv4 packet contains 4 option words!\n");
-                soRPh_Ip4Hdr.write(AxisIp4(currWord.tdata, currWord.tkeep, TLAST));
-                ihs_fsmState = FSM_IHS_FORWARDALIGNED;
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.tdata, currIp4Word.tkeep, TLAST));
+                ihs_fsmState = FSM_IHS_UDP_HEADER_ALIGNED;
             }
             else {  // ihs_ip4HdrLen > 2
                 printWarn(myName, "This IPv4 packet contains 4+ option words!\n");
+                soRPh_Ip4Hdr.write(AxisIp4(currIp4Word.tdata, currIp4Word.tkeep, 0));
                 ihs_ip4HdrLen -= 2;
                 ihs_fsmState = FSM_IHS_OPT;
             }
         }
         break;
-    case FSM_IHS_IPW3:
+    case FSM_IHS_UDP_HEADER:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_UDP_HEADER - \n"); }
         if (!siIPRX_Data.empty() && !soUCc_UdpDgrm.full()) {
-            //-- READ 4th AXI-WORD (Data|Csum|Len) --------
-            siIPRX_Data.read(currWord);
+            //-- READ End of un-aligned UDP header (Data|Csum|Len) --------
+            siIPRX_Data.read(currIp4Word);
             //-- Csum accumulate (UdpLen)
-            ihs_psdHdrSum += currWord.getUdpLen();
+            ihs_psdHdrSum += currIp4Word.getUdpLen();
             ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
             //-- Forward UDP PseudoHeaderCsum to [UCc]
             soUCc_PsdHdrSum.write(ihs_psdHdrSum(15, 0));
             //-- Forward the UDP Header (Csum|Len|DP|SP)
-            AxisUdp sendWord((currWord.tdata(31, 0),ihs_prevWord.tdata(63, 32)),
-                              0xFF, (currWord.tlast and (currWord.tkeep == 0x0F)));
+            AxisUdp sendWord((currIp4Word.tdata(31, 0),ihs_prevWord.tdata(63, 32)),
+                              0xFF, (currIp4Word.tlast and (currIp4Word.tkeep == 0x0F)));
             soUCc_UdpDgrm.write(sendWord);
-            if (currWord.tlast) {
-                if (currWord.tkeep == 0x0F) {
+            if (currIp4Word.tlast) {
+                if (currIp4Word.tkeep == 0x0F) {
                     printWarn(myName, "Received a UDP datagram of length = 0!\n");
                     ihs_fsmState = FSM_IHS_IPW0;
                 }
@@ -577,18 +565,44 @@ void pIpHeaderStripper(
             }
         }
         break;
+    case FSM_IHS_UDP_HEADER_ALIGNED:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_UDP_HEADER_ALIGNED - \n"); }
+        if (!siIPRX_Data.empty() && !soUCc_UdpDgrm.full()) {
+            //-- READ Aligned UDP header (Csum|Len|DP|SP) --------
+            siIPRX_Data.read(currIp4Word);
+            //-- Cast incoming word into an AxisUdp word
+            currUdpWord.tdata = currIp4Word.tdata;
+            currUdpWord.tkeep = currIp4Word.tkeep;
+            currUdpWord.tlast = currIp4Word.tlast;
+            //-- Csum accumulate (UdpLen)
+            ihs_psdHdrSum += currUdpWord.getUdpLen();
+            ihs_psdHdrSum  = (ihs_psdHdrSum & 0xFFFF) + (ihs_psdHdrSum >> 16);
+            //-- Forward UDP PseudoHeaderCsum to [UCc]
+            soUCc_PsdHdrSum.write(ihs_psdHdrSum(15, 0));
+            //-- Forward the UDP Header (Csum|Len|DP|SP)
+            soUCc_UdpDgrm.write(currUdpWord);
+            if (currUdpWord.tlast) {
+                printWarn(myName, "Received a UDP datagram of length = 0!\n");
+                ihs_fsmState = FSM_IHS_IPW0;
+            }
+            else {
+                ihs_fsmState = FSM_IHS_FORWARD_ALIGNED;
+            }
+        }
+        break;
     case FSM_IHS_FORWARD:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_FORWARD - \n"); }
         if (!siIPRX_Data.empty() && !soUCc_UdpDgrm.full()) {
             //-- READ n-th AXI-WORD (Data) ----------------
-            siIPRX_Data.read(currWord);
+            siIPRX_Data.read(currIp4Word);
             //-- Forward 1/2 of previous word and 1/2 of current word)
             AxisUdp sendWord(0,0,0);
-            sendWord.tdata(63, 32) = currWord.tdata(31, 0);
-            sendWord.tkeep( 7,  4) = currWord.tkeep( 3, 0);
+            sendWord.tdata(63, 32) = currIp4Word.tdata(31, 0);
+            sendWord.tkeep( 7,  4) = currIp4Word.tkeep( 3, 0);
             sendWord.tdata(31,  0) = ihs_prevWord.tdata(63, 32);
             sendWord.tkeep( 3,  0) = ihs_prevWord.tkeep( 7,  4);
-            if (currWord.tlast) {
-                if (currWord.tkeep <= 0x0F) {
+            if (currIp4Word.tlast) {
+                if (currIp4Word.tkeep <= 0x0F) {
                     sendWord.tlast = TLAST;
                     ihs_fsmState = FSM_IHS_IPW0;
                 }
@@ -604,7 +618,26 @@ void pIpHeaderStripper(
             soUCc_UdpDgrm.write(sendWord);
         }
         break;
+    case FSM_IHS_FORWARD_ALIGNED:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_FORWARD_ALIGNED - \n"); }
+        if (!siIPRX_Data.empty() && !soUCc_UdpDgrm.full()) {
+            //-- READ UDP ALIGNED AXI-WORD --------------
+            siIPRX_Data.read(currIp4Word);
+            //-- Cast incoming word into an AxisUdp word
+            currUdpWord.tdata = currIp4Word.tdata;
+            currUdpWord.tkeep = currIp4Word.tkeep;
+            currUdpWord.tlast = currIp4Word.tlast;
+            soUCc_UdpDgrm.write(currUdpWord);
+            if (currUdpWord.tlast) {
+                ihs_fsmState = FSM_IHS_IPW0;
+            }
+            else {
+                ihs_fsmState = FSM_IHS_FORWARD_ALIGNED;
+            }
+        }
+        break;
     case FSM_IHS_RESIDUE:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_RESIDUE - \n"); }
         if (!soUCc_UdpDgrm.full()) {
             //-- Forward the very last bytes of the current word
             AxisUdp sendWord(ihs_prevWord.tdata(63, 32), (ihs_prevWord.tkeep >> 4), TLAST);
@@ -612,32 +645,19 @@ void pIpHeaderStripper(
            ihs_fsmState = FSM_IHS_IPW0;
         }
         break;
-    case FSM_IHS_FORWARDALIGNED:
-        if (!siIPRX_Data.empty() && !soUCc_UdpDgrm.full()) {
-            //-- READ n-4th ALIGNED AXI-WORD --------------
-            siIPRX_Data.read(currWord);
-            soUCc_UdpDgrm.write(currWord);
-            if (currWord.tlast) {
-                ihs_fsmState = FSM_IHS_IPW0;
-            }
-            else {
-                ihs_fsmState = FSM_IHS_FORWARDALIGNED;
-            }
-        }
-        break;
     case FSM_IHS_DROP:
+        if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_DROP - \n"); }
         if (!siIPRX_Data.empty()) {
             //-- READ and DRAIN all AXI-WORDS -------------
-            siIPRX_Data.read(currWord);
-            if (currWord.tlast) {
+            siIPRX_Data.read(currIp4Word);
+            if (currIp4Word.tlast) {
                 ihs_fsmState = FSM_IHS_IPW0;
             }
         }
         break;
-
     } // End-of: switch
 
-    ihs_prevWord = currWord;
+    ihs_prevWord = currIp4Word;
 
 } // End-of: pIpHeaderStripper
 
@@ -703,11 +723,21 @@ void pUdpChecksumChecker(
                 ucc_csum[1] = 0x00000 | currWord.getUdpDstPort();
                 ucc_csum[2] = 0x00000 | currWord.getUdpLen();
                 ucc_csum[3] = 0x00000 | currWord.getUdpCsum();
-                ucc_fsmState = FSM_UCC_ACCUMULATE;
+                if (currWord.getUdpLen() == 8) {
+                    // Payload is empty
+                    ucc_fsmState = FSM_UCC_CHK0;
+                }
+                else {
+                    ucc_fsmState = FSM_UCC_ACCUMULATE;
+                }
+            }
+            if (DEBUG_LEVEL & TRACE_UCC) {
+                printInfo(myName,"FSM_UCC_IDLE - UdpLen=%d\n", currWord.getUdpLen().to_ushort());
             }
         }
         break;
     case FSM_UCC_STREAM:
+        if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_STREAM - \n"); }
         if (!siIHs_UdpDgrm.empty()) {
             siIHs_UdpDgrm.read(currWord);
             soRPh_UdpDgrm.write(currWord);
@@ -717,6 +747,7 @@ void pUdpChecksumChecker(
         }
         break;
     case FSM_UCC_ACCUMULATE:
+        if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_ACCUMULATE - \n"); }
         if (!siIHs_UdpDgrm.empty()) {
             siIHs_UdpDgrm.read(currWord);
             soRPh_UdpDgrm.write(currWord);
@@ -734,6 +765,7 @@ void pUdpChecksumChecker(
         }
         break;
     case FSM_UCC_CHK0:
+        if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK0 - \n"); }
         ucc_csum[0] += ucc_csum[2];
         ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
         ucc_csum[1] += ucc_csum[3];
@@ -741,6 +773,7 @@ void pUdpChecksumChecker(
         ucc_fsmState = FSM_UCC_CHK1;
         break;
     case FSM_UCC_CHK1:
+        if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK1 - \n"); }
         ucc_csum[0] += ucc_csum[1];
         ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
         ucc_csum[0] += ucc_psdHdrCsum;

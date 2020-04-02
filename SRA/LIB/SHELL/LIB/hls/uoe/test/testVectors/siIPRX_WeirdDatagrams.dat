@@ -49,8 +49,9 @@
 # ###################################################################################################################################
 # 
 #  @details : 
-#   The raw IPv4 packet as a stream of HEX bytes is:
+#   If the raw IPv4 packet as a stream of HEX bytes is:
 #     450000225a9f4000 401103db0a020007 0a0cc83cdfc02263 000efd8048656c6c 6f0a
+#   Then we have the following fields:
 #      [IP4] Version         = 0x4 
 #      [IP4] Header length   = 0x5 for 5*4 = 20 bytes
 #      [IP4] DSCP/TOS        = 0x00
@@ -70,13 +71,6 @@
 #      [UDP] Data            = 0x48656c6c6f0a = Hello\n
 # 
 # ###################################################################################################################################
-
-
-# 00409f5a22000045 0 FF
-# 0700020adb031140 0 FF
-# 6322c0df3cc80c0a 0 FF
-# 6c6c654880fd0e00 0 FF
-# 0000000000000a6f 1 03
 
 # [1] UdpPayload=7 | UdpLen=0x000F | TotLen=0x0023 (20+8+7=35) | 
 00409f5a23000045 0 FF
@@ -160,4 +154,81 @@ DEADBEEF0F0E0D0C 0 FF
 00409f5a30000045 0 FF
 0700020aCD031140 0 FF
 6322c0df3cc80c0a 0 FF
-03020100634B1C00 0 
+03020100634B1C00 0 FF
+0B0A090807060504 0 FF
+DEADBEEF0F0E0D0C 1 FF
+
+# [8] Datagram with UdpChecksum=0x0000
+# ------------------------------------
+00409f5a22000045 0 FF
+0700020aDB031140 0 FF
+6322c0df3cc80c0a 0 FF
+0302010000000E00 0 FF
+0000000000000504 1 03
+
+# [9] UdpPayload=6 | UdpLen=0x000E | TotLen=0x0022 (20+8+6=34)
+00409f5a22000045 0 FF
+0700020aDB031140 0 FF
+6322c0df3cc80c0a 0 FF
+03020100541B0E00 0 FF
+0000000000000504 1 03
+
+# [10] Datagram with UdpChecksum=0x0000
+# -------------------------------------
+00409f5a4A000045 0 FF
+0a0a0a0aECC71140 0 FF
+6323c0df02020202 0 FF
+0302010000003600 0 FF
+0B0A090807060504 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+0000000000000201 1 03
+
+# [11] UdpPayload=46 | UdpLen=0x36 | TotLen=0x004A (20+8+46=74)
+00409f5a4A000045 0 FF
+0a0a0a0aECC71140 0 FF
+6323c0df02020202 0 FF
+0302010039E63600 0 FF
+0B0A090807060504 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+DEADBEEF0F0E0D0C 0 FF
+0000000000000201 1 03
+
+# [12] IPv4 packet with one 32-bit option
+# ----------------------------------------
+00409f5a27000046 0 FF
+0700020aD6021140 0 FF
+000000003cc80c0a 0 FF
+52150F006322c0df 0 FF
+0006050403020100 1 7F
+
+# [13] IPv4 packet with two 32-bit options
+# -----------------------------------------
+00409f5a2B000047 0 FF
+0700020aADFF1140 0 FF
+000000003cc80c0a 0 FF
+6322c0df00000000 0 FF
+0302010052150F00 0 FF
+0000000000060504 1 07
+
+# [14] IPv4 packet with three 32-bit options
+# -------------------------------------------
+00409f5a2F000048 0 FF
+0700020a6CEB1140 0 FF
+000000003cc80c0a 0 FF
+0000000000000000 0 FF
+52150F006322c0df 0 FF
+0006050403020100 1 7F
+
+# [13 UdpPayload=9 | UdpLen=0x0011 | TotLen=0x0025 (20+8+9=37)
+00409f5a25000045 0 FF
+0700020aD8031140 0 FF
+6322c0df3cc80c0a 0 FF
+03020100470D1100 0 FF
+0000000807060504 1 1F
+
+

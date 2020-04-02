@@ -478,13 +478,16 @@ int createGoldenRxFiles(
             else {
                 // Part-1: Metadata
                 SocketPair socketPair(SockAddr(ip4DataPkt.getIpSourceAddress(),
-                                               ip4DataPkt.getUdpSourcePort()),
+                                               udpDatagram.getUdpSourcePort()),
                                       SockAddr(ip4DataPkt.getIpDestinationAddress(),
-                                               ip4DataPkt.getUdpDestinationPort()));
-                writeSocketPairToFile(socketPair, ofsMetaGold);
-                if (DEBUG_LEVEL & TRACE_CGR) {
-                    printInfo(myName, "Writing new socket-pair to file:\n");
-                    printSockPair(myName, socketPair);
+                                               udpDatagram.getUdpDestinationPort()));
+
+                if (udpDatagram.getUdpLength() > 8) {
+                    writeSocketPairToFile(socketPair, ofsMetaGold);
+                    if (DEBUG_LEVEL & TRACE_CGR) {
+                        printInfo(myName, "Writing new socket-pair to file:\n");
+                        printSockPair(myName, socketPair);
+                    }
                 }
                 // Part-2: Update the UDP container set
                 udpPorts.insert(ip4DataPkt.getUdpDestinationPort());
@@ -867,7 +870,7 @@ int main(int argc, char *argv[]) {
                 nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes);
         }
         else {
-            printError(THIS_NAME, "Failed to create traffic as input stream. \n");
+            printFatal(THIS_NAME, "Failed to create traffic as input stream. \n");
             nrErr++;
         }
 
