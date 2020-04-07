@@ -128,6 +128,13 @@ int createGoldenFile(
                 inpBytes += ip4RxData.keepToLen();
             }
         }
+        // Check consistency of the read packet
+        if (endOfPkt and rc) {
+            if (not ip4DataPkt.isWellFormed(myName)) {
+                printError(myName, "IP packet #%d is dropped because it is malformed.\n", inpPackets);
+                endOfPkt=false;
+           }
+        }
 
         // Build an ICMP reply packet based on the ICMP packet read from file
         if (endOfPkt) {
@@ -155,25 +162,26 @@ int createGoldenFile(
             else if ((icmpDataPacket.getIcmpType() == ICMP_ECHO_REQUEST) &&
                      (icmpDataPacket.getCode() == 0)) {
                 // Assess the 'Type' and 'Code' of the ICMP message
-            	printInfo(myName, "IP4 packet #%d contains an ICMP Echo Request message.\n", inpPackets);
+                printInfo(myName, "IP4 packet #%d contains an ICMP Echo Request message.\n", inpPackets);
                 printInfo(myName, "\t\t(FYI: the ICMP checksum of this message = 0x%4.4X)\n", icmpDataPacket.getIcmpChecksum().to_uint());
 
                 //-- Build ICMP gold ECHO REPLY message as a clone of the incoming packet
                 printInfo(myName, "\tBuilding a gold ICMP Echo Reply message.\n");
                 IpPacket   ip4GoldPkt; // [FIXME-create a SimIp4Packet class]
-                ip4GoldPkt.clone(ip4DataPkt);
+                ip4GoldPkt.cloneHeader(ip4DataPkt);
                 // Swap IP_SA and IP_DA
                 ip4GoldPkt.setIpDestinationAddress(ip4DataPkt.getIpSourceAddress());
                 ip4GoldPkt.setIpSourceAddress(ip4DataPkt.getIpDestinationAddress());
                 // Retrieve the ICMP packet
-                IcmpPacket icmpGoldPacket = ip4GoldPkt.getIcmpPacket();
+                IcmpPacket icmpGoldPacket = ip4DataPkt.getIcmpPacket();
                 // Replace ICMP/ECHO_REQUEST field with ICMP/ECHO_REPLY
                 icmpGoldPacket.setIcmpType(ICMP_ECHO_REPLY);
                 icmpGoldPacket.setIcmpCode(0);
                 IcmpCsum newCsum = icmpGoldPacket.reCalculateIcmpChecksum();
                 printInfo(myName, "\t\t(the new ICMP checksum = 0x%4.4X)\n", newCsum.to_uint());
                 // Set the ICMP gold packet as data payload of the IP4 packet.
-                if (ip4GoldPkt.setIpPayload(icmpGoldPacket) == false) {
+                //OBSOLETE_20200407 if (ip4GoldPkt.setIpPayload(icmpGoldPacket) == false) {
+                if (ip4GoldPkt.addIpPayload(icmpGoldPacket) == false) {
                     printError(myName, "Failed to set ICMP packet as payload to an IP4 packet.\n");
                     ret = NTS_KO;
                 }

@@ -83,12 +83,11 @@ int createGoldenFiles(EthAddr myMacAddress,
     char            currPath[FILENAME_MAX];
     AxiWord         axiWord;
     deque<EthFrame> ethRxFramer; // Double-ended queue of frames for IPRX
-    string          rxStringBuffer;
-    vector<string>  stringVector;
     int             ret = NTS_OK;
     int             inpChunks=0, arpChunks=0, icmpChunks=0, tcpChunks=0, udpChunks=0, outChunks=0;
     int             inpFrames=0, arpFrames=0, icmpFrames=0, tcpFrames=0, udpFrames=0, outFrames=0;
     int             inpBytes=0,  arpBytes=0,  icmpBytes=0,  tcpBytes=0,  udpBytes=0,  outBytes=0;
+    bool            assessTkeepTlast = true;
 
     //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
     ifsDAT.open(inpDAT_FileName.c_str());
@@ -116,16 +115,23 @@ int createGoldenFiles(EthAddr myMacAddress,
 
     //-- STEP-3 : READ AND PARSE THE INPUT ETHERNET FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-        EthFrame   ethFrame;
-        EthoverMac ethRxData;
-        bool       endOfFrame=false;
-        bool       rc;
+        EthFrame       ethFrame;
+        EthoverMac     ethRxData;
+        vector<string> stringVector;
+        string         stringBuffer;
+        bool           endOfFrame=false;
+        bool           rc;
         // Build a new frame from data file
         while ((ifsDAT.peek() != EOF) && (!endOfFrame)) {
-            rc = readAxiWordFromFile(&ethRxData, ifsDAT);
+            //-- Read one line at a time from the input DAT file
+            getline(ifsDAT, stringBuffer);
+            stringVector = myTokenizer(stringBuffer, ' ');
+            //OBSOLETE_20200407 rc = readAxiWordFromFile(&ethRxData, ifsDAT);
+            //-- Read an AxiWord from line
+            rc = readAxiWordFromLine(ethRxData, stringBuffer);
             if (rc) {
-            	if (ethRxData.isValid()) {
-            		ethFrame.push_back(ethRxData);
+                if (ethRxData.isValid()) {
+                    ethFrame.push_back(ethRxData);
                 	if (ethRxData.tlast == 1) {
                 		inpFrames++;
                 		endOfFrame = true;
@@ -271,8 +277,6 @@ int main(int argc, char* argv[]) {
     int         nrErr  = 0;
     //int         frmCnt = 0;
 
-    //OBSOLETE-20200213 AxiWord     outData;
-
     string      ofsARP_Data_FileName = "../../../../test/soARP_Data.dat";
     string      ofsTOE_Data_FileName = "../../../../test/soTOE_Data.dat";
     string      ofsUOE_Data_FileName = "../../../../test/soUOE_Data.dat";
@@ -286,9 +290,6 @@ int main(int argc, char* argv[]) {
     string      ofsICMP_Gold_FileName= "../../../../test/soICMP_Gold.dat";
     string      goldFileArray[4] = { ofsARP_Gold_FileName, ofsTOE_Gold_FileName, \
                                      ofsUOE_Gold_FileName, ofsICMP_Gold_FileName };
-
-    //OBSOLETE-20200211 ifstream    goldenFile;
-    //OBSOLETE-20200211 ofstream    outputFile;
 
     Ip4Addr     myIp4Address = 0x01010101;
     EthAddr     myMacAddress = 0x010203040506;

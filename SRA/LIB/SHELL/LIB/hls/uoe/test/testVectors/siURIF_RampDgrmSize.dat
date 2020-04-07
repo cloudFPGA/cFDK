@@ -1,0 +1,53 @@
+# ########################################################################################
+#  @file  : siURIF_RampDgrmSize.dat
+#  @brief : A set of IPv4 packets with UDP datagrams of increasing length.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default listen port on the HOST side.
+#    # This is a comment
+#    > SET   FpgaSndPort  <PORT>  --> Request to add a new send port on the FPGA side. 
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > SET   HostSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
+
+# [1] UDP DATAGRAM - Length=1
+> SET HostSocket 10.12.200.1 8001
+0000000000000001 1 01
+
+# [2] UDP DATAGRAM - Length=2
+> SET HostSocket 10.12.200.2 8002
+0000000000000201 1 03
+
+# [3] UDP DATAGRAM - Length=3
+> SET HostSocket 10.12.200.3 8003
+0000000000030201 1 07
+
+# [4] UDP DATAGRAM - Length=2
+> SET HostSocket 10.12.200.4 8004
+0000000004030201 1 0F
+
+
+
+
+# [40] UDP DATAGRAM - Length=40
+# > SET HostSocket 10.12.200.8 8804
+# 0101010101010101 0 FF
+# 0202020202020202 0 FF
+# 0303030303030303 0 FF
+# 0404040404040404 0 FF
+# 0505050505050505 1 FF
+
