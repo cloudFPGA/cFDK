@@ -6,7 +6,7 @@
 --  *     Authors: FAB, WEI, NGL
 --  *
 --  *     Description:
---  *        Small vhdl module to generateerate counters for minutes and hours of uptime
+--  *        Small vhdl module to generate counters for minutes and hours of uptime
 --  *
 
 library IEEE; 
