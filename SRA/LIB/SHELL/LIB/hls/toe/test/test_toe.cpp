@@ -669,16 +669,16 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     printTcpPort(gHostLsnPort);
                 }
                 else if (stringVector[2] == "FpgaServerSocket") {  // DEPRECATED
-                    printError(myName, "The global parameter \'FpgaServerSockett\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
-                    exit(1);
+                    printFatal(myName, "The global parameter \'FpgaServerSockett\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
+                    //OBSOLETE exit(1);
                 }
                 else if (stringVector[2] == "ForeignSocket") {     // DEPRECATED
-                    printError(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
+                    printFatal(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
                     exit(1);
                 }
                 else if (stringVector[2] == "LocalSocket") {       // DEPRECATED
-                    printError(myName, "The global parameter \'LocalSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TESTVECTOR FILE ACCORDINGLY.\n");
-                    exit(1);
+                    printFatal(myName, "The global parameter \'LocalSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TESTVECTOR FILE ACCORDINGLY.\n");
+                    //OBSOLETE exit(1);
                 }
                 else {
                     printError(myName, "Unknown parameter \'%s\'.\n", stringVector[2].c_str());

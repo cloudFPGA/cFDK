@@ -52,6 +52,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../toe/src/toe.hpp"
 #include "../../toe/src/toe_utils.hpp"
+#include "../../AxisApp.hpp"
 #include "../../AxisIp4.hpp"
 
 using namespace hls;
@@ -121,10 +122,11 @@ struct axiWord {
 
 
 /***********************************************
- * UDP Application Data
- *  Data transfered between UOE and APP.
+ * Definition of the UDP Role Interfaces (URIF)
  ***********************************************/
-typedef AxiWord      AppData;
+typedef AxiWord      UdpAppData;
+typedef SocketPair   UdpAppMeta;
+typedef ap_uint<16>  UdpAppDLen;
 
 
 /*************************************************************************
@@ -142,7 +144,7 @@ void uoe(
         //------------------------------------------------------
         //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<axiWord>         &soIPTX_Data,
+        stream<AxisIp4>         &soIPTX_Data,
 
         //------------------------------------------------------
         //-- URIF / Control Port Interfaces
@@ -154,15 +156,15 @@ void uoe(
         //------------------------------------------------------
         //-- URIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>         &soURIF_Data,
-        stream<SocketPair>      &soURIF_Meta, // [TODO - Rename UdpMeta]
+        stream<AxisApp>         &soURIF_Data,
+        stream<UdpAppMeta>      &soURIF_Meta,
 
         //------------------------------------------------------
         //-- URIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<axiWord>         &siURIF_Data,
-        stream<metadata>        &siURIF_Meta,
-        stream<ap_uint<16> >    &siURIF_PLen,
+        stream<AxisApp>         &siURIF_Data,
+        stream<UdpAppMeta>      &siURIF_Meta,
+        stream<UdpAppDLen>      &siURIF_DLen,
 
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)

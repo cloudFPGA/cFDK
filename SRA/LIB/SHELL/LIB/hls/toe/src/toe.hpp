@@ -583,6 +583,13 @@ typedef ap_uint<16> UdpChecksum;    // UDP Checksum header and data Checksum
 typedef ap_uint<16> UdpCsum;        // UDP Checksum (alias for UdpChecksum)
 
 /*********************************************************
+ * LY4 - COMMON TCP and UDP HEADER FIELDS
+ *  Default Type Definitions (as used by HLS)
+ *********************************************************/
+typedef ap_uint<16> Ly4Port;        // LY4 Port
+
+
+/*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
  *  As Encoded by IPRX and L3MUX (.i.e in Little-Endian order).
  *********************************************************/
@@ -731,7 +738,7 @@ typedef ap_uint<16> SessionId;
 class LE_SockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
   public:
     LE_Ip4Address   addr;   // IPv4 address in LITTLE-ENDIAN order !!!
-    LE_TcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!
+    LE_TcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!  [FIXME-Replace TcpPort with Ly4Port]
     LE_SockAddr() {}
     LE_SockAddr(LE_Ip4Address addr, LE_TcpPort port) :
         addr(addr), port(port) {}
@@ -749,7 +756,7 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
 class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
    public:
     Ip4Addr         addr;   // IPv4 address in NETWORK BYTE ORDER
-    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER
+    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER [FIXME-Replace TcpPort with Ly4Port]
     SockAddr() {}
     SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
         addr(ip4Addr), port(tcpPort) {}

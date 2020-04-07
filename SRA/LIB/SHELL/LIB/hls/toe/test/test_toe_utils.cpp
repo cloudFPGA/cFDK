@@ -674,6 +674,112 @@ void printTcpPort(TcpPort tcpPort)
 
 #ifndef __SYNTHESIS_
 	/***************************************************************************
+	 * @brief Retrieve an FPGA send port from a string.
+	 *
+	 * @param[in] port,          a ref to the socket port to retrieve.
+	 * @param[in] stringBuffer, the string buffer to read from.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+    bool readFpgaSndPortFromLine(Ly4Port &port, string stringBuffer) {
+        vector<string> stringVector;
+        stringVector = myTokenizer(stringBuffer, ' ');
+        if ((stringVector[0] == ">") and (stringVector[1] == "SET")) {
+            if (stringVector[2] == "FpgaSndPort") {
+                char *pEnd;
+                // Retrieve the host LY4 port
+                if (isHexString(stringVector[4])) {
+                    port = strtoul(stringVector[4].c_str(), &pEnd, 16);
+                }
+                else {
+                    port = strtoul(stringVector[4].c_str(), &pEnd, 10);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Retrieve a Host socket from a string.
+	 *
+	 * @param[in] hostSock,     a ref to the socket address to retrieve.
+	 * @param[in] stringBuffer, the string buffer to read from.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+    bool readHostSocketFromLine(SockAddr &hostSock, string stringBuffer) {
+        vector<string> stringVector;
+        stringVector = myTokenizer(stringBuffer, ' ');
+        if ((stringVector[0] == ">") and (stringVector[1] == "SET")) {
+            if ((stringVector[2] == "HostServerSocket") or
+                (stringVector[2] == "HostSocket")) {
+                char *pEnd;
+                // Retrieve the host IPv4 address
+                if (isDottedDecimal(stringVector[3])) {
+                    hostSock.addr = myDottedDecimalIpToUint32(stringVector[3]);
+                }
+                else if (isHexString(stringVector[3])) {
+                    hostSock.addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
+                }
+                else {
+                    hostSock.addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
+                }
+                // Retrieve the host LY4 port
+                if (isHexString(stringVector[4])) {
+                    hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 16);
+                }
+                else {
+                    hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 10);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
+	 * @brief Retrieve an Axi data word from a string.
+	 *
+	 * @param[in] axiWord,      a ref to the data word to retrieve.
+	 * @param[in] stringBuffer, the string buffer to read from.
+	 *
+	 * @return true if successful, otherwise false.
+	 ***************************************************************************/
+    bool readAxiWordFromLine(AxiWord &axiWord, string stringBuffer) {
+        vector<string> stringVector;
+        stringVector = myTokenizer(stringBuffer, ' ');
+        if (stringVector[0] == "") {
+            return false;
+        }
+        else if (stringVector[0].length() == 1) {
+            // Skip this line as it is either a comment of a command
+            return false;
+        }
+        else if ( (stringVector.size() == 3) or
+                 ((stringVector.size() == 4) and (stringVector[3] == "(FORCED_INVALID_TKEEP)")) ) {
+            axiWord.tdata = myStrHexToUint64(stringVector[0]);
+            axiWord.tlast = atoi(            stringVector[1].c_str());
+            axiWord.tkeep = myStrHexToUint8( stringVector[2]);
+            if ((stringVector.size() == 3) and (not axiWord.isValid())) {
+                printError(THIS_NAME, "Failed to read AxiWord from line \"%s\".\n", stringBuffer.c_str());
+                printFatal(THIS_NAME, "\tFYI - 'tkeep' and 'tlast' are unconsistent...\n");
+            }
+            return true;
+        }
+        else {
+            printError(THIS_NAME, "Failed to read AxiWord from line \"%s\".\n", stringBuffer.c_str());
+            printFatal(THIS_NAME, "\tFYI - The file might be corrupted...\n");
+        }
+    }
+#endif
+
+#ifndef __SYNTHESIS_
+	/***************************************************************************
 	 * @brief Retrieve an Axi data word form a file.
 	 *
 	 * @param[in] axiWord,       a pointer for the data word to retrieve.
@@ -690,30 +796,10 @@ void printTcpPort(TcpPort tcpPort)
 			printError(THIS_NAME, "File is not opened.\n");
 			return false;
 		}
-
 		while (inpFileStream.peek() != EOF) {
 			getline(inpFileStream, stringBuffer);
-			stringVector = myTokenizer(stringBuffer, ' ');
-			if (stringVector[0] == "") {
-				continue;
-			}
-			else if (stringVector[0].length() == 1) {
-				// Skip this line as it is either a comment of a command
-				continue;
-			}
-			else if (stringVector.size() == 3) {
-                axiWord->tdata = myStrHexToUint64(stringVector[0]);
-                axiWord->tlast = atoi(            stringVector[1].c_str());
-                axiWord->tkeep = myStrHexToUint8( stringVector[2]);
-                rc = true;
-                return rc;
-                //OBSOLETE_20200327 break;
-			}
-			else {
-				printError(THIS_NAME, "Failed to read AxiWord from file.\n");
-				printError(THIS_NAME, "\tThe line read from file is: \"%s\" \n", stringBuffer.c_str());
-				printFatal(THIS_NAME, "\tFYI - The file might be corrupted...\n");
-				rc = false;
+			rc = readAxiWordFromLine(*axiWord, stringBuffer);
+			if (rc) {
 				break;
 			}
 		}
@@ -1199,10 +1285,10 @@ void printTcpPort(TcpPort tcpPort)
  *  [1] https://www.codeproject.com/Articles/48575/How-to-define-a-template-class-in-a-h-file-and-imp
  ******************************************************************************/
 #ifndef __SYNTHESIS__
-    void _fakeCallTo_feedAxisEthFromFile() {
-        stream<AxisEth> ss;
+    void _fakeCallTo_feedAxisAppFromFile() {
+        stream<AxisApp> ss;
         int  nr1, nr2, nr3;
-        feedAxisFromFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+        feedAxisFromFile<AxisApp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
     void _fakeCallTo_feedAxisArpFromFile() {
         stream<AxisArp> ss;
@@ -1214,6 +1300,22 @@ void printTcpPort(TcpPort tcpPort)
         int  nr1, nr2, nr3;
         feedAxisFromFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
+    void _fakeCallTo_feedAxisEthFromFile() {
+        stream<AxisEth> ss;
+        int  nr1, nr2, nr3;
+        feedAxisFromFile<AxisEth>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+
+    void _fakeCallTo_drainAxisAppToFile() {
+        stream<AxisApp> ss;
+        int  nr1, nr2, nr3;
+        drainAxisToFile<AxisApp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
+    void _fakeCallTo_drainAxisArpToFile() {
+        stream<AxisArp> ss;
+        int  nr1, nr2, nr3;
+        drainAxisToFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+    }
     void _fakeCallTo_drainAxisEthToFile() {
         stream<AxisEth> ss;
         int  nr1, nr2, nr3;
@@ -1224,9 +1326,5 @@ void printTcpPort(TcpPort tcpPort)
         int  nr1, nr2, nr3;
         drainAxisToFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
     }
-    void _fakeCallTo_drainAxisArpToFile() {
-        stream<AxisArp> ss;
-        int  nr1, nr2, nr3;
-        drainAxisToFile<AxisArp>(ss, "ssName", "aFileName", nr1, nr2, nr3);
-    }
+
 #endif

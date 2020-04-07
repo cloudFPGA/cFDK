@@ -8,13 +8,16 @@
  *
  *****************************************************************************/
 
-#include "../src/uoe.hpp"
-//#include "../../toe/src/toe.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
 
+#include <iostream>
 #include <set>
 #include <stdio.h>
+//#include <string>
+//#include <unistd.h>
 #include <hls_stream.h>
+
+#include "../src/uoe.hpp"
+#include "../../toe/test/test_toe_utils.hpp"
 
 using namespace hls;
 using namespace std;
@@ -26,8 +29,9 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF    0x0000
-#define TRACE_CGR    1 << 1
-#define TRACE_DUMTF  1 << 2
+#define TRACE_CGRF   1 << 1
+#define TRACE_CGTF   1 << 2
+#define TRACE_DUMTF  1 << 3
 #define TRACE_ALL    0xFFFF
 
 #define DEBUG_LEVEL (TRACE_ALL)
@@ -38,7 +42,7 @@ using namespace std;
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES     250000
 #define TB_STARTUP_DELAY           0
-#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME            200  // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -55,13 +59,6 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 //---------------------------------------------------------
 enum TestMode { RX_MODE='0',   TX_MODE='1', BIDIR_MODE='2',
                 ECHO_MODE='3', OPEN_MODE='4' };
-
-
-
-
-
-
-
 
 
 #define maxOverflowValue 2000
@@ -82,7 +79,7 @@ void stepSim() {
     }
 }
 
-
+/*********************************
 ap_uint<64>	convertString(std::string stringToConvert) {
 	ap_uint<64>	tempOutput = 0;
 	unsigned short int tempValue = 16;
@@ -279,6 +276,7 @@ ap_uint<16> encodeApUint16(string parseString){
 	}
 	return tempOutput;
 }
+*************************/
 
 
 /*****************************************************************************
@@ -295,7 +293,7 @@ ap_uint<16> encodeApUint16(string parseString){
  ******************************************************************************/
 #ifndef __SYNTHESIS__
     bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
-            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {  // [TODO - Rename UdpMeta]
+            string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
         ofstream    outFileStream;
         char        currPath[FILENAME_MAX];
         SocketPair  udpMeta;
@@ -352,15 +350,217 @@ ap_uint<16> encodeApUint16(string parseString){
     }
 #endif
 
+/*****************************************************************************
+ * @brief Create the UDP Tx traffic as streams from an input test file.
+ *
+ * @param[in/out] ssData,     a ref to the data stream to set.
+ * @param[in]     ssDataName, the name of the data stream to set.
+ * @param[in/out] ssMeta,     a ref to the metadata stream to set.
+ * @param[in]     ssMetaName, the name of the metadata stream to set.
+ * @param[in/out] ssDLen,     a ref to the data-length stream to set.
+ * @param[in]     ssDLenName, the name of the datalength stream to set.
+ * @param[in]     datFileName,the path to the DAT file to read from.
+ * @param[in]     metaQueue,  a ref to a queue of metadata.
+ * @param[in]     dlenQueue,  a ref to a queue of data-lengths.
+ * @param[out]    nrChunks,   a ref to the number of feeded chunks.
+ *
+ * @return NTS_ OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+int createUdpTxTraffic(
+        stream<AxisApp>    &ssData, const string      ssDataName,
+        stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
+        stream<UdpAppDLen> &ssDLen, const string      ssDLenName,
+        string             datFile,
+        queue<UdpAppMeta>  &metaQueue,
+        queue<UdpAppDLen>  &dlenQueue,
+        int                &nrFeededChunks)
+{
+
+    int  nrURIF_UOE_MetaChunks = 0;
+    int  nrURIF_UOE_MetaGrams  = 0;
+    int  nrURIF_UOE_MetaBytes  = 0;
+
+    //-- STEP-1: FEED AXIS DATA STREAM FROM DAT FILE --------------------------
+    int  nrDataChunks=0, nrDataGrams=0, nrDataBytes=0;
+    if (feedAxisFromFile(ssData, ssDataName, datFile,
+                         nrDataChunks, nrDataGrams, nrDataBytes)) {
+        printInfo(THIS_NAME, "Done with the creation of UDP-Data traffic as a stream:\n");
+        printInfo(THIS_NAME, "\tGenerated %d chunks in %d datagrams, for a total of %d bytes.\n\n",
+                  nrDataChunks, nrDataGrams, nrDataBytes);
+        nrFeededChunks = nrDataChunks;
+    }
+    else {
+        printError(THIS_NAME, "Failed to create UDP-Data traffic as input stream. \n");
+        return NTS_KO;
+    }
+
+    //-- STEP-2: FEED METADATA STREAM FROM QUEUE ------------------------------
+    while (!metaQueue.empty()) {
+        ssMeta.write(metaQueue.front());
+        metaQueue.pop();
+    }
+
+    //-- STEP-3: FEED DATA-LENGTH STREAM FROM QUEUE ---------------------------
+    while(!dlenQueue.empty()) {
+        ssDLen.write(dlenQueue.front());
+        dlenQueue.pop();
+    }
+
+    return NTS_OK;
+} // End-of: createUdpTxTraffic()
 
 /*****************************************************************************
- * @brief Create the golden Rx reference files from an input test file.
+ * @brief Create the golden IPTX reference file from an input URIF test file.
  *
- * @param[in] inpData_FileName, the input data file to generate from.
- * @param[in] outData_GoldName, the output data gold file to create.
- * @param[in] outMeta_GoldName, the output meta gold file to create.
- * @param[in] udpPortSet,       a ref to an associative container which holds
- *                              the UDP destination ports.
+ * @param[in]  inpData_FileName, the input data file to generate from.
+ * @param[in]  outData_GoldName, the output data gold file to create.
+ * @param[out] udpMetaQueue,     a ref to a container queue which holds a
+ *                                sequence of UDP socket-pairs.
+ * @param[out] udpDLenQueue,     a ref to a container queue which holds a
+ *                                sequence of UDP data packet lengths.
+ *
+ * @return NTS_ OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+int createGoldenTxFiles(
+        string             inpData_FileName,
+        string             outData_GoldName,
+        queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppDLen> &updDLenQueue)
+{
+    const char *myName  = concat3(THIS_NAME, "/", "CGTF");
+
+    const Ip4Addr fpgaDefaultIp4Address = 0x0A0CC807;   //  10.012.200.7
+    const UdpPort fpgaDefaultUdpLsnPort = 8803;
+    const UdpPort fpgaDefaultUdpSndPort = 32768+8803;   //  41571
+    const Ip4Addr hostDefaultIp4Address = 0x0A0CC850;   //  10.012.200.50
+    const UdpPort hostDefaultUdpLsnPort = fpgaDefaultUdpSndPort;
+    const UdpPort hostDefaultUdpSndPort = fpgaDefaultUdpLsnPort;
+
+    ifstream    ifsData;
+    ofstream    ofsDataGold;
+
+    char        currPath[FILENAME_MAX];
+    //int         ret=NTS_OK;
+    int         inpChunks=0,  outChunks=0;
+    int         inpDgrms=0,   outPackets=0;
+    int         inpBytes=0,   outBytes=0;
+
+    //-- STEP-1 : OPEN INPUT TEST FILE ----------------------------------------
+    if (not isDatFile(inpData_FileName)) {
+        printError(myName, "Cannot create golden file from input file \'%s\' because file is not of type \'.dat\'.\n",
+                   inpData_FileName.c_str());
+        return(NTS_KO);
+    }
+    else {
+        ifsData.open(inpData_FileName.c_str());
+        if (!ifsData) {
+            getcwd(currPath, sizeof(currPath));
+            printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
+                       inpData_FileName.c_str(), currPath);
+            return(NTS_KO);
+        }
+    }
+
+    //-- STEP-2 : OPEN THE OUTPUT GOLD FILE -----------------------------------
+    remove(outData_GoldName.c_str());
+    if (!ofsDataGold.is_open()) {
+        ofsDataGold.open (outData_GoldName.c_str(), ofstream::out);
+        if (!ofsDataGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outData_GoldName.c_str());
+        }
+    }
+
+    //-- STEP-3 : READ AND PARSE THE INPUT TEST FILE --------------------------
+    string          stringBuffer;
+    vector<string>  stringVector;
+    SockAddr        hostLsnSock = SockAddr(hostDefaultIp4Address, hostDefaultUdpLsnPort);
+    SockAddr        fpgaSndSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpSndPort);
+    do {
+        //-- Retrieve one UDP datagram from input DAT file
+        UdpDatagram udpDatagram(8);
+        UdpAppData  udpAppData;
+        UdpAppMeta  udpAppMeta = SocketPair(fpgaSndSock, hostLsnSock);
+        int         currDgrmLenght=0;
+        bool        endOfDgm=false;
+        bool        rc;
+        do {
+            //-- Read one line at a time from the input test DAT file
+            getline(ifsData, stringBuffer);
+            stringVector = myTokenizer(stringBuffer, ' ');
+            //-- Read the Host Listen Socket Address from line (if present)
+            rc = readHostSocketFromLine(hostLsnSock, stringBuffer);
+            if (rc) {
+                if (DEBUG_LEVEL & TRACE_CGTF) {
+                    printInfo(myName, "Read a new HOST address from DAT file:\n");
+                    printSockAddr(myName, hostLsnSock);
+                }
+            }
+            //-- Read the Fpga Send Port from line (if present)
+            rc = readFpgaSndPortFromLine(fpgaSndSock.port, stringBuffer);
+            //-- Read an AxiWord from line
+            rc = readAxiWordFromLine(udpAppData, stringBuffer);
+            if (rc) {
+                udpDatagram.addChunk(udpAppData);
+                inpChunks++;
+                currDgrmLenght += udpAppData.keepToLen();
+                inpBytes += udpAppData.keepToLen();
+                if (udpAppData.tlast == 1) {
+                    inpDgrms++;
+                    endOfDgm = true;
+                    udpAppMeta = SocketPair(fpgaSndSock, hostLsnSock);
+                    udpMetaQueue.push(udpAppMeta);
+                    updDLenQueue.push(currDgrmLenght);
+                }
+            }
+        } while ((ifsData.peek() != EOF) && (!endOfDgm));
+        //-- Set the header of the UDP datagram
+        udpDatagram.setUdpSourcePort(udpAppMeta.src.port);
+        udpDatagram.setUdpDestinationPort(udpAppMeta.dst.port);
+        if (endOfDgm){
+			//-- Build an IPv4 packet based on the UDP datagram
+			IpPacket ipPacket(20, 20);
+			//-- Set the IPv4 payload with the content of the UDP datagram
+			ipPacket.addIpPayload(udpDatagram);
+			//-- Set the header of the IPv4 datagram
+			ipPacket.setIpSourceAddress(udpAppMeta.src.addr);
+			ipPacket.setIpDestinationAddress(udpAppMeta.dst.addr);
+			ipPacket.setIpHeaderChecksum(0);
+			ipPacket.udpRecalculateChecksum();
+			// Write IPv4 packet to gold file
+			if (not ipPacket.writeToDatFile(ofsDataGold)) {
+				printError(myName, "Failed to write IP packet to GOLD file.\n");
+				return NTS_KO;
+			}
+			else {
+				outPackets += 1;
+				outChunks  += ipPacket.size();
+				outBytes   += ipPacket.length();
+			}
+        }
+    } while(ifsData.peek() != EOF);
+
+    //-- STEP-4: CLOSE FILES
+    ifsData.close();
+    ofsDataGold.close();
+
+    //-- STEP-5: PRINT RESULTS
+    printInfo(myName, "Done with the creation of the golden file.\n");
+    printInfo(myName, "\tProcessed %5d chunks in %4d datagrams, for a total of %6d bytes.\n",
+              inpChunks, inpDgrms, inpBytes);
+    printInfo(myName, "\tGenerated %5d chunks in %4d packets,   for a total of %6d bytes.\n",
+              outChunks, outPackets, outBytes);
+    return NTS_OK;
+}
+
+/*****************************************************************************
+ * @brief Create the golden Rx APP reference files from an input IPRX test file.
+ *
+ * @param[in]  inpData_FileName, the input data file to generate from.
+ * @param[in]  outData_GoldName, the output data gold file to create.
+ * @param[in]  outMeta_GoldName, the output meta gold file to create.
+ * @param[out] udpPortSet,       a ref to an associative container which holds
+ *                               the UDP destination ports.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -370,7 +570,7 @@ int createGoldenRxFiles(
         string        outMeta_GoldName,
         set<UdpPort> &udpPorts)
 {
-    const char *myName  = concat3(THIS_NAME, "/", "CGF");
+    const char *myName  = concat3(THIS_NAME, "/", "CGRF");
 
     ifstream    ifsData;
     ofstream    ofsDataGold;
@@ -382,22 +582,23 @@ int createGoldenRxFiles(
     int         inpPackets=0, outPackets=0;
     int         inpBytes=0,   outBytes=0;
 
-    //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
-    ifsData.open(inpData_FileName.c_str());
-    if (!ifsData) {
-        getcwd(currPath, sizeof(currPath));
-        printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
-                   inpData_FileName.c_str(), currPath);
-        return(NTS_KO);
-    }
+    //-- STEP-1 : OPEN INPUT TEST FILE ----------------------------------------
     if (not isDatFile(inpData_FileName)) {
         printError(myName, "Cannot create golden files from input file \'%s\' because file is not of type \'.dat\'.\n",
                    inpData_FileName.c_str());
-        ifsData.close();
         return(NTS_KO);
     }
+    else {
+        ifsData.open(inpData_FileName.c_str());
+        if (!ifsData) {
+            getcwd(currPath, sizeof(currPath));
+            printError(myName, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n",
+                       inpData_FileName.c_str(), currPath);
+            return(NTS_KO);
+        }
+    }
 
-    //-- STEP-2 : OPEN THE OUTPUT GOLD FILES
+    //-- STEP-2 : OPEN THE OUTPUT GOLD FILES ----------------------------------
     remove(outData_GoldName.c_str());
     remove(outMeta_GoldName.c_str());
     if (!ofsDataGold.is_open()) {
@@ -415,7 +616,7 @@ int createGoldenRxFiles(
         }
     }
 
-    //-- STEP-3 : READ AND PARSE THE INPUT UDP FILE
+    //-- STEP-3 : READ AND PARSE THE INPUT UDP FILE ---------------------------
     while ((ifsData.peek() != EOF) && (ret != NTS_KO)) {
         IpPacket    ip4DataPkt; // [FIXME-create a SimIp4Packet class]
         AxisIp4     ip4RxData;
@@ -484,7 +685,7 @@ int createGoldenRxFiles(
 
                 if (udpDatagram.getUdpLength() > 8) {
                     writeSocketPairToFile(socketPair, ofsMetaGold);
-                    if (DEBUG_LEVEL & TRACE_CGR) {
+                    if (DEBUG_LEVEL & TRACE_CGRF) {
                         printInfo(myName, "Writing new socket-pair to file:\n");
                         printSockPair(myName, socketPair);
                     }
@@ -492,7 +693,6 @@ int createGoldenRxFiles(
                 // Part-2: Update the UDP container set
                 udpPorts.insert(ip4DataPkt.getUdpDestinationPort());
                 // Part-3: Write UDP datagram payload to gold file
-
                 if (udpDatagram.writePayloadToDatFile(ofsDataGold) == false) {
                     printError(myName, "Failed to write UDP payload to GOLD file.\n");
                     ret = NTS_KO;
@@ -591,27 +791,18 @@ int main(int argc, char *argv[]) {
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
-    int                     nrIPRX_UOE_Chunks  = 0;
-    int                     nrIPRX_UOE_Packets = 0;
-    int                     nrIPRX_UOE_Bytes   = 0;
-    stream<axiWord>			ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
+    stream<AxisIp4>         ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
 
     stream<UdpPort>         ssURIF_UOE_OpnReq  ("ssURIF_UOE_OpnReq");
     stream<StsBool>         ssUOE_URIF_OpnRep  ("ssUOE_URIF_OpnRep");
     stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
 
-    stream<AppData>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
-    int                     nrUOE_URIF_DataChunks = 0;
-    int                     nrUOE_URIF_DataGrams  = 0;
-    int                     nrUOE_URIF_DataBytes  = 0;
-    stream<SocketPair>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
-    int                     nrUOE_URIF_MetaChunks = 0;
-    int                     nrUOE_URIF_MetaGrams  = 0;
-    int                     nrUOE_URIF_MetaBytes  = 0;
+    stream<AxisApp>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
+    stream<UdpAppMeta>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
 
-    stream<axiWord> 		ssURIF_UOE_Data    ("ssURIF_UOE_Data");
-	stream<metadata> 		ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
-	stream<ap_uint<16> > 	ssURIF_UOE_PLen    ("ssURIF-UOE_PLen");
+    stream<AxisApp>         ssURIF_UOE_Data    ("ssURIF_UOE_Data");
+    stream<UdpAppMeta>      ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
+    stream<UdpAppDLen>      ssURIF_UOE_DLen    ("ssURIF-UOE_DLen");
 
 	stream<AxiWord>			soICMP_Data        ("soICMP_Data");
 
@@ -625,16 +816,15 @@ int main(int argc, char *argv[]) {
     case RX_MODE:
         break;
     case TX_MODE:
-        printFatal(THIS_NAME, "Not yet implemented...\n");
         break;
     case BIDIR_MODE:
-        printFatal(THIS_NAME, "Not yet implemented...\n");
+        printFatal(THIS_NAME, "BIDIR_MODE - Not yet implemented...\n");
         break;
     case ECHO_MODE:
-        printFatal(THIS_NAME, "Not yet implemented...\n");
+        printFatal(THIS_NAME, "ECHO_MODE - Not yet implemented...\n");
         break;
     case OPEN_MODE:
-        printFatal(THIS_NAME, "Not yet implemented...\n");
+        printFatal(THIS_NAME, "OPEN_MODE - Not yet implemented...\n");
         break;
     default:
         printFatal(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<Filename>.dat\n \t\t mode(1)   siURIF_<Filename>.dat\n \t\t mode(2)   siIPRX_<Filename>.dat siURIF_<Filename>.dat\n");
@@ -653,11 +843,7 @@ int main(int argc, char *argv[]) {
 		std::cout << " Error opening Rx input file!" << std::endl;
 		return -1;
 	}
-	txInput.open(argv[2]);
-	if (!txInput) {
-		std::cout << " Error opening Tx input file!" << std::endl;
-		return -1;
-	}
+
 	rxOutput.open("rxOutput.dat");
 	if (!rxOutput) {
 		std::cout << " Error opening output file!" << std::endl;
@@ -678,11 +864,7 @@ int main(int argc, char *argv[]) {
 		cout << "Error opening golden output file for the Rx side. Check that the correct path is provided!" << endl;
 		return -1;
 	}
-	goldenOutputTx.open("../../../../test/txGoldenOutput.short.dat");
-	if (!goldenOutputTx) {
-		cout << "Error opening golden output file for the Tx side. Check that the correct path is provided!" << endl;
-		return -1;
-	}
+
 	std::cerr << "Input File: " << argv[1] << std::endl << std::endl;
 	***********************************/
 
@@ -698,27 +880,27 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== OPEN-TEST #1 : Request to close a port that isn't open.\n");
         ssURIF_UOE_ClsReq.write(0x1532);
         for (int i=0; i<10; ++i) {
-        uoe(
-            //-- IPRX / IP Rx / Data Interface
-            ssIPRX_UOE_Data,
-            //-- IPTX / IP Tx / Data Interface
-            ssUOE_IPTX_Data,
-            //-- URIF / Control Port Interfaces
-            ssURIF_UOE_OpnReq,
-            ssUOE_URIF_OpnRep,
-            ssURIF_UOE_ClsReq,
-            //-- URIF / Rx Data Interfaces
-            ssUOE_URIF_Data,
-            ssUOE_URIF_Meta,
-            //-- URIF / Tx Data Interfaces
-            ssURIF_UOE_Data,
-            ssURIF_UOE_Meta,
-            ssURIF_UOE_PLen,
-            //-- ICMP / Message Data Interface
-            soICMP_Data);
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        stepSim();
-    }
+			uoe(
+				//-- IPRX / IP Rx / Data Interface
+				ssIPRX_UOE_Data,
+				//-- IPTX / IP Tx / Data Interface
+				ssUOE_IPTX_Data,
+				//-- URIF / Control Port Interfaces
+				ssURIF_UOE_OpnReq,
+				ssUOE_URIF_OpnRep,
+				ssURIF_UOE_ClsReq,
+				//-- URIF / Rx Data Interfaces
+				ssUOE_URIF_Data,
+				ssUOE_URIF_Meta,
+				//-- URIF / Tx Data Interfaces
+				ssURIF_UOE_Data,
+				ssURIF_UOE_Meta,
+				ssURIF_UOE_DLen,
+				//-- ICMP / Message Data Interface
+				soICMP_Data);
+            //-- INCREMENT GLOBAL SIMULATION COUNTER
+            stepSim();
+        }
         printInfo(THIS_NAME, "== OPEN-TEST #1 : Done.\n\n");
 
         //---------------------------------------------------------------
@@ -745,7 +927,7 @@ int main(int argc, char *argv[]) {
             //-- URIF / Tx Data Interfaces
             ssURIF_UOE_Data,
             ssURIF_UOE_Meta,
-            ssURIF_UOE_PLen,
+            ssURIF_UOE_DLen,
             //-- ICMP / Message Data Interface
             soICMP_Data);
         //-- INCREMENT GLOBAL SIMULATION COUNTER
@@ -791,7 +973,7 @@ int main(int argc, char *argv[]) {
             //-- URIF / Tx Data Interfaces
             ssURIF_UOE_Data,
             ssURIF_UOE_Meta,
-            ssURIF_UOE_PLen,
+            ssURIF_UOE_DLen,
             //-- ICMP / Message Data Interface
             soICMP_Data);
         //-- INCREMENT GLOBAL SIMULATION COUNTER
@@ -804,6 +986,7 @@ int main(int argc, char *argv[]) {
         //--         without opening the port.
         //---------------------------------------------------------------
         printInfo(THIS_NAME, "== OPEN-TEST #4 : Send IPv4 traffic to a closed port.\n");
+    	/*** [TODO] ***
         while (!rxInput.eof()) {
     		std::string stringBuffer;
     		getline(rxInput, stringBuffer);
@@ -816,6 +999,7 @@ int main(int argc, char *argv[]) {
     		ssIPRX_UOE_Data.write(inputPathInputData);
     		//noOfLines++;
     	}
+    	***/
         int tbRun = /*nrIPRX_UOE_Chunks*/ 1000 + TB_GRACE_TIME;
         while (tbRun) {
             uoe(
@@ -833,13 +1017,13 @@ int main(int argc, char *argv[]) {
                 //-- URIF / Tx Data Interfaces
                 ssURIF_UOE_Data,
                 ssURIF_UOE_Meta,
-                ssURIF_UOE_PLen,
+                ssURIF_UOE_DLen,
                 //-- ICMP / Message Data Interface
                 soICMP_Data);
             tbRun--;
             stepSim();
             if (!ssUOE_URIF_Data.empty()) {
-                AppData appData = ssUOE_URIF_Data.read();
+                UdpAppData appData = ssUOE_URIF_Data.read();
                 printError(THIS_NAME, "Received unexpected data from [UOE]");
                 printAxiWord(THIS_NAME, appData);
                 nrErr++;
@@ -861,18 +1045,6 @@ int main(int argc, char *argv[]) {
         //--    listen mode.
         //---------------------------------------------------------------
         printInfo(THIS_NAME, "== RX-TEST : Send IPv4 traffic to an opened port.\n");
-
-        //-- CREATE DUT INPUT TRAFFIC AS STREAMS --------------------
-        if (feedAxisFromFile(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", string(argv[2]),
-                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes)) {
-            printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
-            printInfo(THIS_NAME, "\tGenerated %d chunks in %d datagrams, for a total of %d bytes.\n\n",
-                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes);
-        }
-        else {
-            printFatal(THIS_NAME, "Failed to create traffic as input stream. \n");
-            nrErr++;
-        }
 
         //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
         string           ofsURIF_Data_FileName = "../../../../test/soURIF_Data.dat";
@@ -902,7 +1074,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        //-- CREATE OUTPUT GOLD TRAFFIC
+        //-- Create golden Rx files
         set<UdpPort> udpDstPorts;
         if (createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
                 ofsURIF_Gold_Meta_FileName, udpDstPorts) != NTS_OK) {
@@ -930,7 +1102,7 @@ int main(int argc, char *argv[]) {
                     //-- URIF / Tx Data Interfaces
                     ssURIF_UOE_Data,
                     ssURIF_UOE_Meta,
-                    ssURIF_UOE_PLen,
+                    ssURIF_UOE_DLen,
                     //-- ICMP / Message Data Interface
                     soICMP_Data);
                 stepSim();
@@ -943,16 +1115,33 @@ int main(int argc, char *argv[]) {
             if (!ssUOE_URIF_OpnRep.empty()) {
                 openReply = ssUOE_URIF_OpnRep.read();
                 if (not openReply) {
-                    printError(THIS_NAME, "KO - Failed to open port #%d.\n", portToOpen.to_int());
+                    printError(THIS_NAME, "KO - Failed to open port #%d (0x%4.4X).\n",
+                    		portToOpen.to_int(), portToOpen.to_int());
                 }
             }
             else {
-                printError(THIS_NAME, "NoReply - Failed to open port #%d.\n", portToOpen.to_int());
+                printError(THIS_NAME, "NoReply - Failed to open port #%d (0x%4.4X).\n",
+                		portToOpen.to_int(), portToOpen.to_int());
                 nrErr++;
             }
         }
 
-        //-- SEND THE IPv4 packets to [UOE]
+        //-- CREATE IPRX->UOE INPUT TRAFFIC AS A STREAM -----------------------
+        int nrIPRX_UOE_Chunks  = 0;
+        int nrIPRX_UOE_Packets = 0;
+        int nrIPRX_UOE_Bytes   = 0;
+        if (feedAxisFromFile(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", string(argv[2]),
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes)) {
+            printInfo(THIS_NAME, "Done with the creation of the Rx input traffic as streams:\n");
+            printInfo(THIS_NAME, "\tGenerated %d chunks in %d IP packets, for a total of %d bytes.\n\n",
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes);
+        }
+        else {
+            printFatal(THIS_NAME, "Failed to create traffic as input stream. \n");
+            nrErr++;
+        }
+
+        //-- RUN SIMULATION FOR IPRX->UOE INPUT TRAFFIC -----------------------
         int tbRun = (nrErr == 0) ? (nrIPRX_UOE_Chunks + TB_GRACE_TIME) : 0;
         while (tbRun) {
             uoe(
@@ -970,16 +1159,17 @@ int main(int argc, char *argv[]) {
                 //-- URIF / Tx Data Interfaces
                 ssURIF_UOE_Data,
                 ssURIF_UOE_Meta,
-                ssURIF_UOE_PLen,
+                ssURIF_UOE_DLen,
                 //-- ICMP / Message Data Interface
                 soICMP_Data);
             tbRun--;
             stepSim();
         }
 
-        //-- DRAIN UOE-->URIF DATA OUTPUT STREAM
-        if (not drainAxiWordStreamToFile(ssUOE_URIF_Data, "ssUOE_URIF_Data",
-                ofNames[0], nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes)) {
+        //-- DRAIN UOE-->URIF DATA OUTPUT STREAM ------------------------------
+        int nrUOE_URIF_DataChunks=0, nrUOE_URIF_DataGrams=0, nrUOE_URIF_DataBytes=0;
+        if (not drainAxisToFile(ssUOE_URIF_Data, "ssUOE_URIF_Data",
+            ofNames[0], nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes)) {
             printError(THIS_NAME, "Failed to drain UOE-to-URIF data traffic from DUT. \n");
             nrErr++;
         }
@@ -988,7 +1178,8 @@ int main(int argc, char *argv[]) {
             printInfo(THIS_NAME, "\tReceived %d chunks in %d datagrams, for a total of %d bytes.\n\n",
                       nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes);
         }
-        //-- DRAIN UOE-->URIF META OUTPUT STREAM
+        //-- DRAIN UOE-->URIF META OUTPUT STREAM ------------------------------
+        int nrUOE_URIF_MetaChunks=0, nrUOE_URIF_MetaGrams=0, nrUOE_URIF_MetaBytes=0;
         if (not drainUdpMetaStreamToFile(ssUOE_URIF_Meta, "ssUOE_URIF_Meta",
                 ofNames[1], nrUOE_URIF_MetaChunks, nrUOE_URIF_MetaGrams, nrUOE_URIF_MetaBytes)) {
             printError(THIS_NAME, "Failed to drain UOE-to-URIF meta traffic from DUT. \n");
@@ -1021,6 +1212,125 @@ int main(int argc, char *argv[]) {
 
     } // End-of: if (tbMode == RX_MODE)
 
+    if (tbMode == TX_MODE) {
+        //---------------------------------------------------------------
+        //-- TX_MODE: Read in the test input data for the URIF side.
+        //---------------------------------------------------------------
+        printInfo(THIS_NAME, "== TX-TEST : Send UDP datagram traffic to DUT.\n");
+
+        ofstream    ofsIPTX_Data;
+        string      ofsIPTX_Data_FileName = "../../../../test/soIPTX_Data.dat";
+        string      ofsIPTX_Gold_FileName = "../../../../test/soIPTX_Gold.dat";
+
+        //-- Remove previous data file and open a new file
+        if (not isDatFile(ofsIPTX_Data_FileName)) {
+            printFatal(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsIPTX_Data_FileName.c_str());
+        }
+        else {
+            remove(ofsIPTX_Data_FileName.c_str());
+            if (!ofsIPTX_Data.is_open()) {
+                ofsIPTX_Data.open(ofsIPTX_Data_FileName.c_str(), ofstream::out);
+                if (!ofsIPTX_Data) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsIPTX_Data_FileName.c_str());
+                    nrErr++;
+                }
+            }
+        }
+
+        //-- CREATE THE GOLDEN UOE->IPTX OUTPUT FILES -------------------------
+        queue<UdpAppMeta>   udpSocketPairs;
+        queue<UdpAppDLen>   updDataLengths;
+        if (not createGoldenTxFiles(string(argv[2]), ofsIPTX_Gold_FileName,
+                                    udpSocketPairs, updDataLengths)) {
+            printFatal(THIS_NAME, "Failed to create golden UOE->IPTX file. \n");
+        }
+
+        //-- CREATE THE URIF->UOE INPUT {DATA,META,DLEN} AS STREAMS -----------
+        int nrURIF_UOE_Chunks=0;
+        if (not createUdpTxTraffic(ssURIF_UOE_Data, "ssURIF_UOE_Data",
+                                   ssURIF_UOE_Meta, "ssURIF_UOE_Meta",
+                                   ssURIF_UOE_DLen, "ssURIF_UOE_DLen",
+                                   string(argv[2]),
+                                   udpSocketPairs,
+                                   updDataLengths,
+                                   nrURIF_UOE_Chunks)) {
+            printFatal(THIS_NAME, "Failed to create the URIF->UOE traffic as streams.\n");
+        }
+
+        //-- RUN SIMULATION ---------------------------------------------------
+         int tbRun = (nrErr == 0) ? (nrURIF_UOE_Chunks + TB_GRACE_TIME) : 0;
+         while (tbRun) {
+             uoe(
+                 //-- IPRX / IP Rx / Data Interface
+                 ssIPRX_UOE_Data,
+                 //-- IPTX / IP Tx / Data Interface
+                 ssUOE_IPTX_Data,
+                 //-- URIF / Control Port Interfaces
+                 ssURIF_UOE_OpnReq,
+                 ssUOE_URIF_OpnRep,
+                 ssURIF_UOE_ClsReq,
+                 //-- URIF / Rx Data Interfaces
+                 ssUOE_URIF_Data,
+                 ssUOE_URIF_Meta,
+                 //-- URIF / Tx Data Interfaces
+                 ssURIF_UOE_Data,
+                 ssURIF_UOE_Meta,
+                 ssURIF_UOE_DLen,
+                 //-- ICMP / Message Data Interface
+                 soICMP_Data);
+             tbRun--;
+             stepSim();
+         }
+
+         //-- DRAIN UOE-->IPTX DATA OUTPUT STREAM -----------------------------
+         int nrUOE_IPTX_Chunks=0, nrUOE_IPTX_Packets=0, nrUOE_IPTX_Bytes=0;
+         if (not drainAxisToFile(ssUOE_IPTX_Data, "ssUOE_IPTX_Data",
+                ofsIPTX_Data_FileName, nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes)) {
+             printError(THIS_NAME, "Failed to drain UOE-to-IPTX data traffic from DUT. \n");
+             nrErr++;
+         }
+         else {
+             printInfo(THIS_NAME, "Done with the draining of the UOE-to-IPTX data traffic:\n");
+             printInfo(THIS_NAME, "\tReceived %d chunks in %d packets, for a total of %d bytes.\n\n",
+                       nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes);
+         }
+
+         printInfo(THIS_NAME, "############################################################################\n");
+         printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' ENDS HERE                                         ##\n");
+         printInfo(THIS_NAME, "############################################################################\n");
+
+         //---------------------------------------------------------------
+         //-- COMPARE OUTPUT DAT and GOLD STREAMS
+         //---------------------------------------------------------------
+         int res = system(("diff --brief -w " + \
+                            std::string(ofsIPTX_Data_FileName) + " " + \
+                            std::string(ofsIPTX_Gold_FileName) + " ").c_str());
+         if (res) {
+             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                        ofsIPTX_Data_FileName.c_str(), ofsIPTX_Gold_FileName.c_str());
+             nrErr += 1;
+         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    } // End-of: if (tbMode == TX_MODE)
+
+
     //---------------------------------------------------------------
     //-- PRINT TESTBENCH STATUS
     //---------------------------------------------------------------
@@ -1047,120 +1357,12 @@ int main(int argc, char *argv[]) {
     return nrErr;
 
 
-	//** Test 5: Tx path **************************
-    uint32_t noOfLines = 0;
-	cerr << endl << "Test 5: Exercising the Tx Path" << endl;
-	noOfLines = 0;
-	overflowCounter = 0;
-	while (!txInput.eof()) {
-		std::string stringBuffer;
-		getline(txInput, stringBuffer);
-		std::vector<std::string> stringVector = parseLine(stringBuffer);
-		string sourcePort 		= stringVector[0];
-		string destinationPort 	= stringVector[1];
-		string sourceIP			= stringVector[2];
-		string destinationIP	= stringVector[3];
-		string payloadLength	= stringVector[4];
-		string dataString 		= stringVector[5];
-		string keepString 		= stringVector[6];
-		outputPathInData.data 	= encodeApUint64(dataString);
-		outputPathInData.keep	= encodeApUint8(keepString);
-		outputPathInData.last 	= atoi(stringVector[7].c_str());
-		outputPathInputMetadata.sourceSocket.port		= encodeApUint16(sourcePort);
-		outputPathInputMetadata.sourceSocket.addr		= encodeApUint32(sourceIP);
-		outputPathInputMetadata.destinationSocket.port	= encodeApUint16(destinationPort);
-		outputPathInputMetadata.destinationSocket.addr 	= encodeApUint32(destinationIP);
-		outputPathInputLength	= encodeApUint16(payloadLength);
-		ssURIF_UOE_Data.write(outputPathInData);
-		if (outputPathInputLength != 0) {
-			ssURIF_UOE_Meta.write(outputPathInputMetadata);
-			ssURIF_UOE_PLen.write(outputPathInputLength);
-		}
-		noOfLines++;
-	}
-	noOfLines = 0;
-	while (!ssURIF_UOE_Data.empty() || overflowCounter < maxOverflowValue) {
-		uoe(
-			//-- IPRX / IP Rx / Data Interface
-			ssIPRX_UOE_Data,
-			//-- IPTX / IP Tx / Data Interface
-			ssUOE_IPTX_Data,
-			//-- URIF / Control Port Interfaces
-			ssURIF_UOE_OpnReq,
-			ssUOE_URIF_OpnRep,
-			ssURIF_UOE_ClsReq,
-			//-- URIF / Rx Data Interfaces
-			ssUOE_URIF_Data,
-			ssUOE_URIF_Meta,
-			//-- URIF / Tx Data Interfaces
-			ssURIF_UOE_Data,
-			ssURIF_UOE_Meta,
-			ssURIF_UOE_PLen,
-			//-- ICMP / Message Data Interface
-			soICMP_Data);
 
-		//std::cerr << ".";
-		noOfLines++;
-		if (ssURIF_UOE_Data.empty())
-			overflowCounter++;
-	}
-	cerr << endl;
-	overflowCounter = 0;
-	cerr << endl << "Tx test complete. Verifying result." << endl;
-	axiWord txCompareOutput = axiWord(0, 0, 0);
 
-	while (!ssUOE_IPTX_Data.empty()) {
-		axiWord tempOutput = ssUOE_IPTX_Data.read();
-		goldenOutputTx >> hex >> txCompareOutput.data >> txCompareOutput.last >> txCompareOutput.keep;
-		if (txCompareOutput.data != tempOutput.data || txCompareOutput.last != tempOutput.last || txCompareOutput.keep != tempOutput.keep) {
-			errCount++;
-			cerr << "X";
-		}
-		else
-			cerr << ".";
-		string dataOutput = decodeApUint64(tempOutput.data);
-		string keepOutput = decodeApUint8(tempOutput.keep);
-		txOutput << dataOutput << " " << tempOutput.last << " " << keepOutput << endl;
-	}
-	/*if (errCount != 0) {
-		cerr << endl << "Errors during Tx testing. Check the output file." << endl;
-	}
-	else
-		cerr << endl << "Tx Tests passed succesfully." << endl;*/
-	axiWord compareWord = axiWord(0, 0, 0);
-	while (!ssURIF_UOE_Data.empty() && !goldenOutputRx.eof()) {
-		//noOfLines++;
-		//counter++;
-		//cerr << counter << " ";
-		axiWord tempOutput = ssURIF_UOE_Data.read();
-		goldenOutputRx >> hex >> compareWord.data >> compareWord.last;
-		if (compareWord.data != tempOutput.data || compareWord.last != tempOutput.last) {
-			errCount++;
-			//cerr << "X";
-		}
-		//else
-			//cerr << ".";
-		string dataOutput = decodeApUint64(tempOutput.data);
-		rxOutput << dataOutput << " " << tempOutput.last << endl;
-	}
-	if (errCount != 0) {
-		cerr << endl << "Errors during testing. Check the output file." << endl;
-	}
-	else
-		cerr << endl << "All Tests passed succesfully." << endl;
-	errCount = 0;
 
-	//OBSOLETE_20200305 while(!outPortUnreachableFIFO.empty())
-	//OBSOLETE_20200305 	outPortUnreachableFIFO.read();
 
-	while(!ssURIF_UOE_Meta.empty())
-		ssURIF_UOE_Meta.read();
-	while(!ssURIF_UOE_Data.empty())
-		ssURIF_UOE_Data.read();
-
-	rxInput.close();
+    rxInput.close();
 	rxOutput.close();
-	txInput.close();
 	txOutput.close();
 	portStatus.close();
 	return 0;

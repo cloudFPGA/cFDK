@@ -465,26 +465,22 @@ int main(int argc, char* argv[])
     string      ofsETH_Data_FileName = "../../../../test/soETH_Data.dat";
     string      ofsETH_Gold_FileName = "../../../../test/soETH_Gold.dat";
 
-    //-- Remove previous file
-    remove(ofsETH_Data_FileName.c_str());
     //-- Assess that file has ".dat" extension
     if (not isDatFile(ofsETH_Data_FileName)) {
-        printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsETH_Data_FileName.c_str());
-        ofsETH_Data.close();
-        nrErr++;
+        printFatal(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsETH_Data_FileName.c_str());
     }
-    //-- Open file
-    if (!ofsETH_Data.is_open()) {
-        ofsETH_Data.open(ofsETH_Data_FileName.c_str(), ofstream::out);
-        if (!ofsETH_Data) {
-            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsETH_Data_FileName.c_str());
-            nrErr++;
+    else  {
+        //-- Remove previous file
+        remove(ofsETH_Data_FileName.c_str());
+        //-- Open file
+        if (!ofsETH_Data.is_open()) {
+            ofsETH_Data.open(ofsETH_Data_FileName.c_str(), ofstream::out);
+            if (!ofsETH_Data) {
+                printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofsETH_Data_FileName.c_str());
+                nrErr++;
+            }
         }
     }
-    //OBBSOLETE -- Read from stream and write to file
-    //OBBSOLETE ofsETH_Data << std::hex << std::noshowbase;
-    //OBBSOLETE ofsETH_Data << std::setfill('0');
-    //OBBSOLETE ofsETH_Data << std::uppercase;
 
     //------------------------------------------------------
     //-- CREATE OUTPUT GOLD TRAFFIC

@@ -181,7 +181,7 @@ void pRxPacketHandler(
         stream<AxisIp4>     &siIHs_Ip4Hdr,
         stream<UdpPort>     &soUPt_PortStateReq,
         stream<StsBool>     &siUPt_PortStateRep,
-        stream<AppData>     &soURIF_Data,
+        stream<AxisApp>     &soURIF_Data,
         stream<SocketPair>  &soURIF_Meta,
         stream<AxiWord>     &soICMP_Data)
 {
@@ -818,7 +818,7 @@ void pRxEngine(
         stream<UdpPort>         &siURIF_OpnReq,
         stream<StsBool>         &siURIF_OpnRep,
         stream<UdpPort>         &siURIF_ClsReq,
-        stream<AppData>         &soURIF_Data,
+        stream<AxisApp>         &soURIF_Data,
         stream<SocketPair>      &soURIF_Meta,
         stream<AxiWord>         &soICMP_Data)
 {
@@ -884,21 +884,22 @@ void pRxEngine(
 
 
 void outputPathWriteFunction(
-		stream<axiWord> 		&siURIF_Data,
-		stream<metadata> 		&siURIF_Meta,
-		stream<ap_uint<16> > 	&siURIF_PLen,
+		stream<AxisApp> 		&siURIF_Data,
+		stream<UdpAppMeta> 		&siURIF_Meta,
+		stream<UdpAppDLen> 	    &siURIF_DLen,
 		stream<ap_uint<64> > 	&packetData,
 		stream<ap_uint<16> > 	&packetLength,
-		stream<metadata> 		&udpMetadata,
+		stream<UdpAppMeta> 		&udpMetadata,
 		stream<ioWord> 			&outputPathWriteFunction2checksumCalculation)
 {
 	#pragma HLS INLINE off
 	#pragma HLS pipeline II=1 enable_flush
 	
 	static enum opwfState{OW_IDLE = 0, OW_PSEUDOHEADER, OW_MIX, OW_STREAM, OW_RESIDUE, OW_SWCS, OW_ONLYPACKETRESIDUE} outputPathWriteFunctionState;
-	static axiWord 		outputPathInputWord 	= axiWord(0, 0, 0);									// Temporary buffer for the input data word
+	static AxisApp 		outputPathInputWord 	= AxiWord(0, 0, 0);									// Temporary buffer for the input data word
 	static ap_uint<16> 	outputPathPacketLength 	= 0;												// Temporary buffer for the packet data length
-	static metadata 	tempMetadata			= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));	// Temporary buffer for the destination & source IP addresses & ports
+	//OBSOELTE_20200403 static metadata	tempMetadata = metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));	// Temporary buffer for the destination & source IP addresses & ports
+	static UdpAppMeta tempMetadata = SocketPair(SockAddr(0,0), SockAddr(0,0)); // Temporary buffer for the destination & source IP addresses & ports
 
 	switch(outputPathWriteFunctionState) {
 		case OW_IDLE:
@@ -906,18 +907,20 @@ void outputPathWriteFunction(
 				siURIF_Meta.read(tempMetadata);		// Read in the metadata
 				udpMetadata.write(tempMetadata);				// Write the metadata in the buffer for the next stage
 				ioWord checksumOutput = {0, 0};					// Temporary variable for the checksum calculation data word
-				checksumOutput.data = (byteSwap32(tempMetadata.destinationSocket.addr), byteSwap32(tempMetadata.sourceSocket.addr));	// Create the first checksum calc. data word. Byte swap the addresses
+				//OBSOLETE_20200403 checksumOutput.data = (byteSwap32(tempMetadata.destinationSocket.addr), byteSwap32(tempMetadata.sourceSocket.addr));	// Create the first checksum calc. data word. Byte swap the addresses
+				checksumOutput.data = (byteSwap32(tempMetadata.dst.addr), byteSwap32(tempMetadata.src.addr));	// Create the first checksum calc. data word. Byte swap the addresses
 				outputPathWriteFunction2checksumCalculation.write(checksumOutput);	// Write the data word into the output
 				outputPathWriteFunctionState = OW_PSEUDOHEADER;						// Move into the next state
 			}
 			break;
 		case OW_PSEUDOHEADER:
-			if (!siURIF_PLen.empty() && !outputPathWriteFunction2checksumCalculation.full()) {
-				siURIF_PLen.read(outputPathPacketLength);		// Read in the payload length
+			if (!siURIF_DLen.empty() && !outputPathWriteFunction2checksumCalculation.full()) {
+				siURIF_DLen.read(outputPathPacketLength);		// Read in the payload length
 				outputPathPacketLength += 8;							// Increase the length to take the UDP header into account.
 				packetLength.write(outputPathPacketLength);				// Write length into the buffer for the next stage
 				ioWord	checksumOutput		= {0x1100, 0};				// Create the 2nd checksum word. 0x1100 is the protocol used
-				checksumOutput.data.range(63, 16) = (byteSwap16(tempMetadata.destinationSocket.port), byteSwap16(tempMetadata.sourceSocket.port), byteSwap16(outputPathPacketLength));	// Add destination & source port & packet length info for the checksum calculation
+				//OBSOLETE_20200403 checksumOutput.data.range(63, 16) = (byteSwap16(tempMetadata.destinationSocket.port), byteSwap16(tempMetadata.sourceSocket.port), byteSwap16(outputPathPacketLength));	// Add destination & source port & packet length info for the checksum calculation
+				 checksumOutput.data.range(63, 16) = (byteSwap16(tempMetadata.dst.port), byteSwap16(tempMetadata.src.port), byteSwap16(outputPathPacketLength));	// Add destination & source port & packet length info for the checksum calculation
 				//std::cerr << std::hex << checksumOutput << std::endl;
 				outputPathWriteFunction2checksumCalculation.write(checksumOutput);	// Write the checksum word into the output
 				outputPathWriteFunctionState = OW_MIX;								// Move to the next state
@@ -928,10 +931,10 @@ void outputPathWriteFunction(
 				siURIF_Data.read(outputPathInputWord);	// Read in the first payload length
 				ioWord checksumOutput				= {0, 0};					// First payload length
 				checksumOutput.data.range(15, 0) 	= (outputPathPacketLength.range(7, 0), outputPathPacketLength.range(15, 8)); 	// Packet length for the checksum calculation data
-				checksumOutput.data.range(63, 32)	= outputPathInputWord.data.range(31, 0);										// Payload data copy to the checksum calculation
-				if (outputPathInputWord.last == 1)	{		// When the last data word is read
-					packetData.write(outputPathInputWord.data);
-					if (outputPathInputWord.keep.range(7, 4) == 0) {
+				checksumOutput.data.range(63, 32)	= outputPathInputWord.tdata.range(31, 0);										// Payload data copy to the checksum calculation
+				if (outputPathInputWord.tlast == 1)	{		// When the last data word is read
+					packetData.write(outputPathInputWord.tdata);
+					if (outputPathInputWord.tkeep.range(7, 4) == 0) {
 						outputPathWriteFunctionState = OW_IDLE;	// Move to the residue state and output any remaining data.
 						checksumOutput.eop = 1;
 					}
@@ -945,13 +948,13 @@ void outputPathWriteFunction(
 			break;	
 		case OW_STREAM:	// This state streams all the payload data into both the checksum calculation stage and the next stage, reformatting them as required
 			if (!siURIF_Data.empty() && !packetData.full() && !outputPathWriteFunction2checksumCalculation.full()) {
-				packetData.write(outputPathInputWord.data);										// Write the realignned data word to the next stage
+				packetData.write(outputPathInputWord.tdata);										// Write the realignned data word to the next stage
 				ioWord 	checksumOutput				= {0, 0};
-				checksumOutput.data.range(31,0)		= outputPathInputWord.data.range(63, 32);	// Realign the output data word for the next stage
+				checksumOutput.data.range(31,0)		= outputPathInputWord.tdata.range(63, 32);	// Realign the output data word for the next stage
 				siURIF_Data.read(outputPathInputWord);					// Read the next data word
-				checksumOutput.data.range(63, 32)	= outputPathInputWord.data.range(31, 0);
-				if (outputPathInputWord.last == 1) {
-					if (outputPathInputWord.keep.bit(4) == 1)		// When the last data word is read
+				checksumOutput.data.range(63, 32)	= outputPathInputWord.tdata.range(31, 0);
+				if (outputPathInputWord.tlast == 1) {
+					if (outputPathInputWord.tkeep.bit(4) == 1)		// When the last data word is read
 						outputPathWriteFunctionState = OW_RESIDUE;	// Move to the residue state and output any remaining data.
 					else {
 						outputPathWriteFunctionState = OW_ONLYPACKETRESIDUE;
@@ -963,14 +966,14 @@ void outputPathWriteFunction(
 			break;
 		case OW_ONLYPACKETRESIDUE:
 			if (!packetData.full()) {
-				packetData.write(outputPathInputWord.data);
+				packetData.write(outputPathInputWord.tdata);
 				outputPathWriteFunctionState	= OW_IDLE;
 			}
 			break;
 		case OW_SWCS:
 			if (!outputPathWriteFunction2checksumCalculation.full()) {
 				ioWord checksumOutput		= {0, 1};
-				checksumOutput.data.range(31, 0) = outputPathInputWord.data.range(63, 32);
+				checksumOutput.data.range(31, 0) = outputPathInputWord.tdata.range(63, 32);
 				outputPathWriteFunction2checksumCalculation.write(checksumOutput);
 				outputPathWriteFunctionState	= OW_IDLE;
 			}
@@ -978,9 +981,9 @@ void outputPathWriteFunction(
 		case OW_RESIDUE:
 			if (!packetData.full() && !outputPathWriteFunction2checksumCalculation.full()) {
 				ioWord checksumOutput		= {0, 1};
-				checksumOutput.data.range(31, 0)		= outputPathInputWord.data.range(63, 32);
+				checksumOutput.data.range(31, 0)		= outputPathInputWord.tdata.range(63, 32);
 				outputPathWriteFunction2checksumCalculation.write(checksumOutput);
-				packetData.write(outputPathInputWord.data);
+				packetData.write(outputPathInputWord.tdata);
 				outputPathWriteFunctionState	= OW_IDLE;
 			}
 			break;
@@ -1014,7 +1017,7 @@ void udpChecksumCalculation(
 void outputPathReadFunction(
 		stream<ap_uint<64> >    &packetData,
 		stream<ap_uint<16> >    &packetLength,
-		stream<metadata>        &udpMetadata,
+		stream<UdpAppMeta>         &udpMetadata,
 		stream<ap_uint<16> >    &udpChecksum,
 		stream<axiWord>         &outputPathOutData,
 		stream<IpAddrPair>      &outIPaddresses,
@@ -1038,15 +1041,15 @@ void outputPathReadFunction(
 				ap_uint<16> interimLength = readFunctionOutputPathPacketLength;	// Add the length of the UDP header
 				readFunctionOutputPathPacketLength -= 8;
 				outputPathReadFunction2addIpHeader_length.write(interimLength);
-				metadata tempMetadata 			= udpMetadata.read();
+				UdpAppMeta tempMetadata 			= udpMetadata.read();
 				axiWord outputWord 				= axiWord(0, 0xFF, 0);
-				outputWord.data.range(15, 0) 	= byteSwap16(tempMetadata.sourceSocket.port);
-				outputWord.data.range(31, 16) 	= byteSwap16(tempMetadata.destinationSocket.port);
+				outputWord.data.range(15, 0) 	= byteSwap16(tempMetadata.src.port);
+				outputWord.data.range(31, 16) 	= byteSwap16(tempMetadata.dst.port);
 				outputWord.data.range(47, 32)	= byteSwap16(interimLength);
 				outputWord.data.range(63, 48)	= udpChecksum.read();
 				//std::cerr << std::hex << outputWord.data << std::endl;
 				outputPathOutData.write(outputWord);
-				IpAddrPair tempIPaddresses = IpAddrPair(tempMetadata.sourceSocket.addr, tempMetadata.destinationSocket.addr);
+				IpAddrPair tempIPaddresses = IpAddrPair(tempMetadata.src.addr, tempMetadata.dst.addr);
 				outIPaddresses.write(tempIPaddresses);
 				outputPathReadFunctionState = OR_STREAM;
 			}
@@ -1074,7 +1077,7 @@ void outputPathReadFunction(
 void addIpHeader(
 		stream<axiWord>     &outputPathRead2addIpHeader_data,
 		stream<IpAddrPair>  &outputPathRead2addIpHeader_ipAddress,
-		stream<axiWord>     &outputPathOutData,
+		stream<AxisIp4>     &soIPTX_Data,
 		stream<ap_uint<16> > &outputPathReadFunction2addIpHeader_length)
 {
 
@@ -1086,62 +1089,62 @@ void addIpHeader(
 
 	switch(iphState) {
 	case IPH_IDLE:
-		if(!outputPathRead2addIpHeader_data.empty() && !outputPathRead2addIpHeader_ipAddress.empty() &&!outputPathReadFunction2addIpHeader_length.empty() && !outputPathOutData.full()) {
+		if(!outputPathRead2addIpHeader_data.empty() && !outputPathRead2addIpHeader_ipAddress.empty() &&!outputPathReadFunction2addIpHeader_length.empty() && !soIPTX_Data.full()) {
 			ap_uint<16> tempLength = outputPathReadFunction2addIpHeader_length.read();
 			tempLength += 20;
-			axiWord tempWord = axiWord(0x0000000034000045, 0xFF, 0);
-			tempWord.data.range(31, 16) = byteSwap16(tempLength);
+			AxisIp4 tempWord = AxisIp4(0x0000000034000045, 0xFF, 0);
+			tempWord.tdata.range(31, 16) = byteSwap16(tempLength);
 			//tempWord.data.range(31, 16) = (tempLength.range(7, 0), tempLength.range(15, 0));
-			outputPathOutData.write(tempWord);
+			soIPTX_Data.write(tempWord);
 			iphState = IPH_IP1;
 		}
 		break;
 	case IPH_IP1:
-		if(!outputPathRead2addIpHeader_data.empty() && !outputPathRead2addIpHeader_ipAddress.empty() && !outputPathOutData.full()) {
-			axiWord tempWord = axiWord(0x0, 0xFF, 0);
+		if(!outputPathRead2addIpHeader_data.empty() && !outputPathRead2addIpHeader_ipAddress.empty() && !soIPTX_Data.full()) {
+			AxisIp4 tempWord = AxisIp4(0x0, 0xFF, 0);
 			ipHeaderTuple = outputPathRead2addIpHeader_ipAddress.read();
-			tempWord.data.range(31, 0) = 0x000011FF;
-			tempWord.data.range(63, 32) = byteSwap32(ipHeaderTuple.ipSa);
-			outputPathOutData.write(tempWord);
+			tempWord.tdata.range(31, 0) = 0x000011FF;
+			tempWord.tdata.range(63, 32) = byteSwap32(ipHeaderTuple.ipSa);
+			soIPTX_Data.write(tempWord);
 			iphState = IPH_IP2;
 		}
 		break;
 	case IPH_IP2:
-		if(!outputPathRead2addIpHeader_data.empty() && !outputPathOutData.full()) {
-			axiWord tempWord = axiWord(0x0, 0xFF, 0);
+		if(!outputPathRead2addIpHeader_data.empty() && !soIPTX_Data.full()) {
+			AxisIp4 tempWord = AxisIp4(0x0, 0xFF, 0);
 			outputWord = outputPathRead2addIpHeader_data.read();
-			tempWord.data.range(31, 0) = byteSwap32(ipHeaderTuple.ipDa);
-			tempWord.data.range(63, 32) = outputWord.data.range(31, 0);
-			outputPathOutData.write(tempWord);
+			tempWord.tdata.range(31, 0) = byteSwap32(ipHeaderTuple.ipDa);
+			tempWord.tdata.range(63, 32) = outputWord.data.range(31, 0);
+			soIPTX_Data.write(tempWord);
 			iphState = IPH_FORWARD;
 		}
 		break;
 	case IPH_FORWARD:
-		if(!outputPathRead2addIpHeader_data.empty() && !outputPathOutData.full()) {
-			axiWord tempWord 			= axiWord(0x0, 0x0F, 0);
-			tempWord.data.range(31, 0) 	= outputWord.data.range(63, 32);
+		if(!outputPathRead2addIpHeader_data.empty() && !soIPTX_Data.full()) {
+			AxisIp4 tempWord 			= AxisIp4(0x0, 0x0F, 0);
+			tempWord.tdata.range(31, 0) 	= outputWord.data.range(63, 32);
 			outputWord 					= outputPathRead2addIpHeader_data.read();
-			tempWord.data.range(63, 32) = outputWord.data.range(31, 0);
+			tempWord.tdata.range(63, 32) = outputWord.data.range(31, 0);
 			if(outputWord.last) {
 				if (outputWord.keep.range(7, 4) != 0) {
-					tempWord.keep.range(7, 4) = 0xF;
+					tempWord.tkeep.range(7, 4) = 0xF;
 					iphState = IPH_RESIDUE;
 				}
 				else {
-					tempWord.keep.range(7, 4) = outputWord.keep.range(3, 0);
-					tempWord.last = 1;
+					tempWord.tkeep.range(7, 4) = outputWord.keep.range(3, 0);
+					tempWord.tlast = 1;
 					iphState = IPH_IDLE;
 				}
 			}
 			else
-				tempWord.keep.range(7, 4) = 0xF;
-			outputPathOutData.write(tempWord);
+				tempWord.tkeep.range(7, 4) = 0xF;
+			soIPTX_Data.write(tempWord);
 		}
 		break;
 	case IPH_RESIDUE:
-			if (!outputPathOutData.full()) {
-				axiWord tempWord 			= axiWord(outputWord.data.range(63, 32), outputWord.keep.range(7, 4), 1);
-				outputPathOutData.write(tempWord);
+			if (!soIPTX_Data.full()) {
+				AxisIp4 tempWord = AxisIp4(outputWord.data.range(63, 32), outputWord.keep.range(7, 4), 1);
+				soIPTX_Data.write(tempWord);
 				iphState = IPH_IDLE;
 			}
 		break;
@@ -1162,10 +1165,10 @@ void addIpHeader(
  *  UdpRoleInterface (URIF) a.k.a the Application [APP] to the [IPRX].
  *****************************************************************************/
 void pTxEngine(
-		stream<axiWord> 		&siURIF_Data,
-		stream<metadata> 		&siURIF_Meta,
-		stream<ap_uint<16> > 	&siURIF_PLen,
-		stream<axiWord> 		&soIPTX_Data)
+		stream<AxisApp> 		&siURIF_Data,
+		stream<UdpAppMeta> 		&siURIF_Meta,
+		stream<UdpAppDLen> 	    &siURIF_DLen,
+		stream<AxisIp4> 		&soIPTX_Data)
 {
 
 #pragma HLS INLINE
@@ -1173,7 +1176,7 @@ void pTxEngine(
 	// Declare intermediate streams for inter-function communication
 	static stream<ap_uint<64> > packetData("packetData");
 	static stream<ap_uint<16> > packetLength("packetLength");
-	static stream<metadata>		udpMetadata("udpMetadata");
+	static stream<UdpAppMeta>		udpMetadata("udpMetadata");
 	static stream<ap_uint<16> > checksumCalculation2outputPathReadFunction("checksumCalculation2outputPathReadFunction");
 	static stream<ioWord> 		outputPathWriteFunction2checksumCalculation("outputPathWriteFunction2checksumCalculation");
 	static stream<axiWord>		outputPathRead2addIpHeader_data("outputPathRead2addIpHeader_data");
@@ -1191,7 +1194,7 @@ void pTxEngine(
 	outputPathWriteFunction(
 			siURIF_Data,
 			siURIF_Meta,
-			siURIF_PLen,
+			siURIF_DLen,
 			packetData,
 			packetLength,
 			udpMetadata,
@@ -1250,7 +1253,7 @@ void uoe(
         //------------------------------------------------------
         //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<axiWord>                 &soIPTX_Data,
+        stream<AxisIp4>                 &soIPTX_Data,
 
         //------------------------------------------------------
         //-- URIF / Control Port Interfaces
@@ -1264,15 +1267,15 @@ void uoe(
         //------------------------------------------------------
         //-- URIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>                 &soURIF_Data,
-        stream<SocketPair>              &soURIF_Meta,
+        stream<AxisApp>                 &soURIF_Data,
+        stream<UdpAppMeta>                 &soURIF_Meta,
 
         //------------------------------------------------------
         //-- URIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<axiWord>                 &siURIF_Data,
-        stream<metadata>                &siURIF_Meta,
-        stream<ap_uint<16> >            &siURIF_PLen,
+        stream<AxisApp>                 &siURIF_Data,
+        stream<UdpAppMeta>                 &siURIF_Meta,
+        stream<UdpAppDLen>                 &siURIF_PLen,
 
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
