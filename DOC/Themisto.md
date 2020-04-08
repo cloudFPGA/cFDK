@@ -1,12 +1,10 @@
-The Themisto SRA
-============================
+## The Themisto SRA
 
 This SRA type enables node2node communication within cloudFPGA.
 The network data streams have now a parallel meta stream to select the destinations or to see the source, respectively.
 The dual memory port is stream based.
 
-node2node communication
--------------------------
+### node2node communication
 
 The management of the **listen ports** is silently done in the background, **but only the following port range is allowed, currently**:
 ```C
@@ -27,17 +25,17 @@ The node-ids are mapped to IP addresses by the *Network Routing Core (NRC)*.
 The routing tables are configured during the cluster setup.
 
 
-### Known limitations
+#### Known limitations
 
 Currently, only *node-ids smaller than 128* are supported.
-For TCP, *only 32 connections per FPGA* are possible for the time being (i.e. connections in the sense of different TCP-sessions). 
+For TCP, *only 32 connections per FPGA* are possible for the time being (i.e. connections in the sense of different TCP-sessions).
 
-### HLS structs 
+#### HLS structs
 
 The code for the used Metadata can be found in `cFDK/SRA/LIB/hls/network_utils.{c|h}pp`.
 *It is recommended to import this file directly in any Role-hls code*.
 
-Respectively, the following definitons for the *Meta streams* are important: 
+Respectively, the following definitons for the *Meta streams* are important:
 ```C
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
@@ -58,7 +56,7 @@ struct NetworkMeta {
 
 //ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to bugs in Vivados hls::stream library
 struct NetworkMetaStream {
-  NetworkMeta tdata; 
+  NetworkMeta tdata;
   ap_uint<6> tkeep;
   ap_uint<1> tlast;
 
@@ -71,7 +69,7 @@ The term *rank* instead of *node_id* is used, because it seems that Vivado HLS i
 The *`len` field can be 0*, if the data stream sets `tlast` accordingly. If no `tlast` will be set, the length must be specified in advance!.
 (*The Shell will always set `tlast`*).
 
-### Example
+#### Example
 
 As an example, to send a packet to node 3, port 2723 from node 1, port 2718, the following code should be used:
 ```C
@@ -93,46 +91,45 @@ struct NetworkWord {
 };
 ```
 
-### Protocol
+#### Protocol
 
-A packet transmission consists *always of two streams: one data stream and one meta stream*. 
+A packet transmission consists *always of two streams: one data stream and one meta stream*.
 
 For each data stream *one valid* transaction of the meta stream *must be issued before* (or at least at the same time)
-(i.e. the meta stream has the `tlast` and the `tvalid` asserted). 
+(i.e. the meta stream has the `tlast` and the `tvalid` asserted).
 
 The Network Core does not process a data stream, before a valid Meta-word was received.
 Therefore, it is recommended to send the meta stream along with the start of the data stream, for UDP.
 
-For TCP, it is recommended **to send the meta stream before** the data stream, 
-*because the data stream will only be accepted, if the connection to the destination was opened successfully*. 
+For TCP, it is recommended **to send the meta stream before** the data stream,
+*because the data stream will only be accepted, if the connection to the destination was opened successfully*.
 Hence, if the ROLE has submitted the Meta-Stream successfully, but can't submit the data stream (i.e. `tready` remains 0) (after a reasonable amount of time),
-a `"connection time out"` has occurred. 
+a `"connection time out"` has occurred.
 
 If the `len` field in the Meta-Stream is set, there is no need for the `tlast` for data streams from the ROLE to the SHELL.
 *The SHELL will always set the `tlast` bit*, and the `len` field only if it is known in advance.
 
-### Error handling 
+#### Error handling
 
 Some Counters and date from the last processed packet can be requested through the `GET /instances/{instance_id}/flight_recorder_data` or `GET /clusters/{cluster_id}/flight_recorder_data` calls from the CloudFPGA Resource Manager API.
 
 
-RX path: 
+RX path:
 If the packet comes from an unknown IP address, the packet will be dropped (and the corresponding `node_id_missmatch_RX` counter in the "Flight data" will be increased).
 
 
-TX path: 
+TX path:
 If the user tries to send to an unknown node-id, the packet will be dropped (and the corresponding `node_id_missmatch_TX` counter in the "Flight data" will be increased).
 
 
 
-SRA interface
--------------------
+###SRA interface
 
 The vhdl interface *to the ROLE* looks like follows:
 ```vhdl
 entity Role_Themisto is
   port (
-    
+
     --------------------------------------------------------
     -- SHELL / Global Input Clock and Reset Interface
     --------------------------------------------------------
@@ -170,7 +167,7 @@ entity Role_Themisto is
     siNRC_Role_Udp_Meta_TREADY  : out   std_ulogic;
     siNRC_Role_Udp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
     siNRC_Role_Udp_Meta_TLAST   : in    std_ulogic;
-      
+
     ------------------------------------------------------
     -- SHELL / Role / Nts0 / Tcp Interface
     ------------------------------------------------------
@@ -199,8 +196,8 @@ entity Role_Themisto is
     siNRC_Role_Tcp_Meta_TREADY  : out   std_ulogic;
     siNRC_Role_Tcp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
     siNRC_Role_Tcp_Meta_TLAST   : in    std_ulogic;
-    
-    
+
+
     --------------------------------------------------------
     -- SHELL / Mem / Mp0 Interface
     --------------------------------------------------------
@@ -232,8 +229,8 @@ entity Role_Themisto is
     soSHL_Mem_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
     soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
     soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
-    soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
-    
+    soSHL_Mem_Mp0_Write_tready          : in    std_ulogic;
+
     --------------------------------------------------------
     -- SHELL / Mem / Mp1 Interface
     --------------------------------------------------------
@@ -265,8 +262,8 @@ entity Role_Themisto is
     soSHL_Mem_Mp1_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
     soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
     soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
-    soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
-    
+    soSHL_Mem_Mp1_Write_tready          : in    std_ulogic;
+
     --------------------------------------------------------
     -- SHELL / Mmio / AppFlash Interface
     --------------------------------------------------------
@@ -290,18 +287,18 @@ entity Role_Themisto is
     -- TOP : Secondary Clock (Asynchronous)
     --------------------------------------------------------
     piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-    
+
     ------------------------------------------------
     -- SMC Interface
-    ------------------------------------------------ 
+    ------------------------------------------------
     piFMC_ROLE_rank                      : in    std_logic_vector(31 downto 0);
     piFMC_ROLE_size                      : in    std_logic_vector(31 downto 0);
-    
+
     poVoid                              : out   std_ulogic
 
 
   );
-  
+
 end Role_Themisto;
 ```
 
@@ -309,6 +306,3 @@ end Role_Themisto;
 
 ---
 **Trivia**: The [moon Themisto](https://en.wikipedia.org/wiki/Themisto_(moon))
-
-
-
