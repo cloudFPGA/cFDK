@@ -27,14 +27,6 @@
 using namespace hls;
 
 
-///********************************************
-// * SHELL/MMIO/EchoCtrl - Config Register
-// ********************************************/
-//enum EchoCtrl {
-//  ECHO_PATH_THRU	= 0,
-//  ECHO_STORE_FWD	= 1,
-//  ECHO_OFF		= 2
-//};
 
 #define WAIT_FOR_META 0
 #define WAIT_FOR_STREAM_PAIR 1
@@ -48,8 +40,8 @@ using namespace hls;
 
 void triangle_app(
 
-    ap_uint<32>             pi_rank,
-    ap_uint<32>             pi_size,
+    ap_uint<32>             *pi_rank,
+    ap_uint<32>             *pi_size,
     //------------------------------------------------------
     //-- SHELL / This / Udp/TCP Interfaces
     //------------------------------------------------------

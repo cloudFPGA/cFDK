@@ -40,6 +40,11 @@ ap_uint<1>          piSHL_This_MmioCaptPktEn;
 //-- SHELL / Uaf / Udp Interfaces
 stream<UdpWord>   sSHL_Uaf_Data ("sSHL_Uaf_Data");
 stream<UdpWord>     sUAF_Shl_Data   ("sUAF_Shl_Data");
+ap_uint<32>             s_udp_rx_ports = 0x0;
+stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
+stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
+ap_uint<32>             rank;
+ap_uint<32>             size;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -54,7 +59,10 @@ int         simCnt;
  ******************************************************************************/
 void stepDut() {
     triangle_app(
-      sSHL_Uaf_Data, sUAF_Shl_Data);
+        &rank, &size,
+      sSHL_Uaf_Data, sUAF_Shl_Data,
+      siUdp_meta, soUdp_meta,
+      &s_udp_rx_ports);
     simCnt++;
     printf("[%4.4d] STEP DUT \n", simCnt);
 }
@@ -219,6 +227,14 @@ int main() {
             printf("### ERROR : Failed to set input data stream \"sSHL_Uaf_Data\". \n");
             nrErr++;
         }
+        
+        //there are 2 streams from the the App to the Role
+        NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,0,DEFAULT_RX_PORT,0);
+        siUdp_meta.write(NetworkMetaStream(tmp_meta));
+        siUdp_meta.write(NetworkMetaStream(tmp_meta));
+        //set correct rank and size
+        rank = 1;
+        size = 3;
     }
 
     //------------------------------------------------------
@@ -234,8 +250,22 @@ int main() {
     while (!nrErr) {
 
         if (simCnt < 25)
+        {
             stepDut();
-        else {
+
+            if(simCnt > 2)
+            {
+              assert(s_udp_rx_ports == 0x1);
+            }
+            
+            //if( !soUdp_meta.empty())
+            //{
+            //  NetworkMetaStream tmp_meta = soUdp_meta.read();
+            //  printf("NRC received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
+            //}
+
+
+        } else {
             printf("## End of simulation at cycle=%3d. \n", simCnt);
             break;
         }
@@ -245,9 +275,29 @@ int main() {
     //-------------------------------------------------------
     //-- STEP-3 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
-    //---- UAF-->SHELL ----
+    //---- UAF-->SHELL Data ----
     if (!getOutputDataStream(sUAF_Shl_Data, "sUAF_Shl_Data", "ofsUAF_Shl_Data.dat"))
+    {
         nrErr++;
+    }
+    //---- UAF-->SHELL META ----
+    if( !soUdp_meta.empty())
+    {
+      int i = 0;
+      while( !soUdp_meta.empty())
+      {
+        i++;
+        NetworkMetaStream tmp_meta = soUdp_meta.read();
+        printf("NRC received NRCmeta stream from rank %d to rank %d.\n", (int) tmp_meta.tdata.src_rank, (int) tmp_meta.tdata.dst_rank);
+        assert(tmp_meta.tdata.src_rank == rank);
+        //ensure forwarding behavior
+        assert(tmp_meta.tdata.dst_rank == ((tmp_meta.tdata.src_rank + 1) % size));
+      }
+      assert(i == 2);
+    } else {
+      printf("Error No metadata received...\n");
+      nrErr++;
+      }
 
     //------------------------------------------------------
     //-- STEP-4 : COMPARE INPUT AND OUTPUT FILE STREAMS
