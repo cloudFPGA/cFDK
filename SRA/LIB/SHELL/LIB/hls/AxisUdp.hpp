@@ -62,6 +62,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |           Checksum            |            Length             |       Destination Port        |          Source Port          |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                                                             Data                                                              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *****************************************************************************/
 
@@ -119,8 +121,8 @@ class AxisUdp: public AxiWord {
 
     // Set-Get the UDP length field
     void          setUdpLen(UdpLen length)      {                  tdata.range(47, 32) = swapWord(length);}
-    UdpPort       getUdpLen()                   { return swapWord (tdata.range(47, 32));                  }
-    LE_UdpPort getLE_UdpLen()                   {           return tdata.range(47, 32);                   }
+    UdpLen        getUdpLen()                   { return swapWord (tdata.range(47, 32));                  }
+    LE_UdpLen     getLE_UdpLen()                   {           return tdata.range(47, 32);                   }
 
     // Set-Get the UDP Checksum field
     void          setUdpCsum(UdpCsum csum)      {                  tdata.range(63, 48) = swapWord(csum);  }

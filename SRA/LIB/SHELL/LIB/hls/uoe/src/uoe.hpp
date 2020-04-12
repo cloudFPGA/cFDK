@@ -59,40 +59,6 @@ using namespace hls;
 
 const Ip4Prot   UDP_PROTOCOL = 17; // IP protocol number for UDP
 
-//OBSOLETE-20180619 #define myIP 0x0101010A
-
-//OBSOLETE_20200306 #define MTU	1500  // Maximum Transmission Unit in bytes
-
-extern uint32_t clockCounter;
-
-struct sockaddr_in {
-    ap_uint<16>		port;   /* port in network byte order */
-    ap_uint<32>		addr;   /* internet address */
-    sockaddr_in() 	{}
-    sockaddr_in(ap_uint<16> port, ap_uint<32> addr)
-    				: port(port), addr(addr) {}
-};
-
-/*** 20200324 **[TODO-MustDisappear]***/
-struct metadata {
-	sockaddr_in		sourceSocket;
-	sockaddr_in		destinationSocket;
-	metadata() 		{}
-	metadata(sockaddr_in sourceSocket, sockaddr_in destinationSocket)
-			 	 	: sourceSocket(sourceSocket), destinationSocket(destinationSocket) {}
-};
-/***************************************/
-
-/*** OBSOLETE_202020306 ***************
-struct ipTuple {
-	ap_uint<32>		sourceIP;
-	ap_uint<32>		destinationIP;
-	ipTuple() 		{}
-	ipTuple(ap_uint<32> sourceIP, ap_uint<32> destinationIP)
-					: sourceIP(sourceIP), destinationIP(destinationIP) {}
-};
-***************************************/
-
 /***********************************************
  * IPv4 ADDRESS PAIR
  ***********************************************/
@@ -105,29 +71,12 @@ class IpAddrPair {
         ipSa(ipSa), ipDa(ipDa) {}
 };
 
-
-struct ioWord  {
-	ap_uint<64>		data;
-	ap_uint<1>		eop;
-};
-
-struct axiWord {
-	ap_uint<64>		data;
-	ap_uint<8>		keep;
-	ap_uint<1>		last;
-	axiWord() 		{}
-	axiWord(ap_uint<64> data, ap_uint<8> keep, ap_uint<1> last)
-					:data(data), keep(keep), last(last) {}
-};
-
-
 /***********************************************
  * Definition of the UDP Role Interfaces (URIF)
  ***********************************************/
 typedef AxiWord      UdpAppData;
 typedef SocketPair   UdpAppMeta;
-typedef ap_uint<16>  UdpAppDLen;
-
+typedef UdpLen       UdpAppDLen;
 
 /*************************************************************************
  *

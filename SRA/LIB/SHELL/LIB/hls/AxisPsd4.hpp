@@ -164,7 +164,6 @@ class AxisPsd4: public AxiWord {
     void        setPsd4Len(Psd4Len len)         {                  tdata.range(31, 16) = swapWord(len);   }
     Psd4Len     getPsd4Len()                    { return swapWord (tdata.range(31, 16));                  }
 
-
     //-----------------------------------------------------
     //-- ENCAPSULATED TCP SEGMENT - Setters and Getters
     //-----------------------------------------------------
@@ -223,13 +222,19 @@ class AxisPsd4: public AxiWord {
     // Set-Get the UDP Destination Port
     void        setUdpDstPort(UdpPort port)     {                  tdata.range(63, 48) = swapWord(port);  }
     UdpPort     getUdpDstPort()                 { return swapWord (tdata.range(63, 48));                  }
-
     // Set-Get the UDP Length
     void        setUdpLen(UdpLen len)           {                  tdata.range(15,  0) = swapWord(len);   }
     UdpLen      getUdpLen()                     { return swapWord (tdata.range(15,  0));                  }
     // Set-Get the UDP Checksum
     void        setUdpCsum(UdpCsum csum)        {                  tdata.range(31, 16) = swapWord(csum);  }
     TcpChecksum getUdpCsum()                    { return swapWord (tdata.range(31, 16));                  }
+    // Set-Get a UDP Data Word
+    void        setUdpData(UdpData data)        {                  tdata.range(63,  0) = swapQWord(data); }
+    UdpData     getUdpData()                    { return swapQWord(tdata.range(63,  0));                  }
+    void        setUdpDataHi(UdpData data)      {                  tdata.range(63, 32) = swapDWord(data.range(63, 32)); }
+    UdpDataHi   getUdpDataHi()                  { return swapDWord(tdata.range(63, 32));                  }
+    void        setUdpDataLo(UdpData data)      {                  tdata.range(31,  0) = swapDWord(data.range(31,  0)); }
+    UdpDataLo   getUdpDataLo()                  { return swapDWord(tdata.range(31,  0));                  }
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)
@@ -240,6 +245,13 @@ class AxisPsd4: public AxiWord {
     ap_uint<32> swapDWord(ap_uint<32> inpDWord) {
         return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
                 inpDWord.range(23,16), inpDWord.range(31, 24));
+    }
+    // Swap the eight bytes of a quad-word (.i.e, 64 bits)
+    ap_uint<64> swapQWord(ap_uint<64> inpQWord) {
+        return (inpQWord.range( 7, 0), inpQWord.range(15,  8),
+                inpQWord.range(23,16), inpQWord.range(31, 24),
+                inpQWord.range(39,32), inpQWord.range(47, 40),
+                inpQWord.range(55,48), inpQWord.range(63, 56));
     }
 
 }; // End of: AxisPsd4

@@ -543,7 +543,7 @@ void arp_server(
     static stream<LE_Ip4Addr>      ssACcToAPs_Meta      ("ssACcToAPs_Meta");
     #pragma HLS STREAM    variable=ssACcToAPs_Meta      depth=4
 
-static ap_uint<32> intIpAddress[NO_OF_BROADCASTS];
+    //OBSOLETE_20200409 static ap_uint<32> intIpAddress[NO_OF_BROADCASTS];
 
     pArpPacketReceiver(
         piMMIO_IpAddress,

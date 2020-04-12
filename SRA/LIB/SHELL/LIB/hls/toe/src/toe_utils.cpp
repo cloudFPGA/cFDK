@@ -56,6 +56,20 @@ ap_uint<48> byteSwap48(ap_uint<48> inputVector) {
 }
 
 /*****************************************************************************
+ * @brief Swap the eight bytes of a quad-word (.i.e, 64 bits).
+ *
+ * @param[in] inpQWord, a 64-bit unsigned data.
+ *
+ * @return a 64-bit unsigned data.
+ *****************************************************************************/
+ap_uint<64> byteSwap64(ap_uint<64> inputVector) {
+    return (inputVector.range( 7, 0), inputVector(15,  8),
+            inputVector.range(23,16), inputVector(31, 24),
+            inputVector.range(39,32), inputVector(47, 40),
+            inputVector.range(55,48), inputVector(63, 56));
+}
+
+/*****************************************************************************
  * @brief Returns the number of valid bytes in an AxiWord.
  * @param[in] The 'tkeep' field of the AxiWord.
  * [FIXME - To replace be replaced by keepToLen of class AxiWord]

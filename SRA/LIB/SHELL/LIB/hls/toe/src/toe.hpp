@@ -275,6 +275,17 @@ static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
 
 #define TLAST       1
 
+/*********************************************************
+ * AXIS TYPE FIELDS DEFINITION
+ *   FYI - 'LE' stands for Little-Endian order.
+ *********************************************************/
+typedef ap_uint<64> LE_tData;
+typedef ap_uint< 8> LE_tKeep;
+typedef ap_uint<64> tData;
+typedef ap_uint<32> tDataHalf;
+typedef ap_uint< 8> tKeep;
+typedef ap_uint< 1> tLast;
+
 /**********************************************************
  * GENERIC AXI4 STREAMING INTERFACES
  **********************************************************/
@@ -297,11 +308,11 @@ template<int D>
  *  'tlast' bit indicates the end of a stream.
  ************************************************/
 class AxiWord {  // [TODO - Consider renaming into AxisWord]
-public:
-    ap_uint<64>     tdata;
-    ap_uint<8>      tkeep;
+  public:
+    ap_uint<64>     tdata;  // [FIXME-Should be LE_tData]
+    ap_uint<8>      tkeep;  // [FIXME-Should be LE_tKeep]
     ap_uint<1>      tlast;
-public:
+  public:
     AxiWord()       {}
     AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
@@ -319,6 +330,44 @@ public:
         }
         return 0;
     }
+    // Set the tdata field in Big-Endian order
+    void setTData(tData data) {
+        tdata.range(63,  0) = byteSwap64(data);
+    }
+    // Return the tdata field in Big-Endian order
+    tData getTData() {
+        return byteSwap64(tdata.range(63, 0));
+    }
+    // Set the upper-half part of the tdata field in Big-Endian order
+    void setTDataHi(tData data) {
+        tdata.range(63, 32) = byteSwap32(data.range(63, 32)); }
+    // Return the upper-half part of the tdata field in Big-Endian order
+    tDataHalf getTDataHi() {
+        return byteSwap32(tdata.range(63, 32));
+    }
+    // Set the lower-half part of the tdata field in Big-Endian order
+    void setTDataLo(tData data) {
+        tdata.range(31,  0) = byteSwap32(data.range(31,  0)); }
+    // Return the lower-half part of the tdata field in Big-Endian order
+    tDataHalf getTDataLo() {
+        return byteSwap32(tdata.range(31,  0));
+    }
+    // Set the tkeep field
+    void setTKeep(tKeep keep) {
+        tkeep = keep;
+    }
+    // Get the tkeep field
+    tKeep getTKeep() {
+        return tkeep;
+    }
+    // Set the tlast field
+    void setTLast(tLast last) {
+        tlast = last;
+    }
+    // Get the tlast bit
+    tLast getTLast() {
+        return tlast;
+    }
     // Assess the consistency of 'tkeep' and 'tlast'
     bool isValid() {
     	if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
@@ -326,6 +375,26 @@ public:
     		return false;
     	}
     	return true;
+    }
+    /**************************************************************************
+     * @brief Swap the four bytes of a double-word (.i.e, 32 bits).
+     * @param[in] inpDWord, a 32-bit unsigned data.
+     * @return    a 32-bit unsigned data.
+     **************************************************************************/
+    ap_uint<32> byteSwap32(ap_uint<32> inpDWord) {
+        return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
+                inpDWord.range(23,16), inpDWord.range(31, 24));
+    }
+    /**************************************************************************
+     * @brief Swap the eight bytes of a quad-word (.i.e, 64 bits).
+     * @param[in] inpQWord, a 64-bit unsigned data.
+     * @return    a 64-bit unsigned data.
+     **************************************************************************/
+    ap_uint<64> byteSwap64(ap_uint<64> inpQWord) {
+        return (inpQWord.range( 7, 0), inpQWord(15,  8),
+                inpQWord.range(23,16), inpQWord(31, 24),
+                inpQWord.range(39,32), inpQWord(47, 40),
+                inpQWord.range(55,48), inpQWord(63, 56));
     }
 };
 
@@ -512,6 +581,9 @@ typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
 typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
 typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
 typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
+typedef ap_uint<64> Ip4Data;        // IP4 Data unit of transfer
+typedef ap_uint<32> Ip4DataHi;      // IP4 High part of a data unit of transfer
+typedef ap_uint<32> Ip4DataLo;      // IP4 Low-part of a data unit of transfer
 
 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
@@ -574,20 +646,25 @@ typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 /*********************************************************
  * UDP - HEADER FIELDS IN NETWORK BYTE ORDER.
  *   Default Type Definitions (as used by HLS)
+ *  [TODO - Must be moved into uoe.hpp or nts.hpp]
  *********************************************************/
 typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
 typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
 typedef ap_uint<16> UdpPort;        // UDP source or destination Port
-typedef ap_uint<16> UdpLen;         // UDP header and data Length
+typedef ap_uint<16> UdpDgmLen;      // UDP header and data Length
 typedef ap_uint<16> UdpChecksum;    // UDP Checksum header and data Checksum
 typedef ap_uint<16> UdpCsum;        // UDP Checksum (alias for UdpChecksum)
+typedef ap_uint<64> UdpData;        // UDP Data unit of transfer
+typedef ap_uint<32> UdpDataHi;      // UDP High part of a data unit of transfer
+typedef ap_uint<32> UdpDataLo;      // UDP Low-part of a data unit of transfer
+
 
 /*********************************************************
  * LY4 - COMMON TCP and UDP HEADER FIELDS
  *  Default Type Definitions (as used by HLS)
  *********************************************************/
 typedef ap_uint<16> Ly4Port;        // LY4 Port
-
+typedef ap_uint<16> Ly4Len;         // LY4 header plus data Length
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
@@ -691,18 +768,17 @@ class Ip4overMac: public AxiWord {
 
     /*** UDP DATAGRAM **************************/
     // Set-Get the UDP Source Port
-    void          setUdpSrcPort(UdpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
-    UdpPort       getUdpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
+    void        setUdpSrcPort(UdpPort port)     {                  tdata.range(47, 32) = swapWord(port);  }
+    UdpPort     getUdpSrcPort()                 { return swapWord (tdata.range(47, 32));                  }
     // Set-Get the UDP Destination Port
-    void          setUdpDstPort(UdpPort port)   {                  tdata.range(63, 48) = swapWord(port);  }
-    UdpPort       getUdpDstPort()               { return swapWord (tdata.range(63, 48));                  }
+    void        setUdpDstPort(UdpPort port)     {                  tdata.range(63, 48) = swapWord(port);  }
+    UdpPort     getUdpDstPort()                 { return swapWord (tdata.range(63, 48));                  }
     // Set-Get the UDP Length
-    void        setUdpLen(UdpLen len)           {                  tdata.range(15,  0) = swapWord(len);   }
-    UdpLen      getUdpLen()                     { return swapWord (tdata.range(15,  0));                  }
+    void        setUdpLen(UdpDgmLen len)        {                  tdata.range(15,  0) = swapWord(len);   }
+    UdpDgmLen   getUdpLen()                     { return swapWord (tdata.range(15,  0));                  }
     // Set-Get the UDP Checksum
     void        setUdpChecksum(UdpCsum csum)    {                  tdata.range(31, 16) = swapWord(csum);                   }
     UdpCsum     getUdpChecksum()                { return swapWord (tdata.range(31, 16));                  }
-
 
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)

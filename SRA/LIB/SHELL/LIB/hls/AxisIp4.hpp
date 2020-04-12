@@ -161,6 +161,7 @@ typedef ap_uint<32> Ip4SrcAddr;     // IPv4 Source Address
 typedef ap_uint<32> Ip4DstAddr;     // IPv4 Destination Address
 typedef ap_uint<32> Ip4Address;     // IPv4 Source or Destination Address
 typedef ap_uint<32> Ip4Addr;        // IPv4 Source or Destination Address
+typedef ap_uint<64> Ip4Data;        // IPv4 Data unit of transfer
 
 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
@@ -227,6 +228,13 @@ class AxisIp4: public AxiWord {
     // Set-Get the IP4 Destination Address
     void        setIp4DstAddr(Ip4Addr addr)     {                  tdata.range(31,  0) = swapDWord(addr); }
     Ip4Addr     getIp4DstAddr()                 { return swapDWord(tdata.range(31,  0));                  }
+    // Set-Get a IP4 Data Word
+    void        setIp4Data(Ip4Data data)        {                  tdata.range(63,  0) = swapQWord(data); }
+    //Ip4Data     getIp4pData()                   { return swapQWord(tdata.range(63,  0));                  }
+    //void        setIp4DataHi(Ip4Data data)      {                  tdata.range(63, 32) = swapDWord(data.range(63, 32)); }
+    //Ip4DataHi   getIp4DataHi()                  { return swapDWord(tdata.range(63, 32));                  }
+    //void        setIp4DataLo(Ip4Data data)      {                  tdata.range(31,  0) = swapDWord(data.range(31,  0)); }
+    //Ip4DataLo   getIp4DataLo()                  { return swapDWord(tdata.range(31,  0));                  }
 
     LE_Ip4TtL  getLE_Ip4Ttl()                   {           return tdata.range( 7,  0);                   }
     LE_Ip4Prot getLE_Ip4Prot()                  {           return tdata.range(15,  8);                   }
@@ -284,7 +292,7 @@ class AxisIp4: public AxiWord {
     LE_TcpPort  getLE_TcpDstPort()              {           return tdata.range(63, 48);                   }
 
     //-----------------------------------------------------
-    //-- [TODO] ENCAPSULATED UDP DATAGRAM - Setters and Getters
+    //-- ENCAPSULATED UDP DATAGRAM - Setters and Getters
     //-----------------------------------------------------
     // Set-Get the UDP Source Port
     void        setUdpSrcPort(UdpPort port)     {                  tdata.range(47, 32) = swapWord(port);  }
@@ -327,6 +335,13 @@ class AxisIp4: public AxiWord {
     ap_uint<32> swapDWord(ap_uint<32> inpDWord) {
         return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
                 inpDWord.range(23,16), inpDWord.range(31, 24));
+    }
+    // Swap the eight bytes of a quad-word (.i.e, 64 bits)
+    ap_uint<64> swapQWord(ap_uint<64> inpQWord) {
+        return (inpQWord.range( 7, 0), inpQWord.range(15,  8),
+                inpQWord.range(23,16), inpQWord.range(31, 24),
+                inpQWord.range(39,32), inpQWord.range(47, 40),
+                inpQWord.range(55,48), inpQWord.range(63, 56));
     }
 
 }; // End of: AxisIp4

@@ -755,22 +755,22 @@ int main(int argc, char *argv[]) {
     StsBool     openReply;
 
     AxisIp4                 inputPathInputData          = AxisIp4(0, 0, 0);
-	metadata				inputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
-	axiWord					inputPathOutputData			= axiWord(0, 0, 0);
+    //OBSOLETE_20200411 metadata				inputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
+    //OBSOLETE_20200411 axiWord					inputPathOutputData			= axiWord(0, 0, 0);
 	ap_uint<16>				openPortData				= 0;
 	bool					portStatusData				= false;
-	metadata				inputPathOutputMetadata 	= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
-    axiWord                 outputPathInData            = axiWord(0, 0, 0);
+	//OBSOLETE_20200411 metadata				inputPathOutputMetadata 	= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
+    //OBSOLETE_20200411     axiWord                 outputPathInData            = axiWord(0, 0, 0);
     //OBSOLETE_20200310 	axiWord					outputPathOutData			= axiWord(0, 0, 0);
 	ap_uint<16> 			outputPathInputLength		= 0;
-	metadata				outputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
+	//OBSOLETE_20200411 metadata				outputPathInputMetadata		= metadata(sockaddr_in(0, 0), sockaddr_in(0, 0));
 
 	/// Input File Temp Variables ///
 	uint16_t				inputSourceIP				= 0;
 	uint16_t				inputDestinationIP			= 0;
 	//uint64_t 				dataString					= 0;
 	std::string 			dataString;
-	axiWord					inputData					= axiWord(0, 0, 0);
+    //OBSOLETE_20200411 axiWord					inputData					= axiWord(0, 0, 0);
 	uint16_t				sop 						= 0;
 	uint16_t				eop							= 0;
 	uint16_t				mod							= 0;
