@@ -4,7 +4,7 @@ FPGA Management Core -- General Documentation
 
 ## Overview 
 
-The FMC is the core of the cloudFPGA Shell-(Middleware-)Role-Architecture. 
+The FMC is the core of the cloudFPGA Shell-Role-Architecture. 
 
 
 Its tasks and responsibilities are sometimes complex and depend on the current situation and environment. 
