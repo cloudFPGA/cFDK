@@ -1,29 +1,27 @@
-FPGA Management Core -- General Documentation
-======================
+## FPGA Management Core
+
+### Overview
+
+The FMC is the core of the cloudFPGA Shell-(Middleware-)Role-Architecture.
 
 
-## Overview 
-
-The FMC is the core of the cloudFPGA Shell-(Middleware-)Role-Architecture. 
-
-
-Its tasks and responsibilities are sometimes complex and depend on the current situation and environment. 
+Its tasks and responsibilities are sometimes complex and depend on the current situation and environment.
 In order to unbundle all these dependencies and to allow future extensions easily, the FMC contains a small Instruction-Set-Architecture (ISA).
-All global operations issue opcodes to execute the current task. The global operations are persistent between IP core runs and react on environment changes, the issued Instructions are all executed in the same IP core run. 
+All global operations issue opcodes to execute the current task. The global operations are persistent between IP core runs and react on environment changes, the issued Instructions are all executed in the same IP core run.
 The global operations are started according to the *EMIF Flags in the FMC Write Register* (see below).
 
-### General Phases
+#### General Phases
 
 For all IP core iterations, the following steps are executed:
 1. Evaluate all incoming signals (especially the MMIO/EMIF register)
 2. Based on this and the persistent global variables, evaluate the global Operations (stay with current or change)
-3. Based on this create a program to be executed in this IP core iteration 
-4. Execute this program 
+3. Based on this create a program to be executed in this IP core iteration
+4. Execute this program
 5. Evaluate last return value of this program
 6. Perform 'daily tasks' (i.e. set Display Values, update Decoupling signals, read NRC status, etc.)
 
 
-### ISA overview
+#### ISA overview
 
 The program to be executed in phase 4 consists of a *maximum of 64 instructions, each 2 Bytes long*:
 
@@ -47,22 +45,22 @@ The masks are stored in the array `programMask`, the opcodes in `opcodeProgram`,
 
 
 
-The Operations, Opcodes, and global (persistent) variables are documented in the following. 
+The Operations, Opcodes, and global (persistent) variables are documented in the following.
 Afterwards, the EMIF connection (External Memory InterFace) to the PSoC is documented.
 
-## Microarchitecture 
+### Microarchitecture
 
-### Global Operations
+#### Global Operations
 
-The Global Operations Type stores the current Operation between IP core calls (so it is persistent). 
+The Global Operations Type stores the current Operation between IP core calls (so it is persistent).
 
-|   Name         |  Value |  Description | 
+|   Name         |  Value |  Description |
 |:---------------|:------:|:------------:|
 | `GLOBAL_IDLE`  |  `0`   | Default state |
 | `GLOBAL_XMEM_CHECK_PATTERN` |`1` |   |
 | `GLOBAL_XMEM_TO_HWICAP`| `2`  |   |
 | `GLOBAL_XMEM_HTTP` | `3` |  |
-| `GLOBAL_TCP_HTTP` |`4`  |    | 
+| `GLOBAL_TCP_HTTP` |`4`  |    |
 | `GLOBAL_PYROLINK_RECV` | `5` | |
 | `GLOBAL_PYROLINK_TRANS` | `6` |  |
 | `GLOBAL_MANUAL_DECOUPLING` | `7` |  |
@@ -72,28 +70,28 @@ All operations involving the XMEM should be sensible to `reset_from_psoc`.
 A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* when the operation is finished.
 
 
-### Internal Return values
+#### Internal Return values
 
 **One hot encoded!**
 
-|   Name         |  Value |  Description | 
+|   Name         |  Value |  Description |
 |:---------------|:------:|:------------:|
 | `OPRV_OK`       | ` 0x1` |  |
-| `OPRV_FAIL`      |   `0x2`  |  | 
-| `OPRV_SKIPPED`  | `0x4`   |   | 
-| `OPRV_NOT_COMPLETE` | `0x8`    |   | 
+| `OPRV_FAIL`      |   `0x2`  |  |
+| `OPRV_SKIPPED`  | `0x4`   |   |
+| `OPRV_NOT_COMPLETE` | `0x8`    |   |
 | `OPRV_PARTIAL_COMPLETE` |  `0x10` |  |
-| `OPRV_DONE`    |  ` 0x20` | | 
+| `OPRV_DONE`    |  ` 0x20` | |
 | `OPRV_USER`    | `0x40` | |
 
-### Internal Opcodes
+#### Internal Opcodes
 
 | Instruction                   |   Description                   |   Return Value |
 |:------------------------------|:--------------------------------|:---------------|
 | `OP_NOP                        ` |  do nothing                 |  (not changed)  |
-| `OP_ENABLE_XMEM_CHECK_PATTERN  ` |  set the XMEM check pattern flag |   `OPRV_OK` | 
+| `OP_ENABLE_XMEM_CHECK_PATTERN  ` |  set the XMEM check pattern flag |   `OPRV_OK` |
 | `OP_DISABLE_XMEM_CHECK_PATTERN ` | unset the XMEM check pattern flag (*default*) | `OPRV_OK` |
-| `OP_XMEM_COPY_DATA             ` | tries to copy data from XMEM; sensitive to check pattern flag; *sets `flag_last_xmem_page_received`;* | `OPRV_NOT_COMPLETE` or `OPRV_PARTIAL_COMPLETE` if not yet a complete page was received; `OPRV_FAIL` if there is a terminating error for this transfer; `OPRV_OK` if a complete page was received (not the last page); `OPRV_DONE` if a complete last page was received; | 
+| `OP_XMEM_COPY_DATA             ` | tries to copy data from XMEM; sensitive to check pattern flag; *sets `flag_last_xmem_page_received`;* | `OPRV_NOT_COMPLETE` or `OPRV_PARTIAL_COMPLETE` if not yet a complete page was received; `OPRV_FAIL` if there is a terminating error for this transfer; `OPRV_OK` if a complete page was received (not the last page); `OPRV_DONE` if a complete last page was received; |
 | `OP_FILL_BUFFER_TCP            ` |  it reads the TCP data stream and writes it into the internal buffer| `OPRV_OK` if some data was received or the buffer is full, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received |
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
 | `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing |  `OPRV_OK`                |
@@ -113,7 +111,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_ACTIVATE_DECOUP`             | activates Decoupling logic | `OPRV_OK` |
 | `OP_DEACTIVATE_DECOUP`           | de-activates Decoupling logic | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
 | `OP_ABORT_HWICAP`                | causes the operation of HWICAP to abort | `OPRV_OK` |
-| `OP_EXIT`                        | ends the program, irrelevant to the program length | *unchanged* | 
+| `OP_EXIT`                        | ends the program, irrelevant to the program length | *unchanged* |
 | `OP_ENABLE_SILENT_SKIP`          | set the silent skip flag | (not changed) |
 | `OP_DISABLE_SILENT_SKIP`         | unset the silent skip flag | (not changed) |
 | `OP_WAIT_FOR_TCP_SESS`           | updates `currentTcpSessId` once | `OPRV_OK` if a sessionId was received or was already updated, `OPRV_NOT_COMPLETE` otherwise |
@@ -127,32 +125,32 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 The initial `lastReturnValue` is always `OPRV_OK`.
 To execute an opcode always, the mask `MASK_ALWAYS` can be used.
 
-### Global Variables 
+#### Global Variables
 
 All global variables are marked as `#pragma HLS reset`.
 
 | Variable           |  affected by or affects OP-code(s)     |    Description     |
 |:-------------------|:----------------------------|:-------------------|
-| `flag_check_xmem_pattern`  |   `OP_ENABLE_XMEM_CHECK_PATTERN`, `OP_DISABLE_XMEM_CHECK_PATTERN`, `OP_XMEM_COPY_DATA` |   set pattern check mode (and consequently ignore the `lastPageCnt`) | 
+| `flag_check_xmem_pattern`  |   `OP_ENABLE_XMEM_CHECK_PATTERN`, `OP_DISABLE_XMEM_CHECK_PATTERN`, `OP_XMEM_COPY_DATA` |   set pattern check mode (and consequently ignore the `lastPageCnt`) |
 | `flag_silent_skip`  |  `OP_ENABLE_SILENT_SKIP`, `OP_DISABLE_SILENT_SKIP`, general program loop | does not alter RV if skipping |
 | `last_xmem_page_received_persistent` | `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_PYROLINK` | is set if the Xmem marked a last page (i.e. if `OP_XMEM_COPY_DATA` returns `OPRV_DONE`) |
-| `globalOperationDone_persistent`  | no opcodes, but *all global states*   | causes the state to not run again, until environment changed | 
-| `bufferInPtrWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Address in the InBuffer *where to write next*| 
-| `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (**including**, i.e. afterwards no valid data (--> ` for... i <= bufferInPtrMaxWrite`) | 
-| `bufferInPtrNextRead`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  | Address in the inBuffer that was *net yet* read | 
+| `globalOperationDone_persistent`  | no opcodes, but *all global states*   | causes the state to not run again, until environment changed |
+| `bufferInPtrWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Address in the InBuffer *where to write next*|
+| `bufferInPtrMaxWrite`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  |   Maximum written address in inBuffer (**including**, i.e. afterwards no valid data (--> ` for... i <= bufferInPtrMaxWrite`) |
+| `bufferInPtrNextRead`  | `OP_CLEAR_IN_BUFFER`, `OP_XMEM_COPY_DATA`, `OP_BUFFER_TO_HWICAP`, `OP_BUFFER_TO_ROUTING`, `OP_PARSE_HTTP_BUFFER`  | Address in the inBuffer that was *net yet* read |
 | `bufferOutPtrWrite`  | `OP_CLEAR_OUT_BUFFER`, `OP_HANDLE_HTTP` |   Address in OutBuffer *where to write next* |
 | `bufferOutPtrNextRead` | `OP_SEND_BUFFER_TCP`|   |
 | `transferError_persistent`| `OP_ABORT_HWICAP`, also *all global states* | markes a terminating error during transfer --> halt until reset|
-| `httpState`  | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`  | current state of HTTP request processing | 
+| `httpState`  | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`  | current state of HTTP request processing |
 | `bufferOutContentLength` | `OP_HANDLE_HTTP`, `OP_CLEAR_OUT_BUFFER`, `OP_SEND_BUFFER_XMEM`  | Content in BufferOut in *Bytes* |
 | `invalidPayload_persistent` | `OP_HANDLE_HTTP`, `OP_UPDATE_HTTP_STATE`, `OP_BUFFER_TO_ROUTING` | marks an invalid Payload |
 | `toDecoup_persistent`  | `OP_ACTIVATE_DECOUP`, `OP_DEACTIVATE_DECOUP` | stores the Decoupling State |
 | `xmem_page_trans_cnt` | `OP_XMEM_COPY_DATA` | stores the counter for the next expected xmem page |
-| `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging (*no reset, for better debugging*)| 
+| `wordsWrittentoIcapCnt` | `OP_BUFFER_TO_HWICAP` | Counts the words written to the ICAP, for Debugging (*no reset, for better debugging*)|
 | `lastResponsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Bytes in the last Page |
 | `responsePageCnt` | is changed by the method `bytesToPages`, which is called by `OP_SEND_BUFFER_XMEM` | Contains the number of Xmem pages of a response |
 | `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
-| `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles | 
+| `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles |
 | `TcpSessId_updated_persistent` | `GLOBAL_TCP_HTTP`, `GLOBAL_TCP_TO_HWICAP` | stores if the Tcp SessionId for this iteration was already read. |
 | `fsmTcpSessId_RX`   |    |   |
 | `fsmTcpSessId_TX`  |    |   |
@@ -164,7 +162,7 @@ All global variables are marked as `#pragma HLS reset`.
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
 
-### RequestType
+#### RequestType
 
 It is necessary that the FMC ISA can perform conditional jumps based on the received HTTP Request. Hence, the `OP_COPY_REQTYPE_TO_RETURN` was implemented and the `ReqType` encoded as follows:
 
@@ -178,38 +176,38 @@ It is necessary that the FMC ISA can perform conditional jumps based on the rece
 | `POST_ROUTING `| `0x20` |    |
 
 
-### `msg` field
+#### `msg` field
 
-The FMC Read Register (see below) contains a `msg` field, with the following meaning: 
+The FMC Read Register (see below) contains a `msg` field, with the following meaning:
 
 | `msg` field content    |   Description  |
 |:-----------------------|:---------------|
-| `NOC`    | the Pyrolink sender didn't send any data | 
-| `ERR`    | some fatal transfer error occurred --> reset required | 
-| `IDL`    | initial value | 
+| `NOC`    | the Pyrolink sender didn't send any data |
+| `ERR`    | some fatal transfer error occurred --> reset required |
+| `IDL`    | initial value |
 | `BOR`    | `...ING`! The FMC has nothing to do |
 | `UTD`    | Up To Date; I.e. during a xmem transfer, the current page was already processed |
 | `INV`    | Invalid; During a Xmem transfer, the page isn't a valid page (we are in the middle of a transfer) |
 | `CMM`    | Counter mismatch; During a Xmem transfer, the current valid page dosn't match the expected counter (i.e. we missed one complete page) |
-| `COR`    | Corrupt pattern during check pattern mode | 
-| `SUC`    | Last xmem page received successfully | 
-| ` OK`    | a new valid and expected xmem page received, but not the last one | 
+| `COR`    | Corrupt pattern during check pattern mode |
+| `SUC`    | Last xmem page received successfully |
+| ` OK`    | a new valid and expected xmem page received, but not the last one |
 
-### Global Operations Priorities 
+#### Global Operations Priorities
 
-The Flags submitted to the FMC are evaluated in a specific order to avoid invalid combinations. 
+The Flags submitted to the FMC are evaluated in a specific order to avoid invalid combinations.
 
-| Priority |  Global Operation | `MMIO_in` flags set | 
+| Priority |  Global Operation | `MMIO_in` flags set |
 |:--------:|:------------------|:--------------|
 | 1        | `GLOBAL_TCP_HTTP` | `startTcpMode` |
-| 2   | `GLOBAL_XMEM_HTTP` | `startXmemTrans`, `parseHTTP` | 
+| 2   | `GLOBAL_XMEM_HTTP` | `startXmemTrans`, `parseHTTP` |
 | 3   | `GLOBAL_XMEM_CHECK_PATTERN` |  `startXmemTrans`, `checkPattern` |
-| 4   | `GLOBAL_XMEM_TO_HWICAP` | `startXmemTrans` | 
-| 5   | `GLOBAL_PYROLINK_RECV` | `pyroRecvMode` | 
+| 4   | `GLOBAL_XMEM_TO_HWICAP` | `startXmemTrans` |
+| 5   | `GLOBAL_PYROLINK_RECV` | `pyroRecvMode` |
 | 6   | `GLOBAL_PYROLINK_TRANS` | `pyroReadReq` |
 | 7   | `GLOBAL_MANUAL_DECOUPLING` | `manuallyToDecoup` |
 
-## EMIF connection
+### EMIF connection
 
 There are **three** connections between the FMC and the EMIF:
 1. The FMC Write Register (i.e. PSoC to FMC)
@@ -226,14 +224,14 @@ There are **three** connections between the FMC and the EMIF:
 
 
 
-### The FMC Write Register 
+#### The FMC Write Register
 (i.e. *write* from PSoC/Coaxium to FMC)
 
-| Bytes | Description | 
+| Bytes | Description |
 |:------|:------------|
 | 0 | flag `manuallyToDecoup` |
 | 1 | **reset** XMEM connection (and all XMEM global states) |
-| 2 | Trigger soft reset for the Role | 
+| 2 | Trigger soft reset for the Role |
 | 3 | flag `pyroReadReq` (i.e. from FMC to Coaxium) |
 | 4 | flag `startTcpMode` |
 | 5 -- 11 | unused |
@@ -249,7 +247,7 @@ There are **three** connections between the FMC and the EMIF:
 
 All values are 0 per default.
 
-### The FMC Read Register
+#### The FMC Read Register
 (i.e. Coaxium/PSoC *read* from FMC)
 
 Since the amount of information that is provided by the FMC exceeds 32 bit, the *Display Concept* is introduced.
@@ -258,12 +256,12 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 
 
 
-(Display 0 is `CAFEBABE` as default value). 
+(Display 0 is `CAFEBABE` as default value).
 
 
 (HWICAP values refer to the Xilinx Document PG134)
 
-#### Display 1
+##### Display 1
 
 | Bytes | Description |
 |:------|:-------------|
@@ -277,21 +275,21 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 20 -- 27 | Abort Status Register Word 1 from HWICAP|
 
 
-#### Display 2
+##### Display 2
 
 | Bytes | Description |
 |:------|:-------------|
 | 0 -- 23 | Abort Status Register Word 2 -- 4 |
 | 24 -- 27 | unused |
 
-#### Display 3
+##### Display 3
 
 | Bytes | Description |
 |:------|:-------------|
 | 0 -- 23 | the `msg` field (see above) |
 | 24 -- 27| Number of the last valid received XMEM page|
 
-#### Display 4
+##### Display 4
 
 | Bytes | Description |
 |:------|:-------------|
@@ -301,15 +299,15 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 16 -- 23| Number iterations with an unexpected empty HWICAP FIFO (see WFV register from the HWICAP)|
 | 24 -- 27| unused|
 
-#### Display 5
+##### Display 5
 
 | Bytes | Description |
 |:------|:-------------|
 | 0 -- 23| Total Number of Words (i.e. 4 Bytes) written to HWICAP during partial reconfiguration|
-| 24 -- 27| unused| 
+| 24 -- 27| unused|
 
 
-#### Display 6
+##### Display 6
 
 | Bytes | Description |
 |:------|:-------------|
@@ -318,7 +316,3 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 16 -- 22| The number of Bytes on the last XMEM page when sending data *to the Coaxium*|
 | 23 | indicates if the Pyrolink incoming stream has data to send to the Coaxium|
 | 24 -- 27 | unused|
-
-
-
-
