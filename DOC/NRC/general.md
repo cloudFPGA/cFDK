@@ -1,18 +1,17 @@
-Network Routing Core -- General Documentation
-============================================
+## Network Routing Core
 
-## Overview
+### Overview
 
 The NRC is responsible for managing all UDP/TCP traffic of the FPGA. It has two main responsibilities:
 1. Split between management traffic (e.g. HTTP requests for the FMC) and user traffic and block non-conform traffic
 2. Map the dynamic IP addresses of the physical DC infrastructure (including the FPGAs itself) to the applications static node-ids
 
-The NRC is controlled by the FMC via an Axi4-Lite bus. 
+The NRC is controlled by the FMC via an Axi4-Lite bus.
 
 The mapping of node-ids to IP-addresses is done by the *Message Routing Table (MRT)* in the variable `localMRT`.
-The mapping between TCP Session Ids and ports etc. is done in the tables `tripleList`, `sessionIdList`, and `usedRows`, where the index is the primary connection key. 
+The mapping between TCP Session Ids and ports etc. is done in the tables `tripleList`, `sessionIdList`, and `usedRows`, where the index is the primary connection key.
 
-## NRC Status 
+### NRC Status
 
 The `GET /status` function of the FMC also contains 16 lines of the NRC: The posisitons are defined in `nrc.hpp`:
 ```
@@ -31,29 +30,29 @@ The `GET /status` function of the FMC also contains 16 lines of the NRC: The pos
 #define NRC_STATUS_PACKET_CNT_TX 15
 ```
 
-## Internal Structure 
+### Internal Structure
 
-### Internal FSMs
+#### Internal FSMs
 
 | Name of (FSM Variable)      |   Description   |
 |:----------------------------|-----------------|
 | `fsmStateRX_Udp`            | Receives UDP packets, transfrom the meta data and write it to the ROLE |
 | `fsmStateTXenq_Udp`         | Enqueues the UDP packets from the ROLE to internal FIFOs. Inserts the tlast if necessary. |
 | `fsmStateTXdeq_Udp`         | Deques UDP packets from the internal FIFOs, transform the meta data, write it to UDPMUX|
-| `opnFsmState`               | Opens TCP connection to remote hosts, if necessary | 
+| `opnFsmState`               | Opens TCP connection to remote hosts, if necessary |
 | `lsnFsmState`               | Opens TCP ports for listening |
-| `rrhFsmState`               | Read and answers Read Request Headers, Maintains the session tables etc. | 
-| `rdpFsmState`               | Reads a TCP packet and forwards it to FMC or ROLE | 
+| `rrhFsmState`               | Read and answers Read Request Headers, Maintains the session tables etc. |
+| `rdpFsmState`               | Reads a TCP packet and forwards it to FMC or ROLE |
 | `wrpFsmState`               | Reads a TCP packet form FMC or ROLE and forwards it to TOE|
 
 
-### Global Variables
+#### Global Variables
 
 All global variables in the following table are marked as `#pragma HLS reset`.
 
 | Variable           |    Description     |
 |:-------------------|:-------------------|
-| `udpTX_packet_length`                | Saves the `len` field of the `NrcMeta` packet for UDP TX process, if the user set it. | 
+| `udpTX_packet_length`                | Saves the `len` field of the `NrcMeta` packet for UDP TX process, if the user set it. |
 | `Udp_RX_metaWritten`                 |  Saves if the RX meta was written to the ROLE (in order to avoid this from blocking the beginning of the packet transmit) |
 | `pldLen_Udp                      `   |    |
 | `openPortWaitTime                `   |  Waiting time in the beginning before Open Port Requests are send to UDMX or TOE.  |
@@ -79,8 +78,8 @@ All global variables in the following table are marked as `#pragma HLS reset`.
 | `processed_FMC_listen_port`          |    |
 | `fmc_port_openend`                   |    |
 | `tables_initalized`                  |  Stores if the tables `tripleList`,`sessionIdList`, and `usedRows` where initialized with the `UNUSED_TABLE_ENTRY_VALUE` or `0`. |
-| `unauthorized_access_cnt`            |  Counts the packets that want to reach the FMC, but came from the wrong IP Address (see EMIF documentation for `CfrmIp4Addr`) | 
-| `authorized_access_cnt`            |  Counts the packets that want to reach the FMC and came from the right IP Address (see EMIF documentation for `CfrmIp4Addr`) | 
+| `unauthorized_access_cnt`            |  Counts the packets that want to reach the FMC, but came from the wrong IP Address (see EMIF documentation for `CfrmIp4Addr`) |
+| `authorized_access_cnt`            |  Counts the packets that want to reach the FMC and came from the right IP Address (see EMIF documentation for `CfrmIp4Addr`) |
 | `out_meta_tcp`                       |    |
 | `in_meta_tcp `                       |    |
 | `session_toFMC`                      |    |
@@ -96,7 +95,7 @@ All global variables in the following table are marked as `#pragma HLS reset`.
 
 Global *arrays* (`status`, `config`, `localMRT`, `tripleList`,`sessionIdList`, and `usedRows`) are *not reset*, because they are either directly controlled by the FMC, are re-written every IP Core run, or are indirectly reset by `tables_initalized`.
 
-### NRC Interface 
+#### NRC Interface
 
 ```
 void nrc_main(
@@ -107,7 +106,7 @@ void nrc_main(
     // ----- link to MMIO ----
     ap_uint<16> *piMMIO_FmcLsnPort,
     ap_uint<32> *piMMIO_CfrmIp4Addr,
-    // -- my IP address 
+    // -- my IP address
     ap_uint<32>                 *myIpAddress,
 
     //-- ROLE UDP connection
@@ -116,7 +115,7 @@ void nrc_main(
     stream<UdpWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
-    
+
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
     stream<TcpWord>             &siTcp_data,
@@ -139,7 +138,7 @@ void nrc_main(
     stream<UdpMeta>     &siUDMX_This_Meta,
     stream<UdpWord>     &soTHIS_Udmx_Data,
     stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen, 
+    stream<UdpPLen>     &soTHIS_Udmx_PLen,
 
     //-- TOE / Rx Data Interfaces
     stream<AppNotif>    &siTOE_Notif,
@@ -219,6 +218,3 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=siTOE_OpnRep
 #pragma HLS DATA_PACK                variable=siTOE_ClsReq
 ```
-
-
-
