@@ -43,7 +43,7 @@ stream<UdpWord>     sUAF_Shl_Data   ("sUAF_Shl_Data");
 ap_uint<32>             s_udp_rx_ports = 0x0;
 stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
 stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
-ap_uint<32>             rank;
+ap_uint<32>             node_rank;
 ap_uint<32>             size;
 
 //------------------------------------------------------
@@ -59,7 +59,7 @@ int         simCnt;
  ******************************************************************************/
 void stepDut() {
     triangle_app(
-        &rank, &size,
+        &node_rank, &size,
       sSHL_Uaf_Data, sUAF_Shl_Data,
       siUdp_meta, soUdp_meta,
       &s_udp_rx_ports);
@@ -227,13 +227,13 @@ int main() {
             printf("### ERROR : Failed to set input data stream \"sSHL_Uaf_Data\". \n");
             nrErr++;
         }
-        
+
         //there are 2 streams from the the App to the Role
         NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,0,DEFAULT_RX_PORT,0);
         siUdp_meta.write(NetworkMetaStream(tmp_meta));
         siUdp_meta.write(NetworkMetaStream(tmp_meta));
-        //set correct rank and size
-        rank = 1;
+        //set correct node_rank and size
+        node_rank = 1;
         size = 3;
     }
 
@@ -257,11 +257,11 @@ int main() {
             {
               assert(s_udp_rx_ports == 0x1);
             }
-            
+
             //if( !soUdp_meta.empty())
             //{
             //  NetworkMetaStream tmp_meta = soUdp_meta.read();
-            //  printf("NRC received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
+            //  printf("NRC received NRCmeta stream from node_rank %d.\n", (int) tmp_meta.tdata.src_rank);
             //}
 
 
@@ -289,7 +289,7 @@ int main() {
         i++;
         NetworkMetaStream tmp_meta = soUdp_meta.read();
         printf("NRC received NRCmeta stream from rank %d to rank %d.\n", (int) tmp_meta.tdata.src_rank, (int) tmp_meta.tdata.dst_rank);
-        assert(tmp_meta.tdata.src_rank == rank);
+        assert(tmp_meta.tdata.src_rank == node_rank);
         //ensure forwarding behavior
         assert(tmp_meta.tdata.dst_rank == ((tmp_meta.tdata.src_rank + 1) % size));
       }
