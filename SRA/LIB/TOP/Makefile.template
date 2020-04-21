@@ -16,12 +16,12 @@
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
 ROLE_DIR =$(usedRoleDir)
 ROLE2_DIR =$(usedRole2Dir)
-
+MIDLW_DIR =$(cFpRootDir)/cFDK/SRA/LIB/MIDLW/$(cFpSRAtype)/ #TODO
 
 CLEAN_TYPES = *.log *.jou *.str *.time
 
 
-.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify assert_env
+.PHONY: all clean src_based ip_based pr Role ShellSrc pr_full pr2 monolithic ensureNotMonolithic full_clean ensureMonolithic monolithic_incr save_mono_incr save_pr_incr pr_verify assert_env MidlwSrc MidlwPr
 #.PHONY: pr_full_mpi pr_only_mpi pr2_only_mpi monolithic_mpi monolithic_mpi_incr RoleMPItype RoleMPI2type RoleMPItypeSrc
 
 all: pr
@@ -38,12 +38,38 @@ assert_env:
 
 # (end of cFa placeholder)
 
+# --- Middleware ---
+
+# conditional switch
+ifdef cFpMidlwIpDir
+MidlwSrc: MidlwSrcTrue
+
+MidlwPr: MidlwPrTrue
+
+else 
+MidlwSrc: MidlwDummy
+
+MidlwPr: MidlwDummy
+endif
+
+
+MidlwDummy:
+	@echo "No Middleware configured"
+
+MidlwSrcTrue: assert_env
+	$(MAKE) -C $(MIDLW_DIR)
+
+MidlwPrTrue: assert_env
+	$(MAKE) -C $(MIDLW_DIR) MIDLW_$(cFpSRAtype)_OOC.dcp
+
+
+# --- default Makefile ---
+
 Role: assert_env
 	$(MAKE) -C $(ROLE_DIR)
 
 Role2: assert_env
 	$(MAKE) -C $(ROLE2_DIR)
-
 
 xpr: 
 	mkdir -p $(cFpXprDir)
@@ -55,19 +81,19 @@ RoleIp2: assert_env
 	$(MAKE) -C $(ROLE2_DIR)/ ip
 
 
-ShellSrc: assert_env
+ShellSrc: assert_env 
 	$(MAKE) -C $(SHELL_DIR) 
 
 src_based: ensureNotMonolithic ShellSrc Role | xpr #TODO: remove, because obsolete?
 	$(MAKE) -C ./TOP/tcl/ full_src
 
-pr: ensureNotMonolithic ShellSrc Role  | xpr  ## Builds Shell (if necessary) and first Role only using PR flow (default)
+pr: ensureNotMonolithic ShellSrc MidlwPr Role  | xpr  ## Builds Shell (if necessary) and first Role only using PR flow (default)
 	$(MAKE) -C ./TOP/tcl/ full_src_pr
 
-pr2: ensureNotMonolithic ShellSrc Role2 | xpr ## Builds Shell (if necessary) and second Role only using PR flow
+pr2: ensureNotMonolithic ShellSrc MidlwPr Role2 | xpr ## Builds Shell (if necessary) and second Role only using PR flow
 	$(MAKE) -C ./TOP/tcl/ full_src_pr_2
 
-pr_full: ensureNotMonolithic ShellSrc Role Role2 | xpr ## Builds Shell (if necessary) and both Roles using PR flow
+pr_full: ensureNotMonolithic ShellSrc MidlwPr Role Role2 | xpr ## Builds Shell (if necessary) and both Roles using PR flow
 	$(MAKE) -C ./TOP/tcl/ full_src_pr_all
 
 #pr_full_mpi: ensureNotMonolithic ShellSrcMPI RoleMPItype RoleMPI2type | xpr
@@ -107,21 +133,21 @@ ip_based:
 	$(error NOT YET IMPLEMENTED)
 
 #no ROLE, because Role is synthezied with sources!
-monolithic: ensureMonolithic ShellSrc RoleIp | xpr  ## Default build when PR is not used.
+monolithic: ensureMonolithic ShellSrc MidlwSrc RoleIp | xpr  ## Default build when PR is not used.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	@#export usedRole=$(USED_ROLE); cd tcl; vivado -mode batch -source handle_vivado.tcl -notrace -log handle_vivado.log -tclargs -full_src -force -forceWithoutBB -role -create -synth -impl -bitgen
 	$(MAKE) -C ./TOP/tcl/ monolithic
 
 #no ROLE, because Role is synthezied with sources!
-monolithic_incr: ensureMonolithic ShellSrc RoleIp | xpr  ## Default incremental build.
+monolithic_incr: ensureMonolithic ShellSrc MidlwSrc RoleIp | xpr  ## Default incremental build.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_incr 
 
-monolithic_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr   ## Default build to include a debug probe.
+monolithic_debug: ensureMonolithic ensureDebugNets ShellSrc MidlwSrc RoleIp | xpr   ## Default build to include a debug probe.
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_debug
 
-monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc RoleIp | xpr   ## Default incremental build to include a debug probe..
+monolithic_incr_debug: ensureMonolithic ensureDebugNets ShellSrc MidlwSrc RoleIp | xpr   ## Default incremental build to include a debug probe..
 	@echo "this project was startet without Black Box flow => until you clean up, there is no other flow possible" > ./xpr/.project_monolithic.lock
 	$(MAKE) -C ./TOP/tcl/ monolithic_incr_debug
 

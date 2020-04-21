@@ -605,6 +605,12 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_LsnAck_tvalid;
   wire          ssTOE_NRC_Tcp_LsnAck_tready;
   
+  // ===== Timer Broadcast =====
+  wire [31:0]  sTIME_Broadcast_seconds;
+  wire [31:0]  sTIME_Broadcast_minutes;
+  wire [31:0]  sTIME_Broadcast_hours;
+  
+  
   // ===== NRC <-> FMC TCP connection =====
   wire [ 63:0]  ssNRC_FMC_Tcp_Data_tdata;
   wire [  7:0]  ssNRC_FMC_Tcp_Data_tkeep;
@@ -1473,6 +1479,19 @@ module Shell_Themisto # (
     .ip2intc_irpt   (ssFMC_HWICAP_ip2intc_irpt)
   );
 
+
+  smallTimer #(
+    .clockFrequencyHz(156250000)
+  ) TIME (
+    .piClk      (sETH0_ShlClk),
+    .piSyncRst  (sETH0_ShlRst),
+    .poSeconds  (sTIME_Broadcast_seconds),
+    .poMinutes  (sTIME_Broadcast_minutes),
+    .poHours    (sTIME_Broadcast_hours)
+  );
+
+
+
   //============================================================================
   //  INST: FPGA MANAGEMENT CORE
   //============================================================================
@@ -1488,9 +1507,21 @@ module Shell_Themisto # (
     //.piSysReset_V           (piSHL_156_25Rst_delayed),
     //.piSysReset_V_ap_vld   (1),
     //.poMMIO_V_ap_vld     ( ),
-    .piMMIO_V              (sMMIO_FMC_WrFmcReg),
-    .piMMIO_V_ap_vld        (1),
-    .poMMIO_V              (sFMC_MMIO_RdFmcReg),
+    .piMMIO_V                 (sMMIO_FMC_WrFmcReg),
+    .piMMIO_V_ap_vld          (1),
+    .poMMIO_V                 (sFMC_MMIO_RdFmcReg),
+    .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
+    .piLayer4enabled_V_ap_vld (1),
+    .piLayer6enabled_V        (sMMIO_LayerEn[6] & (~ sMMIO_LayerRst[6])),
+    .piLayer6enabled_V_ap_vld (1),
+    .piLayer7enabled_V        (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
+    .piLayer7enabled_V_ap_vld (1),
+    .piTime_seconds_V         (sTIME_Broadcast_seconds),
+    .piTime_seconds_V_ap_vld  (1),
+    .piTime_minutes_V         (sTIME_Broadcast_minutes),
+    .piTime_minutes_V_ap_vld  (1),
+    .piTime_hours_V           (sTIME_Broadcast_hours),
+    .piTime_hours_V_ap_vld    (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
     .m_axi_boHWICAP_AWREADY  (ssFMC_HWICAP_Axi_awready),
@@ -1596,9 +1627,11 @@ module Shell_Themisto # (
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
-    .ap_rst_n               (~ sMMIO_LayerRst[5]),
-    //.piNTS_ready_V          (sNTS0_MMIO_ToeReady),
-    .piNTS_ready_V          (1), //TODO
+    .ap_rst_n               (~ sMMIO_LayerRst[6]),
+    .piNTS_ready_V          (sNTS0_MMIO_ToeReady),
+    .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
+    .piLayer4enabled_V_ap_vld (1),
+    //.piNTS_ready_V          (1), //TODO
     .piNTS_ready_V_ap_vld   (1),
     .piMMIO_FmcLsnPort_V    (sMMIO_NRC_FmcLsnPort),
     .piMMIO_FmcLsnPort_V_ap_vld (1),

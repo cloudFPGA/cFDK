@@ -311,8 +311,6 @@ architecture structural of topFMKU60 is
   signal sSHL_ROL_Fmc_Rank                  : std_ulogic_vector( 31 downto 0);
   signal sSHL_ROL_Fmc_Size                  : std_ulogic_vector( 31 downto 0);
   
-  -- Delayed reset counter 
-  signal sRstDelayCounter                   : std_ulogic_vector(5 downto 0);
   
   --===========================================================================
   --== COMPONENT DECLARATIONS

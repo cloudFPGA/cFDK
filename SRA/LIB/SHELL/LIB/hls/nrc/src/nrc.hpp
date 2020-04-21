@@ -174,6 +174,16 @@ using namespace hls;
   * STATUS[5] = WRITE_ERROR_CNT
   */
 #define NRC_CONFIG_OWN_RANK 0
+#define NRC_CONFIG_MRT_VERSION 1
+#define NRC_CONFIG_SAVED_UDP_PORTS 2
+#define NRC_CONFIG_SAVED_TCP_PORTS 3
+#define NRC_CONFIG_SAVED_FMC_PORTS 4
+
+#define NRC_STATUS_MRT_VERSION 0
+#define NRC_STATUS_OPEN_UDP_PORTS 1
+#define NRC_STATUS_OPEN_TCP_PORTS 2
+#define NRC_STATUS_FMC_PORT_PROCESSED 3
+#define NRC_STATUS_OWN_RANK 13
 
 //#define NRC_STATUS_WRITE_ERROR_CNT 4
 //#define NRC_STATUS_UNUSED_1 4
@@ -188,7 +198,7 @@ using namespace hls;
 #define NRC_STATUS_RX_NODEID_ERROR 10
 #define NRC_STATUS_LAST_TX_NODE_ID 11
 #define NRC_STATUS_TX_NODEID_ERROR 12
-#define NRC_STATUS_TX_PORT_CORRECTIONS 13
+//#define NRC_STATUS_TX_PORT_CORRECTIONS 13
 #define NRC_STATUS_PACKET_CNT_RX 14
 #define NRC_STATUS_PACKET_CNT_TX 15
 
@@ -197,6 +207,8 @@ using namespace hls;
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    //state of the FPGA
+    ap_uint<1> *layer_4_enabled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
