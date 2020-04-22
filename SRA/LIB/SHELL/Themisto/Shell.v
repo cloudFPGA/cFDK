@@ -403,7 +403,6 @@ module Shell_Themisto # (
   wire          sETH0_MMIO_CoreReady;
   wire          sETH0_MMIO_QpllLock;
   wire          sNTS0_MMIO_CamReady;
-  wire          sNTS0_MMIO_ToeReady;
   wire          sNTS0_MMIO_NtsReady;
   //------ [PHY_ETH0] ------------------
   wire          sMMIO_ETH0_RxEqualizerMode;
@@ -1630,7 +1629,7 @@ module Shell_Themisto # (
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[6]),
-    .piNTS_ready_V          (sNTS0_MMIO_ToeReady),
+    .piNTS_ready_V          (sNTS0_MMIO_NtsReady),
     .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
     .piLayer4enabled_V_ap_vld (1),
     //.piNTS_ready_V          (1), //TODO
