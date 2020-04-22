@@ -847,7 +847,6 @@ module Shell_Themisto # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
-    .piNTS0_ToeReady                (sNTS0_MMIO_ToeReady),
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
@@ -1234,7 +1233,6 @@ module Shell_Themisto # (
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),
-    .poMMIO_ToeReady                  (sNTS0_MMIO_ToeReady),
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
 
     .poVoid                           ()

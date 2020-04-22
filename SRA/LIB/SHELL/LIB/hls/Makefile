@@ -13,11 +13,13 @@
 
 .PHONY: all clean arp_server cam dhcp_client echo_app fmc icmp_server iprx_handler iptx_handler nrc toe udp udp_mux udp_role_if udp_role_if_2 uoe
 
-all:   arp_server icmp_server iprx_handler iptx_handler udp uoe toe cam fmc nrc udp_mux udp_role_if dhcp_client
+#TODO currently excluded: uoe
+all:   arp_server icmp_server iprx_handler iptx_handler udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:  arp_server.csim icmp_server.csim iprx_handler.csim iptx_handler.csim uoe.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
-cosim: arp_server.cosim icmp_server.cosim iprx_handler.cosim iptx_handler.cosim uoe.cosim toe.cosim cam.cosim fmc.cosim nrc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+#TODO currently excluded: uoe.cosim
+cosim: arp_server.cosim icmp_server.cosim iprx_handler.cosim iptx_handler.cosim toe.cosim cam.cosim fmc.cosim nrc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

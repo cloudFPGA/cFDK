@@ -4,7 +4,7 @@
 
 
 | API call           |    Function    | 
-| ------------------ |:--------------:| 
+| ------------------ |:-------------- | 
 | `GET /status`        | Returns the current status, similar to EMIF | 
 | `POST /configure (+ binary configuration data)` | Uploads and triggers the partial reconfiguration of the ROLE (TODO: some auth?) | 
 | `PUT /rank/<n> `        | Set the rank/node-id of the FPGA to n  | 
@@ -25,20 +25,14 @@ rank_IPv4-Address\n
 ```
 where: 
 
+* `rank`: formatted like `<n>`
+* `_`: single space (ASCII, so `0x20`)
+* `IPv4-Address`: IP Address as **Integer in Big Endian**, e.g. `0x0a0b0c` for `10.11.12.13`.
 
 
-`rank`: formatted like `<n>`
 
-
-`_`: single space (ASCII, so 0x20)
-
-
-`IPv4-Address`: IP Address as **Integer in Big Endian**, e.g. `0x0a0b0c` for `10.11.12.13`.
-
-
-**The complete routing table must be `< 1.5kB`** (for now, due to the used buffers). 
-
-**The routing table must end with `\r\n\r\n` (`0x0d0a0d0a` in hex)**
+The complete routing table must be `< 1.5kB` (for now, due to the used buffers).
+The body of the HTTP request must end with `\r\n\r\n` (`0x0d0a0d0a`).
 
 ### Example Request
 
