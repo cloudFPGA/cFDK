@@ -1,5 +1,4 @@
-FPGA Management Core -- General Documentation
-======================
+## FPGA Management Core -- General Documentation
 
 ### Overview
 
@@ -11,6 +10,8 @@ Its tasks and responsibilities are sometimes complex and depend on the current s
 In order to unbundle all these dependencies and to allow future extensions easily, the FMC contains a small Instruction-Set-Architecture (ISA).
 All global operations issue opcodes to execute the current task. The global operations are persistent between IP core runs and react on environment changes, the issued Instructions are all executed in the same IP core run. 
 The global operations are started according to the *EMIF Flags in the FMC Write Register* (see below).
+
+The documentation of the **FMC HTTP API** can be found [here](./FMC_API.md).
 
 #### General Phases
 
