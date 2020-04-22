@@ -13,22 +13,20 @@
 
 #### Parameters: 
 
-`<n>`: ASCII-Integer, must be `< 128` (for now, HW register is 32-bit)
-
-
-`routing table`: must be formatted as follows: 
-``` 
-rank_IPv4-Address\n
-rank_IPv4-Address\n
-...
-\r\n\r\n
-```
-where: 
-
-* `rank`: formatted like `<n>`
-* `_`: single space (ASCII, so `0x20`)
-* `IPv4-Address`: IP Address as **Integer in Big Endian**, e.g. `0x0a0b0c` for `10.11.12.13`.
-
+* `<n>`: ASCII-Integer, must be `< 128` (for now, HW register is 32-bit)
+* `routing table`: must be formatted as follows: 
+  ``` 
+  rank_IPv4-Address\n
+  rank_IPv4-Address\n
+  ...
+  \r\n\r\n
+  ```
+  where: 
+  
+  - `rank`: formatted like `<n>`
+  - `_`: single space (ASCII, so `0x20`)
+  - `IPv4-Address`: IP Address as **Integer in Big Endian**, e.g. `0x0a0b0c` for `10.11.12.13`.
+  
 
 
 The complete routing table must be `< 1.5kB` (for now, due to the used buffers).
