@@ -404,6 +404,7 @@ module Shell_Themisto # (
   wire          sETH0_MMIO_QpllLock;
   wire          sNTS0_MMIO_CamReady;
   wire          sNTS0_MMIO_ToeReady;
+  wire          sNTS0_MMIO_NtsReady;
   //------ [PHY_ETH0] ------------------
   wire          sMMIO_ETH0_RxEqualizerMode;
   wire  [ 3:0]  sMMIO_ETH0_TxDriverSwing;
@@ -845,6 +846,7 @@ module Shell_Themisto # (
     //-- NTS[0]: Status inputs and Control outputs
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
+    .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
     .piNTS0_ToeReady                (sNTS0_MMIO_ToeReady),
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
@@ -921,7 +923,7 @@ module Shell_Themisto # (
       .piTOP_156_25Clk              (piTOP_156_25Clk),    // Freerunning
       .piCLKT_Gt_RefClk_n           (piCLKT_10GeClk_n),
       .piCLKT_Gt_RefClk_p           (piCLKT_10GeClk_p),
-      .piTOP_Reset                  (piTOP_156_25Rst),
+      .piTOP_Reset                  (piTOP_156_25Rst),     // [TODO-Add piMMIO_Layer2Rst]
 
       //-- Clocks and Resets outputs ---------------
       .poSHL_CoreClk                (sETH0_ShlClk),
@@ -1224,6 +1226,7 @@ module Shell_Themisto # (
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
+    .piMMIO_Layer2Rst                 (sMMIO_LayerRst[2]),
     .piMMIO_Layer3Rst                 (sMMIO_LayerRst[3]),
     .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]), 
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
@@ -1232,6 +1235,7 @@ module Shell_Themisto # (
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),
     .poMMIO_ToeReady                  (sNTS0_MMIO_ToeReady),
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
 
     .poVoid                           ()
 
@@ -1261,7 +1265,7 @@ module Shell_Themisto # (
     //------------------------------------------------------
     //-- Alternate System Reset
     //------------------------------------------------------
-    .piMMIO_Rst                       (sMMIO_LayerRst[0]),
+    .piMMIO_Rst                       (sMMIO_LayerRst[1]),   // [FIXME]
 
     //------------------------------------------------------
     //-- DDR4 Reference Memory Clocks

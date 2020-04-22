@@ -33,7 +33,7 @@ where:
 `_`: single space (ASCII, so 0x20)
 
 
-`IPv4-Address`: IP Address as **Integer in Little Endian**, e.g. `0x0c0c0b0a` for `10.11.12.13`.
+`IPv4-Address`: IP Address as **Integer in Big Endian**, e.g. `0x0a0b0c` for `10.11.12.13`.
 
 
 **The complete routing table must be `< 1.5kB`** (for now, due to the used buffers). 

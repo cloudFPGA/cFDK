@@ -500,11 +500,12 @@ void nrc_main(
   //===========================================================
   //  core wide variables (for one iteration)
 
-  ap_uint<32> ipAddrLE = 0;
-  ipAddrLE  = (ap_uint<32>) ((*myIpAddress >> 24) & 0xFF);
-  ipAddrLE |= (ap_uint<32>) ((*myIpAddress >> 8) & 0xFF00);
-  ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 8) & 0xFF0000);
-  ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
+  //ap_uint<32> ipAddrLE = 0;
+  //ipAddrLE  = (ap_uint<32>) ((*myIpAddress >> 24) & 0xFF);
+  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress >> 8) & 0xFF00);
+  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 8) & 0xFF0000);
+  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
+  ap_uint<32> ipAddrBE = *myIpAddress;
 
 //DON'T DO ANYTHING WITH NTS BEFORE IT'S NOT READY
   
@@ -740,7 +741,7 @@ void nrc_main(
           }
           last_tx_port = dst_port;
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-          UdpMeta txMeta = {{src_port, ipAddrLE}, {dst_port, dst_ip_addr}};
+          UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
           soTHIS_Udmx_Meta.write(txMeta);
           packet_count_TX++;
           
