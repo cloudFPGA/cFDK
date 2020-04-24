@@ -1,5 +1,5 @@
-cFDK
-================
+# cFDK
+
 **cloudFPGA Development Kit (cFDK)**
 
 
@@ -10,8 +10,7 @@ Before creating a new cFp, a designer must decide for a SHELL and a MOD, both ar
 
 To set up a new cFp properly, the *cloudFPGA Build Framework* (cFBuild) is highly recommended!
 
-Documentation
--------------
+## Overview
 
 ### Shell-Role-Architectures
 
