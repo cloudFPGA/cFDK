@@ -1,7 +1,7 @@
-## The shell Kale
+### The shell Kale
 This document describes the design of the shell **_Kale_** used of the cloudFPGA platform.
 
-### Overview
+#### Overview
 This version of the cF shell is used for the testing and the bring-up of a cloudFPGA (cF) module.
 As shown in Figure 1, the shell **_Kale_** implements the following IP cores:
   - one 10G Ethernet subsystem (ETH) as described in PG157,
@@ -13,11 +13,11 @@ As shown in Figure 1, the shell **_Kale_** implements the following IP cores:
 <p align="center"><b>Figure-1: Block diagram of the shell Kale</b></p>
 <br>
 
-### HDL Coding Style and Naming Conventions
+#### HDL Coding Style and Naming Conventions
 Please consider reading the [**HDL Naming Conventions**](./hdl-naming-conventions.md) document if you intend to deploy this shell or you want to contribute to this part of the cloudFPGA project.
 <br>
 
-### List of Interfaces
+#### List of Interfaces
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
@@ -28,7 +28,7 @@ Please consider reading the [**HDL Naming Conventions**](./hdl-naming-convention
 | **ROLE**        | Test and bring-up application interface               | [Kale/Shell.v](../SRA/LIB/SHELL/Kale/Shell.v)
 <br>
 
-### List of HDL Components
+#### List of HDL Components
 
 | Acronym                                          | Description                | Filename
 |:-------------------------------------------------|:---------------------------|:--------------
