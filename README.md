@@ -16,11 +16,11 @@ Documentation
 ### Shell-Role-Architectures
 
 To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (**SRA**).
-![SRA concept](https://github.ibm.com/cloudFPGA/cFDK/blob/master//./DOC/imgs/sra_flow.png?raw=true)
+![SRA concept](./DOC/imgs/sra_flow.png)
 
 Currently, the following SHELLs are available:
-* [Kale](https://github.ibm.com/cloudFPGA/cFDK/blob/master//./DOC/Kale.md) This SHELL has one AXI-Stream for UDP and TCP each, as well as two stream-based memory ports.
-* [Themisto](https://github.ibm.com/cloudFPGA/cFDK/blob/master//./DOC/Themisto.md) This SHELL enables node-to-node communication between multiple FPGA modules.
+* [Kale](./DOC/Kale.md) This SHELL has one AXI-Stream for UDP and TCP each, as well as two stream-based memory ports.
+* [Themisto](./DOC/Themisto.md) This SHELL enables node-to-node communication between multiple FPGA modules.
 
 Details for the interfaces can be found in the linked documents.
 
@@ -29,7 +29,7 @@ Details for the interfaces can be found in the linked documents.
 The cloudFPGA service provides different types of FPGAs and module cards (**MOD**).
 
 The module looks like follows:
-![FMKU60 module](https://github.ibm.com/cloudFPGA/cFDK/blob/master//./DOC/imgs/fmku60.png?raw=true)
+![FMKU60 module](./DOC/imgs/fmku60.png)
 
 Currently, the following MODs are available:
 * **FMKU60**: A module equipped with a *Xilinx Kintex UltraScale XCKU060* and  *2x8GB of DDR4 memory*. It is connected via *10GbE*.
