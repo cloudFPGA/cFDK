@@ -1,6 +1,6 @@
-## Network Routing Core
+### Network Routing Core (NRC)
 
-### Overview
+#### Overview
 
 The NRC is responsible for managing all UDP/TCP traffic of the FPGA. It has two main responsibilities:
 1. Split between management traffic (e.g. HTTP requests for the FMC) and user traffic and block non-conform traffic
@@ -11,7 +11,7 @@ The NRC is controlled by the FMC via an Axi4-Lite bus.
 The mapping of node-ids to IP-addresses is done by the *Message Routing Table (MRT)* in the variable `localMRT`.
 The mapping between TCP Session Ids and ports etc. is done in the tables `tripleList`, `sessionIdList`, and `usedRows`, where the index is the primary connection key.
 
-### NRC Status
+#### NRC Status
 
 The `GET /status` function of the FMC also contains 16 lines of the NRC: The posisitons are defined in `nrc.hpp`:
 ```
@@ -30,9 +30,9 @@ The `GET /status` function of the FMC also contains 16 lines of the NRC: The pos
 #define NRC_STATUS_PACKET_CNT_TX 15
 ```
 
-### Internal Structure
+#### Internal Structure
 
-#### Internal FSMs
+##### Internal FSMs
 
 | Name of (FSM Variable)      |   Description   |
 |:----------------------------|-----------------|
@@ -46,7 +46,7 @@ The `GET /status` function of the FMC also contains 16 lines of the NRC: The pos
 | `wrpFsmState`               | Reads a TCP packet form FMC or ROLE and forwards it to TOE|
 
 
-#### Global Variables
+##### Global Variables
 
 All global variables in the following table are marked as `#pragma HLS reset`.
 
@@ -95,7 +95,7 @@ All global variables in the following table are marked as `#pragma HLS reset`.
 
 Global *arrays* (`status`, `config`, `localMRT`, `tripleList`,`sessionIdList`, and `usedRows`) are *not reset*, because they are either directly controlled by the FMC, are re-written every IP Core run, or are indirectly reset by `tables_initalized`.
 
-#### NRC Interface
+##### NRC Interface
 
 ```
 void nrc_main(
