@@ -1,0 +1,79 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_FourDatagrams.dat
+#
+#  @brief : Four IPv4 packets with an embedded UDP datagram. 
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an IPV4 packet onto the AXI4-Stream interface of the 10GbE MAC is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#                                                                  |                    Destination Address                        |
+#                                                                  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+#  And the mapping of an UDP datagram into the data payload of an IPv4 packet is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |              Data             |              Data             |           Checksum            |           Length              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             Data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+
+# [1]
+000000003E000045 0 FF
+0A0A0A0A99A511FF 0 FF
+8000560001010101 0 FF
+30201000090A2A00 0 FF
+B0A0908070605040 0 FF
+13121110F0E0D0C0 0 FF
+1B1A191817161514 0 FF
+0000000000001DDC 1 3F
+
+# [2]
+00409f5a22000045 0 FF
+0700020adb031140 0 FF
+6322c0df3cc80c0a 0 FF
+6c6c654880fd0e00 0 FF
+0000000000000a6f 1 03
+
+# [3] UdpPayload=1 | UdpLen=0x0009 | TotLen=0x001D (20+8+1=29)
+00409f5a1D000045 0 FF
+0700020AB69A1140 0 FF
+6322c0df66310c0a 0 FF
+DEAFBEF03CC80900 1 1F
+
+# [4] UdpPayload=5 | UdpLen=0x000D | TotLen=0x0021 (20+8+5=32)
+00409f5a21000045 0 FF
+0700020aDC031140 0 FF
+6322c0df3cc80c0a 0 FF
+030201005B1B0D00 0 FF
+DEADBEEFFFFFFF04 1 01
