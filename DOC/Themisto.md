@@ -1,10 +1,10 @@
-## The Themisto SRA
+### The Themisto SRA
 
 This SRA type enables node2node communication within cloudFPGA.
 The network data streams have now a parallel meta stream to select the destinations or to see the source, respectively.
 The dual memory port is stream based.
 
-### node2node communication
+#### node2node communication
 
 The management of the **listen ports** is silently done in the background, **but only the following port range is allowed, currently**:
 ```C
@@ -109,7 +109,7 @@ a `"connection time out"` has occurred.
 If the `len` field in the Meta-Stream is set, there is no need for the `tlast` for data streams from the ROLE to the SHELL.
 *The SHELL will always set the `tlast` bit*, and the `len` field only if it is known in advance.
 
-#### Error handling
+##### Error handling
 
 Some Counters and date from the last processed packet can be requested through the `GET /instances/{instance_id}/flight_recorder_data` or `GET /clusters/{cluster_id}/flight_recorder_data` calls from the CloudFPGA Resource Manager API.
 
@@ -123,7 +123,7 @@ If the user tries to send to an unknown node-id, the packet will be dropped (and
 
 
 
-###SRA interface
+#### SRA interface
 
 The vhdl interface *to the ROLE* looks like follows:
 ```vhdl

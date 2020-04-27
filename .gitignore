@@ -47,6 +47,7 @@ fsm_encoding.os
 #--------
 *.bak
 *.sav
+*.md_backup
 
 # Folders
 #---------
