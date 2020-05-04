@@ -2,7 +2,7 @@
 
 using namespace hls;
 
-/** @ingroup close_timer
+/** @AVOIDingroup close_timer
  *
  */
 struct close_timer_entry
@@ -11,7 +11,7 @@ struct close_timer_entry
     bool        active;
 };
 
-/** @defgroup close_timer Close Timer
+/** @AVOIDdefgroup close_timer Close Timer
  *
  */
 void close_timer(   stream<ap_uint<16> >&       rxEng2timer_setCloseTimer,

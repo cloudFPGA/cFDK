@@ -38,7 +38,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-/** @ingroup probe_timer
+/** @AVOIDingroup probe_timer
  *
  */
 struct probe_timer_entry
@@ -47,7 +47,7 @@ struct probe_timer_entry
     bool            active;
 };
 
-/** @defgroup probe_timer Probe Timer
+/** @AVOIDdefgroup probe_timer Probe Timer
  *
  */
 void probe_timer(   stream<ap_uint<16> >&       rxEng2timer_clearProbeTimer,
