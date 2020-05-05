@@ -849,7 +849,7 @@ void nrc_main(
               if(src_id == 0xFFFF)
               {
                 //SINK packet
-                node_id_missmatch_RX_cnt++;
+                //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
                 fsmStateRX_Udp = FSM_DROP_PACKET;
                 break;
               }
@@ -1125,7 +1125,7 @@ void nrc_main(
           if(src_id == 0xFFFF)
           {
             //SINK packet
-            node_id_missmatch_RX_cnt++;
+            //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
             rdpFsmState = RDP_DROP_PACKET;
             printf("NRC drops the packet...\n");
             break;

@@ -560,17 +560,19 @@ void pFMC(
             tcpSessId = siTRIF_SessId.read().tdata;
             soTRIF_SessId.write(tcpSessId);
             rxFsmState  = RX_STREAM;
+            printf("FMC received sessionID: %d\n", tcpSessId.to_uint());
         }
         break;
     case RX_STREAM:
         if (!siTRIF_Data.empty() && !soTRIF_Data.full()) {
             siTRIF_Data.read(currWord);
-            if (DEBUG_LEVEL & TRACE_ROLE) {
+            //if (DEBUG_LEVEL & TRACE_ROLE) {
                  printAxiWord(myRxName, currWord);
-            }
+            //}
             soTRIF_Data.write(currWord);
-            if (currWord.tlast)
+            if (currWord.tlast) {
                 rxFsmState  = RX_WAIT_META;
+            }
         }
         break;
     }
