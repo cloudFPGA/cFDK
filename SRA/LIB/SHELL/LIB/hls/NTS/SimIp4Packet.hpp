@@ -1581,3 +1581,5 @@ class SimIp4Packet {
 }; // End of: SimIp4Packet
 
 /*! \} */
+
+#endif
