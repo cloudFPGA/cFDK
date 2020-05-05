@@ -2,7 +2,7 @@
 
 using namespace hls;
 
-/** @ingroup close_timer
+/** @AVOIDingroup close_timer
  *  Reads in Session-IDs, the corresponding is kept in the TIME-WAIT state for 60s before
  *  it gets closed by writing its ID into the closeTimerReleaseFifo.
  *  @param[in]      timer2closeTimer_setTimer, FIFO containing Session-ID of the sessions which are in the TIME-WAIT state
