@@ -139,7 +139,7 @@ monolithic_incr: monobasecmd $(MONO_LOCK) incrcmd monofinalcmd
 #
 #monolithic_incr_mpi: monobasecmd $(MONO_LOCK) incrcmd mpicmd monofinalcmd
 #
-#monolithic_incr_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
+monolithic_incr_debug: monobasecmd debugcmd $(MONO_LOCK) incrcmd monofinalcmd
 
 monolithic_debug: monobasecmd debugcmd $(MONO_LOCK) monofinalcmd
 
