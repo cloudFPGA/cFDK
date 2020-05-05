@@ -9,6 +9,9 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
+ * \ingroup NRC
+ * \addtogroup NRC
+ * \{
  *****************************************************************************/
 
 #include <stdio.h>
@@ -1146,3 +1149,7 @@ int main() {
 
     return(nrErr);
 }
+
+
+
+/*! \} */

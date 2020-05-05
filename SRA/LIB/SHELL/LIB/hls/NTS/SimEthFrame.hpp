@@ -32,6 +32,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{ 
  *****************************************************************************/
 
 #ifndef SIM_ETH_FRAME_
@@ -502,3 +505,5 @@ public:
 }; // End of: SimEthFrame
 
 
+
+/*! \} */

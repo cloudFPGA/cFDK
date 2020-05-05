@@ -22,6 +22,9 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{ 
  *****************************************************************************/
 
 #ifndef SIM_IP4_PACKET_
@@ -1577,4 +1580,4 @@ class SimIp4Packet {
 
 }; // End of: SimIp4Packet
 
-#endif
+/*! \} */

@@ -31,7 +31,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
+
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{ 
  *****************************************************************************/
 
 #ifndef SIM_UDP_DATAGRAM_
@@ -396,3 +399,7 @@ class SimUdpDatagram {
 };  // End-of: SimUdpDatagram
 
 #endif
+
+
+
+/*! \} */
