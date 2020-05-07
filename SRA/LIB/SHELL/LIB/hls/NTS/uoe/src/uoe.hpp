@@ -66,7 +66,7 @@ class IpAddrPair {
 };
 
 /***********************************************
- * Definition of the UDP Role Interfaces (URIF)
+ * Types Definition - UDP App-Interface (UAIF)
  ***********************************************/
 typedef AxisRaw      UdpAppData;
 typedef SocketPair   UdpAppMeta;
@@ -95,24 +95,24 @@ void uoe(
         stream<AxisIp4>         &soIPTX_Data,
 
         //------------------------------------------------------
-        //-- URIF / Control Port Interfaces
+        //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>         &siURIF_LsnReq,
-        stream<StsBool>         &soURIF_LsnRep,
-        stream<UdpPort>         &siURIF_ClsReq,
+        stream<UdpPort>         &siUAIF_LsnReq,
+        stream<StsBool>         &soUAIF_LsnRep,
+        stream<UdpPort>         &siUAIF_ClsReq,
 
         //------------------------------------------------------
-        //-- URIF / Rx Data Interfaces
+        //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &soURIF_Data,
-        stream<UdpAppMeta>      &soURIF_Meta,
+        stream<AxisApp>         &soUAIF_Data,
+        stream<UdpAppMeta>      &soUAIF_Meta,
 
         //------------------------------------------------------
-        //-- URIF / Tx Data Interfaces
+        //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &siURIF_Data,
-        stream<UdpAppMeta>      &siURIF_Meta,
-        stream<UdpAppDLen>      &siURIF_DLen,
+        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
 
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)

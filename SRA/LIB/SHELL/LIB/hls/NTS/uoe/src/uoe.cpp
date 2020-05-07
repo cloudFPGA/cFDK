@@ -485,13 +485,13 @@ void pUdpChecksumChecker(
  * @param[in]  siUcc_CsumVal, Checksum valid information from UdpChecksumChecker (Ucc).
  * @param[out] soUpt_PortStateReq, Request for the state of port to UdpPortTable (Upt).
  * @param[in]  siUpt_PortStateRep, Port state reply from [Upt].
- * @param[out] soURIF_Data, UDP data streamto [URIF]
- * @param[out] soURIF_Meta, UDP metadata stream to [URIF].
+ * @param[out] soUAIF_Data, UDP data stream to UDP Application Interface (UAIF).
+ * @param[out] soUAIF_Meta, UDP metadata stream to [UAIF].
  * @param[out] soICMP_Data, Control message to InternetControlMessageProtocol[ICMP] engine.
 
  * @details
  *  This process handles the payload of the incoming IP4 packet and forwards it
- *  the UdpRoleInterface (URIF).
+ *  the UdpAppInterface (UAIF).
  *
  *****************************************************************************/
 void pRxPacketHandler(
@@ -500,8 +500,8 @@ void pRxPacketHandler(
         stream<AxisIp4>     &siIhs_Ip4Hdr,
         stream<UdpPort>     &soUpt_PortStateReq,
         stream<StsBool>     &siUpt_PortStateRep,
-        stream<AxisApp>     &soURIF_Data,
-        stream<SocketPair>  &soURIF_Meta,
+        stream<AxisApp>     &soUAIF_Data,
+        stream<SocketPair>  &soUAIF_Meta,
         stream<AxisIcmp>    &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -581,7 +581,7 @@ void pRxPacketHandler(
     case FSM_RPH_STREAM_FIRST:
         if (DEBUG_LEVEL & TRACE_RPH) { printInfo(myName, "FSM_RPH_STREAM_FIRST \n"); }
         if (!siUcc_UdpDgrm.empty() && !siIhs_Ip4Hdr.empty() &&
-            !soURIF_Data.full()    && !soURIF_Meta.full()) {
+            !soUAIF_Data.full()    && !soUAIF_Meta.full()) {
             // Read the 3rd IPv4 header word, update and forward the metadata
             AxisIp4 thirdIp4HdrWord;
             siIhs_Ip4Hdr.read(thirdIp4HdrWord);
@@ -591,10 +591,10 @@ void pRxPacketHandler(
             }
             AxisUdp dgrmWord(0, 0, 0);
             if (not rph_emptyPayloadFlag) {
-                soURIF_Meta.write(rph_udpMeta);
-                // Read the 1st datagram word and forward to [URIF]
+                soUAIF_Meta.write(rph_udpMeta);
+                // Read the 1st datagram word and forward to [UAIF]
                 siUcc_UdpDgrm.read(dgrmWord);
-                soURIF_Data.write(AxisApp(dgrmWord));
+                soUAIF_Data.write(AxisApp(dgrmWord));
             }
             if (dgrmWord.getTLast() or rph_emptyPayloadFlag) {
                 if (thirdIp4HdrWord.getTLast()) {
@@ -612,11 +612,11 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_STREAM:
-        if (!siUcc_UdpDgrm.empty() && !soURIF_Data.full() && !soURIF_Meta.full()) {
+        if (!siUcc_UdpDgrm.empty() && !soUAIF_Data.full() && !soUAIF_Meta.full()) {
             // Forward datagram word
             AxisUdp dgrmWord;
             siUcc_UdpDgrm.read(dgrmWord);
-            soURIF_Data.write(AxisApp(dgrmWord));
+            soUAIF_Data.write(AxisApp(dgrmWord));
             if (DEBUG_LEVEL & TRACE_RPH) {
                 printInfo(myName, "FSM_RPH_STREAM\n");
             }
@@ -727,9 +727,9 @@ void pRxPacketHandler(
  *
  * param[in]  siRph_PortStateReq, Port state request from RxPacketHandler (Rph).
  * param[out] soRph_PortStateRep, Port state reply to [Rph].
- * param[in]  siURIF_LsnReq,      Request to open a port from [URIF].
- * param[out] soURIF_LsnRep,      Open port status reply to [URIF].
- * param[in]  siURIF_ClsReq,      Request to close a port from [URIF].
+ * param[in]  siUAIF_LsnReq,      Request to open a port from [UAIF].
+ * param[out] soUAIF_LsnRep,      Open port status reply to [UAIF].
+ * param[in]  siUAIF_ClsReq,      Request to close a port from [UAIF].
  *
  * @details
  *  The UDP Port Table (Upt) keeps track of the opened ports. A port is opened
@@ -739,9 +739,9 @@ void pRxPacketHandler(
 void pUdpPortTable(
         stream<UdpPort>     &siRph_PortStateReq,
         stream<StsBool>     &soRph_PortStateRep,
-        stream<UdpPort>     &siURIF_LsnReq,
-        stream<StsBool>     &soURIF_LsnRep,
-        stream<UdpPort>     &siURIF_ClsReq)
+        stream<UdpPort>     &siUAIF_LsnReq,
+        stream<StsBool>     &soUAIF_LsnRep,
+        stream<UdpPort>     &siUAIF_ClsReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1 enable_flush
@@ -768,14 +768,14 @@ void pUdpPortTable(
             siRph_PortStateReq.read(upt_portNum);
             upt_fsmState = UPT_RPH_LKP;
         }
-        else if (!siURIF_LsnReq.empty()) {
-            // Request to open a port from [URIF]
-            siURIF_LsnReq.read(upt_portNum);
+        else if (!siUAIF_LsnReq.empty()) {
+            // Request to open a port from [UAIF]
+            siUAIF_LsnReq.read(upt_portNum);
             upt_fsmState = UPT_LSN_REP;
         }
-        else if (!siURIF_ClsReq.empty()) {
-            // Request to close a port from [URIF]
-            siURIF_ClsReq.read(upt_portNum);
+        else if (!siUAIF_ClsReq.empty()) {
+            // Request to close a port from [UAIF]
+            siUAIF_ClsReq.read(upt_portNum);
             upt_fsmState = UPT_CLS_REP;
         }
         break;
@@ -786,16 +786,16 @@ void pUdpPortTable(
         }
         break;
     case UPT_LSN_REP: // Listen Reply
-        if (!soURIF_LsnRep.full()) {
+        if (!soUAIF_LsnRep.full()) {
             PORT_TABLE[upt_portNum] = STS_OPENED;
-            soURIF_LsnRep.write(STS_OPENED);
+            soUAIF_LsnRep.write(STS_OPENED);
             upt_fsmState = UPT_WAIT4REQ;
         }
         break;
     case UPT_CLS_REP: // Close Reply
-        // [FIXME:MissingReplyChannel] if (!soURIF_ClsRep.full()) {
+        // [FIXME:MissingReplyChannel] if (!soUAIF_ClsRep.full()) {
         PORT_TABLE[upt_portNum] = STS_CLOSED;
-        // [FIXME:MissingReplyChannel] soURIF_ClsRep.write(STS_OCLOSED);
+        // [FIXME:MissingReplyChannel] soUAIF_ClsRep.write(STS_OCLOSED);
         upt_fsmState = UPT_WAIT4REQ;
         break;
     }
@@ -805,24 +805,24 @@ void pUdpPortTable(
  * Rx Engine (RXe)
  *
  * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
- * @param[in]  siURIF_LsnReq, UDP open port request from UdpRoleInterface (URIF).
- * @param[out] soURIF_LsnRep, UDP open port reply to [URIF].
- * @param[in]  siURIF_ClsReq, UDP close port request from [URIF].
- * @param[out] soURIF_Data,   UDP data stream to [URIF].
- * @param[out] soURIF_Meta,   UDP metadata stream to [URIF].
+ * @param[in]  siUAIF_LsnReq, UDP open port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep, UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_ClsReq, UDP close port request from [UAIF].
+ * @param[out] soUAIF_Data,   UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta,   UDP metadata stream to [UAIF].
  * @param[out] soICMP_Data,   Control message to InternetControlMessageProtocol[ICMP] engine.
  *
  * @details
  *  The Rx path of the UdpOffloadEngine (UOE). This is the path from [IPRX]
- *  to the UdpRoleInterface (URIF) a.k.a the Application [APP].
+ *  to the UdpAppInterface (UAIF).
  *****************************************************************************/
 void pRxEngine(
         stream<AxisIp4>         &siIPRX_Data,
-        stream<UdpPort>         &siURIF_LsnReq,
-        stream<StsBool>         &siURIF_OpnRep,
-        stream<UdpPort>         &siURIF_ClsReq,
-        stream<AxisApp>         &soURIF_Data,
-        stream<SocketPair>      &soURIF_Meta,
+        stream<UdpPort>         &siUAIF_LsnReq,
+        stream<StsBool>         &siUAIF_OpnRep,
+        stream<UdpPort>         &siUAIF_ClsReq,
+        stream<AxisApp>         &soUAIF_Data,
+        stream<SocketPair>      &soUAIF_Meta,
         stream<AxisIcmp>        &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -871,16 +871,16 @@ void pRxEngine(
             ssIhsToRph_Ip4Hdr,
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
-            soURIF_Data,
-            soURIF_Meta,
+            soUAIF_Data,
+            soUAIF_Meta,
             soICMP_Data);
 
     pUdpPortTable(
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
-            siURIF_LsnReq,
-            siURIF_OpnRep,
-            siURIF_ClsReq);
+            siUAIF_LsnReq,
+            siUAIF_OpnRep,
+            siUAIF_ClsReq);
 }
 
 /*** TXe PROCESSES   **********************************************************/
@@ -889,16 +889,16 @@ void pRxEngine(
  * Tx Application Interface (Tai)
  *
  * @param[in]  piMMIO_En    Enable signal from [SHELL/MMIO].
- * @param[in]  siURIF_Data  Data stream from UserRoleInterface (URIF).
- * @param[in]  siURIF_Meta  Metadata from [URIF].
- * @param[in]  siURIF_DLen  Data payload length from [URIF].
+ * @param[in]  siUAIF_Data  Data stream from UserAppInterface (UAIF).
+ * @param[in]  siUAIF_Meta  Metadata from [UAIF].
+ * @param[in]  siUAIF_DLen  Data payload length from [UAIF].
  * @param[out] soTdh_Data   Data stream to UdpHeaderAdder (Uha).
  * @param[out] soTdh_Meta   Metadata stream to [Uha].
  * @param[out] soTdh_DLen   Data payload length to [Uha].
  *
  * @details
- *  This process is the front-end interface to the Tx part of the Udp Role
- *  Interface (URIF). The ROLE must provide the data as a stream of 'AxisApp'
+ *  This process is the front-end interface to the Tx part of the Udp Application
+ *  Interface (UAIF). The APP must provide the data as a stream of 'AxisApp'
  *  chunks, and every stream must be accompanied by a metadata and payload
  *  length information. The metadata specifies the socket-pair that the stream
  *  belongs to, while the payload length specifies its length.
@@ -919,9 +919,9 @@ void pRxEngine(
  *****************************************************************************/
 void pTxApplicationInterface(
         CmdBit                   piMMIO_En,
-        stream<AxisApp>         &siURIF_Data,
-        stream<UdpAppMeta>      &siURIF_Meta,
-        stream<UdpAppDLen>      &siURIF_DLen,
+        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soTdh_Data,
         stream<UdpAppMeta>      &soTdh_Meta,
         stream<UdpAppDLen>      &soTdh_DLen)
@@ -949,9 +949,9 @@ void pTxApplicationInterface(
 
     switch(tai_fsmState) {
     case FSM_TAI_IDLE:
-        if (!siURIF_Meta.empty() and !siURIF_DLen.empty() and (piMMIO_En == CMD_ENABLE)) {
-            siURIF_Meta.read(tai_appMeta);
-            siURIF_DLen.read(tai_appDLen);
+        if (!siUAIF_Meta.empty() and !siUAIF_DLen.empty() and (piMMIO_En == CMD_ENABLE)) {
+            siUAIF_Meta.read(tai_appMeta);
+            siUAIF_DLen.read(tai_appDLen);
             if (tai_appDLen == 0) {
                 tai_streamMode = true;
                 tai_fsmState = FSM_TAI_STRM_DATA;
@@ -963,16 +963,16 @@ void pTxApplicationInterface(
             tai_splitCnt = 0;
             if (DEBUG_LEVEL & TRACE_TAI) { printInfo(myName, "FSM_TAI_IDLE\n"); }
         }
-        //[TODO] else if (!siURIF_Data.empty() and soTdh_Data.full() ) {
+        //[TODO] else if (!siUAIF_Data.empty() and soTdh_Data.full() ) {
             // In streaming-mode, we may accept up to the depth of 'ssTaiToTdh_Data'
             // bytes to be received ahead of the pair {Meta, DLen}
-        //    siURIF_Meta.read(tai_appMeta);
+        //    siUAIF_Meta.read(tai_appMeta);
         //}
         break;
     case FSM_TAI_DRGM_DATA:
-        if (!siURIF_Data.empty() and !soTdh_Data.full() ) {
+        if (!siUAIF_Data.empty() and !soTdh_Data.full() ) {
             //-- Forward data in 'datagram' mode
-            AxisApp currChunk = siURIF_Data.read();
+            AxisApp currChunk = siUAIF_Data.read();
             tai_appDLen  -= currChunk.getLen();
             tai_splitCnt += currChunk.getLen();
             if ((tai_appDLen == 0) or (tai_splitCnt == UDP_MDS)) {
@@ -1006,9 +1006,9 @@ void pTxApplicationInterface(
         }
         break;
     case FSM_TAI_STRM_DATA:
-        if (!siURIF_Data.empty() and !soTdh_Data.full() ) {
+        if (!siUAIF_Data.empty() and !soTdh_Data.full() ) {
             //-- Forward data in 'streaming' mode
-            AxisApp currChunk = siURIF_Data.read();
+            AxisApp currChunk = siUAIF_Data.read();
             tai_appDLen  -= currChunk.getLen();
             tai_splitCnt += currChunk.getLen();
             if (currChunk.getTLast()) {
@@ -1051,16 +1051,16 @@ void pTxApplicationInterface(
 /******************************************************************************
  * Tx Datagram Handler (Tdh)
  *
- * @param[in]  siURIF_Data Data stream from UserRoleInterface (URIF).
- * @param[in]  siURIF_Meta  Metadata stream from [URIF].
- * @param[in]  siURIF_DLen  Data payload length from [URIF].
+ * @param[in]  siUAIF_Data Data stream from UserAppInterface (UAIF).
+ * @param[in]  siUAIF_Meta  Metadata stream from [UAIF].
+ * @param[in]  siUAIF_DLen  Data payload length from [UAIF].
  * @param[out] soUha_Data   Data stream to UdpHeaderAdder (Uha).
  * @param[out] soUha_Meta   Metadata stream to [Uha].
  * @param[out] soUha_DLen   Data payload length to [Uha].
  * @param[out] soUca_Data   UDP data stream to UdpChecksumAccumulator (Uca).
  *
  * @details
- *  This process handles the raw data coming from the UdpRoleInterface (URIF).
+ *  This process handles the raw data coming from the UdpAppInterface (UAIF).
  *  Data are receieved as a stream from the application layer. They come with a
  *  metadata information that specifies the connection the data belong to, as
  *  well as a data-length information.
@@ -1072,9 +1072,9 @@ void pTxApplicationInterface(
  *
  *****************************************************************************/
 void pTxDatagramHandler(
-        stream<AxisApp>         &siURIF_Data,
-        stream<UdpAppMeta>      &siURIF_Meta,
-        stream<UdpAppDLen>      &siURIF_DLen,
+        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soUha_Data,
         stream<UdpAppMeta>      &soUha_Meta,
         stream<UdpAppDLen>      &soUha_DLen,
@@ -1100,9 +1100,9 @@ void pTxDatagramHandler(
 
     switch(tdh_fsmState) {
         case FSM_TDH_PSD_PKT1:
-            if (!siURIF_Meta.empty() and
+            if (!siUAIF_Meta.empty() and
                 !soUha_Meta.full() and !soUca_Data.full()) {
-                siURIF_Meta.read(tdh_udpMeta);
+                siUAIF_Meta.read(tdh_udpMeta);
                 // Generate 1st pseudo-packet word [DA|SA]
                 AxisPsd4 firstPseudoPktWord(0, 0xFF, 0);
                 firstPseudoPktWord.setPsd4SrcAddr(tdh_udpMeta.src.addr);
@@ -1118,9 +1118,9 @@ void pTxDatagramHandler(
             }
         break;
         case FSM_TDH_PSD_PKT2:
-            if (!siURIF_DLen.empty() and
+            if (!siUAIF_DLen.empty() and
                 !soUha_DLen.full() and !soUca_Data.full()) {
-                siURIF_DLen.read(tdh_appLen);
+                siUAIF_DLen.read(tdh_appLen);
                 // Generate UDP length from incoming payload length
                 tdh_udpLen = tdh_appLen + UDP_HEADER_LEN;
                 // Generate 2nd pseudo-packet word [DP|SP|Len|Prot|0x00]
@@ -1137,10 +1137,10 @@ void pTxDatagramHandler(
             if (DEBUG_LEVEL & TRACE_TDH) { printInfo(myName, "FSM_TDH_PSD_PKT2\n"); }
             break;
         case FSM_TDH_PSD_PKT3:
-            if (!siURIF_Data.empty() and
+            if (!siUAIF_Data.empty() and
                 !soUca_Data.full() and !soUha_Data.full()) {
                 // Read 1st data payload word
-                siURIF_Data.read(tdh_currWord);
+                siUAIF_Data.read(tdh_currWord);
                 // Generate 3rd pseudo-packet word [Data|Csum|Len]
                 AxisPsd4 thirdPseudoPktWord(0, 0xFF, 0);
                 thirdPseudoPktWord.setUdpLen(tdh_udpLen);
@@ -1179,14 +1179,14 @@ void pTxDatagramHandler(
         case FSM_TDH_STREAM:
             // This state streams both the pseudo-packet chunks into the checksum
             // calculation stage and the next stage
-            if (!siURIF_Data.empty() and
+            if (!siUAIF_Data.empty() and
                 !soUha_Data.full() && !soUca_Data.full()) {
                 // Always forward the current AppData word to next-stage [Uha]
                 soUha_Data.write(tdh_currWord);
-                // Save previous AppData and read a new one from [URIF]
+                // Save previous AppData and read a new one from [UAIF]
                 AxisPsd4 currPseudoWord(0, 0xFF, 0);
                 AxisApp  prevAppDataWord(tdh_currWord);
-                siURIF_Data.read(tdh_currWord);
+                siUAIF_Data.read(tdh_currWord);
                 // Generate new pseudo-packet word
                 currPseudoWord.setTDataHi(prevAppDataWord.getTDataLo());
                 currPseudoWord.setTDataLo(tdh_currWord.getTDataHi());
@@ -1487,20 +1487,20 @@ void pIp4HeaderAdder(
  * Tx Engine (TXe)
  *
  * @param[in]  piMMIO_En    Enable signal from [SHELL/MMIO].
- * @param[in]  siURIF_Data  Data stream from UserRoleInterface (URIF).
- * @param[in]  siURIF_Meta  Metadata stream from [URIF].
- * @param[in]  siURIF_DLen  Data length from [URIF].
+ * @param[in]  siUAIF_Data  Data stream from UserAppInterface (UAIF).
+ * @param[in]  siUAIF_Meta  Metadata stream from [UAIF].
+ * @param[in]  siUAIF_DLen  Data length from [UAIF].
  * @param[out] soIPTX_Data  Data stream to IpTxHandler (IPTX).
  *
  * @details
  *  The Tx path of the UdpOffloadEngine (UOE). This is the path from the
- *  UdpRoleInterface (URIF) a.k.a the Application [APP] to the [IPRX].
+ *  UdpAppInterface (UAIF).
  *****************************************************************************/
 void pTxEngine(
         CmdBit                   piMMIO_En,
-        stream<AxisApp>         &siURIF_Data,
-        stream<UdpAppMeta>      &siURIF_Meta,
-        stream<UdpAppDLen>      &siURIF_DLen,
+        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisIp4>         &soIPTX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1551,9 +1551,9 @@ void pTxEngine(
 
     pTxApplicationInterface(
             piMMIO_En,
-            siURIF_Data,
-            siURIF_Meta,
-            siURIF_DLen,
+            siUAIF_Data,
+            siUAIF_Meta,
+            siUAIF_DLen,
             ssTaiToTdh_Data,
             ssTaiToTdh_Meta,
             ssTaiToTdh_DLen);
@@ -1599,17 +1599,17 @@ void pTxEngine(
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
  * -- IPTX / IP Tx / Data Interface
  * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
- * -- URIF / Control Port Interfaces
- * @param[in]  siURIF_LsnReq  UDP open port request from UdpRoleInterface (URIF).
- * @param[out] soURIF_LsnRep  UDP open port reply to [URIF].
- * @param[in]  siURIF_ClsReq  UDP close port request from [URIF].
- * -- URIF / Rx Data Interfaces
- * @param[out] soURIF_Data    UDP data stream to [URIF].
- * @param[out] soURIF_Meta    UDP metadata stream to [URIF].
- * -- URIF / Tx Data Interfaces
- * @param[in]  siURIF_Data    UDP data stream from [URIF].
- * @param[in]  siURIF_Meta    UDP metadata stream from [URIF].
- * @param[in]  siURIF_DLen    UDP data length form [URIF].
+ * -- UAIF / Control Port Interfaces
+ * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * -- UAIF / Rx Data Interfaces
+ * @param[out] soUAIF_Data    UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * -- UAIF / Tx Data Interfaces
+ * @param[in]  siUAIF_Data    UDP data stream from [UAIF].
+ * @param[in]  siUAIF_Meta    UDP metadata stream from [UAIF].
+ * @param[in]  siUAIF_DLen    UDP data length form [UAIF].
  * -- ICMP / Message Data Interface
  * @param[out] soICMP_Data    Data stream to [ICMP].
  *
@@ -1632,24 +1632,24 @@ void uoe(
         stream<AxisIp4>                 &soIPTX_Data,
 
         //------------------------------------------------------
-        //-- URIF / Control Port Interfaces
+        //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>                 &siURIF_LsnReq,
-        stream<StsBool>                 &soURIF_LsnRep,
-        stream<UdpPort>                 &siURIF_ClsReq,
+        stream<UdpPort>                 &siUAIF_LsnReq,
+        stream<StsBool>                 &soUAIF_LsnRep,
+        stream<UdpPort>                 &siUAIF_ClsReq,
 
         //------------------------------------------------------
-        //-- URIF / Rx Data Interfaces
+        //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>                 &soURIF_Data,
-        stream<UdpAppMeta>              &soURIF_Meta,
+        stream<AxisApp>                 &soUAIF_Data,
+        stream<UdpAppMeta>              &soUAIF_Meta,
 
         //------------------------------------------------------
-        //-- URIF / Tx Data Interfaces
+        //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>                 &siURIF_Data,
-        stream<UdpAppMeta>              &siURIF_Meta,
-        stream<UdpAppDLen>              &siURIF_DLen,
+        stream<AxisApp>                 &siUAIF_Data,
+        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppDLen>              &siUAIF_DLen,
 
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
@@ -1672,18 +1672,18 @@ void uoe(
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data       metadata="-bus_bundle siIPRX_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data       metadata="-bus_bundle soIPTX_Data"
 
-    #pragma HLS RESOURCE core=AXI4Stream variable=siURIF_LsnReq     metadata="-bus_bundle siURIF_LsnReq"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soURIF_LsnRep     metadata="-bus_bundle soURIF_LsnRep"
-    #pragma HLS RESOURCE core=AXI4Stream variable=siURIF_ClsReq     metadata="-bus_bundle siURIF_ClsReq"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_LsnReq     metadata="-bus_bundle siUAIF_LsnReq"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_LsnRep     metadata="-bus_bundle soUAIF_LsnRep"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_ClsReq     metadata="-bus_bundle siUAIF_ClsReq"
 
-    #pragma HLS RESOURCE core=AXI4Stream variable=soURIF_Data       metadata="-bus_bundle soURIF_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soURIF_Meta       metadata="-bus_bundle soURIF_Meta"
-    #pragma HLS DATA_PACK                variable=soURIF_Meta
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Data       metadata="-bus_bundle soUAIF_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Meta       metadata="-bus_bundle soUAIF_Meta"
+    #pragma HLS DATA_PACK                variable=soUAIF_Meta
 
-    #pragma HLS RESOURCE core=AXI4Stream variable=siURIF_Data       metadata="-bus_bundle siURIF_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=siURIF_Meta       metadata="-bus_bundle siURIF_Meta"
-    #pragma HLS DATA_PACK                variable=siURIF_Meta
-    #pragma HLS RESOURCE core=AXI4Stream variable=siURIF_DLen       metadata="-bus_bundle siURIF_DLen"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_Data       metadata="-bus_bundle siUAIF_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_Meta       metadata="-bus_bundle siUAIF_Meta"
+    #pragma HLS DATA_PACK                variable=siUAIF_Meta
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_DLen       metadata="-bus_bundle siUAIF_DLen"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Data       metadata="-bus_bundle soICMP_Data"
 
@@ -1694,18 +1694,18 @@ void uoe(
     #pragma HLS INTERFACE axis register both port=soIPTX_Data       name=soIPTX_Data
     #pragma HLS DATA_PACK                variable=soIPTX_Data   instance=soIPTX_Data
 
-    #pragma HLS INTERFACE axis register both port=siURIF_LsnReq     name=siURIF_LsnReq
-    #pragma HLS INTERFACE axis register both port=soURIF_LsnRep     name=soURIF_LsnRep
-    #pragma HLS INTERFACE axis register both port=siURIF_ClsReq     name=siURIF_ClsReq
+    #pragma HLS INTERFACE axis register both port=siUAIF_LsnReq     name=siUAIF_LsnReq
+    #pragma HLS INTERFACE axis register both port=soUAIF_LsnRep     name=soUAIF_LsnRep
+    #pragma HLS INTERFACE axis register both port=siUAIF_ClsReq     name=siUAIF_ClsReq
 
-    #pragma HLS INTERFACE axis register both port=soURIF_Data       name=soURIF_Data
-    #pragma HLS INTERFACE axis register both port=soURIF_Meta       name=soURIF_Meta
-    #pragma HLS DATA_PACK                variable=soURIF_Meta   instance=soURIF_Meta
+    #pragma HLS INTERFACE axis register both port=soUAIF_Data       name=soUAIF_Data
+    #pragma HLS INTERFACE axis register both port=soUAIF_Meta       name=soUAIF_Meta
+    #pragma HLS DATA_PACK                variable=soUAIF_Meta   instance=soUAIF_Meta
 
-    #pragma HLS INTERFACE axis register both port=siURIF_Data       name=siURIF_Data
-    #pragma HLS INTERFACE axis  register both port=siURIF_Meta       name=siURIF_Meta
-    #pragma HLS DATA_PACK                variable=siURIF_Meta   instance=siURIF_Meta
-    #pragma HLS INTERFACE axis register both port=siURIF_DLen       name=siURIF_DLen
+    #pragma HLS INTERFACE axis register both port=siUAIF_Data       name=siUAIF_Data
+    #pragma HLS INTERFACE axis  register both port=siUAIF_Meta       name=siUAIF_Meta
+    #pragma HLS DATA_PACK                variable=siUAIF_Meta   instance=siUAIF_Meta
+    #pragma HLS INTERFACE axis register both port=siUAIF_DLen       name=siUAIF_DLen
 
     #pragma HLS INTERFACE axis register both port=soICMP_Data       name=soICMP_Data
 
@@ -1722,34 +1722,34 @@ void uoe(
 
     pRxEngine(
             siIPRX_Data,
-            siURIF_LsnReq,
-            soURIF_LsnRep,
-            siURIF_ClsReq,
-            soURIF_Data,
-            soURIF_Meta,
+            siUAIF_LsnReq,
+            soUAIF_LsnRep,
+            siUAIF_ClsReq,
+            soUAIF_Data,
+            soUAIF_Meta,
             soICMP_Data);
 
     pTxEngine(
             piMMIO_En,
-            siURIF_Data,
-            siURIF_Meta,
-            siURIF_DLen,
+            siUAIF_Data,
+            siUAIF_Meta,
+            siUAIF_DLen,
             soIPTX_Data);
 
 	/******************************************************************************
 	 * Rx Engine (RXe)
 	 *
 	 * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
-	 * @param[in]  siURIF_LsnReq, UDP open port request from UdpRoleInterface (URIF).
-	 * @param[out] soURIF_LsnRep, UDP open port reply to [URIF].
-	 * @param[in]  siURIF_ClsReq, UDP close port request from [URIF].
-	 * @param[out] soURIF_Data,   UDP data stream to [URIF].
-	 * @param[out] soURIF_Meta,   UDP metadata stream to [URIF].
+	 * @param[in]  siUAIF_LsnReq, UDP open port request from UdpAppInterface (UAIF).
+	 * @param[out] soUAIF_LsnRep, UDP open port reply to [UAIF].
+	 * @param[in]  siUAIF_ClsReq, UDP close port request from [UAIF].
+	 * @param[out] soUAIF_Data,   UDP data stream to [UAIF].
+	 * @param[out] soUAIF_Meta,   UDP metadata stream to [UAIF].
 	 * @param[out] soICMP_Data,   Control message to InternetControlMessageProtocol[ICMP] engine.
 	 *
 	 * @details
 	 *  The Rx path of the UdpOffloadEngine (UOE). This is the path from [IPRX]
-	 *  to the UdpRoleInterface (URIF) a.k.a the Application [APP].
+	 *  to the UdpAppInterface (UAIF).
 	 *****************************************************************************/
 /*** OBSOLETE_20200425 ************
 
@@ -1796,30 +1796,30 @@ void uoe(
             ssIhsToRph_Ip4Hdr,
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
-            soURIF_Data,
-            soURIF_Meta,
+            soUAIF_Data,
+            soUAIF_Meta,
             soICMP_Data);
 
     pUdpPortTable(
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
-            siURIF_LsnReq,
-            soURIF_LsnRep,
-            siURIF_ClsReq);
+            siUAIF_LsnReq,
+            soUAIF_LsnRep,
+            siUAIF_ClsReq);
 ***************************************/
 
     /******************************************************************************
      * Tx Engine (TXe)
      *
      * @param[in]  piMMIO_En    Enable signal from [SHELL/MMIO].
-     * @param[in]  siURIF_Data  Data stream from UserRoleInterface (URIF).
-     * @param[in]  siURIF_Meta  Metadata stream from [URIF].
-     * @param[in]  siURIF_DLen  Data length from [URIF].
+     * @param[in]  siUAIF_Data  Data stream from UserAppInterface (UAIF).
+     * @param[in]  siUAIF_Meta  Metadata stream from [UAIF].
+     * @param[in]  siUAIF_DLen  Data length from [UAIF].
      * @param[out] soIPTX_Data  Data stream to IpTxHandler (IPTX).
      *
      * @details
      *  The Tx path of the UdpOffloadEngine (UOE). This is the path from the
-     *  UdpRoleInterface (URIF) a.k.a the Application [APP] to the [IPRX].
+     *  UdpAppInterface (UAIF).
      *****************************************************************************/
 /*** OBSOLETE_20200425 ************
     //-------------------------------------------------------------------------
@@ -1865,9 +1865,9 @@ void uoe(
 
     pTxApplicationInterface(
             piMMIO_En,
-            siURIF_Data,
-            siURIF_Meta,
-            siURIF_DLen,
+            siUAIF_Data,
+            siUAIF_Meta,
+            siUAIF_DLen,
             ssTaiToTdh_Data,
             ssTaiToTdh_Meta,
             ssTaiToTdh_DLen);
