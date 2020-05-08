@@ -136,6 +136,7 @@ bool fmc_port_opened = false;
 NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
 NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 bool Tcp_RX_metaWritten = false;
+bool tcp_wait_for_FMC_response = false;
 ap_uint<64>  tripple_for_new_connection = 0;
 bool tcp_need_new_connection_request = false;
 bool tcp_new_connection_failure = false;
@@ -398,9 +399,9 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=soTcp_meta
 #pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
 
-#pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
+#pragma HLS INTERFACE ap_fifo register both port=siFMC_Tcp_data
 #pragma HLS INTERFACE axis register both port=soFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=siFMC_Tcp_SessId
+#pragma HLS INTERFACE ap_fifo register both port=siFMC_Tcp_SessId
 #pragma HLS INTERFACE axis register both port=soFMC_Tcp_SessId
 
 
@@ -494,6 +495,7 @@ void nrc_main(
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 
 #pragma HLS reset variable=tableCopyVariable
+#pragma HLS reset variable=tcp_wait_for_FMC_response
 
 
   
@@ -1082,6 +1084,7 @@ void nrc_main(
 
       default:
       case RDP_WAIT_META:
+        tcp_wait_for_FMC_response = false;
         if (!siTOE_SessId.empty()) {
           siTOE_SessId.read(sessId);
 
@@ -1167,6 +1170,7 @@ void nrc_main(
           if (currWord.tlast == 1)
           {
             rdpFsmState  = RDP_WAIT_META;
+            tcp_wait_for_FMC_response = true;
           }
         }
         // NO break;
@@ -1215,7 +1219,10 @@ void nrc_main(
     switch (wrpFsmState) {
     case WRP_WAIT_META:
         //FMC must come first
-        if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full()) {
+        //if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full()) {
+        if (tcp_wait_for_FMC_response && !soTOE_SessId.full())
+        {
+          //blocking, because non-blocking didn't work
             tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
             soTOE_SessId.write(tcpSessId);
             if (DEBUG_LEVEL & TRACE_WRP) {
@@ -1319,7 +1326,8 @@ void nrc_main(
         break;
 
     case WRP_STREAM_FMC:
-        if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
+        //if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
+          //blocking, because non-blocking didn't work
             siFMC_Tcp_data.read(currWordIn);
             //if (DEBUG_LEVEL & TRACE_WRP) {
             //     printAxiWord(myName, currWordIn);
@@ -1327,8 +1335,9 @@ void nrc_main(
             soTOE_Data.write(currWordIn);
             if(currWordIn.tlast == 1) {
                 wrpFsmState = WRP_WAIT_META;
+                tcp_wait_for_FMC_response = false;
             }
-        }
+        //}
         break;
 
     case WRP_STREAM_ROLE:
