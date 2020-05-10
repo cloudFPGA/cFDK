@@ -31,6 +31,12 @@
  *  \brief Network Transport Stack (NTS). This is the component for the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
  */
 
+/** \defgroup NTS_SIM NTS Simulation
+ *  @ingroup NTS
+ * 
+ *  \brief Simulation support and utilities for the Network Transport Stack (NTS).
+ */
+
 /** \defgroup FMC FMC
  *  @ingroup ShellLib
  * 
