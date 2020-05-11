@@ -53,10 +53,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files -tb ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------
@@ -109,12 +110,18 @@ config_compile -name_max_length 128 -pipeline_loops 0
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwoDatagrams.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
     csim_design -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
     csim_design -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    csim_design -argv "3"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -138,13 +145,19 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_TwoDatagrams.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

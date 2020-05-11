@@ -1,7 +1,8 @@
 /******************************************************************************
  * @file       : cam.cpp
  * @brief      : Content-Addressable Memory (CAM). Fake implementation of a CAM
- *                for debugging purposes.
+ *                for debugging purposes. This CAM implements 8 entries. It is
+ *                implemented in FF and consumes a total of 2K LUTs.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -42,7 +43,14 @@
   #define CAM_ARRAY_SIZE  2
   static KeyValuePair CamArray0;
   static KeyValuePair CamArray1;
+  static KeyValuePair CamArray2;
+  static KeyValuePair CamArray3;
+  static KeyValuePair CamArray4;
+  static KeyValuePair CamArray5;
+  static KeyValuePair CamArray6;
+  static KeyValuePair CamArray7;
 
+  //OBSOLETE_20200509 static KeyValuePair CAM_ARRAY[CAM_ARRAY_SIZE];
 
 /*****************************************************************************
  * @brief Search the CAM array for a key.
@@ -54,12 +62,9 @@
  ******************************************************************************/
 bool camLookup(SLcFourTuple key, RtlSessId &value)
 {
-    #pragma HLS RESET variable=CamArray0
-    #pragma HLS RESET variable=CamArray1
 
-    //#pragma HLS UNROLL  factor=2
     #pragma HLS pipeline II=1
-
+    /*** OBSOLETE_20200509 ************/
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         value = CamArray0.value;
         return true;
@@ -68,8 +73,44 @@ bool camLookup(SLcFourTuple key, RtlSessId &value)
         value = CamArray1.value;
         return true;
     }
+    else if ((CamArray2.key == key) && (CamArray2.valid == true)) {
+        value = CamArray2.value;
+        return true;
+    }
+    else if ((CamArray3.key == key) && (CamArray3.valid == true)) {
+            value = CamArray3.value;
+            return true;
+    }
+    else if ((CamArray4.key == key) && (CamArray4.valid == true)) {
+            value = CamArray4.value;
+            return true;
+    }
+    else if ((CamArray5.key == key) && (CamArray5.valid == true)) {
+            value = CamArray5.value;
+            return true;
+    }
+    else if ((CamArray6.key == key) && (CamArray6.valid == true)) {
+            value = CamArray6.value;
+            return true;
+    }
+    else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
+            value = CamArray7.value;
+            return true;
+    }
     else
         return false;
+    /**********************************/
+
+    /*** OBSOLETE_20200509 ************
+    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
+        #pragma HLS UNROLL
+        if ((CAM_ARRAY[i].key == key) && (CAM_ARRAY[i].valid == true)) {
+            value = CAM_ARRAY[i].value;
+            return true;
+        }
+    }
+    return false;
+    **********************************/
 }
 
 /*****************************************************************************
@@ -81,9 +122,9 @@ bool camLookup(SLcFourTuple key, RtlSessId &value)
  ******************************************************************************/
 bool camInsert(KeyValuePair kVP)
 {
-    //#pragma HLS UNROLL  factor=2
     #pragma HLS pipeline II=1
 
+    /*** OBSOLETE_20200509 ************/
     if (CamArray0.valid == false) {
         CamArray0 = kVP;
         return true;
@@ -92,8 +133,44 @@ bool camInsert(KeyValuePair kVP)
         CamArray1 = kVP;
         return true;
     }
+    else if (CamArray2.valid == false) {
+         CamArray2 = kVP;
+         return true;
+     }
+    else if (CamArray3.valid == false) {
+         CamArray3 = kVP;
+         return true;
+    }
+    else if (CamArray4.valid == false) {
+        CamArray4 = kVP;
+        return true;
+    }
+    else if (CamArray5.valid == false) {
+        CamArray5 = kVP;
+        return true;
+    }
+    else if (CamArray6.valid == false) {
+         CamArray6 = kVP;
+         return true;
+     }
+    else if (CamArray7.valid == false) {
+         CamArray7 = kVP;
+         return true;
+     }
     else
         return false;
+    /***********************************/
+
+    /*** OBSOLETE_20200509 ************
+    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
+        #pragma HLS UNROLL
+        if (CAM_ARRAY[i].valid == false) {
+            CAM_ARRAY[i] = kVP;
+            return true;
+        }
+    }
+    return false;
+    **********************************/
 }
 
 /*****************************************************************************
@@ -105,9 +182,9 @@ bool camInsert(KeyValuePair kVP)
   ******************************************************************************/
 bool camDelete(SLcFourTuple key)
 {
-    //#pragma HLS UNROLL  factor=2
     #pragma HLS pipeline II=1
 
+    /*** OBSOLETE_20200509 ************/
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         CamArray0.valid = false;
         return true;
@@ -116,8 +193,45 @@ bool camDelete(SLcFourTuple key)
         CamArray1.valid = false;
         return true;
     }
+    else if ((CamArray2.key == key) && (CamArray2.valid == true)) {
+        CamArray2.valid = false;
+        return true;
+    }
+    else if ((CamArray3.key == key) && (CamArray3.valid == true)) {
+        CamArray3.valid = false;
+        return true;
+    }
+    else if ((CamArray4.key == key) && (CamArray4.valid == true)) {
+        CamArray4.valid = false;
+        return true;
+    }
+    else if ((CamArray5.key == key) && (CamArray5.valid == true)) {
+        CamArray5.valid = false;
+        return true;
+    }
+    else if ((CamArray6.key == key) && (CamArray6.valid == true)) {
+        CamArray6.valid = false;
+        return true;
+    }
+    else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
+         CamArray7.valid = false;
+         return true;
+     }
     else
         return false;
+
+    /**********************************/
+
+    /*** OBSOLETE_20200509 ************
+    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
+        #pragma HLS UNROLL
+        if ((CAM_ARRAY[i].key == key) && (CAM_ARRAY[i].valid == true)) {
+            CAM_ARRAY[i].valid = false;
+        return true;
+        }
+    }
+    return false;
+    **********************************/
 }
 
 /******************************************************************************
@@ -173,24 +287,33 @@ void cam(
     #pragma HLS DATA_PACK                variable=soTOE_SssUpdRep
 
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW
-
-    /**************************************************************************
-     * FAKE CAM PROCESS
-     **************************************************************************/
+    #pragma HLS DATAFLOW interval=1
 
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
-    static RtlSessionLookupRequest request;
-    static RtlSessionUpdateRequest update;
-    static int                     camIdleCnt =   0;
+    //-- STATIC ARRAYS --------------------------------------------------------
+    #pragma HLS RESET      variable=CamArray0
+    #pragma HLS RESET      variable=CamArray1
+    #pragma HLS RESET      variable=CamArray2
+    #pragma HLS RESET      variable=CamArray3
+    #pragma HLS RESET      variable=CamArray4
+    #pragma HLS RESET      variable=CamArray5
+    #pragma HLS RESET      variable=CamArray6
+    #pragma HLS RESET      variable=CamArray7
+    //OBSOLETE_20200509 #pragma HLS RESOURCE   variable=CAM_ARRAY core=RAM_T2P_BRAM
+    //OBSOLETE_20200509 #pragma HLS DEPENDENCE variable=CAM_ARRAY inter false
 
+    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum CamFsmStates { CAM_WAIT_4_REQ=0, CAM_LOOKUP_REP, CAM_UPDATE_REP } \
                                camFsmState=CAM_WAIT_4_REQ;
     #pragma HLS RESET variable=camFsmState
-
     static int                 startupDelay = 100;
     #pragma HLS RESET variable=startupDelay
+
+    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    static RtlSessionLookupRequest request;
+    static RtlSessionUpdateRequest update;
+    static int                     camIdleCnt = 0;
 
     //-----------------------------------------------------
     //-- EMULATE STARTUP OF CAM

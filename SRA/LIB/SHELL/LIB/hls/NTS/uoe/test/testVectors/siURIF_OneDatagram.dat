@@ -24,10 +24,6 @@
 # 
 # ######################################################################################## 
 
-# OBSOLETE G PARAM FpgaIp4Addr   10.12.200.7
-# OBSOLETE G PARAM FpgaLsnPort   8803
-
-
 # [1] UDP DATAGRAM - Length=40
 
 > SET HostSocket 10.12.200.8 8804

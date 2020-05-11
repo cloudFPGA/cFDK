@@ -1,6 +1,6 @@
 # ########################################################################################
 #  @file  : siURIF_RampDgrmSize.dat
-#  @brief : A set of IPv4 packets with UDP datagrams of increasing length.
+#  @brief : A set of UDP datagrams of increasing length.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.

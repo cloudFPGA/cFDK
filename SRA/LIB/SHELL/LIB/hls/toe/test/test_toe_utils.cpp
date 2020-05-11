@@ -775,6 +775,7 @@ void printTcpPort(TcpPort tcpPort)
             printError(THIS_NAME, "Failed to read AxiWord from line \"%s\".\n", stringBuffer.c_str());
             printFatal(THIS_NAME, "\tFYI - The file might be corrupted...\n");
         }
+        return false;
     }
 #endif
 

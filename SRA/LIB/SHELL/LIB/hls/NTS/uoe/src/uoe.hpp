@@ -25,39 +25,33 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*****************************************************************************
- * @file       : udp.hpp
- * @brief      : Defines and prototypes related to the UDP offload engine.
+ * @file       : uoe.hpp
+ * @brief      : Defines and prototypes related to the UDP Offload Engine.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
  *****************************************************************************/
 
 #ifndef _UDP_H
 #define _UDP_H
 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
-#include <cstdlib>
-
-#include "../../toe/src/toe.hpp"
-#include "../../toe/src/toe_utils.hpp"
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisApp.hpp"
 #include "../../AxisIp4.hpp"
+#include "../../AxisPsd4.hpp"
 
 using namespace hls;
 
 const Ip4Prot   UDP_PROTOCOL = 17; // IP protocol number for UDP
+
+// UDP Maximum Datagram Size (1472=1500-20-8)
+static const UdpLen UDP_MDS = (MTU-IP4_HEADER_LEN-UDP_HEADER_LEN);
+
+#define MDS
 
 /***********************************************
  * IPv4 ADDRESS PAIR
@@ -72,9 +66,9 @@ class IpAddrPair {
 };
 
 /***********************************************
- * Definition of the UDP Role Interfaces (URIF)
+ * Types Definition - UDP App-Interface (UAIF)
  ***********************************************/
-typedef AxiWord      UdpAppData;
+typedef AxisRaw      UdpAppData;
 typedef SocketPair   UdpAppMeta;
 typedef UdpLen       UdpAppDLen;
 
@@ -84,6 +78,11 @@ typedef UdpLen       UdpAppDLen;
  *
  *************************************************************************/
 void uoe(
+
+        //------------------------------------------------------
+        //-- MMIO Interface
+        //------------------------------------------------------
+        CmdBit                   piMMIO_En,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -96,29 +95,29 @@ void uoe(
         stream<AxisIp4>         &soIPTX_Data,
 
         //------------------------------------------------------
-        //-- URIF / Control Port Interfaces
+        //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>         &siURIF_OpnReq,
-        stream<StsBool>         &soURIF_OpnRep,
-        stream<UdpPort>         &siURIF_ClsReq,
+        stream<UdpPort>         &siUAIF_LsnReq,
+        stream<StsBool>         &soUAIF_LsnRep,
+        stream<UdpPort>         &siUAIF_ClsReq,
 
         //------------------------------------------------------
-        //-- URIF / Rx Data Interfaces
+        //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &soURIF_Data,
-        stream<UdpAppMeta>      &soURIF_Meta,
+        stream<AxisApp>         &soUAIF_Data,
+        stream<UdpAppMeta>      &soUAIF_Meta,
 
         //------------------------------------------------------
-        //-- URIF / Tx Data Interfaces
+        //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &siURIF_Data,
-        stream<UdpAppMeta>      &siURIF_Meta,
-        stream<UdpAppDLen>      &siURIF_DLen,
+        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
 
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
         //------------------------------------------------------
-        stream<AxiWord>         &soICMP_Data
+        stream<AxisIcmp>         &soICMP_Data
 );
 
 #endif

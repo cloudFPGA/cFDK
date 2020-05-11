@@ -31,7 +31,12 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 	@touch ../../.ip_guard
 
-# Targets
+.synth_guard: $(SRC_DEPS)
+	$(MAKE) clean
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	@touch $@
+
+#-- Targets --------------------------------------------------------------------
 
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
@@ -43,7 +48,7 @@ csim:                     ## Runs the HLS C simulation
 
 csynth: .synth_guard      ## Runs the HLS C synthesis
 
-cosim:                    ## Runs the HLS C/RTL cosimulation
+cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 project:                  ## Creates the HLS project

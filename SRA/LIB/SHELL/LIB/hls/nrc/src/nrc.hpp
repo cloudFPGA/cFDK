@@ -10,6 +10,14 @@
 //  *        user's ROLE or the FMC.
 //  *
 
+/*!
+ * @file nrc.hpp
+ * @brief 
+ * \ingroup NRC
+ * \addtogroup NRC
+ * \{
+ */
+
 #ifndef _NRC_H_
 #define _NRC_H_
 
@@ -269,4 +277,6 @@ void nrc_main(
 
 #endif
 
+
+/*! \} */
 

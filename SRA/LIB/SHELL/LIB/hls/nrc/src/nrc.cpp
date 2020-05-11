@@ -9,6 +9,14 @@
 //  *        A interface between the UDP stack and the NRC (mainly a buffer).
 //  *
 
+/*!
+ * @file nrc.cpp
+ * @brief 
+ * \ingroup NRC
+ * \addtogroup NRC
+ * \{
+ */
+
 #include "nrc.hpp"
 
 stream<UdpPLen>        sPLen_Udp     ("sPLen_Udp");
@@ -1578,3 +1586,6 @@ void nrc_main(
   }
 
 }
+
+
+/*! \} */
