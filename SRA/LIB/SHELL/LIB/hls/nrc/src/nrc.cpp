@@ -136,7 +136,7 @@ bool fmc_port_opened = false;
 NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
 NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 bool Tcp_RX_metaWritten = false;
-bool tcp_wait_for_FMC_response = false;
+//bool tcp_wait_for_FMC_response = false;
 ap_uint<64>  tripple_for_new_connection = 0;
 bool tcp_need_new_connection_request = false;
 bool tcp_new_connection_failure = false;
@@ -495,7 +495,7 @@ void nrc_main(
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 
 #pragma HLS reset variable=tableCopyVariable
-#pragma HLS reset variable=tcp_wait_for_FMC_response
+//#pragma HLS reset variable=tcp_wait_for_FMC_response
 
 
   
@@ -1084,7 +1084,7 @@ void nrc_main(
 
       default:
       case RDP_WAIT_META:
-        tcp_wait_for_FMC_response = false;
+        //tcp_wait_for_FMC_response = false;
         if (!siTOE_SessId.empty()) {
           siTOE_SessId.read(sessId);
 
@@ -1170,7 +1170,7 @@ void nrc_main(
           if (currWord.tlast == 1)
           {
             rdpFsmState  = RDP_WAIT_META;
-            tcp_wait_for_FMC_response = true;
+            //tcp_wait_for_FMC_response = true;
           }
         }
         // NO break;
@@ -1219,8 +1219,8 @@ void nrc_main(
     switch (wrpFsmState) {
     case WRP_WAIT_META:
         //FMC must come first
-        //if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full()) {
-        if (tcp_wait_for_FMC_response && !soTOE_SessId.full())
+        if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full())
+        //if (tcp_wait_for_FMC_response && !soTOE_SessId.full())
         {
           //blocking, because non-blocking didn't work
             tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
@@ -1335,7 +1335,7 @@ void nrc_main(
             soTOE_Data.write(currWordIn);
             if(currWordIn.tlast == 1) {
                 wrpFsmState = WRP_WAIT_META;
-                tcp_wait_for_FMC_response = false;
+                //tcp_wait_for_FMC_response = false;
             }
         //}
         break;
@@ -1517,9 +1517,16 @@ void nrc_main(
   status[NRC_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
   status[NRC_STATUS_OWN_RANK] = config[NRC_CONFIG_OWN_RANK];
 
-  status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-  status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-  status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+  //udp
+  //status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+  //status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+  //status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+
+  //tcp
+  status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+  status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+  status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+  
   status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
   status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
   status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
