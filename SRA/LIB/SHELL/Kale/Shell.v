@@ -156,89 +156,117 @@ module Shell_Kale # (
   output          poROL_156_25Rst,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Udp Interfaces
+  //-- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
   //------------------------------------------------------
-  //---- Input UDP Data (AXI4S) --------
+  //---- Axi4-Stream UDP Data ----------------
   input  [ 63:0]  siROL_Nts_Udp_Data_tdata,
   input  [  7:0]  siROL_Nts_Udp_Data_tkeep,
   input           siROL_Nts_Udp_Data_tlast,
   input           siROL_Nts_Udp_Data_tvalid,
   output          siROL_Nts_Udp_Data_tready,
-  //---- Output UDP Data (AXI4S) -------
-  output [ 63:0]  soROL_Nts_Udp_Data_tdata,
-  output [  7:0]  soROL_Nts_Udp_Data_tkeep,
-  output          soROL_Nts_Udp_Data_tlast,
-  output          soROL_Nts_Udp_Data_tvalid,
-  input           soROL_Nts_Udp_Data_tready,
-
+  //---- Axi4-Stream UDP Metadata ------------
+  input   [95:0] siROL_Nts_Udp_Meta_tdata,
+  input          siROL_Nts_Udp_Meta_tvalid,
+  output         siROL_Nts_Udp_Meta_tready,
+  //---- Axi4-Stream UDP Data Length ---------
+  input   [15:0] siROL_Nts_Udp_DLen_tdata,
+  input          siROL_Nts_Udp_DLen_tvalid,
+  output         siROL_Nts_Udp_DLen_tready,
+    
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+  //-- ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
   //------------------------------------------------------
-  //-- FPGA Transmit Path (ROLE-->NTS) -----------
-  //---- Stream TCP Data ---------------
+  //---- Axi4-Stream UDP Data ---------------
+  output  [63:0] soROL_Nts_Udp_Data_tdata,
+  output  [ 7:0] soROL_Nts_Udp_Data_tkeep,
+  output         soROL_Nts_Udp_Data_tlast,
+  output         soROL_Nts_Udp_Data_tvalid,
+  input          soROL_Nts_Udp_Data_tready,
+  //---- Axi4-Stream UDP Metadata -----------
+  output  [95:0] soROL_Nts_Udp_Meta_tdata ,
+  output         soROL_Nts_Udp_Meta_tvalid,
+  input          soROL_Nts_Udp_Meta_tready,
+  
+  //------------------------------------------------------
+  //-- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
+  //------------------------------------------------------
+  //---- Axi4-Stream UDP Listen Request -----
+  input   [15:0] siROL_Nts_Udp_LsnReq_tdata ,
+  input          siROL_Nts_Udp_LsnReq_tvalid,
+  output         siROL_Nts_Udp_LsnReq_tready,
+  //---- Axi4-Stream UDP Listen Reply --------
+  output  [ 7:0] soROL_Nts_Udp_LsnRep_tdata ,
+  output         soROL_Nts_Udp_LsnRep_tvalid,
+  input          soROL_Nts_Udp_LsnRep_tready,
+  //---- Axi4-Stream UDP Close Request ------
+  input   [15:0] siROL_Nts_Udp_ClsReq_tdata ,
+  input          siROL_Nts_Udp_ClsReq_tvalid,
+  output         siROL_Nts_Udp_ClsReq_tready,
+  
+  //------------------------------------------------------
+  //-- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
+  //------------------------------------------------------
+  //---- Axi4-Stream TCP Data ---------------
   input  [ 63:0]  siROL_Nts_Tcp_Data_tdata,
   input  [  7:0]  siROL_Nts_Tcp_Data_tkeep,
   input           siROL_Nts_Tcp_Data_tlast,
   input           siROL_Nts_Tcp_Data_tvalid,
   output          siROL_Nts_Tcp_Data_tready,
-  //---- Stream TCP Metadata -----------
+  //---- Axi4-Stream TCP Metadata -----------
   input  [ 15:0]  siROL_Nts_Tcp_Meta_tdata,
   input           siROL_Nts_Tcp_Meta_tvalid,
   output          siROL_Nts_Tcp_Meta_tready,
-  //---- Stream TCP Data Status --------
+ //---- Axi4-Stream TCP Data Status --------
   output [ 23:0]  soROL_Nts_Tcp_DSts_tdata,
   output          soROL_Nts_Tcp_DSts_tvalid,
   input           soROL_Nts_Tcp_DSts_tready,
   
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / RxP Data Flow Interfaces
+  //-- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
   //------------------------------------------------------
-  //-- FPGA Receive Path (NTS-->ROLE) -------------
-  //---- Stream TCP Data ---------------
+  //---- Axi4-Stream TCP Data -----------------
   output [ 63:0]  soROL_Nts_Tcp_Data_tdata,
   output [  7:0]  soROL_Nts_Tcp_Data_tkeep,
   output          soROL_Nts_Tcp_Data_tlast,
   output          soROL_Nts_Tcp_Data_tvalid,
   input           soROL_Nts_Tcp_Data_tready,
-  //---- Stream TCP Metadata -----------
+  //----  Axi4-Stream TCP Metadata ------------
   output [ 15:0]  soROL_Nts_Tcp_Meta_tdata,
   output          soROL_Nts_Tcp_Meta_tvalid,
   input           soROL_Nts_Tcp_Meta_tready,
-  //---- Stream TCP Data Notification --
+  //----  Axi4-Stream TCP Data Notification ---
   output [103:0]  soROL_Nts_Tcp_Notif_tdata,  // 7+96
   output          soROL_Nts_Tcp_Notif_tvalid,
   input           soROL_Nts_Tcp_Notif_tready,
-  //---- Stream TCP Data Request -------
+  //----  Axi4-Stream TCP Data Request --------
   input  [ 31:0]  siROL_Nts_Tcp_DReq_tdata,
   input           siROL_Nts_Tcp_DReq_tvalid,
   output          siROL_Nts_Tcp_DReq_tready,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / TxP Ctlr Flow Interfaces
+  //-- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
   //------------------------------------------------------
-  //-- FPGA Transmit Path (ROLE-->NTS) -----------
-  //---- Stream TCP Open Session Request
+  //---- Axi4-Stream TCP Open Session Request
   input [ 47:0]  siROL_Nts_Tcp_OpnReq_tdata,
   input          siROL_Nts_Tcp_OpnReq_tvalid,
   output         siROL_Nts_Tcp_OpnReq_tready,
-  //---- Stream TCP Open Session Status 
+  //---- Axi4-Stream TCP Open Session Reply
   output [ 23:0] soROL_Nts_Tcp_OpnRep_tdata,
   output         soROL_Nts_Tcp_OpnRep_tvalid,
   input          soROL_Nts_Tcp_OpnRep_tready,
-  //---- Stream TCP Close Request ------
+  //---- Axi4-Stream TCP Close Request ------
   input [ 15:0]  siROL_Nts_Tcp_ClsReq_tdata,
   input          siROL_Nts_Tcp_ClsReq_tvalid,
   output         siROL_Nts_Tcp_ClsReq_tready,
 
   //------------------------------------------------------
-  //-- ROLE / Nts / Tcp / RxP Ctlr Flow Interfaces
+  //-- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
   //------------------------------------------------------
-  //-- FPGA Receive Path (NTS-->ROLE) ------------
-  //---- Stream TCP Listen Request -----
+  //----  Axi4-Stream TCP Listen Request ----
   input [ 15:0]  siROL_Nts_Tcp_LsnReq_tdata,   
   input          siROL_Nts_Tcp_LsnReq_tvalid,
   output         siROL_Nts_Tcp_LsnReq_tready,
-  //---- Stream TCP Listen Status ------
+  //----  Axi4-Stream TCP Listen Ack --------
   output [  7:0] soROL_Nts_Tcp_LsnAck_tdata,
   output         soROL_Nts_Tcp_LsnAck_tvalid,
   input          soROL_Nts_Tcp_LsnAck_tready,
@@ -247,29 +275,29 @@ module Shell_Kale # (
   //-- ROLE / Mem / Mp0 Interface
   //------------------------------------------------------
   //-- Memory Port #0 / S2MM-AXIS ------------------
-  //---- Stream Read Command -----------
+  //---- Axi4-Stream Read Command -----
   input  [ 79:0]  siROL_Mem_Mp0_RdCmd_tdata,
   input           siROL_Mem_Mp0_RdCmd_tvalid,
   output          siROL_Mem_Mp0_RdCmd_tready,
-  //---- Stream Read Status ------------
+  //---- Axi4-Stream Read Status ------
   output [  7:0]  soROL_Mem_Mp0_RdSts_tdata,
   output          soROL_Mem_Mp0_RdSts_tvalid,
   input           soROL_Mem_Mp0_RdSts_tready,
-  //---- Stream Data Output Channel ----
+  //---- Axi4-Stream Data Output Channel
   output [511:0]  soROL_Mem_Mp0_Read_tdata,
   output [ 63:0]  soROL_Mem_Mp0_Read_tkeep,
   output          soROL_Mem_Mp0_Read_tlast,
   output          soROL_Mem_Mp0_Read_tvalid,
   input           soROL_Mem_Mp0_Read_tready,
-  //---- Stream Write Command ----------
+  //---- Axi4-Stream Write Command ----
   input  [ 79:0]  siROL_Mem_Mp0_WrCmd_tdata,
   input           siROL_Mem_Mp0_WrCmd_tvalid,
   output          siROL_Mem_Mp0_WrCmd_tready,
-  //---- Stream Write Status -----------
+  //---- Axi4-Stream Write Status -----
   output          soROL_Mem_Mp0_WrSts_tvalid,
   output [  7:0]  soROL_Mem_Mp0_WrSts_tdata,
   input           soROL_Mem_Mp0_WrSts_tready,
-  //---- Stream Data Input Channel -----
+  //---- Axi4-Stream Data Input Channel
   input  [511:0]  siROL_Mem_Mp0_Write_tdata,
   input  [ 63:0]  siROL_Mem_Mp0_Write_tkeep,
   input           siROL_Mem_Mp0_Write_tlast,
@@ -280,29 +308,29 @@ module Shell_Kale # (
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
   //-- Memory Port #1 / S2MM-AXIS ------------------
-  //---- Stream Read Command -----------
+  //---- Axi4-Stream Read Command -----
   input  [ 79:0]  siROL_Mem_Mp1_RdCmd_tdata,
   input           siROL_Mem_Mp1_RdCmd_tvalid,
   output          siROL_Mem_Mp1_RdCmd_tready,
-  //---- Stream Read Status ------------
+  //---- Axi4-Stream Read Status ------
   output [  7:0]  soROL_Mem_Mp1_RdSts_tdata,
   output          soROL_Mem_Mp1_RdSts_tvalid,
   input           soROL_Mem_Mp1_RdSts_tready,
-  //---- Stream Data Output Channel ----
+  //---- Axi4-Stream Data Output Channel
   output [511:0]  soROL_Mem_Mp1_Read_tdata,
   output [ 63:0]  soROL_Mem_Mp1_Read_tkeep,
   output          soROL_Mem_Mp1_Read_tlast,
   output          soROL_Mem_Mp1_Read_tvalid,
   input           soROL_Mem_Mp1_Read_tready,
-  //---- Stream Write Command ----------
+  //---- Axi4-Stream Write Command ----
   input  [ 79:0]  siROL_Mem_Mp1_WrCmd_tdata,
   input           siROL_Mem_Mp1_WrCmd_tvalid,
   output          siROL_Mem_Mp1_WrCmd_tready,
-  //---- Stream Write Status -----------
+  //---- Axi4-Stream Write Status -----
   output          soROL_Mem_Mp1_WrSts_tvalid,
   output [  7:0]  soROL_Mem_Mp1_WrSts_tdata,
   input           soROL_Mem_Mp1_WrSts_tready,
-  //---- Stream Data Input Channel -----
+  //---- Axi4-Stream Data Input Channel
   input  [511:0]  siROL_Mem_Mp1_Write_tdata,
   input  [ 63:0]  siROL_Mem_Mp1_Write_tkeep,
   input           siROL_Mem_Mp1_Write_tlast,
@@ -436,74 +464,106 @@ module Shell_Kale # (
   wire          ssNTS0_MEM_RxP_Write_tlast;
   wire          ssNTS0_MEM_RxP_Write_tvalid;
   wire          ssNTS0_MEM_RxP_Write_tready;
-
+  
   //--------------------------------------------------------
-  //-- SIGNAL DECLARATIONS : ROLE <--> NTS0
+  //-- NTS / Udp / Tx Data Interfaces (.i.e NTS<-->UARS)
   //--------------------------------------------------------
-  //---- Udp Interface -------------------------------------  
-  //------ UDP Data (AXI4S) ------------
-  //wire [ 63:0]  sROL_Nts0_Udp_tdata;
-  //wire [  7:0]  sROL_Nts0_Udp_tkeep;
-  //wire          sROL_Nts0_Udp_tlast;
-  //wire          sROL_Nts0_Udp_tvalid;
-  //wire          sNTS0_Rol_Udp_tready;
-  ////------ UDP Data (AXI4S) ----------
-  //wire          sROL_Nts0_Udp_tready;
-  //wire [ 63:0]  sNTS0_Rol_Udp_tdata;
-  //wire [  7:0]  sNTS0_Rol_Udp_tkeep;
-  //wire          sNTS0_Rol_Udp_tlast;
-  //wire          sNTS0_Rol_Udp_tvalid;  
-  //------------------------------------------------------------------
-  //-- URIF = USER-ROLE-INTERFACE
-  //------------------------------------------------------------------
-  //-- URIF ==> UDMX / OpenPortRequest -
-  wire  [15:0]  ssURIF_UDMX_OpnReq_tdata;
-  wire          ssURIF_UDMX_OpnReq_tvalid;
-  wire          ssURIF_UDMX_OpnReq_tready;
-  //-- UDMX ==> URIF / Open Port Acknowledge -----
-  wire  [ 7:0]  ssUDMX_URIF_OpnAck_tdata;
-  wire          ssUDMX_URIF_OpnAck_tvalid;
-  wire          ssUDMX_URIF_OpnAck_tready;
-  //-- URIF ==> UDMX / Data ------------
-  wire  [63:0]  ssURIF_UDMX_Data_tdata;
-  wire  [ 7:0]  ssURIF_UDMX_Data_tkeep;
-  wire          ssURIF_UDMX_Data_tlast;
-  wire          ssURIF_UDMX_Data_tvalid;
-  wire          ssURIF_UDMX_Data_tready;
-  //-- URIF ==> UDMX / Meta ------------
-  wire  [95:0]  ssURIF_UDMX_Meta_tdata;
-  wire          ssURIF_UDMX_Meta_tvalid;
-  wire          ssURIF_UDMX_Meta_tready;
-  //-- URIF ==> UDMX / TxLen -----------
-  wire  [15:0]  ssURIF_UDMX_PLen_tdata;
-  wire          ssURIF_UDMX_PLen_tvalid;
-  wire          ssURIF_UDMX_PLen_tready;
-  //-- URIF ==>[ARS6]==> ROLE / Data -------------
-  //-- URIF ==>[ARS6]
-  wire  [63:0]  ssURIF_ARS6_Data_tdata;
-  wire  [ 7:0]  ssURIF_ARS6_Data_tkeep;
-  wire          ssURIF_ARS6_Data_tlast;
-  wire          ssURIF_ARS6_Data_tvalid;
-  wire          ssURIF_ARS6_Data_tready;
-  //-- UDMX ==> URIF / Data ----------------------
-  wire  [63:0]  ssUDMX_URIF_Data_tdata;
-  wire  [ 7:0]  ssUDMX_URIF_Data_tkeep;
-  wire          ssUDMX_URIF_Data_tlast;
-  wire          ssUDMX_URIF_Data_tvalid;
-  wire          ssUDMX_URIF_Data_tready;
-  //-- UDMX ==> URIF / Meta ----------------------
-  wire  [95:0]  ssUDMX_URIF_Meta_tdata;
-  wire          ssUDMX_URIF_Meta_tvalid;
-  wire          ssUDMX_URIF_Meta_tready;
-  //-- ROLE ==>[ARS7]=> URIF --------------------
-  //---- ROLE ==> [ARS7] (see siROL_Udp_Data_t*)
-  //----          [ARS7]==> URIF -------
-  wire  [63:0]  ssARS7_URIF_Data_tdata;
-  wire  [ 7:0]  ssARS7_URIF_Data_tkeep;
-  wire          ssARS7_URIF_Data_tlast;
-  wire          ssARS7_URIF_Data_tvalid;
-  wire          ssARS7_URIF_Data_tready;
-
+  wire  [ 63:0] ssNTS0_UARS_Udp_Data_tdata ;
+  wire  [  7:0] ssNTS0_UARS_Udp_Data_tkeep ;
+  wire          ssNTS0_UARS_Udp_Data_tlast ;
+  wire          ssNTS0_UARS_Udp_Data_tvalid;
+  wire          ssNTS0_UARS_Udp_Data_tready;
+  wire  [ 95:0] ssNTS0_UARS_Udp_Meta_tdata ;
+  wire          ssNTS0_UARS_Udp_Meta_tvalid;
+  wire          ssNTS0_UARS_Udp_Meta_tready;
+  wire  [ 15:0] ssNTS0_UARS_Udp_DLen_tdata ;
+  wire          ssNTS0_UARS_Udp_DLen_tvalid;
+  wire          ssNTS0_UARS_Udp_DLen_tready;
+  
+  //--------------------------------------------------------
+  //-- NTS / Udp / Rx Data Interfaces (.i.e NTS<-->UARS)
+  //--------------------------------------------------------
+  wire  [ 63:0] ssUARS_NTS0_Udp_Data_tdata ;
+  wire  [  7:0] ssUARS_NTS0_Udp_Data_tkeep ;
+  wire          ssUARS_NTS0_Udp_Data_tlast ;
+  wire          ssUARS_NTS0_Udp_Data_tvalid;
+  wire          ssUARS_NTS0_Udp_Data_tready;
+  wire  [ 95:0] ssUARS_NTS0_Udp_Meta_tdata ; 
+  wire          ssUARS_NTS0_Udp_Meta_tvalid;
+  wire          ssUARS_NTS0_Udp_Meta_tready;
+  wire  [ 15:0] ssUARS_NTS0_Udp_DLen_tdata ; 
+  wire          ssUARS_NTS0_Udp_DLen_tvalid;
+  wire          ssUARS_NTS0_Udp_DLen_tready;
+  
+  //------------------------------------------------------
+  //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->UARS)
+  //------------------------------------------------------
+  wire  [ 15:0] ssUARS_NTS0_Udp_LsnReq_tdata ;
+  wire          ssUARS_NTS0_Udp_LsnReq_tvalid;
+  wire          ssUARS_NTS0_Udp_LsnReq_tready;
+  wire  [  7:0] ssNTS0_UARS_Udp_LsnRep_tdata ;
+  wire          ssNTS0_UARS_Udp_LsnRep_tvalid;
+  wire          ssNTS0_UARS_Udp_LsnRep_tready;
+  wire  [ 15:0] ssUARS_NTS0_Udp_ClsReq_tdata ;
+  wire          ssUARS_NTS0_Udp_ClsReq_tvalid;
+  wire          ssUARS_NTS0_Udp_ClsReq_tready;  
+  
+  //------------------------------------------------------
+  //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->TARS)
+  //------------------------------------------------------
+  wire  [ 63:0] ssTARS_NTS0_Tcp_Data_tdata ;
+  wire  [  7:0] ssTARS_NTS0_Tcp_Data_tkeep ;
+  wire          ssTARS_NTS0_Tcp_Data_tlast ;
+  wire          ssTARS_NTS0_Tcp_Data_tvalid;
+  wire          ssTARS_NTS0_Tcp_Data_tready;
+  wire  [ 15:0] ssTARS_NTS0_Tcp_Meta_tdata ;
+  wire          ssTARS_NTS0_Tcp_Meta_tvalid;
+  wire          ssTARS_NTS0_Tcp_Meta_tready;
+  wire  [ 23:0] ssNTS0_TARS_Tcp_DSts_tdata ;
+  wire          ssNTS0_TARS_Tcp_DSts_tvalid;
+  wire          ssNTS0_TARS_Tcp_DSts_tready;
+      
+  //------------------------------------------------------
+  //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->TARS)
+  //------------------------------------------------------
+  wire  [ 63:0] ssNTS0_TARS_Tcp_Data_tdata  ;
+  wire  [  7:0] ssNTS0_TARS_Tcp_Data_tkeep  ;
+  wire          ssNTS0_TARS_Tcp_Data_tlast  ;
+  wire          ssNTS0_TARS_Tcp_Data_tvalid ;
+  wire          ssNTS0_TARS_Tcp_Data_tready ;
+  wire  [ 15:0] ssNTS0_TARS_Tcp_Meta_tdata  ;
+  wire          ssNTS0_TARS_Tcp_Meta_tvalid ;
+  wire          ssNTS0_TARS_Tcp_Meta_tready ;
+  wire  [103:0] ssNTS0_TARS_Tcp_Notif_tdata ;  // 7+96
+  wire          ssNTS0_TARS_Tcp_Notif_tvalid;
+  wire          ssNTS0_TARS_Tcp_Notif_tready;
+  wire  [ 31:0] ssTARS_NTS0_Tcp_DReq_tdata  ;
+  wire          ssTARS_NTS0_Tcp_DReq_tvalid ;
+  wire          ssTARS_NTS0_Tcp_DReq_tready ;
+    
+  //------------------------------------------------------
+  //-- NTS / Tcp / Tx Ctlr Interfaces (.i.e NTS<-->TARS)
+  //------------------------------------------------------
+  wire  [ 47:0] ssTARS_NTS0_Tcp_OpnReq_tdata ;
+  wire          ssTARS_NTS0_Tcp_OpnReq_tvalid;
+  wire          ssTARS_NTS0_Tcp_OpnReq_tready;
+  wire  [ 23:0] ssNTS0_TARS_Tcp_OpnRep_tdata ;
+  wire          ssNTS0_TARS_Tcp_OpnRep_tvalid;
+  wire          ssNTS0_TARS_Tcp_OpnRep_tready;
+  wire  [ 15:0] ssTARS_NTS0_Tcp_ClsReq_tdata ;
+  wire          ssTARS_NTS0_Tcp_ClsReq_tvalid;
+  wire          ssTARS_NTS0_Tcp_ClsReq_tready;
+    
+  //------------------------------------------------------
+  //-- NTS / Tcp / Rx Ctlr Interfaces (.i.e NTS<-->TARS)
+  //------------------------------------------------------
+  wire  [ 15:0] ssTARS_NTS0_Tcp_LsnReq_tdata ;   
+  wire          ssTARS_NTS0_Tcp_LsnReq_tvalid;
+  wire          ssTARS_NTS0_Tcp_LsnReq_tready;
+  wire  [  7:0] ssNTS0_TARS_Tcp_LsnAck_tdata ;
+  wire          ssNTS0_TARS_Tcp_LsnAck_tvalid;
+  wire          ssNTS0_TARS_Tcp_LsnAck_tready;  
+ 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MMIO <--> ETH|NTS|MEM|ROL|FMC 
   //--------------------------------------------------------
@@ -796,13 +856,13 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- ETH / Ethernet Layer-2 Interfaces
     //------------------------------------------------------
-    //-- Input AXIS Interface --------------------
+    //--  Axi4-Stream Ethernet Rx Data --------
     .siETH_Data_tdata                 (ssETH0_NTS0_Data_tdata),
     .siETH_Data_tkeep                 (ssETH0_NTS0_Data_tkeep),
     .siETH_Data_tlast                 (ssETH0_NTS0_Data_tlast),
     .siETH_Data_tvalid                (ssETH0_NTS0_Data_tvalid),
     .siETH_Data_tready                (ssETH0_NTS0_Data_tready),
-    //-- Output AXIS Interface ------------------- 
+    //-- Axi4-Stream Ethernet Tx Data --------
     .soETH_Data_tdata                 (ssNTS0_ETH0_Data_tdata),
     .soETH_Data_tkeep                 (ssNTS0_ETH0_Data_tkeep),
     .soETH_Data_tlast                 (ssNTS0_ETH0_Data_tlast),
@@ -813,29 +873,29 @@ module Shell_Kale # (
     //-- MEM / TxP Interfaces
     //------------------------------------------------------
     //-- FPGA Transmit Path / S2MM-AXIS --------------------
-    //---- Stream Read Command -----------------
+    //---- Axi4-Stream Read Command -----------
     .soMEM_TxP_RdCmd_tdata            (ssNTS0_MEM_TxP_RdCmd_tdata),
     .soMEM_TxP_RdCmd_tvalid           (ssNTS0_MEM_TxP_RdCmd_tvalid),
     .soMEM_TxP_RdCmd_tready           (ssNTS0_MEM_TxP_RdCmd_tready),
-    //---- Stream Read Status ------------------
+    //---- Axi4-Stream Read Status ------------
     .siMEM_TxP_RdSts_tdata            (ssMEM_NTS0_TxP_RdSts_tdata),
     .siMEM_TxP_RdSts_tvalid           (ssMEM_NTS0_TxP_RdSts_tvalid),
     .siMEM_TxP_RdSts_tready           (ssMEM_NTS0_TxP_RdSts_tready),
-    //---- Stream Data Input Channel -----------
+    //---- Axi4-Stream Data Input Channel -----
     .siMEM_TxP_Data_tdata             (ssMEM_NTS0_TxP_Read_tdata),
     .siMEM_TxP_Data_tkeep             (ssMEM_NTS0_TxP_Read_tkeep),
     .siMEM_TxP_Data_tlast             (ssMEM_NTS0_TxP_Read_tlast),
     .siMEM_TxP_Data_tvalid            (ssMEM_NTS0_TxP_Read_tvalid),
     .siMEM_TxP_Data_tready            (ssMEM_NTS0_TxP_Read_tready),
-    //---- Stream Write Command ----------------
+    //---- Axi4-Stream Write Command ----------
     .soMEM_TxP_WrCmd_tdata            (ssNTS0_MEM_TxP_WrCmd_tdata),
     .soMEM_TxP_WrCmd_tvalid           (ssNTS0_MEM_TxP_WrCmd_tvalid),
     .soMEM_TxP_WrCmd_tready           (ssNTS0_MEM_TxP_WrCmd_tready),
-    //---- Stream Write Status -----------------
+    //---- Axi4-Stream Write Status -----------
     .siMEM_TxP_WrSts_tdata            (ssMEM_NTS0_TxP_WrSts_tdata),
     .siMEM_TxP_WrSts_tvalid           (ssMEM_NTS0_TxP_WrSts_tvalid),
     .siMEM_TxP_WrSts_tready           (ssMEM_NTS0_TxP_WrSts_tready),
-    //---- Stream Data Output Channel ----------
+    //---- Axi4-Stream Data Output Channel ----
     .soMEM_TxP_Data_tdata             (ssNTS0_MEM_TxP_Write_tdata),
     .soMEM_TxP_Data_tkeep             (ssNTS0_MEM_TxP_Write_tkeep),
     .soMEM_TxP_Data_tlast             (ssNTS0_MEM_TxP_Write_tlast),
@@ -846,29 +906,29 @@ module Shell_Kale # (
     //-- MEM / RxP Interfaces
     //------------------------------------------------------
     //-- FPGA Receive Path / S2MM-AXIS -------------
-    //---- Stream Read Command -----------------
+    //---- Axi4-Stream Read Command -----------
     .soMEM_RxP_RdCmd_tdata            (ssNTS0_MEM_RxP_RdCmd_tdata),
     .soMEM_RxP_RdCmd_tvalid           (ssNTS0_MEM_RxP_RdCmd_tvalid),
     .soMEM_RxP_RdCmd_tready           (ssNTS0_MEM_RxP_RdCmd_tready),
-    //---- Stream Read Status ------------------
+    //---- Axi4-Stream Read Status ------------
     .siMEM_RxP_RdSts_tdata            (ssMEM_NTS0_RxP_RdSts_tdata),
     .siMEM_RxP_RdSts_tvalid           (ssMEM_NTS0_RxP_RdSts_tvalid),
     .siMEM_RxP_RdSts_tready           (ssMEM_NTS0_RxP_RdSts_tready),
-    //---- Stream Data Input Channel -----------
+    //---- Axi4-Stream Data Input Channel ------
     .siMEM_RxP_Data_tdata             (ssMEM_NTS0_RxP_Read_tdata),
     .siMEM_RxP_Data_tkeep             (ssMEM_NTS0_RxP_Read_tkeep),
     .siMEM_RxP_Data_tlast             (ssMEM_NTS0_RxP_Read_tlast),
     .siMEM_RxP_Data_tvalid            (ssMEM_NTS0_RxP_Read_tvalid),
     .siMEM_RxP_Data_tready            (ssMEM_NTS0_RxP_Read_tready),
-    //---- Stream Write Command ----------------
+    //---- Axi4-Stream Write Command ----------
     .soMEM_RxP_WrCmd_tdata            (ssNTS0_MEM_RxP_WrCmd_tdata),
     .soMEM_RxP_WrCmd_tvalid           (ssNTS0_MEM_RxP_WrCmd_tvalid),
     .soMEM_RxP_WrCmd_tready           (ssNTS0_MEM_RxP_WrCmd_tready),
-    //---- Stream Write Status -----------------
+    //---- Axi4-Stream Write Status -----------
     .siMEM_RxP_WrSts_tdata            (ssMEM_NTS0_RxP_WrSts_tdata),
     .siMEM_RxP_WrSts_tvalid           (ssMEM_NTS0_RxP_WrSts_tvalid),
     .siMEM_RxP_WrSts_tready           (ssMEM_NTS0_RxP_WrSts_tready),
-    //---- Stream Data Output Channel ----------
+    //---- Axi4-Stream Data Output Channel ----
     .soMEM_RxP_Data_tdata             (ssNTS0_MEM_RxP_Write_tdata),
     .soMEM_RxP_Data_tkeep             (ssNTS0_MEM_RxP_Write_tkeep),
     .soMEM_RxP_Data_tlast             (ssNTS0_MEM_RxP_Write_tlast),
@@ -876,112 +936,120 @@ module Shell_Kale # (
     .soMEM_RxP_Data_tready            (ssNTS0_MEM_RxP_Write_tready),
 
     //------------------------------------------------------
-    //-- NRC/Role / Nts0 / Udp Interfaces
+    //-- UAIF / UDP Tx Data Interfaces (.i.e APP-->NTS)
     //------------------------------------------------------
-    //-- UDMX ==> URIF / Open Port Acknowledge -----
-    .soROL_Udp_OpnAck_tdata           (ssUDMX_URIF_OpnAck_tdata),
-    .soROL_Udp_OpnAck_tvalid          (ssUDMX_URIF_OpnAck_tvalid),
-    .soROL_Udp_OpnAck_tready          (ssUDMX_URIF_OpnAck_tready),
-    //-- UDMX ==> URIF / Data ----------------------
-    .soROL_Udp_Data_tdata             (ssUDMX_URIF_Data_tdata),
-    .soROL_Udp_Data_tkeep             (ssUDMX_URIF_Data_tkeep),
-    .soROL_Udp_Data_tlast             (ssUDMX_URIF_Data_tlast),
-    .soROL_Udp_Data_tvalid            (ssUDMX_URIF_Data_tvalid),
-    .soROL_Udp_Data_tready            (ssUDMX_URIF_Data_tready),
-    //-- UDMX ==> URIF / Meta ----------------------
-    .soROL_Udp_Meta_tdata             (ssUDMX_URIF_Meta_tdata),
-    .soROL_Udp_Meta_tvalid            (ssUDMX_URIF_Meta_tvalid),
-    .soROL_Udp_Meta_tready            (ssUDMX_URIF_Meta_tready),
-    //-- URIF ==> UDMX / OpenPortRequest / Axis ----
-    .siROL_Udp_OpnReq_tdata           (ssURIF_UDMX_OpnReq_tdata),
-    .siROL_Udp_OpnReq_tvalid          (ssURIF_UDMX_OpnReq_tvalid),
-    .siROL_Udp_OpnReq_tready          (ssURIF_UDMX_OpnReq_tready),
-    //-- URIF ==> UDMX / Data / Axis ---------------
-    .siROL_Udp_Data_tdata             (ssURIF_UDMX_Data_tdata),
-    .siROL_Udp_Data_tkeep             (ssURIF_UDMX_Data_tkeep),
-    .siROL_Udp_Data_tlast             (ssURIF_UDMX_Data_tlast),
-    .siROL_Udp_Data_tvalid            (ssURIF_UDMX_Data_tvalid),
-    .siROL_Udp_Data_tready            (ssURIF_UDMX_Data_tready),
-    //-- URIF ==> UDMX / Meta / Axis ---------------
-    .siROL_Udp_Meta_tdata             (ssURIF_UDMX_Meta_tdata),
-    .siROL_Udp_Meta_tvalid            (ssURIF_UDMX_Meta_tvalid),
-    .siROL_Udp_Meta_tready            (ssURIF_UDMX_Meta_tready),
-    //-- URIF ==> UDMX / TxLen / Axis --------------
-    .siROL_Udp_PLen_tdata             (ssURIF_UDMX_PLen_tdata),
-    .siROL_Udp_PLen_tvalid            (ssURIF_UDMX_PLen_tvalid),
-    .siROL_Udp_PLen_tready            (ssURIF_UDMX_PLen_tready),
+    //---- Axi4-Stream UDP Data ---------------
+    .siAPP_Udp_Data_tdata             (ssUARS_NTS0_Udp_Data_tdata),
+    .siAPP_Udp_Data_tkeep             (ssUARS_NTS0_Udp_Data_tkeep),
+    .siAPP_Udp_Data_tlast             (ssUARS_NTS0_Udp_Data_tlast),
+    .siAPP_Udp_Data_tvalid            (ssUARS_NTS0_Udp_Data_tvalid),
+    .siAPP_Udp_Data_tready            (ssUARS_NTS0_Udp_Data_tready),
+    //---- Axi4-Stream UDP Metadata -----------
+    .siAPP_Udp_Meta_tdata             (ssUARS_NTS0_Udp_Meta_tdata),
+    .siAPP_Udp_Meta_tvalid            (ssUARS_NTS0_Udp_Meta_tvalid),
+    .siAPP_Udp_Meta_tready            (ssUARS_NTS0_Udp_Meta_tready),
+    //---- Axis4Stream UDP Data Length ---------
+    .siAPP_Udp_DLen_tdata             (ssUARS_NTS0_Udp_DLen_tdata),
+    .siAPP_Udp_DLen_tvalid            (ssUARS_NTS0_Udp_DLen_tvalid),
+    .siAPP_Udp_DLen_tready            (ssUARS_NTS0_Udp_DLen_tready),
 
     //------------------------------------------------------
-    //-- ROLE / Tcp / TxP Data Flow Interfaces
+    //-- UAIF / Rx Data Interfaces (.i.e NTS-->APP)
     //------------------------------------------------------
-    //-- FPGA Transmit Path (ROLE-->NTS) -----------
-    //---- Stream TCP Data ---------------------
-    .siROL_Tcp_Data_tdata             (siROL_Nts_Tcp_Data_tdata),
-    .siROL_Tcp_Data_tkeep             (siROL_Nts_Tcp_Data_tkeep),
-    .siROL_Tcp_Data_tlast             (siROL_Nts_Tcp_Data_tlast),
-    .siROL_Tcp_Data_tvalid            (siROL_Nts_Tcp_Data_tvalid),
-    .siROL_Tcp_Data_tready            (siROL_Nts_Tcp_Data_tready),
-    //---- Stream TCP Metadata -----------------
-    .siROL_Tcp_Meta_tdata             (siROL_Nts_Tcp_Meta_tdata),
-    .siROL_Tcp_Meta_tvalid            (siROL_Nts_Tcp_Meta_tvalid),
-    .siROL_Tcp_Meta_tready            (siROL_Nts_Tcp_Meta_tready),
-    //---- Stream TCP Data Status --------------
-    .soROL_Tcp_DSts_tdata             (soROL_Nts_Tcp_DSts_tdata),
-    .soROL_Tcp_DSts_tvalid            (soROL_Nts_Tcp_DSts_tvalid),
-    .soROL_Tcp_DSts_tready            (soROL_Nts_Tcp_DSts_tready),
+    //---- Axi4-Stream UDP Data ---------------
+    .soAPP_Udp_Data_tdata             (ssNTS0_UARS_Udp_Data_tdata),
+    .soAPP_Udp_Data_tkeep             (ssNTS0_UARS_Udp_Data_tkeep),
+    .soAPP_Udp_Data_tlast             (ssNTS0_UARS_Udp_Data_tlast),
+    .soAPP_Udp_Data_tvalid            (ssNTS0_UARS_Udp_Data_tvalid),
+    .soAPP_Udp_Data_tready            (ssNTS0_UARS_Udp_Data_tready),
+     //---- Axi4-Stream UDP Metadata -----------
+    .soAPP_Udp_Meta_tdata             (ssNTS0_UARS_Udp_Meta_tdata),
+    .soAPP_Udp_Meta_tvalid            (ssNTS0_UARS_Udp_Meta_tvalid),
+    .soAPP_Udp_Meta_tready            (ssNTS0_UARS_Udp_Meta_tready),
+    
+    //------------------------------------------------------
+    //-- UAIF / UDP Rx Ctrl Interfaces (.i.e NTS-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Listen Request -----
+    .siAPP_Udp_LsnReq_tdata           (ssUARS_NTS0_Udp_LsnReq_tdata),
+    .siAPP_Udp_LsnReq_tvalid          (ssUARS_NTS0_Udp_LsnReq_tvalid),
+    .siAPP_Udp_LsnReq_tready          (ssUARS_NTS0_Udp_LsnReq_tready),
+    //---- Axi4-Stream UDP Listen Reply --------
+    .soAPP_Udp_LsnRep_tdata           (ssNTS0_UARS_Udp_LsnRep_tdata),
+    .soAPP_Udp_LsnRep_tvalid          (ssNTS0_UARS_Udp_LsnRep_tvalid),
+    .soAPP_Udp_LsnRep_tready          (ssNTS0_UARS_Udp_LsnRep_tready),
+    //---- Axi4-Stream UDP Close Request ------
+    .siAPP_Udp_ClsReq_tdata           (ssUARS_NTS0_Udp_ClsReq_tdata),
+    .siAPP_Udp_ClsReq_tvalid          (ssUARS_NTS0_Udp_ClsReq_tvalid),
+    .siAPP_Udp_ClsReq_tready          (ssUARS_NTS0_Udp_ClsReq_tready),
+  
+    //------------------------------------------------------
+    //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Data ---------------
+    .siAPP_Tcp_Data_tdata             (ssTARS_NTS0_Tcp_Data_tdata),
+    .siAPP_Tcp_Data_tkeep             (ssTARS_NTS0_Tcp_Data_tkeep),
+    .siAPP_Tcp_Data_tlast             (ssTARS_NTS0_Tcp_Data_tlast),
+    .siAPP_Tcp_Data_tvalid            (ssTARS_NTS0_Tcp_Data_tvalid),
+    .siAPP_Tcp_Data_tready            (ssTARS_NTS0_Tcp_Data_tready),
+    //---- Axi4- Stream TCP Metadata ----------
+    .siAPP_Tcp_Meta_tdata             (ssTARS_NTS0_Tcp_Meta_tdata),
+    .siAPP_Tcp_Meta_tvalid            (ssTARS_NTS0_Tcp_Meta_tvalid),
+    .siAPP_Tcp_Meta_tready            (ssTARS_NTS0_Tcp_Meta_tready),
+    //---- Axi4-Stream TCP Data Status --------
+    .soAPP_Tcp_DSts_tdata             (ssNTS0_TARS_Tcp_DSts_tdata),
+    .soAPP_Tcp_DSts_tvalid            (ssNTS0_TARS_Tcp_DSts_tvalid),
+    .soAPP_Tcp_DSts_tready            (ssNTS0_TARS_Tcp_DSts_tready),      
+    
+     //---------------------------------------------------
+      //-- TAIF / Rx Data Interfaces (.i.e NTS-->APP)
+     //---------------------------------------------------
+     //--  Axi4-Stream TCP Data -----------------------         
+     .soAPP_Tcp_Data_tdata            (ssNTS0_TARS_Tcp_Data_tdata),
+     .soAPP_Tcp_Data_tkeep            (ssNTS0_TARS_Tcp_Data_tkeep),
+     .soAPP_Tcp_Data_tlast            (ssNTS0_TARS_Tcp_Data_tlast),
+     .soAPP_Tcp_Data_tvalid           (ssNTS0_TARS_Tcp_Data_tvalid),
+     .soAPP_Tcp_Data_tready           (ssNTS0_TARS_Tcp_Data_tready),
+     //--  Axi4-Stream TCP Metadata -----------  
+     .soAPP_Tcp_Meta_tdata            (ssNTS0_TARS_Tcp_Meta_tdata),
+     .soAPP_Tcp_Meta_tvalid           (ssNTS0_TARS_Tcp_Meta_tvalid),
+     .soAPP_Tcp_Meta_tready           (ssNTS0_TARS_Tcp_Meta_tready),
+      //--  Axi4-Stream TCP Data Notification -
+     .soAPP_Tcp_Notif_tdata           (ssNTS0_TARS_Tcp_Notif_tdata),
+     .soAPP_Tcp_Notif_tvalid          (ssNTS0_TARS_Tcp_Notif_tvalid),
+     .soAPP_Tcp_Notif_tready          (ssNTS0_TARS_Tcp_Notif_tready),
+     //-- Stream TCP Data Request --------------
+     .siAPP_Tcp_DReq_tdata            (ssTARS_NTS0_Tcp_DReq_tdata),    
+     .siAPP_Tcp_DReq_tvalid           (ssTARS_NTS0_Tcp_DReq_tvalid),
+     .siAPP_Tcp_DReq_tready           (ssTARS_NTS0_Tcp_DReq_tready),
 
-    //---------------------------------------------------
-    //-- ROLE / Tcp / RxP Data Flow Interfaces    
-    //---------------------------------------------------
-    //-- FPGA Receive Path (NTS-->ROLE) -------------    
-    //-- Stream TCP Data -----------------------         
-    .soROL_Tcp_Data_tdata             (soROL_Nts_Tcp_Data_tdata),
-    .soROL_Tcp_Data_tkeep             (soROL_Nts_Tcp_Data_tkeep),
-    .soROL_Tcp_Data_tlast             (soROL_Nts_Tcp_Data_tlast),
-    .soROL_Tcp_Data_tvalid            (soROL_Nts_Tcp_Data_tvalid),
-    .soROL_Tcp_Data_tready            (soROL_Nts_Tcp_Data_tready),
-    //-- Stream TCP Metadata ---------------------  
-    .soROL_Tcp_Meta_tdata             (soROL_Nts_Tcp_Meta_tdata),
-    .soROL_Tcp_Meta_tvalid            (soROL_Nts_Tcp_Meta_tvalid),
-    .soROL_Tcp_Meta_tready            (soROL_Nts_Tcp_Meta_tready),
-     //-- Stream TCP Data Notification ----------
-    .soROL_Tcp_Notif_tdata            (soROL_Nts_Tcp_Notif_tdata),
-    .soROL_Tcp_Notif_tvalid           (soROL_Nts_Tcp_Notif_tvalid),
-    .soROL_Tcp_Notif_tready           (soROL_Nts_Tcp_Notif_tready),
-    //-- Stream TCP Data Request ------------
-    .siROL_Tcp_DReq_tdata             (siROL_Nts_Tcp_DReq_tdata),    
-    .siROL_Tcp_DReq_tvalid            (siROL_Nts_Tcp_DReq_tvalid),
-    .siROL_Tcp_DReq_tready            (siROL_Nts_Tcp_DReq_tready),
+      //------------------------------------------------------
+      //-- TAIF / Tx Ctlr Interfaces (.i.e APP-->NTS)
+      //------------------------------------------------------
+      //---- Axi4-Stream TCP Open Session Request
+      .siAPP_Tcp_OpnReq_tdata         (ssTARS_NTS0_Tcp_OpnReq_tdata),
+      .siAPP_Tcp_OpnReq_tvalid        (ssTARS_NTS0_Tcp_OpnReq_tvalid),
+      .siAPP_Tcp_OpnReq_tready        (ssTARS_NTS0_Tcp_OpnReq_tready),
+      //---- Axi4-Stream TCP Open Session Status 
+      .soAPP_Tcp_OpnRep_tdata         (ssNTS0_TARS_Tcp_OpnRep_tdata),
+      .soAPP_Tcp_OpnRep_tvalid        (ssNTS0_TARS_Tcp_OpnRep_tvalid),
+      .soAPP_Tcp_OpnRep_tready        (ssNTS0_TARS_Tcp_OpnRep_tready),
+      //---- Axi4-Stream TCP Close Request ----
+      .siAPP_Tcp_ClsReq_tdata         (ssTARS_NTS0_Tcp_ClsReq_tdata),
+      .siAPP_Tcp_ClsReq_tvalid        (ssTARS_NTS0_Tcp_ClsReq_tvalid),
+      .siAPP_Tcp_ClsReq_tready        (ssTARS_NTS0_Tcp_ClsReq_tready),
     
-    //------------------------------------------------------
-    //-- ROLE / Tcp / TxP Ctlr Flow Interfaces
-    //------------------------------------------------------
-    //-- FPGA Transmit Path (ROLE-->ETH) -----------
-    //---- Stream TCP Open Session Request -----
-    .siROL_Tcp_OpnReq_tdata           (siROL_Nts_Tcp_OpnReq_tdata),
-    .siROL_Tcp_OpnReq_tvalid          (siROL_Nts_Tcp_OpnReq_tvalid),
-    .siROL_Tcp_OpnReq_tready          (siROL_Nts_Tcp_OpnReq_tready),
-    //---- Stream TCP Open Session Status ------
-    .soROL_Tcp_OpnRep_tdata           (soROL_Nts_Tcp_OpnRep_tdata),
-    .soROL_Tcp_OpnRep_tvalid          (soROL_Nts_Tcp_OpnRep_tvalid),
-    .soROL_Tcp_OpnRep_tready          (soROL_Nts_Tcp_OpnRep_tready),
-    //---- Stream TCP Close Request ------------
-    .siROL_Tcp_ClsReq_tdata           (siROL_Nts_Tcp_ClsReq_tdata),
-    .siROL_Tcp_ClsReq_tvalid          (siROL_Nts_Tcp_ClsReq_tvalid),
-    .siROL_Tcp_ClsReq_tready          (siROL_Nts_Tcp_ClsReq_tready),
-    
-    //------------------------------------------------------
-    //-- ROLE / Tcp / RxP Ctlr Flow Interfaces
-    //------------------------------------------------------
-    //-- FPGA Receive Path (ETH-->ROLE) ------------
-    //---- Stream TCP Listen Request -----------
-    .siROL_Tcp_LsnReq_tdata           (siROL_Nts_Tcp_LsnReq_tdata),
-    .siROL_Tcp_LsnReq_tvalid          (siROL_Nts_Tcp_LsnReq_tvalid),
-    .siROL_Tcp_LsnReq_tready          (siROL_Nts_Tcp_LsnReq_tready),
-    //---- Stream TCP Listen Status ------------
-    .soROL_Tcp_LsnAck_tdata           (soROL_Nts_Tcp_LsnAck_tdata),
-    .soROL_Tcp_LsnAck_tvalid          (soROL_Nts_Tcp_LsnAck_tvalid),
-    .soROL_Tcp_LsnAck_tready          (soROL_Nts_Tcp_LsnAck_tready),
+     //------------------------------------------------------
+     //-- TAIF / Rx Ctlr Interfaces (.i.e NTS-->APP)
+     //------------------------------------------------------
+     //---- Axi4-Stream TCP Listen Request -----
+     .siAPP_Tcp_LsnReq_tdata          (ssTARS_NTS0_Tcp_LsnReq_tdata),
+     .siAPP_Tcp_LsnReq_tvalid         (ssTARS_NTS0_Tcp_LsnReq_tvalid),
+     .siAPP_Tcp_LsnReq_tready         (ssTARS_NTS0_Tcp_LsnReq_tready),
+     //---- Axi4-Stream TCP Listen Status ------
+     .soAPP_Tcp_LsnAck_tdata          (ssNTS0_TARS_Tcp_LsnAck_tdata),
+     .soAPP_Tcp_LsnAck_tvalid         (ssNTS0_TARS_Tcp_LsnAck_tvalid),
+     .soAPP_Tcp_LsnAck_tready         (ssNTS0_TARS_Tcp_LsnAck_tready),
     
     //------------------------------------------------------
     //-- MMIO / Interfaces
@@ -1000,6 +1068,255 @@ module Shell_Kale # (
 
   );  // End of NTS0
 
+
+  //============================================================================
+  //  INST: TCP APPLICATION REGISTER SLICE (NTS0<-->[TARS]<-->APP)
+  //============================================================================
+  TcpApplicationRegisterSlice TARS (
+    .piClk                      (sETH0_ShlClk),
+    .piRst                      (piTOP_156_25Rst),   // [TODO-Use sMMIO_LayerRst[5])
+    //------------------------------------------------------
+    //-- APP / Tcp / Tx Data Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Data ---------------
+    .siAPP_Tcp_Data_tdata       (siROL_Nts_Tcp_Data_tdata ),
+    .siAPP_Tcp_Data_tkeep       (siROL_Nts_Tcp_Data_tkeep ),
+    .siAPP_Tcp_Data_tlast       (siROL_Nts_Tcp_Data_tlast ),
+    .siAPP_Tcp_Data_tvalid      (siROL_Nts_Tcp_Data_tvalid),
+    .siAPP_Tcp_Data_tready      (siROL_Nts_Tcp_Data_tready),
+    //---- Axi4-Stream TCP Metadata -----------
+    .siAPP_Tcp_Meta_tdata       (siROL_Nts_Tcp_Meta_tdata ),
+    .siAPP_Tcp_Meta_tvalid      (siROL_Nts_Tcp_Meta_tvalid),
+    .siAPP_Tcp_Meta_tready      (siROL_Nts_Tcp_Meta_tready),
+    //---- Axi4-Stream TCP Data Status --------
+    .soAPP_Tcp_DSts_tdata       (soROL_Nts_Tcp_DSts_tdata ),
+    .soAPP_Tcp_DSts_tvalid      (soROL_Nts_Tcp_DSts_tvalid),
+    .soAPP_Tcp_DSts_tready      (soROL_Nts_Tcp_DSts_tready),
+     
+    //------------------------------------------------------
+    //-- APP / Tcp / Rx Data Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //-- Axi4-Stream TCP Data -----------------
+    .soAPP_Tcp_Data_tdata       (soROL_Nts_Tcp_Data_tdata ),
+    .soAPP_Tcp_Data_tkeep       (soROL_Nts_Tcp_Data_tkeep ),
+    .soAPP_Tcp_Data_tlast       (soROL_Nts_Tcp_Data_tlast ),
+    .soAPP_Tcp_Data_tvalid      (soROL_Nts_Tcp_Data_tvalid),
+    .soAPP_Tcp_Data_tready      (soROL_Nts_Tcp_Data_tready),
+    //--  Axi4-Stream TCP Metadata ------------
+    .soAPP_Tcp_Meta_tdata       (soROL_Nts_Tcp_Meta_tdata ),
+    .soAPP_Tcp_Meta_tvalid      (soROL_Nts_Tcp_Meta_tvalid),
+    .soAPP_Tcp_Meta_tready      (soROL_Nts_Tcp_Meta_tready),
+    //--  Axi4-Stream TCP Data Notification ---
+    .soAPP_Tcp_Notif_tdata      (soROL_Nts_Tcp_Notif_tdata ), // 7+96
+    .soAPP_Tcp_Notif_tvalid     (soROL_Nts_Tcp_Notif_tvalid),
+    .soAPP_Tcp_Notif_tready     (soROL_Nts_Tcp_Notif_tready),
+     //--  Axi4-Stream TCP Data Request --------
+    .siAPP_Tcp_DReq_tdata       (siROL_Nts_Tcp_DReq_tdata ),
+    .siAPP_Tcp_DReq_tvalid      (siROL_Nts_Tcp_DReq_tvalid),
+    .siAPP_Tcp_DReq_tready      (siROL_Nts_Tcp_DReq_tready),
+   
+    //------------------------------------------------------
+    //-- APP / Tcp / Tx Ctlr Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Open Session Request
+    .siAPP_Tcp_OpnReq_tdata     (siROL_Nts_Tcp_OpnReq_tdata ),
+    .siAPP_Tcp_OpnReq_tvalid    (siROL_Nts_Tcp_OpnReq_tvalid),
+    .siAPP_Tcp_OpnReq_tready    (siROL_Nts_Tcp_OpnReq_tready),
+    //---- Axi4-Stream TCP Open Session Reply
+    .soAPP_Tcp_OpnRep_tdata     (soROL_Nts_Tcp_OpnRep_tdata ),
+    .soAPP_Tcp_OpnRep_tvalid    (soROL_Nts_Tcp_OpnRep_tvalid),
+    .soAPP_Tcp_OpnRep_tready    (soROL_Nts_Tcp_OpnRep_tready),
+    //---- Axi4-Stream TCP Close Request ------
+    .siAPP_Tcp_ClsReq_tdata     (siROL_Nts_Tcp_ClsReq_tdata ), 
+    .siAPP_Tcp_ClsReq_tvalid    (siROL_Nts_Tcp_ClsReq_tvalid),
+    .siAPP_Tcp_ClsReq_tready    (siROL_Nts_Tcp_ClsReq_tready),
+   
+    //------------------------------------------------------
+    //-- APP / Tcp / Rx Ctlr Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //----  Axi4-Stream TCP Listen Request ----
+    .siAPP_Tcp_LsnReq_tdata     (siROL_Nts_Tcp_LsnReq_tdata ),   
+    .siAPP_Tcp_LsnReq_tvalid    (siROL_Nts_Tcp_LsnReq_tvalid),
+    .siAPP_Tcp_LsnReq_tready    (siROL_Nts_Tcp_LsnReq_tready),
+    //----  Axi4-Stream TCP Listen Ack --------
+    .soAPP_Tcp_LsnAck_tdata     (soROL_Nts_Tcp_LsnAck_tdata ),
+    .soAPP_Tcp_LsnAck_tvalid    (soROL_Nts_Tcp_LsnAck_tvalid),
+    .soAPP_Tcp_LsnAck_tready    (soROL_Nts_Tcp_LsnAck_tready),
+    
+    //------------------------------------------------------
+    //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Data ---------------
+    .soNTS_Tcp_Data_tdata       (ssTARS_NTS0_Tcp_Data_tdata ),
+    .soNTS_Tcp_Data_tkeep       (ssTARS_NTS0_Tcp_Data_tkeep ),
+    .soNTS_Tcp_Data_tlast       (ssTARS_NTS0_Tcp_Data_tlast ),
+    .soNTS_Tcp_Data_tvalid      (ssTARS_NTS0_Tcp_Data_tvalid),
+    .soNTS_Tcp_Data_tready      (ssTARS_NTS0_Tcp_Data_tready),
+    //---- Axi4-Stream TCP Metadata -----------
+    .soNTS_Tcp_Meta_tdata       (ssTARS_NTS0_Tcp_Meta_tdata ),
+    .soNTS_Tcp_Meta_tvalid      (ssTARS_NTS0_Tcp_Meta_tvalid),
+    .soNTS_Tcp_Meta_tready      (ssTARS_NTS0_Tcp_Meta_tready),
+    //---- Axi4-Stream TCP Data Status --------
+    .siNTS_Tcp_DSts_tdata       (ssNTS0_TARS_Tcp_DSts_tdata  ),
+    .siNTS_Tcp_DSts_tvalid      (ssNTS0_TARS_Tcp_DSts_tvalid ),
+    .siNTS_Tcp_DSts_tready      (ssNTS0_TARS_Tcp_DSts_tready ),
+       
+    //------------------------------------------------------
+    //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //-- Axi4-Stream TCP Data -----------------
+    .siNTS_Tcp_Data_tdata       (ssNTS0_TARS_Tcp_Data_tdata ),
+    .siNTS_Tcp_Data_tkeep       (ssNTS0_TARS_Tcp_Data_tkeep ),
+    .siNTS_Tcp_Data_tlast       (ssNTS0_TARS_Tcp_Data_tlast ),
+    .siNTS_Tcp_Data_tvalid      (ssNTS0_TARS_Tcp_Data_tvalid),
+    .siNTS_Tcp_Data_tready      (ssNTS0_TARS_Tcp_Data_tready),
+    //--  Axi4-Stream TCP Metadata ------------
+    .siNTS_Tcp_Meta_tdata       (ssNTS0_TARS_Tcp_Meta_tdata ),
+    .siNTS_Tcp_Meta_tvalid      (ssNTS0_TARS_Tcp_Meta_tvalid),
+    .siNTS_Tcp_Meta_tready      (ssNTS0_TARS_Tcp_Meta_tready),
+    //--  Axi4-Stream TCP Data Notification ---
+    .siNTS_Tcp_Notif_tdata      (ssNTS0_TARS_Tcp_Notif_tdata ),  // 7+96
+    .siNTS_Tcp_Notif_tvalid     (ssNTS0_TARS_Tcp_Notif_tvalid),
+    .siNTS_Tcp_Notif_tready     (ssNTS0_TARS_Tcp_Notif_tready),
+    //--  Axi4-Stream TCP Data Request --------
+    .soNTS_Tcp_DReq_tdata       (ssTARS_NTS0_Tcp_DReq_tdata ),
+    .soNTS_Tcp_DReq_tvalid      (ssTARS_NTS0_Tcp_DReq_tvalid),
+    .soNTS_Tcp_DReq_tready      (ssTARS_NTS0_Tcp_DReq_tready),
+     
+    //------------------------------------------------------
+    //-- NTS / Tcp / Tx Ctlr Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Open Session Request
+    .soNTS_Tcp_OpnReq_tdata     (ssTARS_NTS0_Tcp_OpnReq_tdata ),
+    .soNTS_Tcp_OpnReq_tvalid    (ssTARS_NTS0_Tcp_OpnReq_tvalid),
+    .soNTS_Tcp_OpnReq_tready    (ssTARS_NTS0_Tcp_OpnReq_tready),
+    //---- Axi4-Stream TCP Open Session Reply
+    .siNTS_Tcp_OpnRep_tdata     (ssNTS0_TARS_Tcp_OpnRep_tdata ),
+    .siNTS_Tcp_OpnRep_tvalid    (ssNTS0_TARS_Tcp_OpnRep_tvalid),
+    .siNTS_Tcp_OpnRep_tready    (ssNTS0_TARS_Tcp_OpnRep_tready),
+    //---- Axi4-Stream TCP Close Request ------
+    .soNTS_Tcp_ClsReq_tdata     (ssTARS_NTS0_Tcp_ClsReq_tdata ),
+    .soNTS_Tcp_ClsReq_tvalid    (ssTARS_NTS0_Tcp_ClsReq_tvalid),
+    .soNTS_Tcp_ClsReq_tready    (ssTARS_NTS0_Tcp_ClsReq_tready),
+     
+    //------------------------------------------------------
+    //-- NTS / Tcp / Rx Ctlr Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //----  Axi4-Stream TCP Listen Request ----
+    .soNTS_Tcp_LsnReq_tdata     (ssTARS_NTS0_Tcp_LsnReq_tdata ),   
+    .soNTS_Tcp_LsnReq_tvalid    (ssTARS_NTS0_Tcp_LsnReq_tvalid),
+    .soNTS_Tcp_LsnReq_tready    (ssTARS_NTS0_Tcp_LsnReq_tready),
+    //----  Axi4-Stream TCP Listen Ack --------
+    .siNTS_Tcp_LsnAck_tdata     (ssNTS0_TARS_Tcp_LsnAck_tdata ),
+    .siNTS_Tcp_LsnAck_tvalid    (ssNTS0_TARS_Tcp_LsnAck_tvalid),
+    .siNTS_Tcp_LsnAck_tready    (ssNTS0_TARS_Tcp_LsnAck_tready)
+    
+  );
+
+
+  //============================================================================
+  //  INST: UDP APPLICATION REGISTER SLICE (NTS0<-->[UARS]<-->APP)
+  //============================================================================
+  UdpApplicationRegisterSlice UARS (
+    .piClk                    (sETH0_ShlClk),
+    .piRst                    (piTOP_156_25Rst),   // [TODO-Use sMMIO_LayerRst[5])
+    //------------------------------------------------------
+    //-- APP / Ucp / Tx Data Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Data ---------------
+    .siAPP_Udp_Data_tdata     (siROL_Nts_Udp_Data_tdata ),
+    .siAPP_Udp_Data_tkeep     (siROL_Nts_Udp_Data_tkeep ),
+    .siAPP_Udp_Data_tlast     (siROL_Nts_Udp_Data_tlast ),
+    .siAPP_Udp_Data_tvalid    (siROL_Nts_Udp_Data_tvalid),
+    .siAPP_Udp_Data_tready    (siROL_Nts_Udp_Data_tready),
+    //---- Axi4-Stream UDP Metadata -----------
+    .siAPP_Udp_Meta_tdata     (siROL_Nts_Udp_Meta_tdata ),
+    .siAPP_Udp_Meta_tvalid    (siROL_Nts_Udp_Meta_tvalid),
+    .siAPP_Udp_Meta_tready    (siROL_Nts_Udp_Meta_tready),
+    //---- Axis4Stream UDP Data Length ---------
+    .siAPP_Udp_DLen_tdata     (siROL_Nts_Udp_DLen_tdata ),
+    .siAPP_Udp_DLen_tvalid    (siROL_Nts_Udp_DLen_tvalid),
+    .siAPP_Udp_DLen_tready    (siROL_Nts_Udp_DLen_tready),
+      
+    //------------------------------------------------------
+    //-- APP / Udp / Rx Data Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Data ---------------
+    .soAPP_Udp_Data_tdata     (soROL_Nts_Udp_Data_tdata ),
+    .soAPP_Udp_Data_tkeep     (soROL_Nts_Udp_Data_tkeep ),
+    .soAPP_Udp_Data_tlast     (soROL_Nts_Udp_Data_tlast ),
+    .soAPP_Udp_Data_tvalid    (soROL_Nts_Udp_Data_tvalid),
+    .soAPP_Udp_Data_tready    (soROL_Nts_Udp_Data_tready),
+    //---- Axi4-Stream UDP Metadata -----------
+    .soAPP_Udp_Meta_tdata     (soROL_Nts_Udp_Meta_tdata ),
+    .soAPP_Udp_Meta_tvalid    (soROL_Nts_Udp_Meta_tvalid),
+    .soAPP_Udp_Meta_tready    (soROL_Nts_Udp_Meta_tready),
+    
+    //------------------------------------------------------
+    //-- APP / Udp / Rx Ctrl Interfaces (.i.e THIS<-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Listen Request -----
+    .siAPP_Udp_LsnReq_tdata   (siROL_Nts_Udp_LsnReq_tdata ),
+    .siAPP_Udp_LsnReq_tvalid  (siROL_Nts_Udp_LsnReq_tvalid),
+    .siAPP_Udp_LsnReq_tready  (siROL_Nts_Udp_LsnReq_tready),
+    //---- Axi4-Stream UDP Listen Reply --------
+    .soAPP_Udp_LsnRep_tdata   (soROL_Nts_Udp_LsnRep_tdata ),
+    .soAPP_Udp_LsnRep_tvalid  (soROL_Nts_Udp_LsnRep_tvalid),
+    .soAPP_Udp_LsnRep_tready  (soROL_Nts_Udp_LsnRep_tready),
+    //---- Axi4-Stream UDP Close Request ------
+    .siAPP_Udp_ClsReq_tdata   (siROL_Nts_Udp_ClsReq_tdata ),
+    .siAPP_Udp_ClsReq_tvalid  (siROL_Nts_Udp_ClsReq_tvalid),
+    .siAPP_Udp_ClsReq_tready  (siROL_Nts_Udp_ClsReq_tready),
+    
+    //------------------------------------------------------
+    //-- NTS / Udp / Tx Data Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Data ---------------
+    .soNTS_Udp_Data_tdata     (ssUARS_NTS0_Udp_Data_tdata ),
+    .soNTS_Udp_Data_tkeep     (ssUARS_NTS0_Udp_Data_tkeep ),
+    .soNTS_Udp_Data_tlast     (ssUARS_NTS0_Udp_Data_tlast ),
+    .soNTS_Udp_Data_tvalid    (ssUARS_NTS0_Udp_Data_tvalid),
+    .soNTS_Udp_Data_tready    (ssUARS_NTS0_Udp_Data_tready),
+    //---- Axi4-Stream UDP Metadata -----------
+    .soNTS_Udp_Meta_tdata     (ssUARS_NTS0_Udp_Meta_tdata ),
+    .soNTS_Udp_Meta_tvalid    (ssUARS_NTS0_Udp_Meta_tvalid),
+    .soNTS_Udp_Meta_tready    (ssUARS_NTS0_Udp_Meta_tready),
+    //---- Axis4Stream UDP Data Length ---------
+    .soNTS_Udp_DLen_tdata     (ssUARS_NTS0_Udp_DLen_tdata ),
+    .soNTS_Udp_DLen_tvalid    (ssUARS_NTS0_Udp_DLen_tvalid),
+    .soNTS_Udp_DLen_tready    (ssUARS_NTS0_Udp_DLen_tready),
+      
+    //------------------------------------------------------
+    //-- NTS / Udp / Rx Data Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Data ---------------
+    .siNTS_Udp_Data_tdata     (ssNTS0_UARS_Udp_Data_tdata ),
+    .siNTS_Udp_Data_tkeep     (ssNTS0_UARS_Udp_Data_tkeep ),
+    .siNTS_Udp_Data_tlast     (ssNTS0_UARS_Udp_Data_tlast ),
+    .siNTS_Udp_Data_tvalid    (ssNTS0_UARS_Udp_Data_tvalid),
+    .siNTS_Udp_Data_tready    (ssNTS0_UARS_Udp_Data_tready),
+    //---- Axi4-Stream UDP Metadata -----------
+    .siNTS_Udp_Meta_tdata     (ssNTS0_UARS_Udp_Meta_tdata ),
+    .siNTS_Udp_Meta_tvalid    (ssNTS0_UARS_Udp_Meta_tvalid),
+    .siNTS_Udp_Meta_tready    (ssNTS0_UARS_Udp_Meta_tready),
+    
+    //------------------------------------------------------
+    //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->THIS)
+    //------------------------------------------------------
+    //---- Axi4-Stream UDP Listen Request -----
+    .soNTS_Udp_LsnReq_tdata   (ssUARS_NTS0_Udp_LsnReq_tdata ),
+    .soNTS_Udp_LsnReq_tvalid  (ssUARS_NTS0_Udp_LsnReq_tvalid),
+    .soNTS_Udp_LsnReq_tready  (ssUARS_NTS0_Udp_LsnReq_tready),
+    //---- Axi4-Stream UDP Listen Reply --------
+    .siNTS_Udp_LsnRep_tdata   (ssNTS0_UARS_Udp_LsnRep_tdata ),
+    .siNTS_Udp_LsnRep_tvalid  (ssNTS0_UARS_Udp_LsnRep_tvalid),
+    .siNTS_Udp_LsnRep_tready  (ssNTS0_UARS_Udp_LsnRep_tready),
+    //---- Axi4-Stream UDP Close Request ------
+    .soNTS_Udp_ClsReq_tdata   (ssUARS_NTS0_Udp_ClsReq_tdata ),
+    .soNTS_Udp_ClsReq_tvalid  (ssUARS_NTS0_Udp_ClsReq_tvalid),
+    .soNTS_Udp_ClsReq_tready  (ssUARS_NTS0_Udp_ClsReq_tready)
+     
+  );
 
   //============================================================================
   //  INST: SYNCHRONOUS DYNAMIC RANDOM ACCESS MEMORY SUBSYSTEM
@@ -1211,196 +1528,8 @@ module Shell_Kale # (
     .poVoid                           ()
 
   );  // End of MEM
- 
-  //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (URIF ==>[ARS6]==> ROLE/Udp/Data)
-  //============================================================================
-  AxisRegisterSlice_64 ARS6 (
-    .aclk          (sETH0_ShlClk),
-    .aresetn       (~piTOP_156_25Rst),
-    // From URIF / Data ---------------
-    .s_axis_tdata  (ssURIF_ARS6_Data_tdata),
-    .s_axis_tkeep  (ssURIF_ARS6_Data_tkeep),
-    .s_axis_tlast  (ssURIF_ARS6_Data_tlast),
-    .s_axis_tvalid (ssURIF_ARS6_Data_tvalid),
-    .s_axis_tready (ssURIF_ARS6_Data_tready),     
-    //-- To ROLE / Udp / Data --------
-    .m_axis_tdata  (soROL_Nts_Udp_Data_tdata),
-    .m_axis_tkeep  (soROL_Nts_Udp_Data_tkeep),
-    .m_axis_tlast  (soROL_Nts_Udp_Data_tlast),
-    .m_axis_tvalid (soROL_Nts_Udp_Data_tvalid),
-    .m_axis_tready (soROL_Nts_Udp_Data_tready)
-  );
   
-  //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (ROLE/Udp/Data ==>[ARS7]==> URIF)
-  //============================================================================
-  AxisRegisterSlice_64 ARS7 (
-    .aclk          (sETH0_ShlClk),
-    .aresetn       (~piTOP_156_25Rst),
-    //-- From ROLE / Udp / Data -------
-    .s_axis_tdata   (siROL_Nts_Udp_Data_tdata),
-    .s_axis_tkeep   (siROL_Nts_Udp_Data_tkeep),
-    .s_axis_tlast   (siROL_Nts_Udp_Data_tlast),
-    .s_axis_tvalid  (siROL_Nts_Udp_Data_tvalid),
-    .s_axis_tready  (siROL_Nts_Udp_Data_tready),
-    //-- To ARS7 / Data ----------------
-    .m_axis_tdata   (ssARS7_URIF_Data_tdata),
-    .m_axis_tkeep   (ssARS7_URIF_Data_tkeep),
-    .m_axis_tlast   (ssARS7_URIF_Data_tlast),
-    .m_axis_tvalid  (ssARS7_URIF_Data_tvalid),
-    .m_axis_tready  (ssARS7_URIF_Data_tready)
-  );
-  
-  //============================================================================
-  //  INST: UDP-ROLE-INTERFACE
-  //============================================================================
-//`ifdef USE_DEPRECATED_DIRECTIVES TODO: fix different pragma versions
-//  
-  UdpRoleInterface URIF (
-
-  .aclk                           (sETH0_ShlClk),
-  .aresetn                        (~piTOP_156_25Rst),
-  
-  //------------------------------------------------------
-  //-- ROLE / Udp / TxP Data Flow Interfaces
-  //------------------------------------------------------
-  //-- From ROLE / Udp ==>[ARS7] / Data
-  .siROL_This_Data_TDATA          (ssARS7_URIF_Data_tdata),
-  .siROL_This_Data_TKEEP          (ssARS7_URIF_Data_tkeep),
-  .siROL_This_Data_TLAST          (ssARS7_URIF_Data_tlast),
-  .siROL_This_Data_TVALID         (ssARS7_URIF_Data_tvalid),
-  .siROL_This_Data_TREADY         (ssARS7_URIF_Data_tready),
-  //-- To   ROLE ==[ARS6] / Udp / Data
-  .soTHIS_Rol_Data_TDATA          (ssURIF_ARS6_Data_tdata),
-  .soTHIS_Rol_Data_TKEEP          (ssURIF_ARS6_Data_tkeep),
-  .soTHIS_Rol_Data_TLAST          (ssURIF_ARS6_Data_tlast),
-  .soTHIS_Rol_Data_TVALID         (ssURIF_ARS6_Data_tvalid),
-  .soTHIS_Rol_Data_TREADY         (ssURIF_ARS6_Data_tready),
-
-  //------------------------------------------------------
-  //-- UDMX / Ctrl Flow Interfaces
-  //------------------------------------------------------
-  //-- To   UDM / Open Port Request ----
-  .soTHIS_Udmx_OpnReq_TDATA       (ssURIF_UDMX_OpnReq_tdata),
-  .soTHIS_Udmx_OpnReq_TVALID      (ssURIF_UDMX_OpnReq_tvalid),
-  .soTHIS_Udmx_OpnReq_TREADY      (ssURIF_UDMX_OpnReq_tready),
-  //-- From UDMX / Open Port Acknowledgment
-  .siUDMX_This_OpnAck_TDATA       (ssUDMX_URIF_OpnAck_tdata),
-  .siUDMX_This_OpnAck_TVALID      (ssUDMX_URIF_OpnAck_tvalid),
-  .siUDMX_This_OpnAck_TREADY      (ssUDMX_URIF_OpnAck_tready),
-
-  //------------------------------------------------------
-  //-- UDMX / UDP Data & MetaData Interfaces
-  //------------------------------------------------------
-  //-- From UDMX / Data ----------------
-  .siUDMX_This_Data_TDATA         (ssUDMX_URIF_Data_tdata),
-  .siUDMX_This_Data_TKEEP         (ssUDMX_URIF_Data_tkeep),
-  .siUDMX_This_Data_TLAST         (ssUDMX_URIF_Data_tlast),
-  .siUDMX_This_Data_TVALID        (ssUDMX_URIF_Data_tvalid),
-  .siUDMX_This_Data_TREADY        (ssUDMX_URIF_Data_tready),
-   //-- From / MetaData ----------------
-  .siUDMX_This_Meta_TDATA         (ssUDMX_URIF_Meta_tdata),
-  .siUDMX_This_Meta_TVALID        (ssUDMX_URIF_Meta_tvalid),
-  .siUDMX_This_Meta_TREADY        (ssUDMX_URIF_Meta_tready),
-   //-- To   UDMX / Data ---------------  
-  .soTHIS_Udmx_Data_TDATA         (ssURIF_UDMX_Data_tdata),
-  .soTHIS_Udmx_Data_TKEEP         (ssURIF_UDMX_Data_tkeep),
-  .soTHIS_Udmx_Data_TLAST         (ssURIF_UDMX_Data_tlast),
-  .soTHIS_Udmx_Data_TVALID        (ssURIF_UDMX_Data_tvalid),
-  .soTHIS_Udmx_Data_TREADY        (ssURIF_UDMX_Data_tready),
-  //-- To   UDMX / MetaData ------------
-  .soTHIS_Udmx_Meta_TDATA         (ssURIF_UDMX_Meta_tdata),
-  .soTHIS_Udmx_Meta_TVALID        (ssURIF_UDMX_Meta_tvalid),
-  .soTHIS_Udmx_Meta_TREADY        (ssURIF_UDMX_Meta_tready),
-  //-- To   UDMX / Length --------------
-  .soTHIS_Udmx_PLen_TDATA         (ssURIF_UDMX_PLen_tdata),
-  .soTHIS_Udmx_PLen_TVALID        (ssURIF_UDMX_PLen_tvalid),
-  .soTHIS_Udmx_PLen_TREADY        (ssURIF_UDMX_PLen_tready)
-
-);
-
-//`else // !`ifdef USE_DEPRECATED_DIRECTIVES
-// 
-//  UdpRoleInterface URIF (
-//  
-//    .ap_clk                         (piShlClk),                      
-//    .ap_rst_n                       (~piShlRst),
-//    
-//    //------------------------------------------------------
-//    //-- From ROLE Interfaces
-//    //------------------------------------------------------
-//    //-- ROLE / This / Udp / Axis
-//    .siROL_This_Data_TDATA          (sROL_Nts0_Udp_tdataReg),
-//    .siROL_This_Data_TKEEP          (sROL_Nts0_Udp_tkeepReg),
-//    .siROL_This_Data_TLAST          (sROL_Nts0_Udp_tlastReg),
-//    .siROL_This_Data_TVALID         (sROL_Nts0_Udp_tvalidReg),
-//    .siROL_This_Data_TREADY         (sURIF_Rol_tready),
-//    
-//    //------------------------------------------------------
-//    //-- To ROLE Interfaces
-//    //------------------------------------------------------
-//    //-- THIS / Role / Udp / Axis Output Interface
-//    .soTHIS_Rol_Data_TREADY         (sROL_Urif_treadyReg),
-//    .soTHIS_Rol_Data_TDATA          (sURIF_Rol_tdata),
-//    .soTHIS_Rol_Data_TKEEP          (sURIF_Rol_tkeep),
-//    .soTHIS_Rol_Data_TLAST          (sURIF_Rol_tlast),
-//    .soTHIS_Rol_Data_TVALID         (sURIF_Rol_tvalid),
-//
-//    //------------------------------------------------------
-//    //-- From UDMX / Open-Port Interfaces
-//    //------------------------------------------------------
-//    //-- UDMX / This / OpenPortAcknowledge / Axis
-//    .siUDMX_This_OpnAck_V_TDATA     (sUDMX_Urif_OpnAck_tdata),
-//    .siUDMX_This_OpnAck_V_TVALID    (sUDMX_Urif_OpnAck_tvalid),
-//    .siUDMX_This_OpnAck_V_TREADY    (sURIF_Udmx_OpnAck_tready),
-//
-//    //------------------------------------------------------
-//    //-- To UDMX / Open-Port Interfaces
-//    //------------------------------------------------------
-//    //-- THIS / Udmx / OpenPortRequest / Axis
-//    .soTHIS_Udmx_OpnReq_V_V_TREADY  (sUDMX_Urif_OpnReq_tready),
-//    .soTHIS_Udmx_OpnReq_V_V_TDATA   (sURIF_Udmx_OpnReq_tdata),
-//    .soTHIS_Udmx_OpnReq_V_V_TVALID  (sURIF_Udmx_OpnReq_tvalid),
-//
-//    //------------------------------------------------------
-//    //-- From UDMX / Data & MetaData Interfaces
-//    //------------------------------------------------------
-//    //-- UDMX / This / Data / Axis
-//    .siUDMX_This_Data_TDATA         (sUDMX_Urif_Data_tdata),
-//    .siUDMX_This_Data_TKEEP         (sUDMX_Urif_Data_tkeep),
-//    .siUDMX_This_Data_TLAST         (sUDMX_Urif_Data_tlast),
-//    .siUDMX_This_Data_TVALID        (sUDMX_Urif_Data_tvalid),
-//    .siUDMX_This_Data_TREADY        (sURIF_Udmx_Data_tready),
-//     //-- UDMX / This / MetaData / Axis
-//    .siUDMX_This_Meta_TDATA         (sUDMX_Urif_Meta_tdata),
-//    .siUDMX_This_Meta_TVALID        (sUDMX_Urif_Meta_tvalid),
-//    .siUDMX_This_Meta_TREADY        (sURIF_Udmx_Meta_tready),
-//    
-//    //------------------------------------------------------
-//    //-- To UDMX / Data & MetaData Interfaces
-//    //------------------------------------------------------
-//    //-- THIS / Udmx / Data / Axis  
-//    .soTHIS_Udmx_Data_TREADY        (sUDMX_Urif_Data_tready),    
-//    .soTHIS_Udmx_Data_TDATA         (sURIF_Udmx_Data_tdata),   
-//    .soTHIS_Udmx_Data_TKEEP         (sURIF_Udmx_Data_tkeep),
-//    .soTHIS_Udmx_Data_TLAST         (sURIF_Udmx_Data_tlast),
-//    .soTHIS_Udmx_Data_TVALID        (sURIF_Udmx_Data_tvalid),
-//    //-- THIS / Udmx / MetaData / Axis
-//    .soTHIS_Udmx_Meta_TREADY        (sUDMX_Urif_Meta_tready),
-//    .soTHIS_Udmx_Meta_TDATA         (sURIF_Udmx_Meta_tdata),
-//    .soTHIS_Udmx_Meta_TVALID        (sURIF_Udmx_Meta_tvalid),
-//    //-- THIS / Udmx / Tx Length / Axis
-//    .soTHIS_Udmx_PLen_V_V_TREADY    (sUDMX_Urif_PLen_tready),
-//    .soTHIS_Udmx_PLen_V_V_TDATA     (sURIF_Udmx_PLen_tdata),
-//    .soTHIS_Udmx_PLen_V_V_TVALID    (sURIF_Udmx_PLen_tvalid)
-//
-//  );
-//   
-//`endif // !`ifdef USE_DEPRECATED_DIRECTIVES
-   
-
-
+    
   //===========================================================================
   //==  INST: METASTABILITY HARDENED BLOCK FOR THE SHELL RESET (Active high)
   //==    [INFO] Note that we instantiate 2 or 3 library primitives rather than
