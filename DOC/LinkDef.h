@@ -37,6 +37,12 @@
  *  \brief Simulation support and utilities for the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_UOE UDP Offload Engine (UOE).
+ *  @ingroup NTS
+ * 
+ *  \brief This the UDP offload engine of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup FMC FMC
  *  @ingroup ShellLib
  * 
