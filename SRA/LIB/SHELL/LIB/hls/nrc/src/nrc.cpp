@@ -70,6 +70,7 @@ NetworkDataLength udpTX_current_packet_length = 0;
 ap_uint<64> tripleList[MAX_NRC_SESSIONS];
 ap_uint<17> sessionIdList[MAX_NRC_SESSIONS];
 ap_uint<1>  usedRows[MAX_NRC_SESSIONS];
+ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 
@@ -124,6 +125,7 @@ ap_uint<16>         startupDelay = 0x8000;
 ap_uint<16>         startupDelay = 30;
 #endif
 OpnFsmStates opnFsmState=OPN_IDLE;
+ClsFsmStates clsFsmState=CLS_IDLE;
 
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
@@ -144,7 +146,6 @@ bool fmc_port_opened = false;
 NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
 NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 bool Tcp_RX_metaWritten = false;
-//bool tcp_wait_for_FMC_response = false;
 ap_uint<64>  tripple_for_new_connection = 0;
 bool tcp_need_new_connection_request = false;
 bool tcp_new_connection_failure = false;
@@ -166,9 +167,11 @@ NetworkDataLength tcpTX_current_packet_length = 0;
  * @return Nothing.
  ******************************************************************************/
 void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen_Udp) {
+#pragma HLS inline
   if (axisChunk->tlast) {
     int bytCnt = 0;
     for (int i = 0; i < 8; i++) {
+//#pragma HLS unroll
       if (axisChunk->tkeep.bit(i) == 1) {
         bytCnt++;
       }
@@ -181,9 +184,11 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen_Udp) {
 //returns the ZERO-based bit position (so 0 for LSB)
 ap_uint<32> getRightmostBitPos(ap_uint<32> num) 
 { 
+#pragma HLS inline
   //return (ap_uint<32>) log2((ap_fixed<32,2>) (num & -num));
   ap_uint<32> pos = 0; 
-  for (int i = 0; i < 32; i++) { 
+  for (int i = 0; i < 32; i++) {
+//#pragma HLS unroll
     if (!(num & (1 << i)))
     {
       pos++; 
@@ -198,48 +203,62 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
 {
-  for(NodeId i = 0; i< MAX_MRT_SIZE; i++)
+#pragma HLS inline
+  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
   {
+//#pragma HLS unroll
     if(localMRT[i] == ipAddr)
     {
-      return i;
+      //Loop unroll pragma needs int as variable...
+      return (NodeId) i;
     }
   }
   node_id_missmatch_RX_cnt++;
   return 0xFFFF;
 }
 
+
 ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
 {
+#pragma HLS inline
       ap_uint<64> new_entry = (((ap_uint<64>) ipRemoteAddres) << 32) | (((ap_uint<32>) tcpRemotePort) << 16) | tcpLocalPort;
       return new_entry;
 }
 
+
 Ip4Addr getRemoteIpAddrFromTripple(ap_uint<64> tripple)
 {
+#pragma HLS inline
   ap_uint<32> ret = ((ap_uint<32>) (tripple >> 32)) & 0xFFFFFFFF;
   return (Ip4Addr) ret;
 }
 
+
 TcpPort getRemotePortFromTripple(ap_uint<64> tripple)
 {
+#pragma HLS inline
   ap_uint<16> ret = ((ap_uint<16>) (tripple >> 16)) & 0xFFFF;
   return (TcpPort) ret;
 }
 
+
 TcpPort getLocalPortFromTripple(ap_uint<64> tripple)
 {
+#pragma HLS inline
   ap_uint<16> ret = (ap_uint<16>) (tripple & 0xFFFF);
   return (TcpPort) ret;
 }
 
+
 ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
 {
+#pragma HLS inline off
   printf("searching for session: %d\n", (int) sessionID);
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-    if(sessionIdList[i] == sessionID)
+//#pragma HLS unroll
+    if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
     {
       ap_uint<64> ret = tripleList[i];
       printf("found tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
@@ -251,13 +270,16 @@ ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
   return (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
 }
 
+
 SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 {
+#pragma HLS inline off
   printf("Searching for tripple: %llu\n", (unsigned long long) tripple);
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-    if(tripleList[i] == tripple)
+//#pragma HLS unroll
+    if(tripleList[i] == tripple && usedRows[i] == 1 && rowsToDelete[i] == 0)
     {
       return sessionIdList[i];
     }
@@ -268,8 +290,9 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 }
 
 
-void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
+void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
 {
+#pragma HLS inline off
   printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
   //first check for duplicates!
   ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
@@ -282,6 +305,7 @@ void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
+//#pragma HLS unroll
     //if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
     if(usedRows[i] == 0)
     {//next free one, tables stay in sync
@@ -296,10 +320,64 @@ void addnewSessionToTableWithTripple(SessionId sessionID, ap_uint<64> new_entry)
   printf("ERROR: no free space in table left!\n");
 }
 
+
 void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
 {
+#pragma HLS inline
     ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
-    addnewSessionToTableWithTripple(sessionID, new_entry);
+    addnewTrippleToTable(sessionID, new_entry);
+}
+
+
+void deleteSessionFromTables(SessionId sessionID)
+{
+#pragma HLS inline off
+  printf("try to delete session: %d\n", (int) sessionID);
+  for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
+  {
+//#pragma HLS unroll
+    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+    {
+      usedRows[i] = 0;
+      printf("found and deleting session: %d\n", (int) sessionID);
+      return;
+    }
+  }
+  //nothing to delete, nothing to do...
+}
+
+
+void markCurrentRowsAsToDelete()
+{
+#pragma HLS inline
+  for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
+  {
+//#pragma HLS unroll
+    rowsToDelete[i] = usedRows[i];
+  }
+}
+
+
+SessionId getAndDeleteNextMarkedRow()
+{
+#pragma HLS inline off
+  for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
+  {
+//#pragma HLS unroll
+    if(rowsToDelete[i] == 1)
+    {
+      SessionId ret = sessionIdList[i];
+      //sessionIdList[i] = 0x0; //not necessary
+      //tripleList[i] = 0x0;
+      usedRows[i] = 0;
+      rowsToDelete[i] = 0;
+      printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
+      return ret;
+    }
+  }
+  //Tables are empty
+  printf("TCP tables are empty\n");
+  return (SessionId) UNUSED_TABLE_ENTRY_VALUE;
 }
 
 
@@ -312,6 +390,7 @@ void nrc_main(
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
     ap_uint<1> *layer_4_enabled,
+    ap_uint<1> *layer_7_enabled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
@@ -372,6 +451,7 @@ void nrc_main(
 {
 
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
+#pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
 #pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
 
 #pragma HLS INTERFACE axis register both port=siUdp_data
@@ -407,10 +487,10 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=soTcp_meta
 #pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
 
-#pragma HLS INTERFACE ap_fifo register both port=siFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_data
-#pragma HLS INTERFACE ap_fifo register both port=siFMC_Tcp_SessId
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_SessId
+#pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_data
+#pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_data
+#pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_SessId
+#pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_SessId
 
 
 #pragma HLS INTERFACE axis register both port=siTOE_Notif
@@ -477,9 +557,11 @@ void nrc_main(
 #pragma HLS reset variable=tripleList //off
 #pragma HLS reset variable=sessionIdList //off
 #pragma HLS reset variable=usedRows //off
+#pragma HLS reset variable=rowsToDelete//off
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
+#pragma HLS reset variable=clsFsmState
 #pragma HLS reset variable=lsnFsmState
 #pragma HLS reset variable=rrhFsmState
 #pragma HLS reset variable=rdpFsmState
@@ -503,7 +585,6 @@ void nrc_main(
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 
 #pragma HLS reset variable=tableCopyVariable
-//#pragma HLS reset variable=tcp_wait_for_FMC_response
 
 
   
@@ -532,14 +613,17 @@ void nrc_main(
     processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
   }
 
-  if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
-  {
-    udp_rx_ports_processed = config[NRC_CONFIG_SAVED_UDP_PORTS];
-  }
+  if(*layer_7_enabled == 1)
+  { // looks like only we were reset
+    if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
+    {
+      udp_rx_ports_processed = config[NRC_CONFIG_SAVED_UDP_PORTS];
+    }
 
-  if(config[NRC_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
-  {
-    tcp_rx_ports_processed = config[NRC_CONFIG_SAVED_TCP_PORTS];
+    if(config[NRC_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
+    {
+      tcp_rx_ports_processed = config[NRC_CONFIG_SAVED_TCP_PORTS];
+    }
   }
 
   //if layer 4 is reset, ports will be closed 
@@ -550,8 +634,23 @@ void nrc_main(
     tcp_rx_ports_processed = 0x0;
     //also, all sessions should be lost 
     tables_initalized = false;
+    //we don't need to close ports any more
+    clsFsmState = CLS_IDLE;
   }
-  
+
+  if(*layer_7_enabled == 0)
+  {
+    udp_rx_ports_processed = 0x0;
+    tcp_rx_ports_processed = 0x0;
+
+    if(*layer_4_enabled == 1)
+    {
+      //mark all TCP ports as to be deleted
+      markCurrentRowsAsToDelete();
+      //start closing FSM
+      clsFsmState = CLS_NEXT;
+    }
+  }
   //===========================================================
   // MRT init
 
@@ -566,6 +665,7 @@ void nrc_main(
       sessionIdList[i] = 0;
       tripleList[i] = 0;
       usedRows[i]  =  0;
+      rowsToDelete[i] = 0;
     }
     tables_initalized = true;
     //printf("Table layout:\n");
@@ -1058,7 +1158,7 @@ void nrc_main(
             if (notif_pRrh.tcpSegLen != 0) {
                 // Always request the data segment to be received
                 rrhFsmState = RRH_SEND_DREQ;
-                //remember the session ID
+                //remember the session ID if not yet known
                 addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
             }
         }
@@ -1092,7 +1192,6 @@ void nrc_main(
 
       default:
       case RDP_WAIT_META:
-        //tcp_wait_for_FMC_response = false;
         if (!siTOE_SessId.empty()) {
           siTOE_SessId.read(sessId);
 
@@ -1103,7 +1202,7 @@ void nrc_main(
           TcpPort srcPort = getRemotePortFromTripple(tripple_in);
           printf("remote Addr: %d; dstPort: %d; srcPort %d\n", (int) remoteAddr, (int) dstPort, (int) srcPort);
 
-          if(dstPort == processed_FMC_listen_port) //take processed...just to be sure
+          if(dstPort == processed_FMC_listen_port) 
           {
             if(remoteAddr == *piMMIO_CfrmIp4Addr)
             {//valid connection to FMC
@@ -1178,7 +1277,6 @@ void nrc_main(
           if (currWord.tlast == 1)
           {
             rdpFsmState  = RDP_WAIT_META;
-            //tcp_wait_for_FMC_response = true;
           }
         }
         // NO break;
@@ -1228,11 +1326,12 @@ void nrc_main(
     case WRP_WAIT_META:
         //FMC must come first
         if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full())
-        //if (tcp_wait_for_FMC_response && !soTOE_SessId.full())
         {
-          //blocking, because non-blocking didn't work
             tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
             soTOE_SessId.write(tcpSessId);
+            //delete the session id, we don't need it any longer
+            deleteSessionFromTables(tcpSessId);
+
             if (DEBUG_LEVEL & TRACE_WRP) {
                 printInfo(myName, "Received new session ID #%d from [FMC].\n",
                           tcpSessId.to_uint());
@@ -1334,8 +1433,7 @@ void nrc_main(
         break;
 
     case WRP_STREAM_FMC:
-        //if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
-          //blocking, because non-blocking didn't work
+        if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
             siFMC_Tcp_data.read(currWordIn);
             //if (DEBUG_LEVEL & TRACE_WRP) {
             //     printAxiWord(myName, currWordIn);
@@ -1343,9 +1441,8 @@ void nrc_main(
             soTOE_Data.write(currWordIn);
             if(currWordIn.tlast == 1) {
                 wrpFsmState = WRP_WAIT_META;
-                //tcp_wait_for_FMC_response = false;
             }
-        //}
+        }
         break;
 
     case WRP_STREAM_ROLE:
@@ -1456,7 +1553,7 @@ void nrc_main(
                     printInfo(myName, "Client successfully connected to remote socket:\n");
                     printSockAddr(myName, leHostSockAddr);
                 }
-                addnewSessionToTableWithTripple(newConn.sessionID, tripple_for_new_connection);
+                addnewTrippleToTable(newConn.sessionID, tripple_for_new_connection);
                 opnFsmState = OPN_DONE;
                 tcp_need_new_connection_request = false;
                 tcp_new_connection_failure = false;
@@ -1496,6 +1593,33 @@ void nrc_main(
         //}
         break;
     }
+
+
+/*****************************************************************************
+ * @brief Closes unused sessions (Cls).
+ *
+ * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ *
+ ******************************************************************************/
+    //update myName
+    myName  = concat3(THIS_NAME, "/", "Cls");
+
+    switch (clsFsmState) {
+      default:
+      case CLS_IDLE:
+        //we wait until we are activated;
+        break;
+      case CLS_NEXT:
+        SessionId nextToDelete = getAndDeleteNextMarkedRow();
+        if(nextToDelete != UNUSED_TABLE_ENTRY_VALUE)
+        {
+          soTOE_ClsReq.write(nextToDelete);
+        } else {
+          clsFsmState = CLS_IDLE;
+        }
+        break;
+    }
+
 
   //===========================================================
   // MRT init

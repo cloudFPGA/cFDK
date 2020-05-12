@@ -159,6 +159,10 @@ using namespace hls;
 #define WRP_STREAM_ROLE 3
 #define WRP_DROP_PACKET 4
 
+#define ClsFsmStates uint8_t
+#define CLS_IDLE 0
+#define CLS_NEXT 1
+
 #define MAX_NRC_SESSIONS 32
 
 #define MAX_MRT_SIZE 1024
@@ -217,6 +221,7 @@ void nrc_main(
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
     ap_uint<1> *layer_4_enabled,
+    ap_uint<1> *layer_7_enabled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
