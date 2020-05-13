@@ -171,7 +171,7 @@ void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen_Udp) {
   if (axisChunk->tlast) {
     int bytCnt = 0;
     for (int i = 0; i < 8; i++) {
-//#pragma HLS unroll
+#pragma HLS unroll
       if (axisChunk->tkeep.bit(i) == 1) {
         bytCnt++;
       }
@@ -188,7 +188,7 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
   //return (ap_uint<32>) log2((ap_fixed<32,2>) (num & -num));
   ap_uint<32> pos = 0; 
   for (int i = 0; i < 32; i++) {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     if (!(num & (1 << i)))
     {
       pos++; 
@@ -206,7 +206,7 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
 #pragma HLS inline
   for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     if(localMRT[i] == ipAddr)
     {
       //Loop unroll pragma needs int as variable...
@@ -257,7 +257,7 @@ ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
     {
       ap_uint<64> ret = tripleList[i];
@@ -278,7 +278,7 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     if(tripleList[i] == tripple && usedRows[i] == 1 && rowsToDelete[i] == 0)
     {
       return sessionIdList[i];
@@ -305,7 +305,7 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
   uint32_t i = 0;
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     //if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
     if(usedRows[i] == 0)
     {//next free one, tables stay in sync
@@ -335,7 +335,7 @@ void deleteSessionFromTables(SessionId sessionID)
   printf("try to delete session: %d\n", (int) sessionID);
   for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     if(sessionIdList[i] == sessionID && usedRows[i] == 1)
     {
       usedRows[i] = 0;
@@ -352,7 +352,7 @@ void markCurrentRowsAsToDelete()
 #pragma HLS inline
   for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll factor=8
     rowsToDelete[i] = usedRows[i];
   }
 }
@@ -363,7 +363,7 @@ SessionId getAndDeleteNextMarkedRow()
 #pragma HLS inline off
   for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
   {
-//#pragma HLS unroll
+#pragma HLS unroll
     if(rowsToDelete[i] == 1)
     {
       SessionId ret = sessionIdList[i];

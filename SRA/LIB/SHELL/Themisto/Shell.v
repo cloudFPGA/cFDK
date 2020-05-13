@@ -1720,10 +1720,11 @@ module Shell_Themisto # (
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[6]),
-    .piNTS_ready_V          (sNTS0_MMIO_NtsReady),
     .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
     .piLayer4enabled_V_ap_vld (1),
-    //.piNTS_ready_V          (1), //TODO
+    .piLayer7enabled_V        (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
+    .piLayer7enabled_V_ap_vld (1),
+    .piNTS_ready_V          (sNTS0_MMIO_NtsReady),
     .piNTS_ready_V_ap_vld   (1),
     .piMMIO_FmcLsnPort_V    (sMMIO_NRC_FmcLsnPort),
     .piMMIO_FmcLsnPort_V_ap_vld (1),
