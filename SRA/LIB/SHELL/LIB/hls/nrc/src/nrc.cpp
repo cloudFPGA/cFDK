@@ -73,6 +73,7 @@ ap_uint<1>  usedRows[MAX_NRC_SESSIONS];
 ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
+#define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
 
 
 //FROM TCP
@@ -216,7 +217,7 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
     {
       return (NodeId) i;
       //foundIt = true;
-      t = (NodeId) i;
+      //ret = (NodeId) i;
     }
   }
   //if(!foundIt)
@@ -296,7 +297,7 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
   }
   //there is (not yet) a connection
   printf("ERROR: unkown tripple\n");
-  return (SessionId) UNUSED_TABLE_ENTRY_VALUE;
+  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
 }
 
 
@@ -316,7 +317,6 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
   for(i = 0; i < MAX_NRC_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
-    //if(sessionIdList[i] == UNUSED_TABLE_ENTRY_VALUE)
     if(usedRows[i] == 0)
     {//next free one, tables stay in sync
       sessionIdList[i] = sessionID;
@@ -387,7 +387,7 @@ SessionId getAndDeleteNextMarkedRow()
   }
   //Tables are empty
   printf("TCP tables are empty\n");
-  return (SessionId) UNUSED_TABLE_ENTRY_VALUE;
+  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
 }
 
 
@@ -562,12 +562,12 @@ void nrc_main(
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
 
-#pragma HLS reset variable=localMRT //off
-#pragma HLS reset variable=config //off
-#pragma HLS reset variable=tripleList //off
-#pragma HLS reset variable=sessionIdList //off
-#pragma HLS reset variable=usedRows //off
-#pragma HLS reset variable=rowsToDelete//off
+//#pragma HLS reset variable=localMRT //off
+//#pragma HLS reset variable=config //off
+//#pragma HLS reset variable=tripleList //off
+//#pragma HLS reset variable=sessionIdList //off
+//#pragma HLS reset variable=usedRows //off
+//#pragma HLS reset variable=rowsToDelete//off
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -670,7 +670,7 @@ void nrc_main(
     printf("init tables...\n");
     for(int i = 0; i<MAX_NRC_SESSIONS; i++)
     {
-      //sessionIdList[i] = UNUSED_TABLE_ENTRY_VALUE;
+//#pragma HLS unroll
       sessionIdList[i] = 0;
       tripleList[i] = 0;
       usedRows[i]  =  0;
@@ -1234,6 +1234,7 @@ void nrc_main(
             siTOE_SessId.read(sessId);
 
             ap_uint<64> tripple_in = getTrippleFromSessionId(sessId);
+            //since we requested the session, we shoul know it -> no error handling
             printf("tripple_in: %llu\n",(unsigned long long) tripple_in);
             Ip4Addr remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
             TcpPort dstPort = getLocalPortFromTripple(tripple_in);
@@ -1429,7 +1430,7 @@ void nrc_main(
             printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
             SessionId sessId = getSessionIdFromTripple(new_tripple);
             printf("session id found: %d\n", (int) sessId);
-            if(sessId == (SessionId) UNUSED_TABLE_ENTRY_VALUE)
+            if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
             {//we need to create one first
               tripple_for_new_connection = new_tripple;
               tcp_need_new_connection_request = true;
@@ -1622,11 +1623,6 @@ void nrc_main(
                 printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
                 printSockAddr(myName, leHostSockAddr);
               }
-#ifndef __SYNTHESIS__
-              watchDogTimer_pcon = 10;
-#else
-              watchDogTimer_pcon = 10000;
-#endif
               tcp_need_new_connection_request = false;
               tcp_new_connection_failure = true;
               //the packet will be dropped, so we are done
@@ -1664,7 +1660,7 @@ void nrc_main(
           break;
         case CLS_NEXT:
           SessionId nextToDelete = getAndDeleteNextMarkedRow();
-          if(nextToDelete != UNUSED_TABLE_ENTRY_VALUE)
+          if(nextToDelete != (SessionId) UNUSED_SESSION_ENTRY_VALUE)
           {
             soTOE_ClsReq.write(nextToDelete);
           } else {
@@ -1714,7 +1710,8 @@ void nrc_main(
 
     status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
     status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-    status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+    //status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+    status[NRC_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
     status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
     //status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
     status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
