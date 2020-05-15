@@ -170,7 +170,8 @@ using namespace hls;
 #define NUMBER_STATUS_WORDS 16
 #define NRC_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
 #define NRC_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS 
-#define NRC_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
+//#define NRC_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
+#define NRC_CONNECTION_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
 
  /*
   * ctrlLINK Structure:

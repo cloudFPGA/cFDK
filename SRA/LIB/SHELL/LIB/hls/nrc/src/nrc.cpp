@@ -114,7 +114,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 AppOpnSts     newConn;
-ap_uint<12>  watchDogTimer_pcon = 0;
+ap_uint<32>  watchDogTimer_pcon = 0;
 ap_uint<8>   watchDogTimer_plisten = 0;
 
 // Set a startup delay long enough to account for the initialization
@@ -125,8 +125,8 @@ ap_uint<16>         startupDelay = 0x8000;
 #else 
 ap_uint<16>         startupDelay = 30;
 #endif
-OpnFsmStates opnFsmState=OPN_IDLE;
-ClsFsmStates clsFsmState=CLS_IDLE;
+OpnFsmStates opnFsmState = OPN_IDLE;
+ClsFsmStates clsFsmState = CLS_IDLE;
 
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
@@ -562,6 +562,7 @@ void nrc_main(
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
 
+//to reset arrays has weird side effects...
 //#pragma HLS reset variable=localMRT //off
 //#pragma HLS reset variable=config //off
 //#pragma HLS reset variable=tripleList //off
@@ -616,7 +617,8 @@ void nrc_main(
 
   //===========================================================
   // restore saved states
-  // since we cannot close ports (up to now), the > should work...
+  
+  // > to avoid loop at 0
   if(config[NRC_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
   {
     processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
@@ -624,6 +626,7 @@ void nrc_main(
 
   if(*layer_7_enabled == 1)
   { // looks like only we were reset
+    // since the user cannot close ports (up to now), the > should work...
     if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
     {
       udp_rx_ports_processed = config[NRC_CONFIG_SAVED_UDP_PORTS];
@@ -645,6 +648,8 @@ void nrc_main(
     tables_initalized = false;
     //we don't need to close ports any more
     clsFsmState = CLS_IDLE;
+    //and we shouldn't expect smth
+    expect_FMC_response = false;
   }
 
   if(*layer_7_enabled == 0)
@@ -652,7 +657,7 @@ void nrc_main(
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
 
-    if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+    if(*layer_4_enabled == 1 && *piNTS_ready == 1 && tables_initalized)
     {
       //mark all TCP ports as to be deleted
       markCurrentRowsAsToDelete();
@@ -682,7 +687,6 @@ void nrc_main(
     //{
     //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
     //}
-    expect_FMC_response = false;
   }
 
   //remaining MRT handling moved to the bottom
@@ -692,7 +696,8 @@ void nrc_main(
   {
     //===========================================================
     //  port requests
-    if(udp_rx_ports_processed != *pi_udp_rx_ports)
+    //  only if a user application is running...
+    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1 )
     {
       //we can't close, so only look for newly opened
       ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
@@ -715,8 +720,8 @@ void nrc_main(
       need_tcp_port_req = true;
       printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
 
-    } else if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
-    {
+    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1 )
+    { //  only if a user application is running...
       //we can't close, so only look for newly opened
       ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
       ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
@@ -1548,7 +1553,8 @@ void nrc_main(
       myName  = concat3(THIS_NAME, "/", "COn");
 
     //only if NTS is ready
-    if(*piNTS_ready == 1 && *layer_4_enabled == 1)
+    //and if we have valid tables
+    if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
     {
       switch (opnFsmState) {
 
@@ -1588,7 +1594,7 @@ void nrc_main(
 #ifndef __SYNTHESIS__
             watchDogTimer_pcon = 10;
 #else
-            watchDogTimer_pcon = 10000;
+            watchDogTimer_pcon = NRC_CONNECTION_TIMEOUT;
 #endif
             opnFsmState = OPN_REP;
           }
@@ -1651,7 +1657,8 @@ void nrc_main(
     myName  = concat3(THIS_NAME, "/", "Cls");
 
     //only if NTS is ready
-    if(*piNTS_ready == 1 && *layer_4_enabled == 1)
+    //and if we have valid tables
+    if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
     {
       switch (clsFsmState) {
         default:
