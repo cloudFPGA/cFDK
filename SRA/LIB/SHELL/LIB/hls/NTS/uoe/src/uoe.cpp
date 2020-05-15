@@ -362,7 +362,10 @@ void pUdpChecksumChecker(
     #pragma HLS RESET               variable=ucc_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<17>  ucc_csum[4];
+    static ap_uint<17>  ucc_csum0;
+    static ap_uint<17>  ucc_csum1;
+    static ap_uint<17>  ucc_csum2;
+    static ap_uint<17>  ucc_csum3;
     static UdpCsum      ucc_psdHdrCsum;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
@@ -385,12 +388,12 @@ void pUdpChecksumChecker(
         }
         else {
             // Accumulate e the UDP header
-            ucc_csum[0]  = 0x00000 | currWord.getUdpSrcPort();
-            ucc_csum[0] += ucc_psdHdrCsum;
-            ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-            ucc_csum[1] = 0x00000 | currWord.getUdpDstPort();
-            ucc_csum[2] = 0x00000 | currWord.getUdpLen();
-            ucc_csum[3] = 0x00000 | currWord.getUdpCsum();
+            ucc_csum0  = 0x00000 | currWord.getUdpSrcPort();
+            ucc_csum0 += ucc_psdHdrCsum;
+            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+            ucc_csum1 = 0x00000 | currWord.getUdpDstPort();
+            ucc_csum2 = 0x00000 | currWord.getUdpLen();
+            ucc_csum3 = 0x00000 | currWord.getUdpCsum();
             if (currWord.getUdpLen() == 8) {
                 // Payload is empty
                 ucc_fsmState = FSM_UCC_CHK0;
@@ -435,14 +438,14 @@ void pUdpChecksumChecker(
                 cleanChunk.range(63,56) = (currWord.getLE_TData()).range(63,56);
             soRph_UdpDgrm.write(AxisUdp(cleanChunk, currWord.getLE_TKeep(), currWord.getLE_TLast()));
 
-            ucc_csum[0] += byteSwap16(cleanChunk.range(63, 48));
-            ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-            ucc_csum[1] += byteSwap16(cleanChunk.range(47, 32));
-            ucc_csum[1]  = (ucc_csum[1] & 0xFFFF) + (ucc_csum[1] >> 16);
-            ucc_csum[2] += byteSwap16(cleanChunk.range(31, 16));
-            ucc_csum[2]  = (ucc_csum[2] & 0xFFFF) + (ucc_csum[2] >> 16);
-            ucc_csum[3] += byteSwap16(cleanChunk.range(15,  0));
-            ucc_csum[3]  = (ucc_csum[3] & 0xFFFF) + (ucc_csum[3] >> 16);
+            ucc_csum0 += byteSwap16(cleanChunk.range(63, 48));
+            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+            ucc_csum1 += byteSwap16(cleanChunk.range(47, 32));
+            ucc_csum1  = (ucc_csum1 & 0xFFFF) + (ucc_csum1 >> 16);
+            ucc_csum2 += byteSwap16(cleanChunk.range(31, 16));
+            ucc_csum2  = (ucc_csum2 & 0xFFFF) + (ucc_csum2 >> 16);
+            ucc_csum3 += byteSwap16(cleanChunk.range(15,  0));
+            ucc_csum3  = (ucc_csum3 & 0xFFFF) + (ucc_csum3 >> 16);
 
             if (currWord.getTLast()) {
               ucc_fsmState = FSM_UCC_CHK0;
@@ -452,21 +455,21 @@ void pUdpChecksumChecker(
         break;
     case FSM_UCC_CHK0:
         if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK0 - \n"); }
-        ucc_csum[0] += ucc_csum[2];
-        ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-        ucc_csum[1] += ucc_csum[3];
-        ucc_csum[1]  = (ucc_csum[1] & 0xFFFF) + (ucc_csum[1] >> 16);
+        ucc_csum0 += ucc_csum2;
+        ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+        ucc_csum1 += ucc_csum3;
+        ucc_csum1  = (ucc_csum1 & 0xFFFF) + (ucc_csum1 >> 16);
         ucc_fsmState = FSM_UCC_CHK1;
         break;
     case FSM_UCC_CHK1:
         if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK1 - \n"); }
-        ucc_csum[0] += ucc_csum[1];
-        ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-        UdpCsum csumChk = ~(ucc_csum[0](15, 0));
+        ucc_csum0 += ucc_csum1;
+        ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+        UdpCsum csumChk = ~(ucc_csum0(15, 0));
         if (csumChk == 0) {
-		  // The checksum is correct. UDP datagram is valid.
-		  soRph_CsumVal.write(true);
-	  }
+            // The checksum is correct. UDP datagram is valid.
+            soRph_CsumVal.write(true);
+        }
         else {
             soRph_CsumVal.write(false);
             if (DEBUG_LEVEL & TRACE_UCC) {
@@ -1287,34 +1290,40 @@ void pUdpChecksumAccumulator(
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Uca");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<17>           uca_csum[4]={0,0,0,0};
-    #pragma HLS RESET   variable=uca_csum
+    static ap_uint<17>           uca_csum0;
+    #pragma HLS RESET   variable=uca_csum0
+    static ap_uint<17>           uca_csum1;
+    #pragma HLS RESET   variable=uca_csum1
+    static ap_uint<17>           uca_csum2;
+    #pragma HLS RESET   variable=uca_csum2
+    static ap_uint<17>           uca_csum3;
+    #pragma HLS RESET   variable=uca_csum3
 
     if (!siTdh_Data.empty()) {
         AxisPsd4 currWord = siTdh_Data.read();
-        uca_csum[0] += byteSwap16(currWord.getLE_TData().range(63, 48));
-        uca_csum[0]  = (uca_csum[0] & 0xFFFF) + (uca_csum[0] >> 16);
-        uca_csum[1] += byteSwap16(currWord.getLE_TData().range(47, 32));
-        uca_csum[1]  = (uca_csum[1] & 0xFFFF) + (uca_csum[1] >> 16);
-        uca_csum[2] += byteSwap16(currWord.getLE_TData().range(31, 16));
-        uca_csum[2]  = (uca_csum[2] & 0xFFFF) + (uca_csum[2] >> 16);
-        uca_csum[3] += byteSwap16(currWord.getLE_TData().range(15,  0));
-        uca_csum[3]  = (uca_csum[3] & 0xFFFF) + (uca_csum[3] >> 16);
+        uca_csum0 += byteSwap16(currWord.getLE_TData().range(63, 48));
+        uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+        uca_csum1 += byteSwap16(currWord.getLE_TData().range(47, 32));
+        uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+        uca_csum2 += byteSwap16(currWord.getLE_TData().range(31, 16));
+        uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+        uca_csum3 += byteSwap16(currWord.getLE_TData().range(15,  0));
+        uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
         if (currWord.getTLast() and !soUha_Csum.full()) {
             ap_uint<17> csum01, csum23, csum0123;
-            csum01 = uca_csum[0] + uca_csum[1];
+            csum01 = uca_csum0 + uca_csum1;
             csum01 = (csum01 & 0xFFFF) + (csum01 >> 16);
-            csum23 = uca_csum[2] + uca_csum[3];
+            csum23 = uca_csum2 + uca_csum3;
             csum23 = (csum23 & 0xFFFF) + (csum23 >> 16);
             csum0123 = csum01 + csum23;
             csum0123 = (csum0123 & 0xFFFF) + (csum0123 >> 16);
             csum0123 = ~csum0123;
             soUha_Csum.write(csum0123.range(15, 0));
             //-- Clear the csum accumulators
-            uca_csum[0] = 0;
-            uca_csum[1] = 0;
-            uca_csum[2] = 0;
-            uca_csum[3] = 0;
+            uca_csum0 = 0;
+            uca_csum1 = 0;
+            uca_csum2 = 0;
+            uca_csum3 = 0;
         }
     }
 }
@@ -1708,6 +1717,8 @@ void uoe(
 
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_Ready      metadata="-bus_bundle soMMIO_Ready"
+
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data       metadata="-bus_bundle siIPRX_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data       metadata="-bus_bundle soIPTX_Data"
 
@@ -1729,9 +1740,11 @@ void uoe(
 #else
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS INTERFACE axis register both port=soMMIO_Ready      name=soMMIO_Ready
+
     #pragma HLS INTERFACE axis register both port=siIPRX_Data       name=siIPRX_Data
     #pragma HLS INTERFACE axis register both port=soIPTX_Data       name=soIPTX_Data
-    #pragma HLS DATA_PACK                variable=soIPTX_Data   instance=soIPTX_Data
+    #pragma HLS DATA_PACK                variable=soIPTX_Data       instance=soIPTX_Data
 
     #pragma HLS INTERFACE axis register both port=siUAIF_LsnReq     name=siUAIF_LsnReq
     #pragma HLS INTERFACE axis register both port=soUAIF_LsnRep     name=soUAIF_LsnRep
