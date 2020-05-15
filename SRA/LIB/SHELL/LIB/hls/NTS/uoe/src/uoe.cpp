@@ -32,6 +32,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_UOE
+ * \addtogroup NTS_UOE
+ * \{
  *****************************************************************************/
 
 #include "uoe.hpp"
@@ -67,10 +70,10 @@ using namespace hls;
 /******************************************************************************
  * IPv4 Header Stripper (Ihs)
  *
- * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
- * @param[out] soUcc_UdpDgrm, UDP datagram stream to UdpChecksumChecker (Ucc).
- * @param[out] soUcc_PsdHdrSum, Sum of the pseudo header information to [Ucc].
- * @param[out] soRph_Ip4Hdr,  The header part of the IPv4 packet as a stream to [Rph].
+ * @param[in]  siIPRX_Data     IP4 data stream from IpRxHAndler (IPRX).
+ * @param[out] soUcc_UdpDgrm   UDP datagram stream to UdpChecksumChecker (Ucc).
+ * @param[out] soUcc_PsdHdrSum Sum of the pseudo header information to [Ucc].
+ * @param[out] soRph_Ip4Hdr    The header part of the IPv4 packet as a stream to [Rph].
  *
  * @details
  *  This process extracts the UDP pseudo header and the IP header from the
@@ -327,10 +330,10 @@ void pIpHeaderStripper(
 /******************************************************************************
  * UDP Checksum Checker (Ucc)
  *
- * @param[in]  siUcc_UdpDgrm, UDP datagram stream from IpHeaderStripper (Ihs).
- * @param[in]  siUcc_PsdHdrSum, Pseudo header sum (SA+DA+Prot+Len) from [Ihs].
- * @param[out] soRph_UdpDgrm, UDP datagram stream to RxPacketHandler (Rph).
- * @param[out] soRph_CsumVal, Checksum valid information to [Rph].
+ * @param[in]  siUcc_UdpDgrm   UDP datagram stream from IpHeaderStripper (Ihs).
+ * @param[in]  siUcc_PsdHdrSum Pseudo header sum (SA+DA+Prot+Len) from [Ihs].
+ * @param[out] soRph_UdpDgrm   UDP datagram stream to RxPacketHandler (Rph).
+ * @param[out] soRph_CsumVal   Checksum valid information to [Rph].
  *
  * @details
  *  This process accumulates the checksum over the UDP header and the UDP data.
@@ -480,14 +483,14 @@ void pUdpChecksumChecker(
 /*****************************************************************************
  * Rx Packet Handler (Rph)
  *
- * @param[in]  siIhs_UdpDgrm, UDP datagram stream from IpHeaderStripper (Ihs).
- * @param[in]  siIhs_Ip4Hdr,  The header part of the IPv4 packet from [Ihs].
- * @param[in]  siUcc_CsumVal, Checksum valid information from UdpChecksumChecker (Ucc).
- * @param[out] soUpt_PortStateReq, Request for the state of port to UdpPortTable (Upt).
- * @param[in]  siUpt_PortStateRep, Port state reply from [Upt].
- * @param[out] soUAIF_Data, UDP data stream to UDP Application Interface (UAIF).
- * @param[out] soUAIF_Meta, UDP metadata stream to [UAIF].
- * @param[out] soICMP_Data, Control message to InternetControlMessageProtocol[ICMP] engine.
+ * @param[in]  siIhs_UdpDgrm  UDP datagram stream from IpHeaderStripper (Ihs).
+ * @param[in]  siIhs_Ip4Hdr   The header part of the IPv4 packet from [Ihs].
+ * @param[in]  siUcc_CsumVal  Checksum valid information from UdpChecksumChecker (Ucc).
+ * @param[out] soUpt_PortStateReq  Request for the state of port to UdpPortTable (Upt).
+ * @param[in]  siUpt_PortStateRep  Port state reply from [Upt].
+ * @param[out] soUAIF_Data  UDP data stream to UDP Application Interface (UAIF).
+ * @param[out] soUAIF_Meta  UDP metadata stream to [UAIF].
+ * @param[out] soICMP_Data  Control message to InternetControlMessageProtocol[ICMP] engine.
 
  * @details
  *  This process handles the payload of the incoming IP4 packet and forwards it
@@ -725,18 +728,24 @@ void pRxPacketHandler(
 /******************************************************************************
  * UDP Port Table (Upt)
  *
- * param[in]  siRph_PortStateReq, Port state request from RxPacketHandler (Rph).
- * param[out] soRph_PortStateRep, Port state reply to [Rph].
- * param[in]  siUAIF_LsnReq,      Request to open a port from [UAIF].
- * param[out] soUAIF_LsnRep,      Open port status reply to [UAIF].
- * param[in]  siUAIF_ClsReq,      Request to close a port from [UAIF].
+ * param[out] soMMIO_Ready        Process ready signal.
+ * param[in]  siRph_PortStateReq  Port state request from RxPacketHandler (Rph).
+ * param[out] soRph_PortStateRep  Port state reply to [Rph].
+ * param[in]  siUAIF_LsnReq       Request to open a port from [UAIF].
+ * param[out] soUAIF_LsnRep       Open port status reply to [UAIF].
+ * param[in]  siUAIF_ClsReq       Request to close a port from [UAIF].
  *
  * @details
  *  The UDP Port Table (Upt) keeps track of the opened ports. A port is opened
- *  if its state is 'true' and closed othewise.
+ *  if its state is 'true' and closed otherwise.
  *
+ * @note: We are using a stream to signal that UOE is ready because the C/RTL
+ *  co-simulation only only supports the following 'ap_ctrl_none' designs:
+ *  (1) combinational designs; (2) pipelined design with task inteveral of 1;
+ *  (3) designs with array streaming or hls_stream or AXI4 stream ports.
  *****************************************************************************/
 void pUdpPortTable(
+        stream<StsBool>     &soMMIO_Ready,
         stream<UdpPort>     &siRph_PortStateReq,
         stream<StsBool>     &soRph_PortStateRep,
         stream<UdpPort>     &siUAIF_LsnReq,
@@ -749,7 +758,7 @@ void pUdpPortTable(
     const char *myName = concat3(THIS_NAME, "/RXe/", "Upt");
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static ValBool                  PORT_TABLE[65536];
+    static ValBool                  PORT_TABLE[0x10000];
     #pragma HLS RESOURCE   variable=PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=PORT_TABLE inter false
 
@@ -757,9 +766,34 @@ void pUdpPortTable(
     static enum FsmStates { UPT_WAIT4REQ=0, UPT_RPH_LKP, UPT_LSN_REP,
                             UPT_CLS_REP } upt_fsmState=UPT_WAIT4REQ;
     #pragma HLS RESET            variable=upt_fsmState
+    static bool                           upt_isInit=false;
+    #pragma HLS reset            variable=upt_isInit
+    static  UdpPort                       upt_initPtr=(0x10000-1);
+    #pragma HLS reset            variable=upt_initPtr
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static UdpPort upt_portNum;
+
+    // The PORT_TABLE must be initialized upon reset
+    if (!upt_isInit) {
+        PORT_TABLE[upt_initPtr] = STS_CLOSED;
+        if (upt_initPtr == 0) {
+            if (!soMMIO_Ready.full()) {
+                soMMIO_Ready.write(true);
+                upt_isInit = true;
+                if (DEBUG_LEVEL & TRACE_UPT) {
+                    printInfo(myName, "Done with initialization of the PORT_TABLE.\n");
+                }
+            }
+            else {
+                printWarn(myName, "Cannot signal INIT_DONE because HLS stream is not empty.\n");
+            }
+         }
+        else {
+            upt_initPtr = upt_initPtr - 1;
+        }
+        return;
+    }
 
     switch (upt_fsmState) {
     case UPT_WAIT4REQ:
@@ -804,19 +838,21 @@ void pUdpPortTable(
 /******************************************************************************
  * Rx Engine (RXe)
  *
- * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
- * @param[in]  siUAIF_LsnReq, UDP open port request from UdpAppInterface (UAIF).
- * @param[out] soUAIF_LsnRep, UDP open port reply to [UAIF].
- * @param[in]  siUAIF_ClsReq, UDP close port request from [UAIF].
- * @param[out] soUAIF_Data,   UDP data stream to [UAIF].
- * @param[out] soUAIF_Meta,   UDP metadata stream to [UAIF].
- * @param[out] soICMP_Data,   Control message to InternetControlMessageProtocol[ICMP] engine.
+ * @param[out] soMMIO_Ready   Process ready signal.
+ * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
+ * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_Data    UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * @param[out] soICMP_Data    Control message to InternetControlMessageProtocol[ICMP] engine.
  *
  * @details
  *  The Rx path of the UdpOffloadEngine (UOE). This is the path from [IPRX]
  *  to the UdpAppInterface (UAIF).
  *****************************************************************************/
 void pRxEngine(
+        stream<StsBool>         &soMMIO_Ready,
         stream<AxisIp4>         &siIPRX_Data,
         stream<UdpPort>         &siUAIF_LsnReq,
         stream<StsBool>         &siUAIF_OpnRep,
@@ -876,6 +912,7 @@ void pRxEngine(
             soICMP_Data);
 
     pUdpPortTable(
+            soMMIO_Ready,
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
             siUAIF_LsnReq,
@@ -1595,6 +1632,7 @@ void pTxEngine(
  *
  * -- MMIO Interface
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
  * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
  * -- IPTX / IP Tx / Data Interface
@@ -1620,6 +1658,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
+        stream<StsBool>                 &soMMIO_Ready,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -1721,6 +1760,7 @@ void uoe(
     //-- PROCESS FUNCTIONS ----------------------------------------------------
 
     pRxEngine(
+            soMMIO_Ready,
             siIPRX_Data,
             siUAIF_LsnReq,
             soUAIF_LsnRep,
@@ -1903,3 +1943,5 @@ void uoe(
 *********************/
 
 }
+
+/*! \} */

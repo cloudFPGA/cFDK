@@ -32,6 +32,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_UOE
+ * \addtogroup NTS_UOE
+ * \{
  *****************************************************************************/
 
 #ifndef _UDP_H
@@ -65,12 +68,7 @@ class IpAddrPair {
         ipSa(ipSa), ipDa(ipDa) {}
 };
 
-/***********************************************
- * Types Definition - UDP App-Interface (UAIF)
- ***********************************************/
-typedef AxisRaw      UdpAppData;
-typedef SocketPair   UdpAppMeta;
-typedef UdpLen       UdpAppDLen;
+
 
 /*************************************************************************
  *
@@ -83,6 +81,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                   piMMIO_En,
+        stream<StsBool>         &soMMIO_Ready,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -121,3 +120,6 @@ void uoe(
 );
 
 #endif
+
+/*! \} */
+

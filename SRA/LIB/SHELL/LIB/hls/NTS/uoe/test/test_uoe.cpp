@@ -40,7 +40,7 @@ using namespace std;
 #define TRACE_CGTF   1 << 2
 #define TRACE_DUMTF  1 << 3
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -615,6 +615,8 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
+    stream<StsBool>         ssUOE_MMIO_Ready;
+
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
     stream<AxisIp4>         ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
 
@@ -668,6 +670,37 @@ int main(int argc, char *argv[]) {
     printf("\n\n");
 
     if (tbMode == OPEN_MODE) {
+        // Wait until UOE is ready (~2^16 cycles)
+        bool isReady = false;
+        do {
+            uoe(
+                //-- MMIO Interface
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_LsnReq,
+                ssUOE_URIF_LsnRep,
+                ssURIF_UOE_ClsReq,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_DLen,
+                //-- ICMP / Message Data Interface
+                ssUOE_ICMP_Data
+            );
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
+            stepSim();
+        } while (!isReady);
+
         //---------------------------------------------------------------
         //-- OPEN_MODE: Attempt to close a port that isn't open.
         //--    Expected response is: Nothing.
@@ -678,6 +711,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -713,6 +747,7 @@ int main(int argc, char *argv[]) {
             uoe(
                     //-- MMIO Interface
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
                     //-- IPRX / IP Rx / Data Interface
                     ssIPRX_UOE_Data,
                     //-- IPTX / IP Tx / Data Interface
@@ -762,6 +797,7 @@ int main(int argc, char *argv[]) {
         uoe(
             //-- MMIO Interface
             sMMIO_UOE_Enable,
+            ssUOE_MMIO_Ready,
             //-- IPRX / IP Rx / Data Interface
             ssIPRX_UOE_Data,
             //-- IPTX / IP Tx / Data Interface
@@ -819,6 +855,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -913,6 +950,37 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
+        // Wait until UOE is ready (~2^16 cycles)
+        bool isReady = false;
+        do {
+            uoe(
+                //-- MMIO Interface
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_LsnReq,
+                ssUOE_URIF_LsnRep,
+                ssURIF_UOE_ClsReq,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_DLen,
+                //-- ICMP / Message Data Interface
+                ssUOE_ICMP_Data
+            );
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
+            stepSim();
+        } while (!isReady);
+
         // Request to open a set of UDP ports in listen mode
         for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
             portToOpen = *it;
@@ -921,6 +989,7 @@ int main(int argc, char *argv[]) {
                 uoe(
                     //-- MMIO Interface
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
                     //-- IPRX / IP Rx / Data Interface
                     ssIPRX_UOE_Data,
                     //-- IPTX / IP Tx / Data Interface
@@ -981,6 +1050,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -1100,6 +1170,7 @@ int main(int argc, char *argv[]) {
              uoe(
                  //-- MMIO Interface
                  sMMIO_UOE_Enable,
+                 ssUOE_MMIO_Ready,
                  //-- IPRX / IP Rx / Data Interface
                  ssIPRX_UOE_Data,
                  //-- IPTX / IP Tx / Data Interface
