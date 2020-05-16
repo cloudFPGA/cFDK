@@ -6,18 +6,18 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that invokes all the HLS synthesis batches located 
-# *   in the current sub-directories.
+# *   in the current NTS directory and sub-directories.
 # *
 # ******************************************************************************
 
 
-.PHONY: all clean uoe
+.PHONY: all clean rlb uoe 
 
-all:   uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   rlb       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:  uoe.csim   ## Runs HLS C simulation on all sub-directories
+csim:  rlb.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
 
-cosim: uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: rlb.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
