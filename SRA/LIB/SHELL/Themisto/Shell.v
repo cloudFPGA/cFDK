@@ -7,7 +7,7 @@
 //  *     Authors: FAB, WEI, NGL
 //  *
 //  *     Description:
-//  *        Shell with node2node communication for UDP
+//  *        Shell with node2node communication for UDP & TCP
 //  *
 
 
