@@ -734,9 +734,10 @@ void pRxPacketHandler(
  * param[out] soMMIO_Ready        Process ready signal.
  * param[in]  siRph_PortStateReq  Port state request from RxPacketHandler (Rph).
  * param[out] soRph_PortStateRep  Port state reply to [Rph].
- * param[in]  siUAIF_LsnReq       Request to open a port from [UAIF].
- * param[out] soUAIF_LsnRep       Open port status reply to [UAIF].
- * param[in]  siUAIF_ClsReq       Request to close a port from [UAIF].
+ * param[in]  siUAIF_LsnReq       Listen port request from [UAIF].
+ * param[out] soUAIF_LsnRep       Listen port reply to [UAIF] (0=closed/1=opened).
+ * param[in]  siUAIF_ClsReq       Close  port request from [UAIF].
+ * param[out] soUAIF_ClsRep       Close  port reply to [UAIF] (0=closed/1=opened).
  *
  * @details
  *  The UDP Port Table (Upt) keeps track of the opened ports. A port is opened
@@ -744,7 +745,7 @@ void pRxPacketHandler(
  *
  * @note: We are using a stream to signal that UOE is ready because the C/RTL
  *  co-simulation only only supports the following 'ap_ctrl_none' designs:
- *  (1) combinational designs; (2) pipelined design with task inteveral of 1;
+ *  (1) combinational designs; (2) pipelined design with task interval of 1;
  *  (3) designs with array streaming or hls_stream or AXI4 stream ports.
  *****************************************************************************/
 void pUdpPortTable(
@@ -753,7 +754,8 @@ void pUdpPortTable(
         stream<StsBool>     &soRph_PortStateRep,
         stream<UdpPort>     &siUAIF_LsnReq,
         stream<StsBool>     &soUAIF_LsnRep,
-        stream<UdpPort>     &siUAIF_ClsReq)
+        stream<UdpPort>     &siUAIF_ClsReq,
+        stream<StsBool>     &soUAIF_ClsRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1 enable_flush
@@ -830,10 +832,11 @@ void pUdpPortTable(
         }
         break;
     case UPT_CLS_REP: // Close Reply
-        // [FIXME:MissingReplyChannel] if (!soUAIF_ClsRep.full()) {
-        PORT_TABLE[upt_portNum] = STS_CLOSED;
-        // [FIXME:MissingReplyChannel] soUAIF_ClsRep.write(STS_OCLOSED);
-        upt_fsmState = UPT_WAIT4REQ;
+        if (!soUAIF_ClsRep.full()) {
+            PORT_TABLE[upt_portNum] = STS_CLOSED;
+            soUAIF_ClsRep.write(STS_CLOSED);
+            upt_fsmState = UPT_WAIT4REQ;
+        }
         break;
     }
 }
@@ -846,6 +849,7 @@ void pUdpPortTable(
  * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
  * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
  * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply to [UAIF].
  * @param[out] soUAIF_Data    UDP data stream to [UAIF].
  * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
  * @param[out] soICMP_Data    Control message to InternetControlMessageProtocol[ICMP] engine.
@@ -858,8 +862,9 @@ void pRxEngine(
         stream<StsBool>         &soMMIO_Ready,
         stream<AxisIp4>         &siIPRX_Data,
         stream<UdpPort>         &siUAIF_LsnReq,
-        stream<StsBool>         &siUAIF_OpnRep,
+        stream<StsBool>         &soUAIF_LsnRep,
         stream<UdpPort>         &siUAIF_ClsReq,
+        stream<StsBool>         &soUAIF_ClsRep,
         stream<AxisApp>         &soUAIF_Data,
         stream<SocketPair>      &soUAIF_Meta,
         stream<AxisIcmp>        &soICMP_Data)
@@ -919,8 +924,9 @@ void pRxEngine(
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
             siUAIF_LsnReq,
-            siUAIF_OpnRep,
-            siUAIF_ClsReq);
+            soUAIF_LsnRep,
+            siUAIF_ClsReq,
+            soUAIF_ClsRep);
 }
 
 /*** TXe PROCESSES   **********************************************************/
@@ -1441,6 +1447,8 @@ void pIp4HeaderAdder(
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { IPH_IP1=0, IPH_IP2, IPH_IP3, IPH_FORWARD,
                             IPH_RESIDUE} iha_fsmState;
+    #pragma HLS RESET           variable=iha_fsmState
+
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static IpAddrPair iha_ipPair;
@@ -1647,9 +1655,10 @@ void pTxEngine(
  * -- IPTX / IP Tx / Data Interface
  * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
  * -- UAIF / Control Port Interfaces
- * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
- * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_LsnReq  UDP open  port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open  port reply   to   [UAIF] (0=closed/1=opened).
  * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply   to   [UAIF] (0=closed/1=opened).
  * -- UAIF / Rx Data Interfaces
  * @param[out] soUAIF_Data    UDP data stream to [UAIF].
  * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
@@ -1685,6 +1694,7 @@ void uoe(
         stream<UdpPort>                 &siUAIF_LsnReq,
         stream<StsBool>                 &soUAIF_LsnRep,
         stream<UdpPort>                 &siUAIF_ClsReq,
+        stream<StsBool>                 &soUAIF_ClsRep,
 
         //------------------------------------------------------
         //-- UAIF / Rx Data Interfaces
@@ -1725,6 +1735,7 @@ void uoe(
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_LsnReq     metadata="-bus_bundle siUAIF_LsnReq"
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_LsnRep     metadata="-bus_bundle soUAIF_LsnRep"
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_ClsReq     metadata="-bus_bundle siUAIF_ClsReq"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_ClsRep     metadata="-bus_bundle soUAIF_ClsRep"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Data       metadata="-bus_bundle soUAIF_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Meta       metadata="-bus_bundle soUAIF_Meta"
@@ -1749,6 +1760,7 @@ void uoe(
     #pragma HLS INTERFACE axis register both port=siUAIF_LsnReq     name=siUAIF_LsnReq
     #pragma HLS INTERFACE axis register both port=soUAIF_LsnRep     name=soUAIF_LsnRep
     #pragma HLS INTERFACE axis register both port=siUAIF_ClsReq     name=siUAIF_ClsReq
+    #pragma HLS INTERFACE axis register both port=soUAIF_ClsRep     name=soUAIF_ClsRep
 
     #pragma HLS INTERFACE axis register both port=soUAIF_Data       name=soUAIF_Data
     #pragma HLS INTERFACE axis register both port=soUAIF_Meta       name=soUAIF_Meta
@@ -1778,6 +1790,7 @@ void uoe(
             siUAIF_LsnReq,
             soUAIF_LsnRep,
             siUAIF_ClsReq,
+            soUAIF_ClsRep,
             soUAIF_Data,
             soUAIF_Meta,
             soICMP_Data);

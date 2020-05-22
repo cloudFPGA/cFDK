@@ -22,13 +22,13 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
  * \{ 
  *****************************************************************************/
 
-#ifndef SIM_IP4_PACKET_
-#define SIM_IP4_PACKET_
+#ifndef _SIM_IP4_PACKET_
+#define _SIM_IP4_PACKET_
 
 //#include <queue>
 //#include <string>
@@ -354,9 +354,9 @@ class SimIp4Packet {
 	//-- IP4 PACKET FIELDS - Constant Definitions
 	//-----------------------------------------------------
 	// IP protocol numbers
-	static const unsigned char  ICMP_PROTOCOL = 0x01;
-	static const unsigned char  TCP_PROTOCOL  = 0x06;
-	static const unsigned char  UDP_PROTOCOL  = 0x11;
+    //OBSOLETE_20200522 static const unsigned char  ICMP_PROTOCOL = 0x01;
+    //OBSOLETE_20200522 static const unsigned char  TCP_PROTOCOL  = 0x06;
+    //OBSOLETE_20200522 static const unsigned char  UDP_PROTOCOL  = 0x11;
 
 	//*********************************************************
 	//** IPV4 PACKET FIELDS - SETTERS and GETTERS
@@ -1412,7 +1412,6 @@ class SimIp4Packet {
     /**************************************************************************
      * @brief Raw print of an IP packet (.i.e, as AxisRaw chunks).
      * @param[in] callerName  The name of the calling function or process.
-     * @ingroup test_toe
      **************************************************************************/
     void printRaw(const char *callerName) {
        printInfo(callerName, "Current packet is : \n");

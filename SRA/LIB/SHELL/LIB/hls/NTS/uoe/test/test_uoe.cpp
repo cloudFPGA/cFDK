@@ -195,13 +195,11 @@ int createUdpTxTraffic(
  * @param[in]  appDatagram  A reference to the datagram to read.
  * @param[in]  ifsData      The input file stream to read from.
  * @param[in]  udpAppMeta   A ref to the current active socket pair.
-                            * @param[out] hostLsnSock  A ref to a 'SockAddr' to store any new host listen socket.
-                            * @param[out] fpgaSndSock  A ref to a 'SockAddr' to store any new fpga send socket.
  * @param[out] udpMetaQueue A ref to a container queue which holds a sequence of UDP socket-pairs.
  * @param[out] udpDLenQueue A ref to a container queue which holds a sequence of UDP data packet lengths.
  * @param[out] inpChunks    A ref to the number of processed chunks.
- * @param[out] inptDgrma    A ref to the number of processed datagrams.
- * @param[out] inpDgrms     A ref to the number of processed bytes.
+ * @param[out] inptDgrms    A ref to the number of processed datagrams.
+ * @param[out] inpBytes     A ref to the number of processed bytes.
  * @param[in]  tbMode       The TB testing mode.
  * @return true if successful, otherwise false.
  ******************************************************************************/
@@ -513,7 +511,7 @@ int createGoldenRxFiles(
             if (ip4Prot != UDP_PROTOCOL) {
                 printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n", inpPackets);
                 printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
-                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL.to_uint());
+                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL);
                 continue;
             }
             // Retrieve the UDP datagram from the IPv4 Packet
@@ -580,7 +578,7 @@ int createGoldenRxFiles(
  * @param[in]  inpFile1, The pathname of the 1st input test vector file.
  * @param[in]  inpFile2, The pathname of the 2nd input test vector file.
  *
- * @remark:
+ * @remark
  *  The number of input parameters is variable and depends on the testing mode.
  *   Example (see also file '../run_hls.tcl'):
  *    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
@@ -593,6 +591,7 @@ int createGoldenRxFiles(
  *         inpFile1 = siIPRX_<FileName>.dat
  *         inpFile2 = siURIF_<Filename>.dat
  *
+ * @todo Add coverage for the closing of a port port.
  ******************************************************************************/
 int main(int argc, char *argv[]) {
 
@@ -623,6 +622,7 @@ int main(int argc, char *argv[]) {
     stream<UdpPort>         ssURIF_UOE_LsnReq  ("ssURIF_UOE_LsnReq");
     stream<StsBool>         ssUOE_URIF_LsnRep  ("ssUOE_URIF_LsnRep");
     stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
+    stream<StsBool>         ssUOE_URIF_ClsRep  ("ssUOE_URIF_ClsRep");
 
     stream<AxisApp>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
     stream<UdpAppMeta>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
@@ -685,6 +685,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -720,6 +721,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -756,6 +758,7 @@ int main(int argc, char *argv[]) {
                     ssURIF_UOE_LsnReq,
                     ssUOE_URIF_LsnRep,
                     ssURIF_UOE_ClsReq,
+	                ssUOE_URIF_ClsRep,
                     //-- URIF / Rx Data Interfaces
                     ssUOE_URIF_Data,
                     ssUOE_URIF_Meta,
@@ -806,6 +809,7 @@ int main(int argc, char *argv[]) {
             ssURIF_UOE_LsnReq,
             ssUOE_URIF_LsnRep,
             ssURIF_UOE_ClsReq,
+            ssUOE_URIF_ClsRep,
             //-- URIF / Rx Data Interfaces
             ssUOE_URIF_Data,
             ssUOE_URIF_Meta,
@@ -864,6 +868,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -965,6 +970,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -998,6 +1004,7 @@ int main(int argc, char *argv[]) {
                     ssURIF_UOE_LsnReq,
                     ssUOE_URIF_LsnRep,
                     ssURIF_UOE_ClsReq,
+	                ssUOE_URIF_ClsRep,
                     //-- URIF / Rx Data Interfaces
                     ssUOE_URIF_Data,
                     ssUOE_URIF_Meta,
@@ -1059,6 +1066,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -1179,6 +1187,7 @@ int main(int argc, char *argv[]) {
                  ssURIF_UOE_LsnReq,
                  ssUOE_URIF_LsnRep,
                  ssURIF_UOE_ClsReq,
+                 ssUOE_URIF_ClsRep,
                  //-- URIF / Rx Data Interfaces
                  ssUOE_URIF_Data,
                  ssUOE_URIF_Meta,
@@ -1249,5 +1258,4 @@ int main(int argc, char *argv[]) {
 
     return nrErr;
 
-    return 0;
 }
