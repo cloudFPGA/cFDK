@@ -59,12 +59,12 @@ void stepSim() {
 /*****************************************************************************
  * @brief Empty an UdpMeta stream to a DAT file.
  *
- * @param[in/out] ss,       a ref to the UDP metadata stream to drain.
- * @param[in]     ssName,   the name of the UDP metadata stream to drain.
- * @param[in]     fileName, the DAT file to write to.
- * @param[out     nrChunks, a ref to the number of written chunks.
- * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
- * @param[out]    nrBytes,  a ref to the number of written bytes.
+ * @param[in/out] ss        A ref to the UDP metadata stream to drain.
+ * @param[in]     ssName    Te name of the UDP metadata stream to drain.
+ * @param[in]     fileName  The DAT file to write to.
+ * @param[out     nrChunks  A ref to the number of written chunks.
+ * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes   A ref to the number of written bytes.
   *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -128,16 +128,16 @@ bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
 /*****************************************************************************
  * @brief Create the UDP Tx traffic as streams from an input test file.
  *
- * @param[in/out] ssData,     a ref to the data stream to set.
- * @param[in]     ssDataName, the name of the data stream to set.
- * @param[in/out] ssMeta,     a ref to the metadata stream to set.
- * @param[in]     ssMetaName, the name of the metadata stream to set.
- * @param[in/out] ssDLen,     a ref to the data-length stream to set.
- * @param[in]     ssDLenName, the name of the datalength stream to set.
- * @param[in]     datFileName,the path to the DAT file to read from.
- * @param[in]     metaQueue,  a ref to a queue of metadata.
- * @param[in]     dlenQueue,  a ref to a queue of data-lengths.
- * @param[out]    nrChunks,   a ref to the number of feeded chunks.
+ * @param[in/out] ssData      A ref to the data stream to set.
+ * @param[in]     ssDataName  The name of the data stream to set.
+ * @param[in/out] ssMeta      A ref to the metadata stream to set.
+ * @param[in]     ssMetaName  The name of the metadata stream to set.
+ * @param[in/out] ssDLen      A ref to the data-length stream to set.
+ * @param[in]     ssDLenName  The name of the datalength stream to set.
+ * @param[in]     datFileName The path to the DAT file to read from.
+ * @param[in]     metaQueue   A ref to a queue of metadata.
+ * @param[in]     dlenQueue   A ref to a queue of data-lengths.
+ * @param[out]    nrChunks    A ref to the number of feeded chunks.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -274,13 +274,13 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
 /*****************************************************************************
  * @brief Create the golden IPTX reference file from an input URIF test file.
  *
- * @param[in]  inpData_FileName, the input data file to generate from.
- * @param[in]  outData_GoldName, the output data gold file to create.
- * @param[out] udpMetaQueue,     a ref to a container queue which holds a
+ * @param[in]  inpData_FileName  The input data file to generate from.
+ * @param[in]  outData_GoldName  The output data gold file to create.
+ * @param[out] udpMetaQueue      A ref to a container queue which holds a
  *                                sequence of UDP socket-pairs.
- * @param[out] udpDLenQueue,     a ref to a container queue which holds a
+ * @param[out] udpDLenQueue      A ref to a container queue which holds a
  *                                sequence of UDP data packet lengths.
- * @param[in]  tbMode            the TB testing mode.
+ * @param[in]  tbMode            The TB testing mode.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -410,11 +410,11 @@ int createGoldenTxFiles(
 /*****************************************************************************
  * @brief Create the golden Rx APP reference files from an input IPRX test file.
  *
- * @param[in]  inpData_FileName, the input data file to generate from.
- * @param[in]  outData_GoldName, the output data gold file to create.
- * @param[in]  outMeta_GoldName, the output meta gold file to create.
- * @param[out] udpPortSet,       a ref to an associative container which holds
- *                               the UDP destination ports.
+ * @param[in]  inpData_FileName  The input data file to generate from.
+ * @param[in]  outData_GoldName  The output data gold file to create.
+ * @param[in]  outMeta_GoldName  Tthe output meta gold file to create.
+ * @param[out] udpPortSet        A ref to an associative container which holds
+ *                                the UDP destination ports.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -573,10 +573,11 @@ int createGoldenRxFiles(
 /*****************************************************************************
  * @brief Main function.
  *
- * @param[in]  mode,     The test mode (0=RX_MODE, 1=TX_DGRM_MODE, 2=TX_STRM_MODE,
- *                                      3=BIDIR_MODE).
- * @param[in]  inpFile1, The pathname of the 1st input test vector file.
- * @param[in]  inpFile2, The pathname of the 2nd input test vector file.
+ * @param[in]  mode     The test mode (RX_MODE='0', TX_DGRM_MODE='1',
+ *                       TX_STRM_MODE='2', OPEN_MODE='3', BIDIR_MODE='4',
+ *                       ECHO_MODE='5')
+ * @param[in]  inpFile1 The pathname of the 1st input test vector file.
+ * @param[in]  inpFile2 The pathname of the 2nd input test vector file.
  *
  * @remark
  *  The number of input parameters is variable and depends on the testing mode.
@@ -591,7 +592,7 @@ int createGoldenRxFiles(
  *         inpFile1 = siIPRX_<FileName>.dat
  *         inpFile2 = siURIF_<Filename>.dat
  *
- * @todo Add coverage for the closing of a port port.
+ * @todo Add coverage for the closing of a port.
  ******************************************************************************/
 int main(int argc, char *argv[]) {
 
