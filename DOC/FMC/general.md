@@ -67,7 +67,6 @@ The Global Operations Type stores the current Operation between IP core calls (s
 | `GLOBAL_PYROLINK_RECV` | `5` | (This mode is only available if the FMC was compiled with `INCLUDE_PYROLINK`.) |
 | `GLOBAL_PYROLINK_TRANS` | `6` | (This mode is only available if the FMC was compiled with `INCLUDE_PYROLINK`.) |
 | `GLOBAL_MANUAL_DECOUPLING` | `7` |  |
-| `GLOBAL_TCP_TO_HWICAP` | `8` | Mainly for Debugging TCP |
 
 All operations involving the XMEM should be sensible to `reset_from_psoc`.
 A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* when the operation is finished.
@@ -99,7 +98,6 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
 | `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing, sets `invalid_payload_persistent` if last return value was `OPRV_FAIL` |  `OPRV_OK`                |
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
-| `OP_FW_TCP_HWICAP              ` |  it reads the TCP data stream and writes it into the internal buffer and stays in this opperation as long as data are available until tlast occured | `OPRV_OK` if we are within transmission, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received, `OPRV_FAIL` if HWICAP is not ready , `OPRV_USER` if another Opcode uses the TCP RX FSM |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
 | `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
