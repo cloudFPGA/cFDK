@@ -64,8 +64,8 @@ The Global Operations Type stores the current Operation between IP core calls (s
 | `GLOBAL_XMEM_TO_HWICAP`| `2`  |   |
 | `GLOBAL_XMEM_HTTP` | `3` |  |
 | `GLOBAL_TCP_HTTP` |`4`  |    |
-| `GLOBAL_PYROLINK_RECV` | `5` | |
-| `GLOBAL_PYROLINK_TRANS` | `6` |  |
+| `GLOBAL_PYROLINK_RECV` | `5` | (This mode is only available if the FMC was compiled with `INCLUDE_PYROLINK`.) |
+| `GLOBAL_PYROLINK_TRANS` | `6` | (This mode is only available if the FMC was compiled with `INCLUDE_PYROLINK`.) |
 | `GLOBAL_MANUAL_DECOUPLING` | `7` |  |
 | `GLOBAL_TCP_TO_HWICAP` | `8` | Mainly for Debugging TCP |
 
@@ -155,10 +155,12 @@ All global variables are marked as `#pragma HLS reset`.
 | `axi_wasnot_ready_persistent`| `GLOBAL_PYROLINK_RECV`, `GLOBAL_PYROLINK_TRANS` | Is set if the buffer still contains data which we weren't able to transmit, or that the sender didn't transmit any data. |
 | `global_state_wait_counter_persistent` | `GLOBAL_PYROLINK_TRANS` | Counter for wait cycles |
 | `TcpSessId_updated_persistent` | `GLOBAL_TCP_HTTP`, `GLOBAL_TCP_TO_HWICAP` | stores if the Tcp SessionId for this iteration was already read. |
+| `tcpModeEnabled` | `GLOBAL_TCP_HTTP`, `GLOBAL_TCP_TO_HWICAP` | Enables the TCP FSMs |
 | `fsmTcpSessId_RX`   |    |   |
 | `fsmTcpSessId_TX`  |    |   |
 | `fsmTcpData_RX`     |    |   |
 | `fsmTcpData_TX`    |    |   |
+| `tcp_iteration_count` |  | Counts how often a TCP HTTP request was successfully processed (after a PSoC reset) |
 | `lastSeenBufferInPtrMaxWrite` |    |    |
 | `lastSeenBufferOutPtrMaxRead` |    |    |
 | `need_to_update_nrc_config` |  | flag to store the state of the communication with the NRC |
@@ -304,7 +306,7 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 4 -- 7| Current state of the HTTP Engine (see `fmc.hpp`)|
 | 8 -- 15| Number of invalid Bytes received for the HWICAP (i.e. remaining HTTP strings or insufficient number of bytes; should actually always be 0)|
 | 16 -- 23| Number iterations with an unexpected empty HWICAP FIFO (see WFV register from the HWICAP)|
-| 24 -- 27| unused|
+| 24 -- 27| current global operation|
 
 ###### Display 5
 
@@ -323,3 +325,16 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 16 -- 22| The number of Bytes on the last XMEM page when sending data *to the Coaxium*|
 | 23 | indicates if the Pyrolink incoming stream has data to send to the Coaxium|
 | 24 -- 27 | unused|
+
+
+###### Display 7
+
+| Bytes | Description |
+|:------|:-------------|
+|  0 --  3 | `fsmTcpSessId_RX` |
+|  4 --  7 | `fsmTcpData_RX` |
+|  8 -- 11 | `fsmTcpSessId_TX` |
+| 12 -- 15 | `fsmTcpData_TX` |
+| 16 -- 23 | `tcp_iteration_count` (i.e. counts how many HTTP requests via TCP were processed) |
+
+
