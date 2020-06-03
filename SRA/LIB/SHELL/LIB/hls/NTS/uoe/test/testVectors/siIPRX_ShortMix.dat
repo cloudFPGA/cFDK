@@ -1,0 +1,252 @@
+# ###################################################################################################################################
+#
+#  @file  : siIPRX_ShortMix.dat
+#
+#  @brief : A short mixture of IPv4 packets with UDP datagrams.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
+#          Conventions:
+#           A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed
+#           by a space character.
+#          Examples:
+#           G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#           G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#           G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#           G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#           G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#           # This is a comment
+#           > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#           > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#           > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#           > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#  The mapping of an IPV4 packet onto the AXI4-Stream interface of the 10GbE MAC is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#                                                                  |                    Destination Address                        |
+#                                                                  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+#  And the mapping of an UDP datagram into the data payload of an IPv4 packet is as follows:
+#
+#         6                   5                   4                   3                   2                   1                   0
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |              Data             |              Data             |           Checksum            |           Length              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             Data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+# 
+#  @details : 
+#   The raw IPv4 packet as a stream of HEX bytes is:
+#     450000225a9f4000 401103db0a020007 0a0cc83cdfc02263 000efd8048656c6c 6f0a
+#      [IP4] Version         = 0x4 
+#      [IP4] Header length   = 0x5 for 5*4 = 20 bytes
+#      [IP4] DSCP/TOS        = 0x00
+#      [IP4] Total lengt     = 0x0022 = 34
+#      [IP4] Identification  = 0x5a9f = 23199 
+#      [IP4] Flags           = 0x02 (Don't Fragment)
+#      [IP4] Fragment offset = 0
+#      [IP4] Time to live    = 0x40 = 64
+#      [IP4] Protocol        = 0x11 = 17 (UDP)
+#      [IP4] Header checksum = 0x0x0xdb
+#      [IP4] Source Address  = 0x0A020007 = 10. 2.  0. 7
+#      [IP4] Destin Address  = 0x0a0cc83c = 10.12.200.60
+#      [UDP] Source port     = 0xdfc0 = 57280  
+#      [UDP] Destin port     = 0x2263 = 8803  
+#      [UDP] Length          = 0x000e = 14
+#      [UDP] Checksum        = 0xfd80
+#      [UDP] Data            = 0x48656c6c6f0a = Hello\n
+# 
+# ###################################################################################################################################
+
+# [1]
+0000000025000046 0 FF
+0A0A0A0A130511FF 0 FF
+CFCFCFCF01010101 0 FF
+00000D0080005600 0 FF
+0000000A01000180 1 1F
+# [2]
+0000000029000047 0 FF
+0A0A0A0A390311FF 0 FF
+CFCFCFCF01010101 0 FF
+80005600CFCFCFCF 0 FF
+0100018000000D00 0 FF
+000000000000000A 1 01
+# [3]
+000000002D000048 0 FF
+0A0A0A0A5E6311FF 0 FF
+CFCFCFCF01010101 0 FF
+CFCFCFCFCFCFCFCF 0 FF
+00000D0080005600 0 FF
+0000000A01000180 1 1F
+# [4]
+000000001F000045 0 FF
+0A0A0A0AB8A511FF 0 FF
+8000560001010101 0 FF
+0007018000000B00 1 7F
+# [5]
+0000000021000045 0 FF
+0A0A0A0AB6A511FF 0 FF
+8000560001010101 0 FF
+0100018000000D00 0 FF
+000000000000000A 1 01
+# [6]
+000000003E000045 0 FF
+0A0A0A0A99A511FF 0 FF
+8000560001010101 0 FF
+0100018099612A00 0 FF
+0A00000000000008 0 FF
+0000000000000000 0 FF
+DEADBEEF00000000 0 FF
+000041612A000000 1 3F
+# [7]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [8]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [9]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [10]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [11]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [12]
+0000000040000045 0 FF
+0A0A0A0A97A511FF 0 FF
+8000560001010101 0 FF
+01000180501F2C00 0 FF
+0C00000000000008 0 FF
+0000000000000000 0 FF
+DEADBEEF00000000 0 FF
+424242612A000000 1 FF
+# [13]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [14]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [15]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [16]
+0000000035000045 0 FF
+0A0A0A0A010111FF 0 FF
+80005600A2A50101 0 FF
+010000801C632100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [17]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [18]
+0000000041000045 0 FF
+0A0A0A0A96A511FF 0 FF
+8000560001010101 0 FF
+010001804ADB2D00 0 FF
+0D00000000000008 0 FF
+0000000000000000 0 FF
+DEADBEEF00000000 0 FF
+434343612A000000 0 FF
+0000000000000043 1 01
+# [19]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [20]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [21]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [22]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F
+# [23]
+0000000035000045 0 FF
+0A0A0A0AA2A511FF 0 FF
+8000560001010101 0 FF
+01000080BE072100 0 FF
+0100000000000000 0 FF
+0000000000000000 0 FF
+0000006100000000 1 1F

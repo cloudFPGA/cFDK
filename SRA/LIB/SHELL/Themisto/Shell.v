@@ -7,7 +7,7 @@
 //  *     Authors: FAB, WEI, NGL
 //  *
 //  *     Description:
-//  *        Shell with node2node communication for UDP
+//  *        Shell with node2node communication for UDP & TCP
 //  *
 
 
@@ -132,7 +132,7 @@ module Shell_Themisto # (
   input           soROL_Nts_Udp_Data_tready,
 
   //Open Port vector
-  input [ 31:0]   piROL_Nrc_Udp_Rx_ports,
+  input [ 31:0]  piROL_Nrc_Udp_Rx_ports,
   //-- ROLE <-> NRC Meta Interface
   input   [79:0] siROLE_Nrc_Udp_Meta_TDATA,
   input          siROLE_Nrc_Udp_Meta_TVALID,
@@ -199,8 +199,8 @@ module Shell_Themisto # (
   input           siROL_Mem_Mp0_WrCmd_tvalid,
   output          siROL_Mem_Mp0_WrCmd_tready,
   //---- Stream Write Status -----------
-  output          soROL_Mem_Mp0_WrSts_tvalid,
   output [  7:0]  soROL_Mem_Mp0_WrSts_tdata,
+  output          soROL_Mem_Mp0_WrSts_tvalid,
   input           soROL_Mem_Mp0_WrSts_tready,
   //---- Stream Data Input Channel -----
   input  [511:0]  siROL_Mem_Mp0_Write_tdata,
@@ -212,35 +212,35 @@ module Shell_Themisto # (
   //------------------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
-  //-- Memory Port #1 / S2MM-AXIS ------------------
-  //---- Stream Read Command -----------
-  input  [ 79:0]  siROL_Mem_Mp1_RdCmd_tdata,
-  input           siROL_Mem_Mp1_RdCmd_tvalid,
-  output          siROL_Mem_Mp1_RdCmd_tready,
-  //---- Stream Read Status ------------
-  output [  7:0]  soROL_Mem_Mp1_RdSts_tdata,
-  output          soROL_Mem_Mp1_RdSts_tvalid,
-  input           soROL_Mem_Mp1_RdSts_tready,
-  //---- Stream Data Output Channel ----
-  output [511:0]  soROL_Mem_Mp1_Read_tdata,
-  output [ 63:0]  soROL_Mem_Mp1_Read_tkeep,
-  output          soROL_Mem_Mp1_Read_tlast,
-  output          soROL_Mem_Mp1_Read_tvalid,
-  input           soROL_Mem_Mp1_Read_tready,
-  //---- Stream Write Command ----------
-  input  [ 79:0]  siROL_Mem_Mp1_WrCmd_tdata,
-  input           siROL_Mem_Mp1_WrCmd_tvalid,
-  output          siROL_Mem_Mp1_WrCmd_tready,
-  //---- Stream Write Status -----------
-  output          soROL_Mem_Mp1_WrSts_tvalid,
-  output [  7:0]  soROL_Mem_Mp1_WrSts_tdata,
-  input           soROL_Mem_Mp1_WrSts_tready,
-  //---- Stream Data Input Channel -----
-  input  [511:0]  siROL_Mem_Mp1_Write_tdata,
-  input  [ 63:0]  siROL_Mem_Mp1_Write_tkeep,
-  input           siROL_Mem_Mp1_Write_tlast,
-  input           siROL_Mem_Mp1_Write_tvalid,
-  output          siROL_Mem_Mp1_Write_tready,
+  input  [  3: 0]  miROL_Mem_Mp1_AWID,
+  input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
+  input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
+  input  [  3: 0]  miROL_Mem_Mp1_AWSIZE,
+  input  [  1: 0]  miROL_Mem_Mp1_AWBURST,
+  input            miROL_Mem_Mp1_AWVALID,
+  output           miROL_Mem_Mp1_AWREADY,
+  input  [511: 0]  miROL_Mem_Mp1_WDATA,
+  input  [ 63: 0]  miROL_Mem_Mp1_WSTRB,
+  input            miROL_Mem_Mp1_WLAST,
+  input            miROL_Mem_Mp1_WVALID,
+  output           miROL_Mem_Mp1_WREADY,
+  output [  3: 0]  miROL_Mem_Mp1_BID,
+  output [  1: 0]  miROL_Mem_Mp1_BRESP,
+  output           miROL_Mem_Mp1_BVALID,
+  input            miROL_Mem_Mp1_BREADY,
+  input  [  3: 0]  miROL_Mem_Mp1_ARID,
+  input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
+  input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
+  input  [  3: 0]  miROL_Mem_Mp1_ARSIZE,
+  input  [  1: 0]  miROL_Mem_Mp1_ARBURST,
+  input            miROL_Mem_Mp1_ARVALID,
+  output           miROL_Mem_Mp1_ARREADY,
+  output [  3: 0]  miROL_Mem_Mp1_RID,
+  output [511: 0]  miROL_Mem_Mp1_RDATA,
+  output [  1: 0]  miROL_Mem_Mp1_RRESP,
+  output           miROL_Mem_Mp1_RLAST,
+  output           miROL_Mem_Mp1_RVALID,
+  input            miROL_Mem_Mp1_RREADY,
 
   //--------------------------------------------------------
   //-- ROLE / Mmio / AppFlash Interface
@@ -478,8 +478,8 @@ module Shell_Themisto # (
   //--------------------------------------------------------
   //wire [31:0] sFMC_MMIO_4B_Reg;
   //wire [31:0] sMMIO_FMC_4B_Reg;
-  wire        sDECOUP_FMC_status;
-  wire        sFMC_DECOUP_activate;
+  wire        sDCP_FMC_status;
+  wire        sFMC_DCP_activate;
   wire        sFMC_ROLE_soft_reset;
   wire [8:0]  sbFMC_MMIO_Xmem_Addr;
   wire [31:0] sbFMC_MMIO_Xmem_RData;
@@ -504,17 +504,6 @@ module Shell_Themisto # (
   wire        ssFMC_NRC_ctrlLink_Axi_BVALID;
   wire        ssFMC_NRC_ctrlLink_Axi_BREADY;
   wire [ 1:0] ssFMC_NRC_ctrlLink_Axi_BRESP;
-  // FMC <==> CoreToDebug PYROLINK 
-  wire [ 7:0] ssFMC_CoreToDebug_Pyrolink_TDATA;
-  wire        ssFMC_CoreToDebug_Pyrolink_TVALID;
-  wire        ssFMC_CoreToDebug_Pyrolink_TREADY;
-  wire        ssFMC_CoreToDebug_Pyrolink_TKEEP;
-  wire        ssFMC_CoreToDebug_Pyrolink_TLAST;
-  wire [ 7:0] ssCoreToDebug_FMC_Pyrolink_TDATA;
-  wire        ssCoreToDebug_FMC_Pyrolink_TVALID;
-  wire        ssCoreToDebug_FMC_Pyrolink_TREADY;
-  wire        ssCoreToDebug_FMC_Pyrolink_TKEEP;
-  wire        ssCoreToDebug_FMC_Pyrolink_TLAST;
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : NRC
@@ -612,97 +601,81 @@ module Shell_Themisto # (
   
   
   // ===== NRC <-> FMC TCP connection =====
-  wire [ 63:0]  ssNRC_FMC_Tcp_Data_tdata;
-  wire [  7:0]  ssNRC_FMC_Tcp_Data_tkeep;
-  wire          ssNRC_FMC_Tcp_Data_tvalid;
-  wire          ssNRC_FMC_Tcp_Data_tlast;
-  wire          ssNRC_FMC_Tcp_Data_tready;
-  wire [ 15:0]  ssNRC_FMC_Tcp_SessId_tdata;
-  wire          ssNRC_FMC_Tcp_SessId_tvalid;
-  wire          ssNRC_FMC_Tcp_SessId_tready;
-  wire [ 1:0]   ssNRC_FMC_Tcp_SessId_tkeep;
-  wire          ssNRC_FMC_Tcp_SessId_tlast;
-  //wire [ 63:0]  ssNRC_SliceFMC_Tcp_Data_tdata;
-  //wire [  7:0]  ssNRC_SliceFMC_Tcp_Data_tkeep;
-  //wire          ssNRC_SliceFMC_Tcp_Data_tvalid;
-  //wire          ssNRC_SliceFMC_Tcp_Data_tlast;
-  //wire          ssNRC_SliceFMC_Tcp_Data_tready;
-  //wire [ 15:0]  ssNRC_SliceFMC_Tcp_SessId_tdata;
-  //wire          ssNRC_SliceFMC_Tcp_SessId_tvalid;
-  //wire          ssNRC_SliceFMC_Tcp_SessId_tready;
-  //wire [ 1:0]   ssNRC_SliceFMC_Tcp_SessId_tkeep;
-  //wire          ssNRC_SliceFMC_Tcp_SessId_tlast;
-  //wire [ 63:0]  ssNRCSlice_FMC_Tcp_Data_tdata;
-  //wire [  7:0]  ssNRCSlice_FMC_Tcp_Data_tkeep;
-  //wire          ssNRCSlice_FMC_Tcp_Data_tvalid;
-  //wire          ssNRCSlice_FMC_Tcp_Data_tlast;
-  //wire          ssNRCSlice_FMC_Tcp_Data_tready;
-  //wire [ 15:0]  ssNRCSlice_FMC_Tcp_SessId_tdata;
-  //wire          ssNRCSlice_FMC_Tcp_SessId_tvalid;
-  //wire          ssNRCSlice_FMC_Tcp_SessId_tready;
-  //wire [ 1:0]   ssNRCSlice_FMC_Tcp_SessId_tkeep;
-  //wire          ssNRCSlice_FMC_Tcp_SessId_tlast;
+  wire [ 63:0]  ssNRC_Fifo_Tcp_Data_tdata_V_din;
+  wire          ssNRC_Fifo_Tcp_Data_tdata_V_full;
+  wire          ssNRC_Fifo_Tcp_Data_tdata_V_write;
+  wire [  7:0]  ssNRC_Fifo_Tcp_Data_tkeep_V_din;
+  wire          ssNRC_Fifo_Tcp_Data_tkeep_V_full;
+  wire          ssNRC_Fifo_Tcp_Data_tkeep_V_write;
+  wire [  0:0]  ssNRC_Fifo_Tcp_Data_tlast_V_din;
+  wire          ssNRC_Fifo_Tcp_Data_tlast_V_full;
+  wire          ssNRC_Fifo_Tcp_Data_tlast_V_write;
+  wire [ 15:0]  ssNRC_Fifo_Tcp_SessId_tdata_V_din;
+  wire          ssNRC_Fifo_Tcp_SessId_tdata_V_full;
+  wire          ssNRC_Fifo_Tcp_SessId_tdata_V_write;
+  wire [  1:0]  ssNRC_Fifo_Tcp_SessId_tkeep_V_din;
+  wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_full;
+  wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_write;
+  wire [  0:0]  ssNRC_Fifo_Tcp_SessId_tlast_V_din;
+  wire          ssNRC_Fifo_Tcp_SessId_tlast_V_full;
+  wire          ssNRC_Fifo_Tcp_SessId_tlast_V_write;
   
-  wire [ 63:0]  ssFMC_NRC_Tcp_Data_tdata;
-  wire [  7:0]  ssFMC_NRC_Tcp_Data_tkeep;
-  wire          ssFMC_NRC_Tcp_Data_tvalid;
-  wire          ssFMC_NRC_Tcp_Data_tlast;
-  wire          ssFMC_NRC_Tcp_Data_tready;
-  wire [ 15:0]  ssFMC_NRC_Tcp_SessId_tdata;
-  wire          ssFMC_NRC_Tcp_SessId_tvalid;
-  wire          ssFMC_NRC_Tcp_SessId_tready;
-  wire [ 1:0]   ssFMC_NRC_Tcp_SessId_tkeep;
-  wire          ssFMC_NRC_Tcp_SessId_tlast;
- // wire [ 63:0]  ssFMC_SliceNRC_Tcp_Data_tdata;
- // wire [  7:0]  ssFMC_SliceNRC_Tcp_Data_tkeep;
- // wire          ssFMC_SliceNRC_Tcp_Data_tvalid;
- // wire          ssFMC_SliceNRC_Tcp_Data_tlast;
- // wire          ssFMC_SliceNRC_Tcp_Data_tready;
- // wire [ 15:0]  ssFMC_SliceNRC_Tcp_SessId_tdata;
- // wire          ssFMC_SliceNRC_Tcp_SessId_tvalid;
- // wire          ssFMC_SliceNRC_Tcp_SessId_tready;
- // wire [ 1:0]   ssFMC_SliceNRC_Tcp_SessId_tkeep;
- // wire          ssFMC_SliceNRC_Tcp_SessId_tlast;
- // wire [ 63:0]  ssFMCSlice_NRC_Tcp_Data_tdata;
- // wire [  7:0]  ssFMCSlice_NRC_Tcp_Data_tkeep;
- // wire          ssFMCSlice_NRC_Tcp_Data_tvalid;
- // wire          ssFMCSlice_NRC_Tcp_Data_tlast;
- // wire          ssFMCSlice_NRC_Tcp_Data_tready;
- // wire [ 15:0]  ssFMCSlice_NRC_Tcp_SessId_tdata;
- // wire          ssFMCSlice_NRC_Tcp_SessId_tvalid;
- // wire          ssFMCSlice_NRC_Tcp_SessId_tready;
- // wire [ 1:0]   ssFMCSlice_NRC_Tcp_SessId_tkeep;
- // wire          ssFMCSlice_NRC_Tcp_SessId_tlast;
-
-  //-- ROLE <-> NRC Meta Interface
-  //wire  [47:0] siROLE_Nrc_Meta_TDATA;
-  //wire         siROLE_Nrc_Meta_TVALID;
-  //wire         siROLE_Nrc_Meta_TREADY;
-  //wire  [ 5:0] siROLE_Nrc_Meta_TKEEP;
-  //wire         siROLE_Nrc_Meta_TLAST;
-  //wire  [47:0] soNRC_Role_Meta_TDATA;
-  //wire         soNRC_Role_Meta_TVALID;
-  //wire         soNRC_Role_Meta_TREADY;
-  //wire  [ 5:0] soNRC_Role_Meta_TKEEP;
-  //wire         soNRC_Role_Meta_TLAST;
-  //// SMC <==> NRC ctrlLink
-  //wire        sSMC_NRC_ctrlLink_AXI_AWVALID;
-  //wire        sSMC_NRC_ctrlLink_AXI_AWREADY;
-  //wire [13:0] sSMC_NRC_ctrlLink_AXI_AWADDR;
-  //wire        sSMC_NRC_ctrlLink_AXI_WVALID;
-  //wire        sSMC_NRC_ctrlLink_AXI_WREADY;
-  //wire [31:0] sSMC_NRC_ctrlLink_AXI_WDATA;
-  //wire [ 3:0] sSMC_NRC_ctrlLink_AXI_WSTRB;
-  //wire        sSMC_NRC_ctrlLink_AXI_ARVALID;
-  //wire        sSMC_NRC_ctrlLink_AXI_ARREADY;
-  //wire [13:0] sSMC_NRC_ctrlLink_AXI_ARADDR;
-  //wire        sSMC_NRC_ctrlLink_AXI_RVALID;
-  //wire        sSMC_NRC_ctrlLink_AXI_RREADY;
-  //wire [31:0] sSMC_NRC_ctrlLink_AXI_RDATA;
-  //wire [ 1:0] sSMC_NRC_ctrlLink_AXI_RRESP;
-  //wire        sSMC_NRC_ctrlLink_AXI_BVALID;
-  //wire        sSMC_NRC_ctrlLink_AXI_BREADY;
-  //wire [ 1:0] sSMC_NRC_ctrlLink_AXI_BRESP;
+  wire [ 63:0]  ssFifo_FMC_Tcp_Data_tdata_V_dout;
+  wire          ssFifo_FMC_Tcp_Data_tdata_V_empty;
+  wire          ssFifo_FMC_Tcp_Data_tdata_V_read;
+  wire [  7:0]  ssFifo_FMC_Tcp_Data_tkeep_V_dout;
+  wire          ssFifo_FMC_Tcp_Data_tkeep_V_empty;
+  wire          ssFifo_FMC_Tcp_Data_tkeep_V_read;
+  wire [  0:0]  ssFifo_FMC_Tcp_Data_tlast_V_dout;
+  wire          ssFifo_FMC_Tcp_Data_tlast_V_empty;
+  wire          ssFifo_FMC_Tcp_Data_tlast_V_read;
+  wire [ 15:0]  ssFifo_FMC_Tcp_SessId_tdata_V_dout;
+  wire          ssFifo_FMC_Tcp_SessId_tdata_V_empty;
+  wire          ssFifo_FMC_Tcp_SessId_tdata_V_read;
+  wire [  1:0]  ssFifo_FMC_Tcp_SessId_tkeep_V_dout;
+  wire          ssFifo_FMC_Tcp_SessId_tkeep_V_empty;
+  wire          ssFifo_FMC_Tcp_SessId_tkeep_V_read;
+  wire [  0:0]  ssFifo_FMC_Tcp_SessId_tlast_V_dout;
+  wire          ssFifo_FMC_Tcp_SessId_tlast_V_empty;
+  wire          ssFifo_FMC_Tcp_SessId_tlast_V_read;
+  
+  wire [ 63:0]  ssFMC_Fifo_Tcp_Data_tdata_V_din;
+  wire          ssFMC_Fifo_Tcp_Data_tdata_V_full;
+  wire          ssFMC_Fifo_Tcp_Data_tdata_V_write;
+  wire [  7:0]  ssFMC_Fifo_Tcp_Data_tkeep_V_din;
+  wire          ssFMC_Fifo_Tcp_Data_tkeep_V_full;
+  wire          ssFMC_Fifo_Tcp_Data_tkeep_V_write;
+  wire [  0:0]  ssFMC_Fifo_Tcp_Data_tlast_V_din;
+  wire          ssFMC_Fifo_Tcp_Data_tlast_V_full;
+  wire          ssFMC_Fifo_Tcp_Data_tlast_V_write;
+  wire [ 15:0]  ssFMC_Fifo_Tcp_SessId_tdata_V_din;
+  wire          ssFMC_Fifo_Tcp_SessId_tdata_V_full;
+  wire          ssFMC_Fifo_Tcp_SessId_tdata_V_write;
+  wire [  1:0]  ssFMC_Fifo_Tcp_SessId_tkeep_V_din;
+  wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_full;
+  wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_write;
+  wire [  0:0]  ssFMC_Fifo_Tcp_SessId_tlast_V_din;
+  wire          ssFMC_Fifo_Tcp_SessId_tlast_V_full;
+  wire          ssFMC_Fifo_Tcp_SessId_tlast_V_write;
+  
+  wire [ 63:0]  ssFifo_NRC_Tcp_Data_tdata_V_dout;
+  wire          ssFifo_NRC_Tcp_Data_tdata_V_empty;
+  wire          ssFifo_NRC_Tcp_Data_tdata_V_read;
+  wire [  7:0]  ssFifo_NRC_Tcp_Data_tkeep_V_dout;
+  wire          ssFifo_NRC_Tcp_Data_tkeep_V_empty;
+  wire          ssFifo_NRC_Tcp_Data_tkeep_V_read;
+  wire [  0:0]  ssFifo_NRC_Tcp_Data_tlast_V_dout;
+  wire          ssFifo_NRC_Tcp_Data_tlast_V_empty;
+  wire          ssFifo_NRC_Tcp_Data_tlast_V_read;
+  wire [ 15:0]  ssFifo_NRC_Tcp_SessId_tdata_V_dout;
+  wire          ssFifo_NRC_Tcp_SessId_tdata_V_empty;
+  wire          ssFifo_NRC_Tcp_SessId_tdata_V_read;
+  wire [  1:0]  ssFifo_NRC_Tcp_SessId_tkeep_V_dout;
+  wire          ssFifo_NRC_Tcp_SessId_tkeep_V_empty;
+  wire          ssFifo_NRC_Tcp_SessId_tkeep_V_read;
+  wire [  0:0]  ssFifo_NRC_Tcp_SessId_tlast_V_dout;
+  wire          ssFifo_NRC_Tcp_SessId_tlast_V_empty;
+  wire          ssFifo_NRC_Tcp_SessId_tlast_V_read;
 
 
   //Conncetions from NRC to AXIS Slices
@@ -749,45 +722,106 @@ module Shell_Themisto # (
   wire        slcOutNrc_Tcp_meta_TLAST  ;
 
   //------------------------------------------------------
-  //-- SIGNAL DECLARATIONS: Decoupling
+  //-- Decoupling DCP to X
   //------------------------------------------------------
-  //wire   [ 63:0]  sDECOUP_Shl_Nts0_Udp_Axis_tdata;
-  //wire   [  7:0]  sDECOUP_Shl_Nts0_Udp_Axis_tkeep;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tlast;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tvalid;
-  //wire            sDECOUP_Shl_Nts0_Udp_Axis_tready;
-  //wire   [ 63:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tdata;
-  //wire   [  7:0]  sDECOUP_Shl_Nts0_Tcp_Axis_tkeep;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tlast;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tvalid;
-  //wire            sDECOUP_Shl_Nts0_Tcp_Axis_tready;
-  //wire    [15:0]  sDECOUP_SHL_EMIF_2B_Reg;
-  //wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_Read_tready;
-  //wire   [ 79:0]  sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready;
-  //wire   [511:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata;
-  //wire   [ 63:0]  sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast;
-  //wire            sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid;
-  //wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_Read_tready;
-  //wire   [ 79:0]  sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready;
-  //wire   [511:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata;
-  //wire   [ 63:0]  sDECOUP_Shl_Mem_Mp1_Axis_Write_tkeep;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast;
-  //wire            sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid;
-
-  //wire   [ 31:0]  sDECOUP_Nrc_Udp_Rx_ports; TODO: bring back if Decoupling is updated
-
-
+  wire   [ 63:0]   siDCP_ROL_Nts_Udp_Data_tdata;
+  wire   [  7:0]   siDCP_ROL_Nts_Udp_Data_tkeep;
+  wire             siDCP_ROL_Nts_Udp_Data_tlast;
+  wire             siDCP_ROL_Nts_Udp_Data_tvalid;
+  wire             siDCP_ROL_Nts_Udp_Data_tready;
+  wire   [ 63:0]   soDCP_ROL_Nts_Udp_Data_tdata;
+  wire   [  7:0]   soDCP_ROL_Nts_Udp_Data_tkeep;
+  wire             soDCP_ROL_Nts_Udp_Data_tlast;
+  wire             soDCP_ROL_Nts_Udp_Data_tvalid;
+  wire             soDCP_ROL_Nts_Udp_Data_tready;
+  wire   [ 31:0]   piDCP_ROL_Nrc_Udp_Rx_ports;
+  wire    [79:0]   siDCP_ROLE_Nrc_Udp_Meta_TDATA;
+  wire             siDCP_ROLE_Nrc_Udp_Meta_TVALID;
+  wire             siDCP_ROLE_Nrc_Udp_Meta_TREADY;
+  wire    [ 9:0]   siDCP_ROLE_Nrc_Udp_Meta_TKEEP;
+  wire             siDCP_ROLE_Nrc_Udp_Meta_TLAST;
+  wire    [79:0]   soDCP_NRC_Role_Udp_Meta_TDATA;
+  wire             soDCP_NRC_Role_Udp_Meta_TVALID;
+  wire             soDCP_NRC_Role_Udp_Meta_TREADY;
+  wire    [ 9:0]   soDCP_NRC_Role_Udp_Meta_TKEEP;
+  wire             soDCP_NRC_Role_Udp_Meta_TLAST;
+  wire   [ 63:0]   siDCP_ROL_Nts_Tcp_Data_tdata;
+  wire   [  7:0]   siDCP_ROL_Nts_Tcp_Data_tkeep;
+  wire             siDCP_ROL_Nts_Tcp_Data_tlast;
+  wire             siDCP_ROL_Nts_Tcp_Data_tvalid;
+  wire             siDCP_ROL_Nts_Tcp_Data_tready;
+  wire   [ 63:0]   soDCP_ROL_Nts_Tcp_Data_tdata;
+  wire   [  7:0]   soDCP_ROL_Nts_Tcp_Data_tkeep;
+  wire             soDCP_ROL_Nts_Tcp_Data_tlast;
+  wire             soDCP_ROL_Nts_Tcp_Data_tvalid;
+  wire             soDCP_ROL_Nts_Tcp_Data_tready;
+  wire   [ 31:0]   piDCP_ROL_Nrc_Tcp_Rx_ports;
+  wire    [79:0]   siDCP_ROLE_Nrc_Tcp_Meta_TDATA;
+  wire             siDCP_ROLE_Nrc_Tcp_Meta_TVALID;
+  wire             siDCP_ROLE_Nrc_Tcp_Meta_TREADY;
+  wire    [ 9:0]   siDCP_ROLE_Nrc_Tcp_Meta_TKEEP;
+  wire             siDCP_ROLE_Nrc_Tcp_Meta_TLAST;
+  wire    [79:0]   soDCP_NRC_Role_Tcp_Meta_TDATA;
+  wire             soDCP_NRC_Role_Tcp_Meta_TVALID;
+  wire             soDCP_NRC_Role_Tcp_Meta_TREADY;
+  wire    [ 9:0]   soDCP_NRC_Role_Tcp_Meta_TKEEP;
+  wire             soDCP_NRC_Role_Tcp_Meta_TLAST;
+  wire   [ 79:0]   siDCP_ROL_Mem_Mp0_RdCmd_tdata;
+  wire             siDCP_ROL_Mem_Mp0_RdCmd_tvalid;
+  wire             siDCP_ROL_Mem_Mp0_RdCmd_tready;
+  wire   [  7:0]   soDCP_ROL_Mem_Mp0_RdSts_tdata;
+  wire             soDCP_ROL_Mem_Mp0_RdSts_tvalid;
+  wire             soDCP_ROL_Mem_Mp0_RdSts_tready;
+  wire   [511:0]   soDCP_ROL_Mem_Mp0_Read_tdata;
+  wire   [ 63:0]   soDCP_ROL_Mem_Mp0_Read_tkeep;
+  wire             soDCP_ROL_Mem_Mp0_Read_tlast;
+  wire             soDCP_ROL_Mem_Mp0_Read_tvalid;
+  wire             soDCP_ROL_Mem_Mp0_Read_tready;
+  wire   [ 79:0]   siDCP_ROL_Mem_Mp0_WrCmd_tdata;
+  wire             siDCP_ROL_Mem_Mp0_WrCmd_tvalid;
+  wire             siDCP_ROL_Mem_Mp0_WrCmd_tready;
+  wire   [  7:0]   soDCP_ROL_Mem_Mp0_WrSts_tdata;
+  wire             soDCP_ROL_Mem_Mp0_WrSts_tvalid;
+  wire             soDCP_ROL_Mem_Mp0_WrSts_tready;
+  wire   [511:0]   siDCP_ROL_Mem_Mp0_Write_tdata;
+  wire   [ 63:0]   siDCP_ROL_Mem_Mp0_Write_tkeep;
+  wire             siDCP_ROL_Mem_Mp0_Write_tlast;
+  wire             siDCP_ROL_Mem_Mp0_Write_tvalid;
+  wire             siDCP_ROL_Mem_Mp0_Write_tready; 
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_AWID;
+  wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_AWADDR;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_AWLEN;
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_AWSIZE;
+  wire   [  1: 0]  miDCP_ROL_Mem_Mp1_AWBURST;
+  wire             miDCP_ROL_Mem_Mp1_AWVALID;
+  wire             miDCP_ROL_Mem_Mp1_AWREADY;
+  wire   [511: 0]  miDCP_ROL_Mem_Mp1_WDATA;
+  wire   [ 63: 0]  miDCP_ROL_Mem_Mp1_WSTRB;
+  wire             miDCP_ROL_Mem_Mp1_WLAST;
+  wire             miDCP_ROL_Mem_Mp1_WVALID;
+  wire             miDCP_ROL_Mem_Mp1_WREADY;
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_BID;
+  wire   [  1: 0]  miDCP_ROL_Mem_Mp1_BRESP;
+  wire             miDCP_ROL_Mem_Mp1_BVALID;
+  wire             miDCP_ROL_Mem_Mp1_BREADY;
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_ARID;
+  wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_ARADDR;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_ARLEN;
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_ARSIZE;
+  wire   [  1: 0]  miDCP_ROL_Mem_Mp1_ARBURST;
+  wire             miDCP_ROL_Mem_Mp1_ARVALID;
+  wire             miDCP_ROL_Mem_Mp1_ARREADY;
+  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_RID;
+  wire   [511: 0]  miDCP_ROL_Mem_Mp1_RDATA;
+  wire   [  1: 0]  miDCP_ROL_Mem_Mp1_RRESP;
+  wire             miDCP_ROL_Mem_Mp1_RLAST;
+  wire             miDCP_ROL_Mem_Mp1_RVALID;
+  wire             miDCP_ROL_Mem_Mp1_RREADY;
+  wire   [ 1: 0]   piDCP_ROL_Mmio_Mc1_MemTestStat;
+  wire    [15:0]   piDCP_ROL_Mmio_RdReg;
+  wire   [ 31:0]   poDCP_ROL_Fmc_Rank;
+  wire   [ 31:0]   poDCP_ROL_Fmc_Size;
+ 
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -859,18 +893,18 @@ module Shell_Themisto # (
     //---- [PHY_ENABLE] ------------
     .poSHL_EnableLayer              (sMMIO_LayerEn),
     //---- DIAG_CTRL_1 -------------
-    .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),
+    .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),  //TODO: remove from Themisto SRA?
     //---- DIAG_STAT_1 -------------
-    .piROLE_Mc1_MemTestStat         (piROL_Mmio_Mc1_MemTestStat),
+    .piROLE_Mc1_MemTestStat         (piDCP_ROL_Mmio_Mc1_MemTestStat),
     //---- DIAG_CTRL_2 -------------  
-    .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),
+    .poROLE_UdpEchoCtrl             (poROL_Mmio_UdpEchoCtrl),  //TODO: remove from Themisto SRA?
     .poROLE_UdpPostDgmEn            (poROL_Mmio_UdpPostDgmEn),
     .poROLE_UdpCaptDgmEn            (poROL_Mmio_UdpCaptDgmEn),
     .poROLE_TcpEchoCtrl             (poROL_Mmio_TcpEchoCtrl),
     .poROLE_TcpPostSegEn            (poROL_Mmio_TcpPostSegEn),
     .poROLE_TcpCaptSegEn            (poROL_Mmio_TcpCaptSegEn),
      //---- APP_RDROL ----------------
-    .piROLE_RdReg                   (piROL_Mmio_RdReg),
+    .piROLE_RdReg                   (piDCP_ROL_Mmio_RdReg),
      //---- APP_WRROL -----------------
     .poROLE_WrReg                   (poROL_Mmio_WrReg),
     
@@ -1367,66 +1401,66 @@ module Shell_Themisto # (
     //------------------------------------------------------
     //-- Memory Port #0 / S2MM-AXIS ------------------   
     //---- Stream Read Command ---------------
-    .siROL_Mem_Mp0_RdCmd_tdata        (siROL_Mem_Mp0_RdCmd_tdata),
-    .siROL_Mem_Mp0_RdCmd_tvalid       (siROL_Mem_Mp0_RdCmd_tvalid),
-    .siROL_Mem_Mp0_RdCmd_tready       (siROL_Mem_Mp0_RdCmd_tready),
+    .siROL_Mem_Mp0_RdCmd_tdata        (siDCP_ROL_Mem_Mp0_RdCmd_tdata),
+    .siROL_Mem_Mp0_RdCmd_tvalid       (siDCP_ROL_Mem_Mp0_RdCmd_tvalid),
+    .siROL_Mem_Mp0_RdCmd_tready       (siDCP_ROL_Mem_Mp0_RdCmd_tready),
     //---- Stream Read Status ----------------
-    .soROL_Mem_Mp0_RdSts_tdata        (soROL_Mem_Mp0_RdSts_tdata),
-    .soROL_Mem_Mp0_RdSts_tvalid       (soROL_Mem_Mp0_RdSts_tvalid),
-    .soROL_Mem_Mp0_RdSts_tready       (soROL_Mem_Mp0_RdSts_tready),
+    .soROL_Mem_Mp0_RdSts_tdata        (soDCP_ROL_Mem_Mp0_RdSts_tdata),
+    .soROL_Mem_Mp0_RdSts_tvalid       (soDCP_ROL_Mem_Mp0_RdSts_tvalid),
+    .soROL_Mem_Mp0_RdSts_tready       (soDCP_ROL_Mem_Mp0_RdSts_tready),
     //---- Stream Data Output Channel --------
-    .soROL_Mem_Mp0_Read_tdata         (soROL_Mem_Mp0_Read_tdata),
-    .soROL_Mem_Mp0_Read_tkeep         (soROL_Mem_Mp0_Read_tkeep),
-    .soROL_Mem_Mp0_Read_tlast         (soROL_Mem_Mp0_Read_tlast),
-    .soROL_Mem_Mp0_Read_tvalid        (soROL_Mem_Mp0_Read_tvalid),
-    .soROL_Mem_Mp0_Read_tready        (soROL_Mem_Mp0_Read_tready),
+    .soROL_Mem_Mp0_Read_tdata         (soDCP_ROL_Mem_Mp0_Read_tdata),
+    .soROL_Mem_Mp0_Read_tkeep         (soDCP_ROL_Mem_Mp0_Read_tkeep),
+    .soROL_Mem_Mp0_Read_tlast         (soDCP_ROL_Mem_Mp0_Read_tlast),
+    .soROL_Mem_Mp0_Read_tvalid        (soDCP_ROL_Mem_Mp0_Read_tvalid),
+    .soROL_Mem_Mp0_Read_tready        (soDCP_ROL_Mem_Mp0_Read_tready),
     //---- Stream Write Command --------------
-    .siROL_Mem_Mp0_WrCmd_tdata        (siROL_Mem_Mp0_WrCmd_tdata),
-    .siROL_Mem_Mp0_WrCmd_tvalid       (siROL_Mem_Mp0_WrCmd_tvalid),
-    .siROL_Mem_Mp0_WrCmd_tready       (siROL_Mem_Mp0_WrCmd_tready),
+    .siROL_Mem_Mp0_WrCmd_tdata        (siDCP_ROL_Mem_Mp0_WrCmd_tdata),
+    .siROL_Mem_Mp0_WrCmd_tvalid       (siDCP_ROL_Mem_Mp0_WrCmd_tvalid),
+    .siROL_Mem_Mp0_WrCmd_tready       (siDCP_ROL_Mem_Mp0_WrCmd_tready),
     //---- Stream Write Status ---------------
-    .soROL_Mem_Mp0_WrSts_tdata        (soROL_Mem_Mp0_WrSts_tdata),
-    .soROL_Mem_Mp0_WrSts_tvalid       (soROL_Mem_Mp0_WrSts_tvalid),
-    .soROL_Mem_Mp0_WrSts_tready       (soROL_Mem_Mp0_WrSts_tready),
+    .soROL_Mem_Mp0_WrSts_tdata        (soDCP_ROL_Mem_Mp0_WrSts_tdata),
+    .soROL_Mem_Mp0_WrSts_tvalid       (soDCP_ROL_Mem_Mp0_WrSts_tvalid),
+    .soROL_Mem_Mp0_WrSts_tready       (soDCP_ROL_Mem_Mp0_WrSts_tready),
     //---- Stream Data Input Channel ---------
-    .siROL_Mem_Mp0_Write_tdata        (siROL_Mem_Mp0_Write_tdata),
-    .siROL_Mem_Mp0_Write_tkeep        (siROL_Mem_Mp0_Write_tkeep),
-    .siROL_Mem_Mp0_Write_tlast        (siROL_Mem_Mp0_Write_tlast),
-    .siROL_Mem_Mp0_Write_tvalid       (siROL_Mem_Mp0_Write_tvalid),
-    .siROL_Mem_Mp0_Write_tready       (siROL_Mem_Mp0_Write_tready),
+    .siROL_Mem_Mp0_Write_tdata        (siDCP_ROL_Mem_Mp0_Write_tdata),
+    .siROL_Mem_Mp0_Write_tkeep        (siDCP_ROL_Mem_Mp0_Write_tkeep),
+    .siROL_Mem_Mp0_Write_tlast        (siDCP_ROL_Mem_Mp0_Write_tlast),
+    .siROL_Mem_Mp0_Write_tvalid       (siDCP_ROL_Mem_Mp0_Write_tvalid),
+    .siROL_Mem_Mp0_Write_tready       (siDCP_ROL_Mem_Mp0_Write_tready),
 
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
-    //-- Memory Port #1 / S2MM-AXIS ------------------   
-    //---- Stream Read Command ---------------
-    .siROL_Mem_Mp1_RdCmd_tdata        (siROL_Mem_Mp1_RdCmd_tdata),
-    .siROL_Mem_Mp1_RdCmd_tvalid       (siROL_Mem_Mp1_RdCmd_tvalid),
-    .siROL_Mem_Mp1_RdCmd_tready       (siROL_Mem_Mp1_RdCmd_tready),
-    //---- Stream Read Status ----------------
-    .soROL_Mem_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
-    .soROL_Mem_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
-    .soROL_Mem_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
-    //---- Stream Data Output Channel --------
-    .soROL_Mem_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
-    .soROL_Mem_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
-    .soROL_Mem_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
-    .soROL_Mem_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
-    .soROL_Mem_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
-    //---- Stream Write Command --------------
-    .siROL_Mem_Mp1_WrCmd_tdata        (siROL_Mem_Mp1_WrCmd_tdata),
-    .siROL_Mem_Mp1_WrCmd_tvalid       (siROL_Mem_Mp1_WrCmd_tvalid),
-    .siROL_Mem_Mp1_WrCmd_tready       (siROL_Mem_Mp1_WrCmd_tready),
-    //---- Stream Write Status ---------------
-    .soROL_Mem_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
-    .soROL_Mem_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
-    .soROL_Mem_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
-    //---- Stream Data Input Channel ---------
-    .siROL_Mem_Mp1_Write_tdata        (siROL_Mem_Mp1_Write_tdata),
-    .siROL_Mem_Mp1_Write_tkeep        (siROL_Mem_Mp1_Write_tkeep),
-    .siROL_Mem_Mp1_Write_tlast        (siROL_Mem_Mp1_Write_tlast),
-    .siROL_Mem_Mp1_Write_tvalid       (siROL_Mem_Mp1_Write_tvalid),
-    .siROL_Mem_Mp1_Write_tready       (siROL_Mem_Mp1_Write_tready),
+    .miROL_Mem_Mp1_AWID               (miDCP_ROL_Mem_Mp1_AWID   ),
+    .miROL_Mem_Mp1_AWADDR             (miDCP_ROL_Mem_Mp1_AWADDR ),
+    .miROL_Mem_Mp1_AWLEN              (miDCP_ROL_Mem_Mp1_AWLEN  ),
+    .miROL_Mem_Mp1_AWSIZE             (miDCP_ROL_Mem_Mp1_AWSIZE ),
+    .miROL_Mem_Mp1_AWBURST            (miDCP_ROL_Mem_Mp1_AWBURST),
+    .miROL_Mem_Mp1_AWVALID            (miDCP_ROL_Mem_Mp1_AWVALID),
+    .miROL_Mem_Mp1_AWREADY            (miDCP_ROL_Mem_Mp1_AWREADY),
+    .miROL_Mem_Mp1_WDATA              (miDCP_ROL_Mem_Mp1_WDATA  ),
+    .miROL_Mem_Mp1_WSTRB              (miDCP_ROL_Mem_Mp1_WSTRB  ),
+    .miROL_Mem_Mp1_WLAST              (miDCP_ROL_Mem_Mp1_WLAST  ),
+    .miROL_Mem_Mp1_WVALID             (miDCP_ROL_Mem_Mp1_WVALID ),
+    .miROL_Mem_Mp1_WREADY             (miDCP_ROL_Mem_Mp1_WREADY ),
+    .miROL_Mem_Mp1_BID                (miDCP_ROL_Mem_Mp1_BID    ),
+    .miROL_Mem_Mp1_BRESP              (miDCP_ROL_Mem_Mp1_BRESP  ),
+    .miROL_Mem_Mp1_BVALID             (miDCP_ROL_Mem_Mp1_BVALID ),
+    .miROL_Mem_Mp1_BREADY             (miDCP_ROL_Mem_Mp1_BREADY ),
+    .miROL_Mem_Mp1_ARID               (miDCP_ROL_Mem_Mp1_ARID   ),
+    .miROL_Mem_Mp1_ARADDR             (miDCP_ROL_Mem_Mp1_ARADDR ),
+    .miROL_Mem_Mp1_ARLEN              (miDCP_ROL_Mem_Mp1_ARLEN  ),
+    .miROL_Mem_Mp1_ARSIZE             (miDCP_ROL_Mem_Mp1_ARSIZE ),
+    .miROL_Mem_Mp1_ARBURST            (miDCP_ROL_Mem_Mp1_ARBURST),
+    .miROL_Mem_Mp1_ARVALID            (miDCP_ROL_Mem_Mp1_ARVALID),
+    .miROL_Mem_Mp1_ARREADY            (miDCP_ROL_Mem_Mp1_ARREADY),
+    .miROL_Mem_Mp1_RID                (miDCP_ROL_Mem_Mp1_RID    ),
+    .miROL_Mem_Mp1_RDATA              (miDCP_ROL_Mem_Mp1_RDATA  ),
+    .miROL_Mem_Mp1_RRESP              (miDCP_ROL_Mem_Mp1_RRESP  ),
+    .miROL_Mem_Mp1_RLAST              (miDCP_ROL_Mem_Mp1_RLAST  ),
+    .miROL_Mem_Mp1_RVALID             (miDCP_ROL_Mem_Mp1_RVALID ),
+    .miROL_Mem_Mp1_RREADY             (miDCP_ROL_Mem_Mp1_RREADY ),
 
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1
@@ -1540,8 +1574,8 @@ module Shell_Themisto # (
     .m_axi_boHWICAP_RRESP    (ssFMC_HWICAP_Axi_rresp),
     .m_axi_boHWICAP_RVALID   (ssFMC_HWICAP_Axi_rvalid),
     .m_axi_boHWICAP_RREADY   (ssFMC_HWICAP_Axi_rready),
-    .piDECOUP_status_V                   (sDECOUP_FMC_status),
-    .poDECOUP_activate_V                 (sFMC_DECOUP_activate),
+    .piDECOUP_status_V                   (sDCP_FMC_status),
+    .poDECOUP_activate_V                 (sFMC_DCP_activate),
     .poSoftReset_V                       (sFMC_ROLE_soft_reset),
     .xmem_V_Address0                     (sbFMC_MMIO_Xmem_Addr),
     .xmem_V_ce0                          (sbFMC_MMIO_Xmem_cen), 
@@ -1566,62 +1600,180 @@ module Shell_Themisto # (
     .m_axi_boNRC_ctrlLink_BREADY         (ssFMC_NRC_ctrlLink_Axi_BREADY),
     .m_axi_boNRC_ctrlLink_BRESP          (ssFMC_NRC_ctrlLink_Axi_BRESP),
     .piDisableCtrlLink_V                 (0),
-    //.siNRC_Tcp_data_TDATA         (ssNRCSlice_FMC_Tcp_Data_tdata   ),
-    //.siNRC_Tcp_data_TVALID        (ssNRCSlice_FMC_Tcp_Data_tvalid ),
-    //.siNRC_Tcp_data_TREADY        (ssNRCSlice_FMC_Tcp_Data_tready  ),
-    //.siNRC_Tcp_data_TKEEP         (ssNRCSlice_FMC_Tcp_Data_tkeep  ),
-    //.siNRC_Tcp_data_TLAST         (ssNRCSlice_FMC_Tcp_Data_tlast  ),
-    //.siNRC_Tcp_SessId_TDATA       (ssNRCSlice_FMC_Tcp_SessId_tdata ),
-    //.siNRC_Tcp_SessId_TVALID      (ssNRCSlice_FMC_Tcp_SessId_tvalid),
-    //.siNRC_Tcp_SessId_TREADY      (ssNRCSlice_FMC_Tcp_SessId_tready),
-    //.siNRC_Tcp_SessId_TKEEP       (ssNRCSlice_FMC_Tcp_SessId_tkeep),
-    //.siNRC_Tcp_SessId_TLAST       (ssNRCSlice_FMC_Tcp_SessId_tlast),
-    //.soNRC_Tcp_data_TDATA         (ssFMC_SliceNRC_Tcp_Data_tdata   ),
-    //.soNRC_Tcp_data_TVALID        (ssFMC_SliceNRC_Tcp_Data_tvalid ),
-    //.soNRC_Tcp_data_TREADY        (ssFMC_SliceNRC_Tcp_Data_tready  ),
-    //.soNRC_Tcp_data_TKEEP         (ssFMC_SliceNRC_Tcp_Data_tkeep ),
-    //.soNRC_Tcp_data_TLAST         (ssFMC_SliceNRC_Tcp_Data_tlast  ),
-    //.soNRC_Tcp_SessId_TDATA       (ssFMC_SliceNRC_Tcp_SessId_tdata ),
-    //.soNRC_Tcp_SessId_TVALID      (ssFMC_SliceNRC_Tcp_SessId_tvalid),
-    //.soNRC_Tcp_SessId_TREADY      (ssFMC_SliceNRC_Tcp_SessId_tready),
-    //.soNRC_Tcp_SessId_TKEEP       (ssFMC_SliceNRC_Tcp_SessId_tkeep),
-    //.soNRC_Tcp_SessId_TLAST       (ssFMC_SliceNRC_Tcp_SessId_tlast),
-    .siNRC_Tcp_data_TDATA         (ssNRC_FMC_Tcp_Data_tdata   ),
-    .siNRC_Tcp_data_TVALID        (ssNRC_FMC_Tcp_Data_tvalid ),
-    .siNRC_Tcp_data_TREADY        (ssNRC_FMC_Tcp_Data_tready  ),
-    .siNRC_Tcp_data_TKEEP         (ssNRC_FMC_Tcp_Data_tkeep  ),
-    .siNRC_Tcp_data_TLAST         (ssNRC_FMC_Tcp_Data_tlast  ),
-    .siNRC_Tcp_SessId_TDATA       (ssNRC_FMC_Tcp_SessId_tdata ),
-    .siNRC_Tcp_SessId_TVALID      (ssNRC_FMC_Tcp_SessId_tvalid),
-    .siNRC_Tcp_SessId_TREADY      (ssNRC_FMC_Tcp_SessId_tready),
-    .siNRC_Tcp_SessId_TKEEP       (ssNRC_FMC_Tcp_SessId_tkeep),
-    .siNRC_Tcp_SessId_TLAST       (ssNRC_FMC_Tcp_SessId_tlast),
-    .soNRC_Tcp_data_TDATA         (ssFMC_NRC_Tcp_Data_tdata   ),
-    .soNRC_Tcp_data_TVALID        (ssFMC_NRC_Tcp_Data_tvalid ),
-    .soNRC_Tcp_data_TREADY        (ssFMC_NRC_Tcp_Data_tready  ),
-    .soNRC_Tcp_data_TKEEP         (ssFMC_NRC_Tcp_Data_tkeep ),
-    .soNRC_Tcp_data_TLAST         (ssFMC_NRC_Tcp_Data_tlast  ),
-    .soNRC_Tcp_SessId_TDATA       (ssFMC_NRC_Tcp_SessId_tdata ),
-    .soNRC_Tcp_SessId_TVALID      (ssFMC_NRC_Tcp_SessId_tvalid),
-    .soNRC_Tcp_SessId_TREADY      (ssFMC_NRC_Tcp_SessId_tready),
-    .soNRC_Tcp_SessId_TKEEP       (ssFMC_NRC_Tcp_SessId_tkeep),
-    .soNRC_Tcp_SessId_TLAST       (ssFMC_NRC_Tcp_SessId_tlast),
-    //.piDisableCtrlLink_V_ap_vld          (1),
-    .soPYROLINK_TDATA                    (ssFMC_CoreToDebug_Pyrolink_TDATA),
-    .soPYROLINK_TVALID                   (ssFMC_CoreToDebug_Pyrolink_TVALID),
-    .soPYROLINK_TREADY                   (ssFMC_CoreToDebug_Pyrolink_TREADY),
-    .soPYROLINK_TKEEP                    (ssFMC_CoreToDebug_Pyrolink_TKEEP),
-    .soPYROLINK_TLAST                    (ssFMC_CoreToDebug_Pyrolink_TLAST),
-    .siPYROLINK_TDATA                    (ssCoreToDebug_FMC_Pyrolink_TDATA),
-    .siPYROLINK_TVALID                   (ssCoreToDebug_FMC_Pyrolink_TVALID),
-    .siPYROLINK_TREADY                   (ssCoreToDebug_FMC_Pyrolink_TREADY),
-    .siPYROLINK_TKEEP                    (ssCoreToDebug_FMC_Pyrolink_TKEEP),
-    .siPYROLINK_TLAST                    (ssCoreToDebug_FMC_Pyrolink_TLAST),
-    .piDisablePyroLink_V                 (1),//TODO: SET to 0 IF PYROLINK SHOULD BE USED
-    //.piDisablePyroLink_V_ap_vld          (1),
-    .poROLE_rank_V                       (poROL_Fmc_Rank),
-    .poROLE_size_V                       (poROL_Fmc_Size)
+    .siNRC_Tcp_data_V_tdata_V_dout       ( ssFifo_FMC_Tcp_Data_tdata_V_dout)     ,
+    .siNRC_Tcp_data_V_tdata_V_empty_n    (~ssFifo_FMC_Tcp_Data_tdata_V_empty)  ,
+    .siNRC_Tcp_data_V_tdata_V_read       ( ssFifo_FMC_Tcp_Data_tdata_V_read)   ,
+    .siNRC_Tcp_data_V_tkeep_V_dout       ( ssFifo_FMC_Tcp_Data_tkeep_V_dout)     ,
+    .siNRC_Tcp_data_V_tkeep_V_empty_n    (~ssFifo_FMC_Tcp_Data_tkeep_V_empty)  ,
+    .siNRC_Tcp_data_V_tkeep_V_read       ( ssFifo_FMC_Tcp_Data_tkeep_V_read)   ,
+    .siNRC_Tcp_data_V_tlast_V_dout       ( ssFifo_FMC_Tcp_Data_tlast_V_dout)     ,
+    .siNRC_Tcp_data_V_tlast_V_empty_n    (~ssFifo_FMC_Tcp_Data_tlast_V_empty)  ,
+    .siNRC_Tcp_data_V_tlast_V_read       ( ssFifo_FMC_Tcp_Data_tlast_V_read)   ,
+    .siNRC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
+    .siNRC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
+    .siNRC_Tcp_SessId_V_tdata_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
+    .siNRC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_FMC_Tcp_SessId_tkeep_V_dout)   ,
+    .siNRC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tkeep_V_empty),
+    .siNRC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_FMC_Tcp_SessId_tkeep_V_read) ,
+    .siNRC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_FMC_Tcp_SessId_tlast_V_dout)   ,
+    .siNRC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tlast_V_empty),
+    .siNRC_Tcp_SessId_V_tlast_V_read     ( ssFifo_FMC_Tcp_SessId_tlast_V_read) ,
+    .soNRC_Tcp_data_V_tdata_V_din       ( ssFMC_Fifo_Tcp_Data_tdata_V_din)     ,
+    .soNRC_Tcp_data_V_tdata_V_full_n    (~ssFMC_Fifo_Tcp_Data_tdata_V_full)  ,
+    .soNRC_Tcp_data_V_tdata_V_write     ( ssFMC_Fifo_Tcp_Data_tdata_V_write)   ,
+    .soNRC_Tcp_data_V_tkeep_V_din       ( ssFMC_Fifo_Tcp_Data_tkeep_V_din)     ,
+    .soNRC_Tcp_data_V_tkeep_V_full_n    (~ssFMC_Fifo_Tcp_Data_tkeep_V_full)  ,
+    .soNRC_Tcp_data_V_tkeep_V_write     ( ssFMC_Fifo_Tcp_Data_tkeep_V_write)   ,
+    .soNRC_Tcp_data_V_tlast_V_din       ( ssFMC_Fifo_Tcp_Data_tlast_V_din)     ,
+    .soNRC_Tcp_data_V_tlast_V_full_n    (~ssFMC_Fifo_Tcp_Data_tlast_V_full)  ,
+    .soNRC_Tcp_data_V_tlast_V_write     ( ssFMC_Fifo_Tcp_Data_tlast_V_write)   ,
+    .soNRC_Tcp_SessId_V_tdata_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    .soNRC_Tcp_SessId_V_tdata_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
+    .soNRC_Tcp_SessId_V_tdata_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
+    .soNRC_Tcp_SessId_V_tkeep_V_din     ( ssFMC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    .soNRC_Tcp_SessId_V_tkeep_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tkeep_V_full),
+    .soNRC_Tcp_SessId_V_tkeep_V_write   ( ssFMC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    .soNRC_Tcp_SessId_V_tlast_V_din     ( ssFMC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    .soNRC_Tcp_SessId_V_tlast_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tlast_V_full),
+    .soNRC_Tcp_SessId_V_tlast_V_write   ( ssFMC_Fifo_Tcp_SessId_tlast_V_write) ,
+    .poROLE_rank_V                       (poDCP_ROL_Fmc_Rank),
+    .poROLE_size_V                       (poDCP_ROL_Fmc_Size)
   );
+
+  FifoNetwork_Data FIFO_DD_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_Data_tdata_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_Data_tdata_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_Data_tdata_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_Data_tdata_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_Data_tdata_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_Data_tdata_V_read   )
+  );
+  
+  FifoNetwork_Keep FIFO_DK_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_Data_tkeep_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_Data_tkeep_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_Data_tkeep_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_Data_tkeep_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_Data_tkeep_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_Data_tkeep_V_read   )
+  );
+
+  FifoNetwork_Last FIFO_DL_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_Data_tlast_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_Data_tlast_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_Data_tlast_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_Data_tlast_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_Data_tlast_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_Data_tlast_V_read   )
+  );
+
+  FifoSession_Data FIFO_SD_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_SessId_tdata_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_SessId_tdata_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_SessId_tdata_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_SessId_tdata_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_SessId_tdata_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_SessId_tdata_V_read   )
+  );
+  
+  FifoSession_Keep FIFO_SK_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_SessId_tkeep_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_SessId_tkeep_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_SessId_tkeep_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_SessId_tkeep_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_SessId_tkeep_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_SessId_tkeep_V_read   )
+  );
+
+  FifoSession_Last FIFO_SL_0 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssFMC_Fifo_Tcp_SessId_tlast_V_din    ),
+    .full   (ssFMC_Fifo_Tcp_SessId_tlast_V_full   ),
+    .wr_en  (ssFMC_Fifo_Tcp_SessId_tlast_V_write  ),
+    .dout   (ssFifo_NRC_Tcp_SessId_tlast_V_dout   ),
+    .empty  (ssFifo_NRC_Tcp_SessId_tlast_V_empty  ),
+    .rd_en  (ssFifo_NRC_Tcp_SessId_tlast_V_read   )
+  );
+
+
+  FifoNetwork_Data FIFO_DD_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_Data_tdata_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_Data_tdata_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_Data_tdata_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_Data_tdata_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_Data_tdata_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_Data_tdata_V_read   )
+  );
+  
+  FifoNetwork_Keep FIFO_DK_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_Data_tkeep_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_Data_tkeep_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_Data_tkeep_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_Data_tkeep_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_Data_tkeep_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_Data_tkeep_V_read   )
+  );
+
+  FifoNetwork_Last FIFO_DL_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_Data_tlast_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_Data_tlast_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_Data_tlast_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_Data_tlast_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_Data_tlast_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_Data_tlast_V_read   )
+  );
+
+
+  FifoSession_Data FIFO_SD_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_SessId_tdata_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_SessId_tdata_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_SessId_tdata_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_SessId_tdata_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_SessId_tdata_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_SessId_tdata_V_read   )
+  );
+  
+  FifoSession_Keep FIFO_SK_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_SessId_tkeep_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_SessId_tkeep_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_SessId_tkeep_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_SessId_tkeep_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_SessId_tkeep_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_SessId_tkeep_V_read   )
+  );
+
+  FifoSession_Last FIFO_SL_1 (
+    .clk    (sETH0_ShlClk),
+    .srst   (sMMIO_LayerRst[6]),
+    .din    (ssNRC_Fifo_Tcp_SessId_tlast_V_din    ),
+    .full   (ssNRC_Fifo_Tcp_SessId_tlast_V_full   ),
+    .wr_en  (ssNRC_Fifo_Tcp_SessId_tlast_V_write  ),
+    .dout   (ssFifo_FMC_Tcp_SessId_tlast_V_dout   ),
+    .empty  (ssFifo_FMC_Tcp_SessId_tlast_V_empty  ),
+    .rd_en  (ssFifo_FMC_Tcp_SessId_tlast_V_read   )
+  );
+
 
   NetworkRoutingCore NRC (
     //-- Global Clock used by the entire SHELL -------------
@@ -1629,10 +1781,11 @@ module Shell_Themisto # (
     //-- Global Reset used by the entire SHELL -------------
     //.ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[6]),
-    .piNTS_ready_V          (sNTS0_MMIO_NtsReady),
     .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
     .piLayer4enabled_V_ap_vld (1),
-    //.piNTS_ready_V          (1), //TODO
+    .piLayer7enabled_V        (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
+    .piLayer7enabled_V_ap_vld (1),
+    .piNTS_ready_V          (sNTS0_MMIO_NtsReady),
     .piNTS_ready_V_ap_vld   (1),
     .piMMIO_FmcLsnPort_V    (sMMIO_NRC_FmcLsnPort),
     .piMMIO_FmcLsnPort_V_ap_vld (1),
@@ -1641,7 +1794,7 @@ module Shell_Themisto # (
     .piMyIpAddress_V          (sMMIO_NTS0_IpAddress),
     .piMyIpAddress_V_ap_vld   (1),
     //.piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
-    .piROL_Udp_Rx_ports_V (piROL_Nrc_Udp_Rx_ports),
+    .piROL_Udp_Rx_ports_V (piDCP_ROL_Nrc_Udp_Rx_ports),
     .piROL_Udp_Rx_ports_V_ap_vld (1),
     .siUdp_data_TDATA         (slcInUdp_data_TDATA ) ,
     .siUdp_data_TVALID        (slcInUdp_data_TVALID) ,
@@ -1663,7 +1816,7 @@ module Shell_Themisto # (
     .soUdp_meta_TREADY        (slcOutNrc_Udp_meta_TREADY) ,
     .soUdp_meta_TKEEP         (slcOutNrc_Udp_meta_TKEEP ) ,
     .soUdp_meta_TLAST         (slcOutNrc_Udp_meta_TLAST ) ,
-    .piROL_Tcp_Rx_ports_V (piROL_Nrc_Tcp_Rx_ports),
+    .piROL_Tcp_Rx_ports_V (piDCP_ROL_Nrc_Tcp_Rx_ports),
     .piROL_Tcp_Rx_ports_V_ap_vld (1),
     .siTcp_data_TDATA         (slcInTcp_data_TDATA ) ,
     .siTcp_data_TVALID        (slcInTcp_data_TVALID) ,
@@ -1685,46 +1838,42 @@ module Shell_Themisto # (
     .soTcp_meta_TREADY        (slcOutNrc_Tcp_meta_TREADY) ,
     .soTcp_meta_TKEEP         (slcOutNrc_Tcp_meta_TKEEP ) ,
     .soTcp_meta_TLAST         (slcOutNrc_Tcp_meta_TLAST ) ,
-    //.siFMC_Tcp_data_TDATA         (ssFMCSlice_NRC_Tcp_Data_tdata   ),
-    //.siFMC_Tcp_data_TVALID        (ssFMCSlice_NRC_Tcp_Data_tvalid ),
-    //.siFMC_Tcp_data_TREADY        (ssFMCSlice_NRC_Tcp_Data_tready  ),
-    //.siFMC_Tcp_data_TKEEP         (ssFMCSlice_NRC_Tcp_Data_tkeep ),
-    //.siFMC_Tcp_data_TLAST         (ssFMCSlice_NRC_Tcp_Data_tlast  ),
-    //.siFMC_Tcp_SessId_TDATA       (ssFMCSlice_NRC_Tcp_SessId_tdata ),
-    //.siFMC_Tcp_SessId_TVALID      (ssFMCSlice_NRC_Tcp_SessId_tvalid),
-    //.siFMC_Tcp_SessId_TREADY      (ssFMCSlice_NRC_Tcp_SessId_tready),
-    //.siFMC_Tcp_SessId_TKEEP       (ssFMCSlice_NRC_Tcp_SessId_tkeep),
-    //.siFMC_Tcp_SessId_TLAST       (ssFMCSlice_NRC_Tcp_SessId_tlast),
-    //.soFMC_Tcp_data_TDATA         (ssNRC_SliceFMC_Tcp_Data_tdata   ),
-    //.soFMC_Tcp_data_TVALID        (ssNRC_SliceFMC_Tcp_Data_tvalid ),
-    //.soFMC_Tcp_data_TREADY        (ssNRC_SliceFMC_Tcp_Data_tready  ),
-    //.soFMC_Tcp_data_TKEEP         (ssNRC_SliceFMC_Tcp_Data_tkeep  ),
-    //.soFMC_Tcp_data_TLAST         (ssNRC_SliceFMC_Tcp_Data_tlast  ),
-    //.soFMC_Tcp_SessId_TDATA       (ssNRC_SliceFMC_Tcp_SessId_tdata ),
-    //.soFMC_Tcp_SessId_TVALID      (ssNRC_SliceFMC_Tcp_SessId_tvalid),
-    //.soFMC_Tcp_SessId_TREADY      (ssNRC_SliceFMC_Tcp_SessId_tready),
-    //.soFMC_Tcp_SessId_TKEEP       (ssNRC_SliceFMC_Tcp_SessId_tkeep),
-    //.soFMC_Tcp_SessId_TLAST       (ssNRC_SliceFMC_Tcp_SessId_tlast),
-    .siFMC_Tcp_data_TDATA         (ssFMC_NRC_Tcp_Data_tdata   ),
-    .siFMC_Tcp_data_TVALID        (ssFMC_NRC_Tcp_Data_tvalid ),
-    .siFMC_Tcp_data_TREADY        (ssFMC_NRC_Tcp_Data_tready  ),
-    .siFMC_Tcp_data_TKEEP         (ssFMC_NRC_Tcp_Data_tkeep ),
-    .siFMC_Tcp_data_TLAST         (ssFMC_NRC_Tcp_Data_tlast  ),
-    .siFMC_Tcp_SessId_TDATA       (ssFMC_NRC_Tcp_SessId_tdata ),
-    .siFMC_Tcp_SessId_TVALID      (ssFMC_NRC_Tcp_SessId_tvalid),
-    .siFMC_Tcp_SessId_TREADY      (ssFMC_NRC_Tcp_SessId_tready),
-    .siFMC_Tcp_SessId_TKEEP       (ssFMC_NRC_Tcp_SessId_tkeep),
-    .siFMC_Tcp_SessId_TLAST       (ssFMC_NRC_Tcp_SessId_tlast),
-    .soFMC_Tcp_data_TDATA         (ssNRC_FMC_Tcp_Data_tdata   ),
-    .soFMC_Tcp_data_TVALID        (ssNRC_FMC_Tcp_Data_tvalid ),
-    .soFMC_Tcp_data_TREADY        (ssNRC_FMC_Tcp_Data_tready  ),
-    .soFMC_Tcp_data_TKEEP         (ssNRC_FMC_Tcp_Data_tkeep  ),
-    .soFMC_Tcp_data_TLAST         (ssNRC_FMC_Tcp_Data_tlast  ),
-    .soFMC_Tcp_SessId_TDATA       (ssNRC_FMC_Tcp_SessId_tdata ),
-    .soFMC_Tcp_SessId_TVALID      (ssNRC_FMC_Tcp_SessId_tvalid),
-    .soFMC_Tcp_SessId_TREADY      (ssNRC_FMC_Tcp_SessId_tready),
-    .soFMC_Tcp_SessId_TKEEP       (ssNRC_FMC_Tcp_SessId_tkeep),
-    .soFMC_Tcp_SessId_TLAST       (ssNRC_FMC_Tcp_SessId_tlast),
+    .siFMC_Tcp_data_V_tdata_V_dout       ( ssFifo_NRC_Tcp_Data_tdata_V_dout)     ,
+    .siFMC_Tcp_data_V_tdata_V_empty_n    (~ssFifo_NRC_Tcp_Data_tdata_V_empty)  ,
+    .siFMC_Tcp_data_V_tdata_V_read       ( ssFifo_NRC_Tcp_Data_tdata_V_read)   ,
+    .siFMC_Tcp_data_V_tkeep_V_dout       ( ssFifo_NRC_Tcp_Data_tkeep_V_dout)     ,
+    .siFMC_Tcp_data_V_tkeep_V_empty_n    (~ssFifo_NRC_Tcp_Data_tkeep_V_empty)  ,
+    .siFMC_Tcp_data_V_tkeep_V_read       ( ssFifo_NRC_Tcp_Data_tkeep_V_read)   ,
+    .siFMC_Tcp_data_V_tlast_V_dout       ( ssFifo_NRC_Tcp_Data_tlast_V_dout)     ,
+    .siFMC_Tcp_data_V_tlast_V_empty_n    (~ssFifo_NRC_Tcp_Data_tlast_V_empty)  ,
+    .siFMC_Tcp_data_V_tlast_V_read       ( ssFifo_NRC_Tcp_Data_tlast_V_read)   ,
+    .siFMC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
+    .siFMC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
+    .siFMC_Tcp_SessId_V_tdata_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
+    .siFMC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_NRC_Tcp_SessId_tkeep_V_dout)   ,
+    .siFMC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tkeep_V_empty),
+    .siFMC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_NRC_Tcp_SessId_tkeep_V_read) ,
+    .siFMC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_NRC_Tcp_SessId_tlast_V_dout)   ,
+    .siFMC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tlast_V_empty),
+    .siFMC_Tcp_SessId_V_tlast_V_read     ( ssFifo_NRC_Tcp_SessId_tlast_V_read) ,
+    .soFMC_Tcp_data_V_tdata_V_din       ( ssNRC_Fifo_Tcp_Data_tdata_V_din)     ,
+    .soFMC_Tcp_data_V_tdata_V_full_n    (~ssNRC_Fifo_Tcp_Data_tdata_V_full)  ,
+    .soFMC_Tcp_data_V_tdata_V_write     ( ssNRC_Fifo_Tcp_Data_tdata_V_write)   ,
+    .soFMC_Tcp_data_V_tkeep_V_din       ( ssNRC_Fifo_Tcp_Data_tkeep_V_din)     ,
+    .soFMC_Tcp_data_V_tkeep_V_full_n    (~ssNRC_Fifo_Tcp_Data_tkeep_V_full)  ,
+    .soFMC_Tcp_data_V_tkeep_V_write     ( ssNRC_Fifo_Tcp_Data_tkeep_V_write)   ,
+    .soFMC_Tcp_data_V_tlast_V_din       ( ssNRC_Fifo_Tcp_Data_tlast_V_din)     ,
+    .soFMC_Tcp_data_V_tlast_V_full_n    (~ssNRC_Fifo_Tcp_Data_tlast_V_full)  ,
+    .soFMC_Tcp_data_V_tlast_V_write     ( ssNRC_Fifo_Tcp_Data_tlast_V_write)   ,
+    .soFMC_Tcp_SessId_V_tdata_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    .soFMC_Tcp_SessId_V_tdata_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
+    .soFMC_Tcp_SessId_V_tdata_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
+    .soFMC_Tcp_SessId_V_tkeep_V_din     ( ssNRC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    .soFMC_Tcp_SessId_V_tkeep_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tkeep_V_full),
+    .soFMC_Tcp_SessId_V_tkeep_V_write   ( ssNRC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    .soFMC_Tcp_SessId_V_tlast_V_din     ( ssNRC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    .soFMC_Tcp_SessId_V_tlast_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tlast_V_full),
+    .soFMC_Tcp_SessId_V_tlast_V_write   ( ssNRC_Fifo_Tcp_SessId_tlast_V_write) ,
     .siUDMX_This_OpnAck_V_TDATA     (ssUDMX_URIF_OpnAck_tdata),
     .siUDMX_This_OpnAck_V_TVALID    (ssUDMX_URIF_OpnAck_tvalid),
     .siUDMX_This_OpnAck_V_TREADY    (ssUDMX_URIF_OpnAck_tready),
@@ -1809,36 +1958,20 @@ module Shell_Themisto # (
     .s_axi_piFMC_NRC_ctrlLink_AXI_BRESP     (ssFMC_NRC_ctrlLink_Axi_BRESP)
 );
 
-  // == propagate constants as long as PYROLINK isn't in use
-  assign ssFMC_CoreToDebug_Pyrolink_TREADY   = 0;
-  assign ssCoreToDebug_FMC_Pyrolink_TDATA    = 0;
-  assign ssCoreToDebug_FMC_Pyrolink_TVALID   = 0;
-  assign ssCoreToDebug_FMC_Pyrolink_TKEEP    = 0;
-  assign ssCoreToDebug_FMC_Pyrolink_TLAST    = 0;
-
-  // == propagate constants as long as FMC TCP port is not connected to NRC 
-  //assign ssNRC_FMC_Tcp_Data_tready = 0;
-  //assign ssNRC_FMC_Tcp_SessId_tready = 0;
-  //assign ssFMC_NRC_Tcp_Data_tdata = 0;
-  //assign ssFMC_NRC_Tcp_Data_tkeep = 0;
-  //assign ssFMC_NRC_Tcp_Data_tvalid = 0;
-  //assign ssFMC_NRC_Tcp_Data_tlast = 0;
-  //assign ssFMC_NRC_Tcp_SessId_tdata = 0;
-  //assign ssFMC_NRC_Tcp_SessId_tvalid = 0;
 
   // == propagate constans as long as Decouling is not updated
-  assign sDECOUP_FMC_status = 0;
+  //assign sDECOUP_FMC_status = 0;
 
   // -- UDP AXIS Slices ---
   AxisRegisterSlice_64 SARS0 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
-    .s_axis_tdata   (siROL_Nts_Udp_Data_tdata),
-    .s_axis_tvalid  (siROL_Nts_Udp_Data_tvalid),
-    .s_axis_tready  (siROL_Nts_Udp_Data_tready),
-    .s_axis_tkeep   (siROL_Nts_Udp_Data_tkeep),
-    .s_axis_tlast   (siROL_Nts_Udp_Data_tlast),
+    .s_axis_tdata   (siDCP_ROL_Nts_Udp_Data_tdata),
+    .s_axis_tvalid  (siDCP_ROL_Nts_Udp_Data_tvalid),
+    .s_axis_tready  (siDCP_ROL_Nts_Udp_Data_tready),
+    .s_axis_tkeep   (siDCP_ROL_Nts_Udp_Data_tkeep),
+    .s_axis_tlast   (siDCP_ROL_Nts_Udp_Data_tlast),
     //-- To NRC
     .m_axis_tdata   (slcInUdp_data_TDATA ),
     .m_axis_tvalid  (slcInUdp_data_TVALID),
@@ -1857,22 +1990,22 @@ module Shell_Themisto # (
     .s_axis_tkeep   (slcOutUdp_data_TKEEP ),
     .s_axis_tlast   (slcOutUdp_data_TLAST ),
     //-- To ROLE
-    .m_axis_tdata   (soROL_Nts_Udp_Data_tdata),
-    .m_axis_tvalid  (soROL_Nts_Udp_Data_tvalid),
-    .m_axis_tready  (soROL_Nts_Udp_Data_tready),
-    .m_axis_tkeep   (soROL_Nts_Udp_Data_tkeep),
-    .m_axis_tlast   (soROL_Nts_Udp_Data_tlast)
+    .m_axis_tdata   (soDCP_ROL_Nts_Udp_Data_tdata),
+    .m_axis_tvalid  (soDCP_ROL_Nts_Udp_Data_tvalid),
+    .m_axis_tready  (soDCP_ROL_Nts_Udp_Data_tready),
+    .m_axis_tkeep   (soDCP_ROL_Nts_Udp_Data_tkeep),
+    .m_axis_tlast   (soDCP_ROL_Nts_Udp_Data_tlast)
   );
   
   AxisRegisterSlice_80 SARS2 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
-    .s_axis_tdata   (siROLE_Nrc_Udp_Meta_TDATA),
-    .s_axis_tvalid  (siROLE_Nrc_Udp_Meta_TVALID),
-    .s_axis_tready  (siROLE_Nrc_Udp_Meta_TREADY),
-    .s_axis_tkeep   (siROLE_Nrc_Udp_Meta_TKEEP),
-    .s_axis_tlast   (siROLE_Nrc_Udp_Meta_TLAST),
+    .s_axis_tdata   (siDCP_ROLE_Nrc_Udp_Meta_TDATA),
+    .s_axis_tvalid  (siDCP_ROLE_Nrc_Udp_Meta_TVALID),
+    .s_axis_tready  (siDCP_ROLE_Nrc_Udp_Meta_TREADY),
+    .s_axis_tkeep   (siDCP_ROLE_Nrc_Udp_Meta_TKEEP),
+    .s_axis_tlast   (siDCP_ROLE_Nrc_Udp_Meta_TLAST),
     //-- To NRC
     .m_axis_tdata   (slcInNrc_Udp_meta_TDATA ),
     .m_axis_tvalid  (slcInNrc_Udp_meta_TVALID),
@@ -1891,11 +2024,11 @@ module Shell_Themisto # (
     .s_axis_tkeep   (slcOutNrc_Udp_meta_TKEEP ) ,
     .s_axis_tlast   (slcOutNrc_Udp_meta_TLAST ) ,
     //-- To Role
-    .m_axis_tdata   (soNRC_Role_Udp_Meta_TDATA),
-    .m_axis_tvalid  (soNRC_Role_Udp_Meta_TVALID),
-    .m_axis_tready  (soNRC_Role_Udp_Meta_TREADY),
-    .m_axis_tkeep   (soNRC_Role_Udp_Meta_TKEEP),
-    .m_axis_tlast   (soNRC_Role_Udp_Meta_TLAST)
+    .m_axis_tdata   (soDCP_NRC_Role_Udp_Meta_TDATA),
+    .m_axis_tvalid  (soDCP_NRC_Role_Udp_Meta_TVALID),
+    .m_axis_tready  (soDCP_NRC_Role_Udp_Meta_TREADY),
+    .m_axis_tkeep   (soDCP_NRC_Role_Udp_Meta_TKEEP),
+    .m_axis_tlast   (soDCP_NRC_Role_Udp_Meta_TLAST)
   );
   
   // -- TCP AXIS Slices ---
@@ -1903,11 +2036,11 @@ module Shell_Themisto # (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
-    .s_axis_tdata   (siROL_Nts_Tcp_Data_tdata),
-    .s_axis_tvalid  (siROL_Nts_Tcp_Data_tvalid),
-    .s_axis_tready  (siROL_Nts_Tcp_Data_tready),
-    .s_axis_tkeep   (siROL_Nts_Tcp_Data_tkeep),
-    .s_axis_tlast   (siROL_Nts_Tcp_Data_tlast),
+    .s_axis_tdata   (siDCP_ROL_Nts_Tcp_Data_tdata),
+    .s_axis_tvalid  (siDCP_ROL_Nts_Tcp_Data_tvalid),
+    .s_axis_tready  (siDCP_ROL_Nts_Tcp_Data_tready),
+    .s_axis_tkeep   (siDCP_ROL_Nts_Tcp_Data_tkeep),
+    .s_axis_tlast   (siDCP_ROL_Nts_Tcp_Data_tlast),
     //-- To NRC
     .m_axis_tdata   (slcInTcp_data_TDATA ),
     .m_axis_tvalid  (slcInTcp_data_TVALID),
@@ -1926,22 +2059,22 @@ module Shell_Themisto # (
     .s_axis_tkeep   (slcOutTcp_data_TKEEP ),
     .s_axis_tlast   (slcOutTcp_data_TLAST ),
     //-- To ROLE
-    .m_axis_tdata   (soROL_Nts_Tcp_Data_tdata),
-    .m_axis_tvalid  (soROL_Nts_Tcp_Data_tvalid),
-    .m_axis_tready  (soROL_Nts_Tcp_Data_tready),
-    .m_axis_tkeep   (soROL_Nts_Tcp_Data_tkeep),
-    .m_axis_tlast   (soROL_Nts_Tcp_Data_tlast)
+    .m_axis_tdata   (soDCP_ROL_Nts_Tcp_Data_tdata),
+    .m_axis_tvalid  (soDCP_ROL_Nts_Tcp_Data_tvalid),
+    .m_axis_tready  (soDCP_ROL_Nts_Tcp_Data_tready),
+    .m_axis_tkeep   (soDCP_ROL_Nts_Tcp_Data_tkeep),
+    .m_axis_tlast   (soDCP_ROL_Nts_Tcp_Data_tlast)
   );
   
   AxisRegisterSlice_80 SARS6 (
     .aclk           (sETH0_ShlClk),
     .aresetn        (~piTOP_156_25Rst),
     //-- From ROLE 
-    .s_axis_tdata   (siROLE_Nrc_Tcp_Meta_TDATA),
-    .s_axis_tvalid  (siROLE_Nrc_Tcp_Meta_TVALID),
-    .s_axis_tready  (siROLE_Nrc_Tcp_Meta_TREADY),
-    .s_axis_tkeep   (siROLE_Nrc_Tcp_Meta_TKEEP),
-    .s_axis_tlast   (siROLE_Nrc_Tcp_Meta_TLAST),
+    .s_axis_tdata   (siDCP_ROLE_Nrc_Tcp_Meta_TDATA),
+    .s_axis_tvalid  (siDCP_ROLE_Nrc_Tcp_Meta_TVALID),
+    .s_axis_tready  (siDCP_ROLE_Nrc_Tcp_Meta_TREADY),
+    .s_axis_tkeep   (siDCP_ROLE_Nrc_Tcp_Meta_TKEEP),
+    .s_axis_tlast   (siDCP_ROLE_Nrc_Tcp_Meta_TLAST),
     //-- To NRC
     .m_axis_tdata   (slcInNrc_Tcp_meta_TDATA ),
     .m_axis_tvalid  (slcInNrc_Tcp_meta_TVALID),
@@ -1960,152 +2093,214 @@ module Shell_Themisto # (
     .s_axis_tkeep   (slcOutNrc_Tcp_meta_TKEEP ) ,
     .s_axis_tlast   (slcOutNrc_Tcp_meta_TLAST ) ,
     //-- To Role
-    .m_axis_tdata   (soNRC_Role_Tcp_Meta_TDATA),
-    .m_axis_tvalid  (soNRC_Role_Tcp_Meta_TVALID),
-    .m_axis_tready  (soNRC_Role_Tcp_Meta_TREADY),
-    .m_axis_tkeep   (soNRC_Role_Tcp_Meta_TKEEP),
-    .m_axis_tlast   (soNRC_Role_Tcp_Meta_TLAST)
+    .m_axis_tdata   (soDCP_NRC_Role_Tcp_Meta_TDATA),
+    .m_axis_tvalid  (soDCP_NRC_Role_Tcp_Meta_TVALID),
+    .m_axis_tready  (soDCP_NRC_Role_Tcp_Meta_TREADY),
+    .m_axis_tkeep   (soDCP_NRC_Role_Tcp_Meta_TKEEP),
+    .m_axis_tlast   (soDCP_NRC_Role_Tcp_Meta_TLAST)
   );
-  
-  //AxisRegisterSlice_64 SARS8 (
-  //  .aclk           (sETH0_ShlClk),
-  //  .aresetn        (~piTOP_156_25Rst),
-  //  //-- From NRC
-  //  .s_axis_tdata   (ssNRC_SliceFMC_Tcp_Data_tdata ) ,
-  //  .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_Data_tvalid) ,
-  //  .s_axis_tready  (ssNRC_SliceFMC_Tcp_Data_tready) ,
-  //  .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_Data_tkeep ) ,
-  //  .s_axis_tlast   (ssNRC_SliceFMC_Tcp_Data_tlast ) ,
-  //  //-- To FMC
-  //  .m_axis_tdata   (ssNRCSlice_FMC_Tcp_Data_tdata ),
-  //  .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_Data_tvalid),
-  //  .m_axis_tready  (ssNRCSlice_FMC_Tcp_Data_tready),
-  //  .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_Data_tkeep ),
-  //  .m_axis_tlast   (ssNRCSlice_FMC_Tcp_Data_tlast )
-  //);
-  //
-  //AxisRegisterSlice_64 SARS9 (
-  //  .aclk           (sETH0_ShlClk),
-  //  .aresetn        (~piTOP_156_25Rst),
-  //  //-- From NRC
-  //  .s_axis_tdata   (ssNRC_SliceFMC_Tcp_SessId_tdata ) ,
-  //  .s_axis_tvalid  (ssNRC_SliceFMC_Tcp_SessId_tvalid) ,
-  //  .s_axis_tready  (ssNRC_SliceFMC_Tcp_SessId_tready) ,
-  //  .s_axis_tkeep   (ssNRC_SliceFMC_Tcp_SessId_tkeep ) ,
-  //  .s_axis_tlast   (ssNRC_SliceFMC_Tcp_SessId_tlast ) ,
-  //  //-- To FMC
-  //  .m_axis_tdata   (ssNRCSlice_FMC_Tcp_SessId_tdata ),
-  //  .m_axis_tvalid  (ssNRCSlice_FMC_Tcp_SessId_tvalid),
-  //  .m_axis_tready  (ssNRCSlice_FMC_Tcp_SessId_tready),
-  //  .m_axis_tkeep   (ssNRCSlice_FMC_Tcp_SessId_tkeep ),
-  //  .m_axis_tlast   (ssNRCSlice_FMC_Tcp_SessId_tlast )
-  //);
-  //
-  //AxisRegisterSlice_64 SARS10 (
-  //  .aclk           (sETH0_ShlClk),
-  //  .aresetn        (~piTOP_156_25Rst),
-  //  //-- From FMC
-  //  .s_axis_tdata   (ssFMC_SliceNRC_Tcp_Data_tdata ) ,
-  //  .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_Data_tvalid) ,
-  //  .s_axis_tready  (ssFMC_SliceNRC_Tcp_Data_tready) ,
-  //  .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_Data_tkeep ) ,
-  //  .s_axis_tlast   (ssFMC_SliceNRC_Tcp_Data_tlast ) ,
-  //  //-- To NRC
-  //  .m_axis_tdata   (ssFMCSlice_NRC_Tcp_Data_tdata ),
-  //  .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_Data_tvalid),
-  //  .m_axis_tready  (ssFMCSlice_NRC_Tcp_Data_tready),
-  //  .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_Data_tkeep ),
-  //  .m_axis_tlast   (ssFMCSlice_NRC_Tcp_Data_tlast )
-  //);
-  //
-  //AxisRegisterSlice_64 SARS11 (
-  //  .aclk           (sETH0_ShlClk),
-  //  .aresetn        (~piTOP_156_25Rst),
-  //  //-- From FMC
-  //  .s_axis_tdata   (ssFMC_SliceNRC_Tcp_SessId_tdata ) ,
-  //  .s_axis_tvalid  (ssFMC_SliceNRC_Tcp_SessId_tvalid) ,
-  //  .s_axis_tready  (ssFMC_SliceNRC_Tcp_SessId_tready) ,
-  //  .s_axis_tkeep   (ssFMC_SliceNRC_Tcp_SessId_tkeep ) ,
-  //  .s_axis_tlast   (ssFMC_SliceNRC_Tcp_SessId_tlast ) ,
-  //  //-- To NRC
-  //  .m_axis_tdata   (ssFMCSlice_NRC_Tcp_SessId_tdata ),
-  //  .m_axis_tvalid  (ssFMCSlice_NRC_Tcp_SessId_tvalid),
-  //  .m_axis_tready  (ssFMCSlice_NRC_Tcp_SessId_tready),
-  //  .m_axis_tkeep   (ssFMCSlice_NRC_Tcp_SessId_tkeep ),
-  //  .m_axis_tlast   (ssFMCSlice_NRC_Tcp_SessId_tlast )
-  //);
+ 
 
-
- // Decoupler DECOUP (
- //   .rp_ROLE_Nts0_Udp_Axis_tready     (siROL_Shl_Nts0_Udp_Axis_tready),
- //    .s_ROLE_Nts0_Udp_Axis_tready   (sDECOUP_Shl_Nts0_Udp_Axis_tready),
- //   .rp_ROLE_Nts0_Udp_Axis_tdata      (siROL_Shl_Nts0_Udp_Axis_tdata),
- //    .s_ROLE_Nts0_Udp_Axis_tdata    (sDECOUP_Shl_Nts0_Udp_Axis_tdata),
- //   .rp_ROLE_Nts0_Udp_Axis_tkeep      (siROL_Shl_Nts0_Udp_Axis_tkeep),
- //    .s_ROLE_Nts0_Udp_Axis_tkeep    (sDECOUP_Shl_Nts0_Udp_Axis_tkeep),
- //   .rp_ROLE_Nts0_Udp_Axis_tvalid     (siROL_Shl_Nts0_Udp_Axis_tvalid),
- //    .s_ROLE_Nts0_Udp_Axis_tvalid   (sDECOUP_Shl_Nts0_Udp_Axis_tvalid),
- //   .rp_ROLE_Nts0_Udp_Axis_tlast      (siROL_Shl_Nts0_Udp_Axis_tlast),
- //    .s_ROLE_Nts0_Udp_Axis_tlast    (sDECOUP_Shl_Nts0_Udp_Axis_tlast),
- //   .rp_ROLE_Nts0_Tcp_Axis_tready    (siROL_Shl_Nts0_Tcp_Axis_tready),
- //    .s_ROLE_Nts0_Tcp_Axis_tready  (sDECOUP_Shl_Nts0_Tcp_Axis_tready),
- //   .rp_ROLE_Nts0_Tcp_Axis_tdata     (piROL_Shl_Nts0_Tcp_Axis_tdata),
- //    .s_ROLE_Nts0_Tcp_Axis_tdata    (sDECOUP_Shl_Nts0_Tcp_Axis_tdata),
- //   .rp_ROLE_Nts0_Tcp_Axis_tkeep      (piROL_Shl_Nts0_Tcp_Axis_tkeep),
- //    .s_ROLE_Nts0_Tcp_Axis_tkeep    (sDECOUP_Shl_Nts0_Tcp_Axis_tkeep),
- //   .rp_ROLE_Nts0_Tcp_Axis_tvalid     (piROL_Shl_Nts0_Tcp_Axis_tvalid),
- //    .s_ROLE_Nts0_Tcp_Axis_tvalid   (sDECOUP_Shl_Nts0_Tcp_Axis_tvalid),
- //   .rp_ROLE_Nts0_Tcp_Axis_tlast      (piROL_Shl_Nts0_Tcp_Axis_tlast),
- //    .s_ROLE_Nts0_Tcp_Axis_tlast    (sDECOUP_Shl_Nts0_Tcp_Axis_tlast),
- //   .rp_ROLE_EMIF_2B_Reg            (piROL_SHL_EMIF_2B_Reg),
- //    .s_ROLE_EMIF_2B_Reg            (sDECOUP_SHL_EMIF_2B_Reg),
- //   .rp_ROLE_Mem_Up0_Axis_RdCmd_tdata       (piROL_Shl_Mem_Mp0_Axis_RdCmd_tdata),
- //    .s_ROLE_Mem_Up0_Axis_RdCmd_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tdata),
- //   .rp_ROLE_Mem_Up0_Axis_RdCmd_tvalid      (piROL_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
- //    .s_ROLE_Mem_Up0_Axis_RdCmd_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_RdCmd_tvalid),
- //   .rp_ROLE_Mem_Up0_Axis_RdSts_tready      (piROL_Shl_Mem_Mp0_Axis_RdSts_tready),
- //    .s_ROLE_Mem_Up0_Axis_RdSts_tready    (sDECOUP_Shl_Mem_Mp0_Axis_RdSts_tready),
- //   .rp_ROLE_Mem_Up0_Axis_Read_tready       (piROL_Shl_Mem_Mp0_Axis_Read_tready),
- //    .s_ROLE_Mem_Up0_Axis_Read_tready     (sDECOUP_Shl_Mem_Mp0_Axis_Read_tready),
- //   .rp_ROLE_Mem_Up0_Axis_WrCmd_tdata       (piROL_Shl_Mem_Mp0_Axis_WrCmd_tdata),
- //    .s_ROLE_Mem_Up0_Axis_WrCmd_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tdata),
- //   .rp_ROLE_Mem_Up0_Axis_WrCmd_tvalid      (piROL_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
- //    .s_ROLE_Mem_Up0_Axis_WrCmd_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_WrCmd_tvalid),
- //   .rp_ROLE_Mem_Up0_Axis_WrSts_tready      (piROL_Shl_Mem_Mp0_Axis_WrSts_tready),
- //    .s_ROLE_Mem_Up0_Axis_WrSts_tready    (sDECOUP_Shl_Mem_Mp0_Axis_WrSts_tready),
- //   .rp_ROLE_Mem_Up0_Axis_Write_tdata       (piROL_Shl_Mem_Mp0_Axis_Write_tdata),
- //    .s_ROLE_Mem_Up0_Axis_Write_tdata     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tdata),
- //   .rp_ROLE_Mem_Up0_Axis_Write_tkeep       (piROL_Shl_Mem_Mp0_Axis_Write_tkeep),
- //    .s_ROLE_Mem_Up0_Axis_Write_tkeep     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tkeep),
- //   .rp_ROLE_Mem_Up0_Axis_Write_tlast       (piROL_Shl_Mem_Mp0_Axis_Write_tlast),
- //    .s_ROLE_Mem_Up0_Axis_Write_tlast     (sDECOUP_Shl_Mem_Mp0_Axis_Write_tlast),
- //   .rp_ROLE_Mem_Up0_Axis_Write_tvalid      (piROL_Shl_Mem_Mp0_Axis_Write_tvalid),
- //    .s_ROLE_Mem_Up0_Axis_Write_tvalid    (sDECOUP_Shl_Mem_Mp0_Axis_Write_tvalid),
- //   .rp_ROLE_Mem_Up1_Axis_RdCmd_tdata       (piROL_Shl_Mem_Mp1_Axis_RdCmd_tdata),
- //    .s_ROLE_Mem_Up1_Axis_RdCmd_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tdata),
- //   .rp_ROLE_Mem_Up1_Axis_RdCmd_tvalid      (piROL_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
- //    .s_ROLE_Mem_Up1_Axis_RdCmd_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_RdCmd_tvalid),
- //   .rp_ROLE_Mem_Up1_Axis_RdSts_tready      (piROL_Shl_Mem_Mp1_Axis_RdSts_tready),
- //    .s_ROLE_Mem_Up1_Axis_RdSts_tready    (sDECOUP_Shl_Mem_Mp1_Axis_RdSts_tready),
- //   .rp_ROLE_Mem_Up1_Axis_Read_tready       (piROL_Shl_Mem_Mp1_Axis_Read_tready),
- //    .s_ROLE_Mem_Up1_Axis_Read_tready     (sDECOUP_Shl_Mem_Mp1_Axis_Read_tready),
- //   .rp_ROLE_Mem_Up1_Axis_WrCmd_tdata       (piROL_Shl_Mem_Mp1_Axis_WrCmd_tdata),
- //    .s_ROLE_Mem_Up1_Axis_WrCmd_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tdata),
- //   .rp_ROLE_Mem_Up1_Axis_WrCmd_tvalid      (piROL_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
- //    .s_ROLE_Mem_Up1_Axis_WrCmd_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_WrCmd_tvalid),
- //   .rp_ROLE_Mem_Up1_Axis_WrSts_tready      (piROL_Shl_Mem_Mp1_Axis_WrSts_tready),
- //    .s_ROLE_Mem_Up1_Axis_WrSts_tready    (sDECOUP_Shl_Mem_Mp1_Axis_WrSts_tready),
- //   .rp_ROLE_Mem_Up1_Axis_Write_tdata       (piROL_Shl_Mem_Mp1_Axis_Write_tdata),
- //    .s_ROLE_Mem_Up1_Axis_Write_tdata     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tdata),
- //   .rp_ROLE_Mem_Up1_Axis_Write_tkeep       (piROL_Shl_Mem_Mp1_Axis_Write_tkeep),
- //    .s_ROLE_Mem_Up1_Axis_Write_tkeep     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tkeep),
- //   .rp_ROLE_Mem_Up1_Axis_Write_tlast       (piROL_Shl_Mem_Mp1_Axis_Write_tlast),
- //    .s_ROLE_Mem_Up1_Axis_Write_tlast     (sDECOUP_Shl_Mem_Mp1_Axis_Write_tlast),
- //   .rp_ROLE_Mem_Up1_Axis_Write_tvalid      (piROL_Shl_Mem_Mp1_Axis_Write_tvalid),
- //    .s_ROLE_Mem_Up1_Axis_Write_tvalid    (sDECOUP_Shl_Mem_Mp1_Axis_Write_tvalid),
- //   .decouple     (sCASTOR_DECOUP_activate),
- //   .decouple_status (sDECOUP_CASTOR_status)
- // );
+ Decoupler DCP (
+    .decouple                          (sFMC_DCP_activate),
+    .decouple_status                   (sDCP_FMC_status),
+    //reconfig partition side pins
+    .rp_ROLE_siROL_Nts_Udp_Data_tdata       (siROL_Nts_Udp_Data_tdata   ),
+    .rp_ROLE_siROL_Nts_Udp_Data_tkeep       (siROL_Nts_Udp_Data_tkeep   ),
+    .rp_ROLE_siROL_Nts_Udp_Data_tlast       (siROL_Nts_Udp_Data_tlast   ),
+    .rp_ROLE_siROL_Nts_Udp_Data_tvalid      (siROL_Nts_Udp_Data_tvalid  ),
+    .rp_ROLE_siROL_Nts_Udp_Data_tready      (siROL_Nts_Udp_Data_tready  ),
+    .rp_ROLE_soROL_Nts_Udp_Data_tdata       (soROL_Nts_Udp_Data_tdata   ),
+    .rp_ROLE_soROL_Nts_Udp_Data_tkeep       (soROL_Nts_Udp_Data_tkeep   ),
+    .rp_ROLE_soROL_Nts_Udp_Data_tlast       (soROL_Nts_Udp_Data_tlast   ),
+    .rp_ROLE_soROL_Nts_Udp_Data_tvalid      (soROL_Nts_Udp_Data_tvalid  ),
+    .rp_ROLE_soROL_Nts_Udp_Data_tready      (soROL_Nts_Udp_Data_tready  ),
+    .rp_ROLE_piROL_Nrc_Udp_Rx_ports         (piROL_Nrc_Udp_Rx_ports     ),
+    .rp_ROLE_siROLE_Nrc_Udp_Meta_TDATA      (siROLE_Nrc_Udp_Meta_TDATA  ),
+    .rp_ROLE_siROLE_Nrc_Udp_Meta_TVALID     (siROLE_Nrc_Udp_Meta_TVALID ),
+    .rp_ROLE_siROLE_Nrc_Udp_Meta_TREADY     (siROLE_Nrc_Udp_Meta_TREADY ),
+    .rp_ROLE_siROLE_Nrc_Udp_Meta_TKEEP      (siROLE_Nrc_Udp_Meta_TKEEP  ),
+    .rp_ROLE_siROLE_Nrc_Udp_Meta_TLAST      (siROLE_Nrc_Udp_Meta_TLAST  ),
+    .rp_ROLE_soNRC_Role_Udp_Meta_TDATA      (soNRC_Role_Udp_Meta_TDATA  ),
+    .rp_ROLE_soNRC_Role_Udp_Meta_TVALID     (soNRC_Role_Udp_Meta_TVALID ),
+    .rp_ROLE_soNRC_Role_Udp_Meta_TREADY     (soNRC_Role_Udp_Meta_TREADY ),
+    .rp_ROLE_soNRC_Role_Udp_Meta_TKEEP      (soNRC_Role_Udp_Meta_TKEEP  ),
+    .rp_ROLE_soNRC_Role_Udp_Meta_TLAST      (soNRC_Role_Udp_Meta_TLAST  ),
+    .rp_ROLE_siROL_Nts_Tcp_Data_tdata       (siROL_Nts_Tcp_Data_tdata   ),
+    .rp_ROLE_siROL_Nts_Tcp_Data_tkeep       (siROL_Nts_Tcp_Data_tkeep   ),
+    .rp_ROLE_siROL_Nts_Tcp_Data_tlast       (siROL_Nts_Tcp_Data_tlast   ),
+    .rp_ROLE_siROL_Nts_Tcp_Data_tvalid      (siROL_Nts_Tcp_Data_tvalid  ),
+    .rp_ROLE_siROL_Nts_Tcp_Data_tready      (siROL_Nts_Tcp_Data_tready  ),
+    .rp_ROLE_soROL_Nts_Tcp_Data_tdata       (soROL_Nts_Tcp_Data_tdata   ),
+    .rp_ROLE_soROL_Nts_Tcp_Data_tkeep       (soROL_Nts_Tcp_Data_tkeep   ),
+    .rp_ROLE_soROL_Nts_Tcp_Data_tlast       (soROL_Nts_Tcp_Data_tlast   ),
+    .rp_ROLE_soROL_Nts_Tcp_Data_tvalid      (soROL_Nts_Tcp_Data_tvalid  ),
+    .rp_ROLE_soROL_Nts_Tcp_Data_tready      (soROL_Nts_Tcp_Data_tready  ),
+    .rp_ROLE_piROL_Nrc_Tcp_Rx_ports         (piROL_Nrc_Tcp_Rx_ports     ),
+    .rp_ROLE_siROLE_Nrc_Tcp_Meta_TDATA      (siROLE_Nrc_Tcp_Meta_TDATA  ),
+    .rp_ROLE_siROLE_Nrc_Tcp_Meta_TVALID     (siROLE_Nrc_Tcp_Meta_TVALID ),
+    .rp_ROLE_siROLE_Nrc_Tcp_Meta_TREADY     (siROLE_Nrc_Tcp_Meta_TREADY ),
+    .rp_ROLE_siROLE_Nrc_Tcp_Meta_TKEEP      (siROLE_Nrc_Tcp_Meta_TKEEP  ),
+    .rp_ROLE_siROLE_Nrc_Tcp_Meta_TLAST      (siROLE_Nrc_Tcp_Meta_TLAST  ),
+    .rp_ROLE_soNRC_Role_Tcp_Meta_TDATA      (soNRC_Role_Tcp_Meta_TDATA  ),
+    .rp_ROLE_soNRC_Role_Tcp_Meta_TVALID     (soNRC_Role_Tcp_Meta_TVALID ),
+    .rp_ROLE_soNRC_Role_Tcp_Meta_TREADY     (soNRC_Role_Tcp_Meta_TREADY ),
+    .rp_ROLE_soNRC_Role_Tcp_Meta_TKEEP      (soNRC_Role_Tcp_Meta_TKEEP  ),
+    .rp_ROLE_soNRC_Role_Tcp_Meta_TLAST      (soNRC_Role_Tcp_Meta_TLAST  ),
+    .rp_ROLE_siROL_Mem_Mp0_RdCmd_tdata      (siROL_Mem_Mp0_RdCmd_tdata  ),
+    .rp_ROLE_siROL_Mem_Mp0_RdCmd_tvalid     (siROL_Mem_Mp0_RdCmd_tvalid ),
+    .rp_ROLE_siROL_Mem_Mp0_RdCmd_tready     (siROL_Mem_Mp0_RdCmd_tready ),
+    .rp_ROLE_soROL_Mem_Mp0_RdSts_tdata      (soROL_Mem_Mp0_RdSts_tdata  ),
+    .rp_ROLE_soROL_Mem_Mp0_RdSts_tvalid     (soROL_Mem_Mp0_RdSts_tvalid ),
+    .rp_ROLE_soROL_Mem_Mp0_RdSts_tready     (soROL_Mem_Mp0_RdSts_tready ),
+    .rp_ROLE_soROL_Mem_Mp0_Read_tdata       (soROL_Mem_Mp0_Read_tdata   ),
+    .rp_ROLE_soROL_Mem_Mp0_Read_tkeep       (soROL_Mem_Mp0_Read_tkeep   ),
+    .rp_ROLE_soROL_Mem_Mp0_Read_tlast       (soROL_Mem_Mp0_Read_tlast   ),
+    .rp_ROLE_soROL_Mem_Mp0_Read_tvalid      (soROL_Mem_Mp0_Read_tvalid  ),
+    .rp_ROLE_soROL_Mem_Mp0_Read_tready      (soROL_Mem_Mp0_Read_tready  ),
+    .rp_ROLE_siROL_Mem_Mp0_WrCmd_tdata      (siROL_Mem_Mp0_WrCmd_tdata  ),
+    .rp_ROLE_siROL_Mem_Mp0_WrCmd_tvalid     (siROL_Mem_Mp0_WrCmd_tvalid ),
+    .rp_ROLE_siROL_Mem_Mp0_WrCmd_tready     (siROL_Mem_Mp0_WrCmd_tready ),
+    .rp_ROLE_soROL_Mem_Mp0_WrSts_tdata      (soROL_Mem_Mp0_WrSts_tdata  ),
+    .rp_ROLE_soROL_Mem_Mp0_WrSts_tvalid     (soROL_Mem_Mp0_WrSts_tvalid ),
+    .rp_ROLE_soROL_Mem_Mp0_WrSts_tready     (soROL_Mem_Mp0_WrSts_tready ),
+    .rp_ROLE_siROL_Mem_Mp0_Write_tdata      (siROL_Mem_Mp0_Write_tdata  ),
+    .rp_ROLE_siROL_Mem_Mp0_Write_tkeep      (siROL_Mem_Mp0_Write_tkeep  ),
+    .rp_ROLE_siROL_Mem_Mp0_Write_tlast      (siROL_Mem_Mp0_Write_tlast  ),
+    .rp_ROLE_siROL_Mem_Mp0_Write_tvalid     (siROL_Mem_Mp0_Write_tvalid ),
+    .rp_ROLE_siROL_Mem_Mp0_Write_tready     (siROL_Mem_Mp0_Write_tready ),
+    .rp_ROLE_miROL_Mem_Mp1_AWID             (miROL_Mem_Mp1_AWID         ),
+    .rp_ROLE_miROL_Mem_Mp1_AWADDR           (miROL_Mem_Mp1_AWADDR       ),
+    .rp_ROLE_miROL_Mem_Mp1_AWLEN            (miROL_Mem_Mp1_AWLEN        ),
+    .rp_ROLE_miROL_Mem_Mp1_AWSIZE           (miROL_Mem_Mp1_AWSIZE       ),
+    .rp_ROLE_miROL_Mem_Mp1_AWBURST          (miROL_Mem_Mp1_AWBURST      ),
+    .rp_ROLE_miROL_Mem_Mp1_AWVALID          (miROL_Mem_Mp1_AWVALID      ),
+    .rp_ROLE_miROL_Mem_Mp1_AWREADY          (miROL_Mem_Mp1_AWREADY      ),
+    .rp_ROLE_miROL_Mem_Mp1_WDATA            (miROL_Mem_Mp1_WDATA        ),
+    .rp_ROLE_miROL_Mem_Mp1_WSTRB            (miROL_Mem_Mp1_WSTRB        ),
+    .rp_ROLE_miROL_Mem_Mp1_WLAST            (miROL_Mem_Mp1_WLAST        ),
+    .rp_ROLE_miROL_Mem_Mp1_WVALID           (miROL_Mem_Mp1_WVALID       ),
+    .rp_ROLE_miROL_Mem_Mp1_WREADY           (miROL_Mem_Mp1_WREADY       ),
+    .rp_ROLE_miROL_Mem_Mp1_BID              (miROL_Mem_Mp1_BID          ),
+    .rp_ROLE_miROL_Mem_Mp1_BRESP            (miROL_Mem_Mp1_BRESP        ),
+    .rp_ROLE_miROL_Mem_Mp1_BVALID           (miROL_Mem_Mp1_BVALID       ),
+    .rp_ROLE_miROL_Mem_Mp1_BREADY           (miROL_Mem_Mp1_BREADY       ),
+    .rp_ROLE_miROL_Mem_Mp1_ARID             (miROL_Mem_Mp1_ARID         ),
+    .rp_ROLE_miROL_Mem_Mp1_ARADDR           (miROL_Mem_Mp1_ARADDR       ),
+    .rp_ROLE_miROL_Mem_Mp1_ARLEN            (miROL_Mem_Mp1_ARLEN        ),
+    .rp_ROLE_miROL_Mem_Mp1_ARSIZE           (miROL_Mem_Mp1_ARSIZE       ),
+    .rp_ROLE_miROL_Mem_Mp1_ARBURST          (miROL_Mem_Mp1_ARBURST      ),
+    .rp_ROLE_miROL_Mem_Mp1_ARVALID          (miROL_Mem_Mp1_ARVALID      ),
+    .rp_ROLE_miROL_Mem_Mp1_ARREADY          (miROL_Mem_Mp1_ARREADY      ),
+    .rp_ROLE_miROL_Mem_Mp1_RID              (miROL_Mem_Mp1_RID          ),
+    .rp_ROLE_miROL_Mem_Mp1_RDATA            (miROL_Mem_Mp1_RDATA        ),
+    .rp_ROLE_miROL_Mem_Mp1_RRESP            (miROL_Mem_Mp1_RRESP        ),
+    .rp_ROLE_miROL_Mem_Mp1_RLAST            (miROL_Mem_Mp1_RLAST        ),
+    .rp_ROLE_miROL_Mem_Mp1_RVALID           (miROL_Mem_Mp1_RVALID       ),
+    .rp_ROLE_miROL_Mem_Mp1_RREADY           (miROL_Mem_Mp1_RREADY       ),
+    .rp_ROLE_piROL_Mmio_Mc1_MemTestStat     (piROL_Mmio_Mc1_MemTestStat ),
+    .rp_ROLE_piROL_Mmio_RdReg               (piROL_Mmio_RdReg           ),
+    .rp_ROLE_poROL_Fmc_Rank                 (poROL_Fmc_Rank             ),
+    .rp_ROLE_poROL_Fmc_Size                 (poROL_Fmc_Size             ),
+    //Shell side pins
+    .s_ROLE_siROL_Nts_Udp_Data_tdata       (siDCP_ROL_Nts_Udp_Data_tdata   ),
+    .s_ROLE_siROL_Nts_Udp_Data_tkeep       (siDCP_ROL_Nts_Udp_Data_tkeep   ),
+    .s_ROLE_siROL_Nts_Udp_Data_tlast       (siDCP_ROL_Nts_Udp_Data_tlast   ),
+    .s_ROLE_siROL_Nts_Udp_Data_tvalid      (siDCP_ROL_Nts_Udp_Data_tvalid  ),
+    .s_ROLE_siROL_Nts_Udp_Data_tready      (siDCP_ROL_Nts_Udp_Data_tready  ),
+    .s_ROLE_soROL_Nts_Udp_Data_tdata       (soDCP_ROL_Nts_Udp_Data_tdata   ),
+    .s_ROLE_soROL_Nts_Udp_Data_tkeep       (soDCP_ROL_Nts_Udp_Data_tkeep   ),
+    .s_ROLE_soROL_Nts_Udp_Data_tlast       (soDCP_ROL_Nts_Udp_Data_tlast   ),
+    .s_ROLE_soROL_Nts_Udp_Data_tvalid      (soDCP_ROL_Nts_Udp_Data_tvalid  ),
+    .s_ROLE_soROL_Nts_Udp_Data_tready      (soDCP_ROL_Nts_Udp_Data_tready  ),
+    .s_ROLE_piROL_Nrc_Udp_Rx_ports         (piDCP_ROL_Nrc_Udp_Rx_ports     ),
+    .s_ROLE_siROLE_Nrc_Udp_Meta_TDATA      (siDCP_ROLE_Nrc_Udp_Meta_TDATA  ),
+    .s_ROLE_siROLE_Nrc_Udp_Meta_TVALID     (siDCP_ROLE_Nrc_Udp_Meta_TVALID ),
+    .s_ROLE_siROLE_Nrc_Udp_Meta_TREADY     (siDCP_ROLE_Nrc_Udp_Meta_TREADY ),
+    .s_ROLE_siROLE_Nrc_Udp_Meta_TKEEP      (siDCP_ROLE_Nrc_Udp_Meta_TKEEP  ),
+    .s_ROLE_siROLE_Nrc_Udp_Meta_TLAST      (siDCP_ROLE_Nrc_Udp_Meta_TLAST  ),
+    .s_ROLE_soNRC_Role_Udp_Meta_TDATA      (soDCP_NRC_Role_Udp_Meta_TDATA  ),
+    .s_ROLE_soNRC_Role_Udp_Meta_TVALID     (soDCP_NRC_Role_Udp_Meta_TVALID ),
+    .s_ROLE_soNRC_Role_Udp_Meta_TREADY     (soDCP_NRC_Role_Udp_Meta_TREADY ),
+    .s_ROLE_soNRC_Role_Udp_Meta_TKEEP      (soDCP_NRC_Role_Udp_Meta_TKEEP  ),
+    .s_ROLE_soNRC_Role_Udp_Meta_TLAST      (soDCP_NRC_Role_Udp_Meta_TLAST  ),
+    .s_ROLE_siROL_Nts_Tcp_Data_tdata       (siDCP_ROL_Nts_Tcp_Data_tdata   ),
+    .s_ROLE_siROL_Nts_Tcp_Data_tkeep       (siDCP_ROL_Nts_Tcp_Data_tkeep   ),
+    .s_ROLE_siROL_Nts_Tcp_Data_tlast       (siDCP_ROL_Nts_Tcp_Data_tlast   ),
+    .s_ROLE_siROL_Nts_Tcp_Data_tvalid      (siDCP_ROL_Nts_Tcp_Data_tvalid  ),
+    .s_ROLE_siROL_Nts_Tcp_Data_tready      (siDCP_ROL_Nts_Tcp_Data_tready  ),
+    .s_ROLE_soROL_Nts_Tcp_Data_tdata       (soDCP_ROL_Nts_Tcp_Data_tdata   ),
+    .s_ROLE_soROL_Nts_Tcp_Data_tkeep       (soDCP_ROL_Nts_Tcp_Data_tkeep   ),
+    .s_ROLE_soROL_Nts_Tcp_Data_tlast       (soDCP_ROL_Nts_Tcp_Data_tlast   ),
+    .s_ROLE_soROL_Nts_Tcp_Data_tvalid      (soDCP_ROL_Nts_Tcp_Data_tvalid  ),
+    .s_ROLE_soROL_Nts_Tcp_Data_tready      (soDCP_ROL_Nts_Tcp_Data_tready  ),
+    .s_ROLE_piROL_Nrc_Tcp_Rx_ports         (piDCP_ROL_Nrc_Tcp_Rx_ports     ),
+    .s_ROLE_siROLE_Nrc_Tcp_Meta_TDATA      (siDCP_ROLE_Nrc_Tcp_Meta_TDATA  ),
+    .s_ROLE_siROLE_Nrc_Tcp_Meta_TVALID     (siDCP_ROLE_Nrc_Tcp_Meta_TVALID ),
+    .s_ROLE_siROLE_Nrc_Tcp_Meta_TREADY     (siDCP_ROLE_Nrc_Tcp_Meta_TREADY ),
+    .s_ROLE_siROLE_Nrc_Tcp_Meta_TKEEP      (siDCP_ROLE_Nrc_Tcp_Meta_TKEEP  ),
+    .s_ROLE_siROLE_Nrc_Tcp_Meta_TLAST      (siDCP_ROLE_Nrc_Tcp_Meta_TLAST  ),
+    .s_ROLE_soNRC_Role_Tcp_Meta_TDATA      (soDCP_NRC_Role_Tcp_Meta_TDATA  ),
+    .s_ROLE_soNRC_Role_Tcp_Meta_TVALID     (soDCP_NRC_Role_Tcp_Meta_TVALID ),
+    .s_ROLE_soNRC_Role_Tcp_Meta_TREADY     (soDCP_NRC_Role_Tcp_Meta_TREADY ),
+    .s_ROLE_soNRC_Role_Tcp_Meta_TKEEP      (soDCP_NRC_Role_Tcp_Meta_TKEEP  ),
+    .s_ROLE_soNRC_Role_Tcp_Meta_TLAST      (soDCP_NRC_Role_Tcp_Meta_TLAST  ),
+    .s_ROLE_siROL_Mem_Mp0_RdCmd_tdata      (siDCP_ROL_Mem_Mp0_RdCmd_tdata  ),
+    .s_ROLE_siROL_Mem_Mp0_RdCmd_tvalid     (siDCP_ROL_Mem_Mp0_RdCmd_tvalid ),
+    .s_ROLE_siROL_Mem_Mp0_RdCmd_tready     (siDCP_ROL_Mem_Mp0_RdCmd_tready ),
+    .s_ROLE_soROL_Mem_Mp0_RdSts_tdata      (soDCP_ROL_Mem_Mp0_RdSts_tdata  ),
+    .s_ROLE_soROL_Mem_Mp0_RdSts_tvalid     (soDCP_ROL_Mem_Mp0_RdSts_tvalid ),
+    .s_ROLE_soROL_Mem_Mp0_RdSts_tready     (soDCP_ROL_Mem_Mp0_RdSts_tready ),
+    .s_ROLE_soROL_Mem_Mp0_Read_tdata       (soDCP_ROL_Mem_Mp0_Read_tdata   ),
+    .s_ROLE_soROL_Mem_Mp0_Read_tkeep       (soDCP_ROL_Mem_Mp0_Read_tkeep   ),
+    .s_ROLE_soROL_Mem_Mp0_Read_tlast       (soDCP_ROL_Mem_Mp0_Read_tlast   ),
+    .s_ROLE_soROL_Mem_Mp0_Read_tvalid      (soDCP_ROL_Mem_Mp0_Read_tvalid  ),
+    .s_ROLE_soROL_Mem_Mp0_Read_tready      (soDCP_ROL_Mem_Mp0_Read_tready  ),
+    .s_ROLE_siROL_Mem_Mp0_WrCmd_tdata      (siDCP_ROL_Mem_Mp0_WrCmd_tdata  ),
+    .s_ROLE_siROL_Mem_Mp0_WrCmd_tvalid     (siDCP_ROL_Mem_Mp0_WrCmd_tvalid ),
+    .s_ROLE_siROL_Mem_Mp0_WrCmd_tready     (siDCP_ROL_Mem_Mp0_WrCmd_tready ),
+    .s_ROLE_soROL_Mem_Mp0_WrSts_tdata      (soDCP_ROL_Mem_Mp0_WrSts_tdata  ),
+    .s_ROLE_soROL_Mem_Mp0_WrSts_tvalid     (soDCP_ROL_Mem_Mp0_WrSts_tvalid ),
+    .s_ROLE_soROL_Mem_Mp0_WrSts_tready     (soDCP_ROL_Mem_Mp0_WrSts_tready ),
+    .s_ROLE_siROL_Mem_Mp0_Write_tdata      (siDCP_ROL_Mem_Mp0_Write_tdata  ),
+    .s_ROLE_siROL_Mem_Mp0_Write_tkeep      (siDCP_ROL_Mem_Mp0_Write_tkeep  ),
+    .s_ROLE_siROL_Mem_Mp0_Write_tlast      (siDCP_ROL_Mem_Mp0_Write_tlast  ),
+    .s_ROLE_siROL_Mem_Mp0_Write_tvalid     (siDCP_ROL_Mem_Mp0_Write_tvalid ),
+    .s_ROLE_siROL_Mem_Mp0_Write_tready     (siDCP_ROL_Mem_Mp0_Write_tready ),
+    .s_ROLE_miROL_Mem_Mp1_AWID             (miDCP_ROL_Mem_Mp1_AWID         ),
+    .s_ROLE_miROL_Mem_Mp1_AWADDR           (miDCP_ROL_Mem_Mp1_AWADDR       ),
+    .s_ROLE_miROL_Mem_Mp1_AWLEN            (miDCP_ROL_Mem_Mp1_AWLEN        ),
+    .s_ROLE_miROL_Mem_Mp1_AWSIZE           (miDCP_ROL_Mem_Mp1_AWSIZE       ),
+    .s_ROLE_miROL_Mem_Mp1_AWBURST          (miDCP_ROL_Mem_Mp1_AWBURST      ),
+    .s_ROLE_miROL_Mem_Mp1_AWVALID          (miDCP_ROL_Mem_Mp1_AWVALID      ),
+    .s_ROLE_miROL_Mem_Mp1_AWREADY          (miDCP_ROL_Mem_Mp1_AWREADY      ),
+    .s_ROLE_miROL_Mem_Mp1_WDATA            (miDCP_ROL_Mem_Mp1_WDATA        ),
+    .s_ROLE_miROL_Mem_Mp1_WSTRB            (miDCP_ROL_Mem_Mp1_WSTRB        ),
+    .s_ROLE_miROL_Mem_Mp1_WLAST            (miDCP_ROL_Mem_Mp1_WLAST        ),
+    .s_ROLE_miROL_Mem_Mp1_WVALID           (miDCP_ROL_Mem_Mp1_WVALID       ),
+    .s_ROLE_miROL_Mem_Mp1_WREADY           (miDCP_ROL_Mem_Mp1_WREADY       ),
+    .s_ROLE_miROL_Mem_Mp1_BID              (miDCP_ROL_Mem_Mp1_BID          ),
+    .s_ROLE_miROL_Mem_Mp1_BRESP            (miDCP_ROL_Mem_Mp1_BRESP        ),
+    .s_ROLE_miROL_Mem_Mp1_BVALID           (miDCP_ROL_Mem_Mp1_BVALID       ),
+    .s_ROLE_miROL_Mem_Mp1_BREADY           (miDCP_ROL_Mem_Mp1_BREADY       ),
+    .s_ROLE_miROL_Mem_Mp1_ARID             (miDCP_ROL_Mem_Mp1_ARID         ),
+    .s_ROLE_miROL_Mem_Mp1_ARADDR           (miDCP_ROL_Mem_Mp1_ARADDR       ),
+    .s_ROLE_miROL_Mem_Mp1_ARLEN            (miDCP_ROL_Mem_Mp1_ARLEN        ),
+    .s_ROLE_miROL_Mem_Mp1_ARSIZE           (miDCP_ROL_Mem_Mp1_ARSIZE       ),
+    .s_ROLE_miROL_Mem_Mp1_ARBURST          (miDCP_ROL_Mem_Mp1_ARBURST      ),
+    .s_ROLE_miROL_Mem_Mp1_ARVALID          (miDCP_ROL_Mem_Mp1_ARVALID      ),
+    .s_ROLE_miROL_Mem_Mp1_ARREADY          (miDCP_ROL_Mem_Mp1_ARREADY      ),
+    .s_ROLE_miROL_Mem_Mp1_RID              (miDCP_ROL_Mem_Mp1_RID          ),
+    .s_ROLE_miROL_Mem_Mp1_RDATA            (miDCP_ROL_Mem_Mp1_RDATA        ),
+    .s_ROLE_miROL_Mem_Mp1_RRESP            (miDCP_ROL_Mem_Mp1_RRESP        ),
+    .s_ROLE_miROL_Mem_Mp1_RLAST            (miDCP_ROL_Mem_Mp1_RLAST        ),
+    .s_ROLE_miROL_Mem_Mp1_RVALID           (miDCP_ROL_Mem_Mp1_RVALID       ),
+    .s_ROLE_miROL_Mem_Mp1_RREADY           (miDCP_ROL_Mem_Mp1_RREADY       ),
+    .s_ROLE_piROL_Mmio_Mc1_MemTestStat     (piDCP_ROL_Mmio_Mc1_MemTestStat ),
+    .s_ROLE_piROL_Mmio_RdReg               (piDCP_ROL_Mmio_RdReg           ),
+    .s_ROLE_poROL_Fmc_Rank                 (poDCP_ROL_Fmc_Rank             ),
+    .s_ROLE_poROL_Fmc_Size                 (poDCP_ROL_Fmc_Size             )
+ );
 
   //===========================================================================
   //==  INST: METASTABILITY HARDENED BLOCK FOR THE SHELL RESET (Active high)

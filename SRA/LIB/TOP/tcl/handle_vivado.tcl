@@ -685,6 +685,13 @@ if { ${link} } {
 
   if { $pr } { 
     set constrObj [ get_filesets constrs_1 ]
+    if { $insert_ila } { 
+      # we have to add debug constrains (of the Shell) befor we add PR partitions
+      add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc 
+      my_info_puts "DEBUG XDC ADDED."
+      set_property needs_refresh false [get_runs synth_1]
+    }
+
     set prConstrFile "${xdcDir}/topFMKU60_pr.xdc"
     add_files -fileset ${constrObj} ${prConstrFile} 
     #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
@@ -734,7 +741,8 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
         catch {open_project ${xprDir}/${xprName}.xpr}
     #}
     
-    if { $insert_ila } { 
+    if { $insert_ila && $forceWithoutBB } { 
+     # only for non-pr flow
      set constrObj [ get_filesets constrs_1 ]
      #add_files -fileset ${constrObj} ${xdcDir}/debug.xdc 
      add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc 
@@ -1000,6 +1008,12 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}_monolithic.bit
       #launch_runs impl_1 -to_step write_bitstream -jobs 8
       #wait_on_run impl_1
+    
+      # DEBUG probes
+      if { $insert_ila } { 
+        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
+      }
+
     } else {
       #---------------------------
       # We are in PR flow
@@ -1022,6 +1036,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
             write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
           }
           #close_project
+          # DEBUG probes
+          if { $insert_ila } { 
+            write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+          }
         } 
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
         
@@ -1031,6 +1049,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         #source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
+        # DEBUG probes
+        if { $insert_ila } { 
+          write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+        }
       }
 
       if { $bitGen2 } { 
@@ -1047,6 +1069,10 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         }
         #close_project
+        # DEBUG probes
+        if { $insert_ila } { 
+          write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+        }
       } 
       if { $pr_grey_bitgen } { 
         catch {close_project}
@@ -1061,14 +1087,14 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
     }
 
-    #DEBUG
-    if { $insert_ila } { 
-      if { ${forceWithoutBB} } {
-        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
-      } else {
-        write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
-      }
-    }
+    # DEBUG probes
+    # if { $insert_ila } { 
+    #   if { ${forceWithoutBB} } {
+    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
+    #   } else {
+    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
+    #   }
+    # }
 
 
     my_puts "################################################################################"

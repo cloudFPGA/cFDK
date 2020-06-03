@@ -11,15 +11,14 @@
 # ******************************************************************************
 
 
-.PHONY: all clean arp_server cam dhcp_client echo_app fmc icmp_server iprx_handler iptx_handler nrc toe udp udp_mux udp_role_if udp_role_if_2 uoe
+.PHONY: all clean NTS arp_server cam dhcp_client echo_app fmc icmp_server iprx_handler iptx_handler nrc toe udp udp_mux udp_role_if udp_role_if_2
 
-#TODO currently excluded: uoe
-all:   arp_server icmp_server iprx_handler iptx_handler udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   NTS arp_server icmp_server iprx_handler iptx_handler udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:  arp_server.csim icmp_server.csim iprx_handler.csim iptx_handler.csim uoe.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
+csim:  NTS.csim arp_server.csim icmp_server.csim iprx_handler.csim iptx_handler.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
-#TODO currently excluded: uoe.cosim nrc.cosim
-cosim: arp_server.cosim icmp_server.cosim iprx_handler.cosim iptx_handler.cosim toe.cosim cam.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+#TODO currently excluded: nrc.cosim
+cosim: NTS.cosim arp_server.cosim icmp_server.cosim iprx_handler.cosim iptx_handler.cosim toe.cosim cam.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
@@ -47,6 +46,9 @@ help:                      ## Shows this help message
 	@echo '    make [target]'
 	@echo	
 	@echo 'Targets:'
-#OBSOLETE-20191105	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /'
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | /bin/sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | /bin/sed -e 's/^/    /'
 	@echo
+
+
+
+# OBSOLETE-20191105	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /'

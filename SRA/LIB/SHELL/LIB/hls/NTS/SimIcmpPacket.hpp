@@ -32,10 +32,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{ 
  *****************************************************************************/
 
 #ifndef SIM_ICMP_PACKET__
-#define SIM_ICMP_PACKET_
+#define SIM_ICMP_PACKET__
 
 //#include <queue>
 //#include <string>
@@ -44,17 +47,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include <unistd.h>
 //#include <stdlib.h>
 
-//#include "../src/toe.hpp"
 //#include "../src/session_lookup_controller/session_lookup_controller.hpp"
-//#include "test_toe_utils.hpp"
+#include "nts.hpp"
+#include "nts_utils.hpp"
 
 using namespace std;
 using namespace hls;
-
-//---------------------------------------------------------
-// HELPER FOR THE DEBUGGING TRACES
-//---------------------------------------------------------
-#define THIS_NAME "SimIcmpPacket"
 
 /*****************************************************************************
  * @brief Class ICMP Packet.
@@ -70,8 +68,9 @@ using namespace hls;
 class SimIcmpPacket {
 
   private:
-	int len;  // In bytes
-	std::deque<AxisIcmp> pktQ;  // A double-ended queue to store ICMP chunks.
+    int len;  // In bytes
+    std::deque<AxisIcmp> pktQ;  // A double-ended queue to store ICMP chunks.
+    const char *myName;
 
 	void setLen(int pktLen) { this->len = pktLen; }
 	int  getLen()           { return this->len;   }
@@ -79,7 +78,7 @@ class SimIcmpPacket {
 	// Clear the content of the ICMP packet queue
 	void clear()                       {        this->pktQ.clear();
 												this->len = 0;                            }
-	// Return the front chunk element of the ICMP packet queue but does not remove it from the queue
+	// Return the front chunk element of the  but does not remove it from the queue
 	AxisIcmp front()                   { return this->pktQ.front();              }
    // Remove the first chunk element of the ICMP packet queue
 	void pop_front()                   {        this->pktQ.pop_front();          }
@@ -88,65 +87,73 @@ class SimIcmpPacket {
 
   public:
 
-	// Default Constructor: Constructs a packet of 'pktLen' bytes.
-	SimIcmpPacket(int pktLen) {
-		setLen(0);
-		if (pktLen > 0 && pktLen <= MTU) {
-			int noBytes = pktLen;
-			while(noBytes > 8) {
-				pushChunk(AxisIcmp(0x0000000000000000, 0xFF, 0));
-				noBytes -= 8;
-			}
-			pushChunk(AxisIcmp(0x0000000000000000, lenToKeep(noBytes), TLAST));
-		}
-	}
-	SimIcmpPacket() {
-		this->len = 0;
-	}
+    // Default Constructor: Constructs a packet of 'pktLen' bytes.
+    SimIcmpPacket(int pktLen) {
+        this->myName = "SimIcmpPacket";
+        setLen(0);
+        if (pktLen > 0 && pktLen <= MTU) {
+            int noBytes = pktLen;
+            while(noBytes > 8) {
+                pushChunk(AxisIcmp(0x0000000000000000, 0xFF, 0));
+                noBytes -= 8;
+            }
+            pushChunk(AxisIcmp(0x0000000000000000, lenToLE_tKeep(noBytes), TLAST));
+        }
+    }
+    SimIcmpPacket() {
+        this->myName = "SimIcmpPacket";
+        this->len = 0;
+    }
 
-	// Add a chunk of bytes at the end of the double-ended queue
-	void pushChunk(AxisIcmp icmpChunk) {
-		if (this->size() > 0) {
-			// Always clear 'TLAST' bit of previous chunck
-			this->pktQ[this->size()-1].tlast = 0;
-		}
-		this->pktQ.push_back(icmpChunk);
-		setLen(getLen() + keepToLen(icmpChunk.tkeep));
-	}
-	// Return the chunk of bytes at the front of the queue and remove that chunk from the queue
-	AxisIcmp pullChunk() {
-		AxisIcmp headingChunk = this->front();
-		this->pop_front();
-		setLen(getLen() - keepToLen(headingChunk.tkeep));
-		return headingChunk;
-	}
+    // Add a chunk of bytes at the end of the double-ended queue
+    void pushChunk(AxisIcmp icmpChunk) {
+        if (this->size() > 0) {
+            // Always clear 'TLAST' bit of previous chunck
+            this->pktQ[this->size()-1].setLE_TLast(0);
+        }
+        this->pktQ.push_back(icmpChunk);
+        setLen(getLen() + keepToLen(icmpChunk.getLE_TKeep()));
+    }
 
-	// Return the length of the ICMP packet (in bytes)
-	int length()                                           { return this->len;                               }
-	// Return the number of chunk element in the ICMP packet
-	int size()                                             { return this->pktQ.size();              }
+    // Return the chunk of bytes at the front of the queue and remove that chunk from the queue
+    AxisIcmp pullChunk() {
+        AxisIcmp headingChunk = this->front();
+        this->pop_front();
+        setLen(getLen() - keepToLen(headingChunk.getLE_TKeep()));
+        return headingChunk;
+    }
+
+    // Return the length of the ICMP packet (in bytes)
+    int length()                                           { return this->len;                               }
+
+    // Return the number of chunk element in the ICMP packet
+    int size()                                             { return this->pktQ.size();              }
 
 	// Set-Get the Message Type field
 	void       setIcmpType(IcmpType type)                  {        pktQ[0].setIcmpType(type);      }
 	IcmpType   getIcmpType()                               { return pktQ[0].getIcmpType();          }
+
 	// Set-Get the Message Code field
 	void       setIcmpCode(IcmpCode code)                  {        pktQ[0].setIcmpCode(code);      }
 	IcmpCode   getCode()                                   { return pktQ[0].getIcmpCode();          }
+
 	// Set-Get the Message Checksum field
 	void       setIcmpChecksum(IcmpCsum csum)              {        pktQ[0].setIcmpCsum(csum);      }
 	IcmpCsum   getIcmpChecksum()                           { return pktQ[0].getIcmpCsum();          }
+
 	// Set-Get the Identifier field
 	void       setIcmpIdent(IcmpIdent id)                  {        pktQ[0].setIcmpIdent(id);       }
 	IcmpIdent  getIcmpIdent()                              { return pktQ[0].getIcmpIdent();         }
+
 	// Set-Get the Sequence Number field
 	void       setIcmpSeqNum(IcmpSeqNum num)               {        pktQ[0].setIcmpSeqNum(num);     }
 	IcmpSeqNum getIcmpSeqNum()                             { return pktQ[0].getIcmpSeqNum();        }
 
 	// Append data payload to an ICMP header
 	void addIcmpPayload(string pldStr) {
-		if (this->getLen() != ICMP_HEADER_SIZE) {
+		if (this->getLen() != ICMP_HEADER_LEN) {
 			printFatal("IcmpPacket", "Empty packet is expected to be of length %d bytes (was found to be %d bytes).\n",
-					   ICMP_HEADER_SIZE, this->getLen());
+					   ICMP_HEADER_LEN, this->getLen());
 		}
 		int hdrLen = this->getLen();  // in bytes
 		int pldLen = pldStr.size();
@@ -161,8 +168,8 @@ class SimIcmpPacket {
 			bool          leLast  = false;
 			while (b < 8) {
 				unsigned char datByte = pldStr[i];
-				leQword |= (datByte << b*8);
-				leKeep  |= (1 << b);
+				leQword = leQword | (datByte << b*8);
+				leKeep  = leKeep  | (1 << b);
 				i++;
 				b++;
 				if (i == pldLen) {
@@ -175,39 +182,37 @@ class SimIcmpPacket {
 		}
 	}  // End-of: addIcmpPayload
 
-	// Calculate the ICMP checksum of the packet.
-	IcmpCsum calculateIcmpChecksum() {
-		ap_uint<32> csum = 0;
-		for (uint8_t i=0;i<this->size();++i) {
-			ap_uint<64> tempInput = 0x0000000000000000;
-			if (pktQ[i].tkeep & 0x01)
-				tempInput.range(  7, 0) = (pktQ[i].tdata.range( 7, 0));
-			if (pktQ[i].tkeep & 0x02)
-				 tempInput.range(15, 8) = (pktQ[i].tdata.range(15, 8));
-			if (pktQ[i].tkeep & 0x04)
-				 tempInput.range(23,16) = (pktQ[i].tdata.range(23,16));
-			if (pktQ[i].tkeep & 0x08)
-				 tempInput.range(31,24) = (pktQ[i].tdata.range(31,24));
-			if (pktQ[i].tkeep & 0x10)
-				 tempInput.range(39,32) = (pktQ[i].tdata.range(39,32));
-			if (pktQ[i].tkeep & 0x20)
-				 tempInput.range(47,40) = (pktQ[i].tdata.range(47,40));
-			if (pktQ[i].tkeep & 0x40)
-				 tempInput.range(55,48) = (pktQ[i].tdata.range(55,48));
-			if (pktQ[i].tkeep & 0x80)
-				 tempInput.range(63,56) = (pktQ[i].tdata.range(63,56));
-
-			csum = ((((csum +
-					   tempInput.range(63, 48)) + tempInput.range(47, 32)) +
-					   tempInput.range(31, 16)) + tempInput.range(15,  0));
-			csum = (csum & 0xFFFF) + (csum >> 16);
-			//OBSOLETE csum = (csum & 0xFFFF) + (csum >> 16);
-		}
-		// Reverse the bits of the result
-		IcmpCsum icmpCsum = csum;
-		icmpCsum = ~icmpCsum;
-		return byteSwap16(icmpCsum);
-	}
+    // Calculate the ICMP checksum of the packet.
+    IcmpCsum calculateIcmpChecksum() {
+        ap_uint<32> csum = 0;
+        for (uint8_t i=0;i<this->size();++i) {
+            ap_uint<64> tempInput = 0x0000000000000000;
+            if (pktQ[i].getLE_TKeep() & 0x01)
+                tempInput.range(  7, 0) = (pktQ[i].getLE_TData().range( 7, 0));
+            if (pktQ[i].getLE_TKeep() & 0x02)
+                tempInput.range(15, 8) = (pktQ[i].getLE_TData().range(15, 8));
+            if (pktQ[i].getLE_TKeep() & 0x04)
+                tempInput.range(23,16) = (pktQ[i].getLE_TData().range(23,16));
+            if (pktQ[i].getLE_TKeep() & 0x08)
+                tempInput.range(31,24) = (pktQ[i].getLE_TData().range(31,24));
+            if (pktQ[i].getLE_TKeep() & 0x10)
+                tempInput.range(39,32) = (pktQ[i].getLE_TData().range(39,32));
+            if (pktQ[i].getLE_TKeep() & 0x20)
+                tempInput.range(47,40) = (pktQ[i].getLE_TData().range(47,40));
+            if (pktQ[i].getLE_TKeep() & 0x40)
+                tempInput.range(55,48) = (pktQ[i].getLE_TData().range(55,48));
+            if (pktQ[i].getLE_TKeep() & 0x80)
+                tempInput.range(63,56) = (pktQ[i].getLE_TData().range(63,56));
+            csum = ((((csum +
+                       tempInput.range(63, 48)) + tempInput.range(47, 32)) +
+                       tempInput.range(31, 16)) + tempInput.range(15,  0));
+            csum = (csum & 0xFFFF) + (csum >> 16);
+        }
+        // Reverse the bits of the result
+        IcmpCsum icmpCsum = csum;
+        icmpCsum = ~icmpCsum;
+        return byteSwap16(icmpCsum);
+    }
 
 	/**************************************************************************
 	 * @brief Recalculate the ICMP checksum of a packet.
@@ -228,3 +233,7 @@ class SimIcmpPacket {
 };  // End-of: SimIcmpPacket
 
 #endif
+
+
+
+/*! \} */

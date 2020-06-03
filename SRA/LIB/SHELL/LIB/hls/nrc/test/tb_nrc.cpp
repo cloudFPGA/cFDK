@@ -9,6 +9,9 @@
  * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
  * Copyright 2015-2018 - IBM Research - All Rights Reserved.
  *
+ * \ingroup NRC
+ * \addtogroup NRC
+ * \{
  *****************************************************************************/
 
 #include <stdio.h>
@@ -99,6 +102,7 @@ stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
 
 ap_uint<1>              layer_4_enabled = 0b1;
+ap_uint<1>              layer_7_enabled = 0b1;
 ap_uint<1>              sNTS_Nrc_ready = 0b1;
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
@@ -142,6 +146,7 @@ void stepDut() {
     nrc_main(
         ctrlLink,
         &layer_4_enabled,
+        &layer_7_enabled,
         &sNTS_Nrc_ready,
         &sMMIO_FmcLsnPort, &sMMIO_CfrmIp4Addr,
         &sIpAddress,
@@ -557,17 +562,19 @@ void pFMC(
             tcpSessId = siTRIF_SessId.read().tdata;
             soTRIF_SessId.write(tcpSessId);
             rxFsmState  = RX_STREAM;
+            printf("FMC received sessionID: %d\n", tcpSessId.to_uint());
         }
         break;
     case RX_STREAM:
         if (!siTRIF_Data.empty() && !soTRIF_Data.full()) {
             siTRIF_Data.read(currWord);
-            if (DEBUG_LEVEL & TRACE_ROLE) {
+            //if (DEBUG_LEVEL & TRACE_ROLE) {
                  printAxiWord(myRxName, currWord);
-            }
+            //}
             soTRIF_Data.write(currWord);
-            if (currWord.tlast)
+            if (currWord.tlast) {
                 rxFsmState  = RX_WAIT_META;
+            }
         }
         break;
     }
@@ -1144,3 +1151,7 @@ int main() {
 
     return(nrErr);
 }
+
+
+
+/*! \} */

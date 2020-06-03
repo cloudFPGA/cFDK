@@ -185,7 +185,7 @@ module MemoryChannel_DualPort #(
   // Local Parameters
   localparam C_MCC_S_AXI_ADDR_WIDTH  = 33;
   localparam C_MCC_S_AXI_DATA_WIDTH  = 512;
-  localparam cMCC_S_AXI_ID_WIDTH     = 4;
+  localparam cMCC_S_AXI_ID_WIDTH     = 8;
    
   //============================================================================
   //  SIGNAL DECLARATIONS
@@ -248,31 +248,31 @@ module MemoryChannel_DualPort #(
   //-- AXI INTERCONNECT : Signal Declarations
   //--------------------------------------------------------
   //---- Slave Read Data Channel #0 ------------------------
-  wire [0:0]   sbICT_DM0_Read_Id;
+  wire [3:0]   sbICT_DM0_Read_Id;
   wire [511:0] sbICT_DM0_Read_Data;
   wire [1:0]   sbICT_DM0_Read_Resp;
   wire         sbICT_DM0_Read_Last;
   wire         sbICT_DM0_Read_Valid;
   wire         sbICT_DM0_Read_Ready;
   //-- Master Write Response Channel #0 --------------------
-  wire [0:0]   sbICT_DM0_WrRes_Id;
+  wire [3:0]   sbICT_DM0_WrRes_Id;
   wire [1:0]   sbICT_DM0_WrRes_Resp;
   wire         sbICT_DM0_WrRes_Valid;
   wire         sbICT_DM0_WrRes_Ready;
   //---- Slave Read Data Channel #1 ------------------------
-  wire [0:0]   sbICT_DM1_Read_Id;
+  wire [3:0]   sbICT_DM1_Read_Id;
   wire [511:0] sbICT_DM1_Read_Data;
   wire [1:0]   sbICT_DM1_Read_Resp;
   wire         sbICT_DM1_Read_Last;
   wire         sbICT_DM1_Read_Valid;
   wire         sbICT_DM1_Read_Ready;
   //---- Master Write Response Channel #1 ------------------
-  wire [0:0]   sbICT_DM1_WrRes_Id;
+  wire [3:0]   sbICT_DM1_WrRes_Id;
   wire [1:0]   sbICT_DM1_WrRes_Resp;
   wire         sbICT_DM1_WrRes_Valid;
   wire         sbICT_DM1_WrRes_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [3:0]   sbICT_MCC_WrAdd_Wid;
+  wire [7:0]   sbICT_MCC_WrAdd_Wid;
   wire [32:0]  sbICT_MCC_WrAdd_Addr;
   wire [7:0]   sbICT_MCC_WrAdd_Len;
   wire [2:0]   sbICT_MCC_WrAdd_Size;
@@ -290,13 +290,13 @@ module MemoryChannel_DualPort #(
   wire [1:0]                            sbMCC_ICT_WrRes_Resp;
   wire                                  sbMCC_ICT_WrRes_Valid;
   wire                                  sbMCC_ICT_WrRes_Ready;
-  //-- Master Read Address Channel -------------------------              
-  wire [3:0]   sbICT_MCC_RdAdd_Id;      
-  wire [32:0]  sbICT_MCC_RdAdd_Addr;    
-  wire [7:0]   sbICT_MCC_RdAdd_Len;     
-  wire [2:0]   sbICT_MCC_RdAdd_Size;    
-  wire [1:0]   sbICT_MCC_RdAdd_Burst;   
-  wire         sbICT_MCC_RdAdd_Valid;                                          
+  //-- Master Read Address Channel -------------------------
+  wire [7:0]   sbICT_MCC_RdAdd_Id;
+  wire [32:0]  sbICT_MCC_RdAdd_Addr;
+  wire [7:0]   sbICT_MCC_RdAdd_Len;
+  wire [2:0]   sbICT_MCC_RdAdd_Size;
+  wire [1:0]   sbICT_MCC_RdAdd_Burst;
+  wire         sbICT_MCC_RdAdd_Valid;
   wire         sbICT_MCC_RdAdd_Ready;
   
   //--------------------------------------------------------  
@@ -306,7 +306,7 @@ module MemoryChannel_DualPort #(
   wire                                  sMCC_Ui_clk;
   wire                                  sMCC_Ui_SyncRst;
   //---- Master Read Data Channel --------------------------
-  wire [3:0]                            sbMCC_ICT_Read_Id;
+  wire [7:0]                            sbMCC_ICT_Read_Id;
   wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbMCC_ICT_Read_Data;
   wire [1:0]                            sbMCC_ICT_Read_Resp;
   wire                                  sbMCC_ICT_Read_Last;
@@ -707,7 +707,7 @@ module MemoryChannel_DualPort #(
   //============================================================================
   //  INST: AXI INTERCONNECT
   //============================================================================
-  AxiInterconnect_1M2S_A32_D512 ICT (
+  AxiInterconnect_1M2S_A33_D512 ICT (
   
     //-- Global Interconnect Ports ---------------
     .INTERCONNECT_ACLK    (piShlClk),
@@ -720,7 +720,7 @@ module MemoryChannel_DualPort #(
     .S00_AXI_ARESET_OUT_N (/*po*/),   //left open
     .S00_AXI_ACLK         (piShlClk),
     //-- Slave Write Address Channel #00 ---------
-    .S00_AXI_AWID         (sbDM0_ICT_WrAdd_Id[0]),
+    .S00_AXI_AWID         (sbDM0_ICT_WrAdd_Id),
     .S00_AXI_AWADDR       (sbDM0_ICT_WrAdd_Addr),
     .S00_AXI_AWLEN        (sbDM0_ICT_WrAdd_Len),
     .S00_AXI_AWSIZE       (sbDM0_ICT_WrAdd_Size),
@@ -736,14 +736,14 @@ module MemoryChannel_DualPort #(
     .S00_AXI_WSTRB        (sbDM0_ICT_Write_Strb),
     .S00_AXI_WLAST        (sbDM0_ICT_Write_Last),
     .S00_AXI_WVALID       (sbDM0_ICT_Write_Valid),
-    .S00_AXI_WREADY       (sbDM0_ICT_Write_Ready),    
+    .S00_AXI_WREADY       (sbDM0_ICT_Write_Ready),
     //-- Slave Write Response Data Channel #00 ---
-    .S00_AXI_BID          (sbICT_DM0_WrRes_Id),   // Not connected 
+    .S00_AXI_BID          (sbICT_DM0_WrRes_Id),   // Not connected
     .S00_AXI_BRESP        (sbICT_DM0_WrRes_Resp),
     .S00_AXI_BVALID       (sbICT_DM0_WrRes_Valid),
     .S00_AXI_BREADY       (sbICT_DM0_WrRes_Ready),
     //-- Slave Read Address Channel #00 ----------
-    .S00_AXI_ARID         (sbDM0_ICT_RdAdd_Id[0]),
+    .S00_AXI_ARID         (sbDM0_ICT_RdAdd_Id),
     .S00_AXI_ARADDR       (sbDM0_ICT_RdAdd_Addr),
     .S00_AXI_ARLEN        (sbDM0_ICT_RdAdd_Len),
     .S00_AXI_ARSIZE       (sbDM0_ICT_RdAdd_Size),
@@ -768,7 +768,7 @@ module MemoryChannel_DualPort #(
     .S01_AXI_ARESET_OUT_N (/*po*/),   //left open
     .S01_AXI_ACLK         (piShlClk),
     //-- Slave Write Address Channel #01 ---------
-    .S01_AXI_AWID         (sbDM1_ICT_WrAdd_Id[0]),
+    .S01_AXI_AWID         (sbDM1_ICT_WrAdd_Id),
     .S01_AXI_AWADDR       (sbDM1_ICT_WrAdd_Addr),
     .S01_AXI_AWLEN        (sbDM1_ICT_WrAdd_Len),
     .S01_AXI_AWSIZE       (sbDM1_ICT_WrAdd_Size),
@@ -791,7 +791,7 @@ module MemoryChannel_DualPort #(
     .S01_AXI_BVALID       (sbICT_DM1_WrRes_Valid),   
     .S01_AXI_BREADY       (sbICT_DM1_WrRes_Ready),
     //-- Slave Read Address Channel #01 ----------
-    .S01_AXI_ARID         (sbDM1_ICT_RdAdd_Id[0]),
+    .S01_AXI_ARID         (sbDM1_ICT_RdAdd_Id),
     .S01_AXI_ARADDR       (sbDM1_ICT_RdAdd_Addr),
     .S01_AXI_ARLEN        (sbDM1_ICT_RdAdd_Len),
     .S01_AXI_ARSIZE       (sbDM1_ICT_RdAdd_Size),
@@ -858,7 +858,7 @@ module MemoryChannel_DualPort #(
     .M00_AXI_RVALID       (sbMCC_ICT_Read_Valid),
     .M00_AXI_RREADY       (sbMCC_ICT_Read_Ready)
 
-  );  // End: AxiInterconnect_1M2S_A32_D512 ICT 
+  );  // End: AxiInterconnect_1M2S_A33_D512 ICT 
 
   
   //============================================================================
