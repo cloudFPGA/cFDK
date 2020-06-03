@@ -18,16 +18,16 @@ add_cells_to_pblock [get_pblocks pblock_ROLE] [get_cells -quiet [list ROLE]]
 #resize_pblock [get_pblocks pblock_ROLE] -add {RAMB36_X7Y12:RAMB36_X10Y47}
 
 ### Try 2
-#resize_pblock [get_pblocks pblock_ROLE] -add {SLICE_X2Y198:SLICE_X91Y278}
-#resize_pblock [get_pblocks pblock_ROLE] -add {DSP48E2_X0Y80:DSP48E2_X16Y109}
-#resize_pblock [get_pblocks pblock_ROLE] -add {RAMB18_X0Y80:RAMB18_X10Y109}
-#resize_pblock [get_pblocks pblock_ROLE] -add {RAMB36_X0Y40:RAMB36_X10Y54}
+resize_pblock [get_pblocks pblock_ROLE] -add {SLICE_X2Y198:SLICE_X91Y278}
+resize_pblock [get_pblocks pblock_ROLE] -add {DSP48E2_X0Y80:DSP48E2_X16Y109}
+resize_pblock [get_pblocks pblock_ROLE] -add {RAMB18_X0Y80:RAMB18_X10Y109}
+resize_pblock [get_pblocks pblock_ROLE] -add {RAMB36_X0Y40:RAMB36_X10Y54}
 
-### Try 3
-resize_pblock [get_pblocks pblock_ROLE] -add {SLICE_X2Y155:SLICE_X91Y278}
-resize_pblock [get_pblocks pblock_ROLE] -add {DSP48E2_X0Y62:DSP48E2_X16Y109}
-resize_pblock [get_pblocks pblock_ROLE] -add {RAMB18_X0Y62:RAMB18_X10Y109}
-resize_pblock [get_pblocks pblock_ROLE] -add {RAMB36_X0Y31:RAMB36_X10Y54}
+### Try 3 to big?
+#resize_pblock [get_pblocks pblock_ROLE] -add {SLICE_X2Y155:SLICE_X91Y278}
+#resize_pblock [get_pblocks pblock_ROLE] -add {DSP48E2_X0Y62:DSP48E2_X16Y109}
+#resize_pblock [get_pblocks pblock_ROLE] -add {RAMB18_X0Y62:RAMB18_X10Y109}
+#resize_pblock [get_pblocks pblock_ROLE] -add {RAMB36_X0Y31:RAMB36_X10Y54}
 
 
 set_property SNAPPING_MODE ON [get_pblocks pblock_ROLE]
