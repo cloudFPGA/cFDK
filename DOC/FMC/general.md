@@ -51,6 +51,7 @@ The masks are stored in the array `programMask`, the opcodes in `opcodeProgram`,
 The Operations, Opcodes, and global (persistent) variables are documented in the following.
 Afterwards, the EMIF connection (External Memory InterFace) to the PSoC is documented.
 
+
 #### Microarchitecture
 
 ##### Global Operations
@@ -96,11 +97,11 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_XMEM_COPY_DATA             ` | tries to copy data from XMEM; sensitive to check pattern flag; *sets `flag_last_xmem_page_received`;* | `OPRV_NOT_COMPLETE` or `OPRV_PARTIAL_COMPLETE` if not yet a complete page was received; `OPRV_FAIL` if there is a terminating error for this transfer; `OPRV_OK` if a complete page was received (not the last page); `OPRV_DONE` if a complete last page was received; |
 | `OP_FILL_BUFFER_TCP            ` |  it reads the TCP data stream and writes it into the internal buffer| `OPRV_OK` if some data was received or the buffer is full, `OPRV_DONE` if a tlast occurred, `OPRV_NOT_COMPLETE` if no data were received |
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
-| `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing, sets `invalid_payload_persistent` if last return value was `OPRV_FAIL` |  `OPRV_OK`                |
+| `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing, sets `invalid_payload_persistent` if last return value was `OPRV_FAIL` |  `OPRV_OK` |
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
 | `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
-| `OP_PYROLINK_TO_OUTBUFFER`       | copies the incomming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
+| `OP_PYROLINK_TO_OUTBUFFER`       | copies the incoming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
 | `OP_SEND_BUFFER_TCP            ` |  Writes `bufferOutContentLength` bytes from bufferOut to TCP, if the stream is not full  | `OPRV_OK` if some portion of the data could be read (`bufferOutPtrNextRead` is set accordingly); `OPRV_DONE` if everything could be sent; `OPRV_NOT_COMPLETE` if the stream is not ready to write. *if lRV is `OPRV_DONE` it won't touch it.* |
 | `OP_SEND_BUFFER_XMEM           ` | Initiates bufferOut transfer to XMEM  | `OPRV_DONE`, if previous RV was `OPRV_DONE`, otherwise `OPRV_OK`   |
@@ -119,12 +120,16 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_SEND_TCP_SESS`               | sends the `currentTcpSessId` once | `OPRV_OK` if the sessionId was sent, `OPRV_NOT_COMPLETE` otherwise, *if lRV is `OPRV_DONE` it won't touch it.*|
 | `OP_SET_NOT_TO_SWAP`             | Activates the `notToSwap` bit (same bit like MMIO, will overwrite MMIO input) |  (not changed) |
 | `OP_UNSET_NOT_TO_SWAP`           | Deactivates the `notToSwap` bit (same bit like MMIO, will overwrite MMIO input)  |  (not changed) |
-
+| `OP_CHECK_HTTP_EOR`              | Check if an HTTP End-of-Request occurred (first `0x0d0a0d0a` sequence, i.e. at least one detected) | `OPRV_NOT_COMPLETE` if no, `OPRV_DONE` if yes |
+| `OP_CHECK_HTTP_EOP`              | Check if an HTTP End-of-Payload occurred (second `0x0d0a0d0a` sequence, i.e. at least two detected) | `OPRV_NOT_COMPLETE` if no, `OPRV_DONE` if yes |
+| `OP_ACTIVATE_CONT_TCP`           | Activates the continuous TCP recv | (not changed) |
+| `OP_DEACTIVATE_CONT_TCP`           | Deactivates the continuous TCP recv | (not changed) |
 
 
 *Flags are reset before every program run*, so not persistent.
 The initial `lastReturnValue` is always `OPRV_OK`.
 To execute an opcode always, the mask `MASK_ALWAYS` can be used.
+
 
 ##### Global Variables
 
@@ -163,11 +168,14 @@ All global variables are marked as `#pragma HLS reset`.
 | `lastSeenBufferOutPtrMaxRead` |    |    |
 | `need_to_update_nrc_config` |  | flag to store the state of the communication with the NRC |
 | `need_to_update_nrc_mrt`    |  | flag to store the state of the communication with the NRC |
-| `ctrl_link_last_check_seconds`|  | TODO |
-| `ctrl_link_transfer_ongoing` |   | TODO|
+| `ctrl_link_next_check_seconds`|  | Indicates the seconds of the FPGA time when the FMC copies the NRC status again. |
+| `detected_http_nl_cnt`       | `OP_WAIT_FOR_TCP_SESS` | counts number of detected `0xd0a0d0a` sequences, reseted by TCP session start |
+| `hwicap_hangover_present`    |    | indicates that a wrap-around of the bufferIn had took place |
+| `flag_continuous_tcp_rx`     | `OP_ACTIVATE_CONT_TCP`, `OP_DEACTIVATE_CONT_TCP` | indicates continuous TCP mode |
 
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
+
 
 ##### RequestType
 
@@ -195,7 +203,7 @@ The FMC Read Register (see below) contains a `msg` field, with the following mea
 | `BOR`    | `...ING`! The FMC has nothing to do |
 | `UTD`    | Up To Date; I.e. during a xmem transfer, the current page was already processed |
 | `INV`    | Invalid; During a Xmem transfer, the page isn't a valid page (we are in the middle of a transfer) |
-| `CMM`    | Counter mismatch; During a Xmem transfer, the current valid page dosn't match the expected counter (i.e. we missed one complete page) |
+| `CMM`    | Counter mismatch; During a Xmem transfer, the current valid page doesn't match the expected counter (i.e. we missed one complete page) |
 | `COR`    | Corrupt pattern during check pattern mode |
 | `SUC`    | Last xmem page received successfully |
 | ` OK`    | a new valid and expected xmem page received, but not the last one |
@@ -227,8 +235,6 @@ There are **three** connections between the FMC and the EMIF:
 
 
 (EMIF is also called MMIO (Memory Mapped I/O))
-
-
 
 
 ##### The FMC Write Register
