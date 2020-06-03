@@ -122,6 +122,13 @@ TX path:
 If the user tries to send to an unknown node-id, the packet will be dropped (and the corresponding `node_id_missmatch_TX` counter in the "Flight data" will be increased).
 
 
+### Templates and examples
+
+*Templates* for the Role HDL in VHDL or Verilog can be found in [cFDK/SRA/LIB/ROLE/TMPL/Themisto/](../SRA/LIB/ROLE/TMPL/Themisto/).
+
+
+*Example Roles* that include also demo HLS IP cores, can be found in [cFDK/SRA/LIB/ROLE/EXMPL/Themisto/](../SRA/LIB/ROLE/EXMPL/Themisto/).
+
 
 #### SRA interface
 
