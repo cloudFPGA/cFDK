@@ -27,9 +27,7 @@
 # *  - UG896 / Ch.3 / Using Manage IP Projects.
 # *  - UG896 / Ch.2 / IP Basics.
 # *  - UG896 / Ch.6 / Tcl Commands for Common IP Operations.
-# *-----------------------------------------------------------------------------
-# * Modification History:
-# *  Fab: Feb-07-2018 Created from former 'create_project.tcl'.
+# *
 # ******************************************************************************
 
 package require cmdline
@@ -1102,22 +1100,20 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-if { 0 } {  # OBSOLETE-20190721
 
-    #------------------------------------------------------------------------------  
-    # IBM-HSL-IP : TCP Role Interface 
-    #------------------------------------------------------------------------------
-    set ipModName "TcpRoleInterface"
-    set ipName    "tcp_role_if"
-    set ipVendor  "IBM"
-    set ipLibrary "hls"
-    set ipVersion "1.0"
-    set ipCfgList  [ list ]
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Ready Logic Barrier
+#------------------------------------------------------------------------------
+set ipModName "ReadyLogicBarrier"
+set ipName    "rlb"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
 
-    set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-    if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-}
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
@@ -1151,7 +1147,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Core
+# IBM-HSL-IP : UDP Core [TODO - Ready for removal]
 #------------------------------------------------------------------------------
 set ipModName "UdpCore"
 set ipName    "udp"
@@ -1166,7 +1162,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Multiplexer
+# IBM-HSL-IP : UDP Multiplexer  [TODO - Ready for removal]
 #------------------------------------------------------------------------------
 set ipModName "UdpMultiplexer"
 set ipName    "udp_mux"
@@ -1181,7 +1177,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : SMC "Castor" IP
+# IBM-HSL-IP : FPGA Managememt Core
 #------------------------------------------------------------------------------
 set ipModName "FpgaManagementCore"
 set ipName    "fmc"
@@ -1193,10 +1189,6 @@ set ipCfgList  [ list CONFIG.Component_Name {SMC} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-
-
 
 
 

@@ -127,6 +127,7 @@ create_clock -period 1000.000 -name topResetUsedAsClk [get_pins TOP_META_RST/DOU
 # Asynchronous Clocks Between PSOC/Emif/Clk and the Rest of the Design
 set_clock_groups -asynchronous -group [get_clocks piPSOC_Emif_Clk] -group [get_clocks piCLKT_Usr0Clk]
 set_clock_groups -asynchronous -group [get_clocks piPSOC_Emif_Clk] -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]]
+set_clock_groups -asynchronous -group [get_clocks piPSOC_Emif_Clk] -group [get_clocks -of_objects [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/inst/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]]
 
 # Asynchronous Clocks Between CLKT/10GE/Clk and PSOC/Emif/Clk
 set_clock_groups -asynchronous -group [get_clocks piCLKT_10GeClk_p] -group [get_clocks piPSOC_Emif_Clk]
@@ -298,6 +299,8 @@ set_false_path -from [get_pins SHELL/sLed_HeartBeat_reg_inv/C] -to [get_ports po
 #=====================================================================
 # DEBUG_HUB Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
+
 
 
 

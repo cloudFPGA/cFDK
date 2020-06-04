@@ -138,7 +138,7 @@ begin  -- architecture rtl
   ----------------------------------------------------------
   -- REG: MMIO Write Cycle
   ---------------------------------------------------------- 
-  pMmioWrReg : process (piFab_Clk) is
+  pMmioWrReg : process (piFab_Clk, piRst) is
     variable vAddr : integer := 0;
   begin
     if (piRst = '1') then

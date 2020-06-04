@@ -32,8 +32,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
  * \{ 
  *****************************************************************************/
 

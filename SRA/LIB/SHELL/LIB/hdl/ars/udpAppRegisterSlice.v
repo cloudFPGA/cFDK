@@ -50,7 +50,7 @@ module UdpApplicationRegisterSlice
   input           piRst,
  
   //------------------------------------------------------
-  //-- APP / Udp / Tx Data Interfaces (.i.e UARS<-->APP)
+  //-- APP / Udp / Tx Data Interfaces (.i.e APP->UARS)
   //------------------------------------------------------
   //---- Axis4-Stream UDP Data ---------------
   input  [ 63:0]  siAPP_Udp_Data_tdata ,
@@ -68,7 +68,7 @@ module UdpApplicationRegisterSlice
   output          siAPP_Udp_DLen_tready,
     
   //------------------------------------------------------
-  //-- APP / Udp / Rx Data Interfaces (.i.e UARS<-->APP)
+  //-- APP / Udp / Rx Data Interfaces (.i.e UARS-->APP)
   //------------------------------------------------------
   //---- Axis4-Stream UDP Data ---------------
   output  [63:0]  soAPP_Udp_Data_tdata ,
@@ -96,9 +96,13 @@ module UdpApplicationRegisterSlice
   input   [15:0]  siAPP_Udp_ClsReq_tdata ,
   input           siAPP_Udp_ClsReq_tvalid,
   output          siAPP_Udp_ClsReq_tready,
+  //---- Axis4-Stream UDP Close Reply ---------
+  output  [ 7:0]  soAPP_Udp_ClsRep_tdata ,
+  output          soAPP_Udp_ClsRep_tvalid,
+  input           soAPP_Udp_ClsRep_tready,
 
   //------------------------------------------------------
-  //-- NTS / Udp / Tx Data Interfaces (.i.e NTS<-->UARS)
+  //-- NTS / Udp / Tx Data Interfaces (.i.e UARS-->NTS)
   //------------------------------------------------------
   //---- Axis4-Stream UDP Data ---------------
   output [ 63:0]  soNTS_Udp_Data_tdata ,
@@ -143,7 +147,11 @@ module UdpApplicationRegisterSlice
   //---- Axis4-Stream UDP Close Request ------
   output  [15:0]  soNTS_Udp_ClsReq_tdata ,
   output          soNTS_Udp_ClsReq_tvalid,
-  input           soNTS_Udp_ClsReq_tready  
+  input           soNTS_Udp_ClsReq_tready,
+  //---- Axis4-Stream UDP Listen Reply --------
+  input   [ 7:0]  siNTS_Udp_ClsRep_tdata ,
+  input           siNTS_Udp_ClsRep_tvalid,
+  output          siNTS_Udp_ClsRep_tready
   
 );  // End of PortList
 
@@ -260,7 +268,7 @@ module UdpApplicationRegisterSlice
     .m_axis_tready (soAPP_Udp_LsnRep_tready)
   );
   
-  AxisRegisterSlice_16 NTS_APP_Udp_ClsReqa (
+  AxisRegisterSlice_16 NTS_APP_Udp_ClsReq (
     .aclk           (piClk),
     .aresetn        (~piRst),
     //-- From NTS ----------------------
@@ -272,5 +280,18 @@ module UdpApplicationRegisterSlice
     .m_axis_tvalid (soNTS_Udp_ClsReq_tvalid),
     .m_axis_tready (soNTS_Udp_ClsReq_tready)
   );
+  
+  AxisRegisterSlice_8 NTS_APP_Udp_ClsRep (
+      .aclk           (piClk),
+      .aresetn        (~piRst),
+      //-- From NTS ----------------------
+      .s_axis_tdata  (siNTS_Udp_ClsRep_tdata) ,
+      .s_axis_tvalid (siNTS_Udp_ClsRep_tvalid),
+      .s_axis_tready (siNTS_Udp_ClsRep_tready),     
+      //-- To APP ------------------------
+      .m_axis_tdata  (soAPP_Udp_ClsRep_tdata) ,
+      .m_axis_tvalid (soAPP_Udp_ClsRep_tvalid),
+      .m_axis_tready (soAPP_Udp_ClsRep_tready)
+    );
 
 endmodule

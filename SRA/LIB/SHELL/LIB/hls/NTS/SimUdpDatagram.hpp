@@ -32,13 +32,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
 
- * \ingroup NTS
- * \addtogroup NTS
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
  * \{ 
  *****************************************************************************/
 
-#ifndef SIM_UDP_DATAGRAM_
-#define SIM_UDP_DATAGRAM_
+#ifndef _SIM_UDP_DATAGRAM_
+#define _SIM_UDP_DATAGRAM_
 
 //#include <queue>
 //#include <string>

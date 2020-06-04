@@ -1,9 +1,20 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // *****************************************************************************
-// *
-// *                             cloudFPGA
-// *            All rights reserved -- Property of IBM
-// *
-// *----------------------------------------------------------------------------
 // *
 // * Title : Toplevel of the TCP/IP subsystem stack instantiated by the SHELL.
 // *
@@ -12,13 +23,13 @@
 // * Created : Nov. 2017
 // * Authors : Francois Abel <fab@zurich.ibm.com>
 // *
-// * Tools   : Vivado v2016.4 (64-bit)
+// * Tools   : Vivado v2016.4, v2017.4 (64-bit)
 // * Depends : None
 // *
 // * Description : This is the toplevel design of the TCP/IP-based networking
 // *    subsystem that is instantiated by the shell of the current target
-// *    platform to transfer data sequences between the user application layer
-// *    and the underlaying Ethernet media layer.
+// *    platform. It is used to transfer data sequences between the user
+// *    application layer and the underlaying Ethernet media layer.
 // *    From an Open Systems Interconnection (OSI) model point of view, this
 // *    module implements the Network layer (L3) and the Transport layer (L4).
 // * 
@@ -29,10 +40,10 @@
 `define USE_DEPRECATED_DIRECTIVES
 
 // *****************************************************************************
-// **  MODULE - IP NETWORK + TCP/UDP TRANSPORT + DHCP SESSION SUBSYSTEM
+// **  MODULE - IP NETWORK + TCP/UDP TRANSPORT
 // *****************************************************************************
 
-module NetworkTransportSession_TcpIp (
+module NetworkTransportStack_TcpIp (
 
   //------------------------------------------------------
   //-- Global Clock used by the entire SHELL
@@ -168,7 +179,7 @@ module NetworkTransportSession_TcpIp (
   input   [15:0] siAPP_Udp_LsnReq_tdata,
   input          siAPP_Udp_LsnReq_tvalid,
   output         siAPP_Udp_LsnReq_tready,
-  //---- Axi4-Stream UDP Listen Reply --------
+  //---- Axi4-Stream UDP Listen Reply -------
   output  [ 7:0] soAPP_Udp_LsnRep_tdata,
   output         soAPP_Udp_LsnRep_tvalid,
   input          soAPP_Udp_LsnRep_tready,
@@ -176,7 +187,11 @@ module NetworkTransportSession_TcpIp (
   input   [15:0] siAPP_Udp_ClsReq_tdata,
   input          siAPP_Udp_ClsReq_tvalid,
   output         siAPP_Udp_ClsReq_tready,
-      
+  //---- Axi4-Stream UDP Close Reply --------
+  output  [ 7:0] soAPP_Udp_ClsRep_tdata,
+  output         soAPP_Udp_ClsRep_tvalid,
+  input          soAPP_Udp_ClsRep_tready,
+  
   //------------------------------------------------------
   //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
   //------------------------------------------------------
@@ -251,6 +266,7 @@ module NetworkTransportSession_TcpIp (
   input          piMMIO_Layer2Rst,
   input          piMMIO_Layer3Rst,
   input          piMMIO_Layer4Rst,
+  input          piMMIO_Layer4En,
   input  [ 47:0] piMMIO_MacAddress,
   input  [ 31:0] piMMIO_IpAddress,
   input  [ 31:0] piMMIO_SubNetMask,
@@ -272,6 +288,7 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   wire          sTODO_1b0  =  1'b0;
   wire          sTODO_1b1  =  1'b1;
+  wire  [ 7:0]  sTODO_8b1  =  8'b11111111;
 
   //------------------------------------------------------
   //-- IPRX = IP-RX-HANDLER
@@ -331,6 +348,10 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------------------
   //-- UOE = UDP-OFFLOAD-ENGINE
   //------------------------------------------------------------------
+  //-- UOE ==> RML / ReadyMergeLogic
+  wire  [ 7:0]  ssUOE_RML_Ready_tdata;
+  wire          ssUOE_RML_Ready_tvalid;
+  wire          ssUOE_RML_Ready_tready;
   //-- UOE ==> L3MUX / Data
   wire  [63:0]  ssUOE_L3MUX_Data_tdata;
   wire  [ 7:0]  ssUOE_L3MUX_Data_tkeep;
@@ -347,6 +368,10 @@ module NetworkTransportSession_TcpIp (
   //------------------------------------------------------------------
   //-- TOE = TCP-OFFLOAD-ENGINE
   //------------------------------------------------------------------
+  //-- TOE ==> RML / ReadyMergeLogic
+  wire  [ 7:0]  ssTOE_RML_Ready_tdata;
+  wire          ssTOE_RML_Ready_tvalid;
+  wire          ssTOE_RML_Ready_tready;
   //-- TOE ==>[ARS3]==> L3MUX / Data
   //---- TOE ==> [ARS3]
   wire  [63:0]  ssTOE_ARS3_Data_tdata;
@@ -449,20 +474,17 @@ module NetworkTransportSession_TcpIp (
 `ifdef USE_DEPRECATED_DIRECTIVES
 
   IpRxHandler IPRX (
-                    
     //------------------------------------------------------
     //-- From SHELL Interfaces
     //------------------------------------------------------
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
     .aresetn                  (~piMMIO_Layer3Rst),
-
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
     .piMMIO_MacAddress_V      (piMMIO_MacAddress),
     .piMMIO_Ip4Address_V      (piMMIO_IpAddress),
-                      
     //------------------------------------------------------
     //-- From ETH Interface
     //------------------------------------------------------
@@ -471,17 +493,15 @@ module NetworkTransportSession_TcpIp (
     .siETH_Data_TLAST         (siETH_Data_tlast),
     .siETH_Data_TVALID        (siETH_Data_tvalid),
     .siETH_Data_TREADY        (siETH_Data_tready),
-    
     //------------------------------------------------------
     //-- ARP Interface (via [ARS0])
     //------------------------------------------------------
     //-- To  ARP / Data ----------------
-    .soARP_Data_TDATA         (ssIPRX_ARS0_Data_tdata),       
-    .soARP_Data_TKEEP         (ssIPRX_ARS0_Data_tkeep),      
-    .soARP_Data_TLAST         (ssIPRX_ARS0_Data_tlast),   
+    .soARP_Data_TDATA         (ssIPRX_ARS0_Data_tdata),
+    .soARP_Data_TKEEP         (ssIPRX_ARS0_Data_tkeep),
+    .soARP_Data_TLAST         (ssIPRX_ARS0_Data_tlast),
     .soARP_Data_TVALID        (ssIPRX_ARS0_Data_tvalid),
-    .soARP_Data_TREADY        (ssIPRX_ARS0_Data_tready),      
-   
+    .soARP_Data_TREADY        (ssIPRX_ARS0_Data_tready),
     //------------------------------------------------------
     //-- ICMP Interface (via ARS1)
     //------------------------------------------------------
@@ -497,17 +517,15 @@ module NetworkTransportSession_TcpIp (
     .soICMP_Derr_TLAST        (ssIPRX_ICMP_Derr_tlast),
     .soICMP_Derr_TVALID       (ssIPRX_ICMP_Derr_tvalid),
     .soICMP_Derr_TREADY       (ssIPRX_ICMP_Derr_tready),
-
     //------------------------------------------------------
     //-- UOE Interface
     //------------------------------------------------------
-    //-- To UDP / Data -----------------
+    //-- To UOE / Data -----------------
     .soUOE_Data_TDATA         (ssIPRX_UOE_Data_tdata),
     .soUOE_Data_TKEEP         (ssIPRX_UOE_Data_tkeep),
     .soUOE_Data_TLAST         (ssIPRX_UOE_Data_tlast),
     .soUOE_Data_TVALID        (ssIPRX_UOE_Data_tvalid),
     .soUOE_Data_TREADY        (ssIPRX_UOE_Data_tready),
- 
     //------------------------------------------------------
     //-- TOE Interface (via ARS2)
     //------------------------------------------------------
@@ -517,7 +535,6 @@ module NetworkTransportSession_TcpIp (
     .soTOE_Data_TLAST         (ssIPRX_ARS2_Data_tlast),
     .soTOE_Data_TVALID        (ssIPRX_ARS2_Data_tvalid),
     .soTOE_Data_TREADY        (ssIPRX_ARS2_Data_tready)
-
   ); // End of IPRX
 
 `endif //  `ifdef USE_DEPRECATED_DIRECTIVES
@@ -566,16 +583,13 @@ module NetworkTransportSession_TcpIp (
   //  INST: ARP 
   //============================================================================
   AddressResolutionProcess ARP (
-  
     .piShlClk                       (piShlClk),
     .piMMIO_Rst                     (piMMIO_Layer3Rst), // Warning: This reset is active HIGH !!
-
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_MacAddress              (piMMIO_MacAddress),
     .piMMIO_IpAddress               (piMMIO_IpAddress),
-      
     //------------------------------------------------------
     //-- IPRX Interfaces (via ARS0)
     //------------------------------------------------------
@@ -585,7 +599,6 @@ module NetworkTransportSession_TcpIp (
     .siIPRX_Data_tlast              (ssARS0_ARP_Data_tlast),
     .siIPRX_Data_tvalid             (ssARS0_ARP_Data_tvalid),
     .siIPRX_Data_tready             (ssARS0_ARP_Data_tready),
-   
     //------------------------------------------------------
     //-- ETH Interface (via L2MUX)
     //------------------------------------------------------
@@ -595,7 +608,6 @@ module NetworkTransportSession_TcpIp (
     .soETH_Data_tlast               (ssARP_L2MUX_Data_tlast),
     .soETH_Data_tvalid              (ssARP_L2MUX_Data_tvalid),
     .soETH_Data_tready              (ssARP_L2MUX_Data_tready),
-    
     //------------------------------------------------------
     //-- IPTX Interfaces
     //------------------------------------------------------
@@ -606,27 +618,19 @@ module NetworkTransportSession_TcpIp (
     .soIPTX_MacLkpRep_TDATA         (ssARP_IPTX_MacLkpRep_tdata),
     .soIPTX_MacLkpRep_TVALID        (ssARP_IPTX_MacLkpRep_tvalid),
     .soIPTX_MacLkpRep_TREADY        (ssARP_IPTX_MacLkpRep_tready)
-    
   ); // End of ARP
   
   //============================================================================
   //  INST: TCP-OFFLOAD-ENGINE
   //============================================================================
-  TcpOffloadEngine TOE (
-  
+  TcpOffloadEngine TOE ( 
     .aclk                      (piShlClk),
     .aresetn                   (~piMMIO_Layer4Rst),
-
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_IpAddr_V           (piMMIO_IpAddress),
-    
-    //------------------------------------------------------
-    //-- NTS Interfaces
-    //------------------------------------------------------    
-    .poNTS_Ready_V             (poMMIO_NtsReady),
-                        
+    .poNTS_Ready_V             (),     // [FIXME-ssTOE_RML_Ready_tdata]
     //------------------------------------------------------
     //-- IPRX / IP Rx Data Interface
     //------------------------------------------------------
@@ -635,7 +639,6 @@ module NetworkTransportSession_TcpIp (
     .siIPRX_Data_TLAST         (ssARS2_TOE_Data_tlast),
     .siIPRX_Data_TVALID        (ssARS2_TOE_Data_tvalid),
     .siIPRX_Data_TREADY        (ssARS2_TOE_Data_tready),
-
     //------------------------------------------------------
     //-- L3MUX / IP Tx Data Interface (via ARS3)
     //------------------------------------------------------
@@ -644,7 +647,6 @@ module NetworkTransportSession_TcpIp (
     .soL3MUX_Data_TLAST        (ssTOE_ARS3_Data_tlast),
     .soL3MUX_Data_TVALID       (ssTOE_ARS3_Data_tvalid),
     .soL3MUX_Data_TREADY       (ssTOE_ARS3_Data_tready),
-
     //------------------------------------------------------
     //-- TAIF / TCP Rx Data Interfaces
     //------------------------------------------------------
@@ -666,7 +668,6 @@ module NetworkTransportSession_TcpIp (
     .soTRIF_Meta_TDATA         (soAPP_Tcp_Meta_tdata),
     .soTRIF_Meta_TVALID        (soAPP_Tcp_Meta_tvalid),
     .soTRIF_Meta_TREADY        (soAPP_Tcp_Meta_tready),
-    
     //------------------------------------------------------
     //-- TAIF / TCP Rx Ctrl Interfaces
     //------------------------------------------------------
@@ -677,8 +678,7 @@ module NetworkTransportSession_TcpIp (
     //-- To   APP / TCP Listen Port Ack
     .soTRIF_LsnAck_TDATA       (soAPP_Tcp_LsnAck_tdata),
     .soTRIF_LsnAck_TVALID      (soAPP_Tcp_LsnAck_tvalid),
-    .soTRIF_LsnAck_TREADY      (soAPP_Tcp_LsnAck_tready),    
-    
+    .soTRIF_LsnAck_TREADY      (soAPP_Tcp_LsnAck_tready),
     //------------------------------------------------------
     //-- TAIF / TCP Tx Data Flow Interfaces
     //------------------------------------------------------
@@ -696,7 +696,6 @@ module NetworkTransportSession_TcpIp (
     .soTRIF_DSts_TDATA         (soAPP_Tcp_DSts_tdata),
     .soTRIF_DSts_TVALID        (soAPP_Tcp_DSts_tvalid),
     .soTRIF_DSts_TREADY        (soAPP_Tcp_DSts_tready),
-  
     //------------------------------------------------------
     //-- APP / TRIF / TCP Tx Ctrl Flow Interfaces
     //------------------------------------------------------
@@ -713,8 +712,7 @@ module NetworkTransportSession_TcpIp (
     .siTRIF_ClsReq_TVALID      (siAPP_Tcp_ClsReq_tvalid),
     .siTRIF_ClsReq_TREADY      (siAPP_Tcp_ClsReq_tready),
     //-- To   ROLE / TCP Close Session Status
-    // [INFO] Not used    
-   
+    // [FIXME-TODO]
     //------------------------------------------------------
     //-- MEM / RxP Interface
     //------------------------------------------------------
@@ -745,7 +743,6 @@ module NetworkTransportSession_TcpIp (
     .soMEM_RxP_Data_TLAST      (soMEM_RxP_Data_tlast),
     .soMEM_RxP_Data_TVALID     (soMEM_RxP_Data_tvalid),
     .soMEM_RxP_Data_TREADY     (soMEM_RxP_Data_tready),
-
     //------------------------------------------------------
     //-- MEM / TxP Interface
     //------------------------------------------------------
@@ -776,7 +773,6 @@ module NetworkTransportSession_TcpIp (
     .soMEM_TxP_Data_TLAST      (soMEM_TxP_Data_tlast),
     .soMEM_TxP_Data_TVALID     (soMEM_TxP_Data_tvalid),
     .soMEM_TxP_Data_TREADY     (soMEM_TxP_Data_tready),
-
     //------------------------------------------------------
     //-- CAM / Session Lookup Interfaces
     //------------------------------------------------------
@@ -788,7 +784,6 @@ module NetworkTransportSession_TcpIp (
     .siCAM_SssLkpRep_TDATA     (ssCAM_TOE_LkpRep_tdata),
     .siCAM_SssLkpRep_TVALID    (ssCAM_TOE_LkpRep_tvalid),
     .siCAM_SssLkpRep_TREADY    (ssCAM_TOE_LkpRep_tready),
-    
     //------------------------------------------------------
     //-- CAM / Session Update Interfaces
     //------------------------------------------------------
@@ -800,18 +795,15 @@ module NetworkTransportSession_TcpIp (
     .siCAM_SssUpdRep_TDATA     (ssCAM_TOE_UpdRpl_tdata),
     .siCAM_SssUpdRep_TVALID    (ssCAM_TOE_UpdRpl_tvalid),
     .siCAM_SssUpdRep_TREADY    (ssCAM_TOE_UpdRpl_tready),
-
     //------------------------------------------------------
     //-- To DEBUG / Session Statistics Interfaces
     //------------------------------------------------------
     .poDBG_SssRelCnt_V         (),
     .poDBG_SssRegCnt_V         (),
-    
     //------------------------------------------------------
     //-- To DEBUG / Simulation Counter Interfaces
     //------------------------------------------------------
     .poSimCycCount_V           ()
-
   );  // End of TOE
   
   //============================================================================
@@ -822,12 +814,10 @@ module NetworkTransportSession_TcpIp (
 `ifndef USE_FAKE_CAM
  
   ToeCam CAM (
-  
    .piClk                        (piShlClk),
    .piRst_n                      (~piMMIO_Layer4Rst),
-   
+   //--
    .poCamReady                   (poMMIO_CamReady),
-
    //------------------------------------------------------
    //-- TOE Interfaces
    //------------------------------------------------------
@@ -847,25 +837,21 @@ module NetworkTransportSession_TcpIp (
    .poTOE_UpdRep_tdata           (sCAM_TOE_UpdRpl_tdata),
    .poTOE_UpdRep_tvalid          (sCAM_TOE_UpdRpl_tvalid),
    .piTOE_UpdRep_tready          (sCAM_TOE_UpdRpl_tready),
-
    //------------------------------------------------------
    //-- LED & Debug Interfaces
    //------------------------------------------------------
    .poLed0                       (),
    .poLed1                       (),
    .poDebug                      ()
-  
   );
   
 `else
  
   ContentAddressableMemory CAM (
-    
     .aclk                         (piShlClk),
     .aresetn                      (~piMMIO_Layer4Rst),
-     
+    //-- 
     .poMMIO_CamReady_V            (poMMIO_CamReady),
-
     //------------------------------------------------------
     //-- TOE Interfaces                                        
     //------------------------------------------------------
@@ -885,7 +871,6 @@ module NetworkTransportSession_TcpIp (
     .soTOE_SssUpdRep_TDATA        (ssCAM_TOE_UpdRpl_tdata),
     .soTOE_SssUpdRep_TVALID       (ssCAM_TOE_UpdRpl_tvalid),
     .soTOE_SssUpdRep_TREADY       (ssCAM_TOE_UpdRpl_tready)
-
   );
 
 `endif
@@ -933,16 +918,17 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
   //  INST: UDP-OFFLOAD-ENGINE
   //============================================================================
-  UdpOffloadEngine UOE (
-  
+  UdpOffloadEngine UOE ( 
     .aclk                       (piShlClk),
     .aresetn                    (~piMMIO_Layer4Rst),
-
     //------------------------------------------------------
     //-- MMIO Interface
     //------------------------------------------------------
-    .piMMIO_En_V                (sTODO_1b1),  //  [TODO] (piMMIO_Layer4En),
-
+    .piMMIO_En_V                (piMMIO_Layer4En),
+    //--
+    .soMMIO_Ready_TDATA         (ssUOE_RML_Ready_tdata),
+    .soMMIO_Ready_TVALID        (ssUOE_RML_Ready_tvalid),
+    .soMMIO_Ready_TREADY        (ssUOE_RML_Ready_tready),
     //------------------------------------------------------
     //-- IPRX Data Interface
     //------------------------------------------------------
@@ -951,7 +937,6 @@ module NetworkTransportSession_TcpIp (
     .siIPRX_Data_TLAST          (ssIPRX_UOE_Data_tlast),
     .siIPRX_Data_TVALID         (ssIPRX_UOE_Data_tvalid),
     .siIPRX_Data_TREADY         (ssIPRX_UOE_Data_tready),
-
     //------------------------------------------------------
     //-- IPTX Data Interface (via L3MUX)
     //------------------------------------------------------
@@ -960,7 +945,6 @@ module NetworkTransportSession_TcpIp (
     .soIPTX_Data_TLAST          (ssUOE_L3MUX_Data_tlast),
     .soIPTX_Data_TVALID         (ssUOE_L3MUX_Data_tvalid),
     .soIPTX_Data_TREADY         (ssUOE_L3MUX_Data_tready),
-
     //------------------------------------------------------
     //-- UAIF / UDP Ctrl Port Interfaces
     //------------------------------------------------------
@@ -976,7 +960,10 @@ module NetworkTransportSession_TcpIp (
     .siUAIF_ClsReq_tdata        (siAPP_Udp_ClsReq_tdata) ,
     .siUAIF_ClsReq_tvalid       (siAPP_Udp_ClsReq_tvalid),
     .siUAIF_ClsReq_tready       (siAPP_Udp_ClsReq_tready),
-
+    //---- Close Reply
+    .soUAIF_ClsRep_TDATA        (soAPP_Udp_ClsRep_tdata) ,
+    .soUAIF_ClsRep_TVALID       (soAPP_Udp_ClsRep_tvalid),
+    .soUAIF_ClsRep_TREADY       (soAPP_Udp_ClsRep_tready),
     //------------------------------------------------------
     //-- UAIF / UDP Rx Data Interfaces (.i.e UOE->APP)
     //------------------------------------------------------
@@ -990,7 +977,6 @@ module NetworkTransportSession_TcpIp (
     .soUAIF_Meta_TDATA          (soAPP_Udp_Meta_tdata),
     .soUAIF_Meta_TVALID         (soAPP_Udp_Meta_tvalid),
     .soUAIF_Meta_TREADY         (soAPP_Udp_Meta_tready),
-
     //------------------------------------------------------
     //-- UAIF / UDP Tx Data Interfaces (.i.e APP->UOE)
     //------------------------------------------------------ 
@@ -1008,16 +994,14 @@ module NetworkTransportSession_TcpIp (
     .siUAIF_DLen_TDATA          (siAPP_Udp_DLen_tdata),
     .siUAIF_DLen_TVALID         (siAPP_Udp_DLen_tvalid),
     .siUAIF_DLen_TREADY         (siAPP_Udp_DLen_tready),
-   
     //------------------------------------------------------
     //-- ICMP / Message Data Interface (Port Unreachable)
     //------------------------------------------------------
-   .soICMP_Data_TDATA           (ssUOE_ICMP_Data_tdata),
-   .soICMP_Data_TKEEP           (ssUOE_ICMP_Data_tkeep),
-   .soICMP_Data_TLAST           (ssUOE_ICMP_Data_tlast),
-   .soICMP_Data_TVALID          (ssUOE_ICMP_Data_tvalid),
-   .soICMP_Data_TREADY          (ssUOE_ICMP_Data_tready)
-   
+    .soICMP_Data_TDATA           (ssUOE_ICMP_Data_tdata),
+    .soICMP_Data_TKEEP           (ssUOE_ICMP_Data_tkeep),
+    .soICMP_Data_TLAST           (ssUOE_ICMP_Data_tlast),
+    .soICMP_Data_TVALID          (ssUOE_ICMP_Data_tvalid),
+    .soICMP_Data_TREADY          (ssUOE_ICMP_Data_tready)
   ); // End-of: UdpOffloadEngine
      
   //============================================================================
@@ -1025,20 +1009,17 @@ module NetworkTransportSession_TcpIp (
   //============================================================================
 `ifdef USE_DEPRECATED_DIRECTIVES
 
-  InternetControlMessageProcess ICMP (
-                    
+  InternetControlMessageProcess ICMP (                   
     //------------------------------------------------------
     //-- From SHELL Interfaces
     //------------------------------------------------------
     //-- Global Clock & Reset
     .aclk                     (piShlClk),
     .aresetn                  (~piMMIO_Layer3Rst),
-
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
     .piMMIO_IpAddress_V (piMMIO_IpAddress),
-  
     //------------------------------------------------------
     //-- IPRX Interfaces
     //------------------------------------------------------
@@ -1054,17 +1035,15 @@ module NetworkTransportSession_TcpIp (
     .siIPRX_Derr_TLAST  (ssIPRX_ICMP_Derr_tlast),
     .siIPRX_Derr_TVALID (ssIPRX_ICMP_Derr_tvalid),
     .siIPRX_Derr_TREADY (ssIPRX_ICMP_Derr_tready),
-    
     //------------------------------------------------------
-    //-- UDP Interfaces
+    //-- UOE Interfaces
     //------------------------------------------------------
-    //-- From UDP / Data   
-    .siUDP_Data_TDATA   (ssUOE_ICMP_Data_tdata),
+    //-- From UOE / Data   
+    .siUDP_Data_TDATA   (ssUOE_ICMP_Data_tdata),  // [TODO-Rename siUDP_Data_TDATA into siUOE_Data_TDATA]
     .siUDP_Data_TKEEP   (ssUOE_ICMP_Data_tkeep),
     .siUDP_Data_TLAST   (ssUOE_ICMP_Data_tlast),
     .siUDP_Data_TVALID  (ssUOE_ICMP_Data_tvalid),
-    .siUDP_Data_TREADY  (ssUOE_ICMP_Data_tready),
-    
+    .siUDP_Data_TREADY  (ssUOE_ICMP_Data_tready),    
     //------------------------------------------------------
     //-- L3MUX Interfaces
     //------------------------------------------------------
@@ -1074,28 +1053,25 @@ module NetworkTransportSession_TcpIp (
     .soIPTX_Data_TLAST  (ssICMP_L3MUX_Data_tlast),
     .soIPTX_Data_TVALID (ssICMP_L3MUX_Data_tvalid),
     .soIPTX_Data_TREADY (ssICMP_L3MUX_Data_tready)
-
   ); // End of: ICMP
 
 `endif // `ifdef USE_DEPRECATED_DIRECTIVES
    
    
   //============================================================================
-  //  INST: L3MUX AXI4-STREAM INTERCONNECT RTL (Muxes ICMP, TCP, and UDP)
+  //  INST: L3MUX AXI4-STREAM INTERCONNECT RTL (Muxes ICMP, TOE, and UOE)
   //============================================================================
-  AxisInterconnectRtl_3S1M_D8 L3MUX (
-   
+  AxisInterconnectRtl_3S1M_D8 L3MUX (   
     .ACLK               (piShlClk),                         
     .ARESETN            (~piMMIO_Layer3Rst),
- 
+    //-- 
     .S00_AXIS_ACLK      (piShlClk),
     .S01_AXIS_ACLK      (piShlClk),            
     .S02_AXIS_ACLK      (piShlClk),        
- 
-    .S00_AXIS_ARESETN   (~piMMIO_Layer3Rst),       
-    .S01_AXIS_ARESETN   (~piMMIO_Layer3Rst),       
-    .S02_AXIS_ARESETN   (~piMMIO_Layer3Rst),     
- 
+     //-- 
+    .S00_AXIS_ARESETN   (~piMMIO_Layer3Rst),
+    .S01_AXIS_ARESETN   (~piMMIO_Layer3Rst),
+    .S02_AXIS_ARESETN   (~piMMIO_Layer3Rst),
     //------------------------------------------------------
     //-- From ICMP Interfaces
     //------------------------------------------------------
@@ -1104,7 +1080,6 @@ module NetworkTransportSession_TcpIp (
     .S00_AXIS_TLAST     (ssICMP_L3MUX_Data_tlast),
     .S00_AXIS_TVALID    (ssICMP_L3MUX_Data_tvalid),
     .S00_AXIS_TREADY    (ssICMP_L3MUX_Data_tready),
-    
     //------------------------------------------------------
     //-- From UDP Interfaces
     //------------------------------------------------------
@@ -1113,7 +1088,6 @@ module NetworkTransportSession_TcpIp (
     .S01_AXIS_TLAST     (ssUOE_L3MUX_Data_tlast),
     .S01_AXIS_TVALID    (ssUOE_L3MUX_Data_tvalid),
     .S01_AXIS_TREADY    (ssUOE_L3MUX_Data_tready),
-    
     //------------------------------------------------------
     //-- From TOE Interfaces (via [ARS3])
     //------------------------------------------------------
@@ -1122,11 +1096,9 @@ module NetworkTransportSession_TcpIp (
     .S02_AXIS_TLAST     (ssARS3_L3MUX_Data_tlast),
     .S02_AXIS_TVALID    (ssARS3_L3MUX_Data_tvalid),
     .S02_AXIS_TREADY    (ssARS3_L3MUX_Data_tready),
-         
-             
+    //--     
     .M00_AXIS_ACLK      (piShlClk),        
     .M00_AXIS_ARESETN   (~piMMIO_Layer3Rst),    
- 
     //------------------------------------------------------
     //-- To IPTX Interfaces
     //------------------------------------------------------
@@ -1135,20 +1107,18 @@ module NetworkTransportSession_TcpIp (
     .M00_AXIS_TLAST     (ssL3MUX_IPTX_Data_tlast),
     .M00_AXIS_TVALID    (ssL3MUX_IPTX_Data_tvalid),
     .M00_AXIS_TREADY    (ssL3MUX_IPTX_Data_tready),
-
-    .S00_ARB_REQ_SUPPRESS(1'b0),  
+    //-- 
+    .S00_ARB_REQ_SUPPRESS(1'b0),
     .S01_ARB_REQ_SUPPRESS(1'b0),
-    .S02_ARB_REQ_SUPPRESS(1'b0)  
+    .S02_ARB_REQ_SUPPRESS(1'b0)
   );
   
   //============================================================================
   //  INST: IP TX HANDLER
   //============================================================================
   IpTxHandler IPTX (
-  
     .aclk                     (piShlClk),
     .aresetn                  (~piMMIO_Layer3Rst),
-  
     //------------------------------------------------------
     //-- L3MUX Interfaces
     //------------------------------------------------------
@@ -1158,7 +1128,6 @@ module NetworkTransportSession_TcpIp (
     .siL3MUX_Data_TLAST       (ssL3MUX_IPTX_Data_tlast),
     .siL3MUX_Data_TVALID      (ssL3MUX_IPTX_Data_tvalid),
     .siL3MUX_Data_TREADY      (ssL3MUX_IPTX_Data_tready),
-  
     //------------------------------------------------------
     //-- ARP Interfaces
     //------------------------------------------------------
@@ -1170,8 +1139,6 @@ module NetworkTransportSession_TcpIp (
     .siARP_LookupRep_TDATA    (ssARP_IPTX_MacLkpRep_tdata),
     .siARP_LookupRep_TVALID   (ssARP_IPTX_MacLkpRep_tvalid),
     .siARP_LookupRep_TREADY   (ssARP_IPTX_MacLkpRep_tready),
-  
-  
     //------------------------------------------------------
     //-- L2MUX Interfaces
     //------------------------------------------------------
@@ -1181,11 +1148,10 @@ module NetworkTransportSession_TcpIp (
     .soL2MUX_Data_TLAST       (ssIPTX_L2MUX_Data_tlast),
     .soL2MUX_Data_TVALID      (ssIPTX_L2MUX_Data_tvalid),
     .soL2MUX_Data_TREADY      (ssIPTX_L2MUX_Data_tready),
-  
+    //-- 
     .piMMIO_SubNetMask_V      (piMMIO_SubNetMask), 
     .piMMIO_GatewayAddr_V     (piMMIO_GatewayAddr),
     .piMMIO_MacAddress_V      (piMMIO_MacAddress)
-    
   ); // End of IPTX
     
 
@@ -1193,15 +1159,13 @@ module NetworkTransportSession_TcpIp (
   //  INST: L2MUX AXI4-STREAM INTERCONNECT RTL (Muxes IP and ARP)
   //============================================================================
   AxisInterconnectRtl_2S1M_D8 L2MUX (
-    
     .ACLK                 (piShlClk), 
     .ARESETN              (~piMMIO_Layer3Rst),
- 
+     //-- 
     .S00_AXIS_ACLK        (piShlClk), 
     .S01_AXIS_ACLK        (piShlClk), 
     .S00_AXIS_ARESETN     (~piMMIO_Layer3Rst),
     .S01_AXIS_ARESETN     (~piMMIO_Layer3Rst),
- 
     //------------------------------------------------------
     //-- ARP Interfaces
     //------------------------------------------------------   
@@ -1210,8 +1174,7 @@ module NetworkTransportSession_TcpIp (
     .S00_AXIS_TKEEP       (ssARP_L2MUX_Data_tkeep),
     .S00_AXIS_TLAST       (ssARP_L2MUX_Data_tlast),
     .S00_AXIS_TVALID      (ssARP_L2MUX_Data_tvalid),
-    .S00_AXIS_TREADY      (ssARP_L2MUX_Data_tready), 
- 
+    .S00_AXIS_TREADY      (ssARP_L2MUX_Data_tready),
     //------------------------------------------------------
     //-- IPTX Interfaces
     //------------------------------------------------------   
@@ -1221,10 +1184,9 @@ module NetworkTransportSession_TcpIp (
     .S01_AXIS_TLAST       (ssIPTX_L2MUX_Data_tlast),
     .S01_AXIS_TVALID      (ssIPTX_L2MUX_Data_tvalid),
     .S01_AXIS_TREADY      (ssIPTX_L2MUX_Data_tready),
- 
+     //--
     .M00_AXIS_ACLK        (piShlClk), 
     .M00_AXIS_ARESETN     (~piMMIO_Layer3Rst),
- 
     //------------------------------------------------------
     //-- ETH / Ethernet Layer-2 Interface
     //------------------------------------------------------   
@@ -1234,10 +1196,33 @@ module NetworkTransportSession_TcpIp (
     .M00_AXIS_TLAST       (soETH_Data_tlast),
     .M00_AXIS_TVALID      (soETH_Data_tvalid),
     .M00_AXIS_TREADY      (soETH_Data_tready),
- 
+     //--
     .S00_ARB_REQ_SUPPRESS (1'b0), 
     .S01_ARB_REQ_SUPPRESS (1'b0)
   );
 
+  //============================================================================
+  //  INST: READY LOGIC BARRIER
+  //============================================================================
+  ReadyLogicBarrier RLB (
+    .ap_clk                   (piShlClk),
+    .ap_rst_n                 (~piMMIO_Layer4Rst),
+    //------------------------------------------------------
+    //-- MMIO Interface
+    //------------------------------------------------------
+    .poMMIO_Ready_V           (poMMIO_NtsReady),
+     //------------------------------------------------------
+     //-- UOE / Data Stream Interface
+     //------------------------------------------------------
+     .siUOE_Ready_V_TDATA     (ssUOE_RML_Ready_tdata),
+     .siUOE_Ready_V_TVALID    (ssUOE_RML_Ready_tvalid),
+     .siUOE_Ready_V_TREADY    (ssUOE_RML_Ready_tready),
+     //------------------------------------------------------
+     //-- TOE / Data Stream Interface
+     //------------------------------------------------------
+     .siTOE_Ready_V_TDATA     (sTODO_8b1),  // [FIXME] (ssTOE_RML_Ready_tdata),
+     .siTOE_Ready_V_TVALID    (sTODO_1b1),  // [FIXME] (ssTOE_RML_Ready_tvalid),
+     .siTOE_Ready_V_TREADY    ()            // [FIXME] (ssTOE_RML_Ready_tready)
+  ); // End of RLB
 
 endmodule

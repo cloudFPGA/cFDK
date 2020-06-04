@@ -188,7 +188,7 @@ module Shell_Kale # (
   input          soROL_Nts_Udp_Meta_tready,
   
   //------------------------------------------------------
-  //-- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
+  //-- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
   //------------------------------------------------------
   //---- Axi4-Stream UDP Listen Request -----
   input   [15:0] siROL_Nts_Udp_LsnReq_tdata ,
@@ -202,6 +202,10 @@ module Shell_Kale # (
   input   [15:0] siROL_Nts_Udp_ClsReq_tdata ,
   input          siROL_Nts_Udp_ClsReq_tvalid,
   output         siROL_Nts_Udp_ClsReq_tready,
+  //---- Axi4-Stream UDP Close Reply ---------
+  output  [ 7:0] soROL_Nts_Udp_ClsRep_tdata ,
+  output         soROL_Nts_Udp_ClsRep_tvalid,
+  input          soROL_Nts_Udp_ClsRep_tready,
   
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
@@ -216,7 +220,7 @@ module Shell_Kale # (
   input  [ 15:0]  siROL_Nts_Tcp_Meta_tdata,
   input           siROL_Nts_Tcp_Meta_tvalid,
   output          siROL_Nts_Tcp_Meta_tready,
- //---- Axi4-Stream TCP Data Status --------
+  //---- Axi4-Stream TCP Data Status --------
   output [ 23:0]  soROL_Nts_Tcp_DSts_tdata,
   output          soROL_Nts_Tcp_DSts_tvalid,
   input           soROL_Nts_Tcp_DSts_tready,
@@ -358,9 +362,7 @@ module Shell_Kale # (
   //---- [APP_RDROL] -------------------
   input   [15:0]  piROL_Mmio_RdReg,
   //---- [APP_WRROL] -------------------
-  output  [15:0]  poROL_Mmio_WrReg,
-  
-  output          poVoid
+  output  [15:0]  poROL_Mmio_WrReg
   
 );  // End of PortList
 
@@ -473,9 +475,11 @@ module Shell_Kale # (
   wire          ssNTS0_UARS_Udp_Data_tlast ;
   wire          ssNTS0_UARS_Udp_Data_tvalid;
   wire          ssNTS0_UARS_Udp_Data_tready;
+  //--
   wire  [ 95:0] ssNTS0_UARS_Udp_Meta_tdata ;
   wire          ssNTS0_UARS_Udp_Meta_tvalid;
   wire          ssNTS0_UARS_Udp_Meta_tready;
+  //--
   wire  [ 15:0] ssNTS0_UARS_Udp_DLen_tdata ;
   wire          ssNTS0_UARS_Udp_DLen_tvalid;
   wire          ssNTS0_UARS_Udp_DLen_tready;
@@ -488,9 +492,11 @@ module Shell_Kale # (
   wire          ssUARS_NTS0_Udp_Data_tlast ;
   wire          ssUARS_NTS0_Udp_Data_tvalid;
   wire          ssUARS_NTS0_Udp_Data_tready;
+  //--
   wire  [ 95:0] ssUARS_NTS0_Udp_Meta_tdata ; 
   wire          ssUARS_NTS0_Udp_Meta_tvalid;
   wire          ssUARS_NTS0_Udp_Meta_tready;
+  //--
   wire  [ 15:0] ssUARS_NTS0_Udp_DLen_tdata ; 
   wire          ssUARS_NTS0_Udp_DLen_tvalid;
   wire          ssUARS_NTS0_Udp_DLen_tready;
@@ -501,12 +507,18 @@ module Shell_Kale # (
   wire  [ 15:0] ssUARS_NTS0_Udp_LsnReq_tdata ;
   wire          ssUARS_NTS0_Udp_LsnReq_tvalid;
   wire          ssUARS_NTS0_Udp_LsnReq_tready;
+  //--
   wire  [  7:0] ssNTS0_UARS_Udp_LsnRep_tdata ;
   wire          ssNTS0_UARS_Udp_LsnRep_tvalid;
   wire          ssNTS0_UARS_Udp_LsnRep_tready;
+  //--
   wire  [ 15:0] ssUARS_NTS0_Udp_ClsReq_tdata ;
   wire          ssUARS_NTS0_Udp_ClsReq_tvalid;
-  wire          ssUARS_NTS0_Udp_ClsReq_tready;  
+  wire          ssUARS_NTS0_Udp_ClsReq_tready;
+  //--
+  wire  [  7:0] ssNTS0_UARS_Udp_ClsRep_tdata ;
+  wire          ssNTS0_UARS_Udp_ClsRep_tvalid;
+  wire          ssNTS0_UARS_Udp_ClsRep_tready;
   
   //------------------------------------------------------
   //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->TARS)
@@ -516,9 +528,11 @@ module Shell_Kale # (
   wire          ssTARS_NTS0_Tcp_Data_tlast ;
   wire          ssTARS_NTS0_Tcp_Data_tvalid;
   wire          ssTARS_NTS0_Tcp_Data_tready;
+  //--
   wire  [ 15:0] ssTARS_NTS0_Tcp_Meta_tdata ;
   wire          ssTARS_NTS0_Tcp_Meta_tvalid;
   wire          ssTARS_NTS0_Tcp_Meta_tready;
+  //--
   wire  [ 23:0] ssNTS0_TARS_Tcp_DSts_tdata ;
   wire          ssNTS0_TARS_Tcp_DSts_tvalid;
   wire          ssNTS0_TARS_Tcp_DSts_tready;
@@ -531,12 +545,15 @@ module Shell_Kale # (
   wire          ssNTS0_TARS_Tcp_Data_tlast  ;
   wire          ssNTS0_TARS_Tcp_Data_tvalid ;
   wire          ssNTS0_TARS_Tcp_Data_tready ;
+  //--
   wire  [ 15:0] ssNTS0_TARS_Tcp_Meta_tdata  ;
   wire          ssNTS0_TARS_Tcp_Meta_tvalid ;
   wire          ssNTS0_TARS_Tcp_Meta_tready ;
+  //--
   wire  [103:0] ssNTS0_TARS_Tcp_Notif_tdata ;  // 7+96
   wire          ssNTS0_TARS_Tcp_Notif_tvalid;
   wire          ssNTS0_TARS_Tcp_Notif_tready;
+  //--
   wire  [ 31:0] ssTARS_NTS0_Tcp_DReq_tdata  ;
   wire          ssTARS_NTS0_Tcp_DReq_tvalid ;
   wire          ssTARS_NTS0_Tcp_DReq_tready ;
@@ -547,9 +564,11 @@ module Shell_Kale # (
   wire  [ 47:0] ssTARS_NTS0_Tcp_OpnReq_tdata ;
   wire          ssTARS_NTS0_Tcp_OpnReq_tvalid;
   wire          ssTARS_NTS0_Tcp_OpnReq_tready;
+  //--
   wire  [ 23:0] ssNTS0_TARS_Tcp_OpnRep_tdata ;
   wire          ssNTS0_TARS_Tcp_OpnRep_tvalid;
   wire          ssNTS0_TARS_Tcp_OpnRep_tready;
+  //--
   wire  [ 15:0] ssTARS_NTS0_Tcp_ClsReq_tdata ;
   wire          ssTARS_NTS0_Tcp_ClsReq_tvalid;
   wire          ssTARS_NTS0_Tcp_ClsReq_tready;
@@ -560,6 +579,7 @@ module Shell_Kale # (
   wire  [ 15:0] ssTARS_NTS0_Tcp_LsnReq_tdata ;   
   wire          ssTARS_NTS0_Tcp_LsnReq_tvalid;
   wire          ssTARS_NTS0_Tcp_LsnReq_tready;
+  //--
   wire  [  7:0] ssNTS0_TARS_Tcp_LsnAck_tdata ;
   wire          ssNTS0_TARS_Tcp_LsnAck_tvalid;
   wire          ssNTS0_TARS_Tcp_LsnAck_tready;  
@@ -836,9 +856,9 @@ module Shell_Kale # (
 
 
   //============================================================================
-  //  INST: NETWORK+TRANSPORT+SESSION SUBSYSTEM (OSI Network Layers 3+4+5)
+  //  INST: NETWORK+TRANSPORT STACK SUBSYSTEM (OSI Network Layers 3+4)
   //============================================================================
-  NetworkTransportSession_TcpIp NTS0 (
+  NetworkTransportStack_TcpIp NTS0 (
 
     //------------------------------------------------------
     //-- Global Clock used by the entire SHELL
@@ -978,10 +998,14 @@ module Shell_Kale # (
     .soAPP_Udp_LsnRep_tdata           (ssNTS0_UARS_Udp_LsnRep_tdata),
     .soAPP_Udp_LsnRep_tvalid          (ssNTS0_UARS_Udp_LsnRep_tvalid),
     .soAPP_Udp_LsnRep_tready          (ssNTS0_UARS_Udp_LsnRep_tready),
-    //---- Axi4-Stream UDP Close Request ------
+    //---- Axi4-Stream UDP Close Request -------
     .siAPP_Udp_ClsReq_tdata           (ssUARS_NTS0_Udp_ClsReq_tdata),
     .siAPP_Udp_ClsReq_tvalid          (ssUARS_NTS0_Udp_ClsReq_tvalid),
     .siAPP_Udp_ClsReq_tready          (ssUARS_NTS0_Udp_ClsReq_tready),
+    //---- Axi4-Stream UDP Close Reply ---------
+    .soAPP_Udp_ClsRep_tdata           (ssNTS0_UARS_Udp_ClsRep_tdata),
+    .soAPP_Udp_ClsRep_tvalid          (ssNTS0_UARS_Udp_ClsRep_tvalid),
+    .soAPP_Udp_ClsRep_tready          (ssNTS0_UARS_Udp_ClsRep_tready),
   
     //------------------------------------------------------
     //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
@@ -1056,12 +1080,13 @@ module Shell_Kale # (
     //------------------------------------------------------
     .piMMIO_Layer2Rst                 (sMMIO_LayerRst[2]),
     .piMMIO_Layer3Rst                 (sMMIO_LayerRst[3]),
-    .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]), 
+    .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]),
+    .piMMIO_Layer4En                  (sMMIO_LayerEn[4]),
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
     .piMMIO_IpAddress                 (sMMIO_NTS0_IpAddress),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
-    .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),
+    .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
 
     .poVoid                           ()
@@ -1213,7 +1238,6 @@ module Shell_Kale # (
     
   );
 
-
   //============================================================================
   //  INST: UDP APPLICATION REGISTER SLICE (NTS0<-->[UARS]<-->APP)
   //============================================================================
@@ -1221,7 +1245,7 @@ module Shell_Kale # (
     .piClk                    (sETH0_ShlClk),
     .piRst                    (piTOP_156_25Rst),   // [TODO-Use sMMIO_LayerRst[5])
     //------------------------------------------------------
-    //-- APP / Ucp / Tx Data Interfaces (.i.e THIS<-->APP)
+    //-- APP / Udp / Tx Data Interfaces (.i.e APP->UARS)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Data ---------------
     .siAPP_Udp_Data_tdata     (siROL_Nts_Udp_Data_tdata ),
@@ -1237,9 +1261,8 @@ module Shell_Kale # (
     .siAPP_Udp_DLen_tdata     (siROL_Nts_Udp_DLen_tdata ),
     .siAPP_Udp_DLen_tvalid    (siROL_Nts_Udp_DLen_tvalid),
     .siAPP_Udp_DLen_tready    (siROL_Nts_Udp_DLen_tready),
-      
     //------------------------------------------------------
-    //-- APP / Udp / Rx Data Interfaces (.i.e THIS<-->APP)
+    //-- APP / Udp / Rx Data Interfaces (.i.e UARS-->APP)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Data ---------------
     .soAPP_Udp_Data_tdata     (soROL_Nts_Udp_Data_tdata ),
@@ -1251,9 +1274,8 @@ module Shell_Kale # (
     .soAPP_Udp_Meta_tdata     (soROL_Nts_Udp_Meta_tdata ),
     .soAPP_Udp_Meta_tvalid    (soROL_Nts_Udp_Meta_tvalid),
     .soAPP_Udp_Meta_tready    (soROL_Nts_Udp_Meta_tready),
-    
     //------------------------------------------------------
-    //-- APP / Udp / Rx Ctrl Interfaces (.i.e THIS<-->APP)
+    //-- APP / Udp / Rx Ctrl Interfaces (.i.e UARS<-->APP)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Listen Request -----
     .siAPP_Udp_LsnReq_tdata   (siROL_Nts_Udp_LsnReq_tdata ),
@@ -1267,9 +1289,12 @@ module Shell_Kale # (
     .siAPP_Udp_ClsReq_tdata   (siROL_Nts_Udp_ClsReq_tdata ),
     .siAPP_Udp_ClsReq_tvalid  (siROL_Nts_Udp_ClsReq_tvalid),
     .siAPP_Udp_ClsReq_tready  (siROL_Nts_Udp_ClsReq_tready),
-    
+    //---- Axis4-Stream UDP Close Reply ---------
+    .soAPP_Udp_ClsRep_tdata   (soROL_Nts_Udp_ClsRep_tdata ),
+    .soAPP_Udp_ClsRep_tvalid  (soROL_Nts_Udp_ClsRep_tvalid),
+    .soAPP_Udp_ClsRep_tready  (soROL_Nts_Udp_ClsRep_tready),
     //------------------------------------------------------
-    //-- NTS / Udp / Tx Data Interfaces (.i.e NTS<-->THIS)
+    //-- NTS / Udp / Tx Data Interfaces (.i.e UARS-->NTS)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Data ---------------
     .soNTS_Udp_Data_tdata     (ssUARS_NTS0_Udp_Data_tdata ),
@@ -1284,10 +1309,9 @@ module Shell_Kale # (
     //---- Axis4Stream UDP Data Length ---------
     .soNTS_Udp_DLen_tdata     (ssUARS_NTS0_Udp_DLen_tdata ),
     .soNTS_Udp_DLen_tvalid    (ssUARS_NTS0_Udp_DLen_tvalid),
-    .soNTS_Udp_DLen_tready    (ssUARS_NTS0_Udp_DLen_tready),
-      
+    .soNTS_Udp_DLen_tready    (ssUARS_NTS0_Udp_DLen_tready),  
     //------------------------------------------------------
-    //-- NTS / Udp / Rx Data Interfaces (.i.e NTS<-->THIS)
+    //-- NTS / Udp / Rx Data Interfaces (.i.e NTS<-->UARS)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Data ---------------
     .siNTS_Udp_Data_tdata     (ssNTS0_UARS_Udp_Data_tdata ),
@@ -1299,9 +1323,8 @@ module Shell_Kale # (
     .siNTS_Udp_Meta_tdata     (ssNTS0_UARS_Udp_Meta_tdata ),
     .siNTS_Udp_Meta_tvalid    (ssNTS0_UARS_Udp_Meta_tvalid),
     .siNTS_Udp_Meta_tready    (ssNTS0_UARS_Udp_Meta_tready),
-    
     //------------------------------------------------------
-    //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->THIS)
+    //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->UARS)
     //------------------------------------------------------
     //---- Axi4-Stream UDP Listen Request -----
     .soNTS_Udp_LsnReq_tdata   (ssUARS_NTS0_Udp_LsnReq_tdata ),
@@ -1314,9 +1337,12 @@ module Shell_Kale # (
     //---- Axi4-Stream UDP Close Request ------
     .soNTS_Udp_ClsReq_tdata   (ssUARS_NTS0_Udp_ClsReq_tdata ),
     .soNTS_Udp_ClsReq_tvalid  (ssUARS_NTS0_Udp_ClsReq_tvalid),
-    .soNTS_Udp_ClsReq_tready  (ssUARS_NTS0_Udp_ClsReq_tready)
-     
-  );
+    .soNTS_Udp_ClsReq_tready  (ssUARS_NTS0_Udp_ClsReq_tready),
+    //---- Axi4-Stream UDP Listen Reply --------
+    .siNTS_Udp_ClsRep_tdata   (ssNTS0_UARS_Udp_ClsRep_tdata ),
+    .siNTS_Udp_ClsRep_tvalid  (ssNTS0_UARS_Udp_ClsRep_tvalid),
+    .siNTS_Udp_ClsRep_tready  (ssNTS0_UARS_Udp_ClsRep_tready)
+  ); // End-of: UARS
 
   //============================================================================
   //  INST: SYNCHRONOUS DYNAMIC RANDOM ACCESS MEMORY SUBSYSTEM
