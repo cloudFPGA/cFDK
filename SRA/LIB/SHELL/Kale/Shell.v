@@ -37,8 +37,9 @@
 // *    The interfaces exposed to the user's ROLE are:
 // *      - one AXI4-Stream interface for the UDP interface, 
 // *      - one AXI4-Stream interface for the TCP interface,
-// *      - two MM2S and two S2MM AXI4-Stream interfaces for the Memory Ports.
-// *        (refer to PG022-AXI- DataMover for a description of the MM2S and S2MM).     
+// *      - one MM2S/S2MM AXI4-Stream interfaces for the 1st Memory Port
+// *        (refer to PG022-AXI- DataMover for a description of the MM2S and S2MM).
+// *      - one AXI4 (full) interface for the 2nd Memory Port.
 // * 
 // * Parameters:
 // *    gSecurityPriviledges: Sets the level of the security privileges.
@@ -311,35 +312,35 @@ module Shell_Kale # (
   //------------------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
-  //-- Memory Port #1 / S2MM-AXIS ------------------
-  //---- Axi4-Stream Read Command -----
-  input  [ 79:0]  siROL_Mem_Mp1_RdCmd_tdata,
-  input           siROL_Mem_Mp1_RdCmd_tvalid,
-  output          siROL_Mem_Mp1_RdCmd_tready,
-  //---- Axi4-Stream Read Status ------
-  output [  7:0]  soROL_Mem_Mp1_RdSts_tdata,
-  output          soROL_Mem_Mp1_RdSts_tvalid,
-  input           soROL_Mem_Mp1_RdSts_tready,
-  //---- Axi4-Stream Data Output Channel
-  output [511:0]  soROL_Mem_Mp1_Read_tdata,
-  output [ 63:0]  soROL_Mem_Mp1_Read_tkeep,
-  output          soROL_Mem_Mp1_Read_tlast,
-  output          soROL_Mem_Mp1_Read_tvalid,
-  input           soROL_Mem_Mp1_Read_tready,
-  //---- Axi4-Stream Write Command ----
-  input  [ 79:0]  siROL_Mem_Mp1_WrCmd_tdata,
-  input           siROL_Mem_Mp1_WrCmd_tvalid,
-  output          siROL_Mem_Mp1_WrCmd_tready,
-  //---- Axi4-Stream Write Status -----
-  output          soROL_Mem_Mp1_WrSts_tvalid,
-  output [  7:0]  soROL_Mem_Mp1_WrSts_tdata,
-  input           soROL_Mem_Mp1_WrSts_tready,
-  //---- Axi4-Stream Data Input Channel
-  input  [511:0]  siROL_Mem_Mp1_Write_tdata,
-  input  [ 63:0]  siROL_Mem_Mp1_Write_tkeep,
-  input           siROL_Mem_Mp1_Write_tlast,
-  input           siROL_Mem_Mp1_Write_tvalid,
-  output          siROL_Mem_Mp1_Write_tready,
+  input  [  3: 0]  miROL_Mem_Mp1_AWID,
+  input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
+  input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
+  input  [  3: 0]  miROL_Mem_Mp1_AWSIZE,
+  input  [  1: 0]  miROL_Mem_Mp1_AWBURST,
+  input            miROL_Mem_Mp1_AWVALID,
+  output           miROL_Mem_Mp1_AWREADY,
+  input  [511: 0]  miROL_Mem_Mp1_WDATA,
+  input  [ 63: 0]  miROL_Mem_Mp1_WSTRB,
+  input            miROL_Mem_Mp1_WLAST,
+  input            miROL_Mem_Mp1_WVALID,
+  output           miROL_Mem_Mp1_WREADY,
+  output [  3: 0]  miROL_Mem_Mp1_BID,
+  output [  1: 0]  miROL_Mem_Mp1_BRESP,
+  output           miROL_Mem_Mp1_BVALID,
+  input            miROL_Mem_Mp1_BREADY,
+  input  [  3: 0]  miROL_Mem_Mp1_ARID,
+  input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
+  input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
+  input  [  3: 0]  miROL_Mem_Mp1_ARSIZE,
+  input  [  1: 0]  miROL_Mem_Mp1_ARBURST,
+  input            miROL_Mem_Mp1_ARVALID,
+  output           miROL_Mem_Mp1_ARREADY,
+  output [  3: 0]  miROL_Mem_Mp1_RID,
+  output [511: 0]  miROL_Mem_Mp1_RDATA,
+  output [  1: 0]  miROL_Mem_Mp1_RRESP,
+  output           miROL_Mem_Mp1_RLAST,
+  output           miROL_Mem_Mp1_RVALID,
+  input            miROL_Mem_Mp1_RREADY,
   
   //--------------------------------------------------------
   //-- ROLE / Mmio / AppFlash Interface
@@ -1503,35 +1504,35 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
-    //-- Memory Port #1 / S2MM-AXIS ------------------   
-    //---- Stream Read Command ---------------
-    .siROL_Mem_Mp1_RdCmd_tdata        (siROL_Mem_Mp1_RdCmd_tdata),
-    .siROL_Mem_Mp1_RdCmd_tvalid       (siROL_Mem_Mp1_RdCmd_tvalid),
-    .siROL_Mem_Mp1_RdCmd_tready       (siROL_Mem_Mp1_RdCmd_tready),
-    //---- Stream Read Status ----------------
-    .soROL_Mem_Mp1_RdSts_tdata        (soROL_Mem_Mp1_RdSts_tdata),
-    .soROL_Mem_Mp1_RdSts_tvalid       (soROL_Mem_Mp1_RdSts_tvalid),
-    .soROL_Mem_Mp1_RdSts_tready       (soROL_Mem_Mp1_RdSts_tready),
-    //---- Stream Data Output Channel --------
-    .soROL_Mem_Mp1_Read_tdata         (soROL_Mem_Mp1_Read_tdata),
-    .soROL_Mem_Mp1_Read_tkeep         (soROL_Mem_Mp1_Read_tkeep),
-    .soROL_Mem_Mp1_Read_tlast         (soROL_Mem_Mp1_Read_tlast),
-    .soROL_Mem_Mp1_Read_tvalid        (soROL_Mem_Mp1_Read_tvalid),
-    .soROL_Mem_Mp1_Read_tready        (soROL_Mem_Mp1_Read_tready),
-    //---- Stream Write Command --------------
-    .siROL_Mem_Mp1_WrCmd_tdata        (siROL_Mem_Mp1_WrCmd_tdata),
-    .siROL_Mem_Mp1_WrCmd_tvalid       (siROL_Mem_Mp1_WrCmd_tvalid),
-    .siROL_Mem_Mp1_WrCmd_tready       (siROL_Mem_Mp1_WrCmd_tready),
-    //---- Stream Write Status ---------------
-    .soROL_Mem_Mp1_WrSts_tdata        (soROL_Mem_Mp1_WrSts_tdata),
-    .soROL_Mem_Mp1_WrSts_tvalid       (soROL_Mem_Mp1_WrSts_tvalid),
-    .soROL_Mem_Mp1_WrSts_tready       (soROL_Mem_Mp1_WrSts_tready),
-    //---- Stream Data Input Channel ---------
-    .siROL_Mem_Mp1_Write_tdata        (siROL_Mem_Mp1_Write_tdata),
-    .siROL_Mem_Mp1_Write_tkeep        (siROL_Mem_Mp1_Write_tkeep),
-    .siROL_Mem_Mp1_Write_tlast        (siROL_Mem_Mp1_Write_tlast),
-    .siROL_Mem_Mp1_Write_tvalid       (siROL_Mem_Mp1_Write_tvalid),
-    .siROL_Mem_Mp1_Write_tready       (siROL_Mem_Mp1_Write_tready),
+    .miROL_Mem_Mp1_AWID               (miROL_Mem_Mp1_AWID   ),
+    .miROL_Mem_Mp1_AWADDR             (miROL_Mem_Mp1_AWADDR ),
+    .miROL_Mem_Mp1_AWLEN              (miROL_Mem_Mp1_AWLEN  ),
+    .miROL_Mem_Mp1_AWSIZE             (miROL_Mem_Mp1_AWSIZE ),
+    .miROL_Mem_Mp1_AWBURST            (miROL_Mem_Mp1_AWBURST),
+    .miROL_Mem_Mp1_AWVALID            (miROL_Mem_Mp1_AWVALID),
+    .miROL_Mem_Mp1_AWREADY            (miROL_Mem_Mp1_AWREADY),
+    .miROL_Mem_Mp1_WDATA              (miROL_Mem_Mp1_WDATA  ),
+    .miROL_Mem_Mp1_WSTRB              (miROL_Mem_Mp1_WSTRB  ),
+    .miROL_Mem_Mp1_WLAST              (miROL_Mem_Mp1_WLAST  ),
+    .miROL_Mem_Mp1_WVALID             (miROL_Mem_Mp1_WVALID ),
+    .miROL_Mem_Mp1_WREADY             (miROL_Mem_Mp1_WREADY ),
+    .miROL_Mem_Mp1_BID                (miROL_Mem_Mp1_BID    ),
+    .miROL_Mem_Mp1_BRESP              (miROL_Mem_Mp1_BRESP  ),
+    .miROL_Mem_Mp1_BVALID             (miROL_Mem_Mp1_BVALID ),
+    .miROL_Mem_Mp1_BREADY             (miROL_Mem_Mp1_BREADY ),
+    .miROL_Mem_Mp1_ARID               (miROL_Mem_Mp1_ARID   ),
+    .miROL_Mem_Mp1_ARADDR             (miROL_Mem_Mp1_ARADDR ),
+    .miROL_Mem_Mp1_ARLEN              (miROL_Mem_Mp1_ARLEN  ),
+    .miROL_Mem_Mp1_ARSIZE             (miROL_Mem_Mp1_ARSIZE ),
+    .miROL_Mem_Mp1_ARBURST            (miROL_Mem_Mp1_ARBURST),
+    .miROL_Mem_Mp1_ARVALID            (miROL_Mem_Mp1_ARVALID),
+    .miROL_Mem_Mp1_ARREADY            (miROL_Mem_Mp1_ARREADY),
+    .miROL_Mem_Mp1_RID                (miROL_Mem_Mp1_RID    ),
+    .miROL_Mem_Mp1_RDATA              (miROL_Mem_Mp1_RDATA  ),
+    .miROL_Mem_Mp1_RRESP              (miROL_Mem_Mp1_RRESP  ),
+    .miROL_Mem_Mp1_RLAST              (miROL_Mem_Mp1_RLAST  ),
+    .miROL_Mem_Mp1_RVALID             (miROL_Mem_Mp1_RVALID ),
+    .miROL_Mem_Mp1_RREADY             (miROL_Mem_Mp1_RREADY ),
 
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1

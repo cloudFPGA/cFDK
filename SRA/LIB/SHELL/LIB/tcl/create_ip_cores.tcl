@@ -748,9 +748,9 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #  Global
 #    [2]       : Number of Slave Interfaces
 #  Global Settings
-#    [0]       : Slave Interface ThreadID Width
-#    [4]       : Master Interface ID Width
-#    [32]      : Address Width
+#    [4]       : Slave Interface ThreadID Width
+#    [8]       : Master Interface ID Width
+#    [33]      : Address Width
 #    [512]     : Interconnect Internal Dat Width
 #    [3]       : Synchronization Stages across Asynchronous Clock Crossing
 #  Interfaces 
@@ -767,7 +767,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    |Slave I/F 1|  RD/WR  |   16    | 0(none) |   OFF     |   16    | 0(none) |   OFF     |
 #     
 #------------------------------------------------------------------------------
-set ipModName "AxiInterconnect_1M2S_A32_D512"
+set ipModName "AxiInterconnect_1M2S_A33_D512"
 set ipName    "axi_interconnect"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
@@ -788,7 +788,8 @@ set ipCfgList  [ list CONFIG.INTERCONNECT_DATA_WIDTH {512} \
                       CONFIG.AXI_ADDR_WIDTH {33} \
                       CONFIG.S00_AXI_REGISTER {1} \
                       CONFIG.S01_AXI_REGISTER {1} \
-                      CONFIG.M00_AXI_REGISTER {1} ]
+                      CONFIG.M00_AXI_REGISTER {1} \
+                      CONFIG.THREAD_ID_WIDTH {4}  ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -836,8 +837,9 @@ set ipCfgList  [ list CONFIG.C0.DDR4_MemoryPart {MT40A1G8WE-075E} \
                       CONFIG.C0.DDR4_AxiAddressWidth {33} \
                       CONFIG.C0.DDR4_TimePeriod {833} \
                       CONFIG.C0.DDR4_InputClockPeriod {3332} \
-                      CONFIG.C0.DDR4_Specify_MandD {true} ]
-
+                      CONFIG.C0.DDR4_Specify_MandD {true} \
+                      CONFIG.C0.DDR4_AxiNarrowBurst {true} \
+                      CONFIG.C0.DDR4_AxiIDWidth {8} ]
 
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]

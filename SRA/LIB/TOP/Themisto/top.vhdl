@@ -253,34 +253,36 @@ architecture structural of topFMKU60 is
   signal ssROL_SHL_Mem_Mp0_Write_tvalid     : std_ulogic;
   signal ssROL_SHL_Mem_Mp0_Write_tready     : std_ulogic;
   -- Memory Port #1 ------------------------------
-  ------ Stream Read Command ---------------
-  signal ssROL_SHL_Mem_Mp1_RdCmd_tdata      : std_ulogic_vector( 79 downto 0);
-  signal ssROL_SHL_Mem_Mp1_RdCmd_tvalid     : std_ulogic;
-  signal ssROL_SHL_Mem_Mp1_RdCmd_tready     : std_ulogic;
-  ------ Stream Read Status ----------------
-  signal ssSHL_ROL_Mem_Mp1_RdSts_tdata      : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_ROL_Mem_Mp1_RdSts_tvalid     : std_ulogic;
-  signal ssSHL_ROL_Mem_Mp1_RdSts_tready     : std_ulogic;
-  ------ Stream Data Output Channel --------
-  signal ssSHL_ROL_Mem_Mp1_Read_tdata       : std_ulogic_vector(511 downto 0);
-  signal ssSHL_ROL_Mem_Mp1_Read_tkeep       : std_ulogic_vector( 63 downto 0);
-  signal ssSHL_ROL_Mem_Mp1_Read_tlast       : std_ulogic;
-  signal ssSHL_ROL_Mem_Mp1_Read_tvalid      : std_ulogic;
-  signal ssSHL_ROL_Mem_Mp1_Read_tready      : std_ulogic; 
-  ------ Stream Write Command --------------
-  signal ssROL_SHL_Mem_Mp1_WrCmd_tdata      : std_ulogic_vector( 79 downto 0);
-  signal ssROL_SHL_Mem_Mp1_WrCmd_tvalid     : std_ulogic;
-  signal ssROL_SHL_Mem_Mp1_WrCmd_tready     : std_ulogic;
-  ------ Stream Write Status ---------------
-  signal ssSHL_ROL_Mem_Mp1_WrSts_tdata      : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_ROL_Mem_Mp1_WrSts_tvalid     : std_ulogic;
-  signal ssSHL_ROL_Mem_Mp1_WrSts_tready     : std_ulogic;
-  ------ Stream Data Input Channel ---------
-  signal ssROL_SHL_Mem_Mp1_Write_tdata      : std_ulogic_vector(511 downto 0);
-  signal ssROL_SHL_Mem_Mp1_Write_tkeep      : std_ulogic_vector( 63 downto 0);
-  signal ssROL_SHL_Mem_Mp1_Write_tlast      : std_ulogic;
-  signal ssROL_SHL_Mem_Mp1_Write_tvalid     : std_ulogic;
-  signal ssROL_SHL_Mem_Mp1_Write_tready     : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_AWID             : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWADDR           : std_ulogic_vector(32 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWLEN            : std_ulogic_vector(7 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWBURST          : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWVALID          : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_AWREADY          : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_WDATA            : std_ulogic_vector(511 downto 0);
+  signal smROL_SHL_Mem_Mp1_WSTRB            : std_ulogic_vector(63 downto 0);
+  signal smROL_SHL_Mem_Mp1_WLAST            : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_WVALID           : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_WREADY           : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_BID              : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_BRESP            : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_BVALID           : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_BREADY           : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_ARID             : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARADDR           : std_ulogic_vector(32 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARLEN            : std_ulogic_vector(7 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARBURST          : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARVALID          : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_ARREADY          : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_RID              : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_RDATA            : std_ulogic_vector(511 downto 0);
+  signal smROL_SHL_Mem_Mp1_RRESP            : std_ulogic_vector(1 downto 0);
+  signal smROL_SHL_Mem_Mp1_RLAST            : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_RVALID           : std_ulogic;
+  signal smROL_SHL_Mem_Mp1_RREADY           : std_ulogic;
+  
 
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [MMIO] <--> [ROLE] 
@@ -508,35 +510,35 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      -- Memory Port #1 / S2MM-AXIS ------------------
-      ---- Stream Read Command -----------------
-      siROL_Mem_Mp1_RdCmd_tdata         : in    std_ulogic_vector( 79 downto 0);
-      siROL_Mem_Mp1_RdCmd_tvalid        : in    std_ulogic;
-      siROL_Mem_Mp1_RdCmd_tready        : out   std_ulogic;
-      ---- Stream Read Status ------------------
-      soROL_Mem_Mp1_RdSts_tdata         : out   std_ulogic_vector(  7 downto 0);
-      soROL_Mem_Mp1_RdSts_tvalid        : out   std_ulogic;
-      soROL_Mem_Mp1_RdSts_tready        : in    std_ulogic;
-      ---- Stream Data Output Channel ----------
-      soROL_Mem_Mp1_Read_tdata          : out   std_ulogic_vector(511 downto 0);
-      soROL_Mem_Mp1_Read_tkeep          : out   std_ulogic_vector( 63 downto 0);
-      soROL_Mem_Mp1_Read_tlast          : out   std_ulogic;
-      soROL_Mem_Mp1_Read_tvalid         : out   std_ulogic;
-      soROL_Mem_Mp1_Read_tready         : in    std_ulogic;
-      ---- Stream Write Command ----------------
-      siROL_Mem_Mp1_WrCmd_tdata         : in    std_ulogic_vector( 79 downto 0);
-      siROL_Mem_Mp1_WrCmd_tvalid        : in    std_ulogic;
-      siROL_Mem_Mp1_WrCmd_tready        : out   std_ulogic;
-      ---- Stream Write Status -----------------
-      soROL_Mem_Mp1_WrSts_tvalid        : out   std_ulogic;
-      soROL_Mem_Mp1_WrSts_tdata         : out   std_ulogic_vector(  7 downto 0);
-      soROL_Mem_Mp1_WrSts_tready        : in    std_ulogic;
-      ---- Stream Data Input Channel -----------
-      siROL_Mem_Mp1_Write_tdata         : in    std_ulogic_vector(511 downto 0);
-      siROL_Mem_Mp1_Write_tkeep         : in    std_ulogic_vector( 63 downto 0);
-      siROL_Mem_Mp1_Write_tlast         : in    std_ulogic;
-      siROL_Mem_Mp1_Write_tvalid        : in    std_ulogic;
-      siROL_Mem_Mp1_Write_tready        : out   std_ulogic;
+      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector(32 downto 0);
+      miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(7 downto 0);
+      miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_AWBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_AWVALID             : in    std_ulogic;
+      miROL_Mem_Mp1_AWREADY             : out   std_ulogic;
+      miROL_Mem_Mp1_WDATA               : in    std_ulogic_vector(511 downto 0);
+      miROL_Mem_Mp1_WSTRB               : in    std_ulogic_vector(63 downto 0);
+      miROL_Mem_Mp1_WLAST               : in    std_ulogic;
+      miROL_Mem_Mp1_WVALID              : in    std_ulogic;
+      miROL_Mem_Mp1_WREADY              : out   std_ulogic;
+      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_BVALID              : out   std_ulogic;
+      miROL_Mem_Mp1_BREADY              : in    std_ulogic;
+      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector(32 downto 0);
+      miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(7 downto 0);
+      miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_ARVALID             : in    std_ulogic;
+      miROL_Mem_Mp1_ARREADY             : out   std_ulogic;
+      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_RDATA               : out   std_ulogic_vector(511 downto 0);
+      miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_RLAST               : out   std_ulogic;
+      miROL_Mem_Mp1_RVALID              : out   std_ulogic;
+      miROL_Mem_Mp1_RREADY              : in    std_ulogic;
       
       --------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
@@ -652,66 +654,66 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       ---- Memory Port #0 / S2MM-AXIS -------------   
       ------ Stream Read Command ---------
-      soSHL_Mem_Mp0_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-      soSHL_Mem_Mp0_RdCmd_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp0_RdCmd_tready          : in    std_ulogic;
+      soMEM_Mp0_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+      soMEM_Mp0_RdCmd_tvalid          : out   std_ulogic;
+      soMEM_Mp0_RdCmd_tready          : in    std_ulogic;
       ------ Stream Read Status ----------
-      siSHL_Mem_Mp0_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-      siSHL_Mem_Mp0_RdSts_tvalid          : in    std_ulogic;
-      siSHL_Mem_Mp0_RdSts_tready          : out   std_ulogic;
+      siMEM_Mp0_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+      siMEM_Mp0_RdSts_tvalid          : in    std_ulogic;
+      siMEM_Mp0_RdSts_tready          : out   std_ulogic;
       ------ Stream Data Input Channel ---
-      siSHL_Mem_Mp0_Read_tdata            : in    std_ulogic_vector(511 downto 0);
-      siSHL_Mem_Mp0_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
-      siSHL_Mem_Mp0_Read_tlast            : in    std_ulogic;
-      siSHL_Mem_Mp0_Read_tvalid           : in    std_ulogic;
-      siSHL_Mem_Mp0_Read_tready           : out   std_ulogic;
+      siMEM_Mp0_Read_tdata            : in    std_ulogic_vector(511 downto 0);
+      siMEM_Mp0_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
+      siMEM_Mp0_Read_tlast            : in    std_ulogic;
+      siMEM_Mp0_Read_tvalid           : in    std_ulogic;
+      siMEM_Mp0_Read_tready           : out   std_ulogic;
       ------ Stream Write Command --------
-      soSHL_Mem_Mp0_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-      soSHL_Mem_Mp0_WrCmd_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp0_WrCmd_tready          : in    std_ulogic;
+      soMEM_Mp0_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
+      soMEM_Mp0_WrCmd_tvalid          : out   std_ulogic;
+      soMEM_Mp0_WrCmd_tready          : in    std_ulogic;
       ------ Stream Write Status ---------
-      siSHL_Mem_Mp0_WrSts_tvalid          : in    std_ulogic;
-      siSHL_Mem_Mp0_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-      siSHL_Mem_Mp0_WrSts_tready          : out   std_ulogic;
+      siMEM_Mp0_WrSts_tvalid          : in    std_ulogic;
+      siMEM_Mp0_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
+      siMEM_Mp0_WrSts_tready          : out   std_ulogic;
       ------ Stream Data Output Channel --
-      soSHL_Mem_Mp0_Write_tdata           : out   std_ulogic_vector(511 downto 0);
-      soSHL_Mem_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
-      soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
-      soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
+      soMEM_Mp0_Write_tdata           : out   std_ulogic_vector(511 downto 0);
+      soMEM_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
+      soMEM_Mp0_Write_tlast           : out   std_ulogic;
+      soMEM_Mp0_Write_tvalid          : out   std_ulogic;
+      soMEM_Mp0_Write_tready          : in    std_ulogic; 
       
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
-      ---- Memory Port #1 / S2MM-AXIS ------------   
-      ------ Stream Read Command ---------
-      soSHL_Mem_Mp1_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-      soSHL_Mem_Mp1_RdCmd_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp1_RdCmd_tready          : in    std_ulogic;
-      ------ Stream Read Status ----------
-      siSHL_Mem_Mp1_RdSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-      siSHL_Mem_Mp1_RdSts_tvalid          : in    std_ulogic;
-      siSHL_Mem_Mp1_RdSts_tready          : out   std_ulogic;
-      ------ Stream Data Input Channel ---
-      siSHL_Mem_Mp1_Read_tdata            : in    std_ulogic_vector(511 downto 0);
-      siSHL_Mem_Mp1_Read_tkeep            : in    std_ulogic_vector( 63 downto 0);
-      siSHL_Mem_Mp1_Read_tlast            : in    std_ulogic;
-      siSHL_Mem_Mp1_Read_tvalid           : in    std_ulogic;
-      siSHL_Mem_Mp1_Read_tready           : out   std_ulogic;
-      ------ Stream Write Command --------
-      soSHL_Mem_Mp1_WrCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
-      soSHL_Mem_Mp1_WrCmd_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp1_WrCmd_tready          : in    std_ulogic;
-      ------ Stream Write Status ---------
-      siSHL_Mem_Mp1_WrSts_tvalid          : in    std_ulogic;
-      siSHL_Mem_Mp1_WrSts_tdata           : in    std_ulogic_vector(  7 downto 0);
-      siSHL_Mem_Mp1_WrSts_tready          : out   std_ulogic;
-      ------ Stream Data Output Channel --
-      soSHL_Mem_Mp1_Write_tdata           : out   std_ulogic_vector(511 downto 0);
-      soSHL_Mem_Mp1_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
-      soSHL_Mem_Mp1_Write_tlast           : out   std_ulogic;
-      soSHL_Mem_Mp1_Write_tvalid          : out   std_ulogic;
-      soSHL_Mem_Mp1_Write_tready          : in    std_ulogic; 
+      moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
+      moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
+      moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
+      moMEM_Mp1_AWVALID               : out   std_ulogic;
+      moMEM_Mp1_AWREADY               : in    std_ulogic;
+      moMEM_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
+      moMEM_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
+      moMEM_Mp1_WLAST                 : out   std_ulogic;
+      moMEM_Mp1_WVALID                : out   std_ulogic;
+      moMEM_Mp1_WREADY                : in    std_ulogic;
+      moMEM_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
+      moMEM_Mp1_BVALID                : in    std_ulogic;
+      moMEM_Mp1_BREADY                : out   std_ulogic;
+      moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
+      moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
+      moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
+      moMEM_Mp1_ARVALID               : out   std_ulogic;
+      moMEM_Mp1_ARREADY               : in    std_ulogic;
+      moMEM_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
+      moMEM_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
+      moMEM_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
+      moMEM_Mp1_RLAST                 : in    std_ulogic;
+      moMEM_Mp1_RVALID                : in    std_ulogic;
+      moMEM_Mp1_RREADY                : out   std_ulogic;
 
       --------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
@@ -999,35 +1001,35 @@ begin
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      -- Memory Port #1 / S2MM-AXIS ------------------
-      ---- Stream Read Command ---------
-      siROL_Mem_Mp1_RdCmd_tdata         => ssROL_SHL_Mem_Mp1_RdCmd_tdata,
-      siROL_Mem_Mp1_RdCmd_tvalid        => ssROL_SHL_Mem_Mp1_RdCmd_tvalid,
-      siROL_Mem_Mp1_RdCmd_tready        => ssROL_SHL_Mem_Mp1_RdCmd_tready,
-      ---- Stream Read Status ----------
-      soROL_Mem_Mp1_RdSts_tdata         => ssSHL_ROL_Mem_Mp1_RdSts_tdata,
-      soROL_Mem_Mp1_RdSts_tvalid        => ssSHL_ROL_Mem_Mp1_RdSts_tvalid,
-      soROL_Mem_Mp1_RdSts_tready        => ssSHL_ROL_Mem_Mp1_RdSts_tready,
-      ---- Stream Data Output Channel --
-      soROL_Mem_Mp1_Read_tdata          => ssSHL_ROL_Mem_Mp1_Read_tdata,
-      soROL_Mem_Mp1_Read_tkeep          => ssSHL_ROL_Mem_Mp1_Read_tkeep,
-      soROL_Mem_Mp1_Read_tlast          => ssSHL_ROL_Mem_Mp1_Read_tlast,
-      soROL_Mem_Mp1_Read_tvalid         => ssSHL_ROL_Mem_Mp1_Read_tvalid,
-      soROL_Mem_Mp1_Read_tready         => ssSHL_ROL_Mem_Mp1_Read_tready,
-      ---- Stream Write Command --------
-      siROL_Mem_Mp1_WrCmd_tdata         => ssROL_SHL_Mem_Mp1_WrCmd_tdata,
-      siROL_Mem_Mp1_WrCmd_tvalid        => ssROL_SHL_Mem_Mp1_WrCmd_tvalid,
-      siROL_Mem_Mp1_WrCmd_tready        => ssROL_SHL_Mem_Mp1_WrCmd_tready,
-      ---- Stream Write Status ---------
-      soROL_Mem_Mp1_WrSts_tvalid        => ssSHL_ROL_Mem_Mp1_WrSts_tvalid,
-      soROL_Mem_Mp1_WrSts_tdata         => ssSHL_ROL_Mem_Mp1_WrSts_tdata,
-      soROL_Mem_Mp1_WrSts_tready        => ssSHL_ROL_Mem_Mp1_WrSts_tready,
-      ---- Stream Data Input Channel ---
-      siROL_Mem_Mp1_Write_tdata         => ssROL_SHL_Mem_Mp1_Write_tdata,
-      siROL_Mem_Mp1_Write_tkeep         => ssROL_SHL_Mem_Mp1_Write_tkeep,
-      siROL_Mem_Mp1_Write_tlast         => ssROL_SHL_Mem_Mp1_Write_tlast,
-      siROL_Mem_Mp1_Write_tvalid        => ssROL_SHL_Mem_Mp1_Write_tvalid,
-      siROL_Mem_Mp1_Write_tready        => ssROL_SHL_Mem_Mp1_Write_tready,
+      miROL_Mem_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
+      miROL_Mem_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
+      miROL_Mem_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
+      miROL_Mem_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
+      miROL_Mem_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
+      miROL_Mem_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
+      miROL_Mem_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
+      miROL_Mem_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
+      miROL_Mem_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
+      miROL_Mem_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
+      miROL_Mem_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
+      miROL_Mem_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
+      miROL_Mem_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
+      miROL_Mem_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
+      miROL_Mem_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
+      miROL_Mem_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
+      miROL_Mem_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
+      miROL_Mem_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
+      miROL_Mem_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
+      miROL_Mem_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
+      miROL_Mem_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
+      miROL_Mem_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
+      miROL_Mem_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
+      miROL_Mem_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
+      miROL_Mem_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
+      miROL_Mem_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
+      miROL_Mem_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
+      miROL_Mem_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
+      miROL_Mem_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
 
       ------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
@@ -1142,66 +1144,66 @@ begin
       ------------------------------------------------------
       -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command ---------
-      soSHL_Mem_Mp0_RdCmd_tdata         => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
-      soSHL_Mem_Mp0_RdCmd_tvalid        => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
-      soSHL_Mem_Mp0_RdCmd_tready        => ssROL_SHL_Mem_Mp0_RdCmd_tready,
+      soMEM_Mp0_RdCmd_tdata         => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
+      soMEM_Mp0_RdCmd_tvalid        => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
+      soMEM_Mp0_RdCmd_tready        => ssROL_SHL_Mem_Mp0_RdCmd_tready,
       ---- Stream Read Status ----------
-      siSHL_Mem_Mp0_RdSts_tdata         => ssSHL_ROL_Mem_Mp0_RdSts_tdata,
-      siSHL_Mem_Mp0_RdSts_tvalid        => ssSHL_ROL_Mem_Mp0_RdSts_tvalid,
-      siSHL_Mem_Mp0_RdSts_tready        => ssSHL_ROL_Mem_Mp0_RdSts_tready,
+      siMEM_Mp0_RdSts_tdata         => ssSHL_ROL_Mem_Mp0_RdSts_tdata,
+      siMEM_Mp0_RdSts_tvalid        => ssSHL_ROL_Mem_Mp0_RdSts_tvalid,
+      siMEM_Mp0_RdSts_tready        => ssSHL_ROL_Mem_Mp0_RdSts_tready,
       ---- Stream Data Input Channel ---
-      siSHL_Mem_Mp0_Read_tdata          => ssSHL_ROL_Mem_Mp0_Read_tdata,
-      siSHL_Mem_Mp0_Read_tkeep          => ssSHL_ROL_Mem_Mp0_Read_tkeep,
-      siSHL_Mem_Mp0_Read_tlast          => ssSHL_ROL_Mem_Mp0_Read_tlast,
-      siSHL_Mem_Mp0_Read_tvalid         => ssSHL_ROL_Mem_Mp0_Read_tvalid,
-      siSHL_Mem_Mp0_Read_tready         => ssSHL_ROL_Mem_Mp0_Read_tready,
+      siMEM_Mp0_Read_tdata          => ssSHL_ROL_Mem_Mp0_Read_tdata,
+      siMEM_Mp0_Read_tkeep          => ssSHL_ROL_Mem_Mp0_Read_tkeep,
+      siMEM_Mp0_Read_tlast          => ssSHL_ROL_Mem_Mp0_Read_tlast,
+      siMEM_Mp0_Read_tvalid         => ssSHL_ROL_Mem_Mp0_Read_tvalid,
+      siMEM_Mp0_Read_tready         => ssSHL_ROL_Mem_Mp0_Read_tready,
       ---- Stream Write Command --------
-      soSHL_Mem_Mp0_WrCmd_tdata         => ssROL_SHL_Mem_Mp0_WrCmd_tdata,
-      soSHL_Mem_Mp0_WrCmd_tvalid        => ssROL_SHL_Mem_Mp0_WrCmd_tvalid,
-      soSHL_Mem_Mp0_WrCmd_tready        => ssROL_SHL_Mem_Mp0_WrCmd_tready,
+      soMEM_Mp0_WrCmd_tdata         => ssROL_SHL_Mem_Mp0_WrCmd_tdata,
+      soMEM_Mp0_WrCmd_tvalid        => ssROL_SHL_Mem_Mp0_WrCmd_tvalid,
+      soMEM_Mp0_WrCmd_tready        => ssROL_SHL_Mem_Mp0_WrCmd_tready,
       ---- Stream Write Status ---------
-      siSHL_Mem_Mp0_WrSts_tvalid        => ssSHL_ROL_Mem_Mp0_WrSts_tvalid,
-      siSHL_Mem_Mp0_WrSts_tdata         => ssSHL_ROL_Mem_Mp0_WrSts_tdata,
-      siSHL_Mem_Mp0_WrSts_tready        => ssSHL_ROL_Mem_Mp0_WrSts_tready,
+      siMEM_Mp0_WrSts_tvalid        => ssSHL_ROL_Mem_Mp0_WrSts_tvalid,
+      siMEM_Mp0_WrSts_tdata         => ssSHL_ROL_Mem_Mp0_WrSts_tdata,
+      siMEM_Mp0_WrSts_tready        => ssSHL_ROL_Mem_Mp0_WrSts_tready,
       ---- Stream Data Output Channel --
-      soSHL_Mem_Mp0_Write_tdata         => ssROL_SHL_Mem_Mp0_Write_tdata,
-      soSHL_Mem_Mp0_Write_tkeep         => ssROL_SHL_Mem_Mp0_Write_tkeep,
-      soSHL_Mem_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
-      soSHL_Mem_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
-      soSHL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
+      soMEM_Mp0_Write_tdata         => ssROL_SHL_Mem_Mp0_Write_tdata,
+      soMEM_Mp0_Write_tkeep         => ssROL_SHL_Mem_Mp0_Write_tkeep,
+      soMEM_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
+      soMEM_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
+      soMEM_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
       
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
       ------------------------------------------------------
-      -- Memory Port #1 / S2MM-AXIS ------------------   
-      ---- Stream Read Command ---------
-      soSHL_Mem_Mp1_RdCmd_tdata         => ssROL_SHL_Mem_Mp1_RdCmd_tdata,
-      soSHL_Mem_Mp1_RdCmd_tvalid        => ssROL_SHL_Mem_Mp1_RdCmd_tvalid,
-      soSHL_Mem_Mp1_RdCmd_tready        => ssROL_SHL_Mem_Mp1_RdCmd_tready,
-      ---- Stream Read Status ----------
-      siSHL_Mem_Mp1_RdSts_tdata         => ssSHL_ROL_Mem_Mp1_RdSts_tdata,
-      siSHL_Mem_Mp1_RdSts_tvalid        => ssSHL_ROL_Mem_Mp1_RdSts_tvalid,
-      siSHL_Mem_Mp1_RdSts_tready        => ssSHL_ROL_Mem_Mp1_RdSts_tready,
-      ---- Stream Data Input Channel ---
-      siSHL_Mem_Mp1_Read_tdata          => ssSHL_ROL_Mem_Mp1_Read_tdata,
-      siSHL_Mem_Mp1_Read_tkeep          => ssSHL_ROL_Mem_Mp1_Read_tkeep,
-      siSHL_Mem_Mp1_Read_tlast          => ssSHL_ROL_Mem_Mp1_Read_tlast,
-      siSHL_Mem_Mp1_Read_tvalid         => ssSHL_ROL_Mem_Mp1_Read_tvalid,
-      siSHL_Mem_Mp1_Read_tready         => ssSHL_ROL_Mem_Mp1_Read_tready,
-      ---- Stream Write Command --------
-      soSHL_Mem_Mp1_WrCmd_tdata         => ssROL_SHL_Mem_Mp1_WrCmd_tdata,
-      soSHL_Mem_Mp1_WrCmd_tvalid        => ssROL_SHL_Mem_Mp1_WrCmd_tvalid,
-      soSHL_Mem_Mp1_WrCmd_tready        => ssROL_SHL_Mem_Mp1_WrCmd_tready,
-      ---- Stream Write Status ---------
-      siSHL_Mem_Mp1_WrSts_tvalid        => ssSHL_ROL_Mem_Mp1_WrSts_tvalid,
-      siSHL_Mem_Mp1_WrSts_tdata         => ssSHL_ROL_Mem_Mp1_WrSts_tdata,
-      siSHL_Mem_Mp1_WrSts_tready        => ssSHL_ROL_Mem_Mp1_WrSts_tready,
-      ---- Stream Data Output Channel --
-      soSHL_Mem_Mp1_Write_tdata         => ssROL_SHL_Mem_Mp1_Write_tdata,
-      soSHL_Mem_Mp1_Write_tkeep         => ssROL_SHL_Mem_Mp1_Write_tkeep,
-      soSHL_Mem_Mp1_Write_tlast         => ssROL_SHL_Mem_Mp1_Write_tlast,
-      soSHL_Mem_Mp1_Write_tvalid        => ssROL_SHL_Mem_Mp1_Write_tvalid,
-      soSHL_Mem_Mp1_Write_tready        => ssROL_SHL_Mem_Mp1_Write_tready,
+      moMEM_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
+      moMEM_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
+      moMEM_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
+      moMEM_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
+      moMEM_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
+      moMEM_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
+      moMEM_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
+      moMEM_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
+      moMEM_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
+      moMEM_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
+      moMEM_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
+      moMEM_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
+      moMEM_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
+      moMEM_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
+      moMEM_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
+      moMEM_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
+      moMEM_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
+      moMEM_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
+      moMEM_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
+      moMEM_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
+      moMEM_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
+      moMEM_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
+      moMEM_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
+      moMEM_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
+      moMEM_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
+      moMEM_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
+      moMEM_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
+      moMEM_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
+      moMEM_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
       
       ------------------------------------------------------
       -- SHELL / Mmio / Flash Debug Interface
@@ -1238,29 +1240,4 @@ begin
   );  -- End of Role instantiation
 
 end structural;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
