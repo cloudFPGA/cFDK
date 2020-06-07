@@ -146,15 +146,15 @@ void pTbSimCount(
  * @param[in]  siIPRX_Data,      IP4 data stream from IPRX.
  * -- L3MUX / IP Tx / Data Interface
  * @param[out] soL3MUX_Data,     IP4 data stream to L3MUX.
- * -- TRIF / Tx Data Interfaces
+ * -- TRIF / Rx Data Interfaces
  * @param[out] soTRIF_Notif,     TCP notification to TRIF.
  * @param[in]  siTRIF_DReq,      TCP data request from TRIF.
  * @param[out] soTRIF_Data,      TCP data stream to TRIF.
  * @param[out] soTRIF_Meta,      TCP metadata stream to TRIF.
  * -- TRIF / Listen Interfaces
  * @param[in]  siTRIF_LsnReq,    TCP listen port request from TRIF.
- * @param[out] soTRIF_LsnAck,    TCP listen port acknowledge to TRIF.
- * -- TRIF / Rx Data Interfaces
+ * @param[out] soTRIF_LsnAck,    TCP listen port acknowledge to TRIF.  // FIXME-Rename into LsnRep
+ * -- TRIF / Tx Data Interfaces
  * @param[in]  siTRIF_Data,      TCP data stream from TRIF.
  * @param[in]  siTRIF_Meta,      TCP metadata stream from TRIF.
  * @param[out] soTRIF_DSts,      TCP data status to TRIF.
@@ -213,7 +213,7 @@ void toe(
         stream<Ip4overMac>                  &soL3MUX_Data,
 
         //------------------------------------------------------
-        //-- TRIF / Tx Data Interfaces
+        //-- TRIF / Tx Data Interfaces   // [TODO- TAIF / Rx Data Interfaces]
         //------------------------------------------------------
         stream<AppNotif>                    &soTRIF_Notif,
         stream<AppRdReq>                    &siTRIF_DReq,
@@ -224,14 +224,14 @@ void toe(
         //-- TRIF / Listen Interfaces
         //------------------------------------------------------
         stream<AppLsnReq>                   &siTRIF_LsnReq,
-        stream<AppLsnAck>                   &soTRIF_LsnAck,
+        stream<AppLsnAck>                   &soTRIF_LsnAck,  // FIXME-Rename into LsnRep
 
         //------------------------------------------------------
-        //-- TRIF / Rx Data Interfaces
+        //-- TRIF / Rx Data Interfaces  // [TODO- TAIF / Tx Data Interfaces]             
         //------------------------------------------------------
         stream<AppData>                     &siTRIF_Data,
         stream<AppMeta>                     &siTRIF_Meta,
-        stream<AppWrSts>                    &soTRIF_DSts,
+        stream<AppWrSts>                    &soTRIF_DSts,  // [TODO- Rename into TcpAppSndSts]
 
         //------------------------------------------------------
         //-- TRIF / Open Interfaces

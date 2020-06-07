@@ -1470,9 +1470,9 @@ class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
  *  The status returned by TOE after a write
  *  data transfer.
  ***********************************************/
-class AppWrSts
+class AppWrSts  // [TODO- Rename into TcpAppSndSts] 
 {
-  public:
+public:  // [FIXME - Swap order. status/segLen
     TcpSegLen    segLen;  // The #bytes written or an error code if status==0
     StsBit       status;  // OK=1
     AppWrSts() {}

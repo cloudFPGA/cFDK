@@ -743,7 +743,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI Interconnect [1M, 2S, A32, D512] 
+# VIVADO-IP : AXI Interconnect [1M, 2S, A33, D512] 
 #------------------------------------------------------------------------------
 #  Global
 #    [2]       : Number of Slave Interfaces

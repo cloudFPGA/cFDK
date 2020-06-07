@@ -956,7 +956,7 @@ void pRxEngine(
  *     sub-datagrams as required to transport all 'DLen' bytes over Ethernet
  *     frames.
  *  2) STREAMING_MODE: If the 'DLen' field is configured with a length == 0, the
- *     corresponding stream stream will be forwarded based on the same metadata
+ *     corresponding stream will be forwarded based on the same metadata
  *     information until the 'TLAST' bit of the data stream is set. In this mode,
  *     the UOE will wait for the reception of 1472 bytes before generating a new
  *     UDP-over-IPv4 packet, unless the 'TLAST' bit of the data stream is set.

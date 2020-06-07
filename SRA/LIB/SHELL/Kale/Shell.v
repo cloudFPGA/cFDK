@@ -59,25 +59,20 @@
 // *****************************************************************************
 
 module Shell_Kale # (
-
   parameter gSecurityPriviledges = "super", // "user" or "super"
   parameter gBitstreamUsage      = "flash", // "user" or "flash"
   parameter gMmioAddrWidth       =      8,  // Default is 8-bits
   parameter gMmioDataWidth       =      8   // Default is 8-bits
-
 ) (
-
   //------------------------------------------------------
   //-- TOP / Input Clocks and Resets from topFMKU60
   //------------------------------------------------------
   input           piTOP_156_25Rst,
   input           piTOP_156_25Clk,
-
   //------------------------------------------------------
   //-- TOP / Bitstream Identification
   //------------------------------------------------------
   input  [31: 0]  piTOP_Timestamp,
-  
   //------------------------------------------------------
   //-- CLKT / Clock Tree Interface 
   //------------------------------------------------------
@@ -87,7 +82,6 @@ module Shell_Kale # (
   input           piCLKT_Mem1Clk_p,
   input           piCLKT_10GeClk_n,
   input           piCLKT_10GeClk_p,
-
   //------------------------------------------------------
   //-- PSOC / External Memory Interface (Emif)
   //------------------------------------------------------
@@ -100,12 +94,10 @@ module Shell_Kale # (
                   piPSOC_Emif_Addr,
   inout [gMmioDataWidth-1: 0]  
                   pioPSOC_Emif_Data,
-
   //------------------------------------------------------
   //-- LED / Heart Beat Interface (Yellow LED)
   //------------------------------------------------------
   output          poLED_HeartBeat_n,
-
   //------------------------------------------------------
   // -- DDR4 / Memory Channel 0 Interface (Mc0)
   //------------------------------------------------------
@@ -123,7 +115,6 @@ module Shell_Kale # (
   output [ 0:0]   poDDR4_Mem_Mc0_Ck_n,
   output [ 0:0]   poDDR4_Mem_Mc0_Ck_p,
   output          poDDR4_Mem_Mc0_Reset_n,
-
   //------------------------------------------------------
   //-- DDR4 / Memory Channel 1 Interface (Mc1)
   //------------------------------------------------------  
@@ -141,7 +132,6 @@ module Shell_Kale # (
   output [ 0:0]   poDDR4_Mem_Mc1_Ck_n,
   output [ 0:0]   poDDR4_Mem_Mc1_Ck_p,
   output          poDDR4_Mem_Mc1_Reset_n,
-
   //------------------------------------------------------
   //-- ECON / Edge Connector Interface (SPD08-200)
   //------------------------------------------------------
@@ -149,13 +139,11 @@ module Shell_Kale # (
   input           piECON_Eth_10Ge0_p,
   output          poECON_Eth_10Ge0_n,
   output          poECON_Eth_10Ge0_p,
-
   //------------------------------------------------------
   //-- ROLE / Reset and Clock Interfaces
   //------------------------------------------------------
   output          poROL_156_25Clk,
   output          poROL_156_25Rst,
-
   //------------------------------------------------------
   //-- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
   //------------------------------------------------------
@@ -173,7 +161,6 @@ module Shell_Kale # (
   input   [15:0] siROL_Nts_Udp_DLen_tdata,
   input          siROL_Nts_Udp_DLen_tvalid,
   output         siROL_Nts_Udp_DLen_tready,
-    
   //------------------------------------------------------
   //-- ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
   //------------------------------------------------------
@@ -187,7 +174,6 @@ module Shell_Kale # (
   output  [95:0] soROL_Nts_Udp_Meta_tdata ,
   output         soROL_Nts_Udp_Meta_tvalid,
   input          soROL_Nts_Udp_Meta_tready,
-  
   //------------------------------------------------------
   //-- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
   //------------------------------------------------------
@@ -207,7 +193,6 @@ module Shell_Kale # (
   output  [ 7:0] soROL_Nts_Udp_ClsRep_tdata ,
   output         soROL_Nts_Udp_ClsRep_tvalid,
   input          soROL_Nts_Udp_ClsRep_tready,
-  
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
   //------------------------------------------------------
@@ -224,8 +209,7 @@ module Shell_Kale # (
   //---- Axi4-Stream TCP Data Status --------
   output [ 23:0]  soROL_Nts_Tcp_DSts_tdata,
   output          soROL_Nts_Tcp_DSts_tvalid,
-  input           soROL_Nts_Tcp_DSts_tready,
-  
+  input           soROL_Nts_Tcp_DSts_tready,  
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
   //------------------------------------------------------
@@ -247,7 +231,6 @@ module Shell_Kale # (
   input  [ 31:0]  siROL_Nts_Tcp_DReq_tdata,
   input           siROL_Nts_Tcp_DReq_tvalid,
   output          siROL_Nts_Tcp_DReq_tready,
-
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
   //------------------------------------------------------
@@ -263,7 +246,6 @@ module Shell_Kale # (
   input [ 15:0]  siROL_Nts_Tcp_ClsReq_tdata,
   input          siROL_Nts_Tcp_ClsReq_tvalid,
   output         siROL_Nts_Tcp_ClsReq_tready,
-
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
   //------------------------------------------------------
@@ -275,7 +257,6 @@ module Shell_Kale # (
   output [  7:0] soROL_Nts_Tcp_LsnAck_tdata,
   output         soROL_Nts_Tcp_LsnAck_tvalid,
   input          soROL_Nts_Tcp_LsnAck_tready,
-
   //------------------------------------------------------  
   //-- ROLE / Mem / Mp0 Interface
   //------------------------------------------------------
@@ -308,40 +289,43 @@ module Shell_Kale # (
   input           siROL_Mem_Mp0_Write_tlast,
   input           siROL_Mem_Mp0_Write_tvalid,
   output          siROL_Mem_Mp0_Write_tready, 
-
   //------------------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
+  //---- Write Address Channel ---------
   input  [  3: 0]  miROL_Mem_Mp1_AWID,
   input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
   input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
-  input  [  3: 0]  miROL_Mem_Mp1_AWSIZE,
+  input  [  2: 0]  miROL_Mem_Mp1_AWSIZE,
   input  [  1: 0]  miROL_Mem_Mp1_AWBURST,
   input            miROL_Mem_Mp1_AWVALID,
   output           miROL_Mem_Mp1_AWREADY,
+  //---- Write Data Channel ------------
   input  [511: 0]  miROL_Mem_Mp1_WDATA,
   input  [ 63: 0]  miROL_Mem_Mp1_WSTRB,
   input            miROL_Mem_Mp1_WLAST,
   input            miROL_Mem_Mp1_WVALID,
   output           miROL_Mem_Mp1_WREADY,
+  //---- Write Response Channel --------
   output [  3: 0]  miROL_Mem_Mp1_BID,
   output [  1: 0]  miROL_Mem_Mp1_BRESP,
   output           miROL_Mem_Mp1_BVALID,
   input            miROL_Mem_Mp1_BREADY,
+  //---- Read Address Channel ----------
   input  [  3: 0]  miROL_Mem_Mp1_ARID,
   input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
   input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
-  input  [  3: 0]  miROL_Mem_Mp1_ARSIZE,
+  input  [  2: 0]  miROL_Mem_Mp1_ARSIZE,
   input  [  1: 0]  miROL_Mem_Mp1_ARBURST,
   input            miROL_Mem_Mp1_ARVALID,
   output           miROL_Mem_Mp1_ARREADY,
+  //---- Read Data Channel -------------
   output [  3: 0]  miROL_Mem_Mp1_RID,
   output [511: 0]  miROL_Mem_Mp1_RDATA,
   output [  1: 0]  miROL_Mem_Mp1_RRESP,
   output           miROL_Mem_Mp1_RLAST,
   output           miROL_Mem_Mp1_RVALID,
   input            miROL_Mem_Mp1_RREADY,
-  
   //--------------------------------------------------------
   //-- ROLE / Mmio / AppFlash Interface
   //--------------------------------------------------------
@@ -363,8 +347,7 @@ module Shell_Kale # (
   //---- [APP_RDROL] -------------------
   input   [15:0]  piROL_Mmio_RdReg,
   //---- [APP_WRROL] -------------------
-  output  [15:0]  poROL_Mmio_WrReg
-  
+  output  [15:0]  poROL_Mmio_WrReg  
 );  // End of PortList
 
 
@@ -638,20 +621,16 @@ module Shell_Kale # (
   MmioClient_A8_D8 #(
     .gSecurityPriviledges (gSecurityPriviledges),
     .gBitstreamUsage      (gBitstreamUsage)
-
   ) MMIO (
-
     //----------------------------------------------
     //-- Global Clock & Reset Inputs
     //----------------------------------------------
     .piSHL_Clk                      (sETH0_ShlClk),
     .piTOP_Rst                      (piTOP_156_25Rst),
-
     //----------------------------------------------
     //-- Bitstream Identification
     //----------------------------------------------
     .piTOP_Timestamp                (piTOP_Timestamp),
-
     //----------------------------------------------
     //-- PSOC : Mmio Bus Interface
     //----------------------------------------------
@@ -662,13 +641,11 @@ module Shell_Kale # (
     .piPSOC_Emif_Oe_n               (piPSOC_Emif_Oe_n),
     .piPSOC_Emif_Addr               (piPSOC_Emif_Addr),
     .pioPSOC_Emif_Data              (pioPSOC_Emif_Data),
-
     //----------------------------------------------
     //-- MEM : Status inputs and Control outputs
     //----------------------------------------------
     .piMEM_Mc0InitCalComplete       (sMEM_MMIO_Mc0InitCalComplete),
     .piMEM_Mc1InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
-
     //----------------------------------------------
     //-- ETH[0]: Status inputs and Control outputs
     //----------------------------------------------
@@ -681,7 +658,6 @@ module Shell_Kale # (
     .poETH0_PcsLoopbackEn           (sMMIO_ETH0_PcsLoopbackEn),
     .poETH0_MacLoopbackEn           (sMMIO_ETH0_MacLoopbackEn),
     .poETH0_MacAddrSwapEn           (sMMIO_ETH0_MacAddrSwapEn),
-
     //----------------------------------------------
     //-- NTS[0]: Status inputs and Control outputs
     //----------------------------------------------
@@ -691,7 +667,6 @@ module Shell_Kale # (
     .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
     .poNTS0_GatewayAddr             (sMMIO_NTS0_GatewayAddr),
-
     //----------------------------------------------
     //-- ROLE : Status input and Control Outputs
     //----------------------------------------------
@@ -714,7 +689,6 @@ module Shell_Kale # (
     .piROLE_RdReg                   (piROL_Mmio_RdReg),
      //---- APP_WRROL --------------
     .poROLE_WrReg                   (poROL_Mmio_WrReg),
-    
     //----------------------------------------------
     //-- NRC :  Control Registers
     //----------------------------------------------
@@ -722,7 +696,6 @@ module Shell_Kale # (
     .poNRC_RmIpAddress              (),  // [TODO - Not yet used by this SHELL]
     //---- MNGT_TCPLSN -----------------
     .poNRC_TcpLsnPort               (),  // [TODO - Not yet used by this SHELL]
-
     //----------------------------------------------
     //-- FMC : Registers and Extended Memory
     //----------------------------------------------
@@ -730,7 +703,6 @@ module Shell_Kale # (
     .piFMC_RdReg                    (),  // [TODO - Not yet used by this SHELL]
     //---- APP_WRFMC ----------------
     .poFMC_WrReg                    (),  // [TODO - Not yet used by this SHELL]
- 
     //----------------------------------------------
     //-- EMIF Extended Memory Port B
     //----------------------------------------------
@@ -738,10 +710,7 @@ module Shell_Kale # (
     .piXXX_XMem_Wren               (),    // [TODO - Not yet used by this SHELL]
     .piXXX_XMem_WrData             (),    // [TODO - Not yet used by this SHELL]
     .poXXX_XMem_RData              (),    // [TODO - Not yet used by this SHELL]
-    .piXXX_XMemAddr                (),    // [TODO - Not yet used by this SHELL]
-    
-    .poVoid                        ()
-
+    .piXXX_XMemAddr                ()    // [TODO - Not yet used by this SHELL]
   );  // End of MMIO
 
 
@@ -757,17 +726,14 @@ module Shell_Kale # (
     //  INST: 10G ETHERNET SUBSYSTEM (OSI Network Layers 1+2)
     //========================================================================
     TenGigEth ETH0 (
-
       //-- Clocks and Resets inputs ----------------
       .piTOP_156_25Clk              (piTOP_156_25Clk),    // Freerunning
       .piCLKT_Gt_RefClk_n           (piCLKT_10GeClk_n),
       .piCLKT_Gt_RefClk_p           (piCLKT_10GeClk_p),
       .piTOP_Reset                  (piTOP_156_25Rst),
-
       //-- Clocks and Resets outputs ---------------
       .poSHL_CoreClk                (sETH0_ShlClk),
       .poSHL_CoreResetDone          (sETH0_CoreResetDone),
-
       //-- MMIO : Control inputs and Status outputs
       .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
       .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
@@ -776,13 +742,11 @@ module Shell_Kale # (
       .piMMIO_PcsLoopbackEn         (sMMIO_ETH0_PcsLoopbackEn),
       .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
       .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
-
       //-- ECON : Gigabit Transceivers -------------
       .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
       .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
       .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
       .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
-
       //-- NTS0 : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
       .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
@@ -796,7 +760,6 @@ module Shell_Kale # (
       .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
       .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
       .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
-
     );  // End of UserCfg.ETH0
 
   end // if ((gBitstreamUsage == "user") && (gSecurityPriviledges == "user"))
@@ -807,17 +770,14 @@ module Shell_Kale # (
     //  INST: 10G ETHERNET SUBSYSTEM W/ LOOPBACK SUPPORT
     //========================================================================
     TenGigEth_Flash ETH0 (
-
       //-- Clocks and Resets inputs ----------------
       .piTOP_156_25Clk              (piTOP_156_25Clk),    // Freerunning
       .piCLKT_Gt_RefClk_n           (piCLKT_10GeClk_n),
       .piCLKT_Gt_RefClk_p           (piCLKT_10GeClk_p),
       .piTOP_Reset                  (piTOP_156_25Rst),    // [TODO-Add piMMIO_Layer2Rst]
-
       //-- Clocks and Resets outputs ---------------
       .poSHL_CoreClk                (sETH0_ShlClk),
       .poSHL_CoreResetDone          (sETH0_CoreResetDone),
-
       //-- MMIO : Control inputs and Status outputs
       .piMMIO_RxEqualizerMode       (sMMIO_ETH0_RxEqualizerMode),
       .piMMIO_TxDriverSwing         (sMMIO_ETH0_TxDriverSwing),
@@ -828,13 +788,11 @@ module Shell_Kale # (
       .piMMIO_MacAddrSwapEn         (sMMIO_ETH0_MacAddrSwapEn),
       .poMMIO_CoreReady             (sETH0_MMIO_CoreReady),
       .poMMIO_QpllLock              (sETH0_MMIO_QpllLock),
-
       //-- ECON : Gigabit Transceivers -------------
       .piECON_Gt_n                  (piECON_Eth_10Ge0_n),
       .piECON_Gt_p                  (piECON_Eth_10Ge0_p),
       .poECON_Gt_n                  (poECON_Eth_10Ge0_n),
       .poECON_Gt_p                  (poECON_Eth_10Ge0_p),
-
       //-- NTS : Network-Transport-Session ---------
       //---- Input AXI-Write Stream Interface ------
       .siLY3_Data_tdata             (ssNTS0_ETH0_Data_tdata),
@@ -848,7 +806,6 @@ module Shell_Kale # (
       .soLY3_Data_tvalid            (ssETH0_NTS0_Data_tvalid),
       .soLY3_Data_tlast             (ssETH0_NTS0_Data_tlast),
       .soLY3_Data_tready            (ssETH0_NTS0_Data_tready)
-
     );  // End of SuperCfg.ETH0 
 
   end // if ((gBitstreamUsage == "flash") && (gSecurityPriviledges == "super"))
@@ -860,20 +817,17 @@ module Shell_Kale # (
   //  INST: NETWORK+TRANSPORT STACK SUBSYSTEM (OSI Network Layers 3+4)
   //============================================================================
   NetworkTransportStack_TcpIp NTS0 (
-
     //------------------------------------------------------
     //-- Global Clock used by the entire SHELL
     //--   (This is typically 'sETH0_ShlClk' and we use it all over the place)
     //------------------------------------------------------
     .piShlClk                         (sETH0_ShlClk),
-
     //------------------------------------------------------
     //-- Global Reset used by the entire SHELL
     //--  This is typically 'sETH0_ShlRst'. If the module is created by HLS,
     //--    we use it as the default startup reset of the module.
     //------------------------------------------------------
     .piShlRst                         (sETH0_ShlRst),
-      
     //------------------------------------------------------
     //-- ETH / Ethernet Layer-2 Interfaces
     //------------------------------------------------------
@@ -889,7 +843,6 @@ module Shell_Kale # (
     .soETH_Data_tlast                 (ssNTS0_ETH0_Data_tlast),
     .soETH_Data_tvalid                (ssNTS0_ETH0_Data_tvalid),
     .soETH_Data_tready                (ssNTS0_ETH0_Data_tready),  
-
     //------------------------------------------------------
     //-- MEM / TxP Interfaces
     //------------------------------------------------------
@@ -922,7 +875,6 @@ module Shell_Kale # (
     .soMEM_TxP_Data_tlast             (ssNTS0_MEM_TxP_Write_tlast),
     .soMEM_TxP_Data_tvalid            (ssNTS0_MEM_TxP_Write_tvalid),
     .soMEM_TxP_Data_tready            (ssNTS0_MEM_TxP_Write_tready),
-
     //------------------------------------------------------
     //-- MEM / RxP Interfaces
     //------------------------------------------------------
@@ -955,7 +907,6 @@ module Shell_Kale # (
     .soMEM_RxP_Data_tlast             (ssNTS0_MEM_RxP_Write_tlast),
     .soMEM_RxP_Data_tvalid            (ssNTS0_MEM_RxP_Write_tvalid),
     .soMEM_RxP_Data_tready            (ssNTS0_MEM_RxP_Write_tready),
-
     //------------------------------------------------------
     //-- UAIF / UDP Tx Data Interfaces (.i.e APP-->NTS)
     //------------------------------------------------------
@@ -973,7 +924,6 @@ module Shell_Kale # (
     .siAPP_Udp_DLen_tdata             (ssUARS_NTS0_Udp_DLen_tdata),
     .siAPP_Udp_DLen_tvalid            (ssUARS_NTS0_Udp_DLen_tvalid),
     .siAPP_Udp_DLen_tready            (ssUARS_NTS0_Udp_DLen_tready),
-
     //------------------------------------------------------
     //-- UAIF / Rx Data Interfaces (.i.e NTS-->APP)
     //------------------------------------------------------
@@ -987,7 +937,6 @@ module Shell_Kale # (
     .soAPP_Udp_Meta_tdata             (ssNTS0_UARS_Udp_Meta_tdata),
     .soAPP_Udp_Meta_tvalid            (ssNTS0_UARS_Udp_Meta_tvalid),
     .soAPP_Udp_Meta_tready            (ssNTS0_UARS_Udp_Meta_tready),
-    
     //------------------------------------------------------
     //-- UAIF / UDP Rx Ctrl Interfaces (.i.e NTS-->APP)
     //------------------------------------------------------
@@ -1007,7 +956,6 @@ module Shell_Kale # (
     .soAPP_Udp_ClsRep_tdata           (ssNTS0_UARS_Udp_ClsRep_tdata),
     .soAPP_Udp_ClsRep_tvalid          (ssNTS0_UARS_Udp_ClsRep_tvalid),
     .soAPP_Udp_ClsRep_tready          (ssNTS0_UARS_Udp_ClsRep_tready),
-  
     //------------------------------------------------------
     //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
     //------------------------------------------------------
@@ -1025,57 +973,53 @@ module Shell_Kale # (
     .soAPP_Tcp_DSts_tdata             (ssNTS0_TARS_Tcp_DSts_tdata),
     .soAPP_Tcp_DSts_tvalid            (ssNTS0_TARS_Tcp_DSts_tvalid),
     .soAPP_Tcp_DSts_tready            (ssNTS0_TARS_Tcp_DSts_tready),      
-    
-     //---------------------------------------------------
-      //-- TAIF / Rx Data Interfaces (.i.e NTS-->APP)
-     //---------------------------------------------------
-     //--  Axi4-Stream TCP Data -----------------------         
-     .soAPP_Tcp_Data_tdata            (ssNTS0_TARS_Tcp_Data_tdata),
-     .soAPP_Tcp_Data_tkeep            (ssNTS0_TARS_Tcp_Data_tkeep),
-     .soAPP_Tcp_Data_tlast            (ssNTS0_TARS_Tcp_Data_tlast),
-     .soAPP_Tcp_Data_tvalid           (ssNTS0_TARS_Tcp_Data_tvalid),
-     .soAPP_Tcp_Data_tready           (ssNTS0_TARS_Tcp_Data_tready),
-     //--  Axi4-Stream TCP Metadata -----------  
-     .soAPP_Tcp_Meta_tdata            (ssNTS0_TARS_Tcp_Meta_tdata),
-     .soAPP_Tcp_Meta_tvalid           (ssNTS0_TARS_Tcp_Meta_tvalid),
-     .soAPP_Tcp_Meta_tready           (ssNTS0_TARS_Tcp_Meta_tready),
-      //--  Axi4-Stream TCP Data Notification -
-     .soAPP_Tcp_Notif_tdata           (ssNTS0_TARS_Tcp_Notif_tdata),
-     .soAPP_Tcp_Notif_tvalid          (ssNTS0_TARS_Tcp_Notif_tvalid),
-     .soAPP_Tcp_Notif_tready          (ssNTS0_TARS_Tcp_Notif_tready),
-     //-- Stream TCP Data Request --------------
-     .siAPP_Tcp_DReq_tdata            (ssTARS_NTS0_Tcp_DReq_tdata),    
-     .siAPP_Tcp_DReq_tvalid           (ssTARS_NTS0_Tcp_DReq_tvalid),
-     .siAPP_Tcp_DReq_tready           (ssTARS_NTS0_Tcp_DReq_tready),
-
-      //------------------------------------------------------
-      //-- TAIF / Tx Ctlr Interfaces (.i.e APP-->NTS)
-      //------------------------------------------------------
-      //---- Axi4-Stream TCP Open Session Request
-      .siAPP_Tcp_OpnReq_tdata         (ssTARS_NTS0_Tcp_OpnReq_tdata),
-      .siAPP_Tcp_OpnReq_tvalid        (ssTARS_NTS0_Tcp_OpnReq_tvalid),
-      .siAPP_Tcp_OpnReq_tready        (ssTARS_NTS0_Tcp_OpnReq_tready),
-      //---- Axi4-Stream TCP Open Session Status 
-      .soAPP_Tcp_OpnRep_tdata         (ssNTS0_TARS_Tcp_OpnRep_tdata),
-      .soAPP_Tcp_OpnRep_tvalid        (ssNTS0_TARS_Tcp_OpnRep_tvalid),
-      .soAPP_Tcp_OpnRep_tready        (ssNTS0_TARS_Tcp_OpnRep_tready),
-      //---- Axi4-Stream TCP Close Request ----
-      .siAPP_Tcp_ClsReq_tdata         (ssTARS_NTS0_Tcp_ClsReq_tdata),
-      .siAPP_Tcp_ClsReq_tvalid        (ssTARS_NTS0_Tcp_ClsReq_tvalid),
-      .siAPP_Tcp_ClsReq_tready        (ssTARS_NTS0_Tcp_ClsReq_tready),
-    
-     //------------------------------------------------------
-     //-- TAIF / Rx Ctlr Interfaces (.i.e NTS-->APP)
-     //------------------------------------------------------
-     //---- Axi4-Stream TCP Listen Request -----
-     .siAPP_Tcp_LsnReq_tdata          (ssTARS_NTS0_Tcp_LsnReq_tdata),
-     .siAPP_Tcp_LsnReq_tvalid         (ssTARS_NTS0_Tcp_LsnReq_tvalid),
-     .siAPP_Tcp_LsnReq_tready         (ssTARS_NTS0_Tcp_LsnReq_tready),
-     //---- Axi4-Stream TCP Listen Status ------
-     .soAPP_Tcp_LsnAck_tdata          (ssNTS0_TARS_Tcp_LsnAck_tdata),
-     .soAPP_Tcp_LsnAck_tvalid         (ssNTS0_TARS_Tcp_LsnAck_tvalid),
-     .soAPP_Tcp_LsnAck_tready         (ssNTS0_TARS_Tcp_LsnAck_tready),
-    
+    //---------------------------------------------------
+    //-- TAIF / Rx Data Interfaces (.i.e NTS-->APP)
+    //---------------------------------------------------
+    //--  Axi4-Stream TCP Data -----------------------         
+    .soAPP_Tcp_Data_tdata             (ssNTS0_TARS_Tcp_Data_tdata),
+    .soAPP_Tcp_Data_tkeep             (ssNTS0_TARS_Tcp_Data_tkeep),
+    .soAPP_Tcp_Data_tlast             (ssNTS0_TARS_Tcp_Data_tlast),
+    .soAPP_Tcp_Data_tvalid            (ssNTS0_TARS_Tcp_Data_tvalid),
+    .soAPP_Tcp_Data_tready            (ssNTS0_TARS_Tcp_Data_tready),
+    //--  Axi4-Stream TCP Metadata -----------  
+    .soAPP_Tcp_Meta_tdata             (ssNTS0_TARS_Tcp_Meta_tdata),
+    .soAPP_Tcp_Meta_tvalid            (ssNTS0_TARS_Tcp_Meta_tvalid),
+    .soAPP_Tcp_Meta_tready            (ssNTS0_TARS_Tcp_Meta_tready),
+     //--  Axi4-Stream TCP Data Notification -
+    .soAPP_Tcp_Notif_tdata            (ssNTS0_TARS_Tcp_Notif_tdata),
+    .soAPP_Tcp_Notif_tvalid           (ssNTS0_TARS_Tcp_Notif_tvalid),
+    .soAPP_Tcp_Notif_tready           (ssNTS0_TARS_Tcp_Notif_tready),
+    //-- Stream TCP Data Request --------------
+    .siAPP_Tcp_DReq_tdata             (ssTARS_NTS0_Tcp_DReq_tdata),    
+    .siAPP_Tcp_DReq_tvalid            (ssTARS_NTS0_Tcp_DReq_tvalid),
+    .siAPP_Tcp_DReq_tready            (ssTARS_NTS0_Tcp_DReq_tready),
+    //------------------------------------------------------
+    //-- TAIF / Tx Ctlr Interfaces (.i.e APP-->NTS)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Open Session Request
+    .siAPP_Tcp_OpnReq_tdata           (ssTARS_NTS0_Tcp_OpnReq_tdata),
+    .siAPP_Tcp_OpnReq_tvalid          (ssTARS_NTS0_Tcp_OpnReq_tvalid),
+    .siAPP_Tcp_OpnReq_tready          (ssTARS_NTS0_Tcp_OpnReq_tready),
+    //---- Axi4-Stream TCP Open Session Status 
+    .soAPP_Tcp_OpnRep_tdata           (ssNTS0_TARS_Tcp_OpnRep_tdata),
+    .soAPP_Tcp_OpnRep_tvalid          (ssNTS0_TARS_Tcp_OpnRep_tvalid),
+    .soAPP_Tcp_OpnRep_tready          (ssNTS0_TARS_Tcp_OpnRep_tready),
+    //---- Axi4-Stream TCP Close Request ----
+    .siAPP_Tcp_ClsReq_tdata           (ssTARS_NTS0_Tcp_ClsReq_tdata),
+    .siAPP_Tcp_ClsReq_tvalid          (ssTARS_NTS0_Tcp_ClsReq_tvalid),
+    .siAPP_Tcp_ClsReq_tready          (ssTARS_NTS0_Tcp_ClsReq_tready),
+    //------------------------------------------------------
+    //-- TAIF / Rx Ctlr Interfaces (.i.e NTS-->APP)
+    //------------------------------------------------------
+    //---- Axi4-Stream TCP Listen Request -----
+    .siAPP_Tcp_LsnReq_tdata           (ssTARS_NTS0_Tcp_LsnReq_tdata),
+    .siAPP_Tcp_LsnReq_tvalid          (ssTARS_NTS0_Tcp_LsnReq_tvalid),
+    .siAPP_Tcp_LsnReq_tready          (ssTARS_NTS0_Tcp_LsnReq_tready),
+    //---- Axi4-Stream TCP Listen Status ------
+    .soAPP_Tcp_LsnAck_tdata           (ssNTS0_TARS_Tcp_LsnAck_tdata),
+    .soAPP_Tcp_LsnAck_tvalid          (ssNTS0_TARS_Tcp_LsnAck_tvalid),
+    .soAPP_Tcp_LsnAck_tready          (ssNTS0_TARS_Tcp_LsnAck_tready),
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
@@ -1088,10 +1032,7 @@ module Shell_Kale # (
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
-    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
-
-    .poVoid                           ()
-
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady)
   );  // End of NTS0
 
 
@@ -1118,7 +1059,6 @@ module Shell_Kale # (
     .soAPP_Tcp_DSts_tdata       (soROL_Nts_Tcp_DSts_tdata ),
     .soAPP_Tcp_DSts_tvalid      (soROL_Nts_Tcp_DSts_tvalid),
     .soAPP_Tcp_DSts_tready      (soROL_Nts_Tcp_DSts_tready),
-     
     //------------------------------------------------------
     //-- APP / Tcp / Rx Data Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1140,7 +1080,6 @@ module Shell_Kale # (
     .siAPP_Tcp_DReq_tdata       (siROL_Nts_Tcp_DReq_tdata ),
     .siAPP_Tcp_DReq_tvalid      (siROL_Nts_Tcp_DReq_tvalid),
     .siAPP_Tcp_DReq_tready      (siROL_Nts_Tcp_DReq_tready),
-   
     //------------------------------------------------------
     //-- APP / Tcp / Tx Ctlr Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1156,7 +1095,6 @@ module Shell_Kale # (
     .siAPP_Tcp_ClsReq_tdata     (siROL_Nts_Tcp_ClsReq_tdata ), 
     .siAPP_Tcp_ClsReq_tvalid    (siROL_Nts_Tcp_ClsReq_tvalid),
     .siAPP_Tcp_ClsReq_tready    (siROL_Nts_Tcp_ClsReq_tready),
-   
     //------------------------------------------------------
     //-- APP / Tcp / Rx Ctlr Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1168,7 +1106,6 @@ module Shell_Kale # (
     .soAPP_Tcp_LsnAck_tdata     (soROL_Nts_Tcp_LsnAck_tdata ),
     .soAPP_Tcp_LsnAck_tvalid    (soROL_Nts_Tcp_LsnAck_tvalid),
     .soAPP_Tcp_LsnAck_tready    (soROL_Nts_Tcp_LsnAck_tready),
-    
     //------------------------------------------------------
     //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1186,7 +1123,6 @@ module Shell_Kale # (
     .siNTS_Tcp_DSts_tdata       (ssNTS0_TARS_Tcp_DSts_tdata  ),
     .siNTS_Tcp_DSts_tvalid      (ssNTS0_TARS_Tcp_DSts_tvalid ),
     .siNTS_Tcp_DSts_tready      (ssNTS0_TARS_Tcp_DSts_tready ),
-       
     //------------------------------------------------------
     //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1208,7 +1144,6 @@ module Shell_Kale # (
     .soNTS_Tcp_DReq_tdata       (ssTARS_NTS0_Tcp_DReq_tdata ),
     .soNTS_Tcp_DReq_tvalid      (ssTARS_NTS0_Tcp_DReq_tvalid),
     .soNTS_Tcp_DReq_tready      (ssTARS_NTS0_Tcp_DReq_tready),
-     
     //------------------------------------------------------
     //-- NTS / Tcp / Tx Ctlr Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1224,7 +1159,6 @@ module Shell_Kale # (
     .soNTS_Tcp_ClsReq_tdata     (ssTARS_NTS0_Tcp_ClsReq_tdata ),
     .soNTS_Tcp_ClsReq_tvalid    (ssTARS_NTS0_Tcp_ClsReq_tvalid),
     .soNTS_Tcp_ClsReq_tready    (ssTARS_NTS0_Tcp_ClsReq_tready),
-     
     //------------------------------------------------------
     //-- NTS / Tcp / Rx Ctlr Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1236,7 +1170,6 @@ module Shell_Kale # (
     .siNTS_Tcp_LsnAck_tdata     (ssNTS0_TARS_Tcp_LsnAck_tdata ),
     .siNTS_Tcp_LsnAck_tvalid    (ssNTS0_TARS_Tcp_LsnAck_tvalid),
     .siNTS_Tcp_LsnAck_tready    (ssNTS0_TARS_Tcp_LsnAck_tready)
-    
   );
 
   //============================================================================
@@ -1349,27 +1282,21 @@ module Shell_Kale # (
   //  INST: SYNCHRONOUS DYNAMIC RANDOM ACCESS MEMORY SUBSYSTEM
   //============================================================================
   MemorySubSystem #(
-
     "user",     // gSecurityPriviledges
     "user"      // gBitstreamUsage
-
   ) MEM (
-
     //------------------------------------------------------
     //-- Global Clock used by the entire SHELL
     //------------------------------------------------------
     .piSHL_Clk                        (sETH0_ShlClk),
-
     //------------------------------------------------------
     //-- Global Reset used by the entire SHELL
     //------------------------------------------------------
     .piSHL_Rst                        (sETH0_ShlRst),
-
     //------------------------------------------------------
     //-- Alternate System Reset
     //------------------------------------------------------
     .piMMIO_Rst                       (sMMIO_LayerRst[1]),  // [FIXME]
-
     //------------------------------------------------------
     //-- DDR4 Reference Memory Clocks
     //------------------------------------------------------
@@ -1377,13 +1304,11 @@ module Shell_Kale # (
     .piCLKT_Mem0Clk_p                 (piCLKT_Mem0Clk_p),
     .piCLKT_Mem1Clk_n                 (piCLKT_Mem1Clk_n),
     .piCLKT_Mem1Clk_p                 (piCLKT_Mem1Clk_p),
-
     //------------------------------------------------------ 
     //-- MMIO / Status Interface
     //------------------------------------------------------
     .poMMIO_Mc0_InitCalComplete       (sMEM_MMIO_Mc0InitCalComplete),
     .poMMIO_Mc1_InitCalComplete       (sMEM_MMIO_Mc1InitCalComplete),
-
     //------------------------------------------------------
     //-- NTS / Mem / TxP Interface
     //------------------------------------------------------
@@ -1416,7 +1341,6 @@ module Shell_Kale # (
     .siNTS_Mem_TxP_Write_tlast        (ssNTS0_MEM_TxP_Write_tlast),
     .siNTS_Mem_TxP_Write_tvalid       (ssNTS0_MEM_TxP_Write_tvalid),
     .siNTS_Mem_TxP_Write_tready       (ssNTS0_MEM_TxP_Write_tready),
-
     //------------------------------------------------------
     //-- NTS / Mem / Rx Interface
     //------------------------------------------------------
@@ -1449,7 +1373,6 @@ module Shell_Kale # (
     .siNTS_Mem_RxP_Write_tlast        (ssNTS0_MEM_RxP_Write_tlast),
     .siNTS_Mem_RxP_Write_tvalid       (ssNTS0_MEM_RxP_Write_tvalid),
     .siNTS_Mem_RxP_Write_tready       (ssNTS0_MEM_RxP_Write_tready),  
-
     //------------------------------------------------------
     // -- Physical DDR4 Interface #0
     //------------------------------------------------------
@@ -1467,7 +1390,6 @@ module Shell_Kale # (
     .poDDR4_Mem_Mc0_Ck_n              (poDDR4_Mem_Mc0_Ck_n),
     .poDDR4_Mem_Mc0_Ck_p              (poDDR4_Mem_Mc0_Ck_p),
     .poDDR4_Mem_Mc0_Reset_n           (poDDR4_Mem_Mc0_Reset_n),
-
     //------------------------------------------------------
     //-- ROLE / Mem / Mp0 Interface
     //------------------------------------------------------
@@ -1500,10 +1422,10 @@ module Shell_Kale # (
     .siROL_Mem_Mp0_Write_tlast        (siROL_Mem_Mp0_Write_tlast),
     .siROL_Mem_Mp0_Write_tvalid       (siROL_Mem_Mp0_Write_tvalid),
     .siROL_Mem_Mp0_Write_tready       (siROL_Mem_Mp0_Write_tready),
-
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
+    //---- Write Address Channel -------------
     .miROL_Mem_Mp1_AWID               (miROL_Mem_Mp1_AWID   ),
     .miROL_Mem_Mp1_AWADDR             (miROL_Mem_Mp1_AWADDR ),
     .miROL_Mem_Mp1_AWLEN              (miROL_Mem_Mp1_AWLEN  ),
@@ -1511,15 +1433,18 @@ module Shell_Kale # (
     .miROL_Mem_Mp1_AWBURST            (miROL_Mem_Mp1_AWBURST),
     .miROL_Mem_Mp1_AWVALID            (miROL_Mem_Mp1_AWVALID),
     .miROL_Mem_Mp1_AWREADY            (miROL_Mem_Mp1_AWREADY),
+    //---- Write Data Channel ------------------  
     .miROL_Mem_Mp1_WDATA              (miROL_Mem_Mp1_WDATA  ),
     .miROL_Mem_Mp1_WSTRB              (miROL_Mem_Mp1_WSTRB  ),
     .miROL_Mem_Mp1_WLAST              (miROL_Mem_Mp1_WLAST  ),
     .miROL_Mem_Mp1_WVALID             (miROL_Mem_Mp1_WVALID ),
     .miROL_Mem_Mp1_WREADY             (miROL_Mem_Mp1_WREADY ),
+    //---- Write Response Channel --------------
     .miROL_Mem_Mp1_BID                (miROL_Mem_Mp1_BID    ),
     .miROL_Mem_Mp1_BRESP              (miROL_Mem_Mp1_BRESP  ),
     .miROL_Mem_Mp1_BVALID             (miROL_Mem_Mp1_BVALID ),
     .miROL_Mem_Mp1_BREADY             (miROL_Mem_Mp1_BREADY ),
+    //---- Read Address Channel ----------------
     .miROL_Mem_Mp1_ARID               (miROL_Mem_Mp1_ARID   ),
     .miROL_Mem_Mp1_ARADDR             (miROL_Mem_Mp1_ARADDR ),
     .miROL_Mem_Mp1_ARLEN              (miROL_Mem_Mp1_ARLEN  ),
@@ -1527,13 +1452,13 @@ module Shell_Kale # (
     .miROL_Mem_Mp1_ARBURST            (miROL_Mem_Mp1_ARBURST),
     .miROL_Mem_Mp1_ARVALID            (miROL_Mem_Mp1_ARVALID),
     .miROL_Mem_Mp1_ARREADY            (miROL_Mem_Mp1_ARREADY),
+    //---- Read Data Channel -------------------
     .miROL_Mem_Mp1_RID                (miROL_Mem_Mp1_RID    ),
     .miROL_Mem_Mp1_RDATA              (miROL_Mem_Mp1_RDATA  ),
     .miROL_Mem_Mp1_RRESP              (miROL_Mem_Mp1_RRESP  ),
     .miROL_Mem_Mp1_RLAST              (miROL_Mem_Mp1_RLAST  ),
     .miROL_Mem_Mp1_RVALID             (miROL_Mem_Mp1_RVALID ),
     .miROL_Mem_Mp1_RREADY             (miROL_Mem_Mp1_RREADY ),
-
     //------------------------------------------------------
     // -- Physical DDR4 Interface #1
     //------------------------------------------------------
@@ -1550,10 +1475,7 @@ module Shell_Kale # (
     .poDDR4_Mem_Mc1_Cs_n              (poDDR4_Mem_Mc1_Cs_n),
     .poDDR4_Mem_Mc1_Ck_n              (poDDR4_Mem_Mc1_Ck_n),
     .poDDR4_Mem_Mc1_Ck_p              (poDDR4_Mem_Mc1_Ck_p),
-    .poDDR4_Mem_Mc1_Reset_n           (poDDR4_Mem_Mc1_Reset_n),
-
-    .poVoid                           ()
-
+    .poDDR4_Mem_Mc1_Reset_n           (poDDR4_Mem_Mc1_Reset_n)
   );  // End of MEM
   
     
