@@ -32,6 +32,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_UOE
+ * \addtogroup NTS_UOE
+ * \{
  *****************************************************************************/
 
 #include "uoe.hpp"
@@ -67,10 +70,10 @@ using namespace hls;
 /******************************************************************************
  * IPv4 Header Stripper (Ihs)
  *
- * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
- * @param[out] soUcc_UdpDgrm, UDP datagram stream to UdpChecksumChecker (Ucc).
- * @param[out] soUcc_PsdHdrSum, Sum of the pseudo header information to [Ucc].
- * @param[out] soRph_Ip4Hdr,  The header part of the IPv4 packet as a stream to [Rph].
+ * @param[in]  siIPRX_Data     IP4 data stream from IpRxHAndler (IPRX).
+ * @param[out] soUcc_UdpDgrm   UDP datagram stream to UdpChecksumChecker (Ucc).
+ * @param[out] soUcc_PsdHdrSum Sum of the pseudo header information to [Ucc].
+ * @param[out] soRph_Ip4Hdr    The header part of the IPv4 packet as a stream to [Rph].
  *
  * @details
  *  This process extracts the UDP pseudo header and the IP header from the
@@ -327,10 +330,10 @@ void pIpHeaderStripper(
 /******************************************************************************
  * UDP Checksum Checker (Ucc)
  *
- * @param[in]  siUcc_UdpDgrm, UDP datagram stream from IpHeaderStripper (Ihs).
- * @param[in]  siUcc_PsdHdrSum, Pseudo header sum (SA+DA+Prot+Len) from [Ihs].
- * @param[out] soRph_UdpDgrm, UDP datagram stream to RxPacketHandler (Rph).
- * @param[out] soRph_CsumVal, Checksum valid information to [Rph].
+ * @param[in]  siUcc_UdpDgrm   UDP datagram stream from IpHeaderStripper (Ihs).
+ * @param[in]  siUcc_PsdHdrSum Pseudo header sum (SA+DA+Prot+Len) from [Ihs].
+ * @param[out] soRph_UdpDgrm   UDP datagram stream to RxPacketHandler (Rph).
+ * @param[out] soRph_CsumVal   Checksum valid information to [Rph].
  *
  * @details
  *  This process accumulates the checksum over the UDP header and the UDP data.
@@ -359,7 +362,10 @@ void pUdpChecksumChecker(
     #pragma HLS RESET               variable=ucc_wordCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<17>  ucc_csum[4];
+    static ap_uint<17>  ucc_csum0;
+    static ap_uint<17>  ucc_csum1;
+    static ap_uint<17>  ucc_csum2;
+    static ap_uint<17>  ucc_csum3;
     static UdpCsum      ucc_psdHdrCsum;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
@@ -382,12 +388,12 @@ void pUdpChecksumChecker(
         }
         else {
             // Accumulate e the UDP header
-            ucc_csum[0]  = 0x00000 | currWord.getUdpSrcPort();
-            ucc_csum[0] += ucc_psdHdrCsum;
-            ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-            ucc_csum[1] = 0x00000 | currWord.getUdpDstPort();
-            ucc_csum[2] = 0x00000 | currWord.getUdpLen();
-            ucc_csum[3] = 0x00000 | currWord.getUdpCsum();
+            ucc_csum0  = 0x00000 | currWord.getUdpSrcPort();
+            ucc_csum0 += ucc_psdHdrCsum;
+            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+            ucc_csum1 = 0x00000 | currWord.getUdpDstPort();
+            ucc_csum2 = 0x00000 | currWord.getUdpLen();
+            ucc_csum3 = 0x00000 | currWord.getUdpCsum();
             if (currWord.getUdpLen() == 8) {
                 // Payload is empty
                 ucc_fsmState = FSM_UCC_CHK0;
@@ -432,14 +438,14 @@ void pUdpChecksumChecker(
                 cleanChunk.range(63,56) = (currWord.getLE_TData()).range(63,56);
             soRph_UdpDgrm.write(AxisUdp(cleanChunk, currWord.getLE_TKeep(), currWord.getLE_TLast()));
 
-            ucc_csum[0] += byteSwap16(cleanChunk.range(63, 48));
-            ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-            ucc_csum[1] += byteSwap16(cleanChunk.range(47, 32));
-            ucc_csum[1]  = (ucc_csum[1] & 0xFFFF) + (ucc_csum[1] >> 16);
-            ucc_csum[2] += byteSwap16(cleanChunk.range(31, 16));
-            ucc_csum[2]  = (ucc_csum[2] & 0xFFFF) + (ucc_csum[2] >> 16);
-            ucc_csum[3] += byteSwap16(cleanChunk.range(15,  0));
-            ucc_csum[3]  = (ucc_csum[3] & 0xFFFF) + (ucc_csum[3] >> 16);
+            ucc_csum0 += byteSwap16(cleanChunk.range(63, 48));
+            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+            ucc_csum1 += byteSwap16(cleanChunk.range(47, 32));
+            ucc_csum1  = (ucc_csum1 & 0xFFFF) + (ucc_csum1 >> 16);
+            ucc_csum2 += byteSwap16(cleanChunk.range(31, 16));
+            ucc_csum2  = (ucc_csum2 & 0xFFFF) + (ucc_csum2 >> 16);
+            ucc_csum3 += byteSwap16(cleanChunk.range(15,  0));
+            ucc_csum3  = (ucc_csum3 & 0xFFFF) + (ucc_csum3 >> 16);
 
             if (currWord.getTLast()) {
               ucc_fsmState = FSM_UCC_CHK0;
@@ -449,21 +455,21 @@ void pUdpChecksumChecker(
         break;
     case FSM_UCC_CHK0:
         if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK0 - \n"); }
-        ucc_csum[0] += ucc_csum[2];
-        ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-        ucc_csum[1] += ucc_csum[3];
-        ucc_csum[1]  = (ucc_csum[1] & 0xFFFF) + (ucc_csum[1] >> 16);
+        ucc_csum0 += ucc_csum2;
+        ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+        ucc_csum1 += ucc_csum3;
+        ucc_csum1  = (ucc_csum1 & 0xFFFF) + (ucc_csum1 >> 16);
         ucc_fsmState = FSM_UCC_CHK1;
         break;
     case FSM_UCC_CHK1:
         if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK1 - \n"); }
-        ucc_csum[0] += ucc_csum[1];
-        ucc_csum[0]  = (ucc_csum[0] & 0xFFFF) + (ucc_csum[0] >> 16);
-        UdpCsum csumChk = ~(ucc_csum[0](15, 0));
+        ucc_csum0 += ucc_csum1;
+        ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+        UdpCsum csumChk = ~(ucc_csum0(15, 0));
         if (csumChk == 0) {
-		  // The checksum is correct. UDP datagram is valid.
-		  soRph_CsumVal.write(true);
-	  }
+            // The checksum is correct. UDP datagram is valid.
+            soRph_CsumVal.write(true);
+        }
         else {
             soRph_CsumVal.write(false);
             if (DEBUG_LEVEL & TRACE_UCC) {
@@ -480,14 +486,14 @@ void pUdpChecksumChecker(
 /*****************************************************************************
  * Rx Packet Handler (Rph)
  *
- * @param[in]  siIhs_UdpDgrm, UDP datagram stream from IpHeaderStripper (Ihs).
- * @param[in]  siIhs_Ip4Hdr,  The header part of the IPv4 packet from [Ihs].
- * @param[in]  siUcc_CsumVal, Checksum valid information from UdpChecksumChecker (Ucc).
- * @param[out] soUpt_PortStateReq, Request for the state of port to UdpPortTable (Upt).
- * @param[in]  siUpt_PortStateRep, Port state reply from [Upt].
- * @param[out] soUAIF_Data, UDP data stream to UDP Application Interface (UAIF).
- * @param[out] soUAIF_Meta, UDP metadata stream to [UAIF].
- * @param[out] soICMP_Data, Control message to InternetControlMessageProtocol[ICMP] engine.
+ * @param[in]  siIhs_UdpDgrm  UDP datagram stream from IpHeaderStripper (Ihs).
+ * @param[in]  siIhs_Ip4Hdr   The header part of the IPv4 packet from [Ihs].
+ * @param[in]  siUcc_CsumVal  Checksum valid information from UdpChecksumChecker (Ucc).
+ * @param[out] soUpt_PortStateReq  Request for the state of port to UdpPortTable (Upt).
+ * @param[in]  siUpt_PortStateRep  Port state reply from [Upt].
+ * @param[out] soUAIF_Data  UDP data stream to UDP Application Interface (UAIF).
+ * @param[out] soUAIF_Meta  UDP metadata stream to [UAIF].
+ * @param[out] soICMP_Data  Control message to InternetControlMessageProtocol[ICMP] engine.
 
  * @details
  *  This process handles the payload of the incoming IP4 packet and forwards it
@@ -725,23 +731,31 @@ void pRxPacketHandler(
 /******************************************************************************
  * UDP Port Table (Upt)
  *
- * param[in]  siRph_PortStateReq, Port state request from RxPacketHandler (Rph).
- * param[out] soRph_PortStateRep, Port state reply to [Rph].
- * param[in]  siUAIF_LsnReq,      Request to open a port from [UAIF].
- * param[out] soUAIF_LsnRep,      Open port status reply to [UAIF].
- * param[in]  siUAIF_ClsReq,      Request to close a port from [UAIF].
+ * param[out] soMMIO_Ready        Process ready signal.
+ * param[in]  siRph_PortStateReq  Port state request from RxPacketHandler (Rph).
+ * param[out] soRph_PortStateRep  Port state reply to [Rph].
+ * param[in]  siUAIF_LsnReq       Listen port request from [UAIF].
+ * param[out] soUAIF_LsnRep       Listen port reply to [UAIF] (0=closed/1=opened).
+ * param[in]  siUAIF_ClsReq       Close  port request from [UAIF].
+ * param[out] soUAIF_ClsRep       Close  port reply to [UAIF] (0=closed/1=opened).
  *
  * @details
  *  The UDP Port Table (Upt) keeps track of the opened ports. A port is opened
- *  if its state is 'true' and closed othewise.
+ *  if its state is 'true' and closed otherwise.
  *
+ * @note: We are using a stream to signal that UOE is ready because the C/RTL
+ *  co-simulation only only supports the following 'ap_ctrl_none' designs:
+ *  (1) combinational designs; (2) pipelined design with task interval of 1;
+ *  (3) designs with array streaming or hls_stream or AXI4 stream ports.
  *****************************************************************************/
 void pUdpPortTable(
+        stream<StsBool>     &soMMIO_Ready,
         stream<UdpPort>     &siRph_PortStateReq,
         stream<StsBool>     &soRph_PortStateRep,
         stream<UdpPort>     &siUAIF_LsnReq,
         stream<StsBool>     &soUAIF_LsnRep,
-        stream<UdpPort>     &siUAIF_ClsReq)
+        stream<UdpPort>     &siUAIF_ClsReq,
+        stream<StsBool>     &soUAIF_ClsRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS pipeline II=1 enable_flush
@@ -749,7 +763,7 @@ void pUdpPortTable(
     const char *myName = concat3(THIS_NAME, "/RXe/", "Upt");
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static ValBool                  PORT_TABLE[65536];
+    static ValBool                  PORT_TABLE[0x10000];
     #pragma HLS RESOURCE   variable=PORT_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=PORT_TABLE inter false
 
@@ -757,9 +771,34 @@ void pUdpPortTable(
     static enum FsmStates { UPT_WAIT4REQ=0, UPT_RPH_LKP, UPT_LSN_REP,
                             UPT_CLS_REP } upt_fsmState=UPT_WAIT4REQ;
     #pragma HLS RESET            variable=upt_fsmState
+    static bool                           upt_isInit=false;
+    #pragma HLS reset            variable=upt_isInit
+    static  UdpPort                       upt_initPtr=(0x10000-1);
+    #pragma HLS reset            variable=upt_initPtr
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static UdpPort upt_portNum;
+
+    // The PORT_TABLE must be initialized upon reset
+    if (!upt_isInit) {
+        PORT_TABLE[upt_initPtr] = STS_CLOSED;
+        if (upt_initPtr == 0) {
+            if (!soMMIO_Ready.full()) {
+                soMMIO_Ready.write(true);
+                upt_isInit = true;
+                if (DEBUG_LEVEL & TRACE_UPT) {
+                    printInfo(myName, "Done with initialization of the PORT_TABLE.\n");
+                }
+            }
+            else {
+                printWarn(myName, "Cannot signal INIT_DONE because HLS stream is not empty.\n");
+            }
+         }
+        else {
+            upt_initPtr = upt_initPtr - 1;
+        }
+        return;
+    }
 
     switch (upt_fsmState) {
     case UPT_WAIT4REQ:
@@ -793,10 +832,11 @@ void pUdpPortTable(
         }
         break;
     case UPT_CLS_REP: // Close Reply
-        // [FIXME:MissingReplyChannel] if (!soUAIF_ClsRep.full()) {
-        PORT_TABLE[upt_portNum] = STS_CLOSED;
-        // [FIXME:MissingReplyChannel] soUAIF_ClsRep.write(STS_OCLOSED);
-        upt_fsmState = UPT_WAIT4REQ;
+        if (!soUAIF_ClsRep.full()) {
+            PORT_TABLE[upt_portNum] = STS_CLOSED;
+            soUAIF_ClsRep.write(STS_CLOSED);
+            upt_fsmState = UPT_WAIT4REQ;
+        }
         break;
     }
 }
@@ -804,23 +844,27 @@ void pUdpPortTable(
 /******************************************************************************
  * Rx Engine (RXe)
  *
- * @param[in]  siIPRX_Data,   IP4 data stream from IpRxHAndler (IPRX).
- * @param[in]  siUAIF_LsnReq, UDP open port request from UdpAppInterface (UAIF).
- * @param[out] soUAIF_LsnRep, UDP open port reply to [UAIF].
- * @param[in]  siUAIF_ClsReq, UDP close port request from [UAIF].
- * @param[out] soUAIF_Data,   UDP data stream to [UAIF].
- * @param[out] soUAIF_Meta,   UDP metadata stream to [UAIF].
- * @param[out] soICMP_Data,   Control message to InternetControlMessageProtocol[ICMP] engine.
+ * @param[out] soMMIO_Ready   Process ready signal.
+ * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
+ * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply to [UAIF].
+ * @param[out] soUAIF_Data    UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * @param[out] soICMP_Data    Control message to InternetControlMessageProtocol[ICMP] engine.
  *
  * @details
  *  The Rx path of the UdpOffloadEngine (UOE). This is the path from [IPRX]
  *  to the UdpAppInterface (UAIF).
  *****************************************************************************/
 void pRxEngine(
+        stream<StsBool>         &soMMIO_Ready,
         stream<AxisIp4>         &siIPRX_Data,
         stream<UdpPort>         &siUAIF_LsnReq,
-        stream<StsBool>         &siUAIF_OpnRep,
+        stream<StsBool>         &soUAIF_LsnRep,
         stream<UdpPort>         &siUAIF_ClsReq,
+        stream<StsBool>         &soUAIF_ClsRep,
         stream<AxisApp>         &soUAIF_Data,
         stream<SocketPair>      &soUAIF_Meta,
         stream<AxisIcmp>        &soICMP_Data)
@@ -876,11 +920,13 @@ void pRxEngine(
             soICMP_Data);
 
     pUdpPortTable(
+            soMMIO_Ready,
             ssRphToUpt_PortStateReq,
             ssUptToRph_PortStateRep,
             siUAIF_LsnReq,
-            siUAIF_OpnRep,
-            siUAIF_ClsReq);
+            soUAIF_LsnRep,
+            siUAIF_ClsReq,
+            soUAIF_ClsRep);
 }
 
 /*** TXe PROCESSES   **********************************************************/
@@ -910,7 +956,7 @@ void pRxEngine(
  *     sub-datagrams as required to transport all 'DLen' bytes over Ethernet
  *     frames.
  *  2) STREAMING_MODE: If the 'DLen' field is configured with a length == 0, the
- *     corresponding stream stream will be forwarded based on the same metadata
+ *     corresponding stream will be forwarded based on the same metadata
  *     information until the 'TLAST' bit of the data stream is set. In this mode,
  *     the UOE will wait for the reception of 1472 bytes before generating a new
  *     UDP-over-IPv4 packet, unless the 'TLAST' bit of the data stream is set.
@@ -1250,34 +1296,40 @@ void pUdpChecksumAccumulator(
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Uca");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<17>           uca_csum[4]={0,0,0,0};
-    #pragma HLS RESET   variable=uca_csum
+    static ap_uint<17>           uca_csum0;
+    #pragma HLS RESET   variable=uca_csum0
+    static ap_uint<17>           uca_csum1;
+    #pragma HLS RESET   variable=uca_csum1
+    static ap_uint<17>           uca_csum2;
+    #pragma HLS RESET   variable=uca_csum2
+    static ap_uint<17>           uca_csum3;
+    #pragma HLS RESET   variable=uca_csum3
 
     if (!siTdh_Data.empty()) {
         AxisPsd4 currWord = siTdh_Data.read();
-        uca_csum[0] += byteSwap16(currWord.getLE_TData().range(63, 48));
-        uca_csum[0]  = (uca_csum[0] & 0xFFFF) + (uca_csum[0] >> 16);
-        uca_csum[1] += byteSwap16(currWord.getLE_TData().range(47, 32));
-        uca_csum[1]  = (uca_csum[1] & 0xFFFF) + (uca_csum[1] >> 16);
-        uca_csum[2] += byteSwap16(currWord.getLE_TData().range(31, 16));
-        uca_csum[2]  = (uca_csum[2] & 0xFFFF) + (uca_csum[2] >> 16);
-        uca_csum[3] += byteSwap16(currWord.getLE_TData().range(15,  0));
-        uca_csum[3]  = (uca_csum[3] & 0xFFFF) + (uca_csum[3] >> 16);
+        uca_csum0 += byteSwap16(currWord.getLE_TData().range(63, 48));
+        uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+        uca_csum1 += byteSwap16(currWord.getLE_TData().range(47, 32));
+        uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+        uca_csum2 += byteSwap16(currWord.getLE_TData().range(31, 16));
+        uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+        uca_csum3 += byteSwap16(currWord.getLE_TData().range(15,  0));
+        uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
         if (currWord.getTLast() and !soUha_Csum.full()) {
             ap_uint<17> csum01, csum23, csum0123;
-            csum01 = uca_csum[0] + uca_csum[1];
+            csum01 = uca_csum0 + uca_csum1;
             csum01 = (csum01 & 0xFFFF) + (csum01 >> 16);
-            csum23 = uca_csum[2] + uca_csum[3];
+            csum23 = uca_csum2 + uca_csum3;
             csum23 = (csum23 & 0xFFFF) + (csum23 >> 16);
             csum0123 = csum01 + csum23;
             csum0123 = (csum0123 & 0xFFFF) + (csum0123 >> 16);
             csum0123 = ~csum0123;
             soUha_Csum.write(csum0123.range(15, 0));
             //-- Clear the csum accumulators
-            uca_csum[0] = 0;
-            uca_csum[1] = 0;
-            uca_csum[2] = 0;
-            uca_csum[3] = 0;
+            uca_csum0 = 0;
+            uca_csum1 = 0;
+            uca_csum2 = 0;
+            uca_csum3 = 0;
         }
     }
 }
@@ -1395,6 +1447,8 @@ void pIp4HeaderAdder(
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { IPH_IP1=0, IPH_IP2, IPH_IP3, IPH_FORWARD,
                             IPH_RESIDUE} iha_fsmState;
+    #pragma HLS RESET           variable=iha_fsmState
+
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static IpAddrPair iha_ipPair;
@@ -1595,14 +1649,16 @@ void pTxEngine(
  *
  * -- MMIO Interface
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
  * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
  * -- IPTX / IP Tx / Data Interface
  * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
  * -- UAIF / Control Port Interfaces
- * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
- * @param[out] soUAIF_LsnRep  UDP open port reply to [UAIF].
+ * @param[in]  siUAIF_LsnReq  UDP open  port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open  port reply   to   [UAIF] (0=closed/1=opened).
  * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply   to   [UAIF] (0=closed/1=opened).
  * -- UAIF / Rx Data Interfaces
  * @param[out] soUAIF_Data    UDP data stream to [UAIF].
  * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
@@ -1620,6 +1676,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
+        stream<StsBool>                 &soMMIO_Ready,
 
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -1637,6 +1694,7 @@ void uoe(
         stream<UdpPort>                 &siUAIF_LsnReq,
         stream<StsBool>                 &soUAIF_LsnRep,
         stream<UdpPort>                 &siUAIF_ClsReq,
+        stream<StsBool>                 &soUAIF_ClsRep,
 
         //------------------------------------------------------
         //-- UAIF / Rx Data Interfaces
@@ -1669,12 +1727,15 @@ void uoe(
 
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_Ready      metadata="-bus_bundle soMMIO_Ready"
+
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data       metadata="-bus_bundle siIPRX_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data       metadata="-bus_bundle soIPTX_Data"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_LsnReq     metadata="-bus_bundle siUAIF_LsnReq"
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_LsnRep     metadata="-bus_bundle soUAIF_LsnRep"
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_ClsReq     metadata="-bus_bundle siUAIF_ClsReq"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_ClsRep     metadata="-bus_bundle soUAIF_ClsRep"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Data       metadata="-bus_bundle soUAIF_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Meta       metadata="-bus_bundle soUAIF_Meta"
@@ -1690,13 +1751,16 @@ void uoe(
 #else
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS INTERFACE axis register both port=soMMIO_Ready      name=soMMIO_Ready
+
     #pragma HLS INTERFACE axis register both port=siIPRX_Data       name=siIPRX_Data
     #pragma HLS INTERFACE axis register both port=soIPTX_Data       name=soIPTX_Data
-    #pragma HLS DATA_PACK                variable=soIPTX_Data   instance=soIPTX_Data
+    #pragma HLS DATA_PACK                variable=soIPTX_Data       instance=soIPTX_Data
 
     #pragma HLS INTERFACE axis register both port=siUAIF_LsnReq     name=siUAIF_LsnReq
     #pragma HLS INTERFACE axis register both port=soUAIF_LsnRep     name=soUAIF_LsnRep
     #pragma HLS INTERFACE axis register both port=siUAIF_ClsReq     name=siUAIF_ClsReq
+    #pragma HLS INTERFACE axis register both port=soUAIF_ClsRep     name=soUAIF_ClsRep
 
     #pragma HLS INTERFACE axis register both port=soUAIF_Data       name=soUAIF_Data
     #pragma HLS INTERFACE axis register both port=soUAIF_Meta       name=soUAIF_Meta
@@ -1721,10 +1785,12 @@ void uoe(
     //-- PROCESS FUNCTIONS ----------------------------------------------------
 
     pRxEngine(
+            soMMIO_Ready,
             siIPRX_Data,
             siUAIF_LsnReq,
             soUAIF_LsnRep,
             siUAIF_ClsReq,
+            soUAIF_ClsRep,
             soUAIF_Data,
             soUAIF_Meta,
             soICMP_Data);
@@ -1903,3 +1969,5 @@ void uoe(
 *********************/
 
 }
+
+/*! \} */

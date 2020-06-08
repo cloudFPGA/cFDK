@@ -162,27 +162,24 @@ class AxisRaw {
     LE_tKeep    tkeep;
     LE_tLast    tlast;
 
-    // Return the number of valid bytes
-    int keepToLen() {
-        switch(this->tkeep){
-            case 0x01: return 1; break;
-            case 0x03: return 2; break;
-            case 0x07: return 3; break;
-            case 0x0F: return 4; break;
-            case 0x1F: return 5; break;
-            case 0x3F: return 6; break;
-            case 0x7F: return 7; break;
-            case 0xFF: return 8; break;
-        }
-        return 0;
-    }
-
   public:
     AxisRaw()       {}
     AxisRaw(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 
-    // Get the length of this chunk (in bytes)
+    /*** OBSOLETE ***
+    struct axiWord
+    {
+    	ap_uint<64>		data;
+    	ap_uint<8>		keep;
+    	ap_uint<1>		last;
+    	axiWord() {}
+    	axiWord(ap_uint<64>	 data, ap_uint<8> keep, ap_uint<1> last)
+    				: data(data), keep(keep), last(last) {}
+    };
+    *****************/
+
+    /* Get the length of this chunk (in bytes) */
     int getLen() {
         return keepToLen();
     }
@@ -273,6 +270,21 @@ class AxisRaw {
             return false;
         }
         return true;
+    }
+  protected:
+    // Return the number of valid bytes
+    int keepToLen() {
+        switch(this->tkeep){
+            case 0x01: return 1; break;
+            case 0x03: return 2; break;
+            case 0x07: return 3; break;
+            case 0x0F: return 4; break;
+            case 0x1F: return 5; break;
+            case 0x3F: return 6; break;
+            case 0x7F: return 7; break;
+            case 0xFF: return 8; break;
+        }
+        return 0;
     }
 
   private:

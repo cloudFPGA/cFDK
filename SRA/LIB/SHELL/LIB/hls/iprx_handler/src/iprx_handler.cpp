@@ -256,7 +256,6 @@ void pIpLengthChecker(
                 break;
             case FSM_SIZECHECK:
                 // Check the IPv4/TotalLength filed ([FIXME - Consider removing])
-                //OBSOLETE-20200321 ip4TotLen = byteSwap16(currWord.tdata.range(15, 0));
                 ip4TotLen = currWord.getIp4TotalLen();
                 if (ip4TotLen > MaxDatagramSize) {
                     ilc_filterPacket = 1;
@@ -362,17 +361,13 @@ void pIpChecksumAccumulator(
 
         case 1:
             // Retrieve the IP version field
-            //OBSOLETE-20200321 soIId_IpVer.write(currWord.tdata.range(55, 52));
             soIId_IpVer.write(currWord.getIp4Version());
             // Retrieve the Internet Header Length
-            //OBSOLETE-20200321 ica_ipHdrLen = currWord.tdata.range(51, 48);
             ica_ipHdrLen = currWord.getIp4HdrLen();
-            // Retrieve the first two octets of the IPv4 header
-            //OBSOLETE-20200321 ica_ipHdrSums[3] += byteSwap16(currWord.tdata.range(63, 48));
+            // Retrieve the first two bytes of the IPv4 header
             ica_ipHdrSums[3].range(15,12) = currWord.getIp4Version();
             ica_ipHdrSums[3].range(11, 8) = currWord.getIp4HdrLen();
             ica_ipHdrSums[3].range( 7, 0) = currWord.getIp4ToS();
-            //OBSOLETE-20200321 ica_ipHdrSums[3] = (ica_ipHdrSums[3] + (ica_ipHdrSums[3] >> 16)) & 0xFFFF;
             ica_wordCount++;
             break;
 
@@ -404,7 +399,6 @@ void pIpChecksumAccumulator(
             break;
 
         case 3:
-            //OBSOLETE-20200321 ica_dstIpAddress.range(15, 0) = currWord.tdata.range(63, 48);
             ica_dstIpAddress.range(31, 16) = currWord.getIp4DstAddrHi();
             for (int i = 0; i < 4; i++) {
               #pragma HLS unroll
@@ -417,7 +411,6 @@ void pIpChecksumAccumulator(
 
         default:
             if (ica_wordCount == 4) {
-                //OBSOLETE-20200321 ica_dstIpAddress(31, 16) = currWord.tdata(15, 0);
                 ica_dstIpAddress(15, 0) = currWord.getIp4DstAddrLo();
             }
             switch (ica_ipHdrLen) {
@@ -425,14 +418,11 @@ void pIpChecksumAccumulator(
                 break;
             case 1:
                 // Sum up part0
-                //OBSOLETE-20200321 ica_ipHdrSums[0] += byteSwap16(currWord.tdata.range(15, 0));
                 ica_ipHdrSums[0] += currWord.getIp4DstAddrLo();
                 ica_ipHdrSums[0] = (ica_ipHdrSums[0] + (ica_ipHdrSums[0] >> 16)) & 0xFFFF;
                 ica_ipHdrLen = 0;
-                // Assess destination IP address
-                //OBSOLETE-20200321 if (byteSwap32(ica_dstIpAddress) == piMMIO_Ip4Address || byteSwap32(ica_dstIpAddress) == 0xFFFFFFFF) {
-                if (ica_dstIpAddress == piMMIO_Ip4Address ||
-                    ica_dstIpAddress == 0xFFFFFFFF) {
+                // Assess destination IP address (FYI - IP Broadcast addresses are dropped)
+                if (ica_dstIpAddress == piMMIO_Ip4Address) { // OBSOLETE-20200529 || ica_dstIpAddress == 0xFFFFFFFF) {
                     ipAddrMatch = true;
                 }
                 else {
@@ -448,9 +438,8 @@ void pIpChecksumAccumulator(
                     ica_ipHdrSums[i] = (ica_ipHdrSums[i] + (ica_ipHdrSums[i] >> 16)) & 0xFFFF;
                 }
                 ica_ipHdrLen = 0;
-                //OBSOLETE-20200221 if (byteSwap32(ica_dstIpAddress) == piMMIO_Ip4Address || byteSwap32(ica_dstIpAddress) == 0xFFFFFFFF) {
-                if (ica_dstIpAddress == piMMIO_Ip4Address ||
-                    ica_dstIpAddress == 0xFFFFFFFF) {
+                // Assess destination IP address (FYI - IP Broadcast addresses are dropped)
+                if (ica_dstIpAddress == piMMIO_Ip4Address) { // || ica_dstIpAddress == 0xFFFFFFFF) {
                 ipAddrMatch = true;
                 }
                 else {
@@ -536,11 +525,9 @@ void pIpInvalidDropper(
             !siICa_Data.empty() && !soICl_Data.full()) {
             siICa_Data.read(currWord);
             // Assess validity of the current IPv4 packet
-            //OBSOLETE-20191021 ap_uint<2> valid = siICc_CsumValid.read() + ipValidFifoVersionNo.read() + siICa_DropFrag.read(); // Check the fragment drop queue
             ValBit csumValid = (siICc_CsumValid.read() == 1);        // CSUM is valid
             ValBit isIpv4Pkt = (siICa_IpVer.read()     == 4);        // IP Version is 4
             ValBit doKeepPkt = (siICa_DropFrag.read()  == CMD_KEEP); // Do not drop
-
             ap_uint<2> valid = (csumValid + isIpv4Pkt + doKeepPkt);
             if (valid != 3) {
                 iid_fsmState = FSM_DROP;
@@ -610,7 +597,6 @@ void pIpCutLength(
             AxisIp4 currWord = siIId_Data.read();
             switch (icl_wordCount) {
             case 0:
-                //OBSOLETE-20200321 icl_ip4TotalLength = byteSwap16(currWord.tdata(31, 16));
                 icl_ip4TotalLength = currWord.getIp4TotalLen();
                 break;
             default:

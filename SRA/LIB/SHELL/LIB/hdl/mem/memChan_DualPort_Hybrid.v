@@ -66,25 +66,19 @@
 // *****************************************************************************
 
 module MemoryChannel_DualPort_Hybrid #(
-
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
   parameter gUserDataChanWidth   = 512
 ) (
-
   //-- Global Clock used by the entire SHELL ------
   input           piShlClk,
-
   //-- Global Reset used by the entire SHELL ------
   input           piSHL_Rst,
-    
   //-- DDR4 Reference Memory Clock ----------------
   input           piCLKT_MemClk_n,
   input           piCLKT_MemClk_p,
-  
   //-- Control Inputs and Status Ouputs ----------
   output          poMMIO_InitCalComplete,
-  
   //----------------------------------------------
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
@@ -120,61 +114,61 @@ module MemoryChannel_DualPort_Hybrid #(
   input           siMP0_Write_tlast,
   input           siMP0_Write_tvalid,
   output          siMP0_Write_tready,
-    
   //----------------------------------------------
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------
   //TODO: make generic?
-  input  [  3: 0]  miMP1_AWID,
-  input  [ 32: 0]  miMP1_AWADDR,
-  input  [  7: 0]  miMP1_AWLEN,
-  input  [  3: 0]  miMP1_AWSIZE,
+  //---- Write Address Channel ---------------
+  input  [  3: 0]  miMP1_AWID   ,
+  input  [ 32: 0]  miMP1_AWADDR ,
+  input  [  7: 0]  miMP1_AWLEN  ,
+  input  [  2: 0]  miMP1_AWSIZE ,
   input  [  1: 0]  miMP1_AWBURST,
   input            miMP1_AWVALID,
   output           miMP1_AWREADY,
-  input  [511: 0]  miMP1_WDATA,
-  input  [ 63: 0]  miMP1_WSTRB,
-  input            miMP1_WLAST,
-  input            miMP1_WVALID,
-  output           miMP1_WREADY,
-  output [  3: 0]  miMP1_BID,
-  output [  1: 0]  miMP1_BRESP,
-  output           miMP1_BVALID,
-  input            miMP1_BREADY,
-  input  [  3: 0]  miMP1_ARID,
-  input  [ 32: 0]  miMP1_ARADDR,
-  input  [  7: 0]  miMP1_ARLEN,
-  input  [  3: 0]  miMP1_ARSIZE,
+  //---- Write Data Channel ------------------
+  input  [511: 0]  miMP1_WDATA  ,
+  input  [ 63: 0]  miMP1_WSTRB  ,
+  input            miMP1_WLAST  ,
+  input            miMP1_WVALID ,
+  output           miMP1_WREADY ,
+  //---- Write Response Channel --------------
+  output [  3: 0]  miMP1_BID    ,
+  output [  1: 0]  miMP1_BRESP  ,
+  output           miMP1_BVALID ,
+  input            miMP1_BREADY ,
+  //---- Read Address Channel ----------------
+  input  [  3: 0]  miMP1_ARID   ,
+  input  [ 32: 0]  miMP1_ARADDR ,
+  input  [  7: 0]  miMP1_ARLEN  ,
+  input  [  2: 0]  miMP1_ARSIZE ,
   input  [  1: 0]  miMP1_ARBURST,
   input            miMP1_ARVALID,
   output           miMP1_ARREADY,
-  output [  3: 0]  miMP1_RID,
-  output [511: 0]  miMP1_RDATA,
-  output [  1: 0]  miMP1_RRESP,
-  output           miMP1_RLAST,
-  output           miMP1_RVALID,
-  input            miMP1_RREADY,
- 
+  //---- Read Data Channel -------------------
+  output [  3: 0]  miMP1_RID    ,
+  output [511: 0]  miMP1_RDATA  ,
+  output [  1: 0]  miMP1_RRESP  ,
+  output           miMP1_RLAST  ,
+  output           miMP1_RVALID ,
+  input            miMP1_RREADY , 
   //----------------------------------------------
   // -- DDR4 Physical Interface
   //----------------------------------------------
   inout   [8:0]   pioDDR4_DmDbi_n,
-  inout  [71:0]   pioDDR4_Dq,
-  inout   [8:0]   pioDDR4_Dqs_n,
-  inout   [8:0]   pioDDR4_Dqs_p,  
-  output          poDDR4_Act_n,
-  output [16:0]   poDDR4_Adr,
-  output  [1:0]   poDDR4_Ba,
-  output  [1:0]   poDDR4_Bg,
-  output  [0:0]   poDDR4_Cke,
-  output  [0:0]   poDDR4_Odt,
-  output  [0:0]   poDDR4_Cs_n,
-  output  [0:0]   poDDR4_Ck_n,
-  output  [0:0]   poDDR4_Ck_p,
-  output          poDDR4_Reset_n,
- 
-  output          poVoid
-
+  inout  [71:0]   pioDDR4_Dq     ,
+  inout   [8:0]   pioDDR4_Dqs_n  ,
+  inout   [8:0]   pioDDR4_Dqs_p  ,  
+  output          poDDR4_Act_n   ,
+  output [16:0]   poDDR4_Adr     ,
+  output  [1:0]   poDDR4_Ba      ,
+  output  [1:0]   poDDR4_Bg      ,
+  output  [0:0]   poDDR4_Cke     ,
+  output  [0:0]   poDDR4_Odt     ,
+  output  [0:0]   poDDR4_Cs_n    ,
+  output  [0:0]   poDDR4_Ck_n    ,
+  output  [0:0]   poDDR4_Ck_p    ,
+  output          poDDR4_Reset_n
 );  // End of PortList
 
 
@@ -230,7 +224,6 @@ module MemoryChannel_DualPort_Hybrid #(
   wire [1:0]   sbICT_DM0_WrRes_Resp;
   wire         sbICT_DM0_WrRes_Valid;
   wire         sbICT_DM0_WrRes_Ready;
-
   //---- Master Write Address Channel ----------------------
   wire [7:0]   sbICT_MCC_WrAdd_Wid;
   wire [32:0]  sbICT_MCC_WrAdd_Addr;
@@ -282,7 +275,6 @@ module MemoryChannel_DualPort_Hybrid #(
       //  INST: DATA MOVER #0 (slave data width = 512)
       //========================================================================
   AxiDataMover_M512_S512_B64  DM0 (
-      
     //-- M_MM2S : Master Clocks and Resets inputs ----------
     .m_axi_mm2s_aclk            (piShlClk),
     .m_axi_mm2s_aresetn         (~piSHL_Rst),
@@ -367,19 +359,16 @@ module MemoryChannel_DualPort_Hybrid #(
     .s_axis_s2mm_tlast          (siMP0_Write_tlast),
     .s_axis_s2mm_tvalid         (siMP0_Write_tvalid),
     .s_axis_s2mm_tready         (siMP0_Write_tready)
-    
   );  // End: AxiDataMover_M512_S512_B16  DM0
 
 
   //============================================================================
   //  INST: AXI INTERCONNECT
   //============================================================================
-  AxiInterconnect_1M2S_A33_D512 ICT (
-  
+  AxiInterconnect_1M2S_A33_D512 ICT (  
     //-- Global Interconnect Ports ---------------
     .INTERCONNECT_ACLK    (piShlClk),
     .INTERCONNECT_ARESETN (~piSHL_Rst),
-    
     //--------------------------------------------
     //-- SLAVE INTERFACE #00
     //--------------------------------------------
@@ -518,7 +507,6 @@ module MemoryChannel_DualPort_Hybrid #(
     .M00_AXI_RLAST        (sbMCC_ICT_Read_Last),
     .M00_AXI_RVALID       (sbMCC_ICT_Read_Valid),
     .M00_AXI_RREADY       (sbMCC_ICT_Read_Ready)
-
   );  // End: AxiInterconnect_1M2S_A33_D512 ICT
 
   
@@ -528,8 +516,7 @@ module MemoryChannel_DualPort_Hybrid #(
    //       options. The interface is available when ECC is enabled and the 
    //       primary slave interface is AXI4.
   //============================================================================
-  MemoryChannelController MCC (
-  
+  MemoryChannelController MCC (  
     //-- Reset and Clocks ------------------------
     .sys_rst                    (piSHL_Rst),
     .c0_sys_clk_n               (piCLKT_MemClk_n),
@@ -624,7 +611,6 @@ module MemoryChannel_DualPort_Hybrid #(
     .c0_ddr4_s_axi_rready       (sbMCC_ICT_Read_Ready),
      //-- Debug Port -----------------------------
     .dbg_bus                    (/*po*/)    // left open
-    
   );  // End: MemoryChannelController MCC
 
   //============================================================================
@@ -634,11 +620,8 @@ module MemoryChannel_DualPort_Hybrid #(
     sMCC_Ui_SyncRst_n <= ~sMCC_Ui_SyncRst;
 
 
-
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
-  assign poVoid = 0;
-
 
 endmodule

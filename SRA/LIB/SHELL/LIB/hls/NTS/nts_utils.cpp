@@ -121,21 +121,22 @@ void printLE_SockPair(const char *callerName, LE_SocketPair sockPair) {
  *****************************************************************************/
 void printSockPair(const char *callerName, SocketPair sockPair) {
     printInfo(callerName, "SocketPair {Src,Dst} = {0x%8.8X:0x%4.4X, 0x%8.8X:0x%4.4X} = {%3.3d.%3.3d.%3.3d.%3.3d:%5.5d, %3.3d.%3.3d.%3.3d.%3.3d:%5.5d}\n", \
-         sockPair.src.addr.to_uint(),
-         sockPair.src.port.to_uint(),
-         sockPair.dst.addr.to_uint(),
-         sockPair.dst.port.to_uint(),
-        (sockPair.src.addr.to_uint() & 0xFF000000) >> 24,
-        (sockPair.src.addr.to_uint() & 0x00FF0000) >> 16,
-        (sockPair.src.addr.to_uint() & 0x0000FF00) >>  8,
-        (sockPair.src.addr.to_uint() & 0x000000FF) >>  0,
-         sockPair.src.port.to_uint(),
-        (sockPair.dst.addr.to_uint() & 0xFF000000) >> 24,
-        (sockPair.dst.addr.to_uint() & 0x00FF0000) >> 16,
-        (sockPair.dst.addr.to_uint() & 0x0000FF00) >>  8,
-        (sockPair.dst.addr.to_uint() & 0x000000FF) >>  0,
-         sockPair.dst.port.to_uint());
+       sockPair.src.addr.to_uint(),
+       sockPair.src.port.to_uint(),
+       sockPair.dst.addr.to_uint(),
+       sockPair.dst.port.to_uint(),
+      (sockPair.src.addr.to_uint() & 0xFF000000) >> 24,
+      (sockPair.src.addr.to_uint() & 0x00FF0000) >> 16,
+      (sockPair.src.addr.to_uint() & 0x0000FF00) >>  8,
+      (sockPair.src.addr.to_uint() & 0x000000FF) >>  0,
+       sockPair.src.port.to_uint(),
+      (sockPair.dst.addr.to_uint() & 0xFF000000) >> 24,
+      (sockPair.dst.addr.to_uint() & 0x00FF0000) >> 16,
+      (sockPair.dst.addr.to_uint() & 0x0000FF00) >>  8,
+      (sockPair.dst.addr.to_uint() & 0x000000FF) >>  0,
+       sockPair.dst.port.to_uint());
 }
+
 
 /*****************************************************************************
  * @brief Print a socket pair association.
