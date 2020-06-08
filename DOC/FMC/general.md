@@ -123,7 +123,9 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_CHECK_HTTP_EOR`              | Check if an HTTP End-of-Request occurred (first `0x0d0a0d0a` sequence, i.e. at least one detected) | `OPRV_NOT_COMPLETE` if no, `OPRV_DONE` if yes |
 | `OP_CHECK_HTTP_EOP`              | Check if an HTTP End-of-Payload occurred (second `0x0d0a0d0a` sequence, i.e. at least two detected) | `OPRV_NOT_COMPLETE` if no, `OPRV_DONE` if yes |
 | `OP_ACTIVATE_CONT_TCP`           | Activates the continuous TCP recv | (not changed) |
-| `OP_DEACTIVATE_CONT_TCP`           | Deactivates the continuous TCP recv | (not changed) |
+| `OP_DEACTIVATE_CONT_TCP`         | Deactivates the continuous TCP recv | (not changed) |
+| `OP_TCP_RX_STOP_ON_EOR`          | Set the TCP RX FSM to stop on End-of-Request (in continuous TCP recv mode) | (not changed) |
+| `OP_TCP_RX_STOP_ON_EOP`          | Set the TCP RX FSM to stop on End-of-Payload (in continuous TCP recv mode) | (not changed) |
 
 
 *Flags are reset before every program run*, so not persistent.
@@ -172,7 +174,7 @@ All global variables are marked as `#pragma HLS reset`.
 | `detected_http_nl_cnt`       | `OP_WAIT_FOR_TCP_SESS` | counts number of detected `0xd0a0d0a` sequences, reseted by TCP session start |
 | `hwicap_hangover_present`    |    | indicates that a wrap-around of the bufferIn had took place |
 | `flag_continuous_tcp_rx`     | `OP_ACTIVATE_CONT_TCP`, `OP_DEACTIVATE_CONT_TCP` | indicates continuous TCP mode |
-
+| `target_http_nl_cnt`         |  `OP_TCP_RX_STOP_ON_EOR`, `OP_TCP_RX_STOP_ON_EOP` | holds the target count of HTTP newlines for that the TCP RX FSM should wait (1 = End-of-Request, 2 = End-of-Payload )  |
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
 
