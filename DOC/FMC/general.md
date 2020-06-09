@@ -342,5 +342,6 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 |  8 -- 11 | `fsmTcpSessId_TX` |
 | 12 -- 15 | `fsmTcpData_TX` |
 | 16 -- 23 | `tcp_iteration_count` (i.e. counts how many HTTP requests via TCP were processed) |
+| 24 -- 27 | `detected_http_nl_cnt` |
 
 
