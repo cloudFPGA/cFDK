@@ -1538,7 +1538,7 @@ module Shell_Themisto # (
     .ap_rst_n               (~ sMMIO_LayerRst[5]),
     //core should start immediately 
     //.ap_start               (1),
-    .ap_start                 (sMMIO_LayerEn[5]), 
+    .ap_start                 (sMMIO_LayerEn[5] & (~ sMMIO_LayerRst[5])), 
     //.piSysReset_V           (piSHL_156_25Rst_delayed),
     //.piSysReset_V_ap_vld   (1),
     //.poMMIO_V_ap_vld     ( ),
