@@ -877,19 +877,19 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-##------------------------------------------------------------------------------  
-## IBM-HSL-IP : Dynamic Host Configuration Proces 
-##------------------------------------------------------------------------------
-#set ipModName "DynamicHostConfigurationProcess"
-#set ipName    "dhcp_client"
-#set ipVendor  "IBM"
-#set ipLibrary "hls"
-#set ipVersion "1.0"
-#set ipCfgList  [ list ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Dynamic Host Configuration Proces 
+#------------------------------------------------------------------------------
+set ipModName "DynamicHostConfigurationProcess"
+set ipName    "dhcp_client"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
