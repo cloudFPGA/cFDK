@@ -43,17 +43,17 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  ENDIAN order instead of the initial big-endian order used to transmit bytes
  *  over the physical media.
  *  As an example, consider the 16-bit field "Hardware Type (HTYPE)" of the ARP
- *  packet which value is '0x0001' when the media is Ethernet. This field will
+ *  message which value is '0x0001' when the media is Ethernet. This field will
  *  be transmitted on the media in big-endian order .i.e, a '0x00' followed by a
  *  '0x01'. However, this field will end up being ordered in little-endian mode
  *  (.i.e, 0x0100) by the AXI4-Stream interface of the 10GbE MAC.
  *
- * @warning : This class is to be used when an ARP packet is aligned to a 64-bit
- *  quadword. Refer to the methods of 'AxisEth.hpp' to access the fields of an
- *  ARP packet that is embedded into an Ethernet frame.
+ * @warning : This class is to be used when an ARP message is aligned to a
+ *  64-bit quadword. Refer to the methods of 'AxisEth.hpp' to access the fields
+ *  of an ARP message that is embedded into an Ethernet frame.
  *
  * @info :
- *  The format of an ARP packet transferred over an AXI4-Stream interface of
+ *  The format of an ARP message transferred over an AXI4-Stream interface of
  *  quadwords is done in LITTLE-ENDIAN and is mapped as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
