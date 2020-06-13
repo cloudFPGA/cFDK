@@ -15,22 +15,26 @@
  */
 
 /*****************************************************************************
- * @file       : test_uoe.hpp
- * @brief      : Testbench for the UDP Offload Engine (UOE).
+ * @file       : test_iprx_Handler.hpp
+ * @brief      : Testbench for the IP receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_IPRX
+ * \addtogroup NTS_IPRX
+ * \{
  *****************************************************************************/
 
-//#include <unistd.h>
-//#include <fstream>
-#include <set>
+#ifndef _TEST_IPRX_H_
+#define _TEST_IPRX_H_
 
-#include "../src/uoe.hpp"
+#include "../src/iprx_handler.hpp"
+#include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/SimEthFrame.hpp"
 #include "../../../NTS/SimUdpDatagram.hpp"
 #include "../../../NTS/SimIp4Packet.hpp"
 
@@ -40,21 +44,18 @@
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES   250000
 #define TB_STARTUP_DELAY         0
-#define TB_GRACE_TIME         1000 // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME         5000  // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //--  These variables might be updated/overwritten by the
 //--  content of a test-vector file.
 //---------------------------------------------------------
-bool            gTraceEvent   = false;
-bool            gFatalError   = false;
-unsigned int    gSimCycCnt    = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
+bool            gTraceEvent;
+bool            gFatalError;
+unsigned int    gSimCycCnt;
+unsigned int    gMaxSimCycles;
 
-//---------------------------------------------------------
-//-- TESTBENCH MODES OF OPERATION
-//---------------------------------------------------------
-enum TestMode { RX_MODE='0',   TX_DGRM_MODE='1', TX_STRM_MODE='2',
-                OPEN_MODE='3', BIDIR_MODE='4',   ECHO_MODE='5',     };
+#endif
 
+/*! \} */

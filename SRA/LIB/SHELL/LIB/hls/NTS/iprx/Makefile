@@ -22,7 +22,7 @@ ipName = iprx_handler
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean  help csim csynth cosim project regression
+.PHONY: all clean csim cosim csynth help project regression
  
 all: ${ipName}_prj/solution1/impl/ip
 
@@ -37,7 +37,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 	@touch $@
 
-# Targets
+#-- Targets --------------------------------------------------------------------
+
 clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log

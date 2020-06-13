@@ -71,7 +71,7 @@ using namespace std;
    *
    * Usage: ap_uint<Log2Ceil<N>::val> counter;
    ********************************************************/
-  template<int n> class Log2Ceil {
+  template<int n> struct Log2Ceil {
       //-- Code extracted from the book:
       //--  "High-level Synthesis: Blue Book" by By Michael Fingeroff.
       //--  Since the parameter 'n' is usually based on a template parameter,

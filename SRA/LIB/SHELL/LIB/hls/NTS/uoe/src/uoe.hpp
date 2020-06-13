@@ -37,8 +37,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * \{
  *****************************************************************************/
 
-#ifndef _UOE_H
-#define _UOE_H
+#ifndef _UOE_H_
+#define _UOE_H_
 
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"
@@ -53,7 +53,6 @@ using namespace hls;
 // UDP Maximum Datagram Size (1472=1500-20-8)
 static const UdpLen UDP_MDS = (MTU-IP4_HEADER_LEN-UDP_HEADER_LEN);
 
-#define MDS
 
 /***********************************************
  * IPv4 ADDRESS PAIR
@@ -68,11 +67,11 @@ class IpAddrPair {
 };
 
 
-/*************************************************************************
+/******************************************************************************
  *
  * ENTITY - UDP OFFLOAD ENGINE (UOE)
  *
- *************************************************************************/
+ ******************************************************************************/
 void uoe(
 
         //------------------------------------------------------
@@ -121,4 +120,3 @@ void uoe(
 #endif
 
 /*! \} */
-

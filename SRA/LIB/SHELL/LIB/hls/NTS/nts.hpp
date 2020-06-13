@@ -23,13 +23,13 @@
  * Component   : Shell
  * Language    : Vivado HLS
  *
- * \ingroup NTS_UOE
- * \addtogroup NTS_UOE
+ * \ingroup NTS
+ * \addtogroup NTS
  * \{
  *****************************************************************************/
 
-#ifndef NTS_H_
-#define NTS_H_
+#ifndef _NTS_H_
+#define _NTS_H_
 
 #include "nts_types.hpp"
 

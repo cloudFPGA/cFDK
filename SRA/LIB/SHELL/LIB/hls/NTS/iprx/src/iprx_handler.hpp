@@ -24,46 +24,48 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : iprx_handler.hpp
- * @brief      : IP receiver frame handler (IPRX).
+ * @brief      : IP receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                   IP-Rx handler.
- *
- *****************************************************************************/
+ * \ingroup NTS_IPRX
+ * \addtogroup NTS_IPRX
+ * \{
+ *******************************************************************************/
 
-#ifndef IPRX_H_
-#define IPRX_H_
+#ifndef _IPRX_H_
+#define _IPRX_H_
 
-#include <hls_stream.h>
-#include <ap_int.h>
+//#include <hls_stream.h>
+//#include <ap_int.h>
 #include <ap_shift_reg.h>
 
-#include "../../toe/src/toe.hpp"
-#include "../../toe/src/toe_utils.hpp"
-#include "../../AxisArp.hpp"
-#include "../../AxisEth.hpp"
-#include "../../AxisIp4.hpp"
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/AxisArp.hpp"
+#include "../../../NTS/AxisEth.hpp"
+#include "../../../NTS/AxisIp4.hpp"
 
 using namespace hls;
 
-const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
-const uint16_t ARP             = 0x0806;
-const uint16_t IPv4            = 0x0800;
-const uint16_t DROP            = 0x0000;
-const uint16_t FORWARD         = 0x0001;
+//OBSOLETE_20200613 const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
+const UdpLen  MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 
-const uint8_t  ICMP = 0x01;
-const uint8_t  UDP  = 0x11;
-const uint8_t  TCP  = 0x06;
+//OBSOLETE_20200609const uint16_t DROP            = 0x0000;
+//OBSOLETE_20200609const uint16_t FORWARD         = 0x0001;
 
+//OBSOLETE_20200609const uint8_t  ICMP = 0x01;
+//OBSOLETE_20200609const uint8_t  UDP  = 0x11;
+//OBSOLETE_20200609const uint8_t  TCP  = 0x06;
+
+/***********************************************
+ * SUB-CHECKSUMS COMPUTATION
+ ***********************************************/
 class SubSums {
   public:
     ap_uint<17>         sum0;
@@ -78,7 +80,11 @@ class SubSums {
         sum0(s0), sum1(s1), sum2(s2), sum3(s3), ipMatch(match) {}
 };
 
-
+/*******************************************************************************
+ *
+ * ENTITY - IP RX HANDLER (IPRX)
+ *
+ *******************************************************************************/
 void iprx_handler(
 
         //------------------------------------------------------
@@ -116,3 +122,5 @@ void iprx_handler(
 );
 
 #endif
+
+/*! \} */

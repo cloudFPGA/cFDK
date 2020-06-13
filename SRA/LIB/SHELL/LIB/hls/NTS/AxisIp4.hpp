@@ -189,7 +189,7 @@ class AxisIp4: public AxisRaw {
     //-- IP4 PACKET FIELDS - Constant Definitions
     //-----------------------------------------------------
     // IP protocol numbers
-    static const unsigned char  ICMP_PROTOCOL = 0x01;
+    static const unsigned char  ICMP_PROTOCOL = 0x01;  // [FIXME-Remove and use from nts_types.hpp]
     static const unsigned char  TCP_PROTOCOL  = 0x06;
     static const unsigned char  UDP_PROTOCOL  = 0x11;
 

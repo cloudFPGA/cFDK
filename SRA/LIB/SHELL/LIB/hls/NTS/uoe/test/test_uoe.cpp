@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Offload Engine (UOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  *****************************************************************************/
@@ -237,7 +237,7 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
                 printSockAddr(myName, udpAppMeta.src);
             }
         }
-        //-- Read an AxiWord from line
+        //-- Read an AxisChunk from line
         rc = readAxisRawFromLine(udpAppData, stringBuffer);
         if (rc) {
             appDatagram.pushChunk(AxisUdp(udpAppData.getLE_TData(),

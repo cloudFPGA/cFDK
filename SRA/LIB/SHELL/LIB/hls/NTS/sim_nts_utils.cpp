@@ -45,9 +45,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <stdlib.h>
 
-//#include "../src/toe.hpp"
 //#include "../src/session_lookup_controller/session_lookup_controller.hpp"
-//#include "test_toe_utils.hpp"
 
 using namespace std;
 using namespace hls;

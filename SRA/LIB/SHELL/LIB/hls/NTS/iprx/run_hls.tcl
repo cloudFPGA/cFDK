@@ -6,8 +6,7 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the IP Rx handler
-# *   process used in the SHELL of the cloudFPGA module.
-# *   project.
+# *   process used by the SHELL of the cloudFPGA module.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -24,7 +23,7 @@ set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
 set ipDisplayName  "IP Rx Handler for cloudFPGA"
-set ipDescription  "Parses the received IP packest and forwards to ARP, ICMP, TCP and UDP accordingly."
+set ipDescription  "Parses incoming Ethernet frames, extracts and forwards IP packets to ICMP, TCP and UDP accordingly."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -53,12 +52,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
-add_files     ${currDir}/../toe/test/test_toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files -tb ${currDir}/../toe/test/test_toe_utils.cpp
-
 
 # Create a solution
 #-------------------------------------------------

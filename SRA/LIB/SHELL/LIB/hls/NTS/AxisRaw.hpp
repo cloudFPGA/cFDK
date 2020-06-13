@@ -1,39 +1,29 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-Copyright (c) 2015, Xilinx, Inc.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
-
-/*****************************************************************************
+/*******************************************************************************
  * @file       : AxisRaw.hpp
  * @brief      : A generic class used by the Network-Transport-Stack (NTS) to
- *               to tranfer a chunk of data  over an AXI4-Stream interface.
+ *               to transfer a chunk of data  over an AXI4-Stream interface.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  * @details : This class is similar to the original 'AxiWord' class and is
  *  expected to slowly replace it over time. The major difference lies in the
@@ -64,11 +54,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  * @info: What's this Little-Endian(LE) vs Big-Endian(BE) anyhow.
- *  FYI - The original source from Xilinx (avaialable at:
+ *  FYI - The original source from Xilinx (available at:
  *   https://github.com/Xilinx/HLx_Examples/tree/master/Acceleration/tcp_ip) is
  *   entirely coded with respect to the above mapping of the media network
  *   stream  over a 64-bits interface in little-endian oder. This makes the
- *   initial code particularly difficult to read, mainatin and test. Therefore,
+ *   initial code particularly difficult to read, maintain and test. Therefore,
  *   this class implements a few methods to access the AXIS data streams as if
  *   they were encoded in the expected big-endian order.
  *     All of this headache could have been avoided if the original code had
@@ -93,18 +83,21 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *
  *          63                           32 31                            0
-
  *
-
+ * [TODO]
+ *
  *         +---------------+---------------+---------------+---------------+
  *     BIG |63        Higher-Half        32|31       Lower-Half           0|
  *         +---------------+---------------+---------------+---------------+
  *               *          63                           32 31                            0
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
+ *******************************************************************************/
 
-#ifndef AXIS_RAW_H_
-#define AXIS_RAW_H_
+#ifndef _AXIS_RAW_H_
+#define _AXIS_RAW_H_
 
 #include "ap_int.h"
 
@@ -144,7 +137,7 @@ typedef ap_uint<ARW/8>  tKeep;
 typedef ap_uint<ARW/16> tKeepHalf;
 typedef ap_uint<1>      tLast;
 
-/******************************************************************************
+/*******************************************************************************
  * AXIS_RAW - RAW AXIS-4 STREAMING INTERFACE
  *  An AxisRaw is logically divided into 'ARW/8' bytes. The validity of a given
  *  byte is qualified by the 'tkeep' field, while the assertion of the 'tlast'
@@ -154,7 +147,7 @@ typedef ap_uint<1>      tLast;
  *  the legacy code.
  *
  * @TODO-This class is currently hard-coded with AWR=64 --> Make it generic
- ******************************************************************************/
+ *******************************************************************************/
 class AxisRaw {
 
   protected:
@@ -222,28 +215,28 @@ class AxisRaw {
      * LITTLE-ENDIAN SETTERS AND GETTERS
      *****************************************************/
     // Set the 'tdata' field with a 'data' encoded in Little-Endian order
-    void setLE_TData(LE_tData data) {
-        tdata.range(63,  0) = data;
+    void setLE_TData(LE_tData data, int hi=ARW-1, int lo=0) {
+        tdata.range(hi, lo) = data;
     }
     // Return the 'tdata' field in Little-Endian order
-    LE_tData getLE_TData() {
-        return tdata.range(63, 0);
+    LE_tData getLE_TData(int hi=ARW-1, int lo=0) {
+        return tdata.range(hi, lo);
     }
     // Set the 'tdata' field with the upper-half part of a 'data' encoded in Little-Endian order (.i.e, data(31,0))
     void setLE_TDataHi(LE_tData data) {
-        tdata.range(31, 0) = data.range(31, 0);
+        tdata.range(31, 0) = data.range(31, 0);  // [TODO]
     }
     // Get the 'tdata' field in Little-Endian order and return its upper-half part (.i.e data(31,0))
     LE_tDataHalf getLE_TDataHi() {
-        return getLE_TData().range(31, 0);
+        return getLE_TData().range(31, 0);  // [TODO]
     }
     // Set the 'tdata' field with the lower-half part of a 'data' encoded in Little-Endian order (.i.e, data(63,32))
     void setLE_TDataLo(LE_tData data) {
-        tdata.range(63, 32) = data.range(63, 32);
+        tdata.range(63, 32) = data.range(63, 32);  // [TODO]
     }
     // Get the 'tdata' field in Little-Endian order and return its lower-half part (.i.e, data(63,32)
     LE_tDataHalf getLE_TDataLo() {
-        return getLE_TData().range(63, 32);
+        return getLE_TData().range(63, 32);  // [TODO]
     }
     // Set the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
     void setLE_TKeep(LE_tKeep keep) {
@@ -324,3 +317,5 @@ class AxisRaw {
 };
 
 #endif
+
+/*! \} */

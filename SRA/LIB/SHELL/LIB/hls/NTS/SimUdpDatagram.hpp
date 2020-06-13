@@ -1,67 +1,48 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-Copyright (c) 2015, Xilinx, Inc.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
-
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimUdpDatagram.hpp
  * @brief      : A simulation class to build UDP datagrams.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
 
  * \ingroup NTS_SIM
  * \addtogroup NTS_SIM
  * \{ 
- *****************************************************************************/
+ *******************************************************************************/
 
 #ifndef _SIM_UDP_DATAGRAM_
 #define _SIM_UDP_DATAGRAM_
 
-//#include <queue>
-//#include <string>
-//#include <iostream>
-//#include <iomanip>
-//#include <unistd.h>
-//#include <stdlib.h>
-
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
 
-using namespace std;
-using namespace hls;
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Class UDP Datagram.
  *
  * @details
  *  This class defines an UDP datagram as a stream of 'AxisUdp' data chunks.
  *   Such an UDP datagram consists of a double-ended queue that is used to
- *    accumulate all these data chunks.
+ *   accumulate all these data chunks.
  *   For the 10GbE MAC, the UDP chunks are 64 bits wide.
- ******************************************************************************/
+ *******************************************************************************/
 class SimUdpDatagram {
 
   private:
@@ -72,7 +53,6 @@ class SimUdpDatagram {
     // Set the length of this UDP datagram (in bytes)
     void setLen(int dgmLen) {
         this->len = dgmLen;
-        //OBSOLETE_20200422 this->setUdpLength(dgmLen);
     }
     // Get the length of this UDP datagram (in bytes)
     int  getLen() {
@@ -83,7 +63,7 @@ class SimUdpDatagram {
         this->dgmQ.clear();
         this->len = 0;
     }
-    // Return the front chunk element of the UDP datagram queue but does not remove it from the queue
+    // Return the front chunk element of the UDP datagram queue but do not remove it from the queue
     AxisUdp front() {
         return this->dgmQ.front();
     }
@@ -126,7 +106,7 @@ class SimUdpDatagram {
         this->setLen(this->getLen() + udpChunk.getLen());
     }
 
-    // Return the chunk of bytes at the front of the queue and remove that chunk from the queue
+    // Return the chunk at the front of the queue and remove that chunk from the queue
     AxisUdp pullChunk() {
         AxisUdp headingChunk = this->front();
         this->pop_front();
@@ -135,10 +115,14 @@ class SimUdpDatagram {
     }
 
     // Return the length of the UDP datagram (in bytes)
-    int length()                                           { return this->len;                              }
+    int length() {
+        return this->len;
+    }
 
     // Return the number of chunks in the UDP datagram (in axis-words)
-    int size()                                             { return this->dgmQ.size();             }
+    int size() {
+        return this->dgmQ.size();
+    }
 
     /**************************************************************************
      * @brief Clone a UDP datagram.
@@ -350,17 +334,6 @@ class SimUdpDatagram {
             printError(myName, "File is not opened.\n");
             return false;
         }
-        /*** OBSOLETE_20200425 *********
-        outFileStream << std::uppercase;
-        outFileStream << hex << noshowbase << setfill('0') << setw(16) << axisUdp->getLE_TData().to_uint64();
-        outFileStream << " ";
-        outFileStream << setw(1) << axisUdp->getLE_TLast().to_int();
-        outFileStream << " ";
-        outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axisUdp->getLE_TKeep().to_int() << "\n";
-        if (axisUdp->getLE_TLast()) {
-            outFileStream << "\n";
-        }
-        *******************************/
         AxisRaw axisRaw(axisUdp->getLE_TData(), axisUdp->getLE_TKeep(), axisUdp->getLE_TLast());
         bool rc = writeAxisRawToFile(axisRaw, outFileStream);
         return(rc);
@@ -399,7 +372,5 @@ class SimUdpDatagram {
 };  // End-of: SimUdpDatagram
 
 #endif
-
-
 
 /*! \} */

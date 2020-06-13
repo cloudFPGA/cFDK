@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : nts_types.hpp
  * @brief      : Definition of the types used by the Network Transport Stack
  *               (NTS) component of the cloudFPGA shell.
@@ -23,13 +23,13 @@
  * Component   : Shell
  * Language    : Vivado HLS
  *
- * \ingroup NTS_UOE
- * \addtogroup NTS_UOE
+ * \ingroup NTS
+ * \addtogroup NTS
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
-#ifndef NTS_TYPES_H_
-#define NTS_TYPES_H_
+#ifndef _NTS_TYPES_H_
+#define _NTS_TYPES_H_
 
 #include <hls_stream.h>
 
@@ -119,6 +119,13 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
  *  - a FRAME    (or MAC Frame)    refers to the Ethernet data link layer.
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  ******************************************************************************/
+
+//-----------------------------------------------------
+//-- ETHERNET FRAME FIELDS - Constant Definitions
+//-----------------------------------------------------
+// EtherType protocol numbers
+#define IP4_PROTOCOL    0x0800
+#define ARP_PROTOCOL    0x0806
 
 /*********************************************************
  * ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
@@ -223,11 +230,6 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr <  s2.dst.addr) ||
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
-
-
-
-
-
 
 #endif
 
