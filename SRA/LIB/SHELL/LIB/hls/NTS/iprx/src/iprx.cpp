@@ -25,8 +25,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*******************************************************************************
- * @file       : iprx_handler.cpp
- * @brief      : IP receiver packet handler (IPRX).
+ * @file       : iprx.cpp
+ * @brief      : IP Receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -37,7 +37,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * \{
  *******************************************************************************/
 
-#include "iprx_handler.hpp"
+#include "iprx.hpp"
 
 using namespace hls;
 
@@ -64,7 +64,7 @@ using namespace hls;
 #define TRACE_IPR  1 << 8
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -790,7 +790,7 @@ void pIpPacketRouter(
 
 
 /*******************************************************************************
- * @brief   Main process of the IP Receiver Handler (IPRX).
+ * @brief   Main process of the IP Receive handler (IPRX).
  *
  * @param[in]  piMMIO_MacAddress The MAC address from MMIO (in network order).
  * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
@@ -815,7 +815,7 @@ void pIpPacketRouter(
  *     datagram (of type #11 --Time Exceeded) that is sent back to the sender.
  *
  *******************************************************************************/
-void iprx_handler(
+void iprx(
 
         //------------------------------------------------------
         //-- MMIO Interfaces

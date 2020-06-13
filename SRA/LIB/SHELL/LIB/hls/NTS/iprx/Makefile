@@ -17,7 +17,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = iprx_handler
+ipName = iprx
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)

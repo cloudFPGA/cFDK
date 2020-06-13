@@ -15,8 +15,8 @@
  */
 
 /*****************************************************************************
- * @file       : test_iprx_Handler.hpp
- * @brief      : Testbench for the IP receiver packet handler (IPRX).
+ * @file       : test_iprx.hpp
+ * @brief      : Testbench for the IP Receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -30,7 +30,7 @@
 #ifndef _TEST_IPRX_H_
 #define _TEST_IPRX_H_
 
-#include "../src/iprx_handler.hpp"
+#include "../src/iprx.hpp"
 #include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"

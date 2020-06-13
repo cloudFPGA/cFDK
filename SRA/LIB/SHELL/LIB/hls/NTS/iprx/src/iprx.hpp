@@ -25,8 +25,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*******************************************************************************
- * @file       : iprx_handler.hpp
- * @brief      : IP receiver packet handler (IPRX).
+ * @file       : iprx.hpp
+ * @brief      : IP Receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -56,13 +56,6 @@ using namespace hls;
 //OBSOLETE_20200613 const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 const UdpLen  MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 
-//OBSOLETE_20200609const uint16_t DROP            = 0x0000;
-//OBSOLETE_20200609const uint16_t FORWARD         = 0x0001;
-
-//OBSOLETE_20200609const uint8_t  ICMP = 0x01;
-//OBSOLETE_20200609const uint8_t  UDP  = 0x11;
-//OBSOLETE_20200609const uint8_t  TCP  = 0x06;
-
 /***********************************************
  * SUB-CHECKSUMS COMPUTATION
  ***********************************************/
@@ -85,7 +78,7 @@ class SubSums {
  * ENTITY - IP RX HANDLER (IPRX)
  *
  *******************************************************************************/
-void iprx_handler(
+void iprx(
 
         //------------------------------------------------------
         //-- MMIO Interfaces

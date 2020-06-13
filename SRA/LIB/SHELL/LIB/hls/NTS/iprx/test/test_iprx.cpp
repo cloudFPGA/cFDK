@@ -15,8 +15,8 @@
  */
 
 /*******************************************************************************
- * @file       : test_iprx_handler.cpp
- * @brief      : Testbench for the IP receiver packet handler (IPRX).
+ * @file       : test_iprx.cpp
+ * @brief      : Testbench for the IP Receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -27,7 +27,7 @@
  * \{
  *******************************************************************************/
 
-#include "test_iprx_handler.hpp"
+#include "test_iprx.hpp"
 
 using namespace hls;
 using namespace std;
@@ -357,7 +357,7 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' STARTS HERE                              ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx' STARTS HERE                                      ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
     for (int i=1; i<argc; i++) {
@@ -369,7 +369,7 @@ int main(int argc, char* argv[]) {
 
     while (tbRun) {
         //-- RUN DUT
-        iprx_handler(
+        iprx(
             myMacAddress,
             myIp4Address,
             ssETH_IPRX_Data,
@@ -408,7 +408,7 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' ENDS HERE                                ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx' ENDS HERE                                        ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
     stepSim();
 

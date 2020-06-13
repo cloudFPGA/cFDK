@@ -17,12 +17,12 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "iprx_handler"
+set projectName    "iprx"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "IP Rx Handler for cloudFPGA"
+set ipDisplayName  "IP Rx Handler for cloudFPGA (IPRX)"
 set ipDescription  "Parses incoming Ethernet frames, extracts and forwards IP packets to ICMP, TCP and UDP accordingly."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
