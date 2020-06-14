@@ -11,7 +11,7 @@
 # ******************************************************************************
 
 
-.PHONY: all clean rlb uoe 
+.PHONY: all clean iprx rlb uoe 
 
 all:   iprx      rlb       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 

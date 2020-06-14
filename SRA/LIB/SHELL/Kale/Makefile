@@ -27,7 +27,6 @@ endif
 
 all: ip          
 
-
 hls_cores:
 	@$(MAKE) -C ../LIB/hls/ 
 
@@ -43,9 +42,8 @@ ip: $(IP_DIR)   ## Build all the IP cores required by the cFDK.
 # XCI_DEPS get's evaluated BEFORE the hls target get's executed, so if a hls core doesn't exist completly (e.g. after a clean)
 # the create_ip_cores.tcl will not be started. 
 # We must depend on a directory NOT a PHONY in order to avoid a re-build every time.
-$(IP_DIR): ../LIB/hls ./tcl/create_ip_cores.tcl ./tcl/decouple_ip_type.tcl ../LIB/tcl/create_ip_cores.tcl $(IP_DIR)/ip_user_files ../LIB/.ip_guard
+$(IP_DIR): ../LIB/hls ../LIB/hls/NTS ./tcl/create_ip_cores.tcl ./tcl/decouple_ip_type.tcl ../LIB/tcl/create_ip_cores.tcl $(IP_DIR)/ip_user_files ../LIB/.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
-
 
 ../LIB/.ip_guard: 
 	@touch $@

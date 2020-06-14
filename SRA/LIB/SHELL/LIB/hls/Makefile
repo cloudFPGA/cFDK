@@ -13,7 +13,7 @@
 
 .PHONY: all clean NTS arp_server cam dhcp_client echo_app fmc icmp_server iptx_handler nrc toe udp udp_mux udp_role_if udp_role_if_2
 
-all:   NTS arp_server icmp_server iprx_handler iptx_handler udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   NTS arp_server icmp_server iptx_handler udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:  NTS.csim arp_server.csim icmp_server.csim iptx_handler.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
