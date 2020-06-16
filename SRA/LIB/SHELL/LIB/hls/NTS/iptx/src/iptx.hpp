@@ -24,24 +24,23 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : iptx_handler.hpp
- * @brief      : IP transmit frame handler (IPTX).
+/*******************************************************************************
+ * @file       : iptx.hpp
+ * @brief      : IP Transmitter packet handler (IPTX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                   IP-Tx handler.
- *
- *****************************************************************************/
+ * \ingroup NTS_IPRX
+ * \addtogroup NTS_IPRX
+ * \{
+ *******************************************************************************/
 
-#ifndef IPTX_H_
-#define IPTX_H_
+#ifndef _IPTX_H_
+#define _IPTX_H_
 
+/*** OBSOLETE_20200615 *************
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -50,26 +49,23 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hls_stream.h>
 #include "ap_int.h"
 #include <stdint.h>
+************************************/
 
-#include "../../toe/src/toe.hpp"
-#include "../../toe/src/toe_utils.hpp"
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisEth.hpp"
 #include "../../AxisIp4.hpp"
 
 using namespace hls;
 
-class ArpLkpReply
-{
-  public:
-    EthAddr     macAddress;
-    HitState    hit;
-    ArpLkpReply() {}
-    ArpLkpReply(EthAddr macAdd, HitState hit) :
-        macAddress(macAdd), hit(hit) {}
-};
 
-
-void iptx_handler(
+/*******************************************************************************
+ *
+ * ENTITY - IP TX HANDLER (IPTX)
+ *
+ *******************************************************************************/
+void iptx(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
@@ -95,3 +91,5 @@ void iptx_handler(
 );
 
 #endif
+
+/*! \} */

@@ -7,7 +7,6 @@
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the IP Tx handler
 # *   process used by the SHELL of the cloudFPGA module.
-# *   project.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -19,13 +18,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "iptx_handler"
+set projectName    "iptx"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "IP Tx Handler for cloudFPGA"
-set ipDescription  "Computes the IP checksum and appends the Ethernet MAC destination address."
+set ipDisplayName  "IP Tx Handler for cloudFPGA (IPTX)"
+set ipDescription  "Computes the IP header checksum and prepends an Ethernet MAC header."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -54,10 +53,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files     ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------

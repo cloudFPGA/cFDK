@@ -24,18 +24,20 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : iptx_handler.cpp
- * @brief      : IP transmitter frame handler (IPTX).
+/*******************************************************************************
+ * @file       : iptx.cpp
+ * @brief      : IP Transmitter packet handler (IPTX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_IPTX
+ * \addtogroup NTS_IPTX
+ * \{
+ ******************************************************************************/
 
-#include "iptx_handler.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "iptx.hpp"
 
 using namespace hls;
 
@@ -43,7 +45,7 @@ using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (TRACE_MPd | TRACE_IBUF)
+ *  .e.g: DEBUG_LEVEL = (TRACE_MAI | TRACE_ICA)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -60,12 +62,12 @@ using namespace hls;
 #define DEBUG_LEVEL (TRACE_OFF)
 
 
-/*****************************************************************************
+/*******************************************************************************
  * IPv4 Header Checksum Accumulator (HCa)
  *
- * @param[in]  siL3MUX_Data, Data stream from the L3 Multiplexer (L3MUX).
- * @param[out] soICi_Data,   Data stream to the IpChecksumInserter (ICi).
- * @param[out] soICi_Csum,   IP header checksum.
+ * @param[in]  siL3MUX_Data Data stream from the L3 Multiplexer (L3MUX).
+ * @param[out] soICi_Data   Data stream to the IpChecksumInserter (ICi).
+ * @param[out] soICi_Csum   IP header checksum.
  *
  * @details
  *  This process computes the IPv4 header checksum and forwards it to the
@@ -86,7 +88,7 @@ using namespace hls;
  *  |                            Options                            |     DA (LL)   |     DA (L)    |     DA (H)    |    DA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pHeaderChecksumAccumulator(
         stream<AxisIp4>     &siL3MUX_Data,
         stream<AxisIp4>     &soICi_Data,
@@ -106,17 +108,17 @@ void pHeaderChecksumAccumulator(
     static ap_uint<17>                      hca_ipHdrCsum[4]={0, 0, 0, 0};
     #pragma HLS RESET              variable=hca_ipHdrCsum
     #pragma HLS ARRAY_PARTITION    variable=hca_ipHdrCsum complete dim=1
-    static ap_uint<3>                       hca_axiWordCount=0;
-    #pragma HLS RESET              variable=hca_axiWordCount
+    static ap_uint<3>                       hca_chunkCount=0;
+    #pragma HLS RESET              variable=hca_chunkCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_uint<4>                       hca_ipHdrLen;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4     currWord;
-    Ip4HdrCsum  temp;
+    AxisIp4     currChunk;
+    Ip4HdrCsum  tempHdrCsum;
 
-    currWord.tlast = 0;
+    currChunk.setLE_TLast(0);
     if(!hca_csumWritten) {
         switch (hca_fsmState) {
         case S0:
@@ -147,40 +149,38 @@ void pHeaderChecksumAccumulator(
         }
     }
     else if (!siL3MUX_Data.empty() && !soICi_Data.full() && hca_csumWritten) {
-        siL3MUX_Data.read(currWord);
+        siL3MUX_Data.read(currChunk);
         // Process the IPv4 header.
         //  Remember that the Internet Header Length (IHL) field contains the
         //  size of the IPv4 header specified in number of 32-bit words, and
         //  its default minimum value is 5.
-        switch (hca_axiWordCount) {
+        switch (hca_chunkCount) {
         case 0:
-            //OBSOLETE-20200331 hca_ipHdrLen = currWord.tdata.range(3, 0);
-            hca_ipHdrLen = currWord.getIp4HdrLen();
+            hca_ipHdrLen = currChunk.getIp4HdrLen();
             //-- Accumulate 1st IPv4 header qword [Frag|Ident|TotLen|ToS|IHL]
-            for (int i = 0; i < 4; i++) {
+            for (int i=0; i<4; i++) {
               #pragma HLS UNROLL
-                temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                temp(15, 8) = currWord.tdata.range(i*16+7,  i*16);
-                hca_ipHdrCsum[i] += temp;
-                hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
+                tempHdrCsum( 7, 0) = currChunk.getLE_TData().range(i*16+15, i*16+8);
+                tempHdrCsum(15, 8) = currChunk.getLE_TData().range(i*16+7,  i*16);
+                hca_ipHdrCsum[i]  += tempHdrCsum;
+                hca_ipHdrCsum[i]   = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
             }
-            hca_axiWordCount++;
-            // [FIXME - This line was missing]
+            hca_chunkCount++;
             hca_ipHdrLen -= 2;
             break;
         case 1:
             //-- Accumulate 2nd IPv4 header qword [SA|HdCsum|Prot|TTL]
-            for (int i = 0; i < 4; i++) {
+            for (int i=0; i<4; i++) {
               #pragma HLS UNROLL
                 if (i != 1) {
                     // Skip 3rd and 4th bytes. They contain the IP header checksum.
-                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.tdata.range(i*16+7,  i*16);
-                    hca_ipHdrCsum[i] += temp;
-                    hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
+                    tempHdrCsum( 7, 0) = currChunk.getLE_TData().range(i*16+15, i*16+8);
+                    tempHdrCsum(15, 8) = currChunk.getLE_TData().range(i*16+7,  i*16);
+                    hca_ipHdrCsum[i]  += tempHdrCsum;
+                    hca_ipHdrCsum[i]  = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
                 }
             }
-            hca_axiWordCount++;
+            hca_chunkCount++;
             hca_ipHdrLen -= 2;
             break;
         default:
@@ -193,127 +193,114 @@ void pHeaderChecksumAccumulator(
                 //-- Accumulate the last IPv4 option dword
                 for (int i = 0; i < 2; i++) {
                   #pragma HLS UNROLL
-                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.tdata.range(i*16+7,  i*16);
-                    hca_ipHdrCsum[i] += temp;
-                    hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
+                    tempHdrCsum( 7, 0) = currChunk.getLE_TData().range(i*16+15, i*16+8);
+                    tempHdrCsum(15, 8) = currChunk.getLE_TData().range(i*16+7,  i*16);
+                    hca_ipHdrCsum[i]  += tempHdrCsum;
+                    hca_ipHdrCsum[i]   = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
                 }
                 hca_ipHdrLen = 0;
                 hca_csumWritten = false;
                 break;
-            /*** OBSOLETE-20200331 ****
-            case 3:
-                for (int i = 0; i < 4; i++) {
-                  #pragma HLS UNROLL
-                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.tdata.range(i*16+7,  i*16);
-                    hca_ipHdrCsum[i] += temp;
-                    hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
-                }
-                hca_ipHdrLen -= 2;
-                hca_csumWritten = false;
-                break;
-            ***************************/
             default:
                 // Sum up everything
                 for (int i = 0; i < 4; i++) {
                   #pragma HLS UNROLL
-                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.tdata.range(i*16+7,  i*16);
-                    hca_ipHdrCsum[i] += temp;
+                    tempHdrCsum( 7, 0) = currChunk.getLE_TData().range(i*16+15, i*16+8);
+                    tempHdrCsum(15, 8) = currChunk.getLE_TData().range(i*16+7,  i*16);
+                    hca_ipHdrCsum[i] += tempHdrCsum;
                     hca_ipHdrCsum[i] = (hca_ipHdrCsum[i] + (hca_ipHdrCsum[i] >> 16)) & 0xFFFF;
                 }
                 hca_ipHdrLen -= 2;
-                hca_csumWritten = false;
+                if (hca_ipHdrLen == 0) {
+                    hca_csumWritten = false;
+                }
                 break;
             } // End-of: switch ipHeaderLen
             break;
-        } // End-of: switch(hca_axiWordCount)
-        soICi_Data.write(currWord);
-        if (currWord.tlast) {
-            hca_axiWordCount = 0;
+        } // End-of: switch(hca_chunkCount)
+        soICi_Data.write(currChunk);
+        if (currChunk.getLE_TLast()) {
+            hca_chunkCount = 0;
         }
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * IP Checksum Inserter (ICi)
  *
- * @param[in]  siHCa_Data, The data stream from HeaderChecksumAccumulator (HCa).
- * @param[in]  siHCa_Csum, The computed IP header checksum from [HCa].
- * @param[out] soIAe_Data, The data stream to IpAddressExtratcor (IAe).
+ * @param[in]  siHCa_Data The data stream from HeaderChecksumAccumulator (HCa).
+ * @param[in]  siHCa_Csum The computed IP header checksum from [HCa].
+ * @param[out] soIAe_Data The data stream to IpAddressExtratcor (IAe).
  *
  * @details
  *  This process inserts the computed IP header checksum in the IPv4 packet
  *  being streamed on the data interface.
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pIpChecksumInsert(
         stream<AxisIp4>     &siHCa_Data,
         stream<Ip4HdrCsum>  &siHCa_Csum,
         stream<AxisIp4>     &soIAe_Data)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ICi");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { S0=0, S1, S2 } ici_fsmState=S0;
     #pragma HLS RESET             variable=ici_fsmState
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4     currWord;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisIp4     currChunk;
     Ip4HdrCsum  ipHdrChecksum;
 
-	currWord.tlast = 0;
+    currChunk.setLE_TLast(0);
     switch (ici_fsmState) {
     case S0:
         if (!siHCa_Data.empty() && !soIAe_Data.full()) {
-            siHCa_Data.read(currWord);
-            soIAe_Data.write(currWord);
+            siHCa_Data.read(currChunk);
+            soIAe_Data.write(currChunk);
             ici_fsmState = S1;
         }
         break;
     case S1:
         if (!siHCa_Data.empty() && !siHCa_Csum.empty() && !soIAe_Data.full()) {
-            siHCa_Data.read(currWord);
+            siHCa_Data.read(currChunk);
             siHCa_Csum.read(ipHdrChecksum);
             // Insert the computed ipHeaderChecksum in the incoming stream
-            //OBSOLETE-20200331 currWord.tdata(23, 16) = ipHdrChecksum(15, 8);
-            //OBSOLETE-20200331 currWord.tdata(31, 24) = ipHdrChecksum( 7, 0);
-            currWord.setIp4HdrCsum(ipHdrChecksum);
-            soIAe_Data.write(currWord);
+            currChunk.setIp4HdrCsum(ipHdrChecksum);
+            soIAe_Data.write(currChunk);
             ici_fsmState = S2;
         }
         break;
     default:
         if (!siHCa_Data.empty() && !soIAe_Data.full()) {
-            siHCa_Data.read(currWord);
-            soIAe_Data.write(currWord);
+            siHCa_Data.read(currChunk);
+            soIAe_Data.write(currChunk);
         }
         break;
     } // End-of: switch()
 
-    if (currWord.tlast) {
+    if (currChunk.getLE_TLast()) {
         ici_fsmState = S0;
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * IPv4 Address Extractor (IAe)
  *
- * @param[in]  piMMIO_SubNetMask, The sub-network-mask from [MMIO].
- * @param[in]  piMMIO_GatewayAddr,The default gateway address from [MMIO].
- * @param[in]  siICi_Data,        The data stream from IpChecksumInserter ICi).
- * @param[out] soMAi_Data,        The data stream to MacAddressInserter (MAe).
- * @param[out] soARP_LookupReq,   IPv4 address lookup request to [ARP].
+ * @param[in]  piMMIO_SubNetMask The sub-network-mask from [MMIO].
+ * @param[in]  piMMIO_GatewayAddrThe default gateway address from [MMIO].
+ * @param[in]  siICi_Data        The data stream from IpChecksumInserter ICi).
+ * @param[out] soMAi_Data        The data stream to MacAddressInserter (MAi).
+ * @param[out] soARP_LookupReq   IPv4 address lookup request to [ARP].
  *
  * @details
  *  This process extracts the IP destination address from the incoming stream
- *  and forwards it to the Address Resolution Server in order to look up the
- *  corresponding MAC address.
- *****************************************************************************/
+ *  and forwards it to the Address Resolution Protocol server (ARP) in order to
+ *  look up the corresponding MAC address.
+ *******************************************************************************/
 void pIp4AddressExtractor(
         Ip4Addr              piMMIO_SubNetMask,
         Ip4Addr              piMMIO_GatewayAddr,
@@ -321,23 +308,23 @@ void pIp4AddressExtractor(
         stream<AxisIp4>     &soMAi_Data,
         stream<Ip4Addr>     &soARP_LookupReq)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "IAe");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<2>          iae_wordCount=0;
-    #pragma HLS RESET variable=iae_wordCount
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static ap_uint<2>          iae_chunkCount=0;
+    #pragma HLS RESET variable=iae_chunkCount
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     Ip4Addr ipDestAddr;
 
     if (!siICi_Data.empty() && !soMAi_Data.full()) {
-        AxisIp4 currWord = siICi_Data.read();
-        switch (iae_wordCount) {
+        AxisIp4 currChunk = siICi_Data.read();
+        switch (iae_chunkCount) {
         case 2:  // Extract destination IP address
-            ipDestAddr = currWord.getIp4DstAddr();
+            ipDestAddr = currChunk.getIp4DstAddr();
             if ((ipDestAddr & piMMIO_SubNetMask) == (piMMIO_GatewayAddr & piMMIO_SubNetMask)
               || (ipDestAddr == 0xFFFFFFFF)) {
                 soARP_LookupReq.write(ipDestAddr);
@@ -345,77 +332,76 @@ void pIp4AddressExtractor(
             else {
                 soARP_LookupReq.write(piMMIO_GatewayAddr);
             }
-            iae_wordCount++;
+            iae_chunkCount++;
             break;
         default:
-            if (currWord.tlast) {
-                iae_wordCount = 0;
+            if (currChunk.getLE_TLast()) {
+                iae_chunkCount = 0;
             }
-            else if (iae_wordCount < 3) {
-                iae_wordCount++;
+            else if (iae_chunkCount < 3) {
+                iae_chunkCount++;
             }
             break;
         } // End-of: switch()
-
-        soMAi_Data.write(currWord);
+        soMAi_Data.write(currChunk);
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * MAC Address Inserter (MAi)
  *
- * @param[in]  piMMIO_MacAddress,My Ethernet MAC address from [MMIO].
- * @param[in]  siIAe_Data,       The data stream from IpAddressExtractor (IAe).
- * @param[out] siARP_LookupRsp,  MAC address lookup from [ARP].
- * @param[in]  soL2MUX_Data,     The data stream to [L2MUX].
+ * @param[in]  piMMIO_MacAddress My Ethernet MAC address from [MMIO].
+ * @param[in]  siIAe_Data        The data stream from IpAddressExtractor (IAe).
+ * @param[out] siARP_LookupRsp   MAC address looked-up from [ARP].
+ * @param[in]  soL2MUX_Data      The data stream to [L2MUX].
  *
  * @details
- *  This process inserts the Ethernet MAC address corresponding to the IPv4
- *  destination address that was looked-up by the ARP server.
- *****************************************************************************/
+ *  This process prepends the appropriate Ethernet header to the outgoing IPv4
+ *  packet.
+ *******************************************************************************/
 void pMacAddressInserter(
         EthAddr                  piMMIO_MacAddress,
         stream<AxisIp4>         &siIAe_Data,
         stream<ArpLkpReply>     &siARP_LookupRsp,
         stream<AxisEth>         &soL2MUX_Data)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "MAi");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates {FSM_MAI_WAIT_LOOKUP=0, FSM_MAI_DROP, FSM_MAI_WRITE,
                            FSM_MAI_WRITE_FIRST,   FSM_MAI_WRITE_LAST} \
                                mai_fsmState=FSM_MAI_WAIT_LOOKUP;
     #pragma HLS RESET variable=mai_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static AxisIp4  mai_prevWord;
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static AxisIp4  mai_prevChunk;
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisEth     sendWord;
-    AxisIp4     currWord;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisEth     sendChunk;
+    AxisIp4     currChunk;
     ArpLkpReply arpResponse;
     EthAddr     macDstAddr;
 
-    currWord.tlast = 0;
+    currChunk.setLE_TLast(0);
     switch (mai_fsmState) {
     case FSM_MAI_WAIT_LOOKUP:
         if (!siARP_LookupRsp.empty() && !soL2MUX_Data.full()) {
             siARP_LookupRsp.read(arpResponse);
             macDstAddr = arpResponse.macAddress;
             if (arpResponse.hit) {
-                sendWord.setEthDstAddr(macDstAddr);
-                sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
-                sendWord.tkeep = 0xff;
-                sendWord.tlast = 0;
-                soL2MUX_Data.write(sendWord);
+                sendChunk.setEthDstAddr(macDstAddr);
+                sendChunk.setEthSrcAddrHi(piMMIO_MacAddress);
+                sendChunk.setLE_TKeep(0xff);
+                sendChunk.setLE_TLast(0);
+                soL2MUX_Data.write(sendChunk);
                 mai_fsmState = FSM_MAI_WRITE_FIRST;
                 if (DEBUG_LEVEL & TRACE_MAI) {
                     printInfo(myName, "FSM_MAI_WAIT_LOOKUP - Lookup=HIT - Received MAC = 0x%12.12lX\n",
                               arpResponse.macAddress.to_ulong());
-                    printAxiWord(myName, "Forwarding AxisEthWord to [L2MUX]: ", sendWord);
+                    printAxisRaw(myName, "Forwarding AxisChunk to [L2MUX]: ", sendChunk);
                 }
             }
             else {  // Drop it all, wait for RT
@@ -429,36 +415,42 @@ void pMacAddressInserter(
     case FSM_MAI_WRITE_FIRST:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_FIRST - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
-            siIAe_Data.read(currWord);
-            sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
-            sendWord.setEthTypeLen(0x0800);
-            //OBSOLETE-20200401 sendWord.tdata(63, 48) = currWord.tdata(15, 0);
-            sendWord.setIp4HdrLen(currWord.getIp4HdrLen());
-            sendWord.setIp4Version(currWord.getIp4Version());
-            sendWord.setIp4ToS(currWord.getIp4Tos());
-            sendWord.tkeep = 0xff;
-            sendWord.tlast = 0;
-            soL2MUX_Data.write(sendWord);
-            mai_prevWord = currWord;
+            siIAe_Data.read(currChunk);
+            sendChunk.setEthSrcAddrLo(piMMIO_MacAddress);
+            sendChunk.setEthTypeLen(0x0800);
+            //OBSOLETE-20200401 sendWord.tdata(63, 48) = currChunk.tdata(15, 0);
+            sendChunk.setIp4HdrLen(currChunk.getIp4HdrLen());
+            sendChunk.setIp4Version(currChunk.getIp4Version());
+            sendChunk.setIp4ToS(currChunk.getIp4ToS());
+            sendChunk.setLE_TKeep(0xff);
+            sendChunk.setLE_TLast(0);
+            soL2MUX_Data.write(sendChunk);
+            mai_prevChunk = currChunk;
             mai_fsmState = FSM_MAI_WRITE;
         }
         break;
     case FSM_MAI_WRITE:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
-            siIAe_Data.read(currWord);
-            sendWord.tdata(47,  0) = mai_prevWord.tdata(63, 16);
-            sendWord.tdata(63, 48) =     currWord.tdata(15,  0);
-            sendWord.tkeep( 5,  0) = mai_prevWord.tkeep( 7,  2);
-            sendWord.tkeep( 7,  6) =     currWord.tkeep( 1,  0);
-            sendWord.tlast = (currWord.tkeep[2] == 0);
-            soL2MUX_Data.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_MAI) {
-                printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
+            siIAe_Data.read(currChunk);
+            sendChunk.setLE_TData(mai_prevChunk.getLE_TData(63, 16), 47,  0);
+            sendChunk.setLE_TData(    currChunk.getLE_TData(15,  0), 63, 48);
+            sendChunk.setLE_TKeep(mai_prevChunk.getLE_TKeep( 7,  2),  5,  0);
+            sendChunk.setLE_TKeep(    currChunk.getLE_TKeep( 1,  0),  7,  6);
+            //OBSOLETE_20200615 sendWord.tlast = (currWord.tkeep[2] == 0);
+            if (currChunk.getLE_TKeep()[2] == 0) {
+                sendChunk.setLE_TLast(TLAST);
             }
-            mai_prevWord = currWord;
-            if (currWord.tlast) {
-                if (currWord.tkeep[2] == 0) {
+            else {
+                 sendChunk.setLE_TLast(0);
+            }
+            soL2MUX_Data.write(sendChunk);
+            if (DEBUG_LEVEL & TRACE_MAI) {
+                printAxisRaw(myName, "Forwarding AxisChunk to [L2MUX]: ", sendChunk);
+            }
+            mai_prevChunk = currChunk;
+            if (currChunk.getLE_TLast()) {
+                if (currChunk.getLE_TKeep()[2] == 0) {
                     mai_fsmState = FSM_MAI_WAIT_LOOKUP;
                 }
                 else {
@@ -473,14 +465,19 @@ void pMacAddressInserter(
     case FSM_MAI_WRITE_LAST:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_LAST - \n"); }
         if (!soL2MUX_Data.full()) {
-            sendWord.tdata(47,  0) = mai_prevWord.tdata(63, 16);
-            sendWord.tdata(63, 48) = 0;
-            sendWord.tkeep( 5,  0) = mai_prevWord.tkeep(7, 2);
-            sendWord.tkeep( 7,  6) = 0;
-            sendWord.tlast = 1;
-            soL2MUX_Data.write(sendWord);
+            //OBSOLETE_20200615 sendChunk.tdata(47,  0) = mai_prevChunk.tdata(63, 16);
+            //OBSOLETE_20200615 sendChunk.tdata(63, 48) = 0;
+            //OBSOLETE_20200615 sendChunk.tkeep( 5,  0) = mai_prevChunk.tkeep(7, 2);
+            //OBSOLETE_20200615 sendChunk.tkeep( 7,  6) = 0;
+            //OBSOLETE_20200615 sendChunk.tlast = 1;
+            sendChunk.setLE_TData(mai_prevChunk.getLE_TData(63, 16), 47,  0);
+            sendChunk.setLE_TData(                                0, 63, 48);
+            sendChunk.setLE_TKeep(mai_prevChunk.getLE_TKeep( 7,  2),  5,  0);
+            sendChunk.setLE_TKeep(                                0,  7,  6);
+            sendChunk.setLE_TLast(TLAST);
+            soL2MUX_Data.write(sendChunk);
             if (DEBUG_LEVEL & TRACE_MAI) {
-                printAxiWord(myName, "Forwarding AxiWord to [L2MUX]: ", sendWord);
+                printAxisRaw(myName, "Forwarding AxisChunk to [L2MUX]: ", sendChunk);
             }
             mai_fsmState = FSM_MAI_WAIT_LOOKUP;
         }
@@ -488,9 +485,9 @@ void pMacAddressInserter(
     case FSM_MAI_DROP:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_DROP - \n"); }
         if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
-            siIAe_Data.read(currWord);
-            if (currWord.tlast) {
-            	mai_fsmState = FSM_MAI_WAIT_LOOKUP;
+            siIAe_Data.read(currChunk);
+            if (currChunk.getLE_TLast()) {
+                mai_fsmState = FSM_MAI_WAIT_LOOKUP;
             }
         }
         break;
@@ -499,11 +496,27 @@ void pMacAddressInserter(
 
 } // End-of: pMacAddressInserter
 
-/*****************************************************************************
- * @brief   Main process of the IP Transmitter Handler.
+/*******************************************************************************
+ * @brief   Main process of the IP Transmitter Handler (IPRX).
  *
- ******************************************************************************/
-void iptx_handler(
+ * @param[in]  piMMIO_MacAddress  The MAC address from MMIO (in network order).
+ * @param[in]  piMMIO_SubNetMask  The sub-network-mask from [MMIO].
+ * @param[in]  piMMIO_GatewayAddr The default gateway address from [MMIO].
+ * @param[in]  siL3MUX_Data       The IP4 data stream from the L3 Multiplexer (L3MUX).
+ * @param[out] soL2MUX_Data       The ETH data stream to the L2 Multiplexer (L2MUX).
+ * @param[out] soARP_LookupReq    The IP4 address lookup request to AddressResolutionProtocol (ARP).
+ * @param[in]  siARP_LookupRep    The MAC address looked-up from [ARP].
+ *
+ * @details: This process receives IP packets from the TCP-offload-engine (TOE),
+ *  the Internet Control Message Protocol (ICMP) engine or the UDP Offload
+ *  Engine (UOE). It first computes the IP header checksum and inserts it into
+ *  the IP packet. Next, it extracts the IP_DA from the incoming data stream and
+ *  forwards it to the Address Resolution Protocol server (ARP) in order to
+ *  look up the corresponding MAC address. Final, an Ethernet header is created
+ *  and is prepended to the outgoing IPv4 packet.
+ *
+ *******************************************************************************/
+void iptx(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
@@ -528,7 +541,7 @@ void iptx_handler(
         stream<Ip4Addr>         &soARP_LookupReq,
         stream<ArpLkpReply>     &siARP_LookupRep)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
@@ -564,12 +577,12 @@ void iptx_handler(
 
 #endif
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
 
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
 
     //-- Header Checksum Accumulator (HCa)
     static stream<AxisIp4>         ssHCaToICi_Data    ("ssHCaToICi_Data");
@@ -613,3 +626,4 @@ void iptx_handler(
             soL2MUX_Data);
 }
 
+/*! \} */
