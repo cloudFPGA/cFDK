@@ -63,6 +63,9 @@
  *  of 'AxisEth.hpp' to access the fields of an UDP datagram that is embedded
  *  into an IPv4 packet further embedded into an Ethernet frame.
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
  *****************************************************************************/
 
 #ifndef _AXIS_UDP_H_
@@ -233,3 +236,5 @@ class AxisUdp: public AxisRaw {
 }; // End of: AxisUdp
 
 #endif
+
+/*! \} */

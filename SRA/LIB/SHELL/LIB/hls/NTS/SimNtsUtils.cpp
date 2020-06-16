@@ -551,6 +551,66 @@ bool readAxisRawFromFile(AxisRaw &axisRaw, ifstream &inpFileStream) {
 }
 #endif
 
+/***************************************************************************
+ * @brief Retrieve a testbench parameter from a DAT file.
+ *
+ * @param[in]  paramName The name of the parameter to read.
+ * @param[in]  datFile   The input file to read from.
+ * @param[out] paramVal  A ref. to the parameter value.
+ *
+ * @return true if successful, otherwise false.
+ ***************************************************************************/
+#ifndef __SYNTHESIS__
+bool readTbParamFromFile(const string paramName, const string datFile,
+                         unsigned int &paramVal) {
+    ifstream        inpFileStream;
+    char            currPath[FILENAME_MAX];
+    string          rxStringBuffer;
+    vector<string>  stringVector;
+
+    if (not isDatFile(datFile)) {
+        printError(THIS_NAME, "Input test vector file \'%s\' is not of type \'DAT\'.\n", datFile.c_str());
+        return(NTS_KO);
+    }
+    inpFileStream.open(datFile.c_str());
+    if (!inpFileStream) {
+        getcwd(currPath, sizeof(currPath));
+        printError(THIS_NAME, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", datFile.c_str(), currPath);
+        return(NTS_KO);
+    }
+
+    do {
+        //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
+        getline(inpFileStream, rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer, ' ');
+        if (stringVector[0] == "") {
+            continue;
+        }
+        else if (stringVector[0].length() == 1) {
+            // By convention, a global parameter must start with a single 'G' character.
+            if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
+                if (stringVector[2] == paramName) {
+                    char * ptr;
+                    if (isDottedDecimal(stringVector[3])) {
+                        paramVal = myDottedDecimalIpToUint32(stringVector[3]);
+                    }
+                    else if (isHexString(stringVector[3])) {
+                        paramVal = strtoul(stringVector[3].c_str(), &ptr, 16);
+                    }
+                    else {
+                        paramVal = strtoul(stringVector[3].c_str(), &ptr, 10);
+                    }
+                    inpFileStream.close();
+                    return NTS_OK;
+                }
+            }
+        }
+    } while(!inpFileStream.eof());
+    inpFileStream.close();
+    return NTS_KO;
+}
+#endif
+
 /*******************************************************************************
  * @brief Dump an AP_UINT to a file.
  *

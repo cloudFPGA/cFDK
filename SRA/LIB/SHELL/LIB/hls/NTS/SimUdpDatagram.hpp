@@ -21,7 +21,7 @@
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
-
+ *
  * \ingroup NTS_SIM
  * \addtogroup NTS_SIM
  * \{ 
@@ -221,7 +221,7 @@ class SimUdpDatagram {
      * @brief Calculate the UDP checksum of the datagram.
      *  - This method computes the UDP checksum over the pseudo header, the
      *    UDP header and UDP data. According to RFC768, the pseudo  header
-     *    consists of the IP-{SA,DA,Prot} fildss and the  UDP length field.
+     *    consists of the IP-{SA,DA,Prot} fields and the  UDP length field.
      *         0      7 8     15 16    23 24    31
      *        +--------+--------+--------+--------+
      *        |          source address           |
@@ -275,23 +275,23 @@ class SimUdpDatagram {
         return byteSwap16(udpCsum);
     }
 
-	/**********************************************************************
-	 * @brief Recalculate the UDP checksum of a datagram.
-	 *   - While re-computing the checksum, the checksum field itself is
-	 *     replaced with zeros.
-	 *   - This will also overwrite the former UDP checksum.
-	 *   - You typically use this method if the datagram was modified or
-	 *     when the checksum has not yet been calculated.
-	 *
-	 * @return the computed checksum.
-	 **********************************************************************/
-	UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
-		this->setUdpChecksum(0x0000);
-		UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa, ipProt);
-		// Overwrite the former UDP checksum
-		this->setUdpChecksum(newUdpCsum);
-		return (newUdpCsum);
-	}
+    /**********************************************************************
+     * @brief Recalculate the UDP checksum of a datagram.
+     *   - While re-computing the checksum, the checksum field itself is
+     *     replaced with zeros.
+     *   - This will also overwrite the former UDP checksum.
+     *   - You typically use this method if the datagram was modified or
+     *     when the checksum has not yet been calculated.
+     *
+     * @return the computed checksum.
+     **********************************************************************/
+    UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+        this->setUdpChecksum(0x0000);
+        UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa, ipProt);
+        // Overwrite the former UDP checksum
+        this->setUdpChecksum(newUdpCsum);
+        return (newUdpCsum);
+    }
 
     /**************************************************************************
      * @brief Checks if the datagram header fields are  properly set.

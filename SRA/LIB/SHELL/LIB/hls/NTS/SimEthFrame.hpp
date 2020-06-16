@@ -405,7 +405,7 @@ class SimEthFrame {
      * @param[in] ipPkt  The IPv4 packet to use as Ethernet payload.
      * @return true upon success, otherwise false.
      ***************************************************************************/
-    bool addPaylod(SimIp4Packet ipPkt) {
+    bool addPayload(SimIp4Packet ipPkt) {
         bool    alternate = true;
         bool    endOfPkt  = false;
         AxisIp4 ip4Chunk(0, 0, 0);
@@ -421,21 +421,21 @@ class SimEthFrame {
         while (!endOfPkt) {
             if (alternate) {
                 if (ip4Chunk.getLE_TKeep() & 0x01) {
-                    this->frmQ[ethChunkCnt].setLE_TData(ip4Chunk.getLE_TData().range( 7, 0), 55, 48);
+                    this->frmQ[ethChunkCnt].setLE_TData(ip4Chunk.getLE_TData( 7, 0), 55, 48);
                     this->frmQ[ethChunkCnt].setLE_TKeep(this->frmQ[ethChunkCnt].getLE_TKeep() | (0x40));
                     this->setLen(this->getLen() + 1);
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x02) {
-                    this->frmQ[ethChunkCnt].setLE_TData(ip4Chunk.getLE_TData().range(15, 8), 63, 56);
+                    this->frmQ[ethChunkCnt].setLE_TData(ip4Chunk.getLE_TData(15, 8), 63, 56);
                     this->frmQ[ethChunkCnt].setLE_TKeep(this->frmQ[ethChunkCnt].getLE_TKeep() | (0x80));
                     this->setLen(this->getLen() + 1);
                 }
                 if ((ip4Chunk.getLE_TLast()) && (ip4Chunk.getLE_TKeep() <= 0x03)) {
-                    this->frmQ[ethChunkCnt].getLE_TLast() = 1;
+                    this->frmQ[ethChunkCnt].setLE_TLast(TLAST);
                     endOfPkt = true;
                 }
                 else {
-                    this->frmQ[ethChunkCnt].getLE_TLast() = 0;
+                    this->frmQ[ethChunkCnt].setLE_TLast(0);
                 }
                 alternate = !alternate;
             }
@@ -443,27 +443,27 @@ class SimEthFrame {
                 // Build a new chunk and add it to the queue
                 AxisEth newEthChunk(0,0,0);
                 if (ip4Chunk.getLE_TKeep() & 0x04) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(23, 16),  7, 0);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(23, 16),  7, 0);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x01));
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x08) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(31, 24), 15, 8);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(31, 24), 15, 8);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x02));
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x10) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(39, 32), 23,16);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(39, 32), 23,16);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x04));
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x20) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(47, 40), 31,24);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(47, 40), 31,24);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x08));
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x40) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(55, 48), 39,32);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(55, 48), 39,32);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x10));
                 }
                 if (ip4Chunk.getLE_TKeep() & 0x80) {
-                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData().range(63, 56), 47,40);
+                    newEthChunk.setLE_TData(ip4Chunk.getLE_TData(63, 56), 47,40);
                     newEthChunk.setLE_TKeep(newEthChunk.getLE_TKeep() | (0x20));
                 }
                 // Done with the incoming IP word
