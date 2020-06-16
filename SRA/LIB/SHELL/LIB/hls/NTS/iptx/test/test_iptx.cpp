@@ -1,23 +1,37 @@
-/*****************************************************************************
- * @file       : test_iptx_handler.cpp
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
+ * @file       : test_iptx.cpp
  * @brief      : Testbench for the IP transmit frame handler.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *****************************************************************************/
+ * \ingroup NTS_IPRX_TEST
+ * \addtogroup NTS_IPRX_TEST
+ * \{
+ *******************************************************************************/
 
-#include "../src/iptx_handler.hpp"
-#include "../../toe/src/toe.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "test_iptx.hpp"
 
-#include <hls_stream.h>
-#include <stdio.h>
-#include <string>
+//OBSOLETE #include <hls_stream.h>
+//OBSOLETE #include <stdio.h>
+//OBSOLETE #include <string>
 
 using namespace hls;
 using namespace std;
@@ -33,38 +47,32 @@ using namespace std;
 #define TRACE_ARP   1 <<  2
 #define TRACE_ALL    0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
-//---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES      25000
-#define TB_STARTUP_DELAY           0
-#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
-
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-bool            gTraceEvent     = false;
-bool            gFatalError     = false;
-unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
-
-
-/*****************************************************************************
+/*******************************************************************************
  * @brief Emulate the behavior of the Address Resolution Process (ARP).
  *
- * @param[in]  siIPTX_LookupReq, ARP lookup request from [IPTX].
- * @param[out] soIPTX_LookupRep, ARP lookup reply to [IPTX].
- * @param[in]  piMacAddress,     The Ethernet MAC address of the FPGA.
- * @param[in]  piIp4Address,     The IPv4 address of the FPGA.
- * @param[in]  piSubNetMask,     The sub-network-mask from [MMIO].
- * @param[in]  piGatewayAddr,    The default gateway address from [MMIO].
- ******************************************************************************/
+ * @param[in]  siIPTX_LookupReq ARP lookup request from [IPTX].
+ * @param[out] soIPTX_LookupRep ARP lookup reply to [IPTX].
+ * @param[in]  piMacAddress     The Ethernet MAC address of the FPGA.
+ * @param[in]  piIp4Address     The IPv4 address of the FPGA.
+ * @param[in]  piSubNetMask     The sub-network-mask from [MMIO].
+ * @param[in]  piGatewayAddr    The default gateway address from [MMIO].
+ *******************************************************************************/
 void pEmulateArp(
         stream<Ip4Addr>       &siIPTX_LookupReq,
         stream<ArpLkpReply>   &soIPTX_LookupRep,
@@ -119,18 +127,18 @@ void pEmulateArp(
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Create the golden reference file from an input test file.
  *
- * @param[in] inpDAT_FileName,  the input DAT file to generate from.
- * @param[in] outDAT_GoldName,  the output DAT gold file to create.
- * @param[in] myMacAddress,     the MAC address of the FPGA.
- * @param[in] myIp4Address,     the IPv4 address of the FPGA.
- * @param[in] mySubNetMask,     The sub-network-mask.
- * @param[in] myGatewayAddr,    The default gateway address.
+ * @param[in] inpDAT_FileName  the input DAT file to generate from.
+ * @param[in] outDAT_GoldName  the output DAT gold file to create.
+ * @param[in] myMacAddress     the MAC address of the FPGA.
+ * @param[in] myIp4Address     the IPv4 address of the FPGA.
+ * @param[in] mySubNetMask     The sub-network-mask.
+ * @param[in] myGatewayAddr    The default gateway address.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
- ******************************************************************************/
+ *******************************************************************************/
 int createGoldenFile(
         string      inpDAT_FileName,
         string      outDAT_GoldName,
@@ -178,17 +186,17 @@ int createGoldenFile(
 
     //-- STEP-3 : READ AND PARSE THE INPUT IPv4 FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-        IpPacket   ipPacket;
-        Ip4overMac ipRxData;
-        bool       endOfPacket=false;
-        bool       rc;
+        SimIp4Packet ipPacket;
+        AxisIp4      axisIp4;
+        bool         endOfPacket=false;
+        bool         rc;
         // Build a new frame from IPv4 data file
         while ((ifsDAT.peek() != EOF) && (!endOfPacket)) {
-            rc = readAxiWordFromFile(&ipRxData, ifsDAT);
+            rc = readAxisRawFromFile(axisIp4, ifsDAT);
             if (rc) {
-                if (ipRxData.isValid()) {
-                    ipPacket.push_back(ipRxData);
-                    if (ipRxData.tlast == 1) {
+                if (axisIp4.isValid()) {
+                    ipPacket.pushChunk(axisIp4);
+                    if (axisIp4.getLE_TLast()) {
                         inpPackets++;
                         endOfPacket = true;
                     }
@@ -196,15 +204,14 @@ int createGoldenFile(
                 else {
                     // We always abort the stream as this point by asserting
                     // 'tlast' and de-asserting 'tkeep'.
-                    ipPacket.push_back(AxiWord(ipRxData.tdata, 0x00, 1));
+                    ipPacket.pushChunk(AxisIp4(axisIp4.getLE_TData(), 0x00, TLAST));
                     inpPackets++;
                     endOfPacket = true;
                 }
                 inpChunks++;
-                inpBytes += ipRxData.keepToLen();
+                inpBytes += axisIp4.getLen();
             }
         }
-
         if (endOfPacket) {
             Ip4Addr  ipSA = ipPacket.getIpSourceAddress();
             if(ipSA != myIp4Address) {
@@ -218,7 +225,7 @@ int createGoldenFile(
                 endOfPacket=false;
             }
             else {
-                EthFrame    ethGoldFrame(14);
+                SimEthFrame ethGoldFrame(14);
                 //-------------------------------
                 //-- SET THE MAC HEADER        --
                 //-------------------------------
@@ -251,7 +258,6 @@ int createGoldenFile(
                 }
                 ethGoldFrame.setMacSourceAddress(myMacAddress);
                 ethGoldFrame.setTypeLength(0x0800);
-
                 // Assess the IP version
                 if (ipPacket.getIpVersion() != 4) {
                     printWarn(THIS_NAME, "Frame #%d is dropped because IP version is not \'4\'.\n", inpPackets);
@@ -264,21 +270,21 @@ int createGoldenFile(
                 }
                 // Assess the L3 checksum
                 switch (ipPacket.getIpProtocol()) {
-                case IpPacket::TCP_PROTOCOL:
+                case TCP_PROTOCOL:
                     if (not ipPacket.tcpVerifyChecksum()) {
                         printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
                     }
                     break;
-                case IpPacket::UDP_PROTOCOL:
+                case UDP_PROTOCOL:
                     if (not ipPacket.udpVerifyChecksum()) {
                         printWarn(THIS_NAME, "Failed to verify the UDP checksum of Frame #%d.\n", inpPackets);
                     }
                     break;
-                case IpPacket::ICMP_PROTOCOL:
+                case ICMP_PROTOCOL:
                     break;  // [TODO]
                 }
-                ethGoldFrame.setIpPacket(ipPacket);
-                // Write the IP packet as data payload of the ETHERNET frame.
+                // Add the IP packet as data payload of the ETHERNET frame.
+                ethGoldFrame.addPayload(ipPacket);
                 if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
                     printError(THIS_NAME, "Failed to write ETH frame to DAT file.\n");
                     rc = NTS_KO;
@@ -290,7 +296,6 @@ int createGoldenFile(
                 }
             }
         } // End-of if (endOfPacket)
-
     } // End-of While ()
 
     //-- STEP-3: CLOSE FILES
@@ -306,15 +311,20 @@ int createGoldenFile(
     return(ret);
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Main function.
  *
- * @param[in] argv[1], the filename of an input test vector
- *                     (.e.g, ../../../../test/testVectors/siTOE_OnePkt.dat)
- ******************************************************************************/
+ * @param[in] argv[1] The filename of an input test vector (.e.g, ../../../../test/testVectors/siTOE_OnePkt.dat)
+ *******************************************************************************/
 int main(int argc, char* argv[]) {
 
-    gSimCycCnt = 0;
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gTraceEvent     = false;
+    gFatalError     = false;
+    gSimCycCnt      = 0;
+    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
@@ -337,13 +347,11 @@ int main(int argc, char* argv[]) {
     int                 nrL3MUX_IPTX_Chunks = 0;
     int                 nrL3MUX_IPTX_Frames = 0;
     int                 nrL3MUX_IPTX_Bytes  = 0;
-
     //-- To L2MUX
     stream<AxisEth>     ssIPTX_L2MUX_Data  ("ssIPTX_L2MUX_Data");
     int                 nrIPTX_L2MUX_Chunks = 0;
     int                 nrIPTX_L2MUX_Frames = 0;
     int                 nrIPTX_L2MUX_Bytes  = 0;
-
     //-- To/From ARP
     stream<Ip4Addr>     ssIPTX_ARP_LookupReq ("ssIPTX_ARP_LookupReq");
     stream<ArpLkpReply> ssARP_IPTX_LookupRep ("ssARP_IPTX_LookupRep");
@@ -355,7 +363,7 @@ int main(int argc, char* argv[]) {
         printFatal(THIS_NAME, "Missing testbench parameter:\n\t Expecting an input test vector file.\n");
     }
     unsigned int param;
-    if (readTbParamFromDatFile("FpgaIp4Addr", string(argv[1]), param)) {
+    if (readTbParamFromFile("FpgaIp4Addr", string(argv[1]), param)) {
         myIp4Address = param;
         printIp4Addr(THIS_NAME, "The input test vector is setting the IP address of the FPGA to", myIp4Address);
     }
@@ -378,7 +386,6 @@ int main(int argc, char* argv[]) {
     //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS
     //------------------------------------------------------
     ofstream    outFileStream;
-
     //-- Remove previous file
     remove(ofsL2MUX_Data_FileName.c_str());
     //-- Assess that file has ".dat" extension
@@ -410,14 +417,19 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_iptx_handler' STARTS HERE                              ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iptx' STARTS HERE                                      ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+    printf("\n\n");
 
     tbRun = (nrErr == 0) ? (nrL3MUX_IPTX_Chunks + TB_GRACE_TIME) : 0;
 
     while (tbRun) {
         //-- RUN DUT
-        iptx_handler (
+        iptx(
             //-- MMIO Interfaces
             myMacAddress,
             mySubNetMask,
@@ -440,47 +452,43 @@ int main(int argc, char* argv[]) {
             myGatewayAddr);
 
         //-- READ FROM STREAM AND WRITE TO FILE
-        AxisEth  axisEthWord;
+        AxisEth  axisEth;
         if (!(ssIPTX_L2MUX_Data.empty())) {
-            ssIPTX_L2MUX_Data.read(axisEthWord);
-            if (not writeAxiWordToFile(&axisEthWord, outFileStream)) {
+            ssIPTX_L2MUX_Data.read(axisEth);
+            if (not writeAxisRawToFile(axisEth, outFileStream)) {
                 nrErr++;
             }
             else {
                 nrIPTX_L2MUX_Chunks++;
-                nrIPTX_L2MUX_Bytes  += axisEthWord.keepToLen();
-                if (axisEthWord.tlast) {
+                nrIPTX_L2MUX_Bytes  += axisEth.getLen();
+                if (axisEth.getLE_TLast()) {
                     nrIPTX_L2MUX_Frames++;
-                    outFileStream << std::endl;
+                    //OBSOLETE_20200615 outFileStream << std::endl;
                 }
             }
         }
 
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     }
 
+    //------------------------------------------------------
+    //-- CLOSE DUT OUTPUT TRAFFIC FILE
+    //------------------------------------------------------
+    outFileStream.close();
+
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'testiptx_handler' ENDS HERE                                 ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iptx' ENDS HERE                                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
 
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
     //---------------------------------------------------------------
-    int res = system(("diff --brief -w " + std::string(ofsL2MUX_Data_FileName) \
-            + " " + std::string(ofsL2MUX_Gold_FileName) + " ").c_str());
+    int res = system(("diff --brief -w " + std::string(ofsL2MUX_Data_FileName) + " " + std::string(ofsL2MUX_Gold_FileName) + " ").c_str());
     if (res) {
-        printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-            ofsL2MUX_Data_FileName.c_str(), ofsL2MUX_Gold_FileName.c_str());
+        printError(THIS_NAME, "File \'%s\' does not match \'%s\' (rc=%d).\n", \
+            ofsL2MUX_Data_FileName.c_str(), ofsL2MUX_Gold_FileName.c_str(), res);
         nrErr += 1;
     }
 
@@ -507,3 +515,5 @@ int main(int argc, char* argv[]) {
     return nrErr;
 
 }
+
+/*! \} */

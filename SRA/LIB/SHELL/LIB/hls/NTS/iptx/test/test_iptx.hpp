@@ -15,37 +15,34 @@
  */
 
 /*****************************************************************************
- * @file       : test_iprx.hpp
- * @brief      : Testbench for the IP Receiver packet handler (IPRX).
+ * @file       : test_iptx.hpp
+ * @brief      : Testbench for the IP Transmitter packet handler (IPTX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_IPRX
- * \addtogroup NTS_IPRX
+ * \ingroup NTS_IPTX_TEST
+ * \addtogroup NTS_IPTX_TEST
  * \{
  *****************************************************************************/
 
-#ifndef _TEST_IPRX_H_
-#define _TEST_IPRX_H_
+#ifndef _TEST_IPTX_H_
+#define _TEST_IPTX_H_
 
-#include <cerrno>
-
-#include "../src/iprx.hpp"
+#include "../src/iptx.hpp"
 #include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
 #include "../../../NTS/SimEthFrame.hpp"
-#include "../../../NTS/SimUdpDatagram.hpp"
 #include "../../../NTS/SimIp4Packet.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL DEFINES
 //    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
 //---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES   250000
-#define TB_STARTUP_DELAY         0
+#define TB_MAX_SIM_CYCLES   25000
+#define TB_STARTUP_DELAY        0
 #define TB_GRACE_TIME         5000  // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------

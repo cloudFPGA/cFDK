@@ -40,8 +40,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _IPRX_H_
 #define _IPRX_H_
 
-//#include <hls_stream.h>
-//#include <ap_int.h>
 #include <ap_shift_reg.h>
 
 #include "../../../NTS/nts.hpp"
@@ -53,7 +51,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-//OBSOLETE_20200613 const uint16_t MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 const UdpLen  MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 
 /***********************************************

@@ -188,10 +188,10 @@ class AxisIp4: public AxisRaw {
     //-----------------------------------------------------
     //-- IP4 PACKET FIELDS - Constant Definitions
     //-----------------------------------------------------
-    // IP protocol numbers
-    static const unsigned char  ICMP_PROTOCOL = 0x01;  // [FIXME-Remove and use from nts_types.hpp]
-    static const unsigned char  TCP_PROTOCOL  = 0x06;
-    static const unsigned char  UDP_PROTOCOL  = 0x11;
+    //OBSOLETE_20200616 // IP protocol numbers
+    //OBSOLETE_20200616 static const unsigned char  ICMP_PROTOCOL = 0x01;  // [FIXME-Remove and use from nts_types.hpp]
+    //OBSOLETE_20200616 static const unsigned char  TCP_PROTOCOL  = 0x06;
+    //OBSOLETE_20200616 static const unsigned char  UDP_PROTOCOL  = 0x11;
 
     /****************************************************************
      * AXIS_UDP - BIG-ENDIAN HELPERS (specific to UDP-over-IPv4)
@@ -343,19 +343,22 @@ class AxisIp4: public AxisRaw {
     //-----------------------------------------------------
     //-- ENCAPSULATED UDP DATAGRAM - Setters and Getters
     //-----------------------------------------------------
-    // Set-Get the UDP Source Port
-    void        setUdpSrcPort(UdpPort port)     {                  tdata.range(47, 32) = swapWord(port);  }
-    UdpPort     getUdpSrcPort()                 { return swapWord (tdata.range(47, 32));                  }
-    // Set-Get the UDP Destination Port
-    void        setUdpDstPort(UdpPort port)     {                  tdata.range(63, 48) = swapWord(port);  }
-    UdpPort     getUdpDstPort()                 { return swapWord (tdata.range(63, 48));                  }
-
-    // Set-Get the UDP Length
-    void        setUdpLen(UdpLen len)           {                  tdata.range(15,  0) = swapWord(len);   }
-    UdpLen      getUdpLen(int Lo=0)             { return swapWord (tdata.range(Lo+16-1, Lo));             }
-    // Set-Get the UDP Checksum
-    void        setUdpCsum(UdpCsum csum)        {                  tdata.range(31, 16) = swapWord(csum);  }
-    UdpCsum     getUdpCsum(int Lo=16)           { return swapWord (tdata.range(Lo+16-1, Lo));             }
+    // Set the UDP Source Port
+    void        setUdpSrcPort(UdpPort port, int Lo=32) {                  tdata.range(Lo+16-1, Lo) = swapWord(port);  }
+    // Get the UDP Source Port
+    UdpPort     getUdpSrcPort(              int Lo=32) { return swapWord (tdata.range(Lo+16-1, Lo));                  }
+    // Set the UDP Destination Port
+    void        setUdpDstPort(UdpPort port, int Lo=48) {                  tdata.range(Lo+16-1, Lo) = swapWord(port);  }
+    // Get the UDP Destination Port
+    UdpPort     getUdpDstPort(              int Lo=48) { return swapWord (tdata.range(Lo+16-1, Lo));                  }
+    // Set the UDP Length
+    void        setUdpLen(UdpLen len,       int Lo= 0) {                  tdata.range(Lo+16-1, Lo) = swapWord(len);   }
+    // Get the UDP Length
+    UdpLen      getUdpLen(                  int Lo= 0) { return swapWord (tdata.range(Lo+16-1, Lo));                  }
+    // Set the UDP Checksum
+    void        setUdpCsum(UdpCsum csum,    int Lo=16) {                  tdata.range(Lo+16-1, Lo) = swapWord(csum);  }
+    // Get the UDP Checksum
+    UdpCsum     getUdpCsum(                 int Lo=16) { return swapWord (tdata.range(Lo+16-1, Lo));                  }
 
     //-----------------------------------------------------
     //-- ENCAPSULATED ICMP MESSAGE - Setters and Getters
@@ -370,9 +373,9 @@ class AxisIp4: public AxisRaw {
     void          setIcmpCsum(IcmpCsum csum)    {                  tdata.range(32+31, 32+16) = swapWord(csum);  }
     IcmpCsum      getIcmpCsum()                 { return swapWord (tdata.range(32+31, 32+16));                  }
 
-    LE_IcmpType   getLE_IcmpType()              {             return tdata.range(32+ 7, 32+ 0);                   }
-    LE_IcmpCode   getLE_IcmpCode()              {             return tdata.range(32+15, 32+ 8);                   }
-    LE_IcmpCsum   getLE_IcmpCsum()              {             return tdata.range(32+31, 32+16);                   }
+    LE_IcmpType   getLE_IcmpType()              {           return tdata.range(32+ 7, 32+ 0);                   }
+    LE_IcmpCode   getLE_IcmpCode()              {           return tdata.range(32+15, 32+ 8);                   }
+    LE_IcmpCsum   getLE_IcmpCsum()              {           return tdata.range(32+31, 32+16);                   }
 
 
   private:

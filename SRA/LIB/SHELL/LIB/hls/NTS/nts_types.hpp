@@ -91,7 +91,7 @@ static const ap_uint<16> MTU = 1500;
 /*********************************************************
  * SINGLE BIT DEFINITIONS
  *********************************************************/
-typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (e.g. OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
@@ -99,17 +99,18 @@ typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always exp
 typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
 typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
-typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
-typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (e.g. OpenReq/OpenAck).
 typedef bool CmdBool;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool FlagBool; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+typedef bool FlagBool; // Flag       : Noon or verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+typedef bool HitBool;  // Hit        : Noon or verb indicating a success (e.g. match). Does not expect a return from recipient.
 typedef bool ReqBool;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
 typedef bool RepBool;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
 typedef bool RspBool;  // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef bool StsBool;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
 
 /******************************************************************************
@@ -120,16 +121,16 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  ******************************************************************************/
 
-//-----------------------------------------------------
-//-- ETHERNET FRAME FIELDS - Constant Definitions
-//-----------------------------------------------------
+//=========================================================
+//== ETHERNET FRAME FIELDS - Constant Definitions
+//=========================================================
 // EtherType protocol numbers
 #define IP4_PROTOCOL    0x0800
 #define ARP_PROTOCOL    0x0806
 
-/*********************************************************
- * ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
- *********************************************************/
+//---------------------------------------------------------
+//-- ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
+//---------------------------------------------------------
 class ArpBindPair {
   public:
     EthAddr  macAddr;
@@ -137,6 +138,18 @@ class ArpBindPair {
     ArpBindPair() {}
     ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
         macAddr(newMac), ip4Addr(newIp4) {}
+};
+
+//---------------------------------------------------------
+//-- ARP LOOKUP REPLY
+ //---------------------------------------------------------
+class ArpLkpReply {
+  public:
+    EthAddr     macAddress;
+    HitBool     hit;
+    ArpLkpReply() {}
+    ArpLkpReply(EthAddr macAdd, HitBool hit) :
+        macAddress(macAdd), hit(hit) {}
 };
 
 

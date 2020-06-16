@@ -172,9 +172,18 @@ class AxisRaw {
     };
     *****************/
 
-    /* Get the length of this chunk (in bytes) */
+    // Get the length of this chunk (in bytes)
     int getLen() {
         return keepToLen();
+    }
+    // Zero the bytes which have their tkeep-bit cleared
+    void clearUnusedBytes() {
+        for (int i=0, hi=ARW/8-1, lo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
+            #pragma HLS UNROLL
+            if (tkeep[i] == 0) {
+                tdata.range(hi+8*i, lo+8*i) = 0x00;
+            }
+        }
     }
 
     /******************************************************
@@ -239,12 +248,12 @@ class AxisRaw {
         return getLE_TData().range(63, 32);  // [TODO]
     }
     // Set the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
-    void setLE_TKeep(LE_tKeep keep) {
-        tkeep = keep;
+    void setLE_TKeep(LE_tKeep keep, int hi=ARW/8-1, int lo=0) {
+        tkeep.range(hi, lo) = keep;
     }
     // Get the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
-    LE_tKeep getLE_TKeep() {
-        return tkeep;
+    LE_tKeep getLE_TKeep(int hi=ARW/8-1, int lo=0) {
+        return tkeep.range(hi, lo);
     }
     // Set the tlast field
     void setLE_TLast(LE_tLast last) {
@@ -305,15 +314,7 @@ class AxisRaw {
                 inpQWord.range(39,32), inpQWord(47, 40),
                 inpQWord.range(55,48), inpQWord(63, 56));
     }
-    // Zero the bytes which have their tkeep-bit cleared
-    void clearUnusedBytes() {
-        for (int i=0, hi=ARW/8-1, lo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
-            #pragma HLS UNROLL
-            if (not tkeep & (1 << i)) {
-                tdata.range(hi+8*i, lo+8*i) = 0x00;
-            }
-        }
-    }
+
 };
 
 #endif

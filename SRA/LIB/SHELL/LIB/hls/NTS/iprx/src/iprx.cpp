@@ -46,7 +46,7 @@ using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (TRACE_MPd | TRACE_IBUF)
+ *  .e.g: DEBUG_LEVEL = (TRACE_MPD | TRACE_IBUF)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -82,7 +82,7 @@ void pInputBuffer(
         stream<AxisEth>     &siETH_Data,
         stream<AxisEth>     &soMPd_Data)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
@@ -123,7 +123,7 @@ void pMacProtocolDetector(
         stream<AxisArp>     &soARP_Data,
         stream<AxisEth>     &soILc_Data)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
@@ -674,7 +674,7 @@ void pIpChecksumChecker(
  *  erroneous IPv4 header plus at least the first eight bytes of data from the
  *  IPv4 packet that caused the error message.
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pIpPacketRouter(
         stream<AxisIp4>     &siICl_Data,
         stream<AxisIp4>     &soICMP_Data,
@@ -934,7 +934,7 @@ void iprx(
     static stream<ValBit>           ssICcToIId_CsumVal  ("ssICcToIId_CsumVal");
     #pragma HLS STREAM     variable=ssICcToIId_CsumVal  depth=32
 
-    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    //-- PROCESS FUNCTIONS -----------------------------------------------------
 
     pInputBuffer(
             siETH_Data,
