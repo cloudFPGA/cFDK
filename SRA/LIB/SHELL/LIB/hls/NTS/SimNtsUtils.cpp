@@ -410,6 +410,46 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
 #endif
 
 /******************************************************************************
+ * @brief Retrieve an Fpgs socket from a string.
+ *
+ * @param[in] fpgaSock      A ref to the socket address to retrieve.
+ * @param[in] stringBuffer  The string buffer to read from.
+ *
+ * @return true if successful, otherwise false.
+ ******************************************************************************/
+#ifndef __SYNTHESIS__
+bool readFpgaSocketFromLine(SockAddr &fpgaSock, string stringBuffer) {
+    vector<string> stringVector;
+    stringVector = myTokenizer(stringBuffer, ' ');
+    if ((stringVector[0] == ">") and (stringVector[1] == "SET")) {
+        if ((stringVector[2] == "FpgaServerSocket") or
+            (stringVector[2] == "FpgaSocket")) {
+            char *pEnd;
+            // Retrieve the fpga IPv4 address
+            if (isDottedDecimal(stringVector[3])) {
+                fpgaSock.addr = myDottedDecimalIpToUint32(stringVector[3]);
+            }
+            else if (isHexString(stringVector[3])) {
+                fpgaSock.addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
+            }
+            else {
+                fpgaSock.addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
+            }
+            // Retrieve the fpga LY4 port
+            if (isHexString(stringVector[4])) {
+                fpgaSock.port = strtoul(stringVector[4].c_str(), &pEnd, 16);
+            }
+            else {
+                fpgaSock.port = strtoul(stringVector[4].c_str(), &pEnd, 10);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
+/******************************************************************************
  * @brief Retrieve a Host socket from a string.
  *
  * @param[in] hostSock      A ref to the socket address to retrieve.
@@ -511,28 +551,60 @@ bool readAxisRawFromFile(AxisRaw &axisRaw, ifstream &inpFileStream) {
 }
 #endif
 
- /*****************************************************************************
-  * @brief Dump a SocketPair to a file.
-  *
-  * @param[in] socketPair     A reference to the SocketPair to dump.
-  * @param[in] outFileStream  The output file stream to write to.
-  *
-  * @return true if successful, otherwise false.
-  *****************************************************************************/
+/*******************************************************************************
+ * @brief Dump an AP_UINT to a file.
+ *
+ * @param[in] data           A reference to the word to dump.
+ * @param[in] outFileStream  A reference to the file stream to write.
+ *
+ *
+ * @return true upon successful, otherwise false.
+ ******************************************************************************/
 #ifndef __SYNTHESIS__
- bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
+template <int D> bool writeApUintToFile(ap_uint<D> &data, ofstream &outFileStream) {
+    if (not outFileStream.is_open()) {
+        printError(THIS_NAME, "File is not opened.\n");
+        return false;
+    }
+    outFileStream << std::uppercase;
+    outFileStream << "0x" << hex << noshowbase << setfill('0');
+    switch (D) {
+    case 8:
+    case 16:
+    case 32:
+    case 64:
+        outFileStream << setw(D/4) << data.to_int() << "\n";
+        break;
+    default:
+        printError(THIS_NAME, "Format ap_uint<%d> is not supported.\n", D);
+        return false;
+    }
+    return true;
+}
+#endif
+
+/*****************************************************************************
+ * @brief Dump a SocketPair to a file.
+ *
+ * @param[in] socketPair     A reference to the SocketPair to dump.
+ * @param[in] outFileStream  The output file stream to write to.
+ *
+ * @return true if successful, otherwise false.
+ *****************************************************************************/
+#ifndef __SYNTHESIS__
+bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printError(THIS_NAME, "File is not opened.\n");
         return false;
     }
     outFileStream << std::uppercase;
-    outFileStream << hex << noshowbase << setfill('0') << setw(8) << socketPair.src.addr.to_uint();
+    outFileStream << "0x" << hex << noshowbase << setfill('0') << setw(8) << socketPair.src.addr.to_uint();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(4) << socketPair.src.port.to_ushort();
+    outFileStream << "0x" << hex << noshowbase << setfill('0') << setw(4) << socketPair.src.port.to_ushort();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(8) << socketPair.dst.addr.to_uint();
+    outFileStream << "0x" << hex << noshowbase << setfill('0') << setw(8) << socketPair.dst.addr.to_uint();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(4) << socketPair.dst.port.to_ushort();
+    outFileStream << "0x" << hex << noshowbase << setfill('0') << setw(4) << socketPair.dst.port.to_ushort();
     outFileStream << "\n";
     return true;
 }
@@ -683,7 +755,7 @@ template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ss
  *  - Here we implement method #1 proposed by Febil Chacko Thanikal in [1].
  *    The idea is to create a fake call to the template function in the current
  *    file, in order for the compiler to compile the function with the
- *    appropriate class/ This function will then become available at link time.
+ *    appropriate class. This function will then become available at link time.
  *  - There is no need to call these functions. They are just here to solve and
  *    avoid link errors.
  *
@@ -731,5 +803,11 @@ void _fakeCallTo_drainAxisIp4ToFile() {
     stream<AxisIp4> ss;
     int  nr1, nr2, nr3;
     drainAxisToFile<AxisIp4>(ss, "ssName", "aFileName", nr1, nr2, nr3);
+}
+
+void _fakeCallTo_writeApUintToFile() {
+    ap_uint<16> data;
+    ofstream    ofs;
+    writeApUintToFile(data, ofs);
 }
 #endif

@@ -6,8 +6,7 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the IP Rx handler
-# *   process used in the SHELL of the cloudFPGA module.
-# *   project.
+# *   process used by the SHELL of the cloudFPGA module.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -18,13 +17,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "iprx_handler"
+set projectName    "iprx"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "IP Rx Handler for cloudFPGA"
-set ipDescription  "Parses the received IP packest and forwards to ARP, ICMP, TCP and UDP accordingly."
+set ipDisplayName  "IP Rx Handler for cloudFPGA (IPRX)"
+set ipDescription  "Parses incoming Ethernet frames, extracts and forwards IP packets to ICMP, TCP and UDP accordingly."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -53,12 +52,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
-add_files     ${currDir}/../toe/test/test_toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files -tb ${currDir}/../toe/test/test_toe_utils.cpp
-
 
 # Create a solution
 #-------------------------------------------------
@@ -117,6 +115,7 @@ if { $hlsCSim} {
     csim_design -argv "../../../../test/testVectors/siETH_Data_1731.dat"
     csim_design -argv "../../../../test/testVectors/siETH_Data_ArpFrame.dat"
     csim_design -argv "../../../../test/testVectors/siETH_Data_ArpTwoFrames.dat"
+    csim_design -argv "../../../../test/testVectors/siETH_Data_BroadcastFrame.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -144,6 +143,7 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_1731.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_ArpFrame.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_ArpTwoFrames.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siETH_Data_BroadcastFrame.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

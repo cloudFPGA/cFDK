@@ -1,89 +1,84 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-Copyright (c) 2015, Xilinx, Inc.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
-
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimIcmpPacket.hpp
- * @brief      : A simulation class to hanlde ICMP packets.
+ * @brief      : A simulation class to build and handle ICMP packets.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
  * \{ 
- *****************************************************************************/
+ *******************************************************************************/
 
-#ifndef SIM_ICMP_PACKET__
-#define SIM_ICMP_PACKET__
+#ifndef _SIM_ICMP_PACKET_
+#define _SIM_ICMP_PACKET_
 
-//#include <queue>
-//#include <string>
-//#include <iostream>
-//#include <iomanip>
-//#include <unistd.h>
-//#include <stdlib.h>
-
-//#include "../src/session_lookup_controller/session_lookup_controller.hpp"
 #include "nts.hpp"
 #include "nts_utils.hpp"
 
-using namespace std;
-using namespace hls;
 
-/*****************************************************************************
- * @brief Class ICMP Packet.
+/*******************************************************************************
+ * @brief Class ICMP Packet for simulation.
  *
  * @details
  *  This class defines an ICMP packet as a stream of 'AxisIcmp' data chunks.
  *   Such an ICMP packet consists of a double-ended queue that is used to
  *    accumulate all these data chunks.
  *   For the 10GbE MAC, the ICMP chunks are 64 bits wide. ICMP chunks are
- *    received by the IPRX core and are transmitted by the ICMP core.
+ *    extracted from the Ethernet frame by the IPRX core and are transmitted
+ *    by the ICMP core.
 
- ******************************************************************************/
+ *******************************************************************************/
 class SimIcmpPacket {
 
   private:
     int len;  // In bytes
-    std::deque<AxisIcmp> pktQ;  // A double-ended queue to store ICMP chunks.
+    std::deque<AxisIcmp> pktQ;  // A double-ended queue to store ICMP chunks
     const char *myName;
 
-	void setLen(int pktLen) { this->len = pktLen; }
-	int  getLen()           { return this->len;   }
+    // Set the length of this ICMP packet (in bytes)
+    void setLen(int pktLen) {
+        this->len = pktLen;
+    }
+    // GSet the length of this ICMP packet (in bytes)
+    int  getLen() {
+        return this->len;
+    }
 
-	// Clear the content of the ICMP packet queue
-	void clear()                       {        this->pktQ.clear();
-												this->len = 0;                            }
-	// Return the front chunk element of the  but does not remove it from the queue
-	AxisIcmp front()                   { return this->pktQ.front();              }
+    // Clear the content of the ICMP packet queue
+    void clear() {
+        this->pktQ.clear();
+        this->len = 0;
+    }
+    // Return the front chunk element of the ICMP packet but do not remove it from the queue
+    AxisIcmp front() {
+        return this->pktQ.front();
+    }
    // Remove the first chunk element of the ICMP packet queue
-	void pop_front()                   {        this->pktQ.pop_front();          }
-	// Add an element at the end of the ICMP packet queue
-	void push_back(AxisIcmp icmpChunk) {        this->pktQ.push_back(icmpChunk); }
+    void pop_front() {
+        this->pktQ.pop_front();
+    }
+    // Add an element at the end of the ICMP packet queue
+    void push_back(AxisIcmp icmpChunk) {
+        this->pktQ.push_back(icmpChunk);
+    }
 
   public:
 
@@ -214,26 +209,24 @@ class SimIcmpPacket {
         return byteSwap16(icmpCsum);
     }
 
-	/**************************************************************************
-	 * @brief Recalculate the ICMP checksum of a packet.
-	 *        - This will also overwrite the former ICMP checksum.
-	 *        - You typically use this method if the packet was modified
-	 *          or when the checksum has not yet been calculated.
-	 *
-	 * @return the computed checksum.
-	 ***************************************************************************/
-	IcmpCsum reCalculateIcmpChecksum() {
-		this->setIcmpChecksum(0x0000);
-		IcmpCsum newIcmpCsum = calculateIcmpChecksum();
-		// Overwrite the former ICMP checksum
-		this->setIcmpChecksum(newIcmpCsum);
-		return (newIcmpCsum);
-	}
+    /**************************************************************************
+     * @brief Recalculate the ICMP checksum of a packet.
+     *        - This will also overwrite the former ICMP checksum.
+     *        - You typically use this method if the packet was modified
+     *          or when the checksum has not yet been calculated.
+     *
+     * @return the computed checksum.
+     ***************************************************************************/
+    IcmpCsum reCalculateIcmpChecksum() {
+        this->setIcmpChecksum(0x0000);
+        IcmpCsum newIcmpCsum = calculateIcmpChecksum();
+        // Overwrite the former ICMP checksum
+        this->setIcmpChecksum(newIcmpCsum);
+        return (newIcmpCsum);
+    }
 
 };  // End-of: SimIcmpPacket
 
 #endif
-
-
 
 /*! \} */

@@ -194,7 +194,7 @@ begin
   -----------------------------------------------------------------
   -- PROC: Cam Control
   -----------------------------------------------------------------
-	pCamCtl : process (piClk, piRst)
+	pCamCtl : process (piClk, piRst,sCAM_InitDone)
 	begin			
 		if (piRst = '1') then
 		  sLkpReqValid <= '0';

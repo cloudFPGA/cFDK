@@ -66,27 +66,21 @@
 // *****************************************************************************
 
 module MemorySubSystem # (
-  
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user"   // "user" or "flash"
-
 ) (
-
   //------------------------------------------------------
   //-- Global Clock used by the entire SHELL
   //------------------------------------------------------
   input           piSHL_Clk,
-
   //------------------------------------------------------
   //-- Global Reset used by the entire SHELL
   //------------------------------------------------------
   input           piSHL_Rst,
-  
   //----------------------------------------------
   //-- Alternate System Reset
   //----------------------------------------------
   input           piMMIO_Rst,
-
   //------------------------------------------------------
   //-- DDR4 Reference Memory Clocks
   //------------------------------------------------------
@@ -94,13 +88,11 @@ module MemorySubSystem # (
   input           piCLKT_Mem0Clk_p,
   input           piCLKT_Mem1Clk_n,
   input           piCLKT_Mem1Clk_p,
-  
   //------------------------------------------------------ 
   //-- MMIO / Status Interface
   //------------------------------------------------------
   output          poMMIO_Mc0_InitCalComplete,
   output          poMMIO_Mc1_InitCalComplete,
-  
   //----------------------------------------------
   //-- NTS / Mem / TxP Interface
   //----------------------------------------------
@@ -133,7 +125,6 @@ module MemorySubSystem # (
   input           siNTS_Mem_TxP_Write_tlast,
   input           siNTS_Mem_TxP_Write_tvalid,
   output          siNTS_Mem_TxP_Write_tready,
-  
   //----------------------------------------------
   //-- NTS / Mem / Rx Interface
   //----------------------------------------------
@@ -165,8 +156,7 @@ module MemorySubSystem # (
   input   [7:0]   siNTS_Mem_RxP_Write_tkeep,
   input           siNTS_Mem_RxP_Write_tlast,
   input           siNTS_Mem_RxP_Write_tvalid,
-  output          siNTS_Mem_RxP_Write_tready,  
-    
+  output          siNTS_Mem_RxP_Write_tready,
   //----------------------------------------------
   // -- Physical DDR4 Interface #0
   //----------------------------------------------
@@ -184,7 +174,6 @@ module MemorySubSystem # (
   output [0:0]    poDDR4_Mem_Mc0_Ck_n,
   output [0:0]    poDDR4_Mem_Mc0_Ck_p,
   output          poDDR4_Mem_Mc0_Reset_n,
-  
   //----------------------------------------------
   //-- ROLE / Mem / Mp0 Interface
   //----------------------------------------------
@@ -216,41 +205,44 @@ module MemorySubSystem # (
   input   [63:0]  siROL_Mem_Mp0_Write_tkeep,
   input           siROL_Mem_Mp0_Write_tlast,
   input           siROL_Mem_Mp0_Write_tvalid,
-  output          siROL_Mem_Mp0_Write_tready, 
-  
+  output          siROL_Mem_Mp0_Write_tready,
   //----------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //----------------------------------------------
+  //---- Write Address Channel ---------------
   input  [  3: 0]  miROL_Mem_Mp1_AWID,
   input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
   input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
-  input  [  3: 0]  miROL_Mem_Mp1_AWSIZE,
+  input  [  2: 0]  miROL_Mem_Mp1_AWSIZE,
   input  [  1: 0]  miROL_Mem_Mp1_AWBURST,
   input            miROL_Mem_Mp1_AWVALID,
   output           miROL_Mem_Mp1_AWREADY,
+  //---- Write Data Channel ------------------
   input  [511: 0]  miROL_Mem_Mp1_WDATA,
   input  [ 63: 0]  miROL_Mem_Mp1_WSTRB,
   input            miROL_Mem_Mp1_WLAST,
   input            miROL_Mem_Mp1_WVALID,
   output           miROL_Mem_Mp1_WREADY,
+  //---- Write Response Channel --------------
   output [  3: 0]  miROL_Mem_Mp1_BID,
   output [  1: 0]  miROL_Mem_Mp1_BRESP,
   output           miROL_Mem_Mp1_BVALID,
   input            miROL_Mem_Mp1_BREADY,
+  //---- Read Address Channel ----------------
   input  [  3: 0]  miROL_Mem_Mp1_ARID,
   input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
   input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
-  input  [  3: 0]  miROL_Mem_Mp1_ARSIZE,
+  input  [  2: 0]  miROL_Mem_Mp1_ARSIZE,
   input  [  1: 0]  miROL_Mem_Mp1_ARBURST,
   input            miROL_Mem_Mp1_ARVALID,
   output           miROL_Mem_Mp1_ARREADY,
+  //---- Read Data Channel -------------------
   output [  3: 0]  miROL_Mem_Mp1_RID,
   output [511: 0]  miROL_Mem_Mp1_RDATA,
   output [  1: 0]  miROL_Mem_Mp1_RRESP,
   output           miROL_Mem_Mp1_RLAST,
   output           miROL_Mem_Mp1_RVALID,
   input            miROL_Mem_Mp1_RREADY,
-  
   //----------------------------------------------
   // -- Physical DDR4 Interface #1
   //----------------------------------------------
@@ -267,10 +259,7 @@ module MemorySubSystem # (
   output [0:0]    poDDR4_Mem_Mc1_Cs_n,
   output [0:0]    poDDR4_Mem_Mc1_Ck_n,
   output [0:0]    poDDR4_Mem_Mc1_Ck_p,
-  output          poDDR4_Mem_Mc1_Reset_n,
-  
-  output          poVoid
-
+  output          poDDR4_Mem_Mc1_Reset_n
 );  // End of PortList
 
 
@@ -281,7 +270,6 @@ module MemorySubSystem # (
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
-  
   wire         sTODO_1b0   =  1'b0;
   wire         sTODO_1b1   =  1'b1;
   wire  [ 1:0] sTODO_2b0   =  2'b0;
@@ -297,26 +285,19 @@ module MemorySubSystem # (
   //  INST: MEMORY CHANNEL #0
   //============================================================================
   MemoryChannel_DualPort #(
-  
     gSecurityPriviledges,
     gBitstreamUsage,
-    64   // gUserDataChanWidth
-           
+    64   // gUserDataChanWidth 
   ) MC0 (
-   
     //-- Global Clock used by the entire SHELL ------
     .piShlClk              (piSHL_Clk),
-
     //-- Global Reset used by the entire SHELL ------
     .piSHL_Rst             (piSHL_Rst),
-    
     //-- DDR4 Reference Memory Clock ----------------
     .piCLKT_MemClk_n       (piCLKT_Mem0Clk_n),
     .piCLKT_MemClk_p       (piCLKT_Mem0Clk_p),
-     
     //-- Control Inputs and Status Ouputs -----------
     .poMMIO_InitCalComplete(poMMIO_Mc0_InitCalComplete),
-   
     //-----------------------------------------------
     //-- MP0 / Memory Port Interface #0
     //-----------------------------------------------   
@@ -348,7 +329,6 @@ module MemorySubSystem # (
     .siMP0_Write_tlast     (siNTS_Mem_TxP_Write_tlast),
     .siMP0_Write_tvalid    (siNTS_Mem_TxP_Write_tvalid),
     .siMP0_Write_tready    (siNTS_Mem_TxP_Write_tready),
-
     //----------------------------------------------
     //-- MP1 / Memory Port Interface #1
     //----------------------------------------------   
@@ -380,7 +360,6 @@ module MemorySubSystem # (
     .siMP1_Write_tlast     (siNTS_Mem_RxP_Write_tlast),
     .siMP1_Write_tvalid    (siNTS_Mem_RxP_Write_tvalid),
     .siMP1_Write_tready    (siNTS_Mem_RxP_Write_tready),     
-
     //----------------------------------------------
     // -- DDR4 Physical Interface
     //----------------------------------------------
@@ -397,36 +376,26 @@ module MemorySubSystem # (
     .poDDR4_Cs_n           (poDDR4_Mem_Mc0_Cs_n),
     .poDDR4_Ck_n           (poDDR4_Mem_Mc0_Ck_n),
     .poDDR4_Ck_p           (poDDR4_Mem_Mc0_Ck_p),
-    .poDDR4_Reset_n        (poDDR4_Mem_Mc0_Reset_n),
-   
-    .poVoid                ()
-   
+    .poDDR4_Reset_n        (poDDR4_Mem_Mc0_Reset_n)
   );  // End of MC0
 
   //============================================================================
   //  INST: MEMORY CHANNEL #1
   //============================================================================
-  MemoryChannel_DualPort_Hybrid #(
-  
+  MemoryChannel_DualPort_Hybrid #( 
     gSecurityPriviledges,
     gBitstreamUsage,
     512   // gUserDataChanWidth
-          
   ) MC1 (
-  
     //-- Global Clock used by the entire SHELL ------
     .piShlClk              (piSHL_Clk),
-
     //-- Global Reset used by the entire SHELL ------
     .piSHL_Rst             (piSHL_Rst),
-  
     //-- DDR4 Reference Memory Clock ----------------
     .piCLKT_MemClk_n       (piCLKT_Mem1Clk_n),
     .piCLKT_MemClk_p       (piCLKT_Mem1Clk_p),
-    
     //-- Control Inputs and Status Ouputs ----------
     .poMMIO_InitCalComplete(poMMIO_Mc1_InitCalComplete),
-  
     //----------------------------------------------
     //-- Data Mover Interface #0
     //----------------------------------------------   
@@ -458,40 +427,43 @@ module MemorySubSystem # (
     .siMP0_Write_tlast     (siROL_Mem_Mp0_Write_tlast),
     .siMP0_Write_tvalid    (siROL_Mem_Mp0_Write_tvalid),
     .siMP0_Write_tready    (siROL_Mem_Mp0_Write_tready),
-      
     //----------------------------------------------
     //-- Data Mover Interface #1
     //----------------------------------------------
-    .miMP1_AWID             (miROL_Mem_Mp1_AWID   ),
-    .miMP1_AWADDR           (miROL_Mem_Mp1_AWADDR ),
-    .miMP1_AWLEN            (miROL_Mem_Mp1_AWLEN  ),
-    .miMP1_AWSIZE           (miROL_Mem_Mp1_AWSIZE ),
-    .miMP1_AWBURST          (miROL_Mem_Mp1_AWBURST),
-    .miMP1_AWVALID          (miROL_Mem_Mp1_AWVALID),
-    .miMP1_AWREADY          (miROL_Mem_Mp1_AWREADY),
-    .miMP1_WDATA            (miROL_Mem_Mp1_WDATA  ),
-    .miMP1_WSTRB            (miROL_Mem_Mp1_WSTRB  ),
-    .miMP1_WLAST            (miROL_Mem_Mp1_WLAST  ),
-    .miMP1_WVALID           (miROL_Mem_Mp1_WVALID ),
-    .miMP1_WREADY           (miROL_Mem_Mp1_WREADY ),
+    //---- Write Address Channel ---------------
+    .miMP1_AWID            (miROL_Mem_Mp1_AWID   ),
+    .miMP1_AWADDR          (miROL_Mem_Mp1_AWADDR ),
+    .miMP1_AWLEN           (miROL_Mem_Mp1_AWLEN  ),
+    .miMP1_AWSIZE          (miROL_Mem_Mp1_AWSIZE ),
+    .miMP1_AWBURST         (miROL_Mem_Mp1_AWBURST),
+    .miMP1_AWVALID         (miROL_Mem_Mp1_AWVALID),
+    //---- Write Data Channel ------------------      
+    .miMP1_AWREADY         (miROL_Mem_Mp1_AWREADY),
+    .miMP1_WDATA           (miROL_Mem_Mp1_WDATA  ),
+    .miMP1_WSTRB           (miROL_Mem_Mp1_WSTRB  ),
+    .miMP1_WLAST           (miROL_Mem_Mp1_WLAST  ),
+    .miMP1_WVALID          (miROL_Mem_Mp1_WVALID ),
+    .miMP1_WREADY          (miROL_Mem_Mp1_WREADY ),
+    //---- Write Response Channel --------------
     .miMP1_BID              (miROL_Mem_Mp1_BID    ),
     .miMP1_BRESP            (miROL_Mem_Mp1_BRESP  ),
     .miMP1_BVALID           (miROL_Mem_Mp1_BVALID ),
     .miMP1_BREADY           (miROL_Mem_Mp1_BREADY ),
-    .miMP1_ARID             (miROL_Mem_Mp1_ARID   ),
-    .miMP1_ARADDR           (miROL_Mem_Mp1_ARADDR ),
-    .miMP1_ARLEN            (miROL_Mem_Mp1_ARLEN  ),
-    .miMP1_ARSIZE           (miROL_Mem_Mp1_ARSIZE ),
-    .miMP1_ARBURST          (miROL_Mem_Mp1_ARBURST),
-    .miMP1_ARVALID          (miROL_Mem_Mp1_ARVALID),
-    .miMP1_ARREADY          (miROL_Mem_Mp1_ARREADY),
-    .miMP1_RID              (miROL_Mem_Mp1_RID    ),
-    .miMP1_RDATA            (miROL_Mem_Mp1_RDATA  ),
-    .miMP1_RRESP            (miROL_Mem_Mp1_RRESP  ),
-    .miMP1_RLAST            (miROL_Mem_Mp1_RLAST  ),
-    .miMP1_RVALID           (miROL_Mem_Mp1_RVALID ),
-    .miMP1_RREADY           (miROL_Mem_Mp1_RREADY ),
-
+    //---- Read Address Channel ----------------
+    .miMP1_ARID            (miROL_Mem_Mp1_ARID   ),
+    .miMP1_ARADDR          (miROL_Mem_Mp1_ARADDR ),
+    .miMP1_ARLEN           (miROL_Mem_Mp1_ARLEN  ),
+    .miMP1_ARSIZE          (miROL_Mem_Mp1_ARSIZE ),
+    .miMP1_ARBURST         (miROL_Mem_Mp1_ARBURST),
+    .miMP1_ARVALID         (miROL_Mem_Mp1_ARVALID),
+    .miMP1_ARREADY         (miROL_Mem_Mp1_ARREADY),
+    //---- Read Data Channel -------------------
+    .miMP1_RID             (miROL_Mem_Mp1_RID    ),
+    .miMP1_RDATA           (miROL_Mem_Mp1_RDATA  ),
+    .miMP1_RRESP           (miROL_Mem_Mp1_RRESP  ),
+    .miMP1_RLAST           (miROL_Mem_Mp1_RLAST  ),
+    .miMP1_RVALID          (miROL_Mem_Mp1_RVALID ),
+    .miMP1_RREADY          (miROL_Mem_Mp1_RREADY ),
     //----------------------------------------------
     // -- DDR4 Physical Interface
     //----------------------------------------------
@@ -508,17 +480,12 @@ module MemorySubSystem # (
     .poDDR4_Cs_n           (poDDR4_Mem_Mc1_Cs_n),
     .poDDR4_Ck_n           (poDDR4_Mem_Mc1_Ck_n),
     .poDDR4_Ck_p           (poDDR4_Mem_Mc1_Ck_p),
-    .poDDR4_Reset_n        (poDDR4_Mem_Mc1_Reset_n),
-  
-    .poVoid                ()
-  
+    .poDDR4_Reset_n        (poDDR4_Mem_Mc1_Reset_n)
   );  // End of MC1
-
 
   //============================================================================
   //  COMB: CONTINUOUS OUTPUT PORT ASSIGNMENTS
   //============================================================================
   assign poVoid = 0;
-
 
 endmodule

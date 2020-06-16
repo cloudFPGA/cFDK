@@ -92,6 +92,7 @@ using namespace std;
  ******************************************************************************/
 #ifndef __SYNTHESIS__
   bool readAxisRawFromLine    (AxisRaw  &axiRaw,   string stringBuffer);
+  bool readFpgaSocketFromLine (SockAddr &hostSock, string stringBuffer);
   bool readHostSocketFromLine (SockAddr &hostSock, string stringBuffer);
   bool readFpgaSndPortFromLine(Ly4Port  &port,     string stringBuffer);
 #endif
@@ -103,6 +104,8 @@ using namespace std;
   bool readAxisRawFromFile  (AxisRaw    &axisRaw,    ifstream &inpFileStream);
   bool writeAxisRawToFile   (AxisRaw    &axisRaw,    ofstream &outFileStream);
   bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream);
+  template <int D> \
+  bool writeApUintToFile    (ap_uint<D> &data,       ofstream &outFileStream);
 #endif
 
 /******************************************************************************

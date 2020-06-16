@@ -56,12 +56,12 @@ class AxisApp: public AxisRaw {
 
   public:
     AxisApp() {}
-    AxisApp(AxisRaw axisRaw) :
-        AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
     AxisApp(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
       AxisRaw(tdata, tkeep, tlast) {}
     AxisApp(const AxisApp &axisApp) :
       AxisRaw(axisApp.tdata, axisApp.tkeep, axisApp.tlast) {}
+    AxisApp(AxisRaw axisRaw) :
+        AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
     /****************************************************************
      * AXIS_UDP - BIG-ENDIAN HELPERS (specific to UDP-over-IPv4)

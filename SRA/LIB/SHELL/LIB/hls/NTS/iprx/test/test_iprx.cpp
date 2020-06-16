@@ -1,20 +1,33 @@
-/*****************************************************************************
- * @file       : test_iprx_handler.cpp
- * @brief      : Testbench for the IP receiver frame handler.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
+ * @file       : test_iprx.cpp
+ * @brief      : Testbench for the IP Receiver packet handler (IPRX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *
- *****************************************************************************/
+ * \ingroup NTS_IPRX
+ * \addtogroup NTS_IPRX
+ * \{
+ *******************************************************************************/
 
-#include <stdio.h>
-#include <hls_stream.h>
-
-#include "../src/iprx_handler.hpp"
-#include "../../toe/src/toe.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "test_iprx.hpp"
 
 using namespace hls;
 using namespace std;
@@ -26,47 +39,36 @@ using namespace std;
 #define THIS_NAME "TB"
 
 #define TRACE_OFF    0x0000
-#define TRACE_CGF   1 <<  1
-// [TOTO] #define TRACE_L3MUX  1 <<  2
-// [TOTO] #define TRACE_TRIF   1 <<  3
-// [TOTO] #define TRACE_CAM    1 <<  4
-// [TOTO] #define TRACE_TXMEM  1 <<  5
-// [TOTO] #define TRACE_RXMEM  1 <<  6
-// [TOTO] #define TRACE_MAIN   1 <<  7
+#define TRACE_CGF    1 << 1
 #define TRACE_ALL    0xFFFF
-
 #define DEBUG_LEVEL (TRACE_ALL)
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
-//---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES     250000
-#define TB_STARTUP_DELAY           0
-#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-bool            gTraceEvent     = false;
-bool            gFatalError     = false;
-unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
-
-/*****************************************************************************
+/*******************************************************************************
  * @brief Create the golden reference files from an input test file.
  *
- * @param[in] myMacAddress,     the MAC address of the FPGA.
- * @param[in] inpDAT_FileName,  the input DAT file to generate from.
- * @param[in] outARP_GoldName,  the ARP gold file to create.
- * @param[in] outICMP_GoldName, the ICMP gold file.
- * @param[in] outTOE_GoldName,  the TOE gold file.
- * @param[in] outUOE_GoldName,  the UOE gold file.
+ * @param[in] myMacAddress     The MAC address of the FPGA.
+ * @param[in] inpDAT_FileName  The input DAT file to generate from.
+ * @param[in] outARP_GoldName  The ARP gold file to create.
+ * @param[in] outICMP_GoldName The ICMP gold file.
+ * @param[in] outTOE_GoldName  The TOE gold file.
+ * @param[in] outUOE_GoldName  The UOE gold file.
  *
  * @return NTS_OK if successful,  otherwise NTS_KO.
- ******************************************************************************/
+ *******************************************************************************/
 int createGoldenFiles(EthAddr myMacAddress,
                       string  inpDAT_FileName,
                       string  outARP_GoldName, string outICMP_GoldName,
@@ -74,20 +76,19 @@ int createGoldenFiles(EthAddr myMacAddress,
 {
     const char *myName  = concat3(THIS_NAME, "/", "CGF");
 
-    ifstream	ifsDAT;
+    ifstream    ifsDAT;
     string      ofNameArray[4] = { outARP_GoldName, outICMP_GoldName, \
                                    outTOE_GoldName, outUOE_GoldName };
     ofstream    ofsArray[4]; // Stored in the same alphabetic same order
 
     string          strLine;
     char            currPath[FILENAME_MAX];
-    AxiWord         axiWord;
-    deque<EthFrame> ethRxFramer; // Double-ended queue of frames for IPRX
-    int             ret = NTS_OK;
-    int             inpChunks=0, arpChunks=0, icmpChunks=0, tcpChunks=0, udpChunks=0, outChunks=0;
-    int             inpFrames=0, arpFrames=0, icmpFrames=0, tcpFrames=0, udpFrames=0, outFrames=0;
-    int             inpBytes=0,  arpBytes=0,  icmpBytes=0,  tcpBytes=0,  udpBytes=0,  outBytes=0;
-    bool            assessTkeepTlast = true;
+    deque<SimEthFrame> ethRxFramer; // Double-ended queue of frames for IPRX
+    int  ret = NTS_OK;
+    int  inpChunks=0, arpChunks=0, icmpChunks=0, tcpChunks=0, udpChunks=0, outChunks=0;
+    int  inpFrames=0, arpFrames=0, icmpFrames=0, tcpFrames=0, udpFrames=0, outFrames=0;
+    int  inpBytes=0,  arpBytes=0,  icmpBytes=0,  tcpBytes=0,  udpBytes=0,  outBytes=0;
+    bool assessTkeepTlast = true;
 
     //-- STEP-1 : OPEN INPUT FILE AND ASSESS ITS EXTENSION
     ifsDAT.open(inpDAT_FileName.c_str());
@@ -115,8 +116,8 @@ int createGoldenFiles(EthAddr myMacAddress,
 
     //-- STEP-3 : READ AND PARSE THE INPUT ETHERNET FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-        EthFrame       ethFrame;
-        EthoverMac     ethRxData;
+        SimEthFrame    ethFrame;
+        AxisEth        axisEth;
         vector<string> stringVector;
         string         stringBuffer;
         bool           endOfFrame=false;
@@ -126,29 +127,27 @@ int createGoldenFiles(EthAddr myMacAddress,
             //-- Read one line at a time from the input DAT file
             getline(ifsDAT, stringBuffer);
             stringVector = myTokenizer(stringBuffer, ' ');
-            //OBSOLETE_20200407 rc = readAxiWordFromFile(&ethRxData, ifsDAT);
-            //-- Read an AxiWord from line
-            rc = readAxiWordFromLine(ethRxData, stringBuffer);
+            //-- Read an AxisChunk from line
+            rc = readAxisRawFromLine(axisEth, stringBuffer);
             if (rc) {
-                if (ethRxData.isValid()) {
-                    ethFrame.push_back(ethRxData);
-                	if (ethRxData.tlast == 1) {
-                		inpFrames++;
-                		endOfFrame = true;
-                	}
-            	}
-            	else {
-            		// We always abort the stream as this point by asserting
-            		// 'tlast' and de-asserting 'tkeep'.
-            		ethFrame.push_back(AxiWord(ethRxData.tdata, 0x00, 1));
-            		inpFrames++;
-            		endOfFrame = true;
-            	}
-            	inpChunks++;
-            	inpBytes += ethRxData.keepToLen();
+                if (axisEth.isValid()) {
+                    ethFrame.pushChunk(axisEth);
+                    if (axisEth.getLE_TLast() == 1) {
+                        inpFrames++;
+                        endOfFrame = true;
+                    }
+                }
+                else {
+                    // We always abort the stream as this point by asserting
+                    // 'tlast' and de-asserting 'tkeep'.
+                    ethFrame.pushChunk(AxisEth(axisEth.getLE_TData(), 0x00, 1));
+                    inpFrames++;
+                    endOfFrame = true;
+                }
+                inpChunks++;
+                inpBytes += axisEth.getLen();
             }
         }
-
         if (endOfFrame) {
             // Assess MAC_DA is valid
             EthAddr  macDA = ethFrame.getMacDestinAddress();
@@ -158,11 +157,11 @@ int createGoldenFiles(EthAddr myMacAddress,
             else {
                 // Parse this frame and generate corresponding golden file(s)
                 EtherType etherType = ethFrame.getTypeLength();
-                IpPacket  ipPacket;
-                ArpPacket arpPacket;
+                SimIp4Packet  ipPacket;
+                SimArpPacket  arpPacket;
                 if (etherType.to_uint() >= 0x0600) {
                     switch (etherType.to_uint()) {
-                    case ARP:
+                    case ARP_PROTOCOL:
                         arpPacket = ethFrame.getArpPacket();
                         if (DEBUG_LEVEL & TRACE_CGF) {
                             printInfo(myName, "Frame #%d is an ARP frame.\n", inpFrames);
@@ -181,7 +180,7 @@ int createGoldenFiles(EthAddr myMacAddress,
                             rc = NTS_KO;
                         }
                         break;
-                    case IPv4:
+                    case IP4_PROTOCOL:
                         ipPacket = ethFrame.getIpPacket();
                         if (ipPacket.getIpVersion() != 4) {
                             printWarn(myName, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);
@@ -241,41 +240,45 @@ int createGoldenFiles(EthAddr myMacAddress,
     }
 
     //-- STEP-4: PRINT RESULTS
-	outFrames = arpFrames + icmpFrames + tcpFrames + udpFrames;
-	outChunks = arpChunks + icmpChunks + tcpChunks + udpChunks;
-	outBytes  = arpBytes  + icmpBytes  + tcpBytes  + udpBytes;
-	printInfo(myName, "Done with the creation of the golden files.\n");
-	printInfo(myName, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
-									      inpChunks, inpFrames, inpBytes);
-	printInfo(myName, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
-									      outChunks, outFrames, outBytes);
-	printInfo(myName, "\tARP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
-							      arpChunks, arpFrames, arpBytes);
-	printInfo(myName, "\tICMP : %5d chunks in %4d frames, for a total of %6d bytes.\n",
-							      icmpChunks, icmpFrames, icmpBytes);
-	printInfo(myName, "\tTCP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
-							      tcpChunks, tcpFrames, tcpBytes);
-	printInfo(myName, "\tUDP  : %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
-							      udpChunks, udpFrames, udpBytes);
+    outFrames = arpFrames + icmpFrames + tcpFrames + udpFrames;
+    outChunks = arpChunks + icmpChunks + tcpChunks + udpChunks;
+    outBytes  = arpBytes  + icmpBytes  + tcpBytes  + udpBytes;
+    printInfo(myName, "Done with the creation of the golden files.\n");
+    printInfo(myName, "\tProcessed %5d chunks in %4d frames, for a total of %6d bytes.\n",
+              inpChunks, inpFrames, inpBytes);
+    printInfo(myName, "\tGenerated %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+              outChunks, outFrames, outBytes);
+    printInfo(myName, "\tARP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+              arpChunks, arpFrames, arpBytes);
+    printInfo(myName, "\tICMP : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+              icmpChunks, icmpFrames, icmpBytes);
+    printInfo(myName, "\tTCP  : %5d chunks in %4d frames, for a total of %6d bytes.\n",
+              tcpChunks, tcpFrames, tcpBytes);
+    printInfo(myName, "\tUDP  : %5d chunks in %4d frames, for a total of %6d bytes.\n\n",
+              udpChunks, udpFrames, udpBytes);
 
     return(ret);
 }
 
-
 /*****************************************************************************
  * @brief Main function.
  *
- * @param[in]  todo,
+ * @param[in]  inpFile  The pathname of the input test vector file.
  ******************************************************************************/
 int main(int argc, char* argv[]) {
 
-    gSimCycCnt = 0;
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gTraceEvent   = false;
+    gFatalError   = false;
+    gSimCycCnt    = 0;
+    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
-    int         nrErr  = 0;
-    //int         frmCnt = 0;
+    int         nrErr  = 0;     // Tb error counter.
 
     string      ofsARP_Data_FileName = "../../../../test/soARP_Data.dat";
     string      ofsTOE_Data_FileName = "../../../../test/soTOE_Data.dat";
@@ -334,9 +337,9 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     if (feedAxisFromFile<AxisEth>(ssETH_IPRX_Data, "ssETH_IPRX_Data", string(argv[1]),
             nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes)) {
-    	printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
-    	printInfo(THIS_NAME, "\tGenerated %d chunks in %d frames, for a total of %d bytes.\n\n",
-    							nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes);
+        printInfo(THIS_NAME, "Done with the creation of the input traffic as streams:\n");
+        printInfo(THIS_NAME, "\tGenerated %d chunks in %d frames, for a total of %d bytes.\n\n",
+                                nrETH_IPRX_Chunks, nrETH_IPRX_Frames, nrETH_IPRX_Bytes);
     }
     else {
         printError(THIS_NAME, "Failed to create traffic as input stream. \n");
@@ -347,21 +350,26 @@ int main(int argc, char* argv[]) {
     //-- CREATE OUTPUT GOLD TRAFFIC
     //------------------------------------------------------
     if (not createGoldenFiles(myMacAddress, string(argv[1]),
-                    		  ofsARP_Gold_FileName, ofsICMP_Gold_FileName,
-							  ofsTOE_Gold_FileName, ofsUOE_Gold_FileName)) {
+                              ofsARP_Gold_FileName, ofsICMP_Gold_FileName,
+                              ofsTOE_Gold_FileName, ofsUOE_Gold_FileName)) {
         printError(THIS_NAME, "Failed to create golden files. \n");
         nrErr++;
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' STARTS HERE                              ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx' STARTS HERE                                      ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+    printf("\n\n");
 
     int tbRun = nrETH_IPRX_Chunks + TB_GRACE_TIME;
 
     while (tbRun) {
         //-- RUN DUT
-        iprx_handler(
+        iprx(
             myMacAddress,
             myIp4Address,
             ssETH_IPRX_Data,
@@ -369,19 +377,10 @@ int main(int argc, char* argv[]) {
             ssIPRX_ICMP_Data,
             ssIPRX_ICMP_DErr,
             ssIPRX_UOE_Data,
-            ssIPRX_TOE_Data);
-
+            ssIPRX_TOE_Data
+        );
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     }
 
     //---------------------------------------------------------------
@@ -392,7 +391,6 @@ int main(int argc, char* argv[]) {
         printError(THIS_NAME, "Failed to drain TOE traffic from DUT. \n");
         nrErr++;
     }
-
     if (not drainAxisToFile<AxisIp4>(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", ofsUOE_Data_FileName,
             nrIPRX_UOE_Chunks, nrIPRX_UOE_Frames, nrIPRX_UOE_Bytes)) {
         printError(THIS_NAME, "Failed to drain UDP traffic from DUT. \n");
@@ -410,8 +408,9 @@ int main(int argc, char* argv[]) {
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx_handler' ENDS HERE                                ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_iprx' ENDS HERE                                        ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
 
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
@@ -430,7 +429,9 @@ int main(int argc, char* argv[]) {
     //---------------------------------------------------------------
     printf("\n\n");
     printInfo(THIS_NAME, "This testbench was executed with the following ETH test-file: \n");
-    printInfo(THIS_NAME, "\t==> %s\n\n", argv[1]);
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
 
     if (nrErr) {
         printError(THIS_NAME, "###########################################################\n");
@@ -448,3 +449,4 @@ int main(int argc, char* argv[]) {
     return nrErr;
 }
 
+/*! \} */

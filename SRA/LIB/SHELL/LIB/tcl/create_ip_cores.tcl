@@ -27,9 +27,7 @@
 # *  - UG896 / Ch.3 / Using Manage IP Projects.
 # *  - UG896 / Ch.2 / IP Basics.
 # *  - UG896 / Ch.6 / Tcl Commands for Common IP Operations.
-# *-----------------------------------------------------------------------------
-# * Modification History:
-# *  Fab: Feb-07-2018 Created from former 'create_project.tcl'.
+# *
 # ******************************************************************************
 
 package require cmdline
@@ -343,7 +341,35 @@ set_property target_language Verilog [current_project]
 my_puts ""
 
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI Register Slice 
+# VIVADO-IP : AXI Register Slice [8]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_8"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {1} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [16]
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
@@ -369,9 +395,93 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [24]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_24"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {3} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [32]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_32"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {4} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [48]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_48"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {6} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
  
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI Register Slice 
+# VIVADO-IP : AXI Register Slice [64]
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
@@ -392,6 +502,62 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {8} \
                       CONFIG.HAS_TKEEP {1} \
                       CONFIG.HAS_TLAST {1} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [96]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_96"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {12} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [104]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [2]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No] : Enable TKEEP
+#    [No] : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_104"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {13} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -577,7 +743,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI Interconnect [1M, 2S, A32, D512] 
+# VIVADO-IP : AXI Interconnect [1M, 2S, A33, D512] 
 #------------------------------------------------------------------------------
 #  Global
 #    [2]       : Number of Slave Interfaces
@@ -911,7 +1077,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : IP RX Handler 
 #------------------------------------------------------------------------------
 set ipModName "IpRxHandler"
-set ipName    "iprx_handler"
+set ipName    "iprx"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -936,22 +1102,20 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-if { 0 } {  # OBSOLETE-20190721
 
-    #------------------------------------------------------------------------------  
-    # IBM-HSL-IP : TCP Role Interface 
-    #------------------------------------------------------------------------------
-    set ipModName "TcpRoleInterface"
-    set ipName    "tcp_role_if"
-    set ipVendor  "IBM"
-    set ipLibrary "hls"
-    set ipVersion "1.0"
-    set ipCfgList  [ list ]
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Ready Logic Barrier
+#------------------------------------------------------------------------------
+set ipModName "ReadyLogicBarrier"
+set ipName    "rlb"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
 
-    set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
-    if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-}
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
@@ -972,20 +1136,20 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : UDP Offload Engine
 #------------------------------------------------------------------------------
-#set ipModName "UdpOffloadEngine"
-#set ipName    "uoe"
-#set ipVendor  "IBM"
-#set ipLibrary "hls"
-#set ipVersion "1.0"
-#set ipCfgList  [ list ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
+set ipModName "UdpOffloadEngine"
+set ipName    "uoe"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Core
+# IBM-HSL-IP : UDP Core [TODO - Ready for removal]
 #------------------------------------------------------------------------------
 set ipModName "UdpCore"
 set ipName    "udp"
@@ -1000,7 +1164,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Multiplexer
+# IBM-HSL-IP : UDP Multiplexer  [TODO - Ready for removal]
 #------------------------------------------------------------------------------
 set ipModName "UdpMultiplexer"
 set ipName    "udp_mux"
@@ -1015,7 +1179,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : SMC "Castor" IP
+# IBM-HSL-IP : FPGA Managememt Core
 #------------------------------------------------------------------------------
 set ipModName "FpgaManagementCore"
 set ipName    "fmc"
@@ -1027,10 +1191,6 @@ set ipCfgList  [ list CONFIG.Component_Name {SMC} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-
-
 
 
 

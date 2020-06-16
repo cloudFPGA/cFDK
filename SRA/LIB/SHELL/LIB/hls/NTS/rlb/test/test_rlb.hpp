@@ -15,30 +15,29 @@
  */
 
 /*****************************************************************************
- * @file       : test_uoe.hpp
+ * @file       : test_rlb.hpp
  * @brief      : Testbench for the UDP Offload Engine (UOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Stack (NTS)
+ * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_RLB
+ * \{
  *****************************************************************************/
 
-#include <set>
-
-#include "../src/uoe.hpp"
+#include "../src/rlb.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
-#include "../../../NTS/SimUdpDatagram.hpp"
-#include "../../../NTS/SimIp4Packet.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL DEFINES
 //    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
 //---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES   250000
+#define TB_MAX_SIM_CYCLES      100
 #define TB_STARTUP_DELAY         0
-#define TB_GRACE_TIME         1000 // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME            0 // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -50,9 +49,4 @@ bool            gFatalError   = false;
 unsigned int    gSimCycCnt    = 0;
 unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
-//---------------------------------------------------------
-//-- TESTBENCH MODES OF OPERATION
-//---------------------------------------------------------
-enum TestMode { RX_MODE='0',   TX_DGRM_MODE='1', TX_STRM_MODE='2',
-                OPEN_MODE='3', BIDIR_MODE='4',   ECHO_MODE='5',     };
-
+/*! \} */

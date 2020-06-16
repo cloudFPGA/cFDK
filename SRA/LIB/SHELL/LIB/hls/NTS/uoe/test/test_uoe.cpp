@@ -19,7 +19,7 @@
  * @brief      : Testbench for the UDP Offload Engine (UOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  *****************************************************************************/
@@ -40,7 +40,7 @@ using namespace std;
 #define TRACE_CGTF   1 << 2
 #define TRACE_DUMTF  1 << 3
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /******************************************************************************
  * @brief Increment the simulation counter
@@ -59,12 +59,12 @@ void stepSim() {
 /*****************************************************************************
  * @brief Empty an UdpMeta stream to a DAT file.
  *
- * @param[in/out] ss,       a ref to the UDP metadata stream to drain.
- * @param[in]     ssName,   the name of the UDP metadata stream to drain.
- * @param[in]     fileName, the DAT file to write to.
- * @param[out     nrChunks, a ref to the number of written chunks.
- * @param[out]    nrFrames, a ref to the number of written AXI4 streams.
- * @param[out]    nrBytes,  a ref to the number of written bytes.
+ * @param[in/out] ss        A ref to the UDP metadata stream to drain.
+ * @param[in]     ssName    Te name of the UDP metadata stream to drain.
+ * @param[in]     fileName  The DAT file to write to.
+ * @param[out     nrChunks  A ref to the number of written chunks.
+ * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes   A ref to the number of written bytes.
   *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -128,16 +128,16 @@ bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
 /*****************************************************************************
  * @brief Create the UDP Tx traffic as streams from an input test file.
  *
- * @param[in/out] ssData,     a ref to the data stream to set.
- * @param[in]     ssDataName, the name of the data stream to set.
- * @param[in/out] ssMeta,     a ref to the metadata stream to set.
- * @param[in]     ssMetaName, the name of the metadata stream to set.
- * @param[in/out] ssDLen,     a ref to the data-length stream to set.
- * @param[in]     ssDLenName, the name of the datalength stream to set.
- * @param[in]     datFileName,the path to the DAT file to read from.
- * @param[in]     metaQueue,  a ref to a queue of metadata.
- * @param[in]     dlenQueue,  a ref to a queue of data-lengths.
- * @param[out]    nrChunks,   a ref to the number of feeded chunks.
+ * @param[in/out] ssData      A ref to the data stream to set.
+ * @param[in]     ssDataName  The name of the data stream to set.
+ * @param[in/out] ssMeta      A ref to the metadata stream to set.
+ * @param[in]     ssMetaName  The name of the metadata stream to set.
+ * @param[in/out] ssDLen      A ref to the data-length stream to set.
+ * @param[in]     ssDLenName  The name of the datalength stream to set.
+ * @param[in]     datFileName The path to the DAT file to read from.
+ * @param[in]     metaQueue   A ref to a queue of metadata.
+ * @param[in]     dlenQueue   A ref to a queue of data-lengths.
+ * @param[out]    nrChunks    A ref to the number of feeded chunks.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -195,13 +195,11 @@ int createUdpTxTraffic(
  * @param[in]  appDatagram  A reference to the datagram to read.
  * @param[in]  ifsData      The input file stream to read from.
  * @param[in]  udpAppMeta   A ref to the current active socket pair.
-                            * @param[out] hostLsnSock  A ref to a 'SockAddr' to store any new host listen socket.
-                            * @param[out] fpgaSndSock  A ref to a 'SockAddr' to store any new fpga send socket.
  * @param[out] udpMetaQueue A ref to a container queue which holds a sequence of UDP socket-pairs.
  * @param[out] udpDLenQueue A ref to a container queue which holds a sequence of UDP data packet lengths.
  * @param[out] inpChunks    A ref to the number of processed chunks.
- * @param[out] inptDgrma    A ref to the number of processed datagrams.
- * @param[out] inpDgrms     A ref to the number of processed bytes.
+ * @param[out] inptDgrms    A ref to the number of processed datagrams.
+ * @param[out] inpBytes     A ref to the number of processed bytes.
  * @param[in]  tbMode       The TB testing mode.
  * @return true if successful, otherwise false.
  ******************************************************************************/
@@ -239,7 +237,7 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
                 printSockAddr(myName, udpAppMeta.src);
             }
         }
-        //-- Read an AxiWord from line
+        //-- Read an AxisChunk from line
         rc = readAxisRawFromLine(udpAppData, stringBuffer);
         if (rc) {
             appDatagram.pushChunk(AxisUdp(udpAppData.getLE_TData(),
@@ -276,13 +274,13 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
 /*****************************************************************************
  * @brief Create the golden IPTX reference file from an input URIF test file.
  *
- * @param[in]  inpData_FileName, the input data file to generate from.
- * @param[in]  outData_GoldName, the output data gold file to create.
- * @param[out] udpMetaQueue,     a ref to a container queue which holds a
+ * @param[in]  inpData_FileName  The input data file to generate from.
+ * @param[in]  outData_GoldName  The output data gold file to create.
+ * @param[out] udpMetaQueue      A ref to a container queue which holds a
  *                                sequence of UDP socket-pairs.
- * @param[out] udpDLenQueue,     a ref to a container queue which holds a
+ * @param[out] udpDLenQueue      A ref to a container queue which holds a
  *                                sequence of UDP data packet lengths.
- * @param[in]  tbMode            the TB testing mode.
+ * @param[in]  tbMode            The TB testing mode.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -412,11 +410,11 @@ int createGoldenTxFiles(
 /*****************************************************************************
  * @brief Create the golden Rx APP reference files from an input IPRX test file.
  *
- * @param[in]  inpData_FileName, the input data file to generate from.
- * @param[in]  outData_GoldName, the output data gold file to create.
- * @param[in]  outMeta_GoldName, the output meta gold file to create.
- * @param[out] udpPortSet,       a ref to an associative container which holds
- *                               the UDP destination ports.
+ * @param[in]  inpData_FileName  The input data file to generate from.
+ * @param[in]  outData_GoldName  The output data gold file to create.
+ * @param[in]  outMeta_GoldName  Tthe output meta gold file to create.
+ * @param[out] udpPortSet        A ref to an associative container which holds
+ *                                the UDP destination ports.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
@@ -513,7 +511,7 @@ int createGoldenRxFiles(
             if (ip4Prot != UDP_PROTOCOL) {
                 printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n", inpPackets);
                 printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
-                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL.to_uint());
+                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL);
                 continue;
             }
             // Retrieve the UDP datagram from the IPv4 Packet
@@ -575,12 +573,13 @@ int createGoldenRxFiles(
 /*****************************************************************************
  * @brief Main function.
  *
- * @param[in]  mode,     The test mode (0=RX_MODE, 1=TX_DGRM_MODE, 2=TX_STRM_MODE,
- *                                      3=BIDIR_MODE).
- * @param[in]  inpFile1, The pathname of the 1st input test vector file.
- * @param[in]  inpFile2, The pathname of the 2nd input test vector file.
+ * @param[in]  mode     The test mode (RX_MODE='0', TX_DGRM_MODE='1',
+ *                       TX_STRM_MODE='2', OPEN_MODE='3', BIDIR_MODE='4',
+ *                       ECHO_MODE='5')
+ * @param[in]  inpFile1 The pathname of the 1st input test vector file.
+ * @param[in]  inpFile2 The pathname of the 2nd input test vector file.
  *
- * @remark:
+ * @remark
  *  The number of input parameters is variable and depends on the testing mode.
  *   Example (see also file '../run_hls.tcl'):
  *    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
@@ -593,6 +592,7 @@ int createGoldenRxFiles(
  *         inpFile1 = siIPRX_<FileName>.dat
  *         inpFile2 = siURIF_<Filename>.dat
  *
+ * @todo Add coverage for the closing of a port.
  ******************************************************************************/
 int main(int argc, char *argv[]) {
 
@@ -615,12 +615,15 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
+    stream<StsBool>         ssUOE_MMIO_Ready;
+
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
     stream<AxisIp4>         ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
 
     stream<UdpPort>         ssURIF_UOE_LsnReq  ("ssURIF_UOE_LsnReq");
     stream<StsBool>         ssUOE_URIF_LsnRep  ("ssUOE_URIF_LsnRep");
     stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
+    stream<StsBool>         ssUOE_URIF_ClsRep  ("ssUOE_URIF_ClsRep");
 
     stream<AxisApp>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
     stream<UdpAppMeta>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
@@ -668,6 +671,38 @@ int main(int argc, char *argv[]) {
     printf("\n\n");
 
     if (tbMode == OPEN_MODE) {
+        // Wait until UOE is ready (~2^16 cycles)
+        bool isReady = false;
+        do {
+            uoe(
+                //-- MMIO Interface
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_LsnReq,
+                ssUOE_URIF_LsnRep,
+                ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_DLen,
+                //-- ICMP / Message Data Interface
+                ssUOE_ICMP_Data
+            );
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
+            stepSim();
+        } while (!isReady);
+
         //---------------------------------------------------------------
         //-- OPEN_MODE: Attempt to close a port that isn't open.
         //--    Expected response is: Nothing.
@@ -678,6 +713,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -686,6 +722,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -713,6 +750,7 @@ int main(int argc, char *argv[]) {
             uoe(
                     //-- MMIO Interface
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
                     //-- IPRX / IP Rx / Data Interface
                     ssIPRX_UOE_Data,
                     //-- IPTX / IP Tx / Data Interface
@@ -721,6 +759,7 @@ int main(int argc, char *argv[]) {
                     ssURIF_UOE_LsnReq,
                     ssUOE_URIF_LsnRep,
                     ssURIF_UOE_ClsReq,
+	                ssUOE_URIF_ClsRep,
                     //-- URIF / Rx Data Interfaces
                     ssUOE_URIF_Data,
                     ssUOE_URIF_Meta,
@@ -762,6 +801,7 @@ int main(int argc, char *argv[]) {
         uoe(
             //-- MMIO Interface
             sMMIO_UOE_Enable,
+            ssUOE_MMIO_Ready,
             //-- IPRX / IP Rx / Data Interface
             ssIPRX_UOE_Data,
             //-- IPTX / IP Tx / Data Interface
@@ -770,6 +810,7 @@ int main(int argc, char *argv[]) {
             ssURIF_UOE_LsnReq,
             ssUOE_URIF_LsnRep,
             ssURIF_UOE_ClsReq,
+            ssUOE_URIF_ClsRep,
             //-- URIF / Rx Data Interfaces
             ssUOE_URIF_Data,
             ssUOE_URIF_Meta,
@@ -819,6 +860,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -827,6 +869,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -913,6 +956,38 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
+        // Wait until UOE is ready (~2^16 cycles)
+        bool isReady = false;
+        do {
+            uoe(
+                //-- MMIO Interface
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                //-- IPRX / IP Rx / Data Interface
+                ssIPRX_UOE_Data,
+                //-- IPTX / IP Tx / Data Interface
+                ssUOE_IPTX_Data,
+                //-- URIF / Control Port Interfaces
+                ssURIF_UOE_LsnReq,
+                ssUOE_URIF_LsnRep,
+                ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
+                //-- URIF / Rx Data Interfaces
+                ssUOE_URIF_Data,
+                ssUOE_URIF_Meta,
+                //-- URIF / Tx Data Interfaces
+                ssURIF_UOE_Data,
+                ssURIF_UOE_Meta,
+                ssURIF_UOE_DLen,
+                //-- ICMP / Message Data Interface
+                ssUOE_ICMP_Data
+            );
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
+            stepSim();
+        } while (!isReady);
+
         // Request to open a set of UDP ports in listen mode
         for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
             portToOpen = *it;
@@ -921,6 +996,7 @@ int main(int argc, char *argv[]) {
                 uoe(
                     //-- MMIO Interface
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
                     //-- IPRX / IP Rx / Data Interface
                     ssIPRX_UOE_Data,
                     //-- IPTX / IP Tx / Data Interface
@@ -929,6 +1005,7 @@ int main(int argc, char *argv[]) {
                     ssURIF_UOE_LsnReq,
                     ssUOE_URIF_LsnRep,
                     ssURIF_UOE_ClsReq,
+	                ssUOE_URIF_ClsRep,
                     //-- URIF / Rx Data Interfaces
                     ssUOE_URIF_Data,
                     ssUOE_URIF_Meta,
@@ -981,6 +1058,7 @@ int main(int argc, char *argv[]) {
             uoe(
                 //-- MMIO Interface
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
                 //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
                 //-- IPTX / IP Tx / Data Interface
@@ -989,6 +1067,7 @@ int main(int argc, char *argv[]) {
                 ssURIF_UOE_LsnReq,
                 ssUOE_URIF_LsnRep,
                 ssURIF_UOE_ClsReq,
+                ssUOE_URIF_ClsRep,
                 //-- URIF / Rx Data Interfaces
                 ssUOE_URIF_Data,
                 ssUOE_URIF_Meta,
@@ -1100,6 +1179,7 @@ int main(int argc, char *argv[]) {
              uoe(
                  //-- MMIO Interface
                  sMMIO_UOE_Enable,
+                 ssUOE_MMIO_Ready,
                  //-- IPRX / IP Rx / Data Interface
                  ssIPRX_UOE_Data,
                  //-- IPTX / IP Tx / Data Interface
@@ -1108,6 +1188,7 @@ int main(int argc, char *argv[]) {
                  ssURIF_UOE_LsnReq,
                  ssUOE_URIF_LsnRep,
                  ssURIF_UOE_ClsReq,
+                 ssUOE_URIF_ClsRep,
                  //-- URIF / Rx Data Interfaces
                  ssUOE_URIF_Data,
                  ssUOE_URIF_Meta,
@@ -1178,5 +1259,4 @@ int main(int argc, char *argv[]) {
 
     return nrErr;
 
-    return 0;
 }

@@ -25,8 +25,8 @@
  *
  *****************************************************************************/
 
-#ifndef NTS_UTILS_H_
-#define NTS_UTILS_H_
+#ifndef _NTS_UTILS_H_
+#define _NTS_UTILS_H_
 
 #include "../MEM/mem.hpp"
 #include "../NTS/nts.hpp"
@@ -56,6 +56,52 @@ using namespace std;
   extern bool         gTraceEvent;
   extern bool         gFatalError;
   extern unsigned int gSimCycCnt;
+#endif
+
+
+/*******************************************************************************
+ * HELPER DESIGN CLASSES
+ *******************************************************************************/
+#ifndef __LOG2CEIL__
+#define __LOG2CEIL__
+  /********************************************************
+   * A synthesizable version of the C++ log2ceil function.
+   * @param[in] n  The input value to compute.
+   * @return ceil(log(n)).
+   *
+   * Usage: ap_uint<Log2Ceil<N>::val> counter;
+   ********************************************************/
+  template<int n> struct Log2Ceil {
+      //-- Code extracted from the book:
+      //--  "High-level Synthesis: Blue Book" by By Michael Fingeroff.
+      //--  Since the parameter 'n' is usually based on a template parameter,
+      //--   it requires the use of enumerated types to perform the computation
+      //--   so that the result is statically determinable at compile time.
+      //--  One important point to note about using "brute force" approach is
+      //--   that there must be sufficient enumerations to cover all of the
+      //--   possible values.
+      enum {
+          val = \
+          n <=     1 ?  1 : \
+          n <=     2 ?  1 : \
+          n <=     4 ?  2 : \
+          n <=     8 ?  3 : \
+          n <=    16 ?  4 : \
+          n <=    32 ?  5 : \
+          n <=    64 ?  6 : \
+          n <=   128 ?  7 : \
+          n <=   256 ?  8 : \
+          n <=   512 ?  9 : \
+          n <=  1024 ? 10 : \
+          n <=  2048 ? 11 : \
+          n <=  4096 ? 12 : \
+          n <=  8192 ? 13 : \
+          n <= 16384 ? 14 : \
+          n <= 32768 ? 15 : \
+          n <= 65536 ? 16 :
+          32
+      };
+  };
 #endif
 
 /*******************************************************************************

@@ -16,26 +16,22 @@
 
 /*****************************************************************************
  * @file       : SimIp4Packet.hpp
- * @brief      : A simulation class to hanlde IPv4 packets.
+ * @brief      : A simulation class to build and handle IPv4 packets.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
  * \{ 
  *****************************************************************************/
 
-#ifndef SIM_IP4_PACKET_
-#define SIM_IP4_PACKET_
+#ifndef _SIM_IP4_PACKET_
+#define _SIM_IP4_PACKET_
 
-//#include <queue>
-//#include <string>
-//#include <iostream>
-//#include <iomanip>
-//#include <unistd.h>
-//#include <stdlib.h>
+#include "nts.hpp"
+#include "nts_utils.hpp"
 
 #include "AxisIp4.hpp"
 // [TODO] #include "AxisTcp.hpp"
@@ -44,11 +40,9 @@
 #include "SimIcmpPacket.hpp"
 #include "SimUdpDatagram.hpp"
 
-using namespace std;
-using namespace hls;
 
 /*****************************************************************************
- * @brief Class IPv4 Packet.
+ * @brief Class IPv4 Packet for simulation.
  *
  * @details
  *  This class defines an IPv4 packet as a set of 'AxisIp4' data chunks.
@@ -59,14 +53,15 @@ using namespace hls;
  *
  ******************************************************************************/
 class SimIp4Packet {
+
+  private:
     int len;  // In bytes
-    std::deque<AxisIp4> pktQ;  // A double-ended queue to store IP4 chunks.
+    std::deque<AxisIp4> pktQ;  // A double-ended queue to store IP4 chunks
     const char *myName;
 
     // Set the length of this IPv4 packet (in bytes)
     void setLen(int pktLen) {
         this->len = pktLen;
-        //OBSOLETE_20200421 this->setIpTotalLength(pktLen);
     }
     // Get the length of this IPv4 packet (in bytes)
     int  getLen() {
@@ -91,13 +86,13 @@ class SimIp4Packet {
         this->pktQ.push_back(ipChunk);
     }
 
-    /**************************************************************************
+    /***************************************************************************
      * @brief Compute the IPv4 header checksum of the packet.
      * @return the computed checksum.
-     **************************************************************************/
+     ***************************************************************************/
     Ip4HdrCsum calculateIpHeaderChecksum() {
         LE_Ip4HdrCsum  leIp4HdrCsum;
-        unsigned int csum = 0;
+        unsigned int   csum = 0;
         int ihl = this->getIpInternetHeaderLength();
         csum += this->pktQ[0].getLE_TData().range(15,  0);  // [ToS|VerIhl]
         csum += this->pktQ[0].getLE_TData().range(31, 16);  // [TotalLength]
@@ -112,7 +107,7 @@ class SimIp4Packet {
         csum += this->pktQ[2].getLE_TData().range(15,  0);  // [DestinAddrLow]
         csum += this->pktQ[2].getLE_TData().range(31, 16);  // [DestinAddrHigh]
         ihl -= 1;
-        // Accumulates options dwords
+        // Accumulates options
         int qw = 2;
         while (ihl) {
             if (ihl % 1) {
@@ -134,8 +129,8 @@ class SimIp4Packet {
         return byteSwap16(leIp4HdrCsum);
     }
 
-    /**************************************************************************
-     * @brief Compute the checksum of an UDP or TCP pseudo-header+payload.
+    /***************************************************************************
+     * @brief Compute the checksum of a UDP or TCP pseudo-header+payload.
      * @param[in] pseudoPacket  A double-ended queue w/ one pseudo packet.
      * @return the new checksum.
      * @TODO - Create a SimPsd4Packet class.
@@ -354,9 +349,9 @@ class SimIp4Packet {
 	//-- IP4 PACKET FIELDS - Constant Definitions
 	//-----------------------------------------------------
 	// IP protocol numbers
-	static const unsigned char  ICMP_PROTOCOL = 0x01;
-	static const unsigned char  TCP_PROTOCOL  = 0x06;
-	static const unsigned char  UDP_PROTOCOL  = 0x11;
+    //OBSOLETE_20200522 static const unsigned char  ICMP_PROTOCOL = 0x01;
+    //OBSOLETE_20200522 static const unsigned char  TCP_PROTOCOL  = 0x06;
+    //OBSOLETE_20200522 static const unsigned char  UDP_PROTOCOL  = 0x11;
 
 	//*********************************************************
 	//** IPV4 PACKET FIELDS - SETTERS and GETTERS
@@ -534,8 +529,9 @@ class SimIp4Packet {
             printFatal(this->myName, "IPv4 options are not supported yet (sorry)");
         }
         while (wordInpCnt < ip4PktSize) {
-            if (endOfPkt)
+            if (endOfPkt) {
                 break;
+            }
             else if (alternate) {
                 newTData = 0;
                 newTKeep = 0;
@@ -1412,7 +1408,6 @@ class SimIp4Packet {
     /**************************************************************************
      * @brief Raw print of an IP packet (.i.e, as AxisRaw chunks).
      * @param[in] callerName  The name of the calling function or process.
-     * @ingroup test_toe
      **************************************************************************/
     void printRaw(const char *callerName) {
        printInfo(callerName, "Current packet is : \n");

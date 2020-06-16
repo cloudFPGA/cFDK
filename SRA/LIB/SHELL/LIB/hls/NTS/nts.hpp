@@ -16,214 +16,76 @@
 
 /*****************************************************************************
  * @file       : nts.hpp
- * @brief      : Network Transport Stack (NTS) for the cloudFPGA shell.
+ * @brief      : Definition of the Network Transport Stack (NTS) component
+ *               as if it was an HLS IP core.
  *
  * System:     : cloudFPGA
- * Component   : Shell)
+ * Component   : Shell
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *               Network Transport Stack.
- *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
  *****************************************************************************/
 
-#ifndef NTS_H_
-#define NTS_H_
+#ifndef _NTS_H_
+#define _NTS_H_
 
-//OBSOLETE #include <stdio.h>
-//OBSOLETE #include <iostream>
-//OBSOLETE #include <fstream>
-//OBSOLETE #include <string>
-//OBSOLETE #include <math.h>
-#include <hls_stream.h>
-//OBSOLETE #include <stdint.h>
-//OBSOLETE #include <vector>
+#include "nts_types.hpp"
 
-//OBSOLETE #include "ap_int.h"
+//#include <hls_stream.h>
 
-#include "AxisEth.hpp"   // ETHernet
-#include "AxisIp4.hpp"   // IPv4
+//#include "AxisEth.hpp"   // ETHernet
+//#include "AxisIp4.hpp"   // IPv4
 
 using namespace hls;
 
 
-/******************************************************************************
- * GLOBAL DEFINITIONS USED BY NTS
- ******************************************************************************/
+/**********************************************************
+ * INTERFACE - UDP APPLICATION INTERFACE (UAIF)
+ **********************************************************/
+typedef AxisApp      UdpAppData;
+typedef SocketPair   UdpAppMeta;
+typedef UdpLen       UdpAppDLen;
 
-#define NTS_OK      1
-#define NTS_KO      0
-#define OK          NTS_OK
-#define KO          NTS_KO
-
-#define CMD_INIT    1
-#define CMD_DROP    1
-#define CMD_KEEP    0
-#define CMD_ENABLE  1
-#define CMD_DISABLE 0
-
-#define QUERY_RD    0
-#define QUERY_WR    1
-#define QUERY_INIT  1
-#define QUERY_FAST_RETRANSMIT true
-
-#define FLAG_OFF    0
-#define FLAG_ON     1
-
-#define STS_OK      1
-#define STS_KO      0
-#define STS_OPENED  1
-#define STS_CLOSED  0
-
-#define ACK_ON      1
-#define NO_ACK      0
-
-static const ap_uint<16> MTU = 1500;
-
-/******************************************************************************
- * GENERIC TYPES and CLASSES USED BY NTS
- ******************************************************************************
- * Some Terminology & Conventions:
- *  In telecommunications, a protocol data unit (PDU) is a single unit of
- *   information transmitted among peer entities of a computer network.
- *  A PDU is therefore composed of a protocol specific control information
- *   (e.g, a header) and a user data section. This source code uses the
- *   following terminology:
- *   - a FRAME    (or MAC Frame)    refers to the Ethernet data link layer.
- *   - a PACKET   (or IP  Packet)   refers to the IP protocol data unit.
- *   - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
- *   - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
- ******************************************************************************/
-
-/*********************************************************
- * SINGLE BIT DEFINITIONS
- *********************************************************/
-typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
-typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
-typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
-typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
-
-typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef bool CmdBool;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool FlagBool; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
-typedef bool ReqBool;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBool;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBool;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
-
-/******************************************************************************
- * NETWORK LAYER-2 - ETHERNET & ARP DATA LINK LAYER
- * ****************************************************************************
- * Terminology & Conventions
- *  - a FRAME    (or MAC Frame)    refers to the Ethernet data link layer.
- *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
- ******************************************************************************/
+/**********************************************************
+ * INTERFACE - TCP APPLICATION INTERFACE (TAIF)
+ **********************************************************/
 
 
-/*********************************************************
- * ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
- *********************************************************/
-class ArpBindPair {
-  public:
-    EthAddr  macAddr;
-    Ip4Addr  ip4Addr;
-    ArpBindPair() {}
-    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
-        macAddr(newMac), ip4Addr(newIp4) {}
-};
+/*************************************************************************
+ *
+ * ENTITY - NETWORK TRANSPORT STACK (NTS)
+ *
+ *
+ *************************************************************************/
+void nts(
 
+        //------------------------------------------------------
+        //-- UAIF / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpPort>         &siUAIF_LsnReq,
+        stream<StsBool>         &soUAIF_LsnRep,
+        stream<UdpPort>         &siUAIF_ClsReq,
 
-/******************************************************************************
- * NETWORK LAYER-4 - UDP & TCP TRANSPORT LAYER
- * ****************************************************************************
- * Terminology & Conventions
- *  - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
- *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
- ******************************************************************************/
+        //------------------------------------------------------
+        //-- UAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>      &soUAIF_Data,
+        stream<UdpAppMeta>      &soUAIF_Meta,
 
-/*********************************************************
- * LAYER-4 - COMMON TCP and UDP HEADER FIELDS
- *********************************************************/
-typedef ap_uint<16> LE_Ly4Port; // Layer-4 Port in LE order
-typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
-typedef ap_uint<16> Ly4Port;    // Layer-4 Port
-typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
+        //------------------------------------------------------
+        //-- UAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>      &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen
 
-/*********************************************************
- * TCP SESSION IDENTIFIER
- *********************************************************/
-typedef ap_uint<16> SessionId;
-
-/*********************************************************
- * SOCKET ADDRESS
- *********************************************************/
-class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
-  public:
-    LE_Ip4Address  addr;  // IPv4 address in LITTLE-ENDIAN order !!!
-    LE_Ly4Port     port;  // Layer-4 port in LITTLE-ENDIAN order !!!
-    LE_SockAddr() {}
-    LE_SockAddr(LE_Ip4Address addr, LE_Ly4Port port) :
-        addr(addr), port(port) {}
-};
-
-/*********************************************************
- * SOCKET ADDRESS
- *********************************************************/
-class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
-   public:
-    Ip4Addr        addr;   // IPv4 address in NETWORK BYTE ORDER
-    Ly4Port        port;   // Layer-4 port in NETWORK BYTE ORDER
-    SockAddr() {}
-    SockAddr(Ip4Addr ip4Addr, Ly4Port layer4Port) :
-        addr(ip4Addr), port(layer4Port) {}
-};
-
-/*********************************************************
- * SOCKET PAIR ASSOCIATION
- *********************************************************/
-class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
-  public:
-    LE_SockAddr  src;  // Source socket address in LITTLE-ENDIAN order !!!
-    LE_SockAddr  dst;  // Destination socket address in LITTLE-ENDIAN order !!!
-    LE_SocketPair() {}
-    LE_SocketPair(LE_SockAddr src, LE_SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
-        return ((s1.dst.addr < s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
-
-class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
-  public:
-    SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
-    SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
-        return ((s1.dst.addr <  s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
-
-
+);
 
 #endif
 
-
+/*! \} */
 
 
 

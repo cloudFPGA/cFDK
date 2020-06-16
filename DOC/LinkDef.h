@@ -15,20 +15,56 @@
  */
 
 
-
-
 // cFDK submodule: SHELL Library
 
 /** \defgroup ShellLib SHELL Library
  *  @ingroup cFDK
  * 
- *  \brief This is the SHELL library of cloudFPGA platform with the three basic components, i.e. NTS, FMC, NRC. The documentation of SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
+ *  \brief This is the SHELL library of cloudFPGA platform with its three basic components, i.e. NTS, FMC, NRC. The documentation of the SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
  */
+
 
 /** \defgroup NTS NTS
  *  @ingroup ShellLib
  * 
  *  \brief Network Transport Stack (NTS). This is the component for the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
+ */
+
+/** \defgroup NTS_UOE UDP Offload Engine (UOE).
+ *  @ingroup NTS
+ * 
+ *  \brief UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_TOE TCP Offload Engine (TOE).
+ *  @ingroup NTS
+ * 
+ *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_IPRX IP Receiver packet handler (IPRX).
+ *  @ingroup NTS
+ * 
+ *  \brief IP Receiver packet handler (IPRX) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_IPTX IP Transmitter packet handler (IPRX).
+ *  @ingroup NTS
+ * 
+ *  \brief IP Transmitter packet handler (IPTX) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_ICMP Internet Control Message Protocol server (ICMP)
+.
+ *  @ingroup NTS
+ * 
+ *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_ARP Address Resolution Server (ARS).
+ *  @ingroup NTS
+ * 
+ *  \brief Address Resolution Server (ARS) of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_SIM NTS Simulation
@@ -37,11 +73,7 @@
  *  \brief Simulation support and utilities for the Network Transport Stack (NTS).
  */
 
-/** \defgroup NTS_UOE UDP Offload Engine (UOE).
- *  @ingroup NTS
- * 
- *  \brief This the UDP offload engine of the Network Transport Stack (NTS).
- */
+
 
 /** \defgroup FMC FMC
  *  @ingroup ShellLib
@@ -54,8 +86,6 @@
  * 
  *  \brief Network Routing Core (NRC). The NRC is responsible for managing all UDP/TCP traffic of the FPGA. The documentation of NRC is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-routing-core-nrc .
  */
-
-
 
 
 
@@ -78,7 +108,6 @@
  * 
  *  \brief This version of the cF shell is used for the testing and the bring-up of a cloudFPGA (cF) module. The documentation of Kale is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#the-shell-kale .
  */
-
 
 
 

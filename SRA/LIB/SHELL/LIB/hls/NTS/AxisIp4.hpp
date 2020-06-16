@@ -178,18 +178,18 @@ class AxisIp4: public AxisRaw {
 
   public:
     AxisIp4() {}
-    AxisIp4(AxisRaw axisRaw) :
-        AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
     AxisIp4(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
         AxisRaw(tdata, tkeep, tlast) {}
     AxisIp4(const AxisIp4 &axisRaw) :
         AxisRaw(axisRaw.tdata, axisRaw.tkeep, axisRaw.tlast) {}
+    AxisIp4(AxisRaw axisRaw) :
+        AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
     //-----------------------------------------------------
     //-- IP4 PACKET FIELDS - Constant Definitions
     //-----------------------------------------------------
     // IP protocol numbers
-    static const unsigned char  ICMP_PROTOCOL = 0x01;
+    static const unsigned char  ICMP_PROTOCOL = 0x01;  // [FIXME-Remove and use from nts_types.hpp]
     static const unsigned char  TCP_PROTOCOL  = 0x06;
     static const unsigned char  UDP_PROTOCOL  = 0x11;
 

@@ -2,11 +2,11 @@
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
-# * Created : Mar 2020
+# * Created : May 2020
 # * Authors : Francois Abel  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the UOE core 
-# *   module used by the SHELL of the cloudFPGA module.
+# * Description : A Tcl script for the HLS batch syhthesis of the Ready Logic
+# *   Barrier (RLB) core used by the NTS of the cloudFPGA.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -17,13 +17,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "uoe"
+set projectName    "rlb"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Offload Engine for cloudFPGA"
-set ipDescription  "Handles UDP packets."
+set ipDisplayName  "Ready Logic Barrier for NTS"
+set ipDescription  "Synchronization primitive among multiple AXI4 ready streams."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -108,19 +108,7 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
-    csim_design -argv "3"
+    csim_design
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -144,19 +132,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
