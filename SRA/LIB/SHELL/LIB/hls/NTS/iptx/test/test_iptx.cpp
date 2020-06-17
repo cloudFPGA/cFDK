@@ -29,10 +29,6 @@
 
 #include "test_iptx.hpp"
 
-//OBSOLETE #include <hls_stream.h>
-//OBSOLETE #include <stdio.h>
-//OBSOLETE #include <string>
-
 using namespace hls;
 using namespace std;
 
@@ -321,9 +317,9 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     //-- TESTBENCH GLOBAL VARIABLES
     //------------------------------------------------------
-    gTraceEvent     = false;
-    gFatalError     = false;
-    gSimCycCnt      = 0;
+    gTraceEvent   = false;
+    gFatalError   = false;
+    gSimCycCnt    = 0;
     gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
@@ -485,7 +481,9 @@ int main(int argc, char* argv[]) {
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
     //---------------------------------------------------------------
-    int res = system(("diff --brief -w " + std::string(ofsL2MUX_Data_FileName) + " " + std::string(ofsL2MUX_Gold_FileName) + " ").c_str());
+    //OBSOLETE_20200617 int res = system(("diff --brief -w " + std::string(ofsL2MUX_Data_FileName) + " " + std::string(ofsL2MUX_Gold_FileName) + " ").c_str());
+    int res = myDiffTwoFiles(std::string(ofsL2MUX_Data_FileName),
+                             std::string(ofsL2MUX_Gold_FileName));
     if (res) {
         printError(THIS_NAME, "File \'%s\' does not match \'%s\' (rc=%d).\n", \
             ofsL2MUX_Data_FileName.c_str(), ofsL2MUX_Gold_FileName.c_str(), res);

@@ -43,7 +43,7 @@
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES   25000
 #define TB_STARTUP_DELAY        0
-#define TB_GRACE_TIME         5000  // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME         500  // Adds some cycles to drain the DUT before exiting
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
