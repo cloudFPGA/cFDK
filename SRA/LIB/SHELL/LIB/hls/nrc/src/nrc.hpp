@@ -85,12 +85,21 @@
 
 //HLS DEFINITONS END
 
+//#ifndef _AXI_CLASS_DEFINED_
+//#include "../../NTS/AxisApp.hpp"
+//#define _AXI_CLASS_DEFINED_
+//typedef AxisApp      UdpAppData;
+//#else
+//typedef Axis<64>     UdpAppData;
+//#endif
+
 #include "../../fmc/src/fmc.hpp"
 
 #include "../../../../../hls/network.hpp"
 #include "../../network_utils.hpp"
 #include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
+//#include "../../NTS/nts_utils.hpp"
 
 
 using namespace hls;
@@ -162,6 +171,7 @@ using namespace hls;
 #define ClsFsmStates uint8_t
 #define CLS_IDLE 0
 #define CLS_NEXT 1
+#define CLS_WAIT4RESP 2
 
 #define MAX_NRC_SESSIONS 32
 
@@ -216,6 +226,22 @@ using namespace hls;
 #define NRC_STATUS_PACKET_CNT_TX 15
 
 
+// New UOE types
+// here until merged into one HLS hpp [TODO]
+
+typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
+typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
+typedef ap_uint<16> UdpPort;        // UDP source or destination Port
+typedef ap_uint<16> UdpLen;         // UDP header and data Length
+//typedef SocketPair   UdpAppMeta;
+//typedef Axis<64>     UdpAppData;
+typedef NetworkWord  UdpAppData;
+typedef UdpMeta      UdpAppMeta;
+typedef UdpLen       UdpAppDLen;
+
+
+
 
 void nrc_main(
     // ----- link to FMC -----
@@ -251,16 +277,20 @@ void nrc_main(
     stream<TcpWord>             &soFMC_Tcp_data,
     stream<Axis<16> >           &soFMC_Tcp_SessId,
 
-    //-- UDMX / This / Open-Port Interfaces
-    stream<AxisAck>     &siUDMX_This_OpnAck,
-    stream<UdpPort>     &soTHIS_Udmx_OpnReq,
+    //-- UOE / Control Port Interfaces
+    stream<UdpPort>             &soUOE_LsnReq,
+    stream<StsBool>             &siUOE_LsnRep,
+    stream<UdpPort>             &soUOE_ClsReq,
+    stream<StsBool>             &siUOE_ClsRep,
 
-    //-- UDMX / This / Data & MetaData Interfaces
-    stream<UdpWord>     &siUDMX_This_Data,
-    stream<UdpMeta>     &siUDMX_This_Meta,
-    stream<UdpWord>     &soTHIS_Udmx_Data,
-    stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen, 
+    //-- UOE / Rx Data Interfaces
+    stream<UdpAppData>          &siUOE_Data,
+    stream<UdpAppMeta>          &siUOE_Meta,
+
+    //-- UOE / Tx Data Interfaces
+    stream<UdpAppData>          &soUOE_Data,
+    stream<UdpAppMeta>          &soUOE_Meta,
+    stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
     stream<AppNotif>    &siTOE_Notif,
