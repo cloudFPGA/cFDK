@@ -24,19 +24,20 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : icmp_server.cpp
- * @brief      : Internet Control Message Protocol server (ICMP)
+/*******************************************************************************
+ * @file       : icmp.cpp
+ * @brief      : Internet Control Message Protocol (ICMP) Server
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_ICMP
+ * \addtogroup NTS_ICMP
+ * \{
+ *******************************************************************************/
 
-#include "icmp_server.hpp"
-#include "../../toe/src/toe_utils.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "icmp.hpp"
 
 using namespace hls;
 
@@ -62,13 +63,13 @@ using namespace hls;
 #define DEBUG_LEVEL (TRACE_ALL)
 
 
-/*****************************************************************************
+/*******************************************************************************
  * ICMP header Checksum accumulator and Checker (ICc)
  *
- * @param[in]  siIPRX_Data,   The data stream from the IP Rx handler (IPRX).
- * @param[out] soIPd_Data,    The data stream to IcmpPacketDropper (IPd)
- * @param[out] soIPd_DropCmd, THe drop command information for [IPd].
- * @param[out] soICi_Csum,    ICMP checksum to IcmpChecksumInserter (ICi).
+ * @param[in]  siIPRX_Data    The data stream from the IP Rx handler (IPRX).
+ * @param[out] soIPd_Data     The data stream to IcmpPacketDropper (IPd)
+ * @param[out] soIPd_DropCmd  THe drop command information for [IPd].
+ * @param[out] soICi_Csum     ICMP checksum to IcmpChecksumInserter (ICi).
  *
  * @details
  *   This process handles the incoming data stream from the IPRX. It assesses
@@ -81,7 +82,7 @@ using namespace hls;
  *   then forwarded to the IcmpChecksumInserter (ICi).
  *
  * @warning
- *   Assumption is no options in IP header.
+ *   It is expected that the IP header does not have any option.
  *
  *  The format of the incoming ICMP message embedded into an IPv4 packet is as follows:
  *         6                   5                   4                   3                   2                   1                   0
@@ -98,7 +99,7 @@ using namespace hls;
  *  |                                                             Data                                                              |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pIcmpChecksumChecker(
         stream<AxisIp4>         &siIPRX_Data,
         stream<AxisIp4>         &soIPd_Data,
@@ -116,13 +117,13 @@ void pIcmpChecksumChecker(
     #pragma HLS RESET                 variable=icc_writeLastOne
     static bool                                icc_computeCs=false;
     #pragma HLS RESET                 variable=icc_computeCs
-    static ap_uint<7>                          icc_wordCount=0; // The max len of ICMP messages is 576 bytes
-    #pragma HLS RESET                 variable=icc_wordCount
+    static ap_uint<7>                          icc_chunkCount=0; // The max len of ICMP messages is 576 bytes
+    #pragma HLS RESET                 variable=icc_chunkCount
     static enum FsmStates { S0=0, S1, S2, S3 } icc_csumState=S0;
     #pragma HLS RESET                 variable=icc_csumState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static AxisIp4  icc_prevWord;
+    static AxisIp4  icc_prevChunk;
     static Sum17    icc_subSums[4];
     static IcmpCsum icc_oldHCsum;
     static Sum17    icc_newHCsum;
@@ -130,14 +131,16 @@ void pIcmpChecksumChecker(
     static IcmpCode icc_icmpCode;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4 currWord;
-    AxisIp4 sendWord;
+    AxisIp4 currChunk;
+    AxisIp4 sendChunk;
 
-    currWord.tlast = 0;
+    enum { CHUNK_0=0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
+
+    currChunk.setLE_TLast(0);
 
     if (icc_writeLastOne) {
-        // Forward the very last AxiWord
-        soIPd_Data.write(icc_prevWord);
+        // Forward the very last AxisChunk
+        soIPd_Data.write(icc_prevChunk);
         icc_writeLastOne = false;
     }
     else if (icc_computeCs) {
@@ -203,74 +206,75 @@ void pIcmpChecksumChecker(
         }
     }
     else if (!siIPRX_Data.empty()) {
-        siIPRX_Data.read(currWord);
-        switch (icc_wordCount) {
-        case WORD_0: // The current word contains [ FO | Id | TotLen | ToS | IHL ]
+        siIPRX_Data.read(currChunk);
+        switch (icc_chunkCount) {
+        case CHUNK_0: // The current chunk contains [ FO | Id | TotLen | ToS | IHL ]
             icc_subSums[0] = 0;
             icc_subSums[1] = 0;
             icc_subSums[2] = 0;
             icc_subSums[3] = 0;
             break;
-        case WORD_1: // The current word contains [ SA | HdCsum | Prot | TTL ]
-            sendWord = icc_prevWord;
-            soIPd_Data.write(sendWord);
+        case CHUNK_1: // The current chunk contains [ SA | HdCsum | Prot | TTL ]
+            sendChunk = icc_prevChunk;
+            soIPd_Data.write(sendChunk);
             break;
-        case WORD_2: // The current word contains [ Csum | Code | Type | DA ]
+        case CHUNK_2: // The current chunk contains [ Csum | Code | Type | DA ]
             // Save ICMP Type, Code and Checksum
-            icc_icmpType = currWord.getIcmpType();
-            icc_icmpCode = currWord.getIcmpCode();
-            icc_oldHCsum = currWord.getIcmpCsum();
-
+            icc_icmpType = currChunk.getIcmpType();
+            icc_icmpCode = currChunk.getIcmpCode();
+            icc_oldHCsum = currChunk.getIcmpCsum();
             // Forward data stream while swapping IP_SA & IP_DA
-            sendWord.setIp4TtL(icc_prevWord.getIp4Ttl());
-            sendWord.setIp4Prot(icc_prevWord.getIp4Prot());
-            sendWord.setIp4HdrCsum(icc_prevWord.getIp4HdrCsum());
-            sendWord.setIp4SrcAddr(currWord.getIp4DstAddr());
-            sendWord.tkeep = 0xFF;
-            sendWord.tlast = 0;
-            soIPd_Data.write(sendWord);
+            sendChunk.setIp4TtL(icc_prevChunk.getIp4Ttl());
+            sendChunk.setIp4Prot(icc_prevChunk.getIp4Prot());
+            sendChunk.setIp4HdrCsum(icc_prevChunk.getIp4HdrCsum());
+            sendChunk.setIp4SrcAddr(currChunk.getIp4DstAddr());
+            sendChunk.setLE_TKeep(0xFF);
+            sendChunk.setLE_TLast(0);
+            soIPd_Data.write(sendChunk);
             // Accumulate [ Csum | Code | Type ]
             for (int i=2; i<4; i++) {
               #pragma HLS UNROLL
                 ap_uint<16> temp;
-                temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
+                //OBSOLETE_20200618 temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
+                //OBSOLETE_20200618 temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
+                temp( 7, 0) = currChunk.getLE_TData(i*16+15, i*16+8);
+                temp(15, 8) = currChunk.getLE_TData(i*16+ 7, i*16+0);
                 icc_subSums[i] += temp;
                 icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
             }
             // Replace the IP_DA field with IP_SA
-            currWord.setIp4DstAddr(icc_prevWord.getIp4SrcAddr());
+            currChunk.setIp4DstAddr(icc_prevChunk.getIp4SrcAddr());
             // Replace ECHO_REQUEST field with ECHO_REPLY
-            currWord.setIcmpType(ICMP_ECHO_REPLY);
+            currChunk.setIcmpType(ICMP_ECHO_REPLY);
             break;
         default:
             // Accumulate quadword
             for (int i=0; i<4; i++) {
               #pragma HLS UNROLL
                 ap_uint<16> temp;
-                if (currWord.tkeep.range(i*2+1, i*2) == 0x3) {
-                    temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                    temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
+                if (currChunk.getLE_TKeep(i*2+1, i*2) == 0x3) {
+                    temp( 7, 0) = currChunk.getLE_TData(i*16+15, i*16+8);
+                    temp(15, 8) = currChunk.getLE_TData(i*16+ 7, i*16+0);
                     icc_subSums[i] += temp;
                     icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
                 }
-                else if (currWord.tkeep[i*2] == 0x1) {
+                else if (currChunk.getLE_TKeep()[i*2] == 0x1) {
                     temp( 7, 0) = 0;
-                    temp(15, 8) = currWord.tdata.range(i*16+7, i*16);
+                    temp(15, 8) = currChunk.getLE_TData(i*16+7, i*16);
                     icc_subSums[i] += temp;
                     icc_subSums[i] = (icc_subSums[i] + (icc_subSums[i] >> 16)) & 0xFFFF;
                 }
             }
-            sendWord = icc_prevWord;
-            soIPd_Data.write(sendWord);
+            sendChunk = icc_prevChunk;
+            soIPd_Data.write(sendChunk);
             break;
-        } // End-of: switch (icc_wordCount)
+        } // End-of: switch (icc_chunkCount)
 
-        icc_prevWord = currWord;
-        icc_wordCount++;
+        icc_prevChunk = currChunk;
+        icc_chunkCount++;
 
-        if (currWord.tlast == 1) {
-            icc_wordCount = 0;
+        if (currChunk.getLE_TLast()) {
+            icc_chunkCount = 0;
             icc_writeLastOne = true;
             icc_computeCs = true;
             if (DEBUG_LEVEL & TRACE_ICC) {
@@ -281,53 +285,51 @@ void pIcmpChecksumChecker(
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * Control Message Builder (CMb)
  *
- * @param[in]  siUDP_Data,  The data stream from the UDP offload engine (UDP).
- * @param[in]  siIPRX_Derr, Erroneous IP data stream from IpRxHandler (IPRX).
- * @param[out] soIHa_Data,  Data stream to IpHeaderAppender (IHa).
- * @param[out] soIHa_Hdr,   Header data stream to IpHeaderAppender (IHa).
- * @param[out] soICi_Csum,  ICMP checksum to ICi.
+ * @param[in]  siUOE_Data  The data stream from the UDP offload engine (UDP).
+ * @param[in]  siIPRX_Derr Erroneous IP data stream from IpRxHandler (IPRX).
+ * @param[out] soIHa_Data  Data stream to IpHeaderAppender (IHa).
+ * @param[out] soIHa_Hdr   Header data stream to IpHeaderAppender (IHa).
+ * @param[out] soICi_Csum  ICMP checksum to ICi.
  *
  * @details
- *  [TODO-Not tested yet] This process ...
- *   *  If the TTL of the incoming IPv4 packet has expired, the packet is routed
- *  to the ICMP (over the 'soICMP_Derr' stream) in order for the ICMP engine
- *  to build the error messages which data section must include a copy of the
- *  Erroneous IPv4 header plus at least the first eight bytes of data from the
- *  IPv4 packet that caused the error message.
- *
- *****************************************************************************/
+ *  This process is dedicated to the building of 2 types of error messages:
+ *  1) It creates an error message of type "Time Exceeded" upon reception of an
+ *     IPv4 packet which TTL has expired.
+ *  2) It creates an error message of type 'Destination Port Unreachable' if an
+ *     UDP datagram is received for a port that is not opened in listening mode.
+ *******************************************************************************/
 void pControlMessageBuilder(
-        stream<AxiWord>         &siUDP_Data,    // [TODO-AxisUdp]
+        stream<AxisIcmp>        &siUOE_Data,
         stream<AxisIp4>         &siIPRX_Derr,
         stream<AxisIcmp>        &soIHa_Data,
         stream<AxisIp4>         &soIHa_IpHdr,
         stream<IcmpCsum>        &soICi_Csum)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS pipeline II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "CMb");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { BCM_IDLE,   BCM_IP, \
                             BCM_STREAM, BCM_CS } bcm_fsmState=BCM_IDLE;
     #pragma HLS reset                   variable=bcm_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static ap_uint<3>   ipWordCounter;  // Up to 64-bytes IP packet
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static ap_uint<3>   ipChunkCounter;  // Up to 64-bytes IP packet
     static ap_uint<20>  checksumAcc;
 
     static ap_uint<1>   streamSource    = 0; // 0 is UDP, 1 is IP Handler (Destination unreachable & TTL exceeded respectively)
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     StsBit       udpInEmpty;
     StsBit       iprxInEmpty;
 
-    udpInEmpty  = siUDP_Data.empty();
+    udpInEmpty  = siUOE_Data.empty();
     iprxInEmpty = siIPRX_Derr.empty();
 
     switch(bcm_fsmState) {
@@ -336,21 +338,21 @@ void pControlMessageBuilder(
             if ((udpInEmpty == 0 || iprxInEmpty == 0) && !soIHa_Data.full()) {
                 // Data are available in at lease one of the input queue(s).
                 // Don't read them yet but start assembling a ICMP header
-                ipWordCounter = 0;
-                AxisIcmp tempWord(0, 0xFF, 0);
+                ipChunkCounter = 0;
+                AxisIcmp axisIcmp(0, 0xFF, 0);
                 if (udpInEmpty == 0) {
-                    tempWord.setIcmpType(ICMP_DESTINATION_UNREACHABLE);
-                    tempWord.setIcmpCode(ICMP_DESTINATION_PORT_UNREACHABLE);
+                    axisIcmp.setIcmpType(ICMP_DESTINATION_UNREACHABLE);
+                    axisIcmp.setIcmpCode(ICMP_DESTINATION_PORT_UNREACHABLE);
                     streamSource = 0;
                 }
                 else if (iprxInEmpty == 0) {
-                    tempWord.setIcmpType(ICMP_TIME_EXCEEDED);
-                    tempWord.setIcmpCode(ICMP_TTL_EXPIRED_IN_TRANSIT);
+                    axisIcmp.setIcmpType(ICMP_TIME_EXCEEDED);
+                    axisIcmp.setIcmpCode(ICMP_TTL_EXPIRED_IN_TRANSIT);
                     streamSource = 1;
                 }
-                checksumAcc = (((tempWord.tdata.range(63, 48)  + tempWord.tdata.range(47, 32)) +
-                                 tempWord.tdata.range(31, 16)) + tempWord.tdata.range(15,  0));
-                soIHa_Data.write(tempWord);
+                checksumAcc = (((axisIcmp.getLE_TData(63, 48)  + axisIcmp.getLE_TData(47, 32)) +
+                                 axisIcmp.getLE_TData(31, 16)) + axisIcmp.getLE_TData(15,  0));
+                soIHa_Data.write(axisIcmp);
                 bcm_fsmState = BCM_IP;
             }
             break;
@@ -359,40 +361,40 @@ void pControlMessageBuilder(
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && iprxInEmpty == 0)) &&
                 !soIHa_Data.full() && !soIHa_IpHdr.full()) {
                 // Start reading data from one of the input queues.
-                AxiWord tempWord(0, 0, 0);
+                AxisIcmp axisIcmp(0, 0, 0);
                 if (streamSource == 0) {
-                    tempWord = siUDP_Data.read();
+                    axisIcmp = siUOE_Data.read();
                 }
                 else if (streamSource == 1) {
-                    tempWord = siIPRX_Derr.read();
+                    axisIcmp = siIPRX_Derr.read();
                 }
                 checksumAcc = (checksumAcc +
-                              ((tempWord.tdata.range(63, 48) + tempWord.tdata.range(47, 32)) +
-                                tempWord.tdata.range(31, 16) + tempWord.tdata.range(15,  0)));
-                soIHa_Data.write(tempWord);
-                soIHa_IpHdr.write(tempWord);
-                if (ipWordCounter == 2) {
+                              ((axisIcmp.getLE_TData(63, 48) + axisIcmp.getLE_TData(47, 32)) +
+                                axisIcmp.getLE_TData(31, 16) + axisIcmp.getLE_TData(15,  0)));
+                soIHa_Data.write(axisIcmp);
+                soIHa_IpHdr.write(axisIcmp);
+                if (ipChunkCounter == 2) {
                     bcm_fsmState = BCM_STREAM;
                 }
                 else {
-                    ipWordCounter++;
+                    ipChunkCounter++;
                 }
             }
             break;  
         case BCM_STREAM:
             if (((streamSource == 0 && udpInEmpty == 0) || (streamSource == 1 && iprxInEmpty == 0)) && !soIHa_Data.full()) { // If there are data in the queue start reading them
-                AxiWord tempWord(0, 0, 0);
+                AxisIcmp axisIcmp(0, 0, 0);
                 if (streamSource == 0) {
-                    tempWord = siUDP_Data.read();
+                    axisIcmp = siUOE_Data.read();
                 }
                 else if (streamSource == 1) {
-                    tempWord = siIPRX_Derr.read();
+                    axisIcmp = siIPRX_Derr.read();
                 }
                 checksumAcc = (checksumAcc +
-                              ((tempWord.tdata.range(63, 48) + tempWord.tdata.range(47, 32)) +
-                                tempWord.tdata.range(31, 16) + tempWord.tdata.range(15,  0)));
-                soIHa_Data.write(tempWord);
-                if (tempWord.tlast == 1) {
+                              ((axisIcmp.getLE_TData(63, 48) + axisIcmp.getLE_TData(47, 32)) +
+                                axisIcmp.getLE_TData(31, 16) + axisIcmp.getLE_TData(15,  0)));
+                soIHa_Data.write(axisIcmp);
+                if (axisIcmp.getLE_TLast()) {
                     bcm_fsmState = BCM_CS;
                 }
             }
@@ -410,17 +412,17 @@ void pControlMessageBuilder(
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * IP Header Appender (IHa)
  *
- * @param[in]  piMMIO_IpAddress, the IPv4 address from MMIO (in network order).
- * @param[in]  siCMb_Data, Data stream from ControlMessageBuilder (CMb).
- * @param[in]  siIHa_IpHdr,The IP header part of a data stream.
- * @param[out] soICi_Data, Data stream to IcmpChecksumInserter (ICi).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siCMb_Data        Data stream from ControlMessageBuilder (CMb).
+ * @param[in]  siIHa_IpHdr       The IP header part of a data stream.
+ * @param[out] soICi_Data        Data stream to IcmpChecksumInserter (ICi).
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pIpHeaderAppender(
-        Ip4Addr                  piMMIO_IpAddress,
+        Ip4Addr                  piMMIO_Ip4Address,
         stream<AxisIcmp>        &siCMb_Data,
         stream<AxisIp4>         &siIHa_IpHdr,
         stream<AxisIp4>         &soICi_Data)
@@ -436,103 +438,107 @@ void pIpHeaderAppender(
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static AxisIcmp iha_icmpData(0, 0, 0);
-    static AxisIp4  iha_ipHdrWord(0, 0, 0);
+    static AxisIp4  iha_ipHdrChunk(0, 0, 0);
     static Ip4Addr  iha_remoteIpHostAddr;
 
     switch(aih_fsmState) {
         case AIH_IDLE:
             if (!siIHa_IpHdr.empty() && !soICi_Data.full()) {
-                //-- Forward the 1st IP header word
-                siIHa_IpHdr.read(iha_ipHdrWord);
-                Ip4TotalLen ip4TotLen = iha_ipHdrWord.getIp4TotalLen() + 28;
-                iha_ipHdrWord.setIp4TotalLen(ip4TotLen);
-                iha_ipHdrWord.tkeep = 0xFF;
-                iha_ipHdrWord.tlast = 0;
-                soICi_Data.write(iha_ipHdrWord);
+                //-- Forward the 1st IP header chunk
+                siIHa_IpHdr.read(iha_ipHdrChunk);
+                Ip4TotalLen ip4TotLen = iha_ipHdrChunk.getIp4TotalLen() + 28;
+                iha_ipHdrChunk.setIp4TotalLen(ip4TotLen);
+                iha_ipHdrChunk.setLE_TKeep(0xFF);
+                iha_ipHdrChunk.setLE_TLast(0);
+                soICi_Data.write(iha_ipHdrChunk);
                 aih_fsmState = AIH_IP;
             }
             break;
         case AIH_IP:
             if (!siIHa_IpHdr.empty() && !soICi_Data.full()) {
-                //-- Forward the 2nd IP header word
-                siIHa_IpHdr.read(iha_ipHdrWord);
-                iha_ipHdrWord.setIp4TtL(0x80);
-                iha_ipHdrWord.setIp4Prot(ICMP_PROTOCOL);
+                //-- Forward the 2nd IP header chunk
+                siIHa_IpHdr.read(iha_ipHdrChunk);
+                iha_ipHdrChunk.setIp4TtL(0x80);
+                iha_ipHdrChunk.setIp4Prot(ICMP_PROTOCOL);
                 // Save the remote host address and set the new IP_SA
-                iha_remoteIpHostAddr = iha_ipHdrWord.getIp4SrcAddr();
-                iha_ipHdrWord.setIp4SrcAddr(piMMIO_IpAddress);
-                iha_ipHdrWord.tkeep = 0xFF;
-                iha_ipHdrWord.tlast = 0;
-                soICi_Data.write(iha_ipHdrWord);
+                iha_remoteIpHostAddr = iha_ipHdrChunk.getIp4SrcAddr();
+                iha_ipHdrChunk.setIp4SrcAddr(piMMIO_Ip4Address);
+                iha_ipHdrChunk.setLE_TKeep(0xFF);
+                iha_ipHdrChunk.setLE_TLast(0);
+                soICi_Data.write(iha_ipHdrChunk);
                 aih_fsmState = AIH_MERGE;
             }
             break;
         case AIH_MERGE:
             if (!siIHa_IpHdr.empty() && !siCMb_Data.empty() &&
                 !soICi_Data.full()) {
-                siIHa_IpHdr.read(); // Drain and drop this word
-                //-- Merge 3rd IP header word with 1st ICMP datagram
+                siIHa_IpHdr.read(); // Drain and drop this chunk
+                //-- Merge 3rd IP header chunk with 1st ICMP datagram
                 iha_icmpData = siCMb_Data.read();
-                AxisIp4 thirdWord(0, 0xFF, 0);
-                thirdWord.setIp4DstAddr(iha_remoteIpHostAddr);
-                thirdWord.setIcmpType(iha_icmpData.getIcmpType());
-                thirdWord.setIcmpCode(iha_icmpData.getIcmpCode());
-                thirdWord.setIcmpCsum(iha_icmpData.getIcmpCsum());
-                soICi_Data.write(thirdWord);
+                AxisIp4 thirdChunk(0, 0xFF, 0);
+                thirdChunk.setIp4DstAddr(iha_remoteIpHostAddr);
+                thirdChunk.setIcmpType(iha_icmpData.getIcmpType());
+                thirdChunk.setIcmpCode(iha_icmpData.getIcmpCode());
+                thirdChunk.setIcmpCsum(iha_icmpData.getIcmpCsum());
+                soICi_Data.write(thirdChunk);
                 aih_fsmState = AIH_STREAM;
             }
             break;
         case AIH_STREAM:
             if (!siCMb_Data.empty() && !soICi_Data.full()) {
-                AxisIp4  outputWord(0, 0xFF, 0);
-                outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
+                AxisIp4  outputChunk(0, 0xFF, 0);
+                //OBSOLETE_20200618 outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
+                outputChunk.setLE_TData(iha_icmpData.getLE_TData(63, 32), 31,  0);
                 iha_icmpData = siCMb_Data.read();
-                outputWord.tdata.range(63, 32) = iha_icmpData.tdata.range(31,  0);
-                if (iha_icmpData.tlast == 1) {
-                    if (iha_icmpData.tkeep.range(7, 4) == 0) {
-                        outputWord.tlast = 1;
-                        outputWord.tkeep.range(7, 4) = iha_icmpData.tkeep.range(3,0);
+                //OBSOLETE_20200618 outputWord.tdata.range(63, 32) = iha_icmpData.tdata.range(31,  0);
+                outputChunk.setLE_TData(iha_icmpData.getLE_TData(31,  0), 63, 32);
+                if (iha_icmpData.getLE_TLast()) {
+                    if (iha_icmpData.getLE_TKeep(7, 4) == 0) {
+                        outputChunk.setLE_TLast(TLAST);
+                        outputChunk.setLE_TKeep(iha_icmpData.getLE_TKeep(3,0), 7, 4);
                         aih_fsmState = AIH_IDLE;
                     }
                     else {
                         aih_fsmState = AIH_RESIDUE;
                     }
                 }
-                soICi_Data.write(outputWord);
+                soICi_Data.write(outputChunk);
             }
             break;
         case AIH_RESIDUE:
             if (!soICi_Data.full()) {
-                AxisIp4 outputWord(0, 0, 1);
-                outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
-                outputWord.tkeep.range( 3, 0) = iha_icmpData.tkeep.range(7, 4);
-                soICi_Data.write(outputWord);
+                AxisIp4 outputChunk(0, 0, 1);
+                //OBSOLETE_outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
+                //OBSOLETE_outputWord.tkeep.range( 3, 0) = iha_icmpData.tkeep.range(7, 4);
+                outputChunk.setLE_TData(iha_icmpData.getLE_TData(63, 32), 31, 0);
+                outputChunk.setLE_TKeep(iha_icmpData.getLE_TKeep( 7,  4),  3, 0);
+                soICi_Data.write(outputChunk);
                 aih_fsmState = AIH_IDLE;
             }
             break;
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * Invalid Packet Dropper (IPd)
  *
- * @param[in]  siICc_Data,    Data stream from IcmpChecksumChecker (ICc).
- * @param[in]  siICc_DropCmd, The drop command information from [ICc].
- * @param[out] soICi_Data,    Data stream to IcmpChecksumInserter (ICi).
+ * @param[in]  siICc_Data    Data stream from IcmpChecksumChecker (ICc).
+ * @param[in]  siICc_DropCmd The drop command information from [ICc].
+ * @param[out] soICi_Data    Data stream to IcmpChecksumInserter (ICi).
  *
  * @details
- *  This process drops the packets which arrive with a bad checksum. All the
- *  other ICMP packets are forwarded to the IcmpChecksumInserter (ICi).
+ *  This process drops the messages which arrive with a bad checksum. All the
+ *  other ICMP messages are forwarded to the IcmpChecksumInserter (ICi).
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pInvalidPacketDropper(
         stream<AxisIp4>     &siICc_Data,
         stream<ValBool>     &siICc_DropCmd,
         stream<AxisIp4>     &soICi_Data)
 {
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static bool                ipd_isFirstWord=true;
-    #pragma HLS RESET variable=ipd_isFirstWord
+    static bool                ipd_isFirstChunk=true;
+    #pragma HLS RESET variable=ipd_isFirstChunk
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static bool ipd_drop;
@@ -541,50 +547,50 @@ void pInvalidPacketDropper(
     bool dropCmd;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4  currWord;
+    AxisIp4  currChunk;
 
     if (!siICc_Data.empty()) {
-        if(ipd_isFirstWord) {
+        if(ipd_isFirstChunk) {
             if (!siICc_DropCmd.empty()) {
-                siICc_Data.read(currWord);
+                siICc_Data.read(currChunk);
                 siICc_DropCmd.read(dropCmd);
                 if(dropCmd == CMD_KEEP) {
-                    soICi_Data.write(currWord);
+                    soICi_Data.write(currChunk);
                 }
                 else {
                     ipd_drop = true;
                 }
-                ipd_isFirstWord = false;
+                ipd_isFirstChunk = false;
             }
         }
         else if (ipd_drop) {
             // Drain and drop current packet
-            siICc_Data.read(currWord);
+            siICc_Data.read(currChunk);
         }
         else {
             // Forward packet
-            siICc_Data.read(currWord);
-            soICi_Data.write(currWord);
+            siICc_Data.read(currChunk);
+            soICi_Data.write(currChunk);
         }
-        if (currWord.tlast == 1) {
+        if (currChunk.getLE_TLast()) {
             ipd_drop = false;
-            ipd_isFirstWord = true;
+            ipd_isFirstChunk = true;
         }
     }
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * IP Checksum Inserter (ICi)
  *
- *  @param[in]  siXYz_Data,  Data stream array from IPd and IHa.
- *  @param[in]  siUVw_Csum,  ICMP checksum array from ICc and CMb.
- *  @param[out] soIPTX_Data, The data stream to the IpTxHandler (IPTX).
+ *  @param[in]  siXYz_Data  Data stream array from IPd and IHa.
+ *  @param[in]  siUVw_Csum  ICMP checksum array from ICc and CMb.
+ *  @param[out] soIPTX_Data The data stream to the IpTxHandler (IPTX).
  *
  * @details
- *  This process inserts both the IP header checksum and the ICMP checksum in
+ *  This process inserts both the IP header checksum and the ICMP checksum into
  *  the outgoing packet.
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pIcmpChecksumInserter(
         stream<AxisIp4>      siXYz_Data[2],
         stream<IcmpCsum>     siUVw_Csum[2],
@@ -597,28 +603,28 @@ void pIcmpChecksumInserter(
     const char *myName  = concat3(THIS_NAME, "/", "ICi");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<7>          ici_wordCount=0; // The max len of ICMP messages is 576 bytes
-    #pragma HLS RESET variable=ici_wordCount
+    static ap_uint<7>          ici_chunkCount=0; // The max len of ICMP messages is 576 bytes
+    #pragma HLS RESET variable=ici_chunkCount
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static ap_uint<1>   ici_dataStreamSource;  // siIPd_Data or siIHa_Data
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisIp4             inputWord(0, 0, 0);
+    AxisIp4             inputChunk(0, 0, 0);
     LE_IcmpCsum         icmpChecksum;
 
-    switch(ici_wordCount) {
+    switch(ici_chunkCount) {
     case 0:
         bool streamEmptyStatus[2]; // Status of the input data streams
-        for (uint8_t i=0; i<2; ++i) {
+        for (int i=0; i<2; ++i) {
             streamEmptyStatus[i] = siXYz_Data[i].empty();
         }
-        for (uint8_t i=0; i<2; ++i) {
+        for (int i=0; i<2; ++i) {
             if(!streamEmptyStatus[i]) {
                 ici_dataStreamSource = i;
-                inputWord = siXYz_Data[i].read();
-                soIPTX_Data.write(inputWord);
-                ici_wordCount++;
+                inputChunk = siXYz_Data[i].read();
+                soIPTX_Data.write(inputChunk);
+                ici_chunkCount++;
                 break;
             }
         }
@@ -626,22 +632,22 @@ void pIcmpChecksumInserter(
     case 2:
         if (!siXYz_Data[ici_dataStreamSource].empty() &&
             !siUVw_Csum[ici_dataStreamSource].empty()) {
-            siXYz_Data[ici_dataStreamSource].read(inputWord);
+            siXYz_Data[ici_dataStreamSource].read(inputChunk);
             icmpChecksum = siUVw_Csum[ici_dataStreamSource].read();
-            inputWord.setIcmpCsum(icmpChecksum);
-            soIPTX_Data.write(inputWord);
-            ici_wordCount++;
+            inputChunk.setIcmpCsum(icmpChecksum);
+            soIPTX_Data.write(inputChunk);
+            ici_chunkCount++;
         }
         break;
     default:
         if (!siXYz_Data[ici_dataStreamSource].empty()) {
-            siXYz_Data[ici_dataStreamSource].read(inputWord);
-            soIPTX_Data.write(inputWord);
-            if (inputWord.tlast == 1) {
-                ici_wordCount = 0;
+            siXYz_Data[ici_dataStreamSource].read(inputChunk);
+            soIPTX_Data.write(inputChunk);
+            if (inputChunk.getLE_TLast()) {
+                ici_chunkCount = 0;
             }
             else {
-                ici_wordCount++;
+                ici_chunkCount++;
             }
         }
         break;
@@ -649,16 +655,32 @@ void pIcmpChecksumInserter(
 }
 
 
- /*****************************************************************************
-  * @brief   Main process of the ICMP server.
-  *
-  *****************************************************************************/
- void icmp_server(
+/******************************************************************************
+ * @brief   Main process of the Internet Control Message Protocol (ICMP) Server.
+ *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       The data stream from the IP Rx handler (IPRX).
+ * @param[in]  siIPRX_Derr       Erroneous IP data stream from [IPRX].
+ * @param[in]  siUOE_Data        A copy of the first IPv4 bytes that caused the error.
+ * @param[out] soIPTX_Data       The data stream to the IpTxHandler (IPTX).
+ *
+ * @details
+ *  This process is in charge of building and sending control and error messages
+ *  back to the IP address that initiated the control request or that caused an
+ *  error in the first place.
+ *  The process performs the 3 following main tasks:
+ *  1) It implements the ICMP Echo Reply message used by the ping command.
+ *  2) It creates an error message of type "Time Exceeded" upon reception of an
+ *     IPv4 packet which TTL has expired.
+ *  3) It creates an error message of type 'Destination Port Unreachable' if an
+ *     UDP datagram is received for a port that is not opened in listening mode.
+ *******************************************************************************/
+void icmp(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        Ip4Addr              piMMIO_IpAddress,
+        Ip4Addr              piMMIO_Ip4Address,
 
         //------------------------------------------------------
         //-- IPRX Interfaces
@@ -667,9 +689,9 @@ void pIcmpChecksumInserter(
         stream<AxisIp4>     &siIPRX_Derr,
 
         //------------------------------------------------------
-        //-- UDP Interface
+        //-- UOE Interface
         //------------------------------------------------------
-        stream<AxiWord>     &siUDP_Data,
+        stream<AxisIcmp>    &siUOE_Data,
 
         //------------------------------------------------------
         //-- IPTX Interface
@@ -686,29 +708,29 @@ void pIcmpChecksumInserter(
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_IpAddress
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
 
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data   metadata="-bus_bundle siIPRX_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Derr   metadata="-bus_bundle siIPRX_Derr"
-    #pragma HLS RESOURCE core=AXI4Stream variable=siUDP_Data    metadata="-bus_bundle siUDP_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data   metadata="-bus_bundle soIPTX_Data"
 
 #else
 
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_IpAddress
+    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
     #pragma HLS INTERFACE axis                port=siIPRX_Data
     #pragma HLS INTERFACE axis                port=siIPRX_Derr
-    #pragma HLS _NTERFACE axis                port=siUDP_Data
+    #pragma HLS _NTERFACE axis                port=siUOE_Data
     #pragma HLS INTERFACE axis                port=soIPTX_Data
 
 #endif
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
 
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
 
     //-- IP Checksum Checker (ICc)
     static stream<AxisIp4>           ssICcToIPd_Data        ("ssICcToIPd_Data");
@@ -725,12 +747,12 @@ void pIcmpChecksumInserter(
     #pragma HLS stream      variable=ssCMbToIHa_IpHdr       depth=64
 
     //-- XYz = [InvalidPacketDropper (IPd)| IpHeaderAppender (IHa)]
-    static stream<AxisIp4>           ssToICi_Data[2];
-    #pragma HLS STREAM      variable=ssToICi_Data           depth=16
+    static stream<AxisIp4>           ssXYzToICi_Data[2];
+    #pragma HLS STREAM      variable=ssXYzToICi_Data        depth=16
 
     //-- UVw = [ICc|CMb]
     static stream<IcmpCsum>          ssUVwToICi_Csum[2];
-    #pragma HLS STREAM      variable=ssUVwToICi_Csum    depth=16
+    #pragma HLS STREAM      variable=ssUVwToICi_Csum        depth=16
 
     //-- PROCESS FUNCTIONS ----------------------------------------------------
     pIcmpChecksumChecker(
@@ -742,25 +764,26 @@ void pIcmpChecksumInserter(
     pInvalidPacketDropper(
             ssICcToIPd_Data,
             ssICcToIPd_DropCmd,
-            ssToICi_Data[0]);
+            ssXYzToICi_Data[0]);
 
     pControlMessageBuilder(
-            siUDP_Data,
+            siUOE_Data,
             siIPRX_Derr,
             ssCMbToIHa_Data,
             ssCMbToIHa_IpHdr,
             ssUVwToICi_Csum[1]);
 
     pIpHeaderAppender(
-            piMMIO_IpAddress,
+            piMMIO_Ip4Address,
             ssCMbToIHa_Data,
             ssCMbToIHa_IpHdr,
-            ssToICi_Data[1]);
+            ssXYzToICi_Data[1]);
 
     pIcmpChecksumInserter(
-            ssToICi_Data,
+            ssXYzToICi_Data,
             ssUVwToICi_Csum,
             soIPTX_Data);
 
 }
 
+ /*! \} */

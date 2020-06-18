@@ -183,8 +183,9 @@ class ArpLkpReply {
 /*******************************************************************************
  * NETWORK LAYER-3 - IPv4 & ICMP
  *******************************************************************************
- * Terminology & Conventions                                                   *
- * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).           *
+ * Terminology & Conventions
+ * - a PACKET  (or IP Packet)   refers to an IP-PDU (i.e., Header+Data).
+ * - a MESSAGE (or ICMP Packet) refers to an ICMP protocol data unit.
  *******************************************************************************/
 
 //=====================================================

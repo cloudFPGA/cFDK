@@ -1062,7 +1062,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : Internet Control Message Process 
 #------------------------------------------------------------------------------
 set ipModName "InternetControlMessageProcess"
-set ipName    "icmp_server"
+set ipName    "icmp"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

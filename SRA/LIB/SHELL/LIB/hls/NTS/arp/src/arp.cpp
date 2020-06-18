@@ -26,7 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*******************************************************************************
  * @file       : arp_server.cpp
- * @brief      : Address Resolution Protocol (ARP) Server.
+ * @brief      : Address Resolution Protocol (ARP) Server
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)

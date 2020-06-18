@@ -1014,45 +1014,45 @@ module NetworkTransportStack_TcpIp (
     //-- From SHELL Interfaces
     //------------------------------------------------------
     //-- Global Clock & Reset
-    .aclk                     (piShlClk),
-    .aresetn                  (~piMMIO_Layer3Rst),
+    .aclk                 (piShlClk),
+    .aresetn              (~piMMIO_Layer3Rst),
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
-    .piMMIO_IpAddress_V (piMMIO_Ip4Address),
+    .piMMIO_Ip4Address_V  (piMMIO_Ip4Address),
     //------------------------------------------------------
     //-- IPRX Interfaces
     //------------------------------------------------------
     //-- From IPRX==>[ARS1] / Data -----
-    .siIPRX_Data_TDATA  (ssARS1_ICMP_Data_tdata),
-    .siIPRX_Data_TKEEP  (ssARS1_ICMP_Data_tkeep),
-    .siIPRX_Data_TLAST  (ssARS1_ICMP_Data_tlast),
-    .siIPRX_Data_TVALID (ssARS1_ICMP_Data_tvalid),
-    .siIPRX_Data_TREADY (ssARS1_ICMP_Data_tready),
+    .siIPRX_Data_TDATA    (ssARS1_ICMP_Data_tdata),
+    .siIPRX_Data_TKEEP    (ssARS1_ICMP_Data_tkeep),
+    .siIPRX_Data_TLAST    (ssARS1_ICMP_Data_tlast),
+    .siIPRX_Data_TVALID   (ssARS1_ICMP_Data_tvalid),
+    .siIPRX_Data_TREADY   (ssARS1_ICMP_Data_tready),
     //-- To   IPRX / Ttl --------------------
-    .siIPRX_Derr_TDATA  (ssIPRX_ICMP_Derr_tdata),
-    .siIPRX_Derr_TKEEP  (ssIPRX_ICMP_Derr_tkeep),
-    .siIPRX_Derr_TLAST  (ssIPRX_ICMP_Derr_tlast),
-    .siIPRX_Derr_TVALID (ssIPRX_ICMP_Derr_tvalid),
-    .siIPRX_Derr_TREADY (ssIPRX_ICMP_Derr_tready),
+    .siIPRX_Derr_TDATA    (ssIPRX_ICMP_Derr_tdata),
+    .siIPRX_Derr_TKEEP    (ssIPRX_ICMP_Derr_tkeep),
+    .siIPRX_Derr_TLAST    (ssIPRX_ICMP_Derr_tlast),
+    .siIPRX_Derr_TVALID   (ssIPRX_ICMP_Derr_tvalid),
+    .siIPRX_Derr_TREADY   (ssIPRX_ICMP_Derr_tready),
     //------------------------------------------------------
     //-- UOE Interfaces
     //------------------------------------------------------
     //-- From UOE / Data   
-    .siUDP_Data_TDATA   (ssUOE_ICMP_Data_tdata),  // [TODO-Rename siUDP_Data_TDATA into siUOE_Data_TDATA]
-    .siUDP_Data_TKEEP   (ssUOE_ICMP_Data_tkeep),
-    .siUDP_Data_TLAST   (ssUOE_ICMP_Data_tlast),
-    .siUDP_Data_TVALID  (ssUOE_ICMP_Data_tvalid),
-    .siUDP_Data_TREADY  (ssUOE_ICMP_Data_tready),    
+    .siUOE_Data_TDATA     (ssUOE_ICMP_Data_tdata),  // [TODO-Rename siUDP_Data_TDATA into siUOE_Data_TDATA]
+    .siUOE_Data_TKEEP     (ssUOE_ICMP_Data_tkeep),
+    .siUOE_Data_TLAST     (ssUOE_ICMP_Data_tlast),
+    .siUOE_Data_TVALID    (ssUOE_ICMP_Data_tvalid),
+    .siUOE_Data_TREADY    (ssUOE_ICMP_Data_tready),    
     //------------------------------------------------------
     //-- L3MUX Interfaces
     //------------------------------------------------------
     //-- To   L3MUX / Data -------------
-    .soIPTX_Data_TDATA  (ssICMP_L3MUX_Data_tdata),
-    .soIPTX_Data_TKEEP  (ssICMP_L3MUX_Data_tkeep),
-    .soIPTX_Data_TLAST  (ssICMP_L3MUX_Data_tlast),
-    .soIPTX_Data_TVALID (ssICMP_L3MUX_Data_tvalid),
-    .soIPTX_Data_TREADY (ssICMP_L3MUX_Data_tready)
+    .soIPTX_Data_TDATA    (ssICMP_L3MUX_Data_tdata),
+    .soIPTX_Data_TKEEP    (ssICMP_L3MUX_Data_tkeep),
+    .soIPTX_Data_TLAST    (ssICMP_L3MUX_Data_tlast),
+    .soIPTX_Data_TVALID   (ssICMP_L3MUX_Data_tvalid),
+    .soIPTX_Data_TREADY   (ssICMP_L3MUX_Data_tready)
   ); // End of: ICMP
 
 `endif // `ifdef USE_DEPRECATED_DIRECTIVES

@@ -26,7 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*******************************************************************************
  * @file       : arp.hpp
- * @brief      : Address Resolution Protocol (ARP) Server.
+ * @brief      : Address Resolution Protocol (ARP) Server
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -176,3 +176,5 @@ void arp(
 );
 
 #endif
+
+/*! \} */

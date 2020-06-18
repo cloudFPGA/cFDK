@@ -499,6 +499,10 @@ void pUdpChecksumChecker(
  * @details
  *  This process handles the payload of the incoming IP4 packet and forwards it
  *  the UdpAppInterface (UAIF).
+ *  If the UDP checksum of incoming datagram is wrong, the datagram is dropped.
+ *  If the destination UDP port is not opened, the incoming IP header and the
+ *  first 8 bytes of the datagram are forwarded to the Internet Control Message
+ *  Protocol (ICMP) Server which will build a 'Destination Unreachable' message.
  *
  *******************************************************************************/
 void pRxPacketHandler(

@@ -24,24 +24,23 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : icmp_server.hpp
- * @brief      :  Internet Control Message Protocol server (ICMP).
+/*******************************************************************************
+ * @file       : icmp.hpp
+ * @brief      : Internet Control Message Protocol (ICMP) Server
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                   IP-Tx handler.
- *
- *****************************************************************************/
+ * \ingroup NTS_ICMP
+ * \addtogroup NTS_ICMP
+ * \{
+ *******************************************************************************/
 
-#ifndef ICMP_H_
-#define ICMP_H_
+#ifndef _ICMP_H_
+#define _ICMP_H_
 
+/*** OBSOLETE_20200618 ******
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -51,9 +50,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ap_int.h"
 #include <stdint.h>
 #include <cstdlib>
-
-#include "../../toe/src/toe.hpp"
-#include "../../toe/src/toe_utils.hpp"
+*****************************/
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisEth.hpp"
 
 using namespace hls;
@@ -71,12 +71,16 @@ const Ip4Prot   ICMP_PROTOCOL = 0x01; // IP protocol number for ICMP
 typedef ap_uint<17> Sum17;    // 16-bit 1's complement sum with carry
 typedef ap_uint<17> LE_Sum17; // 16-bit 1's complement sum with carry
 
-
-void icmp_server(
+/*******************************************************************************
+ *
+ * ENTITY - INTERNET CONTROL MESSAGE PROTOCOL (ICMP) SERVER
+ *
+ *******************************************************************************/
+void icmp(
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
-        Ip4Addr             piMMIO_IpAddress,
+        Ip4Addr             piMMIO_Ip4Address,
 
         //------------------------------------------------------
         //-- IPRX Interfaces
@@ -85,9 +89,9 @@ void icmp_server(
         stream<AxisIp4>    &siIPRX_Derr,
 
         //------------------------------------------------------
-        //-- UDP Interface
+        //-- UOE Interface
         //------------------------------------------------------
-        stream<AxiWord>    &siUDP_Data,  // [TODO-AxisUdp]
+        stream<AxisIcmp>   &siUOE_Data,
 
         //------------------------------------------------------
         //-- IPTX Interface
@@ -97,3 +101,5 @@ void icmp_server(
 );
 
 #endif
+
+/*! \} */

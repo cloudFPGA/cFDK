@@ -1,23 +1,36 @@
-/*****************************************************************************
- * @file       : test_icmp_server.cpp
- * @brief      : Testbench for the Internet Control Message Protocol (ICMP)
- *                server.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
+ * @file       : test_icmp.cpp
+ * @brief      : Testbench for the Internet Control Message Protocol (ICMP) server.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_ICMP
+ * \addtogroup NTS_ICMP
+ * \{
  *****************************************************************************/
 
-#include "../src/icmp_server.hpp"
+#include "test_icmp.hpp"
 
 using namespace hls;
 using namespace std;
-
-#include "../src/icmp_server.hpp"
-#include "../../toe/src/toe.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
-
 
 //---------------------------------------------------------
 // HELPERS FOR THE DEBUGGING TRACES
@@ -31,34 +44,29 @@ using namespace std;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
-//---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES     250000
-#define TB_STARTUP_DELAY           0
-#define TB_GRACE_TIME           5000  // Adds some cycles to drain the DUT before exiting
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-bool            gTraceEvent     = false;
-bool            gFatalError     = false;
-unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
-
-
-/*****************************************************************************
+/*******************************************************************************
  * @brief Create the golden reference file from an input test file.
  *
- * @param[in] inpDAT_FileName, the input DAT file to generate from.
- * @param[in] outDAT_GoldName, the output DAT gold file to create.
- * @param[in] myIp4Address,    the IPv4 address of the FPGA.
+ * @param[in] inpDAT_FileName The input DAT file to generate from.
+ * @param[in] outDAT_GoldName The output DAT gold file to create.
+ * @param[in] myIp4Address    The IPv4 address of the FPGA.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
- ******************************************************************************/
+ *******************************************************************************/
 int createGoldenFile(
         string      inpDAT_FileName,
         string      outDAT_GoldName,
@@ -102,17 +110,17 @@ int createGoldenFile(
 
     //-- STEP-3 : READ AND PARSE THE INPUT ICMP FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-        IpPacket    ip4DataPkt; // [FIXME-create a SimIp4Packet class]
-        AxisIp4     ip4RxData;
-        bool        endOfPkt=false;
-        bool        rc;
+        SimIp4Packet ipPacket;
+        AxisIp4      axisIp4;
+        bool         endOfPkt=false;
+        bool         rc;
         // Read one packet at a time from input file
         while ((ifsDAT.peek() != EOF) && (!endOfPkt)) {
-            rc = readAxiWordFromFile(&ip4RxData, ifsDAT);
+            rc = readAxisRawFromFile(axisIp4, ifsDAT);
             if (rc) {
-                if (ip4RxData.isValid()) {
-                    ip4DataPkt.push_back(ip4RxData);
-                    if (ip4RxData.tlast == 1) {
+                if (axisIp4.isValid()) {
+                    ipPacket.pushChunk(axisIp4);
+                    if (axisIp4.getLE_TLast()) {
                         inpPackets++;
                         endOfPkt = true;
                     }
@@ -120,26 +128,27 @@ int createGoldenFile(
                 else {
                     // We always abort the stream as this point by asserting
                     // 'tlast' and de-asserting 'tkeep'.
-                    ip4DataPkt.push_back(AxiWord(ip4RxData.tdata, 0x00, 1));
+                    axisIp4.setLE_TKeep(0x00);
+                    axisIp4.setLE_TLast(TLAST);
+                    ipPacket.pushChunk(axisIp4);
                     inpPackets++;
                     endOfPkt = true;
                 }
                 inpChunks++;
-                inpBytes += ip4RxData.keepToLen();
+                inpBytes += axisIp4.getLen();
             }
         }
         // Check consistency of the read packet
         if (endOfPkt and rc) {
-            if (not ip4DataPkt.isWellFormed(myName)) {
+            if (not ipPacket.isWellFormed(myName)) {
                 printError(myName, "IP packet #%d is dropped because it is malformed.\n", inpPackets);
                 endOfPkt=false;
            }
         }
-
         // Build an ICMP reply packet based on the ICMP packet read from file
         if (endOfPkt) {
             // Assess EtherType is ICMP
-            Ip4Prot ip4Prot = ip4DataPkt.getIpProtocol();
+            Ip4Prot ip4Prot = ipPacket.getIpProtocol();
             if (ip4Prot != ICMP_PROTOCOL) {
                 printWarn(myName, "IP packet #%d is dropped because it is not an ICMP packet.\n");
                 printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
@@ -148,8 +157,8 @@ int createGoldenFile(
             }
 
             // Retrieve the ICMP packet from the IPv4 Packet
-            IcmpPacket  icmpDataPacket;  // [FIXME-create a class SimIcmpPacket]
-            icmpDataPacket = ip4DataPkt.getIcmpPacket();
+            SimIcmpPacket icmpDataPacket;
+            icmpDataPacket = ipPacket.getIcmpPacket();
 
             IcmpCsum icmpHCsum = icmpDataPacket.getIcmpChecksum();
             if (icmpDataPacket.calculateIcmpChecksum() != 0) {
@@ -167,32 +176,31 @@ int createGoldenFile(
 
                 //-- Build ICMP gold ECHO REPLY message as a clone of the incoming packet
                 printInfo(myName, "\tBuilding a gold ICMP Echo Reply message.\n");
-                IpPacket   ip4GoldPkt; // [FIXME-create a SimIp4Packet class]
-                ip4GoldPkt.cloneHeader(ip4DataPkt);
+                SimIp4Packet ipGoldPacket;
+                ipGoldPacket.cloneHeader(ipPacket);
                 // Swap IP_SA and IP_DA
-                ip4GoldPkt.setIpDestinationAddress(ip4DataPkt.getIpSourceAddress());
-                ip4GoldPkt.setIpSourceAddress(ip4DataPkt.getIpDestinationAddress());
+                ipGoldPacket.setIpDestinationAddress(ipPacket.getIpSourceAddress());
+                ipGoldPacket.setIpSourceAddress(ipPacket.getIpDestinationAddress());
                 // Retrieve the ICMP packet
-                IcmpPacket icmpGoldPacket = ip4DataPkt.getIcmpPacket();
+                SimIcmpPacket icmpGoldPacket = ipPacket.getIcmpPacket();
                 // Replace ICMP/ECHO_REQUEST field with ICMP/ECHO_REPLY
                 icmpGoldPacket.setIcmpType(ICMP_ECHO_REPLY);
                 icmpGoldPacket.setIcmpCode(0);
                 IcmpCsum newCsum = icmpGoldPacket.reCalculateIcmpChecksum();
                 printInfo(myName, "\t\t(the new ICMP checksum = 0x%4.4X)\n", newCsum.to_uint());
                 // Set the ICMP gold packet as data payload of the IP4 packet.
-                //OBSOLETE_20200407 if (ip4GoldPkt.setIpPayload(icmpGoldPacket) == false) {
-                if (ip4GoldPkt.addIpPayload(icmpGoldPacket) == false) {
-                    printError(myName, "Failed to set ICMP packet as payload to an IP4 packet.\n");
+                if (ipGoldPacket.addIpPayload(icmpGoldPacket) == false) {
+                    printError(myName, "Failed to add ICMP packet as payload to an IP4 packet.\n");
                     ret = NTS_KO;
                 }
-                else if (ip4GoldPkt.writeToDatFile(ofsDAT) == false) {
+                else if (ipGoldPacket.writeToDatFile(ofsDAT) == false) {
                     printError(myName, "Failed to write IP4 packet to DAT file.\n");
                     ret = NTS_KO;
                 }
                 else {
                     outPackets += 1;
-                    outChunks  += ip4GoldPkt.size();
-                    outBytes   += ip4GoldPkt.length();
+                    outChunks  += ipGoldPacket.size();
+                    outBytes   += ipGoldPacket.length();
                 }
             }
             else {
@@ -218,12 +226,11 @@ int createGoldenFile(
 }
 
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Main function.
  *
- * @param[in] argv[1], the filename of an input test vector
- *                     (.e.g, ../../../../test/testVectors/siIPRX_Data_OnePacket.dat)
- ******************************************************************************/
+ * @param[in] argv[1] the filename of an input test vector (.e.g, ../../../../test/testVectors/siIPRX_Data_OnePacket.dat)
+ *******************************************************************************/
 int main(int argc, char* argv[])
 {
 
@@ -243,18 +250,18 @@ int main(int argc, char* argv[])
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
     //-- From IPRX
-    stream<AxisIp4> ssIPRX_ICMP_Data      ("ssIPRX_ICMP_Data");
-    int             nrIPRX_ICMP_Chunks = 0;
-    int             nrIPRX_ICMP_Packets= 0;
-    int             nrIPRX_ICMP_Bytes  = 0;
-    stream<AxisIp4> ssIPRX_ICMP_Derr      ("ssIPRX_ICMP_Derr");
+    stream<AxisIp4>  ssIPRX_ICMP_Data      ("ssIPRX_ICMP_Data");
+    int              nrIPRX_ICMP_Chunks = 0;
+    int              nrIPRX_ICMP_Packets= 0;
+    int              nrIPRX_ICMP_Bytes  = 0;
+    stream<AxisIp4>  ssIPRX_ICMP_Derr      ("ssIPRX_ICMP_Derr");
     //-- From UDP
-    stream<AxiWord> ssUDP_ICMP_Data       ("ssUDP_ICMP_Data");
+    stream<AxisIcmp> ssUDP_ICMP_Data       ("ssUDP_ICMP_Data");
     //-- To IPTX (via L3MUX)
-    stream<AxisIp4> ssICMP_IPTX_Data      ("ssICMP_IPTX_Data");
-    int             nrICMP_IPTX_Chunks = 0;
-    int             nrICMP_IPTX_Packets= 0;
-    int             nrICMP_IPTX_Bytes  = 0;
+    stream<AxisIp4>  ssICMP_IPTX_Data      ("ssICMP_IPTX_Data");
+    int              nrICMP_IPTX_Chunks = 0;
+    int              nrICMP_IPTX_Packets= 0;
+    int              nrICMP_IPTX_Bytes  = 0;
 
     //------------------------------------------------------
     //-- READ GLOBAL PARAMETERS FROM INPUT TEST VECTOR FILE
@@ -263,7 +270,7 @@ int main(int argc, char* argv[])
         printFatal(THIS_NAME, "Missing testbench parameter:\n\t Expecting an input test vector file.\n");
     }
     unsigned int param;
-    if (readTbParamFromDatFile("FpgaIp4Addr", string(argv[1]), param)) {
+    if (readTbParamFromFile("FpgaIp4Addr", string(argv[1]), param)) {
         myIp4Address = param;
         printIp4Addr(THIS_NAME, "The input test vector is setting the IP address of the FPGA to", myIp4Address);
     }
@@ -317,7 +324,7 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_icmp_server' STARTS HERE                               ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_icmp' STARTS HERE                                      ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -326,25 +333,15 @@ int main(int argc, char* argv[])
     tbRun = (nrErr == 0) ? (nrIPRX_ICMP_Chunks + TB_GRACE_TIME) : 0;
     while (tbRun) {
         //== RUN DUT ==================
-        icmp_server(
+        icmp(
             myIp4Address,
             ssIPRX_ICMP_Data,
             ssIPRX_ICMP_Derr,
             ssUDP_ICMP_Data,
             ssICMP_IPTX_Data
         );
-
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     } // End-of: while()
 
     //---------------------------------------------------------------
@@ -358,8 +355,9 @@ int main(int argc, char* argv[])
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_icmp_server' ENDS HERE                                 ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_icmp' ENDS HERE                                        ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
 
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
@@ -396,3 +394,4 @@ int main(int argc, char* argv[])
 
 }
 
+/*! \} */

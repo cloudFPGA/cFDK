@@ -661,6 +661,7 @@ int main(int argc, char* argv[]) {
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_arp' ENDS HERE                                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
 
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
