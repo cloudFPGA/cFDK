@@ -234,12 +234,14 @@ typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
 typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
 typedef ap_uint<16> UdpPort;        // UDP source or destination Port
 typedef ap_uint<16> UdpLen;         // UDP header and data Length
-//typedef SocketPair   UdpAppMeta;
+typedef SocketPair   UdpAppMeta;
 //typedef Axis<64>     UdpAppData;
 typedef NetworkWord  UdpAppData;
-typedef UdpMeta      UdpAppMeta;
+//typedef UdpMeta      UdpAppMeta;
 typedef UdpLen       UdpAppDLen;
 
+typedef UdpAppMeta  UdpMeta;
+typedef UdpAppDLen  UdpPLen;
 
 
 

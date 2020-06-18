@@ -109,11 +109,37 @@ using namespace hls;
  * Socket transport address.
  ********************************************/
 
-struct SocketAddr {
-     ap_uint<16>    port;   // Port in network byte order
-     ap_uint<32>    addr;   // IPv4 address (or node_id)
+//struct SocketAddr {
+//     ap_uint<16>    port;   // Port in network byte order
+//     ap_uint<32>    addr;   // IPv4 address (or node_id)
+//};
+
+
+/*********************************************************
+ * SOCKET ADDRESS
+ *********************************************************/
+
+typedef ap_uint<16> Ly4Port;    // Layer-4 Port
+typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
+typedef ap_uint<32> Ip4Addr;        // IPv4 Source or Destination Address
+
+class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
+   public:
+    Ip4Addr        addr;   // IPv4 address in NETWORK BYTE ORDER
+    Ly4Port        port;   // Layer-4 port in NETWORK BYTE ORDER
+    SockAddr() {}
+    SockAddr(Ip4Addr ip4Addr, Ly4Port layer4Port) :
+        addr(ip4Addr), port(layer4Port) {}
 };
 
+class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
+  public:
+    SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
+    SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
+    SocketPair() {}
+    SocketPair(SockAddr src, SockAddr dst) :
+        src(src), dst(dst) {}
+};
 
 /********************************************
  * Generic Streaming Interfaces.
@@ -127,15 +153,15 @@ typedef bool AxisAck;       // Acknowledgment over Axi4-Stream I/F
  ********************************************/
 
 
-struct UdpMeta {            // UDP Socket Pair Association
-    SocketAddr      src;    // Source socket address
-    SocketAddr      dst;    // Destination socket address 
-    //UdpMeta()       {}
-};
+//struct UdpMeta {            // UDP Socket Pair Association
+//    SocketAddr      src;    // Source socket address
+//    SocketAddr      dst;    // Destination socket address 
+//    //UdpMeta()       {}
+//};
 
-typedef ap_uint<16>     UdpPLen; // UDP Payload Length
-
-typedef ap_uint<16>     UdpPort; // UDP Port Number
+//typedef ap_uint<16>     UdpPLen; // UDP Payload Length
+//
+//typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 
 #define BROADCASTCHANNELS 2
@@ -345,7 +371,7 @@ typedef ap_uint< 8> Ip4HdrCsum;     // IP4 Header Checksum
 typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
 typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
 typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
-typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
+//typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
 
 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
@@ -420,15 +446,15 @@ struct ipTuple
     ap_uint<16>     ip_port;
 };
 
-class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
-   public:
-    Ip4Addr         addr;   // IPv4 address in NETWORK BYTE ORDER
-    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER
-    SockAddr() {}
-    SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
-        addr(ip4Addr), port(tcpPort) {}
-};
-
+//class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
+//   public:
+//    Ip4Addr         addr;   // IPv4 address in NETWORK BYTE ORDER
+//    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER
+//    SockAddr() {}
+//    SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
+//        addr(ip4Addr), port(tcpPort) {}
+//};
+//
 
 /***********************************************
  * SOCKET PAIR ASSOCIATION (alias FourTuple)
@@ -461,14 +487,15 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
 
-class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
-  public:
-    SockAddr    src;    // Source socket address in NETWORK-BYTE order !!!
-    SockAddr    dst;    // Destination socket address in NETWORK-BYTE order !!!
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
-        src(src), dst(dst) {}
-};
+//is above...
+//class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
+//  public:
+//    SockAddr    src;    // Source socket address in NETWORK-BYTE order !!!
+//    SockAddr    dst;    // Destination socket address in NETWORK-BYTE order !!!
+//    SocketPair() {}
+//    SocketPair(SockAddr src, SockAddr dst) :
+//        src(src), dst(dst) {}
+//};
 
 inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr <  s2.dst.addr) ||

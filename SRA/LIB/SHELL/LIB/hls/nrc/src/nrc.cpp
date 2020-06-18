@@ -742,7 +742,7 @@ void nrc_main(
         // socketPair information before continuing
         if ( !siUdp_meta.empty() && !soUOE_Meta.full() &&
             !siUdp_data.empty() && !soUOE_Data.full() &&
-            !soUOE_DLen.full() ) 
+            !soUOE_DLen.full() )
         {
           NetworkMetaStream tmp_meta_in = siUdp_meta.read();
           udpTX_packet_length = tmp_meta_in.tdata.len;
@@ -781,7 +781,8 @@ void nrc_main(
           }
           last_tx_port = dst_port;
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-          UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
+          //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
+          UdpMeta txMeta = SocketPair(SockAddr(ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
           soUOE_Meta.write(txMeta);
           //we can forward the length, even if 0
           //the UOE handles this as streaming mode
@@ -820,7 +821,7 @@ void nrc_main(
 
           soUOE_Data.write(aWord);
           // Until LAST bit is set
-          if (aWord.tlast == 1) 
+          if (aWord.tlast == 1)
           {
             fsmStateTX_Udp = FSM_W8FORMETA;
           }
@@ -828,16 +829,16 @@ void nrc_main(
         break;
 
       case FSM_DROP_PACKET:
-        if ( !siUOE_Data.empty() ) {
+        if ( !siUdp_data.empty() ) {
           // Forward data chunk
-          UdpWord    aWord = siUOE_Data.read();
+          UdpWord    aWord = siUdp_data.read();
           udpTX_current_packet_length++;
           if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
           {//we need to set tlast manually
             aWord.tlast = 1;
           }
           // Until LAST bit is set (with length or with tlast)
-          if (aWord.tlast == 1) 
+          if (aWord.tlast == 1)
           {
             fsmStateTX_Udp = FSM_W8FORMETA;
           }
@@ -874,7 +875,7 @@ void nrc_main(
               #ifndef __SYNTHESIS__
                 udp_lsn_watchDogTimer = 10;
               #else
-                udp_lsn_watchDogTimer = NRC_CONNECTION_TIMEOUT;
+                udp_lsn_watchDogTimer = 100;
               #endif
                 if (DEBUG_LEVEL & TRACE_LSN) {
                   printInfo(myName, "SHELL/UOE is requested to listen on port #%d (0x%4.4X).\n",
@@ -921,7 +922,7 @@ void nrc_main(
         case FSM_FIRST_ACC:
           // Wait until both the first data chunk and the first metadata are received from UDP
           if ( !siUOE_Data.empty() && !siUOE_Meta.empty() ) {
-            if ( !soUdp_data.full() ) {
+            if ( !soUdp_data.full() && !soUdp_meta.full() ) {
 
               //extrac src ip address
               UdpMeta udpRxMeta = siUOE_Meta.read();
@@ -936,6 +937,7 @@ void nrc_main(
               last_rx_node_id = src_id;
               last_rx_port = udpRxMeta.dst.port;
               NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+              //FIXME: add length here as soon as available from the UOE
               in_meta_udp = NetworkMetaStream(tmp_meta);
               // Forward data chunk to ROLE
               UdpWord    udpWord = siUOE_Data.read();
@@ -1014,13 +1016,13 @@ void nrc_main(
         case CLS_NEXT:
           //we have to close opened ports, one after another
           newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
-          if(newRelativePortToClose != 0)
+          if(newRelativePortToClose != 0 && udp_rx_ports_to_close != 0 )
           {
             newAbsolutePortToClose = NRC_RX_MIN_PORT + newRelativePortToClose;
             if(!soUOE_ClsReq.full()) {
               soUOE_ClsReq.write(newRelativePortToClose);
               clsFsmState_Udp = CLS_WAIT4RESP;
-            }
+            } //else: just tay here
           } else {
             clsFsmState_Tcp = CLS_IDLE;
           }
