@@ -10,7 +10,6 @@
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
-# *
 # * Reference documents:
 # *  - UG902 / Ch.4 / High-Level Synthesis Reference Guide.
 # *

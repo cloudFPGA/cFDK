@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : nts_utils.hpp
  * @brief      : Utilities and helpers for the Network-Transport-Stack (NTS)
  *               components.
@@ -23,7 +23,10 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
+ *******************************************************************************/
 
 #ifndef _NTS_UTILS_H_
 #define _NTS_UTILS_H_
@@ -34,24 +37,24 @@
 
 using namespace std;
 
-/******************************************************************************
+/*******************************************************************************
  * FORWARD DECLARATIONS
- ******************************************************************************/
-//class ArpBindPair;
-//class SockAddr;
-//class SocketPair;
-//class LE_SockAddr;
-//class LE_SocketPair;
-//class AxiWord;
-//class DmCmd;
-//class Ip4overMac;
+ *******************************************************************************/
+//OBSOLETE_20200618 class ArpBindPair;
+//OBSOLETE_20200618 class SockAddr;*
+//OBSOLETE_20200618 class SocketPair;
+//OBSOLETE_20200618 class LE_SockAddr;
+//OBSOLETE_20200618 class LE_SocketPair;
+//OBSOLETE_20200618 class AxiWord;
+//OBSOLETE_20200618 class DmCmd;
+//OBSOLETE_20200618 class Ip4overMac;
 //OBSOLETE_20200415 class SLcFourTuple;
 
-/******************************************************************************
+/*******************************************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  FYI: The global variable 'gTraceEvent' is set
  *        whenever a trace call is done.
- ******************************************************************************/
+ *******************************************************************************/
 #ifndef __SYNTHESIS__
   extern bool         gTraceEvent;
   extern bool         gFatalError;
@@ -143,9 +146,9 @@ void printEthAddr      (                        EthAddr       ethAddr);
 void printTcpPort      (const char *callerName, TcpPort       tcpPort);
 void printTcpPort      (                        TcpPort       tcpPort);
 
-/******************************************************************************
+/*******************************************************************************
  * MACRO DEFINITIONS
- ******************************************************************************/
+ *******************************************************************************/
 // Concatenate two char constants
 #define concat2(firstCharConst, secondCharConst) firstCharConst secondCharConst
 // Concatenate three char constants
@@ -236,3 +239,5 @@ void printTcpPort      (                        TcpPort       tcpPort);
 
 
 #endif
+
+/*! \} */

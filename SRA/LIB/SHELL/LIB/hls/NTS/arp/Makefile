@@ -9,16 +9,17 @@
 # *               as an IP.
 # *
 # * Synopsis:
+# *   make help    : Displays a help message.
 # *   make clean   : Cleanup of the current directory.
 # *   make         : Runs the default build for this core.
 # *
 # *----------------------------------------------------------------------------
-# * A little make receipt to print a variable (usage: make print-SRC_DEPS)
-# *                  print-%: ; @echo $* = $($*)
+# * HowTo: A little make receipt to print a variable (usage: make print-SRC_DEPS)
+# *          print-%: ; @echo $* = $($*)
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName =arp_server
+ipName =arp
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
@@ -31,14 +32,14 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../.ip_guard
+	@touch ../../../.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 	@touch $@
 
-# Targets
+#-- Targets --------------------------------------------------------------------
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log

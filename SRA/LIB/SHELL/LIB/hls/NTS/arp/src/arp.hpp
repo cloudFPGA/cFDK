@@ -24,112 +24,50 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : arp_server.hpp
- * @brief      : Address Resolution Server (ARS).
+/*******************************************************************************
+ * @file       : arp.hpp
+ * @brief      : Address Resolution Protocol (ARP) Server.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *                ARP server.
- *
- *****************************************************************************/
+ * \ingroup NTS_ARP
+ * \addtogroup NTS_ARP
+ * \{
+ *******************************************************************************/
 
-#ifndef ARS_H_
-#define ARS_H_
+#ifndef _ARP_H_
+#define _ARP_H_
 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
-
-#include "../../toe/src/toe.hpp"
-#include "../../toe/src/toe_utils.hpp"
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisEth.hpp"
 
 using namespace hls;
 
-const EthAddr     ETH_BROADCAST_MAC  = 0xFFFFFFFFFFFF; // Broadcast MAC Address
-const EtherType   ETH_ETHERTYPE_ARP  = 0x0806; // EtherType value ARP
+//OBSOLETE_20200617 #define NO_OF_BROADCASTS 2
 
-const ArpHwType   ARP_HTYPE_ETHERNET = 0x0001; //  Hardware type for Ethernet
-const ArpProtType ARP_PTYPE_IPV4     = 0x0800; // Protocol type for IPv4
-const ArpHwLen    ARP_HLEN_ETHERNET  =      6; // Hardware addr length for Ethernet
-const ArpProtLen  ARP_PLEN_IPV4      =      4; // Protocol addr length for IPv4
-const ArpOper     ARP_OPER_REQUEST   = 0x0001; // Operation is request
-const ArpOper     ARP_OPER_REPLY     = 0x0002; // Operation is reply
+//OBSOLETEE_20200617 const EthAddr     ETH_BROADCAST_MAC  = 0xFFFFFFFFFFFF; // Broadcast MAC Address
+//OBSOLETEE_20200617 const EtherType   ETH_ETHERTYPE_ARP  = 0x0806; // EtherType value ARP
 
-const Ip4Addr     IP4_BROADCAST_ADD  = 0xFFFFFFFF; // Broadcast IP4 Address
+//OBSOLETEE_20200617 const ArpHwType   ARP_HTYPE_ETHERNET = 0x0001; //  Hardware type for Ethernet
+//OBSOLETEE_20200617 const ArpProtType ARP_PTYPE_IPV4     = 0x0800; // Protocol type for IPv4
+//OBSOLETEE_20200617 const ArpHwLen    ARP_HLEN_ETHERNET  =      6; // Hardware addr length for Ethernet
+//OBSOLETEE_20200617 const ArpProtLen  ARP_PLEN_IPV4      =      4; // Protocol addr length for IPv4
+//OBSOLETEE_20200617 const ArpOper     ARP_OPER_REQUEST   = 0x0001; // Operation is request
+//OBSOLETEE_20200617 const ArpOper     ARP_OPER_REPLY     = 0x0002; // Operation is reply
 
+//OBSOLETEE_20200617 const Ip4Addr     IP4_BROADCAST_ADD  = 0xFFFFFFFF; // Broadcast IP4 Address
 
-typedef ap_uint<1> ArpLkpHit;
-enum               ArpLkpHitStates { NO_HIT=0, HIT=1 };
-
-typedef ap_uint<1> ArpLkpOp;
-enum               ArpLkpOpCodes   { ARP_INSERT=0, ARP_DELETE=1 };
-
-//OBSOLETE_20200301 typedef ap_uint<1> ArpLkpSrc;
-//OBSOLETE_20200301 enum               ArpLkpSources   { IPRX=0, OTHER=1 };
-
-/*** OBSOLETE-20200218 ****************
-struct arpTableReply
-{
-	ap_uint<48> macAddress;
-	bool		hit;
-	arpTableReply() {}
-	arpTableReply(ap_uint<48> macAdd, bool hit)
-			:macAddress(macAdd), hit(hit) {}
-};
-***************************************/
-
-/************************************************
- * ARP LOOKUP REPLY
- ************************************************/
-class ArpLkpReply
-{
-  public:
-    EthAddr     macAddress;
-    ArpLkpHit   hit;
-    ArpLkpReply() {}
-    ArpLkpReply(EthAddr macAdd, ArpLkpHit hit) :
-        macAddress(macAdd), hit(hit) {}
-};
-
-
-/************************************************
- * ARP BINDING - {MAC,IPv4} ASSOCIATION
- ************************************************/
-class ArpBinding {
-  public:
-    EthAddr  macAddr;
-    Ip4Addr  ip4Addr;
-    ArpBinding() {}
-    ArpBinding(EthAddr newMac, Ip4Addr newIp4) :
-        macAddr(newMac), ip4Addr(newIp4) {}
-};
-
-/*** OBSOLETE-20201214 ****************
-struct arpTableEntry {
-    LE_EthAddr       macAddress;
-    LE_Ip4Addr       ipAddress;
-    ValBit           valid;
-    arpTableEntry() {}
-    arpTableEntry(LE_EthAddr newMac, LE_Ip4Addr newIp, ValBit newValid) :
-        macAddress(newMac), ipAddress(newIp), valid(newValid) {}
-};
-***************************************/
+//OBSOLETE_20200617 typedef ap_uint<1> ArpLkpHit;
+//OBSOLETE_20200617 enum               ArpLkpHitStates { NO_HIT=0, HIT=1 };
 
 /************************************************
  * ARP Metadata
  *  Structure extracted from incoming ARP packet.
+ *  Solely used inside [ARP].
  ************************************************/
 class ArpMeta  // ARP Metadata
 {
@@ -146,19 +84,11 @@ class ArpMeta  // ARP Metadata
 };
 
 
-/*** OBSOLETE-20200218 ****************
-struct rtlMacUpdateRequest {
-	ap_uint<1>			source;
-	ap_uint<1>			op;
-	ap_uint<48>			value;
-	ap_uint<32>			key;
-
-	rtlMacUpdateRequest() {}
-	rtlMacUpdateRequest(ap_uint<32> key, ap_uint<48> value, ap_uint<1> op)
-			:key(key), value(value), op(op), source(0) {}
-};
-***************************************/
-
+/********************************************
+ * CAM / Lookup OpCodes
+ ********************************************/
+typedef ap_uint<1> ArpLkpOp;
+enum               ArpLkpOpCodes   { ARP_INSERT=0, ARP_DELETE=1 };
 
 /********************************************
  * CAM / MAC Update Request
@@ -167,12 +97,9 @@ class RtlMacUpdateRequest {
   public:
     EthAddr         value;  // 48-bits
     Ip4Addr         key;    // 32-bits
-    //OBSOLETE_20200301 ap_uint<1>      source;
     ArpLkpOp        opcode; //  1-bit : '0' is INSERT, '1' is DELETE
 
     RtlMacUpdateRequest() {}
-    //OBSOLETE_20200301 RtlMacUpdateRequest(Ip4Addr key, EthAddr value, arpLkpOp op) :
-    //OBSOLETE_20200301     key(key), value(value), op(op), source(0) {}
     RtlMacUpdateRequest(Ip4Addr key, EthAddr value, ArpLkpOp opcode) :
             key(key), value(value), opcode(opcode) {}
 };
@@ -183,14 +110,9 @@ class RtlMacUpdateRequest {
 class RtlMacUpdateReply {
   public:
     EthAddr         value;  // 48-bits
-    //OBSOLETE_20200301 ap_uint<1>      source;
     ArpLkpOp        opcode; //  1-bit : '0' is INSERT, '1' is DELETE
 
     RtlMacUpdateReply() {}
-    //OBSOLETE_20200301 RtlMacUpdateReply(ArpLkpOp opcode) :
-    //OBSOLETE_20200301     opcode(opcode), source(0) {}
-    //OBSOLETE_20200301 RtlMacUpdateReply(EthAddr value, ArpLkpOp opcode) :
-    //OBSOLETE_20200301     value(value), opcode(opcode), source(0) {}
     RtlMacUpdateReply(ArpLkpOp opcode) :
         opcode(opcode) {}
     RtlMacUpdateReply(EthAddr value, ArpLkpOp opcode) :
@@ -203,10 +125,7 @@ class RtlMacUpdateReply {
 class RtlMacLookupRequest {
   public:
     Ip4Addr         key;
-    //OBSOLETE_20200301 ap_uint<1>      source;
     RtlMacLookupRequest() {}
-    //OBSOLETE_20200301 RtlMacLookupRequest(Ip4Addr searchKey) :
-    //OBSOLETE_20200301     key(searchKey), source(0) {}
     RtlMacLookupRequest(Ip4Addr searchKey) :
         key(searchKey) {}
 };
@@ -217,19 +136,23 @@ class RtlMacLookupRequest {
 class RtlMacLookupReply {
   public:
     EthAddr         value;  // 48 bits
-    ArpLkpHit       hit;    //  8 bits
+    HitBool         hit;    //  8 bits
     RtlMacLookupReply() {}
-    RtlMacLookupReply(ArpLkpHit hit, EthAddr value) :
+    RtlMacLookupReply(HitBool hit, EthAddr value) :
         hit(hit), value(value) {}
 };
 
-
-void arp_server(
+/*******************************************************************************
+ *
+ * ENTITY - ADDRESS RESOLUTION PROTOCOL (ARP) SERVER
+ *
+ *******************************************************************************/
+void arp(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr                      piMMIO_MacAddress,
-        Ip4Addr                      piMMIO_IpAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
         //------------------------------------------------------
         //-- IPRX Interface
         //------------------------------------------------------

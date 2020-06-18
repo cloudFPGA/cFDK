@@ -1018,7 +1018,7 @@ update_ip_catalog
 # IBM-HSL-IP : Address Resolution Server 
 #------------------------------------------------------------------------------
 set ipModName "AddressResolutionServer"
-set ipName    "arp_server"
+set ipName    "arp"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimNtsUtils.cpp
  * @brief      : Utilities for the simulation of the Network-Transport-Stack
  *               (NTS) cores.
@@ -23,7 +23,10 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
+ * \{
+ *******************************************************************************/
 
 #include "SimNtsUtils.hpp"
 
@@ -871,3 +874,5 @@ void _fakeCallTo_writeApUintToFile() {
     writeApUintToFile(data, ofs);
 }
 #endif
+
+/*! \} */

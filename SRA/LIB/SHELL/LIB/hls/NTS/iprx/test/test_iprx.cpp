@@ -161,7 +161,7 @@ int createGoldenFiles(EthAddr myMacAddress,
                 SimArpPacket  arpPacket;
                 if (etherType.to_uint() >= 0x0600) {
                     switch (etherType.to_uint()) {
-                    case ARP_PROTOCOL:
+                    case ETH_ETHERTYPE_ARP:
                         arpPacket = ethFrame.getArpPacket();
                         if (DEBUG_LEVEL & TRACE_CGF) {
                             printInfo(myName, "Frame #%d is an ARP frame.\n", inpFrames);
@@ -180,7 +180,7 @@ int createGoldenFiles(EthAddr myMacAddress,
                             rc = NTS_KO;
                         }
                         break;
-                    case IP4_PROTOCOL:
+                    case ETH_ETHERTYPE_IP4:
                         ipPacket = ethFrame.getIpPacket();
                         if (ipPacket.getIpVersion() != 4) {
                             printWarn(myName, "Frame #%d is dropped because IP version is not \'4\'.\n", inpFrames);

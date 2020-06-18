@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimNtsUtils.hpp
  * @brief      : Utilities for the simulation of the Network-Transport-Stack
  *               (NTS) components.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
+ * \{
+ *******************************************************************************/
 
-#ifndef SIM_NTS_UTILS_H_
-#define SIM_NTS_UTILS_H_
+#ifndef _SIM_NTS_UTILS_H_
+#define _SIM_NTS_UTILS_H_
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -131,3 +134,5 @@ using namespace std;
 #endif
 
 #endif
+
+/*! \} */

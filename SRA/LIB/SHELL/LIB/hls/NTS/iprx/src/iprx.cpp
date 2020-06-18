@@ -168,10 +168,10 @@ void pMacProtocolDetector(
                     }
                     mpd_chunkCount++;
                 }
-                if (mpd_etherType == ARP_PROTOCOL) {
+                if (mpd_etherType == ETH_ETHERTYPE_ARP) {
                     soARP_Data.write(mpd_prevChunk);
                 }
-                else if (mpd_etherType == IP4_PROTOCOL) {
+                else if (mpd_etherType == ETH_ETHERTYPE_IP4) {
                     soILc_Data.write(mpd_prevChunk);
                 }
                 break;
@@ -185,10 +185,10 @@ void pMacProtocolDetector(
         break;
     case S1:
         if( !soARP_Data.full() && !soILc_Data.full()){
-            if (mpd_etherType == ARP_PROTOCOL) {
+            if (mpd_etherType == ETH_ETHERTYPE_ARP) {
                 soARP_Data.write(mpd_prevChunk);
             }
-            else if (mpd_etherType == IP4_PROTOCOL) {
+            else if (mpd_etherType == ETH_ETHERTYPE_IP4) {
                 soILc_Data.write(mpd_prevChunk);
             }
             mpd_fsmState = S0;
@@ -733,13 +733,13 @@ void pIpPacketRouter(
                         switch (ipr_ipProtocol) {
                         // FYI - There is no default case. If the current packet
                         //  does not match any case, it is automatically dropped.
-                        case ICMP_PROTOCOL:
+                        case IP4_PROT_ICMP:
                             soICMP_Data.write(ipr_prevChunk);
                             break;
                         case UDP_PROTOCOL:
                             soUOE_Data.write(ipr_prevChunk);
                             break;
-                        case TCP_PROTOCOL:
+                        case IP4_PROT_TCP:
                             soTOE_Data.write(ipr_prevChunk);
                             break;
                         }
@@ -770,13 +770,13 @@ void pIpPacketRouter(
             }
             else {
                 switch (ipr_ipProtocol) {
-                case ICMP_PROTOCOL:
+                case IP4_PROT_ICMP:
                     soICMP_Data.write(ipr_prevChunk);
                     break;
                 case UDP_PROTOCOL:
                     soUOE_Data.write(ipr_prevChunk);
                     break;
-                case TCP_PROTOCOL:
+                case IP4_PROT_TCP:
                     soTOE_Data.write(ipr_prevChunk);
                     break;
                 }

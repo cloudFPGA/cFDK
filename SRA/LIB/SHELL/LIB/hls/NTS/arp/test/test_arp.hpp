@@ -14,36 +14,48 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
- * @file       : test_iptx.hpp
- * @brief      : Testbench for the IP Transmitter packet handler (IPTX).
+/*******************************************************************************
+ * @file       : test_arp.cpp
+ * @brief      : Testbench for the Address Resolution Protocol (ARP) server.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_IPTX_TEST
- * \addtogroup NTS_IPTX_TEST
+ * \ingroup NTS_ARP
+ * \addtogroup NTS_ARP
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
-#ifndef _TEST_IPTX_H_
-#define _TEST_IPTX_H_
+#ifndef _TEST_ARP_H_
+#define _TEST_ARP_H_
 
-#include "../src/iptx.hpp"
+#include <hls_stream.h>
+#include <map>
+#include <stdio.h>
+#include <string>
+
+#include "../src/arp.hpp"
 #include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/SimArpPacket.hpp"
 #include "../../../NTS/SimEthFrame.hpp"
 #include "../../../NTS/SimIp4Packet.hpp"
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
+//    'TB_STARTUP_DELAY' is used to delay the start of the [TB] functions.
+//    'TB_GRACE_TIME'    adds some cycles to drain the DUT at the end before.
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES   25000
 #define TB_STARTUP_DELAY        0
-#define TB_GRACE_TIME         500  // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME         500
+
+#define CAM_LOOKUP_LATENCY  2
+#define CAM_UPDATE_LATENCY 10
+
+const Ip4Addr RESERVED_SENDER_PROTOCOL_ADDRESS = 0xCAFEFADE; // Do not use in DAT files
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES

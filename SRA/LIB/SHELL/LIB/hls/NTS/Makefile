@@ -11,13 +11,13 @@
 # ******************************************************************************
 
 
-.PHONY: all clean iprx iptx rlb uoe 
+.PHONY: all arp clean iprx iptx rlb uoe 
 
-all:   iprx       iptx       rlb       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   arp       iprx       iptx       rlb       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:  iprx.csim  iptx.csim  rlb.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
+csim:  arp.csim  iprx.csim  iptx.csim  rlb.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
 
-cosim: iprx.cosim iptx.cosim rlb.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: arp.cosim iprx.cosim iptx.cosim rlb.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 
