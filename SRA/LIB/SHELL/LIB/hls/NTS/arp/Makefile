@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName =arp
+ipName = arp
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)

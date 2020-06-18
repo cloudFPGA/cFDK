@@ -18,7 +18,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "icmp_server"
+set projectName    "icmp"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
@@ -53,10 +53,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files -tb ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------

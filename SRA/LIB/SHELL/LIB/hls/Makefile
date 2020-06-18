@@ -11,14 +11,14 @@
 # ******************************************************************************
 
 
-.PHONY: all clean NTS cam dhcp_client echo_app fmc icmp_server nrc toe udp udp_mux udp_role_if udp_role_if_2
+.PHONY: all clean NTS cam dhcp_client echo_app fmc nrc toe udp udp_mux udp_role_if udp_role_if_2
 
-all:	NTS icmp_server udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	NTS udp toe cam fmc nrc udp_mux udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:	NTS.csim icmp_server.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
+csim:	NTS.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
 #TODO currently excluded: nrc.cosim
-cosim: NTS.cosim icmp_server.cosim toe.cosim cam.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: NTS.cosim toe.cosim cam.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

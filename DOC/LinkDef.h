@@ -113,16 +113,17 @@
  *
  *****************************************************************************/
 
-/** \defgroup NTS_UOE UOE
+/** \defgroup NTS_ARS ARS
  *  @ingroup NTS
  * 
- *  \brief UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
+ *  \brief Address Resolution Server (ARS) of the Network Transport Stack (NTS).
  */
 
-/** \defgroup NTS_TOE TOE
+/** \defgroup NTS_ICMP ICMP
+.
  *  @ingroup NTS
  * 
- *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_IPRX IPRX
@@ -137,20 +138,25 @@
  *  \brief IP Transmitter packet handler (IPTX) of the Network Transport Stack (NTS).
  */
 
-/** \defgroup NTS_ICMP ICMP
-.
+/** \defgroup NTS_RLB RLB
  *  @ingroup NTS
  * 
- *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
+ *  \brief Ready Logic Barrier (RLB) for the Network Transport Stack (NTS).
  */
 
-/** \defgroup NTS_ARS ARS
+/** \defgroup NTS_TOE TOE
  *  @ingroup NTS
  * 
- *  \brief Address Resolution Server (ARS) of the Network Transport Stack (NTS).
+ *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
  */
 
-/** \defgroup NTS_SIM SimUtils
+/** \defgroup NTS_UOE UOE
+ *  @ingroup NTS
+ * 
+ *  \brief UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_SIM SimNts
 
  *  @ingroup NTS
  * 

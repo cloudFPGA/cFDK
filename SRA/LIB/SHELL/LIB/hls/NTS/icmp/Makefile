@@ -6,7 +6,7 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that synthesizes and packages the current HLS core
-# *     as an IP.
+# *               as an IP.
 # * 
 # * Synopsis:
 # *   make         : Runs the default build for this core.
@@ -16,7 +16,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = icmp_server
+ipName = icmp
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
@@ -36,7 +36,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 	@touch $@
 
-# Targets
+#-- Targets --------------------------------------------------------------------
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
