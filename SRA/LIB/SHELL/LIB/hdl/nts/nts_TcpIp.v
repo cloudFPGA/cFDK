@@ -589,7 +589,7 @@ module NetworkTransportStack_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_MacAddress              (piMMIO_MacAddress),
-    .piMMIO_IpAddress               (piMMIO_IpAddress),
+    .piMMIO_IpAddress               (piMMIO_Ip4Address),
     //------------------------------------------------------
     //-- IPRX Interfaces (via ARS0)
     //------------------------------------------------------
