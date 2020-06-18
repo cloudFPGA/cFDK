@@ -590,7 +590,7 @@ module Shell_Kale # (
   wire  [47:0]  sMMIO_NTS0_MacAddress;
   //---- Layer-3 Registers Interface -------------
   //------ [LY3_IPv4] ------------------
-  wire  [31:0]  sMMIO_NTS0_IpAddress;
+  wire  [31:0]  sMMIO_NTS0_Ip4Address;
   //------ [LY3_SUBNET] ----------------
   wire  [31:0]  sMMIO_NTS0_SubNetMask;
   //------ [LY3_GATEWAY] ---------------
@@ -664,7 +664,7 @@ module Shell_Kale # (
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
-    .poNTS0_IpAddress               (sMMIO_NTS0_IpAddress),
+    .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
     .poNTS0_GatewayAddr             (sMMIO_NTS0_GatewayAddr),
     //----------------------------------------------
@@ -710,7 +710,7 @@ module Shell_Kale # (
     .piXXX_XMem_Wren               (),    // [TODO - Not yet used by this SHELL]
     .piXXX_XMem_WrData             (),    // [TODO - Not yet used by this SHELL]
     .poXXX_XMem_RData              (),    // [TODO - Not yet used by this SHELL]
-    .piXXX_XMemAddr                ()    // [TODO - Not yet used by this SHELL]
+    .piXXX_XMemAddr                ()     // [TODO - Not yet used by this SHELL]
   );  // End of MMIO
 
 
@@ -1028,7 +1028,7 @@ module Shell_Kale # (
     .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]),
     .piMMIO_Layer4En                  (sMMIO_LayerEn[4]),
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
-    .piMMIO_IpAddress                 (sMMIO_NTS0_IpAddress),
+    .piMMIO_Ip4Address                (sMMIO_NTS0_Ip4Address),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]

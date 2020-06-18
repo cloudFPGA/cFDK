@@ -268,7 +268,7 @@ module NetworkTransportStack_TcpIp (
   input          piMMIO_Layer4Rst,
   input          piMMIO_Layer4En,
   input  [ 47:0] piMMIO_MacAddress,
-  input  [ 31:0] piMMIO_IpAddress,
+  input  [ 31:0] piMMIO_Ip4Address,
   input  [ 31:0] piMMIO_SubNetMask,
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
@@ -484,7 +484,7 @@ module NetworkTransportStack_TcpIp (
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
     .piMMIO_MacAddress_V      (piMMIO_MacAddress),
-    .piMMIO_Ip4Address_V      (piMMIO_IpAddress),
+    .piMMIO_Ip4Address_V      (piMMIO_Ip4Address),
     //------------------------------------------------------
     //-- From ETH Interface
     //------------------------------------------------------
@@ -589,7 +589,7 @@ module NetworkTransportStack_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_MacAddress              (piMMIO_MacAddress),
-    .piMMIO_IpAddress               (piMMIO_Ip4Address),
+    .piMMIO_Ip4Address              (piMMIO_Ip4Address),
     //------------------------------------------------------
     //-- IPRX Interfaces (via ARS0)
     //------------------------------------------------------
@@ -629,7 +629,7 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V           (piMMIO_IpAddress),
+    .piMMIO_IpAddr_V           (piMMIO_Ip4Address),
     .poNTS_Ready_V             (),     // [FIXME-ssTOE_RML_Ready_tdata]
     //------------------------------------------------------
     //-- IPRX / IP Rx Data Interface
@@ -1019,7 +1019,7 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- From MMIO Interfaces
     //------------------------------------------------------                     
-    .piMMIO_IpAddress_V (piMMIO_IpAddress),
+    .piMMIO_IpAddress_V (piMMIO_Ip4Address),
     //------------------------------------------------------
     //-- IPRX Interfaces
     //------------------------------------------------------

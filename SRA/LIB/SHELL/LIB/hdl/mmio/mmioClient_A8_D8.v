@@ -99,7 +99,7 @@ module MmioClient_A8_D8 #(
   input           piNTS0_CamReady,
   input           piNTS0_NtsReady,
   output  [47:0]  poNTS0_MacAddress,
-  output  [31:0]  poNTS0_IpAddress,
+  output  [31:0]  poNTS0_Ip4Address,
   output  [31:0]  poNTS0_SubNetMask,
   output  [31:0]  poNTS0_GatewayAddr,
   
@@ -785,11 +785,10 @@ module MmioClient_A8_D8 #(
   //---- LY3_STATUS[0:1] ---------------  
   //------ No Outputs to the Fabric
   //---- LY3_IP[0:3] -------------------
-  //OBSOLETE-20200131 assign poNTS0_IpAddress[31: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP0+0];   // RW  [FIXME-Change the byte order]
-  assign poNTS0_IpAddress[31:24]   = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
-  assign poNTS0_IpAddress[23:16]   = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
-  assign poNTS0_IpAddress[15: 8]   = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
-  assign poNTS0_IpAddress[ 7: 0]   = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
+  assign poNTS0_Ip4Address[31:24]  = sEMIF_Ctrl[cEDW*LY3_IP0+7:cEDW*LY3_IP0+0];   // RW
+  assign poNTS0_Ip4Address[23:16]  = sEMIF_Ctrl[cEDW*LY3_IP1+7:cEDW*LY3_IP1+0];   // RW
+  assign poNTS0_Ip4Address[15: 8]  = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
+  assign poNTS0_Ip4Address[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
   //---- LY3_SUBNET[0:3] -------------------
   //OBSOLETE-20200131 assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW  [FIXME-Change the byte order]
   assign poNTS0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
