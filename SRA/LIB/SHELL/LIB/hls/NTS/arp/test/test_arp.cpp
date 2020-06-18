@@ -1,24 +1,33 @@
-/*****************************************************************************
- * @file       : test_arp_server.cpp
- * @brief      : Testbench for the ARP server.
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
+ * @file       : test_arp.cpp
+ * @brief      : Testbench for the Address Resolution Protocol (ARP) server.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *****************************************************************************/
+ * \ingroup NTS_ARP
+ * \addtogroup NTS_ARP
+ * \{
+ *******************************************************************************/
 
-#include <hls_stream.h>
-#include <map>
-#include <stdio.h>
-#include <string>
-
-#include "../src/arp_server.hpp"
-#include "../../toe/src/toe.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "test_arp.hpp"
 
 using namespace hls;
 using namespace std;
@@ -39,48 +48,38 @@ using namespace std;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
-//---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES   25000
-#define TB_STARTUP_DELAY        0
-#define TB_GRACE_TIME         500 // Adds some cycles to drain the DUT before exiting
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
-#define CAM_LOOKUP_LATENCY  2
-#define CAM_UPDATE_LATENCY 10
-
-const Ip4Addr RESERVED_SENDER_PROTOCOL_ADDRESS = 0xCAFEFADE; // Do not use in DAT files
-
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-bool            gTraceEvent     = false;
-bool            gFatalError     = false;
-unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
-
-
-/*****************************************************************************
+/*******************************************************************************
  * @brief Create the golden reference file from an input test file.
  *
- * @param[in] inpDAT_FileName, the input DAT file to generate from.
- * @param[in] outDAT_GoldName, the output DAT gold file to create.
- * @param[in] myMacAddress,    the MAC address of the FPGA.
- * @param[in] myIp4Address,    the IPv4 address of the FPGA.
- * @param[in] hostMap,         a ref to an associative container which holds
+ * @param[in] inpDAT_FileName the input DAT file to generate from.
+ * @param[in] outDAT_GoldName the output DAT gold file to create.
+ * @param[in] myMacAddress    the MAC address of the FPGA.
+ * @param[in] myIp4Address    the IPv4 address of the FPGA.
+ * @param[in] hostMap         a ref to an associative container which holds
  *                              the ARP binding addresses of the hosts involved
  *                              in the current testbench run.
  *
  * @return NTS_ OK if successful,  otherwise NTS_KO.
- ******************************************************************************/
+ *******************************************************************************/
 int createGoldenFile(
-        string                inpDAT_FileName,
-        string                outDAT_GoldName,
-        EthAddr               myMacAddress,
-        Ip4Addr               myIp4Address,
+        string                 inpDAT_FileName,
+        string                 outDAT_GoldName,
+        EthAddr                myMacAddress,
+        Ip4Addr                myIp4Address,
         map<Ip4Addr, EthAddr> &hostMap)
 {
     const char *myName  = concat3(THIS_NAME, "/", "CGF");
@@ -121,17 +120,17 @@ int createGoldenFile(
 
     //-- STEP-3 : READ AND PARSE THE INPUT ARP FILE
     while ((ifsDAT.peek() != EOF) && (ret != NTS_KO)) {
-        EthFrame    ethDataFrame(0); // [FIXME-create a SimEthFrame class]
-        AxisEth     ethRxData;
+        SimEthFrame ethFrame(0);
+        AxisEth     axisEth;
         bool        endOfFrame=false;
         bool        rc;
         // Read one frame at a time from input file
         while ((ifsDAT.peek() != EOF) && (!endOfFrame)) {
-            rc = readAxiWordFromFile(&ethRxData, ifsDAT);
+            rc = readAxisRawFromFile(axisEth, ifsDAT);
             if (rc) {
-                if (ethRxData.isValid()) {
-                    ethDataFrame.push_back(ethRxData);
-                    if (ethRxData.tlast == 1) {
+                if (axisEth.isValid()) {
+                    ethFrame.pushChunk(axisEth);
+                    if (axisEth.getTLast()) {
                         inpFrames++;
                         endOfFrame = true;
                     }
@@ -139,39 +138,37 @@ int createGoldenFile(
                 else {
                     // We always abort the stream as this point by asserting
                     // 'tlast' and de-asserting 'tkeep'.
-                    ethDataFrame.push_back(AxiWord(ethRxData.tdata, 0x00, 1));
+                    axisEth.setTKeep(0x00);
+                    axisEth.setTLast(TLAST);
+                    ethFrame.pushChunk(axisEth);
                     inpFrames++;
                     endOfFrame = true;
                 }
                 inpChunks++;
-                inpBytes += ethRxData.keepToLen();
+                inpBytes += axisEth.getLen();
             }
         }
-
         // Build an ARP reply frame based on the ARP frame read from file
         if (endOfFrame) {
             // Assess MAC_DA = FF:FF:FF:FF:FF:FF
-            EthAddr  macDA = ethDataFrame.getMacDestinAddress();
-            if(macDA != ETH_BROADCAST_MAC) {
+            EthAddr  macDA = ethFrame.getMacDestinAddress();
+            if(macDA != ETH_BROADCAST_ADDR) {
                 printWarn(myName, "Frame #%d is dropped because it is not a broadcast frame.\n");
                 printEthAddr(myName, "  Received", macDA);
-                printEthAddr(myName, "  Expected", ETH_BROADCAST_MAC.to_ulong());
+                printEthAddr(myName, "  Expected", ETH_BROADCAST_ADDR);
                 continue;
             }
-
             // Assess EtherType is ARP
-            EtherType etherType = ethDataFrame.getTypeLength();
-            if (etherType != 0x0806) {
+            EtherType etherType = ethFrame.getTypeLength();
+            if (etherType != ETH_ETHERTYPE_ARP) {
                 printWarn(myName, "Frame #%d is dropped because it is not an ARP frame.\n");
                 printInfo(myName, "  Received EtherType = 0x%4.4X\n", etherType.to_ushort());
-                printInfo(myName, "  Expected EtherType = 0x%4.4X\n", ETH_ETHERTYPE_ARP.to_uint());
+                printInfo(myName, "  Expected EtherType = 0x%4.4X\n", ETH_ETHERTYPE_ARP);
                 continue;
             }
-
             // Retrieve the ARP packet from the frame
-            ArpPacket   arpDataPacket;    // [FIXME-create a class SimArpPacket]
-            arpDataPacket = ethDataFrame.getArpPacket();
-
+            SimArpPacket arpDataPacket;
+            arpDataPacket = ethFrame.getArpPacket();
             // Always collect the ARP-SHA and ARP-SPA for further testing
             ArpSendProtAddr spa = arpDataPacket.getSenderProtAddr();
             ArpSendHwAddr   sha = arpDataPacket.getSenderHwAddr();
@@ -179,7 +176,6 @@ int createGoldenFile(
                 printFatal(myName, "A DAT file cannot use the Sender Protocol Address (0x%8.8X) because it is reserved for specific testing.\n", RESERVED_SENDER_PROTOCOL_ADDRESS.to_uint());
             }
             hostMap[spa] = sha;
-
             // Assess the Target Protocol Address
             if (arpDataPacket.getTargetProtAddr() != myIp4Address) {
                 printWarn(myName, "Frame #%d is skipped because the Target Protocol Address (TPA) of the ARP-REQUEST does not match the IP address of this core.\n");
@@ -187,9 +183,8 @@ int createGoldenFile(
                 printIp4Addr(myName, "  Expected TPA", myIp4Address.to_uint());
                 continue;
             }
-
             // Build ARP Gold packet
-            ArpPacket   arpGoldPacket(28);
+            SimArpPacket  arpGoldPacket(28);
             arpGoldPacket.setHardwareType(ARP_HTYPE_ETHERNET);
             arpGoldPacket.setProtocolType(ARP_PTYPE_IPV4);
             arpGoldPacket.setHardwareLength(ARP_HLEN_ETHERNET);
@@ -201,13 +196,13 @@ int createGoldenFile(
             arpGoldPacket.setTargetProtAddr(arpDataPacket.getSenderProtAddr());
 
             // Build ETHERNET Gold Frame
-            EthFrame    ethGoldFrame(14); // [FIXME-create a SimEthFrame class]
-            ethGoldFrame.setMacDestinAddress(ethDataFrame.getMacSourceAddress());
+            SimEthFrame  ethGoldFrame(14);
+            ethGoldFrame.setMacDestinAddress(ethFrame.getMacSourceAddress());
             ethGoldFrame.setMacSourceAddress(myMacAddress);
             ethGoldFrame.setTypeLength(ETH_ETHERTYPE_ARP);
             // Write the ARP packet as data payload of the ETHERNET frame.
-            if (ethGoldFrame.setPayload(arpGoldPacket) == false) {
-                printError(myName, "Failed to set ARP packet as payload of an ETH frame.\n");
+            if (ethGoldFrame.addPayload(arpGoldPacket) == false) {
+                printError(myName, "Failed to add ARP packet as payload of an ETH frame.\n");
                 ret = NTS_KO;
             }
             else if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
@@ -219,14 +214,13 @@ int createGoldenFile(
                 outChunks += ethGoldFrame.size();
                 outBytes  += ethGoldFrame.length();
             }
-
         } // End-of if (endOfFrame)
 
     } // End-of While ()
 
     //-- STEP-3: GENERATE THE ARP-REQUEST PACKET (this is always the last one)
     // Build ARP Gold packet
-    ArpPacket   arpGoldPacket(28);
+    SimArpPacket  arpGoldPacket(28);
     arpGoldPacket.setHardwareType(ARP_HTYPE_ETHERNET);
     arpGoldPacket.setProtocolType(ARP_PTYPE_IPV4);
     arpGoldPacket.setHardwareLength(ARP_HLEN_ETHERNET);
@@ -238,13 +232,13 @@ int createGoldenFile(
     arpGoldPacket.setTargetProtAddr(RESERVED_SENDER_PROTOCOL_ADDRESS);
 
     // Build ETHERNET Gold Frame
-    EthFrame    ethGoldFrame(14); // [FIXME-create a SimEthFrame class]
-    ethGoldFrame.setMacDestinAddress(ETH_BROADCAST_MAC);
+    SimEthFrame  ethGoldFrame(14);
+    ethGoldFrame.setMacDestinAddress(ETH_BROADCAST_ADDR);
     ethGoldFrame.setMacSourceAddress(myMacAddress);
     ethGoldFrame.setTypeLength(ETH_ETHERTYPE_ARP);
     // Write the ARP packet as data payload of the ETHERNET frame.
-    if (ethGoldFrame.setPayload(arpGoldPacket) == false) {
-        printError(myName, "Failed set ARP packet as payload of an ETH frame.\n");
+    if (ethGoldFrame.addPayload(arpGoldPacket) == false) {
+        printError(myName, "Failed to add ARP packet as payload of an ETH frame.\n");
         ret = NTS_KO;
     }
     else if (ethGoldFrame.writeToDatFile(ofsDAT) == false) {
@@ -272,15 +266,15 @@ int createGoldenFile(
     return(ret);
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Emulate the behavior of the Content Addressable Memory (CAM).
  *
- * @param[in]  siARS_MacLkpReq, MAC lookup request from AddressResolutionServer (ARS).
- * @param[out] soARS_MacLkpRep, MAC lookup reply   to   [ARS].
- * @param[in]  siARS_MacUpdReq, MAC update request from [ARS].
- * @param[out] soARS_MacUpdRep, MAC update reply   to   [ARS].
+ * @param[in]  siARS_MacLkpReq MAC lookup request from AddressResolutionServer (ARS).
+ * @param[out] soARS_MacLkpRep MAC lookup reply   to   [ARS].
+ * @param[in]  siARS_MacUpdReq MAC update request from [ARS].
+ * @param[out] soARS_MacUpdRep MAC update reply   to   [ARS].
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pEmulateCam(
         stream<RtlMacLookupRequest>      &siARS_MacLkpReq,
         stream<RtlMacLookupReply>        &soARS_MacLkpRep,
@@ -326,7 +320,6 @@ void pEmulateCam(
             }
         }
         break;
-
     case CAM_LOOKUP_REP:
         //-- Wait some cycles to match the RTL implementation
         if (camLookupIdleCnt > 0) {
@@ -335,13 +328,13 @@ void pEmulateCam(
         else {
             findPos = LOOKUP_TABLE.find(macLkpReq.key);
             if (findPos != LOOKUP_TABLE.end()) { // hit
-                soARS_MacLkpRep.write(RtlMacLookupReply(HIT, findPos->second));
+                soARS_MacLkpRep.write(RtlMacLookupReply(LKP_HIT, findPos->second));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                     printInfo(myName, "Result of MAC lookup = HIT \n");
                 }
             }
             else {
-                soARS_MacLkpRep.write(RtlMacLookupReply(NO_HIT, 0xDEADBEEFDEAD));
+                soARS_MacLkpRep.write(RtlMacLookupReply(LKP_NO_HIT, 0xDEADBEEFDEAD));
                 if (DEBUG_LEVEL & TRACE_CAM) {
                     printInfo(myName, "Result of session lookup = NO-HIT\n");
                 }
@@ -349,7 +342,6 @@ void pEmulateCam(
             camFsmState = CAM_WAIT_4_REQ;
         }
         break;
-
     case CAM_UPDATE_REP:
         //-- Wait some cycles to match the RTL implementation
         if (camUpdateIdleCnt > 0) {
@@ -382,16 +374,20 @@ void pEmulateCam(
 } // End-of: pEmulateCam()
 
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Main function.
  *
- * @param[in] argv[1], the filename of an input test vector
- *                     (.e.g, ../../../../test/testVectors/siIPRX_Data_ArpFrame.dat)
- ******************************************************************************/
-int main(int argc, char* argv[])
-{
+ * @param[in] argv[1], the filename of an input test vector (.e.g, ../../../../test/testVectors/siIPRX_Data_ArpFrame.dat)
+ *******************************************************************************/
+int main(int argc, char* argv[]) {
 
-    gSimCycCnt = 0;  // Simulation cycle counter is a global variable
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gTraceEvent   = false;
+    gFatalError   = false;
+    gSimCycCnt    = 0;
+    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
@@ -439,7 +435,7 @@ int main(int argc, char* argv[])
         printFatal(THIS_NAME, "Missing testbench parameter:\n\t Expecting an input test vector file.\n");
     }
     unsigned int param;
-    if (readTbParamFromDatFile("FpgaIp4Addr", string(argv[1]), param)) {
+    if (readTbParamFromFile("FpgaIp4Addr", string(argv[1]), param)) {
         myIp4Address = param;
         printIp4Addr(THIS_NAME, "The input test vector is setting the IP address of the FPGA to", myIp4Address);
     }
@@ -493,7 +489,7 @@ int main(int argc, char* argv[])
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-1 STARTS HERE                         ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp' PART-1 STARTS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -503,7 +499,7 @@ int main(int argc, char* argv[])
     tbRun = (nrErr == 0) ? (nrIPRX_ARS_Chunks + TB_GRACE_TIME) : 0;
     while (tbRun) {
         //== RUN DUT ==================
-        arp_server(
+        arp(
             //-- MMIO Interfaces
             myMacAddress,
             myIp4Address,
@@ -530,21 +526,12 @@ int main(int argc, char* argv[])
         );
 
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     } // End of: while()
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-2 STARTS HERE                         ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp' PART-2 STARTS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -556,7 +543,7 @@ int main(int argc, char* argv[])
     ssIPTX_ARS_MacLkpReq.write(RESERVED_SENDER_PROTOCOL_ADDRESS);
     while (tbRun) {
         //== RUN DUT ==================
-        arp_server(
+        arp(
             //-- MMIO Interfaces
             myMacAddress,
             myIp4Address,
@@ -583,21 +570,12 @@ int main(int argc, char* argv[])
         );
 
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     } // End of: while()
 
     printf("\n\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' PART-3 STARTS HERE                         ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp' PART-3 STARTS HERE                                ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //-----------------------------------------------------
@@ -612,7 +590,7 @@ int main(int argc, char* argv[])
     }
     while (tbRun) {
         //== RUN DUT ==================
-        arp_server(
+        arp(
             //-- MMIO Interfaces
             myMacAddress,
             myIp4Address,
@@ -639,19 +617,8 @@ int main(int argc, char* argv[])
         );
 
         tbRun--;
-
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        gSimCycCnt++;
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
-        else if (0) {
-            printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
-        }
+        stepSim();
     } // End of: while()
-
-
 
     //---------------------------------------------------------------
     //-- DRAIN ARS-->ETH OUTPUT STREAM
@@ -669,7 +636,7 @@ int main(int argc, char* argv[])
     //--    to be a 'NOT-HIT'.
     //---------------------------------------------------------------
     ArpLkpReply macLkpRep = ssARS_IPTX_MacLkpRep.read();
-    if (macLkpRep.hit != NO_HIT) {
+    if (macLkpRep.hit != false) {
         // RESERVED_SENDER_PROTOCOL_ADDRESS;
         printError(THIS_NAME, "Expecting the first MAC lookup of this testbench to be a \'NO_HIT\' flag.\n");
         nrErr++;
@@ -677,7 +644,7 @@ int main(int argc, char* argv[])
     hostMapIter = hostMap.begin();
     while (hostMapIter != hostMap.end()) {
         ArpLkpReply macLkpRep = ssARS_IPTX_MacLkpRep.read();
-        if (macLkpRep.hit == NO_HIT) {
+        if (macLkpRep.hit == false) {
             // RESERVED_SENDER_PROTOCOL_ADDRESS;
             printError(THIS_NAME, "Receive a MAC lookup reply with a \'NO_HIT\' flag.\n");
             nrErr++;
@@ -692,7 +659,7 @@ int main(int argc, char* argv[])
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_arp_server' ENDS HERE                                  ##\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_arp' ENDS HERE                                         ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
 
     //---------------------------------------------------------------
@@ -729,3 +696,5 @@ int main(int argc, char* argv[])
     return nrErr;
 
 }
+
+/*! \} */

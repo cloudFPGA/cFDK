@@ -16,14 +16,14 @@
 
 /*******************************************************************************
  * @file       : test_iptx.cpp
- * @brief      : Testbench for the IP transmit frame handler.
+ * @brief      : Testbench for the IP Transmit frame handler (IPTX).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_IPRX_TEST
- * \addtogroup NTS_IPRX_TEST
+ * \ingroup NTS_IPRX
+ * \addtogroup NTS_IPRX
  * \{
  *******************************************************************************/
 
@@ -266,7 +266,7 @@ int createGoldenFile(
                 }
                 // Assess the L3 checksum
                 switch (ipPacket.getIpProtocol()) {
-                case TCP_PROTOCOL:
+                case IP4_PROT_TCP:
                     if (not ipPacket.tcpVerifyChecksum()) {
                         printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
                     }
@@ -276,7 +276,7 @@ int createGoldenFile(
                         printWarn(THIS_NAME, "Failed to verify the UDP checksum of Frame #%d.\n", inpPackets);
                     }
                     break;
-                case ICMP_PROTOCOL:
+                case IP4_PROT_ICMP:
                     break;  // [TODO]
                 }
                 // Add the IP packet as data payload of the ETHERNET frame.

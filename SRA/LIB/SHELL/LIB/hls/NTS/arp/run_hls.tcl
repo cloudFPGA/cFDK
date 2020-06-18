@@ -7,7 +7,6 @@
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the ARP server
 # *   process used by the SHELL of a cloudFPGA module.
-# *   project.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -18,7 +17,7 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "arp_server"
+set projectName    "arp"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
@@ -53,10 +52,11 @@ set_top       ${projectName}
 # Add files
 #-------------------------------------------------
 add_files     ${srcDir}/${projectName}.cpp
-add_files     ${currDir}/../toe/src/toe_utils.cpp
+
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
 add_files -tb ${testDir}/test_${projectName}.cpp
-add_files     ${currDir}/../toe/test/test_toe_utils.cpp
 
 # Create a solution
 #-------------------------------------------------

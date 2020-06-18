@@ -32,24 +32,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_IPRX
- * \addtogroup NTS_IPRX
+ * \ingroup NTS_IPTX
+ * \addtogroup NTS_IPTX
  * \{
  *******************************************************************************/
 
 #ifndef _IPTX_H_
 #define _IPTX_H_
-
-/*** OBSOLETE_20200615 *************
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
-************************************/
 
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"

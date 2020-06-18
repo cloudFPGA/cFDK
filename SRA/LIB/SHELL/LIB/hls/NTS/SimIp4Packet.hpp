@@ -362,33 +362,41 @@ class SimIp4Packet {
 	//*********************************************************
 	//** IPV4 PACKET FIELDS - SETTERS and GETTERS
 	//*********************************************************
-	// Set-Get the IP Version field
+	// Set the IP Version field
 	void         setIpVersion(int version)           {        pktQ[0].setIp4Version(version);}
+	// Get the IP Version field
 	int          getIpVersion()                      { return pktQ[0].getIp4Version();       }
-	// Set-Get the IP Internet Header Length field
+	// Set the IP Internet Header Length field
 	void         setIpInternetHeaderLength(int ihl)  {        pktQ[0].setIp4HdrLen(ihl);     }
+	// Get the IP Internet Header Length field
 	int          getIpInternetHeaderLength()         { return pktQ[0].getIp4HdrLen();        }
-	// Set-Get the IP Type of Service field
+	// Set the IP Type of Service field
 	void         setIpTypeOfService(int tos)         {        pktQ[0].setIp4ToS(tos);        }
+	// Get the IP Type of Service field
 	int          getIpTypeOfService()                { return pktQ[0].getIp4ToS();           }
-	// Set-Get the IP Total Length field
+	// Set the IP Total Length field
 	void         setIpTotalLength(int totLen)        {        pktQ[0].setIp4TotalLen(totLen);}
+	// Get the IP Total Length field
 	int          getIpTotalLength()                  { return pktQ[0].getIp4TotalLen();      }
 	// Set the IP Identification field
 	void         setIpIdentification(int id)         {        pktQ[0].setIp4Ident(id);       }
+	// Get the IP Identification field
 	int          getIpIdentification()               { return pktQ[0].getIp4Ident();         }
 	// Set the IP Fragment Offset field
 	void         setIpFragmentOffset(int offset)     {        pktQ[0].setIp4FragOff(offset); }
+	// Get the IP Fragment Offset field
 	int          getIpFragmentOffset()               { return pktQ[0].getIp4FragOff();       }
 	// Set the IP Flags field
 	void         setIpFlags(int flags)               {        pktQ[0].setIp4Flags(flags);    }
 	// Set the IP Time To Live field
 	void         setIpTimeToLive(int ttl)            {        pktQ[1].setIp4TtL(ttl);        }
-	// Set-Get the IP Protocol field
+	// Set the IP Protocol field
 	void         setIpProtocol(int prot)             {        pktQ[1].setIp4Prot(prot);      }
+	// Get the IP Protocol field
 	Ip4Prot      getIpProtocol()                     { return pktQ[1].getIp4Prot();          }
-	// Set-Get the IP Header Checksum field
+	// Set the IP Header Checksum field
 	void          setIpHeaderChecksum(int csum)      {        pktQ[1].setIp4HdrCsum(csum);   }
+	// Get the IP Header Checksum field
 	Ip4HdrCsum    getIpHeaderChecksum()              { return pktQ[1].getIp4HdrCsum();       }
 	// Set the IP Source Address field
 	void          setIpSourceAddress(int addr)       {        pktQ[1].setIp4SrcAddr(addr);   }
@@ -1128,7 +1136,7 @@ class SimIp4Packet {
                 alternate = !alternate;
             }
         } // End-of while(!endOfPkt)
-        this->setIpProtocol(ICMP_PROTOCOL);
+        this->setIpProtocol(IP4_PROT_ICMP);
         return true;
     } // End-of: addIpPayload
 
@@ -1354,11 +1362,11 @@ class SimIp4Packet {
             }
         }
         // Asses TCP segment
-        else if (this->getIpProtocol() == TCP_PROTOCOL) {
+        else if (this->getIpProtocol() == IP4_PROT_TCP) {
             printWarn(myName, "[TODO-Must check if segment is well-formed !!!\n");
         }
         // Asses ICMP packet
-        else if (this->getIpProtocol() == ICMP_PROTOCOL) {
+        else if (this->getIpProtocol() == IP4_PROT_ICMP) {
             printWarn(myName, "[TODO-Must check if message is well-formed !!!\n");
         }
         return rc;

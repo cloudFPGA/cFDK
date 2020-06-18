@@ -24,18 +24,20 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : arp_server.cpp
- * @brief      : Address Resolution Server (ARS).
+ * @brief      : Address Resolution Protocol (ARP) Server.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_ARP
+ * \addtogroup NTS_ARP
+ * \{
+ *******************************************************************************/
 
-#include "arp_server.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "arp.hpp"
 
 using namespace hls;
 
@@ -48,7 +50,7 @@ using namespace hls;
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
 #endif
-#define THIS_NAME "ARS"
+#define THIS_NAME "ARP"
 
 #define TRACE_OFF  0x0000
 #define TRACE_APR  1 << 1
@@ -59,16 +61,13 @@ using namespace hls;
 #define DEBUG_LEVEL (TRACE_ALL)
 
 
-
-#define NO_OF_BROADCASTS 2
-
-/*****************************************************************************
+/*******************************************************************************
  * ARP Packet Receiver (APr)
  *
- * @param[in]  piMMIO_IpAddress, My IPv4 address from [MMIO].
- * @param[in]  siIPRX_Data,      Data stream from the IP Rx Handler (IPRX).
- * @param[out] soAPs_Meta,       Meta stream to ARP Packet Sender (APs).
- * @param[out] soACc_UpdateReq,  New {MAC,IP} update request to ArpCamController (ACc).
+ * @param[in]  piMMIO_IpAddress My IPv4 address from [MMIO].
+ * @param[in]  siIPRX_Data      Data stream from the IP Rx Handler (IPRX).
+ * @param[out] soAPs_Meta       Meta stream to ARP Packet Sender (APs).
+ * @param[out] soACc_UpdateReq  New {MAC,IP} update request to ArpCamController (ACc).
  *
  * @details
  *  This process parses the incoming ARP packet and extracts the relevant ARP
@@ -97,14 +96,14 @@ using namespace hls;
  *  |               |               |               |               |               |               |    TPA[3]     |    TPA[2]     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- *****************************************************************************/
+ *******************************************************************************/
 void pArpPacketReceiver(
         Ip4Addr                  piMMIO_IpAddress,
         stream<AxisEth>         &siIPRX_Data,
         stream<ArpMeta>         &soAPs_Meta,
-        stream<ArpBinding>      &soACc_UpdateReq)
+        stream<ArpBindPair>     &soACc_UpdateReq)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -114,45 +113,47 @@ void pArpPacketReceiver(
     const int cW = 8; // (int)(ceil(log2((1500+18)/8)))
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<cW>         apr_wordCount=0;
-    #pragma HLS RESET variable=apr_wordCount
+    static ap_uint<cW>         apr_chunkCount=0;
+    #pragma HLS RESET variable=apr_chunkCount
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ArpMeta            apr_meta;
     static ArpOper            apr_opCode;
     static ArpTargProtAddr    arp_targProtAddr;
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisEth currWord(0, 0, 0);
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisEth currChunk(0, 0, 0);
+
+    enum { CHUNK_0=0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
 
     if (!siIPRX_Data.empty()) {
-        siIPRX_Data.read(currWord);
-        switch(apr_wordCount) {
-            case WORD_0:
+        siIPRX_Data.read(currChunk);
+        switch(apr_chunkCount) {
+            case CHUNK_0:
                 // Extract MAC_SA[1:0]
-                apr_meta.remoteMacAddr(47,32) = currWord.getEthSrcAddrHi();
+                apr_meta.remoteMacAddr(47,32) = currChunk.getEthSrcAddrHi();
                 break;
-            case WORD_1:
-                apr_meta.remoteMacAddr(31, 0) = currWord.getEthSrcAddrLo();
-                apr_meta.etherType            = currWord.getEtherType();
-                apr_meta.arpHwType            = currWord.getArpHwType();
+            case CHUNK_1:
+                apr_meta.remoteMacAddr(31, 0) = currChunk.getEthSrcAddrLo();
+                apr_meta.etherType            = currChunk.getEtherType();
+                apr_meta.arpHwType            = currChunk.getArpHwType();
                 break;
-            case WORD_2:
-                apr_meta.arpProtType          = currWord.getArpProtType();
-                apr_meta.arpHwLen             = currWord.getArpHwLen();
-                apr_meta.arpProtLen           = currWord.getArpProtLen();
-                apr_opCode                    = currWord.getArpOper();
-                apr_meta.arpSendHwAddr(47,32) = currWord.getArpShaHi();
+            case CHUNK_2:
+                apr_meta.arpProtType          = currChunk.getArpProtType();
+                apr_meta.arpHwLen             = currChunk.getArpHwLen();
+                apr_meta.arpProtLen           = currChunk.getArpProtLen();
+                apr_opCode                    = currChunk.getArpOper();
+                apr_meta.arpSendHwAddr(47,32) = currChunk.getArpShaHi();
                 break;
-            case WORD_3:
-                apr_meta.arpSendHwAddr(31, 0) = currWord.getArpShaLo();
-                apr_meta.arpSendProtAddr      = currWord.getArpSpa();
+            case CHUNK_3:
+                apr_meta.arpSendHwAddr(31, 0) = currChunk.getArpShaLo();
+                apr_meta.arpSendProtAddr      = currChunk.getArpSpa();
                 break;
-            case WORD_4:
-                arp_targProtAddr(31,16)       = currWord.getArpTpaHi();
+            case CHUNK_4:
+                arp_targProtAddr(31,16)       = currChunk.getArpTpaHi();
                 break;
-            case WORD_5:
-                arp_targProtAddr(15, 0)      = currWord.getArpTpaLo();
+            case CHUNK_5:
+                arp_targProtAddr(15, 0)      = currChunk.getArpTpaLo();
                 if (DEBUG_LEVEL & TRACE_APR) {
                     printInfo(myName, "Received ARP packet from IPRX\n");
                     printInfo(myName, "\t srcMacAddr   = 0x%12.12lX \n", apr_meta.remoteMacAddr.to_ulong());
@@ -171,7 +172,7 @@ void pArpPacketReceiver(
                 break;
         } // End of: switch
 
-        if (currWord.tlast == 1) {
+        if (currChunk.getLE_TLast() == 1) {
             if (apr_opCode == ARP_OPER_REQUEST) {
                 if (arp_targProtAddr == piMMIO_IpAddress) {
                     soAPs_Meta.write(apr_meta);
@@ -181,24 +182,24 @@ void pArpPacketReceiver(
                 }
             }
             // Always ask the CAM to add the {MAC,IP} binding of the ARP-Sender
-            soACc_UpdateReq.write(ArpBinding(apr_meta.arpSendHwAddr,
-                                             apr_meta.arpSendProtAddr));
-            apr_wordCount = 0;
+            soACc_UpdateReq.write(ArpBindPair(apr_meta.arpSendHwAddr,
+                                              apr_meta.arpSendProtAddr));
+            apr_chunkCount = 0;
         }
         else {
-            apr_wordCount++;
+            apr_chunkCount++;
         }
     }
 }
 
-/******************************************************************************
+/*******************************************************************************
  * ARP Packet Sender (APs)
  *
- * @param[in]  piMMIO_MacAddress,My MAC address from MemoryMappedIOs (MMIO).
- * @param[in]  piMMIO_IpAddress, My IPv4 address from [MMIO].
- * @param[in]  siAPr_Meta,       Meta stream from ArpPacketReceiver (APr).
- * @param[in]  siACc_Meta,       Meta stream from ArpCamController (ACc).
- * @param[out] soETH_Data,       Data stream to Ethernet (ETH).
+ * @param[in]  piMMIO_MacAddress My MAC address from MemoryMappedIOs (MMIO).
+ * @param[in]  piMMIO_IpAddress  My IPv4 address from [MMIO].
+ * @param[in]  siAPr_Meta        Meta stream from ArpPacketReceiver (APr).
+ * @param[in]  siACc_Meta        Meta stream from ArpCamController (ACc).
+ * @param[out] soETH_Data        Data stream to Ethernet (ETH).
  *
   * @details
  *  This process builds an ARP-REPLY packet upon request from the process
@@ -224,7 +225,7 @@ void pArpPacketReceiver(
  *  |               |               |               |               |               |               |    TPA[3]     |    TPA[2]     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pArpPacketSender(
         EthAddr              piMMIO_MacAddress,
         Ip4Addr              piMMIO_IpAddress,
@@ -232,7 +233,7 @@ void pArpPacketSender(
         stream<Ip4Addr>     &siACc_Meta,
         stream<AxisEth>     &soETH_Data)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -241,13 +242,13 @@ void pArpPacketSender(
     static enum FsmStates { APR_IDLE, APR_REPLY, APR_SENTRQ } aps_fsmState=APR_IDLE;
     #pragma HLS RESET                                variable=aps_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static uint8_t    aps_sendCount; // ETH+ARP is only 44 bytes (.i.e 6 quadwords).
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static ap_uint<8> aps_sendCount; // ETH+ARP is only 44 bytes (.i.e 6 quadwords).
     static ArpMeta    aps_aprMeta;
     static Ip4Addr    aps_tpaReq; // Target Protocol Address Request
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    AxisEth sendWord(0, 0xFF, 0);
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisEth sendCunk(0, 0xFF, 0);
 
     switch (aps_fsmState) {
     case APR_IDLE:
@@ -264,99 +265,99 @@ void pArpPacketSender(
     case APR_SENTRQ:
         switch(aps_sendCount) {
         case 0:
-            sendWord.setEthDstAddr(ETH_BROADCAST_MAC);
-            sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
+            sendCunk.setEthDstAddr(ETH_BROADCAST_ADDR);
+            sendCunk.setEthSrcAddrHi(piMMIO_MacAddress);
             break;
         case 1:
-            sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
-            sendWord.setEthertType(ETH_ETHERTYPE_ARP);
-            sendWord.setArpHwType(ARP_HTYPE_ETHERNET);
+            sendCunk.setEthSrcAddrLo(piMMIO_MacAddress);
+            sendCunk.setEthertType(ETH_ETHERTYPE_ARP);
+            sendCunk.setArpHwType(ARP_HTYPE_ETHERNET);
             break;
         case 2:
-            sendWord.setArpProtType(ARP_PTYPE_IPV4);
-            sendWord.setArpHwLen(ARP_HLEN_ETHERNET);
-            sendWord.setArpProtLen(ARP_PLEN_IPV4);
-            sendWord.setArpOper(ARP_OPER_REQUEST);
-            sendWord.setArpShaHi(piMMIO_MacAddress);
+            sendCunk.setArpProtType(ARP_PTYPE_IPV4);
+            sendCunk.setArpHwLen(ARP_HLEN_ETHERNET);
+            sendCunk.setArpProtLen(ARP_PLEN_IPV4);
+            sendCunk.setArpOper(ARP_OPER_REQUEST);
+            sendCunk.setArpShaHi(piMMIO_MacAddress);
             break;
         case 3:
-            sendWord.setArpShaLo(piMMIO_MacAddress);
-            sendWord.setArpSpa(piMMIO_IpAddress);
+            sendCunk.setArpShaLo(piMMIO_MacAddress);
+            sendCunk.setArpSpa(piMMIO_IpAddress);
             break;
         case 4:
             // MEMO - The THA field is ignored in an ARP request
-            sendWord.setArpTpaHi(aps_tpaReq);
+            sendCunk.setArpTpaHi(aps_tpaReq);
             break;
         case 5:
-            sendWord.setArpTpaLo(aps_tpaReq);
-            sendWord.tkeep = 0x03;
-            sendWord.tlast = 1;
+            sendCunk.setArpTpaLo(aps_tpaReq);
+            sendCunk.setLE_TKeep(0x03);
+            sendCunk.setLE_TLast(TLAST);
             aps_fsmState = APR_IDLE;
             break;
         } // End-of: switch(aps_sendCount)
-        soETH_Data.write(sendWord);
+        soETH_Data.write(sendCunk);
         aps_sendCount++;
         break;
     case APR_REPLY:
         switch(aps_sendCount) {
         case 0:
-            sendWord.setEthDstAddr(aps_aprMeta.remoteMacAddr);
-            sendWord.setEthSrcAddrHi(piMMIO_MacAddress);
+            sendCunk.setEthDstAddr(aps_aprMeta.remoteMacAddr);
+            sendCunk.setEthSrcAddrHi(piMMIO_MacAddress);
             break;
         case 1:
-            sendWord.setEthSrcAddrLo(piMMIO_MacAddress);
-            sendWord.setEthertType(aps_aprMeta.etherType);
-            sendWord.setArpHwType(aps_aprMeta.arpHwType);
+            sendCunk.setEthSrcAddrLo(piMMIO_MacAddress);
+            sendCunk.setEthertType(aps_aprMeta.etherType);
+            sendCunk.setArpHwType(aps_aprMeta.arpHwType);
             break;
         case 2:
-            sendWord.setArpProtType(aps_aprMeta.arpProtType);
-            sendWord.setArpHwLen(aps_aprMeta.arpHwLen);
-            sendWord.setArpProtLen(aps_aprMeta.arpProtLen);
-            sendWord.setArpOper(ARP_OPER_REPLY);
-            sendWord.setArpShaHi(piMMIO_MacAddress);
+            sendCunk.setArpProtType(aps_aprMeta.arpProtType);
+            sendCunk.setArpHwLen(aps_aprMeta.arpHwLen);
+            sendCunk.setArpProtLen(aps_aprMeta.arpProtLen);
+            sendCunk.setArpOper(ARP_OPER_REPLY);
+            sendCunk.setArpShaHi(piMMIO_MacAddress);
             break;
         case 3:
-            sendWord.setArpShaLo(piMMIO_MacAddress);
-            sendWord.setArpSpa(piMMIO_IpAddress);
+            sendCunk.setArpShaLo(piMMIO_MacAddress);
+            sendCunk.setArpSpa(piMMIO_IpAddress);
             break;
         case 4:
-            sendWord.setArpTha(aps_aprMeta.arpSendHwAddr);
-            sendWord.setArpTpaHi(aps_aprMeta.arpSendProtAddr);
+            sendCunk.setArpTha(aps_aprMeta.arpSendHwAddr);
+            sendCunk.setArpTpaHi(aps_aprMeta.arpSendProtAddr);
             break;
         case 5:
-            sendWord.setArpTpaLo(aps_aprMeta.arpSendProtAddr);
-            sendWord.tkeep = 0x03;
-            sendWord.tlast = 1;
+            sendCunk.setArpTpaLo(aps_aprMeta.arpSendProtAddr);
+            sendCunk.setLE_TKeep(0x03);
+            sendCunk.setLE_TLast(TLAST);
             aps_fsmState = APR_IDLE;
             break;
         } // End-of: switch(aps_sendCount)
-        soETH_Data.write(sendWord);
+        soETH_Data.write(sendCunk);
         aps_sendCount++;
         break;
 
     } // End-of: switch (aps_fsmState)
 }
 
-/******************************************************************************
+/*******************************************************************************
  * ARP CAM Controller (ACc)
  *
- * @param[in]  siAPr_UpdateReq,  New {MAC,IP} update request from ArpPacketReceiver (APr).
- * @param[out] soAPs_Meta,       Meta stream to ArpPacketSender (APs).
- * @param[in]  siIPTX_MacLkpReq, MAC lookup request from [IPTX].
- * @param[out] soIPTX_MacLkpRep, MAC lookup reply to [IPTX].
- * @param[out] soCAM_MacLkpReq,  MAC lookup request to [CAM].
- * @param[in]  siCAM_MacLkpRep,  MAC lookup reply from [CAM].
- * @param[out] soCAM_MacUpdReq,  MAC update request to [CAM].
- * @param[in]  siCAM_MacUpdRep,  MAC update reply from [CAM].
+ * @param[in]  siAPr_UpdateReq  New {MAC,IP} update request from ArpPacketReceiver (APr).
+ * @param[out] soAPs_Meta       Meta stream to ArpPacketSender (APs).
+ * @param[in]  siIPTX_MacLkpReq MAC lookup request from [IPTX].
+ * @param[out] soIPTX_MacLkpRep MAC lookup reply to [IPTX].
+ * @param[out] soCAM_MacLkpReq  MAC lookup request to [CAM].
+ * @param[in]  siCAM_MacLkpRep  MAC lookup reply from [CAM].
+ * @param[out] soCAM_MacUpdReq  MAC update request to [CAM].
+ * @param[in]  siCAM_MacUpdRep  MAC update reply from [CAM].
  *
  * @details
  *  This is the front-end process of the RTL ContentAddressableMemory (CAM). It
  *  serves the MAC lookup requests from the IpTxHandler (IPTX) and MAC update
  *  requests from the ArpPacketReceiver (APr).
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pArpCamController(
-    stream<ArpBinding>          &siAPr_UpdateReq,
+    stream<ArpBindPair>         &siAPr_UpdateReq,
     stream<Ip4Addr>             &soAPs_Meta,
     stream<Ip4Addr>             &siIPTX_MacLkpReq,
     stream<ArpLkpReply>         &soIPTX_MacLkpRep,
@@ -365,25 +366,25 @@ void pArpCamController(
     stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
     stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "ACc");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ACC_IDLE, ACC_UPDATE, ACC_LOOKUP } acc_fsmState=ACC_IDLE;
     #pragma HLS RESET                                 variable=acc_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static Ip4Addr    acc_ipLkpKey;
 
     switch(acc_fsmState) {
     case ACC_IDLE:
         if (!siIPTX_MacLkpReq.empty()) {
             acc_ipLkpKey = siIPTX_MacLkpReq.read();
-            if (acc_ipLkpKey == IP4_BROADCAST_ADD) {
+            if (acc_ipLkpKey == IP4_BROADCAST_ADDR) {
                 // Reply with Ethernet broadcast address and return immediately
-                soIPTX_MacLkpRep.write(ArpLkpReply(ETH_BROADCAST_MAC, HIT));
+                soIPTX_MacLkpRep.write(ArpLkpReply(ETH_BROADCAST_ADDR, LKP_HIT));
                 acc_fsmState = ACC_IDLE;
             }
             else {
@@ -396,7 +397,7 @@ void pArpCamController(
             }
         }
         else if (!siAPr_UpdateReq.empty()) {
-            ArpBinding arpBind = siAPr_UpdateReq.read();
+            ArpBindPair arpBind = siAPr_UpdateReq.read();
             if (DEBUG_LEVEL & TRACE_ACC) {
                 printInfo(myName, "FSM=ACC_IDLE - Request CAM to update:\n");
                 printArpBindPair(myName, ArpBindPair(arpBind.macAddr, arpBind.ip4Addr));
@@ -440,18 +441,45 @@ void pArpCamController(
     }
 }
 
-
 /*****************************************************************************
- * @brief   Main process of the Address Resolution Server.
+ * @brief   Main process of the Address Resolution Protocol (ARP) Server.
  *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       Data stream from the IP Rx Handler (IPRX).
+ * @param[out] soETH_Data        Data stream to Ethernet (ETH).
+ * @param[in]  siIPTX_MacLkpReq  MAC lookup request from [IPTX].
+ * @param[out] soIPTX_MacLkpRep  MAC lookup reply to [IPTX].
+ * @param[out] soCAM_MacLkpReq   MAC lookup request to [CAM].
+ * @param[in]  siCAM_MacLkpRep   MAC lookup reply from [CAM].
+ * @param[out] soCAM_MacUpdReq   MAC update request to [CAM].
+ * @param[in]  siCAM_MacUpdRep   MAC update reply from [CAM].
+ *
+ * @details
+ *  This process maintains a Content Addressable Memory (CAM) which holds the
+ *  association of a layer-2 MAC address with a layer-3 IP address.
+ *  The content of the CAM is continuously updated with any new {MAC_SA, IP_SA}
+ *  binding seen by the IP Rx packet handler (IPRX) at the receive side of the
+ *  FPGA.
+ *  When an IP packet is transmitted by the FPGA, the 'IP_DA' is used as key to
+ *  lookup the CAM and retrieve the associated 'MAC_DA' value to be used for
+ *  building the outgoing Ethernet frame. If there is not a known binding for
+ *  a given 'IP_DA', this process will build a broadcast ARP-REQUEST message
+ *  that will be sent to every node of the local network, and will wait for the
+ *  corresponding ARP-RESPONSE message to come back before forwarding the IP
+ *  packet that is currently waiting for its address to be resolved.
+ *  Conversely, if a broadcast ARP-REQUEST message that matches the ARP binding
+ *  of the current FPGA, this process is in charge of building the corresponding
+ *  ARP-REPLY message that is to be sent back in response to the incoming ARP
+ *  request.
  ******************************************************************************/
-void arp_server(
+void arp(
 
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr                      piMMIO_MacAddress,
-        Ip4Addr                      piMMIO_IpAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
 
         //------------------------------------------------------
         //-- IPRX Interface
@@ -477,7 +505,7 @@ void arp_server(
         stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
         stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #if defined(USE_DEPRECATED_DIRECTIVES)
@@ -488,7 +516,7 @@ void arp_server(
     /*********************************************************************/
 
     #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddress
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
 
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data        metadata="-bus_bundle siIPRX_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soETH_Data         metadata="-bus_bundle soETH_Data"
@@ -509,7 +537,7 @@ void arp_server(
 #else
 
     #pragma HLS INTERFACE ap_stable   port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable   port=piMMIO_IpAddress
+    #pragma HLS INTERFACE ap_stable   port=piMMIO_Ip4Address
 
     #pragma HLS INTERFACE axis        port=siIPRX_Data
     #pragma HLS INTERFACE axis        port=soETH_Data
@@ -524,18 +552,18 @@ void arp_server(
 
 #endif
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
 
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
-    //-------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
 
     //-- ARP Packet Receiver (APr)
     static stream<ArpMeta>         ssAPrToAPs_Meta      ("ssAPrToAPs_Meta");
     #pragma HLS STREAM    variable=ssAPrToAPs_Meta      depth=4
     #pragma HLS DATA_PACK variable=ssAPrToAPs_Meta
-    static stream<ArpBinding>      ssAPrToACc_UpdateReq ("ssAPrToACc_UpdateReq");
+    static stream<ArpBindPair>     ssAPrToACc_UpdateReq ("ssAPrToACc_UpdateReq");
     #pragma HLS STREAM    variable=ssAPrToACc_UpdateReq depth=4
     #pragma HLS DATA_PACK variable=ssAPrToACc_UpdateReq
 
@@ -543,17 +571,15 @@ void arp_server(
     static stream<LE_Ip4Addr>      ssACcToAPs_Meta      ("ssACcToAPs_Meta");
     #pragma HLS STREAM    variable=ssACcToAPs_Meta      depth=4
 
-    //OBSOLETE_20200409 static ap_uint<32> intIpAddress[NO_OF_BROADCASTS];
-
     pArpPacketReceiver(
-        piMMIO_IpAddress,
+        piMMIO_Ip4Address,
         siIPRX_Data,
         ssAPrToAPs_Meta,
         ssAPrToACc_UpdateReq);
 
     pArpPacketSender(
         piMMIO_MacAddress,
-        piMMIO_IpAddress,
+        piMMIO_Ip4Address,
         ssAPrToAPs_Meta,
         ssACcToAPs_Meta,
         soETH_Data);
@@ -568,3 +594,5 @@ void arp_server(
         soCAM_MacUpdReq,
         siCAM_MacUpdRep);
 }
+
+/*! \} */
