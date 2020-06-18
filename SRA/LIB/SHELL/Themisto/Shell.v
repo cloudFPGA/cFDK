@@ -1497,10 +1497,7 @@ module Shell_Themisto # (
     .poDDR4_Mem_Mc1_Cs_n              (poDDR4_Mem_Mc1_Cs_n),
     .poDDR4_Mem_Mc1_Ck_n              (poDDR4_Mem_Mc1_Ck_n),
     .poDDR4_Mem_Mc1_Ck_p              (poDDR4_Mem_Mc1_Ck_p),
-    .poDDR4_Mem_Mc1_Reset_n           (poDDR4_Mem_Mc1_Reset_n),
-
-    .poVoid                           ()
-
+    .poDDR4_Mem_Mc1_Reset_n           (poDDR4_Mem_Mc1_Reset_n)
   );  // End of MEM
 
   //============================================================================
