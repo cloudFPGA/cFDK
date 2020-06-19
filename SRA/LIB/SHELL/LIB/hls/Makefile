@@ -11,9 +11,9 @@
 # ******************************************************************************
 
 
-.PHONY: all clean NTS cam dhcp_client echo_app fmc nrc toe udp udp_role_if udp_role_if_2
+.PHONY: all clean NTS cam dhcp_client echo_app fmc nrc toe udp udp_role_if_2
 
-all:	NTS udp toe cam fmc nrc udp_role_if dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	NTS udp toe cam fmc nrc dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:	NTS.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
