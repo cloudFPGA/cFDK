@@ -731,8 +731,8 @@ architecture structural of topFMKU60 is
       --piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
       --piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
       --piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
-      ------ [APP_RDROL] -------------------
-      --poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
+      ---- [APP_RDROL] -------------------
+      poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
       ----- [APP_WRROL] --------------------
       --piSHL_Mmio_WrReg                    : in    std_ulogic_vector( 15 downto 0);
 
@@ -1073,7 +1073,7 @@ begin
 
   -- drive MMIO signals if NOT used by the ROLE
   sROL_SHL_Mmio_Mc1_MemTestStat <= (others => '0');
-  sROL_SHL_Mmio_RdReg <= x"CFCF";
+  --sROL_SHL_Mmio_RdReg <= x"CFCF";
 
   -- security consideration: if we want to reset layer 7, the user should not be able to avoid it
   sROL_reset_combinded <= sSHL_156_25Rst or sSHL_ROL_Mmio_Ly7Rst;
@@ -1231,8 +1231,8 @@ begin
       --piSHL_Mmio_TcpEchoCtrl            => sSHL_ROL_Mmio_TcpEchoCtrl,
       --piSHL_Mmio_TcpPostSegEn           => sSHL_ROL_Mmio_TcpPostSegEn,
       --piSHL_Mmio_TcpCaptSegEn           => sSHL_ROL_Mmio_TcpCaptSegEn,
-      ------ [APP_RDROL] -----------------
-      --poSHL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
+      ---- [APP_RDROL] -----------------
+      poSHL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
       ----- [APP_WRROL] ------------------
       --piSHL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
 
