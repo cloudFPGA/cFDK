@@ -29,7 +29,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../.ip_guard
+	@touch ../../../.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
@@ -37,6 +37,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log

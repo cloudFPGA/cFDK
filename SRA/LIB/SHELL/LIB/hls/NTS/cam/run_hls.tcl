@@ -1,12 +1,14 @@
+
 # *****************************************************************************
 # *                            cloudFPGA
 # *            All rights reserved -- Property of IBM
 # *----------------------------------------------------------------------------
 # * Created : Dec 2017
-# * Authors : Francois Abel, Burkhard Ringlein
+# * Authors : Francois Abel, Burkhard Ringlein  
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the ICMP server
-# *   process used by the SHELL of the cloudFPGA module.
+# * Description : A Tcl script for the HLS batch syhthesis of the Content 
+# *   Addressable Memory (CAM) used by the TCP Offload Engine (TOE) of the
+# *   the cloudFPGA SHELL when the number of connexions is less than [TODO-TBD].  
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -17,13 +19,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "icmp"
+set projectName    "cam"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "ICMP Server for cloudFPGA"
-set ipDescription  "Implements the Echo request/reply utility used to ping."
+set ipDisplayName  "HLS-based CAM for cloudFPGA"
+set ipDescription  "A Content-Addressable Memory with small (8) memory size of entries."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -108,19 +110,18 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "../../../../test/testVectors/siIPRX_Data_OneIcmpPkt.dat"
-    csim_design -argv "../../../../test/testVectors/siIPRX_Data_SixIcmpPkt.dat"
+    csim_design
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
     puts "####                                                     ####"
-    puts "#############################################################" 
-}
+    puts "#############################################################"    
+}  
 
 #-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { $hlsCSynth} {
+if { $hlsCSynth} { 
     csynth_design
     puts "#############################################################"
     puts "####                                                     ####"
@@ -133,8 +134,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_OneIcmpPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "../../../../test/testVectors/siIPRX_Data_SixIcmpPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level all
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
@@ -196,35 +196,6 @@ if { $hlsRtl } {
 # Exit Vivado HLS
 #--------------------------------------------------
 exit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

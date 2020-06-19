@@ -40,6 +40,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log

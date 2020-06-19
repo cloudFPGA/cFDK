@@ -1,4 +1,20 @@
-/*****************************************************************************
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
  * @file       : cam.hpp
  * @brief      : Content-Addressable Memory (CAM) of TCP Offload Engine (TOE).
  *
@@ -6,21 +22,19 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *               TCP Session Lookup Controller (SLc).
- *
- *****************************************************************************/
+ * \ingroup NTS_CAM
+ * \addtogroup NTS_CAM
+ * \{
+ *******************************************************************************/
 
-#ifndef CAM_H_
-#define CAM_H_
+#ifndef _CAM_H_
+#define _CAM_H_
 
-#include "../../toe/src/session_lookup_controller/session_lookup_controller.hpp"
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
 
+using namespace hls;
 
 /***********************************************
  * KEY-VALUE PAIR
@@ -42,17 +56,16 @@ inline bool operator == (SLcFourTuple const &s1, SLcFourTuple const &s2) {
                     (s1.theirIp == s2.theirIp) && (s1.theirPort == s2.theirPort));
     }
 
-
-/******************************************************************************
- * @brief   Main process of the Content-Addressable Memory (CAM).
- ******************************************************************************/
+/*******************************************************************************
+ *
+ * ENTITY - CONTENT ADDRESSABLE MEMOERY (CAM)
+ *
+ *******************************************************************************/
 void cam(
-
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         StsBit                              *poMMIO_CamReady,
-
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
@@ -60,7 +73,8 @@ void cam(
         stream<RtlSessionLookupReply>       &soTOE_SssLkpRep,
         stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
         stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep
-
 );
 
 #endif
+
+/*! \} */

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /*****************************************************************************
  * @file       : test_cam.cpp
  * @brief      : Testbench for the Content-Addressable Memory (CAM).
@@ -6,19 +22,14 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
+ * \ingroup NTS_CAM
+ * \addtogroup NTS_CAM
+ * \{
  *****************************************************************************/
 
-#include <hls_stream.h>
-#include <iostream>
-
-#include "../src/cam.hpp"
-#include "../../toe/test/test_toe_utils.hpp"
+#include "test_cam.hpp"
 
 using namespace hls;
-
 using namespace std;
 
 //---------------------------------------------------------
@@ -33,43 +44,30 @@ using namespace std;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-//---------------------------------------------------------
-//-- TESTBENCH GLOBAL VARIABLES
-//--  These variables might be updated/overwritten by the
-//--  content of a test-vector file.
-//---------------------------------------------------------
-bool            gTraceEvent     = false;
-bool            gFatalError     = false;
-unsigned int    gSimCycCnt      = 0;
-unsigned int    gMaxSimCycles   = 200;
-
-
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  testbench, unless the user specifies new ones via one
-//--  of the test vector files.
-//---------------------------------------------------------
-#define DEFAULT_FPGA_IP4_ADDR   0x0A0CC813  // TOE's local IP Address  = 10.12.200.19
-#define DEFAULT_FPGA_TCP_PORT   0x2263      // TOE listens on port     = 8803 (static  ports must be     0..32767)
-#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // TB's foreign IP Address = 10.12.200.50
-#define DEFAULT_HOST_TCP_PORT   0xa263      // TB listens on port      = 41,571 (dynamic ports must be 32768..65535)
-
-#define DEFAULT_SESSION_ID      42          // This TB open only one session.
-
-#define CAM_SIZE                 2          // Number of CAM entries.
-
+/*******************************************************************************
+ * @brief Increment the simulation counter
+ *******************************************************************************/
+void stepSim() {
+    gSimCycCnt++;
+    if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+        printInfo(THIS_NAME, "-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+        gTraceEvent = false;
+    }
+    else if (0) {
+        printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
+    }
+}
 
 /*****************************************************************************
  * @brief Emulate the behavior of the TCP Offload Engine (TOE).
  *
- * @param[in]  nrErr,           A ref to the error counter of main.
+ * @param[in]  nrErr            A ref to the error counter of main.
  * //-- TOE / Lookup Request Interfaces
- * @param[out] soCAM_SssLkpReq, Session lookup request to CAM,
- * @param[in]  siCAM_SssLkpRep, Session lookup reply from CAM.
+ * @param[out] soCAM_SssLkpReq  Session lookup request to CAM,
+ * @param[in]  siCAM_SssLkpRep  Session lookup reply from CAM.
  * //-- TOE / Update Request Interfaces
- * @param[out] soCAM_SssUpdReq, Session update request to CAM.
- * @param[in]  siCAM_SssUpdRep, Session update reply from CAM.
+ * @param[out] soCAM_SssUpdReq  Session update request to CAM.
+ * @param[in]  siCAM_SssUpdRep  Session update reply from CAM.
  *
  ******************************************************************************/
 void pTOE(
@@ -93,7 +91,6 @@ void pTOE(
     static int rdCnt;
 
     switch (slcState) {
-
     case LOOKUP_REQ: // SEND A LOOKUP REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssLkpReq.full()) {
@@ -116,7 +113,6 @@ void pTOE(
 		slcState = LOOKUP_REP;
 		rdCnt = 0;
         break;
-
     case LOOKUP_REP: // WAIT FOR LOOKUP REPLY FROM [CAM]
         while (rdCnt < CAM_SIZE) {
 			if (!siCAM_SssLkpRep.empty()) {
@@ -136,7 +132,6 @@ void pTOE(
 		slcState = INSERT_REQ;
 		rdCnt = 0;
         break;
-
     case INSERT_REQ: // SEND AN INSERT REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssUpdReq.full()) {
@@ -160,7 +155,6 @@ void pTOE(
 		slcState = INSERT_REP;
 		rdCnt = 0;
         break;
-
     case INSERT_REP: // WAIT FOR INSERT REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
             if (!siCAM_SssUpdRep.empty()) {
@@ -187,7 +181,6 @@ void pTOE(
 		slcState = DELETE_REQ;
 		rdCnt = 0;
         break;
-
     case DELETE_REQ: // SEND A DELETE REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
 			if (!soCAM_SssUpdReq.full()) {
@@ -211,7 +204,6 @@ void pTOE(
 		slcState = DELETE_REP;
 		rdCnt = 0;
         break;
-
     case DELETE_REP: // WAIT FOR DELETE REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
         	if (!siCAM_SssUpdRep.empty()) {
@@ -237,15 +229,12 @@ void pTOE(
 		// Goto next step
 		slcState = TB_DONE;
         break;
-
     case TB_ERROR:
         slcState = TB_ERROR;
         break;
-
     case TB_DONE:
         slcState = TB_DONE;
         break;
-
     }  // End-of: switch (lsnState) {
 
 }
@@ -254,54 +243,55 @@ void pTOE(
 /*****************************************************************************
  * @brief Main function.
  *
- * @ingroup test_tcp_role_if
  ******************************************************************************/
-
 int main()
 {
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gTraceEvent   = false;
+    gFatalError   = false;
+    gSimCycCnt    = 0;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES
     //------------------------------------------------------
-
     //-- MMIO Interfaces
-    ap_uint<1>                       wMMIO_CamReady("wMMIO_CamReady");
-
+    ap_uint<1>                       sMMIO_CamReady("sMMIO_CamReady");
     //-- CAM / This / Session Lookup & Update Interfaces
-    stream<RtlSessionLookupRequest>  sTOE_TO_CAM_SssLkpReq("sTOE_TO_CAM_SssLkpReq");
-    stream<RtlSessionLookupReply>    sCAM_TO_TOE_SssLkpRep("sCAM_TO_TOE_SssLkpRep");
-    stream<RtlSessionUpdateRequest>  sTOE_TO_CAM_SssUpdReq("sTOE_TO_CAM_SssUpdReq");
-    stream<RtlSessionUpdateReply>    sCAM_TO_TOE_SssUpdRep("sCAM_TO_TOE_SssUpdRep");
+    stream<RtlSessionLookupRequest>  ssTOE_CAM_SssLkpReq("ssTOE_CAM_SssLkpReq");
+    stream<RtlSessionLookupReply>    ssCAM_TOE_SssLkpRep("ssCAM_TOE_SssLkpRep");
+    stream<RtlSessionUpdateRequest>  ssTOE_CAM_SssUpdReq("ssTOE_CAM_SssUpdReq");
+    stream<RtlSessionUpdateReply>    ssCAM_TOE_SssUpdRep("ssCAM_TOE_SssUpdRep");
 
     //------------------------------------------------------
     //-- TESTBENCH VARIABLES
     //------------------------------------------------------
-    unsigned int    simCycCnt = 0;
-    int             nrErr;
+    int     nrErr = 0;  // Total number of testbench errors
+    int     tbRun = 0;  // Total duration of the test (in clock cycles)
 
+    printf("\n\n");
     printf("#####################################################\n");
     printf("## TESTBENCH 'test_cam' STARTS HERE                ##\n");
     printf("#####################################################\n");
-    simCycCnt = 0;  // Simulation cycle counter as a global variable
-    nrErr     = 0;  // Total number of testbench errors
 
     //-----------------------------------------------------
     //-- MAIN LOOP
     //-----------------------------------------------------
-    do {
-
+    tbRun = (nrErr == 0) ? (TB_MAX_SIM_CYCLES + TB_GRACE_TIME) : 0;
+    while (tbRun) {
         //-------------------------------------------------
         //-- EMULATE TOE
         //-------------------------------------------------
-        if (wMMIO_CamReady == 1) {
+        if (sMMIO_CamReady == 1) {
             pTOE(
                 nrErr,
                 //-- TOE / Lookup Request Interfaces
-                sTOE_TO_CAM_SssLkpReq,
-                sCAM_TO_TOE_SssLkpRep,
-                //-- TOE / Update Reque/st Interfaces
-                sTOE_TO_CAM_SssUpdReq,
-                sCAM_TO_TOE_SssUpdRep
+                ssTOE_CAM_SssLkpReq,
+                ssCAM_TOE_SssLkpRep,
+                //-- TOE / Update Request Interfaces
+                ssTOE_CAM_SssUpdReq,
+                ssCAM_TOE_SssUpdRep
             );
         }
         //-------------------------------------------------
@@ -309,30 +299,25 @@ int main()
         //-------------------------------------------------
         cam(
             //-- MMIO Interfaces
-            &wMMIO_CamReady,
+            &sMMIO_CamReady,
             //-- Session Lookup & Update Interfaces
-            sTOE_TO_CAM_SssLkpReq,
-            sCAM_TO_TOE_SssLkpRep,
-            sTOE_TO_CAM_SssUpdReq,
-            sCAM_TO_TOE_SssUpdRep
+            ssTOE_CAM_SssLkpReq,
+            ssCAM_TOE_SssLkpRep,
+            ssTOE_CAM_SssUpdReq,
+            ssCAM_TOE_SssUpdRep
         );
 
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
-        simCycCnt++;
-        if (gTraceEvent || ((simCycCnt % 1000) == 0)) {
-            printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
-            gTraceEvent = false;
-        }
+        stepSim();
 
-    } while (simCycCnt < gMaxSimCycles);
+    } // End of: while()
 
-
-    printf("-- [@%4.4d] -----------------------------\n", simCycCnt);
     printf("############################################################################\n");
     printf("## TESTBENCH 'test_cam' ENDS HERE                                         ##\n");
     printf("############################################################################\n\n");
+    stepSim();
 
     if (nrErr) {
          printError(THIS_NAME, "###########################################################\n");
@@ -348,3 +333,5 @@ int main()
     return(nrErr);
 
 }
+
+/*! \} */

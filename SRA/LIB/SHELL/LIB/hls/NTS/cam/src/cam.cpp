@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /******************************************************************************
  * @file       : cam.cpp
  * @brief      : Content-Addressable Memory (CAM). Fake implementation of a CAM
@@ -8,13 +24,14 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS_CAM
+ * \addtogroup NTS_CAM
+ * \{
  ******************************************************************************/
 
 #include "cam.hpp"
 
-#include "../../toe/test/test_toe_utils.hpp"
-#include "../../toe/src/session_lookup_controller/session_lookup_controller.hpp"
-
+using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -50,21 +67,17 @@
   static KeyValuePair CamArray6;
   static KeyValuePair CamArray7;
 
-  //OBSOLETE_20200509 static KeyValuePair CAM_ARRAY[CAM_ARRAY_SIZE];
-
-/*****************************************************************************
+/*******************************************************************************
  * @brief Search the CAM array for a key.
  *
- * @param[in]  key,     the key to lookup.
- * @param[out] value,   the value corresponding to that key.
+ * @param[in]  key   The key to lookup.
+ * @param[out] value The value corresponding to that key.
  *
  * @return true if the the key was found.
- ******************************************************************************/
+ *******************************************************************************/
 bool camLookup(SLcFourTuple key, RtlSessId &value)
 {
-
     #pragma HLS pipeline II=1
-    /*** OBSOLETE_20200509 ************/
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         value = CamArray0.value;
         return true;
@@ -99,27 +112,15 @@ bool camLookup(SLcFourTuple key, RtlSessId &value)
     }
     else
         return false;
-    /**********************************/
-
-    /*** OBSOLETE_20200509 ************
-    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
-        #pragma HLS UNROLL
-        if ((CAM_ARRAY[i].key == key) && (CAM_ARRAY[i].valid == true)) {
-            value = CAM_ARRAY[i].value;
-            return true;
-        }
-    }
-    return false;
-    **********************************/
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Insert a new key-value pair in the CAM array.
  *
- * @param[in]  KeyValuePair,  the key-value pair to insert.
+ * @param[in]  KeyValuePair  The key-value pair to insert.
  *
  * @return true if the the key was inserted.
- ******************************************************************************/
+ *******************************************************************************/
 bool camInsert(KeyValuePair kVP)
 {
     #pragma HLS pipeline II=1
@@ -157,26 +158,15 @@ bool camInsert(KeyValuePair kVP)
          CamArray7 = kVP;
          return true;
      }
-    else
+    else {
         return false;
-    /***********************************/
-
-    /*** OBSOLETE_20200509 ************
-    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
-        #pragma HLS UNROLL
-        if (CAM_ARRAY[i].valid == false) {
-            CAM_ARRAY[i] = kVP;
-            return true;
-        }
     }
-    return false;
-    **********************************/
 }
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Remove a key-value pair from the CAM array.
  *
- * @param[in]  key,  the key of the entry to be removed.
+ * @param[in]  key  The key of the entry to be removed.
  *
  * @return true if the the key was deleted.
   ******************************************************************************/
@@ -219,50 +209,32 @@ bool camDelete(SLcFourTuple key)
      }
     else
         return false;
-
-    /**********************************/
-
-    /*** OBSOLETE_20200509 ************
-    for (int i=0; i<CAM_ARRAY_SIZE; i++) {
-        #pragma HLS UNROLL
-        if ((CAM_ARRAY[i].key == key) && (CAM_ARRAY[i].valid == true)) {
-            CAM_ARRAY[i].valid = false;
-        return true;
-        }
-    }
-    return false;
-    **********************************/
 }
 
-/******************************************************************************
+/*******************************************************************************
  * @brief   Main process of the Content-Addressable Memory (CAM).
  *
- * -- MMIO Interfaces
- * @param[out] poMMIO_CamReady,  A pointer to MMIO registers.
- * -- Session Lookup Interfaces
- * @param[in]  siTOE_SssLkpReq,  Session update request from TOE.
- * @param[out] soTOE_SssLkpRep,  Session lookup reply   to   TOE.
- * -- Session Update Interfaces
- * @param[in]  siTOE_SssUpdReq,  Session update request from TOE.
- * @param[out] soTOE_SssLkpRep,  Session lookup reply   to   TOE.
+ * @param[out] poMMIO_CamReady  A pointer to a CAM ready signal.
+ * @param[in]  siTOE_SssLkpReq  Session lookup request from TCP Offload Engine (TOE).
+ * @param[out] soTOE_SssLkpRep  Session lookup reply   to   [TOE].
+ * @param[in]  siTOE_SssUpdReq  Session update request from TOE.
+ * @param[out] soTOE_SssUpdRep  Session update reply   to   TOE.
  *
- * @warning    About data structure packing: The bit alignment of a packed
- *              wide-word is inferred from the declaration order of the struct
- *              fields. The first field takes the least significant sector of
- *              the word and so forth until all fields are mapped.
- *             Also, note that the DATA_PACK optimization does not support
- *              packing structs which contain other structs.
- *             Finally, make sure to acheive II=1, otherwise co-simulation will
- *              not work.
+ * @warning
+ *  About data structure packing: The bit alignment of a packed wide-word
+ *    is inferred from the declaration order of the struct fields. The first
+ *    field takes the least significant sector of the word and so forth until
+ *    all fields are mapped.
+ *   Also, note that the DATA_PACK optimization does not support packing
+ *    structs which contain other structs.
+ *   Finally, make sure to acheive II=1, otherwise co-simulation will not work.
  *
- ******************************************************************************/
+ *******************************************************************************/
 void cam(
-
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         ap_uint<1>                          *poMMIO_CamReady,
-
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
@@ -271,7 +243,7 @@ void cam(
         stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
         stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep)
 {
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- MMIO Interfaces
@@ -286,12 +258,12 @@ void cam(
     #pragma HLS resource core=AXI4Stream variable=soTOE_SssUpdRep metadata="-bus_bundle soTOE_SssUpdRep"
     #pragma HLS DATA_PACK                variable=soTOE_SssUpdRep
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW interval=1
 
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     #pragma HLS RESET      variable=CamArray0
     #pragma HLS RESET      variable=CamArray1
     #pragma HLS RESET      variable=CamArray2
@@ -300,106 +272,98 @@ void cam(
     #pragma HLS RESET      variable=CamArray5
     #pragma HLS RESET      variable=CamArray6
     #pragma HLS RESET      variable=CamArray7
-    //OBSOLETE_20200509 #pragma HLS RESOURCE   variable=CAM_ARRAY core=RAM_T2P_BRAM
-    //OBSOLETE_20200509 #pragma HLS DEPENDENCE variable=CAM_ARRAY inter false
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum CamFsmStates { CAM_WAIT_4_REQ=0, CAM_LOOKUP_REP, CAM_UPDATE_REP } \
-                               camFsmState=CAM_WAIT_4_REQ;
-    #pragma HLS RESET variable=camFsmState
-    static int                 startupDelay = 100;
-    #pragma HLS RESET variable=startupDelay
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { CAM_WAIT_4_REQ=0, CAM_LOOKUP_REP, CAM_UPDATE_REP } \
+                               cam_fsmState=CAM_WAIT_4_REQ;
+    #pragma HLS RESET variable=cam_fsmState
+    static int                 cam_startupDelay = 100;
+    #pragma HLS RESET variable=cam_startupDelay
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static RtlSessionLookupRequest request;
-    static RtlSessionUpdateRequest update;
-    static int                     camIdleCnt = 0;
+    static RtlSessionLookupRequest cam_request;
+    static RtlSessionUpdateRequest cam_update;
+    static int                     cam_idleCnt = 0;
 
     //-----------------------------------------------------
     //-- EMULATE STARTUP OF CAM
     //-----------------------------------------------------
-    if (startupDelay) {
+    if (cam_startupDelay) {
         *poMMIO_CamReady = 0;
-        startupDelay--;
+        cam_startupDelay--;
         return;
     }
-    else
+    else {
         *poMMIO_CamReady = 1;
+    }
 
     //-----------------------------------------------------
     //-- CONTENT ADDRESSABLE MEMORY PROCESS
     //-----------------------------------------------------
-    switch (camFsmState) {
-
+    switch (cam_fsmState) {
     case CAM_WAIT_4_REQ:
         if (!siTOE_SssLkpReq.empty()) {
-            siTOE_SssLkpReq.read(request);
-            camIdleCnt = MAX_CAM_LATENCY;
-            camFsmState = CAM_LOOKUP_REP;
+            siTOE_SssLkpReq.read(cam_request);
+            cam_idleCnt = MAX_CAM_LATENCY;
+            cam_fsmState = CAM_LOOKUP_REP;
         }
         else if (!siTOE_SssUpdReq.empty()) {
-            siTOE_SssUpdReq.read(update);
-            camIdleCnt = MAX_CAM_LATENCY;
-            camFsmState = CAM_UPDATE_REP;
+            siTOE_SssUpdReq.read(cam_update);
+            cam_idleCnt = MAX_CAM_LATENCY;
+            cam_fsmState = CAM_UPDATE_REP;
         }
         break;
-
     case CAM_LOOKUP_REP:
         //-- Wait some cycles to match the co-simulation --
-        if (camIdleCnt > 0) {
-            camIdleCnt--;
+        if (cam_idleCnt > 0) {
+            cam_idleCnt--;
         }
         else {
             RtlSessId  value;
-            bool hit = camLookup(request.key, value);
-
+            bool hit = camLookup(cam_request.key, value);
             if (hit)
-                soTOE_SssLkpRep.write(RtlSessionLookupReply(true, value, request.source));
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(true, value, cam_request.source));
             else
-                soTOE_SssLkpRep.write(RtlSessionLookupReply(false, request.source));
-
+                soTOE_SssLkpRep.write(RtlSessionLookupReply(false, cam_request.source));
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
-                          request.source.to_int());
-                LE_SocketPair leSocketPair(LE_SockAddr(request.key.theirIp, request.key.theirPort),
-                LE_SockAddr(request.key.myIp,    request.key.myPort));
+                          cam_request.source.to_int());
+                LE_SocketPair leSocketPair(LE_SockAddr(cam_request.key.theirIp, cam_request.key.theirPort),
+                LE_SockAddr(cam_request.key.myIp,    cam_request.key.myPort));
                 printSockPair(myName, leSocketPair);
             }
-            camFsmState = CAM_WAIT_4_REQ;
+            cam_fsmState = CAM_WAIT_4_REQ;
         }
         break;
-
     case CAM_UPDATE_REP:
         //-- Wait some cycles to match the co-simulation --
-        if (camIdleCnt > 0) {
-            camIdleCnt--;
+        if (cam_idleCnt > 0) {
+            cam_idleCnt--;
         }
         else {
             // [TODO - What if element does not exist]
-            if (update.op == INSERT) {
+            if (cam_update.op == INSERT) {
                 //Is there a check if it already exists?
-                camInsert(KeyValuePair(update.key, update.value, true));
-                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, INSERT, update.source));
+                camInsert(KeyValuePair(cam_update.key, cam_update.value, true));
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(cam_update.value, INSERT, cam_update.source));
             }
             else {  // DELETE
-                camDelete(update.key);
-                soTOE_SssUpdRep.write(RtlSessionUpdateReply(update.value, DELETE, update.source));
+                camDelete(cam_update.key);
+                soTOE_SssUpdRep.write(RtlSessionUpdateReply(cam_update.value, DELETE, cam_update.source));
             }
-
             if (DEBUG_LEVEL & TRACE_CAM) {
-                printInfo(myName, "Received a session update request (%d) from %d for socket pair: \n",
-                          update.op, update.source.to_int());
-                LE_SocketPair leSocketPair(LE_SockAddr(request.key.theirIp, request.key.theirPort),
-                LE_SockAddr(request.key.myIp,    request.key.myPort));
+                printInfo(myName, "Received a session cam_update request (%d) from %d for socket pair: \n",
+                          cam_update.op, cam_update.source.to_int());
+                LE_SocketPair leSocketPair(LE_SockAddr(cam_request.key.theirIp, cam_request.key.theirPort),
+                LE_SockAddr(cam_request.key.myIp,    cam_request.key.myPort));
                 printSockPair(myName, leSocketPair);
             }
-            camFsmState = CAM_WAIT_4_REQ;
+            cam_fsmState = CAM_WAIT_4_REQ;
         }
         break;
 
     } // End-of: switch()
 
-
-
 }
 
+/*! \} */

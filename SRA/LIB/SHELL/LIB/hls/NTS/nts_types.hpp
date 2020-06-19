@@ -273,6 +273,21 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
+
+/******************************************************************************
+ * XXXXXXXXXXXXXXXTRANSPORT LAYER-4 - UDP & TCP
+ * ****************************************************************************
+ * Terminology & Conventions
+ *  - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
+ *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
+ ******************************************************************************/
+
+
+
+
+
+
+
 #endif
 
 /*! \} */
