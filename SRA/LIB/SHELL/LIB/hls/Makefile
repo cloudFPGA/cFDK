@@ -11,9 +11,9 @@
 # ******************************************************************************
 
 
-.PHONY: all clean NTS cam dhcp_client echo_app fmc nrc toe udp
+.PHONY: all clean NTS cam dhcp_client echo_app fmc nrc toe
 
-all:	NTS udp toe cam fmc nrc dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	NTS toe cam fmc nrc dhcp_client  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:	NTS.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
