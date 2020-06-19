@@ -183,6 +183,9 @@ using namespace hls;
 //#define NRC_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
 #define NRC_CONNECTION_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
 
+#define NRC_MMIO_STABILIZE_TIME 150 //based on chipscope...
+
+
  /*
   * ctrlLINK Structure:
   * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from SMC to NRC

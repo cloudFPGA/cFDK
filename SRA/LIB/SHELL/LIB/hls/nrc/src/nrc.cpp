@@ -23,6 +23,11 @@ uint16_t tableCopyVariable = 0;
 
 ap_uint<8>   openPortWaitTime = 100;
 ap_uint<8>   udp_lsn_watchDogTimer = 100;
+#ifndef __SYNTHESIS__
+ap_uint<16>  mmio_stabilize_counter = 1;
+#else
+ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+#endif
 bool Udp_RX_metaWritten = false;
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
@@ -516,6 +521,7 @@ void nrc_main(
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTX_Udp
 #pragma HLS reset variable=openPortWaitTime
+#pragma HLS reset variable=mmio_stabilize_counter
 #pragma HLS reset variable=udp_lsn_watchDogTimer
 #pragma HLS reset variable=mrt_version_processed
 #pragma HLS reset variable=udp_rx_ports_processed
@@ -635,16 +641,23 @@ void nrc_main(
   {
     if(*layer_4_enabled == 1 && *piNTS_ready == 1 && tables_initalized)
     {
-      //mark all UDP ports as to be deleted
-      udp_rx_ports_to_close = udp_rx_ports_processed;
-      //start closing FSM UDP
-      clsFsmState_Udp = CLS_NEXT;
-      
-      //mark all TCP ports as to be deleted
-      markCurrentRowsAsToDelete();
-      //start closing FSM TCP
-      clsFsmState_Tcp = CLS_NEXT;
+      if(udp_rx_ports_processed > 0)
+      {
+        //mark all UDP ports as to be deleted
+        udp_rx_ports_to_close = udp_rx_ports_processed;
+        //start closing FSM UDP
+        clsFsmState_Udp = CLS_NEXT;
+      }
+
+      if(tcp_rx_ports_processed > 0)
+      {
+        //mark all TCP ports as to be deleted
+        markCurrentRowsAsToDelete();
+        //start closing FSM TCP
+        clsFsmState_Tcp = CLS_NEXT;
+      }
     }
+    //in all cases
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
   }
@@ -658,7 +671,7 @@ void nrc_main(
     printf("init tables...\n");
     for(int i = 0; i<MAX_NRC_SESSIONS; i++)
     {
-//#pragma HLS unroll
+      //#pragma HLS unroll
       sessionIdList[i] = 0;
       tripleList[i] = 0;
       usedRows[i]  =  0;
@@ -682,7 +695,8 @@ void nrc_main(
     //===========================================================
     //  port requests
     //  only if a user application is running...
-    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1 )
+    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
+        && !need_udp_port_req )
     {
       //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
@@ -695,17 +709,29 @@ void nrc_main(
         new_relative_port_to_req_udp = getRightmostBitPos(diff);
         need_udp_port_req = true;
       }
-    } else {
-      need_udp_port_req = false;
-    }
+    } //else {
+      //need_udp_port_req = false;
+    //}
 
-    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
+        && !need_tcp_port_req )
     {
-      fmc_port_opened = false;
-      need_tcp_port_req = true;
-      printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+      if(mmio_stabilize_counter == 0)
+      {
+        fmc_port_opened = false;
+        need_tcp_port_req = true;
+#ifndef __SYNTHESIS__
+        mmio_stabilize_counter = 1;
+#else
+        mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+#endif
+        printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+      } else {
+        mmio_stabilize_counter--;
+      }
 
-    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1 )
+    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
+        && !need_tcp_port_req )
     { //  only if a user application is running...
       //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
@@ -718,9 +744,9 @@ void nrc_main(
         new_relative_port_to_req_tcp = getRightmostBitPos(diff);
         need_tcp_port_req = true;
       }
-    } else {
-      need_tcp_port_req = false;
-    }
+    } //else {
+      //need_tcp_port_req = false;
+    //}
   }
 
   //=================================================================================================
@@ -830,7 +856,6 @@ void nrc_main(
 
       case FSM_DROP_PACKET:
         if ( !siUdp_data.empty() ) {
-          // Forward data chunk
           UdpWord    aWord = siUdp_data.read();
           udpTX_current_packet_length++;
           if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
@@ -1014,13 +1039,13 @@ void nrc_main(
           //we wait until we are activated;
           break;
         case CLS_NEXT:
-          //we have to close opened ports, one after another
-          newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
-          if(newRelativePortToClose != 0 && udp_rx_ports_to_close != 0 )
+          if( udp_rx_ports_to_close != 0 )
           {
+            //we have to close opened ports, one after another
+            newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
             newAbsolutePortToClose = NRC_RX_MIN_PORT + newRelativePortToClose;
             if(!soUOE_ClsReq.full()) {
-              soUOE_ClsReq.write(newRelativePortToClose);
+              soUOE_ClsReq.write(newAbsolutePortToClose);
               clsFsmState_Udp = CLS_WAIT4RESP;
             } //else: just tay here
           } else {
@@ -1150,8 +1175,7 @@ void nrc_main(
                   (int) new_absolute_port, (int) new_absolute_port);
               lsnFsmState = LSN_SEND_REQ;
             }
-          }
-          else {
+          } else {
             if (watchDogTimer_plisten == 0) {
               ap_uint<16> new_absolute_port = 0;
               //always process FMC first
