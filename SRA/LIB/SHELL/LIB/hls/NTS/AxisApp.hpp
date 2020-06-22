@@ -1,28 +1,18 @@
-/************************************************
-Copyright (c) 2016-2019, IBM Research.
-Copyright (c) 2015, Xilinx, Inc.
-
-All rights reserved.
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************/
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /*****************************************************************************
  * @file       : AxisApp.hpp
@@ -30,7 +20,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                an AXI4-Stream interface.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  *----------------------------------------------------------------------------
@@ -41,10 +31,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  to the end-user; it exposes streams of raw data between the NTS and the
  *  APP.   
  * 
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
  *****************************************************************************/
 
-#ifndef AXIS_APP_H_
-#define AXIS_APP_H_
+#ifndef _AXIS_APP_H_
+#define _AXIS_APP_H_
 
 #include "./AxisRaw.hpp"
 
@@ -99,19 +92,39 @@ class AxisApp: public AxisRaw {
     tDataHalf getTDataLo() {
         return swapDWord(tdata.range(63,32));
     }
-    // Set higher-half part of the 'tkeep' field with a data encoded in BE order
+    /*
+     * Set higher-half part of the 'tkeep' field and return it in BE order
+     *        +-----------------+-----------------+
+     * LITTLE |7  Lower-Half  4 |3  Higher-Half  0|
+     *        +-----------------+-----------------+
+     */
     void setTKeepHi(tKeepHalf keep) {
         tkeep(3,0) = swapNibble(keep);
     }
-    // Get higher-half part of the 'tkeep' field and return it in BE order
+    /*
+     * Get higher-half part of the 'tkeep' field and return it in BE order
+     *        +-----------------+-----------------+
+     * LITTLE |7  Lower-Half  4 |3  Higher-Half  0|
+     *        +-----------------+-----------------+
+     */
     tKeepHalf getTKeepHi() {
         return swapNibble(tkeep.range(3,0));
     }
-    // Set lower-half part of the 'tkeep' field with a data encoded in BE order
+    /*
+     * Set higher-half part of the 'tkeep' field and return it in BE order
+     *        +-----------------+-----------------+
+     * LITTLE |7  Lower-Half  4 |3  Higher-Half  0|
+     *        +-----------------+-----------------+
+      */
     void setTKeepLo(tKeepHalf keep) {
         tkeep(7,4) = swapNibble(keep);
     }
-    // Get lower-half part of the 'tkeep' field and return it in BE order
+    /*
+     * Get lower-half part of the 'tkeep' field and return it in BE order
+     *        +-----------------+-----------------+
+     * LITTLE |7  Lower-Half  4 |3  Higher-Half  0|
+     *        +-----------------+-----------------+
+     */
     tKeepHalf getTKeepLo() {
         return swapNibble(tkeep.range(7,4));
     }
@@ -137,3 +150,5 @@ class AxisApp: public AxisRaw {
 };
 
 #endif
+
+/*! \} */

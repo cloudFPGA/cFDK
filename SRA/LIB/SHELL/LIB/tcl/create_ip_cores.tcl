@@ -1018,7 +1018,7 @@ update_ip_catalog
 # IBM-HSL-IP : Address Resolution Server 
 #------------------------------------------------------------------------------
 set ipModName "AddressResolutionServer"
-set ipName    "arp_server"
+set ipName    "arp"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1043,27 +1043,11 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-#OBSOLETE:2020-06-18
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : Dynamic Host Configuration Proces 
-#------------------------------------------------------------------------------
-#set ipModName "DynamicHostConfigurationProcess"
-#set ipName    "dhcp_client"
-#set ipVendor  "IBM"
-#set ipLibrary "hls"
-#set ipVersion "1.0"
-#set ipCfgList  [ list ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : Internet Control Message Process 
 #------------------------------------------------------------------------------
 set ipModName "InternetControlMessageProcess"
-set ipName    "icmp_server"
+set ipName    "icmp"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1093,7 +1077,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : IP TX Handler 
 #------------------------------------------------------------------------------
 set ipModName "IpTxHandler"
-set ipName    "iptx_handler"
+set ipName    "iptx"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1148,36 +1132,6 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-#OBSOLETE:2020-06-18
-##------------------------------------------------------------------------------  
-## IBM-HSL-IP : UDP Core [TODO - Ready for removal]
-##------------------------------------------------------------------------------
-#set ipModName "UdpCore"
-#set ipName    "udp"
-#set ipVendor  "IBM"
-#set ipLibrary "hls"
-#set ipVersion "1.0"
-#set ipCfgList  [ list ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## IBM-HSL-IP : UDP Multiplexer  [TODO - Ready for removal]
-##------------------------------------------------------------------------------
-#set ipModName "UdpMultiplexer"
-#set ipName    "udp_mux"
-#set ipVendor  "IBM"
-#set ipLibrary "hls"
-#set ipVersion "1.0"
-#set ipCfgList  [ list ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : FPGA Managememt Core

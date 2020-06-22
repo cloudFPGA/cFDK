@@ -30,6 +30,8 @@
 #ifndef _TEST_IPRX_H_
 #define _TEST_IPRX_H_
 
+#include <cerrno>
+
 #include "../src/iprx.hpp"
 #include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"

@@ -22,6 +22,9 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_UOE
+ * \{
  *****************************************************************************/
 
 #include "test_uoe.hpp"
@@ -1258,5 +1261,6 @@ int main(int argc, char *argv[]) {
     }
 
     return nrErr;
-
 }
+
+/*! \} */

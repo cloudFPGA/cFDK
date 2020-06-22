@@ -48,7 +48,7 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_OFF)
 
-/******************************************************************************
+/*******************************************************************************
  * @brief  Main process of the Ready Logic Barrier (RLB).
  *
  * -- MMIO Interface
@@ -58,7 +58,7 @@ using namespace hls;
  * -- TOE / Ready Data Stream
  * @param[in]  siTOE_Ready    Ready data stream from TcpOffloadEngine (TOE).
  *
- ******************************************************************************/
+ *******************************************************************************/
 void rlb(
 
         //------------------------------------------------------

@@ -8,6 +8,7 @@
 # * Description : A makefile that synthesizes and packages the current HLS core
 # *               as an IP.
 # * Synopsis:
+# *   make help    : Displays a help message.
 # *   make clean   : Cleanup of the current directory.
 # *   make         : Runs the default build for this core.
 # *
