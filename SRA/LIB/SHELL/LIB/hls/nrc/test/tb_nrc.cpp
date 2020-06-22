@@ -110,6 +110,7 @@ stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
 ap_uint<1>              layer_4_enabled = 0b1;
 ap_uint<1>              layer_7_enabled = 0b1;
+ap_uint<1>              role_decoupled = 0b0;
 ap_uint<1>              sNTS_Nrc_ready = 0b1;
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
@@ -151,6 +152,7 @@ void stepDut() {
         ctrlLink,
         &layer_4_enabled,
         &layer_7_enabled,
+        &role_decoupled,
         &sNTS_Nrc_ready,
         &sMMIO_FmcLsnPort, &sMMIO_CfrmIp4Addr,
         &sIpAddress,

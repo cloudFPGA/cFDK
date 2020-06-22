@@ -254,6 +254,7 @@ void nrc_main(
     //state of the FPGA
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *role_decoupled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----

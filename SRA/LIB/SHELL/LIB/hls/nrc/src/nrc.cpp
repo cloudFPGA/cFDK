@@ -379,6 +379,7 @@ void nrc_main(
     //state of the FPGA
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *role_decoupled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
@@ -444,6 +445,7 @@ void nrc_main(
 
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
+#pragma HLS INTERFACE ap_vld register port=role_decoupled  name=piRoleDecoup_active
 #pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
 
 #pragma HLS INTERFACE axis register both port=siUdp_data
@@ -633,11 +635,12 @@ void nrc_main(
     tables_initalized = false;
     //we don't need to close ports any more
     clsFsmState_Tcp = CLS_IDLE;
+    clsFsmState_Udp = CLS_IDLE;
     //and we shouldn't expect smth
     expect_FMC_response = false;
   }
 
-  if(*layer_7_enabled == 0)
+  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
   {
     if(*layer_4_enabled == 1 && *piNTS_ready == 1 && tables_initalized)
     {
@@ -696,7 +699,7 @@ void nrc_main(
     //  port requests
     //  only if a user application is running...
     if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
-        && !need_udp_port_req )
+        && *role_decoupled == 0 && !need_udp_port_req )
     {
       //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
@@ -731,7 +734,7 @@ void nrc_main(
       }
 
     } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
-        && !need_tcp_port_req )
+        && *role_decoupled == 0 && !need_tcp_port_req )
     { //  only if a user application is running...
       //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
@@ -877,6 +880,7 @@ void nrc_main(
     char   *myName  = concat3(THIS_NAME, "/", "Udp_RX");
 
     //only if NTS is ready
+    //we DO NOT need to check for layer_7_enabled or role_decoupled, because then Ports should be closed
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
       switch(fsmStateRX_Udp) {
@@ -1049,7 +1053,7 @@ void nrc_main(
               clsFsmState_Udp = CLS_WAIT4RESP;
             } //else: just tay here
           } else {
-            clsFsmState_Tcp = CLS_IDLE;
+            clsFsmState_Udp = CLS_IDLE;
           }
           break;
         case CLS_WAIT4RESP:
@@ -1256,6 +1260,9 @@ void nrc_main(
       AppMeta     sessId;
 
     //only if NTS is ready
+    //we NEED for layer_7_enabled or role_decoupled, because the
+    // 1. FMC is still active
+    // 2. TCP ports cant be closed up to now [FIXME]
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
       switch (rdpFsmState ) {
@@ -1295,7 +1302,8 @@ void nrc_main(
             NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
             //printf("TO ROLE: src_rank: %d\n", (int) src_id);
             //Role packet
-            if(src_id == 0xFFFF)
+            if(src_id == 0xFFFF 
+                || *layer_7_enabled == 0 || *role_decoupled == 1)
             {
               //SINK packet
               //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
