@@ -80,8 +80,8 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 
 using namespace hls;
 
-#ifndef _AXI_CLASS_DEFINED_
-#define _AXI_CLASS_DEFINED_
+//#ifndef _AXI_CLASS_DEFINED_
+//#define _AXI_CLASS_DEFINED_
 //FIXME: merge with definition in AxisRaw.hpp
 /*
  * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
@@ -96,7 +96,7 @@ using namespace hls;
    };
 
 
-#endif
+//#endif
 
 
  struct IPMeta {

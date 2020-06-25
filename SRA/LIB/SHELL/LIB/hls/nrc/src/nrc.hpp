@@ -248,6 +248,7 @@ typedef UdpAppDLen  UdpPLen;
 
 
 
+
 void nrc_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
@@ -272,16 +273,18 @@ void nrc_main(
     
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
-    stream<TcpWord>             &siTcp_data,
+    stream<NetworkWord>             &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
-    stream<TcpWord>             &soTcp_data,
+    stream<NetworkWord>             &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
     stream<TcpWord>             &siFMC_Tcp_data,
-    stream<Axis<16> >           &siFMC_Tcp_SessId,
+    //stream<Axis<16> >           &siFMC_Tcp_SessId,
+    stream<AppMeta>           &siFMC_Tcp_SessId,
     stream<TcpWord>             &soFMC_Tcp_data,
-    stream<Axis<16> >           &soFMC_Tcp_SessId,
+    //stream<Axis<16> >           &soFMC_Tcp_SessId,
+    stream<AppMeta>           &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,

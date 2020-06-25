@@ -624,12 +624,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssNRC_Fifo_Tcp_SessId_tdata_V_din;
   wire          ssNRC_Fifo_Tcp_SessId_tdata_V_full;
   wire          ssNRC_Fifo_Tcp_SessId_tdata_V_write;
-  wire [  1:0]  ssNRC_Fifo_Tcp_SessId_tkeep_V_din;
-  wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_full;
-  wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_write;
-  wire [  0:0]  ssNRC_Fifo_Tcp_SessId_tlast_V_din;
-  wire          ssNRC_Fifo_Tcp_SessId_tlast_V_full;
-  wire          ssNRC_Fifo_Tcp_SessId_tlast_V_write;
+  //wire [  1:0]  ssNRC_Fifo_Tcp_SessId_tkeep_V_din;
+  //wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_full;
+  //wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_write;
+  //wire [  0:0]  ssNRC_Fifo_Tcp_SessId_tlast_V_din;
+  //wire          ssNRC_Fifo_Tcp_SessId_tlast_V_full;
+  //wire          ssNRC_Fifo_Tcp_SessId_tlast_V_write;
   
   wire [ 63:0]  ssFifo_FMC_Tcp_Data_tdata_V_dout;
   wire          ssFifo_FMC_Tcp_Data_tdata_V_empty;
@@ -643,12 +643,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFifo_FMC_Tcp_SessId_tdata_V_dout;
   wire          ssFifo_FMC_Tcp_SessId_tdata_V_empty;
   wire          ssFifo_FMC_Tcp_SessId_tdata_V_read;
-  wire [  1:0]  ssFifo_FMC_Tcp_SessId_tkeep_V_dout;
-  wire          ssFifo_FMC_Tcp_SessId_tkeep_V_empty;
-  wire          ssFifo_FMC_Tcp_SessId_tkeep_V_read;
-  wire [  0:0]  ssFifo_FMC_Tcp_SessId_tlast_V_dout;
-  wire          ssFifo_FMC_Tcp_SessId_tlast_V_empty;
-  wire          ssFifo_FMC_Tcp_SessId_tlast_V_read;
+  //wire [  1:0]  ssFifo_FMC_Tcp_SessId_tkeep_V_dout;
+  //wire          ssFifo_FMC_Tcp_SessId_tkeep_V_empty;
+  //wire          ssFifo_FMC_Tcp_SessId_tkeep_V_read;
+  //wire [  0:0]  ssFifo_FMC_Tcp_SessId_tlast_V_dout;
+  //wire          ssFifo_FMC_Tcp_SessId_tlast_V_empty;
+  //wire          ssFifo_FMC_Tcp_SessId_tlast_V_read;
   
   wire [ 63:0]  ssFMC_Fifo_Tcp_Data_tdata_V_din;
   wire          ssFMC_Fifo_Tcp_Data_tdata_V_full;
@@ -662,12 +662,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFMC_Fifo_Tcp_SessId_tdata_V_din;
   wire          ssFMC_Fifo_Tcp_SessId_tdata_V_full;
   wire          ssFMC_Fifo_Tcp_SessId_tdata_V_write;
-  wire [  1:0]  ssFMC_Fifo_Tcp_SessId_tkeep_V_din;
-  wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_full;
-  wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_write;
-  wire [  0:0]  ssFMC_Fifo_Tcp_SessId_tlast_V_din;
-  wire          ssFMC_Fifo_Tcp_SessId_tlast_V_full;
-  wire          ssFMC_Fifo_Tcp_SessId_tlast_V_write;
+  //wire [  1:0]  ssFMC_Fifo_Tcp_SessId_tkeep_V_din;
+  //wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_full;
+  //wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_write;
+  //wire [  0:0]  ssFMC_Fifo_Tcp_SessId_tlast_V_din;
+  //wire          ssFMC_Fifo_Tcp_SessId_tlast_V_full;
+  //wire          ssFMC_Fifo_Tcp_SessId_tlast_V_write;
   
   wire [ 63:0]  ssFifo_NRC_Tcp_Data_tdata_V_dout;
   wire          ssFifo_NRC_Tcp_Data_tdata_V_empty;
@@ -681,12 +681,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFifo_NRC_Tcp_SessId_tdata_V_dout;
   wire          ssFifo_NRC_Tcp_SessId_tdata_V_empty;
   wire          ssFifo_NRC_Tcp_SessId_tdata_V_read;
-  wire [  1:0]  ssFifo_NRC_Tcp_SessId_tkeep_V_dout;
-  wire          ssFifo_NRC_Tcp_SessId_tkeep_V_empty;
-  wire          ssFifo_NRC_Tcp_SessId_tkeep_V_read;
-  wire [  0:0]  ssFifo_NRC_Tcp_SessId_tlast_V_dout;
-  wire          ssFifo_NRC_Tcp_SessId_tlast_V_empty;
-  wire          ssFifo_NRC_Tcp_SessId_tlast_V_read;
+  //wire [  1:0]  ssFifo_NRC_Tcp_SessId_tkeep_V_dout;
+  //wire          ssFifo_NRC_Tcp_SessId_tkeep_V_empty;
+  //wire          ssFifo_NRC_Tcp_SessId_tkeep_V_read;
+  //wire [  0:0]  ssFifo_NRC_Tcp_SessId_tlast_V_dout;
+  //wire          ssFifo_NRC_Tcp_SessId_tlast_V_empty;
+  //wire          ssFifo_NRC_Tcp_SessId_tlast_V_read;
 
 
   //Conncetions from NRC to AXIS Slices
@@ -1627,15 +1627,18 @@ module Shell_Themisto # (
     .siNRC_Tcp_data_V_tlast_V_dout       ( ssFifo_FMC_Tcp_Data_tlast_V_dout)     ,
     .siNRC_Tcp_data_V_tlast_V_empty_n    (~ssFifo_FMC_Tcp_Data_tlast_V_empty)  ,
     .siNRC_Tcp_data_V_tlast_V_read       ( ssFifo_FMC_Tcp_Data_tlast_V_read)   ,
-    .siNRC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
-    .siNRC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
-    .siNRC_Tcp_SessId_V_tdata_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
-    .siNRC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_FMC_Tcp_SessId_tkeep_V_dout)   ,
-    .siNRC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tkeep_V_empty),
-    .siNRC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_FMC_Tcp_SessId_tkeep_V_read) ,
-    .siNRC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_FMC_Tcp_SessId_tlast_V_dout)   ,
-    .siNRC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tlast_V_empty),
-    .siNRC_Tcp_SessId_V_tlast_V_read     ( ssFifo_FMC_Tcp_SessId_tlast_V_read) ,
+    .siNRC_Tcp_SessId_V_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
+    .siNRC_Tcp_SessId_V_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
+    .siNRC_Tcp_SessId_V_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
+    //.siNRC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
+    //.siNRC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
+    //.siNRC_Tcp_SessId_V_tdata_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
+    //.siNRC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_FMC_Tcp_SessId_tkeep_V_dout)   ,
+    //.siNRC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tkeep_V_empty),
+    //.siNRC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_FMC_Tcp_SessId_tkeep_V_read) ,
+    //.siNRC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_FMC_Tcp_SessId_tlast_V_dout)   ,
+    //.siNRC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tlast_V_empty),
+    //.siNRC_Tcp_SessId_V_tlast_V_read     ( ssFifo_FMC_Tcp_SessId_tlast_V_read) ,
     .soNRC_Tcp_data_V_tdata_V_din       ( ssFMC_Fifo_Tcp_Data_tdata_V_din)     ,
     .soNRC_Tcp_data_V_tdata_V_full_n    (~ssFMC_Fifo_Tcp_Data_tdata_V_full)  ,
     .soNRC_Tcp_data_V_tdata_V_write     ( ssFMC_Fifo_Tcp_Data_tdata_V_write)   ,
@@ -1645,15 +1648,18 @@ module Shell_Themisto # (
     .soNRC_Tcp_data_V_tlast_V_din       ( ssFMC_Fifo_Tcp_Data_tlast_V_din)     ,
     .soNRC_Tcp_data_V_tlast_V_full_n    (~ssFMC_Fifo_Tcp_Data_tlast_V_full)  ,
     .soNRC_Tcp_data_V_tlast_V_write     ( ssFMC_Fifo_Tcp_Data_tlast_V_write)   ,
-    .soNRC_Tcp_SessId_V_tdata_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
-    .soNRC_Tcp_SessId_V_tdata_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
-    .soNRC_Tcp_SessId_V_tdata_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
-    .soNRC_Tcp_SessId_V_tkeep_V_din     ( ssFMC_Fifo_Tcp_SessId_tkeep_V_din)   ,
-    .soNRC_Tcp_SessId_V_tkeep_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tkeep_V_full),
-    .soNRC_Tcp_SessId_V_tkeep_V_write   ( ssFMC_Fifo_Tcp_SessId_tkeep_V_write) ,
-    .soNRC_Tcp_SessId_V_tlast_V_din     ( ssFMC_Fifo_Tcp_SessId_tlast_V_din)   ,
-    .soNRC_Tcp_SessId_V_tlast_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tlast_V_full),
-    .soNRC_Tcp_SessId_V_tlast_V_write   ( ssFMC_Fifo_Tcp_SessId_tlast_V_write) ,
+    .soNRC_Tcp_SessId_V_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    .soNRC_Tcp_SessId_V_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
+    .soNRC_Tcp_SessId_V_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
+    //.soNRC_Tcp_SessId_V_tdata_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    //.soNRC_Tcp_SessId_V_tdata_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
+    //.soNRC_Tcp_SessId_V_tdata_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
+    //.soNRC_Tcp_SessId_V_tkeep_V_din     ( ssFMC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    //.soNRC_Tcp_SessId_V_tkeep_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tkeep_V_full),
+    //.soNRC_Tcp_SessId_V_tkeep_V_write   ( ssFMC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    //.soNRC_Tcp_SessId_V_tlast_V_din     ( ssFMC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    //.soNRC_Tcp_SessId_V_tlast_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tlast_V_full),
+    //.soNRC_Tcp_SessId_V_tlast_V_write   ( ssFMC_Fifo_Tcp_SessId_tlast_V_write) ,
     .poROLE_rank_V                       (poDCP_ROL_Fmc_Rank),
     .poROLE_size_V                       (poDCP_ROL_Fmc_Size)
   );
@@ -1702,27 +1708,27 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_NRC_Tcp_SessId_tdata_V_read   )
   );
   
-  FifoSession_Keep FIFO_SK_0 (
-    .clk    (sETH0_ShlClk),
-    .srst   (sMMIO_LayerRst[6]),
-    .din    (ssFMC_Fifo_Tcp_SessId_tkeep_V_din    ),
-    .full   (ssFMC_Fifo_Tcp_SessId_tkeep_V_full   ),
-    .wr_en  (ssFMC_Fifo_Tcp_SessId_tkeep_V_write  ),
-    .dout   (ssFifo_NRC_Tcp_SessId_tkeep_V_dout   ),
-    .empty  (ssFifo_NRC_Tcp_SessId_tkeep_V_empty  ),
-    .rd_en  (ssFifo_NRC_Tcp_SessId_tkeep_V_read   )
-  );
+  //FifoSession_Keep FIFO_SK_0 (
+  //  .clk    (sETH0_ShlClk),
+  //  .srst   (sMMIO_LayerRst[6]),
+  //  .din    (ssFMC_Fifo_Tcp_SessId_tkeep_V_din    ),
+  //  .full   (ssFMC_Fifo_Tcp_SessId_tkeep_V_full   ),
+  //  .wr_en  (ssFMC_Fifo_Tcp_SessId_tkeep_V_write  ),
+  //  .dout   (ssFifo_NRC_Tcp_SessId_tkeep_V_dout   ),
+  //  .empty  (ssFifo_NRC_Tcp_SessId_tkeep_V_empty  ),
+  //  .rd_en  (ssFifo_NRC_Tcp_SessId_tkeep_V_read   )
+  //);
 
-  FifoSession_Last FIFO_SL_0 (
-    .clk    (sETH0_ShlClk),
-    .srst   (sMMIO_LayerRst[6]),
-    .din    (ssFMC_Fifo_Tcp_SessId_tlast_V_din    ),
-    .full   (ssFMC_Fifo_Tcp_SessId_tlast_V_full   ),
-    .wr_en  (ssFMC_Fifo_Tcp_SessId_tlast_V_write  ),
-    .dout   (ssFifo_NRC_Tcp_SessId_tlast_V_dout   ),
-    .empty  (ssFifo_NRC_Tcp_SessId_tlast_V_empty  ),
-    .rd_en  (ssFifo_NRC_Tcp_SessId_tlast_V_read   )
-  );
+  //FifoSession_Last FIFO_SL_0 (
+  //  .clk    (sETH0_ShlClk),
+  //  .srst   (sMMIO_LayerRst[6]),
+  //  .din    (ssFMC_Fifo_Tcp_SessId_tlast_V_din    ),
+  //  .full   (ssFMC_Fifo_Tcp_SessId_tlast_V_full   ),
+  //  .wr_en  (ssFMC_Fifo_Tcp_SessId_tlast_V_write  ),
+  //  .dout   (ssFifo_NRC_Tcp_SessId_tlast_V_dout   ),
+  //  .empty  (ssFifo_NRC_Tcp_SessId_tlast_V_empty  ),
+  //  .rd_en  (ssFifo_NRC_Tcp_SessId_tlast_V_read   )
+  //);
 
 
   FifoNetwork_Data FIFO_DD_1 (
@@ -1770,27 +1776,27 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_FMC_Tcp_SessId_tdata_V_read   )
   );
   
-  FifoSession_Keep FIFO_SK_1 (
-    .clk    (sETH0_ShlClk),
-    .srst   (sMMIO_LayerRst[6]),
-    .din    (ssNRC_Fifo_Tcp_SessId_tkeep_V_din    ),
-    .full   (ssNRC_Fifo_Tcp_SessId_tkeep_V_full   ),
-    .wr_en  (ssNRC_Fifo_Tcp_SessId_tkeep_V_write  ),
-    .dout   (ssFifo_FMC_Tcp_SessId_tkeep_V_dout   ),
-    .empty  (ssFifo_FMC_Tcp_SessId_tkeep_V_empty  ),
-    .rd_en  (ssFifo_FMC_Tcp_SessId_tkeep_V_read   )
-  );
+  //FifoSession_Keep FIFO_SK_1 (
+  //  .clk    (sETH0_ShlClk),
+  //  .srst   (sMMIO_LayerRst[6]),
+  //  .din    (ssNRC_Fifo_Tcp_SessId_tkeep_V_din    ),
+  //  .full   (ssNRC_Fifo_Tcp_SessId_tkeep_V_full   ),
+  //  .wr_en  (ssNRC_Fifo_Tcp_SessId_tkeep_V_write  ),
+  //  .dout   (ssFifo_FMC_Tcp_SessId_tkeep_V_dout   ),
+  //  .empty  (ssFifo_FMC_Tcp_SessId_tkeep_V_empty  ),
+  //  .rd_en  (ssFifo_FMC_Tcp_SessId_tkeep_V_read   )
+  //);
 
-  FifoSession_Last FIFO_SL_1 (
-    .clk    (sETH0_ShlClk),
-    .srst   (sMMIO_LayerRst[6]),
-    .din    (ssNRC_Fifo_Tcp_SessId_tlast_V_din    ),
-    .full   (ssNRC_Fifo_Tcp_SessId_tlast_V_full   ),
-    .wr_en  (ssNRC_Fifo_Tcp_SessId_tlast_V_write  ),
-    .dout   (ssFifo_FMC_Tcp_SessId_tlast_V_dout   ),
-    .empty  (ssFifo_FMC_Tcp_SessId_tlast_V_empty  ),
-    .rd_en  (ssFifo_FMC_Tcp_SessId_tlast_V_read   )
-  );
+  //FifoSession_Last FIFO_SL_1 (
+  //  .clk    (sETH0_ShlClk),
+  //  .srst   (sMMIO_LayerRst[6]),
+  //  .din    (ssNRC_Fifo_Tcp_SessId_tlast_V_din    ),
+  //  .full   (ssNRC_Fifo_Tcp_SessId_tlast_V_full   ),
+  //  .wr_en  (ssNRC_Fifo_Tcp_SessId_tlast_V_write  ),
+  //  .dout   (ssFifo_FMC_Tcp_SessId_tlast_V_dout   ),
+  //  .empty  (ssFifo_FMC_Tcp_SessId_tlast_V_empty  ),
+  //  .rd_en  (ssFifo_FMC_Tcp_SessId_tlast_V_read   )
+  //);
 
 
   NetworkRoutingCore NRC (
@@ -1867,15 +1873,18 @@ module Shell_Themisto # (
     .siFMC_Tcp_data_V_tlast_V_dout       ( ssFifo_NRC_Tcp_Data_tlast_V_dout)     ,
     .siFMC_Tcp_data_V_tlast_V_empty_n    (~ssFifo_NRC_Tcp_Data_tlast_V_empty)  ,
     .siFMC_Tcp_data_V_tlast_V_read       ( ssFifo_NRC_Tcp_Data_tlast_V_read)   ,
-    .siFMC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
-    .siFMC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
-    .siFMC_Tcp_SessId_V_tdata_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
-    .siFMC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_NRC_Tcp_SessId_tkeep_V_dout)   ,
-    .siFMC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tkeep_V_empty),
-    .siFMC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_NRC_Tcp_SessId_tkeep_V_read) ,
-    .siFMC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_NRC_Tcp_SessId_tlast_V_dout)   ,
-    .siFMC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tlast_V_empty),
-    .siFMC_Tcp_SessId_V_tlast_V_read     ( ssFifo_NRC_Tcp_SessId_tlast_V_read) ,
+    .siFMC_Tcp_SessId_V_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
+    .siFMC_Tcp_SessId_V_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
+    .siFMC_Tcp_SessId_V_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
+    //.siFMC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
+    //.siFMC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
+    //.siFMC_Tcp_SessId_V_tdata_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
+    //.siFMC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_NRC_Tcp_SessId_tkeep_V_dout)   ,
+    //.siFMC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tkeep_V_empty),
+    //.siFMC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_NRC_Tcp_SessId_tkeep_V_read) ,
+    //.siFMC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_NRC_Tcp_SessId_tlast_V_dout)   ,
+    //.siFMC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tlast_V_empty),
+    //.siFMC_Tcp_SessId_V_tlast_V_read     ( ssFifo_NRC_Tcp_SessId_tlast_V_read) ,
     .soFMC_Tcp_data_V_tdata_V_din       ( ssNRC_Fifo_Tcp_Data_tdata_V_din)     ,
     .soFMC_Tcp_data_V_tdata_V_full_n    (~ssNRC_Fifo_Tcp_Data_tdata_V_full)  ,
     .soFMC_Tcp_data_V_tdata_V_write     ( ssNRC_Fifo_Tcp_Data_tdata_V_write)   ,
@@ -1885,15 +1894,18 @@ module Shell_Themisto # (
     .soFMC_Tcp_data_V_tlast_V_din       ( ssNRC_Fifo_Tcp_Data_tlast_V_din)     ,
     .soFMC_Tcp_data_V_tlast_V_full_n    (~ssNRC_Fifo_Tcp_Data_tlast_V_full)  ,
     .soFMC_Tcp_data_V_tlast_V_write     ( ssNRC_Fifo_Tcp_Data_tlast_V_write)   ,
-    .soFMC_Tcp_SessId_V_tdata_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
-    .soFMC_Tcp_SessId_V_tdata_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
-    .soFMC_Tcp_SessId_V_tdata_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
-    .soFMC_Tcp_SessId_V_tkeep_V_din     ( ssNRC_Fifo_Tcp_SessId_tkeep_V_din)   ,
-    .soFMC_Tcp_SessId_V_tkeep_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tkeep_V_full),
-    .soFMC_Tcp_SessId_V_tkeep_V_write   ( ssNRC_Fifo_Tcp_SessId_tkeep_V_write) ,
-    .soFMC_Tcp_SessId_V_tlast_V_din     ( ssNRC_Fifo_Tcp_SessId_tlast_V_din)   ,
-    .soFMC_Tcp_SessId_V_tlast_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tlast_V_full),
-    .soFMC_Tcp_SessId_V_tlast_V_write   ( ssNRC_Fifo_Tcp_SessId_tlast_V_write) ,
+    .soFMC_Tcp_SessId_V_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    .soFMC_Tcp_SessId_V_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
+    .soFMC_Tcp_SessId_V_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
+    //.soFMC_Tcp_SessId_V_tdata_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    //.soFMC_Tcp_SessId_V_tdata_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
+    //.soFMC_Tcp_SessId_V_tdata_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
+    //.soFMC_Tcp_SessId_V_tkeep_V_din     ( ssNRC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    //.soFMC_Tcp_SessId_V_tkeep_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tkeep_V_full),
+    //.soFMC_Tcp_SessId_V_tkeep_V_write   ( ssNRC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    //.soFMC_Tcp_SessId_V_tlast_V_din     ( ssNRC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    //.soFMC_Tcp_SessId_V_tlast_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tlast_V_full),
+    //.soFMC_Tcp_SessId_V_tlast_V_write   ( ssNRC_Fifo_Tcp_SessId_tlast_V_write) ,
     .soUOE_Udp_Data_TDATA             (ssNRC_NTS0_Udp_Data_tdata),
     .soUOE_Udp_Data_TKEEP             (ssNRC_NTS0_Udp_Data_tkeep),
     .soUOE_Udp_Data_TLAST             (ssNRC_NTS0_Udp_Data_tlast),
