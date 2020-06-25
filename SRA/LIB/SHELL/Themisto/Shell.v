@@ -802,7 +802,7 @@ module Shell_Themisto # (
   wire   [  3: 0]  miDCP_ROL_Mem_Mp1_AWID;
   wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_AWADDR;
   wire   [  7: 0]  miDCP_ROL_Mem_Mp1_AWLEN;
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_AWSIZE;
+  wire   [  2: 0]  miDCP_ROL_Mem_Mp1_AWSIZE;
   wire   [  1: 0]  miDCP_ROL_Mem_Mp1_AWBURST;
   wire             miDCP_ROL_Mem_Mp1_AWVALID;
   wire             miDCP_ROL_Mem_Mp1_AWREADY;
@@ -818,7 +818,7 @@ module Shell_Themisto # (
   wire   [  3: 0]  miDCP_ROL_Mem_Mp1_ARID;
   wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_ARADDR;
   wire   [  7: 0]  miDCP_ROL_Mem_Mp1_ARLEN;
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_ARSIZE;
+  wire   [  2: 0]  miDCP_ROL_Mem_Mp1_ARSIZE;
   wire   [  1: 0]  miDCP_ROL_Mem_Mp1_ARBURST;
   wire             miDCP_ROL_Mem_Mp1_ARVALID;
   wire             miDCP_ROL_Mem_Mp1_ARREADY;
@@ -828,10 +828,10 @@ module Shell_Themisto # (
   wire             miDCP_ROL_Mem_Mp1_RLAST;
   wire             miDCP_ROL_Mem_Mp1_RVALID;
   wire             miDCP_ROL_Mem_Mp1_RREADY;
-  wire   [ 1: 0]   piDCP_ROL_Mmio_Mc1_MemTestStat;
-  wire    [15:0]   piDCP_ROL_Mmio_RdReg;
-  wire   [ 31:0]   poDCP_ROL_Fmc_Rank;
-  wire   [ 31:0]   poDCP_ROL_Fmc_Size;
+  wire   [  1: 0]  piDCP_ROL_Mmio_Mc1_MemTestStat;
+  wire   [ 15: 0]  piDCP_ROL_Mmio_RdReg;
+  wire   [ 31: 0]  poDCP_ROL_Fmc_Rank;
+  wire   [ 31: 0]  poDCP_ROL_Fmc_Size;
  
 
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
@@ -1587,6 +1587,7 @@ module Shell_Themisto # (
     .m_axi_boHWICAP_ARVALID  (ssFMC_HWICAP_Axi_arvalid), 
     .m_axi_boHWICAP_ARREADY  (ssFMC_HWICAP_Axi_arready),
     .m_axi_boHWICAP_RDATA    (ssFMC_HWICAP_Axi_rdata),
+    .m_axi_boHWICAP_RLAST    (1), //TODO: valid?
     .m_axi_boHWICAP_RRESP    (ssFMC_HWICAP_Axi_rresp),
     .m_axi_boHWICAP_RVALID   (ssFMC_HWICAP_Axi_rvalid),
     .m_axi_boHWICAP_RREADY   (ssFMC_HWICAP_Axi_rready),
@@ -1611,6 +1612,7 @@ module Shell_Themisto # (
     .m_axi_boNRC_ctrlLink_RVALID         (ssFMC_NRC_ctrlLink_Axi_RVALID),
     .m_axi_boNRC_ctrlLink_RREADY         (ssFMC_NRC_ctrlLink_Axi_RREADY),
     .m_axi_boNRC_ctrlLink_RDATA          (ssFMC_NRC_ctrlLink_Axi_RDATA),
+    .m_axi_boNRC_ctrlLink_RLAST          (1), //TODO: valid?
     .m_axi_boNRC_ctrlLink_RRESP          (ssFMC_NRC_ctrlLink_Axi_RRESP),
     .m_axi_boNRC_ctrlLink_BVALID         (ssFMC_NRC_ctrlLink_Axi_BVALID),
     .m_axi_boNRC_ctrlLink_BREADY         (ssFMC_NRC_ctrlLink_Axi_BREADY),
