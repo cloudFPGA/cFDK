@@ -1573,6 +1573,8 @@ module Shell_Themisto # (
     .piTime_minutes_V_ap_vld  (1),
     .piTime_hours_V           (sTIME_Broadcast_hours),
     .piTime_hours_V_ap_vld    (1),
+    .piRole_mmio_V            (piDCP_ROL_Mmio_RdReg),
+    .piRole_mmio_V_ap_vld     (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
     .m_axi_boHWICAP_AWREADY  (ssFMC_HWICAP_Axi_awready),
