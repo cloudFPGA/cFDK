@@ -613,7 +613,7 @@ void nrc_main(
     processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
   }
 
-  if(*layer_7_enabled == 1)
+  if(*layer_7_enabled == 1 && *role_decoupled == 0)
   { // looks like only we were reset
     // since the user cannot close ports (up to now), the > should work...
     if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
