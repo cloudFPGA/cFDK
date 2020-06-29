@@ -1426,7 +1426,8 @@ bool pTRIF_Send_Connect(
         int                         &nrError,
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
-        stream<LE_SockAddr>         &soTOE_OpnReq,
+        //OBSOLETE_20200629 stream<LE_SockAddr>         &soTOE_OpnReq,
+        stream<SockAddr>            &soTOE_OpnReq,
         stream<OpenStatus>          &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TRIF/Send/Connect()");
@@ -1438,8 +1439,9 @@ bool pTRIF_Send_Connect(
 
     bool rc = false;
     // Prepare to open a new connection
-    LE_SockAddr le_HostServerSocket(LE_SockAddr(byteSwap32(aSocketPair.dst.addr),
-                                                byteSwap16(aSocketPair.dst.port)));
+    //OBSOLETE_20200629 LE_SockAddr le_HostServerSocket(LE_SockAddr(byteSwap32(aSocketPair.dst.addr),
+    //OBSOLETE_20200629 LE_SockAddr                                                 byteSwap16(aSocketPair.dst.port)));
+    SockAddr hostServerSocket(SockAddr(aSocketPair.dst.addr, aSocketPair.dst.port));
     static int openFsm = 0;
 
     switch (openFsm) {
@@ -1457,10 +1459,12 @@ bool pTRIF_Send_Connect(
             } while(dynamicPorts.find(aSocketPair.src.port) != dynamicPorts.end());
         }
 
-        soTOE_OpnReq.write(le_HostServerSocket);
+        //OBSOLETE_20200629 soTOE_OpnReq.write(le_HostServerSocket);
+        soTOE_OpnReq.write(hostServerSocket);
         if (DEBUG_LEVEL & TRACE_TRIF) {
             printInfo(myName, "The FPGA client is requesting to connect to the following HOST socket: \n");
-            printSockAddr(myName, le_HostServerSocket);
+            //OBSOLETE_20200629 printSockAddr(myName, le_HostServerSocket);
+            printSockAddr(myName, hostServerSocket);
         }
         watchDogTimer = FPGA_CLIENT_CONNECT_TIMEOUT;
         openFsm++;
@@ -1771,7 +1775,8 @@ void pTRIF_Send(
         ofstream                &ipTxGoldFile,
         int                     &apRx_TcpBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<LE_SockAddr>     &soTOE_OpnReq,
+        //OBSOLETE_20200629 stream<LE_SockAddr>     &soTOE_OpnReq,
+        stream<SockAddr>        &soTOE_OpnReq,
         stream<OpenStatus>      &siTOE_OpnRep,
         stream<SessionId>       &soTOE_Meta,
         stream<AxiWord>         &soTOE_Data,
@@ -2416,7 +2421,8 @@ int main(int argc, char *argv[]) {
             ssTRIF_TOE_Data,   ssTRIF_TOE_Meta,
             ssTOE_TRIF_DSts,
             //-- TRIF / Open Interfaces
-            ssTRIF_TOE_OpnReq, ssTOE_TRIF_OpnRep,
+            ssTRIF_TOE_OpnReq,
+            ssTOE_TRIF_OpnRep,
             //-- TRIF / Close Interfaces
             ssTRIF_TOE_ClsReq,
             //-- MEM / Rx PATH / S2MM Interface
