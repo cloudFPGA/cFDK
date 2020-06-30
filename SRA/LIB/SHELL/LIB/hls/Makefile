@@ -11,14 +11,14 @@
 # ******************************************************************************
 
 
-.PHONY: all clean NTS fmc nrc toe
+.PHONY: all clean NTS fmc nrc
 
-all:	NTS toe fmc nrc  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	NTS fmc nrc  ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:	NTS.csim toe.csim cam.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
+csim:	NTS.csim fmc.csim nrc.csim  ## Runs HLS C simulation on all sub-directories
 
 #TODO currently excluded: nrc.cosim
-cosim: NTS.cosim toe.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: NTS.cosim fmc.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

@@ -21,9 +21,7 @@ ipName = uoe
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean csim cosim csynth project regression
-
-all: ${ipName}_prj/solution1/impl/ip
+.PHONY: all clean csim cosim csynth export project regression rtlSyn rtlImpl
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
@@ -37,6 +35,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip
 
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj

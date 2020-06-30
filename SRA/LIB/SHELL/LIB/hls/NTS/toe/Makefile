@@ -6,11 +6,12 @@
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
 # * Description : A makefile that synthesizes and packages the current HLS core
-# *               as an IP.
+# *                as an IP.
 # * 
 # * Synopsis:
+# *   make help    : Displays a help message.
+# *   make clean   : Cleanup of the current directory.
 # *   make         : Runs the default build for this core.
-# *   make help    : Shows a helper message. 
 # *
 # ******************************************************************************
 
@@ -18,12 +19,9 @@
 ipName = toe
 
 # Dependencies
-#SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 SRC_DEPS := $(shell find ./src/ -type f | grep -Ev "(prj)|(obsolete)|\ " | grep -E "\.[h|c]pp")
 
-.PHONY: all clean help csim csynth cosim project regression
-
-all: ${ipName}_prj/solution1/impl/ip src/tx_engine src/rx_engine
+.PHONY: all clean help csim csynth cosim export project regression rtlSyn rtlImpl
 
 src/tx_engine: $(SRC_DEPS)
 	@$(MAKE) -C src/tx_engine
@@ -35,7 +33,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../../LIB/.ip_guard
+	@touch ../../../../LIB/.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
@@ -43,6 +41,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip src/tx_engine src/rx_engine
 
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj

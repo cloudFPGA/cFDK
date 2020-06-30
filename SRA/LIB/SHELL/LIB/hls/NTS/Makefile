@@ -5,19 +5,19 @@
 # * Created : Apr 2020
 # * Authors : Francois Abel, Burkhard Ringlein
 # *
-# * Description : A makefile that invokes all the HLS synthesis batches located 
+# * Description : A makefile that invokes all the HLS synthesis scripts located 
 # *   in the current NTS directory and sub-directories.
 # *
 # ******************************************************************************
 
 
-.PHONY: all arp clean cam icmp iprx iptx rlb uoe 
+.PHONY: all arp clean cam icmp iprx iptx rlb toe uoe 
 
-all:   arp       cam       icmp       iprx       iptx       rlb       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   arp       cam       icmp       iprx       iptx       rlb       toe       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:  arp.csim  cam.csim  icmp.csim  iprx.csim  iptx.csim  rlb.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
+csim:  arp.csim  cam.csim  icmp.csim  iprx.csim  iptx.csim  rlb.csim  toe.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
 
-cosim: arp.cosim cam.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: arp.cosim cam.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim toe.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

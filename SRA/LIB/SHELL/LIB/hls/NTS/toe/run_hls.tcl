@@ -57,14 +57,9 @@ add_files ${currDir}/src/${projectName}_utils.cpp
 add_files ${currDir}/test/test_${projectName}_utils.cpp
 
 add_files ${srcDir}/ack_delay/ack_delay.cpp
-#OBSOLETE_20191202 add_files ${srcDir}/close_timer/close_timer.cpp
 add_files ${srcDir}/event_engine/event_engine.cpp
 add_files ${srcDir}/port_table/port_table.cpp
-#OBSOLETE_20191202 add_files ${srcDir}/probe_timer/probe_timer.cpp
-#OBSOLETE_20191202 add_files ${srcDir}/retransmit_timer/retransmit_timer.cpp
 add_files ${srcDir}/rx_app_interface/rx_app_interface.cpp
-#OBSOLETE_20191206 add_files ${srcDir}/rx_app_if/rx_app_if.cpp
-#OBSOLETE_20191206 add_files ${srcDir}/rx_app_stream_if/rx_app_stream_if.cpp
 add_files ${srcDir}/rx_engine/src/rx_engine.cpp
 add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
@@ -72,7 +67,6 @@ add_files ${srcDir}/state_table/state_table.cpp
 add_files ${srcDir}/timers/timers.cpp
 add_files ${srcDir}/toe_utils.cpp
 add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
-#OBSOLETE_20191211 add_files ${srcDir}/tx_app_stream/tx_app_stream.cpp
 add_files ${srcDir}/tx_engine/src/tx_engine.cpp
 add_files ${srcDir}/tx_sar_table/tx_sar_table.cpp
 
@@ -127,6 +121,7 @@ config_rtl -reset control
 #------------------------------------------------------------------------------------------------
 config_compile -name_max_length 128 -pipeline_loops 0
 
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
@@ -165,6 +160,7 @@ if { $hlsCSim} {
     puts "#############################################################"    
 }
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} { 
