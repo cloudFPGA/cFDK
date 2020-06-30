@@ -1484,11 +1484,11 @@ public:  // [FIXME - Swap order. status/segLen
  * Application Open Request
  *  The socket address that the application
  *  wants to open.
- *  [FIXME - Must switch to NETWORK ORDER]
  *  [FYI] - The 1st element appearing in the class
  *  is aligned on the LSB of the Axis vector.
  ***********************************************/
-typedef LE_SockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
+//OBSOLETE_20200629 typedef LE_SockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
+typedef SockAddr AppOpnReq;
 
 /***********************************************
  * Application Open Reply
@@ -1558,7 +1558,6 @@ void toe(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        //OBSOLETE_20200314 LE_Ip4Addr                               piMMIO_IpAddr,
         Ip4Addr                                  piMMIO_IpAddr,
 
         //------------------------------------------------------

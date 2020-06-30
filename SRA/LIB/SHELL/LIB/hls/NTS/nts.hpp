@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : nts.hpp
  * @brief      : Definition of the Network Transport Stack (NTS) component
  *               as if it was an HLS IP core.
@@ -23,20 +23,15 @@
  * Component   : Shell
  * Language    : Vivado HLS
  *
- * \ingroup NTS_UOE
- * \addtogroup NTS_UOE
+ * \ingroup NTS
+ * \addtogroup NTS
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
-#ifndef NTS_H_
-#define NTS_H_
+#ifndef _NTS_H_
+#define _NTS_H_
 
 #include "nts_types.hpp"
-
-//#include <hls_stream.h>
-
-//#include "AxisEth.hpp"   // ETHernet
-//#include "AxisIp4.hpp"   // IPv4
 
 using namespace hls;
 
@@ -53,12 +48,11 @@ typedef UdpLen       UdpAppDLen;
  **********************************************************/
 
 
-/*************************************************************************
+/*******************************************************************************
  *
  * ENTITY - NETWORK TRANSPORT STACK (NTS)
  *
- *
- *************************************************************************/
+ *******************************************************************************/
 void nts(
 
         //------------------------------------------------------

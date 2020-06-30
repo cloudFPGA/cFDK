@@ -82,7 +82,8 @@ class SegMemMeta {
  *****************************************************************************/
 void tx_app_interface(
         //-- TRIF / Open-Close Interfaces
-        stream<LE_SockAddr>            &siTRIF_OpnReq,
+        //OBSOLETE_20200629 stream<LE_SockAddr>  &siTRIF_OpnReq,
+        stream<SockAddr>               &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_OpnRep,
         stream<AppClsReq>              &siTRIF_ClsReq,
         //-- TRIF / Data Stream Interfaces
@@ -98,21 +99,22 @@ void tx_app_interface(
         stream<SessionState>           &siSTt_SessStateRep,
         stream<StateQuery>             &soSTt_AcceptStateQry,
         stream<SessionState>           &siSTt_AcceptStateRep,
-		//-- Session Lookup Controller Interface
-        stream<LE_SocketPair>          &soSLc_SessLookupReq,
+        //-- Session Lookup Controller Interface
+        //OBSOLETE_20200629 stream<LE_SocketPair>  &soSLc_SessLookupReq,
+        stream<SocketPair>             &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
-		//-- Port Table Interfaces
+        //-- Port Table Interfaces
         stream<ReqBit>                 &soPRt_GetFreePortReq,
         stream<TcpPort>                &siPRt_GetFreePortRep,
-		//-- Tx SAR TAble Interfaces
+        //-- Tx SAR TAble Interfaces
         stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<TAiTxSarPush>           &soTSt_PushCmd,
-		//-- Rx Engine Interface
+        //-- Rx Engine Interface
         stream<OpenStatus>             &siRXe_SessOpnSts,
-		//-- Event Engine Interface
+        //-- Event Engine Interface
         stream<Event>                  &soEVe_Event,
-		//-- Timers Interface
+        //-- Timers Interface
         stream<OpenStatus>             &siTIm_Notif,
-		//-- MMIO / IPv4 Address
+        //-- MMIO / IPv4 Address
         LE_Ip4Addr                      piMMIO_IpAddr
 );

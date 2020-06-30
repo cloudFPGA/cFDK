@@ -53,7 +53,7 @@ entity AddressResolutionProcess is
     -- MMIO Interfaces
     --------------------------------------------------------
     piMMIO_MacAddress                : in    std_logic_vector(47 downto 0);
-    piMMIO_IpAddress                 : in    std_logic_vector(31 downto 0);
+    piMMIO_Ip4Address                : in    std_logic_vector(31 downto 0);
     --------------------------------------------------------
     -- IPRX Interface
     --------------------------------------------------------
@@ -98,7 +98,7 @@ architecture Structural of AddressResolutionProcess is
       aresetn                 : in  std_logic;
       -- MMIO Interfaces
       piMMIO_MacAddress_V     : in  std_logic_vector(47 downto 0);
-      piMMIO_IpAddress_V      : in  std_logic_vector(31 downto 0);
+      piMMIO_Ip4Address_V     : in  std_logic_vector(31 downto 0);
       -- IPRX Interface
       siIPRX_Data_TDATA       : in  std_logic_vector(63 downto 0);
       siIPRX_Data_TKEEP       : in  std_logic_vector( 7 downto 0);
@@ -233,7 +233,7 @@ begin
       aresetn                    =>  sReset_n,
       -- MMIO Interfaces
       piMMIO_MacAddress_V        =>  piMMIO_MacAddress,
-      piMMIO_IpAddress_V         =>  piMMIO_IpAddress,
+      piMMIO_Ip4Address_V        =>  piMMIO_Ip4Address,
       -- IPRX Interface                  
       siIPRX_Data_TDATA          =>  siIPRX_Data_tdata,     
       siIPRX_Data_TKEEP          =>  siIPRX_Data_tkeep,

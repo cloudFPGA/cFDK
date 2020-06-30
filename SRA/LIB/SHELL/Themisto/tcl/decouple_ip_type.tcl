@@ -97,7 +97,7 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         miROL_Mem_Mp1_RVALID           { DIRECTION in  } \
         miROL_Mem_Mp1_RREADY           { DIRECTION out } \
         piROL_Mmio_Mc1_MemTestStat     { DIRECTION out WIDTH   2 }
-        piROL_Mmio_RdReg               { DIRECTION out WIDTH  16 DECOUPLED_VALUE 0xadde } \
+        piROL_Mmio_RdReg               { DIRECTION out WIDTH  16 DECOUPLED_VALUE 0xdead } \
         poROL_Fmc_Rank                 { DIRECTION in  WIDTH  32 } \
         poROL_Fmc_Size                 { DIRECTION in  WIDTH  32 } \
     }}}}]

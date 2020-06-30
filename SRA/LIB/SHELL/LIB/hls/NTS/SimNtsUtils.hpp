@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimNtsUtils.hpp
  * @brief      : Utilities for the simulation of the Network-Transport-Stack
  *               (NTS) components.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
+ * \{
+ *******************************************************************************/
 
-#ifndef SIM_NTS_UTILS_H_
-#define SIM_NTS_UTILS_H_
+#ifndef _SIM_NTS_UTILS_H_
+#define _SIM_NTS_UTILS_H_
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -93,8 +96,8 @@ using namespace std;
 #ifndef __SYNTHESIS__
   bool readAxisRawFromLine    (AxisRaw  &axiRaw,   string stringBuffer);
   bool readFpgaSocketFromLine (SockAddr &hostSock, string stringBuffer);
-  bool readHostSocketFromLine (SockAddr &hostSock, string stringBuffer);
   bool readFpgaSndPortFromLine(Ly4Port  &port,     string stringBuffer);
+  bool readHostSocketFromLine (SockAddr &hostSock, string stringBuffer);
 #endif
 
 /******************************************************************************
@@ -102,6 +105,8 @@ using namespace std;
  ******************************************************************************/
 #ifndef __SYNTHESIS__
   bool readAxisRawFromFile  (AxisRaw    &axisRaw,    ifstream &inpFileStream);
+  bool readTbParamFromFile  (const string paramName, const string datFile,
+                             unsigned int &paramVal);
   bool writeAxisRawToFile   (AxisRaw    &axisRaw,    ofstream &outFileStream);
   bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream);
   template <int D> \
@@ -129,3 +134,5 @@ using namespace std;
 #endif
 
 #endif
+
+/*! \} */

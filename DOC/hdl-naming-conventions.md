@@ -133,7 +133,7 @@ A variable name might be prefixed with the letter '_**v**_'  in lower-case.
  <br>
 
 ### <FONT COLOR="Green">Suffixes</Font>
-| Prefix        | Structure | Description                     
+| Suffix        | Structure | Description                     
 |:--------------|:----------|:-------------------------------
 | **Add\|Addr** | Signal    | An address type of signal
 | **Clk\|Clock**| Signal    | A clock type of signal
@@ -141,7 +141,7 @@ A variable name might be prefixed with the letter '_**v**_'  in lower-case.
 | **Comb**      | Process   | A combinational type of process  
 | **Reg**       | Process   | A register type of process    
 | **Rst\|Reset**| Signal    | A reset type of signal
-| **_a**        | Signal    | An synchronous type of signal
+| **_a**        | Signal    | An asynchronous type of signal
 | **_n**        | Signal    | An active low type of signal
 | **_tdata**    | Stream    | A streamed data type
 | **_tkeep**    | Stream    | A streamed keep type

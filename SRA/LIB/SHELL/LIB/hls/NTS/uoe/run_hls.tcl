@@ -7,7 +7,6 @@
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the UOE core 
 # *   module used by the SHELL of the cloudFPGA module.
-# *   project.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *

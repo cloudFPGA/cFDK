@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : SimNtsUtils.cpp
  * @brief      : Utilities for the simulation of the Network-Transport-Stack
  *               (NTS) cores.
@@ -23,7 +23,10 @@
  * Component   : Shell, Network Transport Session (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS_SIM
+ * \addtogroup NTS_SIM
+ * \{
+ *******************************************************************************/
 
 #include "SimNtsUtils.hpp"
 
@@ -31,21 +34,21 @@ using namespace std;
 using namespace hls;
 
 /******************************************************************************
- * DEBUG PRINT HELPERS
+ *** DEBUG PRINT HELPERS
  ******************************************************************************/
 #define THIS_NAME "SimNtsUtils"
 
 /******************************************************************************
- * SIMULATION UTILITY HELPERS
+ *** SIMULATION UTILITY HELPERS
  ******************************************************************************/
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Checks if a file has a ".dat" extension.
  *
  * @param[in]   fileName,    the name of the file to assess.
  * @return      True/False.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool isDatFile(string fileName) {
     if (fileName.find_last_of ( '.' ) != string::npos) {
         string extension (fileName.substr(fileName.find_last_of ( '.' ) + 1 ) );
@@ -58,6 +61,7 @@ bool isDatFile(string fileName) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Checks if a string contains an IP address represented in dot-decimal
  *        notation.
@@ -65,7 +69,6 @@ bool isDatFile(string fileName) {
  * @param[in]  ipAddStr  The string to assess.
  * @return     True/False.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool isDottedDecimal(string ipStr) {
 	vector<string>  stringVector;
 
@@ -77,13 +80,13 @@ bool isDottedDecimal(string ipStr) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Checks if a string contains a hexadecimal number.
  *
  * @param[in]  str  The string to assess.
  * @return     True/False.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool isHexString(string str) {
     char     *pEnd;
     long int  res;
@@ -103,6 +106,7 @@ bool isHexString(string str) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Converts an IPv4 address represented with a dotted-decimal string
  *        into an UINT32.
@@ -110,7 +114,6 @@ bool isHexString(string str) {
  * @param[in]   inputNumber  The string to convert.
  * @return      ap_uint<32>.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 ap_uint<32> myDottedDecimalIpToUint32(string ipStr) {
     vector<string>  stringVector;
     ap_uint<32>     ip4Uint = 0x00000000;
@@ -126,6 +129,7 @@ ap_uint<32> myDottedDecimalIpToUint32(string ipStr) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Brakes a string into tokens by using the 'delimiter' character.
  *
@@ -134,7 +138,6 @@ ap_uint<32> myDottedDecimalIpToUint32(string ipStr) {
  *
  * @return a vector of strings.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 vector<string> myTokenizer(string strBuff, char delimiter) {
     vector<string>   tmpBuff;
     int              tokenCounter = 0;
@@ -169,13 +172,13 @@ vector<string> myTokenizer(string strBuff, char delimiter) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Converts an UINT64 into a string of 16 HEX characters.
  *
  * @param[in]   inputNumber  The UINT64 to convert.
  * @return      a string of 16 HEX characters.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 string myUint64ToStrHex(ap_uint<64> inputNumber) {
     string                    outputString    = "0000000000000000";
     unsigned short int        tempValue       = 16;
@@ -193,13 +196,13 @@ string myUint64ToStrHex(ap_uint<64> inputNumber) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Converts an UINT8 into a string of 2 HEX characters.
  *
  * @param[in]   inputNumber  The UINT8 to convert.
  * @return      a string of 2 HEX characters.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 string myUint8ToStrHex(ap_uint<8> inputNumber) {
     string                      outputString    = "00";
     unsigned short int          tempValue       = 16;
@@ -217,13 +220,13 @@ string myUint8ToStrHex(ap_uint<8> inputNumber) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /*******************************************************************************
  * @brief Converts a string of 16 HEX characters into an UINT64.
  *
  * @param[in] inputNumber  The string to convert.
  * @return    ap_uint<64>.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 ap_uint<64> myStrHexToUint64(string dataString) {
     ap_uint<64> tempOutput          = 0;
     unsigned short int  tempValue   = 16;
@@ -249,13 +252,13 @@ ap_uint<64> myStrHexToUint64(string dataString) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Converts a string of 2 HEX characters into an UINT8.
  *
  * @param[in]  inputNumber  The string to convert.
  * @return     ap_uint<8>.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 ap_uint<8> myStrHexToUint8(string keepString) {
     ap_uint<8>               tempOutput = 0;
     unsigned short int       tempValue  = 16;
@@ -281,6 +284,7 @@ ap_uint<8> myStrHexToUint8(string keepString) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Compares 2 files line-by-line, up to length of the 2nd file.
  *
@@ -301,7 +305,6 @@ ap_uint<8> myStrHexToUint8(string keepString) {
  *  is creating some  used to overcome  the Xilinx C/RTL cosim
  *  at the the HLSat the
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 int myDiffTwoFiles(string dataFileName, string goldFileName) {
     ifstream    dataFileStream;
     ifstream    goldFileStream;
@@ -341,9 +344,10 @@ int myDiffTwoFiles(string dataFileName, string goldFileName) {
 #endif
 
 /******************************************************************************
- * LINE READ & WRITE HELPERS
+ *** LINE READ & WRITE HELPERS
  ******************************************************************************/
 
+#ifndef __SYNTHESIS__
 /*******************************************************************************
  * @brief Retrieve an AxisRaw chunk from a string.
  *
@@ -352,7 +356,6 @@ int myDiffTwoFiles(string dataFileName, string goldFileName) {
  *
  * @return true if successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
     vector<string> stringVector;
     stringVector = myTokenizer(stringBuffer, ' ');
@@ -382,6 +385,7 @@ bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Dump an Axis raw data chunk to a file.
  *
@@ -390,7 +394,6 @@ bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
  *
  * @return true upon successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
     if (not outFileStream.is_open()) {
         printError(THIS_NAME, "File is not opened.\n");
@@ -409,6 +412,7 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Retrieve an Fpgs socket from a string.
  *
@@ -417,7 +421,6 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
  *
  * @return true if successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool readFpgaSocketFromLine(SockAddr &fpgaSock, string stringBuffer) {
     vector<string> stringVector;
     stringVector = myTokenizer(stringBuffer, ' ');
@@ -449,6 +452,7 @@ bool readFpgaSocketFromLine(SockAddr &fpgaSock, string stringBuffer) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Retrieve a Host socket from a string.
  *
@@ -457,7 +461,6 @@ bool readFpgaSocketFromLine(SockAddr &fpgaSock, string stringBuffer) {
  *
  * @return true if successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool readHostSocketFromLine(SockAddr &hostSock, string stringBuffer) {
     vector<string> stringVector;
     stringVector = myTokenizer(stringBuffer, ' ');
@@ -489,6 +492,7 @@ bool readHostSocketFromLine(SockAddr &hostSock, string stringBuffer) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Retrieve an FPGA send port from a string.
  *
@@ -497,7 +501,6 @@ bool readHostSocketFromLine(SockAddr &hostSock, string stringBuffer) {
  *
  * @return true if successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool readFpgaSndPortFromLine(Ly4Port &port, string stringBuffer) {
     vector<string> stringVector;
     stringVector = myTokenizer(stringBuffer, ' ');
@@ -519,9 +522,10 @@ bool readFpgaSndPortFromLine(Ly4Port &port, string stringBuffer) {
 #endif
 
 /******************************************************************************
- * FILE READ & WRITER HELPERS
+ *** FILE READ & WRITER HELPERS
  ******************************************************************************/
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Retrieve an Axis raw data chunk from a file.
  *
@@ -530,7 +534,6 @@ bool readFpgaSndPortFromLine(Ly4Port &port, string stringBuffer) {
  *
  * @return true if successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 bool readAxisRawFromFile(AxisRaw &axisRaw, ifstream &inpFileStream) {
     string          stringBuffer;
     vector<string>  stringVector;
@@ -551,6 +554,67 @@ bool readAxisRawFromFile(AxisRaw &axisRaw, ifstream &inpFileStream) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
+/***************************************************************************
+ * @brief Retrieve a testbench parameter from a DAT file.
+ *
+ * @param[in]  paramName The name of the parameter to read.
+ * @param[in]  datFile   The input file to read from.
+ * @param[out] paramVal  A ref. to the parameter value.
+ *
+ * @return true if successful, otherwise false.
+ ***************************************************************************/
+bool readTbParamFromFile(const string paramName, const string datFile,
+                         unsigned int &paramVal) {
+    ifstream        inpFileStream;
+    char            currPath[FILENAME_MAX];
+    string          rxStringBuffer;
+    vector<string>  stringVector;
+
+    if (not isDatFile(datFile)) {
+        printError(THIS_NAME, "Input test vector file \'%s\' is not of type \'DAT\'.\n", datFile.c_str());
+        return(NTS_KO);
+    }
+    inpFileStream.open(datFile.c_str());
+    if (!inpFileStream) {
+        getcwd(currPath, sizeof(currPath));
+        printError(THIS_NAME, "Cannot open the file: %s \n\t (FYI - The current working directory is: %s) \n", datFile.c_str(), currPath);
+        return(NTS_KO);
+    }
+
+    do {
+        //-- READ ONE LINE AT A TIME FROM INPUT FILE ---------------
+        getline(inpFileStream, rxStringBuffer);
+        stringVector = myTokenizer(rxStringBuffer, ' ');
+        if (stringVector[0] == "") {
+            continue;
+        }
+        else if (stringVector[0].length() == 1) {
+            // By convention, a global parameter must start with a single 'G' character.
+            if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
+                if (stringVector[2] == paramName) {
+                    char * ptr;
+                    if (isDottedDecimal(stringVector[3])) {
+                        paramVal = myDottedDecimalIpToUint32(stringVector[3]);
+                    }
+                    else if (isHexString(stringVector[3])) {
+                        paramVal = strtoul(stringVector[3].c_str(), &ptr, 16);
+                    }
+                    else {
+                        paramVal = strtoul(stringVector[3].c_str(), &ptr, 10);
+                    }
+                    inpFileStream.close();
+                    return NTS_OK;
+                }
+            }
+        }
+    } while(!inpFileStream.eof());
+    inpFileStream.close();
+    return NTS_KO;
+}
+#endif
+
+#ifndef __SYNTHESIS__
 /*******************************************************************************
  * @brief Dump an AP_UINT to a file.
  *
@@ -560,7 +624,6 @@ bool readAxisRawFromFile(AxisRaw &axisRaw, ifstream &inpFileStream) {
  *
  * @return true upon successful, otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 template <int D> bool writeApUintToFile(ap_uint<D> &data, ofstream &outFileStream) {
     if (not outFileStream.is_open()) {
         printError(THIS_NAME, "File is not opened.\n");
@@ -583,6 +646,7 @@ template <int D> bool writeApUintToFile(ap_uint<D> &data, ofstream &outFileStrea
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /*****************************************************************************
  * @brief Dump a SocketPair to a file.
  *
@@ -591,7 +655,6 @@ template <int D> bool writeApUintToFile(ap_uint<D> &data, ofstream &outFileStrea
  *
  * @return true if successful, otherwise false.
  *****************************************************************************/
-#ifndef __SYNTHESIS__
 bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printError(THIS_NAME, "File is not opened.\n");
@@ -610,6 +673,7 @@ bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Initialize an Axi4-Stream (Axis) from a DAT file.
  *
@@ -622,7 +686,6 @@ bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream) {
  *
  * @return true successful,  otherwise false.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string ssName,
                 string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
     ifstream    inpFileStream;
@@ -672,6 +735,7 @@ template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string s
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /*******************************************************************************
  * @brief Empty an Axi4-Stream (Axis) to a DAT file.
  *
@@ -684,7 +748,6 @@ template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string s
  *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ssName, \
 		string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
 	ofstream    outFileStream;
@@ -742,6 +805,7 @@ template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ss
 }
 #endif
 
+#ifndef __SYNTHESIS__
 /******************************************************************************
  * @brief Create a bunch of fake local calls to functions as workaround to
  *         link errors related to template classes.
@@ -762,7 +826,6 @@ template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ss
  * @see
  *  [1] https://www.codeproject.com/Articles/48575/How-to-define-a-template-class-in-a-h-file-and-imp
  ******************************************************************************/
-#ifndef __SYNTHESIS__
 void _fakeCallTo_feedAxisAppFromFile() {
     stream<AxisApp> ss;
     int  nr1, nr2, nr3;
@@ -811,3 +874,5 @@ void _fakeCallTo_writeApUintToFile() {
     writeApUintToFile(data, ofs);
 }
 #endif
+
+/*! \} */

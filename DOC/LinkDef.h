@@ -7,7 +7,12 @@
  *
  *****************************************************************************/
 
-// cFDK : The root hierarchy
+
+/*****************************************************************************
+ *
+ *  Root Module
+ *
+ *****************************************************************************/
 
 /** \defgroup cFDK cFDK
  *
@@ -15,33 +20,36 @@
  */
 
 
-
-
-// cFDK submodule: SHELL Library
+/*****************************************************************************
+ *
+ *  cFDK : Submodules
+ *
+ *****************************************************************************/
 
 /** \defgroup ShellLib SHELL Library
  *  @ingroup cFDK
  * 
- *  \brief This is the SHELL library of cloudFPGA platform with the three basic components, i.e. NTS, FMC, NRC. The documentation of SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
+ *  \brief This is the SHELL library of cloudFPGA platform with its three basic components, i.e. NTS, FMC, NRC. The documentation of the SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
  */
 
-/** \defgroup NTS NTS
- *  @ingroup ShellLib
+/** \defgroup SRA SRA
+ *  @ingroup cFDK
  * 
- *  \brief Network Transport Stack (NTS). This is the component for the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
+ *  \brief Shell-Role-Architecture (SRA). To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA). The documentation of SRA is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#sras .
  */
 
-/** \defgroup NTS_SIM NTS Simulation
- *  @ingroup NTS
+/** \defgroup MIDLW MIDLW
+ *  @ingroup cFDK
  * 
- *  \brief Simulation support and utilities for the Network Transport Stack (NTS).
+ *  \brief The middleware of cloudFPGA. The documentation of middleware is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#midlw .
  */
 
-/** \defgroup NTS_UOE UDP Offload Engine (UOE).
- *  @ingroup NTS
- * 
- *  \brief This the UDP offload engine of the Network Transport Stack (NTS).
- */
+
+/*****************************************************************************
+ *
+ *  cFDK / ShellLib : Submodules
+ *
+ *****************************************************************************/
 
 /** \defgroup FMC FMC
  *  @ingroup ShellLib
@@ -55,17 +63,18 @@
  *  \brief Network Routing Core (NRC). The NRC is responsible for managing all UDP/TCP traffic of the FPGA. The documentation of NRC is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-routing-core-nrc .
  */
 
-
-
-
-
-// cFDK submodule: SRA
-
-/** \defgroup SRA SRA
- *  @ingroup cFDK
+/** \defgroup NTS NTS
+ *  @ingroup ShellLib
  * 
- *  \brief Shell-Role-Architecture (SRA). To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA). The documentation of SRA is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#sras .
+ *  \brief Network Transport Stack (NTS). This is the component for the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
  */
+
+
+/*****************************************************************************
+ *
+ *  cFDK / SRA : Submodules
+ *
+ *****************************************************************************/
 
 /** \defgroup Themisto Themisto
  *  @ingroup SRA
@@ -80,13 +89,79 @@
  */
 
 
+/*****************************************************************************
+ *
+ *  cFDK / ShellLib / FMC : Submodules
+ *
+ *****************************************************************************/
+
+// [TODO - Fill in here.]
 
 
-// cFDK submodule: MIDLW
+/*****************************************************************************
+ *
+ *  cFDK / ShellLib / NRC : Submodules
+ *
+ *****************************************************************************/
 
-/** \defgroup MIDLW MIDLW
- *  @ingroup cFDK
+// [TODO - Fill in here.]
+
+
+/*****************************************************************************
+ *
+ *  cFDK / ShellLib / NTS : Submodules
+ *
+ *****************************************************************************/
+
+/** \defgroup NTS_ARS ARS
+ *  @ingroup NTS
  * 
- *  \brief The middleware of cloudFPGA. The documentation of middleware is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#midlw .
+ *  \brief Address Resolution Server (ARS) of the Network Transport Stack (NTS).
  */
+
+/** \defgroup NTS_ICMP ICMP
+.
+ *  @ingroup NTS
+ * 
+ *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_IPRX IPRX
+ *  @ingroup NTS
+ * 
+ *  \brief IP Receiver packet handler (IPRX) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_IPTX IPTX
+ *  @ingroup NTS
+ * 
+ *  \brief IP Transmitter packet handler (IPTX) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_RLB RLB
+ *  @ingroup NTS
+ * 
+ *  \brief Ready Logic Barrier (RLB) for the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_TOE TOE
+ *  @ingroup NTS
+ * 
+ *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_UOE UOE
+ *  @ingroup NTS
+ * 
+ *  \brief UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_SIM SimNts
+
+ *  @ingroup NTS
+ * 
+ *  \brief Support and utilities for the simulation of the Network Transport Stack (NTS).
+ */
+
+
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : nts_types.hpp
  * @brief      : Definition of the types used by the Network Transport Stack
  *               (NTS) component of the cloudFPGA shell.
@@ -23,13 +23,13 @@
  * Component   : Shell
  * Language    : Vivado HLS
  *
- * \ingroup NTS_UOE
- * \addtogroup NTS_UOE
+ * \ingroup NTS
+ * \addtogroup NTS
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
-#ifndef NTS_TYPES_H_
-#define NTS_TYPES_H_
+#ifndef _NTS_TYPES_H_
+#define _NTS_TYPES_H_
 
 #include <hls_stream.h>
 
@@ -63,6 +63,9 @@ using namespace hls;
 #define FLAG_OFF    0
 #define FLAG_ON     1
 
+#define LKP_HIT     true
+#define LKP_NO_HIT  false
+
 #define STS_OK      1
 #define STS_KO      0
 #define STS_OPENED  1
@@ -88,10 +91,10 @@ static const ap_uint<16> MTU = 1500;
  *   - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
  ******************************************************************************/
 
-/*********************************************************
- * SINGLE BIT DEFINITIONS
- *********************************************************/
-typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+//========================================================
+//== SINGLE BIT DEFINITIONS
+//========================================================
+typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (e.g. OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
@@ -99,18 +102,23 @@ typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always exp
 typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
 typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
-typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
 
-typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
+//========================================================
+//== BOOLEAN DEFINITIONS
+//========================================================
+typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (e.g. OpenReq/OpenAck).
 typedef bool CmdBool;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool FlagBool; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+typedef bool FlagBool; // Flag       : Noon or verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
+typedef bool HitBool;  // Hit        : Noon or verb indicating a success (e.g. match). Does not expect a return from recipient.
 typedef bool ReqBool;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
 typedef bool RepBool;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
 typedef bool RspBool;  // Response   : Used when a reply does not go back to the source of the stimulus.
 typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
+typedef bool StsBool;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
+
 
 /******************************************************************************
  * DATA-LINK LAYER-2 - ETHERNET & ARP
@@ -120,9 +128,31 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  ******************************************************************************/
 
-/*********************************************************
- * ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
- *********************************************************/
+//=========================================================
+//== ETHERNET FRAME FIELDS - Constant Definitions
+//=========================================================
+
+// Ethernet Broadcast MAC Address
+#define ETH_BROADCAST_ADDR 0xFFFFFFFFFFFF
+
+// EtherType protocol numbers
+//OBSOLETE_20200617 #define IP4_PROTOCOL    0x0800
+#define ETH_ETHERTYPE_IP4 0x0800
+#define ETH_ETHERTYPE_ARP 0x0806
+
+//=========================================================
+//== ARP MESSAGE FIELDS - Constant Definitions
+//=========================================================
+#define ARP_HTYPE_ETHERNET 0x0001  // Hardware type for Ethernet
+#define ARP_PTYPE_IPV4     0x0800  // Protocol type for IPv4
+#define ARP_HLEN_ETHERNET       6  // Hardware addr length for Ethernet
+#define ARP_PLEN_IPV4           4  // Protocol addr length for IPv4
+#define ARP_OPER_REQUEST   0x0001  // Operation is request
+#define ARP_OPER_REPLY     0x0002  // Operation is reply
+
+//---------------------------------------------------------
+//-- ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
+//---------------------------------------------------------
 class ArpBindPair {
   public:
     EthAddr  macAddr;
@@ -132,23 +162,42 @@ class ArpBindPair {
         macAddr(newMac), ip4Addr(newIp4) {}
 };
 
+//---------------------------------------------------------
+//-- ARP LOOKUP REQUEST
+//---------------------------------------------------------
+typedef Ip4Addr ArpLkpRequest;
+
+//---------------------------------------------------------
+//-- ARP LOOKUP REPLY
+//---------------------------------------------------------
+class ArpLkpReply {
+  public:
+    EthAddr     macAddress;
+    HitBool     hit;
+    ArpLkpReply() {}
+    ArpLkpReply(EthAddr macAdd, HitBool hit) :
+        macAddress(macAdd), hit(hit) {}
+};
+
 
 /*******************************************************************************
  * NETWORK LAYER-3 - IPv4 & ICMP
  *******************************************************************************
- * Terminology & Conventions                                                   *
- * - a PACKET (or IpPacket) refers to an IP-PDU (i.e., Header+Data).           *
+ * Terminology & Conventions
+ * - a PACKET  (or IP Packet)   refers to an IP-PDU (i.e., Header+Data).
+ * - a MESSAGE (or ICMP Packet) refers to an ICMP protocol data unit.
  *******************************************************************************/
 
-// [TODO-ADD ALL TEH TYPES HERE]
+//=====================================================
+//== IP4 PACKET FIELDS - Constant Definitions
+//=====================================================
 
-//-----------------------------------------------------
-//-- IP4 PACKET FIELDS - Constant Definitions
-//-----------------------------------------------------
-// IP protocol numbers
-#define ICMP_PROTOCOL   0x01
-#define TCP_PROTOCOL    0x06
-#define UDP_PROTOCOL    0x11
+// IP4 Broadcast Address
+#define IP4_BROADCAST_ADDR  0xFFFFFFFF
+// IP4 Protocol numbers
+#define IP4_PROT_ICMP       0x01
+#define IP4_PROT_TCP        0x06
+#define UDP_PROTOCOL        0x11
 
 
 /******************************************************************************
@@ -159,22 +208,22 @@ class ArpBindPair {
  *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
  ******************************************************************************/
 
-/*********************************************************
- * LAYER-4 - COMMON TCP and UDP HEADER FIELDS
- *********************************************************/
+//========================================================
+//== LAYER-4 - COMMON TCP and UDP HEADER FIELDS
+//========================================================
 typedef ap_uint<16> LE_Ly4Port; // Layer-4 Port in LE order
 typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
 
-/*********************************************************
- * TCP SESSION IDENTIFIER
- *********************************************************/
+//========================================================
+//== TCP SESSION IDENTIFIER
+//========================================================
 typedef ap_uint<16> SessionId;
 
-/*********************************************************
- * SOCKET ADDRESS
- *********************************************************/
+//--------------------------------------------------------
+//-- SOCKET ADDRESS
+//--------------------------------------------------------
 class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
    public:
     Ip4Addr        addr;   // IPv4 address in NETWORK BYTE ORDER
@@ -193,9 +242,9 @@ class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
         addr(addr), port(port) {}
 };
 
-/*********************************************************
- * SOCKET PAIR ASSOCIATION
- *********************************************************/
+//--------------------------------------------------------
+//-- SOCKET PAIR ASSOCIATION
+//--------------------------------------------------------
 class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
   public:
     LE_SockAddr  src;  // Source socket address in LITTLE-ENDIAN order !!!
@@ -223,11 +272,6 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr <  s2.dst.addr) ||
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
-
-
-
-
-
 
 #endif
 

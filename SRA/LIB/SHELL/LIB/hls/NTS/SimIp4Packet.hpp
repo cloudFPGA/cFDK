@@ -16,10 +16,10 @@
 
 /*****************************************************************************
  * @file       : SimIp4Packet.hpp
- * @brief      : A simulation class to hanlde IPv4 packets.
+ * @brief      : A simulation class to build and handle IPv4 packets.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  * \ingroup NTS_SIM
@@ -30,12 +30,8 @@
 #ifndef _SIM_IP4_PACKET_
 #define _SIM_IP4_PACKET_
 
-//#include <queue>
-//#include <string>
-//#include <iostream>
-//#include <iomanip>
-//#include <unistd.h>
-//#include <stdlib.h>
+#include "nts.hpp"
+#include "nts_utils.hpp"
 
 #include "AxisIp4.hpp"
 // [TODO] #include "AxisTcp.hpp"
@@ -44,11 +40,9 @@
 #include "SimIcmpPacket.hpp"
 #include "SimUdpDatagram.hpp"
 
-using namespace std;
-using namespace hls;
 
 /*****************************************************************************
- * @brief Class IPv4 Packet.
+ * @brief Class IPv4 Packet for simulation.
  *
  * @details
  *  This class defines an IPv4 packet as a set of 'AxisIp4' data chunks.
@@ -59,14 +53,15 @@ using namespace hls;
  *
  ******************************************************************************/
 class SimIp4Packet {
+
+  private:
     int len;  // In bytes
-    std::deque<AxisIp4> pktQ;  // A double-ended queue to store IP4 chunks.
+    std::deque<AxisIp4> pktQ;  // A double-ended queue to store IP4 chunks
     const char *myName;
 
     // Set the length of this IPv4 packet (in bytes)
     void setLen(int pktLen) {
         this->len = pktLen;
-        //OBSOLETE_20200421 this->setIpTotalLength(pktLen);
     }
     // Get the length of this IPv4 packet (in bytes)
     int  getLen() {
@@ -91,13 +86,13 @@ class SimIp4Packet {
         this->pktQ.push_back(ipChunk);
     }
 
-    /**************************************************************************
+    /***************************************************************************
      * @brief Compute the IPv4 header checksum of the packet.
      * @return the computed checksum.
-     **************************************************************************/
+     ***************************************************************************/
     Ip4HdrCsum calculateIpHeaderChecksum() {
         LE_Ip4HdrCsum  leIp4HdrCsum;
-        unsigned int csum = 0;
+        unsigned int   csum = 0;
         int ihl = this->getIpInternetHeaderLength();
         csum += this->pktQ[0].getLE_TData().range(15,  0);  // [ToS|VerIhl]
         csum += this->pktQ[0].getLE_TData().range(31, 16);  // [TotalLength]
@@ -112,19 +107,22 @@ class SimIp4Packet {
         csum += this->pktQ[2].getLE_TData().range(15,  0);  // [DestinAddrLow]
         csum += this->pktQ[2].getLE_TData().range(31, 16);  // [DestinAddrHigh]
         ihl -= 1;
-        // Accumulates options dwords
-        int qw = 2;
+        // Accumulates options
+        int  qw = 2;
+        bool incRaw = true;
         while (ihl) {
-            if (ihl % 1) {
+            if (incRaw) {
+                csum += this->pktQ[qw].getLE_TData().range(47, 32);
+                csum += this->pktQ[qw].getLE_TData().range(63, 48);
+                ihl--;
+                incRaw = false;
+                qw++;
+            }
+            else {
                 csum += this->pktQ[qw].getLE_TData().range(15,  0);
                 csum += this->pktQ[qw].getLE_TData().range(31, 16);
                 ihl--;
-            }
-            else {
-                csum += this->pktQ[qw].getLE_TData().range(47, 32);
-                csum += this->pktQ[qw].getLE_TData().range(63, 48);
-                qw++;
-                ihl--;
+                incRaw = true;
             }
         }
         while (csum > 0xFFFF) {
@@ -134,8 +132,8 @@ class SimIp4Packet {
         return byteSwap16(leIp4HdrCsum);
     }
 
-    /**************************************************************************
-     * @brief Compute the checksum of an UDP or TCP pseudo-header+payload.
+    /***************************************************************************
+     * @brief Compute the checksum of a UDP or TCP pseudo-header+payload.
      * @param[in] pseudoPacket  A double-ended queue w/ one pseudo packet.
      * @return the new checksum.
      * @TODO - Create a SimPsd4Packet class.
@@ -207,7 +205,7 @@ class SimIp4Packet {
         }
     }
 
-    /**************************************************************************
+    /***************************************************************************
      * @brief Assembles a deque that is ready for UDP checksum calculation.
      * @param udpBuffer  A dequeue buffer to hold the UDP pseudo header and
      *                   the UDP segment.
@@ -215,7 +213,8 @@ class SimIp4Packet {
      * @info : The UDP checksum field is cleared as expected before by the
      *          UDP computation algorithm.
      * @TODO-Create a pseudo header class.
-     **************************************************************************/
+     ***************************************************************************/
+    /*** OBSOLETE_20200615 ***
     void udpAssemblePseudoHeaderAndData(deque<AxisPsd4> &udpBuffer) {
         AxisIp4 axisIp4;
         int     udpLength  = this->getUdpLength();
@@ -230,13 +229,22 @@ class SimIp4Packet {
         AxisPsd4 secondAxisPsd4(0, 0, 0);
         secondAxisPsd4.setPsd4ResBits(0x00);
         secondAxisPsd4.setPsd4Prot(this->getIpProtocol());
-        secondAxisPsd4.setPsd4Len(udpLength);
-        secondAxisPsd4.setUdpSrcPort(this->getUdpSourcePort());
-        secondAxisPsd4.setUdpDstPort(this->getUdpDestinationPort());
+        SimUdpDatagram udpDgrm = this->getUdpDatagram();
+        secondAxisPsd4.setPsd4Len(udpDgrm.getUdpLength());
+        secondAxisPsd4.setUdpSrcPort(udpDgrm..getUdpSourcePort());
+        secondAxisPsd4.setUdpDstPort(udpDgrm.getUdpDestinationPort());
         udpBuffer.push_back(secondAxisPsd4);
 
-        // Clear the current checksum before continuing building the pseudo header
-        this->setUdpChecksum(0x0000);
+        //OBSOLETE_20200615 // Clear the current checksum before continuing building the pseudo header
+        //OBSOLETE_20200615 this->setUdpChecksum(0x0000);
+
+        // Create 3rd pseudo-header chunk - [Data|UDP_CSUM|UDP_LEN]
+        AxisPsd4 thirdAxisPsd4(0, 0, 0);
+        thirdAxisPsd4.setUdpLen(udpDrgm->getUdpLength());
+        thirdAxisPsd4.setUdpCsum(0x0000);
+        if (udpDrgm->getUdpLength() > 8) {
+            thirdAxisPsd4.setLE_TData(udpDgrm.getUdpData(0), 47, 32);
+        }
 
         // Now, append the UDP_LEN & UDP_CSUM & UDP payload
         //-------------------------------------------------
@@ -247,6 +255,7 @@ class SimIp4Packet {
             udpBuffer.push_back(axisPsd4);
         }
     }
+    ************************/
 
   public:
 
@@ -350,52 +359,54 @@ class SimIp4Packet {
         }
     }
 
-	//-----------------------------------------------------
-	//-- IP4 PACKET FIELDS - Constant Definitions
-	//-----------------------------------------------------
-	// IP protocol numbers
-    //OBSOLETE_20200522 static const unsigned char  ICMP_PROTOCOL = 0x01;
-    //OBSOLETE_20200522 static const unsigned char  TCP_PROTOCOL  = 0x06;
-    //OBSOLETE_20200522 static const unsigned char  UDP_PROTOCOL  = 0x11;
-
 	//*********************************************************
 	//** IPV4 PACKET FIELDS - SETTERS and GETTERS
 	//*********************************************************
-	// Set-Get the IP Version field
+	// Set the IP Version field
 	void         setIpVersion(int version)           {        pktQ[0].setIp4Version(version);}
+	// Get the IP Version field
 	int          getIpVersion()                      { return pktQ[0].getIp4Version();       }
-	// Set-Get the IP Internet Header Length field
+	// Set the IP Internet Header Length field
 	void         setIpInternetHeaderLength(int ihl)  {        pktQ[0].setIp4HdrLen(ihl);     }
+	// Get the IP Internet Header Length field
 	int          getIpInternetHeaderLength()         { return pktQ[0].getIp4HdrLen();        }
-	// Set-Get the IP Type of Service field
+	// Set the IP Type of Service field
 	void         setIpTypeOfService(int tos)         {        pktQ[0].setIp4ToS(tos);        }
+	// Get the IP Type of Service field
 	int          getIpTypeOfService()                { return pktQ[0].getIp4ToS();           }
-	// Set-Get the IP Total Length field
+	// Set the IP Total Length field
 	void         setIpTotalLength(int totLen)        {        pktQ[0].setIp4TotalLen(totLen);}
+	// Get the IP Total Length field
 	int          getIpTotalLength()                  { return pktQ[0].getIp4TotalLen();      }
 	// Set the IP Identification field
 	void         setIpIdentification(int id)         {        pktQ[0].setIp4Ident(id);       }
+	// Get the IP Identification field
 	int          getIpIdentification()               { return pktQ[0].getIp4Ident();         }
 	// Set the IP Fragment Offset field
 	void         setIpFragmentOffset(int offset)     {        pktQ[0].setIp4FragOff(offset); }
+	// Get the IP Fragment Offset field
 	int          getIpFragmentOffset()               { return pktQ[0].getIp4FragOff();       }
 	// Set the IP Flags field
 	void         setIpFlags(int flags)               {        pktQ[0].setIp4Flags(flags);    }
 	// Set the IP Time To Live field
 	void         setIpTimeToLive(int ttl)            {        pktQ[1].setIp4TtL(ttl);        }
-	// Set-Get the IP Protocol field
-	void          setIpProtocol(int prot)            {        pktQ[1].setIp4Prot(prot);      }
-	Ip4Prot       getIpProtocol()                    { return pktQ[1].getIp4Prot();          }
-	// Set-Get the IP Header Checksum field
+	// Set the IP Protocol field
+	void         setIpProtocol(int prot)             {        pktQ[1].setIp4Prot(prot);      }
+	// Get the IP Protocol field
+	Ip4Prot      getIpProtocol()                     { return pktQ[1].getIp4Prot();          }
+	// Set the IP Header Checksum field
 	void          setIpHeaderChecksum(int csum)      {        pktQ[1].setIp4HdrCsum(csum);   }
+	// Get the IP Header Checksum field
 	Ip4HdrCsum    getIpHeaderChecksum()              { return pktQ[1].getIp4HdrCsum();       }
-	// Set-Get the IP Source Address field
+	// Set the IP Source Address field
 	void          setIpSourceAddress(int addr)       {        pktQ[1].setIp4SrcAddr(addr);   }
-	int           getIpSourceAddress()               { return pktQ[1].getIp4SrcAddr();       }
+	// Get the IP Source Address field
+    Ip4Addr       getIpSourceAddress()               { return pktQ[1].getIp4SrcAddr();       }
 	LE_Ip4Addr getLE_IpSourceAddress()               { return pktQ[1].getLE_Ip4SrcAddr();    }
-	// Set-Get the IP Destination Address field
+	// Set the IP Destination Address field
 	void          setIpDestinationAddress(int addr)  {        pktQ[2].setIp4DstAddr(addr);   }
-	int           getIpDestinationAddress()          { return pktQ[2].getIp4DstAddr();       }
+	// Get the IP Destination Address field
+	Ip4Addr       getIpDestinationAddress()          { return pktQ[2].getIp4DstAddr();       }
 	LE_Ip4Addr getLE_IpDestinationAddress()          { return pktQ[2].getLE_Ip4DstAddr();    }
 
 	//*********************************************************
@@ -450,28 +461,67 @@ class SimIp4Packet {
     //*********************************************************
     //** UDP DATAGRAM FIELDS - SETTERS amnd GETTERS
     //*********************************************************
-    // Set-Get the UDP Source Port field
-    void          setUdpSourcePort(UdpPort port)     {        pktQ[2].setUdpSrcPort(port);   }
-    UdpPort       getUdpSourcePort()                 { return pktQ[2].getUdpSrcPort();       }
-    // Set-Get the UDP Destination Port field
-    void          setUdpDestinationPort(UdpPort port){        pktQ[2].setUdpDstPort(port);   }
-    UdpPort       getUdpDestinationPort()            { return pktQ[2].getUdpDstPort();       }
-    // Set-Get the UDP Length field
-    void          setUdpLength(UdpLen len)           {        pktQ[3].setUdpLen(len);        }
+    // Set the UDP Source Port field
+    void            setUdpSourcePort(UdpPort port) {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 0;  // Field starts at bit #00
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 pktQ[2].setUdpSrcPort(port);
+        pktQ[raw].setUdpSrcPort(port, (bit % ARW));
+    }
+    // Get the UDP Source Port field
+    UdpPort       getUdpSourcePort() {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 0;  // Field starts at bit #00
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 return pktQ[2].getUdpSrcPort();
+        return pktQ[raw].getUdpSrcPort(bit % ARW);
+    }
+    // Set the UDP Destination Port field
+    void          setUdpDestinationPort(UdpPort port) {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 16;  // Field starts at bit #16
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 pktQ[2].setUdpDstPort(port);
+        pktQ[raw].setUdpDstPort(port, (bit % ARW));
+    }
+    // Get the UDP Destination Port field
+    UdpPort       getUdpDestinationPort() {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 16;  // Field starts at bit #16
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 return pktQ[2].getUdpDstPort();
+        return pktQ[raw].getUdpDstPort(bit % ARW);
+    }
+    // Set the UDP Length field
+    void          setUdpLength(UdpLen len) {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 32;  // Field starts at bit #32
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 pktQ[3].setUdpLen(len);
+    }
+    // Get the UDP Length field
     UdpLen        getUdpLength() {
-                      int ihl = this->getIpInternetHeaderLength();
-                      int bit = (ihl*4*8) + 32;  // Field starts at bit #32
-                      int raw = bit/ARW;
-                      return pktQ[raw].getUdpLen(bit % ARW);
-                  }
-    // Set-Get the UDP Checksum field
-    void          setUdpChecksum(UdpCsum csum)       {        pktQ[3].setUdpCsum(csum);      }
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 32;  // Field starts at bit #32
+        int raw = bit/ARW;
+        return pktQ[raw].getUdpLen(bit % ARW);
+    }
+    // Set the UDP Checksum field
+    void          setUdpChecksum(UdpCsum csum) {
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 48;  // Field starts at bit #48
+        int raw = bit/ARW;
+        //OBSOLETE)_20200615 pktQ[3].setUdpCsum(csum);
+        pktQ[raw].setUdpCsum(csum, (bit % ARW));
+    }
+    // Get the UDP Checksum field
     UdpCsum       getUdpChecksum() {
-                      int ihl = this->getIpInternetHeaderLength();
-                      int bit = (ihl*4*8) + 48;  // Field starts at bit #48
-                      int raw = bit/ARW;
-                      return pktQ[raw].getUdpCsum(bit % ARW);
-                  }
+        int ihl = this->getIpInternetHeaderLength();
+        int bit = (ihl*4*8) + 48;  // Field starts at bit #48
+        int raw = bit/ARW;
+        return pktQ[raw].getUdpCsum(bit % ARW);
+    }
 
     // Return the IP4 header as a string
     string getIpHeader() {
@@ -534,8 +584,9 @@ class SimIp4Packet {
             printFatal(this->myName, "IPv4 options are not supported yet (sorry)");
         }
         while (wordInpCnt < ip4PktSize) {
-            if (endOfPkt)
+            if (endOfPkt) {
                 break;
+            }
             else if (alternate) {
                 newTData = 0;
                 newTKeep = 0;
@@ -1085,7 +1136,7 @@ class SimIp4Packet {
                 alternate = !alternate;
             }
         } // End-of while(!endOfPkt)
-        this->setIpProtocol(ICMP_PROTOCOL);
+        this->setIpProtocol(IP4_PROT_ICMP);
         return true;
     } // End-of: addIpPayload
 
@@ -1311,11 +1362,11 @@ class SimIp4Packet {
             }
         }
         // Asses TCP segment
-        else if (this->getIpProtocol() == TCP_PROTOCOL) {
+        else if (this->getIpProtocol() == IP4_PROT_TCP) {
             printWarn(myName, "[TODO-Must check if segment is well-formed !!!\n");
         }
         // Asses ICMP packet
-        else if (this->getIpProtocol() == ICMP_PROTOCOL) {
+        else if (this->getIpProtocol() == IP4_PROT_ICMP) {
             printWarn(myName, "[TODO-Must check if message is well-formed !!!\n");
         }
         return rc;
@@ -1345,17 +1396,17 @@ class SimIp4Packet {
                 this->getIpTotalLength(), leIp4TotalLen.to_uint());
         printf("[%s] IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
                 (std::string(callerName)).c_str(),
-                (this->getIpSourceAddress() & 0xFF000000) >> 24,
-                (this->getIpSourceAddress() & 0x00FF0000) >> 16,
-                (this->getIpSourceAddress() & 0x0000FF00) >>  8,
-                (this->getIpSourceAddress() & 0x000000FF) >>  0,
+                (this->getIpSourceAddress().to_uint() & 0xFF000000) >> 24,
+                (this->getIpSourceAddress().to_uint() & 0x00FF0000) >> 16,
+                (this->getIpSourceAddress().to_uint() & 0x0000FF00) >>  8,
+                (this->getIpSourceAddress().to_uint() & 0x000000FF) >>  0,
                 leIp4SrcAddr.to_uint());
         printf("[%s] IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
                 (std::string(callerName)).c_str(),
-                (this->getIpDestinationAddress() & 0xFF000000) >> 24,
-                (this->getIpDestinationAddress() & 0x00FF0000) >> 16,
-                (this->getIpDestinationAddress() & 0x0000FF00) >>  8,
-                (this->getIpDestinationAddress() & 0x000000FF) >>  0,
+                (this->getIpDestinationAddress().to_uint() & 0xFF000000) >> 24,
+                (this->getIpDestinationAddress().to_uint() & 0x00FF0000) >> 16,
+                (this->getIpDestinationAddress().to_uint() & 0x0000FF00) >>  8,
+                (this->getIpDestinationAddress().to_uint() & 0x000000FF) >>  0,
                 leIp4DstAddr.to_uint());
         printf("[%s] TCP Source Port         = %15u (0x%4.4X) \n",
 				(std::string(callerName)).c_str(),
@@ -1488,6 +1539,7 @@ class SimIp4Packet {
      *          or when the UDP pseudo checksum has not yet been calculated.
      * @return the new checksum.
      **************************************************************************/
+    /*** OBSOLETE_20200615 *************
     int udpRecalculateChecksum() {
         int             newChecksum = 0;
         deque<AxisPsd4> udpBuffer;
@@ -1499,8 +1551,17 @@ class SimIp4Packet {
         this->setUdpChecksum(udpCsum);
         return udpCsum;
     }
+    *************************************/
+    UdpCsum udpRecalculateChecksum() {
+        SimUdpDatagram udpDatagram  = this->getUdpDatagram();
+        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
+                                             this->getIpDestinationAddress(), this->getIpProtocol());
+        // Overwrite the former checksum
+        this->setUdpChecksum(computedCsum);
+        return computedCsum;
+    }
 
-    /**************************************************************************
+    /***************************************************************************
      * @brief Recalculate the TCP checksum and compare it with the one embedded
      *  into the segment.
      * @return true/false.
@@ -1518,14 +1579,17 @@ class SimIp4Packet {
         }
     }
 
-    /**************************************************************************
+    /***************************************************************************
      * @brief Recalculate the UDP checksum and compare it with the one embedded
      *  into the datagram.
      * @return true/false.
      **************************************************************************/
     bool udpVerifyChecksum() {
-        UdpCsum udpChecksum  = this->getUdpChecksum();
-        UdpCsum computedCsum = this->udpRecalculateChecksum();
+        UdpCsum        udpChecksum  = this->getUdpChecksum();
+        SimUdpDatagram udpDatagram  = this->getUdpDatagram();
+        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
+                                             this->getIpDestinationAddress(), this->getIpProtocol());
+        //OBSOLETE_20200615 UdpCsum computedCsum = this->udpRecalculateChecksum();
         if (computedCsum == udpChecksum) {
             return true;
         }
@@ -1535,32 +1599,6 @@ class SimIp4Packet {
             return false;
         }
     }
-
-
-    /**************************************************************************
-     * @brief Dump an AxisIp4 to a file.
-     * @param[in] axiWord,       a pointer to the AXI word to write.
-     * @param[in] outFileStream, a reference to the file stream to write.
-     * @return true upon success, otherwise false.
-     **************************************************************************/
-    /*** OBSOLETE_20200413 ***
-	bool writeAxiWordToFile(AxiWord *axiWord, ofstream &outFileStream) {
-		if (!outFileStream.is_open()) {
-			printError("IpPacket", "File is not opened.\n");
-			return false;
-		}
-		outFileStream << std::uppercase;
-		outFileStream << hex << noshowbase << setfill('0') << setw(16) << axiWord->tdata.to_uint64();
-		outFileStream << " ";
-		outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axiWord->tkeep.to_int();
-		outFileStream << " ";
-		outFileStream << setw(1) << axiWord->tlast.to_int() << "\n";
-		if ( axiWord->tlast.to_int()) {
-			outFileStream << "\n";
-		}
-		return(true);
-	}
-	**********************/
 
     /**************************************************************************
      * @brief Dump this IP packet as AxisIp4 chunks into a file.

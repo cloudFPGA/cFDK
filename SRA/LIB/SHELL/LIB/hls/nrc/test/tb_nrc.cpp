@@ -64,18 +64,25 @@ using namespace std;
 //------------------------------------------------------
 //-- DUT INTERFACES AS GLOBAL VARIABLES
 //------------------------------------------------------
-//-- ROLE / Urif / Udp Interfaces
-stream<UdpWord>         sROLE_Urif_Data     ("sROLE_Urif_Data");
-stream<UdpWord>         sURIF_Role_Data     ("sURIF_Role_Data");
-//-- UDMX / Urif / Open-Port Interfaces
-stream<AxisAck>         sUDMX_Urif_OpnAck   ("sUDMX_OpnAck");
-stream<UdpPort>         sURIF_Udmx_OpnReq   ("sURIF_Udmx_OpnReq");
-//-- UDMX / Urif / Data & MetaData Interfaces
-stream<UdpWord>         sUDMX_Urif_Data     ("sUDMX_Urif_Data");
-stream<UdpMeta>         sUDMX_Urif_Meta     ("sUDMX_Urif_Meta");
-stream<UdpWord>         sURIF_Udmx_Data     ("sURIF_Udmx_Data");
-stream<UdpMeta>         sURIF_Udmx_Meta     ("sURIF_Udmx_Meta");
-stream<UdpPLen>         sURIF_Udmx_PLen     ("sURIF_Udmx_PLen");
+//-- UOE / Control Port Interfaces
+stream<UdpPort>             sNRC_UOE_LsnReq  ("sNRC_UOE_LsnReq");
+stream<StsBool>             sUOE_NRC_LsnRep  ("sUOE_NRC_LsnRep");
+stream<UdpPort>             sNRC_UOE_ClsReq  ("sNRC_UOE_ClsReq");
+stream<StsBool>             sUOE_NRC_ClsRep  ("sUOE_NRC_ClsRep");
+
+//-- UOE / Rx Data Interfaces
+stream<UdpAppData>          sUOE_NRC_Data  ("sUOE_NRC_Data");
+stream<UdpAppMeta>          sUOE_NRC_Meta  ("sUOE_NRC_Meta");
+
+//-- UOE / Tx Data Interfaces
+stream<UdpAppData>          sNRC_UOE_Data  ("sNRC_UOE_Data");
+stream<UdpAppMeta>          sNRC_UOE_Meta  ("sNRC_UOE_Meta");
+stream<UdpAppDLen>          sNRC_UOE_DLen  ("sNRC_UOE_DLen");
+//-- ROLE UDP
+stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
+stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
+stream<UdpWord>             sROLE_NRC_Data     ("sROLE_NRC_Data");
+stream<UdpWord>             sNRC_Role_Data     ("sNRC_Role_Data");
 //-- TCP / ROLE IF
 stream<TcpWord>             sROLE_Nrc_Tcp_data  ("sROLE_Nrc_Tcp_data");
 stream<NetworkMetaStream>   sROLE_Nrc_Tcp_meta  ("sROLE_Nrc_Tcp_meta");
@@ -96,22 +103,19 @@ stream<AppLsnAck>           sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
 stream<NetworkWord>         sNRC_Toe_Data   ("sNRC_TOE_Data");
 stream<AppMeta>             sNRC_Toe_SessId ("sNRC_TOE_SessId");
 stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
-stream<AppOpnReq>           sNRC_Toe_OpnReq ("sNRC_TOE_OpnReq");
+stream<AppOpnReq>           sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
 stream<AppOpnSts>           sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
 stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
 
 ap_uint<1>              layer_4_enabled = 0b1;
 ap_uint<1>              layer_7_enabled = 0b1;
+ap_uint<1>              role_decoupled = 0b0;
 ap_uint<1>              sNTS_Nrc_ready = 0b1;
 ap_uint<32>             sIpAddress = 0x0a0b0c0d;
 ap_uint<32>             ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
 ap_uint<32>             s_udp_rx_ports = 0x1;
 ap_uint<32>             s_tcp_rx_ports = 0x1;
-stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
-//stream<NetworkMeta>          &siUdp_meta,
-stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
-//stream<NetworkMeta>          &soUdp_meta,
 ap_uint<32>             myIpAddress;
 ap_uint<16>             sMMIO_FmcLsnPort  = 8803;
 //ap_uint<32>             sMMIO_CfrmIp4Addr = 0x0A0CC884;
@@ -136,6 +140,7 @@ unsigned int         simCnt;
 int tcp_packets_send = 0;
 int tcp_packets_recv = 0;
 int tcp_packets_expected_timeout = 0;
+int tcp_timout_packet_drop = 0;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
@@ -147,20 +152,22 @@ void stepDut() {
         ctrlLink,
         &layer_4_enabled,
         &layer_7_enabled,
+        &role_decoupled,
         &sNTS_Nrc_ready,
         &sMMIO_FmcLsnPort, &sMMIO_CfrmIp4Addr,
         &sIpAddress,
         &s_udp_rx_ports,
-        sROLE_Urif_Data,    sURIF_Role_Data,
+        sROLE_NRC_Data,    sNRC_Role_Data,
         siUdp_meta,         soUdp_meta,
         &s_tcp_rx_ports,
         sROLE_Nrc_Tcp_data, sROLE_Nrc_Tcp_meta,
         sNRC_Role_Tcp_data, sNRC_Role_Tcp_meta,
         sFMC_Nrc_Tcp_data, sFMC_Nrc_Tcp_sessId,
         sNRC_FMC_Tcp_data, sNRC_FMC_Tcp_sessId,
-        sUDMX_Urif_OpnAck,  sURIF_Udmx_OpnReq,
-        sUDMX_Urif_Data,    sUDMX_Urif_Meta,
-        sURIF_Udmx_Data,    sURIF_Udmx_Meta,    sURIF_Udmx_PLen,
+        sNRC_UOE_LsnReq, sUOE_NRC_LsnRep,
+        sNRC_UOE_ClsReq, sUOE_NRC_ClsRep,
+        sUOE_NRC_Data, sUOE_NRC_Meta,
+        sNRC_UOE_Data, sNRC_UOE_Meta, sNRC_UOE_DLen,
         sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
         sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
         sNRC_Toe_Data, sNRC_Toe_SessId, sTOE_Nrc_DSts,
@@ -881,6 +888,7 @@ void pTOE(
 }
 
 
+//main: also emulates UOE behavior
 int main() {
 
     //------------------------------------------------------
@@ -909,27 +917,24 @@ int main() {
     //------------------------------------------------------
     //-- STEP-1 : OPEN PORT REQUEST
     //------------------------------------------------------
+    printf("========================= BEGIN UDP Port Opening =========================\n");
     for (int i=0; i<15; ++i) {
         stepDut();
-        if ( !sURIF_Udmx_OpnReq.empty() ) {
-            sURIF_Udmx_OpnReq.read();
-            printf("[%4.4d] URIF->UDMX_OpnReq : DUT is requesting to open a port.\n", simCnt);
+        if ( !sNRC_UOE_LsnReq.empty() ) {
+            sNRC_UOE_LsnReq.read();
+            printf("[%4.4d] NRC->UOE_OpnReq : DUT is requesting to open a port.\n", simCnt);
             stepDut();
-            sUDMX_Urif_OpnAck.write(true);
-            printf("[%4.4d] UDMX->URIF_OpnAck : TB  acknowledges the port opening.\n", simCnt);
+            sUOE_NRC_LsnRep.write(true);
+            printf("[%4.4d] NRC->UOE_OpnAck : TB  acknowledges the port opening.\n", simCnt);
         }
     }
-  //check DEBUG copies
-  //TODO
-  //assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] == ctrlLink[NUMBER_CONFIG_WORDS + 0]);
-  //assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] == ctrlLink[NUMBER_CONFIG_WORDS + 1]);
-  //assert(ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2] == ctrlLink[NUMBER_CONFIG_WORDS + 2]);
+    printf("========================= END   UDP Port Opening =========================\n");
 
     //------------------------------------------------------
     //-- STEP-2 : CREATE TRAFFIC AS INPUT STREAMS
     //------------------------------------------------------
     if (nrErr == 0) {
-        if (!setInputDataStream(sROLE_Urif_Data, "sROLE_Urif_Data", "ifsROLE_Urif_Data.dat")) {
+        if (!setInputDataStream(sROLE_NRC_Data, "sROLE_NRC_Data", "ifsROLE_Urif_Data.dat")) {
             printf("### ERROR : Failed to set input data stream \"sROLE_DataStream\". \n");
             nrErr++;
         }
@@ -939,8 +944,8 @@ int main() {
         siUdp_meta.write(NetworkMetaStream(tmp_meta));
         siUdp_meta.write(NetworkMetaStream(tmp_meta));
 
-        if (!setInputDataStream(sUDMX_Urif_Data, "sUDMX_Urif_Data", "ifsUDMX_Urif_Data.dat")) {
-            printf("### ERROR : Failed to set input data stream \"sUDMX_DataStream\". \n");
+        if (!setInputDataStream(sUOE_NRC_Data, "sUOE_NRC_Data", "ifsUDMX_Urif_Data.dat")) {
+            printf("### ERROR : Failed to set input data stream \"sUOE_DataStream\". \n");
             nrErr++;
         }
         //if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
@@ -948,10 +953,10 @@ int main() {
         //    nrErr++;
         //}
         //there are 3 streams from the UDMX to NRC
-        UdpMeta     socketPair = {{DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01}};
-        sUDMX_Urif_Meta.write(socketPair);
-        sUDMX_Urif_Meta.write(socketPair);
-        sUDMX_Urif_Meta.write(socketPair);
+        UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
+        sUOE_NRC_Meta.write(socketPair);
+        sUOE_NRC_Meta.write(socketPair);
+        sUOE_NRC_Meta.write(socketPair);
         // Print Metadata to console
         printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
         simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
@@ -1039,7 +1044,6 @@ int main() {
             sROLE_Nrc_Tcp_data,
             sROLE_Nrc_Tcp_meta);
         
-
         //------------------------------------------------------
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
@@ -1088,8 +1092,16 @@ int main() {
           rxpState = RXP_SEND_NOTIF;
           opnState = OPN_TIMEOUT;
           tcp_packets_expected_timeout = 3;
+          tcp_timout_packet_drop = 3;
         }
-        
+
+        if(simCnt >= 249 && tcp_timout_packet_drop > 0 && !sNRC_Toe_OpnReq.empty())
+        {
+          //drain OpnReq stream
+          tcp_timout_packet_drop--;
+          printf("=== Drain OpenReq: ");
+          printSockAddr("Main-Loop", sNRC_Toe_OpnReq.read());
+        }
         
         //TODO:
         //open other ports later?
@@ -1117,15 +1129,25 @@ int main() {
     //-- STEP-4 : DRAIN AND WRITE OUTPUT FILE STREAMS
     //-------------------------------------------------------
     //---- URIF-->ROLE ----
-    if (!getOutputDataStream(sURIF_Role_Data, "sURIF_Role_Data", "ofsURIF_Role_Data.dat"))
+    if (!getOutputDataStream(sNRC_Role_Data, "sNRC_Role_Data", "ofsURIF_Role_Data.dat"))
         nrErr++;
     //---- URIF->UDMX ----
-    if (!getOutputDataStream(sURIF_Udmx_Data, "sURIF_Udmx_Data", "ofsURIF_Udmx_Data.dat"))
+    if (!getOutputDataStream(sNRC_UOE_Data, "sNRC_UOE_Data", "ofsURIF_Udmx_Data.dat"))
             nrErr++;
-    if (!getOutputMetaStream(sURIF_Udmx_Meta, "sURIF_Udmx_Meta", "ofsURIF_Udmx_Meta.dat"))
+    if (!getOutputMetaStream(sNRC_UOE_Meta, "sNRC_UOE_Meta", "ofsURIF_Udmx_Meta.dat"))
         nrErr++;
-    if (!getOutputPLenStream(sURIF_Udmx_PLen, "sURIF_Udmx_PLen", "ofsURIF_Udmx_PLen.dat"))
+    if (!getOutputPLenStream(sNRC_UOE_DLen, "sNRC_UOE_DLen", "ofsURIF_Udmx_PLen.dat"))
         nrErr++;
+
+    // there should be no left over data
+    while(!sNRC_Toe_OpnReq.empty())
+    {
+      printf("=== Draining leftover TCP request: ");
+      printSockAddr("Post-Loop", sNRC_Toe_OpnReq.read());
+      printf("===\n");
+      nrErr++;
+    }
+
 
     //------------------------------------------------------
     //-- STEP-5 : COMPARE INPUT AND OUTPUT FILE STREAMS

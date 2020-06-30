@@ -19,13 +19,11 @@
  * @brief      : Testbench for the UDP Offload Engine (UOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  *****************************************************************************/
 
-//#include <unistd.h>
-//#include <fstream>
 #include <set>
 
 #include "../src/uoe.hpp"
