@@ -52,17 +52,6 @@ typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or up
 
 enum lookupOp {INSERT=0, DELETE};
 
-/*** OBSOLETE_20191128 ************
-struct slupRouting
-{
-    bool            isUpdate;
-    lookupSource    source;
-    slupRouting() {}
-    slupRouting(bool isUpdate, lookupSource src)
-            :isUpdate(isUpdate), source(src) {}
-};
-***********************************/
-
 /********************************************************************
  * SLc / Internal Four Tuple Structure
  *  This class defines the internal storage used by [SLc] for the
@@ -224,7 +213,8 @@ void session_lookup_controller(
         stream<SessionLookupReply>         &soRXe_SessLookupRep,
         stream<SessionId>                  &siSTt_SessReleaseCmd,
         stream<TcpPort>                    &soPRt_ClosePortCmd,
-        stream<LE_SocketPair>              &siTAi_SessLookupReq,
+        //OBSOLETE_20200629 stream<LE_SocketPair>  &siTAi_SessLookupReq,
+        stream<SocketPair>                 &siTAi_SessLookupReq,
         stream<SessionLookupReply>         &soTAi_SessLookupRep,
         stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,

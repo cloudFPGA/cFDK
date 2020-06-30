@@ -194,7 +194,6 @@ void toe(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
-        //OBSOLETE_20200314 LE_Ip4Addr                           piMMIO_IpAddr,
         Ip4Addr                              piMMIO_IpAddr,
 
         //------------------------------------------------------
@@ -561,7 +560,8 @@ void toe(
     static stream<ReqBit>             ssTAiToPRt_GetFeePortReq   ("ssTAiToPRt_GetFeePortReq");
     #pragma HLS stream       variable=ssTAiToPRt_GetFeePortReq   depth=4
 
-    static stream<LE_SocketPair>      ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
+    //OBSOLETE_20200629 static stream<LE_SocketPair>      ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
+    static stream<SocketPair>         ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
     #pragma HLS DATA_PACK    variable=ssTAiToSLc_SessLookupReq
     #pragma HLS stream       variable=ssTAiToSLc_SessLookupReq   depth=4
 

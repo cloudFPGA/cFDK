@@ -19,22 +19,19 @@
 
 #include "nrc.hpp"
 
-stream<UdpPLen>        sPLen_Udp     ("sPLen_Udp");
-stream<UdpWord>        sFifo_Udp_Data("sFifo_Udp_Data");
-stream<NetworkMetaStream>  sFifo_Udp_Meta("sFifo_Udp_Meta");
-
 uint16_t tableCopyVariable = 0;
 
-
-ap_uint<8>   openPortWaitTime = 10;
+ap_uint<8>   openPortWaitTime = 100;
+ap_uint<8>   udp_lsn_watchDogTimer = 100;
+#ifndef __SYNTHESIS__
+ap_uint<16>  mmio_stabilize_counter = 1;
+#else
+ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+#endif
 bool Udp_RX_metaWritten = false;
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
-
-UdpPLen    pldLen_Udp = 0;
-FsmStateUdp fsmStateTXenq_Udp = FSM_RESET;
-
-FsmStateUdp fsmStateTXdeq_Udp = FSM_RESET;
+FsmStateUdp fsmStateTX_Udp = FSM_RESET;
 
 ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
@@ -44,8 +41,12 @@ ap_uint<32> status[NUMBER_STATUS_WORDS];
 ap_uint<32> mrt_version_processed = 0;
 
 ap_uint<32> udp_rx_ports_processed = 0;
+ap_uint<32> udp_rx_ports_to_close = 0;
 bool need_udp_port_req = false;
 ap_uint<16> new_relative_port_to_req_udp = 0;
+ClsFsmStates clsFsmState_Udp = CLS_IDLE;
+ap_uint<16> newRelativePortToClose = 0;
+ap_uint<16> newAbsolutePortToClose = 0;
 
 NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
 NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
@@ -63,8 +64,8 @@ ap_uint<32> authorized_access_cnt = 0;
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
 
-NetworkDataLength udpTX_packet_length = 0;
-NetworkDataLength udpTX_current_packet_length = 0;
+UdpAppDLen udpTX_packet_length = 0;
+UdpAppDLen udpTX_current_packet_length = 0;
 
 
 ap_uint<64> tripleList[MAX_NRC_SESSIONS];
@@ -126,7 +127,7 @@ ap_uint<16>         startupDelay = 0x8000;
 ap_uint<16>         startupDelay = 30;
 #endif
 OpnFsmStates opnFsmState = OPN_IDLE;
-ClsFsmStates clsFsmState = CLS_IDLE;
+ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
 
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
@@ -159,29 +160,6 @@ bool expect_FMC_response = false;
 NetworkDataLength tcpTX_packet_length = 0;
 NetworkDataLength tcpTX_current_packet_length = 0;
 
-/*****************************************************************************
- * @brief Update the payload length based on the setting of the 'tkeep' bits.
- * @ingroup udp_role_if
- *
- * @param[in]     axisChunk, a pointer to an AXI4-Stream chunk.
- * @param[in,out] pldLen_Udp, a pointer to the payload length of the corresponding
- *                     AXI4-Stream.
- * @return Nothing.
- ******************************************************************************/
-void updatePayloadLength(UdpWord *axisChunk, UdpPLen *pldLen_Udp) {
-//#pragma HLS inline
-  if (axisChunk->tlast) {
-    int bytCnt = 0;
-    for (int i = 0; i < 8; i++) {
-//#pragma HLS unroll
-      if (axisChunk->tkeep.bit(i) == 1) {
-        bytCnt++;
-      }
-    }
-    *pldLen_Udp += bytCnt;
-  } else
-    *pldLen_Udp += 8;
-}
 
 //returns the ZERO-based bit position (so 0 for LSB)
 ap_uint<32> getRightmostBitPos(ap_uint<32> num) 
@@ -401,6 +379,7 @@ void nrc_main(
     //state of the FPGA
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *role_decoupled,
     // ready signal from NTS
     ap_uint<1>  *piNTS_ready,
     // ----- link to MMIO ----
@@ -429,16 +408,20 @@ void nrc_main(
     stream<TcpWord>             &soFMC_Tcp_data,
     stream<Axis<16> >           &soFMC_Tcp_SessId,
 
-    //-- UDMX / This / Open-Port Interfaces
-    stream<AxisAck>     &siUDMX_This_OpnAck,
-    stream<UdpPort>     &soTHIS_Udmx_OpnReq,
+    //-- UOE / Control Port Interfaces
+    stream<UdpPort>             &soUOE_LsnReq,
+    stream<StsBool>             &siUOE_LsnRep,
+    stream<UdpPort>             &soUOE_ClsReq,
+    stream<StsBool>             &siUOE_ClsRep,
 
-    //-- UDMX / This / Data & MetaData Interfaces
-    stream<UdpWord>     &siUDMX_This_Data,
-    stream<UdpMeta>     &siUDMX_This_Meta,
-    stream<UdpWord>     &soTHIS_Udmx_Data,
-    stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen, 
+    //-- UOE / Rx Data Interfaces
+    stream<UdpAppData>          &siUOE_Data,
+    stream<UdpAppMeta>          &siUOE_Meta,
+
+    //-- UOE / Tx Data Interfaces
+    stream<UdpAppData>          &soUOE_Data,
+    stream<UdpAppMeta>          &soUOE_Meta,
+    stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
     stream<AppNotif>    &siTOE_Notif,
@@ -462,25 +445,29 @@ void nrc_main(
 
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
+#pragma HLS INTERFACE ap_vld register port=role_decoupled  name=piRoleDecoup_active
 #pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
 
 #pragma HLS INTERFACE axis register both port=siUdp_data
 #pragma HLS INTERFACE axis register both port=soUdp_data
 
-#pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
-
-#pragma HLS INTERFACE axis register both port=siUDMX_This_Data
-#pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
-#pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
-#pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
-
 #pragma HLS INTERFACE axis register both port=siUdp_meta
 #pragma HLS INTERFACE axis register both port=soUdp_meta
+
+
+#pragma HLS INTERFACE axis register both port=soUOE_LsnReq   name=soUOE_Udp_LsnReq
+#pragma HLS INTERFACE axis register both port=siUOE_LsnRep   name=siUOE_Udp_LsnRep
+#pragma HLS INTERFACE axis register both port=soUOE_ClsReq   name=soUOE_Udp_ClsReq
+#pragma HLS INTERFACE axis register both port=siUOE_ClsRep   name=siUOE_Udp_ClsRep
+
+#pragma HLS INTERFACE axis register both port=siUOE_Data     name=siUOE_Udp_Data
+#pragma HLS INTERFACE axis register both port=siUOE_Meta     name=siUOE_Udp_Meta
+#pragma HLS DATA_PACK                variable=siUOE_Meta
+
+#pragma HLS INTERFACE axis register both port=soUOE_Data     name=soUOE_Udp_Data
+#pragma HLS INTERFACE axis register both port=soUOE_Meta     name=soUOE_Udp_Meta
+#pragma HLS DATA_PACK                variable=soUOE_Meta
+#pragma HLS INTERFACE axis register both port=soUOE_DLen     name=soUOE_Udp_DLen
 
 #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
 #pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_Udp_Rx_ports
@@ -528,24 +515,24 @@ void nrc_main(
 #pragma HLS DATAFLOW interval=1
   //#pragma HLS PIPELINE II=1 //TODO/FIXME: is this necessary??
 
-#pragma HLS STREAM variable=sPLen_Udp depth=1
-#pragma HLS STREAM variable=sFifo_Udp_Meta depth=1
-#pragma HLS STREAM variable=sFifo_Udp_Data depth=2048    // Must be able to contain MTU
-
 
   //=================================================================================================
   // Reset global variables 
 
 #pragma HLS reset variable=Udp_RX_metaWritten
 #pragma HLS reset variable=fsmStateRX_Udp
-#pragma HLS reset variable=fsmStateTXenq_Udp
-#pragma HLS reset variable=fsmStateTXdeq_Udp
-#pragma HLS reset variable=pldLen_Udp
+#pragma HLS reset variable=fsmStateTX_Udp
 #pragma HLS reset variable=openPortWaitTime
+#pragma HLS reset variable=mmio_stabilize_counter
+#pragma HLS reset variable=udp_lsn_watchDogTimer
 #pragma HLS reset variable=mrt_version_processed
 #pragma HLS reset variable=udp_rx_ports_processed
+#pragma HLS reset variable=udp_rx_ports_to_close
 #pragma HLS reset variable=need_udp_port_req
 #pragma HLS reset variable=new_relative_port_to_req_udp
+#pragma HLS reset variable=clsFsmState_Udp
+#pragma HLS reset variable=newRelativePortToClose
+#pragma HLS reset variable=newAbsolutePortToClose
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
 #pragma HLS reset variable=port_corrections_TX_cnt
@@ -572,7 +559,7 @@ void nrc_main(
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
-#pragma HLS reset variable=clsFsmState
+#pragma HLS reset variable=clsFsmState_Tcp
 #pragma HLS reset variable=lsnFsmState
 #pragma HLS reset variable=rrhFsmState
 #pragma HLS reset variable=rdpFsmState
@@ -647,23 +634,35 @@ void nrc_main(
     //also, all sessions should be lost 
     tables_initalized = false;
     //we don't need to close ports any more
-    clsFsmState = CLS_IDLE;
+    clsFsmState_Tcp = CLS_IDLE;
+    clsFsmState_Udp = CLS_IDLE;
     //and we shouldn't expect smth
     expect_FMC_response = false;
   }
 
-  if(*layer_7_enabled == 0)
+  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
   {
-    udp_rx_ports_processed = 0x0;
-    tcp_rx_ports_processed = 0x0;
-
     if(*layer_4_enabled == 1 && *piNTS_ready == 1 && tables_initalized)
     {
-      //mark all TCP ports as to be deleted
-      markCurrentRowsAsToDelete();
-      //start closing FSM
-      clsFsmState = CLS_NEXT;
+      if(udp_rx_ports_processed > 0)
+      {
+        //mark all UDP ports as to be deleted
+        udp_rx_ports_to_close = udp_rx_ports_processed;
+        //start closing FSM UDP
+        clsFsmState_Udp = CLS_NEXT;
+      }
+
+      if(tcp_rx_ports_processed > 0)
+      {
+        //mark all TCP ports as to be deleted
+        markCurrentRowsAsToDelete();
+        //start closing FSM TCP
+        clsFsmState_Tcp = CLS_NEXT;
+      }
     }
+    //in all cases
+    udp_rx_ports_processed = 0x0;
+    tcp_rx_ports_processed = 0x0;
   }
   //===========================================================
   // MRT init
@@ -675,12 +674,14 @@ void nrc_main(
     printf("init tables...\n");
     for(int i = 0; i<MAX_NRC_SESSIONS; i++)
     {
-//#pragma HLS unroll
+      //#pragma HLS unroll
       sessionIdList[i] = 0;
       tripleList[i] = 0;
       usedRows[i]  =  0;
       rowsToDelete[i] = 0;
     }
+    udp_rx_ports_to_close = 0x0;
+    
     tables_initalized = true;
     //printf("Table layout:\n");
     //for(int i = 0; i<MAX_NRC_SESSIONS; i++)
@@ -697,9 +698,10 @@ void nrc_main(
     //===========================================================
     //  port requests
     //  only if a user application is running...
-    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1 )
+    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
+        && *role_decoupled == 0 && !need_udp_port_req )
     {
-      //we can't close, so only look for newly opened
+      //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
       ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
       //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
@@ -710,19 +712,31 @@ void nrc_main(
         new_relative_port_to_req_udp = getRightmostBitPos(diff);
         need_udp_port_req = true;
       }
-    } else {
-      need_udp_port_req = false;
-    }
+    } //else {
+      //need_udp_port_req = false;
+    //}
 
-    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
+        && !need_tcp_port_req )
     {
-      fmc_port_opened = false;
-      need_tcp_port_req = true;
-      printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+      if(mmio_stabilize_counter == 0)
+      {
+        fmc_port_opened = false;
+        need_tcp_port_req = true;
+#ifndef __SYNTHESIS__
+        mmio_stabilize_counter = 1;
+#else
+        mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+#endif
+        printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+      } else {
+        mmio_stabilize_counter--;
+      }
 
-    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1 )
+    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
+        && *role_decoupled == 0 && !need_tcp_port_req )
     { //  only if a user application is running...
-      //we can't close, so only look for newly opened
+      //we close ports only if layer 7 is reset, so only look for new ports
       ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
       ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
       //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
@@ -733,221 +747,169 @@ void nrc_main(
         new_relative_port_to_req_tcp = getRightmostBitPos(diff);
         need_tcp_port_req = true;
       }
-    } else {
-      need_tcp_port_req = false;
-    }
+    } //else {
+      //need_tcp_port_req = false;
+    //}
   }
 
   //=================================================================================================
   // TX UDP
 
-  //-------------------------------------------------------------------------------------------------
-  // TX UDP Enqueue
-
   //only if NTS is ready
   if(*piNTS_ready == 1 && *layer_4_enabled == 1)
   {
-    switch(fsmStateTXenq_Udp) {
+    switch(fsmStateTX_Udp) {
 
       default:
-      case FSM_RESET:
-        pldLen_Udp = 0;
-        fsmStateTXenq_Udp = FSM_W8FORMETA;
+      case FSM_RESET: 
+        fsmStateTX_Udp = FSM_W8FORMETA;
         udpTX_packet_length = 0;
         udpTX_current_packet_length = 0;
         //NO break! --> to be same as FSM_W8FORMETA
-
       case FSM_W8FORMETA:
         // The very first time, wait until the Rx path provides us with the
         // socketPair information before continuing
-        if ( !siUdp_meta.empty() && !sFifo_Udp_Meta.full() ) {
+        if ( !siUdp_meta.empty() && !soUOE_Meta.full() &&
+            !siUdp_data.empty() && !soUOE_Data.full() &&
+            !soUOE_DLen.full() )
+        {
           NetworkMetaStream tmp_meta_in = siUdp_meta.read();
-          sFifo_Udp_Meta.write(tmp_meta_in);
           udpTX_packet_length = tmp_meta_in.tdata.len;
           udpTX_current_packet_length = 0;
-          fsmStateTXenq_Udp = FSM_ACC;
-        }
-        //printf("waiting for NetworkMeta.\n");
-        break;
 
-      case FSM_ACC:
+          // Send out the first data together with the metadata and payload length information
 
-        // Default stream handling
-        if ( !siUdp_data.empty() && !sFifo_Udp_Data.full() ) {
+          //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
+          NodeId dst_rank = tmp_meta_in.tdata.dst_rank;
+          if(dst_rank > MAX_CF_NODE_ID)
+          {
+            node_id_missmatch_TX_cnt++;
+            //SINK packet
+            fsmStateTX_Udp = FSM_DROP_PACKET;
+            break;
+          }
+          ap_uint<32> dst_ip_addr = localMRT[dst_rank];
+          if(dst_ip_addr == 0)
+          {
+            node_id_missmatch_TX_cnt++;
+            //SINK packet
+            fsmStateTX_Udp = FSM_DROP_PACKET;
+            break;
+          }
+          last_tx_node_id = dst_rank;
+          NrcPort src_port = out_meta_udp.tdata.src_port; //TODO: DEBUG
+          if (src_port == 0)
+          {
+            src_port = DEFAULT_RX_PORT;
+          }
+          NrcPort dst_port = out_meta_udp.tdata.dst_port; //TODO: DEBUG
+          if (dst_port == 0)
+          {
+            dst_port = DEFAULT_RX_PORT;
+            port_corrections_TX_cnt++;
+          }
+          last_tx_port = dst_port;
+          // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
+          //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
+          UdpMeta txMeta = SocketPair(SockAddr(ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
+          soUOE_Meta.write(txMeta);
+          //we can forward the length, even if 0
+          //the UOE handles this as streaming mode
+          soUOE_DLen.write(udpTX_packet_length);
+          packet_count_TX++;
 
-          // Read incoming data chunk
-          UdpWord aWord = siUdp_data.read();
+          // Forward data chunk, metadata and payload length
+          UdpWord    aWord = siUdp_data.read();
           udpTX_current_packet_length++;
           if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
           {//we need to set tlast manually
             aWord.tlast = 1;
           }
 
-          // Increment the payload length
-          updatePayloadLength(&aWord, &pldLen_Udp);
-
-          // Enqueue data chunk into FiFo
-          sFifo_Udp_Data.write(aWord);
-
-          // Until LAST bit is set
-          if (aWord.tlast)
+          soUOE_Data.write(aWord);
+          if (aWord.tlast == 1)
           {
-            fsmStateTXenq_Udp = FSM_LAST_ACC;
+            fsmStateTX_Udp = FSM_W8FORMETA;
+          } else {
+            fsmStateTX_Udp = FSM_ACC;
           }
         }
         break;
 
-      case FSM_LAST_ACC:
-        if( !sPLen_Udp.full() ) {
-          // Forward the payload length
-          sPLen_Udp.write(pldLen_Udp);
-          // Reset the payload length
-          pldLen_Udp = 0;
-          // Start over
-          fsmStateTXenq_Udp = FSM_W8FORMETA;
-        }
+      case FSM_ACC:
+        // Default stream handling
+        if ( !siUdp_data.empty() && !soUOE_Data.full() )
+        {
+          // Forward data chunk
+          UdpWord    aWord = siUdp_data.read();
+          udpTX_current_packet_length++;
+          if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
+          {//we need to set tlast manually
+            aWord.tlast = 1;
+          }
 
+          soUOE_Data.write(aWord);
+          // Until LAST bit is set
+          if (aWord.tlast == 1)
+          {
+            fsmStateTX_Udp = FSM_W8FORMETA;
+          }
+        }
+        break;
+
+      case FSM_DROP_PACKET:
+        if ( !siUdp_data.empty() ) {
+          UdpWord    aWord = siUdp_data.read();
+          udpTX_current_packet_length++;
+          if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
+          {//we need to set tlast manually
+            aWord.tlast = 1;
+          }
+          // Until LAST bit is set (with length or with tlast)
+          if (aWord.tlast == 1)
+          {
+            fsmStateTX_Udp = FSM_W8FORMETA;
+          }
+        }
         break;
     }
   }
 
-  //-------------------------------------------------------------------------------------------------
-  // TX UDP Dequeue
-
-  //only if NTS is ready
-  if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-  {
-    switch(fsmStateTXdeq_Udp) {
-
-      default:
-      case FSM_RESET: 
-        fsmStateTXdeq_Udp = FSM_W8FORMETA;
-        //NO break! --> to be same as FSM_W8FORMETA
-      case FSM_W8FORMETA: //TODO: can be done also in FSM_FIRST_ACC, but leave it here for now
-
-        // The very first time, wait until the Rx path provides us with the
-        // socketPair information before continuing
-        if ( !sFifo_Udp_Meta.empty() ) {
-          out_meta_udp  = sFifo_Udp_Meta.read();
-          fsmStateTXdeq_Udp = FSM_FIRST_ACC;
-        }
-        //printf("waiting for Internal Meta.\n");
-        break;
-
-      case FSM_FIRST_ACC:
-
-        // Send out the first data together with the metadata and payload length information
-        if ( !sFifo_Udp_Data.empty() && !sPLen_Udp.empty() ) 
-        {
-          if ( !soTHIS_Udmx_Data.full() && !soTHIS_Udmx_Meta.full() && !soTHIS_Udmx_PLen.full() ) 
-          {
-
-            //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
-            NodeId dst_rank = out_meta_udp.tdata.dst_rank;
-            if(dst_rank > MAX_CF_NODE_ID)
-            {
-              node_id_missmatch_TX_cnt++;
-              //dst_rank = 0;
-              //SINK packet
-              sPLen_Udp.read();
-              fsmStateTXdeq_Udp = FSM_DROP_PACKET;
-              break;
-            }
-            ap_uint<32> dst_ip_addr = localMRT[dst_rank];
-            if(dst_ip_addr == 0)
-            {
-              node_id_missmatch_TX_cnt++;
-              //dst_ip_addr = localMRT[0];
-              //SINK packet
-              sPLen_Udp.read();
-              fsmStateTXdeq_Udp = FSM_DROP_PACKET;
-              break;
-            }
-            last_tx_node_id = dst_rank;
-            NrcPort src_port = out_meta_udp.tdata.src_port; //TODO: DEBUG
-            if (src_port == 0)
-            {
-              src_port = DEFAULT_RX_PORT;
-            }
-            NrcPort dst_port = out_meta_udp.tdata.dst_port; //TODO: DEBUG
-            if (dst_port == 0)
-            {
-              dst_port = DEFAULT_RX_PORT;
-              port_corrections_TX_cnt++;
-            }
-            last_tx_port = dst_port;
-            // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-            UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
-            soTHIS_Udmx_Meta.write(txMeta);
-            packet_count_TX++;
-
-            // Forward data chunk, metadata and payload length
-            UdpWord    aWord = sFifo_Udp_Data.read();
-            //if (!aWord.tlast) { //TODO?? we ignore packets smaller 64Bytes?
-            soTHIS_Udmx_Data.write(aWord);
-
-            soTHIS_Udmx_PLen.write(sPLen_Udp.read());
-            if (aWord.tlast == 1)
-            {
-              fsmStateTXdeq_Udp = FSM_W8FORMETA;
-            } else {
-              fsmStateTXdeq_Udp = FSM_ACC;
-            }
-          }
-        }
-        break;
-
-          case FSM_ACC:
-          // Default stream handling
-          if ( !sFifo_Udp_Data.empty() && !soTHIS_Udmx_Data.full() )
-          {
-            // Forward data chunk
-            UdpWord    aWord = sFifo_Udp_Data.read();
-            soTHIS_Udmx_Data.write(aWord);
-            // Until LAST bit is set
-            if (aWord.tlast == 1) 
-            {
-              fsmStateTXdeq_Udp = FSM_W8FORMETA;
-            }
-          }
-          break;
-
-          case FSM_DROP_PACKET:
-          if ( !sFifo_Udp_Data.empty()) {
-            // Forward data chunk
-            UdpWord    aWord = sFifo_Udp_Data.read();
-            // Until LAST bit is set
-            if (aWord.tlast == 1) 
-            {
-              fsmStateTXdeq_Udp = FSM_W8FORMETA;
-            }
-          }
-          break;
-
-
-        }
-    }
-
     //=================================================================================================
     // RX UDP
+    char   *myName  = concat3(THIS_NAME, "/", "Udp_RX");
 
     //only if NTS is ready
+    //we DO NOT need to check for layer_7_enabled or role_decoupled, because then Ports should be closed
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
       switch(fsmStateRX_Udp) {
 
         default:
         case FSM_RESET:
-          openPortWaitTime = 10;
+            #ifndef __SYNTHESIS__
+                openPortWaitTime = 10;
+            #else
+                openPortWaitTime = 100;
+            #endif
           fsmStateRX_Udp = FSM_IDLE;
           break;
 
         case FSM_IDLE:
           if(openPortWaitTime == 0) { 
-            if ( !soTHIS_Udmx_OpnReq.full() && need_udp_port_req) {
+            if ( !soUOE_LsnReq.full() && need_udp_port_req) {
               ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_udp;
-              soTHIS_Udmx_OpnReq.write(new_absolute_port);
+              soUOE_LsnReq.write(new_absolute_port);
               fsmStateRX_Udp = FSM_W8FORPORT;
+              #ifndef __SYNTHESIS__
+                udp_lsn_watchDogTimer = 10;
+              #else
+                udp_lsn_watchDogTimer = 100;
+              #endif
+                if (DEBUG_LEVEL & TRACE_LSN) {
+                  printInfo(myName, "SHELL/UOE is requested to listen on port #%d (0x%4.4X).\n",
+                      (int) new_absolute_port, (int) new_absolute_port);
+                }
             } else if(udp_rx_ports_processed > 0)
             { // we have already at least one open port 
               //don't hang after reset
@@ -960,24 +922,39 @@ void nrc_main(
           break;
 
         case FSM_W8FORPORT:
-          if ( !siUDMX_This_OpnAck.empty() ) {
+          udp_lsn_watchDogTimer--;
+          if ( !siUOE_LsnRep.empty() ) {
             // Read the acknowledgment
-            AxisAck sOpenAck = siUDMX_This_OpnAck.read();
-            fsmStateRX_Udp = FSM_FIRST_ACC;
-            //port acknowleded
-            need_udp_port_req = false;
-            udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_udp);
+            StsBool sOpenAck = siUOE_LsnRep.read();
             printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
+            if (sOpenAck) {
+              printInfo(myName, "Received listen acknowledgment from [UOE].\n");
+              fsmStateRX_Udp = FSM_FIRST_ACC;
+              //port acknowleded
+              need_udp_port_req = false;
+              udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_udp);
+            }
+            else {
+              printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
+                        (int) (NRC_RX_MIN_PORT + new_relative_port_to_req_udp),
+                        (int) (NRC_RX_MIN_PORT + new_relative_port_to_req_udp));
+              fsmStateRX_Udp = FSM_IDLE;
+            }
+          } else {
+            if (udp_lsn_watchDogTimer == 0) {
+              printError(myName, "Timeout: Server failed to listen on new udp port.\n");
+              fsmStateRX_Udp = FSM_IDLE;
+            }
           }
           break;
 
         case FSM_FIRST_ACC:
           // Wait until both the first data chunk and the first metadata are received from UDP
-          if ( !siUDMX_This_Data.empty() && !siUDMX_This_Meta.empty() ) {
-            if ( !soUdp_data.full() ) {
+          if ( !siUOE_Data.empty() && !siUOE_Meta.empty() ) {
+            if ( !soUdp_data.full() && !soUdp_meta.full() ) {
 
               //extrac src ip address
-              UdpMeta udpRxMeta = siUDMX_This_Meta.read();
+              UdpMeta udpRxMeta = siUOE_Meta.read();
               NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
               if(src_id == 0xFFFF)
               {
@@ -989,9 +966,10 @@ void nrc_main(
               last_rx_node_id = src_id;
               last_rx_port = udpRxMeta.dst.port;
               NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+              //FIXME: add length here as soon as available from the UOE
               in_meta_udp = NetworkMetaStream(tmp_meta);
               // Forward data chunk to ROLE
-              UdpWord    udpWord = siUDMX_This_Data.read();
+              UdpWord    udpWord = siUOE_Data.read();
               soUdp_data.write(udpWord);
 
               Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
@@ -1010,9 +988,9 @@ void nrc_main(
 
         case FSM_ACC:
           // Default stream handling
-          if ( !siUDMX_This_Data.empty() && !soUdp_data.full() ) {
+          if ( !siUOE_Data.empty() && !soUdp_data.full() ) {
             // Forward data chunk to ROLE
-            UdpWord    udpWord = siUDMX_This_Data.read();
+            UdpWord    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
             // Until LAST bit is set
             if (udpWord.tlast)
@@ -1035,14 +1013,68 @@ void nrc_main(
           break;
 
         case FSM_DROP_PACKET:
-          if( !siUDMX_This_Data.empty() )
+          if( !siUOE_Data.empty() )
           {
-            UdpWord    udpWord = siUDMX_This_Data.read();
+            UdpWord    udpWord = siUOE_Data.read();
             // Until LAST bit is set
             if (udpWord.tlast)
             {
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
+          }
+          break;
+      }
+    }
+
+
+    //=================================================================================================
+    // UDP Port Close
+    
+    //redefinition
+    myName  = concat3(THIS_NAME, "/", "Udp_Cls");
+    
+    //only if NTS is ready
+    //and if we have valid tables
+    if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
+    {
+      switch (clsFsmState_Udp) {
+        default:
+        case CLS_IDLE:
+          //we wait until we are activated;
+          break;
+        case CLS_NEXT:
+          if( udp_rx_ports_to_close != 0 )
+          {
+            //we have to close opened ports, one after another
+            newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
+            newAbsolutePortToClose = NRC_RX_MIN_PORT + newRelativePortToClose;
+            if(!soUOE_ClsReq.full()) {
+              soUOE_ClsReq.write(newAbsolutePortToClose);
+              clsFsmState_Udp = CLS_WAIT4RESP;
+            } //else: just tay here
+          } else {
+            clsFsmState_Udp = CLS_IDLE;
+          }
+          break;
+        case CLS_WAIT4RESP:
+          if(!siUOE_ClsRep.empty())
+          {
+            StsBool isOpened;
+            siUOE_ClsRep.read(isOpened);
+            if (not isOpened)
+            {
+                printInfo(myName, "Received close acknowledgment from [UOE].\n");
+                //update ports to close
+                ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
+                udp_rx_ports_to_close &= one_cold_closed_port;
+                printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_to_close);
+            }
+            else {
+                printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",
+                          (int) newAbsolutePortToClose, (int) newAbsolutePortToClose);
+            }
+            //in all cases
+            clsFsmState_Udp = CLS_NEXT;
           }
           break;
       }
@@ -1065,7 +1097,7 @@ void nrc_main(
      *   to 32,767.
      ******************************************************************************/
 
-    char   *myName  = concat3(THIS_NAME, "/", "LSn");
+    myName  = concat3(THIS_NAME, "/", "LSn");
 
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
@@ -1147,8 +1179,7 @@ void nrc_main(
                   (int) new_absolute_port, (int) new_absolute_port);
               lsnFsmState = LSN_SEND_REQ;
             }
-          }
-          else {
+          } else {
             if (watchDogTimer_plisten == 0) {
               ap_uint<16> new_absolute_port = 0;
               //always process FMC first
@@ -1229,6 +1260,9 @@ void nrc_main(
       AppMeta     sessId;
 
     //only if NTS is ready
+    //we NEED for layer_7_enabled or role_decoupled, because the
+    // 1. FMC is still active
+    // 2. TCP ports cant be closed up to now [FIXME]
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
       switch (rdpFsmState ) {
@@ -1268,7 +1302,8 @@ void nrc_main(
             NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
             //printf("TO ROLE: src_rank: %d\n", (int) src_id);
             //Role packet
-            if(src_id == 0xFFFF)
+            if(src_id == 0xFFFF 
+                || *layer_7_enabled == 0 || *role_decoupled == 1)
             {
               //SINK packet
               //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
@@ -1654,13 +1689,13 @@ void nrc_main(
      *
      ******************************************************************************/
     //update myName
-    myName  = concat3(THIS_NAME, "/", "Cls");
+    //myName  = concat3(THIS_NAME, "/", "Cls");
 
     //only if NTS is ready
     //and if we have valid tables
     if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
     {
-      switch (clsFsmState) {
+      switch (clsFsmState_Tcp) {
         default:
         case CLS_IDLE:
           //we wait until we are activated;
@@ -1671,7 +1706,7 @@ void nrc_main(
           {
             soTOE_ClsReq.write(nextToDelete);
           } else {
-            clsFsmState = CLS_IDLE;
+            clsFsmState_Tcp = CLS_IDLE;
           }
           break;
       }
@@ -1736,7 +1771,7 @@ void nrc_main(
     //  update status, config, MRT
 
 
-    if( fsmStateTXenq_Udp != FSM_ACC && fsmStateTXdeq_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC && 
+    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC && 
         rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
         wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
     { //so we are not in a critical data path

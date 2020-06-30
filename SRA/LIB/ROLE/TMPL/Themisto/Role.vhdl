@@ -134,7 +134,7 @@ entity Role_Themisto is
     moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
     moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
     moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
-    moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(2 downto 0);
     moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
     moMEM_Mp1_AWVALID               : out   std_ulogic;
     moMEM_Mp1_AWREADY               : in    std_ulogic;
@@ -150,7 +150,7 @@ entity Role_Themisto is
     moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
     moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
     moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
-    moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
+    moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(2 downto 0);
     moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
     moMEM_Mp1_ARVALID               : out   std_ulogic;
     moMEM_Mp1_ARREADY               : in    std_ulogic;
@@ -161,24 +161,9 @@ entity Role_Themisto is
     moMEM_Mp1_RVALID                : in    std_ulogic;
     moMEM_Mp1_RREADY                : out   std_ulogic;
 
-    --------------------------------------------------------
-    -- SHELL / Mmio / AppFlash Interface
-    --------------------------------------------------------
-    ---- [DIAG_CTRL_1] -----------------
-    piSHL_Mmio_Mc1_MemTestCtrl          : in    std_ulogic_vector(1 downto 0);
-    ---- [DIAG_STAT_1] -----------------
-    poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(1 downto 0);
-    ---- [DIAG_CTRL_2] -----------------
-    piSHL_Mmio_UdpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Mmio_UdpPostDgmEn             : in    std_ulogic;
-    piSHL_Mmio_UdpCaptDgmEn             : in    std_ulogic;
-    piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-    piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
-    piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
     ---- [APP_RDROL] -------------------
-    poSHL_Mmio_RdReg                    : out  std_logic_vector( 15 downto 0);
-    --- [APP_WRROL] --------------------
-    piSHL_Mmio_WrReg                    : in   std_logic_vector( 15 downto 0);
+    -- to be use as ROLE VERSION IDENTIFICATION --
+    poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
 
     --------------------------------------------------------
     -- TOP : Secondary Clock (Asynchronous)

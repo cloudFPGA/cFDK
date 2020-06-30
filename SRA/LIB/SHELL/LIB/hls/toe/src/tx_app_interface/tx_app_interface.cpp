@@ -117,11 +117,13 @@ template<typename T> void pStreamMux(
  *
  ******************************************************************************/
 void pTxAppAccept(
-        stream<LE_SockAddr>         &siTRIF_OpnReq,
+        //OBSOLETE_20200629 stream<LE_SockAddr>  &siTRIF_OpnReq,
+        stream<SockAddr>            &siTRIF_OpnReq,
         stream<OpenStatus>          &soTRIF_OpnRep,
         stream<AppClsReq>           &siTRIF_ClsReq,
-        stream<LE_SocketPair>       &soSLc_SessLookupReq,
-		stream<SessionLookupReply>  &siSLc_SessLookupRep,
+        //OBSOLETE_20200629 stream<LE_SocketPair>       &soSLc_SessLookupReq,
+        stream<SocketPair>          &soSLc_SessLookupReq,
+        stream<SessionLookupReply>  &siSLc_SessLookupRep,
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<TcpPort>             &siPRt_GetFreePortRep,
         stream<StateQuery>          &soSTt_AcceptStateQry,
@@ -147,7 +149,8 @@ void pTxAppAccept(
     static SessionId    taa_closeSessionID;
 
     //-- LOCAL STREAMS --------------------------------------------------------
-    static stream<LE_SockAddr>  taa_localFifo    ("taa_localFifo");
+    //OBSOLETE_20200629 static stream<LE_SockAddr>  taa_localFifo    ("taa_localFifo");
+    static stream<SockAddr>     taa_localFifo    ("taa_localFifo");
     #pragma HLS stream variable=taa_localFifo    depth=4
 
     OpenStatus  openSessStatus;
@@ -156,7 +159,7 @@ void pTxAppAccept(
 
     case TAA_IDLE:
         if (!siTRIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
-        	assessSize(myName, taa_localFifo, "taa_localFifo", 4);  // [FIXME-Use constant for the length]
+            assessSize(myName, taa_localFifo, "taa_localFifo", 4);  // [FIXME-Use constant for the length]
             taa_localFifo.write(siTRIF_OpnReq.read());
             soPRt_GetFreePortReq.write(1);
             taa_fsmState = TAA_GET_FREE_PORT;
@@ -193,13 +196,14 @@ void pTxAppAccept(
     case TAA_GET_FREE_PORT:
         if (!siPRt_GetFreePortRep.empty() && !soSLc_SessLookupReq.full()) {
             TcpPort     freePort     = siPRt_GetFreePortRep.read();
-            LE_SockAddr leServerAddr = taa_localFifo.read();
-            //OBSOLETE_20200314 soSLc_SessLookupReq.write(LE_SocketPair(
-            //OBSOLETE_20200314               LE_SockAddr(piMMIO_IpAddr,     byteSwap16(freePort)),
-            //OBSOLETE_20200314               LE_SockAddr(leServerAddr.addr, leServerAddr.port)));
-            soSLc_SessLookupReq.write(LE_SocketPair(
-                          LE_SockAddr(byteSwap32(piMMIO_IpAddr), byteSwap16(freePort)),
-                          LE_SockAddr(leServerAddr.addr,         leServerAddr.port)));
+            //OBSOLETE_20200629 LE_SockAddr leServerAddr = taa_localFifo.read();
+            SockAddr serverAddr = taa_localFifo.read();
+            //OBSOLETE_20200629   soSLc_SessLookupReq.write(LE_SocketPair(
+            //OBSOLETE_20200629                 LE_SockAddr(byteSwap32(piMMIO_IpAddr), byteSwap16(freePort)),
+            //OBSOLETE_20200629                 LE_SockAddr(leServerAddr.addr,         leServerAddr.port)));
+            soSLc_SessLookupReq.write(SocketPair(
+                          SockAddr(piMMIO_IpAddr,   freePort),
+                          SockAddr(serverAddr.addr, serverAddr.port)));
             taa_fsmState = TAA_IDLE;
         }
         break;
@@ -865,7 +869,8 @@ void pTxAppStream(
  ******************************************************************************/
 void tx_app_interface(
         //-- TRIF / Open-Close Interfaces
-        stream<LE_SockAddr>            &siTRIF_OpnReq,
+        //OBSOLETE_20200629 stream<LE_SockAddr>            &siTRIF_OpnReq,
+        stream<SockAddr>               &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_OpnRep,
         stream<AppClsReq>              &siTRIF_ClsReq,
         //-- TRIF / Data Stream Interfaces
@@ -882,7 +887,8 @@ void tx_app_interface(
         stream<StateQuery>             &soSTt_AcceptStateQry,
         stream<SessionState>           &siSTt_AcceptStateRep,
         //-- Session Lookup Controller Interface
-        stream<LE_SocketPair>          &soSLc_SessLookupReq,
+        //OBSOLETE_20200629 stream<LE_SocketPair>          &soSLc_SessLookupReq,
+        stream<SocketPair>             &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
         //-- Port Table Interfaces
         stream<ReqBit>                 &soPRt_GetFreePortReq,

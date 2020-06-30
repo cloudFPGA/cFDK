@@ -126,7 +126,7 @@ module Role_Themisto (
     output [  3: 0]  moMEM_Mp1_AWID,
     output [ 32: 0]  moMEM_Mp1_AWADDR,
     output [  7: 0]  moMEM_Mp1_AWLEN,
-    output [  3: 0]  moMEM_Mp1_AWSIZE,
+    output [  2: 0]  moMEM_Mp1_AWSIZE,
     output [  1: 0]  moMEM_Mp1_AWBURST,
     output           moMEM_Mp1_AWVALID,
     input            moMEM_Mp1_AWREADY,
@@ -142,7 +142,7 @@ module Role_Themisto (
     output [  3: 0]  moMEM_Mp1_ARID,
     output [ 32: 0]  moMEM_Mp1_ARADDR,
     output [  7: 0]  moMEM_Mp1_ARLEN,
-    output [  3: 0]  moMEM_Mp1_ARSIZE,
+    output [  2: 0]  moMEM_Mp1_ARSIZE,
     output [  1: 0]  moMEM_Mp1_ARBURST,
     output           moMEM_Mp1_ARVALID,
     input            moMEM_Mp1_ARREADY,
@@ -153,24 +153,9 @@ module Role_Themisto (
     input            moMEM_Mp1_RVALID,
     output           moMEM_Mp1_RREADY,
     
-    //--------------------------------------------------------
-    //-- SHELL / Mmio / AppFlash Interface
-    //--------------------------------------------------------
-    //---- [DIAG_CTRL_1] -----------------
-    input  [  1: 0]  piSHL_Mmio_Mc1_MemTestCtrl,
-    //---- [DIAG_STAT_1] -----------------
-    output [  1: 0]  poSHL_Mmio_Mc1_MemTestStat,
-    //---- [DIAG_CTRL_2] -----------------
-    input  [  1: 0]  piSHL_Mmio_UdpEchoCtrl,
-    input            piSHL_Mmio_UdpPostDgmEn,
-    input            piSHL_Mmio_UdpCaptDgmEn,
-    input  [  1: 0]  piSHL_Mmio_TcpEchoCtrl,
-    input            piSHL_Mmio_TcpPostSegEn,
-    input            piSHL_Mmio_TcpCaptSegEn,
     //---- [APP_RDROL] -------------------
+    // to be use as ROLE VERSION IDENTIFICATION --
     output [ 15: 0]  poSHL_Mmio_RdReg,
-    //--- [APP_WRROL] --------------------
-    input  [ 15: 0]  piSHL_Mmio_WrReg,
     
     //--------------------------------------------------------
     //-- TOP : Secondary Clock (Asynchronous)
