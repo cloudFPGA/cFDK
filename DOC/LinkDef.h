@@ -57,6 +57,12 @@
  *  \brief FPGA Management Core (FMC). The FMC is the core of the cloudFPGA Shell-Role-Architecture. Its tasks and responsibilities are sometimes complex and depend on the current situation and environment. In order to unbundle all these dependencies and to allow future extensions easily, the FMC contains a small Instruction-Set-Architecture (ISA). All global operations issue opcodes to execute the current task. The global operations are persistent between IP core runs and react on environment changes, the issued Instructions are all executed in the same IP core run. The global operations are started according to the EMIF Flags in the FMC Write Register (see below). The documentation of the FMC HTTP API can be found at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#fpga-management-core-fmc .
  */
 
+/** \defgroup MEM MEM
+ *  @ingroup ShellLib
+ * 
+ *  \brief Memory Sub-System (MEM). This component implements the dynamic memory controllers for the FPGA module FMKU2595 equipped with a XCKU060. This memory sub-system implements two DDR4 memory channels (MC0 and MC1 ), each with a capacity of 8GB. By convention, the memory channel #0 (MC0) is dedicated to the network transport and session (NTS) stack, and the memory channel #1 (MC1) is reserved for the user application. The documentation of MEM is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#memory-sub-system-mem
+ */
+
 /** \defgroup NRC NRC
  *  @ingroup ShellLib
  * 
@@ -66,7 +72,7 @@
 /** \defgroup NTS NTS
  *  @ingroup ShellLib
  * 
- *  \brief Network Transport Stack (NTS). This is the component for the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
+ *  \brief Network Transport Stack (NTS). This component implements the TCP/IP Network and Transport Stack used by the cloudFPGA platform. The documentation of NTS is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-transport-stack-nts
  */
 
 
