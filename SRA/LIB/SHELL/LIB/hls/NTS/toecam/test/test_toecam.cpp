@@ -27,7 +27,7 @@
  * \{
  *****************************************************************************/
 
-#include "test_cam.hpp"
+#include "test_toecam.hpp"
 
 using namespace hls;
 using namespace std;

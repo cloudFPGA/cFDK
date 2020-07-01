@@ -15,27 +15,27 @@
  */
 
 /*******************************************************************************
- * @file       : test_cam.cpp
- * @brief      : Testbench for the Content-Addressable Memory (CAM).
+ * @file       : test_toecam.cpp
+ * @brief      : Testbench for the Content-Addressable Memory (CAM) of TOE.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_CAM
- * \addtogroup NTS_CAM
+ * \ingroup NTS_TOECAM
+ * \addtogroup NTS_TOECAM
  * \{
  *******************************************************************************/
 
-#ifndef _TEST_CAM_H_
-#define _TEST_CAM_H_
+#ifndef _TEST_TOECAM_H_
+#define _TEST_TOECAM_H_
 
 #include <hls_stream.h>
 #include <map>
 #include <stdio.h>
 #include <string>
 
-#include "../src/cam.hpp"
+#include "../src/toecam.hpp"
 #include "../../../NTS/nts_types.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"

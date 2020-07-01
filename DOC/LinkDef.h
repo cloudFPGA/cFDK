@@ -156,6 +156,12 @@
  *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_TOECAM TOECAM
+ *  @ingroup NTS
+ * 
+ *  \brief Content-Addressable Memory (CAM) for the TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_UOE UOE
  *  @ingroup NTS
  * 

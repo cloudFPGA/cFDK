@@ -19,12 +19,12 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "cam"
+set projectName    "toecam"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "HLS-based CAM for cloudFPGA"
+set ipDisplayName  "HLS-based CAM for TOE"
 set ipDescription  "A Content-Addressable Memory with small (8) memory size of entries."
 set ipVendor       "IBM"
 set ipLibrary      "hls"

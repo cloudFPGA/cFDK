@@ -16,7 +16,7 @@
 # ******************************************************************************
 
 # Name of the HLS core to build
-ipName = cam
+ipName = toecam
 
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
