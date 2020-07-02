@@ -523,7 +523,7 @@ void pRxPacketHandler(
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { FSM_RPH_IDLE=0,               FSM_RPH_PORT_LOOKUP,
-    	                    FSM_RPH_STREAM,               FSM_RPH_STREAM_FIRST,
+                            FSM_RPH_STREAM,               FSM_RPH_STREAM_FIRST,
 							FSM_RPH_DRAIN_DATAGRAM_STREAM,FSM_RPH_DRAIN_IP4HDR_STREAM,
 							FSM_RPH_PORT_UNREACHABLE_1ST, FSM_RPH_PORT_UNREACHABLE_2ND,
 							FSM_RPH_PORT_UNREACHABLE_STREAM,

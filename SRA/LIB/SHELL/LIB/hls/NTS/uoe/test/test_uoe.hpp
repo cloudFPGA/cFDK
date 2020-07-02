@@ -22,7 +22,13 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_UOE
+ * \{
  *****************************************************************************/
+
+#ifndef _TEST_UOE_H_
+#define _TEST_UOE_H_
 
 #include <set>
 
@@ -34,7 +40,7 @@
 
 //---------------------------------------------------------
 //-- TESTBENCH GLOBAL DEFINES
-//    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
+//    'TB_TARTUP_DELAY' is used to delay the start of the [TB] functions.
 //---------------------------------------------------------
 #define TB_MAX_SIM_CYCLES   250000
 #define TB_STARTUP_DELAY         0
@@ -56,3 +62,4 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 enum TestMode { RX_MODE='0',   TX_DGRM_MODE='1', TX_STRM_MODE='2',
                 OPEN_MODE='3', BIDIR_MODE='4',   ECHO_MODE='5',     };
 
+/*! \} */
