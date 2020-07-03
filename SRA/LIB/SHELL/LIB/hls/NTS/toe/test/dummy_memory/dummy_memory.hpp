@@ -1,26 +1,50 @@
-/*****************************************************************************
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
  * @file       : dummy_memory.hpp
  * @brief      : A class to emulate the TCP buffer memory.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#ifndef DUMMY_MEMORY_H_
-#define DUMMY_MEMORY_H_
+#ifndef _DUMMY_MEMORY_H_
+#define _DUMMY_MEMORY_H_
 
 #include "../../src/toe.hpp"
+// #include "../../../NTS/nts_utils.hpp"
+// #include "../../../NTS/SimNtsUtils.hpp"
 
 #include <map>
+//OBSOLETE_20200701 #include <iostream>
 
+/*******************************************************************************
+ *
+ * ENTITY - DUMMY MEMORY
+ *
+ *******************************************************************************/
 class DummyMemory {
 
-  private:
+  private: // [FIXME - Use appropriate types]
     ap_uint<16> readAddr;   // Read Address within a read buffer (16 LSbits -->  64k bytes)
     ap_uint<16> readId;     // Address of the read buffer in DDR (16 MSbits -->  64k buffer).
     int         readLen;
@@ -44,3 +68,5 @@ class DummyMemory {
 };
 
 #endif
+
+/*! \} */

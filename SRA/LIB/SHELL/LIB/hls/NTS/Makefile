@@ -13,11 +13,11 @@
 
 .PHONY: all arp clean cam icmp iprx iptx rlb toe uoe 
 
-all:   arp       cam       icmp       iprx       iptx       rlb       toe       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
+all:   arp       icmp       iprx       iptx       rlb       toe       toecam       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
-csim:  arp.csim  cam.csim  icmp.csim  iprx.csim  iptx.csim  rlb.csim  toe.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
+csim:  arp.csim  icmp.csim  iprx.csim  iptx.csim  rlb.csim  toe.csim  toecam.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
 
-cosim: arp.cosim cam.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim toe.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
+cosim: arp.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim toe.cosim toecam.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
 	@echo ---- Building [ $@ ] ---------------------------- 

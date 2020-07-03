@@ -32,18 +32,18 @@ set ipPkgFormat    "ip_catalog"
 
 # Set Project Environment Variables  
 #-------------------------------------------------
-set currDir      [pwd]
-set srcDir       ${currDir}/src
-set testDir      ${currDir}/test
-set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
-set repoDir      ${currDir}/../../ip
+set currDir   [pwd]
+set srcDir    ${currDir}/src
+set testDir   ${currDir}/test
+set implDir   ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set repoDir   ${currDir}/../../ip
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
-set hlsCSim      $::env(hlsCSim)
-set hlsCSynth    $::env(hlsCSynth)
-set hlsCoSim     $::env(hlsCoSim)
-set hlsRtl       $::env(hlsRtl)
+set hlsCSim   $::env(hlsCSim)
+set hlsCSynth $::env(hlsCSynth)
+set hlsCoSim  $::env(hlsCoSim)
+set hlsRtl    $::env(hlsRtl)
 
 # Open and Setup Project
 #-------------------------------------------------
@@ -52,28 +52,31 @@ set_top       ${projectName}
 
 # Add project files
 #-------------------------------------------------
-add_files ${currDir}/src/${projectName}.cpp
-add_files ${currDir}/src/${projectName}_utils.cpp
-add_files ${currDir}/test/test_${projectName}_utils.cpp
+add_files     ${currDir}/src/${projectName}.cpp
 
-add_files ${srcDir}/ack_delay/ack_delay.cpp
-add_files ${srcDir}/event_engine/event_engine.cpp
-add_files ${srcDir}/port_table/port_table.cpp
-add_files ${srcDir}/rx_app_interface/rx_app_interface.cpp
-add_files ${srcDir}/rx_engine/src/rx_engine.cpp
-add_files ${srcDir}/rx_sar_table/rx_sar_table.cpp
-add_files ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
-add_files ${srcDir}/state_table/state_table.cpp
-add_files ${srcDir}/timers/timers.cpp
-add_files ${srcDir}/toe_utils.cpp
-add_files ${srcDir}/tx_app_interface/tx_app_interface.cpp
-add_files ${srcDir}/tx_engine/src/tx_engine.cpp
-add_files ${srcDir}/tx_sar_table/tx_sar_table.cpp
+#OBSOLETE_20200630 add_files ${currDir}/src/${projectName}_utils.cpp
+#OBSOLETE_20200630 add_files ${currDir}/test/test_${projectName}_utils.cpp
+add_files     ${currDir}/../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
+
+add_files     ${srcDir}/ack_delay/ack_delay.cpp
+add_files     ${srcDir}/event_engine/event_engine.cpp
+add_files     ${srcDir}/port_table/port_table.cpp
+add_files     ${srcDir}/rx_app_interface/rx_app_interface.cpp
+add_files     ${srcDir}/rx_engine/src/rx_engine.cpp
+add_files     ${srcDir}/rx_sar_table/rx_sar_table.cpp
+add_files     ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
+add_files     ${srcDir}/state_table/state_table.cpp
+add_files     ${srcDir}/timers/timers.cpp
+add_files     ${srcDir}/toe_utils.cpp
+add_files     ${srcDir}/tx_app_interface/tx_app_interface.cpp
+add_files     ${srcDir}/tx_engine/src/tx_engine.cpp
+add_files     ${srcDir}/tx_sar_table/tx_sar_table.cpp
 
 # Add testbench files
 #-------------------------------------------------
 add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
-add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
+#OBSOLETE_20200630 add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
 add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 # Create a solution

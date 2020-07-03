@@ -386,14 +386,14 @@ bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
 #endif
 
 #ifndef __SYNTHESIS__
-/******************************************************************************
+/*******************************************************************************
  * @brief Dump an Axis raw data chunk to a file.
  *
  * @param[in] axisRaw        A reference to the raw data chunk to write.
  * @param[in] outFileStream  A reference to the file stream to write.
  *
  * @return true upon successful, otherwise false.
- ******************************************************************************/
+ *******************************************************************************/
 bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
     if (not outFileStream.is_open()) {
         printError(THIS_NAME, "File is not opened.\n");
@@ -413,8 +413,76 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
 #endif
 
 #ifndef __SYNTHESIS__
+/*******************************************************************************
+ * @brief Dump a TCP or UDP application data chunk into a file. The data are
+ *         stored as a stream of bytes which is terminated by a newline when
+ *         the 'TLAST' bit of the data chunk is set.
+ *
+ * @param[in] appData  A reference  to the AXI word to write.
+ * @param[in] outFile, a reference to the file stream to write.
+ * @return the number of bytes written into the file.
+ *******************************************************************************/
+int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
+    int writtenBytes = 0;
+    for (int bytNum=0; bytNum<8; bytNum++) {
+        if (axisApp.tkeep.bit(bytNum)) {
+            int hi = ((bytNum*8) + 7);
+            int lo = ((bytNum*8) + 0);
+            ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            // Write byte to file
+            outFile << myUint8ToStrHex(octet);
+            writtenBytes++;
+        }
+    }
+    if (axisApp.tlast == 1) {
+        outFile << endl;
+    }
+    return writtenBytes;
+}
+#endif
+
+#ifndef __SYNTHESIS__
+/*******************************************************************************
+ * @brief Dump a TCP or UDP application data chunk into a file. Data are stored
+ *         as a stream of bytes with a newline being appended every time the
+ *         write-counter reaches the Maximum Segment Size (.i.e, MSS) or the
+ *         TLAST' bit of the data chunk is set.
+ *
+ * @param[in] appData  A reference  to the AXI word to write.
+ * @param[in] outFile  A reference to the file stream to write.
+ * @param[in] wrCount  A ref to a segment write counter.
+ * @return the number of bytes written into the file.
+ *******************************************************************************/
+int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile, int &wrCount) {
+    int writtenBytes = 0;
+    for (int bytNum=0; bytNum<8; bytNum++) {
+        if (axisApp.tkeep.bit(bytNum)) {
+            int hi = ((bytNum*8) + 7);
+            int lo = ((bytNum*8) + 0);
+            ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            // Write byte to file
+            outFile << myUint8ToStrHex(octet);
+            writtenBytes++;
+            wrCount++;
+            if (wrCount == MSS) {
+                // Emulate the IP segmentation behavior when writing this
+                //  file by appending a newline when mssCounter == MMS
+                outFile << endl;
+                wrCount = 0;
+            }
+        }
+    }
+    if ((axisApp.tlast == 1) && (wrCount != 0)) {
+        outFile << endl;
+        wrCount = 0;
+    }
+    return writtenBytes;
+}
+#endif
+
+#ifndef __SYNTHESIS__
 /******************************************************************************
- * @brief Retrieve an Fpgs socket from a string.
+ * @brief Retrieve an Fpga socket from a string.
  *
  * @param[in] fpgaSock      A ref to the socket address to retrieve.
  * @param[in] stringBuffer  The string buffer to read from.

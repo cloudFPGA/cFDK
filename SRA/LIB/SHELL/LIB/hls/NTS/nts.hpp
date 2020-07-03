@@ -46,6 +46,11 @@ typedef UdpLen       UdpAppDLen;
 /**********************************************************
  * INTERFACE - TCP APPLICATION INTERFACE (TAIF)
  **********************************************************/
+typedef AxisApp      TcpAppData;
+typedef TcpSessId    TcpAppMeta;
+
+#define ERROR_NOSPACE        1   // [FIXME - FIND BETTER NAME]
+#define ERROR_NOCONNCECTION  2
 
 
 /*******************************************************************************

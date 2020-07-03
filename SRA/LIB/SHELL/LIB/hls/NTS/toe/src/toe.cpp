@@ -24,32 +24,31 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : toe.cpp
- * @brief      : TCP Offload Engine (TOE)
+/*******************************************************************************
+ * @file     : toe.cpp
+ * @brief    : TCP Offload Engine (TOE)
  *
- * System:     : cloudFPGA
- * Component   : Network Transport Stack (NTS)
- * Language    : Vivado HLS
+ * System:   : cloudFPGA
+ * Component : Network Transport Stack (NTS)
+ * Language  : Vivado HLS
  *
- *****************************************************************************/
+ * @remarks  :
+ *  In telecommunications, a protocol data unit (PDU) is a single unit of
+ *   information transmitted among peer entities of a computer network. A PDU is
+ *   therefore composed of a protocol specific control information (e.g a header)
+ *   and a user data section.
+ *  This source code uses the following terminology:
+ *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
+ *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
+ *
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "toe.hpp"
-#include "../test/test_toe_utils.hpp"
 
-#include "session_lookup_controller/session_lookup_controller.hpp"
-#include "state_table/state_table.hpp"
-#include "rx_sar_table/rx_sar_table.hpp"
-#include "tx_sar_table/tx_sar_table.hpp"
-#include "timers/timers.hpp"
-#include "event_engine/event_engine.hpp"
-#include "ack_delay/ack_delay.hpp"
-#include "port_table/port_table.hpp"
-
-#include "rx_engine/src/rx_engine.hpp"
-#include "tx_engine/src/tx_engine.hpp"
-#include "rx_app_interface/rx_app_interface.hpp"
-#include "tx_app_interface/tx_app_interface.hpp"
 
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
@@ -833,3 +832,4 @@ void toe(
 
 }
 
+/*! \} */

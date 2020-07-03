@@ -130,7 +130,6 @@ void printSockPair(const char *callerName, SocketPair sockPair) {
        sockPair.dst.port.to_uint());
 }
 
-
 /*******************************************************************************
  * @brief Print a socket pair association.
  *
@@ -154,39 +153,6 @@ void printSockPair(const char *callerName, LE_SocketPair leSockPair) {
         (byteSwap32(leSockPair.dst.addr).to_uint() & 0x000000FF) >>  0,
          byteSwap16(leSockPair.dst.port).to_uint());
 }
-
-/*******************************************************************************
- * @brief Print a socket pair association from an internal FourTuple encoding.
- *
- * @param[in] callerName The name of the caller process (e.g. "TAi").
- * @param[in] source     The source of the internal 4-tuple information.
- * @param[in] fourTuple  The internal 4-tuple encoding of the socket pair.
- ******************************************************************************/
-/*** [TODO - Move this function into test_toe.cpp] *******
-void printSockPair(const char *callerName, int src, SLcFourTuple fourTuple)
-{
-    SocketPair socketPair;
-
-    switch (src) {
-        case FROM_RXe:
-            socketPair.src.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.src.port = byteSwap16(fourTuple.theirPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.myIp);
-            socketPair.dst.port = byteSwap16(fourTuple.myPort);
-            break;
-        case FROM_TAi:
-            socketPair.src.addr = byteSwap32(fourTuple.myIp);
-            socketPair.src.port = byteSwap16(fourTuple.myPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.dst.port = byteSwap16(fourTuple.theirPort);
-            break;
-        default:
-            printFatal(callerName, "Unknown request source %d.\n", src);
-            break;
-    }
-    printSockPair(callerName, socketPair);
-}
-**** [TODO - Move this function into test_toe.cpp] *******/
 
 /*******************************************************************************
  * @brief Print a socket address encoded in LITTLE_ENDIAN order.

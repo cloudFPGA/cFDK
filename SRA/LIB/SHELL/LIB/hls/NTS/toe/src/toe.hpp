@@ -24,47 +24,84 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
-
+/*******************************************************************************
  * @file       : toe.hpp
  * @brief      : TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
  *                   TCP offload engine.
  *
- * @terminology:
- *      In telecommunications, a protocol data unit (PDU) is a single unit of
- *       information transmitted among peer entities of a computer network.
- *      A PDU is therefore composed of a protocol specific control information
- *       (e.g, a header) and a user data section.
+ * @remarks   :
+ *  In telecommunications, a protocol data unit (PDU) is a single unit of
+ *   information transmitted among peer entities of a computer network. A PDU is
+ *   therefore composed of a protocol specific control information (e.g a header)
+ *   and a user data section.
  *  This source code uses the following terminology:
  *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
  *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
  *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#ifndef TOE_H_
-#define TOE_H_
+#ifndef _TOE_H_
+#define _TOE_H_
 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include <stdint.h>
-#include <vector>
+//#include <stdio.h>
+//#include <iostream>
+//#include <fstream>
+//#include <string>
+//#include <math.h>
+//#include <hls_stream.h>
+//#include <stdint.h>
+//#include <vector>
 
 #include "ap_int.h"
 
+//OBSOLETE_20200701 #include "../test/test_toe_utils.hpp"
+
+//#include "session_lookup_controller/session_lookup_controller.hpp"
+//#include "state_table/state_table.hpp"
+//#include "rx_sar_table/rx_sar_table.hpp"
+//#include "tx_sar_table/tx_sar_table.hpp"
+//#include "timers/timers.hpp"
+//#include "event_engine/event_engine.hpp"
+//#include "ack_delay/ack_delay.hpp"
+//#include "port_table/port_table.hpp"
+
+//#include "rx_engine/src/rx_engine.hpp"
+//#include "tx_engine/src/tx_engine.hpp"
+//#include "rx_app_interface/rx_app_interface.hpp"
+//#include "tx_app_interface/tx_app_interface.hpp"
+
+
+#include "../../../NTS/nts.hpp"
+//#include "../../../NTS/nts_utils.hpp"
+//#include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../MEM/mem.hpp"
+
 using namespace hls;
+
+
+
+
+
+//---------------------------------------------------------
+//-- TOE GLOBAL DEFINES
+//---------------------------------------------------------
+#define TOE_SIZEOF_LISTEN_PORT_TABLE    0x8000
+#define TOE_SIZEOF_ACTIVE_PORT_TABLE    0x8000
+#define TOE_FIRST_EPHEMERAL_PORT_NUM    0x8000 // Dynamic ports are in the range 32768..65535
+
+
 
 
 
@@ -89,9 +126,9 @@ class RtlSessionLookupRequest;
 #define OOO_N 4     // number of OOO blocks accepted
 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
 
-// Usually TCP Maximum Segment Size is 1460. Here, we use 1456 to support TCP options.
-static const ap_uint<16> MTU = 1500;
-static const ap_uint<16> MSS = 1456;  // MTU-IP-Hdr-TCP-Hdr=1500-20-20
+// Usually, the TCP Maximum Segment Size (MSS) is 1460 bytes.
+// The TOE uses 1456 to support 4 bytes of TCP options.
+static const ap_uint<16> MSS = 1456;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20-4
 
 // OOO Parameters
 //static const int OOO_N = 4;       // number of OOO blocks accepted
@@ -286,19 +323,6 @@ typedef ap_uint<32> tDataHalf;
 typedef ap_uint< 8> tKeep;
 typedef ap_uint< 1> tLast;
 
-/**********************************************************
- * GENERIC AXI4 STREAMING INTERFACES
- **********************************************************/
-template<int D>
-   class Axis {
-     public:
-       ap_uint<D>       tdata;
-       ap_uint<(D+7)/8> tkeep;
-       ap_uint<1>       tlast;
-       Axis() {}
-       Axis(ap_uint<D> single_data) :
-           tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
-   };
 
 /************************************************
  * FIXED-SIZE (64-bits) AXI4 STREAMING INTERFACE
@@ -670,13 +694,13 @@ typedef ap_uint<16> Ly4Len;         // LY4 header plus data Length
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
  *  As Encoded by IPRX and L3MUX (.i.e in Little-Endian order).
  *********************************************************/
-class Ip4overMac: public AxiWord {
+class OBSOLETE_Ip4overMac: public AxiWord {
 
   public:
-    Ip4overMac() {}
-    Ip4overMac(AxiWord axiWord) :
+	OBSOLETE_Ip4overMac() {}
+	OBSOLETE_Ip4overMac(AxiWord axiWord) :
       AxiWord(axiWord.tdata, axiWord.tkeep, axiWord.tlast) {}
-    Ip4overMac(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+	OBSOLETE_Ip4overMac(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
       AxiWord(tdata, tkeep, tlast) {}
 
     // Set-Get the IP4 Version
@@ -791,7 +815,7 @@ class Ip4overMac: public AxiWord {
               inpDWord.range(23,16), inpDWord.range(31, 24));
     }
 
-}; // End of: Ip4overMac
+}; // End of: OBSOLETE_Ip4overMac
 
 
 
@@ -808,17 +832,6 @@ class Ip4overMac: public AxiWord {
  ***********************************************/
 typedef ap_uint<16> SessionId;
 
-/***********************************************
- * SOCKET ADDRESS (alias ipTuple)
- ***********************************************/
-class LE_SockAddr {   // Socket Address stored in LITTLE-ENDIAN order !!!
-  public:
-    LE_Ip4Address   addr;   // IPv4 address in LITTLE-ENDIAN order !!!
-    LE_TcpPort      port;   // TCP  port in in LITTLE-ENDIAN order !!!  [FIXME-Replace TcpPort with Ly4Port]
-    LE_SockAddr() {}
-    LE_SockAddr(LE_Ip4Address addr, LE_TcpPort port) :
-        addr(addr), port(port) {}
-};
 
 /***********************************************
  * SOCKET ADDRESS (alias ipTuple)
@@ -829,31 +842,7 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
     ap_uint<16>     ip_port;
 };
 
-class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
-   public:
-    Ip4Addr         addr;   // IPv4 address in NETWORK BYTE ORDER
-    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER [FIXME-Replace TcpPort with Ly4Port]
-    SockAddr() {}
-    SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
-        addr(ip4Addr), port(tcpPort) {}
-};
 
-/***********************************************
- * SOCKET PAIR ASSOCIATION (alias FourTuple)
- ***********************************************/
-class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
-  public:
-    LE_SockAddr    src;    // Source socket address in LITTLE-ENDIAN order !!!
-    LE_SockAddr    dst;    // Destination socket address in LITTLE-ENDIAN order !!!
-    LE_SocketPair() {}
-    LE_SocketPair(LE_SockAddr src, LE_SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
-        return ((s1.dst.addr < s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
 
 struct fourTuple {  // [TODO] - Replace w/ LE_SocketPair
     ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
@@ -869,19 +858,6 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
 
-class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
-  public:
-    SockAddr    src;    // Source socket address in NETWORK-BYTE order !!!
-    SockAddr    dst;    // Destination socket address in NETWORK-BYTE order !!!
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
-        return ((s1.dst.addr <  s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
 
 /***********************************************
  * Open Session Status [FIXME - Can we rename this to OpenReply ?
@@ -902,7 +878,7 @@ class OpenStatus
 /********************************************
  * Session Lookup Controller (SLc)
  ********************************************/
-typedef SessionId   TcpSessId;  // TCP Session ID
+//OBSOLETE_20200703 typedef SessionId   TcpSessId;  // TCP Session ID
 
 class SessionLookupQuery
 {
@@ -1309,25 +1285,7 @@ struct rstEvent : public Event
 #define RXMEMBUF    65536   // 64KB = 2^16
 #define TXMEMBUF    65536   // 64KB = 2^16
 
-/***********************************************
- * Data Mover Command Interface (c.f PG022)
- ***********************************************/
-class DmCmd
-{
-  public:
-    ap_uint<23>     bbt;    // Bytes To Transfer
-    ap_uint<1>      type;   // Type of AXI4 access (0=FIXED, 1=INCR)
-    ap_uint<6>      dsa;    // DRE Stream Alignment
-    ap_uint<1>      eof;    // End of Frame
-    ap_uint<1>      drr;    // DRE ReAlignment Request
-    ap_uint<40>     saddr;  // Start Address
-    ap_uint<4>      tag;    // Command Tag
-    ap_uint<4>      rsvd;   // Reserved
-    DmCmd() {}
-    DmCmd(ap_uint<40> addr, RxBufPtr len) :
-        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
-};
-
+/*** OBSOLETE_20200701 ***
 struct mmCmd
 {
     ap_uint<23> bbt;
@@ -1344,20 +1302,6 @@ struct mmCmd
 
 };
 
-/***********************************************
- * Data Mover Status Interface (c.f PG022)
- ***********************************************/
-class DmSts
-{
-  public:
-    ap_uint<4>      tag;
-    ap_uint<1>      interr;
-    ap_uint<1>      decerr;
-    ap_uint<1>      slverr;
-    ap_uint<1>      okay;
-    DmSts() {}
-};
-
 struct mmStatus
 {
     ap_uint<4>  tag;
@@ -1367,7 +1311,6 @@ struct mmStatus
     ap_uint<1>  okay;
 };
 
-//TODO is this required??
 struct mm_ibtt_status
 {
     ap_uint<4>  tag;
@@ -1378,7 +1321,7 @@ struct mm_ibtt_status
     ap_uint<22> brc_vd;
     ap_uint<1>  eop;
 };
-
+***************************/
 
 /*************************************************************************
  * TCP ROLE INTERFACES
@@ -1457,12 +1400,14 @@ typedef AxiWord     AppData;
  ***********************************************/
 typedef TcpSessId   AppMeta;
 
+/*** OBSOLETE_20200701 ***
 class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
   public:
     AppMetaAxis() {}
     AppMetaAxis(AppMeta sessId) :
         Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
 };
+**************************/
 
 
 /***********************************************
@@ -1504,12 +1449,14 @@ typedef OpenStatus  AppOpnRep; // [TODO - Rename to Reply]
  ***********************************************/
 typedef TcpPort     AppLsnReq;
 
+/*** OBSOLETE_20200701 ***
 class AppLsnReqAxis : public Axis<cSHL_TOE_LSN_REQ_WIDTH> {
   public:
     AppLsnReqAxis() {}
     AppLsnReqAxis(AppLsnReq req) :
       Axis<cSHL_TOE_LSN_REQ_WIDTH>(req) {}
 };
+**************************/
 
 /***********************************************
  * Application Listen Acknowledgment
@@ -1518,12 +1465,14 @@ class AppLsnReqAxis : public Axis<cSHL_TOE_LSN_REQ_WIDTH> {
  ***********************************************/
 typedef AckBit      AppLsnAck;
 
+/*** OBSOLETE_20200701 ***
 class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
   public:
     AppLsnAckAxis() {}
     AppLsnAckAxis(AppLsnAck ack) :
         Axis<cSHL_TOE_LSN_ACK_WIDTH>(ack) {}
 };
+**************************/
 
 /***********************************************
  * Application Close Request
@@ -1532,12 +1481,14 @@ class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
  ***********************************************/
 typedef SessionId   AppClsReq;
 
+/*** OBSOLETE_20200701 ***
 class AppClsReqAxis : public Axis<cSHL_TOE_CLS_REQ_WIDTH> {
   public:
     AppClsReqAxis() {}
     AppClsReqAxis(AppClsReq req) :
         Axis<cSHL_TOE_CLS_REQ_WIDTH>(req) {}
 };
+**************************/
 
 /***********************************************
  * A 2-to-1 Stream multiplexer.
@@ -1568,12 +1519,12 @@ void toe(
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overMac>                      &siIPRX_Data,
+        stream<AxisIp4>                         &siIPRX_Data,
 
         //------------------------------------------------------
         //-- L3MUX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overMac>                      &soL3MUX_Data,
+        stream<AxisIp4>                         &soL3MUX_Data,
 
         //------------------------------------------------------
         //-- TRIF / Tx Data Interfaces
@@ -1647,3 +1598,5 @@ void toe(
 );
 
 #endif
+
+/*! \} */

@@ -34,12 +34,12 @@
 #include "nts_utils.hpp"
 
 #include "AxisIp4.hpp"
-// [TODO] #include "AxisTcp.hpp"
+#include "AxisTcp.hpp"
 #include "AxisUdp.hpp"
 #include "AxisPsd4.hpp"    // [TODO-Create a SimPsd4Packet class]
 #include "SimIcmpPacket.hpp"
+#include "SimTcpSegment.hpp"
 #include "SimUdpDatagram.hpp"
-
 
 /*****************************************************************************
  * @brief Class IPv4 Packet for simulation.
@@ -174,16 +174,12 @@ class SimIp4Packet {
         int      tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
 
         // Create 1st pseudo-header chunk - [IP_SA|IP_DA]
-        //OBSOLETE_20200413 axisIp4.tdata    = (this->pktQ[1].tdata.range(63, 32), this->pktQ[2].tdata.range(31,  0));
         AxisPsd4 firstAxisPsd4(0, 0, 0);
         firstAxisPsd4.setPsd4SrcAddr(this->getIpSourceAddress());
         firstAxisPsd4.setPsd4DstAddr(this->getIpDestinationAddress());
         tcpBuffer.push_back(firstAxisPsd4);
 
         // Create 2nd pseudo-header chunk - [0x00|Prot|Length|TC_SP|TCP_DP]
-        //OBSOLETE_20200413 axisIp4.tdata.range(15,  0)  = 0x0600;
-        //OBSOLETE_20200413 axisIp4.tdata.range(31, 16) = byteSwap16(tcpDataLen);
-        //OBSOLETE_20200413 axisIp4.tdata.range(63, 32) = this->pktQ[2].tdata.range(63, 32);
         AxisPsd4 secondAxisPsd4(0, 0, 0);
         secondAxisPsd4.setPsd4ResBits(0x00);
         secondAxisPsd4.setPsd4Prot(this->getIpProtocol());
@@ -193,7 +189,6 @@ class SimIp4Packet {
         tcpBuffer.push_back(secondAxisPsd4);
 
         // Clear the Checksum of the current packet before continuing building the pseudo header
-        //OBSOLETE_20200413 this->pktQ[4].tdata.range(47, 32) = 0x0000;
         this->setTcpChecksum(0x000);
 
         // Now, append the content of the TCP segment
@@ -204,58 +199,6 @@ class SimIp4Packet {
             tcpBuffer.push_back(axisPsd4);
         }
     }
-
-    /***************************************************************************
-     * @brief Assembles a deque that is ready for UDP checksum calculation.
-     * @param udpBuffer  A dequeue buffer to hold the UDP pseudo header and
-     *                   the UDP segment.
-     *
-     * @info : The UDP checksum field is cleared as expected before by the
-     *          UDP computation algorithm.
-     * @TODO-Create a pseudo header class.
-     ***************************************************************************/
-    /*** OBSOLETE_20200615 ***
-    void udpAssemblePseudoHeaderAndData(deque<AxisPsd4> &udpBuffer) {
-        AxisIp4 axisIp4;
-        int     udpLength  = this->getUdpLength();
-
-        // Create 1st pseudo-header chunk - [IP_SA|IP_DA]
-        AxisPsd4 firstAxisPsd4(0, 0, 0);
-        firstAxisPsd4.setPsd4SrcAddr(this->getIpSourceAddress());
-        firstAxisPsd4.setPsd4DstAddr(this->getIpDestinationAddress());
-        udpBuffer.push_back(firstAxisPsd4);
-
-        // Create 2nd pseudo-header chunk - [0x00|Prot|Length|UDP_SP|UDP_DP]
-        AxisPsd4 secondAxisPsd4(0, 0, 0);
-        secondAxisPsd4.setPsd4ResBits(0x00);
-        secondAxisPsd4.setPsd4Prot(this->getIpProtocol());
-        SimUdpDatagram udpDgrm = this->getUdpDatagram();
-        secondAxisPsd4.setPsd4Len(udpDgrm.getUdpLength());
-        secondAxisPsd4.setUdpSrcPort(udpDgrm..getUdpSourcePort());
-        secondAxisPsd4.setUdpDstPort(udpDgrm.getUdpDestinationPort());
-        udpBuffer.push_back(secondAxisPsd4);
-
-        //OBSOLETE_20200615 // Clear the current checksum before continuing building the pseudo header
-        //OBSOLETE_20200615 this->setUdpChecksum(0x0000);
-
-        // Create 3rd pseudo-header chunk - [Data|UDP_CSUM|UDP_LEN]
-        AxisPsd4 thirdAxisPsd4(0, 0, 0);
-        thirdAxisPsd4.setUdpLen(udpDrgm->getUdpLength());
-        thirdAxisPsd4.setUdpCsum(0x0000);
-        if (udpDrgm->getUdpLength() > 8) {
-            thirdAxisPsd4.setLE_TData(udpDgrm.getUdpData(0), 47, 32);
-        }
-
-        // Now, append the UDP_LEN & UDP_CSUM & UDP payload
-        //-------------------------------------------------
-        for (int i=2; i<pktQ.size()-1; ++i) {
-            AxisPsd4 axisPsd4(this->pktQ[i+1].getLE_TData(),
-                              this->pktQ[i+1].getLE_TKeep(),
-                              this->pktQ[i+1].getLE_TLast());
-            udpBuffer.push_back(axisPsd4);
-        }
-    }
-    ************************/
 
   public:
 
@@ -466,7 +409,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 0;  // Field starts at bit #00
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 pktQ[2].setUdpSrcPort(port);
         pktQ[raw].setUdpSrcPort(port, (bit % ARW));
     }
     // Get the UDP Source Port field
@@ -474,7 +416,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 0;  // Field starts at bit #00
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 return pktQ[2].getUdpSrcPort();
         return pktQ[raw].getUdpSrcPort(bit % ARW);
     }
     // Set the UDP Destination Port field
@@ -482,7 +423,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 16;  // Field starts at bit #16
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 pktQ[2].setUdpDstPort(port);
         pktQ[raw].setUdpDstPort(port, (bit % ARW));
     }
     // Get the UDP Destination Port field
@@ -490,7 +430,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 16;  // Field starts at bit #16
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 return pktQ[2].getUdpDstPort();
         return pktQ[raw].getUdpDstPort(bit % ARW);
     }
     // Set the UDP Length field
@@ -498,7 +437,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 32;  // Field starts at bit #32
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 pktQ[3].setUdpLen(len);
     }
     // Get the UDP Length field
     UdpLen        getUdpLength() {
@@ -512,7 +450,6 @@ class SimIp4Packet {
         int ihl = this->getIpInternetHeaderLength();
         int bit = (ihl*4*8) + 48;  // Field starts at bit #48
         int raw = bit/ARW;
-        //OBSOLETE)_20200615 pktQ[3].setUdpCsum(csum);
         pktQ[raw].setUdpCsum(csum, (bit % ARW));
     }
     // Get the UDP Checksum field
@@ -687,24 +624,6 @@ class SimIp4Packet {
                         newTKeep = newTKeep | (0x01<<i);
                     }
                 }
-                /*** OBSOLETE_20200420 ******
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x10) {
-                    newTData.range( 7,  0) = this->pktQ[wordInpCnt].getLE_TData().range(39, 32);
-                    newTKeep = newTKeep | (0x01);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x20) {
-                    newTData.range(15,  8) = this->pktQ[wordInpCnt].getLE_TData().range(47, 40);
-                    newTKeep = newTKeep | (0x02);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x40) {
-                    newTData.range(23, 16) = this->pktQ[wordInpCnt].getLE_TData().range(55, 48);
-                    newTKeep = newTKeep | (0x04);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x80) {
-                    newTData.range(31, 24) = this->pktQ[wordInpCnt].getLE_TData().range(63, 56);
-                    newTKeep = newTKeep | (0x08);
-                }
-                **************************/
                 if (this->pktQ[wordInpCnt].getLE_TLast()) {
                     newTLast = TLAST;
                     endOfPkt = true;
@@ -714,24 +633,6 @@ class SimIp4Packet {
                 wordInpCnt++;
             }
             else {
-                /*** OBSOLETE_20200420 ***
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x01) {
-                    newTData.range(39, 32) = this->pktQ[wordInpCnt].getLE_TData().range( 7,  0);
-                    newTKeep = newTKeep | (0x10);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x02) {
-                    newTData.range(47, 40) = this->pktQ[wordInpCnt].getLE_TData().range(15,  8);
-                    newTKeep = newTKeep | (0x20);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x04) {
-                    newTData.range(55, 48) = this->pktQ[wordInpCnt].getLE_TData().range(23, 16);
-                    newTKeep = newTKeep | (0x40);
-                }
-                if (this->pktQ[wordInpCnt].getLE_TKeep() & 0x08) {
-                    newTData.range(63, 56) = this->pktQ[wordInpCnt].getLE_TData().range(31, 24);
-                    newTKeep = newTKeep | (0x80);
-                }
-                ***************************/
                 //-- Populate the lower-half of a new chunk (.i.e, LE(63,32))
                 for (int i=0, hi=7, lo=0; i<4; i++) {
                     if (this->pktQ[wordInpCnt].getLE_TKeep() & (0x01<<i)) {
@@ -754,6 +655,80 @@ class SimIp4Packet {
         return udpDatagram;
     } // End-of: getUdpDatagram
 
+    // Return the IP4 data payload as a TcpSegment
+    SimTcpSegment getTcpSegment() {
+        SimTcpSegment   tcpSegment;
+        LE_tData        newTData = 0;
+        LE_tKeep        newTKeep = 0;
+        LE_tLast        newTLast = 0;
+        int             wordOutCnt = 0;
+        bool            alternate = true;
+        bool            endOfPkt  = false;
+        int             ip4PktSize = this->size();
+        int             ihl = this->getIpInternetHeaderLength();
+        int             wordInpCnt = ihl/2; // Skip the IP header words
+        bool            qwordAligned = (ihl % 2) ? false : true;
+        while (wordInpCnt < ip4PktSize) {
+            if (endOfPkt)
+                break;
+            if (qwordAligned) {
+                newTData = 0;
+                newTKeep = 0;
+                newTLast = 0;
+                for (int i=0; i<8; i++) {
+                    if (this->pktQ[wordInpCnt].getLE_TKeep() & (0x01 << i)) {
+                        newTData.range((i*8)+7, (i*8)+0) =
+                                       this->pktQ[wordInpCnt].getLE_TData().range((i*8)+7, (i*8)+0);
+                        newTKeep = newTKeep | (0x01 << i);
+                    }
+                }
+                newTLast = this->pktQ[wordInpCnt].getLE_TLast();
+                wordInpCnt++;
+                wordOutCnt++;
+                tcpSegment.pushChunk(AxisTcp(newTData, newTKeep, newTLast));
+            }
+            else if (alternate) {
+                //-- Populate the upper-half of a new chunk (.i.e, LE(31, 0))
+                newTData = 0;
+                newTKeep = 0;
+                newTLast = 0;
+                for (int i=0, hi=7, lo=0; i<4; i++) {
+                    if (this->pktQ[wordInpCnt].getLE_TKeep() & (0x10<<i)) {
+                        newTData.range(hi+8*i, lo+8*i) = this->pktQ[wordInpCnt].getLE_TData().range(32+hi+8*i, 32+lo+8*i);
+                        newTKeep = newTKeep | (0x01<<i);
+                    }
+                }
+                if (this->pktQ[wordInpCnt].getLE_TLast()) {
+                    newTLast = TLAST;
+                    endOfPkt = true;
+                    tcpSegment.pushChunk(AxisTcp(newTData, newTKeep, newTLast));
+                }
+                alternate = !alternate;
+                wordInpCnt++;
+            }
+            else {
+                //-- Populate the lower-half of a new chunk (.i.e, LE(63,32))
+                for (int i=0, hi=7, lo=0; i<4; i++) {
+                    if (this->pktQ[wordInpCnt].getLE_TKeep() & (0x01<<i)) {
+                        newTData.range(32+hi+8*i, 32+lo+8*i) = this->pktQ[wordInpCnt].getLE_TData().range(hi+8*i, lo+8*i);
+                        newTKeep = newTKeep | (0x10<<i);
+                    }
+                }
+                if (this->pktQ[wordInpCnt].getLE_TLast()) {
+                    LE_tKeep leTKeep = this->pktQ[wordInpCnt].getLE_TKeep();
+                    if (not (leTKeep & 0xF0)) {
+                        newTLast = TLAST;
+                        endOfPkt = true;
+                    }
+                }
+                alternate = !alternate;
+                wordOutCnt++;
+                tcpSegment.pushChunk(AxisTcp(newTData, newTKeep, newTLast));
+            }
+        }
+        return tcpSegment;
+    } // End-of: getTcpSegment
+
     /**************************************************************************
      * @brief Append some data to this packet from a UDP datagram.
      *
@@ -773,9 +748,6 @@ class SimIp4Packet {
         bool     done      = false;
         AxisIp4  axisIp4(0, 0, 0);
         AxisUdp  axisUdp(0, 0, 0);
-        //OBSOLETE_20200422 int  ihl = this->getIpInternetHeaderLength();
-        //OBSOLETE_20200422 int  axisIp4Cnt = ihl/2;
-        //OBSOLETE_20200422 bool ipIsQwordAligned = (ihl % 2) ? false : true;
         int      bits = (this->length() * 8);
         int      axisIp4Cnt = bits/ARW;
         int      axisUdpCnt = 0;
@@ -816,31 +788,6 @@ class SimIp4Packet {
             }
             else {
                 if (alternate) {
-                    /*** OBSOLETE ********************
-                    //OBSOLETE_20200423 LE_tData tmpTData = this->pktQ[axisIp4Cnt].getLE_TData();
-                    //OBSOLETE_20200423 LE_tKeep tmpTKeep = this->pktQ[axisIp4Cnt].getLE_TKeep();
-                    //OBSOLETE_20200423 LE_tLast tmpTLast = this->pktQ[axisIp4Cnt].getLE_TLast();
-                    //for (int i=0, hi=7, lo=0; i<4; i++) {
-                    //    if (axisUdp.getLE_TKeep() & (0x01<<i)) {
-                    //        tmpChunk.tdata.range(32+hi+8*i, 32+lo+8*i) = axisUdp.getLE_TData().range(hi+8*i, lo+8*i);
-                    //        tmpTKeep = tmpTKeep | (0x10<<i);
-                    //        this->setLen(this->getLen() + 1);
-                    //        byteCnt++;
-                    //    }
-                    //}
-                    //if (axisUdp.getLE_TLast() && (axisUdp.getLE_TKeep() <= 0x0F)) {
-                    //    tmpTLast = TLAST;
-                    //    axisUdp.setTLast(TLAST);
-                    //    done = true;
-                    //}
-                    //else {
-                    //    tmpTLast = 0;
-                    //}
-                    //this->pktQ[axisIp4Cnt].setLE_TData(tmpTData);
-                    //this->pktQ[axisIp4Cnt].setLE_TKeep(tmpTKeep);
-                    //this->pktQ[axisIp4Cnt].setLE_TLast(tmpTLast);
-                    // Write lower-half part of the chunk already stored in the packet queue
-                    **********************/
                     this->pktQ[axisIp4Cnt].setTDataLo(axisUdp.getTDataHi());
                     this->pktQ[axisIp4Cnt].setTKeepLo(axisUdp.getTKeepHi());
                     if (axisUdp.getTLast() and (axisUdp.getLen() <= 4)) {
@@ -855,31 +802,6 @@ class SimIp4Packet {
                     alternate = !alternate;
                 }
                 else {
-                    /*** OBSOLETE_20200423 ************************
-                    LE_tData newTData = 0;
-                    LE_tKeep newTKeep = 0;
-                    LE_tLast newTLast = 0;
-                    for (int i=0, hi=7, lo=0; i<4; i++) {
-                        if (axisUdp.getLE_TKeep() & (0x10<<i)) {
-                            newTData.range(hi+8*i, lo+8*i) = axisUdp.getLE_TData().range(32+hi+8*i, 32+lo+8*i);
-                            newTKeep = newTKeep | (0x01<<i);
-                            byteCnt++;
-                        }
-                    }
-                    // Done with the incoming UDP word
-                    axisUdpCnt++;
-                    if ((axisUdp.getLE_TLast()) or (byteCnt >= len) ) {
-                        newTLast = TLAST;  // FIXME
-                        done = true;
-                    }
-                    else {
-                        newTLast = 0;
-                        axisIp4Cnt++;
-                        // Read and pop a new chunk from the UDP datagram
-                        axisUdp = udpDgm.pullChunk();
-                    }
-                    this->pushChunk(AxisIp4(newTData, newTKeep, newTLast));
-                    *** OBSOLETE_20200423 ************************/
                     // Build a new chunk, init its higher-half part with the
                     // lower-half-part of the UDP chunk and push the new chunk
                     // onto the packet queue
@@ -908,134 +830,6 @@ class SimIp4Packet {
     } // End-of: addIpPayload(UdpDatagram udpDgm)
 
     /**************************************************************************
-     * @brief Append the data payload of this packet as a UDP datagram.
-     * @param[in] udpDgrm  The UDP datagram to use as IPv4 payload.
-     * @return true upon success, otherwise false.
-     *
-     * @warning The IP4 packet object must be of length 20 bytes
-     *           (.i.e a default IP4 packet w/o options)
-     * @info    This method updates the 'Total Length' and the 'Protocol'
-     *          fields.
-     **************************************************************************/
-    /*** OBSOLETE_20200422 *****
-    bool addIpPayload(SimUdpDatagram udpDgm) {
-        bool     alternate = true;
-        bool     endOfDgm  = false;
-        AxisIp4  axisIp4(0, 0, 0);
-        AxisUdp  axisUdp(0, 0, 0);
-        if (this->getLen() != IP4_HEADER_LEN) {
-            printFatal(this->myName, "Packet is expected to be of length %d bytes (was found to be %d bytes).\n",
-                       IP4_HEADER_LEN, this->getLen());
-        }
-        int   ihl        = this->getIpInternetHeaderLength();
-        int   axisUdpCnt = 0;
-        int   axisIp4Cnt = ihl/2;
-        bool  ipIsQwordAligned = (ihl % 2) ? false : true;
-        // Read and pop the very first chunk from the datagram
-        axisUdp = udpDgm.pullChunk();
-        while (!endOfDgm) {
-            if (ipIsQwordAligned) {
-                for (int i=0; i<8; i++) {
-                    if (axisUdp.getLE_TKeep() & (0x01 << i)) {
-                        //OBSOLETE_20200413  axisIp4.setLE_TData().range((i*8)+7, (i*8)+0) =
-                        //OBSOLETE_20200413         axisUdp.getLE_TData().range((i*8)+7, (i*8)+0);
-                        axisIp4.setLE_TData(axisIp4.getLE_TData() |
-                                          ((axisUdp.getLE_TData().range((i*8)+7, (i*8)+0)) << (i*8)));
-                        axisIp4.setLE_TKeep(axisIp4.getLE_TKeep() | (0x01 << i));
-                    }
-                }
-                axisIp4.setLE_TLast(axisUdp.getLE_TLast());
-                axisUdpCnt++;
-                axisIp4Cnt++;
-                this->pushChunk(axisIp4);
-            }
-            else {
-                if (alternate) {
-                    LE_tData tmpTData = this->pktQ[axisIp4Cnt].getLE_TData();
-                    LE_tKeep tmpTKeep = this->pktQ[axisIp4Cnt].getLE_TKeep();
-                    LE_tLast tmpTLast = this->pktQ[axisIp4Cnt].getLE_TLast();
-                    if (axisUdp.getLE_TKeep() & 0x01) {
-                        //OBSOLETE_20200413 this->pktQ[axisIp4Cnt].tdata.range(39,32) = axisUdp.tdata.range( 7, 0);
-                        //OBSOLETE_20200413 this->pktQ[axisIp4Cnt].tkeep = this->pktQ[axisIp4Cnt].tkeep | (0x10);
-                        tmpTData.range(39,32) = axisUdp.getLE_TData().range( 7, 0);
-                        tmpTKeep = tmpTKeep | 0x10;
-                        this->setLen(this->getLen() + 1);
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x02) {
-                        tmpTData.range(47,40) = axisUdp.getLE_TData().range(15, 8);
-                        tmpTKeep = tmpTKeep | 0x20;
-                        this->setLen(this->getLen() + 1);
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x04) {
-                        tmpTData.range(55,48) = axisUdp.getLE_TData().range(23,16);
-                        tmpTKeep = tmpTKeep | 0x40;
-                        this->setLen(this->getLen() + 1);
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x08) {
-                        tmpTData.range(63,56) = axisUdp.getLE_TData().range(31,24);
-                        tmpTKeep = tmpTKeep | 0x80;
-                        this->setLen(this->getLen() + 1);
-                    }
-                    if (axisUdp.getLE_TLast() && (axisUdp.getLE_TKeep() <= 0x0F)) {
-                        tmpTLast = TLAST;
-                        endOfDgm = true;
-                    }
-                    else {
-                        tmpTLast = 0;
-                    }
-                    this->pktQ[axisIp4Cnt].setLE_TData(tmpTData);
-                    this->pktQ[axisIp4Cnt].setLE_TKeep(tmpTKeep);
-                    this->pktQ[axisIp4Cnt].setLE_TLast(tmpTLast);
-                    alternate = !alternate;
-                }
-                else {
-                    // Build a new chunck and add it to the queue
-                    LE_tData newTData = 0;
-                    LE_tKeep newTKeep = 0;
-                    LE_tLast newTLast = 0;
-                    //OBSOLETE_20200413 AxisIp4  newIp4Word(0,0,0);
-                    if (axisUdp.getLE_TKeep() & 0x10) {
-                       newTData.range( 7, 0) = axisUdp.getLE_TData().range(39, 32);
-                       newTKeep = newTKeep | 0x01;
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x20) {
-                        newTData.range(15, 8) = axisUdp.getLE_TData().range(47, 40);
-                        newTKeep = newTKeep | 0x02;
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x40) {
-                        newTData.range(23,16) = axisUdp.getLE_TData().range(55, 48);
-                        newTKeep = newTKeep | 0x04;
-                    }
-                    if (axisUdp.getLE_TKeep() & 0x80) {
-                        newTData.range(31,24) = axisUdp.getLE_TData().range(63, 56);
-                        newTKeep = newTKeep | 0x08;
-                    }
-                    // Done with the incoming UDP word
-                    axisUdpCnt++;
-                    if (axisUdp.getLE_TLast()) {
-                        newTLast = TLAST;
-                        this->pushChunk(AxisIp4(newTData, newTKeep, newTLast));
-                        endOfDgm = true;
-                    }
-                    else {
-                        newTLast = 0;
-                        this->pushChunk(AxisIp4(newTData, newTKeep, newTLast));
-                        axisIp4Cnt++;
-                        // Read and pop a new chunk from the UDP datagram
-                        //OBSOLETE_20200413 axisUdp = udpDgm.front();
-                        //OBSOLETE_20200413 udpDgm.pop_front();
-                        axisUdp = udpDgm.pullChunk();
-                    }
-                    alternate = !alternate;
-                }
-            }
-        } // End-of while(!endOfDgm)
-        this->setIpProtocol(UDP_PROTOCOL);
-        return true;
-    } // End-of: addIpPayload(UdpDatagram udpDgm)
-    *** OBSOLETE_20200422 *****/
-
-    /**************************************************************************
      * @brief Append the data payload of this packet as an ICMP packet.
      * @param[in] icmpPkt  The ICMP packet to use as IPv4 payload.
      * @return true upon success, otherwise false.
@@ -1056,8 +850,6 @@ class SimIp4Packet {
                        IP4_HEADER_LEN, this->getLen());
         }
         // Read and pop the very first chunk from the packet
-        //OBSOLETE_20200407 axisIcmp = icmpPkt.front();
-        //OBSOLETE_20200407 icmpPkt.pop_front();
         axisIcmp = icmpPkt.pullChunk();
         while (!endOfPkt) {
             if (alternate) {
@@ -1101,7 +893,6 @@ class SimIp4Packet {
                 LE_tData newTData = 0;
                 LE_tKeep newTKeep = 0;
                 LE_tLast newTLast = 0;
-                //OBSOLETE_20200413 AxisIp4  newIp4Word(0,0,0);
                 if (axisIcmp.getLE_TKeep() & 0x10) {
                     newTData.range( 7, 0) = axisIcmp.getLE_TData().range(39, 32);
                     newTKeep = newTKeep | (0x01);
@@ -1255,7 +1046,6 @@ class SimIp4Packet {
         if(tcpDataSize > 0) {
             int     ip4DataOffset = (4 * this->getIpInternetHeaderLength());
             int     tcpDataOffset = ip4DataOffset + (4 * this->getTcpDataOffset());
-            //OBSOLETE AxiWord axiWord;
             int     bytCnt = 0;
 
             for (int chunkNum=0; chunkNum<this->pktQ.size(); chunkNum++) {
@@ -1539,19 +1329,6 @@ class SimIp4Packet {
      *          or when the UDP pseudo checksum has not yet been calculated.
      * @return the new checksum.
      **************************************************************************/
-    /*** OBSOLETE_20200615 *************
-    int udpRecalculateChecksum() {
-        int             newChecksum = 0;
-        deque<AxisPsd4> udpBuffer;
-        // Assemble an UDP buffer with pseudo header and UDP data
-        udpAssemblePseudoHeaderAndData(udpBuffer);
-        // Compute the UDP checksum
-        int udpCsum = checksumCalculation(udpBuffer);
-        /// Overwrite the former checksum
-        this->setUdpChecksum(udpCsum);
-        return udpCsum;
-    }
-    *************************************/
     UdpCsum udpRecalculateChecksum() {
         SimUdpDatagram udpDatagram  = this->getUdpDatagram();
         UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
@@ -1589,7 +1366,6 @@ class SimIp4Packet {
         SimUdpDatagram udpDatagram  = this->getUdpDatagram();
         UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
                                              this->getIpDestinationAddress(), this->getIpProtocol());
-        //OBSOLETE_20200615 UdpCsum computedCsum = this->udpRecalculateChecksum();
         if (computedCsum == udpChecksum) {
             return true;
         }
@@ -1613,6 +1389,20 @@ class SimIp4Packet {
             }
         }
         return true;
+    }
+
+    /***************************************************************************
+     * @brief Dump the TCP payload of this IP packet into a file. Data is written as a string.
+     *
+     * @param[in]  outFile  A ref to the gold file to write.
+     ***************************************************************************/
+    void writeTcpDataToDatFile(ofstream &outFile) {
+        if(this->sizeOfTcpData() > 0) {
+            string tcpData = this->getTcpData();
+            if (tcpData.size() > 0) {
+                outFile << tcpData << endl;
+            }
+        }
     }
 
 }; // End of: SimIp4Packet

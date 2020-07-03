@@ -265,7 +265,6 @@ class AxisRaw {
     }
 
     // Assess the consistency of 'tkeep' and 'tlast'
-    // [FIXME - Shall we move this into SimNtsUtil.cpp]
     bool isValid() {
         if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
             ((this->tlast == 1) and (this->keepToLen() == 0))) {
@@ -273,6 +272,7 @@ class AxisRaw {
         }
         return true;
     }
+
   protected:
     // Return the number of valid bytes
     int keepToLen() {

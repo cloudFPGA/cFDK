@@ -46,11 +46,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
-#define FROM_RXe   0
-#define FROM_TAi   1
+//OBSOLETE_20200701 typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
+//OBSOLETE_20200701 #define FROM_RXe   0
+//OBSOLETE_20200701 #define FROM_TAi   1
 
-enum lookupOp {INSERT=0, DELETE};
+//OBSOLETE_20200701 enum lookupOp {INSERT=0, DELETE};
 
 /********************************************************************
  * SLc / Internal Four Tuple Structure
@@ -108,88 +108,9 @@ class SLcQuery {
         tuple(tuple), allowCreation(allowCreation), source(src) {}
 };
 
-/**********************************************************
- * Smart CAM interface (CAM)
- *
- *  [FIXME - MOVE THIS SECTION INTO TOE.HPP]
- *
- * Warning:
- *   Don't change the order of the fields in the session-
- *   lookup-request, session-lookup-reply, session-update-
- *   request and session-update-reply as these structures
- *   end up being mapped to a physical Axi4-Stream interface
- *   between the TOE and the CAM.
- * Info: The member elements of the struct are placed into
- *   the physical vector interface in the order the appear
- *   in the C code: the first element of the struct is alig-
- *   ned on the LSB of the vector and the final element of
- *   the struct is aligned with the MSB of the vector. 
- **********************************************************/
-typedef ap_uint<14> RtlSessId;
 
-/********************************************
- * CAM / Session Lookup Request
- ********************************************/
-class RtlSessionLookupRequest
-{
-  public:
-    SLcFourTuple   key;       // 96 bits
-    lookupSource   source;    //  1 bit : '0' is [RXe], '1' is [TAi]
 
-    RtlSessionLookupRequest() {}
-    RtlSessionLookupRequest(SLcFourTuple tuple, lookupSource src)
-                : key(tuple), source(src) {}
-};
 
-/********************************************
- * CAM / Session Lookup Reply
- *********************************************/
-class RtlSessionLookupReply
-{
-  public:
-    RtlSessId           sessionID; // 14 bits
-    lookupSource        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
-    bool                hit;       //  1 bit
-
-    RtlSessionLookupReply() {}
-    RtlSessionLookupReply(bool hit, lookupSource src) :
-        hit(hit), sessionID(0), source(src) {}
-    RtlSessionLookupReply(bool hit, RtlSessId id, lookupSource src) :
-        hit(hit), sessionID(id), source(src) {}
-};
-
-/********************************************
- * CAM / Session Update Request
- ********************************************/
-class RtlSessionUpdateRequest
-{
-  public:
-    SLcFourTuple        key;       // 96 bits
-    RtlSessId           value;     // 14 bits
-    lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
-    lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
-
-    RtlSessionUpdateRequest() {}
-    RtlSessionUpdateRequest(SLcFourTuple key, RtlSessId value, lookupOp op, lookupSource src) :
-        key(key), value(value), op(op), source(src) {}
-};
-
-/********************************************
- * CAM / Session Update Reply
- *********************************************/
-class RtlSessionUpdateReply
-{
-  public:
-    RtlSessId           sessionID; // 14 bits
-    lookupSource        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
-    lookupOp            op;        //  1 bit : '0' is INSERT, '1' is DELETE
-
-    RtlSessionUpdateReply() {}
-    RtlSessionUpdateReply(lookupOp op, lookupSource src) :
-        op(op), source(src) {}
-    RtlSessionUpdateReply(RtlSessId id, lookupOp op, lookupSource src) :
-        sessionID(id), op(op), source(src) {}
-};
 
 /************************************************
  * SLc / Internal Reverse Lookup structure

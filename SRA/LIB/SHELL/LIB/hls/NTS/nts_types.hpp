@@ -119,6 +119,12 @@ typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig
 typedef bool StsBool;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
 
+//========================================================
+//== MULTI-BITS DEFINITIONS
+//========================================================
+typedef ap_uint<16> SessionId;  // TCP Session ID (FIXME - Consider renaming)
+typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
+
 
 /******************************************************************************
  * DATA-LINK LAYER-2 - ETHERNET & ARP
@@ -216,13 +222,8 @@ typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
 
-//========================================================
-//== TCP SESSION IDENTIFIER
-//========================================================
-typedef ap_uint<16> SessionId;
-
 //--------------------------------------------------------
-//-- SOCKET ADDRESS
+//-- LAYER-4 - SOCKET ADDRESS
 //--------------------------------------------------------
 class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
    public:
@@ -243,22 +244,8 @@ class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
 };
 
 //--------------------------------------------------------
-//-- SOCKET PAIR ASSOCIATION
+//-- LAYER-4 - SOCKET PAIR ASSOCIATION
 //--------------------------------------------------------
-class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
-  public:
-    LE_SockAddr  src;  // Source socket address in LITTLE-ENDIAN order !!!
-    LE_SockAddr  dst;  // Destination socket address in LITTLE-ENDIAN order !!!
-    LE_SocketPair() {}
-    LE_SocketPair(LE_SockAddr src, LE_SockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
-        return ((s1.dst.addr < s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
-
 class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
   public:
     SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
@@ -273,18 +260,24 @@ inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
+class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
+  public:
+    LE_SockAddr  src;  // Source socket address in LITTLE-ENDIAN order !!!
+    LE_SockAddr  dst;  // Destination socket address in LITTLE-ENDIAN order !!!
+    LE_SocketPair() {}
+    LE_SocketPair(LE_SockAddr src, LE_SockAddr dst) :
+        src(src), dst(dst) {}
+};
 
-/******************************************************************************
- * XXXXXXXXXXXXXXXTRANSPORT LAYER-4 - UDP & TCP
- * ****************************************************************************
- * Terminology & Conventions
- *  - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
- *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
- ******************************************************************************/
+inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
+        return ((s1.dst.addr < s2.dst.addr) ||
+                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+}
 
 
-
-
+//========================================================
+//== LAYER-4 -TCP [FIXME-TODO]
+//========================================================
 
 
 

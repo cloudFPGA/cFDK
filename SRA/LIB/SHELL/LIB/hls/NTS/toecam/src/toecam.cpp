@@ -14,22 +14,24 @@
  * limitations under the License.
  */
 
-/******************************************************************************
- * @file       : cam.cpp
- * @brief      : Content-Addressable Memory (CAM). Fake implementation of a CAM
- *                for debugging purposes. This CAM implements 8 entries. It is
- *                implemented in FF and consumes a total of 2K LUTs.
+/*******************************************************************************
+ * @file     : toecam.cpp
+ * @brief    : Content-Addressable Memory (CAM) for TCP Offload Engine (TOE)
  *
- * System:     : cloudFPGA
- * Component   : Shell, Network Transport Stack (NTS)
- * Language    : Vivado HLS
+ * System:   : cloudFPGA
+ * Component : Shell, Network Transport Stack (NTS)
+ * Language  : Vivado HLS
  *
- * \ingroup NTS_CAM
- * \addtogroup NTS_CAM
+ * @note     : This is a fake implementation of a CAM that is used for debugging
+ *              purposes. This CAM implements 8 entries in FF and consumes a
+ *              total of 2K LUTs.
+ *
+ * \ingroup NTS
+ * \addtogroup NTS_TOECAM
  * \{
- ******************************************************************************/
+ *******************************************************************************/
 
-#include "cam.hpp"
+#include "toecam.hpp"
 
 using namespace hls;
 
@@ -41,7 +43,7 @@ using namespace hls;
   extern bool gTraceEvent;
 #endif
 
-#define THIS_NAME "CAM"
+#define THIS_NAME "TOECAM"
 
 #define TRACE_OFF  0x0000
 #define TRACE_CAM 1 <<  1
@@ -212,7 +214,7 @@ bool camDelete(SLcFourTuple key)
 }
 
 /*******************************************************************************
- * @brief   Main process of the Content-Addressable Memory (CAM).
+ * @brief   Main process of the Content-Addressable Memory (TOECAM).
  *
  * @param[out] poMMIO_CamReady  A pointer to a CAM ready signal.
  * @param[in]  siTOE_SssLkpReq  Session lookup request from TCP Offload Engine (TOE).
@@ -230,7 +232,7 @@ bool camDelete(SLcFourTuple key)
  *   Finally, make sure to acheive II=1, otherwise co-simulation will not work.
  *
  *******************************************************************************/
-void cam(
+void toecam(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
