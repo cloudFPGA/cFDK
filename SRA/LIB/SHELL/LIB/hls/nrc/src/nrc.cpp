@@ -665,6 +665,13 @@ void nrc_main(
     //in all cases
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
+    //reset counters
+    packet_count_TX = 0x0;
+    packet_count_RX = 0x0;
+    last_rx_port = 0x0;
+    last_rx_node_id = 0x0;
+    last_tx_port = 0x0;
+    last_tx_node_id = 0x0;
   }
   //===========================================================
   // MRT init
