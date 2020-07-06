@@ -24,30 +24,49 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tx_sar_table.cpp
- * @brief      : Tx SAR Table (TSt)
+* @brief      : Tx Segmentation and re-assembly Table (TSt) of the TCP Offload
+ *                Engine (TOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#ifndef _TOE_TST_H_
+#define _TOE_TST_H_
 
 #include "../toe.hpp"
+//OBSOLETE_20200706 #include "../../test/test_toe_utils.hpp"
+#include "../../../../NTS/nts.hpp"
+#include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/SimNtsUtils.hpp"
 
 using namespace hls;
 
 
-/******************************************************************************
- * @brief   Main process of the Tx SAR Table (TSt).
+/*******************************************************************************
  *
- ******************************************************************************/
+ * @brief ENTITY - Tx SAR Table (TSt)
+ *
+ *******************************************************************************/
 void tx_sar_table(
+        //-- Rx engine Interfaces
         stream<RXeTxSarQuery>      &siRXe_TxSarQry,
         stream<RXeTxSarReply>      &soRXe_TxSarRep,
+        //-- Tx Engine Interfaces
         stream<TXeTxSarQuery>      &siTXe_TxSarQry,
         stream<TXeTxSarReply>      &soTXe_TxSarRep,
+        //-- TCP Application Interfaces
         stream<TAiTxSarPush>       &siTAi_AppPush,
         stream<TStTxSarPush>       &soTAi_AckPush
 );
+
+#endif
+
+/*! \} */

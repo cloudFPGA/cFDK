@@ -205,6 +205,12 @@ class AxisPsd4: public AxisRaw {
     // Set-Get the TCP Acknowledgment Number
     void        setTcpAckNum(TcpAckNum num)     {                  tdata.range(63, 32) = swapDWord(num);  }
     TcpAckNum   getTcpAckNum()                  { return swapDWord(tdata.range(63, 32));                  }
+    // Set-Get the TCP ECN-Nonce bit
+    void setTcpCtrlNs(TcpCtrlBit bit)           {                  tdata.bit( 0) = bit;                   }
+    TcpCtrlBit  getTcpCtrlNs()                  {           return tdata.bit( 0);                         }
+    // Set-Get the TCP Reserved bits
+    void        setTcpResBits(TcpResBits res)   {                  tdata.range( 3,  1) = res;             }
+    TcpResBits  getTcpResBits()                 { return           tdata.range( 3,  1);                   }
     // Set-Get the TCP Data Offset
     void        setTcpDataOff(TcpDataOff offset){                  tdata.range( 7,  4) = offset;          }
     TcpDataOff  getTcpDataOff()                 { return           tdata.range( 7,  4);                   }
@@ -221,6 +227,10 @@ class AxisPsd4: public AxisRaw {
     TcpCtrlBit  getTcpCtrlAck()                 {           return tdata.bit(12);                         }
     void setTcpCtrlUrg(TcpCtrlBit bit)          {                  tdata.bit(13) = bit;                   }
     TcpCtrlBit  getTcpCtrlUrg()                 {           return tdata.bit(13);                         }
+    void setTcpCtrlEce(TcpCtrlBit bit)          {                  tdata.bit(14) = bit;                   }
+    TcpCtrlBit  getTcpCtrlEce()                 {           return tdata.bit(14);                         }
+    void setTcpCtrlCwr(TcpCtrlBit bit)          {                  tdata.bit(15) = bit;                   }
+    TcpCtrlBit  getTcpCtrlCwr()                 {           return tdata.bit(15);                         }
     // Set-Get the TCP Window
     void        setTcpWindow(TcpWindow win)     {                  tdata.range(31, 16) = swapWord(win);   }
     TcpWindow   getTcpWindow()                  { return swapWord (tdata.range(31, 16));                  }
@@ -233,6 +243,9 @@ class AxisPsd4: public AxisRaw {
     // Set-Get the TCP Options
     void        setTcpOptKind(TcpOptKind val)   {                  tdata.range( 7,  0);                   }
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
+    // Set-Get the TCP Options
+    void        setTcpOptLen(TcpOptLen   len)   {                  tdata.range(15,  8);                   }
+    TcpOptLen   getTcpOptLend()                 { return           tdata.range(15,  8);                   }
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 

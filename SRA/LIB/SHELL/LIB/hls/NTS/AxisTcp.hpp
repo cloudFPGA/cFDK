@@ -94,6 +94,7 @@ typedef ap_uint<16> LE_TcpDstPort;  // TCP Destination Port from the MAC
 typedef ap_uint<16> LE_TcpPort;     // TCP Source or Destination Port from the MAC
 typedef ap_uint<32> LE_TcpSeqNum;   // TCP Sequence Number from the MAC
 typedef ap_uint<32> LE_TcpAckNum;   // TCP Acknowledgment Number from the MAC
+typedef ap_uint<3>  LE_TcpResBits;  // TCP Reserved Bits from the MAC
 typedef ap_uint<4>  LE_TcpDataOff;  // TCP Data Offset from the MAC
 typedef ap_uint<6>  LE_TcpCtrlBits; // TCP Control Bits from the MAC
 typedef ap_uint<16> LE_TcpWindow;   // TCP Window from the MAC
@@ -110,6 +111,7 @@ typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
 typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
 typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
 typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
+typedef ap_uint<3>  TcpResBits;     // TCP Reserved Bits
 typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
 typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
 typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
@@ -119,6 +121,7 @@ typedef ap_uint<16> TcpCSum;        // TCP Checksum (alias for TcpChecksum)
 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
 typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
+typedef ap_uint< 8> TcpOptLen ;     // TCP Option Length
 typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
 
 typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)

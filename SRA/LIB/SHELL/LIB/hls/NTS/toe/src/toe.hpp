@@ -39,9 +39,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @remarks   :
  *  In telecommunications, a protocol data unit (PDU) is a single unit of
- *   information transmitted among peer entities of a computer network. A PDU is
- *   therefore composed of a protocol specific control information (e.g a header)
- *   and a user data section.
+ *   information transmitted among peer entities of a computer network.
+ *  A PDU is therefore composed of a protocol specific control information
+ *   (e.g a header) and a user data section.
  *  This source code uses the following terminology:
  *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
  *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
@@ -291,7 +291,8 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
  */
 
 enum notificationType {PKG, CLOSE, TIME_OUT, RESET};
-enum { WORD_0, WORD_1, WORD_2, WORD_3, WORD_4, WORD_5 };
+enum { WORD_0,  WORD_1,   WORD_2,  WORD_3,  WORD_4,  WORD_5 };
+enum { CHUNK_0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
 
 
 /* (adapted from Linux /net/tcp.h line 292)
@@ -1499,11 +1500,11 @@ template<typename T> void pStreamMux(
         stream<T>  &so);
 
 
-/*************************************************************************
+/*******************************************************************************
  *
  * ENTITY - TCP OFFLOAD ENGINE (TOE)
  *
- *************************************************************************/
+ *******************************************************************************/
 void toe(
 
         //------------------------------------------------------
@@ -1531,8 +1532,8 @@ void toe(
         //------------------------------------------------------
         stream<AppNotif>                        &soTRIF_Notif,
         stream<AppRdReq>                        &siTRIF_DReq,
-        stream<AppData>                         &soTRIF_Data,
-        stream<AppMeta>                         &soTRIF_Meta,
+        stream<TcpAppData>                      &soTAIF_Data,
+        stream<TcpAppMeta>                      &soTAIF_Meta,
 
         //------------------------------------------------------
         //-- TRIF / Listen Interfaces
@@ -1543,8 +1544,8 @@ void toe(
         //------------------------------------------------------
         //-- TRIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AppData>                         &siTRIF_Data,
-        stream<AppMeta>                         &siTRIF_Meta,
+        stream<TcpAppData>                      &siTRIF_Data,
+        stream<TcpAppMeta>                      &siTRIF_Meta,
         stream<AppWrSts>                        &soTRIF_DSts,
 
         //------------------------------------------------------

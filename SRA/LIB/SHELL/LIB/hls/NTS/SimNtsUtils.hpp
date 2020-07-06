@@ -107,6 +107,8 @@ using namespace std;
   bool readAxisRawFromFile  (AxisRaw    &axisRaw,    ifstream &inpFileStream);
   bool readTbParamFromFile  (const string paramName, const string datFile,
                              unsigned int &paramVal);
+  int  writeAxisAppToFile   (AxisApp    &axisApp,    ofstream &outFileStream);
+  int  writeAxisAppToFile   (AxisApp    &axisApp,    ofstream &outFileStream, int &wrCount);
   bool writeAxisRawToFile   (AxisRaw    &axisRaw,    ofstream &outFileStream);
   bool writeSocketPairToFile(SocketPair &socketPair, ofstream &outFileStream);
   template <int D> \

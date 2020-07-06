@@ -24,14 +24,18 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tx_sar_table.cpp
- * @brief      : Tx Segmentation And Re-assembly Table (TSt).
+ * @brief      : Tx Segmentation and re-assembly Table (TSt) of the TCP Offload
+ *                Engine (TOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
  *****************************************************************************/
 
 #include "tx_sar_table.hpp"
@@ -47,7 +51,6 @@ using namespace hls;
 #endif
 
 #define THIS_NAME "TOE/TSt"
-#include "../../test/test_toe_utils.hpp"
 
 #define TRACE_OFF  0x0000
 #define TRACE_TST 1 <<  1
@@ -57,20 +60,19 @@ using namespace hls;
 
 
 /*******************************************************************************
- * @brief Tx Sar Table (TSt) - Stores the data structures for managing the
+ * @brief Tx Sar Table (TSt). Stores the data structures for managing the
  *         TCP Tx buffer and Tx sliding window.
  *
- * @param[in]  siRXe_TxSarQry, Query from RxEngine (RXe).
- * @param[out] soRXe_TxSarRep, Reply to [RXe].
- * @param[in]  siTXe_TxSarQry, Tx SAR query from TxEngine (TXe).
- * @param[out] soTXe_TxSarRep, Tx SAR reply to [TXe].
- * @param[in]  siTAi_PushCmd,  Push command from TxAppInterface (TAi).
- * @param[out] soTAi_PushCmd,  Push command to [TAi].
+ * @param[in]  siRXe_TxSarQry  Query from RxEngine (RXe).
+ * @param[out] soRXe_TxSarRep  Reply to [RXe].
+ * @param[in]  siTXe_TxSarQry  Tx SAR query from TxEngine (TXe).
+ * @param[out] soTXe_TxSarRep  Tx SAR reply to [TXe].
+ * @param[in]  siTAi_PushCmd   Push command from TxAppInterface (TAi).
+ * @param[out] soTAi_PushCmd   Push command to [TAi].
  *
  * @details
  *  This process is accessed by the RxEngine (RXe), the TxEngine (TXe) and the
  *   TxAppInterface (TAi).
- *
  *******************************************************************************/
 void tx_sar_table(
         stream<RXeTxSarQuery>      &siRXe_TxSarQry,
@@ -86,12 +88,11 @@ void tx_sar_table(
 
     const char *myName = THIS_NAME;
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     static TxSarEntry               TX_SAR_TABLE[MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
     #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
     #pragma HLS RESET      variable=TX_SAR_TABLE
-
 
     if (!siTXe_TxSarQry.empty()) {
         TXeTxSarQuery sTXeQry;
@@ -185,3 +186,5 @@ void tx_sar_table(
         }
     }
 }
+
+/*! \} */

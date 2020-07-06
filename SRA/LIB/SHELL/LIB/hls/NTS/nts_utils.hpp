@@ -112,7 +112,7 @@ using namespace std;
  *******************************************************************************/
 tKeep          lenTotKeep(ap_uint<4>  noValidBytes);
 LE_tKeep       lenToLE_tKeep (ap_uint<4>  noValidBytes);
-//ap_uint<8>     lenToKeep (ap_uint<4>  noValidBytes);
+
 ap_uint<4>     keepToLen (ap_uint<8>  keepValue);
 ap_uint<16>    byteSwap16(ap_uint<16> inputValue);
 ap_uint<32>    byteSwap32(ap_uint<32> inputValue);

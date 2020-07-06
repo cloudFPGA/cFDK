@@ -24,23 +24,31 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tx_engine.hpp
  * @brief      : Tx Engine (TXe) of the TCP Offload Engine (TOE).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *               TCP Tx Engine.
- *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#ifndef _TOE_TXE_H_
+#define _TOE_TXE_H_
+
+//OBSOLETE_20200706 #include <algorithm>
 
 #include "../../toe.hpp"
-#include "../../toe_utils.hpp"
+//OBSOLETE_20200706 #include "../../test/test_toe_utils.hpp"
+#include "../../../../../NTS/nts.hpp"
+#include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/SimNtsUtils.hpp"
+#include "../../../../../NTS/AxisIp4.hpp"
+#include "../../../../../NTS/AxisPsd4.hpp"
 
 using namespace hls;
 
@@ -96,11 +104,11 @@ class LE_IpAddrPair {  // OBSOLETE-20191004 struct IpAddrPair
         src(src), dst(dst) {}
 };
 
-/*****************************************************************************
- * @brief   Main process of the TCP Tx Engine (TXe).
+/*******************************************************************************
  *
- * @ingroup tx_engine
- *****************************************************************************/
+ * @brief ENTITY - Tx Engine (TXe)
+ *
+ *******************************************************************************/
 void tx_engine(
         //-- Ack Delayer & Event Engine Interfaces
         stream<ExtendedEvent>           &siAKd_Event,
@@ -113,7 +121,7 @@ void tx_engine(
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
         //-- MEM / Tx Read Path Interface
         stream<DmCmd>                   &soMEM_Txp_RdCmd,
-        stream<AxiWord>                 &siMEM_TxP_Data,
+        stream<AxisApp>                 &siMEM_TxP_Data,
         //-- Timers Interface
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
@@ -121,5 +129,9 @@ void tx_engine(
         stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         //-- IP Tx Interface
-        stream<Ip4overMac>              &soL3MUX_Data
+        stream<AxisIp4>                 &soL3MUX_Data
 );
+
+#endif
+
+/*! \} */

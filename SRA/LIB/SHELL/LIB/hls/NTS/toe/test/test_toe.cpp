@@ -1254,7 +1254,7 @@ void pL3MUX(
         //--------------------------------------
         //-- STEP-3 : Parse the received packet
         //--------------------------------------
-        if (ipTxChunk.tlast == 1) {
+        if (ipTxChunk.getTLast()) {
             // The whole packet is now into the deque.
             if (pL3MUX_Parse(l3mux_ipTxPacket, sessAckList, ipRxPacketizer) == true) {
                 // Found an ACK
@@ -1268,7 +1268,7 @@ void pL3MUX(
             }
             // Clear the word counter and the received IP packet
             ipTxChunkCounter = 0;
-            l3mux_ipTxPacket.clear();
+            //OBSOLETE_20200706 l3mux_ipTxPacket.clear();
             // Re-initialize the RTT counter
             l3mux_rttSim = RTT_LINK;
         }
@@ -1276,12 +1276,12 @@ void pL3MUX(
             ipTxChunkCounter++;
 
         //--------------------------
-        //-- STEP-4 : Write to file
+        //-- STEP-4 : Write to file [FIXME - Use
         //--------------------------
-        string dataOutput = myUint64ToStrHex(ipTxChunk.tdata);
-        string keepOutput = myUint8ToStrHex(ipTxChunk.tkeep);
-        ipTxFile1 << dataOutput << " " << ipTxChunk.tlast << " " << keepOutput << endl;
-
+        //OBSOLETE_20200706 string dataOutput = myUint64ToStrHex(ipTxChunk.tdata);
+        //OBSOLETE_20200706 string keepOutput = myUint8ToStrHex(ipTxChunk.tkeep);
+        //OBSOLETE_20200706 ipTxFile1 << dataOutput << " " << ipTxChunk.getTLast() << " " << keepOutput << endl;
+        int writtenBytes = writeAxisRawToFile(ipTxChunk, ipTxFile1);
     }
 } // End of: pL3MUX
 
@@ -1500,7 +1500,7 @@ void pTcpAppEcho(
             siTAr_Data.read(tcpChunk);
             soTOE_Data.write(tcpChunk);
             apRxBytCntr += writeAxisAppToFile(tcpChunk, ipTxGoldFile, tae_mssCounter);
-            if (tcpChunk.tlast)
+            if (tcpChunk.getTLast())
                 tae_fsmState = START_OF_SEGMENT;
         }
         break;
@@ -1652,7 +1652,7 @@ void pTcpAppRecv(
                 siTOE_Data.read(currChunk);
                 appTxBytCntr += writeAxisAppToFile(currChunk, appTxFile);
                 // Consume incoming stream until LAST bit is set
-                if (currChunk.tlast == 1)
+                if (currChunk.getTLast() == 1)
                     tar_fsmState = WAIT_NOTIF;
             }
             break;
@@ -1662,7 +1662,7 @@ void pTcpAppRecv(
                 soTAs_Data.write(currChunk);
                 appTxBytCntr += writeAxisAppToFile(currChunk, appTxFile);
                 // Consume until LAST bit is set
-                if (currChunk.tlast == 1) {
+                if (currChunk.getTLast() == 1) {
                     tar_fsmState = WAIT_NOTIF;
                 }
             }
@@ -1969,7 +1969,7 @@ void pTcpAppSend(
                 // Write current chunk to the gold file
                 writtenBytes = writeAxisRawToFile(appChunk, ipTxGoldFile);
                 apRxBytCntr += writtenBytes;
-            } while (appChunk.tlast != 1);
+            } while (not appChunk.getTLast());
         } // End of: else
     } while(!appRxFile.eof());
 } // End of: pTAs
@@ -2357,7 +2357,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         toe(
             //-- MMIO Interfaces
-            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),
+            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),    // [TODO]
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces
