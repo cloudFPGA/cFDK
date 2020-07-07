@@ -99,7 +99,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_HANDLE_HTTP`                 |  calls the http routines and modifies httpState & reqType; **also writes into the outBuffer if necessary**  | `OPRV_NOT_COMPLETE` request must be further processed, but right now the buffer has not valid data; `OPRV_PARTIAL_COMPLETE` The request must be further processed and data is available; `OPRV_DONE` Response was written to Outbuffer;  `OPRV_OK` not a complete header yet or idle; `OPRV_USER` if an additional call is necessary |
 | `OP_UPDATE_HTTP_STATE`           |  detects abortions, transfer errors or complete processing, sets `invalid_payload_persistent` if last return value was `OPRV_FAIL` |  `OPRV_OK` |
 | `OP_COPY_REQTYPE_TO_RETURN`      |  copies the http reqType (see below) as return value |  `RequestType`   |
-| `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE`, `flag_last_xmem_page_received` is set or 2nd HTTP new-line is reached, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready    |
+| `OP_BUFFER_TO_HWICAP           ` |  writes the current content to HWICAP, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  |   `OPRV_DONE`, if previous RV was `OPRV_DONE`, `flag_last_xmem_page_received` is set or 2nd HTTP new-line is reached, otherwise `OPRV_OK`; `OPRV_FAIL` if HWICAP is not ready; `OPRV_NOT_COMPLETE` if nothing could be written   |
 | `OP_BUFFER_TO_PYROLINK         ` | writes the current content to Pyrolink stream, *needs `bufferInPtrNextRead`,`bufferInPtrMaxWrite`*  | `OPRV_DONE`, if previous RV was `OPRV_DONE` or `flag_last_xmem_page_received` is set,  otherwise `OPRV_OK`; `OPRV_NOT_COMPLETE`, if the receiver is not ready; `OPRV_FAIL` if Pyrolink is disabled globally|
 | `OP_PYROLINK_TO_OUTBUFFER`       | copies the incoming Pyrolink stream to the outBufer   | `OPRV_OK` if data is copied and `bufferOutPtrWrite` updated, but the sender might have additional data. `OPRV_DONE` if `tlast` was detected. `OPRV_NOT_COMPLETE` if the sender isn't ready. `OPRV_FAIL` if Pyrolink is disabled globally.    |
 | `OP_BUFFER_TO_ROUTING          ` |   writes buffer to routing table (ctrlLink) | `OPRV_DONE` if complete, `OPRV_NOT_COMPLETE` otherwise. `OPRV_DONE` also for invalidPayload.   |
@@ -126,7 +126,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_DEACTIVATE_CONT_TCP`         | Deactivates the continuous TCP recv | (not changed) |
 | `OP_TCP_RX_STOP_ON_EOR`          | Set the TCP RX FSM to stop on End-of-Request (in continuous TCP recv mode) | (not changed) |
 | `OP_TCP_RX_STOP_ON_EOP`          | Set the TCP RX FSM to stop on End-of-Payload (in continuous TCP recv mode) | (not changed) |
-| `OP_TCP_CNT_RESET`               | TODO | (not changed) |
+| `OP_TCP_CNT_RESET`               | resets the detected HTTP NL counts | (not changed) |
 
 
 *Flags are reset before every program run*, so not persistent.
