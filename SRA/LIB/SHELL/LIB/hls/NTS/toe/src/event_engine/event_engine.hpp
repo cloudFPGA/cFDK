@@ -37,6 +37,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
+const char *getEventType(EventType ev);
 
 /*****************************************************************************
  * @brief   Main process of the Event Engine (EVe).

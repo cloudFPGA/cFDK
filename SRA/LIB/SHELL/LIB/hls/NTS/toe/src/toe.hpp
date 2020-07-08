@@ -1389,27 +1389,24 @@ struct appReadRequest
         sessionID(id), length(len) {}
 };
 
-/***********************************************
- * Application Data
- *  Data transfered between TOE and APP.
- ***********************************************/
-typedef AxiWord     AppData;
+//OBSOLETE_20200708 /***********************************************
+//OBSOLETE_20200708  * Application Data
+//OBSOLETE_20200708  *  Data transfered between TOE and APP.
+//OBSOLETE_20200708  ***********************************************/
+//OBSOLETE_20200708 typedef AxiWord     AppData;
 
-/***********************************************
- * Application Metadata
- *  Meta-data transfered between TOE and APP.
- ***********************************************/
-typedef TcpSessId   AppMeta;
+//OBSOLETE_20200708 /***********************************************
+//OBSOLETE_20200708  * Application Metadata
+//OBSOLETE_20200708  *  Meta-data transfered between TOE and APP.
+//OBSOLETE_20200708  ***********************************************/
+//OBSOLETE_20200708 typedef TcpSessId   AppMeta;
 
-/*** OBSOLETE_20200701 ***
-class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
-  public:
-    AppMetaAxis() {}
-    AppMetaAxis(AppMeta sessId) :
-        Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
-};
-**************************/
-
+//OBSOLETE_20200701 class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
+//OBSOLETE_20200701   public:
+//OBSOLETE_20200701     AppMetaAxis() {}
+//OBSOLETE_20200701     AppMetaAxis(AppMeta sessId) :
+//OBSOLETE_20200701         Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
+//OBSOLETE_20200701 };
 
 /***********************************************
  * Application Write Status

@@ -26,10 +26,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
  * @file       : uoe.hpp
- * @brief      : Defines and prototypes related to the UDP Offload Engine.
+ * @brief      : UDP Offload Engine (UOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  * \ingroup NTS

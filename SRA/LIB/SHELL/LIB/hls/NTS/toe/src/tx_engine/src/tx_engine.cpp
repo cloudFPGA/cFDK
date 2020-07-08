@@ -1321,17 +1321,17 @@ void pIpPktStitcher(
     #pragma HLS RESET variable=ips_chunkCount
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AxisIp4    ipHdrChunk;
+    AxisIp4    ip4HdrChunk;
     AxisPsd4   tcpPsdChunk;
-    AxisIp4    currChunk;
+    AxisIp4    currChunk(0, 0xFF, 0);
     TcpCSum    tcpCsum;
 
     switch (ips_chunkCount) {
     case CHUNK_0:
     case CHUNK_1:
         if (!siIhc_IpHeader.empty()) {
-            siIhc_IpHeader.read(ipHdrChunk);
-            currChunk = ipHdrChunk;
+            siIhc_IpHeader.read(ip4HdrChunk);
+            currChunk = ip4HdrChunk;
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
             if (DEBUG_LEVEL & TRACE_IPS) {
@@ -1339,14 +1339,17 @@ void pIpPktStitcher(
             }
         }
         break;
-    case CHUNK_2: // Start concatenating IPv4 header and TCP segment
+    case CHUNK_2:
+        // Start concatenating IPv4 header and TCP segment
         if (!siIhc_IpHeader.empty() && !siSca_PseudoPkt.empty()) {
-            siIhc_IpHeader.read(ipHdrChunk);
+            siIhc_IpHeader.read(ip4HdrChunk);
             siSca_PseudoPkt.read(tcpPsdChunk);
-            currChunk.tdata(31,  0) = ipHdrChunk.tdata(31,  0);  // IPv4 Destination Address [FIXME]
-            currChunk.tdata(63, 32) = tcpPsdChunk.tdata(63, 32);  // TCP DstPort & SrcPort  [FIXME]
-            currChunk.tkeep         = 0xFF;
-            currChunk.tlast         = 0;
+            //OBSOLETE_20200708 currChunk.tdata(31,  0) = ipHdrChunk.tdata(31,  0);   // IPv4 Destination Address
+            //OBSOLETE_20200708 currChunk.tdata(63, 32) = tcpPsdChunk.tdata(63, 32);  // TCP DstPort & SrcPort
+            currChunk.setIp4DstAddr(ip4HdrChunk.getIp4DstAddr());
+            currChunk.setTcpSrcPort(tcpPsdChunk.getTcpSrcPort());
+            //OBSOLETE_20200708 currChunk.tkeep         = 0xFF;
+            currChunk.setTLast(0);
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
             if (DEBUG_LEVEL & TRACE_IPS) {
@@ -1370,15 +1373,15 @@ void pIpPktStitcher(
             siSca_PseudoPkt.read(tcpPsdChunk); // CtrlBits & Window & TCP UrgPtr & Checksum
             siTca_TcpCsum.read(tcpCsum);
             currChunk = tcpPsdChunk;
-            // Now overwrite TCP checksum while swapping from big- to little endian
+            // Now overwrite TCP checksum
             currChunk.setTcpChecksum(tcpCsum);
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
-            if (tcpPsdChunk.tlast) {
-                // This is the last word if/when there is no data payload
+            if (tcpPsdChunk.getTLast()) {
+                // This is the last chunk if/when there is no data payload
                 ips_chunkCount = 0;
                 if (DEBUG_LEVEL & TRACE_IPS) {
-                    printAxisRAw(myName, "Last ", currChunk);
+                    printAxisRaw(myName, "Last ", currChunk);
                 }
             }
         }
@@ -1388,7 +1391,7 @@ void pIpPktStitcher(
             siSca_PseudoPkt.read(tcpPsdChunk);  // TCP Data
             currChunk = tcpPsdChunk;
             soL3MUX_Data.write(currChunk);
-            if (tcpPsdChunk.tlast) {
+            if (tcpPsdChunk.getTLast()) {
                 ips_chunkCount = 0;
                 if (DEBUG_LEVEL & TRACE_IPS) {
                     printAxisRaw(myName, "Last ", currChunk);

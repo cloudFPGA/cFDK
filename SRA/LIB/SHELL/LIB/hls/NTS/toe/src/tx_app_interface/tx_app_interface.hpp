@@ -24,20 +24,27 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tx_app_interface.hpp
  * @brief      : Tx Application Interface (TAi)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- * @details    : Data structures, types and prototypes definitions for the
- *               Tx Application Interface.
- *****************************************************************************/
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
+#ifndef _TOE_TAI_H_
+#define _TOE_TAI_H_
+
+//#include "../../../../NTS/nts.hpp"
+#include "../../../../NTS/nts_utils.hpp"
+//#include "../../../../NTS/SimNtsUtils.hpp"
 #include "../toe.hpp"
+#include "../event_engine/event_engine.hpp"
 
 using namespace hls;
 
@@ -76,23 +83,23 @@ class SegMemMeta {
         sessId(sessId), addr(addr), len(len), drop(false) {}
 };
 
-/*****************************************************************************
- * @brief   Main process of the Tx Application Interface (TAi).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Tx Application Interface (TAi)
+ *
+ *******************************************************************************/
 void tx_app_interface(
         //-- TRIF / Open-Close Interfaces
-        //OBSOLETE_20200629 stream<LE_SockAddr>  &siTRIF_OpnReq,
         stream<SockAddr>               &siTRIF_OpnReq,
         stream<OpenStatus>             &soTRIF_OpnRep,
         stream<AppClsReq>              &siTRIF_ClsReq,
-        //-- TRIF / Data Stream Interfaces
-        stream<AppData>                &siTRIF_Data,
-        stream<AppMeta>                &siTRIF_Meta,
+        //-- TAIF / Data Stream Interfaces
+        stream<TcpAppData>             &siTAIF_Data,
+        stream<TcpAppMeta>             &siTAIF_Meta,
         stream<AppWrSts>               &soTRIF_DSts,
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
-        stream<AxiWord>                &soMEM_TxP_Data,
+        stream<TcpAppData>             &soMEM_TxP_Data,
         stream<DmSts>                  &siMEM_TxP_WrSts,
         //-- State Table Interfaces
         stream<TcpSessId>              &soSTt_SessStateReq,
@@ -100,7 +107,6 @@ void tx_app_interface(
         stream<StateQuery>             &soSTt_AcceptStateQry,
         stream<SessionState>           &siSTt_AcceptStateRep,
         //-- Session Lookup Controller Interface
-        //OBSOLETE_20200629 stream<LE_SocketPair>  &soSLc_SessLookupReq,
         stream<SocketPair>             &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
         //-- Port Table Interfaces
@@ -116,5 +122,9 @@ void tx_app_interface(
         //-- Timers Interface
         stream<OpenStatus>             &siTIm_Notif,
         //-- MMIO / IPv4 Address
-        LE_Ip4Addr                      piMMIO_IpAddr
+        LE_Ip4Addr                      piMMIO_IpAddr  // [FIXME]
 );
+
+#endif
+
+/*! \} */

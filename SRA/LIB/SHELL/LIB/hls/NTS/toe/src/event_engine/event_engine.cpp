@@ -55,6 +55,19 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_OFF | TRACE_EVE)
 
+#ifndef __SYNTHESIS__
+    const char* eventTypeStrings[] = {
+             "TX", "TXbis", "RT", "RTbis", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
+    /***************************************************************************
+     * @brief Converts an event type ENUM into a string.
+     *
+     * @param[in]   ev  The event type ENUM.
+     * @returns the event type as a string.
+     **************************************************************************/
+    const char *getEventType(EventType ev) {
+        return eventTypeStrings[ev];
+    }
+#endif
 
 /*****************************************************************************
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
