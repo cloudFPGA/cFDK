@@ -997,7 +997,7 @@ void pTcpSegStitcher(
 
     switch (tss_state) {
     case 0: // Read the 4 first words from PseudoHeaderConstructor (Phc)
-        if (!siPhc_PseudoHdr.empty()) {
+        if (!siPhc_PseudoHdr.empty()) {  // [FIXME - Must test !full() ]
             AxisPsd4 currHdrChunk = siPhc_PseudoHdr.read();
             soSca_PseudoPkt.write(currHdrChunk);
             didRdSplitSegSts = false;

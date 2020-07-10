@@ -40,8 +40,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_TXE_H_
 #define _TOE_TXE_H_
 
-//OBSOLETE_20200706 #include <algorithm>
-
 #include "../../toe.hpp"
 //OBSOLETE_20200706 #include "../../test/test_toe_utils.hpp"
 #include "../../../../../NTS/nts.hpp"

@@ -31,12 +31,11 @@
 #define _DUMMY_MEMORY_H_
 
 #include "../../../../NTS/toe/src/toe.hpp"
-#include "../../../../NTS/toe/src/state_table/state_table.hpp"
+// #include "../../../../NTS/toe/src/state_table/state_table.hpp"
 // #include "../../../NTS/nts_utils.hpp"
 // #include "../../../NTS/SimNtsUtils.hpp"
 
 #include <map>
-//OBSOLETE_20200701 #include <iostream>
 
 /*******************************************************************************
  *

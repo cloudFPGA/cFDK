@@ -875,37 +875,78 @@ class OpenStatus
         sessionID(sessId), success(success) {}
 };
 
-/********************************************
- * Session Lookup Controller (SLc)
- ********************************************/
+
+
+
+
+/*******************************************************************************
+ * INTERFACE TYPES and CLASSES USED BY SESSION LOOKUP CONTROLLER (SLc)
+ *******************************************************************************/
+
+typedef bool HitState;
+enum         HitStates { SESSION_UNKNOWN = false, SESSION_EXISTS = true};
 //OBSOLETE_20200703 typedef SessionId   TcpSessId;  // TCP Session ID
 
-//OBSOLETE_20200709 class SessionLookupQuery
-//OBSOLETE_20200709 {
-//OBSOLETE_20200709   public:
-//OBSOLETE_20200709     LE_SocketPair  tuple;
-//OBSOLETE_20200709     bool           allowCreation;
-//OBSOLETE_20200709     SessionLookupQuery() {}
-//OBSOLETE_20200709    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
-//OBSOLETE_20200709         tuple(tuple), allowCreation(allowCreation) {}
-//OBSOLETE_20200709 };
+//=========================================================
+//== SLc - Session Lookup Query
+//=========================================================
+class SessionLookupQuery {
+  public:
+    LE_SocketPair  tuple;
+    bool           allowCreation;
+    SessionLookupQuery() {}
+    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
+        tuple(tuple), allowCreation(allowCreation) {}
+};
 
-//OBSOLETE_20200709 typedef bool HitState;
-//OBSOLETE_20200709 enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
+//=========================================================
+//== SLc - Session Lookup Reply
+//=========================================================
+class SessionLookupReply {
+  public:
+    SessionId   sessionID;
+    HitState    hit;
+    SessionLookupReply() {}
+    SessionLookupReply(SessionId id, HitState hit) :
+        sessionID(id), hit(hit) {}
+};
 
-//OBSOLETE_20200709 class SessionLookupReply
-//OBSOLETE_20200709 {
-//OBSOLETE_20200709   public:
-//OBSOLETE_20200709     SessionId   sessionID;
-//OBSOLETE_20200709     HitState    hit;
-//OBSOLETE_20200709     SessionLookupReply() {}
-//OBSOLETE_20200709    SessionLookupReply(SessionId id, HitState hit) :
-//OBSOLETE_20200709         sessionID(id), hit(hit) {}
-//OBSOLETE_20200709 };
 
-//OBSOLETE_20200709 /********************************************
-//OBSOLETE_20200709  * State Table (STt)
-//OBSOLETE_20200709  ********************************************/
+/*******************************************************************************
+ * INTERFACE TYPES and CLASSES USED BY STATE TABLE (STt)
+ *******************************************************************************/
+
+//=========================================================
+//== STt - Session States
+//=========================================================
+enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                    LAST_ACK };
+
+#ifndef __SYNTHESIS__
+    const std::string  SessionStateString[] = {
+                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+                   "LAST_ACK" };
+#endif
+
+//=========================================================
+//== STt - Session State Query
+//=========================================================
+class StateQuery {
+  public:
+    SessionId       sessionID;
+    SessionState    state;
+    RdWrBit         write;
+    StateQuery() {}
+    StateQuery(SessionId id) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, SessionState state, RdWrBit write) :
+        sessionID(id), state(state), write(write) {}
+};
+
+
+
 //OBSOLETE_20200709 enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
 //OBSOLETE_20200709                     FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
 //OBSOLETE_20200709                     LAST_ACK };
@@ -916,19 +957,6 @@ class OpenStatus
 //OBSOLETE_20200709                    "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
 //OBSOLETE_20200709                    "LAST_ACK" };
 //OBSOLETE_20200709 #endif
-
-//OBSOLETE_20200709 // Session State Query
-//OBSOLETE_20200709 class StateQuery {
-//OBSOLETE_20200709   public:
-//OBSOLETE_20200709     SessionId       sessionID;
-//OBSOLETE_20200709     SessionState    state;
-//OBSOLETE_20200709     RdWrBit         write;
-//OBSOLETE_20200709     StateQuery() {}
-//OBSOLETE_20200709     StateQuery(SessionId id) :
-//OBSOLETE_20200709         sessionID(id), state(CLOSED), write(QUERY_RD) {}
-//OBSOLETE_20200709     StateQuery(SessionId id, SessionState state, RdWrBit write) :
-//OBSOLETE_20200709         sessionID(id), state(state), write(write) {}
-//OBSOLETE_20200709 };
 
 
 /********************************************

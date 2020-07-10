@@ -50,11 +50,10 @@ using namespace hls;
 #define KO          NTS_KO
 
 #define CMD_INIT    1
-#define CMD_DROP    1
+#define CMD_DROP    1  // OBSOLETE_20200710 enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
 #define CMD_KEEP    0
 #define CMD_ENABLE  1
 #define CMD_DISABLE 0
-
 #define QUERY_RD    0
 #define QUERY_WR    1
 #define QUERY_INIT  1
@@ -173,7 +172,7 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
 // IP4 Protocol numbers
 #define IP4_PROT_ICMP       0x01
 #define IP4_PROT_TCP        0x06
-#define UDP_PROTOCOL        0x11
+#define UDP_PROTOCOL        0x11   // FIXME
 
 
 /******************************************************************************

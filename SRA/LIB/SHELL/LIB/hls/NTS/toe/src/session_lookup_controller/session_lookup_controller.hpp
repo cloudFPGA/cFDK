@@ -137,36 +137,6 @@ class SLcReverseLkp
         key(key), value(value) {}
 };
 
-/*******************************************************************************
- * INTERFACE TYPES and CLASSES USED BY SLc
- *******************************************************************************/
-
-typedef bool HitState;
-enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
-
-//=========================================================
-//== TOE - Session Lookup Query
-//=========================================================
-class SessionLookupQuery {
-  public:
-    LE_SocketPair  tuple;
-    bool           allowCreation;
-    SessionLookupQuery() {}
-    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
-        tuple(tuple), allowCreation(allowCreation) {}
-};
-
-//=========================================================
-//== TOE - Session Lookup Reply
-//=========================================================
-class SessionLookupReply {
-  public:
-    SessionId   sessionID;
-    HitState    hit;
-    SessionLookupReply() {}
-    SessionLookupReply(SessionId id, HitState hit) :
-        sessionID(id), hit(hit) {}
-};
 
 /*******************************************************************************
  *

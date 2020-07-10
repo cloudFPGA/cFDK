@@ -24,29 +24,33 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : rx_engine.hpp
- * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE).
+ * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *               TCP Rx Engine.
- *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#include "../../toe.hpp"
-#include "../../toe_utils.hpp"
+#ifndef _TOE_RXE_H_
+#define _TOE_RXE_H_
+
+//#include "../../../../../NTS/nts.hpp"
+#include "../../../../../NTS/toe/src/toe.hpp"
+#include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/AxisIp4.hpp"
+#include "../../../../../NTS/AxisPsd4.hpp"
+//#include "../../../../../NTS/SimNtsUtils.hpp"
 
 using namespace hls;
 
+
+//OBSOLETE_20200710 enum DropCmd { KEEP_CMD=false, DROP_CMD=true };
 
 /********************************************
  * RXe - MetaData Interface
@@ -79,12 +83,13 @@ class RXeFsmMeta {
                sessionId(sessId), ip4SrcAddr(ipSA), tcpSrcPort(tcpSP), tcpDstPort(tcpDP),    meta(rxeMeta) {}
 };
 
-/*****************************************************************************
- * @brief   Main process of the TCP Rx Engine (RXe).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Rx Engine (RXe)
+ *
+ *******************************************************************************/
 void rx_engine(
-        stream<Ip4overMac>              &siIPRX_Pkt,
+        stream<AxisIp4>                 &siIPRX_Pkt,
         stream<SessionLookupQuery>      &soSLc_SessLookupReq,
         stream<SessionLookupReply>      &siSLc_SessLookupRep,
         stream<StateQuery>              &soSTt_SessStateReq,
@@ -105,3 +110,7 @@ void rx_engine(
         stream<AxiWord>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts
 );
+
+#endif
+
+/*! \} */

@@ -24,25 +24,27 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
- * @file       : rx_engine.cpp
+/*******************************************************************************
+ * @file       : rx_engine.hpp
  * @brief      : Rx Engine (RXe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "rx_engine.hpp"
-#include "../../../test/test_toe_utils.hpp"
 
 using namespace hls;
 
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ *  .e.g: DEBUG_LEVEL = (TRACE_CSA | TRACE_IPH)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -65,27 +67,26 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_MDH | TRACE_FSM | TRACE_MWR | TRACE_RAN)
 
-enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
 
-
-/*****************************************************************************
- * @brief TCP length extraction (Tle).
+/*******************************************************************************
+ * @brief TCP length extraction (Tle)
  *
- * @param[in]  siIPRX_Pkt,    IP4 packet stream form IPRX.
- * @param[out] soPseudoPkt,   A pseudo TCP/IP packet (.i.e, IP-SA + IP-DA + TCP)
- * @param[out] soTcpSegLen,   The length of the pseudo TCP segment.
+ * @param[in]  siIPRX_Data     IP4 packet stream from IpRxHandler (IPRX).
+ * @param[out] soIph_Data      A custom-made pseudo packet to InsertPseudoHeader (Iph).
+ * @param[out] soIph_TcpSegLen The length of the incoming TCP segment to [Iph].
  *
  * @details
- *   This is the process that handles the incoming data stream from the IPRX.
- *   It extracts the TCP length field from the IP header, removes that IP
- *   header but keeps the IP source and destination addresses in front of the
- *   TCP segment so that the output can be used by the next process to build
- *   the 12-byte TCP pseudo header.
- *   The length of the IPv4 data (.i.e. the TCP segment length) is also
- *   computed from the IPv4 total length and the IPv4 header length.
+ *   This process handles the incoming IPv4 data stream from IpRxHandler (IPRX).
+ *   It computes the TCP length field from the IP header, removes that IP header
+ *   but keeps the IP source and destination addresses in front of the TCP
+ *   segment in order for that output to be used by the next process to populate
+ *   the 12 bytes of the TCP pseudo header.
+ *   The length of the IPv4 data (.i.e. the TCP segment length) is computed from
+ *   the IPv4 total length and the IPv4 header length.
  *
- *   The data received from the Ethernet MAC are logically divided into lane #0
- *   (7:0) to lane #7 (63:56). The format of an incoming IPv4 packet is then:
+ *   The data received from [IPRX] are logically divided into lane #0 (7:0) to
+ *   lane #7 (63:56). The format of an incoming IPv4 packet is defined in
+ *   (@see AxisIp4.hpp) and is as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -105,7 +106,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- *    The format of the outgoing segment is the following:
+ *    The format of the outgoing segment is custom-made as follows:
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -127,160 +128,163 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
  *  |                               NU                              |    Data 7     |    Data 6     |    Data 5     |    Data 4     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pTcpLengthExtract(
-        stream<Ip4overMac>     &siIPRX_Pkt,
-        stream<Ip4overMac>     &soPseudoPkt,
-        stream<TcpSegLen>      &soTcpSegLen)
+        stream<AxisIp4>     &siIPRX_Data,
+        stream<AxisRaw>     &soIph_Data,
+        stream<TcpSegLen>   &soIph_TcpSegLen)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Tle");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static ap_uint<4>          tle_wordCount=0;
-    #pragma HLS RESET variable=tle_wordCount
-    static bool                tle_insertWord=false;
-    #pragma HLS RESET variable=tle_insertWord
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static ap_uint<4>          tle_chunkCount=0;
+    #pragma HLS RESET variable=tle_chunkCount
+    static bool                tle_insertVoidChunk=false;
+    #pragma HLS RESET variable=tle_insertVoidChunk
     static bool                tle_wasLast=false;
     #pragma HLS RESET variable=tle_wasLast
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static bool         tle_shift;
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static bool         tle_shift;         // Keeps track of the chunk alignment
     static Ip4HdrLen    tle_ip4HdrLen;
     static Ip4TotalLen  tle_ip4TotalLen;
     static Ip4DatLen    tle_ipDataLen;
-    static Ip4overMac   tle_prevWord;
+    static AxisIp4      tle_prevChunk;
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    Ip4overMac          sendWord;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisRaw             sendChunk;
 
-    if (tle_insertWord) {
-        sendWord = Ip4overMac(0, 0xFF, 0);
-        soPseudoPkt.write(sendWord);
-        tle_insertWord = false;
+    if (tle_insertVoidChunk) {
+        // Insert a 'null' chunk for the next process to populate it
+        sendChunk = AxisRaw(0, 0xFF, 0);
+        soIph_Data.write(sendChunk);
+        tle_insertVoidChunk = false;
         if (DEBUG_LEVEL & TRACE_TLE) {
-            printAxiWord(myName, sendWord);
+            printAxisRaw(myName, sendChunk);
         }
     }
-    else if (!siIPRX_Pkt.empty() && !tle_wasLast) {
-        Ip4overMac currWord = siIPRX_Pkt.read();
-
-        switch (tle_wordCount) {
-        case WORD_0:
-            tle_ip4HdrLen  = currWord.tdata(3, 0);
-            //OBSOLETE_20191118 tle_ip4TotalLen = byteSwap16(currWord.tdata(31, 16));
-            tle_ip4TotalLen = currWord.getIp4TotalLen();
+    else if (!siIPRX_Data.empty() and !soIph_Data.full() and !tle_wasLast) {
+        AxisIp4 currChunk = siIPRX_Data.read();
+        switch (tle_chunkCount) {
+        case CHUNK_0:
+            tle_ip4HdrLen   = currChunk.getIp4HdrLen();
+            tle_ip4TotalLen = currChunk.getIp4TotalLen();
             // Compute length of IPv4 data (.i.e. the TCP segment length)
             tle_ipDataLen  = tle_ip4TotalLen - (tle_ip4HdrLen * 4);
             tle_ip4HdrLen -= 2; // We just processed 8 bytes
-            tle_wordCount++;
+            tle_chunkCount++;
             break;
-        case WORD_1:
-            // Forward length of IPv4 data
-            soTcpSegLen.write(tle_ipDataLen);
+        case CHUNK_1:
+            // Forward length of IPv4 data (.i.e. the TCP segment length)
+            soIph_TcpSegLen.write(tle_ipDataLen);
             tle_ip4HdrLen -= 2; // We just processed 8 bytes
-            tle_wordCount++;
+            tle_chunkCount++;
             break;
-        case WORD_2:
+        case CHUNK_2:
             // Forward destination IP address
-            // Warning, half of this address is now in 'prevWord'
-            sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                                  (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                                  (currWord.tkeep[4] == 0));
-            soPseudoPkt.write(sendWord);
-            tle_ip4HdrLen -= 1;  // We just processed the last 4 bytes of the IP header
-            tle_insertWord = true;
-            tle_wordCount++;
+            // Warning, half of this address is now in 'prevChunk'
+            //OBSOLETE_20200710 sendChunk = Ip4overMac((currChunk.tdata(31, 0), tle_prevChunk.tdata(63, 32)),
+            //OBSOLETE_20200710                       (currChunk.tkeep( 3, 0), tle_prevChunk.tkeep( 7,  4)),
+            //OBSOLETE_20200710                       (currChunk.tkeep[4] == 0));
+            sendChunk = AxisRaw((currChunk.getLE_TData(31, 0), tle_prevChunk.getLE_TData(63, 32)),
+                                (currChunk.getLE_TKeep( 3, 0), tle_prevChunk.getLE_TKeep( 7,  4)),
+                                (currChunk.getLE_TKeep()[4] == 0));
+            soIph_Data.write(sendChunk);
+            tle_ip4HdrLen -= 1;  // We just processed the last 4 bytes of a standard IP header
+            tle_insertVoidChunk = true;
+            tle_chunkCount++;
             if (DEBUG_LEVEL & TRACE_TLE) {
-                printAxiWord(myName, sendWord);
+                printAxisRaw(myName, sendChunk);
             }
             break;
-        case WORD_3:
+        case CHUNK_3:
             switch (tle_ip4HdrLen) {
-            case 0: // Half of prevWord contains valuable data and currWord is full of valuable
-                sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                                      (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                                      (currWord.tkeep[4] == 0));
-                soPseudoPkt.write(sendWord);
+            case 0: // No or end of IP option(s) - Forward half of 'prevChunk' and half of 'currChunk'.
+                sendChunk = AxisRaw((currChunk.getLE_TData(31, 0), tle_prevChunk.getLE_TData(63, 32)),
+                                    (currChunk.getLE_TKeep( 3, 0), tle_prevChunk.getLE_TKeep( 7,  4)),
+                                    (currChunk.getLE_TKeep()[4] == 0));
+                soIph_Data.write(sendChunk);
                 tle_shift = true;
                 tle_ip4HdrLen = 0;
-                tle_wordCount++;
+                tle_chunkCount++;
                 if (DEBUG_LEVEL & TRACE_TLE) {
-                	printAxiWord(myName, sendWord);
+                    printAxisRaw(myName, sendChunk);
                 }
                 break;
-            case 1: // The prevWord contains garbage data, but currWord is valuable
-                sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
-                soPseudoPkt.write(sendWord);
+            case 1: // Drop IP option located in 'prevChunk'. Forward entire 'currChunk'
+                sendChunk = AxisRaw(currChunk.getLE_TData(), currChunk.getLE_TKeep(), currChunk.getLE_TLast());
+                soIph_Data.write(sendChunk);
                 tle_shift = false;
                 tle_ip4HdrLen = 0;
-                tle_wordCount++;
+                tle_chunkCount++;
                 if (DEBUG_LEVEL & TRACE_TLE) {
-                	printAxiWord(myName, sendWord);
+                    printAxisRaw(myName, sendChunk);
                 }
                 break;
-            default: // The prevWord contains garbage data, currWord at least half garbage
-                // Drop everything else
+            default: // Drop two option chunks located in half of 'prevChunk' and half of 'currChunk'.
                 tle_ip4HdrLen -= 2;
                 break;
             }
             break;
         default:
             if (tle_shift) {
-                sendWord = Ip4overMac((currWord.tdata(31, 0), tle_prevWord.tdata(63, 32)),
-                                      (currWord.tkeep( 3, 0), tle_prevWord.tkeep( 7,  4)),
-                                      (currWord.tkeep[4] == 0));
-                soPseudoPkt.write(sendWord);
+                // The 'currChunk' is not aligned with the outgoing 'sendChunk'
+                sendChunk = AxisIp4((currChunk.getLE_TData(31, 0), tle_prevChunk.getLE_TData(63, 32)),
+                                    (currChunk.getLE_TKeep( 3, 0), tle_prevChunk.getLE_TKeep( 7,  4)),
+                                    (currChunk.getLE_TKeep()[4] == 0));
+                soIph_Data.write(sendChunk);
                 if (DEBUG_LEVEL & TRACE_TLE) {
-                	printAxiWord(myName, sendWord);
+                    printAxisRaw(myName, sendChunk);
                 }
             }
             else {
-                sendWord = Ip4overMac(currWord.tdata, currWord.tkeep, currWord.tlast);
-                soPseudoPkt.write(sendWord);
+                // The 'currChunk' is aligned with the outgoing 'sendChunk'
+                sendChunk = AxisIp4(currChunk.getLE_TData(), currChunk.getLE_TKeep(), currChunk.getLE_TLast());
+                soIph_Data.write(sendChunk);
                 if (DEBUG_LEVEL & TRACE_TLE) {
-                	printAxiWord(myName, sendWord);
+                    printAxisRaw(myName, sendChunk);
                 }
             }
             break;
-
-        } // End of: switch (tle_wordCount)
-
-        tle_prevWord = currWord;
-        if (currWord.tlast) {
-            tle_wordCount = 0;
-            tle_wasLast = !sendWord.tlast;
+        } // End of: switch (tle_chunkCount)
+        // Always copy 'currChunk' into 'prevChunk'
+        tle_prevChunk = currChunk;
+        if (currChunk.getTLast()) {
+            tle_chunkCount = 0;
+            tle_wasLast = !sendChunk.getTLast();
         }
-
-    } // End of: else if (!siIPRX_Data.empty() && !tle_wasLast) {
-    else if (tle_wasLast) { // Assumption has to be shift
+    }
+    else if (tle_wasLast and tle_shift) {
         // Send remaining data
-        Ip4overMac sendWord = Ip4overMac(0, 0, 1);
-        sendWord.tdata(31, 0) = tle_prevWord.tdata(63, 32);
-        sendWord.tkeep( 3, 0) = tle_prevWord.tkeep( 7,  4);
-        soPseudoPkt.write(sendWord);
+        AxisRaw sendChunk = AxisRaw(0, 0, TLAST);
+        //OBSOLETE_20200710 sendChunk.tdata(31, 0) = tle_prevChunk.tdata(63, 32);
+        sendChunk.setLE_TData(tle_prevChunk.getLE_TData(63, 32), 31, 0);
+        //OBSOLETE_20200710 sendChunk.tkeep( 3, 0) = tle_prevChunk.tkeep( 7,  4);
+        sendChunk.setLE_TKeep(tle_prevChunk.getLE_TKeep( 7,  4),  3, 0);
+        soIph_Data.write(sendChunk);
         tle_wasLast = false;
         if (DEBUG_LEVEL & TRACE_TLE) {
-        	printAxiWord(myName, sendWord);
+           printAxisRaw(myName, sendChunk);
         }
     }
 }
 
-
-/*****************************************************************************
- * @brief Insert pseudo header (Iph).
+/*******************************************************************************
+ * @brief Insert pseudo header (Iph)
  *
- * @param[in]  siTle_TcpSeg,    A pseudo TCP segment from TCP Length Extraction.
- * @param[in]  siTle_TcpSegLen, The length of the incoming pseudo TCP segment.
- * @param[out] soTcpSeg,        An updated pseudo TCP segment.
+ * @param[in]  siTle_Data      A custom-made pseudo packet from TcpLengthExtractor (Tle).
+ * @param[in]  siTle_TcpSegLen The length of the incoming TCP segment from [Tle].
+ * @param[out] soCsa_PseudoPkt Pseudo TCP/IP packet to CheckSumAccumulator (Csa).
  *
  * @details
- *  Constructs a TCP pseudo header and prepends it to the TCP payload.
+ *  Constructs a TCP pseudo header and prepends it to the TCP payload. The
+ *  result is a TCP pseudo packet (@see AxisPsd4.hpp).
  *
- *  The format of the incoming segment is as follows:
+ *  The format of the incoming custom-made pseudo packet is as follows (see [TLe]):
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -303,7 +307,7 @@ void pTcpLengthExtract(
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *
- *    The format of the outgoing pseudo TCP segment is as follows:
+ *    The format of the outgoing pseudo TCP segment is as follows (see also AxisPsd4.hpp):
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -321,119 +325,127 @@ void pTcpLengthExtract(
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pInsertPseudoHeader(
-        stream<Ip4overMac>  &siTle_PseudoPkt,
+        stream<AxisRaw>     &siTle_Data,
         stream<TcpSegLen>   &siTle_TcpSegLen,
-        stream<Ip4overMac>  &soCsa_PseudoPkt)
+        stream<AxisPsd4>    &soCsa_PseudoPkt)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Iph");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                iph_wasLast=false;
     #pragma HLS RESET variable=iph_wasLast
-    static ap_uint<2>          iph_wordCount=0;
-    #pragma HLS RESET variable=iph_wordCount
+    static ap_uint<2>          iph_chunkCount=0;
+    #pragma HLS RESET variable=iph_chunkCount
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static Ip4overMac   iph_prevWord;
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static AxisRaw  iph_prevChunk;
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    ValBit              valid;
-    TcpSegLen           tcpSegLen;
-    Ip4overMac          currWord;
-    Ip4overMac          sendWord;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    ValBit          valid;
+    TcpSegLen       tcpSegLen;
+    AxisRaw         currChunk;
+    AxisPsd4        sendChunk;
 
     if (iph_wasLast) {
-        sendWord.tdata(31, 0) = iph_prevWord.tdata(63,32);
-        sendWord.tkeep( 3, 0) = iph_prevWord.tkeep( 7, 4);
-        sendWord.tkeep( 7, 4) = 0x0;
-        sendWord.tlast        = 0x1;
-        soCsa_PseudoPkt.write(sendWord);
+        sendChunk.setLE_TData(iph_prevChunk.getLE_TData(63, 32), 31,  0);
+        sendChunk.setLE_TKeep(iph_prevChunk.getLE_TKeep( 7,  4),  3,  0);
+        sendChunk.setLE_TData(0x00000000,                        63, 32);
+        sendChunk.setLE_TKeep(0x0,                                7,  4);
+        sendChunk.setLE_TLast(TLAST);
+        soCsa_PseudoPkt.write(sendChunk);
         iph_wasLast = false;
         if (DEBUG_LEVEL & TRACE_IPH) {
-            printAxiWord(myName, sendWord);
+            printAxisRaw(myName, sendChunk);
         }
     }
-    else if(!siTle_PseudoPkt.empty()) {
-        switch (iph_wordCount) {
-        case WORD_0:
-            siTle_PseudoPkt.read(currWord);
-            iph_wordCount++;
+    else if(!siTle_Data.empty() and !soCsa_PseudoPkt.full()) {
+        switch (iph_chunkCount) {
+        case CHUNK_0:
+            siTle_Data.read(currChunk);
+            iph_chunkCount++;
             break;
-        case WORD_1:
-            siTle_PseudoPkt.read(currWord);
-            sendWord = iph_prevWord;
+        case CHUNK_1:
+            siTle_Data.read(currChunk);
+            sendChunk = iph_prevChunk;
             // Forward IP-DA & IP-SA
-            soCsa_PseudoPkt.write(sendWord);
-            iph_wordCount++;
+            soCsa_PseudoPkt.write(sendChunk);
+            iph_chunkCount++;
             if (DEBUG_LEVEL & TRACE_IPH) {
-                printAxiWord(myName, sendWord);
+                printAxisRaw(myName, sendChunk);
             }
             break;
-        case WORD_2:
-            // [TODO - Use the Ip4overMac methods here]
+        case CHUNK_2:
             if (!siTle_TcpSegLen.empty()) {
-                siTle_PseudoPkt.read(currWord);
+                siTle_Data.read(currChunk);
                 siTle_TcpSegLen.read(tcpSegLen);
                 // Forward Protocol and Segment length
-                sendWord.tdata(15,  0) = 0x0600;        // 06 is for TCP
-                sendWord.tdata(31, 16) = byteSwap16(tcpSegLen);
+                sendChunk.setPsd4ResBits(0x00);
+                sendChunk.setPsd4Prot(IP4_PROT_TCP);
+                sendChunk.setPsd4Len(tcpSegLen);
                 // Forward TCP-SP & TCP-DP
-                sendWord.tdata(63, 32) = currWord.tdata(31, 0);
-                sendWord.tkeep         = 0xFF;
-                sendWord.tlast         = 0;
-                soCsa_PseudoPkt.write(sendWord);
-                iph_wordCount++;
-                if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
+                sendChunk.setTcpSrcPort(byteSwap16(currChunk.getLE_TData(15,  0)));
+                sendChunk.setTcpDstPort(byteSwap16(currChunk.getLE_TData(31, 16)));
+                sendChunk.setLE_TKeep(0xFF);
+                sendChunk.setLE_TLast(0);
+                soCsa_PseudoPkt.write(sendChunk);
+                iph_chunkCount++;
+                if (DEBUG_LEVEL & TRACE_IPH) printAxisRaw(myName, sendChunk);
             }
             break;
         default:
-            siTle_PseudoPkt.read(currWord);
+            siTle_Data.read(currChunk);
             // Forward { Sequence Number, Acknowledgment Number } or
             //         { Flags, Window, Checksum, UrgentPointer } or
             //         { Data }
-            sendWord.tdata.range(31,  0) = iph_prevWord.tdata.range(63, 32);
-            sendWord.tdata.range(63, 32) = currWord.tdata.range(31, 0);
-            sendWord.tkeep.range( 3,  0) = iph_prevWord.tkeep.range(7, 4);
-            sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
-            sendWord.tlast               = (currWord.tkeep[4] == 0); // see format of the incoming segment
-            soCsa_PseudoPkt.write(sendWord);
-            if (DEBUG_LEVEL & TRACE_IPH) printAxiWord(myName, sendWord);
+            //OBSOLETE_20200710 sendChunk.tdata.range(31,  0) = iph_prevChunk.tdata.range(63, 32);
+            //OBSOLETE_20200710 sendChunk.tdata.range(63, 32) = currChunk.tdata.range(31, 0);
+            //OBSOLETE_20200710 sendChunk.tkeep.range( 3,  0) = iph_prevChunk.tkeep.range(7, 4);
+            //OBSOLETE_20200710 sendChunk.tkeep.range( 7,  4) = currChunk.tkeep.range(3, 0);
+            //OBSOLETE_20200710 sendChunk.tlast               = (currChunk.tkeep[4] == 0); // see format of the incoming segment
+            sendChunk.setLE_TData(iph_prevChunk.getLE_TData(63, 32), 31,  0);
+            sendChunk.setLE_TKeep(iph_prevChunk.getLE_TKeep( 7,  4),  3,  0);
+            sendChunk.setLE_TData(currChunk.getLE_TData(31, 0),      63, 32);
+            sendChunk.setLE_TKeep(currChunk.getLE_TKeep( 3, 0),       7,  4);
+            sendChunk.setLE_TLast(currChunk.getTKeep()[4] == 0); // see format of the incoming segment
+            soCsa_PseudoPkt.write(sendChunk);
+            if (DEBUG_LEVEL & TRACE_IPH) printAxisRaw(myName, sendChunk);
             break;
         }
-        iph_prevWord = currWord;
-        if (currWord.tlast == 1) {
-            iph_wordCount = 0;
-            iph_wasLast = !sendWord.tlast;
+        // Always copy 'currChunk' into 'prevChunk'
+        iph_prevChunk = currChunk;
+        if (currChunk.getTLast()) {
+            iph_chunkCount = 0;
+            iph_wasLast = !sendChunk.getTLast();
         }
     }
 }
 
-/*****************************************************************************
- * @brief TCP checksum accumulator (Csa).
+/*******************************************************************************
+ * @brief TCP checksum accumulator (Csa)
  *
- * @param[in]  siIph_TcpSeg,   A pseudo TCP segment from InsertPseudoHeader (Iph).
- * @param[out] soTid_Data,     TCP data stream to TcpInvalidDropper (Tid).
- * @param[out] soTid_DataVal,  TCP data valid to [Tid].
- * @param[out] soMdh_Meta,,    TCP metadata to MetaDataHandler (Mdh).
- * @param[out] soMdh_SockPair, TCP socket pair to [Mdh].
- * @param[out] soPRt_GetState, Req state of TCP_DP to PortTable (PRt).
+ * @param[in]  siIph_PseudoPkt A pseudo TCP packet from InsertPseudoHeader (Iph).
+ * @param[out] soTid_Data      TCP data stream to TcpInvalidDropper (Tid).
+ * @param[out] soTid_DataVal   TCP data valid to [Tid].
+ * @param[out] soMdh_Meta      TCP metadata to MetaDataHandler (Mdh).
+ * @param[out] soMdh_SockPair  TCP socket pair to [Mdh].
+ * @param[out] soPRt_GetState  Req state of the TCP DestPort to PortTable (PRt).
  *
  * @details
- *  This process extracts the data section from the incoming segment and
- *   forwards them to the TCP Invalid Dropper (Tid) together with a valid
- *   bit indicating the result of the checksum validation.
+ *  This process extracts the data section from the incoming pseudo IP packet
+ *   and forwards them to the TcpInvalidDropper (Tid) together with a valid bit
+ *   indicating the result of the checksum validation.
  *  It also extracts the socket pair information and some metadata information
- *   from the TCP segment and forwards them to the MetaData Handler (Mdh).
+ *   from the TCP segment and forwards them to the MetaDataHandler (Mdh).
  *  Next, the TCP destination port number is extracted and forwarded to the
- *   Port Table (PRt) process to check if the port is open.
+ *   PortTable (PRt) process to check if the port is open.
  *
- *  The format of the incoming pseudo TCP segment is as follows:
+ *  The format of the incoming pseudo TCP segment is as follows (@see AxisPsd4.hpp):
  *
  *         6                   5                   4                   3                   2                   1                   0
  *   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -451,25 +463,24 @@ void pInsertPseudoHeader(
  *  |    Data 7     |    Data 6     |    Data 5     |    Data 4     |    Data 3     |    Data 2     |    Data 1     |    Data 0     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ *
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pCheckSumAccumulator(
-        stream<Ip4overMac>        &siCsa_PseudoPkt,
-        stream<AxiWord>           &soTid_Data,
+        stream<AxisPsd4>          &siIph_PseudoPkt,
+        stream<AxisTcp>           &soTid_Data,
         stream<ValBit>            &soTid_DataVal,
         stream<RXeMeta>           &soMdh_Meta,
-        stream<LE_SocketPair>     &soMdh_SockPair,
+        stream<SocketPair>        &soMdh_SockPair,
         stream<TcpPort>           &soPRt_GetState)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Csa");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    //OBSOLETE_20191118 static ap_uint<16>           csa_wordCount   = 0;
-    static ap_uint<3>			csa_wordCount=0;
-    #pragma HLS RESET  variable=csa_wordCount
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static ap_uint<3>           csa_chunkCount=0;
+    #pragma HLS RESET  variable=csa_chunkCount
     static bool                 csa_doCSumVerif=false;
     #pragma HLS RESET  variable=csa_doCSumVerif
     static bool                 csa_wasLast=false;
@@ -477,58 +488,66 @@ void pCheckSumAccumulator(
     static ap_uint<3>           csa_cc_state=0;
     #pragma HLS RESET  variable=csa_cc_state
     static ap_uint<17>          csa_tcp_sums[4]={0, 0, 0, 0};
-	#pragma HLS RESET  variable=csa_tcp_sums
-	#pragma HLS ARRAY_PARTITION \
-					   variable=csa_tcp_sums complete dim=1
+    #pragma HLS RESET  variable=csa_tcp_sums
+    #pragma HLS ARRAY_PARTITION \
+                       variable=csa_tcp_sums complete dim=1
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TcpDataOff       csa_dataOffset;
     static bool             csa_doShift;
-    static LE_SocketPair    csa_leSessTuple;
+    //OBSOLETE_20200710 static LE_SocketPair    csa_leSessTuple;
+    static SocketPair       csa_socketPair;
     static RXeMeta          csa_meta;
-    static LE_TcpDstPort    csa_leTcpDstPort;
-    static LE_TcpChecksum   csa_leTcpCSum;
+    //OBSOLETE_20200710 static LE_TcpDstPort    csa_leTcpDstPort;
+    static TcpDstPort       csa_tcpDstPort;
+    //OBSOLETE_20200710 static LE_TcpChecksum   csa_leTcpCSum;
+    static TcpChecksum      csa_tcpCSum;
     static ap_uint<36>      csa_halfWord;
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
-    Ip4overMac              currWord;
-    Ip4overMac              sendWord;
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
+    AxisPsd4                currChunk;
+    AxisTcp                 sendChunk;
 
-    if (!siCsa_PseudoPkt.empty() && !csa_doCSumVerif) {
-        siCsa_PseudoPkt.read(currWord);
-        switch (csa_wordCount) {
-        // [TODO - Use the Ip4overMac methods here]
-        case WORD_0:
+    if (!siIph_PseudoPkt.empty() && !csa_doCSumVerif) {
+        siIph_PseudoPkt.read(currChunk);
+        switch (csa_chunkCount) {
+        case CHUNK_0:
             csa_dataOffset = 0xF;
             csa_doShift = false;
             // Get IP-SA & IP-DA
-            //  Warning: Remember that IP addresses come in little-endian order
-            csa_leSessTuple.src.addr = currWord.tdata(31,  0);
-            csa_leSessTuple.dst.addr = currWord.tdata(63, 32);
-            sendWord.tlast           = currWord.tlast;
-            csa_wordCount++;
+            //OBSOLETE_20200710 csa_leSessTuple.src.addr = currChunk.tdata(31,  0);
+            //OBSOLETE_20200710 csa_leSessTuple.dst.addr = currChunk.tdata(63, 32);
+            csa_socketPair.src.addr = currChunk.getPsd4SrcAddr();
+            csa_socketPair.dst.addr = currChunk.getPsd4DstAddr();
+            sendChunk.setTLast(currChunk.getTLast());
+            csa_chunkCount++;
             break;
-        case WORD_1:
+        case CHUNK_1:
             // Get Segment length
-            csa_meta.length = byteSwap16(currWord.tdata(31, 16));
+            //OBSOLETE_20200710 csa_meta.length = byteSwap16(currWord.tdata(31, 16));
+            csa_meta.length = currChunk.getPsd4Len();
             // Get TCP-SP & TCP-DP
-            //  Warning: Remember that TCP ports come in little-endian order
-            csa_leSessTuple.src.port = currWord.tdata(47, 32);
-            csa_leSessTuple.dst.port = currWord.tdata(63, 48);
-            csa_leTcpDstPort      = currWord.tdata(63, 48);
-            sendWord.tlast         = currWord.tlast;
-            csa_wordCount++;
+            //OBSOLETE_20200710 csa_leSessTuple.src.port = currChunk.tdata(47, 32);
+            //OBSOLETE_20200710 csa_leSessTuple.dst.port = currChunk.tdata(63, 48);
+            csa_socketPair.src.port = currChunk.getTcpSrcPort();
+            csa_socketPair.dst.port = currChunk.getTcpDstPort();
+            csa_tcpDstPort          = currChunk.getTcpDstPort();
+            sendChunk.setTLast(currChunk.getTLast());
+            csa_chunkCount++;
             break;
-        case WORD_2:
+        case CHUNK_2:
             // Get Sequence and Acknowledgment Numbers
-            csa_meta.seqNumb = byteSwap32(currWord.tdata(31, 0));
-            csa_meta.ackNumb = byteSwap32(currWord.tdata(63, 32));
-            sendWord.tlast   = currWord.tlast;
-            csa_wordCount++;
+            //OBSOLETE_20200710 csa_meta.seqNumb = byteSwap32(currChunk.tdata(31, 0));
+            //OBSOLETE_20200710 csa_meta.ackNumb = byteSwap32(currChunk.tdata(63, 32));
+            csa_meta.seqNumb = currChunk.getTcpSeqNum();
+            csa_meta.ackNumb = currChunk.getTcpAckNum();
+            sendChunk.setTLast(currChunk.getTLast());
+            csa_chunkCount++;
             break;
-        case WORD_3:
+        case CHUNK_3:
             // Get Data Offset
-            csa_dataOffset   = currWord.tdata.range(7, 4);
+            //OBSOLETE_20200710 csa_dataOffset   = currChunk.tdata.range(7, 4);
+            csa_dataOffset   = currChunk.getTcpDataOff();
             csa_meta.length -= (csa_dataOffset * 4);
             // Get Control Bits
             /*  [ 8] == FIN
@@ -538,45 +557,51 @@ void pCheckSumAccumulator(
              *  [12] == ACK
              *  [13] == URG
              */
-            csa_meta.ack = currWord.tdata[12];
-            csa_meta.rst = currWord.tdata[10];
-            csa_meta.syn = currWord.tdata[ 9];
-            csa_meta.fin = currWord.tdata[ 8];
+            csa_meta.ack = currChunk.getTcpCtrlAck();
+            csa_meta.rst = currChunk.getTcpCtrlRst();
+            csa_meta.syn = currChunk.getTcpCtrlSyn();
+            csa_meta.fin = currChunk.getTcpCtrlFin();
             // Get Window Size
-            csa_meta.winSize = byteSwap16(currWord.tdata(31, 16));
+            csa_meta.winSize = currChunk.getTcpWindow();
             // Get the checksum of the pseudo-header (only for debug purposes)
-            csa_leTcpCSum  = currWord.tdata(47, 32);
-            sendWord.tlast = currWord.tlast;
-            csa_wordCount++;
+            csa_tcpCSum  = currChunk.getTcpChecksum();
+            sendChunk.setTLast(currChunk.getTLast());
+            csa_chunkCount++;
             break;
         default:
             if (csa_dataOffset > 6) {
-                // Drain the unsupported options
+                // Drain the unsupported TCP options
                 csa_dataOffset -= 2;
             }
             else if (csa_dataOffset == 6) {
-                // The header has 32 bits of options and padding out of 64 bits
+                // The TCP header has 32 bits of options and padding out of 64 bits
                 // Get the first four Data bytes
                 csa_dataOffset = 5;
                 csa_doShift = true;
-                csa_halfWord.range(31,  0) = currWord.tdata.range(63, 32);
-                csa_halfWord.range(35, 32) = currWord.tkeep.range( 7,  4);
-                sendWord.tlast = (currWord.tkeep[4] == 0);
+                csa_halfWord.range(31,  0) = currChunk.getLE_TData(63, 32);
+                csa_halfWord.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
+                sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
             }
-            else {    // csa_dataOffset == 5 (or less)
+            else {
+                // The DataOffset == 5 (or less)
                 if (!csa_doShift) {
-                    sendWord = currWord;
-                    soTid_Data.write(sendWord);
+                    sendChunk = currChunk;
+                    soTid_Data.write(sendChunk);
                 }
                 else {
-                    sendWord.tdata.range(31,  0) = csa_halfWord.range(31, 0);
-                    sendWord.tdata.range(63, 32) = currWord.tdata.range(31, 0);
-                    sendWord.tkeep.range( 3,  0) = csa_halfWord.range(35, 32);
-                    sendWord.tkeep.range( 7,  4) = currWord.tkeep.range(3, 0);
-                    sendWord.tlast = (currWord.tkeep[4] == 0);
-                    soTid_Data.write(sendWord);
-                    csa_halfWord.range(31,  0) = currWord.tdata.range(63, 32);
-                    csa_halfWord.range(35, 32) = currWord.tkeep.range(7, 4);
+                    //OBSOLETE_20200710 sendChunk.tdata.range(31,  0) = csa_halfWord.range(31, 0);
+                    //OBSOLETE_20200710 sendChunk.tdata.range(63, 32) = currChunk.tdata.range(31, 0);
+                    //OBSOLETE_20200710 sendChunk.tkeep.range( 3,  0) = csa_halfWord.range(35, 32);
+                    //OBSOLETE_20200710 sendChunk.tkeep.range( 7,  4) = currChunk.tkeep.range(3, 0);
+                    //OBSOLETE_20200710 sendChunk.tlast = (currChunk.tkeep[4] == 0);
+                    sendChunk.setLE_TData(csa_halfWord.range(31, 0),    31,  0);
+                    sendChunk.setLE_TKeep(csa_halfWord.range(35, 32),    3,  0);
+                    sendChunk.setLE_TData(currChunk.getLE_TData(31, 0), 63, 32);
+                    sendChunk.setLE_TKeep(currChunk.getLE_TKeep( 3, 0),  7,  4);
+                    sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
+                    soTid_Data.write(sendChunk);
+                    csa_halfWord.range(31,  0) = currChunk.getLE_TData(63, 32);
+                    csa_halfWord.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
                 }
             }
             break;
@@ -586,44 +611,38 @@ void pCheckSumAccumulator(
         for (int i = 0; i < 4; i++) {
             #pragma HLS UNROLL
             TcpCSum temp;
-            if (currWord.tkeep.range(i*2+1, i*2) == 0x3) {
-                temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16);
+            if (currChunk.getLE_TKeep(i*2+1, i*2) == 0x3) {
+                temp( 7, 0) = currChunk.getLE_TData(i*16+15, i*16+8);
+                temp(15, 8) = currChunk.getLE_TData(i*16+ 7, i*16);
                 csa_tcp_sums[i] += temp;
                 csa_tcp_sums[i] = (csa_tcp_sums[i] + (csa_tcp_sums[i] >> 16)) & 0xFFFF;
             }
-            else if (currWord.tkeep[i*2] == 0x1) {
+            else if (currChunk.getLE_TKeep()[i*2] == 0x1) {
                 temp( 7, 0) = 0;
-                temp(15, 8) = currWord.tdata.range(i*16+7, i*16);
+                temp(15, 8) = currChunk.getLE_TData(i*16+7, i*16);
                 csa_tcp_sums[i] += temp;
                 csa_tcp_sums[i] = (csa_tcp_sums[i] + (csa_tcp_sums[i] >> 16)) & 0xFFFF;
             }
         }
-
-        //OBSOLETE_20191118 csa_wordCount++;
-
-        if(currWord.tlast == 1) {
-            csa_wordCount = 0;
-            csa_wasLast = !sendWord.tlast;
+        if(currChunk.getTLast()) {
+            csa_chunkCount = 0;
+            csa_wasLast = !sendChunk.getTLast();
             csa_doCSumVerif = true;
             if (DEBUG_LEVEL & TRACE_CSA)
-                printAxiWord(myName, currWord);
+                printAxisRaw(myName, currChunk);
         }
-
     } // End of: if (!siIph_Data.empty() && !csa_doCSumVerif)
-
     else if(csa_wasLast) {
         if (csa_meta.length != 0) {
-            sendWord.tdata.range(31,  0) = csa_halfWord.range(31,  0);
-            sendWord.tdata.range(63, 32) = 0;
-            sendWord.tkeep.range( 3,  0) = csa_halfWord.range(35, 32);
-            sendWord.tkeep.range( 7,  4) = 0;
-            sendWord.tlast               = 1;
-            soTid_Data.write(sendWord);
+            sendChunk.setLE_TData(csa_halfWord.range(31,  0), 31,  0);
+            sendChunk.setLE_TData(0x00000000,                 63, 32);
+            sendChunk.setLE_TKeep(csa_halfWord.range(35, 32),  3,  0);
+            sendChunk.setLE_TKeep(0x0,                         7,  4);
+            sendChunk.setLE_TLast(TLAST);
+            soTid_Data.write(sendChunk);
         }
         csa_wasLast = false;
     }
-
     else if (csa_doCSumVerif) {
         switch (csa_cc_state) {
             case 0:
@@ -652,18 +671,18 @@ void pCheckSumAccumulator(
             case 4:
                 if (csa_tcp_sums[0](15, 0) == 0) {
                     // The checksum is correct. TCP segment is valid.
-                    // Forward to MetaDataHandler
+                    // Forward to metadata to MetaDataHandler
                     soMdh_Meta.write(csa_meta);
-                    soMdh_SockPair.write(csa_leSessTuple);
-                    // Forward to TcpInvalidDropper
+                    soMdh_SockPair.write(csa_socketPair);
                     if (csa_meta.length != 0) {
+                        // Forward valid checksum info to TcpInvalidDropper
                         soTid_DataVal.write(OK);
                         if (DEBUG_LEVEL & TRACE_CSA) {
                             printInfo(myName, "Received end-of-packet. Checksum is correct.\n");
                         }
                     }
                     // Request state of TCP_DP
-                    soPRt_GetState.write(byteSwap16(csa_leTcpDstPort));
+                    soPRt_GetState.write(csa_tcpDstPort);
                 }
                 else {
                     if(csa_meta.length != 0) {
@@ -672,12 +691,9 @@ void pCheckSumAccumulator(
                     }
                     if (DEBUG_LEVEL & TRACE_CSA) {
                         printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
-                                    csa_leTcpCSum.to_uint(),
-                                    byteSwap16(~csa_tcp_sums[0](15, 0) & 0xFFFF).to_uint());
-                        printSockPair(myName, csa_leSessTuple);
-                        //printInfo(myName, "SocketPair={{0x%8.8X, 0x%4.4X},{0x%8.8X, 0x%4.4X}.\n",
-                        //        csa_sessTuple.src.addr.to_uint(), csa_sessTuple.src.port.to_uint(),
-                        //        csa_sessTuple.dst.addr.to_uint(), csa_sessTuple.dst.port.to_uint());
+                                    csa_tcpCSum.to_uint(),
+                                    (~csa_tcp_sums[0](15, 0).to_uint() & 0xFFFF));
+                        printSockPair(myName, csa_socketPair);
                     }
                 }
                 csa_doCSumVerif = false;
@@ -687,7 +703,6 @@ void pCheckSumAccumulator(
                 csa_tcp_sums[3] = 0;
                 csa_cc_state = 0;
                 break;
-
         } // End of: switch
     }
 } // End of: pCheckSumAccumulator
@@ -794,7 +809,7 @@ void pMetaDataHandler(
         stream<StsBit>              &siPRt_PortSts,
         stream<SessionLookupQuery>  &soSLc_SessLkpReq,
         stream<ExtendedEvent>       &soEVe_Event,
-        stream<CmdBool>             &soTsd_DropCmd,
+        stream<CmdBit>              &soTsd_DropCmd,
         stream<RXeFsmMeta>          &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -860,7 +875,7 @@ void pMetaDataHandler(
                     }
 
                     if (mdh_meta.length != 0) {
-                        soTsd_DropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(CMD_DROP);
                     }
                 }
                 else {
@@ -952,7 +967,7 @@ void pFiniteStateMachine(
         stream<SessionId>                   &soTIm_CloseTimer,
         stream<OpenStatus>                  &soTAi_SessOpnSts, //TODO merge with eventEngine
         stream<Event>                       &soEVe_Event,
-        stream<CmdBool>                     &soTsd_DropCmd,
+        stream<CmdBit>                      &soTsd_DropCmd,
         stream<DmCmd>                       &soMwr_WrCmd,
         stream<AppNotif>                    &soRan_RxNotif)
 {
@@ -1086,10 +1101,10 @@ void pFiniteStateMachine(
                             // Only notify about new data available
                             soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
                                                          fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
-                            soTsd_DropCmd.write(KEEP_CMD);
+                            soTsd_DropCmd.write(CMD_KEEP);
                         }
                         else {
-                            soTsd_DropCmd.write(DROP_CMD);
+                            soTsd_DropCmd.write(CMD_DROP);
                             if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
                                 printWarn(myName, "The received sequence number (%d) is not the expected one (%d).\n",
                                         fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
@@ -1142,7 +1157,7 @@ void pFiniteStateMachine(
                     soEVe_Event.write(rstEvent(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+fsm_Meta.meta.length)); // noACK ?
                     // if data is in the pipe it needs to be droppped
                     if (fsm_Meta.meta.length != 0) {
-                        soTsd_DropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(CMD_DROP);
                     }
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
@@ -1274,7 +1289,7 @@ void pFiniteStateMachine(
                         // Tell Application new data is available and connection got closed
                         soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
                                                      fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  true)); //CLOSE
-                        soTsd_DropCmd.write(KEEP_CMD);
+                        soTsd_DropCmd.write(CMD_KEEP);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
@@ -1304,7 +1319,7 @@ void pFiniteStateMachine(
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                     // If there is payload we need to drop it
                     if (fsm_Meta.meta.length != 0) {
-                        soTsd_DropCmd.write(DROP_CMD);
+                        soTsd_DropCmd.write(CMD_DROP);
                     }
                 }
             }
@@ -1382,8 +1397,8 @@ void pFiniteStateMachine(
  *****************************************************************************/
 void pTcpSegmentDropper(
         stream<AxiWord>     &siTid_Data,
-        stream<CmdBool>     &siMdh_DropCmd,
-        stream<CmdBool>     &siFsm_DropCmd,
+        stream<CmdBit>      &siMdh_DropCmd,
+        stream<CmdBit>      &siFsm_DropCmd,
         stream<AxiWord>     &soMwr_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1750,7 +1765,7 @@ void pMemWriter(
 /*****************************************************************************
  * @brief The rx_engine (RXe) processes the data packets received from IPRX.
  *
- * @param[in]  siIPRX_Data,         IP4 data stream form IPRX.
+ * @param[in]  siIPRX_Data,         IP4 data stream form [IPRX].
  * @param[out] soSLc_SessLookupReq, Session lookup request to SessionLookupController (SLc).
  * @param[in]  siSLc_SessLookupRep, Session lookup reply from [SLc].
  * @param[out] soSTt_StateQry,      State query to StateTable (STt).
@@ -1781,8 +1796,8 @@ void pMemWriter(
  *
  ******************************************************************************/
 void rx_engine(
-		// IP Rx Interface
-        stream<Ip4overMac>              &siIPRX_Pkt,
+        // IP Rx Interface
+        stream<AxisIp4>                 &siIPRX_Data,
 		//-- Session Lookup Controller Interface
 		stream<SessionLookupQuery>      &soSLc_SessLookupReq,
         stream<SessionLookupReply>      &siSLc_SessLookupRep,
@@ -1822,20 +1837,20 @@ void rx_engine(
     //-------------------------------------------------------------------------
 
     //-- Tcp Length Extract (Tle) ---------------------------------------------
-    static stream<Ip4overMac>       ssTleToIph_TcpSeg       ("ssTleToIph_TcpSeg");
-    #pragma HLS stream     variable=ssTleToIph_TcpSeg       depth=8
-    #pragma HLS DATA_PACK  variable=ssTleToIph_TcpSeg
+    static stream<AxisRaw>          ssTleToIph_Data         ("ssTleToIph_Data");
+    #pragma HLS stream     variable=ssTleToIph_Data         depth=8
+    #pragma HLS DATA_PACK  variable=ssTleToIph_Data
 
     static stream<TcpSegLen>        ssTleToIph_TcpSegLen    ("ssTleToIph_TcpSegLen");
     #pragma HLS stream     variable=ssTleToIph_TcpSegLen    depth=2
 
     //-- Insert Pseudo Header (Iph) -------------------------------------------
-    static stream<Ip4overMac>       ssIphToCsa_TcpSeg       ("ssIphToCsa_TcpSeg");
-    #pragma    HLS stream  variable=ssIphToCsa_TcpSeg       depth=8
-    #pragma HLS DATA_PACK  variable=ssIphToCsa_TcpSeg
+    static stream<AxisPsd4>         ssIphToCsa_PseudoPkt    ("ssIphToCsa_PseudoPkt");
+    #pragma    HLS stream  variable=ssIphToCsa_PseudoPkt    depth=8
+    #pragma HLS DATA_PACK  variable=ssIphToCsa_PseudoPkt
 
     //-- CheckSum Accumulator (Csa) -------------------------------------------
-    static stream<AxiWord>          ssCsaToTid_Data         ("ssCsaToTid_Data");
+    static stream<AxisTcp>          ssCsaToTid_Data         ("ssCsaToTid_Data");
     #pragma HLS stream     variable=ssCsaToTid_Data         depth=256 //critical, tcp checksum computation
     #pragma HLS DATA_PACK  variable=ssCsaToTid_Data
 
@@ -1846,15 +1861,16 @@ void rx_engine(
     #pragma HLS stream     variable=ssCsaToMdh_Meta         depth=2
     #pragma HLS DATA_PACK  variable=ssCsaToMdh_Meta
 
-    static stream<LE_SocketPair>    ssCsaToMdh_SockPair     ("ssCsaToMdh_SockPair");
+    static stream<SocketPair>       ssCsaToMdh_SockPair     ("ssCsaToMdh_SockPair");
     #pragma HLS stream     variable=ssCsaToMdh_SockPair     depth=2
     #pragma HLS DATA_PACK  variable=ssCsaToMdh_SockPair
 
+    //-- Tcp Invalid dropper (Tid) --------------------------------------------
     static stream<AxiWord>          ssTidToTsd_Data         ("ssTidToTsd_Data");
     #pragma HLS stream     variable=ssTidToTsd_Data         depth=8
     #pragma HLS DATA_PACK  variable=ssTidToTsd_Data
 
-    //-- Tcp Invalid dropper (Tid) --------------------------------------------
+    //-- Tcp Tcp Segment Dropper (Tsd) -----------------------------------------
     static stream<AxiWord>          ssTsdToMwr_Data         ("ssTsdToMwr_Data");
     #pragma HLS stream     variable=ssTsdToMwr_Data         depth=16
     #pragma HLS DATA_PACK  variable=ssTsdToMwr_Data
@@ -1864,7 +1880,7 @@ void rx_engine(
     #pragma HLS stream     variable=ssMdhToEvm_Event        depth=2
     #pragma HLS DATA_PACK  variable=ssMdhToEvm_Event
 
-    static stream<CmdBool>          ssMdhToTsd_DropCmd      ("ssMdhToTsd_DropCmd");
+    static stream<CmdBit>           ssMdhToTsd_DropCmd      ("ssMdhToTsd_DropCmd");
     #pragma HLS stream     variable=ssMdhToTsd_DropCmd      depth=2
 
     static stream<RXeFsmMeta>       ssMdhToFsm_Meta			("ssMdhToFsm_Meta");
@@ -1872,7 +1888,7 @@ void rx_engine(
     #pragma HLS DATA_PACK  variable=ssMdhToFsm_Meta
 
     //-- Finite State Machine (Fsm) -------------------------------------------
-    static stream<CmdBool>          ssFsmToTsd_DropCmd      ("ssFsmToTsd_DropCmd");
+    static stream<CmdBit>           ssFsmToTsd_DropCmd      ("ssFsmToTsd_DropCmd");
     #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=2
 
     static stream<AppNotif>         ssFsmToRan_Notif        ("ssFsmToRan_Notif");
@@ -1896,17 +1912,17 @@ void rx_engine(
     //-------------------------------------------------------------------------
 
     pTcpLengthExtract(
-            siIPRX_Pkt,
-            ssTleToIph_TcpSeg,
+            siIPRX_Data,
+            ssTleToIph_Data,
             ssTleToIph_TcpSegLen);
 
     pInsertPseudoHeader(
-            ssTleToIph_TcpSeg,
+            ssTleToIph_Data,
             ssTleToIph_TcpSegLen,
-            ssIphToCsa_TcpSeg);
+            ssIphToCsa_PseudoPkt);
 
     pCheckSumAccumulator(
-            ssIphToCsa_TcpSeg,
+            ssIphToCsa_PseudoPkt,
             ssCsaToTid_Data,
             ssCsaToTid_DataValid,
             ssCsaToMdh_Meta,
@@ -1919,7 +1935,7 @@ void rx_engine(
             ssTidToTsd_Data);
 
     pMetaDataHandler(
-            ssCsaToMdh_Meta,
+            ssCsaToMdh_Meta,        // FIXME - Is now SockPair
             ssCsaToMdh_SockPair,
             siSLc_SessLookupRep,
             siPRt_PortStateRep,
@@ -1970,3 +1986,5 @@ void rx_engine(
             soEVe_SetEvent);
 
 }
+
+/*! \} */

@@ -33,7 +33,6 @@
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
-#include "../../../NTS/toe/src/session_lookup_controller/session_lookup_controller.hpp"
 
 using namespace hls;
 

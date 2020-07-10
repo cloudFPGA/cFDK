@@ -46,35 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-/********************************************
- * Session States
- ********************************************/
-enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-                    LAST_ACK };
-
-#ifndef __SYNTHESIS__
-    const std::string  SessionStateString[] = {
-                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-                   "LAST_ACK" };
-#endif
-
-/********************************************
- * STt - Session State Query
- ********************************************/
-class StateQuery {
-  public:
-    SessionId       sessionID;
-    SessionState    state;
-    RdWrBit         write;
-    StateQuery() {}
-    StateQuery(SessionId id) :
-        sessionID(id), state(CLOSED), write(QUERY_RD) {}
-    StateQuery(SessionId id, SessionState state, RdWrBit write) :
-        sessionID(id), state(state), write(write) {}
-};
-
 /*******************************************************************************
  *
  * @brief ENTITY - State Table (STt)
