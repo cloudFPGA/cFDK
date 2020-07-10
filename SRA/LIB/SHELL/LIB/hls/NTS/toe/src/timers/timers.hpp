@@ -24,19 +24,27 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : timers.hpp
- * @brief      : Timers (TIm) of the TCP Offload Engine (TOE)
+ * @brief      : Timers (TIm) for the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#ifndef _TOE_TIM_H_
+#define _TOE_TIM_H_
+
 #include "../toe.hpp"
+#include "../event_engine/event_engine.hpp"
+#include "../../../../NTS/nts_utils.hpp"
 
 using namespace hls;
-
 
 enum StateEntry {DISABLED_ENTRY = false,
                  ACTIVE_ENTRY   = true};
@@ -76,19 +84,23 @@ class ReTxTimerEntry
     ReTxTimerEntry() {}
 };
 
-/*****************************************************************************
- * @brief   Main process of the Event Engine (EVe).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Timers (TIm)
+ *
+ *******************************************************************************/
 void timers(
-		stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
-		stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
-		stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
-		stream<ap_uint<16> >       &siTXe_SetProbeTimer,
-		stream<ap_uint<16> >       &siRXe_CloseTimer,
-		stream<SessionId>          &soSTt_SessCloseCmd,
-		stream<Event>              &soEVe_Event,
-		stream<OpenStatus>         &soTAi_Notif,
-		stream<AppNotif>           &soRAi_Notif
+        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
+        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
+        stream<ap_uint<16> >       &siRXe_CloseTimer,
+        stream<SessionId>          &soSTt_SessCloseCmd,
+        stream<Event>              &soEVe_Event,
+        stream<OpenStatus>         &soTAi_Notif,
+        stream<AppNotif>           &soRAi_Notif
 );
 
+#endif
+
+/*! \} */

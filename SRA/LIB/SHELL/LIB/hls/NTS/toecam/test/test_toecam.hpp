@@ -82,11 +82,6 @@ unsigned int    gMaxSimCycles;
 
 #define CAM_SIZE                 2          // Number of CAM entries.
 
-// == MOVE THE 3 FOLLOWING LINES INTO NTS.HPP =================
-typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
-#define FROM_RXe   0
-#define FROM_TAi   1
-
 #endif
 
 /*! \} */

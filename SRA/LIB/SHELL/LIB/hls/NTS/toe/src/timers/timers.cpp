@@ -24,28 +24,26 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : timers.cpp
  * @brief      : Timers (TIm) for the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "timers.hpp"
-#include "../../test/test_toe_utils.hpp"
-
-//OBSOLETE_20191202 #include "../close_timer/close_timer.hpp"
-//OBSOLETE_20191202 #include "../probe_timer/probe_timer.hpp"
-//OBSOLETE_20191202 #include "../retransmit_timer/retransmit_timer.hpp"
 
 using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ *  .e.g: DEBUG_LEVEL = (PBT_TRACE | RTT_TRACE)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -61,17 +59,24 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-
-/*****************************************************************************
- * @brief A 2-to-1 Stream multiplexer.
- * ***************************************************************************/
+/*******************************************************************************
+ * @brief A 2-to-1 generic Stream Multiplexer
+ *
+ *  @param[in]  si1     The input stream #1.
+ *  @param[in]  si2     The input stream #2.
+ *  @param[out] so      The output stream.
+ *
+ * @details
+ *  This multiplexer behaves like an arbiter. It takes two streams as inputs and
+ *   forwards one of them to the output channel. The stream connected to the
+ *   first input always takes precedence over the second one.
+ *******************************************************************************/
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so)
 {
-
-	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
@@ -81,15 +86,15 @@ template<typename T> void pStreamMux(
         so.write(si2.read());
 }
 
-/*****************************************************************************
- * @brief ReTransmit Timer (Rtt) process.
+/*******************************************************************************
+ * @brief ReTransmit Timer (Rtt) process
  *
- * @param[in]      siRXe_ReTxTimerCmd,   Retransmit timer command from Rx Engine (RXe).
- * @param[in]      siTXe_ReTxTimerEvent, Retransmit timer event from [TxEngine].
- * @param[out]     soEmx_Event,          Event to Event Multiplexer (Emx).
- * @param[out]     soSmx_SessCloseCmd,   Close command to State table Mux (Smx).
- * @param[out]     soTAi_Notif,          Notification to Tx Application I/F (TAi).
- * @param[out]     soRAi_Notif,          Notification to Rx Application I/F (RAi).
+ * @param[in]  siRXe_ReTxTimerCmd   Retransmit timer command from RxEngine (RXe).
+ * @param[in]  siTXe_ReTxTimerEvent Retransmit timer event from TxEngine (TXe).
+ * @param[out] soEmx_Event          Event to EventMultiplexer (Emx).
+ * @param[out] soSmx_SessCloseCmd   Close command to StateTableMux (Smx).
+ * @param[out] soTAi_Notif          Notification to TxApplicationInterface (TAi).
+ * @param[out] soRAi_Notif          Notification to RxApplicationInterface (RAi).
  *
  * @details
  *  This process receives a session-id and an event-type from [TXe]. If the
@@ -101,9 +106,7 @@ template<typename T> void pStreamMux(
  *   the timer of a session must be stopped or loaded with a default time-out
  *   value.
  *  If a session times-out more than 4 times in a row, it is aborted. A release
- *   command is then sent to [STt] and the application is notified.
- *   [FIXME - the application is notified through @param timerNotificationFifoOut].
- *
+ *   command is then sent to the StateTable (STt) and the application is notified.
  *******************************************************************************/
 void pRetransmitTimer(
         stream<RXeReTransTimerCmd>       &siRXe_ReTxTimerCmd,
@@ -113,21 +116,19 @@ void pRetransmitTimer(
         stream<OpenStatus>               &soTAi_Notif,
         stream<AppNotif>                 &soRAi_Notif)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Rtt");
 
-    //OBSOLETE_20191204 #pragma HLS DATA_PACK variable=soEmx_Event  // [TODO - Why do we need this pragma here]
-
-    //-- STATIC ARRAYs --------------------------------------------------------
+    //-- STATIC ARRAYs ---------------------------------------------------------
     static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=RETRANSMIT_TIMER_TABLE inter false
     #pragma HLS RESET      variable=RETRANSMIT_TIMER_TABLE
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                rtt_waitForWrite=false;
     #pragma HLS RESET variable=rtt_waitForWrite
     static SessionId           rtt_prevPosition=0;
@@ -141,10 +142,10 @@ void pRetransmitTimer(
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ReTxTimerEntry     currEntry;
     TXeReTransTimerCmd txEvent;
-    ap_uint<1>         operationSwitch = 0;
+    ap_uint<1>         operationSwitch;
     SessionId          currID;
 
-    if (rtt_waitForWrite && rtt_rxeCmd.sessionID != rtt_prevPosition) {
+    if (rtt_waitForWrite and (rtt_rxeCmd.sessionID != rtt_prevPosition)) {
         // [TODO - maybe prevprev too]
         if (rtt_rxeCmd.command == LOAD_TIMER) {
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time = TIME_1s;
@@ -232,9 +233,9 @@ void pRetransmitTimer(
                                           currID,
                                           currEntry.retries));
                         if (DEBUG_LEVEL & TRACE_RTT) {
-                        	printInfo(myName, "Forwarding event \'%s\' to [EVe].\n",
-                        			  myEventTypeToString(currEntry.type));
-	                    }
+                            printInfo(myName, "Forwarding event \'%s\' to [EVe].\n",
+                                      getEventType(currEntry.type));
+                        }
                     }
                     else {
                         currEntry.retries = 0;
@@ -243,14 +244,14 @@ void pRetransmitTimer(
                             soTAi_Notif.write(OpenStatus(currID, FAILED_TO_OPEN_SESS));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [TAi] - Failed to open session %d (event=\'%s\').\n",
-                                          currID.to_int(), myEventTypeToString(currEntry.type));
+                                          currID.to_int(), getEventType(currEntry.type));
                             }
                         }
                         else {
                             soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [RAi] - Session %d timeout (event=\'%s\').\n",
-                                          currID.to_int(), myEventTypeToString(currEntry.type));
+                                          currID.to_int(), getEventType(currEntry.type));
                             }
                         }
                     }
@@ -269,38 +270,38 @@ void pRetransmitTimer(
 /*******************************************************************************
  * @brief Probe Timer (Prb) process.
  *
- * @param[in]  siRXe_ClrProbeTimer, Clear probe timer command from RxEngine (RXe).
- * @param[in]  siTXe_SetProbeTimer, Set probe timer from TxEngine (TXe).
- * @param[out] soEmx_Event,         Event to Event Multiplexer (Emx).
+ * @param[in]  siRXe_ClrProbeTimer Clear probe timer command from RxEngine (RXe).
+ * @param[in]  siTXe_SetProbeTimer Set probe timer from TxEngine (TXe).
+ * @param[out] soEmx_Event         Event to EventMultiplexer (Emx).
  *
  * @details
  *   This process reads in 'set-' and 'clear-session-id' commands from [RXe]
  *    and [TXe]. Upon set request, a timer is initialized with an interval of
- *    of 50ms. When the timer expires, an RT_EVENT is fired to the EventEngine
+ *    of 50ms. When the timer expires, an 'RT_EVENT' is fired to the EventEngine
  *    via [Emx].
- *   In case of a zero-window (or too small window) an RT Event will generate
+ *   In case of a zero-window (or too small window) an 'RT_EVENT' will generate
  *    a packet without payload which is the same as a probing packet.
  *
- ******************************************************************************/
+ *******************************************************************************/
 void pProbeTimer(
         stream<SessionId>    &siRXe_ClrProbeTimer,
         stream<SessionId>    &siTXe_SetProbeTimer,
         stream<Event>        &soEmx_Event)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1
 
     const char *myName  = concat3(THIS_NAME, "/", "Pbt");
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     static ProbeTimerEntry          PROBE_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=PROBE_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DATA_PACK  variable=PROBE_TIMER_TABLE
     #pragma HLS DEPENDENCE variable=PROBE_TIMER_TABLE inter false
     #pragma HLS RESET      variable=PROBE_TIMER_TABLE
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                pbt_WaitForWrite=false;
     #pragma HLS RESET variable=pbt_WaitForWrite
     static SessionId           pbt_currSessId=0;
@@ -310,7 +311,7 @@ void pProbeTimer(
     static SessionId           pbt_prevSessId=0;
     #pragma HLS RESET variable=pbt_prevSessId
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     bool      fastResume = false;
 
     if (pbt_WaitForWrite) {
@@ -362,32 +363,31 @@ void pProbeTimer(
 }
 
 /*******************************************************************************
- * @brief Close Timer (Clt) process.
+ * @brief Close Timer (Clt) process
  *
- * @param[in]  siRXe_CloseTimer,   The session-id that is closing from [RXe].
- * @param[out] soSmx_SessCloseCmd, Close command to State table Mux (Smx).
+ * @param[in]  siRXe_CloseTimer    The session-id that is closing from [RXe].
+ * @param[out] soSmx_SessCloseCmd  Close command to StateTableMux (Smx).
  *
  * @details
  *  This process reads in the session-id that is currently closing. This sessId
- *   is kept in the TIME-WAIT state for an additional 60s before it gets closed.
- *
+ *   is kept in the 'TIME-WAIT' state for an additional 60s before it gets closed.
  ******************************************************************************/
 void pCloseTimer(
-		stream<SessionId>    &siRXe_CloseTimer,
-		stream<SessionId>    &soSmx_SessCloseCmd)
+        stream<SessionId>    &siRXe_CloseTimer,
+        stream<SessionId>    &soSmx_SessCloseCmd)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     static CloseTimerEntry          CLOSE_TIMER_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=CLOSE_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DATA_PACK  variable=CLOSE_TIMER_TABLE
     #pragma HLS DEPENDENCE variable=CLOSE_TIMER_TABLE inter false
     #pragma HLS RESET      variable=CLOSE_TIMER_TABLE
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                clt_waitForWrite=false;
     #pragma HLS RESET variable=clt_waitForWrite
     static SessionId           clt_currSessId=0;
@@ -395,7 +395,7 @@ void pCloseTimer(
     static SessionId           clt_prevSessId=0;
     #pragma HLS RESET variable=clt_prevSessId
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static SessionId           clt_sessIdToSet;
 
     if (clt_waitForWrite) {
@@ -435,79 +435,85 @@ void pCloseTimer(
     }
 }
 
-/******************************************************************************
-* @brief The Timers (TIm) includes all the timer-based processes .
+/*******************************************************************************
+* @brief The Timers (TIm)
 *
-* @param[in]  siRXe_ReTxTimerCmd,  Retransmission timer command from Rx Engine (RXe).
-* @param[in]  siTXe_ReTxTimerEvent,Retransmission timer event from Tx Engine (TXe).
-* @param[in]  siRXe_ClrProbeTimer, Clear probe timer from [RXe].
-* @param[in]  siTXe_SetProbeTimer, Set probe timer from [TXe].
-* @param[in]  siRXe_CloseTimer,    Close timer from [RXe].
-* @param[out] soEVe_Event,         Event to EventEngine (EVe).
-* @param[out] soSTt_SessCloseCmd,  Close session command to State Table (STt).
-* @param[out] soTAi_Notif,         Notification to Tx Application Interface (TAi).
-* @param[out] soRAi_Notif,         Notification to Rx Application Interface (RAi).
+* @param[in]  siRXe_ReTxTimerCmd   Retransmission timer command from Rx Engine (RXe).
+* @param[in]  siTXe_ReTxTimerEvent Retransmission timer event from Tx Engine (TXe).
+* @param[in]  siRXe_ClrProbeTimer  Clear probe timer from [RXe].
+* @param[in]  siTXe_SetProbeTimer  Set probe timer from [TXe].
+* @param[in]  siRXe_CloseTimer     Close timer from [RXe].
+* @param[out] soEVe_Event          Event to EventEngine (EVe).
+* @param[out] soSTt_SessCloseCmd   Close session command to State Table (STt).
+* @param[out] soTAi_Notif          Notification to Tx Application Interface (TAi).
+* @param[out] soRAi_Notif          Notification to Rx Application Interface (RAi).
 *
-*******************************************************************************/
+* @detail
+*  This process includes all the timer-based processes of the [TOE].
+********************************************************************************/
 void timers(
-		stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
-		stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
-		stream<SessionId>          &siRXe_ClrProbeTimer,
-		stream<SessionId>          &siTXe_SetProbeTimer,
-		stream<SessionId>          &siRXe_CloseTimer,
-		stream<SessionId>          &soSTt_SessCloseCmd,
-		stream<Event>              &soEVe_Event,
-		stream<OpenStatus>         &soTAi_Notif,
-		stream<AppNotif>           &soRAi_Notif)
+        stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<SessionId>          &siRXe_ClrProbeTimer,
+        stream<SessionId>          &siTXe_SetProbeTimer,
+        stream<SessionId>          &siRXe_CloseTimer,
+        stream<SessionId>          &soSTt_SessCloseCmd,
+        stream<Event>              &soEVe_Event,
+        stream<OpenStatus>         &soTAi_Notif,
+        stream<AppNotif>           &soRAi_Notif)
 {
-  //-- DIRECTIVES FOR THIS PROCESS ---------------------------------------------
-  #pragma HLS INLINE
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE
 
-  static stream<SessionId>       ssClsToSmx_SessCloseCmd   ("ssClsToSmx_SessCloseCmd");
-  #pragma HLS stream    variable=ssClsToSmx_SessCloseCmd   depth=2
+    //==========================================================================
+    //== LOCAL STREAMS (Sorted by the name of the modules which generate them)
+    //==========================================================================
+    static stream<SessionId>       ssClsToSmx_SessCloseCmd   ("ssClsToSmx_SessCloseCmd");
+    #pragma HLS stream    variable=ssClsToSmx_SessCloseCmd   depth=2
 
-  static stream<SessionId>       ssRttToSmx_SessCloseCmd   ("ssRttToSmx_SessCloseCmd");
-  #pragma HLS stream    variable=ssRttToSmx_SessCloseCmd   depth=2
+    static stream<SessionId>       ssRttToSmx_SessCloseCmd   ("ssRttToSmx_SessCloseCmd");
+    #pragma HLS stream    variable=ssRttToSmx_SessCloseCmd   depth=2
 
-  static stream<Event>           ssRttToEmx_Event          ("ssRttToEmx_Event");
-  #pragma HLS stream    variable=ssRttToEmx_Event          depth=2
-  #pragma HLS DATA_PACK variable=ssRttToEmx_Event
+    static stream<Event>           ssRttToEmx_Event          ("ssRttToEmx_Event");
+    #pragma HLS stream    variable=ssRttToEmx_Event          depth=2
+    #pragma HLS DATA_PACK variable=ssRttToEmx_Event
 
-  static stream<Event>           ssPbtToEmx_Event          ("ssPbtToEmx_Event");
-  #pragma HLS stream    variable=ssPbtToEmx_Event          depth=2
-  #pragma HLS DATA_PACK variable=ssPbtToEmx_Event
+    static stream<Event>           ssPbtToEmx_Event          ("ssPbtToEmx_Event");
+    #pragma HLS stream    variable=ssPbtToEmx_Event          depth=2
+    #pragma HLS DATA_PACK variable=ssPbtToEmx_Event
 
-  // Event Mux (Emx) based on template stream Mux
-  //  Notice order --> RetransmitTimer comes before ProbeTimer
-  pStreamMux(
-		  ssRttToEmx_Event,
-		  ssPbtToEmx_Event,
-		  soEVe_Event);
+    // Event Mux (Emx) based on template stream Mux
+    //  Notice order --> RetransmitTimer comes before ProbeTimer
+    pStreamMux(
+        ssRttToEmx_Event,
+        ssPbtToEmx_Event,
+        soEVe_Event);
 
-  // ReTransmit  Timer (Rtt)
-  pRetransmitTimer(
-		  siRXe_ReTxTimerCmd,
-		  siTXe_ReTxTimerevent,
-		  ssRttToEmx_Event,
-		  ssRttToSmx_SessCloseCmd,
-		  soTAi_Notif,
-		  soRAi_Notif);
+    // ReTransmit  Timer (Rtt)
+    pRetransmitTimer(
+        siRXe_ReTxTimerCmd,
+        siTXe_ReTxTimerevent,
+        ssRttToEmx_Event,
+        ssRttToSmx_SessCloseCmd,
+        soTAi_Notif,
+        soRAi_Notif);
 
-  // Probe Timer (Pbt)
-  pProbeTimer(
-		  siRXe_ClrProbeTimer,
-		  siTXe_SetProbeTimer,
-		  ssPbtToEmx_Event);
+    // Probe Timer (Pbt)
+    pProbeTimer(
+        siRXe_ClrProbeTimer,
+        siTXe_SetProbeTimer,
+        ssPbtToEmx_Event);
 
-  pCloseTimer(
-		  siRXe_CloseTimer,
-		  ssClsToSmx_SessCloseCmd);
+    pCloseTimer(
+        siRXe_CloseTimer,
+        ssClsToSmx_SessCloseCmd);
 
-  // State table release Mux (Smx) based on template stream Mux
-  pStreamMux(
-		  ssClsToSmx_SessCloseCmd,
-		  ssRttToSmx_SessCloseCmd,
-		  soSTt_SessCloseCmd);
+    // State table release Mux (Smx) based on template stream Mux
+    pStreamMux(
+        ssClsToSmx_SessCloseCmd,
+        ssRttToSmx_SessCloseCmd,
+        soSTt_SessCloseCmd);
 
 }
 
+/*! \} */

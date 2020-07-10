@@ -30,19 +30,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @brief      : State Table (STt)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
  ******************************************************************************/
 
 #include "state_table.hpp"
-#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
- *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ *  .e.g: DEBUG_LEVEL = (STT_TRACE)
  ************************************************/
 #ifndef __SYNTHESIS__
   extern bool gTraceEvent;
@@ -57,48 +59,48 @@ using namespace hls;
 #define DEBUG_LEVEL (TRACE_ALL)
 
 
-/******************************************************************************
- * @brief State Table (STt) .
+/*******************************************************************************
+ * @brief State Table (STt)
  *
- * @param[in]  siRXe_SessStateQry,  Session state query from RxEngine (RXe).
- * @param[out] soRXe_SessStateRep,  Session state reply to [RXe].
- * @param[in]  siTAi_AcceptStateQry,Session state query from TxAppInterface/TxAppAccept(TAi/Taa).
- * @param[out] soTAi_AcceptStateRep,Session state reply to [TAi/Taa].
- * @param[in]  siTAi_StreamStateReq,Session state request from TxAppInterface_TxAppStream (TAi/Tas).
- * @param[out] soTAi_StreamStateRep,Session state reply to [TAi/Tas].
- * @param[in]  siTIm_SessCloseCmd,  Session close command from Timers (TIm).
- * @param[out] soSLc_SessReleaseCmd,Release session command to SessionLookupController (SLc).
+ * @param[in]  siRXe_SessStateQry    Session state query from RxEngine (RXe).
+ * @param[out] soRXe_SessStateRep    Session state reply to [RXe].
+ * @param[in]  siTAi_ConnectStateQry Session state query from [TxAppInterface/TxAppConnect(TAi/Tac).
+ * @param[out] soTAi_ConnectStateRep Session state reply to [TAi/Tac].
+ * @param[in]  siTAi_StreamStateReq  Session state request from TxAppInterface/TxAppStream (TAi/Tas).
+ * @param[out] soTAi_StreamStateRep  Session state reply to [TAi/Tas].
+ * @param[in]  siTIm_SessCloseCmd    Session close command from Timers (TIm).
+ * @param[out] soSLc_SessReleaseCmd  Release session command to SessionLookupController (SLc).
  *
  * @details
- *  The StateTable stores the connection state of each session during its
+ *  The StateTable (STt) stores the connection state of each session during its
  *   lifetime.  The states are defined in RFC793 as: LISTEN, SYN-SENT,
  *   SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING,
  *   LAST-ACK, TIME-WAIT and CLOSED.
- *  The StateTable is accessed by the RxEngine, the TxAppInterface and by the
- *  TxEngine. The process also receives session close commands from the Timers
- *  and it sends session release commands to the SessionLookupController.
- *
- *****************************************************************************/
+ *  The StateTable is accessed by the RxEngine (RXe), the TxAppInterface (TAi)
+ *   and by the TxEngine (TXe). The process also receives session close commands
+ *   from the Timers (TIm) and it sends session release commands to the
+ *   SessionLookupController (SLc).
+ *******************************************************************************/
 void state_table(
         stream<StateQuery>         &siRXe_SessStateQry,
         stream<SessionState>       &soRXe_SessStateRep,
-        stream<StateQuery>         &siTAi_AcceptStateQry,
-        stream<SessionState>       &soTAi_AcceptStateRep,
+        stream<StateQuery>         &siTAi_ConnectStateQry,
+        stream<SessionState>       &soTAi_ConnectStateRep,
         stream<SessionId>          &siTAi_StreamStateReq,
         stream<SessionState>       &soTAi_StreamStateRep,
         stream<SessionId>          &siTIm_SessCloseCmd,
         stream<SessionId>          &soSLc_SessReleaseCmd)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     static SessionState             SESS_STATE_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=SESS_STATE_TABLE core=RAM_2P_BRAM
     #pragma HLS DEPENDENCE variable=SESS_STATE_TABLE inter false
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                stt_rxWait=false;
     #pragma HLS RESET variable=stt_rxWait
     static bool                stt_txWait=false;
@@ -110,18 +112,18 @@ void state_table(
     static bool                stt_closeWait=false;
     #pragma HLS RESET variable=stt_closeWait
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static StateQuery   stt_txAccess;
     static StateQuery   stt_rxAccess;
     static SessionId    stt_txSessionID;
     static SessionId    stt_rxSessionID;
     static SessionId    stt_closeSessionID;
 
-    if(!siTAi_AcceptStateQry.empty() && !stt_txWait) {
+    if(!siTAi_ConnectStateQry.empty() && !stt_txWait) {
         //-------------------------------------------------
-        //-- Request from TxAppIterface/Accept
+        //-- Request from TAi/Connect
         //-------------------------------------------------
-        siTAi_AcceptStateQry.read(stt_txAccess);
+        siTAi_ConnectStateQry.read(stt_txAccess);
         if ((stt_txAccess.sessionID == stt_rxSessionID) && stt_rxSessionLocked) {
             stt_txWait = true;
         }
@@ -136,7 +138,7 @@ void state_table(
                 }
             }
             else {
-                soTAi_AcceptStateRep.write(SESS_STATE_TABLE[stt_txAccess.sessionID]);
+                soTAi_ConnectStateRep.write(SESS_STATE_TABLE[stt_txAccess.sessionID]);
                 // Lock on every read
                 stt_txSessionID = stt_txAccess.sessionID;
                 stt_txSessionLocked = true;
@@ -145,7 +147,7 @@ void state_table(
     }
     else if (!siTAi_StreamStateReq.empty()) {
         //-------------------------------------------------
-        //-- Request from TxAppInterface/Stream
+        //-- Request from TAi/Stream
         //-------------------------------------------------
         SessionId sessionID;
         siTAi_StreamStateReq.read(sessionID);
@@ -210,7 +212,7 @@ void state_table(
                 stt_txSessionLocked = false;
             }
             else {
-                soTAi_AcceptStateRep.write(SESS_STATE_TABLE[stt_txAccess.sessionID]);
+                soTAi_ConnectStateRep.write(SESS_STATE_TABLE[stt_txAccess.sessionID]);
                 stt_txSessionID = stt_txAccess.sessionID;
                 stt_txSessionLocked = true;
             }
@@ -249,3 +251,5 @@ void state_table(
         }
     }
 }
+
+/*! \} */

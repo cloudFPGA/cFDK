@@ -156,36 +156,6 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
 #define ARP_OPER_REQUEST   0x0001  // Operation is request
 #define ARP_OPER_REPLY     0x0002  // Operation is reply
 
-//---------------------------------------------------------
-//-- ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
-//---------------------------------------------------------
-class ArpBindPair {
-  public:
-    EthAddr  macAddr;
-    Ip4Addr  ip4Addr;
-    ArpBindPair() {}
-    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
-        macAddr(newMac), ip4Addr(newIp4) {}
-};
-
-//---------------------------------------------------------
-//-- ARP LOOKUP REQUEST
-//---------------------------------------------------------
-typedef Ip4Addr ArpLkpRequest;
-
-//---------------------------------------------------------
-//-- ARP LOOKUP REPLY
-//---------------------------------------------------------
-class ArpLkpReply {
-  public:
-    EthAddr     macAddress;
-    HitBool     hit;
-    ArpLkpReply() {}
-    ArpLkpReply(EthAddr macAdd, HitBool hit) :
-        macAddress(macAdd), hit(hit) {}
-};
-
-
 /*******************************************************************************
  * NETWORK LAYER-3 - IPv4 & ICMP
  *******************************************************************************
@@ -243,6 +213,20 @@ class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
         addr(addr), port(port) {}
 };
 
+struct fourTuple {  // [FIXME-TODO] - Replace w/ LE_SocketPair
+    ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+    ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+    fourTuple() {}
+    fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
+              : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
+};
+
+inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
+        return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
+}
+
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET PAIR ASSOCIATION
 //--------------------------------------------------------
@@ -280,6 +264,182 @@ inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
 //========================================================
 
 
+
+
+
+
+/*******************************************************************************
+ * NTS INTERNAL - ARP / CAM
+ *******************************************************************************
+ * This section defines the interfaces between the Address Resolution Protocol
+ * (ARP) server and the IP Tx HAndler (IPTX).
+ *******************************************************************************/
+
+//========================================================
+//== ARPCAM - TYPES and CLASSES USED BY THIS INTERFACE
+//========================================================
+
+//---------------------------------------------------------
+//-- ARPCAM - BIND PAIR - {MAC,IPv4} ASSOCIATION
+//---------------------------------------------------------
+class ArpBindPair {
+  public:
+    EthAddr  macAddr;
+    Ip4Addr  ip4Addr;
+    ArpBindPair() {}
+    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
+        macAddr(newMac), ip4Addr(newIp4) {}
+};
+
+//---------------------------------------------------------
+//-- ARPCAM - LOOKUP REQUEST
+//---------------------------------------------------------
+typedef Ip4Addr ArpLkpRequest;
+
+//---------------------------------------------------------
+//-- ARPCAM - LOOKUP REPLY
+//---------------------------------------------------------
+class ArpLkpReply {
+  public:
+    EthAddr     macAddress;
+    HitBool     hit;
+    ArpLkpReply() {}
+    ArpLkpReply(EthAddr macAdd, HitBool hit) :
+        macAddress(macAdd), hit(hit) {}
+};
+
+
+/*******************************************************************************
+ * NTS INTERNAL - TOE / CAM
+ *******************************************************************************
+ * This section defines the interfaces between the TCP Offload Engine (TOE) and
+ * the Content Addressable Memory (CAM) used to manage the TCP sessions.
+ * Warning:
+ *   Do not change the order of the fields in the session-lookup-request, the
+ *   session-lookup-reply, the session-update-request and the session-update-
+ *   reply classes as these structures may end up being mapped to a RTL physical
+ *   Axi4-Stream interface between the TOE and the CAM (if CAM is RTL-based).
+ * Info: The member elements of the classes are placed into the physical vector
+ *   interface in the order they appear in the C code: the first element of the
+ *   structure is aligned on the LSB of the vector and the final element of the
+ *   structure is aligned with the MSB of the vector.
+ *******************************************************************************/
+
+//========================================================
+//== TOECAM - TYPES and CLASSES USED BY THIS INTERFACE
+//========================================================
+typedef ap_uint<14> RtlSessId;  // Used by RTL-based CAM
+typedef ap_uint< 1> LkpSrcBit;  // Encodes the initiator of a CAM lookup or update.
+#define FROM_RXe   0
+#define FROM_TAi   1
+enum LkpOpBit { INSERT=0, DELETE };  // Encodes the CAM operation
+
+//--------------------------------------------------------
+//-- TOECAM - Four Tuple
+//--  This class defines the internal storage used by the
+//--  TOECAM implementation for the SocketPair. The class
+//--  uses the terms 'my' and 'their' instead of 'dest' and
+//--  'src'.
+//--  The operator '<' is necessary here for the c++ dummy
+//--  memory implementation which uses an std::map.
+ //=========================================================
+class FourTuple {  // [FIXME - Replace with SocketPair]
+  public:
+    LE_Ip4Addr  myIp;
+    LE_Ip4Addr  theirIp;
+    LE_TcpPort  myPort;
+    LE_TcpPort  theirPort;
+    FourTuple() {}
+    FourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
+        myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
+
+    bool operator < (const FourTuple& other) const {
+        if (myIp < other.myIp) {
+            return true;
+        }
+        else if (myIp == other.myIp) {
+            if (theirIp < other.theirIp) {
+                return true;
+            }
+            else if(theirIp == other.theirIp) {
+                if (myPort < other.myPort) {
+                    return true;
+                }
+                else if (myPort == other.myPort) {
+                    if (theirPort < other.theirPort) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+};
+
+inline bool operator == (FourTuple const &s1, FourTuple const &s2) {
+    return ((s1.myIp    == s2.myIp)    && (s1.myPort    == s2.myPort)    &&
+            (s1.theirIp == s2.theirIp) && (s1.theirPort == s2.theirPort));
+}
+
+//--------------------------------------------------------
+//-- TOECAM - Session Lookup Request
+//--------------------------------------------------------
+class CamSessionLookupRequest {
+  public:
+    FourTuple     key;       // 96 bits
+    LkpSrcBit     source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+
+    CamSessionLookupRequest() {}
+    CamSessionLookupRequest(FourTuple tuple, LkpSrcBit src)
+                : key(tuple), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Lookup Reply
+//--------------------------------------------------------
+class CamSessionLookupReply {
+  public:
+    RtlSessId        sessionID; // 14 bits
+    LkpSrcBit        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+    bool             hit;       //  1 bit
+
+    CamSessionLookupReply() {}
+    CamSessionLookupReply(bool hit, LkpSrcBit src) :
+        hit(hit), sessionID(0), source(src) {}
+    CamSessionLookupReply(bool hit, RtlSessId id, LkpSrcBit src) :
+        hit(hit), sessionID(id), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Update Request
+//--------------------------------------------------------
+class CamSessionUpdateRequest {
+  public:
+    FourTuple     key;       // 96 bits
+    RtlSessId     value;     // 14 bits
+    LkpSrcBit     source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    LkpOpBit      op;        //  1 bit : '0' is INSERT, '1' is DELETE
+
+    CamSessionUpdateRequest() {}
+    CamSessionUpdateRequest(FourTuple key, RtlSessId value, LkpOpBit op, LkpSrcBit src) :
+        key(key), value(value), op(op), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Update Reply
+//--------------------------------------------------------
+class CamSessionUpdateReply {
+  public:
+    RtlSessId        sessionID; // 14 bits
+    LkpSrcBit        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    LkpOpBit         op;        //  1 bit : '0' is INSERT, '1' is DELETE
+
+    CamSessionUpdateReply() {}
+    CamSessionUpdateReply(LkpOpBit op, LkpSrcBit src) :
+        op(op), source(src) {}
+    CamSessionUpdateReply(RtlSessId id, LkpOpBit op, LkpSrcBit src) :
+        sessionID(id), op(op), source(src) {}
+};
 
 #endif
 

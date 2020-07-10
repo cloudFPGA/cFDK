@@ -24,50 +24,65 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : session_lookup.hpp
- * @brief      : Session Lookup Controller (SLc) of TCP Offload Engine (TOE).
+ * @brief      : Session Lookup Controller (SLc) of TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types and prototypes definitions for the
- *               TCP Session Lookup Controller (SLc).
- *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#ifndef SLC_H_
-#define SLC_H_
+#ifndef _TOE_SLC_H_
+#define _TOE_SLC_H_
 
-#include "../toe.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../NTS/nts_utils.hpp"
 
 using namespace hls;
 
-//OBSOLETE_20200701 typedef ap_uint<1> lookupSource;  // Encodes the initiator of a CAM lookup or update.
-//OBSOLETE_20200701 #define FROM_RXe   0
-//OBSOLETE_20200701 #define FROM_TAi   1
+// Forward class declarations
+//class RtlSessionUpdateRequest;
+//class RtlSessionUpdateReply;
+//class RtlSessionLookupReply;
+//class RtlSessionLookupRequest;
+
+/******************************************************************************
+ * GLOBAL DEFINITIONS USED BY SLc
+ ******************************************************************************/
+//OBSOLETE_20200710 #define FROM_RXe   0
+//OBSOLETE_20200710 #define FROM_TAi   1
 
 //OBSOLETE_20200701 enum lookupOp {INSERT=0, DELETE};
 
-/********************************************************************
- * SLc / Internal Four Tuple Structure
- *  This class defines the internal storage used by [SLc] for the
- *   SocketPair (alias 4-tuple). The class uses the terms 'my' and
- *   'their' instead of 'dest' and 'src'.
- *  When a socket pair is sent or received from the Tx/Rx path, it is
- *   mapped by [SLc] to this FourTuple structure.
- *  The operator '<' is necessary here for the c++ dummy memory
- *   implementation which uses an std::map.
- ********************************************************************/
+/*******************************************************************************
+ * INTERNAL TYPES and CLASSES USED BY SLc
+ *******************************************************************************/
+typedef ap_uint<1> lookupSource;  // [FIXME - Replace by LkpSrcBit] Encodes the initiator of a CAM lookup or update.
+typedef FourTuple  SLcFourTuple;
+
+//=========================================================
+//== SLc - Internal Four Tuple Structure
+//==  This class defines the internal storage used by [SLc]
+//==  for the SocketPair (alias 4-tuple). The class uses the
+//==  terms 'my' and 'their' instead of 'dest' and 'src'.
+//==  When a socket pair is sent or received from the Tx/Rx
+//==  path, it is mapped by [SLc] to this FourTuple structure.
+//==  The operator '<' is necessary here for the c++ dummy
+//==  memory implementation which uses an std::map.
+//=========================================================
+
+/*** OBSOLETE_20200701 ****************
 class SLcFourTuple {
   public:
-	LE_Ip4Addr	myIp;
-	LE_Ip4Addr	theirIp;
-	LE_TcpPort	myPort;
-	LE_TcpPort	theirPort;
+    LE_Ip4Addr  myIp;
+    LE_Ip4Addr  theirIp;
+    LE_TcpPort  myPort;
+    LE_TcpPort  theirPort;
     SLcFourTuple() {}
     SLcFourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
         myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
@@ -94,10 +109,11 @@ class SLcFourTuple {
         return false;
     }
 };
+*******************************************/
 
-/**********************************************************
- * SLc / Internal Session Lookup Query
- **********************************************************/
+//=========================================================
+//== SLc - Internal Session Lookup Query
+//=========================================================
 class SLcQuery {
   public:
     SLcFourTuple	tuple;
@@ -108,13 +124,9 @@ class SLcQuery {
         tuple(tuple), allowCreation(allowCreation), source(src) {}
 };
 
-
-
-
-
-/************************************************
- * SLc / Internal Reverse Lookup structure
- ************************************************/
+//=========================================================
+//== SLc - Internal Reverse Lookup
+//=========================================================
 class SLcReverseLkp
 {
   public:
@@ -125,27 +137,60 @@ class SLcReverseLkp
         key(key), value(value) {}
 };
 
-/*****************************************************************************
- * @brief   Main process of the TCP Session Lookup Controller (SLc).
+/*******************************************************************************
+ * INTERFACE TYPES and CLASSES USED BY SLc
+ *******************************************************************************/
+
+typedef bool HitState;
+enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
+
+//=========================================================
+//== TOE - Session Lookup Query
+//=========================================================
+class SessionLookupQuery {
+  public:
+    LE_SocketPair  tuple;
+    bool           allowCreation;
+    SessionLookupQuery() {}
+    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
+        tuple(tuple), allowCreation(allowCreation) {}
+};
+
+//=========================================================
+//== TOE - Session Lookup Reply
+//=========================================================
+class SessionLookupReply {
+  public:
+    SessionId   sessionID;
+    HitState    hit;
+    SessionLookupReply() {}
+    SessionLookupReply(SessionId id, HitState hit) :
+        sessionID(id), hit(hit) {}
+};
+
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Session Lookup Controller (SLc)
+ *
+ *******************************************************************************/
 void session_lookup_controller(
         stream<SessionLookupQuery>         &siRXe_SessLookupReq,
         stream<SessionLookupReply>         &soRXe_SessLookupRep,
         stream<SessionId>                  &siSTt_SessReleaseCmd,
         stream<TcpPort>                    &soPRt_ClosePortCmd,
-        //OBSOLETE_20200629 stream<LE_SocketPair>  &siTAi_SessLookupReq,
         stream<SocketPair>                 &siTAi_SessLookupReq,
         stream<SessionLookupReply>         &soTAi_SessLookupRep,
         stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,
-        stream<RtlSessionLookupRequest>    &soCAM_SessLookupReq,
-        stream<RtlSessionLookupReply>      &siCAM_SessLookupRep,
-        stream<RtlSessionUpdateRequest>    &soCAM_SessUpdateReq,
-        stream<RtlSessionUpdateReply>      &siCAM_SessUpdateRep,
+        stream<CamSessionLookupRequest>    &soCAM_SessLookupReq,
+        stream<CamSessionLookupReply>      &siCAM_SessLookupRep,
+        stream<CamSessionUpdateRequest>    &soCAM_SessUpdateReq,
+        stream<CamSessionUpdateReply>      &siCAM_SessUpdateRep,
         ap_uint<16>                        &poSssRelCnt,
         ap_uint<16>                        &poSssRegCnt
 );
 
 #endif
+
+/*! \} */
 

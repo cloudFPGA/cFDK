@@ -33,79 +33,24 @@
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/toe/src/session_lookup_controller/session_lookup_controller.hpp"
 
 using namespace hls;
 
 /*******************************************************************************
  * INTERNAL TYPES and CLASSES USED BY THIS CAM
  *******************************************************************************/
-typedef ap_uint<1> LkpSrcBit;  // Encodes the initiator of a CAM lookup or update.
-#define FROM_RXe   0
-#define FROM_TAi   1
 
-enum LkpOpBit {INSERT=0, DELETE};  // Encodes the CAM operation
-//enum LkpOpBit {INSERT=0, DELETE};  // Encodes the CAM operation
-
-//=========================================================
-//== Four Tuple Structure
-//=========================================================
-/*
- *  This class defines the internal storage used by this CAM implementation for
- *   the SocketPair (alias 4-tuple). The class uses the terms 'my' and 'their'
- *   instead of 'dest' and 'src'.
- *  When a socket pair is received from TOE, it is mapped by the CAM to this
- *   FourTuple structure.
- *  The operator '<' is necessary here for the c++ dummy memory implementation
- *   which uses an std::map.
- */
-class FourTuple {  // [FIXME - Replace with SocketPair]
-
-  public:
-    LE_Ip4Addr  myIp;
-    LE_Ip4Addr  theirIp;
-    LE_TcpPort  myPort;
-    LE_TcpPort  theirPort;
-    FourTuple() {}
-    FourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
-        myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
-
-    bool operator < (const FourTuple& other) const {
-        if (myIp < other.myIp) {
-            return true;
-        }
-        else if (myIp == other.myIp) {
-            if (theirIp < other.theirIp) {
-                return true;
-            }
-            else if(theirIp == other.theirIp) {
-                if (myPort < other.myPort) {
-                    return true;
-                }
-                else if (myPort == other.myPort) {
-                    if (theirPort < other.theirPort) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-};
-
-inline bool operator == (FourTuple const &s1, FourTuple const &s2) {
-    return ((s1.myIp    == s2.myIp)    && (s1.myPort    == s2.myPort)    &&
-            (s1.theirIp == s2.theirIp) && (s1.theirPort == s2.theirPort));
-}
 
 //=========================================================
 //== KEY-VALUE PAIR
 //=========================================================
 class KeyValuePair {
   public:
-    FourTuple   key;       // 96 bits
+    FourTuple key;       // 96 bits
     //OBSOLETE_20200701 RtlSessId   value;     // 14 bits
-    SessionId   value;     // 16 bits
-    bool        valid;
+    SessionId    value;     // 16 bits
+    bool         valid;
     KeyValuePair() {}
     KeyValuePair(FourTuple key, SessionId value, bool valid) :
         key(key), value(value), valid(valid) {}

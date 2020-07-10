@@ -43,8 +43,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "../../../../NTS/nts.hpp"
 #include "../../../../NTS/nts_utils.hpp"
 //#include "../../../../NTS/SimNtsUtils.hpp"
-#include "../toe.hpp"
-#include "../event_engine/event_engine.hpp"
+//#include "../toe.hpp"
+#include "../../../../NTS/toe/src/event_engine/event_engine.hpp"
+#include "../../../../NTS/toe/src/state_table/state_table.hpp"
 
 using namespace hls;
 

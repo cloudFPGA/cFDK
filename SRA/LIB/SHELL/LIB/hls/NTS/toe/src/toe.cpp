@@ -804,7 +804,7 @@ void toe(
             siMEM_TxP_WrSts,
             ssTAiToSTt_SessStateReq,
             ssSTtToTAi_SessStateRep,
-            ssTAiToSTt_AcceptStateQry,
+            ssTAiToSTt_AcceptStateQry,   // [FIXME- ReEname ConnectStateQry]
             ssSTtToTAi_AcceptStateRep,
             ssTAiToSLc_SessLookupReq,
             ssSLcToTAi_SessLookupRep,

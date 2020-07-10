@@ -26,7 +26,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*******************************************************************************
  * @file       : tx_engine.hpp
- * @brief      : Tx Engine (TXe) of the TCP Offload Engine (TOE).
+ * @brief      : Tx Engine (TXe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)

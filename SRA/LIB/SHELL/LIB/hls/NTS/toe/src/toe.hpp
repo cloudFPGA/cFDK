@@ -86,6 +86,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../NTS/nts.hpp"
 //#include "../../../NTS/nts_utils.hpp"
 //#include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/toecam/src/toecam.hpp"
 #include "../../../MEM/mem.hpp"
 
 using namespace hls;
@@ -117,10 +118,10 @@ extern uint32_t      idleCycCnt;
 extern unsigned int  gSimCycCnt;
 
 // Forward declarations.
-class RtlSessionUpdateRequest;
-class RtlSessionUpdateReply;
-class RtlSessionLookupReply;
-class RtlSessionLookupRequest;
+//class RtlSessionUpdateRequest;
+//class RtlSessionUpdateReply;
+//class RtlSessionLookupReply;
+//class RtlSessionLookupRequest;
 
 
 #define OOO_N 4     // number of OOO blocks accepted
@@ -483,7 +484,6 @@ class AxiWord {  // [TODO - Consider renaming into AxisWord]
  *
  *******************************************************************************/
 
-
 /*******************************************************************************
  * NETWORK LAYER-2 DEFINITIONS                                                 *
  *******************************************************************************
@@ -495,30 +495,31 @@ class AxiWord {  // [TODO - Consider renaming into AxisWord]
  * ETHERNET HEADER FIELDS TRANSMITTED BY THE MAC
  *  Type Definitions are in Little-Endian (LE) Order.
  *********************************************************/
-typedef ap_uint<48> LE_EthSrcAddr;     // Ethernet Source Address from the MAC
-typedef ap_uint<48> LE_EthDstAddr;     // Ethernet Destination Address from the MAC
-typedef ap_uint<48> LE_EthAddress;     // Ethernet Source or Destination Address from the MAC
-typedef ap_uint<48> LE_EthAddr;        // Ethernet Source or Destination Address from the MAC
-typedef ap_uint<16> LE_EthTypeLen;     // Ethernet Type or Length field from the MAC
-typedef ap_uint<16> LE_EtherType;      // Ethernet Type field from the MAC
-typedef ap_uint<16> LE_EtherLen;       // Ethernet Length field from the MAC
+//OBSOLETE_20200709 typedef ap_uint<48> LE_EthSrcAddr;     // Ethernet Source Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<48> LE_EthDstAddr;     // Ethernet Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<48> LE_EthAddress;     // Ethernet Source or Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<48> LE_EthAddr;        // Ethernet Source or Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_EthTypeLen;     // Ethernet Type or Length field from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_EtherType;      // Ethernet Type field from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_EtherLen;       // Ethernet Length field from the MAC
 
 /*********************************************************
  * ETHERNET - HEADER FIELDS
  *  Default Type Definitions (as used by HLS).
  *********************************************************/
-typedef ap_uint<48> EthSrcAddr;     // Ethernet Source Address
-typedef ap_uint<48> EthDstAddr;     // Ethernet Destination Address
-typedef ap_uint<48> EthAddress;     // Ethernet Source or Destination Address
-typedef ap_uint<48> EthAddr;        // Ethernet Source or Destination Address
-typedef ap_uint<16> EthTypeLen;     // Ethernet Type or Length field
-typedef ap_uint<16> EtherType;      // Ethernet Type field
-typedef ap_uint<16> EtherLen;       // Ethernet Length field
+//OBSOLETE_20200709 typedef ap_uint<48> EthSrcAddr;     // Ethernet Source Address
+//OBSOLETE_20200709 typedef ap_uint<48> EthDstAddr;     // Ethernet Destination Address
+//OBSOLETE_20200709 typedef ap_uint<48> EthAddress;     // Ethernet Source or Destination Address
+//OBSOLETE_20200709 typedef ap_uint<48> EthAddr;        // Ethernet Source or Destination Address
+//OBSOLETE_20200709 typedef ap_uint<16> EthTypeLen;     // Ethernet Type or Length field
+//OBSOLETE_20200709 typedef ap_uint<16> EtherType;      // Ethernet Type field
+//OBSOLETE_20200709 typedef ap_uint<16> EtherLen;       // Ethernet Length field
 
 /*********************************************************
  * ETHERNET - STREAMING CLASS DEFINITION
  *  As Encoded by the MAC (.i.e in Little-Endian order).
  *********************************************************/
+/*** OBSOLETE_20200709 **************
 class EthoverMac: public AxiWord {  // [FIXME-Rename into AxisEth]
 
   public:
@@ -563,8 +564,7 @@ class EthoverMac: public AxiWord {  // [FIXME-Rename into AxisEth]
               macAddr.range(39, 32), macAddr.range(47, 40));
     }
 }; // End of: EthoverMac
-
-
+****************************************/
 
 /*******************************************************************************
  * NETWORK LAYER-3 DEFINITIONS                                                 *
@@ -577,41 +577,41 @@ class EthoverMac: public AxiWord {  // [FIXME-Rename into AxisEth]
  * IPv4 - HEADER FIELDS TRANSMITTED BY THE MAC
  *  Type Definitions are in Little-Endian (LE) Order.
  *********************************************************/
-typedef ap_uint< 4> LE_Ip4Version;     // IPv4 Version from the MAC
-typedef ap_uint< 4> LE_Ip4HdrLen;      // IPv4 Internet Header Length from the MAC
-typedef ap_uint< 8> LE_Ip4ToS;         // IPv4 Type of Service from the MAC
-typedef ap_uint<16> LE_Ip4TotalLen;    // IPv4 Total Length from the MAC
-typedef ap_uint<16> LE_Ip4HdrCsum;     // IPv4 Header Checksum from the MAC.
-typedef ap_uint<32> LE_Ip4SrcAddr;     // IPv4 Source Address from the MAC
-typedef ap_uint<32> LE_Ip4DstAddr;     // IPv4 Destination Address from the MAC
-typedef ap_uint<32> LE_Ip4Address;     // IPv4 Source or Destination Address from the MAC
-typedef ap_uint<32> LE_Ip4Addr;        // IPv4 Source or Destination Address from the MAC
-typedef ap_uint<64> LE_IpData;         // IPv4 Data stream from the MAC
+//OBSOLETE_20200709 typedef ap_uint< 4> LE_Ip4Version;     // IPv4 Version from the MAC
+//OBSOLETE_20200709 typedef ap_uint< 4> LE_Ip4HdrLen;      // IPv4 Internet Header Length from the MAC
+//OBSOLETE_20200709 typedef ap_uint< 8> LE_Ip4ToS;         // IPv4 Type of Service from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_Ip4TotalLen;    // IPv4 Total Length from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_Ip4HdrCsum;     // IPv4 Header Checksum from the MAC.
+//OBSOLETE_20200709 typedef ap_uint<32> LE_Ip4SrcAddr;     // IPv4 Source Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<32> LE_Ip4DstAddr;     // IPv4 Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<32> LE_Ip4Address;     // IPv4 Source or Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<32> LE_Ip4Addr;        // IPv4 Source or Destination Address from the MAC
+//OBSOLETE_20200709 typedef ap_uint<64> LE_IpData;         // IPv4 Data stream from the MAC
 
 /*********************************************************
  * IPv4 - HEADER FIELDS
  *  Default Type Definitions (as used by HLS).
  *********************************************************/
-typedef ap_uint< 4> Ip4Version;     // IP4 Version
-typedef ap_uint< 4> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
-typedef ap_uint< 8> Ip4ToS;         // IP4 Type of Service
-typedef ap_uint<16> Ip4TotalLen;    // IP4 Total  Length
-typedef ap_uint<16> Ip4Ident;       // IP4 Identification
-typedef ap_uint<13> Ip4FragOff;     // IP4 Fragment Offset
-typedef ap_uint< 3> Ip4Flags;       // IP4 Flags
-typedef ap_uint< 8> Ip4TtL;         // IP4 Time to Live
-typedef ap_uint< 8> Ip4Prot;        // IP4 Protocol
-typedef ap_uint<16> Ip4HdrCsum;     // IP4 Header Checksum
-typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
-typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
-typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
-typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
-typedef ap_uint<64> Ip4Data;        // IP4 Data unit of transfer
-typedef ap_uint<32> Ip4DataHi;      // IP4 High part of a data unit of transfer
-typedef ap_uint<32> Ip4DataLo;      // IP4 Low-part of a data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint< 4> Ip4Version;     // IP4 Version
+//OBSOLETE_20200709 typedef ap_uint< 4> Ip4HdrLen;      // IP4 Header Length in octets (same as 4*Ip4HeaderLen)
+//OBSOLETE_20200709 typedef ap_uint< 8> Ip4ToS;         // IP4 Type of Service
+//OBSOLETE_20200709 typedef ap_uint<16> Ip4TotalLen;    // IP4 Total  Length
+//OBSOLETE_20200709 typedef ap_uint<16> Ip4Ident;       // IP4 Identification
+//OBSOLETE_20200709 typedef ap_uint<13> Ip4FragOff;     // IP4 Fragment Offset
+//OBSOLETE_20200709 typedef ap_uint< 3> Ip4Flags;       // IP4 Flags
+//OBSOLETE_20200709 typedef ap_uint< 8> Ip4TtL;         // IP4 Time to Live
+//OBSOLETE_20200709 typedef ap_uint< 8> Ip4Prot;        // IP4 Protocol
+//OBSOLETE_20200709 typedef ap_uint<16> Ip4HdrCsum;     // IP4 Header Checksum
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4SrcAddr;     // IP4 Source Address
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4DstAddr;     // IP4 Destination Address
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4Address;     // IP4 Source or Destination Address
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4Addr;        // IP4 Source or Destination Address
+//OBSOLETE_20200709 typedef ap_uint<64> Ip4Data;        // IP4 Data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4DataHi;      // IP4 High part of a data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint<32> Ip4DataLo;      // IP4 Low-part of a data unit of transfer
 
-typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
-typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
+//OBSOLETE_20200709 typedef ap_uint<16> Ip4PktLen;      // IP4 Packet Length in octets (same as Ip4TotalLen)
+//OBSOLETE_20200709 typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4PktLen minus Ip4HdrLen)
 
 
 /*******************************************************************************
@@ -626,75 +626,76 @@ typedef ap_uint<16> Ip4DatLen;      // IP4 Data   Length in octets (same as Ip4P
  * TCP HEADER FIELDS TRANSMITTED BY THE MAC
  *  Type Definitions are in Little-Endian (LE) Order.
  *********************************************************/
-typedef ap_uint<16> LE_TcpSrcPort;     // TCP Source Port from the MAC
-typedef ap_uint<16> LE_TcpDstPort;     // TCP Destination Port from the MAC
-typedef ap_uint<16> LE_TcpPort;        // TCP Source or Destination Port from the MAC
-typedef ap_uint<32> LE_TcpSeqNum;      // TCP Sequence Number from the MAC
-typedef ap_uint<32> LE_TcpAckNum;      // TCP Acknowledgment Number from the MAC
-typedef ap_uint<4>  LE_TcpDataOff;     // TCP Data Offset from the MAC
-typedef ap_uint<6>  LE_TcpCtrlBits;    // TCP Control Bits from the MAC
-typedef ap_uint<16> LE_TcpWindow;      // TCP Window from the MAC
-typedef ap_uint<16> LE_TcpChecksum;    // TCP Checksum
-typedef ap_uint<16> LE_TcpUrgPtr;      // TCP Urgent Pointer from the MAC
-typedef ap_uint<64> LE_TcpData;        // TCP Data stream from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpSrcPort;     // TCP Source Port from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpDstPort;     // TCP Destination Port from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpPort;        // TCP Source or Destination Port from the MAC
+//OBSOLETE_20200709 typedef ap_uint<32> LE_TcpSeqNum;      // TCP Sequence Number from the MAC
+//OBSOLETE_20200709 typedef ap_uint<32> LE_TcpAckNum;      // TCP Acknowledgment Number from the MAC
+//OBSOLETE_20200709 typedef ap_uint<4>  LE_TcpDataOff;     // TCP Data Offset from the MAC
+//OBSOLETE_20200709 typedef ap_uint<6>  LE_TcpCtrlBits;    // TCP Control Bits from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpWindow;      // TCP Window from the MAC
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpChecksum;    // TCP Checksum
+//OBSOLETE_20200709 typedef ap_uint<16> LE_TcpUrgPtr;      // TCP Urgent Pointer from the MAC
+//OBSOLETE_20200709 typedef ap_uint<64> LE_TcpData;        // TCP Data stream from the MAC
 
 /*********************************************************
  * TCP - HEADER FIELDS
  *  Default Type Definitions (as used by HLS)
  *********************************************************/
-typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
-typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
-typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
-typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
-typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
-typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
-typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
-typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
-typedef ap_uint<16> TcpWindow;      // TCP Window
-typedef ap_uint<16> TcpChecksum;    // TCP Checksum
-typedef ap_uint<16> TcpCSum;        // TCP Checksum (alias for TcpChecksum)
-typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
+//OBSOLETE_20200709 typedef ap_uint<16> TcpSrcPort;     // TCP Source Port
+//OBSOLETE_20200709 typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
+//OBSOLETE_20200709 typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
+//OBSOLETE_20200709 typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
+//OBSOLETE_20200709 typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
+//OBSOLETE_20200709 typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
+//OBSOLETE_20200709 typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
+//OBSOLETE_20200709 typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
+//OBSOLETE_20200709 typedef ap_uint<16> TcpWindow;      // TCP Window
+//OBSOLETE_20200709 typedef ap_uint<16> TcpChecksum;    // TCP Checksum
+//OBSOLETE_20200709 typedef ap_uint<16> TcpCSum;        // TCP Checksum (alias for TcpChecksum)
+//OBSOLETE_20200709 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
-typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
-typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
+//OBSOLETE_20200709 typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
+//OBSOLETE_20200709 typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
 
-typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
-typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
-typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
+//OBSOLETE_20200709 typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
+//OBSOLETE_20200709 typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
+//OBSOLETE_20200709 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
 /*********************************************************
  * TCP - PORT RANGES (Static & Ephemeral)
  *********************************************************/
-typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
-typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
+//OBSOLETE_20200709 typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
+//OBSOLETE_20200709 typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
 /*********************************************************
  * UDP - HEADER FIELDS IN NETWORK BYTE ORDER.
  *   Default Type Definitions (as used by HLS)
  *  [TODO - Must be moved into uoe.hpp or nts.hpp]
  *********************************************************/
-typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
-typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
-typedef ap_uint<16> UdpPort;        // UDP source or destination Port
-typedef ap_uint<16> UdpDgmLen;      // UDP header and data Length
-typedef ap_uint<16> UdpChecksum;    // UDP Checksum header and data Checksum
-typedef ap_uint<16> UdpCsum;        // UDP Checksum (alias for UdpChecksum)
-typedef ap_uint<64> UdpData;        // UDP Data unit of transfer
-typedef ap_uint<32> UdpDataHi;      // UDP High part of a data unit of transfer
-typedef ap_uint<32> UdpDataLo;      // UDP Low-part of a data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
+//OBSOLETE_20200709 typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
+//OBSOLETE_20200709 typedef ap_uint<16> UdpPort;        // UDP source or destination Port
+//OBSOLETE_20200709 typedef ap_uint<16> UdpDgmLen;      // UDP header and data Length
+//OBSOLETE_20200709 typedef ap_uint<16> UdpChecksum;    // UDP Checksum header and data Checksum
+//OBSOLETE_20200709 typedef ap_uint<16> UdpCsum;        // UDP Checksum (alias for UdpChecksum)
+//OBSOLETE_20200709 typedef ap_uint<64> UdpData;        // UDP Data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint<32> UdpDataHi;      // UDP High part of a data unit of transfer
+//OBSOLETE_20200709 typedef ap_uint<32> UdpDataLo;      // UDP Low-part of a data unit of transfer
 
 
 /*********************************************************
  * LY4 - COMMON TCP and UDP HEADER FIELDS
  *  Default Type Definitions (as used by HLS)
  *********************************************************/
-typedef ap_uint<16> Ly4Port;        // LY4 Port
-typedef ap_uint<16> Ly4Len;         // LY4 header plus data Length
+//OBSOLETE_20200709 typedef ap_uint<16> Ly4Port;        // LY4 Port
+//OBSOLETE_20200709 typedef ap_uint<16> Ly4Len;         // LY4 header plus data Length
 
 /*********************************************************
  * IPv4 - TCP/IPv4 STREAMING CLASS DEFINITION
  *  As Encoded by IPRX and L3MUX (.i.e in Little-Endian order).
  *********************************************************/
+/*** OBSOLETE_20200710 ***
 class OBSOLETE_Ip4overMac: public AxiWord {
 
   public:
@@ -745,7 +746,7 @@ class OBSOLETE_Ip4overMac: public AxiWord {
     Ip4Addr       getIp4DstAddr()               { return swapDWord(tdata.range(31,  0));                  }
     LE_Ip4Addr getLE_Ip4DstAddr()               {           return tdata.range(31,  0);                   }
 
-    /*** TCP SEGMENT ***************************/
+    //*** TCP SEGMENT ***************************
     // Set-Get the TCP Source Port
     void          setTcpSrcPort(TcpPort port)   {                  tdata.range(47, 32) = swapWord(port);  }
     TcpPort       getTcpSrcPort()               { return swapWord (tdata.range(47, 32));                  }
@@ -791,7 +792,7 @@ class OBSOLETE_Ip4overMac: public AxiWord {
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 
-    /*** UDP DATAGRAM **************************/
+    //*** UDP DATAGRAM **************************
     // Set-Get the UDP Source Port
     void        setUdpSrcPort(UdpPort port)     {                  tdata.range(47, 32) = swapWord(port);  }
     UdpPort     getUdpSrcPort()                 { return swapWord (tdata.range(47, 32));                  }
@@ -817,7 +818,7 @@ class OBSOLETE_Ip4overMac: public AxiWord {
     }
 
 }; // End of: OBSOLETE_Ip4overMac
-
+*********************************************/
 
 
 /*************************************************************************
@@ -831,7 +832,7 @@ class OBSOLETE_Ip4overMac: public AxiWord {
 /***********************************************
  * TCP SESSION IDENTIFIER
  ***********************************************/
-typedef ap_uint<16> SessionId;
+//OBSOLETE_20200709 typedef ap_uint<16> SessionId;
 
 
 /***********************************************
@@ -843,21 +844,19 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
     ap_uint<16>     ip_port;
 };
 
+//OBSOLETE_20200709  struct fourTuple {  // [FIXME-TODO] - Replace w/ LE_SocketPair
+//OBSOLETE_20200709      ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+//OBSOLETE_20200709      ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+//OBSOLETE_20200709      ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+//OBSOLETE_20200709      ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+//OBSOLETE_20200709      fourTuple() {}
+//OBSOLETE_20200709      fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
+//OBSOLETE_20200709                : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
+//OBSOLETE_20200709  };
 
-
-struct fourTuple {  // [TODO] - Replace w/ LE_SocketPair
-    ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
-    ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
-    ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
-    ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
-    fourTuple() {}
-    fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
-              : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
-};
-
-inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
-        return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
-}
+//OBSOLETE_20200709 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
+//OBSOLETE_20200709         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
+//OBSOLETE_20200709 }
 
 
 /***********************************************
@@ -881,55 +880,55 @@ class OpenStatus
  ********************************************/
 //OBSOLETE_20200703 typedef SessionId   TcpSessId;  // TCP Session ID
 
-class SessionLookupQuery
-{
-  public:
-    LE_SocketPair  tuple;
-    bool           allowCreation;
-    SessionLookupQuery() {}
-    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
-        tuple(tuple), allowCreation(allowCreation) {}
-};
+//OBSOLETE_20200709 class SessionLookupQuery
+//OBSOLETE_20200709 {
+//OBSOLETE_20200709   public:
+//OBSOLETE_20200709     LE_SocketPair  tuple;
+//OBSOLETE_20200709     bool           allowCreation;
+//OBSOLETE_20200709     SessionLookupQuery() {}
+//OBSOLETE_20200709    SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
+//OBSOLETE_20200709         tuple(tuple), allowCreation(allowCreation) {}
+//OBSOLETE_20200709 };
 
-typedef bool HitState;
-enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
+//OBSOLETE_20200709 typedef bool HitState;
+//OBSOLETE_20200709 enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
 
-class SessionLookupReply
-{
-  public:
-    SessionId   sessionID;
-    HitState    hit;
-    SessionLookupReply() {}
-    SessionLookupReply(SessionId id, HitState hit) :
-        sessionID(id), hit(hit) {}
-};
+//OBSOLETE_20200709 class SessionLookupReply
+//OBSOLETE_20200709 {
+//OBSOLETE_20200709   public:
+//OBSOLETE_20200709     SessionId   sessionID;
+//OBSOLETE_20200709     HitState    hit;
+//OBSOLETE_20200709     SessionLookupReply() {}
+//OBSOLETE_20200709    SessionLookupReply(SessionId id, HitState hit) :
+//OBSOLETE_20200709         sessionID(id), hit(hit) {}
+//OBSOLETE_20200709 };
 
-/********************************************
- * State Table (STt)
- ********************************************/
-enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-                    LAST_ACK };
+//OBSOLETE_20200709 /********************************************
+//OBSOLETE_20200709  * State Table (STt)
+//OBSOLETE_20200709  ********************************************/
+//OBSOLETE_20200709 enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+//OBSOLETE_20200709                     FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+//OBSOLETE_20200709                     LAST_ACK };
 
-#ifndef __SYNTHESIS__
-    const std::string  SessionStateString[] = {
-                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-                   "LAST_ACK" };
-#endif
+//OBSOLETE_20200709 #ifndef __SYNTHESIS__
+//OBSOLETE_20200709     const std::string  SessionStateString[] = {
+//OBSOLETE_20200709                    "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+//OBSOLETE_20200709                    "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+//OBSOLETE_20200709                    "LAST_ACK" };
+//OBSOLETE_20200709 #endif
 
-// Session State Query
-class StateQuery {
-  public:
-    SessionId       sessionID;
-    SessionState    state;
-    RdWrBit         write;
-    StateQuery() {}
-    StateQuery(SessionId id) :
-        sessionID(id), state(CLOSED), write(QUERY_RD) {}
-    StateQuery(SessionId id, SessionState state, RdWrBit write) :
-        sessionID(id), state(state), write(write) {}
-};
+//OBSOLETE_20200709 // Session State Query
+//OBSOLETE_20200709 class StateQuery {
+//OBSOLETE_20200709   public:
+//OBSOLETE_20200709     SessionId       sessionID;
+//OBSOLETE_20200709     SessionState    state;
+//OBSOLETE_20200709     RdWrBit         write;
+//OBSOLETE_20200709     StateQuery() {}
+//OBSOLETE_20200709     StateQuery(SessionId id) :
+//OBSOLETE_20200709         sessionID(id), state(CLOSED), write(QUERY_RD) {}
+//OBSOLETE_20200709     StateQuery(SessionId id, SessionState state, RdWrBit write) :
+//OBSOLETE_20200709         sessionID(id), state(state), write(write) {}
+//OBSOLETE_20200709 };
 
 
 /********************************************
@@ -1497,6 +1496,26 @@ template<typename T> void pStreamMux(
         stream<T>  &so);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*******************************************************************************
  *
  * ENTITY - TCP OFFLOAD ENGINE (TOE)
@@ -1580,10 +1599,10 @@ void toe(
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<RtlSessionLookupRequest>         &soCAM_SssLkpReq,
-        stream<RtlSessionLookupReply>           &siCAM_SssLkpRpl,
-        stream<RtlSessionUpdateRequest>         &soCAM_SssUpdReq,
-        stream<RtlSessionUpdateReply>           &siCAM_SssUpdRpl,
+        stream<CamSessionLookupRequest>         &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>           &siCAM_SssLkpRpl,
+        stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>           &siCAM_SssUpdRpl,
 
         //------------------------------------------------------
         //-- DEBUG / Interfaces

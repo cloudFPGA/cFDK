@@ -133,7 +133,7 @@ void pTxAppConnect(
         stream<SessionLookupReply>  &siSLc_SessLookupRep,
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<TcpPort>             &siPRt_GetFreePortRep,
-        stream<StateQuery>          &soSTt_AcceptStateQry,
+        stream<StateQuery>          &soSTt_AcceptStateQry,   // [FIXME- ReEname ConnectStateQry]
         stream<SessionState>        &siSTt_AcceptStateRep,
         stream<OpenStatus>          &siRXe_SessOpnSts,
         stream<Event>               &soEVe_Event,
@@ -789,7 +789,7 @@ void tx_app_interface(
         //-- State Table Interfaces
         stream<TcpSessId>              &soSTt_SessStateReq,
         stream<SessionState>           &siSTt_SessStateRep,
-        stream<StateQuery>             &soSTt_AcceptStateQry,
+        stream<StateQuery>             &soSTt_AcceptStateQry,  // [FIXME- ReEname ConnectStateQry]
         stream<SessionState>           &siSTt_AcceptStateRep,
         //-- Session Lookup Controller Interface
         stream<SocketPair>             &soSLc_SessLookupReq,
@@ -902,7 +902,7 @@ void tx_app_interface(
             siSLc_SessLookupRep,
             soPRt_GetFreePortReq,
             siPRt_GetFreePortRep,
-            soSTt_AcceptStateQry,
+            soSTt_AcceptStateQry,  // [FIXME- ReEname ConnectStateQry]
             siSTt_AcceptStateRep,
             siRXe_SessOpnSts,
             ssTacToEmx_Event,

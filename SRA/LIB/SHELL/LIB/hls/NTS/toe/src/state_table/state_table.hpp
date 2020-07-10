@@ -27,29 +27,70 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /******************************************************************************
  * @file       : state_table.hpp
- * @brief      : State Table (STt)
+ * @brief      : State Table (STt) for the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
  ******************************************************************************/
 
-#include "../toe.hpp"
+#ifndef _TOE_STT_H_
+#define _TOE_STT_H_
+
+#include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../NTS/nts_utils.hpp"
 
 using namespace hls;
 
-/*****************************************************************************
- * @brief   Main process of the State Table (STt).
+/********************************************
+ * Session States
+ ********************************************/
+enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                    LAST_ACK };
+
+#ifndef __SYNTHESIS__
+    const std::string  SessionStateString[] = {
+                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+                   "LAST_ACK" };
+#endif
+
+/********************************************
+ * STt - Session State Query
+ ********************************************/
+class StateQuery {
+  public:
+    SessionId       sessionID;
+    SessionState    state;
+    RdWrBit         write;
+    StateQuery() {}
+    StateQuery(SessionId id) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, SessionState state, RdWrBit write) :
+        sessionID(id), state(state), write(write) {}
+};
+
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - State Table (STt)
+ *
+ *******************************************************************************/
 void state_table(
         stream<StateQuery>         &siRXe_SessStateQry,
         stream<SessionState>       &soRXe_SessStateRep,
-        stream<StateQuery>         &siTAi_AcceptStateQry,
-        stream<SessionState>       &soTAi_AcceptStateRep,
+        stream<StateQuery>         &siTAi_ConnectStateQry,
+        stream<SessionState>       &soTAi_ConnectStateRep,
         stream<SessionId>          &siTAi_StreamStateReq,
         stream<SessionState>       &soTAi_StreamStateRep,
         stream<SessionId>          &siTIm_SessCloseCmd,
         stream<SessionId>          &soSLc_SessReleaseCmd
 );
+
+#endif
+
+/*! \} */
