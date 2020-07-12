@@ -30,62 +30,57 @@
 #include "dummy_memory.hpp"
 
 // Set the private data elements for a Read Command
-void DummyMemory::setReadCmd(DmCmd cmd)
-{
+void DummyMemory::setReadCmd(DmCmd cmd) {
     this->readAddr = cmd.saddr(15,  0); // Start address
     this->readId   = cmd.saddr(31, 16); // Buffer address
-
     uint16_t tempLen = (uint16_t) cmd.bbt(15, 0); // Byte to Transfer
     this->readLen    = (int) tempLen;
 }
 
 // Set the private data elements for a Write Command
-void DummyMemory::setWriteCmd(DmCmd cmd)
-{
+void DummyMemory::setWriteCmd(DmCmd cmd) {
     this->writeAddr = cmd.saddr(15,  0); // Start address
     this->writeId   = cmd.saddr(31, 16); // Buffer address
 }
 
-// Read an AXI word from the memory
-void DummyMemory::readWord(AxiWord &word)
-{
+// Read a data chunk from the memory
+void DummyMemory::readChunk(AxisApp &chunk) {
     readStorageIt = storage.find(readId);
     if (readStorageIt == storage.end()) {
         readStorageIt = createBuffer(readId);
         // check it?
     }
     int i = 0;
-    word.tkeep = 0;
-    while (readLen > 0 && i < 8) {
-        word.tdata((i*8)+7, i*8) = (readStorageIt->second)[readAddr];
-        word.tkeep = (word.tkeep << 1);
-        word.tkeep++;
+    chunk.setLE_TKeep(0);
+    while (readLen > 0 and i < 8) {
+        //OBSOLETE_20200711 chunk.tdata((i*8)+7, i*8) = (readStorageIt->second)[readAddr];
+        //OBSOLETE_20200711 chunk.tkeep = (chunk.tkeep << 1);
+        //OBSOLETE_20200711 chunk.tkeep++;
+        chunk.setLE_TData((readStorageIt->second)[readAddr], (i*8)+7, i*8);
+        chunk.setLE_TKeep(chunk.getLE_TKeep() | (0x01 << i));
         readLen--;
         readAddr++;
         i++;
     }
     if (readLen == 0) {
-        word.tlast = 1;
+        chunk.setTLast(TLAST);
     }
     else {
-        word.tlast = 0;
+        chunk.setTLast(0);
     }
 }
 
-
-// Write an AXI word into the memory
-void DummyMemory::writeWord(AxiWord &word)
-{
+// Write a data chunk into the memory
+void DummyMemory::writeChunk(AxisApp &chunk) {
     writeStorageIt = storage.find(writeId);
-
     if (writeStorageIt == storage.end()) {
         writeStorageIt = createBuffer(writeId);
         // check it?
     }
     // shuffleWord(word.data);
     for (int i = 0; i < 8; i++) {
-        if (word.tkeep[i]) {
-            (writeStorageIt->second)[writeAddr] = word.tdata((i*8)+7, i*8);
+        if (chunk.getLE_TKeep()[i]) {
+            (writeStorageIt->second)[writeAddr] = chunk.getLE_TData((i*8)+7, i*8);
             writeAddr++;
         }
         else {

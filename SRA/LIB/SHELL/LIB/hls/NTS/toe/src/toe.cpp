@@ -62,6 +62,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (TRACE_OFF | TRACE_RDY)
  ************************************************/
+#ifndef __SYNTHESIS__
+  extern bool gTraceEvent;
+#endif
 #define THIS_NAME "TOE"
 
 #define TRACE_OFF  0x0000
@@ -70,9 +73,18 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_LEVEL (TRACE_OFF)
 
-/*****************************************************************************
- * @brief A 2-to-1 Stream multiplexer.
- * ***************************************************************************/
+/*******************************************************************************
+ * @brief A 2-to-1 generic Stream Multiplexer
+ *
+ *  @param[in]  si1     The input stream #1.
+ *  @param[in]  si2     The input stream #2.
+ *  @param[out] so      The output stream.
+ *
+ * @details
+ *  This multiplexer behaves like an arbiter. It takes two streams as inputs and
+ *   forwards one of them to the output channel. The stream connected to the
+ *   first input always takes precedence over the second one.
+ *******************************************************************************/
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
@@ -89,14 +101,17 @@ template<typename T> void pStreamMux(
 }
 
 
-/******************************************************************************
- * @brief The Ready (Rdy) process generates the ready signal of the TOE.
+/*******************************************************************************
+ * @brief Ready (Rdy)
  *
- *  @param[in]  piPRt_Ready, The ready signal from PortTable (PRt).
- *  @param[in]  piTBD_Ready, The ready signal from TBD.
- *  @param[out] poNTS_Ready, The ready signal of the TOE.
+ * @param[in]  piPRt_Ready  The ready signal from PortTable (PRt).
+ * @param[in]  piTBD_Ready  The ready signal from TBD.
+ * @param[out] poNTS_Ready  The ready signal of the TOE.
  *
- ******************************************************************************/
+ * @details
+ *  This process merges multiple ready signals into a single global ready
+ *   signal for the TOE.
+ *******************************************************************************/
 void pReady(
     StsBool     &piPRt_Ready,
     StsBit      &poNTS_Ready)
@@ -111,13 +126,15 @@ void pReady(
     }
 }
 
-
-/******************************************************************************
- * @brief Increments the simulation counter of the testbench (for debugging).
+/*******************************************************************************
+ * @brief Testbench Simulation Counter
  *
- *  @param[out] poSimCycCount, The incremented simulation counter.
+ * @param[out] poSimCycCount  The incremented simulation counter.
  *
- ******************************************************************************/
+ * @details
+ *  This process is provided for debugging only. It allows to implement the
+ *   simulation a counter of the testbench within the TOE itself.
+ *******************************************************************************/
 void pTbSimCount(
     volatile ap_uint<32>    &poSimCycCount)
 {
@@ -130,64 +147,62 @@ void pTbSimCount(
     #pragma HLS reset variable=sCounter
 
     sCounter += 1;
-    poSimCycCount = sCounter;
+    // [Un-comment this line ]poSimCycCount = sCounter;
 }
 
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief   Main process of the TCP Offload Engine.
  *
  * -- MMIO Interfaces
- * @param[in]  piMMIO_IpAddr,    IP4 Address from MMIO.
+ * @param[in]  piMMIO_IpAddr    IP4 Address from MMIO.
  * -- NTS Interfaces
- * @param[out] poNTS_Ready,      Ready signal of the TOE.
+ * @param[out] poNTS_Ready      Ready signal of the TOE.
  * -- IPRX / IP Rx / Data Interface
- * @param[in]  siIPRX_Data,      IP4 data stream from IPRX.
+ * @param[in]  siIPRX_Data      IP4 data stream from IPRX.
  * -- L3MUX / IP Tx / Data Interface
- * @param[out] soL3MUX_Data,     IP4 data stream to L3MUX.
- * -- TRIF / Rx Data Interfaces
- * @param[out] soTRIF_Notif,     TCP notification to TRIF.
- * @param[in]  siTRIF_DReq,      TCP data request from TRIF.
- * @param[out] soTRIF_Data,      TCP data stream to TRIF.
- * @param[out] soTRIF_Meta,      TCP metadata stream to TRIF.
- * -- TRIF / Listen Interfaces
- * @param[in]  siTRIF_LsnReq,    TCP listen port request from TRIF.
- * @param[out] soTRIF_LsnAck,    TCP listen port acknowledge to TRIF.  // FIXME-Rename into LsnRep
- * -- TRIF / Tx Data Interfaces
- * @param[in]  siTRIF_Data,      TCP data stream from TRIF.
- * @param[in]  siTRIF_Meta,      TCP metadata stream from TRIF.
- * @param[out] soTRIF_DSts,      TCP data status to TRIF.
- * -- TRIF / Open Interfaces
- * @param[in]  siTRIF_OpnReq,    TCP open port request from TRIF.
- * @param[out] soTRIF_OpnRep,    TCP open port reply to TRIF.
- * -- TRIF / Close Interfaces
- * @param[in]  siTRIF_ClsReq,    TCP close connection request from TRIF.
- * @warning:   Not-Used,         TCP close connection status to TRIF.
+ * @param[out] soL3MUX_Data     IP4 data stream to L3MUX.
+ * -- TAIF / Rx Segment Interfaces
+ * @param[out] soTAIF_Notif     TCP notification to TAIF.
+ * @param[in]  siTAIF_DReq      TCP data request from TAIF.
+ * @param[out] soTAIF_Data      TCP data stream to TAIF.
+ * @param[out] soTAIF_Meta      TCP metadata stream to TAIF.
+ * -- TAIF / Listen Port Interfaces
+ * @param[in]  siTAIF_LsnReq    TCP listen port request from TAIF.
+ * @param[out] soTAIF_LsnRep    TCP listen port reply to TAIF.
+ * -- TAIF / Tx Data Interfaces
+ * @param[in]  siTAIF_Data      TCP data stream from TAIF.
+ * @param[in]  siTAIF_Meta      TCP metadata stream from TAIF.
+ * @param[out] soTAIF_DSts      TCP data write status to TAIF.
+ * -- TAIF / Open Interfaces
+ * @param[in]  siTAIF_OpnReq    TCP open port request from TAIF.
+ * @param[out] soTAIF_OpnRep    TCP open port reply to TAIF.
+ * -- TAIF / Close Interfaces
+ * @param[in]  siTAIF_ClsReq    TCP close connection request from TAIF.
+ * @warning:   Not-Used         TCP close connection status to TAIF.
  * -- MEM / Rx PATH / S2MM Interface
- * @warning:   Not-Used,         Rx memory read status from MEM.
- * @param[out] soMEM_RxP_RdCmd,  Rx memory read command to MEM.
- * @param[in]  siMEM_RxP_Data,   Rx memory data from MEM.
- * @param[in]  siMEM_RxP_WrSts,  Rx memory write status from MEM.
- * @param[out] soMEM_RxP_WrCmd,  Rx memory write command to MEM.
- * @param[out] soMEM_RxP_Data,   Rx memory data to MEM.
+ * @warning:   Not-Used         Rx memory read status from MEM.
+ * @param[out] soMEM_RxP_RdCmd  Rx memory read command to MEM.
+ * @param[in]  siMEM_RxP_Data   Rx memory data from MEM.
+ * @param[in]  siMEM_RxP_WrSts  Rx memory write status from MEM.
+ * @param[out] soMEM_RxP_WrCmd  Rx memory write command to MEM.
+ * @param[out] soMEM_RxP_Data   Rx memory data to MEM.
  * -- MEM / Tx PATH / S2MM Interface
- * @warning:   Not-Used,         Tx memory read status from MEM.
- * @param[out] soMEM_TxP_RdCmd,  Tx memory read command to MEM.
- * @param[in]  siMEM_TxP_Data,   Tx memory data from MEM.
- * @param[in]  siMEM_TxP_WrSts,  Tx memory write status from MEM.
- * @param[out] soMEM_TxP_WrCmd,  Tx memory write command to MEM.
- * @param[out] soMEM_TxP_Data,   Tx memory data to MEM.
+ * @warning:   Not-Used         Tx memory read status from MEM.
+ * @param[out] soMEM_TxP_RdCmd  Tx memory read command to MEM.
+ * @param[in]  siMEM_TxP_Data   Tx memory data from MEM.
+ * @param[in]  siMEM_TxP_WrSts  Tx memory write status from MEM.
+ * @param[out] soMEM_TxP_WrCmd  Tx memory write command to MEM.
+ * @param[out] soMEM_TxP_Data   Tx memory data to MEM.
  * -- CAM / Session Lookup & Update Interfaces
- * @param[in]  siCAM_SssLkpRep,  Session lookup reply from CAM.
- * @param[in]  siCAM_SssUpdRep,  Session update reply from CAM.
- * @param[out] soCAM_SssLkpReq,  Session lookup request to CAM.
- * @param[out] soCAM_SssUpdReq,  Session update request to CAM.
+ * @param[in]  siCAM_SssLkpRep  Session lookup reply from CAM.
+ * @param[in]  siCAM_SssUpdRep  Session update reply from CAM.
+ * @param[out] soCAM_SssLkpReq  Session lookup request to CAM.
+ * @param[out] soCAM_SssUpdReq  Session update request to CAM.
  * -- DEBUG / Session Statistics Interfaces
- * @param[out] poDBG_SssRelCnt,  Session release count to DEBUG.
- * @param[out] poDBG_SssRegCnt,  Session register count to DEBUG.
- * -- DEBUG / SimCycCounter
- * @param[out] poSimCycCount,    Cycle simulation counter to testbench.
- ******************************************************************************/
+ * @param[out] poDBG_SssRelCnt  Session release count to DEBUG.  // [FIXMS-Remove]
+ * @param[out] poDBG_SssRegCnt  Session register count to DEBUG. // [FIXMS-Remove]
+ *******************************************************************************/
 void toe(
 
         //------------------------------------------------------
@@ -203,73 +218,73 @@ void toe(
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overMac>                  &siIPRX_Data,
+        stream<AxisIp4>                     &siIPRX_Data,
 
         //------------------------------------------------------
         //-- L3MUX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<Ip4overMac>                  &soL3MUX_Data,
+        stream<AxisIp4>                     &soL3MUX_Data,
 
         //------------------------------------------------------
-        //-- TRIF / Tx Data Interfaces   // [TODO- TAIF / Rx Data Interfaces]
+        //-- TAIF / Rx Segment Interfaces
         //------------------------------------------------------
-        stream<AppNotif>                    &soTRIF_Notif,
-        stream<AppRdReq>                    &siTRIF_DReq,
-        stream<AppData>                     &soTRIF_Data,
-        stream<AppMeta>                     &soTRIF_Meta,
+        stream<TcpAppNotif>                 &soTAIF_Notif,
+        stream<TcpAppRdReq>                 &siTAIF_DReq,
+        stream<TcpAppData>                  &soTAIF_Data,
+        stream<TcpAppMeta>                  &soTAIF_Meta,
 
         //------------------------------------------------------
-        //-- TRIF / Listen Interfaces
+        //-- TAIF / Listen Port Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>                   &siTRIF_LsnReq,
-        stream<AppLsnAck>                   &soTRIF_LsnAck,  // FIXME-Rename into LsnRep
+        stream<TcpAppLsnReq>                &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                &soTAIF_LsnRep,
 
         //------------------------------------------------------
-        //-- TRIF / Rx Data Interfaces  // [TODO- TAIF / Tx Data Interfaces]             
+        //-- TAIF / Tx Segment Interfaces
         //------------------------------------------------------
-        stream<AppData>                     &siTRIF_Data,
-        stream<AppMeta>                     &siTRIF_Meta,
-        stream<AppWrSts>                    &soTRIF_DSts,  // [TODO- Rename into TcpAppSndSts]
+        stream<TcpAppData>                  &siTAIF_Data,
+        stream<TcpAppMeta>                  &siTAIF_Meta,
+        stream<TcpAppWrSts>                 &soTAIF_DSts,
 
         //------------------------------------------------------
-        //-- TRIF / Open Interfaces
+        //-- TAIF / Open connection Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>                   &siTRIF_OpnReq,
-        stream<AppOpnRep>                   &soTRIF_OpnRep,
+        stream<TcpAppOpnReq>                &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                &soTAIF_OpnRep,
 
         //------------------------------------------------------
-        //-- TRIF / Close Interfaces
+        //-- TAIF / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>                   &siTRIF_ClsReq,
-        //-- Not USed                       &soTRIF_ClsSts,
+        stream<TcpAppClsReq>                &siTAIF_ClsReq,
+        //-- Not USed                       &soTAIF_ClsSts,
 
         //------------------------------------------------------
         //-- MEM / Rx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                       &siMEM_RxP_RdSts,
         stream<DmCmd>                       &soMEM_RxP_RdCmd,
-        stream<AxiWord>                     &siMEM_RxP_Data,
+        stream<AxisApp>                     &siMEM_RxP_Data,
         stream<DmSts>                       &siMEM_RxP_WrSts,
         stream<DmCmd>                       &soMEM_RxP_WrCmd,
-        stream<AxiWord>                     &soMEM_RxP_Data,
+        stream<AxisApp>                     &soMEM_RxP_Data,
 
         //------------------------------------------------------
         //-- MEM / Tx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                       &siMEM_TxP_RdSts,
         stream<DmCmd>                       &soMEM_TxP_RdCmd,
-        stream<AxiWord>                     &siMEM_TxP_Data,
+        stream<AxisApp>                     &siMEM_TxP_Data,
         stream<DmSts>                       &siMEM_TxP_WrSts,
         stream<DmCmd>                       &soMEM_TxP_WrCmd,
-        stream<AxiWord>                     &soMEM_TxP_Data,
+        stream<AxisApp>                     &soMEM_TxP_Data,
 
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<RtlSessionLookupRequest>     &soCAM_SssLkpReq,
-        stream<RtlSessionLookupReply>       &siCAM_SssLkpRep,
-        stream<RtlSessionUpdateRequest>     &soCAM_SssUpdReq,
-        stream<RtlSessionUpdateReply>       &siCAM_SssUpdRep,
+        stream<CamSessionLookupRequest>     &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>       &siCAM_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>       &siCAM_SssUpdRep,
 
         //------------------------------------------------------
         //-- DEBUG Interfaces
@@ -293,27 +308,27 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
     //-- L3MUX / IP Tx Data Interface -----------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soL3MUX_Data    metadata="-bus_bundle soL3MUX_Data"
-    //-- TRIF / ROLE Rx Data Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_DReq     metadata="-bus_bundle siTRIF_DReq"
-    #pragma HLS DATA_PACK                variable=siTRIF_DReq
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_Notif    metadata="-bus_bundle soTRIF_Notif"
-    #pragma HLS DATA_PACK                variable=soTRIF_Notif
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_Data     metadata="-bus_bundle soTRIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_Meta     metadata="-bus_bundle soTRIF_Meta"
-     //-- TRIF / ROLE Rx Listen Interface -------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_LsnReq   metadata="-bus_bundle siTRIF_LsnReq"
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_LsnAck   metadata="-bus_bundle soTRIF_LsnAck"
-    //-- TRIF / ROLE Tx Data Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_Data     metadata="-bus_bundle siTRIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_Meta     metadata="-bus_bundle siTRIF_Meta"
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_DSts     metadata="-bus_bundle soTRIF_DSts"
-    #pragma HLS DATA_PACK                variable=soTRIF_DSts
-    //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_OpnReq   metadata="-bus_bundle siTRIF_OpnReq"
-    #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
-    #pragma HLS resource core=AXI4Stream variable=soTRIF_OpnRep   metadata="-bus_bundle soTRIF_OpnRep"
-    #pragma HLS DATA_PACK                variable=soTRIF_OpnRep
-    #pragma HLS resource core=AXI4Stream variable=siTRIF_ClsReq   metadata="-bus_bundle siTRIF_ClsReq"
+    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_DReq     metadata="-bus_bundle siTAIF_DReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_DReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Notif    metadata="-bus_bundle soTAIF_Notif"
+    #pragma HLS DATA_PACK                variable=soTAIF_Notif
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Data     metadata="-bus_bundle soTAIF_Data"
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Meta     metadata="-bus_bundle soTAIF_Meta"
+     //-- TAIF / ROLE Rx Listen Interface -------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_LsnReq   metadata="-bus_bundle siTAIF_LsnReq"
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_LsnRep   metadata="-bus_bundle soTAIF_LsnRep"
+    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_Data     metadata="-bus_bundle siTAIF_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_Meta     metadata="-bus_bundle siTAIF_Meta"
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_DSts     metadata="-bus_bundle soTAIF_DSts"
+    #pragma HLS DATA_PACK                variable=soTAIF_DSts
+    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_OpnReq   metadata="-bus_bundle siTAIF_OpnReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_OpnRep   metadata="-bus_bundle soTAIF_OpnRep"
+    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_ClsReq   metadata="-bus_bundle siTAIF_ClsReq"
     //-- MEM / Nts0 / RxP Interface -------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_RdCmd metadata="-bus_bundle soMEM_RxP_RdCmd"
     #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
@@ -357,27 +372,27 @@ void toe(
     #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
     //-- L3MUX / IP Tx Data Interface -----------------------------------------
     #pragma HLS INTERFACE axis off           port=soL3MUX_Data    name=soL3MUX_Data
-    //-- TRIF / ROLE Rx Data Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTRIF_DReq     name=siTRIF_DReq
-    #pragma HLS DATA_PACK                variable=siTRIF_DReq
-    #pragma HLS INTERFACE axis off           port=soTRIF_Notif    name=soTRIF_Notif
-    #pragma HLS DATA_PACK                variable=soTRIF_Notif
-    #pragma HLS INTERFACE axis off           port=soTRIF_Data     name=soTRIF_Data
-    #pragma HLS INTERFACE axis off           port=soTRIF_Meta     name=soTRIF_Meta
-    //-- TRIF / ROLE Rx Listen Interface -------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTRIF_LsnReq   name=siTRIF_LsnReq
-    #pragma HLS INTERFACE axis off           port=soTRIF_LsnAck   name=soTRIF_LsnAck
-    //-- TRIF / ROLE Tx Data Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTRIF_Data     name=siTRIF_Data
-    #pragma HLS INTERFACE axis off           port=siTRIF_Meta     name=siTRIF_Meta
-    #pragma HLS INTERFACE axis off           port=soTRIF_DSts     name=soTRIF_DSts
-    #pragma HLS DATA_PACK                variable=soTRIF_DSts
-    //-- TRIF / ROLE Tx Ctrl Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTRIF_OpnReq   name=siTRIF_OpnReq
-    #pragma HLS DATA_PACK                variable=siTRIF_OpnReq
-    #pragma HLS INTERFACE axis off           port=soTRIF_OpnRep   name=soTRIF_OpnRep
-    #pragma HLS DATA_PACK                variable=soTRIF_OpnRep
-    #pragma HLS INTERFACE axis off           port=siTRIF_ClsReq   name=siTRIF_ClsReq
+    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_DReq     name=siTAIF_DReq
+    #pragma HLS DATA_PACK                variable=siTAIF_DReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_Notif    name=soTAIF_Notif
+    #pragma HLS DATA_PACK                variable=soTAIF_Notif
+    #pragma HLS INTERFACE axis off           port=soTAIF_Data     name=soTAIF_Data
+    #pragma HLS INTERFACE axis off           port=soTAIF_Meta     name=soTAIF_Meta
+    //-- TAIF / ROLE Rx Listen Interface -------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_LsnReq   name=siTAIF_LsnReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_LsnRep   name=soTAIF_LsnRep
+    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_Data     name=siTAIF_Data
+    #pragma HLS INTERFACE axis off           port=siTAIF_Meta     name=siTAIF_Meta
+    #pragma HLS INTERFACE axis off           port=soTAIF_DSts     name=soTAIF_DSts
+    #pragma HLS DATA_PACK                variable=soTAIF_DSts
+    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_OpnReq   name=siTAIF_OpnReq
+    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_OpnRep   name=soTAIF_OpnRep
+    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
+    #pragma HLS INTERFACE axis off           port=siTAIF_ClsReq   name=siTAIF_ClsReq
     //-- MEM / Nts0 / RxP Interface -------------------------------------------
     #pragma HLS INTERFACE axis off           port=soMEM_RxP_RdCmd name=soMEM_RxP_RdCmd
     #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
@@ -449,8 +464,8 @@ void toe(
     static stream<RepBit>             ssPRtToRXe_PortStateRep    ("ssPRtToRXe_PortStateRep");
     #pragma HLS stream       variable=ssPRtToRXe_PortStateRep    depth=4
 
-    static stream<AckBit>             ssPRtToRAi_OpnLsnPortAck   ("ssPRtToRAi_OpnLsnPortAck");
-    #pragma HLS stream       variable=ssPRtToRAi_OpnLsnPortAck   depth=4
+    static stream<AckBit>             ssPRtToRAi_OpnLsnPortRep   ("ssPRtToRAi_OpnLsnPortRep");
+    #pragma HLS stream       variable=ssPRtToRAi_OpnLsnPortRep   depth=4
 
     static stream<TcpPort>            ssPRtToTAi_GetFreePortRep  ("ssPRtToTAi_GetFreePortRep");
     #pragma HLS stream       variable=ssPRtToTAi_GetFreePortRep  depth=4
@@ -559,7 +574,6 @@ void toe(
     static stream<ReqBit>             ssTAiToPRt_GetFeePortReq   ("ssTAiToPRt_GetFeePortReq");
     #pragma HLS stream       variable=ssTAiToPRt_GetFeePortReq   depth=4
 
-    //OBSOLETE_20200629 static stream<LE_SocketPair>      ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
     static stream<SocketPair>         ssTAiToSLc_SessLookupReq   ("ssTAiToSLc_SessLookupReq");
     #pragma HLS DATA_PACK    variable=ssTAiToSLc_SessLookupReq
     #pragma HLS stream       variable=ssTAiToSLc_SessLookupReq   depth=4
@@ -691,7 +705,7 @@ void toe(
             ssRXeToPRt_PortStateReq,
             ssPRtToRXe_PortStateRep,
             ssRAiToPRt_OpnLsnPortReq,
-            ssPRtToRAi_OpnLsnPortAck,
+            ssPRtToRAi_OpnLsnPortRep,
             ssTAiToPRt_GetFeePortReq,
             ssPRtToTAi_GetFreePortRep,
             ssSLcToPRt_ReleasePort);
@@ -776,14 +790,14 @@ void toe(
 
     //-- Rx Application Interface (RAi) -----------------------------------
      rx_app_interface(
-             soTRIF_Notif,
-             siTRIF_DReq,
-             soTRIF_Data,
-             soTRIF_Meta,
-             siTRIF_LsnReq,
-             soTRIF_LsnAck,
+             soTAIF_Notif,
+             siTAIF_DReq,
+             soTAIF_Data,
+             soTAIF_Meta,
+             siTAIF_LsnReq,
+             soTAIF_LsnRep,
              ssRAiToPRt_OpnLsnPortReq,
-             ssPRtToRAi_OpnLsnPortAck,
+             ssPRtToRAi_OpnLsnPortRep,
              ssRXeToRAi_Notif,
              ssTImToRAi_Notif,
              ssRAiToRSt_RxSarQry,
@@ -793,12 +807,12 @@ void toe(
 
     //-- Tx Application Interface (TAi) ------------------------------------
     tx_app_interface(
-            siTRIF_OpnReq,
-            soTRIF_OpnRep,
-            siTRIF_ClsReq,
-            siTRIF_Data,
-            siTRIF_Meta,
-            soTRIF_DSts,
+            siTAIF_OpnReq,
+            soTAIF_OpnRep,
+            siTAIF_ClsReq,
+            siTAIF_Data,
+            siTAIF_Meta,
+            soTAIF_DSts,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             siMEM_TxP_WrSts,

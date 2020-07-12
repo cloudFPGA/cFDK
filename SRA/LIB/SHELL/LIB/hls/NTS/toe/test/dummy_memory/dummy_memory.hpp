@@ -30,7 +30,9 @@
 #ifndef _DUMMY_MEMORY_H_
 #define _DUMMY_MEMORY_H_
 
-#include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../NTS/nts.hpp"
+#include "../../../../MEM/mem.hpp"
+//#include "../../../../NTS/toe/src/toe.hpp"
 // #include "../../../../NTS/toe/src/state_table/state_table.hpp"
 // #include "../../../NTS/nts_utils.hpp"
 // #include "../../../NTS/SimNtsUtils.hpp"
@@ -62,8 +64,8 @@ class DummyMemory {
   public:
     void setReadCmd (DmCmd    cmd);
     void setWriteCmd(DmCmd    cmd);
-    void readWord   (AxiWord &word);
-    void writeWord  (AxiWord &word);
+    void readChunk  (AxisApp &chunk);
+    void writeChunk (AxisApp &chunk);
 
 };
 

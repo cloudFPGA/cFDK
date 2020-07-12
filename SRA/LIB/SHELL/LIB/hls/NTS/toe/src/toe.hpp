@@ -66,6 +66,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ap_int.h"
 
+#include "../../../NTS/nts.hpp"
+#include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
+
 //OBSOLETE_20200701 #include "../test/test_toe_utils.hpp"
 
 //#include "session_lookup_controller/session_lookup_controller.hpp"
@@ -82,16 +86,21 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "rx_app_interface/rx_app_interface.hpp"
 //#include "tx_app_interface/tx_app_interface.hpp"
 
-
-#include "../../../NTS/nts.hpp"
 //#include "../../../NTS/nts_utils.hpp"
 //#include "../../../NTS/SimNtsUtils.hpp"
-#include "../../../NTS/toecam/src/toecam.hpp"
+//#include "../../../NTS/toecam/src/toecam.hpp"
 #include "../../../MEM/mem.hpp"
 
-using namespace hls;
+//using namespace hls;
 
-
+//---------------------------------------------------------
+//-- Forward declarations
+//---------------------------------------------------------
+//class RtlSessionUpdateRequest;
+//class RtlSessionUpdateReply;
+//class RtlSessionLookupReply;
+//class RtlSessionLookupRequest;
+//class LE_SocketPair;
 
 
 
@@ -117,11 +126,7 @@ extern uint32_t      packetCounter;
 extern uint32_t      idleCycCnt;
 extern unsigned int  gSimCycCnt;
 
-// Forward declarations.
-//class RtlSessionUpdateRequest;
-//class RtlSessionUpdateReply;
-//class RtlSessionLookupReply;
-//class RtlSessionLookupRequest;
+
 
 
 #define OOO_N 4     // number of OOO blocks accepted
@@ -254,6 +259,7 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 /********************************************
  * SINGLE BIT DEFINITIONS
  ********************************************/
+/*** OBSOLETE_20200711 ***
 typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
 typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
@@ -274,7 +280,7 @@ typedef bool RspBool;  // Response   : Used when a reply does not go back to the
 typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
-
+*******************/
 
 /********************************************
  * GENERAL ENUMERATIONS
@@ -821,52 +827,31 @@ class OBSOLETE_Ip4overMac: public AxiWord {
 *********************************************/
 
 
-/*************************************************************************
+/*******************************************************************************
  * GENERIC TYPES and CLASSES USED BY TOE
- *************************************************************************
+ *******************************************************************************
  * Terminology & Conventions
  * - .
  * - .
- *************************************************************************/
+ *******************************************************************************/
 
-/***********************************************
- * TCP SESSION IDENTIFIER
- ***********************************************/
-//OBSOLETE_20200709 typedef ap_uint<16> SessionId;
-
-
-/***********************************************
- * SOCKET ADDRESS (alias ipTuple)
- ***********************************************/
+//---------------------------------------------------------
+//--  SOCKET ADDRESS (alias ipTuple)
+//---------------------------------------------------------
 struct ipTuple // [TODO] - Replace w/ SockAddr
 {
     ap_uint<32>     ip_address;
     ap_uint<16>     ip_port;
 };
 
-//OBSOLETE_20200709  struct fourTuple {  // [FIXME-TODO] - Replace w/ LE_SocketPair
-//OBSOLETE_20200709      ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
-//OBSOLETE_20200709      ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
-//OBSOLETE_20200709      ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
-//OBSOLETE_20200709      ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
-//OBSOLETE_20200709      fourTuple() {}
-//OBSOLETE_20200709      fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
-//OBSOLETE_20200709                : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
-//OBSOLETE_20200709  };
-
-//OBSOLETE_20200709 inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
-//OBSOLETE_20200709         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
-//OBSOLETE_20200709 }
-
-
-/***********************************************
- * Open Session Status [FIXME - Can we rename this to OpenReply ?
- *  Reports if a session is opened or closed.
- ***********************************************/
 enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
 
-class OpenStatus
-{
+//---------------------------------------------------------
+//-- Open Session Status
+//--  Reports if a session is opened or closed.
+//---------------------------------------------------------
+/*** OBSOLETE_20200711 ***
+class OpenStatus {
   public:
     SessionId    sessionID;
     SessOpnSts   success;          // [FIXME - rename this member]
@@ -874,9 +859,7 @@ class OpenStatus
     OpenStatus(SessionId sessId, SessOpnSts success) :
         sessionID(sessId), success(success) {}
 };
-
-
-
+***************************/
 
 
 /*******************************************************************************
@@ -892,7 +875,7 @@ enum         HitStates { SESSION_UNKNOWN = false, SESSION_EXISTS = true};
 //=========================================================
 class SessionLookupQuery {
   public:
-    LE_SocketPair  tuple;
+    LE_SocketPair  tuple;   // [FIXME - Name and type]
     bool           allowCreation;
     SessionLookupQuery() {}
     SessionLookupQuery(LE_SocketPair tuple, bool allowCreation) :
@@ -1271,7 +1254,7 @@ class Event
 class ExtendedEvent : public Event
 {
   public:
-    LE_SocketPair  tuple;    // [FIXME - Consider renaming]
+    LE_SocketPair  tuple;    // [FIXME - Rename and change type]
     ExtendedEvent() {}
     ExtendedEvent(const Event& ev) :
         Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count) {}
@@ -1279,7 +1262,7 @@ class ExtendedEvent : public Event
         Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
-struct rstEvent : public Event
+struct rstEvent : public Event  // [FIXME - Class naming convention]
 {
     rstEvent() {}
     rstEvent(const Event& ev) :
@@ -1351,25 +1334,22 @@ struct mm_ibtt_status
 };
 ***************************/
 
-/*************************************************************************
- * TCP ROLE INTERFACES
- *************************************************************************
+/*******************************************************************************
+ * TCP APPLICATION INTERFACES
+ *******************************************************************************
  * Terminology & Conventions.
  *  [APP] stands for Application (this is also a synonym for ROLE).
- *************************************************************************/
+ *******************************************************************************/
 
-/***********************************************
- * Application Notification
- *  Indicates that data are available for the
- *  application in the TCP Rx buffer.
- *
- * [FIXME: consider using member 'opened' instead
- *   of 'closed'.]
- * [FIXME: AppNotif could contain a sub-class
- *  'AppRdReq' and a sub-class "SocketPair'.]
- ***********************************************/
-class AppNotif
-{
+//---------------------------------------------------------
+//-- APP - NOTIFICATION
+//--  Indicates that data are available for the
+//--  application in the TCP Rx buffer.
+//--
+//-- [FIXME: consider renaming member 'closed'.]
+//---------------------------------------------------------
+/*** OBSOLETE_20200711 ***
+class AppNotif {
   public:
     SessionId          sessionID;
     TcpSegLen          tcpSegLen;
@@ -1390,14 +1370,16 @@ class AppNotif
              sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
              tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
 };
+*********************/
+typedef TcpAppNotif     AppNotif;
 
-/***********************************************
- * Application Read Request
- *  Used by the application for requesting to
- *  read data from the TCP Rx buffer.
- ***********************************************/
-class AppRdReq
-{
+//---------------------------------------------------------
+//-- APP - READ REAQUEST
+//--  Used by the application to request data from the
+//--  TCP Rx buffer.
+//---------------------------------------------------------
+/*** OBSOLETE_20200711 ***
+class AppRdReq {
   public:
     SessionId   sessionID;
     TcpSegLen   length;
@@ -1405,7 +1387,10 @@ class AppRdReq
     AppRdReq(SessionId id, TcpSegLen len) :
         sessionID(id), length(len) {}
 };
+***************************/
+typedef TcpAppRdReq     AppRdReq;
 
+/*** OBSOLETE_20200711 ***
 struct appReadRequest
 {
 	SessionId   sessionID;
@@ -1415,105 +1400,58 @@ struct appReadRequest
     appReadRequest(SessionId id, ap_uint<16> len) :
         sessionID(id), length(len) {}
 };
+***************************/
 
-//OBSOLETE_20200708 /***********************************************
-//OBSOLETE_20200708  * Application Data
-//OBSOLETE_20200708  *  Data transfered between TOE and APP.
-//OBSOLETE_20200708  ***********************************************/
-//OBSOLETE_20200708 typedef AxiWord     AppData;
-
-//OBSOLETE_20200708 /***********************************************
-//OBSOLETE_20200708  * Application Metadata
-//OBSOLETE_20200708  *  Meta-data transfered between TOE and APP.
-//OBSOLETE_20200708  ***********************************************/
-//OBSOLETE_20200708 typedef TcpSessId   AppMeta;
-
-//OBSOLETE_20200701 class AppMetaAxis : public Axis<cSHL_TOE_SESS_ID_WIDTH> {
-//OBSOLETE_20200701   public:
-//OBSOLETE_20200701     AppMetaAxis() {}
-//OBSOLETE_20200701     AppMetaAxis(AppMeta sessId) :
-//OBSOLETE_20200701         Axis<cSHL_TOE_SESS_ID_WIDTH>(sessId) {}
-//OBSOLETE_20200701 };
-
-/***********************************************
- * Application Write Status
- *  The status returned by TOE after a write
- *  data transfer.
- ***********************************************/
-class AppWrSts  // [TODO- Rename into TcpAppSndSts] 
-{
-public:  // [FIXME - Swap order. status/segLen
+//---------------------------------------------------------
+//-- APP - WRITE STATUS
+//--  Status returned by TOE after a data send transfer.
+//---------------------------------------------------------
+/*** OBSOLETE_20200711 ***
+class AppWrSts {
+public:
     TcpSegLen    segLen;  // The #bytes written or an error code if status==0
     StsBit       status;  // OK=1
     AppWrSts() {}
     AppWrSts(StsBit sts, TcpSegLen len) :
         status(sts), segLen(len) {}
 };
+***************************/
+typedef TcpAppWrSts     AppWrSts;
 
-/***********************************************
- * Application Open Request
- *  The socket address that the application
- *  wants to open.
- *  [FYI] - The 1st element appearing in the class
- *  is aligned on the LSB of the Axis vector.
- ***********************************************/
-//OBSOLETE_20200629 typedef LE_SockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
-typedef SockAddr AppOpnReq;
+//--------------------------------------------------------
+//-- APP - OPEN CONNECTION REQUEST
+//--   The socket address to be opened.
+//--------------------------------------------------------
+typedef SockAddr        AppOpnReq;
 
-/***********************************************
- * Application Open Reply
- *  Information returned by TOE after an open
- *  connection request.
- ***********************************************/
-typedef OpenStatus  AppOpnRep; // [TODO - Rename to Reply]
+//--------------------------------------------------------
+//-- APP - OPEN CONNECTION REPLY
+//--   The status information returned by TOE after opening
+//--   a connection.
+//--------------------------------------------------------
+typedef TcpAppOpnRep    AppOpnRep;
 
-/***********************************************
- * Application Listen Request
- *  The TCP port that the application is willing
- *  to open for listening.
- ***********************************************/
-typedef TcpPort     AppLsnReq;
+//--------------------------------------------------------
+//-- APP - CLOSE CONNECTION REQUEST
+//--  The session-id of the connection to be closed.
+//--------------------------------------------------------
+//OBSOLETE typedef SessionId       AppClsReq;
+typedef TcpAppClsReq    AppClsReq;
 
-/*** OBSOLETE_20200701 ***
-class AppLsnReqAxis : public Axis<cSHL_TOE_LSN_REQ_WIDTH> {
-  public:
-    AppLsnReqAxis() {}
-    AppLsnReqAxis(AppLsnReq req) :
-      Axis<cSHL_TOE_LSN_REQ_WIDTH>(req) {}
-};
-**************************/
+//--------------------------------------------------------
+//-- APP - LISTEN REQUEST
+//--  The TCP port to be opened for listening.
+//--------------------------------------------------------
+typedef TcpPort         AppLsnReq;
 
-/***********************************************
- * Application Listen Acknowledgment
- *  Acknowledge bit returned by TOE after a
- *  TCP listening port request.
- ***********************************************/
-typedef AckBit      AppLsnAck;
+//--------------------------------------------------------
+//-- APP - LISTEN REPLY
+//--  The status returned after a listening port request.
+//--------------------------------------------------------
+typedef AckBit          AppLsnRep;
 
-/*** OBSOLETE_20200701 ***
-class AppLsnAckAxis : public Axis<cSHL_TOE_LSN_ACK_WIDTH> {
-  public:
-    AppLsnAckAxis() {}
-    AppLsnAckAxis(AppLsnAck ack) :
-        Axis<cSHL_TOE_LSN_ACK_WIDTH>(ack) {}
-};
-**************************/
 
-/***********************************************
- * Application Close Request
- *  The socket address that the application
- *  wants to open.
- ***********************************************/
-typedef SessionId   AppClsReq;
 
-/*** OBSOLETE_20200701 ***
-class AppClsReqAxis : public Axis<cSHL_TOE_CLS_REQ_WIDTH> {
-  public:
-    AppClsReqAxis() {}
-    AppClsReqAxis(AppClsReq req) :
-        Axis<cSHL_TOE_CLS_REQ_WIDTH>(req) {}
-};
-**************************/
 
 /***********************************************
  * A 2-to-1 Stream multiplexer.
@@ -1572,31 +1510,31 @@ void toe(
         stream<AxisIp4>                         &soL3MUX_Data,
 
         //------------------------------------------------------
-        //-- TRIF / Tx Data Interfaces
+        //-- TAIF / Rx Segment Interfaces
         //------------------------------------------------------
-        stream<AppNotif>                        &soTRIF_Notif,
-        stream<AppRdReq>                        &siTRIF_DReq,
+        stream<TcpAppNotif>                     &soTAIF_Notif,
+        stream<TcpAppRdReq>                     &siTAIF_DReq,
         stream<TcpAppData>                      &soTAIF_Data,
         stream<TcpAppMeta>                      &soTAIF_Meta,
 
         //------------------------------------------------------
         //-- TRIF / Listen Interfaces
         //------------------------------------------------------
-        stream<AppLsnReq>                       &siTRIF_LsnReq,
-        stream<AppLsnAck>                       &soTRIF_LsnAck,
+        stream<TcpAppLsnReq>                    &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
 
         //------------------------------------------------------
-        //-- TRIF / Rx Data Interfaces
+        //-- TAIF / Tx Segment Interfaces
         //------------------------------------------------------
         stream<TcpAppData>                      &siTRIF_Data,
         stream<TcpAppMeta>                      &siTRIF_Meta,
         stream<AppWrSts>                        &soTRIF_DSts,
 
         //------------------------------------------------------
-        //-- TRIF / Open Interfaces
+        //-- TAIF / Open Connection Interfaces
         //------------------------------------------------------
-        stream<AppOpnReq>                       &siTRIF_OpnReq,
-        stream<AppOpnRep>                       &soTRIF_OpnRep,
+        stream<TcpAppOpnReq>                    &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                    &soTAIF_OpnRep,
 
         //------------------------------------------------------
         //-- TRIF / Close Interfaces

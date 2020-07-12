@@ -42,7 +42,7 @@
 #include "./AxisRaw.hpp"
 
 /******************************************************************************
- * APPlication Data - TCP segment or UDP datagram over AXI4-STREAMING
+ * APPlication Data - TCP segment or UDP datagram over AXI4-STREAM
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
  *******************************************************************************/
 class AxisApp: public AxisRaw {

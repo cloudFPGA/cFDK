@@ -54,7 +54,7 @@ void rx_app_interface(
         stream<SessionId>           &soTRIF_Meta,
         //-- TRIF / Listen Interfaces
         stream<AppLsnReq>           &siTRIF_LsnReq,
-        stream<AppLsnAck>           &soTRIF_LsnAck,
+        stream<AppLsnRep>           &soTRIF_LsnRep,
         //-- PRt / Port Table Interfaces
         stream<TcpPort>             &soPRt_LsnReq,
         stream<AckBit>              &siPRt_LsnAck,

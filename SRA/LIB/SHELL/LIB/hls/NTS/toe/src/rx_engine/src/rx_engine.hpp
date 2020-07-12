@@ -89,25 +89,36 @@ class RXeFsmMeta {
  *
  *******************************************************************************/
 void rx_engine(
-        stream<AxisIp4>                 &siIPRX_Pkt,
-        stream<SessionLookupQuery>      &soSLc_SessLookupReq,
-        stream<SessionLookupReply>      &siSLc_SessLookupRep,
-        stream<StateQuery>              &soSTt_SessStateReq,
-        stream<SessionState>            &siSTt_SessStateRep,
+        // IP Rx Interface
+        stream<AxisIp4>                 &siIPRX_Data,
+        //-- Session Lookup Controller Interface
+        stream<SessionLookupQuery>      &soSLc_SessLkReq,
+        stream<SessionLookupReply>      &siSLc_SessLkRep,
+        //-- State Table Interface
+        stream<StateQuery>              &soSTt_StateQry,
+        stream<SessionState>            &siSTt_StateRep,
+        //-- Port Table Interface
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<RepBit>                  &siPRt_PortStateRep,
+        //-- Rx SAR Table Interface
         stream<RXeRxSarQuery>           &soRSt_RxSarQry,
         stream<RxSarEntry>              &siRSt_RxSarRep,
+        //-- Tx SAR Table Interface
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
         stream<RXeTxSarReply>           &siTSt_TxSarRep,
+        	//-- Timers Interface
         stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
-        stream<ap_uint<16> >            &soTIm_ClearProbeTimer,
-        stream<ap_uint<16> >            &soTIm_CloseTimer,
+        stream<SessionId>               &soTIm_ClearProbeTimer,
+        stream<SessionId>               &soTIm_CloseTimer,
+        //-- Event Engine Interface
         stream<ExtendedEvent>           &soEVe_SetEvent,
+        //-- Tx Application Interface
         stream<OpenStatus>              &soTAi_SessOpnSts,
+        //-- Rx Application Interface
         stream<AppNotif>                &soRAi_RxNotif,
+        //-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
-        stream<AxiWord>                 &soMEM_WrData,
+        stream<AxisApp>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts
 );
 

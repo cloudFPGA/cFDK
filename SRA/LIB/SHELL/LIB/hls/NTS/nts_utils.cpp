@@ -313,6 +313,7 @@ tKeep lenTotKeep(ap_uint<4> noValidBytes) {
  * @param[in]  The 'tkeep' field of the AxisRaw.
  * @return  The number of '1s' that are set (.i.e, the number of valid bytes).
  *******************************************************************************/
+/*** OBSOLETE_20200711 *** (use getLen() instead) ***
 ap_uint<4> keepToLen(ap_uint<8> keepValue) {
     ap_uint<4> count = 0;
     switch(keepValue){
@@ -327,6 +328,7 @@ ap_uint<4> keepToLen(ap_uint<8> keepValue) {
     }
     return count;
 }
+****************************/
 
 /*******************************************************************************
  * @brief Swap the two bytes of a word (.i.e, 16 bits).

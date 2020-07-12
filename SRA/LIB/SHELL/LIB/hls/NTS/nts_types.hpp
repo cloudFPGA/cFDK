@@ -36,6 +36,7 @@
 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
+//#include "./toe/src/toe.hpp"
 
 using namespace hls;
 
@@ -257,13 +258,118 @@ inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
+/*******************************************************************************
+ * NTS INTERNAL - APP
+ *******************************************************************************
+ * This section defines internal types and classes related to the Application
+ * (APP) layer and interfaces.
+ *******************************************************************************/
+
+
+
+
+
+
+/*******************************************************************************
+ * NTS INTERNAL - TAIF / TOE
+ *******************************************************************************
+ * This section defines the interfaces between the TCP Application (TAIF) layer
+ * and the TCP Offload Engine (TOE).
+ *******************************************************************************/
+
+enum TcpOpnSts { FAILED_TO_OPEN_CON=false, CON_IS_OPENED=true };
 
 //========================================================
-//== LAYER-4 -TCP [FIXME-TODO]
+//== TAIF - TYPES and CLASSES USED BY THE CTRL INTERFACES
 //========================================================
+typedef TcpPort     TcpAppLsnReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+typedef StsBool     TcpAppLsnRep;
+typedef SockAddr    TcpAppOpnReq; // The socket address to be opened.
 
+//OBSOLETE typedef OpenStatus  TcpAppOpnRep;
+//--------------------------------------------------------
+//-- APP - OPEN CONNECTION REPLY
+//--  Reports the status (opened/closed) of a connection .
+//--------------------------------------------------------
+class TcpAppOpnRep {
+  public:
+    SessionId    sessionID;
+    TcpOpnSts    success;          // [FIXME - rename this member]
+    TcpAppOpnRep() {}
+    TcpAppOpnRep(SessionId sessId, TcpOpnSts success) :
+        sessionID(sessId), success(success) {}
+};
 
+typedef SessionId   TcpAppClsReq;  // [FIXME-What about creating a class 'AppConReq' with a member 'opn/cls']
+//typedef AppClsRep TcpAppClsRep;  // [FIXME- TODO]
 
+//========================================================
+//== TAIF - TYPES and CLASSES USED BY THE DATA INTERFACES
+//========================================================
+typedef AxisApp     TcpAppData;
+typedef TcpSessId   TcpAppMeta;
+
+//OBSOLETE  typedef AppNotif    TcpAppNotif;
+//---------------------------------------------------------
+//-- APP - RX DATA NOTIFICATION
+//--  Indicates that data are available for the
+//--  application in the TCP Rx buffer.
+//--
+//-- [FIXME: consider renaming member 'closed'.]
+//---------------------------------------------------------
+class TcpAppNotif {
+  public:
+    SessionId          sessionID;
+    TcpSegLen          tcpSegLen;
+    Ip4Addr            ip4SrcAddr;
+    TcpPort            tcpSrcPort;
+    TcpPort            tcpDstPort;
+    bool               closed;
+    TcpAppNotif() {}
+    TcpAppNotif(SessionId  sessId,              bool       closed) :
+        sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+        tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp,      bool       closed) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
+};
+
+//OBSOLETE typedef AppRdReq    TcpAppRdReq;
+//---------------------------------------------------------
+//-- APP - DATA READ REQUEST
+//--  Used by the application to request data from the
+//--  TCP Rx buffer.
+//---------------------------------------------------------
+class TcpAppRdReq {
+  public:
+    SessionId   sessionID;
+    TcpSegLen   length;
+    TcpAppRdReq() {}
+    TcpAppRdReq(SessionId id,  TcpSegLen len) :
+        sessionID(id), length(len) {}
+};
+
+//OBSOLETE typedef AppWrSts    TcpAppWrSts;
+//---------------------------------------------------------
+//-- APP - DATA WRITE STATUS
+//--  Status returned by TOE after a data send transfer.
+//---------------------------------------------------------
+class TcpAppWrSts {
+public:
+    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+    StsBit       status;  // OK=1
+    TcpAppWrSts() {}
+    TcpAppWrSts(StsBit sts, TcpSegLen len) :
+        status(sts), segLen(len) {}
+};
+
+#define TCP_APP_WR_STS_ERROR_NOSPACE        1   // [FIXME - FIND BETTER NAMES]
+#define TCP_APP_WR_STS_ERROR_NOCONNCECTION  2
 
 
 

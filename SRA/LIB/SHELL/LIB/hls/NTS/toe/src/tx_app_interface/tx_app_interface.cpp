@@ -76,7 +76,7 @@ using namespace hls;
  *  This multiplexer behaves like an arbiter. It takes two streams as inputs and
  *   forwards one of them to the output channel. The stream connected to the
  *   first input always takes precedence over the second one.
- * *****************************************************************************/
+ *******************************************************************************/
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,

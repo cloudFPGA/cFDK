@@ -808,7 +808,8 @@ class SimIp4Packet {
                     AxisIp4 newChunk(0, 0, 0);
                     newChunk.setTDataHi(axisUdp.getTDataLo());
                     newChunk.setTKeepHi(axisUdp.getTKeepLo());
-                    byteCnt += keepToLen(axisUdp.getTKeepLo());
+                    //OBSOLETE_20200711 byteCnt += keepToLen(axisUdp.getTKeepLo());
+                    byteCnt += axisUdp.getLenLo();
                     if ((axisUdp.getTLast()) or (byteCnt >= len) ) {
                         newChunk.setTLast(TLAST);
                         done = true;

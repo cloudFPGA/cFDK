@@ -454,7 +454,7 @@ void pMemReader(
  * @brief Listen application interface (Lai)
  *
  * @param[in]  siTRIF_LsnReq,         TCP listen port request from TRIF.
- * @param[out] soTRIF_LsnAck,         TCP listen port acknowledge to TRIF.
+ * @param[out] soTRIF_LsnRep,         TCP listen port reply to TRIF.
  * @param[out] soPRt_LsnReq,          Listen port request to PortTable (PRt).
  * @param[in]  siPRt_LsnAck,          Listen port acknowledge from [PRt].
  *
@@ -532,11 +532,11 @@ void rx_app_interface(
         stream<AppNotif>            &soTRIF_Notif,
         stream<AppRdReq>            &siTRIF_DataReq,
         //-- TRIF / Data Stream Interfaces
-        stream<AxiWord>             &soTRIF_Data,
+        stream<AxisApp>             &soTRIF_Data,
         stream<SessionId>           &soTRIF_Meta,
         //-- TRIF / Listen Interfaces
         stream<AppLsnReq>           &siTRIF_LsnReq,
-        stream<AppLsnAck>           &soTRIF_LsnAck,
+        stream<AppLsnRep>           &soTRIF_LsnRep,
         //-- PRt / Port Table Interfaces
         stream<TcpPort>             &soPRt_LsnReq,
         stream<AckBit>              &siPRt_LsnAck,
@@ -549,7 +549,7 @@ void rx_app_interface(
         stream<RAiRxSarReply>       &siRSt_RxSarRep,
         //-- MEM / DDR4 Memory Interface
         stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxiWord>             &siMEM_RxP_Data)
+        stream<AxisApp>             &siMEM_RxP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -585,7 +585,7 @@ void rx_app_interface(
 
     pLsnAppInterface(
             siTRIF_LsnReq,
-            soTRIF_LsnAck,
+            soTRIF_LsnRep,
             soPRt_LsnReq,
             siPRt_LsnAck);
 

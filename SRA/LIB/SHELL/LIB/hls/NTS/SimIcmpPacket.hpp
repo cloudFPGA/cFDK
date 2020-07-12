@@ -107,14 +107,16 @@ class SimIcmpPacket {
             this->pktQ[this->size()-1].setLE_TLast(0);
         }
         this->pktQ.push_back(icmpChunk);
-        setLen(getLen() + keepToLen(icmpChunk.getLE_TKeep()));
+        //OBSOLETE_20200711 setLen(this->getLen() + keepToLen(icmpChunk.getLE_TKeep()));
+        setLen(this->getLen() + icmpChunk.getLen());
     }
 
     // Return the chunk of bytes at the front of the queue and remove that chunk from the queue
     AxisIcmp pullChunk() {
         AxisIcmp headingChunk = this->front();
         this->pop_front();
-        setLen(getLen() - keepToLen(headingChunk.getLE_TKeep()));
+        //OBSOLETE_20200711 setLen(getLen() - keepToLen(headingChunk.getLE_TKeep()));
+        setLen(getLen() - headingChunk.getLen());
         return headingChunk;
     }
 

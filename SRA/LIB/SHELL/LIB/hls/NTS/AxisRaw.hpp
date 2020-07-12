@@ -160,18 +160,6 @@ class AxisRaw {
     AxisRaw(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 
-    /*** OBSOLETE ***
-    struct axiWord
-    {
-    	ap_uint<64>		data;
-    	ap_uint<8>		keep;
-    	ap_uint<1>		last;
-    	axiWord() {}
-    	axiWord(ap_uint<64>	 data, ap_uint<8> keep, ap_uint<1> last)
-    				: data(data), keep(keep), last(last) {}
-    };
-    *****************/
-
     // Get the length of this chunk (in bytes)
     int getLen() {
         return keepToLen();

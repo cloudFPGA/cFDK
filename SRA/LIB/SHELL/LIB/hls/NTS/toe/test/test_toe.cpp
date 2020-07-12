@@ -72,7 +72,7 @@ const char *camAccessorStrings[] = { "RXe", "TAi" };
 /*******************************************************************************
  * @brief Convert an access CAM initiator into a string.
  *
- * @param[in] initiator The ID of the CAM accessor.
+ * @param[in] initiator  The ID of the CAM accessor.
  * @return the corresponding string.
  *******************************************************************************/
 const char *myCamAccessToString(int initiator) {
@@ -82,9 +82,9 @@ const char *myCamAccessToString(int initiator) {
 /*******************************************************************************
  * @brief Print a socket pair association from an internal FourTuple encoding.
  *
- * @param[in] callerName The name of the caller process (e.g. "TAi").
- * @param[in] source     The source of the internal 4-tuple information.
- * @param[in] fourTuple  The internal 4-tuple encoding of the socket pair.
+ * @param[in] callerName  The name of the caller process (e.g. "TAi").
+ * @param[in] source      The source of the internal 4-tuple information.
+ * @param[in] fourTuple   The internal 4-tuple encoding of the socket pair.
  *******************************************************************************/
 void printFourTuple(const char *callerName, int src, FourTuple fourTuple) {
     SocketPair socketPair;
@@ -184,7 +184,6 @@ void pEmulateCam(
             cam_fsmState = CAM_WAIT_4_REQ;
         }
         break;
-
     case CAM_UPDATE_REP:
         //-- Wait some cycles to match the co-simulation --
         if (cam_updateIdleCnt > 0) {
@@ -226,17 +225,15 @@ void pEmulateCam(
  * @param[out]    soTOE_RxP_WrSts A ref to the write status stream to [TOE].
  * @param[in]     siTOE_RxP_RdCmd A ref to the read command stream from [TOE].
  * @param[out]    soTOE_RxP_Data  A ref to the data stream to [TOE].
- *
- * @ingroup toe
- ******************************************************************************/
+ *******************************************************************************/
 void pEmulateRxBufMem(
         DummyMemory         *memory,
         int                 &nrError,
         stream<DmCmd>       &siTOE_RxP_WrCmd,
-        stream<AxiWord>     &siTOE_RxP_Data,
+        stream<AxisApp>     &siTOE_RxP_Data,
         stream<DmSts>       &soTOE_RxP_WrSts,
         stream<DmCmd>       &siTOE_RxP_RdCmd,
-        stream<AxiWord>     &soTOE_RxP_Data)
+        stream<AxisApp>     &soTOE_RxP_Data)
 {
     const char *myName  = concat3(THIS_NAME, "/", "RXMEM");
 
@@ -255,10 +252,10 @@ void pEmulateRxBufMem(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     DmSts    dmSts;     // Data Mover Status
 
-    AxiWord  tmpInWord  = AxiWord(0, 0, 0);
-    AxiWord  inWord     = AxiWord(0, 0, 0);
-    AxiWord  outWord    = AxiWord(0, 0, 0);
-    AxiWord  tmpOutWord = AxiWord(0, 0, 0);
+    AxisApp  tmpInChunk  = AxisApp(0, 0, 0);
+    AxisApp  inChunk     = AxisApp(0, 0, 0);
+    AxisApp  outChunk    = AxisApp(0, 0, 0);
+    AxisApp  tmpOutChunk = AxisApp(0, 0, 0);
 
     //-----------------------------------------------------
     //-- MEMORY WRITE PROCESS
@@ -286,11 +283,12 @@ void pEmulateRxBufMem(
         }
         else if (!siTOE_RxP_Data.empty()) {
             //-- Data Memory Write Transfer ---------------
-            siTOE_RxP_Data.read(tmpInWord);
-            inWord = tmpInWord;
-            memory->writeWord(inWord);
-            rxmem_wrCounter += keepToLen(inWord.tkeep);
-            if ((inWord.tlast) || (rxmem_wrCounter == rxmem_noBytesToWrite)) {
+            siTOE_RxP_Data.read(tmpInChunk);
+            inChunk = tmpInChunk;
+            memory->writeChunk(inChunk);
+            //OBSOLETE_20200711 rxmem_wrCounter += keepToLen(inChunk.tkeep);
+            rxmem_wrCounter += inChunk.getLen();
+            if (inChunk.getTLast() or (rxmem_wrCounter == rxmem_noBytesToWrite)) {
                 rxmem_wrIdleCnt  = MEM_WR_STS_LATENCY;
                 rxmem_WrState    = MWR_STS;
             }
@@ -321,7 +319,6 @@ void pEmulateRxBufMem(
             rxmem_WrState = WAIT_4_WR_CMD;
         }
         break;
-
     } // End of: switch (rxmem_WrState)
 
     //-----------------------------------------------------
@@ -350,11 +347,12 @@ void pEmulateRxBufMem(
         }
         else if (!soTOE_RxP_Data.full()) {
             // Data Memory Read Transfer
-            memory->readWord(tmpOutWord);
-            outWord = tmpOutWord;
-            rxmem_rdCounter += keepToLen(outWord.tkeep);
-            soTOE_RxP_Data.write(outWord);
-            if ((outWord.tlast) || (rxmem_rdCounter == rxmem_noBytesToRead)) {
+            memory->readChunk(tmpOutChunk);
+            outChunk = tmpOutChunk;
+            //OBSOLETE_20200711 rxmem_rdCounter += keepToLen(outChunk.tkeep);
+            rxmem_rdCounter += outChunk.getLen();
+            soTOE_RxP_Data.write(outChunk);
+            if ((outChunk.tlast) or (rxmem_rdCounter == rxmem_noBytesToRead)) {
                 rxmem_rdIdleCnt = MEM_RD_STS_LATENCY;
                 rxmem_RdState   = MRD_STS;
             }
@@ -387,10 +385,10 @@ void pEmulateTxBufMem(
         DummyMemory         *memory,
         int                 &nrError,
         stream<DmCmd>       &siTOE_TxP_WrCmd,
-        stream<AxiWord>     &siTOE_TxP_Data,
+        stream<AxisApp>     &siTOE_TxP_Data,
         stream<DmSts>       &soTOE_TxP_WrSts,
         stream<DmCmd>       &siTOE_TxP_RdCmd,
-        stream<AxiWord>     &soTOE_TxP_Data)
+        stream<AxisApp>     &soTOE_TxP_Data)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TXMEM");
 
@@ -407,10 +405,10 @@ void pEmulateTxBufMem(
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     DmSts    dmSts;     // Data Mover Status
-    AxiWord  tmpInWord  = AxiWord(0, 0, 0);
-    AxiWord  inWord     = AxiWord(0, 0, 0);
-    AxiWord  outWord    = AxiWord(0, 0, 0);
-    AxiWord  tmpOutWord = AxiWord(0, 0, 0);
+    AxisApp  tmpInChunk  = AxisApp(0, 0, 0);
+    AxisApp  inChunk     = AxisApp(0, 0, 0);
+    AxisApp  outChunk    = AxisApp(0, 0, 0);
+    AxisApp  tmpOutChunk = AxisApp(0, 0, 0);
 
     //-----------------------------------------------------
     //-- MEMORY WRITE PROCESS
@@ -438,11 +436,11 @@ void pEmulateTxBufMem(
         }
         else if (!siTOE_TxP_Data.empty()) {
             //-- Data Memory Write Transfer ---------------
-            siTOE_TxP_Data.read(tmpInWord);
-            inWord = tmpInWord;
-            memory->writeWord(inWord);
-            txmem_wrCounter += keepToLen(inWord.tkeep);
-            if ((inWord.tlast) || (txmem_wrCounter == txmem_noBytesToWrite)) {
+            siTOE_TxP_Data.read(tmpInChunk);
+            inChunk = tmpInChunk;
+            memory->writeChunk(inChunk);
+            txmem_wrCounter += inChunk.getLen();
+            if ((inChunk.tlast) || (txmem_wrCounter == txmem_noBytesToWrite)) {
                 txmem_wrIdleCnt  = MEM_WR_STS_LATENCY;
                 txmem_WrState    = MWR_STS;
             }
@@ -500,11 +498,11 @@ void pEmulateTxBufMem(
         }
         else if (!soTOE_TxP_Data.full()) {
             // Data Memory Read Transfer
-            memory->readWord(tmpOutWord);
-            outWord = tmpOutWord;
-            txmem_rdCounter += keepToLen(outWord.tkeep);
-            soTOE_TxP_Data.write(outWord);
-            if ((outWord.tlast) || (txmem_rdCounter == txmem_noBytesToRead)) {
+            memory->readChunk(tmpOutChunk);
+            outChunk = tmpOutChunk;
+            txmem_rdCounter += outChunk.getLen();
+            soTOE_TxP_Data.write(outChunk);
+            if ((outChunk.tlast) || (txmem_rdCounter == txmem_noBytesToRead)) {
                 txmem_rdIdleCnt = MEM_RD_STS_LATENCY;
                 txmem_RdState   = MRD_STS;
             }
@@ -1266,7 +1264,7 @@ void pL3MUX(
                     l3mux_ipTxPacket.writeTcpDataToDatFile(ipTxFile2);
                 }
             }
-            // Clear the word counter and the received IP packet
+            // Clear the chunk counter and the received IP packet
             ipTxChunkCounter = 0;
             //OBSOLETE_20200706 l3mux_ipTxPacket.clear();
             // Re-initialize the RTT counter
@@ -1301,50 +1299,50 @@ bool pTcpAppListen(
         TcpPort             lsnPortNum,
         set<TcpPort>       &openedPorts,
         stream<AppLsnReq>  &soTOE_LsnReq,
-        stream<AppLsnAck>  &siTOE_LsnAck)
+        stream<AppLsnRep>  &siTOE_LsnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "Tal");
 
     //-- STATIC VARIABLES ------------------------------------------------------
-    static ap_uint<1> lsn_fsmState = 0;
-    static TcpPort    lsn_portNum;
-    static int        lsn_watchDogTimer = 100;
+    static ap_uint<1> tal_fsmState = 0;
+    static TcpPort    tal_portNum;
+    static int        tal_watchDogTimer = 100;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AckBit            rc = NO_ACK;
 
-    switch (lsn_fsmState) {
+    switch (tal_fsmState) {
     case 0:
-        lsn_portNum = lsnPortNum;
-        soTOE_LsnReq.write(lsn_portNum);
+        tal_portNum = lsnPortNum;
+        soTOE_LsnReq.write(tal_portNum);
         if (DEBUG_LEVEL & TRACE_Tal) {
             printInfo(myName, "Request to listen on port %d (0x%4.4X).\n",
-                      lsn_portNum.to_uint(), lsn_portNum.to_uint());
+                      tal_portNum.to_uint(), tal_portNum.to_uint());
         }
-        lsn_watchDogTimer = 100;
-        lsn_fsmState++;
+        tal_watchDogTimer = 100;
+        tal_fsmState++;
         break;
     case 1:
-        lsn_watchDogTimer--;
-        if (!siTOE_LsnAck.empty()) {
-            siTOE_LsnAck.read(rc);
+        tal_watchDogTimer--;
+        if (!siTOE_LsnRep.empty()) {
+            siTOE_LsnRep.read(rc);
             if (rc) {
                 // Add the current port # to the set of opened ports
-                openedPorts.insert(lsn_portNum);
+                openedPorts.insert(tal_portNum);
                 printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
-                          lsn_portNum.to_uint(), lsn_portNum.to_uint());
+                          tal_portNum.to_uint(), tal_portNum.to_uint());
             }
             else {
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
-                          lsn_portNum.to_uint(), lsn_portNum.to_uint());
+                          tal_portNum.to_uint(), tal_portNum.to_uint());
             }
-            lsn_fsmState = 0;
+            tal_fsmState = 0;
         }
         else {
-            if (lsn_watchDogTimer == 0) {
+            if (tal_watchDogTimer == 0) {
                 printError(myName, "Timeout: Failed to listen on port %d (0x%4.4X).\n",
-                           lsn_portNum.to_uint(), lsn_portNum.to_uint());
-                lsn_fsmState = 0;
+                           tal_portNum.to_uint(), tal_portNum.to_uint());
+                tal_fsmState = 0;
             }
         }
         break;
@@ -1534,7 +1532,7 @@ void pTcpAppRecv(
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
         stream<AppLsnReq>       &soTOE_LsnReq,
-        stream<AppLsnAck>       &siTOE_LsnAck,
+        stream<AppLsnRep>       &siTOE_LsnRep,
         stream<AppNotif>        &siTOE_Notif,
         stream<AppRdReq>        &soTOE_DReq,
         stream<TcpAppData>      &siTOE_Data,
@@ -1583,7 +1581,7 @@ void pTcpAppRecv(
                 gFpgaLsnPort,
                 tar_listeningPorts,
                 soTOE_LsnReq,
-                siTOE_LsnAck);
+                siTOE_LsnRep);
         if (listenStatus == false) {
             return;
         }
@@ -2017,7 +2015,7 @@ void pTcpApplicationInterface(
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
         stream<AppLsnReq>       &soTOE_LsnReq,
-        stream<AppLsnAck>       &siTOE_LsnAck,
+        stream<AppLsnRep>       &siTOE_LsnRep,
         stream<AppNotif>        &siTOE_Notif,
         stream<AppRdReq>        &soTOE_DReq,
         stream<TcpAppData>      &siTOE_Data,
@@ -2070,7 +2068,7 @@ void pTcpApplicationInterface(
             appTxBytCntr,
             piTOE_Ready,
             soTOE_LsnReq,
-            siTOE_LsnAck,
+            siTOE_LsnRep,
             siTOE_Notif,
             soTOE_DReq,
             siTOE_Data,
@@ -2149,7 +2147,7 @@ int main(int argc, char *argv[]) {
     stream<TcpAppMeta>                  ssTOE_TAIF_Meta      ("ssTOE_TAIF_Meta");
 
     stream<AppLsnReq>                   ssTAIF_TOE_LsnReq    ("ssTAIF_TOE_LsnReq");
-    stream<AppLsnAck>                   ssTOE_TAIF_LsnAck    ("ssTOE_TAIF_LsnAck");
+    stream<AppLsnRep>                   ssTOE_TAIF_LsnRep    ("ssTOE_TAIF_LsnRep");
 
     stream<AppOpnReq>                   ssTAIF_TOE_OpnReq    ("ssTAIF_TOE_OpnReq");
     stream<AppOpnRep>                   ssTOE_TAIF_OpnRep    ("ssTOE_TAIF_OpnRep");
@@ -2159,16 +2157,16 @@ int main(int argc, char *argv[]) {
     stream<AppClsReq>                   ssTAIF_TOE_ClsReq    ("ssTAIF_TOE_ClsReq");
 
     stream<DmCmd>                       ssTOE_MEM_RxP_RdCmd  ("ssTOE_MEM_RxP_RdCmd");
-    stream<AxiWord>                     ssMEM_TOE_RxP_Data   ("ssMEM_TOE_RxP_Data");
+    stream<AxisApp>                     ssMEM_TOE_RxP_Data   ("ssMEM_TOE_RxP_Data");
     stream<DmSts>                       ssMEM_TOE_RxP_WrSts  ("ssMEM_TOE_RxP_WrSts");
     stream<DmCmd>                       ssTOE_MEM_RxP_WrCmd  ("ssTOE_MEM_RxP_WrCmd");
-    stream<AxiWord>                     ssTOE_MEM_RxP_Data   ("ssTOE_MEM_RxP_Data");
+    stream<AxisApp>                     ssTOE_MEM_RxP_Data   ("ssTOE_MEM_RxP_Data");
 
     stream<DmCmd>                       ssTOE_MEM_TxP_RdCmd  ("ssTOE_MEM_TxP_RdCmd");
-    stream<AxiWord>                     ssMEM_TOE_TxP_Data   ("ssMEM_TOE_TxP_Data");
+    stream<AxisApp>                     ssMEM_TOE_TxP_Data   ("ssMEM_TOE_TxP_Data");
     stream<DmSts>                       ssMEM_TOE_TxP_WrSts  ("ssMEM_TOE_TxP_WrSts");
     stream<DmCmd>                       ssTOE_MEM_TxP_WrCmd  ("ssTOE_MEM_TxP_WrCmd");
-    stream<AxiWord>                     ssTOE_MEM_TxP_Data   ("ssTOE_MEM_TxP_Data");
+    stream<AxisApp>                     ssTOE_MEM_TxP_Data   ("ssTOE_MEM_TxP_Data");
 
     stream<CamSessionLookupRequest>     ssTOE_CAM_SssLkpReq  ("ssTOE_CAM_SssLkpReq");
     stream<CamSessionLookupReply>       ssCAM_TOE_SssLkpRep  ("ssCAM_TOE_SssLkpRep");
@@ -2186,8 +2184,8 @@ int main(int argc, char *argv[]) {
     ap_uint<32>     sTOE_TB_SimCycCnt;
     int             nrErr;
 
-    AxiWord         ipRxData;    // An IP4 chunk
-    AxiWord         tcpTxData;   // A  TCP chunk
+    AxisIp4         ipRxData;    // An IP4 chunk
+    AxisApp         tcpTxData;   // A  TCP chunk
 
     ap_uint<16>     opnSessionCount;
     ap_uint<16>     clsSessionCount;
@@ -2357,35 +2355,52 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         toe(
             //-- MMIO Interfaces
-            (LE_Ip4Addr)(byteSwap32(gFpgaIp4Addr)),    // [TODO]
+            gFpgaIp4Addr,
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Interfaces
-            ssIPRX_TOE_Data,   ssTOE_L3MUX_Data,
-            //-- TRIF / Tx Data Interfaces
-            ssTOE_TAIF_Notif,  ssTAIF_TOE_DReq,
-            ssTOE_TAIF_Data,   ssTOE_TAIF_Meta,
-            //-- TRIF / Listen Interfaces
-            ssTAIF_TOE_LsnReq, ssTOE_TAIF_LsnAck,
-            //-- TRIF / Rx Data Interfaces
-            ssTAIF_TOE_Data,   ssTAIF_TOE_Meta,
+            ssIPRX_TOE_Data,
+            ssTOE_L3MUX_Data,
+            //-- TAIF / Rx Segment Interfaces
+            ssTOE_TAIF_Notif,
+            ssTAIF_TOE_DReq,
+            ssTOE_TAIF_Data,
+            ssTOE_TAIF_Meta,
+            //-- TARIF / Listen Port Interfaces
+            ssTAIF_TOE_LsnReq,
+            ssTOE_TAIF_LsnRep,
+            //-- TAIF / Tx Segment Interfaces
+            ssTAIF_TOE_Data,
+            ssTAIF_TOE_Meta,
             ssTOE_TAIF_DSts,
-            //-- TRIF / Open Interfaces
+            //-- TRIF / Open Connection Interfaces
             ssTAIF_TOE_OpnReq,
             ssTOE_TAIF_OpnRep,
             //-- TRIF / Close Interfaces
             ssTAIF_TOE_ClsReq,
+            //-- [TODO] &soTRIF_ClsSts,
             //-- MEM / Rx PATH / S2MM Interface
-            ssTOE_MEM_RxP_RdCmd, ssMEM_TOE_RxP_Data, ssMEM_TOE_RxP_WrSts, ssTOE_MEM_RxP_WrCmd, ssTOE_MEM_RxP_Data,
-            ssTOE_MEM_TxP_RdCmd, ssMEM_TOE_TxP_Data, ssMEM_TOE_TxP_WrSts, ssTOE_MEM_TxP_WrCmd, ssTOE_MEM_TxP_Data,
-            //-- CAM / This / Session Lookup & Update Interfaces
-            ssTOE_CAM_SssLkpReq, ssCAM_TOE_SssLkpRep,
-            ssTOE_CAM_SssUpdReq, ssCAM_TOE_SssUpdRep,
+            ssTOE_MEM_RxP_RdCmd,
+            ssMEM_TOE_RxP_Data,
+            ssMEM_TOE_RxP_WrSts,
+            ssTOE_MEM_RxP_WrCmd,
+            ssTOE_MEM_RxP_Data,
+            //-- MEM / Tx PATH / S2MM Interface
+            ssTOE_MEM_TxP_RdCmd,
+            ssMEM_TOE_TxP_Data,
+            ssMEM_TOE_TxP_WrSts,
+            ssTOE_MEM_TxP_WrCmd,
+            ssTOE_MEM_TxP_Data,
+            //-- CAM / Session Lookup & Update Interfaces
+            ssTOE_CAM_SssLkpReq,
+            ssCAM_TOE_SssLkpRep,
+            ssTOE_CAM_SssUpdReq,
+            ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
-            clsSessionCount, opnSessionCount,
+            clsSessionCount,
+            opnSessionCount,
             //-- DEBUG / SimCycCounter
             sTOE_TB_SimCycCnt);
-
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
@@ -2437,7 +2452,7 @@ int main(int argc, char *argv[]) {
             apTx_TcpBytCntr,
             sTOE_ReadyDly,
             ssTAIF_TOE_LsnReq,
-            ssTOE_TAIF_LsnAck,
+            ssTOE_TAIF_LsnRep,
             ssTOE_TAIF_Notif,
             ssTAIF_TOE_DReq,
             ssTOE_TAIF_Data,
@@ -2453,11 +2468,11 @@ int main(int argc, char *argv[]) {
             AppWrSts wrStatus = ssTOE_TAIF_DSts.read();
             if (wrStatus.status != STS_OK) {
                 switch (wrStatus.segLen) {
-                case ERROR_NOCONNCECTION:
+                case TCP_APP_WR_STS_ERROR_NOCONNCECTION:
                     printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
                     nrErr++;
                     break;
-                case ERROR_NOSPACE:
+                case TCP_APP_WR_STS_ERROR_NOSPACE:
                     printError(THIS_NAME, "Attempt to write data for a session which Tx buffer id full.\n");
                     nrErr++;
                     break;

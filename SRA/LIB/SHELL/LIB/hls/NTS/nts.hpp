@@ -37,20 +37,21 @@ using namespace hls;
 
 
 /**********************************************************
- * INTERFACE - UDP APPLICATION INTERFACE (UAIF)
- **********************************************************/
-typedef AxisApp      UdpAppData;
-typedef SocketPair   UdpAppMeta;
-typedef UdpLen       UdpAppDLen;
-
-/**********************************************************
  * INTERFACE - TCP APPLICATION INTERFACE (TAIF)
  **********************************************************/
-typedef AxisApp      TcpAppData;
-typedef TcpSessId    TcpAppMeta;
 
-#define ERROR_NOSPACE        1   // [FIXME - FIND BETTER NAME]
-#define ERROR_NOCONNCECTION  2
+
+/**********************************************************
+ * INTERFACE - UDP APPLICATION INTERFACE (UAIF)
+ **********************************************************/
+//-- UAIF / Control Interfaces
+typedef UdpPort     UdpAppLsnReq;
+typedef StsBool     UdpAppLsnRep;
+typedef UdpPort     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+//-- UAIF / Datagram Interfaces
+typedef AxisApp     UdpAppData;
+typedef SocketPair  UdpAppMeta;
+typedef UdpLen      UdpAppDLen;
 
 
 /*******************************************************************************
@@ -61,20 +62,53 @@ typedef TcpSessId    TcpAppMeta;
 void nts(
 
         //------------------------------------------------------
-        //-- UAIF / Control Port Interfaces
+        //-- TAIF / Received Segment Interfaces
         //------------------------------------------------------
-        stream<UdpPort>         &siUAIF_LsnReq,
-        stream<StsBool>         &soUAIF_LsnRep,
-        stream<UdpPort>         &siUAIF_ClsReq,
+        stream<TcpAppNotif>     &soTAIF_Notif,
+        stream<TcpAppRdReq>     &siTAIF_DReq,
+        stream<TcpAppData>      &soTAIF_Data,
+        stream<TcpAppMeta>      &soTAIF_Meta,
 
         //------------------------------------------------------
-        //-- UAIF / Rx Data Interfaces
+        //-- TAIF / Listen Port Interfaces
+        //------------------------------------------------------
+        stream<TcpAppLsnReq>    &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>    &soTAIF_LsnRep,
+
+        //------------------------------------------------------
+        //-- TAIF / Transmit Segment Interfaces
+        //------------------------------------------------------
+        stream<TcpAppData>      &siTAIF_Data,
+        stream<TcpAppMeta>      &siTAIF_Meta,
+        stream<TcpAppWrSts>     &soTAIF_DSts,
+
+        //------------------------------------------------------
+        //-- TAIF / Open Connection Interfaces
+        //------------------------------------------------------
+        stream<TcpAppOpnReq>    &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>    &soTAIF_OpnRep,
+
+        //------------------------------------------------------
+        //-- TAIF / Close Connection Interfaces
+        //------------------------------------------------------
+        stream<TcpAppClsReq>    &siTAIF_ClsReq,
+        //-- Not USed           &soTAIF_ClsSts,
+
+        //------------------------------------------------------
+        //-- UAIF / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpAppLsnReq>    &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>    &soUAIF_LsnRep,
+        stream<UdpAppClsReq>    &siUAIF_ClsReq,
+
+        //------------------------------------------------------
+        //-- UAIF / Received Datagram Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
 
         //------------------------------------------------------
-        //-- UAIF / Tx Data Interfaces
+        //-- UAIF / Transmit Datatagram Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &siUAIF_Data,
         stream<UdpAppMeta>      &siUAIF_Meta,
