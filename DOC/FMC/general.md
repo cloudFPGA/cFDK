@@ -178,6 +178,9 @@ All global variables are marked as `#pragma HLS reset`.
 | `target_http_nl_cnt`         |  `OP_TCP_RX_STOP_ON_EOR`, `OP_TCP_RX_STOP_ON_EOP` | holds the target count of HTTP newlines for that the TCP RX FSM should wait (1 = End-of-Request, 2 = End-of-Payload )  |
 | `tcp_rx_blocked_by_processing` | `OP_FILL_BUFFER_TCP` | Indicates if the TCP RX FSM is blocked because the `bufferInPtrNextRead` would be within the next write. |
 | `bufferInMaxWrite_old_iteration` | `OP_BUFFER_TO_HWICAP` | if the TCP RX FSM makes a wrap around (i.e. it starts writing again in the beginning of the buffer), the old `bufferInPtrMaxWrite` is saved, in case another operation is needing it.  |
+| `tcp_words_received`    |   | Number of network words (i.e. 8 Bytes) received during ongoing TCP operation. Counter is reset if new TCP operation is started |
+| `hwicap_waiting_for_tcp` |   | Signal to avoid mutual blocking/waiting of TCP receive and processing  |
+
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
 
@@ -322,8 +325,7 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 
 | Bytes | Description |
 |:------|:-------------|
-| 0 -- 23| Total Number of Words (i.e. 4 Bytes) written to HWICAP during partial reconfiguration|
-| 24 -- 27| unused|
+| 0 -- 27| Total Number of Words (i.e. 4 Bytes) written to HWICAP during partial reconfiguration|
 
 
 ###### Display 6
@@ -347,5 +349,19 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 | 12 -- 15 | `fsmTcpData_TX` |
 | 16 -- 23 | `tcp_iteration_count` (i.e. counts how many HTTP requests via TCP were processed) |
 | 24 -- 27 | `detected_http_nl_cnt` |
+
+
+###### Display 8
+
+| Bytes | Description |
+|:------|:-------------|
+| 0 -- 27 | Total Number of network words (i.e. 8 Bytes) received during the ongoing TCP operation |
+
+
+###### Display 9
+
+| Bytes | Description |
+|:------|:-------------|
+| 0 -- 27 | `bufferInPtrMaxWrite` |
 
 
