@@ -362,6 +362,8 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 
 | Bytes | Description |
 |:------|:-------------|
-| 0 -- 27 | `bufferInPtrMaxWrite` |
+| 0 -- 15 | `bufferInPtrMaxWrite` |
+| 16 -- 23 | Number iterations with an *nearly full HWICAP FIFO* (see WFV register from the HWICAP)|
+| 24 -- 27 | unused |
 
 
