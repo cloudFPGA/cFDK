@@ -160,49 +160,49 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #
 #if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Data_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
-#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} CONFIG.Input_Depth {131072} CONFIG.Output_Depth {131072} CONFIG.Data_Count_Width {17} CONFIG.Write_Data_Count_Width {17} CONFIG.Read_Data_Count_Width {17} CONFIG.Full_Threshold_Assert_Value {131056} CONFIG.Full_Threshold_Negate_Value {131055}]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Keep_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
-#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} CONFIG.Input_Depth {131072} CONFIG.Output_Depth {131072} CONFIG.Data_Count_Width {17} CONFIG.Write_Data_Count_Width {17} CONFIG.Read_Data_Count_Width {17} CONFIG.Full_Threshold_Assert_Value {131056} CONFIG.Full_Threshold_Negate_Value {131055}]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Last_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
-#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1}  CONFIG.Input_Depth {131072} CONFIG.Output_Depth {131072} CONFIG.Data_Count_Width {17} CONFIG.Write_Data_Count_Width {17} CONFIG.Read_Data_Count_Width {17} CONFIG.Full_Threshold_Assert_Value {131056} CONFIG.Full_Threshold_Negate_Value {131055} ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Data_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Keep_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Last_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : NRC IP

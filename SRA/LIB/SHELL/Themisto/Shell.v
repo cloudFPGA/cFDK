@@ -1666,7 +1666,8 @@ module Shell_Themisto # (
     .poROLE_size_V                       (poDCP_ROL_Fmc_Size)
   );
 
-  FifoNetwork_Data FIFO_DD_0 (
+  //FifoNetwork_Data FIFO_DD_0 (
+  FifoNetwork_Data_Large FIFO_DD_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tdata_V_din    ),
@@ -1677,7 +1678,8 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_NRC_Tcp_Data_tdata_V_read   )
   );
   
-  FifoNetwork_Keep FIFO_DK_0 (
+  //FifoNetwork_Keep FIFO_DK_0 (
+  FifoNetwork_Keep_Large FIFO_DK_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tkeep_V_din    ),
@@ -1688,7 +1690,8 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_NRC_Tcp_Data_tkeep_V_read   )
   );
 
-  FifoNetwork_Last FIFO_DL_0 (
+  //FifoNetwork_Last FIFO_DL_0 (
+  FifoNetwork_Last_Large FIFO_DL_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tlast_V_din    ),
@@ -1998,9 +2001,6 @@ module Shell_Themisto # (
     .s_axi_piFMC_NRC_ctrlLink_AXI_BRESP     (ssFMC_NRC_ctrlLink_Axi_BRESP)
 );
 
-
-  // == propagate constans as long as Decouling is not updated
-  //assign sDECOUP_FMC_status = 0;
 
   // -- UDP AXIS Slices ---
   AxisRegisterSlice_64 SARS0 (
