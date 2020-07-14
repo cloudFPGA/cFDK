@@ -24,48 +24,56 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : rx_app_interface.hpp
- * @brief      : Rx Application Interface (RAi)
+ * @brief      : Rx Application Interface (RAi) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- * @details    : Data structures, types and prototypes definitions for the
- *               Rx Application Interface.
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#include "../toe.hpp"
+#ifndef _TOE_RAI_H_
+#define _TOE_RAI_H_
+
+#include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 
-/*****************************************************************************
- * @brief   Main process of the Rx Application Interface (RAi).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Rx Application Interface (RAi)
+ *
+ *******************************************************************************/
 void rx_app_interface(
-        //-- TRIF / Handshake Interfaces
-        stream<AppNotif>            &soTRIF_Notif,
-        stream<AppRdReq>            &siTRIF_DataReq,
-        //-- TRIF / Data Stream Interfaces
-        stream<AxiWord>             &soTRIF_Data,
-        stream<SessionId>           &soTRIF_Meta,
-        //-- TRIF / Listen Interfaces
-        stream<AppLsnReq>           &siTRIF_LsnReq,
-        stream<AppLsnRep>           &soTRIF_LsnRep,
+        //-- TAIF /  Rx Segment Interfaces
+        stream<TcpAppNotif>         &soTAIF_Notif,
+        stream<TcpAppRdReq>         &siTAIF_DataReq,
+        stream<TcpAppData>          &soTAIF_Data,
+        stream<TcpAppMeta>          &soTAIF_Meta,
+        //-- TAIF / Listen Interfaces
+        stream<TcpAppLsnReq>        &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>        &soTAIF_LsnRep,
         //-- PRt / Port Table Interfaces
         stream<TcpPort>             &soPRt_LsnReq,
         stream<AckBit>              &siPRt_LsnAck,
         //-- RXe / Rx Engine Notification Interface
-        stream<AppNotif>            &siRXe_Notif,
+        stream<TcpAppNotif>         &siRXe_Notif,
         //-- TIm / Timers Notification Interface
-        stream<AppNotif>            &siTIm_Notif,
+        stream<TcpAppNotif>         &siTIm_Notif,
         //-- Rx SAR Table Interface
         stream<RAiRxSarQuery>       &soRSt_RxSarReq,
         stream<RAiRxSarReply>       &siRSt_RxSarRep,
         //-- MEM / DDR4 Memory Interface 
         stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxiWord>             &siMEM_RxP_Data
+        stream<AxisApp>             &siMEM_RxP_Data
 );
+
+#endif
+
+/*! \} */

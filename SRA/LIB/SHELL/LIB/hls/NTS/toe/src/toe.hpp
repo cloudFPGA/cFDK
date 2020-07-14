@@ -208,9 +208,9 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 
 
 
-/*************************************************************************
+/*******************************************************************************
  * GLOBAL DEFINES and GENERIC TYPES
- *************************************************************************/
+ *******************************************************************************/
 #define cIP4_ADDR_WIDTH            32
 
 #define cTCP_PORT_WIDTH            16
@@ -227,75 +227,15 @@ typedef ap_uint<cSHL_TOE_LSN_REQ_WIDTH> LsnReq;
 typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
 typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 
-
-/*********************************************
- * SOME QUERY, STATUS AND COMMAND DEFINITIONS
- *********************************************/
-#define NTS_OK    1
-#define NTS_KO    0
-#define OK        NTS_OK
-#define KO        NTS_KO
-
-#define CMD_INIT  1
-#define CMD_DROP  1
-#define CMD_KEEP  0
-
-#define QUERY_RD              0
-#define QUERY_WR              1
-#define QUERY_INIT            1
-#define QUERY_FAST_RETRANSMIT true
-
-#define FLAG_OFF    0
-#define FLAG_ON     1
-
-#define STS_OK      1
-#define STS_KO      0
-#define STS_OPENED  1
-#define STS_CLOSED  0
-
-#define ACK_ON      1
-#define NO_ACK      0
-
-/********************************************
- * SINGLE BIT DEFINITIONS
- ********************************************/
-/*** OBSOLETE_20200711 ***
-typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
-typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
-typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
-typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
-
-typedef bool AckBool;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-typedef bool CmdBool;  // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-typedef bool FlagBool; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
-typedef bool ReqBool;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-typedef bool RepBool;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-typedef bool RspBool;  // Response   : Used when a reply does not go back to the source of the stimulus.
-typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
-*******************/
-
-/********************************************
+/*******************************************************************************
  * GENERAL ENUMERATIONS
- ********************************************/
+ *
+ *  WARNING ABOUT ENUMERATIONS:
+ *   Avoid using 'enum' for boolean variables because scoped enums are only
+ *   available with -std=c++.
+ *    E.g.: enum PortState : bool { CLOSED_PORT=false, OPENED_PORT=true };
+ *******************************************************************************/
 
-// WARNING ABOUT ENUMERATIONS:
-//   Avoid using 'enum' for boolean variables because scoped enums are only available with -std=c++
-//   E.g.: enum PortState : bool {CLOSED_PORT = false, OPENED_PORT = true};
-
-/*
- * There is no explicit LISTEN state
- * CLOSE-WAIT state is not used, since the FIN is sent out immediately after we receive a FIN, the application is simply notified
- * FIN_WAIT_2 is also unused
- * LISTEN is merged into CLOSED
- */
 
 enum notificationType {PKG, CLOSE, TIME_OUT, RESET};
 enum { WORD_0,  WORD_1,   WORD_2,  WORD_3,  WORD_4,  WORD_5 };
@@ -313,10 +253,11 @@ enum { CHUNK_0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
 * !before() >=
 *
 */
-static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
-    return (ap_int<32>)(seq1-seq2) < 0;
-}
-#define after(seq2, seq1)       before(seq1, seq2)
+//static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
+//    return (ap_int<32>)(seq1-seq2) < 0;
+//}
+//#define after(seq2, seq1)       before(seq1, seq2)
+
 
 #define TLAST       1
 
@@ -339,96 +280,97 @@ typedef ap_uint< 1> tLast;
  *  the 'tkeep' field, while the assertion of the
  *  'tlast' bit indicates the end of a stream.
  ************************************************/
-class AxiWord {  // [TODO - Consider renaming into AxisWord]
-  public:
-    ap_uint<64>     tdata;  // [FIXME-Should be LE_tData]
-    ap_uint<8>      tkeep;  // [FIXME-Should be LE_tKeep]
-    ap_uint<1>      tlast;
-  public:
-    AxiWord()       {}
-    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
-    // Return the number of valid bytes
-    int keepToLen() {
-        switch(this->tkeep){
-            case 0x01: return 1; break;
-            case 0x03: return 2; break;
-            case 0x07: return 3; break;
-            case 0x0F: return 4; break;
-            case 0x1F: return 5; break;
-            case 0x3F: return 6; break;
-            case 0x7F: return 7; break;
-            case 0xFF: return 8; break;
-        }
-        return 0;
-    }
-    // Set the tdata field in Big-Endian order
-    void setTData(tData data) {
-        tdata.range(63,  0) = byteSwap64(data);
-    }
-    // Return the tdata field in Big-Endian order
-    tData getTData() {
-        return byteSwap64(tdata.range(63, 0));
-    }
-    // Set the upper-half part of the tdata field in Big-Endian order
-    void setTDataHi(tData data) {
-        tdata.range(63, 32) = byteSwap32(data.range(63, 32)); }
-    // Return the upper-half part of the tdata field in Big-Endian order
-    tDataHalf getTDataHi() {
-        return byteSwap32(tdata.range(63, 32));
-    }
-    // Set the lower-half part of the tdata field in Big-Endian order
-    void setTDataLo(tData data) {
-        tdata.range(31,  0) = byteSwap32(data.range(31,  0)); }
-    // Return the lower-half part of the tdata field in Big-Endian order
-    tDataHalf getTDataLo() {
-        return byteSwap32(tdata.range(31,  0));
-    }
-    // Set the tkeep field
-    void setTKeep(tKeep keep) {
-        tkeep = keep;
-    }
-    // Get the tkeep field
-    tKeep getTKeep() {
-        return tkeep;
-    }
-    // Set the tlast field
-    void setTLast(tLast last) {
-        tlast = last;
-    }
-    // Get the tlast bit
-    tLast getTLast() {
-        return tlast;
-    }
-    // Assess the consistency of 'tkeep' and 'tlast'
-    bool isValid() {
-    	if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
-    	    ((this->tlast == 1) and (this->keepToLen() == 0))) {
-    		return false;
-    	}
-    	return true;
-    }
-    /**************************************************************************
-     * @brief Swap the four bytes of a double-word (.i.e, 32 bits).
-     * @param[in] inpDWord, a 32-bit unsigned data.
-     * @return    a 32-bit unsigned data.
-     **************************************************************************/
-    ap_uint<32> byteSwap32(ap_uint<32> inpDWord) {
-        return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
-                inpDWord.range(23,16), inpDWord.range(31, 24));
-    }
-    /**************************************************************************
-     * @brief Swap the eight bytes of a quad-word (.i.e, 64 bits).
-     * @param[in] inpQWord, a 64-bit unsigned data.
-     * @return    a 64-bit unsigned data.
-     **************************************************************************/
-    ap_uint<64> byteSwap64(ap_uint<64> inpQWord) {
-        return (inpQWord.range( 7, 0), inpQWord(15,  8),
-                inpQWord.range(23,16), inpQWord(31, 24),
-                inpQWord.range(39,32), inpQWord(47, 40),
-                inpQWord.range(55,48), inpQWord(63, 56));
-    }
-};
+/*** OBSOLETE_20200714 ***/
+//class AxiWord {  // [TODO - Consider renaming into AxisWord]
+//  public:
+//    ap_uint<64>     tdata;  // [FIXME-Should be LE_tData]
+//    ap_uint<8>      tkeep;  // [FIXME-Should be LE_tKeep]
+//    ap_uint<1>      tlast;
+//  public:
+//    AxiWord()       {}
+//    AxiWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+//            tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+//    // Return the number of valid bytes
+//    int keepToLen() {
+//        switch(this->tkeep){
+//            case 0x01: return 1; break;
+//            case 0x03: return 2; break;
+//            case 0x07: return 3; break;
+//            case 0x0F: return 4; break;
+//            case 0x1F: return 5; break;
+//            case 0x3F: return 6; break;
+//            case 0x7F: return 7; break;
+//            case 0xFF: return 8; break;
+//        }
+//        return 0;
+//    }
+//    // Set the tdata field in Big-Endian order
+//    void setTData(tData data) {
+//        tdata.range(63,  0) = byteSwap64(data);
+//    }
+//    // Return the tdata field in Big-Endian order
+//    tData getTData() {
+//        return byteSwap64(tdata.range(63, 0));
+//    }
+//    // Set the upper-half part of the tdata field in Big-Endian order
+//    void setTDataHi(tData data) {
+//        tdata.range(63, 32) = byteSwap32(data.range(63, 32)); }
+//    // Return the upper-half part of the tdata field in Big-Endian order
+//    tDataHalf getTDataHi() {
+//        return byteSwap32(tdata.range(63, 32));
+//    }
+//    // Set the lower-half part of the tdata field in Big-Endian order
+//    void setTDataLo(tData data) {
+//        tdata.range(31,  0) = byteSwap32(data.range(31,  0)); }
+//    // Return the lower-half part of the tdata field in Big-Endian order
+//    tDataHalf getTDataLo() {
+//        return byteSwap32(tdata.range(31,  0));
+//    }
+//    // Set the tkeep field
+//    void setTKeep(tKeep keep) {
+//        tkeep = keep;
+//    }
+//    // Get the tkeep field
+//    tKeep getTKeep() {
+//        return tkeep;
+//    }
+//    // Set the tlast field
+//    void setTLast(tLast last) {
+//        tlast = last;
+//    }
+//    // Get the tlast bit
+//    tLast getTLast() {
+//        return tlast;
+//    }
+//    // Assess the consistency of 'tkeep' and 'tlast'
+//    bool isValid() {
+//    	if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
+//    	    ((this->tlast == 1) and (this->keepToLen() == 0))) {
+//    		return false;
+//    	}
+//    	return true;
+//    }
+//    /**************************************************************************
+//     * @brief Swap the four bytes of a double-word (.i.e, 32 bits).
+//     * @param[in] inpDWord, a 32-bit unsigned data.
+//     * @return    a 32-bit unsigned data.
+//     **************************************************************************/
+//    ap_uint<32> byteSwap32(ap_uint<32> inpDWord) {
+//        return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
+//                inpDWord.range(23,16), inpDWord.range(31, 24));
+//    }
+//    /**************************************************************************
+//     * @brief Swap the eight bytes of a quad-word (.i.e, 64 bits).
+//     * @param[in] inpQWord, a 64-bit unsigned data.
+//     * @return    a 64-bit unsigned data.
+//     **************************************************************************/
+//    ap_uint<64> byteSwap64(ap_uint<64> inpQWord) {
+//        return (inpQWord.range( 7, 0), inpQWord(15,  8),
+//                inpQWord.range(23,16), inpQWord(31, 24),
+//                inpQWord.range(39,32), inpQWord(47, 40),
+//                inpQWord.range(55,48), inpQWord(63, 56));
+//    }
+//};
 
 
 /******************************************************************************
@@ -827,6 +769,34 @@ class OBSOLETE_Ip4overMac: public AxiWord {
 *********************************************/
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*******************************************************************************
  * GENERIC TYPES and CLASSES USED BY TOE
  *******************************************************************************
@@ -834,6 +804,33 @@ class OBSOLETE_Ip4overMac: public AxiWord {
  * - .
  * - .
  *******************************************************************************/
+
+//=========================================================
+//== TOE - EVENT TYPES
+//=========================================================
+enum EventType { TX_EVENT=0,    RT_EVENT,  ACK_EVENT, SYN_EVENT, \
+                 SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT };
+
+#ifndef __SYNTHESIS__
+    const char* eventTypeStrings[] = {
+                 "TX",          "RT",      "ACK",     "SYN",     \
+                 "SYN_ACK",     "FIN",     "RST",     "ACK_NODELAY" };
+    //-----------------------------------------------------
+    //-- @brief Converts an event type ENUM into a string.
+    //--
+    //-- @param[in]   ev  The event type ENUM.
+    //-- @returns the event type as a string.
+    //-----------------------------------------------------
+    const char *getEventType(EventType ev) {
+        return eventTypeStrings[ev];
+    }
+#endif
+
+//---------------------------------------------------------
+//-- Session State
+//--  Reports the state of a TCP connection according to RFC-793.
+//---------------------------------------------------------
+typedef TcpAppOpnRep    SessState;
 
 //---------------------------------------------------------
 //--  SOCKET ADDRESS (alias ipTuple)
@@ -844,22 +841,13 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
     ap_uint<16>     ip_port;
 };
 
-enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
 
-//---------------------------------------------------------
-//-- Open Session Status
-//--  Reports if a session is opened or closed.
-//---------------------------------------------------------
-/*** OBSOLETE_20200711 ***
-class OpenStatus {
-  public:
-    SessionId    sessionID;
-    SessOpnSts   success;          // [FIXME - rename this member]
-    OpenStatus() {}
-    OpenStatus(SessionId sessId, SessOpnSts success) :
-        sessionID(sessId), success(success) {}
-};
-***************************/
+
+
+
+
+
+
 
 
 /*******************************************************************************
@@ -900,46 +888,21 @@ class SessionLookupReply {
  *******************************************************************************/
 
 //=========================================================
-//== STt - Session States
-//=========================================================
-enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-                    LAST_ACK };
-
-#ifndef __SYNTHESIS__
-    const std::string  SessionStateString[] = {
-                   "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-                   "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-                   "LAST_ACK" };
-#endif
-
-//=========================================================
 //== STt - Session State Query
 //=========================================================
-class StateQuery {
+class StateQuery {  // [FIXME - Consider renaming to SessStateQuery]
   public:
     SessionId       sessionID;
-    SessionState    state;
+    TcpState        state;
     RdWrBit         write;
     StateQuery() {}
     StateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(QUERY_RD) {}
-    StateQuery(SessionId id, SessionState state, RdWrBit write) :
+    StateQuery(SessionId id, TcpState state, RdWrBit write) :
         sessionID(id), state(state), write(write) {}
 };
 
 
-
-//OBSOLETE_20200709 enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-//OBSOLETE_20200709                     FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-//OBSOLETE_20200709                     LAST_ACK };
-
-//OBSOLETE_20200709 #ifndef __SYNTHESIS__
-//OBSOLETE_20200709     const std::string  SessionStateString[] = {
-//OBSOLETE_20200709                    "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-//OBSOLETE_20200709                    "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-//OBSOLETE_20200709                    "LAST_ACK" };
-//OBSOLETE_20200709 #endif
 
 
 /********************************************
@@ -1213,8 +1176,7 @@ class RXeReTransTimerCmd {
         sessionID(id), command(cmd) {}
 };
 
-enum EventType {TX_EVENT, RT_EVENT, ACK_EVENT, SYN_EVENT,
-                SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT};
+
 
 // TIm / ReTransmit Timer Command form TXe
 //-----------------------------------------
@@ -1229,9 +1191,9 @@ class TXeReTransTimerCmd {
         sessionID(id), type(type) {}
 };
 
-/********************************************
- * Event Engine
- ********************************************/
+/************************************************
+ * Event Engine (EVe)
+ ************************************************/
 class Event
 {
   public:
@@ -1262,6 +1224,12 @@ class ExtendedEvent : public Event
         Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
+
+
+
+
+
+// [FIXME- TODO]
 struct rstEvent : public Event  // [FIXME - Class naming convention]
 {
     rstEvent() {}
@@ -1343,112 +1311,58 @@ struct mm_ibtt_status
 
 //---------------------------------------------------------
 //-- APP - NOTIFICATION
-//--  Indicates that data are available for the
+//--  Notifies the availability of a segment data for the
 //--  application in the TCP Rx buffer.
-//--
-//-- [FIXME: consider renaming member 'closed'.]
 //---------------------------------------------------------
-/*** OBSOLETE_20200711 ***
-class AppNotif {
-  public:
-    SessionId          sessionID;
-    TcpSegLen          tcpSegLen;
-    Ip4Addr            ip4SrcAddr;
-    TcpPort            tcpSrcPort;
-    TcpPort            tcpDstPort;
-    bool               closed;
-    AppNotif() {}
-    AppNotif(SessionId  sessId,                      bool       closed) :
-             sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
-             tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
-    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-             TcpPort    sp,      TcpPort    dp) :
-             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
-    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-             TcpPort    sp,      TcpPort    dp,      bool       closed) :
-             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
-};
-*********************/
-typedef TcpAppNotif     AppNotif;
+//typedef TcpAppNotif     AppNotif;
 
 //---------------------------------------------------------
 //-- APP - READ REAQUEST
 //--  Used by the application to request data from the
 //--  TCP Rx buffer.
 //---------------------------------------------------------
-/*** OBSOLETE_20200711 ***
-class AppRdReq {
-  public:
-    SessionId   sessionID;
-    TcpSegLen   length;
-    AppRdReq() {}
-    AppRdReq(SessionId id, TcpSegLen len) :
-        sessionID(id), length(len) {}
-};
-***************************/
-typedef TcpAppRdReq     AppRdReq;
-
-/*** OBSOLETE_20200711 ***
-struct appReadRequest
-{
-	SessionId   sessionID;
-    //ap_uint<16> address;
-    ap_uint<16> length;
-    appReadRequest() {}
-    appReadRequest(SessionId id, ap_uint<16> len) :
-        sessionID(id), length(len) {}
-};
-***************************/
+//OBSOLETE_20200714 typedef TcpAppRdReq     AppRdReq;
 
 //---------------------------------------------------------
 //-- APP - WRITE STATUS
 //--  Status returned by TOE after a data send transfer.
 //---------------------------------------------------------
-/*** OBSOLETE_20200711 ***
-class AppWrSts {
-public:
-    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
-    StsBit       status;  // OK=1
-    AppWrSts() {}
-    AppWrSts(StsBit sts, TcpSegLen len) :
-        status(sts), segLen(len) {}
-};
-***************************/
-typedef TcpAppWrSts     AppWrSts;
+//OBSOLETE_20200714 typedef TcpAppWrSts     AppWrSts;
 
 //--------------------------------------------------------
 //-- APP - OPEN CONNECTION REQUEST
 //--   The socket address to be opened.
 //--------------------------------------------------------
-typedef SockAddr        AppOpnReq;
+//OBSOLETE_20200714 typedef TcpAppOpnReq    AppOpnReq;
 
 //--------------------------------------------------------
 //-- APP - OPEN CONNECTION REPLY
-//--   The status information returned by TOE after opening
-//--   a connection.
+//--   The status information returned by TOE after
+//--   opening a connection.
 //--------------------------------------------------------
-typedef TcpAppOpnRep    AppOpnRep;
+//OBSOLETE_20200714 typedef TcpAppOpnRep    AppOpnRep;
 
 //--------------------------------------------------------
 //-- APP - CLOSE CONNECTION REQUEST
 //--  The session-id of the connection to be closed.
 //--------------------------------------------------------
-//OBSOLETE typedef SessionId       AppClsReq;
-typedef TcpAppClsReq    AppClsReq;
+//OBSOLETE_20200714 typedef TcpAppClsReq    AppClsReq;
 
 //--------------------------------------------------------
 //-- APP - LISTEN REQUEST
 //--  The TCP port to be opened for listening.
 //--------------------------------------------------------
-typedef TcpPort         AppLsnReq;
+//OBSOLETE_20200714 typedef TcpAppLsnReq    AppLsnReq;
 
 //--------------------------------------------------------
 //-- APP - LISTEN REPLY
 //--  The status returned after a listening port request.
 //--------------------------------------------------------
-typedef AckBit          AppLsnRep;
+//OBSOLETE_20200714 typedef TcpAppLsnRep    AppLsnRep;
+
+
+
+
 
 
 
@@ -1518,7 +1432,7 @@ void toe(
         stream<TcpAppMeta>                      &soTAIF_Meta,
 
         //------------------------------------------------------
-        //-- TRIF / Listen Interfaces
+        //-- TAIF / Listen Interfaces
         //------------------------------------------------------
         stream<TcpAppLsnReq>                    &siTAIF_LsnReq,
         stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
@@ -1526,9 +1440,9 @@ void toe(
         //------------------------------------------------------
         //-- TAIF / Tx Segment Interfaces
         //------------------------------------------------------
-        stream<TcpAppData>                      &siTRIF_Data,
-        stream<TcpAppMeta>                      &siTRIF_Meta,
-        stream<AppWrSts>                        &soTRIF_DSts,
+        stream<TcpAppData>                      &siTAIF_Data,
+        stream<TcpAppMeta>                      &siTAIF_Meta,
+        stream<TcpAppWrSts>                     &soTAIF_DSts,
 
         //------------------------------------------------------
         //-- TAIF / Open Connection Interfaces
@@ -1537,30 +1451,30 @@ void toe(
         stream<TcpAppOpnRep>                    &soTAIF_OpnRep,
 
         //------------------------------------------------------
-        //-- TRIF / Close Interfaces
+        //-- TAIF / Close Interfaces
         //------------------------------------------------------
-        stream<AppClsReq>                       &siTRIF_ClsReq,
-        //-- Not USed                           &soTRIF_ClsSts,
+        stream<TcpAppClsReq>                    &siTAIF_ClsReq,
+        //-- Not USed                           &soTAIF_ClsSts,
 
         //------------------------------------------------------
         //-- MEM / Rx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                           &siMEM_RxP_RdSts,
         stream<DmCmd>                           &soMEM_RxP_RdCmd,
-        stream<AxiWord>                         &siMEM_RxP_Data,
+        stream<AxisApp>                         &siMEM_RxP_Data,
         stream<DmSts>                           &siMEM_RxP_WrSts,
         stream<DmCmd>                           &soMEM_RxP_WrCmd,
-        stream<AxiWord>                         &soMEM_RxP_Data,
+        stream<AxisApp>                         &soMEM_RxP_Data,
 
         //------------------------------------------------------
         //-- MEM / Tx PATH / S2MM Interface
         //------------------------------------------------------
         //-- Not Used                           &siMEM_TxP_RdSts,
         stream<DmCmd>                           &soMEM_TxP_RdCmd,
-        stream<AxiWord>                         &siMEM_TxP_Data,
+        stream<AxisApp>                         &siMEM_TxP_Data,
         stream<DmSts>                           &siMEM_TxP_WrSts,
         stream<DmCmd>                           &soMEM_TxP_WrCmd,
-        stream<AxiWord>                         &soMEM_TxP_Data,
+        stream<AxisApp>                         &soMEM_TxP_Data,
 
         //------------------------------------------------------
         //-- CAM / Session Lookup & Update Interfaces
@@ -1575,9 +1489,9 @@ void toe(
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
         ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt,
-        //-- DEBUG / SimCycCounter
-        ap_uint<32>                             &poSimCycCount
+        ap_uint<16>                             &poDBG_SssRegCnt
+        //-- NOT-USED - DEBUG / SimCycCounter
+        //   ap_uint<32>                        &poSimCycCount
 );
 
 #endif

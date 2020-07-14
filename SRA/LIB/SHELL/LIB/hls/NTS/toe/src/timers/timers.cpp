@@ -113,8 +113,8 @@ void pRetransmitTimer(
         stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerEvent,
         stream<Event>                    &soEmx_Event,
         stream<SessionId>                &soSmx_SessCloseCmd,
-        stream<OpenStatus>               &soTAi_Notif,
-        stream<AppNotif>                 &soRAi_Notif)
+        stream<SessState>                &soTAi_Notif,
+        stream<TcpAppNotif>              &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -241,14 +241,14 @@ void pRetransmitTimer(
                         currEntry.retries = 0;
                         soSmx_SessCloseCmd.write(currID);
                         if (currEntry.type == SYN_EVENT) {
-                            soTAi_Notif.write(OpenStatus(currID, FAILED_TO_OPEN_SESS));
+                            soTAi_Notif.write(SessState(currID, CLOSED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [TAi] - Failed to open session %d (event=\'%s\').\n",
                                           currID.to_int(), getEventType(currEntry.type));
                             }
                         }
                         else {
-                            soRAi_Notif.write(AppNotif(currID, SESS_IS_OPENED));
+                            soRAi_Notif.write(TcpAppNotif(currID, ESTABLISHED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [RAi] - Session %d timeout (event=\'%s\').\n",
                                           currID.to_int(), getEventType(currEntry.type));
@@ -436,31 +436,31 @@ void pCloseTimer(
 }
 
 /*******************************************************************************
-* @brief The Timers (TIm)
-*
-* @param[in]  siRXe_ReTxTimerCmd   Retransmission timer command from Rx Engine (RXe).
-* @param[in]  siTXe_ReTxTimerEvent Retransmission timer event from Tx Engine (TXe).
-* @param[in]  siRXe_ClrProbeTimer  Clear probe timer from [RXe].
-* @param[in]  siTXe_SetProbeTimer  Set probe timer from [TXe].
-* @param[in]  siRXe_CloseTimer     Close timer from [RXe].
-* @param[out] soEVe_Event          Event to EventEngine (EVe).
-* @param[out] soSTt_SessCloseCmd   Close session command to State Table (STt).
-* @param[out] soTAi_Notif          Notification to Tx Application Interface (TAi).
-* @param[out] soRAi_Notif          Notification to Rx Application Interface (RAi).
-*
-* @detail
-*  This process includes all the timer-based processes of the [TOE].
-********************************************************************************/
+ * @brief The Timers (TIm)
+ *
+ * @param[in]  siRXe_ReTxTimerCmd   Retransmission timer command from Rx Engine (RXe).
+ * @param[in]  siRXe_ClrProbeTimer  Clear probe timer from [RXe].
+ * @param[in]  siRXe_CloseTimer     Close timer from [RXe].
+ * @param[in]  siTXe_ReTxTimerEvent Retransmission timer event from Tx Engine (TXe).
+ * @param[in]  siTXe_SetProbeTimer  Set probe timer from [TXe].
+ * @param[out] soEVe_Event          Event to EventEngine (EVe).
+ * @param[out] soSTt_SessCloseCmd   Close session command to State Table (STt).
+ * @param[out] soTAi_Notif          Notification to Tx Application Interface (TAi).
+ * @param[out] soRAi_Notif          Notification to Rx Application Interface (RAi).
+ *
+ * @detail
+ *  This process includes all the timer-based processes of the [TOE].
+ *******************************************************************************/
 void timers(
         stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
-        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
         stream<SessionId>          &siRXe_ClrProbeTimer,
-        stream<SessionId>          &siTXe_SetProbeTimer,
         stream<SessionId>          &siRXe_CloseTimer,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<SessionId>          &siTXe_SetProbeTimer,
         stream<SessionId>          &soSTt_SessCloseCmd,
         stream<Event>              &soEVe_Event,
-        stream<OpenStatus>         &soTAi_Notif,
-        stream<AppNotif>           &soRAi_Notif)
+        stream<SessState>          &soTAi_Notif,
+        stream<TcpAppNotif>        &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE

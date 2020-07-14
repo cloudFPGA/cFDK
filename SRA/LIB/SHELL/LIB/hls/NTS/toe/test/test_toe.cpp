@@ -54,6 +54,7 @@ using namespace std;
 #define TRACE_ALL    0xFFFF
 #define DEBUG_LEVEL (TRACE_ALL)
 
+
 /******************************************************************************
  * @brief Increment the simulation counter
  ******************************************************************************/
@@ -352,7 +353,7 @@ void pEmulateRxBufMem(
             //OBSOLETE_20200711 rxmem_rdCounter += keepToLen(outChunk.tkeep);
             rxmem_rdCounter += outChunk.getLen();
             soTOE_RxP_Data.write(outChunk);
-            if ((outChunk.tlast) or (rxmem_rdCounter == rxmem_noBytesToRead)) {
+            if ((outChunk.getTLast()) or (rxmem_rdCounter == rxmem_noBytesToRead)) {
                 rxmem_rdIdleCnt = MEM_RD_STS_LATENCY;
                 rxmem_RdState   = MRD_STS;
             }
@@ -440,7 +441,7 @@ void pEmulateTxBufMem(
             inChunk = tmpInChunk;
             memory->writeChunk(inChunk);
             txmem_wrCounter += inChunk.getLen();
-            if ((inChunk.tlast) || (txmem_wrCounter == txmem_noBytesToWrite)) {
+            if (inChunk.getTLast() or (txmem_wrCounter == txmem_noBytesToWrite)) {
                 txmem_wrIdleCnt  = MEM_WR_STS_LATENCY;
                 txmem_WrState    = MWR_STS;
             }
@@ -502,7 +503,7 @@ void pEmulateTxBufMem(
             outChunk = tmpOutChunk;
             txmem_rdCounter += outChunk.getLen();
             soTOE_TxP_Data.write(outChunk);
-            if ((outChunk.tlast) || (txmem_rdCounter == txmem_noBytesToRead)) {
+            if (outChunk.getTLast() or (txmem_rdCounter == txmem_noBytesToRead)) {
                 txmem_rdIdleCnt = MEM_RD_STS_LATENCY;
                 txmem_RdState   = MRD_STS;
             }
@@ -1289,17 +1290,17 @@ void pL3MUX(
  * @param[in]  lsnPortNum   The port # to listen to.
  * @param[in]  openedPorts  A ref to the set of ports opened in listening mode.
  * @param[out] soTOE_LsnReq TCP listen port request to TOE.
- * @param[in]  siTOE_LsnAck TCP listen port acknowledge from TOE.
+ * @param[in]  siTOE_LsnRep TCP listen port status from TOE.
  * @return true if listening was successful, otherwise false.
  *
  * @remark
  *  For convenience, this is a sub-process of TcpAppRecv (TAr).
  *******************************************************************************/
 bool pTcpAppListen(
-        TcpPort             lsnPortNum,
-        set<TcpPort>       &openedPorts,
-        stream<AppLsnReq>  &soTOE_LsnReq,
-        stream<AppLsnRep>  &siTOE_LsnRep)
+        TcpPort               lsnPortNum,
+        set<TcpPort>          &openedPorts,
+        stream<TcpAppLsnReq>  &soTOE_LsnReq,
+        stream<TcpAppLsnRep>  &siTOE_LsnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "Tal");
 
@@ -1309,7 +1310,7 @@ bool pTcpAppListen(
     static int        tal_watchDogTimer = 100;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AckBit            rc = NO_ACK;
+    StsBool           rc = STS_KO;
 
     switch (tal_fsmState) {
     case 0:
@@ -1358,19 +1359,19 @@ bool pTcpAppListen(
  * @param[in]  aSocketPair   The socket pair of the connection to open.
  * @param[in]  openSessList  A ref to an associative container that holds the
  *                            IDs of the opened sessions.
- * @param[out] soTOE_OpnReq  TCP open connection request to TOE.
- * @param[in]  siTOE_OpnRep  TCP open connection reply from TOE.
+ * @param[out] soTOE_OpnReq  TCP open connection request to [TOE].
+ * @param[in]  siTOE_OpnRep  TCP open connection reply from [TOE].
  * @return true if the connection was successfully opened otherwise false.
  *
  * @remark
- *  For convenience, this is a sub-process of TcpAppSend (TAs).
+ *  For testbench convenience, this is a sub-process of TcpAppSend (TAs).
  *******************************************************************************/
 bool pTcpAppConnect(
         int                         &nrError,
         SocketPair                  &aSocketPair,
         map<SocketPair, SessionId>  &openSessList,
         stream<SockAddr>            &soTOE_OpnReq,
-        stream<OpenStatus>          &siTOE_OpnRep)
+        stream<TcpAppOpnRep>        &siTOE_OpnRep)
 {
     const char *myName  = concat3(THIS_NAME, "/", "Tac");
 
@@ -1411,12 +1412,12 @@ bool pTcpAppConnect(
     case 1:
         tac_watchDogTimer--;
         if (!siTOE_OpnRep.empty()) {
-            OpenStatus openConStatus = siTOE_OpnRep.read();
-            if(openConStatus.success) {
-                // Create a new entry in the list of opened sessions
-                openSessList[aSocketPair] = openConStatus.sessionID;
+            TcpAppOpnRep appOpenRep = siTOE_OpnRep.read();
+            if(appOpenRep.tcpState == ESTABLISHED) {
+                // Create a new entry in the list of established sessions
+                openSessList[aSocketPair] = appOpenRep.sessId;
                 if (DEBUG_LEVEL & TRACE_Tac) {
-                    printInfo(myName, "Successfully opened a new FPGA client session (%d) for connection:\n", openConStatus.sessionID.to_int());
+                    printInfo(myName, "Successfully opened a new active session (%d) for connection:\n", appOpenRep.sessId.to_int());
                     printSockPair(myName, aSocketPair);
                 }
                 // Add this port # to the set of opened ports
@@ -1429,7 +1430,8 @@ bool pTcpAppConnect(
                 rc = true;
             }
             else {
-                printError(myName, "Failed to open a new FPGA client session #%d.\n", openConStatus.sessionID.to_uint());
+                printError(myName, "Failed to open a new active session (%d).\n", appOpenRep.sessId.to_uint());
+                printInfo(myName, "The connection is in TCP state: %s.\n", TcpStateString[appOpenRep.tcpState].c_str());
                 rc = false;
                 nrError += 1;
             }
@@ -1531,10 +1533,10 @@ void pTcpAppRecv(
         ofstream                &appTxFile,
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<AppLsnReq>       &soTOE_LsnReq,
-        stream<AppLsnRep>       &siTOE_LsnRep,
-        stream<AppNotif>        &siTOE_Notif,
-        stream<AppRdReq>        &soTOE_DReq,
+        stream<TcpAppLsnReq>    &soTOE_LsnReq,
+        stream<TcpAppLsnRep>    &siTOE_LsnRep,
+        stream<TcpAppNotif>     &siTOE_Notif,
+        stream<TcpAppRdReq>     &soTOE_DReq,
         stream<TcpAppData>      &siTOE_Data,
         stream<TcpAppMeta>      &siTOE_Meta,
         stream<TcpAppData>      &soTAs_Data,
@@ -1551,7 +1553,7 @@ void pTcpAppRecv(
     static int          tar_appRspIdle = 0;
     static ap_uint<32>  tar_mAmount    = 0;
     static set<TcpPort> tar_listeningPorts;  // A set to keep track of the ports opened in listening mode
-    static AppNotif     tar_notification;
+    static TcpAppNotif  tar_notification;
     static vector<SessionId> tar_txSessIdVector; // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
     static enum FsmStates {WAIT_NOTIF=0, SEND_DREQ,
                            WAIT_SEG,     CONSUME,
@@ -1560,7 +1562,7 @@ void pTcpAppRecv(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
     vector<string>      stringVector;
-    OpenStatus          newConStatus;
+    TcpAppOpnRep        newConStatus;
     //OBSOLETE_20200702 ipTuple             tuple;
     SessionId           tcpSessId;
     AxisApp             currChunk;
@@ -1611,8 +1613,8 @@ void pTcpAppRecv(
         }
         else if (!soTOE_DReq.full()) {
             if (tar_notification.tcpSegLen != 0) {
-                soTOE_DReq.write(AppRdReq(tar_notification.sessionID,
-                                          tar_notification.tcpSegLen));
+                soTOE_DReq.write(TcpAppRdReq(tar_notification.sessionID,
+                                             tar_notification.tcpSegLen));
                 tar_fsmState = WAIT_SEG;
             }
             else {
@@ -1705,11 +1707,11 @@ void pTcpAppSend(
         ofstream                &ipTxGoldFile,
         int                     &apRxBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<SockAddr>        &soTOE_OpnReq,
-        stream<OpenStatus>      &siTOE_OpnRep,
+        stream<TcpAppOpnReq>    &soTOE_OpnReq,
+        stream<TcpAppOpnRep>    &siTOE_OpnRep,
         stream<TcpAppData>      &soTOE_Data,
         stream<TcpAppMeta>      &soTOE_Meta,
-        stream<ap_uint<16> >    &soTOE_ClsReq,    // [FIXME]
+        stream<TcpAppClsReq>    &soTOE_ClsReq,
         stream<TcpAppData>      &siTAr_Data,
         stream<TcpAppMeta>      &siTAr_Meta)
 {
@@ -1727,7 +1729,7 @@ void pTcpAppSend(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
     vector<string>      stringVector;
-    OpenStatus          newConStatus;
+    TcpAppOpnRep        newConStatus;
     bool                done;
     char               *pEnd;
 
@@ -1984,18 +1986,18 @@ void pTcpAppSend(
  * @param[in]  ipTxGoldFile A ref to the output IP Tx gold file to write to.
  * @param[i/o] appRxBytCntr A ref to the counter of bytes on the APP Rx I/F.
  * @param[i/o] appTxBytCntr A ref to the counter of bytes on the APP Tx I/F.
- * @param[in]  piTOE_Ready  A reference to the ready signal of TOE.
- * @param[out] soTOE_LsnReq TCP listen port request to TOE.
- * @param[in]  siTOE_LsnAck TCP listen port acknowledge from TOE.
- * @param[in]  siTOE_Notif  TCP notification from TOE.
- * @param[out] soTOE_DReq   TCP data request to TOE.
- * @param[in]  siTOE_Data   TCP data stream from TOE.
- * @param[in]  siTOE_Meta   TCP metadata stream from TOE.
- * @param[out] soTOE_OpnReq TCP open port request to TOE.
- * @param[in]  siTOE_OpnRep TCP open port reply from TOE.
- * @param[out] soTOE_Data   TCP data stream to TOE.
- * @param[out] soTOE_Meta   TCP metadata stream to TOE.
- * @param[out] soTOE_ClsReq TCP close connection request to TOE.
+ * @param[in]  piTOE_Ready  A reference to the ready signal of [TOE].
+ * @param[out] soTOE_LsnReq TCP listen port request to [TOE].
+ * @param[in]  siTOE_LsnAck TCP listen port acknowledge from [TOE].
+ * @param[in]  siTOE_Notif  TCP notification from [TOE].
+ * @param[out] soTOE_DReq   TCP data request to [TOE].
+ * @param[in]  siTOE_Data   TCP data stream from  [TOE].
+ * @param[in]  siTOE_Meta   TCP metadata stream from [TOE].
+ * @param[out] soTOE_OpnReq TCP open port request to [TOE].
+ * @param[in]  siTOE_OpnRep TCP open port reply from [TOE].
+ * @param[out] soTOE_Data   TCP data stream to [TOE].
+ * @param[out] soTOE_Meta   TCP metadata stream to [TOE].
+ * @param[out] soTOE_ClsReq TCP close connection request to [TOE].
  *
  * @details:
  *  The TCP Application Interface (TAIF) implements two processes:
@@ -2014,17 +2016,17 @@ void pTcpApplicationInterface(
         int                     &appRxBytCntr,
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
-        stream<AppLsnReq>       &soTOE_LsnReq,
-        stream<AppLsnRep>       &siTOE_LsnRep,
-        stream<AppNotif>        &siTOE_Notif,
-        stream<AppRdReq>        &soTOE_DReq,
+        stream<TcpAppLsnReq>    &soTOE_LsnReq,
+        stream<TcpAppLsnRep>    &siTOE_LsnRep,
+        stream<TcpAppNotif>     &siTOE_Notif,
+        stream<TcpAppRdReq>     &soTOE_DReq,
         stream<TcpAppData>      &siTOE_Data,
         stream<TcpAppMeta>      &siTOE_Meta,
-        stream<AppOpnReq>       &soTOE_OpnReq,
-        stream<AppOpnRep>       &siTOE_OpnRep,
+        stream<TcpAppOpnReq>    &soTOE_OpnReq,
+        stream<TcpAppOpnRep>    &siTOE_OpnRep,
         stream<TcpAppData>      &soTOE_Data,
         stream<TcpAppMeta>      &soTOE_Meta,
-        stream<AppClsReq>       &soTOE_ClsReq)
+        stream<TcpAppClsReq>    &soTOE_ClsReq)
 {
 
     const char *myName  = concat3(THIS_NAME, "/", "TAIF");
@@ -2140,21 +2142,21 @@ int main(int argc, char *argv[]) {
 
     stream<TcpAppData>                  ssTAIF_TOE_Data      ("ssTAIF_TOE_Data");
     stream<TcpAppMeta>                  ssTAIF_TOE_Meta      ("ssTAIF_TOE_Meta");
-    stream<AppWrSts>                    ssTOE_TAIF_DSts      ("ssTOE_TAIF_DSts");
+    stream<TcpAppWrSts>                 ssTOE_TAIF_DSts      ("ssTOE_TAIF_DSts");
 
-    stream<AppRdReq>                    ssTAIF_TOE_DReq      ("ssTAIF_TOE_DReq");
+    stream<TcpAppRdReq>                 ssTAIF_TOE_DReq      ("ssTAIF_TOE_DReq");
     stream<TcpAppData>                  ssTOE_TAIF_Data      ("ssTOE_TAIF_Data");
     stream<TcpAppMeta>                  ssTOE_TAIF_Meta      ("ssTOE_TAIF_Meta");
 
-    stream<AppLsnReq>                   ssTAIF_TOE_LsnReq    ("ssTAIF_TOE_LsnReq");
-    stream<AppLsnRep>                   ssTOE_TAIF_LsnRep    ("ssTOE_TAIF_LsnRep");
+    stream<TcpAppLsnReq>                ssTAIF_TOE_LsnReq    ("ssTAIF_TOE_LsnReq");
+    stream<TcpAppLsnRep>                ssTOE_TAIF_LsnRep    ("ssTOE_TAIF_LsnRep");
 
-    stream<AppOpnReq>                   ssTAIF_TOE_OpnReq    ("ssTAIF_TOE_OpnReq");
-    stream<AppOpnRep>                   ssTOE_TAIF_OpnRep    ("ssTOE_TAIF_OpnRep");
+    stream<TcpAppOpnReq>                ssTAIF_TOE_OpnReq    ("ssTAIF_TOE_OpnReq");
+    stream<TcpAppOpnRep>                ssTOE_TAIF_OpnRep    ("ssTOE_TAIF_OpnRep");
 
-    stream<AppNotif>                    ssTOE_TAIF_Notif     ("ssTOE_TAIF_Notif");
+    stream<TcpAppNotif>                 ssTOE_TAIF_Notif     ("ssTOE_TAIF_Notif");
 
-    stream<AppClsReq>                   ssTAIF_TOE_ClsReq    ("ssTAIF_TOE_ClsReq");
+    stream<TcpAppClsReq>                ssTAIF_TOE_ClsReq    ("ssTAIF_TOE_ClsReq");
 
     stream<DmCmd>                       ssTOE_MEM_RxP_RdCmd  ("ssTOE_MEM_RxP_RdCmd");
     stream<AxisApp>                     ssMEM_TOE_RxP_Data   ("ssMEM_TOE_RxP_Data");
@@ -2181,7 +2183,9 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
-    ap_uint<32>     sTOE_TB_SimCycCnt;
+    # if 0
+        ap_uint<32> sTOE_TB_SimCycCnt;
+    #endif
     int             nrErr;
 
     AxisIp4         ipRxData;    // An IP4 chunk
@@ -2398,9 +2402,9 @@ int main(int argc, char *argv[]) {
             ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
             clsSessionCount,
-            opnSessionCount,
-            //-- DEBUG / SimCycCounter
-            sTOE_TB_SimCycCnt);
+            opnSessionCount
+            //-- NU-DEBUG / sTOE_TB_SimCycCnt
+        );
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
@@ -2465,14 +2469,14 @@ int main(int argc, char *argv[]) {
 
         // TODO
         if (!ssTOE_TAIF_DSts.empty()) {
-            AppWrSts wrStatus = ssTOE_TAIF_DSts.read();
-            if (wrStatus.status != STS_OK) {
+            TcpAppWrSts wrStatus = ssTOE_TAIF_DSts.read();
+            if (wrStatus.status != TCP_APP_WR_STS_KO) {
                 switch (wrStatus.segLen) {
-                case TCP_APP_WR_STS_ERROR_NOCONNCECTION:
+                case TCP_APP_WR_STS_NOCONNECTION:
                     printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
                     nrErr++;
                     break;
-                case TCP_APP_WR_STS_ERROR_NOSPACE:
+                case TCP_APP_WR_STS_NOSPACE:
                     printError(THIS_NAME, "Attempt to write data for a session which Tx buffer id full.\n");
                     nrErr++;
                     break;
@@ -2504,12 +2508,16 @@ int main(int argc, char *argv[]) {
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
-        //TODO stepSim();
-        gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
-        if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
-            printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
-            gTraceEvent = false;
-        }
+        #if 1
+            stepSim();
+        #else
+            // The sim-counter s generated by [TOE]
+            gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
+            if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
+                printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
+                gTraceEvent = false;
+            }
+        #endif
 
         //------------------------------------------------------
         //-- EXIT UPON FATAL ERROR OR TOO MANY ERRORS

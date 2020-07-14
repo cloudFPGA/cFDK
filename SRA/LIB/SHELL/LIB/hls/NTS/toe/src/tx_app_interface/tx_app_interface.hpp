@@ -40,26 +40,24 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_TAI_H_
 #define _TOE_TAI_H_
 
-//#include "../../../../NTS/nts.hpp"
+#include "../../../../NTS/nts.hpp"
 #include "../../../../NTS/nts_utils.hpp"
-//#include "../../../../NTS/SimNtsUtils.hpp"
-//#include "../toe.hpp"
-#include "../../../../NTS/toe/src/event_engine/event_engine.hpp"
-#include "../../../../NTS/toe/src/state_table/state_table.hpp"
+#include "../../../../NTS/SimNtsUtils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
+//#include "../../../../NTS/toe/src/event_engine/event_engine.hpp"
+//#include "../../../../NTS/toe/src/state_table/state_table.hpp"
 
 using namespace hls;
 
-
-#define ERROR_NOSPACE        1
-#define ERROR_NOCONNCECTION  2
+//OBSOLET_20200713 #define ERROR_NOSPACE        1
+//OBSOLET_20200713 #define ERROR_NOCONNCECTION  2
 
 
 /************************************************
  * Tx Application Table (Tat)
  *  Structure to manage the FPGA Send Window
  ************************************************/
-class TxAppTableEntry
-{
+class TxAppTableEntry {
   public:
     TcpAckNum       ackd;
     TxBufPtr        mempt;
@@ -68,9 +66,9 @@ class TxAppTableEntry
         ackd(ackd), mempt(mempt) {}
 };
 
-/***********************************************
+/************************************************
  * Metadata for storing a segment in memory
- ***********************************************/
+ ************************************************/
 class SegMemMeta {
   public:
     TcpSessId    sessId;
@@ -90,23 +88,23 @@ class SegMemMeta {
  *
  *******************************************************************************/
 void tx_app_interface(
-        //-- TRIF / Open-Close Interfaces
-        stream<SockAddr>               &siTRIF_OpnReq,
-        stream<OpenStatus>             &soTRIF_OpnRep,
-        stream<AppClsReq>              &siTRIF_ClsReq,
+        //-- TAIF / Open-Close Interfaces
+        stream<TcpAppOpnReq>           &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>           &soTAIF_OpnRep,
+        stream<TcpAppClsReq>           &siTAIF_ClsReq,
         //-- TAIF / Data Stream Interfaces
         stream<TcpAppData>             &siTAIF_Data,
         stream<TcpAppMeta>             &siTAIF_Meta,
-        stream<AppWrSts>               &soTRIF_DSts,
+        stream<TcpAppWrSts>            &soTAIF_DSts,
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
-        stream<TcpAppData>             &soMEM_TxP_Data,
+        stream<AxisApp>                &soMEM_TxP_Data,
         stream<DmSts>                  &siMEM_TxP_WrSts,
         //-- State Table Interfaces
-        stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<SessionState>           &siSTt_SessStateRep,
-        stream<StateQuery>             &soSTt_AcceptStateQry,
-        stream<SessionState>           &siSTt_AcceptStateRep,
+        stream<SessionId>              &soSTt_SessStateReq,
+        stream<TcpState>               &siSTt_SessStateRep,
+        stream<StateQuery>             &soSTt_ConnectStateQry,
+        stream<TcpState>               &siSTt_ConnectStateRep,
         //-- Session Lookup Controller Interface
         stream<SocketPair>             &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
@@ -117,11 +115,11 @@ void tx_app_interface(
         stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<TAiTxSarPush>           &soTSt_PushCmd,
         //-- Rx Engine Interface
-        stream<OpenStatus>             &siRXe_SessOpnSts,
+        stream<SessState>              &siRXe_ActSessState,
         //-- Event Engine Interface
         stream<Event>                  &soEVe_Event,
         //-- Timers Interface
-        stream<OpenStatus>             &siTIm_Notif,
+        stream<SessState>              &siTIm_Notif,
         //-- MMIO / IPv4 Address
         LE_Ip4Addr                      piMMIO_IpAddr  // [FIXME]
 );

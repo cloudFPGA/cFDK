@@ -36,14 +36,139 @@
 using namespace hls;
 
 
-/**********************************************************
+/*******************************************************************************
  * INTERFACE - TCP APPLICATION INTERFACE (TAIF)
- **********************************************************/
+ *******************************************************************************
+ * This section defines the interfaces between the Network and Transport Stack
+ * (NTS) and the TCP Application Interface (TAIF) layer.
+ *******************************************************************************/
+
+//=========================================================
+//== TAIF / RECEIVED & TRANSMITTED SEGMENT INTERFACES
+//=========================================================
+
+//---------------------------------------------------------
+//-- TCP APP - DATA
+//--  The data section of a TCP segment over an AXI4S I/F.
+//---------------------------------------------------------
+typedef AxisApp     TcpAppData;
+
+//---------------------------------------------------------
+//-- TCP APP - METADATA
+//--  The session identifier of a connection.
+//---------------------------------------------------------
+typedef TcpSessId   TcpAppMeta;
+
+//---------------------------------------------------------
+//-- TCP APP - NOTIFICATION
+//--  Notifies the availability of data for the application
+//--  in the TCP Rx buffer.
+//---------------------------------------------------------
+class TcpAppNotif {
+  public:
+    SessionId          sessionID;
+    TcpSegLen          tcpSegLen;
+    Ip4Addr            ip4SrcAddr;
+    TcpPort            tcpSrcPort;
+    TcpPort            tcpDstPort;
+    TcpState           tcpState;
+    TcpAppNotif() {}
+    TcpAppNotif(SessionId  sessId,              TcpState  tcpState) :
+        sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+        tcpSrcPort(0),      tcpDstPort(0),      tcpState(tcpState) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(CLOSED) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp,      TcpState tcpState) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(tcpState) {}
+};
+
+//---------------------------------------------------------
+//-- TCP APP - DATA READ REQUEST
+//--  Used by the application to request data from the
+//--  TCP Rx buffer.
+//---------------------------------------------------------
+class TcpAppRdReq {
+  public:
+    SessionId   sessionID;
+    TcpSegLen   length;
+    TcpAppRdReq() {}
+    TcpAppRdReq(SessionId id,  TcpSegLen len) :
+        sessionID(id), length(len) {}
+};
+
+//---------------------------------------------------------
+//-- TCP APP - DATA WRITE STATUS
+//--  Status returned by NTS after a data send transfer.
+//---------------------------------------------------------
+class TcpAppWrSts {
+public:
+    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+    StsBit       status;  // OK=1
+    TcpAppWrSts() {}
+    TcpAppWrSts(StsBit sts, TcpSegLen len) :
+        status(sts), segLen(len) {}
+};
+
+//=========================================================
+//== TAIF / OPEN & CLOSE CONNECTION INTERFACES
+//=========================================================
+
+//--------------------------------------------------------
+//-- TCP APP - OPEN CONNECTION REQUEST
+//--  The socket address to be opened.
+//--------------------------------------------------------
+typedef SockAddr        TcpAppOpnReq;
+
+//--------------------------------------------------------
+//-- TCP APP - OPEN CONNECTION REPLY
+//--  Reports the state of a TCP connection according to RFC-793.
+//--------------------------------------------------------
+class TcpAppOpnRep {
+  public:
+    SessionId   sessId;
+    TcpState    tcpState;
+    TcpAppOpnRep() {}
+    TcpAppOpnRep(SessionId sessId, TcpState tcpState) :
+        sessId(sessId), tcpState(tcpState) {}
+};
+
+//--------------------------------------------------------
+//-- TCP APP - CLOSE CONNECTION REQUEST
+//--  The socket address to be closed.
+//--  [FIXME-What about creating a class 'AppConReq' with a member 'opn/cls']
+//--------------------------------------------------------
+typedef SessionId       TcpAppClsReq;
+
+//=========================================================
+//== TAIF / LISTEN PORT INTERFACES
+//=========================================================
+
+//---------------------------------------------------------
+//-- TCP APP - LISTEN REQUEST
+//--  The TCP port to open for listening.
+//--  [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+//---------------------------------------------------------
+typedef TcpPort     TcpAppLsnReq;
+
+//---------------------------------------------------------
+//-- TCP APP - LISTEN REPLY
+//--  The port status returned by NTS upon listen request.
+//---------------------------------------------------------
+typedef StsBool     TcpAppLsnRep;
 
 
-/**********************************************************
+/*******************************************************************************
  * INTERFACE - UDP APPLICATION INTERFACE (UAIF)
- **********************************************************/
+ *******************************************************************************
+ * This section defines the interfaces between the Network and Transport Stack
+ * (NTS) and the UDP Application Interface (UAIF) layer.
+ *******************************************************************************/
+//-- [FIXME - TODO]
+
 //-- UAIF / Control Interfaces
 typedef UdpPort     UdpAppLsnReq;
 typedef StsBool     UdpAppLsnRep;
@@ -119,18 +244,5 @@ void nts(
 #endif
 
 /*! \} */
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

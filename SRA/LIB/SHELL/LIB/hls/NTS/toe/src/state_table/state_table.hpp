@@ -52,13 +52,17 @@ using namespace hls;
  *
  *******************************************************************************/
 void state_table(
+        //-- Rx Engine Interfaces
         stream<StateQuery>         &siRXe_SessStateQry,
-        stream<SessionState>       &soRXe_SessStateRep,
+        stream<TcpState>           &soRXe_SessStateRep,
+        //-- Tx Application Interfaces
         stream<StateQuery>         &siTAi_ConnectStateQry,
-        stream<SessionState>       &soTAi_ConnectStateRep,
+        stream<TcpState>           &soTAi_ConnectStateRep,
         stream<SessionId>          &siTAi_StreamStateReq,
-        stream<SessionState>       &soTAi_StreamStateRep,
+        stream<TcpState>           &soTAi_StreamStateRep,
+        //-- Timers Interface
         stream<SessionId>          &siTIm_SessCloseCmd,
+        //-- Session Lookup Interface
         stream<SessionId>          &soSLc_SessReleaseCmd
 );
 

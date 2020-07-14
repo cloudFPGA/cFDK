@@ -24,32 +24,46 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : event_engine.hpp
  * @brief      : Event Engine (EVe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
-#include "../toe.hpp"
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#ifndef _TOE_EVE_H_
+#define _TOE_EVE_H_
+
+#include "../../../../../NTS/nts_utils.hpp"
 
 using namespace hls;
 
-const char *getEventType(EventType ev);
+//OBSOLETE_20200714  const char *getEventType(EventType ev);
 
-/*****************************************************************************
- * @brief   Main process of the Event Engine (EVe).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Event Engine (EVe)
+ *
+ *******************************************************************************/
 void event_engine(
+        //-- Tx Application Interface
         stream<Event>           &siTAi_Event,
+        //-- Rx Engine Interface
         stream<ExtendedEvent>   &siRXe_Event,
+        //-- Timers Interface
         stream<Event>           &siTIm_Event,
+        //-- Ack Delayer Interface
         stream<ExtendedEvent>   &soAKd_Event,
         stream<SigBit>          &siAKd_RxEventSig,
         stream<SigBool>         &siAKd_TxEventSig,
+        //-- Tx Engine Interface
         stream<SigBit>          &siTXe_RxEventSig
 );
 
+/*! \} */

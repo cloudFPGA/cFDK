@@ -40,12 +40,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_RXE_H_
 #define _TOE_RXE_H_
 
-//#include "../../../../../NTS/nts.hpp"
-#include "../../../../../NTS/toe/src/toe.hpp"
+#include "../../../../../NTS/nts.hpp"
 #include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/SimNtsUtils.hpp"
+#include "../../../../../NTS/toe/src/toe.hpp"
 #include "../../../../../NTS/AxisIp4.hpp"
 #include "../../../../../NTS/AxisPsd4.hpp"
-//#include "../../../../../NTS/SimNtsUtils.hpp"
+
 
 using namespace hls;
 
@@ -89,14 +90,14 @@ class RXeFsmMeta {
  *
  *******************************************************************************/
 void rx_engine(
-        // IP Rx Interface
+        //-- IP Rx Interface
         stream<AxisIp4>                 &siIPRX_Data,
         //-- Session Lookup Controller Interface
         stream<SessionLookupQuery>      &soSLc_SessLkReq,
         stream<SessionLookupReply>      &siSLc_SessLkRep,
         //-- State Table Interface
         stream<StateQuery>              &soSTt_StateQry,
-        stream<SessionState>            &siSTt_StateRep,
+        stream<TcpState>                &siSTt_StateRep,
         //-- Port Table Interface
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<RepBit>                  &siPRt_PortStateRep,
@@ -113,9 +114,9 @@ void rx_engine(
         //-- Event Engine Interface
         stream<ExtendedEvent>           &soEVe_SetEvent,
         //-- Tx Application Interface
-        stream<OpenStatus>              &soTAi_SessOpnSts,
+        stream<SessState>               &soTAi_SessOpnSts,
         //-- Rx Application Interface
-        stream<AppNotif>                &soRAi_RxNotif,
+        stream<TcpAppNotif>             &soRAi_RxNotif,
         //-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxisApp>                 &soMEM_WrData,

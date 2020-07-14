@@ -290,9 +290,9 @@ void toe(
         //-- DEBUG Interfaces
         //------------------------------------------------------
         ap_uint<16>                         &poDBG_SssRelCnt,
-        ap_uint<16>                         &poDBG_SssRegCnt,
-        //--
-        ap_uint<32>                         &poSimCycCount)
+        ap_uint<16>                         &poDBG_SssRegCnt
+        //-- NU-DEBUG / ap_uint<32>         &poSimCycCount
+        )
 {
 
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
@@ -510,11 +510,11 @@ void toe(
     static stream<SessionId>          ssRXeToTIm_ClrProbeTimer   ("ssRXeToTIm_ClrProbeTimer");
     #pragma HLS stream       variable=ssRXeToTIm_ClrProbeTimer   depth=2
 
-    static stream<AppNotif>           ssRXeToRAi_Notif           ("ssRXeToRAi_Notif");
+    static stream<TcpAppNotif>        ssRXeToRAi_Notif           ("ssRXeToRAi_Notif");
     #pragma HLS stream       variable=ssRXeToRAi_Notif           depth=4
     #pragma HLS DATA_PACK    variable=ssRXeToRAi_Notif
 
-    static stream<OpenStatus>         ssRXeToTAi_SessOpnSts      ("ssRXeToTAi_SessOpnSts");
+    static stream<SessState>          ssRXeToTAi_SessOpnSts      ("ssRXeToTAi_SessOpnSts");
     #pragma HLS stream       variable=ssRXeToTAi_SessOpnSts      depth=4
     #pragma HLS DATA_PACK    variable=ssRXeToTAi_SessOpnSts
 
@@ -556,13 +556,13 @@ void toe(
     //-------------------------------------------------------------------------
     //-- State Table (STt)
     //-------------------------------------------------------------------------
-    static stream<SessionState>       ssSTtToRXe_SessStateRep    ("ssSTtToRXe_SessStateRep");
+    static stream<TcpState>           ssSTtToRXe_SessStateRep    ("ssSTtToRXe_SessStateRep");
     #pragma HLS stream       variable=ssSTtToRXe_SessStateRep    depth=2
 
-    static stream<SessionState>       ssSTtToTAi_AcceptStateRep  ("ssSTtToTAi_AcceptStateRep");
+    static stream<TcpState>           ssSTtToTAi_AcceptStateRep  ("ssSTtToTAi_AcceptStateRep");
     #pragma HLS stream       variable=ssSTtToTAi_AcceptStateRep  depth=2
 
-    static stream<SessionState>       ssSTtToTAi_SessStateRep    ("ssSTtToTAi_SessStateRep");
+    static stream<TcpState>           ssSTtToTAi_SessStateRep    ("ssSTtToTAi_SessStateRep");
     #pragma HLS stream       variable=ssSTtToTAi_SessStateRep    depth=2
 
     static stream<SessionId>          ssSTtToSLc_SessReleaseCmd  ("ssSTtToSLc_SessReleaseCmd");
@@ -603,11 +603,11 @@ void toe(
     static stream<SessionId>          ssTImToSTt_SessCloseCmd    ("ssTImToSTt_SessCloseCmd");
     #pragma HLS stream       variable=ssTImToSTt_SessCloseCmd    depth=2
 
-    static stream<OpenStatus>         ssTImToTAi_Notif           ("ssTImToTAi_Notif");
+    static stream<SessState>          ssTImToTAi_Notif           ("ssTImToTAi_Notif");
     #pragma HLS stream       variable=ssTImToTAi_Notif           depth=4
     #pragma HLS DATA_PACK    variable=ssTImToTAi_Notif
 
-    static stream<AppNotif>           ssTImToRAi_Notif           ("ssTImToRAi_Notif");
+    static stream<TcpAppNotif>        ssTImToRAi_Notif           ("ssTImToRAi_Notif");
     #pragma HLS stream       variable=ssTImToRAi_Notif           depth=4
     #pragma HLS DATA_PACK    variable=ssTImToRAi_Notif
 
@@ -713,10 +713,10 @@ void toe(
     //-- Timers (TIm) ------------------------------------------------------
     timers(
             ssRXeToTIm_ReTxTimerCmd,
-            ssTXeToTIm_SetReTxTimer,
             ssRXeToTIm_ClrProbeTimer,
-            ssTXeToTIm_SetProbeTimer,
             ssRXeToTIm_CloseTimer,
+            ssTXeToTIm_SetReTxTimer,
+            ssTXeToTIm_SetProbeTimer,
             ssTImToSTt_SessCloseCmd,
             ssTImToEVe_Event,
             ssTImToTAi_Notif,

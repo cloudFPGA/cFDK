@@ -25,7 +25,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : tx_app_interface.cpp
  * @brief      : Tx Application Interface (TAi)
  *
@@ -36,7 +36,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * \ingroup NTS_TOE
  * \addtogroup NTS_TOE
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
 #include "tx_app_interface.hpp"
 
@@ -102,7 +102,7 @@ template<typename T> void pStreamMux(
  * @param[in]  siSLc_SessLookupRep   Reply from [SLc]
  * @param[out] soPRt_GetFreePortReq  Free port request to PortTable (PRt).
  * @param[out] siPRt_GetFreePortRep  Free port reply from [PRt].
- * @param[in]  siRXe_SessOpnSts      Session open status from [RXe].
+ * @param[in]  siRXe_ActSessState    TCP state of an active session from [RXe].
  * @param[out  soSTt_AcceptStateQry  Session state query to StateTable (STt).  [FIXME - What about ConnectStateReply?]
  * @param[in]  siSTt_AcceptStateRep  Session state reply from [STt].
  * @param[out] soEVe_Event           Event to EventEngine (EVe).
@@ -126,18 +126,18 @@ template<typename T> void pStreamMux(
  *   the connection.
  *******************************************************************************/
 void pTxAppConnect(
-        stream<SockAddr>            &siTAIF_OpnReq,
-        stream<OpenStatus>          &soTAIF_OpnRep,
-        stream<AppClsReq>           &siTAIF_ClsReq,
+        stream<TcpAppOpnReq>        &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>        &soTAIF_OpnRep,
+        stream<TcpAppClsReq>        &siTAIF_ClsReq,
         stream<SocketPair>          &soSLc_SessLookupReq,
         stream<SessionLookupReply>  &siSLc_SessLookupRep,
         stream<ReqBit>              &soPRt_GetFreePortReq,
         stream<TcpPort>             &siPRt_GetFreePortRep,
-        stream<StateQuery>          &soSTt_AcceptStateQry,   // [FIXME- ReEname ConnectStateQry]
-        stream<SessionState>        &siSTt_AcceptStateRep,
-        stream<OpenStatus>          &siRXe_SessOpnSts,
+        stream<StateQuery>          &soSTt_ConnectStateQry,
+        stream<TcpState>            &siSTt_ConnectStateRep,
+        stream<SessState>           &siRXe_ActSessState,
         stream<Event>               &soEVe_Event,
-        stream<OpenStatus>          &siTIm_Notif,
+        stream<SessState>           &siTIm_Notif,
         Ip4Address                   piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -159,7 +159,7 @@ void pTxAppConnect(
     const  int                  tac_localFifo_depth = 4;
     #pragma HLS stream variable=tac_localFifo depth=tac_localFifo_depth
 
-    OpenStatus  openSessStatus;
+    SessState  activeSessState;
 
     switch (tac_fsmState) {
     case TAC_IDLE:
@@ -171,29 +171,30 @@ void pTxAppConnect(
         }
         else if (!siSLc_SessLookupRep.empty()) {
             // Read the session lookup reply and check its state
-            SessionLookupReply session = siSLc_SessLookupRep.read();
-            if (session.hit) {
-                soEVe_Event.write(Event(SYN_EVENT, session.sessionID));
-                soSTt_AcceptStateQry.write(StateQuery(session.sessionID, SYN_SENT, QUERY_WR));
+            SessionLookupReply sessLkpRep = siSLc_SessLookupRep.read();
+            if (sessLkpRep.hit) {
+                soEVe_Event.write(Event(SYN_EVENT, sessLkpRep.sessionID));
+                soSTt_ConnectStateQry.write(StateQuery(sessLkpRep.sessionID, SYN_SENT, QUERY_WR));
             }
             else {
-                // Tell the [APP ]that the open connection failed
-                soTAIF_OpnRep.write(OpenStatus(session.sessionID, FAILED_TO_OPEN_SESS));
+                // Tell the [APP ]that opening of the active connection failed
+                //OBSOLETE_20200714 soTAIF_OpnRep.write(OpenStatus(sessLkpRep.sessionID, FAILED_TO_OPEN_SESS));
+                soTAIF_OpnRep.write(TcpAppOpnRep(sessLkpRep.sessionID, CLOSED));
             }
         }
-        else if (!siRXe_SessOpnSts.empty()) {
-            // Read the open session result from [RXe]
-            siRXe_SessOpnSts.read(openSessStatus);
+        else if (!siRXe_ActSessState.empty()) {
+            // If pending, read the state of the on-going active session (.i.e, initiated by [TOE])
+            siRXe_ActSessState.read(activeSessState);
             // And forward it to [TAIF]
-            //  [TODO-We should check if [TAIF] is actually waiting for such a status]
-            soTAIF_OpnRep.write(openSessStatus);
+            //  [TODO-FIXME We should check if [TAIF] is actually waiting for such a status]
+            soTAIF_OpnRep.write(activeSessState);
         }
         else if (!siTIm_Notif.empty()) {
             soTAIF_OpnRep.write(siTIm_Notif.read());
         }
         else if(!siTAIF_ClsReq.empty()) {
             siTAIF_ClsReq.read(tac_closeSessionID);
-            soSTt_AcceptStateQry.write(StateQuery(tac_closeSessionID));
+            soSTt_ConnectStateQry.write(StateQuery(tac_closeSessionID));
             tac_fsmState = TAC_CLOSE_CONN;
         }
         break;
@@ -201,6 +202,7 @@ void pTxAppConnect(
         if (!siPRt_GetFreePortRep.empty() && !soSLc_SessLookupReq.full()) {
             TcpPort  freePort   = siPRt_GetFreePortRep.read();
             SockAddr serverAddr = tac_localFifo.read();
+            // Request the [SLc] to create a new entry in its session table
             soSLc_SessLookupReq.write(SocketPair(
                                       SockAddr(piMMIO_IpAddr,   freePort),
                                       SockAddr(serverAddr.addr, serverAddr.port)));
@@ -208,16 +210,16 @@ void pTxAppConnect(
         }
         break;
     case TAC_CLOSE_CONN:
-        if (!siSTt_AcceptStateRep.empty()) {
-            SessionState state = siSTt_AcceptStateRep.read();
-            //TODO might add CLOSE_WAIT here?
-            if ((state == ESTABLISHED) || (state == FIN_WAIT_2) || (state == FIN_WAIT_1)) {
+        if (!siSTt_ConnectStateRep.empty()) {
+            TcpState tcpState = siSTt_ConnectStateRep.read();
+            // [FIXME-TODO Not yet tested]
+            if ((tcpState == ESTABLISHED) or (tcpState == FIN_WAIT_2) or (tcpState == FIN_WAIT_1)) {
                 // [TODO - Why if FIN already SENT]
-                soSTt_AcceptStateQry.write(StateQuery(tac_closeSessionID, FIN_WAIT_1, QUERY_WR));
+                soSTt_ConnectStateQry.write(StateQuery(tac_closeSessionID, FIN_WAIT_1, QUERY_WR));
                 soEVe_Event.write(Event(FIN_EVENT, tac_closeSessionID));
             }
             else {
-                soSTt_AcceptStateQry.write(StateQuery(tac_closeSessionID, state, QUERY_WR));
+                soSTt_ConnectStateQry.write(StateQuery(tac_closeSessionID, tcpState, QUERY_WR));
             }
             tac_fsmState = TAC_IDLE;
         }
@@ -396,9 +398,10 @@ void pTxAppTable(
  * @details
  *   This process generates the length of the incoming TCP segment from [APP]
  *    while forwarding that same data stream to the MemoryWriter (Mwr).
+ *    [FIXME - This part is completely bugus!!! Must fix like with UOE]
  *******************************************************************************/
 void pStreamLengthGenerator(
-        stream<AxisApp>     &siTAIF_Data,
+        stream<TcpAppData>  &siTAIF_Data,
         stream<AxisApp>     &soMwr_Data,
         stream<TcpSegLen>   &soSml_SegLen)
 {
@@ -457,9 +460,9 @@ void pStreamLengthGenerator(
  *******************************************************************************/
 void pStreamMetaLoader(
         stream<TcpAppMeta>          &siTAIF_Meta,
-        stream<AppWrSts>            &soTAIF_DSts,
-        stream<TcpSessId>           &soSTt_SessStateReq,
-        stream<SessionState>        &siSTt_SessStateRep,
+        stream<TcpAppWrSts>         &soTAIF_DSts,
+        stream<SessionId>           &soSTt_SessStateReq,
+        stream<TcpState>            &siSTt_SessStateRep,
         stream<TxAppTableQuery>     &soTat_AccessReq,
         stream<TxAppTableReply>     &siTat_AccessRep,
         stream<TcpSegLen>           &siSlg_SegLen,
@@ -477,26 +480,26 @@ void pStreamMetaLoader(
     #pragma HLS reset            variable = mdl_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static TcpSessId tcpSessId;
+    static SessionId sessId;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TxAppTableReply  txAppTableReply;
-    SessionState     sessState;
+    TcpState         sessState;
     TcpSegLen        segLen;
 
     switch(mdl_fsmState) {
     case READ_REQUEST:
         if (!siTAIF_Meta.empty()) {
             // Read the session ID
-            siTAIF_Meta.read(tcpSessId);
+            siTAIF_Meta.read(sessId);
             // Request state of the session
             assessSize(myName, soSTt_SessStateReq, "soSTt_SessStateReq", 2);  // [FIXME-Use constant for the length]
-            soSTt_SessStateReq.write(tcpSessId);
+            soSTt_SessStateReq.write(sessId);
             // Request the value of ACK and MemPtr from TxAppTable
             assessSize(myName, soTat_AccessReq, "soTat_AccessReq", 2);  // [FIXME-Use constant for the length]
-            soTat_AccessReq.write(TxAppTableQuery(tcpSessId));
+            soTat_AccessReq.write(TxAppTableQuery(sessId));
             if (DEBUG_LEVEL & TRACE_SML) {
-                printInfo(myName, "Received new Tx request for session %d.\n", tcpSessId.to_int());
+                printInfo(myName, "Received new Tx request for session %d.\n", sessId.to_int());
             }
             mdl_fsmState = READ_META;
         }
@@ -522,27 +525,27 @@ void pStreamMetaLoader(
                 assessSize(myName, sSmlToMwr_SegMeta, "sSmlToMwr_SegMeta", 128);  // [FIXME-Use constant for the length]
                 sSmlToMwr_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify [APP] about the fail
-                soTAIF_DSts.write(AppWrSts(STS_KO, ERROR_NOCONNCECTION));
+                soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOCONNECTION));
                 printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
-                           tcpSessId.to_uint(), SessionStateString[sessState].c_str());
+                           sessId.to_uint(), TcpStateString[sessState].c_str());
             }
             else if (segLen > maxWriteLength) {
                 sSmlToMwr_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify [APP] about fail
-                soTAIF_DSts.write(AppWrSts(STS_KO, ERROR_NOSPACE));
+                soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOSPACE));
                 printError(myName, "There is no TxBuf memory space available for session %d.\n",
-                           tcpSessId.to_uint());
+                           sessId.to_uint());
             }
             else { //-- Session is ESTABLISHED and segLen <= maxWriteLength
                 // Forward the metadata to the SegmentMemoryWriter (Mwr)
-                sSmlToMwr_SegMeta.write(SegMemMeta(tcpSessId, txAppTableReply.mempt, segLen));
+                sSmlToMwr_SegMeta.write(SegMemMeta(sessId, txAppTableReply.mempt, segLen));
                 // Forward data status back to [APP]
-                soTAIF_DSts.write(AppWrSts(STS_OK, segLen));
+                soTAIF_DSts.write(TcpAppWrSts(STS_OK, segLen));
                 // Notify [TXe] about data to be sent via an event to [EVe]
                 assessSize(myName, soEmx_Event, "soEmx_Event", 2);  // [FIXME-Use constant for the length]
-                soEmx_Event.write(Event(TX_EVENT, tcpSessId, txAppTableReply.mempt, segLen));
+                soEmx_Event.write(Event(TX_EVENT, sessId, txAppTableReply.mempt, segLen));
                 // Update the 'txMemPtr' in TxAppTable
-                soTat_AccessReq.write(TxAppTableQuery(tcpSessId, txAppTableReply.mempt + segLen));
+                soTat_AccessReq.write(TxAppTableQuery(sessId, txAppTableReply.mempt + segLen));
             }
             mdl_fsmState = READ_REQUEST;
         }
@@ -765,7 +768,7 @@ void pMemWriter(
  * @param[in]  siPRt_GetFreePortRep  Free port reply from [PRt].
  * @param[in]  siTSt_PushCmd         Push command for an AckNum from TxSarTable (TSt).
  * @param[out] soTSt_PushCmd         Push command for an AppPtr to [TSt].
- * @param[in]  siRXe_SessOpnSts      Session open status from [RXe].
+ * @param[in]  siRXe_ActSessState    TCP state of active session from [RXe].
  * @param[out] soEVe_Event           Event to EventEngine (EVe).
  * @param[in]  siTIm_Notif           Notification from Timers (TIm).
  * @param[in]  piMMIO_IpAddr         IPv4 address from [MMIO].
@@ -775,22 +778,22 @@ void pMemWriter(
  *******************************************************************************/
 void tx_app_interface(
         //-- TAIF / Open-Close Interfaces
-        stream<SockAddr>               &siTAIF_OpnReq,
-        stream<OpenStatus>             &soTAIF_OpnRep,
-        stream<AppClsReq>              &siTAIF_ClsReq,
+        stream<TcpAppOpnReq>           &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>           &soTAIF_OpnRep,
+        stream<TcpAppClsReq>           &siTAIF_ClsReq,
         //-- TAIF / Data Stream Interfaces
         stream<TcpAppData>             &siTAIF_Data,
         stream<TcpAppMeta>             &siTAIF_Meta,
-        stream<AppWrSts>               &soTAIF_DSts,
+        stream<TcpAppWrSts>            &soTAIF_DSts,
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxisApp>                &soMEM_TxP_Data,
         stream<DmSts>                  &siMEM_TxP_WrSts,
         //-- State Table Interfaces
-        stream<TcpSessId>              &soSTt_SessStateReq,
-        stream<SessionState>           &siSTt_SessStateRep,
-        stream<StateQuery>             &soSTt_AcceptStateQry,  // [FIXME- ReEname ConnectStateQry]
-        stream<SessionState>           &siSTt_AcceptStateRep,
+        stream<SessionId>              &soSTt_SessStateReq,
+        stream<TcpState>               &siSTt_SessStateRep,
+        stream<StateQuery>             &soSTt_ConnectStateQry,
+        stream<TcpState>               &siSTt_ConnectStateRep,
         //-- Session Lookup Controller Interface
         stream<SocketPair>             &soSLc_SessLookupReq,
         stream<SessionLookupReply>     &siSLc_SessLookupRep,
@@ -801,11 +804,11 @@ void tx_app_interface(
         stream<TStTxSarPush>           &siTSt_PushCmd,
         stream<TAiTxSarPush>           &soTSt_PushCmd,
         //-- Rx Engine Interface
-        stream<OpenStatus>             &siRXe_SessOpnSts,
+        stream<SessState>              &siRXe_ActSessState,
         //-- Event Engine Interface
         stream<Event>                  &soEVe_Event,
         //-- Timers Interface
-        stream<OpenStatus>             &siTIm_Notif,
+        stream<SessState>              &siTIm_Notif,
         //-- MMIO / IPv4 Address
         Ip4Addr                         piMMIO_IpAddr)
 {
@@ -902,9 +905,9 @@ void tx_app_interface(
             siSLc_SessLookupRep,
             soPRt_GetFreePortReq,
             siPRt_GetFreePortRep,
-            soSTt_AcceptStateQry,  // [FIXME- ReEname ConnectStateQry]
-            siSTt_AcceptStateRep,
-            siRXe_SessOpnSts,
+            soSTt_ConnectStateQry,
+            siSTt_ConnectStateRep,
+            siRXe_ActSessState,
             ssTacToEmx_Event,
             siTIm_Notif,
             piMMIO_IpAddr);

@@ -24,18 +24,21 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : event_engine.cpp
  * @brief      : Event Engine (EVe) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ *
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "event_engine.hpp"
-#include "../../test/test_toe_utils.hpp"
 
 using namespace hls;
 
@@ -55,33 +58,19 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_OFF | TRACE_EVE)
 
-#ifndef __SYNTHESIS__
-    const char* eventTypeStrings[] = {
-             "TX", "TXbis", "RT", "RTbis", "ACK", "SYN", "SYN_ACK", "FIN", "RST", "ACK_NODELAY" };
-    /***************************************************************************
-     * @brief Converts an event type ENUM into a string.
-     *
-     * @param[in]   ev  The event type ENUM.
-     * @returns the event type as a string.
-     **************************************************************************/
-    const char *getEventType(EventType ev) {
-        return eventTypeStrings[ev];
-    }
-#endif
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
  *         them to the Tx Engine (TXe).
  *
- * @param[in]  siTAi_Event,      Event from TxApplicationInterface (TAi).
- * @param[in]  siRXe_Event,      Event from RxEngine (RXe).
- * @param[in]  siTIm_Event,      Event from Timers (TIm).
- * @param[out] soAKd_Event,      Event to   AckDelayer (AKd).
- * @param[in]  siAKd_RxEventSig, The ACK Delayer just received an event.
- * @param[in]  siAKd_TxEventSig, The ACK Delayer just forwarded an event.
-*  @param[in]  siTXe_RxEventSig, The Tx Engine (TXe)  just received an event.
- *
- *****************************************************************************/
+ * @param[in]  siTAi_Event      Event from TxApplicationInterface (TAi).
+ * @param[in]  siRXe_Event      Event from RxEngine (RXe).
+ * @param[in]  siTIm_Event      Event from Timers (TIm).
+ * @param[out] soAKd_Event      Event to   AckDelayer (AKd).
+ * @param[in]  siAKd_RxEventSig The AckDelayer just received an event.
+ * @param[in]  siAKd_TxEventSig The AckDelayer just forwarded an event.
+ * @param[in]  siTXe_RxEventSig The TxEngine (TXe) just received an event.
+ *******************************************************************************/
 void event_engine(
         stream<Event>           &siTAi_Event,
         stream<ExtendedEvent>   &siRXe_Event,
@@ -91,12 +80,12 @@ void event_engine(
         stream<SigBool>         &siAKd_TxEventSig,
         stream<SigBit>          &siTXe_RxEventSig)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
 
     const char *myName  = THIS_NAME;
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     //---- Warning: the following counters depend on the FiFo depth between EVe and AKd
     static ap_uint<8>            eveTxEventCnt; // Keeps track of the #events forwarded to [AckDelayer]
     #pragma HLS RESET variable = eveTxEventCnt
@@ -107,7 +96,7 @@ void event_engine(
     static ap_uint<8>            txeRxEventCnt; // Keeps track of the #events received  by [TxEngine]
     #pragma HLS RESET variable = txeRxEventCnt
 
-    //-- DYNAMIC VARIABLES ----------------------------------------------------
+    //-- DYNAMIC VARIABLES -----------------------------------------------------
     ExtendedEvent ev;
 
     //------------------------------------------
@@ -171,3 +160,5 @@ void event_engine(
         txeRxEventCnt++;
     }
 }
+
+/*! \} */

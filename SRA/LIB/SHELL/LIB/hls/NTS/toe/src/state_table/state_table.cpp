@@ -83,11 +83,11 @@ using namespace hls;
  *******************************************************************************/
 void state_table(
         stream<StateQuery>         &siRXe_SessStateQry,
-        stream<SessionState>       &soRXe_SessStateRep,
+        stream<TcpState>           &soRXe_SessStateRep,
         stream<StateQuery>         &siTAi_ConnectStateQry,
-        stream<SessionState>       &soTAi_ConnectStateRep,
+        stream<TcpState>           &soTAi_ConnectStateRep,
         stream<SessionId>          &siTAi_StreamStateReq,
-        stream<SessionState>       &soTAi_StreamStateRep,
+        stream<TcpState>           &soTAi_StreamStateRep,
         stream<SessionId>          &siTIm_SessCloseCmd,
         stream<SessionId>          &soSLc_SessReleaseCmd)
 {
@@ -96,7 +96,7 @@ void state_table(
     #pragma HLS INLINE off
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static SessionState             SESS_STATE_TABLE[MAX_SESSIONS];
+    static TcpState                 SESS_STATE_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=SESS_STATE_TABLE core=RAM_2P_BRAM
     #pragma HLS DEPENDENCE variable=SESS_STATE_TABLE inter false
 
@@ -134,7 +134,7 @@ void state_table(
                 if (DEBUG_LEVEL & TRACE_STT) {
                     printInfo(THIS_NAME, "TAi is requesting to set SESS_STATE_TABLE[%d] = %s.\n", \
                               stt_txAccess.sessionID.to_uint(), \
-                              SessionStateString[stt_txAccess.state].c_str());
+                              TcpStateString[stt_txAccess.state].c_str());
                 }
             }
             else {
@@ -173,7 +173,7 @@ void state_table(
                 if (DEBUG_LEVEL & TRACE_STT) {
                     printInfo(THIS_NAME, "RXe is requesting to set SESS_STATE_TABLE[%d] = %s.\n", \
                               stt_rxAccess.sessionID.to_uint(), \
-                              SessionStateString[stt_rxAccess.state].c_str());
+                              TcpStateString[stt_rxAccess.state].c_str());
                 }
             }
             else {

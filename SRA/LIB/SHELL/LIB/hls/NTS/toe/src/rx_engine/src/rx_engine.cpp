@@ -1042,8 +1042,8 @@ void pMemWriter(
  *******************************************************************************/
 void pRxAppNotifier(
         stream<DmSts>         &siMEM_WrSts,
-        stream<AppNotif>      &siFsm_Notif,
-        stream<AppNotif>      &soRAi_RxNotif,
+        stream<TcpAppNotif>   &siFsm_Notif,
+        stream<TcpAppNotif>   &soRAi_RxNotif,
         stream<StsBit>        &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -1053,7 +1053,7 @@ void pRxAppNotifier(
     const char *myName = concat3(THIS_NAME, "/", "Ran");
 
     //-- LOCAL STREAMS ---------------------------------------------------------
-    static stream<AppNotif>        ssRxNotifFifo("ssRxNotifFifo");
+    static stream<TcpAppNotif>     ssRxNotifFifo("ssRxNotifFifo");
     #pragma HLS STREAM    variable=ssRxNotifFifo depth=32 // WARNING: [FIXME] Depends on the memory delay !!!
     #pragma HLS DATA_PACK variable=ssRxNotifFifo
 
@@ -1064,7 +1064,7 @@ void pRxAppNotifier(
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static DmSts        ran_dmStatus1;
     static DmSts        ran_dmStatus2;
-    static AppNotif     ran_appNotification;
+    static TcpAppNotif  ran_appNotification;
 
     if (ran_doubleAccessFlag == FLAG_ON) {
         // The segment was splitted and notification will only go out now
@@ -1300,7 +1300,7 @@ void pMetaDataHandler(
 void pFiniteStateMachine(
         stream<RXeFsmMeta>          &siMdh_FsmMeta,
         stream<StateQuery>          &soSTt_StateQry,
-        stream<SessionState>        &siSTt_StateRep,
+        stream<TcpState>            &siSTt_StateRep,
         stream<RXeRxSarQuery>       &soRSt_RxSarQry,
         stream<RxSarEntry>          &siRSt_RxSarRep,
         stream<RXeTxSarQuery>       &soTSt_TxSarQry,
@@ -1308,11 +1308,11 @@ void pFiniteStateMachine(
         stream<RXeReTransTimerCmd>  &soTIm_ReTxTimerCmd,
         stream<SessionId>           &soTIm_ClearProbeTimer,
         stream<SessionId>           &soTIm_CloseTimer,
-        stream<OpenStatus>          &soTAi_SessOpnSts, // [TODO -Merge with eventEngine]
+        stream<SessState>           &soTAi_SessOpnSts, // [TODO -Merge with eventEngine]
         stream<Event>               &soEVe_Event,
         stream<CmdBit>              &soTsd_DropCmd,
         stream<DmCmd>               &soMwr_WrCmd,
-        stream<AppNotif>            &soRan_RxNotif)
+        stream<TcpAppNotif>         &soRan_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -1332,7 +1332,7 @@ void pFiniteStateMachine(
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     ap_uint<4>          control_bits;
-    SessionState        tcpState;
+    TcpState            tcpState;
     RxSarEntry          rxSar;
     RXeTxSarReply       txSar;
 
@@ -1433,7 +1433,7 @@ void pFiniteStateMachine(
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
 #endif
                             // Only notify about new data available
-                            soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
                                                          fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
                             soTsd_DropCmd.write(CMD_KEEP);
                         }
@@ -1559,8 +1559,8 @@ void pFiniteStateMachine(
                     // Set ACK event
                     soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
-                    // Signal [TAi] that the active port was successfully opened
-                    soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, SESS_IS_OPENED));
+                    // Signal [TAi] that the active connection was successfully established
+                    soTAi_SessOpnSts.write(SessState(fsm_Meta.sessionId, ESTABLISHED));
                 }
                 else if (tcpState == SYN_SENT) { //TODO correct answer?
                     // Sent RST, RFC 793: fig.9 (old) duplicate SYN(+ACK)
@@ -1608,14 +1608,14 @@ void pFiniteStateMachine(
                         soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
 #endif
                         // Tell Application new data is available and connection got closed
-                        soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
-                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  true)); //CLOSE
+                        soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
+                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  CLOSED));
                         soTsd_DropCmd.write(CMD_KEEP);
                     }
                     else if (tcpState == ESTABLISHED) {
                         // Tell Application connection got closed
-                        soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId,  0,                   fsm_Meta.ip4SrcAddr,
-                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  true)); //CLOSE
+                        soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  0,                   fsm_Meta.ip4SrcAddr,
+                                                     fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort,  CLOSED));
                     }
                     // Update state
                     if (tcpState == ESTABLISHED) {
@@ -1660,8 +1660,8 @@ void pFiniteStateMachine(
                         // [TODO this would be a RST,ACK i think]
                         // Check if matching SYN
                         if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
-                            // Tell application, could not open connection
-                            soTAi_SessOpnSts.write(OpenStatus(fsm_Meta.sessionId, FAILED_TO_OPEN_SESS));
+                            // The connection culd not be established
+                            soTAi_SessOpnSts.write(SessState(fsm_Meta.sessionId, CLOSED));
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
                             soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, STOP_TIMER));
                         }
@@ -1674,8 +1674,8 @@ void pFiniteStateMachine(
                         // Check if in window
                         if (fsm_Meta.meta.seqNumb == rxSar.rcvd) {
                             // Tell application, RST occurred, abort
-                            soRan_RxNotif.write(AppNotif(fsm_Meta.sessionId, 0, fsm_Meta.ip4SrcAddr,
-                                                         fsm_Meta.tcpSrcPort,   fsm_Meta.tcpDstPort, true)); // RESET-CLOSED
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, 0, fsm_Meta.ip4SrcAddr,
+                                                         fsm_Meta.tcpSrcPort,   fsm_Meta.tcpDstPort, CLOSED)); // RESET-CLOSED
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR)); //TODO maybe some TIME_WAIT state
                             soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, STOP_TIMER));
                         }
@@ -1772,7 +1772,7 @@ void rx_engine(
         stream<SessionLookupReply>      &siSLc_SessLkRep,
         //-- State Table Interface
         stream<StateQuery>              &soSTt_StateQry,
-        stream<SessionState>            &siSTt_StateRep,
+        stream<TcpState>                &siSTt_StateRep,
         //-- Port Table Interface
         stream<TcpPort>                 &soPRt_PortStateReq,
         stream<RepBit>                  &siPRt_PortStateRep,
@@ -1789,9 +1789,9 @@ void rx_engine(
         //-- Event Engine Interface
         stream<ExtendedEvent>           &soEVe_SetEvent,
         //-- Tx Application Interface
-        stream<OpenStatus>              &soTAi_SessOpnSts,
+        stream<SessState>               &soTAi_SessOpnSts,
         //-- Rx Application Interface
-        stream<AppNotif>                &soRAi_RxNotif,
+        stream<TcpAppNotif>             &soRAi_RxNotif,
         //-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxisApp>                 &soMEM_WrData,
@@ -1860,7 +1860,7 @@ void rx_engine(
     static stream<CmdBit>           ssFsmToTsd_DropCmd      ("ssFsmToTsd_DropCmd");
     #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=2
 
-    static stream<AppNotif>         ssFsmToRan_Notif        ("ssFsmToRan_Notif");
+    static stream<TcpAppNotif>      ssFsmToRan_Notif        ("ssFsmToRan_Notif");
     #pragma HLS stream     variable=ssFsmToRan_Notif        depth=8  // This depends on the memory delay
     #pragma HLS DATA_PACK  variable=ssFsmToRan_Notif
 

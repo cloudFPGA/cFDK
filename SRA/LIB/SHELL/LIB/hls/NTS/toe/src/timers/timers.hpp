@@ -41,7 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TOE_TIM_H_
 
 #include "../toe.hpp"
-#include "../event_engine/event_engine.hpp"
+//#include "../event_engine/event_engine.hpp"
 #include "../../../../NTS/nts_utils.hpp"
 
 using namespace hls;
@@ -90,15 +90,21 @@ class ReTxTimerEntry
  *
  *******************************************************************************/
 void timers(
+        //-- Rx Engine Interfaces
         stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
-        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
         stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
-        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
         stream<ap_uint<16> >       &siRXe_CloseTimer,
+        //-- Tx Engine Interfaces
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<ap_uint<16> >       &siTXe_SetProbeTimer,
+        //-- State Table Interface
         stream<SessionId>          &soSTt_SessCloseCmd,
+        //-- Event Engine Interface
         stream<Event>              &soEVe_Event,
-        stream<OpenStatus>         &soTAi_Notif,
-        stream<AppNotif>           &soRAi_Notif
+        //-- Tx Application Interface
+        stream<SessState>          &soTAi_Notif,
+        //-- Rx Application Interface
+        stream<TcpAppNotif>        &soRAi_Notif
 );
 
 #endif

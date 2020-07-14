@@ -25,18 +25,21 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : rx_app_interface.cpp
- * @brief      : Rx Application Interface (RAi)
+ * @brief      : Rx Application Interface (RAi) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "rx_app_interface.hpp"
-#include "../../test/test_toe_utils.hpp"
+
 
 using namespace hls;
 
@@ -61,16 +64,24 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_ALL)
 
-/*****************************************************************************
- * @brief A 2-to-1 Stream multiplexer.
- * ***************************************************************************/
+/*******************************************************************************
+ * @brief A 2-to-1 generic Stream Multiplexer
+ *
+ *  @param[in]  si1     The input stream #1.
+ *  @param[in]  si2     The input stream #2.
+ *  @param[out] so      The output stream.
+ *
+ * @details
+ *  This multiplexer behaves like an arbiter. It takes two streams as inputs and
+ *   forwards one of them to the output channel. The stream connected to the
+ *   first input always takes precedence over the second one.
+ *******************************************************************************/
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so)
 {
-
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+   //-- DIRECTIVES FOR THIS PROCESS --------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
@@ -80,52 +91,48 @@ template<typename T> void pStreamMux(
         so.write(si2.read());
 }
 
-/*****************************************************************************
- * @brief The Rx Application Stream (RAs) retrieves the data of an
- *         established connection from the buffer memory and forwards it to
- *         the application.
+/*******************************************************************************
+ * @brief Rx Application Stream (RAs)
  *
- * @param[in]  siTRIF_DataReq,   Data request from TcpRoleInterface (TRIF).
- * @param[out] soTRIF_Meta,      Metadata to TRIF.
- * @param[out] soRSt_RxSarQry,   Query to RxSarTable (RSt)
- * @param[in]  siRSt_RxSarRep,   Reply from [RSt].
- * @param[out] soRma_MemRdCmd,   Rx memory read command to RxMemAccess (Rma).
+ * @param[in]  siTAIF_DataReq  Data request from TcpApplicationInterface (TAIF).
+ * @param[out] soTAIF_Meta     Metadata to [TAIF].
+ * @param[out] soRSt_RxSarQry  Query to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep  Reply from [RSt].
+ * @param[out] soRma_MemRdCmd  Rx memory read command to RxMemoryAccess (Rma).
  *
  * @detail
- *  This process provides the application (a.k.a Role) with the data streams of
- *   the established connections via the TcpRoleInterface (TRIF).
- *  The process waits for a valid data read request from [TRIF] and generates a
- *   corresponding read command for the Rx buffer memory via [Rma]. Next, a
- *   request to update the RxApp pointer of the session is forwarded to [RSt],
- *   and a meta-data (.i.e the session-id) is sent back to [TRIF] to signal that
- *   the request has been processed.
- *
- *****************************************************************************/
+ *  This process waits for a valid data read request from the TcpAppInterface
+ *   (TAIF) and generates a corresponding read command for the TCP Rx buffer
+ *   memory via the RxMemoryAccess (Rma) process. Next, a request to update the
+ *   RxApp pointer of the session is forwarded to the RxSarTable (RSt) and a
+ *   meta-data (.i.e the current session-id) is sent back to [TAIF] to signal
+ *   that the request has been processed.
+ *******************************************************************************/
 void pRxAppStream(
-	stream<AppRdReq>            &siTRIF_DataReq,
-	stream<SessionId>           &soTRIF_Meta,
-	stream<RAiRxSarQuery>       &soRSt_RxSarQry,
-	stream<RAiRxSarReply>       &siRSt_RxSarRep,
-	stream<DmCmd>               &soRma_MemRdCmd)
+    stream<TcpAppRdReq>         &siTAIF_DataReq,
+    stream<TcpAppMeta>          &soTAIF_Meta,
+    stream<RAiRxSarQuery>       &soRSt_RxSarQry,
+    stream<RAiRxSarReply>       &siRSt_RxSarRep,
+    stream<DmCmd>               &soRma_MemRdCmd)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Ras");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { S0=0, S1 } \
-								 ras_fsmState=S0;
+                                 ras_fsmState=S0;
     #pragma HLS RESET   variable=ras_fsmState
 
-    //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TcpSegLen    ras_readLength;
 
     switch (ras_fsmState) {
     case S0:
-    	if (!siTRIF_DataReq.empty() && !soRSt_RxSarQry.full()) {
-    		AppRdReq  appReadRequest = siTRIF_DataReq.read();
+        if (!siTAIF_DataReq.empty() && !soRSt_RxSarQry.full()) {
+            TcpAppRdReq  appReadRequest = siTAIF_DataReq.read();
 			if (appReadRequest.length != 0) {
 				// Make sure length is not 0, otherwise Data Mover will hang
 				soRSt_RxSarQry.write(RAiRxSarQuery(appReadRequest.sessionID));
@@ -136,12 +143,12 @@ void pRxAppStream(
 		break;
 
     case S1:
-		if (!siRSt_RxSarRep.empty() && !soTRIF_Meta.full() &&
+		if (!siRSt_RxSarRep.empty() && !soTAIF_Meta.full() &&
 			!soRma_MemRdCmd.full() && !soRSt_RxSarQry.full()) {
 			RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
 			// Signal that the data request has been processed by sending
 			// the SessId back to [TRIF]
-			soTRIF_Meta.write(rxSarRep.sessionID);
+			soTAIF_Meta.write(rxSarRep.sessionID);
 			// Generate Rx memory buffer read command
 			RxMemPtr rxMemAddr = 0;
 			rxMemAddr(29, 16) = rxSarRep.sessionID(13, 0);
@@ -224,12 +231,12 @@ void pRxMemAccess(
  * @brief Memory Reader (Mrd)
  *
  * @param[in]  siMEM_RxP_Data, Rx memory data from [MEM].
- * @param[out] soTRIF_Data,    TCP data stream to [TRIF].
+ * @param[out] soTAIF_Data,    TCP data stream to [TRIF].
  * @param[in]  siRma_SplitSeg, Status indicating that segment is broken in two Rx memory buffers.
  *******************************************************************************/
 void pMemReader(
         stream<AxiWord>  &siMEM_RxP_Data,
-        stream<AxiWord>  &soTRIF_Data,
+        stream<AxiWord>  &soTAIF_Data,
         stream<StsBit>   &siRma_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -255,7 +262,7 @@ void pMemReader(
 
     case MRD_IDLE:
         //-- Default starting state
-        if (!siRma_SplitSeg.empty() && !siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
+        if (!siRma_SplitSeg.empty() && !siMEM_RxP_Data.empty() && !soTAIF_Data.full()) {
             siRma_SplitSeg.read(mrd_doubleAccessFlag);
             siMEM_RxP_Data.read(mrd_axiWord);
             // Count the number of valid bytes in this data word
@@ -267,7 +274,7 @@ void pMemReader(
                 mrd_axiWord.tlast = ~mrd_doubleAccessFlag;
                 if (mrd_memRdOffset == 8) {
                     // No need to offset anything. We can forward the current word
-                    soTRIF_Data.write(mrd_axiWord);
+                    soTAIF_Data.write(mrd_axiWord);
                     // Jump to stream merged since there's no joining to be performed
                     mrd_fsmState = MRD_STREAMUNMERGED;
                
@@ -282,12 +289,12 @@ void pMemReader(
             else if (mrd_axiWord.tlast == 1 && mrd_doubleAccessFlag == FLAG_OFF)  {
                 // This is the 1st and last data word of this segment.
                 // We are done the 1st segment. Stay in this default idle state.
-                soTRIF_Data.write(mrd_axiWord);
+                soTAIF_Data.write(mrd_axiWord);
             }
             else {
                 // The 1st segment-part contains more than one word.
                 // Forward the current word and goto MRD_STREAM to process the others.
-                soTRIF_Data.write(mrd_axiWord);
+                soTAIF_Data.write(mrd_axiWord);
                 mrd_fsmState = MRD_STREAM;
             }
         }
@@ -295,7 +302,7 @@ void pMemReader(
 
     case MRD_STREAM:
         //-- Handles all but the 1st data words of a 1st memory access of a segment
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty() && !soTAIF_Data.full()) {
             siMEM_RxP_Data.read(mrd_axiWord);
             // Count the number of valid bytes in this data word
             mrd_memRdOffset = keepMapping(mrd_axiWord.tkeep);
@@ -305,7 +312,7 @@ void pMemReader(
                 mrd_axiWord.tlast = ~mrd_doubleAccessFlag;
                 if (mrd_memRdOffset == 8) {
                     // No need to offset anything
-                    soTRIF_Data.write(mrd_axiWord);
+                    soTAIF_Data.write(mrd_axiWord);
                     // Jump to stream merged since there's no joining to be performed.
                     mrd_fsmState = MRD_STREAMUNMERGED;
                 }
@@ -319,22 +326,22 @@ void pMemReader(
             else if (mrd_axiWord.tlast == 1 && mrd_doubleAccessFlag == FLAG_OFF) {
                 // This is the 1st and last data word of this segment and no
                 // memory access breakdown occurred.
-                soTRIF_Data.write(mrd_axiWord);
+                soTAIF_Data.write(mrd_axiWord);
                 // We are done. Goto default idle state.
                 mrd_fsmState = MRD_IDLE;
             }
             else {
                 // There is more data to read for this segment
-                soTRIF_Data.write(mrd_axiWord);
+                soTAIF_Data.write(mrd_axiWord);
             }
         }
         break;
 
     case MRD_STREAMUNMERGED:
         //-- Handle the 2nd memory read access when no realignment is required
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty() && !soTAIF_Data.full()) {
             AxiWord currWord = siMEM_RxP_Data.read();
-            soTRIF_Data.write(currWord);
+            soTAIF_Data.write(currWord);
             if (currWord.tlast == 1) {
                 // We are done with 2nd segment part. Go back to default idle
                 mrd_fsmState = MRD_IDLE;
@@ -346,7 +353,7 @@ void pMemReader(
         //-- Perform the hand over from the 1st to the 2nd memory access when
         //--  the 1st memory read access has already occurred its content is
         //--  stored in 'mrd_axiWord'.
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty() && !soTAIF_Data.full()) {
             AxiWord currWord = AxiWord(0, 0xFF, 0);
             // In any case, backup the content of the previous data word.
             // Here we don't pay attention to the exact number of bytes in the
@@ -390,7 +397,7 @@ void pMemReader(
                 mrd_fsmState = MRD_STREAMMERGED;
             }
             // Always forward the current word
-            soTRIF_Data.write(currWord);
+            soTAIF_Data.write(currWord);
         }
         break;
 
@@ -398,7 +405,7 @@ void pMemReader(
         //-- Handle all the remaining data of the 2nd memory access.
         //-- Data are realigned cess, which resulted from a data word
         //-- This state outputs all of the remaining, realigned data words of the 2nd mem.access, which resulted from a data word
-        if (!siMEM_RxP_Data.empty() && !soTRIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty() && !soTAIF_Data.full()) {
             AxiWord currWord = AxiWord(0, 0xFF, 0);
             currWord.tdata.range((mrd_memRdOffset.to_uint64() * 8) - 1, 0) = \
             		mrd_axiWord.tdata.range(63, ((8 - mrd_memRdOffset.to_uint64()) * 8));
@@ -431,17 +438,17 @@ void pMemReader(
                 	mrd_fsmState = MRD_RESIDUE;
                 }
             }
-            soTRIF_Data.write(currWord);
+            soTAIF_Data.write(currWord);
         }
         break;
 
     case MRD_RESIDUE:
     	//--
-        if (!soTRIF_Data.full()) {
+        if (!soTAIF_Data.full()) {
             AxiWord currWord = AxiWord(0, returnKeep(mrd_offsetBuffer), 1);
             currWord.tdata.range((mrd_memRdOffset.to_uint64() * 8) - 1, 0) = \
             		mrd_axiWord.tdata.range(63, ((8 - mrd_memRdOffset.to_uint64()) * 8));
-            soTRIF_Data.write(currWord);
+            soTAIF_Data.write(currWord);
             // We are done with the very last bytes of a segment.
             // Go back to default idle state.
             mrd_fsmState = MRD_IDLE;
@@ -453,8 +460,8 @@ void pMemReader(
 /*****************************************************************************
  * @brief Listen application interface (Lai)
  *
- * @param[in]  siTRIF_LsnReq,         TCP listen port request from TRIF.
- * @param[out] soTRIF_LsnRep,         TCP listen port reply to TRIF.
+ * @param[in]  siTAIF_LsnReq,         TCP listen port request from TRIF.
+ * @param[out] soTAIF_LsnRep,         TCP listen port reply to TRIF.
  * @param[out] soPRt_LsnReq,          Listen port request to PortTable (PRt).
  * @param[in]  siPRt_LsnAck,          Listen port acknowledge from [PRt].
  *
@@ -465,12 +472,12 @@ void pMemReader(
  *
  ******************************************************************************/
 void pLsnAppInterface(
-        stream<TcpPort>     &siTRIF_LsnReq,
-        stream<AckBit>      &soTRIF_LsnAck,
+        stream<TcpPort>     &siTAIF_LsnReq,
+        stream<AckBit>      &soTAIF_LsnAck,
         stream<TcpPort>     &soPRt_LsnReq,
         stream<AckBit>      &siPRt_LsnAck)
         // [TODO] The tear down of a connection is not implemented yet
-        //stream<TcpPort>   &siTRIF_StopLsnReq,
+        //stream<TcpPort>   &siTAIF_StopLsnReq,
         //stream<TcpPort>   &soPRt_CloseReq,)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -487,20 +494,20 @@ void pLsnAppInterface(
     TcpPort            listenPort;
     AckBit             listenAck;
 
-    if (!siTRIF_LsnReq.empty() && !lai_waitForAck) {
-        siTRIF_LsnReq.read(listenPort);
+    if (!siTAIF_LsnReq.empty() && !lai_waitForAck) {
+        siTAIF_LsnReq.read(listenPort);
         soPRt_LsnReq.write(listenPort);
         lai_waitForAck = true;
     }
     else if (!siPRt_LsnAck.empty() && lai_waitForAck) {
         siPRt_LsnAck.read(listenAck);
-        soTRIF_LsnAck.write(listenAck);
+        soTAIF_LsnAck.write(listenAck);
         lai_waitForAck = false;
     }
 
     /*** Close listening port [TODO] ***
-    if (!siTRIF_StopLsnReq.empty()) {
-        soPRt_CloseReq.write(siTRIF_StopLsnReq.read());
+    if (!siTAIF_StopLsnReq.empty()) {
+        soPRt_CloseReq.write(siTAIF_StopLsnReq.read());
     }
     ***/
 }
@@ -508,13 +515,13 @@ void pLsnAppInterface(
 /*****************************************************************************
  * @brief Rx Application Interface (RAi).
  *
- * @param[out] soTRIF_Notif,    Notification to TcpRoleInterface (TRIF) about available new data in TCP Rx buffer.
- * @param[in]  siTRIF_DataReq,  Request for data from [TRIF].
+ * @param[out] soTAIF_Notif,    Notification to TcpRoleInterface (TRIF) about available new data in TCP Rx buffer.
+ * @param[in]  siTAIF_DataReq,  Request for data from [TRIF].
 
- * @param[out] soTRIF_Data,     TCP data stream to TRIF.
- * @param[out] soTRIF_Meta,     Metadata to TRIF.
- * @param[in]  siTRIF_LsnReq,   TCP listen port request from [TRIF].
- * @param[out] soTRIF_LsnAck,   TCP listen port acknowledge to [TRIF].
+ * @param[out] soTAIF_Data,     TCP data stream to TRIF.
+ * @param[out] soTAIF_Meta,     Metadata to TRIF.
+ * @param[in]  siTAIF_LsnReq,   TCP listen port request from [TRIF].
+ * @param[out] soTAIF_LsnAck,   TCP listen port acknowledge to [TRIF].
  * @param[out] soPRt_LsnReq,    TCP listen port acknowledge from [PRt].
  * @param[in]  siPRt_LsnAck,    Port state reply from [PRt].
  * @param[in]  siRXe_Notif,     Notification from [RXe].
@@ -525,18 +532,21 @@ void pLsnAppInterface(
  * @param[in]  siMEM_RxP_Data,        Rx memory data from MEM.
  *
  * @details
+ *  The Rx Application Interface (Rai) retrieves the data of an established
+ *   connection from the TCP Rx buffer memory and forwards them to the
+ *   application via the TcpAppInterface (TAIF).
  *
  ******************************************************************************/
 void rx_app_interface(
         //-- TRIF / Handshake Interfaces
-        stream<AppNotif>            &soTRIF_Notif,
-        stream<AppRdReq>            &siTRIF_DataReq,
+        stream<AppNotif>            &soTAIF_Notif,
+        stream<AppRdReq>            &siTAIF_DataReq,
         //-- TRIF / Data Stream Interfaces
-        stream<AxisApp>             &soTRIF_Data,
-        stream<SessionId>           &soTRIF_Meta,
+        stream<AxisApp>             &soTAIF_Data,
+        stream<SessionId>           &soTAIF_Meta,
         //-- TRIF / Listen Interfaces
-        stream<AppLsnReq>           &siTRIF_LsnReq,
-        stream<AppLsnRep>           &soTRIF_LsnRep,
+        stream<AppLsnReq>           &siTAIF_LsnReq,
+        stream<AppLsnRep>           &soTAIF_LsnRep,
         //-- PRt / Port Table Interfaces
         stream<TcpPort>             &soPRt_LsnReq,
         stream<AckBit>              &siPRt_LsnAck,
@@ -567,8 +577,8 @@ void rx_app_interface(
     #pragma HLS stream variable=ssRmaToMrd_SplitSeg depth=16
 
     pRxAppStream(
-            siTRIF_DataReq,
-            soTRIF_Meta,
+            siTAIF_DataReq,
+            soTAIF_Meta,
             soRSt_RxSarReq,
             siRSt_RxSarRep,
             ssRasToRma_MemRdCmd);
@@ -580,12 +590,12 @@ void rx_app_interface(
 
     pMemReader(
             siMEM_RxP_Data,
-            soTRIF_Data,
+            soTAIF_Data,
             ssRmaToMrd_SplitSeg);
 
     pLsnAppInterface(
-            siTRIF_LsnReq,
-            soTRIF_LsnRep,
+            siTAIF_LsnReq,
+            soTAIF_LsnRep,
             soPRt_LsnReq,
             siPRt_LsnAck);
 
@@ -594,6 +604,8 @@ void rx_app_interface(
     pStreamMux(
             siRXe_Notif,
             siTIm_Notif,
-            soTRIF_Notif);
+            soTAIF_Notif);
 
 }
+
+/*! \} */
