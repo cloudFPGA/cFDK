@@ -168,7 +168,9 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
-set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
+              ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -183,7 +185,9 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
-set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
+              ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -198,7 +202,9 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
-set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} CONFIG.Input_Depth {4096} CONFIG.Output_Depth {4096} CONFIG.Data_Count_Width {12} CONFIG.Write_Data_Count_Width {12} CONFIG.Read_Data_Count_Width {12} CONFIG.Full_Threshold_Assert_Value {4088} CONFIG.Full_Threshold_Negate_Value {4087}]
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
+              ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
