@@ -47,9 +47,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../../../NTS/AxisIp4.hpp"
 #include "../../../../../NTS/AxisPsd4.hpp"
 
-
 using namespace hls;
-
 
 //OBSOLETE_20200710 enum DropCmd { KEEP_CMD=false, DROP_CMD=true };
 

@@ -69,29 +69,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
-
-//OBSOLETE_20200701 #include "../test/test_toe_utils.hpp"
-
-//#include "session_lookup_controller/session_lookup_controller.hpp"
-//#include "state_table/state_table.hpp"
-//#include "rx_sar_table/rx_sar_table.hpp"
-//#include "tx_sar_table/tx_sar_table.hpp"
-//#include "timers/timers.hpp"
-//#include "event_engine/event_engine.hpp"
-//#include "ack_delay/ack_delay.hpp"
-//#include "port_table/port_table.hpp"
-
-//#include "rx_engine/src/rx_engine.hpp"
-//#include "tx_engine/src/tx_engine.hpp"
-//#include "rx_app_interface/rx_app_interface.hpp"
-//#include "tx_app_interface/tx_app_interface.hpp"
-
-//#include "../../../NTS/nts_utils.hpp"
-//#include "../../../NTS/SimNtsUtils.hpp"
-//#include "../../../NTS/toecam/src/toecam.hpp"
 #include "../../../MEM/mem.hpp"
 
-//using namespace hls;
+using namespace hls;
+
+
 
 //---------------------------------------------------------
 //-- Forward declarations
@@ -103,7 +85,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //class LE_SocketPair;
 
 
-
 //---------------------------------------------------------
 //-- TOE GLOBAL DEFINES
 //---------------------------------------------------------
@@ -111,7 +92,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TOE_SIZEOF_ACTIVE_PORT_TABLE    0x8000
 #define TOE_FIRST_EPHEMERAL_PORT_NUM    0x8000 // Dynamic ports are in the range 32768..65535
 
-
+#define TOE_FEATURE_USED_FOR_DEBUGGING  0
 
 
 
@@ -132,9 +113,6 @@ extern unsigned int  gSimCycCnt;
 #define OOO_N 4     // number of OOO blocks accepted
 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
 
-// Usually, the TCP Maximum Segment Size (MSS) is 1460 bytes.
-// The TOE uses 1456 to support 4 bytes of TCP options.
-static const ap_uint<16> MSS = 1456;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20-4
 
 // OOO Parameters
 //static const int OOO_N = 4;       // number of OOO blocks accepted
@@ -812,25 +790,34 @@ enum EventType { TX_EVENT=0,    RT_EVENT,  ACK_EVENT, SYN_EVENT, \
                  SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT };
 
 #ifndef __SYNTHESIS__
-    const char* eventTypeStrings[] = {
+  const char* eventTypeStrings[] = {
                  "TX",          "RT",      "ACK",     "SYN",     \
                  "SYN_ACK",     "FIN",     "RST",     "ACK_NODELAY" };
-    //-----------------------------------------------------
-    //-- @brief Converts an event type ENUM into a string.
-    //--
-    //-- @param[in]   ev  The event type ENUM.
-    //-- @returns the event type as a string.
-    //-----------------------------------------------------
-    const char *getEventType(EventType ev) {
-        return eventTypeStrings[ev];
-    }
+  //-----------------------------------------------------
+  //-- @brief Converts an event type ENUM into a string.
+  //--
+  //-- @param[in]   ev  The event type ENUM.
+  //-- @returns the event type as a string.
+  //-----------------------------------------------------
+  const char *getEventType(EventType ev) {
+      return eventTypeStrings[ev];
+  }
 #endif
 
+//=========================================================
+//== TOE - SESSION STATE
+//=========================================================
 //---------------------------------------------------------
 //-- Session State
 //--  Reports the state of a TCP connection according to RFC-793.
 //---------------------------------------------------------
 typedef TcpAppOpnRep    SessState;
+
+//=========================================================
+//== TOE - TCP PORT RANGES (Static & Ephemeral)
+//=========================================================
+typedef ap_uint<15> TcpStaPort;  // TCP Static  Port [0x0000..0x7FFF]
+typedef ap_uint<15> TcpDynPort;  // TCP Dynamic Port [0x8000..0xFFFF]
 
 //---------------------------------------------------------
 //--  SOCKET ADDRESS (alias ipTuple)
@@ -1490,8 +1477,10 @@ void toe(
         //-- DEBUG / Session Statistics Interfaces
         ap_uint<16>                             &poDBG_SssRelCnt,
         ap_uint<16>                             &poDBG_SssRegCnt
-        //-- NOT-USED - DEBUG / SimCycCounter
-        //   ap_uint<32>                        &poSimCycCount
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        //-- DEBUG / SimCycCounter
+        ap_uint<32>                        &poSimCycCount
+        #endif
 );
 
 #endif

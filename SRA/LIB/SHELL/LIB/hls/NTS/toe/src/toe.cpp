@@ -48,7 +48,18 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
 #include "toe.hpp"
-
+#include "./session_lookup_controller/session_lookup_controller.hpp"
+#include "./state_table/state_table.hpp"
+#include "./rx_sar_table/rx_sar_table.hpp"
+#include "./tx_sar_table/tx_sar_table.hpp"
+#include "./timers/timers.hpp"
+#include "./event_engine/event_engine.hpp"
+#include "./ack_delay/ack_delay.hpp"
+#include "./port_table/port_table.hpp"
+#include "./rx_app_interface/rx_app_interface.hpp"
+#include "./tx_app_interface/tx_app_interface.hpp"
+#include "./rx_engine/src/rx_engine.hpp"
+#include "./tx_engine/src/tx_engine.hpp"
 
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
@@ -650,7 +661,7 @@ void toe(
     #pragma HLS DATA_PACK    variable=ssTStToTAi_PushCmd
 
     /**********************************************************************
-     * PROCESSES: TCP STATE-KEEPING DATA STRUCTURE
+     * PROCESSES: TCP STATE-KEEPING DATA STRUCTURES
      **********************************************************************/
 
     //-- Session Lookup Controller (SLc) -----------------------------------
@@ -735,13 +746,13 @@ void toe(
     //-- Ack Delayer (AKd)) ----------------------------------------------
      ack_delay(
             ssEVeToAKd_Event,
-            ssAKdToTXe_Event,
             ssAKdToEVe_RxEventSig,
-            ssAKdToEVe_TxEventSig);
+            ssAKdToEVe_TxEventSig,
+            ssAKdToTXe_Event);
 
 
     /**********************************************************************
-     * RX & TX ENGINES
+     * PROCESSES: RX & TX ENGINES
      **********************************************************************/
 
     //-- RX Engine (RXe) --------------------------------------------------
@@ -785,7 +796,7 @@ void toe(
 
 
     /**********************************************************************
-     * APPLICATION INTERFACES
+     * PROCESSSES: APPLICATION INTERFACES
      **********************************************************************/
 
     //-- Rx Application Interface (RAi) -----------------------------------
@@ -832,7 +843,7 @@ void toe(
             piMMIO_IpAddr);
 
     /**********************************************************************
-     * CONTROL AND DEBUG INTERFACES
+     * PROCESSES: CONTROL AND DEBUG INTERFACES
      **********************************************************************/
 
     //-- Ready signal generator -------------------------------------------
@@ -840,9 +851,11 @@ void toe(
             sPRtToRdy_Ready,
             poNTS_Ready);
 
+    #if TOE_FEATURE_USED_FOR_DEBUGGING
     //-- Testbench counter incrementer (for debugging) --------------------
     pTbSimCount(
         poSimCycCount);
+    #endif
 
 }
 

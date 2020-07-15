@@ -74,8 +74,6 @@ using namespace hls;
 #define ACK_ON      1
 #define NO_ACK      0
 
-static const ap_uint<16> MTU = 1500;
-
 /******************************************************************************
  * GENERIC TYPES and CLASSES USED BY NTS
  ******************************************************************************
@@ -134,10 +132,12 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  ******************************************************************************/
 
+//-- ETHERNET - MAXIMUM TRANSMISSION UNIT
+static const ap_uint<16> MTU = 1500;
+
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions
 //=========================================================
-
 // Ethernet Broadcast MAC Address
 #define ETH_BROADCAST_ADDR 0xFFFFFFFFFFFF
 
@@ -183,6 +183,11 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
  *  - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
  *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
  ******************************************************************************/
+
+//-- TCP - MAXIMUM SEGMENT SIZE
+//--  Usually, the TCP Maximum Segment Size (MSS) is 1460 bytes.
+//--  The TOE uses 1456 to support 4 bytes of TCP options.
+static const ap_uint<16> MSS = 1456;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20-4
 
 //========================================================
 //== LAYER-4 - COMMON TCP and UDP HEADER FIELDS

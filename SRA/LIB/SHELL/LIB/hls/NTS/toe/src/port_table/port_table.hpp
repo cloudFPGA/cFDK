@@ -24,36 +24,59 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : port_table.hpp
- * @brief      : Port Table (PRt) of the TCP Offload Engine (TOE).
+ * @brief      : Port Table (PRt) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
- *
- * @details    : Data structures, types & prototypes definitions for TOE/PRt.
- *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
-#include "../toe.hpp"
-#include "../toe_utils.hpp"
+#ifndef _TOE_PRT_H_
+#define _TOE_PRT_H_
+
+#include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 
 
-/*****************************************************************************
- * @brief   Main process of the TCP Port Table (PRt).
- *****************************************************************************/
+typedef AckBit PortState;
+#define ACT_FREE_PORT false
+#define ACT_USED_PORT true
+
+#define ACTIVE_PORT   false
+#define LISTEN_PORT   true
+
+#define PortRange     bool
+
+
+/*******************************************************************************
+ *
+ * @brief ENTITY - Port Table (PRt)
+ *
+ *******************************************************************************/
 void port_table(
+        //-- Ready Signal
         StsBool                 &poTOE_Ready,
+        //-- RXe / Rx Engine Interface
         stream<TcpPort>         &siRXe_GetPortStateReq,
         stream<RepBit>          &soRXe_GetPortStateRep,
+        //-- RAi / Rx Application Interface
         stream<TcpPort>         &siRAi_OpenLsnPortReq,
         stream<AckBit>          &soRAi_OpenLsnPortAck,
+        //-- TAi / Tx Application Interface
         stream<ReqBit>          &siTAi_GetFreePortReq,
         stream<TcpPort>         &siTAi_GetFreePortRep,
+        //-- SLc / Session Lookup Controller Interface
         stream<TcpPort>         &siSLc_ClosePortCmd
 );
+
+#endif
+
+/*! \} */

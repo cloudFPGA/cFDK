@@ -40,8 +40,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_SLC_H_
 #define _TOE_SLC_H_
 
-#include "../../../../NTS/toe/src/toe.hpp"
 #include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 

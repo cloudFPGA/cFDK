@@ -40,7 +40,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_EVE_H_
 #define _TOE_EVE_H_
 
-#include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 
@@ -65,5 +66,7 @@ void event_engine(
         //-- Tx Engine Interface
         stream<SigBit>          &siTXe_RxEventSig
 );
+
+#endif
 
 /*! \} */

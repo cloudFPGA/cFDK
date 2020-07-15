@@ -24,28 +24,41 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-
-/*****************************************************************************
- * @file       : ack_delay.cpp
+/*******************************************************************************
+ * @file       : ack_delay.hpp
  * @brief      : ACK Delayer (AKd) of the TCP Offload Engine (TOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
-#include "../toe.hpp"
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#ifndef _TOE_AKD_H_
+#define _TOE_AKD_H_
+
+#include "../../../../NTS/nts_utils.hpp"
+#include "../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 
-/*****************************************************************************
- * @brief   Main process of the ACK Delayer (AKd).
+/*******************************************************************************
  *
- *****************************************************************************/
+ * @brief ENTITY - Acknowledgment Delayer (AKd)
+ *
+ *******************************************************************************/
 void ack_delay(
+        //-- Event Engine Interfaces
         stream<ExtendedEvent>   &siEVe_Event,
-        stream<ExtendedEvent>   &soTXe_Event,
         stream<SigBit>          &soEVe_RxEventSig,
-        stream<SigBool>         &soEVe_TxEventSig
+        stream<SigBool>         &soEVe_TxEventSig,
+        //-- Tx Engine Interface
+        stream<ExtendedEvent>   &soTXe_Event
 );
 
+#endif
+
+/*! \} */

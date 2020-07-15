@@ -419,22 +419,24 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
  *         the 'TLAST' bit of the data chunk is set.
  *
  * @param[in] appData  A reference  to the AXI word to write.
- * @param[in] outFile, a reference to the file stream to write.
+ * @param[in] outFile  A reference to the file stream to write.
  * @return the number of bytes written into the file.
  *******************************************************************************/
 int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
     int writtenBytes = 0;
     for (int bytNum=0; bytNum<8; bytNum++) {
-        if (axisApp.tkeep.bit(bytNum)) {
+        //OBSOLETE_20200715 if (axisApp.tkeep.bit(bytNum)) {
+        if (axisApp.getLE_TKeep()[bytNum]) {
             int hi = ((bytNum*8) + 7);
             int lo = ((bytNum*8) + 0);
-            ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            //OBSOLETE_20200715 ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            ap_uint<8>  octet = axisApp.getLE_TData(hi, lo);
             // Write byte to file
             outFile << myUint8ToStrHex(octet);
             writtenBytes++;
         }
     }
-    if (axisApp.tlast == 1) {
+    if (axisApp.getTLast()) {
         outFile << endl;
     }
     return writtenBytes;
@@ -456,10 +458,12 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
 int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile, int &wrCount) {
     int writtenBytes = 0;
     for (int bytNum=0; bytNum<8; bytNum++) {
-        if (axisApp.tkeep.bit(bytNum)) {
+        //OBSOLETYE_20200715 if (axisApp.tkeep.bit(bytNum)) {
+        if (axisApp.getLE_TKeep()[bytNum]) {
             int hi = ((bytNum*8) + 7);
             int lo = ((bytNum*8) + 0);
-            ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            //OBSOLETYE_20200715 ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
+            ap_uint<8>  octet = axisApp.getLE_TData(hi, lo);
             // Write byte to file
             outFile << myUint8ToStrHex(octet);
             writtenBytes++;
@@ -472,7 +476,7 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile, int &wrCount) {
             }
         }
     }
-    if ((axisApp.tlast == 1) && (wrCount != 0)) {
+    if ((axisApp.getTLast()) && (wrCount != 0)) {
         outFile << endl;
         wrCount = 0;
     }
