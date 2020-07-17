@@ -302,104 +302,106 @@ class SimIp4Packet {
         }
     }
 
-	//*********************************************************
-	//** IPV4 PACKET FIELDS - SETTERS and GETTERS
-	//*********************************************************
-	// Set the IP Version field
-	void         setIpVersion(int version)           {        pktQ[0].setIp4Version(version);}
-	// Get the IP Version field
-	int          getIpVersion()                      { return pktQ[0].getIp4Version();       }
-	// Set the IP Internet Header Length field
-	void         setIpInternetHeaderLength(int ihl)  {        pktQ[0].setIp4HdrLen(ihl);     }
-	// Get the IP Internet Header Length field
-	int          getIpInternetHeaderLength()         { return pktQ[0].getIp4HdrLen();        }
-	// Set the IP Type of Service field
-	void         setIpTypeOfService(int tos)         {        pktQ[0].setIp4ToS(tos);        }
-	// Get the IP Type of Service field
-	int          getIpTypeOfService()                { return pktQ[0].getIp4ToS();           }
-	// Set the IP Total Length field
-	void         setIpTotalLength(int totLen)        {        pktQ[0].setIp4TotalLen(totLen);}
-	// Get the IP Total Length field
-	int          getIpTotalLength()                  { return pktQ[0].getIp4TotalLen();      }
-	// Set the IP Identification field
-	void         setIpIdentification(int id)         {        pktQ[0].setIp4Ident(id);       }
-	// Get the IP Identification field
-	int          getIpIdentification()               { return pktQ[0].getIp4Ident();         }
-	// Set the IP Fragment Offset field
-	void         setIpFragmentOffset(int offset)     {        pktQ[0].setIp4FragOff(offset); }
-	// Get the IP Fragment Offset field
-	int          getIpFragmentOffset()               { return pktQ[0].getIp4FragOff();       }
-	// Set the IP Flags field
-	void         setIpFlags(int flags)               {        pktQ[0].setIp4Flags(flags);    }
-	// Set the IP Time To Live field
-	void         setIpTimeToLive(int ttl)            {        pktQ[1].setIp4TtL(ttl);        }
-	// Set the IP Protocol field
-	void         setIpProtocol(int prot)             {        pktQ[1].setIp4Prot(prot);      }
-	// Get the IP Protocol field
-	Ip4Prot      getIpProtocol()                     { return pktQ[1].getIp4Prot();          }
-	// Set the IP Header Checksum field
-	void          setIpHeaderChecksum(int csum)      {        pktQ[1].setIp4HdrCsum(csum);   }
-	// Get the IP Header Checksum field
-	Ip4HdrCsum    getIpHeaderChecksum()              { return pktQ[1].getIp4HdrCsum();       }
-	// Set the IP Source Address field
-	void          setIpSourceAddress(int addr)       {        pktQ[1].setIp4SrcAddr(addr);   }
-	// Get the IP Source Address field
-    Ip4Addr       getIpSourceAddress()               { return pktQ[1].getIp4SrcAddr();       }
-	LE_Ip4Addr getLE_IpSourceAddress()               { return pktQ[1].getLE_Ip4SrcAddr();    }
-	// Set the IP Destination Address field
-	void          setIpDestinationAddress(int addr)  {        pktQ[2].setIp4DstAddr(addr);   }
-	// Get the IP Destination Address field
-	Ip4Addr       getIpDestinationAddress()          { return pktQ[2].getIp4DstAddr();       }
-	LE_Ip4Addr getLE_IpDestinationAddress()          { return pktQ[2].getLE_Ip4DstAddr();    }
+    //*********************************************************
+    //** IPV4 PACKET FIELDS - SETTERS and GETTERS
+    //*********************************************************
+    // Set the IP Version field
+    void         setIpVersion(int version)           {        pktQ[0].setIp4Version(version);}
+    // Get the IP Version field
+    int          getIpVersion()                      { return pktQ[0].getIp4Version();       }
+    // Set the IP Internet Header Length field
+    void         setIpInternetHeaderLength(int ihl)  {        pktQ[0].setIp4HdrLen(ihl);     }
+    // Get the IP Internet Header Length field
+    int          getIpInternetHeaderLength()         { return pktQ[0].getIp4HdrLen();        }
+    // Set the IP Type of Service field
+    void         setIpTypeOfService(int tos)         {        pktQ[0].setIp4ToS(tos);        }
+    // Get the IP Type of Service field
+    int          getIpTypeOfService()                { return pktQ[0].getIp4ToS();           }
+    // Set the IP Total Length field
+    void         setIpTotalLength(int totLen)        {        pktQ[0].setIp4TotalLen(totLen);}
+    // Get the IP Total Length field
+    int          getIpTotalLength()                  { return pktQ[0].getIp4TotalLen();      }
+    // Set the IP Identification field
+    void         setIpIdentification(int id)         {        pktQ[0].setIp4Ident(id);       }
+    // Get the IP Identification field
+    int          getIpIdentification()               { return pktQ[0].getIp4Ident();         }
+    // Set the IP Fragment Offset field
+    void         setIpFragmentOffset(int offset)     {        pktQ[0].setIp4FragOff(offset); }
+    // Get the IP Fragment Offset field
+    int          getIpFragmentOffset()               { return pktQ[0].getIp4FragOff();       }
+    // Set the IP Flags field
+    void         setIpFlags(int flags)               {        pktQ[0].setIp4Flags(flags);    }
+    // Set the IP Time To Live field
+    void         setIpTimeToLive(Ip4TtL ttl)         {        pktQ[1].setIp4TtL(ttl);        }
+    // Get the IP Time To Live field
+    int          getIpTimeToLive()                   { return pktQ[1].getIp4TtL();           }
+    // Set the IP Protocol field
+    void         setIpProtocol(int prot)             {        pktQ[1].setIp4Prot(prot);      }
+    // Get the IP Protocol field
+    int          getIpProtocol()                     { return pktQ[1].getIp4Prot();          }
+    // Set the IP Header Checksum field
+    void         setIpHeaderChecksum(int csum)       {        pktQ[1].setIp4HdrCsum(csum);   }
+    // Get the IP Header Checksum field
+    Ip4HdrCsum   getIpHeaderChecksum()               { return pktQ[1].getIp4HdrCsum();       }
+    // Set the IP Source Address field
+    void         setIpSourceAddress(int addr)        {        pktQ[1].setIp4SrcAddr(addr);   }
+    // Get the IP Source Address field
+    Ip4Addr      getIpSourceAddress()                { return pktQ[1].getIp4SrcAddr();       }
+    LE_Ip4Addr getLE_IpSourceAddress()               { return pktQ[1].getLE_Ip4SrcAddr();    }
+    // Set the IP Destination Address field
+    void         setIpDestinationAddress(int addr)   {        pktQ[2].setIp4DstAddr(addr);   }
+    // Get the IP Destination Address field
+    Ip4Addr      getIpDestinationAddress()           { return pktQ[2].getIp4DstAddr();       }
+    LE_Ip4Addr getLE_IpDestinationAddress()          { return pktQ[2].getLE_Ip4DstAddr();    }
 
-	//*********************************************************
-	//** TCP SEGMENT FIELDS - SETTERS and GETTERS
-	//*********************************************************
-	// Set-Get the TCP Source Port field
-	void          setTcpSourcePort(int port)         {        pktQ[2].setTcpSrcPort(port);   }
-	int           getTcpSourcePort()                 { return pktQ[2].getTcpSrcPort();       }
-	LE_TcpPort getLE_TcpSourcePort()                 { return pktQ[2].getLE_TcpSrcPort();    }
-	// Set-Get the TCP Destination Port field
-	void          setTcpDestinationPort(int port)    {        pktQ[2].setTcpDstPort(port);   }
-	int           getTcpDestinationPort()            { return pktQ[2].getTcpDstPort();       }
-	LE_TcpPort getLE_TcpDestinationPort()            { return pktQ[2].getLE_TcpDstPort();    }
-	// Set-Get the TCP Sequence Number field
-	void       setTcpSequenceNumber(TcpSeqNum num)   {        pktQ[3].setTcpSeqNum(num);     }
-	TcpSeqNum  getTcpSequenceNumber()                { return pktQ[3].getTcpSeqNum();        }
-	// Set the TCP Acknowledgment Number
-	void       setTcpAcknowledgeNumber(TcpAckNum num){        pktQ[3].setTcpAckNum(num);     }
-	TcpAckNum  getTcpAcknowledgeNumber()             { return pktQ[3].getTcpAckNum();        }
-	// Set-Get the TCP Data Offset field
-	void setTcpDataOffset(int offset)                {        pktQ[4].setTcpDataOff(offset); }
-	int  getTcpDataOffset()                          { return pktQ[4].getTcpDataOff();       }
-	// Set-Get the TCP Control Bits
-	void       setTcpControlFin(int bit)             {        pktQ[4].setTcpCtrlFin(bit);    }
-	TcpCtrlBit getTcpControlFin()                    { return pktQ[4].getTcpCtrlFin();       }
-	void       setTcpControlSyn(int bit)             {        pktQ[4].setTcpCtrlSyn(bit);    }
-	TcpCtrlBit getTcpControlSyn()                    { return pktQ[4].getTcpCtrlSyn();       }
-	void       setTcpControlRst(int bit)             {        pktQ[4].setTcpCtrlRst(bit);    }
-	TcpCtrlBit getTcpControlRst()                    { return pktQ[4].getTcpCtrlRst();       }
-	void       setTcpControlPsh(int bit)             {        pktQ[4].setTcpCtrlPsh(bit);    }
-	TcpCtrlBit getTcpControlPsh()                    { return pktQ[4].getTcpCtrlPsh();       }
-	void       setTcpControlAck(int bit)             {        pktQ[4].setTcpCtrlAck(bit);    }
-	TcpCtrlBit getTcpControlAck()                    { return pktQ[4].getTcpCtrlAck();       }
-	void       setTcpControlUrg(int bit)             {        pktQ[4].setTcpCtrlUrg(bit);    }
-	TcpCtrlBit getTcpControlUrg()                    { return pktQ[4].getTcpCtrlUrg();       }
-	// Set-Get the TCP Window field
-	void setTcpWindow(int win)                       {        pktQ[4].setTcpWindow(win);     }
-	int  getTcpWindow()                              { return pktQ[4].getTcpWindow();        }
-	// Set-Get the TCP Checksum field
-	void setTcpChecksum(int csum)                    {        pktQ[4].setTcpChecksum(csum);  }
-	int  getTcpChecksum()                            { return pktQ[4].getTcpChecksum();      }
-	// Set-Get the TCP Urgent Pointer field
-	void setTcpUrgentPointer(int ptr)                {        pktQ[4].setTcpUrgPtr(ptr);     }
-	int  getTcpUrgentPointer()                       { return pktQ[4].getTcpUrgPtr();        }
-	// Set-Get the TCP Option fields
-	void setTcpOptionKind(int val)                   {        pktQ[5].setTcpOptKind(val);    }
-	int  getTcpOptionKind()                          { return pktQ[5].getTcpOptKind();       }
-	void setTcpOptionMss(int val)                    {        pktQ[5].setTcpOptMss(val);     }
-	int  getTcpOptionMss()                           { return pktQ[5].getTcpOptMss();        }
-	// Additional Debug and Utilities Procedures
+    //*********************************************************
+    //** TCP SEGMENT FIELDS - SETTERS and GETTERS
+    //*********************************************************
+    // Set-Get the TCP Source Port field
+    void          setTcpSourcePort(int port)         {        pktQ[2].setTcpSrcPort(port);   }
+    int           getTcpSourcePort()                 { return pktQ[2].getTcpSrcPort();       }
+    LE_TcpPort getLE_TcpSourcePort()                 { return pktQ[2].getLE_TcpSrcPort();    }
+    // Set-Get the TCP Destination Port field
+    void          setTcpDestinationPort(int port)    {        pktQ[2].setTcpDstPort(port);   }
+    int           getTcpDestinationPort()            { return pktQ[2].getTcpDstPort();       }
+    LE_TcpPort getLE_TcpDestinationPort()            { return pktQ[2].getLE_TcpDstPort();    }
+    // Set-Get the TCP Sequence Number field
+    void       setTcpSequenceNumber(TcpSeqNum num)   {        pktQ[3].setTcpSeqNum(num);     }
+    TcpSeqNum  getTcpSequenceNumber()                { return pktQ[3].getTcpSeqNum();        }
+    // Set the TCP Acknowledgment Number
+    void       setTcpAcknowledgeNumber(TcpAckNum num){        pktQ[3].setTcpAckNum(num);     }
+    TcpAckNum  getTcpAcknowledgeNumber()             { return pktQ[3].getTcpAckNum();        }
+    // Set-Get the TCP Data Offset field
+    void setTcpDataOffset(int offset)                {        pktQ[4].setTcpDataOff(offset); }
+    int  getTcpDataOffset()                          { return pktQ[4].getTcpDataOff();       }
+    // Set-Get the TCP Control Bits
+    void       setTcpControlFin(int bit)             {        pktQ[4].setTcpCtrlFin(bit);    }
+    TcpCtrlBit getTcpControlFin()                    { return pktQ[4].getTcpCtrlFin();       }
+    void       setTcpControlSyn(int bit)             {        pktQ[4].setTcpCtrlSyn(bit);    }
+    TcpCtrlBit getTcpControlSyn()                    { return pktQ[4].getTcpCtrlSyn();       }
+    void       setTcpControlRst(int bit)             {        pktQ[4].setTcpCtrlRst(bit);    }
+    TcpCtrlBit getTcpControlRst()                    { return pktQ[4].getTcpCtrlRst();       }
+    void       setTcpControlPsh(int bit)             {        pktQ[4].setTcpCtrlPsh(bit);    }
+    TcpCtrlBit getTcpControlPsh()                    { return pktQ[4].getTcpCtrlPsh();       }
+    void       setTcpControlAck(int bit)             {        pktQ[4].setTcpCtrlAck(bit);    }
+    TcpCtrlBit getTcpControlAck()                    { return pktQ[4].getTcpCtrlAck();       }
+    void       setTcpControlUrg(int bit)             {        pktQ[4].setTcpCtrlUrg(bit);    }
+    TcpCtrlBit getTcpControlUrg()                    { return pktQ[4].getTcpCtrlUrg();       }
+    // Set-Get the TCP Window field
+    void setTcpWindow(int win)                       {        pktQ[4].setTcpWindow(win);     }
+    int  getTcpWindow()                              { return pktQ[4].getTcpWindow();        }
+    // Set-Get the TCP Checksum field
+    void setTcpChecksum(int csum)                    {        pktQ[4].setTcpChecksum(csum);  }
+    int  getTcpChecksum()                            { return pktQ[4].getTcpChecksum();      }
+    // Set-Get the TCP Urgent Pointer field
+    void setTcpUrgentPointer(int ptr)                {        pktQ[4].setTcpUrgPtr(ptr);     }
+    int  getTcpUrgentPointer()                       { return pktQ[4].getTcpUrgPtr();        }
+    // Set-Get the TCP Option fields
+    void setTcpOptionKind(int val)                   {        pktQ[5].setTcpOptKind(val);    }
+    int  getTcpOptionKind()                          { return pktQ[5].getTcpOptKind();       }
+    void setTcpOptionMss(int val)                    {        pktQ[5].setTcpOptMss(val);     }
+    int  getTcpOptionMss()                           { return pktQ[5].getTcpOptMss();        }
+    // Additional Debug and Utilities Procedures
 
     //*********************************************************
     //** UDP DATAGRAM FIELDS - SETTERS amnd GETTERS
@@ -729,6 +731,15 @@ class SimIp4Packet {
         return tcpSegment;
     } // End-of: getTcpSegment
 
+    // Return the TCP segment length (.i.e, length of IPv4 data when Prot is TCP)
+    Ip4DatLen getTcpSegmentLength() {
+        if (this->getIpProtocol() != IP4_PROT_TCP) {
+            printFatal(this->myName, "Cannot compute TCP segment length. The current IPv4 packet does not contain any TCP segment (prot=0x%2.2x).\n",
+                                     this->getIpProtocol());
+        }
+        return (this->getIpTotalLength() - (this->getIpInternetHeaderLength() * 4));
+    }
+
     /**************************************************************************
      * @brief Append some data to this packet from a UDP datagram.
      *
@@ -826,7 +837,7 @@ class SimIp4Packet {
                 }
             }
         } // End-of while(!endOfDgm)
-        this->setIpProtocol(UDP_PROTOCOL);
+        this->setIpProtocol(IP4_PROT_UDP);
         return true;
     } // End-of: addIpPayload(UdpDatagram udpDgm)
 
@@ -1033,8 +1044,8 @@ class SimIp4Packet {
         return true;
     } // End-of: setIpPayload
 
-	// [TODO]-Return the IP4 data payload as a TcpSegment
-	//  [TODO] TcpSegment getTcpSegment() {}
+    // [TODO]-Return the IP4 data payload as a TcpSegment
+    //  [TODO] TcpSegment getTcpSegment() {}
 
     /**************************************************************************
      * @brief Get TCP data from the current IPv4 packet.
@@ -1120,10 +1131,15 @@ class SimIp4Packet {
             printWarn(callerName, "Malformed IPv4 packet: 'Header Checksum' field does not match the computed header checksum.\n");
             printWarn(callerName, "\tFound Header Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
                       this->getIpHeaderChecksum().to_ushort(), this->calculateIpHeaderChecksum().to_ushort());
-            rc = false;
+            if (this->getIpHeaderChecksum() == 0) {
+                printWarn(callerName, "\t  FYI - This will not be considered a fatal error. It allows the user to skip computing and providing the IP header checksum in its test vectors files.\n");
+            }
+            else {
+                rc = false;
+            }
         }
         // Asses UDP datagram
-        if (this->getIpProtocol() == UDP_PROTOCOL) {
+        if (this->getIpProtocol() == IP4_PROT_UDP) {
             SimUdpDatagram udpDatagram = this->getUdpDatagram();
             // Assess IP4/UDP/Length field vs datagram length
             UdpLen udpHLen = this->getUdpLength();
@@ -1136,9 +1152,9 @@ class SimIp4Packet {
             }
             // Assess IPv4/UDP/Checksum field vs datagram checksum
             UdpCsum udpHCsum = this->getUdpChecksum();
-            UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
-                                                                  this->getIpDestinationAddress(),
-                                                                  UDP_PROTOCOL);
+            UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum( \
+                                               this->getIpSourceAddress(),
+                                               this->getIpDestinationAddress());
             if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
                 // UDP datagram comes with an invalid checksum
                 printWarn(callerName, "Malformed IPv4 packet: UDP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
@@ -1154,7 +1170,24 @@ class SimIp4Packet {
         }
         // Asses TCP segment
         else if (this->getIpProtocol() == IP4_PROT_TCP) {
-            printWarn(myName, "[TODO-Must check if segment is well-formed !!!\n");
+            SimTcpSegment tcpSegment = this->getTcpSegment();
+            // Assess IPv4/TCP/Checksum field vs segment checksum
+            TcpCsum tcpHCsum = this->getTcpChecksum();
+            TcpCsum calcCsum = tcpSegment.reCalculateTcpChecksum(this->getIpSourceAddress(),
+                                                                 this->getIpDestinationAddress(),
+                                                                 this->getTcpSegmentLength());
+            if (tcpHCsum != calcCsum) {
+                // TCP segment comes with an invalid checksum
+                printWarn(callerName, "Malformed IPv4 packet: TCP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
+                printWarn(callerName, "\tFound IPv4/TCP/Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                          tcpHCsum.to_uint(), calcCsum.to_ushort());
+                if (tcpHCsum == 0xDEAD) {
+                    printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
+                }
+                else {
+                    rc = false;
+                }
+            }
         }
         // Asses ICMP packet
         else if (this->getIpProtocol() == IP4_PROT_ICMP) {
@@ -1182,73 +1215,69 @@ class SimIp4Packet {
         LE_TcpUrgPtr     leTcpUrgPtr   = byteSwap16(this->getTcpUrgentPointer());
 
         printInfo(callerName, "IP PACKET HEADER (HEX numbers are in LITTLE-ENDIAN order): \n");
-        printf("[%s] IP4 Total Length        = %15u (0x%4.4X) \n",
-                (std::string(callerName)).c_str(),
-                this->getIpTotalLength(), leIp4TotalLen.to_uint());
-        printf("[%s] IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
-                (std::string(callerName)).c_str(),
+        printInfo(callerName, "IP4 IHL                 = %15u \n",
+                  this->getIpInternetHeaderLength());
+        printInfo(callerName, "IP4 Version             = %15u \n",
+                  this->getIpVersion());
+        printInfo(callerName, "IP4 Type Of Service     = %15u \n",
+                  this->getIpTypeOfService());
+        printInfo(callerName, "IP4 Total Length        = %15u (0x%4.4X) \n",
+                  this->getIpTotalLength(), leIp4TotalLen.to_uint());
+        printInfo(callerName, "IP4 Identification      = %15u \n",
+                  this->getIpIdentification());
+        printInfo(callerName, "IP4 Fragment Offset     = %15u \n",
+                  this->getIpFragmentOffset());
+        printInfo(callerName, "IP4 Type To Live        = %15u \n",
+                  this->getIpTimeToLive());
+        printInfo(callerName, "IP4 Protocol            = %15u \n",
+                  this->getIpProtocol());
+        printInfo(callerName, "IP4 Header Checksum     = %15u \n",
+                  this->getIpHeaderChecksum().to_ushort());
+        printInfo(callerName, "IP4 Source Address      = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
                 (this->getIpSourceAddress().to_uint() & 0xFF000000) >> 24,
                 (this->getIpSourceAddress().to_uint() & 0x00FF0000) >> 16,
                 (this->getIpSourceAddress().to_uint() & 0x0000FF00) >>  8,
                 (this->getIpSourceAddress().to_uint() & 0x000000FF) >>  0,
                 leIp4SrcAddr.to_uint());
-        printf("[%s] IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
-                (std::string(callerName)).c_str(),
+        printInfo(callerName, "IP4 Destination Address = %3.3d.%3.3d.%3.3d.%3.3d (0x%8.8X) \n",
                 (this->getIpDestinationAddress().to_uint() & 0xFF000000) >> 24,
                 (this->getIpDestinationAddress().to_uint() & 0x00FF0000) >> 16,
                 (this->getIpDestinationAddress().to_uint() & 0x0000FF00) >>  8,
                 (this->getIpDestinationAddress().to_uint() & 0x000000FF) >>  0,
                 leIp4DstAddr.to_uint());
-        printf("[%s] TCP Source Port         = %15u (0x%4.4X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpSourcePort(), leTcpSrcPort.to_uint());
-        printf("[%s] TCP Destination Port    = %15u (0x%4.4X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpDestinationPort(), leTcpDstPort.to_uint());
-        printf("[%s] TCP Sequence Number     = %15u (0x%8.8X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpSequenceNumber().to_uint(), leTcpSeqNum.to_uint());
-        printf("[%s] TCP Acknowledge Number  = %15u (0x%8.8X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpAcknowledgeNumber().to_uint(), leTcpAckNum.to_uint());
-        printf("[%s] TCP Data Offset         = %15d (0x%1.1X)  \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpDataOffset(), this->getTcpDataOffset());
-
-        printf("[%s] TCP Control Bits        = ",
-				(std::string(callerName)).c_str());
-        printf("%s", this->getTcpControlFin() ? "FIN |" : "");
-        printf("%s", this->getTcpControlSyn() ? "SYN |" : "");
-        printf("%s", this->getTcpControlRst() ? "RST |" : "");
-        printf("%s", this->getTcpControlPsh() ? "PSH |" : "");
-        printf("%s", this->getTcpControlAck() ? "ACK |" : "");
-        printf("%s", this->getTcpControlUrg() ? "URG |" : "");
-        printf("\n");
-
-        printf("[%s] TCP Window              = %15u (0x%4.4X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpWindow(),        leTcpWindow.to_uint());
-        printf("[%s] TCP Checksum            = %15u (0x%4.4X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpChecksum(),      leTcpCSum.to_uint());
-        printf("[%s] TCP Urgent Pointer      = %15u (0x%4.4X) \n",
-				(std::string(callerName)).c_str(),
-				this->getTcpUrgentPointer(), leTcpUrgPtr.to_uint());
-
+        printInfo(callerName, "TCP Source Port         = %15u (0x%4.4X) \n",
+                this->getTcpSourcePort(), leTcpSrcPort.to_uint());
+        printInfo(callerName, "TCP Destination Port    = %15u (0x%4.4X) \n",
+                this->getTcpDestinationPort(), leTcpDstPort.to_uint());
+        printInfo(callerName, "TCP Sequence Number     = %15u (0x%8.8X) \n",
+                this->getTcpSequenceNumber().to_uint(), leTcpSeqNum.to_uint());
+        printInfo(callerName, "TCP Acknowledge Number  = %15u (0x%8.8X) \n",
+                this->getTcpAcknowledgeNumber().to_uint(), leTcpAckNum.to_uint());
+        printInfo(callerName, "TCP Data Offset         = %15d (0x%1.1X)  \n",
+                this->getTcpDataOffset(), this->getTcpDataOffset());
+        printInfo(callerName, "TCP Control Bits        = %s%s%s%s%s%s\n",
+                this->getTcpControlFin() ? "FIN |" : "",
+                this->getTcpControlSyn() ? "SYN |" : "",
+                this->getTcpControlRst() ? "RST |" : "",
+                this->getTcpControlPsh() ? "PSH |" : "",
+                this->getTcpControlAck() ? "ACK |" : "",
+                this->getTcpControlUrg() ? "URG |" : "");
+        printInfo(callerName, "TCP Window              = %15u (0x%4.4X) \n",
+                this->getTcpWindow(),        leTcpWindow.to_uint());
+        printInfo(callerName, "TCP Checksum            = %15u (0x%4.4X) \n",
+                this->getTcpChecksum(),      leTcpCSum.to_uint());
+        printInfo(callerName, "TCP Urgent Pointer      = %15u (0x%4.4X) \n",
+                this->getTcpUrgentPointer(), leTcpUrgPtr.to_uint());
         if (this->getTcpDataOffset() == 6) {
-        	printf("[%s] TCP Option:\n",
-        			(std::string(callerName)).c_str());
-        	switch (this->getTcpOptionKind()) {
-        	case 0x02:
-        		printf("[%s]    Maximum Segment Size = %15u \n",
-        				(std::string(callerName)).c_str(),
-						this->getTcpOptionMss());
-        	}
+            printInfo(callerName, "TCP Option:\n");
+            switch (this->getTcpOptionKind()) {
+            case 0x02:
+                printInfo(callerName, "   Maximum Segment Size = %15u \n",
+                          this->getTcpOptionMss());
+            }
         }
-
-        printf("[%s] TCP Data Length         = %15u \n",
-        		(std::string(callerName)).c_str(),
-				this->sizeOfTcpData());
+        printInfo(callerName, "TCP Data Length         = %15u \n",
+                  this->sizeOfTcpData());
     }
 
     /**************************************************************************
@@ -1258,10 +1287,10 @@ class SimIp4Packet {
     void printRaw(const char *callerName) {
        printInfo(callerName, "Current packet is : \n");
        for (int c=0; c<this->pktQ.size(); c++) {
-           printf("\t\t%16.16X %2.2X %d \n",
-                   this->pktQ[c].getLE_TData().to_uint(),
-                   this->pktQ[c].getLE_TKeep().to_uint(),
-                   this->pktQ[c].getLE_TLast().to_uint());
+           printf("\t\t%16.16lX %2.2X %d \n",
+                   this->pktQ[c].getLE_TData().to_ulong(),
+                   this->pktQ[c].getLE_TKeep().to_ushort(),
+                   this->pktQ[c].getLE_TLast().to_uchar());
        }
     }
 
@@ -1332,8 +1361,9 @@ class SimIp4Packet {
      **************************************************************************/
     UdpCsum udpRecalculateChecksum() {
         SimUdpDatagram udpDatagram  = this->getUdpDatagram();
-        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
-                                             this->getIpDestinationAddress(), this->getIpProtocol());
+        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum( \
+                                               this->getIpSourceAddress(),
+                                               this->getIpDestinationAddress());
         // Overwrite the former checksum
         this->setUdpChecksum(computedCsum);
         return computedCsum;
@@ -1365,8 +1395,9 @@ class SimIp4Packet {
     bool udpVerifyChecksum() {
         UdpCsum        udpChecksum  = this->getUdpChecksum();
         SimUdpDatagram udpDatagram  = this->getUdpDatagram();
-        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum(this->getIpSourceAddress(),
-                                             this->getIpDestinationAddress(), this->getIpProtocol());
+        UdpCsum        computedCsum = udpDatagram.reCalculateUdpChecksum( \
+                                               this->getIpSourceAddress(),
+                                               this->getIpDestinationAddress());
         if (computedCsum == udpChecksum) {
             return true;
         }
@@ -1381,7 +1412,7 @@ class SimIp4Packet {
      * @brief Dump this IP packet as AxisIp4 chunks into a file.
      * @param[in] outFileStream  A reference to the file stream to write.
      * @return true upon success, otherwise false.
-	 **************************************************************************/
+     **************************************************************************/
     bool writeToDatFile(ofstream  &outFileStream) {
         for (int i=0; i < this->size(); i++) {
             AxisIp4 axisIp4 = this->pktQ[i];

@@ -267,7 +267,7 @@ class AxisIp4: public AxisRaw {
     void        setIp4Flags(Ip4Flags flags)     {                  tdata.range(55, 53) = flags;           }
     // Set-Get the IP4 Time to Live
     void        setIp4TtL(Ip4TtL ttl)           {                  tdata.range( 7,  0) = ttl;             }
-    Ip4TtL      getIp4Ttl()                     {           return tdata.range( 7,  0);                   }
+    Ip4TtL      getIp4TtL()                     {           return tdata.range( 7,  0);                   }
     // Set-Get the IP4 Protocol
     void        setIp4Prot(Ip4Prot prot)        {                  tdata.range(15,  8) = prot;            }
     Ip4Prot     getIp4Prot()                    {           return tdata.range(15,  8);                   }

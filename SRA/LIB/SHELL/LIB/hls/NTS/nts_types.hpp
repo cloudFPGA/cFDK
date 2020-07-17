@@ -173,7 +173,8 @@ static const ap_uint<16> MTU = 1500;
 // IP4 Protocol numbers
 #define IP4_PROT_ICMP       0x01
 #define IP4_PROT_TCP        0x06
-#define UDP_PROTOCOL        0x11   // FIXME
+#define IP4_PROT_UDP        0x11
+//OBSOLETE_20200717  #define UDP_PROTOCOL 0x11
 
 
 /******************************************************************************

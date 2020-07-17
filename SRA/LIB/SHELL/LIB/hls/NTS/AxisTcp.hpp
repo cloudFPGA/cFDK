@@ -71,6 +71,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  |                                                             Data                                                              |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
  *****************************************************************************/
 
 #ifndef _AXIS_TCP_H_
@@ -117,7 +120,7 @@ typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
 typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
 typedef ap_uint<16> TcpWindow;      // TCP Window
 typedef ap_uint<16> TcpChecksum;    // TCP Checksum
-typedef ap_uint<16> TcpCSum;        // TCP Checksum (alias for TcpChecksum)
+typedef ap_uint<16> TcpCsum;        // TCP Checksum (alias for TcpChecksum)
 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
 typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
@@ -222,3 +225,5 @@ class AxisTcp: public AxisRaw {
 }; // End of: AxisTcp
 
 #endif
+
+/*! \} */

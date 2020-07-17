@@ -55,7 +55,7 @@ using namespace hls;
 #define TRACE_TST 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************

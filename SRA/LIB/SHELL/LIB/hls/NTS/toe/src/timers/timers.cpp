@@ -57,7 +57,7 @@ using namespace hls;
 #define TRACE_RTT  1 <<  3
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief A 2-to-1 generic Stream Multiplexer

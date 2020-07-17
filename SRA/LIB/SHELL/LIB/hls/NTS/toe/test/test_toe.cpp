@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_IPRX | TRACE_L3MUX)
 
 
 /******************************************************************************
@@ -672,6 +672,7 @@ int pIPRX_InjectAckNumber(
 
     if (ipRxPacket.isSYN()) {
         // This packet is a SYN and there's no need to inject anything
+        printInfo(myName, "Packet is SYN\n");
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
             printWarn(myName, "Trying to open an existing session (%d)!\n", (sessAckList.find(newSockPair)->second).to_uint());
             printSockPair(myName, newSockPair);
@@ -697,24 +698,21 @@ int pIPRX_InjectAckNumber(
     }
     else if (ipRxPacket.isACK()) {
         // This packet is an ACK and we must update the its acknowledgment number
+        printInfo(myName, "Packet is ACK\n");
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
             // Inject the oldest acknowledgment number in the ACK number field
             TcpAckNum newAckNum = sessAckList[newSockPair];
             ipRxPacket.setTcpAcknowledgeNumber(newAckNum);
-
             if (DEBUG_LEVEL & TRACE_IPRX)
                 printInfo(myName, "Setting the TCP Acknowledge of this segment to: %u (0x%8.8X) \n",
                           newAckNum.to_uint(), byteSwap32(newAckNum).to_uint());
-
             // Recalculate and update the checksum
             int oldCsum = ipRxPacket.getTcpChecksum();
             int newCsum = ipRxPacket.tcpRecalculateChecksum();
             if (DEBUG_LEVEL & TRACE_IPRX)
                 printInfo(myName, "Updating the checksum of this packet from 0x%4.4X to 0x%4.4X\n",
                           oldCsum, newCsum);
-            if (DEBUG_LEVEL & TRACE_IPRX) {
-                ipRxPacket.printRaw(myName);
-            }
+            if (DEBUG_LEVEL & TRACE_IPRX) { ipRxPacket.printRaw(myName); }
             return 1;
         }
         else {
@@ -769,7 +767,6 @@ void pIPRX_FeedTOE(
                 else {
                     printFatal(myName, "Cannot write \'soTOE_Data\'. Stream is full!\n");
                 }
-                //OBSOLETE_20200702 ipRxPacket.pop_front();
             } while (!ip4Chunk.getTLast());
             ipRxPktCounter++;
             ipRxPacketizer.pop_front();
@@ -822,6 +819,7 @@ void pIPRX(
     static unsigned int iprx_idleCycReq = 0;     // The requested number of idle cycles
     static unsigned int iprx_idleCycCnt = 0;     // The count of idle cycles
     static unsigned int iprx_toeReadyDelay = 0;  // The time it takes for TOE to be ready
+    static int          iprx_inpPackets = 0;     // Counts the number of packets fed to [TOE].
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
@@ -955,17 +953,17 @@ void pIPRX(
                     continue;
                 }
                 firstChunkFlag = false;
-                //OBSOLETE_20200702 string tempString = "0000000000000000";
-                //OBSOLETE_20200702 ipRxChunk = Ip4overMac(myStrHexToUint64(stringVector[0]), \
-                //OBSOLETE_20200702                       myStrHexToUint8(stringVector[2]),  \
-                //OBSOLETE_20200702                       atoi(stringVector[1].c_str()));
                 bool rc = readAxisRawFromLine(ipRxChunk, rxStringBuffer);
                 if (rc) {
                     ipRxPacket.pushChunk(ipRxChunk);
                 }
             } while (not ipRxChunk.getTLast());
+            iprx_inpPackets++;
 
-            //OBSOLETE_20200702 SimTcpSegment tcpRxSeg = ipRxPacket.getTcpSegment();
+            // Check consistency of the assembled packet
+            if (not ipRxPacket.isWellFormed(myName)) {
+                printFatal(myName, "IP packet #%d is malformed!\n", iprx_inpPackets);
+            }
 
             // Count the number of data bytes contained in the TCP payload
             ipRx_TcpBytCntr += ipRxPacket.sizeOfTcpData();
@@ -1019,9 +1017,9 @@ bool pL3MUX_Parse(
         //------------------------------------------------------
         // This is a SYN segment. Reply with a SYN+ACK packet.
         //------------------------------------------------------
-        if (DEBUG_LEVEL & TRACE_L3MUX)
+        if (DEBUG_LEVEL & TRACE_L3MUX) {
             printInfo(myName, "Got a SYN from TOE. Replying with a SYN+ACK.\n");
-
+        }
         SimIp4Packet synAckPacket;
         synAckPacket.clone(ipTxPacket);
 
@@ -1146,7 +1144,7 @@ bool pL3MUX_Parse(
             // In both cases, reply with an empty ACK packet.
             //--------------------------------------------------------
             SimIp4Packet ackPacket(40);  // [FIXME - What if we generate options ???]
-
+            // {FIXME]{FIXME] Must clone all the fields; We typically miss 'Protocol'
             // [TODO - Add TCP Window option]
 
             // Swap IP_SA and IP_DA

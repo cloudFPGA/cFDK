@@ -58,7 +58,7 @@ using namespace hls;
 #define TRACE_URH 1 << 4
 #define TRACE_URS 1 << 5
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************

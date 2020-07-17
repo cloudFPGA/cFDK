@@ -52,6 +52,7 @@ using namespace hls;
 #define TRACE_RST 1 <<  1
 #define TRACE_ALL  0xFFFF
 
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*****************************************************************************
  * @brief Rx SAR Table (RSt) - Stores the data structures for managing the

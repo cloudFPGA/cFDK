@@ -32,7 +32,7 @@
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
-
+#include "AxisTcp.hpp"
 
 /*******************************************************************************
  * @brief Class TCP Datagram.
@@ -221,7 +221,7 @@ class SimTcpSegment {
     // Set the TCP Checksum field
     void        setTcpChecksum(TcpChecksum csum)      {        segQ[2].setTcpChecksum(csum);  }
     // Get the TCP Checksum field
-    TcpCSum     getTcpChecksum()                      { return segQ[2].getTcpChecksum();      }
+    TcpCsum     getTcpChecksum()                      { return segQ[2].getTcpChecksum();      }
     // Set the TCP Urgent Pointer field
     void        setTcpUrgentPointer(TcpUrgPtr ptr)    {        segQ[2].setTcpUrgPtr(ptr);     }
     // Get the TCP Urgent Pointer field
@@ -272,40 +272,37 @@ class SimTcpSegment {
         }
     }  // End-of: addUdpPayload
 
-
-
-
-
-
-
     /**********************************************************************
-     * @brief Calculate the UDP checksum of the datagram.
-     *  - This method computes the UDP checksum over the pseudo header, the
-     *    UDP header and UDP data. According to RFC768, the pseudo  header
-     *    consists of the IP-{SA,DA,Prot} fields and the  UDP length field.
+     * @brief Calculate the TCP checksum of the segment.
+     *  - This method computes the TCP checksum over the pseudo header, the
+     *    TCP header and TCP data. According to RFC793, the pseudo  header
+     *    consists of the IP-{SA,DA,Prot} fields and the  TCP length field.
      *         0      7 8     15 16    23 24    31
      *        +--------+--------+--------+--------+
      *        |          source address           |
      *        +--------+--------+--------+--------+
      *        |        destination address        |
      *        +--------+--------+--------+--------+
-     *        |  zero  |protocol|   UDP length    |
+     *        |  zero  |protocol|   TCP length    |
      *        +--------+--------+--------+--------+
      *
+     * @Warning The TCP Length is the TCP header length plus the data length in
+     *   octets (this is not an explicitly transmitted quantity, but is
+     *   computed), and it does not count the 12 octets of the pseudo header.
+     *
      * @Warning The checksum is computed on the double-ended queue which
-     *    holds the UDP chuncks in little-endian order (see AxisTcp) !
+     *    holds the TCP chunks in little-endian order (see AxisTcp) !
      *
      * @return the computed checksum.
      **********************************************************************/
-/***
-    UdpCsum calculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+    TcpCsum calculateTcpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4DatLen tcpSegLen) {
         ap_uint<32> csum = 0;
         csum += byteSwap16(ipSa(31, 16));  // Set IP_SA in LE
         csum += byteSwap16(ipSa(15,  0));
         csum += byteSwap16(ipDa(31, 16));  // Set IP_DA in LE
         csum += byteSwap16(ipDa(15,  0));
-        csum += byteSwap16(ap_uint<16>(ipProt));
-        csum += byteSwap16(this->getUdpLength());
+        csum += byteSwap16(ap_uint<16>(IP4_PROT_TCP));
+        csum += byteSwap16(tcpSegLen);
         for (int i=0; i<this->size(); ++i) {
             LE_tData tempInput = 0;
             if (segQ[i].getLE_TKeep() & 0x01)
@@ -332,115 +329,28 @@ class SimTcpSegment {
             csum = (csum & 0xFFFF) + (csum >> 16);
         }
         // Reverse the bits of the result
-        UdpCsum udpCsum = csum.range(15, 0);
-        udpCsum = ~udpCsum;
-        return byteSwap16(udpCsum);
+        TcpCsum tcpCsum = csum.range(15, 0);
+        tcpCsum = ~tcpCsum;
+        return byteSwap16(tcpCsum);
     }
-***/
 
     /**********************************************************************
-     * @brief Recalculate the UDP checksum of a datagram.
+     * @brief Recalculate the TCP checksum of this segment.
      *   - While re-computing the checksum, the checksum field itself is
      *     replaced with zeros.
-     *   - This will also overwrite the former UDP checksum.
-     *   - You typically use this method if the datagram was modified or
+     *   - This will also overwrite the former TCP checksum.
+     *   - You typically use this method if the segment was modified or
      *     when the checksum has not yet been calculated.
      *
      * @return the computed checksum.
      **********************************************************************/
-/***
-    UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
-        this->setUdpChecksum(0x0000);
-        UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa, ipProt);
-        // Overwrite the former UDP checksum
-        this->setUdpChecksum(newUdpCsum);
-        return (newUdpCsum);
+    TcpCsum reCalculateTcpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4DatLen segLen) {
+        this->setTcpChecksum(0x0000);
+        TcpCsum newTcpCsum = calculateTcpChecksum(ipSa, ipDa, segLen);
+        // Overwrite the former TCP checksum
+        this->setTcpChecksum(newTcpCsum);
+        return (newTcpCsum);
     }
-***/
-
-    /**************************************************************************
-     * @brief Checks if the datagram header fields are  properly set.
-     * @param[in] callerName  The name of the calling function or process.
-     * @param[in] ipSa        The IP source address.
-     * @param[in] ipDa        The IP destination address.
-     *
-     * @return true if the cheksum and the length fields are valid.
-     **************************************************************************/
-/***
-    bool isWellFormed(const char *callerName, Ip4Addr ipSa, Ip4Addr ipDa) {
-        bool rc = true;
-        // Assess the length field vs datagram length
-        if (this->getUdpLength() !=  this->getLen()) {
-            printWarn(callerName, "Malformed UDP datagram: 'Length' field does not match the length of the datagram.\n");
-            printWarn(callerName, "\tFound 'Length' field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                      (this->getUdpLength()).to_uint(), this->getLen());
-            rc = false;
-        }
-        // Assess the checksum is valid (or 0x0000)
-        UdpCsum udpHCsum = this->getUdpChecksum();
-        UdpCsum calcCsum = this->reCalculateUdpChecksum(ipSa, ipDa, UDP_PROTOCOL);
-        if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
-            // UDP datagram comes with an invalid checksum
-            printWarn(callerName, "Malformed UDP datagram: 'Checksum' field does not match the checksum of the pseudo-packet.\n");
-            printWarn(callerName, "\tFound 'Checksum' field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                      udpHCsum.to_uint(), calcCsum.to_ushort());
-            rc = false;
-        }
-       return rc;
-    }
-***/
-
-    /***********************************************************************
-     * @brief Dump an AxisTcp chunk to a file.
-     * @param[in] axisUdp        A pointer to the AxisTcp chunk to write.
-     * @param[in] outFileStream  A reference to the file stream to write.
-     * @return true upon success, otherwise false.
-     ***********************************************************************/
-/***
-    bool writeAxisTcpToFile(AxisTcp *axisUdp, ofstream &outFileStream) {
-        if (!outFileStream.is_open()) {
-            printError(myName, "File is not opened.\n");
-            return false;
-        }
-        AxisRaw axisRaw(axisUdp->getLE_TData(), axisUdp->getLE_TKeep(), axisUdp->getLE_TLast());
-        bool rc = writeAxisRawToFile(axisRaw, outFileStream);
-        return(rc);
-    }
-***/
-
-    /***********************************************************************
-     * @brief Dump this UDP datagram as raw AxisTcp chunks into a file.
-     * @param[in] outFileStream  A reference to the file stream to write.
-     * @return true upon success, otherwise false.
-     ***********************************************************************/
-/***
-    bool writeToDatFile(ofstream  &outFileStream) {
-        for (int i=0; i < this->size(); i++) {
-            AxisTcp axisUdp = this->segQ[i];
-            if (not this->writeAxisTcpToFile(&axisUdp, outFileStream)) {
-                return false;
-            }
-        }
-        return true;
-    }
-***/
-
-    /***********************************************************************
-     * @brief Dump the payload of this datagram as AxisTcp chunks into a file.
-     * @param[in] outFileStream  A reference to the file stream to write.
-     * @return true upon success, otherwise false.
-     ***********************************************************************/
-/***
-    bool writePayloadToDatFile(ofstream  &outFileStream) {
-        for (int i=1; i < this->size(); i++) {
-            AxisTcp axisWord = this->segQ[i];
-            if (not this->writeAxisTcpToFile(&axisWord, outFileStream)) {
-                return false;
-            }
-        }
-        return true;
-    }
-***/
 
 };  // End-of: SimTcpSegment
 

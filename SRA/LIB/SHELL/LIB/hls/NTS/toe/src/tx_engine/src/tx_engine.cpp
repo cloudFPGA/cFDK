@@ -64,7 +64,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -1221,7 +1221,7 @@ void pSubChecksumAccumulators(
         }
         for (int i = 0; i < 4; i++) {
           #pragma HLS UNROLL
-            TcpCSum temp;
+            TcpCsum temp;
             if (currPktChunk.getLE_TKeep(i*2+1, i*2) == 0x3) {
                 temp( 7, 0) = currPktChunk.getLE_TData(i*16+15, i*16+8);
                 temp(15, 8) = currPktChunk.getLE_TData(i*16+ 7, i*16);
@@ -1324,7 +1324,7 @@ void pIpPktStitcher(
     AxisIp4    ip4HdrChunk;
     AxisPsd4   tcpPsdChunk;
     AxisIp4    currChunk(0, 0xFF, 0);
-    TcpCSum    tcpCsum;
+    TcpCsum    tcpCsum;
 
     switch (ips_chunkCount) {
     case CHUNK_0:
