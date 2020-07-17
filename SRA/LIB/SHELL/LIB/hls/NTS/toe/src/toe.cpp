@@ -48,6 +48,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
 #include "toe.hpp"
+#include "toe_utils.hpp"
 #include "./session_lookup_controller/session_lookup_controller.hpp"
 #include "./state_table/state_table.hpp"
 #include "./rx_sar_table/rx_sar_table.hpp"

@@ -127,7 +127,7 @@ void pEmulateCam(
 
     static map<FourTuple, ap_uint<14> > cam_lookupTable;
 
-    static enum FsmStates { CAM_WAIT_4_REQ=0, CAM_IDLE1,
+    static enum FsmStates { CAM_WAIT_4_REQ=0,
                             CAM_LOOKUP_REP, CAM_UPDATE_REP } cam_fsmState=CAM_WAIT_4_REQ;
 
     static CamSessionLookupRequest cam_request;
@@ -267,7 +267,7 @@ void pEmulateRxBufMem(
             // Memory Write Command
             siTOE_RxP_WrCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%x, bbt=%d).\n",
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
                           rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
             }
             memory->setWriteCmd(rxmem_dmCmd);
@@ -331,7 +331,7 @@ void pEmulateRxBufMem(
             // Memory Read Command
             siTOE_RxP_RdCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%x, bbt=%d).\n",
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
                            rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
             }
             memory->setReadCmd(rxmem_dmCmd);
@@ -420,7 +420,7 @@ void pEmulateTxBufMem(
             // Memory Write Command -----------------------
             siTOE_TxP_WrCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%x, bbt=%d).\n",
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
                           txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
             }
             memory->setWriteCmd(txmem_dmCmd);
@@ -482,7 +482,7 @@ void pEmulateTxBufMem(
             // Memory Read Command
             siTOE_TxP_RdCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%x, bbt=%d).\n",
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
                            txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
             }
             memory->setReadCmd(txmem_dmCmd);
@@ -579,7 +579,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaIp4Addr = ip4Addr;
                     printInfo(myName, "Redefining the default FPGA IPv4 address to be: ");
-                    printIp4Addr(gFpgaIp4Addr);
+                    printIp4Addr(myName, gFpgaIp4Addr);
                 }
                 else if (stringVector[2] == "FpgaLsnPort") {
                     char * ptr;
@@ -591,7 +591,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                         tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaLsnPort = tcpPort;
                     printInfo(myName, "Redefining the default FPGA listen port to be: ");
-                    printTcpPort(gFpgaLsnPort);
+                    printTcpPort(myName, gFpgaLsnPort);
                 }
                 else if (stringVector[2] == "HostIp4Addr") {
                     char * ptr;
@@ -605,7 +605,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gHostIp4Addr = ip4Addr;
                     printInfo(myName, "Redefining the default HOST IPv4 address to be: ");
-                    printIp4Addr(gHostIp4Addr);
+                    printIp4Addr(myName, gHostIp4Addr);
                 }
                 else if (stringVector[2] == "HostLsnPort") {
                     char * ptr;
@@ -617,7 +617,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                         tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
                     gHostLsnPort = tcpPort;
                     printInfo(myName, "Redefining the default HOST listen port to be: ");
-                    printTcpPort(gHostLsnPort);
+                    printTcpPort(myName, gHostLsnPort);
                 }
                 else if (stringVector[2] == "FpgaServerSocket") {  // DEPRECATED
                     printFatal(myName, "The global parameter \'FpgaServerSockett\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
@@ -639,7 +639,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
         }
     } while(!inputFile.eof());
 
-    printInfo(myName, "Done with the parsing of the input test file.\n\n");
+    printInfo(myName, "Done with the parsing of the input test file.\n");
 
     // Seek back to the start of stream
     inputFile.clear();
@@ -780,8 +780,8 @@ void pIPRX_FeedTOE(
 /*******************************************************************************
  * @brief Emulate the behavior of the IP Rx Path (IPRX).
  *
- * @param[in]  ipRxFile        A ref to the input file w/ IP Rx packets.
- * @param[in]  appTxGold       A ref to the output file w/ TCP App segments.
+ * @param[in]  ifIPRX_Data     A ref to the input file w/ IP Rx packets.
+ * @param[in]  ofTAIF_Gold     A ref to the output file w/ TCP App segments.
  * @param[in]  testRxPath      Indicates if the test of the Rx path is enabled.
  * @param[i/o] ipRxPktCounter  A ref to the IP Rx packet counter.
  *                              (counts all kinds and from all sessions).
@@ -804,8 +804,8 @@ void pIPRX_FeedTOE(
  *   clock cycle.
  *******************************************************************************/
 void pIPRX(
-        ifstream                    &ipRxFile,
-        ofstream                    &appTxGold,
+        ifstream                    &ifIPRX_Data,
+        ofstream                    &ofTAIF_Gold,
         bool                        &testRxPath,
         int                         &ipRxPktCounter,
         int                         &ipRx_TcpBytCntr,
@@ -840,7 +840,7 @@ void pIPRX(
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
     //-------------------------------------------------------------------------
     if (!iprx_globParseDone) {
-        iprx_globParseDone = setGlobalParameters(myName, iprx_toeReadyDelay, ipRxFile);
+        iprx_globParseDone = setGlobalParameters(myName, iprx_toeReadyDelay, ifIPRX_Data);
         if (iprx_globParseDone == false) {
             printInfo(myName, "Aborting testbench (check for previous error).\n");
             exit(1);
@@ -875,7 +875,7 @@ void pIPRX(
     //-------------------------------------------------------------------------
     //-- STEP-4: QUIT HERE IF RX TEST MODE IS DISABLED OR EOF IS REACHED
     //-------------------------------------------------------------------------
-    if ((not testRxPath) || (ipRxFile.eof()))
+    if ((not testRxPath) || (ifIPRX_Data.eof()))
         return;
 
     //------------------------------------------------------
@@ -891,7 +891,7 @@ void pIPRX(
     //-----------------------------------------------------
     do {
         //-- READ A LINE FROM IPRX INPUT FILE -------------
-        getline(ipRxFile, rxStringBuffer);
+        getline(ifIPRX_Data, rxStringBuffer);
         stringVector = myTokenizer(rxStringBuffer, ' ');
         if (stringVector[0] == "") {
             continue;
@@ -928,10 +928,10 @@ void pIPRX(
                 }
             }
             else {
-                printFatal(myName, "Read unknown command \"%s\" from ipRxFile.\n", stringVector[1].c_str());
+                printFatal(myName, "Read unknown command \"%s\" from ifIPRX_Data.\n", stringVector[1].c_str());
             }
         }
-        else if (ipRxFile.fail() == 1 || rxStringBuffer.empty()) {
+        else if (ifIPRX_Data.fail() == 1 || rxStringBuffer.empty()) {
             return;
         }
         else {
@@ -941,7 +941,7 @@ void pIPRX(
             // Build a new packet from data file
             do {
                 if (firstChunkFlag == false) {
-                    getline(ipRxFile, rxStringBuffer);
+                    getline(ifIPRX_Data, rxStringBuffer);
                     stringVector = myTokenizer(rxStringBuffer, ' ');
                 }
                 if (stringVector[0] == "#") {
@@ -971,7 +971,7 @@ void pIPRX(
             ipRx_TcpBytCntr += ipRxPacket.sizeOfTcpData();
 
             // Write to the Application Tx Gold file
-            ipRxPacket.writeTcpDataToDatFile(appTxGold);
+            ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
 
             // Push that packet into the packetizer queue and feed the TOE
             ipRxPacketizer.push_back(ipRxPacket);
@@ -980,7 +980,7 @@ void pIPRX(
             return;
         }
 
-    } while(!ipRxFile.eof());
+    } while(!ifIPRX_Data.eof());
 
 } // End of: pIPRX
 
@@ -1185,8 +1185,8 @@ bool pL3MUX_Parse(
  *
  * @param[in]  piTOE_Ready      A reference to the ready signal of TOE.
  * @param[in]  siTOE_Data       A reference to the data stream from TOE.
- * @param[in]  ipTxFile1        The output file to write.
- * @param[in]  ipTxFile2        The output file to write.
+ * @param[in]  ofIPTX_Data1     The output file to write.
+ * @param[in]  ofIPTX_Data2     The output file to write.
  * @param[in]  sessAckList      A ref to an associative container which holds
  *                               the sessions as socket pair associations.
  * @param[i/o] ipTx_PktCounter  A ref to the packet counter on the IP Tx I/F.
@@ -1205,8 +1205,8 @@ bool pL3MUX_Parse(
 void pL3MUX(
         StsBit                      &piTOE_Ready,
         stream<AxisIp4>             &siTOE_Data,
-        ofstream                    &ipTxFile1,
-        ofstream                    &ipTxFile2,
+        ofstream                    &ofIPTX_Data1,
+        ofstream                    &ofIPTX_Data2,
         map<SocketPair, TcpAckNum>  &sessAckList,
         int                         &ipTx_PktCounter,
         int                         &ipTx_TcpBytCntr,
@@ -1230,13 +1230,13 @@ void pL3MUX(
     }
 
     if (!siTOE_Data.empty()) {
-
-        //-- Emulate the link RTT -------------------------
+        //---------------------------------
+        //-- STEP-0 : Emulate the link RTT [FIXME - Move before '!siTOE_Data.empty()' check
+        //---------------------------------
         if (l3mux_rttSim) {
             l3mux_rttSim--;
             return;
         }
-
         //--------------------------
         //-- STEP-1 : Drain the TOE
         //--------------------------
@@ -1244,7 +1244,6 @@ void pL3MUX(
         if (DEBUG_LEVEL & TRACE_L3MUX) {
             printAxisRaw(myName, ipTxChunk);
         }
-
         //----------------------------
         //-- STEP-2 : Write to packet
         //----------------------------
@@ -1262,7 +1261,7 @@ void pL3MUX(
                 if (tcpPayloadSize) {
                     ipTx_TcpBytCntr += tcpPayloadSize;
                     // Write to the IP Tx Gold file
-                    l3mux_ipTxPacket.writeTcpDataToDatFile(ipTxFile2);
+                    l3mux_ipTxPacket.writeTcpDataToDatFile(ofIPTX_Data2);
                 }
             }
             // Clear the chunk counter and the received IP packet
@@ -1280,7 +1279,7 @@ void pL3MUX(
         //OBSOLETE_20200706 string dataOutput = myUint64ToStrHex(ipTxChunk.tdata);
         //OBSOLETE_20200706 string keepOutput = myUint8ToStrHex(ipTxChunk.tkeep);
         //OBSOLETE_20200706 ipTxFile1 << dataOutput << " " << ipTxChunk.getTLast() << " " << keepOutput << endl;
-        int writtenBytes = writeAxisRawToFile(ipTxChunk, ipTxFile1);
+        int writtenBytes = writeAxisRawToFile(ipTxChunk, ofIPTX_Data1);
     }
 } // End of: pL3MUX
 
@@ -1512,7 +1511,7 @@ void pTcpAppEcho(
  *
  * @param[in]  nrError       A reference to the error counter of the [TB].
  * @param[in]  testMode      Indicates the test mode of operation (0|1|2|3).
- * @param[in]  appTxFile     A ref to the output Tx application file to write to.
+ * @param[in]  ofTAIF_Data   A ref to the output Tx application file to write to.
  * @param[i/o] appTxBytCntr  A ref to the counter of bytes on the Tx APP I/F.
  * @param[in]  piTOE_Ready   A reference to the ready signal of TOE.
  * @param[out] soTOE_LsnReq  TCP listen port request to TOE.
@@ -1530,7 +1529,7 @@ void pTcpAppEcho(
 void pTcpAppRecv(
         int                     &nrError,
         char                    &testMode,
-        ofstream                &appTxFile,
+        ofstream                &ofTAIF_Data,
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
         stream<TcpAppLsnReq>    &soTOE_LsnReq,
@@ -1556,8 +1555,7 @@ void pTcpAppRecv(
     static TcpAppNotif  tar_notification;
     static vector<SessionId> tar_txSessIdVector; // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
     static enum FsmStates {WAIT_NOTIF=0, SEND_DREQ,
-                           WAIT_SEG,     CONSUME,
-                           HEADER_2,     HEADER_3} tar_fsmState = WAIT_NOTIF;
+                           WAIT_SEG,     CONSUME} tar_fsmState = WAIT_NOTIF;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
@@ -1650,7 +1648,7 @@ void pTcpAppRecv(
         case RX_MODE:  // Dump incoming data to file
             if (!siTOE_Data.empty()) {
                 siTOE_Data.read(currChunk);
-                appTxBytCntr += writeAxisAppToFile(currChunk, appTxFile);
+                appTxBytCntr += writeAxisAppToFile(currChunk, ofTAIF_Data);
                 // Consume incoming stream until LAST bit is set
                 if (currChunk.getTLast() == 1)
                     tar_fsmState = WAIT_NOTIF;
@@ -1660,7 +1658,7 @@ void pTcpAppRecv(
             if (!siTOE_Data.empty() && !soTAs_Data.full()) {
                 siTOE_Data.read(currChunk);
                 soTAs_Data.write(currChunk);
-                appTxBytCntr += writeAxisAppToFile(currChunk, appTxFile);
+                appTxBytCntr += writeAxisAppToFile(currChunk, ofTAIF_Data);
                 // Consume until LAST bit is set
                 if (currChunk.getTLast() == 1) {
                     tar_fsmState = WAIT_NOTIF;
@@ -1683,7 +1681,7 @@ void pTcpAppRecv(
  * @param[in]  testMode      Indicates the test mode of operation (0|1|2|3).
  * @param[in]  testTxPath    Indicates if the Tx path is to be tested.
  * @param[in]  toeIpAddress  The local IP address used by the TOE.
- * @param[in]  appRxFile     A ref to the input Rx application file to read.
+ * @param[in]  ifTAIF_Data   A ref to the input TAIF file to read.
  * @param[in]  ipTxGoldFile  A ref to the output IP Tx gold file to write.
  * @param[i/o] apRxBytCntr   A ref to the counter of bytes on the APP Rx I/F.
  * @param[in]  piTOE_Ready   A reference to the ready signal of TOE.
@@ -1703,7 +1701,7 @@ void pTcpAppSend(
         char                    &testMode,
         bool                    &testTxPath,
         Ip4Address              &toeIpAddress,
-        ifstream                &appRxFile,
+        ifstream                &ifTAIF_Data,
         ofstream                &ipTxGoldFile,
         int                     &apRxBytCntr,
         StsBit                  &piTOE_Ready,
@@ -1767,7 +1765,7 @@ void pTcpAppSend(
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
     //--------------------------------------------------------------------
     if (!tas_globParseDone) {
-        tas_globParseDone = setGlobalParameters(myName, tas_toeReadyDelay, appRxFile);
+        tas_globParseDone = setGlobalParameters(myName, tas_toeReadyDelay, ifTAIF_Data);
         if (tas_globParseDone == false) {
             printFatal(myName, "Aborting testbench (check for previous error).\n");
         }
@@ -1792,7 +1790,7 @@ void pTcpAppSend(
     //-----------------------------------------------------
     //-- STEP-3 : RETURN IF END OF FILE IS REACHED
     //-----------------------------------------------------
-    if (appRxFile.eof())
+    if (ifTAIF_Data.eof())
         return;
 
     //------------------------------------------------------
@@ -1823,7 +1821,7 @@ void pTcpAppSend(
     //-----------------------------------------------------
     do {
         //-- READ A LINE FROM APP RX FILE -------------
-        getline(appRxFile, rxStringBuffer);
+        getline(ifTAIF_Data, rxStringBuffer);
         stringVector = myTokenizer(rxStringBuffer, ' ');
 
         if (stringVector[0] == "") {
@@ -1873,7 +1871,7 @@ void pTcpAppSend(
                             ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                         gHostIp4Addr = ip4Addr;
                         printInfo(myName, "Setting the current HOST IPv4 address to be: ");
-                        printIp4Addr(gHostIp4Addr);
+                        printIp4Addr(myName, gHostIp4Addr);
                         return;
                     }
                     else if (stringVector[2] == "HostLsnPort") {
@@ -1887,7 +1885,7 @@ void pTcpAppSend(
                             tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
                         gHostLsnPort = tcpPort;
                         printInfo(myName, "Setting the current HOST listen port to be: ");
-                        printTcpPort(gHostLsnPort);
+                        printTcpPort(myName, gHostLsnPort);
                         return;
                     }
                     else if (stringVector[2] == "HostServerSocket") {
@@ -1914,7 +1912,7 @@ void pTcpAppSend(
 
                         SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
                         printInfo(myName, "Setting current host server socket to be: ");
-                        printSockAddr(newHostServerSocket);
+                        printSockAddr(myName, newHostServerSocket);
                         return;
                     }
                     else if (stringVector[2] == "ForeignSocket") {  // DEPRECATED
@@ -1924,10 +1922,10 @@ void pTcpAppSend(
                 }
             }
             else {
-                printFatal(myName, "Read unknown command \"%s\" from ipRxFile.\n", stringVector[0].c_str());
+                printFatal(myName, "Read unknown command \"%s\" from ifIPRX_Data.\n", stringVector[0].c_str());
             }
         }
-        else if (appRxFile.fail() == 1 || rxStringBuffer.empty()) {
+        else if (ifTAIF_Data.fail() == 1 || rxStringBuffer.empty()) {
             return;
         }
         else {
@@ -1939,7 +1937,7 @@ void pTcpAppSend(
             int     writtenBytes = 0;
             do {
                 if (firstChunkFlag == false) {
-                    getline(appRxFile, rxStringBuffer);
+                    getline(ifTAIF_Data, rxStringBuffer);
                     stringVector = myTokenizer(rxStringBuffer, ' ');
                     // Skip lines that might be commented out
                     if (stringVector[0] == "#") {
@@ -1971,7 +1969,7 @@ void pTcpAppSend(
                 apRxBytCntr += writtenBytes;
             } while (not appChunk.getTLast());
         } // End of: else
-    } while(!appRxFile.eof());
+    } while(!ifTAIF_Data.eof());
 } // End of: pTAs
 
 /*****************************************************************************
@@ -1981,8 +1979,8 @@ void pTcpAppSend(
  * @param[in]  testMode     Indicates the test mode of operation (0|1|2|3).
  * @param[in]  nrError      A reference to the error counter of the [TB].
  * @param[in]  toeIpAddress The local IP address used by the TOE.
- * @param[in]  appRxFile    A ref to the input Rx application file to read from.
- * @param[in]  appTxFile    A ref to the output Tx application file to write to.
+ * @param[in]  ifTAIF_Data  A ref to the input Rx application file to read from.
+ * @param[in]  ofTAIF_Data  A ref to the output Tx application file to write to.
  * @param[in]  ipTxGoldFile A ref to the output IP Tx gold file to write to.
  * @param[i/o] appRxBytCntr A ref to the counter of bytes on the APP Rx I/F.
  * @param[i/o] appTxBytCntr A ref to the counter of bytes on the APP Tx I/F.
@@ -2010,8 +2008,8 @@ void pTcpApplicationInterface(
         char                    &testMode,
         int                     &nrError,
         Ip4Address              &toeIpAddress,
-        ifstream                &appRxFile,
-        ofstream                &appTxFile,
+        ifstream                &ifTAIF_Data,
+        ofstream                &ofTAIF_Data,
         ofstream                &ipTxGoldFile,
         int                     &appRxBytCntr,
         int                     &appTxBytCntr,
@@ -2056,7 +2054,7 @@ void pTcpApplicationInterface(
     //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
     //-------------------------------------------------------------------------
     if (!taif_globParseDone) {
-        taif_globParseDone = setGlobalParameters(myName, taif_toeReadyDelay, appRxFile);
+        taif_globParseDone = setGlobalParameters(myName, taif_toeReadyDelay, ifTAIF_Data);
         if (taif_globParseDone == false) {
             printFatal(myName, "Aborting testbench (check for previous error).\n");
         }
@@ -2066,7 +2064,7 @@ void pTcpApplicationInterface(
     pTcpAppRecv(
             nrError,
             testMode,
-            appTxFile,
+            ofTAIF_Data,
             appTxBytCntr,
             piTOE_Ready,
             soTOE_LsnReq,
@@ -2083,7 +2081,7 @@ void pTcpApplicationInterface(
             testMode,
             testTxPath,
             toeIpAddress,
-            appRxFile,
+            ifTAIF_Data,
             ipTxGoldFile,
             appRxBytCntr,
             piTOE_Ready,
@@ -2105,12 +2103,12 @@ void pTcpApplicationInterface(
  * @param[in]  inpFile1   The pathname of the input file containing the test
  *                         vectors to be fed to the TOE:
  *                         If (mode==0 || mode=2)
- *                           inpFile1 = ipRxFile
+ *                           inpFile1 = siIPRX_<TestName>
  *                         Else
- *                           inpFile1 = appRxFile.
+ *                           inpFile1 = siTAIF_<TestName>.
  * @param[in]  inpFile2   The pathname of the second input file containing the
  *                         test vectors to be fed to the TOE:
- *                           inpFile2 == appRxFile.
+ *                           inpFile2 == siTAIF_<TestName>.
  * @remark:
  *  The number of input parameters is variable and depends on the testing mode.
  *   Example (see also file '../run_hls.tcl'):
@@ -2122,10 +2120,7 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- TESTBENCH GLOBAL VARIABLES
     //------------------------------------------------------
-    //TODO gTraceEvent   = false;
-    //TODO gFatalError   = false;
     gSimCycCnt    = 0;  // Simulation cycle counter as a global variable
-    //TODO gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
     //-- DUT SIGNAL INTERFACES
@@ -2183,10 +2178,9 @@ int main(int argc, char *argv[]) {
     //-----------------------------------------------------
     //-- TESTBENCH VARIABLES
     //-----------------------------------------------------
-    # if 0
+    #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32> sTOE_TB_SimCycCnt;
     #endif
-    int             nrErr;
 
     AxisIp4         ipRxData;    // An IP4 chunk
     AxisApp         tcpTxData;   // A  TCP chunk
@@ -2203,25 +2197,29 @@ int main(int argc, char *argv[]) {
     //-- Double-ended queue of packets --------------------
     deque<SimIp4Packet> ipRxPacketizer; // Packets intended for the IPRX interface of TOE
 
-    //-- Input & Output File Streams ----------------------
-    ifstream        ipRxFile;   // IP packets to         IPRX  I/F of TOE.
-    ifstream        appRxFile;  // APP data streams to   TRIF  I/F of TOE.
+    //-----------------------------------------------------
+    //-- TESTBENCH INPUT & OUTPUT FILE STREAMS
+    //-----------------------------------------------------
+    ifstream    ifIPRX_Data;   // IP4 packets from IPRX
+    ifstream    ifTAIF_Data;   // APP data    from TAIF
 
-    ofstream        appTxFile;  // APP byte streams from TRIF  I/F of TOE.
-    ofstream        appTxGold;  // Gold reference file for 'appTxFile'
-    ofstream        ipTxFile1;  // Raw IP packets from L3MUX I/F of TOE.
-    ofstream        ipTxGold1;  // Gold reference file for 'ipTxFile1' (not used)
-    ofstream        ipTxFile2;  // Tcp payload of the IP packets from L3MUX I/F of TOE.
-    ofstream        ipTxGold2;  // Gold reference file for 'ipTxFile2'
+    ofstream    ofTAIF_Data;   // APP byte streams delivered to TAIF
+    ofstream    ofTAIF_Gold;   // Gold reference file for 'ofTAIF_Data'
+    ofstream    ofIPTX_Data1;  // Raw IP packets delivered to IPTX
+    ofstream    ofIPTX_Gold1;  // Gold reference file for 'ofIPTX_Data1' (not used)
+    ofstream    ofIPTX_Data2;  // Tcp payload of the IP packets delivered to IPTX
+    ofstream    ofIPTX_Gold2;  // Gold reference file for 'ofIPTX_Data2'
 
-    const char      *appTxFileName = "../../../../test/appTx_TOE.strm";
-    const char      *appTxGoldName = "../../../../test/appTx_TOE.gold";
-    const char      *ipTxFileName1 = "../../../../test/ipTx_TOE.dat";
-    const char      *ipTxGoldName1 = "../../../../test/ipTx_TOE.gold";
-    const char      *ipTxFileName2 = "../../../../test/ipTx_TOE_TcpData.strm";
-    const char      *ipTxGoldName2 = "../../../../test/ipTx_TOE_TcpData.gold";
+    const char  *ofTAIF_DataName  = "../../../../test/simOutFiles/soTAIF.strm";
+    const char  *ofTAIF_GoldName  = "../../../../test/simOutFiles/soTAIF.gold";
+    const char  *ofIPTX_Data1Name = "../../../../test/simOutFiles/soIPTX.dat";
+    const char  *ofIPTX_Gold1Name = "../../../../test/simOutFiles/soIPTX.gold";
+    const char  *ofIPTX_Data2Name = "../../../../test/simOutFiles/soIPTX_TcpData.strm";
+    const char  *ofIPTX_Gold2Name = "../../../../test/simOutFiles/soIPTX_TcpData.gold";
 
     string          dataString, keepString;
+
+    int             nrErr = 0;            // Total number of testbench errors
 
     int             ipRx_PktCounter = 0;  // Counts the # IP packets rcvd by TOE/IpRx (all kinds and from all sessions).
     int             ipRx_TcpBytCntr = 0;  // Counts the # TCP bytes  rcvd by TOE/IpRx.
@@ -2241,6 +2239,46 @@ int main(int argc, char *argv[]) {
     char            mode            = *argv[1];
     char            cCurrPath[FILENAME_MAX];
 
+    //------------------------------------------------------
+    //-- REMOVE PREVIOUS OLD SIM FILES and OPEN NEW ONES
+    //------------------------------------------------------
+    remove(ofTAIF_DataName);
+    ofTAIF_Data.open(ofTAIF_DataName);
+    if (!ofTAIF_Data) {
+        printError(THIS_NAME, "Cannot open the Application Tx file:  \n\t %s \n", ofTAIF_DataName);
+        return -1;
+    }
+    remove(ofTAIF_GoldName);
+    ofTAIF_Gold.open(ofTAIF_GoldName);
+    if (!ofTAIF_Gold) {
+        printInfo(THIS_NAME, "Cannot open the Application Tx gold file:  \n\t %s \n", ofTAIF_GoldName);
+        return -1;
+    }
+    remove(ofIPTX_Data1Name);
+    ofIPTX_Data1.open(ofIPTX_Data1Name);
+    if (!ofIPTX_Data1) {
+        printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ofIPTX_Data1Name);
+        return -1;
+    }
+    remove(ofIPTX_Data2Name);
+    ofIPTX_Data2.open(ofIPTX_Data2Name);
+    if (!ofIPTX_Data2) {
+        printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ofIPTX_Data2Name);
+        return -1;
+    }
+    remove(ofIPTX_Gold2Name);
+    ofIPTX_Gold1.open(ofIPTX_Gold1Name);
+    if (!ofIPTX_Gold1) {
+        printError(THIS_NAME, "Cannot open the IP Tx gold file:  \n\t %s \n", ofIPTX_Gold1Name);
+        return -1;
+    }
+    remove(ofIPTX_Gold2Name);
+    ofIPTX_Gold2.open(ofIPTX_Gold2Name);
+    if (!ofIPTX_Gold2) {
+        printError(THIS_NAME, "Cannot open the IP Tx gold file:  \n\t %s \n", ofIPTX_Gold2Name);
+        return -1;
+    }
+
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_toe' STARTS HERE                                       ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
@@ -2250,17 +2288,15 @@ int main(int argc, char *argv[]) {
     }
     printf("\n\n");
 
-    nrErr      = 0;    // Total number of testbench errors
     sTOE_ReadyDly = 0;
 
     //------------------------------------------------------
     //-- PARSING TESBENCH ARGUMENTS
     //------------------------------------------------------
     if (argc < 3) {
-        printError(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) ipRxFileName\n \t\t mode(1) appRxFileName\n \t\t mode(2) ipRxFileName appRxFileName\n");
+        printError(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<TestName>\n \t\t mode(1) siTAIF_<TestName>\n \t\t mode(2) siIPRX_<TestName> siTAIF_<TestName>\n");
         return -1;
     }
-
     printInfo(THIS_NAME, "This run executes in mode \'%c\'.\n", mode);
 
     if ((mode == RX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
@@ -2268,8 +2304,8 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- Files used for the test of the Rx side
         //-------------------------------------------------
-        ipRxFile.open(argv[2]);
-        if (!ipRxFile) {
+        ifIPRX_Data.open(argv[2]);
+        if (!ifIPRX_Data) {
             printError(THIS_NAME, "Cannot open the IP Rx file: \n\t %s \n", argv[2]);
             if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                 return -1;
@@ -2278,18 +2314,6 @@ int main(int argc, char *argv[]) {
             return -1;
         }
         printInfo(THIS_NAME, "This run executes with IP Rx file  : %s.\n", argv[2]);
-
-        appTxFile.open(appTxFileName);
-        if (!appTxFile) {
-            printError(THIS_NAME, , "Cannot open the Application Tx file:  \n\t %s \n", appTxFileName);
-            return -1;
-        }
-
-        appTxGold.open(appTxGoldName);
-        if (!appTxGold) {
-            printInfo(THIS_NAME, "Cannot open the Application Tx gold file:  \n\t %s \n", appTxGoldName);
-            return -1;
-        }
     }
 
     if ((mode == TX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
@@ -2299,8 +2323,8 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         switch (mode) {
         case TX_MODE:
-            appRxFile.open(argv[2]);
-            if (!appRxFile) {
+            ifTAIF_Data.open(argv[2]);
+            if (!ifTAIF_Data) {
                 printError(THIS_NAME, "Cannot open the APP Rx file: \n\t %s \n", argv[2]);
                 if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                     return -1;
@@ -2311,8 +2335,8 @@ int main(int argc, char *argv[]) {
             printInfo(THIS_NAME, "This run executes with APP Rx file : %s.\n", argv[2]);
             break;
         case BIDIR_MODE:
-            appRxFile.open(argv[3]);
-            if (!appRxFile) {
+            ifTAIF_Data.open(argv[3]);
+            if (!ifTAIF_Data) {
                 printError(THIS_NAME, "Cannot open the APP Rx file: \n\t %s \n", argv[3]);
                 if (!getcwd(cCurrPath, sizeof(cCurrPath))) {
                     return -1;
@@ -2323,23 +2347,6 @@ int main(int argc, char *argv[]) {
             printInfo(THIS_NAME, "This run executes with APP Rx file : %s.\n", argv[3]);
             break;
         }
-
-        ipTxFile1.open(ipTxFileName1);
-        if (!ipTxFile1) {
-            printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName1);
-            return -1;
-        }
-        ipTxFile2.open(ipTxFileName2);
-        if (!ipTxFile2) {
-            printError(THIS_NAME, "Cannot open the IP Tx file:  \n\t %s \n", ipTxFileName2);
-            return -1;
-        }
-
-        ipTxGold2.open(ipTxGoldName2);
-        if (!ipTxGold2) {
-            printError(THIS_NAME, "Cannot open the IP Tx gold file:  \n\t %s \n", ipTxGoldName2);
-            return -1;
-        }
     }
 
     //-----------------------------------------------------
@@ -2349,7 +2356,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-1 : Emulate the IPv4 Rx Path
         //-------------------------------------------------
-        pIPRX(ipRxFile,       appTxGold,
+        pIPRX(ifIPRX_Data,    ofTAIF_Gold,
               testRxPath,     ipRx_PktCounter, ipRx_TcpBytCntr,
               ipRxPacketizer, sessAckList,
               sTOE_ReadyDly,  ssIPRX_TOE_Data);
@@ -2435,8 +2442,8 @@ int main(int argc, char *argv[]) {
         pL3MUX(
             sTOE_ReadyDly,
             ssTOE_L3MUX_Data,
-            ipTxFile1,
-            ipTxFile2,
+            ofIPTX_Data1,
+            ofIPTX_Data2,
             sessAckList,
             ipTx_PktCounter, ipTx_TcpBytCntr,
             ipRxPacketizer);
@@ -2449,9 +2456,9 @@ int main(int argc, char *argv[]) {
             mode,
             nrErr,
             gFpgaIp4Addr,
-            appRxFile,
-            appTxFile,
-            ipTxGold2,
+            ifTAIF_Data,
+            ofTAIF_Data,
+            ofIPTX_Gold2,
             apRx_TcpBytCntr,
             apTx_TcpBytCntr,
             sTOE_ReadyDly,
@@ -2508,15 +2515,15 @@ int main(int argc, char *argv[]) {
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
-        #if 1
-            stepSim();
-        #else
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
             // The sim-counter s generated by [TOE]
             gSimCycCnt = sTOE_TB_SimCycCnt.to_uint();
             if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
                 printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
                 gTraceEvent = false;
             }
+        #else
+            stepSim();
         #endif
 
         //------------------------------------------------------
@@ -2531,23 +2538,23 @@ int main(int argc, char *argv[]) {
     //---------------------------------
     if ((mode == RX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
         // Rx side testing only
-        ipRxFile.close();
-        appTxFile.close();
-        appTxGold.close();
+        ifIPRX_Data.close();
+        ofTAIF_Data.close();
+        ofTAIF_Gold.close();
     }
 
     if ((mode == TX_MODE) || (mode == BIDIR_MODE) || (mode == ECHO_MODE)) {
         // Tx side testing only
-        appRxFile.close();
-        ipTxFile1 << endl; ipTxFile1.close();
-        ipTxFile2 << endl; ipTxFile2.close();
-        ipTxGold2 << endl; ipTxGold2.close();
+        ifTAIF_Data.close();
+        ofIPTX_Data1 << endl; ofIPTX_Data1.close();
+        ofIPTX_Data2 << endl; ofIPTX_Data2.close();
+        ofIPTX_Gold2 << endl; ofIPTX_Gold2.close();
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    //FIXME stepSim();
+    stepSim();
 
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
@@ -2580,9 +2587,9 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
-        int appTxCompare = system(("diff --brief -w " + std::string(appTxFileName) + " " + std::string(appTxGoldName) + " ").c_str());
+        int appTxCompare = system(("diff --brief -w " + std::string(ofTAIF_DataName) + " " + std::string(ofTAIF_GoldName) + " ").c_str());
         if (appTxCompare != 0) {
-            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", appTxFileName, appTxGoldName);
+            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
             nrErr++;
         }
 
@@ -2601,10 +2608,10 @@ int main(int argc, char *argv[]) {
             nrErr++;
         }
 
-        string mergedIpTxFileName2 = std::string(ipTxFileName2) + ".merged";
-        string mergedIpTxGoldName2 = std::string(ipTxGoldName2) + ".merged";
-        int mergeCmd1 = system(("paste -sd \"\" "+ std::string(ipTxFileName2) + " > " + mergedIpTxFileName2 + " ").c_str());
-        int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ipTxGoldName2) + " > " + mergedIpTxGoldName2 + " ").c_str());
+        string mergedIpTxFileName2 = std::string(ofIPTX_Data2Name) + ".merged";
+        string mergedIpTxGoldName2 = std::string(ofIPTX_Gold2Name) + ".merged";
+        int mergeCmd1 = system(("paste -sd \"\" "+ std::string(ofIPTX_Data2Name) + " > " + mergedIpTxFileName2 + " ").c_str());
+        int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ofIPTX_Gold2Name) + " > " + mergedIpTxGoldName2 + " ").c_str());
         int ipTx_TcpDataCompare = system(("diff --brief -w " + mergedIpTxFileName2 + " " + mergedIpTxGoldName2 + " ").c_str());
         if (ipTx_TcpDataCompare != 0) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedIpTxFileName2.c_str(), mergedIpTxGoldName2.c_str());

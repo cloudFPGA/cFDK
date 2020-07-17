@@ -25,9 +25,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*******************************************************************************
- * @file       : tx_sar_table.cpp
-* @brief      : Tx Segmentation and re-assembly Table (TSt) of the TCP Offload
- *                Engine (TOE).
+ * @file       : tx_sar_table.hpp
+ * @brief      : Tx Segmentation and re-assembly Table (TSt)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
@@ -42,7 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TOE_TST_H_
 
 #include "../toe.hpp"
-//OBSOLETE_20200706 #include "../../test/test_toe_utils.hpp"
 #include "../../../../NTS/nts.hpp"
 #include "../../../../NTS/nts_utils.hpp"
 #include "../../../../NTS/SimNtsUtils.hpp"

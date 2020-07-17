@@ -1,0 +1,66 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*******************************************************************************
+ * @file       : toe_utils.cpp
+ * @brief      : Utilities and helpers for the TCP Offload Engine (TOE)
+ *
+ * System:     : cloudFPGA
+ * Component   : Network Transport Stack (NTS)
+ * Language    : Vivado HLS
+ *
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
+
+#include "toe_utils.hpp"
+
+/*******************************************************************************
+ * DEBUG PRINT HELPERS
+ *******************************************************************************/
+#define THIS_NAME "ToeUtils"
+
+/*******************************************************************************
+ * @brief Returns the name of an enum-based event as a user friendly string.
+ *
+ * @param[in]   ev  The event type ENUM.
+ * @returns the event type as a string.
+ *******************************************************************************/
+const char *getEventName(EventType ev) {
+    switch (ev) {
+    case TX_EVENT:
+        return "TX";
+    case RT_EVENT:
+        return "RT";
+    case ACK_EVENT:
+        return "ACK";
+    case SYN_EVENT:
+        return "SYN";
+    case SYN_ACK_EVENT:
+        return "SYN_ACK";
+    case FIN_EVENT:
+        return "";
+    case RST_EVENT:
+        return "";
+    case ACK_NODELAY_EVENT:
+        return "ACK_NODELAY";
+    default:
+        return "ERROR: UNKNOWN EVENT!";
+    }
+}
+
+/*! \} */

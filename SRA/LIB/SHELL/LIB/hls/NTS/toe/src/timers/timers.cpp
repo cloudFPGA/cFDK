@@ -234,7 +234,7 @@ void pRetransmitTimer(
                                           currEntry.retries));
                         if (DEBUG_LEVEL & TRACE_RTT) {
                             printInfo(myName, "Forwarding event \'%s\' to [EVe].\n",
-                                      getEventType(currEntry.type));
+                                      getEventName(currEntry.type));
                         }
                     }
                     else {
@@ -244,14 +244,14 @@ void pRetransmitTimer(
                             soTAi_Notif.write(SessState(currID, CLOSED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [TAi] - Failed to open session %d (event=\'%s\').\n",
-                                          currID.to_int(), getEventType(currEntry.type));
+                                          currID.to_int(), getEventName(currEntry.type));
                             }
                         }
                         else {
                             soRAi_Notif.write(TcpAppNotif(currID, ESTABLISHED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [RAi] - Session %d timeout (event=\'%s\').\n",
-                                          currID.to_int(), getEventType(currEntry.type));
+                                          currID.to_int(), getEventName(currEntry.type));
                             }
                         }
                     }

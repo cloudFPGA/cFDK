@@ -32,7 +32,6 @@
 
 using namespace std;
 
-
 /*******************************************************************************
  * DEBUG PRINT HELPERS
  *******************************************************************************/
@@ -57,7 +56,7 @@ void printAxisRaw(const char *callerName, AxisRaw chunk) {
  * @param[in] chunk       The data stream chunk to display.
  *******************************************************************************/
 void printAxisRaw(const char *callerName, const char *message, AxisRaw chunk) {
-    printInfo(callerName, "%s AxisRaw = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n", \
+    printInfo(callerName, "%s {D=0x%16.16lX, K=0x%2.2X, L=%d} \n", \
               message, chunk.getLE_TData().to_ulong(), chunk.getLE_TKeep().to_int(), chunk.getLE_TLast().to_int());
 }
 

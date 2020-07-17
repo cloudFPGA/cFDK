@@ -31,19 +31,20 @@
 #define _TEST_TOE_H_
 
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <set>
 #include <string>
 #include <unistd.h>
 
-
-#include "../../../NTS/nts.hpp"
-#include "../../../NTS/nts_utils.hpp"
-#include "../../../NTS/SimNtsUtils.hpp"
-#include "../../../NTS/SimIp4Packet.hpp"
 #include "../../../NTS/toe/src/toe.hpp"
+//#include "../../../NTS/nts.hpp"
+//#include "../../../NTS/nts_utils.hpp"
+//#include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/SimIp4Packet.hpp"
+
 #include "../../../NTS/toe/test/dummy_memory/dummy_memory.hpp"
-#include "../../../NTS/toecam/src/toecam.hpp"
+//#include "../../../NTS/toecam/src/toecam.hpp"
 
 //OBSOLETE_20200630 #include "../../toe/src/session_lookup_controller/session_lookup_controller.hpp"
 //OBSOLETE_20200630 #include "../../toe/src/tx_app_interface/tx_app_interface.hpp"

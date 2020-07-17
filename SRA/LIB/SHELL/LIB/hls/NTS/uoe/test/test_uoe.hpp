@@ -62,4 +62,6 @@ unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 enum TestMode { RX_MODE='0',   TX_DGRM_MODE='1', TX_STRM_MODE='2',
                 OPEN_MODE='3', BIDIR_MODE='4',   ECHO_MODE='5',     };
 
+#endif
+
 /*! \} */

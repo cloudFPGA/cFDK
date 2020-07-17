@@ -273,7 +273,7 @@ void pTxAppStatusHandler(
             }
             if (DEBUG_LEVEL & TRACE_TASH) {
                 printInfo(myName, "Received event \'%s\' from [Emx].\n",
-                                  getEventType(ev.type));
+                                  getEventName(ev.type));
             }
         }
         break;
@@ -704,8 +704,8 @@ void pMemWriter(
                                  ((8-lengthBuffer)*8) - 1, 0);
             mwr_currChunk = siSlg_Data.read();
             //OBSOLETE_20200708 memChunk.tdata.range(63, (8-lengthBuffer)*8) = mwr_currChunk.tdata.range((lengthBuffer * 8), 0 );
-            memChunk.setLE_TData(mwr_currChunk.getLE_TData((lengthBuffer * 8), 0),
-                                 (63, (8-lengthBuffer)*8));
+            memChunk.setLE_TData(mwr_currChunk.getLE_TData((lengthBuffer * 8), 0), \
+                                 63, (8-lengthBuffer)*8);
             if (!mwr_segMemMeta.drop) {
                 if (mwr_currChunk.getTLast()) {
                     if (mwr_breakLen - accessResidue > lengthBuffer)  {
@@ -736,8 +736,8 @@ void pMemWriter(
             if (!mwr_segMemMeta.drop) {
                 AxisApp memChunk = AxisApp(0, lenToLE_tKeep(mwr_breakLen), 1);
                 //OBSOLETE_20200708 memChunk.tdata.range(((8-lengthBuffer)*8) - 1, 0) = mwr_currChunk.tdata.range(63, lengthBuffer*8);
-                memChunk.setLE_TData(mwr_currChunk.getLE_TData(63, lengthBuffer*8),
-                                      (((8-lengthBuffer)*8) - 1, 0));
+                memChunk.setLE_TData(mwr_currChunk.getLE_TData(63, lengthBuffer*8), \
+                                      ((8-lengthBuffer)*8) - 1, 0);
                 soMEM_TxP_Data.write(memChunk);
                 mwr_fsmState = MWR_IDLE;
             }

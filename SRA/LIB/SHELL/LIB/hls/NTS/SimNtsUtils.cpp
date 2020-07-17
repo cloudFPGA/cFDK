@@ -395,7 +395,7 @@ bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
  * @return true upon successful, otherwise false.
  *******************************************************************************/
 bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
-    if (not outFileStream.is_open()) {
+    if (not outFileStream) {
         printError(THIS_NAME, "File is not opened.\n");
         return false;
     }

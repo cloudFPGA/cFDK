@@ -38,6 +38,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
 #include "ack_delay.hpp"
+#include "../toe_utils.hpp"
 
 using namespace hls;
 
@@ -107,7 +108,7 @@ void ack_delay(
         assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", 2); // [FIXME-Use constant for the length]
         soEVe_RxEventSig.write(1);
         if (DEBUG_LEVEL & TRACE_AKD) {
-            printInfo(myName, "Received event of type \'%s\' for session #%d.\n", getEventType(ev.type), ev.sessionID.to_int());
+            printInfo(myName, "Received event of type \'%s\' for session #%d.\n", getEventName(ev.type), ev.sessionID.to_int());
         }
 
         // Check if there is a delayed ACK
@@ -122,7 +123,7 @@ void ack_delay(
             ACK_TABLE[ev.sessionID] = 0;
             if (DEBUG_LEVEL & TRACE_AKD) {
                 printInfo(myName, "Removing any pending delayed ACK for session #%d.\n", ev.sessionID.to_int());
-                printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", getEventType(ev.type));
+                printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", getEventName(ev.type));
             }
             // Forward event to TxEngine
             assessSize(myName, soTXe_Event, "soTXe_Event", 16);  // [FIXME-Use constant for the length]

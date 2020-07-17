@@ -44,6 +44,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../../NTS/nts_utils.hpp"
 #include "../../../../NTS/SimNtsUtils.hpp"
 #include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../NTS/toe/src/toe_utils.hpp"
 //#include "../../../../NTS/toe/src/event_engine/event_engine.hpp"
 //#include "../../../../NTS/toe/src/state_table/state_table.hpp"
 

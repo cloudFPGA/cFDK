@@ -41,6 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TOE_TIM_H_
 
 #include "../toe.hpp"
+#include "../toe_utils.hpp"
 //#include "../event_engine/event_engine.hpp"
 #include "../../../../NTS/nts_utils.hpp"
 
