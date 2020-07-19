@@ -40,10 +40,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_TXE_H_
 #define _TOE_TXE_H_
 
-#include "../../toe.hpp"
-//OBSOLETE_20200706 #include "../../test/test_toe_utils.hpp"
+
 #include "../../../../../NTS/nts.hpp"
 #include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/toe/src/toe.hpp"
 #include "../../../../../NTS/SimNtsUtils.hpp"
 #include "../../../../../NTS/AxisIp4.hpp"
 #include "../../../../../NTS/AxisPsd4.hpp"
@@ -113,7 +113,7 @@ void tx_engine(
         stream<SigBit>                  &soEVe_RxEventSig,
         //-- Rx SAR Table Interface
         stream<SessionId>               &soRSt_RxSarReq,
-        stream<RxSarEntry>              &siRSt_RxSarRep,
+        stream<RxSarReply>              &siRSt_RxSarRep,
         //-- Tx SAR Table Interface
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,

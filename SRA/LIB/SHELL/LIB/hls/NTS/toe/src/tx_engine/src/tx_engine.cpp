@@ -101,7 +101,7 @@ using namespace hls;
 void pMetaDataLoader(
         stream<ExtendedEvent>           &siAKd_Event,
         stream<SessionId>               &soRSt_RxSarReq,
-        stream<RxSarEntry>              &siRSt_RxSarRep,
+        stream<RxSarReply>              &siRSt_RxSarRep,
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
@@ -134,7 +134,7 @@ void pMetaDataLoader(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static ExtendedEvent  mdl_curEvent;
-    static RxSarEntry     mdl_rxSar;
+    static RxSarReply     mdl_rxSar;
     static TXeTxSarReply  mdl_txSar;
     static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
     static TXeMeta        mdl_txeMeta;
@@ -1512,7 +1512,7 @@ void tx_engine(
         stream<SigBit>                  &soEVe_RxEventSig,
         //-- Rx SAR Table Interface
         stream<SessionId>               &soRSt_RxSarReq,
-        stream<RxSarEntry>              &siRSt_RxSarRep,
+        stream<RxSarReply>              &siRSt_RxSarRep,
         //-- Tx SAR Table Interface
         stream<TXeTxSarQuery>           &soTSt_TxSarQry,
         stream<TXeTxSarReply>           &siTSt_TxSarRep,

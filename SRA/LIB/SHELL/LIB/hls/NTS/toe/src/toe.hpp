@@ -75,7 +75,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace hls;
 
 
-
 //---------------------------------------------------------
 //-- Forward declarations
 //---------------------------------------------------------
@@ -369,7 +368,7 @@ class StateQuery {  // [FIXME - Consider renaming to SessStateQuery]
 /********************************************
  * Some Rx & Tx SAR Types
  ********************************************/
-typedef TcpSeqNum   RxSeqNum;   // A received sequence number [TODO - Replace Rx with Rcv]
+typedef TcpSeqNum   RxSeqNum;   // A sequence number received from the network layer
 typedef TcpWindow   RcvWinSize; // A received window size
 typedef TcpAckNum   TxAckNum;   // An acknowledgement number [TODO - Replace Tx with Snd]
 typedef TcpWindow   SndWinSize; // A sending  window size
@@ -382,13 +381,30 @@ typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
 /************************************************
  * Rx SAR Table (RSt)
- *  Structure to manage the FPGA Receive Window
+ *  Request/Reply and Query/Reply structures.
+ *  (@see: rx_sar_tabble.[cpp|hpp])
+ *
+ * [FIXME - Get down to the use of a single generic
+ *   struct format for Query/Reply]. Anyhow, whatever
+ *    is not used, will always be synthesized away.]
  ************************************************/
-class RxSarEntry {
+//OBSOLETE class RxSarEntry {
+//  public:
+//    RxSeqNum    rcvd;  // Bytes RCV'ed and ACK'ed (same as Receive Next)
+//    //OBSOLETE_20200719 RxBufPtr    appd;  // Bytes READ (.i.e consumed) by the application // [FIXME - Change type to 'RxSeqNum']
+//    RxSeqNum    appd;  // Bytes READ (.i.e consumed) by the application
+//    RxSarEntry() {}
+//};
+
+// RSt / Generic Reply
+//----------------------
+class RxSarReply {
   public:
-    RxSeqNum        rcvd;  // Octest RCV'ed and ACK'ed octets (Receive Next)
-    RxBufPtr        appd;  // Ptr in circular APP data buffer (64KB)
-    RxSarEntry() {}
+     RxSeqNum    rcvd;
+     RxSeqNum    appd;
+    RxSarReply() {}
+    RxSarReply(RxSeqNum rcvd, RxSeqNum appd) :
+        rcvd(rcvd), appd(appd) {}
 };
 
 // RSt / Query from RXe
@@ -413,23 +429,26 @@ class RXeRxSarQuery {
 class RAiRxSarQuery {
   public:
     SessionId       sessionID;
-    RxBufPtr        appd; // APP data read ptr
+    RxSeqNum        appd;  // Next byte to be consumed by [APP]
     RdWrBit         write;
     RAiRxSarQuery() {}
     RAiRxSarQuery(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    RAiRxSarQuery(SessionId id, ap_uint<16> appd) :
+    RAiRxSarQuery(SessionId id, RxSeqNum appd) :
         sessionID(id), appd(appd), write(1) {}
 };
 
+// RSt / Reply to RAi
+//----------------------
 class RAiRxSarReply {
   public:
     SessionId       sessionID;
-    RxBufPtr        appd; // Read by APP
+    RxSeqNum        appd;  // Next byte to be consumed by [APP]
     RAiRxSarReply() {}
-    RAiRxSarReply(SessionId id, ap_uint<16> appd) :
+    RAiRxSarReply(SessionId id, RxSeqNum appd) :
         sessionID(id), appd(appd) {}
 };
+
 
 /********************************************
  * Tx SAR Table (TSt)

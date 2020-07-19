@@ -142,7 +142,6 @@ static const ap_uint<16> MTU = 1500;
 #define ETH_BROADCAST_ADDR 0xFFFFFFFFFFFF
 
 // EtherType protocol numbers
-//OBSOLETE_20200617 #define IP4_PROTOCOL    0x0800
 #define ETH_ETHERTYPE_IP4 0x0800
 #define ETH_ETHERTYPE_ARP 0x0806
 

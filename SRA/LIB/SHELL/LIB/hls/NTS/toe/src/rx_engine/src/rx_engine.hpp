@@ -101,7 +101,7 @@ void rx_engine(
         stream<RepBit>                  &siPRt_PortStateRep,
         //-- Rx SAR Table Interface
         stream<RXeRxSarQuery>           &soRSt_RxSarQry,
-        stream<RxSarEntry>              &siRSt_RxSarRep,
+        stream<RxSarReply>              &siRSt_RxSarRep,
         //-- Tx SAR Table Interface
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
         stream<RXeTxSarReply>           &siTSt_TxSarRep,

@@ -535,7 +535,7 @@ void toe(
     #pragma HLS DATA_PACK    variable=ssRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
-    static stream<RxSarEntry>         ssRStToRXe_RxSarRep        ("ssRStToRXe_RxSarRep");
+    static stream<RxSarReply>         ssRStToRXe_RxSarRep        ("ssRStToRXe_RxSarRep");
     #pragma HLS stream       variable=ssRStToRXe_RxSarRep        depth=2
     #pragma HLS DATA_PACK    variable=ssRStToRXe_RxSarRep
 
@@ -543,7 +543,7 @@ void toe(
     #pragma HLS stream       variable=ssRStToRAi_RxSarRep        depth=2
     #pragma HLS DATA_PACK    variable=ssRStToRAi_RxSarRep
 
-    static stream<RxSarEntry>         ssRStToTXe_RxSarRep        ("ssRStToTXe_RxSarRep");
+    static stream<RxSarReply>         ssRStToTXe_RxSarRep        ("ssRStToTXe_RxSarRep");
     #pragma HLS stream       variable=ssRStToTXe_RxSarRep        depth=2
     #pragma HLS DATA_PACK    variable=ssRStToTXe_RxSarRep
 

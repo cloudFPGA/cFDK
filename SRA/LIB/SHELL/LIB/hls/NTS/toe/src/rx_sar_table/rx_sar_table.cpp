@@ -24,15 +24,18 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : rx_sar_table.cpp
  * @brief      : Rx Segmentation And Re-assembly Table (RSt).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- *****************************************************************************/
+ * \ingroup NTS
+ * \addtogroup NTS_TOE
+ * \{
+ *******************************************************************************/
 
 #include "rx_sar_table.hpp"
 
@@ -54,38 +57,50 @@ using namespace hls;
 
 #define DEBUG_LEVEL (TRACE_OFF)
 
-/*****************************************************************************
- * @brief Rx SAR Table (RSt) - Stores the data structures for managing the
- *         TCP Rx buffer and the Rx sliding window.
+/*******************************************************************************
+ * @brief Rx SAR Table (RSt)
  *
- * @param[in]  siRXe_RxSarQry,    Query from RxEngine (RXe).
- * @param[out] soRXe_RxSarRep,    Reply to RXe.
- * @param[in]  siRAi_RxSarQry,    Query from RxAppInterface (RAi).
- * @param[out] soRAi_RxSarRep,    Reply to [RAi].
- * @param[in]  siTXe_RxSarReq,    Read request from TxEngine (TXe).
- * @param[out] soTxe_RxSarRep,    Read reply to [TXe].
+ * @param[in]  siRXe_RxSarQry  Query from RxEngine (RXe).
+ * @param[out] soRXe_RxSarRep  Reply to RXe.
+ * @param[in]  siRAi_RxSarQry  Query from RxAppInterface (RAi).
+ * @param[out] soRAi_RxSarRep  Reply to [RAi].
+ * @param[in]  siTXe_RxSarReq  Read request from TxEngine (TXe).
+ * @param[out] soTxe_RxSarRep  Read reply to [TXe].
  *
  * @details
- *  This process is concurrently accessed by the RxEngine (RXe), the
- *   RxApplicationInterface (RAi) and the TxEngine (TXe).
- *  The access by the TXe is read-only.
- *  
- *****************************************************************************/
+ *  This process stores the structures for managing the received data stream in
+ *  the TCP Rx buffer memory. An Rx buffer of 64KB is allocated to every session
+ *  and the stream of bytes within every session is managed with two pointers:
+ *   - 'rcvd' holds the sequence number of the last received and acknowledged
+ *             byte from the network layer,
+ *   - 'appd' holds the sequence number of the next byte ready to be read (.i.e
+ *            consumed) by the application layer.
+ *
+ *            appd                                    rcvd
+ *             |                                       |
+ *            \|/                                     \|/
+ *     --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
+ *       |269|270|271|272|273|274|275|276|277|278|279|280|281|282|283|284|
+ *     --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
+ *
+ *  This process is concurrently accessed by the RxEngine (RXe), the TxEngine
+ *   (TXe) and the RxApplicationInterface (RAi), but TXe access is read-only.
+ *******************************************************************************/
 void rx_sar_table(
         stream<RXeRxSarQuery>      &siRXe_RxSarQry,
-        stream<RxSarEntry>         &soRXe_RxSarRep,
+        stream<RxSarReply>         &soRXe_RxSarRep,
         stream<RAiRxSarQuery>      &siRAi_RxSarQry,
         stream<RAiRxSarReply>      &soRAi_RxSarRep,
         stream<SessionId>          &siTXe_RxSarReq,
-        stream<RxSarEntry>         &soTxe_RxSarRep)
+        stream<RxSarReply>         &soTxe_RxSarRep)
 {
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = THIS_NAME;
 
-    //-- STATIC ARRAYS --------------------------------------------------------
+    //-- STATIC ARRAYS ---------------------------------------------------------
     static RxSarEntry               RX_SAR_TABLE[MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
     #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
@@ -95,22 +110,24 @@ void rx_sar_table(
         SessionId sessId;
         // Read only access from the Tx Engine
         siTXe_RxSarReq.read(sessId);
-        soTxe_RxSarRep.write(RX_SAR_TABLE[sessId]);
+        soTxe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[sessId].rcvd,
+                                        RX_SAR_TABLE[sessId].appd));
     }
     else if(!siRAi_RxSarQry.empty()) {
         RAiRxSarQuery RAiQry;
-        // Read or write access from the Rx App I/F to update the application pointer
+        // Read or write access from [TAi] to update the application pointer
         siRAi_RxSarQry.read(RAiQry);
         if(RAiQry.write) {
             RX_SAR_TABLE[RAiQry.sessionID].appd = RAiQry.appd;
         }
         else {
-            soRAi_RxSarRep.write(RAiRxSarReply(RAiQry.sessionID, RX_SAR_TABLE[RAiQry.sessionID].appd));
+            soRAi_RxSarRep.write(RAiRxSarReply(RAiQry.sessionID,
+                                               RX_SAR_TABLE[RAiQry.sessionID].appd));
         }
     }
     else if(!siRXe_RxSarQry.empty()) {
         RXeRxSarQuery RXeQry;
-        // Read or write access from the RxEngine
+        // Read or write access from the [RXe]  to update the received pointer
         siRXe_RxSarQry.read(RXeQry);
         if (RXeQry.write) {
             RX_SAR_TABLE[RXeQry.sessionID].rcvd = RXeQry.rcvd;
@@ -119,7 +136,10 @@ void rx_sar_table(
             }
         }
         else {
-            soRXe_RxSarRep.write(RX_SAR_TABLE[RXeQry.sessionID]);
+            soRXe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[RXeQry.sessionID].rcvd,
+                                            RX_SAR_TABLE[RXeQry.sessionID].appd));
         }
     }
 }
+
+/*! \} */

@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_CSA | TRACE_IPH | TRACE_MWR)
+#define DEBUG_LEVEL (TRACE_CSA | TRACE_IPH | TRACE_MDH | TRACE_MWR | TRACE_FSM)
 
 
 /*******************************************************************************
@@ -1160,7 +1160,6 @@ void pRxAppNotifier(
     }
 }
 
-
 /*******************************************************************************
  * @brief MetaData Handler (Mdh)
  *
@@ -1334,7 +1333,7 @@ void pFiniteStateMachine(
         stream<StateQuery>          &soSTt_StateQry,
         stream<TcpState>            &siSTt_StateRep,
         stream<RXeRxSarQuery>       &soRSt_RxSarQry,
-        stream<RxSarEntry>          &siRSt_RxSarRep,
+        stream<RxSarReply>          &siRSt_RxSarRep,
         stream<RXeTxSarQuery>       &soTSt_TxSarQry,
         stream<RXeTxSarReply>       &siTSt_TxSarRep,
         stream<RXeReTransTimerCmd>  &soTIm_ReTxTimerCmd,
@@ -1365,7 +1364,7 @@ void pFiniteStateMachine(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     ap_uint<4>          control_bits;
     TcpState            tcpState;
-    RxSarEntry          rxSar;
+    RxSarReply          rxSar;
     RXeTxSarReply       txSar;
 
     switch(fsm_fsmState) {
@@ -1400,6 +1399,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- ACK
             //--------------------------------------
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1494,8 +1494,9 @@ void pFiniteStateMachine(
                     // Reset Retransmit Timer
                     if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
                         switch (tcpState) {
-                        case SYN_RECEIVED:  //TODO MAYBE REARRANGE
+                        case SYN_RECEIVED:
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Session[%d] - TCP State = ESTABISHED.\n", fsm_Meta.sessionId.to_uint()); }
                             break;
                         case CLOSING:
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, TIME_WAIT, QUERY_WR));
@@ -1531,7 +1532,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- SYN
             //--------------------------------------
-            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Segment is SYN.\n"); }
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'SYN' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1574,6 +1575,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- SYN_ACK
             //--------------------------------------
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'SYN_ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1611,6 +1613,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'FIN_ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1677,6 +1680,7 @@ void pFiniteStateMachine(
             }
             break;
         default: //TODO MAYBE load everything all the time
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Received segment. CtrlBits=0x%X\n", control_bits.to_uchar()); }
             // stateTable is locked, make sure it is released in at the end
             // If there is an ACK we read txSar
             // We always read rxSar
@@ -1810,7 +1814,7 @@ void rx_engine(
         stream<RepBit>                  &siPRt_PortStateRep,
         //-- Rx SAR Table Interface
         stream<RXeRxSarQuery>           &soRSt_RxSarQry,
-        stream<RxSarEntry>              &siRSt_RxSarRep,
+        stream<RxSarReply>              &siRSt_RxSarRep,
         //-- Tx SAR Table Interface
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
         stream<RXeTxSarReply>           &siTSt_TxSarRep,

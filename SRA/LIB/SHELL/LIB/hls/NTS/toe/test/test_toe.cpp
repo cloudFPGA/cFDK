@@ -1022,24 +1022,19 @@ bool pL3MUX_Parse(
         }
         SimIp4Packet synAckPacket;
         synAckPacket.clone(ipTxPacket);
-
         // Swap IP_SA and IP_DA
         synAckPacket.setIpDestinationAddress(ipTxPacket.getIpSourceAddress());
         synAckPacket.setIpSourceAddress(ipTxPacket.getIpDestinationAddress());
-
         // Swap TCP_SP and TCP_DP
         synAckPacket.setTcpDestinationPort(ipTxPacket.getTcpSourcePort());
         synAckPacket.setTcpSourcePort(ipTxPacket.getTcpDestinationPort());
-
-        // Swap the SEQ and ACK Numbers while incrementing the ACK
+        // Set the SEQ to zero (for simplicity) and ACK to (received SEQ+1)
         synAckPacket.setTcpSequenceNumber(0);
         synAckPacket.setTcpAcknowledgeNumber(ipTxPacket.getTcpSequenceNumber() + 1);
-
         // Set the ACK bit and Recalculate the Checksum
         synAckPacket.setTcpControlAck(1);
         int newTcpCsum = synAckPacket.tcpRecalculateChecksum();
         synAckPacket.setTcpChecksum(newTcpCsum);
-
         // Add the created SYN+ACK packet to the ipRxPacketizer
         ipRxPacketizer.push_back(synAckPacket);
     }
@@ -1047,7 +1042,6 @@ bool pL3MUX_Parse(
         //------------------------------------------------------
         // This is a FIN segment. Close the connection.
         //------------------------------------------------------
-
         // Retrieve the initial socket pair information.
         // Note how we call the constructor with swapped source and destination.
         // Destination is now the former source and vice-versa.
@@ -1056,27 +1050,22 @@ bool pL3MUX_Parse(
         SockAddr  dstSock = SockAddr(ipTxPacket.getIpDestinationAddress(),
                                      ipTxPacket.getTcpDestinationPort());
         SocketPair sockPair(dstSock, srcSock);
-
         if (DEBUG_LEVEL & TRACE_L3MUX) {
             printInfo(myName, "Got a FIN from TOE. Closing the following connection:\n");
             printSockPair(myName, sockPair);
         }
-
         // Erase the socket pair for this session from the map.
         sessAckList.erase(sockPair);
-
     }
     else if (ipTxPacket.isACK()) {
         //---------------------------------------
         // This is an ACK segment.
         //---------------------------------------
         returnValue = true;
-
         // Retrieve IP packet length and TCP sequence numbers
         int ip4PktLen  = ipTxPacket.getIpTotalLength();
         int nextAckNum = ipTxPacket.getTcpSequenceNumber();
         currAckNum     = ipTxPacket.getTcpAcknowledgeNumber();
-
         // Retrieve the initial socket pair information.
         // Note how we call the constructor with swapped source and destination.
         // Destination is now the former source and vice-versa.
@@ -1109,10 +1098,8 @@ bool pL3MUX_Parse(
             ip4PktLen -= 40;
             nextAckNum += ip4PktLen;
         }
-
         // Update the Session List with the new sequence number
         sessAckList[sockPair] = nextAckNum;
-
         if (ipTxPacket.isFIN()) {
             //------------------------------------------------
             // This is an ACK+FIN segment.
@@ -1120,7 +1107,6 @@ bool pL3MUX_Parse(
             isFinAck = true;
             if (DEBUG_LEVEL & TRACE_L3MUX)
                 printInfo(myName, "Got an ACK+FIN from TOE.\n");
-
             // Erase this session from the list
             int itemsErased = sessAckList.erase(sockPair);
             if (itemsErased != 1) {
@@ -1135,41 +1121,32 @@ bool pL3MUX_Parse(
                 }
             }
         } // End of: isFIN
-
         if (ip4PktLen > 0 && !isFinAck) {
-
             //--------------------------------------------------------
-            // The ACK segment contains more data (.e.g, TCP options),
-            // and/or the segment is a FIN+ACK segment.
-            // In both cases, reply with an empty ACK packet.
+            // ACK segment contains more data and is not a FIN+ACK.
+            // Reply with an empty ACK packet.
             //--------------------------------------------------------
             SimIp4Packet ackPacket(40);  // [FIXME - What if we generate options ???]
-            // {FIXME]{FIXME] Must clone all the fields; We typically miss 'Protocol'
             // [TODO - Add TCP Window option]
-
+            // Set IP protocol field to TCP
+            ackPacket.setIpProtocol(IP4_PROT_TCP);
             // Swap IP_SA and IP_DA
             ackPacket.setIpDestinationAddress(ipTxPacket.getIpSourceAddress());
             ackPacket.setIpSourceAddress(ipTxPacket.getIpDestinationAddress());
-
             // Swap TCP_SP and TCP_DP
             ackPacket.setTcpDestinationPort(ipTxPacket.getTcpSourcePort());
             ackPacket.setTcpSourcePort(ipTxPacket.getTcpDestinationPort());
-
             // Swap the SEQ and ACK Numbers while incrementing the ACK
             ackPacket.setTcpSequenceNumber(currAckNum);
             ackPacket.setTcpAcknowledgeNumber(nextAckNum);
-
-            // Set the ACK bit and unset the FIN bit
+            // Set the ACK bit and un-set the FIN bit
             ackPacket.setTcpControlAck(1);
             ackPacket.setTcpControlFin(0);
-
             // Set the Window size
             ackPacket.setTcpWindow(7777);
-
             // Recalculate the Checksum
             int newTcpCsum = ackPacket.tcpRecalculateChecksum();
             ackPacket.setTcpChecksum(newTcpCsum);
-
             // Add the created ACK packet to the ipRxPacketizer
             ipRxPacketizer.push_back(ackPacket);
             currAckNum = nextAckNum;
