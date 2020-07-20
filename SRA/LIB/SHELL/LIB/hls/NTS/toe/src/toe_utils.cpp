@@ -37,11 +37,11 @@
 /*******************************************************************************
  * @brief Returns the name of an enum-based event as a user friendly string.
  *
- * @param[in]   ev  The event type ENUM.
+ * @param[in]   evType  An enumerated type of event.
  * @returns the event type as a string.
  *******************************************************************************/
-const char *getEventName(EventType ev) {
-    switch (ev) {
+const char *getEventName(EventType evType) {
+    switch (evType) {
     case TX_EVENT:
         return "TX";
     case RT_EVENT:

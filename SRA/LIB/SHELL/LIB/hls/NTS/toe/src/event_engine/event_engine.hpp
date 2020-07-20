@@ -42,10 +42,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../../../NTS/nts_utils.hpp"
 #include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../NTS/toe/src/toe_utils.hpp"
 
 using namespace hls;
 
-//OBSOLETE_20200714  const char *getEventType(EventType ev);
 
 /*******************************************************************************
  *

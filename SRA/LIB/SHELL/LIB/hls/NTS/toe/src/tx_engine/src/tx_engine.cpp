@@ -64,7 +64,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -150,7 +150,9 @@ void pMetaDataLoader(
     case S0:
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
-
+            if (DEBUG_LEVEL & TRACE_MDL) {
+                printInfo(myName, "Received event '%s' from [AKd].\n", getEventName(mdl_curEvent.type));
+            }
             mdl_sarLoaded = false;
             assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", 2); // [FIXME-Use constant for the length]
             soEVe_RxEventSig.write(1);
@@ -242,7 +244,6 @@ void pMetaDataLoader(
             }
             break;
 #else
-
         case TX_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) {
                 printInfo(myName, "Got TX event.\n");
@@ -253,7 +254,6 @@ void pMetaDataLoader(
                     siRSt_RxSarRep.read(mdl_rxSar);
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
-
                 // Compute our space, Advertise at least a quarter/half, otherwise 0
                 windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
@@ -264,7 +264,6 @@ void pMetaDataLoader(
                 mdl_txeMeta.syn = 0;
                 mdl_txeMeta.fin = 0;
                 mdl_txeMeta.length = 0;
-
                 currLength = (mdl_txSar.app - ((TxBufPtr)mdl_txSar.not_ackd));
                 TxBufPtr usedLength = ((TxBufPtr)mdl_txSar.not_ackd - mdl_txSar.ackd);
                 if (mdl_txSar.min_window > usedLength) {
@@ -274,7 +273,6 @@ void pMetaDataLoader(
                 else {
                     usableWindow = 0;
                 }
-
                 // Construct address before modifying mdl_txSar.not_ackd
                 //  FYI - The size of the DDR4 memory of the FMKU60 is 8GB.
                 //        The tx path uses the upper 4GB.
@@ -283,7 +281,6 @@ void pMetaDataLoader(
                 // [TODO-TODO] memSegAddr(32, 30) = 0x4;  // [FIXME- Must be configurable]
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0); //ml_curEvent.address;
-
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
                     if (currLength >= MSS) {
@@ -302,10 +299,8 @@ void pMetaDataLoader(
                             mdl_txeMeta.length  = currLength;
                             mdl_fsmState = S0;
                         }
-
                         // Update the 'mdl_txSar.not_ackd' pointer
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, mdl_txSar.not_ackd, QUERY_WR));
-
                     }
                 }
                 else {
@@ -328,7 +323,6 @@ void pMetaDataLoader(
                         mdl_fsmState = S0;
                     }
                 }
-
                 if (mdl_txeMeta.length != 0) {
                     soMrd_BufferRdCmd.write(DmCmd(memSegAddr, mdl_txeMeta.length));
                 }
@@ -346,7 +340,6 @@ void pMetaDataLoader(
             }
             break;
 #endif
-
         case RT_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got RT event.\n");
@@ -355,14 +348,12 @@ void pMetaDataLoader(
                     siRSt_RxSarRep.read(mdl_rxSar);
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
-
                 // Compute our window size
                 windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 if (!mdl_txSar.finSent) // No FIN sent
                     currLength = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd);
                 else // FIN already sent
                     currLength = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd)-1;
-
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.ackd;
                 mdl_txeMeta.winSize = windowSize;
@@ -370,13 +361,11 @@ void pMetaDataLoader(
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 0;
                 mdl_txeMeta.fin = 0;
-
                 // Construct address before modifying 'mdl_txSar.ackd'
                 TxMemPtr memSegAddr;  // 0x40000000
                 memSegAddr(31, 30) = 0x01;
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.ackd(15, 0); // mdl_curEvent.address;
-
                 // Decrease Slow Start Threshold, only on first RT from retransmitTimer
                 if (!mdl_sarLoaded && (mdl_curEvent.rt_count == 1)) {
                     if (currLength > (4*MSS)) // max(FlightSize/2, 2*MSS) RFC:5681
@@ -385,7 +374,6 @@ void pMetaDataLoader(
                         slowstart_threshold = (2 * MSS);
                     soTSt_TxSarQry.write(TXeTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
-
                 // Since we are retransmitting from 'txSar.ackd' to 'txSar.not_ackd', this data is already inside the usableWindow
                 //  => No check is required
                 // Only check if length is bigger than MMS
@@ -415,20 +403,16 @@ void pMetaDataLoader(
                     soIhc_TcpSegLen.write(mdl_txeMeta.length);
                     soPhc_TxeMeta.write(mdl_txeMeta);
                     soSps_IsLookup.write(true);
-
 #if (TCP_NODELAY)
                     soTODO_isDDRbypass.write(false);
 #endif
-
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
-
                     // Only set RT timer if we actually send sth
                     soTIm_ReTxTimerEvent.write(TXeReTransTimerCmd(mdl_curEvent.sessionID));
                 }
                 mdl_sarLoaded = true;
             }
             break;
-
         case ACK_EVENT:
         case ACK_NODELAY_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
@@ -453,7 +437,6 @@ void pMetaDataLoader(
                 mdl_fsmState = S0;
             }
             break;
-
         case SYN_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got SYN event.\n");
@@ -487,15 +470,11 @@ void pMetaDataLoader(
                 mdl_fsmState = S0;
             }
             break;
-
         case SYN_ACK_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got SYN_ACK event.\n");
-
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Got SYN_ACK event.\n"); }
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
-
                 // Construct SYN_ACK message
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.winSize = 0xFFFF;
@@ -514,18 +493,15 @@ void pMetaDataLoader(
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                          mdl_txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
                 }
-
                 soIhc_TcpSegLen.write(mdl_txeMeta.length);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
-
                 // Set retransmit timer
                 soTIm_ReTxTimerEvent.write(TXeReTransTimerCmd(mdl_curEvent.sessionID, SYN_ACK_EVENT));
                 mdl_fsmState = S0;
             }
             break;
-
         case FIN_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got FIN event.\n");
@@ -573,7 +549,6 @@ void pMetaDataLoader(
                 mdl_fsmState = S0;
             }
             break;
-
         case RST_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL)
                 printInfo(myName, "Got RST event.\n");
@@ -597,10 +572,8 @@ void pMetaDataLoader(
                 mdl_fsmState = S0;
             }
             break;
-
         } // End of: switch
         break;
-
     } // End of: switch
 
 } // End of: pMetaDataLoader

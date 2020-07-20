@@ -1241,7 +1241,7 @@ void pL3MUX(
             }
             // Clear the chunk counter and the received IP packet
             ipTxChunkCounter = 0;
-            //OBSOLETE_20200706 l3mux_ipTxPacket.clear();
+            l3mux_ipTxPacket.clear();
             // Re-initialize the RTT counter
             l3mux_rttSim = RTT_LINK;
         }

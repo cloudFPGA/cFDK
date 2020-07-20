@@ -70,13 +70,13 @@ bool isDatFile(string fileName) {
  * @return     True/False.
  ******************************************************************************/
 bool isDottedDecimal(string ipStr) {
-	vector<string>  stringVector;
+    vector<string>  stringVector;
 
-	stringVector = myTokenizer(ipStr, '.');
-	if (stringVector.size() == 4)
-		return true;
-	else
-		return false;
+    stringVector = myTokenizer(ipStr, '.');
+    if (stringVector.size() == 4)
+        return true;
+    else
+        return false;
 }
 #endif
 
@@ -152,7 +152,7 @@ vector<string> myTokenizer(string strBuff, char delimiter) {
         if (strBuff[strBuff.size() - 1] == '\r')
             strBuff.erase(strBuff.size() - 1);
     }
-    // Search for 'delimiter' characters between the different data words
+    // Search for 'delimiter' characters between the different strings
     while (strBuff.find(delimiter) != string::npos) {
         // Split the string in two parts
         string temp = strBuff.substr(0, strBuff.find(delimiter));
@@ -372,13 +372,13 @@ bool readAxisRawFromLine(AxisRaw &axisRaw, string stringBuffer) {
         axisRaw.setLE_TLast(atoi(            stringVector[1].c_str()));
         axisRaw.setLE_TKeep(myStrHexToUint8( stringVector[2]));
         if ((stringVector.size() == 3) and (not axisRaw.isValid())) {
-            printError(THIS_NAME, "Failed to read AxiWord from line \"%s\".\n", stringBuffer.c_str());
+            printError(THIS_NAME, "Failed to read AxisRaw from line \"%s\".\n", stringBuffer.c_str());
             printFatal(THIS_NAME, "\tFYI - 'tkeep' and 'tlast' are inconsistent...\n");
         }
         return true;
     }
     else {
-        printError(THIS_NAME, "Failed to read AxiWord from line \"%s\".\n", stringBuffer.c_str());
+        printError(THIS_NAME, "Failed to read AxisRaw from line \"%s\".\n", stringBuffer.c_str());
         printFatal(THIS_NAME, "\tFYI - The file might be corrupted...\n");
     }
     return false;
@@ -418,7 +418,7 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
  *         stored as a stream of bytes which is terminated by a newline when
  *         the 'TLAST' bit of the data chunk is set.
  *
- * @param[in] appData  A reference  to the AXI word to write.
+ * @param[in] appData  A reference  to AxisApp chunk to write.
  * @param[in] outFile  A reference to the file stream to write.
  * @return the number of bytes written into the file.
  *******************************************************************************/
@@ -450,7 +450,7 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
  *         write-counter reaches the Maximum Segment Size (.i.e, MSS) or the
  *         TLAST' bit of the data chunk is set.
  *
- * @param[in] appData  A reference  to the AXI word to write.
+ * @param[in] appData  A reference  to the AxisApp chunk to write.
  * @param[in] outFile  A reference to the file stream to write.
  * @param[in] wrCount  A ref to a segment write counter.
  * @return the number of bytes written into the file.
@@ -552,10 +552,10 @@ bool readHostSocketFromLine(SockAddr &hostSock, string stringBuffer) {
             }
             // Retrieve the host LY4 port
             if (isHexString(stringVector[4])) {
-            	hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 16);
+                hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 16);
             }
             else {
-            	hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 10);
+                hostSock.port = strtoul(stringVector[4].c_str(), &pEnd, 10);
             }
             return true;
         }
@@ -690,7 +690,7 @@ bool readTbParamFromFile(const string paramName, const string datFile,
 /*******************************************************************************
  * @brief Dump an AP_UINT to a file.
  *
- * @param[in] data           A reference to the word to dump.
+ * @param[in] data           A reference to the data to dump.
  * @param[in] outFileStream  A reference to the file stream to write.
  *
  *
@@ -776,7 +776,7 @@ template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string s
     }
     // Assess that file has ".dat" extension
     if (not isDatFile(datFile)) {
-        printError(THIS_NAME, "Cannot set AxiWord stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+        printError(THIS_NAME, "Cannot set AxisRaw stream from file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
         inpFileStream.close();
         return(NTS_KO);
     }
@@ -821,59 +821,59 @@ template <class AXIS_T> bool feedAxisFromFile(stream<AXIS_T> &ss, const string s
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
 template <class AXIS_T> bool drainAxisToFile(stream<AXIS_T> &ss, const string ssName, \
-		string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
-	ofstream    outFileStream;
-	char        currPath[FILENAME_MAX];
-	string      strLine;
-	int         lineCnt=0;
-	AXIS_T      axisChunk;
+        string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+    ofstream    outFileStream;
+    char        currPath[FILENAME_MAX];
+    string      strLine;
+    int         lineCnt=0;
+    AXIS_T      axisChunk;
 
-	//-- REMOVE PREVIOUS FILE
-	remove(ssName.c_str());
+    //-- REMOVE PREVIOUS FILE
+    remove(ssName.c_str());
 
-	//-- OPEN FILE
-	if (!outFileStream.is_open()) {
-		outFileStream.open(datFile.c_str(), ofstream::out);
-		if (!outFileStream) {
-			printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
-			return(NTS_KO);
-		}
-	}
+    //-- OPEN FILE
+    if (!outFileStream.is_open()) {
+        outFileStream.open(datFile.c_str(), ofstream::out);
+        if (!outFileStream) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+            return(NTS_KO);
+        }
+    }
 
-	// Assess that file has ".dat" extension
-	if ( datFile.find_last_of ( '.' ) != string::npos ) {
-		string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
-		if (extension != "dat") {
-			printError(THIS_NAME, "Cannot dump AxiWord stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
-			outFileStream.close();
-			return(NTS_KO);
-		}
-	}
+    // Assess that file has ".dat" extension
+    if ( datFile.find_last_of ( '.' ) != string::npos ) {
+        string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+        if (extension != "dat") {
+            printError(THIS_NAME, "Cannot dump AxisChunk stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            outFileStream.close();
+            return(NTS_KO);
+        }
+    }
 
-	//-- READ FROM STREAM AND WRITE TO FILE
-	outFileStream << std::hex << std::noshowbase;
-	outFileStream << std::setfill('0');
-	outFileStream << std::uppercase;
-	while (!(ss.empty())) {
-		ss.read(axisChunk);
-		outFileStream << std::setw(16) << ((uint64_t) axisChunk.getLE_TData());
-		outFileStream << " ";
-		outFileStream << std::setw(1)  << ( (uint32_t) axisChunk.getLE_TLast());
-		outFileStream << " ";
-		outFileStream << std::setw(2)  << ( (uint32_t) axisChunk.getLE_TKeep());
-		outFileStream << std::endl;
-		nrChunks++;
-		nrBytes  += axisChunk.getLen();
-		if (axisChunk.getLE_TLast()) {
-			nrFrames ++;
-			outFileStream << std::endl;
-		}
-	}
+    //-- READ FROM STREAM AND WRITE TO FILE
+    outFileStream << std::hex << std::noshowbase;
+    outFileStream << std::setfill('0');
+    outFileStream << std::uppercase;
+    while (!(ss.empty())) {
+        ss.read(axisChunk);
+        outFileStream << std::setw(16) << ((uint64_t) axisChunk.getLE_TData());
+        outFileStream << " ";
+        outFileStream << std::setw(1)  << ( (uint32_t) axisChunk.getLE_TLast());
+        outFileStream << " ";
+        outFileStream << std::setw(2)  << ( (uint32_t) axisChunk.getLE_TKeep());
+        outFileStream << std::endl;
+        nrChunks++;
+        nrBytes  += axisChunk.getLen();
+        if (axisChunk.getLE_TLast()) {
+            nrFrames ++;
+            outFileStream << std::endl;
+        }
+    }
 
-	//-- CLOSE FILE
-	outFileStream.close();
+    //-- CLOSE FILE
+    outFileStream.close();
 
-	return(NTS_OK);
+    return(NTS_OK);
 }
 #endif
 

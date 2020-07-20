@@ -54,8 +54,6 @@ set_top       ${projectName}
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
 
-#OBSOLETE_20200630 add_files ${currDir}/src/${projectName}_utils.cpp
-#OBSOLETE_20200630 add_files ${currDir}/test/test_${projectName}_utils.cpp
 add_files     ${currDir}/../../NTS/nts_utils.cpp
 add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
@@ -68,7 +66,6 @@ add_files     ${srcDir}/rx_sar_table/rx_sar_table.cpp
 add_files     ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
 add_files     ${srcDir}/state_table/state_table.cpp
 add_files     ${srcDir}/timers/timers.cpp
-add_files     ${srcDir}/toe_utils.cpp
 add_files     ${srcDir}/tx_app_interface/tx_app_interface.cpp
 add_files     ${srcDir}/tx_engine/src/tx_engine.cpp
 add_files     ${srcDir}/tx_sar_table/tx_sar_table.cpp

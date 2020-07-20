@@ -56,7 +56,7 @@ using namespace hls;
 #define TRACE_EVE 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -104,6 +104,9 @@ void event_engine(
     //------------------------------------------
     if (!siRXe_Event.empty() && !soAKd_Event.full()) {
         siRXe_Event.read(ev);
+        if (DEBUG_LEVEL & TRACE_EVE) {
+            printInfo(myName, "Received event '%s' from [RXe].\n", getEventName(ev.type));
+        }
         soAKd_Event.write(ev);
         eveTxEventCnt++;
     }
@@ -115,25 +118,23 @@ void event_engine(
         // RetransmitTimer and ProbeTimer events have priority
         if (!siTIm_Event.empty()) {
             siTIm_Event.read(ev);
+            if (DEBUG_LEVEL & TRACE_EVE) {
+                printInfo(myName, "Received event '%s' from [TIm].\n", getEventName(ev.type));
+            }
             soAKd_Event.write(ev);
             eveTxEventCnt++;
-            if (DEBUG_LEVEL & TRACE_EVE) {
-                if (ev.type == RT_EVENT) {
-                    printInfo(myName, "Received RT event from [TIm].\n");
-                }
-            }
         }
         //--------------------------------------------
         // Handle input from [TcpApplicationInterface]
         //--------------------------------------------
         else if (!siTAi_Event.empty()) {
             siTAi_Event.read(ev);
+            if (DEBUG_LEVEL & TRACE_EVE) {
+                printInfo(myName, "Received event '%s' from [TAi].\n", getEventName(ev.type));
+            }
             assessSize(myName, soAKd_Event, "soAKd_Event", 4);
             soAKd_Event.write(ev);
             eveTxEventCnt++;
-            if (DEBUG_LEVEL & TRACE_EVE) {
-                printInfo(myName, "Received TX event from [TAi].\n");
-            }
         }
     }
 

@@ -68,11 +68,6 @@ class SimIp4Packet {
         return this->len;
     }
 
-    // Clear the content of the IPv4 packet queue
-    void clear() {
-        this->pktQ.clear();
-        this->len = 0;
-    }
     // Return the front chunk element of the IPv4 packet queue but does not remove it from the queue
     AxisIp4 front() {
         return this->pktQ.front();
@@ -263,6 +258,12 @@ class SimIp4Packet {
     // Return the number of chunks in the IPv4 packet (in AxisRaw chunks)
     int size() {
         return this->pktQ.size();
+    }
+
+    // Clear the content of the IPv4 packet queue
+    void clear() {
+        this->pktQ.clear();
+        this->len = 0;
     }
 
     /**************************************************************************
@@ -1185,7 +1186,8 @@ class SimIp4Packet {
                     printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
                 }
                 else {
-                    rc = false;
+                    printWarn(callerName, "This will not be considered an acceptable error because the TCP checksum is most likely going to be re-computed after the tesbench updates the acknowledgment and/or the sequence number.\n");
+                    rc = true;
                 }
             }
         }
