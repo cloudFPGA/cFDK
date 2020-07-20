@@ -62,7 +62,7 @@ using namespace hls;
 #define TRACE_RMA  1 <<  5
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 /*******************************************************************************
  * @brief A 2-to-1 generic Stream Multiplexer
@@ -288,6 +288,7 @@ void pMemReader(
                 if (mrd_memRdOffset == 8) {
                     // No need to offset anything. We can forward the current chunk
                     soTAIF_Data.write(mrd_currChunk);
+                    if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
                     // Jump to stream merged since there's no joining to be performed
                     mrd_fsmState = MRD_STREAMUNMERGED;
                 }
@@ -302,11 +303,13 @@ void pMemReader(
                 // This is the 1st and last data chunk of this segment.
                 // We are done with the 1st segment. Stay in this default idle state.
                 soTAIF_Data.write(mrd_currChunk);
+                if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
             }
             else {
                 // The 1st segment-part contains more than one chunk.
                 // Forward the current chunk and goto 'MRD_STREAM' and process the others.
                 soTAIF_Data.write(mrd_currChunk);
+                if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
                 mrd_fsmState = MRD_STREAM;
             }
         }
@@ -324,6 +327,7 @@ void pMemReader(
                 if (mrd_memRdOffset == 8) {
                     // No need to offset anything
                     soTAIF_Data.write(mrd_currChunk);
+                    if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
                     // Jump to 'STREAMUNMERGED' since there's no joining to be done.
                     mrd_fsmState = MRD_STREAMUNMERGED;
                 }
@@ -338,12 +342,14 @@ void pMemReader(
                 // This is the 1st and last data chunk of this segment and no
                 // memory access breakdown occurred.
                 soTAIF_Data.write(mrd_currChunk);
+                if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
                 // We are done. Goto default idle state.
                 mrd_fsmState = MRD_IDLE;
             }
             else {
                 // There is more data to read for this segment
                 soTAIF_Data.write(mrd_currChunk);
+                if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
             }
         }
         break;
@@ -352,6 +358,7 @@ void pMemReader(
         if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
             AxisApp currChunk = siMEM_RxP_Data.read();
             soTAIF_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
             if (currChunk.getTLast()) {
                 // We are done with 2nd segment part. Go back to default idle
                 mrd_fsmState = MRD_IDLE;
@@ -369,17 +376,15 @@ void pMemReader(
             // new data chunk. In case they don't fill the entire remaining gap,
             // there will be garbage in the output but it doesn't matter since
             // the 'tkeep' field indicates the valid bytes.
-            //OBSOLETE_20200715 currWord.tdata.range((mrd_memRdOffset.to_uint64() * 8) - 1, 0) = \
+            //OBSOLETE_20200715 currWord.tdata.range(                            (mrd_memRdOffset.to_uint64() * 8) - 1,  0) = \
             //OBSOLETE_20200715                       mrd_currChunk.tdata.range(((mrd_memRdOffset.to_uint64() * 8) - 1), 0);
-            currChunk.setLE_TData(mrd_currChunk.getLE_TData(mrd_memRdOffset.to_uint64()*8-1, 0),
-                                  mrd_memRdOffset.to_uint64()*8-1, 0);
+            currChunk.setLE_TData(mrd_currChunk.getLE_TData((mrd_memRdOffset.to_uint()*8)-1, 0), (mrd_memRdOffset.to_uint()*8)-1, 0);
             // Read the next chunk into static variable
             siMEM_RxP_Data.read(mrd_currChunk);
             // Fill-in the remaining byte of 'currChunk'
             //OBSOLETE_20200715 currWord.tdata.range(63, (mrd_memRdOffset * 8)) = \
             //OBSOLETE_20200715                      mrd_currChunk.tdata.range(((8 - mrd_memRdOffset.to_uint64()) * 8) - 1, 0);
-            currChunk.setLE_TData(mrd_currChunk.getLE_TData((8 - mrd_memRdOffset.to_uint64())*8 - 1, 0),
-                                  63, mrd_memRdOffset*8);
+            currChunk.setLE_TData(mrd_currChunk.getLE_TData(((8-mrd_memRdOffset.to_uint())*8)-1, 0), 63, (mrd_memRdOffset*8));
             // Determine how many bytes are valid in the new data chunk.
             // Warning, this might be the only data chunk of the 2nd segment.
             ap_uint<4> byteCounter = mrd_currChunk.getLen();
@@ -392,8 +397,8 @@ void pMemReader(
                     // We can set 'tkeep' to the sum of the 2 data chunks's bytes
                     //  as well as 'tlast' because this is the last chunk of 2nd segment.
                     //OBSOELTE_20200715 currChunk.tkeep = returnKeep(byteCounter + mrd_memRdOffset);
-                    currChunk.setLE_TKeep(byteCounter + mrd_memRdOffset);
-                    currChunk.setTLast(TLAST);
+                    currChunk.setLE_TKeep(lenToLE_tKeep(byteCounter + mrd_memRdOffset));
+                    currChunk.setLE_TLast(TLAST);
                     // We are done with the 2nd segment part. Go back to default idle
                     mrd_fsmState = MRD_IDLE;
                 }
@@ -411,6 +416,7 @@ void pMemReader(
             }
             // Always forward the current chunk
             soTAIF_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
         }
         break;
     case MRD_STREAMMERGED:
@@ -419,15 +425,13 @@ void pMemReader(
             AxisApp currChunk = AxisApp(0, 0xFF, 0);
             //OBSOELTE_20200715 currWord.tdata.range((mrd_memRdOffset.to_uint64() * 8) - 1, 0) = \
             //OBSOELTE_20200715                       mrd_currChunk.tdata.range(63, ((8 - mrd_memRdOffset.to_uint64()) * 8));
-            currChunk.setLE_TData(mrd_currChunk.getLE_TData(63, ((8-mrd_memRdOffset.to_uint64())*8)),
-                                  mrd_memRdOffset.to_uint64()*8-1, 0);
+            currChunk.setLE_TData(mrd_currChunk.getLE_TData(63, ((8-mrd_memRdOffset.to_uint())*8)), (mrd_memRdOffset.to_uint()*8)-1, 0);
             // Read the next chunk into static variable
             siMEM_RxP_Data.read(mrd_currChunk);
             // Fill-in the remaining byte of 'currChunk'
             //OBSOELTE_20200715 currWord.tdata.range(63, (mrd_memRdOffset * 8)) = \
             //OBSOELTE_20200715         mrd_currChunk.tdata.range(((8 - mrd_memRdOffset.to_uint64()) * 8) - 1, 0);
-            currChunk.setLE_TData(mrd_currChunk.getLE_TData(((8-mrd_memRdOffset.to_uint64())*8)- 1, 0),
-                                 63, mrd_memRdOffset*8);
+            currChunk.setLE_TData(mrd_currChunk.getLE_TData(((8-mrd_memRdOffset.to_uint())*8)-1, 0), 63, (mrd_memRdOffset*8));
             // Determine how any bytes are valid in the new data chunk.
             // Warning, this might be the only data chunk of the 2nd segment.
             ap_uint<4> byteCounter = mrd_currChunk.getLen();
@@ -440,8 +444,8 @@ void pMemReader(
                     // We can set 'tkeep' to the sum of the 2 data chunk's bytes
                     //  as well as 'tlast' because this is the last chunk of the
                     // 2nd memory access.
-                    currChunk.setLE_TKeep(byteCounter + mrd_memRdOffset);
-                    currChunk.setTLast(TLAST);
+                    currChunk.setLE_TKeep(lenToLE_tKeep(byteCounter + mrd_memRdOffset));
+                    currChunk.setLE_TLast(TLAST);
                     // We are done with the 2nd memory access. Go back to default idle
                     mrd_fsmState = MRD_IDLE;
                 }
@@ -453,16 +457,17 @@ void pMemReader(
                 }
             }
             soTAIF_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
         }
         break;
     case MRD_RESIDUE:
         //-- Output the remaining data chunks.
         if (!soTAIF_Data.full()) {
             AxisApp currChunk = AxisApp(0, 0, TLAST);
-            currChunk.setLE_TKeep(mrd_offsetBuffer);
-            currChunk.setLE_TData(mrd_currChunk.getLE_TData(63, ((8 - mrd_memRdOffset.to_uint64()) * 8)),
-                                  (mrd_memRdOffset.to_uint64() * 8) - 1, 0);
+            currChunk.setLE_TKeep(lenToLE_tKeep(mrd_offsetBuffer));
+            currChunk.setLE_TData(mrd_currChunk.getLE_TData(63, ((8-mrd_memRdOffset.to_uint())*8)), (mrd_memRdOffset.to_uint()*8)-1, 0);
             soTAIF_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
             // We are done with the very last bytes of a segment.
             // Go back to default idle state.
             mrd_fsmState = MRD_IDLE;

@@ -974,7 +974,7 @@ void pMemWriter(
                         //OBSOLETE_20200711 currChunk.tkeep = lenToKeep(mwr_curAccLen);
                         currChunk.setLE_TKeep(lenToLE_tKeep(mwr_curAccLen));
                     }
-                    currChunk.setTLast(TLAST);
+                    currChunk.setLE_TLast(TLAST);
                     mwr_residueLen = byteCount - mwr_curAccLen;
                     // Save the number of consumed bytes
                     mwr_bufferLen = mwr_curAccLen;
@@ -1022,12 +1022,10 @@ void pMemWriter(
         if (!siTsd_Data.empty() && !soMEM_WrData.full()) {
             AxisApp currChunk = AxisApp(0, 0xFF, 0);
             //OBSOLETE_20200711 currChunk.tdata.range(((8-mwr_bufferLen)*8) - 1, 0) = mwr_pushChunk.tdata.range(63, mwr_bufferLen*8);
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8),
-                                  ((8-mwr_bufferLen)*8) - 1, 0);
+            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8), ((8-mwr_bufferLen)*8)-1, 0);
             mwr_pushChunk = siTsd_Data.read();
             //OBSOLETE_20200711 currChunk.tdata.range(63, (8-mwr_bufferLen)*8) = mwr_pushChunk.tdata.range((mwr_bufferLen * 8), 0 );
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData((mwr_bufferLen * 8), 0)
-                                  (63, (8-mwr_bufferLen)*8));
+            currChunk.setLE_TData(mwr_pushChunk.getLE_TData((mwr_bufferLen*8)-1, 0), 63, (8-mwr_bufferLen)*8);
             if (mwr_pushChunk.getTLast()) {
                 if (mwr_curAccLen - mwr_residueLen > mwr_bufferLen) {
                     // In this case there's residue to be handled
@@ -1052,8 +1050,7 @@ void pMemWriter(
         if (!soMEM_WrData.full()) {
             AxisApp currChunk = AxisApp(0, lenToLE_tKeep(mwr_curAccLen), TLAST);
             //OBSOLETE_20200711 currChunk.tdata.range(((8-mwr_bufferLen)*8) - 1, 0) = mwr_pushChunk.tdata.range(63, mwr_bufferLen*8);
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8),
-                                  ((8-mwr_bufferLen)*8) - 1, 0);
+            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8), ((8-mwr_bufferLen)*8)-1, 0);
             soMEM_WrData.write(currChunk);
             if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", currChunk); }
             mwr_fsmState = MWR_IDLE;

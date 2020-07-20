@@ -213,7 +213,7 @@ class AxisRaw {
      *****************************************************/
     // Set the 'tdata' field with a 'data' encoded in Little-Endian order
     void setLE_TData(LE_tData data, int hi=ARW-1, int lo=0) {
-        tdata.range(hi, lo) = data;
+        tdata.range(hi, lo) = data.range(hi-lo, 0);
     }
     // Return the 'tdata' field in Little-Endian order
     LE_tData getLE_TData(int hi=ARW-1, int lo=0) {

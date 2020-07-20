@@ -132,6 +132,7 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_FourPkt.dat"
@@ -149,6 +150,7 @@ if { $hlsCSim} {
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_OnePkt.dat"
+    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
     csim_design -argv "3 ../../../../test/testVectors/siIPRX_FourPkt.dat"
@@ -188,6 +190,7 @@ if { $hlsCoSim } {
 
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OnePkt.dat"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourPkt.dat"
@@ -202,6 +205,7 @@ if { $hlsCoSim } {
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_EightSeg.dat"
 
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt.dat"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_FourPkt.dat"
