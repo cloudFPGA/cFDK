@@ -511,10 +511,10 @@ int createGoldenRxFiles(
         // Build the UDP datagram and corresponding metadata expected at the output of UOE
         if (endOfPkt) {
             Ip4Prot ip4Prot = ip4DataPkt.getIpProtocol();
-            if (ip4Prot != UDP_PROTOCOL) {
+            if (ip4Prot != IP4_PROT_UDP) {
                 printWarn(myName, "IP packet #%d is dropped because it is not an UDP packet.\n", inpPackets);
                 printInfo(myName, "  Received Ip4Prot = 0x%2.2X\n", ip4Prot.to_uchar());
-                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", UDP_PROTOCOL);
+                printInfo(myName, "  Expected Ip4Prot = 0x%2.2X\n", IP4_PROT_UDP);
                 continue;
             }
             // Retrieve the UDP datagram from the IPv4 Packet
@@ -522,8 +522,7 @@ int createGoldenRxFiles(
             // Assess IPv4/UDP/Checksum field vs datagram checksum
             UdpCsum udpHCsum = ip4DataPkt.getUdpChecksum();
             UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum(ip4DataPkt.getIpSourceAddress(),
-                                                                  ip4DataPkt.getIpDestinationAddress(),
-                                                                  UDP_PROTOCOL);
+                                                                  ip4DataPkt.getIpDestinationAddress());
             if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
                 printWarn(myName, "IP packet #%d is dropped because the UDP checksum is invalid.\n", inpPackets);
                 printInfo(myName, "  Received Checksum = 0x%2.2X\n", udpHCsum.to_ushort());
