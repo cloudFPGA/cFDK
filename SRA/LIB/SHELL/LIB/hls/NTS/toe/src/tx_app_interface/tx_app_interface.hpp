@@ -45,13 +45,29 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../../NTS/SimNtsUtils.hpp"
 #include "../../../../NTS/toe/src/toe.hpp"
 #include "../../../../NTS/toe/src/toe_utils.hpp"
-//#include "../../../../NTS/toe/src/event_engine/event_engine.hpp"
-//#include "../../../../NTS/toe/src/state_table/state_table.hpp"
 
 using namespace hls;
 
-//OBSOLET_20200713 #define ERROR_NOSPACE        1
-//OBSOLET_20200713 #define ERROR_NOCONNCECTION  2
+/************************************************
+ * HELPERS FOR USING DEFINES IN PRAGMAS
+ *  @see https://www.xilinx.com/support/answers/46111.html
+ ************************************************/
+#define PRAGMA_SUB(x)      _Pragma (#x)
+#define DO_PRAGMA(x)      PRAGMA_SUB(x)
+
+/************************************************
+ * DEFINITIONS OF THE LOCAL STREAM DEPTHS
+ *  Postponed for the time being:
+ *  @see https://www.xilinx.com/support/answers/46111.html
+ ************************************************/
+#define DEPTH_ssEmxToTash_Event       2
+#define DEPTH_ssTacToEmx_Event        2
+#define DEPTH_ssTatToSml_AccessRep    2
+#define DEPTH_ssSmlToTat_AccessQry    2
+#define DEPTH_ssSmlToMwr_SegMeta    128
+#define DEPTH_ssSmlToEmx_Event        2
+#define DEPTH_ssSlgToMwr_Data       256
+#define DEPTH_ssSlgToSml_SegLen      32
 
 
 /************************************************

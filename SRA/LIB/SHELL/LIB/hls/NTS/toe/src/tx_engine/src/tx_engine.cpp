@@ -843,7 +843,7 @@ void pPseudoHeaderConstructor(
         // Build and forward  [ UrgPtr | CSum | Win | Flags | DataOffset & Res & NS ]
         currChunk.setTcpCtrlNs(0);
         currChunk.setTcpResBits(0);
-        currChunk.setTcpDataOff(5 + phc_meta.syn); // 5 double-words (+1 for MSS)
+        currChunk.setTcpDataOff(5 + phc_meta.syn); // 5x32bits (+ 1x32bits for MSS)
         currChunk.setTcpCtrlFin(phc_meta.fin);
         currChunk.setTcpCtrlSyn(phc_meta.syn);
         currChunk.setTcpCtrlRst(phc_meta.rst);
@@ -1012,7 +1012,7 @@ void pTcpSegStitcher(
                         tss_state = TSS_ALIGN_2ND_BUF;
                     }
                     else {
-                        // The last word of the 1st memory buffer is populated with
+                        // The last chunk of the 1st memory buffer is populated with
                         // 8 valid bytes and is therefore also aligned.
                         // We are done with the 1st memory buffer.
                         soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
@@ -1081,7 +1081,7 @@ void pTcpSegStitcher(
             //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(tss_currChunk.tkeep);
             ap_uint<4> keepCounter = tss_currChunk.getLen();
             if (keepCounter < 8 - tss_memRdOffset) {
-                // The entirety of this word fits into the reminder of the previous one.
+                // The entirety of this chunk fits into the reminder of the previous one.
                 // We are done with this TCP segment.
                 //OBSOLETE_20200706 currPktChunk.tkeep = lenToKeep(keepCounter + tss_memRdOffset);
                 currPktChunk.setLE_TKeep(lenToLE_tKeep(keepCounter + tss_memRdOffset));
@@ -1163,7 +1163,7 @@ void pSubChecksumAccumulators(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                sca_doForwardChunk=false;
-    #pragma HLS RESET variable=sca_doForwardWord
+    #pragma HLS RESET variable=sca_doForwardChunk
     static ap_uint<17>         sca_4CSums[4]={0, 0, 0, 0};
     #pragma HLS RESET variable=sca_4CSums
     #pragma HLS ARRAY_PARTITION \
@@ -1506,14 +1506,14 @@ void tx_engine(
     //-- Ip Header Construction (Ihc)
     //--------------------------------------------------------------------------
     static stream<AxisIp4>              ssIhcToIps_IpHeader     ("ssIhcToIps_IpHeader");
-    #pragma HLS stream         variable=ssIhcToIps_IpHeader     depth=32 // [INFO] Ip header is 3 chunks, keep at least 8 headers
+    #pragma HLS stream         variable=ssIhcToIps_IpHeader     depth=32
     #pragma HLS DATA_PACK      variable=ssIhcToIps_IpHeader
 
     //-------------------------------------------------------------------------
      //-- Pseudo Header Construction (Phc)
      //-------------------------------------------------------------------------
     static stream<AxisPsd4>             ssPhcToTss_PseudoHdr    ("ssPhcToTss_PseudoHdr");
-    #pragma HLS stream         variable=ssPhcToTss_PseudoHdr    depth=32 // TCP pseudo header is 4 words, keep at least 8 headers
+    #pragma HLS stream         variable=ssPhcToTss_PseudoHdr    depth=32
     #pragma HLS DATA_PACK      variable=ssPhcToTss_PseudoHdr
 
     //-------------------------------------------------------------------------
@@ -1531,7 +1531,7 @@ void tx_engine(
     //-- TCP Segment Stitcher (Tss)
     //-------------------------------------------------------------------------
     static stream<AxisPsd4>             ssTssToSca_PseudoPkt    ("ssTssToSca_PseudoPkt");
-    #pragma HLS stream         variable=ssTssToSca_PseudoPkt    depth=16   // is forwarded immediately, size is not critical
+    #pragma HLS stream         variable=ssTssToSca_PseudoPkt    depth=16
     #pragma HLS DATA_PACK      variable=ssTssToSca_PseudoPkt
 
     //-------------------------------------------------------------------------

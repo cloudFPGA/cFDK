@@ -852,8 +852,7 @@ void tx_app_interface(
     #pragma HLS DATA_PACK      variable=ssSlgToMwr_Data
 
     static stream<TcpSegLen>       ssSlgToSml_SegLen         ("ssSlgToSml_SegLen");
-    #define                        ssSlgToSml_SegLen_depth   32
-    #pragma HLS stream    variable=ssSlgToSml_SegLen         depth=ssSlgToSml_SegLen_depth
+    #pragma HLS stream    variable=ssSlgToSml_SegLen         depth=32
 
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS

@@ -303,7 +303,9 @@ void toe(
         //------------------------------------------------------
         ap_uint<16>                         &poDBG_SssRelCnt,
         ap_uint<16>                         &poDBG_SssRegCnt
-        //-- NU-DEBUG / ap_uint<32>         &poSimCycCount
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        ap_uint<32>                         &poSimCycCount
+        #endif
         )
 {
 
@@ -372,7 +374,9 @@ void toe(
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
+  #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
+  #endif
 
 #else
 
@@ -436,7 +440,9 @@ void toe(
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
+  #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
+  #endif
 
 #endif
 
