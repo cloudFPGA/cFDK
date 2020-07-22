@@ -57,7 +57,7 @@ class AxisApp: public AxisRaw {
         AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
     /****************************************************************
-     * AXIS_UDP - BIG-ENDIAN HELPERS (specific to UDP-over-IPv4)
+     * AXIS_APP - BIG-ENDIAN HELPERS
      ****************************************************************/
 
     /* Set higher-half part of the 'tdata' field with a data encoded in BE order

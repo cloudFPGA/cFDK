@@ -94,12 +94,12 @@ struct SubCSums
 /********************************************
  * TXe - Pair of {Src,Dst} IPv4 Addresses
  ********************************************/
-class LE_IpAddrPair {  // OBSOLETE-20191004 struct IpAddrPair
+class IpAddrPair {
   public:
-    LE_Ip4Addr  src;
-    LE_Ip4Addr  dst;
-    LE_IpAddrPair() {}
-    LE_IpAddrPair(LE_Ip4Addr src, LE_Ip4Addr dst) :
+    Ip4Addr  src;
+    Ip4Addr  dst;
+    IpAddrPair() {}
+    IpAddrPair(Ip4Addr src, Ip4Addr dst) :
         src(src), dst(dst) {}
 };
 

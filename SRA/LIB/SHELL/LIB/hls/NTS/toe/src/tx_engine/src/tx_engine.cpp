@@ -341,8 +341,7 @@ void pMetaDataLoader(
             break;
 #endif
         case RT_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got RT event.\n");
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'RT' processing.\n"); }
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRep.read(mdl_rxSar);
@@ -415,8 +414,7 @@ void pMetaDataLoader(
             break;
         case ACK_EVENT:
         case ACK_NODELAY_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got ACK event.\n");
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'ACK' processing.\n"); }
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
@@ -438,8 +436,7 @@ void pMetaDataLoader(
             }
             break;
         case SYN_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got SYN event.\n");
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'SYN' processing.\n"); }
             if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarRep.empty()) || (mdl_curEvent.rt_count == 0)) {
                 if (mdl_curEvent.rt_count != 0) {
                     siTSt_TxSarRep.read(mdl_txSar);
@@ -451,17 +448,15 @@ void pMetaDataLoader(
                     mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, mdl_txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
                 }
-
                 mdl_txeMeta.ackNumb = 0;
                 //mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                 mdl_txeMeta.winSize = 0xFFFF;
-                mdl_txeMeta.length = 4; // For MSS Option, 4 bytes
+                mdl_txeMeta.length = 0; // FYI - MSS option (will be added in Phc)
                 mdl_txeMeta.ack = 0;
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 1;
                 mdl_txeMeta.fin = 0;
-
-                soIhc_TcpSegLen.write(4);  // For MSS Option, 4 bytes
+                soIhc_TcpSegLen.write(0);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -471,7 +466,7 @@ void pMetaDataLoader(
             }
             break;
         case SYN_ACK_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Got SYN_ACK event.\n"); }
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'SYN_ACK' processing.\n"); }
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
@@ -503,9 +498,7 @@ void pMetaDataLoader(
             }
             break;
         case FIN_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got FIN event.\n");
-
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'FIN' processing.\n"); }
             if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRep.read(mdl_rxSar);
@@ -550,9 +543,7 @@ void pMetaDataLoader(
             }
             break;
         case RST_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL)
-                printInfo(myName, "Got RST event.\n");
-
+            if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'RST' processing.\n"); }
             // Assumption RST length == 0
             resetEvent = mdl_curEvent;
             if (!resetEvent.hasSessionID()) {
@@ -581,22 +572,22 @@ void pMetaDataLoader(
 /*******************************************************************************
  * Socket Pair Splitter (Sps)
  *
- * @param[in]  siSLc_ReverseLkpRep Reverse lookup reply from Session Lookup Controller (SLc).
- * @param[in]  siMdl_RstSockPair   The socket pair to reset from Meta Data Loader (Mdh).
+ * @param[in]  siSLc_ReverseLkpRsp Reverse lookup response from SessionLookupController (SLc).
+ * @param[in]  siMdl_RstSockPair   The socket pair to reset from MetaDataLoader (Mdh).
  * @param[in]  siMdl_IsLookup      Status from [Mdl] indicating that a reverse lookup is to be expected.
- * @param[out] soIhc_IpAddrPair    IP_SA and IP_DA to Ip Header Constructor (Ihc).
- * @param[out] soPhc_SocketPair    The socket pair to Pseudo Header Constructor (Phc).
+ * @param[out] soIhc_IpAddrPair    IP_SA and IP_DA to IpHeaderConstructor (Ihc).
+ * @param[out] soPhc_SocketPair    The socket pair to PseudoHeaderConstructor (Phc).
  *
  * @details
- *  Forwards the incoming tuple from the CAM or RX Engine to the two header
- *   constructor modules, namely IpHeaderConstructor (Ihc) and PseudoHeaderConstructor (Phc).
+ *  This process forwards the incoming socket-pair from the CAM or the RxEngine
+ *   to both the IpHeaderConstructor (Ihc) and the PseudoHeaderConstructor (Phc).
  *******************************************************************************/
 void pSocketPairSplitter(
-        stream<fourTuple>       &siSLc_ReverseLkpRep,  // [FIXME]
+        stream<fourTuple>       &siSLc_ReverseLkpRsp,
         stream<LE_SocketPair>   &siMdl_RstSockPair,    // [FIXME]
         stream<StsBool>         &siMdl_IsLookup,
-        stream<LE_IpAddrPair>   &soIhc_IpAddrPair,     // [FIXME]
-        stream<LE_SocketPair>   &soPhc_SocketPair)     // [FIXME]
+        stream<IpAddrPair>      &soIhc_IpAddrPair,
+        stream<SocketPair>      &soPhc_SocketPair)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -612,8 +603,7 @@ void pSocketPairSplitter(
     static StsBool             sps_isLookUp;
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
-    fourTuple      tuple;  // [FIXME - Update to SocketPair]
-    LE_SocketPair  leSockPair;
+    fourTuple      tuple;
 
     if (not sps_getMeta) {
         if (!siMdl_IsLookup.empty()) {
@@ -622,22 +612,34 @@ void pSocketPairSplitter(
         }
     }
     else {
-        if (!siSLc_ReverseLkpRep.empty() && sps_isLookUp) {
-            siSLc_ReverseLkpRep.read(tuple);
-            LE_SocketPair leSocketPair(LE_SockAddr(tuple.srcIp, tuple.srcPort),
-                                       LE_SockAddr(tuple.dstIp, tuple.dstPort));
+        if (!siSLc_ReverseLkpRsp.empty() && sps_isLookUp) {
+            siSLc_ReverseLkpRsp.read(tuple);
+            SocketPair socketPair(SockAddr(byteSwap32(tuple.srcIp),
+                                           byteSwap16(tuple.srcPort)),
+                                  SockAddr(byteSwap32(tuple.dstIp),
+                                           byteSwap16(tuple.dstPort)));
             if (DEBUG_LEVEL & TRACE_SPS) {
                printInfo(myName, "Received the following socket-pair from [SLc]: \n");
-               printSockPair(myName, leSocketPair);
+               printSockPair(myName, socketPair);
             }
-            soIhc_IpAddrPair.write(LE_IpAddrPair(leSocketPair.src.addr, leSocketPair.dst.addr));
-            soPhc_SocketPair.write(leSocketPair);
+            soIhc_IpAddrPair.write(IpAddrPair(socketPair.src.addr, socketPair.dst.addr));
+            soPhc_SocketPair.write(socketPair);
             sps_getMeta = false;
         }
         else if(!siMdl_RstSockPair.empty() && !sps_isLookUp) {
-            siMdl_RstSockPair.read(leSockPair);
-            soIhc_IpAddrPair.write(LE_IpAddrPair(leSockPair.src.addr, leSockPair.dst.addr));
-            soPhc_SocketPair.write(leSockPair);
+            LE_SocketPair  leSocketPair;
+            siMdl_RstSockPair.read(leSocketPair);
+            SocketPair     socketPair = SocketPair(SockAddr(byteSwap32(leSocketPair.src.addr),
+                                                           byteSwap16(leSocketPair.src.port)),
+                                                  SockAddr(byteSwap32(leSocketPair.dst.addr),
+                                                           byteSwap16(leSocketPair.dst.port)));
+            if (DEBUG_LEVEL & TRACE_SPS) {
+               printInfo(myName, "Received the following socket-pair from [Mdl]: \n");
+               printSockPair(myName, socketPair);
+            }
+            //OBSOLETE_202020720 soIhc_IpAddrPair.write(LE_IpAddrPair(leSockPair.src.addr, leSockPair.dst.addr));
+            soIhc_IpAddrPair.write(IpAddrPair(socketPair.src.addr, socketPair.dst.addr));
+            soPhc_SocketPair.write(socketPair);
             sps_getMeta = false;
         }
     }
@@ -646,9 +648,9 @@ void pSocketPairSplitter(
 /*******************************************************************************
  * @brief IPv4 Header Constructor (Ihc)
  *
- * @param[in]  siMdl_TcpSegLen TCP segment length from Meta Data Loader (Mdl).
- * @param[in]  siSps_Ip4Tuple  The IP_SA and IP_DA from Socket Pair Splitter (Sps).
- * @param[out] soIps_IpHeader  IP4 header stream to Ip Packet Stitcher (Ips).
+ * @param[in]  siMdl_TcpSegLen   TCP segment length from Meta Data Loader (Mdl).
+ * @param[in]  siSps_Ip4AddrPair The IP_SA and IP_DA from Socket Pair Splitter (Sps).
+ * @param[out] soIps_IpHeader    IP4 header stream to Ip Packet Stitcher (Ips).
  *
  * @details
  *  Constructs an IPv4 header and forwards it to the IP Packet Stitcher (Ips).
@@ -669,7 +671,7 @@ void pSocketPairSplitter(
  *******************************************************************************/
 void pIpHeaderConstructor(
         stream<TcpSegLen>       &siMdl_TcpSegLen,
-        stream<LE_IpAddrPair>   &siSps_IpAddrPair,
+        stream<IpAddrPair>      &siSps_IpAddrPair,
         stream<AxisIp4>         &soIPs_IpHeader)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -683,7 +685,7 @@ void pIpHeaderConstructor(
     #pragma HLS RESET variable=ihc_chunkCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static LE_IpAddrPair       ihc_leIpAddrPair;  // [FIXME]
+    static IpAddrPair          ihc_ipAddrPair;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisIp4                    currIpHdrChunk;
@@ -713,12 +715,12 @@ void pIpHeaderConstructor(
         break;
     case CHUNK_1:
         if (!siSps_IpAddrPair.empty()) {
-            siSps_IpAddrPair.read(ihc_leIpAddrPair);
+            siSps_IpAddrPair.read(ihc_ipAddrPair);
             currIpHdrChunk.setIp4TtL(0x40);
             currIpHdrChunk.setIp4Prot((ap_uint<8>)IP4_PROT_TCP);
             currIpHdrChunk.setIp4HdrCsum(0);
             //OBSOLETE_20200706 currIpHdrChunk.tdata.range(63, 32) = ihc_leIpAddrPair.src; // Source Address
-            currIpHdrChunk.setIp4SrcAddr(byteSwap32(ihc_leIpAddrPair.src));
+            currIpHdrChunk.setIp4SrcAddr(ihc_ipAddrPair.src);
             currIpHdrChunk.setLE_TKeep(0xFF);
             currIpHdrChunk.setLE_TLast(0);
             if (DEBUG_LEVEL & TRACE_IHC) {
@@ -730,7 +732,7 @@ void pIpHeaderConstructor(
         break;
     case CHUNK_2:
        //OBSOLETE_20200706 currIpHdrChunk.tdata.range(31,  0) = ihc_leIpAddrPair.dst; // Destination Address
-        currIpHdrChunk.setIp4DstAddr(byteSwap32(ihc_leIpAddrPair.dst));
+        currIpHdrChunk.setIp4DstAddr(ihc_ipAddrPair.dst);
         currIpHdrChunk.setLE_TKeep(0x0F);
         currIpHdrChunk.setLE_TLast(TLAST);
         if (DEBUG_LEVEL & TRACE_IHC) {
@@ -746,13 +748,13 @@ void pIpHeaderConstructor(
 /*******************************************************************************
  * @brief Pseudo Header Constructor (Phc)
  *
- * @param[in]  siMdl_TxeMeta   Meta data from Meta Data Loader (Mdl).
- * @param[in]  siSps_SockPair  Socket pair from Socket Pair Splitter (Sps).
- * @param[out] soTss_PseudoHdr TCP pseudo header to TCP Segment Stitcher (Tss).
+ * @param[in]  siMdl_TxeMeta   Meta data from MetaDataLoader (Mdl).
+ * @param[in]  siSps_SockPair  Socket pair from SocketPairSplitter (Sps).
+ * @param[out] soTss_PseudoHdr TCP pseudo header to TcpSegmentStitcher (Tss).
  *
  * @details
  *  Reads the TCP header metadata and the IP tuples and generates a TCP pseudo
- *   header from it. Result is streamed out to the TCP Segment Stitcher (Tss).
+ *   header from it. Result is streamed out to the TcpSegmentStitcher (Tss).
  *
   * @Warning
  *  The pseudo header is prepared as if it was to be transmitted over the
@@ -779,7 +781,7 @@ void pIpHeaderConstructor(
  *******************************************************************************/
 void pPseudoHeaderConstructor(
         stream<TXeMeta>             &siMdl_TxeMeta,
-        stream<LE_SocketPair>       &siSps_SockPair,
+        stream<SocketPair>          &siSps_SockPair,
         stream<AxisPsd4>            &soTss_PseudoHdr)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -794,7 +796,7 @@ void pPseudoHeaderConstructor(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TXeMeta             phc_meta;
-    static LE_SocketPair       phc_leSockPair;  // [FIXME]
+    static SocketPair          phc_socketPair;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisPsd4                   currChunk(0, 0xFF, 0);
@@ -802,71 +804,46 @@ void pPseudoHeaderConstructor(
 
     switch(phc_chunkCount) {
     case CHUNK_0:
-        // |   DA   |   SA   |
+        // Build and forward [ IP_DA | IP_SA ]
         if (!siSps_SockPair.empty() && !siMdl_TxeMeta.empty()) {
-            siSps_SockPair.read(phc_leSockPair);
+            siSps_SockPair.read(phc_socketPair);
             siMdl_TxeMeta.read(phc_meta);
-            //OBSOLETE_20200706 currChunk.tdata.range(31,  0) = phc_leSockPair.src.addr;  // IP4 Source Address
-            currChunk.setPsd4SrcAddr(byteSwap32(phc_leSockPair.src.addr));
-            //OBSOLETE_20200706 currChunk.tdata.range(63, 32) = phc_leSockPair.dst.addr;  // IP4 Destination Addr
-            currChunk.setPsd4DstAddr(byteSwap32(phc_leSockPair.dst.addr));
-            //OBSOLETE_20200706 currChunk.setLE_TKeep(0xFF);
-            //OBSOLETE_20200706 currChunk.setLE_TLast(0);
+            currChunk.setPsd4SrcAddr(phc_socketPair.src.addr);
+            currChunk.setPsd4DstAddr(phc_socketPair.dst.addr);
             assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]
             soTss_PseudoHdr.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_PHC) {
-                printAxisRaw(myName, "Sending pseudo header chunk #0 to [Tss]: ", currChunk);
-            }
+            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soTss_PseudoHdr =", currChunk); }
             phc_chunkCount++;
         }
         break;
     case CHUNK_1:
-        // |  DP  | SP  | Segment Len | 0x06 | 0x00 |
-        //OBSOLETE_20200706 currChunk.tdata.range( 7, 0) = 0x00; // Reserved
-        //OBSOLETE_20200706 currChunk.tdata.range(15, 8) = IP4_PROT_TCP; // TCP Protocol
-        //OBSOLETE_20200706 currChunk.tdata.range(31, 16) = byteSwap16(pseudoHdrLen);
-        //OBSOLETE_20200706 currChunk.tdata.range(47, 32) = phc_leSockPair.src.port;   // Source Port
-        //OBSOLETE_20200706 currChunk.tdata.range(63, 48) = phc_leSockPair.dst.port;   // Destination Port
+        // Build and forward [ TCP_DP | TCP_SP | SegLen | 0x06 | 0x00 ]
         currChunk.setPsd4ResBits(0x00);
         currChunk.setPsd4Prot(IP4_PROT_TCP);
-        //OBSOLETE_20200706 pseudoHdrLen = phc_meta.length + 0x14;
         // Compute the length of the TCP segment. This includes both the header and the payload.
-        pseudoHdrLen = phc_meta.length + 0x14 + (phc_meta.syn << 2); // 20 + (4 for MSS)
+        pseudoHdrLen = phc_meta.length + 20 + (phc_meta.syn << 2); // 20 + (4 for MSS)
         currChunk.setPsd4Len(pseudoHdrLen);
-        currChunk.setTcpSrcPort(byteSwap16(phc_leSockPair.src.port));
-        currChunk.setTcpDstPort(byteSwap16(phc_leSockPair.dst.port));
-        //OBSOLETE_20200706 currChunk.setLE_TKeep(0xFF);
-        //OBSOLETE_20200706 currChunk.setLE_TLast(0);
+        currChunk.setTcpSrcPort(phc_socketPair.src.port);
+        currChunk.setTcpDstPort(phc_socketPair.dst.port);
         assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]
         soTss_PseudoHdr.write(currChunk);
-        if (DEBUG_LEVEL & TRACE_PHC) {
-            printAxisRaw(myName, "Sending pseudo header chunk #1 to [Tss]: ", currChunk);
-        }
+        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soTss_PseudoHdr =", currChunk); }
         phc_chunkCount++;
         break;
     case CHUNK_2:
-        // |   AckNum   |   SeqNum   |
-        //OBSOLETE_20200706 currChunk.tdata(31,  0) = byteSwap32(phc_meta.seqNumb);
-        //OBSOLETE_20200706 currChunk.tdata(63, 32) = byteSwap32(phc_meta.ackNumb);
+        //  Build and forward [ AckNum | SeqNum ]
         currChunk.setTcpSeqNum(phc_meta.seqNumb);
         currChunk.setTcpAckNum(phc_meta.ackNumb);
-        //OBSOLETE_20200706 currChunk.setLE_TKeep(0xFF);
-        //OBSOLETE_20200706 currChunk.setLE_TLast(0);
         assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]
         soTss_PseudoHdr.write(currChunk);
-        if (DEBUG_LEVEL & TRACE_PHC) {
-            printAxisRaw(myName, "Sending pseudo header chunk #2 to [Tss]: ", currChunk);
-        }
+        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soTss_PseudoHdr =", currChunk); }
         phc_chunkCount++;
         break;
     case CHUNK_3:
-        // |  UrgPtr  |  CSum  |  Win  |  Flags | DataOffset & Res & NS |
-        //OBSOLETE_20200706 currChunk.tdata[0]    = 0; // ECN-nonce (reserved RFC-3540)
-        //OBSOLETE_20200706 currChunk.tdata(3, 1) = 0; // Reserved bits
-        //OBSOLETE_20200706 currChunk.tdata(7, 4) = (0x5 + phc_meta.syn); // Data Offset (+1 for MSS)
-        currChunk.setTcpCtrlNs(0); // ECN-nonce (reserved RFC-3540)
+        // Build and forward  [ UrgPtr | CSum | Win | Flags | DataOffset & Res & NS ]
+        currChunk.setTcpCtrlNs(0);
         currChunk.setTcpResBits(0);
-        currChunk.setTcpDataOff(0x5 + phc_meta.syn); // 5 double-words (+1 for MSS)
+        currChunk.setTcpDataOff(5 + phc_meta.syn); // 5 double-words (+1 for MSS)
         currChunk.setTcpCtrlFin(phc_meta.fin);
         currChunk.setTcpCtrlSyn(phc_meta.syn);
         currChunk.setTcpCtrlRst(phc_meta.rst);
@@ -875,19 +852,13 @@ void pPseudoHeaderConstructor(
         currChunk.setTcpCtrlUrg(0);
         currChunk.setTcpCtrlEce(0);
         currChunk.setTcpCtrlCwr(0);
-        //OBSOLETE_20200706 currChunk.tdata.range(31, 16) = byteSwap16(phc_meta.winSize); // [FIXME]
-        //OBSOLETE_20200706 currChunk.tdata.range(47, 32) = 0; // Checksum
-        //OBSOLETE_20200706 currChunk.tdata.range(63, 48) = 0; // Urgent pointer
         currChunk.setTcpWindow(phc_meta.winSize);
         currChunk.setTcpChecksum(0);
         currChunk.setTcpUrgPtr(0);
-        //OBSOLETE_20200706 currChunk.setTKeep(0xFF);
-        currChunk.setTLast(phc_meta.length == 0);
+        currChunk.setTLast((phc_meta.length == 0) and (phc_meta.syn == 0));
         assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]
         soTss_PseudoHdr.write(currChunk);
-        if (DEBUG_LEVEL & TRACE_PHC) {
-            printAxisRaw(myName, "Sending pseudo header chunk #3 to [Tss]: ", currChunk);
-        }
+        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soTss_PseudoHdr =", currChunk); }
         if (!phc_meta.syn) {
             phc_chunkCount = 0;
         }
@@ -897,21 +868,15 @@ void pPseudoHeaderConstructor(
         break;
     case CHUNK_4:
         // Only used for SYN and MSS negotiation
-        // | Data 3:0 | Opt-Data | Opt-Length | Opt-Kind |
-        //OBSOLETE_20200706 currChunk.tdata( 7,  0) = 0x02;   // Option Kind = Maximum Segment Size
-        //OBSOLETE_20200706 currChunk.tdata(15,  8) = 0x04;   // Option length = 4 bytes
-        //OBSOLETE_20200706 currChunk.tdata(31, 16) = 0xB405; // MSS = 0x05B4 = 1460
+        // Build and forward [ Data 3:0 | Opt-Data | Opt-Length | Opt-Kind ]
         currChunk.setTcpOptKind(0x02);  // Option Kind = Maximum Segment Size
         currChunk.setTcpOptLen(0x04);   // Option length = 4 bytes
         currChunk.setTcpOptMss(MSS);    // Maximum Segment Size
-        //OBSOLETE_20200706 currChunk.tdata(63, 32) = 0;
-        //OBSOLETE_20200706 currChunk.tkeep         = 0x0F;
-        currChunk.setTLast(TLAST);
+        currChunk.setLE_TKeep(0x0F);
+        currChunk.setLE_TLast(TLAST);
         assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]
         soTss_PseudoHdr.write(currChunk);
-        if (DEBUG_LEVEL & TRACE_PHC) {
-            printAxisRaw(myName, "Sending pseudo header chunk #4 to [Tss]: ", currChunk);
-        }
+        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soTss_PseudoHdr =", currChunk); }
         phc_chunkCount = 0;
         break;
     } // End of: switch
@@ -922,14 +887,14 @@ void pPseudoHeaderConstructor(
 /*******************************************************************************
  * TCP Segment Stitcher (Tss)
  *
- * @param[in]  siPhc_PseudoHdr   Incoming chunk from Pseudo Header Constructor (Phc).
+ * @param[in]  siPhc_PseudoHdr   Incoming chunk from PseudoHeaderConstructor (Phc).
  * @param[in]  siMEM_TxP_Data    TCP data payload from DRAM Memory (MEM).
- * @param[out] soSca_PseudoPkt   Pseudo TCP/IP packet to Sub Checksum Accumulator (Sca).
+ * @param[out] soSca_PseudoPkt   Pseudo TCP/IP packet to SubChecksumAccumulator (Sca).
  * @param[in]  siMrd_SplitSegSts Indicates that the current segment has been
  *                                splitted and stored in 2 memory buffers.
  * @details
- *  Reads in the TCP pseudo header stream from [Phc] and appends the corresponding
- *   payload stream retrieved from the memory.
+ *  Reads in the TCP pseudo header stream from PseudoHeaderConstructor (Phc) and
+ *   appends the corresponding payload stream retrieved from the memory.
  *  Note that a TCP segment might have been splitted and stored as two memory
  *   segment units. This typically happens when the address of the physical
  *   memory buffer ring wraps around.
@@ -951,175 +916,199 @@ void pTcpSegStitcher(
     const char *myName  = concat3(THIS_NAME, "/", "Tss");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState {PSEUDO_HDR=0,   SYN_OPT, FIRST_SEG_UNIT, FIRST_TO_SECOND_SEG_UNIT,
-                          SECOND_SEG_UNIT} fsmState;
+    static enum FsmState {TSS_PSD_HDR=0, TSS_SYN_OPT, TSS_1ST_BUF, TSS_2ND_BUF,
+                          TSS_ALIGN_2ND_BUF, TSS_RESIDUE, TSS_2ND_SEG } fsmState;
     #pragma HLS RESET             variable=fsmState
-    static ap_uint<3>                      tss_state = 0;
+    static ap_uint<3>                      tss_state = TSS_PSD_HDR;
     #pragma HLS RESET             variable=tss_state
-    static ap_uint<3>                      psdHdrWordCount = 0;
-    #pragma HLS RESET             variable=psdHdrWordCount
+    static ap_uint<3>                      tss_psdHdrChunkCount = 0;
+    #pragma HLS RESET             variable=tss_psdHdrChunkCount
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static AxisApp      segChunk;
-    static StsBool      didRdSplitSegSts;
-    static ap_uint<4>   shiftBuffer;
+    static AxisApp      tss_currChunk;
+    static StsBool      tss_didRdSplitSegSts;
+    static ap_uint<4>   tss_memRdOffset;
     static StsBit       tss_splitSegSts;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     bool                isShortCutData = false;
 
     switch (tss_state) {
-    case 0: // Read the 4 first words from PseudoHeaderConstructor (Phc)
-        if (!siPhc_PseudoHdr.empty()) {  // [FIXME - Must test !full() ]
+    case TSS_PSD_HDR:
+        //-- Read first 4 chunks from [Phc]
+        if (!siPhc_PseudoHdr.empty() and !soSca_PseudoPkt.full()) {
             AxisPsd4 currHdrChunk = siPhc_PseudoHdr.read();
             soSca_PseudoPkt.write(currHdrChunk);
-            didRdSplitSegSts = false;
-            if (psdHdrWordCount == 3) {
-                //OBSOLETE_20200706 if (currHdrChunk.tdata[9] == 1) {
+            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
+            tss_didRdSplitSegSts = false;
+            if (tss_psdHdrChunkCount == 3) {
                 if (currHdrChunk.getTcpCtrlSyn()) {
-                    // Segment is a SYN
-                    tss_state = 1;
+                    tss_state = TSS_SYN_OPT;  // Segment is a SYN
                 }
                 else {
                     #if (TCP_NODELAY)
                         tss_state = 7;
                     #else
-                        tss_state = 2;
+                        tss_state = TSS_1ST_BUF;
                     #endif
                 }
-                psdHdrWordCount = 0;
+                tss_psdHdrChunkCount = 0;
             }
             else {
-                psdHdrWordCount++;
+                tss_psdHdrChunkCount++;
             }
             if (currHdrChunk.getTLast()) {
-                tss_state = 0;
-                psdHdrWordCount = 0;
+                tss_state = TSS_PSD_HDR;
+                tss_psdHdrChunkCount = 0;
             }
         }
         break;
-    case 1: // Read one more word from Phc because segment includes an option (.e.g, MSS)
-        if (!siPhc_PseudoHdr.empty()) {
+    case TSS_SYN_OPT:
+        //-- Read fifth chunk from [Phc] because segment includes a TCP option (.i.e, MSS)
+        if (!siPhc_PseudoHdr.empty() and !soSca_PseudoPkt.full()) {
             AxisPsd4 currHdrChunk = siPhc_PseudoHdr.read();
             soSca_PseudoPkt.write(currHdrChunk);
+            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
             #if (TCP_NODELAY)
                 tss_state = 7;
             #else
-                tss_state = 2;
+                tss_state = TSS_1ST_BUF;
             #endif
             if (currHdrChunk.getTLast()) {
-                tss_state = 0;
+                tss_state = TSS_PSD_HDR;
             }
-            psdHdrWordCount = 0;
+            tss_psdHdrChunkCount = 0;
         }
         break;
-    case 2: // Read the 1st memory segment unit
-        if (!siMEM_TxP_Data.empty() && !soSca_PseudoPkt.full() &&
-            ((didRdSplitSegSts == true) ||
-             (didRdSplitSegSts == false && !siMrd_SplitSegSts.empty()))) {
-            if (didRdSplitSegSts == false) {
+    case TSS_1ST_BUF:
+        //-- Read the data chunks from the 1st memory part
+        if (!siMEM_TxP_Data.empty() and !soSca_PseudoPkt.full() and
+            ((tss_didRdSplitSegSts) or (!tss_didRdSplitSegSts and !siMrd_SplitSegSts.empty()))) {
+            if (tss_didRdSplitSegSts == false) {
                 // Read the Split Segment Status information
                 //  If 'true', the TCP segment was splitted and stored as 2 memory buffers.
-                didRdSplitSegSts = true;
+                tss_didRdSplitSegSts = true;
                 tss_splitSegSts = siMrd_SplitSegSts.read();
             }
-            siMEM_TxP_Data.read(segChunk);
-            if (segChunk.getTLast()) {
-                if (tss_splitSegSts == 0) {
-                    // The TCP segment was not splitted; go back to init state
-                    tss_state = 0;
-                    soSca_PseudoPkt.write((AxisPsd4)segChunk);
+            siMEM_TxP_Data.read(tss_currChunk);
+            if (tss_currChunk.getTLast()) {
+                if (!tss_splitSegSts) {
+                    // The TCP segment was not splitted and this is the last
+                    // chunk of the 1st memory buffer. We are done. Go back to 'TSS_PSD_HDR'.
+                    tss_state = TSS_PSD_HDR;
+                    soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
+                    if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
                 }
                 else {
                     //  The TCP segment was splitted in two parts.
-                    //OBSOLETE_20200706 shiftBuffer = keepToLen(segChunk.tkeep);
-                    shiftBuffer = segChunk.getLen();
+                    tss_memRdOffset = tss_currChunk.getLen();
                     tss_splitSegSts = 0;
-                    segChunk.setTLast(0);
-                    if (segChunk.getLE_TKeep() != 0xFF) {
-                        // The last word contains some invalid bytes; These must be aligned.
-                        tss_state = 3;
+                    tss_currChunk.setTLast(0);
+                    //OBSOLETE_20200722 if (tss_currChunk.getLE_TKeep() != 0xFF) {
+                    if (tss_memRdOffset != 8) {
+                        // The last chunk of the 1st memory buffer is not fully
+                        // populated. Don't output anything here and go to 'TSS_JOIN_2ND'.
+                        // There, we will fetch more data to fill in the current chunk.
+                        tss_state = TSS_ALIGN_2ND_BUF;
                     }
                     else {
-                        // The last word is populated with 8 valid bytes and is therefore also
-                        // aligned. We are done with this TCP segment.
-                        soSca_PseudoPkt.write((AxisPsd4)segChunk);
+                        // The last word of the 1st memory buffer is populated with
+                        // 8 valid bytes and is therefore also aligned.
+                        // We are done with the 1st memory buffer.
+                        soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
+                        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+                        tss_state = TSS_2ND_BUF;
                     }
                 }
             }
-            else
-                soSca_PseudoPkt.write((AxisPsd4)segChunk);
-        }
-        break;
-    case 3:
-        if (!siMEM_TxP_Data.empty() && !soSca_PseudoPkt.full()) {
-            // Save the current segment chunk
-            AxisPsd4 currPktChunk = AxisPsd4(segChunk.getLE_TData(), 0xFF, 0);
-            // Read the first word of the second (.i.e, splitted) and non_aligned segment unit
-            segChunk = siMEM_TxP_Data.read();
-            //OBSOLETE_20200706 currPktChunk.tdata(63, (shiftBuffer * 8)) = segChunk.tdata(((8 - shiftBuffer) * 8) - 1, 0);
-            currPktChunk.setLE_TData(segChunk.getLE_TData(((8 - (int)shiftBuffer) * 8) - 1, 0),
-                                     63, ((int)shiftBuffer * 8));
-            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(segChunk.tkeep);
-            ap_uint<4> keepCounter = segChunk.getLen();
-            if (keepCounter < 8 - shiftBuffer) {
-                // The entirety of this word fits into the reminder of the previous one.
-                // We are done with this TCP segment.
-                //OBSOLETE_20200706 currPktChunk.tkeep = lenToKeep(keepCounter + shiftBuffer);
-                currPktChunk.setLE_TKeep(lenToLE_tKeep(keepCounter + shiftBuffer));
-                currPktChunk.setLE_TLast(TLAST);
-                tss_state = 0;
-            }
-            else if (segChunk.getLE_TLast()) {
-                tss_state = 5;
-            }
             else {
-                tss_state = 4;
+                // Continue streaming the 1st memory buffer
+                soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
+                if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
             }
-            soSca_PseudoPkt.write(currPktChunk);
         }
         break;
+    case TSS_ALIGN_2ND_BUF:
+        //-- Join the bytes from the 2nd memory buffer to the stream of bytes of
+        //-- the 1st memory buffer when the 1st buffer was not fully populated.
+        //-- The re-alignment occurs between the previously read chunk stored
+        //-- in 'prevChunk' and the latest chunk stored in 'tss_currChunk'.
+        if (!siMEM_TxP_Data.empty() && !soSca_PseudoPkt.full()) {
+            // Save the previous data chunk
+            AxisPsd4 prevChunk = AxisPsd4(tss_currChunk.getLE_TData(), 0xFF, 0);
+            // Read the next chunk from the second memory buffer
+            tss_currChunk = siMEM_TxP_Data.read();
+            //OBSOLETE_20200706 currPktChunk.tdata(63, (tss_memRdOffset * 8)) = segChunk.tdata(((8 - tss_memRdOffset) * 8) - 1, 0);
+            prevChunk.setLE_TData(tss_currChunk.getLE_TData(((8-(int)tss_memRdOffset)*8)-1, 0),
+                                                            63, (int)tss_memRdOffset*8);
+            //OBSOLETE_20200706 ap_uint<4> byteCounter = keepToLen(tss_currChunk.tkeep);
+            ap_uint<4> byteCounter = tss_currChunk.getLen();
+            //OBSOLETE_20200722 if (byteCounter < (8 - tss_memRdOffset)) {
+            if ((byteCounter + tss_memRdOffset) <= 8) {
+                // The entire current chunk fits into the reminder of the previous chunk.
+                // We are done with this 2nd memory buffer.
+                //OBSOLETE_20200706 prevChunk.tkeep = lenToKeep(byteCounter + tss_memRdOffset);
+                prevChunk.setLE_TKeep(lenToLE_tKeep(byteCounter + tss_memRdOffset));
+                prevChunk.setLE_TLast(TLAST);
+                tss_state = TSS_PSD_HDR;
+            }
+            else if (tss_currChunk.getLE_TLast()) {
+                // This cannot be the last chunk because it doesn't fit into the
+                // available space of the current chunk. Goto the 'TSS_RESIDUE'
+                // and handle the remainder of this data chunk
+                tss_state = TSS_RESIDUE;
+            }
+            //OBSOLETE_20200721 else {
+            //OBSOLETE_20200721     tss_state = 4;
+            //OBSOLETE_20200721 }
+            soSca_PseudoPkt.write(prevChunk);
+            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+        }
+        break;
+    /*** OBSOLETE_20200722 ***
     case 4:
         if (!siMEM_TxP_Data.empty() && !soSca_PseudoPkt.full()) {
             // Save the current segment chunk
             AxisPsd4 currPktChunk = AxisPsd4(0, 0xFF, 0);
-            //OBSOLETE_20200706 currPktChunk.tdata((shiftBuffer * 8) - 1, 0) = segChunk.tdata(63, (8 - shiftBuffer) * 8);
-            currPktChunk.setLE_TData(segChunk.getLE_TData(63, (8 - (int)shiftBuffer)*8),
-                                     (int)(shiftBuffer * 8 - 1), 0);
+            //OBSOLETE_20200706 currPktChunk.tdata((tss_memRdOffset * 8) - 1, 0) = segChunk.tdata(63, (8 - tss_memRdOffset) * 8);
+            currPktChunk.setLE_TData(tss_currChunk.getLE_TData(63, (8 - (int)tss_memRdOffset)*8),
+                                     (int)(tss_memRdOffset * 8 - 1), 0);
             // Read the 2nd memory segment unit
-            segChunk = siMEM_TxP_Data.read();
-            //OBSOLETE_20200706 currPktChunk.tdata(63, (8 * shiftBuffer)) = segChunk.tdata(((8 - shiftBuffer) * 8) - 1, 0);
-            currPktChunk.setLE_TData(segChunk.getLE_TData(((8 - (int)shiftBuffer) * 8) - 1, 0),
-                                     63, (int)(8 * shiftBuffer));
-            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(segChunk.tkeep);
-            ap_uint<4> keepCounter = segChunk.getLen();
-            if (keepCounter < 8 - shiftBuffer) {
+            tss_currChunk = siMEM_TxP_Data.read();
+            //OBSOLETE_20200706 currPktChunk.tdata(63, (8 * tss_memRdOffset)) = segChunk.tdata(((8 - tss_memRdOffset) * 8) - 1, 0);
+            currPktChunk.setLE_TData(tss_currChunk.getLE_TData(((8 - (int)tss_memRdOffset) * 8) - 1, 0),
+                                     63, (int)(8 * tss_memRdOffset));
+            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(tss_currChunk.tkeep);
+            ap_uint<4> keepCounter = tss_currChunk.getLen();
+            if (keepCounter < 8 - tss_memRdOffset) {
                 // The entirety of this word fits into the reminder of the previous one.
                 // We are done with this TCP segment.
-                //OBSOLETE_20200706 currPktChunk.tkeep = lenToKeep(keepCounter + shiftBuffer);
-                currPktChunk.setLE_TKeep(lenToLE_tKeep(keepCounter + shiftBuffer));
+                //OBSOLETE_20200706 currPktChunk.tkeep = lenToKeep(keepCounter + tss_memRdOffset);
+                currPktChunk.setLE_TKeep(lenToLE_tKeep(keepCounter + tss_memRdOffset));
                 currPktChunk.setLE_TLast(TLAST);
-                tss_state = 0;
+                tss_state = TSS_PSD_HDR;
             }
-            else if (segChunk.getLE_TLast()) {
+            else if (tss_currChunk.getLE_TLast()) {
                 tss_state = 5;
             }
             soSca_PseudoPkt.write(currPktChunk);
         }
         break;
-    case 5:
+    *** OBSOLETE_20200722 ***/
+    case TSS_RESIDUE:
+        //-- Output the very last unaligned chunk
         if (!soSca_PseudoPkt.full()) {
-            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(segChunk.tkeep) - (8 - shiftBuffer);
-            ap_uint<4> keepCounter = segChunk.getLen() - (8 - shiftBuffer);
-            AxisPsd4 currPktChunk = AxisPsd4(0, lenToLE_tKeep(keepCounter), TLAST);
-            //OBSOLETE_20200706 currPktChunk.tdata((shiftBuffer * 8) - 1, 0) = segChunk.tdata(63, (8 - shiftBuffer) *8);
-            currPktChunk.setLE_TData(segChunk.getLE_TData(63, (8 - (int)shiftBuffer) * 8),
-                                     ((int)shiftBuffer * 8) - 1, 0);
-            soSca_PseudoPkt.write(currPktChunk);
-            tss_state = 0;
+            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(segChunk.tkeep) - (8 - tss_memRdOffset);
+            ap_uint<4> keepCounter = tss_currChunk.getLen() - (8 - tss_memRdOffset);
+            AxisPsd4 lastChunk = AxisPsd4(0, lenToLE_tKeep(keepCounter), TLAST);
+            //OBSOLETE_20200706 currPktChunk.tdata((tss_memRdOffset * 8) - 1, 0) = segChunk.tdata(63, (8 - tss_memRdOffset) *8);
+            lastChunk.setLE_TData(tss_currChunk.getLE_TData(63, (8-(int)tss_memRdOffset)*8),
+                                  ((int)tss_memRdOffset*8)-1, 0);
+            soSca_PseudoPkt.write(lastChunk);
+            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+            tss_state = TSS_PSD_HDR;
         }
         break;
-
     #if (TCP_NODELAY)
     case 6:
         if (!txApp2txEng_data_stream.empty() && !soSca_PseudoPkt.full()) {
@@ -1131,7 +1120,6 @@ void pTcpSegStitcher(
         }
         break;
     #endif
-
     #if (TCP_NODELAY)
     case 7:
         if (!txEng_isDDRbypass.empty()) {
@@ -1140,12 +1128,11 @@ void pTcpSegStitcher(
                 tss_state = 6;
             }
             else {
-                tss_state = 2;
+                TSS_1ST_BUF;
             }
         }
         break;
     #endif
-
     } // End of: switch
 
 } // End of: pTcpSegStitcher
@@ -1302,81 +1289,66 @@ void pIpPktStitcher(
     switch (ips_chunkCount) {
     case CHUNK_0:
     case CHUNK_1:
-        if (!siIhc_IpHeader.empty()) {
+        if (!siIhc_IpHeader.empty() and !soL3MUX_Data.full()) {
             siIhc_IpHeader.read(ip4HdrChunk);
             currChunk = ip4HdrChunk;
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) {
-                printAxisRaw(myName, currChunk);
-            }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
         }
         break;
     case CHUNK_2:
         // Start concatenating IPv4 header and TCP segment
-        if (!siIhc_IpHeader.empty() && !siSca_PseudoPkt.empty()) {
+        if (!siIhc_IpHeader.empty() && !siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
             siIhc_IpHeader.read(ip4HdrChunk);
             siSca_PseudoPkt.read(tcpPsdChunk);
-            //OBSOLETE_20200708 currChunk.tdata(31,  0) = ipHdrChunk.tdata(31,  0);   // IPv4 Destination Address
-            //OBSOLETE_20200708 currChunk.tdata(63, 32) = tcpPsdChunk.tdata(63, 32);  // TCP DstPort & SrcPort
             currChunk.setIp4DstAddr(ip4HdrChunk.getIp4DstAddr());
             currChunk.setTcpSrcPort(tcpPsdChunk.getTcpSrcPort());
-            //OBSOLETE_20200708 currChunk.tkeep         = 0xFF;
-            currChunk.setTLast(0);
+            currChunk.setTcpDstPort(tcpPsdChunk.getTcpDstPort());
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) {
-                printAxisRaw(myName, currChunk);
-            }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
         }
         break;
     case CHUNK_3:
-        if (!siSca_PseudoPkt.empty()) {
-            siSca_PseudoPkt.read(tcpPsdChunk);  // TCP SeqNum & AckNum
-            currChunk = tcpPsdChunk;
+        if (!siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
+            siSca_PseudoPkt.read(tcpPsdChunk);
+            currChunk.setTcpSeqNum(tcpPsdChunk.getTcpSeqNum());
+            currChunk.setTcpAckNum(tcpPsdChunk.getTcpAckNum());
             soL3MUX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) {
-                printAxisRaw(myName, currChunk);
-            }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
         }
         break;
     case CHUNK_4:
-        if (!siSca_PseudoPkt.empty() && !siTca_TcpCsum.empty()) {
-            siSca_PseudoPkt.read(tcpPsdChunk); // CtrlBits & Window & TCP UrgPtr & Checksum
+        if (!siSca_PseudoPkt.empty() and !siTca_TcpCsum.empty() and !soL3MUX_Data.full()) {
+            siSca_PseudoPkt.read(tcpPsdChunk);
             siTca_TcpCsum.read(tcpCsum);
+            // Get CtrlBits & Window & TCP UrgPtr & Checksum
             currChunk = tcpPsdChunk;
             // Now overwrite TCP checksum
             currChunk.setTcpChecksum(tcpCsum);
             soL3MUX_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
             ips_chunkCount++;
             if (tcpPsdChunk.getTLast()) {
                 // This is the last chunk if/when there is no data payload
                 ips_chunkCount = 0;
-                if (DEBUG_LEVEL & TRACE_IPS) {
-                    printAxisRaw(myName, "Last ", currChunk);
-                }
             }
         }
         break;
     default:
-        if (!siSca_PseudoPkt.empty()) {
+        if (!siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
             siSca_PseudoPkt.read(tcpPsdChunk);  // TCP Data
             currChunk = tcpPsdChunk;
             soL3MUX_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
             if (tcpPsdChunk.getTLast()) {
                 ips_chunkCount = 0;
-                if (DEBUG_LEVEL & TRACE_IPS) {
-                    printAxisRaw(myName, "Last ", currChunk);
-                }
-            }
-            else if (DEBUG_LEVEL & TRACE_IPS) {
-                printAxisRaw(myName, currChunk);
             }
         }
         break;
     }
-
 }
 
 /*******************************************************************************
@@ -1547,11 +1519,11 @@ void tx_engine(
     //-------------------------------------------------------------------------
     //-- Socket Pair Splitter (Sps)
     //-------------------------------------------------------------------------
-    static stream<LE_IpAddrPair>        ssSpsToIhc_IpAddrPair   ("ssSpsToIhc_IpAddrPair");
+    static stream<IpAddrPair>           ssSpsToIhc_IpAddrPair   ("ssSpsToIhc_IpAddrPair");
     #pragma HLS stream         variable=ssSpsToIhc_IpAddrPair   depth=4
     #pragma HLS DATA_PACK      variable=ssSpsToIhc_IpAddrPair
 
-    static stream<LE_SocketPair>        ssSpsToPhc_SockPair     ("ssSpsToPhc_SockPair");
+    static stream<SocketPair>           ssSpsToPhc_SockPair     ("ssSpsToPhc_SockPair");
     #pragma HLS stream         variable=ssSpsToPhc_SockPair     depth=4
     #pragma HLS DATA_PACK      variable=ssSpsToPhc_SockPair
 

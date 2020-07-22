@@ -369,8 +369,8 @@ class StateQuery {  // [FIXME - Consider renaming to SessStateQuery]
  * Some Rx & Tx SAR Types
  ********************************************/
 typedef TcpSeqNum   RxSeqNum;   // A sequence number received from the network layer
+typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the network layer
 typedef TcpWindow   RcvWinSize; // A received window size
-typedef TcpAckNum   TxAckNum;   // An acknowledgement number [TODO - Replace Tx with Snd]
 typedef TcpWindow   SndWinSize; // A sending  window size
 
 typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)
@@ -529,8 +529,8 @@ class TXeTxSarQuery {
 //--------------------
 class TXeTxSarReply {
   public:
-	TxAckNum        ackd;       // ACK'ed
-	TxAckNum        not_ackd;   // TX'ed but not ACK'ed
+    TxAckNum        ackd;       // ACK'ed
+    TxAckNum        not_ackd;   // TX'ed but not ACK'ed
     TcpWindow       min_window; // Min(cong_window, recv_window)
     TxBufPtr        app;        // Written by APP
     bool            finReady;

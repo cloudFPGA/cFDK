@@ -241,12 +241,12 @@ class AxisPsd4: public AxisRaw {
     void        setTcpUrgPtr(TcpUrgPtr ptr)     {                  tdata.range(63, 48) = swapWord(ptr);   }
     TcpUrgPtr   getTcpUrgPtr()                  { return swapWord (tdata.range(63, 48));                  }
     // Set-Get the TCP Options
-    void        setTcpOptKind(TcpOptKind val)   {                  tdata.range( 7,  0);                   }
+    void        setTcpOptKind(TcpOptKind val)   {                  tdata.range( 7,  0) = val;             }
     TcpOptKind  getTcpOptKind()                 { return           tdata.range( 7,  0);                   }
     // Set-Get the TCP Options
-    void        setTcpOptLen(TcpOptLen   len)   {                  tdata.range(15,  8);                   }
+    void        setTcpOptLen(TcpOptLen   len)   {                  tdata.range(15,  8) = len;             }
     TcpOptLen   getTcpOptLend()                 { return           tdata.range(15,  8);                   }
-    void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
+    void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16) = swapWord(val);   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 
     LE_TcpPort  getLE_TcpSrcPort()              {           return tdata.range(47, 32) ;                  }

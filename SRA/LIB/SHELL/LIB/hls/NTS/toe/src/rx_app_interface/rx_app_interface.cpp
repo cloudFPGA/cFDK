@@ -248,6 +248,7 @@ void pRxMemAccess(
  *  If the received data segment were split and stored as two Rx memory buffers
  *  as indicated by the signal flag 'siRma_SplitSeg', this process will merge
  *  them back into a single stream of bytes before delivering them to the [APP].
+ *  [FIXME - This process is over complicated and can be simplified.]
  *******************************************************************************/
 void pMemReader(
         stream<AxisApp>     &siMEM_RxP_Data,
@@ -279,7 +280,6 @@ void pMemReader(
             siRma_SplitSeg.read(mrd_doubleAccessFlag);
             siMEM_RxP_Data.read(mrd_currChunk);
             // Count the number of valid bytes in this data chunk
-            //OBSOLETE_20200715 mrd_memRdOffset = keepMapping(mrd_currChunk.tkeep);
             mrd_memRdOffset = mrd_currChunk.getLen();
             if (mrd_currChunk.getTLast() and mrd_doubleAccessFlag == FLAG_ON) {
                 // This is the last chunk and this access was broken down in 2.
@@ -300,7 +300,7 @@ void pMemReader(
                 }
             }
             else if (mrd_currChunk.getTLast() and mrd_doubleAccessFlag == FLAG_OFF) {
-                // This is the 1st and last data chunk of this segment.
+                // This is the last data chunk of this segment.
                 // We are done with the 1st segment. Stay in this default idle state.
                 soTAIF_Data.write(mrd_currChunk);
                 if (DEBUG_LEVEL & TRACE_MRD) { printAxisRaw(myName, "soTAIF_Data =", mrd_currChunk); }
@@ -450,7 +450,7 @@ void pMemReader(
                     mrd_fsmState = MRD_IDLE;
                 }
                 else {
-                    // This is not the last chunk because it doesn't fit in the
+                    // This is cannot be the last chunk because it doesn't fit in the
                     // available space of the current chunk.
                     // Goto the 'MRD_RESIDUE' and handle the remainder of this data chunk
                     mrd_fsmState = MRD_RESIDUE;
