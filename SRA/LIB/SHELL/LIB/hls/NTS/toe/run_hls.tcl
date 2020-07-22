@@ -53,6 +53,7 @@ set_top       ${projectName}
 # Add project files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
+add_files     ${currDir}/src/${projectName}_utils.cpp
 
 add_files     ${currDir}/../../NTS/nts_utils.cpp
 add_files     ${currDir}/../../NTS/SimNtsUtils.cpp

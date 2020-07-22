@@ -59,11 +59,11 @@ typedef FourTuple  SLcFourTuple;
 //=========================================================
 class SLcQuery {
   public:
-    SLcFourTuple	tuple;
+    SLcFourTuple    tuple;
     bool            allowCreation;
-    lookupSource    source;
+    LkpSrcBit       source;
     SLcQuery() {}
-    SLcQuery(SLcFourTuple tuple, bool allowCreation, lookupSource src) :
+    SLcQuery(SLcFourTuple tuple, bool allowCreation, LkpSrcBit src) :
         tuple(tuple), allowCreation(allowCreation), source(src) {}
 };
 
