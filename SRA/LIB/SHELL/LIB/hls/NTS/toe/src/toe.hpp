@@ -373,8 +373,8 @@ typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the netw
 typedef TcpWindow   RcvWinSize; // A received window size
 typedef TcpWindow   SndWinSize; // A sending  window size
 
-typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)
-typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)
+typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
 typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
 typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
 typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
@@ -453,6 +453,7 @@ class RAiRxSarReply {
 /********************************************
  * Tx SAR Table (TSt)
  ********************************************/
+/*** OBSOLETE_20200722 ***
 class TxSarEntry {
   public:
     TxAckNum        ackd;        // Octets TX'ed and ACK'ed
@@ -467,6 +468,7 @@ class TxSarEntry {
     bool            finSent;
     TxSarEntry() {};
 };
+****************************/
 
 // TSt / Query from RXe
 //----------------------

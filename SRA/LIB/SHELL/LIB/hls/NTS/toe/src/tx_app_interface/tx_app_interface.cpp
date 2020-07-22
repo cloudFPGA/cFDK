@@ -638,9 +638,7 @@ void pMemWriter(
         mwr_dmCmd.bbt -= mwr_breakLen;
         soMEM_TxP_WrCmd.write(DmCmd(mwr_dmCmd.saddr, mwr_breakLen));
         mwr_fsmState = S1;
-        if (DEBUG_LEVEL & TRACE_MWR) {
-            printDmCmd(myName, mwr_dmCmd);
-        }
+        if (DEBUG_LEVEL & TRACE_MWR) { printDmCmd(myName, mwr_dmCmd); }
         break;
     case S1:
         if (!siSlg_Data.empty()) {

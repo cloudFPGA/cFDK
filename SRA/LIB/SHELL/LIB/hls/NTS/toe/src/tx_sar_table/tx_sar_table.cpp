@@ -102,9 +102,9 @@ void tx_sar_table(
         if (sTXeQry.write) {
             //-- Write Query
             if (!sTXeQry.isRtQuery) {
-                TX_SAR_TABLE[sTXeQry.sessionID].not_ackd = sTXeQry.not_ackd;
+                TX_SAR_TABLE[sTXeQry.sessionID].unak = sTXeQry.not_ackd;
                 if (sTXeQry.init) {
-                    TX_SAR_TABLE[sTXeQry.sessionID].app         = sTXeQry.not_ackd;
+                    TX_SAR_TABLE[sTXeQry.sessionID].appw        = sTXeQry.not_ackd;
                     TX_SAR_TABLE[sTXeQry.sessionID].ackd        = sTXeQry.not_ackd-1;
                     TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS)
                     TX_SAR_TABLE[sTXeQry.sessionID].slowstart_threshold = 0xFFFF;
@@ -128,7 +128,7 @@ void tx_sar_table(
                 TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS) TODO is this correct or less, eg. 1/2 * MSS
                 if (DEBUG_LEVEL & TRACE_TST) {
                     printInfo(myName, "Received a Retry-Write query from TXe for session #%d.\n",
-                    		sTXeQry.sessionID.to_int());
+                            sTXeQry.sessionID.to_int());
                 }
             }
         }
@@ -142,9 +142,9 @@ void tx_sar_table(
                 minWindow = TX_SAR_TABLE[sTXeQry.sessionID].recv_window;
             }
             soTXe_TxSarRep.write(TXeTxSarReply(TX_SAR_TABLE[sTXeQry.sessionID].ackd,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].not_ackd,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].unak,
                                                minWindow,
-                                               TX_SAR_TABLE[sTXeQry.sessionID].app,
+                                               TX_SAR_TABLE[sTXeQry.sessionID].appw,
                                                TX_SAR_TABLE[sTXeQry.sessionID].finReady,
                                                TX_SAR_TABLE[sTXeQry.sessionID].finSent));
         }
@@ -156,7 +156,7 @@ void tx_sar_table(
         //-- Update the 'txAppPtr' in the table
         //---------------------------------------
         siTAi_PushCmd.read(sTAiCmd);
-        TX_SAR_TABLE[sTAiCmd.sessionID].app = sTAiCmd.app;
+        TX_SAR_TABLE[sTAiCmd.sessionID].appw = sTAiCmd.app;
     }
 
     else if (!siRXe_TxSarQry.empty()) {
@@ -177,7 +177,7 @@ void tx_sar_table(
         else {
             //-- Read Query
             soRXe_TxSarRep.write(RXeTxSarReply(TX_SAR_TABLE[sRXeQry.sessionID].ackd,
-                                               TX_SAR_TABLE[sRXeQry.sessionID].not_ackd,
+                                               TX_SAR_TABLE[sRXeQry.sessionID].unak,
                                                TX_SAR_TABLE[sRXeQry.sessionID].cong_window,
                                                TX_SAR_TABLE[sRXeQry.sessionID].slowstart_threshold,
                                                TX_SAR_TABLE[sRXeQry.sessionID].count,
