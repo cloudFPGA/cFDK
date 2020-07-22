@@ -271,7 +271,7 @@ int createGoldenFile(
                         printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
                     }
                     break;
-                case UDP_PROTOCOL:
+                case IP4_PROT_UDP:
                     if (not ipPacket.udpVerifyChecksum()) {
                         printWarn(THIS_NAME, "Failed to verify the UDP checksum of Frame #%d.\n", inpPackets);
                     }

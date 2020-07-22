@@ -215,7 +215,7 @@ int createGoldenFiles(EthAddr myMacAddress,
                                 break;
                             default:
                                 printError(myName, "Unknown IP protocol #%d.\n",
-                                           ipPacket.getIpProtocol().to_int());
+                                           ipPacket.getIpProtocol());
                                 rc = NTS_KO;
                             }
                         }

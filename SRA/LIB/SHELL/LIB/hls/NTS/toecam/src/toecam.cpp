@@ -77,7 +77,7 @@ using namespace hls;
  *
  * @return true if the the key was found.
  *******************************************************************************/
-bool camLookup(SLcFourTuple key, RtlSessId &value)
+bool camLookup(FourTuple key, RtlSessId &value)
 {
     #pragma HLS pipeline II=1
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
@@ -127,7 +127,6 @@ bool camInsert(KeyValuePair kVP)
 {
     #pragma HLS pipeline II=1
 
-    /*** OBSOLETE_20200509 ************/
     if (CamArray0.valid == false) {
         CamArray0 = kVP;
         return true;
@@ -172,11 +171,10 @@ bool camInsert(KeyValuePair kVP)
  *
  * @return true if the the key was deleted.
   ******************************************************************************/
-bool camDelete(SLcFourTuple key)
+bool camDelete(FourTuple key)
 {
     #pragma HLS pipeline II=1
 
-    /*** OBSOLETE_20200509 ************/
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         CamArray0.valid = false;
         return true;

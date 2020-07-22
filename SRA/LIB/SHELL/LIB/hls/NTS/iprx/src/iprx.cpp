@@ -716,7 +716,7 @@ void pIpPacketRouter(
                     break;
                 default:
                     if (ipr_chunkCount == 1) {
-                        if (currChunk.getIp4Ttl() == 1) {
+                        if (currChunk.getIp4TtL() == 1) {
                             ipr_ttlExpired = 1;
                         }
                         else {
@@ -736,7 +736,7 @@ void pIpPacketRouter(
                         case IP4_PROT_ICMP:
                             soICMP_Data.write(ipr_prevChunk);
                             break;
-                        case UDP_PROTOCOL:
+                        case IP4_PROT_UDP:
                             soUOE_Data.write(ipr_prevChunk);
                             break;
                         case IP4_PROT_TCP:
@@ -773,7 +773,7 @@ void pIpPacketRouter(
                 case IP4_PROT_ICMP:
                     soICMP_Data.write(ipr_prevChunk);
                     break;
-                case UDP_PROTOCOL:
+                case IP4_PROT_UDP:
                     soUOE_Data.write(ipr_prevChunk);
                     break;
                 case IP4_PROT_TCP:

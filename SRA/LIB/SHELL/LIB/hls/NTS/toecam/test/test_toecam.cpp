@@ -15,15 +15,15 @@
  */
 
 /*****************************************************************************
- * @file       : test_cam.cpp
+ * @file       : test_toecam.cpp
  * @brief      : Testbench for the Content-Addressable Memory (CAM).
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_CAM
- * \addtogroup NTS_CAM
+ * \ingroup NTS
+ * \addtogroup NTS_TOECAM
  * \{
  *****************************************************************************/
 
@@ -93,141 +93,141 @@ void pTOE(
     switch (slcState) {
     case LOOKUP_REQ: // SEND A LOOKUP REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
-			if (!soCAM_SssLkpReq.full()) {
-				// Build a new request
-				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
-									  DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
-				lookupSource      src = FROM_RXe;
-				RtlSessionLookupRequest lkpRequest(key, src);
-				// Send the new request
-				soCAM_SssLkpReq.write(lkpRequest);
-				printInfo(myName, "Sending LOOKUP request[%d] to [CAM].\n", i);
-			}
-			else {
-				printWarn(myName, "Cannot send LOOKUP request to [CAM] because stream is full.\n");
-				nrErr++;
-				slcState = TB_ERROR;
-			}
+            if (!soCAM_SssLkpReq.full()) {
+                // Build a new request
+                FourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+                              DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
+                LkpSrcBit src = FROM_RXe;
+                RtlSessionLookupRequest lkpRequest(key, src);
+                // Send the new request
+                soCAM_SssLkpReq.write(lkpRequest);
+                printInfo(myName, "Sending LOOKUP request[%d] to [CAM].\n", i);
+            }
+            else {
+                printWarn(myName, "Cannot send LOOKUP request to [CAM] because stream is full.\n");
+                nrErr++;
+                slcState = TB_ERROR;
+            }
         }
-		// Goto next step
-		slcState = LOOKUP_REP;
-		rdCnt = 0;
+        // Goto next step
+        slcState = LOOKUP_REP;
+        rdCnt = 0;
         break;
     case LOOKUP_REP: // WAIT FOR LOOKUP REPLY FROM [CAM]
         while (rdCnt < CAM_SIZE) {
-			if (!siCAM_SssLkpRep.empty()) {
-				RtlSessionLookupReply lkpReply;
-				siCAM_SssLkpRep.read(lkpReply);
-				if (DEBUG_LEVEL & TRACE_TOE) {
-					printInfo(myName, "Received a lookup reply from [CAM]. \n");
-					printInfo(myName, "Src=%d, SessId=%d, Hit=%d\n", lkpReply.source.to_int(),
-							   lkpReply.sessionID.to_int(), lkpReply.hit);
-				}
-				rdCnt++;
-			}
-			else
-				return;
+            if (!siCAM_SssLkpRep.empty()) {
+                RtlSessionLookupReply lkpReply;
+                siCAM_SssLkpRep.read(lkpReply);
+                if (DEBUG_LEVEL & TRACE_TOE) {
+                    printInfo(myName, "Received a lookup reply from [CAM]. \n");
+                    printInfo(myName, "Src=%d, SessId=%d, Hit=%d\n", lkpReply.source.to_int(),
+                               lkpReply.sessionID.to_int(), lkpReply.hit);
+                }
+                rdCnt++;
+            }
+            else
+                return;
         }
-		// Goto next step
-		slcState = INSERT_REQ;
-		rdCnt = 0;
+        // Goto next step
+        slcState = INSERT_REQ;
+        rdCnt = 0;
         break;
     case INSERT_REQ: // SEND AN INSERT REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
-			if (!soCAM_SssUpdReq.full()) {
-				// Build a new request
-				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
-								 DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
-				lookupSource      src = FROM_RXe;
-				RtlSessId       value = DEFAULT_SESSION_ID+i;
-				RtlSessionUpdateRequest updRequest(key, value, INSERT, src);
-				// Send the new request
-				soCAM_SssUpdReq.write(updRequest);
-				printInfo(myName, "Sending UPDATE request[%d] to [CAM].\n", i);
-			}
-			else {
-				printWarn(myName, "Cannot send INSERT request to [CAM] because stream is full.\n");
-				nrErr++;
-				slcState = TB_ERROR;
-			}
+            if (!soCAM_SssUpdReq.full()) {
+                // Build a new request
+                FourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+                              DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
+                LkpSrcBit src = FROM_RXe;
+                RtlSessId value = DEFAULT_SESSION_ID+i;
+                RtlSessionUpdateRequest updRequest(key, value, INSERT, src);
+                // Send the new request
+                soCAM_SssUpdReq.write(updRequest);
+                printInfo(myName, "Sending UPDATE request[%d] to [CAM].\n", i);
+            }
+            else {
+                printWarn(myName, "Cannot send INSERT request to [CAM] because stream is full.\n");
+                nrErr++;
+                slcState = TB_ERROR;
+            }
         }
-		// Goto next step
-		slcState = INSERT_REP;
-		rdCnt = 0;
+        // Goto next step
+        slcState = INSERT_REP;
+        rdCnt = 0;
         break;
     case INSERT_REP: // WAIT FOR INSERT REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
             if (!siCAM_SssUpdRep.empty()) {
-				RtlSessionUpdateReply updReply;
-				siCAM_SssUpdRep.read(updReply);
-				if (DEBUG_LEVEL & TRACE_TOE) {
-					printInfo(myName, "Received an insert reply from [CAM]. \n");
-					printInfo(myName, "Src=%d, Op=%d, SessId=%d.\n",
-							  updReply.source.to_int(), updReply.op,
-							  updReply.sessionID.to_int());
-				}
-				if (updReply.sessionID != DEFAULT_SESSION_ID+rdCnt) {
-					printError(myName, "Got a wrong session ID (%d) as reply from [CAM].\n",
-							   updReply.source.to_int());
-					nrErr++;
-					slcState = TB_ERROR;
-				}
-				rdCnt++;
-			}
+                RtlSessionUpdateReply updReply;
+                siCAM_SssUpdRep.read(updReply);
+                if (DEBUG_LEVEL & TRACE_TOE) {
+                    printInfo(myName, "Received an insert reply from [CAM]. \n");
+                    printInfo(myName, "Src=%d, Op=%d, SessId=%d.\n",
+                              updReply.source.to_int(), updReply.op,
+                              updReply.sessionID.to_int());
+                }
+                if (updReply.sessionID != DEFAULT_SESSION_ID+rdCnt) {
+                    printError(myName, "Got a wrong session ID (%d) as reply from [CAM].\n",
+                               updReply.source.to_int());
+                    nrErr++;
+                    slcState = TB_ERROR;
+                }
+                rdCnt++;
+            }
             else
-            	return;
+                return;
         }
-		// Goto next step
-		slcState = DELETE_REQ;
-		rdCnt = 0;
+        // Goto next step
+        slcState = DELETE_REQ;
+        rdCnt = 0;
         break;
     case DELETE_REQ: // SEND A DELETE REQUEST TO [CAM]
         for (int i=0; i<CAM_SIZE; i++) {
-			if (!soCAM_SssUpdReq.full()) {
-				// Build a new request
-				SLcFourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
-								 DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
-				lookupSource      src = FROM_RXe;
-				RtlSessId       value = DEFAULT_SESSION_ID+i;
-				RtlSessionUpdateRequest updRequest(key, value, DELETE, src);
-				// Send the new request
-				soCAM_SssUpdReq.write(updRequest);
-				printInfo(myName, "Sending DELETE request[%d] to [CAM].\n", i);
-			}
-			else {
-				printWarn(myName, "Cannot send DELETE request to [CAM] because stream is full.\n");
-				nrErr++;
-				slcState = TB_ERROR;
-			}
+            if (!soCAM_SssUpdReq.full()) {
+                // Build a new request
+                FourTuple key(DEFAULT_FPGA_IP4_ADDR,   DEFAULT_HOST_IP4_ADDR, \
+                              DEFAULT_FPGA_TCP_PORT+i, DEFAULT_HOST_TCP_PORT+i);
+                LkpSrcBit src = FROM_RXe;
+                RtlSessId value = DEFAULT_SESSION_ID+i;
+                RtlSessionUpdateRequest updRequest(key, value, DELETE, src);
+                // Send the new request
+                soCAM_SssUpdReq.write(updRequest);
+                printInfo(myName, "Sending DELETE request[%d] to [CAM].\n", i);
+            }
+            else {
+                printWarn(myName, "Cannot send DELETE request to [CAM] because stream is full.\n");
+                nrErr++;
+                slcState = TB_ERROR;
+            }
         }
-		// Goto next step
-		slcState = DELETE_REP;
-		rdCnt = 0;
+        // Goto next step
+        slcState = DELETE_REP;
+        rdCnt = 0;
         break;
     case DELETE_REP: // WAIT FOR DELETE REPLY FROM [CAM]
         while (rdCnt<CAM_SIZE) {
-        	if (!siCAM_SssUpdRep.empty()) {
-				RtlSessionUpdateReply updReply;
-				siCAM_SssUpdRep.read(updReply);
-				if (DEBUG_LEVEL & TRACE_TOE) {
-					printInfo(myName, "Received a delete reply from [CAM]. \n");
-					printInfo(myName, "Src=%d, Op=%d, SessId=%d.\n",
-							  updReply.source.to_int(), updReply.op,
-							  updReply.sessionID.to_int());
-				}
-				if (updReply.sessionID != DEFAULT_SESSION_ID+rdCnt) {
-					printError(myName, "Got a wrong session ID (%d) as reply from [CAM].\n",
-							   updReply.source.to_int());
-					nrErr++;
-					slcState = TB_ERROR;
-				}
-				rdCnt++;
-			}
-        	else
-				return;
+            if (!siCAM_SssUpdRep.empty()) {
+                RtlSessionUpdateReply updReply;
+                siCAM_SssUpdRep.read(updReply);
+                if (DEBUG_LEVEL & TRACE_TOE) {
+                    printInfo(myName, "Received a delete reply from [CAM]. \n");
+                    printInfo(myName, "Src=%d, Op=%d, SessId=%d.\n",
+                              updReply.source.to_int(), updReply.op,
+                              updReply.sessionID.to_int());
+                }
+                if (updReply.sessionID != DEFAULT_SESSION_ID+rdCnt) {
+                    printError(myName, "Got a wrong session ID (%d) as reply from [CAM].\n",
+                               updReply.source.to_int());
+                    nrErr++;
+                    slcState = TB_ERROR;
+                }
+                rdCnt++;
+            }
+            else
+                return;
         }
-		// Goto next step
-		slcState = TB_DONE;
+        // Goto next step
+        slcState = TB_DONE;
         break;
     case TB_ERROR:
         slcState = TB_ERROR;
@@ -240,12 +240,12 @@ void pTOE(
 }
 
 
-/*****************************************************************************
+/*******************************************************************************
  * @brief Main function.
  *
- ******************************************************************************/
-int main()
-{
+ *******************************************************************************/
+int main(int argc, char* argv[]) {
+
     //------------------------------------------------------
     //-- TESTBENCH GLOBAL VARIABLES
     //------------------------------------------------------
@@ -270,10 +270,14 @@ int main()
     int     nrErr = 0;  // Total number of testbench errors
     int     tbRun = 0;  // Total duration of the test (in clock cycles)
 
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_toecam' STARTS HERE                                    ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
+    for (int i=1; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
     printf("\n\n");
-    printf("#####################################################\n");
-    printf("## TESTBENCH 'test_cam' STARTS HERE                ##\n");
-    printf("#####################################################\n");
 
     //-----------------------------------------------------
     //-- MAIN LOOP
@@ -297,7 +301,7 @@ int main()
         //-------------------------------------------------
         //-- RUN DUT
         //-------------------------------------------------
-        cam(
+        toecam(
             //-- MMIO Interfaces
             &sMMIO_CamReady,
             //-- Session Lookup & Update Interfaces
@@ -311,19 +315,20 @@ int main()
         //-- INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
         stepSim();
-
+        tbRun--;
     } // End of: while()
 
-    printf("############################################################################\n");
-    printf("## TESTBENCH 'test_cam' ENDS HERE                                         ##\n");
-    printf("############################################################################\n\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_toecam' ENDS HERE                                      ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
     stepSim();
 
     if (nrErr) {
          printError(THIS_NAME, "###########################################################\n");
          printError(THIS_NAME, "#### TEST BENCH FAILED : TOTAL NUMBER OF ERROR(S) = %2d ####\n", nrErr);
          printError(THIS_NAME, "###########################################################\n");
-     }
+         printInfo(THIS_NAME, "FYI - You may want to check for \'ERROR\' and/or \'WARNING\' alarms in the LOG file...\n\n");
+    }
          else {
          printInfo(THIS_NAME, "#############################################################\n");
          printInfo(THIS_NAME, "####               SUCCESSFUL END OF TEST                ####\n");

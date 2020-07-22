@@ -224,7 +224,7 @@ void pIcmpChecksumChecker(
             icc_icmpCode = currChunk.getIcmpCode();
             icc_oldHCsum = currChunk.getIcmpCsum();
             // Forward data stream while swapping IP_SA & IP_DA
-            sendChunk.setIp4TtL(icc_prevChunk.getIp4Ttl());
+            sendChunk.setIp4TtL(icc_prevChunk.getIp4TtL());
             sendChunk.setIp4Prot(icc_prevChunk.getIp4Prot());
             sendChunk.setIp4HdrCsum(icc_prevChunk.getIp4HdrCsum());
             sendChunk.setIp4SrcAddr(currChunk.getIp4DstAddr());

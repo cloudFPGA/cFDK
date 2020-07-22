@@ -45,71 +45,14 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-// Forward class declarations
-//class RtlSessionUpdateRequest;
-//class RtlSessionUpdateReply;
-//class RtlSessionLookupReply;
-//class RtlSessionLookupRequest;
-
-/******************************************************************************
+/*******************************************************************************
  * GLOBAL DEFINITIONS USED BY SLc
  ******************************************************************************/
-//OBSOLETE_20200710 #define FROM_RXe   0
-//OBSOLETE_20200710 #define FROM_TAi   1
-
-//OBSOLETE_20200701 enum lookupOp {INSERT=0, DELETE};
 
 /*******************************************************************************
  * INTERNAL TYPES and CLASSES USED BY SLc
  *******************************************************************************/
-typedef ap_uint<1> lookupSource;  // [FIXME - Replace by LkpSrcBit] Encodes the initiator of a CAM lookup or update.
 typedef FourTuple  SLcFourTuple;
-
-//=========================================================
-//== SLc - Internal Four Tuple Structure
-//==  This class defines the internal storage used by [SLc]
-//==  for the SocketPair (alias 4-tuple). The class uses the
-//==  terms 'my' and 'their' instead of 'dest' and 'src'.
-//==  When a socket pair is sent or received from the Tx/Rx
-//==  path, it is mapped by [SLc] to this FourTuple structure.
-//==  The operator '<' is necessary here for the c++ dummy
-//==  memory implementation which uses an std::map.
-//=========================================================
-
-/*** OBSOLETE_20200701 ****************
-class SLcFourTuple {
-  public:
-    LE_Ip4Addr  myIp;
-    LE_Ip4Addr  theirIp;
-    LE_TcpPort  myPort;
-    LE_TcpPort  theirPort;
-    SLcFourTuple() {}
-    SLcFourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
-        myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
-
-    bool operator<(const SLcFourTuple& other) const {
-        if (myIp < other.myIp) {
-            return true;
-        }
-        else if (myIp == other.myIp) {
-            if (theirIp < other.theirIp) {
-                return true;
-            }
-            else if(theirIp == other.theirIp) {
-                if (myPort < other.myPort) {
-                    return true;
-                }
-                else if (myPort == other.myPort) {
-                    if (theirPort < other.theirPort) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-};
-*******************************************/
 
 //=========================================================
 //== SLc - Internal Session Lookup Query
