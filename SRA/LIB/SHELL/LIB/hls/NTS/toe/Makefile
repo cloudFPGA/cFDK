@@ -21,7 +21,9 @@ ipName = toe
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -Ev "(prj)|(obsolete)|\ " | grep -E "\.[h|c]pp")
 
-.PHONY: all clean help csim csynth cosim export project regression rtlSyn rtlImpl
+.PHONY: all clean help csim csynth cosim export project regression rtlSyn rtlImpl this
+
+all: this
 
 src/tx_engine: $(SRC_DEPS)
 	@$(MAKE) -C src/tx_engine
@@ -42,7 +44,7 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 
 #-- Targets --------------------------------------------------------------------
 
-all: ${ipName}_prj/solution1/impl/ip src/tx_engine src/rx_engine
+this: ${ipName}_prj/solution1/impl/ip src/tx_engine src/rx_engine
 
 clean:                    ## Cleans the current project
 	${RM} -rf ${ipName}_prj

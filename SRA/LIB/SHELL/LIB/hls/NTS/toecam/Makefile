@@ -21,9 +21,7 @@ ipName = toecam
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
-.PHONY: all clean help csim csynth cosim project regression
-
-all: ${ipName}_prj/solution1/impl/ip
+.PHONY: all clean help csim csynth cosim project regression  rtlSyn rtlImpl
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
@@ -37,6 +35,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip
 
 clean: 					## Cleans the current project
 	${RM} -rf ${ipName}_prj
@@ -70,5 +70,5 @@ help: ## Shows this help message
 	@echo '    make [target]'
 	@echo	
 	@echo 'Targets:'
-	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#' | sed -e 's/^/    /' 
+	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo

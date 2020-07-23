@@ -52,7 +52,7 @@ extern bool gTraceEvent;
 #define TRACE_RTT  1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF | TRACE_RTT)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*****************************************************************************

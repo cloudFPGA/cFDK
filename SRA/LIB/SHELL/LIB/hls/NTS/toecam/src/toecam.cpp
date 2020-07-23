@@ -49,7 +49,7 @@ using namespace hls;
 #define TRACE_CAM 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 //-- C/RTL LATENCY AND INITIAL INTERVAL
@@ -238,10 +238,10 @@ void toecam(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<RtlSessionLookupRequest>     &siTOE_SssLkpReq,
-        stream<RtlSessionLookupReply>       &soTOE_SssLkpRep,
-        stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
-        stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep)
+        stream<CamSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<CamSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<CamSessionUpdateReply>       &soTOE_SssUpdRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -281,8 +281,8 @@ void toecam(
     #pragma HLS RESET variable=cam_startupDelay
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static RtlSessionLookupRequest cam_request;
-    static RtlSessionUpdateRequest cam_update;
+    static CamSessionLookupRequest cam_request;
+    static CamSessionUpdateRequest cam_update;
     static int                     cam_idleCnt = 0;
 
     //-----------------------------------------------------
@@ -319,12 +319,12 @@ void toecam(
             cam_idleCnt--;
         }
         else {
-            RtlSessId  value;
-            bool hit = camLookup(cam_request.key, value);
+            RtlSessId  rtlValue;
+            bool hit = camLookup(cam_request.key, rtlValue);
             if (hit)
-                soTOE_SssLkpRep.write(RtlSessionLookupReply(true, value, cam_request.source));
+                soTOE_SssLkpRep.write(CamSessionLookupReply(true, rtlValue, cam_request.source));
             else
-                soTOE_SssLkpRep.write(RtlSessionLookupReply(false, cam_request.source));
+                soTOE_SssLkpRep.write(CamSessionLookupReply(false, cam_request.source));
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session lookup request from %d for socket pair: \n",
                           cam_request.source.to_int());
@@ -345,11 +345,11 @@ void toecam(
             if (cam_update.op == INSERT) {
                 //Is there a check if it already exists?
                 camInsert(KeyValuePair(cam_update.key, cam_update.value, true));
-                soTOE_SssUpdRep.write(RtlSessionUpdateReply(cam_update.value, INSERT, cam_update.source));
+                soTOE_SssUpdRep.write(CamSessionUpdateReply(cam_update.value, INSERT, cam_update.source));
             }
             else {  // DELETE
                 camDelete(cam_update.key);
-                soTOE_SssUpdRep.write(RtlSessionUpdateReply(cam_update.value, DELETE, cam_update.source));
+                soTOE_SssUpdRep.write(CamSessionUpdateReply(cam_update.value, DELETE, cam_update.source));
             }
             if (DEBUG_LEVEL & TRACE_CAM) {
                 printInfo(myName, "Received a session cam_update request (%d) from %d for socket pair: \n",

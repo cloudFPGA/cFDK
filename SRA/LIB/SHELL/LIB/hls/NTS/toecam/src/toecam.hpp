@@ -46,18 +46,17 @@ using namespace hls;
 //=========================================================
 class KeyValuePair {
   public:
-    FourTuple key;       // 96 bits
-    //OBSOLETE_20200701 RtlSessId   value;     // 14 bits
-    SessionId    value;     // 16 bits
-    bool         valid;
+    FourTuple    key;       // 96 bits
+    RtlSessId    value;     // 14 bits
+    ValBool      valid;
     KeyValuePair() {}
-    KeyValuePair(FourTuple key, SessionId value, bool valid) :
+    KeyValuePair(FourTuple key, RtlSessId value, ValBool valid) :
         key(key), value(value), valid(valid) {}
 };
 
 
 /*******************************************************************************
- * RTL TYPES and CLASSES USED BY TOECAM
+ * (OBSOLETE) RTL TYPES and CLASSES USED BY TOECAM
  *******************************************************************************
  * Warning:
  *   Don't change the order of the fields in the session-
@@ -71,7 +70,7 @@ class KeyValuePair {
  *   ned on the LSB of the vector and the final element of
  *   the struct is aligned with the MSB of the vector.
  *******************************************************************************/
-
+/*** OBSOLETE_20200723 ************
 //=========================================================
 //== RTL - Session Identifier
 //=========================================================
@@ -136,7 +135,7 @@ class RtlSessionUpdateReply {
     RtlSessionUpdateReply(RtlSessId id, LkpOpBit op, LkpSrcBit src) :
         sessionID(id), op(op), source(src) {}
 };
-
+*********************************/
 
 /*******************************************************************************
  *
@@ -151,10 +150,10 @@ void toecam(
         //------------------------------------------------------
         //-- CAM / This / Session Lookup & Update Interfaces
         //------------------------------------------------------
-        stream<RtlSessionLookupRequest>     &siTOE_SssLkpReq,
-        stream<RtlSessionLookupReply>       &soTOE_SssLkpRep,
-        stream<RtlSessionUpdateRequest>     &siTOE_SssUpdReq,
-        stream<RtlSessionUpdateReply>       &soTOE_SssUpdRep
+        stream<CamSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<CamSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<CamSessionUpdateReply>       &soTOE_SssUpdRep
 );
 
 #endif

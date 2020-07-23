@@ -21,7 +21,9 @@ cFunc = tx_engine
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
-.PHONY: all clean help csim csynth cosim project regression rtlSyn rtlImpl
+.PHONY: all clean help csim csynth cosim project regression rtlSyn rtlImpl this
+
+all: this
 
 ${cFunc}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
@@ -35,7 +37,7 @@ ${cFunc}_prj/solution1/impl/ip: $(SRC_DEPS)
 
 #-- Targets --------------------------------------------------------------------
 
-all: ${cFunc}_prj/solution1/impl/ip
+this: ${cFunc}_prj/solution1/impl/ip
 
 clean:                   ## Cleans the current project
 	${RM} -rf ${cFunc}_prj

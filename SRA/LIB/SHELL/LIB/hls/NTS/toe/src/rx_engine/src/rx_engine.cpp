@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_CSA | TRACE_IPH | TRACE_MDH | TRACE_MWR | TRACE_FSM)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
