@@ -127,6 +127,7 @@ A change back to `GLOBAL_IDLE` happens only if the *MMIO input changes*, *not* w
 | `OP_TCP_RX_STOP_ON_EOR`          | Set the TCP RX FSM to stop on End-of-Request (in continuous TCP recv mode) | (not changed) |
 | `OP_TCP_RX_STOP_ON_EOP`          | Set the TCP RX FSM to stop on End-of-Payload (in continuous TCP recv mode) | (not changed) |
 | `OP_TCP_CNT_RESET`               | resets the detected HTTP NL counts | (not changed) |
+| `OP_FIFO_TO_HWICAP`              |   |   |
 
 
 *Flags are reset before every program run*, so not persistent.
@@ -180,6 +181,11 @@ All global variables are marked as `#pragma HLS reset`.
 | `bufferInMaxWrite_old_iteration` | `OP_BUFFER_TO_HWICAP` | if the TCP RX FSM makes a wrap around (i.e. it starts writing again in the beginning of the buffer), the old `bufferInPtrMaxWrite` is saved, in case another operation is needing it.  |
 | `tcp_words_received`    |   | Number of network words (i.e. 8 Bytes) received during ongoing TCP operation. Counter is reset if new TCP operation is started |
 | `hwicap_waiting_for_tcp` |   | Signal to avoid mutual blocking/waiting of TCP receive and processing  |
+| `fsmHwicap`              |   |    |
+| `fifo_operation_in_progress` | `OP_FILL_BUFFER_TCP`  | indicates if a FIFO operation is in progress and consequently, the buffer pointers may be affected  |
+| `tcp_write_only_fifo`        |   | indicates to the TCP-RX FSM that from now on, the incoming data is only written to the Fifo   |
+| `fifo_overflow_buffer_length` |   | indicates how many bytes are in the FIFO overflow buffer   |
+| `process_fifo_overflow_buffer`|   | indicates that the overflow buffer must be processed first   |
 
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
@@ -364,6 +370,6 @@ Hence, the 32 physical bits are separated logically into different `displays` (e
 |:------|:-------------|
 | 0 -- 15 | `bufferInPtrMaxWrite` |
 | 16 -- 23 | Number iterations with an *nearly full HWICAP FIFO* (see WFV register from the HWICAP)|
-| 24 -- 27 | unused |
+| 24 -- 27 | `fsmHwicap` |
 
 
