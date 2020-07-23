@@ -113,7 +113,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 //#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
 
 
-AppOpnReq     leHostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+AppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 AppOpnSts     newConn;
 ap_uint<32>  watchDogTimer_pcon = 0;
 ap_uint<8>   watchDogTimer_plisten = 0;
@@ -1633,12 +1633,14 @@ void nrc_main(
             TcpPort remotePort = getRemotePortFromTripple(tripple_for_new_connection);
 
             SockAddr    hostSockAddr(remoteIp, remotePort);
-            leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
-            leHostSockAddr.port = byteSwap16(hostSockAddr.port);
-            soTOE_OpnReq.write(leHostSockAddr);
+            //leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
+            HostSockAddr.addr = hostSockAddr.addr;
+            //leHostSockAddr.port = byteSwap16(hostSockAddr.port);
+            HostSockAddr.port = hostSockAddr.port;
+            soTOE_OpnReq.write(HostSockAddr);
             if (DEBUG_LEVEL & TRACE_CON) {
               printInfo(myName, "Client is requesting to connect to remote socket:\n");
-              printSockAddr(myName, leHostSockAddr);
+              printSockAddr(myName, HostSockAddr);
             }
 #ifndef __SYNTHESIS__
             watchDogTimer_pcon = 10;
@@ -1657,7 +1659,7 @@ void nrc_main(
             if (newConn.success) {
               if (DEBUG_LEVEL & TRACE_CON) {
                 printInfo(myName, "Client successfully connected to remote socket:\n");
-                printSockAddr(myName, leHostSockAddr);
+                printSockAddr(myName, HostSockAddr);
               }
               addnewTrippleToTable(newConn.sessionID, tripple_for_new_connection);
               opnFsmState = OPN_DONE;
@@ -1666,7 +1668,7 @@ void nrc_main(
             }
             else {
               printError(myName, "Client failed to connect to remote socket:\n");
-              printSockAddr(myName, leHostSockAddr);
+              printSockAddr(myName, HostSockAddr);
               opnFsmState = OPN_DONE;
               tcp_need_new_connection_request = false;
               tcp_new_connection_failure = true;
@@ -1676,7 +1678,7 @@ void nrc_main(
             if (watchDogTimer_pcon == 0) {
               if (DEBUG_LEVEL & TRACE_CON) {
                 printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
-                printSockAddr(myName, leHostSockAddr);
+                printSockAddr(myName, HostSockAddr);
               }
               tcp_need_new_connection_request = false;
               tcp_new_connection_failure = true;

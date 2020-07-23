@@ -1212,7 +1212,8 @@ typedef TcpSessId   AppMeta;
  *  The socket address that the application
  *  wants to open.
  ***********************************************/
-typedef LeSockAddr AppOpnReq;  //[FIXME - switch to NETWORK ORDER]
+//typedef LeSockAddr AppOpnReq;
+typedef SockAddr AppOpnReq;
 
 /***********************************************
  * Application Open Status [TODO - Rename to Reply]
