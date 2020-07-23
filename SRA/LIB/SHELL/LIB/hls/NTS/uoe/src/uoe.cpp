@@ -1708,21 +1708,21 @@ void uoe(
         //------------------------------------------------------
         //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>                 &siUAIF_LsnReq,
-        stream<StsBool>                 &soUAIF_LsnRep,
-        stream<UdpPort>                 &siUAIF_ClsReq,
-        stream<StsBool>                 &soUAIF_ClsRep,
+        stream<UdpAppLsnReq>            &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>            &soUAIF_LsnRep,
+        stream<UdpAppClsReq>            &siUAIF_ClsReq,
+        stream<UdpAppClsRep>            &soUAIF_ClsRep,
 
         //------------------------------------------------------
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>                 &soUAIF_Data,
+        stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
 
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>                 &siUAIF_Data,
+        stream<UdpAppData>              &siUAIF_Data,
         stream<UdpAppMeta>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
 

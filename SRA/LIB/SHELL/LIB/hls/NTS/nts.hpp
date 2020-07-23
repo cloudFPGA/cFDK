@@ -173,6 +173,7 @@ typedef StsBool     TcpAppLsnRep;
 typedef UdpPort     UdpAppLsnReq;
 typedef StsBool     UdpAppLsnRep;
 typedef UdpPort     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+typedef StsBool     UdpAppClsRep;
 //-- UAIF / Datagram Interfaces
 typedef AxisApp     UdpAppData;
 typedef SocketPair  UdpAppMeta;
