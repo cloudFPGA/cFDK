@@ -70,7 +70,7 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         miROL_Mem_Mp1_AWID             { DIRECTION out WIDTH   4 } \
         miROL_Mem_Mp1_AWADDR           { DIRECTION out WIDTH  33 } \
         miROL_Mem_Mp1_AWLEN            { DIRECTION out WIDTH   8 } \
-        miROL_Mem_Mp1_AWSIZE           { DIRECTION out WIDTH   4 } \
+        miROL_Mem_Mp1_AWSIZE           { DIRECTION out WIDTH   3 } \
         miROL_Mem_Mp1_AWBURST          { DIRECTION out WIDTH   2 } \
         miROL_Mem_Mp1_AWVALID          { DIRECTION out } \
         miROL_Mem_Mp1_AWREADY          { DIRECTION in  } \
@@ -86,7 +86,7 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         miROL_Mem_Mp1_ARID             { DIRECTION out WIDTH   4 } \
         miROL_Mem_Mp1_ARADDR           { DIRECTION out WIDTH  33 } \
         miROL_Mem_Mp1_ARLEN            { DIRECTION out WIDTH   8 } \
-        miROL_Mem_Mp1_ARSIZE           { DIRECTION out WIDTH   4 } \
+        miROL_Mem_Mp1_ARSIZE           { DIRECTION out WIDTH   3 } \
         miROL_Mem_Mp1_ARBURST          { DIRECTION out WIDTH   2 } \
         miROL_Mem_Mp1_ARVALID          { DIRECTION out } \
         miROL_Mem_Mp1_ARREADY          { DIRECTION in  } \

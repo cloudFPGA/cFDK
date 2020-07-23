@@ -403,10 +403,12 @@ void nrc_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpWord>             &siFMC_Tcp_data,
-    stream<Axis<16> >           &siFMC_Tcp_SessId,
-    stream<TcpWord>             &soFMC_Tcp_data,
-    stream<Axis<16> >           &soFMC_Tcp_SessId,
+    stream<NetworkWord>             &siFMC_Tcp_data,
+    //stream<Axis<16> >           &siFMC_Tcp_SessId,
+    stream<AppMeta>           &siFMC_Tcp_SessId,
+    stream<NetworkWord>             &soFMC_Tcp_data,
+    //stream<Axis<16> >           &soFMC_Tcp_SessId,
+    stream<AppMeta>           &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -611,7 +613,7 @@ void nrc_main(
     processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
   }
 
-  if(*layer_7_enabled == 1)
+  if(*layer_7_enabled == 1 && *role_decoupled == 0)
   { // looks like only we were reset
     // since the user cannot close ports (up to now), the > should work...
     if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
@@ -663,6 +665,13 @@ void nrc_main(
     //in all cases
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
+    //reset counters
+    packet_count_TX = 0x0;
+    packet_count_RX = 0x0;
+    last_rx_port = 0x0;
+    last_rx_node_id = 0x0;
+    last_tx_port = 0x0;
+    last_tx_node_id = 0x0;
   }
   //===========================================================
   // MRT init
@@ -1413,7 +1422,12 @@ void nrc_main(
           //to not wait for ever here for the FIFOs
           if (expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full())
           {
-            tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
+            //Axis<16> tmp_read =  siFMC_Tcp_SessId.read();
+            //tcpSessId = (AppMeta) tmp_read.tdata;
+            //ensure correct types
+            //assert(tmp_read.tkeep.width == 2);
+            //tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
+            tcpSessId = (AppMeta) siFMC_Tcp_SessId.read();
             soTOE_SessId.write(tcpSessId);
             //delete the session id, we don't need it any longer
             deleteSessionFromTables(tcpSessId);
