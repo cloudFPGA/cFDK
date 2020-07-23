@@ -196,11 +196,11 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_ThousandPkt.dat"
 
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_EightSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../../../test/testVectors/siTAIF_OneSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../../../test/testVectors/siTAIF_TwoSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../../../test/testVectors/siTAIF_ThreeSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../../../test/testVectors/siTAIF_FourLongSeg.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../../../test/testVectors/siTAIF_EightSeg.dat"
 
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_TwoPkt.dat"

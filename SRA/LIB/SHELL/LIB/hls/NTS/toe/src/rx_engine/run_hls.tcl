@@ -23,8 +23,8 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "TCP/RXe"
-set ipDescription  "Rx Engine"
+set ipDisplayName  "Rx Engine of TOE"
+set ipDescription  "WARNING: This project is *ONLY* used for simulation and bring-up"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -48,36 +48,31 @@ set hlsRtl       $::env(hlsRtl)
 open_project  ${projectName}_prj
 set_top       ${projectName}
 
-# Add files
+# Add source files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
-add_files     ${currDir}/../../../toe/src/toe_utils.cpp
-add_files     ${currDir}/../../../toe/test/test_toe_utils.cpp
+
+add_files     ${currDir}/../../../../NTS/nts_utils.cpp
+add_files     ${currDir}/../../../../NTS/SimNtsUtils.cpp
 
 # Add test bench files
 #-------------------------------------------------
 add_files -tb ${currDir}/../../../toe/src/toe.cpp
-add_files -tb ${currDir}/../../../toe/src/state_table/state_table.cpp
-add_files -tb ${currDir}/../../../toe/src/session_lookup_controller/session_lookup_controller.cpp
-add_files -tb ${currDir}/../../../toe/src/rx_sar_table/rx_sar_table.cpp
-add_files -tb ${currDir}/../../../toe/src/tx_sar_table/tx_sar_table.cpp
-#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/retransmit_timer/retransmit_timer.cpp
-#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/probe_timer/probe_timer.cpp
-#OBSOLETE_20191202 add_files -tb ${currDir}/../../../toe/src/close_timer/close_timer.cpp
-add_files -tb ${currDir}/../../../toe/src/timers/timers.cpp
-add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
+add_files -tb ${currDir}/../../../toe/src/toe_utils.cpp
 add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
+add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/port_table/port_table.cpp
-add_files -tb ${currDir}/../../../toe/src/tx_engine/src/tx_engine.cpp
-#OBSOLETE_20191206 add_files -tb ${currDir}/../../../toe/src/rx_app_if/rx_app_if.cpp
-#OBSOLETE_20191206 add_files -tb ${currDir}/../../../toe/src/rx_app_stream_if/rx_app_stream_if.cpp
 add_files -tb ${currDir}/../../../toe/src/rx_app_interface/rx_app_interface.cpp
+add_files -tb ${currDir}/../../../toe/src/rx_sar_table/rx_sar_table.cpp
+add_files -tb ${currDir}/../../../toe/src/session_lookup_controller/session_lookup_controller.cpp
+add_files -tb ${currDir}/../../../toe/src/state_table/state_table.cpp
+add_files -tb ${currDir}/../../../toe/src/timers/timers.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_app_interface/tx_app_interface.cpp
-#OBSOLETE_20191216 add_files -tb ${currDir}/../../../toe/src/tx_app_stream/tx_app_stream.cpp
-
-add_files -tb ${currDir}/../../../toe/test/dummy_memory/dummy_memory.cpp
+add_files -tb ${currDir}/../../../toe/src/tx_engine/src/tx_engine.cpp
+add_files -tb ${currDir}/../../../toe/src/tx_sar_table/tx_sar_table.cpp
 
 add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
+add_files -tb ${currDir}/../../../toe/test/dummy_memory/dummy_memory.cpp
 
 # Create a solution
 #-------------------------------------------------
@@ -139,26 +134,27 @@ config_compile -name_max_length 128 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_FourPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_FivePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_Ramp64.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_TwentyPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OneSynPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OnePkt160.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TwoPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_ThreePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_FourPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_FivePkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_Ramp64.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_ThousandPkt.dat"
 
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OneSynPkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OneSynMssPkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_Ramp64.dat"
-    csim_design -argv "3 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_OneSynPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_TwoPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_ThreePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_FourPkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_FivePkt.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_Ramp64.dat"
+    csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
 
     puts "#############################################################"
     puts "####                                                     ####"
@@ -184,21 +180,21 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_OneSynPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_OnePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_TwoPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_ThreePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_FourPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_FivePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_TwentyPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/ipRx_ThousandPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_OneSynPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_TwoPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_ThreePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_FourPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_FivePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../../../test/testVectors/siIPRX_ThousandPkt.dat"
 
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_OnePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_TwoPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_ThreePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_FourPkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_FivePkt.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/ipRx_TwentyPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_TwoPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_ThreePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_FourPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_FivePkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
