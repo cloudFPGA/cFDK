@@ -129,7 +129,8 @@ void pLookupReplyHandler(
         stream<RtlSessionUpdateReply>       &siUrh_SessUpdateRsp,
         stream<SessionLookupQuery>          &siRXe_SessLookupReq,
         stream<SessionLookupReply>          &soRXe_SessLookupRep,
-        stream<LE_SocketPair>               &siTAi_SessLookupReq,
+        //OBSOLETE_20200629 stream<LE_SocketPair>  &siTAi_SessLookupReq,
+        stream<SocketPair>                  &siTAi_SessLookupReq,
         stream<SessionLookupReply>          &soTAi_SessLookupRep,
         stream<RtlSessId>                   &siSim_FreeList,
         stream<RtlSessionUpdateRequest>     &soUrs_InsertSessReq,
@@ -157,9 +158,12 @@ void pLookupReplyHandler(
 
     case WAIT_FOR_SESS_LKP_REQ:
         if (!siTAi_SessLookupReq.empty()) {
-            LE_SocketPair leSockPair = siTAi_SessLookupReq.read();
-            fourTuple toeTuple = fourTuple(leSockPair.src.addr, leSockPair.dst.addr,
-                                           leSockPair.src.port, leSockPair.dst.port);
+            //OBSOLETE_20200629 LE_SocketPair leSockPair = siTAi_SessLookupReq.read();
+            SocketPair sockPair = siTAi_SessLookupReq.read();
+            //OBSOLETE_20200629   fourTuple toeTuple = fourTuple(leSockPair.src.addr, leSockPair.dst.addr,
+            //OBSOLETE_20200629                      leSockPair.src.port, leSockPair.dst.port);
+            fourTuple toeTuple = fourTuple(byteSwap32(sockPair.src.addr), byteSwap32(sockPair.dst.addr),
+                                           byteSwap16(sockPair.src.port), byteSwap16(sockPair.dst.port));
             // Create internal query { myIp, TheirIp, myPort, theirPort}
             SLcQuery slcQuery = SLcQuery(SLcFourTuple(
                     toeTuple.srcIp,   toeTuple.dstIp,
@@ -420,7 +424,8 @@ void session_lookup_controller(
         stream<SessionLookupReply>         &soRXe_SessLookupRep,
         stream<SessionId>                  &siSTt_SessReleaseCmd,
         stream<TcpPort>                    &soPRt_ClosePortCmd,
-        stream<LE_SocketPair>              &siTAi_SessLookupReq,
+        //OBSOLETE_20200629 stream<LE_SocketPair>  &siTAi_SessLookupReq,
+        stream<SocketPair>                 &siTAi_SessLookupReq,
         stream<SessionLookupReply>         &soTAi_SessLookupRep,
         stream<SessionId>                  &siTXe_ReverseLkpReq,
         stream<fourTuple>                  &soTXe_ReverseLkpRep,
