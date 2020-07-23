@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : test_toe.cpp
  * @brief      : Testbench for the TCP Offload Engine (TOE).
  *
@@ -25,7 +25,7 @@
  * \ingroup NTS
  * \addtogroup NTS_TOE
  * \{
- *****************************************************************************/
+ *******************************************************************************/
 
 #include "test_toe.hpp"
 
@@ -55,9 +55,9 @@ using namespace std;
 #define DEBUG_LEVEL (TRACE_IPRX | TRACE_L3MUX)
 
 
-/******************************************************************************
+/*******************************************************************************
  * @brief Increment the simulation counter
- ******************************************************************************/
+ *******************************************************************************/
 void stepSim() {
     gSimCycCnt++;
     if (gTraceEvent || ((gSimCycCnt % 1000) == 0)) {
@@ -78,35 +78,6 @@ const char *camAccessorStrings[] = { "RXe", "TAi" };
  *******************************************************************************/
 const char *myCamAccessToString(int initiator) {
     return camAccessorStrings[initiator];
-}
-
-/*******************************************************************************
- * @brief Print a socket pair association from an internal FourTuple encoding.
- *
- * @param[in] callerName  The name of the caller process (e.g. "TAi").
- * @param[in] source      The source of the internal 4-tuple information.
- * @param[in] fourTuple   The internal 4-tuple encoding of the socket pair.
- *******************************************************************************/
-void printFourTuple(const char *callerName, int src, FourTuple fourTuple) {
-    SocketPair socketPair;
-    switch (src) {
-        case FROM_RXe:
-            socketPair.src.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.src.port = byteSwap16(fourTuple.theirPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.myIp);
-            socketPair.dst.port = byteSwap16(fourTuple.myPort);
-            break;
-        case FROM_TAi:
-            socketPair.src.addr = byteSwap32(fourTuple.myIp);
-            socketPair.src.port = byteSwap16(fourTuple.myPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.dst.port = byteSwap16(fourTuple.theirPort);
-            break;
-        default:
-            printFatal(callerName, "Unknown request source %d.\n", src);
-            break;
-    }
-    printSockPair(callerName, socketPair);
 }
 
 /*******************************************************************************
@@ -2385,7 +2356,10 @@ int main(int argc, char *argv[]) {
             //-- DEBUG / Session Statistics Interfaces
             clsSessionCount,
             opnSessionCount
-            //-- NU-DEBUG / sTOE_TB_SimCycCnt
+            #if TOE_FEATURE_USED_FOR_DEBUGGING
+            ,
+            sTOE_TB_SimCycCnt
+            #endif
         );
 
         //-------------------------------------------------

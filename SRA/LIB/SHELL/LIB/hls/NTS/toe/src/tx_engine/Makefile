@@ -9,8 +9,9 @@
 # *               current C function.
 # * 
 # * Synopsis:
-# *   make         : Runs the default build for this C function.
-# *   make help    : Shows a helper message. 
+# *   make help    : Displays a help message.
+# *   make clean   : Cleanup of the current directory.
+# *   make         : Runs the default build for this core.
 # *
 # ******************************************************************************
 
@@ -20,9 +21,7 @@ cFunc = tx_engine
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
 
-.PHONY: all clean help csim csynth cosim project regression
-
-all: ${cFunc}_prj/solution1/impl/ip
+.PHONY: all clean help csim csynth cosim project regression rtlSyn rtlImpl
 
 ${cFunc}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
@@ -35,6 +34,8 @@ ${cFunc}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${cFunc}_prj/solution1/impl/ip
 
 clean:                   ## Cleans the current project
 	${RM} -rf ${cFunc}_prj

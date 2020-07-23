@@ -63,4 +63,33 @@ const char *getEventName(EventType evType) {
     }
 }
 
+/*******************************************************************************
+ * @brief Print a socket pair association from an internal FourTuple encoding.
+ *
+ * @param[in] callerName  The name of the caller process (e.g. "TAi").
+ * @param[in] source      The source of the internal 4-tuple information.
+ * @param[in] fourTuple   The internal 4-tuple encoding of the socket pair.
+ *******************************************************************************/
+void printFourTuple(const char *callerName, int src, FourTuple fourTuple) {
+    SocketPair socketPair;
+    switch (src) {
+        case FROM_RXe:
+            socketPair.src.addr = byteSwap32(fourTuple.theirIp);
+            socketPair.src.port = byteSwap16(fourTuple.theirPort);
+            socketPair.dst.addr = byteSwap32(fourTuple.myIp);
+            socketPair.dst.port = byteSwap16(fourTuple.myPort);
+            break;
+        case FROM_TAi:
+            socketPair.src.addr = byteSwap32(fourTuple.myIp);
+            socketPair.src.port = byteSwap16(fourTuple.myPort);
+            socketPair.dst.addr = byteSwap32(fourTuple.theirIp);
+            socketPair.dst.port = byteSwap16(fourTuple.theirPort);
+            break;
+        default:
+            printFatal(callerName, "Unknown request source %d.\n", src);
+            break;
+    }
+    printSockPair(callerName, socketPair);
+}
+
 /*! \} */

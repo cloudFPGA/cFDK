@@ -36,7 +36,7 @@
  * PRINT HELPERS - PROTOTYPE DEFINITIONS
  *******************************************************************************/
 const char *getEventName(EventType ev);
-
+void        printFourTuple(const char *callerName, int src, FourTuple fourTuple);
 
 #endif
 
