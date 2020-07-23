@@ -67,7 +67,7 @@ struct NetworkMetaStream {
 The term *rank* instead of *node_id* is used, because it seems that Vivado HLS ignores names with *id* in it.
 
 The *`len` field can be 0*, if the data stream sets `tlast` accordingly. If no `tlast` will be set, the length must be specified in advance!.
-(*The Shell will always set `tlast`*).
+(**The Shell will always set `tlast` and `len` will be `0`** (i.e. the *input for the Role*)).
 
 #### Example
 
