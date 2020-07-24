@@ -260,6 +260,41 @@ void printTcpPort(const char *callerName, TcpPort tcpPort) {
 }
 
 /*******************************************************************************
+ * ENUM TO STRING HELPERS
+ *******************************************************************************/
+
+/*******************************************************************************
+ * @brief Returns the name of an enum-based TCP-State as a user friendly string.
+ *
+ * @param[in]   tcpState  An enumerated type of TCP state.
+ * @returns the TCP state type as a string.
+ *******************************************************************************/
+const char *getTcpStateName(TcpState tcpState) {
+    switch (tcpState) {
+    case CLOSED:
+        return "CLOSED";
+    case SYN_SENT:
+        return "SYN_SENT";
+    case SYN_RECEIVED:
+        return "SYN_RECEIVED";
+    case ESTABLISHED:
+        return "ESTABLISHED";
+    case FIN_WAIT_1:
+        return "FIN_WAIT_1";
+    case FIN_WAIT_2:
+        return "FIN_WAIT_2";
+    case CLOSING:
+        return "CLOSING";
+    case TIME_WAIT:
+        return "TIME_WAIT";
+    case LAST_ACK:
+        return "LAST_ACK";
+    default:
+        return "ERROR: UNKNOWN TCP STATE!";
+    }
+}
+
+/*******************************************************************************
  * AXIS CHUNK HELPERS
  *******************************************************************************/
 

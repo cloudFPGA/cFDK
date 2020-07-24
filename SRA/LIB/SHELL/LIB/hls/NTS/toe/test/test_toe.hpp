@@ -114,48 +114,6 @@ TcpPort         gFpgaSndPort  = TOE_FIRST_EPHEMERAL_PORT_NUM; // TCP source port
 Ip4Addr         gHostIp4Addr  = DEFAULT_HOST_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gHostLsnPort  = DEFAULT_HOST_LSN_PORT;  // TCP  listen port
 
-
-/*******************************************************************
- * @brief Class Testbench Socket Address
- *  This class differs from the class 'AxiSockAddr' used by TOE from
- *  an ENDIANESS point of view. This class is ENDIAN independent as
- *  opposed to the one used by TOE which stores its data members in
- *  LITTLE-ENDIAN order.
- *******************************************************************/
-/*** OBSOLETE ***
-class TbSockAddr {  // Testbench Socket Address
-  public:
-    unsigned int addr;  // IPv4 address
-    unsigned int port;  // TCP  port
-    TbSockAddr() {}
-    TbSockAddr(unsigned int addr, unsigned int port) :
-        addr(addr), port(port) {}
-};
-****************/
-
-/*******************************************************************
- * @brief Class Testbench Socket Pair
- *  This class differs from the class 'AxiSockAddr' used by TOE from
- *  an ENDIANESS point of view. This class is ENDIAN independent as
- *  opposed to the one used by TOE which stores its data members in
- *  LITTLE-ENDIAN order.
- *******************************************************************/
-/*** OBSOLETE ***
-class TbSocketPair {    // Socket Pair Association
-  public:
-    TbSockAddr  src;    // Source socket address in LITTLE-ENDIAN order !!!
-    TbSockAddr  dst;    // Destination socket address in LITTLE-ENDIAN order !!!
-    TbSocketPair() {}
-    TbSocketPair(TbSockAddr src, TbSockAddr dst) :
-        src(src), dst(dst) {}
-};
-
-inline bool operator < (TbSocketPair const &s1, TbSocketPair const &s2) {
-        return ((s1.dst.addr < s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
-}
-******************/
-
 #endif
 
 /*! \} */

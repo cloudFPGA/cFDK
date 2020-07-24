@@ -15,13 +15,23 @@
  */
 
 /*******************************************************************************
- * @file       : nts.hpp
- * @brief      : Definition of the Network Transport Stack (NTS) component
- *               as if it was an HLS IP core.
+ * @file     : nts.hpp
+ * @brief    : Definition of the Network Transport Stack (NTS) component
+ *             as if it was an HLS IP core.
  *
- * System:     : cloudFPGA
- * Component   : Shell
+ * System:   : cloudFPGA
+ * Component : Shell
  * Language    : Vivado HLS
+ *
+ * @remarks  :
+ *  In telecommunications, a protocol data unit (PDU) is a single unit of
+ *   information transmitted among peer entities of a computer network. A PDU is
+ *   therefore composed of a protocol specific control information (e.g a header)
+ *   and a user data section.
+ *  This source code uses the following terminology:
+ *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
+ *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
  *
  * \ingroup NTS
  * \addtogroup NTS

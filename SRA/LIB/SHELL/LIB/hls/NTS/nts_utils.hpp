@@ -38,19 +38,6 @@
 using namespace std;
 
 /*******************************************************************************
- * FORWARD DECLARATIONS
- *******************************************************************************/
-//OBSOLETE_20200618 class ArpBindPair;
-//OBSOLETE_20200618 class SockAddr;*
-//OBSOLETE_20200618 class SocketPair;
-//OBSOLETE_20200618 class LE_SockAddr;
-//OBSOLETE_20200618 class LE_SocketPair;
-//OBSOLETE_20200618 class AxiWord;
-//OBSOLETE_20200618 class DmCmd;
-//OBSOLETE_20200618 class Ip4overMac;
-//OBSOLETE_20200415 class SLcFourTuple;
-
-/*******************************************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  FYI: The global variable 'gTraceEvent' is set
  *        whenever a trace call is done.
@@ -113,11 +100,15 @@ using namespace std;
 tKeep          lenTotKeep(ap_uint<4>  noValidBytes);
 LE_tKeep       lenToLE_tKeep (ap_uint<4>  noValidBytes);
 
-//OBSOLETE_20200711 ap_uint<4>     keepToLen (ap_uint<8>  keepValue);
 ap_uint<16>    byteSwap16(ap_uint<16> inputValue);
 ap_uint<32>    byteSwap32(ap_uint<32> inputValue);
 ap_uint<48>    byteSwap48(ap_uint<48> inputValue);
 ap_uint<64>    byteSwap64(ap_uint<64> inputValue);
+
+/*******************************************************************************
+ * ENUM TO STRING HELPERS - PROTOTYPE DEFINITIONS
+ *******************************************************************************/
+const char *getTcpStateName(TcpState tcpState);
 
 /*******************************************************************************
  * PRINT HELPERS - PROTOTYPE DEFINITIONS

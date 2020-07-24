@@ -15,13 +15,23 @@
  */
 
 /*******************************************************************************
- * @file       : nts_types.hpp
- * @brief      : Definition of the types used by the Network Transport Stack
- *               (NTS) component of the cloudFPGA shell.
+ * @file    : nts_types.hpp
+ * @brief   : Definition of the types used by the Network Transport Stack
+ *             (NTS) component of the cloudFPGA shell.
  *
  * System:     : cloudFPGA
- * Component   : Shell
- * Language    : Vivado HLS
+ * Component : Shell
+ * Language  : Vivado HLS
+ *
+ * @remarks  :
+ *  In telecommunications, a protocol data unit (PDU) is a single unit of
+ *   information transmitted among peer entities of a computer network. A PDU is
+ *   therefore composed of a protocol specific control information (e.g a header)
+ *   and a user data section.
+ *  This source code uses the following terminology:
+ *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
+ *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
  *
  * \ingroup NTS
  * \addtogroup NTS
@@ -289,12 +299,12 @@ enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
                 FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
                 LAST_ACK };
 
-#ifndef __SYNTHESIS__
-    const std::string  TcpStateString[] = {
-               "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-               "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-               "LAST_ACK" };
-#endif
+//OBSOLETE_20200724 #ifndef __SYNTHESIS__
+//OBSOLETE_20200724     const std::string  TcpStateString[] = {
+//OBSOLETE_20200724                "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+//OBSOLETE_20200724                "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+//OBSOLETE_20200724                "LAST_ACK" };
+//OBSOLETE_20200724 #endif
 
 //=========================================================
 //== TCP Application Write Status Codes

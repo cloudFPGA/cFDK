@@ -56,15 +56,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TOE_H_
 
 #include <stdint.h>
-
-//#include <stdio.h>
-//#include <iostream>
-//#include <fstream>
-//#include <string>
-//#include <math.h>
-//#include <hls_stream.h>
-//#include <vector>
-
 #include "ap_int.h"
 
 #include "../../../NTS/nts.hpp"
@@ -74,17 +65,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-
-//---------------------------------------------------------
-//-- Forward declarations
-//---------------------------------------------------------
-//class RtlSessionUpdateRequest;
-//class RtlSessionUpdateReply;
-//class RtlSessionLookupReply;
-//class RtlSessionLookupRequest;
-//class LE_SocketPair;
-
-
 //---------------------------------------------------------
 //-- TOE GLOBAL DEFINES
 //---------------------------------------------------------
@@ -93,8 +73,6 @@ using namespace hls;
 #define TOE_FIRST_EPHEMERAL_PORT_NUM    0x8000 // Dynamic ports are in the range 32768..65535
 
 #define TOE_FEATURE_USED_FOR_DEBUGGING  0
-
-
 
 //*** [FIXME] MOVE MAX_SESSION into a CFG FILE ***
 static const uint16_t MAX_SESSIONS = 32;
@@ -262,26 +240,36 @@ typedef ap_uint< 1> tLast;
  * - .
  *******************************************************************************/
 
-//=========================================================
-//== TOE - EVENT TYPES
-//=========================================================
+//---------------------------------------------------------
+//-- TOE - EVENT TYPES
+//---------------------------------------------------------
 enum EventType { TX_EVENT=0,    RT_EVENT,  ACK_EVENT, SYN_EVENT, \
                  SYN_ACK_EVENT, FIN_EVENT, RST_EVENT, ACK_NODELAY_EVENT };
 
-//=========================================================
-//== TOE - SESSION STATE
-//=========================================================
 //---------------------------------------------------------
-//-- Session State
-//--  Reports the state of a TCP connection according to RFC-793.
+//-- TOE - SESSION STATE
 //---------------------------------------------------------
-typedef TcpAppOpnRep    SessState;
+typedef TcpAppOpnRep SessState;  // TCP state according to RFC-793
 
-//=========================================================
-//== TOE - TCP PORT RANGES (Static & Ephemeral)
-//=========================================================
+//---------------------------------------------------------
+//-- TOE - TCP PORT RANGES (Static & Ephemeral)
+//---------------------------------------------------------
 typedef ap_uint<15> TcpStaPort;  // TCP Static  Port [0x0000..0x7FFF]
 typedef ap_uint<15> TcpDynPort;  // TCP Dynamic Port [0x8000..0xFFFF]
+
+//---------------------------------------------------------
+//-- TOE - Some Rx & Tx SAR Types
+//---------------------------------------------------------
+typedef TcpSeqNum   RxSeqNum;   // A sequence number received from the network layer
+typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the network layer
+typedef TcpWindow   RcvWinSize; // A received window size
+typedef TcpWindow   SndWinSize; // A sending  window size
+
+typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
+typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
+typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
 //---------------------------------------------------------
 //--  SOCKET ADDRESS (alias ipTuple)
@@ -291,15 +279,6 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
     ap_uint<32>     ip_address;
     ap_uint<16>     ip_port;
 };
-
-
-
-
-
-
-
-
-
 
 /*******************************************************************************
  * INTERFACE TYPES and CLASSES USED BY SESSION LOOKUP CONTROLLER (SLc)
@@ -333,7 +312,6 @@ class SessionLookupReply {
         sessionID(id), hit(hit) {}
 };
 
-
 /*******************************************************************************
  * INTERFACE TYPES and CLASSES USED BY STATE TABLE (STt)
  *******************************************************************************/
@@ -341,7 +319,7 @@ class SessionLookupReply {
 //=========================================================
 //== STt - Session State Query
 //=========================================================
-class StateQuery {  // [FIXME - Consider renaming to SessStateQuery]
+class StateQuery {
   public:
     SessionId       sessionID;
     TcpState        state;
@@ -353,51 +331,18 @@ class StateQuery {  // [FIXME - Consider renaming to SessStateQuery]
         sessionID(id), state(state), write(write) {}
 };
 
-
-
-
 /********************************************
  * Port Table (PRt)
  ********************************************/
-// NotUsed typedef bool PortState;
-// NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
+//OBSOLETE_20200724 NotUsed typedef bool PortState;
+//OBSOLETE_20200724 NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
 
-// NotUsed typedef bool PortRange;
-// NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
+//OBSOLETE_20200724 NotUsed typedef bool PortRange;
+//OBSOLETE_20200724 NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 
-/********************************************
- * Some Rx & Tx SAR Types
- ********************************************/
-typedef TcpSeqNum   RxSeqNum;   // A sequence number received from the network layer
-typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the network layer
-typedef TcpWindow   RcvWinSize; // A received window size
-typedef TcpWindow   SndWinSize; // A sending  window size
-
-typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
-typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
-typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
-
-/************************************************
- * Rx SAR Table (RSt)
- *  Request/Reply and Query/Reply structures.
- *  (@see: rx_sar_tabble.[cpp|hpp])
- *
- * [FIXME - Get down to the use of a single generic
- *   struct format for Query/Reply]. Anyhow, whatever
- *    is not used, will always be synthesized away.]
- ************************************************/
-//OBSOLETE class RxSarEntry {
-//  public:
-//    RxSeqNum    rcvd;  // Bytes RCV'ed and ACK'ed (same as Receive Next)
-//    //OBSOLETE_20200719 RxBufPtr    appd;  // Bytes READ (.i.e consumed) by the application // [FIXME - Change type to 'RxSeqNum']
-//    RxSeqNum    appd;  // Bytes READ (.i.e consumed) by the application
-//    RxSarEntry() {}
-//};
-
-// RSt / Generic Reply
-//----------------------
+//=========================================================
+//== RSt / Generic Reply
+//=========================================================
 class RxSarReply {
   public:
      RxSeqNum    rcvd;
@@ -407,8 +352,9 @@ class RxSarReply {
         rcvd(rcvd), appd(appd) {}
 };
 
-// RSt / Query from RXe
-//----------------------
+//=========================================================
+//== RSt / Query from RXe
+//=========================================================
 class RXeRxSarQuery {
   public:
     SessionId       sessionID;
@@ -424,8 +370,9 @@ class RXeRxSarQuery {
         sessionID(id), rcvd(recvd), write(write), init(init) {}
 };
 
-// RSt / Query from RAi
-//----------------------
+//=========================================================
+//== RSt / Query from RAi
+//=========================================================
 class RAiRxSarQuery {
   public:
     SessionId       sessionID;
@@ -438,8 +385,9 @@ class RAiRxSarQuery {
         sessionID(id), appd(appd), write(1) {}
 };
 
-// RSt / Reply to RAi
-//----------------------
+//=========================================================
+//== RSt / Reply to RAi
+//=========================================================
 class RAiRxSarReply {
   public:
     SessionId       sessionID;
@@ -449,29 +397,13 @@ class RAiRxSarReply {
         sessionID(id), appd(appd) {}
 };
 
-
-/********************************************
+/*******************************************************************************
  * Tx SAR Table (TSt)
- ********************************************/
-/*** OBSOLETE_20200722 ***
-class TxSarEntry {
-  public:
-    TxAckNum        ackd;        // Octets TX'ed and ACK'ed
-    TxAckNum        not_ackd;    // Octets TX'ed but not ACK'ed
-    RcvWinSize      recv_window; // Remote receiver's buffer size (their)
-    SndWinSize      cong_window; // Local receiver's buffer size  (my)
-    TcpWindow       slowstart_threshold;
-    TxBufPtr        app;
-    ap_uint<2>      count;
-    bool            fastRetransmitted;
-    bool            finReady;
-    bool            finSent;
-    TxSarEntry() {};
-};
-****************************/
+ *******************************************************************************/
 
-// TSt / Query from RXe
-//----------------------
+//=========================================================
+//== TSt / Query from RXe
+//=========================================================
 class RXeTxSarQuery {
   public:
     SessionId       sessionID;
@@ -488,8 +420,9 @@ class RXeTxSarQuery {
         sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), fastRetransmitted(fastRetransmitted), write(1) {}
 };
 
-// TSt / Reply to RXe
-//--------------------
+//=========================================================
+//== TSt / Reply to RXe
+//=========================================================
 class RXeTxSarReply {
   public:
     TxAckNum        prevAck;
@@ -503,8 +436,9 @@ class RXeTxSarReply {
         prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
 };
 
-// TSt / Query from TXe
-//----------------------
+//=========================================================
+//== TSt / Query from TXe
+//=========================================================
 class TXeTxSarQuery {
   public:
     SessionId       sessionID;
@@ -527,8 +461,9 @@ class TXeTxSarQuery {
         sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
-// TSt / Reply to TXe
-//--------------------
+//=========================================================
+//== TSt / Reply to TXe
+//=========================================================
 class TXeTxSarReply {
   public:
     TxAckNum        ackd;       // ACK'ed
@@ -542,8 +477,9 @@ class TXeTxSarReply {
         ackd(ack), not_ackd(nack), min_window(min_window), app(app), finReady(finReady), finSent(finSent) {}
 };
 
-// TSt / Re-transmission Query from TXe
-//--------------------------------------
+//=========================================================
+//== TSt / Re-transmission Query from TXe
+//=========================================================
 class TXeTxSarRtQuery : public TXeTxSarQuery
 {
   public:
@@ -557,8 +493,9 @@ class TXeTxSarRtQuery : public TXeTxSarQuery
     }
 };
 
-// TSt / Tx Application Interface
-//--------------------------------
+//=========================================================
+//== TSt / Tx Application Interface
+//=========================================================
 class TAiTxSarPush {
   public:
     SessionId       sessionID;
@@ -568,8 +505,9 @@ class TAiTxSarPush {
          sessionID(id), app(app) {}
 };
 
-// TSt / Command from TSt
-//------------------------
+//=========================================================
+//== TSt / Command from TSt
+//=========================================================
 class TStTxSarPush {
   public:
     SessionId       sessionID;
@@ -592,12 +530,13 @@ class TStTxSarPush {
 #endif
 };
 
-
-/********************************************
+/*******************************************************************************
  * Tx Application Interface (TAi)
- ********************************************/
+ *******************************************************************************/
 
-//-- TAI / Tx Application Table (Tat) Request
+//=========================================================
+//== TAI / Tx Application Table (Tat) Request
+//=========================================================
 class TxAppTableQuery {
   public:
     SessionId   sessId;
@@ -610,7 +549,9 @@ class TxAppTableQuery {
         sessId(id), mempt(pt), write(true) {}
 };
 
-//-- TAI / Tx Application Table (Tat) Reply
+//=========================================================
+//== TAI / Tx Application Table (Tat) Reply
+//=========================================================
 class TxAppTableReply {
   public:
     SessionId   sessId;
@@ -629,15 +570,15 @@ class TxAppTableReply {
     #endif
 };
 
-
-/********************************************
+/*******************************************************************************
  * Timers (TIm)
- ********************************************/
+ *******************************************************************************/
 enum TimerCmd {LOAD_TIMER = false,
                STOP_TIMER = true};
 
-// TIm / ReTransmit Timer Command from RXe
-//-----------------------------------------
+//=========================================================
+//== TIm / ReTransmit Timer Command from RXe
+//=========================================================
 class RXeReTransTimerCmd {
   public:
     SessionId   sessionID;
@@ -649,10 +590,9 @@ class RXeReTransTimerCmd {
         sessionID(id), command(cmd) {}
 };
 
-
-
-// TIm / ReTransmit Timer Command form TXe
-//-----------------------------------------
+//=========================================================
+//== TIm / ReTransmit Timer Command form TXe
+//=========================================================
 class TXeReTransTimerCmd {
   public:
     SessionId   sessionID;
@@ -664,9 +604,13 @@ class TXeReTransTimerCmd {
         sessionID(id), type(type) {}
 };
 
-/************************************************
+/*******************************************************************************
  * Event Engine (EVe)
- ************************************************/
+ *******************************************************************************/
+
+//=========================================================
+//== EVe / Event
+//=========================================================
 class Event
 {
   public:
@@ -686,6 +630,9 @@ class Event
         type(type), sessionID(id), address(addr), length(len), rt_count(rt_count) {}
 };
 
+//=========================================================
+//== EVe / ExtendedEvent
+//=========================================================
 class ExtendedEvent : public Event
 {
   public:
@@ -697,12 +644,9 @@ class ExtendedEvent : public Event
         Event(ev.type, ev.sessionID, ev.address, ev.length, ev.rt_count), tuple(tuple) {}
 };
 
-
-
-
-
-
-// [FIXME- TODO]
+//=========================================================
+//== EVe / RstEvent  // [FIXME- TODO]
+//=========================================================
 struct rstEvent : public Event  // [FIXME - Class naming convention]
 {
     rstEvent() {}
@@ -726,147 +670,24 @@ struct rstEvent : public Event  // [FIXME - Class naming convention]
 };
 
 
-/*************************************************************************
+/*******************************************************************************
  * DDR MEMORY SUB-SYSTEM INTERFACES
- *************************************************************************
+ *******************************************************************************
  * Terminology & Conventions (see Xilinx LogiCORE PG022).
  *  [DM]  stands for AXI Data Mover
  *  [DRE] stands for Data Realignment Engine.
- *************************************************************************/
+ *******************************************************************************/
 
 #define RXMEMBUF    65536   // 64KB = 2^16
 #define TXMEMBUF    65536   // 64KB = 2^16
 
-/*** OBSOLETE_20200701 ***
-struct mmCmd
-{
-    ap_uint<23> bbt;
-    ap_uint<1>  type;
-    ap_uint<6>  dsa;
-    ap_uint<1>  eof;
-    ap_uint<1>  drr;
-    ap_uint<40> saddr;
-    ap_uint<4>  tag;
-    ap_uint<4>  rsvd;
-    mmCmd() {}
-    mmCmd(ap_uint<40> addr, ap_uint<16> len) :
-        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
-
-};
-
-struct mmStatus
-{
-    ap_uint<4>  tag;
-    ap_uint<1>  interr;
-    ap_uint<1>  decerr;
-    ap_uint<1>  slverr;
-    ap_uint<1>  okay;
-};
-
-struct mm_ibtt_status
-{
-    ap_uint<4>  tag;
-    ap_uint<1>  interr;
-    ap_uint<1>  decerr;
-    ap_uint<1>  slverr;
-    ap_uint<1>  okay;
-    ap_uint<22> brc_vd;
-    ap_uint<1>  eop;
-};
-***************************/
-
-/*******************************************************************************
- * TCP APPLICATION INTERFACES
- *******************************************************************************
- * Terminology & Conventions.
- *  [APP] stands for Application (this is also a synonym for ROLE).
- *******************************************************************************/
-
-//---------------------------------------------------------
-//-- APP - NOTIFICATION
-//--  Notifies the availability of a segment data for the
-//--  application in the TCP Rx buffer.
-//---------------------------------------------------------
-//typedef TcpAppNotif     AppNotif;
-
-//---------------------------------------------------------
-//-- APP - READ REAQUEST
-//--  Used by the application to request data from the
-//--  TCP Rx buffer.
-//---------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppRdReq     AppRdReq;
-
-//---------------------------------------------------------
-//-- APP - WRITE STATUS
-//--  Status returned by TOE after a data send transfer.
-//---------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppWrSts     AppWrSts;
-
-//--------------------------------------------------------
-//-- APP - OPEN CONNECTION REQUEST
-//--   The socket address to be opened.
-//--------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppOpnReq    AppOpnReq;
-
-//--------------------------------------------------------
-//-- APP - OPEN CONNECTION REPLY
-//--   The status information returned by TOE after
-//--   opening a connection.
-//--------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppOpnRep    AppOpnRep;
-
-//--------------------------------------------------------
-//-- APP - CLOSE CONNECTION REQUEST
-//--  The session-id of the connection to be closed.
-//--------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppClsReq    AppClsReq;
-
-//--------------------------------------------------------
-//-- APP - LISTEN REQUEST
-//--  The TCP port to be opened for listening.
-//--------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppLsnReq    AppLsnReq;
-
-//--------------------------------------------------------
-//-- APP - LISTEN REPLY
-//--  The status returned after a listening port request.
-//--------------------------------------------------------
-//OBSOLETE_20200714 typedef TcpAppLsnRep    AppLsnRep;
-
-
-
-
-
-
-
-
-/***********************************************
- * A 2-to-1 Stream multiplexer.
- ***********************************************/
+//=========================================================
+//== MUX / A 2-to-1 Stream multiplexer.
+//=========================================================
 template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /*******************************************************************************
@@ -927,7 +748,7 @@ void toe(
         //-- TAIF / Close Interfaces
         //------------------------------------------------------
         stream<TcpAppClsReq>                    &siTAIF_ClsReq,
-        //-- Not USed                           &soTAIF_ClsSts,
+        //-- Not Used                           &soTAIF_ClsSts,
 
         //------------------------------------------------------
         //-- MEM / Rx PATH / S2MM Interface
