@@ -527,7 +527,7 @@ void pStreamMetaLoader(
                 // Notify [APP] about the fail
                 soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOCONNECTION));
                 printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
-                           sessId.to_uint(), TcpStateString[sessState].c_str());
+                           sessId.to_uint(), getTcpStateName(sessState));
             }
             else if (segLen > maxWriteLength) {
                 sSmlToMwr_SegMeta.write(SegMemMeta(CMD_DROP));

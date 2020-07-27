@@ -1376,7 +1376,7 @@ bool pTcpAppConnect(
             }
             else {
                 printError(myName, "Failed to open a new active session (%d).\n", appOpenRep.sessId.to_uint());
-                printInfo(myName, "The connection is in TCP state: %s.\n", TcpStateString[appOpenRep.tcpState].c_str());
+                printInfo(myName, "The connection is in TCP state: %s.\n", getTcpStateName(appOpenRep.tcpState));
                 rc = false;
                 nrError += 1;
             }

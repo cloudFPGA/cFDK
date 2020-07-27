@@ -134,7 +134,7 @@ void state_table(
                 if (DEBUG_LEVEL & TRACE_STT) {
                     printInfo(THIS_NAME, "TAi is requesting to set SESS_STATE_TABLE[%d] = %s.\n", \
                               stt_txAccess.sessionID.to_uint(), \
-                              TcpStateString[stt_txAccess.state].c_str());
+                              getTcpStateName(stt_txAccess.state));
                 }
             }
             else {
@@ -173,7 +173,7 @@ void state_table(
                 if (DEBUG_LEVEL & TRACE_STT) {
                     printInfo(THIS_NAME, "RXe is requesting to set SESS_STATE_TABLE[%d] = %s.\n", \
                               stt_rxAccess.sessionID.to_uint(), \
-                              TcpStateString[stt_rxAccess.state].c_str());
+                              getTcpStateName(stt_rxAccess.state));
                 }
             }
             else {
