@@ -1,0 +1,68 @@
+# ##################################################################################################################################
+#  @file  : ipRx_OneSynMssPkt.dat
+#  @brief : An IPv4 packet with the TCP-SYN bit set to indicate that the segment is being used to initialize a connection.
+#           The TCP segment also comes with 4-bytes of options that annouce the Maximum Segment Size (MSS) .i.e, the largest
+#           amount of data the host can receive in a single TCP segment.
+#          
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    # This is a comment
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ###################################################################################################################################
+#
+#         6                   5                   4                   3                   2                   1                   0   
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                    Acknowledgment Number                      |                        Sequence Number                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                               |                               |                               |   |U|A|P|R|S|F|  Data |       |
+#  |         Urgent Pointer        |           Checksum            |            Window             |   |R|C|S|S|Y|I| Offset|  Res  |
+#  |                               |                               |                               |   |G|K|H|T|N|N|       |       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                           Not Used                            |                   Maximum Segment Size                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# @details :
+#   This unique segment is used to test the initialization of a connection with the following settings:
+#     IP-SA = 10.12.200.50, IP-DA=10.12.200.19, TCP-SP=41571, TCP-DP=8803
+#
+# ###################################################################################################################################
+
+G PARAM SimCycles 500
+G PARAM FpgaIp4Addr 10.12.200.19
+G PARAM FpgaLsnPort 8803
+
+> IDLE 20
+# 70 b3 d5 70 8f f7 3c fd fe 9f 59 78 08 00 45 00
+# 00 2c 0d 09 40 00 40 06 89 65 0a 0c c8 32 0a 0c
+# c8 13 a2 63 22 63 fe eb 14 bf 00 00 00 00 60 02
+# 72 10 a9 46 00 00 02 04 05 b4
+
+0040090d2c000045 0 FF
+32c80c0a65890640 0 FF
+632263a213c80c0a 0 FF
+00000000bf14ebfe 0 FF
+000046a910720260 0 FF
+00000000b4050402 1 0F
+
+

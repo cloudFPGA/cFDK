@@ -24,28 +24,31 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
-/*****************************************************************************
+/*******************************************************************************
  * @file       : mem.hpp
  * @brief      : Memory Sub-System (MEM) for the cloudFPGA shell.
  *
  * System:     : cloudFPGA
- * Component   : Shell)
+ * Component   : Shell
  * Language    : Vivado HLS
  *
- *----------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  * @details    : Data structures, types and prototypes definitions for the
  *               DDR4 Memory Sub-System.
  *
- *****************************************************************************/
+ * \ingroup MEM
+ * \addtogroup MEM
+ * \{
+ *******************************************************************************/
 
-#ifndef MEM_H_
-#define MEM_H_
+#ifndef _MEM_H_
+#define _MEM_H_
 
 #include "ap_int.h"
 
 /******************************************************************************
- * DEFINITIONS FOR MEM
+ * GLOBAL DEFINITIONS USED BY MEM
  ******************************************************************************/
 #define KU60_MEM_BANK0_SIZE   8*1024*1024  // 8GB = 2^33
 #define KU60_MEM_BANK1_SIZE   8*1024*1024  // 8GB = 2^33
@@ -58,12 +61,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  [DRE] stands for Data Realignment Engine.
  ******************************************************************************/
 
-/*********************************************************
- * Data Mover Command Interface (c.f PG022)
- *********************************************************/
+//=========================================================
+//== Data Mover Command Interface (c.f PG022)
+//=========================================================
 class DmCmd {
   public:
-    ap_uint<23>     bbt;    // Bytes To Transfer
+    ap_uint<23>     bbt;    // Bytes To Transfer (1 up to 8,388,607 bytes. 0 is not allowed)
     ap_uint<1>      type;   // Type of AXI4 access (0=FIXED, 1=INCR)
     ap_uint<6>      dsa;    // DRE Stream Alignment
     ap_uint<1>      eof;    // End of Frame
@@ -73,13 +76,13 @@ class DmCmd {
     ap_uint<4>      rsvd;   // Reserved
  
    DmCmd() {}
-   DmCmd(ap_uint<40> addr, ap_uint<16> len) : // [TODO - Why 2^16 and not 2^24]  
+   DmCmd(ap_uint<40> addr, ap_uint<23> len) :
         bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
-/***********************************************************
- * Data Mover Status Interface (c.f PG022)
- ***********************************************************/
+//=========================================================
+//== Data Mover Status Interface (c.f PG022)
+//=========================================================
 class DmSts {
   public:
     ap_uint<4>      tag;
@@ -92,3 +95,5 @@ class DmSts {
 };
 
 #endif
+
+/*! \} */

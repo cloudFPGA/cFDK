@@ -46,7 +46,7 @@ using namespace std;
 #define TRACE_EIT   1 <<  4
 #define TRACE_ALL    0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief Increment the simulation counter
@@ -393,7 +393,7 @@ int main(int argc, char* argv[]) {
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
     int         nrErr  = 0;  // Total number of testbench errors
-    int         tbRun  = 0;  // Total duration of the test (in clock cycles0
+    int         tbRun  = 0;  // Total duration of the test (in clock cycles)
     EthAddr     myMacAddress  = 0x010203040506;
     Ip4Addr     myIp4Address  = 0x0A0CC807; // Might be overwritten by the content of the DAT file.
 

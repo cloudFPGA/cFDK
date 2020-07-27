@@ -15,13 +15,23 @@
  */
 
 /*******************************************************************************
- * @file       : nts_types.hpp
- * @brief      : Definition of the types used by the Network Transport Stack
- *               (NTS) component of the cloudFPGA shell.
+ * @file    : nts_types.hpp
+ * @brief   : Definition of the types used by the Network Transport Stack
+ *             (NTS) component of the cloudFPGA shell.
  *
  * System:     : cloudFPGA
- * Component   : Shell
- * Language    : Vivado HLS
+ * Component : Shell
+ * Language  : Vivado HLS
+ *
+ * @remarks  :
+ *  In telecommunications, a protocol data unit (PDU) is a single unit of
+ *   information transmitted among peer entities of a computer network. A PDU is
+ *   therefore composed of a protocol specific control information (e.g a header)
+ *   and a user data section.
+ *  This source code uses the following terminology:
+ *   - a SEGMENT (or TCP Packet) refers to the TCP protocol data unit.
+ *   - a PACKET  (or IP  Packet) refers to the IP protocol data unit.
+ *   - a FRAME   (or MAC Frame)  refers to the Ethernet data link layer.
  *
  * \ingroup NTS
  * \addtogroup NTS
@@ -36,6 +46,7 @@
 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
+//#include "./toe/src/toe.hpp"
 
 using namespace hls;
 
@@ -50,11 +61,10 @@ using namespace hls;
 #define KO          NTS_KO
 
 #define CMD_INIT    1
-#define CMD_DROP    1
+#define CMD_DROP    1  // OBSOLETE_20200710 enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
 #define CMD_KEEP    0
 #define CMD_ENABLE  1
 #define CMD_DISABLE 0
-
 #define QUERY_RD    0
 #define QUERY_WR    1
 #define QUERY_INIT  1
@@ -73,8 +83,6 @@ using namespace hls;
 
 #define ACK_ON      1
 #define NO_ACK      0
-
-static const ap_uint<16> MTU = 1500;
 
 /******************************************************************************
  * GENERIC TYPES and CLASSES USED BY NTS
@@ -119,6 +127,12 @@ typedef bool SigBool;  // Signal     : Noun indicating a signal (e.g. TxEventSig
 typedef bool StsBool;  // Status     : Noun or verb indicating a status (e.g. isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBool;  // Valid      : Must go along with something to validate/invalidate.
 
+//========================================================
+//== MULTI-BITS DEFINITIONS
+//========================================================
+typedef ap_uint<16> SessionId;  // TCP Session ID (FIXME - Consider renaming)
+typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
+
 
 /******************************************************************************
  * DATA-LINK LAYER-2 - ETHERNET & ARP
@@ -128,15 +142,16 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  ******************************************************************************/
 
+//-- ETHERNET - MAXIMUM TRANSMISSION UNIT
+static const ap_uint<16> MTU = 1500;
+
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions
 //=========================================================
-
 // Ethernet Broadcast MAC Address
 #define ETH_BROADCAST_ADDR 0xFFFFFFFFFFFF
 
 // EtherType protocol numbers
-//OBSOLETE_20200617 #define IP4_PROTOCOL    0x0800
 #define ETH_ETHERTYPE_IP4 0x0800
 #define ETH_ETHERTYPE_ARP 0x0806
 
@@ -149,36 +164,6 @@ typedef bool ValBool;  // Valid      : Must go along with something to validate/
 #define ARP_PLEN_IPV4           4  // Protocol addr length for IPv4
 #define ARP_OPER_REQUEST   0x0001  // Operation is request
 #define ARP_OPER_REPLY     0x0002  // Operation is reply
-
-//---------------------------------------------------------
-//-- ARP BIND PAIR - {MAC,IPv4} ASSOCIATION
-//---------------------------------------------------------
-class ArpBindPair {
-  public:
-    EthAddr  macAddr;
-    Ip4Addr  ip4Addr;
-    ArpBindPair() {}
-    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
-        macAddr(newMac), ip4Addr(newIp4) {}
-};
-
-//---------------------------------------------------------
-//-- ARP LOOKUP REQUEST
-//---------------------------------------------------------
-typedef Ip4Addr ArpLkpRequest;
-
-//---------------------------------------------------------
-//-- ARP LOOKUP REPLY
-//---------------------------------------------------------
-class ArpLkpReply {
-  public:
-    EthAddr     macAddress;
-    HitBool     hit;
-    ArpLkpReply() {}
-    ArpLkpReply(EthAddr macAdd, HitBool hit) :
-        macAddress(macAdd), hit(hit) {}
-};
-
 
 /*******************************************************************************
  * NETWORK LAYER-3 - IPv4 & ICMP
@@ -197,7 +182,8 @@ class ArpLkpReply {
 // IP4 Protocol numbers
 #define IP4_PROT_ICMP       0x01
 #define IP4_PROT_TCP        0x06
-#define UDP_PROTOCOL        0x11
+#define IP4_PROT_UDP        0x11
+//OBSOLETE_20200717  #define UDP_PROTOCOL 0x11
 
 
 /******************************************************************************
@@ -208,6 +194,11 @@ class ArpLkpReply {
  *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
  ******************************************************************************/
 
+//-- TCP - MAXIMUM SEGMENT SIZE
+//--  Usually, the TCP Maximum Segment Size (MSS) is 1460 bytes.
+//--  The TOE uses 1456 to support 4 bytes of TCP options.
+static const ap_uint<16> MSS = 1456;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20-4
+
 //========================================================
 //== LAYER-4 - COMMON TCP and UDP HEADER FIELDS
 //========================================================
@@ -216,13 +207,8 @@ typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
 
-//========================================================
-//== TCP SESSION IDENTIFIER
-//========================================================
-typedef ap_uint<16> SessionId;
-
 //--------------------------------------------------------
-//-- SOCKET ADDRESS
+//-- LAYER-4 - SOCKET ADDRESS
 //--------------------------------------------------------
 class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
    public:
@@ -242,9 +228,37 @@ class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
         addr(addr), port(port) {}
 };
 
+struct fourTuple {  // [FIXME-TODO] - Replace w/ LE_SocketPair
+    ap_uint<32> srcIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<32> dstIp;      // IPv4 address in LITTLE-ENDIAN order !!!
+    ap_uint<16> srcPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+    ap_uint<16> dstPort;    // TCP  port in in LITTLE-ENDIAN order !!!
+    fourTuple() {}
+    fourTuple(ap_uint<32> srcIp, ap_uint<32> dstIp, ap_uint<16> srcPort, ap_uint<16> dstPort)
+              : srcIp(srcIp), dstIp(dstIp), srcPort(srcPort), dstPort(dstPort) {}
+};
+
+inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
+        return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
+}
+
 //--------------------------------------------------------
-//-- SOCKET PAIR ASSOCIATION
+//-- LAYER-4 - SOCKET PAIR ASSOCIATION
 //--------------------------------------------------------
+class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
+  public:
+    SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
+    SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
+    SocketPair() {}
+    SocketPair(SockAddr src, SockAddr dst) :
+        src(src), dst(dst) {}
+};
+
+inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
+        return ((s1.dst.addr <  s2.dst.addr) ||
+                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+}
+
 class LE_SocketPair { // Socket Pair Association in LITTLE-ENDIAN order !!!
   public:
     LE_SockAddr  src;  // Source socket address in LITTLE-ENDIAN order !!!
@@ -259,19 +273,240 @@ inline bool operator < (LE_SocketPair const &s1, LE_SocketPair const &s2) {
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
 }
 
-class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
+
+/*******************************************************************************
+ * APPLICATION LAYER-5
+ *******************************************************************************
+ * This section defines the types and classes related to the Application (APP)
+ * layer and interfaces.
+ *******************************************************************************/
+
+//=========================================================
+//== TCP Connection States
+//==  The RFC-793 defines a set of states that a connection
+//==   may progresses through during its lifetime. These
+//==   states are:  LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED,
+//==   FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK,
+//==   TIME-WAIT, and the fictional state CLOSED.
+//==  The implementation of [TOE] does use all of these states:
+//==    * There is no explicit 'LISTEN' which is merged into 'CLOSED'.
+//==    * The 'CLOSE-WAIT' is not used, since 'sndFIN' is sent out
+//==      immediately after the reception of a 'rcvFIN' and the
+//==      application is simply notified.
+//==    * 'FIN_WAIT_2' is also not used.
+//=========================================================
+enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                LAST_ACK };
+
+//OBSOLETE_20200724 #ifndef __SYNTHESIS__
+//OBSOLETE_20200724     const std::string  TcpStateString[] = {
+//OBSOLETE_20200724                "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
+//OBSOLETE_20200724                "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
+//OBSOLETE_20200724                "LAST_ACK" };
+//OBSOLETE_20200724 #endif
+
+//=========================================================
+//== TCP Application Write Status Codes
+//==  Error codes returned by NTS after a data send transfer
+//=========================================================
+#define TCP_APP_WR_STS_KO           0
+#define TCP_APP_WR_STS_NOSPACE      1
+#define TCP_APP_WR_STS_NOCONNECTION 2
+
+//=========================================================
+//== TCP Application Notification Codes
+//==  Error codes returned by NTS after a data send transfer
+//=========================================================
+    //OBSOLETE_20200713 enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
+
+// enum TcpAppWrStsCode { FAILED_TO_OPEN_CON=false, CON_IS_OPENED=true };
+
+
+
+
+
+
+/*******************************************************************************
+ * NTS INTERNAL - TAIF / TOE
+ *******************************************************************************/
+
+
+
+
+
+/*******************************************************************************
+ * NTS INTERNAL - ARP / CAM
+ *******************************************************************************
+ * This section defines the interfaces between the Address Resolution Protocol
+ * (ARP) server and the IP Tx HAndler (IPTX).
+ *******************************************************************************/
+
+//========================================================
+//== ARPCAM - TYPES and CLASSES USED BY THIS INTERFACE
+//========================================================
+
+//---------------------------------------------------------
+//-- ARPCAM - BIND PAIR - {MAC,IPv4} ASSOCIATION
+//---------------------------------------------------------
+class ArpBindPair {
   public:
-    SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
-    SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
-    SocketPair() {}
-    SocketPair(SockAddr src, SockAddr dst) :
-        src(src), dst(dst) {}
+    EthAddr  macAddr;
+    Ip4Addr  ip4Addr;
+    ArpBindPair() {}
+    ArpBindPair(EthAddr newMac, Ip4Addr newIp4) :
+        macAddr(newMac), ip4Addr(newIp4) {}
 };
 
-inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
-        return ((s1.dst.addr <  s2.dst.addr) ||
-                (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
+//---------------------------------------------------------
+//-- ARPCAM - LOOKUP REQUEST
+//---------------------------------------------------------
+typedef Ip4Addr ArpLkpRequest;
+
+//---------------------------------------------------------
+//-- ARPCAM - LOOKUP REPLY
+//---------------------------------------------------------
+class ArpLkpReply {
+  public:
+    EthAddr     macAddress;
+    HitBool     hit;
+    ArpLkpReply() {}
+    ArpLkpReply(EthAddr macAdd, HitBool hit) :
+        macAddress(macAdd), hit(hit) {}
+};
+
+
+/*******************************************************************************
+ * NTS INTERNAL - TOE / CAM
+ *******************************************************************************
+ * This section defines the interfaces between the TCP Offload Engine (TOE) and
+ * the Content Addressable Memory (CAM) used to manage the TCP sessions.
+ * Warning:
+ *   Do not change the order of the fields in the session-lookup-request, the
+ *   session-lookup-reply, the session-update-request and the session-update-
+ *   reply classes as these structures may end up being mapped to a RTL physical
+ *   Axi4-Stream interface between the TOE and the CAM (if CAM is RTL-based).
+ * Info: The member elements of the classes are placed into the physical vector
+ *   interface in the order they appear in the C code: the first element of the
+ *   structure is aligned on the LSB of the vector and the final element of the
+ *   structure is aligned with the MSB of the vector.
+ *******************************************************************************/
+
+//========================================================
+//== TOECAM - TYPES and CLASSES USED BY THIS INTERFACE
+//========================================================
+typedef ap_uint<14> RtlSessId;  // Used by RTL-based CAM
+typedef ap_uint< 1> LkpSrcBit;  // Encodes the initiator of a CAM lookup or update.
+#define FROM_RXe   0
+#define FROM_TAi   1
+enum LkpOpBit { INSERT=0, DELETE };  // Encodes the CAM operation
+
+//--------------------------------------------------------
+//-- TOECAM - Four Tuple
+//--  This class defines the internal storage used by the
+//--  TOECAM implementation for the SocketPair. The class
+//--  uses the terms 'my' and 'their' instead of 'dest' and
+//--  'src'.
+//--  The operator '<' is necessary here for the c++ dummy
+//--  memory implementation which uses an std::map.
+ //=========================================================
+class FourTuple {  // [FIXME - Replace with SocketPair]
+  public:
+    LE_Ip4Addr  myIp;
+    LE_Ip4Addr  theirIp;
+    LE_TcpPort  myPort;
+    LE_TcpPort  theirPort;
+    FourTuple() {}
+    FourTuple(LE_Ip4Addr myIp, LE_Ip4Addr theirIp, LE_TcpPort myPort, LE_TcpPort theirPort) :
+        myIp(myIp), theirIp(theirIp), myPort(myPort), theirPort(theirPort) {}
+
+    bool operator < (const FourTuple& other) const {
+        if (myIp < other.myIp) {
+            return true;
+        }
+        else if (myIp == other.myIp) {
+            if (theirIp < other.theirIp) {
+                return true;
+            }
+            else if(theirIp == other.theirIp) {
+                if (myPort < other.myPort) {
+                    return true;
+                }
+                else if (myPort == other.myPort) {
+                    if (theirPort < other.theirPort) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+};
+
+inline bool operator == (FourTuple const &s1, FourTuple const &s2) {
+    return ((s1.myIp    == s2.myIp)    && (s1.myPort    == s2.myPort)    &&
+            (s1.theirIp == s2.theirIp) && (s1.theirPort == s2.theirPort));
 }
+
+//--------------------------------------------------------
+//-- TOECAM - Session Lookup Request
+//--------------------------------------------------------
+class CamSessionLookupRequest {
+  public:
+    FourTuple     key;       // 96 bits
+    LkpSrcBit     source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+
+    CamSessionLookupRequest() {}
+    CamSessionLookupRequest(FourTuple tuple, LkpSrcBit src)
+                : key(tuple), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Lookup Reply
+//--------------------------------------------------------
+class CamSessionLookupReply {
+  public:
+    RtlSessId        sessionID; // 14 bits
+    LkpSrcBit        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
+    bool             hit;       //  1 bit
+
+    CamSessionLookupReply() {}
+    CamSessionLookupReply(bool hit, LkpSrcBit src) :
+        hit(hit), sessionID(0), source(src) {}
+    CamSessionLookupReply(bool hit, RtlSessId id, LkpSrcBit src) :
+        hit(hit), sessionID(id), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Update Request
+//--------------------------------------------------------
+class CamSessionUpdateRequest {
+  public:
+    FourTuple     key;       // 96 bits
+    RtlSessId     value;     // 14 bits
+    LkpSrcBit     source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    LkpOpBit      op;        //  1 bit : '0' is INSERT, '1' is DELETE
+
+    CamSessionUpdateRequest() {}
+    CamSessionUpdateRequest(FourTuple key, RtlSessId value, LkpOpBit op, LkpSrcBit src) :
+        key(key), value(value), op(op), source(src) {}
+};
+
+//--------------------------------------------------------
+//-- CAM - Session Update Reply
+//--------------------------------------------------------
+class CamSessionUpdateReply {
+  public:
+    RtlSessId        sessionID; // 14 bits
+    LkpSrcBit        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
+    LkpOpBit         op;        //  1 bit : '0' is INSERT, '1' is DELETE
+
+    CamSessionUpdateReply() {}
+    CamSessionUpdateReply(LkpOpBit op, LkpSrcBit src) :
+        op(op), source(src) {}
+    CamSessionUpdateReply(RtlSessId id, LkpOpBit op, LkpSrcBit src) :
+        sessionID(id), op(op), source(src) {}
+};
 
 #endif
 

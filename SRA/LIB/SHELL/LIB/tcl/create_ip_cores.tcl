@@ -1032,7 +1032,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : Content-Addressable Memory 
 #------------------------------------------------------------------------------
 set ipModName "ContentAddressableMemory"
-set ipName    "cam"
+set ipName    "toecam"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

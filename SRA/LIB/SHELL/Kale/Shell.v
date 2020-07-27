@@ -253,10 +253,10 @@ module Shell_Kale # (
   input [ 15:0]  siROL_Nts_Tcp_LsnReq_tdata,   
   input          siROL_Nts_Tcp_LsnReq_tvalid,
   output         siROL_Nts_Tcp_LsnReq_tready,
-  //----  Axi4-Stream TCP Listen Ack --------
-  output [  7:0] soROL_Nts_Tcp_LsnAck_tdata,
-  output         soROL_Nts_Tcp_LsnAck_tvalid,
-  input          soROL_Nts_Tcp_LsnAck_tready,
+  //----  Axi4-Stream TCP Listen Rep --------
+  output [  7:0] soROL_Nts_Tcp_LsnRep_tdata,
+  output         soROL_Nts_Tcp_LsnRep_tvalid,
+  input          soROL_Nts_Tcp_LsnRep_tready,
   //------------------------------------------------------  
   //-- ROLE / Mem / Mp0 Interface
   //------------------------------------------------------
@@ -564,9 +564,9 @@ module Shell_Kale # (
   wire          ssTARS_NTS0_Tcp_LsnReq_tvalid;
   wire          ssTARS_NTS0_Tcp_LsnReq_tready;
   //--
-  wire  [  7:0] ssNTS0_TARS_Tcp_LsnAck_tdata ;
-  wire          ssNTS0_TARS_Tcp_LsnAck_tvalid;
-  wire          ssNTS0_TARS_Tcp_LsnAck_tready;  
+  wire  [  7:0] ssNTS0_TARS_Tcp_LsnRep_tdata ;
+  wire          ssNTS0_TARS_Tcp_LsnRep_tvalid;
+  wire          ssNTS0_TARS_Tcp_LsnRep_tready;  
  
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MMIO <--> ETH|NTS|MEM|ROL|FMC 
@@ -1017,9 +1017,9 @@ module Shell_Kale # (
     .siAPP_Tcp_LsnReq_tvalid          (ssTARS_NTS0_Tcp_LsnReq_tvalid),
     .siAPP_Tcp_LsnReq_tready          (ssTARS_NTS0_Tcp_LsnReq_tready),
     //---- Axi4-Stream TCP Listen Status ------
-    .soAPP_Tcp_LsnAck_tdata           (ssNTS0_TARS_Tcp_LsnAck_tdata),
-    .soAPP_Tcp_LsnAck_tvalid          (ssNTS0_TARS_Tcp_LsnAck_tvalid),
-    .soAPP_Tcp_LsnAck_tready          (ssNTS0_TARS_Tcp_LsnAck_tready),
+    .soAPP_Tcp_LsnRep_tdata           (ssNTS0_TARS_Tcp_LsnRep_tdata),
+    .soAPP_Tcp_LsnRep_tvalid          (ssNTS0_TARS_Tcp_LsnRep_tvalid),
+    .soAPP_Tcp_LsnRep_tready          (ssNTS0_TARS_Tcp_LsnRep_tready),
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
@@ -1102,10 +1102,10 @@ module Shell_Kale # (
     .siAPP_Tcp_LsnReq_tdata     (siROL_Nts_Tcp_LsnReq_tdata ),   
     .siAPP_Tcp_LsnReq_tvalid    (siROL_Nts_Tcp_LsnReq_tvalid),
     .siAPP_Tcp_LsnReq_tready    (siROL_Nts_Tcp_LsnReq_tready),
-    //----  Axi4-Stream TCP Listen Ack --------
-    .soAPP_Tcp_LsnAck_tdata     (soROL_Nts_Tcp_LsnAck_tdata ),
-    .soAPP_Tcp_LsnAck_tvalid    (soROL_Nts_Tcp_LsnAck_tvalid),
-    .soAPP_Tcp_LsnAck_tready    (soROL_Nts_Tcp_LsnAck_tready),
+    //----  Axi4-Stream TCP Listen Rep --------
+    .soAPP_Tcp_LsnRep_tdata     (soROL_Nts_Tcp_LsnRep_tdata ),
+    .soAPP_Tcp_LsnRep_tvalid    (soROL_Nts_Tcp_LsnRep_tvalid),
+    .soAPP_Tcp_LsnRep_tready    (soROL_Nts_Tcp_LsnRep_tready),
     //------------------------------------------------------
     //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1166,10 +1166,10 @@ module Shell_Kale # (
     .soNTS_Tcp_LsnReq_tdata     (ssTARS_NTS0_Tcp_LsnReq_tdata ),   
     .soNTS_Tcp_LsnReq_tvalid    (ssTARS_NTS0_Tcp_LsnReq_tvalid),
     .soNTS_Tcp_LsnReq_tready    (ssTARS_NTS0_Tcp_LsnReq_tready),
-    //----  Axi4-Stream TCP Listen Ack --------
-    .siNTS_Tcp_LsnAck_tdata     (ssNTS0_TARS_Tcp_LsnAck_tdata ),
-    .siNTS_Tcp_LsnAck_tvalid    (ssNTS0_TARS_Tcp_LsnAck_tvalid),
-    .siNTS_Tcp_LsnAck_tready    (ssNTS0_TARS_Tcp_LsnAck_tready)
+    //----  Axi4-Stream TCP Listen Rep --------
+    .siNTS_Tcp_LsnRep_tdata     (ssNTS0_TARS_Tcp_LsnRep_tdata ),
+    .siNTS_Tcp_LsnRep_tvalid    (ssNTS0_TARS_Tcp_LsnRep_tvalid),
+    .siNTS_Tcp_LsnRep_tready    (ssNTS0_TARS_Tcp_LsnRep_tready)
   );
 
   //============================================================================

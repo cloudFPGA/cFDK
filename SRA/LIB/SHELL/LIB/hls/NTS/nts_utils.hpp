@@ -38,19 +38,6 @@
 using namespace std;
 
 /*******************************************************************************
- * FORWARD DECLARATIONS
- *******************************************************************************/
-//OBSOLETE_20200618 class ArpBindPair;
-//OBSOLETE_20200618 class SockAddr;*
-//OBSOLETE_20200618 class SocketPair;
-//OBSOLETE_20200618 class LE_SockAddr;
-//OBSOLETE_20200618 class LE_SocketPair;
-//OBSOLETE_20200618 class AxiWord;
-//OBSOLETE_20200618 class DmCmd;
-//OBSOLETE_20200618 class Ip4overMac;
-//OBSOLETE_20200415 class SLcFourTuple;
-
-/*******************************************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  FYI: The global variable 'gTraceEvent' is set
  *        whenever a trace call is done.
@@ -112,19 +99,23 @@ using namespace std;
  *******************************************************************************/
 tKeep          lenTotKeep(ap_uint<4>  noValidBytes);
 LE_tKeep       lenToLE_tKeep (ap_uint<4>  noValidBytes);
-//ap_uint<8>     lenToKeep (ap_uint<4>  noValidBytes);
-ap_uint<4>     keepToLen (ap_uint<8>  keepValue);
+
 ap_uint<16>    byteSwap16(ap_uint<16> inputValue);
 ap_uint<32>    byteSwap32(ap_uint<32> inputValue);
 ap_uint<48>    byteSwap48(ap_uint<48> inputValue);
 ap_uint<64>    byteSwap64(ap_uint<64> inputValue);
 
 /*******************************************************************************
+ * ENUM TO STRING HELPERS - PROTOTYPE DEFINITIONS
+ *******************************************************************************/
+const char *getTcpStateName(TcpState tcpState);
+
+/*******************************************************************************
  * PRINT HELPERS - PROTOTYPE DEFINITIONS
  *******************************************************************************/
 void printAxisRaw      (const char *callerName, AxisRaw       chunk);
 void printAxisRaw      (const char *callerName, \
-						const char *message,    AxisRaw       chunk);
+                        const char *message,    AxisRaw       chunk);
 void printDmCmd        (const char *callerName, DmCmd         dmCmd);
 void printArpBindPair  (const char *callerName, ArpBindPair   arpBind);
 void printSockAddr     (const char *callerName, SockAddr      sockAddr);
@@ -132,13 +123,11 @@ void printSockAddr     (const char *callerName, LE_SockAddr   leSockAddr);
 void printSockAddr     (                        SockAddr      sockAddr);
 void printSockPair     (const char *callerName, SocketPair    sockPair);
 void printSockPair     (const char *callerName, LE_SocketPair leSockPair);
-//OBSOLETE_20200415 void printSockPair     (const char *callerName, int  src,     SLcFourTuple fourTuple);
 void printLE_SockAddr  (const char *callerName, LE_SockAddr   leSockAddr);
 void printLE_SockPair  (const char *callerName, LE_SocketPair leSockPair);
 void printIp4Addr      (const char *callerName, \
                         const char *message,    Ip4Addr       ip4Addr);
 void printIp4Addr      (const char *callerName, Ip4Addr       ip4Addr);
-void printIp4Addr      (                        Ip4Addr       ip4Addr);
 void printEthAddr      (const char *callerName, \
                         const char *message,    EthAddr       ethAddr);
 void printEthAddr      (const char *callerName, EthAddr       ethAddr);
@@ -211,22 +200,6 @@ void printTcpPort      (                        TcpPort       tcpPort);
  * @param[in] callerName  The name of the caller process (e.g. "TB/IPRX").
  * @param[in] stream      The stream to test.
  * @param[in] streamName  The name of the stream (e.g. "soEVe_RxEventSig").
- **********************************************************/
-/*** [FIXME - MUST BE REMOVED] ********
-#ifndef __SYNTHESIS__
-  #define assessFull(callerName , stream , streamName) \
-    do { if (stream.full()) printFatal(callerName, "Stream \'%s\' is full: Cannot write.", streamName); } while (0)
-#else
-  #define assessFull(callerName , stream, streamName) \
-    do {} while (0);
-#endif
-***************************************/
-
-/**********************************************************
- * @brief A macro that checks if a stream is full.
- * @param[in] callerName  The name of the caller process (e.g. "TB/IPRX").
- * @param[in] stream      The stream to test.
- * @param[in] streamName  The name of the stream (e.g. "soEVe_RxEventSig").
  * @param[in] depth       The depth of the implemented FIFO.
  **********************************************************/
 #ifndef __SYNTHESIS__
@@ -236,7 +209,6 @@ void printTcpPort      (                        TcpPort       tcpPort);
   #define assessSize(callerName , stream, streamName, depth) \
     do {} while (0);
 #endif
-
 
 #endif
 

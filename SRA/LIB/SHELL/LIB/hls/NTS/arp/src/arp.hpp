@@ -32,7 +32,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_ARP
+ * \ingroup NTS
  * \addtogroup NTS_ARP
  * \{
  *******************************************************************************/

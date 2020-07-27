@@ -160,18 +160,6 @@ class AxisRaw {
     AxisRaw(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 
-    /*** OBSOLETE ***
-    struct axiWord
-    {
-    	ap_uint<64>		data;
-    	ap_uint<8>		keep;
-    	ap_uint<1>		last;
-    	axiWord() {}
-    	axiWord(ap_uint<64>	 data, ap_uint<8> keep, ap_uint<1> last)
-    				: data(data), keep(keep), last(last) {}
-    };
-    *****************/
-
     // Get the length of this chunk (in bytes)
     int getLen() {
         return keepToLen();
@@ -225,7 +213,7 @@ class AxisRaw {
      *****************************************************/
     // Set the 'tdata' field with a 'data' encoded in Little-Endian order
     void setLE_TData(LE_tData data, int hi=ARW-1, int lo=0) {
-        tdata.range(hi, lo) = data;
+        tdata.range(hi, lo) = data.range(hi-lo, 0);
     }
     // Return the 'tdata' field in Little-Endian order
     LE_tData getLE_TData(int hi=ARW-1, int lo=0) {
@@ -265,7 +253,6 @@ class AxisRaw {
     }
 
     // Assess the consistency of 'tkeep' and 'tlast'
-    // [FIXME - Shall we move this into SimNtsUtil.cpp]
     bool isValid() {
         if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
             ((this->tlast == 1) and (this->keepToLen() == 0))) {
@@ -273,6 +260,7 @@ class AxisRaw {
         }
         return true;
     }
+
   protected:
     // Return the number of valid bytes
     int keepToLen() {

@@ -41,8 +41,8 @@
 
 #include "./AxisRaw.hpp"
 
-/******************************************************************************
- * APP Data over AXI4-STREAMING
+/*******************************************************************************
+ * APPlication Data - Data payload of a TCP segment or UDP datagram over AXI4S.
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
  *******************************************************************************/
 class AxisApp: public AxisRaw {
@@ -57,7 +57,7 @@ class AxisApp: public AxisRaw {
         AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
     /****************************************************************
-     * AXIS_UDP - BIG-ENDIAN HELPERS (specific to UDP-over-IPv4)
+     * AXIS_APP - BIG-ENDIAN HELPERS
      ****************************************************************/
 
     /* Set higher-half part of the 'tdata' field with a data encoded in BE order

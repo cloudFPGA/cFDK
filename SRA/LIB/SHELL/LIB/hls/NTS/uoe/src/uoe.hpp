@@ -26,13 +26,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
  * @file       : uoe.hpp
- * @brief      : Defines and prototypes related to the UDP Offload Engine.
+ * @brief      : UDP Offload Engine (UOE)
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_UOE
+ * \ingroup NTS
  * \addtogroup NTS_UOE
  * \{
  *****************************************************************************/
@@ -48,7 +48,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../AxisPsd4.hpp"
 
 using namespace hls;
-
 
 // UDP Maximum Datagram Size (1472=1500-20-8)
 static const UdpLen UDP_MDS = (MTU-IP4_HEADER_LEN-UDP_HEADER_LEN);
@@ -93,21 +92,21 @@ void uoe(
         //------------------------------------------------------
         //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
-        stream<UdpPort>         &siUAIF_LsnReq,
-        stream<StsBool>         &soUAIF_LsnRep,
-        stream<UdpPort>         &siUAIF_ClsReq,
-        stream<StsBool>         &soUAIF_ClsRep,
+        stream<UdpAppLsnReq>    &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>    &soUAIF_LsnRep,
+        stream<UdpAppClsReq>    &siUAIF_ClsReq,
+        stream<UdpAppClsRep>    &soUAIF_ClsRep,
 
         //------------------------------------------------------
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &soUAIF_Data,
+        stream<UdpAppData>      &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
 
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
-        stream<AxisApp>         &siUAIF_Data,
+        stream<UdpAppData>      &siUAIF_Data,
         stream<UdpAppMeta>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
 

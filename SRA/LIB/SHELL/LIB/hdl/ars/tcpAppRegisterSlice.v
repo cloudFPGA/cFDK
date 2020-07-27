@@ -112,10 +112,10 @@ module TcpApplicationRegisterSlice
   input [ 15:0]  siAPP_Tcp_LsnReq_tdata,   
   input          siAPP_Tcp_LsnReq_tvalid,
   output         siAPP_Tcp_LsnReq_tready,
-  //----  Axis4-Stream TCP Listen Ack --------
-  output [  7:0] soAPP_Tcp_LsnAck_tdata,
-  output         soAPP_Tcp_LsnAck_tvalid,
-  input          soAPP_Tcp_LsnAck_tready,
+  //----  Axis4-Stream TCP Listen Rep --------
+  output [  7:0] soAPP_Tcp_LsnRep_tdata,
+  output         soAPP_Tcp_LsnRep_tvalid,
+  input          soAPP_Tcp_LsnRep_tready,
   
   //------------------------------------------------------
   //-- NTS / Tcp / Tx Data Interfaces (.i.e NTS<-->TARS)
@@ -180,10 +180,10 @@ module TcpApplicationRegisterSlice
   output[ 15:0]  soNTS_Tcp_LsnReq_tdata,   
   output         soNTS_Tcp_LsnReq_tvalid,
   input          soNTS_Tcp_LsnReq_tready,
-  //----  Axis4-Stream TCP Listen Ack --------
-  input  [  7:0] siNTS_Tcp_LsnAck_tdata,
-  input          siNTS_Tcp_LsnAck_tvalid,
-  output         siNTS_Tcp_LsnAck_tready
+  //----  Axis4-Stream TCP Listen Rep --------
+  input  [  7:0] siNTS_Tcp_LsnRep_tdata,
+  input          siNTS_Tcp_LsnRep_tvalid,
+  output         siNTS_Tcp_LsnRep_tready
 
 );  // End of PortList
 
@@ -355,17 +355,17 @@ module TcpApplicationRegisterSlice
    .m_axis_tready  (soNTS_Tcp_LsnReq_tready)
  );
   
- AxisRegisterSlice_8 NTS_APP_Tcp_LsnAck (
+ AxisRegisterSlice_8 NTS_APP_Tcp_LsnRep (
   .aclk           (piClk),
   .aresetn        (~piRst),
   //-- From NTS ----------------------
-  .s_axis_tdata   (siNTS_Tcp_LsnAck_tdata),
-  .s_axis_tvalid  (siNTS_Tcp_LsnAck_tvalid),
-  .s_axis_tready  (siNTS_Tcp_LsnAck_tready),
+  .s_axis_tdata   (siNTS_Tcp_LsnRep_tdata),
+  .s_axis_tvalid  (siNTS_Tcp_LsnRep_tvalid),
+  .s_axis_tready  (siNTS_Tcp_LsnRep_tready),
   //-- To APP ------------------------
-  .m_axis_tdata   (soAPP_Tcp_LsnAck_tdata),
-  .m_axis_tvalid  (soAPP_Tcp_LsnAck_tvalid),
-  .m_axis_tready  (soAPP_Tcp_LsnAck_tready)
+  .m_axis_tdata   (soAPP_Tcp_LsnRep_tdata),
+  .m_axis_tvalid  (soAPP_Tcp_LsnRep_tvalid),
+  .m_axis_tready  (soAPP_Tcp_LsnRep_tready)
 ); 
 
 endmodule

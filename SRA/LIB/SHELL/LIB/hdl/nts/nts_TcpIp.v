@@ -256,9 +256,9 @@ module NetworkTransportStack_TcpIp (
   input          siAPP_Tcp_LsnReq_tvalid,
   output         siAPP_Tcp_LsnReq_tready,
   //----  Axi4-Stream TCP Listen Ack --------
-  output [  7:0] soAPP_Tcp_LsnAck_tdata,  // AckBit stream must be 8-bits boundary
-  output         soAPP_Tcp_LsnAck_tvalid,
-  input          soAPP_Tcp_LsnAck_tready,
+  output [  7:0] soAPP_Tcp_LsnRep_tdata,  // RepBit stream must be 8-bits boundary
+  output         soAPP_Tcp_LsnRep_tvalid,
+  input          soAPP_Tcp_LsnRep_tready,
  
   //------------------------------------------------------
   //-- MMIO / Interfaces
@@ -651,66 +651,65 @@ module NetworkTransportStack_TcpIp (
     //-- TAIF / TCP Rx Data Interfaces
     //------------------------------------------------------
     //-- To   APP / TCP Data Notification
-    .soTRIF_Notif_TDATA        (soAPP_Tcp_Notif_tdata),
-    .soTRIF_Notif_TVALID       (soAPP_Tcp_Notif_tvalid),  
-    .soTRIF_Notif_TREADY       (soAPP_Tcp_Notif_tready),
+    .soTAIF_Notif_TDATA        (soAPP_Tcp_Notif_tdata),
+    .soTAIF_Notif_TVALID       (soAPP_Tcp_Notif_tvalid),  
+    .soTAIF_Notif_TREADY       (soAPP_Tcp_Notif_tready),
     //-- From APP / TCP Data Read Request
-    .siTRIF_DReq_TDATA         (siAPP_Tcp_DReq_tdata),
-    .siTRIF_DReq_TVALID        (siAPP_Tcp_DReq_tvalid),
-    .siTRIF_DReq_TREADY        (siAPP_Tcp_DReq_tready),
+    .siTAIF_DReq_TDATA         (siAPP_Tcp_DReq_tdata),
+    .siTAIF_DReq_TVALID        (siAPP_Tcp_DReq_tvalid),
+    .siTAIF_DReq_TREADY        (siAPP_Tcp_DReq_tready),
     //-- To   APP (via ARS4) / TCP Data Stream
-    .soTRIF_Data_TDATA         (soAPP_Tcp_Data_tdata),
-    .soTRIF_Data_TKEEP         (soAPP_Tcp_Data_tkeep),
-    .soTRIF_Data_TLAST         (soAPP_Tcp_Data_tlast),
-    .soTRIF_Data_TVALID        (soAPP_Tcp_Data_tvalid),
-    .soTRIF_Data_TREADY        (soAPP_Tcp_Data_tready),
+    .soTAIF_Data_TDATA         (soAPP_Tcp_Data_tdata),
+    .soTAIF_Data_TKEEP         (soAPP_Tcp_Data_tkeep),
+    .soTAIF_Data_TVALID        (soAPP_Tcp_Data_tvalid),
+    .soTAIF_Data_TREADY        (soAPP_Tcp_Data_tready),
     //-- To   APP (via ARS4) / TCP Metadata   _Rol_
-    .soTRIF_Meta_TDATA         (soAPP_Tcp_Meta_tdata),
-    .soTRIF_Meta_TVALID        (soAPP_Tcp_Meta_tvalid),
-    .soTRIF_Meta_TREADY        (soAPP_Tcp_Meta_tready),
+    .soTAIF_Meta_TDATA         (soAPP_Tcp_Meta_tdata),
+    .soTAIF_Meta_TVALID        (soAPP_Tcp_Meta_tvalid),
+    .soTAIF_Meta_TREADY        (soAPP_Tcp_Meta_tready),
     //------------------------------------------------------
     //-- TAIF / TCP Rx Ctrl Interfaces
     //------------------------------------------------------
     //-- From APP / TCP Listen Port Request
-    .siTRIF_LsnReq_TDATA       (siAPP_Tcp_LsnReq_tdata),
-    .siTRIF_LsnReq_TVALID      (siAPP_Tcp_LsnReq_tvalid),
-    .siTRIF_LsnReq_TREADY      (siAPP_Tcp_LsnReq_tready),
+    .siTAIF_LsnReq_TDATA       (siAPP_Tcp_LsnReq_tdata),
+    .siTAIF_LsnReq_TVALID      (siAPP_Tcp_LsnReq_tvalid),
+    .siTAIF_LsnReq_TREADY      (siAPP_Tcp_LsnReq_tready),
     //-- To   APP / TCP Listen Port Ack
-    .soTRIF_LsnAck_TDATA       (soAPP_Tcp_LsnAck_tdata),
-    .soTRIF_LsnAck_TVALID      (soAPP_Tcp_LsnAck_tvalid),
-    .soTRIF_LsnAck_TREADY      (soAPP_Tcp_LsnAck_tready),
+    .soTAIF_LsnRep_TDATA       (soAPP_Tcp_LsnRep_tdata),
+    .soTAIF_LsnRep_TVALID      (soAPP_Tcp_LsnRep_tvalid),
+    .soTAIF_LsnRep_TREADY      (soAPP_Tcp_LsnRep_tready),
     //------------------------------------------------------
     //-- TAIF / TCP Tx Data Flow Interfaces
     //------------------------------------------------------
     //-- From APP (via ARS5) / TCP Data Stream
-    .siTRIF_Data_TDATA         (siAPP_Tcp_Data_tdata),
-    .siTRIF_Data_TKEEP         (siAPP_Tcp_Data_tkeep),
-    .siTRIF_Data_TLAST         (siAPP_Tcp_Data_tlast),
-    .siTRIF_Data_TVALID        (siAPP_Tcp_Data_tvalid),
-    .siTRIF_Data_TREADY        (siAPP_Tcp_Data_tready),
+    .siTAIF_Data_TDATA         (siAPP_Tcp_Data_tdata),
+    .siTAIF_Data_TKEEP         (siAPP_Tcp_Data_tkeep),
+    .siTAIF_Data_TLAST         (siAPP_Tcp_Data_tlast),
+    .siTAIF_Data_TVALID        (siAPP_Tcp_Data_tvalid),
+    .siTAIF_Data_TREADY        (siAPP_Tcp_Data_tready),
     //-- From APP (via ARS5) / TCP Metadata
-    .siTRIF_Meta_TDATA         (siAPP_Tcp_Meta_tdata),
-    .siTRIF_Meta_TVALID        (siAPP_Tcp_Meta_tvalid),
-    .siTRIF_Meta_TREADY        (siAPP_Tcp_Meta_tready),
+    .siTAIF_Meta_TDATA         (siAPP_Tcp_Meta_tdata),
+    .siTAIF_Meta_TVALID        (siAPP_Tcp_Meta_tvalid),
+    .siTAIF_Meta_TREADY        (siAPP_Tcp_Meta_tready),
     //-- To  APP / TCP Data Write Status
-    .soTRIF_DSts_TDATA         (soAPP_Tcp_DSts_tdata),
-    .soTRIF_DSts_TVALID        (soAPP_Tcp_DSts_tvalid),
-    .soTRIF_DSts_TREADY        (soAPP_Tcp_DSts_tready),
+    .soTAIF_DSts_TDATA         (soAPP_Tcp_DSts_tdata),
+    .soTAIF_DSts_TVALID        (soAPP_Tcp_DSts_tvalid),
+    .soTAIF_DSts_TREADY        (soAPP_Tcp_DSts_tready),
     //------------------------------------------------------
     //-- APP / TRIF / TCP Tx Ctrl Flow Interfaces
     //------------------------------------------------------
     //-- From ROLE / TCP Open Session Request
-    .siTRIF_OpnReq_TDATA       (siAPP_Tcp_OpnReq_tdata),
-    .siTRIF_OpnReq_TVALID      (siAPP_Tcp_OpnReq_tvalid),
-    .siTRIF_OpnReq_TREADY      (siAPP_Tcp_OpnReq_tready),
+    .siTAIF_OpnReq_TDATA       (siAPP_Tcp_OpnReq_tdata),
+    .siTAIF_OpnReq_TVALID      (siAPP_Tcp_OpnReq_tvalid),
+    .siTAIF_OpnReq_TREADY      (siAPP_Tcp_OpnReq_tready),
     //-- To   ROLE / TCP Open Session Reply
-    .soTRIF_OpnRep_TREADY      (soAPP_Tcp_OpnRep_tready),
-    .soTRIF_OpnRep_TDATA       (soAPP_Tcp_OpnRep_tdata),
-    .soTRIF_OpnRep_TVALID      (soAPP_Tcp_OpnRep_tvalid),
+    .soTAIF_OpnRep_TDATA       (soAPP_Tcp_OpnRep_tdata),
+    .soTAIF_OpnRep_TVALID      (soAPP_Tcp_OpnRep_tvalid),
+    .soTAIF_OpnRep_TREADY      (soAPP_Tcp_OpnRep_tready),
     //-- From ROLE / TCP Close Session Request
-    .siTRIF_ClsReq_TDATA       (siAPP_Tcp_ClsReq_tdata),
-    .siTRIF_ClsReq_TVALID      (siAPP_Tcp_ClsReq_tvalid),
-    .siTRIF_ClsReq_TREADY      (siAPP_Tcp_ClsReq_tready),
+    .siTAIF_ClsReq_TDATA       (siAPP_Tcp_ClsReq_tdata),
+    .siTAIF_ClsReq_TVALID      (siAPP_Tcp_ClsReq_tvalid),
+    .siTAIF_ClsReq_TREADY      (siAPP_Tcp_ClsReq_tready),
     //-- To   ROLE / TCP Close Session Status
     // [FIXME-TODO]
     //------------------------------------------------------
@@ -796,14 +795,11 @@ module NetworkTransportStack_TcpIp (
     .siCAM_SssUpdRep_TVALID    (ssCAM_TOE_UpdRpl_tvalid),
     .siCAM_SssUpdRep_TREADY    (ssCAM_TOE_UpdRpl_tready),
     //------------------------------------------------------
-    //-- To DEBUG / Session Statistics Interfaces
+    //-- DEBUG / Not Used
     //------------------------------------------------------
     .poDBG_SssRelCnt_V         (),
-    .poDBG_SssRegCnt_V         (),
-    //------------------------------------------------------
-    //-- To DEBUG / Simulation Counter Interfaces
-    //------------------------------------------------------
-    .poSimCycCount_V           ()
+    .poDBG_SssRegCnt_V         ()
+    // .poSimCycCount_V        ()
   );  // End of TOE
   
   //============================================================================
@@ -813,7 +809,7 @@ module NetworkTransportStack_TcpIp (
 
 `ifndef USE_FAKE_CAM
  
-  ToeCam CAM (
+  ToeCam RTLCAM (
    .piClk                        (piShlClk),
    .piRst_n                      (~piMMIO_Layer4Rst),
    //--
@@ -847,7 +843,7 @@ module NetworkTransportStack_TcpIp (
   
 `else
  
-  ContentAddressableMemory CAM (
+  ContentAddressableMemory HLSCAM (
     .aclk                         (piShlClk),
     .aresetn                      (~piMMIO_Layer4Rst),
     //-- 

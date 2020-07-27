@@ -32,6 +32,7 @@
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
+#include "AxisUdp.hpp"
 
 
 /*******************************************************************************
@@ -232,17 +233,17 @@ class SimUdpDatagram {
      *        +--------+--------+--------+--------+
      *
      * @Warning The checksum is computed on the double-ended queue which
-     *    holds the UDP chuncks in little-endian order (see AxisUdp) !
+     *    holds the UDP chunks in little-endian order (see AxisUdp) !
      *
      * @return the computed checksum.
      **********************************************************************/
-    UdpCsum calculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+    UdpCsum calculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa) {
         ap_uint<32> csum = 0;
         csum += byteSwap16(ipSa(31, 16));  // Set IP_SA in LE
         csum += byteSwap16(ipSa(15,  0));
         csum += byteSwap16(ipDa(31, 16));  // Set IP_DA in LE
         csum += byteSwap16(ipDa(15,  0));
-        csum += byteSwap16(ap_uint<16>(ipProt));
+        csum += byteSwap16(ap_uint<16>(IP4_PROT_UDP));
         csum += byteSwap16(this->getUdpLength());
         for (int i=0; i<this->size(); ++i) {
             LE_tData tempInput = 0;
@@ -285,9 +286,9 @@ class SimUdpDatagram {
      *
      * @return the computed checksum.
      **********************************************************************/
-    UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa, Ip4Prot ipProt) {
+    UdpCsum reCalculateUdpChecksum(Ip4Addr ipSa, Ip4Addr ipDa) {
         this->setUdpChecksum(0x0000);
-        UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa, ipProt);
+        UdpCsum newUdpCsum = calculateUdpChecksum(ipSa, ipDa);
         // Overwrite the former UDP checksum
         this->setUdpChecksum(newUdpCsum);
         return (newUdpCsum);
@@ -312,7 +313,7 @@ class SimUdpDatagram {
         }
         // Assess the checksum is valid (or 0x0000)
         UdpCsum udpHCsum = this->getUdpChecksum();
-        UdpCsum calcCsum = this->reCalculateUdpChecksum(ipSa, ipDa, UDP_PROTOCOL);
+        UdpCsum calcCsum = this->reCalculateUdpChecksum(ipSa, ipDa);
         if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
             // UDP datagram comes with an invalid checksum
             printWarn(callerName, "Malformed UDP datagram: 'Checksum' field does not match the checksum of the pseudo-packet.\n");

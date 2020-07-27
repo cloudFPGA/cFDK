@@ -26,13 +26,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*******************************************************************************
  * @file       : iptx.hpp
- * @brief      : IP Transmitter packet handler (IPTX).
+ * @brief      : IP Transmitter packet handler (IPTX)
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_IPTX
+ * \ingroup NTS
  * \addtogroup NTS_IPTX
  * \{
  *******************************************************************************/

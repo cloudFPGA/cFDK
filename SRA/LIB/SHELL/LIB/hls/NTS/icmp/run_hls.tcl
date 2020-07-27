@@ -7,7 +7,6 @@
 # * 
 # * Description : A Tcl script for the HLS batch syhthesis of the ICMP server
 # *   process used by the SHELL of the cloudFPGA module.
-# *   project.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -118,6 +117,7 @@ if { $hlsCSim} {
     puts "#############################################################" 
 }
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} {
@@ -129,6 +129,7 @@ if { $hlsCSynth} {
     puts "#############################################################"
 }
 
+#-------------------------------------------------
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {

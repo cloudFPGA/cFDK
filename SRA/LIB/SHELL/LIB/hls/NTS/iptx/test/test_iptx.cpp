@@ -43,7 +43,7 @@ using namespace std;
 #define TRACE_ARP   1 <<  2
 #define TRACE_ALL    0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief Increment the simulation counter
@@ -271,7 +271,7 @@ int createGoldenFile(
                         printWarn(THIS_NAME, "Failed to verify the TCP checksum of Frame #%d.\n", inpPackets);
                     }
                     break;
-                case UDP_PROTOCOL:
+                case IP4_PROT_UDP:
                     if (not ipPacket.udpVerifyChecksum()) {
                         printWarn(THIS_NAME, "Failed to verify the UDP checksum of Frame #%d.\n", inpPackets);
                     }

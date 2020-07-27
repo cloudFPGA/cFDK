@@ -41,7 +41,7 @@ using namespace std;
 #define TRACE_OFF    0x0000
 #define TRACE_CGF    1 << 1
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief Increment the simulation counter
@@ -215,7 +215,7 @@ int createGoldenFiles(EthAddr myMacAddress,
                                 break;
                             default:
                                 printError(myName, "Unknown IP protocol #%d.\n",
-                                           ipPacket.getIpProtocol().to_int());
+                                           ipPacket.getIpProtocol());
                                 rc = NTS_KO;
                             }
                         }

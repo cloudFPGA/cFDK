@@ -32,7 +32,6 @@
 
 using namespace std;
 
-
 /*******************************************************************************
  * DEBUG PRINT HELPERS
  *******************************************************************************/
@@ -57,7 +56,7 @@ void printAxisRaw(const char *callerName, AxisRaw chunk) {
  * @param[in] chunk       The data stream chunk to display.
  *******************************************************************************/
 void printAxisRaw(const char *callerName, const char *message, AxisRaw chunk) {
-    printInfo(callerName, "%s AxisRaw = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n", \
+    printInfo(callerName, "%s {D=0x%16.16lX, K=0x%2.2X, L=%d} \n", \
               message, chunk.getLE_TData().to_ulong(), chunk.getLE_TKeep().to_int(), chunk.getLE_TLast().to_int());
 }
 
@@ -130,7 +129,6 @@ void printSockPair(const char *callerName, SocketPair sockPair) {
        sockPair.dst.port.to_uint());
 }
 
-
 /*******************************************************************************
  * @brief Print a socket pair association.
  *
@@ -154,39 +152,6 @@ void printSockPair(const char *callerName, LE_SocketPair leSockPair) {
         (byteSwap32(leSockPair.dst.addr).to_uint() & 0x000000FF) >>  0,
          byteSwap16(leSockPair.dst.port).to_uint());
 }
-
-/*******************************************************************************
- * @brief Print a socket pair association from an internal FourTuple encoding.
- *
- * @param[in] callerName The name of the caller process (e.g. "TAi").
- * @param[in] source     The source of the internal 4-tuple information.
- * @param[in] fourTuple  The internal 4-tuple encoding of the socket pair.
- ******************************************************************************/
-/*** [TODO - Move this function into test_toe.cpp] *******
-void printSockPair(const char *callerName, int src, SLcFourTuple fourTuple)
-{
-    SocketPair socketPair;
-
-    switch (src) {
-        case FROM_RXe:
-            socketPair.src.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.src.port = byteSwap16(fourTuple.theirPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.myIp);
-            socketPair.dst.port = byteSwap16(fourTuple.myPort);
-            break;
-        case FROM_TAi:
-            socketPair.src.addr = byteSwap32(fourTuple.myIp);
-            socketPair.src.port = byteSwap16(fourTuple.myPort);
-            socketPair.dst.addr = byteSwap32(fourTuple.theirIp);
-            socketPair.dst.port = byteSwap16(fourTuple.theirPort);
-            break;
-        default:
-            printFatal(callerName, "Unknown request source %d.\n", src);
-            break;
-    }
-    printSockPair(callerName, socketPair);
-}
-**** [TODO - Move this function into test_toe.cpp] *******/
 
 /*******************************************************************************
  * @brief Print a socket address encoded in LITTLE_ENDIAN order.
@@ -295,6 +260,41 @@ void printTcpPort(const char *callerName, TcpPort tcpPort) {
 }
 
 /*******************************************************************************
+ * ENUM TO STRING HELPERS
+ *******************************************************************************/
+
+/*******************************************************************************
+ * @brief Returns the name of an enum-based TCP-State as a user friendly string.
+ *
+ * @param[in]   tcpState  An enumerated type of TCP state.
+ * @returns the TCP state type as a string.
+ *******************************************************************************/
+const char *getTcpStateName(TcpState tcpState) {
+    switch (tcpState) {
+    case CLOSED:
+        return "CLOSED";
+    case SYN_SENT:
+        return "SYN_SENT";
+    case SYN_RECEIVED:
+        return "SYN_RECEIVED";
+    case ESTABLISHED:
+        return "ESTABLISHED";
+    case FIN_WAIT_1:
+        return "FIN_WAIT_1";
+    case FIN_WAIT_2:
+        return "FIN_WAIT_2";
+    case CLOSING:
+        return "CLOSING";
+    case TIME_WAIT:
+        return "TIME_WAIT";
+    case LAST_ACK:
+        return "LAST_ACK";
+    default:
+        return "ERROR: UNKNOWN TCP STATE!";
+    }
+}
+
+/*******************************************************************************
  * AXIS CHUNK HELPERS
  *******************************************************************************/
 
@@ -347,6 +347,7 @@ tKeep lenTotKeep(ap_uint<4> noValidBytes) {
  * @param[in]  The 'tkeep' field of the AxisRaw.
  * @return  The number of '1s' that are set (.i.e, the number of valid bytes).
  *******************************************************************************/
+/*** OBSOLETE_20200711 *** (use getLen() instead) ***
 ap_uint<4> keepToLen(ap_uint<8> keepValue) {
     ap_uint<4> count = 0;
     switch(keepValue){
@@ -361,6 +362,7 @@ ap_uint<4> keepToLen(ap_uint<8> keepValue) {
     }
     return count;
 }
+****************************/
 
 /*******************************************************************************
  * @brief Swap the two bytes of a word (.i.e, 16 bits).

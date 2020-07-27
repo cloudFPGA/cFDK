@@ -30,7 +30,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *               transmitted over an AXI4-Stream interface.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  *----------------------------------------------------------------------------
@@ -71,10 +71,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  |                                                             Data                                                              |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
+ * \ingroup NTS
+ * \addtogroup NTS
+ * \{
  *****************************************************************************/
 
-#ifndef AXIS_TCP_H_
-#define AXIS_TCP_H_
+#ifndef _AXIS_TCP_H_
+#define _AXIS_TCP_H_
 
 #include "AxisRaw.hpp"
 
@@ -94,6 +97,7 @@ typedef ap_uint<16> LE_TcpDstPort;  // TCP Destination Port from the MAC
 typedef ap_uint<16> LE_TcpPort;     // TCP Source or Destination Port from the MAC
 typedef ap_uint<32> LE_TcpSeqNum;   // TCP Sequence Number from the MAC
 typedef ap_uint<32> LE_TcpAckNum;   // TCP Acknowledgment Number from the MAC
+typedef ap_uint<3>  LE_TcpResBits;  // TCP Reserved Bits from the MAC
 typedef ap_uint<4>  LE_TcpDataOff;  // TCP Data Offset from the MAC
 typedef ap_uint<6>  LE_TcpCtrlBits; // TCP Control Bits from the MAC
 typedef ap_uint<16> LE_TcpWindow;   // TCP Window from the MAC
@@ -110,15 +114,17 @@ typedef ap_uint<16> TcpDstPort;     // TCP Destination Port
 typedef ap_uint<16> TcpPort;        // TCP Source or Destination Port Number
 typedef ap_uint<32> TcpSeqNum;      // TCP Sequence Number
 typedef ap_uint<32> TcpAckNum;      // TCP Acknowledge Number
+typedef ap_uint<3>  TcpResBits;     // TCP Reserved Bits
 typedef ap_uint<4>  TcpDataOff;     // TCP Data Offset
 typedef ap_uint<6>  TcpCtrlBits;    // TCP Control Bits
 typedef ap_uint<1>  TcpCtrlBit;     // TCP Control Bit
 typedef ap_uint<16> TcpWindow;      // TCP Window
 typedef ap_uint<16> TcpChecksum;    // TCP Checksum
-typedef ap_uint<16> TcpCSum;        // TCP Checksum (alias for TcpChecksum)
+typedef ap_uint<16> TcpCsum;        // TCP Checksum (alias for TcpChecksum)
 typedef ap_uint<16> TcpUrgPtr;      // TCP Urgent Pointer
 
 typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
+typedef ap_uint< 8> TcpOptLen ;     // TCP Option Length
 typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
 
 typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
@@ -126,7 +132,7 @@ typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
 /*********************************************************
- * TCP Data over AXI4-STREAMING
+ * TCP Data over AXI4-STREAM
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
  *********************************************************/
 class AxisTcp: public AxisRaw {
@@ -140,26 +146,31 @@ class AxisTcp: public AxisRaw {
     AxisTcp(const AxisTcp &axisTcp) :
         AxisRaw(axisTcp.tdata, axisTcp.tkeep, axisTcp.tlast) {}
 
-    // Set-Get the TCP Source Port
+    // Set the TCP Source Port
     void          setTcpSrcPort(TcpPort port)   {                  tdata.range(15,  0) = swapWord(port);  }
+    // Get the TCP Source Port
     TcpPort       getTcpSrcPort()               { return swapWord (tdata.range(15,  0));                  }
     LE_TcpPort getLE_TcpSrcPort()               {           return tdata.range(15,  0) ;                  }
 
-    // Set-Get the TCP Destination Port
+    // Set the TCP Destination Port
     void          setTcpDstPort(TcpPort port)   {                  tdata.range(31, 16) = swapWord(port);  }
+    // Get the TCP Destination Port
     TcpPort       getTcpDstPort()               { return swapWord (tdata.range(31, 16));                  }
     LE_TcpPort getLE_TcpDstPort()               {           return tdata.range(31, 16);                   }
 
-    // Set-Get the TCP Sequence Number
+    // Set the TCP Sequence Number
     void       setTcpSeqNum(TcpSeqNum num)      {                  tdata.range(63, 32) = swapDWord(num);  }
+    // Get the TCP Sequence Number
     TcpSeqNum  getTcpSeqNum()                   { return swapDWord(tdata.range(63, 32));                  }
 
-    // Set-Get the TCP Acknowledgment Number
+    // Set the TCP Acknowledgment Number
     void       setTcpAckNum(TcpAckNum num)      {                  tdata.range(31,  0) = swapDWord(num);  }
+    // Get the TCP Acknowledgment Number
     TcpAckNum  getTcpAckNum()                   { return swapDWord(tdata.range(31,  0));                  }
 
-    // Set-Get the TCP Data Offset
+    // Set the TCP Data Offset
     void       setTcpDataOff(TcpDataOff offset) {                  tdata.range(39, 36) = offset;          }
+    // Get the TCP Data Offset
     TcpDataOff getTcpDataOff()                  { return           tdata.range(39, 36);                   }
 
     // Set-Get the TCP Control Bits
@@ -176,22 +187,28 @@ class AxisTcp: public AxisRaw {
     void setTcpCtrlUrg(TcpCtrlBit bit)          {                  tdata.bit(45) = bit;                   }
     TcpCtrlBit getTcpCtrlUrg()                  {           return tdata.bit(45);                         }
 
-    // Set-Get the TCP Window
+    // Set the TCP Window
     void        setTcpWindow(TcpWindow win)     {                  tdata.range(63, 48) = swapWord(win);   }
+    // Get the TCP Window
     TcpWindow   getTcpWindow()                  { return swapWord (tdata.range(63, 48));                  }
 
-    // Set-Get the TCP Checksum
+    // Set the TCP Checksum
     void        setTcpChecksum(TcpChecksum csum){                  tdata.range(15,  0) = swapWord(csum);                   }
+    // Get the TCP Checksum
     TcpChecksum getTcpChecksum()                { return swapWord (tdata.range(15,  0));                  }
 
-    // Set-Get the TCP Urgent Pointer
+    // Set the TCP Urgent Pointer
     void        setTcpUrgPtr(TcpUrgPtr ptr)     {                  tdata.range(31, 16) = swapWord(ptr);   }
+    // Get the TCP Urgent Pointer
     TcpUrgPtr   getTcpUrgPtr()                  { return swapWord (tdata.range(31, 16));                  }
 
-    // Set-Get the TCP Options
+    // Set the TCP Option Kind
     void        setTcpOptKind(TcpOptKind val)   {                  tdata.range(39, 32);                   }
+    // Get the TCP Option Kind
     TcpOptKind  getTcpOptKind()                 { return           tdata.range(39, 32);                   }
+    // Set the TCP Maximum Segment Size Option
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(63, 48);                   }
+    // Get the TCP Maximum Segment Size Option
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(63, 48));                  }
 
   private:
@@ -208,3 +225,5 @@ class AxisTcp: public AxisRaw {
 }; // End of: AxisTcp
 
 #endif
+
+/*! \} */
