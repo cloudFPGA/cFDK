@@ -51,17 +51,17 @@ fi
 echo "<$0> ================================================================"
 echo "<$0> ===   START OF REGRESSION "
 echo "<$0> ================================================================"
-cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine
+cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine
 make clean
 make cosim
 exit_on_error $? 
 
-cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine
+cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine
 make clean
 make cosim
 exit_on_error $? 
 
-cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls
+cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS
 make cosim
 exit_on_error $? 
 echo "<$0> ================================================================"
