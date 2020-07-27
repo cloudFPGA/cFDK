@@ -30,9 +30,19 @@
 #ifndef _SIM_TCP_SEGMENT_
 #define _SIM_TCP_SEGMENT_
 
+//OBSOLETE #include <stdlib.h>
+//OBSOLETE #include <unistd.h>
+#include <iostream>
+#include <iomanip>
+//OBSOLETE #include <fstream>
+#include <deque>
+
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
 #include "AxisTcp.hpp"
+
+using namespace std;
+using namespace hls;
 
 /*******************************************************************************
  * @brief Class TCP Datagram.
@@ -148,6 +158,8 @@ class SimTcpSegment {
     /**************************************************************************
      * @brief Clone the header of a TCP segment.
      * @param[in]  tcpSeg  A reference to the segment to clone.
+     *
+     * [FIXME - Works only for a default header of 20 bytes]
      **************************************************************************/
     void cloneHeader(SimTcpSegment &tcpSeg) {
         int cloneBytes = TCP_HEADER_LEN; // in bytes
@@ -169,15 +181,18 @@ class SimTcpSegment {
     /**************************************************************************
      * @brief Pull the header of this segment.
      * @return the segment header as a 'SimTcpSegment'.
+     *
+     * [FIXME - Works only for a default header of 20 bytes]
      **************************************************************************/
+  /*** OBSOLETE_20200727 ***
     SimTcpSegment pullHeader() {
         SimTcpSegment headerAsSegment;
-        AxisTcp headerChunk = this->front();
-        this->pop_front();
-        setLen(getLen() - headerChunk.getLen());
-        headerAsSegment.pushChunk(headerChunk);
+        headerAsSegment.pushChunk(this.pull());  // 8 bytes
+        headerAsSegment.pushChunk(this.pull());  // 8 bytes
+        TcpAxisApp headerAsSegment.pushChunk(this.pull());
         return headerAsSegment;
     }
+  *************************/
 
     // Set the TCP Source Port field
     void        setTcpSourcePort(TcpPort port)        {        segQ[0].setTcpSrcPort(port);   }
@@ -232,8 +247,13 @@ class SimTcpSegment {
     void        setTcpOptionMss(TcpOptMss val)        {        segQ[2].setTcpOptMss(val);     }
     TcpOptMss   getTcpOptionMss()                     { return segQ[2].getTcpOptMss();        }
 
-    // Append data payload to a TCP header
-    void addUdpPayload(string pldStr) {
+    /**************************************************************************
+     * @brief Append data payload to a TCP header.
+     * @param[in]  pldStr  The payload to add as a string.
+     *
+     * [FIXME - Works only for a default header of 20 bytes]
+     **************************************************************************/
+    void addTcpPayload(string pldStr) {
         if (this->getLen() != TCP_HEADER_LEN) {
             printFatal(this->myName, "Empty segment is expected to be of length %d bytes (was found to be %d bytes).\n",
                        TCP_HEADER_LEN, this->getLen());
@@ -270,7 +290,7 @@ class SimTcpSegment {
             currChunk.setLE_TLast(0);
             b = 0;
         }
-    }  // End-of: addUdpPayload
+    }  // End-of: addTcpPayload
 
     /**********************************************************************
      * @brief Calculate the TCP checksum of the segment.
@@ -350,6 +370,84 @@ class SimTcpSegment {
         // Overwrite the former TCP checksum
         this->setTcpChecksum(newTcpCsum);
         return (newTcpCsum);
+    }
+
+    /**************************************************************************
+     * @brief Checks if the segment header fields are  properly set.
+     * @param[in] callerName  The name of the calling function or process.
+     * @param[in] ipSa        The IP source address.
+     * @param[in] ipDa        The IP destination address.
+     *
+     * @return true if the cheksum field is valid.
+     **************************************************************************/
+    bool isWellFormed(const char *callerName, Ip4Addr ipSa, Ip4Addr ipDa) {
+        bool rc = true;
+        // Assess the checksum is valid (or 0xDEAD)
+        TcpCsum tcpCsum = this->getTcpChecksum();
+        TcpCsum calcCsum = this->reCalculateTcpChecksum(ipSa, ipDa, (Ip4DatLen)this->getLen());
+        if ((tcpCsum != 0xDEAD) and (tcpCsum != calcCsum)) {
+            // TCP segment comes with an invalid checksum
+            printWarn(callerName, "Malformed TCP segment: 'Checksum' field does not match the checksum of the pseudo-packet.\n");
+            printWarn(callerName, "\tFound 'Checksum' field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                      tcpCsum.to_uint(), calcCsum.to_ushort());
+            rc = false;
+        }
+       return rc;
+    }
+
+    /***********************************************************************
+     * @brief Dump an AxisTcp chunk to a file.
+     * @param[in] axisTcp        A pointer to the AxisTcp chunk to write.
+     * @param[in] outFileStream  A reference to the file stream to write.
+     * @return true upon success, otherwise false.
+     ***********************************************************************/
+    bool writeAxisTcpToFile(AxisTcp &axisTcp, ofstream &outFileStream) {
+        if (!outFileStream.is_open()) {
+            printError(myName, "File is not opened.\n");
+            return false;
+        }
+        //OBSOLETE_202020727 AxisRaw axisRaw(axisTcp->getLE_TData(), axisTcp->getLE_TKeep(), axisTcp->getLE_TLast());
+        //OBSOLETE_202020727 bool rc = writeAxisRawToFile(axisRaw, outFileStream);
+        outFileStream << std::uppercase;
+        outFileStream << hex << noshowbase << setfill('0') << setw(16) << axisTcp.getLE_TData().to_uint64();
+        outFileStream << " ";
+        outFileStream << setw(1)  << axisTcp.getLE_TLast().to_int();
+        outFileStream << " ";
+        outFileStream << hex << noshowbase << setfill('0') << setw(2)  << axisTcp.getLE_TKeep().to_int() << "\n";
+        if (axisTcp.getLE_TLast()) {
+            outFileStream << "\n";
+        }
+        return(true);
+    }
+
+    /***********************************************************************
+     * @brief Dump this TCP segment as raw AxisTcp chunks into a file.
+     * @param[in] outFileStream  A reference to the file stream to write.
+     * @return true upon success, otherwise false.
+     ***********************************************************************/
+    bool writeToDatFile(ofstream  &outFileStream) {
+        for (int i=0; i < this->size(); i++) {
+            AxisTcp axisTcp = this->segQ[i];
+            if (not this->writeAxisTcpToFile(axisTcp, outFileStream)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /***********************************************************************
+     * @brief Dump the payload of this segment as AxisTcp chunks into a file.
+     * @param[in] outFileStream  A reference to the file stream to write.
+     * @return true upon success, otherwise false.
+     ***********************************************************************/
+    bool writePayloadToDatFile(ofstream  &outFileStream) {
+        for (int i=1; i < this->size(); i++) {
+            AxisTcp axisWord = this->segQ[i];
+            if (not this->writeAxisTcpToFile(axisWord, outFileStream)) {
+                return false;
+            }
+        }
+        return true;
     }
 
 };  // End-of: SimTcpSegment

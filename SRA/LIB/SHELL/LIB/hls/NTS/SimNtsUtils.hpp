@@ -41,10 +41,6 @@
 #include "../NTS/nts_utils.hpp"
 #include "../NTS/SimNtsUtils.hpp"
 #include "../NTS/AxisApp.hpp"
-//#include "AxisArp.hpp"
-//#include "../../AxisEth.hpp"
-//#include "../../AxisIp4.hpp"
-//#include "../../AxisIcmp.hpp"
 
 using namespace std;
 
