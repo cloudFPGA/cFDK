@@ -11,7 +11,7 @@
 # ******************************************************************************
 
 
-.PHONY: all arp clean cam icmp iprx iptx rlb toe uoe 
+.PHONY: all arp clean cam icmp iprx iptx rlb toe toecam uoe 
 
 all:   arp       icmp       iprx       iptx       rlb       toe       toecam       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
