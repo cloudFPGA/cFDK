@@ -661,6 +661,7 @@ module NetworkTransportStack_TcpIp (
     //-- To   APP (via ARS4) / TCP Data Stream
     .soTAIF_Data_TDATA         (soAPP_Tcp_Data_tdata),
     .soTAIF_Data_TKEEP         (soAPP_Tcp_Data_tkeep),
+    .soTAIF_Data_TLAST         (soAPP_Tcp_Data_tlast),
     .soTAIF_Data_TVALID        (soAPP_Tcp_Data_tvalid),
     .soTAIF_Data_TREADY        (soAPP_Tcp_Data_tready),
     //-- To   APP (via ARS4) / TCP Metadata   _Rol_

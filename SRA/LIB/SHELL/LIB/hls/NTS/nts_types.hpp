@@ -61,7 +61,7 @@ using namespace hls;
 #define KO          NTS_KO
 
 #define CMD_INIT    1
-#define CMD_DROP    1  // OBSOLETE_20200710 enum DropCmd {KEEP_CMD=false, DROP_CMD=true};
+#define CMD_DROP    1
 #define CMD_KEEP    0
 #define CMD_ENABLE  1
 #define CMD_DISABLE 0
