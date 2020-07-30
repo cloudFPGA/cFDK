@@ -601,9 +601,9 @@ module Shell_Themisto # (
   wire          ssTOE_NRC_Tcp_OpnRep_tvalid;
   wire          ssTOE_NRC_Tcp_OpnRep_tready;
   //---- Stream TCP Listen Status ------------
-  wire  [  7:0] ssTOE_NRC_Tcp_LsnAck_tdata;
-  wire          ssTOE_NRC_Tcp_LsnAck_tvalid;
-  wire          ssTOE_NRC_Tcp_LsnAck_tready;
+  wire  [  7:0] ssTOE_NRC_Tcp_LsnRep_tdata;
+  wire          ssTOE_NRC_Tcp_LsnRep_tvalid;
+  wire          ssTOE_NRC_Tcp_LsnRep_tready;
   
   // ===== Timer Broadcast =====
   wire [31:0]  sTIME_Broadcast_seconds;
@@ -1272,9 +1272,9 @@ module Shell_Themisto # (
     .siAPP_Tcp_LsnReq_tvalid          (ssNRC_TOE_Tcp_LsnReq_tvalid),
     .siAPP_Tcp_LsnReq_tready          (ssNRC_TOE_Tcp_LsnReq_tready),
     //---- Stream TCP Listen Status ------------
-    .soAPP_Tcp_LsnAck_tdata           (ssTOE_NRC_Tcp_LsnAck_tdata),
-    .soAPP_Tcp_LsnAck_tvalid          (ssTOE_NRC_Tcp_LsnAck_tvalid),
-    .soAPP_Tcp_LsnAck_tready          (ssTOE_NRC_Tcp_LsnAck_tready),
+    .soAPP_Tcp_LsnRep_tdata           (ssTOE_NRC_Tcp_LsnRep_tdata),
+    .soAPP_Tcp_LsnRep_tvalid          (ssTOE_NRC_Tcp_LsnRep_tvalid),
+    .soAPP_Tcp_LsnRep_tready          (ssTOE_NRC_Tcp_LsnRep_tready),
     
     //------------------------------------------------------
     //-- MMIO / Interfaces
@@ -1959,9 +1959,9 @@ module Shell_Themisto # (
     .soTOE_LsnReq_V_V_TDATA         (ssNRC_TOE_Tcp_LsnReq_tdata),
     .soTOE_LsnReq_V_V_TVALID        (ssNRC_TOE_Tcp_LsnReq_tvalid),
     .soTOE_LsnReq_V_V_TREADY        (ssNRC_TOE_Tcp_LsnReq_tready),
-    .siTOE_LsnAck_V_TDATA           (ssTOE_NRC_Tcp_LsnAck_tdata),
-    .siTOE_LsnAck_V_TVALID          (ssTOE_NRC_Tcp_LsnAck_tvalid),
-    .siTOE_LsnAck_V_TREADY          (ssTOE_NRC_Tcp_LsnAck_tready),
+    .siTOE_LsnRep_V_TDATA           (ssTOE_NRC_Tcp_LsnRep_tdata),
+    .siTOE_LsnRep_V_TVALID          (ssTOE_NRC_Tcp_LsnRep_tvalid),
+    .siTOE_LsnRep_V_TREADY          (ssTOE_NRC_Tcp_LsnRep_tready),
     .soTOE_Data_TDATA               (ssNRC_TOE_Tcp_Data_tdata),
     .soTOE_Data_TVALID              (ssNRC_TOE_Tcp_Data_tvalid),
     .soTOE_Data_TREADY              (ssNRC_TOE_Tcp_Data_tready),
