@@ -54,11 +54,10 @@ using namespace hls;
  *  stream of bytes received from the application layer, until the network
  *  layer consumes (.i.e read) them out and acknowledge them.
  *  The Tx buffer is managed as a circular buffer with three pointers:
- *   - 'appw' holds the sequence number +1 of the last byte written by the
- *            application layer.
- *   - 'ackd' holds the sequence number +1 of the last transmitted and
+ *   - 'appw' points to the last byte written by the application layer.
+ *   - 'ackd' holds the sequence number of the last transmitted and
  *            acknowledged byte by the network layer (aka SND.NXT),
- *   - 'unak' holds the sequence number +1 of the last transmitted but not yet
+ *   - 'unak' holds the sequence number of the last transmitted but not yet
  *            acknowledged byte by the network layer (aka SND.UNA).
  *
  *                   unak                            ackd           appw
@@ -72,8 +71,7 @@ using namespace hls;
  *******************************************************************************/
 class TxSarEntry {
   public:
-
-    TcpSeqNum       appw;
+    TxBufPtr        appw;        // Points to last written byte by APP
     TxAckNum        ackd;        // Bytes TX'ed and ACK'ed
     TxAckNum        unak;        // Bytes TX'ed but not ACK'ed
     RcvWinSize      recv_window; // Remote receiver's buffer size (their)

@@ -331,15 +331,6 @@ class StateQuery {
         sessionID(id), state(state), write(write) {}
 };
 
-/********************************************
- * Port Table (PRt)
- ********************************************/
-//OBSOLETE_20200724 NotUsed typedef bool PortState;
-//OBSOLETE_20200724 NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
-
-//OBSOLETE_20200724 NotUsed typedef bool PortRange;
-//OBSOLETE_20200724 NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
-
 //=========================================================
 //== RSt / Generic Reply
 //=========================================================
@@ -688,7 +679,6 @@ template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so);
-
 
 /*******************************************************************************
  *
