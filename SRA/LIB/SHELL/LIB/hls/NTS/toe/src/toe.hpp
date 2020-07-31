@@ -345,10 +345,10 @@ class StateQuery {
 //=========================================================
 class RxSarReply {
   public:
-     RxSeqNum    rcvd;
-     RxSeqNum    appd;
+    RxSeqNum    rcvd;
+    RxBufPtr    appd;
     RxSarReply() {}
-    RxSarReply(RxSeqNum rcvd, RxSeqNum appd) :
+    RxSarReply(RxSeqNum rcvd, RxBufPtr appd) :
         rcvd(rcvd), appd(appd) {}
 };
 
@@ -376,12 +376,12 @@ class RXeRxSarQuery {
 class RAiRxSarQuery {
   public:
     SessionId       sessionID;
-    RxSeqNum        appd;  // Next byte to be consumed by [APP]
+    RxBufPtr        appd;  // Next byte to be consumed by [APP]
     RdWrBit         write;
     RAiRxSarQuery() {}
     RAiRxSarQuery(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    RAiRxSarQuery(SessionId id, RxSeqNum appd) :
+    RAiRxSarQuery(SessionId id, RxBufPtr appd) :
         sessionID(id), appd(appd), write(1) {}
 };
 
@@ -391,9 +391,9 @@ class RAiRxSarQuery {
 class RAiRxSarReply {
   public:
     SessionId       sessionID;
-    RxSeqNum        appd;  // Next byte to be consumed by [APP]
+    RxBufPtr        appd;  // Next byte to be consumed by [APP]
     RAiRxSarReply() {}
-    RAiRxSarReply(SessionId id, RxSeqNum appd) :
+    RAiRxSarReply(SessionId id, RxBufPtr appd) :
         sessionID(id), appd(appd) {}
 };
 

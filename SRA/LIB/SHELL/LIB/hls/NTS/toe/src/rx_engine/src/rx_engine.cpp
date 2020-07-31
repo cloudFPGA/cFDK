@@ -1441,7 +1441,7 @@ void pFiniteStateMachine(
                     }
                     // Check if packet contains payload
                     if (fsm_Meta.meta.length != 0) {
-                        RxSeqNum rcvNext = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                        RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
                         // Second part makes sure that 'appd' pointer is not overtaken
 #if !(RX_DDR_BYPASS)
                         RxBufPtr free_space = ((rxSar.appd - rxSar.rcvd(15, 0)) - 1);
@@ -1452,7 +1452,7 @@ void pFiniteStateMachine(
                         if ( (fsm_meta.meta.seqNumb == rxSar.rcvd) &&
                              (rxbuffer_max_data_count - rxbuffer_data_count) > 375) { // [FIXME - Why 375?]
 #endif
-                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, rcvNext, QUERY_WR));
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
                             // Build memory address for this segment in the lower 4GB
                             RxMemPtr memSegAddr;
                             memSegAddr(31, 30) = 0x0;  // [FIXME - Make this a function of the #sessions]

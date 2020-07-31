@@ -53,8 +53,8 @@ using namespace hls;
  *  with an insertion and an extraction pointer.
  *   - 'rcvd' holds the sequence number of the last received and acknowledged
  *            byte from the network layer,
- *   - 'appd' holds the sequence number of the next byte ready to be read (.i.e
- *            consumed) by the application layer.
+ *   - 'appd' holds a pointer to the next byte ready to be read (.i.e, consumed)
+ *            by the application layer.
  *
  *               appd                                    rcvd
  *                |                                       |
@@ -67,7 +67,7 @@ using namespace hls;
 class RxSarEntry {
   public:
     RxSeqNum    rcvd;  // Bytes RCV'ed and ACK'ed (same as Receive Next)
-    RxSeqNum    appd;  // Bytes READ (.i.e consumed) by the application
+    RxBufPtr    appd;  // Bytes READ (.i.e consumed) by the application
     RxSarEntry() {}
 };
 
