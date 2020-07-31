@@ -308,7 +308,7 @@ void nrc_main(
     stream<AppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
     stream<AppLsnReq>   &soTOE_LsnReq,
-    stream<AppLsnAck>   &siTOE_LsnAck,
+    stream<AppLsnAck>   &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
     stream<NetworkWord> &soTOE_Data,
     stream<AppMeta>     &soTOE_SessId,

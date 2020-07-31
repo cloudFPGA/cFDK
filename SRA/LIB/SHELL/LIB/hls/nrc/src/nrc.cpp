@@ -432,7 +432,7 @@ void nrc_main(
     stream<AppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
     stream<AppLsnReq>   &soTOE_LsnReq,
-    stream<AppLsnAck>   &siTOE_LsnAck,
+    stream<AppLsnAck>   &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
     stream<NetworkWord> &soTOE_Data,
     stream<AppMeta>     &soTOE_SessId,
@@ -500,7 +500,7 @@ void nrc_main(
 #pragma HLS INTERFACE axis register both port=siTOE_SessId
 
 #pragma HLS INTERFACE axis register both port=soTOE_LsnReq
-#pragma HLS INTERFACE axis register both port=siTOE_LsnAck
+#pragma HLS INTERFACE axis register both port=siTOE_LsnRep
 
 #pragma HLS INTERFACE axis register both port=soTOE_Data
 #pragma HLS INTERFACE axis register both port=soTOE_SessId
@@ -1096,7 +1096,7 @@ void nrc_main(
      *  on a specific port (.i.e open connection for reception mode).
      *
      * @param[out] soTOE_LsnReq,   listen port request to TOE.
-     * @param[in]  siTOE_LsnAck,   listen port acknowledge from TOE.
+     * @param[in]  siTOE_LsnRep,   listen port acknowledge from TOE.
      *
      * @warning
      *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
@@ -1158,9 +1158,9 @@ void nrc_main(
 
         case LSN_WAIT_ACK:
           watchDogTimer_plisten--;
-          if (!siTOE_LsnAck.empty()) {
+          if (!siTOE_LsnRep.empty()) {
             bool    listenDone;
-            siTOE_LsnAck.read(listenDone);
+            siTOE_LsnRep.read(listenDone);
             if (listenDone) {
               printInfo(myName, "Received listen acknowledgment from [TOE].\n");
               lsnFsmState = LSN_DONE;
