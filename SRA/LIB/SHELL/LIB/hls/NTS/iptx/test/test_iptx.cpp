@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2016 -- 2020 IBM Corporation
  *
@@ -19,7 +20,7 @@
  * @brief      : Testbench for the IP Transmit frame handler (IPTX).
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
  * \ingroup NTS_IPRX
