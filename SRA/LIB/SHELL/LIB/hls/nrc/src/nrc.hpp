@@ -314,8 +314,8 @@ void nrc_main(
     stream<AppMeta>     &soTOE_SessId,
     stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
-    stream<AppOpnReq>   &soTOE_OpnReq,
-    stream<AppOpnSts>   &siTOE_OpnRep,
+    stream<AppOpnReq>      &soTOE_OpnReq,
+    stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
     stream<AppClsReq>   &soTOE_ClsReq
 );

@@ -539,16 +539,49 @@ typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
  * Open Session Status
  *  Reports if a session is opened or closed.
  ***********************************************/
-enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
+//enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
+//
+//class OpenStatus
+//{
+//  public:
+//    SessionId    sessionID;
+//    SessOpnSts   success;          // [FIXME - rename this member]
+//    OpenStatus() {}
+//    OpenStatus(SessionId sessId, SessOpnSts success) :
+//        sessionID(sessId), success(success) {}
+//};
 
-class OpenStatus
-{
+
+//=========================================================
+//== TCP Connection States
+//==  The RFC-793 defines a set of states that a connection
+//==   may progresses through during its lifetime. These
+//==   states are:  LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED,
+//==   FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK,
+//==   TIME-WAIT, and the fictional state CLOSED.
+//==  The implementation of [TOE] does use all of these states:
+//==    * There is no explicit 'LISTEN' which is merged into 'CLOSED'.
+//==    * The 'CLOSE-WAIT' is not used, since 'sndFIN' is sent out
+//==      immediately after the reception of a 'rcvFIN' and the
+//==      application is simply notified.
+//==    * 'FIN_WAIT_2' is also not used.
+//=========================================================
+enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+                FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+                LAST_ACK };
+
+
+//--------------------------------------------------------
+//-- TCP APP - OPEN CONNECTION REPLY
+//--  Reports the state of a TCP connection according to RFC-793.
+//--------------------------------------------------------
+class TcpAppOpnRep {
   public:
-    SessionId    sessionID;
-    SessOpnSts   success;          // [FIXME - rename this member]
-    OpenStatus() {}
-    OpenStatus(SessionId sessId, SessOpnSts success) :
-        sessionID(sessId), success(success) {}
+    SessionId   sessId;
+    TcpState    tcpState;
+    TcpAppOpnRep() {}
+    TcpAppOpnRep(SessionId sessId, TcpState tcpState) :
+        sessId(sessId), tcpState(tcpState) {}
 };
 
 /********************************************
@@ -593,27 +626,28 @@ class SessionLookupReply
 };
 ***/
 
-/********************************************
- * State Table (STt)
- ********************************************/
-enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-                    LAST_ACK };
-
-//see simulation_utils!!
-
-// Session State Query
-class StateQuery {
-  public:
-    SessionId       sessionID;
-    SessionState    state;
-    RdWrBit         write;
-    StateQuery() {}
-    StateQuery(SessionId id) :
-        sessionID(id), state(CLOSED), write(QUERY_RD) {}
-    StateQuery(SessionId id, SessionState state, RdWrBit write) :
-        sessionID(id), state(state), write(write) {}
-};
+// OBSOLETE?
+///********************************************
+// * State Table (STt)
+// ********************************************/
+//enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
+//                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
+//                    LAST_ACK };
+//
+////see simulation_utils!!
+//
+//// Session State Query
+//class StateQuery {
+//  public:
+//    SessionId       sessionID;
+//    SessionState    state;
+//    RdWrBit         write;
+//    StateQuery() {}
+//    StateQuery(SessionId id) :
+//        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+//    StateQuery(SessionId id, SessionState state, RdWrBit write) :
+//        sessionID(id), state(state), write(write) {}
+//};
 
 
 /********************************************
@@ -1220,7 +1254,7 @@ typedef SockAddr AppOpnReq;
  *  Information returned by TOE after an open
  *  connection request.
  ***********************************************/
-typedef OpenStatus  AppOpnSts;
+//typedef OpenStatus  AppOpnSts;
 
 /***********************************************
  * Application Listen Request
