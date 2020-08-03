@@ -114,7 +114,7 @@ enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 
 AppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
-AppOpnSts     newConn;
+TcpAppOpnRep  newConn;
 ap_uint<32>  watchDogTimer_pcon = 0;
 ap_uint<8>   watchDogTimer_plisten = 0;
 
@@ -438,8 +438,8 @@ void nrc_main(
     stream<AppMeta>     &soTOE_SessId,
     stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
-    stream<AppOpnReq>   &soTOE_OpnReq,
-    stream<AppOpnSts>   &siTOE_OpnRep,
+    stream<AppOpnReq>      &soTOE_OpnReq,
+    stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
     stream<AppClsReq>   &soTOE_ClsReq
     )
@@ -1613,8 +1613,8 @@ void nrc_main(
             if (!siTOE_OpnRep.empty()) {
               // Drain any potential status data
               siTOE_OpnRep.read(newConn);
-              printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessionID.to_uint());
-              soTOE_ClsReq.write(newConn.sessionID);
+              printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessId.to_uint());
+              soTOE_ClsReq.write(newConn.sessId);
             }
           }
           else {
@@ -1656,12 +1656,12 @@ void nrc_main(
           if (!siTOE_OpnRep.empty()) {
             // Read the reply stream
             siTOE_OpnRep.read(newConn);
-            if (newConn.success) {
+            if (newConn.tcpState == ESTABLISHED) {
               if (DEBUG_LEVEL & TRACE_CON) {
                 printInfo(myName, "Client successfully connected to remote socket:\n");
                 printSockAddr(myName, HostSockAddr);
               }
-              addnewTrippleToTable(newConn.sessionID, tripple_for_new_connection);
+              addnewTrippleToTable(newConn.sessId, tripple_for_new_connection);
               opnFsmState = OPN_DONE;
               tcp_need_new_connection_request = false;
               tcp_new_connection_failure = false;

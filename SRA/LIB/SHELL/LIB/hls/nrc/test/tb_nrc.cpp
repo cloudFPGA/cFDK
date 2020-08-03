@@ -104,7 +104,7 @@ stream<NetworkWord>         sNRC_Toe_Data   ("sNRC_TOE_Data");
 stream<AppMeta>             sNRC_Toe_SessId ("sNRC_TOE_SessId");
 stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
 stream<AppOpnReq>           sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
-stream<AppOpnSts>           sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
+stream<TcpAppOpnRep>        sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
 stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
 
@@ -696,8 +696,8 @@ void pTOE(
         stream<AppMeta>     &siTRIF_SessId,
         stream<AppWrSts>    &soTRIF_DSts,
         //-- TOE / Open Interfaces
-        stream<AppOpnReq>   &siTRIF_OpnReq,
-        stream<AppOpnSts>   &soTRIF_OpnRep)
+        stream<AppOpnReq>    &siTRIF_OpnReq,
+        stream<TcpAppOpnRep> &soTRIF_OpnRep)
 {
 
     //------------------------------------------------------
@@ -732,17 +732,17 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
-    AppOpnReq   leHostSockAddr(byteSwap32(DEFAULT_HOST_IP4_ADDR),
-                               byteSwap16(DEFAULT_HOST_LSN_PORT));
+    AppOpnReq   HostSockAddr(DEFAULT_HOST_IP4_ADDR,
+                               DEFAULT_HOST_LSN_PORT);
 
-    OpenStatus  opnReply(sessionId_reply, SESS_IS_OPENED);
+    TcpAppOpnRep opnReply(sessionId_reply, ESTABLISHED);
     if (!opnStartupDelay) {
         switch(opnState) {
         case OPN_WAIT_REQ:
             if (!siTRIF_OpnReq.empty()) {
-                siTRIF_OpnReq.read(leHostSockAddr);
+                siTRIF_OpnReq.read(HostSockAddr);
                 printInfo(myOpnName, "Received a request to open the following remote socket address:\n");
-                printSockAddr(myOpnName, leHostSockAddr);
+                printSockAddr(myOpnName, HostSockAddr);
                 opnState = OPN_SEND_REP;
             }
             break;
