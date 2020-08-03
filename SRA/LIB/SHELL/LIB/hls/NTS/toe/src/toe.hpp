@@ -331,24 +331,15 @@ class StateQuery {
         sessionID(id), state(state), write(write) {}
 };
 
-/********************************************
- * Port Table (PRt)
- ********************************************/
-//OBSOLETE_20200724 NotUsed typedef bool PortState;
-//OBSOLETE_20200724 NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
-
-//OBSOLETE_20200724 NotUsed typedef bool PortRange;
-//OBSOLETE_20200724 NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
-
 //=========================================================
 //== RSt / Generic Reply
 //=========================================================
 class RxSarReply {
   public:
-     RxSeqNum    rcvd;
-     RxSeqNum    appd;
+    RxSeqNum    rcvd;
+    RxBufPtr    appd;
     RxSarReply() {}
-    RxSarReply(RxSeqNum rcvd, RxSeqNum appd) :
+    RxSarReply(RxSeqNum rcvd, RxBufPtr appd) :
         rcvd(rcvd), appd(appd) {}
 };
 
@@ -376,12 +367,12 @@ class RXeRxSarQuery {
 class RAiRxSarQuery {
   public:
     SessionId       sessionID;
-    RxSeqNum        appd;  // Next byte to be consumed by [APP]
+    RxBufPtr        appd;  // Next byte to be consumed by [APP]
     RdWrBit         write;
     RAiRxSarQuery() {}
     RAiRxSarQuery(SessionId id) :
         sessionID(id), appd(0), write(0) {}
-    RAiRxSarQuery(SessionId id, RxSeqNum appd) :
+    RAiRxSarQuery(SessionId id, RxBufPtr appd) :
         sessionID(id), appd(appd), write(1) {}
 };
 
@@ -391,9 +382,9 @@ class RAiRxSarQuery {
 class RAiRxSarReply {
   public:
     SessionId       sessionID;
-    RxSeqNum        appd;  // Next byte to be consumed by [APP]
+    RxBufPtr        appd;  // Next byte to be consumed by [APP]
     RAiRxSarReply() {}
-    RAiRxSarReply(SessionId id, RxSeqNum appd) :
+    RAiRxSarReply(SessionId id, RxBufPtr appd) :
         sessionID(id), appd(appd) {}
 };
 
@@ -688,7 +679,6 @@ template<typename T> void pStreamMux(
         stream<T>  &si1,
         stream<T>  &si2,
         stream<T>  &so);
-
 
 /*******************************************************************************
  *

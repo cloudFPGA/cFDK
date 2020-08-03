@@ -73,8 +73,8 @@ using namespace hls;
  *  and the stream of bytes within every session is managed with two pointers:
  *   - 'rcvd' holds the sequence number of the last received and acknowledged
  *             byte from the network layer,
- *   - 'appd' holds the sequence number of the next byte ready to be read (.i.e
- *            consumed) by the application layer.
+ *   - 'appd' holds a pointer to the next byte ready to be read (.i.e, consumed)
+ *            by the application layer.
  *
  *            appd                                    rcvd
  *             |                                       |
