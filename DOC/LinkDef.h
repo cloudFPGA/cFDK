@@ -119,14 +119,13 @@
  *
  *****************************************************************************/
 
-/** \defgroup NTS_ARS ARS
+/** \defgroup NTS_ARP ARP
  *  @ingroup NTS
  * 
- *  \brief Address Resolution Server (ARS) of the Network Transport Stack (NTS).
+ *  \brief Address Resolution Protocol (ARS) server of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_ICMP ICMP
-.
  *  @ingroup NTS
  * 
  *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
@@ -169,11 +168,8 @@
  */
 
 /** \defgroup NTS_SIM SimNts
-
  *  @ingroup NTS
  * 
  *  \brief Support and utilities for the simulation of the Network Transport Stack (NTS).
  */
-
-
 
