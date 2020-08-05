@@ -167,6 +167,12 @@
  *  \brief UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_UOE_TEST UOE_TEST
+ *  @ingroup NTS_UOE
+ * 
+ *  \brief Testbench for the UDP Offload Engine (UOE) of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_SIM SimNts
  *  @ingroup NTS
  * 
