@@ -125,10 +125,22 @@
  *  \brief Address Resolution Protocol (ARS) server of the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_ARP_TEST ARP_TEST
+ *  @ingroup NTS_ARP
+ * 
+ *  \brief Testbench for the Address Resolution Protocol (ARS) server of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_ICMP ICMP
  *  @ingroup NTS
  * 
  *  \brief Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_ICMP_TEST ICMP_TEST
+ *  @ingroup NTS_ICMP
+ * 
+ *  \brief Testbench for the Internet Control Message Protocol server (ICMP) of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_IPRX IPRX
@@ -137,10 +149,22 @@
  *  \brief IP Receiver packet handler (IPRX) of the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_IPRX_TEST IPRX_TEST
+ *  @ingroup NTS_IPRX
+ * 
+ *  \brief Testbench for the IP Receiver packet handler (IPRX) of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_IPTX IPTX
  *  @ingroup NTS
  * 
  *  \brief IP Transmitter packet handler (IPTX) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_IPTX_TEST IPTX_TEST
+ *  @ingroup NTS_IPTX
+ * 
+ *  \brief Testbench for the IP Transmitter packet handler (IPTX) of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_RLB RLB
@@ -149,16 +173,34 @@
  *  \brief Ready Logic Barrier (RLB) for the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_RLB_TEST RLB_TEST
+ *  @ingroup NTS_RLB
+ * 
+ *  \brief Testbench for the Ready Logic Barrier (RLB) for the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_TOE TOE
  *  @ingroup NTS
  * 
  *  \brief TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
  */
 
+/** \defgroup NTS_TOE_TEST TOE_TEST
+ *  @ingroup NTS_TOE
+ * 
+ *  \brief Testbench for the TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ */
+
 /** \defgroup NTS_TOECAM TOECAM
  *  @ingroup NTS
  * 
  *  \brief Content-Addressable Memory (CAM) for the TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
+ */
+
+/** \defgroup NTS_TOECAM_TEST TOECAM_TEST
+ *  @ingroup NTS_TOECAM
+ * 
+ *  \brief Testbench for the Content-Addressable Memory (CAM) for the TCP Offload Engine (TOE) of the Network Transport Stack (NTS).
  */
 
 /** \defgroup NTS_UOE UOE
