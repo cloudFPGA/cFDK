@@ -23,7 +23,7 @@
  * Language    : Vivado HLS
  *
  * \ingroup NTS_IPRX
- * \addtogroup NTS_IPRX
+ * \addtogroup NTS_IPRX_TEST
  * \{
  *******************************************************************************/
 

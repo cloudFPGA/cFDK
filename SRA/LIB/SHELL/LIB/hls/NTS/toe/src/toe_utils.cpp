@@ -22,7 +22,7 @@
  * Component   : Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS_TOE
+ * \ingroup NTS
  * \addtogroup NTS_TOE
  * \{
  *******************************************************************************/

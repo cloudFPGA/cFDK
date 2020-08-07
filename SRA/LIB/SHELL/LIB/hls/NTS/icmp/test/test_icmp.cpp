@@ -23,7 +23,7 @@
  * Language    : Vivado HLS
  *
  * \ingroup NTS_ICMP
- * \addtogroup NTS_ICMP
+ * \addtogroup NTS_ICMP_TEST
  * \{
  *****************************************************************************/
 

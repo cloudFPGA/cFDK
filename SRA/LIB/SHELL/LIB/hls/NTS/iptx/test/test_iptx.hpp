@@ -22,8 +22,8 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS_IPTX
+ * \ingroup NTS_IPTX
+ * \addtogroup NTS_IPTX_TEST
  * \{
  *****************************************************************************/
 

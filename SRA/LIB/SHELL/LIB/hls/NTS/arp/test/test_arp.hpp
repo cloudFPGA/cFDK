@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2016 -- 2020 IBM Corporation
  *
@@ -22,8 +23,8 @@
  * Component   : Shell, Network Transport Stack (NTS)
  * Language    : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS_ARP
+ * \ingroup NTS_ARP
+ * \addtogroup NTS_ARP_TEST
  * \{
  *******************************************************************************/
 
