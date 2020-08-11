@@ -120,7 +120,7 @@ class SimUdpDatagram {
         return this->len;
     }
 
-    // Return the number of chunks in the UDP datagram (in axis-words)
+    // Return the number of chunks in the UDP datagram
     int size() {
         return this->dgmQ.size();
     }
@@ -362,8 +362,8 @@ class SimUdpDatagram {
      ***********************************************************************/
     bool writePayloadToDatFile(ofstream  &outFileStream) {
         for (int i=1; i < this->size(); i++) {
-            AxisUdp axisWord = this->dgmQ[i];
-            if (not this->writeAxisUdpToFile(&axisWord, outFileStream)) {
+            AxisUdp axisChunk = this->dgmQ[i];
+            if (not this->writeAxisUdpToFile(&axisChunk, outFileStream)) {
                 return false;
             }
         }
