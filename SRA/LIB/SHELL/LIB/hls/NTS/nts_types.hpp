@@ -46,8 +46,6 @@
 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
-//#include "./toe/src/toe.hpp"
-
 using namespace hls;
 
 
