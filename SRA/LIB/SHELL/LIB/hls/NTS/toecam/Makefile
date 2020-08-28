@@ -19,15 +19,17 @@
 ipName = toecam
 
 # Dependencies
-SRC_DEPS := $(shell find ./src/ -type f | grep -v "\ ")
+SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean help csim csynth cosim project regression  rtlSyn rtlImpl
+.PHONY: all clean csim csynth cosim help project regression rtlSyn rtlImpl
+
+all: ${ipName}_prj/solution1/impl/ip
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
-	@touch ../../../.ip_guard
+	@touch ../../../../LIB/.ip_guard
 
 .synth_guard: $(SRC_DEPS)
 	$(MAKE) clean
@@ -36,18 +38,17 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 
 #-- Targets --------------------------------------------------------------------
 
-all: ${ipName}_prj/solution1/impl/ip
-
 clean: 					## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
+	@${RM} .synth_guard
 
 csim: 					## Runs the HLS C simulation
 	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 csynth: .synth_guard    ## Runs the HLS C synthesis
 
-cosim:                	## Runs the HLS C/RTL cosimulation
+cosim: .synth_guard     ## Runs the HLS C/RTL cosimulation
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 project: 				## Creates the HLS project

@@ -21,7 +21,7 @@ ipName = rlb
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean csim csynth cosim project regression
+.PHONY: all clean csim csynth cosim help project regression rtlSyn rtlImpl
 
 all: ${ipName}_prj/solution1/impl/ip
 
