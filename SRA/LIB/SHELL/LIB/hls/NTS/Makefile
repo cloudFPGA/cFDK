@@ -15,6 +15,8 @@
 
 all:   arp       icmp       iprx       iptx       rlb       toe       toecam       uoe        ## Run the HLS synthesis and IP Core export on all sub-directories
 
+clean: arp.clean icmp.clean iprx.clean iptx.clean rlb.clean toe.clean toecam.clean uoe.clean  ## Cleans all the local HLS projects
+
 csim:  arp.csim  icmp.csim  iprx.csim  iptx.csim  rlb.csim  toe.csim  toecam.csim  uoe.csim   ## Runs HLS C simulation on all sub-directories
 
 cosim: arp.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim toe.cosim toecam.cosim uoe.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
@@ -23,17 +25,21 @@ cosim: arp.cosim icmp.cosim iprx.cosim iptx.cosim rlb.cosim toe.cosim toecam.cos
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $@
 
-clean:                     ## Cleans all the local HLS projects
-	rm -rf ./*/*_prj
-	rm -rf ./*/*/*_prj
-	rm -rf ./*/*/*/*_prj
+#clean:                     ## Cleans all the local HLS projects
+#	rm -rf ./*/*_prj
+#	rm -rf ./*/*/*_prj
+#	rm -rf ./*/*/*/*_prj
+
+%.clean: 
+	@echo ---- Cleaning [ $@ ] ---------------------------- 
+	@$(MAKE) -C $* clean
 
 %.csim: 
 	@echo ---- Building [ $@ ] ---------------------------- 
 	@$(MAKE) -C $* csim
 
 %.cosim: 
-	@echo ---- Building [ $@ ] ---------------------------- 
+	@echo ---- Building [ $@ ] ----------------------------
 	@$(MAKE) -C $* cosim
 
 

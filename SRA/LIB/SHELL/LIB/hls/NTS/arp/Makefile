@@ -24,7 +24,7 @@ ipName = arp
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean help csim csynth cosim project regression
+.PHONY: all clean csim csynth cosim help project regression rtlSyn rtlImpl
 
 all: ${ipName}_prj/solution1/impl/ip
 
@@ -51,8 +51,8 @@ csim:                     ## Runs the HLS C simulation
 
 csynth: .synth_guard      ## Runs the HLS C synthesis
 
-cosim:                    ## Runs the HLS C/RTL cosimulation
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 project:                  ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl

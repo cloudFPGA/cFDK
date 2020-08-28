@@ -52,6 +52,7 @@ echo "<$0> ================================================================"
 echo "<$0> ===   REGRESSION - cFDK - START OF COSIM"
 echo "<$0> ================================================================"
 cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS
+make clean
 make cosim
 exit_on_error $? 
 

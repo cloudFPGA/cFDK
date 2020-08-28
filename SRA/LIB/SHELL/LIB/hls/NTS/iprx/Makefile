@@ -23,7 +23,7 @@ ipName = iprx
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean csim cosim csynth help project regression
+.PHONY: all clean csim cosim csynth help project regression rtlSyn rtlImpl
  
 all: ${ipName}_prj/solution1/impl/ip
 

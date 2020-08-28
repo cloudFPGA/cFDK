@@ -49,7 +49,7 @@ csim:                     ## Runs the HLS C simulation
 csynth: .synth_guard      ## Runs the HLS C synthesis
 
 cosim: .synth_guard       ## Runs the HLS C/RTL cosimulation
-	export hlsCSim=1; export hlsCSynth=1; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 project:                  ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
