@@ -49,8 +49,13 @@ if [[ -z $cFdkRootDir ]]; then
 fi
 
 echo "<$0> ================================================================"
-echo "<$0> ===   START OF REGRESSION "
+echo "<$0> ===   REGRESSION - cFDK - START OF CSIM"
 echo "<$0> ================================================================"
+cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS
+make clean
+make csim
+exit_on_error $? 
+
 cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine
 make clean
 make csim
@@ -61,13 +66,9 @@ make clean
 make csim
 exit_on_error $? 
 
-cd $cFdkRootDir/SRA/LIB/SHELL/LIB/hls/NTS
-make clean
-make csim
-exit_on_error $? 
-echo "<$0> ================================================================"
-echo "<$0> ===   END OF REGRESSION "
-echo "<$0> ================================================================"
+echo "<$0> ----------------------------------------------------------------"
+echo "<$0> ---   REGRESSION - cFDK - END OF CSIM "
+echo "<$0> ----------------------------------------------------------------"
 
 exit 0
 
