@@ -923,10 +923,10 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== RX-TEST : Send IPv4 traffic to an opened port.\n");
 
         //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
-        string           ofsURIF_Data_FileName = "../../../../test/soURIF_Data.dat";
-        string           ofsURIF_Meta_FileName = "../../../../test/soURIF_Meta.dat";
-        string           ofsURIF_Gold_Data_FileName = "../../../../test/soURIF_Gold_Data.dat";
-        string           ofsURIF_Gold_Meta_FileName = "../../../../test/soURIF_Gold_Meta.dat";
+        string           ofsURIF_Data_FileName      = "../../../../test/simOutFiles/soURIF_Data.dat";
+        string           ofsURIF_Meta_FileName      = "../../../../test/simOutFiles/soURIF_Meta.dat";
+        string           ofsURIF_Gold_Data_FileName = "../../../../test/simOutFiles/soURIF_Gold_Data.dat";
+        string           ofsURIF_Gold_Meta_FileName = "../../../../test/simOutFiles/soURIF_Gold_Meta.dat";
         vector<string>   ofNames;
         ofNames.push_back(ofsURIF_Data_FileName);
         ofNames.push_back(ofsURIF_Meta_FileName);
@@ -1137,8 +1137,8 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== TX-TEST : Send UDP datagram traffic to DUT.\n");
 
         ofstream    ofsIPTX_Data;
-        string      ofsIPTX_Data_FileName = "../../../../test/soIPTX_Data.dat";
-        string      ofsIPTX_Gold_FileName = "../../../../test/soIPTX_Gold.dat";
+        string      ofsIPTX_Data_FileName = "../../../../test/simOutFiles/soIPTX_Data.dat";
+        string      ofsIPTX_Gold_FileName = "../../../../test/simOutFiles/soIPTX_Gold.dat";
 
         //-- Remove previous data file and open a new file
         if (not isDatFile(ofsIPTX_Data_FileName)) {

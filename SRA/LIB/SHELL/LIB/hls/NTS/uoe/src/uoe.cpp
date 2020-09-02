@@ -763,7 +763,7 @@ void pUdpPortTable(
         stream<StsBool>     &soUAIF_ClsRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1 enable_flush
+    //OBSOLETE_20200902 #pragma HLS pipeline II=2 enable_flush
 
     const char *myName = concat3(THIS_NAME, "/RXe/", "Upt");
 
@@ -956,15 +956,15 @@ void pRxEngine(
  *  Two modes of operations are supported by the UDP application interface:
  *  1) DATAGRAM_MODE: If the 'DLen' field is loaded with a length != 0, this
  *     length is used as reference for handling the corresponding stream. If the
- *     length is larger than 1472 bytes (.i.e, MTU-IP_HEADER_LEN-UDP_HEADER_LEN),
+ *     length is larger than UDP_MDS bytes (.i.e, MTU_ZYC2-IP_HEADER_LEN-UDP_HEADER_LEN),
  *     the this process will split the incoming datagram and generate as many
  *     sub-datagrams as required to transport all 'DLen' bytes over Ethernet
  *     frames.
  *  2) STREAMING_MODE: If the 'DLen' field is configured with a length == 0, the
  *     corresponding stream will be forwarded based on the same metadata
  *     information until the 'TLAST' bit of the data stream is set. In this mode,
- *     the UOE will wait for the reception of 1472 bytes before generating a new
- *     UDP-over-IPv4 packet, unless the 'TLAST' bit of the data stream is set.
+ *     the UOE will wait for the reception of UDP_MDS bytes before generating a
+ *     new UDP-over-IPv4 packet, unless the 'TLAST' bit of the data stream is set.
  *  In DATAGRAM_MODE, the setting of the 'TLAST' bit of the data stream is not
  *  required but highly recommended.
  *******************************************************************************/
@@ -995,7 +995,7 @@ void pTxApplicationInterface(
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static UdpAppMeta  tai_appMeta;  // The socket-pair information
     static UdpAppDLen  tai_appDLen;  // Application's datagram length (0 to 2^16)
-    static UdpAppDLen  tai_splitCnt; // Split counter (from 0 to 1472-1)
+    static UdpAppDLen  tai_splitCnt; // Split counter (from 0 to 1422-1)
 
     switch(tai_fsmState) {
     case FSM_TAI_IDLE:
@@ -1111,10 +1111,10 @@ void pTxApplicationInterface(
  *
  * @details
  *  This process handles the raw data coming from the UdpAppInterface (UAIF).
- *  Data are receieved as a stream from the application layer. They come with a
+ *  Data are received as a stream from the application layer. They come with a
  *  metadata information that specifies the connection the data belong to, as
  *  well as a data-length information.
- *  Two main tasks are perfomed by this process:
+ *  Two main tasks are performed by this process:
  *  1) a UDP pseudo-packet is generated and forwarded to the process
  *     UdpChecksumAccumulator (Uca) which will compute the UDP checksum.
  *  2) the length of the incoming data stream is measured while the AppData
@@ -1132,7 +1132,7 @@ void pTxDatagramHandler(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS pipeline II=1 enable_flush
+    //OBSOLETE_20200902 #pragma HLS pipeline II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Tdh");
 
@@ -1456,7 +1456,8 @@ void pIp4HeaderAdder(
         stream<AxisIp4>     &soIPTX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS pipeline II=1 enable_flush
+    #pragma HLS INLINE off
+    //OBSOLETE_20200902 #pragma HLS pipeline II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Iha");
 

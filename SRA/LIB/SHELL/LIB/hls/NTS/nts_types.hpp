@@ -142,6 +142,8 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
 
 //-- ETHERNET - MAXIMUM TRANSMISSION UNIT
 static const ap_uint<16> MTU = 1500;
+//-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay
+static const ap_uint<16> MTU_ZYC2 = 1450;  // 1500-20-8-8-14
 
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions

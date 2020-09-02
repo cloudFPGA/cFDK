@@ -49,8 +49,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-// UDP Maximum Datagram Size (1472=1500-20-8)
-static const UdpLen UDP_MDS = (MTU-IP4_HEADER_LEN-UDP_HEADER_LEN);
+// UDP Maximum Datagram Size = 1416 = (1450-20-8) & ~0x7 (modulo 8 for efficiency)
+static const UdpLen UDP_MDS = (MTU_ZYC2 - IP4_HEADER_LEN - UDP_HEADER_LEN) & ~0x7;
 
 
 /***********************************************
