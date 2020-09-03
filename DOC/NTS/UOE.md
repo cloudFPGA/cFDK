@@ -56,6 +56,6 @@ Please consider reading the following two documents before diving or contributin
 
 ### UDP App Interface
 The _UDP Application Interface_ (UAIF) connects the UOE to the user's role and its application (APP).
-The interface consists of the following signals (TODO).  
+The interface consists of the following signals (TODO-FIXME).  
  
 
