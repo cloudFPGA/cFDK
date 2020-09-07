@@ -5,9 +5,10 @@
 Currently cloudFPGA project can be accessed over cloud as an on-prem deployment to Zurich Heterogeneous Cloud, in the Yellow Zone security zone (ZYC2).
 
 ![image](images/image2.png)
-## ZYC2 Access Authentication and Login
+## [ZYC2 Access Authentication and Login](ZYC2_Access_Authentication_and_Login.md)
 
-### Step-1: Get Access to ZYC2 & Create your VM(s)
+
+
 
 ## Development Kit for cloudFPGA
 
