@@ -1,4 +1,4 @@
-## ZYC2 Access Authentication and Login
+## Part-1: ZYC2 Access Authentication and Login
 
 ### Step-1: Get Access to ZYC2 & Create your VM(s)
 Get Access to ZYC2 &amp; Create your VM(s)Register by sending a request to
