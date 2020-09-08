@@ -17,7 +17,6 @@ cd ./SRA/FMKU60/TOP/TopFlash
 make monolithic
 ```
 
-##
 ![image](images/cf-EndOfBuild.jpg)
 
 ## Part-3: Upload Image, Request and Program FPGA
