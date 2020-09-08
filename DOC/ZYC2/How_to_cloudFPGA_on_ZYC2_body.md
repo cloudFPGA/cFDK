@@ -47,7 +47,7 @@ and expand the “Images” section
 
 #### a: Expand the “Instance” section
 
-![image](images/cf_Resource_Manager_API.PNG)
+![image](images-cf_Resource_Manager_API.PNG)
 
 #### b: Expand the “POST” operation
 
