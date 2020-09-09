@@ -47,7 +47,7 @@ and expand the “Images” section
 
 #### a: Expand the “Instance” section
 
-![image](images-cf_Resource_Manager_API.PNG)
+![image](images/cf_Resource_Manager_API.PNG)
 
 #### b: Expand the “POST” operation
 
@@ -95,11 +95,11 @@ Press the “Try it out!” button
 The Xilinx installation path on the ZYC2 VM:
 `/tools/Xilinx/Vivado/2017.4/`
 
-![image](images/cf-Launch_Vivado_HW_Manager.png)
+![image](images/cf-Launch_Vivado_HW_Manager.PNG)
 
 ### Step-3
 
-#### a: Open a New Hardware Target
+#### a: Open the Hardware Server
 
 ![image](images/cf-OpenNewVivadoTarget_1.PNG)
 
