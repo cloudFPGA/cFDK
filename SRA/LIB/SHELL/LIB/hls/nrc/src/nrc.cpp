@@ -76,6 +76,14 @@ bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
 
+NodeId cached_udp_rx_id = 0;
+Ip4Addr cached_udp_rx_ipaddr = 0;
+
+SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+
 
 //FROM TCP
 
@@ -577,6 +585,13 @@ void nrc_main(
 #pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=expect_FMC_response
 
+#pragma HLS reset variable=cached_udp_rx_id
+#pragma HLS reset variable=cached_udp_rx_ipaddr
+#pragma HLS reset variable=cached_tcp_rx_session_id
+#pragma HLS reset variable=cached_tcp_rx_tripple
+#pragma HLS reset variable=cached_tcp_tx_session_id
+#pragma HLS reset variable=cached_tcp_tx_tripple
+
 
   //===========================================================
   //  core wide variables (for one iteration)
@@ -630,6 +645,10 @@ void nrc_main(
     clsFsmState_Udp = CLS_IDLE;
     //and we shouldn't expect smth
     expect_FMC_response = false;
+    //invalidate cache
+    cached_udp_rx_ipaddr = 0;
+    cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
   }
 
   if(*layer_7_enabled == 0 || *role_decoupled == 1 )
@@ -662,6 +681,10 @@ void nrc_main(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
+    //invalidate cache
+    cached_udp_rx_ipaddr = 0;
+    cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
   }
   //===========================================================
   // MRT init
@@ -954,7 +977,16 @@ void nrc_main(
 
               //extrac src ip address
               UdpMeta udpRxMeta = siUOE_Meta.read();
-              NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+              NodeId src_id = 0xFFFF;
+              if(cached_udp_rx_ipaddr == udpRxMeta.src.addr)
+              {
+                printf("used UDP RX id cache\n");
+                src_id = cached_udp_rx_id;
+              } else {
+                src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+                cached_udp_rx_ipaddr = udpRxMeta.src.addr;
+                cached_udp_rx_id = src_id;
+              }
               if(src_id == 0xFFFF)
               {
                 //SINK packet
@@ -962,6 +994,7 @@ void nrc_main(
                 fsmStateRX_Udp = FSM_DROP_PACKET;
                 break;
               }
+              //status
               last_rx_node_id = src_id;
               last_rx_port = udpRxMeta.dst.port;
               NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
@@ -1228,7 +1261,12 @@ void nrc_main(
               // Always request the data segment to be received
               rrhFsmState = RRH_SEND_DREQ;
               //remember the session ID if not yet known
-              addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+              if(notif_pRrh.sessionID != cached_tcp_rx_session_id)
+              {
+                addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+              } else {
+                printf("session/tripple id already in cache.\n");
+              }
             }
           }
           break;
@@ -1271,7 +1309,16 @@ void nrc_main(
           if (!siTOE_SessId.empty()) {
             siTOE_SessId.read(sessId);
 
-            ap_uint<64> tripple_in = getTrippleFromSessionId(sessId);
+            ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+            if(sessId == cached_tcp_rx_session_id)
+            {
+              printf("used TCP RX tripple cache.\n");
+              tripple_in = cached_tcp_rx_tripple;
+            } else {
+              tripple_in = getTrippleFromSessionId(sessId);
+              cached_tcp_rx_session_id = sessId;
+              cached_tcp_rx_tripple = tripple_in;
+            }
             //since we requested the session, we shoul know it -> no error handling
             printf("tripple_in: %llu\n",(unsigned long long) tripple_in);
             Ip4Addr remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
@@ -1297,7 +1344,6 @@ void nrc_main(
                 break;
               }
             }
-            //no we think this is valid...
             NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
             //printf("TO ROLE: src_rank: %d\n", (int) src_id);
             //Role packet
@@ -1472,7 +1518,16 @@ void nrc_main(
             //check if session is present
             ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
             printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
-            SessionId sessId = getSessionIdFromTripple(new_tripple);
+            SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
+            if(new_tripple == cached_tcp_tx_tripple)
+            {
+              printf("used TCP TX tripple chache.\n");
+              sessId = cached_tcp_tx_session_id;
+            } else {
+              sessId = getSessionIdFromTripple(new_tripple);
+              cached_tcp_tx_tripple = new_tripple;
+              cached_tcp_tx_session_id = sessId;
+            }
             printf("session id found: %d\n", (int) sessId);
             if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
             {//we need to create one first
