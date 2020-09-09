@@ -24,7 +24,7 @@ make monolithic
 ## Part-3: Upload Image, Request and Program FPGA
 
 ### Step-1: Access cloudFPGA Resource Manager
-Point your browser at http://10.12.0.132:8080/ui
+Point your browser at [http://10.12.0.132:8080/ui](http://10.12.0.132:8080/ui)
 and expand the “Images” section
 
 ![image](images/cf-Resource_Manager.PNG)
