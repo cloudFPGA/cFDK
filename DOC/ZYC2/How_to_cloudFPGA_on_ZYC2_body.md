@@ -71,7 +71,7 @@ And press the “Try it out!” button
 
 ### Step-1: Request Connection to HW Server
 
-#### Step-1a: Point your browser at `http://10.12.0.132:8080/ui`
+#### Step-1a: Point your browser at [http://10.12.0.132:8080/ui](http://10.12.0.132:8080/ui)
 and expand the “Debug” section
 
 ![image](images/cf-Resource_Manager_Debug.PNG)
