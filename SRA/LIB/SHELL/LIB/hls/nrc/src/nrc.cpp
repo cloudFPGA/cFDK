@@ -184,25 +184,15 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
 {
 //#pragma HLS inline
-  //bool foundIt = false;
-  //NodeId ret = 0xFFFF;
   //Loop unroll pragma needs int as variable...
   for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
   {
 //#pragma HLS unroll //factor=8
-    //if(!foundIt && localMRT[i] == ipAddr)
     if(localMRT[i] == ipAddr)
     {
       return (NodeId) i;
-      //foundIt = true;
-      //ret = (NodeId) i;
     }
   }
-  //if(!foundIt)
-  //{
-  //  node_id_missmatch_RX_cnt++;
-  //}
-  return 0xFFFF;
   //return ret;
 }
 
@@ -806,12 +796,12 @@ void nrc_main(
             break;
           }
           last_tx_node_id = dst_rank;
-          NrcPort src_port = out_meta_udp.tdata.src_port; //TODO: DEBUG
+          NrcPort src_port = tmp_meta_in.tdata.src_port;
           if (src_port == 0)
           {
             src_port = DEFAULT_RX_PORT;
           }
-          NrcPort dst_port = out_meta_udp.tdata.dst_port; //TODO: DEBUG
+          NrcPort dst_port = tmp_meta_in.tdata.dst_port;
           if (dst_port == 0)
           {
             dst_port = DEFAULT_RX_PORT;
@@ -968,7 +958,7 @@ void nrc_main(
               if(src_id == 0xFFFF)
               {
                 //SINK packet
-                //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
+                node_id_missmatch_RX_cnt++;
                 fsmStateRX_Udp = FSM_DROP_PACKET;
                 break;
               }
@@ -1315,7 +1305,7 @@ void nrc_main(
                 || *layer_7_enabled == 0 || *role_decoupled == 1)
             {
               //SINK packet
-              //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
+              node_id_missmatch_RX_cnt++;
               rdpFsmState = RDP_DROP_PACKET;
               printf("NRC drops the packet...\n");
               break;
@@ -1467,12 +1457,12 @@ void nrc_main(
               printf("NRC drops the packet...\n");
               break;
             }
-            NrcPort src_port = out_meta_tcp.tdata.src_port; //TODO: DEBUG
+            NrcPort src_port = out_meta_tcp.tdata.src_port;
             if (src_port == 0)
             {
               src_port = DEFAULT_RX_PORT;
             }
-            NrcPort dst_port = out_meta_tcp.tdata.dst_port; //TODO: DEBUG
+            NrcPort dst_port = out_meta_tcp.tdata.dst_port;
             if (dst_port == 0)
             {
               dst_port = DEFAULT_RX_PORT;
@@ -1766,7 +1756,8 @@ void nrc_main(
     status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
     status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
 
-    status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    //status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    status[NRC_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
     status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
     //status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
     status[NRC_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
