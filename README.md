@@ -27,7 +27,7 @@ Details for the interfaces can be found in the linked documents.
 
 The cloudFPGA service provides different types of FPGAs and module cards (**MOD**).
 
-The module looks like follows:
+A picture of the module is shown below:
 ![FMKU60 module](./DOC/imgs/fmku60.png)
 
 Currently, the following MODs are available:
@@ -35,7 +35,7 @@ Currently, the following MODs are available:
 
 ### cloudFPGA example applications
 
-To demonstrate the usage of this Development Kit and to provide some code for learning, example applications (**APP**) are provided.
+Example applications (**APP**) are provided to demonstrate the usage of this Development Kit and to provide some code for learning.
 
 Currently, the cFDK includes the following example APPs:
 
