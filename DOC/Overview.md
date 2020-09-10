@@ -52,4 +52,4 @@ Cloud integration is the process of making a resource available in the cloud. In
 
 In the end, the components of all levels work together to provide the requested FPGA resources in a fast and secure way.
 
-System architecture for the cloudFPGA platform. 32 FPGAs, one switch and a service processor are combined on one carrier board and called Sled. The management tasks are split into three levels — cloudFPGA Resource Manager (cFRM), cloudFPGA Sled Manager (cFSM), and cloudFPGA Manager Core (cFMC). A Sled is half of a 2U chassis. The OpenStack compute resources (Nova) CPU nodes are also available for creating heterogeneous clusters.
+System architecture for the cloudFPGA platform. 32 FPGAs, one switch and a service processor are combined on one carrier board and called a Sled. The management tasks are split into three levels — cloudFPGA Resource Manager (cFRM), cloudFPGA Sled Manager (cFSM), and cloudFPGA Manager Core (cFMC). A Sled is half of a 2U chassis. The OpenStack compute resources (Nova) CPU nodes are also available for creating heterogeneous clusters.
