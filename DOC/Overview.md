@@ -38,7 +38,7 @@ Today, the prevailing way to incorporate an FPGA into a server is to connect it 
 
 However, because of this master–slave programming paradigm, such an FPGA is typically integrated in the cloud only as an option of the primary host compute resource to which it belongs. As a result, bus-attached FPGAs are usually made available in the cloud indirectly via Virtual Machines (VMs) or Containers.
 
-In our deployment, in contrast, a stand-alone, network-attached FPGA can be requested independently of a host via the cloudFPGA Resource Manager (cFRM, see figure). The cFRM provides a RESTful (Representational State Transfer) API (Application Program Interface) for integration in the Data Center (DC) management stack (e.g. OpenStack).
+In contrast, in our deployment a stand-alone, network-attached FPGA can be requested independently of a host via the cloudFPGA Resource Manager (cFRM, see figure). The cFRM provides a RESTful (Representational State Transfer) API (Application Program Interface) for integration in the Data Center (DC) management stack (e.g. OpenStack).
 
 ![High level view of cloudFPGA architecture](./imgs/FPGA_arch.png)
 <p align="center"><b>Figure-2: High level view of cloudFPGA architecture.</b></p>
