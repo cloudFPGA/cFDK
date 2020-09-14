@@ -28,7 +28,7 @@ ap_uint<16>  mmio_stabilize_counter = 1;
 #else
 ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
 #endif
-bool Udp_RX_metaWritten = false;
+//bool Udp_RX_metaWritten = false;
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 FsmStateUdp fsmStateTX_Udp = FSM_RESET;
@@ -519,7 +519,7 @@ void nrc_main(
   //=================================================================================================
   // Reset global variables 
 
-#pragma HLS reset variable=Udp_RX_metaWritten
+//#pragma HLS reset variable=Udp_RX_metaWritten
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTX_Udp
 #pragma HLS reset variable=openPortWaitTime
@@ -834,13 +834,12 @@ void nrc_main(
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
           //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
           UdpMeta txMeta = SocketPair(SockAddr(ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
+          // Forward data chunk, metadata and payload length
           soUOE_Meta.write(txMeta);
           //we can forward the length, even if 0
           //the UOE handles this as streaming mode
           soUOE_DLen.write(udpTX_packet_length);
           packet_count_TX++;
-
-          // Forward data chunk, metadata and payload length
           UdpWord    aWord = siUdp_data.read();
           udpTX_current_packet_length++;
           if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
@@ -918,7 +917,7 @@ void nrc_main(
           break;
 
         case FSM_IDLE:
-          if(openPortWaitTime == 0) { 
+          if(openPortWaitTime == 0) {
             if ( !soUOE_LsnReq.full() && need_udp_port_req) {
               ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_udp;
               soUOE_LsnReq.write(new_absolute_port);
@@ -972,46 +971,52 @@ void nrc_main(
 
         case FSM_FIRST_ACC:
           // Wait until both the first data chunk and the first metadata are received from UDP
-          if ( !siUOE_Data.empty() && !siUOE_Meta.empty() ) {
-            if ( !soUdp_data.full() && !soUdp_meta.full() ) {
+          if ( !siUOE_Data.empty() && !siUOE_Meta.empty()  &&
+               !soUdp_data.full() && !soUdp_meta.full() )
+          {
 
-              //extrac src ip address
-              UdpMeta udpRxMeta = siUOE_Meta.read();
-              NodeId src_id = 0xFFFF;
-              if(cached_udp_rx_ipaddr == udpRxMeta.src.addr)
-              {
-                printf("used UDP RX id cache\n");
-                src_id = cached_udp_rx_id;
-              } else {
-                src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
-                cached_udp_rx_ipaddr = udpRxMeta.src.addr;
-                cached_udp_rx_id = src_id;
-              }
-              if(src_id == 0xFFFF)
-              {
-                //SINK packet
-                node_id_missmatch_RX_cnt++;
-                fsmStateRX_Udp = FSM_DROP_PACKET;
-                break;
-              }
-              //status
-              last_rx_node_id = src_id;
-              last_rx_port = udpRxMeta.dst.port;
-              NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
-              //FIXME: add length here as soon as available from the UOE
-              in_meta_udp = NetworkMetaStream(tmp_meta);
-              // Forward data chunk to ROLE
-              UdpWord    udpWord = siUOE_Data.read();
-              soUdp_data.write(udpWord);
+            //extract src ip address
+            UdpMeta udpRxMeta = siUOE_Meta.read();
+            NodeId src_id = 0xFFFF;
+            //ask cache
+            if(cached_udp_rx_ipaddr == udpRxMeta.src.addr)
+            {
+              printf("used UDP RX id cache\n");
+              src_id = cached_udp_rx_id;
+            } else {
+              src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+              cached_udp_rx_ipaddr = udpRxMeta.src.addr;
+              cached_udp_rx_id = src_id;
+            }
+            if(src_id == 0xFFFF)
+            {
+              //SINK packet
+              node_id_missmatch_RX_cnt++;
+              fsmStateRX_Udp = FSM_DROP_PACKET;
+              break;
+            }
+            //status
+            last_rx_node_id = src_id;
+            last_rx_port = udpRxMeta.dst.port;
+            NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+            //FIXME: add length here as soon as available from the UOE
+            in_meta_udp = NetworkMetaStream(tmp_meta);
+            //write metadata
+            soUdp_meta.write(in_meta_udp);
+            // Forward data chunk to ROLE
+            UdpWord    udpWord = siUOE_Data.read();
+            soUdp_data.write(udpWord);
 
-              Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
-              if (!udpWord.tlast) {
-                fsmStateRX_Udp = FSM_ACC;
-              } else { 
-                fsmStateRX_Udp = FSM_WRITE_META; 
-              }
-            } 
+            //Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
+            if (!udpWord.tlast) {
+              fsmStateRX_Udp = FSM_ACC;
+            } else { 
+              //fsmStateRX_Udp = FSM_WRITE_META;
+              //we are already done, stay here
+              fsmStateRX_Udp = FSM_FIRST_ACC;
+            }
           }
+          //edge to port request
           if(need_udp_port_req)
           {
             fsmStateRX_Udp = FSM_IDLE;
@@ -1031,17 +1036,17 @@ void nrc_main(
             }
           }
           //no break!
-        case FSM_WRITE_META:
-          if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
-          {
-            soUdp_meta.write(in_meta_udp);
-            packet_count_RX++;
-            Udp_RX_metaWritten = true;
-            if ( fsmStateRX_Udp == FSM_WRITE_META)
-            {//was a small packet
-              fsmStateRX_Udp = FSM_FIRST_ACC;
-            }
-          }
+        //case FSM_WRITE_META:
+        //  if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
+        //  {
+        //    soUdp_meta.write(in_meta_udp);
+        //    packet_count_RX++;
+        //    Udp_RX_metaWritten = true;
+        //    if ( fsmStateRX_Udp == FSM_WRITE_META)
+        //    {//was a small packet
+        //      fsmStateRX_Udp = FSM_FIRST_ACC;
+        //    }
+        //  }
           break;
 
         case FSM_DROP_PACKET:
@@ -1380,6 +1385,7 @@ void nrc_main(
             }
           }
           // NO break;
+          // here, in oposition to UDP, we need the extra write meta state, because we have multiple outgoing ports that should not block each other. Also, we don't write smth in the RDP_WAIT_META state.
         case RDP_WRITE_META_ROLE:
           if( !Tcp_RX_metaWritten && !soTcp_meta.full())
           {
@@ -1410,7 +1416,6 @@ void nrc_main(
           if( !Tcp_RX_metaWritten )
           {
             soFMC_Tcp_SessId.write(session_toFMC);
-            //TODO: is tlast set?
             //TODO: count incoming FMC packets?
             Tcp_RX_metaWritten = true;
           }
@@ -1833,12 +1838,13 @@ void nrc_main(
     //  update status, config, MRT
 
 
-    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC && 
+    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
         rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
         wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
     { //so we are not in a critical data path
 
-      //TODO: necessary?
+      //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+      //or do we need to copy it explicetly, but could do this also every ~2 seconds?
       if(tableCopyVariable < NUMBER_CONFIG_WORDS)
       {
         config[tableCopyVariable] = ctrlLink[tableCopyVariable];
