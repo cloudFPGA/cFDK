@@ -28,7 +28,7 @@ ap_uint<16>  mmio_stabilize_counter = 1;
 #else
 ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
 #endif
-bool Udp_RX_metaWritten = false;
+//bool Udp_RX_metaWritten = false;
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 FsmStateUdp fsmStateTX_Udp = FSM_RESET;
@@ -75,6 +75,14 @@ ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
+
+NodeId cached_udp_rx_id = 0;
+Ip4Addr cached_udp_rx_ipaddr = 0;
+
+SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 
 
 //FROM TCP
@@ -184,25 +192,15 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
 {
 //#pragma HLS inline
-  //bool foundIt = false;
-  //NodeId ret = 0xFFFF;
   //Loop unroll pragma needs int as variable...
   for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
   {
 //#pragma HLS unroll //factor=8
-    //if(!foundIt && localMRT[i] == ipAddr)
     if(localMRT[i] == ipAddr)
     {
       return (NodeId) i;
-      //foundIt = true;
-      //ret = (NodeId) i;
     }
   }
-  //if(!foundIt)
-  //{
-  //  node_id_missmatch_RX_cnt++;
-  //}
-  return 0xFFFF;
   //return ret;
 }
 
@@ -521,7 +519,7 @@ void nrc_main(
   //=================================================================================================
   // Reset global variables 
 
-#pragma HLS reset variable=Udp_RX_metaWritten
+//#pragma HLS reset variable=Udp_RX_metaWritten
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTX_Udp
 #pragma HLS reset variable=openPortWaitTime
@@ -587,6 +585,13 @@ void nrc_main(
 #pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=expect_FMC_response
 
+#pragma HLS reset variable=cached_udp_rx_id
+#pragma HLS reset variable=cached_udp_rx_ipaddr
+#pragma HLS reset variable=cached_tcp_rx_session_id
+#pragma HLS reset variable=cached_tcp_rx_tripple
+#pragma HLS reset variable=cached_tcp_tx_session_id
+#pragma HLS reset variable=cached_tcp_tx_tripple
+
 
   //===========================================================
   //  core wide variables (for one iteration)
@@ -640,6 +645,10 @@ void nrc_main(
     clsFsmState_Udp = CLS_IDLE;
     //and we shouldn't expect smth
     expect_FMC_response = false;
+    //invalidate cache
+    cached_udp_rx_ipaddr = 0;
+    cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
   }
 
   if(*layer_7_enabled == 0 || *role_decoupled == 1 )
@@ -672,6 +681,10 @@ void nrc_main(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
+    //invalidate cache
+    cached_udp_rx_ipaddr = 0;
+    cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
   }
   //===========================================================
   // MRT init
@@ -806,12 +819,12 @@ void nrc_main(
             break;
           }
           last_tx_node_id = dst_rank;
-          NrcPort src_port = out_meta_udp.tdata.src_port; //TODO: DEBUG
+          NrcPort src_port = tmp_meta_in.tdata.src_port;
           if (src_port == 0)
           {
             src_port = DEFAULT_RX_PORT;
           }
-          NrcPort dst_port = out_meta_udp.tdata.dst_port; //TODO: DEBUG
+          NrcPort dst_port = tmp_meta_in.tdata.dst_port;
           if (dst_port == 0)
           {
             dst_port = DEFAULT_RX_PORT;
@@ -821,13 +834,12 @@ void nrc_main(
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
           //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
           UdpMeta txMeta = SocketPair(SockAddr(ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
+          // Forward data chunk, metadata and payload length
           soUOE_Meta.write(txMeta);
           //we can forward the length, even if 0
           //the UOE handles this as streaming mode
           soUOE_DLen.write(udpTX_packet_length);
           packet_count_TX++;
-
-          // Forward data chunk, metadata and payload length
           UdpWord    aWord = siUdp_data.read();
           udpTX_current_packet_length++;
           if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
@@ -905,7 +917,7 @@ void nrc_main(
           break;
 
         case FSM_IDLE:
-          if(openPortWaitTime == 0) { 
+          if(openPortWaitTime == 0) {
             if ( !soUOE_LsnReq.full() && need_udp_port_req) {
               ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_udp;
               soUOE_LsnReq.write(new_absolute_port);
@@ -959,36 +971,52 @@ void nrc_main(
 
         case FSM_FIRST_ACC:
           // Wait until both the first data chunk and the first metadata are received from UDP
-          if ( !siUOE_Data.empty() && !siUOE_Meta.empty() ) {
-            if ( !soUdp_data.full() && !soUdp_meta.full() ) {
+          if ( !siUOE_Data.empty() && !siUOE_Meta.empty()  &&
+               !soUdp_data.full() && !soUdp_meta.full() )
+          {
 
-              //extrac src ip address
-              UdpMeta udpRxMeta = siUOE_Meta.read();
-              NodeId src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
-              if(src_id == 0xFFFF)
-              {
-                //SINK packet
-                //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
-                fsmStateRX_Udp = FSM_DROP_PACKET;
-                break;
-              }
-              last_rx_node_id = src_id;
-              last_rx_port = udpRxMeta.dst.port;
-              NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
-              //FIXME: add length here as soon as available from the UOE
-              in_meta_udp = NetworkMetaStream(tmp_meta);
-              // Forward data chunk to ROLE
-              UdpWord    udpWord = siUOE_Data.read();
-              soUdp_data.write(udpWord);
+            //extract src ip address
+            UdpMeta udpRxMeta = siUOE_Meta.read();
+            NodeId src_id = 0xFFFF;
+            //ask cache
+            if(cached_udp_rx_ipaddr == udpRxMeta.src.addr)
+            {
+              printf("used UDP RX id cache\n");
+              src_id = cached_udp_rx_id;
+            } else {
+              src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+              cached_udp_rx_ipaddr = udpRxMeta.src.addr;
+              cached_udp_rx_id = src_id;
+            }
+            if(src_id == 0xFFFF)
+            {
+              //SINK packet
+              node_id_missmatch_RX_cnt++;
+              fsmStateRX_Udp = FSM_DROP_PACKET;
+              break;
+            }
+            //status
+            last_rx_node_id = src_id;
+            last_rx_port = udpRxMeta.dst.port;
+            NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+            //FIXME: add length here as soon as available from the UOE
+            in_meta_udp = NetworkMetaStream(tmp_meta);
+            //write metadata
+            soUdp_meta.write(in_meta_udp);
+            // Forward data chunk to ROLE
+            UdpWord    udpWord = siUOE_Data.read();
+            soUdp_data.write(udpWord);
 
-              Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
-              if (!udpWord.tlast) {
-                fsmStateRX_Udp = FSM_ACC;
-              } else { 
-                fsmStateRX_Udp = FSM_WRITE_META; 
-              }
-            } 
+            //Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
+            if (!udpWord.tlast) {
+              fsmStateRX_Udp = FSM_ACC;
+            } else { 
+              //fsmStateRX_Udp = FSM_WRITE_META;
+              //we are already done, stay here
+              fsmStateRX_Udp = FSM_FIRST_ACC;
+            }
           }
+          //edge to port request
           if(need_udp_port_req)
           {
             fsmStateRX_Udp = FSM_IDLE;
@@ -1008,17 +1036,17 @@ void nrc_main(
             }
           }
           //no break!
-        case FSM_WRITE_META:
-          if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
-          {
-            soUdp_meta.write(in_meta_udp);
-            packet_count_RX++;
-            Udp_RX_metaWritten = true;
-            if ( fsmStateRX_Udp == FSM_WRITE_META)
-            {//was a small packet
-              fsmStateRX_Udp = FSM_FIRST_ACC;
-            }
-          }
+        //case FSM_WRITE_META:
+        //  if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
+        //  {
+        //    soUdp_meta.write(in_meta_udp);
+        //    packet_count_RX++;
+        //    Udp_RX_metaWritten = true;
+        //    if ( fsmStateRX_Udp == FSM_WRITE_META)
+        //    {//was a small packet
+        //      fsmStateRX_Udp = FSM_FIRST_ACC;
+        //    }
+        //  }
           break;
 
         case FSM_DROP_PACKET:
@@ -1238,7 +1266,12 @@ void nrc_main(
               // Always request the data segment to be received
               rrhFsmState = RRH_SEND_DREQ;
               //remember the session ID if not yet known
-              addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+              if(notif_pRrh.sessionID != cached_tcp_rx_session_id)
+              {
+                addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+              } else {
+                printf("session/tripple id already in cache.\n");
+              }
             }
           }
           break;
@@ -1281,7 +1314,16 @@ void nrc_main(
           if (!siTOE_SessId.empty()) {
             siTOE_SessId.read(sessId);
 
-            ap_uint<64> tripple_in = getTrippleFromSessionId(sessId);
+            ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+            if(sessId == cached_tcp_rx_session_id)
+            {
+              printf("used TCP RX tripple cache.\n");
+              tripple_in = cached_tcp_rx_tripple;
+            } else {
+              tripple_in = getTrippleFromSessionId(sessId);
+              cached_tcp_rx_session_id = sessId;
+              cached_tcp_rx_tripple = tripple_in;
+            }
             //since we requested the session, we shoul know it -> no error handling
             printf("tripple_in: %llu\n",(unsigned long long) tripple_in);
             Ip4Addr remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
@@ -1307,7 +1349,6 @@ void nrc_main(
                 break;
               }
             }
-            //no we think this is valid...
             NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
             //printf("TO ROLE: src_rank: %d\n", (int) src_id);
             //Role packet
@@ -1315,7 +1356,7 @@ void nrc_main(
                 || *layer_7_enabled == 0 || *role_decoupled == 1)
             {
               //SINK packet
-              //node_id_missmatch_RX_cnt++; is done by getNodeIdFromIpAddress
+              node_id_missmatch_RX_cnt++;
               rdpFsmState = RDP_DROP_PACKET;
               printf("NRC drops the packet...\n");
               break;
@@ -1344,6 +1385,7 @@ void nrc_main(
             }
           }
           // NO break;
+          // here, in oposition to UDP, we need the extra write meta state, because we have multiple outgoing ports that should not block each other. Also, we don't write smth in the RDP_WAIT_META state.
         case RDP_WRITE_META_ROLE:
           if( !Tcp_RX_metaWritten && !soTcp_meta.full())
           {
@@ -1374,7 +1416,6 @@ void nrc_main(
           if( !Tcp_RX_metaWritten )
           {
             soFMC_Tcp_SessId.write(session_toFMC);
-            //TODO: is tlast set?
             //TODO: count incoming FMC packets?
             Tcp_RX_metaWritten = true;
           }
@@ -1467,12 +1508,12 @@ void nrc_main(
               printf("NRC drops the packet...\n");
               break;
             }
-            NrcPort src_port = out_meta_tcp.tdata.src_port; //TODO: DEBUG
+            NrcPort src_port = out_meta_tcp.tdata.src_port;
             if (src_port == 0)
             {
               src_port = DEFAULT_RX_PORT;
             }
-            NrcPort dst_port = out_meta_tcp.tdata.dst_port; //TODO: DEBUG
+            NrcPort dst_port = out_meta_tcp.tdata.dst_port;
             if (dst_port == 0)
             {
               dst_port = DEFAULT_RX_PORT;
@@ -1482,7 +1523,16 @@ void nrc_main(
             //check if session is present
             ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
             printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
-            SessionId sessId = getSessionIdFromTripple(new_tripple);
+            SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
+            if(new_tripple == cached_tcp_tx_tripple)
+            {
+              printf("used TCP TX tripple chache.\n");
+              sessId = cached_tcp_tx_session_id;
+            } else {
+              sessId = getSessionIdFromTripple(new_tripple);
+              cached_tcp_tx_tripple = new_tripple;
+              cached_tcp_tx_session_id = sessId;
+            }
             printf("session id found: %d\n", (int) sessId);
             if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
             {//we need to create one first
@@ -1766,7 +1816,8 @@ void nrc_main(
     status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
     status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
 
-    status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    //status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    status[NRC_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
     status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
     //status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
     status[NRC_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
@@ -1787,12 +1838,13 @@ void nrc_main(
     //  update status, config, MRT
 
 
-    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC && 
+    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
         rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
         wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
     { //so we are not in a critical data path
 
-      //TODO: necessary?
+      //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+      //or do we need to copy it explicetly, but could do this also every ~2 seconds?
       if(tableCopyVariable < NUMBER_CONFIG_WORDS)
       {
         config[tableCopyVariable] = ctrlLink[tableCopyVariable];

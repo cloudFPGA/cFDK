@@ -38,7 +38,7 @@ Today, the prevailing way to incorporate an FPGA into a server is to connect it 
 
 However, because of this master–slave programming paradigm, such an FPGA is typically integrated in the cloud only as an option of the primary host compute resource to which it belongs. As a result, bus-attached FPGAs are usually made available in the cloud indirectly via Virtual Machines (VMs) or Containers.
 
-In our deployment, in contrast, a stand-alone, network-attached FPGA can be requested independently of a host via the cloudFPGA Resource Manager (cFRM, see figure). The cFRM provides a RESTful (Representational State Transfer) API (Application Program Interface) for integration in the Data Center (DC) management stack (e.g. OpenStack).
+In contrast, in our deployment a stand-alone, network-attached FPGA can be requested independently of a host via the cloudFPGA Resource Manager (cFRM, see figure). The cFRM provides a RESTful (Representational State Transfer) API (Application Program Interface) for integration in the Data Center (DC) management stack (e.g. OpenStack).
 
 ![High level view of cloudFPGA architecture](./imgs/FPGA_arch.png)
 <p align="center"><b>Figure-2: High level view of cloudFPGA architecture.</b></p>
@@ -52,4 +52,4 @@ Cloud integration is the process of making a resource available in the cloud. In
 
 In the end, the components of all levels work together to provide the requested FPGA resources in a fast and secure way.
 
-System architecture for the cloudFPGA platform. 32 FPGAs, one switch and a service processor are combined on one carrier board and called Sled. The management tasks are split into three levels — cloudFPGA Resource Manager (cFRM), cloudFPGA Sled Manager (cFSM), and cloudFPGA Manager Core (cFMC). A Sled is half of a 2U chassis. The OpenStack compute resources (Nova) CPU nodes are also available for creating heterogeneous clusters.
+System architecture for the cloudFPGA platform. 32 FPGAs, one switch and a service processor are combined on one carrier board and called a Sled. The management tasks are split into three levels — cloudFPGA Resource Manager (cFRM), cloudFPGA Sled Manager (cFSM), and cloudFPGA Manager Core (cFMC). A Sled is half of a 2U chassis. The OpenStack compute resources (Nova) CPU nodes are also available for creating heterogeneous clusters.
