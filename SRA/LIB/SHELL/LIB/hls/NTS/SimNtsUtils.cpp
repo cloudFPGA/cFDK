@@ -320,19 +320,24 @@ int myDiffTwoFiles(string dataFileName, string goldFileName) {
         return(NTS_KO);
     }
 
-    string goldStrLine;
-    string dataStrLine;
-    while (getline(goldFileStream, goldStrLine)) {
-        if (getline(dataFileStream, dataStrLine)) {
-            if (goldStrLine != dataStrLine) {
-                printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), dataStrLine.c_str());
+    if (goldFileStream.peek() != std::ifstream::traits_type::eof()) {
+        string goldStrLine;
+        string dataStrLine;
+        while (getline(goldFileStream, goldStrLine)) {
+            if (getline(dataFileStream, dataStrLine)) {
+                if (goldStrLine != dataStrLine) {
+                    printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), dataStrLine.c_str());
+                    noLineDiff++;
+               }
+            }
+            else {
+                printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), "No entry found in data file!");
                 noLineDiff++;
             }
         }
-        else {
-            printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), "No entry found in data file!");
-            noLineDiff++;
-        }
+    }
+    else {
+        noLineDiff++;
     }
     //-- CLOSE FILES
     dataFileStream.close();

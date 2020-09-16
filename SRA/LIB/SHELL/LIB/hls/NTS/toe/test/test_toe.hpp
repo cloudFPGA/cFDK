@@ -38,9 +38,10 @@
 #include <unistd.h>
 
 #include "../../../NTS/nts_utils.hpp"
+#include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/SimIp4Packet.hpp"
 #include "../../../NTS/toe/src/toe.hpp"
 #include "../../../NTS/toe/src/toe_utils.hpp"
-#include "../../../NTS/SimIp4Packet.hpp"
 #include "../../../NTS/toe/test/dummy_memory/dummy_memory.hpp"
 
 
