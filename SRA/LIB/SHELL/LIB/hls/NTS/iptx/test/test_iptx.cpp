@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2016 -- 2020 IBM Corporation
  *
@@ -333,8 +332,8 @@ int main(int argc, char* argv[]) {
     Ip4Addr     myIp4Address  = 0x0A0CC807;   //  10.012.200.7
     Ip4Addr     myGatewayAddr = 0x0A0C0001;   //  10.012.000.1
 
-    string      ofsL2MUX_Data_FileName = "../../../../test/soL2MUX_Data.dat";
-    string      ofsL2MUX_Gold_FileName = "../../../../test/soL2MUX_Gold.dat";
+    string      ofsL2MUX_Data_FileName = "../../../../test/simOutFiles/soL2MUX_Data.dat";
+    string      ofsL2MUX_Gold_FileName = "../../../../test/simOutFiles/soL2MUX_Gold.dat";
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
@@ -460,7 +459,6 @@ int main(int argc, char* argv[]) {
                 nrIPTX_L2MUX_Bytes  += axisEth.getLen();
                 if (axisEth.getLE_TLast()) {
                     nrIPTX_L2MUX_Frames++;
-                    //OBSOLETE_20200615 outFileStream << std::endl;
                 }
             }
         }
@@ -482,7 +480,6 @@ int main(int argc, char* argv[]) {
     //---------------------------------------------------------------
     //-- COMPARE OUTPUT DAT and GOLD STREAMS
     //---------------------------------------------------------------
-    //OBSOLETE_20200617 int res = system(("diff --brief -w " + std::string(ofsL2MUX_Data_FileName) + " " + std::string(ofsL2MUX_Gold_FileName) + " ").c_str());
     int res = myDiffTwoFiles(std::string(ofsL2MUX_Data_FileName),
                              std::string(ofsL2MUX_Gold_FileName));
     if (res) {

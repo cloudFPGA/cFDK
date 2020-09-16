@@ -418,7 +418,6 @@ void pMacAddressInserter(
             siIAe_Data.read(currChunk);
             sendChunk.setEthSrcAddrLo(piMMIO_MacAddress);
             sendChunk.setEthTypeLen(0x0800);
-            //OBSOLETE-20200401 sendWord.tdata(63, 48) = currChunk.tdata(15, 0);
             sendChunk.setIp4HdrLen(currChunk.getIp4HdrLen());
             sendChunk.setIp4Version(currChunk.getIp4Version());
             sendChunk.setIp4ToS(currChunk.getIp4ToS());
@@ -437,7 +436,6 @@ void pMacAddressInserter(
             sendChunk.setLE_TData(    currChunk.getLE_TData(15,  0), 63, 48);
             sendChunk.setLE_TKeep(mai_prevChunk.getLE_TKeep( 7,  2),  5,  0);
             sendChunk.setLE_TKeep(    currChunk.getLE_TKeep( 1,  0),  7,  6);
-            //OBSOLETE_20200615 sendWord.tlast = (currWord.tkeep[2] == 0);
             if (currChunk.getLE_TKeep()[2] == 0) {
                 sendChunk.setLE_TLast(TLAST);
             }
@@ -465,11 +463,6 @@ void pMacAddressInserter(
     case FSM_MAI_WRITE_LAST:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_LAST - \n"); }
         if (!soL2MUX_Data.full()) {
-            //OBSOLETE_20200615 sendChunk.tdata(47,  0) = mai_prevChunk.tdata(63, 16);
-            //OBSOLETE_20200615 sendChunk.tdata(63, 48) = 0;
-            //OBSOLETE_20200615 sendChunk.tkeep( 5,  0) = mai_prevChunk.tkeep(7, 2);
-            //OBSOLETE_20200615 sendChunk.tkeep( 7,  6) = 0;
-            //OBSOLETE_20200615 sendChunk.tlast = 1;
             sendChunk.setLE_TData(mai_prevChunk.getLE_TData(63, 16), 47,  0);
             sendChunk.setLE_TData(                                0, 63, 48);
             sendChunk.setLE_TKeep(mai_prevChunk.getLE_TKeep( 7,  2),  5,  0);

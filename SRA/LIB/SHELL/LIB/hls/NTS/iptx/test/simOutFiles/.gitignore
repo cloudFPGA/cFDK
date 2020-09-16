@@ -1,0 +1,6 @@
+#
+# IGNORE EVERYTHING IN THIS DIRECTORY. 
+#   It is used to dump the output simulation files. 
+*
+# Except this file
+!.gitignore

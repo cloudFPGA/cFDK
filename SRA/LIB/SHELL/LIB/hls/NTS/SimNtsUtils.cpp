@@ -320,7 +320,8 @@ int myDiffTwoFiles(string dataFileName, string goldFileName) {
         return(NTS_KO);
     }
 
-    if (goldFileStream.peek() != std::ifstream::traits_type::eof()) {
+    if ((dataFileStream.peek() != std::ifstream::traits_type::eof()) and
+        (goldFileStream.peek() != std::ifstream::traits_type::eof())) {
         string goldStrLine;
         string dataStrLine;
         while (getline(goldFileStream, goldStrLine)) {
@@ -334,6 +335,20 @@ int myDiffTwoFiles(string dataFileName, string goldFileName) {
                 printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), "No entry found in data file!");
                 noLineDiff++;
             }
+        }
+    }
+    else if (dataFileStream.peek() == std::ifstream::traits_type::eof()) {
+        string goldStrLine;
+        while (getline(goldFileStream, goldStrLine)) {
+            printWarn(THIS_NAME, "Diff: %s - %s\n", goldStrLine.c_str(), "  ");
+            noLineDiff++;
+        }
+    }
+    else if (goldFileStream.peek() == std::ifstream::traits_type::eof()) {
+        string dataStrLine;
+        while (getline(goldFileStream, dataStrLine)) {
+            printWarn(THIS_NAME, "Diff: %s - %s\n", dataStrLine.c_str(), "  ");
+            noLineDiff++;
         }
     }
     else {
