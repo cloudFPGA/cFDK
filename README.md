@@ -1,4 +1,4 @@
-# cFDK
+# cF(DK) Documentation
 
 **cloudFPGA Development Kit (cFDK)**
 

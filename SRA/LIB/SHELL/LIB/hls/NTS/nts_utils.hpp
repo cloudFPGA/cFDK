@@ -33,7 +33,6 @@
 
 #include "../MEM/mem.hpp"
 #include "../NTS/nts.hpp"
-#include "../NTS/nts_utils.hpp"
 
 using namespace std;
 
