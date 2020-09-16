@@ -1003,6 +1003,7 @@ void nrc_main(
             in_meta_udp = NetworkMetaStream(tmp_meta);
             //write metadata
             soUdp_meta.write(in_meta_udp);
+            packet_count_RX++;
             // Forward data chunk to ROLE
             UdpWord    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
@@ -1862,8 +1863,17 @@ void nrc_main(
       if(tableCopyVariable >= MAX_MRT_SIZE)
       {
         tableCopyVariable = 0;
-        //acknowledge the processed version 
-        mrt_version_processed = config[NRC_CONFIG_MRT_VERSION];
+        //acknowledge the processed version
+        //mrt_version_processed = config[NRC_CONFIG_MRT_VERSION];
+        ap_uint<32> new_mrt_version = config[NRC_CONFIG_MRT_VERSION];
+        if(new_mrt_version > mrt_version_processed)
+        {
+          //invalidate cache
+          cached_udp_rx_ipaddr = 0;
+          cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+          cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+        }
+        mrt_version_processed = new_mrt_version;
       }  else {
         tableCopyVariable++;
       }
