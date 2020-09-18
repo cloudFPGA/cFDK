@@ -38,13 +38,6 @@
  *  \brief Shell-Role-Architecture (SRA). To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA). The documentation of SRA is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#sras .
  */
 
-/** \defgroup MIDLW MIDLW
- *  @ingroup cFDK
- * 
- *  \brief The middleware of cloudFPGA. The documentation of middleware is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#midlw .
- */
-
-
 /*****************************************************************************
  *
  *  cFDK / ShellLib : Submodules
@@ -54,7 +47,7 @@
 /** \defgroup FMC FMC
  *  @ingroup ShellLib
  * 
- *  \brief FPGA Management Core (FMC). The FMC is the core of the cloudFPGA Shell-Role-Architecture. Its tasks and responsibilities are sometimes complex and depend on the current situation and environment. In order to unbundle all these dependencies and to allow future extensions easily, the FMC contains a small Instruction-Set-Architecture (ISA). All global operations issue opcodes to execute the current task. The global operations are persistent between IP core runs and react on environment changes, the issued Instructions are all executed in the same IP core run. The global operations are started according to the EMIF Flags in the FMC Write Register (see below). The documentation of the FMC HTTP API can be found at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#fpga-management-core-fmc .
+ *  \brief FPGA Management Core (FMC). The FMC is the core of the cloudFPGA Shell-Role-Architecture. The FMC controls the FPGA and exposes the management functionality via a RESTful HTTP API. Its tasks and responsibilities are sometimes complex and depend on the current situation and environment. In order to unbundle all these dependencies and to allow future extensions easily, the FMC contains a small Instruction-Set-Architecture (ISA). A detailed documentation of the FMC can be found at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#fpga-management-core-fmc .
  */
 
 /** \defgroup MEM MEM
