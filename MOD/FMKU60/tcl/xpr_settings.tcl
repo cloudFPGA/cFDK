@@ -1,6 +1,21 @@
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
 #  *
 #  *                       cloudFPGA
-#  *     Copyright IBM Research, All Rights Reserved
 #  *    =============================================
 #  *     Created: Apr 2019
 #  *     Authors: FAB, WEI, NGL
@@ -12,43 +27,8 @@
 #-------------------------------------------------------------------------------
 # User Defined Settings (Can be edited)
 #-------------------------------------------------------------------------------
-set xprName      "shellFMKU60" 
+set xprName      "shellFMKU60"
 set xilPartName  "xcku060-ffva1156-2-i"
 set brdPartName  "FMKU60"
-
-# cFDK: Obsolete?
-## [INFO] SHELL Naming Convention:
-##  Udp  stands for one UDP interface
-##  Tcp  stands fro one TCP interface
-##  McDp stands for one MemoryChannel with a DualPort interface
-##-------------------------------------------------------------- 
-##OBSOLETE: set topName      "Shell_x1Udp_x1Tcp_x2Mp_x2Mc"
-##OBSOLETE: set topFile      "Shell.v"
-#
-#
-##-------------------------------------------------------------------------------
-## This Xilinx Project Settings (Do not edit)  
-##-------------------------------------------------------------------------------
-#set currDir      [pwd]
-#set rootDir      [file dirname [pwd]] 
-#set hdlDir       ${rootDir}/hdl
-#set hlsDir       ${rootDir}/hls
-#set ipDir        ${rootDir}/ip
-#set tclDir       ${rootDir}/tcl
-#set xdcDir       ${rootDir}/xdc
-#set xprDir       ${rootDir}/xpr
-#
-##-- IPs Managed by this Xilinx (Xpr) Project
-#set ipXprName    "managed_ip_project"
-#set ipXprDir     ${ipDir}/${ipXprName}
-#set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
-#
-##-- IPs Managed by the Shell-Role-Architecture (Sra) Project  
-##BOSOLETE??: set ipSraDir     ${rootDir}/../../IP
-##BOSOLETE??: set ipSraXprName "managed_ip_project"
-##BOSOLETE??: set ipSraXprDir  ${ipSraDir}/${ipSraXprName}
-##BOSOLETE??: set ipSraXprFile [ file join ${ipSraXprDir} ${ipSraXprName}.xpr ]
-##BOSOLETE??: 
-#
 
 

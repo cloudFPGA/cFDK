@@ -1,12 +1,27 @@
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
 #  *
 #  *                       cloudFPGA
-#  *     Copyright IBM Research, All Rights Reserved
 #  *    =============================================
-#  *     Created: Apr 2019
+#  *     Created: May 2018
 #  *     Authors: FAB, WEI, NGL
 #  *
 #  *     Description:
-#  *        TCL file execute the Vivado commands
+#  *        TCL file to execute the Vivado commands
 #  *
 
 
@@ -16,7 +31,6 @@ package require cmdline
 
 # Set the Global Settings used by the SHELL Project
 #-------------------------------------------------------------------------------
-#source xpr_settings.tcl
 source ../../cFDK/SRA/LIB/tcl/xpr_settings.tcl
 
 # import environment Variables
@@ -677,7 +691,7 @@ if { ${link} } {
   open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
-  ### CAVE: link_design is done by open_design in project mode!!
+  ### NOTE: link_design is done by open_design in project mode!!
   # to prevent the "out-of-date" message; we just added an alreday synthesized dcp -> not necessary
   set_property needs_refresh false [get_runs synth_1]
   
