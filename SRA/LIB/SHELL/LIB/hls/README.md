@@ -15,8 +15,8 @@ Please consider having a quick look at the [documentation](../../../../../DOC) b
 | [icmp_server](./icmp_server)  | **ICMP**  | Internet Control Message Protocol (ICMP) server.      |
 | [iprx_handler](./iprx_handler)| **IPRX**  | IP Receiver frame handler (IPRX).                     |
 | [iptx_handler](./iptx_handler)| **IPTX**  | IP Transmit frame handler (IPTX).                     |
-| [mpe](./mpe)                  | **MPE**   |                                                       |
-| [smc](./smc)                  | **SMC**   |                                                       |
+| [mpe](./FMC)                  | **FMC**   | The FPGA Management Core (FMC).                       |
+| [smc](./NRC)                  | **NRC**   | The Network Routing Core (NRC).                       |
 | [tcp_role_if](./tcp_role_if)  | **TRIF**  | TCP Role Interface.                                   |
 | [toe](./toe)                  | **TOE**   | TCP Offload Engine.                                   |
 | [udp](./udp)                  | **UDP**   | UDP engine.                                           |
