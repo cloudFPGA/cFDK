@@ -105,7 +105,7 @@
 //typedef Axis<64>     UdpAppData;
 //#endif
 
-#include "../../fmc/src/fmc.hpp"
+#include "../../FMC/src/fmc.hpp"
 
 #include "../../../../../hls/network.hpp"
 #include "../../network_utils.hpp"
