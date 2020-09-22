@@ -1,12 +1,27 @@
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
 #  *
 #  *                       cloudFPGA
-#  *     Copyright IBM Research, All Rights Reserved
 #  *    =============================================
 #  *     Created: Apr 2019
 #  *     Authors: FAB, WEI, NGL
 #  *
 #  *     Description:
-#  *        XPR/TCL PROJECT SPECIFIC settings; 
+#  *        XPR/TCL PROJECT SPECIFIC settings;
 #  *        Generic file to extract ENVIRONMENT variables
 #  *
 
@@ -23,29 +38,22 @@ set cFpXprDir $env(cFpXprDir)
 set cFpDcpDir $env(cFpDcpDir)
 
 #source constants and functions 
-#source xpr_constants.tcl
 source ${cFpRootDir}/cFDK/SRA/LIB/tcl/xpr_constants.tcl
 # source board specific settings 
-#source ../../../MOD/${cFpMOD}/tcl/xpr_settings.tcl
 source ${cFpRootDir}/cFDK/MOD/${cFpMOD}/tcl/xpr_settings.tcl
 
 #-------------------------------------------------------------------------------
-# TOP  Project Settings  
+# TOP  Project Settings
 #-------------------------------------------------------------------------------
 #set currDir      [pwd]
 set rootDir      ${cFpRootDir} 
 #set hdlDir       ${rootDir}/hdl
 #set hlsDir       ${rootDir}/hls
-#set ipDir        ${rootDir}/../../IP/
 set ipDir        ${cFpIpDir}
 #set tclDir       ${rootDir}/tcl
 set tclTopDir    ${cFpRootDir}/TOP/tcl/
-#set xdcDir       ${rootDir}/xdc
-#set xdcDir       ../../../MOD/${cFpMOD}/xdc/
 set xdcDir       ${cFpRootDir}/cFDK/MOD/${cFpMOD}/xdc/
-#set xprDir       ${rootDir}/xpr 
 set xprDir       ${cFpXprDir}
-#set dcpDir       ${rootDir}/dcps
 set dcpDir       ${cFpDcpDir}
 
 # Not used: set ipXprDir     ${ipDir}/managed_ip_project

@@ -1,6 +1,21 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*******************************************************************************/
+
 //  *
 //  *                       cloudFPGA
-//  *     Copyright IBM Research, All Rights Reserved
 //  *    =============================================
 //  *     Created: Apr 2019
 //  *     Authors: FAB, WEI, NGL
@@ -71,8 +86,8 @@ struct NetworkMeta {
 //ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to flaws in Vivados hls::stream library
 struct NetworkMetaStream {
   NetworkMeta tdata; 
-  //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work with ap_ctrl_none!
-  ap_uint<10> tkeep; //TODO: set value in constructor correct based on the length
+  //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?
+  ap_uint<10> tkeep;
   ap_uint<1> tlast;
   NetworkMetaStream() {}
   NetworkMetaStream(NetworkMeta single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}

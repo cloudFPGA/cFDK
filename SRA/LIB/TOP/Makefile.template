@@ -1,16 +1,31 @@
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
 #  *
 #  *                       cloudFPGA
-#  *     Copyright IBM Research, All Rights Reserved
 #  *    =============================================
 #  *     Created: Apr 2019
 #  *     Authors: FAB, WEI, NGL
 #  *
 #  *     Description:
 #  *       Makefile to build a cloudFPGA-project (cFp)
-#  * 
+#  *
 #  *     Synopsis:
 #  *       make [target]  (use 'make help' to list the targets)
-#  * 
+#  *
 
 # NO HEADING OR TRAILING SPACES!!
 SHELL_DIR =$(cFpRootDir)/cFDK/SRA/LIB/SHELL/$(cFpSRAtype)/
@@ -24,7 +39,6 @@ CLEAN_TYPES = *.log *.jou *.str *.time
 .PHONY: pr_debug pr_full_debug pr_only pr2_only ensureDebugNets monolithic_debug monolithic_incr_debug monolithic_proj help
 
 all: pr
-#OR all: monolithic
 
 # assert ENVIRONMENT
 assert_env: 
@@ -199,3 +213,5 @@ help: ## Shows this help message
 	@echo 'Targets:'
 	@cat ${MAKEFILE_LIST}  | egrep '^(.+)\:(.+)##\ (.+)' |  column -s ':#' |  sed 's/:.*#/||/' |  column -s '||' -t | sed -e 's/^/    /' 
 	@echo
+
+

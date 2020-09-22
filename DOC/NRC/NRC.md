@@ -11,6 +11,12 @@ The NRC is controlled by the FMC via an Axi4-Lite bus.
 The mapping of node-ids to IP-addresses is done by the *Message Routing Table (MRT)* in the variable `localMRT`.
 The mapping between TCP Session Ids and ports etc. is done in the tables `tripleList`, `sessionIdList`, and `usedRows`, where the index is the primary connection key.
 
+The synchronization between NRC and FMC is paused when the NRC has to process data packets, to avoid throughput limitations.
+
+If the NRC is reset, all internal states can be restored by the FMC. If the Role is reset or reconfigured, all open ports and sessions are closed automatically.
+
+
+
 #### NRC Status
 
 The `GET /status` function of the FMC also contains 16 lines of the NRC: The posisitons are defined in `nrc.hpp`:
@@ -91,130 +97,9 @@ All global variables in the following table are marked as `#pragma HLS reset`.
 | `tcp_need_new_connection_request`    |    |
 | `tcp_new_connection_failure`         |    |
 | `tcp_new_connection_failure_cnt`     |    |
-
+| `mrt_version_processed`              |    |
 
 Global *arrays* (`status`, `config`, `localMRT`, `tripleList`,`sessionIdList`, and `usedRows`) are *not reset*, because they are either directly controlled by the FMC, are re-written every IP Core run, or are indirectly reset by `tables_initalized`.
 
-##### NRC Interface
-
-```
-void nrc_main(
-    // ----- link to FMC -----
-    ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-    // ready signal from NTS
-    ap_uint<1>  *piNTS_ready,
-    // ----- link to MMIO ----
-    ap_uint<16> *piMMIO_FmcLsnPort,
-    ap_uint<32> *piMMIO_CfrmIp4Addr,
-    // -- my IP address
-    ap_uint<32>                 *myIpAddress,
-
-    //-- ROLE UDP connection
-    ap_uint<32>                 *pi_udp_rx_ports,
-    stream<UdpWord>             &siUdp_data,
-    stream<UdpWord>             &soUdp_data,
-    stream<NetworkMetaStream>   &siUdp_meta,
-    stream<NetworkMetaStream>   &soUdp_meta,
-
-    // -- ROLE TCP connection
-    ap_uint<32>                 *pi_tcp_rx_ports,
-    stream<TcpWord>             &siTcp_data,
-    stream<NetworkMetaStream>   &siTcp_meta,
-    stream<TcpWord>             &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta,
-
-    // -- FMC TCP connection
-    stream<TcpWord>             &siFMC_Tcp_data,
-    stream<AppMeta>             &siFMC_Tcp_SessId,
-    stream<TcpWord>             &soFMC_Tcp_data,
-    stream<AppMeta>             &soFMC_Tcp_SessId,
-
-    //-- UDMX / This / Open-Port Interfaces
-    stream<AxisAck>     &siUDMX_This_OpnAck,
-    stream<UdpPort>     &soTHIS_Udmx_OpnReq,
-
-    //-- UDMX / This / Data & MetaData Interfaces
-    stream<UdpWord>     &siUDMX_This_Data,
-    stream<UdpMeta>     &siUDMX_This_Meta,
-    stream<UdpWord>     &soTHIS_Udmx_Data,
-    stream<UdpMeta>     &soTHIS_Udmx_Meta,
-    stream<UdpPLen>     &soTHIS_Udmx_PLen,
-
-    //-- TOE / Rx Data Interfaces
-    stream<AppNotif>    &siTOE_Notif,
-    stream<AppRdReq>    &soTOE_DReq,
-    stream<NetworkWord> &siTOE_Data,
-    stream<AppMeta>     &siTOE_SessId,
-    //-- TOE / Listen Interfaces
-    stream<AppLsnReq>   &soTOE_LsnReq,
-    stream<AppLsnAck>   &siTOE_LsnAck,
-    //-- TOE / Tx Data Interfaces
-    stream<NetworkWord> &soTOE_Data,
-    stream<AppMeta>     &soTOE_SessId,
-    stream<AppWrSts>    &siTOE_DSts,
-    //-- TOE / Open Interfaces
-    stream<AppOpnReq>   &soTOE_OpnReq,
-    stream<AppOpnSts>   &siTOE_OpnRep,
-    //-- TOE / Close Interfaces
-    stream<AppClsReq>   &soTOE_ClsReq
-  )
-
-#pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
-
-#pragma HLS INTERFACE axis register both port=siUdp_data
-#pragma HLS INTERFACE axis register both port=soUdp_data
-
-#pragma HLS INTERFACE axis register both port=siUDMX_This_OpnAck
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_OpnReq
-
-#pragma HLS INTERFACE axis register both port=siUDMX_This_Data
-#pragma HLS INTERFACE axis register both port=siUDMX_This_Meta
-#pragma HLS DATA_PACK                variable=siUDMX_This_Meta instance=siUDMX_This_Meta
-
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Data
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_Meta
-#pragma HLS DATA_PACK                variable=soTHIS_Udmx_Meta instance=soTHIS_Udmx_Meta
-#pragma HLS INTERFACE axis register both port=soTHIS_Udmx_PLen
-
-#pragma HLS INTERFACE axis register both port=siUdp_meta
-#pragma HLS INTERFACE axis register both port=soUdp_meta
-
-#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
-#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_Udp_Rx_ports
-#pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
-#pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
-
-#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NRC_ctrlLink_AXI
-#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NRC_ctrlLink_AXI
-
-#pragma HLS INTERFACE axis register both port=siTcp_data
-#pragma HLS INTERFACE axis register both port=soTcp_data
-#pragma HLS INTERFACE axis register both port=siTcp_meta
-#pragma HLS INTERFACE axis register both port=soTcp_meta
-#pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
-
-#pragma HLS INTERFACE axis register both port=siFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_data
-#pragma HLS INTERFACE axis register both port=siFMC_Tcp_SessId
-#pragma HLS INTERFACE axis register both port=soFMC_Tcp_SessId
 
 
-#pragma HLS INTERFACE axis register both port=siTOE_Notif
-#pragma HLS DATA_PACK                variable=siTOE_Notif
-#pragma HLS INTERFACE axis register both port=soTOE_DReq
-#pragma HLS DATA_PACK                variable=soTOE_DReq
-#pragma HLS INTERFACE axis register both port=siTOE_Data
-#pragma HLS INTERFACE axis register both port=siTOE_SessId
-
-#pragma HLS INTERFACE axis register both port=soTOE_LsnReq
-#pragma HLS INTERFACE axis register both port=siTOE_LsnAck
-
-#pragma HLS INTERFACE axis register both port=soTOE_Data
-#pragma HLS INTERFACE axis register both port=soTOE_SessId
-#pragma HLS INTERFACE axis register both port=siTOE_DSts
-
-#pragma HLS INTERFACE axis register both port=soTOE_OpnReq
-#pragma HLS DATA_PACK                variable=soTOE_OpnReq
-#pragma HLS INTERFACE axis register both port=siTOE_OpnRep
-#pragma HLS DATA_PACK                variable=siTOE_ClsReq
-```

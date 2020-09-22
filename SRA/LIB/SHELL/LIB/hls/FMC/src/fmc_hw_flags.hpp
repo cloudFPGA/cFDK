@@ -14,22 +14,27 @@
  * limitations under the License.
 *******************************************************************************/
 
-//  *
-//  *                       cloudFPGA
-//  *    =============================================
-//  *     Created: May 2019
-//  *     Authors: FAB, WEI, NGL
-//  *
-//  *     Description:
-//  *        The current cFDK Version and other version dependent information
-//  *
+/*****************************************************************************
+ * @file       : fmc_hw_flags.hpp
+ * @brief      : 
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, FPGA Management Core (FMC)
+ * Language    : Vivado HLS
+ * 
+ * \ingroup FMC
+ * \addtogroup FMC
+ * \{
+ *****************************************************************************/
 
-#ifndef _CFDK_HEADER_
-#define _CFDK_HEADER_
+#ifndef _FMC_DYNAMIC_H_
+#define _FMC_DYNAMIC_H_
 
-#define CFDK_VERSION_STRING "0.8"
-#define CFDK_VERSION_FLOAT  0.8
+//NRC sync counter
+#define CHECK_CTRL_LINK_TICKS 1000
+
 
 #endif
 
 
+/*! \} */

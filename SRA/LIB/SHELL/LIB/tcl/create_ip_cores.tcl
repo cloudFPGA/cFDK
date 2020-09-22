@@ -1,34 +1,28 @@
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Feb 7 2018
-# * Authors : Francois Abel
-# * 
-# * Description : A Tcl script to generate the HLS-based IP cores instanciated 
-# *   by the SHELL of the FMKU60 as well as the cores created from the Vivado  
-# *   repository of the Xilinx-IP catalog.
-# * 
-# * Synopsis : vivado -mode batch -source <this_file> -notrace
-# *                             [ -log    <log_file_name>        ]
-# *                             [ -help                          ]
-# *                             [ -tclargs <myscript_arguments>  ]
-# * 
-# * Warning : All arguments before the '-tclargs' are arugments to the Vivado 
-# *   invocation (e.g. -mode, -source, -log and -tclargs itself). All options
-# *   after the '-tclargs' are TCL arguments to this script. Enter the following
-# *   command to get the list of supported TCL arguments:
-# *     vivado -mode batch -source <this_file> -notrace -tclargs -help
-# * 
-# * Return: 0 if OK, otherwise the number of errors which corresponds to the 
-# *   number of IPs that failed to be generated. 
-# * 
-# * Reference documents:
-# *  - UG896 / Ch.3 / Using Manage IP Projects.
-# *  - UG896 / Ch.2 / IP Basics.
-# *  - UG896 / Ch.6 / Tcl Commands for Common IP Operations.
-# *
-# ******************************************************************************
+# /*******************************************************************************
+#  * Copyright 2016 -- 2020 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  *     http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# *******************************************************************************/
+
+#  *
+#  *                       cloudFPGA
+#  *    =============================================
+#  *     Created: Feb 2018
+#  *     Authors: FAB, WEI, NGL
+#  *
+#  *     Description:
+#  *        Create TCL script for the SHELL LIB
+#  *
 
 package require cmdline
 
@@ -847,7 +841,6 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI4-Stream Interconnect RTL [3S1M, D8] 
 #------------------------------------------------------------------------------
@@ -958,25 +951,6 @@ set ipCfgList [list CONFIG.C_NUM_SI_SLOTS {2} \
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#OBSOLETE: moved to Shell-tcl
-##------------------------------------------------------------------------------  
-## VIVADO-IP : Decouple IP 
-##------------------------------------------------------------------------------ 
-##get current port Descriptions 
-#source ${tclDir}/decouple_ip_type.tcl 
-#
-#set ipModName "Decoupler"
-#set ipName    "pr_decoupler"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "1.0"
-#set ipCfgList ${DecouplerType}
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  

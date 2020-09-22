@@ -1,14 +1,27 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*******************************************************************************/
+
 /*****************************************************************************
- * @file       : tb_nrc.cpp
+ * @file       : tb_nrc.hpp
  * @brief      : Testbench for the NRC.
  *
  * System:     : cloudFPGA
- * Component   : Shell, Network Transport Session (NTS)
+ * Component   : Shell, Network Routing Core (NRC)
  * Language    : Vivado HLS
- *
- * Copyright 2009-2015 - Xilinx Inc.  - All rights reserved.
- * Copyright 2015-2018 - IBM Research - All Rights Reserved.
- *
+ * 
  * \ingroup NRC
  * \addtogroup NRC
  * \{
@@ -144,7 +157,7 @@ int tcp_timout_packet_drop = 0;
 
 /*****************************************************************************
  * @brief Run a single iteration of the DUT model.
- * @ingroup udp_role_if
+ * @ingroup NRC
  * @return Nothing.
  ******************************************************************************/
 void stepDut() {
@@ -180,7 +193,7 @@ void stepDut() {
 
 /*****************************************************************************
  * @brief Initialize an input data stream from a file.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] sDataStream, the input data stream to set.
  * @param[in] dataStreamName, the name of the data stream.
@@ -231,7 +244,7 @@ bool setInputDataStream(stream<UdpWord> &sDataStream, const string dataStreamNam
 
 /*****************************************************************************
  * @brief Initialize an input meta stream from a file.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] sMetaStream, the input meta stream to set.
  * @param[in] dataStreamName, the name of the data stream.
@@ -293,7 +306,7 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
 
 /*****************************************************************************
  * @brief Read data from a stream.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in]  sDataStream,    the output data stream to read.
  * @param[in]  dataStreamName, the name of the data stream.
@@ -309,7 +322,7 @@ bool readDataStream(stream <UdpWord> &sDataStream, UdpWord *udpWord) {
 
 /*****************************************************************************
  * @brief Read an output metadata stream from the DUT.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in]  sMetaStream, the output metadata stream to read.
  * @param[in]  metaStreamName, the name of the meta stream.
@@ -329,7 +342,7 @@ bool readMetaStream(stream <UdpMeta> &sMetaStream, const string metaStreamName,
 
 /*****************************************************************************
  * @brief Read an output payload length stream from the DUT.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in]  sPLenStream, the output payload length stream to read.
  * @param[in]  plenStreamName, the name of the payload length stream.
@@ -349,7 +362,7 @@ bool readPLenStream(stream <UdpPLen> &sPLenStream, const string plenStreamName,
 
 /*****************************************************************************
  * @brief Dump a data word to a file.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] udpWord,      a pointer to the data word to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -370,7 +383,7 @@ bool dumpDataToFile(UdpWord *udpWord, ofstream &outFileStream) {
 
 /*****************************************************************************
  * @brief Dump a metadata information to a file.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] udpMeta,      a pointer to the metadata structure to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -394,7 +407,7 @@ bool dumpMetaToFile(UdpMeta *udpMeta, ofstream &outFileStream) {
 
 /*****************************************************************************
  * @brief Dump a payload length information to a file.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] udpPLen,      a pointer to the payload length to dump.
  * @param[in] outFileStream,the output file stream to write to.
@@ -412,7 +425,7 @@ bool dumpPLenToFile(UdpPLen *udpPLen, ofstream &outFileStream) {
 
 /*****************************************************************************
  * @brief Fill an output file with data from an output stream.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] sDataStream,    the output data stream to set.
  * @param[in] dataStreamName, the name of the data stream.
@@ -457,7 +470,7 @@ bool getOutputDataStream(stream<UdpWord> &sDataStream,
 
 /*****************************************************************************
  * @brief Fill an output file with metadata from an output stream.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] sMetaStream,    the output metadata stream to set.
  * @param[in] metaStreamName, the name of the metadata stream.
@@ -498,7 +511,7 @@ bool getOutputMetaStream(stream<UdpMeta> &sMetaStream,
 
 /*****************************************************************************
  * @brief Fill an output file with payload length from an output stream.
- * @ingroup udp_role_if
+ * @ingroup NRC
  *
  * @param[in] sPLenStream,    the output payload length stream to set.
  * @param[in] plenStreamName, the name of the payload length stream.
@@ -537,6 +550,8 @@ bool getOutputPLenStream(stream<UdpPLen> &sPLenStream,
     return(rc);
 }
 
+
+enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
 /*****************************************************************************
  * @brief Emulate the behavior of the FMC.
  *
@@ -546,9 +561,8 @@ bool getOutputPLenStream(stream<UdpPLen> &sPLenStream,
  * @param[out] soROLE_SessId  SessionID to [TRFI].
  * @details
  *
- * @ingroup test_tcp_role_if
+ * @ingroup NRC
  ******************************************************************************/
-enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
 void pFMC(
         //-- TRIF / Rx Data Interface
         stream<NetworkWord>     &siTRIF_Data,
@@ -588,11 +602,20 @@ void pFMC(
     }
 
 }
+
+
+enum RoleFsmStates { ROLE_WAIT_META=0, ROLE_STREAM } roleFsmState = ROLE_WAIT_META;
 /*****************************************************************************
  * @brief Emulate the behavior of the ROLE
+ * @ingroup NRC
+ *
+ * @param[in]  siTRIF_Data,   Data to TcpRoleInterface (TRIF).
+ * @param[in]  siTRIF_meta,   Network meta data.
+ * @param[out] soROLE_Data,   Data stream to [TRIF].
+ * @param[out] soROLE_meta,   Network meta data.
+ * @details
  *
  ******************************************************************************/
-enum RoleFsmStates { ROLE_WAIT_META=0, ROLE_STREAM } roleFsmState = ROLE_WAIT_META;
 void pROLE(
         //-- TRIF / Rx Data Interface
         stream<NetworkWord>     &siTRIF_Data,
@@ -642,6 +665,7 @@ void pROLE(
 }
 /*****************************************************************************
  * @brief Emulate the behavior of the TCP Offload Engine (TOE).
+ * @ingroup NRC
  *
  * @param[in]  nrErr,         A ref to the error counter of main.
  * @param[out] soTRIF_Notif,  Notification to TcpRoleInterface (TRIF).
@@ -889,7 +913,11 @@ void pTOE(
 }
 
 
-//main: also emulates UOE behavior
+/*****************************************************************************
+ * @brief Main Testbench Loop; Emulates also the behavior of the UDP Offload Engine (UOE).
+ * @ingroup NRC
+ *
+ ******************************************************************************/
 int main() {
 
     //------------------------------------------------------
