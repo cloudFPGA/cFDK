@@ -88,11 +88,11 @@ using namespace hls;
  *
  * @details
  *  The meta data loader reads the events from the Event Engine (EVe) and loads
- *   the necessary data from the metadata structures (RX & TX Sar Tables).
+ *   the necessary data from the metadata structures (Rx & Tx SAR Tables).
  *  Depending on the event type, it generates the necessary metadata for the
  *   'pIpHeaderConstructor' and the 'pPseudoHeaderConstructor'.
  * Additionally it requests the IP tuples from Session Lookup Controller (SLc).
- * In some special cases the IP tuple is delivered directly from the Rx Engine
+ * In some special cases the IP tuple is delivered directly from the RxEngine
  *  (RXe) and it does not have to be loaded from the SLc. The 'isLookUpFifo'
  *  indicates this special cases.
  * Depending on the Event Type the retransmit or/and probe Timer is set.
@@ -456,7 +456,7 @@ void pMetaDataLoader(
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 1;
                 mdl_txeMeta.fin = 0;
-                soIhc_TcpSegLen.write(0);
+                soIhc_TcpSegLen.write(4);  // MSS consumes 4 option bytes
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
