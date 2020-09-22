@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_Tac)
+#define DEBUG_LEVEL (TRACE_L3MUX)
 
 
 /*******************************************************************************
@@ -582,10 +582,10 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     char * ptr;
                     // Retrieve the TCP-Port to set
                     unsigned int tcpPort;
-                    if (isHexString(stringVector[4]))
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                    if (isHexString(stringVector[3]))
+                        tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
                     else
-                        tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
+                        tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gHostLsnPort = tcpPort;
                     printInfo(myName, "Redefining the default HOST listen port to be: ");
                     printTcpPort(myName, gHostLsnPort);
@@ -1199,7 +1199,10 @@ void pL3MUX(
         //-- STEP-3 : Parse the received packet
         //--------------------------------------
         if (ipTxChunk.getTLast()) {
-            // The whole packet is now into the deque.
+            // The whole packet is now into the deque
+            if (not l3mux_ipTxPacket.isWellFormed(myName)) {
+                printFatal(myName, "IP packet #%d is malformed!\n", pktCounter_TOE_IPTX);
+            }
             if (pL3MUX_Parse(l3mux_ipTxPacket, sessAckList, ipRxPacketizer) == true) {
                 // Found an ACK
                 pktCounter_TOE_IPTX++;
@@ -1220,11 +1223,8 @@ void pL3MUX(
             ipTxChunkCounter++;
 
         //--------------------------
-        //-- STEP-4 : Write to file [FIXME - Use
+        //-- STEP-4 : Write to file
         //--------------------------
-        //OBSOLETE_20200706 string dataOutput = myUint64ToStrHex(ipTxChunk.tdata);
-        //OBSOLETE_20200706 string keepOutput = myUint8ToStrHex(ipTxChunk.tkeep);
-        //OBSOLETE_20200706 ipTxFile1 << dataOutput << " " << ipTxChunk.getTLast() << " " << keepOutput << endl;
         int writtenBytes = writeAxisRawToFile(ipTxChunk, ofIPTX_Data1);
     }
 } // End of: pL3MUX

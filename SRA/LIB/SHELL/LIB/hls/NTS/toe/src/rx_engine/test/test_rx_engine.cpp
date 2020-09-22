@@ -1198,7 +1198,10 @@ void pL3MUX(
         //-- STEP-3 : Parse the received packet
         //--------------------------------------
         if (ipTxChunk.getTLast()) {
-            // The whole packet is now into the deque.
+            // The whole packet is now into the deque
+            if (not l3mux_ipTxPacket.isWellFormed(myName)) {
+                printFatal(myName, "IP packet #%d is malformed!\n", pktCounter_TOE_IPTX);
+            }
             if (pL3MUX_Parse(l3mux_ipTxPacket, sessAckList, ipRxPacketizer) == true) {
                 // Found an ACK
                 pktCounter_TOE_IPTX++;
@@ -1219,11 +1222,8 @@ void pL3MUX(
             ipTxChunkCounter++;
 
         //--------------------------
-        //-- STEP-4 : Write to file [FIXME - Use
+        //-- STEP-4 : Write to file
         //--------------------------
-        //OBSOLETE_20200706 string dataOutput = myUint64ToStrHex(ipTxChunk.tdata);
-        //OBSOLETE_20200706 string keepOutput = myUint8ToStrHex(ipTxChunk.tkeep);
-        //OBSOLETE_20200706 ipTxFile1 << dataOutput << " " << ipTxChunk.getTLast() << " " << keepOutput << endl;
         int writtenBytes = writeAxisRawToFile(ipTxChunk, ofIPTX_Data1);
     }
 } // End of: pL3MUX
