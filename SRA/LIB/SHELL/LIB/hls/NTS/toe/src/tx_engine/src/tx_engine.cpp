@@ -64,7 +64,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -451,12 +451,13 @@ void pMetaDataLoader(
                 mdl_txeMeta.ackNumb = 0;
                 //mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                 mdl_txeMeta.winSize = 0xFFFF;
-                mdl_txeMeta.length = 0; // FYI - MSS option (will be added in Phc)
+                //OBSOLETE_20200924 mdl_txeMeta.length = 0; // FYI - MSS option (will be added in Phc)
+                mdl_txeMeta.length = 4; // FYI - MSS adds 4 option bytes
                 mdl_txeMeta.ack = 0;
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 1;
                 mdl_txeMeta.fin = 0;
-                soIhc_TcpSegLen.write(4);  // MSS consumes 4 option bytes
+                soIhc_TcpSegLen.write(mdl_txeMeta.length);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -473,7 +474,7 @@ void pMetaDataLoader(
                 // Construct SYN_ACK message
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.winSize = 0xFFFF;
-                mdl_txeMeta.length  = 4;    // For MSS Option, 4 bytes
+                mdl_txeMeta.length  = 4; // FYI - MSS adds 4 option bytes
                 mdl_txeMeta.ack     = 1;
                 mdl_txeMeta.rst     = 0;
                 mdl_txeMeta.syn     = 1;
@@ -821,7 +822,8 @@ void pPseudoHeaderConstructor(
         currChunk.setPsd4ResBits(0x00);
         currChunk.setPsd4Prot(IP4_PROT_TCP);
         // Compute the length of the TCP segment. This includes both the header and the payload.
-        pseudoHdrLen = phc_meta.length + 20 + (phc_meta.syn << 2); // 20 + (4 for MSS)
+        //OBSOLETE_20200924 pseudoHdrLen = phc_meta.length + 20 + (phc_meta.syn << 2); // 20 + (4 for MSS)
+        pseudoHdrLen = phc_meta.length + TCP_HEADER_LEN;
         currChunk.setPsd4Len(pseudoHdrLen);
         currChunk.setTcpSrcPort(phc_socketPair.src.port);
         currChunk.setTcpDstPort(phc_socketPair.dst.port);
@@ -843,7 +845,7 @@ void pPseudoHeaderConstructor(
         // Build and forward  [ UrgPtr | CSum | Win | Flags | DataOffset & Res & NS ]
         currChunk.setTcpCtrlNs(0);
         currChunk.setTcpResBits(0);
-        currChunk.setTcpDataOff(5 + phc_meta.syn); // 5x32bits (+ 1x32bits for MSS)
+        currChunk.setTcpDataOff(5 + (int)phc_meta.syn); // 5x32bits (+ 1x32bits for MSS)
         currChunk.setTcpCtrlFin(phc_meta.fin);
         currChunk.setTcpCtrlSyn(phc_meta.syn);
         currChunk.setTcpCtrlRst(phc_meta.rst);
