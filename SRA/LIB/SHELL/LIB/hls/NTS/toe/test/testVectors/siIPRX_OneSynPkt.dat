@@ -1,5 +1,5 @@
 # ##################################################################################################################################
-#  @file  : ipRx_OneSynPkt.dat
+#  @file  : siIPRX_OneSynPkt.dat
 #  @brief : A unique IPv4 packet with the TCP-SYN bit set to indicate that the segment is being used to initialize a connection.
 #          #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
@@ -68,7 +68,7 @@ G PARAM SimCycles 500
 
 > IDLE 20
 0000000028000045 0 FF
-0A0A0A0A000006FF 0 FF
+0A0A0A0Aaed506FF 0 FF
 5700890001C80C0A 0 FF
 00000000CDFF0000 0 FF
 000013c500040250 1 FF
