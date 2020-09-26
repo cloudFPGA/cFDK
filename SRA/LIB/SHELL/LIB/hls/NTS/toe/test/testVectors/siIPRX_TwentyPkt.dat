@@ -66,7 +66,8 @@ G PARAM SimCycles 50000
 0000d2c400041050 1 FF
 
 > IDLE  101
-> TEST  RcvdLy4Csum false
+> TEST  RcvdIp4HdrCsum false
+> TEST  RcvdLy4Csum    false
 
 0000000040020045 0 FF
 0A0A0A0A000006FF 0 FF
