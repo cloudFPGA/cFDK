@@ -1,5 +1,5 @@
 # ########################################################################################
-#  @file  : ipRx_FourPkt.dat
+#  @file  : siIPRX_FourPkt.dat
 #  @brief : Four IPv4 packets following a SYN packet that opens the connection.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
@@ -9,16 +9,24 @@
 #   A global parameter, a testbench command or a comment line must start with a
 #    single character (G|>|#) followed by a space character.
 #   Examples:
-#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
-#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
-#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
-#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
-#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
-#    # This is a comment
-#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
-#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    G PARAM SimCycles   <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field. 
 # 
 # ########################################################################################
 #          
@@ -56,19 +64,19 @@ G PARAM FpgaLsnPort 8803
 
 # STEP-1: TCP CONNECTION ESTABLISHMENT ==================
 0000000028000045 0 FF
-32C80C0A000006FF 0 FF
+32C80C0A841706FF 0 FF
 632263A201C80C0A 0 FF
 00000000CDFF0000 0 FF
-00001F9500040250 1 FF
+0000024300040250 1 FF
 
 > IDLE  100
 
 # == STEP-2: TCP DATA TRANSFER [1] ========================= 
 0000000051000045 0 FF
-32C80C0A000006FF 0 FF
+32C80C0A5b1706FF 0 FF
 632263A201C80C0A 0 FF
 00000000CEFF0000 0 FF
-0000FDAE00041050 0 FF
+0000e05c00041050 0 FF
 88DAC85D74C01B7F 0 FF
 CAD7EE7357BF4667 0 FF
 C84312CF15850E56 0 FF
@@ -76,14 +84,14 @@ C84312CF15850E56 0 FF
 858486046701C275 0 FF
 0000000000000046 1 01
 
-> IDLE  50
+> IDLE  30
 
 # == STEP-2: TCP DATA TRANSFER [2] ========================= 
 0000000051000045 0 FF
-32C80C0A000006FF 0 FF
+32C80C0A5b1706FF 0 FF
 632263A201C80C0A 0 FF
 00000000F7FF0000 0 FF
-0000FDAE00041050 0 FF
+0000b75c00041050 0 FF
 88DAC85D74C01B7F 0 FF
 CAD7EE7357BF4667 0 FF
 C84312CF15850E56 0 FF
@@ -95,10 +103,10 @@ C84312CF15850E56 0 FF
 
 # == STEP-3: TCP DATA TRANSFER [3] =========================
 0000000040020045 0 FF
-32C80C0A000006FF 0 FF
+32C80C0A6c1506FF 0 FF
 632263A201C80C0A 0 FF
 0000000020000100 0 FF
-0000166600041050 0 FF
+0000982f00041050 0 FF
 F17707ECBDF1CBBD 0 FF
 03928B3F781CE6A6 0 FF
 9E23CC28C4EA4737 0 FF
@@ -174,10 +182,10 @@ EB8A1B5015886782 0 FF
 > IDLE 50
 
 0000000051000045 0 FF
-32C80C0A000006FF 0 FF
+32C80C0A5b1706FF 0 FF
 632263A201C80C0A 0 FF
 0000000038020100 0 FF
-0000FDAE00041050 0 FF
+0000765a00041050 0 FF
 88DAC85D74C01B7F 0 FF
 CAD7EE7357BF4667 0 FF
 C84312CF15850E56 0 FF

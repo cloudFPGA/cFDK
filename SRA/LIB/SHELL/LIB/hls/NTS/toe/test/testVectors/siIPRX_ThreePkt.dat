@@ -1,5 +1,5 @@
 # ########################################################################################
-#  @file  : ipRx_ThreePkt.dat
+#  @file  : siIPRX_ThreePkt.dat
 #  @brief : Three IPv4s packet following a SYN packet that opens the connection.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
@@ -64,7 +64,7 @@ G PARAM SimCycles 1000
 0A0A0A0A85d506FF 0 FF
 5700890001C80C0A 0 FF
 00000000CEFF0000 0 FF
-00001d8700041050 0 FF
+0000f1de00041050 0 FF
 88DAC85D74C01B7F 0 FF
 CAD7EE7357BF4667 0 FF
 C84312CF15850E56 0 FF

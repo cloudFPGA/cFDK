@@ -36,6 +36,7 @@
 #include <iomanip>
 //OBSOLETE #include <fstream>
 #include <deque>
+#include <cstdlib>
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
@@ -393,6 +394,51 @@ class SimTcpSegment {
             rc = false;
         }
        return rc;
+    }
+
+    /***********************************************************************
+     * @brief Dump this TCP segment as HEX and ASCII characters to screen.
+     ***********************************************************************/
+    void dump() {
+        string segStr;
+        for (int q=0; q < this->size(); q++) {
+            AxisTcp axisData = this->segQ[q];
+            for (int b=7; b >= 0; b--) {
+                if (axisData.getTKeep().bit(b)) {
+                    int hi = ((b*8) + 7);
+                    int lo = ((b*8) + 0);
+                    ap_uint<8>  octet = axisData.getTData().range(hi, lo);
+                    segStr += myUint8ToStrHex(octet);
+                }
+            }
+        }
+        bool  endOfSeg = false;
+        int   i = 0;
+        int   offset = 0;
+        char *ptr;
+        do {
+            string hexaStr;
+            string asciiStr;
+            for (int c=0; c < 16*2; c+=2) {
+                if (i < segStr.length()) {
+                    hexaStr += segStr.substr(i, 2);
+                    char ch = std::strtoul(segStr.substr(i, 2).c_str(), &ptr, 16);
+                    if ((int)ch > 0x1F)
+                        asciiStr += ch;
+                    else
+                        asciiStr += '.';
+
+                }
+                else {
+                    hexaStr += "  ";
+                    endOfSeg = true;
+                }
+                hexaStr += " ";
+                i += 2;
+            }
+            printf("%4.4X %s %s \n", offset, hexaStr.c_str(), asciiStr.c_str());
+            offset += 16;
+        } while (not endOfSeg);
     }
 
     /***********************************************************************

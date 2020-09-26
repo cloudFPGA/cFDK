@@ -1,5 +1,6 @@
+# ###################################################################################################################################
 #
-# @file  : ipRx_ThousandPkt.dat
+# @file  : siIPRX_ThousandPkt.dat
 # @brief : A thousand IPv4 packets following a SYN packet that opens the connection.
 #          
 #         6                   5                   4                   3                   2                   1                   0   
@@ -21,39 +22,51 @@
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters, testbench commands and comments.
-#   A global parameter, a testbench command or a comment line must start with a single character (G|>|#) followed by a space character.
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
 #   Examples:
-#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
-#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
-#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
-#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
-#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
-#    # This is a comment
-#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
-#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    G PARAM SimCycles   <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field.
 #
 # @details :
 #   Packets use the following connection settings:
 #      IP-SA = 10.10.10.10, IP-DA=10.12.200.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
 #
-
+# ###################################################################################################################################
 G PARAM SimCycles 500000
 
 > IDLE  200
 0000000028000045 0 FF
-0A0A0A0A000006FF 0 FF
+0A0A0A0Aaed506FF 0 FF
 5700890001C80C0A 0 FF
 00000000487C769F 0 FF
-00002E7900040250 1 FF
+000022a900040250 1 FF
 > IDLE  200
 0000000028000045 0 FF
-0A0A0A0A000006FF 0 FF
+0A0A0A0Aaed506FF 0 FF
 5700890001C80C0A 0 FF
 00000000497C769F 0 FF
-00001F7900041050 1 FF
+000013a900041050 1 FF
+
 > IDLE  300
+> TEST  RcvdLy4Csum false
+ 
 0000000040020045 0 FF
 0A0A0A0A000006FF 0 FF
 5700890001C80C0A 0 FF

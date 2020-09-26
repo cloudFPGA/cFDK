@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_L3MUX)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -70,6 +70,7 @@ void stepSim() {
 }
 
 const char *camAccessorStrings[] = { "RXe", "TAi" };
+
 /*******************************************************************************
  * @brief Convert an access CAM initiator into a string.
  *
@@ -549,7 +550,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaIp4Addr = ip4Addr;
-                    printInfo(myName, "Redefining the default FPGA IPv4 address to be: ");
+                    printInfo(myName, "Redefining the default FPGA IPv4 address to be: \n");
                     printIp4Addr(myName, gFpgaIp4Addr);
                 }
                 else if (stringVector[2] == "FpgaLsnPort") {
@@ -561,7 +562,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaLsnPort = tcpPort;
-                    printInfo(myName, "Redefining the default FPGA listen port to be: ");
+                    printInfo(myName, "Redefining the default FPGA listen port to be: \n");
                     printTcpPort(myName, gFpgaLsnPort);
                 }
                 else if (stringVector[2] == "HostIp4Addr") {
@@ -575,7 +576,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gHostIp4Addr = ip4Addr;
-                    printInfo(myName, "Redefining the default HOST IPv4 address to be: ");
+                    printInfo(myName, "Redefining the default HOST IPv4 address to be: \n");
                     printIp4Addr(myName, gHostIp4Addr);
                 }
                 else if (stringVector[2] == "HostLsnPort") {
@@ -587,7 +588,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gHostLsnPort = tcpPort;
-                    printInfo(myName, "Redefining the default HOST listen port to be: ");
+                    printInfo(myName, "Redefining the default HOST listen port to be: \n");
                     printTcpPort(myName, gHostLsnPort);
                 }
                 else if (stringVector[2] == "FpgaServerSocket") {  // DEPRECATED
@@ -619,6 +620,191 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
     return true;
 
 } // End of: setGlopbalParameters
+
+/*******************************************************************************
+ * @brief Parse and handle a 'COMMAND/SET' request.
+ *
+ * @param[in] callerName   The name of the caller process (e.g. "TB/IPRX").
+ * @param[in] stringVector A tokenized vector of strings.
+ *
+ * @details
+ *  A test vector file may contain commands for setting testbench parameters
+ *  such as an IP address or a TCP port number. Such a 'COMMAND/SET'can be
+ *  identified by the presence of a character '>' at the first position of a
+ *  '.dat' file's line, followed by a space character and the string 'SET'.
+ *  Examples:
+ *    > SET  FpgatIp4Addr 192.168.1.23
+ *
+ *  Warning: This function does not return any thing but may set a specific
+ *   global variable.
+ *******************************************************************************/
+void cmdSetCommandParser(const char *callerName, vector<string> stringVector) {
+    if (stringVector[2] == "HostIp4Addr") {
+        //--------------------------------------------
+        //-- COMMAND = Set the active host IP address
+        //--------------------------------------------
+        char * ptr;
+        // Retrieve the IPv4 address to set
+        unsigned int ip4Addr;
+        if (isDottedDecimal(stringVector[3]))
+            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+        else if (isHexString(stringVector[3]))
+            ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+        else
+            ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
+        gHostIp4Addr = ip4Addr;
+        printInfo(callerName, "Setting the current HOST IPv4 address to be: \n");
+        printIp4Addr(callerName, gHostIp4Addr);
+    }
+    else if (stringVector[2] == "HostLsnPort") {
+        //---------------------------------------------
+        //-- COMMAND = Set the active host listen port
+        //---------------------------------------------
+        char * ptr;
+        // Retrieve the TCP-Port to set
+        unsigned int tcpPort;
+        if (isHexString(stringVector[3]))
+            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
+        else
+           tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
+        gHostLsnPort = tcpPort;
+        printInfo(callerName, "Setting the current HOST listen port to be: \n");
+        printTcpPort(callerName, gHostLsnPort);
+    }
+    else if (stringVector[2] == "HostServerSocket") {
+        //------------------------------------------------------
+        //-- COMMAND = Set the active host server socket
+        //--  If socket does not exist, host must create, bind,
+        //--  listen and accept new connections from the client.
+        //------------------------------------------------------
+        char *pEnd;
+        // Retrieve the current foreign IPv4 address to set
+        unsigned int ip4Addr;
+        if (isDottedDecimal(stringVector[3]))
+            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+        else if (isHexString(stringVector[3]))
+            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
+        else
+            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
+        gHostIp4Addr = ip4Addr;
+        // Retrieve the current foreign TCP-Port to set
+        unsigned int tcpPort;
+        if (isHexString(stringVector[4]))
+            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 16);
+        else
+            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 10);
+        gHostLsnPort = tcpPort;
+        SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
+        printInfo(callerName, "Setting current host server socket to be: \n");
+        printSockAddr(callerName, newHostServerSocket);
+    }
+    return;
+}
+
+/*******************************************************************************
+ * @brief Parse and handle a 'COMMAND/TEST' request.
+ *
+ * @param[in] callerName   The name of the caller process (e.g. "TB/IPRX").
+ * @param[in] stringVector A tokenized vector of strings.
+ *
+ * @details
+ *  A test vector file may contain commands for setting a testbench checker
+ *  such as the verification of the IPv4-Header-Checksum field or the TCP
+ *  checksum field. Such a 'COMMAND/TEST' can be identified by the presence of
+ *  a character '>' at the first position of a '.dat' file's line, followed by
+ *  a space character and the string 'TEST'.
+ *  Examples:
+ *    > TEST Ip4HdrCsum false
+ *
+ *  Warning: This function does not return any thing but may set a specific
+ *   global variable.
+ *******************************************************************************/
+void cmdTestCommandParser(const char *callerName, vector<string> stringVector) {
+    //-- RECEIVE CHECKERS -------------
+    if (stringVector[2] == "RcvdIp4TotLen") {
+        if (stringVector[3] == "false") {
+            gTest_RcvdIp4TotLen = false;
+            printInfo(callerName, "Disabling receive IPv4-Total-Length checker.\n");
+        }
+        else {
+            gTest_RcvdIp4HdrCsum = true;
+            printInfo(callerName, "Enabling  receive IPv4-Total_Length checker.\n");
+        }
+    }
+    else if (stringVector[2] == "RcvdIp4HdrCsum") {
+        if (stringVector[3] == "false") {
+            gTest_RcvdIp4HdrCsum = false;
+            printInfo(callerName, "Disabling receive IPv4-Header-Checksum checker.\n");
+        }
+        else {
+            gTest_RcvdIp4HdrCsum = true;
+            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+        }
+    }
+    else if (stringVector[2] == "RcvdUdpLen") {
+        if (stringVector[3] == "false") {
+            gTest_RcvdUdpLen = false;
+            printInfo(callerName, "Disabling receive UDP-Length Checker.\n");
+        }
+        else {
+            gTest_RcvdUdpLen = true;
+            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+        }
+    }
+    else if (stringVector[2] == "RcvdLy4Csum") {
+        if (stringVector[3] == "false") {
+            gTest_RcvdLy4Csum = false;
+            printInfo(callerName, "Disabling receive TCP|UDP-Checksum checker.\n");
+        }
+        else {
+            gTest_RcvdUdpLen = true;
+            printInfo(callerName, "Enabling  receive TCP|UDP-Checksum checker.\n");
+        }
+    }
+    //-- SEND CHECKERS ----------------
+    if (stringVector[2] == "SentIp4TotLen") {
+        if (stringVector[3] == "false") {
+            gTest_SentIp4TotLen = false;
+            printInfo(callerName, "Disabling send IPv4-Total-Length checker.\n");
+        }
+        else {
+            gTest_SentIp4HdrCsum = true;
+            printInfo(callerName, "Enabling  send IPv4-Total_Length checker.\n");
+        }
+    }
+    else if (stringVector[2] == "SentIp4HdrCsum") {
+        if (stringVector[3] == "false") {
+            gTest_SentIp4HdrCsum = false;
+            printInfo(callerName, "Disabling send IPv4-Header-Checksum checker.\n");
+        }
+        else {
+            gTest_SentIp4HdrCsum = true;
+            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+        }
+    }
+    else if (stringVector[2] == "SentUdpLen") {
+        if (stringVector[3] == "false") {
+            gTest_SentUdpLen = false;
+            printInfo(callerName, "Disabling send UDP-Length Checker.\n");
+        }
+        else {
+            gTest_SentUdpLen = true;
+            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+        }
+    }
+    else if (stringVector[2] == "SentLy4Csum") {
+        if (stringVector[3] == "false") {
+            gTest_SentLy4Csum = false;
+            printInfo(callerName, "Disabling send TCP|UDP-Checksum checker.\n");
+        }
+        else {
+            gTest_SentUdpLen = true;
+            printInfo(callerName, "Enabling  send TCP|UDP-Checksum checker.\n");
+        }
+    }
+    return;
+}
+
 
 /*******************************************************************************
  * @brief Take the ACK number of a session and inject it into the sequence
@@ -694,6 +880,7 @@ int pIPRX_InjectAckNumber(
     return -1;
 } // End of: injectAckNumber()
 
+
 /*******************************************************************************
  * @brief Feed TOE with an IP packet.
  *
@@ -744,6 +931,7 @@ void pIPRX_FeedTOE(
         }
     }
 }
+
 
 /*******************************************************************************
  * @brief Emulate the behavior of the IP Rx Path (IPRX).
@@ -889,15 +1077,23 @@ void pIPRX(
                 // The test vector is issuing a command
                 //  FYI, don't forget to return at the end of command execution.
                 if (stringVector[1] == "IDLE") {
-                    // Cmd = Request to idle for <NUM> cycles.
+                    // COMMAND = Request to idle for <NUM> cycles.
                     iprx_idleCycReq = atoi(stringVector[2].c_str());
                     iprx_idlingReq = true;
                     printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
                     return;
                 }
-            }
-            else {
-                printFatal(myName, "Read unknown command \"%s\" from ifIPRX_Data.\n", stringVector[1].c_str());
+                if (stringVector[1] == "SET") {
+                    cmdSetCommandParser(myName, stringVector);
+                    return;
+                }
+                if (stringVector[1] == "TEST") {
+                    cmdTestCommandParser(myName, stringVector);
+                    return;
+                }
+                else {
+                    printFatal(myName, "Read unknown command \"> %s\".\n", stringVector[1].c_str());
+                }
             }
         }
         else if (ifIPRX_Data.fail() == 1 || rxStringBuffer.empty()) {
@@ -932,26 +1128,28 @@ void pIPRX(
             iprx_inpPackets++;
 
             // Check consistency of the assembled packet
-            if (not ipRxPacket.isWellFormed(myName)) {
+            bool wellFormed = ipRxPacket.isWellFormed(myName,
+                                     gTest_RcvdIp4TotLen, gTest_RcvdIp4HdrCsum,
+                                     gTest_RcvdUdpLen,    gTest_RcvdLy4Csum);
+            if (not wellFormed)  {
                 printFatal(myName, "IP packet #%d is malformed!\n", iprx_inpPackets);
             }
-
-            // Count the number of data bytes contained in the TCP payload
-            tcpBytCntr_IPRX_TOE += ipRxPacket.sizeOfTcpData();
-
-            // Write to the Application Tx Gold file
-            ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
-
-            // Push that packet into the packetizer queue and feed the TOE
-            ipRxPacketizer.push_back(ipRxPacket);
-            pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList); // [FIXME-Can be removed?]
-
+            else {
+                // Count the number of data bytes contained in the TCP payload
+                tcpBytCntr_IPRX_TOE += ipRxPacket.sizeOfTcpData();
+                // Write to the Application Tx Gold file
+                ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
+                // Push that packet into the packetizer queue and feed the TOE
+                ipRxPacketizer.push_back(ipRxPacket);
+                pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList); // [FIXME-Can be removed?]
+            }
             return;
         }
 
     } while(!ifIPRX_Data.eof());
 
 } // End of: pIPRX
+
 
 /*******************************************************************************
  * @brief Parse the TCP/IP packets generated by the TOE.
@@ -1126,6 +1324,7 @@ bool pL3MUX_Parse(
     return returnValue;
 } // End of: parseL3MuxPacket()
 
+
 /*******************************************************************************
  * @brief Emulate the behavior of the Layer-3 Multiplexer (L3MUX).
  *
@@ -1199,8 +1398,11 @@ void pL3MUX(
         //-- STEP-3 : Parse the received packet
         //--------------------------------------
         if (ipTxChunk.getTLast()) {
-            // The whole packet is now into the deque
-            if (not l3mux_ipTxPacket.isWellFormed(myName)) {
+            // The whole packet is now into the deque. Check its consistency
+            // except for the IPv4-Header-Checksum which will be computed and
+            // inserted later by IPTX.
+            if (not l3mux_ipTxPacket.isWellFormed(myName, gTest_SentIp4TotLen, false,
+                                                          gTest_SentUdpLen,    gTest_SentLy4Csum)) {
                 printFatal(myName, "IP packet #%d is malformed!\n", pktCounter_TOE_IPTX);
             }
             if (pL3MUX_Parse(l3mux_ipTxPacket, sessAckList, ipRxPacketizer) == true) {
@@ -1228,6 +1430,7 @@ void pL3MUX(
         int writtenBytes = writeAxisRawToFile(ipTxChunk, ofIPTX_Data1);
     }
 } // End of: pL3MUX
+
 
 /*******************************************************************************
  * @brief TCP Application Listen (Tal). Requests TOE to listen on a new port.
@@ -1295,6 +1498,7 @@ bool pTcpAppListen(
     }
     return rc;
 }
+
 
 /*******************************************************************************
  * @brief TCP Application Connect (Tac). Requests TOE to open a new connection
@@ -1396,6 +1600,7 @@ bool pTcpAppConnect(
     return rc;
 } // End-of: Tac
 
+
 /*******************************************************************************
  * @brief TCP Application Echo (Tae). Performs an echo loopback between the Rx
  *         and Tx parts of the TCP Application.
@@ -1451,6 +1656,7 @@ void pTcpAppEcho(
         break;
     } // End-of: switch()
 } // End-of: Tae
+
 
 /*****************************************************************************
  * @brief TCP Application Receive (TAr). Emulates the Rx process of the TAIF.
@@ -1825,10 +2031,10 @@ void pTcpAppSend(
                         char * ptr;
                         // Retrieve the TCP-Port to set
                         unsigned int tcpPort;
-                        if (isHexString(stringVector[4]))
-                            tcpPort = strtoul(stringVector[4].c_str(), &ptr, 16);
+                        if (isHexString(stringVector[3]))
+                            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
                         else
-                            tcpPort = strtoul(stringVector[4].c_str(), &ptr, 10);
+                            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                         gHostLsnPort = tcpPort;
                         printInfo(myName, "Setting the current HOST listen port to be: ");
                         printTcpPort(myName, gHostLsnPort);
@@ -1861,14 +2067,32 @@ void pTcpAppSend(
                         printSockAddr(myName, newHostServerSocket);
                         return;
                     }
-                    else if (stringVector[2] == "ForeignSocket") {  // DEPRECATED
-                        printError(myName, "The global parameter \'ForeignSocket\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
-                        exit(1);
+                }
+                /*** OBSOLETE_20200925 **********************
+                if (stringVector[1] == "TEST") {
+                    if (stringVector[2] == "Ip4TotLen") {
+                    }
+                    else if (stringVector[2] == "Ip4HdrCsum") {
+                        if (stringVector[3] == "false") {
+                            gTest_Ip4HdrCsum = false;
+                            printInfo(myName, "Disabling the test of the IPv4-Header-Checksum.");
+                        }
+                        else {
+                            gTest_Ip4HdrCsum = true;
+                            printInfo(myName, "Enabling the test of the IPv4-Header-Checksum.");
+                        }
+                        return;
+                    }
+                    else if (stringVector[2] == "UdpLen") {
+
+                    }
+                    else if (stringVector[2] == "Ly4Csum") {
                     }
                 }
+                *********************************************/
             }
             else {
-                printFatal(myName, "Read unknown command \"%s\" from ifIPRX_Data.\n", stringVector[0].c_str());
+                printFatal(myName, "Read unknown command \"%s\" from TAIF.\n", stringVector[0].c_str());
             }
         }
         else if (ifTAIF_Data.fail() == 1 || rxStringBuffer.empty()) {

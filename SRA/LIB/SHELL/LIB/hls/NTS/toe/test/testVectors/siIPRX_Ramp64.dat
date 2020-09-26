@@ -1,8 +1,6 @@
 # ########################################################################################
-#  @file  : ipRx_Ramp64.dat
-#  @brief : Seven IPv4s packet following a SYN packet that opens the connection.
-#           Every DWord contains space characters (i.e. ASCII 0x20) and a counter starting
-#            from zero (i.e. ASCII 0x30). 
+#  @file  : siIPRX_DebugRamp64.dat
+#  @brief : A sequence of 64 IPv4s packet of incremental sizes.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -11,17 +9,25 @@
 #   A global parameter, a testbench command or a comment line must start with a
 #    single character (G|>|#) followed by a space character.
 #   Examples:
-#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
-#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
-#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
-#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
-#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
-#    # This is a comment
-#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
-#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    G PARAM SimCycles   <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
-# 
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field. 
+#
 # ########################################################################################
 #          
 #         6                   5                   4                   3                   2                   1                   0   
@@ -42,10 +48,6 @@
 #  |                                                             data                                                              |
 #  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 #
-# @details :
-#   * The first segement is used to open the connection with the following settings:
-#      IP-SA = 10.12.200.50, IP-DA=10.12.200.19, TCP-SP=42314, TCP-DP=8803
-#
 # ###################################################################################################################################
 
 G PARAM SimCycles   5000
@@ -54,20 +56,22 @@ G PARAM FpgaLsnPort 8803
 
 > IDLE 100
 
+# -- [SYN] -------------------
 004006142c000045 0 FF
 32c80c0a68820640 0 FF
 63224aa513c80c0a 0 FF
 0000000056fa158a 0 FF
-00007ca410720260 0 FF
-b405040200000000 1 FF
+00009e3510720260 0 FF
+00000000b4050402 1 0F
  
 > IDLE 200
 
+# -- [ACK] TcpLen=0 ----------
 0040071428000045 0 FF
 32c80c0a6b820640 0 FF
 63224aa513c80c0a 0 FF
 032d175957fa158a 0 FF
-000078a410721050 1 FF
+000030c710721050 1 FF
 
 > IDLE 100
 
@@ -75,7 +79,7 @@ b405040200000000 1 FF
 32c80c0a5a820640 0 FF
 63224aa513c80c0a 0 FF
 032d175957fa158a 0 FF
-000088a410721850 0 FF
+000007c610721850 0 FF
 2020202020202020 0 FF
 3020202020202020 1 FF
 
@@ -85,7 +89,7 @@ b405040200000000 1 FF
 32c80c0ad9810640 0 FF
 63224aa513c80c0a 0 FF
 032d175967fa158a 0 FF
-000008a510721850 0 FF
+0000c2bc10721850 0 FF
 2020202020202020 0 FF
 3120202020202020 0 FF
 2020202020202020 0 FF
@@ -111,7 +115,7 @@ b405040200000000 1 FF
 32c80c0aa8810640 0 FF
 63224aa513c80c0a 0 FF
 032d1759f7fa158a 0 FF
-000038a510721850 0 FF
+0000cdea10721850 0 FF
 2020202020202020 0 FF
 3031202020202020 0 FF
 2020202020202020 0 FF
@@ -143,7 +147,7 @@ b405040200000000 1 FF
 32c80c0aa7810640 0 FF
 63224aa513c80c0a 0 FF
 032d1759b7fb158a 0 FF
-000038a510721850 0 FF
+000009dc10721850 0 FF
 2020202020202020 0 FF
 3232202020202020 0 FF
 2020202020202020 0 FF
@@ -175,7 +179,7 @@ b405040200000000 1 FF
 32c80c0aa6810640 0 FF
 63224aa513c80c0a 0 FF
 032d175977fc158a 0 FF
-000038a510721850 0 FF
+000045cd10721850 0 FF
 2020202020202020 0 FF
 3433202020202020 0 FF
 2020202020202020 0 FF
@@ -207,7 +211,7 @@ b405040200000000 1 FF
 32c80c0aa5810640 0 FF
 63224aa513c80c0a 0 FF
 032d175937fd158a 0 FF
-000038a510721850 0 FF
+000081be10721850 0 FF
 2020202020202020 0 FF
 3634202020202020 0 FF
 2020202020202020 0 FF
@@ -239,7 +243,7 @@ b405040200000000 1 FF
 32c80c0a04820640 0 FF
 63224aa513c80c0a 0 FF
 032d1759f7fd158a 0 FF
-0000d8a410721850 0 FF
+0000ab3a10721850 0 FF
 2020202020202020 0 FF
 3835202020202020 0 FF
 2020202020202020 0 FF
@@ -259,5 +263,5 @@ b405040200000000 1 FF
 32c80c0a6b820640 0 FF
 63224aa513c80c0a 0 FF
 032d175957fa158a 0 FF
-000078a410721950 1 FF
+000027c710721950 1 FF
 

@@ -1116,83 +1116,98 @@ class SimIp4Packet {
     /**************************************************************************
      * @brief Checks if the IP header and embedded protocol fields are properly set.
      * @param[in] callerName  The name of the calling function or process.
-     * @return true if the packet is well-fromed.
+     * @param[in] checkIp4TotLen   A default argument to disable this test.
+     * @param[in] checkIp4HdrCsum  A default argument to disable this test.
+     * @param[in] checkUdpLen      A default argument to disable this test.
+     * @param[in] checkLy4Csum     A default argument to disable this test.
+     * @return true if the packet is well-formed.
      **************************************************************************/
-    bool isWellFormed(const char *callerName) {
+    bool isWellFormed(const char *callerName,
+                      bool checkIp4TotLen=true, bool checkIp4HdrCsum=true,
+                      bool checkUdpLen=true,    bool checkLy4Csum=true) {
         bool rc = true;
-        // Assess IPv4 the Total Length
-        if (this->getIpTotalLength() !=  this->getLen()) {
-            printWarn(callerName, "Malformed IPv4 packet: 'Total Length' field does not match the length of the packet.\n");
-            printWarn(callerName, "\tFound Total Length field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                      this->getIpTotalLength(), this->getLen());
-            rc = false;
-        }
-        // Assess the IPv4 Header Checksum
-        if (this->getIpHeaderChecksum() != this->calculateIpHeaderChecksum()) {
-            printWarn(callerName, "Malformed IPv4 packet: 'Header Checksum' field does not match the computed header checksum.\n");
-            printWarn(callerName, "\tFound Header Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                      this->getIpHeaderChecksum().to_ushort(), this->calculateIpHeaderChecksum().to_ushort());
-            if (this->getIpHeaderChecksum() == 0) {
-                printWarn(callerName, "\t  FYI - This will not be considered a fatal error. It allows the user to skip computing and providing the IP header checksum in its test vectors files.\n");
-            }
-            else {
+        if (checkIp4TotLen) {
+            if (this->getIpTotalLength() !=  this->getLen()) {
+                printError(callerName, "Malformed IPv4 packet: 'Total Length' field does not match the length of the packet.\n");
+                printError(callerName, "\tFound Total Length field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                           this->getIpTotalLength(), this->getLen());
                 rc = false;
             }
         }
-        // Asses UDP datagram
-        if (this->getIpProtocol() == IP4_PROT_UDP) {
-            SimUdpDatagram udpDatagram = this->getUdpDatagram();
-            // Assess IP4/UDP/Length field vs datagram length
-            UdpLen udpHLen = this->getUdpLength();
-            int    calcLen = udpDatagram.length();
-            if (udpHLen != calcLen) {
-                printWarn(callerName, "Malformed IPv4 packet: UDP 'Length' field does not match the length of the datagram.\n");
-                printWarn(callerName, "\tFound IPV4/UDP/Length field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                          udpHLen.to_uint(), calcLen);
-                rc = false;
-            }
-            // Assess IPv4/UDP/Checksum field vs datagram checksum
-            UdpCsum udpHCsum = this->getUdpChecksum();
-            UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum( \
-                                               this->getIpSourceAddress(),
-                                               this->getIpDestinationAddress());
-            if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
-                // UDP datagram comes with an invalid checksum
-                printWarn(callerName, "Malformed IPv4 packet: UDP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
-                printWarn(callerName, "\tFound IPv4/UDP/Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                          udpHCsum.to_uint(), calcCsum.to_ushort());
-                if (udpHCsum == 0xDEAD) {
-                    printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
-                }
+        if (checkIp4HdrCsum) {
+            if (this->getIpHeaderChecksum() != this->calculateIpHeaderChecksum()) {
+               printError(callerName, "Malformed IPv4 packet: 'Header Checksum' field does not match the computed header checksum.\n");
+               printError(callerName, "\tFound Header Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                          this->getIpHeaderChecksum().to_ushort(), this->calculateIpHeaderChecksum().to_ushort());
+               if (this->getIpHeaderChecksum() == 0) {
+                    printWarn(callerName, "\t[1] You should disable this checking if the IP packet is generated by the TOE because the header checksum will be computed and inserted later by IPTX.\n");
+                    printWarn(callerName, "\t[2] Otherwise, you can also disable this checking if you want to skip computing and providing the IP header checksum in your test vectors files.\n");
+               }
                 else {
                     rc = false;
                 }
             }
         }
-        // Asses TCP segment
-        else if (this->getIpProtocol() == IP4_PROT_TCP) {
-            SimTcpSegment tcpSegment = this->getTcpSegment();
-            // Assess IPv4/TCP/Checksum field vs segment checksum
-            TcpCsum tcpHCsum = this->getTcpChecksum();
-            TcpCsum calcCsum = tcpSegment.reCalculateTcpChecksum(this->getIpSourceAddress(),
-                                                                 this->getIpDestinationAddress(),
-                                                                 this->getTcpSegmentLength());
-            if (tcpHCsum != calcCsum) {
-                // TCP segment comes with an invalid checksum
-                printWarn(callerName, "Malformed IPv4 packet: TCP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
-                printWarn(callerName, "\tFound IPv4/TCP/Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
-                          tcpHCsum.to_uint(), calcCsum.to_ushort());
-                if (tcpHCsum == 0xDEAD) {
-                    printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
+        if (this->getIpProtocol() == IP4_PROT_UDP) {
+            // Asses UDP datagram
+            SimUdpDatagram udpDatagram = this->getUdpDatagram();
+            if (checkUdpLen) {
+                UdpLen udpHLen = this->getUdpLength();
+                int    calcLen = udpDatagram.length();
+                if (udpHLen != calcLen) {
+                    printError(callerName, "Malformed IPv4 packet: UDP 'Length' field does not match the length of the datagram.\n");
+                    printError(callerName, "\tFound IPV4/UDP/Length field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                               udpHLen.to_uint(), calcLen);
+                    rc = false;
                 }
-                else {
-                    printWarn(callerName, "This will not be considered an acceptable error because the TCP checksum is most likely going to be re-computed after the tesbench updates the acknowledgment and/or the sequence number.\n");
-                    rc = true;
+            }
+            if (checkLy4Csum) {
+                UdpCsum udpHCsum = this->getUdpChecksum();
+                UdpCsum calcCsum = udpDatagram.reCalculateUdpChecksum( \
+                                                   this->getIpSourceAddress(),
+                                                   this->getIpDestinationAddress());
+                if ((udpHCsum != 0) and (udpHCsum != calcCsum)) {
+                    // UDP datagram comes with an invalid checksum
+                    printError(callerName, "Malformed IPv4 packet: UDP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
+                    printError(callerName, "\tFound IPv4/UDP/Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                               udpHCsum.to_uint(), calcCsum.to_ushort());
+                    if (udpHCsum == 0xDEAD) {
+                        printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
+                    }
+                    else {
+                        rc = false;
+                    }
                 }
             }
         }
-        // Asses ICMP packet
+        else if (this->getIpProtocol() == IP4_PROT_TCP) {
+            // Asses TCP segment
+            SimTcpSegment tcpSegment = this->getTcpSegment();
+            if (0) { tcpSegment.dump(); }
+            if (checkLy4Csum) {
+            // Assess IPv4/TCP/Checksum field vs segment checksum
+                TcpCsum tcpHCsum = this->getTcpChecksum();
+                TcpCsum calcCsum = tcpSegment.reCalculateTcpChecksum(this->getIpSourceAddress(),
+                                                                     this->getIpDestinationAddress(),
+                                                                     this->getTcpSegmentLength());
+                if (tcpHCsum != calcCsum) {
+                    // TCP segment comes with an invalid checksum
+                    printError(callerName, "Malformed IPv4 packet: TCP 'Checksum' field does not match the checksum of the pseudo-packet.\n");
+                    printError(callerName, "\tFound IPv4/TCP/Checksum field=0x%4.4X, Was expecting 0x%4.4X)\n",
+                               tcpHCsum.to_uint(), calcCsum.to_ushort());
+                    if (tcpHCsum == 0xDEAD) {
+                        printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
+                    }
+                    else {
+                        //OBSOLETE_20200924 printWarn(callerName, "This will not be considered an acceptable error because the TCP checksum is most likely going to be re-computed after the tesbench updates the acknowledgment and/or the sequence number.\n");
+                        //OBSOLETE_20200924 rc = true;
+                        rc = false;
+                    }
+                }
+            }
+        }
         else if (this->getIpProtocol() == IP4_PROT_ICMP) {
+            // Asses ICMP packet
             printWarn(myName, "[TODO-Must check if message is well-formed !!!\n");
         }
         return rc;
