@@ -183,7 +183,6 @@ static const ap_uint<16> MTU_ZYC2 = 1450;  // 1500-20-8-8-14
 #define IP4_PROT_ICMP       0x01
 #define IP4_PROT_TCP        0x06
 #define IP4_PROT_UDP        0x11
-//OBSOLETE_20200717  #define UDP_PROTOCOL 0x11
 
 
 /******************************************************************************
@@ -195,9 +194,7 @@ static const ap_uint<16> MTU_ZYC2 = 1450;  // 1500-20-8-8-14
  ******************************************************************************/
 
 //-- TCP - MAXIMUM SEGMENT SIZE
-//--  Usually, the TCP Maximum Segment Size (MSS) is 1460 bytes.
-//--  The TOE uses 1456 to support 4 bytes of TCP options.
-static const ap_uint<16> MSS = 1456;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20-4
+static const ap_uint<16> MSS = 1460;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20
 
 //========================================================
 //== LAYER-4 - COMMON TCP and UDP HEADER FIELDS
@@ -299,13 +296,6 @@ enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
                 FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
                 LAST_ACK };
 
-//OBSOLETE_20200724 #ifndef __SYNTHESIS__
-//OBSOLETE_20200724     const std::string  TcpStateString[] = {
-//OBSOLETE_20200724                "CLOSED",    "SYN_SENT",  "SYN_RECEIVED", "ESTABLISHED", \
-//OBSOLETE_20200724                "FIN_WAIT_1","FIN_WAIT_2","CLOSING",      "TIME_WAIT",   \
-//OBSOLETE_20200724                "LAST_ACK" };
-//OBSOLETE_20200724 #endif
-
 //=========================================================
 //== TCP Application Write Status Codes
 //==  Error codes returned by NTS after a data send transfer
@@ -318,21 +308,12 @@ enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
 //== TCP Application Notification Codes
 //==  Error codes returned by NTS after a data send transfer
 //=========================================================
-    //OBSOLETE_20200713 enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
-
-// enum TcpAppWrStsCode { FAILED_TO_OPEN_CON=false, CON_IS_OPENED=true };
-
-
-
-
+// [TODO] enum TcpAppWrStsCode { FAILED_TO_OPEN_CON=false, CON_IS_OPENED=true };
 
 
 /*******************************************************************************
  * NTS INTERNAL - TAIF / TOE
  *******************************************************************************/
-
-
-
 
 
 /*******************************************************************************
