@@ -550,7 +550,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaIp4Addr = ip4Addr;
-                    printInfo(myName, "Redefining the default FPGA IPv4 address to be: \n");
+                    printInfo(myName, "Redefining the default FPGA IPv4 address to be: ");
                     printIp4Addr(myName, gFpgaIp4Addr);
                 }
                 else if (stringVector[2] == "FpgaLsnPort") {
@@ -562,7 +562,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gFpgaLsnPort = tcpPort;
-                    printInfo(myName, "Redefining the default FPGA listen port to be: \n");
+                    printInfo(myName, "Redefining the default FPGA listen port to be: ");
                     printTcpPort(myName, gFpgaLsnPort);
                 }
                 else if (stringVector[2] == "HostIp4Addr") {
@@ -576,7 +576,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     else
                         ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
                     gHostIp4Addr = ip4Addr;
-                    printInfo(myName, "Redefining the default HOST IPv4 address to be: \n");
+                    printInfo(myName, "Redefining the default HOST IPv4 address to be: ");
                     printIp4Addr(myName, gHostIp4Addr);
                 }
                 else if (stringVector[2] == "HostLsnPort") {
