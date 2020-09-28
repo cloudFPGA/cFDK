@@ -30,13 +30,11 @@
 #ifndef _SIM_TCP_SEGMENT_
 #define _SIM_TCP_SEGMENT_
 
-//OBSOLETE #include <stdlib.h>
-//OBSOLETE #include <unistd.h>
 #include <iostream>
 #include <iomanip>
-//OBSOLETE #include <fstream>
 #include <deque>
-#include <cstdlib>
+//OBSOLETE_20200928 #include <cstdlib>
+ #include <stdlib.h>   // Avoid using C++ with HLS (at least with 2017.4)
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
