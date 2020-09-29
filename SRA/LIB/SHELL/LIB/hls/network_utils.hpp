@@ -1186,27 +1186,54 @@ class Ip4overAxi: public AxiWord {
  * [FIXME: AppNotif could contain a sub-class
  *  'AppRdReq' and a sub-class "SocketPair'.]
  ***********************************************/
-class AppNotif
-{
+//class AppNotif
+//{
+//  public:
+//    SessionId          sessionID;
+//    TcpSegLen          tcpSegLen;
+//    Ip4Addr            ip4SrcAddr;
+//    TcpPort            tcpSrcPort;
+//    TcpPort            tcpDstPort;
+//    bool               closed;
+//    AppNotif() {}
+//    AppNotif(SessionId  sessId,                      bool       closed) :
+//             sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+//             tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
+//    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
+//             TcpPort    sp,      TcpPort    dp) :
+//             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+//             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
+//    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
+//             TcpPort    sp,      TcpPort    dp,      bool       closed) :
+//             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+//             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
+//};
+
+//---------------------------------------------------------
+//-- TCP APP - NOTIFICATION
+//--  Notifies the availability of data for the application
+//--  in the TCP Rx buffer.
+//---------------------------------------------------------
+class TcpAppNotif {
   public:
     SessionId          sessionID;
     TcpSegLen          tcpSegLen;
     Ip4Addr            ip4SrcAddr;
     TcpPort            tcpSrcPort;
     TcpPort            tcpDstPort;
-    bool               closed;
-    AppNotif() {}
-    AppNotif(SessionId  sessId,                      bool       closed) :
-             sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
-             tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
-    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-             TcpPort    sp,      TcpPort    dp) :
-             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
-    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-             TcpPort    sp,      TcpPort    dp,      bool       closed) :
-             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
+    TcpState           tcpState;
+    TcpAppNotif() {}
+    TcpAppNotif(SessionId  sessId,              TcpState  tcpState) :
+        sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+        tcpSrcPort(0),      tcpDstPort(0),      tcpState(tcpState) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(CLOSED) {}
+    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+        TcpPort    sp,      TcpPort    dp,      TcpState tcpState) :
+        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(tcpState) {}
 };
 
 /***********************************************

@@ -314,7 +314,7 @@ void nrc_main(
     stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
-    stream<AppNotif>    &siTOE_Notif,
+    stream<TcpAppNotif>    &siTOE_Notif,
     stream<AppRdReq>    &soTOE_DReq,
     stream<NetworkWord> &siTOE_Data,
     stream<AppMeta>     &siTOE_SessId,

@@ -152,7 +152,7 @@ ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
 RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
-AppNotif notif_pRrh;
+TcpAppNotif notif_pRrh;
 
 RdpFsmStates rdpFsmState = RDP_WAIT_META;
 
@@ -436,7 +436,7 @@ void nrc_main(
     stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
-    stream<AppNotif>    &siTOE_Notif,
+    stream<TcpAppNotif>    &siTOE_Notif,
     stream<AppRdReq>    &soTOE_DReq,
     stream<NetworkWord> &siTOE_Data,
     stream<AppMeta>     &siTOE_SessId,
@@ -1285,6 +1285,12 @@ void nrc_main(
               } else {
                 printf("session/tripple id already in cache.\n");
               }
+            } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
+                      || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
+                      || notif_pRrh.tcpState == LAST_ACK)
+            {
+              // we were notified about a closing connection
+              deleteSessionFromTables(notif_pRrh.sessionID);
             }
           }
           break;

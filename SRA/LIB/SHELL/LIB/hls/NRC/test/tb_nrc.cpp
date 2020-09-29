@@ -107,7 +107,7 @@ stream<AppMeta>           sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
 stream<TcpWord>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
 stream<AppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
 //--TOE connection
-stream<AppNotif>            sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
+stream<TcpAppNotif>         sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
 stream<AppRdReq>            sNRC_Toe_DReq   ("sNrc_TOE_DReq");
 stream<NetworkWord>         sTOE_Nrc_Data   ("sTOE_Nrc_Data");
 stream<AppMeta>             sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
@@ -708,7 +708,7 @@ const char *myTxpName = concat3(THIS_NAME, "/", "TOE/TxPath");
 void pTOE(
         int                 &nrErr,
         //-- TOE / Tx Data Interfaces
-        stream<AppNotif>    &soTRIF_Notif,
+        stream<TcpAppNotif>    &soTRIF_Notif,
         stream<AppRdReq>    &siTRIF_DReq,
         stream<NetworkWord>     &soTRIF_Data,
         stream<AppMeta>     &soTRIF_SessId,
@@ -796,7 +796,7 @@ void pTOE(
         case RXP_SEND_NOTIF: // SEND A DATA NOTIFICATION TO [TRIF]
             printf("Send packet from %4.4x to FPGA:%d\n",(int) hostIp4Addr, (int) fpgaLsnPort);
             if (!soTRIF_Notif.full()) {
-                soTRIF_Notif.write(AppNotif(sessionId,  tcpSegLen,
+                soTRIF_Notif.write(TcpAppNotif(sessionId,  tcpSegLen,
                                             hostIp4Addr,hostSrcPort , fpgaLsnPort));
                 printInfo(myRxpName, "Sending notification #%d to [TRIF] (sessId=%d, segLen=%d).\n",
                           segCnt, sessionId.to_int(), tcpSegLen.to_int());
