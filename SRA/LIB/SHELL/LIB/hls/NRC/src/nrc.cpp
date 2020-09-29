@@ -1313,7 +1313,7 @@ void nrc_main(
                 }
               } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
                   || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
-                  || notif_pRrh.tcpState == LAST_ACK)
+                  || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
               {
                 // we were notified about a closing connection
                 deleteSessionFromTables(notif_pRrh.sessionID);
