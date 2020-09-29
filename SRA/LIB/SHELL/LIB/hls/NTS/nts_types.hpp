@@ -216,6 +216,10 @@ class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
         addr(ip4Addr), port(layer4Port) {}
 };
 
+inline bool operator == (SockAddr const &s1, SockAddr const &s2) {
+        return ((s1.addr == s2.addr) and (s1.port == s2.port));
+}
+
 class LE_SockAddr {  // Socket Address stored in LITTLE-ENDIAN order !!!
   public:
     LE_Ip4Address  addr;  // IPv4 address in LITTLE-ENDIAN order !!!
