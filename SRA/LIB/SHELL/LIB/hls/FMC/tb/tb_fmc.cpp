@@ -41,7 +41,7 @@
 #include "../../../../../hls/cfdk.hpp"
 #include "../../../../../hls/network.hpp"
 //#include "../../mpe/src/mpe.hpp"
-#include "../../nrc/src/nrc.hpp" //AFTER fmc.hpp
+#include "../../NRC/src/nrc.hpp" //AFTER fmc.hpp
 
 #include <stdint.h>
 

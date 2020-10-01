@@ -127,15 +127,6 @@ using namespace hls;
    IPMeta(ap_uint<32> ip) : ipAddress(ip) {}
  };
 
-/********************************************
- * Socket transport address.
- ********************************************/
-
-//struct SocketAddr {
-//     ap_uint<16>    port;   // Port in network byte order
-//     ap_uint<32>    addr;   // IPv4 address (or node_id)
-//};
-
 
 /*********************************************************
  * SOCKET ADDRESS
@@ -170,20 +161,6 @@ class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
 typedef bool AxisAck;       // Acknowledgment over Axi4-Stream I/F
 
 
-/********************************************
- * UDP Specific Streaming Interfaces.
- ********************************************/
-
-
-//struct UdpMeta {            // UDP Socket Pair Association
-//    SocketAddr      src;    // Source socket address
-//    SocketAddr      dst;    // Destination socket address 
-//    //UdpMeta()       {}
-//};
-
-//typedef ap_uint<16>     UdpPLen; // UDP Payload Length
-//
-//typedef ap_uint<16>     UdpPort; // UDP Port Number
 
 
 #define BROADCASTCHANNELS 2
@@ -232,29 +209,7 @@ typedef bool RspBit;  // Response   : Used when a reply does not go back to the 
 typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
 typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef bool ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
-
-//TODO: fix paralell declaration
-//typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-//typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-//typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
-//typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
-//typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-//typedef ap_uint<1> RepBit;  // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-//typedef ap_uint<1> RspBit;  // Response   : Used when a reply does not go back to the source of the stimulus.
-//typedef ap_uint<1> SigBit;  // Signal     : Noun indicating a signal (e.g. RxEventSig). Does not expect a return from recipient.
 typedef ap_uint<1> StsBit;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-//typedef ap_uint<1> ValBit;  // Valid bit  : Must go along with something to validate/invalidate.
-//
-//typedef bool AckBool; // Acknowledge: Always has to go back to the source of the stimulus (.e.g OpenReq/OpenAck).
-//typedef bool CmdBool; // Command    : Verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
-//typedef bool ReqBool; // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
-//typedef bool RepBool; // Reply      : Always has to go back to the source of the stimulus (e.g. GetReq/GetRep)
-//typedef bool RspBool; // Response   : Used when a reply does not go back to the source of the stimulus.
-//typedef bool SigBool; // Signal     : Noun indicating a signal (e.g. TxEventSig). Does not expect a return from recipient.
-//typedef bool StsBool; // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
-//typedef bool ValBool;  // Valid bit  : Must go along with something to validate/invalidate.
-
-
 
 /********************************************
  * GENERAL ENUMERATIONS
@@ -437,16 +392,6 @@ typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as Tcp
 typedef ap_uint<15> TcpStaPort;     // TCP Static  Port [0x0000..0x7FFF]
 typedef ap_uint<15> TcpDynPort;     // TCP Dynamic Port [0x8000..0xFFFF]
 
-
-
-/*************************************************************************
- * GENERIC TYPES and CLASSES USED BY TOE
- *************************************************************************
- * Terminology & Conventions
- * - .
- * - .
- *************************************************************************/
-
 typedef ap_uint<16> SessionId;
 
 
@@ -468,15 +413,6 @@ struct ipTuple
     ap_uint<16>     ip_port;
 };
 
-//class SockAddr {   // Socket Address stored in NETWORK BYTE ORDER
-//   public:
-//    Ip4Addr         addr;   // IPv4 address in NETWORK BYTE ORDER
-//    TcpPort         port;   // TCP  port    in NETWORK BYTE ORDER
-//    SockAddr() {}
-//    SockAddr(Ip4Addr ip4Addr, TcpPort tcpPort) :
-//        addr(ip4Addr), port(tcpPort) {}
-//};
-//
 
 /***********************************************
  * SOCKET PAIR ASSOCIATION (alias FourTuple)
@@ -509,16 +445,6 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
         return lhs.dstIp < rhs.dstIp || (lhs.dstIp == rhs.dstIp && lhs.srcIp < rhs.srcIp);
 }
 
-//is above...
-//class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
-//  public:
-//    SockAddr    src;    // Source socket address in NETWORK-BYTE order !!!
-//    SockAddr    dst;    // Destination socket address in NETWORK-BYTE order !!!
-//    SocketPair() {}
-//    SocketPair(SockAddr src, SockAddr dst) :
-//        src(src), dst(dst) {}
-//};
-
 inline bool operator < (SocketPair const &s1, SocketPair const &s2) {
         return ((s1.dst.addr <  s2.dst.addr) ||
                 (s1.dst.addr == s2.dst.addr && s1.src.addr < s2.src.addr));
@@ -545,33 +471,6 @@ public:
 //------------------------------------------------
 typedef AxiWord Ip4Word;   // An AXI4-Stream carrying IPv4 type of data
 //typedef AxiWord TcpWord;   // An AXI4-Stream carrying TCP  type of data
-
-
-//OBSOLETE struct axiWord {
-//OBSOLETE     ap_uint<64>     data;
-//OBSOLETE     ap_uint<8>      keep;
-//OBSOLETE     ap_uint<1>      last;
-//OBSOLETE     axiWord() {}
-//OBSOLETE     axiWord(ap_uint<64>      data, ap_uint<8> keep, ap_uint<1> last) :
-//OBSOLETE             data(data), keep(keep), last(last) {}
-//OBSOLETE };
-
-
-/***********************************************
- * Open Session Status
- *  Reports if a session is opened or closed.
- ***********************************************/
-//enum SessOpnSts { FAILED_TO_OPEN_SESS=false, SESS_IS_OPENED=true };
-//
-//class OpenStatus
-//{
-//  public:
-//    SessionId    sessionID;
-//    SessOpnSts   success;          // [FIXME - rename this member]
-//    OpenStatus() {}
-//    OpenStatus(SessionId sessId, SessOpnSts success) :
-//        sessionID(sessId), success(success) {}
-//};
 
 
 //=========================================================
@@ -611,7 +510,6 @@ class TcpAppOpnRep {
  ********************************************/
 typedef SessionId   TcpSessId;  // TCP Session ID
 
-//OBSOLETE typedef ap_uint<4>  TcpBuffId;  // TCP buffer  ID  [FIXME - Needed?]
 
 struct sessionLookupQuery
 {
@@ -633,53 +531,7 @@ struct sessionLookupReply
     sessionLookupReply(SessionId id, HitState hit) :
         sessionID(id), hit(hit) {}
 };
-/*** [TODO] ***
-class SessionLookupReply
-{
 
-    enum         HitStates {SESSION_UNKNOWN = false, SESSION_EXISTS = true};
-    typedef bool HitState;
-  public:
-    SessionId   sessionID;
-    HitState    hitState;
-    SessionLookupReply() {}
-    SessionLookupReply(SessionId id, HitState hit) :
-        sessionID(id), hitState(hit) {}
-};
-***/
-
-// OBSOLETE?
-///********************************************
-// * State Table (STt)
-// ********************************************/
-//enum SessionState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
-//                    FIN_WAIT_1,  FIN_WAIT_2,  CLOSING,        TIME_WAIT,   \
-//                    LAST_ACK };
-//
-////see simulation_utils!!
-//
-//// Session State Query
-//class StateQuery {
-//  public:
-//    SessionId       sessionID;
-//    SessionState    state;
-//    RdWrBit         write;
-//    StateQuery() {}
-//    StateQuery(SessionId id) :
-//        sessionID(id), state(CLOSED), write(QUERY_RD) {}
-//    StateQuery(SessionId id, SessionState state, RdWrBit write) :
-//        sessionID(id), state(state), write(write) {}
-//};
-
-
-/********************************************
- * Port Table (PRt)
- ********************************************/
-// NotUsed typedef bool PortState;
-// NotUSed enum         PortStates {PORT_IS_CLOSED = false, PORT_IS_OPENED = true};
-
-// NotUsed typedef bool PortRange;
-// NotUsed enum         PortRanges {PORT_IS_ACTIVE = false, PORT_IS_LISTENING = true};
 
 /********************************************
  * Some Rx & Tx SAR Types
@@ -824,8 +676,8 @@ class TXeTxSarQuery {
 //--------------------
 class TXeTxSarReply {
   public:
-	TxAckNum        ackd;       // ACK'ed
-	TxAckNum        not_ackd;   // TX'ed but not ACK'ed
+    TxAckNum        ackd;       // ACK'ed
+    TxAckNum        not_ackd;   // TX'ed but not ACK'ed
     TcpWindow       min_window; // Min(cong_window, recv_window)
     TxBufPtr        app;        // Written by APP
     bool            finReady;
@@ -891,19 +743,6 @@ class TStTxSarPush {
  ********************************************/
 
 //-- TAI / Tx Application Table (Tat) Request
-/*** OBSOLETE-20190616 ************
-struct txAppTxSarQuery
-{
-    SessionId   sessionID;
-    ap_uint<16> mempt;
-    bool        write;
-    txAppTxSarQuery() {}
-    txAppTxSarQuery(SessionId id)
-            :sessionID(id), mempt(0), write(false) {}
-    txAppTxSarQuery(SessionId id, ap_uint<16> pt)
-            :sessionID(id), mempt(pt), write(true) {}
-};
-***********************************/
 class TxAppTableRequest {
   public:
     SessionId   sessId;
@@ -917,17 +756,6 @@ class TxAppTableRequest {
 };
 
 //-- TAI / Tx Application Table (Tat) Reply
-/*** OBSOLETE-20190616 ******
-struct txAppTxSarReply
-{
-	SessionId   sessionID;
-    ap_uint<16> ackd;
-    ap_uint<16> mempt;
-    txAppTxSarReply() {}
-    txAppTxSarReply(SessionId id, ap_uint<16> ackd, ap_uint<16> pt) :
-        sessionID(id), ackd(ackd), mempt(pt) {}
-};
-*******************************/
 class TxAppTableReply {
   public:
     SessionId   sessId;
@@ -1139,10 +967,6 @@ class Ip4overAxi: public AxiWord {
     void        setTcpOptMss(TcpOptMss val)     {                  tdata.range(31, 16);                   }
     TcpOptMss   getTcpOptMss()                  { return swapWord (tdata.range(31, 16));                  }
 
-    //OBSOLETE Copy Assignment from an AxiWord
-    //OBSOLETE Ip4overAxi& operator= (const Ip4overAxi&);
-    //OBSOLETE Ip4overAxi& operator= (const TcpWord&);
-
   private:
     // Swap the two bytes of a word (.i.e, 16 bits)
     ap_uint<16> swapWord(ap_uint<16> inpWord) {
@@ -1175,39 +999,6 @@ class Ip4overAxi: public AxiWord {
  * Terminology & Conventions.
  *  [APP] stands for Application (this is also a synonym for ROLE).
  *************************************************************************/
-
-/***********************************************
- * Application Notification
- *  Indicates that data are available for the
- *  application in the TCP Rx buffer.
- *
- * [FIXME: consider using member 'opened' instead
- *   of 'closed'.]
- * [FIXME: AppNotif could contain a sub-class
- *  'AppRdReq' and a sub-class "SocketPair'.]
- ***********************************************/
-//class AppNotif
-//{
-//  public:
-//    SessionId          sessionID;
-//    TcpSegLen          tcpSegLen;
-//    Ip4Addr            ip4SrcAddr;
-//    TcpPort            tcpSrcPort;
-//    TcpPort            tcpDstPort;
-//    bool               closed;
-//    AppNotif() {}
-//    AppNotif(SessionId  sessId,                      bool       closed) :
-//             sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
-//             tcpSrcPort(0),      tcpDstPort(0),      closed(    closed) {}
-//    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-//             TcpPort    sp,      TcpPort    dp) :
-//             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-//             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    false) {}
-//    AppNotif(SessionId  sessId,  TcpSegLen  segLen,  Ip4Addr    sa,
-//             TcpPort    sp,      TcpPort    dp,      bool       closed) :
-//             sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
-//             tcpSrcPort(sp),     tcpDstPort(dp),     closed(    closed) {}
-//};
 
 //---------------------------------------------------------
 //-- TCP APP - NOTIFICATION
@@ -1253,7 +1044,7 @@ class AppRdReq
 
 struct appReadRequest
 {
-	SessionId   sessionID;
+    SessionId   sessionID;
     //ap_uint<16> address;
     ap_uint<16> length;
     appReadRequest() {}

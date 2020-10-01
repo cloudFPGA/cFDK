@@ -3272,6 +3272,8 @@ void fmc(
               printf("invalid routing table detected.\n");
               break;
             }
+            //dont' check for current cluster size!
+            //it could be that the CFRM want's to override the entries of removed nodes
 
             //transfer to NRC: 
             //nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + rankID] = tmp; 
@@ -3654,7 +3656,9 @@ if((*disable_ctrl_link == 0) && (*layer_4_enabled == 0) && tables_initialized )
   need_to_update_nrc_config = false; //the NRC know this too
 }
 
-if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized ) //to avoid blocking...
+if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //to avoid blocking...
+    && !fifo_operation_in_progress //to avoid delays of PR
+  )
 { //and we need valid tables
 
   mpe_status_disabled = false;

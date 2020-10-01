@@ -97,21 +97,12 @@
 
 //HLS DEFINITONS END
 
-//#ifndef _AXI_CLASS_DEFINED_
-//#include "../../NTS/AxisApp.hpp"
-//#define _AXI_CLASS_DEFINED_
-//typedef AxisApp      UdpAppData;
-//#else
-//typedef Axis<64>     UdpAppData;
-//#endif
-
 #include "../../FMC/src/fmc.hpp"
 
 #include "../../../../../hls/network.hpp"
 #include "../../network_utils.hpp"
 #include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
-//#include "../../NTS/nts_utils.hpp"
 
 
 using namespace hls;
@@ -119,9 +110,6 @@ using namespace hls;
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
-//enum FsmState {FSM_RESET=0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC} fsmState;
-//static enum FsmState {FSM_RST=0, FSM_ACC, FSM_LAST_ACC} fsmState;
-//static enum FsmState {FSM_W8FORMETA=0, FSM_FIRST_ACC, FSM_ACC} fsmState;
 #define FSM_RESET 0
 #define FSM_IDLE  1
 #define FSM_W8FORPORT 2
@@ -132,21 +120,6 @@ using namespace hls;
 #define FSM_WRITE_META 7
 #define FSM_DROP_PACKET 8
 #define FsmStateUdp uint8_t
-
-
-//#define WRITE_IDLE 0
-//#define WRITE_START 1
-//#define WRITE_DATA 2
-//#define WRITE_ERROR 3
-//#define WRITE_STANDBY 4
-//#define sendState uint8_t 
-//
-//
-//#define READ_IDLE 0
-//#define READ_DATA 2
-//#define READ_ERROR 3
-//#define READ_STANDBY 4
-//#define receiveState uint8_t
 
 
 #define OpnFsmStates uint8_t

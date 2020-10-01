@@ -40,7 +40,6 @@ ap_uint<16>  mmio_stabilize_counter = 1;
 #else
 ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
 #endif
-//bool Udp_RX_metaWritten = false;
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 FsmStateUdp fsmStateTX_Udp = FSM_RESET;
@@ -121,17 +120,6 @@ extern bool gTraceEvent;
 
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
-//---------------------------------------------------------
-//-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
-//--  By default, the following sockets will be used by the
-//--  TCP Role Interface, unless the user specifies new ones
-//--  via TBD.
-//--  FYI --> 8803 is the ZIP code of Ruschlikon ;-)
-//---------------------------------------------------------
-//#define DEFAULT_FPGA_LSN_PORT   0x2263      // TOE    listens on port = 8803 (static  ports must be     0..32767)
-//#define DEFAULT_HOST_IP4_ADDR   0x0A0CC832  // HOST's IP Address      = 10.12.200.50
-//#define DEFAULT_HOST_LSN_PORT   8803+0x8000 // HOST   listens on port = 41571
-
 
 AppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 TcpAppOpnRep  newConn;
@@ -143,7 +131,7 @@ ap_uint<8>   watchDogTimer_plisten = 0;
 //  [FIXME - StartupDelay must be replaced by a piSHELL_Reday signal]
 #ifdef __SYNTHESIS_
 ap_uint<16>         startupDelay = 0x8000;
-#else 
+#else
 ap_uint<16>         startupDelay = 30;
 #endif
 OpnFsmStates opnFsmState = OPN_IDLE;
@@ -204,7 +192,6 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
 {
 //#pragma HLS inline
-  //Loop unroll pragma needs int as variable...
   for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
   {
 //#pragma HLS unroll //factor=8
@@ -525,13 +512,12 @@ void nrc_main(
 
   // Pragmas for internal variables
 #pragma HLS DATAFLOW interval=1
-  //#pragma HLS PIPELINE II=1 //TODO/FIXME: is this necessary??
+  //#pragma HLS PIPELINE II=1 //TODO/FIXME
 
 
   //=================================================================================================
   // Reset global variables 
 
-//#pragma HLS reset variable=Udp_RX_metaWritten
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTX_Udp
 #pragma HLS reset variable=openPortWaitTime
@@ -560,14 +546,6 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
-
-//to reset arrays has weird side effects...
-//#pragma HLS reset variable=localMRT //off
-//#pragma HLS reset variable=config //off
-//#pragma HLS reset variable=tripleList //off
-//#pragma HLS reset variable=sessionIdList //off
-//#pragma HLS reset variable=usedRows //off
-//#pragma HLS reset variable=rowsToDelete//off
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -608,18 +586,9 @@ void nrc_main(
   //===========================================================
   //  core wide variables (for one iteration)
 
-  //ap_uint<32> ipAddrLE = 0;
-  //ipAddrLE  = (ap_uint<32>) ((*myIpAddress >> 24) & 0xFF);
-  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress >> 8) & 0xFF00);
-  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 8) & 0xFF0000);
-  //ipAddrLE |= (ap_uint<32>) ((*myIpAddress << 24) & 0xFF000000);
   ap_uint<32> ipAddrBE = *myIpAddress;
 
 
-  //if(*piNTS_ready != 1)
-  //{
-  //  return;
-  //}
 
   //===========================================================
   // restore saved states

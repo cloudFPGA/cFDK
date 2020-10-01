@@ -1047,10 +1047,6 @@ int main() {
               printf("Role received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
             }
 
-            // is done below
-           // if( !sURIF_Udmx_Meta.empty() )
-           // {
-           // }
         //-------------------------------------------------
         //-- EMULATE APP 1 (FMC)
         //-------------------------------------------------
