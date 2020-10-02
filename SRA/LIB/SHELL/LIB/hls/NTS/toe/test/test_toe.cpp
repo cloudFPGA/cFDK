@@ -1897,22 +1897,57 @@ void pTAIF_Send(
     bool                done;
     char               *pEnd;
 
-    //-------------------------------------------------------------
-    //-- STEP-0a : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
-    //-------------------------------------------------------------
-    if (not testTxPath)
-        return;
-
     //----------------------------------------
-    //-- STEP-0b : RETURN IF TOE IS NOT READY
+    //-- STEP-1b : RETURN IF TOE IS NOT READY
     //----------------------------------------
     if (piTOE_Ready == 0) {
         tas_toeReadyDelay++;
         return;
     }
 
+    //------------------------------------------------------
+    //-- STEP-0 : ARE WE ASKED TO OPEN A NEW CONNECTION
+    //------------------------------------------------------
+    SockAddr   fpgaClientSocket(gFpgaIp4Addr, gFpgaSndPort);
+    SockAddr   hostServerSocket(gHostIp4Addr, gHostLsnPort);
+    SocketPair currSocketPair(fpgaClientSocket, hostServerSocket);
+    // Open current session if it does not yet exist
+    if (tas_openSessList.find(currSocketPair) == tas_openSessList.end()) {
+         // Let's open a new session
+        done = pTcpAppConnect(
+                nrError,
+                currSocketPair,
+                tas_openSessList,
+                soTOE_OpnReq,
+                siTOE_OpnRep);
+        if (!done) {
+            // The open session is not yet completed
+            return;
+        }
+    }
+
+    //-------------------------------------------------------------
+    //-- STEP-1a : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
+    //-------------------------------------------------------------
+    if (not testTxPath)
+        return;
+
+    //--------------------------------------------------------------------
+    //-- STEP-1b : PARSE THE APP RX FILE.
+    //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
+    //--------------------------------------------------------------------
+    /*** OBSOLETE_20201020 ***************
+    if (!tas_globParseDone) {
+        tas_globParseDone = setGlobalParameters(myName, tas_toeReadyDelay, ifTAIF_Data);
+        if (tas_globParseDone == false) {
+            printFatal(myName, "Aborting testbench (check for previous error).\n");
+        }
+        return;
+    }
+    *********************************/
+
     //----------------------------------------------------------------
-    //-- STEP-1a : SHORT EXECUTION PATH WHEN TestingMode == ECHO_MODE
+    //-- STEP-1c : SHORT EXECUTION PATH WHEN TestingMode == ECHO_MODE
     //----------------------------------------------------------------
     if (testMode == ECHO_MODE) {
         pTcpAppEcho(
@@ -1923,18 +1958,6 @@ void pTAIF_Send(
                 soTOE_Meta,
                 siTAr_Data,
                 siTAr_Meta);
-        return;
-    }
-
-    //--------------------------------------------------------------------
-    //-- STEP-1b : PARSE THE APP RX FILE.
-    //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
-    //--------------------------------------------------------------------
-    if (!tas_globParseDone) {
-        tas_globParseDone = setGlobalParameters(myName, tas_toeReadyDelay, ifTAIF_Data);
-        if (tas_globParseDone == false) {
-            printFatal(myName, "Aborting testbench (check for previous error).\n");
-        }
         return;
     }
 
@@ -1951,28 +1974,6 @@ void pTAIF_Send(
             tas_appRxIdleCycCnt++;
         }
         return;
-    }
-
-    //------------------------------------------------------
-    //-- STEP-4 : CHECK IF CURRENT SESSION EXISTS
-    //------------------------------------------------------
-    SockAddr   fpgaClientSocket(gFpgaIp4Addr, gFpgaSndPort);
-    SockAddr   hostServerSocket(gHostIp4Addr, gHostLsnPort);
-    SocketPair currSocketPair(fpgaClientSocket, hostServerSocket);
-
-    // Check if a session exists for this socket-pair
-    if (tas_openSessList.find(currSocketPair) == tas_openSessList.end()) {
-         // Let's open a new session
-        done = pTcpAppConnect(
-                nrError,
-                currSocketPair,
-                tas_openSessList,
-                soTOE_OpnReq,
-                siTOE_OpnRep);
-        if (!done) {
-            // The open session is not yet completed
-            return;
-        }
     }
 
     //-----------------------------------------------------
