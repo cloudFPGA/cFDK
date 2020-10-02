@@ -512,7 +512,7 @@ void nrc_main(
 
   // Pragmas for internal variables
 #pragma HLS DATAFLOW interval=1
-  //#pragma HLS PIPELINE II=1 //TODO/FIXME
+  //#pragma HLS PIPELINE II=1 //FIXME
 
 
   //=================================================================================================
@@ -1005,11 +1005,9 @@ void nrc_main(
             UdpWord    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
 
-            //Udp_RX_metaWritten = false; //don't put the meta stream in the critical path
             if (!udpWord.tlast) {
               fsmStateRX_Udp = FSM_ACC;
             } else { 
-              //fsmStateRX_Udp = FSM_WRITE_META;
               //we are already done, stay here
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
@@ -1033,18 +1031,6 @@ void nrc_main(
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
           }
-          //no break!
-          //case FSM_WRITE_META:
-          //  if ( !Udp_RX_metaWritten && !soUdp_meta.full() )
-          //  {
-          //    soUdp_meta.write(in_meta_udp);
-          //    packet_count_RX++;
-          //    Udp_RX_metaWritten = true;
-          //    if ( fsmStateRX_Udp == FSM_WRITE_META)
-          //    {//was a small packet
-          //      fsmStateRX_Udp = FSM_FIRST_ACC;
-          //    }
-          //  }
           break;
 
         case FSM_DROP_PACKET:
@@ -1402,7 +1388,6 @@ void nrc_main(
               }
             }
             // NO break;
-            // here, in oposition to UDP, we need the extra write meta state, because we have multiple outgoing ports that should not block each other. Also, we don't write smth in the RDP_WAIT_META state.
           case RDP_WRITE_META_ROLE:
             if( !Tcp_RX_metaWritten && !soTcp_meta.full())
             {
@@ -1413,13 +1398,13 @@ void nrc_main(
             break;
 
           case RDP_STREAM_FMC:
-            //if (!siTOE_Data.empty() && !soFMC_Tcp_data.full()) 
-            if (!siTOE_Data.empty() ) //&& !soFMC_Tcp_data.full()) 
+            if (!siTOE_Data.empty() )
             {
               siTOE_Data.read(currWord);
               //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
               //  printAxiWord(myName, (AxiWord) currWord);
               //}
+              //blocking write, because it is a FIFO
               soFMC_Tcp_data.write(currWord);
               if (currWord.tlast == 1)
               {
@@ -1429,9 +1414,9 @@ void nrc_main(
             }
             // NO break;
           case RDP_WRITE_META_FMC:
-            //if( !Tcp_RX_metaWritten && !soFMC_Tcp_SessId.full())
             if( !Tcp_RX_metaWritten )
             {
+              //blocking write, because it is a FIFO
               soFMC_Tcp_SessId.write(session_toFMC);
               //TODO: count incoming FMC packets?
               Tcp_RX_metaWritten = true;
@@ -1479,15 +1464,8 @@ void nrc_main(
         switch (wrpFsmState) {
           case WRP_WAIT_META:
             //FMC must come first
-            //if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full())
-            //to not wait for ever here for the FIFOs
             if (expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full())
             {
-              //Axis<16> tmp_read =  siFMC_Tcp_SessId.read();
-              //tcpSessId = (AppMeta) tmp_read.tdata;
-              //ensure correct types
-              //assert(tmp_read.tkeep.width == 2);
-              //tcpSessId = (AppMeta) siFMC_Tcp_SessId.read().tdata;
               tcpSessId = (AppMeta) siFMC_Tcp_SessId.read();
               soTOE_SessId.write(tcpSessId);
               //delete the session id, we don't need it any longer
@@ -1512,7 +1490,6 @@ void nrc_main(
               if(dst_rank > MAX_CF_NODE_ID)
               {
                 node_id_missmatch_TX_cnt++;
-                //dst_rank = 0;
                 //SINK packet
                 wrpFsmState = WRP_DROP_PACKET;
                 printf("NRC drops the packet...\n");
@@ -1522,7 +1499,6 @@ void nrc_main(
               if(dst_ip_addr == 0)
               {
                 node_id_missmatch_TX_cnt++;
-                //dst_ip_addr = localMRT[0];
                 //SINK packet
                 wrpFsmState = WRP_DROP_PACKET;
                 printf("NRC drops the packet...\n");
@@ -1706,9 +1682,7 @@ void nrc_main(
               TcpPort remotePort = getRemotePortFromTripple(tripple_for_new_connection);
 
               SockAddr    hostSockAddr(remoteIp, remotePort);
-              //leHostSockAddr.addr = byteSwap32(hostSockAddr.addr);
               HostSockAddr.addr = hostSockAddr.addr;
-              //leHostSockAddr.port = byteSwap16(hostSockAddr.port);
               HostSockAddr.port = hostSockAddr.port;
               soTOE_OpnReq.write(HostSockAddr);
               if (DEBUG_LEVEL & TRACE_CON) {
@@ -1762,11 +1736,8 @@ void nrc_main(
             }
             break;
           case OPN_DONE:
-            //if(tcp_need_new_connection_request)
-            //{ 
-            //No neccisarity to wait...
+            //No need to wait...
             opnFsmState = OPN_REQ;
-            //}
             break;
         }
       }
@@ -1779,7 +1750,7 @@ void nrc_main(
      *
      ******************************************************************************/
     //update myName
-    //myName  = concat3(THIS_NAME, "/", "Cls");
+    myName  = concat3(THIS_NAME, "/", "Cls");
 
     //only if NTS is ready
     //and if we have valid tables
@@ -1864,7 +1835,6 @@ void nrc_main(
       {
         tableCopyVariable = 0;
         //acknowledge the processed version
-        //mrt_version_processed = config[NRC_CONFIG_MRT_VERSION];
         ap_uint<32> new_mrt_version = config[NRC_CONFIG_MRT_VERSION];
         if(new_mrt_version > mrt_version_processed)
         {

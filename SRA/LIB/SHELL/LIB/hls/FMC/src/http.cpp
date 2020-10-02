@@ -75,8 +75,6 @@ int my_wordlen(char *s) {
 
 int writeString(char* s)
 {
-  //int len = my_strlen_out(s);
-  //for(int i = 0; i<len; i++)
   int len = 0;
   for(int i = 0; i<OUT_BUFFER_SIZE; i++)
   {
@@ -221,9 +219,8 @@ int8_t writeHttpStatus(int status, uint16_t content_length){
   len += writeString(generalHeaderBegin);
   len += writeString(CFDK_VERSION_STRING);
   len += writeString(httpNL);
-  //use CFDK version
 
-  //TODO: 
+  //TODO: maybe include in future versions
  /* if ( content_length > 0)
   {
     char *lengthAscii = new char[6];
@@ -284,10 +281,6 @@ static char *putSize = "PUT /size/";
 static char *postRouting = "POST /routing";
 
 RequestType reqType = REQ_INVALID;
-uint8_t additional_http_lines_number = 0;
-uint8_t indexToStringBegin[MAX_ADDITIONAL_HTTP_LINES];
-char additional_http_lines_content[MAX_ADDITIONAL_HTTP_CONTENT];
-uint8_t custom_api_call_number = INVALID_CUSTOM_API_CALL;
 
 int request_len(ap_uint<16> offset, int maxLength)
 { 
@@ -345,7 +338,6 @@ int8_t extract_path(bool rx_done)
   //from here it looks like a valid header 
 
   reqType = REQ_INVALID; //reset
-  custom_api_call_number = INVALID_CUSTOM_API_CALL;
 
   if(requestLen <= 0)
   {//not a valid header 
@@ -398,119 +390,98 @@ int8_t extract_path(bool rx_done)
 
     //TODO 
     return 5;
-  } else { 
-    //check custom API
-    for(uint8_t i = 0; i< additional_http_lines_number; i++)
-    {
-      char* string_start = &additional_http_lines_content[indexToStringBegin[i]];
-      if(my_strcmp(string_start, bufferIn, my_strlen(string_start)) == 0)
-      {
-        reqType = CUSTOM_API;
-        bufferInPtrNextRead = requestLen + 4; //for the \r\n
-        custom_api_call_number = i;
-        return 6;
-      }
-    }
-    
+  } else {
     //Invalid / Not Found
     return -3;
-  } 
-  //return -2;
-
+  }
 }
 
 
 void parseHttpInput(bool transferErr, ap_uint<1> wasAbort, bool invalidPayload, bool rx_done)
 {
 
- switch (httpState) {
+  switch (httpState) {
     case HTTP_IDLE: //both the same
     case HTTP_PARSE_HEADER: 
-             //search for HTTP 
-             switch (extract_path(rx_done)) {
-              case -3: //404
-                 httpState = HTTP_INVALID_REQUEST;
-                //emptyOutBuffer(); ensured by global state machine
-                bufferOutContentLength = writeHttpStatus(404,0);
-                   break; 
-               case -2: //invalid content 
-                 httpState = HTTP_INVALID_REQUEST;
-                //emptyOutBuffer(); ensured by global state machine
-                bufferOutContentLength = writeHttpStatus(400,0);
-                   break; 
-               case -1: //not yet complete 
-                 httpState = HTTP_PARSE_HEADER; 
-                    break;
-                case 0: //not vaild until now
-                    break;
-                case 1: //get status 
-                    httpState = HTTP_SEND_RESPONSE;
-                    break;
-                case 2: //post config 
-                    httpState = HTTP_HEADER_PARSED;
-                    break;
-                case 3: //put rank 
-                    httpState = HTTP_SEND_RESPONSE; 
-                    break; 
-                case 4: //put size 
-                    httpState = HTTP_SEND_RESPONSE;
-                    break;
-                case 5: //post routing
-                    httpState = HTTP_HEADER_PARSED;
-                    break;
-                case 6: //custom MCC API
-                    httpState = HTTP_HEADER_PARSED;
-                    break;
-             }
-               break;
+      //search for HTTP 
+      switch (extract_path(rx_done)) {
+        default:
+        case -3: //404
+          httpState = HTTP_INVALID_REQUEST;
+          bufferOutContentLength = writeHttpStatus(404,0);
+          break; 
+        case -2: //invalid content 
+          httpState = HTTP_INVALID_REQUEST;
+          bufferOutContentLength = writeHttpStatus(400,0);
+          break; 
+        case -1: //not yet complete 
+          httpState = HTTP_PARSE_HEADER; 
+          break;
+        case 0: //not vaild until now
+          break;
+        case 1: //get status 
+          httpState = HTTP_SEND_RESPONSE;
+          break;
+        case 2: //post config 
+          httpState = HTTP_HEADER_PARSED;
+          break;
+        case 3: //put rank 
+          httpState = HTTP_SEND_RESPONSE; 
+          break; 
+        case 4: //put size 
+          httpState = HTTP_SEND_RESPONSE;
+          break;
+        case 5: //post routing
+          httpState = HTTP_HEADER_PARSED;
+          break;
+      }
+      break;
     case HTTP_HEADER_PARSED: //this state is valid for one core-cycle: after that the current payload should start at 0
-               httpState = HTTP_READ_PAYLOAD;
-               //no break 
+      httpState = HTTP_READ_PAYLOAD;
+      //no break 
     case HTTP_READ_PAYLOAD:
-               break; 
+      break; 
     case HTTP_REQUEST_COMPLETE: 
-             //  break; 
+      //  break; 
     case HTTP_SEND_RESPONSE:
-                //emptyOutBuffer(); ensured by global state machine
-               if(wasAbort == 1) //abort always also triggers transferErr --> so check this first
-               {
-                 bufferOutContentLength = writeHttpStatus(500,0);
-               } else if (transferErr == true || invalidPayload == true)
-               {
-                 bufferOutContentLength = writeHttpStatus(422,0);
-               } else if(reqType == GET_STATUS)
-               { 
-                 //combine status 
-                 //length??
-                 bufferOutContentLength = writeHttpStatus(200,0);
-                 //write status 
-                 uint32_t contentLen = writeDisplaysToOutBuffer();
-                 writeString(httpNL); //to finish body 
-                 if (contentLen > 0)
-                 {
-                   bufferOutContentLength += contentLen;
-                 }
-               } else if(reqType == POST_CONFIG)
-               { 
-                bufferOutContentLength = writeHttpStatus(200,0);
-                bufferOutContentLength += writeString("Partial reconfiguration finished successfully!\r\n\r\n");
-                 //write success message 
-               } else { 
-                 //PUT_RANK, PUT_SIZE, POST_ROUTING
-                bufferOutContentLength = writeHttpStatus(200,0);
-               }
-               httpState = HTTP_DONE;
-               break;
+      //emptyOutBuffer(); ensured by global state machine
+      if(wasAbort == 1) //abort always also triggers transferErr --> so check this first
+      {
+        bufferOutContentLength = writeHttpStatus(500,0);
+      } else if (transferErr == true || invalidPayload == true)
+      {
+        bufferOutContentLength = writeHttpStatus(422,0);
+      } else if(reqType == GET_STATUS)
+      { 
+        //combine status 
+        //length??
+        bufferOutContentLength = writeHttpStatus(200,0);
+        //write status 
+        uint32_t contentLen = writeDisplaysToOutBuffer();
+        writeString(httpNL); //to finish body 
+        if (contentLen > 0)
+        {
+          bufferOutContentLength += contentLen;
+        }
+      } else if(reqType == POST_CONFIG)
+      { 
+        bufferOutContentLength = writeHttpStatus(200,0);
+        bufferOutContentLength += writeString("Partial reconfiguration finished successfully!\r\n\r\n");
+        //write success message 
+      } else { 
+        //PUT_RANK, PUT_SIZE, POST_ROUTING
+        bufferOutContentLength = writeHttpStatus(200,0);
+      }
+      httpState = HTTP_DONE;
+      break;
     default:
-               break;
+      break;
   }
 
   printf("parseHttpInput returns with state %d\n",httpState);
   //printf("RequestType after parseHttpInput %d\n",reqType);
 
 }
-
-
 
 /*! \} */
 

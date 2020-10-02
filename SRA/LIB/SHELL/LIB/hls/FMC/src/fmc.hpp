@@ -88,7 +88,6 @@ using namespace hls;
 #define FULL_FIFO_CNT_SHIFT 16
 #define ICAP_FSM_SHIFT 24
 
-//#define AXI_PAUSE_CYCLES 10
 
 #define WS 4
 #define SR_OFFSET (0x110/WS)
@@ -123,17 +122,14 @@ using namespace hls;
 #define XMEM_SIZE (LINES_PER_PAGE * MAX_PAGES)
 #define BYTES_PER_PAGE (LINES_PER_PAGE*4)
 #define PAYLOAD_BYTES_PER_PAGE (BYTES_PER_PAGE - 2)
-//#define BUFFER_SIZE 2048 //should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
+
+//should be smaller then 2^16, but much bigger than a usual HTTP Header (~ 200 Bytes)
 //#define IN_BUFFER_SIZE 2048
-//#ifndef __SYNTHESIS__
 //#define IN_BUFFER_SIZE 8192 //8K
 #define IN_BUFFER_SIZE 4096 //4K, = HWICAP FIFO DEPTH (in Bytes)
 //#define IN_BUFFER_SIZE 6144 //6K
-//#else
-//#define IN_BUFFER_SIZE 8388608 //8M
-//#endif
 #define OUT_BUFFER_SIZE 1024
-#define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes!
+#define XMEM_ANSWER_START (1*LINES_PER_PAGE) //Lines! not Bytes
 
 //HWICAP CR Commands
 #define CR_ABORT 0x10
@@ -149,9 +145,8 @@ using namespace hls;
 //MAX CLUSTER/MAX RANK
 #define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
 
-//#include "../../mpe/src/mpe.hpp" //seems to have a dependency to MAX_CLUSTER_SIZE, so must be after it... 
 //TODO: multiple ctrlLinks?
-#include "../../NRC/src/nrc.hpp" //seems to have a dependency to MAX_CLUSTER_SIZE, so must be after it... 
+#include "../../NRC/src/nrc.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
 
@@ -325,10 +320,8 @@ void fmc(
     ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
     stream<TcpWord>             &siNRC_Tcp_data,
-    //stream<Axis<16> >           &siNRC_Tcp_SessId,
     stream<AppMeta>           &siNRC_Tcp_SessId,
     stream<TcpWord>             &soNRC_Tcp_data,
-    //stream<Axis<16> >           &soNRC_Tcp_SessId,
     stream<AppMeta>           &soNRC_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
@@ -336,7 +329,7 @@ void fmc(
     stream<Axis<8> >  &siPYROLINK,
     ap_uint<1> *disable_pyro_link,
 #endif
-    //TO ROLE 
+    //TO ROLE
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size);
 
 
