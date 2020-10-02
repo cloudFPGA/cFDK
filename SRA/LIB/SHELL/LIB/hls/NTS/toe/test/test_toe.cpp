@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -670,6 +670,21 @@ void cmdSetCommandParser(const char *callerName, vector<string> stringVector) {
         gHostLsnPort = tcpPort;
         printInfo(callerName, "Setting the current HOST listen port to be: \n");
         printTcpPort(callerName, gHostLsnPort);
+    }
+    else if (stringVector[2] == "FpgaLsnPort") {
+        //---------------------------------------------
+        //-- COMMAND = Set the active fpga listen port
+        //---------------------------------------------
+        char * ptr;
+        // Retrieve the TCP-Port to set
+        unsigned int tcpPort;
+        if (isHexString(stringVector[3]))
+            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
+        else
+           tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
+        gFpgaLsnPort = tcpPort;
+        printInfo(callerName, "Setting the current FPGA listen port to be: \n");
+        printTcpPort(callerName, gFpgaLsnPort);
     }
     else if (stringVector[2] == "HostServerSocket") {
         //------------------------------------------------------
@@ -1678,7 +1693,7 @@ void pTcpAppEcho(
  * @details
  *
  ******************************************************************************/
-void pTcpAppRecv(
+void pTAIF_Recv(
         int                     &nrError,
         char                    &testMode,
         ofstream                &ofTAIF_Data,
@@ -1713,7 +1728,6 @@ void pTcpAppRecv(
     string              rxStringBuffer;
     vector<string>      stringVector;
     TcpAppOpnRep        newConStatus;
-    //OBSOLETE_20200702 ipTuple             tuple;
     SessionId           tcpSessId;
     AxisApp             currChunk;
 
@@ -1848,7 +1862,7 @@ void pTcpAppRecv(
  * @details:
  *  The max number of connections that can be opened is given by 'NO_TX_SESSIONS'.
  ******************************************************************************/
-void pTcpAppSend(
+void pTAIF_Send(
         int                     &nrError,
         char                    &testMode,
         bool                    &testTxPath,
@@ -1939,12 +1953,6 @@ void pTcpAppSend(
         return;
     }
 
-    //-----------------------------------------------------
-    //-- STEP-3 : RETURN IF END OF FILE IS REACHED
-    //-----------------------------------------------------
-    if (ifTAIF_Data.eof())
-        return;
-
     //------------------------------------------------------
     //-- STEP-4 : CHECK IF CURRENT SESSION EXISTS
     //------------------------------------------------------
@@ -1954,7 +1962,6 @@ void pTcpAppSend(
 
     // Check if a session exists for this socket-pair
     if (tas_openSessList.find(currSocketPair) == tas_openSessList.end()) {
-
          // Let's open a new session
         done = pTcpAppConnect(
                 nrError,
@@ -1969,9 +1976,16 @@ void pTcpAppSend(
     }
 
     //-----------------------------------------------------
-    //-- STEP-4 : READ THE APP RX FILE AND FEED THE TOE
+    //-- STEP-3 : RETURN IF END OF FILE IS REACHED
     //-----------------------------------------------------
-    do {
+    //OBSOLETE_20201002 if (ifTAIF_Data.eof())
+    //OBSOLETE_20201002     return;
+
+    //-----------------------------------------------------
+    //-- STEP-5 : READ THE APP RX FILE AND FEED THE TOE
+    //-----------------------------------------------------
+    //OBSOLETE_20201002 do {
+    while (!ifTAIF_Data.eof()) {
         //-- READ A LINE FROM APP RX FILE -------------
         getline(ifTAIF_Data, rxStringBuffer);
         stringVector = myTokenizer(rxStringBuffer, ' ');
@@ -2068,28 +2082,6 @@ void pTcpAppSend(
                         return;
                     }
                 }
-                /*** OBSOLETE_20200925 **********************
-                if (stringVector[1] == "TEST") {
-                    if (stringVector[2] == "Ip4TotLen") {
-                    }
-                    else if (stringVector[2] == "Ip4HdrCsum") {
-                        if (stringVector[3] == "false") {
-                            gTest_Ip4HdrCsum = false;
-                            printInfo(myName, "Disabling the test of the IPv4-Header-Checksum.");
-                        }
-                        else {
-                            gTest_Ip4HdrCsum = true;
-                            printInfo(myName, "Enabling the test of the IPv4-Header-Checksum.");
-                        }
-                        return;
-                    }
-                    else if (stringVector[2] == "UdpLen") {
-
-                    }
-                    else if (stringVector[2] == "Ly4Csum") {
-                    }
-                }
-                *********************************************/
             }
             else {
                 printFatal(myName, "Read unknown command \"%s\" from TAIF.\n", stringVector[0].c_str());
@@ -2126,21 +2118,17 @@ void pTcpAppSend(
                     soTOE_Meta.write(tas_openSessList[currSocketPair]);
                 }
                 firstChunkFlag = false;
-                //OBSOLETE_20200703 string tempString = "0000000000000000";
-                //OBSOLETE_20200703 appRxData = AxiWord(myStrHexToUint64(stringVector[0]), \
-                //OBSOLETE_20200703                     myStrHexToUint8(stringVector[2]),  \
-                //OBSOLETE_20200703                     atoi(stringVector[1].c_str()));
                 bool rc = readAxisRawFromLine(appChunk, rxStringBuffer);
                 if (rc) {
                     soTOE_Data.write(appChunk);
                 }
                 // Write current chunk to the gold file
-                //OBSOLETE-20200721 writtenBytes = writeAxisRawToFile(appChunk, ofIPTX_Gold2);
                 writtenBytes = writeAxisAppToFile(appChunk, ofIPTX_Gold2);
                 apRxBytCntr += writtenBytes;
             } while (not appChunk.getTLast());
         } // End of: else
-    } while(!ifTAIF_Data.eof());
+    //OBSOLETE_20201002 } while(!ifTAIF_Data.eof());
+    }
 } // End of: pTAs
 
 /*****************************************************************************
@@ -2170,11 +2158,11 @@ void pTcpAppSend(
  *
  * @details:
  *  The TCP Application Interface (TAIF) implements two processes:
- *   1) pTcpAppRecv (TAr) that emulates the receive part of the application.
- *   2) pTcpAppSend (TAs) that emulates the transmit part of the application.
+ *   1) pTAIF_Recv (TAr) that emulates the receive part of the application.
+ *   2) pTAIF_Send (TAs) that emulates the transmit part of the application.
  *
  ******************************************************************************/
-void pTcpApplicationInterface(
+void pTAIF(
         bool                    &testTxPath,
         char                    &testMode,
         int                     &nrError,
@@ -2232,7 +2220,7 @@ void pTcpApplicationInterface(
         return;
     }
 
-    pTcpAppRecv(
+    pTAIF_Recv(
             nrError,
             testMode,
             ofTAIF_Data,
@@ -2247,7 +2235,7 @@ void pTcpApplicationInterface(
             ssTArToTAs_Data,
             ssTArToTAs_Meta);
 
-    pTcpAppSend(
+    pTAIF_Send(
             nrError,
             testMode,
             testTxPath,
@@ -2270,7 +2258,7 @@ void pTcpApplicationInterface(
  * @brief Main function.
  *
  * @param[in]  mode       The test mode (0=RX_MODE,    1=TX_MODE,
- *                                        2=BIDIR_MODE, 3=ECHO_MODE).
+*                                        2=BIDIR_MODE, 3=ECHO_MODE).
  * @param[in]  inpFile1   The pathname of the input file containing the test
  *                         vectors to be fed to the TOE:
  *                         If (mode==0 || mode=2)
@@ -2625,7 +2613,7 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-4.1 : Emulate TCP Application (TAIF)
         //-------------------------------------------------
-        pTcpApplicationInterface(
+        pTAIF(
             testTxPath,
             mode,
             nrErr,
