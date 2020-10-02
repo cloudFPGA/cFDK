@@ -33,8 +33,8 @@
 #include <iostream>
 #include <iomanip>
 #include <deque>
-//OBSOLETE_20200928 #include <cstdlib>
- #include <stdlib.h>   // Avoid using C++ with HLS (at least with 2017.4)
+//OBSOLETE_20200928 #include <stdlib.h>   // Avoid using C++ with HLS (at least with 2017.4)
+#include <cstdlib>
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
