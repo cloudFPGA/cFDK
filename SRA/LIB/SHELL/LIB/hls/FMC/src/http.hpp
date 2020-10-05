@@ -36,7 +36,6 @@
 
 //#define COSIM
 //#ifdef COSIM 
-
 #define REQ_INVALID   0x01
 #define POST_CONFIG   0x02
 #define GET_STATUS    0x40  //MUST NOT BE EUQIVALENT to OPRV_SKIPPED!!
@@ -45,20 +44,11 @@
 #define POST_ROUTING  0x20
 #define CUSTOM_API    0x80
 #define RequestType uint8_t
-
 //#else
 //typedef enum {REQ_INVALID = 0, POST_CONFIG, GET_STATUS, PUT_RANK, PUT_SIZE, POST_ROUTING} RequestType;
 //#endif
 
 extern RequestType reqType; 
-
-#define MAX_ADDITIONAL_HTTP_LINES 16
-#define MAX_ADDITIONAL_HTTP_CONTENT 512
-#define INVALID_CUSTOM_API_CALL 255 //must be bigger then MAX_ADDITIONAL_HTTP_LINES
-extern uint8_t additional_http_lines_number;
-extern uint8_t indexToStringBegin[MAX_ADDITIONAL_HTTP_LINES];
-extern char additional_http_lines_content[MAX_ADDITIONAL_HTTP_CONTENT];
-extern uint8_t custom_api_call_number;
 
 
 int writeString(char* s);

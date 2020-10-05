@@ -54,11 +54,6 @@ uint32_t bufferInPtrWrite = 0x0;
 uint32_t bufferInPtrMaxWrite = 0x0;
 uint32_t lastSeenBufferInPtrMaxWrite = 0x0;
 uint32_t bufferInPtrNextRead = 0x0;
-//HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-//volatile uint32_t bufferInPtrMaxWrite_old_iteration = 0x0;
-//volatile uint16_t bufferIn_write_iteration_cnt = 0x0;
-//volatile uint16_t bufferIn_read_iteration_cnt = 0x0;
-//bool hwicap_waiting_for_tcp = false;
 bool tcp_write_only_fifo = false;
 
 uint8_t bufferOut[OUT_BUFFER_SIZE];
@@ -68,10 +63,6 @@ uint16_t bufferOutPtrNextRead = 0x0;
 uint16_t lastSeenBufferOutPtrNextRead = 0x0;
 
 
-//non-essential HWICAP data
-//ap_uint<32> ISR = 0, WFV = 0; // RFO = 0;
-//ap_uint<32> WFV_value = 0, WEMPTY = 0;
-//ap_uint<32> hwicap_next_check_seconds = 0;
 #ifndef __SYNTHESIS__
 bool use_sequential_hwicap = false;
 uint32_t sequential_hwicap_address = 0;
@@ -83,7 +74,6 @@ HttpState httpState = HTTP_IDLE;
 ap_uint<32> Display1 = 0, Display2 = 0, Display3 = 0, Display4 = 0, Display5 = 0, Display6 = 0, Display7 = 0, Display8 = 0, Display9 = 0;
 ap_uint<28> wordsWrittenToIcapCnt = 0;
 ap_uint<28> tcp_words_received = 0;
-//bool halt_tcp_input = false;
 
 ap_uint<32> nodeRank = 0;
 ap_uint<32> clusterSize = 0; 
@@ -108,8 +98,6 @@ ap_uint<32> fpga_time_hours   = 0;
 
 ap_uint<7> lastResponsePageCnt = 0;
 ap_uint<4> responePageCnt = 0; //for Display 4
-//ap_uint<32> lastaddressWrittenToNRC = 0;
-//ap_uint<32> lastNIDWrittentoNRC= 0;
 
 //persistent states...
 GlobalState currentGlobalOperation = GLOBAL_IDLE;
@@ -125,7 +113,6 @@ ap_uint<32> global_state_wait_counter_persistent = 0;
 
 AppMeta currentTcpSessId = 0;
 bool TcpSessId_updated_persistent = false;
-//stream<Axis<16> >  sFifo_Tcp_SessId("sFifo_Tcp_SessId");
 ap_uint<1> tcpModeEnabled = 0;
 uint8_t tcp_iteration_count = 0;
 //bool tcp_rx_blocked_by_processing = false;
@@ -208,19 +195,10 @@ void copyOutBuffer(ap_uint<4> numberOfPages, ap_uint<32> xmem[XMEM_SIZE])
   {
     ap_uint<32> tmp = 0; 
 
-    //   if (notToSwap == 1)
-    //   {
-    //   tmp = ((ap_uint<32>) bufferOut[i*4 + 3]); 
-    //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 8; 
-    //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 16; 
-    //   tmp |= ((ap_uint<32>) bufferOut[i*4 + 0]) << 24; 
-    // } else {
     tmp = ((ap_uint<32>) bufferOut[i*4 + 0]); 
     tmp |= ((ap_uint<32>) bufferOut[i*4 + 1]) << 8; 
     tmp |= ((ap_uint<32>) bufferOut[i*4 + 2]) << 16; 
     tmp |= ((ap_uint<32>) bufferOut[i*4 + 3]) << 24; 
-    //   }
-
     xmem[XMEM_ANSWER_START + i] = tmp;
   }
 
@@ -237,9 +215,6 @@ void emptyInBuffer()
   bufferInPtrWrite = 0x0;
   bufferInPtrNextRead = 0x0;
   bufferInPtrMaxWrite = 0x0;
-  //bufferInPtrMaxWrite_old_iteration = 0x0;
-  //bufferIn_read_iteration_cnt = 0x0;
-  //bufferIn_write_iteration_cnt = 0x0;
   lastSeenBufferInPtrMaxWrite = 0x0;
   hwicap_hangover_present = false;
   hwicap_hangover_size = 0;
@@ -288,14 +263,6 @@ uint32_t writeDisplaysToOutBuffer()
   uint32_t len  = 0;
   //Display1
   len = writeString("Status Display 1: ");
-  //bufferOut[bufferOutPtrWrite + 3] = Display1 & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (Display1 >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (Display1 >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (Display1 >> 24) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 4] = '\r'; 
-  //bufferOut[bufferOutPtrWrite + 5] = '\n'; 
-  //bufferOutPtrWrite  += 6;
-  //len += 6; 
   len += writeUnsignedLong((uint32_t) Display1, 16);
   bufferOut[bufferOutPtrWrite + 0] = '\r'; 
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
@@ -304,28 +271,16 @@ uint32_t writeDisplaysToOutBuffer()
 
   //Display2
   len += writeString("Status Display 2: ");
-  //bufferOut[bufferOutPtrWrite + 3] = Display2 & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (Display2 >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (Display2 >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (Display2 >> 24) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 4] = '\r'; 
-  //bufferOut[bufferOutPtrWrite + 5] = '\n'; 
-  //bufferOutPtrWrite  += 6;
-  //len += 6; 
   len += writeUnsignedLong((uint32_t) Display2, 16);
   bufferOut[bufferOutPtrWrite + 0] = '\r'; 
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
   bufferOutPtrWrite  += 2;
   len += 2; 
   
-  /* Display 3 & 4 is less informative outside EMIF Context
-  */ 
-  //insert rank and size 
+  //Display 3 & 4 is less informative outside EMIF Context
+  
+  //insert rank and size
   len += writeString("Rank: ");
-  //bufferOut[bufferOutPtrWrite + 3] = nodeRank & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (nodeRank >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (nodeRank >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (nodeRank >> 24) & 0xFF; 
   len += writeUnsignedLong(nodeRank, 10); 
   bufferOut[bufferOutPtrWrite + 0] = '\r'; 
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
@@ -333,17 +288,13 @@ uint32_t writeDisplaysToOutBuffer()
   len += 2; 
 
   len += writeString("Size: ");
-  //bufferOut[bufferOutPtrWrite + 3] = clusterSize & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (clusterSize >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (clusterSize >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (clusterSize >> 24) & 0xFF; 
   len += writeUnsignedLong(clusterSize, 10);
   bufferOut[bufferOutPtrWrite + 0] = '\r'; 
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
   bufferOutPtrWrite  += 2;
   len += 2; 
 
-  //NRC status 
+  //NRC status
   len += writeString("NRC Status (16 lines): \r\n"); //NRC_NUMBER_STATUS_WORDS
 
   for(int i = 0; i<NRC_NUMBER_STATUS_WORDS; i++)
@@ -396,7 +347,6 @@ uint32_t writeDisplaysToOutBuffer()
     len++;
     len+=writeString(": ");
     //we have a bit size of 8
-    //bufferOut[bufferOutPtrWrite] = fpga_status[i];
     uint8_t val = fpga_status[i];
     bufferOut[bufferOutPtrWrite] = (val > 9)? (val-10) + 'A' : val + '0'; //is only 8bit
     bufferOut[bufferOutPtrWrite + 1] = '\r'; 
@@ -439,26 +389,6 @@ uint32_t writeDisplaysToOutBuffer()
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
   bufferOutPtrWrite  += 2;
   len += 2;
-  
-  //len += writeString("L-ADDR: ");
-  //bufferOut[bufferOutPtrWrite + 3] =  lastaddressWrittenToNRC & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (lastaddressWrittenToNRC >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (lastaddressWrittenToNRC >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (lastaddressWrittenToNRC >> 24) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 4] = '\r'; 
-  //bufferOut[bufferOutPtrWrite + 5] = '\n'; 
-  //bufferOutPtrWrite  += 6;
-  //len += 6; 
-  //
-  //len += writeString("L-NID: ");
-  //bufferOut[bufferOutPtrWrite + 3] =  lastNIDWrittentoNRC & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 2] = (lastNIDWrittentoNRC >> 8) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 1] = (lastNIDWrittentoNRC >> 16) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 0] = (lastNIDWrittentoNRC >> 24) & 0xFF; 
-  //bufferOut[bufferOutPtrWrite + 4] = '\r'; 
-  //bufferOut[bufferOutPtrWrite + 5] = '\n'; 
-  //bufferOutPtrWrite  += 6;
-  //len += 6;
 
   
   len += writeString(httpNL);
@@ -535,8 +465,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 
   bool lastPage = (curHeader & 0xf0) == 0xf0;
 
-  //printf("bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
-  //printf("lastLine: %d\n", (int) lastLine);
   //now we have a clean transfer
   if(lastPage && flag_check_xmem_pattern == 0)
   { //we didn't received a full page;
@@ -552,10 +480,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
   { 
     bufferInPtrWrite = 0;
   }
-
-  //printf("After UPDATE bufferInPtrWrite: %d\n", (int) bufferInPtrWrite);
-  //printf("After UPDATE lastLine: %d\n", (int) lastLine);
-
 
   if(flag_check_xmem_pattern == 1)
   {
@@ -584,48 +508,6 @@ ap_uint<4> copyAndCheckBurst(ap_uint<32> xmem[XMEM_SIZE], ap_uint<4> ExpCnt, ap_
 }
 
 
-//void pTcpSessIdTx(TcpFsmState *fsmTcpSessId_TX, stream<Axis<16> > &soNRC_Tcp_SessId, ap_uint<16> currentTcpSessId)
-//{
-//#pragma HLS INLINE off
-//#pragma HLS DATAFLOW interval=1
-//
-//    switch(*fsmTcpSessId_TX) {
-//
-//      default:
-//      case TCP_FSM_RESET: 
-//        //drain SessId FIFO if not emtpy 
-//        //if(!sFifo_Tcp_SessId.empty())
-//        //{
-//        //  sFifo_Tcp_SessId.read();
-//        //}
-//        *fsmTcpSessId_TX = TCP_FSM_IDLE;
-//        currentTcpSessId = 0;
-//        break;
-//      case TCP_FSM_IDLE: 
-//        //just stay here
-//        break;
-//
-//      case TCP_FSM_W84_START:
-//        *fsmTcpSessId_TX = TCP_FSM_PROCESS_DATA;
-//        //no break;
-//      case TCP_FSM_PROCESS_DATA:
-//        //if(!soNRC_Tcp_SessId.full() && !sFifo_Tcp_SessId.empty())
-//        if(!soNRC_Tcp_SessId.full())
-//        {
-//        //TODO: non-blocking seems not to work...
-//          //soNRC_Tcp_SessId.write(sFifo_Tcp_SessId.read());
-//          soNRC_Tcp_SessId.write(currentTcpSessId);
-//          *fsmTcpSessId_TX = TCP_FSM_DONE;
-//        }
-//        break;
-//      case TCP_FSM_DONE:
-//        // just stay here?
-//        break;
-//    }
-//}
-//
-
-
 void fmc(
     //EMIF Registers
     ap_uint<32> *MMIO_in, ap_uint<32> *MMIO_out,
@@ -641,18 +523,16 @@ void fmc(
     ap_uint<16> *role_mmio_in,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
-    // Soft Reset 
+    // Soft Reset
     ap_uint<1> *setSoftReset,
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
-    //NRC 
+    //NRC
     ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
     stream<TcpWord>             &siNRC_Tcp_data,
-    //stream<Axis<16> >           &siNRC_Tcp_SessId,
     stream<AppMeta>           &siNRC_Tcp_SessId,
     stream<TcpWord>             &soNRC_Tcp_data,
-    //stream<Axis<16> >           &soNRC_Tcp_SessId,
     stream<AppMeta>           &soNRC_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
@@ -660,7 +540,7 @@ void fmc(
     stream<Axis<8> >  &siPYROLINK,
     ap_uint<1> *disable_pyro_link,
 #endif
-    //TO ROLE 
+    //TO ROLE
     ap_uint<32> *role_rank, ap_uint<32> *cluster_size)
 {
 //#pragma HLS RESOURCE variable=bufferIn core=RAM_2P_BRAM
@@ -697,9 +577,8 @@ void fmc(
 #pragma HLS INTERFACE ap_fifo port=siNRC_Tcp_SessId
 #pragma HLS INTERFACE ap_fifo port=soNRC_Tcp_SessId
 //ap_ctrl is default (i.e. ap_hs)
-//#pragma HLS DATAFLOW TODO: is not working
+//#pragma HLS DATAFLOW TODO: crashes Vivado..
 
-//#pragma HLS STREAM variable=sFifo_Tcp_SessId depth=1
 #pragma HLS STREAM variable=internal_icap_fifo depth=4096
 #pragma HLS STREAM variable=icap_hangover_fifo depth=3
 
@@ -707,9 +586,6 @@ void fmc(
 #pragma HLS reset variable=httpState
 #pragma HLS reset variable=bufferInPtrWrite
 #pragma HLS reset variable=bufferInPtrMaxWrite
-//#pragma HLS reset variable=bufferInPtrMaxWrite_old_iteration
-//#pragma HLS reset variable=bufferIn_write_iteration_cnt
-//#pragma HLS reset variable=bufferIn_read_iteration_cnt
 #pragma HLS reset variable=lastSeenBufferInPtrMaxWrite
 #pragma HLS reset variable=bufferInPtrNextRead
 #pragma HLS reset variable=tcp_write_only_fifo
@@ -726,8 +602,6 @@ void fmc(
 #pragma HLS reset variable=tcp_words_received
 #pragma HLS reset variable=fifo_overflow_buffer_length
 #pragma HLS reset variable=process_fifo_overflow_buffer
-//#pragma HLS reset variable=halt_tcp_input
-//#pragma HLS reset variable=hwicap_waiting_for_tcp
 #pragma HLS reset variable=globalOperationDone_persistent
 #pragma HLS reset variable=transferError_persistent
 #pragma HLS reset variable=invalidPayload_persistent
@@ -745,10 +619,6 @@ void fmc(
 #pragma HLS reset variable=TcpSessId_updated_persistent
 #pragma HLS reset variable=tcpModeEnabled
 #pragma HLS reset variable=tcp_iteration_count
-//#pragma HLS reset variable=tcp_rx_blocked_by_processing
-  //#pragma HLS reset variable=ongoingTransfer_persistent
-//#pragma HLS reset variable=lastaddressWrittenToNRC
-//#pragma HLS reset variable=lastNIDWrittentoNRC
 #pragma HLS reset variable=fsmTcpSessId_TX
 #pragma HLS reset variable=fsmTcpSessId_RX
 #pragma HLS reset variable=fsmTcpData_TX
@@ -775,11 +645,6 @@ void fmc(
 #pragma HLS reset variable=target_http_nl_cnt
 #pragma HLS reset variable=hwicap_hangover_present
 #pragma HLS reset variable=hwicap_hangover_size
-//#pragma HLS reset variable=ISR
-//#pragma HLS reset variable=WFV
-//#pragma HLS reset variable=WFV_value
-//#pragma HLS reset variable=WEMPTY
-//#pragma HLS reset variable=hwicap_next_check_seconds
 
 
 
@@ -859,16 +724,6 @@ void fmc(
   WEMPTY = (ISR & 0x4) >> 2;
   WFV_value = WFV & 0x7FF;
 
-  //if( (WFV_value < HWICAP_FIFO_DEPTH )
-  //    && (currentGlobalOperation == GLOBAL_TCP_HTTP)
-  //    && (reqType == POST_CONFIG)
-  //  )
-  //{ //HWICAP needs more time
-  //  //OP_BUFFER_TO_HWICAP assumes it can write the complete buffer at once, if necessary
-  //  halt_tcp_input = true;
-  //} else {
-  //  halt_tcp_input = false;
-  //}
 
   ap_uint<1> wasAbort = (CR_value & CR_ABORT) >> 4;
   //Maybe CR_ABORT is not set 
@@ -976,9 +831,7 @@ void fmc(
           tcp_iteration_count++;
           
           TcpSessId_updated_persistent = false;
-          //reset all TCP FSMs
-          //fsmTcpSessId_RX = TCP_FSM_RESET;
-          //fsmTcpData_RX = TCP_FSM_RESET;
+          //reset TX TCP FSMs
           fsmTcpSessId_TX = TCP_FSM_RESET;
           fsmTcpData_TX = TCP_FSM_RESET;
 
@@ -1466,8 +1319,6 @@ void fmc(
           iterate_again = true;
           break;
         }
-        //TODO: continue in this mode when HTTP_IDLE and environment not changed
-        //or not...the auto-reset and return mode ("start over") is exactly this...isn't it?
         //TODO: implement timeout for NOT complete requests
         tcpModeEnabled = 1;
         msg="TCP";
@@ -1475,10 +1326,8 @@ void fmc(
         if(globalOperationDone_persistent)
         { 
           //"self reset" --> start over 
-          //but wait until all TCP FSMs have finished
-          //if(fsmTcpSessId_RX != TCP_FSM_PROCESS_DATA 
-          //    && fsmTcpData_RX != TCP_FSM_PROCESS_DATA 
-          if( fsmTcpSessId_TX != TCP_FSM_PROCESS_DATA 
+          //but wait until TX TCP FSMs have finished
+          if( fsmTcpSessId_TX != TCP_FSM_PROCESS_DATA
               && fsmTcpData_TX != TCP_FSM_PROCESS_DATA)
           {
             currentGlobalOperation = GLOBAL_IDLE;
@@ -1540,9 +1389,6 @@ void fmc(
           opcodeProgram[currentProgramLength] = OP_EXIT; //wait for data or fatal failure
           programMask[currentProgramLength] = OPRV_NOT_COMPLETE | OPRV_PARTIAL_COMPLETE | OPRV_FAIL;
           currentProgramLength++;
-          //opcodeProgram[currentProgramLength] = OP_SET_NOT_TO_SWAP;
-          //programMask[currentProgramLength] = MASK_ALWAYS;
-          //currentProgramLength++;
           opcodeProgram[currentProgramLength] = OP_BUFFER_TO_ROUTING;
           programMask[currentProgramLength] = OPRV_DONE | OPRV_OK;
           currentProgramLength++;
@@ -1575,36 +1421,12 @@ void fmc(
           opcodeProgram[currentProgramLength] = OP_ENABLE_SILENT_SKIP;
           programMask[currentProgramLength] = MASK_ALWAYS;
           currentProgramLength++;
-          //TODO: do we need this? we are already in FIFO mode...
-          //opcodeProgram[currentProgramLength] = OP_FILL_BUFFER_TCP;
-          //programMask[currentProgramLength] = MASK_ALWAYS;
-          //currentProgramLength++;
-          //opcodeProgram[currentProgramLength] = OP_EXIT; //wait for data of fatal failure
-          //programMask[currentProgramLength] = OPRV_NOT_COMPLETE | OPRV_PARTIAL_COMPLETE | OPRV_FAIL;
-          //currentProgramLength++;
-          //
-          //opcodeProgram[currentProgramLength] = OP_SET_NOT_TO_SWAP;
-          //programMask[currentProgramLength] = MASK_ALWAYS;
-          //currentProgramLength++;
-          //opcodeProgram[currentProgramLength] = OP_BUFFER_TO_HWICAP;
           opcodeProgram[currentProgramLength] = OP_FIFO_TO_HWICAP;
-          //programMask[currentProgramLength] = OPRV_DONE | OPRV_OK;
           programMask[currentProgramLength] = MASK_ALWAYS;
           currentProgramLength++;
-          //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
           opcodeProgram[currentProgramLength] = OP_EXIT; //we have smth left to do
-          //programMask[currentProgramLength] = OPRV_OK;
           programMask[currentProgramLength] = OPRV_OK | OPRV_NOT_COMPLETE;
           currentProgramLength++;
-          //TODO: obsolete?
-          //opcodeProgram[currentProgramLength] = OP_CHECK_HTTP_EOP;
-          //programMask[currentProgramLength] = OPRV_DONE;
-          //programMask[currentProgramLength] = OPRV_DONE | OPRV_OK;
-          //currentProgramLength++;
-          //wait for next junk
-          //opcodeProgram[currentProgramLength] = OP_EXIT;
-          //programMask[currentProgramLength] = OPRV_NOT_COMPLETE;
-          //currentProgramLength++;
           opcodeProgram[currentProgramLength] = OP_DISABLE_SILENT_SKIP;
           programMask[currentProgramLength] = MASK_ALWAYS;
           currentProgramLength++;
@@ -1704,9 +1526,6 @@ void fmc(
         programMask[currentProgramLength] = MASK_ALWAYS;
         currentProgramLength++;
         //not exit --> RV is request type, only POST_CONFIG or POST_ROUTING remains 
-        //opcodeProgram[currentProgramLength] = OP_SET_NOT_TO_SWAP;
-        //programMask[currentProgramLength] = POST_ROUTING;
-        //currentProgramLength++;
         opcodeProgram[currentProgramLength] = OP_BUFFER_TO_ROUTING;
         programMask[currentProgramLength] = POST_ROUTING;
         currentProgramLength++;
@@ -1748,32 +1567,17 @@ void fmc(
         opcodeProgram[currentProgramLength] = OP_ACTIVATE_DECOUP;
         programMask[currentProgramLength] = OPRV_SKIPPED;
         currentProgramLength++;
-        //opcodeProgram[currentProgramLength] = OP_SET_NOT_TO_SWAP;
-        //programMask[currentProgramLength] = MASK_ALWAYS;
-        //currentProgramLength++;
         // we lost the information of DONE in the RV, but it is also stored in last_xmem_page_received_persistent or in detected_http_nl_cnt
-        //opcodeProgram[currentProgramLength] = OP_BUFFER_TO_HWICAP;
         opcodeProgram[currentProgramLength] = OP_FIFO_TO_HWICAP;
         programMask[currentProgramLength] = OPRV_OK;
         currentProgramLength++;
         opcodeProgram[currentProgramLength] = OP_ENABLE_SILENT_SKIP;
         programMask[currentProgramLength] = MASK_ALWAYS;
         currentProgramLength++;
-        //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
         opcodeProgram[currentProgramLength] = OP_EXIT; //we have smth left to do
-        //programMask[currentProgramLength] = OPRV_OK;
         programMask[currentProgramLength] = OPRV_OK | OPRV_NOT_COMPLETE;
         currentProgramLength++;
-        //TODO: obsolete?
-        //opcodeProgram[currentProgramLength] = OP_CHECK_HTTP_EOP;
-        //programMask[currentProgramLength] = OPRV_DONE | OPRV_OK;
-        //programMask[currentProgramLength] = OPRV_DONE;
-        //currentProgramLength++;
-        //write failed
-        //opcodeProgram[currentProgramLength] = OP_FAIL;
-        //programMask[currentProgramLength] = OPRV_SKIPPED;
-        //currentProgramLength++;
-        //Reconfiguration done 
+        //Reconfiguration done
         opcodeProgram[currentProgramLength] = OP_DEACTIVATE_DECOUP;
         programMask[currentProgramLength] = OPRV_DONE;
         currentProgramLength++;
@@ -1986,19 +1790,13 @@ void fmc(
         fsmTcpSessId_RX = TCP_FSM_PROCESS_DATA;
         //no break;
       case TCP_FSM_PROCESS_DATA:
-        //if(!siNRC_Tcp_SessId.empty() && !sFifo_Tcp_SessId.full())
         if(!siNRC_Tcp_SessId.empty())
         {
           //we assume that the NRC always sends a valid pair of SessId and data (because we control it)
-          //Axis<16> tmp = siNRC_Tcp_SessId.read();
           AppMeta tmp = 0x0;
           if(siNRC_Tcp_SessId.read_nb(tmp))
           {
-          //tmp.tlast = 1; // just to be sure
-          //fsmTcpSessId_RX = TCP_FSM_DONE;
-          //TODO: we stay here.. 
           received_TCP_SessIds_cnt++;
-          //currentTcpSessId = tmp.tdata;
           currentTcpSessId = tmp;
           }
         } 
@@ -2012,11 +1810,6 @@ void fmc(
 
       default:
       case TCP_FSM_RESET: 
-        //drain SessId FIFO if not emtpy 
-        //if(!sFifo_Tcp_SessId.empty())
-        //{
-        //  sFifo_Tcp_SessId.read();
-        //}
         fsmTcpSessId_TX = TCP_FSM_IDLE;
         currentTcpSessId = 0;
         break;
@@ -2030,7 +1823,6 @@ void fmc(
       case TCP_FSM_PROCESS_DATA:
         if(!soNRC_Tcp_SessId.full())
         {
-          //soNRC_Tcp_SessId.write(currentTcpSessId);
           if(soNRC_Tcp_SessId.write_nb(currentTcpSessId))
           {
             fsmTcpSessId_TX = TCP_FSM_DONE;
@@ -2041,7 +1833,6 @@ void fmc(
         // just stay here?
         break;
     }
-    //pTcpSessIdTx(&fsmTcpSessId_TX,soNRC_Tcp_SessId,currentTcpSessId);
 
     switch(fsmTcpData_RX) {
 
@@ -2057,67 +1848,8 @@ void fmc(
         fsmTcpData_RX = TCP_FSM_PROCESS_DATA;
         //no break;
       case TCP_FSM_PROCESS_DATA:
-        //if(process_fifo_overflow_buffer)
-        //{
-        //  printf("try to empty overflow buffer\n");
-        //  int new_write_index = 0;
-        //  bool once_blocked = false;
-        //  for(int i =0; i < fifo_overflow_buffer_length; i++)
-        //  {
-        //    if(once_blocked || !internal_icap_fifo.write_nb(fifo_overflow_buffer[i]) )
-        //    {
-        //      once_blocked = true;
-        //      if(i != new_write_index)
-        //      {
-        //        fifo_overflow_buffer[new_write_index] = fifo_overflow_buffer[i];
-        //        new_write_index++;
-        //      }
-        //    }
-        //  }
-        //  fifo_overflow_buffer_length = new_write_index;
-        //  if(!once_blocked)
-        //  {
-        //    process_fifo_overflow_buffer = false;
-        //  }
-        //}
-        //if(!siNRC_Tcp_data.empty())
-        //while(!siNRC_Tcp_data.empty())
-        
-        //while(!siNRC_Tcp_data.empty() && !internal_icap_fifo.full() )
-        
-        //while( !halt_tcp_input && !siNRC_Tcp_data.empty() )
-        //while(!siNRC_Tcp_data.empty()
-        //    && !(bufferInPtrNextRead >= (bufferInPtrWrite + NETWORK_WORD_BYTE_WIDTH)) )
-        //if(!process_fifo_overflow_buffer)
-        //{
           for(int f = 0; f<IN_BUFFER_SIZE; f++)
           {
-            //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-            ////if( (bufferInPtrNextRead > (bufferInPtrWrite + NETWORK_WORD_BYTE_WIDTH))
-            ////    && (bufferInPtrNextRead < (bufferInPtrWrite + 2*NETWORK_WORD_BYTE_WIDTH)) )
-            ////if( (bufferInPtrNextRead >= bufferInPtrWrite ) //next read is including
-            //if( (bufferInPtrNextRead > bufferInPtrWrite) //next read is including
-            //    && (bufferInPtrNextRead < (bufferInPtrWrite + NETWORK_WORD_BYTE_WIDTH)) 
-            //    && (bufferInPtrNextRead != 0) //we should not be at the beginning
-            //    //&& (bufferInPtrMaxWrite_old_iteration > 0) //and we should have at least written one page
-            //    && (bufferIn_write_iteration_cnt > bufferIn_read_iteration_cnt) //we must be one ahead
-            //    && (!hwicap_waiting_for_tcp) //to be sure...
-            //    )
-            //{//we would overwrite unprocessed data
-            //  printf("TCP RX: stopping due to unprocessed data.\n");
-            //  //tcp_rx_blocked_by_processing = true;
-            //  break;
-            //}
-            //tcp_rx_blocked_by_processing = false;
-            //for(int k = 0; k < (IN_BUFFER_SIZE - NETWORK_WORD_BYTE_WIDTH); k += 8)
-            //{
-            //  if(siNRC_Tcp_data.empty())
-            //  {//no data any more
-            //    //lastReturnValue = OPRV_NOT_COMPLETE;
-            //    break;
-            //  }
-
-            //if(siNRC_Tcp_data.empty() || internal_icap_fifo.full() || process_fifo_overflow_buffer)
             if(siNRC_Tcp_data.empty() || internal_icap_fifo.full() )
             {
               break;
@@ -2149,7 +1881,6 @@ void fmc(
               }
             }
 
-            //NetworkWord big = siNRC_Tcp_data.read();
             NetworkWord big = NetworkWord();
             if(!siNRC_Tcp_data.read_nb(big))
             {
@@ -2164,11 +1895,6 @@ void fmc(
               {
                 continue;
               }
-              //if (notToSwap == 1) 
-              //{
-              //  bufferIn[bufferInPtrWrite] = (ap_uint<8>) (big.tdata >> (7-i)*8);
-              //} else {
-              //default
               ap_uint<8> current_byte = (ap_uint<8>) (big.tdata >> i*8);
               if(!tcp_write_only_fifo)
               {
@@ -2176,7 +1902,6 @@ void fmc(
               }
               if(detected_http_nl_cnt >= 1)
               {
-                //internal_icap_fifo.write(current_byte);
                 if(!internal_icap_fifo.write_nb(current_byte))
                 {
                   fifo_overflow_buffer[fifo_overflow_buffer_length] = current_byte;
@@ -2184,8 +1909,6 @@ void fmc(
                   process_fifo_overflow_buffer = true;
                 }
               }
-
-              //}
               if(!tcp_write_only_fifo)
               {
                 if(bufferInPtrWrite >= 3)
@@ -2249,9 +1972,6 @@ void fmc(
                 //we need to process first
                 bufferInPtrWrite = 0; //TODO?
                 tcp_write_only_fifo = true;
-                //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-                //bufferInPtrMaxWrite_old_iteration = bufferInPtrMaxWrite;
-                //bufferIn_write_iteration_cnt++;
                 printf("\tlast_3_chars: 0x%02x%02x%02x\n", last_3_chars[0], last_3_chars[1], last_3_chars[2]);
                 break;
               }
@@ -2263,11 +1983,7 @@ void fmc(
               fsmTcpData_RX = TCP_FSM_DONE;
               break;
             }
-            //}
           } //outer loop
-        //} else {
-        //  printf("TCP RX still blocked by hwicap fifo\n");
-        //}
         printf("after TCP RX: bufferInPtrWrite %d; bufferInPtrMaxWrite %d;\n", (int) bufferInPtrWrite, (int) bufferInPtrMaxWrite);
         break;
       case TCP_FSM_DONE:
@@ -2277,9 +1993,6 @@ void fmc(
         //TODO 
         break;
     } 
-
-    //NetworkWord out = NetworkWord();
-    //ap_uint<16> b = bufferOutPtrNextRead;
 
     switch(fsmTcpData_TX) {
 
@@ -2301,10 +2014,6 @@ void fmc(
         {
           //out = NetworkWord();
           NetworkWord out = NetworkWord();
-          //ap_uint<16> b = 0;
-          //b = bufferOutPtrNextRead;
-          //for(b = bufferOutPtrNextRead; b < bufferOutContentLength + 7; b += 8)
-          //{
           out.tdata = 0;
           out.tlast = 0;
           out.tkeep = 0;
@@ -2312,8 +2021,6 @@ void fmc(
           for(int i = 0; i < 8; i++)
           {
 #pragma HLS unroll
-            //if(b < bufferOutContentLength)
-            //{
             out.tdata |= ((ap_uint<64>) (bufferOut[bufferOutPtrNextRead + i]) )<< (i*8);
             out.tkeep |= (ap_uint<8>) 0x1 << i;
 
@@ -2324,16 +2031,7 @@ void fmc(
               break;
             }
 
-            //} else {
-            //  //for the last "hangover" bytes
-            //  out.tdata |= ((ap_uint<64>) (0x0))<< (i*8);
-            //  out.tkeep |= (ap_uint<8>) 0x0 << i;
-            //}
           }
-          //if(!soNRC_Tcp_data.full())
-          //{
-          
-          //soNRC_Tcp_data.write(out);
           if(soNRC_Tcp_data.write_nb(out))
           {
             bufferOutPtrNextRead += 8;
@@ -2347,12 +2045,6 @@ void fmc(
             run_nested_loop_helper = false;
             break;
           }
-          //} else {
-          //take "old" b value, because we can't send this
-          //  bufferOutPtrNextRead = b;
-          //  break;
-          //}
-          //}
         } //while
         //else {
         //  printf("\t ----------- soNRC_Tcp_data is full -----------");
@@ -2396,10 +2088,8 @@ void fmc(
         WFV_value = WFV & 0x7FF;
         uint32_t max_words_to_write = WFV_value;
         printf("HWICAP FSM: max_words_to_write %d\n", (int) max_words_to_write);
-        //while(!internal_icap_fifo.empty() && max_words_to_write > 0)
         for(int f = 0; f<IN_BUFFER_SIZE; f++)
         {
-          //if(internal_icap_fifo.empty() || max_words_to_write == 0)
           if(internal_icap_fifo.empty())
           {
             break;
@@ -2426,7 +2116,6 @@ void fmc(
           uint8_t bytes_read_count = 0;
           while(!icap_hangover_fifo.empty())
           {
-            //bytes_read[bytes_read_count] = icap_hangover_fifo.read();
             uint8_t read_var = 0x0;
             if(icap_hangover_fifo.read_nb(read_var))
             {
@@ -2438,7 +2127,6 @@ void fmc(
           }
           while( (bytes_read_count < 4) && !internal_icap_fifo.empty() )
           {
-            //bytes_read[bytes_read_count] = internal_icap_fifo.read();
             uint8_t read_var = 0x0;
             if(internal_icap_fifo.read_nb(read_var))
             {
@@ -2525,10 +2213,10 @@ void fmc(
       break;
 
     case ICAP_FSM_DONE:
-      //stay here?
+      //stay here
       break;
     case ICAP_FSM_ERROR:
-      //stay here?
+      //stay here
       break;
     case ICAP_FSM_DRAIN:
       while(!internal_icap_fifo.empty())
@@ -2644,7 +2332,7 @@ void fmc(
               last_xmem_page_received_persistent = 1;
               lastReturnValue = OPRV_DONE;
               break;
-            case 5: //we receive a page, but not the last one
+            case 5: //we received a page, but not the last one
               msg= " OK";
               xmem_page_trans_cnt = expCnt;
               lastReturnValue = OPRV_OK;
@@ -2664,9 +2352,6 @@ void fmc(
           last_3_chars[i] = 0x0;
           positions_of_detected_http_nl[i] = 0x0;
         }
-        //tcp_words_received = 0; //TODO: for debugging reset after session received?
-        //halt_tcp_input = false;
-        //hwicap_waiting_for_tcp = false;
         tcp_write_only_fifo = false;
         break;
 
@@ -2677,23 +2362,12 @@ void fmc(
           {
             fsmTcpSessId_RX = TCP_FSM_W84_START;
             lastReturnValue = OPRV_NOT_COMPLETE;
-//            goto_done_if_idle_tcp_rx = false;
-//            //we reset HTTP EOF detection
-//            detected_http_nl_cnt = 0;
-//            target_http_nl_cnt = 0;
-//            for(int i = 0; i < 3; i++)
-//            {
-//#pragma HLS unroll
-//              last_3_chars[i] = 0x0;
-//            }
-          //} else if(fsmTcpSessId_RX == TCP_FSM_DONE)
           } else if((fsmTcpSessId_RX == TCP_FSM_PROCESS_DATA && (received_TCP_SessIds_cnt >= 1) ) 
                       || fsmTcpSessId_RX == TCP_FSM_DONE)
           {
             lastReturnValue = OPRV_OK;
             TcpSessId_updated_persistent = true;
-            tcp_words_received = 0; //TODO: better do above?
-            //TODO fsmTcpSessId_RX = TCP_FSM_IDLE;
+            tcp_words_received = 0;
           } else {//we still wait
             lastReturnValue = OPRV_NOT_COMPLETE;
           }
@@ -2715,8 +2389,6 @@ void fmc(
         flag_continuous_tcp_rx = 0;
         target_http_nl_cnt = 0;
         goto_done_if_idle_tcp_rx = true;
-        //to flag seems to be not enough
-        //fsmTcpData_RX = TCP_FSM_RESET;
         break;
 
       case OP_TCP_RX_STOP_ON_EOR:
@@ -2738,13 +2410,8 @@ void fmc(
           lastReturnValue = OPRV_DONE;
           fsmTcpData_RX = TCP_FSM_IDLE;
         } else if(bufferInPtrMaxWrite == lastSeenBufferInPtrMaxWrite 
-                  //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-                  //&& ( //!tcp_rx_blocked_by_processing &&
-                       //  !(bufferInPtrNextRead < bufferInPtrMaxWrite) && //TODO
-                  //     (flag_continuous_tcp_rx == 0))//in case of continious TCP, the other operations need to check if they have smth to do 
                   && !tcp_write_only_fifo //this isn't increasing the counter
                   && !fifo_operation_in_progress
-                  //&& internal_icap_fifo.empty()
                   )
         { //nothing new
           lastReturnValue = OPRV_NOT_COMPLETE;
@@ -2796,7 +2463,7 @@ void fmc(
               break;
             case HTTP_REQUEST_COMPLETE: 
               httpState = HTTP_SEND_RESPONSE;
-              // TODO: no break??
+              // no break??
             case HTTP_SEND_RESPONSE:
               lastReturnValue = OPRV_USER;
               break;
@@ -2815,7 +2482,7 @@ void fmc(
           invalidPayload_persistent = true;
         }
         if(wasAbort == 1 || transferError_persistent == true || invalidPayload_persistent == true)
-        {//TODO: better do in parseHttpInput?
+        {
           httpState = HTTP_SEND_RESPONSE;
         }
         if(lastReturnValue == OPRV_DONE)
@@ -2855,45 +2522,13 @@ void fmc(
             lastReturnValue = OPRV_FAIL;
             break;
           }
-          //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-          //get current FIFO vaccancies
-          //WFV = HWICAP[WFV_OFFSET];
-          //WFV_value = WFV & 0x7FF;
-          //uint32_t max_bytes_to_write = WFV_value*4;
-          ////default
-          ////hwicap_waiting_for_tcp = false;
-
-          //int i = 0; //current read, signed
-          //if( currentGlobalOperation == GLOBAL_TCP_HTTP && (bufferInPtrMaxWrite < 4)
-              //&& (((bufferInPtrMaxWrite < 4) && (bufferIn_write_iteration_cnt == bufferIn_read_iteration_cnt))
-              //|| ((bufferInPtrMaxWrite_old_iteration < 4) && (bufferIn_write_iteration_cnt > bufferIn_read_iteration_cnt)) )
-            //)
-          //if( bufferInPtrMaxWrite < 4)
-          //{ // apparently we can't do a lot
-          //  lastReturnValue = OPRV_NOT_COMPLETE;
-          //  //hwicap_waiting_for_tcp = true;
-          //  break;
-          //}
           uint32_t maxPayloadWrite = 0;
-          //bool use_old_counter = false;
-          //bool adapted_for_hwicap = false;
           if(bufferInPtrMaxWrite >= 4)
           {
             maxPayloadWrite = bufferInPtrMaxWrite - 3;
           }
           if(currentGlobalOperation == GLOBAL_TCP_HTTP)
           {
-            //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-            //if( (bufferInPtrNextRead > maxPayloadWrite)
-            //    && (bufferInPtrMaxWrite_old_iteration >= 4) )
-                //&& (bufferInPtrMaxWrite_old_iteration != 0) )
-            //if(bufferIn_write_iteration_cnt > bufferIn_read_iteration_cnt)
-            //{//use old iteration
-            //  maxPayloadWrite = bufferInPtrMaxWrite_old_iteration - 3;
-            //  use_old_counter = true;
-            //  printf("using old buffer\n");
-            //  assert(maxPayloadWrite >= 0);
-            //} else 
             if(detected_http_nl_cnt >= 2 
                 && (positions_of_detected_http_nl[1] <= bufferInPtrMaxWrite) )
             {
@@ -2902,25 +2537,6 @@ void fmc(
               printf("STOP at 2. HTTP NL\n");
             }
 
-            //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-            //if(WFV_value < HWICAP_FIFO_DEPTH)
-            //{
-            //  if( (maxPayloadWrite > bufferInPtrNextRead) &&
-            //      ((maxPayloadWrite - bufferInPtrNextRead) >= max_bytes_to_write )
-            //    ) //>= because it is including
-            //  {
-            //    maxPayloadWrite = bufferInPtrNextRead + max_bytes_to_write - 3; //-3, becauese we have <= in the for
-            //    lastReturnValue = OPRV_OK; //we have smth left
-            //    printf("adapted to HWICAP FIFO Depth\n");
-            //    adapted_for_hwicap = true;
-            //    if(use_old_counter)
-            //    {
-            //      assert(maxPayloadWrite < bufferInPtrMaxWrite_old_iteration && maxPayloadWrite > 0);
-            //    } else {
-            //      assert(maxPayloadWrite < bufferInPtrMaxWrite && maxPayloadWrite > 0);
-            //    }
-            //  }
-            //} //else: Our iteration latency is apparently larger than the one of HWICAP: We can enter the "high-performance mode".
           }
           //printf("Writing Buffer to HWICAP from %d to %d (including); notToSwap = %d, max_bytes_to_write: %d, write_iteration: %d, read_iteration: %d\n", (int) bufferInPtrNextRead, (int) maxPayloadWrite,(int) notToSwap, (int) max_bytes_to_write,(int) bufferIn_write_iteration_cnt, (int) bufferIn_read_iteration_cnt);
           printf("Writing Buffer to HWICAP from %d to %d (including); notToSwap = %d\n", (int) bufferInPtrNextRead, (int) maxPayloadWrite,(int) notToSwap);
@@ -2929,7 +2545,6 @@ void fmc(
           //for(i = bufferInPtrNextRead; i <= maxPayloadWrite; i += 4)
           uint32_t i = bufferInPtrNextRead;
           //while(i <= maxPayloadWrite) //we have substracted -3, so <=
-          //TODO? maxPayloadWrite != 0?
           while(i <= maxPayloadWrite && maxPayloadWrite > 0) //we have substracted -3, so <=
           {
             ap_uint<32> tmp = 0;
@@ -3031,15 +2646,6 @@ void fmc(
             fifoFullCnt++;
           }
 
-          //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-          //if( ((bufferInPtrNextRead == old_bufferInPtrNextRead)
-          //      || (old_wordsWrittenToIcapCnt == wordsWrittenToIcapCnt))
-          //    && !adapted_for_hwicap
-          //  )
-          //{//we didn't had smth to write
-          //  hwicap_waiting_for_tcp = true;
-          //  lastReturnValue = OPRV_NOT_COMPLETE;
-          //}
 
           if(currentGlobalOperation == GLOBAL_XMEM_HTTP || currentGlobalOperation == GLOBAL_XMEM_TO_HWICAP)
           {
@@ -3071,37 +2677,10 @@ void fmc(
 
           if(currentGlobalOperation == GLOBAL_TCP_HTTP)
           {
-            //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-            //if((bufferInPtrMaxWrite + NETWORK_WORD_BYTE_WIDTH) >= IN_BUFFER_SIZE)
-            //if(((maxPayloadWrite+3) + NETWORK_WORD_BYTE_WIDTH + 1) >= IN_BUFFER_SIZE)
-            //if(((maxPayloadWrite+3) + 4) >= IN_BUFFER_SIZE)
-
-            //if( (use_old_counter && ((bufferInPtrNextRead + 3) >= bufferInPtrMaxWrite_old_iteration))
-            //   || (!use_old_counter && ((bufferInPtrNextRead + 3) >= bufferInPtrMaxWrite)) ) // +3, because extRead is including; >=, because max write is including 
-            
-            //if(bufferInPtrNextRead >= (IN_BUFFER_SIZE - NETWORK_WORD_BYTE_WIDTH))
-            //if( (use_old_counter 
-            //      && ((bufferInPtrNextRead + 3) >= bufferInPtrMaxWrite_old_iteration) 
-            //       //  && ((bufferInPtrMaxWrite_old_iteration + 1) >= (IN_BUFFER_SIZE - NETWORK_WORD_BYTE_WIDTH) )
-            //    )
-            //    || 
-            //    (!use_old_counter 
-            //         && (((bufferInPtrNextRead + 3) >= bufferInPtrMaxWrite)
-            //             && ((bufferInPtrMaxWrite + 1) >= (IN_BUFFER_SIZE - NETWORK_WORD_BYTE_WIDTH) ))
-            //    )
-            //  )
             //check for hangover
             if(bufferInPtrWrite < bufferInPtrNextRead)
             {
                 ap_int<5> telomere = bufferInPtrMaxWrite - bufferInPtrNextRead + 1; //+1 because MaxWrite is already filled (not next write)
-                //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-                //ap_int<5> telomere = 0;
-                //if(use_old_counter)
-                //{
-                //  telomere = (bufferInPtrMaxWrite_old_iteration + 1) - bufferInPtrNextRead; //+1 because MaxWrite is already filled (not next write)
-                //} else {
-                //  telomere = (bufferInPtrMaxWrite + 1) - bufferInPtrNextRead; //+1 because MaxWrite is already filled (not next write)
-                //}
                 printf("telomere: %d\n", (int) telomere);
                 assert(telomere >= 0 && telomere < 4);
                 hwicap_hangover_size = 0;
@@ -3123,9 +2702,6 @@ void fmc(
                 }
                 //in all cases
                 bufferInPtrNextRead = 0;
-                //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-                //bufferInPtrMaxWrite_old_iteration = 0; //now we don't need this any longer
-                //bufferIn_read_iteration_cnt++;
             }
           }
           printf("after UPDATE bufferInPtrNextRead: %d\n", (int) bufferInPtrNextRead);
@@ -3272,9 +2848,10 @@ void fmc(
               printf("invalid routing table detected.\n");
               break;
             }
+            //dont' check for current cluster size!
+            //it could be that the CFRM want's to override the entries of removed nodes
 
             //transfer to NRC: 
-            //nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + rankID] = tmp; 
             current_MRT[rankID] = tmp; 
             if(rankID > max_discovered_node_id)
             {
@@ -3527,7 +3104,7 @@ void fmc(
       break;
 
     case GLOBAL_TCP_HTTP:
-      //TODO: continue in this mode when HTTP_IDLE and environment not changed
+      // continue in this mode when HTTP_IDLE and environment not changed
       if(lastReturnValue == OPRV_DONE)
       {//looks like we are done
         //Displays are set in daily taksk 
@@ -3619,27 +3196,6 @@ void fmc(
 *role_rank = nodeRank; 
 *cluster_size = clusterSize; 
 
-//===========================================================
-// Non-essential connection to HWICAP
-
-//if((hwicap_next_check_seconds <= fpga_time_seconds)
-//    //&& (toDecoup_persistent == 0) )
-//    || (toDecoup_persistent == 0) ) //for debugging we need the data
-//{
-
-//  ISR = HWICAP[ISR_OFFSET];
-//  WFV = HWICAP[WFV_OFFSET];
-
-//  //RFO = HWICAP[RFO_OFFSET];
-//  WEMPTY = (ISR & 0x4) >> 2;
-//  WFV_value = WFV & 0x7FF;
-//  
-//  hwicap_next_check_seconds = fpga_time_seconds + CHECK_HWICAP_INTERVAL_SECONDS;
-//  if(hwicap_next_check_seconds >= 60)
-//  {
-//    hwicap_next_check_seconds = 0;
-//  }
-//}
 
 //===========================================================
 // connection to NRC 
@@ -3654,19 +3210,12 @@ if((*disable_ctrl_link == 0) && (*layer_4_enabled == 0) && tables_initialized )
   need_to_update_nrc_config = false; //the NRC know this too
 }
 
-if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized ) //to avoid blocking...
+if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //to avoid blocking...
+    && !fifo_operation_in_progress //to avoid delays of PR
+  )
 { //and we need valid tables
 
   mpe_status_disabled = false;
-
-  //if(*layer_4_enabled == 0)
-  //{
-  //  //reset of NTS closes ports
-  //  current_nrc_config[NRC_CONFIG_SAVED_UDP_PORTS] = 0x0;
-  //  current_nrc_config[NRC_CONFIG_SAVED_TCP_PORTS] = 0x0;
-  //  current_nrc_config[NRC_CONFIG_SAVED_FMC_PORTS] = 0x0;
-  //  need_to_update_nrc_config = false; //the NRC know this too
-  //}
 
   switch (linkCtrlFSM) 
   {
@@ -3757,8 +3306,6 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized ) 
     mpe_status[1] = 0x424c4544;
   }
 
-  //===========================================================
-  // connection to MCC
 
   //===========================================================
   //  putting displays together 
@@ -3859,3 +3406,4 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized ) 
 
 
 /*! \} */
+

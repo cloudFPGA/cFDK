@@ -40,8 +40,7 @@
 #include "../src/fmc.hpp"
 #include "../../../../../hls/cfdk.hpp"
 #include "../../../../../hls/network.hpp"
-//#include "../../mpe/src/mpe.hpp"
-#include "../../nrc/src/nrc.hpp" //AFTER fmc.hpp
+#include "../../NRC/src/nrc.hpp" //AFTER fmc.hpp
 
 #include <stdint.h>
 
@@ -387,11 +386,6 @@ int main(){
 
   bool succeded = true;
 
-
-  //FMC_Debug_Pyrolink.write(Axis<8>(0xFF));
-  //Debug_FMC_Pyrolink.write(Axis<8>(0XFF));
-
-
   decoupStatus = 0b1;
   stepDut();
   printf("%#010x\n", (int) MMIO);
@@ -446,7 +440,6 @@ int main(){
   succeded &= checkResult(MMIO, 0x31204F4B);
 
   cnt = 2;
-  //initBuffer((ap_uint<4>) cnt, xmem, nrcCtrl, 0b1, FMC_Debug_Pyrolink, Debug_FMC_Pyrolink, &nodeRank_out, &clusterSize_out);
   stepDut();
   succeded &= checkResult(MMIO, 0x31555444);
   
@@ -454,20 +447,12 @@ int main(){
   stepDut();
   succeded &= checkResult(MMIO, 0x32204F4B);
 
-  //stepDut();
-  //succeded &= checkResult(MMIO, 0x32555444);
-
   cnt = 3;
   initBuffer((ap_uint<4>) cnt, xmem, false, false);
   xmem[2] = 42;
   stepDut();
-  //succeded &= checkResult(MMIO, 0x32434F52);
   succeded &= checkResult(MMIO, 0x33204F4B);
   
-  /*initBuffer((ap_uint<4>) cnt, xmem, false);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x32434F52);*/
-
   //RST
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << RST_SHIFT);
   stepDut(); //12
@@ -514,7 +499,6 @@ int main(){
   HWICAP[CR_OFFSET] = 0x0;
   //one complete transfer with overflow
   //LOOP
-  //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | (1 << SWAP_SHIFT);
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT);
   //MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << CHECK_PATTERN_SHIFT);
   for(int i = 0; i<0xf; i++)
@@ -634,7 +618,6 @@ int main(){
   succeded &= checkResult(MMIO, 0x3f49444C);
 
   // GET TEST
-//MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT) | ( 1 << SWAP_N_SHIFT);
   char *httpBuffer = new char[1024];
   char* getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
   httpBuffer[0] = 0xF0;
@@ -652,7 +635,6 @@ int main(){
   //printBuffer(bufferIn, "buffer after GET transfers:",2);
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   stepDut(); //58
-  //succeded &= checkResult(MMIO, 0x40000073);
   succeded &= checkResult(MMIO & 0xFF00FFF0, 0x43000070);
   assert(decoupActive == 0);
   printBuffer(bufferOut, "Valid HTTP GET: BufferOut:",4);
@@ -759,10 +741,8 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   copyBufferToXmem(&httpBuffer[128],xmem );
  // printBuffer32(xmem, "Xmem:",2);
   stepDut();
-  //assert(decoupActive == 1); --> not any more, we are already done
   succeded &= checkResult(MMIO, 0x31535543);
   printBuffer(bufferIn, "buffer IN after POST 2/2:",3);
-  //assert(decoupActive == 1); is in the middle...
   MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
   stepDut();
   printBuffer(bufferOut, "POST TEST 1; BufferOut:",2);
@@ -812,12 +792,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printBuffer(bufferIn, "buffer IN after POST 2/3:",3);
     printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
 
-/*  copyBufferToXmem(&httpBuffer[256],xmem, nrcCtrl, 0b1, FMC_Debug_Pyrolink, Debug_FMC_Pyrolink, &nodeRank_out, &clusterSize_out);
-  //printBuffer32(xmem, "Xmem:",2);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x32535543);
-  assert(decoupActive == 1);
-  //printBuffer(bufferIn, "buffer IN after POST 3/3:",3); */
   for(int i = 2; i<0x1f; i++)
   {
     cnt = i;
@@ -828,75 +802,30 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     //test double call --> nothing should change
     for(int j = 0; j< 4; j++)
     {
-    //printf("DOUBLE CALL\n");
-   //   printf("%d CALL\n",j);
       stepDut();
     }
-    //printf("TRIBLE CALL\n");
-    //stepDut();
     
     assert(decoupActive == 1);
     assert(HWICAP[CR_OFFSET] == CR_WRITE);
 
-  //  printBuffer(bufferIn, "bufferIn", 8);
-    //printf("bufferInPtrRead: %#010x\n",(int) bufferInPtrRead);
- /*   printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-    //printf("xmem: %#010x\n",(int) xmem[LINES_PER_PAGE-1]);
-    int WF_should = 0;
-    if ( i % 2 == 0)
-    { 
-      WF_should = (((xmem[LINES_PER_PAGE-2] & 0xff00) >>8) << 24);
-      WF_should |= (xmem[LINES_PER_PAGE-2] & 0xff0000);
-      WF_should |= ((xmem[LINES_PER_PAGE-2] & 0xff000000) >> 16); //24-8
-      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff);
-    } else {
-      WF_should = (xmem[LINES_PER_PAGE-2] & 0xff000000);
-      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff) << 16;
-      WF_should |= (xmem[LINES_PER_PAGE-1] & 0xff00);
-      WF_should |= ((xmem[LINES_PER_PAGE-1] & 0xff0000) >> 16);
-    }
-    printf("WF_should: %#010x\n", WF_should);
-  //  assert((int) HWICAP[WF_OFFSET] == WF_should);*/
-  //  can't check that --> may be offset of 1/2/3 
 
   }
   cnt = 0xf;
   initBuffer((ap_uint<4>) cnt, xmem, true, false);
-  //xmem[126] = 0x0d0a0d0a;
-  //xmem[LINES_PER_PAGE -2 ] = 0x0d000000;
-  //xmem[LINES_PER_PAGE -1] = 0xff0a0d0a;
   stepDut(); //217
   succeded &= checkResult(MMIO, 0x3f535543);
-  //assert(decoupActive == 1); NOT any longer --> is already done
 
-  //printf("DOUBLE CALL (Final)\n");
   stepDut();
- // printf("TRIBLE CALL (Final)\n");
- //printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
   int WF_should = 0;
     WF_should = (xmem[LINES_PER_PAGE-3] & 0xff000000);
     WF_should |= (xmem[LINES_PER_PAGE-2] & 0xff) << 16;
     WF_should |= (xmem[LINES_PER_PAGE-2] & 0xff00);
     WF_should |= ((xmem[LINES_PER_PAGE-2] & 0xff0000) >> 16);
   //printf("WF_should: %#010x\n", WF_should);
-  //succeded &= checkResult(MMIO, 0x3f204f4b);
     
  // printBuffer32(xmem,"Xmem",1);
   stepDut();
   printBuffer(bufferIn, "bufferIn after 15 HTTP transfer", 8);
-  //assert((int) HWICAP[WF_OFFSET] == WF_should);
-/*
-  //one pause cycle, nothing should happen 
-  MMIO_in = 0x4 << DSEL_SHIFT;
-  stepDut();
-  //succeded &= checkResult(MMIO, 0x3f535543); 
-  succeded &= checkResult(MMIO, 0x40000040); 
-  assert(decoupActive == 1);
-  
-  stepDut();
-  //succeded &= checkResult(MMIO, 0x3f535543);
-  succeded &= checkResult(MMIO, 0x40000071); 
-//  assert(decoupActive == 1);*/
   
   //Check CR_WRITE 
   HWICAP[CR_OFFSET] = 0;
@@ -905,7 +834,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(HWICAP[CR_OFFSET] == 0);
 
 
-  //MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
   MMIO_in = 0x4 << DSEL_SHIFT;
   stepDut();
   succeded &= checkResult(MMIO, 0x40000072);
@@ -1120,19 +1048,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   succeded &= checkResult(MMIO & 0xf0f0f000, (0x3049444C | 0x30424f52) & 0xf0f0f000); //FMC is somehow bored
   assert(decoupActive == 0);
   
-  // MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
-  // fmc(0b1, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, &softReset, xmem, nrcCtrl, 0b1, FMC_Debug_Pyrolink, Debug_FMC_Pyrolink, &nodeRank_out, &clusterSize_out);
-  // stepDut();
-  // succeded &= checkResult(MMIO, 0x3f49444C);
-  // stream<Axis<64> > siTcp;
-  // stream<IPMeta>  siIP;
-  // stream<Axis<64> > soTcp;
-  // stream<IPMeta> soIP;
-  // stream<MPI_Interface> MPIif_in;
-  // stream<MPI_Interface> MPIif_out;
-  // stream<Axis<8> > MPI_data_in;
-  // stream<Axis<8> > MPI_data_out;
-
   //POST ROUTING TABLE
   getStatus = "POST /routing HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
 
@@ -1154,10 +1069,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
         j += 2;
         continue; 
       } 
-     // else if(j == 255)
-     //    {
-     //    httpBuffer[j] = 0xF1;
-     //    }
 
       httpBuffer[j] = routingTable[i]; 
       i++;
@@ -1200,113 +1111,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
   assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
 
- /* //mpe_main(&nrcCtrl[XMPE_MAIN_PISMC_MPE_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE], siTcp, siIP, soTcp, soIP, MPIif, MPI_data_in, MPI_data_out);
-  mpe_main(&nrcCtrl[MPE_CTRL_LINK_CONFIG_START_ADDR], siTcp, siIP, soTcp, soIP, MPIif_out, MPI_data_in, MPI_data_out);
-  //TODO assert??
-  
-  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x40000071);
-  assert(decoupActive == 0);
-  printBuffer(bufferOut, "POST_ROUTING: BufferOut:",2);
-  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-
-  //Now a GET 
-  
-  //RST 
-  //hard reset to start copy status
-  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
-  fmc(0b1, &MMIO_in, &MMIO, HWICAP, 0b0, &decoupActive, &softReset, xmem, nrcCtrl, 0b1, FMC_Debug_Pyrolink, Debug_FMC_Pyrolink, &nodeRank_out, &clusterSize_out);
-
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  stepDut();
-  stepDut();
-  stepDut();
-  stepDut();
-
-  //soft reset for start transfer
-  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
-  stepDut();
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  //actual request
-  getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\n\r\n\r\n";
-  httpBuffer[0] = 0xF0;
-  strcpy(&httpBuffer[1],getStatus);
-  httpBuffer[strlen(getStatus)+1] = 0x0;
-  httpBuffer[127] = 0xF0;
-  //printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "httpBuffer");
-  copyBufferToXmem(httpBuffer,xmem );
-  xmem[XMEM_ANSWER_START] = 42;
-  stepDut();
-  succeded &= checkResult(MMIO, 0x30535543);
-  assert(decoupActive == 0);
-  //printBuffer(bufferIn, "buffer after GET transfers:",2);
-  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x40000073);
-  assert(decoupActive == 0);
-  printBuffer(bufferOut, "Valid HTTP GET: BufferOut:",3);
-  printf("XMEM_ANSWER_START: %#010x\n",(int) xmem[XMEM_ANSWER_START]);
-  //printBuffer32(xmem, "Xmem:");
-  assert(xmem[XMEM_ANSWER_START] == 0x50545448);
-  
-  //POST ROUTING TABLE INVALID
-  //soft reset for start transfer
-  MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
-  stepDut();
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  getStatus = "POST /routing HTTP/1.1\r\nUser-Agent: curl/7.47.0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
-  //printf("%s\n",getStatus);
-  httpBuffer[0] = 0x00;
-  strcpy(&httpBuffer[1],getStatus);
-  startTable = strlen(getStatus); 
-  int routingTable2[27] =  {0x30,0x20, 0x0a, 0x0b, 0x0c, 0x01, 0x0a, 0x35, 0x31, 0x31,0x20, 0x0a, 0x0b, 0x0c, 0x02, 0x0a, 0x32,0x20, 0x0a, 0x0b, 0x0c, 0x05, 0x0a, 0x0d, 0x0a, 0x0d, 0x0a};
-  {
-    int j = startTable + 1; 
-    int i = 0;
-    while(i<27)
-    {
-      if(j == 127) 
-      { 
-        httpBuffer[j] = 0x00;
-        httpBuffer[j + 1] = 0xF1;
-        j += 2;
-        continue; 
-      } 
-     // else if(j == 255)
-     //    {
-     //    httpBuffer[j] = 0xF1;
-     //    }
-
-      httpBuffer[j] = routingTable2[i]; 
-      i++;
-      j++;
-
-    }
-    //to be sure
-    httpBuffer[127] = 0x00;
-    httpBuffer[128] = 0xF1;
-    httpBuffer[255] = 0xF1;
-  }
-  printBuffer((ap_uint<8>*)(uint8_t*) httpBuffer, "POST ROUTING INVALID httpBuffer", 3);
-  copyBufferToXmem(httpBuffer,xmem );
-  xmem[XMEM_ANSWER_START] = 42;
-  
-  MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << START_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x30204F4B);
-  copyBufferToXmem(&httpBuffer[128],xmem );
-  stepDut();
-  succeded &= checkResult(MMIO, 0x31535543);
-  
-  MMIO_in = 0x4 << DSEL_SHIFT | ( 1 << PARSE_HTTP_SHIFT);
-  stepDut();
-  succeded &= checkResult(MMIO, 0x40000071);
-  assert(decoupActive == 0);
-  printBuffer(bufferOut, "POST ROUTING INVALID: BufferOut:",2);
-*/
-  //printf("DONE\n");
-  
   printf("== NRC Test passed == \n");
 //===========================================================
 //Test TCP
@@ -1317,7 +1121,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 //RST again (BOR)
   MMIO_in = 0x3 << DSEL_SHIFT | (1 << RST_SHIFT);
   stepDut(); //258
-  //succeded &= checkResult(MMIO & 0xF0FFFFFF, 0x30424f52);
   succeded &= checkResult(MMIO & 0xFF000000, 0x30000000);
 
   HWICAP[CR_OFFSET] = 0x0;
@@ -1334,15 +1137,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << ENABLE_TCP_MODE_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
 
-  //for(int i = 0; i<83; i++) //the number is necessary due to reading/writing TCP FSMs
-  //{
-  //  stepDut();
-  //  if(i == 63)
-  //  {
-  //    printBuffer(bufferIn, "Valid HTTP GET: BufferIn:",2);
-  //    printBuffer(bufferOut, "Valid HTTP GET: BufferOut:",4);
-  //  }
-  //}
   //new TCP FSM: should take only 4 cycles
   stepDut();
   stepDut(); //260
@@ -1394,15 +1188,8 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 
   //check telomere (should NOT be used)
   assert(bufferInPtrNextRead > 0);
-  //HWICAP FEEDBACK DEACTIVATED: This is not possible with the sequential style used in this core
-  //HWICAP[WFV_OFFSET] = 0x1;
   stepDut();
   printBuffer(bufferIn, "bufferIn after TCP HTTP transfer", 4);
-  //assert(decoupActive == 1);
-  //printf("WF: %#010x\n",(int) HWICAP[WF_OFFSET]);
-  //WF_should = 0x62636465;
-  //printf("WF_should: %#010x\n", WF_should);
-  //assert((int) HWICAP[WF_OFFSET] == WF_should);
 
   //process remaining
   //HWICAP[WFV_OFFSET] = 0x1DE;
@@ -1428,12 +1215,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(decoupActive == 0);
   assert(HWICAP[CR_OFFSET] == 0);
   
-  //to assemble the answer
-  //for(int j = 0; j< 3; j++)
-  //{
-  //  stepDut();
-  //}
-
   sessId_back = sFMC_NRC_Tcp_sessId.read();
   assert(sessId.tdata == sessId_back.tdata);
   drainStream(sFMC_NRC_Tcp_data);
@@ -1540,7 +1321,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(sessId.tdata == sessId_back.tdata);
   
   //check 422
-  //assert(httpState == HTTP_INVALID_REQUEST); to late, is already updated
   printf("Check stream:\n0x312e312f50545448\n0x706e552032323420\n0x6261737365636f72\n0x7469746e4520656c\n0x65686361430a0d79\n");
   assert(sFMC_NRC_Tcp_data.read().tdata == 0x312e312f50545448);
   assert(sFMC_NRC_Tcp_data.read().tdata == 0x706e552032323420);
@@ -1728,10 +1508,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   
   //hangover test
   HWICAP_seq_OUT[WFV_OFFSET] = 0x1E1;
-  //we are using FIFOs now...
-  //int old_buffer_in_ptr_write = bufferInPtrWrite;
   stepDut();
-  //assert((int) bufferInPtrWrite == old_buffer_in_ptr_write + 8); //one word more read
   assert(decoupActive == 1);
   WF_should = 0x30303030;
   assert((int) HWICAP_seq_OUT[WF_OFFSET] == WF_should);
@@ -1861,12 +1638,6 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(decoupActive == 0);
   assert(HWICAP_seq_OUT[CR_OFFSET] == 0);
 
-  //to assemble the answer
-  //for(int j = 0; j< 3; j++)
-  //{
-  //  stepDut();
-  //}
-
   sessId_back = sFMC_NRC_Tcp_sessId.read();
   assert(sessId.tdata == sessId_back.tdata);
   printf("Check stream:\n0x312e312f50545448\n0x0d4b4f2030303220\n");
@@ -1891,5 +1662,5 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 }
 
 
-
 /*! \} */
+
