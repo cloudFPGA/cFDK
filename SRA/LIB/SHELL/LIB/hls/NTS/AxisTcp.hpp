@@ -131,6 +131,14 @@ typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4
 typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 
+// TCP supports a variable set of options to be appended in the header.
+//  Each option is identified by an 'option-kind' byte.
+#define TCP_OPT_KIND_EOL    0      // End Of List
+#define TCP_OPT_KIND_NOP    1      // No Operation
+#define TCP_OPT_KIND_MSS    2      // Maximum Segment Size
+#define TCP_OPT_KIND_WSS    3      // Window Size Shift
+#define TCP_OPT_KIND_SACK   4      // Selective ACKnowledgment permitted
+
 /*********************************************************
  * TCP Data over AXI4-STREAM
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).

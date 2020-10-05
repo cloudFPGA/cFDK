@@ -460,10 +460,12 @@ void pCheckSumAccumulator(
     static RXeMeta          csa_meta;
     static TcpDstPort       csa_tcpDstPort;
     static TcpChecksum      csa_tcpCSum;
-    static ap_uint<36>      csa_halfChunk;
+    //OBSOLETE_20201005 static ap_uint<36>      csa_halfChunk;
+    static ap_uint<32>      csa_half_tdata;
+    static ap_uint<4>       csa_half_tkeep;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AxisPsd4                currChunk;
+    AxisPsd4                currChunk(0,0,0);
     AxisApp                 sendChunk(0,0,0);
 
     if (!siIph_PseudoPkt.empty() and !soTid_Data.full() and !csa_doCSumVerif) {
@@ -513,10 +515,12 @@ void pCheckSumAccumulator(
             csa_chunkCount++;
             break;
         default:
+            /*** OBSOLETE_20201005 **************
             if (csa_dataOffset > 6) {
                 // Drain the unsupported TCP options
                 csa_dataOffset -= 2;
-                sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
+                //OBSOLETE_20201050 sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
+                sendChunk.setTLast(0);
             }
             else if (csa_dataOffset == 6) {
                 // The TCP header has 32 bits of options and padding out of 64 bits
@@ -535,6 +539,34 @@ void pCheckSumAccumulator(
                     sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
                 }
             }
+            *************************************/
+            if (csa_dataOffset >= 6) {
+                // Handle TCP options.
+                //  Warning: At this point, we only support one TCP option and
+                //   we further assume that this option is always 32-bit aligned.
+                //  [TODO] Must add support for Window Scaling and unaligned options.
+                TcpOptKind optionKind = currChunk.getTcpOptKind();
+                if (optionKind == TCP_OPT_KIND_MSS) {
+                    // Extract the MSS value
+                    TcpOptMss theirMSS = currChunk.getTcpOptMss();
+                    if (DEBUG_LEVEL & TRACE_CSA) {
+                        printInfo(myName, "TCP segment includes 4 option bytes (OptKind=2, OptLen=4, MSS=%d)\n",
+                                  theirMSS.to_uint());
+                    }
+                }
+                else {
+                    printWarn(myName, "The TCP option %d is not yet supported and will be dropped.\n", optionKind.to_uchar());
+                }
+                if (csa_dataOffset == 6) {
+                    csa_dataOffset -= 1;
+                     csa_doShift = true;
+                     csa_half_tdata = currChunk.getLE_TData(63, 32);
+                     csa_half_tkeep = currChunk.getLE_TKeep( 7,  4);
+                }
+                else {
+                    csa_dataOffset -= 2;
+                }
+            }
             else {
                 // The DataOffset == 5 (or less)
                 if (!csa_doShift) {
@@ -542,15 +574,15 @@ void pCheckSumAccumulator(
                     soTid_Data.write(sendChunk);
                 }
                 else {
-                    sendChunk.setLE_TData(  csa_halfChunk.range(31,  0), 31,  0);
-                    sendChunk.setLE_TKeep(  csa_halfChunk.range(35, 32),  3,  0);
+                    sendChunk.setLE_TData(  csa_half_tdata, 31,  0);
+                    sendChunk.setLE_TKeep(  csa_half_tkeep,  3,  0);
                     sendChunk.setLE_TData(currChunk.getLE_TData(31,  0), 63, 32);
                     sendChunk.setLE_TKeep(currChunk.getLE_TKeep( 3,  0),  7,  4);
                     sendChunk.setTLast(   currChunk.getLE_TKeep()[4] == 0);
                     soTid_Data.write(sendChunk);
                     if (DEBUG_LEVEL & TRACE_CSA) { printAxisRaw(myName, "soTid_Data() =", sendChunk); }
-                    csa_halfChunk.range(31,  0) = currChunk.getLE_TData(63, 32);
-                    csa_halfChunk.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
+                    csa_half_tdata = currChunk.getLE_TData(63, 32);
+                    csa_half_tkeep = currChunk.getLE_TKeep( 7,  4);
                 }
             }
             break;
@@ -573,6 +605,8 @@ void pCheckSumAccumulator(
                 csa_tcp_sums[i] = (csa_tcp_sums[i] + (csa_tcp_sums[i] >> 16)) & 0xFFFF;
             }
         }
+
+        // Handle last chunk
         if(currChunk.getTLast()) {
             csa_chunkCount = 0;
             csa_residue = !sendChunk.getTLast();
@@ -581,10 +615,10 @@ void pCheckSumAccumulator(
     } // End of: if (!siIph_Data.empty() && !csa_doCSumVerif)
     else if(csa_residue and !soTid_Data.full()) {
         if (csa_meta.length != 0) {
-            sendChunk.setLE_TData(csa_halfChunk.range(31,  0), 31,  0);
-            sendChunk.setLE_TData(                 0x00000000, 63, 32);
-            sendChunk.setLE_TKeep(csa_halfChunk.range(35, 32),  3,  0);
-            sendChunk.setLE_TKeep(                        0x0,  7,  4);
+            sendChunk.setLE_TData(csa_half_tdata, 31,  0);
+            sendChunk.setLE_TData(    0x00000000, 63, 32);
+            sendChunk.setLE_TKeep(csa_half_tkeep,  3,  0);
+            sendChunk.setLE_TKeep(           0x0,  7,  4);
             sendChunk.setLE_TLast(TLAST);
             soTid_Data.write(sendChunk);
             if (DEBUG_LEVEL & TRACE_CSA) { printAxisRaw(myName, "soTid_Data() =", currChunk); }

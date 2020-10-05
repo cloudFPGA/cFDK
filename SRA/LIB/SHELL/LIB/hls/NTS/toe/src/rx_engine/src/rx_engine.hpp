@@ -45,6 +45,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../../../NTS/SimNtsUtils.hpp"
 #include "../../../../../NTS/toe/src/toe.hpp"
 #include "../../../../../NTS/AxisIp4.hpp"
+#include "../../../../../NTS/AxisTcp.hpp"
 #include "../../../../../NTS/AxisPsd4.hpp"
 
 using namespace hls;

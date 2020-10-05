@@ -89,6 +89,7 @@
 #define _AXIS_PSD4_H_
 
 #include "./AxisRaw.hpp"
+#include "./AxisTcp.hpp"
 
 /***********************************************************
  * PSD4 - PSEUDO-HEADER LENGTH
