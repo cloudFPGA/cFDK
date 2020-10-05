@@ -1898,7 +1898,7 @@ void pTAIF_Send(
     char               *pEnd;
 
     //----------------------------------------
-    //-- STEP-1b : RETURN IF TOE IS NOT READY
+    //-- STEP-1 : RETURN IF TOE IS NOT READY
     //----------------------------------------
     if (piTOE_Ready == 0) {
         tas_toeReadyDelay++;
@@ -1906,7 +1906,7 @@ void pTAIF_Send(
     }
 
     //------------------------------------------------------
-    //-- STEP-0 : ARE WE ASKED TO OPEN A NEW CONNECTION
+    //-- STEP-1 : ARE WE ASKED TO OPEN A NEW CONNECTION
     //------------------------------------------------------
     SockAddr   fpgaClientSocket(gFpgaIp4Addr, gFpgaSndPort);
     SockAddr   hostServerSocket(gHostIp4Addr, gHostLsnPort);
@@ -1927,27 +1927,28 @@ void pTAIF_Send(
     }
 
     //-------------------------------------------------------------
-    //-- STEP-1a : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
+    //-- STEP-2a : IMMEDIATELY QUIT IF TX TEST MODE IS NOT ENABLED
     //-------------------------------------------------------------
     if (not testTxPath)
         return;
 
-    //--------------------------------------------------------------------
-    //-- STEP-1b : PARSE THE APP RX FILE.
-    //     THIS FIRST PASS WILL SPECIFICALLY SEARCH FOR GLOBAL PARAMETERS.
-    //--------------------------------------------------------------------
-    /*** OBSOLETE_20201020 ***************
-    if (!tas_globParseDone) {
-        tas_globParseDone = setGlobalParameters(myName, tas_toeReadyDelay, ifTAIF_Data);
-        if (tas_globParseDone == false) {
-            printFatal(myName, "Aborting testbench (check for previous error).\n");
+    //-----------------------------------------------------
+    //-- STEP-2b : ALSO RETURN IF IDLING IS REQUESTED
+    //-----------------------------------------------------
+    if (tas_appRxIdlingReq == true) {
+        if (tas_appRxIdleCycCnt >= tas_appRxIdleCycReq) {
+            tas_appRxIdleCycCnt = 0;
+            tas_appRxIdlingReq = false;
+            printInfo(myName, "End of APP Rx idling phase. \n");
+        }
+        else {
+            tas_appRxIdleCycCnt++;
         }
         return;
     }
-    *********************************/
 
     //----------------------------------------------------------------
-    //-- STEP-1c : SHORT EXECUTION PATH WHEN TestingMode == ECHO_MODE
+    //-- STEP-3 : SHORT EXECUTION PATH WHEN TestingMode == ECHO_MODE
     //----------------------------------------------------------------
     if (testMode == ECHO_MODE) {
         pTcpAppEcho(
@@ -1962,30 +1963,8 @@ void pTAIF_Send(
     }
 
     //-----------------------------------------------------
-    //-- STEP-2 : RETURN IF IDLING IS REQUESTED
+    //-- STEP-4 : READ THE APP RX FILE AND FEED THE TOE
     //-----------------------------------------------------
-    if (tas_appRxIdlingReq == true) {
-        if (tas_appRxIdleCycCnt >= tas_appRxIdleCycReq) {
-            tas_appRxIdleCycCnt = 0;
-            tas_appRxIdlingReq = false;
-            printInfo(myName, "End of APP Rx idling phase. \n");
-        }
-        else {
-            tas_appRxIdleCycCnt++;
-        }
-        return;
-    }
-
-    //-----------------------------------------------------
-    //-- STEP-3 : RETURN IF END OF FILE IS REACHED
-    //-----------------------------------------------------
-    //OBSOLETE_20201002 if (ifTAIF_Data.eof())
-    //OBSOLETE_20201002     return;
-
-    //-----------------------------------------------------
-    //-- STEP-5 : READ THE APP RX FILE AND FEED THE TOE
-    //-----------------------------------------------------
-    //OBSOLETE_20201002 do {
     while (!ifTAIF_Data.eof()) {
         //-- READ A LINE FROM APP RX FILE -------------
         getline(ifTAIF_Data, rxStringBuffer);
@@ -2128,7 +2107,6 @@ void pTAIF_Send(
                 apRxBytCntr += writtenBytes;
             } while (not appChunk.getTLast());
         } // End of: else
-    //OBSOLETE_20201002 } while(!ifTAIF_Data.eof());
     }
 } // End of: pTAs
 
@@ -2781,8 +2759,12 @@ int main(int argc, char *argv[]) {
     //-- PRINT TESTBENCH STATUS
     //---------------------------------------------------------------
     printf("\n\n");
-    printInfo(THIS_NAME, "This testbench was executed with the following test-file: \n");
-    printInfo(THIS_NAME, "\t==> %s\n\n", argv[1]);
+    printInfo(THIS_NAME, "This testbench was executed with the following parameters: \n");
+    printInfo(THIS_NAME, "\t==> TB Mode  = %c\n", *argv[1]);
+    for (int i=2; i<argc; i++) {
+        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
+    }
+
 
     if (nrErr) {
         printError(THIS_NAME, "###########################################################\n");

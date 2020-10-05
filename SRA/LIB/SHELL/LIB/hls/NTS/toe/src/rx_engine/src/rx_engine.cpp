@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -143,13 +143,11 @@ void pTcpLengthExtract(
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static ap_uint<4>          tle_chunkCount=0;
     #pragma HLS RESET variable=tle_chunkCount
-    //OBSOLETE_20200717 static bool                tle_insertVoidChunk=false;
-    //OBSOLETE_20200717 #pragma HLS RESET variable=tle_insertVoidChunk
     static bool                tle_residue=false;
     #pragma HLS RESET variable=tle_residue
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static bool         tle_shift;         // Keeps track of the chunk alignment
+    static bool         tle_shift;   // Keeps track of the chunk alignment
     static Ip4HdrLen    tle_ip4HdrLen;
     static Ip4TotalLen  tle_ip4TotLen;
     static Ip4DatLen    tle_ipDataLen;
@@ -158,16 +156,6 @@ void pTcpLengthExtract(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisRaw             sendChunk;
 
-    //OBSOLETE_20200717 if (tle_insertVoidChunk) {
-    //OBSOLETE_20200717     // Insert a 'null' chunk for the next process to populate it
-    //OBSOLETE_20200717     sendChunk = AxisRaw(0, 0xFF, 0);
-    //OBSOLETE_20200717     soIph_Data.write(sendChunk);
-    //OBSOLETE_20200717     tle_insertVoidChunk = false;
-    //OBSOLETE_20200717     if (DEBUG_LEVEL & TRACE_TLE) {
-    //OBSOLETE_20200717         printAxisRaw(myName, "soIph_Data =", sendChunk);
-    //OBSOLETE_20200717     }
-    //OBSOLETE_20200717 }
-    //OBSOLETE_20200717 else if (!siIPRX_Data.empty() and !soIph_Data.full() and !tle_wasLast) {
     if (!siIPRX_Data.empty() and !soIph_Data.full() and !tle_residue) {
         AxisIp4 currChunk = siIPRX_Data.read();
         switch (tle_chunkCount) {
@@ -188,9 +176,6 @@ void pTcpLengthExtract(
         case CHUNK_2:
             // Forward destination IP address
             // Warning, half of this address is now in 'prevChunk'
-            //OBSOLETE_20200710 sendChunk = Ip4overMac((currChunk.tdata(31, 0), tle_prevChunk.tdata(63, 32)),
-            //OBSOLETE_20200710                       (currChunk.tkeep( 3, 0), tle_prevChunk.tkeep( 7,  4)),
-            //OBSOLETE_20200710                       (currChunk.tkeep[4] == 0));
             sendChunk.setLE_TData(tle_prevChunk.getLE_TData(63, 32), 31,  0);
             sendChunk.setLE_TKeep(tle_prevChunk.getLE_TKeep( 7,  4),  3,  0);
             sendChunk.setLE_TData(    currChunk.getLE_TData(31,  0), 63, 32);
@@ -198,7 +183,6 @@ void pTcpLengthExtract(
             sendChunk.setLE_TLast(    currChunk.getLE_TKeep()[4] == 0);
             soIph_Data.write(sendChunk);
             tle_ip4HdrLen -= 1;  // We just processed the last 4 bytes of a standard IP4 header
-            //OBSOLETE_20200717 tle_insertVoidChunk = true;
             tle_chunkCount++;
             if (DEBUG_LEVEL & TRACE_TLE) { printAxisRaw(myName, "soIph_Data =", sendChunk); }
             break;
@@ -212,7 +196,6 @@ void pTcpLengthExtract(
                 sendChunk.setLE_TLast(    currChunk.getLE_TKeep()[4] == 0);
                 soIph_Data.write(sendChunk);
                 tle_shift = true;
-                //OBSOLETE_20200717 tle_ip4HdrLen = 0;
                 tle_chunkCount++;
                 if (DEBUG_LEVEL & TRACE_TLE) { printAxisRaw(myName, "soIph_Data =", sendChunk); }
                 break;
@@ -287,8 +270,6 @@ void pTcpLengthExtract(
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |     DA (LL)   |     DA (L)    |      DA (H)   |    DA (HH)    |     SA (LL)   |     SA (L)    |     SA (H)    |    SA (HH)    |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- //OBSOLETE_20200717 *  |                                                      0x0000000000000000                                                       |
- //OBSOLETE_20200717 *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |    Seq (LL)   |    Seq (L)    |     Seq (H)   |   Seq (HH)    |     DP (L)    |     DP (H)    |     SP (L)    |    SP (H)     |
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |               |               |   |U|A|P|R|S|F|  Data |       |               |               |               |               |
@@ -347,80 +328,6 @@ void pInsertPseudoHeader(
     TcpSegLen       tcpSegLen;
     AxisRaw         currChunk;
     AxisPsd4        sendChunk;
-
-    /*** OBSOLETE_202020717 ******
-    if (iph_wasLast) {
-        sendChunk.setLE_TData(iph_prevChunk.getLE_TData(63, 32), 31,  0);
-        sendChunk.setLE_TKeep(iph_prevChunk.getLE_TKeep( 7,  4),  3,  0);
-        sendChunk.setLE_TData(0x00000000,                        63, 32);
-        sendChunk.setLE_TKeep(0x0,                                7,  4);
-        sendChunk.setLE_TLast(TLAST);
-        soCsa_PseudoPkt.write(sendChunk);
-        iph_wasLast = false;
-        if (DEBUG_LEVEL & TRACE_IPH) {
-            printAxisRaw(myName, "soCsa_PseudoPkt =", sendChunk);
-        }
-    }
-    else if(!siTle_Data.empty() and !soCsa_PseudoPkt.full()) {
-        switch (iph_chunkCount) {
-        case CHUNK_0:
-            siTle_Data.read(currChunk);
-            iph_chunkCount++;
-            break;
-        case CHUNK_1:
-            siTle_Data.read(currChunk);
-            sendChunk = iph_prevChunk;
-            // Forward [IP_DA|IP_SA]
-            soCsa_PseudoPkt.write(sendChunk);
-            iph_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPH) {
-                printAxisRaw(myName, "soCsa_PseudoPkt =", sendChunk);
-            }
-            break;
-        case CHUNK_2:
-            if (!siTle_TcpSegLen.empty()) {
-                siTle_Data.read(currChunk);
-                siTle_TcpSegLen.read(tcpSegLen);
-                // Forward [TCP_DP|TCP_SP|TCP_LEN|PROT|0x00]
-                sendChunk.setPsd4ResBits(0x00);
-                sendChunk.setPsd4Prot(IP4_PROT_TCP);
-                sendChunk.setPsd4Len(tcpSegLen);
-                sendChunk.setTcpSrcPort(byteSwap16(currChunk.getLE_TData(15,  0)));  // [FIXME]
-                sendChunk.setTcpDstPort(byteSwap16(currChunk.getLE_TData(31, 16)));  // [FIXME]
-                sendChunk.setLE_TKeep(0xFF);
-                sendChunk.setLE_TLast(0);
-                soCsa_PseudoPkt.write(sendChunk);
-                iph_chunkCount++;
-                if (DEBUG_LEVEL & TRACE_IPH) printAxisRaw(myName, "soCsa_PseudoPkt =", sendChunk);
-            }
-            break;
-        default:
-            siTle_Data.read(currChunk);
-            // Forward [    ACK_NUM    |    SEQ_NUM    ] or
-            //         [URG_PTR|CHEKSUM|WINSIZE| FLAGS ] or
-            //         [             DATA              ]
-            //OBSOLETE_20200710 sendChunk.tdata.range(31,  0) = iph_prevChunk.tdata.range(63, 32);
-            //OBSOLETE_20200710 sendChunk.tdata.range(63, 32) = currChunk.tdata.range(31, 0);
-            //OBSOLETE_20200710 sendChunk.tkeep.range( 3,  0) = iph_prevChunk.tkeep.range(7, 4);
-            //OBSOLETE_20200710 sendChunk.tkeep.range( 7,  4) = currChunk.tkeep.range(3, 0);
-            //OBSOLETE_20200710 sendChunk.tlast               = (currChunk.tkeep[4] == 0); // see format of the incoming segment
-            sendChunk.setLE_TData(iph_prevChunk.getLE_TData(63, 32), 31,  0);
-            sendChunk.setLE_TKeep(iph_prevChunk.getLE_TKeep( 7,  4),  3,  0);
-            sendChunk.setLE_TData(    currChunk.getLE_TData(31,  0), 63, 32);
-            sendChunk.setLE_TKeep(    currChunk.getLE_TKeep( 3,  0),  7,  4);
-            sendChunk.setLE_TLast(currChunk.getLE_TKeep()[4] == 0);
-            soCsa_PseudoPkt.write(sendChunk);
-            if (DEBUG_LEVEL & TRACE_IPH) printAxisRaw(myName, "soCsa_PseudoPkt =", sendChunk);
-            break;
-        }
-        // Always copy 'currChunk' into 'prevChunk'
-        iph_prevChunk = currChunk;
-        if (currChunk.getTLast()) {
-            iph_chunkCount = 0;
-            iph_wasLast = !sendChunk.getTLast();
-        }
-    }
-    *******************************/
 
     if (iph_residue) {
         sendChunk.setLE_TData(iph_prevChunk.getLE_TData(63, 32), 31,  0);
@@ -559,13 +466,12 @@ void pCheckSumAccumulator(
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisPsd4                currChunk;
-    AxisApp                 sendChunk;
+    AxisApp                 sendChunk(0,0,0);
 
     if (!siIph_PseudoPkt.empty() and !soTid_Data.full() and !csa_doCSumVerif) {
         currChunk = siIph_PseudoPkt.read();
         switch (csa_chunkCount) {
         case CHUNK_0:
-            //OBSOLETE_20200717 csa_dataOffset = 0xF;
             csa_doShift = false;
             // Get IP-SA & IP-DA
             csa_socketPair.src.addr = currChunk.getPsd4SrcAddr();
@@ -594,9 +500,9 @@ void pCheckSumAccumulator(
             // Get Data Offset
             csa_dataOffset   = currChunk.getTcpDataOff();
             csa_meta.length -= (csa_dataOffset * 4);
-            /* Get Control Bits
-             *  [ 8] == FIN | [ 9] == SYN | [10] == RST
-             *  [11] == PSH | [12] == ACK | [13] == URG  */
+            // Get Control Bits
+            //  [ 8] == FIN | [ 9] == SYN | [10] == RST
+            //  [11] == PSH | [12] == ACK | [13] == URG
             csa_meta.ack = currChunk.getTcpCtrlAck();
             csa_meta.rst = currChunk.getTcpCtrlRst();
             csa_meta.syn = currChunk.getTcpCtrlSyn();
@@ -619,9 +525,17 @@ void pCheckSumAccumulator(
                 // Get the first four Data bytes
                 csa_dataOffset = 5;
                 csa_doShift = true;
-                csa_halfChunk.range(31,  0) = currChunk.getLE_TData(63, 32);
-                csa_halfChunk.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
-                sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
+                if (currChunk.getTcpOptKind() == 0x02) {  // [FIXME-Need a define here]
+                    // Extract the MMS option
+                    TcpOptMss theirMSS = currChunk.getTcpOptMss();
+                    //OBSOLETE_20201001 csa_halfChunk.range(31,  0) = currChunk.getLE_TData(63, 32);
+                    //OBSOLETE_20201001 csa_halfChunk.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
+                    if (DEBUG_LEVEL & TRACE_CSA) {
+                        printInfo(myName, "TCP segment includes 4 option bytes (OptKind=2, OptLen=4, MSS=%d)\n",
+                                  theirMSS.to_uint());
+                    }
+                    sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
+                }
             }
             else {
                 // The DataOffset == 5 (or less)
@@ -636,10 +550,10 @@ void pCheckSumAccumulator(
                     sendChunk.setLE_TKeep(currChunk.getLE_TKeep( 3,  0),  7,  4);
                     sendChunk.setTLast(   currChunk.getLE_TKeep()[4] == 0);
                     soTid_Data.write(sendChunk);
+                    if (DEBUG_LEVEL & TRACE_CSA) { printAxisRaw(myName, "soTid_Data() =", sendChunk); }
                     csa_halfChunk.range(31,  0) = currChunk.getLE_TData(63, 32);
                     csa_halfChunk.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
                 }
-                if (DEBUG_LEVEL & TRACE_CSA) { printAxisRaw(myName, "soTid_Data() =", currChunk); }
             }
             break;
         } // End of: switch
