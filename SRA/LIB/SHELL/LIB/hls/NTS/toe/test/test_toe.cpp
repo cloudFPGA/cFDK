@@ -56,7 +56,7 @@ using namespace std;
 
 
 /*******************************************************************************
- * @brief Increment the simulation counter
+ * @brief Increment the simulation counter of the testbench
  *******************************************************************************/
 void stepSim() {
     gSimCycCnt++;
@@ -67,6 +67,15 @@ void stepSim() {
     else if (0) {
         printInfo(THIS_NAME, "------------------- [@%d] ------------\n", gSimCycCnt);
     }
+}
+
+/*******************************************************************************
+ * @brief Increase the simulation time of the testbench
+ *
+ * @param[in]  The number of cycles to increase.
+ *******************************************************************************/
+void increaseSimTime(unsigned int cycles) {
+    gMaxSimCycles += cycles;
 }
 
 const char *camAccessorStrings[] = { "RXe", "TAi" };
@@ -1096,6 +1105,7 @@ void pIPRX(
                     iprx_idleCycReq = atoi(stringVector[2].c_str());
                     iprx_idlingReq = true;
                     printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                    increaseSimTime(iprx_idleCycReq);
                     return;
                 }
                 if (stringVector[1] == "SET") {
@@ -1138,6 +1148,7 @@ void pIPRX(
                 bool rc = readAxisRawFromLine(ipRxChunk, rxStringBuffer);
                 if (rc) {
                     ipRxPacket.pushChunk(ipRxChunk);
+                    increaseSimTime(1);
                 }
             } while (not ipRxChunk.getTLast());
             iprx_inpPackets++;
@@ -1156,7 +1167,7 @@ void pIPRX(
                 ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
                 // Push that packet into the packetizer queue and feed the TOE
                 ipRxPacketizer.push_back(ipRxPacket);
-                pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList); // [FIXME-Can be removed?]
+                pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList);
             }
             return;
         }
@@ -1969,7 +1980,6 @@ void pTAIF_Send(
         //-- READ A LINE FROM APP RX FILE -------------
         getline(ifTAIF_Data, rxStringBuffer);
         stringVector = myTokenizer(rxStringBuffer, ' ');
-
         if (stringVector[0] == "") {
             continue;
         }
@@ -2001,6 +2011,7 @@ void pTAIF_Send(
                     tas_appRxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
                     tas_appRxIdlingReq = true;
                     printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                    increaseSimTime(tas_appRxIdleCycReq);
                     return;
                 }
                 if (stringVector[1] == "SET") {
@@ -2101,6 +2112,7 @@ void pTAIF_Send(
                 bool rc = readAxisRawFromLine(appChunk, rxStringBuffer);
                 if (rc) {
                     soTOE_Data.write(appChunk);
+                    increaseSimTime(1);
                 }
                 // Write current chunk to the gold file
                 writtenBytes = writeAxisAppToFile(appChunk, ofIPTX_Gold2);
