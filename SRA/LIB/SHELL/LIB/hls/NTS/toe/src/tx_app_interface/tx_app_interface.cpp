@@ -356,7 +356,7 @@ void pTxAppTable(
     const char *myName  = concat3(THIS_NAME, "/", "Tat");
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static TxAppTableEntry          TX_APP_TABLE[MAX_SESSIONS];
+    static TxAppTableEntry          TX_APP_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_APP_TABLE inter false
     #pragma HLS reset      variable=TX_APP_TABLE
 

@@ -101,7 +101,7 @@ void rx_sar_table(
     const char *myName = THIS_NAME;
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static RxSarEntry               RX_SAR_TABLE[MAX_SESSIONS];
+    static RxSarEntry               RX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
     #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
     #pragma HLS RESET      variable=RX_SAR_TABLE

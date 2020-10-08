@@ -96,7 +96,7 @@ void state_table(
     #pragma HLS INLINE off
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static TcpState                 SESS_STATE_TABLE[MAX_SESSIONS];
+    static TcpState                 SESS_STATE_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=SESS_STATE_TABLE core=RAM_2P_BRAM
     #pragma HLS DEPENDENCE variable=SESS_STATE_TABLE inter false
 

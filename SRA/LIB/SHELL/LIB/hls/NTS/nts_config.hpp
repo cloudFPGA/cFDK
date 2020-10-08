@@ -31,17 +31,19 @@
 #ifndef _NTS_CONFIG_H_
 #define _NTS_CONFIG_H_
 
+#include <stdint.h>
+
 /*******************************************************************************
  * CONFIGURATION - DATA-LINK LAYER-2 - ETHERNET & ARP
  *******************************************************************************
- * This section defines the configurables parameters related to the data-link
+ * This section defines the configurable parameters related to the data-link
  * layer-2 of the NTS.
  ******************************************************************************/
 
 //--------------------------------------------------------------------
 //-- ETHERNET - MAXIMUM TRANSMISSION UNIT
 //--------------------------------------------------------------------
-static const ap_uint<16> MTU = 1500;
+static const uint16_t MTU = 1500;
 
 //--------------------------------------------------------------------
 //-- ETHERNET - MTU in ZYC2
@@ -49,7 +51,7 @@ static const ap_uint<16> MTU = 1500;
 //--   VXLAN overlay
 //--    [OutIpHdr][OutUdpHdr][VxlanHdr][InMacDa][InMacSa][EtherType]
 //--------------------------------------------------------------------
-static const ap_uint<16> MTU_ZYC2 = 1450;
+static const uint16_t MTU_ZYC2 = 1450;
 
 
 /*******************************************************************************
@@ -66,7 +68,13 @@ static const ap_uint<16> MTU_ZYC2 = 1450;
 //--   assume and use a single ZYC2_MSS value for all connections.
 //--   This MSS is rounded modulo 8 bytes for better efficiency.
 //------------------------------------------------------------------
-static const Ly4Len ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
+static const uint16_t ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
+
+//------------------------------------------------------------------
+//-- TCP OFFLOAD ENGINE - MAXIMUM NUMBER OF SESSIONS
+//------------------------------------------------------------------
+static const uint16_t TOE_MAX_SESSIONS    = 32;
+static const uint16_t TOE_MAX_TX_SESSIONS = 10; // Number of Tx Sessions to open for testing
 
 
 /*******************************************************************************

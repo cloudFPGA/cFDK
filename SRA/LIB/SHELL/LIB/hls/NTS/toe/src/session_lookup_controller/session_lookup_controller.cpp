@@ -84,7 +84,7 @@ void pSessionIdManager(
     static RtlSessId           sim_counter=0;
     #pragma HLS reset variable=sim_counter
 
-    if (sim_counter < MAX_SESSIONS) {
+    if (sim_counter < TOE_MAX_SESSIONS) {
         // Initialize the free list after a reset
         soLrh_FreeList.write(sim_counter);
         sim_counter++;
@@ -326,10 +326,10 @@ void pReverseLookupTable(
     const char *myName  = concat3(THIS_NAME, "/", "Rlt");
 
     //-- STATIC ARRAYS --------------------------------------------------------
-    static SLcFourTuple             REVERSE_LOOKUP_TABLE[MAX_SESSIONS];
+    static SLcFourTuple             REVERSE_LOOKUP_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=REVERSE_LOOKUP_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=REVERSE_LOOKUP_TABLE inter false
-    static ValBool                  TUPLE_VALID_TABLE[MAX_SESSIONS];
+    static ValBool                  TUPLE_VALID_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TUPLE_VALID_TABLE inter false
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
@@ -341,7 +341,7 @@ void pReverseLookupTable(
     if (!rlt_isInit) {
         // The two tables must be cleared upon reset
         TUPLE_VALID_TABLE[rlt_counter] = false;
-        if (rlt_counter < MAX_SESSIONS) {
+        if (rlt_counter < TOE_MAX_SESSIONS) {
             rlt_counter++;
         }
         else {

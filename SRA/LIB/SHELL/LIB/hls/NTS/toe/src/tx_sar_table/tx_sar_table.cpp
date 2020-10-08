@@ -88,7 +88,7 @@ void tx_sar_table(
     const char *myName = THIS_NAME;
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static TxSarEntry               TX_SAR_TABLE[MAX_SESSIONS];
+    static TxSarEntry               TX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
     #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
     #pragma HLS RESET      variable=TX_SAR_TABLE

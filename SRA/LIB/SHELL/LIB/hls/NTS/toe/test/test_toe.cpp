@@ -1598,8 +1598,8 @@ bool pTcpAppConnect(
                 // Add this port # to the set of opened ports
                 tac_dynamicPorts.insert(aSocketPair.src.port);
                 // Check maximum number of opened sessions
-                if (tac_ephemeralPortCounter-0x8000 >= NO_TX_SESSIONS) {
-                    printError(myName, "Trying to open too many FPGA client sessions. Max. is %d.\n", NO_TX_SESSIONS);
+                if (tac_ephemeralPortCounter-0x8000 >= TOE_MAX_TX_SESSIONS) {
+                    printError(myName, "Trying to open too many FPGA client sessions. Max. is %d.\n", TOE_MAX_TX_SESSIONS);
                     nrError += 1;
                 }
                 rc = true;

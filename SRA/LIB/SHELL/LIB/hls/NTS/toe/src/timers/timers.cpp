@@ -123,7 +123,7 @@ void pRetransmitTimer(
     const char *myName = concat3(THIS_NAME, "/", "Rtt");
 
     //-- STATIC ARRAYs ---------------------------------------------------------
-    static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[MAX_SESSIONS];
+    static ReTxTimerEntry           RETRANSMIT_TIMER_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=RETRANSMIT_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=RETRANSMIT_TIMER_TABLE inter false
     #pragma HLS RESET      variable=RETRANSMIT_TIMER_TABLE
@@ -182,7 +182,7 @@ void pRetransmitTimer(
         else {
             // Increment position
             rtt_position++;
-            if (rtt_position >= MAX_SESSIONS) {
+            if (rtt_position >= TOE_MAX_SESSIONS) {
                 rtt_position = 0;
             }
             operationSwitch = 0;
@@ -295,7 +295,7 @@ void pProbeTimer(
     const char *myName  = concat3(THIS_NAME, "/", "Pbt");
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static ProbeTimerEntry          PROBE_TIMER_TABLE[MAX_SESSIONS];
+    static ProbeTimerEntry          PROBE_TIMER_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=PROBE_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DATA_PACK  variable=PROBE_TIMER_TABLE
     #pragma HLS DEPENDENCE variable=PROBE_TIMER_TABLE inter false
@@ -338,7 +338,7 @@ void pProbeTimer(
         }
         else {
             pbt_currSessId++;
-            if (pbt_currSessId == MAX_SESSIONS) {
+            if (pbt_currSessId == TOE_MAX_SESSIONS) {
                 pbt_currSessId = 0;
             }
         }
@@ -381,7 +381,7 @@ void pCloseTimer(
     #pragma HLS INLINE off
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    static CloseTimerEntry          CLOSE_TIMER_TABLE[MAX_SESSIONS];
+    static CloseTimerEntry          CLOSE_TIMER_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=CLOSE_TIMER_TABLE core=RAM_T2P_BRAM
     #pragma HLS DATA_PACK  variable=CLOSE_TIMER_TABLE
     #pragma HLS DEPENDENCE variable=CLOSE_TIMER_TABLE inter false
@@ -426,7 +426,7 @@ void pCloseTimer(
             }
         }
 
-        if (clt_currSessId == MAX_SESSIONS) {
+        if (clt_currSessId == TOE_MAX_SESSIONS) {
             clt_currSessId = 0;
         }
         else {

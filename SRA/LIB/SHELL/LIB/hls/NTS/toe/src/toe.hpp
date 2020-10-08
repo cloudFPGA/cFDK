@@ -87,11 +87,7 @@ static const Ly4Len THEIR_MSS = ZYC2_MSS; // 1352
 
 #define TOE_FEATURE_USED_FOR_DEBUGGING  0
 
-//*** [FIXME] MOVE MAX_SESSION into a CFG FILE ***
-static const uint16_t MAX_SESSIONS = 32;
 
-//*** [FIXME] NO_TX_SESSIONS into a CFG FILE ***
-#define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
 
 
 extern uint32_t      packetCounter;  // [FIXME] Remove
@@ -123,7 +119,7 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 
   static const ap_uint<32> TIME_1us       = (((ap_uint<32>)(TIME_1s/1000000) > 1) ? (ap_uint<32>)(TIME_1s/1000000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_64us      = (((ap_uint<32>)(TIME_1s/  15625) > 1) ? (ap_uint<32>)(TIME_1s/  15625) : (ap_uint<32>)1);
-  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_128us     = (((ap_uint<32>)(TIME_1s/  31250) > 1) ? (ap_uint<32>)(TIME_1s/  31250) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);

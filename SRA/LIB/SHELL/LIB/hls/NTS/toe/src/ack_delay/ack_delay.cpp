@@ -89,7 +89,7 @@ void ack_delay(
     // [TODO - The type of 'ACK_TABLE' can be configured as a functions of 'TIME_XXX']
     // [TODO - TIME_64us  = ( 64.000/0.0064/MAX_SESSIONS) + 1 = 10.000/32 = 0x139 ( 9-bits)
     // [TODO - TIME_128us = (128.000/0.0064/MAX_SESSIONS) + 1 = 20.000/32 = 0x271 (10-bits)
-    static ap_uint<12>              ACK_TABLE[MAX_SESSIONS];
+    static ap_uint<12>              ACK_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
     #pragma HLS RESET      variable=ACK_TABLE
@@ -148,7 +148,7 @@ void ack_delay(
             ACK_TABLE[akdPtr] -= 1;     // Decrease value
         }
         akdPtr++;
-        if (akdPtr == MAX_SESSIONS) {
+        if (akdPtr == TOE_MAX_SESSIONS) {
             akdPtr = 0;
         }
     }
