@@ -444,11 +444,9 @@ bool writeAxisRawToFile(AxisRaw &axisRaw, ofstream &outFileStream) {
 int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
     int writtenBytes = 0;
     for (int bytNum=0; bytNum<8; bytNum++) {
-        //OBSOLETE_20200715 if (axisApp.tkeep.bit(bytNum)) {
         if (axisApp.getLE_TKeep()[bytNum]) {
             int hi = ((bytNum*8) + 7);
             int lo = ((bytNum*8) + 0);
-            //OBSOLETE_20200715 ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
             ap_uint<8>  octet = axisApp.getLE_TData(hi, lo);
             // Write byte to file
             outFile << myUint8ToStrHex(octet);
@@ -466,7 +464,7 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
 /*******************************************************************************
  * @brief Dump a TCP or UDP application data chunk into a file. Data are stored
  *         as a stream of bytes with a newline being appended every time the
- *         write-counter reaches the Maximum Segment Size (.i.e, MSS) or the
+ *         write-counter reaches the Maximum Segment Size (.i.e, MY_MSS) or the
  *         TLAST' bit of the data chunk is set.
  *
  * @param[in] appData  A reference  to the AxisApp chunk to write.
@@ -477,17 +475,15 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile) {
 int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile, int &wrCount) {
     int writtenBytes = 0;
     for (int bytNum=0; bytNum<8; bytNum++) {
-        //OBSOLETYE_20200715 if (axisApp.tkeep.bit(bytNum)) {
         if (axisApp.getLE_TKeep()[bytNum]) {
             int hi = ((bytNum*8) + 7);
             int lo = ((bytNum*8) + 0);
-            //OBSOLETYE_20200715 ap_uint<8>  octet = axisApp.tdata.range(hi, lo);
             ap_uint<8>  octet = axisApp.getLE_TData(hi, lo);
             // Write byte to file
             outFile << myUint8ToStrHex(octet);
             writtenBytes++;
             wrCount++;
-            if (wrCount == MSS) {
+            if (wrCount == MY_MSS) {
                 // Emulate the IP segmentation behavior when writing this
                 //  file by appending a newline when mssCounter == MMS
                 outFile << endl;

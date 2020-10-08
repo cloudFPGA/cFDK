@@ -60,7 +60,7 @@ using namespace hls;
  *   - 'unak' holds the sequence number of the last transmitted but not yet
  *            acknowledged byte by the network layer (aka SND.UNA).
  *
- *                   unak                            ackd           appw
+ *                   ackd                            unak           appw
  *                    |                               |               |
  *                   \|/                             \|/             \|/
  *        --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--

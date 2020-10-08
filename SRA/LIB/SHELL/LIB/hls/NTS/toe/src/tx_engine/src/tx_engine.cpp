@@ -283,17 +283,18 @@ void pMetaDataLoader(
                 memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0); //ml_curEvent.address;
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
-                    if (currLength >= MSS) {
+                    if (currLength >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        mdl_txSar.not_ackd += MSS;
-                        mdl_txeMeta.length  = MSS;
+                        mdl_txSar.not_ackd += ZYC2_MSS;
+                        mdl_txeMeta.length  = ZYC2_MSS;
                     }
                     else {
                         //-- No IP Fragmentation or End of Fragmentation -------
                         //--  If we sent all data, we might also need to send a FIN
-                        if (mdl_txSar.finReady && (mdl_txSar.ackd == mdl_txSar.not_ackd || currLength == 0))
+                        if (mdl_txSar.finReady && (mdl_txSar.ackd == mdl_txSar.not_ackd || currLength == 0)) {
                             mdl_curEvent.type = FIN_EVENT;
+                        }
                         else {
                             mdl_txSar.not_ackd += currLength;
                             mdl_txeMeta.length  = currLength;
@@ -305,11 +306,11 @@ void pMetaDataLoader(
                 }
                 else {
                     // Code duplication, but better timing.
-                    if (usableWindow >= MSS) {
+                    if (usableWindow >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        mdl_txSar.not_ackd += MSS;
-                        mdl_txeMeta.length  = MSS;
+                        mdl_txSar.not_ackd += ZYC2_MSS;
+                        mdl_txeMeta.length  = ZYC2_MSS;
                     }
                     else {
                         // Check if we sent >= MSS data
@@ -367,19 +368,19 @@ void pMetaDataLoader(
                 memSegAddr(15,  0) = mdl_txSar.ackd(15, 0); // mdl_curEvent.address;
                 // Decrease Slow Start Threshold, only on first RT from retransmitTimer
                 if (!mdl_sarLoaded && (mdl_curEvent.rt_count == 1)) {
-                    if (currLength > (4*MSS)) // max(FlightSize/2, 2*MSS) RFC:5681
+                    if (currLength > (4*ZYC2_MSS)) // max(FlightSize/2, 2*MSS) RFC:5681
                         slowstart_threshold = currLength/2;
                     else
-                        slowstart_threshold = (2 * MSS);
+                        slowstart_threshold = (2 * ZYC2_MSS);
                     soTSt_TxSarQry.write(TXeTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
                 // Since we are retransmitting from 'txSar.ackd' to 'txSar.not_ackd', this data is already inside the usableWindow
                 //  => No check is required
                 // Only check if length is bigger than MMS
-                if (currLength > MSS) {
+                if (currLength > ZYC2_MSS) {
                     // We stay in this state and sent immediately another packet
-                    mdl_txeMeta.length = MSS;
-                    mdl_txSar.ackd    += MSS;
+                    mdl_txeMeta.length = ZYC2_MSS;
+                    mdl_txSar.ackd    += ZYC2_MSS;
                     // [TODO - replace with dynamic count, remove this]
                     if (mdl_segmentCount == 3) {
                         // Should set a probe or sth??
@@ -823,7 +824,7 @@ void pPseudoHeaderConstructor(
         currChunk.setPsd4Prot(IP4_PROT_TCP);
         // Compute the length of the TCP segment. This includes both the header and the payload.
         //OBSOLETE_20200924 pseudoHdrLen = phc_meta.length + 20 + (phc_meta.syn << 2); // 20 + (4 for MSS)
-        pseudoHdrLen = phc_meta.length + TCP_HEADER_LEN;
+        pseudoHdrLen = phc_meta.length + TCP_HEADER_LEN; // [FIXME]
         currChunk.setPsd4Len(pseudoHdrLen);
         currChunk.setTcpSrcPort(phc_socketPair.src.port);
         currChunk.setTcpDstPort(phc_socketPair.dst.port);
@@ -873,7 +874,7 @@ void pPseudoHeaderConstructor(
         // Build and forward [ Data 3:0 | Opt-Data | Opt-Length | Opt-Kind ]
         currChunk.setTcpOptKind(0x02);  // Option Kind = Maximum Segment Size
         currChunk.setTcpOptLen(0x04);   // Option length = 4 bytes
-        currChunk.setTcpOptMss(MSS);    // Maximum Segment Size
+        currChunk.setTcpOptMss(MY_MSS); // Our Maximum Segment Size (1456)
         currChunk.setLE_TKeep(0x0F);
         currChunk.setLE_TLast(TLAST);
         assessSize(myName, soTss_PseudoHdr, "soTss_PseudoHdr", 32); // [FIXME-Use constant for the length]

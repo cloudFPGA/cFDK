@@ -101,7 +101,7 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 unsigned int    gSimCycCnt    = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + 1000;  // [FIXME - Should be computed by the TB]
+unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + 1000;
 
 Ip4Addr         gFpgaIp4Addr  = DEFAULT_FPGA_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port

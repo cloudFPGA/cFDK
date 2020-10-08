@@ -142,8 +142,9 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
 
 //-- ETHERNET - MAXIMUM TRANSMISSION UNIT
 static const ap_uint<16> MTU = 1500;
-//-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay
-static const ap_uint<16> MTU_ZYC2 = 1450;  // 1500-20-8-8-14
+//-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay (1500-20-8-8-6-6-2)
+//--   [OutIpHdr][OutUdpHdr][VxlanHdr][InMacDa][InMacSa][EtherType]
+static const ap_uint<16> MTU_ZYC2 = 1450;
 
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions
@@ -193,9 +194,6 @@ static const ap_uint<16> MTU_ZYC2 = 1450;  // 1500-20-8-8-14
  *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
  ******************************************************************************/
 
-//-- TCP - MAXIMUM SEGMENT SIZE
-static const ap_uint<16> MSS = 1460;  // MTU-IP_Hdr-TCP_Hdr=1500-20-20
-
 //========================================================
 //== LAYER-4 - COMMON TCP and UDP HEADER FIELDS
 //========================================================
@@ -203,6 +201,18 @@ typedef ap_uint<16> LE_Ly4Port; // Layer-4 Port in LE order
 typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
+
+//--------------------------------------------------------
+//-- TCP - MAXIMUM SEGMENT SIZE (modulo 8 for efficiency)
+//--------------------------------------------------------
+static const Ly4Len MY_MSS    = (MTU     -IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
+static const Ly4Len THEIR_MSS = (MTU_ZYC2-IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1410
+static const Ly4Len ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
+
+//--------------------------------------------------------
+//-- UDP - MAXIMUM DATAGRAM SIZE (modulo 8 for efficiency)
+//--------------------------------------------------------
+static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET ADDRESS

@@ -1358,8 +1358,8 @@ void pFiniteStateMachine(
                         // Notify probeTimer about new ACK
                         soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);
                         // Check for SlowStart & Increase Congestion Window
-                        if (txSar.cong_window <= (txSar.slowstart_threshold-MSS)) {
-                            txSar.cong_window += MSS;
+                        if (txSar.cong_window <= (txSar.slowstart_threshold-ZYC2_MSS)) {
+                            txSar.cong_window += ZYC2_MSS;
                         }
                         else if (txSar.cong_window <= 0xF7FF) {
                             txSar.cong_window += 365; //TODO replace by approx. of (MSS x MSS) / cong_window

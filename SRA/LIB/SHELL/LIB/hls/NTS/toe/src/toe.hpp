@@ -457,7 +457,7 @@ class TXeTxSarQuery {
 //=========================================================
 class TXeTxSarReply {
   public:
-    TxAckNum        ackd;       // ACK'ed
+    TxAckNum        ackd;       // TX'ed and ACK'ed
     TxAckNum        not_ackd;   // TX'ed but not ACK'ed
     TcpWindow       min_window; // Min(cong_window, recv_window)
     TxBufPtr        app;        // Written by APP
