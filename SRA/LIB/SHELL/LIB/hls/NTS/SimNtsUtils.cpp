@@ -483,7 +483,7 @@ int writeAxisAppToFile(AxisApp &axisApp, ofstream &outFile, int &wrCount) {
             outFile << myUint8ToStrHex(octet);
             writtenBytes++;
             wrCount++;
-            if (wrCount == MY_MSS) {
+            if (wrCount == ZYC2_MSS) {
                 // Emulate the IP segmentation behavior when writing this
                 //  file by appending a newline when mssCounter == MMS
                 outFile << endl;

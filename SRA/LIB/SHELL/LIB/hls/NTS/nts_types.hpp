@@ -49,9 +49,9 @@
 using namespace hls;
 
 
-/******************************************************************************
+/*******************************************************************************
  * GLOBAL DEFINITIONS USED BY NTS
- ******************************************************************************/
+ *******************************************************************************/
 
 #define NTS_OK      1
 #define NTS_KO      0
@@ -82,9 +82,9 @@ using namespace hls;
 #define ACK_ON      1
 #define NO_ACK      0
 
-/******************************************************************************
+/*******************************************************************************
  * GENERIC TYPES and CLASSES USED BY NTS
- ******************************************************************************
+ *******************************************************************************
  * Some Terminology & Conventions:
  *  In telecommunications, a protocol data unit (PDU) is a single unit of
  *   information transmitted among peer entities of a computer network.
@@ -95,7 +95,7 @@ using namespace hls;
  *   - a PACKET   (or IP  Packet)   refers to the IP protocol data unit.
  *   - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
  *   - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
- ******************************************************************************/
+ *******************************************************************************/
 
 //========================================================
 //== SINGLE BIT DEFINITIONS
@@ -132,19 +132,19 @@ typedef ap_uint<16> SessionId;  // TCP Session ID (FIXME - Consider renaming)
 typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
 
 
-/******************************************************************************
+/*******************************************************************************
  * DATA-LINK LAYER-2 - ETHERNET & ARP
- * ****************************************************************************
+ * *****************************************************************************
  * Terminology & Conventions
  *  - a FRAME    (or MAC Frame)    refers to the Ethernet data link layer.
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
- ******************************************************************************/
+ *******************************************************************************/
 
-//-- ETHERNET - MAXIMUM TRANSMISSION UNIT
-static const ap_uint<16> MTU = 1500;
-//-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay (1500-20-8-8-6-6-2)
-//--   [OutIpHdr][OutUdpHdr][VxlanHdr][InMacDa][InMacSa][EtherType]
-static const ap_uint<16> MTU_ZYC2 = 1450;
+//OBSOLETE_20201008 //-- ETHERNET - MAXIMUM TRANSMISSION UNIT
+//OBSOLETE_20201008 static const ap_uint<16> MTU = 1500;
+//OBSOLETE_20201008 //-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay (1500-20-8-8-6-6-2)
+//OBSOLETE_20201008 //--   [OutIpHdr][OutUdpHdr][VxlanHdr][InMacDa][InMacSa][EtherType]
+//OBSOLETE_20201008 static const ap_uint<16> MTU_ZYC2 = 1450;
 
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions
@@ -186,13 +186,13 @@ static const ap_uint<16> MTU_ZYC2 = 1450;
 #define IP4_PROT_UDP        0x11
 
 
-/******************************************************************************
+/*******************************************************************************
  * TRANSPORT LAYER-4 - UDP & TCP
- * ****************************************************************************
+ * *****************************************************************************
  * Terminology & Conventions
  *  - a SEGMENT  (or TCP Segment)  refers to the TCP protocol data unit.
  *  - a DATAGRAM (or UDP Datagram) refers to the UDP protocol data unit.
- ******************************************************************************/
+ *******************************************************************************/
 
 //========================================================
 //== LAYER-4 - COMMON TCP and UDP HEADER FIELDS
@@ -202,17 +202,17 @@ typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
 
-//--------------------------------------------------------
-//-- TCP - MAXIMUM SEGMENT SIZE (modulo 8 for efficiency)
-//--------------------------------------------------------
-static const Ly4Len MY_MSS    = (MTU     -IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
-static const Ly4Len THEIR_MSS = (MTU_ZYC2-IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1410
-static const Ly4Len ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
+//OBSOLETE_20201008 //--------------------------------------------------------
+//OBSOLETE_20201008 //-- TCP - MAXIMUM SEGMENT SIZE (modulo 8 for efficiency)
+//OBSOLETE_20201008 //--------------------------------------------------------
+//OBSOLETE_20201008 static const Ly4Len MY_MSS    = (MTU     -IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
+//OBSOLETE_20201008 static const Ly4Len THEIR_MSS = (MTU_ZYC2-IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1410
+//OBSOLETE_20201008 static const Ly4Len ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
 
-//--------------------------------------------------------
-//-- UDP - MAXIMUM DATAGRAM SIZE (modulo 8 for efficiency)
-//--------------------------------------------------------
-static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
+//OBSOLETE_20201008 //--------------------------------------------------------
+//OBSOLETE_20201008 //-- UDP - MAXIMUM DATAGRAM SIZE (modulo 8 for efficiency)
+//OBSOLETE_20201008 //--------------------------------------------------------
+//OBSOLETE_20201008 static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET ADDRESS

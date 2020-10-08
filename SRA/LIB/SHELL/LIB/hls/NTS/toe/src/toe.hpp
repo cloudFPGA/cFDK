@@ -65,9 +65,22 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-//---------------------------------------------------------
-//-- TOE GLOBAL DEFINES
-//---------------------------------------------------------
+/*******************************************************************************
+ * CONSTANTS DERIVED FROM THE NTS CONFIGURATION FILE
+ *******************************************************************************/
+
+//-- The Maximum Segment Size (MSS) that can be received and processed by TOE
+//--  FYI: MSS is rounded modulo 8 bytes for better efficiency.
+static const Ly4Len MY_MSS    = (MTU - IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
+
+//-- The Maximum Segment Size (MSS) that can be transmitted by TOE
+//--  FYI: This MSS is advertised by the remote host during the 3-may handshake.
+static const Ly4Len THEIR_MSS = ZYC2_MSS; // 1352
+
+
+/*******************************************************************************
+ * DEFINITIONS
+ ******************************************************************************/
 #define TOE_SIZEOF_LISTEN_PORT_TABLE    0x8000
 #define TOE_SIZEOF_ACTIVE_PORT_TABLE    0x8000
 #define TOE_FIRST_EPHEMERAL_PORT_NUM    0x8000 // Dynamic ports are in the range 32768..65535
@@ -81,16 +94,14 @@ static const uint16_t MAX_SESSIONS = 32;
 #define NO_TX_SESSIONS 10 // Number of Tx Sessions to open for testing
 
 
-extern uint32_t      packetCounter;
-extern uint32_t      idleCycCnt;
-extern unsigned int  gSimCycCnt;
-
+extern uint32_t      packetCounter;  // [FIXME] Remove
+extern uint32_t      idleCycCnt;     // [FIXME] Remove
+extern unsigned int  gSimCycCnt;     // [FIXME] Remove
 
 #define OOO_N 4     // number of OOO blocks accepted
 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
 
-
-// OOO Parameters
+// OOO Parameters [FIXME-Remove]
 //static const int OOO_N = 4;       // number of OOO blocks accepted
 //static const int OOO_W = 4288;    // window {max(offset + length)} of sequence numbers beyond recvd accepted
 static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
@@ -190,27 +201,9 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
  *    E.g.: enum PortState : bool { CLOSED_PORT=false, OPENED_PORT=true };
  *******************************************************************************/
 
-
 enum notificationType {PKG, CLOSE, TIME_OUT, RESET};
 enum { WORD_0,  WORD_1,   WORD_2,  WORD_3,  WORD_4,  WORD_5 };
 enum { CHUNK_0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
-
-
-/* (adapted from Linux /net/tcp.h line 292)
-* The next routines deal with comparing 32 bit unsigned ints
-* and worry about wraparound (automatic with unsigned arithmetic).
-*
-* These functions are equivalent to the following operators (modulo 2^32)
-* before()  <
-* !after()  <=
-* after()   >
-* !before() >=
-*
-*/
-//static inline bool before(ap_uint<32> seq1, ap_uint<32> seq2) {
-//    return (ap_int<32>)(seq1-seq2) < 0;
-//}
-//#define after(seq2, seq1)       before(seq1, seq2)
 
 
 #define TLAST       1
@@ -219,7 +212,7 @@ enum { CHUNK_0, CHUNK_1, CHUNK_2, CHUNK_3, CHUNK_4, CHUNK_5 };
  * AXIS TYPE FIELDS DEFINITION
  *   FYI - 'LE' stands for Little-Endian order.
  *********************************************************/
-typedef ap_uint<64> LE_tData;
+typedef ap_uint<64> LE_tData;  // [FIXME] Can be removed
 typedef ap_uint< 8> LE_tKeep;
 typedef ap_uint<64> tData;
 typedef ap_uint<32> tDataHalf;
@@ -228,12 +221,8 @@ typedef ap_uint< 1> tLast;
 
 
 
-
-
-
-
 /*******************************************************************************
- * GENERIC TYPES and CLASSES USED BY TOE
+ * INTERNAL TYPES and CLASSES USED BY TOE
  *******************************************************************************
  * Terminology & Conventions
  * - .

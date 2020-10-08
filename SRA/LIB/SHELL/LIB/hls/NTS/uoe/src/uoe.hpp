@@ -49,13 +49,22 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-//OBSOLETE_20201006 // UDP Maximum Datagram Size = 1416 = (1450-20-8) & ~0x7 (modulo 8 for efficiency)
-//OBSOLETE_20201006 static const UdpLen UDP_MDS = (MTU_ZYC2 - IP4_HEADER_LEN - UDP_HEADER_LEN) & ~0x7;
+/*******************************************************************************
+ * CONSTANTS DERIVED FROM THE NTS CONFIGURATION FILE
+ *******************************************************************************/
+
+//-- The Maximum Datagram Size (MDS) that can be received or sent by UOE
+//--  FYI: MDS is rounded modulo 8 bytes to match the chunk size.
+static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
 
-/***********************************************
- * IPv4 ADDRESS PAIR
- ***********************************************/
+/*******************************************************************************
+ * INTERNAL TYPES and CLASSES USED BY TOE
+ *******************************************************************************/
+
+//---------------------------------------------------------
+//-- UOE - IPv4 ADDRESS PAIR
+//---------------------------------------------------------
 class IpAddrPair {
   public:
     Ip4Addr     ipSa;

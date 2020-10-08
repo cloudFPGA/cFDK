@@ -42,6 +42,7 @@
 #define _NTS_H_
 
 #include "nts_types.hpp"
+#include "nts_config.hpp"
 #include "AxisApp.hpp"
 
 using namespace hls;
