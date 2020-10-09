@@ -920,12 +920,13 @@ void pTcpSegStitcher(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmState {TSS_PSD_HDR=0, TSS_SYN_OPT, TSS_1ST_BUF, TSS_2ND_BUF,
-                          TSS_ALIGN_2ND_BUF, TSS_RESIDUE, TSS_2ND_SEG } fsmState;
-    #pragma HLS RESET             variable=fsmState
-    static ap_uint<3>                      tss_state = TSS_PSD_HDR;
-    #pragma HLS RESET             variable=tss_state
-    static ap_uint<3>                      tss_psdHdrChunkCount = 0;
-    #pragma HLS RESET             variable=tss_psdHdrChunkCount
+                          TSS_ALIGN_2ND_BUF, TSS_RESIDUE, TSS_2ND_SEG } \
+                               tss_state=TSS_PSD_HDR;
+    //OBSOLETE_202021009 #pragma HLS RESET             variable=fsmState
+    //OBSOLETE_202021009 static ap_uint<3>                      tss_state = TSS_PSD_HDR;
+    #pragma HLS RESET variable=tss_state
+    static ap_uint<3>          tss_psdHdrChunkCount = 0;
+    #pragma HLS RESET variable=tss_psdHdrChunkCount
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static AxisApp      tss_currChunk;
@@ -938,15 +939,15 @@ void pTcpSegStitcher(
 
     switch (tss_state) {
     case TSS_PSD_HDR:
-        //-- Read first 4 chunks from [Phc]
+        //-- Read and forward the first 4 chunks from [Phc]
         if (!siPhc_PseudoHdr.empty() and !soSca_PseudoPkt.full()) {
             AxisPsd4 currHdrChunk = siPhc_PseudoHdr.read();
             soSca_PseudoPkt.write(currHdrChunk);
-            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
+            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
             tss_didRdSplitSegSts = false;
             if (tss_psdHdrChunkCount == 3) {
                 if (currHdrChunk.getTcpCtrlSyn()) {
-                    tss_state = TSS_SYN_OPT;  // Segment is a SYN
+                    tss_state = TSS_SYN_OPT;  // Segment is a SYN, handle MSS
                 }
                 else {
                     #if (TCP_NODELAY)
@@ -971,7 +972,7 @@ void pTcpSegStitcher(
         if (!siPhc_PseudoHdr.empty() and !soSca_PseudoPkt.full()) {
             AxisPsd4 currHdrChunk = siPhc_PseudoHdr.read();
             soSca_PseudoPkt.write(currHdrChunk);
-            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
+            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
             #if (TCP_NODELAY)
                 tss_state = 7;
             #else
@@ -1000,7 +1001,7 @@ void pTcpSegStitcher(
                     // chunk of the 1st memory buffer. We are done. Go back to 'TSS_PSD_HDR'.
                     tss_state = TSS_PSD_HDR;
                     soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                    if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+                    if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
                 }
                 else {
                     //  The TCP segment was splitted in two parts.
@@ -1019,7 +1020,7 @@ void pTcpSegStitcher(
                         // 8 valid bytes and is therefore also aligned.
                         // We are done with the 1st memory buffer.
                         soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                        if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+                        if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
                         tss_state = TSS_2ND_BUF;
                     }
                 }
@@ -1027,7 +1028,7 @@ void pTcpSegStitcher(
             else {
                 // Continue streaming the 1st memory buffer
                 soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+                if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
             }
         }
         break;
@@ -1065,7 +1066,7 @@ void pTcpSegStitcher(
             //OBSOLETE_20200721     tss_state = 4;
             //OBSOLETE_20200721 }
             soSca_PseudoPkt.write(prevChunk);
-            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
         }
         break;
     /*** OBSOLETE_20200722 ***
@@ -1108,7 +1109,7 @@ void pTcpSegStitcher(
             lastChunk.setLE_TData(tss_currChunk.getLE_TData(63, (8-(int)tss_memRdOffset)*8),
                                   ((int)tss_memRdOffset*8)-1, 0);
             soSca_PseudoPkt.write(lastChunk);
-            if (DEBUG_LEVEL & TRACE_PHC) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
+            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
             tss_state = TSS_PSD_HDR;
         }
         break;
