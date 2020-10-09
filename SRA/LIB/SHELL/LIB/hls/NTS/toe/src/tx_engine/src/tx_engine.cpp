@@ -910,7 +910,7 @@ void pTcpSegStitcher(
         stream<axiWord>         &txApp2txEng_data_stream,
         #endif
         stream<AxisPsd4>        &soSca_PseudoPkt,
-        stream<StsBit>          &siMrd_SplitSegSts)
+        stream<FlagBool>        &siMrd_SplitSegFlag)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -931,7 +931,7 @@ void pTcpSegStitcher(
     static AxisApp      tss_currChunk;
     static StsBool      tss_didRdSplitSegSts;
     static ap_uint<4>   tss_memRdOffset;
-    static StsBit       tss_splitSegSts;
+    static FlagBool     tss_splitSegFlag;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     bool                isShortCutData = false;
@@ -986,16 +986,16 @@ void pTcpSegStitcher(
     case TSS_1ST_BUF:
         //-- Read the data chunks from the 1st memory part
         if (!siMEM_TxP_Data.empty() and !soSca_PseudoPkt.full() and
-            ((tss_didRdSplitSegSts) or (!tss_didRdSplitSegSts and !siMrd_SplitSegSts.empty()))) {
+            ((tss_didRdSplitSegSts) or (!tss_didRdSplitSegSts and !siMrd_SplitSegFlag.empty()))) {
             if (tss_didRdSplitSegSts == false) {
                 // Read the Split Segment Status information
                 //  If 'true', the TCP segment was splitted and stored as 2 memory buffers.
                 tss_didRdSplitSegSts = true;
-                tss_splitSegSts = siMrd_SplitSegSts.read();
+                tss_splitSegFlag = siMrd_SplitSegFlag.read();
             }
             siMEM_TxP_Data.read(tss_currChunk);
             if (tss_currChunk.getTLast()) {
-                if (!tss_splitSegSts) {
+                if (!tss_splitSegFlag) {
                     // The TCP segment was not splitted and this is the last
                     // chunk of the 1st memory buffer. We are done. Go back to 'TSS_PSD_HDR'.
                     tss_state = TSS_PSD_HDR;
@@ -1005,7 +1005,7 @@ void pTcpSegStitcher(
                 else {
                     //  The TCP segment was splitted in two parts.
                     tss_memRdOffset = tss_currChunk.getLen();
-                    tss_splitSegSts = 0;
+                    tss_splitSegFlag = false;
                     tss_currChunk.setTLast(0);
                     //OBSOLETE_20200722 if (tss_currChunk.getLE_TKeep() != 0xFF) {
                     if (tss_memRdOffset != 8) {
@@ -1363,16 +1363,17 @@ void pIpPktStitcher(
  *
  * @details
  *  Front end memory controller for reading data from the external DRAM.
- *  This process receives a transfer read command and forwards it to the AXI4
- *   Data Mover. This command might be split in two memory accesses if the
- *   address of the data buffer to read wraps in the external memory. Such a
- *   split memory access is indicated by the signal 'soTss_SplitMemAcc'.
+ *  This process receives a read command from the MetaDataLoader (Mdl) and
+ *  forwards it to the AXI4 Data Mover. The incoming memory read command might
+ *  end-up being split in two memory accesses if the address of the data buffer
+ *  to read from wraps in the external memory. Such a split memory access is
+ *  flagged by the signal 'soTss_SplitMemAcc'.
  *
  *******************************************************************************/
 void pMemoryReader(
         stream<DmCmd>       &siMdl_BufferRdCmd,
         stream<DmCmd>       &soMEM_Txp_RdCmd,
-        stream<FlagBit>     &soTss_SplitMemAcc)
+        stream<FlagBool>    &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -1381,48 +1382,54 @@ void pMemoryReader(
     const char *myName  = concat3(THIS_NAME, "/", "Mrd");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static StsBool                mrd_accessBreakdown=false;
-    #pragma HLS RESET    variable=mrd_accessBreakdown
-    static uint16_t               mrd_dbgTxPktCounter=0;
-    #pragma HLS RESET    variable=mrd_dbgTxPktCounter
+    static enum FsmState { MRD_1ST_ACCESS=0, MRD_2ND_ACCESS } \
+                               mrd_fsmState=MRD_1ST_ACCESS;
+    #pragma HLS RESET variable=mrd_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static DmCmd    mrd_memRdCmd;
     static TxBufPtr mrd_firstAccLen;
+    static uint16_t mrd_debugCounter=0;
 
-    if (mrd_accessBreakdown == false) {
+    switch (mrd_fsmState) {
+    case MRD_1ST_ACCESS:
         if (!siMdl_BufferRdCmd.empty() and !soMEM_Txp_RdCmd.full()) {
-            mrd_memRdCmd = siMdl_BufferRdCmd.read();
-            DmCmd memRdCmd = mrd_memRdCmd;
-            if ((mrd_memRdCmd.saddr.range(15, 0) + mrd_memRdCmd.bbt) > TOE_TX_BUFFER_SIZE) {
+            siMdl_BufferRdCmd.read(mrd_memRdCmd);
+            if ((mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.bbt) > TOE_TX_BUFFER_SIZE) {
                 // This segment must be broken in two memory accesses because TCP Tx memory buffer wraps around
                 mrd_firstAccLen = TOE_TX_BUFFER_SIZE - mrd_memRdCmd.saddr;
-                memRdCmd = DmCmd(mrd_memRdCmd.saddr, mrd_firstAccLen);
-                mrd_accessBreakdown = true;
+                mrd_fsmState = MRD_2ND_ACCESS;
+
+                assessSize(myName, soTss_SplitMemAcc, "soTss_SplitMemAcc", 32); // [FIXME-Use constant for the length]
+                soMEM_Txp_RdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_firstAccLen));
+                soTss_SplitMemAcc.write(true);
+
                 if (DEBUG_LEVEL & TRACE_MRD) {
                     printInfo(myName, "TCP Tx memory buffer wraps around: This segment is broken in two memory accesses.\n");
                 }
             }
-            soMEM_Txp_RdCmd.write(memRdCmd);
-            assessSize(myName, soTss_SplitMemAcc, "soTss_SplitMemAcc", 32); // [FIXME-Use constant for the length]
-            soTss_SplitMemAcc.write(mrd_accessBreakdown);
-            mrd_dbgTxPktCounter++;
+            else {
+                soMEM_Txp_RdCmd.write(DmCmd(mrd_memRdCmd));
+                soTss_SplitMemAcc.write(false);
+            }
+
             if (DEBUG_LEVEL & TRACE_MRD) {
-                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%x - BBT=0x%x\n",
-                          mrd_dbgTxPktCounter, memRdCmd.saddr.to_uint(), memRdCmd.bbt.to_uint());
+                printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                          mrd_debugCounter, mrd_memRdCmd.saddr.to_uint(), mrd_memRdCmd.bbt.to_uint());
+                mrd_debugCounter++;
             }
         }
-    }
-    else if (mrd_accessBreakdown == true) {
-        if (!soMEM_Txp_RdCmd.full()) {
-            mrd_memRdCmd.saddr.range(15, 0) = 0;
-            soMEM_Txp_RdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_memRdCmd.bbt - mrd_firstAccLen));
-            mrd_accessBreakdown = false;
-            if (DEBUG_LEVEL & TRACE_MRD) {
-                printInfo(myName, "Memory access breakdown: Issuing 2nd read command #%d - SADDR=0x%x - BBT=0x%x\n",
-                          mrd_dbgTxPktCounter, mrd_memRdCmd.saddr.to_uint(), mrd_memRdCmd.bbt.to_uint());
-            }
+        break;
+    case MRD_2ND_ACCESS:
+        soMEM_Txp_RdCmd.write(DmCmd(0, mrd_memRdCmd.bbt - mrd_firstAccLen));
+        mrd_fsmState = MRD_1ST_ACCESS;
+
+        if (DEBUG_LEVEL & TRACE_MRD) {
+            printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                      mrd_debugCounter, 0, (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
+            mrd_debugCounter++;
         }
+        break;
     }
 }
 
@@ -1556,7 +1563,7 @@ void tx_engine(
     //------------------------------------------------------------------------
     //-- Memory Reader (Mrd)
     //------------------------------------------------------------------------
-    static stream<StsBit>               ssMrdToTss_SplitMemAcc  ("ssMrdToTss_SplitMemAcc");
+    static stream<FlagBool>             ssMrdToTss_SplitMemAcc  ("ssMrdToTss_SplitMemAcc");
     #pragma HLS stream         variable=ssMrdToTss_SplitMemAcc  depth=32
 
     //-------------------------------------------------------------------------
