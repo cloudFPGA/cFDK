@@ -37,6 +37,7 @@
 #include <string>
 #include <unistd.h>
 
+#include "../../../NTS/nts_config.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
 #include "../../../NTS/SimIp4Packet.hpp"

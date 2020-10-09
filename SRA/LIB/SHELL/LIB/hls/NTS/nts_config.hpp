@@ -71,10 +71,16 @@ static const uint16_t MTU_ZYC2 = 1450;
 static const uint16_t ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
 
 //------------------------------------------------------------------
-//-- TCP OFFLOAD ENGINE - MAXIMUM NUMBER OF SESSIONS
+//-- TCP OFFLOAD ENGINE - CONFIGURATION PARAMETERS
 //------------------------------------------------------------------
 static const uint16_t TOE_MAX_SESSIONS    = 32;
-static const uint16_t TOE_MAX_TX_SESSIONS = 10; // Number of Tx Sessions to open for testing
+static const uint16_t TOE_TX_MAX_SESSIONS = 10; // Number of Tx Sessions to open for testing
+
+static const uint16_t TOE_WINDOW_BITS     = 16;
+
+static const unsigned TOE_BUFFER_SIZE     = (1 << TOE_WINDOW_BITS); // 65536
+static const unsigned TOE_TX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
+static const unsigned TOE_RX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
 
 
 /*******************************************************************************
