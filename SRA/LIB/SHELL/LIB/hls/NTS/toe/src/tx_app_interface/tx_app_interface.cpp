@@ -466,7 +466,7 @@ void pStreamMetaLoader(
         stream<TxAppTableQuery>     &soTat_AccessReq,
         stream<TxAppTableReply>     &siTat_AccessRep,
         stream<TcpSegLen>           &siSlg_SegLen,
-        stream<SegMemMeta>          &sSmlToMwr_SegMeta,
+        stream<SegMemMeta>          &soMwr_SegMeta,
         stream<Event>               &soEmx_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -522,15 +522,15 @@ void pStreamMetaLoader(
             *******************************************/
             if (sessState != ESTABLISHED) {
                 // Drop this segment
-                assessSize(myName, sSmlToMwr_SegMeta, "sSmlToMwr_SegMeta", 128);  // [FIXME-Use constant for the length]
-                sSmlToMwr_SegMeta.write(SegMemMeta(CMD_DROP));
+                assessSize(myName, soMwr_SegMeta, "soMwr_SegMeta", 128);  // [FIXME-Use constant for the length]
+                soMwr_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify [APP] about the fail
                 soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOCONNECTION));
                 printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
                            sessId.to_uint(), getTcpStateName(sessState));
             }
             else if (segLen > maxWriteLength) {
-                sSmlToMwr_SegMeta.write(SegMemMeta(CMD_DROP));
+                soMwr_SegMeta.write(SegMemMeta(CMD_DROP));
                 // Notify [APP] about fail
                 soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOSPACE));
                 printError(myName, "There is no TxBuf memory space available for session %d.\n",
@@ -538,7 +538,7 @@ void pStreamMetaLoader(
             }
             else { //-- Session is ESTABLISHED and segLen <= maxWriteLength
                 // Forward the metadata to the SegmentMemoryWriter (Mwr)
-                sSmlToMwr_SegMeta.write(SegMemMeta(sessId, txAppTableReply.mempt, segLen));
+                soMwr_SegMeta.write(SegMemMeta(sessId, txAppTableReply.mempt, segLen));
                 // Forward data status back to [APP]
                 soTAIF_DSts.write(TcpAppWrSts(STS_OK, segLen));
                 // Notify [TXe] about data to be sent via an event to [EVe]
