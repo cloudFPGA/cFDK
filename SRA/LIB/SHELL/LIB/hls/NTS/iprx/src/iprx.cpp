@@ -413,7 +413,6 @@ void pIpChecksumAccumulator(
                 ica_ipHdrLen = 0;
                 // Assess destination IP address (FYI - IP Broadcast addresses are dropped)
                 if (ica_dstIpAddress == piMMIO_Ip4Address) {
-                    // OBSOLETE-20200529 || ica_dstIpAddress == 0xFFFFFFFF) {
                     ipAddrMatch = true;
                 }
                 else {
@@ -595,7 +594,6 @@ void pIpCutLength(
                     }
                     currChunk.setLE_TLast(TLAST);
                     ap_uint<4> leftLength = icl_ip4TotalLength - (icl_chunkCount*8);
-                    //OBSOLETE currChunk.tkeep = lenToLE_tKeep(leftLength);
                     currChunk.setLE_TKeep(lenToLE_tKeep(leftLength));
                 }
                 break;
@@ -757,12 +755,9 @@ void pIpPacketRouter(
      case FSM_LAST:
          if (!soICMP_Derr.full() &&
              !soICMP_Data.full() && !soUOE_Data.full() && !soTOE_Data.full() ) {
-            //OBSOLETE_20200613 ap_uint<8>uint8_t bitCounter = 0;
-            ap_uint<Log2Ceil<8>::val> bitCounter = 0;
-            //OBSOLETE bitCounter = keepToLen(ipr_prevWord.getLE_TKeep());
+            ap_uint<log2Ceil<8>::val> bitCounter = 0;
             bitCounter = ipr_prevChunk.getLen();
             if (ipr_prevChunk.getLE_TKeep() != 0xFF) {
-                //OBSOLETE_20200613 ipr_prevWord.tdata.range(63, 64-((8-bitCounter)*8)) = 0;
                 ipr_prevChunk.setLE_TData(0, 63, 64-((8-bitCounter.to_int())*8));
             }
             if (ipr_ttlExpired == 1) {
