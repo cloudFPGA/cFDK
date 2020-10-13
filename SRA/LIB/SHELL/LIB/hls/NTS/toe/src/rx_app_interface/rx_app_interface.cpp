@@ -148,11 +148,11 @@ void pRxAppStream(
             // Signal that the data request has been processed by sending
             // the SessId back to [TAIF]
             soTAIF_Meta.write(rxSarRep.sessionID);
-            // Generate Rx memory buffer read command
-            RxMemPtr rxMemAddr = 0;
-            rxMemAddr(29, 16) = rxSarRep.sessionID(13, 0);
-            rxMemAddr(15,  0) = rxSarRep.appd;
-            soRma_MemRdCmd.write(DmCmd(rxMemAddr, ras_readLength));
+            // Generate a memory buffer read command
+            RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
+            memSegAddr(29, 16) = rxSarRep.sessionID(13, 0);
+            memSegAddr(15,  0) = rxSarRep.appd;
+            soRma_MemRdCmd.write(DmCmd(memSegAddr, ras_readLength));
             // Update the APP read pointer
             soRSt_RxSarQry.write(RAiRxSarQuery(rxSarRep.sessionID, rxSarRep.appd+ras_readLength));
             ras_fsmState = S0;

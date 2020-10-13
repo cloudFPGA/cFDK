@@ -1393,9 +1393,10 @@ void pFiniteStateMachine(
                              (rxbuffer_max_data_count - rxbuffer_data_count) > 375) { // [FIXME - Why 375?]
 #endif
                             soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
-                            // Build memory address for this segment in the lower 4GB
-                            RxMemPtr memSegAddr;
-                            memSegAddr(31, 30) = 0x0;  // [FIXME - Make this a function of the #sessions]
+                            // Build a DDR memory address for this segment
+                            //  FYI - The TCP Rx buffers use up to 1GB (16Kx64KB).
+                            RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
+                            //OBSOLETE_20201014 memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
                             memSegAddr(15,  0) = fsm_Meta.meta.seqNumb.range(15, 0);
 #if !(RX_DDR_BYPASS)
@@ -1550,7 +1551,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'FIN_ACK' processing.\n"); }
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering '***_ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1572,8 +1573,9 @@ void pFiniteStateMachine(
                     soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);
                     // Check if there is payload
                     if (fsm_Meta.meta.length != 0) {
-                        RxMemPtr    memSegAddr;
-                        memSegAddr(31, 30) = 0x0;
+                        // Build a DDR memory address for this segment
+                        RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
+                        //OBSOLETE_20201014 memSegAddr(31, 30) = 0x0;
                         memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
                         memSegAddr(15,  0) = fsm_Meta.meta.seqNumb(15, 0);
 #if !(RX_DDR_BYPASS)

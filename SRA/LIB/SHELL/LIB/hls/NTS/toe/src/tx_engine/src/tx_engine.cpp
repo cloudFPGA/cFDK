@@ -278,7 +278,7 @@ void pMetaDataLoader(
                 TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
                 //OBSOLETE_20201012 memSegAddr(31, 30) = 0x01;
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
-                memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0); //ml_curEvent.address;
+                memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0);
                 // Check length, if bigger than Usable Window or MMS
                 if (currLength <= usableWindow) {
                     if (currLength >= ZYC2_MSS) {
