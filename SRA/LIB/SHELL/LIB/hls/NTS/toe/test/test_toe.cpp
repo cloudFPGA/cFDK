@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -853,7 +853,7 @@ int pIPRX_InjectAckNumber(
 
     if (ipRxPacket.isSYN()) {
         // This packet is a SYN and there's no need to inject anything
-        printInfo(myName, "Packet is SYN\n");
+        if (DEBUG_LEVEL & TRACE_IPRX) { printInfo(myName, "Packet is SYN\n"); }
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
             printWarn(myName, "Trying to open an existing session (%d)!\n", (sessAckList.find(newSockPair)->second).to_uint());
             printSockPair(myName, newSockPair);
@@ -879,7 +879,7 @@ int pIPRX_InjectAckNumber(
     }
     else if (ipRxPacket.isACK()) {
         // This packet is an ACK and we must update the its acknowledgment number
-        printInfo(myName, "Packet is ACK\n");
+        if (DEBUG_LEVEL & TRACE_IPRX) { printInfo(myName, "Packet is ACK\n"); }
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
             // Inject the oldest acknowledgment number in the ACK number field
             TcpAckNum newAckNum = sessAckList[newSockPair];
@@ -1104,7 +1104,9 @@ void pIPRX(
                     // COMMAND = Request to idle for <NUM> cycles.
                     iprx_idleCycReq = atoi(stringVector[2].c_str());
                     iprx_idlingReq = true;
-                    printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                    if (DEBUG_LEVEL & TRACE_IPRX) {
+                        printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                    }
                     increaseSimTime(iprx_idleCycReq);
                     return;
                 }
@@ -1950,7 +1952,9 @@ void pTAIF_Send(
         if (tas_appRxIdleCycCnt >= tas_appRxIdleCycReq) {
             tas_appRxIdleCycCnt = 0;
             tas_appRxIdlingReq = false;
-            printInfo(myName, "End of APP Rx idling phase. \n");
+            if (DEBUG_LEVEL & TRACE_TAs) {
+                printInfo(myName, "End of APP Rx idling phase. \n");
+            }
         }
         else {
             tas_appRxIdleCycCnt++;
@@ -2010,7 +2014,9 @@ void pTAIF_Send(
                     // Cmd = Request to idle for <NUM> cycles.
                     tas_appRxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
                     tas_appRxIdlingReq = true;
-                    printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                    if (DEBUG_LEVEL & TRACE_TAs) {
+                        printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                    }
                     increaseSimTime(tas_appRxIdleCycReq);
                     return;
                 }

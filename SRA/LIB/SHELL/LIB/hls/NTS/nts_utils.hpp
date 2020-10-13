@@ -51,16 +51,18 @@ using namespace std;
 /*******************************************************************************
  * HELPER DESIGN CLASSES
  *******************************************************************************/
-#ifndef __LOG2CEIL__
-#define __LOG2CEIL__
+#ifndef __SYNTH_LOG2CEIL__
+#define __SYNTH_LOG2CEIL__
   /********************************************************
    * A synthesizable version of the C++ log2ceil function.
    * @param[in] n  The input value to compute.
    * @return ceil(log(n)).
    *
-   * Usage: ap_uint<Log2Ceil<N>::val> counter;
+   * Usage:
+   *   ap_uint<log2Ceil<N>::val> counter;
+   *   #define NUM_BITS 8  #define CTRL_BITS LOG2_CEIL<NUM_BITS>::val+1
    ********************************************************/
-  template<int n> struct Log2Ceil {
+  template<uint64_t n> struct log2Ceil {
       //-- Code extracted from the book:
       //--  "High-level Synthesis: Blue Book" by By Michael Fingeroff.
       //--  Since the parameter 'n' is usually based on a template parameter,
@@ -71,24 +73,40 @@ using namespace std;
       //--   possible values.
       enum {
           val = \
-          n <=     1 ?  1 : \
-          n <=     2 ?  1 : \
-          n <=     4 ?  2 : \
-          n <=     8 ?  3 : \
-          n <=    16 ?  4 : \
-          n <=    32 ?  5 : \
-          n <=    64 ?  6 : \
-          n <=   128 ?  7 : \
-          n <=   256 ?  8 : \
-          n <=   512 ?  9 : \
-          n <=  1024 ? 10 : \
-          n <=  2048 ? 11 : \
-          n <=  4096 ? 12 : \
-          n <=  8192 ? 13 : \
-          n <= 16384 ? 14 : \
-          n <= 32768 ? 15 : \
-          n <= 65536 ? 16 :
-          32
+          n <=         0x1 ?  1 : \
+          n <=         0x2 ?  1 : \
+          n <=         0x4 ?  2 : \
+          n <=         0x8 ?  3 : \
+          n <=        0x10 ?  4 : \
+          n <=        0x20 ?  5 : \
+          n <=        0x40 ?  6 : \
+          n <=        0x80 ?  7 : \
+          n <=       0x100 ?  8 : \
+          n <=       0x200 ?  9 : \
+          n <=       0x400 ? 10 : \
+          n <=       0x800 ? 11 : \
+          n <=      0x1000 ? 12 : \
+          n <=      0x2000 ? 13 : \
+          n <=      0x4000 ? 14 : \
+          n <=      0x8000 ? 15 : \
+          n <=     0x10000 ? 16 : \
+          n <=     0x20000 ? 17 : \
+          n <=     0x40000 ? 18 : \
+          n <=     0x80000 ? 19 : \
+          n <=    0x100000 ? 20 : \
+          n <=    0x200000 ? 21 : \
+          n <=    0x400000 ? 22 : \
+          n <=    0x800000 ? 23 : \
+          n <=   0x1000000 ? 24 : \
+          n <=   0x2000000 ? 25 : \
+          n <=   0x4000000 ? 26 : \
+          n <=   0x8000000 ? 27 : \
+          n <=  0x10000000 ? 28 : \
+          n <=  0x20000000 ? 29 : \
+          n <=  0x40000000 ? 30 : \
+          n <=  0x80000000 ? 31 : \
+          n <= 0x100000000 ? 32 : \
+          33
       };
   };
 #endif

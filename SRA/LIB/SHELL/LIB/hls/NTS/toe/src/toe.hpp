@@ -140,28 +140,28 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
   static const ap_uint<32> TIME_60s       = ( 60*TIME_1s);
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
-  static const ap_uint<32> TIME_1us       = (  1.0/0.0064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_128us     = (128.0/0.0064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_256us     = (256.0/0.0064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_512us     = (512.0/0.0064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_128us     = (128.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_256us     = (256.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_512us     = (512.0/0.0064/TOE_MAX_SESSIONS) + 1;
 
-  static const ap_uint<32> TIME_1ms       = (  1.0/0.0000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_5ms       = (  5.0/0.0000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_25ms      = ( 25.0/0.0000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_50ms      = ( 50.0/0.0000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_100ms     = (100.0/0.0000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_250ms     = (250.0/0.0000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_1ms       = (  1.0/0.0000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5ms       = (  5.0/0.0000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_25ms      = ( 25.0/0.0000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_50ms      = ( 50.0/0.0000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_100ms     = (100.0/0.0000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_250ms     = (250.0/0.0000064/TOE_MAX_SESSIONS) + 1;
 
-  static const ap_uint<32> TIME_1s        = (  1.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_5s        = (  5.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_7s        = (  7.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_10s       = ( 10.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_15s       = ( 15.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_20s       = ( 20.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_30s       = ( 30.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_60s       = ( 60.0/0.0000000064/MAX_SESSIONS) + 1;
-  static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_1s        = (  1.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_5s        = (  5.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_7s        = (  7.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_10s       = ( 10.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_15s       = ( 15.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_20s       = ( 20.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_30s       = ( 30.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_60s       = ( 60.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
 #endif
 
 #define BROADCASTCHANNELS 2

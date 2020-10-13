@@ -32,6 +32,15 @@
 #define _NTS_CONFIG_H_
 
 #include <stdint.h>
+#include <math.h>
+
+/*******************************************************************************
+ * LOCAL HELPER FUNCTION
+ *******************************************************************************/
+static unsigned long log2ceil(unsigned long val) {
+    return (unsigned long)(ceil(log2((double)val)));
+}
+
 
 /*******************************************************************************
  * CONFIGURATION - DATA-LINK LAYER-2 - ETHERNET & ARP
@@ -73,14 +82,25 @@ static const uint16_t ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
 //------------------------------------------------------------------
 //-- TCP OFFLOAD ENGINE - CONFIGURATION PARAMETERS
 //------------------------------------------------------------------
-static const uint16_t TOE_MAX_SESSIONS    = 32;
+static const uint16_t TOE_MAX_SESSIONS    = 32; // [FIXME]
 static const uint16_t TOE_TX_MAX_SESSIONS = 10; // Number of Tx Sessions to open for testing
 
 static const uint16_t TOE_WINDOW_BITS     = 16;
 
-static const unsigned TOE_BUFFER_SIZE     = (1 << TOE_WINDOW_BITS); // 65536
-static const unsigned TOE_TX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
-static const unsigned TOE_RX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
+static const uint32_t TOE_BUFFER_SIZE     = (1 << TOE_WINDOW_BITS); // 65536
+static const uint32_t TOE_RX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
+static const uint32_t TOE_TX_BUFFER_SIZE  = TOE_BUFFER_SIZE; // 65536
+
+#define               TOE_MEMORY_SIZE       0x80000000 // 2GB
+#define               TOE_MEMORY_BASE       0x00000000 // Base address
+static const uint16_t TOE_MEMORY_BITS     = log2ceil(TOE_MEMORY_SIZE); // 2GB = 2^31
+
+static const uint64_t TOE_RX_MEMORY_SIZE  = TOE_MEMORY_SIZE >> 1; // 1GB
+static const uint64_t TOE_TX_MEMORY_SIZE  = TOE_MEMORY_SIZE >> 1; // 1GB
+static const uint64_t TOE_RX_MEMORY_BASE = (TOE_MEMORY_BASE);                    // 0x00000000 (Base)
+static const uint64_t TOE_TX_MEMORY_BASE = (TOE_MEMORY_SIZE+TOE_RX_MEMORY_SIZE); // 0x40000000 (Base+1GB)
+static const uint16_t TOE_RX_MEMORY_BITS  = log2ceil(TOE_RX_MEMORY_SIZE); // 1GB = 2^30
+static const uint16_t TOE_TX_MEMORY_BITS  = log2ceil(TOE_TX_MEMORY_SIZE); // 1GB = 2^30
 
 
 /*******************************************************************************
