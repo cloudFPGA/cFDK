@@ -581,8 +581,7 @@ void pMemWriter(
     static enum FsmStates { MWR_IDLE=0,      MWR_DROP,
                             MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
                             MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF,
-                            MWR_RESIDUE,
-                            MWR_S1, MWR_S2, MWR_S3, MWR_S4, MWR_S5 } \
+                            MWR_RESIDUE } \
                                  mwr_fsmState=MWR_IDLE;
     #pragma HLS RESET variable = mwr_fsmState
 
@@ -599,7 +598,6 @@ void pMemWriter(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     static uint8_t       lengthBuffer;
     static ap_uint<3>    accessResidue;
-    static uint32_t      txAppWordCounter;  // [FIXME] Needed?
 
     switch (mwr_fsmState) {
     case MWR_IDLE:
@@ -611,7 +609,6 @@ void pMemWriter(
             else {
                 //-- Build a memory address for this segment
                 TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
-                //OBSOLETE_20201012 memSegAddr(31, 30) = 0x01;
                 memSegAddr(29, 16) = mwr_segMemMeta.sessId(13, 0);
                 memSegAddr(15,  0) = mwr_segMemMeta.addr;
                 // Build a data mover command for this segment
@@ -622,13 +619,6 @@ void pMemWriter(
                     if (DEBUG_LEVEL & TRACE_MWR) {
                         printInfo(myName, "TCP Tx memory buffer wraps around: This segment must be broken in two memory accesses.\n");
                     }
-                    /*** OBSOLETE-20190907 ****************
-                    // was moved to MWR_IDLEbis because of timing issues
-                    breakLen = TOE_TX_BUFFER_SIZE - dmCmd.saddr;
-                    dmCmd.bbt -= breakLen;
-                    tempDmCmd = DmCmd(dmCmd.saddr, breakLen);
-                    segIsSplitted = true;
-                    ****************************************/
                     mwr_fsmState = MWR_SPLIT_1ST_CMD;
                 }
                 else {
@@ -636,13 +626,12 @@ void pMemWriter(
                     soMEM_TxP_WrCmd.write(mwr_memWrCmd);
                     mwr_firstAccLen = mwr_memWrCmd.bbt;
                     mwr_nrBytesToWr = mwr_firstAccLen;
-                    mwr_fsmState = MWR_S1;
+                    mwr_fsmState = MWR_FWD_ALIGNED;
                     if (DEBUG_LEVEL & TRACE_MWR) {
                         printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
                                   mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
                         mwr_debugCounter++;
                     }
-                    mwr_fsmState = MWR_S1;
                 }
             }
             break;
@@ -654,12 +643,12 @@ void pMemWriter(
              if (tmpChunk.getTLast()) {
                  mwr_fsmState = MWR_IDLE;
              }
+             printFatal(myName, "[TODO] This path has not been tested yet...");
          }
         break;
     case MWR_SPLIT_1ST_CMD:
         mwr_firstAccLen   = TOE_TX_BUFFER_SIZE - mwr_memWrCmd.saddr;
         mwr_nrBytesToWr   = mwr_firstAccLen;
-        //OBSOLETE_20201014 mwr_memWrCmd.bbt -= mwr_firstAccLen;
         soMEM_TxP_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
         if (DEBUG_LEVEL & TRACE_MWR) {
             if (DEBUG_LEVEL & TRACE_MWR) {
@@ -676,7 +665,6 @@ void pMemWriter(
              AxisApp memChunk = siSlg_Data.read();
 
              if (!mwr_segMemMeta.drop) {
-                 txAppWordCounter++;
                  soMEM_TxP_Data.write(memChunk);
              }
              if (memChunk.getTLast()) {
@@ -780,105 +768,6 @@ void pMemWriter(
                 printAxisRaw(myName, "soMEM_TxP_Data =", lastChunk);
             }
             mwr_fsmState = MWR_IDLE;
-        }
-        break;
-    case MWR_S1:
-        if (!siSlg_Data.empty() and !soMEM_TxP_Data.full()) {
-            siSlg_Data.read(mwr_currChunk);
-            AxisApp memChunk = mwr_currChunk;
-            ap_uint<4> byteCount = mwr_currChunk.getLen();
-            if (mwr_firstAccLen > 8) {
-                mwr_firstAccLen -= 8;
-            }
-            else {
-                if (mwr_segMustBeSplitted == true) {
-                    if (mwr_memWrCmd.saddr.range(15, 0) % 8 != 0) {
-                        // If the word is not perfectly aligned then there is some magic to be worked.
-                        //OBSOLETE_20200708 sendChunk.tkeep = lenToKeep(mwr_firstAccLen);
-                        memChunk.setLE_TKeep(lenToLE_tKeep(mwr_firstAccLen));
-                    }
-                    memChunk.setTLast(TLAST);
-                    mwr_fsmState = MWR_S2;
-                    accessResidue = byteCount - mwr_firstAccLen;
-                    lengthBuffer = mwr_firstAccLen;  // Buffer the number of bits consumed.
-                }
-                else {
-                	mwr_fsmState = MWR_IDLE;
-                }
-            }
-            txAppWordCounter++;
-            soMEM_TxP_Data.write(memChunk);
-        }
-        break;
-    case MWR_S2:
-        if (!soMEM_TxP_WrCmd.full()) {
-            if (mwr_memWrCmd.saddr.range(15, 0) % 8 == 0)
-                mwr_fsmState = MWR_S3;
-            //else if (txAppTempCmd.bbt +  accessResidue > 8 || accessResidue > 0)
-            else if (mwr_memWrCmd.bbt - accessResidue > 0)
-                mwr_fsmState = MWR_S4;
-            else
-                mwr_fsmState = MWR_S5;
-            mwr_memWrCmd.saddr.range(15, 0) = 0;
-            mwr_firstAccLen = mwr_memWrCmd.bbt;
-            soMEM_TxP_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
-            mwr_segMustBeSplitted = false;
-        }
-        break;
-    case MWR_S3: // This is the non-realignment state
-        if (!siSlg_Data.empty() & !soMEM_TxP_Data.full()) {
-            siSlg_Data.read(mwr_currChunk);
-            if (!mwr_segMemMeta.drop) {
-                txAppWordCounter++;
-                soMEM_TxP_Data.write(mwr_currChunk);
-            }
-            if (mwr_currChunk.getTLast())
-                mwr_fsmState = MWR_IDLE;
-        }
-        break;
-    case MWR_S4: // We go into this state when we need to realign things
-        if (!siSlg_Data.empty() && !soMEM_TxP_Data.full()) {
-            AxisApp memChunk = AxisApp(0, 0xFF, 0);
-            memChunk.setLE_TData(mwr_currChunk.getLE_TData(63, lengthBuffer*8),
-                                 ((8-lengthBuffer)*8) - 1, 0);
-            mwr_currChunk = siSlg_Data.read();
-            memChunk.setLE_TData(mwr_currChunk.getLE_TData((lengthBuffer * 8), 0), \
-                                 63, (8-lengthBuffer)*8);
-            if (!mwr_segMemMeta.drop) {
-                if (mwr_currChunk.getTLast()) {
-                    if (mwr_firstAccLen - accessResidue > lengthBuffer)  {
-                        // In this case there's residue to be handled
-                        mwr_firstAccLen -=8;
-                        mwr_fsmState = MWR_S5;
-                    }
-                    else {
-                        mwr_fsmState = MWR_IDLE;
-                        //OBSOLETE_20200708 memChunk.tkeep = lenToKeep(mwr_firstAccLen);
-                        memChunk.setLE_TKeep(lenToLE_tKeep(mwr_firstAccLen));
-                        memChunk.setTLast(TLAST);
-                    }
-                }
-                else
-                    mwr_firstAccLen -= 8;
-                soMEM_TxP_Data.write(memChunk);
-            }
-            else {
-                if (mwr_currChunk.getTLast()) {
-                    mwr_fsmState = MWR_IDLE;
-                }
-            }
-        }
-        break;
-    case MWR_S5:
-        if (!soMEM_TxP_Data.full()) {
-            if (!mwr_segMemMeta.drop) {
-                AxisApp memChunk = AxisApp(0, lenToLE_tKeep(mwr_firstAccLen), 1);
-                //OBSOLETE_20200708 memChunk.tdata.range(((8-lengthBuffer)*8) - 1, 0) = mwr_currChunk.tdata.range(63, lengthBuffer*8);
-                memChunk.setLE_TData(mwr_currChunk.getLE_TData(63, lengthBuffer*8), \
-                                      ((8-lengthBuffer)*8) - 1, 0);
-                soMEM_TxP_Data.write(memChunk);
-                mwr_fsmState = MWR_IDLE;
-            }
         }
         break;
     } // End-of switch
