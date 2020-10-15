@@ -1,0 +1,81 @@
+# ########################################################################################
+# @file  : siIPRX_OnePkt158.dat
+# @brief : One IPv4 packet of 158 bytes following a SYN packet that opens the connection.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    # This is a comment
+#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+# 
+# ######################################################################################## 
+#
+#         6                   5                   4                   3                   2                   1                   0   
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                    Acknowledgment Number                      |                        Sequence Number                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                               |                               |                               |   |U|A|P|R|S|F|  Data |       |
+#  |         Urgent Pointer        |           Checksum            |            Window             |   |R|C|S|S|Y|I| Offset|  Res  |
+#  |                               |                               |                               |   |G|K|H|T|N|N|       |       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# @details :
+#   Packets use the following connection settings:
+#     IP-SA = 10.10.10.10, IP-DA=10.12.200.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
+#
+
+G PARAM SimCycles 1000
+
+> IDLE 20
+
+# STEP-1: TCP CONNECTION ESTABLISHMENT =====================
+0000000028000045 0 FF
+0A0A0A0Aaed506FF 0 FF
+5700890001C80C0A 0 FF
+00000000CDFF0000 0 FF
+000013c500040250 1 FF
+
+> IDLE 100
+
+# == STEP-2: TCP DATA TRANSFER (TCP Data Length = 158) =====
+000000009e000045 0 FF
+0A0A0A0A38d506FF 0 FF
+5700890001C80C0A 0 FF
+00000000CEFF0000 0 FF
+00008ec400041050 0 FF
+1111111111111111 0 FF
+2222222222222222 0 FF
+3333333333333333 0 FF
+4444444444444444 0 FF
+5555555555555555 0 FF
+6666666666666666 0 FF
+7777777777777777 0 FF
+8888888888888888 0 FF
+9999999999999999 0 FF
+AAAAAAAAAAAAAAAA 0 FF
+BBBBBBBBBBBBBBBB 0 FF
+CCCCCCCCCCCCCCCC 0 FF
+DDDDDDDDDDDDDDDD 0 FF
+EEEEEEEEEEEEEEEE 0 FF
+0000FFFFFFFFFFFF 1 3F
