@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_MWR | TRACE_RAN)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -831,7 +831,7 @@ void pTcpSegmentDropper(
 }
 
 /*******************************************************************************
- * @brief Memory Writer (Mwr)
+ * @brief Rx Memory Writer (Mwr)
  *
  * @param[in]  siTsd_Data      Tcp data stream from the Tcp SegmentDropper (Tid).
  * @param[in]  siFsm_MemWrCmd  Memory write command from the FiniteStateMachine (Fsm).
@@ -851,7 +851,7 @@ void pTcpSegmentDropper(
  *   memory buffers, and the follow-on RxAppNotifier (Ran) process is notified
  *   about this splitted segment
  *******************************************************************************/
-void pMemWriter(
+void pRxMemoryWriter(
         stream<AxisApp>     &siTsd_Data,
         stream<DmCmd>       &siFsm_MemWrCmd,
         stream<DmCmd>       &soMEM_WrCmd,
@@ -2102,7 +2102,7 @@ void rx_engine(
             ssFsmToTsd_DropCmd,
             ssTsdToMwr_Data);
 
-    pMemWriter(
+    pRxMemoryWriter(
             ssTsdToMwr_Data,
             ssFsmToMwr_WrCmd,
             soMEM_WrCmd,

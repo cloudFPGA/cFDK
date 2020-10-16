@@ -554,7 +554,7 @@ void pStreamMetaLoader(
 }
 
 /*******************************************************************************
- * @brief Memory Writer (Mwr)
+ * @brief Tx Memory Writer (Mwr)
  *
  * @param[in]  siSlg_Data    TCP data stream from SegmentLengthGenerator (Slg).
  * @param[in]  siSml_SegMeta Segment memory metadata from StreamMetaLoader (Sml).
@@ -570,7 +570,7 @@ void pStreamMetaLoader(
  *   such a case, the incoming segment is broken down and written into physical
  *   DRAM as two memory buffers.
  *******************************************************************************/
-void pMemWriter(
+void pTxMemWriter(
         stream<AxisApp>     &siSlg_Data,
         stream<SegMemMeta>  &siSml_SegMeta,
         stream<DmCmd>       &soMEM_WrCmd,
@@ -936,7 +936,7 @@ void tx_app_interface(
             ssSmlToMwr_SegMeta,
             ssSmlToEmx_Event);
 
-    pMemWriter(
+    pTxMemWriter(
             ssSlgToMwr_Data,
             ssSmlToMwr_SegMeta,
             soMEM_TxP_WrCmd,

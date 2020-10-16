@@ -62,7 +62,7 @@ using namespace hls;
 #define TRACE_MRD  1 <<  5
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_ALL)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
  * @brief A 2-to-1 generic Stream Multiplexer
@@ -162,7 +162,7 @@ void pRxAppStream(
 }
 
 /*******************************************************************************
- * @brief Memory Reader (Mrd)
+ * @brief Rx Memory Reader (Mrd)
  *
  * @param[in]  siRas_MemRdCmd   Rx memory read command from RxAppStream (Ras).
  * @param[out] soMEM_RxpRdCmd   Rx memory read command to [MEM].
@@ -177,10 +177,10 @@ void pRxAppStream(
  *   a signal is sent to [Ass] telling whether a data segment was broken in two
  *   Rx memory buffers or is provided as a single buffer.
  *******************************************************************************/
-void pMemoryReader(
-        stream<DmCmd>   &siRas_MemRdCmd,
-        stream<DmCmd>   &soMEM_RxpRdCmd,
-        stream<StsBit>  &soAss_SplitSeg)
+void pRxMemoryReader(
+        stream<DmCmd>     &siRas_MemRdCmd,
+        stream<DmCmd>     &soMEM_RxpRdCmd,
+        stream<FlagBool>  &soAss_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -188,7 +188,6 @@ void pMemoryReader(
 
     const char *myName = concat3(THIS_NAME, "/", "Mrd");
 
-    /****
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmState { MRD_1ST_ACCESS=0, MRD_2ND_ACCESS } \
                                mrd_fsmState=MRD_1ST_ACCESS;
@@ -196,13 +195,14 @@ void pMemoryReader(
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static DmCmd    mrd_memRdCmd;
-    static TxBufPtr mrd_firstAccLen;
+    static RxBufPtr mrd_firstAccLen;
     static uint16_t mrd_debugCounter=1;
 
     switch (mrd_fsmState) {
     case MRD_1ST_ACCESS:
         if (!siRas_MemRdCmd.empty() and !soAss_SplitSeg.full() and !soMEM_RxpRdCmd.full() ) {
             siRas_MemRdCmd.read(mrd_memRdCmd);
+
             if ((mrd_memRdCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.bbt) > TOE_RX_BUFFER_SIZE) {
                 // This segment was broken in two memory accesses because TCP Rx memory buffer wrapped around
                 mrd_firstAccLen = TOE_RX_BUFFER_SIZE - mrd_memRdCmd.saddr;
@@ -216,35 +216,38 @@ void pMemoryReader(
                     printInfo(myName, "Issuing 1st memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
                               mrd_debugCounter, mrd_memRdCmd.saddr.to_uint(), mrd_firstAccLen.to_uint());
                 }
-                else {
-                    soMEM_RxpRdCmd.write(mrd_memRdCmd);
-                    soAss_SplitSeg.write(false);
+            }
+            else {
+                soMEM_RxpRdCmd.write(mrd_memRdCmd);
+                soAss_SplitSeg.write(false);
 
-                    if (DEBUG_LEVEL & TRACE_MRD) {
-                        printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                                  mrd_debugCounter, mrd_memRdCmd.saddr.to_uint(), mrd_memRdCmd.bbt.to_uint());
-                        mrd_debugCounter++;
-                    }
+                if (DEBUG_LEVEL & TRACE_MRD) {
+                    printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                              mrd_debugCounter, mrd_memRdCmd.saddr.to_uint(), mrd_memRdCmd.bbt.to_uint());
+                    mrd_debugCounter++;
                 }
             }
         }
         break;
     case MRD_2ND_ACCESS:
         if (!soMEM_RxpRdCmd.full()) {
-            soMEM_RxpRdCmd.write(DmCmd(TOE_RX_MEMORY_BASE, mrd_memRdCmd.bbt - mrd_firstAccLen));
+            // Update the command to account for the Rx buffer wrap around
+            mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+            soMEM_RxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_memRdCmd.bbt - mrd_firstAccLen));
+
             mrd_fsmState = MRD_1ST_ACCESS;
 
             if (DEBUG_LEVEL & TRACE_MRD) {
                 printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                          mrd_debugCounter, 0, (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
+                          mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(),
+                         (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
                 mrd_debugCounter++;
             }
         }
         break;
     }
-    ***/
 
-    /*** OBSOLETE_20201014 *****************************************************/
+    /*** OBSOLETE_20201014 *****************************************************
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static FlagBit             mrd_doubleAccessFlag=FLAG_OFF;
@@ -292,7 +295,7 @@ void pMemoryReader(
             }
         }
     }
-    /***************************************************************************/
+    ***************************************************************************/
 }
 
 /*** OBSOLETE_20201014 *********************************************************
@@ -444,14 +447,188 @@ void pRxMemAccess(
 void pAppSegmentStitcher(
         stream<AxisApp>     &siMEM_RxP_Data,
         stream<TcpAppData>  &soTAIF_Data,
-        stream<StsBit>      &siMrd_SplitSeg)
+        stream<FlagBool>    &siMrd_SplitSegFlag)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
-	const char *myName = concat3(THIS_NAME, "/", "Ass");
+    const char *myName = concat3(THIS_NAME, "/", "Ass");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmState {ASS_IDLE,
+                          ASS_FWD_1ST_BUF,  ASS_FWD_2ND_BUF,
+                          ASS_JOIN_2ND_BUF, ASS_RESIDUE } \
+                               ass_fsmState=ASS_IDLE;
+    #pragma HLS RESET variable=ass_fsmState
+    static ap_uint<3>          ass_psdHdrChunkCount = 0;
+    #pragma HLS RESET variable=ass_psdHdrChunkCount
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static AxisApp      ass_prevChunk;
+    static ap_uint<4>   ass_memRdOffset;
+    static FlagBool     ass_mustJoin;
+
+    switch(ass_fsmState) {
+    case ASS_IDLE:
+        //-- Handle the very 1st data chunk from the 1st memory buffer
+        if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soTAIF_Data.full()) {
+            siMrd_SplitSegFlag.read(ass_mustJoin);
+            AxisApp currAppChunk = siMEM_RxP_Data.read();
+
+            if (currAppChunk.getTLast()) {
+                // We are done with the 1st memory buffer
+                if (ass_mustJoin == false) {
+                    // The TCP segment was not splitted.
+                    // We are done with this segment. Stay in this state.
+                    soTAIF_Data.write(currAppChunk);
+                    ass_fsmState = ASS_IDLE;
+                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                }
+                else {
+                    // The TCP segment was splitted in two parts
+                    ass_memRdOffset = currAppChunk.getLen();
+                    if (ass_memRdOffset != 8) {
+                        // The last chunk of the 1st memory buffer is not fully populated.
+                        // Don't output anything here. Save the current chunk and goto 'ASS_JOIN_2ND'.
+                        // There, we will fetch more data to fill in the current chunk.
+                        ass_prevChunk = currAppChunk;
+                        ass_fsmState = ASS_JOIN_2ND_BUF;
+                    }
+                    else {
+                        // The last chunk of the 1st memory buffer is populated with
+                        // 8 valid bytes and is therefore also aligned.
+                        // Forward this chunk and goto 'ASS_FWD_2ND_BUF'.
+                        soTAIF_Data.write(currAppChunk);
+                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        ass_fsmState = ASS_FWD_2ND_BUF;
+                    }
+                }
+            }
+            else {
+               // The 1st memory buffer contains more than one chunk
+               soTAIF_Data.write(currAppChunk);
+               if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+               ass_fsmState = ASS_FWD_1ST_BUF;
+            }
+        }
+        break;
+    case ASS_FWD_1ST_BUF:
+        //-- Forward all the data chunks of the 1st memory buffer
+        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+            AxisApp currAppChunk = siMEM_RxP_Data.read();
+
+            if (currAppChunk.getTLast()) {
+                // We are done with the 1st memory buffer
+                if (ass_mustJoin == false) {
+                    // The TCP segment was not splitted.
+                    // We are done with this segment. Go back to 'ASS_IDLE'.
+                    soTAIF_Data.write(currAppChunk);
+                    ass_fsmState = ASS_IDLE;
+                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                }
+                else {
+                    // The TCP segment was splitted in two parts
+                    ass_memRdOffset = currAppChunk.getLen();
+                    // Always clear the last bit of the last chunk of 1st part
+                    currAppChunk.setTLast(0);
+                    if (ass_memRdOffset != 8) {
+                        // The last chunk of the 1st memory buffer is not fully populated.
+                        // Don't output anything here. Save the current chunk and goto 'TSS_JOIN_2ND'.
+                        // There, we will fetch more data to fill in the current chunk.
+                        ass_prevChunk = currAppChunk;
+                        ass_fsmState = ASS_JOIN_2ND_BUF;
+                    }
+                    else {
+                        // The last chunk of the 1st memory buffer is populated with
+                        // 8 valid bytes and is therefore also aligned.
+                        // Forward this chunk and goto 'TSS_FWD_2ND_BUF'.
+                        soTAIF_Data.write(currAppChunk);
+                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        ass_fsmState = ASS_FWD_2ND_BUF;
+                    }
+                }
+            }
+            else {
+                // Remain in this state and continue streaming the 1st memory buffer
+                soTAIF_Data.write(currAppChunk);
+                if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+             }
+        }
+        break;
+    case ASS_FWD_2ND_BUF:
+        //-- Forward all the data chunks of the 2nd memory buffer
+        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+            AxisApp currAppChunk = siMEM_RxP_Data.read();
+
+            soTAIF_Data.write(currAppChunk);
+            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+            if (currAppChunk.getTLast()) {
+                // We are done with the 2nd memory buffer
+                ass_fsmState = ASS_IDLE;
+            }
+        }
+        break;
+    case ASS_JOIN_2ND_BUF:
+        //-- Join the bytes from the 2nd memory buffer to the stream of bytes of
+        //-- the 1st memory buffer when the 1st buffer was not fully populated.
+        //-- The re-alignment occurs between the previously read chunk stored
+        //-- in 'tss_prevChunk' and the latest chunk stored in 'currAppChunk',
+        //-- and 'tss_memRdOffset' specifies the number of valid bytes in 'tss_prevChunk'.
+        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+            AxisApp currAppChunk = siMEM_RxP_Data.read();
+
+            AxisApp joinedChunk(0,0,0);  // [FIXME-Create a join method in AxisRaw]
+            // Set lower-part of the joined chunk with the last bytes of the previous chunk
+            joinedChunk.setLE_TData(ass_prevChunk.getLE_TData(((int)ass_memRdOffset*8)-1, 0),
+                                                              ((int)ass_memRdOffset*8)-1, 0);
+            joinedChunk.setLE_TKeep(ass_prevChunk.getLE_TKeep( (int)ass_memRdOffset   -1, 0),
+                                                               (int)ass_memRdOffset   -1, 0);
+            // Set higher part of the joined chunk with the first bytes of the current chunk
+            joinedChunk.setLE_TData(currAppChunk.getLE_TData( ARW   -1-((int)ass_memRdOffset*8), 0),
+                                                              ARW   -1,((int)ass_memRdOffset*8));
+            joinedChunk.setLE_TKeep(currAppChunk.getLE_TKeep((ARW/8)-1- (int)ass_memRdOffset, 0),
+                                                             (ARW/8)-1, (int)ass_memRdOffset);
+            if (currAppChunk.getLE_TKeep()[8-(int)ass_memRdOffset] == 0) {
+                // The entire current chunk fits into the remainder of the previous chunk.
+                // We are done with this 2nd memory buffer.
+                joinedChunk.setLE_TLast(TLAST);
+                ass_fsmState = ASS_IDLE;
+            }
+            else if (currAppChunk.getLE_TLast()) {
+                // This cannot be the last chunk because it doesn't fit into the
+                // available space of the previous chunk. Goto the 'ASS_RESIDUE'
+                // and handle the remainder of this data chunk
+                ass_fsmState = ASS_RESIDUE;
+            }
+
+            soTAIF_Data.write(joinedChunk);
+            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", joinedChunk); }
+
+            // Move remainder of current chunk to previous chunk
+            ass_prevChunk.setLE_TData(currAppChunk.getLE_TData(64-1, 64-(int)ass_memRdOffset*8),
+                                                               ((int)ass_memRdOffset*8)-1, 0);
+            ass_prevChunk.setLE_TKeep(currAppChunk.getLE_TKeep(8-1, 8-(int)ass_memRdOffset),
+                                                               (int)ass_memRdOffset-1, 0);
+        }
+        break;
+    case ASS_RESIDUE:
+        //-- Output the very last unaligned chunk
+        if (!soTAIF_Data.full()) {
+            AxisApp lastChunk = AxisApp(0, 0, TLAST);
+            lastChunk.setLE_TData(ass_prevChunk.getLE_TData(((int)ass_memRdOffset*8)-1, 0),
+                                                            ((int)ass_memRdOffset*8)-1, 0);
+            lastChunk.setLE_TKeep(ass_prevChunk.getLE_TKeep((int)ass_memRdOffset-1, 0),
+                                                            (int)ass_memRdOffset-1, 0);
+
+            soTAIF_Data.write(lastChunk);
+            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
+            ass_fsmState = ASS_IDLE;
+        }
+        break;
+    }
+
+    /*** OBSOLETE_20201016 *****************************************************
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { ASS_IDLE=0, ASS_STREAM, ASS_JOIN, ASS_STREAMMERGED, \
                             ASS_STREAMUNMERGED, ASS_RESIDUE} \
@@ -657,6 +834,7 @@ void pAppSegmentStitcher(
         }
         break;
     }
+    ****************************************************************************/
 }
 
 /*******************************************************************************
@@ -775,7 +953,7 @@ void rx_app_interface(
     #pragma HLS stream variable=ssRasToMrd_MemRdCmd depth=16
 
     //-- Rx Memory Reader (Mrd) ------------------------------------------------
-    static stream<StsBit>       ssMrdToAss_SplitSeg ("ssMrdToAss_SplitSeg");
+    static stream<FlagBool>     ssMrdToAss_SplitSeg ("ssMrdToAss_SplitSeg");
     #pragma HLS stream variable=ssMrdToAss_SplitSeg depth=16
 
     pRxAppStream(
@@ -785,7 +963,7 @@ void rx_app_interface(
             siRSt_RxSarRep,
             ssRasToMrd_MemRdCmd);
 
-    pMemoryReader(
+    pRxMemoryReader(
             ssRasToMrd_MemRdCmd,
             soMEM_RxP_RdCmd,
             ssMrdToAss_SplitSeg);

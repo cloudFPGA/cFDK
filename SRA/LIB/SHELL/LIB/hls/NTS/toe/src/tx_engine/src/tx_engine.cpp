@@ -276,7 +276,6 @@ void pMetaDataLoader(
                 // Construct address before modifying mdl_txSar.not_ackd
                 //  FYI - The TCP Tx buffers use up to 1GB (16Kx64KB). They are located at base@+1GB
                 TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
-                //OBSOLETE_20201012 memSegAddr(31, 30) = 0x01;
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0);
                 // Check length, if bigger than Usable Window or MMS
@@ -920,8 +919,8 @@ void pTcpSegStitcher(
     static enum FsmState {TSS_PSD_HDR=0, TSS_PSD_OPT, TSS_DATA,
                           TSS_FWD_1ST_BUF, TSS_FWD_2ND_BUF,
                           TSS_JOIN_2ND_BUF, TSS_RESIDUE } \
-                               tss_state=TSS_PSD_HDR;
-    #pragma HLS RESET variable=tss_state
+                               tss_fsmState=TSS_PSD_HDR;
+    #pragma HLS RESET variable=tss_fsmState
     static ap_uint<3>          tss_psdHdrChunkCount = 0;
     #pragma HLS RESET variable=tss_psdHdrChunkCount
 
@@ -933,7 +932,7 @@ void pTcpSegStitcher(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     bool                isShortCutData = false;
 
-    switch (tss_state) {
+    switch (tss_fsmState) {
     case TSS_PSD_HDR:
         //-- Read and forward the first 4 chunks from [Phc]
         if (!siPhc_PseudoHdr.empty() and !soSca_PseudoPkt.full()) {
@@ -943,10 +942,10 @@ void pTcpSegStitcher(
             if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currHdrChunk); }
             if (tss_psdHdrChunkCount == 3) {
                 if (currHdrChunk.getTcpCtrlSyn()) {
-                    tss_state = TSS_PSD_OPT;  // Segment is a SYN, handle MSS
+                    tss_fsmState = TSS_PSD_OPT;  // Segment is a SYN, handle MSS
                 }
                 else {
-                    tss_state = TSS_DATA;
+                    tss_fsmState = TSS_DATA;
                 }
                 tss_psdHdrChunkCount = 0;
             }
@@ -954,7 +953,7 @@ void pTcpSegStitcher(
                 tss_psdHdrChunkCount++;
             }
             if (currHdrChunk.getTLast()) {
-                tss_state = TSS_PSD_HDR;
+                tss_fsmState = TSS_PSD_HDR;
                 tss_psdHdrChunkCount = 0;
             }
         }
@@ -969,22 +968,22 @@ void pTcpSegStitcher(
             if (not currHdrChunk.getTLast()) {
                 printFatal(myName, "Pseudo Header is malformed...\n");
             }
-            tss_state = TSS_PSD_HDR;
+            tss_fsmState = TSS_PSD_HDR;
         }
         break;
     case TSS_DATA:
          //-- Handle the very 1st data chunk from the 1st memory buffer
          if (!siMEM_TxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soSca_PseudoPkt.full()) {
              siMrd_SplitSegFlag.read(tss_mustJoin);
-
              AxisApp currAppChunk = siMEM_TxP_Data.read();
+
              if (currAppChunk.getTLast()) {
                  // We are done with the 1st memory buffer
                  if (tss_mustJoin == false) {
                      // The TCP segment was not splitted.
                      // We are done with this segment. Go back to 'TSS_PSD_HDR'.
                      soSca_PseudoPkt.write((AxisPsd4)currAppChunk);
-                     tss_state = TSS_PSD_HDR;
+                     tss_fsmState = TSS_PSD_HDR;
                      if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
                  }
                  else {
@@ -996,7 +995,7 @@ void pTcpSegStitcher(
                          // Don't output anything here. Save the current chunk and goto 'TSS_JOIN_2ND'.
                          // There, we will fetch more data to fill in the current chunk.
                          tss_prevChunk = currAppChunk;
-                         tss_state = TSS_JOIN_2ND_BUF;
+                         tss_fsmState = TSS_JOIN_2ND_BUF;
                      }
                      else {
                          // The last chunk of the 1st memory buffer is populated with
@@ -1004,7 +1003,7 @@ void pTcpSegStitcher(
                          // Forward this chunk and goto 'TSS_FWD_2ND_BUF'.
                          soSca_PseudoPkt.write((AxisPsd4)currAppChunk);
                          if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
-                         tss_state = TSS_FWD_2ND_BUF;
+                         tss_fsmState = TSS_FWD_2ND_BUF;
                      }
                  }
              }
@@ -1012,7 +1011,7 @@ void pTcpSegStitcher(
                 // The 1st memory buffer contains more than one chunk
                 soSca_PseudoPkt.write((AxisPsd4)currAppChunk);
                 if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
-                tss_state = TSS_FWD_1ST_BUF;
+                tss_fsmState = TSS_FWD_1ST_BUF;
              }
          }
          break;
@@ -1027,7 +1026,7 @@ void pTcpSegStitcher(
                     // The TCP segment was not splitted.
                     // We are done with this segment. Go back to 'TSS_PSD_HDR'.
                     soSca_PseudoPkt.write((AxisPsd4)currAppChunk);
-                    tss_state = TSS_PSD_HDR;
+                    tss_fsmState = TSS_PSD_HDR;
                     if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
                 }
                 else {
@@ -1040,7 +1039,7 @@ void pTcpSegStitcher(
                         // Don't output anything here. Save the current chunk and goto 'TSS_JOIN_2ND'.
                         // There, we will fetch more data to fill in the current chunk.
                         tss_prevChunk = currAppChunk;
-                        tss_state = TSS_JOIN_2ND_BUF;
+                        tss_fsmState = TSS_JOIN_2ND_BUF;
                     }
                     else {
                         // The last chunk of the 1st memory buffer is populated with
@@ -1048,7 +1047,7 @@ void pTcpSegStitcher(
                         // Forward this chunk and goto 'TSS_FWD_2ND_BUF'.
                         soSca_PseudoPkt.write((AxisPsd4)currAppChunk);
                         if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
-                        tss_state = TSS_FWD_2ND_BUF;
+                        tss_fsmState = TSS_FWD_2ND_BUF;
                     }
                 }
             }
@@ -1068,7 +1067,7 @@ void pTcpSegStitcher(
             if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", currAppChunk); }
             if (currAppChunk.getTLast()) {
                 // We are done with the 2nd memory buffer
-                tss_state = TSS_PSD_HDR;
+                tss_fsmState = TSS_PSD_HDR;
             }
         }
         break;
@@ -1099,13 +1098,13 @@ void pTcpSegStitcher(
                 // The entire current chunk fits into the remainder of the previous chunk.
                 // We are done with this 2nd memory buffer.
                 joinedChunk.setLE_TLast(TLAST);
-                tss_state = TSS_PSD_HDR;
+                tss_fsmState = TSS_PSD_HDR;
             }
             else if (currAppChunk.getLE_TLast()) {
                 // This cannot be the last chunk because it doesn't fit into the
                 // available space of the previous chunk. Goto the 'TSS_RESIDUE'
                 // and handle the remainder of this data chunk
-                tss_state = TSS_RESIDUE;
+                tss_fsmState = TSS_RESIDUE;
             }
 
             soSca_PseudoPkt.write(joinedChunk);
@@ -1133,113 +1132,10 @@ void pTcpSegStitcher(
 
             soSca_PseudoPkt.write(lastChunk);
             if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", lastChunk); }
-            tss_state = TSS_PSD_HDR;
+            tss_fsmState = TSS_PSD_HDR;
         }
         break;
 
-    /*** OBSOLETE_20201009 ****************************
-        //-- Read the data chunks from the 1st memory part
-        if (!siMEM_TxP_Data.empty() and !soSca_PseudoPkt.full() and
-            ((tss_didRdSplitSegSts) or (!tss_didRdSplitSegSts and !siMrd_SplitSegFlag.empty()))) {
-            if (tss_didRdSplitSegSts == false) {
-                // Read the Split Segment Status information
-                //  If 'true', the TCP segment was splitted and stored as 2 memory buffers.
-                tss_didRdSplitSegSts = true;
-                tss_splitSegFlag = siMrd_SplitSegFlag.read();
-            }
-            siMEM_TxP_Data.read(tss_currChunk);
-            if (tss_currChunk.getTLast()) {
-                if (!tss_splitSegFlag) {
-                    // The TCP segment was not splitted and this is the last
-                    // chunk of the 1st memory buffer. We are done. Go back to 'TSS_PSD_HDR'.
-                    tss_state = TSS_PSD_HDR;
-                    soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                    if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
-                }
-                else {
-                    //  The TCP segment was splitted in two parts.
-                    tss_memRdOffset = tss_currChunk.getLen();
-                    tss_splitSegFlag = false;
-                    tss_currChunk.setTLast(0);
-                    //OBSOLETE_20200722 if (tss_currChunk.getLE_TKeep() != 0xFF) {
-                    if (tss_memRdOffset != 8) {
-                        // The last chunk of the 1st memory buffer is not fully
-                        // populated. Don't output anything here and go to 'TSS_JOIN_2ND'.
-                        // There, we will fetch more data to fill in the current chunk.
-                        tss_state = TSS_ALIGN_2ND_BUF;
-                    }
-                    else {
-                        // The last chunk of the 1st memory buffer is populated with
-                        // 8 valid bytes and is therefore also aligned.
-                        // We are done with the 1st memory buffer.
-                        soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                        if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
-                        tss_state = TSS_2ND_BUF;
-                    }
-                }
-            }
-            else {
-                // Continue streaming the 1st memory buffer
-                soSca_PseudoPkt.write((AxisPsd4)tss_currChunk);
-                if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
-            }
-        }
-        ***************************************************/
-    /**** OBSOLETE_20201009 ************************
-    case TSS_ALIGN_2ND_BUF:
-        //-- Join the bytes from the 2nd memory buffer to the stream of bytes of
-        //-- the 1st memory buffer when the 1st buffer was not fully populated.
-        //-- The re-alignment occurs between the previously read chunk stored
-        //-- in 'prevChunk' and the latest chunk stored in 'tss_currChunk'.
-        if (!siMEM_TxP_Data.empty() && !soSca_PseudoPkt.full()) {
-            // Save the previous data chunk
-            AxisPsd4 prevChunk = AxisPsd4(tss_currChunk.getLE_TData(), 0xFF, 0);
-            // Read the next chunk from the second memory buffer
-            tss_currChunk = siMEM_TxP_Data.read();
-            //OBSOLETE_20200706 currPktChunk.tdata(63, (tss_memRdOffset * 8)) = segChunk.tdata(((8 - tss_memRdOffset) * 8) - 1, 0);
-            prevChunk.setLE_TData(tss_currChunk.getLE_TData(((8-(int)tss_memRdOffset)*8)-1, 0),
-                                                            63, (int)tss_memRdOffset*8);
-            //OBSOLETE_20200706 ap_uint<4> byteCounter = keepToLen(tss_currChunk.tkeep);
-            ap_uint<4> byteCounter = tss_currChunk.getLen();
-            //OBSOLETE_20200722 if (byteCounter < (8 - tss_memRdOffset)) {
-            if ((byteCounter + tss_memRdOffset) <= 8) {
-                // The entire current chunk fits into the reminder of the previous chunk.
-                // We are done with this 2nd memory buffer.
-                //OBSOLETE_20200706 prevChunk.tkeep = lenToKeep(byteCounter + tss_memRdOffset);
-                prevChunk.setLE_TKeep(lenToLE_tKeep(byteCounter + tss_memRdOffset));
-                prevChunk.setLE_TLast(TLAST);
-                tss_state = TSS_PSD_HDR;
-            }
-            else if (tss_currChunk.getLE_TLast()) {
-                // This cannot be the last chunk because it doesn't fit into the
-                // available space of the current chunk. Goto the 'TSS_RESIDUE'
-                // and handle the remainder of this data chunk
-                tss_state = TSS_RESIDUE;
-            }
-            //OBSOLETE_20200721 else {
-            //OBSOLETE_20200721     tss_state = 4;
-            //OBSOLETE_20200721 }
-            soSca_PseudoPkt.write(prevChunk);
-            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
-        }
-        break;
-        **********************************/
-    /*** OBSOLETE_20201009 *************
-     case TSS_RESIDUE:
-        //-- Output the very last unaligned chunk
-        if (!soSca_PseudoPkt.full()) {
-            //OBSOLETE_20200706 ap_uint<4> keepCounter = keepToLen(segChunk.tkeep) - (8 - tss_memRdOffset);
-            ap_uint<4> keepCounter = tss_currChunk.getLen() - (8 - tss_memRdOffset);
-            AxisPsd4 lastChunk = AxisPsd4(0, lenToLE_tKeep(keepCounter), TLAST);
-            //OBSOLETE_20200706 currPktChunk.tdata((tss_memRdOffset * 8) - 1, 0) = segChunk.tdata(63, (8 - tss_memRdOffset) *8);
-            lastChunk.setLE_TData(tss_currChunk.getLE_TData(63, (8-(int)tss_memRdOffset)*8),
-                                  ((int)tss_memRdOffset*8)-1, 0);
-            soSca_PseudoPkt.write(lastChunk);
-            if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", tss_currChunk); }
-            tss_state = TSS_PSD_HDR;
-        }
-        break;
-        **************************************/
     #if (TCP_NODELAY)
     case 6:
         if (!txApp2txEng_data_stream.empty() && !soSca_PseudoPkt.full()) {
@@ -1256,7 +1152,7 @@ void pTcpSegStitcher(
         if (!txEng_isDDRbypass.empty()) {
             txEng_isDDRbypass.read(isShortCutData);
             if (isShortCutData) {
-                tss_state = 6;
+                tss_fsmState = 6;
             }
             else {
                 TSS_1ST_BUF;
@@ -1483,7 +1379,7 @@ void pIpPktStitcher(
 }
 
 /*******************************************************************************
- * @brief Memory Reader (Mrd)
+ * @brief Tx Memory Reader (Mrd)
  *
  * @param[in]  siMdl_BufferRdCmd  Buffer read command from Meta Data Loader (Mdl).
  * @param[out] soMEM_TxpRdCmd     Memory read command to the DRAM Memory (MEM).
@@ -1498,7 +1394,7 @@ void pIpPktStitcher(
  *  flagged by the signal 'soTss_SplitMemAcc'.
  *
  *******************************************************************************/
-void pMemoryReader(
+void pTxMemoryReader(
         stream<DmCmd>       &siMdl_BufferRdCmd,
         stream<DmCmd>       &soMEM_TxpRdCmd,
         stream<FlagBool>    &soTss_SplitMemAcc)
@@ -1523,12 +1419,12 @@ void pMemoryReader(
     case MRD_1ST_ACCESS:
         if (!siMdl_BufferRdCmd.empty() and !soTss_SplitMemAcc.full() and !soMEM_TxpRdCmd.full()) {
             siMdl_BufferRdCmd.read(mrd_memRdCmd);
+
             if ((mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.bbt) > TOE_TX_BUFFER_SIZE) {
                 // This segment was broken in two memory accesses because TCP Tx memory buffer wrapped around
                 mrd_firstAccLen = TOE_TX_BUFFER_SIZE - mrd_memRdCmd.saddr;
                 mrd_fsmState = MRD_2ND_ACCESS;
 
-                //OBSOLETE_20201014 assessSize(myName, soTss_SplitMemAcc, "soTss_SplitMemAcc", 32); // [FIXME-Use constant for the length]
                 soMEM_TxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_firstAccLen));
                 soTss_SplitMemAcc.write(true);
                 mrd_fsmState = MRD_2ND_ACCESS;
@@ -1553,12 +1449,15 @@ void pMemoryReader(
         break;
     case MRD_2ND_ACCESS:
         if (!soMEM_TxpRdCmd.full()) {
-            soMEM_TxpRdCmd.write(DmCmd(TOE_TX_MEMORY_BASE, mrd_memRdCmd.bbt - mrd_firstAccLen));
+            // Update the command to account for the Tx buffer wrap around
+            mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+            soMEM_TxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_memRdCmd.bbt - mrd_firstAccLen));
             mrd_fsmState = MRD_1ST_ACCESS;
 
             if (DEBUG_LEVEL & TRACE_MRD) {
                 printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                          mrd_debugCounter, 0, (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
+                          mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(),
+                         (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
                 mrd_debugCounter++;
             }
         }
@@ -1719,7 +1618,7 @@ void tx_engine(
             ssMdlToSps_RstSockPair,
             soEVe_RxEventSig);
     
-    pMemoryReader(
+    pTxMemoryReader(
             ssMdlToMrd_BufferRdCmd,
             soMEM_Txp_RdCmd,
             ssMrdToTss_SplitMemAcc);

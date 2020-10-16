@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_RXMEM | TRACE_IPRX)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
