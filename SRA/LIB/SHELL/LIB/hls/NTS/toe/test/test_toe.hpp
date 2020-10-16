@@ -50,9 +50,15 @@
 //-- TESTBENCH GLOBAL DEFINES
 //    'STARTUP_DELAY' is used to delay the start of the [TB] functions.
 //---------------------------------------------------------
-#define TB_MAX_SIM_CYCLES 2500000
 #define TB_STARTUP_DELAY  (TOE_SIZEOF_LISTEN_PORT_TABLE)
-#define TB_GRACE_TIME     25   // Adds some cycles to drain the DUT before exiting
+#define TB_GRACE_TIME     2500  // Adds some cycles to drain the DUT before exiting
+
+
+//#define TB_MAX_SIM_CYCLES 2500000
+//#define TB_MIN_SIM_CYCLES 1000
+//OBSOLETE_20201016 #define TB_STARTUP_DELAY  (TOE_SIZEOF_LISTEN_PORT_TABLE)
+#define TB_STARTUP_TIME     25
+
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
@@ -102,7 +108,8 @@ enum TestingMode { RX_MODE='0', TX_MODE='1', BIDIR_MODE='2', ECHO_MODE='3' };
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 unsigned int    gSimCycCnt    = 0;
-unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + 1000;
+unsigned int    gMaxSimCycles = TB_STARTUP_DELAY + TB_GRACE_TIME;
+//unsigned int    gMaxSimCycles = TB_MIN_SIM_CYCLES + TB_GRACE_TIME;
 
 Ip4Addr         gFpgaIp4Addr  = DEFAULT_FPGA_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port

@@ -136,8 +136,8 @@ class SimIp4Packet {
     int checksumCalculation(deque<AxisPsd4> pseudoPacket) {
         ap_uint<32> ipChecksum = 0;
         for (int i=0; i<pseudoPacket.size(); ++i) {
-            // [FIXME-TODO: Do not add the bytes for which tkeep is zero]
-            ap_uint<64> tempInput = (pseudoPacket[i].getLE_TData().range( 7,  0),
+            ap_uint<64> tempInput = 0;
+            ap_uint<64> toto      = (pseudoPacket[i].getLE_TData().range( 7,  0),
                                      pseudoPacket[i].getLE_TData().range(15,  8),
                                      pseudoPacket[i].getLE_TData().range(23, 16),
                                      pseudoPacket[i].getLE_TData().range(31, 24),
@@ -145,6 +145,11 @@ class SimIp4Packet {
                                      pseudoPacket[i].getLE_TData().range(47, 40),
                                      pseudoPacket[i].getLE_TData().range(55, 48),
                                      pseudoPacket[i].getLE_TData().range(63, 56));
+            for (int b=0; b<8; b++) {
+                if (pseudoPacket[i].getLE_TKeep()[b]) {
+                    tempInput(63-((b*8)+0), 63-((b*8)+7)) = pseudoPacket[i].getLE_TData().range((b*8)+7, (b*8)+0);
+                }
+            }
             ipChecksum = ((((ipChecksum +
                              tempInput.range(63, 48)) + tempInput.range(47, 32)) +
                              tempInput.range(31, 16)) + tempInput.range(15, 0));
@@ -169,13 +174,13 @@ class SimIp4Packet {
         int      tcpDataLen = ipPktLen - (4 * this->getIpInternetHeaderLength());
 
         // Create 1st pseudo-header chunk - [IP_SA|IP_DA]
-        AxisPsd4 firstAxisPsd4(0, 0, 0);
+        AxisPsd4 firstAxisPsd4(0, 0xFF, 0);
         firstAxisPsd4.setPsd4SrcAddr(this->getIpSourceAddress());
         firstAxisPsd4.setPsd4DstAddr(this->getIpDestinationAddress());
         tcpBuffer.push_back(firstAxisPsd4);
 
         // Create 2nd pseudo-header chunk - [0x00|Prot|Length|TC_SP|TCP_DP]
-        AxisPsd4 secondAxisPsd4(0, 0, 0);
+        AxisPsd4 secondAxisPsd4(0, 0xFF, 0);
         secondAxisPsd4.setPsd4ResBits(0x00);
         secondAxisPsd4.setPsd4Prot(this->getIpProtocol());
         secondAxisPsd4.setPsd4Len(tcpDataLen);

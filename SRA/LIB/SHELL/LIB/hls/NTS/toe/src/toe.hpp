@@ -88,8 +88,6 @@ static const Ly4Len THEIR_MSS = ZYC2_MSS; // 1352
 #define TOE_FEATURE_USED_FOR_DEBUGGING  0
 
 
-
-
 extern uint32_t      packetCounter;  // [FIXME] Remove
 extern uint32_t      idleCycCnt;     // [FIXME] Remove
 extern unsigned int  gSimCycCnt;     // [FIXME] Remove

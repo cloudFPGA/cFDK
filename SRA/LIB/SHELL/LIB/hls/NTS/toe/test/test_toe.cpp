@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_RXMEM | TRACE_IPRX)
 
 
 /*******************************************************************************
@@ -2389,7 +2389,8 @@ int main(int argc, char *argv[]) {
     bool     testRxPath      = false; // Indicates if the Rx path is to be tested.
     bool     testTxPath      = false; // Indicates if the Tx path is to be tested.
 
-    int      startUpDelay    = TB_GRACE_TIME;
+    //OBSOLETE_20201016 int      startUpDelay    = TB_GRACE_TIME;
+    int      startUpDelay    = TB_STARTUP_TIME;
 
     char     mode            = *argv[1];
     char     cCurrPath[FILENAME_MAX];
@@ -2450,7 +2451,8 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     if (argc < 3) {
         printError(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<TestName>\n \t\t mode(1) siTAIF_<TestName>\n \t\t mode(2) siIPRX_<TestName> siTAIF_<TestName>\n");
-        return -1;
+        gFatalError = true;
+        return 1;
     }
     printInfo(THIS_NAME, "This run executes in mode \'%c\'.\n", mode);
 
@@ -2691,8 +2693,7 @@ int main(int argc, char *argv[]) {
         //-- EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
 
-    } while (  (sTOE_Ready == 0) or
-              ((gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10)) );
+    } while ( (gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10) );
 
     //---------------------------------
     //-- CLOSING OPEN FILES

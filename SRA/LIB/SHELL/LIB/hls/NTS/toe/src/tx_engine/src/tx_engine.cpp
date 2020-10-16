@@ -1486,7 +1486,7 @@ void pIpPktStitcher(
  * @brief Memory Reader (Mrd)
  *
  * @param[in]  siMdl_BufferRdCmd  Buffer read command from Meta Data Loader (Mdl).
- * @param[out] soMEM_Txp_RdCmd    Memory read command to the DRAM Memory (MEM).
+ * @param[out] soMEM_TxpRdCmd     Memory read command to the DRAM Memory (MEM).
  * @param[out] soTss_SplitMemAcc  Splitted memory access to Tcp Segment Stitcher (Tss).
  *
  * @details
@@ -1500,7 +1500,7 @@ void pIpPktStitcher(
  *******************************************************************************/
 void pMemoryReader(
         stream<DmCmd>       &siMdl_BufferRdCmd,
-        stream<DmCmd>       &soMEM_Txp_RdCmd,
+        stream<DmCmd>       &soMEM_TxpRdCmd,
         stream<FlagBool>    &soTss_SplitMemAcc)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -1521,16 +1521,17 @@ void pMemoryReader(
 
     switch (mrd_fsmState) {
     case MRD_1ST_ACCESS:
-        if (!siMdl_BufferRdCmd.empty() and !soMEM_Txp_RdCmd.full()) {
+        if (!siMdl_BufferRdCmd.empty() and !soTss_SplitMemAcc.full() and !soMEM_TxpRdCmd.full()) {
             siMdl_BufferRdCmd.read(mrd_memRdCmd);
             if ((mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.bbt) > TOE_TX_BUFFER_SIZE) {
-                // This segment was broken in two memory accesses because TCP Tx memory buffer wraps around
+                // This segment was broken in two memory accesses because TCP Tx memory buffer wrapped around
                 mrd_firstAccLen = TOE_TX_BUFFER_SIZE - mrd_memRdCmd.saddr;
                 mrd_fsmState = MRD_2ND_ACCESS;
 
-                assessSize(myName, soTss_SplitMemAcc, "soTss_SplitMemAcc", 32); // [FIXME-Use constant for the length]
-                soMEM_Txp_RdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_firstAccLen));
+                //OBSOLETE_20201014 assessSize(myName, soTss_SplitMemAcc, "soTss_SplitMemAcc", 32); // [FIXME-Use constant for the length]
+                soMEM_TxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_firstAccLen));
                 soTss_SplitMemAcc.write(true);
+                mrd_fsmState = MRD_2ND_ACCESS;
 
                 if (DEBUG_LEVEL & TRACE_MRD) {
                     printInfo(myName, "TCP Tx memory buffer wraps around: This segment is broken in two memory accesses.\n");
@@ -1539,7 +1540,7 @@ void pMemoryReader(
                 }
             }
             else {
-                soMEM_Txp_RdCmd.write(DmCmd(mrd_memRdCmd));
+                soMEM_TxpRdCmd.write(mrd_memRdCmd);
                 soTss_SplitMemAcc.write(false);
 
                 if (DEBUG_LEVEL & TRACE_MRD) {
@@ -1551,13 +1552,15 @@ void pMemoryReader(
         }
         break;
     case MRD_2ND_ACCESS:
-        soMEM_Txp_RdCmd.write(DmCmd(TOE_TX_MEMORY_BASE, mrd_memRdCmd.bbt - mrd_firstAccLen));
-        mrd_fsmState = MRD_1ST_ACCESS;
+        if (!soMEM_TxpRdCmd.full()) {
+            soMEM_TxpRdCmd.write(DmCmd(TOE_TX_MEMORY_BASE, mrd_memRdCmd.bbt - mrd_firstAccLen));
+            mrd_fsmState = MRD_1ST_ACCESS;
 
-        if (DEBUG_LEVEL & TRACE_MRD) {
-            printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                      mrd_debugCounter, 0, (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
-            mrd_debugCounter++;
+            if (DEBUG_LEVEL & TRACE_MRD) {
+                printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                          mrd_debugCounter, 0, (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
+                mrd_debugCounter++;
+            }
         }
         break;
     }

@@ -556,20 +556,25 @@ void pStreamMetaLoader(
 /*******************************************************************************
  * @brief Memory Writer (Mwr)
  *
- * @param[in]  siSlg_Data      TCP data stream from SegmentLengthGenerator (Slg).
- * @param[in]  siSml_SegMeta   Segment memory metadata from StreamMetaLoader (Sml).
- * @param[out] soMEM_TxP_WrCmd Tx memory write command to [MEM].
- * @param[out] soMEM_TxP_Data  Tx memory data to [MEM].
+ * @param[in]  siSlg_Data    TCP data stream from SegmentLengthGenerator (Slg).
+ * @param[in]  siSml_SegMeta Segment memory metadata from StreamMetaLoader (Sml).
+ * @param[out] soMEM_WrCmd   Tx memory write command to [MEM].
+ * @param[out] soMEM_WrData  Tx memory write data to [MEM].
  *
  * @details
- *   This process writes the incoming TCP segment into the external DRAM, unless
- *    the state machine of the MetaDataLoader (Sml) decides to drop the segment.
+ *  This process writes the incoming TCP segment into the external DRAM, unless
+ *   the state machine of the MetaDataLoader (Sml) decides to drop the segment.
+ *  The Tx buffer memory is organized and managed as a circular buffer and it
+ *   may happen that the segment to be transmitted does not fit into the remain
+ *   memory buffer space because the memory pointer needs to wrap around. In
+ *   such a case, the incoming segment is broken down and written into physical
+ *   DRAM as two memory buffers.
  *******************************************************************************/
 void pMemWriter(
         stream<AxisApp>     &siSlg_Data,
         stream<SegMemMeta>  &siSml_SegMeta,
-        stream<DmCmd>       &soMEM_TxP_WrCmd,
-        stream<AxisApp>     &soMEM_TxP_Data)
+        stream<DmCmd>       &soMEM_WrCmd,
+        stream<AxisApp>     &soMEM_WrData)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -580,14 +585,12 @@ void pMemWriter(
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { MWR_IDLE=0,      MWR_DROP,
                             MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
-                            MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF,
-                            MWR_RESIDUE } \
+                            MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF, MWR_RESIDUE } \
                                  mwr_fsmState=MWR_IDLE;
     #pragma HLS RESET variable = mwr_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static SegMemMeta    mwr_segMemMeta;
-    static bool          mwr_segMustBeSplitted;
     static DmCmd         mwr_memWrCmd;
     static AxisApp       mwr_currChunk;
     static TxBufPtr      mwr_firstAccLen;
@@ -601,7 +604,7 @@ void pMemWriter(
 
     switch (mwr_fsmState) {
     case MWR_IDLE:
-        if (!siSml_SegMeta.empty() && !soMEM_TxP_WrCmd.full()) {
+        if (!siSml_SegMeta.empty() && !soMEM_WrCmd.full()) {
             siSml_SegMeta.read(mwr_segMemMeta);
             if (mwr_segMemMeta.drop) {
                 mwr_fsmState = MWR_DROP;
@@ -615,15 +618,13 @@ void pMemWriter(
                 mwr_memWrCmd = DmCmd(memSegAddr, mwr_segMemMeta.len);
                 if ((mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_TX_BUFFER_SIZE) {
                     // This segment must be broken in two memory accesses because TCP Tx memory buffer wraps around
-                    mwr_segMustBeSplitted = true;
                     if (DEBUG_LEVEL & TRACE_MWR) {
                         printInfo(myName, "TCP Tx memory buffer wraps around: This segment must be broken in two memory accesses.\n");
                     }
                     mwr_fsmState = MWR_SPLIT_1ST_CMD;
                 }
                 else {
-                    mwr_segMustBeSplitted = false;
-                    soMEM_TxP_WrCmd.write(mwr_memWrCmd);
+                    soMEM_WrCmd.write(mwr_memWrCmd);
                     mwr_firstAccLen = mwr_memWrCmd.bbt;
                     mwr_nrBytesToWr = mwr_firstAccLen;
                     mwr_fsmState = MWR_FWD_ALIGNED;
@@ -634,7 +635,6 @@ void pMemWriter(
                     }
                 }
             }
-            break;
         }
         break;
     case MWR_DROP:
@@ -647,78 +647,77 @@ void pMemWriter(
          }
         break;
     case MWR_SPLIT_1ST_CMD:
-        mwr_firstAccLen   = TOE_TX_BUFFER_SIZE - mwr_memWrCmd.saddr;
-        mwr_nrBytesToWr   = mwr_firstAccLen;
-        soMEM_TxP_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
-        if (DEBUG_LEVEL & TRACE_MWR) {
+        if (!soMEM_WrCmd.full()) {
+            mwr_firstAccLen   = TOE_TX_BUFFER_SIZE - mwr_memWrCmd.saddr;
+            mwr_nrBytesToWr   = mwr_firstAccLen;
+            soMEM_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
             if (DEBUG_LEVEL & TRACE_MWR) {
                 printInfo(myName, "Issuing 1st memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                          mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_firstAccLen.to_uint());
+                    mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_firstAccLen.to_uint());
             }
+            mwr_fsmState = MWR_FWD_1ST_BUF;
         }
-        mwr_fsmState = MWR_FWD_1ST_BUF;
         break;
     case MWR_FWD_ALIGNED:
-        //-- Default streaming state used to forward segments or splitted buffers
-        //-- that are aligned with the width of the Axis raw
-        if (!siSlg_Data.empty() and !soMEM_TxP_Data.full()) {
-             AxisApp memChunk = siSlg_Data.read();
-
-             if (!mwr_segMemMeta.drop) {
-                 soMEM_TxP_Data.write(memChunk);
-             }
-             if (memChunk.getTLast()) {
+        if (!siSlg_Data.empty() and !soMEM_WrData.full()) {
+            //-- Default streaming state used to forward segments or splitted buffers
+            //-- that are aligned with to the Axis raw width
+            AxisApp memChunk = siSlg_Data.read();
+            soMEM_WrData.write(memChunk);
+            if (memChunk.getTLast()) {
                  mwr_fsmState = MWR_IDLE;
-             }
+            }
          }
         break;
     case MWR_FWD_1ST_BUF:
-        //-- Create 1st splitted data buffer and stream it to memory
-        if (!siSlg_Data.empty() and !soMEM_TxP_Data.full()) {
+        if (!siSlg_Data.empty() and !soMEM_WrData.full()) {
+            //-- Create 1st splitted data buffer and stream it to memory
             siSlg_Data.read(mwr_currChunk);
 
             AxisApp memChunk = mwr_currChunk;
             if (mwr_nrBytesToWr > (ARW/8)) {
                 mwr_nrBytesToWr -= (ARW/8);
             }
-            else if (mwr_nrBytesToWr == (ARW/8)) {
-                memChunk.setLE_TLast(TLAST);
+            else if (!soMEM_WrCmd.full()) {
+                if (mwr_nrBytesToWr == (ARW/8)) {
+                    memChunk.setLE_TLast(TLAST);
 
-                mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
-                mwr_memWrCmd.bbt -= mwr_firstAccLen;
-                soMEM_TxP_WrCmd.write(mwr_memWrCmd);
-                if (DEBUG_LEVEL & TRACE_MWR) {
-                    printAxisRaw(myName, "soMEM_TxP_Data =", memChunk);
-                    printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
-
-                    mwr_debugCounter++;
+                    mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    soMEM_WrCmd.write(mwr_memWrCmd);
+                    if (DEBUG_LEVEL & TRACE_MWR) {
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        mwr_debugCounter++;
+                    }
+                    mwr_fsmState = MWR_FWD_ALIGNED;
                 }
-                mwr_fsmState = MWR_FWD_ALIGNED;
-            }
-            else {
-                memChunk.setLE_TLast(TLAST);
-                memChunk.setLE_TKeep(lenToLE_tKeep(mwr_nrBytesToWr));
+                else {
+                    memChunk.setLE_TLast(TLAST);
+                    memChunk.setLE_TKeep(lenToLE_tKeep(mwr_nrBytesToWr));
+                    #ifndef __SYNTHESIS__
+                    memChunk.setLE_TData(0, (ARW-1), ((int)mwr_nrBytesToWr*8));
+                    #endif
 
-                mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
-                mwr_memWrCmd.bbt -= mwr_firstAccLen;
-                soMEM_TxP_WrCmd.write(mwr_memWrCmd);
-                if (DEBUG_LEVEL & TRACE_MWR) {
-                    printAxisRaw(myName, "soMEM_TxP_Data =", memChunk);
-                    printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
-                    mwr_debugCounter++;
+                    mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    soMEM_WrCmd.write(mwr_memWrCmd);
+                    if (DEBUG_LEVEL & TRACE_MWR) {
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        mwr_debugCounter++;
+                    }
+                    mwr_splitOffset = (ARW/8) - mwr_nrBytesToWr;
+                    mwr_fsmState = MWR_FWD_2ND_BUF;
                 }
-                mwr_splitOffset = (ARW/8)- mwr_nrBytesToWr;
-                mwr_fsmState = MWR_FWD_2ND_BUF;
-
             }
-            soMEM_TxP_Data.write(memChunk);
+            soMEM_WrData.write(memChunk);
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", memChunk); }
         }
         break;
     case MWR_FWD_2ND_BUF:
-        //-- Alternate streaming state used to re-align a splitted second buffer
-        if (!siSlg_Data.empty() && !soMEM_TxP_Data.full()) {
+        if (!siSlg_Data.empty() && !soMEM_WrData.full()) {
+            //-- Alternate streaming state used to re-align a splitted second buffer
             AxisApp prevChunk = mwr_currChunk;
             mwr_currChunk = siSlg_Data.read();
 
@@ -733,7 +732,9 @@ void pMemWriter(
                                                               (ARW  )                         -1, ((int)mwr_splitOffset*8));
             joinedChunk.setLE_TKeep(mwr_currChunk.getLE_TKeep((ARW/8)-((int)mwr_splitOffset  )-1, 0),
                                                               (ARW/8)                         -1, ((int)mwr_splitOffset  ));
-            if (mwr_currChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
+            /*** OBSOLETE_20201016 ************************
+            //OBSOLETE_20201051 if (mwr_currChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
+            if (joinedChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
                 // The entire current chunk and the remainder of the previous chunk
                 // fit into a single chunk. We are done with this 2nd memory buffer.
                 joinedChunk.setLE_TLast(TLAST);
@@ -745,25 +746,44 @@ void pMemWriter(
                 // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
                 mwr_fsmState = MWR_RESIDUE;
             }
-            soMEM_TxP_Data.write(joinedChunk);
+            ***********************************************/
+            if (mwr_currChunk.getLE_TLast()) {
+                if (mwr_currChunk.getLen() > mwr_nrBytesToWr) {
+                    // This cannot be the last chunk because the current one plus
+                    // the remainder of the previous one do not fit into a single chunk.
+                    // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
+                    mwr_fsmState = MWR_RESIDUE;
+                }
+                else {
+                    // The entire current chunk and the remainder of the previous chunk
+                    // fit into a single chunk. We are done with this 2nd memory buffer.
+                    joinedChunk.setLE_TLast(TLAST);
+                    mwr_fsmState = MWR_IDLE;
+                }
+            }
+            soMEM_WrData.write(joinedChunk);
             if (DEBUG_LEVEL & TRACE_MWR) {
-                printAxisRaw(myName, "soMEM_TxP_Data =", joinedChunk);
+                printAxisRaw(myName, "soMEM_WrData =", joinedChunk);
             }
         }
         break;
     case MWR_RESIDUE:
-        //-- Output the very last unaligned chunk
-        if (!soMEM_TxP_Data.full()) {
+        if (!soMEM_WrData.full()) {
+            //-- Output the very last unaligned chunk
             AxisApp prevChunk = mwr_currChunk;
             AxisApp lastChunk(0,0,0);
 
             // Set lower-part of the last chunk with the last bytes of the previous chunk
+            //OBSOLETE_20201051 lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
+            //OBSOLETE_20201051                                                        ((ARW  )-((int)mwr_splitOffset*8)-1), 0);
+            //OBSOLETE_20201051 lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
+            //OBSOLETE_20201051                                                        ((ARW/8)-((int)mwr_splitOffset  )-1), 0);
             lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
-                                                                   ((ARW  )-((int)mwr_splitOffset*8)-1), 0);
+                                                                            ((int)mwr_splitOffset*8)-1, 0);
             lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
-                                                                   ((ARW/8)-((int)mwr_splitOffset  )-1), 0);
+                                                                            ((int)mwr_splitOffset  )-1, 0);
             lastChunk.setLE_TLast(TLAST);
-            soMEM_TxP_Data.write(lastChunk);
+            soMEM_WrData.write(lastChunk);
             if (DEBUG_LEVEL & TRACE_MWR) {
                 printAxisRaw(myName, "soMEM_TxP_Data =", lastChunk);
             }

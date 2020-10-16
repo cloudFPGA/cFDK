@@ -1,5 +1,5 @@
 # ########################################################################################
-# @file  : ipRx_OnePkt160.dat
+# @file  : siIPRX_OnePkt160.dat
 # @brief : One IPv4 packet of 160 bytes following a SYN packet that opens the connection.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,

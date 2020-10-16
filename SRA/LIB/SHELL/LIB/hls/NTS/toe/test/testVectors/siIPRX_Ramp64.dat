@@ -1,6 +1,6 @@
 # ########################################################################################
 #  @file  : siIPRX_DebugRamp64.dat
-#  @brief : A sequence of 64 IPv4s packet of incremental sizes.
+#  @brief : A sequence of 64 IPv4 packets of incremental sizes.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.

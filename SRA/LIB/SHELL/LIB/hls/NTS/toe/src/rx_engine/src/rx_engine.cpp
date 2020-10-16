@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_MWR | TRACE_RAN)
 
 
 /*******************************************************************************
@@ -460,7 +460,6 @@ void pCheckSumAccumulator(
     static RXeMeta          csa_meta;
     static TcpDstPort       csa_tcpDstPort;
     static TcpChecksum      csa_tcpCSum;
-    //OBSOLETE_20201005 static ap_uint<36>      csa_halfChunk;
     static ap_uint<32>      csa_half_tdata;
     static ap_uint<4>       csa_half_tkeep;
 
@@ -470,6 +469,7 @@ void pCheckSumAccumulator(
 
     if (!siIph_PseudoPkt.empty() and !soTid_Data.full() and !csa_doCSumVerif) {
         currChunk = siIph_PseudoPkt.read();
+
         switch (csa_chunkCount) {
         case CHUNK_0:
             csa_doShift = false;
@@ -667,14 +667,13 @@ void pCheckSumAccumulator(
                     soPRt_GetState.write(csa_tcpDstPort);
                 }
                 else {
+                    printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
+                                csa_tcpCSum.to_uint(), (~csa_tcp_sums[0](15, 0).to_uint() & 0xFFFF));
                     if(csa_meta.length != 0) {
                         // Packet has some TCP payload
                         soTid_DataVal.write(KO);
                     }
                     if (DEBUG_LEVEL & TRACE_CSA) {
-                        printWarn(myName, "RECEIVED BAD CHECKSUM (0x%4.4X - Delta= 0x%4.4X).\n",
-                                    csa_tcpCSum.to_uint(),
-                                    (~csa_tcp_sums[0](15, 0).to_uint() & 0xFFFF));
                         printSockPair(myName, csa_socketPair);
                     }
                 }
@@ -857,7 +856,7 @@ void pMemWriter(
         stream<DmCmd>       &siFsm_MemWrCmd,
         stream<DmCmd>       &soMEM_WrCmd,
         stream<AxisApp>     &soMEM_WrData,
-        stream<StsBit>      &soRan_SplitSeg)
+        stream<FlagBool>    &soRan_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -865,6 +864,196 @@ void pMemWriter(
 
     const char *myName = concat3(THIS_NAME, "/", "Mwr");
 
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmState { MWR_IDLE=0,
+                           MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
+                           MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF, MWR_RESIDUE } \
+                                mwr_fsmState=MWR_IDLE;
+    #pragma HLS RESET  variable=mwr_fsmState
+    static ap_uint<3>           mwr_residueLen=0;
+    #pragma HLS RESET  variable=mwr_residueLen
+    static bool                 mwr_accessBreakdown=false;
+    #pragma HLS RESET  variable=mwr_accessBreakdown
+
+    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
+    static DmCmd       mwr_memWrCmd;
+    static AxisApp     mwr_currChunk;
+    static RxBufPtr    mwr_firstAccLen;
+    static TcpSegLen   mwr_nrBytesToWr;
+    static ap_uint<4>  mwr_splitOffset;
+    static uint16_t    mwr_debugCounter=1;
+
+    switch (mwr_fsmState) {
+    case MWR_IDLE:
+        if (!siFsm_MemWrCmd.empty() and !soRan_SplitSeg.full() and !soMEM_WrCmd.full()) {
+            siFsm_MemWrCmd.read(mwr_memWrCmd);
+
+            if ((mwr_memWrCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_RX_BUFFER_SIZE) {
+                // Break this segment in two memory accesses because TCP Rx memory buffer wraps around
+                soRan_SplitSeg.write(true);
+                if (DEBUG_LEVEL & TRACE_MWR) {
+                    printInfo(myName, "TCP Rx memory buffer wraps around: This segment will be broken in two memory buffers.\n");
+                }
+                mwr_fsmState = MWR_SPLIT_1ST_CMD;
+            }
+            else {
+                soRan_SplitSeg.write(false);
+                soMEM_WrCmd.write(mwr_memWrCmd);
+                mwr_firstAccLen = mwr_memWrCmd.bbt;
+                mwr_nrBytesToWr = mwr_firstAccLen;
+                mwr_fsmState = MWR_FWD_ALIGNED;
+                if (DEBUG_LEVEL & TRACE_MWR) {
+                    printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                    mwr_debugCounter++;
+                }
+            }
+        }
+        break;
+    case MWR_SPLIT_1ST_CMD:
+        if (!soMEM_WrCmd.full()) {
+            mwr_firstAccLen   = TOE_RX_BUFFER_SIZE - mwr_memWrCmd.saddr;
+            mwr_nrBytesToWr   = mwr_firstAccLen;
+            soMEM_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
+            if (DEBUG_LEVEL & TRACE_MWR) {
+                printInfo(myName, "Issuing 1st memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                    mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_firstAccLen.to_uint());
+            }
+            mwr_fsmState = MWR_FWD_1ST_BUF;
+        }
+        break;
+    case MWR_FWD_ALIGNED:
+        if (!siTsd_Data.empty() and !soMEM_WrData.full()) {
+            //-- Default streaming state used to forward segments or splitted buffers
+            //-- that are aligned with to the Axis raw width
+            AxisApp memChunk = siTsd_Data.read();
+            soMEM_WrData.write(memChunk);
+            if (memChunk.getTLast()) {
+                 mwr_fsmState = MWR_IDLE;
+            }
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", memChunk); }
+         }
+        break;
+    case MWR_FWD_1ST_BUF:
+        if (!siTsd_Data.empty() and !soMEM_WrData.full()) {
+            //-- Create 1st splitted data buffer and stream it to memory
+            siTsd_Data.read(mwr_currChunk);
+
+            AxisApp memChunk = mwr_currChunk;
+            if (mwr_nrBytesToWr > (ARW/8)) {
+                mwr_nrBytesToWr -= (ARW/8);
+            }
+            else if (!soMEM_WrCmd.full()) {
+                if (mwr_nrBytesToWr == (ARW/8)) {
+                    memChunk.setLE_TLast(TLAST);
+
+                    mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    soMEM_WrCmd.write(mwr_memWrCmd);
+                    if (DEBUG_LEVEL & TRACE_MWR) {
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        mwr_debugCounter++;
+                    }
+                    mwr_fsmState = MWR_FWD_ALIGNED;
+                }
+                else {
+                    memChunk.setLE_TLast(TLAST);
+                    memChunk.setLE_TKeep(lenToLE_tKeep(mwr_nrBytesToWr));
+                    #ifndef __SYNTHESIS__
+                    memChunk.setLE_TData(0, (ARW-1), ((int)mwr_nrBytesToWr*8));
+                    #endif
+
+                    mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
+                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    soMEM_WrCmd.write(mwr_memWrCmd);
+                    if (DEBUG_LEVEL & TRACE_MWR) {
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        mwr_debugCounter++;
+                    }
+                    mwr_splitOffset = (ARW/8) - mwr_nrBytesToWr;
+                    mwr_fsmState = MWR_FWD_2ND_BUF;
+                }
+            }
+            soMEM_WrData.write(memChunk);
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", memChunk); }
+        }
+        break;
+    case MWR_FWD_2ND_BUF:
+        if (!siTsd_Data.empty() && !soMEM_WrData.full()) {
+            //-- Alternate streaming state used to re-align a splitted second buffer
+            AxisApp prevChunk = mwr_currChunk;
+            mwr_currChunk = siTsd_Data.read();
+
+            AxisApp joinedChunk(0,0,0);  // [FIXME-Create a join method in AxisRaw]
+            // Set lower-part of the joined chunk with the last bytes of the previous chunk
+            joinedChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
+                                                                              ((int)mwr_splitOffset*8)-1, 0);
+            joinedChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
+                                                                              ((int)mwr_splitOffset  )-1, 0);
+            // Set higher part of the joined chunk with the first bytes of the current chunk
+            joinedChunk.setLE_TData(mwr_currChunk.getLE_TData((ARW  )-((int)mwr_splitOffset*8)-1, 0),
+                                                              (ARW  )                         -1, ((int)mwr_splitOffset*8));
+            joinedChunk.setLE_TKeep(mwr_currChunk.getLE_TKeep((ARW/8)-((int)mwr_splitOffset  )-1, 0),
+                                                              (ARW/8)                         -1, ((int)mwr_splitOffset  ));
+            /*** OBSOLETE_20201016 ************************
+            //OBSOLETE_20201051 if (mwr_currChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
+            if (joinedChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
+                // The entire current chunk and the remainder of the previous chunk
+                // fit into a single chunk. We are done with this 2nd memory buffer.
+                joinedChunk.setLE_TLast(TLAST);
+                mwr_fsmState = MWR_IDLE;
+            }
+            else if (mwr_currChunk.getLE_TLast()) {
+                // This cannot be the last chunk because the current one plus the
+                // remainder of the previous one do not fit into a single chunk.
+                // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
+                mwr_fsmState = MWR_RESIDUE;
+            }
+            ***********************************************/
+            if (mwr_currChunk.getLE_TLast()) {
+                if (mwr_currChunk.getLen() > mwr_nrBytesToWr) {
+                    // This cannot be the last chunk because the current one plus
+                    // the remainder of the previous one do not fit into a single chunk.
+                    // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
+                    mwr_fsmState = MWR_RESIDUE;
+                }
+                else {
+                    // The entire current chunk and the remainder of the previous chunk
+                    // fit into a single chunk. We are done with this 2nd memory buffer.
+                    joinedChunk.setLE_TLast(TLAST);
+                    mwr_fsmState = MWR_IDLE;
+                }
+            }
+            soMEM_WrData.write(joinedChunk);
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", joinedChunk); }
+        }
+        break;
+    case MWR_RESIDUE:
+        if (!soMEM_WrData.full()) {
+            //-- Output the very last unaligned chunk
+            AxisApp prevChunk = mwr_currChunk;
+            AxisApp lastChunk(0,0,0);
+
+            // Set lower-part of the last chunk with the last bytes of the previous chunk
+            //OBSOLETE_20201051 lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
+            //OBSOLETE_20201051                                                        ((ARW  )-((int)mwr_splitOffset*8)-1), 0);
+            //OBSOLETE_20201051 lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
+            //OBSOLETE_20201051                                                        ((ARW/8)-((int)mwr_splitOffset  )-1), 0);
+            lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
+                                                                            ((int)mwr_splitOffset*8)-1, 0);
+            lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
+                                                                            ((int)mwr_splitOffset  )-1, 0);
+            lastChunk.setLE_TLast(TLAST);
+            soMEM_WrData.write(lastChunk);
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", lastChunk); }
+            mwr_fsmState = MWR_IDLE;
+        }
+        break;
+    }
+
+    /*** OBSOLETE_20201014 ********************************
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmState { MWR_IDLE=0, MWR_1ST, MWR_2ND, MWR_REALIGN, MWR_ALIGNED, MWR_RESIDUE} \
                                 mwr_fsmState=MWR_IDLE;
@@ -997,6 +1186,7 @@ void pMemWriter(
         }
         break;
     }
+    *******************************************************/
 }
 
 /*******************************************************************************
@@ -1011,14 +1201,14 @@ void pMemWriter(
  *  Delays the notifications to the application until the TCP segment is actually
  *   written into the physical DRAM memory.
  *  If the segment was split in two memory accesses, the current process will
- *   wait until segments are written into memory before issuing the notification
- *  to the application.
+ *   wait until both segments are written into memory before issuing the
+ *   notification to the application.
  *******************************************************************************/
 void pRxAppNotifier(
         stream<DmSts>         &siMEM_WrSts,
         stream<TcpAppNotif>   &siFsm_Notif,
         stream<TcpAppNotif>   &soRAi_RxNotif,
-        stream<StsBit>        &siMwr_SplitSeg)
+        stream<FlagBool>      &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1
@@ -1032,7 +1222,7 @@ void pRxAppNotifier(
     #pragma HLS DATA_PACK variable=ssRxNotifFifo
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static FlagBit             ran_doubleAccessFlag=FLAG_OFF;
+    static FlagBool            ran_doubleAccessFlag=FLAG_OFF;
     #pragma HLS RESET variable=ran_doubleAccessFlag
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
@@ -1060,7 +1250,7 @@ void pRxAppNotifier(
     }
     else {
         //-- We don't know yet about a possible double memory access
-        if(!siMEM_WrSts.empty() && !siMwr_SplitSeg.empty() && !ssRxNotifFifo.empty()) {
+        if(!siMEM_WrSts.empty() and !siMwr_SplitSeg.empty() and !ssRxNotifFifo.empty()) {
             siMEM_WrSts.read(ran_dmStatus1);
             siMwr_SplitSeg.read(ran_doubleAccessFlag);
             ssRxNotifFifo.read(ran_appNotification);
@@ -1091,6 +1281,7 @@ void pRxAppNotifier(
                 ssRxNotifFifo.write(ran_appNotification);
             }
             else {
+                printFatal(myName, "Received an Rx notification from FSM for an empty segment...");
                 soRAi_RxNotif.write(ran_appNotification);
             }
         }
@@ -1293,7 +1484,7 @@ void pFiniteStateMachine(
                                  fsm_fsmState=FSM_LOAD;
     #pragma HLS RESET   variable=fsm_fsmState
     static bool                  fsm_txSarRequest=false;
-    #pragma HLS RESET	variable=fsm_txSarRequest
+    #pragma HLS RESET    variable=fsm_txSarRequest
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeFsmMeta   fsm_Meta;
@@ -1757,7 +1948,7 @@ void rx_engine(
         //-- Tx SAR Table Interface
         stream<RXeTxSarQuery>           &soTSt_TxSarQry,
         stream<RXeTxSarReply>           &siTSt_TxSarRep,
-        	//-- Timers Interface
+            //-- Timers Interface
         stream<RXeReTransTimerCmd>      &soTIm_ReTxTimerCmd,
         stream<SessionId>               &soTIm_ClearProbeTimer,
         stream<SessionId>               &soTIm_CloseTimer,
@@ -1798,8 +1989,8 @@ void rx_engine(
     #pragma HLS stream     variable=ssCsaToTid_Data         depth=256 //critical, tcp checksum computation
     #pragma HLS DATA_PACK  variable=ssCsaToTid_Data
 
-    static stream<ValBit>           ssCsaToTid_DataValid	("ssCsaToTid_DataValid");
-    #pragma HLS stream     variable=ssCsaToTid_DataValid	depth=2
+    static stream<ValBit>           ssCsaToTid_DataValid    ("ssCsaToTid_DataValid");
+    #pragma HLS stream     variable=ssCsaToTid_DataValid    depth=2
 
     static stream<RXeMeta>          ssCsaToMdh_Meta         ("ssCsaToMdh_Meta");
     #pragma HLS stream     variable=ssCsaToMdh_Meta         depth=2
@@ -1848,7 +2039,7 @@ void rx_engine(
     #pragma HLS DATA_PACK  variable=ssFsmToMwr_WrCmd
 
     //-- Memory Writer (Mwr) --------------------------------------------------
-    static stream<ap_uint<1> >      ssMwrToRan_SplitSeg     ("ssMwrToRan_SplitSeg");
+    static stream<FlagBool>         ssMwrToRan_SplitSeg     ("ssMwrToRan_SplitSeg");
     #pragma HLS stream     variable=ssMwrToRan_SplitSeg     depth=8
 
     //-------------------------------------------------------------------------
