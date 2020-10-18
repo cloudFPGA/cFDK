@@ -178,7 +178,6 @@ void pTxAppConnect(
             }
             else {
                 // Tell the [APP ]that opening of the active connection failed
-                //OBSOLETE_20200714 soTAIF_OpnRep.write(OpenStatus(sessLkpRep.sessionID, FAILED_TO_OPEN_SESS));
                 soTAIF_OpnRep.write(TcpAppOpnRep(sessLkpRep.sessionID, CLOSED));
             }
         }
@@ -282,21 +281,6 @@ void pTxAppStatusHandler(
             DmSts status = siMEM_TxP_WrSts.read();
             if (status.okay) {
                 ap_uint<17> txAppPtr = ev.address + ev.length;
-                 /*** OBSOLETE_20191212 **********
-				if (tempLength <= 0x10000) {
-					if (status.okay) {
-						soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, tempLength.range(15, 0))); // App pointer update, pointer is released
-						soEVe_Event.write(ev);
-					}
-					if (DEBUG_LEVEL & TRACE_TASH) {
-						printInfo(myName, "Received 1st TXMEM write status = %d.\n", status.okay.to_int());
-					}
-					tash_fsmState = S0;
-				}
-				else {
-					tash_fsmState = S2;
-				}
-				*********************************/
                 if (txAppPtr <= 0x10000) {  // [FIXME - Why '<=' and not '<' ?]
                     // Update the 'txAppPtr' of the TX_SAR_TABLE
                     soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, txAppPtr.range(15, 0)));
@@ -420,7 +404,6 @@ void pStreamLengthGenerator(
     if (!siTAIF_Data.empty()) {
         siTAIF_Data.read(currChunk);
         soMwr_Data.write(currChunk);
-        //OBSOLETE_20200708 slg_segLen += keepMapping(currWord.tkeep);
         slg_segLen += currChunk.getLen();
         if (currChunk.getTLast()) {
             assessSize(myName, soSml_SegLen, "soSml_SegLen", 32);
@@ -570,7 +553,7 @@ void pStreamMetaLoader(
  *   such a case, the incoming segment is broken down and written into physical
  *   DRAM as two memory buffers.
  *******************************************************************************/
-void pTxMemWriter(
+void pTxMemoryWriter(
         stream<AxisApp>     &siSlg_Data,
         stream<SegMemMeta>  &siSml_SegMeta,
         stream<DmCmd>       &soMEM_WrCmd,
@@ -732,21 +715,6 @@ void pTxMemWriter(
                                                               (ARW  )                         -1, ((int)mwr_splitOffset*8));
             joinedChunk.setLE_TKeep(mwr_currChunk.getLE_TKeep((ARW/8)-((int)mwr_splitOffset  )-1, 0),
                                                               (ARW/8)                         -1, ((int)mwr_splitOffset  ));
-            /*** OBSOLETE_20201016 ************************
-            //OBSOLETE_20201051 if (mwr_currChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
-            if (joinedChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
-                // The entire current chunk and the remainder of the previous chunk
-                // fit into a single chunk. We are done with this 2nd memory buffer.
-                joinedChunk.setLE_TLast(TLAST);
-                mwr_fsmState = MWR_IDLE;
-            }
-            else if (mwr_currChunk.getLE_TLast()) {
-                // This cannot be the last chunk because the current one plus the
-                // remainder of the previous one do not fit into a single chunk.
-                // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
-                mwr_fsmState = MWR_RESIDUE;
-            }
-            ***********************************************/
             if (mwr_currChunk.getLE_TLast()) {
                 if (mwr_currChunk.getLen() > mwr_nrBytesToWr) {
                     // This cannot be the last chunk because the current one plus
@@ -774,10 +742,6 @@ void pTxMemWriter(
             AxisApp lastChunk(0,0,0);
 
             // Set lower-part of the last chunk with the last bytes of the previous chunk
-            //OBSOLETE_20201051 lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
-            //OBSOLETE_20201051                                                        ((ARW  )-((int)mwr_splitOffset*8)-1), 0);
-            //OBSOLETE_20201051 lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
-            //OBSOLETE_20201051                                                        ((ARW/8)-((int)mwr_splitOffset  )-1), 0);
             lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
                                                                             ((int)mwr_splitOffset*8)-1, 0);
             lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
@@ -936,7 +900,7 @@ void tx_app_interface(
             ssSmlToMwr_SegMeta,
             ssSmlToEmx_Event);
 
-    pTxMemWriter(
+    pTxMemoryWriter(
             ssSlgToMwr_Data,
             ssSmlToMwr_SegMeta,
             soMEM_TxP_WrCmd,

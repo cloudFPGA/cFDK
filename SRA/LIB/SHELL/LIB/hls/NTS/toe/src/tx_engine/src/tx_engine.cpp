@@ -449,7 +449,6 @@ void pMetaDataLoader(
                 mdl_txeMeta.ackNumb = 0;
                 //mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                 mdl_txeMeta.winSize = 0xFFFF;
-                //OBSOLETE_20200924 mdl_txeMeta.length = 0; // FYI - MSS option (will be added in Phc)
                 mdl_txeMeta.length = 4; // FYI - MSS adds 4 option bytes
                 mdl_txeMeta.ack = 0;
                 mdl_txeMeta.rst = 0;
@@ -636,7 +635,6 @@ void pSocketPairSplitter(
                printInfo(myName, "Received the following socket-pair from [Mdl]: \n");
                printSockPair(myName, socketPair);
             }
-            //OBSOLETE_202020720 soIhc_IpAddrPair.write(LE_IpAddrPair(leSockPair.src.addr, leSockPair.dst.addr));
             soIhc_IpAddrPair.write(IpAddrPair(socketPair.src.addr, socketPair.dst.addr));
             soPhc_SocketPair.write(socketPair);
             sps_getMeta = false;
@@ -718,7 +716,6 @@ void pIpHeaderConstructor(
             currIpHdrChunk.setIp4TtL(0x40);
             currIpHdrChunk.setIp4Prot((ap_uint<8>)IP4_PROT_TCP);
             currIpHdrChunk.setIp4HdrCsum(0);
-            //OBSOLETE_20200706 currIpHdrChunk.tdata.range(63, 32) = ihc_leIpAddrPair.src; // Source Address
             currIpHdrChunk.setIp4SrcAddr(ihc_ipAddrPair.src);
             currIpHdrChunk.setLE_TKeep(0xFF);
             currIpHdrChunk.setLE_TLast(0);
@@ -730,7 +727,6 @@ void pIpHeaderConstructor(
         }
         break;
     case CHUNK_2:
-       //OBSOLETE_20200706 currIpHdrChunk.tdata.range(31,  0) = ihc_leIpAddrPair.dst; // Destination Address
         currIpHdrChunk.setIp4DstAddr(ihc_ipAddrPair.dst);
         currIpHdrChunk.setLE_TKeep(0x0F);
         currIpHdrChunk.setLE_TLast(TLAST);
@@ -820,7 +816,6 @@ void pPseudoHeaderConstructor(
         currChunk.setPsd4ResBits(0x00);
         currChunk.setPsd4Prot(IP4_PROT_TCP);
         // Compute the length of the TCP segment. This includes both the header and the payload.
-        //OBSOLETE_20200924 pseudoHdrLen = phc_meta.length + 20 + (phc_meta.syn << 2); // 20 + (4 for MSS)
         pseudoHdrLen = phc_meta.length + TCP_HEADER_LEN; // [FIXME]
         currChunk.setPsd4Len(pseudoHdrLen);
         currChunk.setTcpSrcPort(phc_socketPair.src.port);
@@ -989,7 +984,6 @@ void pTcpSegStitcher(
                  else {
                      // The TCP segment was splitted in two parts
                      tss_memRdOffset = currAppChunk.getLen();
-                     //OBSOLETE_20201009 tss_prevChunk.setTLast(0);
                      if (tss_memRdOffset != 8) {
                          // The last chunk of the 1st memory buffer is not fully populated.
                          // Don't output anything here. Save the current chunk and goto 'TSS_JOIN_2ND'.
@@ -1087,13 +1081,10 @@ void pTcpSegStitcher(
             joinedChunk.setLE_TKeep(tss_prevChunk.getLE_TKeep( (int)tss_memRdOffset   -1, 0),
                                                                (int)tss_memRdOffset   -1, 0);
             // Set higher part of the joined chunk with the first bytes of the current chunk
-            //OBSOLETE sendWord.data(WIDTH-1, (offset*8)) = currWord.data(WIDTH - (offset*8) - 1, 0);
             joinedChunk.setLE_TData(currAppChunk.getLE_TData( ARW   -1-((int)tss_memRdOffset*8), 0),
                                                               ARW   -1,((int)tss_memRdOffset*8));
-            //OBSOLETE sendWord.keep(WIDTH/8-1, offset) = currWord.keep(WIDTH/8 - offset - 1, 0);
             joinedChunk.setLE_TKeep(currAppChunk.getLE_TKeep((ARW/8)-1- (int)tss_memRdOffset, 0),
                                                              (ARW/8)-1, (int)tss_memRdOffset);
-            //OBSOLETE sendWord.last = (currWord.keep[WIDTH/8 - offset] == 0);
             if (currAppChunk.getLE_TKeep()[8-(int)tss_memRdOffset] == 0) {
                 // The entire current chunk fits into the remainder of the previous chunk.
                 // We are done with this 2nd memory buffer.
@@ -1111,10 +1102,8 @@ void pTcpSegStitcher(
             if (DEBUG_LEVEL & TRACE_TSS) { printAxisRaw(myName, "soSca_PseudoPkt =", joinedChunk); }
 
             // Move remainder of current chunk to previous chunk
-            //OBSOLETE prevWord.data((offset*8) - 1, 0) = currWord.data(WIDTH-1, WIDTH - (offset*8));
             tss_prevChunk.setLE_TData(currAppChunk.getLE_TData(64-1, 64-(int)tss_memRdOffset*8),
                                                                ((int)tss_memRdOffset*8)-1, 0);
-            //OBSOLETE prevWord.keep(offset - 1, 0) = currWord.keep(WIDTH/8 - 1, WIDTH/8 - offset);
             tss_prevChunk.setLE_TKeep(currAppChunk.getLE_TKeep(8-1, 8-(int)tss_memRdOffset),
                                                                (int)tss_memRdOffset-1, 0);
         }
@@ -1123,10 +1112,8 @@ void pTcpSegStitcher(
         //-- Output the very last unaligned chunk
         if (!soSca_PseudoPkt.full()) {
             AxisPsd4 lastChunk = AxisPsd4(0, 0, TLAST);
-            //OBSOLETE sendWord.data((offset*8) -1, 0) = prevWord.data((offset*8) -1, 0);
             lastChunk.setLE_TData(tss_prevChunk.getLE_TData(((int)tss_memRdOffset*8)-1, 0),
                                                             ((int)tss_memRdOffset*8)-1, 0);
-            //OBSOLETE sendWord.keep(offset-1, 0) = prevWord.keep(offset -1, 0);
             lastChunk.setLE_TKeep(tss_prevChunk.getLE_TKeep((int)tss_memRdOffset-1, 0),
                                                             (int)tss_memRdOffset-1, 0);
 

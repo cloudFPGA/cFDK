@@ -515,31 +515,6 @@ void pCheckSumAccumulator(
             csa_chunkCount++;
             break;
         default:
-            /*** OBSOLETE_20201005 **************
-            if (csa_dataOffset > 6) {
-                // Drain the unsupported TCP options
-                csa_dataOffset -= 2;
-                //OBSOLETE_20201050 sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
-                sendChunk.setTLast(0);
-            }
-            else if (csa_dataOffset == 6) {
-                // The TCP header has 32 bits of options and padding out of 64 bits
-                // Get the first four Data bytes
-                csa_dataOffset = 5;
-                csa_doShift = true;
-                if (currChunk.getTcpOptKind() == 0x02) {  // [FIXME-Need a define here]
-                    // Extract the MMS option
-                    TcpOptMss theirMSS = currChunk.getTcpOptMss();
-                    //OBSOLETE_20201001 csa_halfChunk.range(31,  0) = currChunk.getLE_TData(63, 32);
-                    //OBSOLETE_20201001 csa_halfChunk.range(35, 32) = currChunk.getLE_TKeep( 7,  4);
-                    if (DEBUG_LEVEL & TRACE_CSA) {
-                        printInfo(myName, "TCP segment includes 4 option bytes (OptKind=2, OptLen=4, MSS=%d)\n",
-                                  theirMSS.to_uint());
-                    }
-                    sendChunk.setTLast(currChunk.getLE_TKeep()[4] == 0);
-                }
-            }
-            *************************************/
             if (csa_dataOffset >= 6) {
                 // Handle TCP options.
                 //  Warning: At this point, we only support one TCP option and
@@ -997,21 +972,6 @@ void pRxMemoryWriter(
                                                               (ARW  )                         -1, ((int)mwr_splitOffset*8));
             joinedChunk.setLE_TKeep(mwr_currChunk.getLE_TKeep((ARW/8)-((int)mwr_splitOffset  )-1, 0),
                                                               (ARW/8)                         -1, ((int)mwr_splitOffset  ));
-            /*** OBSOLETE_20201016 ************************
-            //OBSOLETE_20201051 if (mwr_currChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
-            if (joinedChunk.getLE_TKeep()[mwr_splitOffset] == 0) {
-                // The entire current chunk and the remainder of the previous chunk
-                // fit into a single chunk. We are done with this 2nd memory buffer.
-                joinedChunk.setLE_TLast(TLAST);
-                mwr_fsmState = MWR_IDLE;
-            }
-            else if (mwr_currChunk.getLE_TLast()) {
-                // This cannot be the last chunk because the current one plus the
-                // remainder of the previous one do not fit into a single chunk.
-                // Goto the 'MWR_RESIDUE' and handle the remainder of that chunk.
-                mwr_fsmState = MWR_RESIDUE;
-            }
-            ***********************************************/
             if (mwr_currChunk.getLE_TLast()) {
                 if (mwr_currChunk.getLen() > mwr_nrBytesToWr) {
                     // This cannot be the last chunk because the current one plus
@@ -1037,10 +997,6 @@ void pRxMemoryWriter(
             AxisApp lastChunk(0,0,0);
 
             // Set lower-part of the last chunk with the last bytes of the previous chunk
-            //OBSOLETE_20201051 lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
-            //OBSOLETE_20201051                                                        ((ARW  )-((int)mwr_splitOffset*8)-1), 0);
-            //OBSOLETE_20201051 lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
-            //OBSOLETE_20201051                                                        ((ARW/8)-((int)mwr_splitOffset  )-1), 0);
             lastChunk.setLE_TData(prevChunk.getLE_TData((ARW  )-1, ((ARW  )-((int)mwr_splitOffset*8))),
                                                                             ((int)mwr_splitOffset*8)-1, 0);
             lastChunk.setLE_TKeep(prevChunk.getLE_TKeep((ARW/8)-1, ((ARW/8)-((int)mwr_splitOffset  ))),
@@ -1052,141 +1008,6 @@ void pRxMemoryWriter(
         }
         break;
     }
-
-    /*** OBSOLETE_20201014 ********************************
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState { MWR_IDLE=0, MWR_1ST, MWR_2ND, MWR_REALIGN, MWR_ALIGNED, MWR_RESIDUE} \
-                                mwr_fsmState=MWR_IDLE;
-    #pragma HLS RESET  variable=mwr_fsmState
-    static ap_uint<3>           mwr_residueLen=0;
-    #pragma HLS RESET  variable=mwr_residueLen
-    static bool                 mwr_accessBreakdown=false;
-    #pragma HLS RESET  variable=mwr_accessBreakdown
-
-    //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static DmCmd       mwr_memWrCmd;
-    static RxBufPtr    mwr_curAccLen;
-    static uint8_t     mwr_bufferLen;
-    static AxisApp     mwr_pushChunk;
-
-    switch (mwr_fsmState) {
-    case MWR_IDLE:
-        if (!siFsm_MemWrCmd.empty() && !soMEM_WrCmd.full() && !soRan_SplitSeg.full()) {
-            mwr_memWrCmd = siFsm_MemWrCmd.read();
-            DmCmd memWrCmd = mwr_memWrCmd;
-            if ((mwr_memWrCmd.saddr.range(15, 0) + mwr_memWrCmd.bbt) > RXMEMBUF) {
-                // Break this segment in two memory accesses because TCP Rx memory buffer wraps around
-                mwr_curAccLen = RXMEMBUF - mwr_memWrCmd.saddr;
-                mwr_memWrCmd.bbt -= mwr_curAccLen;
-                memWrCmd = DmCmd(mwr_memWrCmd.saddr, mwr_curAccLen);
-                mwr_accessBreakdown = true;
-                if (DEBUG_LEVEL & TRACE_MWR) {
-                    printInfo(myName, "TCP Rx memory buffer wraps around: This segment will be broken in two memory buffers.\n");
-                }
-            }
-            else {
-                mwr_curAccLen = mwr_memWrCmd.bbt;
-            }
-            soMEM_WrCmd.write(memWrCmd);
-            soRan_SplitSeg.write(mwr_accessBreakdown);
-            if (DEBUG_LEVEL & TRACE_MWR) { printDmCmd(myName, memWrCmd); }
-            mwr_fsmState = MWR_1ST;
-        }
-        break;
-    case MWR_1ST:
-        if (!siTsd_Data.empty() && !soMEM_WrData.full()) {
-            siTsd_Data.read(mwr_pushChunk);
-            AxisApp currChunk = mwr_pushChunk;
-            ap_uint<4> byteCount = mwr_pushChunk.getLen();
-            if (mwr_curAccLen > 8) {
-                mwr_curAccLen -= 8;
-            }
-            else {
-                if (mwr_accessBreakdown == true) {
-                    // Handle case when the segment is not aligned to the chunk size
-                    if (mwr_memWrCmd.saddr.range(15, 0) % 8 != 0) {
-                        currChunk.setLE_TKeep(lenToLE_tKeep(mwr_curAccLen));
-                    }
-                    currChunk.setLE_TLast(TLAST);
-                    mwr_residueLen = byteCount - mwr_curAccLen;
-                    // Save the number of consumed bytes
-                    mwr_bufferLen = mwr_curAccLen;
-                    mwr_fsmState = MWR_2ND;
-                }
-                else {
-                    mwr_fsmState = MWR_IDLE;
-                }
-            }
-            soMEM_WrData.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", currChunk); }
-        }
-        break;
-    case MWR_2ND:
-        if (!soMEM_WrCmd.full()) {
-            if (mwr_memWrCmd.saddr.range(15, 0) % 8 == 0) {
-                mwr_fsmState = MWR_ALIGNED;
-            }
-            //else if (rxMemWriterCmd.bbt + rxEngAccessResidue > 8 || rxEngAccessResidue > 0)
-            else if (mwr_memWrCmd.bbt - mwr_residueLen > 0) {
-                mwr_fsmState = MWR_REALIGN;
-            }
-            else {
-                mwr_fsmState = MWR_RESIDUE;
-            }
-            mwr_memWrCmd.saddr.range(15, 0) = 0;
-            mwr_curAccLen = mwr_memWrCmd.bbt;
-            DmCmd memWrCmd = DmCmd(mwr_memWrCmd.saddr, mwr_curAccLen);
-            soMEM_WrCmd.write(memWrCmd);
-            if (DEBUG_LEVEL & TRACE_MWR) { printDmCmd(myName, memWrCmd); }
-            mwr_accessBreakdown = false;
-        }
-        break;
-    case MWR_ALIGNED:  // This is the non-realignment state
-        if (!siTsd_Data.empty() & !soMEM_WrData.full()) {
-            siTsd_Data.read(mwr_pushChunk);
-            soMEM_WrData.write(mwr_pushChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", mwr_pushChunk); }
-            if (mwr_pushChunk.getTLast()) {
-                mwr_fsmState = MWR_IDLE;
-            }
-        }
-        break;
-    case MWR_REALIGN:  // We go into this state when we need to realign things
-        if (!siTsd_Data.empty() && !soMEM_WrData.full()) {
-            AxisApp currChunk = AxisApp(0, 0xFF, 0);
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8), ((8-mwr_bufferLen)*8)-1, 0);
-            mwr_pushChunk = siTsd_Data.read();
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData((mwr_bufferLen*8)-1, 0), 63, (8-mwr_bufferLen)*8);
-            if (mwr_pushChunk.getTLast()) {
-                if (mwr_curAccLen - mwr_residueLen > mwr_bufferLen) {
-                    // In this case there's residue to be handled
-                    mwr_curAccLen -= 8;
-                    mwr_fsmState = MWR_RESIDUE;
-                }
-                else {
-                    currChunk.setLE_TKeep(lenToLE_tKeep(mwr_curAccLen));
-                    currChunk.setTLast(TLAST);
-                    mwr_fsmState = MWR_IDLE;
-                }
-            }
-            else {
-                mwr_curAccLen -= 8;
-            }
-            soMEM_WrData.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", currChunk); }
-        }
-        break;
-    case MWR_RESIDUE:
-        if (!soMEM_WrData.full()) {
-            AxisApp currChunk = AxisApp(0, lenToLE_tKeep(mwr_curAccLen), TLAST);
-            currChunk.setLE_TData(mwr_pushChunk.getLE_TData(63, mwr_bufferLen*8), ((8-mwr_bufferLen)*8)-1, 0);
-            soMEM_WrData.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", currChunk); }
-            mwr_fsmState = MWR_IDLE;
-        }
-        break;
-    }
-    *******************************************************/
 }
 
 /*******************************************************************************
@@ -1587,7 +1408,6 @@ void pFiniteStateMachine(
                             // Build a DDR memory address for this segment
                             //  FYI - The TCP Rx buffers use up to 1GB (16Kx64KB).
                             RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
-                            //OBSOLETE_20201014 memSegAddr(31, 30) = 0x0;
                             memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
                             memSegAddr(15,  0) = fsm_Meta.meta.seqNumb.range(15, 0);
 #if !(RX_DDR_BYPASS)
@@ -1766,7 +1586,6 @@ void pFiniteStateMachine(
                     if (fsm_Meta.meta.length != 0) {
                         // Build a DDR memory address for this segment
                         RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
-                        //OBSOLETE_20201014 memSegAddr(31, 30) = 0x0;
                         memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
                         memSegAddr(15,  0) = fsm_Meta.meta.seqNumb(15, 0);
 #if !(RX_DDR_BYPASS)
