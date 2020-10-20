@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -1421,11 +1421,11 @@ void pFiniteStateMachine(
                         else {
                             soTsd_DropCmd.write(CMD_DROP);
                             if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
-                                printWarn(myName, "The received sequence number (%d) is not the expected one (%d).\n",
+                                printFatal(myName, "The received sequence number (%d) is not the expected one (%d).\n",
                                         fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
                             }
                             else if (free_space < fsm_Meta.meta.length) {
-                                printWarn(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
+                                printFatal(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
                             }
                         }
                     }
