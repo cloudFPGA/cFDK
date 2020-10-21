@@ -855,7 +855,7 @@ int pIPRX_InjectAckNumber(
         // This packet is a SYN and there's no need to inject anything
         if (DEBUG_LEVEL & TRACE_IPRX) { printInfo(myName, "Packet is SYN\n"); }
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
-            printWarn(myName, "Trying to open an existing session (%d)!\n", (sessAckList.find(newSockPair)->second).to_uint());
+            printWarn(myName, "Trying to open an existing session !\n");
             printSockPair(myName, newSockPair);
             return -1;
         }
@@ -871,7 +871,7 @@ int pIPRX_InjectAckNumber(
             else {
                 // Create a new entry (with TcpAckNum=0) in the session table
                 sessAckList[newSockPair] = 0;
-                printInfo(myName, "Successfully opened a new session (%d) for connection:\n", (sessAckList.find(newSockPair)->second).to_uint());
+                printInfo(myName, "Successfully opened a new session for connection:\n");
                 printSockPair(myName, newSockPair);
                 return 0;
             }
@@ -1295,6 +1295,7 @@ bool pL3MUX_Parse(
             ip4PktLen -= 40;
             nextAckNum += ip4PktLen;
         }
+
         // Update the Session List with the new sequence number
         sessAckList[sockPair] = nextAckNum;
         if (ipTxPacket.isFIN()) {

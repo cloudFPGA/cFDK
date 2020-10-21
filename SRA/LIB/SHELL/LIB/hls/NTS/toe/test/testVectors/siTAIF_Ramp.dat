@@ -1,6 +1,6 @@
 # ########################################################################################
 #  @file  : siTAIF_Ramp.dat
-#  @brief : A unique TCP segment for the Rx Application I/F of TOE.
+#  @brief : A sequence of TCP segments of increasing size.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -21,12 +21,6 @@
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
 # 
 # ######################################################################################## 
-
-# G PARAM SimCycles     350
-# G PARAM FpgaIp4Addr   10.12.200.111
-# G PARAM FpgaLsnPort   8801
-# G PARAM HostIp4Addr   10.12.199.42
-# G PARAM HostLsnPort   2718
 
 > IDLE 1
 # --  SEG[1] (TcpLen=1) --------------------------
