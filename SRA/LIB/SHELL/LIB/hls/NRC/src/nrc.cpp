@@ -71,6 +71,7 @@ NrcPort last_tx_port = 0;
 ap_uint<16> port_corrections_TX_cnt = 0;
 ap_uint<32> unauthorized_access_cnt = 0;
 ap_uint<32> authorized_access_cnt = 0;
+ap_uint<32> fmc_tcp_bytes_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
@@ -546,6 +547,7 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
+#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -1411,6 +1413,33 @@ void nrc_main(
                 expect_FMC_response = true;
                 rdpFsmState  = RDP_WAIT_META;
               }
+              switch (currWord.tkeep) {
+                case 0b11111111:
+                  fmc_tcp_bytes_cnt += 8;
+                  break;
+                case 0b01111111:
+                  fmc_tcp_bytes_cnt += 7;
+                  break;
+                case 0b00111111:
+                  fmc_tcp_bytes_cnt += 6;
+                  break;
+                case 0b00011111:
+                  fmc_tcp_bytes_cnt += 5;
+                  break;
+                case 0b00001111:
+                  fmc_tcp_bytes_cnt += 4;
+                  break;
+                case 0b00000111:
+                  fmc_tcp_bytes_cnt += 3;
+                  break;
+                case 0b00000011:
+                  fmc_tcp_bytes_cnt += 2;
+                  break;
+                default:
+                case 0b00000001:
+                  fmc_tcp_bytes_cnt += 1;
+                  break;
+              }
             }
             // NO break;
           case RDP_WRITE_META_FMC:
@@ -1800,7 +1829,9 @@ void nrc_main(
       //tcp
       status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
       status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-      status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+      //status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+      
+      status[NRC_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
 
       //status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
       status[NRC_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));

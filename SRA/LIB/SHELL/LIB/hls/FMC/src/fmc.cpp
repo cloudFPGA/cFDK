@@ -1453,7 +1453,7 @@ void fmc(
           opcodeProgram[currentProgramLength] = OP_EXIT;
           programMask[currentProgramLength] = OPRV_FAIL;
           currentProgramLength++;
-          //Reconfiguration done 
+          //Reconfiguration done
           opcodeProgram[currentProgramLength] = OP_DEACTIVATE_DECOUP;
           programMask[currentProgramLength] = OPRV_SKIPPED;
           currentProgramLength++;
@@ -1850,7 +1850,8 @@ void fmc(
       case TCP_FSM_PROCESS_DATA:
           for(int f = 0; f<IN_BUFFER_SIZE; f++)
           {
-            if(siNRC_Tcp_data.empty() || internal_icap_fifo.full() )
+            //if ICAP is blocking, we can't do much...
+            if( internal_icap_fifo.full() )
             {
               break;
             }
@@ -1880,6 +1881,11 @@ void fmc(
                 break;
               }
             }
+            //check before we proceed...
+            if(siNRC_Tcp_data.empty() || internal_icap_fifo.full() )
+            {
+              break;
+            }
 
             NetworkWord big = NetworkWord();
             if(!siNRC_Tcp_data.read_nb(big))
@@ -1908,6 +1914,7 @@ void fmc(
                   fifo_overflow_buffer_length++;
                   process_fifo_overflow_buffer = true;
                 }
+                tcp_words_received++; //TODO: for debugging, count words written to fifo...
               }
               if(!tcp_write_only_fifo)
               {
@@ -1959,7 +1966,7 @@ void fmc(
               }
             } //inner for
 
-            tcp_words_received++;
+            //tcp_words_received++; //TODO: for debugging, count words written to fifo...
             if(!tcp_write_only_fifo)
             {
               bufferInPtrMaxWrite = bufferInPtrWrite - 1;
@@ -2090,7 +2097,9 @@ void fmc(
         printf("HWICAP FSM: max_words_to_write %d\n", (int) max_words_to_write);
         for(int f = 0; f<IN_BUFFER_SIZE; f++)
         {
-          if(internal_icap_fifo.empty())
+          //if(internal_icap_fifo.empty())
+          //we can't do anything if both are empty...
+          if(internal_icap_fifo.empty() && icap_hangover_fifo.empty() )
           {
             break;
           }
@@ -2098,7 +2107,7 @@ void fmc(
           {
 #ifndef __SYNTHESIS__
             if(use_sequential_hwicap)
-            { //for the csim, we need to brake in all cases
+            { //for the csim, we need to break in all cases
               break;
             }
 #endif
@@ -2362,7 +2371,7 @@ void fmc(
           {
             fsmTcpSessId_RX = TCP_FSM_W84_START;
             lastReturnValue = OPRV_NOT_COMPLETE;
-          } else if((fsmTcpSessId_RX == TCP_FSM_PROCESS_DATA && (received_TCP_SessIds_cnt >= 1) ) 
+          } else if((fsmTcpSessId_RX == TCP_FSM_PROCESS_DATA && (received_TCP_SessIds_cnt >= 1) )
                       || fsmTcpSessId_RX == TCP_FSM_DONE)
           {
             lastReturnValue = OPRV_OK;
