@@ -127,7 +127,7 @@ typedef ap_uint< 8> TcpOptKind;     // TCP Option Kind
 typedef ap_uint< 8> TcpOptLen ;     // TCP Option Length
 typedef ap_uint<16> TcpOptMss;      // TCP Option Maximum Segment Size
 
-typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (same as Ip4DatLen)
+typedef ap_uint<16> TcpSegLen;      // TCP Segment Length in octets (Header+Data)
 typedef ap_uint< 8> TcpHdrLen;      // TCP Header  Length in octets
 typedef ap_uint<16> TcpDatLen;      // TCP Data    Length in octets (same as TcpSegLen minus TcpHdrLen)
 

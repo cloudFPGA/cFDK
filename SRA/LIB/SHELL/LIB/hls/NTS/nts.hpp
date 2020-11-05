@@ -72,6 +72,12 @@ typedef AxisApp     TcpAppData;
 typedef TcpSessId   TcpAppMeta;
 
 //---------------------------------------------------------
+//-- TCP APP - DATA LENGTH
+//--  The length of the data segment.
+//---------------------------------------------------------
+typedef TcpDatLen   TcpAppDLen;
+
+//---------------------------------------------------------
 //-- TCP APP - NOTIFICATION
 //--  Notifies the availability of data for the application
 //--  in the TCP Rx buffer.
@@ -79,22 +85,22 @@ typedef TcpSessId   TcpAppMeta;
 class TcpAppNotif {
   public:
     SessionId          sessionID;
-    TcpSegLen          tcpSegLen;
+    TcpDatLen          tcpDatLen;
     Ip4Addr            ip4SrcAddr;
     TcpPort            tcpSrcPort;
     TcpPort            tcpDstPort;
     TcpState           tcpState;
     TcpAppNotif() {}
     TcpAppNotif(SessionId  sessId,              TcpState  tcpState) :
-        sessionID( sessId), tcpSegLen( 0),      ip4SrcAddr(0),
+        sessionID( sessId), tcpDatLen( 0),      ip4SrcAddr(0),
         tcpSrcPort(0),      tcpDstPort(0),      tcpState(tcpState) {}
-    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+    TcpAppNotif(SessionId  sessId,  TcpDatLen   dataLen,  Ip4Addr    sa,
         TcpPort    sp,      TcpPort    dp) :
-        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        sessionID( sessId), tcpDatLen(dataLen), ip4SrcAddr(sa),
         tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(CLOSED) {}
-    TcpAppNotif(SessionId  sessId,  TcpSegLen   segLen,  Ip4Addr    sa,
+    TcpAppNotif(SessionId  sessId,  TcpDatLen   dataLen,  Ip4Addr    sa,
         TcpPort    sp,      TcpPort    dp,      TcpState tcpState) :
-        sessionID( sessId), tcpSegLen( segLen), ip4SrcAddr(sa),
+        sessionID( sessId), tcpDatLen(dataLen), ip4SrcAddr(sa),
         tcpSrcPort(sp),     tcpDstPort(dp),     tcpState(tcpState) {}
 };
 
@@ -106,9 +112,9 @@ class TcpAppNotif {
 class TcpAppRdReq {
   public:
     SessionId   sessionID;
-    TcpSegLen   length;
+    TcpDatLen   length;
     TcpAppRdReq() {}
-    TcpAppRdReq(SessionId id,  TcpSegLen len) :
+    TcpAppRdReq(SessionId id,  TcpDatLen len) :
         sessionID(id), length(len) {}
 };
 
@@ -118,11 +124,11 @@ class TcpAppRdReq {
 //---------------------------------------------------------
 class TcpAppWrSts {
 public:
-    TcpSegLen    segLen;  // The #bytes written or an error code if status==0
+    TcpDatLen    datLen;  // The #bytes written or an error code if status==0
     StsBit       status;  // OK=1
     TcpAppWrSts() {}
-    TcpAppWrSts(StsBit sts, TcpSegLen len) :
-        status(sts), segLen(len) {}
+    TcpAppWrSts(StsBit sts, TcpDatLen len) :
+        status(sts), datLen(len) {}
 };
 
 //=========================================================
@@ -179,17 +185,56 @@ typedef StsBool     TcpAppLsnRep;
  * This section defines the interfaces between the Network and Transport Stack
  * (NTS) and the UDP Application Interface (UAIF) layer.
  *******************************************************************************/
-//-- [FIXME - TODO]
 
-//-- UAIF / Control Interfaces
-typedef UdpPort     UdpAppLsnReq;
-typedef StsBool     UdpAppLsnRep;
-typedef UdpPort     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
-typedef StsBool     UdpAppClsRep;
-//-- UAIF / Datagram Interfaces
+//=========================================================
+//== UAIF / RECEIVED & TRANSMITTED DATAGRAM INTERFACES
+//=========================================================
+
+//---------------------------------------------------------
+//-- UDP APP - DATA
+//--  The data section of an UDP datagram over an AXI4S I/F.
+//---------------------------------------------------------
 typedef AxisApp     UdpAppData;
+
+//---------------------------------------------------------
+//-- UDP APP - METADATA
+//--  The socket pair association of a connection.
+//---------------------------------------------------------
 typedef SocketPair  UdpAppMeta;
+
+//---------------------------------------------------------
+//-- UDP APP - DATA LENGTH
+//--  The length of the datagram.
+//---------------------------------------------------------
 typedef UdpLen      UdpAppDLen;
+
+//=========================================================
+//== UAIF / OPEN & CLOSE PORT INTERFACES
+//=========================================================
+
+//---------------------------------------------------------
+//-- UDP APP - LISTEN REQUEST
+//--  The UDP port to open for listening.
+//---------------------------------------------------------
+typedef UdpPort     UdpAppLsnReq;
+
+//---------------------------------------------------------
+//-- UDP APP - LISTEN REPLY
+//--  The port status returned by NTS upon listen request.
+//---------------------------------------------------------
+typedef StsBool     UdpAppLsnRep;
+
+//--------------------------------------------------------
+//-- UDP APP - CLOSE PORT REQUEST
+//--  The listen port to close.
+//--------------------------------------------------------
+typedef UdpPort     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+
+//--------------------------------------------------------
+//-- UDP APP - CLOSE PORT REPLY
+//--  Reports the status of the port closing.
+//--------------------------------------------------------
+typedef StsBool     UdpAppClsRep;
 
 
 /*******************************************************************************
@@ -218,6 +263,7 @@ void nts(
         //------------------------------------------------------
         stream<TcpAppData>      &siTAIF_Data,
         stream<TcpAppMeta>      &siTAIF_Meta,
+        stream<TcpAppDLen>      &siTAIF_DLen,
         stream<TcpAppWrSts>     &soTAIF_DSts,
 
         //------------------------------------------------------

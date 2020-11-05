@@ -1776,8 +1776,8 @@ void pTAIF_Recv(
         if (!siTOE_Notif.empty()) {
             siTOE_Notif.read(tar_notification);
             if (DEBUG_LEVEL & TRACE_TAr) {
-                printInfo(myName, "Received data notification from TOE: (sessId=%d, tcpLen=%d) and {IP_SA, TCP_DP} is:\n",
-                          tar_notification.sessionID.to_int(), tar_notification.tcpSegLen.to_int());
+                printInfo(myName, "Received data notification from TOE: (sessId=%d, tcpDataLen=%d) and {IP_SA, TCP_DP} is:\n",
+                          tar_notification.sessionID.to_int(), tar_notification.tcpDatLen.to_int());
                 printSockAddr(myName, SockAddr(tar_notification.ip4SrcAddr, tar_notification.tcpDstPort));
             }
             tar_appRspIdle = APP_RSP_LATENCY;
@@ -1790,9 +1790,9 @@ void pTAIF_Recv(
             tar_appRspIdle--;
         }
         else if (!soTOE_DReq.full()) {
-            if (tar_notification.tcpSegLen != 0) {
+            if (tar_notification.tcpDatLen != 0) {
                 soTOE_DReq.write(TcpAppRdReq(tar_notification.sessionID,
-                                             tar_notification.tcpSegLen));
+                                             tar_notification.tcpDatLen));
                 tar_fsmState = WAIT_SEG;
             }
             else {
@@ -2639,9 +2639,7 @@ int main(int argc, char *argv[]) {
         // TODO
         if (!ssTOE_TAIF_DSts.empty()) {
             TcpAppWrSts wrStatus = ssTOE_TAIF_DSts.read();
-            //OBSOLETE_20200721 if (wrStatus.status != TCP_APP_WR_STS_KO) {
-            //OBSOLETE_20200721     switch (wrStatus.segLen) {
-            if (wrStatus.segLen == 0) {
+            if (wrStatus.datLen == 0) {
                switch(wrStatus.status) {
                case TCP_APP_WR_STS_NOCONNECTION:
                     printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");

@@ -1098,7 +1098,7 @@ void pRxAppNotifier(
         }
         else if (!siFsm_Notif.empty() && !ssRxNotifFifo.full()) {
             siFsm_Notif.read(ran_appNotification);
-            if (ran_appNotification.tcpSegLen != 0) {
+            if (ran_appNotification.tcpDatLen != 0) {
                 ssRxNotifFifo.write(ran_appNotification);
             }
             else {

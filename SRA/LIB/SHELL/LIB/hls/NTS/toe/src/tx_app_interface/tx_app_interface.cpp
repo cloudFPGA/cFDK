@@ -372,7 +372,7 @@ void pTxAppTable(
     }
 }
 
-/*******************************************************************************
+/*** OBSOLETE_20201104 *********************************************************
  * @brief Stream Length Generator (Slg)
  *
  * @param[in]  siTAIF_Data   TCP data stream from [TAIF].
@@ -384,6 +384,7 @@ void pTxAppTable(
  *    while forwarding that same data stream to the MemoryWriter (Mwr).
  *    [FIXME - This part is completely bugus!!! Must fix like with UOE]
  *******************************************************************************/
+/*** OBSOLETE_20201104 *********************************************************/
 void pStreamLengthGenerator(
         stream<TcpAppData>  &siTAIF_Data,
         stream<AxisApp>     &soMwr_Data,
@@ -415,6 +416,7 @@ void pStreamLengthGenerator(
         }
     }
 }
+/*******************************************************************************/
 
 /*******************************************************************************
  * @brief Stream Metadata Loader (Sml)

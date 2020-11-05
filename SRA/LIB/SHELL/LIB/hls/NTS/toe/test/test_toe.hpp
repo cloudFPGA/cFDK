@@ -53,12 +53,10 @@
 #define TB_STARTUP_DELAY  (TOE_SIZEOF_LISTEN_PORT_TABLE)
 #define TB_GRACE_TIME     2500  // Adds some cycles to drain the DUT before exiting
 
-
 //#define TB_MAX_SIM_CYCLES 2500000
 //#define TB_MIN_SIM_CYCLES 1000
 //OBSOLETE_20201016 #define TB_STARTUP_DELAY  (TOE_SIZEOF_LISTEN_PORT_TABLE)
 #define TB_STARTUP_TIME     25
-
 
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS

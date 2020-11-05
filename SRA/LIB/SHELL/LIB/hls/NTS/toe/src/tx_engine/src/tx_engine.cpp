@@ -1443,7 +1443,7 @@ void pTxMemoryReader(
 
             if (DEBUG_LEVEL & TRACE_MRD) {
                 printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                          mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(),
+                          mrd_debugCounter, mrd_memRdCmd.saddr.to_uint(),
                          (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
                 mrd_debugCounter++;
             }

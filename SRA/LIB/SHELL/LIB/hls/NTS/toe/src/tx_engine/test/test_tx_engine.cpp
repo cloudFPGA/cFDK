@@ -56,7 +56,7 @@ using namespace std;
 
 
 /*******************************************************************************
- * @brief Increment the simulation counter
+ * @brief Increment the simulation counter of the testbench
  *******************************************************************************/
 void stepSim() {
     gSimCycCnt++;
@@ -853,9 +853,9 @@ int pIPRX_InjectAckNumber(
 
     if (ipRxPacket.isSYN()) {
         // This packet is a SYN and there's no need to inject anything
-        printInfo(myName, "Packet is SYN\n");
+        if (DEBUG_LEVEL & TRACE_IPRX) { printInfo(myName, "Packet is SYN\n"); }
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
-            printWarn(myName, "Trying to open an existing session (%d)!\n", (sessAckList.find(newSockPair)->second).to_uint());
+            printWarn(myName, "Trying to open an existing session !\n");
             printSockPair(myName, newSockPair);
             return -1;
         }
@@ -871,7 +871,7 @@ int pIPRX_InjectAckNumber(
             else {
                 // Create a new entry (with TcpAckNum=0) in the session table
                 sessAckList[newSockPair] = 0;
-                printInfo(myName, "Successfully opened a new session (%d) for connection:\n", (sessAckList.find(newSockPair)->second).to_uint());
+                printInfo(myName, "Successfully opened a new session for connection:\n");
                 printSockPair(myName, newSockPair);
                 return 0;
             }
@@ -879,7 +879,7 @@ int pIPRX_InjectAckNumber(
     }
     else if (ipRxPacket.isACK()) {
         // This packet is an ACK and we must update the its acknowledgment number
-        printInfo(myName, "Packet is ACK\n");
+        if (DEBUG_LEVEL & TRACE_IPRX) { printInfo(myName, "Packet is ACK\n"); }
         if (sessAckList.find(newSockPair) != sessAckList.end()) {
             // Inject the oldest acknowledgment number in the ACK number field
             TcpAckNum newAckNum = sessAckList[newSockPair];
@@ -1104,7 +1104,9 @@ void pIPRX(
                     // COMMAND = Request to idle for <NUM> cycles.
                     iprx_idleCycReq = atoi(stringVector[2].c_str());
                     iprx_idlingReq = true;
-                    printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                    if (DEBUG_LEVEL & TRACE_IPRX) {
+                        printInfo(myName, "Request to idle for %d cycles. \n", iprx_idleCycReq);
+                    }
                     increaseSimTime(iprx_idleCycReq);
                     return;
                 }
@@ -1293,6 +1295,7 @@ bool pL3MUX_Parse(
             ip4PktLen -= 40;
             nextAckNum += ip4PktLen;
         }
+
         // Update the Session List with the new sequence number
         sessAckList[sockPair] = nextAckNum;
         if (ipTxPacket.isFIN()) {
@@ -1773,8 +1776,8 @@ void pTAIF_Recv(
         if (!siTOE_Notif.empty()) {
             siTOE_Notif.read(tar_notification);
             if (DEBUG_LEVEL & TRACE_TAr) {
-                printInfo(myName, "Received data notification from TOE: (sessId=%d, tcpLen=%d) and {IP_SA, TCP_DP} is:\n",
-                          tar_notification.sessionID.to_int(), tar_notification.tcpSegLen.to_int());
+                printInfo(myName, "Received data notification from TOE: (sessId=%d, tcpDataLen=%d) and {IP_SA, TCP_DP} is:\n",
+                          tar_notification.sessionID.to_int(), tar_notification.tcpDatLen.to_int());
                 printSockAddr(myName, SockAddr(tar_notification.ip4SrcAddr, tar_notification.tcpDstPort));
             }
             tar_appRspIdle = APP_RSP_LATENCY;
@@ -1787,9 +1790,9 @@ void pTAIF_Recv(
             tar_appRspIdle--;
         }
         else if (!soTOE_DReq.full()) {
-            if (tar_notification.tcpSegLen != 0) {
+            if (tar_notification.tcpDatLen != 0) {
                 soTOE_DReq.write(TcpAppRdReq(tar_notification.sessionID,
-                                             tar_notification.tcpSegLen));
+                                             tar_notification.tcpDatLen));
                 tar_fsmState = WAIT_SEG;
             }
             else {
@@ -1950,7 +1953,9 @@ void pTAIF_Send(
         if (tas_appRxIdleCycCnt >= tas_appRxIdleCycReq) {
             tas_appRxIdleCycCnt = 0;
             tas_appRxIdlingReq = false;
-            printInfo(myName, "End of APP Rx idling phase. \n");
+            if (DEBUG_LEVEL & TRACE_TAs) {
+                printInfo(myName, "End of APP Rx idling phase. \n");
+            }
         }
         else {
             tas_appRxIdleCycCnt++;
@@ -2010,7 +2015,9 @@ void pTAIF_Send(
                     // Cmd = Request to idle for <NUM> cycles.
                     tas_appRxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
                     tas_appRxIdlingReq = true;
-                    printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                    if (DEBUG_LEVEL & TRACE_TAs) {
+                        printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                    }
                     increaseSimTime(tas_appRxIdleCycReq);
                     return;
                 }
@@ -2383,7 +2390,8 @@ int main(int argc, char *argv[]) {
     bool     testRxPath      = false; // Indicates if the Rx path is to be tested.
     bool     testTxPath      = false; // Indicates if the Tx path is to be tested.
 
-    int      startUpDelay    = TB_GRACE_TIME;
+    //OBSOLETE_20201016 int      startUpDelay    = TB_GRACE_TIME;
+    int      startUpDelay    = TB_STARTUP_TIME;
 
     char     mode            = *argv[1];
     char     cCurrPath[FILENAME_MAX];
@@ -2444,7 +2452,8 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     if (argc < 3) {
         printError(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<TestName>\n \t\t mode(1) siTAIF_<TestName>\n \t\t mode(2) siIPRX_<TestName> siTAIF_<TestName>\n");
-        return -1;
+        gFatalError = true;
+        return 1;
     }
     printInfo(THIS_NAME, "This run executes in mode \'%c\'.\n", mode);
 
@@ -2630,9 +2639,7 @@ int main(int argc, char *argv[]) {
         // TODO
         if (!ssTOE_TAIF_DSts.empty()) {
             TcpAppWrSts wrStatus = ssTOE_TAIF_DSts.read();
-            //OBSOLETE_20200721 if (wrStatus.status != TCP_APP_WR_STS_KO) {
-            //OBSOLETE_20200721     switch (wrStatus.segLen) {
-            if (wrStatus.segLen == 0) {
+            if (wrStatus.datLen == 0) {
                switch(wrStatus.status) {
                case TCP_APP_WR_STS_NOCONNECTION:
                     printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
@@ -2685,8 +2692,7 @@ int main(int argc, char *argv[]) {
         //-- EXIT UPON FATAL ERROR OR TOO MANY ERRORS
         //------------------------------------------------------
 
-    } while (  (sTOE_Ready == 0) or
-              ((gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10)) );
+    } while ( (gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10) );
 
     //---------------------------------
     //-- CLOSING OPEN FILES
