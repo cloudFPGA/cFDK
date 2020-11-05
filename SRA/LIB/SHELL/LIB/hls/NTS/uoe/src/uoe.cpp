@@ -965,8 +965,12 @@ void pRxEngine(
  *     information until the 'TLAST' bit of the data stream is set. In this mode,
  *     the UOE will wait for the reception of UDP_MDS bytes before generating a
  *     new UDP-over-IPv4 packet, unless the 'TLAST' bit of the data stream is set.
+ *
+ * @warning
  *  In DATAGRAM_MODE, the setting of the 'TLAST' bit of the data stream is not
- *  required but highly recommended.
+ *   required but highly recommended.
+ *  In STREAMING_MODE, it is the responsability of the application to set the
+ *   'TLAST' bit to avoid a connection from monopolizing the UOE indefinitively.
  *******************************************************************************/
 void pTxApplicationInterface(
         CmdBit                   piMMIO_En,
