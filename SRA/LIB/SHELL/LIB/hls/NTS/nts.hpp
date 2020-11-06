@@ -67,7 +67,7 @@ typedef AxisApp     TcpAppData;
 
 //---------------------------------------------------------
 //-- TCP APP - METADATA
-//--  The session identifier of a connection.
+//--  The session identifier and data length to send.
 //---------------------------------------------------------
 typedef TcpSessId   TcpAppMeta;
 
@@ -75,7 +75,7 @@ typedef TcpSessId   TcpAppMeta;
 //-- TCP APP - DATA LENGTH
 //--  The length of the data segment.
 //---------------------------------------------------------
-typedef TcpDatLen   TcpAppDLen;
+//OBSOLETE_20201105 typedef TcpDatLen   TcpAppDLen;
 
 //---------------------------------------------------------
 //-- TCP APP - NOTIFICATION
@@ -119,16 +119,31 @@ class TcpAppRdReq {
 };
 
 //---------------------------------------------------------
-//-- TCP APP - DATA WRITE STATUS
-//--  Status returned by NTS after a data send transfer.
+//-- TCP APP - DATA SEND REQUEST
+//--  Used by the application to request data transmission.
 //---------------------------------------------------------
-class TcpAppWrSts {
+class TcpAppSndReq {
+  public:
+    SessionId   sessId;
+    TcpDatLen   length;
+    TcpAppSndReq() {}
+    TcpAppSndReq(SessionId id, TcpDatLen len) :
+        sessId(id), length(len) {}
+};
+
+//---------------------------------------------------------
+//-- TCP APP - DATA SEND REPLY
+//--  Status returned by NTS to APP after request to send.
+//---------------------------------------------------------
+class TcpAppSndRep {
 public:
-    TcpDatLen    datLen;  // The #bytes written or an error code if status==0
-    StsBit       status;  // OK=1
-    TcpAppWrSts() {}
-    TcpAppWrSts(StsBit sts, TcpDatLen len) :
-        status(sts), datLen(len) {}
+    SessionId    sessId;    // The session ID
+    TcpDatLen    length;    // The #bytes that were requested to be written
+    TcpDatLen    spaceLeft; // The remaining space in the TCP buffer
+    TcpAppSndErr error;     // The error code (OK=0)
+    TcpAppSndRep() {}
+    TcpAppSndRep(SessionId sessId, TcpDatLen datLen, TcpDatLen space, TcpAppSndErr rc) :
+        sessId(sessId), length(datLen), spaceLeft(space), error(rc) {}
 };
 
 //=========================================================
@@ -262,9 +277,8 @@ void nts(
         //-- TAIF / Transmit Segment Interfaces
         //------------------------------------------------------
         stream<TcpAppData>      &siTAIF_Data,
-        stream<TcpAppMeta>      &siTAIF_Meta,
-        stream<TcpAppDLen>      &siTAIF_DLen,
-        stream<TcpAppWrSts>     &soTAIF_DSts,
+        stream<TcpAppSndReq>    &siTAIF_SndReq,
+        stream<TcpAppSndRep>    &soTAIF_SndRep,
 
         //------------------------------------------------------
         //-- TAIF / Open Connection Interfaces

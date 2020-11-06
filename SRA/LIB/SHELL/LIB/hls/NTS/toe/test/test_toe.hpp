@@ -40,6 +40,7 @@
 #include "../../../NTS/nts_config.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
+#include "../../../NTS/SimAppData.hpp"
 #include "../../../NTS/SimIp4Packet.hpp"
 #include "../../../NTS/toe/src/toe.hpp"
 #include "../../../NTS/toe/src/toe_utils.hpp"

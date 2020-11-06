@@ -1631,16 +1631,17 @@ bool pTcpAppConnect(
 
 
 /*******************************************************************************
- * @brief TCP Application Echo (Tae). Performs an echo loopback between the Rx
- *         and Tx parts of the TCP Application.
+ * @brief TCP Application Echo (Tae). Performs an echo loopback between the
+ *         receive and send parts of the TCP Application.
  *
  * @param[in]  nrError       A reference to the error counter of the [TB].
  * @param[in]  ofIPTX_Gold2  A ref to the IPTX gold file to write.
  * @param[i/o] apRxBytCntr   A ref to the counter of bytes on the APP Rx I/F.
- * @param[out] soTOE_Data    TCP data stream to TOE.
- * @param[out] soTOE_Meta    TCP metadata stream to TOE.
+ * @param[out] soTOE_Data    TCP data stream to [TOE].
+ * @param[out] soTOE_SndReq  TCP data send request to [TOE].
+ * @param[in]  siTOE_SndRep  TCP data send reply from [TOE].
  * @param[in]  siTAr_Data    TCP data stream from TcpAppRecv (TAr) process.
- * @param[in]  siTAr_Meta    TCP data stream from [TAr].
+ * @param[in]  siTAr_SndReq  TCP data send request from [TAr].
  *
  * @remark
  *  For convenience, this is a sub-process of TcpAppSend (TAs).
@@ -1650,37 +1651,66 @@ void pTcpAppEcho(
         ofstream                &ofIPTX_Gold2,
         int                     &apRxBytCntr,
         stream<TcpAppData>      &soTOE_Data,
-        stream<TcpAppMeta>      &soTOE_Meta,
+        stream<TcpAppSndReq>    &soTOE_SndReq,
+        stream<TcpAppSndRep>    &siTOE_SndRep,
         stream<TcpAppData>      &siTAr_Data,
-        stream<TcpAppMeta>      &siTAr_Meta)
+        stream<TcpAppSndReq>    &siTAr_SndReq)
 {
     const char *myName  = concat3(THIS_NAME, "/", "Tae");
 
     //-- STATIC VARIABLES ------------------------------------------------------
-    static enum FsmStates { START_OF_SEGMENT=0, CONTINUATION_OF_SEGMENT } tae_fsmState = START_OF_SEGMENT;
+    static enum FsmStates { IDLE=0, START_OF_SEGMENT,
+                            CONTINUATION_OF_SEGMENT } tae_fsmState = IDLE;
     static int  tae_mssCounter = 0; // Maximum Segment Size counter
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpAppData  tcpChunk;
-    TcpAppMeta  tcpSessId;
+    TcpAppData   appChunk;
+    TcpAppSndReq appSndReq;
 
     switch (tae_fsmState) {
+    case IDLE:
+        if ( !siTAr_SndReq.empty() and !soTOE_SndReq.full()) {
+            //-- Forward the send request received from [TAr]
+            siTAr_SndReq.read(appSndReq);
+            soTOE_SndReq.write(appSndReq);
+            tae_fsmState = START_OF_SEGMENT;
+        }
+        break;
     case START_OF_SEGMENT:
-        //-- Forward the session Id received from [TAr]
-        if ( !siTAr_Meta.empty() and !soTOE_Meta.full()) {
-            siTAr_Meta.read(tcpSessId);
-            soTOE_Meta.write(tcpSessId);
-            tae_fsmState = CONTINUATION_OF_SEGMENT;
+        if (!siTOE_SndRep.empty()) {
+            //-- Read the request to send reply and continue accordingly
+            TcpAppSndRep appSndRep = siTOE_SndRep.read();
+            switch (appSndRep.error) {
+            case NO_ERROR:
+                tae_fsmState = CONTINUATION_OF_SEGMENT;
+                break;
+            case NO_SPACE:
+                printError(THIS_NAME, "Not enough space for writing %d bytes in the Tx buffer of session #%d. Available space is %d bytes.\n",
+                           appSndRep.length.to_uint(), appSndRep.sessId.to_uint(), appSndRep.spaceLeft.to_uint());
+                nrError++;
+                tae_fsmState = IDLE;
+                break;
+            case NO_CONNECTION:
+                printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
+                nrError++;
+                tae_fsmState = IDLE;
+                break;
+            default:
+                printError(THIS_NAME, "Received unknown TCP request to send reply from [TOE].\n");
+                nrError++;
+                tae_fsmState = IDLE;
+                break;
+            }
         }
         break;
     case CONTINUATION_OF_SEGMENT:
-        //-- Feed the TOE with data received from [TAr]
         if ( !siTAr_Data.empty() and !soTOE_Data.full()) {
-            siTAr_Data.read(tcpChunk);
-            soTOE_Data.write(tcpChunk);
-            apRxBytCntr += writeAxisAppToFile(tcpChunk, ofIPTX_Gold2, tae_mssCounter);
-            if (tcpChunk.getTLast())
-                tae_fsmState = START_OF_SEGMENT;
+            //-- Feed the TOE with the data received from [TAr]
+            siTAr_Data.read(appChunk);
+            soTOE_Data.write(appChunk);
+            apRxBytCntr += writeAxisAppToFile(appChunk, ofIPTX_Gold2, tae_mssCounter);
+            if (appChunk.getTLast())
+                tae_fsmState = IDLE;
         }
         break;
     } // End-of: switch()
@@ -1701,10 +1731,10 @@ void pTcpAppEcho(
  * @param[out] soTOE_DReq    TCP data request to TOE.
  * @param[in]  siTOE_Data    TCP data stream from TOE.
  * @param[in]  siTOE_Meta    TCP metadata stream from TOE.
- * @param[out] soTAs_Data    TCP data stream forwarded to TcpAppSend (TAs) process.
- * @param[out] soTAs_Meta    TCP data stream forwarded to [TAs].
+ * @param[out] soTAs_Data    TCP data stream forwarded to TcpAppSend (TAs).
+ * @param[out] soTAs_SndReq  TCP data send request forwarded to [TAs].
  *
- * @details
+ * details
  *
  ******************************************************************************/
 void pTAIF_Recv(
@@ -1720,7 +1750,7 @@ void pTAIF_Recv(
         stream<TcpAppData>      &siTOE_Data,
         stream<TcpAppMeta>      &siTOE_Meta,
         stream<TcpAppData>      &soTAs_Data,
-        stream<TcpAppMeta>      &soTAs_Meta)
+        stream<TcpAppSndReq>    &soTAs_SndReq)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TAr");
 
@@ -1735,8 +1765,8 @@ void pTAIF_Recv(
     static set<TcpPort> tar_listeningPorts;  // A set to keep track of the ports opened in listening mode
     static TcpAppNotif  tar_notification;
     static vector<SessionId> tar_txSessIdVector; // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
-    static enum FsmStates {WAIT_NOTIF=0, SEND_DREQ,
-                           WAIT_SEG,     CONSUME} tar_fsmState = WAIT_NOTIF;
+    static enum FsmStates { WAIT_NOTIF=0, SEND_DREQ,
+                            WAIT_SEG,     CONSUME } tar_fsmState = WAIT_NOTIF;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
@@ -1811,10 +1841,10 @@ void pTAIF_Recv(
                 tar_fsmState = CONSUME;
             }
             break;
-        case ECHO_MODE: // Forward incoming SessId to the TAIF_Send process (Snd)
-            if (!siTOE_Meta.empty() && !soTAs_Meta.full()) {
+        case ECHO_MODE: // Forward sessId and data length a send request to TAIF_Send (Snd) process
+            if (!siTOE_Meta.empty() and !soTAs_SndReq.full()) {
                 siTOE_Meta.read(tcpSessId);
-                soTAs_Meta.write(tcpSessId);
+                soTAs_SndReq.write(TcpAppSndReq(tcpSessId, tar_notification.tcpDatLen));
                 tar_fsmState = CONSUME;
             }
             break;
@@ -1865,13 +1895,14 @@ void pTAIF_Recv(
  * @param[in]  ofIPTX_Gold2  A ref to the IPTX gold file to write.
  * @param[i/o] apRxBytCntr   A ref to the counter of bytes on the APP Rx I/F.
  * @param[in]  piTOE_Ready   A reference to the ready signal of TOE.
- * @param[out] soTOE_OpnReq  TCP open port request to TOE.
- * @param[in]  siTOE_OpnRep  TCP open port reply to TOE.
- * @param[out] soTOE_Data    TCP data stream to TOE.
- * @param[out] soTOE_Meta    TCP metadata stream to TOE.
- * @param[out] soTOE_ClsReq  TCP close connection request to TOE.
+ * @param[out] soTOE_OpnReq  TCP open port request to [TOE].
+ * @param[in]  siTOE_OpnRep  TCP open port reply to [TOE].
+ * @param[out] soTOE_Data    TCP data stream to [TOE].
+ * @param[out] soTOE_SndReq  TCP data send request to [TOE].
+ * @param[in]  siTOE_SndRep  TCP data send reply from [TOE].
+ * @param[out] soTOE_ClsReq  TCP close connection request to [TOE].
  * @param[in]  siTAr_Data    TCP data stream from TcpAppRecv (TAr) process.
- * @param[in]  siTAr_Meta    TCP data stream from [TAr].
+ * @param[in]  siTAr_SndReq  TCP data send request from [TAr].
  *
  * @details:
  *  The max number of connections that can be opened is given by 'NO_TX_SESSIONS'.
@@ -1888,10 +1919,11 @@ void pTAIF_Send(
         stream<TcpAppOpnReq>    &soTOE_OpnReq,
         stream<TcpAppOpnRep>    &siTOE_OpnRep,
         stream<TcpAppData>      &soTOE_Data,
-        stream<TcpAppMeta>      &soTOE_Meta,
+        stream<TcpAppSndReq>    &soTOE_SndReq,
+        stream<TcpAppSndRep>    &siTOE_SndRep,
         stream<TcpAppClsReq>    &soTOE_ClsReq,
         stream<TcpAppData>      &siTAr_Data,
-        stream<TcpAppMeta>      &siTAr_Meta)
+        stream<TcpAppSndReq>    &siTAr_SndReq)
 {
     const char *myName  = concat3(THIS_NAME, "/", "TAs");
 
@@ -1903,6 +1935,7 @@ void pTAIF_Send(
     static unsigned int tas_toeReadyDelay   = 0;  // The time it takes for TOE to be ready
     static vector<SessionId> tas_txSessIdVector;  // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
     static map<SocketPair, SessionId> tas_openSessList; // Keeps track of the sessions opened by the TOE
+    static bool         tas_clearToSend = false;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
@@ -1972,17 +2005,19 @@ void pTAIF_Send(
                 ofIPTX_Gold2,
                 apRxBytCntr,
                 soTOE_Data,
-                soTOE_Meta,
+                soTOE_SndReq,
+                siTOE_SndRep,
                 siTAr_Data,
-                siTAr_Meta);
+                siTAr_SndReq);
         return;
     }
 
     //-----------------------------------------------------
-    //-- STEP-4 : READ THE APP RX FILE AND FEED THE TOE
+    //-- STEP-4 : READ THE APP SEND FILE AND FEED THE TOE
     //-----------------------------------------------------
-    while (!ifTAIF_Data.eof()) {
-        //-- READ A LINE FROM APP RX FILE -------------
+    SimAppData  simAppData;
+    while (!ifTAIF_Data.eof() or !simAppData.len()) {
+        //-- READ A LINE FROM APP SEND FILE -----------
         getline(ifTAIF_Data, rxStringBuffer);
         stringVector = myTokenizer(rxStringBuffer, ' ');
         if (stringVector[0] == "") {
@@ -2088,12 +2123,47 @@ void pTAIF_Send(
         else if (ifTAIF_Data.fail() == 1 || rxStringBuffer.empty()) {
             return;
         }
+        else if (!tas_clearToSend) {
+            if (!siTOE_SndRep.empty()) {
+                TcpAppSndRep appSndRep = siTOE_SndRep.read();
+                TcpAppSndErr rc = appSndRep.error;
+                switch (rc) {
+                case NO_ERROR:
+                    tas_clearToSend = true;
+                    break;
+                case NO_CONNECTION:
+                    printError(myName, "Attempt to write data for session %d which is not established.\n", appSndRep.sessId.to_uint());
+                    nrError++;
+                    break;
+                case NO_SPACE:
+                    printError(myName, "There is not enough TxBuf memory space available for session %d.\n",
+                               appSndRep.sessId.to_uint());
+                    nrError++;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        else if (!simAppData.len() and tas_clearToSend) {
+            if (! soTOE_Data.full()) {
+                //-------------------------------------------------
+                //-- Feed TOE with a new APP chunk from APP data
+                //-------------------------------------------------
+                AxisApp appChunk = simAppData.pullChunk();
+                soTOE_Data.write(appChunk);
+                increaseSimTime(1);
+                if (appChunk.getTLast()) {
+                    tas_clearToSend = false;
+                }
+            }
+        }
         else {
-            //-------------------------------------
-            //-- Feed the TOE with data from file
-            //-------------------------------------
+            //-------------------------------------------------
+            //-- Build a new AppData from file
+            //-------------------------------------------------
             AxisApp appChunk;
-            bool    firstChunkFlag = true; // Axis chunk is first data chunk of segment
+            bool    firstChunkFlag = true; // Axis chunk is first data chunk
             int     writtenBytes = 0;
             do {
                 if (firstChunkFlag == false) {
@@ -2111,22 +2181,37 @@ void pTAIF_Send(
                         continue;
                     }
                 }
-                else {
-                    // A Tx data request (.i.e, a metadata) must be sent by TAIF to TOE
-                    soTOE_Meta.write(tas_openSessList[currSocketPair]);
-                }
                 firstChunkFlag = false;
                 bool rc = readAxisRawFromLine(appChunk, rxStringBuffer);
                 if (rc) {
-                    soTOE_Data.write(appChunk);
-                    increaseSimTime(1);
+                    simAppData.pushChunk(appChunk);
                 }
                 // Write current chunk to the gold file
                 writtenBytes = writeAxisAppToFile(appChunk, ofIPTX_Gold2);
                 apRxBytCntr += writtenBytes;
+                if (appChunk.getTLast()) {
+                    // A send request must be sent by TAIF to TOE
+                    soTOE_SndReq.write(TcpAppSndReq(tas_openSessList[currSocketPair], simAppData.getLen()));
+                }
             } while (not appChunk.getTLast());
         } // End of: else
     }
+
+
+
+
+                nrErr++;
+                break;
+            default:
+                printError(THIS_NAME, "Received unknown TCP write status from [TOE].\n");
+                nrErr++;
+                break;
+            }
+        }
+    }
+
+
+
 } // End of: pTAs
 
 /*****************************************************************************
@@ -2151,7 +2236,8 @@ void pTAIF_Send(
  * @param[out] soTOE_OpnReq TCP open port request to [TOE].
  * @param[in]  siTOE_OpnRep TCP open port reply from [TOE].
  * @param[out] soTOE_Data   TCP data stream to [TOE].
- * @param[out] soTOE_Meta   TCP metadata stream to [TOE].
+ * @param[out] soTOE_SndReq TCP data send request to [TOE].
+ * @param[in]  siTOE_SndRep TCP data send reply from [TOE].
  * @param[out] soTOE_ClsReq TCP close connection request to [TOE].
  *
  * @details:
@@ -2171,16 +2257,19 @@ void pTAIF(
         int                     &appRxBytCntr,
         int                     &appTxBytCntr,
         StsBit                  &piTOE_Ready,
+        //-- Receive Interfaces
         stream<TcpAppLsnReq>    &soTOE_LsnReq,
         stream<TcpAppLsnRep>    &siTOE_LsnRep,
         stream<TcpAppNotif>     &siTOE_Notif,
         stream<TcpAppRdReq>     &soTOE_DReq,
         stream<TcpAppData>      &siTOE_Data,
         stream<TcpAppMeta>      &siTOE_Meta,
+        //-- Transmit Interfaces
         stream<TcpAppOpnReq>    &soTOE_OpnReq,
         stream<TcpAppOpnRep>    &siTOE_OpnRep,
         stream<TcpAppData>      &soTOE_Data,
-        stream<TcpAppMeta>      &soTOE_Meta,
+        stream<TcpAppSndReq>    &soTOE_SndReq,
+        stream<TcpAppSndRep>    &siTOE_SndRep,
         stream<TcpAppClsReq>    &soTOE_ClsReq)
 {
 
@@ -2193,10 +2282,10 @@ void pTAIF(
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS
     //-------------------------------------------------------------------------
-    static stream<TcpAppData>   ssTArToTAs_Data ("ssTArToTAs_Data");
-    #pragma HLS STREAM variable=ssTArToTAs_Data depth=2048
-    static stream<TcpAppMeta>   ssTArToTAs_Meta ("ssTArToTAs_Meta");
-    #pragma HLS STREAM variable=ssTArToTAs_Meta depth=64
+    static stream<TcpAppData>   ssTArToTAs_Data   ("ssTArToTAs_Data");
+    #pragma HLS STREAM variable=ssTArToTAs_Data   depth=2048
+    static stream<TcpAppSndReq> ssTArToTAs_SndReq ("ssTArToTAs_SndReq");
+    #pragma HLS STREAM variable=ssTArToTAs_SndReq depth=64
 
     //---------------------------------------
     //-- STEP-0 : RETURN IF TOE IS NOT READY
@@ -2231,7 +2320,7 @@ void pTAIF(
             siTOE_Data,
             siTOE_Meta,
             ssTArToTAs_Data,
-            ssTArToTAs_Meta);
+            ssTArToTAs_SndReq);
 
     pTAIF_Send(
             nrError,
@@ -2245,10 +2334,11 @@ void pTAIF(
             soTOE_OpnReq,
             siTOE_OpnRep,
             soTOE_Data,
-            soTOE_Meta,
+            soTOE_SndReq,
+            siTOE_SndRep,
             soTOE_ClsReq,
             ssTArToTAs_Data,
-            ssTArToTAs_Meta);
+            ssTArToTAs_SndReq);
 
 } // End of: pTAIF
 
@@ -2634,28 +2724,8 @@ int main(int argc, char *argv[]) {
             ssTOE_TAIF_OpnRep,
             ssTAIF_TOE_Data,
             ssTAIF_TOE_Meta,
+            ssTOE_TAIF_DSts,
             ssTAIF_TOE_ClsReq);
-
-        // TODO
-        if (!ssTOE_TAIF_DSts.empty()) {
-            TcpAppWrSts wrStatus = ssTOE_TAIF_DSts.read();
-            if (wrStatus.datLen == 0) {
-               switch(wrStatus.status) {
-               case TCP_APP_WR_STS_NOCONNECTION:
-                    printError(THIS_NAME, "Attempt to write data for a session that is not established.\n");
-                    nrErr++;
-                    break;
-                case TCP_APP_WR_STS_NOSPACE:
-                    printError(THIS_NAME, "Attempt to write data for a session which Tx buffer id full.\n");
-                    nrErr++;
-                    break;
-                default:
-                    printError(THIS_NAME, "Received unknown TCP write status from [TOE].\n");
-                    nrErr++;
-                    break;
-                }
-            }
-        }
 
         //------------------------------------------------------
         //-- STEP-6 : GENERATE THE 'ReadyDly' SIGNAL

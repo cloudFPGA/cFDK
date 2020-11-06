@@ -311,12 +311,13 @@ enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
                 LAST_ACK };
 
 //=========================================================
-//== TCP Application Write Status Codes
-//==  Error codes returned by NTS after a data send transfer
+//== TCP Application Send Error Codes
+//==  Error codes returned by NTS after a send request.
 //=========================================================
-#define TCP_APP_WR_STS_KO           0
-#define TCP_APP_WR_STS_NOSPACE      1
-#define TCP_APP_WR_STS_NOCONNECTION 2
+enum TcpAppSndErr { NO_ERROR=0, NO_SPACE, NO_CONNECTION };
+//OBSOLETE_20201105 #define TCP_APP_WR_STS_KO           0
+//OBSOLETE_20201105 #define TCP_APP_WR_STS_NOSPACE      1
+//OBSOLETE_20201105 #define TCP_APP_WR_STS_NOCONNECTION 2
 
 //=========================================================
 //== TCP Application Notification Codes

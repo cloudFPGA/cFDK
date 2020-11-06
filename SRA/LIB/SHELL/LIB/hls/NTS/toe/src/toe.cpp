@@ -157,50 +157,50 @@ void pTbSimCount(
  * @brief   Main process of the TCP Offload Engine.
  *
  * -- MMIO Interfaces
- * @param[in]  piMMIO_IpAddr    IP4 Address from MMIO.
+ * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
  * -- NTS Interfaces
- * @param[out] poNTS_Ready      Ready signal of the TOE.
+ * @param[out] poNTS_Ready      Ready signal of TOE.
  * -- IPRX / IP Rx / Data Interface
- * @param[in]  siIPRX_Data      IP4 data stream from IPRX.
+ * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * -- L3MUX / IP Tx / Data Interface
- * @param[out] soL3MUX_Data     IP4 data stream to L3MUX.
- * -- TAIF / Rx Segment Interfaces
- * @param[out] soTAIF_Notif     TCP notification to TAIF.
- * @param[in]  siTAIF_DReq      TCP data request from TAIF.
- * @param[out] soTAIF_Data      TCP data stream to TAIF.
- * @param[out] soTAIF_Meta      TCP metadata stream to TAIF.
+ * @param[out] soL3MUX_Data     IP4 data stream to [L3MUX].
+ * -- TAIF / Rx Data Interfaces
+ * @param[out] soTAIF_Notif     APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq      APP data request from [TAIF].
+ * @param[out] soTAIF_Data      APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
  * -- TAIF / Listen Port Interfaces
- * @param[in]  siTAIF_LsnReq    TCP listen port request from TAIF.
- * @param[out] soTAIF_LsnRep    TCP listen port reply to TAIF.
+ * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
  * -- TAIF / Tx Data Interfaces
- * @param[in]  siTAIF_Data      TCP data stream from TAIF.
- * @param[in]  siTAIF_Meta      TCP metadata stream from TAIF.
- * @param[out] soTAIF_DSts      TCP data write status to TAIF.
+ * @param[in]  siTAIF_Data      APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
  * -- TAIF / Open Interfaces
- * @param[in]  siTAIF_OpnReq    TCP open port request from TAIF.
- * @param[out] soTAIF_OpnRep    TCP open port reply to TAIF.
+ * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
  * -- TAIF / Close Interfaces
- * @param[in]  siTAIF_ClsReq    TCP close connection request from TAIF.
- * @warning:   Not-Used         TCP close connection status to TAIF.
+ * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
+ * @warning:   Not-Used         APP close connection status to [TAIF].
  * -- MEM / Rx PATH / S2MM Interface
- * @warning:   Not-Used         Rx memory read status from MEM.
- * @param[out] soMEM_RxP_RdCmd  Rx memory read command to MEM.
- * @param[in]  siMEM_RxP_Data   Rx memory data from MEM.
- * @param[in]  siMEM_RxP_WrSts  Rx memory write status from MEM.
- * @param[out] soMEM_RxP_WrCmd  Rx memory write command to MEM.
- * @param[out] soMEM_RxP_Data   Rx memory data to MEM.
+ * @warning:   Not-Used         Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
  * -- MEM / Tx PATH / S2MM Interface
- * @warning:   Not-Used         Tx memory read status from MEM.
- * @param[out] soMEM_TxP_RdCmd  Tx memory read command to MEM.
- * @param[in]  siMEM_TxP_Data   Tx memory data from MEM.
- * @param[in]  siMEM_TxP_WrSts  Tx memory write status from MEM.
- * @param[out] soMEM_TxP_WrCmd  Tx memory write command to MEM.
- * @param[out] soMEM_TxP_Data   Tx memory data to MEM.
+ * @warning:   Not-Used         Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
  * -- CAM / Session Lookup & Update Interfaces
- * @param[in]  siCAM_SssLkpRep  Session lookup reply from CAM.
- * @param[in]  siCAM_SssUpdRep  Session update reply from CAM.
- * @param[out] soCAM_SssLkpReq  Session lookup request to CAM.
- * @param[out] soCAM_SssUpdReq  Session update request to CAM.
+ * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
+ * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
+ * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
+ * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * -- DEBUG / Session Statistics Interfaces
  * @param[out] poDBG_SssRelCnt  Session release count to DEBUG.  // [FIXMS-Remove]
  * @param[out] poDBG_SssRegCnt  Session register count to DEBUG. // [FIXMS-Remove]
@@ -228,7 +228,7 @@ void toe(
         stream<AxisIp4>                     &soL3MUX_Data,
 
         //------------------------------------------------------
-        //-- TAIF / Rx Segment Interfaces
+        //-- TAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<TcpAppNotif>                 &soTAIF_Notif,
         stream<TcpAppRdReq>                 &siTAIF_DReq,
@@ -242,11 +242,11 @@ void toe(
         stream<TcpAppLsnRep>                &soTAIF_LsnRep,
 
         //------------------------------------------------------
-        //-- TAIF / Tx Segment Interfaces
+        //-- TAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<TcpAppData>                  &siTAIF_Data,
-        stream<TcpAppMeta>                  &siTAIF_Meta,
-        stream<TcpAppWrSts>                 &soTAIF_DSts,
+        stream<TcpAppSndReq>                &siTAIF_SndReq,
+        stream<TcpAppSndRep>                &soTAIF_SndRep,
 
         //------------------------------------------------------
         //-- TAIF / Open connection Interfaces
@@ -819,8 +819,8 @@ void toe(
             soTAIF_OpnRep,
             siTAIF_ClsReq,
             siTAIF_Data,
-            siTAIF_Meta,
-            soTAIF_DSts,
+            siTAIF_SndReq,
+            soTAIF_SndRep,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data,
             siMEM_TxP_WrSts,

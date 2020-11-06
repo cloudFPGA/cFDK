@@ -44,7 +44,7 @@ using namespace std;
 using namespace hls;
 
 /*******************************************************************************
- * @brief Class TCP Datagram.
+ * @brief Class TCP Segment
  *
  * @details
  *  This class defines a TCP segment as a stream of 'AxisTcp' data chunks.
@@ -176,22 +176,6 @@ class SimTcpSegment {
             inpChunkCnt++;
         }
     }
-
-    /**************************************************************************
-     * @brief Pull the header of this segment.
-     * @return the segment header as a 'SimTcpSegment'.
-     *
-     * [FIXME - Works only for a default header of 20 bytes]
-     **************************************************************************/
-  /*** OBSOLETE_20200727 ***
-    SimTcpSegment pullHeader() {
-        SimTcpSegment headerAsSegment;
-        headerAsSegment.pushChunk(this.pull());  // 8 bytes
-        headerAsSegment.pushChunk(this.pull());  // 8 bytes
-        TcpAxisApp headerAsSegment.pushChunk(this.pull());
-        return headerAsSegment;
-    }
-  *************************/
 
     // Set the TCP Source Port field
     void        setTcpSourcePort(TcpPort port)        {        segQ[0].setTcpSrcPort(port);   }

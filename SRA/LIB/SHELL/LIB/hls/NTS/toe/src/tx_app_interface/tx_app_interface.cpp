@@ -421,8 +421,8 @@ void pStreamLengthGenerator(
 /*******************************************************************************
  * @brief Stream Metadata Loader (Sml)
  *
- * @param[in]  siTAIF_Meta        The TCP session Id this segment belongs to.
- * @param[out] soTAIF_DSts        The TCP write transfer status to TAIF.
+ * @param[in]  siTAIF_SndReq      APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep      APP send reply to [TAIF].
  * @param[out] soSTt_SessStateReq Session state request to StateTable (STt).
  * @param[in]  siSTt_SessStateRep Session state reply from StateTable (STt).
  * @param[out] soTat_AccessReq    Access request to TxAppTable (Tat).
@@ -432,20 +432,29 @@ void pStreamLengthGenerator(
  * @param[out] soEmx_Event        Event to EventMultiplexer (Emx).
  *
  * @details
- *  This process reads the request from the application and loads the necessary
- *   metadata from the [Tat] for transmitting this segment. After a session-id
- *   request is received from [TAIF], the state of the connection is checked and
- *   the segment memory pointer is loaded into the TxAppTable. Next, segment's
- *   metadata is forwarded to the MemoryWriter (Mwr) process which will write
- *   the segment into the DDR4 buffer memory.
- * The FSM of this process decides if the segment is written to the TX buffer or
- *  is discarded.
+ *  The FSM of this process decides if the incoming application data is written
+ *   to the TX buffer in DDR4 memory. The process reads the request to send from
+ *   the application and loads the necessary metadata from the [Tat] for
+ *   transmitting this data.
+ *  A request to send consists of a session-id and a data-length information.
+ *  Once this request is received from [TAIF], the state of the connection is
+ *  checked as well as the available memory space, and a reply is sent back to
+ *  [TAIF].
+ *   1) If the return code is 'NO_ERROR', the application is allowed to send.
+ *      In  that case, the segment memory pointer is loaded into the TxAppTable
+ *      and the segment's metadata is forwarded to MemoryWriter (Mwr) process
+ *      which will use it to write the incoming data stream into DDR4 memory.
+ *   2) If there is not enough space available in the Tx buffer of the session,
+ *      the application can either retry its request later or decide to abandon
+ *      the transmission.
+ *   3) It the connection is not established, the application will be noticed it
+ *      should act accordingly (e.g. by first opening the connection).
  *
  *  [TODO: Implement TCP_NODELAY]
  *******************************************************************************/
 void pStreamMetaLoader(
-        stream<TcpAppMeta>          &siTAIF_Meta,
-        stream<TcpAppWrSts>         &soTAIF_DSts,
+        stream<TcpAppSndReq>        &siTAIF_SndReq,
+        stream<TcpAppSndRep>        &soTAIF_SndRep,
         stream<SessionId>           &soSTt_SessStateReq,
         stream<TcpState>            &siSTt_SessStateRep,
         stream<TxAppTableQuery>     &soTat_AccessReq,
@@ -461,41 +470,40 @@ void pStreamMetaLoader(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static enum FsmStates { READ_REQUEST=0,  READ_META } \
-                                            mdl_fsmState = READ_REQUEST;
-    #pragma HLS reset            variable = mdl_fsmState
+                                 mdl_fsmState = READ_REQUEST;
+    #pragma HLS reset variable = mdl_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static SessionId sessId;
+    //OBSOLETE_20201106 static SessionId sessId;
+    static TcpAppSndReq mdl_appSndReq;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TxAppTableReply  txAppTableReply;
     TcpState         sessState;
-    TcpSegLen        segLen;
+    //OBSOLETE_20201106 TcpSegLen        segLen;
 
     switch(mdl_fsmState) {
     case READ_REQUEST:
-        if (!siTAIF_Meta.empty()) {
-            // Read the session ID
-            siTAIF_Meta.read(sessId);
+        if (!siTAIF_SndReq.empty()) {
+            // Read the request to send
+            siTAIF_SndReq.read(mdl_appSndReq);
             // Request state of the session
             assessSize(myName, soSTt_SessStateReq, "soSTt_SessStateReq", 2);  // [FIXME-Use constant for the length]
-            soSTt_SessStateReq.write(sessId);
+            soSTt_SessStateReq.write(mdl_appSndReq.sessId);
             // Request the value of ACK and MemPtr from TxAppTable
             assessSize(myName, soTat_AccessReq, "soTat_AccessReq", 2);  // [FIXME-Use constant for the length]
-            soTat_AccessReq.write(TxAppTableQuery(sessId));
+            soTat_AccessReq.write(TxAppTableQuery(mdl_appSndReq.sessId));
             if (DEBUG_LEVEL & TRACE_SML) {
-                printInfo(myName, "Received new Tx request for session %d.\n", sessId.to_int());
+                printInfo(myName, "Received new Tx request for session %d.\n", mdl_appSndReq.sessId.to_int());
             }
             mdl_fsmState = READ_META;
         }
         break;
     case READ_META:
-        if (!siTat_AccessRep.empty() && !siSTt_SessStateRep.empty() && !siSlg_SegLen.empty()) {
+        if (!siTat_AccessRep.empty() and !siSTt_SessStateRep.empty()) {
             siSTt_SessStateRep.read(sessState);
             siTat_AccessRep.read(txAppTableReply);
-            // [FIXME][FIXME][FIXME] Incoming data stream must me managed like new UOE !!!
-            siSlg_SegLen.read(segLen);
-            TcpSegLen maxWriteLength = (txAppTableReply.ackd - txAppTableReply.mempt) - 1;
+            TcpDatLen maxWriteLength = (txAppTableReply.ackd - txAppTableReply.mempt) - 1;
             /*** [TODO - TCP_NODELAY] ******************
             #if (TCP_NODELAY)
                 ap_uint<16> usedLength = ((ap_uint<16>) writeSar.mempt - writeSar.ackd);
@@ -506,31 +514,27 @@ void pStreamMetaLoader(
             #endif
             *******************************************/
             if (sessState != ESTABLISHED) {
-                // Drop this segment
-                assessSize(myName, soMwr_SegMeta, "soMwr_SegMeta", 128);  // [FIXME-Use constant for the length]
-                soMwr_SegMeta.write(SegMemMeta(CMD_DROP));
-                // Notify [APP] about the fail
-                soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOCONNECTION));
+                // Notify APP about the none-established connection
+                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_CONNECTION));
                 printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
-                           sessId.to_uint(), getTcpStateName(sessState));
+                           mdl_appSndReq.sessId.to_uint(), getTcpStateName(sessState));
             }
-            else if (segLen > maxWriteLength) {
-                soMwr_SegMeta.write(SegMemMeta(CMD_DROP));
-                // Notify [APP] about fail
-                soTAIF_DSts.write(TcpAppWrSts(TCP_APP_WR_STS_KO, TCP_APP_WR_STS_NOSPACE));
-                printError(myName, "There is no TxBuf memory space available for session %d.\n",
-                           sessId.to_uint());
+            else if (mdl_appSndReq.length > maxWriteLength) {
+                // Notify APP about the lack of space
+                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_SPACE));
+                printError(myName, "There is not enough TxBuf memory space available for session %d.\n",
+                           mdl_appSndReq.sessId.to_uint());
             }
-            else { //-- Session is ESTABLISHED and segLen <= maxWriteLength
+            else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
                 // Forward the metadata to the SegmentMemoryWriter (Mwr)
-                soMwr_SegMeta.write(SegMemMeta(sessId, txAppTableReply.mempt, segLen));
-                // Forward data status back to [APP]
-                soTAIF_DSts.write(TcpAppWrSts(STS_OK, segLen));
-                // Notify [TXe] about data to be sent via an event to [EVe]
+                soMwr_SegMeta.write(SegMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
+                // Notify APP about successful transmission
+                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_ERROR));
+                // Notify [TXe] about new data to be sent via an event to [EVe]
                 assessSize(myName, soEmx_Event, "soEmx_Event", 2);  // [FIXME-Use constant for the length]
-                soEmx_Event.write(Event(TX_EVENT, sessId, txAppTableReply.mempt, segLen));
+                soEmx_Event.write(Event(TX_EVENT, mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
                 // Update the 'txMemPtr' in TxAppTable
-                soTat_AccessReq.write(TxAppTableQuery(sessId, txAppTableReply.mempt + segLen));
+                soTat_AccessReq.write(TxAppTableQuery(mdl_appSndReq.sessId, txAppTableReply.mempt + mdl_appSndReq.length));
             }
             mdl_fsmState = READ_REQUEST;
         }
@@ -765,9 +769,9 @@ void pTxMemoryWriter(
  * @param[in]  siTAIF_OpnReq         Open connection request from TCP Role I/F (TAIF).
  * @param[out] soTAIF_OpnRep         Open connection reply to [TAIF].
  * @param[in]  siTAIF_ClsReq         Close connection request from [TAIF]
- * @param[in]  siTAIF_Data           TCP data stream from TAIF.
- * @param[in]  siTAIF_Meta           TCP metadata stream from TAIF.
- * @param[out] soTAIF_DSts           TCP data status to TAIF.
+ * @param[in]  siTAIF_Data           APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq         APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep         APP send reply to [TAIF].
  * @param[out] soMEM_TxP_WrCmd       Tx memory write command to MEM.
  * @param[out] soMEM_TxP_Data        Tx memory data to MEM.
  * @param[in]  siMEM_TxP_WrSts       Tx memory write status from MEM.
@@ -794,10 +798,10 @@ void tx_app_interface(
         stream<TcpAppOpnReq>           &siTAIF_OpnReq,
         stream<TcpAppOpnRep>           &soTAIF_OpnRep,
         stream<TcpAppClsReq>           &siTAIF_ClsReq,
-        //-- TAIF / Data Stream Interfaces
+        //-- TAIF / Send Data Interfaces
         stream<TcpAppData>             &siTAIF_Data,
-        stream<TcpAppMeta>             &siTAIF_Meta,
-        stream<TcpAppWrSts>            &soTAIF_DSts,
+        stream<TcpAppSndReq>           &siTAIF_SndReq,
+        stream<TcpAppSndRep>           &soTAIF_SndRep,
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxisApp>                &soMEM_TxP_Data,
@@ -892,8 +896,8 @@ void tx_app_interface(
             ssSlgToSml_SegLen);
 
     pStreamMetaLoader(
-            siTAIF_Meta,
-            soTAIF_DSts,
+            siTAIF_SndReq,
+            soTAIF_SndRep,
             soSTt_SessStateReq,
             siSTt_SessStateRep,
             ssSmlToTat_AccessQry,

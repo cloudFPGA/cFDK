@@ -691,7 +691,7 @@ void toe(
         stream<AxisIp4>                         &soL3MUX_Data,
 
         //------------------------------------------------------
-        //-- TAIF / Rx Segment Interfaces
+        //-- TAIF / Receive Data Interfaces
         //------------------------------------------------------
         stream<TcpAppNotif>                     &soTAIF_Notif,
         stream<TcpAppRdReq>                     &siTAIF_DReq,
@@ -705,11 +705,11 @@ void toe(
         stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
 
         //------------------------------------------------------
-        //-- TAIF / Tx Segment Interfaces
+        //-- TAIF / Send Data Interfaces
         //------------------------------------------------------
         stream<TcpAppData>                      &siTAIF_Data,
-        stream<TcpAppMeta>                      &siTAIF_Meta,
-        stream<TcpAppWrSts>                     &soTAIF_DSts,
+        stream<TcpAppSndReq>                    &siTAIF_SndReq,
+        stream<TcpAppSndRep>                    &soTAIF_SndRep,
 
         //------------------------------------------------------
         //-- TAIF / Open Connection Interfaces
