@@ -84,19 +84,19 @@ class TxAppTableEntry {
 };
 
 /************************************************
- * Metadata for storing a segment in memory
+ * Metadata for storing APP data in memory
  ************************************************/
-class SegMemMeta {
+class AppMemMeta {
   public:
     TcpSessId    sessId;
     TcpBufAdr    addr;
-    TcpSegLen    len;
-    bool         drop;
-    SegMemMeta() {}
-    SegMemMeta(bool drop) :
-        sessId(0), addr(0), len(0), drop(drop) {}
-    SegMemMeta(TcpSessId sessId, TcpBufAdr addr, TcpSegLen len) :
-        sessId(sessId), addr(addr), len(len), drop(false) {}
+    TcpDatLen    len;
+    //OBSOLETE_20201109 bool         drop;
+    AppMemMeta() {}
+    //OBSOLETE_20201109 AppMemMeta(bool drop) :
+    //OBSOLETE_20201109     sessId(0), addr(0), len(0), drop(drop) {}
+    AppMemMeta(TcpSessId sessId, TcpBufAdr addr, TcpDatLen len) :
+        sessId(sessId), addr(addr), len(len) {}
 };
 
 /*******************************************************************************
@@ -111,8 +111,8 @@ void tx_app_interface(
         stream<TcpAppClsReq>           &siTAIF_ClsReq,
         //-- TAIF / Data Stream Interfaces
         stream<TcpAppData>             &siTAIF_Data,
-        stream<TcpAppMeta>             &siTAIF_Meta,
-        stream<TcpAppWrSts>            &soTAIF_DSts,
+        stream<TcpAppSndReq>           &siTAIF_SndReq,
+        stream<TcpAppSndRep>           &soTAIF_SndRep,
         //-- MEM / Tx PATH Interface
         stream<DmCmd>                  &soMEM_TxP_WrCmd,
         stream<AxisApp>                &soMEM_TxP_Data,

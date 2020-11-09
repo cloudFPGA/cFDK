@@ -165,7 +165,7 @@ class SimAppData {
                     int hi = ((b*8) + 7);
                     int lo = ((b*8) + 0);
                     ap_uint<8>  octet = axisData.getTData().range(hi, lo);
-                    segStr += myUint8ToStrHex(octet);
+                    datStr += myUint8ToStrHex(octet);
                 }
             }
         }
@@ -177,9 +177,9 @@ class SimAppData {
             string hexaStr;
             string asciiStr;
             for (int c=0; c < 16*2; c+=2) {
-                if (i < segStr.length()) {
-                    hexaStr += segStr.substr(i, 2);
-                    char ch = std::strtoul(segStr.substr(i, 2).c_str(), &ptr, 16);
+                if (i < datStr.length()) {
+                    hexaStr += datStr.substr(i, 2);
+                    char ch = std::strtoul(datStr.substr(i, 2).c_str(), &ptr, 16);
                     if ((int)ch > 0x1F)
                         asciiStr += ch;
                     else

@@ -384,7 +384,7 @@ void pTxAppTable(
  *    while forwarding that same data stream to the MemoryWriter (Mwr).
  *    [FIXME - This part is completely bugus!!! Must fix like with UOE]
  *******************************************************************************/
-/*** OBSOLETE_20201104 *********************************************************/
+/*** OBSOLETE_20201104 *********************************************************
 void pStreamLengthGenerator(
         stream<TcpAppData>  &siTAIF_Data,
         stream<AxisApp>     &soMwr_Data,
@@ -416,7 +416,7 @@ void pStreamLengthGenerator(
         }
     }
 }
-/*******************************************************************************/
+*******************************************************************************/
 
 /*******************************************************************************
  * @brief Stream Metadata Loader (Sml)
@@ -427,8 +427,7 @@ void pStreamLengthGenerator(
  * @param[in]  siSTt_SessStateRep Session state reply from StateTable (STt).
  * @param[out] soTat_AccessReq    Access request to TxAppTable (Tat).
  * @param[in]  siTat_AccessRep    Access reply from [Tat]
- * @param[in]  siSlg_SegLen       The TCP segment length from SegmentLengthGenerator (Slg).
- * @param[out] soMwr_SegMeta      Segment metadata to MemoryWriter (Mwr).
+ * @param[out] soMwr_AppMeta      APP memory metadata to MemoryWriter (Mwr).
  * @param[out] soEmx_Event        Event to EventMultiplexer (Emx).
  *
  * @details
@@ -459,8 +458,7 @@ void pStreamMetaLoader(
         stream<TcpState>            &siSTt_SessStateRep,
         stream<TxAppTableQuery>     &soTat_AccessReq,
         stream<TxAppTableReply>     &siTat_AccessRep,
-        stream<TcpSegLen>           &siSlg_SegLen,
-        stream<SegMemMeta>          &soMwr_SegMeta,
+        stream<AppMemMeta>          &soMwr_AppMeta,
         stream<Event>               &soEmx_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -474,13 +472,11 @@ void pStreamMetaLoader(
     #pragma HLS reset variable = mdl_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    //OBSOLETE_20201106 static SessionId sessId;
     static TcpAppSndReq mdl_appSndReq;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TxAppTableReply  txAppTableReply;
     TcpState         sessState;
-    //OBSOLETE_20201106 TcpSegLen        segLen;
 
     switch(mdl_fsmState) {
     case READ_REQUEST:
@@ -527,7 +523,7 @@ void pStreamMetaLoader(
             }
             else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
                 // Forward the metadata to the SegmentMemoryWriter (Mwr)
-                soMwr_SegMeta.write(SegMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
+                soMwr_AppMeta.write(AppMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
                 // Notify APP about successful transmission
                 soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_ERROR));
                 // Notify [TXe] about new data to be sent via an event to [EVe]
@@ -545,23 +541,23 @@ void pStreamMetaLoader(
 /*******************************************************************************
  * @brief Tx Memory Writer (Mwr)
  *
- * @param[in]  siSlg_Data    TCP data stream from SegmentLengthGenerator (Slg).
- * @param[in]  siSml_SegMeta Segment memory metadata from StreamMetaLoader (Sml).
+ * @param[in]  siTAIF_Data   APP data stream from [TAIF].
+ * @param[in]  siSml_AppMeta APP memory metadata from StreamMetaLoader (Sml).
  * @param[out] soMEM_WrCmd   Tx memory write command to [MEM].
  * @param[out] soMEM_WrData  Tx memory write data to [MEM].
  *
  * @details
- *  This process writes the incoming TCP segment into the external DRAM, unless
- *   the state machine of the MetaDataLoader (Sml) decides to drop the segment.
- *  The Tx buffer memory is organized and managed as a circular buffer and it
- *   may happen that the segment to be transmitted does not fit into the remain
- *   memory buffer space because the memory pointer needs to wrap around. In
- *   such a case, the incoming segment is broken down and written into physical
- *   DRAM as two memory buffers.
+ *  This process writes the incoming APP data into the external DRAM upon a
+ *   a request issued by the state machine of the MetaDataLoader (Sml).
+ *  The Tx buffer memory is organized and managed as a circular buffer in the
+ *   DRAM and it may happen that the APP data to be transmitted does not fit
+ *   into the remaining memory buffer space because the memory pointer needs to
+ *   wrap around. In such a case, the incoming APP data is broken down and is
+ *   written into the physical DRAM as two memory buffers.
  *******************************************************************************/
 void pTxMemoryWriter(
-        stream<AxisApp>     &siSlg_Data,
-        stream<SegMemMeta>  &siSml_SegMeta,
+        stream<TcpAppData>  &siTAIF_Data,
+        stream<AppMemMeta>  &siSml_AppMeta,
         stream<DmCmd>       &soMEM_WrCmd,
         stream<AxisApp>     &soMEM_WrData)
 {
@@ -572,18 +568,18 @@ void pTxMemoryWriter(
     const char *myName  = concat3(THIS_NAME, "/", "Mwr");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { MWR_IDLE=0,      MWR_DROP,
+    static enum FsmStates { MWR_IDLE=0,
                             MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
                             MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF, MWR_RESIDUE } \
                                  mwr_fsmState=MWR_IDLE;
     #pragma HLS RESET variable = mwr_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
-    static SegMemMeta    mwr_segMemMeta;
+    static AppMemMeta    mwr_appMemMeta;
     static DmCmd         mwr_memWrCmd;
     static AxisApp       mwr_currChunk;
     static TxBufPtr      mwr_firstAccLen;
-    static TcpSegLen     mwr_nrBytesToWr;
+    static TcpDatLen     mwr_nrBytesToWr;
     static ap_uint<4>    mwr_splitOffset;
     static uint16_t      mwr_debugCounter=1;
 
@@ -593,47 +589,33 @@ void pTxMemoryWriter(
 
     switch (mwr_fsmState) {
     case MWR_IDLE:
-        if (!siSml_SegMeta.empty() && !soMEM_WrCmd.full()) {
-            siSml_SegMeta.read(mwr_segMemMeta);
-            if (mwr_segMemMeta.drop) {
-                mwr_fsmState = MWR_DROP;
+        if (!siSml_AppMeta.empty() and !soMEM_WrCmd.full()) {
+            siSml_AppMeta.read(mwr_appMemMeta);
+            //-- Build a memory address for this segment
+            TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
+            memSegAddr(29, 16) = mwr_appMemMeta.sessId(13, 0);
+            memSegAddr(15,  0) = mwr_appMemMeta.addr;
+            // Build a data mover command for this segment
+            mwr_memWrCmd = DmCmd(memSegAddr, mwr_appMemMeta.len);
+            if ((mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_TX_BUFFER_SIZE) {
+                // This segment must be broken in two memory accesses because TCP Tx memory buffer wraps around
+                if (DEBUG_LEVEL & TRACE_MWR) {
+                    printInfo(myName, "TCP Tx memory buffer wraps around: This segment must be broken in two memory accesses.\n");
+                }
+                mwr_fsmState = MWR_SPLIT_1ST_CMD;
             }
             else {
-                //-- Build a memory address for this segment
-                TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
-                memSegAddr(29, 16) = mwr_segMemMeta.sessId(13, 0);
-                memSegAddr(15,  0) = mwr_segMemMeta.addr;
-                // Build a data mover command for this segment
-                mwr_memWrCmd = DmCmd(memSegAddr, mwr_segMemMeta.len);
-                if ((mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_TX_BUFFER_SIZE) {
-                    // This segment must be broken in two memory accesses because TCP Tx memory buffer wraps around
-                    if (DEBUG_LEVEL & TRACE_MWR) {
-                        printInfo(myName, "TCP Tx memory buffer wraps around: This segment must be broken in two memory accesses.\n");
-                    }
-                    mwr_fsmState = MWR_SPLIT_1ST_CMD;
-                }
-                else {
-                    soMEM_WrCmd.write(mwr_memWrCmd);
-                    mwr_firstAccLen = mwr_memWrCmd.bbt;
-                    mwr_nrBytesToWr = mwr_firstAccLen;
-                    mwr_fsmState = MWR_FWD_ALIGNED;
-                    if (DEBUG_LEVEL & TRACE_MWR) {
-                        printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
-                        mwr_debugCounter++;
-                    }
+                soMEM_WrCmd.write(mwr_memWrCmd);
+                mwr_firstAccLen = mwr_memWrCmd.bbt;
+                mwr_nrBytesToWr = mwr_firstAccLen;
+                mwr_fsmState = MWR_FWD_ALIGNED;
+                if (DEBUG_LEVEL & TRACE_MWR) {
+                    printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                    mwr_debugCounter++;
                 }
             }
         }
-        break;
-    case MWR_DROP:
-        if (!siSlg_Data.empty()) {
-             AxisApp tmpChunk = siSlg_Data.read();
-             if (tmpChunk.getTLast()) {
-                 mwr_fsmState = MWR_IDLE;
-             }
-             printFatal(myName, "[TODO] This path has not been tested yet...");
-         }
         break;
     case MWR_SPLIT_1ST_CMD:
         if (!soMEM_WrCmd.full()) {
@@ -648,10 +630,10 @@ void pTxMemoryWriter(
         }
         break;
     case MWR_FWD_ALIGNED:
-        if (!siSlg_Data.empty() and !soMEM_WrData.full()) {
-            //-- Default streaming state used to forward segments or splitted buffers
-            //-- that are aligned with to the Axis raw width
-            AxisApp memChunk = siSlg_Data.read();
+        if (!siTAIF_Data.empty() and !soMEM_WrData.full()) {
+            //-- Default streaming state used to forward APP data or splitted
+            //-- buffers that are aligned with to the Axis raw width.
+            AxisApp memChunk = siTAIF_Data.read();
             soMEM_WrData.write(memChunk);
             if (memChunk.getTLast()) {
                  mwr_fsmState = MWR_IDLE;
@@ -659,10 +641,9 @@ void pTxMemoryWriter(
          }
         break;
     case MWR_FWD_1ST_BUF:
-        if (!siSlg_Data.empty() and !soMEM_WrData.full()) {
+        if (!siTAIF_Data.empty() and !soMEM_WrData.full()) {
             //-- Create 1st splitted data buffer and stream it to memory
-            siSlg_Data.read(mwr_currChunk);
-
+            siTAIF_Data.read(mwr_currChunk);
             AxisApp memChunk = mwr_currChunk;
             if (mwr_nrBytesToWr > (ARW/8)) {
                 mwr_nrBytesToWr -= (ARW/8);
@@ -705,10 +686,10 @@ void pTxMemoryWriter(
         }
         break;
     case MWR_FWD_2ND_BUF:
-        if (!siSlg_Data.empty() && !soMEM_WrData.full()) {
+        if (!siTAIF_Data.empty() && !soMEM_WrData.full()) {
             //-- Alternate streaming state used to re-align a splitted second buffer
             AxisApp prevChunk = mwr_currChunk;
-            mwr_currChunk = siSlg_Data.read();
+            mwr_currChunk = siTAIF_Data.read();
 
             AxisApp joinedChunk(0,0,0);  // [FIXME-Create a join method in AxisRaw]
             // Set lower-part of the joined chunk with the last bytes of the previous chunk
@@ -857,21 +838,13 @@ void tx_app_interface(
     #pragma HLS stream         variable=ssSmlToTat_AccessQry depth=2
     #pragma HLS DATA_PACK      variable=ssSmlToTat_AccessQry
 
-    static stream<SegMemMeta>           ssSmlToMwr_SegMeta   ("ssSmlToMwr_SegMeta");
-    #pragma HLS stream         variable=ssSmlToMwr_SegMeta   depth=128
-    #pragma HLS DATA_PACK      variable=ssSmlToMwr_SegMeta
+    static stream<AppMemMeta>           ssSmlToMwr_AppMeta   ("ssSmlToMwr_AppMeta");
+    #pragma HLS stream         variable=ssSmlToMwr_AppMeta   depth=32
+    #pragma HLS DATA_PACK      variable=ssSmlToMwr_AppMeta
 
     static stream<Event>                ssSmlToEmx_Event     ("ssSmlToEmx_Event");
     #pragma HLS stream         variable=ssSmlToEmx_Event     depth=2
     #pragma HLS DATA_PACK      variable=ssSmlToEmx_Event
-
-    //-- Stream Length Generator (Slg) ----------------------------------------
-    static stream<AxisApp>              ssSlgToMwr_Data      ("ssSlgToMwr_Data");
-    #pragma HLS stream         variable=ssSlgToMwr_Data      depth=256
-    #pragma HLS DATA_PACK      variable=ssSlgToMwr_Data
-
-    static stream<TcpSegLen>       ssSlgToSml_SegLen         ("ssSlgToSml_SegLen");
-    #pragma HLS stream    variable=ssSlgToSml_SegLen         depth=32
 
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS
@@ -890,11 +863,6 @@ void tx_app_interface(
         soTSt_PushCmd,
         soEVe_Event);
 
-    pStreamLengthGenerator(
-            siTAIF_Data,
-            ssSlgToMwr_Data,
-            ssSlgToSml_SegLen);
-
     pStreamMetaLoader(
             siTAIF_SndReq,
             soTAIF_SndRep,
@@ -902,13 +870,13 @@ void tx_app_interface(
             siSTt_SessStateRep,
             ssSmlToTat_AccessQry,
             ssTatToSml_AccessRep,
-            ssSlgToSml_SegLen,
-            ssSmlToMwr_SegMeta,
+            //OBSOLETE_20201109 ssSlgToSml_SegLen,
+            ssSmlToMwr_AppMeta,
             ssSmlToEmx_Event);
 
     pTxMemoryWriter(
-            ssSlgToMwr_Data,
-            ssSmlToMwr_SegMeta,
+            siTAIF_Data,
+            ssSmlToMwr_AppMeta,
             soMEM_TxP_WrCmd,
             soMEM_TxP_Data);
 

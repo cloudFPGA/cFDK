@@ -324,9 +324,10 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=soTAIF_LsnRep   metadata="-bus_bundle soTAIF_LsnRep"
     //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTAIF_Data     metadata="-bus_bundle siTAIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_Meta     metadata="-bus_bundle siTAIF_Meta"
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_DSts     metadata="-bus_bundle soTAIF_DSts"
-    #pragma HLS DATA_PACK                variable=soTAIF_DSts
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_SndReq   metadata="-bus_bundle siTAIF_SndReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_SndRep   metadata="-bus_bundle soTAIF_SndRep"
+    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
     //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTAIF_OpnReq   metadata="-bus_bundle siTAIF_OpnReq"
     #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
@@ -390,9 +391,10 @@ void toe(
     #pragma HLS INTERFACE axis off           port=soTAIF_LsnRep   name=soTAIF_LsnRep
     //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_Data     name=siTAIF_Data
-    #pragma HLS INTERFACE axis off           port=siTAIF_Meta     name=siTAIF_Meta
-    #pragma HLS INTERFACE axis off           port=soTAIF_DSts     name=soTAIF_DSts
-    #pragma HLS DATA_PACK                variable=soTAIF_DSts
+    #pragma HLS INTERFACE axis off           port=siTAIF_SndReq   name=siTAIF_SndReq
+    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_SndRep   name=soTAIF_SndRep
+    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
     //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_OpnReq   name=siTAIF_OpnReq
     #pragma HLS DATA_PACK                variable=siTAIF_OpnReq

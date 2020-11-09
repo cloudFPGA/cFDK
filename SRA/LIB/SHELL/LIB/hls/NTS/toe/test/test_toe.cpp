@@ -268,7 +268,6 @@ void pEmulateRxBufMem(
             siTOE_RxP_Data.read(tmpInChunk);
             inChunk = tmpInChunk;
             memory->writeChunk(inChunk);
-            //OBSOLETE_20200711 rxmem_wrCounter += keepToLen(inChunk.tkeep);
             rxmem_wrCounter += inChunk.getLen();
             if (inChunk.getTLast() or (rxmem_wrCounter == rxmem_noBytesToWrite)) {
                 rxmem_wrIdleCnt  = MEM_WR_STS_LATENCY;
@@ -331,7 +330,6 @@ void pEmulateRxBufMem(
             // Data Memory Read Transfer
             memory->readChunk(tmpOutChunk);
             outChunk = tmpOutChunk;
-            //OBSOLETE_20200711 rxmem_rdCounter += keepToLen(outChunk.tkeep);
             rxmem_rdCounter += outChunk.getLen();
             soTOE_RxP_Data.write(outChunk);
             if ((outChunk.getTLast()) or (rxmem_rdCounter == rxmem_noBytesToRead)) {
@@ -1716,7 +1714,6 @@ void pTcpAppEcho(
     } // End-of: switch()
 } // End-of: Tae
 
-
 /*****************************************************************************
  * @brief TCP Application Receive (TAr). Emulates the Rx process of the TAIF.
  *
@@ -1734,7 +1731,7 @@ void pTcpAppEcho(
  * @param[out] soTAs_Data    TCP data stream forwarded to TcpAppSend (TAs).
  * @param[out] soTAs_SndReq  TCP data send request forwarded to [TAs].
  *
- * details
+ * @details
  *
  ******************************************************************************/
 void pTAIF_Recv(
@@ -1929,9 +1926,9 @@ void pTAIF_Send(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool         tas_globParseDone   = false;
-    static bool         tas_appRxIdlingReq  = false; // Request to idle (.i.e, do not feed TOE's input stream)
-    static unsigned int tas_appRxIdleCycReq = 0;  // The requested number of idle cycles
-    static unsigned int tas_appRxIdleCycCnt = 0;  // The count of idle cycles
+    static bool         tas_appTxIdlingReq  = false; // Request to idle (i.e., do not feed TOE's input stream)
+    static unsigned int tas_appTxIdleCycReq = 0;  // The requested number of idle cycles
+    static unsigned int tas_appTxIdleCycCnt = 0;  // The count of idle cycles
     static unsigned int tas_toeReadyDelay   = 0;  // The time it takes for TOE to be ready
     static vector<SessionId> tas_txSessIdVector;  // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
     static map<SocketPair, SessionId> tas_openSessList; // Keeps track of the sessions opened by the TOE
@@ -1982,16 +1979,16 @@ void pTAIF_Send(
     //-----------------------------------------------------
     //-- STEP-2b : ALSO RETURN IF IDLING IS REQUESTED
     //-----------------------------------------------------
-    if (tas_appRxIdlingReq == true) {
-        if (tas_appRxIdleCycCnt >= tas_appRxIdleCycReq) {
-            tas_appRxIdleCycCnt = 0;
-            tas_appRxIdlingReq = false;
+    if (tas_appTxIdlingReq == true) {
+        if (tas_appTxIdleCycCnt >= tas_appTxIdleCycReq) {
+            tas_appTxIdleCycCnt = 0;
+            tas_appTxIdlingReq = false;
             if (DEBUG_LEVEL & TRACE_TAs) {
-                printInfo(myName, "End of APP Rx idling phase. \n");
+                printInfo(myName, "End of APP Tx idling phase. \n");
             }
         }
         else {
-            tas_appRxIdleCycCnt++;
+            tas_appTxIdleCycCnt++;
         }
         return;
     }
@@ -2016,9 +2013,12 @@ void pTAIF_Send(
     //-- STEP-4 : READ THE APP SEND FILE AND FEED THE TOE
     //-----------------------------------------------------
     SimAppData  simAppData;
-    while (!ifTAIF_Data.eof() or !simAppData.len()) {
+    int toto = simAppData.size();
+    while (!ifTAIF_Data.eof() or simAppData.size()) {
+        toto = simAppData.size();
         //-- READ A LINE FROM APP SEND FILE -----------
         getline(ifTAIF_Data, rxStringBuffer);
+        if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
         stringVector = myTokenizer(rxStringBuffer, ' ');
         if (stringVector[0] == "") {
             continue;
@@ -2031,12 +2031,6 @@ void pTAIF_Send(
             //------------------------------------------------------
             if (stringVector[0] == "#") {
                 // This is a comment line.
-                if (DEBUG_LEVEL & TRACE_TAs) {
-                    for (int t=0; t<stringVector.size(); t++) {
-                        printf("%s ", stringVector[t].c_str());
-                    }
-                    printf("\n");
-                }
                 continue;
             }
             else if (stringVector[0] == "G") {
@@ -2048,12 +2042,12 @@ void pTAIF_Send(
                 //  FYI, don't forget to return at the end of command execution.
                 if (stringVector[1] == "IDLE") {
                     // Cmd = Request to idle for <NUM> cycles.
-                    tas_appRxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
-                    tas_appRxIdlingReq = true;
+                    tas_appTxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
+                    tas_appTxIdlingReq = true;
                     if (DEBUG_LEVEL & TRACE_TAs) {
-                        printInfo(myName, "Request to idle for %d cycles. \n", tas_appRxIdleCycReq);
+                        printInfo(myName, "Request to idle for %d cycles. \n", tas_appTxIdleCycReq);
                     }
-                    increaseSimTime(tas_appRxIdleCycReq);
+                    increaseSimTime(tas_appTxIdleCycReq);
                     return;
                 }
                 if (stringVector[1] == "SET") {
@@ -2131,21 +2125,23 @@ void pTAIF_Send(
                 case NO_ERROR:
                     tas_clearToSend = true;
                     break;
-                case NO_CONNECTION:
-                    printError(myName, "Attempt to write data for session %d which is not established.\n", appSndRep.sessId.to_uint());
+                case NO_CONNECTION: // [FIXME-Must handle this scenario]
+                    printFatal(myName, "Attempt to write data for session %d which is not established.\n", appSndRep.sessId.to_uint());
                     nrError++;
                     break;
-                case NO_SPACE:
-                    printError(myName, "There is not enough TxBuf memory space available for session %d.\n",
+                case NO_SPACE: // [FIXME-Must handle this scenario]
+                    printFatal(myName, "There is not enough TxBuf memory space available for session %d.\n",
                                appSndRep.sessId.to_uint());
                     nrError++;
                     break;
                 default:
+                    printFatal(myName, "Received unknown reply error (%d) from [TOE].\n", rc);
+                    nrError++;
                     break;
                 }
             }
         }
-        else if (!simAppData.len() and tas_clearToSend) {
+        else if (!simAppData.size() and tas_clearToSend) {
             if (! soTOE_Data.full()) {
                 //-------------------------------------------------
                 //-- Feed TOE with a new APP chunk from APP data
@@ -2172,12 +2168,7 @@ void pTAIF_Send(
                     // Skip lines that might be commented out
                     if (stringVector[0] == "#") {
                         // This is a comment line.
-                        if (DEBUG_LEVEL & TRACE_TAs) {
-                            for (int t=0; t<stringVector.size(); t++) {
-                                printf("%s ", stringVector[t].c_str());
-                            }
-                            printf("\n");
-                        }
+                        if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
                         continue;
                     }
                 }
@@ -2191,27 +2182,11 @@ void pTAIF_Send(
                 apRxBytCntr += writtenBytes;
                 if (appChunk.getTLast()) {
                     // A send request must be sent by TAIF to TOE
-                    soTOE_SndReq.write(TcpAppSndReq(tas_openSessList[currSocketPair], simAppData.getLen()));
+                    soTOE_SndReq.write(TcpAppSndReq(tas_openSessList[currSocketPair], simAppData.size()));
                 }
             } while (not appChunk.getTLast());
         } // End of: else
     }
-
-
-
-
-                nrErr++;
-                break;
-            default:
-                printError(THIS_NAME, "Received unknown TCP write status from [TOE].\n");
-                nrErr++;
-                break;
-            }
-        }
-    }
-
-
-
 } // End of: pTAs
 
 /*****************************************************************************
@@ -2383,8 +2358,8 @@ int main(int argc, char *argv[]) {
     stream<AxisIp4>                 ssTOE_L3MUX_Data     ("ssTOE_L3MUX_Data");
 
     stream<TcpAppData>              ssTAIF_TOE_Data      ("ssTAIF_TOE_Data");
-    stream<TcpAppMeta>              ssTAIF_TOE_Meta      ("ssTAIF_TOE_Meta");
-    stream<TcpAppWrSts>             ssTOE_TAIF_DSts      ("ssTOE_TAIF_DSts");
+    stream<TcpAppSndReq>            ssTAIF_TOE_SndReq    ("ssTAIF_TOE_SndReq");
+    stream<TcpAppSndRep>            ssTOE_TAIF_SndRep    ("ssTOE_TAIF_SndRep");
 
     stream<TcpAppRdReq>             ssTAIF_TOE_DReq      ("ssTAIF_TOE_DReq");
     stream<TcpAppData>              ssTOE_TAIF_Data      ("ssTOE_TAIF_Data");
@@ -2480,7 +2455,6 @@ int main(int argc, char *argv[]) {
     bool     testRxPath      = false; // Indicates if the Rx path is to be tested.
     bool     testTxPath      = false; // Indicates if the Tx path is to be tested.
 
-    //OBSOLETE_20201016 int      startUpDelay    = TB_GRACE_TIME;
     int      startUpDelay    = TB_STARTUP_TIME;
 
     char     mode            = *argv[1];
@@ -2617,21 +2591,21 @@ int main(int argc, char *argv[]) {
             gFpgaIp4Addr,
             //-- NTS Interfaces
             sTOE_Ready,
-            //-- IPv4 / Rx & Tx Interfaces
+            //-- IPv4 / Rx & Tx Data Interfaces
             ssIPRX_TOE_Data,
             ssTOE_L3MUX_Data,
-            //-- TAIF / Rx Segment Interfaces
+            //-- TAIF / Rx Data Interfaces
             ssTOE_TAIF_Notif,
             ssTAIF_TOE_DReq,
             ssTOE_TAIF_Data,
             ssTOE_TAIF_Meta,
-            //-- TARIF / Listen Port Interfaces
+            //-- TAIF / Listen Port Interfaces
             ssTAIF_TOE_LsnReq,
             ssTOE_TAIF_LsnRep,
-            //-- TAIF / Tx Segment Interfaces
+            //-- TAIF / Tx Data Interfaces
             ssTAIF_TOE_Data,
-            ssTAIF_TOE_Meta,
-            ssTOE_TAIF_DSts,
+            ssTAIF_TOE_SndReq,
+            ssTOE_TAIF_SndRep,
             //-- TAIF / Open Connection Interfaces
             ssTAIF_TOE_OpnReq,
             ssTOE_TAIF_OpnRep,
@@ -2723,8 +2697,8 @@ int main(int argc, char *argv[]) {
             ssTAIF_TOE_OpnReq,
             ssTOE_TAIF_OpnRep,
             ssTAIF_TOE_Data,
-            ssTAIF_TOE_Meta,
-            ssTOE_TAIF_DSts,
+            ssTAIF_TOE_SndReq,
+            ssTOE_TAIF_SndRep,
             ssTAIF_TOE_ClsReq);
 
         //------------------------------------------------------
