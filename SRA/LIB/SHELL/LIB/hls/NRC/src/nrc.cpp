@@ -96,6 +96,7 @@ ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 
+bool pr_was_done_flag = false;
 
 //FROM TCP
 
@@ -587,6 +588,7 @@ void nrc_main(
 #pragma HLS reset variable=cached_tcp_rx_tripple
 #pragma HLS reset variable=cached_tcp_tx_session_id
 #pragma HLS reset variable=cached_tcp_tx_tripple
+#pragma HLS reset variable=pr_was_done_flag
 
 
   //===========================================================
@@ -663,8 +665,13 @@ void nrc_main(
       {
         //mark all TCP ports as to be deleted
         markCurrentRowsAsToDelete();
-        //start closing FSM TCP
-        clsFsmState_Tcp = CLS_NEXT;
+        if( *role_decoupled == 0 )
+        {//start closing FSM TCP
+          clsFsmState_Tcp = CLS_NEXT;
+        } else {
+          //FMC is using TCP!
+          pr_was_done_flag = true;
+        }
       }
     }
     //in all cases
@@ -677,10 +684,27 @@ void nrc_main(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
+    if( *role_decoupled == 0)
+    { //invalidate cache
+      cached_udp_rx_ipaddr = 0;
+      cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+      cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    } else {
+      //FMC is using TCP!
+      pr_was_done_flag = true;
+    }
+  }
+  if(pr_was_done_flag && *role_decoupled == 0)
+  {//so, after the PR was done
     //invalidate cache
     cached_udp_rx_ipaddr = 0;
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    //start closing FSM TCP
+    //ports have been marked earlier
+    clsFsmState_Tcp = CLS_NEXT;
+    //FSM will wait until RDP and WRP are done
+    pr_was_done_flag = false;
   }
   //===========================================================
   // MRT init
