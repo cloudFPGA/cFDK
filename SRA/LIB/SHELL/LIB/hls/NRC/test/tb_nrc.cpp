@@ -104,7 +104,9 @@ stream<NetworkMetaStream>   sNRC_Role_Tcp_meta  ("sNRC_Role_Tcp_meta");
 //--FMC TCP connection
 stream<TcpWord>             sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
 stream<AppMeta>           sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
+ap_uint<1>                piFMC_Tcp_data_FIFO_prog_full = 0;
 stream<TcpWord>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
+ap_uint<1>                piFMC_Tcp_sessid_FIFO_prog_full = 0;
 stream<AppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
 //--TOE connection
 stream<TcpAppNotif>         sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
@@ -176,7 +178,7 @@ void stepDut() {
         sROLE_Nrc_Tcp_data, sROLE_Nrc_Tcp_meta,
         sNRC_Role_Tcp_data, sNRC_Role_Tcp_meta,
         sFMC_Nrc_Tcp_data, sFMC_Nrc_Tcp_sessId,
-        sNRC_FMC_Tcp_data, sNRC_FMC_Tcp_sessId,
+        &piFMC_Tcp_data_FIFO_prog_full, sNRC_FMC_Tcp_data, &piFMC_Tcp_sessid_FIFO_prog_full, sNRC_FMC_Tcp_sessId,
         sNRC_UOE_LsnReq, sUOE_NRC_LsnRep,
         sNRC_UOE_ClsReq, sUOE_NRC_ClsRep,
         sUOE_NRC_Data, sUOE_NRC_Meta,

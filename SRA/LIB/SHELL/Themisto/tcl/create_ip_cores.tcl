@@ -153,8 +153,8 @@ set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
-              ]
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -170,8 +170,8 @@ set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
-              ]
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -187,12 +187,30 @@ set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} CONFIG.Full_Threshold_Assert_Value {8191} CONFIG.Full_Threshold_Negate_Value {8190} \
-              ]
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoSession_Data_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {16} CONFIG.Output_Data_Width {16} \
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
 
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : NRC IP

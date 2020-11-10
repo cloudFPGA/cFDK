@@ -404,8 +404,10 @@ void nrc_main(
     stream<NetworkWord>             &siFMC_Tcp_data,
     //stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<AppMeta>           &siFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     stream<NetworkWord>             &soFMC_Tcp_data,
     //stream<Axis<16> >           &soFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
     stream<AppMeta>           &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
@@ -488,6 +490,8 @@ void nrc_main(
 #pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_data
 #pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_SessId
 #pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_SessId
+#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_data_FIFO_prog_full name=piFMC_Tcp_data_FIFO_prog_full
+#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_sessid_FIFO_prog_full name=piFMC_Tcp_sessid_FIFO_prog_full
 
 
 #pragma HLS INTERFACE axis register both port=siTOE_Notif
@@ -1252,8 +1256,12 @@ void nrc_main(
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-      { //so we are not in a critical UDP path
+        //so we are not in a critical UDP path
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
+          //and only if the FMC FIFO would have enough space
+          (*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
+        )
+      {
         switch(rrhFsmState) {
           case RRH_WAIT_NOTIF:
             if (!siTOE_Notif.empty()) {
@@ -1488,8 +1496,10 @@ void nrc_main(
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-      { //so we are not in a critical UDP path
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC  //so we are not in a critical UDP path
+          && (rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE) //deactivate if we are receiving smth
+        )
+      {
         switch (wrpFsmState) {
           case WRP_WAIT_META:
             //FMC must come first
@@ -1785,7 +1795,10 @@ void nrc_main(
     //and if we have valid tables
     if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC  //so we are not in a critical UDP path
+          && (rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE) //deactivate if we are receiving smth
+          && (wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE) //deactivate if we are sending
+        )
       { //so we are not in a critical UDP path
         switch (clsFsmState_Tcp) {
           default:
