@@ -195,20 +195,20 @@ module NetworkTransportStack_TcpIp (
   //------------------------------------------------------
   //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
   //------------------------------------------------------
-  //---- Axi4-Stream TCP Data ---------------
+  //---- Axi4-Stream APP Data ---------------
   input [ 63:0]  siAPP_Tcp_Data_tdata,
   input [  7:0]  siAPP_Tcp_Data_tkeep,
   input          siAPP_Tcp_Data_tvalid,
   input          siAPP_Tcp_Data_tlast,
   output         siAPP_Tcp_Data_tready,
-  //---- Axi4-Stream TCP Metadata -----------
-  input [ 15:0]  siAPP_Tcp_Meta_tdata,
-  input          siAPP_Tcp_Meta_tvalid,
-  output         siAPP_Tcp_Meta_tready,
-  //---- Axi4-Stream TCP Data Status --------
-  output [ 23:0] soAPP_Tcp_DSts_tdata,
-  output         soAPP_Tcp_DSts_tvalid,
-  input          soAPP_Tcp_DSts_tready,
+  //---- Axi4-Stream APP Send Request -------
+  input [ 31:0]  siAPP_Tcp_SndReq_tdata,
+  input          siAPP_Tcp_SndReq_tvalid,
+  output         siAPP_Tcp_SndReq_tready,
+  //---- Axi4-Stream APP Send Reply ---------
+  output [ 55:0] soAPP_Tcp_SndRep_tdata,
+  output         soAPP_Tcp_SndRep_tvalid,
+  input          soAPP_Tcp_SndRep_tready,
 
   //------------------------------------------------------
   //-- TAIF / Rx Data Interfaces (.i.e NTS-->APP)
@@ -648,70 +648,70 @@ module NetworkTransportStack_TcpIp (
     .soL3MUX_Data_TVALID       (ssTOE_ARS3_Data_tvalid),
     .soL3MUX_Data_TREADY       (ssTOE_ARS3_Data_tready),
     //------------------------------------------------------
-    //-- TAIF / TCP Rx Data Interfaces
+    //-- TAIF / APP Rx Data Interfaces
     //------------------------------------------------------
-    //-- To   APP / TCP Data Notification
+    //-- To   APP / Data Notification
     .soTAIF_Notif_TDATA        (soAPP_Tcp_Notif_tdata),
     .soTAIF_Notif_TVALID       (soAPP_Tcp_Notif_tvalid),  
     .soTAIF_Notif_TREADY       (soAPP_Tcp_Notif_tready),
-    //-- From APP / TCP Data Read Request
+    //-- From APP / Data Read Request
     .siTAIF_DReq_TDATA         (siAPP_Tcp_DReq_tdata),
     .siTAIF_DReq_TVALID        (siAPP_Tcp_DReq_tvalid),
     .siTAIF_DReq_TREADY        (siAPP_Tcp_DReq_tready),
-    //-- To   APP (via ARS4) / TCP Data Stream
+    //-- To   APP (via ARS4) / Data Stream
     .soTAIF_Data_TDATA         (soAPP_Tcp_Data_tdata),
     .soTAIF_Data_TKEEP         (soAPP_Tcp_Data_tkeep),
     .soTAIF_Data_TLAST         (soAPP_Tcp_Data_tlast),
     .soTAIF_Data_TVALID        (soAPP_Tcp_Data_tvalid),
     .soTAIF_Data_TREADY        (soAPP_Tcp_Data_tready),
-    //-- To   APP (via ARS4) / TCP Metadata   _Rol_
+    //-- To   APP (via ARS4) / Metadata
     .soTAIF_Meta_TDATA         (soAPP_Tcp_Meta_tdata),
     .soTAIF_Meta_TVALID        (soAPP_Tcp_Meta_tvalid),
     .soTAIF_Meta_TREADY        (soAPP_Tcp_Meta_tready),
     //------------------------------------------------------
-    //-- TAIF / TCP Rx Ctrl Interfaces
+    //-- TAIF / APP Rx Ctrl Interfaces
     //------------------------------------------------------
-    //-- From APP / TCP Listen Port Request
+    //-- From APP / Listen Port Request
     .siTAIF_LsnReq_TDATA       (siAPP_Tcp_LsnReq_tdata),
     .siTAIF_LsnReq_TVALID      (siAPP_Tcp_LsnReq_tvalid),
     .siTAIF_LsnReq_TREADY      (siAPP_Tcp_LsnReq_tready),
-    //-- To   APP / TCP Listen Port Ack
+    //-- To   APP / Listen Port Reply
     .soTAIF_LsnRep_TDATA       (soAPP_Tcp_LsnRep_tdata),
     .soTAIF_LsnRep_TVALID      (soAPP_Tcp_LsnRep_tvalid),
     .soTAIF_LsnRep_TREADY      (soAPP_Tcp_LsnRep_tready),
     //------------------------------------------------------
-    //-- TAIF / TCP Tx Data Flow Interfaces
+    //-- TAIF / APP Tx Data Flow Interfaces
     //------------------------------------------------------
-    //-- From APP (via ARS5) / TCP Data Stream
+    //-- From APP (via ARS5) / Data Stream
     .siTAIF_Data_TDATA         (siAPP_Tcp_Data_tdata),
     .siTAIF_Data_TKEEP         (siAPP_Tcp_Data_tkeep),
     .siTAIF_Data_TLAST         (siAPP_Tcp_Data_tlast),
     .siTAIF_Data_TVALID        (siAPP_Tcp_Data_tvalid),
     .siTAIF_Data_TREADY        (siAPP_Tcp_Data_tready),
-    //-- From APP (via ARS5) / TCP Metadata
-    .siTAIF_Meta_TDATA         (siAPP_Tcp_Meta_tdata),
-    .siTAIF_Meta_TVALID        (siAPP_Tcp_Meta_tvalid),
-    .siTAIF_Meta_TREADY        (siAPP_Tcp_Meta_tready),
-    //-- To  APP / TCP Data Write Status
-    .soTAIF_DSts_TDATA         (soAPP_Tcp_DSts_tdata),
-    .soTAIF_DSts_TVALID        (soAPP_Tcp_DSts_tvalid),
-    .soTAIF_DSts_TREADY        (soAPP_Tcp_DSts_tready),
+    //-- From APP (via ARS5) / Send Request
+    .siTAIF_SndReq_TDATA       (siAPP_Tcp_SndReq_tdata),
+    .siTAIF_SndReq_TVALID      (siAPP_Tcp_SndReq_tvalid),
+    .siTAIF_SndReq_TREADY      (siAPP_Tcp_SndReq_tready),
+    //-- To  APP / Send Reply
+    .soTAIF_SndRep_TDATA       (soAPP_Tcp_SndRep_tdata),
+    .soTAIF_SndRep_TVALID      (soAPP_Tcp_SndRep_tvalid),
+    .soTAIF_SndRep_TREADY      (soAPP_Tcp_SndRep_tready),
     //------------------------------------------------------
-    //-- APP / TRIF / TCP Tx Ctrl Flow Interfaces
+    //-- TAIF / APP Tx Ctrl Flow Interfaces
     //------------------------------------------------------
-    //-- From ROLE / TCP Open Session Request
+    //-- From APP / Open Session Request
     .siTAIF_OpnReq_TDATA       (siAPP_Tcp_OpnReq_tdata),
     .siTAIF_OpnReq_TVALID      (siAPP_Tcp_OpnReq_tvalid),
     .siTAIF_OpnReq_TREADY      (siAPP_Tcp_OpnReq_tready),
-    //-- To   ROLE / TCP Open Session Reply
+    //-- To   APP / Open Session Reply
     .soTAIF_OpnRep_TDATA       (soAPP_Tcp_OpnRep_tdata),
     .soTAIF_OpnRep_TVALID      (soAPP_Tcp_OpnRep_tvalid),
     .soTAIF_OpnRep_TREADY      (soAPP_Tcp_OpnRep_tready),
-    //-- From ROLE / TCP Close Session Request
+    //-- From APP / Close Session Request
     .siTAIF_ClsReq_TDATA       (siAPP_Tcp_ClsReq_tdata),
     .siTAIF_ClsReq_TVALID      (siAPP_Tcp_ClsReq_tvalid),
     .siTAIF_ClsReq_TREADY      (siAPP_Tcp_ClsReq_tready),
-    //-- To   ROLE / TCP Close Session Status
+    //-- To   APP / Close Session Status
     // [FIXME-TODO]
     //------------------------------------------------------
     //-- MEM / RxP Interface

@@ -339,10 +339,10 @@ my_puts ""
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
-#    [2]   : TDATA Width (bytes)
+#    [1]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
-#    [No] : Enable TKEEP
-#    [No] : Enable TLAST
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
 #    [0]   : TID Width (bits)
 #    [0]   : TDEST Width (bits)
 #    [0]   : TUSER Width (bits)
@@ -369,8 +369,8 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    [Yes] : Enable TREADY
 #    [2]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
-#    [No] : Enable TKEEP
-#    [No] : Enable TLAST
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
 #    [0]   : TID Width (bits)
 #    [0]   : TDEST Width (bits)
 #    [0]   : TUSER Width (bits)
@@ -395,10 +395,10 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
-#    [2]   : TDATA Width (bytes)
+#    [3]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
-#    [No] : Enable TKEEP
-#    [No] : Enable TLAST
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
 #    [0]   : TID Width (bits)
 #    [0]   : TDEST Width (bits)
 #    [0]   : TUSER Width (bits)
@@ -423,10 +423,10 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
-#    [2]   : TDATA Width (bytes)
+#    [4]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
-#    [No] : Enable TKEEP
-#    [No] : Enable TLAST
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
 #    [0]   : TID Width (bits)
 #    [0]   : TDEST Width (bits)
 #    [0]   : TUSER Width (bits)
@@ -451,10 +451,10 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #------------------------------------------------------------------------------
 #  Signal Properties
 #    [Yes] : Enable TREADY
-#    [2]   : TDATA Width (bytes)
+#    [6]   : TDATA Width (bytes)
 #    [No]  : Enable TSTRB
-#    [No] : Enable TKEEP
-#    [No] : Enable TLAST
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
 #    [0]   : TID Width (bits)
 #    [0]   : TDEST Width (bits)
 #    [0]   : TUSER Width (bits)
@@ -473,6 +473,32 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+#------------------------------------------------------------------------------  
+# VIVADO-IP : AXI Register Slice [56]
+#------------------------------------------------------------------------------
+#  Signal Properties
+#    [Yes] : Enable TREADY
+#    [7]   : TDATA Width (bytes)
+#    [No]  : Enable TSTRB
+#    [No]  : Enable TKEEP
+#    [No]  : Enable TLAST
+#    [0]   : TID Width (bits)
+#    [0]   : TDEST Width (bits)
+#    [0]   : TUSER Width (bits)
+#    [No]  : Enable ACLKEN
+#------------------------------------------------------------------------------
+set ipModName "AxisRegisterSlice_56"
+set ipName    "axis_register_slice"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "1.1"
+set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {7} \
+                      CONFIG.HAS_TKEEP {0} \
+                      CONFIG.HAS_TLAST {0} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
  
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [64]

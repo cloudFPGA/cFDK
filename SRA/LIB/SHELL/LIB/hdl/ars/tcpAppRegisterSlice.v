@@ -58,14 +58,14 @@ module TcpApplicationRegisterSlice
   input           siAPP_Tcp_Data_tlast,
   input           siAPP_Tcp_Data_tvalid,
   output          siAPP_Tcp_Data_tready,
-  //---- Axis4-Stream TCP Metadata -----------
-  input  [ 15:0]  siAPP_Tcp_Meta_tdata,
-  input           siAPP_Tcp_Meta_tvalid,
-  output          siAPP_Tcp_Meta_tready,
- //---- Axis4-Stream TCP Data Status --------
-  output [ 23:0]  soAPP_Tcp_DSts_tdata,
-  output          soAPP_Tcp_DSts_tvalid,
-  input           soAPP_Tcp_DSts_tready,
+  //---- Axis4-Stream TCP Send Request -------
+  input  [ 31:0]  siAPP_Tcp_SndReq_tdata,
+  input           siAPP_Tcp_SndReq_tvalid,
+  output          siAPP_Tcp_SndReq_tready,
+ //---- Axis4-Stream TCP Send Reply ----------
+  output [ 55:0]  soAPP_Tcp_SndRep_tdata,
+  output          soAPP_Tcp_SndRep_tvalid,
+  input           soAPP_Tcp_SndRep_tready,
   
   //------------------------------------------------------
   //-- APP / Tcp / Rx Data Interfaces (.i.e TARS<-->APP)
@@ -126,14 +126,14 @@ module TcpApplicationRegisterSlice
   output          soNTS_Tcp_Data_tlast,
   output          soNTS_Tcp_Data_tvalid,
   input           soNTS_Tcp_Data_tready,
-  //---- Axis4-Stream TCP Metadata -----------
-  output [ 15:0]  soNTS_Tcp_Meta_tdata,
-  output          soNTS_Tcp_Meta_tvalid,
-  input           soNTS_Tcp_Meta_tready,
-  //---- Axis4-Stream TCP Data Status --------
-  input  [ 23:0]  siNTS_Tcp_DSts_tdata,
-  input           siNTS_Tcp_DSts_tvalid,
-  output          siNTS_Tcp_DSts_tready,
+  //---- Axis4-Stream TCP Send Request -------
+  output [ 31:0]  soNTS_Tcp_SndReq_tdata,
+  output          soNTS_Tcp_SndReq_tvalid,
+  input           soNTS_Tcp_SndReq_tready,
+  //---- Axis4-Stream TCP Send Reply ---------
+  input  [ 55:0]  siNTS_Tcp_SndRep_tdata,
+  input           siNTS_Tcp_SndRep_tvalid,
+  output          siNTS_Tcp_SndRep_tready,
     
   //------------------------------------------------------
   //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->TARS)
@@ -212,30 +212,30 @@ module TcpApplicationRegisterSlice
     .m_axis_tready  (soNTS_Tcp_Data_tready)
   );
   
-  AxisRegisterSlice_16 APP_NTS_Tcp_Meta (
+  AxisRegisterSlice_32 APP_NTS_Tcp_SndReq (
     .aclk           (piClk),
     .aresetn        (~piRst),
     //-- From APP ----------------------
-    .s_axis_tdata   (siAPP_Tcp_Meta_tdata),
-    .s_axis_tvalid  (siAPP_Tcp_Meta_tvalid),
-    .s_axis_tready  (siAPP_Tcp_Meta_tready),
+    .s_axis_tdata   (siAPP_Tcp_SndReq_tdata),
+    .s_axis_tvalid  (siAPP_Tcp_SndReq_tvalid),
+    .s_axis_tready  (siAPP_Tcp_SndReq_tready),
     //-- To NTS ------------------------
-    .m_axis_tdata   (soNTS_Tcp_Meta_tdata),
-    .m_axis_tvalid  (soNTS_Tcp_Meta_tvalid),
-    .m_axis_tready  (soNTS_Tcp_Meta_tready)
+    .m_axis_tdata   (soNTS_Tcp_SndReq_tdata),
+    .m_axis_tvalid  (soNTS_Tcp_SndReq_tvalid),
+    .m_axis_tready  (soNTS_Tcp_SndReq_tready)
   );
    
-  AxisRegisterSlice_24 NTS_APP_Tcp_DSts (
+  AxisRegisterSlice_56 NTS_APP_Tcp_SndRep (
     .aclk           (piClk),
     .aresetn        (~piRst),
     //-- From NTS ----------------------
-    .s_axis_tdata   (siNTS_Tcp_DSts_tdata),
-    .s_axis_tvalid  (siNTS_Tcp_DSts_tvalid),
-    .s_axis_tready  (siNTS_Tcp_DSts_tready),
+    .s_axis_tdata   (siNTS_Tcp_SndRep_tdata),
+    .s_axis_tvalid  (siNTS_Tcp_SndRep_tvalid),
+    .s_axis_tready  (siNTS_Tcp_SndRep_tready),
     //-- To APP ------------------------
-    .m_axis_tdata   (soAPP_Tcp_DSts_tdata),
-    .m_axis_tvalid  (soAPP_Tcp_DSts_tvalid),
-    .m_axis_tready  (soAPP_Tcp_DSts_tready)
+    .m_axis_tdata   (soAPP_Tcp_SndRep_tdata),
+    .m_axis_tvalid  (soAPP_Tcp_SndRep_tvalid),
+    .m_axis_tready  (soAPP_Tcp_SndRep_tready)
   );
     
   //------------------------------------------------------

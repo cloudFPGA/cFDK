@@ -202,14 +202,14 @@ module Shell_Kale # (
   input           siROL_Nts_Tcp_Data_tlast,
   input           siROL_Nts_Tcp_Data_tvalid,
   output          siROL_Nts_Tcp_Data_tready,
-  //---- Axi4-Stream TCP Metadata -----------
-  input  [ 15:0]  siROL_Nts_Tcp_Meta_tdata,
-  input           siROL_Nts_Tcp_Meta_tvalid,
-  output          siROL_Nts_Tcp_Meta_tready,
-  //---- Axi4-Stream TCP Data Status --------
-  output [ 23:0]  soROL_Nts_Tcp_DSts_tdata,
-  output          soROL_Nts_Tcp_DSts_tvalid,
-  input           soROL_Nts_Tcp_DSts_tready,  
+  //---- Axi4-Stream TCP Send Request -------
+  input  [ 31:0]  siROL_Nts_Tcp_SndReq_tdata,
+  input           siROL_Nts_Tcp_SndReq_tvalid,
+  output          siROL_Nts_Tcp_SndReq_tready,
+  //---- Axi4-Stream TCP Send Reply ---------
+  output [ 55:0]  soROL_Nts_Tcp_SndRep_tdata,
+  output          soROL_Nts_Tcp_SndRep_tvalid,
+  input           soROL_Nts_Tcp_SndRep_tready,
   //------------------------------------------------------
   //-- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
   //------------------------------------------------------
@@ -513,13 +513,13 @@ module Shell_Kale # (
   wire          ssTARS_NTS0_Tcp_Data_tvalid;
   wire          ssTARS_NTS0_Tcp_Data_tready;
   //--
-  wire  [ 15:0] ssTARS_NTS0_Tcp_Meta_tdata ;
-  wire          ssTARS_NTS0_Tcp_Meta_tvalid;
-  wire          ssTARS_NTS0_Tcp_Meta_tready;
+  wire  [ 31:0] ssTARS_NTS0_Tcp_SndReq_tdata ;
+  wire          ssTARS_NTS0_Tcp_SndReq_tvalid;
+  wire          ssTARS_NTS0_Tcp_SndReq_tready;
   //--
-  wire  [ 23:0] ssNTS0_TARS_Tcp_DSts_tdata ;
-  wire          ssNTS0_TARS_Tcp_DSts_tvalid;
-  wire          ssNTS0_TARS_Tcp_DSts_tready;
+  wire  [ 55:0] ssNTS0_TARS_Tcp_SndRep_tdata ;
+  wire          ssNTS0_TARS_Tcp_SndRep_tvalid;
+  wire          ssNTS0_TARS_Tcp_SndRep_tready;
       
   //------------------------------------------------------
   //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->TARS)
@@ -959,38 +959,38 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- TAIF / Tx Data Interfaces (.i.e APP-->NTS)
     //------------------------------------------------------
-    //---- Axi4-Stream TCP Data ---------------
+    //---- Axi4-Stream APP Data ---------------
     .siAPP_Tcp_Data_tdata             (ssTARS_NTS0_Tcp_Data_tdata),
     .siAPP_Tcp_Data_tkeep             (ssTARS_NTS0_Tcp_Data_tkeep),
     .siAPP_Tcp_Data_tlast             (ssTARS_NTS0_Tcp_Data_tlast),
     .siAPP_Tcp_Data_tvalid            (ssTARS_NTS0_Tcp_Data_tvalid),
     .siAPP_Tcp_Data_tready            (ssTARS_NTS0_Tcp_Data_tready),
-    //---- Axi4- Stream TCP Metadata ----------
-    .siAPP_Tcp_Meta_tdata             (ssTARS_NTS0_Tcp_Meta_tdata),
-    .siAPP_Tcp_Meta_tvalid            (ssTARS_NTS0_Tcp_Meta_tvalid),
-    .siAPP_Tcp_Meta_tready            (ssTARS_NTS0_Tcp_Meta_tready),
-    //---- Axi4-Stream TCP Data Status --------
-    .soAPP_Tcp_DSts_tdata             (ssNTS0_TARS_Tcp_DSts_tdata),
-    .soAPP_Tcp_DSts_tvalid            (ssNTS0_TARS_Tcp_DSts_tvalid),
-    .soAPP_Tcp_DSts_tready            (ssNTS0_TARS_Tcp_DSts_tready),      
+    //---- Axi4- Stream TCP SndReq ------------
+    .siAPP_Tcp_SndReq_tdata           (ssTARS_NTS0_Tcp_SndReq_tdata),
+    .siAPP_Tcp_SndReq_tvalid          (ssTARS_NTS0_Tcp_SndReq_tvalid),
+    .siAPP_Tcp_SndReq_tready          (ssTARS_NTS0_Tcp_SndReq_tready),
+    //---- Axi4-Stream TCP SndRep -------------
+    .soAPP_Tcp_SndRep_tdata           (ssNTS0_TARS_Tcp_SndRep_tdata),
+    .soAPP_Tcp_SndRep_tvalid          (ssNTS0_TARS_Tcp_SndRep_tvalid),
+    .soAPP_Tcp_SndRep_tready          (ssNTS0_TARS_Tcp_SndRep_tready),      
     //---------------------------------------------------
     //-- TAIF / Rx Data Interfaces (.i.e NTS-->APP)
     //---------------------------------------------------
-    //--  Axi4-Stream TCP Data -----------------------         
+    //---- Axi4-Stream APP Data ---------------         
     .soAPP_Tcp_Data_tdata             (ssNTS0_TARS_Tcp_Data_tdata),
     .soAPP_Tcp_Data_tkeep             (ssNTS0_TARS_Tcp_Data_tkeep),
     .soAPP_Tcp_Data_tlast             (ssNTS0_TARS_Tcp_Data_tlast),
     .soAPP_Tcp_Data_tvalid            (ssNTS0_TARS_Tcp_Data_tvalid),
     .soAPP_Tcp_Data_tready            (ssNTS0_TARS_Tcp_Data_tready),
-    //--  Axi4-Stream TCP Metadata -----------  
+    //---- Axi4-Stream APP Metadata -----------  
     .soAPP_Tcp_Meta_tdata             (ssNTS0_TARS_Tcp_Meta_tdata),
     .soAPP_Tcp_Meta_tvalid            (ssNTS0_TARS_Tcp_Meta_tvalid),
     .soAPP_Tcp_Meta_tready            (ssNTS0_TARS_Tcp_Meta_tready),
-     //--  Axi4-Stream TCP Data Notification -
+     //---- Axi4-Stream APP Data Notification -
     .soAPP_Tcp_Notif_tdata            (ssNTS0_TARS_Tcp_Notif_tdata),
     .soAPP_Tcp_Notif_tvalid           (ssNTS0_TARS_Tcp_Notif_tvalid),
     .soAPP_Tcp_Notif_tready           (ssNTS0_TARS_Tcp_Notif_tready),
-    //-- Stream TCP Data Request --------------
+    //---- Axi4-Stream APP Data Request -------
     .siAPP_Tcp_DReq_tdata             (ssTARS_NTS0_Tcp_DReq_tdata),    
     .siAPP_Tcp_DReq_tvalid            (ssTARS_NTS0_Tcp_DReq_tvalid),
     .siAPP_Tcp_DReq_tready            (ssTARS_NTS0_Tcp_DReq_tready),
@@ -1001,11 +1001,11 @@ module Shell_Kale # (
     .siAPP_Tcp_OpnReq_tdata           (ssTARS_NTS0_Tcp_OpnReq_tdata),
     .siAPP_Tcp_OpnReq_tvalid          (ssTARS_NTS0_Tcp_OpnReq_tvalid),
     .siAPP_Tcp_OpnReq_tready          (ssTARS_NTS0_Tcp_OpnReq_tready),
-    //---- Axi4-Stream TCP Open Session Status 
+    //---- Axi4-Stream TCP Open Session Status
     .soAPP_Tcp_OpnRep_tdata           (ssNTS0_TARS_Tcp_OpnRep_tdata),
     .soAPP_Tcp_OpnRep_tvalid          (ssNTS0_TARS_Tcp_OpnRep_tvalid),
     .soAPP_Tcp_OpnRep_tready          (ssNTS0_TARS_Tcp_OpnRep_tready),
-    //---- Axi4-Stream TCP Close Request ----
+    //---- Axi4-Stream TCP Close Request -----
     .siAPP_Tcp_ClsReq_tdata           (ssTARS_NTS0_Tcp_ClsReq_tdata),
     .siAPP_Tcp_ClsReq_tvalid          (ssTARS_NTS0_Tcp_ClsReq_tvalid),
     .siAPP_Tcp_ClsReq_tready          (ssTARS_NTS0_Tcp_ClsReq_tready),
@@ -1051,14 +1051,14 @@ module Shell_Kale # (
     .siAPP_Tcp_Data_tlast       (siROL_Nts_Tcp_Data_tlast ),
     .siAPP_Tcp_Data_tvalid      (siROL_Nts_Tcp_Data_tvalid),
     .siAPP_Tcp_Data_tready      (siROL_Nts_Tcp_Data_tready),
-    //---- Axi4-Stream TCP Metadata -----------
-    .siAPP_Tcp_Meta_tdata       (siROL_Nts_Tcp_Meta_tdata ),
-    .siAPP_Tcp_Meta_tvalid      (siROL_Nts_Tcp_Meta_tvalid),
-    .siAPP_Tcp_Meta_tready      (siROL_Nts_Tcp_Meta_tready),
-    //---- Axi4-Stream TCP Data Status --------
-    .soAPP_Tcp_DSts_tdata       (soROL_Nts_Tcp_DSts_tdata ),
-    .soAPP_Tcp_DSts_tvalid      (soROL_Nts_Tcp_DSts_tvalid),
-    .soAPP_Tcp_DSts_tready      (soROL_Nts_Tcp_DSts_tready),
+    //---- Axi4-Stream APP Send Request -------
+    .siAPP_Tcp_SndReq_tdata     (siROL_Nts_Tcp_SndReq_tdata ),
+    .siAPP_Tcp_SndReq_tvalid    (siROL_Nts_Tcp_SndReq_tvalid),
+    .siAPP_Tcp_SndReq_tready    (siROL_Nts_Tcp_SndReq_tready),
+    //---- Axi4-Stream APP Send Reply ---------
+    .soAPP_Tcp_SndRep_tdata     (soROL_Nts_Tcp_SndRep_tdata ),
+    .soAPP_Tcp_SndRep_tvalid    (soROL_Nts_Tcp_SndRep_tvalid),
+    .soAPP_Tcp_SndRep_tready    (soROL_Nts_Tcp_SndRep_tready),
     //------------------------------------------------------
     //-- APP / Tcp / Rx Data Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1115,14 +1115,14 @@ module Shell_Kale # (
     .soNTS_Tcp_Data_tlast       (ssTARS_NTS0_Tcp_Data_tlast ),
     .soNTS_Tcp_Data_tvalid      (ssTARS_NTS0_Tcp_Data_tvalid),
     .soNTS_Tcp_Data_tready      (ssTARS_NTS0_Tcp_Data_tready),
-    //---- Axi4-Stream TCP Metadata -----------
-    .soNTS_Tcp_Meta_tdata       (ssTARS_NTS0_Tcp_Meta_tdata ),
-    .soNTS_Tcp_Meta_tvalid      (ssTARS_NTS0_Tcp_Meta_tvalid),
-    .soNTS_Tcp_Meta_tready      (ssTARS_NTS0_Tcp_Meta_tready),
-    //---- Axi4-Stream TCP Data Status --------
-    .siNTS_Tcp_DSts_tdata       (ssNTS0_TARS_Tcp_DSts_tdata  ),
-    .siNTS_Tcp_DSts_tvalid      (ssNTS0_TARS_Tcp_DSts_tvalid ),
-    .siNTS_Tcp_DSts_tready      (ssNTS0_TARS_Tcp_DSts_tready ),
+    //---- Axi4-Stream TCP Send Request --------
+    .soNTS_Tcp_SndReq_tdata     (ssTARS_NTS0_Tcp_SndReq_tdata ),
+    .soNTS_Tcp_SndReq_tvalid    (ssTARS_NTS0_Tcp_SndReq_tvalid),
+    .soNTS_Tcp_SndReq_tready    (ssTARS_NTS0_Tcp_SndReq_tready),
+    //---- Axi4-Stream TCP Send Reply ----------
+    .siNTS_Tcp_SndRep_tdata     (ssNTS0_TARS_Tcp_SndRep_tdata  ),
+    .siNTS_Tcp_SndRep_tvalid    (ssNTS0_TARS_Tcp_SndRep_tvalid ),
+    .siNTS_Tcp_SndRep_tready    (ssNTS0_TARS_Tcp_SndRep_tready ),
     //------------------------------------------------------
     //-- NTS / Tcp / Rx Data Interfaces (.i.e NTS<-->THIS)
     //------------------------------------------------------
@@ -1166,7 +1166,7 @@ module Shell_Kale # (
     .soNTS_Tcp_LsnReq_tdata     (ssTARS_NTS0_Tcp_LsnReq_tdata ),   
     .soNTS_Tcp_LsnReq_tvalid    (ssTARS_NTS0_Tcp_LsnReq_tvalid),
     .soNTS_Tcp_LsnReq_tready    (ssTARS_NTS0_Tcp_LsnReq_tready),
-    //----  Axi4-Stream TCP Listen Rep --------
+    //----  Axi4-Stream TCP Listen Reply ------
     .siNTS_Tcp_LsnRep_tdata     (ssNTS0_TARS_Tcp_LsnRep_tdata ),
     .siNTS_Tcp_LsnRep_tvalid    (ssNTS0_TARS_Tcp_LsnRep_tvalid),
     .siNTS_Tcp_LsnRep_tready    (ssNTS0_TARS_Tcp_LsnRep_tready)
