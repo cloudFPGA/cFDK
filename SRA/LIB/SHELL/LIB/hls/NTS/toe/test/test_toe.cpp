@@ -2013,9 +2013,7 @@ void pTAIF_Send(
     //-- STEP-4 : READ THE APP SEND FILE AND FEED THE TOE
     //-----------------------------------------------------
     SimAppData  simAppData;
-    int toto = simAppData.size();
     while (!ifTAIF_Data.eof() or simAppData.size()) {
-        toto = simAppData.size();
         //-- READ A LINE FROM APP SEND FILE -----------
         getline(ifTAIF_Data, rxStringBuffer);
         if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
