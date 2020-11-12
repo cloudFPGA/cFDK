@@ -345,6 +345,7 @@ void markSessionAsPrivileged(SessionId sessionID)
     if(sessionIdList[i] == sessionID && usedRows[i] == 1)
     {
       privilegedRows[i] = 1;
+      rowsToDelete[i] = 0;
       return;
     }
   }
@@ -688,13 +689,13 @@ void nrc_main(
       {
         //mark all TCP ports as to be deleted
         markCurrentRowsAsToDelete_unprivileged();
-        //if( *role_decoupled == 0 )
-        //{//start closing FSM TCP
+        if( *role_decoupled == 0 )
+        {//start closing FSM TCP
           clsFsmState_Tcp = CLS_NEXT;
-        //} else {
+        } else {
           //FMC is using TCP!
-        //  pr_was_done_flag = true;
-        //}
+          pr_was_done_flag = true;
+        }
       }
     }
     //in all cases
@@ -723,10 +724,10 @@ void nrc_main(
     cached_udp_rx_ipaddr = 0;
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    ////start closing FSM TCP
-    ////ports have been marked earlier
-    //clsFsmState_Tcp = CLS_NEXT;
-    ////FSM will wait until RDP and WRP are done
+    //start closing FSM TCP
+    //ports have been marked earlier
+    clsFsmState_Tcp = CLS_NEXT;
+    //FSM will wait until RDP and WRP are done
     pr_was_done_flag = false;
   }
   //===========================================================
