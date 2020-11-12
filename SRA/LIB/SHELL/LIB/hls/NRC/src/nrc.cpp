@@ -87,6 +87,7 @@ ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
+ap_uint<1>  privilegedRows[MAX_NRC_SESSIONS];
 
 NodeId cached_udp_rx_id = 0;
 Ip4Addr cached_udp_rx_ipaddr = 0;
@@ -299,6 +300,7 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
       sessionIdList[i] = sessionID;
       tripleList[i] = new_entry;
       usedRows[i] = 1;
+      privilegedRows[i] = 0;
       printf("stored tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
       return;
     }
@@ -333,14 +335,34 @@ void deleteSessionFromTables(SessionId sessionID)
   //nothing to delete, nothing to do...
 }
 
+void markSessionAsPrivileged(SessionId sessionID)
+{
+//#pragma HLS inline off
+  printf("mark session as privileged: %d\n", (int) sessionID);
+  for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
+  {
+//#pragma HLS unroll factor=8
+    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+    {
+      privilegedRows[i] = 1;
+      return;
+    }
+  }
+  //nothing found, nothing to do...
+}
 
-void markCurrentRowsAsToDelete()
+void markCurrentRowsAsToDelete_unprivileged()
 {
 //#pragma HLS inline
   for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
-    rowsToDelete[i] = usedRows[i];
+    if(privilegedRows[i] == 1)
+    {
+      continue;
+    } else {
+      rowsToDelete[i] = usedRows[i];
+    }
   }
 }
 
@@ -358,6 +380,7 @@ SessionId getAndDeleteNextMarkedRow()
       //tripleList[i] = 0x0;
       usedRows[i] = 0;
       rowsToDelete[i] = 0;
+      //privilegedRows[i] = 0; //not necessary
       printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
       return ret;
     }
@@ -664,14 +687,14 @@ void nrc_main(
       if(tcp_rx_ports_processed > 0)
       {
         //mark all TCP ports as to be deleted
-        markCurrentRowsAsToDelete();
-        if( *role_decoupled == 0 )
-        {//start closing FSM TCP
+        markCurrentRowsAsToDelete_unprivileged();
+        //if( *role_decoupled == 0 )
+        //{//start closing FSM TCP
           clsFsmState_Tcp = CLS_NEXT;
-        } else {
+        //} else {
           //FMC is using TCP!
-          pr_was_done_flag = true;
-        }
+        //  pr_was_done_flag = true;
+        //}
       }
     }
     //in all cases
@@ -700,10 +723,10 @@ void nrc_main(
     cached_udp_rx_ipaddr = 0;
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    //start closing FSM TCP
-    //ports have been marked earlier
-    clsFsmState_Tcp = CLS_NEXT;
-    //FSM will wait until RDP and WRP are done
+    ////start closing FSM TCP
+    ////ports have been marked earlier
+    //clsFsmState_Tcp = CLS_NEXT;
+    ////FSM will wait until RDP and WRP are done
     pr_was_done_flag = false;
   }
   //===========================================================
@@ -721,6 +744,7 @@ void nrc_main(
       tripleList[i] = 0;
       usedRows[i]  =  0;
       rowsToDelete[i] = 0;
+      privilegedRows[i] = 0;
     }
     udp_rx_ports_to_close = 0x0;
     
@@ -1352,10 +1376,12 @@ void nrc_main(
               siTOE_SessId.read(sessId);
 
               ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+              bool found_in_cache = false;
               if(sessId == cached_tcp_rx_session_id)
               {
                 printf("used TCP RX tripple cache.\n");
                 tripple_in = cached_tcp_rx_tripple;
+                found_in_cache = true;
               } else {
                 tripple_in = getTrippleFromSessionId(sessId);
                 cached_tcp_rx_session_id = sessId;
@@ -1377,6 +1403,10 @@ void nrc_main(
                   session_toFMC = sessId;
                   rdpFsmState = RDP_STREAM_FMC;
                   authorized_access_cnt++;
+                  if(!found_in_cache)
+                  {
+                    markSessionAsPrivileged(sessId);
+                  }
                   break;
                 } else {
                   unauthorized_access_cnt++;
