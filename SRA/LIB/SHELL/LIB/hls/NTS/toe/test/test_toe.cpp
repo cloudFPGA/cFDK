@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_TAs)
 
 
 /*******************************************************************************
@@ -1924,7 +1924,7 @@ void pTAIF_Send(
 {
     const char *myName  = concat3(THIS_NAME, "/", "TAs");
 
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    //-- STATIC VARIABLES ------------------------------------------------------
     static bool         tas_globParseDone   = false;
     static bool         tas_appTxIdlingReq  = false; // Request to idle (i.e., do not feed TOE's input stream)
     static unsigned int tas_appTxIdleCycReq = 0;  // The requested number of idle cycles
@@ -1933,6 +1933,7 @@ void pTAIF_Send(
     static vector<SessionId> tas_txSessIdVector;  // A vector containing the Tx session IDs to be send from TAIF/Meta to TOE/Meta
     static map<SocketPair, SessionId> tas_openSessList; // Keeps track of the sessions opened by the TOE
     static bool         tas_clearToSend = false;
+    static SimAppData   tas_simAppData;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     string              rxStringBuffer;
@@ -2009,182 +2010,187 @@ void pTAIF_Send(
         return;
     }
 
-    //-----------------------------------------------------
-    //-- STEP-4 : READ THE APP SEND FILE AND FEED THE TOE
-    //-----------------------------------------------------
-    SimAppData  simAppData;
-    while (!ifTAIF_Data.eof() or simAppData.size()) {
-        //-- READ A LINE FROM APP SEND FILE -----------
-        getline(ifTAIF_Data, rxStringBuffer);
-        if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
-        stringVector = myTokenizer(rxStringBuffer, ' ');
-        if (stringVector[0] == "") {
-            continue;
+    //------------------------------------------------------
+    //-- STEP-4 : HANDLE THE SEND REPLY INTERFACE
+    //------------------------------------------------------
+    if (!siTOE_SndRep.empty()) {
+        TcpAppSndRep appSndRep = siTOE_SndRep.read();
+        TcpAppSndErr rc = appSndRep.error;
+        switch (rc) {
+            case NO_ERROR:
+                tas_clearToSend = true;
+                break;
+            case NO_CONNECTION: // [FIXME-Must handle this scenario]
+                printFatal(myName, "Attempt to write data for session %d which is not established.\n", appSndRep.sessId.to_uint());
+                nrError++;
+                break;
+            case NO_SPACE: // [FIXME-Must handle this scenario]
+                printFatal(myName, "There is not enough TxBuf memory space available for session %d.\n",
+                           appSndRep.sessId.to_uint());
+                nrError++;
+                break;
+            default:
+                printFatal(myName, "Received unknown reply error (%d) from [TOE].\n", rc);
+                nrError++;
+                break;
         }
-        else if (stringVector[0].length() == 1) {
-            //------------------------------------------------------
-            //-- Process the command and comment lines
-            //--  FYI: A command or a comment start with a single
-            //--       character followed by a space character.
-            //------------------------------------------------------
-            if (stringVector[0] == "#") {
-                // This is a comment line.
-                continue;
-            }
-            else if (stringVector[0] == "G") {
-                // This is a global parameter. It can be skipped because it was already parsed.
-                continue;
-            }
-            else if (stringVector[0] == ">") {
-                // The test vector is issuing a command.
-                //  FYI, don't forget to return at the end of command execution.
-                if (stringVector[1] == "IDLE") {
-                    // Cmd = Request to idle for <NUM> cycles.
-                    tas_appTxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
-                    tas_appTxIdlingReq = true;
-                    if (DEBUG_LEVEL & TRACE_TAs) {
-                        printInfo(myName, "Request to idle for %d cycles. \n", tas_appTxIdleCycReq);
-                    }
-                    increaseSimTime(tas_appTxIdleCycReq);
-                    return;
-                }
-                if (stringVector[1] == "SET") {
-                    if (stringVector[2] == "HostIp4Addr") {
-                        // COMMAND = Set the active host IP address.
-                        char * ptr;
-                        // Retrieve the IPv4 address to set
-                        unsigned int ip4Addr;
-                        if (isDottedDecimal(stringVector[3]))
-                            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
-                        else if (isHexString(stringVector[3]))
-                            ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
-                        else
-                            ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
-                        gHostIp4Addr = ip4Addr;
-                        printInfo(myName, "Setting the current HOST IPv4 address to be: ");
-                        printIp4Addr(myName, gHostIp4Addr);
-                        return;
-                    }
-                    else if (stringVector[2] == "HostLsnPort") {
-                        // COMMAND = Set the active host listen port.
-                        char * ptr;
-                        // Retrieve the TCP-Port to set
-                        unsigned int tcpPort;
-                        if (isHexString(stringVector[3]))
-                            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
-                        else
-                            tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
-                        gHostLsnPort = tcpPort;
-                        printInfo(myName, "Setting the current HOST listen port to be: ");
-                        printTcpPort(myName, gHostLsnPort);
-                        return;
-                    }
-                    else if (stringVector[2] == "HostServerSocket") {
-                        // COMMAND = Set the active host server socket.
-                        //   If socket does not exist, host must create, bind,
-                        //   listen and accept new connections from the client.
-                        char *pEnd;
-                        // Retrieve the current foreign IPv4 address to set
-                        unsigned int ip4Addr;
-                        if (isDottedDecimal(stringVector[3]))
-                            ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
-                        else if (isHexString(stringVector[3]))
-                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
-                        else
-                            ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
-                        gHostIp4Addr = ip4Addr;
-                        // Retrieve the current foreign TCP-Port to set
-                        unsigned int tcpPort;
-                        if (isHexString(stringVector[4]))
-                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 16);
-                        else
-                            tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 10);
-                        gHostLsnPort = tcpPort;
-
-                        SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
-                        printInfo(myName, "Setting current host server socket to be: ");
-                        printSockAddr(myName, newHostServerSocket);
-                        return;
-                    }
-                }
-            }
-            else {
-                printFatal(myName, "Read unknown command \"%s\" from TAIF.\n", stringVector[0].c_str());
-            }
-        }
-        else if (ifTAIF_Data.fail() == 1 || rxStringBuffer.empty()) {
-            return;
-        }
-        else if (!tas_clearToSend) {
-            if (!siTOE_SndRep.empty()) {
-                TcpAppSndRep appSndRep = siTOE_SndRep.read();
-                TcpAppSndErr rc = appSndRep.error;
-                switch (rc) {
-                case NO_ERROR:
-                    tas_clearToSend = true;
-                    break;
-                case NO_CONNECTION: // [FIXME-Must handle this scenario]
-                    printFatal(myName, "Attempt to write data for session %d which is not established.\n", appSndRep.sessId.to_uint());
-                    nrError++;
-                    break;
-                case NO_SPACE: // [FIXME-Must handle this scenario]
-                    printFatal(myName, "There is not enough TxBuf memory space available for session %d.\n",
-                               appSndRep.sessId.to_uint());
-                    nrError++;
-                    break;
-                default:
-                    printFatal(myName, "Received unknown reply error (%d) from [TOE].\n", rc);
-                    nrError++;
-                    break;
-                }
-            }
-        }
-        else if (!simAppData.size() and tas_clearToSend) {
-            if (! soTOE_Data.full()) {
-                //-------------------------------------------------
-                //-- Feed TOE with a new APP chunk from APP data
-                //-------------------------------------------------
-                AxisApp appChunk = simAppData.pullChunk();
-                soTOE_Data.write(appChunk);
-                increaseSimTime(1);
-                if (appChunk.getTLast()) {
-                    tas_clearToSend = false;
-                }
-            }
-        }
-        else {
-            //-------------------------------------------------
-            //-- Build a new AppData from file
-            //-------------------------------------------------
-            AxisApp appChunk;
-            bool    firstChunkFlag = true; // Axis chunk is first data chunk
-            int     writtenBytes = 0;
-            do {
-                if (firstChunkFlag == false) {
-                    getline(ifTAIF_Data, rxStringBuffer);
-                    stringVector = myTokenizer(rxStringBuffer, ' ');
-                    // Skip lines that might be commented out
-                    if (stringVector[0] == "#") {
-                        // This is a comment line.
-                        if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
-                        continue;
-                    }
-                }
-                firstChunkFlag = false;
-                bool rc = readAxisRawFromLine(appChunk, rxStringBuffer);
-                if (rc) {
-                    simAppData.pushChunk(appChunk);
-                }
-                // Write current chunk to the gold file
-                writtenBytes = writeAxisAppToFile(appChunk, ofIPTX_Gold2);
-                apRxBytCntr += writtenBytes;
-                if (appChunk.getTLast()) {
-                    // A send request must be sent by TAIF to TOE
-                    soTOE_SndReq.write(TcpAppSndReq(tas_openSessList[currSocketPair], simAppData.size()));
-                }
-            } while (not appChunk.getTLast());
-        } // End of: else
     }
+
+    //------------------------------------------------------
+    //-- STEP-5 : FEED DATA STREAM or BUILD A NEW ONE FROM FILE
+    //------------------------------------------------------
+    if (tas_simAppData.size() and tas_clearToSend) {
+        if (!soTOE_Data.full()) {
+            //-------------------------------------------------
+            //-- Feed TOE with a new APP chunk
+            //-------------------------------------------------
+            AxisApp appChunk = tas_simAppData.pullChunk();
+            soTOE_Data.write(appChunk);
+            increaseSimTime(1);
+            if (appChunk.getTLast()) {
+                tas_clearToSend = false;
+            }
+        }
+    }
+    else if (tas_simAppData.size() == 0) {
+        //------------------------------------------------------
+        //-- Build a new DATA stream from FILE
+        //------------------------------------------------------
+        while (!ifTAIF_Data.eof()) {
+            //-- Read a line from the test vector file -----------
+            getline(ifTAIF_Data, rxStringBuffer);
+            if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
+            stringVector = myTokenizer(rxStringBuffer, ' ');
+            if (stringVector[0] == "") {
+                continue;
+            }
+            else if (stringVector[0].length() == 1) {
+                //------------------------------------------------------
+                //-- Process the command and comment lines
+                //--  FYI: A command or a comment start with a single
+                //--       character followed by a space character.
+                //------------------------------------------------------
+                if (stringVector[0] == "#") {
+                    // This is a comment line.
+                    continue;
+                }
+                else if (stringVector[0] == "G") {
+                    // This is a global parameter. It can be skipped because it was already parsed.
+                    continue;
+                }
+                else if (stringVector[0] == ">") {
+                    // The test vector is issuing a command.
+                    //  FYI, don't forget to return at the end of command execution.
+                    if (stringVector[1] == "IDLE") {
+                        // Cmd = Request to idle for <NUM> cycles.
+                        tas_appTxIdleCycReq = strtol(stringVector[2].c_str(), &pEnd, 10);
+                        tas_appTxIdlingReq = true;
+                        if (DEBUG_LEVEL & TRACE_TAs) {
+                            printInfo(myName, "Request to idle for %d cycles. \n", tas_appTxIdleCycReq);
+                        }
+                        increaseSimTime(tas_appTxIdleCycReq);
+                        return;
+                    }
+                    if (stringVector[1] == "SET") {
+                        if (stringVector[2] == "HostIp4Addr") {
+                            // COMMAND = Set the active host IP address.
+                            char * ptr;
+                            // Retrieve the IPv4 address to set
+                            unsigned int ip4Addr;
+                            if (isDottedDecimal(stringVector[3]))
+                                ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+                            else if (isHexString(stringVector[3]))
+                                ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 16);
+                            else
+                                ip4Addr = strtoul(stringVector[3].c_str(), &ptr, 10);
+                            gHostIp4Addr = ip4Addr;
+                            printInfo(myName, "Setting the current HOST IPv4 address to be: ");
+                            printIp4Addr(myName, gHostIp4Addr);
+                            return;
+                        }
+                        else if (stringVector[2] == "HostLsnPort") {
+                            // COMMAND = Set the active host listen port.
+                            char * ptr;
+                            // Retrieve the TCP-Port to set
+                            unsigned int tcpPort;
+                            if (isHexString(stringVector[3]))
+                                tcpPort = strtoul(stringVector[3].c_str(), &ptr, 16);
+                            else
+                                tcpPort = strtoul(stringVector[3].c_str(), &ptr, 10);
+                            gHostLsnPort = tcpPort;
+                            printInfo(myName, "Setting the current HOST listen port to be: ");
+                            printTcpPort(myName, gHostLsnPort);
+                            return;
+                        }
+                        else if (stringVector[2] == "HostServerSocket") {
+                            // COMMAND = Set the active host server socket.
+                            //   If socket does not exist, host must create, bind,
+                            //   listen and accept new connections from the client.
+                            char *pEnd;
+                            // Retrieve the current foreign IPv4 address to set
+                            unsigned int ip4Addr;
+                            if (isDottedDecimal(stringVector[3]))
+                                ip4Addr = myDottedDecimalIpToUint32(stringVector[3]);
+                            else if (isHexString(stringVector[3]))
+                                ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 16);
+                            else
+                                ip4Addr = strtoul(stringVector[3].c_str(), &pEnd, 10);
+                            gHostIp4Addr = ip4Addr;
+                            // Retrieve the current foreign TCP-Port to set
+                            unsigned int tcpPort;
+                            if (isHexString(stringVector[4]))
+                                tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 16);
+                            else
+                                tcpPort = strtoul(stringVector[4].c_str(), &pEnd, 10);
+                            gHostLsnPort = tcpPort;
+
+                            SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
+                            printInfo(myName, "Setting current host server socket to be: ");
+                            printSockAddr(myName, newHostServerSocket);
+                            return;
+                        }
+                    }
+                }
+                else {
+                    printFatal(myName, "Read unknown command \"%s\" from TAIF.\n", stringVector[0].c_str());
+                }
+            }
+            else if (ifTAIF_Data.fail() == 1 || rxStringBuffer.empty()) {
+                return;
+            }
+            else if (!tas_clearToSend) {
+                //-- Build a new simAppData from file
+                AxisApp appChunk;
+                bool    firstChunkFlag = true; // Axis chunk is first data chunk
+                int     writtenBytes = 0;
+                do {
+                    if (firstChunkFlag == false) {
+                        getline(ifTAIF_Data, rxStringBuffer);
+                        stringVector = myTokenizer(rxStringBuffer, ' ');
+                        // Skip lines that might be commented out
+                        if (stringVector[0] == "#") {
+                            // This is a comment line.
+                            if (DEBUG_LEVEL & TRACE_TAs) { printf("%s ", rxStringBuffer.c_str()); fflush(stdout); }
+                            continue;
+                        }
+                    }
+                    firstChunkFlag = false;
+                    bool rc = readAxisRawFromLine(appChunk, rxStringBuffer);
+                    if (rc) {
+                        tas_simAppData.pushChunk(appChunk);
+                    }
+                    // Write current chunk to the gold file
+                    writtenBytes = writeAxisAppToFile(appChunk, ofIPTX_Gold2);
+                    apRxBytCntr += writtenBytes;
+                    if (appChunk.getTLast()) {
+                        // A send request must be sent by TAIF to TOE
+                        soTOE_SndReq.write(TcpAppSndReq(tas_openSessList[currSocketPair], tas_simAppData.length()));
+                        return;
+                    }
+                } while (not appChunk.getTLast());
+            } // End of: else
+        } // End of: while
+    } // End of: else
 } // End of: pTAs
 
 /*****************************************************************************

@@ -1,5 +1,5 @@
 # ########################################################################################
-#  @file  : appRx_OneSeg.dat
+#  @file  : siTAIF_OneSeg.dat
 #  @brief : A unique TCP segment for the Rx Application I/F of TOE.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,

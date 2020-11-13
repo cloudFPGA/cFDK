@@ -64,7 +64,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_MDL)
 
 
 /*******************************************************************************
@@ -77,8 +77,8 @@ using namespace hls;
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
  * @param[out] soTIm_ReTxTimerEvent Send retransmit timer event to Timers (TIm).
  * @param[out] soTIm_SetProbeTimer  Set the probe timer to [TIm].
- * @param[out] soIhc_TcpSegLen     TCP segment length to Ip Header Constructor(Ihc).
- * @param[out] soPhc_TxeMeta       Tx Engine metadata to Pseudo Header Constructor(Phc).
+ * @param[out] soIhc_TcpDatLen     TCP data length to Ip Header Constructor (Ihc).
+ * @param[out] soPhc_TxeMeta       Tx Engine metadata to Pseudo Header Constructor (Phc).
  * @param[out] soMrd_BufferRdCmd   Buffer read command to Memory Reader (Mrd).
  * @param[out] soSLc_ReverseLkpReq Reverse lookup request to Session Lookup Controller (SLc).
  * @param[out] soSps_IsLookup      Tells the Socket Pair Splitter (Sps) that a reverse lookup is to be expected.
@@ -106,7 +106,7 @@ void pMetaDataLoader(
         stream<TXeTxSarReply>           &siTSt_TxSarRep,
         stream<TXeReTransTimerCmd>      &soTIm_ReTxTimerEvent,
         stream<ap_uint<16> >            &soTIm_SetProbeTimer,
-        stream<TcpSegLen>               &soIhc_TcpSegLen,
+        stream<TcpDatLen>               &soIhc_TcpDatLen,
         stream<TXeMeta>                 &soPhc_TxeMeta,
         stream<DmCmd>                   &soMrd_BufferRdCmd,
         stream<SessionId>               &soSLc_ReverseLkpReq,
@@ -249,7 +249,7 @@ void pMetaDataLoader(
                 printInfo(myName, "Got TX event.\n");
             }
             // Send everything between txSar.not_ackd and txSar.app
-            if ((!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) || mdl_sarLoaded) {
+            if ((!siRSt_RxSarRep.empty() and !siTSt_TxSarRep.empty()) or mdl_sarLoaded) {
                 if (!mdl_sarLoaded) {
                     siRSt_RxSarRep.read(mdl_rxSar);
                     siTSt_TxSarRep.read(mdl_txSar);
@@ -265,6 +265,7 @@ void pMetaDataLoader(
                 mdl_txeMeta.fin = 0;
                 mdl_txeMeta.length = 0;
                 currLength = (mdl_txSar.app - ((TxBufPtr)mdl_txSar.not_ackd));
+
                 TxBufPtr usedLength = ((TxBufPtr)mdl_txSar.not_ackd - mdl_txSar.ackd);
                 if (mdl_txSar.min_window > usedLength) {
                     // FYI: min_window = Min(txSar.recv_window, mdl_txSar.cong_window)
@@ -273,23 +274,28 @@ void pMetaDataLoader(
                 else {
                     usableWindow = 0;
                 }
+
                 // Construct address before modifying mdl_txSar.not_ackd
                 //  FYI - The TCP Tx buffers use up to 1GB (16Kx64KB). They are located at base@+1GB
                 TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0);
-                // Check length, if bigger than Usable Window or MMS
+
+                // Check if length is bigger than Usable Window or MSS
                 if (currLength <= usableWindow) {
-                    if (currLength >= ZYC2_MSS) {
+                    //OBSOLETE_20201113 if (currLength >= ZYC2_MSS) {
+                    if (currLength+TCP_HEADER_LEN >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        mdl_txSar.not_ackd += ZYC2_MSS;
-                        mdl_txeMeta.length  = ZYC2_MSS;
+                        //OBSOLETE_20201113 mdl_txSar.not_ackd += ZYC2_MSS;
+                        //OBSOLETE_20201113 mdl_txeMeta.length  = ZYC2_MSS;
+                        mdl_txSar.not_ackd += ZYC2_MSS-TCP_HEADER_LEN;
+                        mdl_txeMeta.length  = ZYC2_MSS-TCP_HEADER_LEN;
                     }
                     else {
                         //-- No IP Fragmentation or End of Fragmentation -------
                         //--  If we sent all data, we might also need to send a FIN
-                        if (mdl_txSar.finReady && (mdl_txSar.ackd == mdl_txSar.not_ackd || currLength == 0)) {
+                        if (mdl_txSar.finReady and (mdl_txSar.ackd == mdl_txSar.not_ackd or currLength == 0)) {
                             mdl_curEvent.type = FIN_EVENT;
                         }
                         else {
@@ -303,11 +309,14 @@ void pMetaDataLoader(
                 }
                 else {
                     // Code duplication, but better timing.
-                    if (usableWindow >= ZYC2_MSS) {
+                    //OBSOLETE_2020113 if (usableWindow >= ZYC2_MSS) {
+                    if (usableWindow+TCP_HEADER_LEN >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        mdl_txSar.not_ackd += ZYC2_MSS;
-                        mdl_txeMeta.length  = ZYC2_MSS;
+                        //OBSOLETE_2020113 mdl_txSar.not_ackd += ZYC2_MSS;
+                        //OBSOLETE_2020113 mdl_txeMeta.length  = ZYC2_MSS;
+                        mdl_txSar.not_ackd += ZYC2_MSS-TCP_HEADER_LEN;
+                        mdl_txeMeta.length  = ZYC2_MSS-TCP_HEADER_LEN;
                     }
                     else {
                         // Check if we sent >= MSS data
@@ -317,7 +326,8 @@ void pMetaDataLoader(
                         }
                         // Set probe Timer to try again later
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
-                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, mdl_txSar.not_ackd, QUERY_WR));
+                        soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
+                                             mdl_txSar.not_ackd, QUERY_WR));
                         mdl_fsmState = S0;
                     }
                 }
@@ -326,7 +336,7 @@ void pMetaDataLoader(
                 }
                 // Send a packet only if there is data or we want to send an empty probing message
                 if (mdl_txeMeta.length != 0) { // || mdl_curEvent.retransmit) //TODO retransmit boolean currently not set, should be removed
-                    soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                    soIhc_TcpDatLen.write(mdl_txeMeta.length);
                     soPhc_TxeMeta.write(mdl_txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -364,20 +374,25 @@ void pMetaDataLoader(
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.ackd(15, 0); // mdl_curEvent.address;
                 // Decrease Slow Start Threshold, only on first RT from retransmitTimer
-                if (!mdl_sarLoaded && (mdl_curEvent.rt_count == 1)) {
-                    if (currLength > (4*ZYC2_MSS)) // max(FlightSize/2, 2*MSS) RFC:5681
+                if (!mdl_sarLoaded and (mdl_curEvent.rt_count == 1)) {
+                    if (currLength > (4*ZYC2_MSS)) { // max(FlightSize/2, 2*MSS) RFC:5681
                         slowstart_threshold = currLength/2;
-                    else
+                    }
+                    else {
                         slowstart_threshold = (2 * ZYC2_MSS);
+                    }
                     soTSt_TxSarQry.write(TXeTxSarRtQuery(mdl_curEvent.sessionID, slowstart_threshold));
                 }
-                // Since we are retransmitting from 'txSar.ackd' to 'txSar.not_ackd', this data is already inside the usableWindow
-                //  => No check is required
-                // Only check if length is bigger than MMS
-                if (currLength > ZYC2_MSS) {
+                // Since we are retransmitting from 'txSar.ackd' to 'txSar.not_ackd',
+                // this data is already inside the usableWindow => No check is required
+                // Only check if length is bigger than MSS
+                //OBSOLETE_20201113 if (currLength > ZYC2_MSS) {
+                if (currLength+TCP_HEADER_LEN > ZYC2_MSS) {
                     // We stay in this state and sent immediately another packet
-                    mdl_txeMeta.length = ZYC2_MSS;
-                    mdl_txSar.ackd    += ZYC2_MSS;
+                    //OBSOLETE_20201113 mdl_txeMeta.length = ZYC2_MSS;
+                    //OBSOLETE_20201113 mdl_txSar.ackd    += ZYC2_MSS;
+                    mdl_txeMeta.length = ZYC2_MSS-TCP_HEADER_LEN;
+                    mdl_txSar.ackd    += ZYC2_MSS-TCP_HEADER_LEN;
                     // [TODO - replace with dynamic count, remove this]
                     if (mdl_segmentCount == 3) {
                         // Should set a probe or sth??
@@ -388,16 +403,18 @@ void pMetaDataLoader(
                 }
                 else {
                     mdl_txeMeta.length = currLength;
-                    if (mdl_txSar.finSent)
+                    if (mdl_txSar.finSent) {
                         mdl_curEvent.type = FIN_EVENT;
-                    else
+                    }
+                    else {
                         mdl_fsmState = S0;
+                    }
                 }
 
                 // Only send a packet if there is data
                 if (mdl_txeMeta.length != 0) {
                     soMrd_BufferRdCmd.write(DmCmd(memSegAddr, mdl_txeMeta.length));
-                    soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                    soIhc_TcpDatLen.write(mdl_txeMeta.length);
                     soPhc_TxeMeta.write(mdl_txeMeta);
                     soSps_IsLookup.write(true);
 #if (TCP_NODELAY)
@@ -426,7 +443,7 @@ void pMetaDataLoader(
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 0;
                 mdl_txeMeta.fin = 0;
-                soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                soIhc_TcpDatLen.write(mdl_txeMeta.length);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -454,7 +471,7 @@ void pMetaDataLoader(
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 1;
                 mdl_txeMeta.fin = 0;
-                soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                soIhc_TcpDatLen.write(mdl_txeMeta.length);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -486,7 +503,7 @@ void pMetaDataLoader(
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                          mdl_txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
                 }
-                soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                soIhc_TcpDatLen.write(mdl_txeMeta.length);
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -530,7 +547,7 @@ void pMetaDataLoader(
 
                 // Check if there is a FIN to be sent // [TODO - maybe restrict this]
                 if (mdl_txeMeta.seqNumb(15, 0) == mdl_txSar.app) {
-                    soIhc_TcpSegLen.write(mdl_txeMeta.length);
+                    soIhc_TcpDatLen.write(mdl_txeMeta.length);
                     soPhc_TxeMeta.write(mdl_txeMeta);
                     soSps_IsLookup.write(true);
                     soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
@@ -545,7 +562,7 @@ void pMetaDataLoader(
             // Assumption RST length == 0
             resetEvent = mdl_curEvent;
             if (!resetEvent.hasSessionID()) {
-                soIhc_TcpSegLen.write(0);
+                soIhc_TcpDatLen.write(0);
                 soPhc_TxeMeta.write(TXeMeta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 soSps_IsLookup.write(false);
                 soSps_RstSockPair.write(mdl_curEvent.tuple);
@@ -553,7 +570,7 @@ void pMetaDataLoader(
             }
             else if (!siTSt_TxSarRep.empty()) {
                 siTSt_TxSarRep.read(mdl_txSar);
-                soIhc_TcpSegLen.write(0);
+                soIhc_TcpDatLen.write(0);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(resetEvent.sessionID); //there is no sessionID??
                 soPhc_TxeMeta.write(TXeMeta(mdl_txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
@@ -645,7 +662,7 @@ void pSocketPairSplitter(
 /*******************************************************************************
  * @brief IPv4 Header Constructor (Ihc)
  *
- * @param[in]  siMdl_TcpSegLen   TCP segment length from Meta Data Loader (Mdl).
+ * @param[in]  siMdl_TcpDatLen   TCP data length from Meta Data Loader (Mdl).
  * @param[in]  siSps_Ip4AddrPair The IP_SA and IP_DA from Socket Pair Splitter (Sps).
  * @param[out] soIps_IpHeader    IP4 header stream to Ip Packet Stitcher (Ips).
  *
@@ -667,7 +684,7 @@ void pSocketPairSplitter(
  *
  *******************************************************************************/
 void pIpHeaderConstructor(
-        stream<TcpSegLen>       &siMdl_TcpSegLen,
+        stream<TcpDatLen>       &siMdl_TcpDatLen,
         stream<IpAddrPair>      &siSps_IpAddrPair,
         stream<AxisIp4>         &soIPs_IpHeader)
 {
@@ -687,16 +704,16 @@ void pIpHeaderConstructor(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisIp4                    currIpHdrChunk;
     Ip4TotalLen                ip4TotLen = 0;
-    TcpSegLen                  tcpSegLen;
+    TcpDatLen                  tcpDatLen;
 
     switch(ihc_chunkCounter) {
     case CHUNK_0:
-        if (!siMdl_TcpSegLen.empty()) {
-            siMdl_TcpSegLen.read(tcpSegLen);
+        if (!siMdl_TcpDatLen.empty()) {
+            siMdl_TcpDatLen.read(tcpDatLen);
             currIpHdrChunk.setIp4Version(4);
             currIpHdrChunk.setIp4HdrLen(5);
             currIpHdrChunk.setIp4ToS(0);
-            ip4TotLen = tcpSegLen + 40;
+            ip4TotLen = IP4_HEADER_LEN + TCP_HEADER_LEN + tcpDatLen;
             currIpHdrChunk.setIp4TotalLen(ip4TotLen);
             currIpHdrChunk.setIp4Ident(0);
             currIpHdrChunk.setIp4Flags(0);
@@ -971,7 +988,6 @@ void pTcpSegStitcher(
          if (!siMEM_TxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soSca_PseudoPkt.full()) {
              siMrd_SplitSegFlag.read(tss_mustJoin);
              AxisApp currAppChunk = siMEM_TxP_Data.read();
-
              if (currAppChunk.getTLast()) {
                  // We are done with the 1st memory buffer
                  if (tss_mustJoin == false) {
@@ -1013,7 +1029,6 @@ void pTcpSegStitcher(
         //-- Forward all the data chunks of the 1st memory buffer
         if (!siMEM_TxP_Data.empty() and !soSca_PseudoPkt.full()) {
             AxisApp currAppChunk = siMEM_TxP_Data.read();
-
             if (currAppChunk.getTLast()) {
                 // We are done with the 1st memory buffer
                 if (tss_mustJoin == false) {
@@ -1223,7 +1238,6 @@ void pSubChecksumAccumulators(
     }
 } // End-of: Sca
 
-
 /*******************************************************************************
  * @brief TCP Checksum Accumulator (Tca)
  *
@@ -1262,7 +1276,6 @@ void pTcpChecksumAccumulator(
         soIps_TcpCsum.write(tca_4CSums.sum0);
     }
 }
-
 
 /*******************************************************************************
  * @brief IPv4 Packet Stitcher (Ips)
@@ -1456,17 +1469,17 @@ void pTxMemoryReader(
  * @brief Transmit Engine (TXe)
  *
  * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
+ * @param[out] soEVe_RxEventSig,   Signals the reception of an event to [EventEngine].
  * @param[out] soRSt_RxSarReq,     Read request to RxSarTable (RSt).
  * @param[in]  siRSt_RxSarRep,     Read reply from [RSt].
  * @param[out] soTSt_TxSarQry,     TxSar query to TxSarTable (TSt).
  * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
+ * @param[out] soMEM_Txp_RdCmd,    Memory read command to the DRAM Memory (MEM).
  * @param[in]  siMEM_TxP_Data,     Data payload from the DRAM Memory (MEM).
  * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
  * @param[out] soTIm_SetProbeTimer,Set probe timer to Timers (TIm).
- * @param[out] soMEM_Txp_RdCmd,    Memory read command to the DRAM Memory (MEM).
  * @param[out] soSLc_ReverseLkpReq,Reverse lookup request to Session Lookup Controller (SLc).
  * @param[in]  siSLc_ReverseLkpRep,Reverse lookup reply from SLc.
- * @param[out] soEVe_RxEventSig,   Signals the reception of an event to [EventEngine].
  * @param[out] soL3MUX_Data,       Outgoing data stream.
  *
  * @details
@@ -1512,8 +1525,8 @@ void tx_engine(
     //--------------------------------------------------------------------------
     //-- Meta Data Loader (Mdl)
     //--------------------------------------------------------------------------
-    static stream<TcpSegLen>            ssMdlToIhc_TcpSegLen    ("ssMdlToIhc_TcpSegLen");
-    #pragma HLS stream         variable=ssMdlToIhc_TcpSegLen    depth=16
+    static stream<TcpDatLen>            ssMdlToIhc_TcpDatLen    ("ssMdlToIhc_TcpDatLen");
+    #pragma HLS stream         variable=ssMdlToIhc_TcpDatLen    depth=16
 
     static stream<TXeMeta>              ssMdlToPhc_TxeMeta      ("ssMdlToPhc_TxeMeta");
     #pragma HLS stream         variable=ssMdlToPhc_TxeMeta      depth=16
@@ -1597,7 +1610,7 @@ void tx_engine(
             siTSt_TxSarRep,
             soTIm_ReTxTimerEvent,
             soTIm_SetProbeTimer,
-            ssMdlToIhc_TcpSegLen,
+            ssMdlToIhc_TcpDatLen,
             ssMdlToPhc_TxeMeta,
             ssMdlToMrd_BufferRdCmd,
             soSLc_ReverseLkpReq,
@@ -1618,7 +1631,7 @@ void tx_engine(
             ssSpsToPhc_SockPair);
 
     pIpHeaderConstructor(
-            ssMdlToIhc_TcpSegLen,
+            ssMdlToIhc_TcpDatLen,
             ssSpsToIhc_IpAddrPair,
             ssIhcToIps_IpHeader);
 

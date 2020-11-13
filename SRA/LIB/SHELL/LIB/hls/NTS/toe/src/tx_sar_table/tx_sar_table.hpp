@@ -72,8 +72,8 @@ using namespace hls;
 class TxSarEntry {
   public:
     TxBufPtr        appw;        // Points to last written byte by APP
-    TxAckNum        ackd;        // Bytes TX'ed and ACK'ed
     TxAckNum        unak;        // Bytes TX'ed but not ACK'ed
+    TxAckNum        ackd;        // Bytes TX'ed and ACK'ed
     RcvWinSize      recv_window; // Remote receiver's buffer size (their)
     SndWinSize      cong_window; // Local receiver's buffer size  (mine)
     TcpWindow       slowstart_threshold;

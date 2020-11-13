@@ -524,7 +524,7 @@ void pStreamMetaLoader(
             else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
                 // Forward the metadata to the SegmentMemoryWriter (Mwr)
                 soMwr_AppMeta.write(AppMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
-                // Notify APP about successful transmission
+                // Notify APP about acceptance of the transmission
                 soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_ERROR));
                 // Notify [TXe] about new data to be sent via an event to [EVe]
                 assessSize(myName, soEmx_Event, "soEmx_Event", 2);  // [FIXME-Use constant for the length]
