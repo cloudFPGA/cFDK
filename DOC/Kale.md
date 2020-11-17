@@ -26,8 +26,8 @@ The shell **_Kale_** exposes the following interfaces:
 | **DDR4**        | Double Data Rate 4 memory interface                   | [Kale/Shell.v](../SRA/LIB/SHELL/Kale/Shell.v)
 | **ECON**        | Edge CONnnector interface                             | [Kale/Shell.v](../SRA/LIB/SHELL/Kale/Shell.v)
 | **PSOC**        | Programmable System-On-Chip interface                 | [Kale/Shell.v](../SRA/LIB/SHELL/Kale/Shell.v)
-| **ROLE**        | Test and bring-up application interface               | [ROLE-UDP](#role-udp-interface)
-|                 |                                                       | [ROLE-TCP](#role-tcp-interface)
+| **ROLE**        | User application interface                            | [ROLE](#description-of-the-role-interfaces)
+
 <br>
 
 #### List of HDL Components
@@ -41,10 +41,16 @@ Details about the **_Kale_** internal components and IP cores can be found by fo
 | **[NTS](./NTS/README.md)**                       | Network Transport Stack    | [nts_TcpIp.v](../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
 <br>
 
-#### Description of the ROLE interfaces
-**WARNING** - The *ROLE I/F* is also referred to as *APP I/F* which stands for _Application Interface_.
+#### Description of the SHELL/ROLE interfaces
+The shell **_Kale_** provides the following 4 interfaces for the user application implemented in the role:
+- 1 User Datagram Protocol Application ([UdpApp](udp-app-interface)) interface implemented as a set of AXI4-Stream interfaces,
+- 1 Transmission Control Protocol Application ([TcpApp](tcp-app-interface)) interface implemented as a set of AXI4 stream interfaces,
+- 1 Memory Streaming Interface ([Mp0](mp0-app-interface) based on a set of AXI4-Stream interfaces,
+- 1 Memory Mapped Interface ([Mp1](mp1-app-interface) based on an AXI4-Full interface. 
 
-<a name="role-udp-interface"></a> <p align="center"><b>Table 1 - ROLE / UDP Interface </b></p>
+**[INFO]** - The *ROLE I/F* is also referred to as *APP I/F* which stands for _Application Interface_.
+
+<a name="udp-app-interface"></a> <p align="center"><b>Table 1 - SHELL / Role / UDP Interface </b></p>
 
 | Interface             | Dir | Size   | Signal Name          | Type  | Description
 |:----------------------|:---:| ------:|----------------------|:-----:|:------------
@@ -67,25 +73,29 @@ Details about the **_Kale_** internal components and IP cores can be found by fo
 |                       | out | [ 7:0] | soROL_Nts_Udp_ClsRep | AXI4S | UDP close  port reply (0=closed/1=opened).            
 <br>
 
-a name="role-tcp-interface"></a> <p align="center"><b>Table 2 - ROLE / TCP Interface </b></p>
+a name="tcp-app-interface"></a> <p align="center"><b>Table 2 - SHELL / Role / TCP Interface </b></p>
 
 | Interface             | Dir | Size   | Signal Name          | Type  | Description
 |:----------------------|:---:| ------:|----------------------|:-----:|:------------
 | Tx Data Interface     | in  | [63:0] | siROL_Nts_Tcp_Data   | AXI4S | TCP data stream to be transmitted by the shell.
-|  (.i.e Role->Shell)   | in  | [15:0] | siROL_Nts_Tcp_Meta   | AXI4S | Metadata of the TCP data stream to be sent by the shell. This information specifies the session-id of the connection that the data stream belongs to. The shell is notified of new data to send as soon as this field is updated.
-|                       | out | [23:0] | soROL_Nts_Tcp_DSts   | AXI4S | TCP data send status returned by the shell at the end of the data transmission. The format is as follows:
-|                       |     |        |                      |       | - [ 15:00] The # of bytes transmitted or an error code if status==0.
-|                       |     |        |                      |       | - [ 23:16] Status of the transfer (0=ko/1=ok)
-| Rx Data Interface     | out | [63:0] | soROL_Nts_Tcp_Data   | AXI4S | TCP segment received by the shell.
-|  (.i.e Shell->Role)   | out | [15:0] | soROL_Nts_Tcp_Meta   | AXI4S | Metadata of the received segment. This information specifies the session-id of the connection that the segment belongs to.
-|                       | out |[103:0] | soROL_Nts_Tcp_Notif  | AXI4S | TCP Rx data notification. Signals the reception of new segment to the application. The format is as follows:
+|  (.i.e Role->Shell)   | in  | [31:0] | siROL_Nts_Tcp_SndReq | AXI4S | TCP send request. This request specifies the metadata of the TCP data stream to be sent by the shell. The format is as follows:
 |                       |     |        |                      |       | - [ 15:00] The session id of the connection.
-|                       |     |        |                      |       | - [ 31:16] The length of the received segment.
+|                       |     |        |                      |       | - [ 31:16] The length of the data to be sent.
+|                       | out | [55:0] | soROL_Nts_Tcp_SndRep | AXI4S | TCP send reply. This reply grants or denies the transmission of data on a TCP connection. The format is as follows:
+|                       |     |        |                      |       | - [ 15:00] The session id of the connection.
+|                       |     |        |                      |       | - [ 31:16] The number of bytes that were requested to be sent.
+|                       |     |        |                      |       | - [ 47:32] The remaining space in the TCP Tx buffer.
+|                       |     |        |                      |       | - [ 55:48] The status of the send request.
+| Rx Data Interface     | out | [63:0] | soROL_Nts_Tcp_Data   | AXI4S | TCP data stream received by the shell.
+|  (.i.e Shell->Role)   | out | [15:0] | soROL_Nts_Tcp_Meta   | AXI4S | Metadata of the received data. This information specifies the session-id of the connection that the data belongs to.
+|                       | out |[103:0] | soROL_Nts_Tcp_Notif  | AXI4S | TCP Rx data notification. Signals the reception of new data to the application. The format is as follows:
+|                       |     |        |                      |       | - [ 15:00] The session id of the connection.
+|                       |     |        |                      |       | - [ 31:16] The length of the received data.
 |                       |     |        |                      |       | - [ 63:32] The IPv4 source address.
 |                       |     |        |                      |       | - [ 79:64] The TCP source port.   
 |                       |     |        |                      |       | - [ 95:80] The TCP destination port.
 |                       |     |        |                      |       | - [103:96] A session closed indication.
-|                       | in  | [31:0] | siROL_Nts_Tcp_DReq   | AXI4S | TCP data request. Used by the application to read a segment from the Rx buffer. The format is as follows:
+|                       | in  | [31:0] | siROL_Nts_Tcp_DReq   | AXI4S | TCP data request. Used by the application to read TCP data from the Rx buffer. The format is as follows:
 |                       |     |        |                      |       | - [ 15:00] The session id of the connection to read from. 
 |                       |     |        |                      |       | - [ 31:16] The number of bytes to read from the TCP Rx buffer.   
 | Tx Ctrl Interface     | in  | [47:0] | siROL_Nts_Tcp_OpnReq | AXI4S | TCP open port request. Used by the application to open an active connection. This information specifies a socket address as follows:
@@ -100,6 +110,27 @@ a name="role-tcp-interface"></a> <p align="center"><b>Table 2 - ROLE / TCP Inter
 |  (.i.e Shell-->Role)  | out | [ 7:0] | soROL_Nts_Tcp_LsnRep | AXI4S | TCP listen port reply (0=closed/1=opened).  
 
 
+a name="mp0-app-interface"></a> <p align="center"><b>Table 3 - SHELL / Role / MP0 Interface </b></p>
+
+| Interface             | Dir | Size   | Signal Name          | Type  | Description
+|:----------------------|:---:| ------:|----------------------|:-----:|:------------
+| Read Command          | in  | [79:0] | siROL_Mem_Mp0_RdCmd  | AXI4S | Request to read from DDR4 memory.
+| Read Status           | out | [ 7:0] | soROL_Mem_Mp0_RdSts  | AXI4S | Status of the memory read operation.
+| Read Data Channel     | out |[511:0] | soROL_Mem_Mp0_Read   | AXI4S | Data stream read from the DDR4 memory.
+| Write Command         | in  | [79:0] | siROL_Mem_Mp0_WrCmd  | AXI4S | Request to write to DDR4 memory.
+| Write Status          | out | [ 7:0] | soROL_Mem_Mp0_WrSts  | AXI4S | Status of the memory write operation.
+| Write Data Channel    | in  |[511:0] | siROL_Mem_Mp0_Write  | AXI4S | Data stream to write into the DDR4 memory.
+
+
+a name="mp1-app-interface"></a> <p align="center"><b>Table 3 - SHELL / Role / MP1 Interface </b></p>
+
+| Interface             | Dir | Size   | Signal Name          | Type  | Description
+|:----------------------|:---:| ------:|----------------------|:-----:|:------------
+| Write Address         | in  | [32:0] | miROL_Mem_Mp1_Addr   | AXI4F | DDR4 memory write address.
+| Write Data Bus        | in  |[511:0] | miROL_Mem_Mp1_Data   | AXI4F | DDR4 memory write data.
+| Write Response        | out | [ 1:0] | moROL_Mem_Mp1_Resp   | AXI4F | DDR4 memory write response.
+| Read  Address         | in  | [32:0] | miROL_Mem_Mp1_Addr   | AXI4F | DDR4 memory read address.
+| Read  Data Bus        | out |[511:0] | moROL_Mem_Mp1_Data   | AXI4F | DDR4 memory write data.
 
 ---
 **Trivia**: The [moon Kale](https://en.wikipedia.org/wiki/Kale_(moon))
