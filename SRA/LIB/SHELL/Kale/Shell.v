@@ -280,8 +280,8 @@ module Shell_Kale # (
   input           siROL_Mem_Mp0_WrCmd_tvalid,
   output          siROL_Mem_Mp0_WrCmd_tready,
   //---- Axi4-Stream Write Status -----
-  output          soROL_Mem_Mp0_WrSts_tvalid,
   output [  7:0]  soROL_Mem_Mp0_WrSts_tdata,
+  output          soROL_Mem_Mp0_WrSts_tvalid,
   input           soROL_Mem_Mp0_WrSts_tready,
   //---- Axi4-Stream Data Input Channel
   input  [511:0]  siROL_Mem_Mp0_Write_tdata,

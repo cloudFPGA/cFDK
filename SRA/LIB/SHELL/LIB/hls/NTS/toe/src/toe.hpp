@@ -71,11 +71,11 @@ using namespace hls;
 
 //-- The Maximum Segment Size (MSS) that can be received and processed by TOE
 //--  FYI: MSS is rounded modulo 8 bytes for better efficiency.
-static const Ly4Len MY_MSS    = (MTU - IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
+static const TcpSegLen MY_MSS = (MTU - IP4_HEADER_LEN - TCP_HEADER_LEN) & ~0x7; // 1456
 
 //-- The Maximum Segment Size (MSS) that can be transmitted by TOE
 //--  FYI: This MSS is advertised by the remote host during the 3-may handshake.
-static const Ly4Len THEIR_MSS = ZYC2_MSS; // 1352
+static const TcpSegLen THEIR_MSS = ZYC2_MSS; // 1352
 
 
 /*******************************************************************************

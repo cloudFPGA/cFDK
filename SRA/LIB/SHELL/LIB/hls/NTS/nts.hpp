@@ -67,15 +67,15 @@ typedef AxisApp     TcpAppData;
 
 //---------------------------------------------------------
 //-- TCP APP - METADATA
-//--  The session identifier and data length to send.
+//--  The session identifier to send.
 //---------------------------------------------------------
 typedef TcpSessId   TcpAppMeta;
 
 //---------------------------------------------------------
 //-- TCP APP - DATA LENGTH
-//--  The length of the data segment.
+//--  The length of the data to send.
 //---------------------------------------------------------
-//OBSOLETE_20201105 typedef TcpDatLen   TcpAppDLen;
+typedef TcpDatLen   TcpAppDLen;
 
 //---------------------------------------------------------
 //-- TCP APP - NOTIFICATION
