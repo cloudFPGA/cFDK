@@ -267,8 +267,10 @@ void nrc_main(
     stream<TcpWord>             &siFMC_Tcp_data,
     //stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<AppMeta>           &siFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     stream<TcpWord>             &soFMC_Tcp_data,
     //stream<Axis<16> >           &soFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
     stream<AppMeta>           &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces

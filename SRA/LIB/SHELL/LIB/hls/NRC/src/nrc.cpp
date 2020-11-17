@@ -71,6 +71,7 @@ NrcPort last_tx_port = 0;
 ap_uint<16> port_corrections_TX_cnt = 0;
 ap_uint<32> unauthorized_access_cnt = 0;
 ap_uint<32> authorized_access_cnt = 0;
+ap_uint<32> fmc_tcp_bytes_cnt = 0;
 
 ap_uint<32> packet_count_RX = 0;
 ap_uint<32> packet_count_TX = 0;
@@ -86,6 +87,7 @@ ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
+ap_uint<1>  privilegedRows[MAX_NRC_SESSIONS];
 
 NodeId cached_udp_rx_id = 0;
 Ip4Addr cached_udp_rx_ipaddr = 0;
@@ -95,6 +97,7 @@ ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 
+bool pr_was_done_flag = false;
 
 //FROM TCP
 
@@ -297,6 +300,7 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
       sessionIdList[i] = sessionID;
       tripleList[i] = new_entry;
       usedRows[i] = 1;
+      privilegedRows[i] = 0;
       printf("stored tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
       return;
     }
@@ -331,14 +335,35 @@ void deleteSessionFromTables(SessionId sessionID)
   //nothing to delete, nothing to do...
 }
 
+void markSessionAsPrivileged(SessionId sessionID)
+{
+//#pragma HLS inline off
+  printf("mark session as privileged: %d\n", (int) sessionID);
+  for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
+  {
+//#pragma HLS unroll factor=8
+    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+    {
+      privilegedRows[i] = 1;
+      rowsToDelete[i] = 0;
+      return;
+    }
+  }
+  //nothing found, nothing to do...
+}
 
-void markCurrentRowsAsToDelete()
+void markCurrentRowsAsToDelete_unprivileged()
 {
 //#pragma HLS inline
   for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
-    rowsToDelete[i] = usedRows[i];
+    if(privilegedRows[i] == 1)
+    {
+      continue;
+    } else {
+      rowsToDelete[i] = usedRows[i];
+    }
   }
 }
 
@@ -356,6 +381,7 @@ SessionId getAndDeleteNextMarkedRow()
       //tripleList[i] = 0x0;
       usedRows[i] = 0;
       rowsToDelete[i] = 0;
+      //privilegedRows[i] = 0; //not necessary
       printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
       return ret;
     }
@@ -403,8 +429,10 @@ void nrc_main(
     stream<NetworkWord>             &siFMC_Tcp_data,
     //stream<Axis<16> >           &siFMC_Tcp_SessId,
     stream<AppMeta>           &siFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     stream<NetworkWord>             &soFMC_Tcp_data,
     //stream<Axis<16> >           &soFMC_Tcp_SessId,
+    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
     stream<AppMeta>           &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
@@ -487,6 +515,8 @@ void nrc_main(
 #pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_data
 #pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_SessId
 #pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_SessId
+#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_data_FIFO_prog_full name=piFMC_Tcp_data_FIFO_prog_full
+#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_sessid_FIFO_prog_full name=piFMC_Tcp_sessid_FIFO_prog_full
 
 
 #pragma HLS INTERFACE axis register both port=siTOE_Notif
@@ -546,6 +576,7 @@ void nrc_main(
 #pragma HLS reset variable=udpTX_current_packet_length
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
+#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -581,6 +612,7 @@ void nrc_main(
 #pragma HLS reset variable=cached_tcp_rx_tripple
 #pragma HLS reset variable=cached_tcp_tx_session_id
 #pragma HLS reset variable=cached_tcp_tx_tripple
+#pragma HLS reset variable=pr_was_done_flag
 
 
   //===========================================================
@@ -656,9 +688,14 @@ void nrc_main(
       if(tcp_rx_ports_processed > 0)
       {
         //mark all TCP ports as to be deleted
-        markCurrentRowsAsToDelete();
-        //start closing FSM TCP
-        clsFsmState_Tcp = CLS_NEXT;
+        markCurrentRowsAsToDelete_unprivileged();
+        if( *role_decoupled == 0 )
+        {//start closing FSM TCP
+          clsFsmState_Tcp = CLS_NEXT;
+        } else {
+          //FMC is using TCP!
+          pr_was_done_flag = true;
+        }
       }
     }
     //in all cases
@@ -671,10 +708,27 @@ void nrc_main(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
+    if( *role_decoupled == 0)
+    { //invalidate cache
+      cached_udp_rx_ipaddr = 0;
+      cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+      cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    } else {
+      //FMC is using TCP!
+      pr_was_done_flag = true;
+    }
+  }
+  if(pr_was_done_flag && *role_decoupled == 0)
+  {//so, after the PR was done
     //invalidate cache
     cached_udp_rx_ipaddr = 0;
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    //start closing FSM TCP
+    //ports have been marked earlier
+    clsFsmState_Tcp = CLS_NEXT;
+    //FSM will wait until RDP and WRP are done
+    pr_was_done_flag = false;
   }
   //===========================================================
   // MRT init
@@ -691,6 +745,7 @@ void nrc_main(
       tripleList[i] = 0;
       usedRows[i]  =  0;
       rowsToDelete[i] = 0;
+      privilegedRows[i] = 0;
     }
     udp_rx_ports_to_close = 0x0;
     
@@ -1250,8 +1305,12 @@ void nrc_main(
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-      { //so we are not in a critical UDP path
+        //so we are not in a critical UDP path
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
+          //and only if the FMC FIFO would have enough space
+          (*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
+        )
+      {
         switch(rrhFsmState) {
           case RRH_WAIT_NOTIF:
             if (!siTOE_Notif.empty()) {
@@ -1318,10 +1377,12 @@ void nrc_main(
               siTOE_SessId.read(sessId);
 
               ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+              bool found_in_cache = false;
               if(sessId == cached_tcp_rx_session_id)
               {
                 printf("used TCP RX tripple cache.\n");
                 tripple_in = cached_tcp_rx_tripple;
+                found_in_cache = true;
               } else {
                 tripple_in = getTrippleFromSessionId(sessId);
                 cached_tcp_rx_session_id = sessId;
@@ -1343,6 +1404,10 @@ void nrc_main(
                   session_toFMC = sessId;
                   rdpFsmState = RDP_STREAM_FMC;
                   authorized_access_cnt++;
+                  if(!found_in_cache)
+                  {
+                    markSessionAsPrivileged(sessId);
+                  }
                   break;
                 } else {
                   unauthorized_access_cnt++;
@@ -1411,6 +1476,33 @@ void nrc_main(
                 expect_FMC_response = true;
                 rdpFsmState  = RDP_WAIT_META;
               }
+              switch (currWord.tkeep) {
+                case 0b11111111:
+                  fmc_tcp_bytes_cnt += 8;
+                  break;
+                case 0b01111111:
+                  fmc_tcp_bytes_cnt += 7;
+                  break;
+                case 0b00111111:
+                  fmc_tcp_bytes_cnt += 6;
+                  break;
+                case 0b00011111:
+                  fmc_tcp_bytes_cnt += 5;
+                  break;
+                case 0b00001111:
+                  fmc_tcp_bytes_cnt += 4;
+                  break;
+                case 0b00000111:
+                  fmc_tcp_bytes_cnt += 3;
+                  break;
+                case 0b00000011:
+                  fmc_tcp_bytes_cnt += 2;
+                  break;
+                default:
+                case 0b00000001:
+                  fmc_tcp_bytes_cnt += 1;
+                  break;
+              }
             }
             // NO break;
           case RDP_WRITE_META_FMC:
@@ -1459,8 +1551,10 @@ void nrc_main(
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-      { //so we are not in a critical UDP path
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC  //so we are not in a critical UDP path
+          && (rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE) //deactivate if we are receiving smth
+        )
+      {
         switch (wrpFsmState) {
           case WRP_WAIT_META:
             //FMC must come first
@@ -1756,7 +1850,10 @@ void nrc_main(
     //and if we have valid tables
     if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
     {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
+      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC  //so we are not in a critical UDP path
+          && (rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE) //deactivate if we are receiving smth
+          && (wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE) //deactivate if we are sending
+        )
       { //so we are not in a critical UDP path
         switch (clsFsmState_Tcp) {
           default:
@@ -1800,7 +1897,9 @@ void nrc_main(
       //tcp
       status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
       status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-      status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+      //status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+      
+      status[NRC_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
 
       //status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
       status[NRC_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
