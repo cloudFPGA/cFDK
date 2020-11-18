@@ -280,17 +280,17 @@ int main(int argc, char* argv[]) {
     //------------------------------------------------------
     int         nrErr  = 0;     // Tb error counter.
 
-    string      ofsARP_Data_FileName = "../../../../test/soARP_Data.dat";
-    string      ofsTOE_Data_FileName = "../../../../test/soTOE_Data.dat";
-    string      ofsUOE_Data_FileName = "../../../../test/soUOE_Data.dat";
-    string      ofsICMP_Data_FileName= "../../../../test/soICMP_Data.dat";
+    string      ofsARP_Data_FileName = "../../../../test/simOutFiles/soARP_Data.dat";
+    string      ofsTOE_Data_FileName = "../../../../test/simOutFiles/soTOE_Data.dat";
+    string      ofsUOE_Data_FileName = "../../../../test/simOutFiles/soUOE_Data.dat";
+    string      ofsICMP_Data_FileName= "../../../../test/simOutFiles/soICMP_Data.dat";
     string      dataFileArray[4] = { ofsARP_Data_FileName, ofsTOE_Data_FileName, \
                                      ofsUOE_Data_FileName, ofsICMP_Data_FileName };
 
-    string      ofsARP_Gold_FileName = "../../../../test/soARP_Gold.dat";
-    string      ofsTOE_Gold_FileName = "../../../../test/soTOE_Gold.dat";
-    string      ofsUOE_Gold_FileName = "../../../../test/soUOE_Gold.dat";
-    string      ofsICMP_Gold_FileName= "../../../../test/soICMP_Gold.dat";
+    string      ofsARP_Gold_FileName = "../../../../test/simOutFiles/soARP_Gold.dat";
+    string      ofsTOE_Gold_FileName = "../../../../test/simOutFiles/soTOE_Gold.dat";
+    string      ofsUOE_Gold_FileName = "../../../../test/simOutFiles/soUOE_Gold.dat";
+    string      ofsICMP_Gold_FileName= "../../../../test/simOutFiles/soICMP_Gold.dat";
     string      goldFileArray[4] = { ofsARP_Gold_FileName, ofsTOE_Gold_FileName, \
                                      ofsUOE_Gold_FileName, ofsICMP_Gold_FileName };
 
