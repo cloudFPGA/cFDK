@@ -21,41 +21,145 @@ Please consider reading the following two documents before diving or contributin
 <br>
 
 ## List of Files
-  * [**toe.cpp**](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
-  * [**toe.hpp**](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp)
+The two entry files to consider for the TCP Offload Engine are:
+  * [**toe.cpp**](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
+  * [**toe.hpp**](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 
 ## List of Interfaces
 
-| Acronym                                           | Description                                           | Filename
-|:--------------------------------------------------|:------------------------------------------------------|:--------------
-| **CAM**                                           | Content Addessable Memory interface                   | [ToeCam](../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **IPRX**                                          | IP RX interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **L3MUX**                                         | Layer-3 MUltipleXer interface                         | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
-| **MEM**                                           | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[TRIF](#markdown-header-tcp-role-interface)**   | Tcp Role InterFace (alias APP)                        | tcp_role_interface
+| Acronym                                           | Description                                 | Filename
+|:--------------------------------------------------|:--------------------------------------------|:--------------
+| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](../cFDK/SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
+| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
+| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
+| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](../cFDK/SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](../cFDK/SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of HLS Components
 
 | Acronym                   | Description                | Filename
 |:--------------------------|:---------------------------|:--------------
-| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/toe/src/ack_delay/ack_delay.cpp)
-| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/event_engine/event_engine.cpp)
-| **[PRt](./PRt.md)**       | PoRt table                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-| **[RAi](./RAi.md)**       | Rx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **[RSt](./RSt.md)**       | Rx Sar table               | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
-| **[RXe](./RXe.md)**       | RX engine                  | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **[SLc](./SLc.md)**       | Session Lookup controller  | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **[STt](./STt.md)**       | STate table                | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
-| **[TAi](./TAi.md)**       | Tx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
-| **[TIm](./TIm.md)**       | TImers                     | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
-| **[TSt](./TSt.md)**       | Tx Sar table               | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_sar_table/tx_sar_table.cpp)
-| **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
+| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](       ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](    ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **[PRt](./PRt.md)**       | PoRt table                 | [port_table](      ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **[RAi](./RAi.md)**       | Rx Application interface   | [tx_app_interface](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **[RSt](./RSt.md)**       | Rx Sar table               | [rx_sar_table](    ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **[RXe](./RXe.md)**       | RX engine                  | [rx_engine](       ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **[SLc](./SLc.md)**       | Session Lookup controller  | [session_lookup_controller](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **[STt](./STt.md)**       | STate table                | [state_table](     ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
+| **[TAi](./TAi.md)**       | Tx Application interface   | [tx_app_interface](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
+| **[TIm](./TIm.md)**       | TImers                     | [timers](          ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **[TSt](./TSt.md)**       | Tx Sar table               | [tx_sar_table](    ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
+| **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](       ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
-## Description of the interfaces [TODO]
+## Description of the Interfaces
+The entity declaration of the TCP Offload Engine (TOE) is specified as follows:
+```C
+void toe(
+    //------------------------------------------------------
+    //-- MMIO Interfaces
+    //------------------------------------------------------
+    Ip4Addr                                  piMMIO_IpAddr,
+    //------------------------------------------------------
+    //-- NTS Interfaces
+    //------------------------------------------------------
+    StsBit                                  &poNTS_Ready,
+    //------------------------------------------------------
+    //-- IPRX / IP Rx / Data Interface
+    //------------------------------------------------------
+    stream<AxisIp4>                         &siIPRX_Data,
+    //------------------------------------------------------
+    //-- IPTX / IP Tx / Data Interface
+    //------------------------------------------------------
+    stream<AxisIp4>                         &soIPTX_Data,
+    //------------------------------------------------------
+    //-- TAIF / Receive Data Interfaces
+    //------------------------------------------------------
+    stream<TcpAppNotif>                     &soTAIF_Notif,
+    stream<TcpAppRdReq>                     &siTAIF_DReq,
+    stream<TcpAppData>                      &soTAIF_Data,
+    stream<TcpAppMeta>                      &soTAIF_Meta,
+    //------------------------------------------------------
+    //-- TAIF / Listen Interfaces
+    //------------------------------------------------------
+    stream<TcpAppLsnReq>                    &siTAIF_LsnReq,
+    stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
+    //------------------------------------------------------
+    //-- TAIF / Send Data Interfaces
+    //------------------------------------------------------
+    stream<TcpAppData>                      &siTAIF_Data,
+    stream<TcpAppSndReq>                    &siTAIF_SndReq,
+    stream<TcpAppSndRep>                    &soTAIF_SndRep,
+    //------------------------------------------------------
+    //-- TAIF / Open Connection Interfaces
+    //------------------------------------------------------
+    stream<TcpAppOpnReq>                    &siTAIF_OpnReq,
+    stream<TcpAppOpnRep>                    &soTAIF_OpnRep,
+    //------------------------------------------------------
+    //-- TAIF / Close Interfaces
+    //------------------------------------------------------
+    stream<TcpAppClsReq>                    &siTAIF_ClsReq,
+    //-- Not Used                           &soTAIF_ClsSts,
+    //------------------------------------------------------
+    //-- MEM / Rx PATH / S2MM Interface
+    //------------------------------------------------------
+    //-- Not Used                           &siMEM_RxP_RdSts,
+    stream<DmCmd>                           &soMEM_RxP_RdCmd,
+    stream<AxisApp>                         &siMEM_RxP_Data,
+    stream<DmSts>                           &siMEM_RxP_WrSts,
+    stream<DmCmd>                           &soMEM_RxP_WrCmd,
+    stream<AxisApp>                         &soMEM_RxP_Data,
+    //------------------------------------------------------
+    //-- MEM / Tx PATH / S2MM Interface
+    //------------------------------------------------------
+    //-- Not Used                           &siMEM_TxP_RdSts,
+    stream<DmCmd>                           &soMEM_TxP_RdCmd,
+    stream<AxisApp>                         &siMEM_TxP_Data,
+    stream<DmSts>                           &siMEM_TxP_WrSts,
+    stream<DmCmd>                           &soMEM_TxP_WrCmd,
+    stream<AxisApp>                         &soMEM_TxP_Data,
+    //------------------------------------------------------
+    //-- CAM / Session Lookup & Update Interfaces
+    //------------------------------------------------------
+    stream<CamSessionLookupRequest>         &soCAM_SssLkpReq,
+    stream<CamSessionLookupReply>           &siCAM_SssLkpRpl,
+    stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
+    stream<CamSessionUpdateReply>           &siCAM_SssUpdRpl
+);
+``` 
 
-### TCP Role Interface
+
+### IP Receive Layer Interface
+```C
+    //------------------------------------------------------
+    //-- IPRX / IP Rx / Data Interface
+    //------------------------------------------------------
+    stream<AxisIp4>                         &siIPRX_Data,
+```
+The IP receive layer interface receives IPv4 packets from the IPRX core of the NTS. 
+It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>.
+
+### IP Transmit Interface
+```C
+    //------------------------------------------------------
+    //-- IPTX / IP Tx / Data Interface
+    //------------------------------------------------------
+    stream<AxisIp4>                         &soIPTX_Data,
+```
+The IP transmit layer interface sends IPv4 packets to the IPTX core of the NTS. 
+It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>
+
+### TCP Application Layer Interface
 The _TCP Role Interface_ (TRIF) connects the TOE to the user's role and its application (APP).
 The interface consists of the following signals (TODO).  
- 
+
+
+
+### Memory System Interface  [TODO]
+(data-mover to DDR4) 
+
+### Content Addressable Memory Interface  [TODO]
+
 
