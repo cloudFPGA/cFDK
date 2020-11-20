@@ -22,27 +22,26 @@ Please consider reading the following two documents before diving or contributin
 
 ## List of Files
 The two entry files to consider for the TCP Offload Engine are:
-  * [**toe.cpp**](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
-  * [**toe.hpp**](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
-
+  * [**toe.cpp**](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
+  * [**toe.hpp**](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of Interfaces
 
 | Acronym                                           | Description                                 | Filename
 |:--------------------------------------------------|:--------------------------------------------|:--------------
-| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](../../cFDK/SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
-| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
-| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](../../cFDK/SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](../../cFDK/SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
+| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
+| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
+| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of HLS Components
 
 | Acronym                   | Description                | Filename
 |:--------------------------|:---------------------------|:--------------
-| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](       ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
-| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](    ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](       https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](    ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
 | **[PRt](./PRt.md)**       | PoRt table                 | [port_table](      ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
 | **[RAi](./RAi.md)**       | Rx Application interface   | [tx_app_interface](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
 | **[RSt](./RSt.md)**       | Rx Sar table               | [rx_sar_table](    ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
