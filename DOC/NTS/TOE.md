@@ -22,36 +22,36 @@ Please consider reading the following two documents before diving or contributin
 
 ## List of Files
 The two entry files to consider for the TCP Offload Engine are:
-  * [**toe.cpp**](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
-  * [**toe.hpp**](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+  * [**toe.cpp**](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
+  * [**toe.hpp**](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of Interfaces
 
 | Acronym                                           | Description                                 | Filename
 |:--------------------------------------------------|:--------------------------------------------|:--------------
-| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
-| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
-| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
+| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
+| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
+| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of HLS Components
 
 | Acronym                   | Description                | Filename
 |:--------------------------|:---------------------------|:--------------
-| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](       https://github.ibm.com/cloudFPGA/cFDK/blob/master/SRA../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
-| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](    ../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
-| **[PRt](./PRt.md)**       | PoRt table                 | [port_table](      ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
-| **[RAi](./RAi.md)**       | Rx Application interface   | [tx_app_interface](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **[RSt](./RSt.md)**       | Rx Sar table               | [rx_sar_table](    ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
-| **[RXe](./RXe.md)**       | RX engine                  | [rx_engine](       ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
-| **[SLc](./SLc.md)**       | Session Lookup controller  | [session_lookup_controller](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **[STt](./STt.md)**       | STate table                | [state_table](     ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
-| **[TAi](./TAi.md)**       | Tx Application interface   | [tx_app_interface](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
-| **[TIm](./TIm.md)**       | TImers                     | [timers](          ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
-| **[TSt](./TSt.md)**       | Tx Sar table               | [tx_sar_table](    ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
-| **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](       ../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **[AKd](./AKd.md)**       | AcK delayer                | [ack_delay](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **[EVe](./EVe.md)**       | EVent engine               | [event_engine](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **[PRt](./PRt.md)**       | PoRt table                 | [port_table](      ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **[RAi](./RAi.md)**       | Rx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **[RSt](./RSt.md)**       | Rx Sar table               | [rx_sar_table](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **[RXe](./RXe.md)**       | RX engine                  | [rx_engine](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **[SLc](./SLc.md)**       | Session Lookup controller  | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **[STt](./STt.md)**       | STate table                | [state_table](     ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
+| **[TAi](./TAi.md)**       | Tx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
+| **[TIm](./TIm.md)**       | TImers                     | [timers](          ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **[TSt](./TSt.md)**       | Tx Sar table               | [tx_sar_table](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
+| **[TXe](./TXe.md)**       | TX engine                  | [tx_engine](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
 ## Description of the Interfaces
 The entity declaration of the TCP Offload Engine (TOE) is specified as follows:
@@ -138,7 +138,7 @@ void toe(
     stream<AxisIp4>                         &siIPRX_Data,
 ```
 The IP receive layer interface receives IPv4 packets from the IPRX core of the NTS. 
-It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>.
+It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>.
 
 ### IP Transmit Interface
 ```C
@@ -148,7 +148,7 @@ It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../../cFDK/SRA/L
     stream<AxisIp4>                         &soIPTX_Data,
 ```
 The IP transmit layer interface sends IPv4 packets to the IPTX core of the NTS. 
-It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../../cFDK/SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>
+It consists of an **AXI4-Stream** interface of type \<[AxisIp4](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp))\>
 
 ### TCP Application Layer Interface
 The _TCP Role Interface_ (TRIF) connects the TOE to the user's role and its application (APP).
