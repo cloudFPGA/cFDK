@@ -29,12 +29,12 @@ The two entry files to consider for the TCP Offload Engine are:
 
 | Acronym                                           | Description                                 | Filename
 |:--------------------------------------------------|:--------------------------------------------|:--------------
-| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.hpp)
-| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.hpp)
-| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](      ../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
+| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx_handler.hpp)
+| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx_handler.hpp)
+| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](   ../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](  ../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](         ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
 
 ## List of HLS Components
 
