@@ -17,7 +17,7 @@ A block diagram of the *TOE* is depicted in Figure 1. It features an *Rx Engine 
 ## HLS Coding Style and Naming Conventions
 Please consider reading the following two documents before diving or contributing to this part of the cloudFPGA project.
   1) [**HDL Naming Conventions**](../hdl-naming-conventions.md), 
-  2) [**HLS Naming Conventions**](./hls-naming-conventions.md)
+  2) [**HLS Naming Conventions**]( ./hls-naming-conventions.md)
 <br>
 
 ## List of Files
@@ -27,14 +27,14 @@ The two entry files to consider for the TCP Offload Engine are:
 
 ## List of Interfaces
 
-| Acronym                                           | Description                                 | Filename
+| Acronym                                           | Description                                 | Related File
 |:--------------------------------------------------|:--------------------------------------------|:--------------
 | **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](      ../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx_handler.hpp)
-| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx_handler.hpp)
+| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx](        ../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.hpp)
+| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx](        ../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.hpp)
 | **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](   ../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
 | **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](  ../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [toe](         ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [nts](         ../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)
 
 ## List of HLS Components
 
@@ -128,7 +128,6 @@ void toe(
     stream<CamSessionUpdateReply>           &siCAM_SssUpdRpl
 );
 ``` 
-
 
 ### IP Receive Layer Interface
 ```C
