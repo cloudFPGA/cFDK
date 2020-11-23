@@ -1283,7 +1283,7 @@ void pTcpChecksumAccumulator(
  * @param[in]  siIhc_IpHeader  IP4 header stream from IP Header Constructor (Ihc).
  * @param[in]  siSca_PseudoPkt TCP pseudo packet stream from Sub Checksum Accumulator (Sca).
  * @param[in]  siTca_TcpCsum   TCP checksum from TCP Checksum Accumulator (Tca).
- * @param[out] soL3MUX_Data    IPv4 packet stream to layer-3 packet mux (L3MUX).
+ * @param[out] soIPTX_Data     Packet stream to IPv4 Tx Handler (IPTX).
  *
  * @details
  *  Assembles an IPv4 packet from the incoming IP header stream and the TCP
@@ -1295,7 +1295,7 @@ void pIpPktStitcher(
         stream<AxisIp4>         &siIhc_IpHeader,
         stream<AxisPsd4>        &siSca_PseudoPkt,
         stream<TcpChecksum>     &siTca_TcpCsum,
-        stream<AxisIp4>         &soL3MUX_Data)
+        stream<AxisIp4>         &soIPTX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
@@ -1316,47 +1316,47 @@ void pIpPktStitcher(
     switch (ips_chunkCount) {
     case CHUNK_0:
     case CHUNK_1:
-        if (!siIhc_IpHeader.empty() and !soL3MUX_Data.full()) {
+        if (!siIhc_IpHeader.empty() and !soIPTX_Data.full()) {
             siIhc_IpHeader.read(ip4HdrChunk);
             currChunk = ip4HdrChunk;
-            soL3MUX_Data.write(currChunk);
+            soIPTX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soIPTX_Data =", currChunk); }
         }
         break;
     case CHUNK_2:
         // Start concatenating IPv4 header and TCP segment
-        if (!siIhc_IpHeader.empty() && !siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
+        if (!siIhc_IpHeader.empty() && !siSca_PseudoPkt.empty() and !soIPTX_Data.full()) {
             siIhc_IpHeader.read(ip4HdrChunk);
             siSca_PseudoPkt.read(tcpPsdChunk);
             currChunk.setIp4DstAddr(ip4HdrChunk.getIp4DstAddr());
             currChunk.setTcpSrcPort(tcpPsdChunk.getTcpSrcPort());
             currChunk.setTcpDstPort(tcpPsdChunk.getTcpDstPort());
-            soL3MUX_Data.write(currChunk);
+            soIPTX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soIPTX_Data =", currChunk); }
         }
         break;
     case CHUNK_3:
-        if (!siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
+        if (!siSca_PseudoPkt.empty() and !soIPTX_Data.full()) {
             siSca_PseudoPkt.read(tcpPsdChunk);
             currChunk.setTcpSeqNum(tcpPsdChunk.getTcpSeqNum());
             currChunk.setTcpAckNum(tcpPsdChunk.getTcpAckNum());
-            soL3MUX_Data.write(currChunk);
+            soIPTX_Data.write(currChunk);
             ips_chunkCount++;
-            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soIPTX_Data =", currChunk); }
         }
         break;
     case CHUNK_4:
-        if (!siSca_PseudoPkt.empty() and !siTca_TcpCsum.empty() and !soL3MUX_Data.full()) {
+        if (!siSca_PseudoPkt.empty() and !siTca_TcpCsum.empty() and !soIPTX_Data.full()) {
             siSca_PseudoPkt.read(tcpPsdChunk);
             siTca_TcpCsum.read(tcpCsum);
             // Get CtrlBits & Window & TCP UrgPtr & Checksum
             currChunk = tcpPsdChunk;
             // Now overwrite TCP checksum
             currChunk.setTcpChecksum(tcpCsum);
-            soL3MUX_Data.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
+            soIPTX_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soIPTX_Data =", currChunk); }
             ips_chunkCount++;
             if (tcpPsdChunk.getTLast()) {
                 // This is the last chunk if/when there is no data payload
@@ -1365,11 +1365,11 @@ void pIpPktStitcher(
         }
         break;
     default:
-        if (!siSca_PseudoPkt.empty() and !soL3MUX_Data.full()) {
+        if (!siSca_PseudoPkt.empty() and !soIPTX_Data.full()) {
             siSca_PseudoPkt.read(tcpPsdChunk);  // TCP Data
             currChunk = tcpPsdChunk;
-            soL3MUX_Data.write(currChunk);
-            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soL3MUX_Data =", currChunk); }
+            soIPTX_Data.write(currChunk);
+            if (DEBUG_LEVEL & TRACE_IPS) { printAxisRaw(myName, "soIPTX_Data =", currChunk); }
             if (tcpPsdChunk.getTLast()) {
                 ips_chunkCount = 0;
             }
@@ -1468,19 +1468,19 @@ void pTxMemoryReader(
 /*******************************************************************************
  * @brief Transmit Engine (TXe)
  *
- * @param[in]  siAKd_Event,        Event from Ack Delayer (AKd).
- * @param[out] soEVe_RxEventSig,   Signals the reception of an event to [EventEngine].
- * @param[out] soRSt_RxSarReq,     Read request to RxSarTable (RSt).
- * @param[in]  siRSt_RxSarRep,     Read reply from [RSt].
- * @param[out] soTSt_TxSarQry,     TxSar query to TxSarTable (TSt).
- * @param[in]  siTSt_TxSarRep,     TxSar reply from [TSt].
- * @param[out] soMEM_Txp_RdCmd,    Memory read command to the DRAM Memory (MEM).
- * @param[in]  siMEM_TxP_Data,     Data payload from the DRAM Memory (MEM).
- * @param[out] soTIm_ReTxTimerEvent, Send retransmit timer event to [Timers].
- * @param[out] soTIm_SetProbeTimer,Set probe timer to Timers (TIm).
- * @param[out] soSLc_ReverseLkpReq,Reverse lookup request to Session Lookup Controller (SLc).
- * @param[in]  siSLc_ReverseLkpRep,Reverse lookup reply from SLc.
- * @param[out] soL3MUX_Data,       Outgoing data stream.
+ * @param[in]  siAKd_Event         Event from Ack Delayer (AKd).
+ * @param[out] soEVe_RxEventSig    Signals the reception of an event to [EventEngine].
+ * @param[out] soRSt_RxSarReq      Read request to RxSarTable (RSt).
+ * @param[in]  siRSt_RxSarRep      Read reply from [RSt].
+ * @param[out] soTSt_TxSarQry      TxSar query to TxSarTable (TSt).
+ * @param[in]  siTSt_TxSarRep      TxSar reply from [TSt].
+ * @param[out] soMEM_Txp_RdCmd     Memory read command to the DRAM Memory (MEM).
+ * @param[in]  siMEM_TxP_Data      Data payload from the DRAM Memory (MEM).
+ * @param[out] soTIm_ReTxTimerEvent  Send retransmit timer event to [Timers].
+ * @param[out] soTIm_SetProbeTimer Set probe timer to Timers (TIm).
+ * @param[out] soSLc_ReverseLkpReq Reverse lookup request to Session Lookup Controller (SLc).
+ * @param[in]  siSLc_ReverseLkpRep Reverse lookup reply from SLc.
+ * @param[out] soIPTX_Data         Outgoing data stream to IP Tx Handler (IPTX).
  *
  * @details
  *  The Tx Engine (TXe) is responsible for the generation and transmission of
@@ -1489,7 +1489,7 @@ void pTxMemoryReader(
  *   generates the necessary metadata to construct an IPv4 packet. If that
  *   packet contains any payload, the data are retrieved from the DDR4 memory
  *   and are put as a TCP segment into the IPv4 packet. The complete packet is
- *   then streamed out over the IPv4 Tx interface of the TOE (.i.e, soL3MUX).
+ *   then streamed out over the IPv4 Tx interface of the TOE (.i.e, soIPTX).
  *
  *******************************************************************************/
 void tx_engine(
@@ -1512,7 +1512,7 @@ void tx_engine(
         stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         //-- IP Tx Interface
-        stream<AxisIp4>                 &soL3MUX_Data)
+        stream<AxisIp4>                 &soIPTX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
@@ -1639,7 +1639,7 @@ void tx_engine(
             ssIhcToIps_IpHeader,
             ssScaToIps_PseudoPkt,
             ssTcaToIps_TcpCsum,
-            soL3MUX_Data);
+            soIPTX_Data);
 
     pPseudoHeaderConstructor(
             ssMdlToPhc_TxeMeta,

@@ -131,7 +131,7 @@ void pRxAppStream(
 
     switch (ras_fsmState) {
     case S0:
-        if (!siTAIF_DataReq.empty() && !soRSt_RxSarQry.full()) {
+        if (!siTAIF_DataReq.empty() and !soRSt_RxSarQry.full()) {
             TcpAppRdReq  appReadRequest = siTAIF_DataReq.read();
             if (appReadRequest.length != 0) {
                 // Make sure length is not 0, otherwise Data Mover will hang
@@ -142,7 +142,7 @@ void pRxAppStream(
         }
         break;
     case S1:
-        if (!siRSt_RxSarRep.empty() && !soTAIF_Meta.full() &&
+        if (!siRSt_RxSarRep.empty() and !soTAIF_Meta.full() &&
                 !soMrd_MemRdCmd.full() && !soRSt_RxSarQry.full()) {
             RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
             // Signal that the data request has been processed by sending

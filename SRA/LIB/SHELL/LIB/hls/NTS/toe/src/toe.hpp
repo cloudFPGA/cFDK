@@ -686,9 +686,9 @@ void toe(
         stream<AxisIp4>                         &siIPRX_Data,
 
         //------------------------------------------------------
-        //-- L3MUX / IP Tx / Data Interface
+        //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<AxisIp4>                         &soL3MUX_Data,
+        stream<AxisIp4>                         &soIPTX_Data,
 
         //------------------------------------------------------
         //-- TAIF / Receive Data Interfaces

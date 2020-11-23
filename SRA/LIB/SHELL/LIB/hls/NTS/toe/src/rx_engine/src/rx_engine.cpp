@@ -687,7 +687,7 @@ void pTcpInvalidDropper(
     const char *myName = concat3(THIS_NAME, "/", "Tid");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState { TSD_IDLE=0, TSD_FWD, TSD_DROP } \
+    static enum FsmStates { TSD_IDLE=0, TSD_FWD, TSD_DROP } \
                                tid_fsmState=TSD_IDLE;
     #pragma HLS RESET variable=tid_fsmState
 
@@ -755,7 +755,7 @@ void pTcpSegmentDropper(
     const char *myName = concat3(THIS_NAME, "/", "Tsd");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState { TSD_RD_DROP_CMD1=0, TSD_RD_DROP_CMD2, TSD_FWD, TSD_DROP } \
+    static enum FsmStates { TSD_RD_DROP_CMD1=0, TSD_RD_DROP_CMD2, TSD_FWD, TSD_DROP } \
                                tsd_fsmState=TSD_RD_DROP_CMD1;
     #pragma HLS RESET variable=tsd_fsmState
 
@@ -840,9 +840,9 @@ void pRxMemoryWriter(
     const char *myName = concat3(THIS_NAME, "/", "Mwr");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState { MWR_IDLE=0,
-                           MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
-                           MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF, MWR_RESIDUE } \
+    static enum FsmStates { MWR_IDLE=0,
+                            MWR_FWD_ALIGNED, MWR_SPLIT_1ST_CMD,
+                            MWR_FWD_1ST_BUF, MWR_FWD_2ND_BUF, MWR_RESIDUE } \
                                 mwr_fsmState=MWR_IDLE;
     #pragma HLS RESET  variable=mwr_fsmState
     static ap_uint<3>           mwr_residueLen=0;
@@ -1149,8 +1149,8 @@ void pMetaDataHandler(
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState { MDH_META=0, MDH_LOOKUP } mdh_fsmState;
-    #pragma HLS RESET                      variable=mdh_fsmState
+    static enum FsmStates { MDH_META=0, MDH_LOOKUP } mdh_fsmState;
+    #pragma HLS RESET                       variable=mdh_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeMeta              mdh_meta;

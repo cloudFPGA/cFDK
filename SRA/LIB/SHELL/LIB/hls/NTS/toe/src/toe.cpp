@@ -162,8 +162,8 @@ void pTbSimCount(
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
- * -- L3MUX / IP Tx / Data Interface
- * @param[out] soL3MUX_Data     IP4 data stream to [L3MUX].
+ * -- IPTX / IP Tx / Data Interface
+ * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
  * -- TAIF / Rx Data Interfaces
  * @param[out] soTAIF_Notif     APP data notification to [TAIF].
  * @param[in]  siTAIF_DReq      APP data request from [TAIF].
@@ -223,9 +223,9 @@ void toe(
         stream<AxisIp4>                     &siIPRX_Data,
 
         //------------------------------------------------------
-        //-- L3MUX / IP Tx / Data Interface
+        //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<AxisIp4>                     &soL3MUX_Data,
+        stream<AxisIp4>                     &soIPTX_Data,
 
         //------------------------------------------------------
         //-- TAIF / Rx Data Interfaces
@@ -310,8 +310,8 @@ void toe(
     #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
-    //-- L3MUX / IP Tx Data Interface -----------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=soL3MUX_Data    metadata="-bus_bundle soL3MUX_Data"
+    //-- IPTX / IP Tx Data Interface -----------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=soIPTX_Data     metadata="-bus_bundle soIPTX_Data"
     //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
     #pragma HLS resource core=AXI4Stream variable=siTAIF_DReq     metadata="-bus_bundle siTAIF_DReq"
     #pragma HLS DATA_PACK                variable=siTAIF_DReq
@@ -377,8 +377,8 @@ void toe(
     #pragma HLS INTERFACE ap_ovld register   port=poNTS_Ready     name=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
-    //-- L3MUX / IP Tx Data Interface -----------------------------------------
-    #pragma HLS INTERFACE axis off           port=soL3MUX_Data    name=soL3MUX_Data
+    //-- IPTX / IP Tx Data Interface -----------------------------------------
+    #pragma HLS INTERFACE axis off           port=soIPTX_Data     name=soIPTX_Data
     //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_DReq     name=siTAIF_DReq
     #pragma HLS DATA_PACK                variable=siTAIF_DReq
@@ -791,7 +791,7 @@ void toe(
             ssTXeToTIm_SetProbeTimer,
             ssTXeToSLc_ReverseLkpReq,
             ssSLcToTXe_ReverseLkpRep,
-            soL3MUX_Data);
+            soIPTX_Data);
 
 
     /**********************************************************************

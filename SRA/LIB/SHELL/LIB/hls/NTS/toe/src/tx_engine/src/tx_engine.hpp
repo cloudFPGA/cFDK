@@ -128,7 +128,7 @@ void tx_engine(
         stream<SessionId>               &soSLc_ReverseLkpReq,
         stream<fourTuple>               &siSLc_ReverseLkpRep,
         //-- IP Tx Interface
-        stream<AxisIp4>                 &soL3MUX_Data
+        stream<AxisIp4>                 &soIPTX_Data
 );
 
 #endif
