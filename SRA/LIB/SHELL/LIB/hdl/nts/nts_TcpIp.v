@@ -640,13 +640,13 @@ module NetworkTransportStack_TcpIp (
     .siIPRX_Data_TVALID        (ssARS2_TOE_Data_tvalid),
     .siIPRX_Data_TREADY        (ssARS2_TOE_Data_tready),
     //------------------------------------------------------
-    //-- L3MUX / IP Tx Data Interface (via ARS3)
+    //-- IPTX / IP Tx Data Interface (via ARS3/L3MUX)
     //------------------------------------------------------
-    .soL3MUX_Data_TDATA        (ssTOE_ARS3_Data_tdata),
-    .soL3MUX_Data_TKEEP        (ssTOE_ARS3_Data_tkeep),
-    .soL3MUX_Data_TLAST        (ssTOE_ARS3_Data_tlast),
-    .soL3MUX_Data_TVALID       (ssTOE_ARS3_Data_tvalid),
-    .soL3MUX_Data_TREADY       (ssTOE_ARS3_Data_tready),
+    .soIPTX_Data_TDATA         (ssTOE_ARS3_Data_tdata),
+    .soIPTX_Data_TKEEP         (ssTOE_ARS3_Data_tkeep),
+    .soIPTX_Data_TLAST         (ssTOE_ARS3_Data_tlast),
+    .soIPTX_Data_TVALID        (ssTOE_ARS3_Data_tvalid),
+    .soIPTX_Data_TREADY        (ssTOE_ARS3_Data_tready),
     //------------------------------------------------------
     //-- TAIF / APP Rx Data Interfaces
     //------------------------------------------------------
