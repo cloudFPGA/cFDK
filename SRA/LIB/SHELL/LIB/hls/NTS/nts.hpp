@@ -191,7 +191,7 @@ typedef TcpPort     TcpAppLsnReq;
 //-- TCP APP - LISTEN REPLY
 //--  The port status returned by NTS upon listen request.
 //---------------------------------------------------------
-typedef StsBool     TcpAppLsnRep;
+typedef RepBool     TcpAppLsnRep;
 
 
 /*******************************************************************************

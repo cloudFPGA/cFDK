@@ -107,6 +107,11 @@ template<typename T> void pStreamMux(
  *   RxApp pointer of the session is forwarded to the RxSarTable (RSt) and a
  *   meta-data (.i.e the current session-id) is sent back to [TAIF] to signal
  *   that the request has been processed.
+ * @warning
+ *  To avoid any blocking of [RAi], the outgoing metadata stream 'soTAIF_Meta'
+ *  is never checked for fullness. This implies that the application process
+ *  must provision enough buffering to store the metadata returned by this
+ *  process upon a granted request to be read from the TCP Rx buffer.
  *******************************************************************************/
 void pRxAppStream(
     stream<TcpAppRdReq>         &siTAIF_DataReq,
@@ -142,8 +147,9 @@ void pRxAppStream(
         }
         break;
     case S1:
-        if (!siRSt_RxSarRep.empty() and !soTAIF_Meta.full() &&
-                !soMrd_MemRdCmd.full() && !soRSt_RxSarQry.full()) {
+        //OBSOLETE_20201123 if (!siRSt_RxSarRep.empty() and !soTAIF_Meta.full() &&
+        if (!siRSt_RxSarRep.empty() and
+            !soMrd_MemRdCmd.full() and !soRSt_RxSarQry.full()) {
             RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
             // Signal that the data request has been processed by sending
             // the SessId back to [TAIF]
@@ -262,6 +268,11 @@ void pRxMemoryReader(
  *  If a received data segment was splitted and stored as two Rx memory buffers
  *  as indicated by the signal flag 'siMrd_SplitSeg', this process will stitch
  *  them back into a single stream of bytes before delivering them to the [APP].
+ * @warning
+ *  To avoid any blocking of the [RAi], the outgoing data stream 'soTAIF_Data'
+ *  is never checked for fullness. This implies that the application process
+ *  must provision enough buffering to store all the bytes that were requested
+ *  to be read from the TCP Rx buffer.
  *******************************************************************************/
 void pAppSegmentStitcher(
         stream<AxisApp>     &siMEM_RxP_Data,
@@ -291,7 +302,8 @@ void pAppSegmentStitcher(
     switch(ass_fsmState) {
     case ASS_IDLE:
         //-- Handle the very 1st data chunk from the 1st memory buffer
-        if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soTAIF_Data.full()) {
+        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soTAIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty()) {
             siMrd_SplitSegFlag.read(ass_mustJoin);
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
@@ -334,7 +346,8 @@ void pAppSegmentStitcher(
         break;
     case ASS_FWD_1ST_BUF:
         //-- Forward all the data chunks of the 1st memory buffer
-        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
             if (currAppChunk.getTLast()) {
@@ -377,7 +390,8 @@ void pAppSegmentStitcher(
         break;
     case ASS_FWD_2ND_BUF:
         //-- Forward all the data chunks of the 2nd memory buffer
-        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
             soTAIF_Data.write(currAppChunk);
@@ -394,7 +408,8 @@ void pAppSegmentStitcher(
         //-- The re-alignment occurs between the previously read chunk stored
         //-- in 'tss_prevChunk' and the latest chunk stored in 'currAppChunk',
         //-- and 'tss_memRdOffset' specifies the number of valid bytes in 'tss_prevChunk'.
-        if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
+        if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
             AxisApp joinedChunk(0,0,0);  // [FIXME-Create a join method in AxisRaw]
@@ -433,17 +448,17 @@ void pAppSegmentStitcher(
         break;
     case ASS_RESIDUE:
         //-- Output the very last unaligned chunk
-        if (!soTAIF_Data.full()) {
-            AxisApp lastChunk = AxisApp(0, 0, TLAST);
-            lastChunk.setLE_TData(ass_prevChunk.getLE_TData(((int)ass_memRdOffset*8)-1, 0),
-                                                            ((int)ass_memRdOffset*8)-1, 0);
-            lastChunk.setLE_TKeep(ass_prevChunk.getLE_TKeep((int)ass_memRdOffset-1, 0),
-                                                            (int)ass_memRdOffset-1, 0);
+        //OBSOLETE_20201123 if (!soTAIF_Data.full()) {
+        AxisApp lastChunk = AxisApp(0, 0, TLAST);
+        lastChunk.setLE_TData(ass_prevChunk.getLE_TData(((int)ass_memRdOffset*8)-1, 0),
+                                                        ((int)ass_memRdOffset*8)-1, 0);
+        lastChunk.setLE_TKeep(ass_prevChunk.getLE_TKeep((int)ass_memRdOffset-1, 0),
+                                                        (int)ass_memRdOffset-1, 0);
 
-            soTAIF_Data.write(lastChunk);
-            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
-            ass_fsmState = ASS_IDLE;
-        }
+        soTAIF_Data.write(lastChunk);
+        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
+        ass_fsmState = ASS_IDLE;
+        //OBSOLETE_20201123 }
         break;
     }
 }
@@ -461,13 +476,17 @@ void pAppSegmentStitcher(
  *  in passive listening mode and ready to accept an incoming connection on the
  *  socket {MY_IP, THIS_PORT}.
  *  [TODO-FIXME] The tear down of a connection is not implemented yet.
- *
+ * @warning
+ *  To avoid any blocking of [RAi], the outgoing stream 'soTAIF_LsnRep'
+ *  is never checked for fullness. This implies that the application process
+ *  must provision enough buffering to store the listen reply returned by this
+ *  process upon a granted request to open a new port in listen mode.
  *******************************************************************************/
 void pLsnAppInterface(
         stream<TcpAppLsnReq>    &siTAIF_LsnReq,
-        stream<TcpAppLsnRep>    &soTAIF_LsnAck,
+        stream<TcpAppLsnRep>    &soTAIF_LsnRep,
         stream<TcpPort>         &soPRt_LsnReq,
-        stream<AckBit>          &siPRt_LsnRep)
+        stream<RepBit>          &siPRt_LsnRep)
         //stream<TcpPort>       &siTAIF_StopLsnReq,
         //stream<TcpPort>       &soPRt_CloseReq,)
 {
@@ -483,7 +502,7 @@ void pLsnAppInterface(
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpPort     listenPort;
-    AckBit      listenAck;
+    RepBit      listenRep;
 
     if (!siTAIF_LsnReq.empty() and !lai_waitForAck) {
         siTAIF_LsnReq.read(listenPort);
@@ -491,8 +510,8 @@ void pLsnAppInterface(
         lai_waitForAck = true;
     }
     else if (!siPRt_LsnRep.empty() and lai_waitForAck) {
-        siPRt_LsnRep.read(listenAck);
-        soTAIF_LsnAck.write((StsBool)listenAck);
+        siPRt_LsnRep.read(listenRep);
+        soTAIF_LsnRep.write((RepBool)listenRep);
         lai_waitForAck = false;
     }
 
@@ -527,6 +546,12 @@ void pLsnAppInterface(
  *   application via the TcpAppInterface (TAIF).
  *  This process is also in charge of opening/closing TCP ports in listen mode
  *   for TOE to be ready for accepting passive incoming connections.
+ *
+ * @warning
+ *  To avoid any blocking of this process, all the outgoing 'soTAIF_***' streams
+ *  are never checked for fullness. This implies that the user application process
+ *  connected to these streams must provision enough buffering to store the
+ *  corresponding bytes exchanged on these request-reply interfaces.
  *******************************************************************************/
 void rx_app_interface(
         //-- TAIF / Handshake Interfaces
