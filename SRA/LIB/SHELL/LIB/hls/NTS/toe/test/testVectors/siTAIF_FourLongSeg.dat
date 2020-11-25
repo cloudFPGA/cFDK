@@ -1,6 +1,6 @@
 # ########################################################################################
-# @file  : appRx_FourSeg.dat
-# @brief : Four 'long' TCP segments for the Rx Application I/F of TOE. 
+# @file  : siTAIF_FourLongSeg.dat
+# @brief : Four 'long' TCP segments for the Tx Application I/F of TOE. 
 #          The segments are longer than MSS to force the creation of multiple IP packets.
 # 
 #  @info : Such a '.dat' file can also contain global testbench parameters,

@@ -151,6 +151,7 @@ if { $hlsCSim} {
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneLongSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_EightSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_SixtyFourSeg.dat"
