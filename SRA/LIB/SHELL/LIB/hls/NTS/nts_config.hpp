@@ -82,8 +82,8 @@ static const uint16_t ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
 //------------------------------------------------------------------
 //-- TCP OFFLOAD ENGINE - CONFIGURATION PARAMETERS
 //------------------------------------------------------------------
-static const uint16_t TOE_MAX_SESSIONS    = 32; // [FIXME]
-static const uint16_t TOE_TX_MAX_SESSIONS = 10; // Number of Tx Sessions to open for testing
+static const uint16_t TOE_MAX_SESSIONS    = 16; // The number of session you want to support (Max. is 10.000)
+//OBSOLETE static const uint16_t TOE_TX_MAX_SESSIONS = 10; // Number of Tx Sessions to open for testing
 
 static const uint16_t TOE_WINDOW_BITS     = 16;
 
