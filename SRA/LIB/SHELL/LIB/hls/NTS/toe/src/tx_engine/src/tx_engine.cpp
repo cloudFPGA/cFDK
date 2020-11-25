@@ -151,7 +151,8 @@ void pMetaDataLoader(
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
             if (DEBUG_LEVEL & TRACE_MDL) {
-                printInfo(myName, "Received event '%s' from [AKd].\n", getEventName(mdl_curEvent.type));
+                printInfo(myName, "Received event '%s' for session #%d from [AKd].\n",
+                          getEventName(mdl_curEvent.type), mdl_curEvent.sessionID.to_uint());
             }
             mdl_sarLoaded = false;
             assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", 2); // [FIXME-Use constant for the length]
@@ -246,7 +247,7 @@ void pMetaDataLoader(
 #else
         case TX_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) {
-                printInfo(myName, "Got TX event.\n");
+                printInfo(myName, "Entering the 'TX' processing.\n");
             }
             // Send everything between txSar.not_ackd and txSar.app
             if ((!siRSt_RxSarRep.empty() and !siTSt_TxSarRep.empty()) or mdl_sarLoaded) {
