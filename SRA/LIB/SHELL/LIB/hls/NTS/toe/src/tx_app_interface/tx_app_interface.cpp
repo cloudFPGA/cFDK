@@ -163,7 +163,7 @@ void pTxAppConnect(
 
     switch (tac_fsmState) {
     case TAC_IDLE:
-        if (!siTAIF_OpnReq.empty() && !soPRt_GetFreePortReq.full()) {
+        if (!siTAIF_OpnReq.empty() and !soPRt_GetFreePortReq.full()) {
             assessSize(myName, tac_localFifo, "tac_localFifo", tac_localFifo_depth);
             tac_localFifo.write(siTAIF_OpnReq.read());
             soPRt_GetFreePortReq.write(1);
@@ -198,7 +198,7 @@ void pTxAppConnect(
         }
         break;
     case TAC_GET_FREE_PORT:
-        if (!siPRt_GetFreePortRep.empty() && !soSLc_SessLookupReq.full()) {
+        if (!siPRt_GetFreePortRep.empty() and !soSLc_SessLookupReq.full()) {
             TcpPort  freePort   = siPRt_GetFreePortRep.read();
             SockAddr serverAddr = tac_localFifo.read();
             // Request the [SLc] to create a new entry in its session table
@@ -254,18 +254,19 @@ void pTxAppStatusHandler(
     const char *myName  = concat3(THIS_NAME, "/", "Tash");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { S0=0, S1, S2 } tash_fsmState=S0;
+    static enum FsmStates { TASH_IDLE=0, TASH_RD_MEM_STATUS_1, TASH_RD_MEM_STATUS_2 } \
+                                           tash_fsmState=TASH_IDLE;
     #pragma HLS reset             variable=tash_fsmState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static Event      ev;
 
     switch (tash_fsmState) {
-    case S0: //-- Read the Event
+    case TASH_IDLE: //-- Read the Event
         if (!siEmx_Event.empty()) {
             siEmx_Event.read(ev);
             if (ev.type == TX_EVENT) {
-                tash_fsmState = S1;
+                tash_fsmState = TASH_RD_MEM_STATUS_1;
             }
             else {
                 soEVe_Event.write(ev);
@@ -276,29 +277,31 @@ void pTxAppStatusHandler(
             }
         }
         break;
-    case S1: //-- Read the Memory Write Status #1 (this might also be the last)
+    case TASH_RD_MEM_STATUS_1: //-- Read the Memory Write Status #1 (this might also be the last)
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
             if (status.okay) {
-                ap_uint<17> txAppPtr = ev.address + ev.length;
-                if (txAppPtr <= 0x10000) {  // [FIXME - Why '<=' and not '<' ?]
+                //OBSOLETE_20201124 ap_uint<17> txAppPtr = ev.address + ev.length;
+                ap_uint<TOE_WINDOW_BITS+1> txAppPtr = ev.address + ev.length;
+                //OBSOLETE_20201124 if (txAppPtr <= 0x10000) {  // [FIXME - Why '<=' and not '<' ?
+                if (txAppPtr[TOE_WINDOW_BITS] == 1) {
+                    // The TCP buffer wrapped around
+                    tash_fsmState = TASH_RD_MEM_STATUS_2;
+                }
+                else {
                     // Update the 'txAppPtr' of the TX_SAR_TABLE
-                    soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, txAppPtr.range(15, 0)));
+                    soTSt_PushCmd.write(TAiTxSarPush(ev.sessionID, txAppPtr.range(TOE_WINDOW_BITS-1, 0)));
                     // Forward event to [EVe] which will signal [TXe]
                     soEVe_Event.write(ev);
                     if (DEBUG_LEVEL & TRACE_TASH) {
                         printInfo(myName, "Received TXMEM write status = %d.\n", status.okay.to_int());
                     }
-                    tash_fsmState = S0;
-                }
-                else {
-                    // The TCP buffer wrapped around
-                    tash_fsmState = S2;
+                    tash_fsmState = TASH_IDLE;
                 }
             }
         }
         break;
-    case S2: //-- Read the Memory Write Status #2
+    case TASH_RD_MEM_STATUS_2: //-- Read the Memory Write Status #2
         if (!siMEM_TxP_WrSts.empty()) {
             DmSts status = siMEM_TxP_WrSts.read();
             TxBufPtr txAppPtr = (ev.address + ev.length);
@@ -311,7 +314,7 @@ void pTxAppStatusHandler(
                     printInfo(myName, "Received TXMEM write status = %d (this was a split access).\n", status.okay.to_int());
                 }
             }
-            tash_fsmState = S0;
+            tash_fsmState = TASH_IDLE;
         }
         break;
     } // End of: switch
@@ -686,7 +689,7 @@ void pTxMemoryWriter(
         }
         break;
     case MWR_FWD_2ND_BUF:
-        if (!siTAIF_Data.empty() && !soMEM_WrData.full()) {
+        if (!siTAIF_Data.empty() and !soMEM_WrData.full()) {
             //-- Alternate streaming state used to re-align a splitted second buffer
             AxisApp prevChunk = mwr_currChunk;
             mwr_currChunk = siTAIF_Data.read();
