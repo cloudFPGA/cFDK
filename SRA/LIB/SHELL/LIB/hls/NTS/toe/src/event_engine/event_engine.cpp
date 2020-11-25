@@ -56,7 +56,7 @@ using namespace hls;
 #define TRACE_EVE 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -102,7 +102,7 @@ void event_engine(
     //------------------------------------------
     // Handle input from [RxEngine]
     //------------------------------------------
-    if (!siRXe_Event.empty() && !soAKd_Event.full()) {
+    if (!siRXe_Event.empty() and !soAKd_Event.full()) {
         siRXe_Event.read(ev);
         if (DEBUG_LEVEL & TRACE_EVE) {
             printInfo(myName, "Received event '%s' from [RXe].\n", getEventName(ev.type));
@@ -110,7 +110,7 @@ void event_engine(
         soAKd_Event.write(ev);
         eveTxEventCnt++;
     }
-    else if (eveTxEventCnt == akdRxEventCnt &&
+    else if (eveTxEventCnt == akdRxEventCnt and
              akdTxEventCnt == txeRxEventCnt) {
         //------------------------------------------
         // Handle input from [Timers]

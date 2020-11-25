@@ -56,7 +56,7 @@ using namespace hls;
 #define TRACE_AKD 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -94,6 +94,7 @@ void ack_delay(
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
     #pragma HLS RESET      variable=ACK_TABLE
 
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     // [TODO - The type of 'akdPtr' could be configured as a functions of 'MAX_SESSIONS']
     // [TODO - static const int NR_BITS = ceil(log10(MAX_SESSIONS)/log10(2));
     static SessionId           akdPtr;
@@ -112,7 +113,7 @@ void ack_delay(
         }
 
         // Check if there is a delayed ACK
-        if (ev.type == ACK_EVENT && ACK_TABLE[ev.sessionID] == 0) {
+        if (ev.type == ACK_EVENT and ACK_TABLE[ev.sessionID] == 0) {
             ACK_TABLE[ev.sessionID] = ACKD_64us;
             if (DEBUG_LEVEL & TRACE_AKD) {
                 printInfo(myName, "Creating a delayed ACK for session #%d.\n", ev.sessionID.to_int());
@@ -134,7 +135,7 @@ void ack_delay(
         }
     }
     else {
-        if (ACK_TABLE[akdPtr] > 0 && !soTXe_Event.full()) {
+        if (ACK_TABLE[akdPtr] > 0 and !soTXe_Event.full()) {
             if (ACK_TABLE[akdPtr] == 1) {
                 soTXe_Event.write(Event(ACK_EVENT, akdPtr));
                 if (DEBUG_LEVEL & TRACE_AKD) {

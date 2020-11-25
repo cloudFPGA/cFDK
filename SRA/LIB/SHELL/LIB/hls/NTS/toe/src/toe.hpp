@@ -1,5 +1,4 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -111,13 +110,13 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
   //   works with your longest segment. In other words, if 'TIME_1s' is too short
   //   and/or your segment is too long, you may experience retransmission events
-  //   (RT) which will break the test. You may want to use 'appRx_OneSeg.dat' or
-  //   'appRx_TwoSeg.dat' to tune this parameter.
+  //   (RT) which will break the test. You may want to use 'siIPRX_OneSeg.dat' or
+  //   'siIPRX_TwoSeg.dat' to tune this parameter.
   static const ap_uint<32> TIME_1s        =   250;
 
   static const ap_uint<32> TIME_1us       = (((ap_uint<32>)(TIME_1s/1000000) > 1) ? (ap_uint<32>)(TIME_1s/1000000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_64us      = (((ap_uint<32>)(TIME_1s/  15625) > 1) ? (ap_uint<32>)(TIME_1s/  15625) : (ap_uint<32>)1);
-  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
   static const ap_uint<32> TIME_128us     = (((ap_uint<32>)(TIME_1s/  31250) > 1) ? (ap_uint<32>)(TIME_1s/  31250) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
