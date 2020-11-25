@@ -124,8 +124,8 @@ void pMetaDataLoader(
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { S0=0, S1 } \
-                                 mdl_fsmState=S0;
+    static enum FsmStates { MDL_WAIT_EVENT=0, MDL_PROCESS_EVENT } \
+                                 mdl_fsmState=MDL_WAIT_EVENT;
     #pragma HLS RESET   variable=mdl_fsmState
     static FlagBool              mdl_sarLoaded=false;
     #pragma HLS RESET   variable=mdl_sarLoaded
@@ -142,12 +142,12 @@ void pMetaDataLoader(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpWindow             windowSize;
     TcpWindow             usableWindow;
-    TcpSegLen             currLength;
+    TcpDatLen             currDatLen;
     ap_uint<16>           slowstart_threshold;
     rstEvent              resetEvent;
 
     switch (mdl_fsmState) {
-    case S0:
+    case MDL_WAIT_EVENT:
         if (!siAKd_Event.empty()) {
             siAKd_Event.read(mdl_curEvent);
             if (DEBUG_LEVEL & TRACE_MDL) {
@@ -188,13 +188,13 @@ void pMetaDataLoader(
             default:
                 break;
             }
-            mdl_fsmState = S1;
+            mdl_fsmState = MDL_PROCESS_EVENT;
             // [FIXME - Add a random Initial Sequence Number in EMIF and move this out of here]
             mdl_randomValue++;
         }
         mdl_segmentCount = 0;
         break;
-    case S1:
+    case MDL_PROCESS_EVENT:
         switch(mdl_curEvent.type) {
         // When Nagle's algorithm disabled; Can bypass DDR
 #if (TCP_NODELAY)
@@ -265,7 +265,7 @@ void pMetaDataLoader(
                 mdl_txeMeta.syn = 0;
                 mdl_txeMeta.fin = 0;
                 mdl_txeMeta.length = 0;
-                currLength = (mdl_txSar.app - ((TxBufPtr)mdl_txSar.not_ackd));
+                currDatLen = (mdl_txSar.app - ((TxBufPtr)mdl_txSar.not_ackd));
 
                 TxBufPtr usedLength = ((TxBufPtr)mdl_txSar.not_ackd - mdl_txSar.ackd);
                 if (mdl_txSar.min_window > usedLength) {
@@ -278,31 +278,28 @@ void pMetaDataLoader(
 
                 // Construct address before modifying mdl_txSar.not_ackd
                 //  FYI - The TCP Tx buffers use up to 1GB (16Kx64KB). They are located at base@+1GB
-                TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE; // 0x40000000
+                TxMemPtr memSegAddr = TOE_TX_MEMORY_BASE;
                 memSegAddr(29, 16) = mdl_curEvent.sessionID(13, 0);
                 memSegAddr(15,  0) = mdl_txSar.not_ackd(15, 0);
 
                 // Check if length is bigger than Usable Window or MSS
-                if (currLength <= usableWindow) {
-                    //OBSOLETE_20201113 if (currLength >= ZYC2_MSS) {
-                    if (currLength+TCP_HEADER_LEN >= ZYC2_MSS) {
+                if (currDatLen <= usableWindow) {
+                    if (currDatLen+TCP_HEADER_LEN >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        //OBSOLETE_20201113 mdl_txSar.not_ackd += ZYC2_MSS;
-                        //OBSOLETE_20201113 mdl_txeMeta.length  = ZYC2_MSS;
                         mdl_txSar.not_ackd += ZYC2_MSS-TCP_HEADER_LEN;
                         mdl_txeMeta.length  = ZYC2_MSS-TCP_HEADER_LEN;
                     }
                     else {
                         //-- No IP Fragmentation or End of Fragmentation -------
                         //--  If we sent all data, we might also need to send a FIN
-                        if (mdl_txSar.finReady and (mdl_txSar.ackd == mdl_txSar.not_ackd or currLength == 0)) {
+                        if (mdl_txSar.finReady and (mdl_txSar.ackd == mdl_txSar.not_ackd or currDatLen == 0)) {
                             mdl_curEvent.type = FIN_EVENT;
                         }
                         else {
-                            mdl_txSar.not_ackd += currLength;
-                            mdl_txeMeta.length  = currLength;
-                            mdl_fsmState = S0;
+                            mdl_txSar.not_ackd += currDatLen;
+                            mdl_txeMeta.length  = currDatLen;
+                            mdl_fsmState = MDL_WAIT_EVENT;
                         }
                         // Update the 'mdl_txSar.not_ackd' pointer
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, mdl_txSar.not_ackd, QUERY_WR));
@@ -310,12 +307,9 @@ void pMetaDataLoader(
                 }
                 else {
                     // Code duplication, but better timing.
-                    //OBSOLETE_2020113 if (usableWindow >= ZYC2_MSS) {
                     if (usableWindow+TCP_HEADER_LEN >= ZYC2_MSS) {
                         //-- Start IP Fragmentation ----------------------------
                         //--  We stay in this state
-                        //OBSOLETE_2020113 mdl_txSar.not_ackd += ZYC2_MSS;
-                        //OBSOLETE_2020113 mdl_txeMeta.length  = ZYC2_MSS;
                         mdl_txSar.not_ackd += ZYC2_MSS-TCP_HEADER_LEN;
                         mdl_txeMeta.length  = ZYC2_MSS-TCP_HEADER_LEN;
                     }
@@ -329,7 +323,7 @@ void pMetaDataLoader(
                         soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                              mdl_txSar.not_ackd, QUERY_WR));
-                        mdl_fsmState = S0;
+                        mdl_fsmState = MDL_WAIT_EVENT;
                     }
                 }
                 if (mdl_txeMeta.length != 0) {
@@ -359,9 +353,9 @@ void pMetaDataLoader(
                 // Compute our window size
                 windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 if (!mdl_txSar.finSent) // No FIN sent
-                    currLength = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd);
+                    currDatLen = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd);
                 else // FIN already sent
-                    currLength = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd)-1;
+                    currDatLen = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd)-1;
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.ackd;
                 mdl_txeMeta.winSize = windowSize;
@@ -376,8 +370,8 @@ void pMetaDataLoader(
                 memSegAddr(15,  0) = mdl_txSar.ackd(15, 0); // mdl_curEvent.address;
                 // Decrease Slow Start Threshold, only on first RT from retransmitTimer
                 if (!mdl_sarLoaded and (mdl_curEvent.rt_count == 1)) {
-                    if (currLength > (4*ZYC2_MSS)) { // max(FlightSize/2, 2*MSS) RFC:5681
-                        slowstart_threshold = currLength/2;
+                    if (currDatLen > (4*ZYC2_MSS)) { // max(FlightSize/2, 2*MSS) RFC:5681
+                        slowstart_threshold = currDatLen/2;
                     }
                     else {
                         slowstart_threshold = (2 * ZYC2_MSS);
@@ -387,28 +381,25 @@ void pMetaDataLoader(
                 // Since we are retransmitting from 'txSar.ackd' to 'txSar.not_ackd',
                 // this data is already inside the usableWindow => No check is required
                 // Only check if length is bigger than MSS
-                //OBSOLETE_20201113 if (currLength > ZYC2_MSS) {
-                if (currLength+TCP_HEADER_LEN > ZYC2_MSS) {
+                if (currDatLen+TCP_HEADER_LEN > ZYC2_MSS) {
                     // We stay in this state and sent immediately another packet
-                    //OBSOLETE_20201113 mdl_txeMeta.length = ZYC2_MSS;
-                    //OBSOLETE_20201113 mdl_txSar.ackd    += ZYC2_MSS;
                     mdl_txeMeta.length = ZYC2_MSS-TCP_HEADER_LEN;
                     mdl_txSar.ackd    += ZYC2_MSS-TCP_HEADER_LEN;
                     // [TODO - replace with dynamic count, remove this]
                     if (mdl_segmentCount == 3) {
                         // Should set a probe or sth??
                         //txEng2txSar_upd_req.write(txTxSarQuery(ml_curEvent.sessionID, mdl_txSar.not_ackd, 1));
-                        mdl_fsmState = S0;
+                        mdl_fsmState = MDL_WAIT_EVENT;
                     }
                     mdl_segmentCount++;
                 }
                 else {
-                    mdl_txeMeta.length = currLength;
+                    mdl_txeMeta.length = currDatLen;
                     if (mdl_txSar.finSent) {
                         mdl_curEvent.type = FIN_EVENT;
                     }
                     else {
-                        mdl_fsmState = S0;
+                        mdl_fsmState = MDL_WAIT_EVENT;
                     }
                 }
 
@@ -448,7 +439,7 @@ void pMetaDataLoader(
                 soPhc_TxeMeta.write(mdl_txeMeta);
                 soSps_IsLookup.write(true);
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
         case SYN_EVENT:
@@ -478,7 +469,7 @@ void pMetaDataLoader(
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 // Set retransmit timer
                 soTIm_ReTxTimerEvent.write(TXeReTransTimerCmd(mdl_curEvent.sessionID, SYN_EVENT));
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
         case SYN_ACK_EVENT:
@@ -510,7 +501,7 @@ void pMetaDataLoader(
                 soSLc_ReverseLkpReq.write(mdl_curEvent.sessionID);
                 // Set retransmit timer
                 soTIm_ReTxTimerEvent.write(TXeReTransTimerCmd(mdl_curEvent.sessionID, SYN_ACK_EVENT));
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
         case FIN_EVENT:
@@ -555,7 +546,7 @@ void pMetaDataLoader(
                     // Set retransmit timer
                     soTIm_ReTxTimerEvent.write(TXeReTransTimerCmd(mdl_curEvent.sessionID));
                 }
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
         case RST_EVENT:
@@ -567,7 +558,7 @@ void pMetaDataLoader(
                 soPhc_TxeMeta.write(TXeMeta(0, resetEvent.getAckNumb(), 1, 1, 0, 0));
                 soSps_IsLookup.write(false);
                 soSps_RstSockPair.write(mdl_curEvent.tuple);
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             else if (!siTSt_TxSarRep.empty()) {
                 siTSt_TxSarRep.read(mdl_txSar);
@@ -576,7 +567,7 @@ void pMetaDataLoader(
                 soSLc_ReverseLkpReq.write(resetEvent.sessionID); //there is no sessionID??
                 soPhc_TxeMeta.write(TXeMeta(mdl_txSar.not_ackd, resetEvent.getAckNumb(), 1, 1, 0, 0));
 
-                mdl_fsmState = S0;
+                mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
         } // End of: switch
