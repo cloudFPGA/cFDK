@@ -110,7 +110,7 @@ template<typename T> void pStreamMux(
  * @param[in]  piMMIO_IpAddr         IPv4 Address from MMIO.
  *
  * @details
- *   This process performs the creation and tear down of the active connections.
+ *  This process performs the creation and tear down of the active connections.
  *   Active connections are the ones opened by the FPGA when operating in client
  *   mode. They make use of dynamically assigned or ephemeral ports which always
  *   fall in the range 32,768 to 65,535 (by TOE's convention).
@@ -124,6 +124,10 @@ template<typename T> void pStreamMux(
  *   will provide the [APP] with the 'SessionId' of the new connection.
  *  Sending the 'SessionId' over the 'siTAIF_ClsReq' interface, will tear-down
  *   the connection.
+ *
+ * @warning
+ *  The outgoing stream 'soTAIF_OpnRep is operated in non-blocking mode to avoid
+ *   any stalling of this process.
  *******************************************************************************/
 void pTxAppConnect(
         stream<TcpAppOpnReq>        &siTAIF_OpnReq,
@@ -452,6 +456,10 @@ void pStreamLengthGenerator(
  *   3) It the connection is not established, the application will be noticed it
  *      should act accordingly (e.g. by first opening the connection).
  *
+  * @warning
+ *  The outgoing stream 'soTAIF_SndRep is operated in non-blocking mode to avoid
+ *   any stalling of this process.
+ *
  *  [TODO: Implement TCP_NODELAY]
  *******************************************************************************/
 void pStreamMetaLoader(
@@ -776,6 +784,12 @@ void pTxMemoryWriter(
  *
  * @details
  *  This process is the front-end interface to the TCP application layer.
+ *
+ * @warning
+ *  To avoid any stalling of this process, the outgoing streams 'soTAIF_OpnRep
+ *  and 'soTAIF_Sndrep' are operated in non-blocking mode. This implies that the
+ *  user application process connected to these streams must provision enough
+ *  buffering to store the corresponding bytes exchanged on these interfaces.
  *******************************************************************************/
 void tx_app_interface(
         //-- TAIF / Open-Close Interfaces
@@ -873,7 +887,6 @@ void tx_app_interface(
             siSTt_SessStateRep,
             ssSmlToTat_AccessQry,
             ssTatToSml_AccessRep,
-            //OBSOLETE_20201109 ssSlgToSml_SegLen,
             ssSmlToMwr_AppMeta,
             ssSmlToEmx_Event);
 
