@@ -295,3 +295,18 @@ This section describes the vendor dependent implementations details. Xilinx Viva
     `ap_ready` and  `ap_done` which are typically used to specify when the design can start to perform an operation,
      when the operation ends and when the design is idle and ready for new inputs.
     
+## How to HLS Design Flow
+This section summarizes the compilation, simulation, synthesize and packaging steps of **`TOE`** with the Xilinx Vivado
+ HLS tools.
+ 
+The source files of **`TOE`** are located under [cFDK/LIB/SRA/LIB/Shell/hls/NTS/toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe).
+
+A makefile provides the following commands:
+* `make project` to create an HLS project for **`TOE`**. 
+* `make csim` to run a C simulation.
+* `make csynth` to run the HLS C synthesis.
+* `make cosim` to run the HLS C/RTL co-simulation.
+* `make rtlSyn`  to run an RTL synthesis to obtain more accurate timing and and utilization numbers.
+* `make rtlImpl` to run perform both RTL synthesis and implementation including detailed place and route.
+* `make regression` to run csim, csynth and cosim in sequence.
+* `make help` to print this list of commands.
