@@ -27,9 +27,8 @@ of **`TOE`**.
  
 ## HLS Coding Style and Naming Conventions
 The HLS design of **`TOE`** uses some specific naming rules to ease the description and the understanding of its architecture. 
-Please consider reading the following document before diving or contributing to this part of the cloudFPGA project.
-  * [**HLS coding style and naming conventions**]( ./hls-naming-conventions.md)
-<br>
+Please consider reading the document [**HLS coding style and naming conventions**]( ./hls-naming-conventions.md) before 
+diving or contributing to this part of the cloudFPGA project.
 
 ## List of Components
 
@@ -53,9 +52,13 @@ architecture body.
 
 ## Description of the Interfaces
 
-The entity declaration of **`TOE`** is specified as follows. It consists of [TODO] groups of interfaces referred to as the 
-[IP Network Layer-3 Interface](ip-network-layer-3-interface), the [TCP Application Layer Interface](tcp-application-layer-interface),
-the [MEM-TODO], the [CAM-TODO] and the [MMIO-TODO].
+The entity declaration of **`TOE`** is specified as follows. It consists of 6 groups of interfaces referred to as:
+ * the [Memory Mapped IO Interface](#memory-mapped-io-interface) (MMIO), 
+ * the [IP Network Layer-3 Interface](#ip-network-layer-3-interface) (IPRX and IPTX),
+ * the [TCP Application Layer Interface](#tcp-application-layer-interface) (TAIF),
+ * the [Memory System Interface](#memory-system-interface) (MEM),
+ * the [Content Addressable Memory Interface](#content-addressable-memory-interface) (CAM),
+ * the [Implementation Dependent Block Interface](#implementation-dependent-block-interface).
 
 ```C
 void toe(
@@ -63,9 +66,6 @@ void toe(
     //-- MMIO Interfaces
     //------------------------------------------------------
     Ip4Addr                                  piMMIO_IpAddr,
-    //------------------------------------------------------
-    //-- NTS Interfaces
-    //------------------------------------------------------
     StsBit                                  &poNTS_Ready,
     //------------------------------------------------------
     //-- IPRX / IP Rx / Data Interface
@@ -131,12 +131,27 @@ void toe(
 );
 ``` 
 
-Note that the design of **`TOE`** is specified to use the block-level IO protocol referred to as `ap_ctrl_none`. This mode
-prevents the RTL to create and implement block-level handshake signals such as `ap_start`, `ap_idle`, `ap_ready`, and
-`ap_done`. 
+Note that the entity declaration of **`TOE`** does not contain any _clock_ or _reset_ port. These ports are created by
+the Vivado HLS synthesis tool and are described in the [Implementation Dependent Block Interfaces](#implementation-dependent-bock-interfaces) section.    
+
+### Memory Mapped IO Interface
+The memory mapped IO (MMIO) interface consists of a set of status and configuration IO signals.
+```
+    //------------------------------------------------------
+    //-- MMIO Interfaces
+    //------------------------------------------------------
+    Ip4Addr                                  piMMIO_IpAddr,
+    StsBit                                  &poNTS_Ready,
+```
+* `piMMIO_IpAddr` is used to configure the IPv4 address of **`TOE`**. It implements a *scalar input port* of type
+    \<[Ip4Addr](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp)\> which encodes the IPv4 address in network byte oder
+    (i.e. in big-endian order).
+* `poNTS_Ready` is used to indicate the readiness of **`TOE`**. It implements a *scalar output port* of type
+    \<[StsBit](../../SRA/LIB/SHELL/LIB/hls/NTS/nts_types.hpp)\> which is set _high_ when **`TOE`** is initialised and
+    ready for operations on all of its interfaces.
 
 ### IP Network Layer-3 Interface
-The IP network layer-3 interface consists of a receive and a transmit interface. 
+The IP network layer-3 interface consists of a receive (IPRX) and a transmit (IPTX) interface. 
 ```
     //------------------------------------------------------
     //-- IPRX / IP Rx / Data Interface
@@ -154,7 +169,7 @@ The IP network layer-3 interface consists of a receive and a transmit interface.
   interface* of type \<[AxisIp4](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisIp4.hpp)\>. 
 
 ### TCP Application Layer Interface
-The **TCP application layer interface (TAIF)** connects **`TOE`** to a network presentation layer such as a *TLS process*, 
+The TCP application layer interface (TAIF) connects **`TOE`** to a network presentation layer such as a *TLS process*, 
 a network application layer such as an *HTTP server*, or directly to a user application itself. It consists of a receive
 and a transmit path, each path further containing a data and a control sub-interface.
 * [RxAppData](#rx-application-data-interface) implements the receive data path between **`TOE`** and the application
@@ -179,7 +194,7 @@ to send data back to the remote node.
 * `siTAIF_LsnReq` is used by the **`APP`** to request a TCP port number to be opened in passive listening mode.
   It implements an *AXI4-Stream interface* of type \<[TcpPort](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisTcp.hpp)\>.
 * `soTAIF_LsnRep` is a status reply returned by **`TOE`** upon a listen port request. It implements an *AXI4-Stream 
-   interface* of type \<[bool](../../SRA/LIB/SHELL/LIB/hls/NTS/nts_types.hpp)\>.
+   interface* of type \<[StsBool](../../SRA/LIB/SHELL/LIB/hls/NTS/nts_types.hpp)\>.
   * Warning: This reply stream is operated in non-blocking mode to avoid any stalling of the listen interface. This
     means that **`APP`** must provision sufficient buffering to store the listen reply returned by **`TOE`**.
 
@@ -219,7 +234,7 @@ Warning:
 #### Tx Application Control Interface
 In order for **`APP`** to initiate a connection with a remote node, the **`APP`** must first request **`TOE`** to open
 an active socket. Once the connection is established by **`TOE`**, an id-number that identifies the session is
-returned to **`APP`** for use during future sending requests.
+returned to **`APP`** for use in further sending operations.
 ```
     //------------------------------------------------------
     //-- TAIF / Open Connection Interfaces
@@ -236,28 +251,47 @@ returned to **`APP`** for use during future sending requests.
   * Warning: This reply stream is operated in non-blocking mode to avoid any stalling of the open connection interface.
     This means that **`APP`** must provision sufficient buffering to store the listen reply returned by **`TOE`**.
 
-
-
 #### Tx Application Data Interface
+The data transfer between **`APP`** and **`TOE`** is synchronized by the following handshake protocol. First, **`APP`**
+issues a request to send data for a specific TCP session. Second, **`TOE`** replies with the number of bytes that is 
+willing to accept from this request. Third, **`APP`** forwards a stream of bytes which length corresponds to the number
+of bytes that were granted during the handshaking process.
+```
+    //------------------------------------------------------
+    //-- TAIF / Send Data Interfaces
+    //------------------------------------------------------
+    stream<TcpAppSndReq>                    &siTAIF_SndReq,
+    stream<TcpAppSndRep>                    &soTAIF_SndRep,
+    stream<TcpAppData>                      &siTAIF_Data,
+```
+* `siTAIF_SndReq` is used by **`APP`** for requesting to send data to **`TOE`**. It implements an *AXI4-Stream interface*
+    of type \<[TcpAppSndReq](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\> which specifies the id-number of the session and
+    the length of the data stream to transmit.  
+* `soTAIF_SndRep` is a status reply returned by **`TOE`** upon a data send request. It implements an *AXI4-Stream 
+    interface* of type \<[TcpAppSndRep](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\> which specifies the id-number of the
+    session, the number of bytes that were requested to be sent by **`APP`**, the number of bytes that **`TOE`** is 
+    willing to accept based on the space left in the Tx memory buffer of this session, and a handshake return code.
+    * Warning: This reply stream is operated in non-blocking mode. Therefore, **`APP`** must always provision enough
+       buffering to store such a reply.
+* `siTAIF_Data` is the data stream forwarded by **`APP`** following the transmission handshake process. It implements an
+    *AXI4-Stream interface* of type \<[TcpAppData](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisApp.hpp)\> and its length equals
+    the one negotiated by the handshaking process.
 
+### Memory System Interface
+  [TODO - Under construction]
+  
+### Content Addressable Memory Interface
+  [TODO - Under construction]
 
-### Memory System Interface  [TODO]
-(data-mover to DDR4) 
-
-### Content Addressable Memory Interface  [TODO]
-
-
-
-
-
-
-## List of Interfaces
-
-| Acronym                                           | Description                                 | Related File
-|:--------------------------------------------------|:--------------------------------------------|:--------------
-| **[CAM](#content-addressable-memory-interface)**  | Content Addressable Memory interface        | [ToeCam](      ../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-| **[IPRX](#ip-receive-layer-interface)**           | IP Receive layer interface                  | [iprx](        ../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.hpp)
-| **[IPTX](#ip-transmit-layer-interface)**          | IP Transmit layer interface                 | [iptx](        ../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.hpp)
-| **[MEM](#memory-system-interface)**               | Memory system interface                     | [memSubSys](   ../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](#memory-mapped-io-interface)**           | Memory mapped IO interface                  | [mmioClient](  ../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[TAIF](#tcp-application-layer-interface)**      | TCP Application layer interface             | [nts](         ../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)
+### Implementation Dependent Block Interface
+This section describes the vendor dependent implementations details. Xilinx Vivado HLS typically creates three types of
+ ports on the RTL design: an input clock, an input reset and some optional block-level handshake signals.
+ * `aclk` is a 156.25MHz input clock for the operation of **`TOE`**.
+ * `aresetn` is an active _low_ synchronous (w/ `aclk`) reset signal.
+ 
+ Warning: 
+ * Note that the design of **`TOE`** is specified to use the block-level IO protocol referred to as `ap_ctrl_none`.
+    This mode prevents the RTL to create and implement block-level handshake signals such as `ap_start`, `ap_idle`,
+    `ap_ready` and  `ap_done` which are typically used to specify when the design can start to perform an operation,
+     when the operation ends and when the design is idle and ready for new inputs.
+    
