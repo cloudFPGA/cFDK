@@ -15,6 +15,7 @@ from the IP layer, a *Tx Engine (TXe)* to assemble outgoing data packets for the
 data-keeping engines.
 
 ![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
+![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the TCP Offload Engine</b></p>
 
 The TCP offload engine is entirely written in C/C++, and the Xilinx HLS flow is used here to synthesize and export **`TOE`** 
@@ -170,8 +171,8 @@ The IP network layer-3 interface consists of a receive (IPRX) and a transmit (IP
 
 ### TCP Application Layer Interface
 The TCP application layer interface (TAIF) connects **`TOE`** to a network presentation layer such as a *TLS process*, 
-a network application layer such as an *HTTP server*, or directly to a user application itself. It consists of a receive
-and a transmit path, each path further containing a data and a control sub-interface.
+a network application layer such as an *HTTP server*, or directly to the user application itself. It consists of a 
+receive and a transmit path, each path further containing a data and a control sub-interface.
 * [RxAppData](#rx-application-data-interface) implements the receive data path between **`TOE`** and the application
   layer (i.e., the incoming network traffic direction) and [RxAppCtrl](#rx-application-control-interface) manages the
   receive control path.
@@ -295,7 +296,7 @@ This section describes the vendor dependent implementations details. Xilinx Viva
     `ap_ready` and  `ap_done` which are typically used to specify when the design can start to perform an operation,
      when the operation ends and when the design is idle and ready for new inputs.
     
-## How to HLS Design Flow
+## HowTo HLS Design Flow
 This section summarizes the compilation, simulation, synthesize and packaging steps of **`TOE`** with the Xilinx Vivado
  HLS tools.
  
