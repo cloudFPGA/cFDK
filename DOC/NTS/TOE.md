@@ -15,7 +15,6 @@ from the IP layer, a *Tx Engine (TXe)* to assemble outgoing data packets for the
 data-keeping engines.
 
 ![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
-![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
 <p align="center"><b>Figure-1: Block diagram of the TCP Offload Engine</b></p>
 
 The TCP offload engine is entirely written in C/C++, and the Xilinx HLS flow is used here to synthesize and export **`TOE`** 

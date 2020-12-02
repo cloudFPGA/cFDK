@@ -37,7 +37,7 @@ architecture body.
 
 | Entity              | Description                                       | Architecture
 |:-------------------:|:--------------------------------------------------|:--------------
-| **[ARS](ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp_server.cpp)
+| **[ARS](ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp.cpp)
 | **[ICMP](ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
 | **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
 | **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
@@ -47,7 +47,7 @@ architecture body.
 ## Description of the Interfaces
 The entity declaration of **`NTS`** is specified as follows. It consists of 5 groups of interfaces referred to as:
  * the [Memory Mapped IO Interface](#memory-mapped-io-interface) (MMIO), 
- * the [Ethernet Data Link Layer-2 Interface](#ethernet-data-link-2-interface) (ETH),
+ * the [Ethernet Data Link Layer-2 Interface](#ethernet-data-link-layer-2-interface) (ETH),
  * the [TCP Application Layer Interface](#tcp-application-layer-interface) (TAIF),
  * the [UDP Application Layer Interface](#udp-application-layer-interface) (UAIF),
  * the [Memory System Interface](#memory-system-interface) (MEM),
@@ -277,7 +277,28 @@ module NetworkTransportStack_TcpIp (
 
 ### Memory Mapped IO Interface 
 The memory mapped IO (MMIO) interface consists of a set of status and configuration IO signals.
-[TODO - Under construction]
+```
+    //------------------------------------------------------
+    //-- MMIO / Interfaces
+    //------------------------------------------------------
+    input          piMMIO_Layer2Rst,
+    input          piMMIO_Layer3Rst,
+    input          piMMIO_Layer4Rst,
+    input          piMMIO_Layer4En,
+    input  [ 47:0] piMMIO_MacAddress,
+    input  [ 31:0] piMMIO_Ip4Address,
+    input  [ 31:0] piMMIO_SubNetMask,
+    input  [ 31:0] piMMIO_GatewayAddr,
+    output         poMMIO_CamReady,
+    output         poMMIO_NtsReady
+```
+* `piMMIO_Layer2Rst`, `piMMIO_Layer3Rst` and `piMMIO_Layer4Rst` are active *high* reset signals. The layer number
+    corresponds to one of the seven layers of the conceptual OSI network model.
+* `piMMIO_Layer4En` is an active *high* enable signal. It can be used to delay the start of the transport layer #4.
+* `piMMIO_MacAddress`, `piMMIO_Ip4Address`, `piMMIO_SubNetMask` and `piMMIO_GatewayAddr` are used to configure the *MAC
+    address, the *IPv4 address*, the *IP subnet mask* and the *default gateway address* of **`NTS`**, respectively. All
+    the addresses must be encoded in network byte oder (i.e. in big-endian order).
+* `poMMIO_CamReady` and `poMMIO_NtsReady` are active *high* ready signals. They indicate the readiness of **`NTS`**.
 
 ### Ethernet Data Link Layer-2 Interface
 The Ethernet data link layer-2 interface (ETH) connects **`NTS`** to a 10 Gigabit Ethernet Media Access Controller
