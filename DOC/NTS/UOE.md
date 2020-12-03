@@ -180,8 +180,9 @@ The data transfer between **`UOE`** and **`APP`** is flow-controlled by the stre
     socket-pair associated with this data stream.
 
 #### Tx Application Data Interface
-The data transfer between **`APP`** and **`UOE`** flow-controlled by the stream based operation of the interface. 
-[FIXME-TODO]
+For **`UOE`** to send data on the network, the **`APP`** must provide the data as a stream of chunks, and every stream 
+must be accompanied by a metadata and payload length information. The metadata specifies the socket-pair that the 
+stream belongs to, while the payload length specifies its length.
 ```
     //------------------------------------------------------
     //-- UAIF / Tx Data Interfaces
@@ -191,12 +192,23 @@ The data transfer between **`APP`** and **`UOE`** flow-controlled by the stream 
     stream<UdpAppDLen>              &siUAIF_DLen,
 ```
 * `siUAIF_Data` is the data stream forwarded by **`APP`** to **`UOE`** for transmission on the Ethernet network. It 
-    implements an *AXI4-Stream interface* of type \<[UdpAppData](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisApp.hpp)\> and 
-    its length ... [FIXME-TODO]
-      
+    implements an *AXI4-Stream interface* of type \<[UdpAppData](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisApp.hpp)\>. 
 * `siUAIF_Meta` is the metadata associated with the forwarded data stream. It implements an *AXI4-Stream interface*
     of type \<[UdpAppMeta](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\> which specifies the socket-pair associated with 
     this data stream. 
-* `siUAIF_DLen` is [FIXME-TODO] 
-
-
+* `siUAIF_DLen` specifies the length of the data stream that **`APP`** is requesting to send. It implements an 
+    *AXI4-Stream interface* of type \<[UdpAppDLen](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\> and the value loaded into
+    it defines one of the two following modes of operation: 
+    1) *DATAGRAM_MODE*: If the 'DLen' stream is loaded with a length != 0, this length is used as reference for handling 
+        the corresponding data stream. If the length is larger than UDP_MDS bytes (.i.e, MTU_ZYC2-IP_HEADER_LEN-UDP_HEADER_LEN),
+        this process will split the incoming datagram and will generate as many sub-datagrams as required to transport 
+        all 'DLen' bytes over multiple Ethernet frames.
+        - Warning: While in *DATAGRAM_MODE* mode, the setting of the '*TLAST*' bit of the data stream is not required
+            but is highly recommended.
+    2) *STREAMING_MODE*: If the 'DLen' stream is loaded with a length == 0, the corresponding data stream will keep
+        on being forwarded based on the current metadata information until the '*TLAST*' bit of the data stream is set. 
+        In this mode, **`UOE`** will wait for the reception of UDP_MDS bytes before generating a new UDP-over-IPv4 
+        packet, unless the '*TLAST*' bit of the data stream is set.
+        - Warning: While in *STREAMING_MODE*, it is the responsibility of the application to set the '*TLAST*' bit of 
+            the data stream back to '1' from time to time, otherwise that single stream will monopolize the **`UOE`** 
+            indefinitely.
