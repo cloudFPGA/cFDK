@@ -221,7 +221,7 @@ typedef SocketPair  UdpAppMeta;
 //-- UDP APP - DATA LENGTH
 //--  The length of the datagram.
 //---------------------------------------------------------
-typedef UdpLen      UdpAppDLen;
+typedef UdpDatLen   UdpAppDLen;
 
 //=========================================================
 //== UAIF / OPEN & CLOSE PORT INTERFACES

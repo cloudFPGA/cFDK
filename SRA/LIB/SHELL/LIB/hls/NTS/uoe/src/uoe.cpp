@@ -957,7 +957,7 @@ void pRxEngine(
  *  1) DATAGRAM_MODE: If the 'DLen' field is loaded with a length != 0, this
  *     length is used as reference for handling the corresponding stream. If the
  *     length is larger than UDP_MDS bytes (.i.e, MTU_ZYC2-IP_HEADER_LEN-UDP_HEADER_LEN),
- *     the this process will split the incoming datagram and generate as many
+ *     this process will split the incoming datagram and generate as many
  *     sub-datagrams as required to transport all 'DLen' bytes over Ethernet
  *     frames.
  *  2) STREAMING_MODE: If the 'DLen' field is configured with a length == 0, the
@@ -969,8 +969,8 @@ void pRxEngine(
  * @warning
  *  In DATAGRAM_MODE, the setting of the 'TLAST' bit of the data stream is not
  *   required but highly recommended.
- *  In STREAMING_MODE, it is the responsability of the application to set the
- *   'TLAST' bit to avoid a connection from monopolizing the UOE indefinitively.
+ *  In STREAMING_MODE, it is the responsibility of the application to set the
+ *   'TLAST' bit to avoid a connection from monopolizing the UOE indefinitely.
  *******************************************************************************/
 void pTxApplicationInterface(
         CmdBit                   piMMIO_En,

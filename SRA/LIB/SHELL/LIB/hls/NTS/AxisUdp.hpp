@@ -103,6 +103,9 @@ typedef tData       UdpData;        // UDP Data unit of transfer
 typedef tDataHalf   UdpDataHi;      // UDP High part of a data unit of transfer
 typedef tDataHalf   UdpDataLo;      // UDP Low part of a data unit of transfer
 
+typedef ap_uint<16> UdpDgmLen;      // UDP Datagram Length in octets (same as UdpLen=Hdr+Data)
+typedef ap_uint<16> UdpDatLen;      // UDP Data     Length in octets (same as UdpDgmLen minus UdpHdrLen)
+
 /******************************************************************************
  * UDP Data over AXI4-STREAMING
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
