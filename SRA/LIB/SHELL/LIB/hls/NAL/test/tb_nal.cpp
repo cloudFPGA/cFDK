@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <hls_stream.h>
+#include <inttypes.h>
 
 #include "../src/nal.hpp"
 #include "../../simulation_utils.hpp"
@@ -209,7 +210,6 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
     string      strLine;
     ifstream    inpFileStream;
     string      datFile = "../../../../test/" + inpFileName;
-    UdpAppData     udpWord;
 
     //-- STEP-1 : OPEN FILE
     inpFileStream.open(datFile.c_str());
@@ -224,15 +224,22 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
         if (!inpFileStream.eof()) {
 
             getline(inpFileStream, strLine);
-            if (strLine.empty()) continue;
-            uint64_t newd;
-            uint8_t newk;
-            uint8_t newl;
-            //sscanf(strLine.c_str(), "%llx %x %d", udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
+            if (strLine.empty())
+            {
+            	continue;
+            }
+            uint64_t newd = 0x0;
+            uint32_t newk = 0; //sscanf expects 32bit
+            uint32_t newl = 0; //sscanf expects 32bit
+            printf(strLine.c_str()); printf("\n");
+            //sscanf(strLine.c_str(), "%u" PRIx64 " %x %d", &newd, &newk, &newl);
             sscanf(strLine.c_str(), "%llx %x %d", &newd, &newk, &newl);
-            udpWord.setTData(newd);
-            udpWord.setTKeep(newk);
-            udpWord.setTLast(newl);
+            UdpAppData     udpWord;
+            udpWord.setTData(newd); //BE version
+            udpWord.setTKeep(newk); //BE version
+            udpWord.setTLast(newl); //BE version
+            printf("scanff reads %llx, %x %d\n", newd, newk, newl);
+            //UdpAppData udpWord(newd, newk, newl);
 
             // Write to sDataStream
             if (sDataStream.full()) {
