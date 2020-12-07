@@ -225,7 +225,14 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
 
             getline(inpFileStream, strLine);
             if (strLine.empty()) continue;
-            sscanf(strLine.c_str(), "%llx %x %d", udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
+            uint64_t newd;
+            uint8_t newk;
+            uint8_t newl;
+            //sscanf(strLine.c_str(), "%llx %x %d", udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
+            sscanf(strLine.c_str(), "%llx %x %d", &newd, &newk, &newl);
+            udpWord.setTData(newd);
+            udpWord.setTKeep(newk);
+            udpWord.setTLast(newl);
 
             // Write to sDataStream
             if (sDataStream.full()) {
@@ -1002,7 +1009,7 @@ int main() {
     bool sof = true;
     gSimCycCnt = simCnt; // Simulation cycle counter as a global variable
     nrErr      = 0; // Total number of testbench errors
-    
+
     printf("#####################################################\n");
     printf("## MAIN LOOP STARTS HERE                           ##\n");
     printf("#####################################################\n");
